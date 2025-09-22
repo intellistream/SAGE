@@ -16,7 +16,8 @@ try:
                                         BRSEvaluate, CompressionRateEvaluate,
                                         ContextRecallEvaluate, F1Evaluate,
                                         LatencyEvaluate, RecallEvaluate,
-                                        RougeLEvaluate, TokenCountEvaluate)
+                                        RougeLEvaluate, TokenCountEvaluate,
+                                        _normalize_data)
 
     EVALUATE_AVAILABLE = True
 except ImportError as e:
@@ -35,6 +36,227 @@ def sample_evaluation_data():
             "机器学习让计算机能够从数据中学习模式。",
         ],
     }
+
+
+@pytest.mark.unit
+class TestNormalizeData:
+    """测试_normalize_data函数"""
+
+    def test_normalize_data_with_tuple_input(self):
+        """测试tuple输入的数据标准化"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        # 测试标准的(question, answer)元组
+        input_data = ("什么是机器学习？", "机器学习是一种人工智能技术")
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": "什么是机器学习？",
+            "generated": "机器学习是一种人工智能技术",
+            "references": []
+        }
+        assert result == expected
+
+    def test_normalize_data_with_empty_tuple(self):
+        """测试空元组输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = ()
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": None,
+            "generated": "",
+            "references": []
+        }
+        assert result == expected
+
+    def test_normalize_data_with_single_element_tuple(self):
+        """测试单元素元组输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = ("问题",)
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": "问题",
+            "generated": "",
+            "references": []
+        }
+        assert result == expected
+
+    def test_normalize_data_with_non_string_tuple(self):
+        """测试包含非字符串的元组输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = ("问题", 123)
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": "问题",
+            "generated": "123",
+            "references": []
+        }
+        assert result == expected
+
+    def test_normalize_data_with_complete_dict(self):
+        """测试包含完整字段的字典输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = {
+            "question": "测试问题",
+            "generated": "测试答案",
+            "references": ["参考答案1", "参考答案2"],
+            "extra_field": "额外信息"
+        }
+        result = _normalize_data(input_data)
+        
+        # 应该保留所有原始字段
+        assert result == input_data
+
+    def test_normalize_data_with_pred_golds_dict(self):
+        """测试包含pred和golds字段的字典输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = {
+            "question": "测试问题",
+            "pred": "预测答案",
+            "golds": ["标准答案1", "标准答案2"]
+        }
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": "测试问题",
+            "pred": "预测答案",
+            "golds": ["标准答案1", "标准答案2"],
+            "generated": "预测答案",
+            "references": ["标准答案1", "标准答案2"]
+        }
+        assert result == expected
+
+    def test_normalize_data_with_missing_fields_dict(self):
+        """测试缺少字段的字典输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = {
+            "question": "测试问题",
+            "other_field": "其他信息"
+        }
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": "测试问题",
+            "other_field": "其他信息",
+            "generated": "",
+            "references": []
+        }
+        assert result == expected
+
+    def test_normalize_data_with_non_list_references(self):
+        """测试references不是列表的情况"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = {
+            "question": "测试问题",
+            "generated": "测试答案",
+            "references": "单个参考答案"
+        }
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": "测试问题",
+            "generated": "测试答案",
+            "references": ["单个参考答案"]
+        }
+        assert result == expected
+
+    def test_normalize_data_with_golds_non_list(self):
+        """测试golds不是列表的情况"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = {
+            "golds": "单个标准答案"
+        }
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "golds": "单个标准答案",
+            "generated": "",
+            "references": ["单个标准答案"]
+        }
+        assert result == expected
+
+    def test_normalize_data_with_string_input(self):
+        """测试字符串输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = "这是一个测试答案"
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": None,
+            "generated": "这是一个测试答案",
+            "references": []
+        }
+        assert result == expected
+
+    def test_normalize_data_with_number_input(self):
+        """测试数字输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = 42
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": None,
+            "generated": "42",
+            "references": []
+        }
+        assert result == expected
+
+    def test_normalize_data_with_none_input(self):
+        """测试None输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = None
+        result = _normalize_data(input_data)
+        
+        expected = {
+            "question": None,
+            "generated": "None",
+            "references": []
+        }
+        assert result == expected
+
+    def test_normalize_data_preserves_extra_fields(self):
+        """测试保留额外字段"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = {
+            "question": "测试问题",
+            "generated": "测试答案",
+            "references": ["参考答案"],
+            "metadata": {"source": "test"},
+            "timestamp": "2025-09-22",
+            "score": 0.85
+        }
+        result = _normalize_data(input_data)
+        
+        # 所有字段都应该被保留
+        assert result == input_data
 
 
 @pytest.mark.unit
