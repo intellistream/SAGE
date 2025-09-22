@@ -1,3 +1,4 @@
+import logging
 import time
 import numpy as np
 
@@ -9,13 +10,7 @@ try:
             SimpleStreamSource,
             StreamEnvironment,
         )
-    except ImportError as e:
-        # If the underlying C++ extension is not available, optionally skip in test mode
-        if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
-            print("[skip] candyFlow extension not available; skipping hello_sage_flow_app in test mode")
-            import sys as _sys
-
-            _sys.exit(0)
+    except ImportError:
         raise
 except ModuleNotFoundError:
     import os
@@ -77,15 +72,15 @@ def main():
 
     # 将源加入环境并执行
     env.addStream(source)
-    print("execute start")
+    logging.info("execute start")
     env.execute()
-    print("execute done")
+    logging.info("execute done")
 
     # 简单校验：处理的记录数应等于注入的记录数
     assert processed["count"] == total, (
         f"processed count {processed['count']} != expected {total}"
     )
-    print(f"processed count: {processed['count']}")
+    logging.info(f"processed count: {processed['count']}")
 
 
 if __name__ == "__main__":

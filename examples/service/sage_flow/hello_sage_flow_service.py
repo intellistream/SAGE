@@ -1,3 +1,4 @@
+import logging
 import time
 import numpy as np
 
@@ -9,12 +10,7 @@ try:
         from sage.middleware.components.sage_flow.micro_service.sage_flow_service import (
             SageFlowService,
         )
-    except ImportError as e:
-        if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
-            print("[skip] candyFlow extension not available; skipping hello_sage_flow_service in test mode")
-            import sys as _sys
-
-            _sys.exit(0)
+    except ImportError:
         raise
 except ModuleNotFoundError:
     import os
@@ -70,8 +66,7 @@ def main():
 
     # 运行一次，将队列中的数据消费（内部会执行 env.execute()）
     svc.run()
-
-    print("Service demo done")
+    logging.info("Service demo done")
 
 
 if __name__ == "__main__":
