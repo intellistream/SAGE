@@ -26,21 +26,21 @@ def _load_version():
                 version_globals = {}
                 with open(version_file, 'r', encoding='utf-8') as f:
                     exec(f.read(), version_globals)
-                return version_globals.get('__version__', '0.1.4')
+                return version_globals.get('__version__', '0.1.3')
         except Exception:
             pass
     
     # 最后的默认值
-    return '0.1.4'
+    return '0.1.3'
 
 @app.command()
 def show():
     """显示版本信息"""
-    info = _load_version()
-    print(f"🚀 {info['project_name']} - {info['project_full_name']}")
-    print(f"Version: {info['version']}")
-    print(f"Author: {info['author']}")
-    print(f"Repository: {info['repository']}")
+    version = _load_version()
+    print("🚀 SAGE - Streaming-Augmented Generative Execution")
+    print(f"Version: {version}")
+    print("Author: IntelliStream")
+    print("Repository: https://github.com/intellistream/SAGE")
     print("")
     print("💡 Tips:")
     print("   sage job list         # 查看作业列表")

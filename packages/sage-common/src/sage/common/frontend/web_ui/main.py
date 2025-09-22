@@ -28,7 +28,7 @@ def _load_version():
                 with open(version_file, 'r', encoding='utf-8') as f:
                     exec(f.read(), version_globals)
                 return {
-                    'version': version_globals.get('__version__', '0.1.4'),
+                    'version': version_globals.get('__version__', '0.1.3'),
                     'python_requires': version_globals.get('__python_requires__', '>=3.10'),
                     'python_supported': version_globals.get('__python_supported_versions__', ['3.10', '3.11', '3.12'])
                 }
@@ -37,7 +37,7 @@ def _load_version():
     
     # 最后的默认值
     return {
-        'version': '0.1.4',
+        'version': '0.1.3',
         'python_requires': '>=3.10',
         'python_supported': ['3.10', '3.11', '3.12']
     }

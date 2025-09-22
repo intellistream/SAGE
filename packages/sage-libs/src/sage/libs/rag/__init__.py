@@ -7,7 +7,7 @@ def _load_version():
     """从 sage-common 包加载版本信息"""
     try:
         # 优先从 sage-common 包加载版本
-        from sage.common._version import __version__
+        from sage.libs._version import __version__
         return {
             'version': __version__,
             'author': 'SAGE Team',
@@ -35,7 +35,7 @@ def _load_version():
                     with open(version_file, 'r', encoding='utf-8') as f:
                         exec(f.read(), version_globals)
                     return {
-                        'version': version_globals.get('__version__', '0.1.4'),
+                        'version': version_globals.get('__version__', '0.1.3'),
                         'author': version_globals.get('__author__', 'SAGE Team'),
                         'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
                     }
@@ -44,7 +44,7 @@ def _load_version():
     
     # 最后的默认值
     return {
-        'version': '0.1.4',
+        'version': '0.1.3',
         'author': 'SAGE Team', 
         'email': 'shuhao_zhang@hust.edu.cn'
     }

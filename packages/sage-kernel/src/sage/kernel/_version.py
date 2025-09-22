@@ -1,4 +1,4 @@
-"""Version information for sage-common package."""
+"""Version information for sage-kernel package."""
 
 import os
 from pathlib import Path

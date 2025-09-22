@@ -17,7 +17,7 @@ def _load_version():
         return __version__
     except ImportError:
         # 如果本地版本文件不存在，返回默认值
-        return '0.1.4'
+        return '0.1.3'
 
 
 # 创建 FastAPI 应用
