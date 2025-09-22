@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+from sage.common.utils.logging.custom_logger import CustomLogger
+
 
 class MilvusBackend:
     """Milvus 后端管理器（支持本地 Milvus Lite 与远程 Milvus）"""
@@ -24,7 +26,10 @@ class MilvusBackend:
             logger: 日志记录器
         """
         self.config = config
-        self.logger = logger or logging.getLogger(__name__)
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = CustomLogger([("console", "INFO")], name="MilvusBackend")
 
         # 连接与集合配置
         self.host: str = self.config.get("host", "localhost")
@@ -386,7 +391,7 @@ class MilvusBackend:
             文本结果列表
         """
         try:
-            print(f"MilvusBackend.search: using top_k = {top_k}")
+            self.logger.debug(f"MilvusBackend.search: using top_k = {top_k}")
 
             hits = self.client.search(
                 collection_name=self.collection_name,

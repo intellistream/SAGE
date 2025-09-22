@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE CLI Version Command
 显示版本信息
 """
@@ -43,17 +44,17 @@ def _load_version():
 def show():
     """显示版本信息"""
     version = _load_version()
-    print("🚀 SAGE - Streaming-Augmented Generative Execution")
-    print(f"Version: {version}")
-    print("Author: IntelliStream")
-    print("Repository: https://github.com/intellistream/SAGE")
-    print("")
-    print("💡 Tips:")
-    print("   sage job list         # 查看作业列表")
-    print("   sage studio start     # 启动Studio可视化编辑器")
-    print("   sage extensions       # 查看可用扩展")
-    print("   sage-dev --help       # 开发工具")
-    print("   sage jobmanager start # 启动作业管理器服务")
+    self.logger.info("🚀 SAGE - Streaming-Augmented Generative Execution")
+    self.logger.info(f"Version: {version}")
+    self.logger.info("Author: IntelliStream")
+    self.logger.info("Repository: https://github.com/intellistream/SAGE")
+    self.logger.info("")
+    self.logger.info("💡 Tips:")
+    self.logger.info("   sage job list         # 查看作业列表")
+    self.logger.info("   sage studio start     # 启动Studio可视化编辑器")
+    self.logger.info("   sage extensions       # 查看可用扩展")
+    self.logger.info("   sage-dev --help       # 开发工具")
+    self.logger.info("   sage jobmanager start # 启动作业管理器服务")
 
 
 # 为了向后兼容，也提供一个直接的version命令

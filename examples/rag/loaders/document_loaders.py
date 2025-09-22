@@ -1,4 +1,5 @@
 """
+import logging
 document_loaders.py
 SAGE RAG 示例：文本加载工具
 """
@@ -40,4 +41,4 @@ class TextLoader:
 # 用法示例：
 # loader = TextLoader('data/qa_knowledge_base.txt')
 # docs = loader.load()
-# print(docs[0]["content"])
+# logging.info(docs[0]["content"])

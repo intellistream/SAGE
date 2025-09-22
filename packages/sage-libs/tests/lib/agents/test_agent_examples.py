@@ -1,4 +1,5 @@
 """
+import logging
 Tests for the refactored agent.py in examples/agents/
 
 This covers the new functionality added in commit 12aec700c63407e1f5d79455b2d64a60a6688e96:
@@ -354,9 +355,9 @@ if __name__ == "__main__":
     if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         try:
             main()
-            print("\\n✅ Test passed: Agent pipeline structure validated")
+            logging.info("\\n✅ Test passed: Agent pipeline structure validated")
         except Exception as e:
-            print(f"❌ Test failed: {e}")
+            logging.info(f"❌ Test failed: {e}")
             sys.exit(1)
     else:
         main()

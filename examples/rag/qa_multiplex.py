@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -23,8 +24,8 @@ def pipeline_run(config):
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        print("🧪 Test mode detected - qa_multiplex example")
-        print("✅ Test passed: Example structure validated")
+        logging.info("🧪 Test mode detected - qa_multiplex example")
+        logging.info("✅ Test passed: Example structure validated")
         return
 
     try:
@@ -67,7 +68,7 @@ def pipeline_run(config):
         time.sleep(10)
 
     except Exception as e:
-        print(f"An error occurred while running the pipeline: {e}")
+        logging.info(f"An error occurred while running the pipeline: {e}")
         raise
 
 
@@ -79,8 +80,8 @@ if __name__ == "__main__":
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        print("🧪 Test mode detected - qa_multiplex example")
-        print("✅ Test passed: Example structure validated")
+        logging.info("🧪 Test mode detected - qa_multiplex example")
+        logging.info("✅ Test passed: Example structure validated")
         sys.exit(0)
 
     # Load environment variables from .env file
@@ -91,8 +92,8 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "..", "config", "config_multiplex.yaml"
     )
     if not os.path.exists(config_path):
-        print(f"❌ Configuration file not found: {config_path}")
-        print("Please create the configuration file first.")
+        logging.info(f"❌ Configuration file not found: {config_path}")
+        logging.info("Please create the configuration file first.")
         sys.exit(1)
 
     config = load_config(config_path)

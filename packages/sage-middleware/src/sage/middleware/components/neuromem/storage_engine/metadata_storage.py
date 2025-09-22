@@ -1,6 +1,7 @@
 # file sage/core/sage.middleware.services.neuromem./storage_engine/metadata_storage.py
 # python -m sage.core.sage.middleware.services.neuromem..storage_engine.metadata_storage
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 from typing import Any, Dict, List, Optional
 
 from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
@@ -233,27 +234,27 @@ if __name__ == "__main__":
 
     # 存储元数据
     metadata_store.store(item_id, metadata)
-    print("Step 1 | Retrieved metadata:", metadata_store.get(item_id))
+    self.logger.info("Step 1 | Retrieved metadata:", metadata_store.get(item_id))
 
     # 保存到磁盘
     metadata_store.store_to_disk(disk_path)
-    print(f"Step 2 | Metadata saved to {disk_path}")
+    self.logger.info(f"Step 2 | Metadata saved to {disk_path}")
 
     # 清空内存
     metadata_store.clear()
-    print("Step 3 | After clear, retrieved:", metadata_store.get(item_id))
+    self.logger.info("Step 3 | After clear, retrieved:", metadata_store.get(item_id))
 
     # 等待用户输入 yes 再加载
     user_input = input("Step 4 | Enter 'yes' to load metadata from disk: ")
     if user_input.strip().lower() == "yes":
         metadata_store.load_from_disk(disk_path)
-        print("Step 5 | After reload, retrieved:", metadata_store.get(item_id))
+        self.logger.info("Step 5 | After reload, retrieved:", metadata_store.get(item_id))
     else:
-        print("Step 5 | Skipped loading from disk.")
+        self.logger.info("Step 5 | Skipped loading from disk.")
 
     # 删除磁盘文件
     metadata_store.clear_disk_data(disk_path)
-    print(f"Step 6 | Disk file {disk_path} has been deleted.")
+    self.logger.info(f"Step 6 | Disk file {disk_path} has been deleted.")
 
     # 可选：检查磁盘上确实没这个文件
-    print("Step 7 | File exists after deletion?:", os.path.exists(disk_path))
+    self.logger.info("Step 7 | File exists after deletion?:", os.path.exists(disk_path))

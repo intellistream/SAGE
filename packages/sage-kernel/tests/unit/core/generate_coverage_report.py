@@ -1,4 +1,5 @@
 """
+import logging
 Core模块测试覆盖率报告生成器
 """
 
@@ -340,27 +341,27 @@ def main():
     """主函数"""
     reporter = TestCoverageReporter()
 
-    print("生成SAGE Core模块测试覆盖率报告...")
-    print("=" * 50)
+    logging.info("生成SAGE Core模块测试覆盖率报告...")
+    logging.info("=" * 50)
 
     # 生成并保存报告
     report_path = reporter.save_report()
-    print(f"报告已保存到: {report_path}")
+    logging.info(f"报告已保存到: {report_path}")
 
     # 显示简要摘要
     compliance = reporter.analyze_test_compliance()
-    print(f"\n快速摘要:")
-    print(f"- 测试合规率: {compliance['compliance_rate']:.1f}%")
-    print(f"- 源文件总数: {compliance['total_source_files']}")
-    print(f"- 已覆盖文件: {compliance['covered_files']}")
-    print(f"- 未覆盖文件: {compliance['uncovered_files']}")
+    logging.info(f"\n快速摘要:")
+    logging.info(f"- 测试合规率: {compliance['compliance_rate']:.1f}%")
+    logging.info(f"- 源文件总数: {compliance['total_source_files']}")
+    logging.info(f"- 已覆盖文件: {compliance['covered_files']}")
+    logging.info(f"- 未覆盖文件: {compliance['uncovered_files']}")
 
     if compliance["uncovered_source_files"]:
-        print(f"\n需要创建测试的文件:")
+        logging.info(f"\n需要创建测试的文件:")
         for src_file in compliance["uncovered_source_files"][:5]:  # 只显示前5个
-            print(f"  - {src_file}")
+            logging.info(f"  - {src_file}")
         if len(compliance["uncovered_source_files"]) > 5:
-            print(f"  ... 还有{len(compliance['uncovered_source_files']) - 5}个文件")
+            logging.info(f"  ... 还有{len(compliance['uncovered_source_files']) - 5}个文件")
 
 
 if __name__ == "__main__":

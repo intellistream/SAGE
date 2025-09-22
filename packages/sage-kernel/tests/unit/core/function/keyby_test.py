@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 import threading
@@ -78,7 +79,7 @@ class ParallelDebugSink(SinkFunction):
         )
 
         # 打印调试信息
-        print(
+        logging.info(
             f"🔍 [Instance {self.parallel_index}] User: {data['user_id']}, "
             f"Content: {data['content']}"
         )
@@ -110,7 +111,7 @@ class ParallelDebugSink(SinkFunction):
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(result_data, f, indent=2, ensure_ascii=False)
 
-        print(f"📁 Results saved to: {filepath}")
+        logging.info(f"📁 Results saved to: {filepath}")
         return str(filepath)
 
     @classmethod
@@ -135,7 +136,7 @@ class TestKeyByFunctionality:
 
     def test_keyby_hash_partitioning(self):
         """测试基于hash的分区功能"""
-        print("\n🚀 Testing KeyBy Hash Partitioning")
+        logging.info("\n🚀 Testing KeyBy Hash Partitioning")
 
         # 创建环境
         env = LocalEnvironment("keyby_test")
@@ -147,10 +148,10 @@ class TestKeyByFunctionality:
             .sink(ParallelDebugSink, parallelism=2)  # 2个并行实例
         )
 
-        print(
+        logging.info(
             "📊 Pipeline: KeyByTestDataSource -> KeyBy(UserIdExtractor) -> ParallelDebugSink(parallelism=2)"
         )
-        print("🎯 Expected: Same user_id data should go to same parallel instance\n")
+        logging.info("🎯 Expected: Same user_id data should go to same parallel instance\n")
 
         try:
             # 提交并运行
@@ -160,7 +161,7 @@ class TestKeyByFunctionality:
             time.sleep(2)
 
         except Exception as e:
-            print(f"❌ Error during execution: {e}")
+            logging.info(f"❌ Error during execution: {e}")
             raise
         finally:
             try:
@@ -181,7 +182,7 @@ class TestKeyByFunctionality:
 
     def test_keyby_broadcast_strategy(self):
         """测试广播策略"""
-        print("\n🚀 Testing KeyBy Broadcast Strategy")
+        logging.info("\n🚀 Testing KeyBy Broadcast Strategy")
 
         env = LocalEnvironment("Test_keyby_broadcast_test")
 
@@ -191,17 +192,17 @@ class TestKeyByFunctionality:
             .sink(ParallelDebugSink, parallelism=3)  # 3个并行实例
         )
 
-        print(
+        logging.info(
             "📊 Pipeline: KeyByTestDataSource -> KeyBy(broadcast) -> ParallelDebugSink(parallelism=3)"
         )
-        print("🎯 Expected: All data should be sent to all parallel instances\n")
+        logging.info("🎯 Expected: All data should be sent to all parallel instances\n")
 
         try:
             env.submit()
 
             time.sleep(2)
         except Exception as e:
-            print(f"❌ Error during execution: {e}")
+            logging.info(f"❌ Error during execution: {e}")
             raise
         finally:
             try:
@@ -237,50 +238,50 @@ class TestKeyByFunctionality:
             with open(result_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
-            print(f"✍️ Verification result saved to: {result_file}")
+            logging.info(f"✍️ Verification result saved to: {result_file}")
 
     def _verify_hash_partitioning(self):
         """验证hash分区的正确性"""
         received_data = ParallelDebugSink.get_received_data()
 
-        print("\n📋 Hash Partitioning Results:")
-        print("=" * 50)
+        logging.info("\n📋 Hash Partitioning Results:")
+        logging.info("=" * 50)
 
         if not received_data:
-            print("❌ No data received by any instance")
+            logging.info("❌ No data received by any instance")
             return False
 
         # 统计每个实例接收到的用户数据
         user_distribution = {}
         for instance_id, data_list in received_data.items():
-            print(f"\n🔹 Parallel Instance {instance_id}:")
+            logging.info(f"\n🔹 Parallel Instance {instance_id}:")
             user_counts = {}
             for data in data_list:
                 user_id = data["user_id"]
                 user_counts[user_id] = user_counts.get(user_id, 0) + 1
 
             for user_id, count in user_counts.items():
-                print(f"   - {user_id}: {count} messages")
+                logging.info(f"   - {user_id}: {count} messages")
                 if user_id not in user_distribution:
                     user_distribution[user_id] = set()
                 user_distribution[user_id].add(instance_id)
 
-        print(f"\n🎯 User Distribution Across Instances:")
+        logging.info(f"\n🎯 User Distribution Across Instances:")
         for user_id, instances in user_distribution.items():
-            print(f"   - {user_id}: routed to instance(s) {instances}")
+            logging.info(f"   - {user_id}: routed to instance(s) {instances}")
 
         # 验证：每个用户的数据应该只路由到一个实例
         success = True
         for user_id, instances in user_distribution.items():
             if len(instances) != 1:
-                print(
+                logging.info(
                     f"❌ User {user_id} data was routed to multiple instances: {instances}. "
                     f"Hash partitioning should send same key to same instance."
                 )
                 success = False
 
         if success:
-            print(
+            logging.info(
                 "✅ Hash partitioning test passed: Each user routed to exactly one instance"
             )
 
@@ -290,11 +291,11 @@ class TestKeyByFunctionality:
         """验证广播策略的正确性"""
         received_data = ParallelDebugSink.get_received_data()
 
-        print("\n📋 Broadcast Strategy Results:")
-        print("=" * 50)
+        logging.info("\n📋 Broadcast Strategy Results:")
+        logging.info("=" * 50)
 
         if not received_data:
-            print("❌ No data received by any instance")
+            logging.info("❌ No data received by any instance")
             return False
 
         instance_counts = {}
@@ -302,41 +303,41 @@ class TestKeyByFunctionality:
 
         for instance_id, data_list in received_data.items():
             instance_counts[instance_id] = len(data_list)
-            print(f"\n🔹 Parallel Instance {instance_id}: {len(data_list)} messages")
+            logging.info(f"\n🔹 Parallel Instance {instance_id}: {len(data_list)} messages")
 
             for data in data_list[:3]:  # 只显示前3条
-                print(f"   - {data['user_id']}: {data['content']}")
+                logging.info(f"   - {data['user_id']}: {data['content']}")
 
         if received_data:
             # 获取第一个实例的数据作为基准
             first_instance_data = list(received_data.values())[0]
             total_unique_messages = len(first_instance_data)
 
-        print(f"\n🎯 Broadcast Verification:")
-        print(f"   - Total unique messages generated: {total_unique_messages}")
-        print(f"   - Instances message counts: {instance_counts}")
+        logging.info(f"\n🎯 Broadcast Verification:")
+        logging.info(f"   - Total unique messages generated: {total_unique_messages}")
+        logging.info(f"   - Instances message counts: {instance_counts}")
 
         # 验证：每个实例应该接收到相同数量的消息（广播效果）
         unique_counts = set(instance_counts.values())
         if len(unique_counts) <= 1:
-            print(
+            logging.info(
                 "✅ Broadcast test passed: All instances received same number of messages"
             )
             return True
         else:
-            print(
+            logging.info(
                 f"⚠️  Note: Instance counts differ, this might be due to timing or test duration"
             )
             # 如果差异不大（比如只差1-2条消息），仍然认为测试通过
             min_count = min(instance_counts.values())
             max_count = max(instance_counts.values())
             if max_count - min_count <= 2:
-                print(
+                logging.info(
                     "✅ Broadcast test passed: Instance counts are within acceptable range"
                 )
                 return True
             else:
-                print("❌ Broadcast test failed: Instance counts differ significantly")
+                logging.info("❌ Broadcast test failed: Instance counts differ significantly")
                 return False
 
 
@@ -358,7 +359,7 @@ class TestAdvancedKeyBy:
 
     def test_advanced_key_extraction(self):
         """测试复杂的key提取逻辑"""
-        print("\n🚀 Testing Advanced Key Extraction")
+        logging.info("\n🚀 Testing Advanced Key Extraction")
 
         env = LocalEnvironment("advanced_keyby_test")
 
@@ -368,17 +369,17 @@ class TestAdvancedKeyBy:
             .sink(ParallelDebugSink, parallelism=4)  # 4个并行实例
         )
 
-        print(
+        logging.info(
             "📊 Pipeline: KeyByTestDataSource -> KeyBy(AdvancedKeyExtractor) -> ParallelDebugSink(parallelism=4)"
         )
-        print("🎯 Key format: 'user_id + message_id%2' (e.g., 'user1_0', 'user1_1')\n")
+        logging.info("🎯 Key format: 'user_id + message_id%2' (e.g., 'user1_0', 'user1_1')\n")
 
         try:
             env.submit()
 
             time.sleep(2)
         except Exception as e:
-            print(f"❌ Error during execution: {e}")
+            logging.info(f"❌ Error during execution: {e}")
             raise
         finally:
             try:
@@ -403,37 +404,37 @@ class TestAdvancedKeyBy:
         """分析高级key提取的分布效果"""
         received_data = ParallelDebugSink.get_received_data()
 
-        print("\n📋 Advanced Key Distribution Analysis:")
-        print("=" * 50)
+        logging.info("\n📋 Advanced Key Distribution Analysis:")
+        logging.info("=" * 50)
 
         if not received_data:
-            print("❌ No data received by any instance")
+            logging.info("❌ No data received by any instance")
             return False
 
         key_distribution = {}
         for instance_id, data_list in received_data.items():
-            print(f"\n🔹 Parallel Instance {instance_id}:")
+            logging.info(f"\n🔹 Parallel Instance {instance_id}:")
 
             for data in data_list:
                 key = f"{data['user_id']}_{data['id'] % 2}"
                 if key not in key_distribution:
                     key_distribution[key] = set()
                 key_distribution[key].add(instance_id)
-                print(f"   - Key '{key}': {data['content']}")
+                logging.info(f"   - Key '{key}': {data['content']}")
 
-        print(f"\n🎯 Key-to-Instance Mapping:")
+        logging.info(f"\n🎯 Key-to-Instance Mapping:")
         for key, instances in key_distribution.items():
-            print(f"   - Key '{key}': routed to instance(s) {instances}")
+            logging.info(f"   - Key '{key}': routed to instance(s) {instances}")
 
         # 验证一致性：相同key应该路由到相同实例
         success = True
         for key, instances in key_distribution.items():
             if len(instances) != 1:
-                print(f"❌ Key '{key}' was routed to multiple instances: {instances}")
+                logging.info(f"❌ Key '{key}' was routed to multiple instances: {instances}")
                 success = False
 
         if success:
-            print(
+            logging.info(
                 "✅ Advanced key extraction test passed: Each unique key consistently routed"
             )
 
@@ -456,7 +457,7 @@ class TestAdvancedKeyBy:
             with open(result_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
-            print(f"✍️ Verification result saved to: {result_file}")
+            logging.info(f"✍️ Verification result saved to: {result_file}")
 
 
 if __name__ == "__main__":

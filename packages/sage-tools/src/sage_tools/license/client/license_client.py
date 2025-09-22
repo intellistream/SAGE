@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE License Client
 Customer-facing license management tool
 """
@@ -28,13 +29,13 @@ class LicenseClient:
         try:
             # Validate key format
             if not self.core.validate_key_format(license_key):
-                print("❌ Invalid license key format")
+                logging.info("❌ Invalid license key format")
                 return False
 
             # Parse license info
             license_info = self.core.parse_license_key(license_key)
             if not license_info:
-                print("❌ License key parsing failed")
+                logging.info("❌ License key parsing failed")
                 return False
 
             # Save license key
@@ -51,15 +52,15 @@ class LicenseClient:
 
             self.core.save_config(config)
 
-            print("✅ Commercial license installed successfully!")
-            print(f"   Type: {license_info.type}")
-            print(f"   Expires: {license_info.expires_at}")
-            print(f"   Features: {', '.join(license_info.features)}")
+            logging.info("✅ Commercial license installed successfully!")
+            logging.info(f"   Type: {license_info.type}")
+            logging.info(f"   Expires: {license_info.expires_at}")
+            logging.info(f"   Features: {', '.join(license_info.features)}")
 
             return True
 
         except Exception as e:
-            print(f"❌ License installation failed: {e}")
+            logging.info(f"❌ License installation failed: {e}")
             return False
 
     def remove_license(self) -> bool:
@@ -69,24 +70,24 @@ class LicenseClient:
                 self.core.config.LICENSE_FILE.unlink()
             if self.core.config.CONFIG_FILE.exists():
                 self.core.config.CONFIG_FILE.unlink()
-            print("✅ License removed, switched to open-source version")
+            logging.info("✅ License removed, switched to open-source version")
             return True
         except Exception as e:
-            print(f"❌ License removal failed: {e}")
+            logging.info(f"❌ License removal failed: {e}")
             return False
 
     def show_status(self) -> None:
         """Display license status"""
         info = self.validator.check_license_status()
 
-        print("🔍 SAGE License Status")
-        print("=" * 30)
-        print(f"Type: {info['type']}")
-        print(f"Source: {info['source']}")
+        logging.info("🔍 SAGE License Status")
+        logging.info("=" * 30)
+        logging.info(f"Type: {info['type']}")
+        logging.info(f"Source: {info['source']}")
 
         if info["has_license"]:
-            print(f"Expires: {info.get('expires_at', 'N/A')}")
-            print(f"Features: {', '.join(info.get('features', []))}")
+            logging.info(f"Expires: {info.get('expires_at', 'N/A')}")
+            logging.info(f"Features: {', '.join(info.get('features', []))}")
 
             # Check expiration warning
             expires_str = info.get("expires_at")
@@ -95,12 +96,12 @@ class LicenseClient:
                     expires = datetime.fromisoformat(expires_str)
                     days_left = (expires - datetime.now()).days
                     if days_left < 30:
-                        print(f"⚠️  License expires in {days_left} days")
+                        logging.info(f"⚠️  License expires in {days_left} days")
                 except:
                     pass
         else:
-            print("Features: Open-source functionality")
-            print("💡 Get commercial version: Contact intellistream@outlook.com")
+            logging.info("Features: Open-source functionality")
+            logging.info("💡 Get commercial version: Contact intellistream@outlook.com")
 
 
 def main():
@@ -108,23 +109,23 @@ def main():
     client = LicenseClient()
 
     if len(sys.argv) < 2:
-        print("SAGE License Client")
-        print("")
-        print("Usage:")
-        print("  sage-license-client install <license-key>   # Install license")
-        print("  sage-license-client status                  # Check status")
-        print("  sage-license-client remove                  # Remove license")
-        print("")
-        print("Example:")
-        print("  sage-license-client install SAGE-COMM-2024-ABCD-EFGH-1234")
+        logging.info("SAGE License Client")
+        logging.info("")
+        logging.info("Usage:")
+        logging.info("  sage-license-client install <license-key>   # Install license")
+        logging.info("  sage-license-client status                  # Check status")
+        logging.info("  sage-license-client remove                  # Remove license")
+        logging.info("")
+        logging.info("Example:")
+        logging.info("  sage-license-client install SAGE-COMM-2024-ABCD-EFGH-1234")
         return
 
     command = sys.argv[1]
 
     if command == "install":
         if len(sys.argv) < 3:
-            print("❌ Please provide license key")
-            print("Usage: sage-license-client install <license-key>")
+            logging.info("❌ Please provide license key")
+            logging.info("Usage: sage-license-client install <license-key>")
             return
 
         license_key = sys.argv[2]
@@ -137,8 +138,8 @@ def main():
         client.remove_license()
 
     else:
-        print(f"❌ Unknown command: {command}")
-        print("Available commands: install, status, remove")
+        logging.info(f"❌ Unknown command: {command}")
+        logging.info("Available commands: install, status, remove")
 
 
 if __name__ == "__main__":

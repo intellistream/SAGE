@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE 开发工具 CLI - 重定向到统一CLI结构
 
 这个文件现在重定向到新的统一CLI结构。
@@ -29,8 +30,8 @@ except ImportError:
     import sys
 
     def cli():
-        print("错误: 统一CLI结构未找到。请确保SAGE已正确安装。")
-        print("使用命令: sage dev <command>")
+        self.logger.info("错误: 统一CLI结构未找到。请确保SAGE已正确安装。")
+        self.logger.info("使用命令: sage dev <command>")
         sys.exit(1)
 
 

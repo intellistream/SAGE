@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 # """
 # SAGE 微服务架构使用示例
 # 展示如何在应用程序中注册和使用KV、VDB、Memory服务
@@ -26,7 +27,7 @@
 
 #     def setup_services(self):
 #         """在应用中注册微服务"""
-#         print("🔧 注册微服务到SAGE环境...")
+#         self.logger.info("🔧 注册微服务到SAGE环境...")
 
 #         # 注册KV服务
 #         kv_factory = create_kv_service_factory(
@@ -53,12 +54,12 @@
 #         )
 #     self.env.register_service_factory("memory_service", memory_factory)
 
-#         print("✅ 所有服务已注册")
+#         self.logger.info("✅ 所有服务已注册")
 
 #     def run_demo(self):
 #         """运行演示"""
-#         print("🚀 启动微服务演示")
-#         print("=" * 50)
+#         self.logger.info("🚀 启动微服务演示")
+#         self.logger.info("=" * 50)
 
 #         # 设置服务
 #         self.setup_services()
@@ -78,7 +79,7 @@
 #             # 在这里我们可以使用服务调用
 #             # 注意：在实际的SAGE函数中，可以通过 self.call_service 访问服务
 
-#             print(f"处理对话: {data['content'][:30]}...")
+#             self.logger.info(f"处理对话: {data['content'][:30]}...")
 
 #             # 模拟向量化（在实际应用中，这里会调用embedding服务）
 #             content_vector = np.random.random(384).tolist()
@@ -111,22 +112,22 @@
 #         processed_stream = data_stream.map(process_conversation)
 
 #         # 执行并收集结果
-#         print("\n📊 处理结果:")
+#         self.logger.info("\n📊 处理结果:")
 #         results = processed_stream.collect()
 
 #         for i, result in enumerate(results, 1):
-#             print(f"  {i}. ✅ 已处理 - Memory ID: {result['memory_id']}")
+#             self.logger.info(f"  {i}. ✅ 已处理 - Memory ID: {result['memory_id']}")
 
-#         print(f"\n🎯 总共处理了 {len(results)} 条对话记录")
+#         self.logger.info(f"\n🎯 总共处理了 {len(results)} 条对话记录")
 
 #         # 展示服务调用的概念
 #         self.show_service_usage_concept()
 
 #     def show_service_usage_concept(self):
 #         """展示服务使用概念"""
-#         print("\n" + "=" * 50)
-#         print("💡 在SAGE函数中使用服务的示例代码:")
-#         print("=" * 50)
+#         self.logger.info("\n" + "=" * 50)
+#         self.logger.info("💡 在SAGE函数中使用服务的示例代码:")
+#         self.logger.info("=" * 50)
 
 #         example_code = '''
 # # 在SAGE Function中使用微服务的示例
@@ -186,14 +187,14 @@
 #     return processed
 #         '''
 
-#         print(example_code)
-#         print("\n" + "=" * 50)
-#         print("🔍 关键概念:")
-#         print("1. 服务作为Service Tasks在DAG中运行")
-#         print("2. 函数通过 self.call_service[service_name] 调用服务")
-#         print("3. 服务可以是本地任务或Ray分布式任务")
-#         print("4. 应用程序控制服务的生命周期")
-#         print("5. 服务间通过SAGE的队列机制通信")
+#         self.logger.info(example_code)
+#         self.logger.info("\n" + "=" * 50)
+#         self.logger.info("🔍 关键概念:")
+#         self.logger.info("1. 服务作为Service Tasks在DAG中运行")
+#         self.logger.info("2. 函数通过 self.call_service[service_name] 调用服务")
+#         self.logger.info("3. 服务可以是本地任务或Ray分布式任务")
+#         self.logger.info("4. 应用程序控制服务的生命周期")
+#         self.logger.info("5. 服务间通过SAGE的队列机制通信")
 
 
 # def main():
@@ -202,15 +203,15 @@
 
 #     try:
 #         app.run_demo()
-#         print("\n✅ 演示完成!")
-#         print("\n📖 查看更多信息:")
-#         print("  - 微服务代码: packages/sage-middleware/src/sage/service/")
-#         print("  - 使用指南: packages/sage-middleware/MICROSERVICES_GUIDE.md")
+#         self.logger.info("\n✅ 演示完成!")
+#         self.logger.info("\n📖 查看更多信息:")
+#         self.logger.info("  - 微服务代码: packages/sage-middleware/src/sage/service/")
+#         self.logger.info("  - 使用指南: packages/sage-middleware/MICROSERVICES_GUIDE.md")
 
 #     except KeyboardInterrupt:
-#         print("\n\n👋 演示被中断")
+#         self.logger.info("\n\n👋 演示被中断")
 #     except Exception as e:
-#         print(f"\n❌ 演示出错: {e}")
+#         self.logger.info(f"\n❌ 演示出错: {e}")
 #         import traceback
 #         traceback.print_exc()
 

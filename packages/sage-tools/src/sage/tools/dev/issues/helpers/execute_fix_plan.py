@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 Issues错误分配修复执行脚本
 
 功能:
@@ -50,22 +51,22 @@ def execute_fix_plan(
     if isinstance(fix_plan_file_or_data, str):
         with open(fix_plan_file_or_data, "r", encoding="utf-8") as f:
             fix_plan = json.load(f)
-        print(f"📋 加载修复计划: {fix_plan_file_or_data}")
+        self.logger.info(f"📋 加载修复计划: {fix_plan_file_or_data}")
     else:
         fix_plan = fix_plan_file_or_data
-        print(f"📋 接收修复计划数据")
+        self.logger.info(f"📋 接收修复计划数据")
 
-    print(f"📊 计划修复 {fix_plan['total_fixes_needed']} 个错误分配的issues")
+    self.logger.info(f"📊 计划修复 {fix_plan['total_fixes_needed']} 个错误分配的issues")
 
     if dry_run:
-        print("🔍 DRY RUN模式 - 仅显示将要执行的操作，不实际修改")
+        self.logger.info("🔍 DRY RUN模式 - 仅显示将要执行的操作，不实际修改")
     else:
-        print("⚠️  LIVE模式 - 将实际执行修复操作")
+        self.logger.info("⚠️  LIVE模式 - 将实际执行修复操作")
 
         if not live_mode:
             response = input("确认要执行实际修复吗？(yes/no): ")
             if response.lower() != "yes":
-                print("❌ 操作已取消")
+                self.logger.info("❌ 操作已取消")
                 return 0, 0, []
 
     pm = GitHubProjectManager()
@@ -73,7 +74,7 @@ def execute_fix_plan(
     # 预加载SAGE仓库的issues ID映射 (优化：仅加载当前仓库)
     issue_id_map = {}
     if not dry_run:
-        print("📥 预加载SAGE仓库的issues ID映射...")
+        self.logger.info("📥 预加载SAGE仓库的issues ID映射...")
         try:
             # 只获取SAGE仓库的issues，避免扫描所有仓库
             sage_issues = pm.get_repository_issues("intellistream", "SAGE")
@@ -82,10 +83,10 @@ def execute_fix_plan(
                 issue_id = issue.get("id")
                 if issue_number and issue_id:
                     issue_id_map[issue_number] = issue_id
-            print(f"✅ 已加载 {len(issue_id_map)} 个SAGE issues的ID映射")
+            self.logger.info(f"✅ 已加载 {len(issue_id_map)} 个SAGE issues的ID映射")
         except Exception as e:
-            print(f"⚠️ 无法预加载issue ID映射: {e}")
-            print("📝 将在移动过程中动态获取issue ID")
+            self.logger.info(f"⚠️ 无法预加载issue ID映射: {e}")
+            self.logger.info("📝 将在移动过程中动态获取issue ID")
 
     success_count = 0
     error_count = 0
@@ -98,27 +99,27 @@ def execute_fix_plan(
         target_project = fix["target_project"]
         item_id = fix["item_id"]
 
-        print(f"\n[{i}/{len(fix_plan['fixes'])}] 处理Issue #{issue_number}")
-        print(f"  📝 {fix['issue_title']}")
-        print(f"  👤 作者: {author}")
+        self.logger.info(f"\n[{i}/{len(fix_plan['fixes'])}] 处理Issue #{issue_number}")
+        self.logger.info(f"  📝 {fix['issue_title']}")
+        self.logger.info(f"  👤 作者: {author}")
 
         # 显示决策依据
         if "responsible_user" in fix and "decision_basis" in fix:
-            print(
+            self.logger.info(
                 f"  🎯 负责人: {fix['responsible_user']} (基于: {fix['decision_basis']})"
             )
 
         # 显示仓库信息
         if "repository" in fix:
             repo_name = fix["repository"]
-            print(f"  📁 仓库: {repo_name}")
+            self.logger.info(f"  📁 仓库: {repo_name}")
 
-        print(
+        self.logger.info(
             f"  📦 从项目#{current_project} ({fix['current_project_name']}) → 项目#{target_project} ({fix['target_project_name']})"
         )
 
         if dry_run:
-            print(f"  ✅ DRY RUN: 将会移动此issue")
+            self.logger.info(f"  ✅ DRY RUN: 将会移动此issue")
             success_count += 1
         else:
             try:
@@ -143,7 +144,7 @@ def execute_fix_plan(
 
                 if not issue_global_id:
                     # 尝试直接删除无效的项目item，因为issue可能已经不存在了
-                    print(
+                    self.logger.info(
                         f"  ⚠️  Issue #{issue_number} (来自 {repo_name}) 可能已被删除，尝试清理项目板上的无效引用"
                     )
 
@@ -158,7 +159,7 @@ def execute_fix_plan(
                                 current_project_id, item_id
                             )
                             if success_delete:
-                                print(f"  🗑️  已清理项目#{current_project}中的无效引用")
+                                self.logger.info(f"  🗑️  已清理项目#{current_project}中的无效引用")
                                 success_count += 1
                             else:
                                 # 检查是否是NOT_FOUND错误，这表示引用已经不存在了
@@ -173,12 +174,12 @@ def execute_fix_plan(
                                             break
 
                                 if is_not_found:
-                                    print(
+                                    self.logger.info(
                                         f"  ✅ 项目#{current_project}中的引用已不存在（已自动清理）"
                                     )
                                     success_count += 1
                                 else:
-                                    print(f"  ❌ 清理失败: {delete_result}")
+                                    self.logger.info(f"  ❌ 清理失败: {delete_result}")
                                     error_count += 1
                                     errors.append(
                                         {
@@ -187,7 +188,7 @@ def execute_fix_plan(
                                         }
                                     )
                         else:
-                            print(f"  ❌ 缺少item_id，无法清理")
+                            self.logger.info(f"  ❌ 缺少item_id，无法清理")
                             error_count += 1
                             errors.append(
                                 {
@@ -211,7 +212,7 @@ def execute_fix_plan(
                 )
 
                 if success_add:
-                    print(f"  ✅ 成功添加到项目#{target_project}")
+                    self.logger.info(f"  ✅ 成功添加到项目#{target_project}")
 
                     # 现在从源项目删除
                     current_project_data = pm.get_project_by_number(current_project)
@@ -238,40 +239,40 @@ def execute_fix_plan(
                                         )
                                     )
                                     if success_delete:
-                                        print(
+                                        self.logger.info(
                                             f"  🗑️  成功从项目#{current_project}中删除"
                                         )
-                                        print(
+                                        self.logger.info(
                                             f"  🎉 Issue #{issue_number} 完整移动成功!"
                                         )
                                         success_count += 1
                                     else:
-                                        print(f"  ⚠️  删除失败: {delete_result}")
-                                        print(
+                                        self.logger.info(f"  ⚠️  删除失败: {delete_result}")
+                                        self.logger.info(
                                             f"  ✅ 已添加到目标项目，但请手动从源项目删除"
                                         )
                                         success_count += 1  # 仍然算作部分成功
                                 else:
-                                    print(
+                                    self.logger.info(
                                         f"  ⚠️  在项目#{current_project}中找不到item，可能已不在该项目中"
                                     )
                                     success_count += (
                                         1  # 算作成功，因为已经添加到目标项目
                                     )
                             else:
-                                print(f"  ⚠️  无法获取项目#{current_project}的items")
+                                self.logger.info(f"  ⚠️  无法获取项目#{current_project}的items")
                                 success_count += (
                                     1  # 仍然算作成功，因为已经添加到目标项目
                                 )
                         except Exception as e:
-                            print(f"  ⚠️  删除操作异常: {e}")
+                            self.logger.info(f"  ⚠️  删除操作异常: {e}")
                             success_count += 1  # 仍然算作成功，因为已经添加到目标项目
                     else:
-                        print(f"  ⚠️  无法获取源项目#{current_project}数据")
+                        self.logger.info(f"  ⚠️  无法获取源项目#{current_project}数据")
                         success_count += 1  # 仍然算作成功，因为已经添加到目标项目
                 else:
                     error_msg = f"添加到项目#{target_project}失败: {add_result}"
-                    print(f"  ❌ {error_msg}")
+                    self.logger.info(f"  ❌ {error_msg}")
                     errors.append(
                         {"issue_number": issue_number, "error": error_msg, "fix": fix}
                     )
@@ -282,21 +283,21 @@ def execute_fix_plan(
 
             except Exception as e:
                 error_msg = f"处理Issue #{issue_number}时出错: {str(e)}"
-                print(f"  ❌ {error_msg}")
+                self.logger.info(f"  ❌ {error_msg}")
                 errors.append(
                     {"issue_number": issue_number, "error": error_msg, "fix": fix}
                 )
                 error_count += 1
 
     # 显示结果摘要
-    print(f"\n📊 修复结果摘要:")
-    print(f"  ✅ 成功: {success_count}")
-    print(f"  ❌ 失败: {error_count}")
+    self.logger.info(f"\n📊 修复结果摘要:")
+    self.logger.info(f"  ✅ 成功: {success_count}")
+    self.logger.info(f"  ❌ 失败: {error_count}")
 
     if errors:
-        print(f"\n❌ 错误详情:")
+        self.logger.info(f"\n❌ 错误详情:")
         for error in errors:
-            print(f"  Issue #{error['issue_number']}: {error['error']}")
+            self.logger.info(f"  Issue #{error['issue_number']}: {error['error']}")
 
     # 保存执行结果 (仅当有文件路径时)
     if isinstance(fix_plan_file_or_data, str):
@@ -316,7 +317,7 @@ def execute_fix_plan(
         with open(result_file, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
-        print(f"\n📄 执行结果已保存到: {result_file}")
+        self.logger.info(f"\n📄 执行结果已保存到: {result_file}")
 
     return success_count, error_count, errors
 
@@ -324,15 +325,15 @@ def execute_fix_plan(
 def main():
     """主函数"""
     if len(sys.argv) < 2:
-        print("用法: python3 execute_fix_plan.py <fix_plan_file.json> [--live]")
-        print("  --live: 实际执行修复 (默认为dry-run模式)")
+        self.logger.info("用法: python3 execute_fix_plan.py <fix_plan_file.json> [--live]")
+        self.logger.info("  --live: 实际执行修复 (默认为dry-run模式)")
         return
 
     fix_plan_file = sys.argv[1]
     dry_run = "--live" not in sys.argv
 
     if not Path(fix_plan_file).exists():
-        print(f"❌ 修复计划文件不存在: {fix_plan_file}")
+        self.logger.info(f"❌ 修复计划文件不存在: {fix_plan_file}")
         return
 
     execute_fix_plan(fix_plan_file, dry_run)

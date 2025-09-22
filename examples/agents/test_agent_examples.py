@@ -1,4 +1,5 @@
 """
+import logging
 Example tests for the complete agent workflow.
 
 This demonstrates how the agent pipeline works with real examples.
@@ -29,7 +30,7 @@ def create_test_queries_file():
 
 def example_iter_queries():
     """Example: How to read queries from different sources."""
-    print("=== Query Reading Examples ===")
+    logging.info("=== Query Reading Examples ===")
 
     # Import the agent module
     try:
@@ -47,27 +48,27 @@ def example_iter_queries():
                 "field_query": "query",
             }
 
-            print("Reading from local JSONL file:")
+            logging.info("Reading from local JSONL file:")
             queries = list(iter_queries(source_config))
             for i, query in enumerate(queries, 1):
-                print(f"  {i}. {query}")
+                logging.info(f"  {i}. {query}")
 
         finally:
             os.unlink(temp_file)
 
-        print(f"\nTotal queries loaded: {len(queries)}")
+        logging.info(f"\nTotal queries loaded: {len(queries)}")
 
     except ImportError as e:
-        print(f"Could not import agent module: {e}")
+        logging.info(f"Could not import agent module: {e}")
 
 
 def example_mock_agent_workflow():
     """Example: Complete agent workflow with mocks."""
-    print("\n=== Mock Agent Workflow Example ===")
+    logging.info("\n=== Mock Agent Workflow Example ===")
 
     try:
         # Mock all the components
-        print("Setting up mock components...")
+        logging.info("Setting up mock components...")
 
         # Mock generator that creates plans
         mock_generator = Mock()
@@ -111,18 +112,18 @@ def example_mock_agent_workflow():
 
         # Simulate the agent workflow
         test_query = "在 arXiv 搜索关于 transformer 的论文"
-        print(f"\nProcessing query: {test_query}")
+        logging.info(f"\nProcessing query: {test_query}")
 
         # Step 1: Generate plan
-        print("1. Generating plan...")
+        logging.info("1. Generating plan...")
         _, plan_json = mock_generator.execute([test_query, "system prompt"])
         plan = json.loads(plan_json)
-        print(f"   Plan: {len(plan)} steps")
+        logging.info(f"   Plan: {len(plan)} steps")
         for i, step in enumerate(plan, 1):
-            print(f"   Step {i}: {step['type']}")
+            logging.info(f"   Step {i}: {step['type']}")
 
         # Step 2: Execute tools
-        print("2. Executing tools...")
+        logging.info("2. Executing tools...")
         observations = []
         for step in plan:
             if step["type"] == "tool":
@@ -130,28 +131,28 @@ def example_mock_agent_workflow():
                 observations.append(
                     {"tool": step["name"], "result": result, "success": True}
                 )
-                print(f"   Tool {step['name']}: Found {len(result['output'])} results")
+                logging.info(f"   Tool {step['name']}: Found {len(result['output'])} results")
 
         # Step 3: Generate response
-        print("3. Generating response...")
+        logging.info("3. Generating response...")
         if any(step["type"] == "reply" for step in plan):
             reply = next(step["text"] for step in plan if step["type"] == "reply")
         else:
             reply = f"基于工具执行结果，为您找到了 {len(observations)} 个相关资源"
 
-        print(f"   Response: {reply}")
+        logging.info(f"   Response: {reply}")
 
-        print("\n✅ Workflow completed successfully!")
+        logging.info("\n✅ Workflow completed successfully!")
         return True
 
     except Exception as e:
-        print(f"❌ Workflow failed: {e}")
+        logging.info(f"❌ Workflow failed: {e}")
         return False
 
 
 def example_configuration_usage():
     """Example: How configuration is used in the agent."""
-    print("\n=== Configuration Usage Example ===")
+    logging.info("\n=== Configuration Usage Example ===")
 
     # Example configuration structure
     example_config = {
@@ -174,26 +175,26 @@ def example_configuration_usage():
         "runtime": {"max_steps": 5, "summarizer": "reuse_generator"},
     }
 
-    print("Example configuration structure:")
+    logging.info("Example configuration structure:")
     for section, content in example_config.items():
-        print(f"  {section}: {type(content).__name__}")
+        logging.info(f"  {section}: {type(content).__name__}")
         if isinstance(content, dict):
             for key in content.keys():
-                print(f"    - {key}")
+                logging.info(f"    - {key}")
         elif isinstance(content, list) and content:
-            print(f"    - {len(content)} items")
+            logging.info(f"    - {len(content)} items")
 
-    print("\nThis configuration defines:")
-    print("- Agent profile and personality")
-    print("- Available tools and their setup")
-    print("- Generator settings for LLM")
-    print("- Planning and runtime parameters")
+    logging.info("\nThis configuration defines:")
+    logging.info("- Agent profile and personality")
+    logging.info("- Available tools and their setup")
+    logging.info("- Generator settings for LLM")
+    logging.info("- Planning and runtime parameters")
 
 
 def test_all_examples():
     """Run all examples and report results."""
-    print("Agent Workflow Examples")
-    print("=" * 50)
+    logging.info("Agent Workflow Examples")
+    logging.info("=" * 50)
 
     examples = [
         ("Query Reading", example_iter_queries),
@@ -204,23 +205,23 @@ def test_all_examples():
     results = []
     for name, example_func in examples:
         try:
-            print(f"\n--- {name} ---")
+            logging.info(f"\n--- {name} ---")
             result = example_func()
             if result is None:  # For examples that don't return boolean
                 result = True
             results.append((name, result))
         except Exception as e:
-            print(f"❌ {name} failed: {e}")
+            logging.info(f"❌ {name} failed: {e}")
             results.append((name, False))
 
-    print("\n" + "=" * 50)
-    print("Example Results:")
+    logging.info("\n" + "=" * 50)
+    logging.info("Example Results:")
     for name, success in results:
         status = "✅" if success else "❌"
-        print(f"  {status} {name}")
+        logging.info(f"  {status} {name}")
 
     total_success = sum(1 for _, success in results if success)
-    print(f"\nCompleted: {total_success}/{len(results)} examples")
+    logging.info(f"\nCompleted: {total_success}/{len(results)} examples")
 
     return total_success == len(results)
 
@@ -229,14 +230,14 @@ if __name__ == "__main__":
     success = test_all_examples()
 
     if success:
-        print("\n🎉 All examples completed successfully!")
-        print("\nThese examples demonstrate:")
-        print("- How to read queries from different sources")
-        print("- Complete agent workflow with mocking")
-        print("- Configuration structure and usage")
-        print("- Integration between components")
+        logging.info("\n🎉 All examples completed successfully!")
+        logging.info("\nThese examples demonstrate:")
+        logging.info("- How to read queries from different sources")
+        logging.info("- Complete agent workflow with mocking")
+        logging.info("- Configuration structure and usage")
+        logging.info("- Integration between components")
     else:
-        print("\n⚠️  Some examples had issues. Check the implementation.")
+        logging.info("\n⚠️  Some examples had issues. Check the implementation.")
 
-    print(f"\nFor the real agent implementation, see: agent.py")
-    print(f"For configuration examples, see: ../config/config_agent_min.yaml")
+    logging.info(f"\nFor the real agent implementation, see: agent.py")
+    logging.info(f"For configuration examples, see: ../config/config_agent_min.yaml")

@@ -1,5 +1,6 @@
 # @test:skip           - 跳过测试
 
+import logging
 import json
 import os
 
@@ -46,7 +47,7 @@ def pipeline_run(config):
     try:
         env.submit()
     except KeyboardInterrupt:
-        print("停止运行")
+        logging.info("停止运行")
     finally:
         env.close()
 
@@ -65,10 +66,10 @@ if __name__ == "__main__":
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        print(
+        logging.info(
             "🧪 Test mode detected - qa_refiner example requires pre-built FAISS index"
         )
-        print("✅ Test passed: Example structure validated")
+        logging.info("✅ Test passed: Example structure validated")
         sys.exit(0)
 
     config_path = os.path.join(
@@ -77,8 +78,8 @@ if __name__ == "__main__":
 
     # 检查配置文件是否存在
     if not os.path.exists(config_path):
-        print(f"❌ Configuration file not found: {config_path}")
-        print("Please ensure the config file exists before running this example.")
+        logging.info(f"❌ Configuration file not found: {config_path}")
+        logging.info("Please ensure the config file exists before running this example.")
         sys.exit(1)
 
     config = load_config(config_path)
@@ -87,11 +88,11 @@ if __name__ == "__main__":
     if config["retriever"]["type"] == "wiki18_faiss":
         index_path = config["retriever"]["faiss"]["index_path"]
         if not os.path.exists(index_path):
-            print(f"❌ FAISS index file not found: {index_path}")
-            print(
+            logging.info(f"❌ FAISS index file not found: {index_path}")
+            logging.info(
                 "Please build the FAISS index first using build_milvus_dense_index.py or similar."
             )
-            print("Or modify the config to use a different retriever type.")
+            logging.info("Or modify the config to use a different retriever type.")
             sys.exit(1)
 
     pipeline_run(config)

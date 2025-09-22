@@ -3,6 +3,7 @@
 # file data/neuromem_datasets/locomo_dataloader.py
 # python data/neuromem_datasets/locomo_dataloader.py
 
+import logging
 import json
 import os
 
@@ -120,27 +121,27 @@ class LocomoDataLoader:
 if __name__ == "__main__":
     loader = LocomoDataLoader()
 
-    print("所有 sample_id:")
-    print(loader.get_sample_id())
+    logging.info("所有 sample_id:")
+    logging.info(loader.get_sample_id())
 
     sid = loader.get_sample_id()[0]
 
-    print(f"\nsample_id={sid} 下的两个 speaker:")
-    print(loader.get_speaker(sid))
+    logging.info(f"\nsample_id={sid} 下的两个 speaker:")
+    logging.info(loader.get_speaker(sid))
 
-    print(f"\n遍历 sample_id={sid} 下所有 QA:")
+    logging.info(f"\n遍历 sample_id={sid} 下所有 QA:")
     for qa in loader.iter_qa(sid):
-        print(qa)
+        logging.info(qa)
 
-    print(f"\n遍历 sample_id={sid} 下所有 session:")
+    logging.info(f"\n遍历 sample_id={sid} 下所有 session:")
     for session in loader.iter_session(sid):
-        print(
+        logging.info(
             f"Session {session['session_id']} | 时间: {session['date_time']} | 条数: {len(session['session_content'])}"
         )
         # 打印前2条session_content做示例
         for i, entry in enumerate(session["session_content"][:2]):
-            print(
+            logging.info(
                 f"  [{i}] speaker: {entry.get('speaker')}, text: {entry.get('text')}, session_type: {entry.get('session_type')}"
             )
         if len(session["session_content"]) > 2:
-            print("  ...")
+            logging.info("  ...")

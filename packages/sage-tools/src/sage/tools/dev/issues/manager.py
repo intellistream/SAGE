@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Issues管理工具 - 核心管理器 (适配sage-tools版本)
 Lightweight manager that uses the centralized config
 and calls helper scripts from helpers/ when available.
@@ -77,27 +78,27 @@ class IssuesManager:
                             processed_teams[team_name] = team_data
                             all_usernames.extend(team_data)
 
-                    print(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
+                    self.logger.info(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
                     return {"teams": processed_teams, "all_usernames": all_usernames}
             except Exception as e:
-                print(f"⚠️ 加载团队信息失败: {e}")
+                self.logger.info(f"⚠️ 加载团队信息失败: {e}")
             finally:
                 # 清理sys.path
                 if str(meta_data_dir) in sys.path:
                     sys.path.remove(str(meta_data_dir))
 
-        print("⚠️ 团队信息未找到")
-        print("💡 运行以下命令获取团队信息:")
-        print("   sage dev issues team --update")
+        self.logger.info("⚠️ 团队信息未找到")
+        self.logger.info("💡 运行以下命令获取团队信息:")
+        self.logger.info("   sage dev issues team --update")
         return None
 
     def load_issues(self) -> List[Dict[str, Any]]:
         """Load issues from workspace data directory."""
         data_dir = self.workspace_dir / "data"
         if not data_dir.exists():
-            print(f"❌ Issues数据目录不存在: {data_dir}")
-            print("💡 请先运行下载Issues命令:")
-            print("   sage dev issues download")
+            self.logger.info(f"❌ Issues数据目录不存在: {data_dir}")
+            self.logger.info("💡 请先运行下载Issues命令:")
+            self.logger.info("   sage dev issues download")
             return []
 
         issues = []
@@ -133,7 +134,7 @@ class IssuesManager:
                 issues.append(adapted_issue)
 
             except Exception as e:
-                print(f"⚠️ 读取issue文件失败: {issue_file.name}: {e}")
+                self.logger.info(f"⚠️ 读取issue文件失败: {issue_file.name}: {e}")
 
         # 如果单个文件没找到，尝试加载批量文件
         if not issues:
@@ -148,9 +149,9 @@ class IssuesManager:
                         issues.append(issue)
 
                 except Exception as e:
-                    print(f"⚠️ 读取批量Issues文件失败: {e}")
+                    self.logger.info(f"⚠️ 读取批量Issues文件失败: {e}")
 
-        print(f"✅ 加载了 {len(issues)} 个Issues")
+        self.logger.info(f"✅ 加载了 {len(issues)} 个Issues")
         return issues
 
     def _parse_markdown_issue(self, content: str, filename: str) -> Dict[str, Any]:
@@ -302,39 +303,39 @@ class IssuesManager:
 
     def show_statistics(self) -> bool:
         """显示Issues统计信息"""
-        print("📊 显示Issues统计信息...")
+        self.logger.info("📊 显示Issues统计信息...")
         issues = self.load_issues()
         if not issues:
             return False
 
         stats = self._generate_statistics(issues)
 
-        print(f"\n📈 Issues统计报告")
-        print("=" * 40)
-        print(f"总Issues数: {stats['total']}")
-        print(f"开放Issues: {stats['open']}")
-        print(f"已关闭Issues: {stats['closed']}")
+        self.logger.info(f"\n📈 Issues统计报告")
+        self.logger.info("=" * 40)
+        self.logger.info(f"总Issues数: {stats['total']}")
+        self.logger.info(f"开放Issues: {stats['open']}")
+        self.logger.info(f"已关闭Issues: {stats['closed']}")
 
         if stats["labels"]:
-            print(f"\n🏷️ 标签分布 (前10):")
+            self.logger.info(f"\n🏷️ 标签分布 (前10):")
             for label, count in sorted(
                 stats["labels"].items(), key=lambda x: x[1], reverse=True
             )[:10]:
-                print(f"  - {label}: {count}")
+                self.logger.info(f"  - {label}: {count}")
 
         if stats["assignees"]:
-            print(f"\n👤 分配情况 (前10):")
+            self.logger.info(f"\n👤 分配情况 (前10):")
             for assignee, count in sorted(
                 stats["assignees"].items(), key=lambda x: x[1], reverse=True
             )[:10]:
-                print(f"  - {assignee}: {count}")
+                self.logger.info(f"  - {assignee}: {count}")
 
         if stats["authors"]:
-            print(f"\n✍️ 作者分布 (前10):")
+            self.logger.info(f"\n✍️ 作者分布 (前10):")
             for author, count in sorted(
                 stats["authors"].items(), key=lambda x: x[1], reverse=True
             )[:10]:
-                print(f"  - {author}: {count}")
+                self.logger.info(f"  - {author}: {count}")
 
         # Save detailed report
         report_file = (
@@ -343,66 +344,66 @@ class IssuesManager:
         )
         with open(report_file, "w", encoding="utf-8") as f:
             json.dump(stats, f, indent=2, ensure_ascii=False)
-        print(f"\n📄 详细报告已保存到: {report_file}")
+        self.logger.info(f"\n📄 详细报告已保存到: {report_file}")
         return True
 
     def create_new_issue(self) -> bool:
         """创建新Issue"""
-        print("✨ 创建新Issue...")
+        self.logger.info("✨ 创建新Issue...")
         # Check if helper script exists
         helper_script = self.helpers_dir / "create_issue.py"
         if helper_script.exists():
-            print("🔄 调用创建Issue助手...")
+            self.logger.info("🔄 调用创建Issue助手...")
             result = subprocess.run(
                 [sys.executable, str(helper_script)], capture_output=False, text=True
             )
             return result.returncode == 0
         else:
-            print("⚠️ 创建Issue助手不存在")
-            print("📝 请手动创建Issue或实现create_issue.py助手")
+            self.logger.info("⚠️ 创建Issue助手不存在")
+            self.logger.info("📝 请手动创建Issue或实现create_issue.py助手")
             return True
 
     def team_analysis(self) -> bool:
         """团队分析"""
-        print("👥 团队分析...")
+        self.logger.info("👥 团队分析...")
         if not self.team_info:
-            print("❌ 没有团队信息，无法进行分析")
+            self.logger.info("❌ 没有团队信息，无法进行分析")
             return False
 
         # 直接显示基本团队信息，不依赖外部脚本
-        print("📊 基本团队信息:")
+        self.logger.info("📊 基本团队信息:")
         teams = self.team_info.get("teams", {})
         total_members = 0
 
         for team_name, members in teams.items():
             member_count = len(members) if isinstance(members, list) else 0
             total_members += member_count
-            print(f"  - {team_name}: {member_count} 成员")
+            self.logger.info(f"  - {team_name}: {member_count} 成员")
 
-        print(f"\n📈 团队总览:")
-        print(f"  - 团队总数: {len(teams)}")
-        print(f"  - 成员总数: {total_members}")
+        self.logger.info(f"\n📈 团队总览:")
+        self.logger.info(f"  - 团队总数: {len(teams)}")
+        self.logger.info(f"  - 成员总数: {total_members}")
 
         # 如果有GitHub Token，可以尝试获取更详细信息
         if self.config.github_token:
-            print("\n� GitHub连接正常，可以获取详细团队信息")
-            print("💡 如需更新团队信息，请运行: sage dev issues team --update")
+            self.logger.info("\n� GitHub连接正常，可以获取详细团队信息")
+            self.logger.info("💡 如需更新团队信息，请运行: sage dev issues team --update")
         else:
-            print("\n⚠️ 未配置GitHub Token，无法获取最新团队信息")
-            print("💡 配置Token后可获取更多详细信息")
+            self.logger.info("\n⚠️ 未配置GitHub Token，无法获取最新团队信息")
+            self.logger.info("💡 配置Token后可获取更多详细信息")
 
         return True
 
     def project_management(self) -> bool:
         """项目管理 - 自动检测并修复错误分配的Issues"""
-        print("📋 项目管理...")
+        self.logger.info("📋 项目管理...")
 
         # Check if our fix script exists
         fix_script = self.helpers_dir / "fix_misplaced_issues.py"
         execute_script = self.helpers_dir / "execute_fix_plan.py"
 
         if fix_script.exists():
-            print("🔍 扫描错误分配的Issues...")
+            self.logger.info("🔍 扫描错误分配的Issues...")
 
             # First, run detection to generate fix plan
             detection_result = subprocess.run(
@@ -413,23 +414,23 @@ class IssuesManager:
             )
 
             if detection_result.returncode != 0:
-                print(f"❌ 检测脚本执行失败: {detection_result.stderr}")
+                self.logger.info(f"❌ 检测脚本执行失败: {detection_result.stderr}")
                 return False
 
-            print(detection_result.stdout)
+            self.logger.info(detection_result.stdout)
 
             # Check if there's a fix plan file generated
             fix_plan_files = list(self.output_dir.glob("issues_fix_plan_*.json"))
 
             if fix_plan_files:
                 latest_plan = max(fix_plan_files, key=lambda x: x.stat().st_mtime)
-                print(f"📋 发现修复计划: {latest_plan.name}")
+                self.logger.info(f"📋 发现修复计划: {latest_plan.name}")
 
                 # Ask user if they want to execute the fix
                 try:
                     response = input("🤔 是否执行修复计划? (y/N): ").strip().lower()
                     if response in ["y", "yes"]:
-                        print("🚀 执行修复计划...")
+                        self.logger.info("🚀 执行修复计划...")
                         execute_result = subprocess.run(
                             [
                                 sys.executable,
@@ -444,36 +445,36 @@ class IssuesManager:
 
                         return execute_result.returncode == 0
                     else:
-                        print("✅ 跳过执行，仅进行了检测")
+                        self.logger.info("✅ 跳过执行，仅进行了检测")
                         return True
                 except KeyboardInterrupt:
-                    print("\n✅ 操作被用户取消")
+                    self.logger.info("\n✅ 操作被用户取消")
                     return True
             else:
-                print("✅ 没有发现需要修复的Issues")
+                self.logger.info("✅ 没有发现需要修复的Issues")
                 return True
 
         else:
-            print("⚠️ Issues修复助手不存在")
-            print("📝 请检查 helpers/fix_misplaced_issues.py")
+            self.logger.info("⚠️ Issues修复助手不存在")
+            self.logger.info("📝 请检查 helpers/fix_misplaced_issues.py")
             return True
 
     def update_team_info(self) -> bool:
         """更新团队信息"""
-        print("🔄 更新团队信息...")
+        self.logger.info("🔄 更新团队信息...")
 
         # 检查GitHub Token
         if not self.config.github_token:
-            print("❌ GitHub Token未配置，无法更新团队信息")
-            print("💡 请设置GitHub Token:")
-            print("   export GITHUB_TOKEN=your_token")
-            print("   或创建 ~/.github_token 文件")
+            self.logger.info("❌ GitHub Token未配置，无法更新团队信息")
+            self.logger.info("💡 请设置GitHub Token:")
+            self.logger.info("   export GITHUB_TOKEN=your_token")
+            self.logger.info("   或创建 ~/.github_token 文件")
             return False
 
         # 使用配置系统来调用团队获取脚本
         helper_script = self.helpers_dir / "get_team_members.py"
         if helper_script.exists():
-            print("🔄 正在从GitHub API获取最新团队信息...")
+            self.logger.info("🔄 正在从GitHub API获取最新团队信息...")
 
             # 设置环境变量确保脚本能获取到token
             env = os.environ.copy()
@@ -488,29 +489,29 @@ class IssuesManager:
             )
 
             if result.returncode == 0:
-                print("✅ 团队信息更新成功")
-                print(result.stdout)
+                self.logger.info("✅ 团队信息更新成功")
+                self.logger.info(result.stdout)
                 # Reload team info
                 self.team_info = self._load_team_info()
                 return True
             else:
-                print("❌ 团队信息更新失败")
-                print(f"错误信息: {result.stderr}")
+                self.logger.info("❌ 团队信息更新失败")
+                self.logger.info(f"错误信息: {result.stderr}")
                 return False
         else:
-            print("❌ get_team_members.py助手不存在")
+            self.logger.info("❌ get_team_members.py助手不存在")
             return False
 
     def test_github_connection(self) -> bool:
         """测试GitHub连接"""
-        print("🔍 测试GitHub连接...")
+        self.logger.info("🔍 测试GitHub连接...")
         try:
             if self.config.test_github_connection():
-                print("✅ GitHub连接正常")
+                self.logger.info("✅ GitHub连接正常")
                 return True
             else:
-                print("❌ GitHub连接失败")
+                self.logger.info("❌ GitHub连接失败")
                 return False
         except Exception as e:
-            print(f"❌ GitHub连接错误: {e}")
+            self.logger.info(f"❌ GitHub连接错误: {e}")
             return False

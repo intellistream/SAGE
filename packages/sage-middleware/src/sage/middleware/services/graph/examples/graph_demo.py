@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 Graph Service 使用示例
 展示如何使用Graph微服务进行知识图谱构建和查询
 """
@@ -9,8 +10,8 @@ from sage.middleware.services.graph import create_graph_service_factory
 
 def test_graph_service():
     """测试Graph服务基本功能"""
-    print("🚀 Graph Service Demo")
-    print("=" * 50)
+    self.logger.info("🚀 Graph Service Demo")
+    self.logger.info("=" * 50)
 
     # 创建环境
     env = LocalEnvironment("graph_service_demo")
@@ -25,12 +26,12 @@ def test_graph_service():
     # 使用服务工厂注册（与 SAGE Kernel 的 ServiceFactory 对齐）
     env.register_service_factory("demo_graph_service", graph_factory)
 
-    print("✅ Graph Service registered with memory backend")
-    print("   - Max nodes: 10,000")
-    print("   - Max relationships: 50,000")
+    self.logger.info("✅ Graph Service registered with memory backend")
+    self.logger.info("   - Max nodes: 10,000")
+    self.logger.info("   - Max relationships: 50,000")
 
     # 模拟知识图谱构建
-    print("\n📝 Knowledge Graph Operations Demo:")
+    self.logger.info("\n📝 Knowledge Graph Operations Demo:")
 
     # 创建实体节点
     entities = [
@@ -61,9 +62,9 @@ def test_graph_service():
         },
     ]
 
-    print(f"  add_nodes({len(entities)} entities) -> ✅ Added 5 nodes")
+    self.logger.info(f"  add_nodes({len(entities)} entities) -> ✅ Added 5 nodes")
     for entity in entities:
-        print(f"    - {entity['labels'][0]}: {entity['properties']['name']}")
+        self.logger.info(f"    - {entity['labels'][0]}: {entity['properties']['name']}")
 
     # 创建关系
     relationships = [
@@ -105,14 +106,14 @@ def test_graph_service():
         },
     ]
 
-    print(
+    self.logger.info(
         f"  add_relationships({len(relationships)} relations) -> ✅ Added 6 relationships"
     )
     for rel in relationships:
-        print(f"    - {rel['from_node']} --[{rel['rel_type']}]--> {rel['to_node']}")
+        self.logger.info(f"    - {rel['from_node']} --[{rel['rel_type']}]--> {rel['to_node']}")
 
     # 图查询示例
-    print("\n🔍 Graph Query Examples:")
+    self.logger.info("\n🔍 Graph Query Examples:")
 
     queries = [
         {
@@ -138,21 +139,21 @@ def test_graph_service():
     ]
 
     for query in queries:
-        print(f"  📊 {query['name']}:")
-        print(f"      Query: {query['description']}")
-        print(f"      Result: {query['result']}")
+        self.logger.info(f"  📊 {query['name']}:")
+        self.logger.info(f"      Query: {query['description']}")
+        self.logger.info(f"      Result: {query['result']}")
 
-    print("\n💡 Graph Service Features:")
-    print("   - 知识图谱构建和管理")
-    print("   - 复杂图查询")
-    print("   - 图算法 (路径查找、社区发现)")
-    print("   - 实体关系推理")
-    print("   - 图可视化支持")
+    self.logger.info("\n💡 Graph Service Features:")
+    self.logger.info("   - 知识图谱构建和管理")
+    self.logger.info("   - 复杂图查询")
+    self.logger.info("   - 图算法 (路径查找、社区发现)")
+    self.logger.info("   - 实体关系推理")
+    self.logger.info("   - 图可视化支持")
 
 
 def test_graph_algorithms():
     """演示图算法功能"""
-    print("\n🧮 Graph Algorithms:")
+    self.logger.info("\n🧮 Graph Algorithms:")
 
     algorithms = [
         {
@@ -182,14 +183,14 @@ def test_graph_algorithms():
     ]
 
     for algo in algorithms:
-        print(f"  🔄 {algo['name']}: {algo['description']}")
-        print(f"      调用: {algo['function']}")
-        print(f"      结果: {algo['result']}")
+        self.logger.info(f"  🔄 {algo['name']}: {algo['description']}")
+        self.logger.info(f"      调用: {algo['function']}")
+        self.logger.info(f"      结果: {algo['result']}")
 
 
 def test_graph_applications():
     """演示Graph服务的应用场景"""
-    print("\n🎯 Graph Service Applications:")
+    self.logger.info("\n🎯 Graph Service Applications:")
 
     applications = [
         {
@@ -219,13 +220,13 @@ def test_graph_applications():
     ]
 
     for app in applications:
-        print(f"  📈 {app['name']}: {app['scenario']}")
-        print(f"      实体类型: {', '.join(app['entities'])}")
-        print(f"      关系类型: {', '.join(app['relationships'])}")
+        self.logger.info(f"  📈 {app['name']}: {app['scenario']}")
+        self.logger.info(f"      实体类型: {', '.join(app['entities'])}")
+        self.logger.info(f"      关系类型: {', '.join(app['relationships'])}")
 
 
 if __name__ == "__main__":
     test_graph_service()
     test_graph_algorithms()
     test_graph_applications()
-    print("\n🎯 Graph Service demo completed!")
+    self.logger.info("\n🎯 Graph Service demo completed!")

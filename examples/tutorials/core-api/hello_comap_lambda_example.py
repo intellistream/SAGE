@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+import logging
 CoMap Lambda/Callable Support Example
 @test:tim    # Execute example 1
-    print("Processing sensor data...")
+    logging.info("Processing sensor data...")
 
     test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
     if test_mode:
         # In test mode, skip actual execution for faster testing
-        print("✅ Test mode: Skipping actual execution")
+        logging.info("✅ Test mode: Skipping actual execution")
     else:
         env1.submit(autostop=True)
         # Wait for processing to complete
@@ -16,7 +17,7 @@ CoMap Lambda/Callable Support Example
         wait_time = 5
         time.sleep(wait_time)
 
-    print("✅ Example 1 completed!"):category=streaming
+    logging.info("✅ Example 1 completed!"):category=streaming
 
 This example demonstrates the new lambda and callable support for CoMap operations,
 showing different ways to define multi-stream processing without requiring class definitions.
@@ -61,20 +62,20 @@ class ListSource(SourceFunction):
 def main():
     """Demonstrate different lambda/callable usage patterns for CoMap operations"""
 
-    print("🚀 CoMap Function Examples")
-    print("=" * 60)
+    logging.info("🚀 CoMap Function Examples")
+    logging.info("=" * 60)
 
     # Check if running in test mode - only run first example for faster testing
     test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
     if test_mode:
-        print("🧪 Running in test mode - executing only first example")
+        logging.info("🧪 Running in test mode - executing only first example")
 
     # Create environment
     env1 = LocalEnvironment()
 
     # Example 1: Sensor Data Processing
-    print("\n📋 Example 1: Sensor Data Processing")
-    print("-" * 40)
+    logging.info("\n📋 Example 1: Sensor Data Processing")
+    logging.info("-" * 40)
 
     # Create a CoMap function to process sensor data
     class SensorCoMapFunction(BaseCoMapFunction):
@@ -107,15 +108,15 @@ def main():
     connected_sensors = temp_stream.connect(humidity_stream).connect(pressure_stream)
 
     # Apply CoMap function
-    result1 = connected_sensors.comap(SensorCoMapFunction).print("Sensor Data")
+    result1 = connected_sensors.comap(SensorCoMapFunction).logging.info("Sensor Data")
 
     # Execute example 1
-    print("Processing sensor data...")
+    logging.info("Processing sensor data...")
 
     test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
     if test_mode:
         # In test mode, skip actual execution for faster testing
-        print("✅ Test mode: Skipping actual execution")
+        logging.info("✅ Test mode: Skipping actual execution")
     else:
         env1.submit(autostop=True)
         # Wait for processing to complete
@@ -123,27 +124,27 @@ def main():
 
         time.sleep(5)
 
-    print("✅ Example 1 completed!")
+    logging.info("✅ Example 1 completed!")
 
     # In test mode, only run the first example for faster testing
     if test_mode:
-        print("\n🧪 Test mode: Skipping remaining examples for faster execution")
-        print("\n✅ CoMap function example completed successfully!")
-        print("\n💡 Summary of CoMap usage patterns:")
-        print("   1. Class-based CoMap functions (recommended)")
-        print("   2. process_stream_N methods for each connected stream")
-        print("   3. Built-in error handling and validation")
-        print("   4. Type safety and documentation support")
+        logging.info("\n🧪 Test mode: Skipping remaining examples for faster execution")
+        logging.info("\n✅ CoMap function example completed successfully!")
+        logging.info("\n💡 Summary of CoMap usage patterns:")
+        logging.info("   1. Class-based CoMap functions (recommended)")
+        logging.info("   2. process_stream_N methods for each connected stream")
+        logging.info("   3. Built-in error handling and validation")
+        logging.info("   4. Type safety and documentation support")
 
         # Clean up environment
-        print("\n🧹 Cleaning up environment...")
+        logging.info("\n🧹 Cleaning up environment...")
         env1.close()
-        print("✅ Environment closed successfully!")
+        logging.info("✅ Environment closed successfully!")
         return
 
     # Example 2: Weather Data Processing
-    print("\n📋 Example 2: Weather Data Processing")
-    print("-" * 40)
+    logging.info("\n📋 Example 2: Weather Data Processing")
+    logging.info("-" * 40)
 
     # Reset environment for new example
     env2 = LocalEnvironment()
@@ -175,20 +176,20 @@ def main():
     connected_weather = temp_stream2.connect(humidity_stream2)
 
     # Apply weather CoMap function
-    result2 = connected_weather.comap(WeatherCoMapFunction).print("Weather Data")
+    result2 = connected_weather.comap(WeatherCoMapFunction).logging.info("Weather Data")
 
     # Execute example 2
-    print("Processing weather data...")
+    logging.info("Processing weather data...")
     env2.submit(autostop=True)
 
     # Wait for processing to complete
     wait_time = 5
     time.sleep(wait_time)
-    print("✅ Example 2 completed!")
+    logging.info("✅ Example 2 completed!")
 
     # Example 3: Mixed Data Processing
-    print("\n📋 Example 3: Mixed Data Processing")
-    print("-" * 40)
+    logging.info("\n📋 Example 3: Mixed Data Processing")
+    logging.info("-" * 40)
 
     # Reset environment for new example
     env3 = LocalEnvironment()
@@ -230,19 +231,19 @@ def main():
     connected_mixed = numeric_stream.connect(text_stream).connect(boolean_stream)
 
     # Apply mixed data CoMap function
-    result3 = connected_mixed.comap(MixedDataCoMapFunction).print("Mixed Data")
+    result3 = connected_mixed.comap(MixedDataCoMapFunction).logging.info("Mixed Data")
 
     # Execute example 3
-    print("Processing mixed data types...")
+    logging.info("Processing mixed data types...")
     env3.submit(autostop=True)
 
     # Wait for processing to complete
     time.sleep(wait_time)
-    print("✅ Example 3 completed!")
+    logging.info("✅ Example 3 completed!")
 
     # Example 4: Mathematical Operations
-    print("\n📋 Example 4: Mathematical Operations")
-    print("-" * 40)
+    logging.info("\n📋 Example 4: Mathematical Operations")
+    logging.info("-" * 40)
 
     # Reset environment for new example
     env4 = LocalEnvironment()
@@ -280,19 +281,19 @@ def main():
     connected_math = input1.connect(input2).connect(input3)
 
     # Apply mathematical transformations
-    result4 = connected_math.comap(MathCoMapFunction).print("Math Results")
+    result4 = connected_math.comap(MathCoMapFunction).logging.info("Math Results")
 
     # Execute example 4
-    print("Processing mathematical operations...")
+    logging.info("Processing mathematical operations...")
     env4.submit(autostop=True)
 
     # Wait for processing to complete
     time.sleep(wait_time)
-    print("✅ Example 4 completed!")
+    logging.info("✅ Example 4 completed!")
 
     # Example 5: Error Handling and Validation
-    print("\n📋 Example 5: Error Handling and Validation")
-    print("-" * 40)
+    logging.info("\n📋 Example 5: Error Handling and Validation")
+    logging.info("-" * 40)
 
     # Reset environment for new example
     env5 = LocalEnvironment()
@@ -327,33 +328,33 @@ def main():
     connected_validation = data1.connect(data2)
 
     # Apply validation and error handling
-    result5 = connected_validation.comap(ValidationCoMapFunction).print(
+    result5 = connected_validation.comap(ValidationCoMapFunction).logging.info(
         "Validated Data"
     )
 
     # Execute example 5
-    print("Processing with validation...")
+    logging.info("Processing with validation...")
     env5.submit(autostop=True)
 
     # Wait for processing to complete
     time.sleep(wait_time)
-    print("✅ Example 5 completed!")
+    logging.info("✅ Example 5 completed!")
 
-    print("\n✅ All CoMap function examples completed successfully!")
-    print("\n💡 Summary of CoMap usage patterns:")
-    print("   1. Class-based CoMap functions (recommended)")
-    print("   2. process_stream_N methods for each connected stream")
-    print("   3. Built-in error handling and validation")
-    print("   4. Type safety and documentation support")
+    logging.info("\n✅ All CoMap function examples completed successfully!")
+    logging.info("\n💡 Summary of CoMap usage patterns:")
+    logging.info("   1. Class-based CoMap functions (recommended)")
+    logging.info("   2. process_stream_N methods for each connected stream")
+    logging.info("   3. Built-in error handling and validation")
+    logging.info("   4. Type safety and documentation support")
 
     # Clean up all environments
-    print("\n🧹 Cleaning up environments...")
+    logging.info("\n🧹 Cleaning up environments...")
     env1.close()
     env2.close()
     env3.close()
     env4.close()
     env5.close()
-    print("✅ All environments closed successfully!")
+    logging.info("✅ All environments closed successfully!")
 
 
 if __name__ == "__main__":

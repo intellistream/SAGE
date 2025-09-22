@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 Issues 统一同步脚本 - 支持所有属性的同步
 
 功能:
@@ -92,21 +93,21 @@ class IssuesSyncer:
         all_changes = basic_changes + project_changes
 
         if all_changes:
-            print(f"📋 检测到 {len(all_changes)} 个待同步更改:")
+            self.logger.info(f"📋 检测到 {len(all_changes)} 个待同步更改:")
 
             basic_count = len([c for c in all_changes if c["type"] == "basic"])
             project_count = len([c for c in all_changes if c["type"] == "project"])
 
             if basic_count > 0:
-                print(f"  🔧 基本属性更改: {basic_count} 个")
+                self.logger.info(f"  🔧 基本属性更改: {basic_count} 个")
             if project_count > 0:
-                print(f"  📋 项目板更改: {project_count} 个")
+                self.logger.info(f"  📋 项目板更改: {project_count} 个")
 
             for change in all_changes[:20]:  # 只显示前20个
-                print(f"   - [{change['type']}] {change['description']}")
+                self.logger.info(f"   - [{change['type']}] {change['description']}")
 
             if len(all_changes) > 20:
-                print(f"   ... 以及其他 {len(all_changes) - 20} 个更改")
+                self.logger.info(f"   ... 以及其他 {len(all_changes) - 20} 个更改")
 
         return all_changes
 
@@ -119,7 +120,7 @@ class IssuesSyncer:
         # 使用新架构：读取data目录下的JSON文件
         data_dir = self.workspace_dir / "data"
         if not data_dir.exists():
-            print("❌ data目录不存在，请先下载issues数据")
+            self.logger.info("❌ data目录不存在，请先下载issues数据")
             return changes
 
         files = list(data_dir.glob("issue_*.json"))
@@ -144,14 +145,14 @@ class IssuesSyncer:
                     continue
 
             files = filtered_files
-            print(f"🔍 过滤到最近7天更新的issues: {len(files)} 个")
+            self.logger.info(f"🔍 过滤到最近7天更新的issues: {len(files)} 个")
 
         # 限制检查数量
         files = files[:limit]
-        print(f"🔎 检查 {len(files)} 个JSON文件...")
+        self.logger.info(f"🔎 检查 {len(files)} 个JSON文件...")
 
         for i, f in enumerate(files):
-            print(f"🔎 进度: {i+1}/{len(files)} - Issue #{f.stem.split('_')[1]}")
+            self.logger.info(f"🔎 进度: {i+1}/{len(files)} - Issue #{f.stem.split('_')[1]}")
 
             try:
                 # 使用数据管理器读取issue
@@ -172,7 +173,7 @@ class IssuesSyncer:
                 changes.extend(changes_detected)
 
             except Exception as e:
-                print(f"❌ 处理文件 {f} 时出错: {e}")
+                self.logger.info(f"❌ 处理文件 {f} 时出错: {e}")
                 continue
 
         return changes
@@ -181,31 +182,31 @@ class IssuesSyncer:
         """统一同步所有类型的更改"""
         changes = self.detect_all_changes()
         if not changes:
-            print("✅ 没有检测到需要同步的更改")
+            self.logger.info("✅ 没有检测到需要同步的更改")
             return True
 
         # 分组处理不同类型的更改
         basic_changes = [c for c in changes if c["type"] == "basic"]
         project_changes = [c for c in changes if c["type"] == "project"]
 
-        print(f"📋 检测到 {len(changes)} 个待同步更改:")
+        self.logger.info(f"📋 检测到 {len(changes)} 个待同步更改:")
         if basic_changes:
-            print(f"  🔧 基本属性更改: {len(basic_changes)} 个")
+            self.logger.info(f"  🔧 基本属性更改: {len(basic_changes)} 个")
         if project_changes:
-            print(f"  📋 项目板更改: {len(project_changes)} 个")
+            self.logger.info(f"  📋 项目板更改: {len(project_changes)} 个")
 
         # 如果没有apply_projects且有项目更改，只显示预览
         if project_changes and not apply_projects:
-            print(f"\n💡 发现 {len(project_changes)} 个项目板更改:")
+            self.logger.info(f"\n💡 发现 {len(project_changes)} 个项目板更改:")
             for change in project_changes[:10]:  # 显示前10个
-                print(f"   - {change['description']}")
+                self.logger.info(f"   - {change['description']}")
             if len(project_changes) > 10:
-                print(f"   ... 以及其他 {len(project_changes) - 10} 个项目板更改")
-            print(f"💡 使用 --apply-projects 参数来应用项目板更改")
+                self.logger.info(f"   ... 以及其他 {len(project_changes) - 10} 个项目板更改")
+            self.logger.info(f"💡 使用 --apply-projects 参数来应用项目板更改")
 
             # 只处理基本属性更改
             if basic_changes:
-                print(f"\n🚀 开始同步基本属性更改 ({len(basic_changes)} 个)...")
+                self.logger.info(f"\n🚀 开始同步基本属性更改 ({len(basic_changes)} 个)...")
                 return self._sync_basic_changes_only(basic_changes)
             else:
                 return True
@@ -216,47 +217,47 @@ class IssuesSyncer:
                 input(f"\n是否同步这 {len(changes)} 个更改? (y/N): ").lower().strip()
             )
             if confirm != "y":
-                print("❌ 同步已取消")
+                self.logger.info("❌ 同步已取消")
                 return False
 
-        print(f"\n🚀 开始同步 {len(changes)} 个更改...")
+        self.logger.info(f"\n🚀 开始同步 {len(changes)} 个更改...")
 
         success_count = 0
 
         # 处理基本属性更改 (使用REST API)
         if basic_changes:
-            print(f"\n📝 同步基本属性更改 ({len(basic_changes)} 个)...")
+            self.logger.info(f"\n📝 同步基本属性更改 ({len(basic_changes)} 个)...")
             for change in basic_changes:
                 if self._apply_basic_change(change):
                     success_count += 1
-                    print(f"✅ {change['description']}")
+                    self.logger.info(f"✅ {change['description']}")
                 else:
-                    print(f"❌ {change['description']}")
+                    self.logger.info(f"❌ {change['description']}")
 
         # 处理项目板更改 (使用GraphQL API)
         if project_changes and apply_projects:
-            print(f"\n📋 同步项目板更改 ({len(project_changes)} 个)...")
+            self.logger.info(f"\n📋 同步项目板更改 ({len(project_changes)} 个)...")
             success = self._apply_project_changes(project_changes)
             if success:
                 success_count += len(project_changes)
-                print(f"✅ 成功处理 {len(project_changes)} 个项目板更改")
+                self.logger.info(f"✅ 成功处理 {len(project_changes)} 个项目板更改")
             else:
-                print(f"❌ 项目板更改处理失败")
+                self.logger.info(f"❌ 项目板更改处理失败")
 
-        print(f"\n✨ 同步完成: {success_count}/{len(changes)} 个更改成功")
+        self.logger.info(f"\n✨ 同步完成: {success_count}/{len(changes)} 个更改成功")
 
         # 如果有成功的更改，重新生成视图
         if success_count > 0:
-            print(f"\n🔄 重新生成视图...")
+            self.logger.info(f"\n🔄 重新生成视图...")
             try:
                 # 重新下载并更新本地数据
                 self._update_local_data_after_sync(basic_changes[:success_count])
 
                 # 重新生成所有视图
                 self.data_manager.generate_all_views()
-                print(f"✅ 视图重新生成完成")
+                self.logger.info(f"✅ 视图重新生成完成")
             except Exception as e:
-                print(f"⚠️ 视图重新生成失败: {e}")
+                self.logger.info(f"⚠️ 视图重新生成失败: {e}")
 
         return success_count == len(changes)
 
@@ -307,10 +308,10 @@ class IssuesSyncer:
 
                             # 保存更新后的数据
                             self.data_manager.save_issue(issue_number, local_data)
-                            print(f"  ✅ 已更新本地数据: Issue #{issue_number}")
+                            self.logger.info(f"  ✅ 已更新本地数据: Issue #{issue_number}")
 
                 except Exception as e:
-                    print(f"  ⚠️ 更新本地数据失败 Issue #{issue_number}: {e}")
+                    self.logger.info(f"  ⚠️ 更新本地数据失败 Issue #{issue_number}: {e}")
 
     def _sync_basic_changes_only(self, basic_changes):
         """仅同步基本属性更改"""
@@ -318,11 +319,11 @@ class IssuesSyncer:
         for change in basic_changes:
             if self._apply_basic_change(change):
                 success_count += 1
-                print(f"✅ {change['description']}")
+                self.logger.info(f"✅ {change['description']}")
             else:
-                print(f"❌ {change['description']}")
+                self.logger.info(f"❌ {change['description']}")
 
-        print(f"\n✨ 基本属性同步完成: {success_count}/{len(basic_changes)} 个更改成功")
+        self.logger.info(f"\n✨ 基本属性同步完成: {success_count}/{len(basic_changes)} 个更改成功")
         return success_count == len(basic_changes)
 
     def _apply_basic_change(self, change):
@@ -366,7 +367,7 @@ class IssuesSyncer:
             resp = self.github_client.session.patch(url, json=update_data, timeout=30)
             return resp.status_code == 200
         except Exception as e:
-            print(f"   ❌ 更新失败: {e}")
+            self.logger.info(f"   ❌ 更新失败: {e}")
             return False
 
     def _apply_project_changes(self, project_changes):
@@ -382,30 +383,30 @@ class IssuesSyncer:
                 target_project_number = change["target_project_number"]
                 target_project = change["target_project"]
 
-                print(
+                self.logger.info(
                     f"   🔄 移动Issue #{issue_number}到项目{target_project} (#{target_project_number})..."
                 )
 
                 # 获取issue的node_id
                 issue_data = self._get_remote_issue(issue_number)
                 if not issue_data:
-                    print(f"   ❌ 无法获取Issue #{issue_number}的数据")
+                    self.logger.info(f"   ❌ 无法获取Issue #{issue_number}的数据")
                     continue
 
                 issue_node_id = issue_data.get("node_id")
                 if not issue_node_id:
-                    print(f"   ❌ 无法获取Issue #{issue_number}的node_id")
+                    self.logger.info(f"   ❌ 无法获取Issue #{issue_number}的node_id")
                     continue
 
                 # 获取项目的project_id
                 project_id = self.project_manager.get_project_id(target_project_number)
                 if not project_id:
-                    print(f"   ❌ 无法获取项目#{target_project_number}的project_id")
+                    self.logger.info(f"   ❌ 无法获取项目#{target_project_number}的project_id")
                     continue
 
                 # 检查issue是否已在目标项目中
                 if target_project_number in change["current_projects"]:
-                    print(f"   ⏭️ Issue #{issue_number}已在目标项目中，跳过")
+                    self.logger.info(f"   ⏭️ Issue #{issue_number}已在目标项目中，跳过")
                     success_count += 1
                     continue
 
@@ -415,14 +416,14 @@ class IssuesSyncer:
                 )
                 if success:
                     success_count += 1
-                    print(f"   ✅ 成功移动Issue #{issue_number}到项目{target_project}")
+                    self.logger.info(f"   ✅ 成功移动Issue #{issue_number}到项目{target_project}")
                 else:
-                    print(f"   ❌ 移动Issue #{issue_number}失败")
+                    self.logger.info(f"   ❌ 移动Issue #{issue_number}失败")
 
             return success_count == len(project_changes)
 
         except Exception as e:
-            print(f"   ❌ 项目板更改失败: {e}")
+            self.logger.info(f"   ❌ 项目板更改失败: {e}")
             return False
 
     def _add_issue_to_project(self, issue_node_id, project_id, project_number):
@@ -453,11 +454,11 @@ class IssuesSyncer:
             ):
                 return True
             else:
-                print(f"   ❌ GraphQL响应错误: {response}")
+                self.logger.info(f"   ❌ GraphQL响应错误: {response}")
                 return False
 
         except Exception as e:
-            print(f"   ❌ GraphQL调用失败: {e}")
+            self.logger.info(f"   ❌ GraphQL调用失败: {e}")
             return False
 
     def _get_milestone_number(self, milestone_title):
@@ -476,14 +477,14 @@ class IssuesSyncer:
 
     def sync_one_issue(self, issue_number):
         """同步单个issue"""
-        print(f"🔄 检查issue #{issue_number}...")
+        self.logger.info(f"🔄 检查issue #{issue_number}...")
 
         issues_dir = self.workspace_dir / "issues"
         file_pattern = f"open_{issue_number}_*.md"
         files = list(issues_dir.glob(file_pattern))
 
         if not files:
-            print(f"❌ 未找到issue #{issue_number}的本地文件")
+            self.logger.info(f"❌ 未找到issue #{issue_number}的本地文件")
             return False
 
         # 检测这个issue的所有更改
@@ -522,12 +523,12 @@ class IssuesSyncer:
                     )
 
         if not all_changes:
-            print(f"✅ Issue #{issue_number} 无需同步")
+            self.logger.info(f"✅ Issue #{issue_number} 无需同步")
             return True
 
-        print(f"📋 发现 {len(all_changes)} 个更改:")
+        self.logger.info(f"📋 发现 {len(all_changes)} 个更改:")
         for change in all_changes:
-            print(f"   - {change['description']}")
+            self.logger.info(f"   - {change['description']}")
 
         # 应用更改
         success_count = 0
@@ -535,38 +536,38 @@ class IssuesSyncer:
             if change["type"] == "basic":
                 if self._apply_basic_change(change):
                     success_count += 1
-                    print(f"✅ {change['description']}")
+                    self.logger.info(f"✅ {change['description']}")
                 else:
-                    print(f"❌ {change['description']}")
+                    self.logger.info(f"❌ {change['description']}")
             elif change["type"] == "project":
                 if self._apply_project_changes([change]):
                     success_count += 1
-                    print(f"✅ {change['description']}")
+                    self.logger.info(f"✅ {change['description']}")
                 else:
-                    print(f"❌ {change['description']}")
+                    self.logger.info(f"❌ {change['description']}")
 
-        print(f"✨ 同步完成: {success_count}/{len(all_changes)} 个更改成功")
+        self.logger.info(f"✨ 同步完成: {success_count}/{len(all_changes)} 个更改成功")
         return success_count == len(all_changes)
 
     def show_sync_status(self):
         """显示同步状态概览"""
-        print("\n🔍 检查同步状态...")
+        self.logger.info("\n🔍 检查同步状态...")
 
         changes = self.detect_all_changes()
 
         if not changes:
-            print("✅ 所有issues都已同步")
+            self.logger.info("✅ 所有issues都已同步")
             return
 
         # 按类型分组统计
         basic_changes = [c for c in changes if c["type"] == "basic"]
         project_changes = [c for c in changes if c["type"] == "project"]
 
-        print(f"\n📊 同步状态概览:")
-        print(f"   总共需要同步: {len(changes)} 个更改")
+        self.logger.info(f"\n📊 同步状态概览:")
+        self.logger.info(f"   总共需要同步: {len(changes)} 个更改")
 
         if basic_changes:
-            print(f"   基本属性更改: {len(basic_changes)} 个")
+            self.logger.info(f"   基本属性更改: {len(basic_changes)} 个")
             # 按属性类型分组
             attr_count = {}
             for change in basic_changes:
@@ -574,10 +575,10 @@ class IssuesSyncer:
                     attr_count[attr] = attr_count.get(attr, 0) + 1
 
             for attr, count in attr_count.items():
-                print(f"      - {attr}: {count} 个")
+                self.logger.info(f"      - {attr}: {count} 个")
 
         if project_changes:
-            print(f"   项目板更改: {len(project_changes)} 个")
+            self.logger.info(f"   项目板更改: {len(project_changes)} 个")
             # 按目标项目分组
             project_count = {}
             for change in project_changes:
@@ -585,10 +586,10 @@ class IssuesSyncer:
                 project_count[target] = project_count.get(target, 0) + 1
 
             for project, count in project_count.items():
-                print(f"      - {project}: {count} 个")
+                self.logger.info(f"      - {project}: {count} 个")
 
-        print(f"\n💡 运行 'sync_issues.py sync' 来同步所有更改")
-        print(f"💡 运行 'sync_issues.py sync <issue_number>' 来同步单个issue")
+        self.logger.info(f"\n💡 运行 'sync_issues.py sync' 来同步所有更改")
+        self.logger.info(f"💡 运行 'sync_issues.py sync <issue_number>' 来同步单个issue")
 
     def detect_basic_changes(self):
         """检测基本属性更改 (assignee, labels, title, body, milestone)"""
@@ -597,15 +598,15 @@ class IssuesSyncer:
         # 使用新架构：读取data目录下的JSON文件
         data_dir = self.workspace_dir / "data"
         if not data_dir.exists():
-            print("❌ data目录不存在，请先下载issues数据")
+            self.logger.info("❌ data目录不存在，请先下载issues数据")
             return changes
 
         files = list(data_dir.glob("issue_*.json"))
-        print(f"🔎 scanning {len(files)} JSON files for basic changes...")
+        self.logger.info(f"🔎 scanning {len(files)} JSON files for basic changes...")
 
         for i, f in enumerate(files):
             if i % 50 == 0:
-                print(f"🔎 scanning files... progress: {i}/{len(files)}")
+                self.logger.info(f"🔎 scanning files... progress: {i}/{len(files)}")
 
             try:
                 # 使用数据管理器读取issue
@@ -626,7 +627,7 @@ class IssuesSyncer:
                 changes.extend(changes_detected)
 
             except Exception as e:
-                print(f"❌ 处理文件 {f} 时出错: {e}")
+                self.logger.info(f"❌ 处理文件 {f} 时出错: {e}")
                 continue
 
         return changes
@@ -640,7 +641,7 @@ class IssuesSyncer:
         # 使用新架构：读取data目录下的JSON文件
         data_dir = self.workspace_dir / "data"
         if not data_dir.exists():
-            print("❌ data目录不存在，请先下载issues数据")
+            self.logger.info("❌ data目录不存在，请先下载issues数据")
             return outdated_issues
 
         files = list(data_dir.glob("issue_*.json"))
@@ -665,15 +666,15 @@ class IssuesSyncer:
                     continue
 
             files = filtered_files
-            print(f"🔍 过滤到最近7天更新的issues: {len(files)} 个")
+            self.logger.info(f"🔍 过滤到最近7天更新的issues: {len(files)} 个")
 
         # 限制检查数量
         files = files[:limit]
-        print(f"🔎 检查 {len(files)} 个JSON文件的时间戳...")
+        self.logger.info(f"🔎 检查 {len(files)} 个JSON文件的时间戳...")
 
         for i, f in enumerate(files):
             if i % 10 == 0:
-                print(f"🔎 进度: {i+1}/{len(files)}")
+                self.logger.info(f"🔎 进度: {i+1}/{len(files)}")
 
             try:
                 # 读取本地数据
@@ -727,14 +728,14 @@ class IssuesSyncer:
         # 使用新架构：读取data目录下的JSON文件
         data_dir = self.workspace_dir / "data"
         if not data_dir.exists():
-            print("❌ data目录不存在，请先下载issues数据")
+            self.logger.info("❌ data目录不存在，请先下载issues数据")
             return changes
 
         files = list(data_dir.glob("issue_*.json"))
-        print(f"🔎 scanning {len(files)} JSON files for project changes...")
+        self.logger.info(f"🔎 scanning {len(files)} JSON files for project changes...")
 
         # 批量获取所有项目数据，避免重复API调用
-        print("📥 预加载项目板数据...")
+        self.logger.info("📥 预加载项目板数据...")
         project_items_cache = {}
         for project_num in [
             6,
@@ -746,16 +747,16 @@ class IssuesSyncer:
                 items = self.project_manager.get_project_items(project_num)
                 if items:
                     project_items_cache[project_num] = items
-                    print(f"  ✅ 项目#{project_num}: {len(items)} 个items")
+                    self.logger.info(f"  ✅ 项目#{project_num}: {len(items)} 个items")
                 else:
                     project_items_cache[project_num] = []
             except Exception as e:
-                print(f"  ⚠️ 获取项目#{project_num}数据失败: {e}")
+                self.logger.info(f"  ⚠️ 获取项目#{project_num}数据失败: {e}")
                 project_items_cache[project_num] = []
 
         for i, f in enumerate(files):
             if i % 50 == 0:
-                print(f"🔎 scanning files... progress: {i}/{len(files)}")
+                self.logger.info(f"🔎 scanning files... progress: {i}/{len(files)}")
 
             try:
                 # 使用数据管理器读取issue
@@ -796,7 +797,7 @@ class IssuesSyncer:
                             )
 
             except Exception as e:
-                print(f"❌ 处理文件 {f} 时出错: {e}")
+                self.logger.info(f"❌ 处理文件 {f} 时出错: {e}")
                 continue
 
         return changes
@@ -1009,7 +1010,7 @@ class IssuesSyncer:
                             current_projects.append(project_num)
                             break
             except Exception as e:
-                print(f"⚠️ 检查项目#{project_num}时出错: {e}")
+                self.logger.info(f"⚠️ 检查项目#{project_num}时出错: {e}")
 
         return current_projects
 
@@ -1163,33 +1164,33 @@ class IssuesSyncer:
     def sync_label_changes(self):
         label_changes = self.detect_label_changes()
         if not label_changes:
-            print("✅ 没有检测到标签更改")
+            self.logger.info("✅ 没有检测到标签更改")
             return True
         return self.execute_sync(label_changes)
 
     def sync_status_changes(self):
         status_changes = self.detect_status_changes()
         if not status_changes:
-            print("✅ 没有检测到状态更改")
+            self.logger.info("✅ 没有检测到状态更改")
             return True
         return self.execute_sync(status_changes)
 
     def preview_changes(self):
         all_changes = self.detect_all_changes()
         if not all_changes:
-            print("✅ 没有检测到需要同步的更改")
+            self.logger.info("✅ 没有检测到需要同步的更改")
             return True
 
-        print(f"\n⚡ 检测到 {len(all_changes)} 个待同步更改:\n")
+        self.logger.info(f"\n⚡ 检测到 {len(all_changes)} 个待同步更改:\n")
         for change in all_changes:
-            print(f" - [{change['type']}] {change['description']}")
+            self.logger.info(f" - [{change['type']}] {change['description']}")
 
         report_file = (
             self.output_dir
             / f"sync_preview_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
         )
         self.save_preview_report(all_changes, report_file)
-        print(f"📄 详细预览报告已保存到: {report_file}")
+        self.logger.info(f"📄 详细预览报告已保存到: {report_file}")
         return True
 
     def find_latest_plan(self):
@@ -1201,31 +1202,31 @@ class IssuesSyncer:
     def load_plan(self, path=None):
         if path:
             p = Path(path)
-            print(f"🔍 使用指定的计划文件: {p}")
+            self.logger.info(f"🔍 使用指定的计划文件: {p}")
         else:
             p = self.find_latest_plan()
             if p:
-                print(f"🔍 使用最新的计划文件: {p}")
+                self.logger.info(f"🔍 使用最新的计划文件: {p}")
             else:
-                print("🔍 未找到任何计划文件")
+                self.logger.info("🔍 未找到任何计划文件")
         if not p or not p.exists():
-            print("❌ 未找到 plan 文件，请先运行 helpers/fix_misplaced_issues.py")
+            self.logger.info("❌ 未找到 plan 文件，请先运行 helpers/fix_misplaced_issues.py")
             return []
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
-            print(f"✅ 已加载计划: {p.name}，{len(data)} 项")
+            self.logger.info(f"✅ 已加载计划: {p.name}，{len(data)} 项")
             return data
         except Exception as e:
-            print(f"❌ 解析 plan 失败: {e}")
+            self.logger.info(f"❌ 解析 plan 失败: {e}")
             return []
 
     def preview_plan(self, plan):
         if not plan:
-            print("✅ 计划为空")
+            self.logger.info("✅ 计划为空")
             return True
-        print(f"\n🔎 计划预览 ({len(plan)} 项):")
+        self.logger.info(f"\n🔎 计划预览 ({len(plan)} 项):")
         for i, act in enumerate(plan, 1):
-            print(
+            self.logger.info(
                 f" [{i}/{len(plan)}] #{act.get('issue_number')} -> project {act.get('to_project')} ({act.get('to_project_number')}) staged={act.get('staged')}"
             )
         return True
@@ -1241,7 +1242,7 @@ class IssuesSyncer:
             project_id = act.get("to_project_id")
             project_number = act.get("to_project_number")
             entry = {"issue_number": issue_number, "project_number": project_number}
-            print(
+            self.logger.info(
                 f"[{idx}/{total}] 处理 Issue #{issue_number} -> project #{project_number}"
             )
 
@@ -1265,11 +1266,11 @@ class IssuesSyncer:
                         break
 
             if already:
-                print(f"  ⏭️ 目标 project 已包含此 issue，跳过 add")
+                self.logger.info(f"  ⏭️ 目标 project 已包含此 issue，跳过 add")
                 entry["added"] = False
             else:
                 if dry_run:
-                    print(
+                    self.logger.info(
                         f"  [dry-run] 会执行 addProjectV2ItemById(projectId={project_id}, contentId={issue_node_id})"
                     )
                     entry["added"] = "dry-run"
@@ -1282,23 +1283,23 @@ class IssuesSyncer:
                         retries=2,
                     )
                     if not ok2 or "errors" in (resp2 or {}):
-                        print(f"  ❌ add 失败: {resp2}")
+                        self.logger.info(f"  ❌ add 失败: {resp2}")
                         entry["added"] = False
                         entry["add_response"] = resp2
                     else:
-                        print(f"  ✅ 已添加到目标 project")
+                        self.logger.info(f"  ✅ 已添加到目标 project")
                         entry["added"] = True
                         entry["add_response"] = resp2
 
             # If we added (or existed), we should remove the original org project item
             if dry_run:
-                print(f"  [dry-run] 会执行 deleteProjectV2Item(itemId={item_id})")
+                self.logger.info(f"  [dry-run] 会执行 deleteProjectV2Item(itemId={item_id})")
                 entry["deleted"] = "dry-run"
             else:
                 # GitHub API now requires both projectId and itemId for deleteProjectV2Item
                 from_project_id = act.get("from_project_id")
                 if not from_project_id:
-                    print(f"  ❌ 缺少 from_project_id，无法删除原项目中的 item")
+                    self.logger.info(f"  ❌ 缺少 from_project_id，无法删除原项目中的 item")
                     entry["deleted"] = False
                     entry["delete_response"] = {"error": "missing from_project_id"}
                 else:
@@ -1310,11 +1311,11 @@ class IssuesSyncer:
                         retries=2,
                     )
                     if not ok3 or "errors" in (resp3 or {}):
-                        print(f"  ❌ delete 失败: {resp3}")
+                        self.logger.info(f"  ❌ delete 失败: {resp3}")
                         entry["deleted"] = False
                         entry["delete_response"] = resp3
                     else:
-                        print(f"  ✅ 已从原组织 project 删除 item")
+                        self.logger.info(f"  ✅ 已从原组织 project 删除 item")
                         entry["deleted"] = True
                         entry["delete_response"] = resp3
 
@@ -1327,7 +1328,7 @@ class IssuesSyncer:
         log_path.write_text(
             json.dumps(logs, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        print(f"\n📝 日志已写入: {log_path}")
+        self.logger.info(f"\n📝 日志已写入: {log_path}")
         return logs
 
     def log_sync_operation(self, changes, success, sync_type="all"):
@@ -1471,39 +1472,39 @@ def main():
         # 预览所有更改
         changes = syncer.detect_all_changes()
         if not changes:
-            print("✅ 没有检测到需要同步的更改")
+            self.logger.info("✅ 没有检测到需要同步的更改")
         else:
-            print(f"📋 检测到 {len(changes)} 个待同步更改:")
+            self.logger.info(f"📋 检测到 {len(changes)} 个待同步更改:")
             for change in changes[:50]:  # 最多显示50个
-                print(f"   - {change['description']}")
+                self.logger.info(f"   - {change['description']}")
             if len(changes) > 50:
-                print(f"   ... 以及其他 {len(changes) - 50} 个更改")
+                self.logger.info(f"   ... 以及其他 {len(changes) - 50} 个更改")
         success = True
     elif args.command == "quick-preview":
         # 快速预览（只检查少量issues）
-        print(f"🚀 快速预览模式（最多检查 {args.limit} 个issues）")
+        self.logger.info(f"🚀 快速预览模式（最多检查 {args.limit} 个issues）")
         changes = syncer.detect_changes_limited(
             limit=args.limit, recent_only=args.recent_only
         )
         if not changes:
-            print("✅ 没有检测到需要同步的更改")
+            self.logger.info("✅ 没有检测到需要同步的更改")
         else:
-            print(f"📋 检测到 {len(changes)} 个待同步更改:")
+            self.logger.info(f"📋 检测到 {len(changes)} 个待同步更改:")
             for change in changes:
-                print(f"   - {change['description']}")
+                self.logger.info(f"   - {change['description']}")
         success = True
     elif args.command == "timestamp-check":
         # 超快速检查（只比较时间戳）
-        print(f"⚡ 超快速时间戳检查（最多检查 {args.limit} 个issues）")
+        self.logger.info(f"⚡ 超快速时间戳检查（最多检查 {args.limit} 个issues）")
         outdated_issues = syncer.check_outdated_timestamps(
             limit=args.limit, recent_only=args.recent_only
         )
         if not outdated_issues:
-            print("✅ 所有issues的时间戳都是最新的")
+            self.logger.info("✅ 所有issues的时间戳都是最新的")
         else:
-            print(f"⚠️ 发现 {len(outdated_issues)} 个可能需要同步的issues:")
+            self.logger.info(f"⚠️ 发现 {len(outdated_issues)} 个可能需要同步的issues:")
             for issue_info in outdated_issues:
-                print(
+                self.logger.info(
                     f"   - Issue #{issue_info['number']}: 本地={issue_info['local_time']}, GitHub={issue_info['github_time']}"
                 )
         success = True
@@ -1526,21 +1527,21 @@ def main():
         if not plan:
             sys.exit(1)
         dry = not args.confirm
-        print(f"🔔 apply_plan dry_run={dry} batch_size={args.batch_size}")
+        self.logger.info(f"🔔 apply_plan dry_run={dry} batch_size={args.batch_size}")
         syncer.apply_plan(plan, dry_run=dry, batch_size=args.batch_size)
         success = True
     elif args.content_preview:
         changes = syncer.detect_content_changes(limit=args.content_limit)
         if not changes:
-            print("✅ 未检测到内容差异")
+            self.logger.info("✅ 未检测到内容差异")
         else:
             p = syncer.save_content_plan(changes)
-            print(f"预览 {len(changes)} 项内容差异，计划已保存: {p}")
+            self.logger.info(f"预览 {len(changes)} 项内容差异，计划已保存: {p}")
         success = True
     elif args.apply_content:
         changes = syncer.detect_content_changes(limit=args.content_limit)
         if not changes:
-            print("✅ 未检测到内容差异")
+            self.logger.info("✅ 未检测到内容差异")
             sys.exit(0)
         plan_path = syncer.save_content_plan(changes)
         dry = not args.confirm
@@ -1550,13 +1551,13 @@ def main():
         success = True
     else:
         # 如果没有指定任何命令，显示帮助和状态
-        print("🔧 统一的Issues同步工具")
-        print("\n使用方法:")
-        print("  python sync_issues.py sync           # 同步所有更改")
-        print("  python sync_issues.py sync 123       # 同步issue #123")
-        print("  python sync_issues.py status         # 显示同步状态")
-        print("  python sync_issues.py preview        # 预览待同步更改")
-        print()
+        self.logger.info("🔧 统一的Issues同步工具")
+        self.logger.info("\n使用方法:")
+        self.logger.info("  python sync_issues.py sync           # 同步所有更改")
+        self.logger.info("  python sync_issues.py sync 123       # 同步issue #123")
+        self.logger.info("  python sync_issues.py status         # 显示同步状态")
+        self.logger.info("  python sync_issues.py preview        # 预览待同步更改")
+        self.logger.info()
         syncer.show_sync_status()
         success = True
 
@@ -1564,9 +1565,9 @@ def main():
         if args.command in ["sync", "status", "preview"] or not args.command:
             pass  # 不显示额外消息
         else:
-            print("🎉 操作完成！")
+            self.logger.info("🎉 操作完成！")
     else:
-        print("💥 操作失败！")
+        self.logger.info("💥 操作失败！")
         sys.exit(1)
 
 

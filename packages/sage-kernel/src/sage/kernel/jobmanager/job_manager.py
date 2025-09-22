@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pickle
 import signal
@@ -504,7 +505,7 @@ class JobManager:  # Job Manager
             sage_paths.logs_dir / "jobmanager" / f"session_{self.session_id}"
         )
 
-        print(f"JobManager logs: {self.log_base_dir}")
+        self.logger.info(f"JobManager logs: {self.log_base_dir}")
         Path(self.log_base_dir).mkdir(parents=True, exist_ok=True)
 
         # 3. 创建JobManager主日志
@@ -578,12 +579,12 @@ def main():
     )
 
     if not args.no_daemon:
-        print(f"Starting SAGE JobManager with TCP daemon on {args.host}:{args.port}")
-        print("Press Ctrl+C to stop...")
+        logging.info(f"Starting SAGE JobManager with TCP daemon on {args.host}:{args.port}")
+        logging.info("Press Ctrl+C to stop...")
         jobmanager.run_forever()
     else:
-        print("SAGE JobManager started without TCP daemon")
-        print("Use the JobManager instance directly in your code")
+        logging.info("SAGE JobManager started without TCP daemon")
+        logging.info("Use the JobManager instance directly in your code")
 
 
 if __name__ == "__main__":

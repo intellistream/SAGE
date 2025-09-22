@@ -23,8 +23,6 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  # 控制是否编译C++扩展（设为false可加速CI）
-  SAGE_SKIP_CPP_EXTENSIONS: true
 
 jobs:
   test:
@@ -81,13 +79,6 @@ jobs:
 
       - name: Install System Dependencies (C++ Extensions)
         run: |
-          if [ "$SAGE_SKIP_CPP_EXTENSIONS" = "true" ]; then
-            echo "🚀 跳过C++扩展编译依赖安装（加速CI模式）"
-            echo "📋 在此模式下，以下模块将使用Python回退实现："
-            echo "   • sage-middleware/components/sage_db → 纯Python向量数据库"
-            exit 0
-          fi
-
           echo "📦 检查是否需要安装系统依赖..."
 
           # 检查是否需要编译C++扩展

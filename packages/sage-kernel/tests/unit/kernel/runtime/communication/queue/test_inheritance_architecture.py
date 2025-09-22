@@ -1,4 +1,5 @@
 """
+import logging
 测试基于继承的队列描述符架构
 
 验证 BaseQueueDescriptor 及其子类的功能完整性
@@ -215,37 +216,37 @@ if __name__ == "__main__":
         TestErrorHandling(),
     ]
 
-    print("Running inheritance-based queue descriptor tests...")
+    logging.info("Running inheritance-based queue descriptor tests...")
 
     try:
         # 测试Python队列描述符
         python_tests = TestPythonQueueDescriptor()
         python_tests.test_local_queue_creation()
-        print("✓ Python queue creation tests passed")
+        logging.info("✓ Python queue creation tests passed")
 
         python_tests.test_queue_operations()
-        print("✓ Python queue operations tests passed")
+        logging.info("✓ Python queue operations tests passed")
 
         python_tests.test_serialization()
-        print("✓ Python queue serialization tests passed")
+        logging.info("✓ Python queue serialization tests passed")
 
         python_tests.test_clone()
-        print("✓ Python queue clone tests passed")
+        logging.info("✓ Python queue clone tests passed")
 
         python_tests.test_lazy_loading()
-        print("✓ Python queue lazy loading tests passed")
+        logging.info("✓ Python queue lazy loading tests passed")
 
         # 测试错误处理
         error_tests = TestErrorHandling()
         error_tests.test_invalid_queue_id()
-        print("✓ Error handling tests passed")
+        logging.info("✓ Error handling tests passed")
 
-        print(
+        logging.info(
             "\n🎉 All tests passed! The inheritance-based queue architecture is working correctly."
         )
 
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        logging.info(f"❌ Test failed: {e}")
         import traceback
 
         traceback.print_exc()

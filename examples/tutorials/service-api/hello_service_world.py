@@ -1,3 +1,4 @@
+import logging
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.sink_function import SinkFunction
@@ -22,7 +23,7 @@ class PrintSink(SinkFunction):
     def execute(self, data):
         # 调用服务
         self.call_service["hello_service"].hello()
-        print(data)
+        logging.info(data)
 
 
 # 继承BaseService创建一个简单的服务
@@ -31,7 +32,7 @@ class HelloService(BaseService):
         self.message = "hello service!!!"
 
     def hello(self):
-        print(self.message)
+        logging.info(self.message)
 
 
 def main():
@@ -43,7 +44,7 @@ def main():
     env.from_batch(HelloBatch).sink(PrintSink)
 
     env.submit(autostop=True)
-    print("Hello Service World 示例完成!")
+    logging.info("Hello Service World 示例完成!")
 
 
 if __name__ == "__main__":

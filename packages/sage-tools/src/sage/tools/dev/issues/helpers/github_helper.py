@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 精简版GitHub项目管理工具
 只保留核心的API操作功能，用作其他脚本的helper
 """
@@ -37,7 +38,7 @@ class GitHubProjectManager:
         config = Config()
         token = config.github_token
         if token:
-            print("✅ 从 IssuesConfig 获取到 GitHub Token")
+            self.logger.info("✅ 从 IssuesConfig 获取到 GitHub Token")
             return token
 
         raise Exception(
@@ -57,18 +58,18 @@ class GitHubProjectManager:
                 # 补充intellistream团队映射（如果不存在）
                 if "intellistream" not in self.TARGET_TEAMS:
                     self.TARGET_TEAMS["intellistream"] = 6
-                    print("📝 补充intellistream团队映射到项目#6")
+                    self.logger.info("📝 补充intellistream团队映射到项目#6")
 
-                print("✅ 加载项目映射配置")
+                self.logger.info("✅ 加载项目映射配置")
 
             # 加载团队成员配置
             team_file = config.metadata_path / "team_members.json"
             with open(team_file, "r", encoding="utf-8") as f:
                 self.team_members = json.load(f)
-                print("✅ 加载团队成员配置")
+                self.logger.info("✅ 加载团队成员配置")
 
         except Exception as e:
-            print(f"⚠️ 加载配置失败: {e}")
+            self.logger.info(f"⚠️ 加载配置失败: {e}")
             self.TARGET_TEAMS = {}
             self.team_members = {}
 
@@ -79,7 +80,7 @@ class GitHubProjectManager:
         if repo_name is None:
             repo_name = self.REPO
 
-        print(f"🔍 获取仓库 {owner}/{repo_name} 的Issues...")
+        self.logger.info(f"🔍 获取仓库 {owner}/{repo_name} 的Issues...")
 
         query = f"""query($after: String) {{
     repository(owner: "{owner}", name: "{repo_name}") {{
@@ -117,12 +118,12 @@ class GitHubProjectManager:
             )
 
             if resp.status_code != 200:
-                print(f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}")
+                self.logger.info(f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}")
                 return []
 
             data = resp.json()
             if "errors" in data:
-                print(f"  ❌ GraphQL错误: {data['errors']}")
+                self.logger.info(f"  ❌ GraphQL错误: {data['errors']}")
                 return []
 
             issues = data.get("data", {}).get("repository", {}).get("issues", {})
@@ -139,12 +140,12 @@ class GitHubProjectManager:
 
             after = page_info.get("endCursor")
 
-        print(f"  📥 {repo_name}: {len(all_issues)} 个Issues")
+        self.logger.info(f"  📥 {repo_name}: {len(all_issues)} 个Issues")
         return all_issues
 
     def get_all_repository_issues(self):
         """获取组织下所有仓库的issues，使用GraphQL确保获取node_id"""
-        print("🔍 获取组织中所有仓库的Issues...")
+        self.logger.info("🔍 获取组织中所有仓库的Issues...")
 
         # 首先获取组织下的所有仓库
         repos_query = f"""query {{
@@ -167,12 +168,12 @@ class GitHubProjectManager:
         )
 
         if resp.status_code != 200:
-            print(f"❌ 获取仓库列表失败: HTTP {resp.status_code}")
+            self.logger.info(f"❌ 获取仓库列表失败: HTTP {resp.status_code}")
             return []
 
         data = resp.json()
         if "errors" in data:
-            print(f"❌ GraphQL错误: {data['errors']}")
+            self.logger.info(f"❌ GraphQL错误: {data['errors']}")
             return []
 
         repositories = (
@@ -181,7 +182,7 @@ class GitHubProjectManager:
             .get("repositories", {})
             .get("nodes", [])
         )
-        print(f"📁 发现 {len(repositories)} 个仓库")
+        self.logger.info(f"📁 发现 {len(repositories)} 个仓库")
 
         all_issues = []
 
@@ -190,7 +191,7 @@ class GitHubProjectManager:
             repo_name = repo["name"]
             owner = repo["owner"]["login"]
 
-            print(f"🔍 获取仓库 {owner}/{repo_name} 的Issues...")
+            self.logger.info(f"🔍 获取仓库 {owner}/{repo_name} 的Issues...")
 
             query = f"""query($after: String) {{
     repository(owner: "{owner}", name: "{repo_name}") {{
@@ -228,12 +229,12 @@ class GitHubProjectManager:
                 )
 
                 if resp.status_code != 200:
-                    print(f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}")
+                    self.logger.info(f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}")
                     break
 
                 data = resp.json()
                 if "errors" in data:
-                    print(f"  ❌ GraphQL错误: {data['errors']}")
+                    self.logger.info(f"  ❌ GraphQL错误: {data['errors']}")
                     break
 
                 issues = data.get("data", {}).get("repository", {}).get("issues", {})
@@ -250,10 +251,10 @@ class GitHubProjectManager:
 
                 after = page_info.get("endCursor")
 
-            print(f"  📥 {repo_name}: {len(repo_issues)} 个Issues")
+            self.logger.info(f"  📥 {repo_name}: {len(repo_issues)} 个Issues")
             all_issues.extend(repo_issues)
 
-        print(f"✅ 总共获取到 {len(all_issues)} 个Issues")
+        self.logger.info(f"✅ 总共获取到 {len(all_issues)} 个Issues")
         return all_issues
 
     def get_project_by_number(self, project_number):

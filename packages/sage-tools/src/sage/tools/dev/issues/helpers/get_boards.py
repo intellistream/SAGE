@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 获取GitHub组织的项目板信息并生成boards_metadata.json配置文件
 
 功能:
@@ -75,28 +76,28 @@ class BoardsMetadataGenerator:
         try:
             # 如果有GitHub Token，尝试从API获取实际的项目板信息
             if self.config.github_token:
-                print("🔍 尝试从GitHub API获取项目板信息...")
+                self.logger.info("🔍 尝试从GitHub API获取项目板信息...")
                 api_boards = self._fetch_boards_from_api()
                 if api_boards:
                     # 更新配置中的项目板信息
                     for team_name, board_info in api_boards.items():
                         if team_name in default_boards_config["teams"]:
                             default_boards_config["teams"][team_name].update(board_info)
-                    print(f"✅ 成功从API获取 {len(api_boards)} 个项目板信息")
+                    self.logger.info(f"✅ 成功从API获取 {len(api_boards)} 个项目板信息")
                 else:
-                    print("⚠️ 无法从API获取项目板信息，使用默认配置")
+                    self.logger.info("⚠️ 无法从API获取项目板信息，使用默认配置")
             else:
-                print("ℹ️ 未配置GitHub Token，使用默认项目板配置")
+                self.logger.info("ℹ️ 未配置GitHub Token，使用默认项目板配置")
 
             # 保存配置文件
             with open(boards_file, "w", encoding="utf-8") as f:
                 json.dump(default_boards_config, f, indent=2, ensure_ascii=False)
 
-            print(f"✅ 项目板配置文件已生成: {boards_file}")
+            self.logger.info(f"✅ 项目板配置文件已生成: {boards_file}")
             return True
 
         except Exception as e:
-            print(f"❌ 生成项目板配置失败: {e}")
+            self.logger.info(f"❌ 生成项目板配置失败: {e}")
             return False
 
     def _fetch_boards_from_api(self):
@@ -131,13 +132,13 @@ class BoardsMetadataGenerator:
             )
 
             if response.status_code != 200:
-                print(f"API请求失败: {response.status_code}")
+                self.logger.info(f"API请求失败: {response.status_code}")
                 return None
 
             data = response.json()
 
             if "errors" in data:
-                print(f"GraphQL查询错误: {data['errors']}")
+                self.logger.info(f"GraphQL查询错误: {data['errors']}")
                 return None
 
             projects = (
@@ -169,7 +170,7 @@ class BoardsMetadataGenerator:
             return boards_info
 
         except Exception as e:
-            print(f"从API获取项目板信息失败: {e}")
+            self.logger.info(f"从API获取项目板信息失败: {e}")
             return None
 
 
@@ -179,10 +180,10 @@ def main():
     success = generator.generate_boards_metadata()
 
     if success:
-        print("\n🎉 项目板metadata生成完成！")
+        self.logger.info("\n🎉 项目板metadata生成完成！")
         sys.exit(0)
     else:
-        print("\n💥 项目板metadata生成失败！")
+        self.logger.info("\n💥 项目板metadata生成失败！")
         sys.exit(1)
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Kernel Package Setup with C Extensions
 自动编译C++扩展的安装脚本
 """
@@ -20,8 +21,8 @@ class BuildCExtensions(build_ext):
 
     def run(self):
         """编译C扩展"""
-        print("🔧 检查C扩展...")
-        print("ℹ️  当前版本暂无需要编译的C扩展")
+        self.logger.info("🔧 检查C扩展...")
+        self.logger.info("ℹ️  当前版本暂无需要编译的C扩展")
         super().run()
 
 

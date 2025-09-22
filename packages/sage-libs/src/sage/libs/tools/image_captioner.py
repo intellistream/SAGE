@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 import time
 
@@ -32,7 +33,7 @@ class ImageCaptioner(BaseTool):
                 "limitation": "The Image_Captioner_Tool provides general image descriptions but has limitations: 1) May make mistakes in complex scenes, counting, attribute detection, and understanding object relationships. 2) Might not generate comprehensive captions, especially for images with multiple objects or abstract concepts. 3) Performance varies with image complexity. 4) Struggles with culturally specific or domain-specific content. 5) May overlook details or misinterpret object relationships. For precise descriptions, consider: using it with other tools for context/verification, as an initial step before refinement, or in multi-step processes for ambiguity resolution. Verify critical information with specialized tools or human expertise when necessary."
             },
         )
-        print(f"ImageCaptioner initialized with model: {model_name}")
+        self.logger.info(f"ImageCaptioner initialized with model: {model_name}")
         self.set_model_name(model_name)
 
     def execute(self, image_path: str):
@@ -62,14 +63,14 @@ class ImageCaptioner(BaseTool):
                     response = client.generate(messages=messages)
                     return response
                 except ConnectionError as e:
-                    print(f"Connection error on attempt {attempt + 1}: {e}")
+                    self.logger.info(f"Connection error on attempt {attempt + 1}: {e}")
                     if attempt < max_retries - 1:
-                        print(f"Retrying in {retry_delay} seconds...")
+                        self.logger.info(f"Retrying in {retry_delay} seconds...")
                         time.sleep(retry_delay)
                     else:
                         raise
         except Exception as e:
-            print(f"Error in ImageCaptioner: {e}")
+            self.logger.info(f"Error in ImageCaptioner: {e}")
             return None
 
 
@@ -86,7 +87,7 @@ if __name__ == "__main__":
 
     # Get tool metadata
     metadata = tool.get_metadata()
-    print(metadata)
+    self.logger.info(metadata)
 
     # Construct the full path to the image using the script's directory
     relative_image_path = "examples/baseball.png"
@@ -95,9 +96,9 @@ if __name__ == "__main__":
     # Execute the tool with default prompt
     try:
         execution = tool.execute(image_path=image_path)
-        print("Generated Caption:")
-        print(json.dumps(execution, indent=4))
+        self.logger.info("Generated Caption:")
+        self.logger.info(json.dumps(execution, indent=4))
     except Exception as e:
-        print(f"Execution failed: {e}")
+        self.logger.info(f"Execution failed: {e}")
 
-    print("Done!")
+    self.logger.info("Done!")

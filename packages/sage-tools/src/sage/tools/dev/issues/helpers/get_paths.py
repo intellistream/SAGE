@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 获取config.py中的路径配置
 用于shell脚本调用
 """
@@ -17,28 +18,28 @@ try:
         config = Config()
 
         if len(sys.argv) < 2:
-            print("用法: python3 get_paths.py <path_type>")
-            print("path_type: workspace | output | metadata | project_root")
+            self.logger.info("用法: python3 get_paths.py <path_type>")
+            self.logger.info("path_type: workspace | output | metadata | project_root")
             sys.exit(1)
 
         path_type = sys.argv[1].lower()
 
         if path_type == "workspace":
-            print(config.workspace_path)
+            self.logger.info(config.workspace_path)
         elif path_type == "output":
-            print(config.output_path)
+            self.logger.info(config.output_path)
         elif path_type == "metadata":
-            print(config.metadata_path)
+            self.logger.info(config.metadata_path)
         elif path_type == "project_root":
-            print(config.project_root)
+            self.logger.info(config.project_root)
         elif path_type == "issues":
-            print(config.workspace_path / "issues")
+            self.logger.info(config.workspace_path / "issues")
         else:
-            print(f"未知的路径类型: {path_type}", file=sys.stderr)
+            self.logger.info(f"未知的路径类型: {path_type}", file=sys.stderr)
             sys.exit(1)
 
 except Exception as e:
-    print(f"获取路径失败: {e}", file=sys.stderr)
+    self.logger.info(f"获取路径失败: {e}", file=sys.stderr)
     sys.exit(1)
 
 if __name__ == "__main__":

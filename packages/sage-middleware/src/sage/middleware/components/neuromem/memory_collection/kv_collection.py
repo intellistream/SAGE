@@ -494,24 +494,24 @@ if __name__ == "__main__":
     import tempfile
     import time
 
-    print("=== KVMemoryCollection 测试开始 ===")
+    logging.info("=== KVMemoryCollection 测试开始 ===")
 
     # 使用临时目录进行测试
     with tempfile.TemporaryDirectory() as temp_dir:
-        print(f"测试目录: {temp_dir}")
+        logging.info(f"测试目录: {temp_dir}")
 
         # 1. 创建集合（使用新的config方式）
-        print("\n1. 创建集合...")
+        logging.info("\n1. 创建集合...")
         config = {
             "name": "test_collection",
             "default_topk": 5,
             "default_index_type": "bm25s",
         }
         collection = KVMemoryCollection(config)
-        print(f"✓ 集合创建成功: {collection.name}")
+        logging.info(f"✓ 集合创建成功: {collection.name}")
 
         # 2. 创建索引（使用新的config方式）
-        print("\n2. 创建索引...")
+        logging.info("\n2. 创建索引...")
         try:
             index_config = {
                 "name": "main_index",
@@ -520,14 +520,14 @@ if __name__ == "__main__":
             }
             result = collection.create_index(config=index_config)
             if result == 1:
-                print("✓ 主索引创建成功")
+                logging.info("✓ 主索引创建成功")
             else:
-                print("✗ 主索引创建失败")
+                logging.info("✗ 主索引创建失败")
         except Exception as e:
-            print(f"✗ 索引创建失败: {e}")
+            logging.info(f"✗ 索引创建失败: {e}")
 
         # 3. 插入数据
-        print("\n3. 插入数据...")
+        logging.info("\n3. 插入数据...")
         test_data = [
             (
                 "这是第一条测试文本，包含人工智能相关内容。",
@@ -547,14 +547,14 @@ if __name__ == "__main__":
             try:
                 doc_id = collection.insert(text, metadata, "main_index")
                 inserted_ids.append(doc_id)
-                print(f"✓ 插入成功: {text[:20]}...")
+                logging.info(f"✓ 插入成功: {text[:20]}...")
             except Exception as e:
-                print(f"✗ 插入失败: {e}")
+                logging.info(f"✗ 插入失败: {e}")
 
-        print(f"✓ 总共插入了 {len(inserted_ids)} 条数据")
+        logging.info(f"✓ 总共插入了 {len(inserted_ids)} 条数据")
 
         # 4. 检索测试
-        print("\n4. 检索测试...")
+        logging.info("\n4. 检索测试...")
         search_queries = [
             "人工智能",
             "机器学习",
@@ -568,19 +568,19 @@ if __name__ == "__main__":
                 results = collection.retrieve(
                     raw_text=query, topk=3, with_metadata=True, index_name="main_index"
                 )
-                print(f"✓ '{query}' 找到 {len(results)} 条结果")
+                logging.info(f"✓ '{query}' 找到 {len(results)} 条结果")
                 if results:
                     top_result = (
                         results[0]["text"][:30] + "..."
                         if len(results[0]["text"]) > 30
                         else results[0]["text"]
                     )
-                    print(f"  最相关: {top_result}")
+                    logging.info(f"  最相关: {top_result}")
             except Exception as e:
-                print(f"✗ 检索 '{query}' 失败: {e}")
+                logging.info(f"✗ 检索 '{query}' 失败: {e}")
 
         # 5. 元数据过滤测试
-        print("\n5. 元数据过滤测试...")
+        logging.info("\n5. 元数据过滤测试...")
         try:
             # 测试高优先级文档检索
             results = collection.retrieve(
@@ -593,15 +593,15 @@ if __name__ == "__main__":
             high_priority_count = len(
                 [r for r in results if r["metadata"].get("priority") == 1]
             )
-            print(
+            logging.info(
                 f"✓ 优先级过滤测试: 找到 {len(results)} 条结果，高优先级文档 {high_priority_count} 条"
             )
 
         except Exception as e:
-            print(f"✗ 元数据过滤测试失败: {e}")
+            logging.info(f"✗ 元数据过滤测试失败: {e}")
 
         # 6. 批量操作测试
-        print("\n6. 批量操作测试...")
+        logging.info("\n6. 批量操作测试...")
         try:
             # 测试更新
             if inserted_ids:
@@ -615,7 +615,7 @@ if __name__ == "__main__":
                     new_metadata=new_metadata,
                 )
                 collection.insert(new_text, new_metadata, "main_index")
-                print(f"✓ 文档更新成功，新ID: {new_id[:8]}...")
+                logging.info(f"✓ 文档更新成功，新ID: {new_id[:8]}...")
 
                 # 验证更新结果
                 results = collection.retrieve(
@@ -625,19 +625,19 @@ if __name__ == "__main__":
                     index_name="main_index",
                 )
                 if results and results[0]["metadata"].get("updated"):
-                    print("✓ 更新验证成功")
+                    logging.info("✓ 更新验证成功")
                 else:
-                    print("✗ 更新验证失败")
+                    logging.info("✗ 更新验证失败")
 
                 # 测试删除
                 collection.delete(new_text)
-                print("✓ 文档删除成功")
+                logging.info("✓ 文档删除成功")
 
         except Exception as e:
-            print(f"✗ 批量操作测试失败: {e}")
+            logging.info(f"✗ 批量操作测试失败: {e}")
 
         # 7. 索引管理测试
-        print("\n7. 索引管理测试...")
+        logging.info("\n7. 索引管理测试...")
         try:
             # 创建分类索引（使用新的config方式）
             ai_index_config = {
@@ -656,85 +656,85 @@ if __name__ == "__main__":
 
             # 列出索引
             indexes = collection.list_index()
-            print(f"✓ 当前索引列表 ({len(indexes)} 个):")
+            logging.info(f"✓ 当前索引列表 ({len(indexes)} 个):")
             for idx in indexes:
-                print(f"  - {idx['name']}: {idx['description']}")
+                logging.info(f"  - {idx['name']}: {idx['description']}")
 
             # 测试索引重建
             collection.rebuild_index("main_index")
-            print("✓ 索引重建成功")
+            logging.info("✓ 索引重建成功")
 
             # 测试索引删除
             collection.delete_index("ai_index")
-            print("✓ 索引删除成功")
+            logging.info("✓ 索引删除成功")
 
         except Exception as e:
-            print(f"✗ 索引管理测试失败: {e}")
+            logging.info(f"✗ 索引管理测试失败: {e}")
 
         # 8. 持久化测试
-        print("\n8. 持久化测试...")
+        logging.info("\n8. 持久化测试...")
         try:
             # 保存集合
             save_result = collection.store(temp_dir)
-            print(f"✓ 集合保存成功: {save_result['collection_path']}")
+            logging.info(f"✓ 集合保存成功: {save_result['collection_path']}")
 
             # 加载集合
             loaded_collection = KVMemoryCollection.load("test_collection", temp_dir)
-            print(f"✓ 集合加载成功: {loaded_collection.name}")
+            logging.info(f"✓ 集合加载成功: {loaded_collection.name}")
 
             # 验证加载的数据
             if loaded_collection.indexes:
                 results = loaded_collection.retrieve(
                     raw_text="机器学习", topk=2, index_name="main_index"
                 )
-                print(f"✓ 加载后检索测试成功，找到 {len(results)} 条结果")
+                logging.info(f"✓ 加载后检索测试成功，找到 {len(results)} 条结果")
             else:
-                print("✗ 加载后索引为空")
+                logging.info("✗ 加载后索引为空")
 
         except Exception as e:
-            print(f"✗ 持久化测试失败: {e}")
+            logging.info(f"✗ 持久化测试失败: {e}")
 
         # 9. 错误处理测试
-        print("\n9. 错误处理测试...")
+        logging.info("\n9. 错误处理测试...")
         try:
             # 测试不存在的索引
             results = collection.retrieve(
                 raw_text="测试", index_name="nonexistent_index", topk=1
             )
-            print(f"✓ 不存在索引处理: 返回 {len(results)} 条结果（预期为0）")
+            logging.info(f"✓ 不存在索引处理: 返回 {len(results)} 条结果（预期为0）")
 
             # 测试删除不存在的索引
             try:
                 collection.delete_index("nonexistent_index")
-                print("✗ 删除不存在索引应该失败")
+                logging.info("✗ 删除不存在索引应该失败")
             except ValueError:
-                print("✓ 删除不存在索引正确抛出异常")
+                logging.info("✓ 删除不存在索引正确抛出异常")
 
             # 测试重建不存在的索引
             result = collection.rebuild_index("nonexistent_index")
             if not result:
-                print("✓ 重建不存在索引正确返回False")
+                logging.info("✓ 重建不存在索引正确返回False")
 
         except Exception as e:
-            print(f"✗ 错误处理测试失败: {e}")
+            logging.info(f"✗ 错误处理测试失败: {e}")
 
         # 10. 清理测试
-        print("\n10. 清理测试...")
+        logging.info("\n10. 清理测试...")
         try:
             KVMemoryCollection.clear("test_collection", temp_dir)
-            print("✓ 集合清理成功")
+            logging.info("✓ 集合清理成功")
 
             # 验证清理结果
             try:
                 KVMemoryCollection.load("test_collection", temp_dir)
-                print("✗ 清理后仍能加载集合")
+                logging.info("✗ 清理后仍能加载集合")
             except FileNotFoundError:
-                print("✓ 清理验证成功")
+                logging.info("✓ 清理验证成功")
         except Exception as e:
-            print(f"✗ 清理测试失败: {e}")
+            logging.info(f"✗ 清理测试失败: {e}")
 
-    print("\n=== 测试完成 ===")
-    print("✓ 所有主要功能测试通过")
-    print(
+    logging.info("\n=== 测试完成 ===")
+    logging.info("✓ 所有主要功能测试通过")
+    logging.info(
         "注意: 某些测试可能由于依赖项（如KVIndexFactory）未完全加载而失败，这是正常的。"
     )

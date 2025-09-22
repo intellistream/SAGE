@@ -1,4 +1,5 @@
 """
+import logging
 sage-kernel测试配置
 
 设置正确的Python路径和共享的测试fixtures
@@ -45,10 +46,10 @@ try:
             num_cpus=1,
             _temp_dir=str(ray_temp_dir),  # 使用SAGE的temp目录
         )
-        print(f"Ray initialized for tests with temp dir: {ray_temp_dir}")
+        logging.info(f"Ray initialized for tests with temp dir: {ray_temp_dir}")
 except (ImportError, ValueError, RuntimeError) as e:
     # Ray不是必需的，或者内存不足时跳过
-    print(f"⚠️ Ray初始化跳过: {e}")
+    logging.info(f"⚠️ Ray初始化跳过: {e}")
     pass
 
 import pytest
@@ -87,12 +88,12 @@ def setup_test_environment():
         import sage.core
         import sage.kernel
 
-        print(f"✓ 测试环境设置成功")
-        print(f"✓ sage.kernel: {sage.kernel.__path__}")
-        print(f"✓ sage.core: {sage.core.__path__}")
-        print(f"✓ sage.common: {sage.common.__path__}")
+        logging.info(f"✓ 测试环境设置成功")
+        logging.info(f"✓ sage.kernel: {sage.kernel.__path__}")
+        logging.info(f"✓ sage.core: {sage.core.__path__}")
+        logging.info(f"✓ sage.common: {sage.common.__path__}")
     except ImportError as e:
-        print(f"❌ 测试环境设置失败: {e}")
+        logging.info(f"❌ 测试环境设置失败: {e}")
         raise
 
     yield

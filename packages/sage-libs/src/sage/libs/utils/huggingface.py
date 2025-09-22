@@ -3,6 +3,8 @@ import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from sage.common.utils.logging.custom_logger import CustomLogger
+
 # DEFAULT_MODELS = {
 #     "llama": "meta-llama/Llama-2-7b-chat-hf",
 #     "mistral": "mistralai/Mistral-7B-v0.1",
@@ -19,6 +21,7 @@ class HFClient:
             device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         )
         self.model_name = model_name
+        self.logger = CustomLogger([("console", "INFO")], name="HFClient")
         self.model, self.tokenizer = self._initialize_model()
 
     def _initialize_model(self):
@@ -64,7 +67,7 @@ class HFClient:
         elif isinstance(prompt, str):
             input_prompt = prompt
 
-        print(f"Input prompt: {input_prompt[:200]}...")  # 调试信息
+        self.logger.debug(f"Input prompt: {input_prompt[:200]}...")  # 调试信息
 
         # Tokenize input
         input_ids = self.tokenizer(
@@ -75,14 +78,14 @@ class HFClient:
             max_length=1024,  # 限制输入长度
         ).to(self.device)
 
-        print(f"Input token length: {input_ids['input_ids'].shape[1]}")  # 调试信息
+        self.logger.debug(f"Input token length: {input_ids['input_ids'].shape[1]}")  # 调试信息
 
         # Generate output
         try:
             with torch.no_grad():  # 节省内存
                 output = self.model.generate(**input_ids, **generation_kwargs)
         except Exception as e:
-            print(f"Generation error: {e}")
+            self.logger.error(f"Generation error: {e}")
             return "Generation failed due to an error."
 
         # Decode output
@@ -90,5 +93,5 @@ class HFClient:
             output[0][input_ids["input_ids"].shape[1] :], skip_special_tokens=True
         ).strip()
 
-        print(f"Generated response: {response_text}")  # 调试信息
+        self.logger.debug(f"Generated response: {response_text}")  # 调试信息
         return response_text

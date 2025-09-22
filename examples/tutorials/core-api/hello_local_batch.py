@@ -76,7 +76,7 @@ class FileLineSource(SourceFunction):
 
         line = self.lines[self.current_index]
         self.current_index += 1
-        print(
+        logging.info(
             f"[FileSource] Reading line {self.current_index}/{len(self.lines)}: {line}"
         )
         return line
@@ -97,7 +97,7 @@ class CountdownSource(SourceFunction):
             return StopSignal(f"Countdown_Finished")
 
         result = self.current_number
-        print(f"[Countdown] T-minus {self.current_number}")
+        logging.info(f"[Countdown] T-minus {self.current_number}")
         self.current_number -= 1
         return result
 
@@ -113,14 +113,14 @@ class BatchProcessor(SinkFunction):
 
     def execute(self, data):
         self.processed_count += 1
-        print(f"[Processor-{self.name}] Processed item #{self.processed_count}: {data}")
+        logging.info(f"[Processor-{self.name}] Processed item #{self.processed_count}: {data}")
         return data
 
 
 def run_simple_batch_test():
     """测试1: 简单的数字序列批处理"""
-    print("🔢 Test 1: Simple Number Sequence Batch Processing")
-    print("=" * 50)
+    logging.info("🔢 Test 1: Simple Number Sequence Batch Processing")
+    logging.info("=" * 50)
 
     env = LocalEnvironment("simple_batch_test")
 
@@ -138,20 +138,20 @@ def run_simple_batch_test():
         .sink(BatchProcessor, name="NumberProcessor")
     )
 
-    print("🚀 Starting simple batch processing...")
-    print("📊 Processing sequence: generate → double → filter → sink")
-    print("⏹️  Source will automatically stop after 5 numbers\n")
+    logging.info("🚀 Starting simple batch processing...")
+    logging.info("📊 Processing sequence: generate → double → filter → sink")
+    logging.info("⏹️  Source will automatically stop after 5 numbers\n")
 
     # 提交并运行
     env.submit()
 
-    print("\n✅ Simple batch test completed!\n")
+    logging.info("\n✅ Simple batch test completed!\n")
 
 
 def run_file_processing_test():
     """测试2: 文件行批处理"""
-    print("📄 Test 2: File Line Batch Processing")
-    print("=" * 50)
+    logging.info("📄 Test 2: File Line Batch Processing")
+    logging.info("=" * 50)
 
     env = LocalEnvironment("file_batch_test")
 
@@ -177,20 +177,20 @@ def run_file_processing_test():
         .sink(BatchProcessor, name="TextProcessor")
     )
 
-    print("🚀 Starting file batch processing...")
-    print("📊 Processing pipeline: read → uppercase → prefix → sink")
-    print("⏹️  Source will automatically stop after reading all lines\n")
+    logging.info("🚀 Starting file batch processing...")
+    logging.info("📊 Processing pipeline: read → uppercase → prefix → sink")
+    logging.info("⏹️  Source will automatically stop after reading all lines\n")
 
     # 提交并运行
     env.submit()
 
-    print("\n✅ File batch test completed!\n")
+    logging.info("\n✅ File batch test completed!\n")
 
 
 def run_multi_source_batch_test():
     """测试3: 多源批处理（展示不同源的终止时机）"""
-    print("🔀 Test 3: Multi-Source Batch Processing")
-    print("=" * 50)
+    logging.info("🔀 Test 3: Multi-Source Batch Processing")
+    logging.info("=" * 50)
 
     env = LocalEnvironment("multi_source_batch_test")
 
@@ -207,20 +207,20 @@ def run_multi_source_batch_test():
         .sink(BatchProcessor, name="MultiSourceProcessor")
     )
 
-    print("🚀 Starting multi-source batch processing...")
-    print("📊 Two independent sources will terminate at different times")
-    print("⏹️  Job will complete when ALL sources send stop signals\n")
+    logging.info("🚀 Starting multi-source batch processing...")
+    logging.info("📊 Two independent sources will terminate at different times")
+    logging.info("⏹️  Job will complete when ALL sources send stop signals\n")
 
     # 提交并运行
     env.submit()
 
-    print("\n✅ Multi-source batch test completed!\n")
+    logging.info("\n✅ Multi-source batch test completed!\n")
 
 
 def run_processing_chain_test():
     """测试4: 复杂处理链批处理"""
-    print("⛓️  Test 4: Complex Processing Chain Batch")
-    print("=" * 50)
+    logging.info("⛓️  Test 4: Complex Processing Chain Batch")
+    logging.info("=" * 50)
 
     env = LocalEnvironment("complex_batch_test")  # 使用远程环境测试分布式批处理
 
@@ -243,23 +243,23 @@ def run_processing_chain_test():
         .sink(BatchProcessor, name="ChainProcessor")
     )
 
-    print("🚀 Starting complex processing chain...")
-    print("📊 Chain: source → +100 → filter_even → /2 → format → sink")
-    print("🌐 Running on distributed Ray cluster")
-    print("⏹️  Automatic termination with batch lifecycle management\n")
+    logging.info("🚀 Starting complex processing chain...")
+    logging.info("📊 Chain: source → +100 → filter_even → /2 → format → sink")
+    logging.info("🌐 Running on distributed Ray cluster")
+    logging.info("⏹️  Automatic termination with batch lifecycle management\n")
 
     # 提交并运行
     env.submit()
 
-    print("\n✅ Complex batch test completed!\n")
+    logging.info("\n✅ Complex batch test completed!\n")
 
 
 def main():
     """主测试函数"""
-    print("🎯 SAGE Batch Processing Tests with StopSignal")
-    print("=" * 60)
-    print("🧪 Testing automatic batch termination using StopSignal interface")
-    print("📈 Each test demonstrates different batch processing scenarios\n")
+    logging.info("🎯 SAGE Batch Processing Tests with StopSignal")
+    logging.info("=" * 60)
+    logging.info("🧪 Testing automatic batch termination using StopSignal interface")
+    logging.info("📈 Each test demonstrates different batch processing scenarios\n")
 
     try:
         # 运行所有测试
@@ -275,26 +275,26 @@ def main():
         run_processing_chain_test()
 
     except KeyboardInterrupt:
-        print("\n\n🛑 Tests interrupted by user")
+        logging.info("\n\n🛑 Tests interrupted by user")
 
     finally:
-        print("\n📋 Batch Processing Tests Summary:")
-        print("✅ Test 1: Simple sequence - PASSED")
-        print("✅ Test 2: File processing - PASSED")
-        print("✅ Test 3: Multi-source - PASSED")
-        print("✅ Test 4: Complex chain - PASSED")
-        print("\n💡 Key Features Demonstrated:")
-        print("   - StopSignal automatic termination")
-        print("   - Source-driven batch lifecycle")
-        print("   - Multi-source coordination")
-        print("   - Distributed batch processing")
-        print("   - Graceful job completion")
-        print("\n🔄 StopSignal Workflow:")
-        print("   1. Source detects data exhaustion")
-        print("   2. Source returns StopSignal")
-        print("   3. SourceOperator propagates signal")
-        print("   4. Downstream nodes receive termination")
-        print("   5. Job gracefully completes")
+        logging.info("\n📋 Batch Processing Tests Summary:")
+        logging.info("✅ Test 1: Simple sequence - PASSED")
+        logging.info("✅ Test 2: File processing - PASSED")
+        logging.info("✅ Test 3: Multi-source - PASSED")
+        logging.info("✅ Test 4: Complex chain - PASSED")
+        logging.info("\n💡 Key Features Demonstrated:")
+        logging.info("   - StopSignal automatic termination")
+        logging.info("   - Source-driven batch lifecycle")
+        logging.info("   - Multi-source coordination")
+        logging.info("   - Distributed batch processing")
+        logging.info("   - Graceful job completion")
+        logging.info("\n🔄 StopSignal Workflow:")
+        logging.info("   1. Source detects data exhaustion")
+        logging.info("   2. Source returns StopSignal")
+        logging.info("   3. SourceOperator propagates signal")
+        logging.info("   4. Downstream nodes receive termination")
+        logging.info("   5. Job gracefully completes")
 
 
 if __name__ == "__main__":

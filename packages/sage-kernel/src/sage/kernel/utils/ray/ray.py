@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 import socket
 import threading
@@ -47,7 +48,7 @@ def get_sage_kernel_runtime_env():
             sage_kernel_src = os.path.expanduser("~/SAGE/packages/sage-kernel/src")
 
     if not os.path.exists(sage_kernel_src):
-        print(f"警告：无法找到sage-kernel源码路径: {sage_kernel_src}")
+        self.logger.info(f"警告：无法找到sage-kernel源码路径: {sage_kernel_src}")
         return {}
 
     # 构建runtime_env配置
@@ -94,24 +95,24 @@ def ensure_ray_initialized(runtime_env=None):
                     sage_paths.setup_environment_variables()
                     ray_temp_dir = sage_paths.get_ray_temp_dir()
                     init_kwargs["_temp_dir"] = str(ray_temp_dir)
-                    print(f"Ray will use SAGE temp directory: {ray_temp_dir}")
+                    self.logger.info(f"Ray will use SAGE temp directory: {ray_temp_dir}")
                 except Exception as e:
-                    print(
+                    self.logger.info(
                         f"Warning: Failed to set Ray temp directory via output_paths: {e}"
                     )
 
                     # 如果没有成功设置，使用默认行为
                     init_kwargs["_temp_dir"] = str(ray_temp_dir)
-                    print(
+                    self.logger.info(
                         f"Ray will use SAGE temp directory (fallback): {ray_temp_dir}"
                     )
                 except Exception as e:
-                    print(
+                    self.logger.info(
                         f"Warning: Failed to set Ray temp directory via fallback: {e}"
                     )
 
             if ray_temp_dir is None:
-                print("SAGE paths not available, Ray will use default temp directory")
+                self.logger.info("SAGE paths not available, Ray will use default temp directory")
 
             # 如果提供了runtime_env，使用它；否则使用默认的sage配置
             if runtime_env is not None:
@@ -124,12 +125,12 @@ def ensure_ray_initialized(runtime_env=None):
 
             # 使用标准模式但限制资源，支持async actors和队列
             ray.init(**init_kwargs)
-            print(f"Ray initialized in standard mode with limited resources")
+            self.logger.info(f"Ray initialized in standard mode with limited resources")
         except Exception as e:
-            print(f"Failed to initialize Ray: {e}")
+            self.logger.info(f"Failed to initialize Ray: {e}")
             raise
     else:
-        print("Ray is already initialized.")
+        self.logger.info("Ray is already initialized.")
 
 
 def is_distributed_environment() -> bool:

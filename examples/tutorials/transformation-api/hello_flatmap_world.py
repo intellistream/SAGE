@@ -1,4 +1,5 @@
 # 此例意在说明FlatMap的使用
+import logging
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.flatmap_function import FlatMapFunction
@@ -27,7 +28,7 @@ class UpperCaseMap(MapFunction):
 
 class PrintSink(SinkFunction):
     def execute(self, data):
-        print(data)
+        logging.info(data)
 
 
 # 利用FlatMapFunction实现单词拆分
@@ -43,7 +44,7 @@ def main():
     env.from_batch(HelloBatch).map(UpperCaseMap).flatmap(SplitWords).sink(PrintSink)
 
     env.submit(autostop=True)
-    print("Hello Flatmap World 示例结束")
+    logging.info("Hello Flatmap World 示例结束")
 
 
 if __name__ == "__main__":

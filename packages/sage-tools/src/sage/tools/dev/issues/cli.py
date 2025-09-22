@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Issues管理命令 - CLI接口
 集成到sage dev命令组中
 """
@@ -23,30 +24,30 @@ app = typer.Typer(help="🐛 Issues管理 - GitHub Issues下载、分析和管�
 @app.command("status")
 def status():
     """显示Issues管理状态"""
-    console.print("📊 [bold blue]SAGE Issues管理状态[/bold blue]")
+    console.self.logger.info("📊 [bold blue]SAGE Issues管理状态[/bold blue]")
 
     config = IssuesConfig()
 
     # 显示配置信息
-    console.print(f"\n⚙️ 配置信息:")
-    console.print(f"  • 项目根目录: {config.project_root}")
-    console.print(f"  • 工作目录: {config.workspace_path}")
-    console.print(f"  • 输出目录: {config.output_path}")
-    console.print(f"  • 元数据目录: {config.metadata_path}")
-    console.print(f"  • GitHub仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
+    console.self.logger.info(f"\n⚙️ 配置信息:")
+    console.self.logger.info(f"  • 项目根目录: {config.project_root}")
+    console.self.logger.info(f"  • 工作目录: {config.workspace_path}")
+    console.self.logger.info(f"  • 输出目录: {config.output_path}")
+    console.self.logger.info(f"  • 元数据目录: {config.metadata_path}")
+    console.self.logger.info(f"  • GitHub仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
 
     # 测试GitHub连接
-    console.print(f"\n🔍 GitHub连接:")
+    console.self.logger.info(f"\n🔍 GitHub连接:")
     try:
         if config.test_github_connection():
-            console.print("  ✅ [green]连接正常[/green]")
+            console.self.logger.info("  ✅ [green]连接正常[/green]")
         else:
-            console.print("  ❌ [red]连接失败 - 请检查GitHub Token[/red]")
-            console.print("  💡 设置方法:")
-            console.print("    export GITHUB_TOKEN=your_token")
-            console.print("    或创建 ~/.github_token 文件")
+            console.self.logger.info("  ❌ [red]连接失败 - 请检查GitHub Token[/red]")
+            console.self.logger.info("  💡 设置方法:")
+            console.self.logger.info("    export GITHUB_TOKEN=your_token")
+            console.self.logger.info("    或创建 ~/.github_token 文件")
     except Exception as e:
-        console.print(f"  ❌ [red]连接错误: {e}[/red]")
+        console.self.logger.info(f"  ❌ [red]连接错误: {e}[/red]")
 
     # 显示本地数据状态
     if config.github_token:
@@ -54,18 +55,18 @@ def status():
             downloader = IssuesDownloader(config)
             download_status = downloader.get_download_status()
 
-            console.print(f"\n📂 本地数据:")
-            console.print(f"  • Issues数量: {download_status['issues_count']}")
-            console.print(f"  • 最后更新: {download_status['last_update'] or '未知'}")
+            console.self.logger.info(f"\n📂 本地数据:")
+            console.self.logger.info(f"  • Issues数量: {download_status['issues_count']}")
+            console.self.logger.info(f"  • 最后更新: {download_status['last_update'] or '未知'}")
 
             if download_status["available_files"]:
-                console.print(
+                console.self.logger.info(
                     f"  • 数据文件: {len(download_status['available_files'])} 个"
                 )
         except Exception as e:
-            console.print(f"\n📂 [red]本地数据状态获取失败: {e}[/red]")
+            console.self.logger.info(f"\n📂 [red]本地数据状态获取失败: {e}[/red]")
     else:
-        console.print(f"\n📂 本地数据: [yellow]需要GitHub Token才能查看[/yellow]")
+        console.self.logger.info(f"\n📂 本地数据: [yellow]需要GitHub Token才能查看[/yellow]")
 
 
 @app.command("download")
@@ -74,15 +75,15 @@ def download(
     force: bool = typer.Option(False, "--force", "-f", help="强制重新下载"),
 ):
     """下载GitHub Issues"""
-    console.print(f"📥 [bold blue]下载Issues (状态: {state})[/bold blue]")
+    console.self.logger.info(f"📥 [bold blue]下载Issues (状态: {state})[/bold blue]")
 
     # 检查GitHub Token
     config = IssuesConfig()
     if not config.github_token:
-        console.print("❌ [red]GitHub Token未配置[/red]")
-        console.print("💡 设置方法:")
-        console.print("   export GITHUB_TOKEN=your_token")
-        console.print("   或创建 ~/.github_token 文件")
+        console.self.logger.info("❌ [red]GitHub Token未配置[/red]")
+        console.self.logger.info("💡 设置方法:")
+        console.self.logger.info("   export GITHUB_TOKEN=your_token")
+        console.self.logger.info("   或创建 ~/.github_token 文件")
         raise typer.Exit(1)
 
     with Progress(
@@ -100,18 +101,18 @@ def download(
     if success:
         # 显示下载结果
         status = downloader.get_download_status()
-        console.print(f"\n✅ [green]下载成功![/green]")
-        console.print(f"📊 Issues数量: {status['issues_count']}")
-        console.print(f"📂 保存位置: {status['workspace_path']}")
+        console.self.logger.info(f"\n✅ [green]下载成功![/green]")
+        console.self.logger.info(f"📊 Issues数量: {status['issues_count']}")
+        console.self.logger.info(f"📂 保存位置: {status['workspace_path']}")
     else:
-        console.print("❌ [red]下载失败[/red]")
+        console.self.logger.info("❌ [red]下载失败[/red]")
         raise typer.Exit(1)
 
 
 @app.command("stats")
 def statistics():
     """显示Issues统计信息"""
-    console.print("📊 [bold blue]Issues统计分析[/bold blue]")
+    console.self.logger.info("📊 [bold blue]Issues统计分析[/bold blue]")
 
     manager = IssuesManager()
 
@@ -125,8 +126,8 @@ def statistics():
         progress.update(task, completed=True)
 
     if not success:
-        console.print("❌ [red]统计失败 - 请先下载Issues[/red]")
-        console.print("💡 运行: sage dev issues download")
+        console.self.logger.info("❌ [red]统计失败 - 请先下载Issues[/red]")
+        console.self.logger.info("💡 运行: sage dev issues download")
         raise typer.Exit(1)
 
 
@@ -151,37 +152,37 @@ def team(
     manager = IssuesManager()
 
     if update:
-        console.print("🔄 [bold blue]更新团队信息[/bold blue]")
+        console.self.logger.info("🔄 [bold blue]更新团队信息[/bold blue]")
         success = manager.update_team_info()
         if not success:
-            console.print("❌ [red]更新失败[/red]")
+            console.self.logger.info("❌ [red]更新失败[/red]")
             raise typer.Exit(1)
 
     if analysis or not update:
-        console.print("👥 [bold blue]团队分析[/bold blue]")
+        console.self.logger.info("👥 [bold blue]团队分析[/bold blue]")
         success = manager.team_analysis()
         if not success:
-            console.print("❌ [red]分析失败[/red]")
+            console.self.logger.info("❌ [red]分析失败[/red]")
             raise typer.Exit(1)
 
 
 @app.command("create")
 def create_issue():
     """创建新Issue"""
-    console.print("✨ [bold blue]创建新Issue[/bold blue]")
+    console.self.logger.info("✨ [bold blue]创建新Issue[/bold blue]")
 
     manager = IssuesManager()
     success = manager.create_new_issue()
 
     if not success:
-        console.print("❌ [red]创建失败[/red]")
+        console.self.logger.info("❌ [red]创建失败[/red]")
         raise typer.Exit(1)
 
 
 @app.command("project")
 def project_management():
     """项目管理 - 检测和修复错误分配"""
-    console.print("📋 [bold blue]项目管理[/bold blue]")
+    console.self.logger.info("📋 [bold blue]项目管理[/bold blue]")
 
     manager = IssuesManager()
 
@@ -195,14 +196,14 @@ def project_management():
         progress.update(task, completed=True)
 
     if not success:
-        console.print("❌ [red]项目管理失败[/red]")
+        console.self.logger.info("❌ [red]项目管理失败[/red]")
         raise typer.Exit(1)
 
 
 @app.command("config")
 def show_config():
     """显示配置信息"""
-    console.print("⚙️ [bold blue]配置信息[/bold blue]")
+    console.self.logger.info("⚙️ [bold blue]配置信息[/bold blue]")
 
     config = IssuesConfig()
 
@@ -217,13 +218,13 @@ def show_config():
     table.add_row("元数据目录", str(config.metadata_path))
     table.add_row("GitHub Token", "已配置" if config.github_token else "未配置")
 
-    console.print(table)
+    console.self.logger.info(table)
 
     # 显示用户设置
-    console.print(f"\n📋 用户设置:")
-    console.print(f"  • 同步更新历史: {getattr(config, 'sync_update_history', True)}")
-    console.print(f"  • 自动备份: {getattr(config, 'auto_backup', True)}")
-    console.print(f"  • 详细输出: {getattr(config, 'verbose_output', False)}")
+    console.self.logger.info(f"\n📋 用户设置:")
+    console.self.logger.info(f"  • 同步更新历史: {getattr(config, 'sync_update_history', True)}")
+    console.self.logger.info(f"  • 自动备份: {getattr(config, 'auto_backup', True)}")
+    console.self.logger.info(f"  • 详细输出: {getattr(config, 'verbose_output', False)}")
 
 
 @app.command("ai")
@@ -249,19 +250,19 @@ def ai_analysis(
       sage dev issues ai --action dedupe     # 查找重复Issues
       sage dev issues ai --dry-run           # 预览模式
     """
-    console.print(f"🤖 [bold blue]AI智能分析 (操作: {action})[/bold blue]")
+    console.self.logger.info(f"🤖 [bold blue]AI智能分析 (操作: {action})[/bold blue]")
 
     config = IssuesConfig()
     if not config.github_token:
-        console.print("❌ [red]GitHub Token未配置[/red]")
-        console.print("💡 AI分析需要GitHub Token来访问API")
+        console.self.logger.info("❌ [red]GitHub Token未配置[/red]")
+        console.self.logger.info("💡 AI分析需要GitHub Token来访问API")
         raise typer.Exit(1)
 
     # 检查AI分析脚本
     ai_script = Path(__file__).parent / "helpers" / "ai_analyzer.py"
     if not ai_script.exists():
-        console.print("❌ [red]AI分析脚本不存在[/red]")
-        console.print(f"💡 请确保文件存在: {ai_script}")
+        console.self.logger.info("❌ [red]AI分析脚本不存在[/red]")
+        console.self.logger.info(f"💡 请确保文件存在: {ai_script}")
         raise typer.Exit(1)
 
     with Progress(
@@ -296,13 +297,13 @@ def ai_analysis(
         progress.update(task, completed=True)
 
     if result.returncode == 0:
-        console.print("✅ [green]AI分析完成![/green]")
+        console.self.logger.info("✅ [green]AI分析完成![/green]")
         if result.stdout:
-            console.print(result.stdout)
+            console.self.logger.info(result.stdout)
     else:
-        console.print("❌ [red]AI分析失败[/red]")
+        console.self.logger.info("❌ [red]AI分析失败[/red]")
         if result.stderr:
-            console.print(f"[red]错误信息: {result.stderr}[/red]")
+            console.self.logger.info(f"[red]错误信息: {result.stderr}[/red]")
         raise typer.Exit(1)
 
 
@@ -324,19 +325,19 @@ def sync_issues(
       sage dev issues sync --dry-run           # 预览模式
       sage dev issues sync --force             # 强制同步
     """
-    console.print(f"🔄 [bold blue]Issues同步 (方向: {direction})[/bold blue]")
+    console.self.logger.info(f"🔄 [bold blue]Issues同步 (方向: {direction})[/bold blue]")
 
     config = IssuesConfig()
     if not config.github_token:
-        console.print("❌ [red]GitHub Token未配置[/red]")
-        console.print("💡 同步功能需要GitHub Token来访问API")
+        console.self.logger.info("❌ [red]GitHub Token未配置[/red]")
+        console.self.logger.info("💡 同步功能需要GitHub Token来访问API")
         raise typer.Exit(1)
 
     # 检查同步脚本
     sync_script = Path(__file__).parent / "helpers" / "sync_issues.py"
     if not sync_script.exists():
-        console.print("❌ [red]同步脚本不存在[/red]")
-        console.print(f"💡 请确保文件存在: {sync_script}")
+        console.self.logger.info("❌ [red]同步脚本不存在[/red]")
+        console.self.logger.info(f"💡 请确保文件存在: {sync_script}")
         raise typer.Exit(1)
 
     with Progress(
@@ -371,13 +372,13 @@ def sync_issues(
         progress.update(task, completed=True)
 
     if result.returncode == 0:
-        console.print("✅ [green]同步完成![/green]")
+        console.self.logger.info("✅ [green]同步完成![/green]")
         if result.stdout:
-            console.print(result.stdout)
+            console.self.logger.info(result.stdout)
     else:
-        console.print("❌ [red]同步失败[/red]")
+        console.self.logger.info("❌ [red]同步失败[/red]")
         if result.stderr:
-            console.print(f"[red]错误信息: {result.stderr}[/red]")
+            console.self.logger.info(f"[red]错误信息: {result.stderr}[/red]")
         raise typer.Exit(1)
 
 
@@ -401,30 +402,30 @@ def organize_issues(
       sage dev issues organize --apply --confirm  # 执行整理
     """
     if not preview and not apply:
-        console.print("❌ [red]请指定 --preview 或 --apply 参数[/red]")
-        console.print("\n💡 使用方法:")
-        console.print("  sage dev issues organize --preview          # 预览整理计划")
-        console.print("  sage dev issues organize --apply --confirm  # 执行整理")
+        console.self.logger.info("❌ [red]请指定 --preview 或 --apply 参数[/red]")
+        console.self.logger.info("\n💡 使用方法:")
+        console.self.logger.info("  sage dev issues organize --preview          # 预览整理计划")
+        console.self.logger.info("  sage dev issues organize --apply --confirm  # 执行整理")
         raise typer.Exit(1)
 
     if apply and not confirm:
-        console.print("❌ [red]执行整理需要 --confirm 参数确认[/red]")
-        console.print("💡 使用: sage dev issues organize --apply --confirm")
+        console.self.logger.info("❌ [red]执行整理需要 --confirm 参数确认[/red]")
+        console.self.logger.info("💡 使用: sage dev issues organize --apply --confirm")
         raise typer.Exit(1)
 
-    console.print("🗂️ [bold blue]Issues整理工具[/bold blue]")
+    console.self.logger.info("🗂️ [bold blue]Issues整理工具[/bold blue]")
 
     config = IssuesConfig()
     if not config.github_token:
-        console.print("❌ [red]GitHub Token未配置[/red]")
-        console.print("💡 整理功能需要GitHub Token来访问Projects API")
+        console.self.logger.info("❌ [red]GitHub Token未配置[/red]")
+        console.self.logger.info("💡 整理功能需要GitHub Token来访问Projects API")
         raise typer.Exit(1)
 
     # 检查整理脚本
     organize_script = Path(__file__).parent / "helpers" / "organize_issues.py"
     if not organize_script.exists():
-        console.print("❌ [red]整理脚本不存在[/red]")
-        console.print(f"💡 请确保文件存在: {organize_script}")
+        console.self.logger.info("❌ [red]整理脚本不存在[/red]")
+        console.self.logger.info(f"💡 请确保文件存在: {organize_script}")
         raise typer.Exit(1)
 
     with Progress(
@@ -458,13 +459,13 @@ def organize_issues(
         progress.update(task, completed=True)
 
     if result.returncode == 0:
-        console.print("✅ [green]整理完成![/green]")
+        console.self.logger.info("✅ [green]整理完成![/green]")
         if result.stdout:
-            console.print(result.stdout)
+            console.self.logger.info(result.stdout)
     else:
-        console.print("❌ [red]整理失败[/red]")
+        console.self.logger.info("❌ [red]整理失败[/red]")
         if result.stderr:
-            console.print(f"错误信息: {result.stderr}")
+            console.self.logger.info(f"错误信息: {result.stderr}")
         raise typer.Exit(1)
 
 
@@ -483,7 +484,7 @@ def run_tests():
     示例:
       sage dev issues test    # 运行全部测试
     """
-    console.print("🧪 [bold blue]运行Issues管理测试套件[/bold blue]")
+    console.self.logger.info("🧪 [bold blue]运行Issues管理测试套件[/bold blue]")
 
     try:
         from .tests import IssuesTestSuite
@@ -492,13 +493,13 @@ def run_tests():
         success = test_suite.run_all_tests()
 
         if success:
-            console.print("🎉 [green]所有测试通过！[/green]")
+            console.self.logger.info("🎉 [green]所有测试通过！[/green]")
         else:
-            console.print("⚠️ [yellow]部分测试失败[/yellow]")
+            console.self.logger.info("⚠️ [yellow]部分测试失败[/yellow]")
             raise typer.Exit(1)
 
     except Exception as e:
-        console.print(f"❌ [red]测试运行失败: {e}[/red]")
+        console.self.logger.info(f"❌ [red]测试运行失败: {e}[/red]")
         raise typer.Exit(1)
 
 

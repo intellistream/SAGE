@@ -1,4 +1,5 @@
 """
+import logging
 SAGE sage-kernel Enterprise Edition
 企业版功能需要有效的商业许可证
 """
@@ -78,7 +79,7 @@ if _ENTERPRISE_AVAILABLE:
         # 这里会根据实际的企业版模块来调整
         pass
     except ImportError as e:
-        print(f"Warning: Failed to import some enterprise features: {e}")
+        logging.info(f"Warning: Failed to import some enterprise features: {e}")
 else:
     # 企业版功能不可用时的占位符
     pass

@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import logging
 import os
 from typing import Any, List, Tuple, Type, Union
@@ -19,9 +20,9 @@ class TerminalSink(SinkFunction):
             f"Executing {self.__class__.__name__} [Q] Question :{question}"
         )
         self.logger.info(f"Executing {self.__class__.__name__} [A] Answer :{answer}")
-        print(f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m")
+        self.logger.info(f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m")
 
-        print(f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m")
+        self.logger.info(f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m")
 
 
 class RetriveSink(SinkFunction):
@@ -33,9 +34,9 @@ class RetriveSink(SinkFunction):
     def execute(self, data: Tuple[str, List[str]]):
         question, chunks = data
 
-        print(f"\033[96m[Q] Question :{question}\033[0m")
+        self.logger.info(f"\033[96m[Q] Question :{question}\033[0m")
 
-        print(f"\033[92m[A] Chunks :{chunks}\033[0m")
+        self.logger.info(f"\033[92m[A] Chunks :{chunks}\033[0m")
 
 
 class FileSink(SinkFunction):
@@ -147,7 +148,7 @@ class MemWriteSink(SinkFunction):
 
 class PrintSink(SinkFunction):
     """
-    简洁的打印汇聚函数 - 提供便捷的datastream.print()支持
+    简洁的打印汇聚函数 - 提供便捷的datastream.self.logger.info()支持
 
     支持多种数据格式的智能打印，自动检测数据类型并格式化输出
     """
@@ -183,8 +184,8 @@ class PrintSink(SinkFunction):
             output = formatted_output
 
         if self.first_output and not self.quiet:
-            print(f"First output: {output}")
-            print(
+            self.logger.info(f"First output: {output}")
+            self.logger.info(
                 "Streaming started! Further outputs are logged. Check logs for detailed stream processing results."
             )
         elif not self.first_output and not self.quiet:
@@ -192,7 +193,7 @@ class PrintSink(SinkFunction):
             pass
         else:
             # quiet模式或第一次输出时正常打印
-            print(output)
+            self.logger.info(output)
 
         # 输出到日志
         self._print_logger.debug(f"PrintSink output: {output}")

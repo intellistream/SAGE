@@ -1,4 +1,5 @@
 """
+import logging
 Demo: ArxivSearchTool Usage Examples
 
 This demo file shows practical examples of how to use the ArxivSearchTool
@@ -24,7 +25,7 @@ from arxiv_search_tool import ArxivSearchTool
 
 def example_basic_usage():
     """Example: Basic usage of ArxivSearchTool."""
-    print("=== Basic ArxivSearchTool Usage Example ===")
+    logging.info("=== Basic ArxivSearchTool Usage Example ===")
 
     tool = ArxivSearchTool()
 
@@ -50,18 +51,18 @@ def example_basic_usage():
             {"query": "transformer attention", "max_results": 2, "with_abstract": True}
         )
 
-        print(f"Query: {result['meta']['query']}")
-        print(f"Found {len(result['output'])} papers:")
+        logging.info(f"Query: {result['meta']['query']}")
+        logging.info(f"Found {len(result['output'])} papers:")
         for i, paper in enumerate(result["output"], 1):
-            print(f"\n{i}. {paper['title']}")
-            print(f"   Authors: {paper['authors']}")
-            print(f"   Link: {paper['link']}")
-            print(f"   Abstract: {paper['abstract'][:100]}...")
+            logging.info(f"\n{i}. {paper['title']}")
+            logging.info(f"   Authors: {paper['authors']}")
+            logging.info(f"   Link: {paper['link']}")
+            logging.info(f"   Abstract: {paper['abstract'][:100]}...")
 
 
 def example_parameter_variations():
     """Example: Different parameter configurations."""
-    print("\n=== Parameter Variations Example ===")
+    logging.info("\n=== Parameter Variations Example ===")
 
     tool = ArxivSearchTool()
 
@@ -77,7 +78,7 @@ def example_parameter_variations():
 
         # Example 1: Minimal parameters
         result1 = tool.call({"query": "machine learning"})
-        print(f"Minimal call - max_results: {result1['meta']['max_results']}")
+        logging.info(f"Minimal call - max_results: {result1['meta']['max_results']}")
 
         # Example 2: Custom parameters
         result2 = tool.call(
@@ -88,14 +89,14 @@ def example_parameter_variations():
                 "with_abstract": False,
             }
         )
-        print(
+        logging.info(
             f"Custom call - max_results: {result2['meta']['max_results']}, size: {result2['meta']['size']}"
         )
 
 
 def example_error_handling():
     """Example: Error handling and offline fallback."""
-    print("\n=== Error Handling Example ===")
+    logging.info("\n=== Error Handling Example ===")
 
     tool = ArxivSearchTool()
 
@@ -105,14 +106,14 @@ def example_error_handling():
 
         result = tool.call({"query": "neural networks", "max_results": 3})
 
-        print(f"Network error occurred, using offline fallback:")
-        print(f"Offline mock: {result['meta'].get('offline_mock', False)}")
-        print(f"Results: {len(result['output'])} papers")
+        logging.info(f"Network error occurred, using offline fallback:")
+        logging.info(f"Offline mock: {result['meta'].get('offline_mock', False)}")
+        logging.info(f"Results: {len(result['output'])} papers")
 
 
 def example_mcp_integration():
     """Example: Integration with MCP Registry."""
-    print("\n=== MCP Registry Integration Example ===")
+    logging.info("\n=== MCP Registry Integration Example ===")
 
     try:
         from sage.libs.agents.action.mcp_registry import MCPRegistry
@@ -138,12 +139,12 @@ def example_mcp_integration():
                 "arxiv_search", {"query": "GPT language models", "max_results": 1}
             )
 
-            print(f"Called through MCP Registry:")
-            print(f"Tool: {tool.name}")
-            print(f"Result: {result['output'][0]['title']}")
+            logging.info(f"Called through MCP Registry:")
+            logging.info(f"Tool: {tool.name}")
+            logging.info(f"Result: {result['output'][0]['title']}")
 
     except ImportError:
-        print("MCP Registry not available - skipping integration example")
+        logging.info("MCP Registry not available - skipping integration example")
 
 
 def test_example_runs():
@@ -153,26 +154,26 @@ def test_example_runs():
         example_parameter_variations()
         example_error_handling()
         example_mcp_integration()
-        print("\n✅ All examples completed successfully!")
+        logging.info("\n✅ All examples completed successfully!")
         return True
     except Exception as e:
-        print(f"\n❌ Example failed: {e}")
+        logging.info(f"\n❌ Example failed: {e}")
         return False
 
 
 if __name__ == "__main__":
-    print("ArxivSearchTool Examples")
-    print("=" * 40)
+    logging.info("ArxivSearchTool Examples")
+    logging.info("=" * 40)
 
     success = test_example_runs()
 
     if success:
-        print("\nThese examples show how to:")
-        print("1. Use ArxivSearchTool with different parameters")
-        print("2. Handle network errors with offline fallback")
-        print("3. Integrate with MCP Registry")
-        print("4. Process and display results")
+        logging.info("\nThese examples show how to:")
+        logging.info("1. Use ArxivSearchTool with different parameters")
+        logging.info("2. Handle network errors with offline fallback")
+        logging.info("3. Integrate with MCP Registry")
+        logging.info("4. Process and display results")
 
-        print("\nFor more details, see the tool implementation in arxiv_search_tool.py")
+        logging.info("\nFor more details, see the tool implementation in arxiv_search_tool.py")
     else:
-        print("\nSome examples failed. Check the implementation and dependencies.")
+        logging.info("\nSome examples failed. Check the implementation and dependencies.")

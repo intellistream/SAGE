@@ -1,5 +1,6 @@
 # @test:skip           - 跳过测试
 
+import logging
 import os
 import re
 
@@ -36,7 +37,7 @@ def download_gdrive_file(url):
             if chunk:
                 f.write(chunk)
                 bar.update(len(chunk))
-    print(f"\n下载完成: {file_path}")
+    logging.info(f"\n下载完成: {file_path}")
 
 
 if __name__ == "__main__":

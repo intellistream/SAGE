@@ -635,11 +635,11 @@ class VDBMemoryCollection(BaseMemoryCollection):
         collection_dir = os.path.join(clear_path, "vdb_collection", name)
         try:
             shutil.rmtree(collection_dir)
-            print(f"Cleared collection: {collection_dir}")
+            logging.info(f"Cleared collection: {collection_dir}")
         except FileNotFoundError:
-            print(f"Collection does not exist: {collection_dir}")
+            logging.info(f"Collection does not exist: {collection_dir}")
         except Exception as e:
-            print(f"Failed to clear: {e}")
+            logging.info(f"Failed to clear: {e}")
 
 
 if __name__ == "__main__":
@@ -690,7 +690,7 @@ if __name__ == "__main__":
             return embedding
 
     def run_test():
-        print(colored("\n=== 开始VDBMemoryCollection测试 ===", "yellow"))
+        logging.info(colored("\n=== 开始VDBMemoryCollection测试 ===", "yellow"))
 
         # 准备测试环境
         test_name = "test_collection"
@@ -698,12 +698,12 @@ if __name__ == "__main__":
 
         try:
             # 1. 测试新的初始化方式
-            print(colored("\n1. 测试新的初始化方式", "yellow"))
+            logging.info(colored("\n1. 测试新的初始化方式", "yellow"))
 
             # 方式1：通过config创建
             config = {"name": test_name}
             collection = VDBMemoryCollection(config=config)
-            print(colored("✓ 通过config初始化成功", "green"))
+            logging.info(colored("✓ 通过config初始化成功", "green"))
 
             # 创建索引配置
             index_config = {
@@ -715,7 +715,7 @@ if __name__ == "__main__":
                 "index_parameter": {},
             }
             collection.create_index(config=index_config)
-            print(colored("✓ 创建默认索引成功", "green"))
+            logging.info(colored("✓ 创建默认索引成功", "green"))
 
             # 方式2：测试batch_insert_data（创建独立的collection）
             corpus = ["第一条文本", "第二条文本", "第三条文本"]
@@ -734,10 +734,10 @@ if __name__ == "__main__":
             }
             collection_with_corpus.create_index(config=corpus_index_config)
             collection_with_corpus.init_index("corpus_index")
-            print(colored("✓ 通过batch_insert_data成功", "green"))
+            logging.info(colored("✓ 通过batch_insert_data成功", "green"))
 
             # 2. 测试数据插入
-            print(colored("\n2. 测试数据插入", "yellow"))
+            logging.info(colored("\n2. 测试数据插入", "yellow"))
             texts = [
                 "这是第一条测试文本",
                 "这是第二条测试文本，带有metadata",
@@ -763,10 +763,10 @@ if __name__ == "__main__":
             collection.init_index("custom_index")
             id3 = collection.insert("custom_index", texts[2], metadata=metadata)
 
-            print(colored("✓ 数据插入成功", "green"))
+            logging.info(colored("✓ 数据插入成功", "green"))
 
             # 3. 测试检索功能
-            print(colored("\n3. 测试检索功能", "yellow"))
+            logging.info(colored("\n3. 测试检索功能", "yellow"))
             # 检查索引状态
             default_index_info = collection.index_info.get("default_index")
             if default_index_info:
@@ -777,75 +777,75 @@ if __name__ == "__main__":
                     and hasattr(default_index.index, "ntotal")
                     else 0
                 )
-                print(f"默认索引中的向量数量: {vector_count}")
+                logging.info(f"默认索引中的向量数量: {vector_count}")
                 id_mapping = getattr(default_index, "id_mapping", {})
-                print(f"默认索引ID映射: {list(id_mapping.keys())}")
+                logging.info(f"默认索引ID映射: {list(id_mapping.keys())}")
 
             # 用存在的文本进行检索（不带metadata）
             results = collection.retrieve(texts[1], "default_index", topk=2)
-            print(f"用存在文本检索结果数量: {len(results)}")
+            logging.info(f"用存在文本检索结果数量: {len(results)}")
 
             # 用存在的文本进行检索（带metadata）
             results_with_metadata = collection.retrieve(
                 texts[1], "default_index", topk=2, with_metadata=True
             )
-            print(f"带metadata的检索结果数量: {len(results_with_metadata)}")
+            logging.info(f"带metadata的检索结果数量: {len(results_with_metadata)}")
 
             # 检索自定义索引
             custom_results = collection.retrieve(texts[2], "custom_index", topk=1)
-            print(f"自定义索引检索结果数量: {len(custom_results)}")
+            logging.info(f"自定义索引检索结果数量: {len(custom_results)}")
 
             # 确保找到了带有high priority的结果
             found_high_priority = False
-            print(f"带metadata的检索结果: {results_with_metadata}")
+            logging.info(f"带metadata的检索结果: {results_with_metadata}")
             for i, result in enumerate(results_with_metadata):
-                print(f"结果 {i}: {result}")
+                logging.info(f"结果 {i}: {result}")
                 if (
                     isinstance(result, dict)
                     and result.get("metadata", {}).get("priority") == "high"
                 ):
                     found_high_priority = True
-                    print(f"找到high priority结果: {result}")
+                    logging.info(f"找到high priority结果: {result}")
                     break
 
             # 检查是否有结果
             if len(results) > 0:
-                print(colored("✓ 检索到了结果", "green"))
+                logging.info(colored("✓ 检索到了结果", "green"))
             else:
                 assert len(results) > 0, "检索失败，没有找到任何结果"
 
             # 检查是否找到了带有high priority的结果
             if found_high_priority:
-                print(colored("✓ 找到了带有high priority的结果", "green"))
+                logging.info(colored("✓ 找到了带有high priority的结果", "green"))
             else:
-                print(
+                logging.info(
                     colored("⚠ 没有找到high priority的结果，但检索功能正常", "yellow")
                 )
-            print(colored("✓ 检索功能测试通过", "green"))
+            logging.info(colored("✓ 检索功能测试通过", "green"))
 
             # 4. 测试更新和删除
-            print(colored("\n4. 测试更新和删除", "yellow"))
+            logging.info(colored("\n4. 测试更新和删除", "yellow"))
             new_text = "更新后的测试文本"
             new_metadata = {"type": "updated", "priority": "medium"}
 
             try:
                 # 更新数据 - 使用原始文本而不是ID
                 collection.update("default_index", texts[0], new_text, new_metadata)
-                print("成功更新第一条文本")
+                logging.info("成功更新第一条文本")
             except Exception as e:
-                print(f"更新失败: {e}")
+                logging.info(f"更新失败: {e}")
 
             try:
                 # 删除数据 - 使用原始文本而不是ID
                 collection.delete(texts[1])
-                print("成功删除第二条文本")
+                logging.info("成功删除第二条文本")
             except Exception as e:
-                print(f"删除失败: {e}")
+                logging.info(f"删除失败: {e}")
 
-            print(colored("✓ 更新和删除功能测试通过", "green"))
+            logging.info(colored("✓ 更新和删除功能测试通过", "green"))
 
             # 5. 测试持久化
-            print(colored("\n5. 测试持久化", "yellow"))
+            logging.info(colored("\n5. 测试持久化", "yellow"))
 
             # 保存
             save_path = os.path.join(test_dir, "save_test")
@@ -858,10 +858,10 @@ if __name__ == "__main__":
             results = loaded_collection.retrieve(new_text, "default_index", topk=1)
             assert len(results) > 0, "持久化后检索失败"
 
-            print(colored("✓ 持久化功能测试通过", "green"))
+            logging.info(colored("✓ 持久化功能测试通过", "green"))
 
             # 6. 测试batch_insert_data功能
-            print(colored("\n6. 测试batch_insert_data功能", "yellow"))
+            logging.info(colored("\n6. 测试batch_insert_data功能", "yellow"))
 
             # 检查collection_with_corpus的状态
             corpus_index_info = collection_with_corpus.index_info.get("corpus_index")
@@ -873,43 +873,43 @@ if __name__ == "__main__":
                     and hasattr(corpus_index.index, "ntotal")
                     else 0
                 )
-                print(f"corpus集合中的向量数量: {vector_count}")
+                logging.info(f"corpus集合中的向量数量: {vector_count}")
 
             corpus_results = collection_with_corpus.retrieve(
                 "第一条文本", "corpus_index", topk=3
             )
-            print(f"从batch_insert_data的集合检索结果数量: {len(corpus_results)}")
+            logging.info(f"从batch_insert_data的集合检索结果数量: {len(corpus_results)}")
 
             # 如果有结果，说明batch_insert_data功能正常
             if len(corpus_results) > 0:
-                print(colored("✓ batch_insert_data功能测试通过", "green"))
-                print(f"检索到的结果: {corpus_results}")
+                logging.info(colored("✓ batch_insert_data功能测试通过", "green"))
+                logging.info(f"检索到的结果: {corpus_results}")
             else:
                 # 检查存储中是否有数据
                 all_ids = collection_with_corpus.get_all_ids()
-                print(f"存储中的数据ID数量: {len(all_ids)}")
+                logging.info(f"存储中的数据ID数量: {len(all_ids)}")
                 if len(all_ids) > 0:
-                    print("数据已存储但索引可能有问题")
-                    print(
+                    logging.info("数据已存储但索引可能有问题")
+                    logging.info(
                         colored(
                             "⚠ batch_insert_data数据存储成功，但索引初始化可能有问题",
                             "yellow",
                         )
                     )
                 else:
-                    print(colored("⚠ batch_insert_data功能需要进一步调试", "yellow"))
+                    logging.info(colored("⚠ batch_insert_data功能需要进一步调试", "yellow"))
 
-            print(colored("\n=== 主要功能测试通过! ===", "green"))
-            print("✓ 1. 初始化功能正常")
-            print("✓ 2. 数据插入功能正常")
-            print("✓ 3. 检索功能正常")
-            print("✓ 4. 更新和删除功能正常")
-            print("✓ 5. 持久化功能正常")
-            print("✓ 6. batch_insert_data功能正常")
-            print(colored("\n测试代码已成功更新到最新版本API!", "green"))
+            logging.info(colored("\n=== 主要功能测试通过! ===", "green"))
+            logging.info("✓ 1. 初始化功能正常")
+            logging.info("✓ 2. 数据插入功能正常")
+            logging.info("✓ 3. 检索功能正常")
+            logging.info("✓ 4. 更新和删除功能正常")
+            logging.info("✓ 5. 持久化功能正常")
+            logging.info("✓ 6. batch_insert_data功能正常")
+            logging.info(colored("\n测试代码已成功更新到最新版本API!", "green"))
 
         except Exception as e:
-            print(colored(f"\n测试失败: {str(e)}", "red"))
+            logging.info(colored(f"\n测试失败: {str(e)}", "red"))
             import traceback
 
             traceback.print_exc()

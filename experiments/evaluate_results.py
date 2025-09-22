@@ -1,3 +1,4 @@
+import logging
 import argparse
 import json
 import re
@@ -303,39 +304,39 @@ def print_evaluation_summary(evaluation_result: Dict[str, Any]):
     scores = evaluation_result["overall_scores"]
     summary = evaluation_result["summary"]
 
-    print("\n" + "=" * 60)
-    print("📊 评估结果摘要")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("📊 评估结果摘要")
+    logging.info("=" * 60)
 
-    print(f"🔧 实验配置:")
-    print(f"   模型: {config['model_name']}")
+    logging.info(f"🔧 实验配置:")
+    logging.info(f"   模型: {config['model_name']}")
     # 兼容新的配置格式
     if "use_context" in config:
-        print(f"   使用上下文: {config['use_context']}")
+        logging.info(f"   使用上下文: {config['use_context']}")
     elif "mode" in config:
-        print(f"   模式: {config['mode']}")
+        logging.info(f"   模式: {config['mode']}")
     if config.get("top_k"):
-        print(f"   Top-K: {config['top_k']}")
+        logging.info(f"   Top-K: {config['top_k']}")
     if config.get("batch_size"):
-        print(f"   批次大小: {config['batch_size']}")
-    print(f"   样本数: {summary['total_samples']}")
+        logging.info(f"   批次大小: {config['batch_size']}")
+    logging.info(f"   样本数: {summary['total_samples']}")
     if config.get("completed_batches"):
-        print(f"   完成批次: {config['completed_batches']}")
-    print(f"   时间: {config['timestamp']}")
+        logging.info(f"   完成批次: {config['completed_batches']}")
+    logging.info(f"   时间: {config['timestamp']}")
 
-    print(f"\n📈 评估指标:")
+    logging.info(f"\n📈 评估指标:")
     for metric, score in scores.items():
-        print(f"   {metric.upper()}: {score:.4f}")
+        logging.info(f"   {metric.upper()}: {score:.4f}")
 
     # 添加检索质量分析
     if "retrieval_analysis" in evaluation_result:
         retrieval_stats = evaluation_result["retrieval_analysis"]
-        print(f"\n🔍 检索质量分析:")
-        print(f"   上下文覆盖率: {retrieval_stats['context_coverage']:.4f}")
-        print(f"   平均检索数量: {retrieval_stats['avg_context_count']:.2f}")
-        print(f"   上下文相关性: {retrieval_stats['context_relevance_rate']:.4f}")
+        logging.info(f"\n🔍 检索质量分析:")
+        logging.info(f"   上下文覆盖率: {retrieval_stats['context_coverage']:.4f}")
+        logging.info(f"   平均检索数量: {retrieval_stats['avg_context_count']:.2f}")
+        logging.info(f"   上下文相关性: {retrieval_stats['context_relevance_rate']:.4f}")
 
-    print("=" * 60)
+    logging.info("=" * 60)
 
 
 def main():
@@ -357,15 +358,15 @@ def main():
     args = parser.parse_args()
 
     # 加载推理结果
-    print(f"📥 正在加载推理结果: {args.results_file}")
+    logging.info(f"📥 正在加载推理结果: {args.results_file}")
     results_data = load_results(args.results_file)
 
     # 计算评估分数
-    print(f"🔄 正在计算评估指标: {args.metric}")
+    logging.info(f"🔄 正在计算评估指标: {args.metric}")
     evaluation_result = calculate_detailed_scores(results_data, args.metric)
 
     # 分析检索质量（如果有检索上下文）
-    print(f"🔍 正在分析检索质量...")
+    logging.info(f"🔍 正在分析检索质量...")
     retrieval_analysis = analyze_retrieval_quality(evaluation_result)
     evaluation_result["retrieval_analysis"] = retrieval_analysis
 
@@ -374,18 +375,18 @@ def main():
 
     # 显示详细结果（如果请求）
     if args.show_details:
-        print(f"\n📋 详细结果 (前10个样本):")
+        logging.info(f"\n📋 详细结果 (前10个样本):")
         for i, item in enumerate(evaluation_result["detailed_results"][:10]):
-            print(f"\n样本 {i+1} (ID: {item.get('id', 'N/A')}):")
-            print(f"   问题: {item['question'][:100]}...")
-            print(f"   真实答案: {item['ground_truth']}")
-            print(f"   预测: {item['model_output'][:100]}...")
-            print(f"   分数: {item['scores']}")
+            logging.info(f"\n样本 {i+1} (ID: {item.get('id', 'N/A')}):")
+            logging.info(f"   问题: {item['question'][:100]}...")
+            logging.info(f"   真实答案: {item['ground_truth']}")
+            logging.info(f"   预测: {item['model_output'][:100]}...")
+            logging.info(f"   分数: {item['scores']}")
 
             # 显示检索上下文信息（如果存在）
             if "retrieved_context" in item and item["retrieved_context"]:
-                print(f"   检索上下文数量: {len(item['retrieved_context'])}")
-                print(
+                logging.info(f"   检索上下文数量: {len(item['retrieved_context'])}")
+                logging.info(
                     f"   检索上下文预览: {item['retrieved_context'][0][:150]}..."
                     if item["retrieved_context"]
                     else "无"
@@ -403,7 +404,7 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(evaluation_result, f, indent=2, ensure_ascii=False)
 
-    print(f"\n✅ 详细评估结果已保存到: {output_path}")
+    logging.info(f"\n✅ 详细评估结果已保存到: {output_path}")
 
 
 if __name__ == "__main__":

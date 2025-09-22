@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 from collections import Counter
 
 from rouge import Rouge
@@ -27,7 +28,7 @@ class F1Evaluate(MapFunction):
         golds = data["references"]  # 始终是列表
         pred = data.get("generated", "")
         best = max(self._f1_score(pred, g) for g in golds) if golds else 0.0
-        print(f"\033[93m[F1] : {best:.4f}\033[0m")
+        self.logger.info(f"\033[93m[F1] : {best:.4f}\033[0m")
         return data
 
 
@@ -47,7 +48,7 @@ class RecallEvaluate(MapFunction):
         golds = data["references"]
         pred = data.get("generated", "")
         best = max(self._recall(pred, g) for g in golds) if golds else 0.0
-        print(f"\033[93m[Recall] : {best:.4f}\033[0m")
+        self.logger.info(f"\033[93m[Recall] : {best:.4f}\033[0m")
         return data
 
 
@@ -66,7 +67,7 @@ class BertRecallEvaluate(MapFunction):
             embs = self.model(**encs).last_hidden_state.mean(dim=1).detach().numpy()
             scores.append(float(cosine_similarity([embs[0]], [embs[1]])[0][0]))
         best = max(scores) if scores else 0.0
-        print(f"\033[93m[BertRecall] : {best:.4f}\033[0m")
+        self.logger.info(f"\033[93m[BertRecall] : {best:.4f}\033[0m")
         return data
 
 
@@ -80,7 +81,7 @@ class RougeLEvaluate(MapFunction):
         pred = data.get("generated", "")
         scores = [self.rouge.get_scores(pred, g)[0]["rouge-l"]["f"] for g in golds]
         best = max(scores) if scores else 0.0
-        print(f"\033[93m[ROUGE-L] : {best:.4f}\033[0m")
+        self.logger.info(f"\033[93m[ROUGE-L] : {best:.4f}\033[0m")
         return data
 
 
@@ -90,7 +91,7 @@ class BRSEvaluate(MapFunction):
         pred = data.get("generated", "")
         scores = [(len(set(pred) & set(g)) / len(set(g))) if g else 0.0 for g in golds]
         best = max(scores) if scores else 0.0
-        print(f"\033[93m[BRS] : {best:.4f}\033[0m")
+        self.logger.info(f"\033[93m[BRS] : {best:.4f}\033[0m")
         return data
 
 
@@ -99,21 +100,21 @@ class AccuracyEvaluate(MapFunction):
         golds = data["references"]
         pred = data.get("generated", "")
         correct = any(pred.strip() == g.strip() for g in golds)
-        print(f"\033[93m[Acc] : {float(correct):.4f}\033[0m")
+        self.logger.info(f"\033[93m[Acc] : {float(correct):.4f}\033[0m")
         return data
 
 
 class TokenCountEvaluate(MapFunction):
     def execute(self, data: dict):
         tokens = data.get("pred", "").split()
-        print(f"\033[93m[Token Count] : {len(tokens)}\033[0m")
+        self.logger.info(f"\033[93m[Token Count] : {len(tokens)}\033[0m")
         return data
 
 
 class LatencyEvaluate(MapFunction):
     def execute(self, data: dict):
         lat = data.get("refine_time", 0.0) + data.get("generate_time", 0.0)
-        print(f"\033[93m[Latency] : {lat:.2f}s\033[0m")
+        self.logger.info(f"\033[93m[Latency] : {lat:.2f}s\033[0m")
         return data
 
 
@@ -122,7 +123,7 @@ class ContextRecallEvaluate(MapFunction):
         gold_ids = set(data["metadata"]["supporting_facts"]["sent_id"])
         ret_ids = set(data.get("retrieved_sent_ids", []))
         rec = float(len(gold_ids & ret_ids) / len(gold_ids)) if gold_ids else 0.0
-        print(f"\033[93m[Context Recall] : {rec:.4f}\033[0m")
+        self.logger.info(f"\033[93m[Context Recall] : {rec:.4f}\033[0m")
         return data
 
 
@@ -134,5 +135,5 @@ class CompressionRateEvaluate(MapFunction):
         o = self._count(data.get("retrieved_docs", []))
         r = self._count(data.get("refined_docs", []))
         rate = o / r
-        print(f"\033[93m[Compression Rate] : {rate:.2f}×\033[0m")
+        self.logger.info(f"\033[93m[Compression Rate] : {rate:.2f}×\033[0m")
         return data

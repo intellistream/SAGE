@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 from typing import Any, Dict, List
@@ -54,7 +55,7 @@ class CharacterSplitter(BaseFunction):
         self.overlap = overlap
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
+        logging.info(
             f"🔧 CharacterSplitter instance {self.instance_id} created in thread {self.thread_id}"
         )
 
@@ -67,7 +68,7 @@ class CharacterSplitter(BaseFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
 
-        print(
+        logging.info(
             f"⚙️ CharacterSplitter[{instance_id}]: Processing {doc_id} (thread: {current_thread})"
         )
 
@@ -87,7 +88,7 @@ class CharacterSplitter(BaseFunction):
                     }
                 )
 
-        print(
+        logging.info(
             f"✅ CharacterSplitter[{instance_id}]: Generated {len(chunks)} chunks for {doc_id}"
         )
         return chunks
@@ -103,7 +104,7 @@ class ChunkCollector(SinkFunction):
         super().__init__(**kwargs)
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
+        logging.info(
             f"🔧 ChunkCollector instance {self.instance_id} created in thread {self.thread_id}"
         )
 
@@ -114,12 +115,12 @@ class ChunkCollector(SinkFunction):
         with self._lock:
             if isinstance(chunks, list):
                 self._collected_chunks.extend(chunks)
-                print(
+                logging.info(
                     f"🎯 ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})"
                 )
             else:
                 self._collected_chunks.append(chunks)
-                print(
+                logging.info(
                     f"🎯 ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})"
                 )
 
@@ -139,9 +140,9 @@ class TestChunkParallelism:
 
     def test_chunk_parallelism_hints_basic(self):
         """测试基本的chunk并行性hints功能"""
-        print("\n" + "=" * 70)
-        print("TEST: Basic Chunk Parallelism Hints")
-        print("=" * 70)
+        logging.info("\n" + "=" * 70)
+        logging.info("TEST: Basic Chunk Parallelism Hints")
+        logging.info("=" * 70)
 
         # 清空之前的数据
         ChunkCollector.clear_collected_chunks()
@@ -179,15 +180,15 @@ class TestChunkParallelism:
         expected_doc_ids = set(doc["id"] for doc in documents)
         assert processed_doc_ids == expected_doc_ids
 
-        print(
+        logging.info(
             f"✅ Collected {len(collected_chunks)} chunks from {len(processed_doc_ids)} documents"
         )
 
     def test_chunk_parallelism_hints_multiple_levels(self):
         """测试多级并行度设置"""
-        print("\n" + "=" * 70)
-        print("TEST: Multi-level Chunk Parallelism Hints")
-        print("=" * 70)
+        logging.info("\n" + "=" * 70)
+        logging.info("TEST: Multi-level Chunk Parallelism Hints")
+        logging.info("=" * 70)
 
         # 清空之前的数据
         ChunkCollector.clear_collected_chunks()
@@ -225,15 +226,15 @@ class TestChunkParallelism:
             assert "chunk_id" in chunk
             assert len(chunk["content"]) > 0
 
-        print(
+        logging.info(
             f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks"
         )
 
     def test_chunk_parallelism_hints_large_documents(self):
         """测试大文档的chunk并行处理"""
-        print("\n" + "=" * 70)
-        print("TEST: Large Document Chunk Parallelism")
-        print("=" * 70)
+        logging.info("\n" + "=" * 70)
+        logging.info("TEST: Large Document Chunk Parallelism")
+        logging.info("=" * 70)
 
         # 清空之前的数据
         ChunkCollector.clear_collected_chunks()
@@ -264,13 +265,13 @@ class TestChunkParallelism:
         large_doc_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
         assert len(large_doc_chunks) > 1  # 大文档应该被分成多个chunk
 
-        print(f"✅ Large document test: {len(large_doc_chunks)} chunks from large_doc1")
+        logging.info(f"✅ Large document test: {len(large_doc_chunks)} chunks from large_doc1")
 
     def test_chunk_parallelism_hints_vs_manual_parallelization(self):
         """对比parallelism hints与手动并行化的区别"""
-        print("\n" + "=" * 70)
-        print("TEST: Parallelism Hints vs Manual Parallelization")
-        print("=" * 70)
+        logging.info("\n" + "=" * 70)
+        logging.info("TEST: Parallelism Hints vs Manual Parallelization")
+        logging.info("=" * 70)
 
         # 清空之前的数据
         ChunkCollector.clear_collected_chunks()
@@ -293,5 +294,5 @@ class TestChunkParallelism:
         collected_chunks = ChunkCollector.get_collected_chunks()
         assert len(collected_chunks) > 0
 
-        print("✅ Parallelism hints approach works correctly")
-        print("💡 Key advantage: Framework manages parallelism, code stays simple")
+        logging.info("✅ Parallelism hints approach works correctly")
+        logging.info("💡 Key advantage: Framework manages parallelism, code stays simple")

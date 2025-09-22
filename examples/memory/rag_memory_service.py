@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -75,7 +76,7 @@ if __name__ == "__main__":
             "我刚刚心脏悸动，很难受，不会有什么问题吧？",
             {"answer": "可能是心理因素导致的", "topic": "健康-个性化"},
         )
-        print(memory.retrieve("我刚刚心脏悸动，很难受，不会有什么问题吧？"))
-        # print(memory.retrieve("我每天都喝牛奶，有没有副作用？"))
+        logging.info(memory.retrieve("我刚刚心脏悸动，很难受，不会有什么问题吧？"))
+        # logging.info(memory.retrieve("我每天都喝牛奶，有没有副作用？"))
 
     test()

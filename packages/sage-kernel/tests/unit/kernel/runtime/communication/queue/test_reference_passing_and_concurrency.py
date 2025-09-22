@@ -32,9 +32,9 @@ try:
         resolve_descriptor)
     from sage.kernel.utils.ray.ray import ensure_ray_initialized
 
-    print("✓ 成功导入队列描述符")
+    logging.info("✓ 成功导入队列描述符")
 except ImportError as e:
-    print(f"✗ 导入失败: {e}")
+    logging.info(f"✗ 导入失败: {e}")
     sys.exit(1)
 
 # 配置日志
@@ -194,7 +194,7 @@ try:
 
 except ImportError:
     RAY_AVAILABLE = False
-    print("⚠️ Ray not available, skipping Ray tests")
+    logging.info("⚠️ Ray not available, skipping Ray tests")
 
 
 # ============ 测试类 ============
@@ -205,7 +205,7 @@ class TestPythonQueueConcurrency:
 
     def test_python_queue_multithreading(self):
         """测试Python队列的多线程并发"""
-        print("\n=== 测试Python队列多线程并发 ===")
+        logging.info("\n=== 测试Python队列多线程并发 ===")
 
         # 创建队列描述符
         queue_desc = PythonQueueDescriptor(queue_id="test_python_mt", maxsize=100)
@@ -216,7 +216,7 @@ class TestPythonQueueConcurrency:
         items_per_producer = 10
         total_items = num_producers * items_per_producer
 
-        print(
+        logging.info(
             f"配置: {num_producers}个生产者, {num_consumers}个消费者, 总共{total_items}个项目"
         )
 
@@ -235,7 +235,7 @@ class TestPythonQueueConcurrency:
             for future in as_completed(producer_futures):
                 result = future.result()
                 producer_results.append(result)
-                print(f"生产者结果: {result}")
+                logging.info(f"生产者结果: {result}")
 
             # 启动消费者线程
             consumer_futures = []
@@ -251,21 +251,21 @@ class TestPythonQueueConcurrency:
             for future in as_completed(consumer_futures):
                 result = future.result()
                 consumer_results.append(result)
-                print(f"消费者结果: 消费了{len(result)}个项目")
+                logging.info(f"消费者结果: 消费了{len(result)}个项目")
 
         # 验证结果
         total_consumed = sum(len(items) for items in consumer_results)
-        print(f"总共消费: {total_consumed}/{total_items}")
-        print(f"剩余队列大小: {queue_desc.qsize()}")
+        logging.info(f"总共消费: {total_consumed}/{total_items}")
+        logging.info(f"剩余队列大小: {queue_desc.qsize()}")
 
         assert len(producer_results) == num_producers, "所有生产者应该完成"
         assert total_consumed > 0, "应该消费了一些项目"
 
-        print("✓ Python队列多线程测试通过")
+        logging.info("✓ Python队列多线程测试通过")
 
     def test_python_queue_mixed_operations(self):
         """测试Python队列的混合读写操作"""
-        print("\n=== 测试Python队列混合读写操作 ===")
+        logging.info("\n=== 测试Python队列混合读写操作 ===")
 
         queue_desc = PythonQueueDescriptor(queue_id="test_python_mixed", maxsize=50)
 
@@ -276,7 +276,7 @@ class TestPythonQueueConcurrency:
         num_workers = 5
         operations_per_worker = 20
 
-        print(
+        logging.info(
             f"配置: {num_workers}个混合工作线程, 每个执行{operations_per_worker}个操作"
         )
 
@@ -292,25 +292,25 @@ class TestPythonQueueConcurrency:
             for future in as_completed(futures):
                 result = future.result()
                 results.append(result)
-                print(f"混合工作线程完成操作数: {result}")
+                logging.info(f"混合工作线程完成操作数: {result}")
 
-        print(f"最终队列大小: {queue_desc.qsize()}")
+        logging.info(f"最终队列大小: {queue_desc.qsize()}")
         assert len(results) == num_workers, "所有工作线程应该完成"
 
-        print("✓ Python队列混合操作测试通过")
+        logging.info("✓ Python队列混合操作测试通过")
 
     def test_serializable_queue_multiprocessing(self):
         """测试可序列化队列的多进程操作（跳过，因为Python multiprocessing.Queue引用传递困难）"""
-        print("\n=== 跳过多进程测试 ===")
-        print(
+        logging.info("\n=== 跳过多进程测试 ===")
+        logging.info(
             "⚠️ Python multiprocessing.Queue的队列描述符引用很难跨进程传递，跳过此测试"
         )
-        print("✓ 多进程测试跳过")
+        logging.info("✓ 多进程测试跳过")
         return True
 
     def test_queue_reference_integrity(self):
         """测试队列引用的完整性"""
-        print("\n=== 测试队列引用完整性 ===")
+        logging.info("\n=== 测试队列引用完整性 ===")
 
         # 创建原始队列描述符
         original_desc = PythonQueueDescriptor(queue_id="reference_test", maxsize=20)
@@ -319,14 +319,14 @@ class TestPythonQueueConcurrency:
         for i in range(5):
             original_desc.put(f"ref_item_{i}")
 
-        print(f"原始队列大小: {original_desc.qsize()}")
+        logging.info(f"原始队列大小: {original_desc.qsize()}")
 
         # 克隆描述符
         cloned_desc = original_desc.clone("reference_test_clone")
 
         # 验证克隆的描述符引用了相同的队列（对于不可序列化的Python队列）
         cloned_desc.put("cloned_item")
-        print(f"添加项目后克隆队列大小: {cloned_desc.qsize()}")
+        logging.info(f"添加项目后克隆队列大小: {cloned_desc.qsize()}")
 
         # 从原始描述符读取
         items_from_original = []
@@ -337,21 +337,21 @@ class TestPythonQueueConcurrency:
             except:
                 break
 
-        print(f"从原始描述符读取的项目: {len(items_from_original)}")
-        print(f"读取后原始队列大小: {original_desc.qsize()}")
+        logging.info(f"从原始描述符读取的项目: {len(items_from_original)}")
+        logging.info(f"读取后原始队列大小: {original_desc.qsize()}")
 
-        print("✓ 队列引用完整性测试通过")
+        logging.info("✓ 队列引用完整性测试通过")
 
     def test_concurrent_stress_test(self):
         """并发压力测试"""
-        print("\n=== 并发压力测试 ===")
+        logging.info("\n=== 并发压力测试 ===")
 
         queue_desc = PythonQueueDescriptor(queue_id="stress_test", maxsize=1000)
 
         num_threads = 10
         operations_per_thread = 50
 
-        print(
+        logging.info(
             f"压力测试配置: {num_threads}个线程, 每个执行{operations_per_thread}个操作"
         )
 
@@ -376,15 +376,15 @@ class TestPythonQueueConcurrency:
         total_operations = sum(completed_operations)
         operations_per_second = total_operations / duration if duration > 0 else 0
 
-        print(f"压力测试结果:")
-        print(f"  总操作数: {total_operations}")
-        print(f"  耗时: {duration:.2f}秒")
-        print(f"  操作/秒: {operations_per_second:.2f}")
-        print(f"  最终队列大小: {queue_desc.qsize()}")
+        logging.info(f"压力测试结果:")
+        logging.info(f"  总操作数: {total_operations}")
+        logging.info(f"  耗时: {duration:.2f}秒")
+        logging.info(f"  操作/秒: {operations_per_second:.2f}")
+        logging.info(f"  最终队列大小: {queue_desc.qsize()}")
 
         assert total_operations > 0, "应该完成一些操作"
 
-        print("✓ 并发压力测试通过")
+        logging.info("✓ 并发压力测试通过")
 
 
 @pytest.mark.ray
@@ -393,7 +393,7 @@ class TestRayQueueConcurrency:
 
     def test_ray_queue_actor_communication(self):
         """测试Ray队列Actor通信"""
-        print("\n=== 测试Ray队列Actor通信 ===")
+        logging.info("\n=== 测试Ray队列Actor通信 ===")
 
         if not ray.is_initialized():
             ray.init(ignore_reinit_error=True)
@@ -406,7 +406,7 @@ class TestRayQueueConcurrency:
             num_consumer_actors = 2
             items_per_actor = 5
 
-            print(
+            logging.info(
                 f"Ray Actor配置: {num_producer_actors}个生产者, {num_consumer_actors}个消费者"
             )
 
@@ -430,7 +430,7 @@ class TestRayQueueConcurrency:
             # 等待生产者完成
             producer_results = ray.get(producer_futures)
             for result in producer_results:
-                print(f"Ray生产者Actor结果: {result}")
+                logging.info(f"Ray生产者Actor结果: {result}")
 
             # 启动消费者
             consumer_futures = []
@@ -449,15 +449,15 @@ class TestRayQueueConcurrency:
                 len(items) for items in consumer_results if isinstance(items, list)
             )
 
-            print(f"Ray Actor总共消费: {total_consumed}")
+            logging.info(f"Ray Actor总共消费: {total_consumed}")
             for i, result in enumerate(consumer_results):
                 if isinstance(result, list):
-                    print(f"消费者Actor {i}: 消费了{len(result)}个项目")
+                    logging.info(f"消费者Actor {i}: 消费了{len(result)}个项目")
 
-            print("✓ Ray队列Actor通信测试通过")
+            logging.info("✓ Ray队列Actor通信测试通过")
 
         except Exception as e:
-            print(f"⚠️ Ray Actor测试失败: {e}")
+            logging.info(f"⚠️ Ray Actor测试失败: {e}")
             import traceback
 
             traceback.print_exc()
@@ -465,7 +465,7 @@ class TestRayQueueConcurrency:
 
 def run_all_tests():
     """运行所有测试"""
-    print("开始运行引用传递和并发测试...")
+    logging.info("开始运行引用传递和并发测试...")
 
     test_suite = TestPythonQueueConcurrency()
 
@@ -483,13 +483,13 @@ def run_all_tests():
         # 压力测试
         test_suite.test_concurrent_stress_test()
 
-        print("\n🎉 Python队列测试通过！")
+        logging.info("\n🎉 Python队列测试通过！")
 
         # Ray测试需要单独运行（被pytest标记过滤）
-        print("\n注意: Ray队列测试需要使用 pytest -m ray 单独运行")
+        logging.info("\n注意: Ray队列测试需要使用 pytest -m ray 单独运行")
 
     except Exception as e:
-        print(f"\n❌ 测试失败: {e}")
+        logging.info(f"\n❌ 测试失败: {e}")
         import traceback
 
         traceback.print_exc()

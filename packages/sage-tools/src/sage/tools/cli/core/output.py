@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE CLI Output Formatter
 =========================
 
@@ -72,9 +73,9 @@ class OutputFormatter:
         """
         if not self.colors:
             if prefix:
-                print(f"{prefix} {message}")
+                self.logger.info(f"{prefix} {message}")
             else:
-                print(message)
+                self.logger.info(message)
             return
 
         color_map = {
@@ -90,9 +91,9 @@ class OutputFormatter:
         icon = icon_map.get(msg_type, "")
 
         if prefix:
-            print(f"{color}{icon} {prefix} {message}{Colors.RESET}")
+            self.logger.info(f"{color}{icon} {prefix} {message}{Colors.RESET}")
         else:
-            print(f"{color}{icon} {message}{Colors.RESET}")
+            self.logger.info(f"{color}{icon} {message}{Colors.RESET}")
 
     def print_info(self, message: str, prefix: str = None):
         """打印信息消息"""
@@ -153,19 +154,19 @@ class OutputFormatter:
     ):
         """打印格式化数据"""
         formatted = self.format_data(data, headers)
-        print(formatted)
+        self.logger.info(formatted)
 
     def print_section(self, title: str, content: str = None):
         """打印章节标题"""
         if self.colors:
-            print(f"\n{Colors.BOLD}{Colors.CYAN}{title}{Colors.RESET}")
-            print("=" * len(title))
+            self.logger.info(f"\n{Colors.BOLD}{Colors.CYAN}{title}{Colors.RESET}")
+            self.logger.info("=" * len(title))
         else:
-            print(f"\n{title}")
-            print("=" * len(title))
+            self.logger.info(f"\n{title}")
+            self.logger.info("=" * len(title))
 
         if content:
-            print(content)
+            self.logger.info(content)
 
 
 def format_table(

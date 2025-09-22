@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import logging
 from typing import List, Tuple
 
@@ -95,7 +96,7 @@ class BGEReranker(MapFunction):
 
             # Handle empty document set case
             if not doc_set:
-                print(
+                self.logger.info(
                     "BGEReranker received empty document set, returning empty results"
                 )
                 # 返回与输入格式一致的输出
@@ -141,7 +142,7 @@ class BGEReranker(MapFunction):
                 f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}"
             )
 
-            print(f"Rerank Results: {reranked_docs_list}")
+            self.logger.info(f"Rerank Results: {reranked_docs_list}")
 
         except Exception as e:
             raise RuntimeError(f"BGEReranker error: {str(e)}")
@@ -392,7 +393,7 @@ class LLMbased_Reranker(MapFunction):
 
 #     # 输出结果
 #     result_query, result_docs = output
-#     print("Query:", result_query)
-#     print("Top-k Re-ranked Documents:")
+#     self.logger.info("Query:", result_query)
+#     self.logger.info("Top-k Re-ranked Documents:")
 #     for i, doc in enumerate(result_docs, 1):
-#         print(f"{i}. {doc}")
+#         self.logger.info(f"{i}. {doc}")

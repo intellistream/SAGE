@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import collections
 import uuid
 
@@ -98,10 +99,10 @@ class KnowledgeGraphIndex:
                     break
 
             if not tail_exists:
-                print(f"Edge ({head}, {relation}, {tail}) does not exist.")
+                self.logger.info(f"Edge ({head}, {relation}, {tail}) does not exist.")
                 return
         else:
-            print(f"Relation ({head}, {relation}) does not exist in the graph.")
+            self.logger.info(f"Relation ({head}, {relation}) does not exist in the graph.")
 
     def clear_relation(self, head, relation):
         head_id = uuid.uuid5(uuid.NAMESPACE_DNS, head)
@@ -116,17 +117,17 @@ class KnowledgeGraphIndex:
             for tail, _ in self.triples[(head_id, relation)]:
                 neighbors.add((relation, tail))
         for relation, tail in neighbors:
-            print(f"Relation: {relation}, Tail: {self.qid2name[tail]}")
+            self.logger.info(f"Relation: {relation}, Tail: {self.qid2name[tail]}")
         return neighbors
 
     def print_graph(self):
         """
         打印知识图谱的内容
         """
-        print("Knowledge Graph:")
+        self.logger.info("Knowledge Graph:")
         for (head_id, relation), tails in self.triples.items():
             for tail_id, sentence in tails:
-                print(
+                self.logger.info(
                     f"{self.qid2name[head_id]} --[{relation}]--> {self.qid2name[tail_id]}"
                 )
 
@@ -190,16 +191,16 @@ if __name__ == "__main__":
     kg_storage.construct_graph(batch)
 
     # 打印知识图谱内容
-    print("测试输出:")
+    self.logger.info("测试输出:")
     kg_storage.print_graph()
-    print()
+    self.logger.info()
 
-    print("CR7效力的球队发生了变化，需要修改知识图谱中的边:")
+    self.logger.info("CR7效力的球队发生了变化，需要修改知识图谱中的边:")
     kg_storage.modify_edge("CR7", "play_for", "Manchester United", "Al-Nassr FC")
     kg_storage.print_graph()
-    print()
+    self.logger.info()
 
-    print("Trump和Mask闹掰了，需要删除知识图谱中的边:")
+    self.logger.info("Trump和Mask闹掰了，需要删除知识图谱中的边:")
     kg_storage.delete_edge("Trump", "fans_of", "Mask")
     kg_storage.print_graph()
 

@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Studio Backend API
 
 A simple FastAPI backend service that provides real SAGE data to the Studio frontend.
@@ -100,7 +101,7 @@ def _read_sage_data_from_files():
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
-                    print(f"Error reading job file {job_file}: {e}")
+                    self.logger.info(f"Error reading job file {job_file}: {e}")
 
         # 读取操作符信息
         operators_file = sage_dir / "output" / "operators.json"
@@ -110,7 +111,7 @@ def _read_sage_data_from_files():
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
-                print(f"Error reading operators file: {e}")
+                self.logger.info(f"Error reading operators file: {e}")
 
         # 读取管道信息
         pipelines_file = sage_dir / "output" / "pipelines.json"
@@ -120,10 +121,10 @@ def _read_sage_data_from_files():
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
-                print(f"Error reading pipelines file: {e}")
+                self.logger.info(f"Error reading pipelines file: {e}")
 
     except Exception as e:
-        print(f"Error reading SAGE data: {e}")
+        self.logger.info(f"Error reading SAGE data: {e}")
 
     return data
 
@@ -141,12 +142,12 @@ async def get_all_jobs():
         sage_data = _read_sage_data_from_files()
         jobs = sage_data.get("jobs", [])
 
-        print(f"DEBUG: Read {len(jobs)} jobs from files")
-        print(f"DEBUG: sage_data = {sage_data}")
+        self.logger.info(f"DEBUG: Read {len(jobs)} jobs from files")
+        self.logger.info(f"DEBUG: sage_data = {sage_data}")
 
         # 如果没有实际数据，返回一些示例数据（用于开发）
         if not jobs:
-            print("DEBUG: No real jobs found, using fallback data")
+            self.logger.info("DEBUG: No real jobs found, using fallback data")
             jobs = [
                 {
                     "jobId": "job_001",
@@ -234,7 +235,7 @@ def _load_operator_class_source(module_path: str, class_name: str) -> str:
         return source_code
 
     except Exception as e:
-        print(f"Error loading operator class {module_path}.{class_name}: {e}")
+        self.logger.info(f"Error loading operator class {module_path}.{class_name}: {e}")
         return f"# Error loading source code for {class_name}\n# {str(e)}"
 
 
@@ -244,7 +245,7 @@ def _read_real_operators():
     operators_dir = _get_studio_operators_dir()
 
     if not operators_dir.exists():
-        print(f"Operators directory not found: {operators_dir}")
+        self.logger.info(f"Operators directory not found: {operators_dir}")
         return []
 
     try:
@@ -277,15 +278,15 @@ def _read_real_operators():
                             "isCustom": operator_data["isCustom"],
                         }
                         operators.append(clean_data)
-                        print(f"Loaded operator: {operator_data['name']}")
+                        self.logger.info(f"Loaded operator: {operator_data['name']}")
                     else:
-                        print(f"Invalid operator data in {json_file}")
+                        self.logger.info(f"Invalid operator data in {json_file}")
 
             except Exception as e:
-                print(f"Error reading operator file {json_file}: {e}")
+                self.logger.info(f"Error reading operator file {json_file}: {e}")
 
     except Exception as e:
-        print(f"Error reading operators directory: {e}")
+        self.logger.info(f"Error reading operators directory: {e}")
 
     return operators
 
@@ -299,7 +300,7 @@ async def get_operators():
 
         # 如果没有找到真实数据，使用后备数据
         if not operators:
-            print("No real operator data found, using fallback data")
+            self.logger.info("No real operator data found, using fallback data")
             operators = [
                 {
                     "id": 1,
@@ -317,10 +318,10 @@ async def get_operators():
                 },
             ]
 
-        print(f"Returning {len(operators)} operators")
+        self.logger.info(f"Returning {len(operators)} operators")
         return operators
     except Exception as e:
-        print(f"Error in get_operators: {e}")
+        self.logger.info(f"Error in get_operators: {e}")
         raise HTTPException(status_code=500, detail=f"获取操作符信息失败: {str(e)}")
 
 
@@ -333,7 +334,7 @@ async def get_operators_list(page: int = 1, size: int = 10, search: str = ""):
 
         # 如果没有找到真实数据，使用后备数据
         if not all_operators:
-            print("No real operator data found, using fallback data")
+            self.logger.info("No real operator data found, using fallback data")
             all_operators = [
                 {
                     "id": 1,
@@ -370,11 +371,11 @@ async def get_operators_list(page: int = 1, size: int = 10, search: str = ""):
 
         result = {"items": items, "total": total}
 
-        print(f"Returning page {page} with {len(items)} operators (total: {total})")
+        self.logger.info(f"Returning page {page} with {len(items)} operators (total: {total})")
         return result
 
     except Exception as e:
-        print(f"Error in get_operators_list: {e}")
+        self.logger.info(f"Error in get_operators_list: {e}")
         raise HTTPException(status_code=500, detail=f"获取操作符列表失败: {str(e)}")
 
 
@@ -426,7 +427,7 @@ async def get_pipelines():
 async def submit_pipeline(topology_data: dict):
     """提交拓扑图/管道配置"""
     try:
-        print(f"Received pipeline submission: {topology_data}")
+        self.logger.info(f"Received pipeline submission: {topology_data}")
 
         # 这里可以添加保存到文件或数据库的逻辑
         sage_dir = _get_sage_dir()
@@ -450,7 +451,7 @@ async def submit_pipeline(topology_data: dict):
             "file_path": str(pipeline_file),
         }
     except Exception as e:
-        print(f"Error submitting pipeline: {e}")
+        self.logger.info(f"Error submitting pipeline: {e}")
         raise HTTPException(status_code=500, detail=f"提交拓扑图失败: {str(e)}")
 
 

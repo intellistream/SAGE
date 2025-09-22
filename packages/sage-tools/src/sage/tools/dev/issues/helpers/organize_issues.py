@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 Issues整理脚本 - 根据关闭时间将issues移动到不同状态列
 
 功能:
@@ -59,12 +60,12 @@ class IssuesOrganizer:
 
     def get_closed_issues(self):
         """获取所有已关闭的issues"""
-        print("🔍 加载已关闭的issues...")
+        self.logger.info("🔍 加载已关闭的issues...")
 
         closed_issues = []
 
         if not self.data_dir.exists():
-            print(f"❌ 数据目录不存在: {self.data_dir}")
+            self.logger.info(f"❌ 数据目录不存在: {self.data_dir}")
             return []
 
         # 加载所有issue文件
@@ -78,9 +79,9 @@ class IssuesOrganizer:
                     closed_issues.append(issue_data)
 
             except Exception as e:
-                print(f"⚠️ 读取issue文件失败: {issue_file.name}: {e}")
+                self.logger.info(f"⚠️ 读取issue文件失败: {issue_file.name}: {e}")
 
-        print(f"✅ 找到 {len(closed_issues)} 个已关闭的issues")
+        self.logger.info(f"✅ 找到 {len(closed_issues)} 个已关闭的issues")
         return closed_issues
 
     def categorize_issues(self, issues):
@@ -139,7 +140,7 @@ class IssuesOrganizer:
 
     def get_project_info(self):
         """获取GitHub项目信息"""
-        print("🔍 获取GitHub项目信息...")
+        self.logger.info("🔍 获取GitHub项目信息...")
 
         # 查询组织的所有项目 - 使用正确的union语法
         query = """
@@ -181,12 +182,12 @@ class IssuesOrganizer:
         )
 
         if response.status_code != 200:
-            print(f"❌ 获取项目信息失败: {response.status_code}")
+            self.logger.info(f"❌ 获取项目信息失败: {response.status_code}")
             return None
 
         data = response.json()
         if "errors" in data:
-            print(f"❌ GraphQL错误: {data['errors']}")
+            self.logger.info(f"❌ GraphQL错误: {data['errors']}")
             return None
 
         projects = (
@@ -206,20 +207,20 @@ class IssuesOrganizer:
         if sage_project:
             projects = [sage_project]  # 只处理SAGE项目
         else:
-            print("⚠️ 未找到SAGE项目，使用第一个有状态字段的项目")
+            self.logger.info("⚠️ 未找到SAGE项目，使用第一个有状态字段的项目")
 
         for project in projects:
-            print(f"📋 项目: {project['title']} (#{project['number']})")
+            self.logger.info(f"📋 项目: {project['title']} (#{project['number']})")
 
             # 显示所有字段
-            print(f"  📋 字段列表:")
+            self.logger.info(f"  📋 字段列表:")
             for field in project.get("fields", {}).get("nodes", []):
                 field_name = field.get("name", "Unknown")
                 field_type = field.get("dataType", "Unknown")
-                print(f"    • {field_name} ({field_type})")
+                self.logger.info(f"    • {field_name} ({field_type})")
                 if field_type == "SINGLE_SELECT" and "options" in field:
                     options = [opt["name"] for opt in field["options"]]
-                    print(f"      选项: {options}")
+                    self.logger.info(f"      选项: {options}")
 
             status_field = None
             for field in project.get("fields", {}).get("nodes", []):
@@ -231,7 +232,7 @@ class IssuesOrganizer:
                     break
 
             if status_field:
-                print(
+                self.logger.info(
                     f"  ✅ 找到状态字段，选项: {[opt['name'] for opt in status_field.get('options', [])]}"
                 )
                 return {
@@ -245,7 +246,7 @@ class IssuesOrganizer:
 
     def get_project_issues(self, project_info):
         """获取项目中的所有issues"""
-        print("🔍 获取项目中的issues...")
+        self.logger.info("🔍 获取项目中的issues...")
 
         query = f"""
         {{
@@ -276,12 +277,12 @@ class IssuesOrganizer:
         )
 
         if response.status_code != 200:
-            print(f"❌ 获取项目issues失败: {response.status_code}")
+            self.logger.info(f"❌ 获取项目issues失败: {response.status_code}")
             return []
 
         data = response.json()
         if "errors" in data:
-            print(f"❌ GraphQL错误: {data['errors']}")
+            self.logger.info(f"❌ GraphQL错误: {data['errors']}")
             return []
 
         items = data.get("data", {}).get("node", {}).get("items", {}).get("nodes", [])
@@ -300,13 +301,13 @@ class IssuesOrganizer:
                     }
                 )
 
-        print(f"✅ 找到 {len(project_issues)} 个项目中的已关闭issues")
+        self.logger.info(f"✅ 找到 {len(project_issues)} 个项目中的已关闭issues")
         return project_issues
 
     def update_issue_status(self, issue_number, status_name, project_info):
         """更新issue在项目中的状态"""
         if status_name not in project_info["status_options"]:
-            print(f"⚠️ 状态 '{status_name}' 不存在，跳过issue #{issue_number}")
+            self.logger.info(f"⚠️ 状态 '{status_name}' 不存在，跳过issue #{issue_number}")
             return False
 
         status_option_id = project_info["status_options"][status_name]
@@ -336,18 +337,18 @@ class IssuesOrganizer:
         )
 
         if response.status_code != 200:
-            print(f"❌ 检查issue #{issue_number} 项目状态失败: {response.status_code}")
+            self.logger.info(f"❌ 检查issue #{issue_number} 项目状态失败: {response.status_code}")
             return False
 
         data = response.json()
         if "errors" in data:
-            print(f"❌ GraphQL错误: {data['errors']}")
+            self.logger.info(f"❌ GraphQL错误: {data['errors']}")
             return False
 
         issue_data = data.get("data", {}).get("repository", {}).get("issue", {})
 
         if not issue_data:
-            print(f"⚠️ Issue #{issue_number} 不存在或无法访问")
+            self.logger.info(f"⚠️ Issue #{issue_number} 不存在或无法访问")
             return False
 
         project_item = None
@@ -357,7 +358,7 @@ class IssuesOrganizer:
                 break
 
         if not project_item:
-            print(f"⚠️ Issue #{issue_number} 不在目标项目中，跳过")
+            self.logger.info(f"⚠️ Issue #{issue_number} 不在目标项目中，跳过")
             return False
 
         # 更新状态
@@ -394,50 +395,50 @@ class IssuesOrganizer:
         )
 
         if response.status_code == 200 and "errors" not in response.json():
-            print(f"✅ Issue #{issue_number} 状态更新为 '{status_name}'")
+            self.logger.info(f"✅ Issue #{issue_number} 状态更新为 '{status_name}'")
             return True
         else:
-            print(f"❌ 更新issue #{issue_number} 状态失败: {response.text}")
+            self.logger.info(f"❌ 更新issue #{issue_number} 状态失败: {response.text}")
             return False
 
     def preview_organization(self):
         """预览整理计划"""
-        print("📋 Issues整理预览")
-        print("=" * 50)
+        self.logger.info("📋 Issues整理预览")
+        self.logger.info("=" * 50)
 
         issues = self.get_closed_issues()
         categories = self.categorize_issues(issues)
 
         for category, items in categories.items():
-            print(f"\n📁 {category} ({len(items)} 个issues):")
+            self.logger.info(f"\n📁 {category} ({len(items)} 个issues):")
             for item in items[:5]:  # 只显示前5个
-                print(f"  • #{item['number']} - {item['title'][:50]}...")
-                print(f"    关闭时间: {item['closed_at'].strftime('%Y-%m-%d %H:%M')}")
+                self.logger.info(f"  • #{item['number']} - {item['title'][:50]}...")
+                self.logger.info(f"    关闭时间: {item['closed_at'].strftime('%Y-%m-%d %H:%M')}")
             if len(items) > 5:
-                print(f"  ... 还有 {len(items) - 5} 个issues")
+                self.logger.info(f"  ... 还有 {len(items) - 5} 个issues")
 
         total = sum(len(items) for items in categories.values())
-        print(f"\n📊 总计: {total} 个已关闭的issues待整理")
+        self.logger.info(f"\n📊 总计: {total} 个已关闭的issues待整理")
 
     def apply_organization(self, confirm=False):
         """执行整理"""
         if not confirm:
-            print("❌ 需要 --confirm 参数来确认执行")
+            self.logger.info("❌ 需要 --confirm 参数来确认执行")
             return False
 
-        print("🚀 开始执行Issues整理...")
-        print("=" * 50)
+        self.logger.info("🚀 开始执行Issues整理...")
+        self.logger.info("=" * 50)
 
         # 获取项目信息
         project_info = self.get_project_info()
         if not project_info:
-            print("❌ 无法获取项目信息，退出")
+            self.logger.info("❌ 无法获取项目信息，退出")
             return False
 
         # 获取项目中的issues并分类
         project_issues = self.get_project_issues(project_info)
         if not project_issues:
-            print("⚠️ 项目中没有已关闭的issues")
+            self.logger.info("⚠️ 项目中没有已关闭的issues")
             return False
 
         categories = self.categorize_issues(project_issues)
@@ -446,7 +447,7 @@ class IssuesOrganizer:
         total_success = 0
 
         for category, items in categories.items():
-            print(f"\n📁 处理 {category} 分类 ({len(items)} 个issues)...")
+            self.logger.info(f"\n📁 处理 {category} 分类 ({len(items)} 个issues)...")
 
             for item in items:
                 success = self.update_issue_status(
@@ -462,10 +463,10 @@ class IssuesOrganizer:
 
                 time.sleep(0.5)
 
-        print(f"\n📊 整理完成!")
-        print(f"  • 处理总数: {total_processed}")
-        print(f"  • 成功更新: {total_success}")
-        print(f"  • 更新失败: {total_processed - total_success}")
+        self.logger.info(f"\n📊 整理完成!")
+        self.logger.info(f"  • 处理总数: {total_processed}")
+        self.logger.info(f"  • 成功更新: {total_success}")
+        self.logger.info(f"  • 更新失败: {total_processed - total_success}")
 
         return total_success > 0
 
@@ -493,7 +494,7 @@ def main():
             organizer.apply_organization(confirm=args.confirm)
 
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        self.logger.info(f"❌ 错误: {e}")
         import traceback
 
         traceback.print_exc()

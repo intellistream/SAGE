@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 中间结果放置检查工具
 
 此模块提供统一的API来检查项目中间结果文件和目录的放置情况，
@@ -184,15 +185,15 @@ class IntermediateResultsChecker:
             check_result = self.check_placement()
 
         if check_result["clean"]:
-            print("✅ 中间结果放置检查通过 - 项目根目录整洁")
+            self.logger.info("✅ 中间结果放置检查通过 - 项目根目录整洁")
             return True
         else:
-            print(f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题:")
+            self.logger.info(f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题:")
             for violation in check_result["violations"]:
-                print(
+                self.logger.info(
                     f"  - {violation['path']} ({violation['type']}): {violation['message']}"
                 )
-            print(f"\n💡 {check_result['suggestion']}")
+            self.logger.info(f"\n💡 {check_result['suggestion']}")
             return False
 
     def get_summary(self) -> str:

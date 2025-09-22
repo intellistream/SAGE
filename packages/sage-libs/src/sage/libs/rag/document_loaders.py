@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 document_loaders.py
 SAGE RAG 示例：文本加载工具
 """
@@ -132,15 +133,15 @@ class LoaderFactory:
 """
 # 自动识别并加载
 doc =LoaderFactory.load("examples/data/qa_knowledge_base.txt")
-print(doc["content"])
+self.logger.info(doc["content"])
 
 doc = LoaderFactory.load("examples/data/qa_knowledge_base.pdf")
-print(doc["metadata"])
+self.logger.info(doc["metadata"])
 
 doc = LoaderFactory.load("examples/data/qa_knowledge_base.docx")
-print(doc["content"])
+self.logger.info(doc["content"])
 
 
 doc = LoaderFactory.load("examples/data/qa_knowledge_base.md")
-print(doc["content"])
+self.logger.info(doc["content"])
 """

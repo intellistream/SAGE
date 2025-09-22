@@ -1,3 +1,4 @@
+import logging
 from time import sleep
 
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -17,7 +18,7 @@ class StartSource(BatchFunction):
     def execute(self):
         if not self.started:
             self.started = True
-            print("已发送启动信号")
+            logging.info("已发送启动信号")
             return {"signal": "start"}
         else:
             return None
@@ -26,11 +27,11 @@ class StartSource(BatchFunction):
 # 合流处理器（map0 = 启动，map1 = 反馈）
 class SignalMerger(BaseCoMapFunction):
     def map0(self, data):
-        print(f">>> StartSource：收到启动数据: {data}")
+        logging.info(f">>> StartSource：收到启动数据: {data}")
         return data
 
     def map1(self, data):
-        print(f">>> PipelineSource： 收到反馈数据: {data}")
+        logging.info(f">>> PipelineSource： 收到反馈数据: {data}")
         return data
 
 
@@ -51,13 +52,13 @@ class SentenceProvider(BatchFunction):
             return None
 
         if self.index >= len(self.sentences):
-            print("全部语句已输出完毕，结束数据流。")
+            logging.info("全部语句已输出完毕，结束数据流。")
             return None
 
         sentence = self.sentences[self.index]
         self.index += 1
         new_data = {"句子": sentence}
-        print(f">>> SentenceProvider 提供句子: {new_data}")
+        logging.info(f">>> SentenceProvider 提供句子: {new_data}")
         return new_data
 
 
@@ -65,7 +66,7 @@ class SentenceProvider(BatchFunction):
 class FeedbackSink(SinkFunction):
     def execute(self, data):
         if data:
-            print(f">>> Sink 打印: {data}")
+            logging.info(f">>> Sink 打印: {data}")
         return data
 
 
@@ -75,7 +76,7 @@ class FeedbackDelayer(BaseFunction):
         if data is None:
             return None
         sleep(1)  # 控制间隔
-        print(">>> FeedbackDelayer等待 2 秒后反馈...")
+        logging.info(">>> FeedbackDelayer等待 2 秒后反馈...")
         return data
 
 
@@ -110,7 +111,7 @@ def main():
 
     sleep(6)  # 给足够时间让所有数据处理完成
 
-    print("Hello Future World 示例结束")
+    logging.info("Hello Future World 示例结束")
 
 
 if __name__ == "__main__":

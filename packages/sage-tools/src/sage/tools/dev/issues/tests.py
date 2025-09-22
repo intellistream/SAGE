@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+import logging
 SAGE Issues 管理 - 测试套件
 基于原始test_issues_manager.sh的Python实现
 """
@@ -38,7 +39,7 @@ class IssuesTestSuite:
 
     def setup(self) -> bool:
         """初始化测试环境"""
-        console.print("🔧 [bold blue]初始化测试环境...[/bold blue]")
+        console.logging.info("🔧 [bold blue]初始化测试环境...[/bold blue]")
 
         # 创建备份目录
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -54,7 +55,7 @@ class IssuesTestSuite:
 
     def teardown(self):
         """清理测试环境"""
-        console.print("🧹 [bold yellow]清理测试环境...[/bold yellow]")
+        console.logging.info("🧹 [bold yellow]清理测试环境...[/bold yellow]")
 
         # 清理临时文件
         if self.backup_dir and self.backup_dir.exists():
@@ -73,17 +74,17 @@ class IssuesTestSuite:
             ]
             for attr in config_attrs:
                 if not hasattr(self.config, attr):
-                    console.print(f"❌ 配置缺少属性: {attr}")
+                    console.logging.info(f"❌ 配置缺少属性: {attr}")
                     return False
 
             # 检查基本值
             if not self.config.GITHUB_OWNER or not self.config.GITHUB_REPO:
-                console.print("❌ GitHub仓库配置不完整")
+                console.logging.info("❌ GitHub仓库配置不完整")
                 return False
 
             return True
         except Exception as e:
-            console.print(f"❌ 配置验证失败: {e}")
+            console.logging.info(f"❌ 配置验证失败: {e}")
             return False
 
     def test_github_connection(self) -> bool:
@@ -91,7 +92,7 @@ class IssuesTestSuite:
         try:
             # 在CI环境中，如果没有GitHub token，这是可以接受的
             if os.environ.get("CI") == "true" and not self.manager.config.github_token:
-                console.print("ℹ️ CI环境中未配置GitHub token，跳过连接测试")
+                console.logging.info("ℹ️ CI环境中未配置GitHub token，跳过连接测试")
                 return True
 
             # 使用manager的内置连接测试
@@ -99,9 +100,9 @@ class IssuesTestSuite:
         except Exception as e:
             # 在CI环境中，网络相关的失败是可以容忍的
             if os.environ.get("CI") == "true":
-                console.print(f"⚠️ CI环境中GitHub连接测试失败: {e}")
+                console.logging.info(f"⚠️ CI环境中GitHub连接测试失败: {e}")
                 return True
-            console.print(f"❌ GitHub连接测试失败: {e}")
+            console.logging.info(f"❌ GitHub连接测试失败: {e}")
             return False
 
     def test_download_functionality(self) -> bool:
@@ -117,7 +118,7 @@ class IssuesTestSuite:
             return download_script.exists() or download_v2_script.exists()
 
         except Exception as e:
-            console.print(f"❌ 下载功能测试失败: {e}")
+            console.logging.info(f"❌ 下载功能测试失败: {e}")
             return False
 
     def test_stats_generation(self) -> bool:
@@ -127,7 +128,7 @@ class IssuesTestSuite:
             success = self.manager.show_statistics()
             return success
         except Exception as e:
-            console.print(f"❌ 统计生成测试失败: {e}")
+            console.logging.info(f"❌ 统计生成测试失败: {e}")
             return False
 
     def test_team_analysis(self) -> bool:
@@ -137,7 +138,7 @@ class IssuesTestSuite:
             if os.environ.get("CI") == "true":
                 team_info = self.manager.team_info
                 if not team_info:
-                    console.print("ℹ️ CI环境中未配置团队信息，创建模拟数据进行测试")
+                    console.logging.info("ℹ️ CI环境中未配置团队信息，创建模拟数据进行测试")
                     # 模拟团队信息
                     mock_team_info = {
                         "teams": {
@@ -161,10 +162,10 @@ class IssuesTestSuite:
             # 检查基本团队信息结构
             return isinstance(team_info, dict) and len(team_info) > 0
         except Exception as e:
-            console.print(f"❌ 团队分析测试失败: {e}")
+            console.logging.info(f"❌ 团队分析测试失败: {e}")
             # 在CI环境中，团队信息缺失是可以接受的
             if os.environ.get("CI") == "true":
-                console.print("ℹ️ CI环境中团队信息缺失是可以接受的")
+                console.logging.info("ℹ️ CI环境中团队信息缺失是可以接受的")
                 return True
             return False
 
@@ -180,28 +181,28 @@ class IssuesTestSuite:
 
             return exists and not test_file.exists()
         except Exception as e:
-            console.print(f"❌ 文件操作测试失败: {e}")
+            console.logging.info(f"❌ 文件操作测试失败: {e}")
             return False
 
     def run_test(self, test_name: str, test_func) -> bool:
         """运行单个测试"""
-        console.print(f"▶️  运行测试: {test_name}")
+        console.logging.info(f"▶️  运行测试: {test_name}")
 
         try:
             result = test_func()
             status = "✅ PASS" if result else "❌ FAIL"
-            console.print(f"   {status}")
+            console.logging.info(f"   {status}")
 
             self.test_results.append((test_name, result, ""))
             return result
         except Exception as e:
-            console.print(f"   ❌ ERROR: {e}")
+            console.logging.info(f"   ❌ ERROR: {e}")
             self.test_results.append((test_name, False, str(e)))
             return False
 
     def run_all_tests(self) -> bool:
         """运行所有测试"""
-        console.print(
+        console.logging.info(
             Panel.fit(
                 "🧪 [bold blue]SAGE Issues 管理测试套件[/bold blue]",
                 border_style="blue",
@@ -209,7 +210,7 @@ class IssuesTestSuite:
         )
 
         if not self.setup():
-            console.print("❌ 测试环境初始化失败")
+            console.logging.info("❌ 测试环境初始化失败")
             return False
 
         tests = [
@@ -254,9 +255,9 @@ class IssuesTestSuite:
 
     def generate_report(self, passed: int, total: int):
         """生成测试报告"""
-        console.print("\n" + "=" * 60)
-        console.print(f"📊 [bold blue]测试结果汇总[/bold blue]")
-        console.print("=" * 60)
+        console.logging.info("\n" + "=" * 60)
+        console.logging.info(f"📊 [bold blue]测试结果汇总[/bold blue]")
+        console.logging.info("=" * 60)
 
         table = Table(title="测试详情")
         table.add_column("测试项", style="cyan")
@@ -267,19 +268,19 @@ class IssuesTestSuite:
             status = "✅ PASS" if result else "❌ FAIL"
             table.add_row(test_name, status, error or "")
 
-        console.print(table)
+        console.logging.info(table)
 
         # 汇总统计
-        console.print(f"\n📈 总计: {total} 个测试")
-        console.print(f"✅ 通过: {passed} 个")
-        console.print(f"❌ 失败: {total - passed} 个")
-        console.print(f"📊 成功率: {passed/total*100:.1f}%")
+        console.logging.info(f"\n📈 总计: {total} 个测试")
+        console.logging.info(f"✅ 通过: {passed} 个")
+        console.logging.info(f"❌ 失败: {total - passed} 个")
+        console.logging.info(f"📊 成功率: {passed/total*100:.1f}%")
 
         # CI环境特殊处理
         is_ci = os.environ.get("CI") == "true"
         if is_ci:
-            console.print("\n🤖 [bold cyan]CI环境检测[/bold cyan]")
-            console.print("在CI环境中，某些依赖外部服务的测试失败是可以接受的")
+            console.logging.info("\n🤖 [bold cyan]CI环境检测[/bold cyan]")
+            console.logging.info("在CI环境中，某些依赖外部服务的测试失败是可以接受的")
 
             # 检查是否有不可接受的失败
             critical_failures = []
@@ -288,23 +289,23 @@ class IssuesTestSuite:
                     critical_failures.append(test_name)
 
             if critical_failures:
-                console.print(
+                console.logging.info(
                     f"\n❌ [bold red]发现关键测试失败: {', '.join(critical_failures)}[/bold red]"
                 )
-                console.print("这些测试失败表明核心功能存在问题")
+                console.logging.info("这些测试失败表明核心功能存在问题")
             elif passed >= total * 0.5:  # 至少50%的测试通过
-                console.print("\n✅ [bold green]CI环境测试通过[/bold green]")
-                console.print("核心功能正常，外部依赖相关的失败是可以接受的")
+                console.logging.info("\n✅ [bold green]CI环境测试通过[/bold green]")
+                console.logging.info("核心功能正常，外部依赖相关的失败是可以接受的")
             else:
-                console.print(
+                console.logging.info(
                     "\n⚠️ [bold yellow]测试通过率过低，可能存在问题[/bold yellow]"
                 )
         else:
             # 本地环境
             if passed == total:
-                console.print("\n🎉 [bold green]所有测试通过！[/bold green]")
+                console.logging.info("\n🎉 [bold green]所有测试通过！[/bold green]")
             else:
-                console.print(
+                console.logging.info(
                     f"\n⚠️  [bold yellow]{total - passed} 个测试失败[/bold yellow]"
                 )
 

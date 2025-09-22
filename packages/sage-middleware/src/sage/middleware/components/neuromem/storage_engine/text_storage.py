@@ -1,6 +1,7 @@
 # file sage/core/sage.middleware.services.neuromem./storage_engine/text_storage.py
 # python -m sage.core.sage.middleware.services.neuromem..storage_engine.text_storage
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 from typing import List, Optional
 
 from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
@@ -88,22 +89,22 @@ if __name__ == "__main__":
 
     # 1. 存储并保存到磁盘
     ts.store(text_id, text)
-    print("Step 1 | Retrieved:", ts.get(text_id))
+    self.logger.info("Step 1 | Retrieved:", ts.get(text_id))
     ts.store_to_disk(disk_path)
-    print(f"Data has been saved to {disk_path}")
+    self.logger.info(f"Data has been saved to {disk_path}")
 
     # 2. 清空内存
     ts.clear()
-    print("Step 2 | After clear (should be empty):", ts.get(text_id))
+    self.logger.info("Step 2 | After clear (should be empty):", ts.get(text_id))
 
     # 3. 等待用户输入 yes 再读取
     user_input = input("Step 3 | Enter 'yes' to load data from disk: ")
     if user_input.strip().lower() == "yes":
         ts.load_from_disk(disk_path)
-        print("Step 3 | After reload, Retrieved:", ts.get(text_id))
+        self.logger.info("Step 3 | After reload, Retrieved:", ts.get(text_id))
     else:
-        print("Step 3 | Skipped loading from disk.")
+        self.logger.info("Step 3 | Skipped loading from disk.")
 
     # 4. 删除磁盘数据
     ts.clear_disk_data(disk_path)
-    print(f"Step 4 | Disk file {disk_path} has been deleted.")
+    self.logger.info(f"Step 4 | Disk file {disk_path} has been deleted.")

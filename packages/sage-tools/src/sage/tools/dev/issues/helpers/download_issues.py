@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Issues下载工具 - 新架构版本
 使用统一数据管理器和视图分离架构
 """
@@ -79,10 +80,10 @@ class IssuesDownloader:
                 exec(open(config_path).read(), team_config)
                 return team_config.get("TEAMS", {})
             else:
-                print("⚠️ 团队配置文件不存在，将不进行自动分配")
+                self.logger.info("⚠️ 团队配置文件不存在，将不进行自动分配")
                 return {}
         except Exception as e:
-            print(f"⚠️ 加载团队配置失败: {e}")
+            self.logger.info(f"⚠️ 加载团队配置失败: {e}")
             return {}
 
     def load_project_mapping(self):
@@ -108,7 +109,7 @@ class IssuesDownloader:
                     14: "sage-apps",
                 }
         except Exception as e:
-            print(f"⚠️ 加载project映射失败: {e}")
+            self.logger.info(f"⚠️ 加载project映射失败: {e}")
             # 返回默认映射作为备选
             return {
                 6: "intellistream",  # IntelliStream总体项目
@@ -122,7 +123,7 @@ class IssuesDownloader:
         if not issue_numbers:
             return
 
-        print(f"📊 批量获取 {len(issue_numbers)} 个issues的项目信息...")
+        self.logger.info(f"📊 批量获取 {len(issue_numbers)} 个issues的项目信息...")
 
         try:
             # 首先获取所有项目基本信息
@@ -147,13 +148,13 @@ class IssuesDownloader:
             )
 
             if response.status_code != 200:
-                print(f"GraphQL API错误: {response.status_code}")
+                self.logger.info(f"GraphQL API错误: {response.status_code}")
                 return
 
             data = response.json()
 
             if "errors" in data:
-                print(f"GraphQL查询错误: {data['errors']}")
+                self.logger.info(f"GraphQL查询错误: {data['errors']}")
                 return
 
             projects = (
@@ -163,7 +164,7 @@ class IssuesDownloader:
                 .get("nodes", [])
             )
             if not projects:
-                print("未找到projects数据")
+                self.logger.info("未找到projects数据")
                 return
 
             # 构建issue到project的映射
@@ -216,7 +217,7 @@ class IssuesDownloader:
                     )
 
                     if items_response.status_code != 200:
-                        print(
+                        self.logger.info(
                             f"获取项目 {project_num} items失败: {items_response.status_code}"
                         )
                         break
@@ -224,7 +225,7 @@ class IssuesDownloader:
                     items_data = items_response.json()
 
                     if "errors" in items_data:
-                        print(
+                        self.logger.info(
                             f"获取项目 {project_num} items错误: {items_data['errors']}"
                         )
                         break
@@ -270,10 +271,10 @@ class IssuesDownloader:
                     has_next_page = page_info.get("hasNextPage", False)
                     after_cursor = page_info.get("endCursor")
 
-            print(f"✅ 成功获取 {found_count} 个issues的项目信息")
+            self.logger.info(f"✅ 成功获取 {found_count} 个issues的项目信息")
 
         except Exception as e:
-            print(f"⚠️ 批量获取项目信息失败: {e}")
+            self.logger.info(f"⚠️ 批量获取项目信息失败: {e}")
             import traceback
 
             traceback.print_exc()
@@ -311,7 +312,7 @@ class IssuesDownloader:
 
             return simplified_comments
         except Exception as e:
-            print(f"⚠️ 获取 Issue #{issue_number} 评论失败: {e}")
+            self.logger.info(f"⚠️ 获取 Issue #{issue_number} 评论失败: {e}")
             return []
 
     def auto_assign_project_and_assignee(self, issue: dict, project_info: list):
@@ -384,7 +385,7 @@ class IssuesDownloader:
 
             if creator_team in project_assignments:
                 updated_project_info = [project_assignments[creator_team]]
-                print(
+                self.logger.info(
                     f"🎯 Issue #{issue['number']} 自动分配到project: {creator_team} (基于创建者 {creator})"
                 )
 
@@ -400,7 +401,7 @@ class IssuesDownloader:
                     # 修改issue的assignee信息
                     issue["assignees"] = [{"login": creator}]
                     issue["assignee"] = {"login": creator}
-                    print(f"👤 Issue #{issue['number']} 自动分配给创建者: {creator}")
+                    self.logger.info(f"👤 Issue #{issue['number']} 自动分配给创建者: {creator}")
 
         return issue, updated_project_info
 
@@ -422,14 +423,14 @@ class IssuesDownloader:
             success = self.data_manager.save_issue(issue, comments)
 
             if success:
-                print(f"✅ Issue #{issue['number']} 保存成功")
+                self.logger.info(f"✅ Issue #{issue['number']} 保存成功")
             else:
-                print(f"❌ Issue #{issue['number']} 保存失败")
+                self.logger.info(f"❌ Issue #{issue['number']} 保存失败")
 
             return success
 
         except Exception as e:
-            print(f"❌ 保存Issue #{issue['number']} 失败: {e}")
+            self.logger.info(f"❌ 保存Issue #{issue['number']} 失败: {e}")
             return False
 
     def download_issues(self, state="all", skip_comments=False) -> bool:
@@ -442,9 +443,9 @@ class IssuesDownloader:
         Returns:
             bool: 下载是否成功
         """
-        print(f"🚀 开始下载 {state} 状态的Issues...")
+        self.logger.info(f"🚀 开始下载 {state} 状态的Issues...")
         if skip_comments:
-            print("⚡ 快速模式：跳过评论下载")
+            self.logger.info("⚡ 快速模式：跳过评论下载")
 
         try:
             # 获取Issues - 直接调用GitHub API
@@ -471,7 +472,7 @@ class IssuesDownloader:
                     break
 
                 issues.extend(page_issues)
-                print(
+                self.logger.info(
                     f"📥 已获取第{page}页，共{len(page_issues)}个Issues (总数: {len(issues)})"
                 )
                 page += 1
@@ -495,14 +496,14 @@ class IssuesDownloader:
 
                 # 避免无限循环（安全措施）
                 if page > 50:
-                    print("⚠️ 达到最大页数限制，停止下载")
+                    self.logger.info("⚠️ 达到最大页数限制，停止下载")
                     break
 
             if not issues:
-                print("📭 没有找到符合条件的Issues")
+                self.logger.info("📭 没有找到符合条件的Issues")
                 return True
 
-            print(f"📥 共找到 {len(issues)} 个Issues，开始下载...")
+            self.logger.info(f"📥 共找到 {len(issues)} 个Issues，开始下载...")
 
             # 批量获取所有issues的项目信息（优化性能）
             issue_numbers = [issue["number"] for issue in issues]
@@ -516,31 +517,31 @@ class IssuesDownloader:
                         saved_count += 1
 
                     if saved_count % 10 == 0:
-                        print(f"✅ 已保存 {saved_count}/{len(issues)} 个Issues")
+                        self.logger.info(f"✅ 已保存 {saved_count}/{len(issues)} 个Issues")
                 except Exception as e:
-                    print(f"❌ 保存Issue #{issue['number']} 失败: {e}")
+                    self.logger.info(f"❌ 保存Issue #{issue['number']} 失败: {e}")
 
-            print(
+            self.logger.info(
                 f"📊 数据下载完成！成功保存 {saved_count}/{len(issues)} 个Issues到数据源"
             )
 
             # 生成所有视图
-            print("🔄 生成视图文件...")
+            self.logger.info("🔄 生成视图文件...")
             view_results = self.data_manager.generate_all_views()
-            print(f"📊 视图生成完成: {view_results}")
+            self.logger.info(f"📊 视图生成完成: {view_results}")
 
             # 生成下载报告
             self.generate_download_report(issues, saved_count, state, view_results)
 
-            print(f"🎉 下载和视图生成完成！")
-            print(f"📁 数据源位置: {self.data_manager.data_dir}")
-            print(f"📁 Markdown视图: {self.data_manager.markdown_dir}")
-            print(f"📁 元数据视图: {self.data_manager.metadata_dir}")
+            self.logger.info(f"🎉 下载和视图生成完成！")
+            self.logger.info(f"📁 数据源位置: {self.data_manager.data_dir}")
+            self.logger.info(f"📁 Markdown视图: {self.data_manager.markdown_dir}")
+            self.logger.info(f"📁 元数据视图: {self.data_manager.metadata_dir}")
 
             return True
 
         except Exception as e:
-            print(f"💥 下载失败: {e}")
+            self.logger.info(f"💥 下载失败: {e}")
             import traceback
 
             traceback.print_exc()
@@ -662,7 +663,7 @@ Markdown视图: `{{状态}}_{{编号}}_{{标题}}.md`
         with open(report_file, "w", encoding="utf-8") as f:
             f.write(report_content)
 
-        print(f"📊 下载报告已保存: {report_file}")
+        self.logger.info(f"📊 下载报告已保存: {report_file}")
 
 
 def main():
@@ -690,24 +691,24 @@ def main():
     config = IssuesConfig()
 
     if args.verbose:
-        print(f"🔧 配置信息:")
-        print(f"   仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
-        print(f"   工作目录: {config.workspace_path}")
-        print(f"   Token状态: {'✅' if config.github_token else '❌'}")
-        print()
+        self.logger.info(f"🔧 配置信息:")
+        self.logger.info(f"   仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
+        self.logger.info(f"   工作目录: {config.workspace_path}")
+        self.logger.info(f"   Token状态: {'✅' if config.github_token else '❌'}")
+        self.logger.info()
 
     downloader = IssuesDownloader(config)
 
     if args.migrate_only:
-        print("🔄 执行数据迁移...")
+        self.logger.info("🔄 执行数据迁移...")
         migrate_results = downloader.data_manager.migrate_from_old_format()
-        print(f"📊 迁移结果: {migrate_results}")
+        self.logger.info(f"📊 迁移结果: {migrate_results}")
 
-        print("🔄 生成所有视图...")
+        self.logger.info("🔄 生成所有视图...")
         view_results = downloader.data_manager.generate_all_views()
-        print(f"📊 视图生成结果: {view_results}")
+        self.logger.info(f"📊 视图生成结果: {view_results}")
 
-        print("✅ 迁移完成！")
+        self.logger.info("✅ 迁移完成！")
         sys.exit(0)
 
     # 执行下载
@@ -716,15 +717,15 @@ def main():
     )
 
     if success:
-        print("\n🎉 下载完成！")
-        print("\n💡 新架构特点:")
-        print("   - 所有数据存储在单一JSON文件中")
-        print("   - 包含完整的milestone、reactions等信息")
-        print("   - 自动生成markdown和元数据视图")
-        print("   - 保持向后兼容性")
+        self.logger.info("\n🎉 下载完成！")
+        self.logger.info("\n💡 新架构特点:")
+        self.logger.info("   - 所有数据存储在单一JSON文件中")
+        self.logger.info("   - 包含完整的milestone、reactions等信息")
+        self.logger.info("   - 自动生成markdown和元数据视图")
+        self.logger.info("   - 保持向后兼容性")
         sys.exit(0)
     else:
-        print("\n💥 下载失败！")
+        self.logger.info("\n💥 下载失败！")
         sys.exit(1)
 
 

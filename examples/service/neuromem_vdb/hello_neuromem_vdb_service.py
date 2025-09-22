@@ -1,3 +1,4 @@
+import logging
 import time
 
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -27,10 +28,10 @@ class HelloBatch(BatchFunction):
 
 class PrintSink(SinkFunction):
     def execute(self, data):
-        print(f"\n>>> 检索 Query: {data}")
+        logging.info(f"\n>>> 检索 Query: {data}")
         # 调用服务搜索即可
         result = self.call_service["hello_neuromem_vdb_service"].retrieve(data, topk=5)
-        print(">>> 检索结果:", result)
+        logging.info(">>> 检索结果:", result)
 
 
 def main():
@@ -46,14 +47,14 @@ def main():
     env.from_batch(HelloBatch).sink(PrintSink)
 
     try:
-        print("Waiting for batch processing to complete...")
+        logging.info("Waiting for batch processing to complete...")
         env.submit()
 
         time.sleep(3)
     except KeyboardInterrupt:
-        print("停止运行")
+        logging.info("停止运行")
     finally:
-        print("Hello Neuromem Vdb Service 批处理示例结束")
+        logging.info("Hello Neuromem Vdb Service 批处理示例结束")
 
 
 if __name__ == "__main__":

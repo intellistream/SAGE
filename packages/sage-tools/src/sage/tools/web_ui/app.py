@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Frontend FastAPI Application
 
 This module provides the main FastAPI application for the SAGE Web UI.
@@ -102,7 +103,7 @@ def _read_sage_data_from_files():
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
-                    print(f"Error reading job file {job_file}: {e}")
+                    self.logger.info(f"Error reading job file {job_file}: {e}")
 
         # 读取操作符信息
         operators_file = sage_dir / "output" / "operators.json"
@@ -112,7 +113,7 @@ def _read_sage_data_from_files():
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
-                print(f"Error reading operators file: {e}")
+                self.logger.info(f"Error reading operators file: {e}")
 
         # 读取管道信息
         pipelines_file = sage_dir / "output" / "pipelines.json"
@@ -122,10 +123,10 @@ def _read_sage_data_from_files():
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
-                print(f"Error reading pipelines file: {e}")
+                self.logger.info(f"Error reading pipelines file: {e}")
 
     except Exception as e:
-        print(f"Error reading SAGE data: {e}")
+        self.logger.info(f"Error reading SAGE data: {e}")
 
     return data
 
@@ -210,7 +211,7 @@ def _read_sage_data_from_files():
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
-                    print(f"Error reading job file {job_file}: {e}")
+                    self.logger.info(f"Error reading job file {job_file}: {e}")
 
         # 读取操作符信息
         operators_file = sage_dir / "output" / "operators.json"
@@ -220,7 +221,7 @@ def _read_sage_data_from_files():
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
-                print(f"Error reading operators file: {e}")
+                self.logger.info(f"Error reading operators file: {e}")
 
         # 读取管道信息
         pipelines_file = sage_dir / "output" / "pipelines.json"
@@ -230,10 +231,10 @@ def _read_sage_data_from_files():
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
-                print(f"Error reading pipelines file: {e}")
+                self.logger.info(f"Error reading pipelines file: {e}")
 
     except Exception as e:
-        print(f"Error reading SAGE data: {e}")
+        self.logger.info(f"Error reading SAGE data: {e}")
 
     return data
 

@@ -1,4 +1,5 @@
 # 此例意在说明 Fileter 算子的使用
+import logging
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.filter_function import FilterFunction
@@ -27,7 +28,7 @@ class UpperCaseMap(MapFunction):
 
 class PrintSink(SinkFunction):
     def execute(self, data):
-        print(data)
+        logging.info(data)
 
 
 # 过滤器示例，过滤所有偶数结尾的数据
@@ -45,7 +46,7 @@ def main():
     env.from_batch(HelloBatch).map(UpperCaseMap).filter(Oddpicker).sink(PrintSink)
 
     env.submit(autostop=True)
-    print("Hello Filter World 示例结束")
+    logging.info("Hello Filter World 示例结束")
 
 
 if __name__ == "__main__":

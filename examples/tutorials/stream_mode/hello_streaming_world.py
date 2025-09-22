@@ -1,3 +1,4 @@
+import logging
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.function.sink_function import SinkFunction
@@ -23,7 +24,7 @@ class UpperCaseMap(MapFunction):
 
 class PrintSink(SinkFunction):
     def execute(self, data):
-        print(data)
+        logging.info(data)
 
 
 def main():
@@ -33,7 +34,7 @@ def main():
     env.from_source(HelloStreaming).map(UpperCaseMap).sink(PrintSink)
 
     try:
-        print("Waiting for streaming processing to complete...")
+        logging.info("Waiting for streaming processing to complete...")
         env.submit()
 
         # 暂停主程序，因为在LocalEnvironment下，流式处理是异步的
@@ -42,9 +43,9 @@ def main():
         sleep(1)
 
     except KeyboardInterrupt:
-        print("停止运行")
+        logging.info("停止运行")
     finally:
-        print("Hello Streaming World 流式处理示例结束")
+        logging.info("Hello Streaming World 流式处理示例结束")
 
 
 if __name__ == "__main__":

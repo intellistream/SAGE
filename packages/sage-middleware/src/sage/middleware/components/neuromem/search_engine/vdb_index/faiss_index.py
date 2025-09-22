@@ -713,12 +713,12 @@ if __name__ == "__main__":
         )
         status = "通过" if ids_pass and dists_pass else "不通过"
         color = "green" if status == "通过" else "red"
-        print(f"【{desc}】")
-        print(f"预期IDs：{expected_ids}")
-        print(f"实际IDs：{actual_ids}")
-        print(f"预期距离：{expected_dists}")
-        print(f"实际距离：{[round(x, digits) for x in actual_dists]}")
-        print(f"测试情况：{colored(status, color)}\n")
+        logging.info(f"【{desc}】")
+        logging.info(f"预期IDs：{expected_ids}")
+        logging.info(f"实际IDs：{actual_ids}")
+        logging.info(f"预期距离：{expected_dists}")
+        logging.info(f"实际距离：{[round(x, digits) for x in actual_dists]}")
+        logging.info(f"测试情况：{colored(status, color)}\n")
 
     # ==== 基础数据 ====
     dim = 4
@@ -747,7 +747,7 @@ if __name__ == "__main__":
     for vector, vector_id in zip(vectors, ids):
         result = index.insert(vector, vector_id)
         if result != 1:
-            print(f"初始插入失败: {vector_id}")
+            logging.info(f"初始插入失败: {vector_id}")
 
     # 1. 检索
     q1 = np.array([1.0, 0.0, 0.0, 0.0])
@@ -756,7 +756,7 @@ if __name__ == "__main__":
 
     # 2. 插入新向量
     result = index.insert(np.array([0.0, 0.0, 0.0, 1.0]), "id4")
-    print(f"插入结果: {result} (期望: 1)")
+    logging.info(f"插入结果: {result} (期望: 1)")
     q2 = np.array([0.0, 0.0, 0.0, 1.0])
     r_ids, r_dists = index.search(q2, 4)
     print_test_case(
@@ -765,11 +765,11 @@ if __name__ == "__main__":
 
     # 3. 测试重复向量插入
     result = index.insert(np.array([0.0, 0.0, 0.0, 1.0]), "id5")  # 重复向量
-    print(f"重复向量插入结果: {result} (期望: 0)")
+    logging.info(f"重复向量插入结果: {result} (期望: 0)")
 
     # 4. 更新向量
     result = index.update("id1", np.array([0.5, 0.5, 0.0, 0.0]))
-    print(f"更新结果: {result} (期望: 1)")
+    logging.info(f"更新结果: {result} (期望: 1)")
     q3 = np.array([0.5, 0.5, 0.0, 0.0])
     r_ids, r_dists = index.search(q3, 4)
     print_test_case(
@@ -778,7 +778,7 @@ if __name__ == "__main__":
 
     # 5. 删除向量
     result = index.delete("id2")
-    print(f"删除结果: {result} (期望: 1)")
+    logging.info(f"删除结果: {result} (期望: 1)")
     q4 = np.array([1.0, 0.0, 0.0, 0.0])
     r_ids, r_dists = index.search(q4, 4)
     print_test_case(
@@ -793,7 +793,7 @@ if __name__ == "__main__":
     count = index.batch_insert(
         [np.array([0.1, 0.1, 0.1, 0.1]), np.array([0.2, 0.2, 0.2, 0.2])], ["id5", "id6"]
     )
-    print(f"批量插入结果: {count} (期望: 2)")
+    logging.info(f"批量插入结果: {count} (期望: 2)")
     q5 = np.array([0.1, 0.1, 0.1, 0.1])
     r_ids, r_dists = index.search(q5, 6)
     print_test_case(
@@ -806,24 +806,24 @@ if __name__ == "__main__":
     )
 
     # 8. 测试墓碑阈值重建（删除多个向量触发重建）
-    print(colored("\n--- 测试墓碑阈值重建 ---", "yellow"))
+    logging.info(colored("\n--- 测试墓碑阈值重建 ---", "yellow"))
     index.delete("id3")  # 第二个删除
     index.delete("id4")  # 第三个删除，应该触发重建
 
     # ==== 持久化保存 ====
-    print(colored("\n--- 保存索引到磁盘 ---", "yellow"))
+    logging.info(colored("\n--- 保存索引到磁盘 ---", "yellow"))
     index.store(root_dir)
-    print(colored(f"数据已保存到目录: {root_dir}", "yellow"))
+    logging.info(colored(f"数据已保存到目录: {root_dir}", "yellow"))
 
     # ==== 内存对象清空 ====
     del index
-    print(colored("内存对象已清除。", "yellow"))
+    logging.info(colored("内存对象已清除。", "yellow"))
 
     # ==== 读取并检索 ====
     user_input = input(colored("输入 yes 加载刚才保存的数据: ", "yellow"))
     if user_input.strip().lower() == "yes":
         index2 = FaissIndex.load(index_name, root_dir)
-        print(colored("数据已从磁盘恢复！", "green"))
+        logging.info(colored("数据已从磁盘恢复！", "green"))
 
         # 注意：id3和id4已被删除并保存为墓碑，所以恢复后不会出现在结果中
         r_ids, r_dists = index2.search(np.array([0.1, 0.1, 0.1, 0.1]), 5)
@@ -832,15 +832,15 @@ if __name__ == "__main__":
         )
 
         # 验证墓碑状态
-        print(f"当前墓碑数量: {len(index2.tombstones)}")
-        print(f"墓碑内容: {index2.tombstones}")
+        logging.info(f"当前墓碑数量: {len(index2.tombstones)}")
+        logging.info(f"墓碑内容: {index2.tombstones}")
     else:
-        print(colored("跳过加载测试。", "yellow"))
+        logging.info(colored("跳过加载测试。", "yellow"))
 
     # ==== 清除磁盘数据 ====
     user_input = input(colored("输入 yes 删除磁盘所有数据: ", "yellow"))
     if user_input.strip().lower() == "yes":
         shutil.rmtree(root_dir)
-        print(colored("所有数据已删除！", "green"))
+        logging.info(colored("所有数据已删除！", "green"))
     else:
-        print(colored("未执行删除。", "yellow"))
+        logging.info(colored("未执行删除。", "yellow"))

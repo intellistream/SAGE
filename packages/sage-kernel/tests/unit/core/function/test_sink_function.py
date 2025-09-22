@@ -1,4 +1,5 @@
 """
+import logging
 测试SinkFunction的单元测试
 """
 
@@ -42,7 +43,7 @@ class ConsoleSinkFunction(SinkFunction):
     def execute(self, data):
         output = f"[CONSOLE] {data}"
         self.output_history.append(output)
-        print(output)  # 实际的输出操作
+        logging.info(output)  # 实际的输出操作
 
 
 class FileSinkFunction(SinkFunction):

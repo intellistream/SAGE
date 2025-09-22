@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 
@@ -26,13 +27,13 @@ def pipeline_run(config: dict) -> None:
         config (dict): 包含各模块配置的配置字典。
     """
 
-    print("=== 启动基于 ChromaDB 的 RAG 问答系统 ===")
-    print("配置信息:")
-    print(f"  - 源文件: {config['source']['data_path']}")
-    print(f"  - 向量维度: {config['retriever']['dimension']}")
-    print(f"  - Top-K: {config['retriever']['top_k']}")
-    print(f"  - 集合名称: {config['retriever']['chroma']['collection_name']}")
-    print(f"  - 嵌入模型: {config['retriever']['embedding']['method']}")
+    logging.info("=== 启动基于 ChromaDB 的 RAG 问答系统 ===")
+    logging.info("配置信息:")
+    logging.info(f"  - 源文件: {config['source']['data_path']}")
+    logging.info(f"  - 向量维度: {config['retriever']['dimension']}")
+    logging.info(f"  - Top-K: {config['retriever']['top_k']}")
+    logging.info(f"  - 集合名称: {config['retriever']['chroma']['collection_name']}")
+    logging.info(f"  - 嵌入模型: {config['retriever']['embedding']['method']}")
 
     env = LocalEnvironment()
 
@@ -44,10 +45,10 @@ def pipeline_run(config: dict) -> None:
         .sink(TerminalSink, config["sink"])
     )
 
-    print("正在提交并运行管道...")
+    logging.info("正在提交并运行管道...")
     env.submit(autostop=True)
     env.close()
-    print("=== RAG 问答系统运行完成 ===")
+    logging.info("=== RAG 问答系统运行完成 ===")
 
 
 if __name__ == "__main__":
@@ -61,27 +62,27 @@ if __name__ == "__main__":
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        print("🧪 Test mode detected - qa_dense_retrieval_chroma example")
-        print("✅ Test passed: Example structure validated")
+        logging.info("🧪 Test mode detected - qa_dense_retrieval_chroma example")
+        logging.info("✅ Test passed: Example structure validated")
         sys.exit(0)
 
     config_path = "./examples/config/config_qa_chroma.yaml"
     if not os.path.exists(config_path):
-        print(f"配置文件不存在: {config_path}")
-        print("Please create the configuration file first.")
+        logging.info(f"配置文件不存在: {config_path}")
+        logging.info("Please create the configuration file first.")
         sys.exit(1)
 
     config = load_config(config_path)
 
-    print(config)
+    logging.info(config)
 
     # 检查知识库文件（如果配置了）
     knowledge_file = config["retriever"]["chroma"].get("knowledge_file")
     if knowledge_file:
         if not os.path.exists(knowledge_file):
-            print(f"警告：知识库文件不存在: {knowledge_file}")
-            print("请确保知识库文件存在于指定路径")
+            logging.info(f"警告：知识库文件不存在: {knowledge_file}")
+            logging.info("请确保知识库文件存在于指定路径")
         else:
-            print(f"找到知识库文件: {knowledge_file}")
+            logging.info(f"找到知识库文件: {knowledge_file}")
 
     pipeline_run(config)

@@ -1,4 +1,5 @@
 """
+import logging
 SAGE License Core Components
 Shared license management functionality
 """
@@ -75,7 +76,7 @@ class LicenseCore:
             )
 
             if checksum != expected_checksum:
-                print("⚠️  License checksum verification failed")
+                logging.info("⚠️  License checksum verification failed")
                 return None
 
             # Calculate expiration time
@@ -93,7 +94,7 @@ class LicenseCore:
             )
 
         except Exception as e:
-            print(f"⚠️  License parsing error: {e}")
+            logging.info(f"⚠️  License parsing error: {e}")
             return None
 
     def save_config(self, config: Dict[str, Any]) -> None:

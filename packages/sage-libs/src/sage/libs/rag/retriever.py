@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 import os
 import time
@@ -157,7 +158,7 @@ class ChromaRetriever(MapFunction):
         embeddings = []
         for doc in documents:
             embedding = self.embedding_model.embed(doc)
-            # print(embedding)
+            # self.logger.info(embedding)
             embeddings.append(np.array(embedding, dtype=np.float32))
 
         # 使用 ChromaDB 后端添加文档
@@ -448,7 +449,7 @@ class MilvusDenseRetriever(MapFunction):
         embeddings = []
         for doc in documents:
             embedding = self.embedding_model.embed(doc)
-            print(embedding)
+            self.logger.info(embedding)
             embeddings.append(np.array(embedding, dtype=np.float32))
 
         # 使用 milvus 后端添加文档
@@ -543,10 +544,10 @@ class MilvusDenseRetriever(MapFunction):
                 f"Retrieved documents: {retrieved_docs[:3]}..."
             )  # 只显示前3个文档的预览
 
-            print(f"Query: {input_query}")
-            print(f"Configured top_k: {self.top_k}")
-            print(f"Retrieved {len(retrieved_docs)} documents from Milvus")
-            print(retrieved_docs)
+            self.logger.info(f"Query: {input_query}")
+            self.logger.info(f"Configured top_k: {self.top_k}")
+            self.logger.info(f"Retrieved {len(retrieved_docs)} documents from Milvus")
+            self.logger.info(retrieved_docs)
 
             # 保存数据记录（只有enable_profile=True时才保存）
             if self.enable_profile:
@@ -823,10 +824,10 @@ class MilvusSparseRetriever(MapFunction):
                 f"Retrieved documents: {retrieved_docs[:3]}..."
             )  # 只显示前3个文档的预览
 
-            print(f"Query: {input_query}")
-            print(f"Configured top_k: {self.top_k}")
-            print(f"Retrieved {len(retrieved_docs)} documents from Milvus")
-            print(retrieved_docs)
+            self.logger.info(f"Query: {input_query}")
+            self.logger.info(f"Configured top_k: {self.top_k}")
+            self.logger.info(f"Retrieved {len(retrieved_docs)} documents from Milvus")
+            self.logger.info(retrieved_docs)
 
             # 保存数据记录（只有enable_profile=True时才保存）
             if self.enable_profile:

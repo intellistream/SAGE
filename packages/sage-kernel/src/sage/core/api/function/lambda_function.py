@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import inspect
 import logging
 from typing import Any, Callable, Hashable, List, Optional, Tuple, Type
@@ -28,7 +29,7 @@ class LambdaFilterFunction(FilterFunction):
 
     def __init__(self, lambda_func: Callable[[Any], bool], **kwargs):
         self.lambda_func = lambda_func
-        print(
+        self.logger.info(
             f"🔧 LambdaFilterFunction.__init__ called with lambda_func: {lambda_func}"
         )
 
@@ -166,7 +167,7 @@ def wrap_lambda(func: Callable, func_type: str = None) -> Type[BaseFunction]:
     if func_type is None:
         func_type = detect_lambda_type(func)
 
-    print(f"🚀 wrap_lambda called: func={func}, func_type={func_type}")
+    self.logger.info(f"🚀 wrap_lambda called: func={func}, func_type={func_type}")
 
     if func_type == "map":
 
@@ -177,11 +178,11 @@ def wrap_lambda(func: Callable, func_type: str = None) -> Type[BaseFunction]:
         return WrappedMapFunction
 
     elif func_type == "filter":
-        print(f"🎯 Creating WrappedFilterFunction for lambda: {func}")
+        self.logger.info(f"🎯 Creating WrappedFilterFunction for lambda: {func}")
 
         class WrappedFilterFunction(LambdaFilterFunction):
             def __init__(self, *args, **kwargs):
-                print(
+                self.logger.info(
                     f"🔧 WrappedFilterFunction.__init__ called with lambda: {func}, args: {args}, kwargs: {kwargs}"
                 )
                 super().__init__(func, **kwargs)

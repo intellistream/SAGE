@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE CLI Test Runner (pytest-based)
 
 A comprehensive pytest-based test runner for SAGE CLI tools.
@@ -66,7 +67,7 @@ def run_pytest(
     if exitfirst:
         cmd.append("-x")
 
-    print(f"Running: {' '.join(cmd)}")
+    logging.info(f"Running: {' '.join(cmd)}")
     return subprocess.run(cmd).returncode
 
 
@@ -151,7 +152,7 @@ Examples:
         cmd = ["python", "-m", "pytest", "--lf"]
         if args.verbose:
             cmd.append("-v")
-        print(f"Running: {' '.join(cmd)}")
+        logging.info(f"Running: {' '.join(cmd)}")
         return subprocess.run(cmd).returncode
 
     # Run pytest
