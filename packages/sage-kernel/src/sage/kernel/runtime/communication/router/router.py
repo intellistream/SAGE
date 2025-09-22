@@ -91,10 +91,10 @@ class BaseRouter(ABC):
 
     def send(self, packet: "Packet") -> bool:
         """
-        发送数据包，根据其分区信息选择路由策略
+        发送数据包到下游节点
 
         Args:
-            packet: 要发送的packet，可能包含分区信息
+            packet: 要发送的数据包
 
         Returns:
             bool: 是否成功发送

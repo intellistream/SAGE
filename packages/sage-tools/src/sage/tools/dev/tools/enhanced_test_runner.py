@@ -47,10 +47,17 @@ class EnhancedTestRunner:
             self.reports_dir = sage_paths.reports_dir
         except Exception as e:
             print(f"Warning: Failed to setup SAGE environment: {e}")
-            # 回退到本地目录
-            sage_dir = self.project_root / ".sage"
-            self.test_logs_dir = sage_dir / "logs"
-            self.reports_dir = sage_dir / "reports"
+            # 回退到使用统一的路径管理系统（不传递project_root让它自动检测）
+            try:
+                fallback_sage_paths = get_sage_paths()
+                self.test_logs_dir = fallback_sage_paths.logs_dir
+                self.reports_dir = fallback_sage_paths.reports_dir
+            except Exception as fallback_e:
+                print(f"Error: Could not setup fallback SAGE environment: {fallback_e}")
+                # 最后的回退：使用项目根目录的.sage
+                sage_dir = self.project_root / ".sage"
+                self.test_logs_dir = sage_dir / "logs"
+                self.reports_dir = sage_dir / "reports"
 
         # Check if pytest-benchmark is available
         self.has_benchmark = self._check_pytest_benchmark_available()
@@ -541,8 +548,14 @@ class EnhancedTestRunner:
 
             # Only add coverage if enabled
             if self.enable_coverage:
-                # Set coverage data file to .sage directory
-                coverage_dir = self.project_root / ".sage" / "coverage"
+                # Use unified SAGE path management for coverage directory
+                try:
+                    sage_paths = get_sage_paths(str(self.project_root))
+                    coverage_dir = sage_paths.coverage_dir
+                except Exception:
+                    # Fallback to project root .sage directory
+                    coverage_dir = self.project_root / ".sage" / "coverage"
+
                 coverage_dir.mkdir(parents=True, exist_ok=True)
                 coverage_file = coverage_dir / ".coverage"
 

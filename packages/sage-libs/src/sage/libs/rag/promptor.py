@@ -91,15 +91,22 @@ class QAPromptor(MapFunction):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(
-                    self.ctx.env_base_dir, ".sage_states", "promptor_data"
-                )
-            else:
-                # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "promptor_data"
-                )
+            from sage.common.config.output_paths import get_sage_paths
+
+            try:
+                sage_paths = get_sage_paths()
+                self.data_base_path = str(sage_paths.states_dir / "promptor_data")
+            except Exception:
+                # Fallback to current working directory
+                if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+                    self.data_base_path = os.path.join(
+                        self.ctx.env_base_dir, ".sage_states", "promptor_data"
+                    )
+                else:
+                    # 使用默认路径
+                    self.data_base_path = os.path.join(
+                        os.getcwd(), ".sage_states", "promptor_data"
+                    )
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []

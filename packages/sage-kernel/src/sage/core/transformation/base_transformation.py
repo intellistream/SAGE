@@ -33,6 +33,14 @@ class BaseTransformation:
         self.function_kwargs = kwargs
 
         self.basename = name or self.function_class.__name__
+        
+        # 确保basename在环境中是唯一的 - 如果重复，添加后缀
+        existing_names = [t.basename for t in env.pipeline if hasattr(t, 'basename')]
+        original_basename = self.basename
+        counter = 0
+        while self.basename in existing_names:
+            counter += 1
+            self.basename = f"{original_basename}_{counter}"
 
         self.logger = CustomLogger()
 

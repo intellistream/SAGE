@@ -9,16 +9,7 @@ from sage.core.api.function.keyby_function import KeyByFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
-
-
-def find_project_root() -> Path:
-    """查找项目根目录（包含packages目录的目录）"""
-    current_path = Path(__file__).resolve()
-    for parent in current_path.parents:
-        if (parent / "packages").exists() and (parent / "pyproject.toml").exists():
-            return parent
-    # 如果找不到，使用当前文件的相对路径作为fallback
-    return Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+from sage.common.config.output_paths import get_sage_paths
 
 
 class KeyByTestDataSource(SourceFunction):
@@ -63,9 +54,9 @@ class ParallelDebugSink(SinkFunction):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
-        # 创建输出目录 - 使用项目根目录的相对路径
-        project_root = find_project_root()
-        self.output_dir = project_root / "test_logs" / "keyby_results"
+        # 使用统一的 SAGE 路径管理系统
+        sage_paths = get_sage_paths()
+        self.output_dir = sage_paths.test_logs_dir / "keyby_results"
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def execute(self, data: Any):
@@ -97,8 +88,8 @@ class ParallelDebugSink(SinkFunction):
     @classmethod
     def save_results_to_file(cls, test_name: str):
         """将测试结果保存到文件"""
-        project_root = find_project_root()
-        output_dir = project_root / "test_logs" / "keyby_results"
+        sage_paths = get_sage_paths()
+        output_dir = sage_paths.test_logs_dir / "keyby_results"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         timestamp = time.strftime("%Y%m%d_%H%M%S")

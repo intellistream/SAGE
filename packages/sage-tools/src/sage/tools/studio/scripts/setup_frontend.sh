@@ -18,8 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # 前端相关路径
-FRONTEND_DIR="$PROJECT_ROOT/packages/sage-tools/src/sage/tools/frontend"
-STUDIO_DIR="$FRONTEND_DIR/studio"
+STUDIO_DIR=".."
 
 echo -e "${BOLD}${BLUE}🌐 SAGE Frontend Setup${NC}"
 echo -e "${BLUE}=========================${NC}"

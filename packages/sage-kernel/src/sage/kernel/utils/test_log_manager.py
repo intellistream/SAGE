@@ -14,11 +14,16 @@ class TestLogManager:
     """测试日志管理器"""
 
     def __init__(self, project_root: str = None):
+        from sage.common.config.output_paths import get_sage_paths
+
         if project_root is None:
             project_root = os.environ.get("SAGE_HOME", ".")
 
         self.project_root = Path(project_root)
-        self.logs_dir = self.project_root / ".sage" / "logs"
+
+        # Use unified SAGE path management system
+        sage_paths = get_sage_paths(self.project_root)
+        self.logs_dir = sage_paths.logs_dir
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
         # 创建今天的日志目录
