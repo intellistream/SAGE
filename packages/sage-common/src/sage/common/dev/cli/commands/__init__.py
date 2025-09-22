@@ -1,45 +1,37 @@
 """
-CLI Commands package for SAGE Development Toolkit.
-
-This package contains modular command implementations organized by functionality.
-Each command file corresponds to a CLI subcommand.
+SAGE - Streaming-Augmented Generative Execution
 """
 
-from pathlib import Path
-import importlib
-
-
-def get_apps():
-    """自动发现并返回所有命令应用"""
-    commands = {}
-    commands_dir = Path(__file__).parent
+# 动态版本加载
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    from pathlib import Path
     
-    # 自动发现所有命令文件
-    command_files = []
-    for file_path in commands_dir.glob("*.py"):
-        if file_path.name.startswith("_"):  # 跳过私有文件
-            continue
-        if file_path.stem in ["__init__", "common"]:  # 跳过特殊文件
-            continue
-        command_files.append(file_path.stem)
+    # 获取项目根目录
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent.parent.parent.parent
+    version_file = root_dir / "_version.py"
     
-    # 动态导入命令模块
-    for command_name in sorted(command_files):
-        try:
-            module = importlib.import_module(f".{command_name}", package=__name__)
-            
-            if hasattr(module, 'app'):
-                commands[command_name] = module.app
-            elif hasattr(module, 'command') and hasattr(module.command, 'app'):
-                commands[command_name] = module.command.app
-                
-        except ImportError:
-            # 静默跳过无法导入的模块
-            continue
+    # 加载版本信息
+    if version_file.exists():
+        version_globals = {}
+        with open(version_file, 'r', encoding='utf-8') as f:
+            exec(f.read(), version_globals)
+        return {
+            'version': version_globals.get('__version__', '0.1.4'),
+            'author': version_globals.get('__author__', 'SAGE Team'),
+            'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+        }
     
-    return commands
+    # 默认值
+    return {
+        'version': '0.1.4',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-
-__all__ = [
-    'get_apps'
-]
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

@@ -1,6 +1,6 @@
-# SAGE - Intelligent Stream Analytics Gateway Engine
+# SAGE - Streaming-Augmented Generative Execution
 
-SAGE (Intelligent Stream Analytics Gateway Engine) 是一个强大的分布式流数据处理平台的 Meta 包。
+SAGE (Streaming-Augmented Generative Execution) 是一个强大的分布式流数据处理平台的 Meta 包。
 
 ## 简介
 

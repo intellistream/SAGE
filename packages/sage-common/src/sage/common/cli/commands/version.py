@@ -8,13 +8,39 @@ import typer
 
 app = typer.Typer(name="version", help="📋 版本信息")
 
+def _load_version():
+    """加载版本信息"""
+    try:
+        # 尝试从本地包的版本文件加载
+        from sage.common._version import __version__
+        return __version__
+    except ImportError:
+        # 如果本地版本文件不存在，尝试从项目根目录加载（开发环境）
+        try:
+            from pathlib import Path
+            current_file = Path(__file__).resolve()
+            root_dir = current_file.parent.parent.parent.parent.parent.parent.parent  # 向上7层到项目根目录
+            version_file = root_dir / "_version.py"
+            
+            if version_file.exists():
+                version_globals = {}
+                with open(version_file, 'r', encoding='utf-8') as f:
+                    exec(f.read(), version_globals)
+                return version_globals.get('__version__', '0.1.4')
+        except Exception:
+            pass
+    
+    # 最后的默认值
+    return '0.1.4'
+
 @app.command()
 def show():
     """显示版本信息"""
-    print("🚀 SAGE - Streaming-Augmented Generative Execution")
-    print("Version: 0.1.0")
-    print("Author: IntelliStream")
-    print("Repository: https://github.com/intellistream/SAGE")
+    info = _load_version()
+    print(f"🚀 {info['project_name']} - {info['project_full_name']}")
+    print(f"Version: {info['version']}")
+    print(f"Author: {info['author']}")
+    print(f"Repository: {info['repository']}")
     print("")
     print("💡 Tips:")
     print("   sage job list         # 查看作业列表")

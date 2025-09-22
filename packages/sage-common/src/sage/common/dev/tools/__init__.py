@@ -1,27 +1,37 @@
 """
-Tools module for SAGE Development Toolkit.
-
-This module contains all the integrated development tools.
+SAGE - Streaming-Augmented Generative Execution
 """
 
-from .dependency_analyzer import DependencyAnalyzer
-from .enhanced_package_manager import EnhancedPackageManager
-from .class_dependency_checker import ClassDependencyChecker
-from .vscode_path_manager import VSCodePathManager
-from .sage_home_manager import SAGEHomeManager
-from .commercial_package_manager import CommercialPackageManager
-from .test_failure_cache import TestFailureCache
-from .build_artifacts_manager import BuildArtifactsManager
-from .enhanced_test_runner import EnhancedTestRunner
+# 动态版本加载
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    from pathlib import Path
+    
+    # 获取项目根目录
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent.parent.parent
+    version_file = root_dir / "_version.py"
+    
+    # 加载版本信息
+    if version_file.exists():
+        version_globals = {}
+        with open(version_file, 'r', encoding='utf-8') as f:
+            exec(f.read(), version_globals)
+        return {
+            'version': version_globals.get('__version__', '0.1.4'),
+            'author': version_globals.get('__author__', 'SAGE Team'),
+            'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+        }
+    
+    # 默认值
+    return {
+        'version': '0.1.4',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-__all__ = [
-    'DependencyAnalyzer',
-    'EnhancedPackageManager', 
-    'ClassDependencyChecker',
-    'VSCodePathManager',
-    'SAGEHomeManager',
-    'CommercialPackageManager',
-    'TestFailureCache',
-    'BuildArtifactsManager',
-    'EnhancedTestRunner',
-]
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

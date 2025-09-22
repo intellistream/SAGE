@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{package_name}"
+dynamic = ["version", "description"]
+readme = "README.md"
+requires-python = "{python_requires}"
+authors = [
+    {{name = "{author}", email = "{email}"}},
+]
+license = {{text = "MIT"}}
+
+[tool.setuptools.dynamic]
+version = {{attr = "{package_module}.__version__"}}
+description = {{attr = "{package_module}.__doc__"}}
