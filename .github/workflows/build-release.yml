@@ -71,22 +71,39 @@ jobs:
         
     - name: Build C extensions
       run: |
-        cd sage/utils/mmap_queue
-        if [ -f "build.sh" ]; then
-          bash build.sh
-        elif [ -f "Makefile" ]; then
-          make clean && make
-        else
-          echo "No build system found, skipping C extension build"
+        echo "Building SAGE C extensions..."
+        
+        # Build sage_queue (C++ queue implementation)
+        if [ -d "packages/sage-kernel/src/sage/kernel/enterprise/sage_queue" ]; then
+          echo "Building sage_queue..."
+          cd packages/sage-kernel/src/sage/kernel/enterprise/sage_queue
+          if [ -f "build.sh" ]; then
+            bash build.sh
+          elif [ -f "Makefile" ]; then
+            make clean && make
+          else
+            echo "No build system found for sage_queue, skipping"
+          fi
+          cd - > /dev/null
         fi
         
-        # 验证so文件存在
-        if ls *.so 1> /dev/null 2>&1; then
-          echo "C extensions built successfully:"
-          ls -la *.so
-        else
-          echo "Warning: No .so files found after build"
+        # Build sage_db (C++ database implementation)
+        if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_db" ]; then
+          echo "Building sage_db..."
+          cd packages/sage-middleware/src/sage/middleware/components/sage_db
+          if [ -f "build.sh" ]; then
+            bash build.sh
+          elif [ -f "Makefile" ]; then
+            make clean && make
+          else
+            echo "No build system found for sage_db, skipping"
+          fi
+          cd - > /dev/null
         fi
+        
+        # 验证C扩展构建结果
+        echo "Checking for built C extensions..."
+        find packages/ -name "*.so" -type f | head -10 || echo "No .so files found"
         
     - name: Build source wheel
       id: build-source
