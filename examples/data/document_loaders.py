@@ -54,6 +54,29 @@ class DocxLoader:
         return {"content": text, "metadata": {"source": self.filepath, "type": "docx"}}
 
 
+class DocLoader:
+    """
+    仅 Windows 下可用；Linux/Mac 建议用其他工具转成 docx。
+    """
+    def __init__(self, filepath: str):
+        self.filepath = filepath
+
+    def load(self) -> Dict:
+        try:
+            import win32com.client
+        except ImportError:
+            raise ImportError("请先安装 pywin32 (仅 Windows 支持): pip install pywin32")
+        if not os.path.exists(self.filepath):
+            raise FileNotFoundError(f"File not found: {self.filepath}")
+        word = win32com.client.Dispatch("Word.Application")
+        word.Visible = False
+        doc = word.Documents.Open(str(Path(self.filepath).resolve()))
+        text = doc.Content.Text
+        doc.Close()
+        word.Quit()
+        return {"content": text, "metadata": {"source": self.filepath, "type": "doc"}}
+
+
 class MarkdownLoader:
     """
     加载 Markdown 文件，保留原始文本。
@@ -79,6 +102,7 @@ class LoaderFactory:
         ".txt": TextLoader,
         ".pdf": PDFLoader,
         ".docx": DocxLoader,
+        ".doc": DocLoader,
         ".md": MarkdownLoader,
         ".markdown": MarkdownLoader,
     }
@@ -93,7 +117,7 @@ class LoaderFactory:
         return loader.load()
 
 
-"""
+
 # 自动识别并加载
 doc =LoaderFactory.load("examples/data/qa_knowledge_base.txt")
 print(doc["content"])
@@ -107,4 +131,3 @@ print(doc["content"])
 
 doc = LoaderFactory.load("examples/data/qa_knowledge_base.md")
 print(doc["content"])
-"""
