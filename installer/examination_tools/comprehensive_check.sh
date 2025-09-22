@@ -193,54 +193,6 @@ check_gpu_configuration() {
     return 0
 }
 
-# 检查 Node.js 和 npm
-check_nodejs() {
-    output_info "检查 Node.js 和 npm..."
-    
-    local node_found=false
-    local npm_found=false
-    
-    # 检查 Node.js
-    if command -v node &> /dev/null; then
-        local node_version=$(node --version 2>/dev/null)
-        if [ -n "$node_version" ]; then
-            output_check "Node.js 版本: $node_version"
-            node_found=true
-            
-            # 检查版本是否满足要求 (18+)
-            local major_version=$(echo "$node_version" | sed -n 's/v\([0-9]*\).*/\1/p')
-            if [ "$major_version" -lt 18 ]; then
-                output_warning "Node.js 版本过低 (需要 18+)，Studio 可能无法正常工作"
-                output_dim "建议升级到 Node.js 18 或更高版本"
-            fi
-        fi
-    else
-        output_warning "Node.js 未安装"
-        output_dim "Studio 功能需要 Node.js 18+"
-    fi
-    
-    # 检查 npm
-    if command -v npm &> /dev/null; then
-        local npm_version=$(npm --version 2>/dev/null)
-        if [ -n "$npm_version" ]; then
-            output_check "npm 版本: $npm_version"
-            npm_found=true
-        fi
-    else
-        output_warning "npm 未安装"
-        output_dim "Studio 功能需要 npm"
-    fi
-    
-    if [ "$node_found" = false ] || [ "$npm_found" = false ]; then
-        output_warning "Node.js/npm 缺失，Studio 功能将无法使用"
-        output_dim "建议运行以下命令安装:"
-        output_dim "  sudo apt update && sudo apt install -y nodejs npm"
-        return 1
-    fi
-    
-    return 0
-}
-
 # ============================================================================
 # 主要检查函数
 # ============================================================================
@@ -288,8 +240,6 @@ comprehensive_system_check() {
     check_cpu_architecture
     echo ""
     check_gpu_configuration
-    echo ""
-    check_nodejs
     echo ""
     
     # 模式特定检查

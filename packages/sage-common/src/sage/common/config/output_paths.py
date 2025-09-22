@@ -159,6 +159,7 @@ class SageOutputPaths:
             "issues",
             "states",  # For .sage_states data (rag components state)
             "benchmarks",  # For pytest-benchmark results
+            "studio",  # For Angular Studio build outputs
         ]
 
         # Ensure subdirectories exist
@@ -219,6 +220,16 @@ class SageOutputPaths:
     def benchmarks_dir(self) -> Path:
         """Get the benchmarks directory (for pytest-benchmark results)."""
         return self.sage_dir / "benchmarks"
+
+    @property
+    def studio_dir(self) -> Path:
+        """Get the studio directory (for Angular Studio files)."""
+        return self.sage_dir / "studio"
+
+    @property
+    def studio_dist_dir(self) -> Path:
+        """Get the studio dist directory (for Angular Studio build outputs)."""
+        return self.studio_dir / "dist"
 
     def get_test_env_dir(self, test_name: str = "test_env") -> Path:
         """

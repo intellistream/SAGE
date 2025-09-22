@@ -1,27 +1,68 @@
-# Dashboard
+# SAGE Studio
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.0.5.
+SAGE Studio 是一个低代码可视化管道编辑器，提供图形化界面来构建和管理 SAGE 管道。
 
-## Development server
+## 目录结构
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+```
+studio/
+├── frontend/           # Angular 前端应用
+│   ├── src/           # 源代码
+│   ├── angular.json   # Angular 配置
+│   ├── package.json   # NPM 依赖
+│   └── tsconfig.json  # TypeScript 配置
+├── config/            # 配置文件
+│   └── backend/       # 后端配置
+├── data/              # 数据文件
+│   └── operators/     # 操作符定义
+├── docs/              # 文档
+├── tools/             # 构建和部署脚本
+│   ├── scripts/       # Shell 脚本
+│   └── setup_config.py # 配置工具
+├── dist/              # 构建输出（自动生成）
+└── .angular/          # Angular 缓存（自动生成）
+```
 
-## Code scaffolding
+## 使用方法
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+### 安装依赖
+```bash
+sage studio install
+```
 
-## Build
+### 构建应用
+```bash
+sage studio build
+```
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+### 启动开发服务器
+```bash
+sage studio start --dev
+```
 
-## Running unit tests
+### 启动生产服务器
+```bash
+sage studio start
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+### 其他命令
+```bash
+sage studio status    # 查看状态
+sage studio stop      # 停止服务
+sage studio logs      # 查看日志
+sage studio open      # 在浏览器中打开
+```
 
-## Running end-to-end tests
+## 开发说明
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+- 前端源代码位于 `frontend/src/` 目录
+- 构建输出位于 `dist/` 目录
+- 依赖包安装到 `~/.sage/studio/node_modules` 并通过符号链接引用
+- 配置文件存储在 `~/.sage/` 目录下
 
-## Further help
+## 架构
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+- **前端**: Angular 16 + Ng-Zorro UI 组件库
+- **图形库**: D3.js, Cytoscape.js
+- **代码编辑**: Monaco Editor, CodeMirror
+- **数据可视化**: ngx-charts
