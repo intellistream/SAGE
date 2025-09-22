@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from ..action.mcp_registry import MCPRegistry
 from ..planning.llm_planner import LLMPlanner, PlanStep
 from ..profile.profile import BaseProfile
+# from sage.libs.agents.memory import memory_service_adapter
+from sage.core.api.function.map_function import MapFunction
 
 
 def _missing_required(
@@ -17,14 +19,13 @@ def _missing_required(
     return [k for k in req if k not in arguments]
 
 
-class AgentRuntime:
+class AgentRuntime(MapFunction):
     """
     最小可用 Runtime：
     - 输入：user_query
     - 流程：Planner 产出 JSON 计划 -> 逐步执行 -> 可选用 LLM 汇总 -> 返回
     TODO:
-    1.Memory
-    2.Safety
+    1.Safety
     """
 
     def __init__(
@@ -33,11 +34,13 @@ class AgentRuntime:
         planner: LLMPlanner,
         tools: MCPRegistry,
         summarizer=None,
+        # memory: Optional[memory_service_adapter.MemoryServiceAdapter] = None,
         max_steps: int = 6,
     ):
         self.profile = profile
         self.planner = planner
         self.tools = tools
+        # self.memory = memory
         self.summarizer = summarizer  # 复用你的 generator 也行：execute([None, prompt]) -> (None, text)
         self.max_steps = max_steps
 
@@ -123,7 +126,11 @@ class AgentRuntime:
 {observations}
 
 只输出给用户的总结文本。"""
-            _, summary = self.summarizer.execute([None, prompt])
+            messages = [
+        {"role": "system", "content": "你是一个严谨的助理。只输出中文总结，不要额外解释。"},
+        {"role": "user", "content": prompt},
+    ]
+            _, summary = self.summarizer.execute([None, messages])
             return summary.strip()
 
         # 简单模板
@@ -138,3 +145,51 @@ class AgentRuntime:
                     f"#{obs['step']+1} 工具 {obs['tool']} 失败：{obs.get('error')}"
                 )
         return "\n".join(lines)
+
+    def execute(self, data: Any) -> str:
+        """
+        统一入口，支持两种形态：
+        1) str：被视为 user_query
+        2) dict：
+           {
+             "user_query" | "query": str,          # 必填
+             "max_steps": int,                     # 可选：仅本次调用覆写
+             "profile_overrides": { ... }          # 可选：一次性覆写 profile 字段（使用 BaseProfile.merged）
+           }
+        返回：最终给用户的字符串回复
+        """
+        # 形态 1：直接字符串
+        if isinstance(data, str):
+            return self.step(data)
+
+        # 形态 2：字典
+        if isinstance(data, dict):
+            user_query = data.get("user_query") or data.get("query")
+            if not isinstance(user_query, str) or not user_query.strip():
+                raise ValueError("AgentRuntime.execute(dict) 需要提供 'user_query' 或 'query'（非空字符串）。")
+
+            # 临时覆写 max_steps
+            original_max = self.max_steps
+            if "max_steps" in data:
+                ms = data["max_steps"]
+                if not isinstance(ms, int) or ms <= 0:
+                    raise ValueError("'max_steps' 必须是正整数。")
+                self.max_steps = ms
+
+            # 临时覆写 profile（一次性，不污染实例）
+            original_profile = self.profile
+            if "profile_overrides" in data and isinstance(data["profile_overrides"], dict):
+                try:
+                    self.profile = self.profile.merged(**data["profile_overrides"])
+                except Exception as e:
+                    # 失败则回退，不中断主流程
+                    self.profile = original_profile
+
+            try:
+                return self.step(user_query)
+            finally:
+                # 还原
+                self.max_steps = original_max
+                self.profile = original_profile
+
+        raise TypeError("AgentRuntime.execute 仅接受 str 或 dict 两种输入。")
