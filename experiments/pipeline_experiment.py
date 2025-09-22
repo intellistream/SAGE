@@ -8,6 +8,7 @@ from sage.common.utils.config.loader import load_config
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.local_environment import LocalEnvironment
+from sage.common.config.output_paths import get_output_file
 
 
 def load_config(path):
@@ -211,7 +212,8 @@ class Sink(MapFunction):
 
     def __init__(self, config: dict):
         self.config = config
-        self.output_path = config.get("output_path", "experiment_results.json")
+        default_output_path = get_output_file("experiment_results.json", "experiments")
+        self.output_path = config.get("output_path", str(default_output_path))
         self.save_mode = config.get(
             "save_mode", "incremental"
         )  # 'incremental' 或 'final'

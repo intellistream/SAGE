@@ -27,7 +27,7 @@ class SourceTwo(BatchFunction):
 
     def execute(self):
         self.counter += 1
-        if self.counter > 10:
+        if self.counter > 5:
             return None
         return {"msg": f"World! #{self.counter}"}
 
@@ -56,6 +56,7 @@ def main():
     source1.connect(source2).comap(HelloCoMapProcessor).sink(PrintSink)
 
     env.submit(autostop=True)
+
     print("Hello Comap World 示例结束")
 
 

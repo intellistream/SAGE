@@ -5,6 +5,7 @@ from collections import deque
 from typing import Any, List, Tuple
 
 import yaml
+from sage.common.config.output_paths import get_states_file
 from sage.core.api.function.map_function import MapFunction
 from sage.libs.utils.huggingface import HFClient
 from sage.libs.utils.openaiclient import OpenAIClient
@@ -47,16 +48,8 @@ class OpenAIGenerator(MapFunction):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(
-                    self.ctx.env_base_dir, ".sage_states", "generator_data"
-                )
-            else:
-                # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "generator_data"
-                )
-
+            # Use unified output path system
+            self.data_base_path = str(get_states_file("dummy", "generator_data").parent)
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
 

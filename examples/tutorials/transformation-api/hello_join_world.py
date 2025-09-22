@@ -100,11 +100,7 @@ def main():
 
     print("Hello Join World 示例结束")
 
-
 if __name__ == "__main__":
-    # 启用调试日志来查看数据流
-    import logging
-
-    logging.basicConfig(level=logging.DEBUG)
-    # CustomLogger.disable_global_console_debug()
+    
+    CustomLogger.disable_global_console_debug()
     main()

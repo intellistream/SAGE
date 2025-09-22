@@ -2,6 +2,7 @@ import json
 import os
 import time
 
+from sage.common.config.output_paths import get_states_file
 from sage.core.api.function.map_function import MapFunction
 from sage.libs.rag.longrefiner.longrefiner.refiner import LongRefiner
 
@@ -27,16 +28,8 @@ class LongRefinerAdapter(MapFunction):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(
-                    self.ctx.env_base_dir, ".sage_states", "refiner_data"
-                )
-            else:
-                # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "refiner_data"
-                )
-
+            # Use unified output path system
+            self.data_base_path = str(get_states_file("dummy", "refiner_data").parent)
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
 

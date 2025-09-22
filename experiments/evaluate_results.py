@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
+from sage.common.config.output_paths import get_output_file
 
 # ============================================================================
 # 文本标准化模块
@@ -394,9 +395,10 @@ def main():
     if args.output:
         output_path = args.output
     else:
-        # 生成默认输出文件名
+        # 生成默认输出文件名到.sage/experiments目录
         input_path = Path(args.results_file)
-        output_path = input_path.parent / f"evaluation_{input_path.stem}.json"
+        output_filename = f"evaluation_{input_path.stem}.json"
+        output_path = get_output_file(output_filename, "experiments")
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(evaluation_result, f, indent=2, ensure_ascii=False)

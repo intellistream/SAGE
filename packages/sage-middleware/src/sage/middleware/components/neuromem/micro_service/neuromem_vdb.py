@@ -75,15 +75,19 @@ class NeuroMemVDB:
         for collection_name, collection in self.online_register_collection.items():
             try:
                 # 使用batch_insert_data方法插入单条数据（仅存储）
-                collection.batch_insert_data([raw_data], [metadata] if metadata else None)
-                
+                collection.batch_insert_data(
+                    [raw_data], [metadata] if metadata else None
+                )
+
                 # 生成stable_id用于返回
-                import hashlib, json
+                import hashlib
+                import json
+
                 key = raw_data
                 if metadata:
                     key += json.dumps(metadata, sort_keys=True)
                 stable_id = hashlib.sha256(key.encode("utf-8")).hexdigest()
-                
+
                 results[collection_name] = stable_id
                 print(
                     f"成功在collection '{collection_name}' 中插入数据，ID: {stable_id}"
@@ -104,7 +108,9 @@ class NeuroMemVDB:
 
         for collection_name, collection in self.online_register_collection.items():
             try:
-                results = collection.retrieve(raw_data, index_name, topk=topk, with_metadata=True)
+                results = collection.retrieve(
+                    raw_data, index_name, topk=topk, with_metadata=True
+                )
                 print(f"Collection '{collection_name}' 检索结果:")
                 if results:
                     for i, result in enumerate(results, 1):
@@ -141,7 +147,9 @@ class NeuroMemVDB:
                     # 初始化索引，将现有数据插入索引
                     collection.init_index(index_name)
                     results[collection_name] = True
-                    print(f"成功在collection '{collection_name}' 中创建索引 '{index_name}'")
+                    print(
+                        f"成功在collection '{collection_name}' 中创建索引 '{index_name}'"
+                    )
                 else:
                     results[collection_name] = False
                     print(f"在collection '{collection_name}' 创建索引失败")
