@@ -5,13 +5,13 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
-# CI环境或远程部署检测 - 确保非交互模式
+# CI环境或远程部署检测 - 确保非交互模式（静默设置，避免重复输出）
 if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export CONDA_ALWAYS_YES=true  # conda的非交互模式
     # 只在CI环境中注释掉PYTHONNOUSERSITE以提高测试速度，远程部署仍需要设置
     if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        # export PYTHONNOUSERSITE=1  # CI环境中注释掉以提高runner测试速度
-        echo "# CI环境中跳过PYTHONNOUSERSITE设置"
+        # export PYTHONNOUSERSITE=1  # CI环境中注释掉以提高runner测试速度（静默设置）
+        true  # 静默处理，避免重复输出
     else
         export PYTHONNOUSERSITE=1  # 远程部署环境仍需要设置
     fi
