@@ -49,9 +49,9 @@ def _show_installation_guide():
     print("  • CLI 工具:")
     print("    pip install isage-common[basic]")
     print("  • 开发工具:")
-    print("    pip install isage-common[dev]")
+    print("    pip install isage-tools")
     print("  • Web 前端:")
-    print("    pip install isage-common[frontend]")
+    print("    pip install isage-tools")
     print("  • 完整功能:")
     print("    pip install isage-common[full]")
 

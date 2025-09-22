@@ -19,7 +19,7 @@ class CoMapOperator(BaseOperator):
         # 验证函数类型（在运行时初始化后进行）
         self._validate_function()
         self._validated = True
-        
+
         # 跟踪接收到的停止信号
         self.received_stop_signals = set()  # 记录哪些stream已经发送了停止信号
 
@@ -89,7 +89,7 @@ class CoMapOperator(BaseOperator):
     def handle_stop_signal(self, stop_signal_name: str = None, input_index: int = None):
         """
         处理停止信号的传播
-        
+
         CoMap操作需要特殊处理停止信号：
         - 记录哪个stream发送了停止信号
         - 当任意一个输入流停止时，就向下游传播停止信号（因为CoMap通常是竞争处理）
@@ -100,26 +100,27 @@ class CoMapOperator(BaseOperator):
                 self.logger.info(
                     f"CoMapOperator '{self.name}' received stop signal from stream {input_index}"
                 )
-            
+
             # CoMap通常在任意流停止时就停止（不像Join需要等待所有流）
             if len(self.received_stop_signals) >= 1:
                 self.logger.info(
                     f"CoMapOperator '{self.name}' received stop signal, "
                     f"propagating stop signal downstream"
                 )
-                
+
                 # 向下游传播停止信号
                 from sage.core.communication.stop_signal import StopSignal
+
                 stop_signal = StopSignal(self.name)
                 self.router.send_stop_signal(stop_signal)
-                
+
                 # 通知context停止
                 self.ctx.set_stop_signal()
-                
+
         except Exception as e:
             self.logger.error(
-                f"Error in CoMapOperator '{self.name}' handle_stop_signal: {e}", 
-                exc_info=True
+                f"Error in CoMapOperator '{self.name}' handle_stop_signal: {e}",
+                exc_info=True,
             )
 
     def _get_max_supported_index(self) -> int:

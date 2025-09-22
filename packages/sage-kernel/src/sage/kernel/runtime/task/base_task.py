@@ -145,12 +145,12 @@ class BaseTask(ABC):
                         )
 
                         # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
-                        from sage.core.operator.sink_operator import \
-                            SinkOperator
-                        from sage.core.operator.join_operator import \
-                            JoinOperator
                         from sage.core.operator.comap_operator import \
                             CoMapOperator
+                        from sage.core.operator.join_operator import \
+                            JoinOperator
+                        from sage.core.operator.sink_operator import \
+                            SinkOperator
 
                         if isinstance(self.operator, SinkOperator):
                             self.logger.info(
@@ -163,10 +163,10 @@ class BaseTask(ABC):
                             )
                             # 对于Join和CoMap操作，需要传递停止信号的来源信息
                             # 从data_packet中提取input_index信息
-                            input_index = getattr(data_packet, 'input_index', None)
+                            input_index = getattr(data_packet, "input_index", None)
                             self.operator.handle_stop_signal(
                                 stop_signal_name=data_packet.name,
-                                input_index=input_index
+                                input_index=input_index,
                             )
                             # 对于Join和CoMap，不调用ctx.handle_stop_signal，让operator自己决定何时停止
                             # 跳过向下游转发停止信号，让operator自己处理
@@ -181,16 +181,22 @@ class BaseTask(ABC):
 
                         # 停止当前task的worker loop
                         # 但是要特别处理某些操作符
-                        from sage.core.operator.keyby_operator import KeyByOperator
+                        from sage.core.operator.filter_operator import \
+                            FilterOperator
+                        from sage.core.operator.keyby_operator import \
+                            KeyByOperator
                         from sage.core.operator.map_operator import MapOperator
-                        from sage.core.operator.filter_operator import FilterOperator
-                        
+
                         # 对于中间转换操作符，需要额外的逻辑确保它们不会过早停止
-                        if isinstance(self.operator, (KeyByOperator, MapOperator, FilterOperator)):
+                        if isinstance(
+                            self.operator, (KeyByOperator, MapOperator, FilterOperator)
+                        ):
                             # 中间操作符应该在收到足够的停止信号后才停止
                             # 但是由于图构建可能有问题，我们使用更保守的策略
                             # 只有当真正需要停止时才停止（通过 JobManager 强制停止）
-                            self.logger.debug(f"Intermediate operator {self.name} received stop signal but continuing to process")
+                            self.logger.debug(
+                                f"Intermediate operator {self.name} received stop signal but continuing to process"
+                            )
                             # 不要停止 - 让 JobManager 来决定何时强制停止
                         elif should_stop_pipeline:
                             self.ctx.set_stop_signal()

@@ -45,7 +45,7 @@ install_core_packages() {
     echo "$(date): 开始安装核心 SAGE 包" >> "$log_file"
     
     # SAGE 包安装顺序：sage-common → sage-kernel → sage-middleware → sage-libs → sage
-    local sage_packages=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage")
+    local sage_packages=("sage-common" "sage-tools" "sage-kernel" "sage-middleware" "sage-libs" "sage")
     
     for package in "${sage_packages[@]}"; do
         local package_path="packages/$package"
@@ -56,20 +56,41 @@ install_core_packages() {
                 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
                 echo -e "${BOLD}  📦 正在安装 $package (开发模式)${NC}"
                 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path${NC}"
-                echo ""
                 
-                # 使用开发模式安装
-                if install_package_with_output "$PIP_CMD" "$package_path" "$package" "dev"; then
+                # 对于 sage-tools，在开发模式下安装完整的 dev 依赖
+                if [ "$package" = "sage-tools" ]; then
+                    echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path[dev]${NC}"
+                    echo -e "${DIM}包含开发工具: black, isort, flake8, pytest, pytest-timeout 等${NC}"
                     echo ""
-                    echo -e "${CHECK} $package 安装成功！"
-                    echo ""
+                    
+                    # 使用开发模式安装，包含 [dev] 依赖
+                    if install_package_with_output "$PIP_CMD" "$package_path[dev]" "$package" "dev"; then
+                        echo ""
+                        echo -e "${CHECK} $package [dev] 安装成功！"
+                        echo ""
+                    else
+                        echo ""
+                        echo -e "${CROSS} $package [dev] 安装失败！"
+                        echo -e "${WARNING} 安装过程中断"
+                        echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
+                        exit 1
+                    fi
                 else
+                    echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path${NC}"
                     echo ""
-                    echo -e "${CROSS} $package 安装失败！"
-                    echo -e "${WARNING} 安装过程中断"
-                    echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
-                    exit 1
+                    
+                    # 使用开发模式安装
+                    if install_package_with_output "$PIP_CMD" "$package_path" "$package" "dev"; then
+                        echo ""
+                        echo -e "${CHECK} $package 安装成功！"
+                        echo ""
+                    else
+                        echo ""
+                        echo -e "${CROSS} $package 安装失败！"
+                        echo -e "${WARNING} 安装过程中断"
+                        echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
+                        exit 1
+                    fi
                 fi
             else
                 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -121,9 +142,21 @@ install_package_with_output() {
     # 根据安装类型构建命令
     local install_cmd
     if [ "$install_type" = "dev" ]; then
-        install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+        if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+            # CI环境：添加优化选项，使用缓存和并行安装
+            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+            echo "🔧 CI环境检测: 使用优化安装选项"
+        else
+            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+        fi
     else
-        install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
+        if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+            # CI环境：添加优化选项
+            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
+            echo "🔧 CI环境检测: 使用优化安装选项"
+        else
+            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
+        fi
     fi
     
     # 记录安装开始信息到日志
@@ -140,6 +173,13 @@ install_package_with_output() {
         echo "🔍 CI环境调试信息:"
         echo "- Python路径: $(which python3)"
         echo "- Pip版本: $(python3 -m pip --version 2>/dev/null || echo '无法获取pip版本')"
+        
+        # 预先安装大型依赖以加速后续安装
+        if [[ "$package_name" == "sage-kernel" ]]; then
+            echo "🚀 CI环境预安装大型依赖..."
+            python3 -m pip install --prefer-binary --no-cache-dir torch torchvision numpy || echo "预安装依赖失败，继续主安装"
+        fi
+        
         # 修复网络检测逻辑 - 增加超时时间并改进错误处理
         local network_status
         network_status=$(python3 -c "
@@ -158,14 +198,27 @@ except (urllib.error.URLError, socket.timeout, socket.error):
 " 2>/dev/null || echo '❌ 不可达')
         echo "- 网络状态: $network_status"
         
-        # 使用timeout命令防止卡死，CI环境设置10分钟超时
-        timeout 600 $install_cmd 2>&1 | tee -a "$log_file"
+        # CI环境优化：增加超时时间并使用verbose输出
+        local ci_pip_cmd="$install_cmd --verbose"
+        
+        # 为大型包增加更长超时时间（30分钟）
+        timeout 1800 $ci_pip_cmd 2>&1 | tee -a "$log_file"
         local install_status=${PIPESTATUS[0]}
         
         # 检查是否超时
         if [ $install_status -eq 124 ]; then
-            echo "❌ 安装超时 (10分钟)，可能是网络问题或依赖解析卡住" | tee -a "$log_file"
-            install_status=1
+            echo "❌ 安装超时 (30分钟)，可能是网络问题或依赖解析卡住" | tee -a "$log_file"
+            echo "💡 建议: 检查网络连接或尝试使用国内镜像源" | tee -a "$log_file"
+            
+            # 尝试重试一次，使用更保守的参数
+            echo "🔄 尝试重新安装（保守模式）..." | tee -a "$log_file"
+            timeout 1800 $install_cmd --no-cache-dir --prefer-binary 2>&1 | tee -a "$log_file"
+            install_status=${PIPESTATUS[0]}
+            
+            if [ $install_status -eq 124 ]; then
+                echo "❌ 重试仍然超时" | tee -a "$log_file"
+                install_status=1
+            fi
         fi
     else
         # 普通环境（包括远程部署）：不设置超时

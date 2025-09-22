@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
@@ -10,16 +11,17 @@ config = {
     "backend_type": "VDB",
     "description": "rag memory collection",
     "index_config": {
-                "name": "test_index",
-                "embedding_model": "default",
-                "dim": 384,
-                "backend_type": "FAISS",
-                "description": "rag memory index",
-                "index_parameter": {}
-    }
+        "name": "test_index",
+        "embedding_model": "default",
+        "dim": 384,
+        "backend_type": "FAISS",
+        "description": "rag memory index",
+        "index_parameter": {},
+    },
 }
 
-class RAGMemoryManager():
+
+class RAGMemoryManager:
     def __init__(self, config):
         self.init_status = False
         self.logger = CustomLogger()
@@ -43,39 +45,41 @@ class RAGMemoryManager():
 
     def list(self):
         pass
-    
+
     def insert(self, data):
         pass
 
     def retrieve(self, data):
-                
+
         results = self.rag_collection.retrieve(
             raw_data=data,
-            index_name="test_index", 
-            topk=5, 
-            threshold=0.1, 
-            with_metadata=True
+            index_name="test_index",
+            topk=5,
+            threshold=0.1,
+            with_metadata=True,
         )
-    
+
         return results
+
 
 def init_history_memory():
     memory = RAGMemoryManager(config)
 
     if not memory.init_status:
-        base_dir = os.path.dirname(__file__)   
+        base_dir = os.path.dirname(__file__)
         file_path = os.path.join(base_dir, "data/toy_memory.json")
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         texts = [item["text"] for item in data]
         metadatas = [item.get("metadata", {}) for item in data]
-        memory.init(texts, metadatas)   
-    
+        memory.init(texts, metadatas)
+
         memory.store()
         print("RAG memory has been initialized")
     else:
         print("RAG memory has already been initialized")
-    
+
+
 def test_retrieve():
     memory = RAGMemoryManager(config)
     print(memory.retrieve("我刚刚喝了很多奶茶，会不会有问题？"))

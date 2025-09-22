@@ -67,36 +67,38 @@ from .python_queue_descriptor import PythonQueueDescriptor
 from .ray_queue_descriptor import RayQueueDescriptor
 from .rpc_queue_descriptor import RPCQueueDescriptor
 
+
 def resolve_descriptor(data):
     """
     从序列化数据解析出对应的队列描述符实例
-    
+
     Args:
         data: 包含队列描述符信息的字典
-        
+
     Returns:
         对应类型的队列描述符实例
     """
     if isinstance(data, dict):
-        queue_type = data.get('queue_type')
-        if queue_type == 'python':
+        queue_type = data.get("queue_type")
+        if queue_type == "python":
             return PythonQueueDescriptor.from_dict(data)
-        elif queue_type == 'ray_queue':
+        elif queue_type == "ray_queue":
             return RayQueueDescriptor.from_dict(data)
-        elif queue_type == 'rpc_queue':
+        elif queue_type == "rpc_queue":
             return RPCQueueDescriptor.from_dict(data)
         else:
             raise ValueError(f"Unknown queue type: {queue_type}")
     else:
         raise TypeError(f"Expected dict, got {type(data)}")
 
+
 __all__ = [
     "BaseQueueDescriptor",
-    "PythonQueueDescriptor", 
+    "PythonQueueDescriptor",
     "RayQueueDescriptor",
     "RPCQueueDescriptor",
     "resolve_descriptor",
     "__version__",
     "__author__",
-    "__email__"
+    "__email__",
 ]

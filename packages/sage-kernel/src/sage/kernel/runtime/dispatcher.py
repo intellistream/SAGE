@@ -107,18 +107,23 @@ class Dispatcher:
 
         # 查找所有的 JoinOperator
         for task_name, task in self.tasks.items():
-            if (hasattr(task, 'operator') and 
-                hasattr(task.operator, 'handle_stop_signal') and
-                hasattr(task.operator, '__class__') and
-                'JoinOperator' in task.operator.__class__.__name__):
+            if (
+                hasattr(task, "operator")
+                and hasattr(task.operator, "handle_stop_signal")
+                and hasattr(task.operator, "__class__")
+                and "JoinOperator" in task.operator.__class__.__name__
+            ):
                 # 这是一个 JoinOperator，创建一个停止信号并直接发送
                 from sage.core.communication.stop_signal import StopSignal
+
                 stop_signal = StopSignal(source_node_name)
-                
+
                 try:
                     # 直接调用 JoinOperator 的 handle_stop_signal 方法
                     task.operator.handle_stop_signal(stop_signal)
-                    self.logger.info(f"Notified JoinOperator {task_name} about source {source_node_name} stopping")
+                    self.logger.info(
+                        f"Notified JoinOperator {task_name} about source {source_node_name} stopping"
+                    )
                 except Exception as e:
                     self.logger.error(f"Failed to notify JoinOperator {task_name}: {e}")
 

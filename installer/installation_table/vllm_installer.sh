@@ -34,13 +34,42 @@ install_vllm_packages() {
         echo "警告: 未检测到 conda 环境" >> "$log_file"
     fi
     
-    # 简单检测 vLLM 是否已安装
+    # 检测并安装 vLLM
     if command -v vllm >/dev/null 2>&1; then
         echo -e "${CHECK} VLLM 已安装"
         echo "VLLM 已安装" >> "$log_file"
     else
-        echo -e "${INFO} VLLM 未安装，将在首次使用时自动安装"
-        echo "VLLM 未安装，将在首次使用时自动安装" >> "$log_file"
+        echo -e "${INFO} 正在安装 VLLM..."
+        echo "$(date): 开始安装 VLLM" >> "$log_file"
+        
+        # 直接使用 pip 安装 VLLM，因为：
+        # 1. conda-forge 的版本通常较旧（0.9.2 vs 最新的 0.10.1.1）
+        # 2. pip 版本更新更及时
+        # 3. 避免复杂的依赖冲突
+        
+        if [[ "$CONDA_DEFAULT_ENV" != "" ]] && [[ "$CONDA_DEFAULT_ENV" != "base" ]]; then
+            echo -e "${INFO} 在 conda 环境 '$CONDA_DEFAULT_ENV' 中使用 pip 安装 VLLM..."
+            echo "$(date): 在 conda 环境中使用 pip 安装" >> "$log_file"
+            
+            if conda run -n "$CONDA_DEFAULT_ENV" pip install vllm >> "$log_file" 2>&1; then
+                echo -e "${CHECK} VLLM 安装成功！"
+                echo "$(date): VLLM 安装成功" >> "$log_file"
+            else
+                echo -e "${CROSS} VLLM 安装失败，将在首次使用时重试"
+                echo "$(date): VLLM 安装失败，将延迟安装" >> "$log_file"
+            fi
+        else
+            echo -e "${INFO} 在系统环境中使用 pip 安装 VLLM..."
+            echo "$(date): 在系统环境中使用 pip 安装" >> "$log_file"
+            
+            if pip install vllm >> "$log_file" 2>&1; then
+                echo -e "${CHECK} VLLM 安装成功！"
+                echo "$(date): VLLM 安装成功" >> "$log_file"
+            else
+                echo -e "${CROSS} VLLM 安装失败，将在首次使用时重试"
+                echo "$(date): VLLM 安装失败，将延迟安装" >> "$log_file"
+            fi
+        fi
     fi
     
     echo -e "${CHECK} VLLM 环境准备完成！"
@@ -59,6 +88,7 @@ show_vllm_usage_tips() {
     echo -e "${BOLD}启动本地 VLLM 服务：${NC}"
     echo -e "  ${GREEN}./tools/vllm/vllm_local_serve.sh${NC}                    # 使用默认模型 (DialoGPT-small)"
     echo -e "  ${GREEN}./tools/vllm/vllm_local_serve.sh <model_name>${NC}       # 使用指定模型"
+    echo -e "  ${GREEN}./tools/vllm/vllm_local_serve.sh --yes${NC}              # 自动确认，无需交互"
     echo ""
     echo -e "${BOLD}推荐模型（按大小排序）：${NC}"
     echo -e "  ${YELLOW}microsoft/DialoGPT-small${NC}       # 轻量模型 (~500MB)  - 适合测试"
@@ -67,10 +97,10 @@ show_vllm_usage_tips() {
     echo -e "  ${YELLOW}meta-llama/Llama-2-7b-chat-hf${NC} # 专业模型 (~14GB)  - 生产环境"
     echo ""
     echo -e "${BOLD}特性：${NC}"
-    echo -e "  ${DIM}• 自动检测和安装 VLLM（首次使用时）${NC}"
+    echo -e "  ${DIM}• 自动检测和安装 VLLM（如需要）${NC}"
     echo -e "  ${DIM}• 智能网络检测（自动设置 HuggingFace 镜像）${NC}"
     echo -e "  ${DIM}• 模型缓存管理（避免重复下载）${NC}"
-    echo -e "  ${DIM}• 友好的用户交互提示${NC}"
+    echo -e "  ${DIM}• 支持交互式和自动确认模式${NC}"
     echo ""
     echo -e "${DIM}更多信息请查看: tools/README_vllm_local_serve.md${NC}"
 }
@@ -82,9 +112,11 @@ verify_vllm_installation() {
     if command -v vllm >/dev/null 2>&1; then
         local vllm_version=$(vllm --version 2>/dev/null || echo "未知版本")
         echo -e "${CHECK} VLLM 已安装: $vllm_version"
+        echo -e "${INFO} 可以运行 ./tools/vllm/vllm_local_serve.sh 启动服务"
         return 0
     else
         echo -e "${INFO} VLLM 尚未安装，将在首次使用 vllm_local_serve.sh 时自动安装"
+        echo -e "${DIM}提示: 运行 ./tools/vllm/vllm_local_serve.sh 将自动安装并启动 VLLM 服务${NC}"
         return 0  # 这不算错误，因为会在首次使用时安装
     fi
 }

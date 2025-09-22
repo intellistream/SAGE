@@ -55,17 +55,18 @@ class NeuroMemVDB:
                 print(
                     f"警告: Collection '{collection_name}' 不存在且未提供config，使用默认参数创建"
                 )
-                collection = self.manager.create_collection(
-                    name=collection_name,
-                    backend_type="VDB",
-                    description=f"Default VDB collection: {collection_name}",
-                )
+                default_config = {
+                    "name": collection_name,
+                    "backend_type": "VDB",
+                    "description": f"Default VDB collection: {collection_name}",
+                }
+                collection = self.manager.create_collection(default_config)
                 if collection:
                     self.online_register_collection[collection_name] = collection
                     print(f"成功创建默认collection: {collection_name}")
 
     def insert(self, raw_data: Any, metadata: Optional[Dict[str, Any]] = None):
-        # 该方法在所有 online_register_collection 均插入数据
+        # 该方法在所有 online_register_collection 均插入数据（仅存储，不创建索引）
         if not self.online_register_collection:
             print("警告: 没有注册的collection，无法插入数据")
             return
@@ -73,7 +74,16 @@ class NeuroMemVDB:
         results = {}
         for collection_name, collection in self.online_register_collection.items():
             try:
-                stable_id = collection.insert(raw_data, metadata)
+                # 使用batch_insert_data方法插入单条数据（仅存储）
+                collection.batch_insert_data([raw_data], [metadata] if metadata else None)
+                
+                # 生成stable_id用于返回
+                import hashlib, json
+                key = raw_data
+                if metadata:
+                    key += json.dumps(metadata, sort_keys=True)
+                stable_id = hashlib.sha256(key.encode("utf-8")).hexdigest()
+                
                 results[collection_name] = stable_id
                 print(
                     f"成功在collection '{collection_name}' 中插入数据，ID: {stable_id}"
@@ -83,7 +93,7 @@ class NeuroMemVDB:
                 results[collection_name] = None
         return results
 
-    def retrieve(self, raw_data: Any, topk: int = 5):
+    def retrieve(self, raw_data: Any, topk: int = 5, index_name: str = "global_index"):
         # 测试类型的retrieve方法，不返回任何值，直接print出检索结果
         if not self.online_register_collection:
             print("警告: 没有注册的collection，无法检索数据")
@@ -94,7 +104,7 @@ class NeuroMemVDB:
 
         for collection_name, collection in self.online_register_collection.items():
             try:
-                results = collection.retrieve(raw_data, topk=topk, with_metadata=True)
+                results = collection.retrieve(raw_data, index_name, topk=topk, with_metadata=True)
                 print(f"Collection '{collection_name}' 检索结果:")
                 if results:
                     for i, result in enumerate(results, 1):
@@ -119,9 +129,22 @@ class NeuroMemVDB:
         results = {}
         for collection_name, collection in self.online_register_collection.items():
             try:
-                collection.create_index(index_name, description=description)
-                results[collection_name] = True
-                print(f"成功在collection '{collection_name}' 中创建索引 '{index_name}'")
+                index_config = {
+                    "name": index_name,
+                    "description": description,
+                    "embedding_model": "default",  # 使用默认嵌入模型
+                    "dim": 384,  # 对应默认模型的维度
+                    "backend_type": "FAISS",  # 默认后端
+                }
+                success = collection.create_index(index_config)
+                if success:
+                    # 初始化索引，将现有数据插入索引
+                    collection.init_index(index_name)
+                    results[collection_name] = True
+                    print(f"成功在collection '{collection_name}' 中创建索引 '{index_name}'")
+                else:
+                    results[collection_name] = False
+                    print(f"在collection '{collection_name}' 创建索引失败")
             except Exception as e:
                 print(f"在collection '{collection_name}' 创建索引失败: {str(e)}")
                 results[collection_name] = False

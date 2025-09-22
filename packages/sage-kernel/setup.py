@@ -20,7 +20,9 @@ class BuildCExtensions(build_ext):
 
     def run(self):
         """编译C扩展"""
-        # sage_queue has been removed
+        # sage_queue 已被移除，这里暂时不需要编译任何C扩展
+        print("🔧 检查C扩展...")
+        print("ℹ️  当前版本暂无需要编译的C扩展")
         super().run()
 
 
