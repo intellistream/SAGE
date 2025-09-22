@@ -1,7 +1,7 @@
 import os
 import sys
-import yaml
 
+import yaml
 from sage.common.utils.config.loader import load_config
 from sage.libs.rag.chunk import CharacterSplitter
 from sage.libs.rag.document_loaders import LoaderFactory
@@ -67,10 +67,6 @@ def load_knowledge_to_milvus(config):
         print(f"检索结果: {results}")
     else:
         print("⚠ 没有有效的知识文件，未写入任何数据")
-
-
-
-
 
     print("=== 完成 ===")
     return True

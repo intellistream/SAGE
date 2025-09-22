@@ -12,6 +12,9 @@ INSTALL_VLLM=false
 AUTO_CONFIRM=false
 SHOW_HELP=false
 CLEAN_PIP_CACHE=true
+RUN_DOCTOR=false
+DOCTOR_ONLY=false
+FIX_ENVIRONMENT=false
 
 # 检测当前Python环境
 detect_current_environment() {
@@ -73,9 +76,9 @@ show_installation_menu() {
     # 选择安装模式
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
-        echo -e "  ${GREEN}1)${NC} 标准安装    - SAGE核心包 + 科学计算库"
-        echo -e "  ${GRAY}2)${NC} 最小安装    - 仅SAGE核心包"
-        echo -e "  ${YELLOW}3)${NC} 开发者安装  - 标准安装 + 开发工具 ${DIM}(推荐)${NC}"
+        echo -e "  ${GREEN}1)${NC} 标准安装    - common + kernel + middleware + libs + 数据科学库"
+        echo -e "  ${GRAY}2)${NC} 最小安装    - common + kernel (仅核心功能)"
+        echo -e "  ${YELLOW}3)${NC} 开发者安装  - 标准安装 + tools + 开发工具 ${DIM}(推荐)${NC}"
         echo ""
         read -p "请选择安装模式 [1-3，默认3]: " mode_choice
         
@@ -165,9 +168,10 @@ show_installation_menu() {
     
     # 选择是否安装 VLLM
     echo -e "${BOLD}3. AI 模型支持：${NC}"
-    echo -e "  是否安装 VLLM 环境？${DIM}(用于本地大语言模型推理)${NC}"
+    echo -e "  是否配置 VLLM 运行环境？${DIM}(用于本地大语言模型推理，配置系统依赖)${NC}"
+    echo -e "  ${DIM}注意: VLLM Python包已包含在标准/开发者安装中${NC}"
     echo ""
-    read -p "安装 VLLM 环境？[y/N]: " vllm_choice
+    read -p "配置 VLLM 环境？[y/N]: " vllm_choice
     
     if [[ $vllm_choice =~ ^[Yy]$ ]]; then
         INSTALL_VLLM=true
@@ -191,17 +195,17 @@ show_parameter_help() {
     echo -e "${BLUE}📦 安装模式 (默认: 开发者模式)：${NC}"
     echo ""
     echo -e "  ${BOLD}--standard, --s, -standard, -s${NC}               ${GREEN}标准安装${NC}"
-    echo -e "    ${DIM}包含: SAGE核心包 + 科学计算库 (numpy, pandas, jupyter)${NC}"
+    echo -e "    ${DIM}包含: common + kernel + middleware + libs + 数据科学库${NC}"
     echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
     echo -e "    ${DIM}适合: 数据科学、研究、学习${NC}"
     echo ""
     echo -e "  ${BOLD}--mini, --minimal, --m, -mini, -minimal, -m${NC}  ${GRAY}最小安装${NC}"
-    echo -e "    ${DIM}包含: SAGE核心包 (sage-common, sage-kernel, sage-middleware, sage-libs, sage)${NC}"
+    echo -e "    ${DIM}包含: common + kernel (仅核心功能)${NC}"
     echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
     echo -e "    ${DIM}适合: 容器部署、只需要SAGE核心功能的场景${NC}"
     echo ""
     echo -e "  ${BOLD}--dev, --d, -dev, -d${NC}                         ${YELLOW}开发者安装 (默认)${NC}"
-    echo -e "    ${DIM}包含: 标准安装 + 开发工具 (pytest, black, mypy, pre-commit)${NC}"
+    echo -e "    ${DIM}包含: 标准安装 + tools + 开发工具 (pytest, black, mypy, pre-commit)${NC}"
     echo -e "    ${DIM}安装方式: 开发模式安装 (pip install -e)${NC}"
     echo -e "    ${DIM}适合: 为SAGE项目贡献代码的开发者${NC}"
     echo ""
@@ -216,9 +220,10 @@ show_parameter_help() {
     
     echo -e "${BLUE}🤖 AI 模型支持：${NC}"
     echo ""
-    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}安装并配置 VLLM 环境${NC}"
-    echo -e "    ${DIM}自动安装 VLLM 包和配置启动脚本${NC}"
-    echo -e "    ${DIM}如果安装失败，VLLM 将在首次使用时重试安装${NC}"
+    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}配置 VLLM 运行环境${NC}"
+    echo -e "    ${DIM}与其他模式组合使用，例如: --dev --vllm${NC}"
+    echo -e "    ${DIM}配置 CUDA、系统依赖和启动脚本${NC}"
+    echo -e "    ${DIM}注意: Python包已包含在标准安装中${NC}"
     echo -e "    ${DIM}包含使用指南和推荐模型信息${NC}"
     echo ""
     
@@ -226,6 +231,18 @@ show_parameter_help() {
     echo ""
     echo -e "  ${BOLD}--yes, --y, -yes, -y${NC}                        ${CYAN}跳过确认提示${NC}"
     echo -e "    ${DIM}自动确认所有安装选项，适合自动化脚本${NC}"
+    echo ""
+    echo -e "  ${BOLD}--doctor, --diagnose, --check-env${NC}           ${GREEN}环境诊断${NC}"
+    echo -e "    ${DIM}全面检查 Python 环境、包管理器、依赖等问题${NC}"
+    echo -e "    ${DIM}识别并报告常见的环境配置问题${NC}"
+    echo ""
+    echo -e "  ${BOLD}--doctor-fix, --diagnose-fix, --fix-env${NC}     ${YELLOW}诊断并修复${NC}"
+    echo -e "    ${DIM}在诊断的基础上自动修复检测到的问题${NC}"
+    echo -e "    ${DIM}安全的自动修复常见环境冲突${NC}"
+    echo ""
+    echo -e "  ${BOLD}--pre-check, --env-check${NC}                    ${BLUE}安装前检查${NC}"
+    echo -e "    ${DIM}在正常安装前进行环境预检查${NC}"
+    echo -e "    ${DIM}与其他安装选项结合使用${NC}"
     echo ""
     echo -e "  ${BOLD}--no-cache-clean, --skip-cache-clean${NC}        ${YELLOW}跳过 pip 缓存清理${NC}"
     echo -e "    ${DIM}默认安装前会清理 pip 缓存，此选项可跳过${NC}"
@@ -237,6 +254,7 @@ show_parameter_help() {
     echo -e "  ./quickstart.sh --dev                            ${DIM}# 开发者安装 + 智能环境选择${NC}"
     echo -e "  ./quickstart.sh --standard --conda               ${DIM}# 标准安装 + conda环境${NC}"
     echo -e "  ./quickstart.sh --minimal --pip --yes            ${DIM}# 最小安装 + 当前环境 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --dev --vllm --yes               ${DIM}# 开发者安装 + VLLM支持 + 跳过确认${NC}"
     echo ""
 }
 
@@ -339,6 +357,32 @@ parse_help_option() {
     esac
 }
 
+# 解析环境医生参数
+parse_doctor_option() {
+    local param="$1"
+    case "$param" in
+        "--doctor"|"--diagnose"|"--check-env")
+            RUN_DOCTOR=true
+            DOCTOR_ONLY=true
+            return 0
+            ;;
+        "--doctor-fix"|"--diagnose-fix"|"--fix-env")
+            RUN_DOCTOR=true
+            FIX_ENVIRONMENT=true
+            DOCTOR_ONLY=true
+            return 0
+            ;;
+        "--pre-check"|"--env-check")
+            RUN_DOCTOR=true
+            DOCTOR_ONLY=false
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 主参数解析函数
 parse_arguments() {
     local unknown_params=()
@@ -369,6 +413,9 @@ parse_arguments() {
             shift
         elif parse_cache_option "$param"; then
             # pip 缓存清理参数
+            shift
+        elif parse_doctor_option "$param"; then
+            # 环境医生参数
             shift
         else
             # 未知参数
@@ -525,4 +572,19 @@ get_clean_pip_cache() {
 # 检查是否需要显示帮助
 should_show_help() {
     [ "$SHOW_HELP" = true ]
+}
+
+# 获取是否运行环境医生
+get_run_doctor() {
+    echo "$RUN_DOCTOR"
+}
+
+# 获取是否仅运行医生模式
+get_doctor_only() {
+    echo "$DOCTOR_ONLY"
+}
+
+# 获取是否修复环境
+get_fix_environment() {
+    echo "$FIX_ENVIRONMENT"
 }

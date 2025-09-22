@@ -96,7 +96,7 @@ def status():
 @app.command()
 def logs(
     follow: bool = typer.Option(False, "--follow", "-f", help="跟踪日志"),
-    backend: bool = typer.Option(False, "--backend", "-b", help="查看后端API日志")
+    backend: bool = typer.Option(False, "--backend", "-b", help="查看后端API日志"),
 ):
     """查看 SAGE Studio 日志"""
     console.print("[blue]📋 查看 Studio 日志...[/blue]")

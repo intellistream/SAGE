@@ -117,7 +117,7 @@ center_text_formatted() {
         # 如果启用了偏移，需要调整居中计算
         local prefix_length=${#OUTPUT_PREFIX}
         local width=$(($(get_terminal_width) - prefix_length))
-        local text_len=$(text_length "$text")
+        local text_len=$(display_width "$text")
         
         if [ "$text_len" -ge "$width" ]; then
             format_printf "%b%s%b\n" "$color" "$text" "$NC"

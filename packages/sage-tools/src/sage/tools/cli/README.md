@@ -11,33 +11,38 @@ python sage/cli/setup.py
 
 ### 基本命令
 ```bash
-# 启动系统
-sage deploy start
-
-# 运行作业
-sage job run your_script.py
+# 启动作业管理器
+sage jobmanager start
 
 # 查看作业
 sage job list
-sage job show 1
+sage job show <job_id>
 
-# 停止系统
-sage deploy stop
+# 启动Studio界面
+sage studio start
 ```
 
 ## 📋 主要命令
 
 ### 作业管理 (`sage job`)
 - `list` - 列出所有作业
-- `show <job>` - 显示作业详情  
-- `run <script>` - 运行Python脚本
-- `stop <job>` - 停止作业
+- `show <job_id>` - 显示作业详情  
+- `stop <job_id>` - 停止作业
+- `continue <job_id>` - 继续作业
+- `delete <job_id>` - 删除作业
 - `monitor` - 实时监控所有作业
+- `status <job_id>` - 获取作业状态
 
-### 系统部署 (`sage deploy`)
-- `start` - 启动SAGE系统
-- `stop` - 停止SAGE系统
-- `status` - 显示系统状态
+### 作业管理器服务 (`sage jobmanager`)
+- `start` - 启动JobManager服务
+- `stop` - 停止JobManager服务
+- `status` - 显示JobManager状态
+- `restart` - 重启JobManager服务
+
+### Studio界面 (`sage studio`)
+- `start` - 启动Studio可视化编辑器
+- `stop` - 停止Studio服务
+- `status` - 查看Studio状态
 - `health` - 健康检查
 
 ### 集群管理 (`sage cluster`)
@@ -53,7 +58,7 @@ sage deploy stop
 |--------|--------|
 | `sage-jm list` | `sage job list` |
 | `sage-jm show 1` | `sage job show 1` |
-| `sage-deploy start` | `sage deploy start` |
+| `sage-deploy start` | `sage jobmanager start` |
 
 ## 📖 详细文档
 
@@ -68,8 +73,8 @@ sage deploy stop
 - 故障排除和性能优化
 - 扩展开发和插件系统
 
-# 启动系统
-sage deploy start
+# 启动作业管理器
+sage jobmanager start
 
 # 检查健康状态
 sage job health
@@ -88,8 +93,8 @@ vi ~/.sage/config.yaml
 
 ### 完整工作流程
 ```bash
-# 1. 启动系统
-sage deploy start
+# 1. 启动作业管理器
+sage jobmanager start
 
 # 2. 检查健康状态
 sage job health
@@ -106,8 +111,8 @@ sage job show 1
 # 6. 停止作业（如需要）
 sage job stop 1
 
-# 7. 停止系统
-sage deploy stop
+# 7. 停止作业管理器
+sage jobmanager stop
 ```
 
 ### 批量操作
@@ -115,8 +120,8 @@ sage deploy stop
 # 清理所有作业
 sage job cleanup --force
 
-# 重启系统
-sage deploy restart
+# 重启作业管理器
+sage jobmanager restart
 
 # 批量监控
 sage job monitor --refresh 2
@@ -143,9 +148,9 @@ CLI主入口程序：
 - 作业生命周期控制
 - 批量作业操作
 
-#### `deploy.py`
-部署管理命令：
-- 系统启动和停止
+#### `jobmanager.py`
+作业管理器服务命令：
+- JobManager服务启动和停止
 - 服务健康检查
 - 系统状态监控
 - 配置管理
@@ -178,12 +183,12 @@ CLI主入口程序：
 - 作业优先级和依赖处理
 - 状态同步和通知
 
-#### `deployment_manager.py`
-部署管理器：
-- 部署策略和配置
-- 服务生命周期管理
-- 版本管理和回滚
-- 环境隔离和资源管理
+#### `studio_manager.py`
+Studio界面管理器：
+- Studio服务启动和配置
+- 可视化界面管理
+- 版本管理和更新
+- 界面定制和插件管理
 
 #### `config_manager.py`
 配置管理器：
@@ -211,7 +216,12 @@ sage
 │   ├── stop
 │   ├── monitor
 │   └── ...
-├── deploy       # 系统部署
+├── jobmanager   # 作业管理器服务
+│   ├── start
+│   ├── stop
+│   ├── status
+│   └── ...
+├── studio       # Studio界面
 │   ├── start
 │   ├── stop
 │   ├── status
@@ -233,7 +243,7 @@ CLI Main
     ↓
 Command Router
     ↓
-Specific Manager (Job/Deploy/Cluster)
+Specific Manager (Job/JobManager/Studio/Cluster)
     ↓
 SAGE Core Services
 ```

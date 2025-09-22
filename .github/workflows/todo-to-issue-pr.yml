@@ -3,7 +3,13 @@ name: TODO-to-Issue (PR)
 on:
   workflow_dispatch:  # 允许手动触发
   pull_request:       # 自动触发
-    types: [opened, synchronize, reopened]
+    branches: [main-dev, main]  # 明确指定目标分支
+    types: [opened, reopened]   # 只在PR首次打开和重新打开时运行，避免每次同步都运行
+
+# 并发控制：防止同一PR运行多个TODO转换任务
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   todo_to_issue:

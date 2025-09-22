@@ -42,7 +42,7 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow_examples: marks tests as slow examples tests"
     )
-    
+
     # 设置环境变量以便传递给子进程
     if config.getoption("--use-real-api", default=False):
         os.environ["SAGE_USE_REAL_API"] = "true"

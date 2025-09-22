@@ -60,6 +60,25 @@ env = LocalEnvironment("rag_pipeline")
 env.submit()
 ```
 
+### Try It Now
+
+Run a simple example to get started:
+
+```bash
+# Clone the repository
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
+
+# Install with quickstart (recommended)
+./quickstart.sh --dev --yes
+
+# Run hello world example
+python examples/tutorials/hello_world.py
+
+# Check system status
+sage doctor
+```
+
 ### Why This Matters
 
 **Flexibility**: Modify pipeline structure without touching execution logic. Swap components, add monitoring, or change deployment targets effortlessly.
@@ -91,9 +110,9 @@ Built for real-world deployments with enterprise requirements:
 
 ## Installation
 
-We offer an interactive installer and explicit command flags. Developer (dev) mode is recommended when contributing.
+We offer an interactive installer and explicit command flags. Developer mode is recommended when contributing.
 
-**Clone & Interactive Mode (Recommended)**
+**Clone & Interactive Mode**
 ```bash
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
@@ -102,34 +121,36 @@ cd SAGE
 
 **Common Non-Interactive Modes**
 ```bash
-# Developer installation (editable packages + dev tools: pytest, black, mypy, pre-commit)
+# Developer installation
 ./quickstart.sh --dev --yes
 
-# Minimal core only (no scientific extras)
+# Minimal core only
 ./quickstart.sh --minimal --yes
 
 # Standard + vLLM support
 ./quickstart.sh --standard --vllm --yes
 
-# Use system Python instead of conda (not isolated)
+# Use system Python instead of conda
 ./quickstart.sh --minimal --pip --yes
 
 # View all flags
 ./quickstart.sh --help
 ```
 
-**Quick PyPI Install (Runtime Use Only)**
+**Quick PyPI Install**
 ```bash
-pip install isage
-sage doctor   # Basic environment diagnostics (if CLI installed)
+# Choose your installation mode:
+pip install isage[minimal]   # Core functionality  
+pip install isage[standard]  # Full features
+pip install isage[dev]       # Everything + development tools
 ```
 
-> Note: PyPI install may not include optional components (e.g., vLLM); use quickstart for full capability.
+> Note: PyPI install may not include all system dependencies; use quickstart.sh for complete environment setup.
 
 **Key Installation Features**
 - 🎯 Interactive menu for first-time users
 - 🤖 Optional vLLM integration with `--vllm`
-- 🐍 Supports conda (default) or system Python via `--pip`
+- 🐍 Supports conda or system Python via `--pip`
 - ⚡ Three modes: minimal / standard / dev
 
 ## Environment Configuration

@@ -99,7 +99,7 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
     容错解析：优先直接 loads；失败时尝试截取第一个 '[' 到最后一个 ']' 之间的内容。
     """
     t = _strip_code_fences(text)
-    
+
     # 方法1：直接解析
     try:
         data = json.loads(t)
@@ -119,11 +119,12 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
                 return data
     except Exception:
         pass
-    
+
     # 方法3：尝试使用正则表达式提取 JSON
     try:
         import re
-        json_pattern = r'\[(?:[^[\]]*|\[[^\]]*\])*\]'
+
+        json_pattern = r"\[(?:[^[\]]*|\[[^\]]*\])*\]"
         matches = re.findall(json_pattern, t, re.DOTALL)
         for match in matches:
             try:
@@ -134,7 +135,7 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
                 continue
     except Exception:
         pass
-        
+
     return None
 
 
@@ -238,7 +239,7 @@ class LLMPlanner(MapFunction):
                 [user_query, repair_prompt + "\n\nPrevious output:\n" + out]
             )
             steps = _coerce_json_array(out2)
-            
+
             # 调试信息：记录修复后的输出
             if steps is None:
                 print(f"🐛 Debug: 修复后仍无法解析 JSON。修复输出:\n{out2[:500]}...")

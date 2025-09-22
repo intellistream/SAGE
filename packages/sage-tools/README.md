@@ -118,8 +118,8 @@ sage-frontend
 # Start dashboard  
 sage-dashboard
 
-# Start server with custom config
-sage-server --config my_config.yaml
+# Start Studio with custom config
+sage studio start --config my_config.yaml
 ```
 
 ## Package Structure

@@ -1,0 +1,21 @@
+pipeline:
+  name: "qa_source_interactive_local"
+  description: "Interactive terminal QA pipeline with local LLM"
+  version: "1.0.0"
+
+generator:
+  local:
+    method: "hf"
+    model_name: "microsoft/DialoGPT-medium"
+    seed: 42
+    max_length: 512
+    temperature: 0.7
+
+promptor:
+  platform: "local"
+  template: |
+    User: {user_query}
+    Assistant: 
+
+sink:
+  platform: "local"

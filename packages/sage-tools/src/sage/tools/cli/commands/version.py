@@ -50,10 +50,10 @@ def show():
     print("")
     print("💡 Tips:")
     print("   sage job list         # 查看作业列表")
-    print("   sage deploy start     # 启动SAGE系统")
+    print("   sage studio start     # 启动Studio可视化编辑器")
     print("   sage extensions       # 查看可用扩展")
     print("   sage-dev --help       # 开发工具")
-    print("   sage-server start     # 启动Web界面")
+    print("   sage jobmanager start # 启动作业管理器服务")
 
 
 # 为了向后兼容，也提供一个直接的version命令

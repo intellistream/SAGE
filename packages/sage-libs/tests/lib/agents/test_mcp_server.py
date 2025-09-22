@@ -1,6 +1,7 @@
 # tests/lib/agents/test_mcp_server.py
-import uuid
 import types
+import uuid
+
 import pytest
 
 # 兼容两种导入方式：优先包内路径，找不到则尝试同目录模块
@@ -83,7 +84,12 @@ def test_health_initial(client):
 def test_register_and_describe_and_call_success(client):
     mcp.register_tool(EchoTool())
     # list_tools
-    req = {"jsonrpc": "2.0", "id": uuid.uuid4().hex, "method": "list_tools", "params": {}}
+    req = {
+        "jsonrpc": "2.0",
+        "id": uuid.uuid4().hex,
+        "method": "list_tools",
+        "params": {},
+    }
     r = client.post("/jsonrpc", json=req).json()
     assert r["result"]["echo"]["description"] == "echo tool"
 
@@ -141,7 +147,9 @@ def test_call_tool_internal_exception_wrapped(client):
 def test_register_tool_sets_defaults_for_missing_fields(client):
     class MinimalTool:
         name = "mini"
-        def call(self, arguments): return 1
+
+        def call(self, arguments):
+            return 1
 
     mcp.register_tool(MinimalTool())
     desc = mcp.describe_tools()
@@ -196,24 +204,37 @@ class _MockResp:
 
 def test_mount_remote_mcp_and_proxy_call(monkeypatch, client):
     """模拟远端有工具 sum(a,b)，挂载为本地代理并调用。"""
+
     def fake_post(url, json, timeout):
         method = json["method"]
         if method == "list_tools":
-            return _MockResp({"result": {
-                "sum": {
-                    "description": "add two numbers",
-                    "input_schema": {
-                        "type": "object",
-                        "properties": {"a": {"type": "number"}, "b": {"type": "number"}},
-                        "required": ["a", "b"],
-                    },
+            return _MockResp(
+                {
+                    "result": {
+                        "sum": {
+                            "description": "add two numbers",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "a": {"type": "number"},
+                                    "b": {"type": "number"},
+                                },
+                                "required": ["a", "b"],
+                            },
+                        }
+                    }
                 }
-            }})
+            )
         elif method == "call_tool":
             params = json["params"]
-            return _MockResp({"result": params["arguments"]["a"] + params["arguments"]["b"]})
+            return _MockResp(
+                {"result": params["arguments"]["a"] + params["arguments"]["b"]}
+            )
         else:
-            return _MockResp({"error": {"code": -32601, "message": "method not found"}}, status_code=400)
+            return _MockResp(
+                {"error": {"code": -32601, "message": "method not found"}},
+                status_code=400,
+            )
 
     monkeypatch.setattr(mcp.requests, "post", fake_post)
 
@@ -222,14 +243,21 @@ def test_mount_remote_mcp_and_proxy_call(monkeypatch, client):
         "jsonrpc": "2.0",
         "id": uuid.uuid4().hex,
         "method": "mount_remote_mcp",
-        "params": {"adapter_id": "r1", "base_url": "http://remote:9001", "prefix": "up_"},
+        "params": {
+            "adapter_id": "r1",
+            "base_url": "http://remote:9001",
+            "prefix": "up_",
+        },
     }
     r = client.post("/jsonrpc", json=mount_req).json()
     assert r["result"]["ok"] is True
     assert r["result"]["mounted"] == ["up_sum"]
 
     # list_tools 中应包含 up_sum
-    lst = client.post("/jsonrpc", json={"jsonrpc":"2.0","id":"1","method":"list_tools","params":{}}).json()
+    lst = client.post(
+        "/jsonrpc",
+        json={"jsonrpc": "2.0", "id": "1", "method": "list_tools", "params": {}},
+    ).json()
     assert "up_sum" in lst["result"]
 
     # 通过代理调用
@@ -249,13 +277,18 @@ def test_mount_remote_mcp_and_proxy_call(monkeypatch, client):
 def test_refresh_remote_mcp(monkeypatch, client):
     """首次远端提供 t1；刷新后变为 t2，验证本地代理更新。"""
     state = {"phase": 0}
+
     def fake_post(url, json, timeout):
         method = json["method"]
         if method == "list_tools":
             if state["phase"] == 0:
-                return _MockResp({"result": {"t1": {"description": "tool1", "input_schema": {}}}})
+                return _MockResp(
+                    {"result": {"t1": {"description": "tool1", "input_schema": {}}}}
+                )
             else:
-                return _MockResp({"result": {"t2": {"description": "tool2", "input_schema": {}}}})
+                return _MockResp(
+                    {"result": {"t2": {"description": "tool2", "input_schema": {}}}}
+                )
         elif method == "call_tool":
             return _MockResp({"result": "ok"})
         return _MockResp({"error": {"code": -32601}}, status_code=400)
@@ -263,15 +296,28 @@ def test_refresh_remote_mcp(monkeypatch, client):
     monkeypatch.setattr(mcp.requests, "post", fake_post)
 
     # mount（获得 t1）
-    mreq = {"jsonrpc":"2.0","id":"1","method":"mount_remote_mcp",
-            "params":{"adapter_id":"r1","base_url":"http://remote:9001","prefix":"R_"}}
+    mreq = {
+        "jsonrpc": "2.0",
+        "id": "1",
+        "method": "mount_remote_mcp",
+        "params": {
+            "adapter_id": "r1",
+            "base_url": "http://remote:9001",
+            "prefix": "R_",
+        },
+    }
     mr = client.post("/jsonrpc", json=mreq).json()
     assert mr["result"]["mounted"] == ["R_t1"]
     assert "R_t1" in mcp.TOOLS
 
     # refresh → 变为 t2
     state["phase"] = 1
-    rreq = {"jsonrpc":"2.0","id":"2","method":"refresh_remote_mcp","params":{"adapter_id":"r1","prefix":"R_"}}
+    rreq = {
+        "jsonrpc": "2.0",
+        "id": "2",
+        "method": "refresh_remote_mcp",
+        "params": {"adapter_id": "r1", "prefix": "R_"},
+    }
     rr = client.post("/jsonrpc", json=rreq).json()
     assert rr["result"]["mounted"] == ["R_t2"]
     assert "R_t1" not in mcp.TOOLS
@@ -287,14 +333,23 @@ def test_unmount_remote_mcp(monkeypatch, client):
     monkeypatch.setattr(mcp.requests, "post", fake_post)
 
     # mount
-    mreq = {"jsonrpc":"2.0","id":"1","method":"mount_remote_mcp",
-            "params":{"adapter_id":"rX","base_url":"http://remote:9001","prefix":""}}
+    mreq = {
+        "jsonrpc": "2.0",
+        "id": "1",
+        "method": "mount_remote_mcp",
+        "params": {"adapter_id": "rX", "base_url": "http://remote:9001", "prefix": ""},
+    }
     client.post("/jsonrpc", json=mreq)
     assert "a" in mcp.TOOLS
     assert "rX" in mcp.REMOTE_ADAPTERS
 
     # unmount
-    ureq = {"jsonrpc":"2.0","id":"2","method":"unmount_remote_mcp","params":{"adapter_id":"rX"}}
+    ureq = {
+        "jsonrpc": "2.0",
+        "id": "2",
+        "method": "unmount_remote_mcp",
+        "params": {"adapter_id": "rX"},
+    }
     ur = client.post("/jsonrpc", json=ureq).json()
     assert ur["result"]["ok"] is True
     assert "a" not in mcp.TOOLS

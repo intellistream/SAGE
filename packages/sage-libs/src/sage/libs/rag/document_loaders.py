@@ -4,12 +4,14 @@ SAGE RAG 示例：文本加载工具
 """
 
 import os
-from typing import Dict
 from pathlib import Path
+from typing import Dict
 
 
 class TextLoader:
-    def __init__(self, filepath: str, encoding: str = "utf-8", chunk_separator: str = None):
+    def __init__(
+        self, filepath: str, encoding: str = "utf-8", chunk_separator: str = None
+    ):
         self.filepath = filepath
         self.encoding = encoding
         self.chunk_separator = chunk_separator
@@ -35,7 +37,14 @@ class PDFLoader:
             raise FileNotFoundError(f"File not found: {self.filepath}")
         reader = PdfReader(self.filepath)
         text = "\n".join([page.extract_text() or "" for page in reader.pages])
-        return {"content": text, "metadata": {"source": self.filepath, "type": "pdf", "pages": len(reader.pages)}}
+        return {
+            "content": text,
+            "metadata": {
+                "source": self.filepath,
+                "type": "pdf",
+                "pages": len(reader.pages),
+            },
+        }
 
 
 class DocxLoader:
@@ -58,6 +67,7 @@ class DocLoader:
     """
     仅 Windows 下可用；Linux/Mac 建议用其他工具转成 docx。
     """
+
     def __init__(self, filepath: str):
         self.filepath = filepath
 
@@ -82,6 +92,7 @@ class MarkdownLoader:
     加载 Markdown 文件，保留原始文本。
     （可选：后续可以集成 markdown2 / mistune 转换成纯文本）
     """
+
     def __init__(self, filepath: str, encoding: str = "utf-8"):
         self.filepath = filepath
         self.encoding = encoding
@@ -98,6 +109,7 @@ class LoaderFactory:
     """
     工厂类，根据文件扩展名选择对应的 Loader。
     """
+
     _loader_map = {
         ".txt": TextLoader,
         ".pdf": PDFLoader,
