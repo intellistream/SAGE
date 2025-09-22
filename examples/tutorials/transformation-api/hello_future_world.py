@@ -101,7 +101,7 @@ def main():
     # 7. 把延迟后的结果反馈到 future stream
     delayed.fill_future(feedback_stream)
 
-
+    # 对于循环流，仍然需要手动控制，因为autostop无法处理循环
     env.submit()
 
     from time import sleep

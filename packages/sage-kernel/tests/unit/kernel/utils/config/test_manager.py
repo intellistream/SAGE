@@ -153,7 +153,7 @@ class TestConfigManager:
             with open(config_file, "w") as f:
                 f.write("[app]\nname = 'SAGE'\n")
 
-            with pytest.raises(ImportError, match="需要安装 tomli 库"):
+            with pytest.raises(ImportError, match="需要安装 tomli 库来支持 TOML 格式"):
                 self.manager.load("test.toml")
 
     def test_load_unsupported_format(self):

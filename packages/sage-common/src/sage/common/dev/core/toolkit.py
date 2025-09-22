@@ -514,3 +514,71 @@ class SAGEDevToolkit:
             return runner.list_tests()
         except Exception as e:
             raise SAGEDevToolkitError(f"Test listing failed: {e}") from e
+
+    @staticmethod
+    def get_version_info() -> Dict[str, Any]:
+        """Get SAGE version information from _version.py file."""
+        try:
+            # Find the _version.py file in the project root
+            current_path = Path(__file__)
+            
+            # Navigate up to find the project root (where _version.py is located)
+            project_root = current_path
+            while project_root.parent != project_root:
+                version_file = project_root / "_version.py"
+                if version_file.exists():
+                    break
+                project_root = project_root.parent
+            else:
+                # If not found in the directory tree, try a few common locations
+                possible_roots = [
+                    Path(__file__).parent.parent.parent.parent.parent.parent.parent,  # From packages/sage-common/src/sage/common/dev/core/
+                    Path.cwd(),  # Current working directory
+                ]
+                
+                version_file = None
+                for root in possible_roots:
+                    test_file = root / "_version.py"
+                    if test_file.exists():
+                        version_file = test_file
+                        break
+                
+                if not version_file:
+                    raise FileNotFoundError("Could not find _version.py file")
+            
+            # Execute _version.py to get all variables
+            version_globals = {}
+            with open(version_file, 'r', encoding='utf-8') as f:
+                exec(f.read(), version_globals)
+            
+            # Import sys to get Python version
+            import sys
+            
+            return {
+                'version': version_globals.get('__version__', 'unknown'),
+                'project_name': version_globals.get('__project_name__', 'SAGE'),
+                'project_full_name': version_globals.get('__project_full_name__', 'Streaming-Augmented Generative Execution'),
+                'author': version_globals.get('__author__', 'IntelliStream Team'),
+                'email': version_globals.get('__email__', 'unknown'),
+                'release_date': version_globals.get('__release_date__', 'unknown'),
+                'release_status': version_globals.get('__release_status__', 'development'),
+                'build': f"{version_globals.get('__version__', 'unknown')}-{version_globals.get('__release_status__', 'dev')}",
+                'python_version': f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+                'python_requires': version_globals.get('__python_requires__', '>=3.10'),
+            }
+            
+        except Exception as e:
+            # Return default values if something goes wrong
+            import sys
+            return {
+                'version': 'unknown',
+                'project_name': 'SAGE',
+                'project_full_name': 'Streaming-Augmented Generative Execution',
+                'author': 'IntelliStream Team',
+                'email': 'unknown',
+                'release_date': 'unknown',
+                'release_status': 'development',
+                'build': 'unknown-dev',
+                'python_version': f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+                'python_requires': '>=3.10',
+            }

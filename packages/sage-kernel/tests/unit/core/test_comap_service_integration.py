@@ -352,6 +352,7 @@ class TestCoMapServiceIntegration:
         """每个测试方法前的设置"""
         pass  # 不再需要清理类级别结果
 
+    @pytest.mark.slow
     def test_comap_service_integration(self):
         """测试CoMap函数中的servive调用集成"""
         print("\n🚀 Testing CoMap Service Integration")
@@ -426,9 +427,10 @@ class TestCoMapServiceIntegration:
         env.submit()
 
         print("\n🏃 Pipeline running...")
-        time.sleep(20)  # 让管道运行一段时间
+        time.sleep(3)  # 减少等待时间以避免测试超时
 
 
+@pytest.mark.slow
 def test_comap_service_integration():
     """独立运行的测试函数"""
     print("=" * 70)

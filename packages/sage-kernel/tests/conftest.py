@@ -29,11 +29,11 @@ try:
     import ray
 
     if not ray.is_initialized():
-        # 尝试更宽松的Ray配置
+        # 尝试更宽松的Ray配置 - 使用最小允许内存
         ray.init(
             ignore_reinit_error=True,
             local_mode=True,
-            object_store_memory=50000000,  # 50MB
+            object_store_memory=80000000,  # 80MB (最小允许值)
             num_cpus=1,
         )
 except (ImportError, ValueError, RuntimeError) as e:
