@@ -80,9 +80,7 @@ dependencies = [
     "prompt_toolkit>=3.0.50",
     "filelock>=3.16.1",  # vllm兼容版本
 ]
-
-[project.license]
-text = "MIT"
+license = "MIT"
 
 [project.optional-dependencies]
 # SAGE framework dependencies (for local development)

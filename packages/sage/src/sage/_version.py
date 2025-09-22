@@ -13,7 +13,7 @@ def _get_version():
         search_path = current_file.parent
         for _ in range(10):  # 最多向上查找10层
             root_version_file = search_path / "_version.py"
-            if root_version_file.exists():
+            if root_version_file.exists() and root_version_file != current_file:  # 确保不是自己
                 # 检查是否是项目根目录的版本文件（包含项目信息）
                 try:
                     with open(root_version_file, 'r', encoding='utf-8') as f:

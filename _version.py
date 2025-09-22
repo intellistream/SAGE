@@ -4,8 +4,8 @@ SAGE Version Information
 """
 
 # 项目版本信息
-__version__ = "0.1.3"
-__version_info__ = (0, 1, 3)
+__version__ = "0.1.3.1"
+__version_info__ = (0, 1, 3, 1)
 
 # Python版本要求
 __python_requires__ = ">=3.10"
