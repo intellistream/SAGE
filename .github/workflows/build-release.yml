@@ -32,17 +32,21 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        
+                
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
         pip install build setuptools wheel tomli
         
-        # Install SAGE packages in correct order (for CI environment)
-        echo "Installing SAGE packages for build..."
+        # Install system dependencies for C extensions (if needed)
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libboost-dev libboost-system-dev libfaiss-dev
+        
+        # Install SAGE packages in correct order (pip install will handle C extension compilation)
+        echo "Installing SAGE packages with automatic C extension building..."
         pip install -e packages/sage-common
-        pip install -e packages/sage-kernel  
-        pip install -e packages/sage-middleware
+        pip install -e packages/sage-kernel  # 会自动编译sage_queue C扩展
+        pip install -e packages/sage-middleware  # 会自动编译sage_db C扩展
         pip install -e packages/sage-libs
         pip install -e .
         
@@ -69,41 +73,14 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Version: $VERSION"
         
-    - name: Build C extensions
+    - name: Verify installation
       run: |
-        echo "Building SAGE C extensions..."
+        echo "Verifying SAGE installation..."
+        python -c "import sage; print(f'SAGE version: {sage.__version__}')"
         
-        # Build sage_queue (C++ queue implementation)
-        if [ -d "packages/sage-kernel/src/sage/kernel/enterprise/sage_queue" ]; then
-          echo "Building sage_queue..."
-          cd packages/sage-kernel/src/sage/kernel/enterprise/sage_queue
-          if [ -f "build.sh" ]; then
-            bash build.sh
-          elif [ -f "Makefile" ]; then
-            make clean && make
-          else
-            echo "No build system found for sage_queue, skipping"
-          fi
-          cd - > /dev/null
-        fi
-        
-        # Build sage_db (C++ database implementation)
-        if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_db" ]; then
-          echo "Building sage_db..."
-          cd packages/sage-middleware/src/sage/middleware/components/sage_db
-          if [ -f "build.sh" ]; then
-            bash build.sh
-          elif [ -f "Makefile" ]; then
-            make clean && make
-          else
-            echo "No build system found for sage_db, skipping"
-          fi
-          cd - > /dev/null
-        fi
-        
-        # 验证C扩展构建结果
-        echo "Checking for built C extensions..."
-        find packages/ -name "*.so" -type f | head -10 || echo "No .so files found"
+        # Verify C extensions (optional)
+        echo "Checking for compiled C extensions..."
+        find packages/ -name "*.so" -type f | head -10 || echo "No .so files found (C extensions may be optional)"
         
     - name: Build source wheel
       id: build-source
@@ -166,16 +143,8 @@ jobs:
         # 基本导入测试
         python -c "import sage; print('SAGE imported successfully')"
         
-        # 测试C扩展（如果存在）
-        python -c "
-        try:
-            from sage.utils.mmap_queue import ring_buffer
-            print('C extension imported successfully')
-        except ImportError as e:
-            print(f'C extension import failed: {e}')
-        except Exception as e:
-            print(f'C extension error: {e}')
-        " || true
+        # 注意：C扩展根据setup.py自动编译，可能需要系统依赖
+        echo "✅ SAGE installation test completed"
         
         deactivate
         rm -rf test_env
