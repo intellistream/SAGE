@@ -54,3 +54,19 @@ _info = _load_version()
 __version__ = _info['version']
 __author__ = _info['author']
 __email__ = _info['email']
+
+# 导出核心组件
+try:
+    from .jobmanager.jobmanager_client import JobManagerClient
+except ImportError:
+    # 如果导入失败，使用兼容性层
+    try:
+        from sage.core.api.compatibility import safe_import_jobmanager_client
+        JobManagerClient = safe_import_jobmanager_client()
+    except ImportError:
+        # 最后的备用方案
+        class JobManagerClient:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("JobManagerClient is not available. Please check your installation.")
+
+__all__ = ['__version__', '__author__', '__email__', 'JobManagerClient']

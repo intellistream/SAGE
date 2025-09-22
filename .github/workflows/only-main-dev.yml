@@ -1,11 +1,12 @@
-name: source-branch-guard
+name: branch-guard
 
 on:
   pull_request:
     branches: [ main ]
 
 jobs:
-  enforce-source:
+  check:
+    name: check
     runs-on: ubuntu-latest
     steps:
       - name: Block PRs that are not from main-dev
@@ -15,5 +16,10 @@ jobs:
           echo "PR head: $HEAD_REF"
           if [ "$HEAD_REF" != "main-dev" ]; then
             echo "::error ::Only PRs from 'main-dev' to 'main' are allowed."
+            echo "::error ::Current PR is from: $HEAD_REF"
+            echo "::error ::Please create PR from main-dev branch instead."
             exit 1
+          else
+            echo "✅ PR source branch validation passed: $HEAD_REF"
+            echo "::notice ::Branch protection check successful - PR is from main-dev"
           fi
