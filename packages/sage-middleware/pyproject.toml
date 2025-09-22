@@ -73,8 +73,8 @@ dependencies = [
     "InstructorEmbedding==1.0.1",
     "huggingface-hub>=0.34.0",  # 放宽版本约束
     "peft==0.17.0",
-    "numpy>=1.25.0,<3.0.0",  # 兼容numpy 2.x版本
-    "scipy==1.15.3",
+    "numpy>=2.0.0,<3.0.0",  # 统一numpy版本范围，兼容numpy 2.x
+    "scipy>=1.15.0,<2.0.0",  # 统一scipy版本范围，与其他包兼容
     "fastapi==0.115.12",
     "uvicorn==0.34.3",
     "pydantic",
@@ -161,6 +161,21 @@ llm = [
     "langchain==0.3.18",
     "llama-index==0.11.33",
 ]
+
+# Documentation
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+    # MkDocs 文档系统 (markdown已在核心依赖中)
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.6.0",
+    "jinja2>=2.11.1",
+    "markupsafe>=2.0.1",
+    "click>=7.0",
+    "packaging>=20.5",
+]
+
 full = [
     "isage-middleware[database,messagequeue,monitoring,llm]",
 ]
