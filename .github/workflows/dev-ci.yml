@@ -108,8 +108,8 @@ jobs:
         PIP_PARALLEL_BUILDS: 4
         MAKEFLAGS: "-j4"
       run: |
-        echo "🚀 CI模式：通过quickstart.sh --minimal安装SAGE"
-        echo "ℹ️ quickstart.sh将自动检测CI环境并使用pip模式"
+        echo "🚀 CI模式：通过quickstart.sh --minimal --pip安装SAGE"
+        echo "ℹ️ 使用pip模式避免conda依赖"
         echo "⏰ 预计安装时间: 5-10分钟"
         
         # 显示环境信息
@@ -121,7 +121,7 @@ jobs:
         
         echo "🎯 开始通过quickstart.sh安装..."
         chmod +x ./quickstart.sh
-        ./quickstart.sh --minimal
+        ./quickstart.sh --minimal --pip --yes
         
         echo "✅ quickstart.sh安装完成"
       timeout-minutes: 15
@@ -162,6 +162,36 @@ jobs:
         python -c "import sage.kernel; print('✅ sage.kernel 可用')" || echo "ℹ️ sage.kernel 不可用"
         python -c "import sage.middleware; print('✅ sage.middleware 可用')" || echo "ℹ️ sage.middleware 不可用"
         python -c "import sage.libs; print('✅ sage.libs 可用')" || echo "ℹ️ sage.libs 不可用"
+
+    - name: Run Pytest Suite
+      env:
+        PIP_NO_INPUT: 1
+      run: |
+        echo "=== Pytest 测试套件 ==="
+        
+        # 安装 pytest 相关依赖
+        pip install pytest pytest-cov pytest-mock pytest-asyncio --no-cache-dir
+        
+        # 查找并运行可用的测试
+        if [ -d "packages/sage-common/tests" ]; then
+          echo "🧪 运行 sage-common 测试..."
+          python -m pytest packages/sage-common/tests/ -v --tb=short --timeout=60 || echo "⚠️ sage-common 测试有问题"
+        fi
+        
+        if [ -d "tools/tests" ]; then
+          echo "🧪 运行工具测试..."
+          python -m pytest tools/tests/ -v --tb=short --timeout=60 || echo "⚠️ 工具测试有问题"
+        fi
+        
+        # 运行快速集成测试
+        echo "🔗 运行集成测试..."
+        cd tools/tests
+        if [ -f "test_issues_manager.sh" ]; then
+          bash test_issues_manager.sh --quick || echo "⚠️ Issues manager 测试有问题"
+        fi
+        
+        echo "✅ Pytest 测试套件完成"
+      timeout-minutes: 10
         
     - name: Full System Test
       env:

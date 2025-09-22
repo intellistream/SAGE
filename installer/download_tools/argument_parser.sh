@@ -295,6 +295,15 @@ set_defaults_and_show_tips() {
         AUTO_CONFIRM=true
         echo -e "${INFO} 检测到 CI 环境，自动启用确认模式"
         has_defaults=true
+        
+        # 如果在CI环境中且没有明确指定安装环境，检查conda是否可用
+        if [ -z "$INSTALL_ENVIRONMENT" ]; then
+            if ! command -v conda &> /dev/null; then
+                INSTALL_ENVIRONMENT="pip"
+                echo -e "${INFO} CI环境中未找到conda，自动使用pip模式"
+                has_defaults=true
+            fi
+        fi
     fi
     
     # 设置安装模式默认值

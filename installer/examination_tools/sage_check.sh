@@ -51,11 +51,25 @@ uninstall_sage() {
         done
         
         # 批量卸载所有SAGE相关包
-        echo -e "${DIM}  → 批量卸载所有 SAGE 相关包${NC}"
-        if echo "$all_sage_packages" | xargs $PIP_CMD uninstall -y --quiet 2>/dev/null; then
+        echo -e "${DIM}  → 卸载所有 SAGE 相关包${NC}"
+        
+        # 逐个卸载包，提供更详细的反馈
+        local uninstall_success=true
+        while IFS= read -r package; do
+            if [ -n "$package" ]; then
+                if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
+                    echo -e "${DIM}    ✓ 已卸载 $package${NC}"
+                else
+                    echo -e "${DIM}    ⚠ $package 卸载时有警告（可能不影响功能）${NC}"
+                    uninstall_success=false
+                fi
+            fi
+        done <<< "$all_sage_packages"
+        
+        if [ "$uninstall_success" = true ]; then
             echo -e "${SUCCESS} SAGE 相关包卸载成功${NC}"
         else
-            echo -e "${WARNING} 部分包卸载时出现警告，继续...${NC}"
+            echo -e "${WARNING} 部分包卸载有警告，但已尝试清理所有包${NC}"
         fi
     fi
     
