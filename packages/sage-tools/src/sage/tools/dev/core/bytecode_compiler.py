@@ -58,7 +58,7 @@ class BytecodeCompiler:
         Returns:
             编译后的包路径
         """
-        console.print(f"🔧 编译包: {self.package_path.name}", style="cyan")
+        console.self.logger.info(f"🔧 编译包: {self.package_path.name}", style="cyan")
 
         # 确定输出目录
         if output_dir:
@@ -69,7 +69,7 @@ class BytecodeCompiler:
             sage_home = Path.home() / ".sage"
             self.temp_dir = sage_home / "dist"
             self.temp_dir.mkdir(parents=True, exist_ok=True)
-            console.print(f"📁 使用SAGE home目录: {self.temp_dir}", style="blue")
+            console.self.logger.info(f"📁 使用SAGE home目录: {self.temp_dir}", style="blue")
         else:
             self.temp_dir = Path(
                 tempfile.mkdtemp(prefix=f"sage_bytecode_{self.package_path.name}_")
@@ -77,7 +77,7 @@ class BytecodeCompiler:
 
         # 复制项目结构
         self.compiled_path = self.temp_dir / self.package_path.name
-        console.print(f"📁 复制项目结构到: {self.compiled_path}")
+        console.self.logger.info(f"📁 复制项目结构到: {self.compiled_path}")
         shutil.copytree(self.package_path, self.compiled_path)
 
         # 编译Python文件
@@ -89,7 +89,7 @@ class BytecodeCompiler:
         # 更新pyproject.toml排除源文件
         self._update_pyproject()
 
-        console.print(f"✅ 包编译完成: {self.package_path.name}", style="green")
+        console.self.logger.info(f"✅ 包编译完成: {self.package_path.name}", style="green")
         return self.compiled_path
 
     def _compile_python_files(self):
@@ -100,7 +100,7 @@ class BytecodeCompiler:
         files_to_compile = []
         for py_file in python_files:
             if self._should_skip_file(py_file):
-                console.print(
+                console.self.logger.info(
                     f"  ⏭️ 跳过: {py_file.relative_to(self.compiled_path)}",
                     style="yellow",
                 )
@@ -108,10 +108,10 @@ class BytecodeCompiler:
             files_to_compile.append(py_file)
 
         if not files_to_compile:
-            console.print("  ⚠️ 没有找到需要编译的Python文件", style="yellow")
+            console.self.logger.info("  ⚠️ 没有找到需要编译的Python文件", style="yellow")
             return
 
-        console.print(f"  📝 找到 {len(files_to_compile)} 个Python文件需要编译")
+        console.self.logger.info(f"  📝 找到 {len(files_to_compile)} 个Python文件需要编译")
 
         # 检查和保留二进制扩展文件
         self._preserve_binary_extensions()
@@ -129,27 +129,27 @@ class BytecodeCompiler:
                     pyc_file = py_file.with_suffix(".pyc")
                     py_compile.compile(py_file, pyc_file, doraise=True)
                     compiled_count += 1
-                    progress.console.print(
+                    progress.console.self.logger.info(
                         f"    ✓ 编译: {py_file.relative_to(self.compiled_path)} → {pyc_file.name}",
                         style="green",
                     )
 
                 except py_compile.PyCompileError as e:
                     failed_count += 1
-                    progress.console.print(
+                    progress.console.self.logger.info(
                         f"    ❌ 编译失败: {py_file.relative_to(self.compiled_path)}: {e}",
                         style="red",
                     )
                 except Exception as e:
                     failed_count += 1
-                    progress.console.print(
+                    progress.console.self.logger.info(
                         f"    💥 未知错误: {py_file.relative_to(self.compiled_path)}: {e}",
                         style="red",
                     )
 
                 progress.update(task, advance=1)
 
-        console.print(f"  📊 编译统计: 成功 {compiled_count}, 失败 {failed_count}")
+        console.self.logger.info(f"  📊 编译统计: 成功 {compiled_count}, 失败 {failed_count}")
 
     def _preserve_binary_extensions(self):
         """检查和保留二进制扩展文件"""
@@ -159,16 +159,16 @@ class BytecodeCompiler:
             extensions.extend(self.compiled_path.rglob(ext))
 
         if not extensions:
-            console.print("  ℹ️ 未找到二进制扩展文件", style="blue")
+            console.self.logger.info("  ℹ️ 未找到二进制扩展文件", style="blue")
             return
 
-        console.print(f"  🔧 找到 {len(extensions)} 个二进制扩展文件")
+        console.self.logger.info(f"  🔧 找到 {len(extensions)} 个二进制扩展文件")
 
         # 记录所有扩展文件
         for ext_file in extensions:
             rel_path = ext_file.relative_to(self.compiled_path)
             size_kb = ext_file.stat().st_size / 1024
-            console.print(f"    📦 保留: {rel_path} ({size_kb:.1f} KB)", style="blue")
+            console.self.logger.info(f"    📦 保留: {rel_path} ({size_kb:.1f} KB)", style="blue")
 
         # 确保不会删除这些文件
         self._binary_extensions = extensions
@@ -201,13 +201,13 @@ class BytecodeCompiler:
         removed_count = 0
         kept_count = 0
 
-        console.print("  🗑️ 清理源文件...")
+        console.self.logger.info("  🗑️ 清理源文件...")
 
         for py_file in python_files:
             # 保留必要的文件
             if self._should_keep_source(py_file):
                 kept_count += 1
-                console.print(
+                console.self.logger.info(
                     f"    📌 保留: {py_file.relative_to(self.compiled_path)}",
                     style="blue",
                 )
@@ -218,14 +218,14 @@ class BytecodeCompiler:
             if pyc_file.exists():
                 py_file.unlink()
                 removed_count += 1
-                console.print(
+                console.self.logger.info(
                     f"    🗑️ 删除: {py_file.relative_to(self.compiled_path)}",
                     style="dim",
                 )
             else:
                 # 如果没有编译成功，保留源文件避免包损坏
                 kept_count += 1
-                console.print(
+                console.self.logger.info(
                     f"    ⚠️ 保留(无.pyc): {py_file.relative_to(self.compiled_path)}",
                     style="yellow",
                 )
@@ -235,12 +235,12 @@ class BytecodeCompiler:
             for ext_file in self._binary_extensions:
                 if ext_file.exists():
                     size_kb = ext_file.stat().st_size / 1024
-                    console.print(
+                    console.self.logger.info(
                         f"    ✅ 保留二进制: {ext_file.relative_to(self.compiled_path)} ({size_kb:.1f} KB)",
                         style="green",
                     )
 
-        console.print(f"  📊 清理统计: 删除 {removed_count}, 保留 {kept_count}")
+        console.self.logger.info(f"  📊 清理统计: 删除 {removed_count}, 保留 {kept_count}")
 
     def _should_keep_source(self, py_file: Path) -> bool:
         """判断是否应该保留源文件"""
@@ -257,7 +257,7 @@ class BytecodeCompiler:
         pyproject_file = self.compiled_path / "pyproject.toml"
 
         if not pyproject_file.exists():
-            console.print("  ⚠️ 未找到pyproject.toml文件", style="yellow")
+            console.self.logger.info("  ⚠️ 未找到pyproject.toml文件", style="yellow")
             return
 
         try:
@@ -280,7 +280,7 @@ class BytecodeCompiler:
 where = ["src"]
 """
                 modified = True
-                console.print("  📝 添加packages.find配置", style="green")
+                console.self.logger.info("  📝 添加packages.find配置", style="green")
 
             # 确保include-package-data设置为true
             if not has_include_package_data:
@@ -300,7 +300,7 @@ where = ["src"]
                             )
                             content = content.replace(existing_section, updated_section)
                             modified = True
-                            console.print(
+                            console.self.logger.info(
                                 "  📝 更新include-package-data = true", style="green"
                             )
                 else:
@@ -310,7 +310,7 @@ where = ["src"]
 include-package-data = true
 """
                     modified = True
-                    console.print("  📝 添加include-package-data = true", style="green")
+                    console.self.logger.info("  📝 添加include-package-data = true", style="green")
 
             # 添加package-data配置
             if not has_pyc_package_data:
@@ -333,7 +333,7 @@ include-package-data = true
                             )
                             content = content.replace(existing_data, updated_data)
                             modified = True
-                            console.print(
+                            console.self.logger.info(
                                 "  📝 更新package-data配置包含二进制文件", style="green"
                             )
                 else:
@@ -343,7 +343,7 @@ include-package-data = true
 "*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]
 """
                     modified = True
-                    console.print(
+                    console.self.logger.info(
                         "  📝 添加package-data配置包含二进制文件", style="green"
                     )
 
@@ -359,7 +359,7 @@ recursive-include src *.pyd
 recursive-include src *.dylib
 """
             manifest_file.write_text(manifest_content, encoding="utf-8")
-            console.print("  📝 创建MANIFEST.in文件", style="green")
+            console.self.logger.info("  📝 创建MANIFEST.in文件", style="green")
 
             # 添加setup.py文件确保包含所有文件
             setup_py_file = self.compiled_path / "setup.py"
@@ -374,16 +374,16 @@ setup(
 )
 """
             setup_py_file.write_text(setup_py_content, encoding="utf-8")
-            console.print("  📝 创建setup.py文件", style="green")
+            console.self.logger.info("  📝 创建setup.py文件", style="green")
 
             if modified:
                 pyproject_file.write_text(content, encoding="utf-8")
-                console.print("  ✅ 更新pyproject.toml配置", style="green")
+                console.self.logger.info("  ✅ 更新pyproject.toml配置", style="green")
             else:
-                console.print("  ✓ pyproject.toml配置已满足要求", style="green")
+                console.self.logger.info("  ✓ pyproject.toml配置已满足要求", style="green")
 
         except Exception as e:
-            console.print(f"  ❌ 更新pyproject.toml失败: {e}", style="red")
+            console.self.logger.info(f"  ❌ 更新pyproject.toml失败: {e}", style="red")
 
     def build_wheel(
         self,
@@ -409,7 +409,7 @@ setup(
                 "Package not compiled yet. Call compile_package() first."
             )
 
-        console.print(f"📦 构建wheel包: {target_path.name}", style="cyan")
+        console.self.logger.info(f"📦 构建wheel包: {target_path.name}", style="cyan")
 
         # 保存当前目录
         original_dir = Path.cwd()
@@ -422,14 +422,14 @@ setup(
             for build_dir in ["dist", "build"]:
                 if Path(build_dir).exists():
                     shutil.rmtree(build_dir)
-                    console.print(f"  🧹 清理目录: {build_dir}")
+                    console.self.logger.info(f"  🧹 清理目录: {build_dir}")
 
             # 验证.pyc文件是否存在
             pyc_files = list(Path(".").rglob("*.pyc"))
-            console.print(f"  📊 找到 {len(pyc_files)} 个.pyc文件")
+            console.self.logger.info(f"  📊 找到 {len(pyc_files)} 个.pyc文件")
 
             # 构建wheel
-            console.print("  🔨 构建wheel...")
+            console.self.logger.info("  🔨 构建wheel...")
             result = subprocess.run(
                 [sys.executable, "-m", "build", "--wheel", "--no-isolation"],
                 capture_output=True,
@@ -437,7 +437,7 @@ setup(
             )
 
             if result.returncode == 0:
-                console.print(f"  ✅ 构建成功", style="green")
+                console.self.logger.info(f"  ✅ 构建成功", style="green")
 
                 # 查找构建的wheel文件
                 dist_files = list(Path("dist").glob("*.whl"))
@@ -446,7 +446,7 @@ setup(
 
                 wheel_file = dist_files[0]  # 通常只有一个wheel文件
                 file_size = wheel_file.stat().st_size / 1024  # KB
-                console.print(f"    📄 {wheel_file.name} ({file_size:.2f} KB)")
+                console.self.logger.info(f"    📄 {wheel_file.name} ({file_size:.2f} KB)")
 
                 # 验证wheel内容
                 self._verify_wheel_contents(wheel_file)
@@ -455,7 +455,7 @@ setup(
                 if upload and not dry_run:
                     self._upload_to_pypi()
                 elif upload and dry_run:
-                    console.print("  🔍 预演模式：跳过上传", style="yellow")
+                    console.self.logger.info("  🔍 预演模式：跳过上传", style="yellow")
 
                 # 返回绝对路径
                 return wheel_file.resolve()
@@ -470,7 +470,7 @@ setup(
                 raise SAGEDevToolkitError(error_msg)
 
         except Exception as e:
-            console.print(f"  💥 构建异常: {e}", style="red")
+            console.self.logger.info(f"  💥 构建异常: {e}", style="red")
             raise
 
         finally:
@@ -479,7 +479,7 @@ setup(
 
     def _verify_wheel_contents(self, wheel_file: Path):
         """验证wheel包内容是否包含.pyc文件"""
-        console.print("  🔍 验证wheel包内容...", style="cyan")
+        console.self.logger.info("  🔍 验证wheel包内容...", style="cyan")
 
         try:
             # 创建临时目录解压wheel
@@ -503,51 +503,51 @@ setup(
                 )
                 total_count = len(all_files)
 
-                console.print(f"    📊 文件总数: {total_count}")
-                console.print(f"    📊 .pyc文件: {pyc_count}")
-                console.print(f"    📊 .py文件: {py_count}")
-                console.print(f"    📊 二进制扩展文件: {binary_count}")
+                console.self.logger.info(f"    📊 文件总数: {total_count}")
+                console.self.logger.info(f"    📊 .pyc文件: {pyc_count}")
+                console.self.logger.info(f"    📊 .py文件: {py_count}")
+                console.self.logger.info(f"    📊 二进制扩展文件: {binary_count}")
 
                 # 检查包是否太小
                 if total_count < 10:
-                    console.print(
+                    console.self.logger.info(
                         "    ⚠️ 警告: wheel包文件数量过少，可能打包不完整",
                         style="yellow",
                     )
 
                 if pyc_count == 0 and binary_count == 0:
-                    console.print(
+                    console.self.logger.info(
                         "    ❌ 错误: wheel包中没有.pyc或二进制扩展文件！", style="red"
                     )
-                    console.print("    💡 尝试使用以下步骤修复:")
-                    console.print(
+                    console.self.logger.info("    💡 尝试使用以下步骤修复:")
+                    console.self.logger.info(
                         "       1. 确保pyproject.toml中设置了include-package-data = true"
                     )
-                    console.print(
+                    console.self.logger.info(
                         "       2. 确保pyproject.toml中设置了package-data配置"
                     )
-                    console.print(
+                    console.self.logger.info(
                         "       3. 检查MANIFEST.in文件是否包含了*.pyc和*.so等"
                     )
 
                     # 尝试输出部分文件列表以帮助诊断
-                    console.print("    📁 wheel包内容示例:")
+                    console.self.logger.info("    📁 wheel包内容示例:")
                     for f in all_files[:10]:
-                        console.print(f"       - {f}")
+                        console.self.logger.info(f"       - {f}")
                     if len(all_files) > 10:
-                        console.print(f"       ... 还有 {len(all_files)-10} 个文件")
+                        console.self.logger.info(f"       ... 还有 {len(all_files)-10} 个文件")
                 else:
                     if pyc_count > 0:
-                        console.print("    ✅ wheel包包含.pyc文件", style="green")
+                        console.self.logger.info("    ✅ wheel包包含.pyc文件", style="green")
                     if binary_count > 0:
-                        console.print("    ✅ wheel包包含二进制扩展文件", style="green")
+                        console.self.logger.info("    ✅ wheel包包含二进制扩展文件", style="green")
 
         except Exception as e:
-            console.print(f"    ❌ 验证wheel内容失败: {e}", style="red")
+            console.self.logger.info(f"    ❌ 验证wheel内容失败: {e}", style="red")
 
     def _upload_to_pypi(self) -> bool:
         """上传到PyPI"""
-        console.print("  🚀 上传到PyPI...")
+        console.self.logger.info("  🚀 上传到PyPI...")
 
         try:
             upload_result = subprocess.run(
@@ -555,19 +555,19 @@ setup(
             )
 
             if upload_result.returncode == 0:
-                console.print("  ✅ 上传成功", style="green")
+                console.self.logger.info("  ✅ 上传成功", style="green")
                 return True
             else:
-                console.print(f"  ❌ 上传失败: {upload_result.stderr}", style="red")
+                console.self.logger.info(f"  ❌ 上传失败: {upload_result.stderr}", style="red")
                 return False
 
         except FileNotFoundError:
-            console.print(
+            console.self.logger.info(
                 "  ❌ 未找到twine工具，请先安装: pip install twine", style="red"
             )
             return False
         except Exception as e:
-            console.print(f"  💥 上传异常: {e}", style="red")
+            console.self.logger.info(f"  💥 上传异常: {e}", style="red")
             return False
 
     def cleanup_temp_dir(self):
@@ -575,9 +575,9 @@ setup(
         if self.temp_dir and self.temp_dir.exists():
             try:
                 shutil.rmtree(self.temp_dir)
-                console.print(f"🧹 清理临时目录: {self.temp_dir}", style="dim")
+                console.self.logger.info(f"🧹 清理临时目录: {self.temp_dir}", style="dim")
             except Exception as e:
-                console.print(f"⚠️ 清理临时目录失败: {e}", style="yellow")
+                console.self.logger.info(f"⚠️ 清理临时目录失败: {e}", style="yellow")
 
 
 def compile_multiple_packages(
@@ -606,8 +606,8 @@ def compile_multiple_packages(
     """
     results = {}
 
-    console.print(f"🎯 批量编译 {len(package_paths)} 个包", style="bold cyan")
-    console.print("=" * 60)
+    console.self.logger.info(f"🎯 批量编译 {len(package_paths)} 个包", style="bold cyan")
+    console.self.logger.info("=" * 60)
 
     # 创建SAGE home目录软链接（如果需要）
     sage_home_link = None
@@ -615,7 +615,7 @@ def compile_multiple_packages(
         sage_home_link = _create_sage_home_symlink()
 
     for i, package_path in enumerate(package_paths, 1):
-        console.print(
+        console.self.logger.info(
             f"\n[{i}/{len(package_paths)}] 处理包: {package_path.name}", style="bold"
         )
 
@@ -635,12 +635,12 @@ def compile_multiple_packages(
             # compiler.cleanup_temp_dir()
 
         except Exception as e:
-            console.print(f"❌ 处理包失败 {package_path.name}: {e}", style="red")
+            console.self.logger.info(f"❌ 处理包失败 {package_path.name}: {e}", style="red")
             results[package_path.name] = False
 
     # 显示汇总结果
-    console.print("\n" + "=" * 60)
-    console.print("📊 编译结果汇总:", style="bold")
+    console.self.logger.info("\n" + "=" * 60)
+    console.self.logger.info("📊 编译结果汇总:", style="bold")
 
     success_count = sum(1 for success in results.values() if success)
     total_count = len(results)
@@ -648,13 +648,13 @@ def compile_multiple_packages(
     for package_name, success in results.items():
         status = "✅" if success else "❌"
         style = "green" if success else "red"
-        console.print(f"  {status} {package_name}", style=style)
+        console.self.logger.info(f"  {status} {package_name}", style=style)
 
-    console.print(f"\n🎉 成功: {success_count}/{total_count}", style="bold green")
+    console.self.logger.info(f"\n🎉 成功: {success_count}/{total_count}", style="bold green")
 
     # 显示软链接信息
     if sage_home_link:
-        console.print(f"\n🔗 软链接已创建: {sage_home_link} -> ~/.sage", style="blue")
+        console.self.logger.info(f"\n🔗 软链接已创建: {sage_home_link} -> ~/.sage", style="blue")
 
     return results
 
@@ -678,16 +678,16 @@ def _create_sage_home_symlink() -> Optional[Path]:
             if symlink_path.is_symlink():
                 existing_target = symlink_path.readlink()
                 if existing_target == sage_home:
-                    console.print(f"✓ 软链接已存在: {symlink_path}", style="green")
+                    console.self.logger.info(f"✓ 软链接已存在: {symlink_path}", style="green")
                     return symlink_path
                 else:
-                    console.print(
+                    console.self.logger.info(
                         f"⚠️ 软链接指向错误目标，重新创建: {existing_target} -> {sage_home}",
                         style="yellow",
                     )
                     symlink_path.unlink()
             else:
-                console.print(
+                console.self.logger.info(
                     f"⚠️ 路径已存在且不是软链接: {symlink_path}", style="yellow"
                 )
                 return None
@@ -697,12 +697,12 @@ def _create_sage_home_symlink() -> Optional[Path]:
 
         # 创建软链接
         symlink_path.symlink_to(sage_home)
-        console.print(f"🔗 创建软链接: {symlink_path} -> {sage_home}", style="green")
+        console.self.logger.info(f"🔗 创建软链接: {symlink_path} -> {sage_home}", style="green")
 
         return symlink_path
 
     except Exception as e:
-        console.print(f"❌ 创建软链接失败: {e}", style="red")
+        console.self.logger.info(f"❌ 创建软链接失败: {e}", style="red")
         return None
 
 
@@ -711,27 +711,27 @@ def _get_sage_home_info():
     sage_home = Path.home() / ".sage"
     dist_dir = sage_home / "dist"
 
-    console.print("📂 SAGE Home 目录信息:", style="bold blue")
-    console.print(f"  🏠 Home: {sage_home}")
-    console.print(f"  📦 Dist: {dist_dir}")
+    console.self.logger.info("📂 SAGE Home 目录信息:", style="bold blue")
+    console.self.logger.info(f"  🏠 Home: {sage_home}")
+    console.self.logger.info(f"  📦 Dist: {dist_dir}")
 
     if dist_dir.exists():
         compiled_packages = list(dist_dir.iterdir())
-        console.print(f"  📊 已编译包: {len(compiled_packages)}")
+        console.self.logger.info(f"  📊 已编译包: {len(compiled_packages)}")
 
         for pkg in compiled_packages[:5]:  # 显示前5个
             if pkg.is_dir():
-                console.print(f"    📁 {pkg.name}")
+                console.self.logger.info(f"    📁 {pkg.name}")
 
         if len(compiled_packages) > 5:
-            console.print(f"    ... 和其他 {len(compiled_packages) - 5} 个包")
+            console.self.logger.info(f"    ... 和其他 {len(compiled_packages) - 5} 个包")
     else:
-        console.print("  📊 已编译包: 0 (目录不存在)")
+        console.self.logger.info("  📊 已编译包: 0 (目录不存在)")
 
     # 检查当前目录的软链接
     current_symlink = Path.cwd() / ".sage"
     if current_symlink.exists() and current_symlink.is_symlink():
         target = current_symlink.readlink()
-        console.print(f"  🔗 当前软链接: {current_symlink} -> {target}")
+        console.self.logger.info(f"  🔗 当前软链接: {current_symlink} -> {target}")
     else:
-        console.print("  🔗 当前软链接: 不存在")
+        console.self.logger.info("  🔗 当前软链接: 不存在")

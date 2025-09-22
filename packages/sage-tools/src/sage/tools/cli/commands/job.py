@@ -83,9 +83,7 @@ class JobManagerCLI:
                 if 0 <= job_index < len(jobs):
                     return jobs[job_index].get("uuid")
                 else:
-                    self.logger.info(
-                        f"❌ Job number {identifier} is out of range (1-{len(jobs)})"
-                    )
+                    self.logger.info(f"❌ Job number {identifier} is out of range (1-{len(jobs)})")
                     return None
 
             # 如果是UUID（完整或部分）
@@ -102,13 +100,9 @@ class JobManagerCLI:
             if len(matching_jobs) == 1:
                 return matching_jobs[0].get("uuid")
             elif len(matching_jobs) > 1:
-                self.logger.info(
-                    f"❌ Ambiguous job identifier '{identifier}'. Matches:"
-                )
+                self.logger.info(f"❌ Ambiguous job identifier '{identifier}'. Matches:")
                 for i, job in enumerate(matching_jobs, 1):
-                    self.logger.info(
-                        f"  {i}. {job.get('uuid')} ({job.get('name', 'unknown')})"
-                    )
+                    self.logger.info(f"  {i}. {job.get('uuid')} ({job.get('name', 'unknown')})")
                 return None
             else:
                 self.logger.info(f"❌ No job found matching '{identifier}'")
@@ -309,9 +303,7 @@ def delete_job(
 
         # 删除作业
         result = cli.client.delete_job(job_uuid, force=force)
-        self.logger.info(
-            f"✅ Job {job_uuid[:8]}... deleted . message:{result.get('message')})"
-        )
+        self.logger.info(f"✅ Job {job_uuid[:8]}... deleted . message:{result.get('message')})")
 
     except Exception as e:
         self.logger.info(f"❌ Failed to delete job: {e}")
@@ -431,9 +423,7 @@ def system_info():
 
         info = response.get("server_info", {})
 
-        self.logger.info(
-            f"\n{Fore.CYAN}=== JobManager System Information ==={Style.RESET_ALL}"
-        )
+        self.logger.info(f"\n{Fore.CYAN}=== JobManager System Information ==={Style.RESET_ALL}")
         self.logger.info(f"Session ID: {info.get('session_id')}")
         self.logger.info(f"Log Directory: {info.get('log_base_dir')}")
         self.logger.info(f"Total Jobs: {info.get('environments_count', 0)}")
@@ -463,9 +453,7 @@ def monitor_jobs(
     try:
         cli.ensure_connected()
 
-        self.logger.info(
-            f"ℹ️ Monitoring jobs (refresh every {refresh}s, press Ctrl+C to stop)"
-        )
+        self.logger.info(f"ℹ️ Monitoring jobs (refresh every {refresh}s, press Ctrl+C to stop)")
 
         def signal_handler(signum, frame):
             self.logger.info("\nMonitoring stopped")
@@ -478,12 +466,8 @@ def monitor_jobs(
             os.system("clear" if os.name == "posix" else "cls")
 
             # 显示标题
-            self.logger.info(
-                f"{Fore.CYAN}=== SAGE JobManager Monitor ==={Style.RESET_ALL}"
-            )
-            self.logger.info(
-                f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+            self.logger.info(f"{Fore.CYAN}=== SAGE JobManager Monitor ==={Style.RESET_ALL}")
+            self.logger.info(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             self.logger.info()
 
             # 获取并显示作业列表
@@ -492,9 +476,7 @@ def monitor_jobs(
                 jobs = response.get("jobs", [])
                 _format_job_table(jobs)
             else:
-                self.logger.info(
-                    f"❌ Failed to get job list: {response.get('message')}"
-                )
+                self.logger.info(f"❌ Failed to get job list: {response.get('message')}")
 
             # 等待
             time.sleep(refresh)
@@ -549,9 +531,7 @@ def watch_job(
                     self.logger.info(f"❌ Job {job_uuid} not found")
                     break
             else:
-                self.logger.info(
-                    f"❌ Failed to get job status: {response.get('message')}"
-                )
+                self.logger.info(f"❌ Failed to get job status: {response.get('message')}")
                 break
 
             time.sleep(refresh)
@@ -660,22 +640,14 @@ def _format_job_details(job_info: Dict[str, Any], verbose: bool = False):
 def _print_status_colored(message: str):
     """打印带颜色的状态消息"""
     if "running" in message:
-        self.logger.info(
-            message.replace("running", f"{Fore.GREEN}running{Style.RESET_ALL}")
-        )
+        self.logger.info(message.replace("running", f"{Fore.GREEN}running{Style.RESET_ALL}"))
     elif "stopped" in message or "paused" in message:
         if "stopped" in message:
-            self.logger.info(
-                message.replace("stopped", f"{Fore.YELLOW}stopped{Style.RESET_ALL}")
-            )
+            self.logger.info(message.replace("stopped", f"{Fore.YELLOW}stopped{Style.RESET_ALL}"))
         if "paused" in message:
-            self.logger.info(
-                message.replace("paused", f"{Fore.YELLOW}paused{Style.RESET_ALL}")
-            )
+            self.logger.info(message.replace("paused", f"{Fore.YELLOW}paused{Style.RESET_ALL}"))
     elif "failed" in message:
-        self.logger.info(
-            message.replace("failed", f"{Fore.RED}failed{Style.RESET_ALL}")
-        )
+        self.logger.info(message.replace("failed", f"{Fore.RED}failed{Style.RESET_ALL}"))
     else:
         self.logger.info(message)
 

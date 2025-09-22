@@ -131,9 +131,7 @@ def example_mock_agent_workflow():
                 observations.append(
                     {"tool": step["name"], "result": result, "success": True}
                 )
-                logging.info(
-                    f"   Tool {step['name']}: Found {len(result['output'])} results"
-                )
+                logging.info(f"   Tool {step['name']}: Found {len(result['output'])} results")
 
         # Step 3: Generate response
         logging.info("3. Generating response...")

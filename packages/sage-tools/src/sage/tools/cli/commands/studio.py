@@ -25,7 +25,7 @@ def start(
     dev: bool = typer.Option(False, "--dev", help="开发模式"),
 ):
     """启动 SAGE Studio"""
-    console.print("[blue]🚀 启动 SAGE Studio...[/blue]")
+    console.self.logger.info("[blue]🚀 启动 SAGE Studio...[/blue]")
 
     try:
         # 先检查是否已经在运行
@@ -33,32 +33,32 @@ def start(
         if running_pid:
             config = studio_manager.load_config()
             url = f"http://{config['host']}:{config['port']}"
-            console.print(f"[green]✅ Studio 已经在运行中 (PID: {running_pid})[/green]")
-            console.print(f"[blue]🌐 访问地址: {url}[/blue]")
+            console.self.logger.info(f"[green]✅ Studio 已经在运行中 (PID: {running_pid})[/green]")
+            console.self.logger.info(f"[blue]🌐 访问地址: {url}[/blue]")
             return
 
         success = studio_manager.start(port=port, host=host, dev=dev)
         if success:
-            console.print("[green]✅ Studio 启动成功[/green]")
+            console.self.logger.info("[green]✅ Studio 启动成功[/green]")
         else:
-            console.print("[red]❌ Studio 启动失败[/red]")
+            console.self.logger.info("[red]❌ Studio 启动失败[/red]")
     except Exception as e:
-        console.print(f"[red]❌ 启动失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 启动失败: {e}[/red]")
 
 
 @app.command()
 def stop():
     """停止 SAGE Studio"""
-    console.print("[blue]🛑 停止 SAGE Studio...[/blue]")
+    console.self.logger.info("[blue]🛑 停止 SAGE Studio...[/blue]")
 
     try:
         success = studio_manager.stop()
         if success:
-            console.print("[green]✅ Studio 已停止[/green]")
+            console.self.logger.info("[green]✅ Studio 已停止[/green]")
         else:
-            console.print("[yellow]ℹ️ Studio 未运行或停止失败[/yellow]")
+            console.self.logger.info("[yellow]ℹ️ Studio 未运行或停止失败[/yellow]")
     except Exception as e:
-        console.print(f"[red]❌ 停止失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 停止失败: {e}[/red]")
 
 
 @app.command()
@@ -68,7 +68,7 @@ def restart(
     dev: bool = typer.Option(False, "--dev", help="开发模式"),
 ):
     """重启 SAGE Studio"""
-    console.print("[blue]🔄 重启 SAGE Studio...[/blue]")
+    console.self.logger.info("[blue]🔄 重启 SAGE Studio...[/blue]")
 
     try:
         # 先停止
@@ -76,22 +76,22 @@ def restart(
         # 再启动
         success = studio_manager.start(port=port, host=host, dev=dev)
         if success:
-            console.print("[green]✅ Studio 重启成功[/green]")
+            console.self.logger.info("[green]✅ Studio 重启成功[/green]")
         else:
-            console.print("[red]❌ Studio 重启失败[/red]")
+            console.self.logger.info("[red]❌ Studio 重启失败[/red]")
     except Exception as e:
-        console.print(f"[red]❌ 重启失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 重启失败: {e}[/red]")
 
 
 @app.command()
 def status():
     """查看 SAGE Studio 状态"""
-    console.print("[blue]📊 检查 SAGE Studio 状态...[/blue]")
+    console.self.logger.info("[blue]📊 检查 SAGE Studio 状态...[/blue]")
 
     try:
         studio_manager.status()
     except Exception as e:
-        console.print(f"[red]❌ 状态检查失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 状态检查失败: {e}[/red]")
 
 
 @app.command()
@@ -100,48 +100,48 @@ def logs(
     backend: bool = typer.Option(False, "--backend", "-b", help="查看后端API日志"),
 ):
     """查看 SAGE Studio 日志"""
-    console.print("[blue]📋 查看 Studio 日志...[/blue]")
+    console.self.logger.info("[blue]📋 查看 Studio 日志...[/blue]")
 
     try:
         studio_manager.logs(follow=follow, backend=backend)
     except Exception as e:
-        console.print(f"[red]❌ 查看日志失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 查看日志失败: {e}[/red]")
 
 
 @app.command()
 def install():
     """安装 SAGE Studio 依赖"""
-    console.print("[blue]📦 安装 SAGE Studio...[/blue]")
+    console.self.logger.info("[blue]📦 安装 SAGE Studio...[/blue]")
 
     try:
         success = studio_manager.install()
         if success:
-            console.print("[green]✅ Studio 安装成功[/green]")
+            console.self.logger.info("[green]✅ Studio 安装成功[/green]")
         else:
-            console.print("[red]❌ Studio 安装失败[/red]")
+            console.self.logger.info("[red]❌ Studio 安装失败[/red]")
     except Exception as e:
-        console.print(f"[red]❌ 安装失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 安装失败: {e}[/red]")
 
 
 @app.command()
 def build():
     """构建 SAGE Studio"""
-    console.print("[blue]� 构建 SAGE Studio...[/blue]")
+    console.self.logger.info("[blue]� 构建 SAGE Studio...[/blue]")
 
     try:
         success = studio_manager.build()
         if success:
-            console.print("[green]✅ Studio 构建成功[/green]")
+            console.self.logger.info("[green]✅ Studio 构建成功[/green]")
         else:
-            console.print("[red]❌ Studio 构建失败[/red]")
+            console.self.logger.info("[red]❌ Studio 构建失败[/red]")
     except Exception as e:
-        console.print(f"[red]❌ 构建失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 构建失败: {e}[/red]")
 
 
 @app.command()
 def open():
     """在浏览器中打开 Studio"""
-    console.print("[blue]🌐 打开 Studio 界面...[/blue]")
+    console.self.logger.info("[blue]🌐 打开 Studio 界面...[/blue]")
 
     try:
         import webbrowser
@@ -151,27 +151,27 @@ def open():
             config = studio_manager.load_config()
             url = f"http://{config['host']}:{config['port']}"
             webbrowser.open(url)
-            console.print(f"[green]✅ 已在浏览器中打开: {url}[/green]")
+            console.self.logger.info(f"[green]✅ 已在浏览器中打开: {url}[/green]")
         else:
-            console.print("[yellow]⚠️ Studio 未运行，请先启动 Studio[/yellow]")
-            console.print("使用命令: [bold]sage studio start[/bold]")
+            console.self.logger.info("[yellow]⚠️ Studio 未运行，请先启动 Studio[/yellow]")
+            console.self.logger.info("使用命令: [bold]sage studio start[/bold]")
     except Exception as e:
-        console.print(f"[red]❌ 打开失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 打开失败: {e}[/red]")
 
 
 @app.command()
 def clean():
     """清理 Studio 缓存和临时文件"""
-    console.print("[blue]🧹 清理 Studio 缓存...[/blue]")
+    console.self.logger.info("[blue]🧹 清理 Studio 缓存...[/blue]")
 
     try:
         success = studio_manager.clean()
         if success:
-            console.print("[green]✅ 清理完成[/green]")
+            console.self.logger.info("[green]✅ 清理完成[/green]")
         else:
-            console.print("[red]❌ 清理失败[/red]")
+            console.self.logger.info("[red]❌ 清理失败[/red]")
     except Exception as e:
-        console.print(f"[red]❌ 清理失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 清理失败: {e}[/red]")
 
 
 if __name__ == "__main__":

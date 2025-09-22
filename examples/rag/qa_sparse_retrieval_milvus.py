@@ -31,9 +31,7 @@ def pipeline_run():
     logging.info(f"  - 源文件: {config['source']['data_path']}")
     logging.info(f"  - 检索器: MilvusSparseRetriever (Milvus 专用)")
     logging.info(f"  - Top-K: {config['retriever']['top_k']}")
-    logging.info(
-        f"  - 集合名称: {config['retriever']['milvus_sparse']['collection_name']}"
-    )
+    logging.info(f"  - 集合名称: {config['retriever']['milvus_sparse']['collection_name']}")
 
     env = LocalEnvironment()
     # 构建数据处理流程

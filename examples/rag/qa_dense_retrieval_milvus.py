@@ -31,9 +31,7 @@ def pipeline_run():
     logging.info(f"  - 检索器: MilvusDenseRetriever (Milvus 专用)")
     logging.info(f"  - 向量维度: {config['retriever']['dimension']}")
     logging.info(f"  - Top-K: {config['retriever']['top_k']}")
-    logging.info(
-        f"  - 集合名称: {config['retriever']['milvus_dense']['collection_name']}"
-    )
+    logging.info(f"  - 集合名称: {config['retriever']['milvus_dense']['collection_name']}")
     logging.info(f"  - 嵌入模型: {config['retriever']['embedding']['method']}")
 
     env = LocalEnvironment()

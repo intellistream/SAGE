@@ -159,9 +159,7 @@ def execute_fix_plan(
                                 current_project_id, item_id
                             )
                             if success_delete:
-                                self.logger.info(
-                                    f"  🗑️  已清理项目#{current_project}中的无效引用"
-                                )
+                                self.logger.info(f"  🗑️  已清理项目#{current_project}中的无效引用")
                                 success_count += 1
                             else:
                                 # 检查是否是NOT_FOUND错误，这表示引用已经不存在了
@@ -249,9 +247,7 @@ def execute_fix_plan(
                                         )
                                         success_count += 1
                                     else:
-                                        self.logger.info(
-                                            f"  ⚠️  删除失败: {delete_result}"
-                                        )
+                                        self.logger.info(f"  ⚠️  删除失败: {delete_result}")
                                         self.logger.info(
                                             f"  ✅ 已添加到目标项目，但请手动从源项目删除"
                                         )
@@ -264,9 +260,7 @@ def execute_fix_plan(
                                         1  # 算作成功，因为已经添加到目标项目
                                     )
                             else:
-                                self.logger.info(
-                                    f"  ⚠️  无法获取项目#{current_project}的items"
-                                )
+                                self.logger.info(f"  ⚠️  无法获取项目#{current_project}的items")
                                 success_count += (
                                     1  # 仍然算作成功，因为已经添加到目标项目
                                 )
@@ -331,9 +325,7 @@ def execute_fix_plan(
 def main():
     """主函数"""
     if len(sys.argv) < 2:
-        self.logger.info(
-            "用法: python3 execute_fix_plan.py <fix_plan_file.json> [--live]"
-        )
+        self.logger.info("用法: python3 execute_fix_plan.py <fix_plan_file.json> [--live]")
         self.logger.info("  --live: 实际执行修复 (默认为dry-run模式)")
         return
 

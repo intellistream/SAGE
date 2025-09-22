@@ -110,9 +110,7 @@ def test_graph_service():
         f"  add_relationships({len(relationships)} relations) -> ✅ Added 6 relationships"
     )
     for rel in relationships:
-        self.logger.info(
-            f"    - {rel['from_node']} --[{rel['rel_type']}]--> {rel['to_node']}"
-        )
+        self.logger.info(f"    - {rel['from_node']} --[{rel['rel_type']}]--> {rel['to_node']}")
 
     # 图查询示例
     self.logger.info("\n🔍 Graph Query Examples:")

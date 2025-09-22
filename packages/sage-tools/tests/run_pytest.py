@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE CLI Test Runner (pytest-based)
 
 A comprehensive pytest-based test runner for SAGE CLI tools.

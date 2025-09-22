@@ -174,10 +174,6 @@ if __name__ == "__main__":
         logging.info("3. Integrate with MCP Registry")
         logging.info("4. Process and display results")
 
-        logging.info(
-            "\nFor more details, see the tool implementation in arxiv_search_tool.py"
-        )
+        logging.info("\nFor more details, see the tool implementation in arxiv_search_tool.py")
     else:
-        logging.info(
-            "\nSome examples failed. Check the implementation and dependencies."
-        )
+        logging.info("\nSome examples failed. Check the implementation and dependencies.")

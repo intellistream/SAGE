@@ -100,9 +100,7 @@ if __name__ == '__main__':
     logging.info("🎉 Migration completed successfully!")
     logging.info("")
     logging.info("Next steps:")
-    logging.info(
-        "1. Test new license tools: python tools/license/sage_license.py status"
-    )
+    logging.info("1. Test new license tools: python tools/license/sage_license.py status")
     logging.info("2. Update your scripts to use new paths")
     logging.info("3. Remove backup files when confident in migration")
 

@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from sage.common.utils.logging.custom_logger import CustomLogger
 
+from sage.common.utils.logging.custom_logger import CustomLogger
+
 
 class MilvusBackend:
     """Milvus 后端管理器（支持本地 Milvus Lite 与远程 Milvus）"""

@@ -138,9 +138,7 @@ class IssuesTestSuite:
             if os.environ.get("CI") == "true":
                 team_info = self.manager.team_info
                 if not team_info:
-                    console.logging.info(
-                        "ℹ️ CI环境中未配置团队信息，创建模拟数据进行测试"
-                    )
+                    console.logging.info("ℹ️ CI环境中未配置团队信息，创建模拟数据进行测试")
                     # 模拟团队信息
                     mock_team_info = {
                         "teams": {

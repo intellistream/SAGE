@@ -99,7 +99,7 @@ class CompilationManager:
         package_path = package_info["path"]
         package_name = package_info["name"]
 
-        console.print(f"📦 构建开源包: {package_name}", style="green")
+        console.self.logger.info(f"📦 构建开源包: {package_name}", style="green")
 
         if build_wheel:
             # 直接在原目录构建 wheel
@@ -116,7 +116,7 @@ class CompilationManager:
                 if result.returncode != 0:
                     raise RuntimeError(f"构建失败: {result.stderr}")
 
-                console.print(f"✅ {package_name}: 开源包构建完成", style="green")
+                console.self.logger.info(f"✅ {package_name}: 开源包构建完成", style="green")
 
                 return {
                     "type": "opensource",
@@ -150,7 +150,7 @@ class CompilationManager:
         package_path = package_info["path"]
         package_name = package_info["name"]
 
-        console.print(f"🔒 构建闭源包: {package_name}", style="yellow")
+        console.self.logger.info(f"🔒 构建闭源包: {package_name}", style="yellow")
 
         # 使用字节码编译器
         compiler = BytecodeCompiler(package_path)

@@ -1,10 +1,10 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 import time
 import warnings
 from typing import Any, Dict
 
 import torch
-from sage.common.utils.logging.custom_logger import CustomLogger
 
 from .base.base_tool import BaseTool
 
@@ -122,9 +122,7 @@ class text_detector(BaseTool):
 
             except RuntimeError as e:
                 if "CUDA out of memory" in str(e):
-                    self.logger.info(
-                        f"CUDA out of memory error on attempt {attempt + 1}."
-                    )
+                    self.logger.info(f"CUDA out of memory error on attempt {attempt + 1}.")
                     if clear_cuda_cache:
                         self.logger.info("Clearing CUDA cache and retrying...")
                         torch.cuda.empty_cache()
@@ -176,9 +174,7 @@ if __name__ == "__main__":
     # Check if the image file exists
     if not os.path.exists(image_path):
         self.logger.info(f"Image file not found: {image_path}")
-        self.logger.info(
-            "Please provide a valid image file in the 'examples/' directory."
-        )
+        self.logger.info("Please provide a valid image file in the 'examples/' directory.")
         exit(1)
 
     # Execute the tool

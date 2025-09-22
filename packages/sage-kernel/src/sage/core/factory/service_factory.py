@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 from typing import TYPE_CHECKING, Any, Tuple, Type
 
 from sage.common.utils.logging.custom_logger import CustomLogger

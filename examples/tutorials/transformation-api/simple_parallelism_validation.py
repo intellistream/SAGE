@@ -35,9 +35,7 @@ class SimpleNumberSource(BatchFunction):
 
     def execute(self):
         if self.current >= self.count:
-            logging.info(
-                f"📤 SimpleNumberSource: finished producing {self.count} numbers"
-            )
+            logging.info(f"📤 SimpleNumberSource: finished producing {self.count} numbers")
             return None
         self.current += 1
         logging.info(f"📤 SimpleNumberSource: producing {self.current}")
@@ -245,9 +243,7 @@ def test_multi_stream_parallelism():
         )
 
     logging.info(f"\n💡 Expected behavior:")
-    logging.info(
-        f"  - Stream1 produces: 1,2,3,4,5 -> CoMap.map0 -> S0:1,S0:2,S0:3,S0:4,S0:5"
-    )
+    logging.info(f"  - Stream1 produces: 1,2,3,4,5 -> CoMap.map0 -> S0:1,S0:2,S0:3,S0:4,S0:5")
     logging.info(f"  - Stream2 produces: 1,2,3 -> CoMap.map1 -> S1:10,S1:20,S1:30")
     logging.info(f"  - 2 CoMap instances should distribute the processing")
     logging.info(f"  - Final results: [S0:1,S0:2,S0:3,S0:4,S0:5,S1:10,S1:20,S1:30]")
@@ -284,14 +280,10 @@ def test_execution_graph_validation():
         logging.info(
             f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism})"
         )
-        logging.info(
-            f"     -> Will create {trans.parallelism} parallel execution nodes"
-        )
+        logging.info(f"     -> Will create {trans.parallelism} parallel execution nodes")
 
     total_expected_nodes = sum(trans.parallelism for trans in env.pipeline)
-    logging.info(
-        f"\n🎯 Total execution nodes that will be created: {total_expected_nodes}"
-    )
+    logging.info(f"\n🎯 Total execution nodes that will be created: {total_expected_nodes}")
 
     return env
 
@@ -299,9 +291,7 @@ def test_execution_graph_validation():
 def main():
     """Run all parallelism validation tests"""
     logging.info("🚀 SAGE Simple Parallelism Validation")
-    logging.info(
-        "This example validates parallelism hints with observable input/output"
-    )
+    logging.info("This example validates parallelism hints with observable input/output")
 
     # Run all tests
     env1 = test_single_stream_parallelism()
@@ -313,9 +303,7 @@ def main():
     logging.info("VALIDATION SUMMARY")
     logging.info("=" * 80)
     logging.info("✅ Single stream parallelism: Verified with observable output")
-    logging.info(
-        "✅ Direct parallelism specification: Tested with different parallelism levels"
-    )
+    logging.info("✅ Direct parallelism specification: Tested with different parallelism levels")
     logging.info("✅ Multi-stream CoMap: Validated parallel CoMap processing")
     logging.info("✅ ExecutionGraph nodes: Confirmed correct node count calculation")
 

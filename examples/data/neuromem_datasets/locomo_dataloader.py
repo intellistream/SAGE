@@ -3,8 +3,8 @@
 # file data/neuromem_datasets/locomo_dataloader.py
 # python data/neuromem_datasets/locomo_dataloader.py
 
-import json
 import logging
+import json
 import os
 
 

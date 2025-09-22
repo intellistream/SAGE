@@ -1,10 +1,10 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 import re
 from typing import List, Tuple
 
 import json_repair
 import numpy as np
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.libs.rag.longrefiner.longrefiner.prompt_template import \
     PromptTemplate
 from sage.libs.rag.longrefiner.longrefiner.task_instruction import *
@@ -340,9 +340,7 @@ class LongRefiner:
                 budget=budget,
                 ratio=ratio,
             )
-            self.logger.info(
-                f"DEBUG: Context selection completed: {refined_content_list}"
-            )
+            self.logger.info(f"DEBUG: Context selection completed: {refined_content_list}")
 
             return refined_content_list
         except Exception as e:

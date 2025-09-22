@@ -1,6 +1,7 @@
 # file sage/core/sage.middleware.services.neuromem./search_engine/kv_index/bm25s_index.py
 # python -m sage.core.sage.middleware.services.neuromem..search_engine.kv_index.bm25s_index
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 import shutil
 from typing import Any, Dict, List, Optional

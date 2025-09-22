@@ -24,9 +24,7 @@ def load_knowledge_to_milvus(config):
     collection_name = config.get("milvus_dense").get("collection_name")
 
     logging.info(f"=== 预加载知识库到 ChromaDB ===")
-    logging.info(
-        f"文件: {knowledge_file} | DB: {persistence_path} | 集合: {collection_name}"
-    )
+    logging.info(f"文件: {knowledge_file} | DB: {persistence_path} | 集合: {collection_name}")
 
     loader = TextLoader(knowledge_file)
     document = loader.load()

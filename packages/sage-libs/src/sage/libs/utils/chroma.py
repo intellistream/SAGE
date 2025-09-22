@@ -10,6 +10,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 
@@ -187,9 +188,7 @@ class ChromaBackend:
             # 提取文档内容
             if results["documents"] and len(results["documents"]) > 0:
                 documents = results["documents"][0]  # 返回第一个查询的结果
-                self.logger.debug(
-                    f"ChromaBackend.search: returned {len(documents)} documents"
-                )
+                self.logger.debug(f"ChromaBackend.search: returned {len(documents)} documents")
                 return documents
             else:
                 return []

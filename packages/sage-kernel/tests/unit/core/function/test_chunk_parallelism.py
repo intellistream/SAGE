@@ -265,9 +265,7 @@ class TestChunkParallelism:
         large_doc_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
         assert len(large_doc_chunks) > 1  # 大文档应该被分成多个chunk
 
-        logging.info(
-            f"✅ Large document test: {len(large_doc_chunks)} chunks from large_doc1"
-        )
+        logging.info(f"✅ Large document test: {len(large_doc_chunks)} chunks from large_doc1")
 
     def test_chunk_parallelism_hints_vs_manual_parallelization(self):
         """对比parallelism hints与手动并行化的区别"""
@@ -297,6 +295,4 @@ class TestChunkParallelism:
         assert len(collected_chunks) > 0
 
         logging.info("✅ Parallelism hints approach works correctly")
-        logging.info(
-            "💡 Key advantage: Framework manages parallelism, code stays simple"
-        )
+        logging.info("💡 Key advantage: Framework manages parallelism, code stays simple")

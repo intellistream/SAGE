@@ -1,5 +1,5 @@
-import json
 import logging
+import json
 import tempfile
 import threading
 import time
@@ -329,9 +329,7 @@ class PremiumUserFilter(FilterFunction):
         self.logger.info(
             f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}"
         )
-        logging.info(
-            f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}"
-        )
+        logging.info(f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}")
         return data.get("type") != "preference_info"
 
 
@@ -905,18 +903,10 @@ class TestJoinFunctionality:
         )
 
         logging.info("📊 Windowed Join Pipeline:")
-        logging.info(
-            "   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)"
-        )
-        logging.info(
-            "   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)"
-        )
-        logging.info(
-            "   order_info.connect(event_info).join(OrderEventJoin, window=2s)"
-        )
-        logging.info(
-            "🎯 Expected: Orders matched with their events within time window\n"
-        )
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)")
+        logging.info("   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)")
+        logging.info("   order_info.connect(event_info).join(OrderEventJoin, window=2s)")
+        logging.info("🎯 Expected: Orders matched with their events within time window\n")
 
         try:
             env.submit()
@@ -1066,18 +1056,10 @@ class TestJoinFunctionality:
         )
 
         logging.info("📊 Windowed Join Pipeline:")
-        logging.info(
-            "   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)"
-        )
-        logging.info(
-            "   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)"
-        )
-        logging.info(
-            "   order_info.connect(event_info).join(OrderEventJoin, window=2s)"
-        )
-        logging.info(
-            "🎯 Expected: Orders matched with their events within time window\n"
-        )
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)")
+        logging.info("   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)")
+        logging.info("   order_info.connect(event_info).join(OrderEventJoin, window=2s)")
+        logging.info("🎯 Expected: Orders matched with their events within time window\n")
 
         try:
             env.submit()
@@ -1230,9 +1212,7 @@ class TestJoinFunctionality:
                 join_data.get("source") == "user_order_join"
             ), f"❌ Wrong source: {join_data}"
 
-        logging.info(
-            "✅ User-Order join test passed: Users successfully joined with orders"
-        )
+        logging.info("✅ User-Order join test passed: Users successfully joined with orders")
 
     def _verify_user_payment_join_results(self):
         """验证用户-支付Join结果"""
@@ -1255,9 +1235,7 @@ class TestJoinFunctionality:
 
                     if has_payment:
                         with_payment += 1
-                        logging.info(
-                            f"   - User: {user_name} -> Payment: ${payment_amount}"
-                        )
+                        logging.info(f"   - User: {user_name} -> Payment: ${payment_amount}")
                     else:
                         without_payment += 1
                         logging.info(f"   - User: {user_name} -> No payment")
@@ -1270,9 +1248,7 @@ class TestJoinFunctionality:
         # 验证Join结果
         assert len(all_joins) > 0, "❌ No user-payment joins found"
 
-        logging.info(
-            "✅ User-Payment join test passed: Users joined with payment status"
-        )
+        logging.info("✅ User-Payment join test passed: Users joined with payment status")
 
     def _verify_order_event_join_results(self):
         """验证订单-事件Join结果"""
@@ -1332,9 +1308,7 @@ class TestJoinFunctionality:
         logging.info(f"\n🎯 Complex Multi-Join Summary:")
         logging.info(f"   - User-payment joins: {len(user_payment_joins)}")
         logging.info(f"   - User-order joins: {len(user_order_joins)}")
-        logging.info(
-            f"   - Total joins: {len(user_payment_joins) + len(user_order_joins)}"
-        )
+        logging.info(f"   - Total joins: {len(user_payment_joins) + len(user_order_joins)}")
 
         # 验证两种Join都有结果
         assert (

@@ -307,9 +307,7 @@ class IssuesOrganizer:
     def update_issue_status(self, issue_number, status_name, project_info):
         """更新issue在项目中的状态"""
         if status_name not in project_info["status_options"]:
-            self.logger.info(
-                f"⚠️ 状态 '{status_name}' 不存在，跳过issue #{issue_number}"
-            )
+            self.logger.info(f"⚠️ 状态 '{status_name}' 不存在，跳过issue #{issue_number}")
             return False
 
         status_option_id = project_info["status_options"][status_name]
@@ -339,9 +337,7 @@ class IssuesOrganizer:
         )
 
         if response.status_code != 200:
-            self.logger.info(
-                f"❌ 检查issue #{issue_number} 项目状态失败: {response.status_code}"
-            )
+            self.logger.info(f"❌ 检查issue #{issue_number} 项目状态失败: {response.status_code}")
             return False
 
         data = response.json()
@@ -417,9 +413,7 @@ class IssuesOrganizer:
             self.logger.info(f"\n📁 {category} ({len(items)} 个issues):")
             for item in items[:5]:  # 只显示前5个
                 self.logger.info(f"  • #{item['number']} - {item['title'][:50]}...")
-                self.logger.info(
-                    f"    关闭时间: {item['closed_at'].strftime('%Y-%m-%d %H:%M')}"
-                )
+                self.logger.info(f"    关闭时间: {item['closed_at'].strftime('%Y-%m-%d %H:%M')}")
             if len(items) > 5:
                 self.logger.info(f"  ... 还有 {len(items) - 5} 个issues")
 

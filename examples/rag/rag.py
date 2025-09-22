@@ -222,9 +222,7 @@ class UIHelper:
 {UIHelper.COLORS['YELLOW']}{UIHelper.COLORS['BOLD']}❓ 预设测试问题:{UIHelper.COLORS['END']}"""
         logging.info(info)
         for i, question in enumerate(questions, 1):
-            logging.info(
-                f"  {UIHelper.COLORS['CYAN']}{i}.{UIHelper.COLORS['END']} {question}"
-            )
+            logging.info(f"  {UIHelper.COLORS['CYAN']}{i}.{UIHelper.COLORS['END']} {question}")
         logging.info()
 
     @staticmethod
@@ -514,9 +512,7 @@ if __name__ == "__main__":
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
         logging.info("🧪 Test mode detected - rag example")
-        logging.info(
-            "✅ Test passed: Example structure validated (requires complex setup)"
-        )
+        logging.info("✅ Test passed: Example structure validated (requires complex setup)")
         sys.exit(0)
 
     CustomLogger.disable_global_console_debug()

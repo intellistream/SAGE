@@ -1,5 +1,5 @@
-import json
 import logging
+import json
 import tempfile
 import threading
 import time
@@ -453,9 +453,7 @@ class TestCoMapFunctionality:
         logging.info(
             "📊 Pipeline: OrderStream + PaymentStream -> comap(OrderPaymentCoMapFunction) -> Sink(parallelism=2)"
         )
-        logging.info(
-            "🎯 Expected: Orders processed by map0, Payments processed by map1\n"
-        )
+        logging.info("🎯 Expected: Orders processed by map0, Payments processed by map1\n")
 
         try:
             env.submit()
@@ -488,9 +486,7 @@ class TestCoMapFunctionality:
         logging.info(
             "📊 Pipeline: OrderStream + PaymentStream + InventoryStream -> comap(TripleStreamCoMapFunction) -> Sink"
         )
-        logging.info(
-            "🎯 Expected: Orders by map0, Payments by map1, Inventory by map2\n"
-        )
+        logging.info("🎯 Expected: Orders by map0, Payments by map1, Inventory by map2\n")
 
         try:
             env.submit()
@@ -589,9 +585,7 @@ class TestCoMapFunctionality:
                 payment.get("source_stream") == 1
             ), f"❌ Payment from wrong stream: {payment.get('source_stream')}"
 
-        logging.info(
-            "✅ Two-stream CoMap test passed: Correct stream routing and processing"
-        )
+        logging.info("✅ Two-stream CoMap test passed: Correct stream routing and processing")
 
     def _verify_three_stream_comap_results(self):
         """验证三路CoMap的结果"""
@@ -670,9 +664,7 @@ class TestCoMapFunctionality:
                     cached_orders.append(data)
                     order_id = data.get("order_id", "unknown")
                     cache_size = data.get("cache_size", 0)
-                    logging.info(
-                        f"   - Cached Order: {order_id} (cache size: {cache_size})"
-                    )
+                    logging.info(f"   - Cached Order: {order_id} (cache size: {cache_size})")
 
                 elif result_type == "enriched_payment_with_stats":
                     enriched_payments.append(data)

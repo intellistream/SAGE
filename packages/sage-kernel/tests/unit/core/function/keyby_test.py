@@ -1,5 +1,5 @@
-import json
 import logging
+import json
 import os
 import threading
 import time
@@ -151,9 +151,7 @@ class TestKeyByFunctionality:
         logging.info(
             "📊 Pipeline: KeyByTestDataSource -> KeyBy(UserIdExtractor) -> ParallelDebugSink(parallelism=2)"
         )
-        logging.info(
-            "🎯 Expected: Same user_id data should go to same parallel instance\n"
-        )
+        logging.info("🎯 Expected: Same user_id data should go to same parallel instance\n")
 
         try:
             # 提交并运行
@@ -305,9 +303,7 @@ class TestKeyByFunctionality:
 
         for instance_id, data_list in received_data.items():
             instance_counts[instance_id] = len(data_list)
-            logging.info(
-                f"\n🔹 Parallel Instance {instance_id}: {len(data_list)} messages"
-            )
+            logging.info(f"\n🔹 Parallel Instance {instance_id}: {len(data_list)} messages")
 
             for data in data_list[:3]:  # 只显示前3条
                 logging.info(f"   - {data['user_id']}: {data['content']}")
@@ -341,9 +337,7 @@ class TestKeyByFunctionality:
                 )
                 return True
             else:
-                logging.info(
-                    "❌ Broadcast test failed: Instance counts differ significantly"
-                )
+                logging.info("❌ Broadcast test failed: Instance counts differ significantly")
                 return False
 
 
@@ -378,9 +372,7 @@ class TestAdvancedKeyBy:
         logging.info(
             "📊 Pipeline: KeyByTestDataSource -> KeyBy(AdvancedKeyExtractor) -> ParallelDebugSink(parallelism=4)"
         )
-        logging.info(
-            "🎯 Key format: 'user_id + message_id%2' (e.g., 'user1_0', 'user1_1')\n"
-        )
+        logging.info("🎯 Key format: 'user_id + message_id%2' (e.g., 'user1_0', 'user1_1')\n")
 
         try:
             env.submit()
@@ -438,9 +430,7 @@ class TestAdvancedKeyBy:
         success = True
         for key, instances in key_distribution.items():
             if len(instances) != 1:
-                logging.info(
-                    f"❌ Key '{key}' was routed to multiple instances: {instances}"
-                )
+                logging.info(f"❌ Key '{key}' was routed to multiple instances: {instances}")
                 success = False
 
         if success:

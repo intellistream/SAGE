@@ -152,9 +152,7 @@ if __name__ == "__main__":
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
         logging.info("🧪 Test mode detected - qa_dense_retrieval_ray example")
-        logging.info(
-            "✅ Test passed: Example structure validated (requires complex setup)"
-        )
+        logging.info("✅ Test passed: Example structure validated (requires complex setup)")
         sys.exit(0)
 
     # 加载配置并初始化日志

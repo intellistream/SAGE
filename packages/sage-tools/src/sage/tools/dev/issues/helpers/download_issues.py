@@ -401,9 +401,7 @@ class IssuesDownloader:
                     # 修改issue的assignee信息
                     issue["assignees"] = [{"login": creator}]
                     issue["assignee"] = {"login": creator}
-                    self.logger.info(
-                        f"👤 Issue #{issue['number']} 自动分配给创建者: {creator}"
-                    )
+                    self.logger.info(f"👤 Issue #{issue['number']} 自动分配给创建者: {creator}")
 
         return issue, updated_project_info
 
@@ -519,9 +517,7 @@ class IssuesDownloader:
                         saved_count += 1
 
                     if saved_count % 10 == 0:
-                        self.logger.info(
-                            f"✅ 已保存 {saved_count}/{len(issues)} 个Issues"
-                        )
+                        self.logger.info(f"✅ 已保存 {saved_count}/{len(issues)} 个Issues")
                 except Exception as e:
                     self.logger.info(f"❌ 保存Issue #{issue['number']} 失败: {e}")
 

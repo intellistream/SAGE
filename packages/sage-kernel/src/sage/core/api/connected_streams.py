@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 from __future__ import annotations
 
 from typing import (TYPE_CHECKING, Any, Callable, Generic, List, Type, TypeVar,

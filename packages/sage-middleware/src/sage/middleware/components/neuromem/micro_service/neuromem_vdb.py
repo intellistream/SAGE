@@ -1,9 +1,9 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 from logging import Manager
 from re import M
 from typing import Any, Dict, List, Optional, Union
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.memory_collection.vdb_collection import \
     VDBMemoryCollection
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
@@ -94,9 +94,7 @@ class NeuroMemVDB:
                     f"成功在collection '{collection_name}' 中插入数据，ID: {stable_id}"
                 )
             except Exception as e:
-                self.logger.info(
-                    f"在collection '{collection_name}' 插入数据失败: {str(e)}"
-                )
+                self.logger.info(f"在collection '{collection_name}' 插入数据失败: {str(e)}")
                 results[collection_name] = None
         return results
 
@@ -157,9 +155,7 @@ class NeuroMemVDB:
                     results[collection_name] = False
                     self.logger.info(f"在collection '{collection_name}' 创建索引失败")
             except Exception as e:
-                self.logger.info(
-                    f"在collection '{collection_name}' 创建索引失败: {str(e)}"
-                )
+                self.logger.info(f"在collection '{collection_name}' 创建索引失败: {str(e)}")
                 results[collection_name] = False
         return results
 

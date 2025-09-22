@@ -32,9 +32,7 @@ def show_help():
     logging.info("  remove                    Remove current license")
     logging.info("")
     logging.info("🏭 Vendor Commands (SAGE Team Only):")
-    logging.info(
-        "  generate <customer> [days] Generate new license (default: 365 days)"
-    )
+    logging.info("  generate <customer> [days] Generate new license (default: 365 days)")
     logging.info("  list                      List all generated licenses")
     logging.info("  revoke <license-key>      Revoke a specific license")
     logging.info("")

@@ -44,9 +44,7 @@ class GitHubIssueCreator:
             response = requests.get("https://api.github.com/user", headers=self.headers)
             if response.status_code == 200:
                 user_info = response.json()
-                self.logger.info(
-                    f"✅ GitHub Token有效，用户: {user_info.get('login', 'unknown')}"
-                )
+                self.logger.info(f"✅ GitHub Token有效，用户: {user_info.get('login', 'unknown')}")
                 return True
             else:
                 self.logger.info(f"❌ GitHub Token无效: {response.status_code}")

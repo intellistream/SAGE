@@ -60,12 +60,12 @@ def validate(
 
     💡 建议在每次准备发布到PyPI前运行此命令！
     """
-    console.print("🧪 [bold blue]SAGE PyPI发布准备验证[/bold blue]")
-    console.print("=" * 60)
+    console.self.logger.info("🧪 [bold blue]SAGE PyPI发布准备验证[/bold blue]")
+    console.self.logger.info("=" * 60)
 
     # 检查PyPI认证配置（如果启用）
     if check_auth:
-        console.print("\n🔐 [blue]检查PyPI认证配置...[/blue]")
+        console.self.logger.info("\n🔐 [blue]检查PyPI认证配置...[/blue]")
 
         # 查找项目根目录
         current_dir = Path(__file__).resolve()
@@ -84,27 +84,27 @@ def validate(
 
         for path in pypirc_paths:
             if path.exists():
-                console.print(f"✅ 找到配置文件: {path}")
+                console.self.logger.info(f"✅ 找到配置文件: {path}")
                 pypirc_exists = True
                 break
 
         if not pypirc_exists:
-            console.print("[yellow]⚠️  未找到.pypirc配置文件[/yellow]")
-            console.print(
+            console.self.logger.info("[yellow]⚠️  未找到.pypirc配置文件[/yellow]")
+            console.self.logger.info(
                 "💡 [blue]发布时需要配置PyPI认证，运行以下命令查看配置帮助:[/blue]"
             )
-            console.print("   [cyan]sage dev pypi publish --help[/cyan]")
+            console.self.logger.info("   [cyan]sage dev pypi publish --help[/cyan]")
         else:
-            console.print("✅ [green]PyPI认证配置已就绪[/green]")
+            console.self.logger.info("✅ [green]PyPI认证配置已就绪[/green]")
 
     # 根据模式选择测试器
     if fast:
-        console.print("\n⚡ [yellow]使用快速验证模式（核心功能验证）[/yellow]")
+        console.self.logger.info("\n⚡ [yellow]使用快速验证模式（核心功能验证）[/yellow]")
         script_name = "validate_pip_fast.py"
         class_name = "FastPipValidator"
         run_method = "run_fast_validation"
     else:
-        console.print("\n🔬 [blue]使用完整验证模式（全面发布准备验证）[/blue]")
+        console.self.logger.info("\n🔬 [blue]使用完整验证模式（全面发布准备验证）[/blue]")
         script_name = "validate_pip_install_complete.py"
         class_name = "CompletePipInstallTester"
         run_method = "run_all_tests"
@@ -121,8 +121,8 @@ def validate(
                 break
             project_root = project_root.parent
         else:
-            console.print("[red]❌ 未找到packages目录[/red]")
-            console.print("[yellow]请确保在SAGE项目根目录中运行此命令[/yellow]")
+            console.self.logger.info("[red]❌ 未找到packages目录[/red]")
+            console.self.logger.info("[yellow]请确保在SAGE项目根目录中运行此命令[/yellow]")
             raise typer.Exit(1)
 
         # 查找测试脚本
@@ -130,7 +130,7 @@ def validate(
             project_root / "packages" / "sage-tools" / "tests" / "pypi" / script_name
         )
         if not script_path.exists():
-            console.print(f"[red]❌ 测试脚本不存在: {script_path}[/red]")
+            console.self.logger.info(f"[red]❌ 测试脚本不存在: {script_path}[/red]")
             raise typer.Exit(1)
 
         # 动态导入测试器类
@@ -144,8 +144,8 @@ def validate(
         tester = TesterClass(test_dir, skip_wheel)
 
     except ImportError as e:
-        console.print(f"[red]❌ 无法导入测试器: {e}[/red]")
-        console.print(f"[yellow]验证模块导入失败，请检查安装[/yellow]")
+        console.self.logger.info(f"[red]❌ 无法导入测试器: {e}[/red]")
+        console.self.logger.info(f"[yellow]验证模块导入失败，请检查安装[/yellow]")
         raise typer.Exit(1)
 
     # 创建测试器
@@ -153,8 +153,8 @@ def validate(
 
     # 设置详细输出
     if verbose:
-        console.print(f"📁 测试目录: {tester.test_dir}")
-        console.print(f"🏠 项目根目录: {tester.project_root}")
+        console.self.logger.info(f"📁 测试目录: {tester.test_dir}")
+        console.self.logger.info(f"🏠 项目根目录: {tester.project_root}")
 
     try:
         # 运行测试
@@ -173,16 +173,16 @@ def validate(
             progress.update(task, completed=True)
 
         if success:
-            console.print("\n🎉 [bold green]PyPI发布准备验证全部通过！[/bold green]")
-            console.print("📦 [green]代码已准备好发布到PyPI[/green]")
-            console.print("✨ [green]用户pip install isage后将获得完整功能[/green]")
+            console.self.logger.info("\n🎉 [bold green]PyPI发布准备验证全部通过！[/bold green]")
+            console.self.logger.info("📦 [green]代码已准备好发布到PyPI[/green]")
+            console.self.logger.info("✨ [green]用户pip install isage后将获得完整功能[/green]")
         else:
-            console.print("\n⚠️  [bold yellow]PyPI发布准备验证部分失败[/bold yellow]")
-            console.print("🔧 [yellow]建议在发布到PyPI前修复这些问题[/yellow]")
+            console.self.logger.info("\n⚠️  [bold yellow]PyPI发布准备验证部分失败[/bold yellow]")
+            console.self.logger.info("🔧 [yellow]建议在发布到PyPI前修复这些问题[/yellow]")
 
             if not cleanup:
-                console.print(f"💡 [blue]测试环境保留在: {tester.test_dir}[/blue]")
-                console.print("💡 [blue]可以手动检查或重新运行测试[/blue]")
+                console.self.logger.info(f"💡 [blue]测试环境保留在: {tester.test_dir}[/blue]")
+                console.self.logger.info("💡 [blue]可以手动检查或重新运行测试[/blue]")
 
         # 清理
         if cleanup and success:
@@ -195,21 +195,21 @@ def validate(
                 task = progress.add_task("清理中...", total=None)
                 tester.cleanup()
                 progress.update(task, completed=True)
-            console.print("🧹 [green]测试环境已清理[/green]")
+            console.self.logger.info("🧹 [green]测试环境已清理[/green]")
 
         return success
 
     except KeyboardInterrupt:
-        console.print("\n⚠️  [yellow]测试被用户中断[/yellow]")
+        console.self.logger.info("\n⚠️  [yellow]测试被用户中断[/yellow]")
         if cleanup:
             tester.cleanup()
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"\n❌ [red]测试过程中发生异常: {e}[/red]")
+        console.self.logger.info(f"\n❌ [red]测试过程中发生异常: {e}[/red]")
         if verbose:
             import traceback
 
-            console.print(traceback.format_exc())
+            console.self.logger.info(traceback.format_exc())
         raise typer.Exit(1)
 
 
@@ -222,7 +222,7 @@ def check(
 
     检查wheel包是否已构建，以及基本的包信息。
     """
-    console.print(f"🔍 [bold blue]检查包构建状态: {package}[/bold blue]")
+    console.self.logger.info(f"🔍 [bold blue]检查包构建状态: {package}[/bold blue]")
 
     # 查找项目根目录
     current_dir = Path.cwd()
@@ -234,31 +234,31 @@ def check(
             break
         project_root = project_root.parent
     else:
-        console.print(f"[red]❌ 未找到{package}包目录[/red]")
+        console.self.logger.info(f"[red]❌ 未找到{package}包目录[/red]")
         raise typer.Exit(1)
 
     package_dir = project_root / "packages" / package
     dist_dir = package_dir / "dist"
 
-    console.print(f"📁 包目录: {package_dir}")
+    console.self.logger.info(f"📁 包目录: {package_dir}")
 
     if not dist_dir.exists():
-        console.print(f"[yellow]⚠️  dist目录不存在: {dist_dir}[/yellow]")
-        console.print("[blue]💡 运行 sage dev pypi build 构建包[/blue]")
+        console.self.logger.info(f"[yellow]⚠️  dist目录不存在: {dist_dir}[/yellow]")
+        console.self.logger.info("[blue]💡 运行 sage dev pypi build 构建包[/blue]")
         return False
 
     # 查找wheel文件
     wheel_files = list(dist_dir.glob("*.whl"))
     if not wheel_files:
-        console.print(f"[yellow]⚠️  未找到wheel文件在: {dist_dir}[/yellow]")
-        console.print("[blue]💡 运行 sage dev pypi build 构建包[/blue]")
+        console.self.logger.info(f"[yellow]⚠️  未找到wheel文件在: {dist_dir}[/yellow]")
+        console.self.logger.info("[blue]💡 运行 sage dev pypi build 构建包[/blue]")
         return False
 
-    console.print(f"✅ [green]找到 {len(wheel_files)} 个wheel文件:[/green]")
+    console.self.logger.info(f"✅ [green]找到 {len(wheel_files)} 个wheel文件:[/green]")
     for wheel_file in wheel_files:
         file_size = wheel_file.stat().st_size / 1024  # KB
         file_time = time.ctime(wheel_file.stat().st_mtime)
-        console.print(f"  📦 {wheel_file.name} ({file_size:.1f}KB, {file_time})")
+        console.self.logger.info(f"  📦 {wheel_file.name} ({file_size:.1f}KB, {file_time})")
 
         if verbose:
             # 显示wheel内容概览
@@ -277,11 +277,11 @@ def check(
                     text=True,
                 )
                 if result.returncode == 0:
-                    console.print(f"    📋 wheel内容检查通过")
+                    console.self.logger.info(f"    📋 wheel内容检查通过")
                 else:
-                    console.print(f"    ⚠️  wheel内容检查失败: {result.stderr}")
+                    console.self.logger.info(f"    ⚠️  wheel内容检查失败: {result.stderr}")
             except FileNotFoundError:
-                console.print("    💡 安装wheel工具以获取更详细信息: pip install wheel")
+                console.self.logger.info("    💡 安装wheel工具以获取更详细信息: pip install wheel")
 
     return True
 
@@ -296,7 +296,7 @@ def build(
 
     清理并重新构建指定的包。
     """
-    console.print(f"🔨 [bold blue]构建包: {package}[/bold blue]")
+    console.self.logger.info(f"🔨 [bold blue]构建包: {package}[/bold blue]")
 
     # 查找项目根目录
     current_dir = Path.cwd()
@@ -308,14 +308,14 @@ def build(
             break
         project_root = project_root.parent
     else:
-        console.print(f"[red]❌ 未找到{package}包目录[/red]")
+        console.self.logger.info(f"[red]❌ 未找到{package}包目录[/red]")
         raise typer.Exit(1)
 
     package_dir = project_root / "packages" / package
-    console.print(f"📁 包目录: {package_dir}")
+    console.self.logger.info(f"📁 包目录: {package_dir}")
 
     if not (package_dir / "setup.py").exists():
-        console.print(f"[red]❌ 未找到setup.py在: {package_dir}[/red]")
+        console.self.logger.info(f"[red]❌ 未找到setup.py在: {package_dir}[/red]")
         raise typer.Exit(1)
 
     try:
@@ -334,10 +334,10 @@ def build(
                     if dir_path.exists():
                         shutil.rmtree(dir_path)
                         if verbose:
-                            console.print(f"🧹 清理: {dir_path}")
+                            console.self.logger.info(f"🧹 清理: {dir_path}")
 
                 progress.update(task, completed=True)
-            console.print("✅ [green]清理完成[/green]")
+            console.self.logger.info("✅ [green]清理完成[/green]")
 
         # 构建wheel包
         with Progress(
@@ -359,32 +359,32 @@ def build(
             progress.update(task, completed=True)
 
         if result.returncode == 0:
-            console.print("✅ [green]构建成功[/green]")
+            console.self.logger.info("✅ [green]构建成功[/green]")
 
             # 显示构建结果
             dist_dir = package_dir / "dist"
             if dist_dir.exists():
                 wheel_files = list(dist_dir.glob("*.whl"))
                 if wheel_files:
-                    console.print(
+                    console.self.logger.info(
                         f"📦 [green]生成了 {len(wheel_files)} 个wheel文件:[/green]"
                     )
                     for wheel_file in wheel_files:
                         file_size = wheel_file.stat().st_size / 1024  # KB
-                        console.print(f"  • {wheel_file.name} ({file_size:.1f}KB)")
+                        console.self.logger.info(f"  • {wheel_file.name} ({file_size:.1f}KB)")
 
             return True
         else:
-            console.print(f"[red]❌ 构建失败[/red]")
+            console.self.logger.info(f"[red]❌ 构建失败[/red]")
             if not verbose and result.stderr:
-                console.print(f"错误信息: {result.stderr}")
+                console.self.logger.info(f"错误信息: {result.stderr}")
             return False
 
     except subprocess.TimeoutExpired:
-        console.print("[red]❌ 构建超时[/red]")
+        console.self.logger.info("[red]❌ 构建超时[/red]")
         return False
     except Exception as e:
-        console.print(f"[red]❌ 构建异常: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 构建异常: {e}[/red]")
         return False
 
 
@@ -398,9 +398,9 @@ def clean(
     清理指定包或所有包的构建文件。
     """
     if all_packages:
-        console.print("🧹 [bold blue]清理所有包的构建文件[/bold blue]")
+        console.self.logger.info("🧹 [bold blue]清理所有包的构建文件[/bold blue]")
     else:
-        console.print(f"🧹 [bold blue]清理包构建文件: {package}[/bold blue]")
+        console.self.logger.info(f"🧹 [bold blue]清理包构建文件: {package}[/bold blue]")
 
     # 查找项目根目录
     current_dir = Path.cwd()
@@ -412,7 +412,7 @@ def clean(
             break
         project_root = project_root.parent
     else:
-        console.print("[red]❌ 未找到packages目录[/red]")
+        console.self.logger.info("[red]❌ 未找到packages目录[/red]")
         raise typer.Exit(1)
 
     packages_dir = project_root / "packages"
@@ -427,24 +427,24 @@ def clean(
     for pkg_name in target_packages:
         pkg_dir = packages_dir / pkg_name
         if not pkg_dir.exists():
-            console.print(f"[yellow]⚠️  包目录不存在: {pkg_dir}[/yellow]")
+            console.self.logger.info(f"[yellow]⚠️  包目录不存在: {pkg_dir}[/yellow]")
             continue
 
-        console.print(f"📁 清理包: {pkg_name}")
+        console.self.logger.info(f"📁 清理包: {pkg_name}")
 
         for dir_name in ["dist", "build", f"{pkg_name}.egg-info"]:
             dir_path = pkg_dir / dir_name
             if dir_path.exists():
                 try:
                     shutil.rmtree(dir_path)
-                    console.print(f"  ✅ 清理: {dir_name}")
+                    console.self.logger.info(f"  ✅ 清理: {dir_name}")
                     cleaned_count += 1
                 except Exception as e:
-                    console.print(f"  ❌ 清理失败 {dir_name}: {e}")
+                    console.self.logger.info(f"  ❌ 清理失败 {dir_name}: {e}")
             else:
-                console.print(f"  ℹ️  不存在: {dir_name}")
+                console.self.logger.info(f"  ℹ️  不存在: {dir_name}")
 
-    console.print(f"🎉 [green]清理完成，处理了 {cleaned_count} 个目录[/green]")
+    console.self.logger.info(f"🎉 [green]清理完成，处理了 {cleaned_count} 个目录[/green]")
 
 
 @app.command()
@@ -472,11 +472,11 @@ def publish(
     💡 建议发布前先运行: sage dev pypi validate
     """
     if dry_run:
-        console.print("🧪 [bold yellow]PyPI发布 - TestPyPI模式（预演）[/bold yellow]")
+        console.self.logger.info("🧪 [bold yellow]PyPI发布 - TestPyPI模式（预演）[/bold yellow]")
     else:
-        console.print("🚀 [bold blue]PyPI发布 - 正式发布模式[/bold blue]")
+        console.self.logger.info("🚀 [bold blue]PyPI发布 - 正式发布模式[/bold blue]")
 
-    console.print("=" * 60)
+    console.self.logger.info("=" * 60)
 
     # 查找项目根目录
     current_dir = Path(__file__).resolve()
@@ -487,7 +487,7 @@ def publish(
             break
         project_root = project_root.parent
     else:
-        console.print("[red]❌ 未找到packages目录[/red]")
+        console.self.logger.info("[red]❌ 未找到packages目录[/red]")
         raise typer.Exit(1)
 
     # 检查依赖
@@ -511,45 +511,45 @@ def publish(
 
         if success:
             if dry_run:
-                console.print("\n🎉 [bold green]TestPyPI发布成功！[/bold green]")
-                console.print("🔍 [green]请在TestPyPI上验证包的完整性[/green]")
-                console.print(
+                console.self.logger.info("\n🎉 [bold green]TestPyPI发布成功！[/bold green]")
+                console.self.logger.info("🔍 [green]请在TestPyPI上验证包的完整性[/green]")
+                console.self.logger.info(
                     "💡 [blue]验证无误后可运行正式发布: sage dev pypi publish[/blue]"
                 )
             else:
-                console.print("\n🎉 [bold green]PyPI发布成功！[/bold green]")
-                console.print("📦 [green]所有包已成功发布到PyPI[/green]")
-                console.print("✨ [green]用户现在可以通过pip install isage安装[/green]")
+                console.self.logger.info("\n🎉 [bold green]PyPI发布成功！[/bold green]")
+                console.self.logger.info("📦 [green]所有包已成功发布到PyPI[/green]")
+                console.self.logger.info("✨ [green]用户现在可以通过pip install isage安装[/green]")
         else:
-            console.print("\n⚠️  [bold yellow]发布过程中遇到问题[/bold yellow]")
-            console.print("🔧 [yellow]请查看日志并解决问题后重试[/yellow]")
+            console.self.logger.info("\n⚠️  [bold yellow]发布过程中遇到问题[/bold yellow]")
+            console.self.logger.info("🔧 [yellow]请查看日志并解决问题后重试[/yellow]")
             raise typer.Exit(1)
 
     except KeyboardInterrupt:
-        console.print("\n⚠️  [yellow]发布被用户中断[/yellow]")
+        console.self.logger.info("\n⚠️  [yellow]发布被用户中断[/yellow]")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"\n❌ [red]发布过程中发生异常: {e}[/red]")
+        console.self.logger.info(f"\n❌ [red]发布过程中发生异常: {e}[/red]")
         if verbose:
             import traceback
 
-            console.print(traceback.format_exc())
+            console.self.logger.info(traceback.format_exc())
         raise typer.Exit(1)
 
 
 def _check_publish_dependencies() -> bool:
     """检查发布所需的依赖"""
-    console.print("🔍 [blue]检查发布依赖...[/blue]")
+    console.self.logger.info("🔍 [blue]检查发布依赖...[/blue]")
 
     # 检查twine
     try:
         result = subprocess.run(["twine", "--version"], capture_output=True, text=True)
         if result.returncode != 0:
-            console.print("[red]❌ twine未正确安装[/red]")
+            console.self.logger.info("[red]❌ twine未正确安装[/red]")
             return False
-        console.print("✅ twine已安装")
+        console.self.logger.info("✅ twine已安装")
     except FileNotFoundError:
-        console.print("[red]❌ twine未安装，请运行: pip install twine[/red]")
+        console.self.logger.info("[red]❌ twine未安装，请运行: pip install twine[/red]")
         return False
 
     # 检查build
@@ -558,20 +558,20 @@ def _check_publish_dependencies() -> bool:
             [sys.executable, "-m", "build", "--help"], capture_output=True, text=True
         )
         if result.returncode != 0:
-            console.print("[red]❌ build模块未正确安装[/red]")
+            console.self.logger.info("[red]❌ build模块未正确安装[/red]")
             return False
-        console.print("✅ build模块已安装")
+        console.self.logger.info("✅ build模块已安装")
     except FileNotFoundError:
-        console.print("[red]❌ build模块未安装，请运行: pip install build[/red]")
+        console.self.logger.info("[red]❌ build模块未安装，请运行: pip install build[/red]")
         return False
 
-    console.print("✅ [green]所有发布依赖检查通过[/green]")
+    console.self.logger.info("✅ [green]所有发布依赖检查通过[/green]")
     return True
 
 
 def _check_pypi_credentials(project_root: Path, dry_run: bool = False) -> bool:
     """检查PyPI认证配置"""
-    console.print("🔐 [blue]检查PyPI认证配置...[/blue]")
+    console.self.logger.info("🔐 [blue]检查PyPI认证配置...[/blue]")
 
     # 检查配置文件位置
     pypirc_paths = [
@@ -586,21 +586,21 @@ def _check_pypi_credentials(project_root: Path, dry_run: bool = False) -> bool:
             break
 
     if not pypirc_found:
-        console.print("[red]❌ 未找到.pypirc配置文件[/red]")
-        console.print("\n📝 [yellow]首次使用需要配置PyPI认证信息：[/yellow]")
+        console.self.logger.info("[red]❌ 未找到.pypirc配置文件[/red]")
+        console.self.logger.info("\n📝 [yellow]首次使用需要配置PyPI认证信息：[/yellow]")
 
         # 提示配置步骤
-        console.print("\n🔧 [bold blue]配置步骤：[/bold blue]")
-        console.print("1️⃣  获取PyPI API令牌：")
-        console.print("   • 正式PyPI: https://pypi.org/manage/account/token/")
-        console.print("   • 测试PyPI: https://test.pypi.org/manage/account/token/")
+        console.self.logger.info("\n🔧 [bold blue]配置步骤：[/bold blue]")
+        console.self.logger.info("1️⃣  获取PyPI API令牌：")
+        console.self.logger.info("   • 正式PyPI: https://pypi.org/manage/account/token/")
+        console.self.logger.info("   • 测试PyPI: https://test.pypi.org/manage/account/token/")
 
-        console.print(f"\n2️⃣  创建配置文件: {project_root}/.pypirc")
-        console.print("   [dim]（或者 ~/.pypirc 用于全局配置）[/dim]")
+        console.self.logger.info(f"\n2️⃣  创建配置文件: {project_root}/.pypirc")
+        console.self.logger.info("   [dim]（或者 ~/.pypirc 用于全局配置）[/dim]")
 
-        console.print("\n3️⃣  配置文件内容示例：")
-        console.print("[dim]# 在项目根目录或用户主目录创建 .pypirc 文件[/dim]")
-        console.print(
+        console.self.logger.info("\n3️⃣  配置文件内容示例：")
+        console.self.logger.info("[dim]# 在项目根目录或用户主目录创建 .pypirc 文件[/dim]")
+        console.self.logger.info(
             """[cyan]
 [pypi]
   username = __token__
@@ -611,14 +611,14 @@ def _check_pypi_credentials(project_root: Path, dry_run: bool = False) -> bool:
   password = pypi-YOUR_TESTPYPI_TOKEN_HERE[/cyan]"""
         )
 
-        console.print("\n💡 [yellow]提示：[/yellow]")
-        console.print("• 令牌以 'pypi-' 开头")
-        console.print("• 正式发布前建议先用 --dry-run 测试")
-        console.print("• 配置文件会被自动检测并使用")
+        console.self.logger.info("\n💡 [yellow]提示：[/yellow]")
+        console.self.logger.info("• 令牌以 'pypi-' 开头")
+        console.self.logger.info("• 正式发布前建议先用 --dry-run 测试")
+        console.self.logger.info("• 配置文件会被自动检测并使用")
 
         return False
 
-    console.print(f"✅ 找到配置文件: {pypirc_found}")
+    console.self.logger.info(f"✅ 找到配置文件: {pypirc_found}")
 
     # 验证配置文件格式
     try:
@@ -629,20 +629,20 @@ def _check_pypi_credentials(project_root: Path, dry_run: bool = False) -> bool:
         target_section = "testpypi" if dry_run else "pypi"
 
         if f"[{target_section}]" not in content:
-            console.print(f"[red]❌ 配置文件缺少 [{target_section}] 节[/red]")
-            console.print(
+            console.self.logger.info(f"[red]❌ 配置文件缺少 [{target_section}] 节[/red]")
+            console.self.logger.info(
                 f"💡 [yellow]请在 {pypirc_found} 中添加 {target_section} 配置[/yellow]"
             )
             return False
 
         if "username" not in content or "password" not in content:
-            console.print("[red]❌ 配置文件缺少username或password字段[/red]")
+            console.self.logger.info("[red]❌ 配置文件缺少username或password字段[/red]")
             return False
 
-        console.print(f"✅ {target_section} 配置检查通过")
+        console.self.logger.info(f"✅ {target_section} 配置检查通过")
 
     except Exception as e:
-        console.print(f"[red]❌ 读取配置文件失败: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 读取配置文件失败: {e}[/red]")
         return False
 
     return True
@@ -667,7 +667,7 @@ class PyPIPublisher:
         mode = "testpypi" if dry_run else "pypi"
         self.log_file = self.log_dir / f"publish_{mode}_{timestamp}.log"
 
-        console.print(f"📝 详细日志: {self.log_file}")
+        console.self.logger.info(f"📝 详细日志: {self.log_file}")
 
         # 初始化日志
         with open(self.log_file, "w", encoding="utf-8") as f:
@@ -691,7 +691,7 @@ class PyPIPublisher:
 
     def clean_build_artifacts(self):
         """清理构建文件"""
-        console.print("\n🧹 [blue]清理构建产物...[/blue]")
+        console.self.logger.info("\n🧹 [blue]清理构建产物...[/blue]")
 
         packages_dir = self.project_root / "packages"
         cleaned_count = 0
@@ -709,7 +709,7 @@ class PyPIPublisher:
                             shutil.rmtree(item)
                             cleaned_count += 1
                             if self.verbose:
-                                console.print(f"  清理: {item}")
+                                console.self.logger.info(f"  清理: {item}")
                 else:
                     # 处理普通目录
                     item = package_dir / pattern
@@ -717,9 +717,9 @@ class PyPIPublisher:
                         shutil.rmtree(item)
                         cleaned_count += 1
                         if self.verbose:
-                            console.print(f"  清理: {item}")
+                            console.self.logger.info(f"  清理: {item}")
 
-        console.print(f"✅ [green]清理完成，处理了 {cleaned_count} 个目录[/green]")
+        console.self.logger.info(f"✅ [green]清理完成，处理了 {cleaned_count} 个目录[/green]")
         self.log_to_file(f"构建产物清理完成，处理了 {cleaned_count} 个目录")
 
     def build_package(self, package_path: Path) -> bool:
@@ -727,7 +727,7 @@ class PyPIPublisher:
         package_name = package_path.name
 
         if not (package_path / "pyproject.toml").exists():
-            console.print(f"  ❌ {package_name}: 缺少pyproject.toml")
+            console.self.logger.info(f"  ❌ {package_name}: 缺少pyproject.toml")
             self.log_to_file(f"{package_name}: 构建失败 - 缺少pyproject.toml")
             return False
 
@@ -751,22 +751,22 @@ class PyPIPublisher:
                 self.log_to_file(result.stderr)
 
             if result.returncode == 0:
-                console.print(f"  ✅ {package_name}: 构建完成")
+                console.self.logger.info(f"  ✅ {package_name}: 构建完成")
                 self.log_to_file(f"{package_name}: 构建成功")
                 return True
             else:
-                console.print(f"  ❌ {package_name}: 构建失败")
+                console.self.logger.info(f"  ❌ {package_name}: 构建失败")
                 self.log_to_file(
                     f"{package_name}: 构建失败，退出码: {result.returncode}"
                 )
                 return False
 
         except subprocess.TimeoutExpired:
-            console.print(f"  ❌ {package_name}: 构建超时")
+            console.self.logger.info(f"  ❌ {package_name}: 构建超时")
             self.log_to_file(f"{package_name}: 构建超时")
             return False
         except Exception as e:
-            console.print(f"  ❌ {package_name}: 构建异常 - {e}")
+            console.self.logger.info(f"  ❌ {package_name}: 构建异常 - {e}")
             self.log_to_file(f"{package_name}: 构建异常 - {e}")
             return False
 
@@ -776,7 +776,7 @@ class PyPIPublisher:
         dist_dir = package_path / "dist"
 
         if not dist_dir.exists():
-            console.print(f"  ❌ {package_name}: 缺少dist目录")
+            console.self.logger.info(f"  ❌ {package_name}: 缺少dist目录")
             self.log_to_file(f"{package_name}: 上传失败 - 缺少dist目录")
             return False
 
@@ -817,7 +817,7 @@ class PyPIPublisher:
                 self.log_to_file(result.stderr)
 
             if result.returncode == 0:
-                console.print(f"  ✅ {package_name}: 上传成功")
+                console.self.logger.info(f"  ✅ {package_name}: 上传成功")
                 self.log_to_file(f"{package_name}: 上传成功")
                 return True
             else:
@@ -856,40 +856,40 @@ class PyPIPublisher:
                     phrase in error_lower
                     for phrase in ["file already exists", "already exists"]
                 ):
-                    console.print(f"  ⚠️  {package_name}: 版本已存在，跳过")
+                    console.self.logger.info(f"  ⚠️  {package_name}: 版本已存在，跳过")
                     self.log_to_file(f"{package_name}: 版本已存在，跳过")
                     return True
                 elif "401" in error_output or "unauthorized" in error_lower:
-                    console.print(f"  ❌ {package_name}: 认证失败")
-                    console.print("     💡 请检查PyPI令牌配置")
+                    console.self.logger.info(f"  ❌ {package_name}: 认证失败")
+                    console.self.logger.info("     💡 请检查PyPI令牌配置")
                     self.log_to_file(f"{package_name}: 认证失败")
                     return False
                 elif "403" in error_output or "forbidden" in error_lower:
-                    console.print(f"  ❌ {package_name}: 无权限上传")
-                    console.print("     💡 请检查包名和权限")
+                    console.self.logger.info(f"  ❌ {package_name}: 无权限上传")
+                    console.self.logger.info("     💡 请检查包名和权限")
                     self.log_to_file(f"{package_name}: 无权限上传")
                     return False
                 elif "400" in error_output or "bad request" in error_lower:
-                    console.print(f"  ❌ {package_name}: 上传请求无效")
-                    console.print("     💡 可能是包元数据有问题")
+                    console.self.logger.info(f"  ❌ {package_name}: 上传请求无效")
+                    console.self.logger.info("     💡 可能是包元数据有问题")
                     if self.dry_run:
-                        console.print("     💡 TestPyPI也需要有效的认证配置")
+                        console.self.logger.info("     💡 TestPyPI也需要有效的认证配置")
                     self.log_to_file(f"{package_name}: 上传请求无效 (400)")
                     return False
                 else:
-                    console.print(f"  ❌ {package_name}: 上传失败")
-                    console.print(f"     错误详情: {error_output[:100]}")
+                    console.self.logger.info(f"  ❌ {package_name}: 上传失败")
+                    console.self.logger.info(f"     错误详情: {error_output[:100]}")
                     self.log_to_file(
                         f"{package_name}: 上传失败，退出码: {result.returncode}"
                     )
                     return False
 
         except subprocess.TimeoutExpired:
-            console.print(f"  ❌ {package_name}: 上传超时")
+            console.self.logger.info(f"  ❌ {package_name}: 上传超时")
             self.log_to_file(f"{package_name}: 上传超时")
             return False
         except Exception as e:
-            console.print(f"  ❌ {package_name}: 上传异常 - {e}")
+            console.self.logger.info(f"  ❌ {package_name}: 上传异常 - {e}")
             self.log_to_file(f"{package_name}: 上传异常 - {e}")
             return False
 
@@ -921,19 +921,19 @@ class PyPIPublisher:
             package_path = packages_dir / package_name
 
             if not package_path.exists():
-                console.print(f"\n⚠️  {package_name}: 目录不存在，跳过")
+                console.self.logger.info(f"\n⚠️  {package_name}: 目录不存在，跳过")
                 skipped_count += 1
                 table.add_row(package_name, "N/A", "N/A", "❌ 跳过")
                 continue
 
-            console.print(f"\n📦 [bold]处理包: {package_name}[/bold]")
+            console.self.logger.info(f"\n📦 [bold]处理包: {package_name}[/bold]")
 
             build_success = True
             upload_success = True
 
             # 构建包
             if not skip_build:
-                console.print("  🔨 构建中...")
+                console.self.logger.info("  🔨 构建中...")
                 build_success = self.build_package(package_path)
                 if not build_success:
                     failed_count += 1
@@ -941,7 +941,7 @@ class PyPIPublisher:
                     continue
 
             # 上传包
-            console.print("  ⬆️  上传中...")
+            console.self.logger.info("  ⬆️  上传中...")
             upload_success = self.upload_package(package_path)
 
             if upload_success:
@@ -954,14 +954,14 @@ class PyPIPublisher:
                 table.add_row(package_name, build_status, "❌ 失败", "❌ 失败")
 
         # 显示结果
-        console.print("\n")
-        console.print(table)
+        console.self.logger.info("\n")
+        console.self.logger.info(table)
 
-        console.print(f"\n📊 [bold]发布摘要:[/bold]")
-        console.print(f"✅ 成功: {success_count}")
-        console.print(f"⚠️  跳过: {skipped_count}")
-        console.print(f"❌ 失败: {failed_count}")
-        console.print(f"📈 总计: {success_count + skipped_count + failed_count}")
+        console.self.logger.info(f"\n📊 [bold]发布摘要:[/bold]")
+        console.self.logger.info(f"✅ 成功: {success_count}")
+        console.self.logger.info(f"⚠️  跳过: {skipped_count}")
+        console.self.logger.info(f"❌ 失败: {failed_count}")
+        console.self.logger.info(f"📈 总计: {success_count + skipped_count + failed_count}")
 
         # 记录摘要到日志
         self.log_to_file(

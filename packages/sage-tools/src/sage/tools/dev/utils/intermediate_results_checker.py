@@ -188,9 +188,7 @@ class IntermediateResultsChecker:
             self.logger.info("✅ 中间结果放置检查通过 - 项目根目录整洁")
             return True
         else:
-            self.logger.info(
-                f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题:"
-            )
+            self.logger.info(f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题:")
             for violation in check_result["violations"]:
                 self.logger.info(
                     f"  - {violation['path']} ({violation['type']}): {violation['message']}"

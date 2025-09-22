@@ -1,9 +1,8 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 import socket
 import threading
 from pathlib import Path
-
-from sage.common.utils.logging.custom_logger import CustomLogger
 
 try:
     import ray
@@ -96,9 +95,7 @@ def ensure_ray_initialized(runtime_env=None):
                     sage_paths.setup_environment_variables()
                     ray_temp_dir = sage_paths.get_ray_temp_dir()
                     init_kwargs["_temp_dir"] = str(ray_temp_dir)
-                    self.logger.info(
-                        f"Ray will use SAGE temp directory: {ray_temp_dir}"
-                    )
+                    self.logger.info(f"Ray will use SAGE temp directory: {ray_temp_dir}")
                 except Exception as e:
                     self.logger.info(
                         f"Warning: Failed to set Ray temp directory via output_paths: {e}"
@@ -115,9 +112,7 @@ def ensure_ray_initialized(runtime_env=None):
                     )
 
             if ray_temp_dir is None:
-                self.logger.info(
-                    "SAGE paths not available, Ray will use default temp directory"
-                )
+                self.logger.info("SAGE paths not available, Ray will use default temp directory")
 
             # 如果提供了runtime_env，使用它；否则使用默认的sage配置
             if runtime_env is not None:

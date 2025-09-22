@@ -448,9 +448,7 @@ class ClassDependencyChecker:
             return usages
 
         except Exception as e:
-            self.logger.info(
-                f"Warning: Could not analyze {file_path} for class {class_name}: {e}"
-            )
+            self.logger.info(f"Warning: Could not analyze {file_path} for class {class_name}: {e}")
             return []
 
     def _find_inheritance_chains(self, analysis: Dict) -> List[List[str]]:

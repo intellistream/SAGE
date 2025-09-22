@@ -181,9 +181,7 @@ class BatchProcessor(SinkFunction):
 
     def execute(self, data):
         self.processed_count += 1
-        logging.info(
-            f"[Processor-{self.name}] Processed item #{self.processed_count}: {data}"
-        )
+        logging.info(f"[Processor-{self.name}] Processed item #{self.processed_count}: {data}")
         return data
 
 

@@ -56,9 +56,7 @@ class EnhancedTestRunner:
                 self.test_logs_dir = fallback_sage_paths.logs_dir
                 self.reports_dir = fallback_sage_paths.reports_dir
             except Exception as fallback_e:
-                self.logger.info(
-                    f"Error: Could not setup fallback SAGE environment: {fallback_e}"
-                )
+                self.logger.info(f"Error: Could not setup fallback SAGE environment: {fallback_e}")
                 # 最后的回退：使用项目根目录的.sage
                 sage_dir = self.project_root / ".sage"
                 self.test_logs_dir = sage_dir / "logs"
@@ -434,9 +432,7 @@ class EnhancedTestRunner:
 
         for i, test_file in enumerate(test_files, 1):
             simplified_path = self._simplify_test_path(test_file)
-            self.logger.info(
-                f"[{i}/{total_tests}] {simplified_path}...", end="", flush=True
-            )
+            self.logger.info(f"[{i}/{total_tests}] {simplified_path}...", end="", flush=True)
             result = self._run_single_test_file(test_file, timeout, quick)
 
             # Show immediate result on same line
@@ -490,9 +486,7 @@ class EnhancedTestRunner:
                     results.append(result)
                 except Exception as e:
                     simplified_path = self._simplify_test_path(test_file)
-                    self.logger.info(
-                        f"[{completed}/{total_tests}] {simplified_path} ❌ ERROR"
-                    )
+                    self.logger.info(f"[{completed}/{total_tests}] {simplified_path} ❌ ERROR")
                     results.append(
                         {
                             "test_file": simplified_path,

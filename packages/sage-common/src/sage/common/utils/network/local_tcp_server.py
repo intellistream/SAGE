@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 import os
 import pickle
@@ -6,8 +7,6 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Optional, Union
-
-from sage.common.utils.logging.custom_logger import CustomLogger
 
 
 class BaseTcpServer(ABC):
@@ -235,9 +234,7 @@ class BaseTcpServer(ABC):
                             f"Error processing message from {address}: {e}"
                         )
                     except:
-                        self.logger.info(
-                            f"Error processing message from {address}: {e}"
-                        )
+                        self.logger.info(f"Error processing message from {address}: {e}")
                     # 发送错误响应
                     error_response = self._create_error_response(
                         {"request_id": None},

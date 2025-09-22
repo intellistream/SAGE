@@ -533,18 +533,9 @@ class ExampleTestFilters:
             if not text:
                 return False
             heavy_keywords = [
-                "uvicorn",
-                "fastapi",
-                "flask",
-                "gradio",
-                "streamlit",
-                "ray.init",
-                "while True",
-                "run_forever",
-                "serve(",
-                "multiprocessing",
-                "spark",
-                "mlflow",
+                "uvicorn", "fastapi", "flask", "gradio", "streamlit",
+                "ray.init", "while True", "run_forever", "serve(",
+                "multiprocessing", "spark", "mlflow",
             ]
             return any(k in text for k in heavy_keywords)
 

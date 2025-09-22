@@ -1,6 +1,5 @@
 # 此例意在说明 Fileter 算子的使用
 import logging
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.filter_function import FilterFunction

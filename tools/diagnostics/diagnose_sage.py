@@ -36,9 +36,7 @@ def check_sage_installation():
         import sage.kernel
 
         logging.info(f"✅ sage.kernel 导入成功")
-        logging.info(
-            f"   路径: {getattr(sage.kernel, '__file__', 'namespace package')}"
-        )
+        logging.info(f"   路径: {getattr(sage.kernel, '__file__', 'namespace package')}")
         if hasattr(sage.kernel, "__path__"):
             logging.info(f"   命名空间路径: {sage.kernel.__path__}")
 

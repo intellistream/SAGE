@@ -160,15 +160,11 @@ def main():
         logging.info(
             "  sage-license-vendor list                        # List all generated licenses"
         )
-        logging.info(
-            "  sage-license-vendor revoke <license-key>        # Revoke a license"
-        )
+        logging.info("  sage-license-vendor revoke <license-key>        # Revoke a license")
         logging.info("")
         logging.info("Examples:")
         logging.info("  sage-license-vendor generate 'Company ABC' 365")
-        logging.info(
-            "  sage-license-vendor generate 'Customer XYZ'     # Default 365 days"
-        )
+        logging.info("  sage-license-vendor generate 'Customer XYZ'     # Default 365 days")
         logging.info("  sage-license-vendor revoke SAGE-COMM-2024-ABCD-EFGH-1234")
         return
 

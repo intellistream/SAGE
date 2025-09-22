@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE Meta Package Setup Script
 提供安装后的用户友好提示
 """

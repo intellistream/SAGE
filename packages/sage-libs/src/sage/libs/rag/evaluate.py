@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 from collections import Counter
 
 from rouge import Rouge

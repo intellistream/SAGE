@@ -1,5 +1,4 @@
 import logging
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.sink_function import SinkFunction

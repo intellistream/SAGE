@@ -51,7 +51,7 @@ class ProjectStatusChecker:
         ]
 
         for check_name, check_desc, check_func in checks:
-            console.print(f"🔍 {check_desc}...")
+            console.self.logger.info(f"🔍 {check_desc}...")
             try:
                 result = check_func()
                 status_data["checks"][check_name] = {
@@ -66,7 +66,7 @@ class ProjectStatusChecker:
                     "status": "error",
                     "error": error_msg,
                 }
-                console.print(f"❌ {check_desc}失败: {error_msg}")
+                console.self.logger.info(f"❌ {check_desc}失败: {error_msg}")
 
         return status_data
 
@@ -295,7 +295,7 @@ class ProjectStatusChecker:
             title=f"✅ {check_name}",
             border_style="green",
         )
-        console.print(panel)
+        console.self.logger.info(panel)
 
     def _format_result_for_display(self, result: Dict[str, Any]) -> str:
         """格式化结果用于显示"""

@@ -594,9 +594,7 @@ class IssueDataManager:
                     self.logger.info(f"❌ 迁移文件 {md_file} 失败: {e}")
                     results["failed"] += 1
 
-        self.logger.info(
-            f"📊 迁移完成: 处理了 {results['markdown_processed']} 个markdown文件"
-        )
+        self.logger.info(f"📊 迁移完成: 处理了 {results['markdown_processed']} 个markdown文件")
         self.logger.info(f"📊 创建了 {results['data_created']} 个数据文件")
 
         return results
