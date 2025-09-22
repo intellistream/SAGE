@@ -80,7 +80,7 @@ if [[ "$BUILD_CPP_DEPS" == "1" ]]; then
         fi
       fi
     else
-  echo "Skipping system deps: apt-get not available on this system"
+    echo "Skipping system deps: apt-get not available on this system"
     fi
   else
     echo "C++ components not detected; skipping system deps"
