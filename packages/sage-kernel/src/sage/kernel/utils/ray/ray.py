@@ -11,6 +11,12 @@ except ImportError:
     ray = None
     RAY_AVAILABLE = False
 
+try:
+    from sage.common.config.output_paths import get_sage_paths
+    SAGE_OUTPUT_PATHS_AVAILABLE = True
+except ImportError:
+    SAGE_OUTPUT_PATHS_AVAILABLE = False
+
 
 def get_sage_kernel_runtime_env():
     """
@@ -73,7 +79,32 @@ def ensure_ray_initialized(runtime_env=None):
                 "num_gpus": 0,  # 不使用GPU
                 "object_store_memory": 200000000,  # 200MB object store
                 "log_to_driver": False,  # 减少日志输出
+                "include_dashboard": False,  # 禁用dashboard减少资源占用
             }
+
+            # 设置Ray临时目录到SAGE的temp目录
+            ray_temp_dir = None
+            
+            # 使用统一的output_paths系统
+            if SAGE_OUTPUT_PATHS_AVAILABLE:
+                try:
+                    sage_paths = get_sage_paths()
+                    # 设置环境变量
+                    sage_paths.setup_environment_variables()
+                    ray_temp_dir = sage_paths.get_ray_temp_dir()
+                    init_kwargs["_temp_dir"] = str(ray_temp_dir)
+                    print(f"Ray will use SAGE temp directory: {ray_temp_dir}")
+                except Exception as e:
+                    print(f"Warning: Failed to set Ray temp directory via output_paths: {e}")
+            
+            # 如果没有成功设置，使用默认行为
+                    init_kwargs["_temp_dir"] = str(ray_temp_dir)
+                    print(f"Ray will use SAGE temp directory (fallback): {ray_temp_dir}")
+                except Exception as e:
+                    print(f"Warning: Failed to set Ray temp directory via fallback: {e}")
+            
+            if ray_temp_dir is None:
+                print("SAGE paths not available, Ray will use default temp directory")
 
             # 如果提供了runtime_env，使用它；否则使用默认的sage配置
             if runtime_env is not None:

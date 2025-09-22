@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Deque, Dict, Tuple, Union
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.communication.packet import Packet
-from sage.core.communication.stop_signal import StopSignal
+from sage.kernel.runtime.communication.router.packet import StopSignal
 from sage.core.operator.base_operator import BaseOperator
 
 if TYPE_CHECKING:

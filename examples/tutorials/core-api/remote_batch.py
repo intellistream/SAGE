@@ -1,9 +1,21 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SAGE 远程批处理测试示例
+@test:timeout=180
+@test:category=batch
+@test:requires=jobmanager
+"""
+
 import atexit
 import os
 import random
 import signal
 import subprocess
 import time
+
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction

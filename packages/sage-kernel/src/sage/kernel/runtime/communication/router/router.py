@@ -75,7 +75,7 @@ class BaseRouter(ABC):
         Args:
             stop_signal: 停止信号对象
         """
-        self.logger.info(f"Sending stop signal: {stop_signal}")
+        self.logger.debug(f"Sending stop signal: {stop_signal}")
 
         for broadcast_index, parallel_targets in self.downstream_groups.items():
             for connection in parallel_targets.values():
@@ -112,21 +112,21 @@ class BaseRouter(ABC):
 
         try:
             self.downstream_max_load = 0.0
-            self.logger.info(f"Router {self.name}: Sending packet: {packet.payload}")
-            self.logger.info(
+            self.logger.debug(f"Router {self.name}: Sending packet: {packet.payload}")
+            self.logger.debug(
                 f"Router {self.name}: Downstream groups: {list(self.downstream_groups.keys())}"
             )
             self.logger.debug(f"Emitting packet: {packet}")
 
             # 根据packet的分区信息选择路由策略
             if packet.is_keyed():
-                self.logger.info(f"Router {self.name}: Using keyed routing")
+                self.logger.debug(f"Router {self.name}: Using keyed routing")
                 result = self._route_packet(packet)
             else:
-                self.logger.info(f"Router {self.name}: Using round-robin routing")
+                self.logger.debug(f"Router {self.name}: Using round-robin routing")
                 result = self._route_round_robin_packet(packet)
 
-            self.logger.info(f"Router {self.name}: Routing result: {result}")
+            self.logger.debug(f"Router {self.name}: Routing result: {result}")
             self._adjust_delay_based_on_load()
             return True
         except Exception as e:
@@ -222,7 +222,7 @@ class BaseRouter(ABC):
             bool: 是否成功发送
         """
         try:
-            self.logger.info(
+            self.logger.debug(
                 f"Router {self.name}: Delivering packet to {connection.target_name}"
             )
 
@@ -231,13 +231,14 @@ class BaseRouter(ABC):
 
             # 通过连接的队列描述符获取队列
             target_queue = connection.queue_descriptor.get_queue()
-            self.logger.info(
+            self.logger.debug(
                 f"Router {self.name}: Got target queue: {target_queue} (type: {type(target_queue)})"
             )
 
-            # 直接发送到队列
-            target_queue.put_nowait(routed_packet)
-            self.logger.info(
+            # 使用阻塞的put()方法实现背压，而不是put_nowait()
+            # 这样当队列满时会自动等待，实现背压机制
+            target_queue.put(routed_packet, timeout=30)  # 30秒超时防止死锁
+            self.logger.debug(
                 f"Router {self.name}: Successfully sent packet to {connection.target_name}"
             )
 

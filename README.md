@@ -1,4 +1,4 @@
-# SAGE - Streaming-Augmented Generative Execution
+﻿# SAGE - Streaming-Augmented Generative Execution
 > A declarative, composable framework for building transparent LLM-powered systems through dataflow abstractions.
 [![CI](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -83,7 +83,6 @@ SAGE follows a clean separation of concerns with pluggable components that work 
 
 ### Production-Ready Features
 Built for real-world deployments with enterprise requirements:
-
 - **Distributed Execution**: Scale across multiple nodes with automatic load balancing
 - **Fault Tolerance**: Comprehensive error handling and recovery mechanisms
 - **Observability**: Detailed metrics, logging, and performance monitoring
@@ -92,33 +91,46 @@ Built for real-world deployments with enterprise requirements:
 
 ## Installation
 
-**Interactive Setup (Recommended):**
+We offer an interactive installer and explicit command flags. Developer (dev) mode is recommended when contributing.
+
+**Clone & Interactive Mode (Recommended)**
 ```bash
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
-./quickstart.sh  # Interactive menu guides you through installation options
+./quickstart.sh            # Opens interactive menu
 ```
 
-**Quick Setup:**
+**Common Non-Interactive Modes**
 ```bash
-# Install with guided setup
-pip install isage && sage doctor
+# Developer installation (editable packages + dev tools: pytest, black, mypy, pre-commit)
+./quickstart.sh --dev --yes
+
+# Minimal core only (no scientific extras)
+./quickstart.sh --minimal --yes
+
+# Standard + vLLM support
+./quickstart.sh --standard --vllm --yes
+
+# Use system Python instead of conda (not isolated)
+./quickstart.sh --minimal --pip --yes
+
+# View all flags
+./quickstart.sh --help
 ```
 
-**Advanced Options:**
+**Quick PyPI Install (Runtime Use Only)**
 ```bash
-# Command-line installation examples
-./quickstart.sh --standard          # Standard installation with scientific libraries
-./quickstart.sh --dev --vllm        # Developer mode + vLLM for local AI models
-./quickstart.sh --minimal --pip     # Minimal installation using system Python
-./quickstart.sh --help              # See all available options
+pip install isage
+sage doctor   # Basic environment diagnostics (if CLI installed)
 ```
 
-**Features:**
-- 🎯 **Interactive Menu**: User-friendly installation wizard for new users
-- 🤖 **vLLM Integration**: One-click setup for local large language model inference
-- 🐍 **Flexible Environments**: Support for both Conda and system Python environments
-- ⚡ **Multiple Modes**: Minimal, standard, and developer installation options
+> Note: PyPI install may not include optional components (e.g., vLLM); use quickstart for full capability.
+
+**Key Installation Features**
+- 🎯 Interactive menu for first-time users
+- 🤖 Optional vLLM integration with `--vllm`
+- 🐍 Supports conda (default) or system Python via `--pip`
+- ⚡ Three modes: minimal / standard / dev
 
 ## Use Cases
 
@@ -134,35 +146,56 @@ pip install isage && sage doctor
 
 ## Documentation & Resources
 
-- **Documentation**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
-- **Examples**: [examples/](./examples/) directory with tutorials and use cases
-- **Configuration**: [config/](./config/) directory with sample configurations
-- **Installation Guide**: [INSTALL_GUIDE.md](INSTALL_GUIDE.md)
+- **Documentation Site**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
+- **Examples**: [examples/](./examples/) (tutorials, rag, service, memory, etc.)
+- **Configurations**: [examples/config/](./examples/config/) sample pipeline configs
+- **Quick Reference**: [docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)
+- **Contribution Guide**: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- **Changelog (planned)**: Add a `CHANGELOG.md` (see suggestions below)
 
 ## Contributing
 
-We welcome contributions! Please check our guides before getting started:
+We welcome contributions! Please review the updated guidelines before opening a Pull Request.
 
-- **🚀 Quick Start**: [QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md) - 5-minute guide for new contributors
-- **📚 Detailed Guide**: [CONTRIBUTING.md](docs/CONTRIBUTING.md) - Complete contribution workflow
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/intellistream/SAGE/issues)
-- **💡 Feature Requests**: [GitHub Issues](https://github.com/intellistream/SAGE/issues)
-- **💬 Community Support**: [GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
+**Essential Links**
+- 🚀 Quick Reference: [docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)
+- 📚 Contribution Guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- 🐛 Issues & Features: [GitHub Issues](https://github.com/intellistream/SAGE/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
 
-### For New Contributors
-
+**Quick Contributor Flow**
 ```bash
-# Quick start for new contributors
+git fetch origin
 git checkout main-dev
-git pull origin main-dev
-git checkout -b fix/your-issue-name
-# Make your changes...
-./quickstart.sh --minimal  # Test your changes
-git add .
-git commit -m "fix(scope): describe your fix"
-git push -u origin fix/your-issue-name
-# Create PR on GitHub
+git pull --ff-only origin main-dev
+git checkout -b fix/<short-topic>
+./quickstart.sh --dev --yes          # ensure dev deps installed
+bash tools/tests/run_examples_tests.sh
+pytest -k issues_manager -vv
+git add <changed-files>
+git commit -m "fix(sage-kernel): correct dispatcher edge case"
+git push -u origin fix/<short-topic>
+# Open PR: include background / solution / tests / impact
 ```
+
+> See `CONTRIBUTING.md` for full commit conventions, branch naming, and test matrices.
+
+**Post-Install Diagnostics**
+```bash
+sage doctor          # Runs environment & module checks
+python -c "import sage; print(sage.__version__)"
+```
+
+**Common Make-Like Aliases (Optional)**
+Consider adding wrapper scripts (future enhancement) for: `lint`, `format`, `test:quick`, `test:all`.
+
+## Suggested Future Improvements (Documentation & Tooling)
+
+- Add `CHANGELOG.md` with Keep a Changelog format.
+- Introduce `pre-commit` config (black, isort, ruff/mypy, shellcheck).
+- Provide `scripts/dev.sh` helper with common commands.
+- Add architecture diagram (docs/images/architecture.svg) referenced here.
+- Offer Dockerfile + reproducible container instructions.
 
 ## License
 

@@ -1236,8 +1236,8 @@ def wiki18_faiss_config():
         "embedding": {"model": "BAAI/bge-m3", "gpu_device": 0},
         "faiss": {
             "index_path": "/path/to/test/wiki18_index.index",
-            "documents_path": "/path/to/test/wiki18_documents.jsonl"
-        }
+            "documents_path": "/path/to/test/wiki18_documents.jsonl",
+        },
     }
 
 
@@ -1284,7 +1284,9 @@ class TestWiki18FAISSRetriever:
         assert config["top_k"] == 5
         assert config["embedding"]["model"] == "BAAI/bge-m3"
         assert config["faiss"]["index_path"] == "/path/to/test/wiki18_index.index"
-        assert config["faiss"]["documents_path"] == "/path/to/test/wiki18_documents.jsonl"
+        assert (
+            config["faiss"]["documents_path"] == "/path/to/test/wiki18_documents.jsonl"
+        )
 
         # 验证类可以导入
         assert Wiki18FAISSRetriever is not None
@@ -1504,7 +1506,7 @@ class TestWiki18FAISSRetriever:
         assert "faiss" in wiki18_faiss_config
         assert wiki18_faiss_config["top_k"] > 0
         assert "model" in wiki18_faiss_config["embedding"]
-        
+
         # 测试faiss配置项
         faiss_config = wiki18_faiss_config["faiss"]
         assert "index_path" in faiss_config
@@ -1520,10 +1522,10 @@ class TestWiki18FAISSRetriever:
         # 测试缺少faiss配置的情况
         invalid_config_no_faiss = {
             "top_k": 5,
-            "embedding": {"model": "BAAI/bge-m3", "gpu_device": 0}
+            "embedding": {"model": "BAAI/bge-m3", "gpu_device": 0},
             # 缺少 faiss 配置
         }
-        
+
         # 测试缺少index_path的情况
         invalid_config_no_index = {
             "top_k": 5,
@@ -1531,9 +1533,9 @@ class TestWiki18FAISSRetriever:
             "faiss": {
                 "documents_path": "/path/to/test/wiki18_documents.jsonl"
                 # 缺少 index_path
-            }
+            },
         }
-        
+
         # 测试缺少documents_path的情况
         invalid_config_no_docs = {
             "top_k": 5,
@@ -1541,7 +1543,7 @@ class TestWiki18FAISSRetriever:
             "faiss": {
                 "index_path": "/path/to/test/wiki18_index.index"
                 # 缺少 documents_path
-            }
+            },
         }
 
         # 由于我们无法直接实例化（需要模拟文件系统等），这里只验证配置结构

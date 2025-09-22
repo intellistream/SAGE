@@ -1,5 +1,26 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SAGE CoMap Function 示例
+@test:timeout=120
+@test:category=streaming
+"""
+
+import os
 import random
 import time
+import logging
+
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
+
+# 配置 Python 日志系统
+logging.basicConfig(level=logging.ERROR)
+for logger_name in ["sage", "JobManager", "ray", "asyncio", "urllib3"]:
+    logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+# 禁用所有INFO级别的日志
+logging.getLogger().setLevel(logging.ERROR)
 
 from sage.core.api.function.comap_function import BaseCoMapFunction
 from sage.core.api.function.sink_function import SinkFunction
@@ -183,7 +204,12 @@ def main():
         # 运行流处理
         env.submit()
 
-        time.sleep(40)  # 运行15秒以观察不同频率的数据
+        # 在测试模式下运行更短时间
+        test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
+        runtime = 8 if test_mode else 40
+        
+        print(f"⏰ Running for {runtime} seconds...")
+        time.sleep(runtime)  # 测试模式运行8秒，正常模式40秒
 
     except KeyboardInterrupt:
         print("\n\n🛑 Stopping CoMap Function Example...")

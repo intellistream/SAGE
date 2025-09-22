@@ -1,5 +1,6 @@
 # @test:skip           - 跳过测试
 
+import os
 import re
 
 import requests
@@ -23,7 +24,8 @@ def download_gdrive_file(url):
     total = int(response.headers.get("content-length", 0))
 
     # 5. 保存文件并显示进度条
-    with open(fname, "wb") as f, tqdm(
+    file_path = os.path.join(os.path.dirname(__file__), fname)
+    with open(file_path, "wb") as f, tqdm(
         desc=fname,
         total=total,
         unit="B",
@@ -34,7 +36,7 @@ def download_gdrive_file(url):
             if chunk:
                 f.write(chunk)
                 bar.update(len(chunk))
-    print(f"\n下载完成: {fname}")
+    print(f"\n下载完成: {file_path}")
 
 
 if __name__ == "__main__":

@@ -352,6 +352,24 @@ show_statistics() {
     fi
 }
 
+# 检查中间结果放置
+# 检查中间结果放置
+check_intermediate_results_placement() {
+    echo -e "${BLUE}🔍 检查中间结果放置...${NC}"
+    
+    # 调用 Python 检查工具
+    python3 "$SAGE_ROOT/tools/tests/check_intermediate_results.py" "$SAGE_ROOT"
+    local exit_code=$?
+    
+    # 根据退出码显示结果
+    if [ $exit_code -eq 0 ]; then
+        echo -e "${GREEN}  ✅ 中间结果放置检查通过 - 项目根目录整洁${NC}"
+    else
+        echo -e "${RED}  ❌ 发现中间结果放置问题${NC}"
+        echo -e "${BLUE}  💡 所有中间结果应该放置在 .sage/ 目录下以保持项目根目录整洁${NC}"
+    fi
+}
+
 # 主函数
 main() {
     echo -e "${GREEN}🔥 SAGE Examples 测试工具${NC}"
@@ -390,6 +408,12 @@ main() {
     if [[ -n "$OUTPUT_FILE" ]]; then
         show_statistics
     fi
+    
+    # 检查中间结果放置
+    echo ""
+    echo "=================================================="
+    check_intermediate_results_placement
+    echo "=================================================="
     
     echo ""
     if [ $test_exit_code -eq 0 ]; then

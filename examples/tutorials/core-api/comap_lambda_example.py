@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 CoMap Lambda/Callable Support Example
+@test:timeout=120
+@test:category=streaming
 
 This example demonstrates the new lambda and callable support for CoMap operations,
 showing different ways to define multi-stream processing without requiring class definitions.
@@ -11,16 +14,21 @@ import sys
 import time
 from typing import Any, List
 
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
+
 # Add the project root to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from sage.core.api.function.comap_function import BaseCoMapFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
+# Remove this import - use the correct one below
+from sage.kernel.runtime.communication.router.packet import StopSignal
 
 
 class ListSource(SourceFunction):
-    """Simple source that emits items from a predefined list"""
+    """Simple source that emits items from a predefined list with proper termination"""
 
     def __init__(self, data_list: List[Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,11 +36,13 @@ class ListSource(SourceFunction):
         self.index = 0
 
     def execute(self) -> Any:
-        if self.index < len(self.data_list):
-            result = self.data_list[self.index]
-            self.index += 1
-            return result
-        return None  # End of data
+        if self.index >= len(self.data_list):
+            # Data exhausted, send stop signal
+            return StopSignal(f"ListSource_{self.index}")
+            
+        result = self.data_list[self.index]
+        self.index += 1
+        return result
 
 
 def main():
@@ -68,24 +78,31 @@ def main():
             status = "High" if press > 1015 else "Normal"
             return f"🔘 Pressure: {press} hPa ({status})"
 
-    # Create streams
+    # Create streams and connect them
     temp_stream = env1.from_source(ListSource, [20.5, 22.1, 19.8, 25.3, 21.7])
     humidity_stream = env1.from_source(ListSource, [45, 52, 38, 67, 41])
     pressure_stream = env1.from_source(
         ListSource, [1013.2, 1015.8, 1012.1, 1018.5, 1014.3]
     )
 
+    # Connect streams properly
+    connected_sensors = temp_stream.connect(humidity_stream).connect(pressure_stream)
+
     # Apply CoMap function
-    result1 = (
-        temp_stream.connect(humidity_stream)
-        .connect(pressure_stream)
-        .comap(SensorCoMapFunction)
-        .print("Sensor Data")
-    )
+    result1 = connected_sensors.comap(SensorCoMapFunction).print("Sensor Data")
 
     # Execute example 1
     print("Processing sensor data...")
     env1.submit(autostop=True)
+    
+    # Wait for processing to complete
+    import time
+    test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
+    wait_time = 2 if test_mode else 5
+    time.sleep(wait_time)
+    
+    print("✅ Example 1 completed!")
+    
     # Example 2: Weather Data Processing
     print("\n📋 Example 2: Weather Data Processing")
     print("-" * 40)
@@ -113,20 +130,22 @@ def main():
     temp_source2 = env2.from_source(ListSource, [18.5, 26.2, 23.1, 29.8])
     humidity_source2 = env2.from_source(ListSource, [35, 75, 55, 82])
 
-    # Create streams
+    # Create and connect streams
     temp_stream2 = temp_source2
     humidity_stream2 = humidity_source2
+    
+    connected_weather = temp_stream2.connect(humidity_stream2)
 
     # Apply weather CoMap function
-    result2 = (
-        temp_stream2.connect(humidity_stream2)
-        .comap(WeatherCoMapFunction)
-        .print("Weather Data")
-    )
+    result2 = connected_weather.comap(WeatherCoMapFunction).print("Weather Data")
 
     # Execute example 2
     print("Processing weather data...")
     env2.submit(autostop=True)
+    
+    # Wait for processing to complete
+    time.sleep(wait_time)
+    print("✅ Example 2 completed!")
 
     # Example 3: Mixed Data Processing
     print("\n📋 Example 3: Mixed Data Processing")
@@ -164,22 +183,23 @@ def main():
     )
     boolean_source = env3.from_source(ListSource, [True, False, True, True, False])
 
-    # Create streams
+    # Create and connect streams
     numeric_stream = numeric_source
     text_stream = text_source
     boolean_stream = boolean_source
 
+    connected_mixed = numeric_stream.connect(text_stream).connect(boolean_stream)
+
     # Apply mixed data CoMap function
-    result3 = (
-        numeric_stream.connect(text_stream)
-        .connect(boolean_stream)
-        .comap(MixedDataCoMapFunction)
-        .print("Mixed Data")
-    )
+    result3 = connected_mixed.comap(MixedDataCoMapFunction).print("Mixed Data")
 
     # Execute example 3
     print("Processing mixed data types...")
     env3.submit(autostop=True)
+    
+    # Wait for processing to complete
+    time.sleep(wait_time)
+    print("✅ Example 3 completed!")
 
     # Example 4: Mathematical Operations
     print("\n📋 Example 4: Mathematical Operations")
@@ -213,22 +233,23 @@ def main():
     input2_source = env4.from_source(ListSource, [10, 20, 30, 40, 50])
     input3_source = env4.from_source(ListSource, [0.1, 0.2, 0.3, 0.4, 0.5])
 
-    # Create streams
+    # Create and connect streams
     input1 = input1_source
     input2 = input2_source
     input3 = input3_source
 
+    connected_math = input1.connect(input2).connect(input3)
+
     # Apply mathematical transformations
-    result4 = (
-        input1.connect(input2)
-        .connect(input3)
-        .comap(MathCoMapFunction)
-        .print("Math Results")
-    )
+    result4 = connected_math.comap(MathCoMapFunction).print("Math Results")
 
     # Execute example 4
     print("Processing mathematical operations...")
     env4.submit(autostop=True)
+    
+    # Wait for processing to complete
+    time.sleep(wait_time)
+    print("✅ Example 4 completed!")
 
     # Example 5: Error Handling and Validation
     print("\n📋 Example 5: Error Handling and Validation")
@@ -260,18 +281,22 @@ def main():
     mixed_data1 = env5.from_source(ListSource, [5, -3, 0, 12, -1])
     mixed_data2 = env5.from_source(ListSource, ["valid", "", "test", None, "data"])
 
-    # Create streams
+    # Create and connect streams
     data1 = mixed_data1
     data2 = mixed_data2
 
+    connected_validation = data1.connect(data2)
+
     # Apply validation and error handling
-    result5 = (
-        data1.connect(data2).comap(ValidationCoMapFunction).print("Validated Data")
-    )
+    result5 = connected_validation.comap(ValidationCoMapFunction).print("Validated Data")
 
     # Execute example 5
     print("Processing with validation...")
     env5.submit(autostop=True)
+    
+    # Wait for processing to complete
+    time.sleep(wait_time)
+    print("✅ Example 5 completed!")
 
     print("\n✅ All CoMap function examples completed successfully!")
     print("\n💡 Summary of CoMap usage patterns:")

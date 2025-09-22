@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-from ..utils.sage_home import get_logs_dir
+from sage.common.config.output_paths import get_sage_paths
 
 
 class TestFailureCache:

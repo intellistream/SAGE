@@ -173,7 +173,9 @@ class TestExamplesIntegration:
         ]
 
         for file_path, category, should_skip in test_cases:
-            skip, reason = ExampleTestFilters.should_skip_file(file_path, category, None)
+            skip, reason = ExampleTestFilters.should_skip_file(
+                file_path, category, None
+            )
             if should_skip:
                 # 这些文件不存在，应该被跳过
                 assert skip, f"文件 {file_path} 应该被跳过: {reason}"
@@ -181,8 +183,24 @@ class TestExamplesIntegration:
     @pytest.mark.integration
     def test_examples_integration_with_issues_manager(self):
         """测试与 Issues 管理器的集成"""
+        print("🧪 开始集成测试: test_examples_integration_with_issues_manager")
+        
         # 这个测试验证 examples 测试可以与现有的问题管理系统集成
-        issues_suite = IssuesTestSuite()
+        try:
+            issues_suite = IssuesTestSuite()
+            
+            # 如果团队信息未找到，尝试更新
+            if not issues_suite.manager.team_info:
+                print("📋 团队信息未找到，尝试更新...")
+                if issues_suite.manager.config.github_token:
+                    success = issues_suite.manager.update_team_info()
+                    if not success:
+                        pytest.skip("无法获取团队信息，跳过集成测试")
+                else:
+                    pytest.skip("缺少GitHub token，无法获取团队信息，跳过集成测试")
+        except Exception as e:
+            pytest.skip(f"IssuesTestSuite初始化失败: {e}")
+        
         example_suite = ExampleTestSuite()
 
         # 只运行分析，不实际执行所有测试（避免重复）

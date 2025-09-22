@@ -137,7 +137,7 @@ class BaseTask(ABC):
                         continue
 
                     # Check if received packet is a StopSignal
-                    from sage.core.communication.stop_signal import StopSignal
+                    from sage.kernel.runtime.communication.router.packet import StopSignal
 
                     if isinstance(data_packet, StopSignal):
                         self.logger.info(
@@ -145,8 +145,8 @@ class BaseTask(ABC):
                         )
 
                         # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
-                        # from sage.core.operator.comap_operator import \
-                        #     CoMapOperator
+                        from sage.core.operator.comap_operator import \
+                            CoMapOperator
                         from sage.core.operator.join_operator import \
                             JoinOperator
                         from sage.core.operator.sink_operator import \
@@ -157,7 +157,7 @@ class BaseTask(ABC):
                                 f"Calling handle_stop_signal for SinkOperator {self.name}"
                             )
                             self.operator.handle_stop_signal()
-                        elif isinstance(self.operator, (JoinOperator)):
+                        elif isinstance(self.operator, (JoinOperator, CoMapOperator)):
                             self.logger.info(
                                 f"Calling handle_stop_signal for {type(self.operator).__name__} {self.name}"
                             )
@@ -165,7 +165,7 @@ class BaseTask(ABC):
                             # 从data_packet中提取input_index信息
                             input_index = getattr(data_packet, "input_index", None)
                             self.operator.handle_stop_signal(
-                                stop_signal_name=data_packet.name,
+                                stop_signal_name=data_packet.source,
                                 input_index=input_index,
                             )
                             # 对于Join和CoMap，不调用ctx.handle_stop_signal，让operator自己决定何时停止

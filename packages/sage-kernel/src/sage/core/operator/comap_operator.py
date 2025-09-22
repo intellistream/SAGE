@@ -109,9 +109,9 @@ class CoMapOperator(BaseOperator):
                 )
 
                 # 向下游传播停止信号
-                from sage.core.communication.stop_signal import StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
-                stop_signal = StopSignal(self.name)
+                stop_signal = StopSignal(self.name, source=self.name)
                 self.router.send_stop_signal(stop_signal)
 
                 # 通知context停止
