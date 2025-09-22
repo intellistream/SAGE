@@ -290,6 +290,13 @@ parse_arguments() {
 set_defaults_and_show_tips() {
     local has_defaults=false
     
+    # 检测 CI 环境并自动设置为确认模式
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
+        AUTO_CONFIRM=true
+        echo -e "${INFO} 检测到 CI 环境，自动启用确认模式"
+        has_defaults=true
+    fi
+    
     # 设置安装模式默认值
     if [ -z "$INSTALL_MODE" ]; then
         INSTALL_MODE="dev"
