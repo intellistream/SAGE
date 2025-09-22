@@ -4,10 +4,10 @@ import json
 import sys
 from pathlib import Path
 
-# 让示例在独立运行时也能找到 src 包
-ROOT = Path(__file__).resolve().parents[2]  # .../packages/sage-libs
-SRC = ROOT / "src"
-sys.path.append(str(SRC))
+# # 让示例在独立运行时也能找到 src 包
+# ROOT = Path(__file__).resolve().parents[2]  # .../packages/sage-libs
+# SRC = ROOT / "src"
+# sys.path.append(str(SRC))
 
 from sage.libs.agents.profile.profile import BaseProfile
 from sage.libs.agents.action.mcp_registry import MCPRegistry
@@ -37,16 +37,16 @@ class CalculatorTool:
 
 # ========== 2) 准备一个 Generator ==========
 #   A) 真实环境 —— 用你的 OpenAIGenerator（建议）：
-from sage.libs.rag.generator import OpenAIGenerator
-gen_conf = {
-    "method": "openai",
-    "model_name": "gpt-4o-mini",
-    "base_url": "http://localhost:8000/v1",
-    "api_key": "your-api-key",
-    "seed": 42,
-    "temperature": 0.7
-}
-generator = OpenAIGenerator(gen_conf)
+# from sage.libs.rag.generator import OpenAIGenerator
+# gen_conf = {
+#     "method": "openai",
+#     "model_name": "gpt-4o-mini",
+#     "base_url": "http://localhost:8000/v1",
+#     "api_key": "your-api-key",
+#     "seed": 42,
+#     "temperature": 0.7
+# }
+# generator = OpenAIGenerator(gen_conf)
 
 #   B) 演示/离线环境 —— 用 DummyGenerator 固定返回一个计划（便于无模型也能跑通）
 class DummyGeneratorPlan:
