@@ -88,11 +88,25 @@ class OpenAIGenerator(MapFunction):
         """
         输入 : [user_query, prompt]  *或*  [prompt]
         输出 : (user_query | None, generated_text)
+        
+        prompt 可以是:
+        - str: 普通字符串，将转换为 [{"role": "user", "content": prompt}]
+        - list[dict]: 已格式化的消息列表，直接传递给 OpenAI API
         """
         user_query = data[0] if len(data) > 1 else None
         prompt = data[1] if len(data) > 1 else data[0]
 
-        response = self.model.generate(prompt)
+        # 如果 prompt 是字符串，转换为标准消息格式
+        if isinstance(prompt, str):
+            messages = [{"role": "user", "content": prompt}]
+        elif isinstance(prompt, list) and all(isinstance(item, dict) for item in prompt):
+            # 如果已经是消息列表格式，直接使用
+            messages = prompt
+        else:
+            # 兜底处理：转换为字符串再构造消息
+            messages = [{"role": "user", "content": str(prompt)}]
+
+        response = self.model.generate(messages)
         self.num += 1
 
         # 保存数据记录（只有enable_profile=True时才保存）

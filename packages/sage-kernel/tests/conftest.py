@@ -33,10 +33,10 @@ try:
         # 获取SAGE路径和设置环境
         sage_paths = get_sage_paths()
         sage_paths.setup_environment_variables()
-        
+
         # 获取Ray临时目录
         ray_temp_dir = sage_paths.get_ray_temp_dir()
-        
+
         # 尝试更宽松的Ray配置 - 使用最小允许内存
         ray.init(
             ignore_reinit_error=True,
@@ -57,16 +57,17 @@ import pytest
 @pytest.fixture
 def sage_test_env_config():
     """统一的SAGE测试环境配置
-    
+
     返回标准化的测试环境配置，确保所有测试使用.sage目录
     而不是在项目根目录创建test_env目录
     """
-    from sage.common.config.output_paths import get_test_env_dir, get_sage_paths
-    
+    from sage.common.config.output_paths import (get_sage_paths,
+                                                 get_test_env_dir)
+
     # 使用统一的路径管理
     sage_paths = get_sage_paths()
     test_env_dir = get_test_env_dir("test_env")
-    
+
     return {
         "name": "test_env",
         "platform": "local",

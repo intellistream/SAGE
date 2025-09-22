@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
-from sage.core.api.function.map_function import MapFunction
 
+from sage.core.api.function.map_function import MapFunction
 
 PlanStep = Dict[
     str, Any
@@ -99,6 +99,8 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
     容错解析：优先直接 loads；失败时尝试截取第一个 '[' 到最后一个 ']' 之间的内容。
     """
     t = _strip_code_fences(text)
+    
+    # 方法1：直接解析
     try:
         data = json.loads(t)
         if isinstance(data, list):
@@ -106,7 +108,7 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
     except Exception:
         pass
 
-    # 尝试在文本中捕捉一个 JSON 数组
+    # 方法2：尝试在文本中捕捉一个 JSON 数组
     try:
         start = t.find("[")
         end = t.rfind("]")
@@ -116,7 +118,23 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
             if isinstance(data, list):
                 return data
     except Exception:
-        return None
+        pass
+    
+    # 方法3：尝试使用正则表达式提取 JSON
+    try:
+        import re
+        json_pattern = r'\[(?:[^[\]]*|\[[^\]]*\])*\]'
+        matches = re.findall(json_pattern, t, re.DOTALL)
+        for match in matches:
+            try:
+                data = json.loads(match)
+                if isinstance(data, list):
+                    return data
+            except:
+                continue
+    except Exception:
+        pass
+        
     return None
 
 
@@ -192,7 +210,6 @@ class LLMPlanner(MapFunction):
         _, out = self.generator.execute([user_query, messages])
         return out
 
-
     def plan(
         self,
         profile_system_prompt: str,
@@ -207,6 +224,10 @@ class LLMPlanner(MapFunction):
         out = self._ask_llm(prompt, user_query)
         steps = _coerce_json_array(out)
 
+        # 调试信息：记录原始输出
+        if steps is None:
+            print(f"🐛 Debug: 无法解析计划 JSON。原始输出:\n{out[:500]}...")
+
         # 3) 自动修复（仅一次）
         if steps is None and self.enable_repair:
             repair_prompt = (
@@ -217,9 +238,14 @@ class LLMPlanner(MapFunction):
                 [user_query, repair_prompt + "\n\nPrevious output:\n" + out]
             )
             steps = _coerce_json_array(out2)
+            
+            # 调试信息：记录修复后的输出
+            if steps is None:
+                print(f"🐛 Debug: 修复后仍无法解析 JSON。修复输出:\n{out2[:500]}...")
 
         # 4) 兜底：若仍无法解析，直接把原文作为 reply
         if steps is None:
+            print(f"🐛 Debug: 使用兜底策略，返回原文作为回复")
             return [{"type": "reply", "text": out.strip()[:2000]}][: self.max_steps]
 
         # 5) 轻量合法化（结构+必填参数）
@@ -227,7 +253,7 @@ class LLMPlanner(MapFunction):
 
         # 6) 截断并返回
         return steps[: self.max_steps]
-    
+
     def _tools_to_manifest(self, tools_like: Any) -> Dict[str, Dict[str, Any]]:
         """
         支持：
@@ -236,7 +262,9 @@ class LLMPlanner(MapFunction):
         """
         if isinstance(tools_like, dict):
             return tools_like
-        if hasattr(tools_like, "describe") and callable(getattr(tools_like, "describe")):
+        if hasattr(tools_like, "describe") and callable(
+            getattr(tools_like, "describe")
+        ):
             return tools_like.describe()
         raise TypeError(
             "LLMPlanner expects `tools` as a dict manifest or an object with .describe()."
@@ -259,10 +287,16 @@ class LLMPlanner(MapFunction):
         """
         # --- 形态 1：dict ---
         if isinstance(data, dict):
-            profile_prompt = data.get("profile_prompt") or data.get("profile_system_prompt")
+            profile_prompt = data.get("profile_prompt") or data.get(
+                "profile_system_prompt"
+            )
             user_query = data.get("user_query") or data.get("query")
             tools_like = data.get("tools") or data.get("registry")
-            if not isinstance(profile_prompt, str) or not isinstance(user_query, str) or tools_like is None:
+            if (
+                not isinstance(profile_prompt, str)
+                or not isinstance(user_query, str)
+                or tools_like is None
+            ):
                 raise ValueError(
                     "LLMPlanner.execute(dict) requires 'profile_prompt' (or 'profile_system_prompt'), "
                     "'user_query' (or 'query'), and 'tools' (or 'registry')."

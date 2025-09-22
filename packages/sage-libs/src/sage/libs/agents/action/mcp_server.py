@@ -5,28 +5,34 @@
 #   pip install fastapi uvicorn pydantic requests
 
 from __future__ import annotations
+
+import importlib
+import time
+import uuid
 from typing import Any, Dict, Optional
+
+import requests
 from fastapi import FastAPI
 from pydantic import BaseModel
-import importlib
-import uuid
-import requests
-import time
 
 app = FastAPI(title="SAGE MCP Server", version="0.1.0")
 
 # ---------------------------
 # In-memory registries
 # ---------------------------
-TOOLS: Dict[str, Any] = {}            # 本地&代理 工具对象：必须有 name/description/input_schema/call(arguments)
+TOOLS: Dict[str, Any] = (
+    {}
+)  # 本地&代理 工具对象：必须有 name/description/input_schema/call(arguments)
 REMOTE_ADAPTERS: Dict[str, "RemoteMCPAdapter"] = {}  # 远程 MCP 适配器
 MOUNT_MAP: Dict[str, Dict[str, str]] = {}  # adapter_id -> {local_name: remote_name}
+
 
 # ---------------------------
 # Utilities
 # ---------------------------
 def _now_ms() -> int:
     return int(time.time() * 1000)
+
 
 def _ensure_tool_interface(tool_obj: Any) -> None:
     if not hasattr(tool_obj, "name") or not hasattr(tool_obj, "call"):
@@ -35,19 +41,27 @@ def _ensure_tool_interface(tool_obj: Any) -> None:
     if not hasattr(tool_obj, "description"):
         setattr(tool_obj, "description", "")
     if not hasattr(tool_obj, "input_schema"):
-        setattr(tool_obj, "input_schema", {"type": "object", "properties": {}, "required": []})
+        setattr(
+            tool_obj,
+            "input_schema",
+            {"type": "object", "properties": {}, "required": []},
+        )
+
 
 def register_tool(tool_obj: Any) -> None:
     _ensure_tool_interface(tool_obj)
     TOOLS[tool_obj.name] = tool_obj
+
 
 def describe_tools() -> Dict[str, Dict[str, Any]]:
     return {
         name: {
             "description": getattr(t, "description", ""),
             "input_schema": getattr(t, "input_schema", {}),
-        } for name, t in TOOLS.items()
+        }
+        for name, t in TOOLS.items()
     }
+
 
 def validate_required_args(tool_name: str, arguments: Dict[str, Any]) -> Optional[str]:
     schema = getattr(TOOLS[tool_name], "input_schema", {}) or {}
@@ -57,10 +71,11 @@ def validate_required_args(tool_name: str, arguments: Dict[str, Any]) -> Optiona
         return f"Missing required arguments: {missing}"
     return None
 
+
 # ---------------------------
 # Remote MCP Adapter
 # ---------------------------
-class RemoteMCPAdapter():
+class RemoteMCPAdapter:
     """
     把远程 MCP Server 聚合为可调用接口：
       - list_tools() -> {name: {description, input_schema}}
@@ -69,13 +84,19 @@ class RemoteMCPAdapter():
       请求：{"jsonrpc":"2.0","id":"...","method":"list_tools","params":{}}
            {"jsonrpc":"2.0","id":"...","method":"call_tool","params":{"name": "...", "arguments": {...}}}
     """
+
     def __init__(self, adapter_id: str, base_url: str, timeout: float = 10.0):
         self.id = adapter_id
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
     def _rpc(self, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        req = {"jsonrpc": "2.0", "id": uuid.uuid4().hex, "method": method, "params": params}
+        req = {
+            "jsonrpc": "2.0",
+            "id": uuid.uuid4().hex,
+            "method": method,
+            "params": params,
+        }
         resp = requests.post(f"{self.base_url}/jsonrpc", json=req, timeout=self.timeout)
         resp.raise_for_status()
         data = resp.json()
@@ -89,6 +110,7 @@ class RemoteMCPAdapter():
     def call_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         return self._rpc("call_tool", {"name": name, "arguments": arguments})
 
+
 # ---------------------------
 # JSON-RPC models
 # ---------------------------
@@ -98,11 +120,13 @@ class JSONRPCRequest(BaseModel):
     method: str
     params: Dict[str, Any] = {}
 
+
 class JSONRPCResponse(BaseModel):
     jsonrpc: str = "2.0"
     id: str
     result: Any = None
     error: Any = None
+
 
 # ---------------------------
 # Health
@@ -110,6 +134,7 @@ class JSONRPCResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"ok": True, "tools": len(TOOLS), "remotes": len(REMOTE_ADAPTERS)}
+
 
 # ---------------------------
 # JSON-RPC endpoint
@@ -148,7 +173,9 @@ def jsonrpc(req: JSONRPCRequest):
             cls = getattr(mod, clsname)
             tool_obj = cls(**init_kwargs) if init_kwargs else cls()
             register_tool(tool_obj)
-            return JSONRPCResponse(id=req.id, result={"ok": True, "name": tool_obj.name})
+            return JSONRPCResponse(
+                id=req.id, result={"ok": True, "name": tool_obj.name}
+            )
 
         # 4) 挂载远程 MCP：把对方的每个工具映射为本地“代理工具”
         #    params: {"adapter_id":"t1","base_url":"http://host:9001","prefix":"up_"}
@@ -169,7 +196,10 @@ def jsonrpc(req: JSONRPCRequest):
                 register_tool(tool)
                 MOUNT_MAP[adapter_id][local_name] = rname
 
-            return JSONRPCResponse(id=req.id, result={"ok": True, "mounted": list(MOUNT_MAP[adapter_id].keys())})
+            return JSONRPCResponse(
+                id=req.id,
+                result={"ok": True, "mounted": list(MOUNT_MAP[adapter_id].keys())},
+            )
 
         # 5) 刷新某个远程 MCP（重新获取远端工具清单，更新代理）
         #    params: {"adapter_id":"t1","prefix":"up_"}
@@ -177,7 +207,9 @@ def jsonrpc(req: JSONRPCRequest):
             adapter_id = req.params["adapter_id"]
             prefix = req.params.get("prefix", "")
             if adapter_id not in REMOTE_ADAPTERS:
-                return JSONRPCResponse(id=req.id, error=f"Remote adapter not found: {adapter_id}")
+                return JSONRPCResponse(
+                    id=req.id, error=f"Remote adapter not found: {adapter_id}"
+                )
             adapter = REMOTE_ADAPTERS[adapter_id]
 
             # 先卸载旧代理
@@ -193,7 +225,10 @@ def jsonrpc(req: JSONRPCRequest):
                 register_tool(tool)
                 MOUNT_MAP[adapter_id][local_name] = rname
 
-            return JSONRPCResponse(id=req.id, result={"ok": True, "mounted": list(MOUNT_MAP[adapter_id].keys())})
+            return JSONRPCResponse(
+                id=req.id,
+                result={"ok": True, "mounted": list(MOUNT_MAP[adapter_id].keys())},
+            )
 
         # 6) 卸载远程 MCP
         #    params: {"adapter_id":"t1"}
@@ -215,19 +250,37 @@ def jsonrpc(req: JSONRPCRequest):
         _ = _now_ms() - t0
 
 
-def _make_proxy_tool(adapter: RemoteMCPAdapter, adapter_id: str,
-                     local_name: str, remote_name: str, meta: Dict[str, Any]):
+def _make_proxy_tool(
+    adapter: RemoteMCPAdapter,
+    adapter_id: str,
+    local_name: str,
+    remote_name: str,
+    meta: Dict[str, Any],
+):
     """
     生成一个“本地代理工具”对象，它满足 name/description/input_schema/call(arguments) 接口，
     实际执行会转发到远程 MCP 的 remote_name。
     """
+
     class _ProxyTool:
         name = local_name
-        description = meta.get("description", f"proxy for {remote_name} via {adapter_id}")
-        input_schema = meta.get("input_schema", {"type": "object", "properties": {}, "required": []})
+        description = meta.get(
+            "description", f"proxy for {remote_name} via {adapter_id}"
+        )
+        input_schema = meta.get(
+            "input_schema", {"type": "object", "properties": {}, "required": []}
+        )
 
         def call(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
             result = adapter.call_tool(remote_name, arguments)
             # 统一返回格式建议：{"output": <result>, "meta": {...}}
-            return {"output": result, "meta": {"proxy": True, "adapter_id": adapter_id, "remote": remote_name}}
+            return {
+                "output": result,
+                "meta": {
+                    "proxy": True,
+                    "adapter_id": adapter_id,
+                    "remote": remote_name,
+                },
+            }
+
     return _ProxyTool()

@@ -2,122 +2,61 @@
 
 Runtime Service 模块提供服务任务的执行框架，支持本地和分布式服务调用机制。
 
-## 模块架构
+## 快速开始
 
-### 核心组件
-
-- **`base_service_task.py`**: 服务任务基类
-  - `BaseServiceTask`: 所有服务任务的抽象基类
-  - 集成高性能 mmap 队列监听和消息处理
-  - 提供统一的服务接口和生命周期管理
-
-- **`local_service_task.py`**: 本地服务任务
-  - `LocalServiceTask`: 本地进程内的服务任务执行
-  - 使用本地队列进行服务通信
-  - 适用于单机服务部署
-
-- **`ray_service_task.py`**: 分布式服务任务
-  - `RayServiceTask`: 基于 Ray Actor 的分布式服务
-  - 支持跨节点的服务调用
-  - 提供集群级别的服务可用性
-
-- **`service_caller.py`**: 服务调用器
-  - `ServiceManager`: 统一的服务调用管理器
-  - 支持同步和异步服务调用
-  - 提供请求/响应匹配和超时管理
-
-## 核心功能
-
-### 1. 服务任务创建
+### 本地服务任务
 ```python
-from sage.kernels.runtime.service.local_service_task import LocalServiceTask
+from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
-# 创建本地服务任务
+# 创建并启动本地服务
 service_task = LocalServiceTask(service_factory, runtime_context)
-
-# 启动服务
 service_task.start_service()
-
-# 检查服务状态
-status = service_task.get_service_status()
 ```
 
-### 2. 服务调用
+### 服务调用
 ```python
-from sage.kernels.runtime.service.service_caller import ServiceManager
-
-# 创建服务管理器
-service_manager = ServiceManager(environment)
+from sage.kernel.runtime.service.service_caller import ServiceManager
 
 # 同步调用服务
+service_manager = ServiceManager(environment)
 response = service_manager.call_service_sync(
     service_name="my_service",
     method="process_data",
     args=(data,),
     kwargs={"timeout": 30}
 )
-
-# 异步调用服务
-future = service_manager.call_service_async(
-    service_name="my_service", 
-    method="process_data",
-    args=(data,)
-)
-result = future.result()
 ```
 
-### 3. 队列监听机制
-```python
-# 服务任务自动监听请求队列
-def _queue_listener_loop(self):
-    while self._queue_listener_running:
-        try:
-            request = self._request_queue.get(timeout=1.0)
-            self._handle_request(request)
-        except Empty:
-            continue
-```
+## 核心组件
+
+- **`BaseServiceTask`**: 服务任务基类，集成 mmap 队列监听和消息处理
+- **`LocalServiceTask`**: 本地进程内的服务任务执行
+- **`RayServiceTask`**: 基于 Ray Actor 的分布式服务
+- **`ServiceManager`**: 统一的服务调用管理器
 
 ## 服务类型
 
-### 本地服务任务 (LocalServiceTask)
+### 本地服务 vs 分布式服务
 
-**特性**：
-- 进程内服务执行
-- 使用本地队列通信
-- 低延迟服务调用
-- 简单的部署模式
+| 特性 | LocalServiceTask | RayServiceTask |
+|------|-----------------|----------------|
+| 部署 | 单机进程内 | 分布式集群 |
+| 延迟 | 低 | 中等 |
+| 扩展性 | 有限 | 水平可扩展 |
+| 适用场景 | 开发测试 | 生产环境 |
 
-**适用场景**：
-- 开发和测试环境
-- 单机应用部署
-- 需要低延迟的服务调用
+## 📖 详细文档
 
-### Ray 服务任务 (RayServiceTask)
+更多详细的架构设计、通信机制和高级配置，请参阅：
 
-**特性**：
-- 基于 Ray Actor 的分布式服务
-- 跨节点服务调用支持
-- 自动负载均衡和故障恢复
-- 水平可扩展
+**[📚 Runtime Services 完整文档](../../../docs-public/docs_src/kernel/runtime_services.md)**
 
-**适用场景**：
-- 生产环境集群部署
-- 大规模服务集群
-- 需要高可用性的服务
-
-## 服务通信机制
-
-### 请求/响应模式
-```python
-@dataclass
-class ServiceRequest:
-    request_id: str
-    service_name: str
-    method_name: str
-    args: tuple
-    kwargs: dict
-    response_queue_name: str
+包含完整的：
+- 架构设计和组件说明
+- 服务通信机制详解
+- 高性能特性和优化
+- 配置管理和扩展接口
+- 最佳实践指南
 
 @dataclass
 class ServiceResponse:

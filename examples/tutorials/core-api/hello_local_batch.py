@@ -6,10 +6,10 @@ SAGE 本地批处理测试示例
 @test:category=batch
 """
 
+import logging
 import os
 import random
 import time
-import logging
 
 # 设置日志级别为ERROR减少输出
 os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")

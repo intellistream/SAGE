@@ -25,6 +25,12 @@ def pytest_addoption(parser):
         default=False,
         help="Run only quick examples tests",
     )
+    parser.addoption(
+        "--use-real-api",
+        action="store_true",
+        default=False,
+        help="Use real API calls instead of test mode (requires valid API keys)",
+    )
 
 
 def pytest_configure(config):
@@ -36,6 +42,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow_examples: marks tests as slow examples tests"
     )
+    
+    # 设置环境变量以便传递给子进程
+    if config.getoption("--use-real-api", default=False):
+        os.environ["SAGE_USE_REAL_API"] = "true"
 
 
 def pytest_collection_modifyitems(config, items):

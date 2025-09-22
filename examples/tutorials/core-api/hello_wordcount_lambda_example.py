@@ -86,7 +86,7 @@ def main():
         # 在测试模式下运行更短时间
         test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
         runtime = 10 if test_mode else 60
-        
+
         print(f"⏰ Running for {runtime} seconds...")
         time.sleep(runtime)  # 测试模式运行10秒，正常模式60秒
     except KeyboardInterrupt:

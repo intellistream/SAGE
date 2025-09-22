@@ -15,7 +15,8 @@ tools_src = script_path.parent.parent / "packages" / "sage-tools" / "src"
 if tools_src.exists():
     sys.path.insert(0, str(tools_src))
 
-from sage.tools.dev.utils.intermediate_results_checker import print_intermediate_results_check
+from sage.tools.dev.utils.intermediate_results_checker import \
+    print_intermediate_results_check
 
 
 def main():
@@ -24,13 +25,13 @@ def main():
         project_root = sys.argv[1]
     else:
         project_root = "."
-    
+
     # 确保路径是绝对路径
     project_root = str(Path(project_root).resolve())
-    
+
     # 执行检查
     passed = print_intermediate_results_check(project_root)
-    
+
     # 返回适当的退出码
     sys.exit(0 if passed else 1)
 

@@ -41,7 +41,7 @@ class Packet:
 
 class StopSignal:
     """停止信号类，用于通知流处理停止
-    
+
     为了保持向后兼容性，第一个参数同时作为 message 和 name 使用
     """
 
@@ -49,13 +49,13 @@ class StopSignal:
         # 第一个参数同时作为 message 和 name（兼容旧代码）
         self.message = message
         self.name = message  # 兼容旧的 .name 属性访问
-        
+
         # source 参数处理
         self.source = source if source is not None else message
-        
+
         # 兼容旧的 payload 参数
         self.payload = payload
-        
+
         self.timestamp = time.time_ns()
 
     def __str__(self):

@@ -37,18 +37,6 @@ install_core_packages() {
     echo "安装模式: 核心包安装" >> "$log_file"
     echo "========================================" >> "$log_file"
     
-    # 清理 pip 缓存以避免安装问题
-    echo -e "${INFO} 清理 pip 缓存..."
-    echo "$(date): 开始清理 pip 缓存" >> "$log_file"
-    if command -v python3 &> /dev/null; then
-        python3 -m pip cache purge 2>&1 | tee -a "$log_file" || echo "清理缓存失败，继续安装..." | tee -a "$log_file"
-        echo "$(date): pip 缓存清理完成" >> "$log_file"
-    else
-        echo -e "${WARNING} 未找到 python3，跳过 pip 缓存清理"
-        echo "$(date): 未找到 python3，跳过 pip 缓存清理" >> "$log_file"
-    fi
-    echo "" >> "$log_file"
-    
     echo -e "${INFO} 安装核心 SAGE 包..."
     echo -e "${DIM}安装日志将保存到: $log_file${NC}"
     echo ""
@@ -153,22 +141,27 @@ install_package_with_output() {
     
     # 根据安装类型构建命令
     local install_cmd
-    if [ "$install_type" = "dev" ]; then
-        if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加优化选项，使用缓存和并行安装
-            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
-            echo "🔧 CI环境检测: 使用优化安装选项"
-        else
-            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+    local ci_flags=""
+    
+    # CI环境检测和特殊处理
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        ci_flags="--disable-pip-version-check --no-input"
+        echo "🔧 CI环境检测: 使用优化安装选项"
+        
+        # 检查是否需要 --break-system-packages（对于受管理的Python环境）
+        if python3 -c "import sys; print(sys.prefix)" 2>/dev/null | grep -q "^/usr$" || \
+           python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))" 2>/dev/null | grep -qE "^/usr/(local/)?lib/python"; then
+            ci_flags="$ci_flags --break-system-packages"
+            echo "🔧 检测到受管理的Python环境，添加--break-system-packages标志"
         fi
     else
-        if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加优化选项
-            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
-            echo "🔧 CI环境检测: 使用优化安装选项"
-        else
-            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
-        fi
+        ci_flags="--disable-pip-version-check --no-input"
+    fi
+    
+    if [ "$install_type" = "dev" ]; then
+        install_cmd="$pip_cmd install -e $package_path $ci_flags"
+    else
+        install_cmd="$pip_cmd install $package_path $ci_flags"
     fi
     
     # 记录安装开始信息到日志

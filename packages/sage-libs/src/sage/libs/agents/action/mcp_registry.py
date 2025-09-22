@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from typing import Any, Dict
-from sage.core.api.function.map_function import MapFunction
 
+from sage.core.api.function.map_function import MapFunction
 
 
 class MCPRegistry(MapFunction):
@@ -47,7 +47,11 @@ class MCPRegistry(MapFunction):
         if (
             data is None
             or data == "describe"
-            or (isinstance(data, dict) and data.get("op", "describe") == "describe" and "name" not in data)
+            or (
+                isinstance(data, dict)
+                and data.get("op", "describe") == "describe"
+                and "name" not in data
+            )
         ):
             return self.describe()
 

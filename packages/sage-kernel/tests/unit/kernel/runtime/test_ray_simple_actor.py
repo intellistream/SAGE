@@ -5,6 +5,7 @@
 
 import os
 import warnings
+
 import ray
 from sage.kernel.utils.ray.ray import ensure_ray_initialized
 
@@ -35,9 +36,10 @@ def test_simple_actor():
 
     # 强制关闭现有Ray会话并重新初始化以确保使用正确的输出目录
     import ray
+
     if ray.is_initialized():
         ray.shutdown()
-    
+
     # 确保Ray初始化
     ensure_ray_initialized()
 

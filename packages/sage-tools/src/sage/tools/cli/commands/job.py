@@ -21,7 +21,7 @@ sys.path.append(str(project_root))
 
 import yaml
 from colorama import Back, Fore, Style, init
-from sage.kernel import JobManagerClient
+from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 from tabulate import tabulate
 
 # 初始化colorama

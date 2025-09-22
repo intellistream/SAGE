@@ -353,7 +353,7 @@ class TemplateIndexManager:
             return templates
 
         except Exception as e:
-            logger = CustomLogger(__name__)
+            logger = CustomLogger(outputs=[("console", "INFO")], name=__name__)
             logger.error(f"Failed to search templates: {e}")
             return []
 
@@ -387,6 +387,6 @@ class TemplateIndexManager:
             return stats
 
         except Exception as e:
-            logger = CustomLogger(__name__)
+            logger = CustomLogger(outputs=[("console", "INFO")], name=__name__)
             logger.error(f"Failed to get statistics: {e}")
             return {}

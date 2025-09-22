@@ -31,10 +31,10 @@ class MockEnvironment:
     def __init__(self, name="test_env", platform="local"):
         self.name = name
         self.platform = platform
-        
+
         # 使用统一的SAGE路径管理
         from sage.common.config.output_paths import get_test_env_dir
-        
+
         self.env_base_dir = str(get_test_env_dir("test_logs"))
         self.console_log_level = "INFO"
 

@@ -30,6 +30,8 @@ cd src/tutorials && python hello_world.py
 cd src/tutorials/core-api && python batch_operator_examples.py
 ```
 
+> **⚠️ 教程状态说明**: 当前 `core-api` 目录中的一些例子可能无法正常运行，这是正常现象，因为该部分尚未完成维护。其余的 `service-api` 等三个模块可以正常运行。
+
 ### 🧠 RAG开发者
 ```bash
 # 1. 简单RAG入门

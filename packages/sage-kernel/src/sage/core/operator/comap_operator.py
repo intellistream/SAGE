@@ -22,7 +22,7 @@ class CoMapOperator(BaseOperator):
 
         # 跟踪接收到的停止信号
         self.received_stop_signals = set()  # 记录哪些stream已经发送了停止信号
-        
+
         # 记录输入流的数量，用于判断是否所有流都已停止
         self.expected_input_count = None
 
@@ -108,12 +108,18 @@ class CoMapOperator(BaseOperator):
             if self.expected_input_count is None:
                 try:
                     # 从operator的transformation中获取预期的输入数量
-                    if hasattr(self, 'transformation') and hasattr(self.transformation, 'input_transformation_count'):
-                        self.expected_input_count = self.transformation.input_transformation_count
+                    if hasattr(self, "transformation") and hasattr(
+                        self.transformation, "input_transformation_count"
+                    ):
+                        self.expected_input_count = (
+                            self.transformation.input_transformation_count
+                        )
                     else:
                         # 从路由器的入站连接数推断（备用方案）
-                        self.expected_input_count = getattr(self.router, 'input_count', 2)
-                    
+                        self.expected_input_count = getattr(
+                            self.router, "input_count", 2
+                        )
+
                     self.logger.debug(
                         f"CoMapOperator '{self.name}' expecting {self.expected_input_count} input streams"
                     )
@@ -131,7 +137,8 @@ class CoMapOperator(BaseOperator):
                 )
 
                 # 向下游传播停止信号
-                from sage.kernel.runtime.communication.router.packet import StopSignal
+                from sage.kernel.runtime.communication.router.packet import \
+                    StopSignal
 
                 stop_signal = StopSignal(self.name, source=self.name)
                 self.router.send_stop_signal(stop_signal)

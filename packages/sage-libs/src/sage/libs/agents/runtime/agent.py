@@ -4,11 +4,12 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+# from sage.libs.agents.memory import memory_service_adapter
+from sage.core.api.function.map_function import MapFunction
+
 from ..action.mcp_registry import MCPRegistry
 from ..planning.llm_planner import LLMPlanner, PlanStep
 from ..profile.profile import BaseProfile
-# from sage.libs.agents.memory import memory_service_adapter
-from sage.core.api.function.map_function import MapFunction
 
 
 def _missing_required(
@@ -127,9 +128,12 @@ class AgentRuntime(MapFunction):
 
 只输出给用户的总结文本。"""
             messages = [
-        {"role": "system", "content": "你是一个严谨的助理。只输出中文总结，不要额外解释。"},
-        {"role": "user", "content": prompt},
-    ]
+                {
+                    "role": "system",
+                    "content": "你是一个严谨的助理。只输出中文总结，不要额外解释。",
+                },
+                {"role": "user", "content": prompt},
+            ]
             _, summary = self.summarizer.execute([None, messages])
             return summary.strip()
 
@@ -166,7 +170,9 @@ class AgentRuntime(MapFunction):
         if isinstance(data, dict):
             user_query = data.get("user_query") or data.get("query")
             if not isinstance(user_query, str) or not user_query.strip():
-                raise ValueError("AgentRuntime.execute(dict) 需要提供 'user_query' 或 'query'（非空字符串）。")
+                raise ValueError(
+                    "AgentRuntime.execute(dict) 需要提供 'user_query' 或 'query'（非空字符串）。"
+                )
 
             # 临时覆写 max_steps
             original_max = self.max_steps
@@ -178,7 +184,9 @@ class AgentRuntime(MapFunction):
 
             # 临时覆写 profile（一次性，不污染实例）
             original_profile = self.profile
-            if "profile_overrides" in data and isinstance(data["profile_overrides"], dict):
+            if "profile_overrides" in data and isinstance(
+                data["profile_overrides"], dict
+            ):
                 try:
                     self.profile = self.profile.merged(**data["profile_overrides"])
                 except Exception as e:

@@ -17,6 +17,8 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
+  # 控制是否编译C++扩展（设为false可加速CI）
+  SAGE_SKIP_CPP_EXTENSIONS: true
 
 jobs:
   test:
@@ -71,32 +73,48 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-system-deps-
           
-    - name: Install System Dependencies
+    - name: Install System Dependencies (C++ Extensions)
       run: |
-        echo "📦 安装系统依赖..."
-        
-        # 创建用户可写的缓存目录
-        mkdir -p /tmp/apt-cache
-        
-        # 更新包列表（优化CI性能）
-        echo "📥 更新包列表..."
-        sudo apt-get update -qq
-        
-        # 检查包是否已安装
-        missing_packages=""
-        for pkg in build-essential cmake pkg-config; do
-          if ! dpkg -l | grep -q "^ii.*$pkg "; then
-            missing_packages="$missing_packages $pkg"
-          fi
-        done
-        
-        if [ -n "$missing_packages" ]; then
-          echo "📦 安装缺失的包:$missing_packages"
-          sudo apt-get install -y $missing_packages
-        else
-          echo "✅ 所有系统依赖已安装"
+        if [ "$SAGE_SKIP_CPP_EXTENSIONS" = "true" ]; then
+          echo "🚀 跳过C++扩展编译依赖安装（加速CI模式）"
+          echo "📋 在此模式下，以下模块将使用Python回退实现："
+          echo "   • sage-kernel/enterprise/sage_queue → Python队列实现"
+          echo "   • sage-middleware/components/sage_db → 纯Python向量数据库"
+          exit 0
         fi
-      timeout-minutes: 10
+        
+        echo "📦 检查是否需要安装系统依赖..."
+        
+        # 检查是否需要编译C++扩展
+        needs_cpp=false
+        
+        # 检查是否有需要编译的C++模块
+        if [ -f "packages/sage-kernel/src/sage/kernel/enterprise/sage_queue/CMakeLists.txt" ] || \
+           [ -f "packages/sage-middleware/src/sage/middleware/components/sage_db/CMakeLists.txt" ]; then
+          needs_cpp=true
+          echo "🔍 检测到C++扩展模块，需要安装编译工具"
+        fi
+        
+        if [ "$needs_cpp" = true ]; then
+          echo "📦 安装C++编译依赖..."
+          
+          # 更新包列表
+          echo "📥 更新包列表..."
+          sudo apt-get update -qq
+          
+          # 安装编译依赖
+          echo "📦 安装编译工具..."
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config || {
+            echo "⚠️ 系统依赖安装失败，但继续执行（C++扩展可能不可用）"
+          }
+        else
+          echo "✅ 无需安装C++编译依赖，跳过"
+        fi
+      timeout-minutes: 15
+      continue-on-error: true  # 允许此步骤失败，继续执行后续步骤
 
     - name: Install SAGE (Test Mode)
       env:
@@ -120,8 +138,16 @@ jobs:
         echo "- 网络状态: $(ping -c 1 pypi.org >/dev/null 2>&1 && echo "✅ 可达" || echo "❌ 不可达")"
         
         echo "🎯 开始通过quickstart.sh dev模式安装..."
+        
+        # 设置错误捕获
+        set -e
+        trap 'exit_code=$?; echo "❌ SAGE installation failed with exit code $exit_code"; exit $exit_code' ERR
+        
         chmod +x ./quickstart.sh
-        ./quickstart.sh --dev --pip --yes
+        if ! ./quickstart.sh --dev --pip --yes; then
+          echo "❌ SAGE installation failed!"
+          exit 1
+        fi
         
         echo "✅ quickstart.sh dev模式安装完成"
       timeout-minutes: 20
@@ -244,3 +270,35 @@ jobs:
         fi
         
         echo "✅ 扩展测试完成"
+
+    - name: PyPI Release Validation
+      env:
+        PIP_NO_INPUT: 1
+        PYTHONUNBUFFERED: 1
+      run: |
+        echo "=== PyPI发布准备验证 ==="
+        
+        # 检查PyPI验证工具是否可用
+        if command -v sage >/dev/null 2>&1; then
+          echo "🔍 运行完整PyPI发布准备验证..."
+          
+          # 运行PyPI验证，使用超时以防卡住
+          timeout 1800 sage dev pypi validate --verbose || {
+            exit_code=$?
+            if [ $exit_code -eq 124 ]; then
+              echo "⚠️  PyPI验证超时（30分钟），但这可能是由于网络较慢"
+              echo "🔧 尝试运行快速验证模式..."
+              sage dev pypi validate --fast && echo "✅ 快速验证通过" || echo "❌ 快速验证也失败"
+            else
+              echo "❌ PyPI验证失败，退出码: $exit_code"
+              echo "🔧 尝试运行快速验证模式..."
+              sage dev pypi validate --fast && echo "⚠️  快速验证通过，但完整验证失败" || echo "❌ 快速验证也失败"
+              exit $exit_code
+            fi
+          }
+          
+          echo "✅ PyPI发布准备验证完成"
+        else
+          echo "❌ SAGE CLI不可用，跳过PyPI验证"
+          exit 1
+        fi

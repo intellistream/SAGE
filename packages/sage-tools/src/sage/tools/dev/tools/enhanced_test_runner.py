@@ -16,9 +16,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+from sage.common.config.output_paths import (get_logs_dir, get_reports_dir,
+                                             get_sage_paths)
+
 from ..core.exceptions import SAGEDevToolkitError
 from ..utils.intermediate_results_checker import IntermediateResultsChecker
-from sage.common.config.output_paths import get_sage_paths, get_logs_dir, get_reports_dir
 from .test_failure_cache import TestFailureCache
 
 
@@ -114,9 +116,9 @@ class EnhancedTestRunner:
             print(f"   Reports: {self.reports_dir}")
 
             # 检查中间结果放置
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             self.intermediate_checker.print_check_result()
-            print("="*50)
+            print("=" * 50)
 
             # Update failure cache with results (except for failed mode to avoid recursion)
             if mode != "failed":

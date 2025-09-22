@@ -123,8 +123,9 @@ check_environment() {
     # 检查必要的包
     echo "检查依赖包..."
     python3 -c "import typer, rich" 2>/dev/null || {
-        echo -e "${RED}❌ typer 或 rich 未安装。请运行: pip install -e packages/sage-tools[cli]${NC}"
-        exit 1
+        echo -e "${YELLOW}⚠️ typer 或 rich 未安装。Examples 测试需要这些依赖，跳过测试${NC}"
+        echo "💡 要运行完整的 Examples 测试，请运行: pip install -e packages/sage-tools[cli]"
+        return 1
     }
     
     if $USE_PYTEST; then
