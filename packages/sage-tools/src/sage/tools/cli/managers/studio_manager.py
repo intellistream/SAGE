@@ -253,8 +253,7 @@ class StudioManager:
                 
                 # 安装缺失的包
                 env = os.environ.copy()
-                cache_dir = Path.home() / ".sage" / "studio" / "cache" / "npm"
-                env["npm_config_cache"] = str(cache_dir)
+                env["npm_config_cache"] = str(self.npm_cache_dir)
                 
                 for package in missing_packages:
                     result = subprocess.run(
