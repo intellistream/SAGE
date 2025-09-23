@@ -3,4 +3,7 @@
 	url = https://github.com/intellistream/SAGE-Pub.git
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_flow"]
 	path = packages/sage-middleware/src/sage/middleware/components/sage_flow
-	url = https://github.com/intellistream/candyFlow
+	url = https://github.com/intellistream/sageFlow
+[submodule "packages/sage-middleware/src/sage/middleware/components/sage_db"]
+	path = packages/sage-middleware/src/sage/middleware/components/sage_db
+	url = git@github.com:intellistream/sageDB.git
