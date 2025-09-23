@@ -518,6 +518,7 @@ class ExampleTestFilters:
         # 白名单：某些 demo 实例是安全且快速的，允许在测试中运行
         whitelist = {
             "memory_service_demo.py",
+            "hello_sage_flow_service.py",
         }
 
         # 解析文件内容（用于进一步判断是否重型/交互式，以及读取内嵌标签）
@@ -580,7 +581,7 @@ class ExampleTestFilters:
         # 类别特定的过滤规则
         if category == "service":
             # 服务类例子通常需要长时间运行
-            if "service" in filename or "server" in filename:
+            if filename not in whitelist and ("service" in filename or "server" in filename):
                 return True, "服务类示例通常需要长时间运行"
 
         return False, ""

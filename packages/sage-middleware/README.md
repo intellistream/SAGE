@@ -1,82 +1,46 @@
-# SAGE Middleware
+# SAGE Middleware（中间件）
 
-Streaming-Augmented Generative Execution Middleware - A comprehensive middleware framework for building AI-powered data processing pipelines.
+用于构建带有 AI 能力的流式数据应用的中间件层，集成了多家大模型提供商、异步任务、鉴权以及高性能的数据处理组件。
 
-## Overview
+## 主要功能
 
-SAGE Middleware provides a robust foundation for building streaming data processing applications with AI capabilities. It integrates multiple AI providers, task queuing, authentication, and high-performance data processing components.
+- 🤖 AI 接入：OpenAI / Anthropic / Cohere / Ollama / 智谱 等
+- 🔎 检索与向量：RAG、BM25、FAISS 等
+- � 任务调度：Celery 异步任务
+- 🔐 安全鉴权：JWT、密码学工具
+- ⚙️ 核心组件：
+  - `sage_db`：数据库/向量存储相关组件（含 C/C++ 扩展）
+  - `sage_flow`：高性能向量流处理（可能包含扩展或独立子模块）
 
-## Key Features
-
-### 🤖 AI Integration
-- **Multi-Provider Support**: OpenAI, Anthropic, Cohere, Ollama, ZhipuAI
-- **LLM Integration**: Seamless integration with large language models
-- **Embedding Support**: Vector embeddings with FAISS and other backends
-
-### 📊 Data Processing
-- **Vector Processing**: High-performance vector operations with candyFlow
-- **RAG Support**: Retrieval-Augmented Generation pipelines
-- **BM25 Integration**: Efficient text retrieval and ranking
-
-### 🔄 Task Management
-- **Celery Integration**: Distributed task queuing and processing
-- **Async Processing**: Asynchronous task execution with aiohttp
-
-### 🔐 Security & Auth
-- **JWT Authentication**: Secure API authentication
-- **Password Management**: Secure password hashing and validation
-
-## Installation
+## 安装
 
 ```bash
 pip install isage-middleware
-```
 
-### Optional Dependencies
-
-```bash
-# With VLLM support (requires CUDA)
+# 可选：VLLM 支持（需要 CUDA）
 pip install isage-middleware[vllm]
 
-# With full SAGE framework
+# 可选：与完整 SAGE 框架集成
 pip install isage-middleware[sage]
 ```
 
-## Quick Start
+## 快速开始
 
 ```python
 from sage.middleware.api.client import APIClient
 from sage.middleware.auth.jwt import JWTManager
 
-# Initialize components
 client = APIClient()
 jwt_manager = JWTManager()
 
-# Use AI providers
-response = client.chat_completion(
+resp = client.chat_completion(
     provider="openai",
-    messages=[{"role": "user", "content": "Hello!"}]
+    messages=[{"role": "user", "content": "Hello!"}],
 )
+print(resp)
 ```
 
-## Architecture
-
-### Core Components
-
-- **API Layer**: RESTful API endpoints with authentication
-- **Service Layer**: Business logic and AI provider integrations
-- **Data Layer**: Vector processing and storage backends
-- **Task Layer**: Asynchronous task processing with Celery
-
-### Middleware Services
-
-- **sage_db**: Database abstraction layer
-- **sage_flow**: High-performance vector stream processing
-- **sage_rag**: Retrieval-Augmented Generation pipelines
-
-## Configuration
-
-Create a configuration file:
+## 配置示例
 
 ```yaml
 # config.yaml
@@ -84,37 +48,63 @@ middleware:
   auth:
     secret_key: "your-secret-key"
     algorithm: "HS256"
-
   providers:
     openai:
       api_key: "sk-..."
       base_url: "https://api.openai.com/v1"
 ```
 
-## Development
+## 开发与本地安装
 
 ```bash
-# Clone the repository
-git clone https://github.com/intellistream/sage.git
-cd sage/packages/sage-middleware
-
-# Install in development mode
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE/packages/sage-middleware
 pip install -e .
 ```
 
-## Contributing
+> 提示：如果使用了子模块（例如 `sage_flow`），请先在仓库根目录执行：
+>
+> ```bash
+> git submodule update --init --recursive
+> ```
 
-Please read our [Contributing Guide](../../CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+## 新增中间件组件的规范（重要）
 
-## License
+当你添加新的中间件组件（例如 `sage_foo`）时，请务必在 `setup.py` 中接入其构建逻辑，这样在安装 `isage-middleware` 时会自动构建/准备该组件。
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+建议遵循以下约定：
 
-## Authors
+1) 目录结构（放在源码目录下，保证被打包发现）
 
-- **IntelliStream Team** - *Initial work* - [intellistream@outlook.com](mailto:intellistream@outlook.com)
+- `src/sage/middleware/components/sage_foo/`
+  - `__init__.py`（Python 包）
+  - 可选：`build.sh`（如含 C/C++/额外构建步骤）
 
-## Acknowledgments
+2) 构建脚本（可选）
 
-- Built on top of the SAGE framework
-- Powered by various open-source AI and data processing libraries
+- 如组件需要编译或额外准备工作，请在组件目录提供标准的 `build.sh`，支持无交互执行：
+  - `bash build.sh --install-deps`
+
+3) 在 `setup.py` 里接入构建
+
+- 在自定义的 `build_ext` 流程中：
+  - 新增 `build_sage_foo()` 方法（参照已有的 `build_sage_db()` / `build_sage_flow()`）。
+  - 在 `run()` 中调用 `self.build_sage_foo()`，并保证失败不阻断安装（打印清晰日志即可）。
+
+4) 环境变量开关（可选）
+
+- 如需跳过所有扩展构建（调试 Python 逻辑时常用）：
+  - 设置 `SAGE_SKIP_C_EXTENSIONS=1`
+
+5) CI 提示
+
+- CI 会递归检出子模块并按 `setup.py` 的逻辑尝试构建。
+- 如果组件以子模块形式提供源码，请确保子模块在 CI 和本地都能被初始化（`git submodule update --init --recursive`）。
+
+## 贡献
+
+欢迎提交 PR！请先阅读仓库根目录的 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
+
+## 许可协议
+
+MIT 许可协议，详见仓库根目录的 [LICENSE](../../LICENSE)。

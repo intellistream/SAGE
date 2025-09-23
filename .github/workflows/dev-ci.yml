@@ -51,6 +51,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 5
@@ -128,6 +129,8 @@ jobs:
           # 使用非editable安装触发 packages/sage-middleware/setup.py:CustomInstall -> build_ext
           pip install --no-build-isolation packages/sage-middleware || {
             echo "⚠️ 非editable安装失败，尝试直接运行组件build脚本"
+            echo "🔁 初始化子模块（如有）..."
+            git submodule update --init --recursive || true
             if [ -f packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh ]; then
               bash packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh || true
             fi
@@ -196,6 +199,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 5
@@ -346,6 +350,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 8
@@ -440,6 +445,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 5

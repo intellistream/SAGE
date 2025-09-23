@@ -3,45 +3,11 @@ import time
 
 import numpy as np
 
-# Try standard imports first; fall back to adding local package src paths when running from repo
-try:
-    try:
-        from sage.common.utils.logging.custom_logger import CustomLogger
-        from sage.middleware.components.sage_flow.sage_flow import (
-            SimpleStreamSource, StreamEnvironment)
-    except ImportError:
-        raise
-except ModuleNotFoundError:
-    import os
-    import sys
-    from pathlib import Path
-
-    # Detect repository root by locating the directory that contains 'packages/'
-    here = Path(__file__).resolve()
-    repo_root = None
-    for p in here.parents:
-        if (p / "packages").exists():
-            repo_root = p
-            break
-    if repo_root is None:
-        # Fallback to 4-levels up (…/SAGE)
-        repo_root = here.parents[3]
-
-    # Insert package src paths, ensuring namespace package 'sage' is loaded first
-    src_paths = [
-        repo_root / "packages" / "sage" / "src",
-        repo_root / "packages" / "sage-common" / "src",
-        repo_root / "packages" / "sage-kernel" / "src",
-        repo_root / "packages" / "sage-middleware" / "src",
-        repo_root / "packages" / "sage-libs" / "src",
-        repo_root / "packages" / "sage-tools" / "src",
-    ]
-    for p in src_paths:
-        sys.path.insert(0, str(p))
-
-    from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.middleware.components.sage_flow.sage_flow import (
-        SimpleStreamSource, StreamEnvironment)
+from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.middleware.components.sage_flow.python.sage_flow import (
+    SimpleStreamSource,
+    StreamEnvironment,
+)
 
 
 def main():
