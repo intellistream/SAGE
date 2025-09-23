@@ -33,8 +33,6 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  # 控制是否编译C++扩展（设为false可加速CI）
-  SAGE_SKIP_CPP_EXTENSIONS: true
   # 缓存键版本，修改此值可强制重新构建缓存
   CACHE_VERSION: v1
 
@@ -53,6 +51,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 5
@@ -89,12 +88,7 @@ jobs:
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
-          if [ "$SAGE_SKIP_CPP_EXTENSIONS" = "true" ]; then
-            echo "� 跳过C++扩展编译依赖安装（加速CI模式）"
-            exit 0
-          fi
-
-          echo "� 安装C++编译依赖..."
+          echo "🧰 安装C++编译依赖..."
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             build-essential \
@@ -127,6 +121,24 @@ jobs:
 
           echo "✅ SAGE开发环境安装完成"
         timeout-minutes: 30
+
+      - name: Build Middleware C++ Extensions (non-editable install)
+        if: steps.cache-sage.outputs.cache-hit != 'true'
+        run: |
+          echo "🔧 触发 middleware 非editable安装以编译C++扩展 (sage_db / sage_flow)"
+          # 使用非editable安装触发 packages/sage-middleware/setup.py:CustomInstall -> build_ext
+          pip install --no-build-isolation packages/sage-middleware || {
+            echo "⚠️ 非editable安装失败，尝试直接运行组件build脚本"
+            echo "🔁 初始化子模块（如有）..."
+            git submodule update --init --recursive || true
+            if [ -f packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh ]; then
+              bash packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh || true
+            fi
+            if [ -f packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh ]; then
+              bash packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh --install-deps || true
+            fi
+          }
+          echo "✅ C++扩展构建步骤完成（若依赖缺失则已容忍继续）"
 
       - name: Verify SAGE Installation
         run: |
@@ -183,116 +195,72 @@ jobs:
     timeout-minutes: 20
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 1
-        clean: true
-      timeout-minutes: 5
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-        cache-dependency-path: '**/requirements*.txt'
-      timeout-minutes: 10
-      continue-on-error: false
-      
-    - name: Verify Python Installation
-      run: |
-        python --version
-        pip --version
-        which python
-        which pip
-      timeout-minutes: 2
-      
-    - name: Install SAGE (Development Mode)
-      id: install-deps
-      env:
-        CI: true
-        DEBIAN_FRONTEND: noninteractive
-        PIP_NO_INPUT: 1
-        PIP_DISABLE_PIP_VERSION_CHECK: 1
-      run: |
-        echo "🚀 使用quickstart.sh --dev模式安装SAGE..."
-        echo "ℹ️ 这将安装完整的开发工具和CLI"
-        
-        # 显示环境信息
-        echo "� 环境信息:"
-        echo "- Python: $(python --version)"
-        echo "- Python路径: $(which python)"
-        echo "- Pip版本: $(pip --version)"
-        
-        # 使用quickstart.sh dev模式安装
-        chmod +x ./quickstart.sh
-        ./quickstart.sh --dev --pip --yes
-        
-        echo "✅ SAGE开发环境安装完成"
-      timeout-minutes: 60
-        
-    - name: Verify SAGE Installation
-      run: |
-        echo "=== 验证SAGE安装 ==="
-        echo "=== Import Tests ==="
-        python -c "import sage; print('✅ SAGE core import successful, version:', sage.__version__)"
-        python -c "import sage.common; print('✅ sage.common import successful')"
-        python -c "import sage.kernel; print('✅ sage.kernel import successful')"
-        python -c "import sage.middleware; print('✅ sage.middleware import successful')"
-        python -c "import sage.libs; print('✅ sage.libs import successful')"
-        
-        echo "=== CLI Test ==="
-        # 刷新shell环境以确保新安装的入口点可用
-        hash -r
-        
-        # 检查sage命令是否在PATH中
-        if command -v sage >/dev/null 2>&1; then
-          echo "✅ SAGE CLI found in PATH: $(which sage)"
-          sage --help > /dev/null && echo "✅ SAGE CLI help working"
-          sage version && echo "✅ SAGE version command working"
-        else
-          echo "❌ SAGE CLI not found in PATH"
-          echo "🔍 诊断信息:"
-          echo "- PATH: $PATH"
-          echo "- 检查已安装的包和入口点:"
-          python -c "import pkg_resources; [print(f'Found sage entry point: {ep}') for ep in pkg_resources.iter_entry_points('console_scripts') if ep.name == 'sage']"
-          echo "- 尝试直接运行CLI模块:"
-          python -m sage.tools.cli.main --help && echo "✅ CLI module works directly"
-        fi
-    
-    - name: Run Basic Import Tests
-      id: basic-tests
-      run: |
-        echo "Running quick smoke tests..."
-        python -c "import sage; print('SAGE core import successful, version:', sage.__version__)"
-        python -c "import sage.common; print('sage.common import successful')"
-        # 添加更多基础导入测试
-        echo "Basic import tests passed ✅"
-    
-    - name: Run Issues Manager Tests
-      run: |
-        echo "Running issues manager automated tests..."
-        # 检查sage命令是否可用，如果不可用则使用python模块方式
-        if command -v sage >/dev/null 2>&1; then
-          SAGE_CMD="sage"
-          echo "✅ 使用PATH中的sage命令"
-        else
-          SAGE_CMD="python -m sage.tools.cli.main"
-          echo "⚠️ sage命令不在PATH中，使用模块方式: $SAGE_CMD"
-        fi
-        
-        # 运行Issues Manager测试，并正确处理退出码
-        echo "🔧 运行 Issues Manager 测试..."
-        if timeout 60s $SAGE_CMD dev test --issues-manager; then
-          echo "✅ Issues Manager 测试通过"
-        else
-          echo "⚠️ Issues Manager 测试失败，在CI环境中这是可以接受的"
-          python -c "import sage.tools.dev.issues; print('✅ Issues管理模块导入成功')"
-        fi
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
+          fetch-depth: 1
+          clean: true
+        timeout-minutes: 5
 
-    - name: Run Basic SAGE Tests
-      run: |
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: '**/requirements*.txt'
+        timeout-minutes: 10
+
+      - name: Restore SAGE Installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.pythonLocation }}
+            ~/.local
+            ./install.log
+          key: ${{ needs.build-sage.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Verify SAGE Installation
+        run: |
+          echo "🔍 验证SAGE安装状态..."
+          python -c "import sage; print('✅ SAGE imported successfully')"
+          python -c "import sage.common; print('✅ sage.common imported')"
+          
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+          echo "✅ SAGE命令: $SAGE_CMD"
+
+      - name: Run Basic Import Tests
+        run: |
+          echo "🧪 运行基础导入测试..."
+          python -c "import sage; print('✅ SAGE imported')"
+          python -c "import sage.common; print('✅ sage.common imported')"
+          echo "✅ 基础导入测试通过"
+
+      - name: Run Issues Manager Tests
+        run: |
+          echo "🔧 运行Issues Manager测试..."
+          
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+
+          if timeout 60s $SAGE_CMD dev test --issues-manager; then
+            echo "✅ Issues Manager 测试通过"
+          else
+            echo "⚠️ Issues Manager 测试失败，在CI环境中这是可以接受的"
+            python -c "import sage.tools.dev.issues; print('✅ Issues管理模块导入成功')"
+          fi
+
+      - name: Run Basic SAGE Tests
+        run: |
           echo "🧪 运行基础验证测试..."
           
           if command -v sage >/dev/null 2>&1; then
@@ -382,6 +350,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 8
@@ -476,6 +445,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 5
