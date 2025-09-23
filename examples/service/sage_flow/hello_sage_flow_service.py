@@ -11,7 +11,6 @@ try:
             SageFlowService,
         )
     except ImportError:
-        # Extension or dependency missing; do not soft-skip — propagate for visibility
         raise
 except ModuleNotFoundError:
     import os
@@ -67,7 +66,6 @@ def main():
 
     # 运行一次，将队列中的数据消费（内部会执行 env.execute()）
     svc.run()
-
     logging.info("Service demo done")
 
 

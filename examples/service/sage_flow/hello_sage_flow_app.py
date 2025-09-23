@@ -11,7 +11,6 @@ try:
             StreamEnvironment,
         )
     except ImportError:
-        # Extension or dependency missing; do not soft-skip — propagate for visibility
         raise
 except ModuleNotFoundError:
     import os
