@@ -1,5 +1,6 @@
 import logging
 import time
+
 import numpy as np
 
 # Try standard imports first; fall back to adding local package src paths when running from repo
@@ -7,11 +8,8 @@ try:
     try:
         from sage.common.utils.logging.custom_logger import CustomLogger
         from sage.middleware.components.sage_flow.sage_flow import (
-            SimpleStreamSource,
-            StreamEnvironment,
-        )
+            SimpleStreamSource, StreamEnvironment)
     except ImportError:
-        # Extension or dependency missing; do not soft-skip — propagate for visibility
         raise
 except ModuleNotFoundError:
     import os
@@ -43,9 +41,7 @@ except ModuleNotFoundError:
 
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.middleware.components.sage_flow.sage_flow import (
-        SimpleStreamSource,
-        StreamEnvironment,
-    )
+        SimpleStreamSource, StreamEnvironment)
 
 
 def main():
@@ -78,9 +74,9 @@ def main():
     logging.info("execute done")
 
     # 简单校验：处理的记录数应等于注入的记录数
-    assert processed["count"] == total, (
-        f"processed count {processed['count']} != expected {total}"
-    )
+    assert (
+        processed["count"] == total
+    ), f"processed count {processed['count']} != expected {total}"
     logging.info(f"processed count: {processed['count']}")
 
 

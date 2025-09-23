@@ -533,9 +533,18 @@ class ExampleTestFilters:
             if not text:
                 return False
             heavy_keywords = [
-                "uvicorn", "fastapi", "flask", "gradio", "streamlit",
-                "ray.init", "while True", "run_forever", "serve(",
-                "multiprocessing", "spark", "mlflow",
+                "uvicorn",
+                "fastapi",
+                "flask",
+                "gradio",
+                "streamlit",
+                "ray.init",
+                "while True",
+                "run_forever",
+                "serve(",
+                "multiprocessing",
+                "spark",
+                "mlflow",
             ]
             return any(k in text for k in heavy_keywords)
 
@@ -546,6 +555,8 @@ class ExampleTestFilters:
                 return ("allow-demo" in tags) or ("allow_demo" in tags)
             # 次选：直接在文件内容中扫描 @test:allow-demo
             if content and "@test:allow-demo" in content:
+                return True
+            if content and "@test:allow_demo" in content:
                 return True
             return False
 
