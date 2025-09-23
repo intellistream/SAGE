@@ -5,6 +5,8 @@ MemoryService 使用示例
 
 MemoryService 是 SAGE middleware 中的高级编排服务，
 它协调 KV、VDB 和 Graph 微服务，提供统一的记忆管理接口。
+
+# @test:allow-demo  该示例为安全、快速的 demo，允许在测试中运行
 """
 
 import os
@@ -463,8 +465,8 @@ def main():
 
     # 检查是否在测试模式
     if os.getenv("SAGE_EXAMPLES_MODE") == "test":
-        print("🧪 测试模式：跳过 MemoryService 示例（需要完整服务设置）")
-        return
+        # 在测试模式下也继续运行，本示例使用 Mock 服务不会依赖外部基础设施
+        print("🧪 测试模式：仍然运行 MemoryService 示例（使用 Mock 服务）")
 
     print("📋 初始化 MemoryService...")
 
