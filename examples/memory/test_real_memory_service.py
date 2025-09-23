@@ -25,17 +25,20 @@ import time
 from typing import Any, Dict, List
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.base_function import BaseFunction
-from sage.middleware.services.graph.graph_service import create_graph_service_factory
+from sage.core.api.local_environment import LocalEnvironment
+from sage.middleware.services.graph.graph_service import \
+    create_graph_service_factory
 from sage.middleware.services.kv.kv_service import create_kv_service_factory
-from sage.middleware.services.memory.memory_service import create_memory_service_factory
+from sage.middleware.services.memory.memory_service import \
+    create_memory_service_factory
 from sage.middleware.services.vdb.vdb_service import create_vdb_service_factory
 
 
 def mock_embedding(text: str) -> List[float]:
     """Deterministic mock embedding based on content hash (demo only)."""
     import hashlib
+
     import numpy as np
 
     h = hashlib.md5(text.encode()).hexdigest()
@@ -119,7 +122,11 @@ class StoreMemories(BaseFunction):
                 vector=mock_embedding(semantic_content),
                 session_id=self.session_id,
                 memory_type="knowledge",
-                metadata={"topic": "programming", "importance": "medium", "timestamp": now},
+                metadata={
+                    "topic": "programming",
+                    "importance": "medium",
+                    "timestamp": now,
+                },
                 create_knowledge_graph=True,
             )
             stored_ids.append(sid)
@@ -163,9 +170,7 @@ class PrintSearchResult(BaseFunction):
     def execute(self, data: Dict[str, Any]):
         print(f"\n🔍 查询: {data['query']}")
         for i, r in enumerate(data.get("results", []), 1):
-            print(
-                f"  {i}. [{r['type']}] {r['preview']}... (相似度: {r['score']:.4f})"
-            )
+            print(f"  {i}. [{r['type']}] {r['preview']}... (相似度: {r['score']:.4f})")
         return data
 
 
@@ -200,7 +205,10 @@ def run_memory_service_pipeline():
     env.register_service_factory("vdb_service", vdb_factory)
 
     graph_factory = create_graph_service_factory(
-        service_name="graph_service", backend_type="memory", max_nodes=10000, max_relationships=50000
+        service_name="graph_service",
+        backend_type="memory",
+        max_nodes=10000,
+        max_relationships=50000,
     )
     env.register_service_factory("graph_service", graph_factory)
 
@@ -248,4 +256,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ 运行出错: {e}")
         import traceback
+
         traceback.print_exc()
