@@ -284,46 +284,15 @@ jobs:
         
         # 运行Issues Manager测试，并正确处理退出码
         echo "🔧 运行 Issues Manager 测试..."
-        if $SAGE_CMD dev test --issues-manager; then
+        if timeout 60s $SAGE_CMD dev test --issues-manager; then
           echo "✅ Issues Manager 测试通过"
-          exit_code=0
         else
-          exit_code=$?
-          echo "❌ Issues Manager 测试失败"
-          
-          if command -v sage >/dev/null 2>&1; then
-            SAGE_CMD="sage"
-          else
-            SAGE_CMD="python -m sage.tools.cli.main"
-          fi
-          echo "✅ SAGE命令: $SAGE_CMD"
+          echo "⚠️ Issues Manager 测试失败，在CI环境中这是可以接受的"
+          python -c "import sage.tools.dev.issues; print('✅ Issues管理模块导入成功')"
+        fi
 
-      - name: Run Basic Import Tests
-        run: |
-          echo "🧪 运行基础导入测试..."
-          python -c "import sage; print('✅ SAGE imported')"
-          python -c "import sage.common; print('✅ sage.common imported')"
-          echo "✅ 基础导入测试通过"
-
-      - name: Run Issues Manager Tests
-        run: |
-          echo "🔧 运行Issues Manager测试..."
-          
-          if command -v sage >/dev/null 2>&1; then
-            SAGE_CMD="sage"
-          else
-            SAGE_CMD="python -m sage.tools.cli.main"
-          fi
-
-          if timeout 60s $SAGE_CMD dev test --issues-manager; then
-            echo "✅ Issues Manager 测试通过"
-          else
-            echo "⚠️ Issues Manager 测试失败，在CI环境中这是可以接受的"
-            python -c "import sage.tools.dev.issues; print('✅ Issues管理模块导入成功')"
-          fi
-
-      - name: Run Basic SAGE Tests
-        run: |
+    - name: Run Basic SAGE Tests
+      run: |
           echo "🧪 运行基础验证测试..."
           
           if command -v sage >/dev/null 2>&1; then
@@ -338,11 +307,11 @@ jobs:
             echo "ℹ️ 诊断命令不支持，运行基础检查"
             python -c "import sage; import sage.common; print('✅ 基础模块导入成功')"
           fi
-        timeout-minutes: 10
+      timeout-minutes: 10
 
-      - name: Report Quick Check Failure
-        if: failure()
-        run: |
+    - name: Report Quick Check Failure
+      if: failure()
+      run: |
           echo "❌ Quick Check Failed - Collecting Diagnostic Information"
           echo "════════════════════════════════════════════════════════════════"
 
