@@ -547,6 +547,8 @@ class ExampleTestFilters:
             # 次选：直接在文件内容中扫描 @test:allow-demo
             if content and "@test:allow-demo" in content:
                 return True
+            if content and "@test:allow_demo" in content:
+                return True
             return False
 
         # 对包含 demo 的文件采用更精细的判断：
