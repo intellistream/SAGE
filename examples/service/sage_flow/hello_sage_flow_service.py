@@ -55,6 +55,15 @@ def main():
     service_factory = env.service_factories["hello_sage_flow_service"]
     svc: SageFlowService = service_factory.create_service()
 
+    # 附加一个可见的 Python sink，以便运行时在控制台看到处理结果
+    processed = {"count": 0}
+
+    def on_sink(uid: int, ts: int):
+        processed["count"] += 1
+        print(f"[service py_sink] processed uid={uid}, ts={ts}", flush=True)
+
+    svc.set_sink(on_sink)
+
     # 推入几条数据
     for uid in range(3):
         vec = np.arange(4, dtype=np.float32) + uid
@@ -62,9 +71,13 @@ def main():
 
     # 运行一次，将队列中的数据消费（内部会执行 env.execute()）
     svc.run()
+    print(f"processed count: {processed['count']}")
     logging.info("Service demo done")
 
 
 if __name__ == "__main__":
+    # 显示标准 logging 的 INFO 级别日志
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    # 关闭自定义全局控制台日志（不影响标准 logging 和 print 输出）
     CustomLogger.disable_global_console_debug()
     main()

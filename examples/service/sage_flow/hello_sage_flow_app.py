@@ -19,8 +19,9 @@ def main():
     processed = {"count": 0}
 
     def on_sink(uid: int, ts: int):
-        # 简单累加计数，验证 pipeline 正常运行
+        # 简单累加计数，验证 pipeline 正常运行，并打印出处理记录
         processed["count"] += 1
+        print(f"[py_sink] processed uid={uid}, ts={ts}")
 
     # 将 sink 直接挂在 source 上（返回下游 stream，但无需手动加入 env）
     source.write_sink_py("py_sink", on_sink)
@@ -47,5 +48,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # 显示标准 logging 的 INFO 级别日志
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    # 关闭自定义全局控制台日志（不影响标准 logging 和 print 输出）
     CustomLogger.disable_global_console_debug()
     main()
