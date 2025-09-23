@@ -1,51 +1,13 @@
 import logging
 import time
+
 import numpy as np
 
-# Try standard imports first; fall back to adding local package src paths when running from repo
-try:
-    try:
-        from sage.common.utils.logging.custom_logger import CustomLogger
-        from sage.middleware.components.sage_flow.sage_flow import (
-            SimpleStreamSource,
-            StreamEnvironment,
-        )
-    except ImportError:
-        # Extension or dependency missing; do not soft-skip — propagate for visibility
-        raise
-except ModuleNotFoundError:
-    import os
-    import sys
-    from pathlib import Path
-
-    # Detect repository root by locating the directory that contains 'packages/'
-    here = Path(__file__).resolve()
-    repo_root = None
-    for p in here.parents:
-        if (p / "packages").exists():
-            repo_root = p
-            break
-    if repo_root is None:
-        # Fallback to 4-levels up (…/SAGE)
-        repo_root = here.parents[3]
-
-    # Insert package src paths, ensuring namespace package 'sage' is loaded first
-    src_paths = [
-        repo_root / "packages" / "sage" / "src",
-        repo_root / "packages" / "sage-common" / "src",
-        repo_root / "packages" / "sage-kernel" / "src",
-        repo_root / "packages" / "sage-middleware" / "src",
-        repo_root / "packages" / "sage-libs" / "src",
-        repo_root / "packages" / "sage-tools" / "src",
-    ]
-    for p in src_paths:
-        sys.path.insert(0, str(p))
-
-    from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.middleware.components.sage_flow.sage_flow import (
-        SimpleStreamSource,
-        StreamEnvironment,
-    )
+from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.middleware.components.sage_flow.python.sage_flow import (
+    SimpleStreamSource,
+    StreamEnvironment,
+)
 
 
 def main():
@@ -57,8 +19,9 @@ def main():
     processed = {"count": 0}
 
     def on_sink(uid: int, ts: int):
-        # 简单累加计数，验证 pipeline 正常运行
+        # 简单累加计数，验证 pipeline 正常运行，并打印出处理记录
         processed["count"] += 1
+        print(f"[py_sink] processed uid={uid}, ts={ts}")
 
     # 将 sink 直接挂在 source 上（返回下游 stream，但无需手动加入 env）
     source.write_sink_py("py_sink", on_sink)
@@ -78,12 +41,15 @@ def main():
     logging.info("execute done")
 
     # 简单校验：处理的记录数应等于注入的记录数
-    assert processed["count"] == total, (
-        f"processed count {processed['count']} != expected {total}"
-    )
+    assert (
+        processed["count"] == total
+    ), f"processed count {processed['count']} != expected {total}"
     logging.info(f"processed count: {processed['count']}")
 
 
 if __name__ == "__main__":
+    # 显示标准 logging 的 INFO 级别日志
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    # 关闭自定义全局控制台日志（不影响标准 logging 和 print 输出）
     CustomLogger.disable_global_console_debug()
     main()

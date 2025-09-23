@@ -25,6 +25,7 @@ from sage.middleware.services.memory.memory_service import MemoryService
 def mock_embedding(text: str) -> List[float]:
     """简单的模拟embedding函数"""
     import hashlib
+
     import numpy as np
 
     # 使用文本的hash来生成确定性的向量（仅用于演示）
@@ -72,11 +73,7 @@ class MemoryProcessor(MapFunction):
                 vector=mock_embedding(user_message),
                 session_id=self.session_id,
                 memory_type="conversation",
-                metadata={
-                    "speaker": "user",
-                    "topic": topic,
-                    "timestamp": time.time()
-                }
+                metadata={"speaker": "user", "topic": topic, "timestamp": time.time()},
             )
 
             # 存储AI回复
@@ -85,11 +82,7 @@ class MemoryProcessor(MapFunction):
                 vector=mock_embedding(ai_response),
                 session_id=self.session_id,
                 memory_type="conversation",
-                metadata={
-                    "speaker": "ai",
-                    "topic": topic,
-                    "timestamp": time.time()
-                }
+                metadata={"speaker": "ai", "topic": topic, "timestamp": time.time()},
             )
 
             # 如果是编程相关，存储语义记忆
@@ -103,8 +96,8 @@ class MemoryProcessor(MapFunction):
                     metadata={
                         "topic": "programming",
                         "importance": "medium",
-                        "timestamp": time.time()
-                    }
+                        "timestamp": time.time(),
+                    },
                 )
 
             return {
@@ -112,14 +105,11 @@ class MemoryProcessor(MapFunction):
                 "user_memory_id": user_memory_id,
                 "ai_memory_id": ai_memory_id,
                 "topic": topic,
-                "processed": True
+                "processed": True,
             }
 
         except Exception as e:
-            return {
-                "error": f"存储记忆失败: {str(e)}",
-                "session_id": self.session_id
-            }
+            return {"error": f"存储记忆失败: {str(e)}", "session_id": self.session_id}
 
 
 class MemoryRetriever(MapFunction):
@@ -141,9 +131,7 @@ class MemoryRetriever(MapFunction):
             # 搜索相关记忆
             query_vector = mock_embedding(query)
             relevant_memories = memory_service.search_memories(
-                query_vector=query_vector,
-                session_id=self.session_id,
-                limit=3
+                query_vector=query_vector, session_id=self.session_id, limit=3
             )
 
             # 获取会话记忆历史
@@ -152,11 +140,13 @@ class MemoryRetriever(MapFunction):
             # 格式化结果
             formatted_memories = []
             for mem in relevant_memories:
-                formatted_memories.append({
-                    "text": mem.get("content", ""),
-                    "type": mem.get("memory_type", "unknown"),
-                    "meta": mem.get("metadata", {})
-                })
+                formatted_memories.append(
+                    {
+                        "text": mem.get("content", ""),
+                        "type": mem.get("memory_type", "unknown"),
+                        "meta": mem.get("metadata", {}),
+                    }
+                )
 
             # 生成简化的上下文
             context_parts = []
@@ -172,14 +162,14 @@ class MemoryRetriever(MapFunction):
                 "relevant_memories": formatted_memories,
                 "session_memories_count": len(session_memories),
                 "context": context,
-                "session_id": self.session_id
+                "session_id": self.session_id,
             }
 
         except Exception as e:
             return {
                 "error": f"检索记忆失败: {str(e)}",
                 "query": query,
-                "session_id": self.session_id
+                "session_id": self.session_id,
             }
 
 
@@ -188,9 +178,9 @@ class ResultPrinter(SinkFunction):
 
     def execute(self, data: Dict[str, Any]):
         """打印处理结果"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🧠 MemoryService 处理结果")
-        print("="*60)
+        print("=" * 60)
 
         if "error" in data:
             print(f"❌ 错误: {data['error']}")
@@ -210,16 +200,16 @@ class ResultPrinter(SinkFunction):
             print(f"   会话ID: {data['session_id']}")
 
             print(f"\n📚 相关记忆 ({len(data['relevant_memories'])} 条):")
-            for i, mem in enumerate(data['relevant_memories'], 1):
+            for i, mem in enumerate(data["relevant_memories"], 1):
                 print(f"   {i}. [{mem['type']}] {mem['text'][:60]}...")
-                if mem['meta']:
+                if mem["meta"]:
                     print(f"      元数据: {mem['meta']}")
 
             print(f"\n� 会话统计:")
             print(f"   总记忆数: {data.get('session_memories_count', 0)}")
 
             print(f"\n📝 生成的上下文:")
-            context = data.get('context', '')
+            context = data.get("context", "")
             print(f"   {context[:200]}{'...' if len(context) > 200 else ''}")
 
 
@@ -228,11 +218,12 @@ def create_sample_conversations() -> List[Dict[str, Any]]:
     # 尝试从配置文件加载数据
     try:
         import yaml
+
         config_path = os.path.join(
             os.path.dirname(__file__), "..", "config", "config_memory_service_demo.yaml"
         )
         if os.path.exists(config_path):
-            with open(config_path, 'r', encoding='utf-8') as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
             return config["demo_data"]["conversations"]
     except Exception as e:
@@ -243,28 +234,28 @@ def create_sample_conversations() -> List[Dict[str, Any]]:
         {
             "user_message": "你好，我想学习Python编程，应该从哪里开始？",
             "ai_response": "你好！学习Python编程是一个很好的选择。要开始学习，我建议：1. 安装Python环境 2. 学习基础语法 3. 练习编写简单程序",
-            "topic": "programming"
+            "topic": "programming",
         },
         {
             "user_message": "Python中变量和数据类型有哪些？",
             "ai_response": "Python有以下基本数据类型：1. 整数(int) 2. 浮点数(float) 3. 字符串(str) 4. 布尔值(bool) 5. 列表(list) 6. 元组(tuple) 7. 字典(dict)",
-            "topic": "programming"
+            "topic": "programming",
         },
         {
             "user_message": "我对机器学习很感兴趣，有什么建议？",
             "ai_response": "机器学习是一个很有前景的领域！建议从以下方面开始：1. 学习Python基础 2. 掌握数学基础（线性代数、概率论）3. 学习scikit-learn等库 4. 实践项目",
-            "topic": "ai"
+            "topic": "ai",
         },
         {
             "user_message": "周末我想放松一下，有什么推荐？",
             "ai_response": "周末放松很重要！可以考虑：1. 户外活动如散步或骑行 2. 阅读书籍 3. 学习新技能 4. 和朋友聚餐 记住保持工作生活平衡！",
-            "topic": "lifestyle"
+            "topic": "lifestyle",
         },
         {
             "user_message": "我最近总是感觉疲惫，有什么改善方法？",
             "ai_response": "感觉疲惫可能是多种原因造成的。建议：1. 保证充足睡眠（7-9小时）2. 规律饮食，摄入均衡营养 3. 适量运动 4. 管理压力 5. 如持续严重，建议咨询医生",
-            "topic": "health"
-        }
+            "topic": "health",
+        },
     ]
 
 
@@ -276,7 +267,9 @@ class MockMemoryService:
         self.session_memories = {}
         self.memory_counter = 0
 
-    def store_memory(self, content, vector, session_id, memory_type="conversation", metadata=None):
+    def store_memory(
+        self, content, vector, session_id, memory_type="conversation", metadata=None
+    ):
         """模拟存储记忆"""
         memory_id = f"mem_{self.memory_counter}"
         self.memory_counter += 1
@@ -288,7 +281,7 @@ class MockMemoryService:
             "session_id": session_id,
             "memory_type": memory_type,
             "metadata": metadata or {},
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
         # 存储到全局记忆库
@@ -322,13 +315,15 @@ class MockMemoryService:
         results = []
         for memory in candidates:
             similarity = self._cosine_similarity(query_vector, memory["vector"])
-            results.append({
-                "id": memory["id"],
-                "content": memory["content"],
-                "memory_type": memory["memory_type"],
-                "metadata": memory["metadata"],
-                "similarity": similarity
-            })
+            results.append(
+                {
+                    "id": memory["id"],
+                    "content": memory["content"],
+                    "memory_type": memory["memory_type"],
+                    "metadata": memory["metadata"],
+                    "similarity": similarity,
+                }
+            )
 
         # 按相似度排序
         results.sort(key=lambda x: x["similarity"], reverse=True)
@@ -367,6 +362,7 @@ class MockMemoryService:
     def _cosine_similarity(self, vec1, vec2):
         """计算余弦相似度"""
         import numpy as np
+
         vec1 = np.array(vec1)
         vec2 = np.array(vec2)
 
@@ -383,7 +379,7 @@ class MockMemoryService:
 def demonstrate_api_usage():
     """演示MemoryService的API使用方式（不依赖实际服务）"""
     print("\n📖 MemoryService API 使用演示")
-    print("-"*50)
+    print("-" * 50)
 
     print("\n🔧 核心API方法:")
     print("   1. store_memory(content, vector, session_id, memory_type, metadata)")
@@ -461,7 +457,7 @@ def demonstrate_api_usage():
 def main():
     """主函数：演示MemoryService的使用"""
     print("🚀 MemoryService 使用示例")
-    print("="*60)
+    print("=" * 60)
 
     # 检查是否在测试模式
     if os.getenv("SAGE_EXAMPLES_MODE") == "test":
@@ -500,11 +496,7 @@ def main():
                 vector=mock_embedding(user_message),
                 session_id=session_id,
                 memory_type="conversation",
-                metadata={
-                    "speaker": "user",
-                    "topic": topic,
-                    "timestamp": time.time()
-                }
+                metadata={"speaker": "user", "topic": topic, "timestamp": time.time()},
             )
             print(f"     ✅ 用户消息已存储: {user_memory_id}")
 
@@ -514,11 +506,7 @@ def main():
                 vector=mock_embedding(ai_response),
                 session_id=session_id,
                 memory_type="conversation",
-                metadata={
-                    "speaker": "ai",
-                    "topic": topic,
-                    "timestamp": time.time()
-                }
+                metadata={"speaker": "ai", "topic": topic, "timestamp": time.time()},
             )
             print(f"     ✅ AI回复已存储: {ai_memory_id}")
 
@@ -533,8 +521,8 @@ def main():
                     metadata={
                         "topic": "programming",
                         "importance": "medium",
-                        "timestamp": time.time()
-                    }
+                        "timestamp": time.time(),
+                    },
                 )
                 print(f"     ✅ 语义记忆已存储: {semantic_id}")
 
@@ -545,11 +533,7 @@ def main():
     print("\n🔄 阶段2: 记忆检索演示")
 
     # 创建检索查询
-    retrieval_queries = [
-        "Python编程学习",
-        "健康和疲惫",
-        "机器学习建议"
-    ]
+    retrieval_queries = ["Python编程学习", "健康和疲惫", "机器学习建议"]
 
     for query in retrieval_queries:
         print(f"\n   🔍 查询: {query}")
@@ -558,9 +542,7 @@ def main():
             # 搜索相关记忆
             query_vector = mock_embedding(query)
             relevant_memories = memory_service.search_memories(
-                query_vector=query_vector,
-                session_id=session_id,
-                limit=3
+                query_vector=query_vector, session_id=session_id, limit=3
             )
 
             print(f"     📚 找到 {len(relevant_memories)} 条相关记忆:")
@@ -576,9 +558,9 @@ def main():
         except Exception as e:
             print(f"     ❌ 查询失败: {str(e)}")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🎉 MemoryService 示例完成！")
-    print("="*60)
+    print("=" * 60)
     print("\n📚 关键特性展示:")
     print("   ✅ 记忆存储和检索")
     print("   ✅ 会话管理和隔离")
@@ -603,4 +585,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ 示例执行出错: {e}")
         import traceback
+
         traceback.print_exc()
