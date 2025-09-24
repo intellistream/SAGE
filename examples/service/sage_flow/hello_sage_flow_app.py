@@ -2,12 +2,9 @@ import logging
 import time
 
 import numpy as np
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.sage_flow.python.sage_flow import (
-    SimpleStreamSource,
-    StreamEnvironment,
-)
+    SimpleStreamSource, StreamEnvironment)
 
 
 def main():

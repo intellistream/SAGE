@@ -6,9 +6,8 @@ import numpy as np
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.core.api.local_environment import LocalEnvironment
-    from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
-        SageDBService,
-    )
+    from sage.middleware.components.sage_db.python.micro_service.sage_db_service import \
+        SageDBService
 except ModuleNotFoundError:
     import sys
     from pathlib import Path
@@ -32,9 +31,8 @@ except ModuleNotFoundError:
 
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.core.api.local_environment import LocalEnvironment
-    from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
-        SageDBService,
-    )
+    from sage.middleware.components.sage_db.python.micro_service.sage_db_service import \
+        SageDBService
 
 
 def main():

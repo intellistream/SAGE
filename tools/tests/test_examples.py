@@ -556,16 +556,14 @@ class ExampleRunner:
         ]
 
         # 对依赖已编译扩展的示例（如 sage_flow），避免通过源码空目录覆盖已安装的二进制模块
-        is_sage_flow_example = (
-            "sage_flow" in example_info.file_path
-            or any(
-                imp.startswith("sage.middleware.components.sage_flow")
-                for imp in example_info.imports
-            )
+        is_sage_flow_example = "sage_flow" in example_info.file_path or any(
+            imp.startswith("sage.middleware.components.sage_flow")
+            for imp in example_info.imports
         )
-        if is_sage_flow_example and env.get(
-            "SAGE_EXAMPLES_USE_INSTALLED_MIDDLEWARE", "1"
-        ) != "0":
+        if (
+            is_sage_flow_example
+            and env.get("SAGE_EXAMPLES_USE_INSTALLED_MIDDLEWARE", "1") != "0"
+        ):
             # 去掉 middleware/src，让 Python 优先使用 site-packages 中已安装的模块
             mw_src = str(self.project_root / "packages" / "sage-middleware" / "src")
             sage_paths = [p for p in sage_paths_all if p != mw_src]
