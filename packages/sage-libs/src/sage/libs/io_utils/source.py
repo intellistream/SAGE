@@ -241,7 +241,7 @@ class SocketSource(SourceFunction):
         if message:
             self.logger.info(f"\033[32m[ {self.__class__.__name__}]: 接收到消息: {message}\033[0m")
             return message
-        data= None
+        data = None
         # 接收新数据
         timeout = 5  # seconds
         start_time = time.time()
