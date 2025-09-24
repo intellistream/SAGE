@@ -78,6 +78,12 @@ class IssuesManager:
                             all_usernames.extend(team_data)
 
                     print(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
+                    
+                    # 如果没有成员，视为无效的团队信息
+                    if len(all_usernames) == 0:
+                        print("⚠️ 团队信息存在但没有成员，将尝试更新")
+                        return None
+                    
                     return {"teams": processed_teams, "all_usernames": all_usernames}
             except Exception as e:
                 print(f"⚠️ 加载团队信息失败: {e}")
