@@ -81,6 +81,8 @@ jobs:
           path: |
             ~/.local
             ./install.log
+            ./packages/sage-middleware/src/sage/middleware/components/*/build
+            ./packages/sage-middleware/src/sage/middleware/components/*/python/*.so
           key: ${{ steps.cache-key.outputs.key }}
           restore-keys: |
             sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
@@ -133,19 +135,7 @@ jobs:
           git submodule update --init --recursive || true
           echo "✅ 子模块初始化完成（若仓库无子模块则跳过）"
 
-      - name: Build Native Extensions via CLI (sage_db + sage_flow)
-        run: |
-          echo "🧩 使用 CLI 构建并安装 C++ 扩展（sage_db 与 sage_flow）"
-          if command -v sage >/dev/null 2>&1; then
-            SAGE_CMD="sage"
-          else
-            SAGE_CMD="python -m sage.tools.cli.main"
-          fi
-          # 构建所有扩展；失败时输出日志并继续，由下游作业决定是否强制
-          ${SAGE_CMD} extensions install all --force || echo "⚠️ 扩展构建失败（继续流水线，后续作业会进行严格校验）"
-          echo "✅ CLI 扩展构建步骤完成"
 
-      
 
       - name: Verify SAGE Installation
         run: |
@@ -243,23 +233,24 @@ jobs:
           python -c "import sage; print('✅ SAGE imported successfully')"
           python -c "import sage.common; print('✅ sage.common imported')"
 
-      - name: Ensure native extensions via CLI (examples job)
+      - name: Ensure native extensions via CLI (full-test job)
         run: |
-          echo "🧩 使用 CLI 安装所有原生扩展（examples job 强制要求）"
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"
           else
             SAGE_CMD="python -m sage.tools.cli.main"
           fi
-          ${SAGE_CMD} extensions install all || {
-            echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
-            exit 1
-          }
           
-          if command -v sage >/dev/null 2>&1; then
-            SAGE_CMD="sage"
+          echo "🔍 检查C++扩展状态..."
+          # 检查扩展状态，只在需要时重新编译
+          if ${SAGE_CMD} extensions status | grep -q "❌"; then
+            echo "🧩 检测到缺失扩展，重新安装..."
+            ${SAGE_CMD} extensions install all || {
+              echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
+              exit 1
+            }
           else
-            SAGE_CMD="python -m sage.tools.cli.main"
+            echo "✅ 所有扩展已就绪"
           fi
           echo "✅ SAGE命令: $SAGE_CMD"
 
@@ -527,16 +518,23 @@ jobs:
 
       - name: Ensure native extensions via CLI (examples job)
         run: |
-          echo "🧩 使用 CLI 安装所有原生扩展（examples job 强制要求）"
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"
           else
             SAGE_CMD="python -m sage.tools.cli.main"
           fi
-          ${SAGE_CMD} extensions install all || {
-            echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
-            exit 1
-          }
+          
+          echo "🔍 检查C++扩展状态..."
+          # 检查扩展状态，只在需要时重新编译
+          if ${SAGE_CMD} extensions status | grep -q "❌"; then
+            echo "🧩 检测到缺失扩展，重新安装..."
+            ${SAGE_CMD} extensions install all || {
+              echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
+              exit 1
+            }
+          else
+            echo "✅ 所有扩展已就绪"
+          fi
 
       - name: Run Complete Examples Test Suite
         env:
