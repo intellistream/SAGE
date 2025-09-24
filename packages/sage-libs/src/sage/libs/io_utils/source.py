@@ -244,14 +244,19 @@ class SocketSource(SourceFunction):
             return message
         data= None
         # 接收新数据
-        while data is None and message is None :
+        timeout = 5  # seconds
+        start_time = time.time()
+        while data is None and message is None:
+            if time.time() - start_time > timeout:
+                self.logger.warning(f"{self.__class__.__name__}: 接收数据超时，未收到完整消息")
+                break
             data = self._receive_data()
             if data:
                 self.buffer += data
                 message = self._process_buffer()
                 if message:
                     self.logger.info(f"\033[32m[ {self.__class__.__name__}]: 接收到消息: {message}\033[0m")
-                    return message       
+                    return message
         # 没有完整消息
         return None
 
