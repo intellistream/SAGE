@@ -84,6 +84,24 @@ jobs:
           restore-keys: |
             sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
 
+      # Some historical runs produced tiny/empty caches. If a cache is
+      # restored but "sage" isn't importable, proactively run the installer
+      # to ensure a valid environment is created for downstream jobs.
+      - name: Ensure SAGE Installed (validate restored cache)
+        if: steps.cache-sage.outputs.cache-hit == 'true'
+        env:
+          CI: true
+        run: |
+          echo "🔎 Validating restored cache contains a working SAGE install..."
+          if python -c "import sage" 2>/dev/null; then
+            echo "✅ SAGE import works from cache"
+          else
+            echo "⚠️ Cache does not contain a usable SAGE install. Running installer..."
+            chmod +x ./quickstart.sh
+            ./quickstart.sh --dev --pip --yes
+            echo "✅ SAGE installed after cache validation fallback"
+          fi
+
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
@@ -227,11 +245,41 @@ jobs:
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
 
+      - name: Prepare Python Path
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
+          echo "PYTHONPATH=$PY_USER_SITE:${PYTHONPATH}" >> $GITHUB_ENV
+          echo "✅ Added user site-packages to PYTHONPATH"
+
+      - name: Prepare Python Path
+        run: |
+          echo "PATH before: $PATH"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
+          echo "PYTHONPATH before: ${PYTHONPATH:-<empty>}"
+          echo "PYTHONPATH=$PY_USER_SITE:${PYTHONPATH}" >> $GITHUB_ENV
+          echo "✅ Added user site-packages to PYTHONPATH: $PY_USER_SITE"
+
       - name: Verify SAGE Installation
+        continue-on-error: true
         run: |
           echo "🔍 验证SAGE安装状态..."
           python -c "import sage; print('✅ SAGE imported successfully')"
           python -c "import sage.common; print('✅ sage.common imported')"
+
+      - name: Fallback Install if Import Fails
+        if: failure()
+        run: |
+          echo "⚠️ Detected import failure. Attempting local install fallback..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          echo "✅ Fallback install complete"
+
+      - name: Re-verify After Fallback
+        run: |
+          echo "🔁 Re-verifying SAGE import after fallback (if any)..."
+          python -c "import sage; import sage.common; print('✅ SAGE import verified')"
 
       - name: Ensure native extensions via CLI (examples job)
         run: |
@@ -311,14 +359,14 @@ jobs:
           echo "📦 Installation Status:"
           if [ -d "packages/sage-common" ]; then
             echo "✅ sage-common directory exists"
-            pip show isage-common || echo "❌ sage-common not installed"
+            pip show isage-common || echo "ℹ️ pip show isage-common not found (editable installs may not register)"
           else
             echo "❌ sage-common directory missing"
           fi
 
           if [ -d "packages/sage" ]; then
             echo "✅ sage directory exists"
-            pip show isage || echo "❌ sage not installed"
+            pip show isage || echo "ℹ️ pip show isage not found (editable installs may not register)"
           else
             echo "❌ sage directory missing"
           fi
@@ -391,10 +439,15 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Verify SAGE Installation
+        continue-on-error: true
         run: |
           echo "🔍 验证SAGE安装状态..."
           python -c "import sage; print('✅ SAGE imported successfully')"
           python -c "import sage.common; print('✅ sage.common imported')"
+
+      - name: Re-verify import (gate)
+        run: |
+          python -c "import sage, sage.common; print('✅ SAGE import verified for full-test job')"
           
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"
@@ -483,6 +536,13 @@ jobs:
             ./install.log
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
+
+      - name: Prepare Python Path
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
+          echo "PYTHONPATH=$PY_USER_SITE:${PYTHONPATH}" >> $GITHUB_ENV
+          echo "✅ Added user site-packages to PYTHONPATH"
 
       - name: Verify SAGE Installation
         run: |
