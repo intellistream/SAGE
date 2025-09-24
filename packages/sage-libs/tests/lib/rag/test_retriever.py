@@ -112,7 +112,7 @@ class TestChromaRetriever:
 
         with patch("sage.libs.rag.retriever.MapFunction"):
             retriever = ChromaRetriever(config=chroma_config)
-            query = "什么是人工智能？"
+            query = "What is artificial intelligence?"
             result = retriever.execute(query)
 
             # 验证结果格式
@@ -152,13 +152,14 @@ class TestChromaRetriever:
 
         with patch("sage.libs.rag.retriever.MapFunction"):
             retriever = ChromaRetriever(config=chroma_config)
-            input_data = {"query": "什么是机器学习？", "other_field": "value"}
+            input_data = {"query": "What is machine learning?", "other_field": "value"}
             result = retriever.execute(input_data)
 
             # 验证结果格式
             assert isinstance(result, dict)
             assert "results" in result
-            assert result["query"] == "什么是机器学习？"
+            assert "retrieved_docs" in result  # 验证新增的retrieved_docs字段
+            assert result["query"] == "What is machine learning?"
             assert result["other_field"] == "value"
 
     @patch("sage.libs.rag.retriever.ChromaUtils")
@@ -339,13 +340,14 @@ class TestMilvusDenseRetriever:
         with patch("sage.libs.rag.retriever.MapFunction"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
-            query = "什么是人工智能？"
+            query = "What is artificial intelligence?"
             result = retriever.execute(query)
 
             # 验证结果格式
             assert isinstance(result, dict)
             assert "query" in result
             assert "retrieved_documents" in result
+            assert "retrieved_docs" in result  # 验证新增的retrieved_docs字段
             assert result["query"] == query
             assert len(result["retrieved_documents"]) == 2
 
@@ -384,13 +386,14 @@ class TestMilvusDenseRetriever:
         with patch("sage.libs.rag.retriever.MapFunction"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
-            input_data = {"question": "什么是机器学习？", "other_field": "value"}
+            input_data = {"question": "What is machine learning?", "other_field": "value"}
             result = retriever.execute(input_data)
 
             # 验证结果格式
             assert isinstance(result, dict)
             assert "retrieved_documents" in result
-            assert result["question"] == "什么是机器学习？"
+            assert "retrieved_docs" in result  # 验证新增的retrieved_docs字段
+            assert result["question"] == "What is machine learning?"
             assert result["other_field"] == "value"
 
     @patch("sage.libs.rag.retriever.MilvusUtils")
@@ -863,6 +866,7 @@ class TestMilvusSparseRetriever:
             # 验证结果格式
             assert isinstance(result, dict)
             assert "retrieved_documents" in result
+            assert "retrieved_docs" in result  # 验证新增的retrieved_docs字段
             assert result["question"] == "什么是机器学习？"
             assert result["other_field"] == "value"
 
@@ -1322,6 +1326,8 @@ class TestWiki18FAISSRetriever:
                         }
                         for i, doc in enumerate(sample_wiki18_documents)
                     ],
+                    # 新增字段以匹配统一接口
+                    "retrieved_docs": [doc["contents"] for doc in sample_wiki18_documents],
                 }
             return {"query": str(query), "results": []}
 
@@ -1333,6 +1339,7 @@ class TestWiki18FAISSRetriever:
         # 验证结果
         assert "query" in result
         assert "results" in result
+        assert "retrieved_docs" in result  # 验证新增的retrieved_docs字段
         assert result["query"] == "machine learning"
         assert len(result["results"]) == 2
 
@@ -1378,6 +1385,8 @@ class TestWiki18FAISSRetriever:
                 }
                 for i, doc in enumerate(sample_wiki18_documents[:1])  # 返回第一个文档
             ]
+            # 新增字段以匹配统一接口
+            result["retrieved_docs"] = [sample_wiki18_documents[0]["contents"]]
             return result
 
         mock_retriever.execute = mock_execute
@@ -1389,6 +1398,7 @@ class TestWiki18FAISSRetriever:
         # 验证结果
         assert "query" in result
         assert "results" in result
+        assert "retrieved_docs" in result  # 验证新增的retrieved_docs字段  
         assert result["query"] == "deep learning"
         assert "other_field" in result  # 原始字段应保留
         assert result["other_field"] == "value"

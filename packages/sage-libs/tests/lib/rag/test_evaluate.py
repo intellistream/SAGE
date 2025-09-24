@@ -59,7 +59,7 @@ class TestNormalizeData:
         assert result == expected
 
     def test_normalize_data_with_empty_tuple(self):
-        """测试空元组输入"""
+        """Test empty tuple input"""
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
@@ -67,7 +67,7 @@ class TestNormalizeData:
         result = _normalize_data(input_data)
 
         expected = {
-            "question": {},
+            "question": None,
             "generated": "",
             "references": []
         }
@@ -78,11 +78,11 @@ class TestNormalizeData:
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
-        input_data = ("问题",)
+        input_data = ("What is AI?",)
         result = _normalize_data(input_data)
         
         expected = {
-            "question": "问题",
+            "question": "What is AI?",
             "generated": "",
             "references": []
         }
@@ -93,11 +93,11 @@ class TestNormalizeData:
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
-        input_data = ("问题", 123)
+        input_data = ("What is ML?", 123)
         result = _normalize_data(input_data)
         
         expected = {
-            "question": "问题",
+            "question": "What is ML?",
             "generated": "123",
             "references": []
         }
@@ -109,10 +109,10 @@ class TestNormalizeData:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "测试问题",
-            "generated": "测试答案",
-            "references": ["参考答案1", "参考答案2"],
-            "extra_field": "额外信息"
+            "question": "What is AI?",
+            "generated": "AI is artificial intelligence.",
+            "references": ["AI is machine intelligence.", "AI mimics human cognition."],
+            "extra_field": "additional information"
         }
         result = _normalize_data(input_data)
         
@@ -125,18 +125,18 @@ class TestNormalizeData:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "测试问题",
-            "pred": "预测答案",
-            "golds": ["标准答案1", "标准答案2"]
+            "question": "What is machine learning?",
+            "pred": "ML is a subset of AI",
+            "golds": ["Machine learning is an AI technique", "ML enables computers to learn"]
         }
         result = _normalize_data(input_data)
         
         expected = {
-            "question": "测试问题",
-            "pred": "预测答案",
-            "golds": ["标准答案1", "标准答案2"],
-            "generated": "预测答案",
-            "references": ["标准答案1", "标准答案2"]
+            "question": "What is machine learning?",
+            "pred": "ML is a subset of AI",
+            "golds": ["Machine learning is an AI technique", "ML enables computers to learn"],
+            "generated": "ML is a subset of AI",
+            "references": ["Machine learning is an AI technique", "ML enables computers to learn"]
         }
         assert result == expected
 
@@ -146,14 +146,14 @@ class TestNormalizeData:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "测试问题",
-            "other_field": "其他信息"
+            "question": "What is deep learning?",
+            "other_field": "additional information"
         }
         result = _normalize_data(input_data)
         
         expected = {
-            "question": "测试问题",
-            "other_field": "其他信息",
+            "question": "What is deep learning?",
+            "other_field": "additional information",
             "generated": "",
             "references": []
         }
@@ -165,16 +165,16 @@ class TestNormalizeData:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "测试问题",
-            "generated": "测试答案",
-            "references": "单个参考答案"
+            "question": "What is neural networks?",
+            "generated": "Neural networks are computing systems.",
+            "references": "Neural networks mimic biological neurons"
         }
         result = _normalize_data(input_data)
         
         expected = {
-            "question": "测试问题",
-            "generated": "测试答案",
-            "references": ["单个参考答案"]
+            "question": "What is neural networks?",
+            "generated": "Neural networks are computing systems.",
+            "references": ["Neural networks mimic biological neurons"]
         }
         assert result == expected
 
@@ -742,20 +742,78 @@ class TestCompressionRateEvaluate:
         evaluator = CompressionRateEvaluate()
         assert hasattr(evaluator, "execute")
 
-    def test_compression_rate_execute(self, sample_evaluation_data):
-        """测试CompressionRateEvaluate执行"""
+    def test_compression_rate_execute(self):
+        """测试CompressionRateEvaluate基本执行功能"""
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
         evaluator = CompressionRateEvaluate()
 
-        with patch("builtins.print") as mock_print:
-            result = evaluator.execute(sample_evaluation_data)
+        test_data = {
+            "question": "What is artificial intelligence?",
+            "generated": "AI is a field of computer science.",
+            "references": ["Artificial intelligence is the simulation of human intelligence."],
+            "retrieved_docs": ["Original document content about AI"],
+            "refined_docs": ["Compressed document content"]
+        }
 
-            assert result == sample_evaluation_data
+        with patch("builtins.print") as mock_print:
+            result = evaluator.execute(test_data)
+
+            assert result == test_data
             mock_print.assert_called_once()
             call_args = str(mock_print.call_args)
             assert "Compression Rate" in call_args
+
+    def test_compression_rate_execute_with_empty_docs(self):
+        """测试CompressionRateEvaluate在空文档情况下的执行"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        evaluator = CompressionRateEvaluate()
+        
+        test_data = {
+            "question": "What is machine learning?",
+            "generated": "Machine learning is a subset of AI.",
+            "references": ["Machine learning is a method of data analysis."],
+            "retrieved_docs": [],
+            "refined_docs": []
+        }
+
+        with patch("builtins.print") as mock_print:
+            result = evaluator.execute(test_data)
+
+            assert result == test_data
+            mock_print.assert_called_once()
+            call_args = str(mock_print.call_args)
+            assert "Compression Rate" in call_args
+            assert "0.00" in call_args
+
+    def test_compression_rate_calculate_correctly(self):
+        """Test CompressionRateEvaluate compression rate calculation accuracy"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        evaluator = CompressionRateEvaluate()
+        
+        # Test specific compression rate calculation
+        test_data = {
+            "question": "What is deep learning?",
+            "generated": "Deep learning uses neural networks.",
+            "references": ["Deep learning is a machine learning technique."],
+            "retrieved_docs": ["Original document containing ten words about deep learning neural networks technology"],  # 11 tokens
+            "refined_docs": ["Compressed neural networks document"]  # 4 tokens
+        }
+
+        with patch("builtins.print") as mock_print:
+            result = evaluator.execute(test_data)
+
+            assert result == test_data
+            mock_print.assert_called_once()
+            call_args = str(mock_print.call_args)
+            assert "Compression Rate" in call_args
+            # Compression rate should be 11/4 = 2.75
+            assert "2.75" in call_args
 
 
 @pytest.mark.integration

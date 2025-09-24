@@ -496,24 +496,21 @@ def clean(
             console.print("支持的目标: all, cache, build, logs")
             raise typer.Exit(1)
 
-        # 执行清理
+        # 执行清理（统一处理：匹配到的路径若为目录则递归删除，若为文件则删除文件）
         for pattern in targets_to_clean:
-            if pattern.startswith("*."):
-                # 文件模式
-                for file_path in project_path.rglob(pattern):
-                    if file_path.is_file():
-                        cleaned_items.append(str(file_path.relative_to(project_path)))
+            for path in project_path.rglob(pattern):
+                rel = str(path.relative_to(project_path))
+                try:
+                    if path.is_dir():
+                        cleaned_items.append(rel + "/")
                         if not dry_run:
-                            file_path.unlink()
-            else:
-                # 目录模式
-                for dir_path in project_path.rglob(pattern):
-                    if dir_path.is_dir():
-                        cleaned_items.append(
-                            str(dir_path.relative_to(project_path)) + "/"
-                        )
+                            shutil.rmtree(path)
+                    elif path.is_file():
+                        cleaned_items.append(rel)
                         if not dry_run:
-                            shutil.rmtree(dir_path)
+                            path.unlink()
+                except Exception as e:
+                    console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
 
         # 报告结果
         if cleaned_items:

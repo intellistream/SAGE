@@ -11,7 +11,39 @@ import sys
 import chromadb
 from sage.libs.rag.chunk import CharacterSplitter
 from sage.libs.rag.document_loaders import LoaderFactory
-from sentence_transformers import SentenceTransformer
+
+
+# 在测试模式下避免下载大型模型，提供轻量级嵌入器
+def _get_embedder():
+    """Return an object with encode(texts)->List[List[float]].
+
+    优先使用环境变量控制的测试模式，避免在CI/本地测试中下载大型模型。
+    - 当 SAGE_EXAMPLES_MODE=test 时，返回一个简单的内置嵌入器（固定维度、小开销）。
+    - 否则，使用 SentenceTransformer 加载真实模型。
+    """
+    import os
+
+    if os.environ.get("SAGE_EXAMPLES_MODE") == "test":
+
+        class _MiniEmbedder:
+            def __init__(self, dim: int = 8):
+                self.dim = dim
+
+            def encode(self, texts):
+                # 生成确定性、低维的伪嵌入以便测试通过
+                vecs = []
+                for i, _ in enumerate(texts):
+                    base = float((i % 5) + 1)
+                    vecs.append([base / (j + 1) for j in range(self.dim)])
+                return vecs
+
+        return _MiniEmbedder(dim=8)
+
+    # 正常模式：使用真实模型（如可选通过环境变量覆盖模型名）
+    model_name = os.environ.get(
+        "SAGE_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+    )
+    from sentence_transformers import SentenceTransformer
 
 
 def load_knowledge_to_chromadb():

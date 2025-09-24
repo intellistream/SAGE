@@ -79,12 +79,29 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
             ~/.local
             ./install.log
           key: ${{ steps.cache-key.outputs.key }}
           restore-keys: |
             sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
+
+      # Some historical runs produced tiny/empty caches. If a cache is
+      # restored but "sage" isn't importable, proactively run the installer
+      # to ensure a valid environment is created for downstream jobs.
+      - name: Ensure SAGE Installed (validate restored cache)
+        if: steps.cache-sage.outputs.cache-hit == 'true'
+        env:
+          CI: true
+        run: |
+          echo "🔎 Validating restored cache contains a working SAGE install..."
+          if python -c "import sage" 2>/dev/null; then
+            echo "✅ SAGE import works from cache"
+          else
+            echo "⚠️ Cache does not contain a usable SAGE install. Running installer..."
+            chmod +x ./quickstart.sh
+            ./quickstart.sh --dev --pip --yes
+            echo "✅ SAGE installed after cache validation fallback"
+          fi
 
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
@@ -99,7 +116,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential \
             cmake \
-            pkg-config || {
+            pkg-config \
+            libopenblas-dev \
+            libopenblas0 \
+            liblapack-dev || {
             echo "⚠️ 系统依赖安装失败，但继续执行（C++扩展可能不可用）"
           }
         timeout-minutes: 15
@@ -127,6 +147,28 @@ jobs:
 
           echo "✅ SAGE开发环境安装完成"
         timeout-minutes: 30
+
+      - name: Initialize Submodules (third-party deps)
+        if: steps.cache-sage.outputs.cache-hit != 'true'
+        run: |
+          echo "� 初始化子模块（third-party 依赖，如fmt/spdlog等）..."
+          git submodule update --init --recursive || true
+          echo "✅ 子模块初始化完成（若仓库无子模块则跳过）"
+
+      - name: Build Native Extensions via CLI (sage_db + sage_flow)
+        if: steps.cache-sage.outputs.cache-hit != 'true'
+        run: |
+          echo "🧩 使用 CLI 构建并安装 C++ 扩展（sage_db 与 sage_flow）"
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+          # 构建所有扩展；失败时输出日志并继续，由下游作业决定是否强制
+          ${SAGE_CMD} extensions install all --force || echo "⚠️ 扩展构建失败（继续流水线，后续作业会进行严格校验）"
+          echo "✅ CLI 扩展构建步骤完成"
+
+      
 
       - name: Verify SAGE Installation
         run: |
@@ -203,17 +245,59 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
             ~/.local
             ./install.log
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
 
+      - name: Prepare Python Path
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
+          echo "PYTHONPATH=$PY_USER_SITE:${PYTHONPATH}" >> $GITHUB_ENV
+          echo "✅ Added user site-packages to PYTHONPATH"
+
+      - name: Prepare Python Path
+        run: |
+          echo "PATH before: $PATH"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
+          echo "PYTHONPATH before: ${PYTHONPATH:-<empty>}"
+          echo "PYTHONPATH=$PY_USER_SITE:${PYTHONPATH}" >> $GITHUB_ENV
+          echo "✅ Added user site-packages to PYTHONPATH: $PY_USER_SITE"
+
       - name: Verify SAGE Installation
+        continue-on-error: true
         run: |
           echo "🔍 验证SAGE安装状态..."
           python -c "import sage; print('✅ SAGE imported successfully')"
           python -c "import sage.common; print('✅ sage.common imported')"
+
+      - name: Fallback Install if Import Fails
+        if: failure()
+        run: |
+          echo "⚠️ Detected import failure. Attempting local install fallback..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          echo "✅ Fallback install complete"
+
+      - name: Re-verify After Fallback
+        run: |
+          echo "🔁 Re-verifying SAGE import after fallback (if any)..."
+          python -c "import sage; import sage.common; print('✅ SAGE import verified')"
+
+      - name: Ensure native extensions via CLI (examples job)
+        run: |
+          echo "🧩 使用 CLI 安装所有原生扩展（examples job 强制要求）"
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+          ${SAGE_CMD} extensions install all || {
+            echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
+            exit 1
+          }
           
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"
@@ -280,14 +364,14 @@ jobs:
           echo "📦 Installation Status:"
           if [ -d "packages/sage-common" ]; then
             echo "✅ sage-common directory exists"
-            pip show isage-common || echo "❌ sage-common not installed"
+            pip show isage-common || echo "ℹ️ pip show isage-common not found (editable installs may not register)"
           else
             echo "❌ sage-common directory missing"
           fi
 
           if [ -d "packages/sage" ]; then
             echo "✅ sage directory exists"
-            pip show isage || echo "❌ sage not installed"
+            pip show isage || echo "ℹ️ pip show isage not found (editable installs may not register)"
           else
             echo "❌ sage directory missing"
           fi
@@ -353,17 +437,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
             ~/.local
             ./install.log
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
 
       - name: Verify SAGE Installation
+        continue-on-error: true
         run: |
           echo "🔍 验证SAGE安装状态..."
           python -c "import sage; print('✅ SAGE imported successfully')"
           python -c "import sage.common; print('✅ sage.common imported')"
+
+      - name: Re-verify import (gate)
+        run: |
+          python -c "import sage, sage.common; print('✅ SAGE import verified for full-test job')"
           
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"
@@ -447,11 +535,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
             ~/.local
             ./install.log
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
+
+      - name: Prepare Python Path
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
+          echo "PYTHONPATH=$PY_USER_SITE:${PYTHONPATH}" >> $GITHUB_ENV
+          echo "✅ Added user site-packages to PYTHONPATH"
 
       - name: Verify SAGE Installation
         run: |
@@ -471,6 +565,19 @@ jobs:
         run: |
           echo "📊 分析Examples目录结构..."
           python tools/tests/test_examples.py analyze
+
+      - name: Ensure native extensions via CLI (examples job)
+        run: |
+          echo "🧩 使用 CLI 安装所有原生扩展（examples job 强制要求）"
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+          ${SAGE_CMD} extensions install all || {
+            echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
+            exit 1
+          }
 
       - name: Run Complete Examples Test Suite
         env:

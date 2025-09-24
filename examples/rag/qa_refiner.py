@@ -17,7 +17,6 @@ from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.retriever import Wiki18FAISSRetriever
-from sage.middleware.services.memory.memory_service import MemoryService
 
 
 def pipeline_run(config):

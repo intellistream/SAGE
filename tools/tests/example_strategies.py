@@ -569,7 +569,9 @@ class ExampleTestFilters:
         # 类别特定的过滤规则
         if category == "service":
             # 服务类例子通常需要长时间运行
-            if "service" in filename or "server" in filename:
+            if filename not in whitelist and (
+                "service" in filename or "server" in filename
+            ):
                 return True, "服务类示例通常需要长时间运行"
 
         return False, ""

@@ -9,8 +9,7 @@ option(BUILD_TESTS "Build test programs" ON)
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" ON)
 option(USE_OPENMP "Enable OpenMP support" ON)
 
-# Find packages
-find_package(PkgConfig REQUIRED)
+# Find packages (keep minimal to improve portability)
 
 # Find BLAS and LAPACK for FAISS
 find_package(BLAS REQUIRED)
