@@ -149,8 +149,9 @@ def validate_single_stream_parallelism():
 
     print("\n--- Test 2: Using direct parallelism ---")
     result2 = (
-        source_stream
-        .map(ParallelProcessor, "SetMapper", parallelism=4)  # 4 parallel mappers
+        source_stream.map(
+            ParallelProcessor, "SetMapper", parallelism=4
+        )  # 4 parallel mappers
         .filter(ParallelFilter, parallelism=3)  # 3 parallel filters
         .sink(ValidationSink, parallelism=1)
     )  # 1 sink

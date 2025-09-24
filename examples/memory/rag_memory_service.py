@@ -28,14 +28,20 @@ class RAGMemoryService(BaseService):
 
         self.memory_manager = MemoryManager(config.get("manager_path"))
 
-        try:
-            self.memory_manager.has_collection(config.get("name"))
-            self.rag_collection = self.memory_manager.get_collection(config.get("name"))
-            self._logger.info(f"Successfully load rag memory from disk")
-        except:
-            raise ValueError(
-                "RAG Memory collection not found, please initialize first."
+        # Try to load existing collection; if missing, create one locally with mock/offline embeddings
+        if self.memory_manager.has_collection(config.get("name")):
+            self.rag_collection = self.memory_manager.get_collection(
+                config.get("name")
             )
+            self._logger.info("Successfully loaded RAG memory from disk")
+        else:
+            self._logger.warning(
+                "RAG Memory collection not found on disk, creating a fresh one for this session"
+            )
+            # Ensure a local, network-free embedding is used by honoring model name via embedding layer fallback
+            self.rag_collection = self.memory_manager.create_collection(config)
+            self.rag_collection.create_index(config.get("index_config"))
+            # Optional: do not init_index here; will be built upon insert or explicit init in callers
 
     def retrieve(self, data: str):
         results = self.rag_collection.retrieve(

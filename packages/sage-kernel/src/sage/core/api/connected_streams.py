@@ -68,8 +68,6 @@ class ConnectedStreams:
             }
         return self._transformation_classes
 
-
-
     def map(
         self,
         function: Union[Type[BaseFunction], callable],
@@ -81,9 +79,7 @@ class ConnectedStreams:
             function = wrap_lambda(function, "map")
 
         # 使用传入的parallelism或者默认值1
-        actual_parallelism = (
-            parallelism if parallelism is not None else 1
-        )
+        actual_parallelism = parallelism if parallelism is not None else 1
 
         # 获取MapTransformation类
         MapTransformation = self._get_transformation_classes()["MapTransformation"]
@@ -258,9 +254,7 @@ class ConnectedStreams:
             CoMapTransformation
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = (
-            parallelism if parallelism is not None else 1
-        )
+        actual_parallelism = parallelism if parallelism is not None else 1
 
         # Create CoMapTransformation
         tr = CoMapTransformation(
@@ -321,9 +315,7 @@ class ConnectedStreams:
 
         # 创建transformation
         # 使用传入的parallelism或者默认值1
-        actual_parallelism = (
-            parallelism if parallelism is not None else 1
-        )
+        actual_parallelism = parallelism if parallelism is not None else 1
         join_tr = JoinTransformation(
             self._environment, function, *args, parallelism=actual_parallelism, **kwargs
         )
