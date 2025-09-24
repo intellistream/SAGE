@@ -252,11 +252,8 @@ class CompressionRateEvaluate(MapFunction):
         nd = _normalize_data(data)
         
         # 获取原始检索文档的token数（从results字段的text中）
-        original_tokens = 0
-        results = nd.get("results", [])
-        if results:
-            # results是包含text字段的字典列表
-            original_tokens = sum(len(str(result.get("text", "")).split()) for result in results)
+        retrieved_docs = nd.get("retrieved_docs", [])
+        retrieved_tokens = self._count_tokens(retrieved_docs)
         
         # 获取refiner压缩后的文档token数
         refined_docs = nd.get("refined_docs", [])
@@ -264,7 +261,7 @@ class CompressionRateEvaluate(MapFunction):
         
         # 计算压缩率
         if refined_tokens > 0:
-            compression_rate = original_tokens / refined_tokens
+            compression_rate = retrieved_tokens / refined_tokens
         else:
             compression_rate = 0.0
             
