@@ -225,9 +225,8 @@ class SocketSource(SourceFunction):
                     self.logger.error("解码消息失败")
                     return None
             else:
-                message = self.buffer.decode(self.encoding).strip()
-                self.buffer = b""
-                return message
+                # 没有完整消息，等待更多数据
+                return None
         return None
 
     def execute(self) -> Union[str, dict, None]:
