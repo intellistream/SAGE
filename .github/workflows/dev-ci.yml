@@ -210,13 +210,52 @@ jobs:
         timeout-minutes: 10
 
       - name: Restore SAGE Installation
+        id: restore-sage
         uses: actions/cache@v4
         with:
           path: |
             ~/.local
             ./install.log
+            ./packages/sage-middleware/src/sage/middleware/components/*/build
+            ./packages/sage-middleware/src/sage/middleware/components/*/python/*.so
           key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
+          restore-keys: |
+            sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
+
+      - name: Check Cache Restoration
+        run: |
+          if [ "${{ steps.restore-sage.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ SAGE installation cache restored successfully"
+          else
+            echo "⚠️ Cache miss - will need to reinstall SAGE"
+            echo "Cache key attempted: ${{ needs.build-sage.outputs.cache-key }}"
+          fi
+
+      - name: Fallback SAGE Installation
+        if: steps.restore-sage.outputs.cache-hit != 'true'
+        env:
+          CI: true
+          DEBIAN_FRONTEND: noninteractive
+          PIP_NO_INPUT: 1
+          PIP_DISABLE_PIP_VERSION_CHECK: 1
+        run: |
+          echo "🔄 Cache miss detected - performing fallback installation..."
+          
+          # Install system dependencies
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev || true
+          
+          # Install SAGE
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          
+          echo "✅ Fallback SAGE installation completed"
+        timeout-minutes: 20
 
       - name: Prepare Python Path
         run: |
@@ -383,13 +422,52 @@ jobs:
         timeout-minutes: 10
 
       - name: Restore SAGE Installation
+        id: restore-sage
         uses: actions/cache@v4
         with:
           path: |
             ~/.local
             ./install.log
+            ./packages/sage-middleware/src/sage/middleware/components/*/build
+            ./packages/sage-middleware/src/sage/middleware/components/*/python/*.so
           key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
+          restore-keys: |
+            sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
+
+      - name: Check Cache Restoration
+        run: |
+          if [ "${{ steps.restore-sage.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ SAGE installation cache restored successfully"
+          else
+            echo "⚠️ Cache miss - will need to reinstall SAGE"
+            echo "Cache key attempted: ${{ needs.build-sage.outputs.cache-key }}"
+          fi
+
+      - name: Fallback SAGE Installation
+        if: steps.restore-sage.outputs.cache-hit != 'true'
+        env:
+          CI: true
+          DEBIAN_FRONTEND: noninteractive
+          PIP_NO_INPUT: 1
+          PIP_DISABLE_PIP_VERSION_CHECK: 1
+        run: |
+          echo "🔄 Cache miss detected - performing fallback installation..."
+          
+          # Install system dependencies
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev || true
+          
+          # Install SAGE
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          
+          echo "✅ Fallback SAGE installation completed"
+        timeout-minutes: 20
 
       - name: Verify SAGE Installation
         continue-on-error: true
@@ -482,13 +560,52 @@ jobs:
         timeout-minutes: 10
 
       - name: Restore SAGE Installation
+        id: restore-sage
         uses: actions/cache@v4
         with:
           path: |
             ~/.local
             ./install.log
+            ./packages/sage-middleware/src/sage/middleware/components/*/build
+            ./packages/sage-middleware/src/sage/middleware/components/*/python/*.so
           key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
+          restore-keys: |
+            sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
+
+      - name: Check Cache Restoration
+        run: |
+          if [ "${{ steps.restore-sage.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ SAGE installation cache restored successfully"
+          else
+            echo "⚠️ Cache miss - will need to reinstall SAGE"
+            echo "Cache key attempted: ${{ needs.build-sage.outputs.cache-key }}"
+          fi
+
+      - name: Fallback SAGE Installation
+        if: steps.restore-sage.outputs.cache-hit != 'true'
+        env:
+          CI: true
+          DEBIAN_FRONTEND: noninteractive
+          PIP_NO_INPUT: 1
+          PIP_DISABLE_PIP_VERSION_CHECK: 1
+        run: |
+          echo "🔄 Cache miss detected - performing fallback installation..."
+          
+          # Install system dependencies
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev || true
+          
+          # Install SAGE
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          
+          echo "✅ Fallback SAGE installation completed"
+        timeout-minutes: 20
 
       - name: Prepare Python Path
         run: |
