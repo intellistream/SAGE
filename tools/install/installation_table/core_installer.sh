@@ -92,11 +92,16 @@ install_core_packages() {
     
     # CI环境额外处理
     if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        # 检查是否需要 --break-system-packages
+        # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
+        pip_args="$pip_args --user"
+        # 某些系统前缀可能仍需此选项
         if python3 -c "import sys; exit(0 if '/usr' in sys.prefix else 1)" 2>/dev/null; then
             pip_args="$pip_args --break-system-packages"
             echo -e "${DIM}CI环境: 添加 --break-system-packages${NC}"
         fi
+        # 确保用户脚本目录在PATH中（供 'sage' 可执行脚本使用）
+        export PATH="$HOME/.local/bin:$PATH"
+        echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
     fi
     
     echo "$(date): 开始安装本地依赖包" >> "$log_file"

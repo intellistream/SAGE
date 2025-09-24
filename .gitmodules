@@ -1,3 +1,12 @@
 [submodule "docs-public"]
 	path = docs-public
 	url = https://github.com/intellistream/SAGE-Pub.git
+	branch = main
+[submodule "packages/sage-middleware/src/sage/middleware/components/sage_flow"]
+	path = packages/sage-middleware/src/sage/middleware/components/sage_flow
+	url = https://github.com/intellistream/sageFlow
+	branch = main
+[submodule "packages/sage-middleware/src/sage/middleware/components/sage_db"]
+	path = packages/sage-middleware/src/sage/middleware/components/sage_db
+	url = https://github.com/intellistream/sageDB.git
+	branch = main

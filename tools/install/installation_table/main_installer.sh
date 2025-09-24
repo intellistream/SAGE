@@ -119,7 +119,10 @@ install_sage() {
     esac
     
     echo ""
-    echo -e "${CHECK} SAGE 安装完成！"
+    echo -e "${CHECK} SAGE 基础安装完成！"
+    
+    # 尝试安装C++扩展（开发者模式已在dev_installer.sh中处理）
+    # 这里不需要额外操作
     
     # 安装 VLLM（如果需要）
     if [ "$install_vllm" = "true" ]; then
