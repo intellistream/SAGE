@@ -78,7 +78,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
             ~/.local
             ./install.log
           key: ${{ steps.cache-key.outputs.key }}
@@ -93,7 +92,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential \
             cmake \
-            pkg-config || {
+            pkg-config \
+            libopenblas-dev \
+            libopenblas0 \
+            liblapack-dev || {
             echo "⚠️ 系统依赖安装失败，但继续执行（C++扩展可能不可用）"
           }
         timeout-minutes: 15
@@ -122,23 +124,27 @@ jobs:
           echo "✅ SAGE开发环境安装完成"
         timeout-minutes: 30
 
-      - name: Build Middleware C++ Extensions (non-editable install)
+      - name: Initialize Submodules (third-party deps)
         if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
-          echo "🔧 触发 middleware 非editable安装以编译C++扩展 (sage_db / sage_flow)"
-          # 使用非editable安装触发 packages/sage-middleware/setup.py:CustomInstall -> build_ext
-          pip install --no-build-isolation packages/sage-middleware || {
-            echo "⚠️ 非editable安装失败，尝试直接运行组件build脚本"
-            echo "🔁 初始化子模块（如有）..."
-            git submodule update --init --recursive || true
-            if [ -f packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh ]; then
-              bash packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh || true
-            fi
-            if [ -f packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh ]; then
-              bash packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh --install-deps || true
-            fi
-          }
-          echo "✅ C++扩展构建步骤完成（若依赖缺失则已容忍继续）"
+          echo "� 初始化子模块（third-party 依赖，如fmt/spdlog等）..."
+          git submodule update --init --recursive || true
+          echo "✅ 子模块初始化完成（若仓库无子模块则跳过）"
+
+      - name: Build Native Extensions via CLI (sage_db + sage_flow)
+        if: steps.cache-sage.outputs.cache-hit != 'true'
+        run: |
+          echo "🧩 使用 CLI 构建并安装 C++ 扩展（sage_db 与 sage_flow）"
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+          # 构建所有扩展；失败时输出日志并继续，由下游作业决定是否强制
+          ${SAGE_CMD} extensions install all --force || echo "⚠️ 扩展构建失败（继续流水线，后续作业会进行严格校验）"
+          echo "✅ CLI 扩展构建步骤完成"
+
+      
 
       - name: Verify SAGE Installation
         run: |
@@ -216,7 +222,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
             ~/.local
             ./install.log
           key: ${{ needs.build-sage.outputs.cache-key }}
@@ -227,6 +232,19 @@ jobs:
           echo "🔍 验证SAGE安装状态..."
           python -c "import sage; print('✅ SAGE imported successfully')"
           python -c "import sage.common; print('✅ sage.common imported')"
+
+      - name: Ensure native extensions via CLI (examples job)
+        run: |
+          echo "🧩 使用 CLI 安装所有原生扩展（examples job 强制要求）"
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+          ${SAGE_CMD} extensions install all || {
+            echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
+            exit 1
+          }
           
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"
@@ -367,7 +385,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
             ~/.local
             ./install.log
           key: ${{ needs.build-sage.outputs.cache-key }}
@@ -462,7 +479,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.pythonLocation }}
             ~/.local
             ./install.log
           key: ${{ needs.build-sage.outputs.cache-key }}
@@ -486,6 +502,19 @@ jobs:
         run: |
           echo "📊 分析Examples目录结构..."
           python tools/tests/test_examples.py analyze
+
+      - name: Ensure native extensions via CLI (examples job)
+        run: |
+          echo "🧩 使用 CLI 安装所有原生扩展（examples job 强制要求）"
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+          ${SAGE_CMD} extensions install all || {
+            echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
+            exit 1
+          }
 
       - name: Run Complete Examples Test Suite
         env:
