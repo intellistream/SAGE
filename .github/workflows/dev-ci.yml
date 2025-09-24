@@ -69,7 +69,8 @@ jobs:
         run: |
           # 生成基于代码和环境的缓存键
           HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" -o -name "requirements*.txt" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-          CACHE_KEY="sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-${HASH}"
+          # 使用本次运行ID确保对下游作业可用且避免旧的空缓存命中
+          CACHE_KEY="sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-${{ github.run_id }}-${HASH}"
           echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "� Generated cache key: ${CACHE_KEY}"
 
@@ -80,27 +81,13 @@ jobs:
           path: |
             ~/.local
             ./install.log
+            ./packages/sage-middleware/src/sage/middleware/components/*/build
+            ./packages/sage-middleware/src/sage/middleware/components/*/python/*.so
           key: ${{ steps.cache-key.outputs.key }}
           restore-keys: |
             sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
 
-      # Some historical runs produced tiny/empty caches. If a cache is
-      # restored but "sage" isn't importable, proactively run the installer
-      # to ensure a valid environment is created for downstream jobs.
-      - name: Ensure SAGE Installed (validate restored cache)
-        if: steps.cache-sage.outputs.cache-hit == 'true'
-        env:
-          CI: true
-        run: |
-          echo "🔎 Validating restored cache contains a working SAGE install..."
-          if python -c "import sage" 2>/dev/null; then
-            echo "✅ SAGE import works from cache"
-          else
-            echo "⚠️ Cache does not contain a usable SAGE install. Running installer..."
-            chmod +x ./quickstart.sh
-            ./quickstart.sh --dev --pip --yes
-            echo "✅ SAGE installed after cache validation fallback"
-          fi
+      # 统一在 build 作业中执行安装，以保证下游作业只需恢复缓存即可使用
 
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
@@ -121,7 +108,6 @@ jobs:
 
       - name: Install SAGE
         id: install-sage
-        if: steps.cache-sage.outputs.cache-hit != 'true'
         env:
           CI: true
           DEBIAN_FRONTEND: noninteractive
@@ -142,23 +128,14 @@ jobs:
           echo "✅ SAGE开发环境安装完成"
         timeout-minutes: 30
 
-      - name: Build Middleware C++ Extensions (non-editable install)
+      - name: Initialize Submodules (third-party deps)
         if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
-          echo "🔧 触发 middleware 非editable安装以编译C++扩展 (sage_db / sage_flow)"
-          # 使用非editable安装触发 packages/sage-middleware/setup.py:CustomInstall -> build_ext
-          pip install --no-build-isolation packages/sage-middleware || {
-            echo "⚠️ 非editable安装失败，尝试直接运行组件build脚本"
-            echo "🔁 初始化子模块（如有）..."
-            git submodule update --init --recursive || true
-            if [ -f packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh ]; then
-              bash packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh || true
-            fi
-            if [ -f packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh ]; then
-              bash packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh --install-deps || true
-            fi
-          }
-          echo "✅ C++扩展构建步骤完成（若依赖缺失则已容忍继续）"
+          echo "� 初始化子模块（third-party 依赖，如fmt/spdlog等）..."
+          git submodule update --init --recursive || true
+          echo "✅ 子模块初始化完成（若仓库无子模块则跳过）"
+
+
 
       - name: Verify SAGE Installation
         run: |
@@ -233,20 +210,52 @@ jobs:
         timeout-minutes: 10
 
       - name: Restore SAGE Installation
+        id: restore-sage
         uses: actions/cache@v4
         with:
           path: |
             ~/.local
             ./install.log
+            ./packages/sage-middleware/src/sage/middleware/components/*/build
+            ./packages/sage-middleware/src/sage/middleware/components/*/python/*.so
           key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
+          restore-keys: |
+            sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
 
-      - name: Prepare Python Path
+      - name: Check Cache Restoration
         run: |
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
-          echo "PYTHONPATH=$PY_USER_SITE:${PYTHONPATH}" >> $GITHUB_ENV
-          echo "✅ Added user site-packages to PYTHONPATH"
+          if [ "${{ steps.restore-sage.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ SAGE installation cache restored successfully"
+          else
+            echo "⚠️ Cache miss - will need to reinstall SAGE"
+            echo "Cache key attempted: ${{ needs.build-sage.outputs.cache-key }}"
+          fi
+
+      - name: Fallback SAGE Installation
+        if: steps.restore-sage.outputs.cache-hit != 'true'
+        env:
+          CI: true
+          DEBIAN_FRONTEND: noninteractive
+          PIP_NO_INPUT: 1
+          PIP_DISABLE_PIP_VERSION_CHECK: 1
+        run: |
+          echo "🔄 Cache miss detected - performing fallback installation..."
+          
+          # Install system dependencies
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev || true
+          
+          # Install SAGE
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          
+          echo "✅ Fallback SAGE installation completed"
+        timeout-minutes: 20
 
       - name: Prepare Python Path
         run: |
@@ -264,36 +273,24 @@ jobs:
           python -c "import sage; print('✅ SAGE imported successfully')"
           python -c "import sage.common; print('✅ sage.common imported')"
 
-      - name: Fallback Install if Import Fails
-        if: failure()
+      - name: Ensure native extensions via CLI (full-test job)
         run: |
-          echo "⚠️ Detected import failure. Attempting local install fallback..."
-          chmod +x ./quickstart.sh
-          ./quickstart.sh --dev --pip --yes
-          echo "✅ Fallback install complete"
-
-      - name: Re-verify After Fallback
-        run: |
-          echo "🔁 Re-verifying SAGE import after fallback (if any)..."
-          python -c "import sage; import sage.common; print('✅ SAGE import verified')"
-
-      - name: Ensure native extensions via CLI (examples job)
-        run: |
-          echo "🧩 使用 CLI 安装所有原生扩展（examples job 强制要求）"
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"
           else
             SAGE_CMD="python -m sage.tools.cli.main"
           fi
-          ${SAGE_CMD} extensions install all || {
-            echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
-            exit 1
-          }
           
-          if command -v sage >/dev/null 2>&1; then
-            SAGE_CMD="sage"
+          echo "🔍 检查C++扩展状态..."
+          # 检查扩展状态，只在需要时重新编译
+          if ${SAGE_CMD} extensions status | grep -q "❌"; then
+            echo "🧩 检测到缺失扩展，重新安装..."
+            ${SAGE_CMD} extensions install all || {
+              echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
+              exit 1
+            }
           else
-            SAGE_CMD="python -m sage.tools.cli.main"
+            echo "✅ 所有扩展已就绪"
           fi
           echo "✅ SAGE命令: $SAGE_CMD"
 
@@ -426,13 +423,52 @@ jobs:
         timeout-minutes: 10
 
       - name: Restore SAGE Installation
+        id: restore-sage
         uses: actions/cache@v4
         with:
           path: |
             ~/.local
             ./install.log
+            ./packages/sage-middleware/src/sage/middleware/components/*/build
+            ./packages/sage-middleware/src/sage/middleware/components/*/python/*.so
           key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
+          restore-keys: |
+            sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
+
+      - name: Check Cache Restoration
+        run: |
+          if [ "${{ steps.restore-sage.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ SAGE installation cache restored successfully"
+          else
+            echo "⚠️ Cache miss - will need to reinstall SAGE"
+            echo "Cache key attempted: ${{ needs.build-sage.outputs.cache-key }}"
+          fi
+
+      - name: Fallback SAGE Installation
+        if: steps.restore-sage.outputs.cache-hit != 'true'
+        env:
+          CI: true
+          DEBIAN_FRONTEND: noninteractive
+          PIP_NO_INPUT: 1
+          PIP_DISABLE_PIP_VERSION_CHECK: 1
+        run: |
+          echo "🔄 Cache miss detected - performing fallback installation..."
+          
+          # Install system dependencies
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev || true
+          
+          # Install SAGE
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          
+          echo "✅ Fallback SAGE installation completed"
+        timeout-minutes: 20
 
       - name: Verify SAGE Installation
         continue-on-error: true
@@ -525,13 +561,52 @@ jobs:
         timeout-minutes: 10
 
       - name: Restore SAGE Installation
+        id: restore-sage
         uses: actions/cache@v4
         with:
           path: |
             ~/.local
             ./install.log
+            ./packages/sage-middleware/src/sage/middleware/components/*/build
+            ./packages/sage-middleware/src/sage/middleware/components/*/python/*.so
           key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
+          restore-keys: |
+            sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
+
+      - name: Check Cache Restoration
+        run: |
+          if [ "${{ steps.restore-sage.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ SAGE installation cache restored successfully"
+          else
+            echo "⚠️ Cache miss - will need to reinstall SAGE"
+            echo "Cache key attempted: ${{ needs.build-sage.outputs.cache-key }}"
+          fi
+
+      - name: Fallback SAGE Installation
+        if: steps.restore-sage.outputs.cache-hit != 'true'
+        env:
+          CI: true
+          DEBIAN_FRONTEND: noninteractive
+          PIP_NO_INPUT: 1
+          PIP_DISABLE_PIP_VERSION_CHECK: 1
+        run: |
+          echo "🔄 Cache miss detected - performing fallback installation..."
+          
+          # Install system dependencies
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev || true
+          
+          # Install SAGE
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          
+          echo "✅ Fallback SAGE installation completed"
+        timeout-minutes: 20
 
       - name: Prepare Python Path
         run: |
@@ -561,16 +636,23 @@ jobs:
 
       - name: Ensure native extensions via CLI (examples job)
         run: |
-          echo "🧩 使用 CLI 安装所有原生扩展（examples job 强制要求）"
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"
           else
             SAGE_CMD="python -m sage.tools.cli.main"
           fi
-          ${SAGE_CMD} extensions install all || {
-            echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
-            exit 1
-          }
+          
+          echo "🔍 检查C++扩展状态..."
+          # 检查扩展状态，只在需要时重新编译
+          if ${SAGE_CMD} extensions status | grep -q "❌"; then
+            echo "🧩 检测到缺失扩展，重新安装..."
+            ${SAGE_CMD} extensions install all || {
+              echo "❌ 扩展构建失败（需要 sage_db 和 sage_flow）"
+              exit 1
+            }
+          else
+            echo "✅ 所有扩展已就绪"
+          fi
 
       - name: Run Complete Examples Test Suite
         env:
