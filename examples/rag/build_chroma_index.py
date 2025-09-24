@@ -12,6 +12,7 @@ import chromadb
 from sage.libs.rag.chunk import CharacterSplitter
 from sage.libs.rag.document_loaders import LoaderFactory
 
+
 # 在测试模式下避免下载大型模型，提供轻量级嵌入器
 def _get_embedder():
     """Return an object with encode(texts)->List[List[float]].
@@ -23,6 +24,7 @@ def _get_embedder():
     import os
 
     if os.environ.get("SAGE_EXAMPLES_MODE") == "test":
+
         class _MiniEmbedder:
             def __init__(self, dim: int = 8):
                 self.dim = dim

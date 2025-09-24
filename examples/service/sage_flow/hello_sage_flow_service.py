@@ -7,7 +7,8 @@ import numpy as np
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.core.api.local_environment import LocalEnvironment
-    from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import SageFlowService
+    from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import \
+        SageFlowService
 except ModuleNotFoundError:
     import os
     import sys
@@ -35,9 +36,8 @@ except ModuleNotFoundError:
 
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.core.api.local_environment import LocalEnvironment
-    from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import (
-        SageFlowService,
-    )
+    from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import \
+        SageFlowService
 
 
 def main():
