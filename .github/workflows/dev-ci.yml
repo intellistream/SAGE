@@ -33,8 +33,6 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  # 控制是否编译C++扩展（设为false可加速CI）
-  SAGE_SKIP_CPP_EXTENSIONS: true
   # 缓存键版本，修改此值可强制重新构建缓存
   CACHE_VERSION: v1
 
@@ -53,6 +51,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 5
@@ -106,12 +105,7 @@ jobs:
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
-          if [ "$SAGE_SKIP_CPP_EXTENSIONS" = "true" ]; then
-            echo "� 跳过C++扩展编译依赖安装（加速CI模式）"
-            exit 0
-          fi
-
-          echo "� 安装C++编译依赖..."
+          echo "🧰 安装C++编译依赖..."
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             build-essential \
@@ -148,27 +142,23 @@ jobs:
           echo "✅ SAGE开发环境安装完成"
         timeout-minutes: 30
 
-      - name: Initialize Submodules (third-party deps)
+      - name: Build Middleware C++ Extensions (non-editable install)
         if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
-          echo "� 初始化子模块（third-party 依赖，如fmt/spdlog等）..."
-          git submodule update --init --recursive || true
-          echo "✅ 子模块初始化完成（若仓库无子模块则跳过）"
-
-      - name: Build Native Extensions via CLI (sage_db + sage_flow)
-        if: steps.cache-sage.outputs.cache-hit != 'true'
-        run: |
-          echo "🧩 使用 CLI 构建并安装 C++ 扩展（sage_db 与 sage_flow）"
-          if command -v sage >/dev/null 2>&1; then
-            SAGE_CMD="sage"
-          else
-            SAGE_CMD="python -m sage.tools.cli.main"
-          fi
-          # 构建所有扩展；失败时输出日志并继续，由下游作业决定是否强制
-          ${SAGE_CMD} extensions install all --force || echo "⚠️ 扩展构建失败（继续流水线，后续作业会进行严格校验）"
-          echo "✅ CLI 扩展构建步骤完成"
-
-      
+          echo "🔧 触发 middleware 非editable安装以编译C++扩展 (sage_db / sage_flow)"
+          # 使用非editable安装触发 packages/sage-middleware/setup.py:CustomInstall -> build_ext
+          pip install --no-build-isolation packages/sage-middleware || {
+            echo "⚠️ 非editable安装失败，尝试直接运行组件build脚本"
+            echo "🔁 初始化子模块（如有）..."
+            git submodule update --init --recursive || true
+            if [ -f packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh ]; then
+              bash packages/sage-middleware/src/sage/middleware/components/sage_flow/build.sh || true
+            fi
+            if [ -f packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh ]; then
+              bash packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh --install-deps || true
+            fi
+          }
+          echo "✅ C++扩展构建步骤完成（若依赖缺失则已容忍继续）"
 
       - name: Verify SAGE Installation
         run: |
@@ -229,6 +219,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 5
@@ -421,6 +412,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 8
@@ -519,6 +511,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
           fetch-depth: 1
           clean: true
         timeout-minutes: 5

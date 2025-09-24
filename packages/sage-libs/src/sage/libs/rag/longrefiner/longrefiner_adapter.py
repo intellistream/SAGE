@@ -69,7 +69,8 @@ class LongRefinerAdapter(MapFunction):
     def _init_refiner(self):
         # 从配置中获取 GPU 设备参数，默认为 0
         gpu_device = self.cfg.get("gpu_device", 0)
-        score_gpu_device = self.cfg.get("score_gpu_device", gpu_device)  # 支持独立的score模型GPU设备
+        # score_gpu_device 如果不存在则使用与 gpu_device 相同的值
+        score_gpu_device = self.cfg.get("score_gpu_device", gpu_device)
         gpu_memory_utilization = self.cfg.get(
             "gpu_memory_utilization", 0.7
         )  # GPU内存占比，默认为0.7

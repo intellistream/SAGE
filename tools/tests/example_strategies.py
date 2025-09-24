@@ -518,6 +518,7 @@ class ExampleTestFilters:
         # 白名单：某些 demo 实例是安全且快速的，允许在测试中运行
         whitelist = {
             "memory_service_demo.py",
+            "hello_sage_flow_service.py",
         }
 
         # 解析文件内容（用于进一步判断是否重型/交互式，以及读取内嵌标签）
@@ -533,9 +534,18 @@ class ExampleTestFilters:
             if not text:
                 return False
             heavy_keywords = [
-                "uvicorn", "fastapi", "flask", "gradio", "streamlit",
-                "ray.init", "while True", "run_forever", "serve(",
-                "multiprocessing", "spark", "mlflow",
+                "uvicorn",
+                "fastapi",
+                "flask",
+                "gradio",
+                "streamlit",
+                "ray.init",
+                "while True",
+                "run_forever",
+                "serve(",
+                "multiprocessing",
+                "spark",
+                "mlflow",
             ]
             return any(k in text for k in heavy_keywords)
 
@@ -546,6 +556,8 @@ class ExampleTestFilters:
                 return ("allow-demo" in tags) or ("allow_demo" in tags)
             # 次选：直接在文件内容中扫描 @test:allow-demo
             if content and "@test:allow-demo" in content:
+                return True
+            if content and "@test:allow_demo" in content:
                 return True
             return False
 
@@ -569,9 +581,7 @@ class ExampleTestFilters:
         # 类别特定的过滤规则
         if category == "service":
             # 服务类例子通常需要长时间运行
-            if filename not in whitelist and (
-                "service" in filename or "server" in filename
-            ):
+            if filename not in whitelist and ("service" in filename or "server" in filename):
                 return True, "服务类示例通常需要长时间运行"
 
         return False, ""

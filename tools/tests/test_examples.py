@@ -546,7 +546,7 @@ class ExampleRunner:
 
         # 设置 Python 路径 - 使用动态路径而不是硬编码
         python_path = env.get("PYTHONPATH", "")
-        sage_paths = [
+        sage_paths_all = [
             str(self.project_root / "packages" / "sage" / "src"),
             str(self.project_root / "packages" / "sage-common" / "src"),
             str(self.project_root / "packages" / "sage-kernel" / "src"),
@@ -556,6 +556,7 @@ class ExampleRunner:
         ]
 
         # 对依赖已编译扩展的示例（如 sage_flow），避免通过源码空目录覆盖已安装的二进制模块
+<<<<<<< HEAD
         is_sage_flow_example = "sage_flow" in example_info.file_path or any(
             imp.startswith("sage.middleware.components.sage_flow")
             for imp in example_info.imports
@@ -564,6 +565,18 @@ class ExampleRunner:
             is_sage_flow_example
             and env.get("SAGE_EXAMPLES_USE_INSTALLED_MIDDLEWARE", "1") != "0"
         ):
+=======
+        is_sage_flow_example = (
+            "sage_flow" in example_info.file_path
+            or any(
+                imp.startswith("sage.middleware.components.sage_flow")
+                for imp in example_info.imports
+            )
+        )
+        if is_sage_flow_example and env.get(
+            "SAGE_EXAMPLES_USE_INSTALLED_MIDDLEWARE", "1"
+        ) != "0":
+>>>>>>> 56491bbe11920920ae0e9bf8e0d568e021fe3433
             # 去掉 middleware/src，让 Python 优先使用 site-packages 中已安装的模块
             mw_src = str(self.project_root / "packages" / "sage-middleware" / "src")
             sage_paths = [p for p in sage_paths_all if p != mw_src]
@@ -593,46 +606,6 @@ class ExampleTestSuite:
         self.analyzer = ExampleAnalyzer()
         self.runner = ExampleRunner()
         self.results: List[ExampleTestResult] = []
-
-    def run_all_tests(
-        self, categories: Optional[List[str]] = None, quick_only: bool = False
-    ) -> Dict[str, int]:
-        """运行所有测试"""
-        # 清理之前的测试结果
-        self.results.clear()
-
-        console.print("🔍 [bold blue]发现示例文件...[/bold blue]")
-        examples = self.analyzer.discover_examples()
-
-        # 过滤示例
-        if categories:
-            examples = [e for e in examples if e.category in categories]
-
-        if quick_only:
-            examples = [e for e in examples if e.estimated_runtime == "quick"]
-
-        console.print(f"📋 找到 {len(examples)} 个示例文件")
-
-        # 按类别分组显示
-        self._show_examples_summary(examples)
-
-        # 运行测试
-        console.print("🚀 [bold blue]开始运行测试...[/bold blue]")
-
-        with Progress() as progress:
-            task = progress.add_task("运行示例测试", total=len(examples))
-
-            for example in examples:
-                console.print(f"  测试: {example.file_path}")
-                result = self.runner.run_example(example)
-                self.results.append(result)
-                progress.update(task, advance=1)
-
-        # 显示结果
-        self._show_results()
-
-        # 返回统计信息
-        return self._get_statistics()
 
     def _show_examples_summary(self, examples: List[ExampleInfo]):
         """显示示例摘要"""

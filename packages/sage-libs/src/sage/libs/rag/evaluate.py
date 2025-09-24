@@ -25,52 +25,16 @@ def _normalize_data(data: Union[Dict[str, Any], Tuple[Any, Any], str, Any]) -> D
         # 典型来自 OpenAIGenerator 的输出
         question = data[0] if len(data) > 0 else None
         generated = data[1] if len(data) > 1 else ""
-        # 当 question 为字典且包含 references 时，提取为顶级 references（符合实际 pipeline 数据）
-        references: List[str] = []
-        if isinstance(question, dict):
-            q_refs = question.get("references")
-            if isinstance(q_refs, list):
-                references = q_refs
-            elif q_refs is not None:
-                references = [str(q_refs)]
         return {
             "question": question,
             "generated": generated if isinstance(generated, str) else str(generated),
-            "references": references,
+            "references": [],
         }
 
     if isinstance(data, dict):
         out = dict(data)
         out.setdefault("generated", out.get("pred", ""))
-
-        # references 优先级：顶级 references（非空） > golds（非空） > question.references（非空） > []
-        refs = out.get("references", None)
-
-        def _to_list(val):
-            if val is None:
-                return []
-            if isinstance(val, list):
-                return val
-            return [str(val)]
-
-        # 顶级 references 是否有效（非空）
-        refs_list = _to_list(refs)
-        if len(refs_list) > 0:
-            out["references"] = refs_list
-        else:
-            # 尝试 golds
-            golds_list = _to_list(out.get("golds", []))
-            if len(golds_list) > 0:
-                out["references"] = golds_list
-            else:
-                # 尝试 question.references
-                q = out.get("question")
-                q_refs_list: List[str] = []
-                if isinstance(q, dict):
-                    q_refs_list = _to_list(q.get("references", []))
-                out["references"] = q_refs_list
-
-        # 确保 references 为列表
+        out.setdefault("references", out.get("golds", []))
         if not isinstance(out.get("references", []), list):
             out["references"] = [str(out["references"])]
         return out
@@ -177,9 +141,20 @@ class BRSEvaluate(MapFunction):
 
 
 class AccuracyEvaluate(MapFunction):
+    def _normalize_text(self, text: str) -> str:
+        """标准化文本用于比较"""
+        return text.lower().strip()
+    
     def execute(self, data: dict):
         nd = _normalize_data(data)
+        
+        # 获取参考答案
         golds = nd.get("references", [])
+        if not golds and "question" in nd:
+            question_data = nd.get("question", {})
+            if isinstance(question_data, dict):
+                golds = question_data.get("references", [])
+        
         pred = nd.get("generated", "")
         
         if not golds or not pred:
@@ -228,6 +203,10 @@ class LatencyEvaluate(MapFunction):
 
 
 class ContextRecallEvaluate(MapFunction):
+    def _normalize_text(self, text: str) -> str:
+        """标准化文本用于比较"""
+        return text.lower().strip()
+    
     def execute(self, data: dict):
         nd = _normalize_data(data)
         
@@ -263,14 +242,31 @@ class ContextRecallEvaluate(MapFunction):
 
 
 class CompressionRateEvaluate(MapFunction):
-    def _count(self, docs):
-        # 返回总 token 数，若为空返回 0（用于在 refine 为空时给出 0.00×）
-        return sum(len(d.split()) for d in docs) if docs else 0
+    def _count_tokens(self, docs):
+        """计算文档列表的总token数"""
+        if not docs:
+            return 0
+        return sum(len(str(d).split()) for d in docs)
 
     def execute(self, data: dict):
         nd = _normalize_data(data)
-        o = self._count(nd.get("retrieved_docs", []))
-        r = self._count(nd.get("refined_docs", []))
-        rate = (o / r) if r > 0 else 0.0
-        print(f"\033[93m[Compression Rate] : {rate:.2f}×\033[0m")
+        
+        # 获取原始检索文档的token数（从results字段的text中）
+        original_tokens = 0
+        results = nd.get("results", [])
+        if results:
+            # results是包含text字段的字典列表
+            original_tokens = sum(len(str(result.get("text", "")).split()) for result in results)
+        
+        # 获取refiner压缩后的文档token数
+        refined_docs = nd.get("refined_docs", [])
+        refined_tokens = self._count_tokens(refined_docs)
+        
+        # 计算压缩率
+        if refined_tokens > 0:
+            compression_rate = original_tokens / refined_tokens
+        else:
+            compression_rate = 0.0
+            
+        print(f"\033[93m[Compression Rate] : {compression_rate:.2f}×\033[0m")
         return nd

@@ -163,7 +163,7 @@ class LongRefiner:
                     return_tensors="pt",
                     max_length=512,
                 )
-                device = f"cuda:{self.gpu_device}"
+                device = f"cuda:{self.score_gpu_device}"
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 if "bce" in self.score_model_name or "jina" in self.score_model_name:
                     flatten_scores = (
@@ -223,7 +223,7 @@ class LongRefiner:
                     truncation=True,
                     return_tensors="pt",
                 )
-                device = f"cuda:{self.gpu_device}"
+                device = f"cuda:{self.score_gpu_device}"
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 output = self.score_model(**inputs, return_dict=True)
                 q_emb = pooling(
@@ -278,7 +278,7 @@ class LongRefiner:
             )
             self.local_score_func = self._cal_score_sbert
 
-        # 指定GPU设备
+        # 指定GPU设备 - 使用score模型专用的GPU设备
         device = f"cuda:{gpu_device}"
         self.score_model.to(device)
         self.score_model.eval()

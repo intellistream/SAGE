@@ -12,7 +12,6 @@ import chromadb
 from sage.libs.rag.chunk import CharacterSplitter
 from sage.libs.rag.document_loaders import LoaderFactory
 
-
 # 在测试模式下避免下载大型模型，提供轻量级嵌入器
 def _get_embedder():
     """Return an object with encode(texts)->List[List[float]].
@@ -24,7 +23,6 @@ def _get_embedder():
     import os
 
     if os.environ.get("SAGE_EXAMPLES_MODE") == "test":
-
         class _MiniEmbedder:
             def __init__(self, dim: int = 8):
                 self.dim = dim
@@ -45,6 +43,49 @@ def _get_embedder():
     )
     from sentence_transformers import SentenceTransformer
 
+    return SentenceTransformer(model_name)
+
+
+def _to_2dlist(arr):
+    """Normalize embeddings to a 2D Python list.
+
+    Accepts list, numpy array, torch tensor, etc., and returns List[List[float]].
+    """
+    # Fast path for objects that implement .tolist()
+    try:
+        lst = arr.tolist()
+        # Ensure 2D
+        if lst and isinstance(lst[0], (int, float)):
+            return [list(lst)]
+        return lst
+    except AttributeError:
+        pass
+
+    # Handle plain Python lists
+    if isinstance(arr, list):
+        if not arr:
+            return []
+        # 1D -> wrap to 2D
+        if not isinstance(arr[0], (list, tuple)):
+            return [list(arr)]
+        # 2D: ensure inner are lists
+        return [list(x) for x in arr]
+
+    # Best-effort: numpy arrays
+    try:
+        import numpy as np
+
+        if isinstance(arr, np.ndarray):
+            lst = arr.tolist()
+            if lst and isinstance(lst[0], (int, float)):
+                return [list(lst)]
+            return lst
+    except Exception:
+        pass
+
+    # Fallback: return as-is (may still work if already 2D-like)
+    return arr
+
 
 def load_knowledge_to_chromadb():
     # 配置参数
@@ -62,9 +103,9 @@ def load_knowledge_to_chromadb():
     print(f"=== 预加载多格式知识库到 ChromaDB ===")
     print(f"存储路径: {persistence_path}")
 
-    # 初始化嵌入模型
+    # 初始化嵌入模型（在测试模式下不下载大模型）
     print("\n加载嵌入模型...")
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    model = _get_embedder()
 
     # 初始化 ChromaDB
     print("初始化ChromaDB...")
@@ -103,7 +144,7 @@ def load_knowledge_to_chromadb():
 
         # 嵌入与写入
         texts = [c["content"] for c in chunk_docs]
-        embeddings = model.encode(texts).tolist()
+        embeddings = _to_2dlist(model.encode(texts))
         ids = [f"{collection_name}_chunk_{i}" for i in range(len(chunk_docs))]
         metadatas = [c["metadata"] for c in chunk_docs]
         collection.add(
@@ -114,7 +155,7 @@ def load_knowledge_to_chromadb():
 
         # 测试检索
         test_query = "什么是ChromaDB"
-        query_embedding = model.encode([test_query]).tolist()
+        query_embedding = _to_2dlist(model.encode([test_query]))
         results = collection.query(query_embeddings=query_embedding, n_results=3)
         print(f"检索: {test_query}")
         for i, doc in enumerate(results["documents"][0]):
