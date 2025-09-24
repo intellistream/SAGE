@@ -1,8 +1,16 @@
 """
-Example tests for the complete agent workflow.
+Agent Workflow Demo
 
 This demonstrates how the agent pipeline works with real examples.
-These are educational examples, not formal unit tests.
+This is an educational demonstration, not a formal test.
+
+Usage:
+    python agent_workflow_demo.py
+
+This demo shows:
+- How to read queries from different sources
+- Complete agent workflow with mocked components
+- Integration examples for learning purposes
 """
 
 import json
