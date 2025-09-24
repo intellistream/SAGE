@@ -69,7 +69,8 @@ jobs:
         run: |
           # 生成基于代码和环境的缓存键
           HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" -o -name "requirements*.txt" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-          CACHE_KEY="sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-${HASH}"
+          # 使用本次运行ID确保对下游作业可用且避免旧的空缓存命中
+          CACHE_KEY="sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-${{ github.run_id }}-${HASH}"
           echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "� Generated cache key: ${CACHE_KEY}"
 
@@ -84,23 +85,7 @@ jobs:
           restore-keys: |
             sage-installation-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
 
-      # Some historical runs produced tiny/empty caches. If a cache is
-      # restored but "sage" isn't importable, proactively run the installer
-      # to ensure a valid environment is created for downstream jobs.
-      - name: Ensure SAGE Installed (validate restored cache)
-        if: steps.cache-sage.outputs.cache-hit == 'true'
-        env:
-          CI: true
-        run: |
-          echo "🔎 Validating restored cache contains a working SAGE install..."
-          if python -c "import sage" 2>/dev/null; then
-            echo "✅ SAGE import works from cache"
-          else
-            echo "⚠️ Cache does not contain a usable SAGE install. Running installer..."
-            chmod +x ./quickstart.sh
-            ./quickstart.sh --dev --pip --yes
-            echo "✅ SAGE installed after cache validation fallback"
-          fi
+      # 统一在 build 作业中执行安装，以保证下游作业只需恢复缓存即可使用
 
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
@@ -121,7 +106,6 @@ jobs:
 
       - name: Install SAGE
         id: install-sage
-        if: steps.cache-sage.outputs.cache-hit != 'true'
         env:
           CI: true
           DEBIAN_FRONTEND: noninteractive
@@ -150,7 +134,6 @@ jobs:
           echo "✅ 子模块初始化完成（若仓库无子模块则跳过）"
 
       - name: Build Native Extensions via CLI (sage_db + sage_flow)
-        if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
           echo "🧩 使用 CLI 构建并安装 C++ 扩展（sage_db 与 sage_flow）"
           if command -v sage >/dev/null 2>&1; then
@@ -247,13 +230,6 @@ jobs:
 
       - name: Prepare Python Path
         run: |
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
-          echo "PYTHONPATH=$PY_USER_SITE:${PYTHONPATH}" >> $GITHUB_ENV
-          echo "✅ Added user site-packages to PYTHONPATH"
-
-      - name: Prepare Python Path
-        run: |
           echo "PATH before: $PATH"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           PY_USER_SITE=$(python -c 'import site; print(site.getusersitepackages())')
@@ -262,24 +238,10 @@ jobs:
           echo "✅ Added user site-packages to PYTHONPATH: $PY_USER_SITE"
 
       - name: Verify SAGE Installation
-        continue-on-error: true
         run: |
           echo "🔍 验证SAGE安装状态..."
           python -c "import sage; print('✅ SAGE imported successfully')"
           python -c "import sage.common; print('✅ sage.common imported')"
-
-      - name: Fallback Install if Import Fails
-        if: failure()
-        run: |
-          echo "⚠️ Detected import failure. Attempting local install fallback..."
-          chmod +x ./quickstart.sh
-          ./quickstart.sh --dev --pip --yes
-          echo "✅ Fallback install complete"
-
-      - name: Re-verify After Fallback
-        run: |
-          echo "🔁 Re-verifying SAGE import after fallback (if any)..."
-          python -c "import sage; import sage.common; print('✅ SAGE import verified')"
 
       - name: Ensure native extensions via CLI (examples job)
         run: |
