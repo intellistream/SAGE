@@ -201,7 +201,7 @@ class SocketSource(SourceFunction):
             if self.protocol == "tcp":
 
                 data = self.socket.recv(self.buffer_size)
-                print(f"recv data: {data}")
+                self.logger.debug(f"recv data: {data}")
                 return data
             else:  # UDP
                 data, _ = self.socket.recvfrom(self.buffer_size)
