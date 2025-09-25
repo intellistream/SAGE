@@ -2,6 +2,7 @@
 
 import json
 import os
+import time
 
 from sage.common.utils.config.loader import load_config
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -16,7 +17,6 @@ from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.retriever import Wiki18FAISSRetriever
-from sage.middleware.services.memory.memory_service import MemoryService
 
 
 def pipeline_run(config):
@@ -45,6 +45,7 @@ def pipeline_run(config):
 
     try:
         env.submit()
+        time.sleep(600)
     except KeyboardInterrupt:
         print("停止运行")
     finally:

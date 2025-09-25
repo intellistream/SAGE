@@ -58,13 +58,14 @@ class LongRefiner:
         gpu_device: int = 0,
         gpu_memory_utilization: float = 0.7,
     ):
-        # 不设置CUDA_VISIBLE_DEVICES，让各个模型可以使用不同的GPU
+        # 直接通过vLLM的参数指定GPU设备，避免修改全局环境变量
         self.model = LLM(
             base_model_path,
             enable_lora=True,
             max_model_len=max_model_len,
             gpu_memory_utilization=gpu_memory_utilization,
             tensor_parallel_size=1,  # 单GPU设置
+            device=f"cuda:{gpu_device}",
         )
         self.tokenizer = AutoTokenizer.from_pretrained(base_model_path)
         self.step_to_config = {
@@ -150,7 +151,7 @@ class LongRefiner:
                     return_tensors="pt",
                     max_length=512,
                 )
-                device = f"cuda:{self.gpu_device}"
+                device = f"cuda:{self.score_gpu_device}"
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 if "bce" in self.score_model_name or "jina" in self.score_model_name:
                     flatten_scores = (
@@ -210,7 +211,7 @@ class LongRefiner:
                     truncation=True,
                     return_tensors="pt",
                 )
-                device = f"cuda:{self.gpu_device}"
+                device = f"cuda:{self.score_gpu_device}"
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 output = self.score_model(**inputs, return_dict=True)
                 q_emb = pooling(
@@ -265,7 +266,7 @@ class LongRefiner:
             )
             self.local_score_func = self._cal_score_sbert
 
-        # 指定GPU设备
+        # 指定GPU设备 - 使用score模型专用的GPU设备
         device = f"cuda:{gpu_device}"
         self.score_model.to(device)
         self.score_model.eval()

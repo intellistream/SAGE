@@ -151,8 +151,8 @@ class TestLongRefinerAdapterMethods:
             pytest.skip("LongRefiner module not available")
 
         config = self.get_complete_config()
-
-        try:
+        # 避免真实模型加载
+        with patch("sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"):
             adapter = LongRefinerAdapter(config=config, enable_profile=False)
 
             # 调用_save_data_record应该直接返回，不执行任何操作
@@ -160,9 +160,6 @@ class TestLongRefinerAdapterMethods:
 
             # 由于profile未启用，不应该有任何数据记录
             assert not hasattr(adapter, "data_records") or adapter.data_records == []
-
-        except Exception as e:
-            pytest.skip(f"Save data record test failed: {e}")
 
     @patch("builtins.open", create=True)
     @patch("json.dump")
@@ -175,35 +172,31 @@ class TestLongRefinerAdapterMethods:
         mock_ctx = Mock()
         mock_ctx.env_base_dir = temp_dir
 
-        try:
-            with patch("sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"):
-                adapter = LongRefinerAdapter(
-                    config=config, enable_profile=True, ctx=mock_ctx
+        with patch("sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"):
+            adapter = LongRefinerAdapter(
+                config=config, enable_profile=True, ctx=mock_ctx
+            )
+
+            # 模拟文件操作
+            mock_file = Mock()
+            mock_open.return_value.__enter__.return_value = mock_file
+
+            # 在调用前检查data_records为空
+            assert len(adapter.data_records) == 0
+
+            # Mock _persist_data_records 以防止数据被清空
+            with patch.object(adapter, "_persist_data_records"):
+                # 调用保存数据记录（使用英文模拟数据）
+                adapter._save_data_record(
+                    "Test question", ["Original doc 1", "Original doc 2"], ["Refined doc 1"]
                 )
 
-                # 模拟文件操作
-                mock_file = Mock()
-                mock_open.return_value.__enter__.return_value = mock_file
-
-                # 在调用前检查data_records为空
-                assert len(adapter.data_records) == 0
-
-                # Mock _persist_data_records 以防止数据被清空
-                with patch.object(adapter, "_persist_data_records"):
-                    # 调用保存数据记录
-                    adapter._save_data_record(
-                        "测试问题", ["原始文档1", "原始文档2"], ["精炼文档1"]
-                    )
-
-                    # 验证数据记录被添加
-                    assert len(adapter.data_records) == 1
-                    record = adapter.data_records[0]
-                    assert record["question"] == "测试问题"
-                    assert record["input_docs"] == ["原始文档1", "原始文档2"]
-                    assert record["refined_docs"] == ["精炼文档1"]
-
-        except Exception as e:
-            pytest.skip(f"Save data record enabled test failed: {e}")
+                # 验证数据记录被添加
+                assert len(adapter.data_records) == 1
+                record = adapter.data_records[0]
+                assert record["question"] == "Test question"
+                assert record["input_docs"] == ["Original doc 1", "Original doc 2"]
+                assert record["refined_docs"] == ["Refined doc 1"]
 
     def test_init_refiner(self):
         """测试refiner初始化"""
@@ -212,41 +205,38 @@ class TestLongRefinerAdapterMethods:
 
         config = self.get_complete_config()
 
-        try:
-            with patch(
-                "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
-            ) as mock_longrefiner_class:
-                mock_refiner = Mock()
-                mock_longrefiner_class.return_value = mock_refiner
+        with patch(
+            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+        ) as mock_longrefiner_class:
+            mock_refiner = Mock()
+            mock_longrefiner_class.return_value = mock_refiner
 
-                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+            adapter = LongRefinerAdapter(config=config, enable_profile=False)
 
-                # 初始时refiner应该为None
-                assert adapter.refiner is None
+            # 初始化时 refiner 已创建
+            assert adapter.refiner is not None
 
-                # 调用_init_refiner
-                adapter._init_refiner()
+            # 再次调用 _init_refiner 应可成功（不强制只调用一次）
+            adapter._init_refiner()
 
-                # 验证refiner被创建
-                assert adapter.refiner is not None
-                mock_longrefiner_class.assert_called_once_with(
-                    base_model_path=config["base_model_path"],
-                    query_analysis_module_lora_path=config[
-                        "query_analysis_module_lora_path"
-                    ],
-                    doc_structuring_module_lora_path=config[
-                        "doc_structuring_module_lora_path"
-                    ],
-                    global_selection_module_lora_path=config[
-                        "global_selection_module_lora_path"
-                    ],
-                    score_model_name=config["score_model_name"],
-                    score_model_path=config["score_model_path"],
-                    max_model_len=config["max_model_len"],
-                )
-
-        except Exception as e:
-            pytest.skip(f"Init refiner test failed: {e}")
+            # 验证最近一次调用参数
+            call_args = mock_longrefiner_class.call_args
+            assert call_args.kwargs["base_model_path"] == config["base_model_path"]
+            assert (
+                call_args.kwargs["query_analysis_module_lora_path"]
+                == config["query_analysis_module_lora_path"]
+            )
+            assert (
+                call_args.kwargs["doc_structuring_module_lora_path"]
+                == config["doc_structuring_module_lora_path"]
+            )
+            assert (
+                call_args.kwargs["global_selection_module_lora_path"]
+                == config["global_selection_module_lora_path"]
+            )
+            assert call_args.kwargs["score_model_name"] == config["score_model_name"]
+            assert call_args.kwargs["score_model_path"] == config["score_model_path"]
+            assert call_args.kwargs["max_model_len"] == config["max_model_len"]
 
 
 @pytest.mark.unit
@@ -273,51 +263,45 @@ class TestLongRefinerAdapterExecution:
 
         config = self.get_complete_config()
 
-        try:
-            with patch(
-                "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
-            ) as mock_longrefiner_class:
-                # 模拟refiner
-                mock_refiner = Mock()
-                mock_refiner.run.return_value = [
-                    {"contents": "精炼后的文档1"},
-                    {"contents": "精炼后的文档2"},
-                ]
-                mock_longrefiner_class.return_value = mock_refiner
+        with patch(
+            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+        ) as mock_longrefiner_class:
+            # 模拟refiner
+            mock_refiner = Mock()
+            mock_refiner.run.return_value = [
+                "Refined document 1",
+                "Refined document 2",
+            ]
+            mock_longrefiner_class.return_value = mock_refiner
 
-                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+            adapter = LongRefinerAdapter(config=config, enable_profile=False)
 
-                # 测试数据：字典格式文档
-                question = "什么是人工智能？"
-                docs = [
-                    {"text": "人工智能是计算机科学的分支"},
-                    {"text": "AI包括机器学习和深度学习"},
-                ]
+            # 测试数据：字典格式文档（使用 dict 输入避免 tuple.copy 问题）
+            question = "What is artificial intelligence?"
+            docs = [
+                {"text": "Artificial intelligence is a branch of computer science"},
+                {"text": "AI includes machine learning and deep learning"},
+            ]
 
-                result = adapter.execute((question, docs))
+            input_data = {"query": question, "results": docs}
+            result = adapter.execute(input_data)
 
-                # 验证结果格式
-                assert isinstance(result, tuple)
-                assert len(result) == 2
-                assert result[0] == question
+            # 验证结果格式
+            assert isinstance(result, dict)
+            assert result["query"] == question
+            assert "results" in result and len(result["results"]) == 2
+            assert all("text" in d for d in result["results"])
 
-                # 验证refiner被调用
-                mock_refiner.run.assert_called_once()
-                call_args = mock_refiner.run.call_args
-                assert call_args[0][0] == question  # 问题
-                assert call_args[1]["budget"] == config["budget"]  # budget参数
+            # 验证refiner被调用
+            mock_refiner.run.assert_called_once()
+            call_args = mock_refiner.run.call_args
+            assert call_args[0][0] == question  # 问题
+            assert call_args[1]["budget"] == config["budget"]  # budget参数
 
-                # 验证文档转换
-                document_list = call_args[0][1]
-                assert len(document_list) == 2
-                assert all("contents" in doc for doc in document_list)
-
-        except Exception as e:
-            pytest.skip(f"Execute with dict docs test failed: {e}")
+            # 验证文档转换
+            document_list = call_args[0][1]
+            assert len(document_list) == 2
             assert all("contents" in doc for doc in document_list)
-
-        except Exception as e:
-            pytest.skip(f"Execute with dict docs test failed: {e}")
 
     def test_execute_with_string_docs(self):
         """测试执行字符串格式文档"""
@@ -326,32 +310,30 @@ class TestLongRefinerAdapterExecution:
 
         config = self.get_complete_config()
 
-        try:
-            with patch(
-                "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
-            ) as mock_longrefiner_class:
-                # 模拟refiner
-                mock_refiner = Mock()
-                mock_refiner.run.return_value = [{"contents": "精炼后的文档"}]
-                mock_longrefiner_class.return_value = mock_refiner
+        with patch(
+            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+        ) as mock_longrefiner_class:
+            # 模拟refiner
+            mock_refiner = Mock()
+            mock_refiner.run.return_value = ["Refined document"]
+            mock_longrefiner_class.return_value = mock_refiner
 
-                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+            adapter = LongRefinerAdapter(config=config, enable_profile=False)
 
-                # 测试数据：字符串格式文档
-                question = "什么是机器学习？"
-                docs = ["机器学习是AI的子领域", "监督学习需要标注数据"]
+            # 测试数据：字符串格式文档（通过 references 提供）
+            question = "What is machine learning?"
+            docs = ["Machine learning is a subfield of AI", "Supervised learning needs labeled data"]
 
-                result = adapter.execute((question, docs))
+            input_data = {"query": question, "references": docs}
+            result = adapter.execute(input_data)
 
-                # 验证结果
-                assert isinstance(result, tuple)
-                assert result[0] == question
+            # 验证结果
+            assert isinstance(result, dict)
+            assert result["query"] == question
+            assert "results" in result and len(result["results"]) == 1
 
-                # 验证refiner调用
-                mock_refiner.run.assert_called_once()
-
-        except Exception as e:
-            pytest.skip(f"Execute with string docs test failed: {e}")
+            # 验证refiner调用
+            mock_refiner.run.assert_called_once()
 
     def test_execute_with_exception(self):
         """测试执行异常处理"""
@@ -360,27 +342,26 @@ class TestLongRefinerAdapterExecution:
 
         config = self.get_complete_config()
 
-        try:
-            with patch(
-                "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
-            ) as mock_longrefiner_class:
-                # 模拟refiner抛出异常
-                mock_refiner = Mock()
-                mock_refiner.run.side_effect = Exception("模型加载失败")
-                mock_longrefiner_class.return_value = mock_refiner
+        with patch(
+            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+        ) as mock_longrefiner_class:
+            # 模拟refiner抛出异常
+            mock_refiner = Mock()
+            mock_refiner.run.side_effect = Exception("model load failed")
+            mock_longrefiner_class.return_value = mock_refiner
 
-                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+            adapter = LongRefinerAdapter(config=config, enable_profile=False)
 
-                question = "测试问题"
-                docs = [{"text": "测试文档"}]
+            question = "Test question"
+            docs = [{"text": "Test document"}]
 
-                result = adapter.execute((question, docs))
+            input_data = {"query": question, "results": docs}
+            result = adapter.execute(input_data)
 
-                # 异常情况下应该返回空列表
-                assert result == (question, [])
-
-        except Exception as e:
-            pytest.skip(f"Execute with exception test failed: {e}")
+            # 异常情况下应该返回空结果列表，并保留原始字段
+            assert isinstance(result, dict)
+            assert result["query"] == question
+            assert result.get("results") == []
 
 
 @pytest.mark.integration
@@ -417,36 +398,31 @@ class TestLongRefinerAdapterIntegration:
             ]
             mock_refiner_class.return_value = mock_refiner
 
-            try:
-                # 创建适配器
-                adapter = LongRefinerAdapter(
-                    config=config, enable_profile=True, ctx=mock_ctx
-                )
+            # 创建适配器
+            adapter = LongRefinerAdapter(
+                config=config, enable_profile=True, ctx=mock_ctx
+            )
 
-                # 测试数据
-                question = "人工智能在医疗领域的应用有哪些？"
-                docs = [
-                    {"text": "AI在医疗诊断中发挥重要作用"},
-                    {"text": "机器学习算法可以分析医学影像"},
-                    {"text": "自然语言处理可以分析病历"},
-                    {"text": "今天天气很好"},  # 不相关文档
-                    {"text": "深度学习在药物发现中应用广泛"},
-                ]
+            # 测试数据（英文）
+            question = "What are AI applications in healthcare?"
+            docs = [
+                {"text": "AI plays an important role in medical diagnosis"},
+                {"text": "Machine learning can analyze medical images"},
+                {"text": "NLP can analyze medical records"},
+                {"text": "The weather is nice today"},  # Irrelevant
+                {"text": "Deep learning is widely used in drug discovery"},
+            ]
 
-                # 执行精炼
-                result = adapter.execute((question, docs))
+            # 执行精炼（使用 dict 输入）
+            result = adapter.execute({"query": question, "results": docs})
 
-                # 验证结果
-                assert isinstance(result, tuple)
-                assert len(result) == 2
-                assert result[0] == question
-                assert isinstance(result[1], list)
+            # 验证结果
+            assert isinstance(result, dict)
+            assert result["query"] == question
+            assert isinstance(result.get("results", []), list)
 
-                # 验证profile数据被记录
-                assert hasattr(adapter, "data_records")
-
-            except Exception as e:
-                pytest.skip(f"Full workflow simulation failed: {e}")
+            # 验证profile数据被记录
+            assert hasattr(adapter, "data_records")
 
     def test_adapter_in_pipeline(self):
         """测试适配器在管道中的使用"""
@@ -511,15 +487,17 @@ class TestLongRefinerAdapterExternal:
             "budget": 1000,
         }
 
-        try:
+        # 首先避免构造期间触发真实初始化
+        with patch.object(LongRefinerAdapter, "_init_refiner", return_value=None):
             adapter = LongRefinerAdapter(config=config, enable_profile=False)
 
-            # 模型加载应该在_init_refiner时失败
+        # 随后模拟 _init_refiner 期间的失败
+        with patch(
+            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner",
+            side_effect=Exception("model init failed"),
+        ):
             with pytest.raises(Exception):
                 adapter._init_refiner()
-
-        except Exception as e:
-            pytest.skip(f"Model loading failure test failed: {e}")
 
 
 @pytest.mark.unit
@@ -705,10 +683,12 @@ class TestLongRefinerAdapterFixes:
 
                 result = adapter.execute(input_data)
 
-                # 验证输出格式只包含results字段，没有冗余字段
+                # 验证输出格式包含统一的 results 字段
                 assert "results" in result
-                assert "refined_results" not in result  # 应该被移除
-                assert "refined_docs" not in result  # 应该被移除
+                assert "refined_results" not in result  # 不应存在该别名
+                # 适配器会额外提供 refined_docs 与 refine_time 字段
+                assert "refined_docs" in result
+                assert "refine_time" in result
 
                 # 验证results字段格式正确
                 assert isinstance(result["results"], list)

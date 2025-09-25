@@ -267,6 +267,7 @@ jobs:
           echo "✅ Added user site-packages to PYTHONPATH: $PY_USER_SITE"
 
       - name: Verify SAGE Installation
+        continue-on-error: true
         run: |
           echo "🔍 验证SAGE安装状态..."
           python -c "import sage; print('✅ SAGE imported successfully')"

@@ -1,5 +1,5 @@
 """
-测试 sage.libs.rag.promptor 模块
+Test sage.libs.rag.promptor module
 """
 
 import json
@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from jinja2 import Template
 
-# 尝试导入promptor模块
+# Try to import promptor module
 pytest_plugins = []
 
 try:
@@ -27,10 +27,10 @@ except ImportError as e:
 
 @pytest.mark.unit
 class TestQAPromptor:
-    """测试QAPromptor类"""
+    """Test QAPromptor class"""
 
     def test_qa_promptor_import(self):
-        """测试QAPromptor导入"""
+        """Test QAPromptor import"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
@@ -39,7 +39,7 @@ class TestQAPromptor:
         assert QAPromptor is not None
 
     def test_qa_promptor_initialization(self):
-        """测试QAPromptor初始化"""
+        """Test QAPromptor initialization"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
@@ -50,14 +50,14 @@ class TestQAPromptor:
         assert hasattr(promptor, "execute")
 
     def test_execute_with_question_and_context(self):
-        """测试execute方法处理问题和上下文"""
+        """Test execute method with question and context"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # 测试输入数据
+        # Test input data
         input_data = {
             "question": "What is machine learning?",
             "context": [
@@ -68,7 +68,7 @@ class TestQAPromptor:
 
         result = promptor.execute(input_data)
 
-        # 验证结果结构 - QAPromptor 返回 [data, prompt]
+        # Verify result structure - QAPromptor returns [data, prompt]
         assert isinstance(result, list)
         assert len(result) == 2
 
@@ -76,27 +76,27 @@ class TestQAPromptor:
         assert isinstance(data_result, dict)
         assert isinstance(prompt_result, list)
 
-        # 验证数据保持不变
+        # Verify data remains unchanged
         assert data_result["question"] == "What is machine learning?"
         assert data_result["context"] == [
             "Machine learning is a subset of AI.",
             "It involves algorithms that learn from data.",
         ]
 
-        # 验证prompt格式
+        # Verify prompt format
         assert len(prompt_result) == 2  # system + user prompt
         assert prompt_result[0]["role"] == "system"
         assert prompt_result[1]["role"] == "user"
 
     def test_execute_with_retrieved_docs(self):
-        """测试execute方法处理检索到的文档"""
+        """Test execute method with retrieved docs"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # 测试带有retrieved_docs的输入数据
+        # Test input data with retrieved_docs
         input_data = {
             "question": "What is deep learning?",
             "retrieved_docs": [
@@ -107,7 +107,7 @@ class TestQAPromptor:
 
         result = promptor.execute(input_data)
 
-        # 验证结果 - QAPromptor 返回 [data, prompt]
+        # Verify result - QAPromptor returns [data, prompt]
         assert isinstance(result, list)
         assert len(result) == 2
 
@@ -115,24 +115,24 @@ class TestQAPromptor:
         assert isinstance(data_result, dict)
         assert isinstance(prompt_result, list)
 
-        # 验证数据保持不变
+        # Verify data remains unchanged
         assert data_result["question"] == "What is deep learning?"
         assert "retrieved_docs" in data_result
 
-        # 验证prompt格式
+        # Verify prompt format
         assert len(prompt_result) == 2  # system + user prompt
         assert prompt_result[0]["role"] == "system"
         assert prompt_result[1]["role"] == "user"
 
     def test_execute_with_external_corpus(self):
-        """测试execute方法处理外部语料库"""
+        """Test execute method with external corpus"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # 测试带有external_corpus的输入数据
+        # Test input data with external_corpus
         input_data = {
             "question": "Explain neural networks",
             "external_corpus": "Neural networks are computing systems inspired by biological neural networks.",
@@ -140,7 +140,7 @@ class TestQAPromptor:
 
         result = promptor.execute(input_data)
 
-        # 验证结果 - QAPromptor 返回 [data, prompt]
+        # Verify result - QAPromptor returns [data, prompt]
         assert isinstance(result, list)
         assert len(result) == 2
 
@@ -148,29 +148,29 @@ class TestQAPromptor:
         assert isinstance(data_result, dict)
         assert isinstance(prompt_result, list)
 
-        # 验证数据保持不变
+        # Verify data remains unchanged
         assert data_result["question"] == "Explain neural networks"
         assert "external_corpus" in data_result
 
-        # 验证prompt格式
+        # Verify prompt format
         assert len(prompt_result) == 2  # system + user prompt
         assert prompt_result[0]["role"] == "system"
         assert prompt_result[1]["role"] == "user"
 
     def test_execute_with_empty_context(self):
-        """测试execute方法处理空上下文"""
+        """Test execute method with empty context"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # 测试空上下文
+        # Test empty context
         input_data = {"question": "What is AI?", "context": []}
 
         result = promptor.execute(input_data)
 
-        # 验证结果 - QAPromptor 返回 [data, prompt]
+        # Verify result - QAPromptor returns [data, prompt]
         assert isinstance(result, list)
         assert len(result) == 2
 
@@ -178,24 +178,24 @@ class TestQAPromptor:
         assert isinstance(data_result, dict)
         assert isinstance(prompt_result, list)
 
-        # 验证数据保持不变
+        # Verify data remains unchanged
         assert data_result["question"] == "What is AI?"
         assert "context" in data_result
 
-        # 验证prompt格式
+        # Verify prompt format
         assert len(prompt_result) == 2  # system + user prompt
         assert prompt_result[0]["role"] == "system"
         assert prompt_result[1]["role"] == "user"
 
     def test_execute_with_query_tuple(self):
-        """测试execute方法处理查询元组"""
+        """Test execute method with query tuple"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # 测试元组输入
+        # Test tuple input
         query = "What is reinforcement learning?"
         docs = [
             {"content": "Reinforcement learning is a type of machine learning."},
@@ -205,12 +205,12 @@ class TestQAPromptor:
 
         result = promptor.execute(input_data)
 
-        # 验证结果 - 元组输入会触发错误处理，返回错误提示
+        # Verify result - tuple input triggers error handling, returns error message
         assert isinstance(result, list)
         assert len(result) == 2
         system_msg, user_msg = result
 
-        # 验证错误处理格式
+        # Verify error handling format
         assert system_msg["role"] == "system"
         assert (
             "error" in system_msg["content"].lower()
@@ -219,14 +219,14 @@ class TestQAPromptor:
         assert user_msg["role"] == "user"
 
     def test_execute_preserves_additional_fields(self):
-        """测试execute方法保留额外字段"""
+        """Test execute method preserves additional fields"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # 测试带有额外字段的输入数据
+        # Test input data with additional fields
         input_data = {
             "question": "What is NLP?",
             "context": ["Natural Language Processing is a field of AI."],
@@ -236,7 +236,7 @@ class TestQAPromptor:
 
         result = promptor.execute(input_data)
 
-        # 验证结果 - QAPromptor 返回 [data, prompt]
+        # Verify result - QAPromptor returns [data, prompt]
         assert isinstance(result, list)
         assert len(result) == 2
 
@@ -244,13 +244,13 @@ class TestQAPromptor:
         assert isinstance(data_result, dict)
         assert isinstance(prompt_result, list)
 
-        # 验证结果保留所有原始字段
+        # Verify result preserves all original fields
         assert data_result["question"] == "What is NLP?"
         assert data_result["metadata"] == {"source": "textbook"}
         assert data_result["timestamp"] == "2023-01-01"
         assert "context" in data_result
 
-        # 验证prompt格式
+        # Verify prompt format
         assert len(prompt_result) == 2  # system + user prompt
         assert prompt_result[0]["role"] == "system"
         assert prompt_result[1]["role"] == "user"
@@ -258,10 +258,10 @@ class TestQAPromptor:
 
 @pytest.mark.unit
 class TestQueryProfilerPromptor:
-    """测试QueryProfilerPromptor类"""
+    """Test QueryProfilerPromptor class"""
 
     def test_query_profiler_promptor_import(self):
-        """测试QueryProfilerPromptor导入"""
+        """Test QueryProfilerPromptor import"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
@@ -273,7 +273,7 @@ class TestQueryProfilerPromptor:
             pytest.skip("QueryProfilerPromptor not available in module")
 
     def test_query_profiler_promptor_initialization(self):
-        """测试QueryProfilerPromptor初始化"""
+        """Test QueryProfilerPromptor initialization"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
@@ -294,10 +294,10 @@ class TestQueryProfilerPromptor:
 
 @pytest.mark.unit
 class TestSummarizationPromptor:
-    """测试SummarizationPromptor类"""
+    """Test SummarizationPromptor class"""
 
     def test_summarization_promptor_import(self):
-        """测试SummarizationPromptor导入"""
+        """Test SummarizationPromptor import"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
@@ -309,7 +309,7 @@ class TestSummarizationPromptor:
             pytest.skip("SummarizationPromptor not available in module")
 
     def test_summarization_promptor_initialization(self):
-        """测试SummarizationPromptor初始化"""
+        """Test SummarizationPromptor initialization"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
@@ -328,7 +328,7 @@ class TestSummarizationPromptor:
             pytest.skip(f"SummarizationPromptor initialization failed: {e}")
 
     def test_summarization_promptor_execute(self):
-        """测试SummarizationPromptor执行"""
+        """Test SummarizationPromptor execute"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
@@ -340,7 +340,7 @@ class TestSummarizationPromptor:
         config = {"task_type": "summarization"}
         promptor = SummarizationPromptor(config=config)
 
-        # SummarizationPromptor期望(query, external_corpus)格式
+        # SummarizationPromptor expects (query, external_corpus) format
         query = "Please summarize the following text"
         external_corpus = [
             "This is a long text that needs to be summarized. ",
@@ -351,7 +351,7 @@ class TestSummarizationPromptor:
 
         result = promptor.execute(input_data)
 
-        # 验证结果 - SummarizationPromptor返回[data, message]格式
+        # Verify result - SummarizationPromptor returns [data, message] format
         assert isinstance(result, list)
         assert len(result) == 2
 
@@ -359,23 +359,23 @@ class TestSummarizationPromptor:
         assert isinstance(data, dict)
         assert isinstance(message, dict)
 
-        # 检查message内容
+        # Check message content
         assert "content" in message
         assert "Please summarize the following text" in message["content"]
 
 
 @pytest.mark.unit
 class TestPromptTemplates:
-    """测试prompt模板"""
+    """Test prompt templates"""
 
     def test_qa_prompt_template(self):
-        """测试QA prompt模板"""
+        """Test QA prompt template"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         from sage.libs.rag.promptor import QA_prompt_template
 
-        # 测试模板渲染
+        # Test template rendering
         context = "Machine learning is a subset of artificial intelligence."
         rendered = QA_prompt_template.render(external_corpus=context)
 
@@ -384,28 +384,28 @@ class TestPromptTemplates:
         assert "knowledge base" in rendered
 
     def test_qa_prompt_template_no_context(self):
-        """测试QA prompt模板无上下文"""
+        """Test QA prompt template without context"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         from sage.libs.rag.promptor import QA_prompt_template
 
-        # 测试无上下文的模板渲染
+        # Test template rendering without context
         rendered = QA_prompt_template.render()
 
         assert "intelligent assistant" in rendered
         assert "knowledge base" in rendered
-        # 不应包含上下文部分
+        # Should not contain context section
         assert "Relevant corpus" not in rendered
 
     def test_summarization_prompt_template(self):
-        """测试摘要prompt模板"""
+        """Test summarization prompt template"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         from sage.libs.rag.promptor import summarization_prompt_template
 
-        # 测试模板渲染
+        # Test template rendering
         content = "This is content that needs to be summarized."
         rendered = summarization_prompt_template.render(external_corpus=content)
 
@@ -416,15 +416,15 @@ class TestPromptTemplates:
 
 @pytest.mark.integration
 class TestPromptorIntegration:
-    """Promptor集成测试"""
+    """Promptor integration tests"""
 
     @pytest.mark.skipif(not PROMPTOR_AVAILABLE, reason="Promptor module not available")
     def test_qa_promptor_full_pipeline(self):
-        """测试QAPromptor完整pipeline"""
+        """Test QAPromptor complete pipeline"""
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # 模拟完整的RAG pipeline数据
+        # Simulate complete RAG pipeline data
         pipeline_data = {
             "question": "What are the benefits of renewable energy?",
             "retrieved_docs": [
@@ -440,22 +440,22 @@ class TestPromptorIntegration:
 
         result = promptor.execute(pipeline_data)
 
-        # QAPromptor返回[data, prompt]格式
+        # QAPromptor returns [data, prompt] format
         assert isinstance(result, list)
         assert len(result) == 2
 
         data, messages = result
 
-        # 验证data部分
+        # Verify data section
         assert isinstance(data, dict)
         assert "question" in data
         assert "retrieved_docs" in data
         assert "metadata" in data
 
-        # 验证messages部分（OpenAI格式）
+        # Verify messages section (OpenAI format)
         assert isinstance(messages, list)
         assert len(messages) >= 1
 
-        # 检查messages内容
+        # Check messages content
         message_content = str(messages)
         assert "What are the benefits of renewable energy?" in message_content
