@@ -1,0 +1,28 @@
+# Observability demo configuration
+thresholds:
+  cpu: 0.85
+  err: 0.05
+  lat: 250.0
+
+chroma:
+  collection_name: observability_kb
+  persistence_path: examples/observability/chroma_obsv_store
+  host: localhost
+  port: 8000
+  use_embedding_query: true
+  metadata:
+    hnsw:space: cosine
+
+embedding:
+  method: default
+  model: sentence-transformers/all-MiniLM-L6-v2
+  dimension: 384
+
+generator:
+  method: openai
+  model_name: gpt-4o-mini
+  base_url: ${SAGE_OPENAI_BASE_URL}
+  api_key: ${OPENAI_API_KEY}
+
+slack:
+  webhook: ${SAGE_SLACK_WEBHOOK}

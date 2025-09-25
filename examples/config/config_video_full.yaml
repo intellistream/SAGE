@@ -1,0 +1,40 @@
+# Config for examples/video/video_full_demo.py
+# You can run with:
+#   python examples/video/video_full_demo.py --config examples/config/config_video_full.yaml
+# Any values here can be overridden by CLI flags; strings support environment variable expansion like ${HOME}.
+
+# REQUIRED: path to a local video file
+video_path: "./examples/video/your_video.mp4"  # change this to a real file path
+
+# Optional question to ask after indexing captions
+query: "What is happening in the video?"
+
+# Pipeline tuning
+sample_every: 5           # take 1 frame every N frames
+analysis_interval: 1      # run captioning every N sampled frames
+max_frames: 120           # safety cap to stop indexing
+
+# Chroma retriever config (falls back to in-memory if chromadb is not available)
+chroma:
+  collection_name: "video_captions"
+  persistence_path: "./examples/video/chroma_video_store"
+  host: "localhost"
+  port: 8000
+  use_embedding_query: true
+  metadata:
+    "hnsw:space": "cosine"
+
+# Embedding model config (middleware has safe fallbacks)
+embedding:
+  method: "default"     # default = HF MiniLM with automatic fallback
+  model: "sentence-transformers/all-MiniLM-L6-v2"
+  dimension: 384
+
+# Optional LLM generator config to produce natural language answers
+# If omitted, the script will print retrieved context and a heuristic answer.
+# You can also enable via env vars: SAGE_OPENAI_BASE_URL and OPENAI_API_KEY
+# generator:
+#   method: "openai"
+#   model_name: "gpt-4o-mini"
+#   base_url: "${SAGE_OPENAI_BASE_URL}"
+#   api_key: "${OPENAI_API_KEY}"
