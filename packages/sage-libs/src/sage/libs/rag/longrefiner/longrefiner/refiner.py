@@ -58,27 +58,15 @@ class LongRefiner:
         gpu_device: int = 0,
         gpu_memory_utilization: float = 0.7,
     ):
-        # 为vLLM设置GPU设备 - vLLM主要通过CUDA_VISIBLE_DEVICES控制GPU
-        import os
-        original_cuda_visible_devices = os.environ.get('CUDA_VISIBLE_DEVICES')
-        
-        # 临时设置CUDA_VISIBLE_DEVICES为指定的GPU设备
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_device)
-        
-        try:
-            self.model = LLM(
-                base_model_path,
-                enable_lora=True,
-                max_model_len=max_model_len,
-                gpu_memory_utilization=gpu_memory_utilization,
-                tensor_parallel_size=1,  # 单GPU设置
-            )
-        finally:
-            # 恢复原始的CUDA_VISIBLE_DEVICES设置
-            if original_cuda_visible_devices is not None:
-                os.environ['CUDA_VISIBLE_DEVICES'] = original_cuda_visible_devices
-            else:
-                os.environ.pop('CUDA_VISIBLE_DEVICES', None)
+        # 直接通过vLLM的参数指定GPU设备，避免修改全局环境变量
+        self.model = LLM(
+            base_model_path,
+            enable_lora=True,
+            max_model_len=max_model_len,
+            gpu_memory_utilization=gpu_memory_utilization,
+            tensor_parallel_size=1,  # 单GPU设置
+            device=f"cuda:{gpu_device}",
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(base_model_path)
         self.step_to_config = {
             "query_analysis": {
