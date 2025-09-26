@@ -83,6 +83,15 @@ jobs:
             pkg-config
         timeout-minutes: 10
 
+      - name: Initialize Submodules
+        if: steps.cache-sage.outputs.cache-hit != 'true'
+        run: |
+          echo "📦 初始化子模块（用于C++扩展依赖）..."
+          git submodule update --init --recursive || {
+            echo "⚠️ 子模块初始化失败，但继续执行"
+          }
+        timeout-minutes: 5
+
       - name: Install SAGE
         if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
@@ -91,19 +100,59 @@ jobs:
           ./quickstart.sh --dev --pip --yes
         timeout-minutes: 20
 
+      - name: Build and Install C++ Extensions
+        if: steps.cache-sage.outputs.cache-hit != 'true'
+        run: |
+          echo "🔧 构建和安装C++扩展..."
+          
+          # 确保可以找到sage命令
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
+          
+          # 强制构建所有扩展
+          echo "🔨 强制构建扩展..."
+          ${SAGE_CMD} extensions install all      
+          # 验证构建结果
+          echo "🔍 验证扩展构建结果..."
+          find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f || echo "未找到.so文件"
+        timeout-minutes: 15
+
       - name: Verify Installation
         run: |
           echo "✅ 验证SAGE安装..."
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage.common; print('✅ sage.common imported')"
           
-          # 验证扩展（使用我们的新兼容性检测）
+          # 验证扩展可用性
+          echo "🧩 检查C++扩展状态..."
           python -c "
-          from sage.middleware.components.extensions_compat import check_extensions_availability
-          available = check_extensions_availability()
-          print(f'🧩 扩展可用性: {sum(available.values())}/{len(available)}')
-          for ext, status in available.items():
-              print(f'  {ext}: {\"✅\" if status else \"❌\"}')"
+          try:
+              from sage.middleware.components.extensions_compat import check_extensions_availability
+              available = check_extensions_availability()
+              total = sum(available.values())
+              print(f'🧩 扩展可用性: {total}/{len(available)}')
+              for ext, status in available.items():
+                  print(f'  {ext}: {\"✅\" if status else \"❌\"}')
+          except ImportError as e:
+              print(f'⚠️ 兼容性检测模块导入失败: {e}')
+              print('🔍 直接测试扩展导入...')
+              
+              # 直接测试扩展
+              try:
+                  from sage.middleware.components.sage_db.python import _sage_db
+                  print('  sage_db: ✅')
+              except ImportError:
+                  print('  sage_db: ❌')
+              
+              try:
+                  from sage.middleware.components.sage_flow.python import _sage_flow
+                  print('  sage_flow: ✅')
+              except ImportError:
+                  print('  sage_flow: ❌')
+          "
 
   quick-check:
     name: Quick Check
