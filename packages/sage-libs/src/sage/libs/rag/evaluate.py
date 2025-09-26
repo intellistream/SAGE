@@ -7,7 +7,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoTokenizer
 
 
-def _normalize_data(data: Union[Dict[str, Any], Tuple[Any, Any], str, Any]) -> Dict[str, Any]:
+def _normalize_data(
+    data: Union[Dict[str, Any], Tuple[Any, Any], str, Any],
+) -> Dict[str, Any]:
     """将上游数据标准化为评测期望的字典结构。
 
     兼容多种入参形态：
@@ -144,25 +146,25 @@ class AccuracyEvaluate(MapFunction):
     def _normalize_text(self, text: str) -> str:
         """标准化文本用于比较"""
         return text.lower().strip()
-    
+
     def execute(self, data: dict):
         nd = _normalize_data(data)
-        
+
         # 获取参考答案
         golds = nd.get("references", [])
         if not golds and "question" in nd:
             question_data = nd.get("question", {})
             if isinstance(question_data, dict):
                 golds = question_data.get("references", [])
-        
+
         pred = nd.get("generated", "")
-        
+
         if not golds or not pred:
             print(f"\033[93m[Acc] : 0.0000\033[0m")
             return nd
-            
+
         pred_norm = self._normalize_text(pred)
-        
+
         # 准确率：检查预测答案是否与任一参考答案匹配（完全匹配或关键词匹配）
         correct = False
         for gold in golds:
@@ -174,7 +176,7 @@ class AccuracyEvaluate(MapFunction):
             if gold_words and len(gold_words & pred_words) / len(gold_words) >= 0.3:
                 correct = True
                 break
-        
+
         print(f"\033[93m[Acc] : {float(correct):.4f}\033[0m")
         return nd
 
@@ -182,14 +184,14 @@ class AccuracyEvaluate(MapFunction):
 class TokenCountEvaluate(MapFunction):
     def execute(self, data: dict):
         nd = _normalize_data(data)
-        
+
         # 只计算refined_docs的token数（这是LongRefiner压缩后的文档）
         refined_docs = nd.get("refined_docs", [])
         total_tokens = 0
-        
+
         if refined_docs:
             total_tokens = sum(len(str(doc).split()) for doc in refined_docs)
-        
+
         print(f"\033[93m[Token Count] : {total_tokens}\033[0m")
         return nd
 
@@ -206,26 +208,26 @@ class ContextRecallEvaluate(MapFunction):
     def _normalize_text(self, text: str) -> str:
         """标准化文本用于比较"""
         return text.lower().strip()
-    
+
     def execute(self, data: dict):
         nd = _normalize_data(data)
-        
+
         # Context Recall: 检查生成的答案是否包含了参考答案中的关键信息
         golds = nd.get("references", [])
         if not golds and "question" in nd:
             question_data = nd.get("question", {})
             if isinstance(question_data, dict):
                 golds = question_data.get("references", [])
-        
+
         pred = nd.get("generated", "")
-        
+
         if not golds or not pred:
             print(f"\033[93m[Context Recall] : 0.0000\033[0m")
             return nd
-        
+
         pred_norm = self._normalize_text(pred)
         pred_words = set(pred_norm.split())
-        
+
         # 计算有多少参考答案的关键词在生成答案中被提及
         total_recall = 0.0
         for gold in golds:
@@ -236,7 +238,7 @@ class ContextRecallEvaluate(MapFunction):
                 matched_words = len(gold_words & pred_words)
                 recall = matched_words / len(gold_words)
                 total_recall = max(total_recall, recall)  # 取最大值
-        
+
         print(f"\033[93m[Context Recall] : {total_recall:.4f}\033[0m")
         return nd
 
@@ -250,20 +252,20 @@ class CompressionRateEvaluate(MapFunction):
 
     def execute(self, data: dict):
         nd = _normalize_data(data)
-        
+
         # 获取原始检索文档的token数（从results字段的text中）
         retrieved_docs = nd.get("retrieved_docs", [])
         retrieved_tokens = self._count_tokens(retrieved_docs)
-        
+
         # 获取refiner压缩后的文档token数
         refined_docs = nd.get("refined_docs", [])
         refined_tokens = self._count_tokens(refined_docs)
-        
+
         # 计算压缩率
         if refined_tokens > 0:
             compression_rate = retrieved_tokens / refined_tokens
         else:
             compression_rate = 0.0
-            
+
         print(f"\033[93m[Compression Rate] : {compression_rate:.2f}×\033[0m")
         return nd

@@ -192,7 +192,9 @@ class TestOpenAIGenerator:
         assert user_query is None
         assert response == "Generated response"
 
-        expected_messages = [{"role": "user", "content": "Please explain artificial intelligence."}]
+        expected_messages = [
+            {"role": "user", "content": "Please explain artificial intelligence."}
+        ]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
     @patch("sage.libs.rag.generator.OpenAIClient")
@@ -321,7 +323,7 @@ class TestOpenAIGenerator:
         original_data = {"query": "What is AI?", "other_field": "value"}
         prompt = "Please explain artificial intelligence."
         input_data = [original_data, prompt]
-        
+
         with patch("time.time", side_effect=[1000.0, 1001.5]):  # start, end times
             result = generator.execute(input_data)
 
@@ -362,10 +364,10 @@ class TestOpenAIGenerator:
         original_data = {"query": "What is AI?"}
         messages = [
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "What is artificial intelligence?"}
+            {"role": "user", "content": "What is artificial intelligence?"},
         ]
         input_data = [original_data, messages]
-        
+
         with patch("time.time", side_effect=[1000.0, 1002.0]):  # start, end times
             result = generator.execute(input_data)
 

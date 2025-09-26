@@ -1,10 +1,11 @@
+import json
+import logging
+import socket
 import time
 from pathlib import Path
 from time import sleep
-import socket
-import json
-import logging
 from typing import Optional, Union
+
 from sage.core.api.function.source_function import SourceFunction
 
 
@@ -88,12 +89,10 @@ class FileSource(SourceFunction):
             self.logger.error(f"Error reading file '{self.data_path}': {e}")
 
 
-
-
 class SocketSource(SourceFunction):
     """
     从网络套接字读取数据的源函数，支持多机分布式环境
-    
+
     配置参数:
     - host: 服务器主机名或IP地址
     - port: 服务器端口号
@@ -122,13 +121,12 @@ class SocketSource(SourceFunction):
         self.timeout = self.config.get("timeout", 3)
         self.delimiter = self.config.get("delimiter", "\n").encode()
         self.encoding = self.config.get("encoding", "utf-8")
-        
+
         self.socket = None
         self.buffer = b""
         self.last_connect_attempt = 0
         self.is_connected = False
-      
-        
+
         # 初始化连接
         self._initialize_connection()
 
@@ -155,7 +153,7 @@ class SocketSource(SourceFunction):
             self.socket.connect((self.host, self.port))
             self.is_connected = True
             self.logger.info(f"成功连接到 {self.host}:{self.port} (TCP)")
-            
+
             # 发送客户端ID用于负载均衡
             if self.load_balancing:
                 self._send_client_id()
@@ -166,10 +164,12 @@ class SocketSource(SourceFunction):
     def _send_client_id(self):
         """发送客户端ID到服务器用于负载均衡"""
         try:
-            registration = json.dumps({
-                "action": "register",
-                "client_id": self.client_id
-            }).encode(self.encoding) + self.delimiter
+            registration = (
+                json.dumps({"action": "register", "client_id": self.client_id}).encode(
+                    self.encoding
+                )
+                + self.delimiter
+            )
             self.socket.sendall(registration)
         except Exception as e:
             self.logger.error(f"发送客户端ID失败: {e}")
@@ -179,10 +179,10 @@ class SocketSource(SourceFunction):
         current_time = time.time()
         if current_time - self.last_connect_attempt < self.reconnect_interval:
             return False
-        
+
         self.last_connect_attempt = current_time
         self.logger.info("尝试重新连接...")
-        
+
         try:
             if self.socket:
                 self.socket.close()
@@ -196,7 +196,7 @@ class SocketSource(SourceFunction):
         """从套接字接收数据"""
         if not self.is_connected and self.protocol == "tcp":
             if not self.reconnect or not self._reconnect():
-                return None       
+                return None
         try:
             if self.protocol == "tcp":
 
@@ -232,14 +232,16 @@ class SocketSource(SourceFunction):
     def execute(self) -> Union[str, dict, None]:
         """
         从套接字读取数据并返回完整消息
-        
+
         返回:
         - 字符串: 当接收到完整消息时
         - None: 当没有完整消息或连接断开时
         """
         message = self._process_buffer()
         if message:
-            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: 接收到消息: {message}\033[0m")
+            self.logger.info(
+                f"\033[32m[ {self.__class__.__name__}]: 接收到消息: {message}\033[0m"
+            )
             return message
         data = None
         # 接收新数据
@@ -247,14 +249,18 @@ class SocketSource(SourceFunction):
         start_time = time.time()
         while data is None and message is None:
             if time.time() - start_time > timeout:
-                self.logger.warning(f"{self.__class__.__name__}: 接收数据超时，未收到完整消息")
+                self.logger.warning(
+                    f"{self.__class__.__name__}: 接收数据超时，未收到完整消息"
+                )
                 break
             data = self._receive_data()
             if data:
                 self.buffer += data
                 message = self._process_buffer()
                 if message:
-                    self.logger.info(f"\033[32m[ {self.__class__.__name__}]: 接收到消息: {message}\033[0m")
+                    self.logger.info(
+                        f"\033[32m[ {self.__class__.__name__}]: 接收到消息: {message}\033[0m"
+                    )
                     return message
         # 没有完整消息
         return None
@@ -265,10 +271,12 @@ class SocketSource(SourceFunction):
             try:
                 if self.protocol == "tcp" and self.load_balancing:
                     # 发送注销请求
-                    deregistration = json.dumps({
-                        "action": "deregister",
-                        "client_id": self.client_id
-                    }).encode(self.encoding) + self.delimiter
+                    deregistration = (
+                        json.dumps(
+                            {"action": "deregister", "client_id": self.client_id}
+                        ).encode(self.encoding)
+                        + self.delimiter
+                    )
                     self.socket.sendall(deregistration)
                 self.socket.close()
                 self.logger.info("连接已关闭")

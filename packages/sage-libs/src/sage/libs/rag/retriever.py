@@ -263,7 +263,10 @@ class ChromaRetriever(MapFunction):
                 self._save_data_record(input_query, standardized_docs)
 
             # 提取所有原始文档的text字段，供retrieved_docs使用
-            retrieved_texts = [doc.get("text", doc.get("content", str(doc))) for doc in standardized_docs]
+            retrieved_texts = [
+                doc.get("text", doc.get("content", str(doc)))
+                for doc in standardized_docs
+            ]
 
             if is_dict_input:
                 data["results"] = standardized_docs
@@ -577,7 +580,12 @@ class MilvusDenseRetriever(MapFunction):
                 data["retrieved_documents"] = []
                 return data
             else:
-                return {"query": input_query, "retrieved_docs": [], "retrieved_documents": [], "input": data}
+                return {
+                    "query": input_query,
+                    "retrieved_docs": [],
+                    "retrieved_documents": [],
+                    "input": data,
+                }
 
     def save_config(self, save_path: str) -> bool:
         """
@@ -860,7 +868,12 @@ class MilvusSparseRetriever(MapFunction):
                 data["retrieved_documents"] = []
                 return data
             else:
-                return {"query": input_query, "retrieved_docs": [], "retrieved_documents": [], "input": data}
+                return {
+                    "query": input_query,
+                    "retrieved_docs": [],
+                    "retrieved_documents": [],
+                    "input": data,
+                }
 
     def save_config(self, save_path: str) -> bool:
         """
@@ -1230,7 +1243,12 @@ class Wiki18FAISSRetriever(MapFunction):
                 data["retrieved_docs"] = retrieved_texts
                 return data
             else:
-                return {"query": input_query, "results": retrieved_docs, "retrieved_docs": retrieved_texts, "input": data}
+                return {
+                    "query": input_query,
+                    "results": retrieved_docs,
+                    "retrieved_docs": retrieved_texts,
+                    "input": data,
+                }
 
         except Exception as e:
             self.logger.error(f"FAISS retrieval failed: {str(e)}")

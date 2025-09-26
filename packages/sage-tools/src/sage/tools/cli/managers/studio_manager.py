@@ -27,23 +27,23 @@ class StudioManager:
         self.studio_dir = Path(__file__).parent.parent.parent / "studio"
         self.frontend_dir = self.studio_dir / "frontend"
         self.backend_dir = self.studio_dir / "config" / "backend"
-        
+
         # 统一的 .sage 目录管理
         self.sage_dir = Path.home() / ".sage"
         self.studio_sage_dir = self.sage_dir / "studio"
-        
+
         self.pid_file = self.sage_dir / "studio.pid"
         self.backend_pid_file = self.sage_dir / "studio_backend.pid"
         self.log_file = self.sage_dir / "studio.log"
         self.backend_log_file = self.sage_dir / "studio_backend.log"
         self.config_file = self.sage_dir / "studio.config.json"
-        
+
         # 缓存和构建目录
         self.node_modules_dir = self.studio_sage_dir / "node_modules"
         self.angular_cache_dir = self.studio_sage_dir / ".angular" / "cache"
         self.npm_cache_dir = self.studio_sage_dir / "cache" / "npm"
         self.dist_dir = self.studio_sage_dir / "dist"
-        
+
         self.default_port = 4200
         self.backend_port = 8080
         self.default_host = "localhost"
@@ -60,7 +60,7 @@ class StudioManager:
             self.npm_cache_dir,
             self.dist_dir,
         ]
-        
+
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
 
@@ -73,10 +73,10 @@ class StudioManager:
             except Exception:
                 pass
         return {
-            "port": self.default_port, 
+            "port": self.default_port,
             "backend_port": self.backend_port,
-            "host": self.default_host, 
-            "dev_mode": False
+            "host": self.default_host,
+            "dev_mode": False,
         }
 
     def save_config(self, config: dict):
@@ -117,7 +117,9 @@ class StudioManager:
             if psutil.pid_exists(pid):
                 proc = psutil.Process(pid)
                 # 检查是否是Python进程且包含api.py
-                if "python" in proc.name().lower() and "api.py" in " ".join(proc.cmdline()):
+                if "python" in proc.name().lower() and "api.py" in " ".join(
+                    proc.cmdline()
+                ):
                     return pid
 
             # PID 文件存在但进程不存在，清理文件
@@ -163,19 +165,20 @@ class StudioManager:
     def clean_scattered_files(self) -> bool:
         """清理散乱的临时文件和缓存"""
         console.print("[blue]清理散乱的临时文件...[/blue]")
-        
+
         # 清理项目目录中的临时文件
         cleanup_patterns = [
             self.studio_dir / ".angular",
-            self.studio_dir / "dist", 
+            self.studio_dir / "dist",
             self.frontend_dir / ".angular",
             self.frontend_dir / "dist",
         ]
-        
+
         cleaned = False
         for pattern in cleanup_patterns:
             if pattern.exists():
                 import shutil
+
                 if pattern.is_dir():
                     shutil.rmtree(pattern)
                     console.print(f"[green]✓ 已清理: {pattern}[/green]")
@@ -184,22 +187,23 @@ class StudioManager:
                     pattern.unlink()
                     console.print(f"[green]✓ 已清理: {pattern}[/green]")
                     cleaned = True
-        
+
         if not cleaned:
             console.print("[green]✓ 无需清理散乱文件[/green]")
-        
+
         return True
 
     def ensure_node_modules_link(self) -> bool:
         """确保 node_modules 符号链接正确设置"""
         project_modules = self.frontend_dir / "node_modules"
-        
+
         # 如果项目目录中有实际的 node_modules，删除它
         if project_modules.exists() and not project_modules.is_symlink():
             console.print("[blue]清理项目目录中的 node_modules...[/blue]")
             import shutil
+
             shutil.rmtree(project_modules)
-        
+
         # 如果已经是符号链接，检查是否指向正确位置
         if project_modules.is_symlink():
             if project_modules.resolve() == self.node_modules_dir:
@@ -208,7 +212,7 @@ class StudioManager:
             else:
                 console.print("[blue]更新 node_modules 符号链接...[/blue]")
                 project_modules.unlink()
-        
+
         # 创建符号链接
         if self.node_modules_dir.exists():
             project_modules.symlink_to(self.node_modules_dir)
@@ -222,39 +226,42 @@ class StudioManager:
         """确保所有必要的 Angular 依赖都已安装"""
         required_packages = [
             "@angular/cdk",
-            "@angular/animations", 
+            "@angular/animations",
             "@angular/common",
             "@angular/core",
             "@angular/forms",
             "@angular/platform-browser",
             "@angular/platform-browser-dynamic",
-            "@angular/router"
+            "@angular/router",
         ]
-        
+
         console.print("[blue]检查 Angular 依赖...[/blue]")
-        
+
         # 检查 package.json 中是否已有这些依赖
         package_json = self.frontend_dir / "package.json"
         try:
             import json
-            with open(package_json, 'r') as f:
+
+            with open(package_json, "r") as f:
                 package_data = json.load(f)
-            
-            dependencies = package_data.get('dependencies', {})
+
+            dependencies = package_data.get("dependencies", {})
             missing_packages = []
-            
+
             for package in required_packages:
                 if package not in dependencies:
                     missing_packages.append(package)
-            
+
             if missing_packages:
-                console.print(f"[yellow]检测到缺失的依赖: {', '.join(missing_packages)}[/yellow]")
+                console.print(
+                    f"[yellow]检测到缺失的依赖: {', '.join(missing_packages)}[/yellow]"
+                )
                 console.print("[blue]正在安装缺失的依赖...[/blue]")
-                
+
                 # 安装缺失的包
                 env = os.environ.copy()
                 env["npm_config_cache"] = str(self.npm_cache_dir)
-                
+
                 for package in missing_packages:
                     result = subprocess.run(
                         ["npm", "install", package, "--save"],
@@ -269,9 +276,9 @@ class StudioManager:
                     console.print(f"[green]✓ {package} 安装成功[/green]")
             else:
                 console.print("[green]✓ 所有 Angular 依赖已就绪[/green]")
-            
+
             return True
-            
+
         except Exception as e:
             console.print(f"[red]检查依赖时出错: {e}[/red]")
             return False
@@ -311,6 +318,7 @@ class StudioManager:
                 # 如果目标目录已存在，先删除
                 if self.node_modules_dir.exists():
                     import shutil
+
                     shutil.rmtree(self.node_modules_dir)
 
                 # 移动 node_modules
@@ -323,7 +331,9 @@ class StudioManager:
                     project_modules.symlink_to(self.node_modules_dir)
                     console.print("[green]已创建 node_modules 符号链接[/green]")
                 else:
-                    console.print("[yellow]警告: 目标 node_modules 不存在，无法创建符号链接[/yellow]")
+                    console.print(
+                        "[yellow]警告: 目标 node_modules 不存在，无法创建符号链接[/yellow]"
+                    )
 
             console.print("[green]依赖安装成功[/green]")
             return True
@@ -372,6 +382,7 @@ class StudioManager:
                 # 如果目标目录已存在，先删除
                 if self.node_modules_dir.exists():
                     import shutil
+
                     shutil.rmtree(self.node_modules_dir)
 
                 # 移动 node_modules
@@ -384,7 +395,9 @@ class StudioManager:
                     project_modules.symlink_to(self.node_modules_dir)
                     console.print("[green]已创建 node_modules 符号链接[/green]")
                 else:
-                    console.print("[yellow]警告: 目标 node_modules 不存在，无法创建符号链接[/yellow]")
+                    console.print(
+                        "[yellow]警告: 目标 node_modules 不存在，无法创建符号链接[/yellow]"
+                    )
 
             console.print("[green]依赖安装成功[/green]")
             return True
@@ -439,49 +452,60 @@ class StudioManager:
         try:
             # 直接在这里实现配置逻辑，而不是调用外部脚本
             angular_json_path = self.frontend_dir / "angular.json"
-            
+
             if not angular_json_path.exists():
                 console.print("[yellow]angular.json 不存在，跳过配置[/yellow]")
                 return True
-                
+
             # 读取angular.json
-            with open(angular_json_path, 'r') as f:
+            with open(angular_json_path, "r") as f:
                 config = json.load(f)
-            
+
             # 计算相对路径
             relative_dist_path = os.path.relpath(self.dist_dir, self.frontend_dir)
-            relative_cache_path = os.path.relpath(self.angular_cache_dir, self.frontend_dir)
-            
+            relative_cache_path = os.path.relpath(
+                self.angular_cache_dir, self.frontend_dir
+            )
+
             # 更新输出路径
-            if ('projects' in config and 'dashboard' in config['projects'] and
-                'architect' in config['projects']['dashboard'] and
-                'build' in config['projects']['dashboard']['architect'] and
-                'options' in config['projects']['dashboard']['architect']['build']):
-                
-                config['projects']['dashboard']['architect']['build']['options']['outputPath'] = relative_dist_path
-                
+            if (
+                "projects" in config
+                and "dashboard" in config["projects"]
+                and "architect" in config["projects"]["dashboard"]
+                and "build" in config["projects"]["dashboard"]["architect"]
+                and "options" in config["projects"]["dashboard"]["architect"]["build"]
+            ):
+
+                config["projects"]["dashboard"]["architect"]["build"]["options"][
+                    "outputPath"
+                ] = relative_dist_path
+
                 # 更新缓存配置
-                if 'cli' not in config:
-                    config['cli'] = {}
-                if 'cache' not in config['cli']:
-                    config['cli']['cache'] = {}
-                    
-                config['cli']['cache']['path'] = relative_cache_path
-                config['cli']['cache']['enabled'] = True
-                config['cli']['cache']['environment'] = "all"
-                config['cli']['analytics'] = False
-                
+                if "cli" not in config:
+                    config["cli"] = {}
+                if "cache" not in config["cli"]:
+                    config["cli"]["cache"] = {}
+
+                config["cli"]["cache"]["path"] = relative_cache_path
+                config["cli"]["cache"]["enabled"] = True
+                config["cli"]["cache"]["environment"] = "all"
+                config["cli"]["analytics"] = False
+
                 # 写回文件
-                with open(angular_json_path, 'w') as f:
+                with open(angular_json_path, "w") as f:
                     json.dump(config, f, indent=2)
-                    
-                console.print(f"[green]✅ 已更新 angular.json 输出路径: {relative_dist_path}[/green]")
-                console.print(f"[green]✅ 已更新 angular.json 缓存路径: {relative_cache_path}[/green]")
+
+                console.print(
+                    f"[green]✅ 已更新 angular.json 输出路径: {relative_dist_path}[/green]"
+                )
+                console.print(
+                    f"[green]✅ 已更新 angular.json 缓存路径: {relative_cache_path}[/green]"
+                )
                 return True
             else:
                 console.print("[yellow]angular.json 结构不匹配，跳过配置[/yellow]")
                 return True
-                
+
         except Exception as e:
             console.print(f"[red]配置失败: {e}[/red]")
             return False
@@ -489,7 +513,7 @@ class StudioManager:
     def check_typescript_compilation(self) -> bool:
         """检查 TypeScript 编译是否正常"""
         console.print("[blue]检查 TypeScript 编译...[/blue]")
-        
+
         try:
             # 运行 TypeScript 编译检查
             result = subprocess.run(
@@ -498,7 +522,7 @@ class StudioManager:
                 capture_output=True,
                 text=True,
             )
-            
+
             if result.returncode == 0:
                 console.print("[green]✓ TypeScript 编译检查通过[/green]")
                 return True
@@ -510,7 +534,7 @@ class StudioManager:
                     console.print(result.stderr)
                 # 编译错误不阻止安装，只是警告
                 return True
-                
+
         except Exception as e:
             console.print(f"[yellow]TypeScript 检查跳过: {e}[/yellow]")
             return True
@@ -518,7 +542,7 @@ class StudioManager:
     def create_spa_server_script(self, port: int, host: str) -> Path:
         """创建用于 SPA 的自定义服务器脚本"""
         server_script = self.studio_sage_dir / "spa_server.py"
-        
+
         server_code = f'''#!/usr/bin/env python3
 """
 SAGE Studio SPA 服务器
@@ -600,14 +624,14 @@ def main():
 if __name__ == "__main__":
     main()
 '''
-        
+
         # 写入服务器脚本
-        with open(server_script, 'w') as f:
+        with open(server_script, "w") as f:
             f.write(server_code)
-        
+
         # 设置执行权限
         server_script.chmod(0o755)
-        
+
         console.print(f"[blue]已创建自定义 SPA 服务器: {server_script}[/blue]")
         return server_script
 
@@ -640,13 +664,15 @@ if __name__ == "__main__":
 
             if result.returncode == 0:
                 console.print("[green]Studio 构建成功[/green]")
-                
+
                 # 检查构建输出
                 if self.dist_dir.exists():
                     console.print(f"[blue]构建输出位置: {self.dist_dir}[/blue]")
                 else:
-                    console.print(f"[yellow]警告: 构建输出目录不存在: {self.dist_dir}[/yellow]")
-                
+                    console.print(
+                        f"[yellow]警告: 构建输出目录不存在: {self.dist_dir}[/yellow]"
+                    )
+
                 return True
             else:
                 console.print(f"[red]Studio 构建失败[/red]")
@@ -657,7 +683,7 @@ if __name__ == "__main__":
                     console.print("错误信息:")
                     console.print(result.stderr)
                 return False
-                
+
         except Exception as e:
             console.print(f"[red]构建过程出错: {e}[/red]")
             return False
@@ -679,7 +705,7 @@ if __name__ == "__main__":
         # 配置参数
         config = self.load_config()
         backend_port = port or config.get("backend_port", self.backend_port)
-        
+
         # 更新配置
         config["backend_port"] = backend_port
         self.save_config(config)
@@ -805,11 +831,15 @@ if __name__ == "__main__":
                 # 开发模式：使用 ng serve
                 console.print("[blue]启动开发模式...[/blue]")
                 cmd = [
-                    "npx", "ng", "serve",
-                    "--host", host,
-                    "--port", str(port),
+                    "npx",
+                    "ng",
+                    "serve",
+                    "--host",
+                    host,
+                    "--port",
+                    str(port),
                     "--disable-host-check",
-                    "--configuration=development"
+                    "--configuration=development",
                 ]
             else:
                 # 生产模式：确保有构建输出，然后启动静态服务器
@@ -822,7 +852,7 @@ if __name__ == "__main__":
                         return False
 
                 console.print("[blue]启动生产服务器...[/blue]")
-                
+
                 # 优先使用 serve 包（专为 SPA 设计）
                 use_custom_server = False
                 try:
@@ -831,25 +861,28 @@ if __name__ == "__main__":
                         ["npx", "--yes", "serve", "--version"],
                         capture_output=True,
                         text=True,
-                        timeout=10
+                        timeout=10,
                     )
-                    
+
                     if result.returncode == 0:
                         console.print("[green]使用 serve 启动生产服务器...[/green]")
                         cmd = [
-                            "npx", "--yes", "serve",
+                            "npx",
+                            "--yes",
+                            "serve",
                             str(self.dist_dir),
-                            "-l", str(port),
+                            "-l",
+                            str(port),
                             "-n",  # 不打开浏览器
                             "--cors",  # 启用 CORS
-                            "--single"  # 单页应用模式，所有路由都重定向到 index.html
+                            "--single",  # 单页应用模式，所有路由都重定向到 index.html
                         ]
                     else:
                         use_custom_server = True
-                        
+
                 except Exception:
                     use_custom_server = True
-                    
+
                 if use_custom_server:
                     console.print("[yellow]serve 不可用，使用自定义服务器...[/yellow]")
                     # 创建自定义的 Python 服务器来处理 SPA 路由
@@ -883,9 +916,9 @@ if __name__ == "__main__":
         """停止 Studio（前端和后端）"""
         frontend_pid = self.is_running()
         backend_running = self.is_backend_running()
-        
+
         stopped_services = []
-        
+
         # 停止前端
         if frontend_pid:
             try:
@@ -914,14 +947,16 @@ if __name__ == "__main__":
                 stopped_services.append("前端")
             except Exception as e:
                 console.print(f"[red]前端停止失败: {e}[/red]")
-        
+
         # 停止后端
         if backend_running:
             if self.stop_backend():
                 stopped_services.append("后端API")
-        
+
         if stopped_services:
-            console.print(f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]")
+            console.print(
+                f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]"
+            )
             return True
         else:
             console.print("[yellow]Studio 未运行[/yellow]")
@@ -1011,7 +1046,9 @@ if __name__ == "__main__":
             return
 
         if follow:
-            console.print(f"[blue]跟踪{service_name}日志 (按 Ctrl+C 退出): {log_file}[/blue]")
+            console.print(
+                f"[blue]跟踪{service_name}日志 (按 Ctrl+C 退出): {log_file}[/blue]"
+            )
             try:
                 subprocess.run(["tail", "-f", str(log_file)])
             except KeyboardInterrupt:

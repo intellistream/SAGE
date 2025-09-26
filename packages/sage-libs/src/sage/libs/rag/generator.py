@@ -102,7 +102,7 @@ class OpenAIGenerator(MapFunction):
             # 直接prompt输入: [prompt]
             original_data = {}
             prompt = data[0]
-        
+
         # 提取user_query
         if isinstance(original_data, dict):
             user_query = original_data.get("query", original_data.get("question", ""))
@@ -126,7 +126,7 @@ class OpenAIGenerator(MapFunction):
         response = self.model.generate(messages)
         generate_end_time = time.time()
         generate_time = generate_end_time - generate_start_time
-        
+
         self.num += 1
 
         # 保存数据记录（只有enable_profile=True时才保存）
@@ -134,14 +134,17 @@ class OpenAIGenerator(MapFunction):
             self._save_data_record(user_query, prompt, response)
 
         self.logger.info(f"[{self.__class__.__name__}] Response: {response}")
-        
+
         # 构建完整的输出数据，保持上游数据
         if isinstance(original_data, dict):
             # 保持原始数据结构，添加generated字段
             result = dict(original_data)
             result["generated"] = response
             result["generate_time"] = generate_time  # 添加生成时间
-            result["question"] = result.get("question", {"query": user_query, "references": result.get("references", [])})
+            result["question"] = result.get(
+                "question",
+                {"query": user_query, "references": result.get("references", [])},
+            )
             return result
         else:
             # 兼容原有tuple格式输出

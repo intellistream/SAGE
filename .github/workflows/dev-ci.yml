@@ -264,11 +264,11 @@ jobs:
             echo "ℹ️ 诊断命令不支持，运行基础检查"
             python -c "import sage; import sage.common; print('✅ 基础模块导入成功')"
           fi
-      timeout-minutes: 10
+        timeout-minutes: 10
 
-    - name: Report Quick Check Failure
-      if: failure()
-      run: |
+      - name: Report Quick Check Failure
+        if: failure()
+        run: |
           echo "❌ Quick Check Failed - Collecting Diagnostic Information"
           echo "════════════════════════════════════════════════════════════════"
 

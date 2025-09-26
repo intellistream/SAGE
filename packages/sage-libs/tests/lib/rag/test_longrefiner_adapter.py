@@ -188,7 +188,9 @@ class TestLongRefinerAdapterMethods:
             with patch.object(adapter, "_persist_data_records"):
                 # 调用保存数据记录（使用英文模拟数据）
                 adapter._save_data_record(
-                    "Test question", ["Original doc 1", "Original doc 2"], ["Refined doc 1"]
+                    "Test question",
+                    ["Original doc 1", "Original doc 2"],
+                    ["Refined doc 1"],
                 )
 
                 # 验证数据记录被添加
@@ -322,7 +324,10 @@ class TestLongRefinerAdapterExecution:
 
             # 测试数据：字符串格式文档（通过 references 提供）
             question = "What is machine learning?"
-            docs = ["Machine learning is a subfield of AI", "Supervised learning needs labeled data"]
+            docs = [
+                "Machine learning is a subfield of AI",
+                "Supervised learning needs labeled data",
+            ]
 
             input_data = {"query": question, "references": docs}
             result = adapter.execute(input_data)
