@@ -329,22 +329,83 @@ jobs:
                       print('_version.py内容:', content)
           "
           
-          # 强制重新安装主包以确保版本同步
-          echo "=== 强制重新安装主SAGE包确保版本同步 ==="
-          pip install -e packages/sage --force-reinstall --no-deps
+          # 验证所有包的安装状态（不重新安装以避免破坏命名空间包）
+          echo "=== 验证SAGE包安装状态 ==="
+          echo "已安装的isage相关包："
+          pip list | grep isage
           
-          # 重新验证版本
-          echo "=== 重新验证版本信息 ==="
-          python -c "import importlib; import sys; modules_to_remove = [name for name in sys.modules if name.startswith('sage')]; [sys.modules.pop(name, None) for name in modules_to_remove]; print('已清除', len(modules_to_remove), '个sage模块缓存'); import sage; print('重新导入后:'); print('Has __version__:', hasattr(sage, '__version__')); print('Version:', getattr(sage, '__version__', 'Not found'))"
+          # 验证版本信息（清除缓存后重新导入）
+          echo "=== 验证版本信息 ==="
+          python -c "
+          import importlib
+          import sys
+          
+          # 清除所有sage模块缓存
+          modules_to_remove = [name for name in sys.modules if name.startswith('sage')]
+          for name in modules_to_remove:
+              sys.modules.pop(name, None)
+          print('已清除', len(modules_to_remove), '个sage模块缓存')
+          
+          # 重新导入sage主包
+          import sage
+          print('重新导入后:')
+          print('SAGE模块路径:', getattr(sage, '__file__', 'No __file__ attribute'))
+          print('Has __version__:', hasattr(sage, '__version__'))
+          print('Version:', getattr(sage, '__version__', 'Not found'))
+          
+          # 验证是否来自正确的包
+          import os
+          sage_file = getattr(sage, '__file__', '')
+          if sage_file:
+              is_main_package = 'packages/sage/src' in sage_file
+              print('来自主SAGE包:', is_main_package)
+              if not is_main_package:
+                  print('WARNING: sage导入路径可能不正确')
+          "
           echo "Step 3: Verifying SAGE package path..."
           python -c "import sage, inspect; print('SAGE file:', getattr(sage, '__file__', 'No __file__'))"
           python -c "import sage; f = getattr(sage, '__file__', ''); print('Is correct package:', 'packages/sage' in f)"
 
           echo ""
           echo "Testing additional SAGE components:"
-          python -c "import sage.kernel; print('✅ sage.kernel import successful')"
-          python -c "import sage.libs; print('✅ sage.libs import successful')"
-          python -c "import sage.middleware; print('✅ sage.middleware import successful')"
+          
+          # Test sage.kernel import with detailed error reporting
+          python -c "
+          try:
+              import sage.kernel
+              print('✅ sage.kernel import successful')
+              print('   Module path:', getattr(sage.kernel, '__file__', 'No __file__'))
+          except ImportError as e:
+              print('❌ sage.kernel import failed:', str(e))
+              import sage
+              import os
+              print('   Available sage submodules:')
+              sage_path = os.path.dirname(getattr(sage, '__file__', ''))
+              if os.path.exists(sage_path):
+                  subdirs = [d for d in os.listdir(sage_path) if os.path.isdir(os.path.join(sage_path, d)) and not d.startswith('__')]
+                  print('   ', subdirs)
+              raise
+          "
+          
+          # Test sage.libs import
+          python -c "
+          try:
+              import sage.libs
+              print('✅ sage.libs import successful')
+          except ImportError as e:
+              print('❌ sage.libs import failed:', str(e))
+              raise
+          "
+          
+          # Test sage.middleware import  
+          python -c "
+          try:
+              import sage.middleware
+              print('✅ sage.middleware import successful')
+          except ImportError as e:
+              print('❌ sage.middleware import failed:', str(e))
+              raise
+          "
 
           echo "=== CLI Test ==="
           # 检查sage命令是否在PATH中
