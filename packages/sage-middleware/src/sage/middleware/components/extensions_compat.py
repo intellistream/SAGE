@@ -53,6 +53,14 @@ def get_extension_status() -> dict:
     }
 
 
+def check_extensions_availability() -> dict:
+    """检查扩展可用性，返回兼容格式用于CI"""
+    return {
+        "sage_db": _SAGE_DB_AVAILABLE,
+        "sage_flow": _SAGE_FLOW_AVAILABLE,
+    }
+
+
 def require_sage_db():
     """要求SAGE DB扩展可用，否则抛出异常"""
     if not _SAGE_DB_AVAILABLE:
