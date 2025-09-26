@@ -325,9 +325,15 @@ class EnhancedTestRunner:
         """Discover all test files in the project."""
         test_files = []
 
+        # Discover tests in packages
         for package_dir in self.packages_dir.iterdir():
             if package_dir.is_dir() and not package_dir.name.startswith("."):
                 test_files.extend(self._discover_package_test_files(package_dir))
+
+        # Also discover tests in tools/tests directory
+        tools_tests_dir = self.project_root / "tools" / "tests"
+        if tools_tests_dir.exists():
+            test_files.extend(tools_tests_dir.glob("test_*.py"))
 
         return test_files
 

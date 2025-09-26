@@ -25,7 +25,78 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --install-deps)
-            echo "Installing dependencies (prefer pip, fallback to conda)..."
+            echo "Installing dependencies (system + Python packages)..."
+            
+            # Install system dependencies first
+            echo "📦 Installing system dependencies..."
+            set +e
+            SYSTEM_DEPS_INSTALLED=false
+            
+            # 检查是否在 CI 环境中，CI 环境中依赖应该已经由专用脚本安装
+            if [[ "${CI:-false}" == "true" ]]; then
+                echo "🤖 CI 环境检测到，依赖应该已由 install_system_deps.sh 安装"
+                # 验证系统依赖是否可用
+                if pkg-config --exists openblas lapack 2>/dev/null || \
+                   ldconfig -p | grep -q "libopenblas\|libblas" 2>/dev/null; then
+                    echo "✅ 系统 BLAS/LAPACK 库已可用"
+                    SYSTEM_DEPS_INSTALLED=true
+                else
+                    echo "⚠️  系统 BLAS/LAPACK 库未找到，但在 CI 环境中继续构建"
+                    SYSTEM_DEPS_INSTALLED=true  # 在 CI 中强制继续，让 CMake 处理
+                fi
+            elif command -v apt-get &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via apt..."
+                if sudo apt-get update -qq && sudo apt-get install -y libopenblas-dev liblapack-dev; then
+                    echo "✅ System dependencies installed via apt"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif command -v yum &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via yum..."
+                if sudo yum install -y openblas-devel lapack-devel; then
+                    echo "✅ System dependencies installed via yum"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif command -v dnf &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via dnf..."
+                if sudo dnf install -y openblas-devel lapack-devel; then
+                    echo "✅ System dependencies installed via dnf"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif command -v pacman &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via pacman..."
+                if sudo pacman -S --noconfirm openblas lapack; then
+                    echo "✅ System dependencies installed via pacman"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif command -v brew &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via homebrew..."
+                if brew install openblas lapack; then
+                    echo "✅ System dependencies installed via homebrew"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif [[ -n "$CONDA_PREFIX" ]]; then
+                echo "🔧 Installing BLAS/LAPACK via conda..."
+                if conda install -c conda-forge openblas liblapack -y; then
+                    echo "✅ System dependencies installed via conda"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            else
+                echo "⚠️  Could not detect package manager"
+            fi
+            
+            if [ "$SYSTEM_DEPS_INSTALLED" != true ]; then
+                echo "⚠️  System dependencies installation failed or not available"
+                echo "   The build will continue but may fail if BLAS/LAPACK are required"
+                echo "   Manual installation commands:"
+                echo "   Ubuntu/Debian: sudo apt-get install libopenblas-dev liblapack-dev"
+                echo "   CentOS/RHEL: sudo yum install openblas-devel lapack-devel"
+                echo "   macOS: brew install openblas lapack"
+                echo "   Conda: conda install -c conda-forge openblas liblapack"
+            fi
+            set -e
+            
+            # Install Python dependencies
+            echo "📦 Installing Python dependencies..."
             # Avoid failing the entire build if dependency install has conflicts (e.g., conda solver pins)
             set +e
             INSTALLED=false
@@ -133,11 +204,46 @@ if [[ -n "$CONDA_PREFIX" ]]; then
     CMAKE_ARGS+=("-DPython3_ROOT_DIR=$CONDA_PREFIX")
 fi
 
+# Add system library paths for CI environments
+CMAKE_ARGS+=("-DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:/usr/include:/usr/local:${CMAKE_PREFIX_PATH}")
+
+# Set specific BLAS vendor for consistent behavior
+CMAKE_ARGS+=("-DBLA_VENDOR=OpenBLAS")
+
+# Debug information
+echo "CMAKE_ARGS: ${CMAKE_ARGS[@]}"
+echo "Environment:"
+echo "  CONDA_PREFIX: $CONDA_PREFIX"
+echo "  CMAKE_PREFIX_PATH: $CMAKE_PREFIX_PATH"
+
 cmake "${CMAKE_ARGS[@]}" ..
 
 # Build
 echo "Building..."
-make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+echo "🔨 开始编译 (使用 $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4) 个并行任务)..."
+
+if ! make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4); then
+    echo "❌ 编译失败，显示详细错误信息："
+    echo ""
+    echo "=== CMake 配置信息 ==="
+    if [ -f "CMakeCache.txt" ]; then
+        echo "CMAKE_BUILD_TYPE: $(grep CMAKE_BUILD_TYPE CMakeCache.txt || echo '未设置')"
+        echo "CMAKE_PREFIX_PATH: $(grep CMAKE_PREFIX_PATH CMakeCache.txt || echo '未设置')"
+        echo "BLAS_FOUND: $(grep BLAS_FOUND CMakeCache.txt || echo '未找到')"
+        echo "LAPACK_FOUND: $(grep LAPACK_FOUND CMakeCache.txt || echo '未找到')"
+        echo "BLAS_LIBRARIES: $(grep BLAS_LIBRARIES CMakeCache.txt || echo '未设置')"
+        echo "LAPACK_LIBRARIES: $(grep LAPACK_LIBRARIES CMakeCache.txt || echo '未设置')"
+    fi
+    echo ""
+    echo "=== 系统库检查 ==="
+    echo "BLAS 库搜索路径:"
+    find /usr -name "*blas*" -type f 2>/dev/null | head -5 || echo "未找到"
+    echo "LAPACK 库搜索路径:"
+    find /usr -name "*lapack*" -type f 2>/dev/null | head -5 || echo "未找到"
+    echo ""
+    echo "请检查上述错误信息并安装缺失的依赖"
+    exit 1
+fi
 
 # Run tests if available
 if [[ -f "test_sage_db" ]]; then

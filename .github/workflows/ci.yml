@@ -92,23 +92,25 @@ jobs:
           fi
 
           if [ "$needs_cpp" = true ]; then
-            echo "📦 安装C++编译依赖..."
-
-            # 更新包列表
-            echo "📥 更新包列表..."
-            sudo apt-get update -qq
-
-            # 安装编译依赖
-            echo "📦 安装编译工具..."
-            sudo apt-get install -y --no-install-recommends \
-              build-essential \
-              cmake \
-              pkg-config \
-              libopenblas-dev \
-              libopenblas0 \
-              liblapack-dev || {
-              echo "⚠️ 系统依赖安装失败，但继续执行（C++扩展可能不可用）"
-            }
+            echo "📦 使用专用脚本安装系统依赖..."
+            # 使用新的系统依赖安装脚本
+            if [ -f "tools/install/install_system_deps.sh" ]; then
+              chmod +x tools/install/install_system_deps.sh
+              sudo ./tools/install/install_system_deps.sh
+            else
+              # 回退到原来的安装方式
+              echo "📦 回退到传统安装方式..."
+              sudo apt-get update -qq
+              sudo apt-get install -y --no-install-recommends \
+                build-essential \
+                cmake \
+                pkg-config \
+                libopenblas-dev \
+                libopenblas0 \
+                liblapack-dev || {
+                echo "⚠️ 系统依赖安装失败，但继续执行（C++扩展可能不可用）"
+              }
+            fi
           else
             echo "✅ 无需安装C++编译依赖，跳过"
           fi
@@ -179,28 +181,20 @@ jobs:
             SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
             echo "📦 Site-packages路径: $SITE_PACKAGES"
             
-            # 复制 sage_db 扩展
-            if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_db/python/_sage_db.cpython-311-x86_64-linux-gnu.so" ]; then
-              mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_db/python/"
-              cp "packages/sage-middleware/src/sage/middleware/components/sage_db/python/_sage_db.cpython-311-x86_64-linux-gnu.so" \
-                 "$SITE_PACKAGES/sage/middleware/components/sage_db/python/"
-              echo "✅ 手动复制了 sage_db 扩展"
+            # 复制 sage_db 扩展（包括 Python 文件和 .so 文件）
+            if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_db/python" ]; then
+              mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_db/"
+              cp -r "packages/sage-middleware/src/sage/middleware/components/sage_db/python" \
+                    "$SITE_PACKAGES/sage/middleware/components/sage_db/"
+              echo "✅ 手动复制了 sage_db 完整模块"
             fi
             
-            # 复制 sage_flow 扩展
-            if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/_sage_flow.cpython-311-x86_64-linux-gnu.so" ]; then
-              mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
-              cp "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/_sage_flow.cpython-311-x86_64-linux-gnu.so" \
-                 "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
-              echo "✅ 手动复制了 sage_flow 扩展"
-            fi
-            
-            # 复制 micro_service 目录
-            if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/micro_service" ]; then
-              mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
-              cp -r "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/micro_service" \
-                    "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
-              echo "✅ 手动复制了 sage_flow micro_service"
+            # 复制 sage_flow 扩展（包括 Python 文件和 .so 文件）
+            if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_flow/python" ]; then
+              mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_flow/"
+              cp -r "packages/sage-middleware/src/sage/middleware/components/sage_flow/python" \
+                    "$SITE_PACKAGES/sage/middleware/components/sage_flow/"
+              echo "✅ 手动复制了 sage_flow 完整模块"
             fi
             
             echo "⚠️ 扩展构建失败但已尝试手动复制（继续流水线，后续步骤将报告具体错误）"
@@ -208,25 +202,13 @@ jobs:
           
           # 验证扩展可用性
           echo "🔍 验证扩展可用性..."
-          python -c "
-          try:
-              from sage.middleware.components.sage_db.python import _sage_db
-              print('✅ sage_db 扩展可用')
-          except ImportError as e:
-              print('❌ sage_db 扩展不可用:', e)
+          if command -v sage >/dev/null 2>&1; then
+            SAGE_CMD="sage"
+          else
+            SAGE_CMD="python -m sage.tools.cli.main"
+          fi
           
-          try:
-              from sage.middleware.components.sage_flow.python import _sage_flow
-              print('✅ sage_flow 扩展可用')
-          except ImportError as e:
-              print('❌ sage_flow 扩展不可用:', e)
-          
-          try:
-              from sage.middleware.components.sage_flow.python.micro_service import sage_flow_service
-              print('✅ sage_flow micro_service 可用')
-          except ImportError as e:
-              print('❌ sage_flow micro_service 不可用:', e)
-          " || echo "⚠️ 扩展验证完成（部分可能不可用）"
+          ${SAGE_CMD} test cpp-extensions || echo "⚠️ 扩展测试完成（部分可能不可用）"
           
           echo "✅ CLI 扩展构建步骤完成"
 

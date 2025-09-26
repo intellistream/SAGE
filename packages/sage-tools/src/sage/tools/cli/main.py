@@ -17,6 +17,7 @@ from sage.tools.cli.commands.head import app as head_app
 from sage.tools.cli.commands.job import app as job_app
 from sage.tools.cli.commands.jobmanager import app as jobmanager_app
 from sage.tools.cli.commands.studio import app as studio_app
+from sage.tools.cli.commands.test_extensions import app as test_extensions_app
 from sage.tools.cli.commands.version import app as version_app
 from sage.tools.cli.commands.worker import app as worker_app
 
@@ -50,6 +51,7 @@ app.add_typer(dev_app, name="dev", help="🛠️ 开发工具 - 项目开发和�
 
 # 扩展和界面命令
 app.add_typer(extensions_app, name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
+app.add_typer(test_extensions_app, name="test", help="🧪 测试 - 扩展和功能测试")
 app.add_typer(studio_app, name="studio", help="🎨 Studio - 低代码可视化管道编辑器")
 
 # 作业和集群管理命令

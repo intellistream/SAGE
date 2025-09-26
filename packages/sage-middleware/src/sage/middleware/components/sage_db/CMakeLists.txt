@@ -11,9 +11,11 @@ option(USE_OPENMP "Enable OpenMP support" ON)
 
 # Find packages (keep minimal to improve portability)
 
-# Find BLAS and LAPACK for FAISS
-find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
+# Add cmake modules directory to the path
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Use enhanced BLAS/LAPACK finder
+include(FindBLASLAPACK)
 
 # Try to find FAISS
 find_path(FAISS_INCLUDE_DIR NAMES faiss/IndexFlat.h
@@ -77,7 +79,10 @@ target_include_directories(sage_db PUBLIC
 
 if(FAISS_FOUND)
     target_include_directories(sage_db PRIVATE ${FAISS_INCLUDE_DIR})
-    target_link_libraries(sage_db PRIVATE ${FAISS_LIBRARY} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+    target_link_libraries(sage_db PRIVATE ${FAISS_LIBRARY})
+    if(HAVE_BLAS_LAPACK)
+        target_link_libraries(sage_db PRIVATE ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+    endif()
     target_compile_definitions(sage_db PRIVATE FAISS_AVAILABLE)
 endif()
 
