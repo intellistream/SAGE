@@ -164,7 +164,70 @@ jobs:
           else
             SAGE_CMD="python -m sage.tools.cli.main"
           fi
-          ${SAGE_CMD} extensions install all --force || echo "⚠️ 扩展构建失败（继续流水线，后续步骤将尝试运行示例并报告具体错误）"
+          
+          # 检查现有编译产物
+          echo "📂 检查现有编译产物..."
+          find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f || echo "未找到.so文件"
+          
+          # 强制重新安装扩展
+          if ${SAGE_CMD} extensions install all --force; then
+            echo "✅ 扩展安装成功"
+          else
+            echo "❌ 扩展构建失败，尝试手动复制现有扩展..."
+            
+            # 手动复制扩展到site-packages（作为备用方案）
+            SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+            echo "📦 Site-packages路径: $SITE_PACKAGES"
+            
+            # 复制 sage_db 扩展
+            if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_db/python/_sage_db.cpython-311-x86_64-linux-gnu.so" ]; then
+              mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_db/python/"
+              cp "packages/sage-middleware/src/sage/middleware/components/sage_db/python/_sage_db.cpython-311-x86_64-linux-gnu.so" \
+                 "$SITE_PACKAGES/sage/middleware/components/sage_db/python/"
+              echo "✅ 手动复制了 sage_db 扩展"
+            fi
+            
+            # 复制 sage_flow 扩展
+            if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/_sage_flow.cpython-311-x86_64-linux-gnu.so" ]; then
+              mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
+              cp "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/_sage_flow.cpython-311-x86_64-linux-gnu.so" \
+                 "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
+              echo "✅ 手动复制了 sage_flow 扩展"
+            fi
+            
+            # 复制 micro_service 目录
+            if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/micro_service" ]; then
+              mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
+              cp -r "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/micro_service" \
+                    "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
+              echo "✅ 手动复制了 sage_flow micro_service"
+            fi
+            
+            echo "⚠️ 扩展构建失败但已尝试手动复制（继续流水线，后续步骤将报告具体错误）"
+          fi
+          
+          # 验证扩展可用性
+          echo "🔍 验证扩展可用性..."
+          python -c "
+          try:
+              from sage.middleware.components.sage_db.python import _sage_db
+              print('✅ sage_db 扩展可用')
+          except ImportError as e:
+              print('❌ sage_db 扩展不可用:', e)
+          
+          try:
+              from sage.middleware.components.sage_flow.python import _sage_flow
+              print('✅ sage_flow 扩展可用')
+          except ImportError as e:
+              print('❌ sage_flow 扩展不可用:', e)
+          
+          try:
+              from sage.middleware.components.sage_flow.python.micro_service import sage_flow_service
+              print('✅ sage_flow micro_service 可用')
+          except ImportError as e:
+              print('❌ sage_flow micro_service 不可用:', e)
+          " || echo "⚠️ 扩展验证完成（部分可能不可用）"
+          
           echo "✅ CLI 扩展构建步骤完成"
 
       - name: Code Quality Checks
