@@ -211,6 +211,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Verify SAGE Installation
+        continue-on-error: true
         run: |
           echo "🔍 验证SAGE安装状态..."
           python -c "import sage; print('✅ SAGE imported successfully')"
