@@ -45,13 +45,8 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          echo "🔧 安装编译依赖..."
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            cmake \
-            pkg-config
-        timeout-minutes: 10
+          echo "🔧 系统依赖将由quickstart.sh统一管理..."
+          echo "跳过单独的系统依赖安装步骤"
 
       - name: Install SAGE
         run: |

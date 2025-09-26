@@ -75,13 +75,8 @@ jobs:
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
-          echo "🔧 安装C++编译依赖..."
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            cmake \
-            pkg-config
-        timeout-minutes: 10
+          echo "🔧 系统依赖将由quickstart.sh统一管理..."
+          echo "跳过单独的系统依赖安装步骤"
 
       - name: Initialize Submodules
         if: steps.cache-sage.outputs.cache-hit != 'true'
@@ -98,27 +93,10 @@ jobs:
           echo "🚀 安装SAGE（使用改进的安装系统）..."
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --pip --yes
-        timeout-minutes: 20
-
-      - name: Build and Install C++ Extensions
-        if: steps.cache-sage.outputs.cache-hit != 'true'
-        run: |
-          echo "🔧 构建和安装C++扩展..."
-          
-          # 确保可以找到sage命令
-          if command -v sage >/dev/null 2>&1; then
-            SAGE_CMD="sage"
-          else
-            SAGE_CMD="python -m sage.tools.cli.main"
-          fi
-          
-          # 强制构建所有扩展
-          echo "🔨 强制构建扩展..."
-          ${SAGE_CMD} extensions install all      
           # 验证构建结果
           echo "🔍 验证扩展构建结果..."
-          find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f || echo "未找到.so文件"
-        timeout-minutes: 15
+          find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f || echo "未找到.so文件"          
+        timeout-minutes: 20
 
       - name: Verify Installation
         run: |
