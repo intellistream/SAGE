@@ -55,7 +55,7 @@ dependencies = [
     "flower==2.0.1",
     
     # API clients
-    "openai>=1.52.0,<=1.90.0",  # 与vllm兼容的openai版本
+    "openai>=1.99.1",  # vLLM 0.10.1.1兼容的openai版本
     "ollama==0.5.1",
     "zhipuai==2.1.5.20250801",
     "cohere>=5.16.1",

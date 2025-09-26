@@ -42,7 +42,7 @@ standard = [
     "isage-middleware>=0.1.0",  # 中间件组件
     "isage-libs>=0.1.0",       # 应用包组件
     # 数据科学基础库
-    "numpy>=2.0.0,<3.0.0",
+    "numpy>=2.0.0,<2.3.0",  # 兼容vllm/numba约束
     "pandas>=1.3.0",
     "matplotlib>=3.4.0",
     "scipy>=1.15.0,<2.0.0",

@@ -53,7 +53,7 @@ dependencies = [
     "torchvision==0.22.1",
     "httpx==0.28.1",
     "socksio==1.0.0",
-    "numpy>=2.0.0,<3.0.0",  # 统一numpy版本范围，兼容numpy 2.x
+    "numpy>=2.0.0,<2.3.0",  # 兼容vllm/numba约束(需要NumPy 2.2或更低版本)
     "Cython==3.1.2",
     "pybind11==3.0.0",
     "aioboto3==14.1.0",
