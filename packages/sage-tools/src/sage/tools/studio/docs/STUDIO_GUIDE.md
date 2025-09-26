@@ -23,7 +23,7 @@ SAGE Studio 是一个基于 Angular 16 的低代码可视化数据流管道编�
 sage studio install
 
 # 或者直接使用 npm（不推荐，会安装到项目目录）
-cd /home/shuhao/SAGE/packages/sage-tools/src/sage/tools/studio
+cd ~/SAGE/packages/sage-tools/src/sage/tools/studio
 npm install
 ```
 

@@ -86,7 +86,7 @@ pip install vllm
 
 ### 1. 功能验证
 ```bash
-cd /home/shuhao/SAGE/tools/vllm
+cd ~/SAGE/tools/vllm
 ./verify_vllm_fix.sh
 ```
 
