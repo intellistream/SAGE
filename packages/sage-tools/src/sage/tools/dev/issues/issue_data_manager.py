@@ -690,7 +690,7 @@ def main():
     parser = argparse.ArgumentParser(description="Issue数据管理器")
     parser.add_argument(
         "--workspace",
-        default="/home/shuhao/SAGE/output/issues-workspace",
+        default=os.path.expanduser("~/SAGE/output/issues-workspace"),
         help="工作目录路径",
     )
     parser.add_argument("--migrate", action="store_true", help="从旧格式迁移数据")

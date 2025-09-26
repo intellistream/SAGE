@@ -92,10 +92,13 @@ class QAPromptor(MapFunction):
         self.enable_profile = enable_profile
 
         # 使用配置文件中的模板，如果没有则使用默认模板
-        self.use_short_answer = config.get("use_short_answer", False)  # 是否使用短答案模式
-        
+        self.use_short_answer = config.get(
+            "use_short_answer", False
+        )  # 是否使用短答案模式
+
         if "template" in config:
             from jinja2 import Template
+
             self.prompt_template = Template(config["template"])
         else:
             # 根据配置选择模板
