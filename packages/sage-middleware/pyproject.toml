@@ -2,6 +2,8 @@
 requires = [
     "setuptools>=64",
     "wheel",
+    "pybind11>=2.10.0",  # C++ 扩展绑定
+    "cmake>=3.20",       # C++ 构建工具 (如果系统没有)
 ]
 build-backend = "setuptools.build_meta"
 
@@ -190,6 +192,18 @@ namespaces = true
     "*.json",
     "templates/*",
     "static/*",
+]
+# C++ 扩展相关文件
+"sage.middleware.components.sage_db.python" = [
+    "*.so",
+    "*.py",
+    "*.pyi",
+]
+"sage.middleware.components.sage_flow.python" = [
+    "*.so", 
+    "*.py",
+    "*.pyi",
+    "micro_service/*",
 ]
 
 [tool.pytest.ini_options]

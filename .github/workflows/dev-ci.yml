@@ -178,6 +178,12 @@ jobs:
               print('❌ sage_flow 扩展不可用:', e)
           
           try:
+              from sage.middleware.components.sage_flow.python.sage_flow import *
+              print('✅ sage_flow Python模块可用')
+          except ImportError as e:
+              print('❌ sage_flow Python模块不可用:', e)
+          
+          try:
               from sage.middleware.components.sage_flow.python.micro_service import sage_flow_service
               print('✅ sage_flow micro_service 可用')
           except ImportError as e:
@@ -316,7 +322,17 @@ jobs:
                 mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
                 cp "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/_sage_flow.cpython-311-x86_64-linux-gnu.so" \
                    "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
-                echo "✅ 手动复制了 sage_flow 扩展"
+                # 复制关键的 sage_flow.py 模块
+                if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow.py" ]; then
+                  cp "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow.py" \
+                     "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
+                fi
+                # 复制 __init__.py 
+                if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/__init__.py" ]; then
+                  cp "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/__init__.py" \
+                     "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
+                fi
+                echo "✅ 手动复制了 sage_flow 扩展和Python模块"
               fi
               
               # 复制 micro_service 目录
@@ -658,7 +674,17 @@ jobs:
                 mkdir -p "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
                 cp "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/_sage_flow.cpython-311-x86_64-linux-gnu.so" \
                    "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
-                echo "✅ 手动复制了 sage_flow 扩展"
+                # 复制关键的 sage_flow.py 模块
+                if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow.py" ]; then
+                  cp "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow.py" \
+                     "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
+                fi
+                # 复制 __init__.py 
+                if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/__init__.py" ]; then
+                  cp "packages/sage-middleware/src/sage/middleware/components/sage_flow/python/__init__.py" \
+                     "$SITE_PACKAGES/sage/middleware/components/sage_flow/python/"
+                fi
+                echo "✅ 手动复制了 sage_flow 扩展和Python模块"
               fi
               
               # 复制 micro_service 目录
