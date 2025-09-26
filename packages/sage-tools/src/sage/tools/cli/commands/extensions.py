@@ -286,18 +286,22 @@ def install(
                                 print_success(
                                     f"已安装 Python 扩展模块到 site-packages: {site_target_dir}"
                                 )
-                                
+
                                 # 3) 复制额外的Python模块（如 micro_service 目录）
                                 micro_service_src = ext_dir / "python" / "micro_service"
                                 if micro_service_src.exists():
-                                    micro_service_dest = site_target_dir / "micro_service"
+                                    micro_service_dest = (
+                                        site_target_dir / "micro_service"
+                                    )
                                     if micro_service_dest.exists():
                                         shutil.rmtree(micro_service_dest)
-                                    shutil.copytree(micro_service_src, micro_service_dest)
+                                    shutil.copytree(
+                                        micro_service_src, micro_service_dest
+                                    )
                                     print_success(
                                         f"已安装 micro_service 模块到 site-packages: {micro_service_dest}"
                                     )
-                                
+
                             except Exception as e:
                                 print_warning(
                                     f"无法复制到 site-packages（可能未安装包）: {e}"

@@ -196,6 +196,7 @@ class TestMainFunction:
                 "field_query": "query",
             },
         }
+
     def test_main_function_config_not_found(self):
         if not AGENT_MODULE_AVAILABLE:
             pytest.skip("Agent examples module not available")
@@ -205,16 +206,15 @@ class TestMainFunction:
         )
 
         # 关键：补丁打在“使用处”，并且用 pytest.raises 捕获 SystemExit
-        with patch("examples.agents.agent.os.path.exists", return_value=False), \
-            patch("builtins.print") as mock_print:
+        with patch("examples.agents.agent.os.path.exists", return_value=False), patch(
+            "builtins.print"
+        ) as mock_print:
             with pytest.raises(SystemExit) as e:
                 agent.main()
 
         assert e.value.code == 1
         # 用 assert_any_call，避免“最后一次打印不是这句”导致失败
         mock_print.assert_any_call(expected)
-
-
 
     # @patch("examples.agents.agent.importlib.import_module")
     # @patch("examples.agents.agent.load_config")
@@ -311,7 +311,6 @@ class TestMainFunction:
         # 直接运行 main，应该抛 ImportError
         with pytest.raises(ImportError):
             agent.main()
-
 
 
 @pytest.mark.integration

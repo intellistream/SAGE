@@ -30,9 +30,7 @@ class RAGMemoryService(BaseService):
 
         # Try to load existing collection; if missing, create one locally with mock/offline embeddings
         if self.memory_manager.has_collection(config.get("name")):
-            self.rag_collection = self.memory_manager.get_collection(
-                config.get("name")
-            )
+            self.rag_collection = self.memory_manager.get_collection(config.get("name"))
             self._logger.info("Successfully loaded RAG memory from disk")
         else:
             self._logger.warning(
