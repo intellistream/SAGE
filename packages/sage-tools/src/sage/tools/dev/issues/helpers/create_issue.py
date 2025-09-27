@@ -13,9 +13,16 @@ from typing import List, Optional
 
 import requests
 
-# Import main config from parent directory
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import config
+# 动态导入config模块
+try:
+    # 尝试相对导入（当作为模块运行时）
+    from ..config import IssuesConfig
+except ImportError:
+    # 如果相对导入失败，使用绝对导入
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from config import IssuesConfig
+
+config = IssuesConfig()
 
 
 class GitHubIssueCreator:

@@ -19,16 +19,21 @@ from pathlib import Path
 
 import requests
 
-# 添加上级目录到sys.path以导入config
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import Config
+# 动态导入config模块
+try:
+    # 尝试相对导入（当作为模块运行时）
+    from ..config import IssuesConfig
+except ImportError:
+    # 如果相对导入失败，使用绝对导入
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from config import IssuesConfig
 
 
 class BoardsMetadataGenerator:
     """项目板metadata生成器"""
 
     def __init__(self):
-        self.config = Config()
+        self.config = IssuesConfig()
 
     def generate_boards_metadata(self):
         """生成boards_metadata.json文件"""

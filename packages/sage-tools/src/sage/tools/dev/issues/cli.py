@@ -352,12 +352,12 @@ def sync_issues(
 
         # 构建命令参数
         cmd_args = [sys.executable, str(sync_script)]
-        if direction != "upload":
-            cmd_args.extend(["--direction", direction])
         if dry_run:
-            cmd_args.append("--dry-run")
+            cmd_args.append("preview")  # Use preview command for dry-run
+        else:
+            cmd_args.append("sync")     # Use sync command for actual sync
         if force:
-            cmd_args.append("--force")
+            cmd_args.append("--auto-confirm")
 
         # 执行同步
         result = subprocess.run(
