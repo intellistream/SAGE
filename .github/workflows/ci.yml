@@ -129,17 +129,3 @@ jobs:
           else
             echo "ℹ️ Examples测试脚本不存在，跳过"
           fi
-
-  deployment-ready:
-    name: Deployment Readiness Check
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')
-    
-    steps:
-      - name: Deployment Status
-        run: |
-          echo "🚀 部署就绪检查"
-          echo "✅ 所有测试通过"
-          echo "✅ 主分支推送"
-          echo "🎉 SAGE已准备好部署"
