@@ -36,8 +36,6 @@ jobs:
     name: Build and Install SAGE
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      cache-key: ${{ steps.cache-key.outputs.key }}
 
     steps:
       - name: Checkout Repository
@@ -53,56 +51,7 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Generate Cache Key
-        id: cache-key
-        run: |
-          echo "🔑 生成构建产物缓存键（基于代码内容）..."
-          
-          # 包含Python文件、配置文件和C++扩展相关文件
-          SAGE_CODE_HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" -o -name "*.cpp" -o -name "*.hpp" -o -name "CMakeLists.txt" -o -name "*.h" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-          echo "📄 SAGE代码hash: ${SAGE_CODE_HASH}"
-          
-          # 系统依赖和构建脚本
-          BUILD_SCRIPTS_HASH=$(find tools/ -name "*.sh" -o -name "*.py" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-          echo "🔧 构建脚本hash: ${BUILD_SCRIPTS_HASH}"
-          
-          # 子模块状态（关键！C++扩展依赖）
-          SUBMODULE_HASH=$(git submodule status | md5sum | cut -d' ' -f1)
-          echo "📦 子模块状态hash: ${SUBMODULE_HASH}"
-          
-          # CI配置和其他重要文件
-          CONFIG_HASH=$(cat .github/workflows/dev-ci.yml quickstart.sh | md5sum | cut -d' ' -f1)
-          echo "⚙️ 配置文件hash: ${CONFIG_HASH}"
-          
-          # 生成最终缓存键
-          COMBINED_HASH=$(echo "${SAGE_CODE_HASH}-${BUILD_SCRIPTS_HASH}-${SUBMODULE_HASH}-${CONFIG_HASH}" | md5sum | cut -d' ' -f1)
-          CACHE_KEY="sage-build-${{ runner.os }}-py311-${COMBINED_HASH}"
-          echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
-          echo "🔑 构建产物缓存键: ${CACHE_KEY}"
-
-      - name: Debug Cache Status
-        run: |
-          echo "🔍 构建产物缓存调试信息:"
-          echo "- Runner OS: ${{ runner.os }}"
-          echo "- 缓存策略: 只缓存构建产物(.so文件), 不缓存editable install元数据"
-          echo "- 包含内容: pip缓存, C++扩展的.so文件, build目录, install目录"  
-          echo "- 排除内容: ~/.local (避免.pth文件路径问题)"
-          echo "- 缓存失效: 基于Python源码, C++源码, 配置文件, 子模块状态变化"
-
-      - name: Cache Build Artifacts
-        id: cache-sage
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            packages/sage-middleware/src/sage/middleware/components/*/python/*.so
-            packages/sage-middleware/src/sage/middleware/components/*/build
-            packages/sage-middleware/src/sage/middleware/components/*/install
-          key: ${{ steps.cache-key.outputs.key }}
-          # 不缓存 ~/.local 以避免 .pth 文件路径问题，每次重新执行 pip install -e
-
       - name: Install System Dependencies
-        if: steps.cache-sage.outputs.cache-hit != 'true'
         run: |
           echo "🔧 系统依赖将由quickstart.sh统一管理..."
           echo "跳过单独的系统依赖安装步骤"
@@ -122,65 +71,9 @@ jobs:
             echo "❌ sage_db 子模块缺失"
           fi
 
-      - name: Verify Cache Validity
-        id: cache-validation
-        if: steps.cache-sage.outputs.cache-hit == 'true'
-        run: |
-          echo "🔍 验证缓存的安装是否有效..."
-          CACHE_VALID=true
-          
-          # 检查基本的 SAGE 导入
-          if python -c "import sage; import sage.common" 2>/dev/null; then
-            echo "✅ 缓存的 SAGE 安装有效"
-          else
-            echo "❌ 缓存的 SAGE 安装无效，需要重新安装"
-            CACHE_VALID=false
-          fi
-          
-          # 检查CLI工具
-          if command -v sage >/dev/null 2>&1; then
-            echo "✅ sage CLI 可用"
-          else
-            echo "❌ sage CLI 不可用，需要重新安装"
-            CACHE_VALID=false
-          fi
-          
-          # 检查C++扩展是否可用（关键！）
-          echo "🔍 验证C++扩展状态..."
-          python -c "
-          try:
-              from sage.middleware.components.sage_db.python.sage_db import SageDB
-              print('✅ sage_db 扩展可用')
-          except Exception as e:
-              print(f'❌ sage_db 扩展不可用: {e}')
-              exit(1)
-          " || {
-              echo "❌ C++扩展验证失败，需要重新安装"
-              CACHE_VALID=false
-          }
-          
-          python -c "
-          try:
-              from sage.middleware.components.sage_flow.python.sage_flow import SageFlow  
-              print('✅ sage_flow 扩展可用')
-          except Exception as e:
-              print(f'❌ sage_flow 扩展不可用: {e}')
-              exit(1)
-          " || {
-              echo "❌ sage_flow 扩展验证失败，需要重新安装"
-              CACHE_VALID=false
-          }
-          
-          echo "valid=${CACHE_VALID}" >> $GITHUB_OUTPUT
-
       - name: Install SAGE
-        if: steps.cache-sage.outputs.cache-hit != 'true' || steps.cache-validation.outputs.valid == 'false'
         run: |
-          if [ "${{ steps.cache-validation.outputs.valid }}" == "false" ]; then
-            echo "🔄 强制重新安装SAGE（缓存验证失败）..."
-          else
-            echo "🚀 安装SAGE（使用改进的安装系统）..."
-          fi
+          echo "🚀 安装SAGE（使用quickstart.sh --dev，无缓存）..."
           
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --pip --yes
@@ -262,27 +155,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
-      - name: Restore Build Artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            packages/sage-middleware/src/sage/middleware/components/*/python/*.so
-            packages/sage-middleware/src/sage/middleware/components/*/build
-            packages/sage-middleware/src/sage/middleware/components/*/install
-          key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Reinstall SAGE Packages
+      - name: Initialize Submodules
         run: |
-          echo "🔄 重新安装 SAGE packages (避免缓存的 .pth 文件问题)..."
-          pip install -e packages/sage-common
-          pip install -e packages/sage-kernel  
-          pip install -e packages/sage-middleware
-          pip install -e packages/sage-libs
-          pip install -e packages/sage-tools[cli]
-          pip install -e packages/sage[full]
+          echo "🔁 初始化子模块（C++扩展依赖）..."
+          git submodule update --init --recursive
+          echo "✅ 子模块初始化完成"
+
+      - name: Install SAGE
+        run: |
+          echo "� 安装SAGE（使用quickstart.sh --dev）..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          echo "✅ SAGE安装完成"
 
       - name: Run Basic Tests
         run: |
@@ -339,31 +225,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
-      - name: Restore Build Artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            packages/sage-middleware/src/sage/middleware/components/*/python/*.so
-            packages/sage-middleware/src/sage/middleware/components/*/build
-            packages/sage-middleware/src/sage/middleware/components/*/install
-          key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Reinstall SAGE Packages
+      - name: Initialize Submodules
         run: |
-          echo "🔄 重新安装 SAGE packages (避免缓存的 .pth 文件问题)..."
-          pip install -e packages/sage-common
-          pip install -e packages/sage-kernel  
-          pip install -e packages/sage-middleware
-          pip install -e packages/sage-libs
-          pip install -e packages/sage-tools[cli]
-          pip install -e packages/sage[full]
+          echo "🔁 初始化子模块（C++扩展依赖）..."
+          git submodule update --init --recursive
+          echo "✅ 子模块初始化完成"
 
-      - name: Install Test Dependencies
+      - name: Install SAGE
         run: |
-          pip install -e packages/sage-tools[cli]
+          echo "� 安装SAGE（使用quickstart.sh --dev）..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          echo "✅ SAGE安装完成"
 
       - name: Run Examples Tests
         run: |
@@ -397,27 +272,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
-      - name: Restore Build Artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            packages/sage-middleware/src/sage/middleware/components/*/python/*.so
-            packages/sage-middleware/src/sage/middleware/components/*/build
-            packages/sage-middleware/src/sage/middleware/components/*/install
-          key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Reinstall SAGE Packages
+      - name: Initialize Submodules
         run: |
-          echo "🔄 重新安装 SAGE packages (避免缓存的 .pth 文件问题)..."
-          pip install -e packages/sage-common
-          pip install -e packages/sage-kernel  
-          pip install -e packages/sage-middleware
-          pip install -e packages/sage-libs
-          pip install -e packages/sage-tools[cli]
-          pip install -e packages/sage[full]
+          echo "🔁 初始化子模块（C++扩展依赖）..."
+          git submodule update --init --recursive
+          echo "✅ 子模块初始化完成"
+
+      - name: Install SAGE
+        run: |
+          echo "� 安装SAGE（使用quickstart.sh --dev）..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          echo "✅ SAGE安装完成"
 
       - name: Validate PyPI Release Readiness
         run: |
