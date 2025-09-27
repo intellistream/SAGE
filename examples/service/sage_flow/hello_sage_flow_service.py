@@ -65,13 +65,34 @@ def main():
     svc.set_sink(on_sink)
 
     # 推入几条数据
-    for uid in range(3):
+    total = 3
+    for uid in range(total):
         vec = np.arange(4, dtype=np.float32) + uid
         svc.push(uid, vec)
 
     # 运行一次，将队列中的数据消费（内部会执行 env.execute()）
     svc.run()
+    
+    # 等待异步处理完成（参考 hello_sage_flow_app.py 的实现）
+    max_wait_time = 5.0  # 最多等待5秒
+    wait_interval = 0.1  # 每次等待100ms
+    elapsed_time = 0.0
+
+    while processed["count"] < total and elapsed_time < max_wait_time:
+        time.sleep(wait_interval)
+        elapsed_time += wait_interval
+
+    logging.info(f"processed count: {processed['count']} (expected: {total})")
     print(f"processed count: {processed['count']}")
+
+    # 简单校验：处理的记录数应等于注入的记录数
+    if processed["count"] != total:
+        logging.warning(f"处理记录数不匹配: 实际 {processed['count']}, 期望 {total}")
+        logging.warning("这可能是由于异步处理延迟或数据源配置问题造成的")
+        # 在示例中不要抛出异常，只是警告
+    else:
+        logging.info("✅ 数据处理验证通过")
+    
     logging.info("Service demo done")
 
 
