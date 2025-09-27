@@ -16,17 +16,37 @@ except ImportError:  # pragma: no cover - repo/local build fallback
     import importlib
     import sys
     from pathlib import Path
+    import glob
 
     here = Path(__file__).resolve().parent
     candidates = [
+        here,  # same directory as this file (editable install case)
         here / "build" / "lib",  # python dir local build
         here.parent / "build" / "lib",  # component-level build
         here.parent,  # compiled module copied next to python/
+        here.parent / "build",  # build directory
+        here.parent / "install",  # install directory
     ]
+    
+    # Add paths and try direct import
     for p in candidates:
         if p.exists() and str(p) not in sys.path:
             sys.path.insert(0, str(p))
-    _sage_db = importlib.import_module("_sage_db")  # type: ignore
+    
+    # Try to find the .so file directly
+    _sage_db = None
+    for p in candidates:
+        if p.exists():
+            # Look for _sage_db.*.so files
+            so_files = list(p.glob("_sage_db*.so"))
+            if so_files:
+                # Add this directory to sys.path if not already there
+                if str(p) not in sys.path:
+                    sys.path.insert(0, str(p))
+                break
+    
+    if _sage_db is None:
+        _sage_db = importlib.import_module("_sage_db")  # type: ignore
 
 
 # Re-export C++ classes and enums
