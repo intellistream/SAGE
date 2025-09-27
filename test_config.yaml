@@ -1,7 +1,0 @@
-generator:
-  type: remote
-  url: "http://old-endpoint:8080/v1/chat/completions"
-  model: "old-model"
-  api_key: "${OPENAI_API_KEY}"
-  temperature: 0.7
-  max_tokens: 2000
