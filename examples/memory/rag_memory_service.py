@@ -5,14 +5,14 @@ from sage.core.api.service.base_service import BaseService
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
 config = {
-    "manager_path": "examples/memory/data/neuromem",
+    "manager_path": "examples/memory/data/neuromem_service",
     "name": "RAGMemoryCollection",
-    "backend_type": "VDB",
+    "backend_type": "VDB", 
     "description": "rag memory collection",
     "index_config": {
         "name": "test_index",
-        "embedding_model": "default",
-        "dim": 384,
+        "embedding_model": "mockembedder",
+        "dim": 128,
         "backend_type": "FAISS",
         "description": "rag memory index",
         "index_parameter": {},

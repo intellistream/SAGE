@@ -4,7 +4,7 @@ import os
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
-manager_path = "examples/memory/data/neuromem"
+manager_path = "examples/memory/data/neuromem_manager"
 
 config = {
     "name": "RAGMemoryCollection",
@@ -12,8 +12,8 @@ config = {
     "description": "rag memory collection",
     "index_config": {
         "name": "test_index",
-        "embedding_model": "default",
-        "dim": 384,
+        "embedding_model": "mockembedder",
+        "dim": 128,
         "backend_type": "FAISS",
         "description": "rag memory index",
         "index_parameter": {},
