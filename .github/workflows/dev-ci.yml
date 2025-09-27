@@ -94,6 +94,9 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.local
+            packages/sage-middleware/src/sage/middleware/components/*/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/*/build
+            packages/sage-middleware/src/sage/middleware/components/*/install
           key: ${{ steps.cache-key.outputs.key }}
           # 移除 restore-keys 以避免使用损坏的旧缓存
 
@@ -265,6 +268,9 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.local
+            packages/sage-middleware/src/sage/middleware/components/*/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/*/build
+            packages/sage-middleware/src/sage/middleware/components/*/install
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -330,6 +336,9 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.local
+            packages/sage-middleware/src/sage/middleware/components/*/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/*/build
+            packages/sage-middleware/src/sage/middleware/components/*/install
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
 
@@ -370,6 +379,9 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.local
+            packages/sage-middleware/src/sage/middleware/components/*/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/*/build
+            packages/sage-middleware/src/sage/middleware/components/*/install
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
 
