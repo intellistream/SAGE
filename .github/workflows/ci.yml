@@ -116,7 +116,8 @@ jobs:
       - name: Run Examples Smoke Test
         run: |
           echo "🌟 运行Examples冒烟测试..."
-          pip install -e packages/sage-tools[cli]
+          # 安装测试所需的dev依赖（包含pytest）
+          pip install -e packages/sage-tools[dev]
           
           # 运行快速冒烟测试（5分钟超时）
           if [ -f "./tools/tests/run_examples_tests.sh" ]; then
