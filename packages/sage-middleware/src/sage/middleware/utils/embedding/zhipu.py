@@ -6,7 +6,7 @@ if sys.version_info < (3, 9):
     pass
 else:
     pass
-import pipmaster as pm  # Pipmaster for dynamic library install
+
 
 # Dependencies should be installed via requirements.txt
 # zhipuai is required for this module

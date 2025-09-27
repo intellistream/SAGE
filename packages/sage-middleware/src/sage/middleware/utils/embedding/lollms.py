@@ -4,7 +4,7 @@ if sys.version_info < (3, 9):
     from typing import AsyncIterator
 else:
     from collections.abc import AsyncIterator
-import pipmaster as pm  # Pipmaster for dynamic library install
+
 
 # Dependencies should be installed via requirements.txt
 # aiohttp and tenacity are required for this module

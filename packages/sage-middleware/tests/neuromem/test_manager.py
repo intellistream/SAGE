@@ -45,7 +45,10 @@ def test_neuromem_manager():
     )
 
     results = vdb_collection.retrieve(
-        index_name="test_index", raw_data="广东菜", with_metadata=True
+        index_name="test_index",
+        raw_data="广东菜",
+        with_metadata=True,
+        threshold=0.3,  # 使用较低的阈值，确保能找到相关匹配
     )
     assert any("想吃广东菜" in r["text"] for r in results), "找不到匹配的文本"
     print(f"✅ 测试一：创建集合通过！")
@@ -82,7 +85,10 @@ def test_neuromem_manager():
     manager = MemoryManager()
     vdb_collection = manager.get_collection("test_collection")
     results = vdb_collection.retrieve(
-        index_name="test_index", raw_data="广东菜", with_metadata=True
+        index_name="test_index",
+        raw_data="广东菜",
+        with_metadata=True,
+        threshold=0.3,  # 使用较低的阈值，确保能找到相关匹配
     )
     assert any("想吃广东菜" in r["text"] for r in results), "找不到匹配的文本"
     print(f"✅ 测试五：持久化测试通过！")

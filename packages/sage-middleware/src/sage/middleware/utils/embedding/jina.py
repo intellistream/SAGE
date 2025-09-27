@@ -1,8 +1,6 @@
 import asyncio
 import os
 
-import pipmaster as pm  # Pipmaster for dynamic library install
-
 # Dependencies should be installed via requirements.txt
 # tenacity is required for this module
 
