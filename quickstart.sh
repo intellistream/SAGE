@@ -120,8 +120,8 @@ main() {
     
     # 验证安装
     if verify_installation; then
-        # 开发模式下C++扩展已在安装过程中处理
-        if [ "$mode" = "dev" ]; then
+        # 标准模式和开发模式都包含C++扩展
+        if [ "$mode" = "standard" ] || [ "$mode" = "dev" ]; then
             echo -e "${DIM}C++扩展状态已在安装过程中验证${NC}"
         fi
         

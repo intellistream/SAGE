@@ -50,32 +50,22 @@ jobs:
 
       - name: Install SAGE
         run: |
-          echo "🚀 安装SAGE生产版本..."
+          echo "🚀 安装SAGE生产版本（标准模式，包含C++扩展）..."
           chmod +x ./quickstart.sh
-          ./quickstart.sh --pip --yes
+          ./quickstart.sh --standard --pip --yes
         timeout-minutes: 25
 
-      - name: Build C++ Extensions
+      - name: Verify C++ Extensions
         run: |
-          echo "🔧 构建C++扩展（生产模式需要）..."
+          echo "验证C++扩展安装..."
           
-          # 确保可以找到sage命令
-          if command -v sage >/dev/null 2>&1; then
-            SAGE_CMD="sage"
+          # 验证构建结果
+          if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
+            echo "✅ 找到C++扩展文件:"
+            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
           else
-            SAGE_CMD="python -m sage.tools.cli.main"
+            echo "❌ 未找到.so文件，扩展可能未正确构建"
           fi
-          
-          # 构建所有扩展
-          echo "🔨 构建扩展..."
-          if ${SAGE_CMD} extensions install all --force; then
-            echo "✅ 扩展构建成功"
-            # 验证构建结果
-            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f || echo "未找到.so文件"
-          else
-            echo "❌ 扩展构建失败，但继续执行"
-          fi
-        timeout-minutes: 15
 
       - name: Verify Installation
         run: |
