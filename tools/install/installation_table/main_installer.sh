@@ -76,7 +76,50 @@ install_cpp_extensions() {
         
         # 验证扩展是否真的可用
         echo -e "${DIM}验证扩展可用性...${NC}"
-        if python3 -c "
+        
+        # 在CI环境中增加短暂延迟，确保文件系统同步
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            sleep 1
+        fi
+        
+        # 验证扩展，在CI环境显示详细调试信息
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            python3 -c "
+import sys
+import os
+print('验证扩展状态 (CI调试模式)...')
+print(f'Python 路径: {sys.executable}')
+print(f'工作目录: {os.getcwd()}')
+
+try:
+    # 强制重新加载模块以避免缓存问题
+    import importlib
+    import sys
+    
+    # 清理可能的模块缓存
+    for module_name in list(sys.modules.keys()):
+        if 'sage.middleware.components.extensions_compat' in module_name:
+            del sys.modules[module_name]
+    
+    from sage.middleware.components.extensions_compat import check_extensions_availability
+    available = check_extensions_availability()
+    total = sum(available.values())
+    
+    print(f'扩展状态详情: {available}')
+    print(f'✅ 扩展验证成功: {total}/{len(available)} 可用')
+    
+    if total == 0:
+        print('⚠️ 扩展构建完成但不可用')
+        sys.exit(1)
+except Exception as e:
+    print(f'⚠️ 扩展验证失败: {e}')
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+"
+            validation_result=$?
+        else
+            python3 -c "
 try:
     from sage.middleware.components.extensions_compat import check_extensions_availability
     available = check_extensions_availability()
@@ -89,7 +132,11 @@ try:
 except ImportError:
     print('⚠️ 无法验证扩展状态')
     exit(1)
-" 2>/dev/null; then
+" 2>/dev/null
+            validation_result=$?
+        fi
+        
+        if [ $validation_result -eq 0 ]; then
             echo -e "${CHECK} C++ 扩展安装成功 (sage_db, sage_flow)"
             echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
             return 0

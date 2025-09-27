@@ -57,15 +57,35 @@ jobs:
 
       - name: Verify C++ Extensions
         run: |
-          echo "验证C++扩展安装..."
+          echo "🧩 验证C++扩展安装状态..."
           
-          # 验证构建结果
+          # 检查.so文件
+          echo "📁 检查编译文件:"
           if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
             echo "✅ 找到C++扩展文件:"
             find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
           else
-            echo "❌ 未找到.so文件，扩展可能未正确构建"
+            echo "❌ 未找到.so文件"
           fi
+          
+          # 检查扩展功能可用性
+          echo "🔍 检查扩展功能:"
+          python -c "
+          try:
+              from sage.middleware.components.extensions_compat import check_extensions_availability
+              available = check_extensions_availability()
+              total = sum(available.values())
+              print(f'🧩 扩展可用性: {total}/{len(available)}')
+              for ext, status in available.items():
+                  print(f'  {ext}: {\"✅\" if status else \"❌\"}')
+              
+              if total > 0:
+                  print(f'✅ {total}个扩展可用，继续测试')
+              else:
+                  print('⚠️ 暂无可用扩展，但不影响基础功能测试')
+          except ImportError as e:
+              print(f'⚠️ 扩展检查模块不可用: {e}')
+          "
 
       - name: Verify Installation
         run: |
@@ -113,7 +133,7 @@ jobs:
     name: Deployment Readiness Check
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')
     
     steps:
       - name: Deployment Status

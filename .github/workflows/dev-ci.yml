@@ -56,8 +56,12 @@ jobs:
       - name: Generate Cache Key
         id: cache-key
         run: |
-          HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-          CACHE_KEY="sage-simplified-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-${HASH}"
+          # 包含Python文件、配置文件和C++扩展相关文件
+          HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" -o -name "*.cpp" -o -name "*.hpp" -o -name "CMakeLists.txt" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          # 也包含系统依赖安装脚本
+          DEPS_HASH=$(find tools/install/ -name "*.sh" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          COMBINED_HASH=$(echo "${HASH}-${DEPS_HASH}" | md5sum | cut -d' ' -f1)
+          CACHE_KEY="sage-simplified-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-${COMBINED_HASH}"
           echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "🔑 Generated cache key: ${CACHE_KEY}"
 
@@ -109,9 +113,22 @@ jobs:
           echo "✅ 验证SAGE安装..."
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage.common; print('✅ sage.common imported')"
-          
-          # 验证扩展可用性
+
+      - name: Verify C++ Extensions Status
+        run: |
           echo "🧩 检查C++扩展状态..."
+          
+          # 检查.so文件
+          echo "📁 检查编译文件:"
+          if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
+            echo "✅ 找到编译的扩展文件:"
+            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
+          else
+            echo "❌ 未找到.so文件"
+          fi
+          
+          # 检查扩展功能状态（不强制构建）
+          echo "🔍 检查扩展功能状态:"
           python -c "
           try:
               from sage.middleware.components.extensions_compat import check_extensions_availability
@@ -120,23 +137,16 @@ jobs:
               print(f'🧩 扩展可用性: {total}/{len(available)}')
               for ext, status in available.items():
                   print(f'  {ext}: {\"✅\" if status else \"❌\"}')
+              
+              if total > 0:
+                  print(f'✅ 有{total}个扩展可用')
+              else:
+                  print('ℹ️ 扩展暂时不可用，但不影响核心功能')
           except ImportError as e:
-              print(f'⚠️ 兼容性检测模块导入失败: {e}')
-              print('🔍 直接测试扩展导入...')
-              
-              # 直接测试扩展
-              try:
-                  from sage.middleware.components.sage_db.python import _sage_db
-                  print('  sage_db: ✅')
-              except ImportError:
-                  print('  sage_db: ❌')
-              
-              try:
-                  from sage.middleware.components.sage_flow.python import _sage_flow
-                  print('  sage_flow: ✅')
-              except ImportError:
-                  print('  sage_flow: ❌')
+              print(f'⚠️ 扩展状态检查失败: {e}')
           "
+          
+          echo "ℹ️ 扩展状态检查完成，继续其他测试"
 
   quick-check:
     name: Quick Check
