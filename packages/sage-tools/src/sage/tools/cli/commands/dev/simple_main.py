@@ -718,41 +718,28 @@ def test(
         # 自动检测项目根目录
         project_path = Path(project_root).resolve()
 
-        # 如果当前目录不是项目根目录，尝试向上查找
-        if not (project_path / "packages").exists():
-            # 向上查找包含 packages 目录的根目录
-            current = project_path
-            found_root = False
+        # 设置一个标志，表示是否已找到根目录
+        found_root = (project_path / "packages").exists()
 
-            while current.parent != current:  # 没有到达文件系统根目录
+        # 如果在初始路径没找到，则向上遍历查找
+        if not found_root:
+            current = project_path
+            # 循环向上查找，直到文件系统的根目录
+            while current.parent != current:
+                current = current.parent
                 if (current / "packages").exists():
                     project_path = current
                     found_root = True
-                    break
-                current = current.parent
+                    break  # 找到后立即退出循环
 
-            if not found_root:
-                # 如果还是找不到，尝试一些常见的相对路径
-                possible_roots = [
-                    project_path / "..",
-                    project_path / "../..",
-                    project_path / "../../..",
-                ]
-
-                for possible_root in possible_roots:
-                    if (possible_root / "packages").exists():
-                        project_path = possible_root.resolve()
-                        found_root = True
-                        break
-
-                if not found_root:
-                    console.print("[red]❌ 无法找到 SAGE 项目根目录[/red]")
-                    console.print(f"当前目录: {Path.cwd()}")
-                    console.print(f"指定目录: {project_root}")
-                    console.print(
-                        "请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径"
-                    )
-                    raise typer.Exit(1)
+        # 如果最终还是没有找到根目录，则报错退出
+        if not found_root:
+            console.print("[red]❌ 无法找到 SAGE 项目根目录[/red]")
+            console.print(f"起始搜索目录: {Path(project_root).resolve()}")
+            console.print(
+                "请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径"
+            )
+            raise typer.Exit(1)
 
         if not quiet:
             console.print(f"📁 项目根目录: {project_path}")
