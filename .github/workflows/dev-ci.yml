@@ -352,6 +352,12 @@ jobs:
           chmod +x ./tools/tests/run_examples_tests.sh
           ./tools/tests/run_examples_tests.sh --timeout 300
 
+      - name: Diagnose SAGE Flow Import Issues (On Failure)
+        if: failure()
+        run: |
+          echo "🔍 Examples测试失败，运行导入诊断..."
+          python3 debug_sage_flow_import.py
+
   
   deployment-ready:
     name: Deployment Readiness Check
