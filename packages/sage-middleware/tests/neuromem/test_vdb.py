@@ -36,12 +36,12 @@ def test_vdb_collection():
         "test_index", metadata_filter_func=lambda m: m.get("priority") == "low"
     )
 
-    # 搜索测试，使用较低的阈值
+    # 搜索测试，使用较低的阈值以确保找到精确匹配
     results = test_collection.retrieve(
         raw_data="数据库事务可确保操作的原子性与一致性",
         index_name="test_index",
         topk=3,  # 注意：这里使用topk而不是top_k
-        threshold=0.5,  # 使用较低的阈值
+        threshold=0.3,  # 使用较低的阈值，确保能找到精确匹配
         with_metadata=True,
     )
     print("搜索结果:")

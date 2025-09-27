@@ -62,6 +62,9 @@ class FaissIndex(BaseVDBIndex):
         index_type = config.get(
             "index_type", "IndexFlatIP"
         )  # 默认使用Inner Product以支持归一化向量
+        
+        # 确保index_type被存储到config中，以便后续搜索时使用
+        config["index_type"] = index_type
 
         # 基础索引
         if index_type == "IndexFlatL2":
