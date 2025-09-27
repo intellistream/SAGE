@@ -104,6 +104,7 @@ class CharacterSplitter(BaseFunction):
 class ChunkCollector(SinkFunction):
     """收集分块结果的sink算子"""
 
+    # 类级别的结果收集 - 只用于测试目的
     _collected_chunks: List[Dict] = []
     _lock = threading.Lock()
 
@@ -120,6 +121,9 @@ class ChunkCollector(SinkFunction):
         instance_id = id(self)
 
         with self._lock:
+            if chunks is None:  # Stop signal
+                return
+                
             if isinstance(chunks, list):
                 self._collected_chunks.extend(chunks)
                 thread_safe_print(
@@ -134,12 +138,14 @@ class ChunkCollector(SinkFunction):
     @classmethod
     def get_collected_chunks(cls):
         """获取收集到的所有chunks"""
-        return cls._collected_chunks.copy()
+        with cls._lock:
+            return cls._collected_chunks.copy()
 
     @classmethod
     def clear_collected_chunks(cls):
         """清空收集到的chunks"""
-        cls._collected_chunks.clear()
+        with cls._lock:
+            cls._collected_chunks.clear()
 
 
 class TestChunkParallelism:
@@ -153,7 +159,7 @@ class TestChunkParallelism:
 
         # 清空之前的数据
         ChunkCollector.clear_collected_chunks()
-
+        
         env = LocalEnvironment(name="chunk_parallelism_test")
 
         # 测试文档
@@ -170,15 +176,13 @@ class TestChunkParallelism:
             .sink(ChunkCollector, parallelism=1)
         )
 
-        # 执行
-        env.submit()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env.submit(autostop=True)
 
-        # 等待处理完成
-        time.sleep(2)
-        env.close()
-
-        # 验证结果
+        # 获取收集的结果
         collected_chunks = ChunkCollector.get_collected_chunks()
+        
+        # 验证结果
         assert len(collected_chunks) > 0
         assert all(chunk.get("chunk_id") for chunk in collected_chunks)
 
@@ -218,7 +222,8 @@ class TestChunkParallelism:
             .sink(ChunkCollector, parallelism=2)
         )
 
-        env.submit()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env.submit(autostop=True)
 
         # 验证结果
         collected_chunks = ChunkCollector.get_collected_chunks()
@@ -262,11 +267,8 @@ class TestChunkParallelism:
             .sink(ChunkCollector, parallelism=1)
         )
 
-        env.submit()
-        
-        # 等待处理完成
-        time.sleep(1)
-        env.close()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env.submit(autostop=True)
 
         # 验证大文档被正确分块
         collected_chunks = ChunkCollector.get_collected_chunks()
@@ -307,11 +309,8 @@ class TestChunkParallelism:
             .sink(ChunkCollector, parallelism=2)
         )
 
-        env.submit()
-        
-        # 等待处理完成
-        time.sleep(1)
-        env.close()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env.submit(autostop=True)
 
         # 验证处理结果
         collected_chunks = ChunkCollector.get_collected_chunks()
@@ -354,7 +353,8 @@ class TestChunkParallelism:
             .map(CharacterSplitter, chunk_size=10, overlap=2, parallelism=2)
             .sink(ChunkCollector)
         )
-        env1.submit()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env1.submit(autostop=True)
 
         # 验证hints方式工作正常
         collected_chunks = ChunkCollector.get_collected_chunks()
