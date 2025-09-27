@@ -5,7 +5,7 @@ from sage.core.api.service.base_service import BaseService
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
 config = {
-    "manager_path": "examples/memory/data/neuromem_service",
+    "manager_path": ".sage/examples/memory/rag_memory_service",
     "name": "RAGMemoryCollection",
     "backend_type": "VDB", 
     "description": "rag memory collection",

@@ -4,7 +4,8 @@ import os
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
-manager_path = "examples/memory/data/neuromem_manager"
+# 使用 .sage 目录存储测试数据
+manager_path = ".sage/examples/memory/rag_memory_manager"
 
 config = {
     "name": "RAGMemoryCollection",
