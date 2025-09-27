@@ -56,7 +56,7 @@ jobs:
       - name: Generate Cache Key
         id: cache-key
         run: |
-          echo "🔑 生成智能缓存键（基于代码内容）..."
+          echo "🔑 生成构建产物缓存键（基于代码内容）..."
           
           # 包含Python文件、配置文件和C++扩展相关文件
           SAGE_CODE_HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" -o -name "*.cpp" -o -name "*.hpp" -o -name "CMakeLists.txt" -o -name "*.h" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
@@ -66,7 +66,7 @@ jobs:
           BUILD_SCRIPTS_HASH=$(find tools/ -name "*.sh" -o -name "*.py" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
           echo "🔧 构建脚本hash: ${BUILD_SCRIPTS_HASH}"
           
-          # 子模块状态（关键！）
+          # 子模块状态（关键！C++扩展依赖）
           SUBMODULE_HASH=$(git submodule status | md5sum | cut -d' ' -f1)
           echo "📦 子模块状态hash: ${SUBMODULE_HASH}"
           
@@ -76,16 +76,18 @@ jobs:
           
           # 生成最终缓存键
           COMBINED_HASH=$(echo "${SAGE_CODE_HASH}-${BUILD_SCRIPTS_HASH}-${SUBMODULE_HASH}-${CONFIG_HASH}" | md5sum | cut -d' ' -f1)
-          CACHE_KEY="sage-auto-${{ runner.os }}-py311-${COMBINED_HASH}"
+          CACHE_KEY="sage-build-${{ runner.os }}-py311-${COMBINED_HASH}"
           echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
-          echo "🔑 最终缓存键: ${CACHE_KEY}"
+          echo "🔑 构建产物缓存键: ${CACHE_KEY}"
 
       - name: Debug Cache Status
         run: |
-          echo "🔍 缓存调试信息:"
+          echo "🔍 构建产物缓存调试信息:"
           echo "- Runner OS: ${{ runner.os }}"
-          echo "- 缓存策略: 基于代码内容自动失效"
-          echo "- 包含文件: Python源码, C++源码, 配置文件, 子模块状态, CI配置"
+          echo "- 缓存策略: 只缓存构建产物(.so文件), 不缓存editable install元数据"
+          echo "- 包含内容: pip缓存, C++扩展的.so文件, build目录, install目录"  
+          echo "- 排除内容: ~/.local (避免.pth文件路径问题)"
+          echo "- 缓存失效: 基于Python源码, C++源码, 配置文件, 子模块状态变化"
 
       - name: Cache Build Artifacts
         id: cache-sage
