@@ -39,8 +39,8 @@ def test_auto_updates_generator_remote(monkeypatch, tmp_path):
     )
 
     monkeypatch.setattr(
-        "sage.tools.cli.commands.config.detect_all_services",
-        lambda prefer=None: [detection],
+        "sage.tools.cli.commands.llm_config.detect_all_services",
+        lambda prefer=None, auth_token=None: [detection],
     )
 
     result = runner.invoke(
@@ -82,8 +82,8 @@ def test_auto_updates_specific_section(monkeypatch, tmp_path):
     )
 
     monkeypatch.setattr(
-        "sage.tools.cli.commands.config.detect_all_services",
-        lambda prefer=None: [detection],
+        "sage.tools.cli.commands.llm_config.detect_all_services",
+        lambda prefer=None, auth_token=None: [detection],
     )
 
     result = runner.invoke(
@@ -116,8 +116,8 @@ def test_auto_handles_missing_services(monkeypatch, tmp_path):
     _write_config(config_path, "generator: {}\n")
 
     monkeypatch.setattr(
-        "sage.tools.cli.commands.config.detect_all_services",
-        lambda prefer=None: [],
+        "sage.tools.cli.commands.llm_config.detect_all_services",
+        lambda prefer=None, auth_token=None: [],
     )
 
     result = runner.invoke(

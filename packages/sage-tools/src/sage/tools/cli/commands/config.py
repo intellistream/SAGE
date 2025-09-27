@@ -6,7 +6,13 @@ from typing import Optional
 
 import typer
 
+# Import the LLM config subcommand
+from .llm_config import app as llm_config_app
+
 app = typer.Typer(name="config", help="⚙️ 配置管理")
+
+# Add LLM config subcommand
+app.add_typer(llm_config_app, name="llm")
 
 
 @app.command("show")
