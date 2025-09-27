@@ -29,7 +29,7 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  CACHE_VERSION: v3-validated  # 增加版本号以包含验证逻辑
+  CACHE_VERSION: v4-force-rebuild  # 强制重建，彻底清理旧缓存
 
 jobs:
   build-sage:
@@ -65,6 +65,13 @@ jobs:
           echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "🔑 Generated cache key: ${CACHE_KEY}"
 
+      - name: Debug Cache Status
+        run: |
+          echo "🔍 缓存调试信息:"
+          echo "- Cache Version: ${{ env.CACHE_VERSION }}"
+          echo "- Runner OS: ${{ runner.os }}"
+          echo "- Expected Key: sage-simplified-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-*"
+
       - name: Cache SAGE Installation
         id: cache-sage
         uses: actions/cache@v4
@@ -73,8 +80,7 @@ jobs:
             ~/.cache/pip
             ~/.local
           key: ${{ steps.cache-key.outputs.key }}
-          restore-keys: |
-            sage-simplified-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-
+          # 移除 restore-keys 以避免使用损坏的旧缓存
 
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
