@@ -8,6 +8,14 @@ from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
 
+# 添加全局打印锁来防止并发输出混乱
+_print_lock = threading.Lock()
+
+def thread_safe_print(*args, **kwargs):
+    """线程安全的打印函数"""
+    with _print_lock:
+        print(*args, **kwargs)
+
 
 class DocumentSource(SourceFunction):
     """生成文档数据源"""
@@ -54,8 +62,8 @@ class CharacterSplitter(BaseFunction):
         self.overlap = overlap
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
-            f"🔧 CharacterSplitter instance {self.instance_id} created in thread {self.thread_id}"
+        thread_safe_print(
+            f":gear: CharacterSplitter instance {self.instance_id} created in thread {self.thread_id}"
         )
 
     def execute(self, document):
@@ -67,8 +75,8 @@ class CharacterSplitter(BaseFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
 
-        print(
-            f"⚙️ CharacterSplitter[{instance_id}]: Processing {doc_id} (thread: {current_thread})"
+        thread_safe_print(
+            f":gear: CharacterSplitter[{instance_id}]: Processing {doc_id} (thread: {current_thread})"
         )
 
         # 模拟处理时间
@@ -87,8 +95,8 @@ class CharacterSplitter(BaseFunction):
                     }
                 )
 
-        print(
-            f"✅ CharacterSplitter[{instance_id}]: Generated {len(chunks)} chunks for {doc_id}"
+        thread_safe_print(
+            f":white_check_mark: CharacterSplitter[{instance_id}]: Generated {len(chunks)} chunks for {doc_id}"
         )
         return chunks
 
@@ -103,8 +111,8 @@ class ChunkCollector(SinkFunction):
         super().__init__(**kwargs)
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
-            f"🔧 ChunkCollector instance {self.instance_id} created in thread {self.thread_id}"
+        thread_safe_print(
+            f":gear: ChunkCollector instance {self.instance_id} created in thread {self.thread_id}"
         )
 
     def execute(self, chunks):
@@ -114,13 +122,13 @@ class ChunkCollector(SinkFunction):
         with self._lock:
             if isinstance(chunks, list):
                 self._collected_chunks.extend(chunks)
-                print(
-                    f"🎯 ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})"
+                thread_safe_print(
+                    f":dart: ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})"
                 )
             else:
                 self._collected_chunks.append(chunks)
-                print(
-                    f"🎯 ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})"
+                thread_safe_print(
+                    f":dart: ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})"
                 )
 
     @classmethod
@@ -232,7 +240,7 @@ class TestChunkParallelism:
     def test_chunk_parallelism_hints_large_documents(self):
         """测试大文档的chunk并行处理"""
         print("\n" + "=" * 70)
-        print("TEST: Large Document Chunk Parallelism")
+        print("#833 TEST: Large Document Chunk Parallelism")
         print("=" * 70)
 
         # 清空之前的数据
@@ -255,6 +263,10 @@ class TestChunkParallelism:
         )
 
         env.submit()
+        
+        # 等待处理完成
+        time.sleep(1)
+        env.close()
 
         # 验证大文档被正确分块
         collected_chunks = ChunkCollector.get_collected_chunks()
@@ -265,6 +277,61 @@ class TestChunkParallelism:
         assert len(large_doc_chunks) > 1  # 大文档应该被分成多个chunk
 
         print(f"✅ Large document test: {len(large_doc_chunks)} chunks from large_doc1")
+
+    def test_833_large_document_chunk_parallelism(self):
+        """#833 TEST: Large Document Chunk Parallelism - 测试完整的混合文档并行处理场景"""
+        print("\n" + "=" * 70)
+        print("#833 TEST: Large Document Chunk Parallelism")
+        print("=" * 70)
+
+        # 清空之前的数据
+        ChunkCollector.clear_collected_chunks()
+
+        env = LocalEnvironment(name="test_833_large_doc")
+
+        # 创建完整的测试文档集合，包括普通文档和大文档
+        large_content = "This is a large document with extensive content. " * 50
+        documents = [
+            {"content": "Another document containing different information and data.", "id": "doc2"},
+            {"content": "Large document with extensive content that needs chunking for processing.", "id": "doc3"},
+            {"content": "Short text document.", "id": "doc4"},
+            {"content": "Medium sized document with reasonable content length.", "id": "doc5"},
+            {"content": large_content, "id": "large_doc1"},
+            {"content": large_content, "id": "large_doc2"},
+        ]
+
+        # 使用高并行度处理混合文档类型
+        result_stream = (
+            env.from_collection(DocumentSource, documents)
+            .map(CharacterSplitter, chunk_size=50, overlap=10, parallelism=4)
+            .sink(ChunkCollector, parallelism=2)
+        )
+
+        env.submit()
+        
+        # 等待处理完成
+        time.sleep(1)
+        env.close()
+
+        # 验证处理结果
+        collected_chunks = ChunkCollector.get_collected_chunks()
+        assert len(collected_chunks) > 0
+
+        # 验证所有文档都被处理
+        processed_doc_ids = set(chunk["doc_id"] for chunk in collected_chunks)
+        expected_doc_ids = {"doc2", "doc3", "doc4", "doc5", "large_doc1", "large_doc2"}
+        assert processed_doc_ids == expected_doc_ids
+
+        # 验证大文档产生了足够的chunks
+        large_doc1_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
+        large_doc2_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc2"]
+        
+        assert len(large_doc1_chunks) > 30  # 大文档应该被分成很多chunks
+        assert len(large_doc2_chunks) > 30  # 大文档应该被分成很多chunks
+
+        print(f"✅ #833 Test completed: {len(collected_chunks)} total chunks")
+        print(f"   - large_doc1: {len(large_doc1_chunks)} chunks")
+        print(f"   - large_doc2: {len(large_doc2_chunks)} chunks")
 
     def test_chunk_parallelism_hints_vs_manual_parallelization(self):
         """对比parallelism hints与手动并行化的区别"""
