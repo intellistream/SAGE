@@ -472,7 +472,9 @@ class IssuesManager:
         if not self.config.github_token:
             print("❌ GitHub Token未配置，无法更新团队信息")
             print("💡 请设置GitHub Token:")
-            print("   export GITHUB_TOKEN=your_token")
+            print(
+                "   export GITHUB_TOKEN=your_token  # 或 export GIT_TOKEN=your_token / export SAGE_REPO_TOKEN=your_token"
+            )
             print("   或创建 ~/.github_token 文件")
             return False
 
