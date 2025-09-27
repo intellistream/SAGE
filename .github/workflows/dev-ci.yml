@@ -290,23 +290,138 @@ jobs:
           chmod +x ./tools/tests/run_examples_tests.sh
           ./tools/tests/run_examples_tests.sh --timeout 300
 
+  
+  deployment-ready:
+    name: Deployment Readiness Check
+    runs-on: ubuntu-latest
+    needs: [build-sage, quick-check, examples-test]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+          clean: true
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Restore SAGE Installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local
+          key: ${{ needs.build-sage.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Validate PyPI Release Readiness
+        run: |
+          echo "🔍 验证SAGE代码的PyPI发布准备状态..."
+          if sage dev pypi validate; then
+            echo "✅ PyPI发布准备验证完成"
+          else
+            echo "❌ PyPI发布准备验证失败"
+            exit 1
+          fi
+
+      - name: Check Package Build Status
+        run: |
+          echo "🏗️ 检查SAGE包的构建状态..."
+          if sage dev pypi check; then
+            echo "✅ 包构建状态检查完成"
+          else
+            echo "❌ 包构建状态检查失败"
+            exit 1
+          fi
+
+      - name: Build SAGE Packages
+        run: |
+          echo "📦 构建SAGE wheel包..."
+          if sage dev pypi build; then
+            echo "✅ 包构建完成"
+            
+            # 显示构建的文件
+            echo "📋 构建的包文件:"
+            find dist/ -name "*.whl" -o -name "*.tar.gz" | sort
+          else
+            echo "❌ 包构建失败"
+            exit 1
+          fi
+
+      - name: Test Package Installation
+        run: |
+          echo "🧪 测试包安装..."
+          
+          # 创建临时环境测试安装
+          python -m venv /tmp/test_env
+          source /tmp/test_env/bin/activate
+          
+          # 查找构建的wheel文件
+          echo "🔍 查找构建的wheel文件..."
+          find . -name "*.whl" -type f | head -10
+          
+          # 安装核心包进行测试
+          echo "📦 测试安装核心包..."
+          if ls dist/isage-*.whl 1> /dev/null 2>&1; then
+            pip install dist/isage-*.whl
+            python -c "import sage; print('✅ sage核心包安装成功')"
+          else
+            echo "⚠️ 未找到核心包wheel文件"
+          fi
+          
+          # 测试工具包安装
+          if ls dist/isage_tools-*.whl 1> /dev/null 2>&1; then
+            pip install dist/isage_tools-*.whl
+            python -c "import sage.tools; print('✅ sage-tools包安装成功')"
+          else
+            echo "⚠️ 未找到工具包wheel文件"
+          fi
+          
+          deactivate
+          echo "✅ 包安装测试完成"
+
+      - name: Deployment Status Summary
+        run: |
+          echo "🚀 部署就绪检查总结"
+          echo "✅ 所有测试通过"
+          echo "✅ PyPI发布验证通过"
+          echo "✅ 包构建成功"
+          echo "✅ 包安装测试通过"
+          echo "✅ 主分支推送"
+          echo "🎉 SAGE已准备好部署到PyPI"      
+
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [build-sage, quick-check, examples-test]
+    needs: [build-sage, quick-check, examples-test, deployment-ready]
 
     steps:
       - name: Summary Report
         run: |
-          echo "🏁 简化CI管道完成"
+          echo "🏁 开发CI管道完成"
           echo "📊 作业状态:"
           echo "- Build: ${{ needs.build-sage.result }}"
           echo "- Quick Check: ${{ needs.quick-check.result }}"
           echo "- Examples: ${{ needs.examples-test.result }}"
+          echo "- Deployment Ready: ${{ needs.deployment-ready.result }}"
           
           if [[ "${{ needs.build-sage.result }}" == "success" && "${{ needs.quick-check.result }}" == "success" ]]; then
             echo "✅ 核心功能正常"
           else
             echo "❌ 核心功能存在问题"
+          fi
+          
+          if [[ "${{ needs.deployment-ready.result }}" == "success" ]]; then
+            echo "🚀 部署准备完成"
+          elif [[ "${{ needs.deployment-ready.result }}" == "skipped" ]]; then
+            echo "⏭️ 部署检查已跳过（非主分支推送）"
+          else
+            echo "❌ 部署准备失败"
           fi
