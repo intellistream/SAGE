@@ -29,7 +29,7 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  CACHE_VERSION: v4-force-rebuild  # 强制重建，彻底清理旧缓存
+  CACHE_VERSION: v5-cpp-extensions-fix  # 修复C++扩展导入问题，强制重建缓存
 
 jobs:
   build-sage:
@@ -60,7 +60,11 @@ jobs:
           HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" -o -name "*.cpp" -o -name "*.hpp" -o -name "CMakeLists.txt" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
           # 也包含系统依赖安装脚本
           DEPS_HASH=$(find tools/install/ -name "*.sh" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-          COMBINED_HASH=$(echo "${HASH}-${DEPS_HASH}" | md5sum | cut -d' ' -f1)
+          # 包含子模块状态信息（重要！）
+          SUBMODULE_HASH=$(git submodule status | md5sum | cut -d' ' -f1)
+          # CI配置文件也应该影响缓存
+          CI_HASH=$(md5sum .github/workflows/dev-ci.yml | cut -d' ' -f1)
+          COMBINED_HASH=$(echo "${HASH}-${DEPS_HASH}-${SUBMODULE_HASH}-${CI_HASH}" | md5sum | cut -d' ' -f1)
           CACHE_KEY="sage-simplified-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-${COMBINED_HASH}"
           echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "🔑 Generated cache key: ${CACHE_KEY}"
@@ -125,6 +129,32 @@ jobs:
             echo "❌ sage CLI 不可用，需要重新安装"
             CACHE_VALID=false
           fi
+          
+          # 检查C++扩展是否可用（关键！）
+          echo "🔍 验证C++扩展状态..."
+          python -c "
+          try:
+              from sage.middleware.components.sage_db.python.sage_db import SageDB
+              print('✅ sage_db 扩展可用')
+          except Exception as e:
+              print(f'❌ sage_db 扩展不可用: {e}')
+              exit(1)
+          " || {
+              echo "❌ C++扩展验证失败，需要重新安装"
+              CACHE_VALID=false
+          }
+          
+          python -c "
+          try:
+              from sage.middleware.components.sage_flow.python.sage_flow import SageFlow  
+              print('✅ sage_flow 扩展可用')
+          except Exception as e:
+              print(f'❌ sage_flow 扩展不可用: {e}')
+              exit(1)
+          " || {
+              echo "❌ sage_flow 扩展验证失败，需要重新安装"
+              CACHE_VALID=false
+          }
           
           echo "valid=${CACHE_VALID}" >> $GITHUB_OUTPUT
 
