@@ -51,11 +51,20 @@ class EmbeddingModel:
             if "model" not in kwargs:
                 raise ValueError("hf method need model")
             model_name = kwargs["model"]
-            self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
-            self.kwargs["embed_model"] = AutoModel.from_pretrained(
-                model_name, trust_remote_code=True
-            )
-            self.kwargs.pop("model")
+            # Load HF models - fail explicitly if unavailable
+            try:
+                self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
+                self.kwargs["embed_model"] = AutoModel.from_pretrained(
+                    model_name, trust_remote_code=True
+                )
+                self.kwargs.pop("model")
+            except Exception as e:
+                # 明确失败，不静默回退到mockembedder
+                raise RuntimeError(
+                    f"Failed to load embedding model '{model_name}': {e}. "
+                    f"Please ensure the model is available or use a different embedding method. "
+                    f"For testing with mock embedder, explicitly set method='mockembedder'."
+                ) from e
         elif method == "mockembedder":
             # 初始化 mockembedder
             self.kwargs["embed_model"] = mockembedder.MockTextEmbedder(

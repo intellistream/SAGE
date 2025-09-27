@@ -48,6 +48,120 @@ clean_pip_cache() {
     echo ""
 }
 
+# 安装C++扩展函数
+install_cpp_extensions() {
+    local log_file="$1"
+    
+    echo "$(date): 开始安装C++扩展" >> "$log_file"
+    echo -e "${BLUE}🧩 安装C++扩展 (sage_db, sage_flow)...${NC}"
+    
+    # 系统依赖已经在comprehensive_system_check中检查和安装了
+    # 这里直接尝试构建扩展
+    
+    if command -v sage >/dev/null 2>&1; then
+        SAGE_CMD="sage"
+    elif python3 -c "import sage.tools.cli.main" 2>/dev/null; then
+        SAGE_CMD="python3 -m sage.tools.cli.main"
+    else
+        echo -e "${WARNING} 找不到 sage CLI 工具"
+        echo "$(date): 找不到 sage CLI 工具" >> "$log_file"
+        return 1
+    fi
+    
+    echo -e "${DIM}使用命令: ${SAGE_CMD} extensions install all --force${NC}"
+    
+    # 执行扩展安装，重定向输出到日志
+    if $SAGE_CMD extensions install all --force >> "$log_file" 2>&1; then
+        echo "$(date): C++扩展安装成功" >> "$log_file"
+        
+        # 验证扩展是否真的可用
+        echo -e "${DIM}验证扩展可用性...${NC}"
+        
+        # 在CI环境中增加短暂延迟，确保文件系统同步
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            sleep 1
+        fi
+        
+        # 验证扩展，在CI环境显示详细调试信息
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            python3 -c "
+import sys
+import os
+print('验证扩展状态 (CI调试模式)...')
+print(f'Python 路径: {sys.executable}')
+print(f'工作目录: {os.getcwd()}')
+
+try:
+    # 强制重新加载模块以避免缓存问题
+    import importlib
+    import sys
+    
+    # 清理可能的模块缓存
+    for module_name in list(sys.modules.keys()):
+        if 'sage.middleware.components.extensions_compat' in module_name:
+            del sys.modules[module_name]
+    
+    from sage.middleware.components.extensions_compat import check_extensions_availability
+    available = check_extensions_availability()
+    total = sum(available.values())
+    
+    print(f'扩展状态详情: {available}')
+    print(f'✅ 扩展验证成功: {total}/{len(available)} 可用')
+    
+    if total == 0:
+        print('⚠️ 扩展构建完成但不可用')
+        sys.exit(1)
+except Exception as e:
+    print(f'⚠️ 扩展验证失败: {e}')
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+"
+            validation_result=$?
+        else
+            python3 -c "
+try:
+    from sage.middleware.components.extensions_compat import check_extensions_availability
+    available = check_extensions_availability()
+    total = sum(available.values())
+    if total > 0:
+        print('✅ 扩展验证成功: {}/{} 可用'.format(total, len(available)))
+    else:
+        print('⚠️ 扩展构建完成但不可用')
+        exit(1)
+except ImportError:
+    print('⚠️ 无法验证扩展状态')
+    exit(1)
+" 2>/dev/null
+            validation_result=$?
+        fi
+        
+        if [ $validation_result -eq 0 ]; then
+            echo -e "${CHECK} C++ 扩展安装成功 (sage_db, sage_flow)"
+            echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
+            return 0
+        else
+            echo -e "${WARNING} 扩展构建完成但验证失败"
+            echo "$(date): 扩展验证失败" >> "$log_file"
+            return 1
+        fi
+    else
+        echo -e "${WARNING} C++ 扩展安装失败"
+        echo -e "${DIM}稍后可手动安装: sage extensions install all${NC}"
+        echo "$(date): C++扩展安装失败" >> "$log_file"
+        
+        # 在CI环境中显示更多调试信息
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            echo -e "${INFO} CI环境调试信息:"
+            echo -e "${DIM}检查系统依赖状态...${NC}"
+            gcc --version 2>/dev/null || echo "gcc 不可用"
+            cmake --version 2>/dev/null || echo "cmake 不可用"
+            find /usr/lib* -name "*blas*" -o -name "*lapack*" 2>/dev/null | head -3 || echo "未找到BLAS/LAPACK"
+        fi
+        return 1
+    fi
+}
+
 # 主安装函数
 install_sage() {
     local mode="${1:-dev}"
@@ -97,16 +211,34 @@ install_sage() {
             install_core_packages "$mode"
             ;;
         "standard")
-            echo -e "${BLUE}标准安装模式：基础包 + 中间件 + 应用包${NC}"
+            echo -e "${BLUE}标准安装模式：基础包 + 中间件 + 应用包 + C++扩展${NC}"
             echo "$(date): 开始标准安装模式" >> "$log_file"
             install_core_packages "$mode"
             install_scientific_packages
+            
+            # 安装C++扩展（标准功能）
+            echo ""
+            if install_cpp_extensions "$log_file"; then
+                echo -e "${CHECK} 标准安装模式完成（包含C++扩展）"
+            else
+                echo -e "${WARNING} 标准安装完成，但C++扩展安装失败"
+            fi
             ;;
         "dev")
-            echo -e "${BLUE}开发者安装模式：标准安装 + 开发工具${NC}"
+            echo -e "${BLUE}开发者安装模式：标准安装 + C++扩展 + 开发工具${NC}"
             echo "$(date): 开始开发者安装模式" >> "$log_file"
             install_core_packages "$mode"
             install_scientific_packages
+            
+            # 安装C++扩展（标准功能）
+            echo ""
+            if install_cpp_extensions "$log_file"; then
+                echo -e "${CHECK} C++扩展安装完成"
+            else
+                echo -e "${WARNING} C++扩展安装失败，但继续安装开发工具"
+            fi
+            
+            # 安装开发工具
             install_dev_packages
             ;;
         *)
@@ -119,7 +251,10 @@ install_sage() {
     esac
     
     echo ""
-    echo -e "${CHECK} SAGE 安装完成！"
+    echo -e "${CHECK} SAGE 基础安装完成！"
+    
+    # 尝试安装C++扩展（开发者模式已在dev_installer.sh中处理）
+    # 这里不需要额外操作
     
     # 安装 VLLM（如果需要）
     if [ "$install_vllm" = "true" ]; then

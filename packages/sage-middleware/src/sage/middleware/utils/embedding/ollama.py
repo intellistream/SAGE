@@ -5,7 +5,6 @@ if sys.version_info < (3, 9):
 else:
     from collections.abc import AsyncIterator
 
-import pipmaster as pm  # Pipmaster for dynamic library install
 
 # Dependencies should be installed via requirements.txt
 # ollama and tenacity are required for this module to work

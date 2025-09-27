@@ -13,22 +13,21 @@ CMakeUserPresets.json
 # ============================================
 # 构建和安装目录
 # ============================================
-/deps/CANDY/installation/dist/
-/deps/CANDY/installation/candy.egg-info/
-/deps/CANDY/installation/build/
+/deps/sageFlow/installation/dist/
+/deps/sageFlow/installation/sageflow.egg-info/
+/deps/sageFlow/installation/build/
 /.idea/deployment.xml
 /.idea/misc.xml
 /build/
 /build/
-/installation/candy.egg-info/
+/installation/sageflow.egg-info/
 /installation/build/
-/installation/candy/
 /installation/dist/
 /installation/dist/
-/installation/candy/
+/installation/sageflow/
 /sage.egg-info/
 /sage.egg-info/
-/deps/CANDY/.github/
+/deps/sageFlow/.github/
 test_logs/
 draft/
 logs/
@@ -41,8 +40,8 @@ gitlogs.txt
 id_llm
 auto_env_setup.log
 /.idea/
-/deps/CANDY/installation/install_pycandy/candy.egg-info/
-/deps/CANDY/installation/install_pycandy/build/
+/deps/sageFlow/installation/install_pysageflow/sageflow.egg-info/
+/deps/sageFlow/installation/install_pysageflow/build/
 
 __pycache__/
 *.py[cod]

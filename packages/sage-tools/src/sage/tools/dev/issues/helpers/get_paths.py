@@ -7,14 +7,17 @@
 import sys
 from pathlib import Path
 
-# 添加父目录到sys.path以导入config
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
+# 动态导入config模块
 try:
-    from config import Config
+    # 尝试相对导入（当作为模块运行时）
+    from ..config import IssuesConfig
+except ImportError:
+    # 如果相对导入失败，使用绝对导入
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from config import IssuesConfig
 
     def main():
-        config = Config()
+        config = IssuesConfig()
 
         if len(sys.argv) < 2:
             print("用法: python3 get_paths.py <path_type>")

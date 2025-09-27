@@ -1,8 +1,8 @@
-"""SAGE Package."""
+"""SAGE Package - Common Module."""
 
-# 版本信息 - 硬编码确保可靠性
-__version__ = "0.1.3.1"
-__author__ = "IntelliStream Team"
-__email__ = "shuhao_zhang@hust.edu.cn"
+# This is a namespace package that extends the main SAGE package
+# Don't define __version__ here as it should come from the main sage package
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
+# Only export what's specific to this package
 __all__ = ["common"]

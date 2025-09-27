@@ -68,7 +68,7 @@ done
 cd "$PROJECT_ROOT/packages/sage-kernel"
 
 # 构建 pytest 命令
-PYTEST_CMD="/home/shuhao/miniconda3/envs/sage/bin/python3 -m pytest"
+PYTEST_CMD="python3 -m pytest"
 PYTEST_ARGS="-v --tb=short"
 
 # 设置标记过滤器

@@ -11,7 +11,6 @@ import struct
 
 import aiohttp
 import numpy as np
-import pipmaster as pm  # Pipmaster for dynamic library install
 from openai import APIConnectionError, APITimeoutError, RateLimitError
 from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
                       wait_exponential)

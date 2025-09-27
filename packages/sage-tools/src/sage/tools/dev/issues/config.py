@@ -97,6 +97,9 @@ class IssuesConfig:
         self.output_path.mkdir(parents=True, exist_ok=True)
         self.metadata_path.mkdir(parents=True, exist_ok=True)
 
+        # 默认值
+        self.github_token_env: Optional[str] = None
+
         # 加载用户设置
         self._load_user_settings()
 
@@ -189,9 +192,11 @@ class IssuesConfig:
         """加载GitHub Token"""
 
         # 1. 从环境变量加载
-        token = os.getenv("GITHUB_TOKEN")
-        if token:
-            return token
+        for env_name in ("GITHUB_TOKEN", "GIT_TOKEN", "SAGE_REPO_TOKEN"):
+            token = os.getenv(env_name)
+            if token:
+                self.github_token_env = env_name
+                return token
 
         # 2. 从配置文件加载 (项目根目录)
         token_file = self.project_root / ".github_token"
@@ -217,7 +222,7 @@ class IssuesConfig:
         """获取GitHub API客户端"""
         if not self.github_token:
             raise ValueError(
-                "GitHub Token未配置，请设置GITHUB_TOKEN环境变量或创建.github_token文件"
+                "GitHub Token未配置，请设置 GITHUB_TOKEN / GIT_TOKEN / SAGE_REPO_TOKEN 环境变量，或创建 .github_token 文件"
             )
 
         headers = {

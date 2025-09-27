@@ -9,9 +9,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# 引入工具模块
-source "../utils/logging.sh"
-source "../utils/common_utils.sh"
+# 引入工具模块（使用绝对路径，保证从任意目录执行）
+source "$SCRIPT_DIR/../utils/logging.sh"
+source "$SCRIPT_DIR/../utils/common_utils.sh"
 
 # 显示使用说明
 show_usage() {
@@ -27,6 +27,8 @@ show_usage() {
     echo "  sync              同步子模块URL配置"
     echo "  clean             清理未跟踪的子模块文件"
     echo "  docs-update       专门更新docs-public子模块"
+    echo "  clean-legacy-sage-db   安全清理旧版内置的 sage_db 目录 (若存在)"
+    echo "  migrate-sage-db        迁移流程：清理旧目录并初始化/更新子模块"
     echo "  help, -h, --help  显示此帮助信息"
     echo
     echo "示例:"
@@ -200,11 +202,32 @@ main() {
     # 切换到仓库根目录
     cd "$REPO_ROOT"
     
-    # 检查git仓库
-    check_git_repo
-    
-    # 解析命令
-    case "${1:-status}" in
+    # 解析命令（默认显示状态）
+    CMD="${1:-status}"
+
+    # 基础检查：必须是git仓库（help除外）
+    if [[ "$CMD" != "help" && "$CMD" != "-h" && "$CMD" != "--help" ]]; then
+        if [ ! -d "$REPO_ROOT/.git" ]; then
+            print_error "错误：当前目录不是git仓库"
+            exit 1
+        fi
+    fi
+
+    # 针对需要.gitmodules的命令进行特殊检查
+    REQUIRES_GITMODULES=(init update reset status sync clean docs-update)
+    for need in "${REQUIRES_GITMODULES[@]}"; do
+        if [[ "$CMD" == "$need" ]]; then
+            if [ ! -f "$REPO_ROOT/.gitmodules" ]; then
+                print_warning "未找到 .gitmodules，命令 '$CMD' 无可操作的子模块"
+                print_status "如需添加子模块，请先执行: git submodule add <URL> <PATH>"
+                exit 0
+            fi
+            break
+        fi
+    done
+
+    # 执行命令
+    case "$CMD" in
         "init")
             init_submodules
             ;;
@@ -225,6 +248,52 @@ main() {
             ;;
         "docs-update")
             update_docs_submodule
+            ;;
+        "clean-legacy-sage-db")
+            shift || true
+            CLEAN_FORCE="false"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -y|--yes)
+                        CLEAN_FORCE="true"; shift ;;
+                    *) break ;;
+                esac
+            done
+            legacy_dir="packages/sage-middleware/src/sage/middleware/components/sage_db"
+            if [[ -d "$legacy_dir" ]]; then
+                print_header "🧹 清理旧版内置 sage_db 目录"
+                if [[ "$CLEAN_FORCE" != "true" ]]; then
+                    print_warning "即将删除 $legacy_dir。该目录应已迁移为子模块。"
+                    echo -n "确定要删除吗？ [y/N]: "
+                    read -r ans
+                    if [[ ! $ans =~ ^[Yy]$ ]]; then
+                        print_status "已取消清理"
+                        exit 0
+                    fi
+                fi
+                # 保护：如果是子模块路径则禁止直接rm -rf
+                if git ls-files --stage | grep -q "\s$legacy_dir$"; then
+                    if git submodule status -- "$legacy_dir" >/dev/null 2>&1; then
+                        print_error "检测到 $legacy_dir 是子模块，请不要直接删除。"
+                        print_status "可使用: git submodule deinit -f -- $legacy_dir && rm -rf .git/modules/$legacy_dir && git rm -f $legacy_dir"
+                        exit 1
+                    fi
+                fi
+                rm -rf "$legacy_dir"
+                print_success "已删除旧目录: $legacy_dir"
+            else
+                print_status "未发现旧目录 (无需清理): $legacy_dir"
+            fi
+            ;;
+        "migrate-sage-db")
+            # 迁移流程：清理旧目录 -> 同步/初始化子模块 -> 拉取最新
+            print_header "🚚 迁移 sage_db 到 Git 子模块"
+            "$0" clean-legacy-sage-db -y || true
+            print_status "同步子模块配置 (.gitmodules)"
+            git submodule sync --recursive
+            print_status "初始化并更新所有子模块"
+            git submodule update --init --recursive
+            print_success "迁移完成。可执行: git submodule status"
             ;;
         "help"|"-h"|"--help")
             show_usage

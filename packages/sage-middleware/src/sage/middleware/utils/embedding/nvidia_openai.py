@@ -7,7 +7,6 @@ if sys.version_info < (3, 9):
 else:
     pass
 
-import pipmaster as pm  # Pipmaster for dynamic library install
 
 # Dependencies should be installed via requirements.txt
 # openai is required for this module

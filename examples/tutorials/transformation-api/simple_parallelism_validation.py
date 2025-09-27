@@ -303,7 +303,9 @@ def main():
     print("VALIDATION SUMMARY")
     print("=" * 80)
     print("✅ Single stream parallelism: Verified with observable output")
-    print("✅ Direct parallelism specification: Tested with different parallelism levels")
+    print(
+        "✅ Direct parallelism specification: Tested with different parallelism levels"
+    )
     print("✅ Multi-stream CoMap: Validated parallel CoMap processing")
     print("✅ ExecutionGraph nodes: Confirmed correct node count calculation")
 

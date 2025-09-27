@@ -12,9 +12,16 @@ from datetime import datetime
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(SCRIPT_DIR))
 
-from config import config
+# 动态导入config模块
+try:
+    # 尝试相对导入（当作为模块运行时）
+    from ..config import IssuesConfig
+except ImportError:
+    # 如果相对导入失败，使用绝对导入
+    sys.path.insert(0, str(SCRIPT_DIR.parent))
+    from config import IssuesConfig
+config = IssuesConfig()
 
 
 def load_local_issues():

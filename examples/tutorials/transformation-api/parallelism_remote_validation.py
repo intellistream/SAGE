@@ -176,8 +176,9 @@ def validate_remote_single_stream_parallelism():
 
     print("\n--- Test 2: Distributed processing with direct parallelism ---")
     result2 = (
-        source_stream
-        .map(DistributedProcessor, "SetDistMapper", parallelism=3)  # 3 parallel mappers
+        source_stream.map(
+            DistributedProcessor, "SetDistMapper", parallelism=3
+        )  # 3 parallel mappers
         .filter(DistributedFilter, parallelism=2)  # 2 parallel filters
         .sink(DistributedSink, parallelism=1)
     )  # 1 sink
@@ -320,7 +321,9 @@ def main():
 
         print(f"\n💡 Key remote validations:")
         print(f"   - Parallelism settings work in distributed remote environment")
-        print(f"   - Direct parallelism specification distributes work across remote workers")
+        print(
+            f"   - Direct parallelism specification distributes work across remote workers"
+        )
         print(f"   - Multi-stream operations (CoMap) support distributed parallelism")
         print(
             f"   - RemoteEnvironment automatically handles worker assignment and coordination"

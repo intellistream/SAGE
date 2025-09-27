@@ -10,6 +10,12 @@
 - **分类识别**: 自动识别示例的类别（tutorials、rag、memory 等）
 - **运行时评估**: 估算示例的运行时间（快速、中等、慢速）
 
+### 🧪 CLI 集成测试
+- **集中入口**: `packages/sage-tools/tests/test_cli/runner.py` 汇总所有命令分组的测试用例
+- **真实路径**: 针对 `sage` Typer CLI 的高频命令执行带有隔离依赖的模拟“真命令”流程
+- **统一辅助**: `helpers.py` 提供配置、进程等虚拟对象，确保测试无副作用但覆盖更多执行逻辑
+- **便捷运行**: 可直接运行 `python packages/sage-tools/tests/test_cli/runner.py` 或通过 `sage dev test` 集成入口触发（后续任务）
+
 ### 🚀 灵活的测试执行
 - **多种运行模式**: 支持独立脚本和 pytest 集成两种方式
 - **分类测试**: 可以按类别（如只测试 tutorials）运行测试

@@ -8,6 +8,14 @@ from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
 
+# 添加全局打印锁来防止并发输出混乱
+_print_lock = threading.Lock()
+
+def thread_safe_print(*args, **kwargs):
+    """线程安全的打印函数"""
+    with _print_lock:
+        print(*args, **kwargs)
+
 
 class DocumentSource(SourceFunction):
     """生成文档数据源"""
@@ -54,8 +62,8 @@ class CharacterSplitter(BaseFunction):
         self.overlap = overlap
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
-            f"🔧 CharacterSplitter instance {self.instance_id} created in thread {self.thread_id}"
+        thread_safe_print(
+            f":gear: CharacterSplitter instance {self.instance_id} created in thread {self.thread_id}"
         )
 
     def execute(self, document):
@@ -67,8 +75,8 @@ class CharacterSplitter(BaseFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
 
-        print(
-            f"⚙️ CharacterSplitter[{instance_id}]: Processing {doc_id} (thread: {current_thread})"
+        thread_safe_print(
+            f":gear: CharacterSplitter[{instance_id}]: Processing {doc_id} (thread: {current_thread})"
         )
 
         # 模拟处理时间
@@ -87,24 +95,39 @@ class CharacterSplitter(BaseFunction):
                     }
                 )
 
-        print(
-            f"✅ CharacterSplitter[{instance_id}]: Generated {len(chunks)} chunks for {doc_id}"
+        thread_safe_print(
+            f":white_check_mark: CharacterSplitter[{instance_id}]: Generated {len(chunks)} chunks for {doc_id}"
         )
         return chunks
+
+
+class SlowCharacterSplitter(CharacterSplitter):
+    """延长处理时间的CharacterSplitter，用于模拟在途数据"""
+
+    def execute(self, document):
+        time.sleep(0.05)
+        return super().execute(document)
 
 
 class ChunkCollector(SinkFunction):
     """收集分块结果的sink算子"""
 
-    _collected_chunks: List[Dict] = []
+    # 类级别的结果收集 - 只用于测试目的
+    _collected_chunks: List[Dict] = None
     _lock = threading.Lock()
+    
+    @classmethod
+    def _ensure_chunks_list(cls):
+        """确保chunks列表被初始化"""
+        if cls._collected_chunks is None:
+            cls._collected_chunks = []
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
-            f"🔧 ChunkCollector instance {self.instance_id} created in thread {self.thread_id}"
+        thread_safe_print(
+            f":gear: ChunkCollector instance {self.instance_id} created in thread {self.thread_id}"
         )
 
     def execute(self, chunks):
@@ -112,26 +135,51 @@ class ChunkCollector(SinkFunction):
         instance_id = id(self)
 
         with self._lock:
+            self._ensure_chunks_list()
+            
+            if chunks is None:  # Stop signal
+                return
+                
             if isinstance(chunks, list):
                 self._collected_chunks.extend(chunks)
-                print(
-                    f"🎯 ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})"
+                thread_safe_print(
+                    f":dart: ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})"
                 )
             else:
                 self._collected_chunks.append(chunks)
-                print(
-                    f"🎯 ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})"
+                thread_safe_print(
+                    f":dart: ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})"
                 )
+
+    def close(self):
+        """SinkFunction的关闭方法，在停止信号时被调用"""
+        current_thread = threading.get_ident()
+        instance_id = id(self)
+        thread_safe_print(
+            f":stop_sign: ChunkCollector[{instance_id}]: Received close signal (thread: {current_thread})"
+        )
 
     @classmethod
     def get_collected_chunks(cls):
         """获取收集到的所有chunks"""
-        return cls._collected_chunks.copy()
+        with cls._lock:
+            cls._ensure_chunks_list()
+            return cls._collected_chunks.copy()
 
     @classmethod
     def clear_collected_chunks(cls):
         """清空收集到的chunks"""
-        cls._collected_chunks.clear()
+        with cls._lock:
+            cls._collected_chunks = []
+
+
+class LaggyChunkCollector(ChunkCollector):
+    """处理延迟的Sink算子，模拟慢速消费者"""
+
+    def execute(self, chunks):
+        time.sleep(0.05)
+        super().execute(chunks)
+
 
 
 class TestChunkParallelism:
@@ -145,7 +193,7 @@ class TestChunkParallelism:
 
         # 清空之前的数据
         ChunkCollector.clear_collected_chunks()
-
+        
         env = LocalEnvironment(name="chunk_parallelism_test")
 
         # 测试文档
@@ -162,15 +210,13 @@ class TestChunkParallelism:
             .sink(ChunkCollector, parallelism=1)
         )
 
-        # 执行
-        env.submit()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env.submit(autostop=True)
 
-        # 等待处理完成
-        time.sleep(2)
-        env.close()
-
-        # 验证结果
+        # 获取收集的结果
         collected_chunks = ChunkCollector.get_collected_chunks()
+        
+        # 验证结果
         assert len(collected_chunks) > 0
         assert all(chunk.get("chunk_id") for chunk in collected_chunks)
 
@@ -210,7 +256,8 @@ class TestChunkParallelism:
             .sink(ChunkCollector, parallelism=2)
         )
 
-        env.submit()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env.submit(autostop=True)
 
         # 验证结果
         collected_chunks = ChunkCollector.get_collected_chunks()
@@ -254,7 +301,8 @@ class TestChunkParallelism:
             .sink(ChunkCollector, parallelism=1)
         )
 
-        env.submit()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env.submit(autostop=True)
 
         # 验证大文档被正确分块
         collected_chunks = ChunkCollector.get_collected_chunks()
@@ -265,6 +313,66 @@ class TestChunkParallelism:
         assert len(large_doc_chunks) > 1  # 大文档应该被分成多个chunk
 
         print(f"✅ Large document test: {len(large_doc_chunks)} chunks from large_doc1")
+
+    def test_mixed_document_chunk_parallelism(self):
+        """测试混合文档（普通文档+大文档）的并行处理场景"""
+        print("\n" + "=" * 70)
+        print("TEST: Mixed Document Chunk Parallelism")
+        print("=" * 70)
+
+        # 清空之前的数据
+        ChunkCollector.clear_collected_chunks()
+
+        env = LocalEnvironment(name="mixed_doc_test")
+
+        # 创建完整的测试文档集合，包括普通文档和大文档
+        large_content = "This is a large document with extensive content. " * 50
+        documents = [
+            {"content": "Another document containing different information and data.", "id": "doc2"},
+            {"content": "Large document with extensive content that needs chunking for processing.", "id": "doc3"},
+            {"content": "Short text document.", "id": "doc4"},
+            {"content": "Medium sized document with reasonable content length.", "id": "doc5"},
+            {"content": large_content, "id": "large_doc1"},
+            {"content": large_content, "id": "large_doc2"},
+        ]
+
+        # 使用高并行度处理混合文档类型
+        result_stream = (
+            env.from_collection(DocumentSource, documents)
+            .map(CharacterSplitter, chunk_size=50, overlap=10, parallelism=4)
+            .sink(ChunkCollector, parallelism=2)
+        )
+
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env.submit(autostop=True)
+        
+        # 验证处理结果
+        collected_chunks = ChunkCollector.get_collected_chunks()
+        assert len(collected_chunks) > 0
+
+        # 验证所有文档都被处理
+        processed_doc_ids = set(chunk["doc_id"] for chunk in collected_chunks)
+        expected_doc_ids = {"doc2", "doc3", "doc4", "doc5", "large_doc1", "large_doc2"}
+
+        assert (
+            processed_doc_ids == expected_doc_ids
+        ), f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+
+        # 验证大文档产生了足够的chunks（如果被处理的话）
+        large_doc1_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
+        large_doc2_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc2"]
+        
+        # 大文档应该产生大量chunks
+        assert (
+            len(large_doc1_chunks) > 30
+        ), f"large_doc1 should generate many chunks, got {len(large_doc1_chunks)}"
+        assert (
+            len(large_doc2_chunks) > 30
+        ), f"large_doc2 should generate many chunks, got {len(large_doc2_chunks)}"
+
+        print(f"✅ Mixed document test completed: {len(collected_chunks)} total chunks")
+        print(f"   - large_doc1: {len(large_doc1_chunks)} chunks")
+        print(f"   - large_doc2: {len(large_doc2_chunks)} chunks")
 
     def test_chunk_parallelism_hints_vs_manual_parallelization(self):
         """对比parallelism hints与手动并行化的区别"""
@@ -287,7 +395,8 @@ class TestChunkParallelism:
             .map(CharacterSplitter, chunk_size=10, overlap=2, parallelism=2)
             .sink(ChunkCollector)
         )
-        env1.submit()
+        # 使用autostop=True让SAGE自动检测批处理完成
+        env1.submit(autostop=True)
 
         # 验证hints方式工作正常
         collected_chunks = ChunkCollector.get_collected_chunks()
@@ -295,3 +404,48 @@ class TestChunkParallelism:
 
         print("✅ Parallelism hints approach works correctly")
         print("💡 Key advantage: Framework manages parallelism, code stays simple")
+
+    def test_autostop_graceful_shutdown_drains_sink(self):
+        """验证autostop在存在在途数据时不会丢失数据"""
+        print("\n" + "=" * 70)
+        print("TEST: Autostop Graceful Shutdown Drains Sink")
+        print("=" * 70)
+
+        ChunkCollector.clear_collected_chunks()
+        LaggyChunkCollector.clear_collected_chunks()
+
+        env = LocalEnvironment(name="graceful_shutdown_drain_test")
+
+        large_content = "Synthetic large document content to simulate heavy processing. " * 60
+        documents = [
+            {"content": large_content, "id": "slow_doc1"},
+            {"content": large_content, "id": "slow_doc2"},
+        ]
+
+        result_stream = (
+            env.from_collection(DocumentSource, documents)
+            .map(SlowCharacterSplitter, chunk_size=60, overlap=15, parallelism=2)
+            .sink(LaggyChunkCollector, parallelism=1)
+        )
+
+        env.submit(autostop=True)
+
+        collected_chunks = LaggyChunkCollector.get_collected_chunks()
+        assert len(collected_chunks) > 0
+
+        expected_doc_ids = {doc["id"] for doc in documents}
+        processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
+
+        assert (
+            processed_doc_ids == expected_doc_ids
+        ), f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+
+        for doc_id in expected_doc_ids:
+            doc_chunks = [c for c in collected_chunks if c["doc_id"] == doc_id]
+            assert (
+                len(doc_chunks) > 20
+            ), f"Document {doc_id} should generate many chunks, got {len(doc_chunks)}"
+
+        print(
+            f"✅ Graceful shutdown drained sink with {len(collected_chunks)} total chunks across {len(expected_doc_ids)} documents"
+        )

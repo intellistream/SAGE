@@ -34,6 +34,10 @@ def status():
     console.print(f"  • 输出目录: {config.output_path}")
     console.print(f"  • 元数据目录: {config.metadata_path}")
     console.print(f"  • GitHub仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
+    if config.github_token:
+        console.print(
+            f"  • GitHub Token来源: {config.github_token_env or '未知环境变量'}"
+        )
 
     # 测试GitHub连接
     console.print(f"\n🔍 GitHub连接:")
@@ -43,7 +47,9 @@ def status():
         else:
             console.print("  ❌ [red]连接失败 - 请检查GitHub Token[/red]")
             console.print("  💡 设置方法:")
-            console.print("    export GITHUB_TOKEN=your_token")
+            console.print(
+                "    export GITHUB_TOKEN=your_token  # 或 export GIT_TOKEN=your_token / export SAGE_REPO_TOKEN=your_token"
+            )
             console.print("    或创建 ~/.github_token 文件")
     except Exception as e:
         console.print(f"  ❌ [red]连接错误: {e}[/red]")
@@ -81,7 +87,9 @@ def download(
     if not config.github_token:
         console.print("❌ [red]GitHub Token未配置[/red]")
         console.print("💡 设置方法:")
-        console.print("   export GITHUB_TOKEN=your_token")
+        console.print(
+            "   export GITHUB_TOKEN=your_token  # 或 export GIT_TOKEN=your_token / export SAGE_REPO_TOKEN=your_token"
+        )
         console.print("   或创建 ~/.github_token 文件")
         raise typer.Exit(1)
 
@@ -352,12 +360,12 @@ def sync_issues(
 
         # 构建命令参数
         cmd_args = [sys.executable, str(sync_script)]
-        if direction != "upload":
-            cmd_args.extend(["--direction", direction])
         if dry_run:
-            cmd_args.append("--dry-run")
+            cmd_args.append("preview")  # Use preview command for dry-run
+        else:
+            cmd_args.append("sync")     # Use sync command for actual sync
         if force:
-            cmd_args.append("--force")
+            cmd_args.append("--auto-confirm")
 
         # 执行同步
         result = subprocess.run(

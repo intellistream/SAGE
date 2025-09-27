@@ -18,6 +18,86 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 
+def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str) -> dict:
+    """将拓扑图数据转换为 Job 格式"""
+    from datetime import datetime
+
+    # 从拓扑图数据中提取信息
+    name = pipeline_data.get("name", f"拓扑图 {pipeline_id}")
+    description = pipeline_data.get("description", "")
+    nodes = pipeline_data.get("nodes", [])
+    edges = pipeline_data.get("edges", [])
+
+    # 创建操作符列表
+    operators = []
+    for i, node in enumerate(nodes):
+        # 构建下游连接
+        downstream = []
+        for edge in edges:
+            if edge.get("source") == node.get("id"):
+                # 找到目标节点的索引
+                target_node = next(
+                    (n for n in nodes if n.get("id") == edge.get("target")), None
+                )
+                if target_node:
+                    target_index = next(
+                        (
+                            j
+                            for j, n in enumerate(nodes)
+                            if n.get("id") == edge.get("target")
+                        ),
+                        None,
+                    )
+                    if target_index is not None:
+                        downstream.append(target_index)
+
+        operator = {
+            "id": i,
+            "name": node.get("name", f"Operator_{i}"),
+            "numOfInstances": 1,
+            "downstream": downstream,
+        }
+        operators.append(operator)
+
+    # 创建 Job 对象
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    job = {
+        "jobId": pipeline_id,
+        "name": name,
+        "isRunning": False,  # 拓扑图默认不在运行
+        "nthreads": "1",
+        "cpu": "0%",
+        "ram": "0GB",
+        "startTime": current_time,
+        "duration": "00:00:00",
+        "nevents": 0,
+        "minProcessTime": 0,
+        "maxProcessTime": 0,
+        "meanProcessTime": 0,
+        "latency": 0,
+        "throughput": 0,
+        "ncore": 1,
+        "periodicalThroughput": [0],
+        "periodicalLatency": [0],
+        "totalTimeBreakdown": {
+            "totalTime": 0,
+            "serializeTime": 0,
+            "persistTime": 0,
+            "streamProcessTime": 0,
+            "overheadTime": 0,
+        },
+        "schedulerTimeBreakdown": {
+            "overheadTime": 0,
+            "streamTime": 0,
+            "totalTime": 0,
+            "txnTime": 0,
+        },
+        "operators": operators,
+    }
+
+    return job
+
+
 def _get_sage_dir() -> Path:
     """获取 SAGE 目录路径"""
     # 首先检查环境变量
@@ -96,17 +176,32 @@ def _read_sage_data_from_files():
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
-                    with open(job_file, "r") as f:
+                    with open(job_file, "r", encoding="utf-8") as f:
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
                     print(f"Error reading job file {job_file}: {e}")
 
+        # 读取保存的拓扑图并转换为 Job 格式
+        pipelines_dir = sage_dir / "pipelines"
+        if pipelines_dir.exists():
+            for pipeline_file in pipelines_dir.glob("pipeline_*.json"):
+                try:
+                    with open(pipeline_file, "r", encoding="utf-8") as f:
+                        pipeline_data = json.load(f)
+                        # 将拓扑图转换为 Job 格式
+                        job_from_pipeline = _convert_pipeline_to_job(
+                            pipeline_data, pipeline_file.stem
+                        )
+                        data["jobs"].append(job_from_pipeline)
+                except Exception as e:
+                    print(f"Error reading pipeline file {pipeline_file}: {e}")
+
         # 读取操作符信息
         operators_file = sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
-                with open(operators_file, "r") as f:
+                with open(operators_file, "r", encoding="utf-8") as f:
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:

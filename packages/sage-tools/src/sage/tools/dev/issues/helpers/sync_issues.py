@@ -25,16 +25,45 @@ from datetime import datetime
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(SCRIPT_DIR))
+sys.path.insert(0, str(SCRIPT_DIR.parent))  # Add parent directory to path
 
 import glob
 import re
 import time
 
 import requests
-from config import Config, GitHubClient
-from helpers.github_helper import GitHubProjectManager
-from issue_data_manager import IssueDataManager
+
+# 动态导入config模块
+try:
+    # 尝试相对导入（当作为模块运行时）
+    from ..config import IssuesConfig
+    from ..issue_data_manager import IssueDataManager
+except ImportError:
+    # 如果相对导入失败，使用绝对导入
+    sys.path.insert(0, str(SCRIPT_DIR.parent))
+    from config import IssuesConfig
+    from issue_data_manager import IssueDataManager
+
+# Import github_helper directly
+sys.path.insert(0, str(SCRIPT_DIR))
+from github_helper import GitHubProjectManager
+
+
+class GitHubClient:
+    """Simple GitHub API client"""
+    
+    def __init__(self, config):
+        self.config = config
+        self.session = requests.Session()
+        
+        if config.github_token:
+            headers = {
+                "Authorization": f"token {config.github_token}",
+                "Accept": "application/vnd.github.v3+json",
+            }
+            self.session.headers.update(headers)
+        else:
+            raise ValueError("GitHub Token is required for sync operations")
 
 
 def graphql_request(
@@ -64,7 +93,7 @@ def graphql_request(
 
 class IssuesSyncer:
     def __init__(self):
-        self.config = Config()
+        self.config = IssuesConfig()
         self.github_client = GitHubClient(self.config)
         self.project_manager = GitHubProjectManager()
         self.workspace_dir = self.config.workspace_path

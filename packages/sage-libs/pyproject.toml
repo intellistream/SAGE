@@ -38,8 +38,8 @@ license = "MIT"
 dependencies = [
     "isage-middleware>=0.1.0",  # 继承kernel和common的所有依赖
     
-    # 明确指定numpy版本以避免冲突
-    "numpy>=2.0.0,<3.0.0",
+    # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
+    "numpy>=2.0.0,<2.3.0",
     
     # Libs-specific dependencies
     # Vector databases
@@ -80,7 +80,7 @@ full = [
 
 # LLM-specific dependencies
 llm = [
-    "vllm==0.9.2",
+    "vllm>=0.9.2",  # 允许更新的vllm版本
     "transformers==4.56.1",
     "tokenizers==0.22.0",
 ]

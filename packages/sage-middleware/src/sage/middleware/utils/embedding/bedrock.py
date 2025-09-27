@@ -2,8 +2,6 @@ import copy
 import json
 import os
 
-import pipmaster as pm  # Pipmaster for dynamic library install
-
 # Dependencies should be installed via requirements.txt
 # aioboto3 and tenacity are required for this module
 

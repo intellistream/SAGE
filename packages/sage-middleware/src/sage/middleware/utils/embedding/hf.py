@@ -6,8 +6,6 @@ os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import asyncio
 from functools import lru_cache
 
-import pipmaster as pm  # Pipmaster for dynamic library install
-
 # Dependencies should be installed via requirements.txt
 # transformers, torch, tenacity, and numpy are required for this module
 

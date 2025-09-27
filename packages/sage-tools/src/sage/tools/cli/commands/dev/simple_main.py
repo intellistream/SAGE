@@ -61,9 +61,13 @@ def quality(
 
     默认情况下会自动修复格式化和导入排序问题，对于无法自动修复的问题给出警告。
     """
+    import datetime
+    import os
     import subprocess
     import sys
     from pathlib import Path
+
+    from sage.common.config.output_paths import get_sage_paths
 
     project_path = Path(project_root).resolve()
 
@@ -72,6 +76,14 @@ def quality(
         raise typer.Exit(1)
 
     console.print(f"📁 项目根目录: {project_path}")
+
+    # 获取SAGE路径用于日志保存
+    try:
+        sage_paths = get_sage_paths()
+        logs_base_dir = sage_paths.logs_dir / "tool" / "quality"
+    except Exception as e:
+        console.print(f"[yellow]⚠️ 无法获取SAGE路径，将使用项目根目录: {e}[/yellow]")
+        logs_base_dir = project_path / ".sage" / "logs" / "tool" / "quality"
 
     # 确定要检查的目录 - 只检查项目代码，避免第三方库
     target_paths = []
@@ -99,6 +111,7 @@ def quality(
     console.print(f"🎯 检查目录: {', '.join(target_paths)}")
 
     quality_issues = False
+    error_timestamp = None
 
     # 如果不是check_only模式，并且fix为True，则自动修复
     should_fix = fix and not check_only
@@ -121,6 +134,10 @@ def quality(
             else:
                 console.print(f"[red]❌ 代码格式化失败: {result.stderr}[/red]")
                 quality_issues = True
+                # 保存错误日志
+                _save_quality_error_log(
+                    logs_base_dir, "black", result.stderr + result.stdout
+                )
         else:
             # 检查模式
             cmd = (
@@ -136,6 +153,10 @@ def quality(
                 if check_only and result.stdout.strip():
                     console.print(result.stdout)
                 quality_issues = True
+                # 保存错误日志
+                _save_quality_error_log(
+                    logs_base_dir, "black", result.stderr + result.stdout
+                )
             else:
                 console.print("[green]✅ 代码格式检查通过[/green]")
 
@@ -155,6 +176,10 @@ def quality(
             else:
                 console.print(f"[red]❌ 导入排序失败: {result.stderr}[/red]")
                 quality_issues = True
+                # 保存错误日志
+                _save_quality_error_log(
+                    logs_base_dir, "isort", result.stderr + result.stdout
+                )
         else:
             # 检查模式
             cmd = (
@@ -170,6 +195,10 @@ def quality(
                 if check_only and result.stdout.strip():
                     console.print(result.stdout)
                 quality_issues = True
+                # 保存错误日志
+                _save_quality_error_log(
+                    logs_base_dir, "isort", result.stderr + result.stdout
+                )
             else:
                 console.print("[green]✅ 导入排序检查通过[/green]")
 
@@ -187,6 +216,10 @@ def quality(
                 console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
                 console.print(result.stdout)
                 quality_issues = True
+                # 保存错误日志
+                _save_quality_error_log(
+                    logs_base_dir, "flake8", result.stderr + result.stdout
+                )
             else:
                 console.print("[green]✅ 代码质量检查通过[/green]")
         except FileNotFoundError:
@@ -220,6 +253,39 @@ def quality(
         console.print("[green]✅ 所有代码质量检查通过[/green]")
 
 
+def _save_quality_error_log(logs_base_dir, tool_name: str, error_content: str):
+    """保存代码质量检查的错误日志到指定目录
+
+    Args:
+        logs_base_dir: 日志基础目录 (.sage/logs/tool/quality)
+        tool_name: 工具名称 (black, isort, flake8)
+        error_content: 错误内容
+    """
+    import datetime
+    from pathlib import Path
+
+    try:
+        # 生成时间戳目录名
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        error_dir = logs_base_dir / f"error{timestamp}"
+        error_dir.mkdir(parents=True, exist_ok=True)
+
+        # 保存日志文件
+        log_file = error_dir / f"{tool_name}.log"
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(f"代码质量检查错误日志 - {tool_name.upper()}\n")
+            f.write(
+                f"生成时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
+            f.write("=" * 50 + "\n\n")
+            f.write(error_content)
+
+        console.print(f"[blue]📝 已保存 {tool_name} 错误日志: {log_file}[/blue]")
+
+    except Exception as e:
+        console.print(f"[yellow]⚠️ 保存 {tool_name} 日志失败: {e}[/yellow]")
+
+
 def _run_quality_check(
     project_path: str,
     fix: bool = False,
@@ -233,7 +299,14 @@ def _run_quality_check(
     """内部质量检查函数，供测试命令调用
 
     Args:
-        warn_only: 如果为True，只给警告不中断运行
+        project_path: 项目根目录路径
+        fix: 是否自动修复问题 (默认: True，在测试模式下自动修复)
+        check_only: 是否仅检查不修复 (默认: False，在测试模式下不只是检查)
+        format_code: 是否运行代码格式化检查 (默认: True，运行black格式化)
+        sort_imports: 是否运行导入排序检查 (默认: True，运行isort排序)
+        lint_code: 是否运行代码质量检查 (默认: True，运行flake8检查)
+        quiet: 是否静默模式 (默认: False，在测试模式下不静默)
+        warn_only: 如果为True，只给警告不中断运行 (默认: True，在测试模式下只警告)
     """
     import subprocess
     from pathlib import Path
@@ -271,7 +344,7 @@ def _run_quality_check(
     # 代码格式化检查和修复
     if format_code:
         if not quiet:
-            console.print("🎨 运行代码格式化检查 (black)...")
+            console.print("🎨 运行代码格式化检查 (使用black作为代码格式化工具)...")
 
         if check_only:
             cmd = ["black", "--check", "--diff"] + target_paths
@@ -286,7 +359,7 @@ def _run_quality_check(
                 quality_issues = True
             else:
                 if not quiet:
-                    console.print("[green]✅ 代码格式检查通过[/green]")
+                    console.print("[green]✅ 代码格式检查通过 √ [/green]")
         elif fix:
             cmd = ["black"] + target_paths
             if excluded_dirs:
@@ -296,7 +369,7 @@ def _run_quality_check(
             )
             if result.returncode == 0:
                 if not quiet:
-                    console.print("[green]✅ 代码格式化完成[/green]")
+                    console.print("[green]✅ 代码格式化完成 √ [/green]")
             else:
                 if not quiet:
                     console.print(f"[red]❌ 代码格式化失败: {result.stderr}[/red]")
@@ -305,7 +378,7 @@ def _run_quality_check(
     # 导入排序检查和修复
     if sort_imports:
         if not quiet:
-            console.print("📦 运行导入排序检查 (isort)...")
+            console.print("🎨 运行导入排序检查 (使用isort为import语句排序)...")
 
         if check_only:
             cmd = ["isort", "--check-only", "--diff"] + target_paths
@@ -318,7 +391,7 @@ def _run_quality_check(
                 quality_issues = True
             else:
                 if not quiet:
-                    console.print("[green]✅ 导入排序检查通过[/green]")
+                    console.print("[green]✅ 导入排序检查通过 √ [/green]")
         elif fix:
             cmd = ["isort"] + target_paths
             result = subprocess.run(
@@ -326,7 +399,7 @@ def _run_quality_check(
             )
             if result.returncode == 0:
                 if not quiet:
-                    console.print("[green]✅ 导入排序完成[/green]")
+                    console.print("[green]✅ 导入排序完成 √ [/green]")
             else:
                 if not quiet:
                     console.print(f"[red]❌ 导入排序失败: {result.stderr}[/red]")
@@ -335,7 +408,7 @@ def _run_quality_check(
     # 代码检查 (flake8)
     if lint_code:
         if not quiet:
-            console.print("🔍 运行代码检查 (flake8)...")
+            console.print("🎨 运行代码检查 (使用flake8作为静态代码分析工具)...")
 
         try:
             # flake8配置通过项目根目录的.flake8文件控制
@@ -496,24 +569,21 @@ def clean(
             console.print("支持的目标: all, cache, build, logs")
             raise typer.Exit(1)
 
-        # 执行清理
+        # 执行清理（统一处理：匹配到的路径若为目录则递归删除，若为文件则删除文件）
         for pattern in targets_to_clean:
-            if pattern.startswith("*."):
-                # 文件模式
-                for file_path in project_path.rglob(pattern):
-                    if file_path.is_file():
-                        cleaned_items.append(str(file_path.relative_to(project_path)))
+            for path in project_path.rglob(pattern):
+                rel = str(path.relative_to(project_path))
+                try:
+                    if path.is_dir():
+                        cleaned_items.append(rel + "/")
                         if not dry_run:
-                            file_path.unlink()
-            else:
-                # 目录模式
-                for dir_path in project_path.rglob(pattern):
-                    if dir_path.is_dir():
-                        cleaned_items.append(
-                            str(dir_path.relative_to(project_path)) + "/"
-                        )
+                            shutil.rmtree(path)
+                    elif path.is_file():
+                        cleaned_items.append(rel)
                         if not dry_run:
-                            shutil.rmtree(dir_path)
+                            path.unlink()
+                except Exception as e:
+                    console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
 
         # 报告结果
         if cleaned_items:
@@ -711,59 +781,52 @@ def test(
 ):
     """运行项目测试 - 集成从 tools/ 脚本迁移的高级功能"""
     try:
-        import json
         import time
         from pathlib import Path
 
+        from rich.rule import Rule
         from sage.tools.dev.tools.enhanced_test_runner import \
             EnhancedTestRunner
+
+        # 0. 测试目录获取
+        if not quiet:
+            console.print(Rule("[bold cyan]🔍 正在寻找项目根目录...[/bold cyan]"))
 
         # 自动检测项目根目录
         project_path = Path(project_root).resolve()
 
-        # 如果当前目录不是项目根目录，尝试向上查找
-        if not (project_path / "packages").exists():
-            # 向上查找包含 packages 目录的根目录
-            current = project_path
-            found_root = False
+        # 设置一个标志，表示是否已找到根目录
+        found_root = (project_path / "packages").exists()
 
-            while current.parent != current:  # 没有到达文件系统根目录
+        # 如果在初始路径没找到，则向上遍历查找
+        if not found_root:
+            current = project_path
+            # 循环向上查找，直到文件系统的根目录
+            while current.parent != current:
+                current = current.parent
                 if (current / "packages").exists():
                     project_path = current
                     found_root = True
-                    break
-                current = current.parent
+                    break  # 找到后立即退出循环
 
-            if not found_root:
-                # 如果还是找不到，尝试一些常见的相对路径
-                possible_roots = [
-                    project_path / "..",
-                    project_path / "../..",
-                    project_path / "../../..",
-                ]
-
-                for possible_root in possible_roots:
-                    if (possible_root / "packages").exists():
-                        project_path = possible_root.resolve()
-                        found_root = True
-                        break
-
-                if not found_root:
-                    console.print("[red]❌ 无法找到 SAGE 项目根目录[/red]")
-                    console.print(f"当前目录: {Path.cwd()}")
-                    console.print(f"指定目录: {project_root}")
-                    console.print(
-                        "请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径"
-                    )
-                    raise typer.Exit(1)
+        # 如果最终还是没有找到根目录，则报错退出
+        if not found_root:
+            console.print("[red]❌ 无法找到 SAGE 项目根目录[/red]")
+            console.print(f"起始搜索目录: {Path(project_root).resolve()}")
+            console.print(
+                "请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径"
+            )
+            raise typer.Exit(1)
 
         if not quiet:
             console.print(f"📁 项目根目录: {project_path}")
 
-        # 代码质量检查和修复 (在测试前运行)
+        # 1. 代码质量检查和修复 (在测试前运行)
         if not skip_quality_check:
             if not quiet:
-                console.print("\n🔍 执行测试前代码质量检查...")
+                console.print(
+                    Rule("[bold cyan]🔍 执行测试前代码质量检查...[/bold cyan]")
+                )
 
             # 调用质量检查函数，使用warn_only模式，不中断测试
             has_quality_issues = _run_quality_check(

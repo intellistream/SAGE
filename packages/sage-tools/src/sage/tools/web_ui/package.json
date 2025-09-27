@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "dagre-compound": "^0.0.13",
+    "ng-zorro-antd": "^20.3.1"
+  }
+}

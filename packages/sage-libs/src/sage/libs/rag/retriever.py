@@ -262,13 +262,21 @@ class ChromaRetriever(MapFunction):
             if self.enable_profile:
                 self._save_data_record(input_query, standardized_docs)
 
+            # 提取所有原始文档的text字段，供retrieved_docs使用
+            retrieved_texts = [
+                doc.get("text", doc.get("content", str(doc)))
+                for doc in standardized_docs
+            ]
+
             if is_dict_input:
                 data["results"] = standardized_docs
+                data["retrieved_docs"] = retrieved_texts
                 return data
             else:
                 return {
                     "query": input_query,
                     "results": standardized_docs,
+                    "retrieved_docs": retrieved_texts,
                     "input": data,
                 }
 
@@ -497,7 +505,7 @@ class MilvusDenseRetriever(MapFunction):
         Args:
             data: 查询字符串、元组或字典
         Returns:
-            dict: {"query": ..., "retrieved_documents": ..., "input": 原始输入, ...}
+            dict: {"query": ..., "retrieved_docs": ..., "input": 原始输入, ...}
         """
         # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
@@ -511,12 +519,12 @@ class MilvusDenseRetriever(MapFunction):
         if not isinstance(input_query, str):
             self.logger.error(f"Invalid input query type: {type(input_query)}")
             if is_dict_input:
-                data["retrieved_documents"] = []
+                data["retrieved_docs"] = []
                 return data
             else:
                 return {
                     "query": str(input_query),
-                    "retrieved_documents": [],
+                    "retrieved_docs": [],
                     "input": data,
                 }
 
@@ -553,11 +561,14 @@ class MilvusDenseRetriever(MapFunction):
                 self._save_data_record(input_query, retrieved_docs)
 
             if is_dict_input:
+                data["retrieved_docs"] = retrieved_docs
+                # 兼容测试期望的字段名
                 data["retrieved_documents"] = retrieved_docs
                 return data
             else:
                 return {
                     "query": input_query,
+                    "retrieved_docs": retrieved_docs,
                     "retrieved_documents": retrieved_docs,
                     "input": data,
                 }
@@ -565,10 +576,16 @@ class MilvusDenseRetriever(MapFunction):
         except Exception as e:
             self.logger.error(f" retrieval failed: {str(e)}")
             if is_dict_input:
+                data["retrieved_docs"] = []
                 data["retrieved_documents"] = []
                 return data
             else:
-                return {"query": input_query, "retrieved_documents": [], "input": data}
+                return {
+                    "query": input_query,
+                    "retrieved_docs": [],
+                    "retrieved_documents": [],
+                    "input": data,
+                }
 
     def save_config(self, save_path: str) -> bool:
         """
@@ -780,7 +797,7 @@ class MilvusSparseRetriever(MapFunction):
         Args:
             data: 查询字符串、元组或字典
         Returns:
-            dict: {"query": ..., "retrieved_documents": ..., "input": 原始输入, ...}
+            dict: {"query": ..., "retrieved_docs": ..., "input": 原始输入, ...}
         """
         # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
@@ -794,12 +811,12 @@ class MilvusSparseRetriever(MapFunction):
         if not isinstance(input_query, str):
             self.logger.error(f"Invalid input query type: {type(input_query)}")
             if is_dict_input:
-                data["retrieved_documents"] = []
+                data["retrieved_docs"] = []
                 return data
             else:
                 return {
                     "query": str(input_query),
-                    "retrieved_documents": [],
+                    "retrieved_docs": [],
                     "input": data,
                 }
 
@@ -833,11 +850,13 @@ class MilvusSparseRetriever(MapFunction):
                 self._save_data_record(input_query, retrieved_docs)
 
             if is_dict_input:
+                data["retrieved_docs"] = retrieved_docs
                 data["retrieved_documents"] = retrieved_docs
                 return data
             else:
                 return {
                     "query": input_query,
+                    "retrieved_docs": retrieved_docs,
                     "retrieved_documents": retrieved_docs,
                     "input": data,
                 }
@@ -845,10 +864,16 @@ class MilvusSparseRetriever(MapFunction):
         except Exception as e:
             self.logger.error(f" retrieval failed: {str(e)}")
             if is_dict_input:
+                data["retrieved_docs"] = []
                 data["retrieved_documents"] = []
                 return data
             else:
-                return {"query": input_query, "retrieved_documents": [], "input": data}
+                return {
+                    "query": input_query,
+                    "retrieved_docs": [],
+                    "retrieved_documents": [],
+                    "input": data,
+                }
 
     def save_config(self, save_path: str) -> bool:
         """
@@ -1210,11 +1235,20 @@ class Wiki18FAISSRetriever(MapFunction):
             if self.enable_profile:
                 self._save_data_record(input_query, retrieved_docs)
 
+            # 提取所有原始文档的text字段，供retrieved_docs使用
+            retrieved_texts = [doc["text"] for doc in retrieved_docs if "text" in doc]
+
             if is_dict_input:
                 data["results"] = retrieved_docs
+                data["retrieved_docs"] = retrieved_texts
                 return data
             else:
-                return {"query": input_query, "results": retrieved_docs, "input": data}
+                return {
+                    "query": input_query,
+                    "results": retrieved_docs,
+                    "retrieved_docs": retrieved_texts,
+                    "input": data,
+                }
 
         except Exception as e:
             self.logger.error(f"FAISS retrieval failed: {str(e)}")

@@ -195,11 +195,16 @@ show_usage_tips() {
             ;;
         "dev")
             echo -e "${BLUE}开发者安装模式：${NC}"
-            echo -e "  # 包含完整开发工具链"
+            echo -e "  # 包含完整开发工具链和C++扩展"
             echo -e "  pytest tests/                    # 运行测试"
             echo -e "  black packages/                  # 代码格式化"
             echo -e "  flake8 packages/                 # 代码检查"
             echo -e "  pre-commit run --all-files       # 运行所有检查"
+            echo ""
+            echo -e "${BLUE}C++扩展管理：${NC}"
+            echo -e "  sage extensions status           # 检查扩展状态"
+            echo -e "  sage extensions install all      # 安装所有扩展"
+            echo -e "  sage extensions install sage_db  # 只安装数据库扩展"
             echo ""
             ;;
     esac

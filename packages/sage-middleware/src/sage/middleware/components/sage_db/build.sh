@@ -25,17 +25,110 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --install-deps)
-            echo "Installing dependencies..."
-            # Install FAISS and other dependencies
-            if command -v conda &> /dev/null; then
-                echo "Installing FAISS via conda..."
-                conda install -c conda-forge faiss-cpu pybind11 -y
-            elif command -v pip &> /dev/null; then
-                echo "Installing FAISS via pip..."
-                pip install faiss-cpu pybind11[global]
+            echo "Installing dependencies (system + Python packages)..."
+            
+            # Install system dependencies first
+            echo "📦 Installing system dependencies..."
+            set +e
+            SYSTEM_DEPS_INSTALLED=false
+            
+            # 检查是否在 CI 环境中，CI 环境中依赖应该已经由专用脚本安装
+            if [[ "${CI:-false}" == "true" ]]; then
+                echo "🤖 CI 环境检测到，依赖应该已由 install_system_deps.sh 安装"
+                # 验证系统依赖是否可用
+                if pkg-config --exists openblas lapack 2>/dev/null || \
+                   ldconfig -p | grep -q "libopenblas\|libblas" 2>/dev/null; then
+                    echo "✅ 系统 BLAS/LAPACK 库已可用"
+                    SYSTEM_DEPS_INSTALLED=true
+                else
+                    echo "⚠️  系统 BLAS/LAPACK 库未找到，但在 CI 环境中继续构建"
+                    SYSTEM_DEPS_INSTALLED=true  # 在 CI 中强制继续，让 CMake 处理
+                fi
+            elif command -v apt-get &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via apt..."
+                if sudo apt-get update -qq && sudo apt-get install -y libopenblas-dev liblapack-dev; then
+                    echo "✅ System dependencies installed via apt"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif command -v yum &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via yum..."
+                if sudo yum install -y openblas-devel lapack-devel; then
+                    echo "✅ System dependencies installed via yum"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif command -v dnf &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via dnf..."
+                if sudo dnf install -y openblas-devel lapack-devel; then
+                    echo "✅ System dependencies installed via dnf"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif command -v pacman &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via pacman..."
+                if sudo pacman -S --noconfirm openblas lapack; then
+                    echo "✅ System dependencies installed via pacman"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif command -v brew &> /dev/null; then
+                echo "🔧 Installing BLAS/LAPACK via homebrew..."
+                if brew install openblas lapack; then
+                    echo "✅ System dependencies installed via homebrew"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
+            elif [[ -n "$CONDA_PREFIX" ]]; then
+                echo "🔧 Installing BLAS/LAPACK via conda..."
+                if conda install -c conda-forge openblas liblapack -y; then
+                    echo "✅ System dependencies installed via conda"
+                    SYSTEM_DEPS_INSTALLED=true
+                fi
             else
-                echo "Warning: Neither conda nor pip found. Please install FAISS manually."
+                echo "⚠️  Could not detect package manager"
             fi
+            
+            if [ "$SYSTEM_DEPS_INSTALLED" != true ]; then
+                echo "⚠️  System dependencies installation failed or not available"
+                echo "   The build will continue but may fail if BLAS/LAPACK are required"
+                echo "   Manual installation commands:"
+                echo "   Ubuntu/Debian: sudo apt-get install libopenblas-dev liblapack-dev"
+                echo "   CentOS/RHEL: sudo yum install openblas-devel lapack-devel"
+                echo "   macOS: brew install openblas lapack"
+                echo "   Conda: conda install -c conda-forge openblas liblapack"
+            fi
+            set -e
+            
+            # Install Python dependencies
+            echo "📦 Installing Python dependencies..."
+            # Avoid failing the entire build if dependency install has conflicts (e.g., conda solver pins)
+            set +e
+            INSTALLED=false
+            if command -v pip &> /dev/null; then
+                echo "📦 Trying: pip install faiss-cpu pybind11[global]"
+                pip install --upgrade pip >/dev/null 2>&1
+                if pip install "faiss-cpu>=1.7.3" "pybind11[global]"; then
+                    INSTALLED=true
+                    echo "✅ Dependencies installed via pip"
+                else
+                    echo "⚠️  pip installation failed, will try conda if available"
+                fi
+            fi
+
+            if [ "$INSTALLED" != true ] && command -v conda &> /dev/null; then
+                echo "📦 Trying: conda install -c conda-forge faiss-cpu pybind11"
+                # Use conda-forge explicitly and allow failures (avoid libmamba pin issues on CI)
+                if conda install -c conda-forge faiss-cpu pybind11 -y; then
+                    INSTALLED=true
+                    echo "✅ Dependencies installed via conda"
+                else
+                    echo "⚠️  conda installation failed; continuing without FAISS (fallback build)"
+                fi
+            fi
+
+            if [ "$INSTALLED" != true ]; then
+                echo "ℹ️ Proceeding without FAISS; the build will use a fallback implementation."
+                echo "   For optimal performance, install FAISS manually later:"
+                echo "   - pip install faiss-cpu"
+                echo "   - or: conda install -c conda-forge faiss-cpu"
+            fi
+            set -e
             shift
             ;;
         --help)
@@ -111,11 +204,46 @@ if [[ -n "$CONDA_PREFIX" ]]; then
     CMAKE_ARGS+=("-DPython3_ROOT_DIR=$CONDA_PREFIX")
 fi
 
+# Add system library paths for CI environments
+CMAKE_ARGS+=("-DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:/usr/include:/usr/local:${CMAKE_PREFIX_PATH}")
+
+# Set specific BLAS vendor for consistent behavior
+CMAKE_ARGS+=("-DBLA_VENDOR=OpenBLAS")
+
+# Debug information
+echo "CMAKE_ARGS: ${CMAKE_ARGS[@]}"
+echo "Environment:"
+echo "  CONDA_PREFIX: $CONDA_PREFIX"
+echo "  CMAKE_PREFIX_PATH: $CMAKE_PREFIX_PATH"
+
 cmake "${CMAKE_ARGS[@]}" ..
 
 # Build
 echo "Building..."
-make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+echo "🔨 开始编译 (使用 $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4) 个并行任务)..."
+
+if ! make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4); then
+    echo "❌ 编译失败，显示详细错误信息："
+    echo ""
+    echo "=== CMake 配置信息 ==="
+    if [ -f "CMakeCache.txt" ]; then
+        echo "CMAKE_BUILD_TYPE: $(grep CMAKE_BUILD_TYPE CMakeCache.txt || echo '未设置')"
+        echo "CMAKE_PREFIX_PATH: $(grep CMAKE_PREFIX_PATH CMakeCache.txt || echo '未设置')"
+        echo "BLAS_FOUND: $(grep BLAS_FOUND CMakeCache.txt || echo '未找到')"
+        echo "LAPACK_FOUND: $(grep LAPACK_FOUND CMakeCache.txt || echo '未找到')"
+        echo "BLAS_LIBRARIES: $(grep BLAS_LIBRARIES CMakeCache.txt || echo '未设置')"
+        echo "LAPACK_LIBRARIES: $(grep LAPACK_LIBRARIES CMakeCache.txt || echo '未设置')"
+    fi
+    echo ""
+    echo "=== 系统库检查 ==="
+    echo "BLAS 库搜索路径:"
+    find /usr -name "*blas*" -type f 2>/dev/null | head -5 || echo "未找到"
+    echo "LAPACK 库搜索路径:"
+    find /usr -name "*lapack*" -type f 2>/dev/null | head -5 || echo "未找到"
+    echo ""
+    echo "请检查上述错误信息并安装缺失的依赖"
+    exit 1
+fi
 
 # Run tests if available
 if [[ -f "test_sage_db" ]]; then
@@ -127,220 +255,18 @@ fi
 echo "Installing..."
 make install
 
-# Copy Python module to parent directory for easy import
-if [[ -f "_sage_db"* ]]; then
-    echo "Copying Python module..."
-    cp _sage_db* ../
-fi
-
-# Create Python wrapper
+# Copy Python extension next to canonical python/ for import stability
 cd "$SCRIPT_DIR"
-cat > sage_db.py << 'EOF'
-"""
-SAGE DB - High-performance vector database with FAISS backend
-
-This module provides a Python interface to the SAGE DB vector database,
-which supports efficient similarity search with metadata filtering.
-"""
-
-import numpy as np
-from typing import List, Dict, Any, Optional, Callable, Tuple, Union
-try:
-    from . import _sage_db
-except ImportError:
-    import _sage_db
-
-# Re-export C++ classes and enums
-IndexType = _sage_db.IndexType
-DistanceMetric = _sage_db.DistanceMetric
-QueryResult = _sage_db.QueryResult
-SearchParams = _sage_db.SearchParams
-DatabaseConfig = _sage_db.DatabaseConfig
-SageDBException = _sage_db.SageDBException
-
-class SageDB:
-    """
-    High-performance vector database with FAISS backend.
-    
-    Supports efficient similarity search, metadata filtering, and hybrid search.
-    """
-    
-    def __init__(self, dimension: int, 
-                 index_type: IndexType = IndexType.AUTO,
-                 metric: DistanceMetric = DistanceMetric.L2):
-        """
-        Initialize a new SageDB instance.
-        
-        Args:
-            dimension: Vector dimension
-            index_type: Index type for similarity search
-            metric: Distance metric
-        """
-        self._db = _sage_db.create_database(dimension, index_type, metric)
-    
-    @classmethod
-    def from_config(cls, config: DatabaseConfig):
-        """Create SageDB from configuration object."""
-        instance = cls.__new__(cls)
-        instance._db = _sage_db.create_database(config)
-        return instance
-    
-    def add(self, vector: Union[List[float], np.ndarray], 
-            metadata: Optional[Dict[str, str]] = None) -> int:
-        """Add a single vector with optional metadata."""
-        if isinstance(vector, np.ndarray):
-            vector = vector.tolist()
-        return self._db.add(vector, metadata or {})
-    
-    def add_batch(self, vectors: Union[List[List[float]], np.ndarray],
-                  metadata: Optional[List[Dict[str, str]]] = None) -> List[int]:
-        """Add multiple vectors with optional metadata."""
-        if isinstance(vectors, np.ndarray):
-            if len(vectors.shape) != 2:
-                raise ValueError("Vectors array must be 2-dimensional")
-            return _sage_db.add_numpy(self._db, vectors, metadata or [])
-        else:
-            return self._db.add_batch(vectors, metadata or [])
-    
-    def search(self, query: Union[List[float], np.ndarray], 
-               k: int = 10, include_metadata: bool = True) -> List[QueryResult]:
-        """Search for similar vectors."""
-        if isinstance(query, np.ndarray):
-            return _sage_db.search_numpy(self._db, query, SearchParams(k))
-        return self._db.search(query, k, include_metadata)
-    
-    def search_with_params(self, query: Union[List[float], np.ndarray],
-                          params: SearchParams) -> List[QueryResult]:
-        """Search with custom parameters."""
-        if isinstance(query, np.ndarray):
-            return _sage_db.search_numpy(self._db, query, params)
-        return self._db.search(query, params)
-    
-    def filtered_search(self, query: Union[List[float], np.ndarray],
-                       params: SearchParams,
-                       filter_fn: Callable[[Dict[str, str]], bool]) -> List[QueryResult]:
-        """Search with metadata filtering."""
-        if isinstance(query, np.ndarray):
-            query = query.tolist()
-        return self._db.filtered_search(query, params, filter_fn)
-    
-    def search_by_metadata(self, query: Union[List[float], np.ndarray],
-                          params: SearchParams,
-                          metadata_key: str,
-                          metadata_value: str) -> List[QueryResult]:
-        """Search with specific metadata constraint."""
-        if isinstance(query, np.ndarray):
-            query = query.tolist()
-        return self._db.query_engine().search_with_metadata(query, params, metadata_key, metadata_value)
-    
-    def hybrid_search(self, query: Union[List[float], np.ndarray],
-                     params: SearchParams,
-                     text_query: str = "",
-                     vector_weight: float = 0.7,
-                     text_weight: float = 0.3) -> List[QueryResult]:
-        """Hybrid vector and text search."""
-        if isinstance(query, np.ndarray):
-            query = query.tolist()
-        return self._db.query_engine().hybrid_search(query, params, text_query, vector_weight, text_weight)
-    
-    def build_index(self):
-        """Build/train the search index."""
-        self._db.build_index()
-    
-    def train_index(self, training_vectors: Optional[Union[List[List[float]], np.ndarray]] = None):
-        """Train the index with training data."""
-        if training_vectors is None:
-            self._db.train_index()
-        elif isinstance(training_vectors, np.ndarray):
-            training_list = [training_vectors[i].tolist() for i in range(training_vectors.shape[0])]
-            self._db.train_index(training_list)
-        else:
-            self._db.train_index(training_vectors)
-    
-    def is_trained(self) -> bool:
-        """Check if the index is trained."""
-        return self._db.is_trained()
-    
-    def set_metadata(self, vector_id: int, metadata: Dict[str, str]) -> bool:
-        """Set metadata for a vector."""
-        return self._db.set_metadata(vector_id, metadata)
-    
-    def get_metadata(self, vector_id: int) -> Optional[Dict[str, str]]:
-        """Get metadata for a vector."""
-        return self._db.get_metadata(vector_id)
-    
-    def find_by_metadata(self, key: str, value: str) -> List[int]:
-        """Find vectors by metadata key-value."""
-        return self._db.find_by_metadata(key, value)
-    
-    def save(self, filepath: str):
-        """Save database to disk."""
-        self._db.save(filepath)
-    
-    def load(self, filepath: str):
-        """Load database from disk."""
-        self._db.load(filepath)
-    
-    @property
-    def size(self) -> int:
-        """Number of vectors in the database."""
-        return self._db.size()
-    
-    @property
-    def dimension(self) -> int:
-        """Vector dimension."""
-        return self._db.dimension()
-    
-    @property
-    def index_type(self) -> IndexType:
-        """Index type."""
-        return self._db.index_type()
-    
-    def get_search_stats(self) -> Dict[str, Any]:
-        """Get last search statistics."""
-        stats = self._db.query_engine().get_last_search_stats()
-        return {
-            'total_candidates': stats.total_candidates,
-            'filtered_candidates': stats.filtered_candidates,
-            'final_results': stats.final_results,
-            'search_time_ms': stats.search_time_ms,
-            'filter_time_ms': stats.filter_time_ms,
-            'total_time_ms': stats.total_time_ms
-        }
-
-# Convenience functions
-def create_database(dimension: int, 
-                   index_type: IndexType = IndexType.AUTO,
-                   metric: DistanceMetric = DistanceMetric.L2) -> SageDB:
-    """Create a new SageDB instance."""
-    return SageDB(dimension, index_type, metric)
-
-def create_database_from_config(config: DatabaseConfig) -> SageDB:
-    """Create SageDB from configuration."""
-    return SageDB.from_config(config)
-
-__all__ = [
-    'SageDB', 'IndexType', 'DistanceMetric', 'QueryResult', 'SearchParams',
-    'DatabaseConfig', 'SageDBException', 'create_database', 'create_database_from_config'
-]
-EOF
+if ls "$BUILD_DIR"/_sage_db* 1> /dev/null 2>&1; then
+    echo "Copying Python extension into python/ ..."
+    mkdir -p python
+    cp "$BUILD_DIR"/_sage_db* python/
+fi
 
 echo "✅ SAGE DB build completed!"
 echo ""
-echo "📁 Files created:"
-echo "   - libsage_db.so (C++ library)"
-echo "   - _sage_db.so (Python C++ extension)"
-echo "   - sage_db.py (Python wrapper)"
+echo "📁 Files prepared:"
+echo "   - libsage_db.* (C++ library in build)"
+echo "   - python/_sage_db.* (Python C++ extension)"
+echo "   - python/sage_db.py (Python API wrapper in repo)"
 echo ""
-echo "🚀 Usage example:"
-echo "   import sage_db"
-echo "   db = sage_db.create_database(dimension=128)"
-echo "   vector_id = db.add([0.1] * 128, {'text': 'example'})"
-echo "   results = db.search([0.1] * 128, k=5)"
-echo ""
-
-if [[ "$FAISS_FOUND" == "false" ]]; then
-    echo "⚠️  Note: Built with fallback implementation (no FAISS)."
-    echo "   For better performance, install FAISS and rebuild:"
-    echo "   ./build.sh --install-deps --clean"
-fi

@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""
-SAGE CLI Config Command
-配置管理相关命令
-"""
+"""Configuration management commands for SAGE."""
+
+from pathlib import Path
+from typing import Optional
 
 import typer
 
+# Import the LLM config subcommand
+from .llm_config import app as llm_config_app
+
 app = typer.Typer(name="config", help="⚙️ 配置管理")
+
+# Add LLM config subcommand
+app.add_typer(llm_config_app, name="llm")
 
 
 @app.command("show")
@@ -49,23 +55,9 @@ def init_config(
                 print(f"配置文件已存在: {config_manager.config_path}")
                 print("使用 --force 选项覆盖现有配置")
                 return
-            else:
-                print("🔄 覆盖现有配置文件...")
 
-        # 创建默认配置
-        # default_config = {
-        #     "log_level": "INFO",
-        #     "data_dir": "~/sage_data",
-        #     "work_dir": "~/sage_work",
-        #     "ray": {
-        #         "address": "auto",
-        #         "port": 10001
-        #     }
-        # }
-        config_manager.create_default_config()
-        # config_manager.save_config(default_config)
+        config_manager.init_config()
         print(f"✅ 配置文件已创建: {config_manager.config_path}")
-        print("🔧 你可以编辑配置文件来自定义设置")
 
     except Exception as e:
         print(f"❌ 初始化配置失败: {e}")

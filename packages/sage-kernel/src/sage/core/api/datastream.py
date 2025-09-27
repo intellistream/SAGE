@@ -71,8 +71,6 @@ class DataStream(Generic[T]):
             }
         return self._transformation_classes
 
-
-
     def map(
         self,
         function: Union[Type[BaseFunction], callable],
@@ -179,9 +177,7 @@ class DataStream(Generic[T]):
             function = wrap_lambda(function, "keyby")
 
         # 使用传入的parallelism或者默认值1
-        actual_parallelism = (
-            parallelism if parallelism is not None else 1
-        )
+        actual_parallelism = parallelism if parallelism is not None else 1
 
         # 获取KeyByTransformation类
         KeyByTransformation = self._get_transformation_classes()["KeyByTransformation"]
