@@ -2,30 +2,41 @@
 
 from __future__ import annotations
 
-import importlib
+import importlib.util
 import sys
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple
+from pathlib import Path
+from types import ModuleType
+from typing import Iterable, List, Sequence, Tuple
 
 from rich.console import Console
 from rich.table import Table
 
-from .helpers import CLIRunSummary, CLITestCase, run_cases
+THIS_DIR = Path(__file__).resolve().parent
+SUITE_PACKAGE = "sage_cli_suite"
 
-TEST_MODULES = [
-    "sage.tools.tests.test_cli.version_suite",
-    "sage.tools.tests.test_cli.config_suite",
-    "sage.tools.tests.test_cli.llm_suite",
-    "sage.tools.tests.test_cli.doctor_suite",
-    "sage.tools.tests.test_cli.dev_suite",
-    "sage.tools.tests.test_cli.extensions_suite",
-    "sage.tools.tests.test_cli.studio_suite",
-    "sage.tools.tests.test_cli.job_suite",
-    "sage.tools.tests.test_cli.jobmanager_suite",
-    "sage.tools.tests.test_cli.worker_suite",
-    "sage.tools.tests.test_cli.cluster_suite",
-    "sage.tools.tests.test_cli.head_suite",
-]
+try:  # pragma: no cover - import fallback for direct execution
+    from .helpers import CLIRunSummary, CLITestCase, run_cases
+except ImportError:  # pragma: no cover
+    if __package__ in (None, ""):
+        sys.path.insert(0, str(THIS_DIR))
+        from helpers import CLIRunSummary, CLITestCase, run_cases  # type: ignore[no-redef]
+    else:  # pragma: no cover
+        raise
+SUITE_FILES: Sequence[str] = (
+    "version_suite.py",
+    "config_suite.py",
+    "llm_suite.py",
+    "doctor_suite.py",
+    "dev_suite.py",
+    "extensions_suite.py",
+    "studio_suite.py",
+    "job_suite.py",
+    "jobmanager_suite.py",
+    "worker_suite.py",
+    "cluster_suite.py",
+    "head_suite.py",
+)
 
 console = Console()
 
@@ -40,12 +51,39 @@ class CLITestRun:
         return self.summary.success
 
 
-def _load_modules() -> Tuple[List[object], List[CLITestCase]]:
-    modules: List[object] = []
+def _ensure_package_namespace() -> None:
+    if SUITE_PACKAGE not in sys.modules:
+        package_module = ModuleType(SUITE_PACKAGE)
+        package_module.__path__ = [str(THIS_DIR)]  # type: ignore[attr-defined]
+        sys.modules[SUITE_PACKAGE] = package_module
+
+    helpers_module = sys.modules.get(f"{SUITE_PACKAGE}.helpers")
+    if helpers_module is None:
+        base_helpers = sys.modules.get("helpers")
+        if base_helpers is not None:
+            sys.modules[f"{SUITE_PACKAGE}.helpers"] = base_helpers
+
+
+def _load_module_from_path(path: Path) -> ModuleType:
+    _ensure_package_namespace()
+    module_name = f"{SUITE_PACKAGE}.{path.stem}"
+    spec = importlib.util.spec_from_file_location(module_name, str(path))
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Unable to load module from {path}")
+    module = importlib.util.module_from_spec(spec)
+    module.__package__ = SUITE_PACKAGE
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)  # type: ignore[assignment]
+    return module
+
+
+def _load_modules() -> Tuple[List[ModuleType], List[CLITestCase]]:
+    modules: List[ModuleType] = []
     cases: List[CLITestCase] = []
 
-    for module_name in TEST_MODULES:
-        module = importlib.import_module(module_name)
+    for filename in SUITE_FILES:
+        path = THIS_DIR / filename
+        module = _load_module_from_path(path)
         modules.append(module)
         if hasattr(module, "collect_cases"):
             module_cases = list(module.collect_cases())  # type: ignore[attr-defined]

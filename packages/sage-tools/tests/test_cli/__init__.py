@@ -26,6 +26,6 @@ python test_cli/test_commands_full.py
 pytest test_cli/test_main.py -v
 
 # Rich 集成测试
-python -m sage.tools.tests.test_cli.runner
+python packages/sage-tools/tests/test_cli/runner.py
 ```
 """

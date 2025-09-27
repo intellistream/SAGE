@@ -13,7 +13,7 @@ from .helpers import CLITestCase, FakeConfigManager
 def _patch_config_manager(factory: Callable[[], FakeConfigManager]):
     def _factory():
         manager = factory()
-        return patch("sage.tools.cli.commands.config.get_config_manager", return_value=manager)
+        return patch("sage.tools.cli.config_manager.get_config_manager", return_value=manager)
 
     return _factory
 
@@ -49,7 +49,7 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=[
                 lambda: patch(
-                    "sage.tools.cli.commands.config.get_config_manager",
+                    "sage.tools.cli.config_manager.get_config_manager",
                     return_value=init_manager,
                 )
             ],
