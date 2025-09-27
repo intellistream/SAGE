@@ -13,10 +13,10 @@ try:
     # Prefer relative import when installed as a package
     from . import _sage_db  # type: ignore
 except ImportError:  # pragma: no cover - repo/local build fallback
+    import glob
     import importlib
     import sys
     from pathlib import Path
-    import glob
 
     here = Path(__file__).resolve().parent
     candidates = [
@@ -27,12 +27,12 @@ except ImportError:  # pragma: no cover - repo/local build fallback
         here.parent / "build",  # build directory
         here.parent / "install",  # install directory
     ]
-    
+
     # Add paths and try direct import
     for p in candidates:
         if p.exists() and str(p) not in sys.path:
             sys.path.insert(0, str(p))
-    
+
     # Try to find the .so file directly
     _sage_db = None
     for p in candidates:
@@ -44,7 +44,7 @@ except ImportError:  # pragma: no cover - repo/local build fallback
                 if str(p) not in sys.path:
                     sys.path.insert(0, str(p))
                 break
-    
+
     if _sage_db is None:
         _sage_db = importlib.import_module("_sage_db")  # type: ignore
 

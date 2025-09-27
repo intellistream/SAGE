@@ -3,7 +3,7 @@ SAGE Middleware Components - 运行时兼容性检测
 """
 
 import warnings
-from typing import Optional, Any
+from typing import Any, Optional
 
 # 尝试导入C++扩展，失败时使用纯Python实现
 _SAGE_DB_AVAILABLE = False
@@ -11,25 +11,27 @@ _SAGE_FLOW_AVAILABLE = False
 
 try:
     from sage.middleware.components.sage_db.python import _sage_db
+
     _SAGE_DB_AVAILABLE = True
 except ImportError:
     _sage_db = None
     warnings.warn(
         "SAGE DB C++扩展不可用，某些高性能功能将受限。"
         "安装完整版本：pip install --force-reinstall isage-middleware",
-        UserWarning
+        UserWarning,
     )
 
 try:
     from sage.middleware.components.sage_flow.python import _sage_flow
     from sage.middleware.components.sage_flow.python.sage_flow import *
+
     _SAGE_FLOW_AVAILABLE = True
 except ImportError:
     _sage_flow = None
     warnings.warn(
         "SAGE Flow C++扩展不可用，流处理功能将受限。"
         "安装完整版本：pip install --force-reinstall isage-middleware",
-        UserWarning
+        UserWarning,
     )
 
 
@@ -91,7 +93,9 @@ def require_sage_flow():
 if __name__ != "__main__":
     status = get_extension_status()
     if status["total_available"] < status["total_extensions"]:
-        print(f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用")
+        print(
+            f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用"
+        )
         if not _SAGE_DB_AVAILABLE:
             print("  ❌ SAGE DB: C++扩展不可用")
         if not _SAGE_FLOW_AVAILABLE:

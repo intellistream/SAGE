@@ -19,7 +19,7 @@ app = typer.Typer(name="test", help="🧪 测试 C++ 扩展")
 def main(ctx: typer.Context):
     """
     🧪 SAGE C++ 扩展测试工具
-    
+
     专门用于测试 C++ 扩展的安装和功能
     """
     if ctx.invoked_subcommand is None:
@@ -32,7 +32,9 @@ def main(ctx: typer.Context):
         typer.echo()
         typer.echo("完整测试套件:")
         typer.echo("  sage dev test   - 运行完整的测试套件 (包括 C++ 扩展和示例)")
-        typer.echo("                    C++ 扩展测试在: tools/tests/test_cpp_extensions.py")
+        typer.echo(
+            "                    C++ 扩展测试在: tools/tests/test_cpp_extensions.py"
+        )
         typer.echo("  ./tools/tests/run_examples - 运行所有示例程序")
         typer.echo()
         typer.echo("使用 'sage test COMMAND --help' 查看具体命令的帮助")

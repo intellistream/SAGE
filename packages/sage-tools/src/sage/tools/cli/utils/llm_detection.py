@@ -30,13 +30,15 @@ class LLMServiceInfo:
 DEFAULT_TIMEOUT = 2  # seconds
 
 
-def _safe_http_get(url: str, timeout: int = DEFAULT_TIMEOUT, auth_token: Optional[str] = None) -> Optional[str]:
+def _safe_http_get(
+    url: str, timeout: int = DEFAULT_TIMEOUT, auth_token: Optional[str] = None
+) -> Optional[str]:
     """Best-effort HTTP GET that returns response text or ``None`` on failure."""
 
     req = request.Request(url)
     if auth_token:
         req.add_header("Authorization", f"Bearer {auth_token}")
-    
+
     try:
         with request.urlopen(req, timeout=timeout, context=_ssl_context()) as resp:
             charset = resp.headers.get_content_charset() or "utf-8"
@@ -54,7 +56,9 @@ def _ssl_context() -> Optional[ssl.SSLContext]:
         return None
 
 
-def detect_ollama(base_urls: Optional[Iterable[str]] = None) -> Optional[LLMServiceInfo]:
+def detect_ollama(
+    base_urls: Optional[Iterable[str]] = None,
+) -> Optional[LLMServiceInfo]:
     """Detect a running Ollama service by probing the tags endpoint."""
 
     if base_urls is None:
@@ -91,7 +95,9 @@ def detect_ollama(base_urls: Optional[Iterable[str]] = None) -> Optional[LLMServ
     return None
 
 
-def detect_vllm(base_urls: Optional[Iterable[str]] = None, auth_token: Optional[str] = None) -> Optional[LLMServiceInfo]:
+def detect_vllm(
+    base_urls: Optional[Iterable[str]] = None, auth_token: Optional[str] = None
+) -> Optional[LLMServiceInfo]:
     """Detect a running vLLM service by probing the OpenAI-compatible models API."""
 
     if base_urls is None:
@@ -112,7 +118,7 @@ def detect_vllm(base_urls: Optional[Iterable[str]] = None, auth_token: Optional[
             payload = _safe_http_get(f"{host}/v1/models", auth_token=token)
             if payload:
                 break
-        
+
         if not payload:
             continue
 
@@ -138,7 +144,9 @@ def detect_vllm(base_urls: Optional[Iterable[str]] = None, auth_token: Optional[
     return None
 
 
-def detect_all_services(prefer: Optional[str] = None, auth_token: Optional[str] = None) -> List[LLMServiceInfo]:
+def detect_all_services(
+    prefer: Optional[str] = None, auth_token: Optional[str] = None
+) -> List[LLMServiceInfo]:
     """Detect all supported services, optionally restricting by name."""
 
     prefer_normalized = prefer.lower() if prefer else None

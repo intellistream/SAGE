@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """LLM configuration commands for SAGE."""
 
-from pathlib import Path  
+from pathlib import Path
 from typing import Dict, List, Optional
-import typer
 
+import typer
 import yaml
-from sage.tools.cli.utils.llm_detection import (LLMServiceInfo, 
-                                                detect_ollama, 
-                                                detect_vllm,
-                                                detect_all_services)
+from sage.tools.cli.utils.llm_detection import (LLMServiceInfo,
+                                                detect_all_services,
+                                                detect_ollama, detect_vllm)
 
 app = typer.Typer(help="🤖 LLM 服务配置自动化")
 
@@ -58,7 +57,9 @@ def _select_service(
 
     typer.echo("🔍 检测到多个可用的本地 LLM 服务：")
     for idx, service in enumerate(detections, start=1):
-        typer.echo(f"  {idx}. {service.description} -> generator.{service.generator_section}")
+        typer.echo(
+            f"  {idx}. {service.description} -> generator.{service.generator_section}"
+        )
 
     choice = typer.prompt("请选择要使用的服务编号", default="1")
     try:
@@ -181,7 +182,7 @@ def auto_update_generator(
     section_data.setdefault("method", "openai")
     section_data["base_url"] = selected.base_url
     section_data["model_name"] = chosen_model
-    
+
     # Update API key if auth_token was provided
     if auth_token:
         section_data["api_key"] = auth_token

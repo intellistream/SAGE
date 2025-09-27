@@ -30,19 +30,21 @@ class RobustBuildExtensions(build_ext):
 
         print("🔧 开始编译 SAGE C++ 扩展...")
         print("ℹ️  如果编译失败，SAGE 核心功能仍然可用，但某些高性能特性将不可用")
-        
+
         # 检查构建依赖
         if not self._check_build_dependencies():
             print("⚠️  缺少构建依赖，跳过C扩展编译")
-            print("💡 安装提示：sudo apt-get install build-essential cmake 或 brew install cmake")
+            print(
+                "💡 安装提示：sudo apt-get install build-essential cmake 或 brew install cmake"
+            )
             self._create_stub_modules()
             return
 
         # 尝试编译 sage_db
         if self.build_sage_db():
             success_count += 1
-            
-        # 尝试编译 sage_flow  
+
+        # 尝试编译 sage_flow
         if self.build_sage_flow():
             success_count += 1
 
@@ -70,11 +72,13 @@ class RobustBuildExtensions(build_ext):
     def _create_stub_modules(self):
         """创建存根模块，避免导入错误"""
         print("🔧 创建C扩展存根模块...")
-        
+
         # sage_db存根
-        sage_db_python = Path(__file__).parent / "src/sage/middleware/components/sage_db/python"
+        sage_db_python = (
+            Path(__file__).parent / "src/sage/middleware/components/sage_db/python"
+        )
         sage_db_python.mkdir(parents=True, exist_ok=True)
-        
+
         if not (sage_db_python / "_sage_db.py").exists():
             stub_content = '''"""
 SAGE DB 存根模块
@@ -97,9 +101,11 @@ SageDb = SageDbStub
             (sage_db_python / "_sage_db.py").write_text(stub_content)
 
         # sage_flow存根
-        sage_flow_python = Path(__file__).parent / "src/sage/middleware/components/sage_flow/python"
+        sage_flow_python = (
+            Path(__file__).parent / "src/sage/middleware/components/sage_flow/python"
+        )
         sage_flow_python.mkdir(parents=True, exist_ok=True)
-        
+
         if not (sage_flow_python / "_sage_flow.py").exists():
             stub_content = '''"""
 SAGE Flow 存根模块
@@ -151,7 +157,7 @@ SageFlow = SageFlowStub
             return False
         except subprocess.CalledProcessError as e:
             print(f"❌ sage_db 编译失败: {e}")
-            if hasattr(e, 'stderr') and e.stderr:
+            if hasattr(e, "stderr") and e.stderr:
                 print(f"错误详情: {e.stderr}")
             return False
         except Exception as e:
@@ -160,7 +166,9 @@ SageFlow = SageFlowStub
 
     def build_sage_flow(self):
         """编译 sage_flow 组件"""
-        sage_flow_dir = Path(__file__).parent / "src/sage/middleware/components/sage_flow"
+        sage_flow_dir = (
+            Path(__file__).parent / "src/sage/middleware/components/sage_flow"
+        )
 
         if not sage_flow_dir.exists():
             print("⚠️  sage_flow 目录不存在，跳过构建")
@@ -196,7 +204,7 @@ SageFlow = SageFlowStub
             return False
         except subprocess.CalledProcessError as e:
             print(f"❌ sage_flow 构建失败: {e}")
-            if hasattr(e, 'stderr') and e.stderr:
+            if hasattr(e, "stderr") and e.stderr:
                 print(f"错误详情: {e.stderr}")
             return False
         except Exception as e:
@@ -215,7 +223,7 @@ class CustomInstall(install):
 
 
 class CustomDevelop(develop):
-    """自定义开发安装命令""" 
+    """自定义开发安装命令"""
 
     def run(self):
         print("🚀 开始开发模式安装 SAGE Middleware...")
