@@ -2,9 +2,36 @@ import logging
 import time
 
 import numpy as np
-from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.components.sage_flow.python.sage_flow import (
-    SimpleStreamSource, StreamEnvironment)
+
+# Add repo package paths if needed
+try:
+    from sage.common.utils.logging.custom_logger import CustomLogger
+    from sage.middleware.components.sage_flow.python.sage_flow import (
+        SimpleStreamSource, StreamEnvironment)
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path
+
+    here = Path(__file__).resolve()
+    repo_root = None
+    for p in here.parents:
+        if (p / "packages").exists():
+            repo_root = p
+            break
+    assert repo_root is not None
+    for p in [
+        repo_root / "packages" / "sage" / "src",
+        repo_root / "packages" / "sage-common" / "src",
+        repo_root / "packages" / "sage-kernel" / "src",
+        repo_root / "packages" / "sage-middleware" / "src",
+        repo_root / "packages" / "sage-libs" / "src",
+        repo_root / "packages" / "sage-tools" / "src",
+    ]:
+        sys.path.insert(0, str(p))
+
+    from sage.common.utils.logging.custom_logger import CustomLogger
+    from sage.middleware.components.sage_flow.python.sage_flow import (
+        SimpleStreamSource, StreamEnvironment)
 
 
 def main():
