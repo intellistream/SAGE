@@ -3,18 +3,24 @@ import os
 import threading
 import time
 from abc import ABC, abstractmethod
-from queue import Empty
+from queue import Empty as QueueEmpty
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from ray.util.queue import Empty
+try:
+    from ray.util.queue import Empty as RayQueueEmpty
+except ImportError:
+    RayQueueEmpty = QueueEmpty
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.kernel.runtime.communication.router.packet import Packet, StopSignal
 from sage.kernel.runtime.communication.router.router import BaseRouter
 from sage.kernel.runtime.context.task_context import TaskContext
 
 if TYPE_CHECKING:
     from sage.core.factory.operator_factory import OperatorFactory
     from sage.core.operator.base_operator import BaseOperator
+
+
+QUEUE_EMPTY_EXCEPTIONS = (QueueEmpty,) if RayQueueEmpty is QueueEmpty else (QueueEmpty, RayQueueEmpty)
 
 
 class BaseTask(ABC):
@@ -123,7 +129,15 @@ class BaseTask(ABC):
                     # input_result = self.fetch_input()
                     try:
                         data_packet = self.input_qd.get(timeout=5.0)
+                    except QUEUE_EMPTY_EXCEPTIONS:
+                        if self.delay > 0.002:
+                            time.sleep(self.delay)
+                        continue
                     except Exception as e:
+                        self.logger.error(
+                            f"Unexpected error fetching data for task {self.name}: {e}",
+                            exc_info=True,
+                        )
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
@@ -139,9 +153,6 @@ class BaseTask(ABC):
                         continue
 
                     # Check if received packet is a StopSignal
-                    from sage.kernel.runtime.communication.router.packet import \
-                        StopSignal
-
                     if isinstance(data_packet, StopSignal):
                         self.logger.info(
                             f"Node '{self.name}' received stop signal: {data_packet}"
@@ -158,9 +169,10 @@ class BaseTask(ABC):
 
                         if isinstance(self.operator, SinkOperator):
                             self.logger.info(
-                                f"Calling handle_stop_signal for SinkOperator {self.name}"
+                                f"SinkOperator {self.name} starting graceful shutdown after stop signal"
                             )
-                            self.operator.handle_stop_signal()
+                            self._handle_sink_stop_signal(data_packet)
+                            break
                         elif isinstance(self.operator, (JoinOperator)):
                             self.logger.info(
                                 f"Calling handle_stop_signal for {type(self.operator).__name__} {self.name}"
@@ -268,3 +280,82 @@ class BaseTask(ABC):
 
         except Exception as e:
             self.logger.error(f"Error during cleanup of task {self.name}: {e}")
+
+    def _handle_sink_stop_signal(self, stop_signal: "StopSignal"):
+        """Gracefully drain in-flight data before finalizing a sink task."""
+        drain_timeout = getattr(self.operator, "drain_timeout", 10.0)
+        quiet_period = getattr(self.operator, "drain_quiet_period", 0.3)
+        drained = self._drain_inflight_messages(
+            timeout=drain_timeout,
+            quiet_period=quiet_period,
+        )
+
+        if drained == -1:
+            self.logger.warning(
+                f"Sink task {self.name} timed out while draining in-flight data"
+            )
+        else:
+            self.logger.info(
+                f"Sink task {self.name} drained {drained} in-flight packets before shutdown"
+            )
+
+        # 完成最终的关闭逻辑
+        try:
+            self.operator.handle_stop_signal()
+        except Exception as e:
+            self.logger.error(
+                f"Error during sink operator finalization for {self.name}: {e}",
+                exc_info=True,
+            )
+
+        # 通过上下文通知JobManager并传播停止信号
+        try:
+            self.ctx.handle_stop_signal(stop_signal)
+        finally:
+            self.ctx.set_stop_signal()
+
+    def _drain_inflight_messages(
+        self,
+        timeout: float,
+        quiet_period: float,
+    ) -> int:
+        """Drain packets that arrived before the stop signal reached the sink."""
+        if not self.input_qd:
+            return 0
+
+        start_time = time.time()
+        last_packet_time = start_time
+        drained_packets = 0
+        poll_interval = min(quiet_period, 0.1)
+
+        self.logger.debug(
+            f"Sink task {self.name} draining queues with timeout={timeout}s and quiet_period={quiet_period}s"
+        )
+
+        while True:
+            elapsed = time.time() - start_time
+            if elapsed >= timeout:
+                return -1
+
+            try:
+                packet = self.input_qd.get(timeout=poll_interval)
+            except QUEUE_EMPTY_EXCEPTIONS:
+                if time.time() - last_packet_time >= quiet_period:
+                    break
+                continue
+
+            if isinstance(packet, StopSignal):
+                # 如果还有其他停止信号，继续等待数据排空
+                continue
+
+            try:
+                self.operator.receive_packet(packet)
+                drained_packets += 1
+                last_packet_time = time.time()
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to process in-flight packet during draining for {self.name}: {e}",
+                    exc_info=True,
+                )
+
+        return drained_packets

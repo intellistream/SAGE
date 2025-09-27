@@ -101,6 +101,14 @@ class CharacterSplitter(BaseFunction):
         return chunks
 
 
+class SlowCharacterSplitter(CharacterSplitter):
+    """延长处理时间的CharacterSplitter，用于模拟在途数据"""
+
+    def execute(self, document):
+        time.sleep(0.05)
+        return super().execute(document)
+
+
 class ChunkCollector(SinkFunction):
     """收集分块结果的sink算子"""
 
@@ -163,6 +171,15 @@ class ChunkCollector(SinkFunction):
         """清空收集到的chunks"""
         with cls._lock:
             cls._collected_chunks = []
+
+
+class LaggyChunkCollector(ChunkCollector):
+    """处理延迟的Sink算子，模拟慢速消费者"""
+
+    def execute(self, chunks):
+        time.sleep(0.05)
+        super().execute(chunks)
+
 
 
 class TestChunkParallelism:
@@ -333,28 +350,25 @@ class TestChunkParallelism:
         collected_chunks = ChunkCollector.get_collected_chunks()
         assert len(collected_chunks) > 0
 
-        # 验证大部分文档都被处理（允许在高并发环境下的时序不确定性）
+        # 验证所有文档都被处理
         processed_doc_ids = set(chunk["doc_id"] for chunk in collected_chunks)
         expected_doc_ids = {"doc2", "doc3", "doc4", "doc5", "large_doc1", "large_doc2"}
-        
-        # 至少应该处理了大部分文档（容忍竞态条件下可能丢失最后一个文档）
-        assert len(processed_doc_ids) >= len(expected_doc_ids) - 1, f"Expected at least {len(expected_doc_ids) - 1} documents processed, got {len(processed_doc_ids)}: {processed_doc_ids}"
-        
-        # 确保所有处理的文档ID都是预期的
-        assert processed_doc_ids.issubset(expected_doc_ids), f"Unexpected document IDs found: {processed_doc_ids - expected_doc_ids}"
+
+        assert (
+            processed_doc_ids == expected_doc_ids
+        ), f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
 
         # 验证大文档产生了足够的chunks（如果被处理的话）
         large_doc1_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
         large_doc2_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc2"]
         
-        # 如果大文档被处理了，应该产生很多chunks
-        if large_doc1_chunks:
-            assert len(large_doc1_chunks) > 30, f"large_doc1 should generate many chunks, got {len(large_doc1_chunks)}"
-        if large_doc2_chunks:
-            assert len(large_doc2_chunks) > 30, f"large_doc2 should generate many chunks, got {len(large_doc2_chunks)}"
-            
-        # 至少应该有一个大文档被完整处理
-        assert len(large_doc1_chunks) > 30 or len(large_doc2_chunks) > 30, "At least one large document should be processed completely"
+        # 大文档应该产生大量chunks
+        assert (
+            len(large_doc1_chunks) > 30
+        ), f"large_doc1 should generate many chunks, got {len(large_doc1_chunks)}"
+        assert (
+            len(large_doc2_chunks) > 30
+        ), f"large_doc2 should generate many chunks, got {len(large_doc2_chunks)}"
 
         print(f"✅ Mixed document test completed: {len(collected_chunks)} total chunks")
         print(f"   - large_doc1: {len(large_doc1_chunks)} chunks")
@@ -390,3 +404,48 @@ class TestChunkParallelism:
 
         print("✅ Parallelism hints approach works correctly")
         print("💡 Key advantage: Framework manages parallelism, code stays simple")
+
+    def test_autostop_graceful_shutdown_drains_sink(self):
+        """验证autostop在存在在途数据时不会丢失数据"""
+        print("\n" + "=" * 70)
+        print("TEST: Autostop Graceful Shutdown Drains Sink")
+        print("=" * 70)
+
+        ChunkCollector.clear_collected_chunks()
+        LaggyChunkCollector.clear_collected_chunks()
+
+        env = LocalEnvironment(name="graceful_shutdown_drain_test")
+
+        large_content = "Synthetic large document content to simulate heavy processing. " * 60
+        documents = [
+            {"content": large_content, "id": "slow_doc1"},
+            {"content": large_content, "id": "slow_doc2"},
+        ]
+
+        result_stream = (
+            env.from_collection(DocumentSource, documents)
+            .map(SlowCharacterSplitter, chunk_size=60, overlap=15, parallelism=2)
+            .sink(LaggyChunkCollector, parallelism=1)
+        )
+
+        env.submit(autostop=True)
+
+        collected_chunks = LaggyChunkCollector.get_collected_chunks()
+        assert len(collected_chunks) > 0
+
+        expected_doc_ids = {doc["id"] for doc in documents}
+        processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
+
+        assert (
+            processed_doc_ids == expected_doc_ids
+        ), f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+
+        for doc_id in expected_doc_ids:
+            doc_chunks = [c for c in collected_chunks if c["doc_id"] == doc_id]
+            assert (
+                len(doc_chunks) > 20
+            ), f"Document {doc_id} should generate many chunks, got {len(doc_chunks)}"
+
+        print(
+            f"✅ Graceful shutdown drained sink with {len(collected_chunks)} total chunks across {len(expected_doc_ids)} documents"
+        )
