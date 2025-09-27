@@ -87,18 +87,17 @@ jobs:
           echo "- 缓存策略: 基于代码内容自动失效"
           echo "- 包含文件: Python源码, C++源码, 配置文件, 子模块状态, CI配置"
 
-      - name: Cache SAGE Installation
+      - name: Cache Build Artifacts
         id: cache-sage
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
-            ~/.local
             packages/sage-middleware/src/sage/middleware/components/*/python/*.so
             packages/sage-middleware/src/sage/middleware/components/*/build
             packages/sage-middleware/src/sage/middleware/components/*/install
           key: ${{ steps.cache-key.outputs.key }}
-          # 移除 restore-keys 以避免使用损坏的旧缓存
+          # 不缓存 ~/.local 以避免 .pth 文件路径问题，每次重新执行 pip install -e
 
       - name: Install System Dependencies
         if: steps.cache-sage.outputs.cache-hit != 'true'
@@ -262,17 +261,26 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Restore SAGE Installation
+      - name: Restore Build Artifacts
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
-            ~/.local
             packages/sage-middleware/src/sage/middleware/components/*/python/*.so
             packages/sage-middleware/src/sage/middleware/components/*/build
             packages/sage-middleware/src/sage/middleware/components/*/install
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
+
+      - name: Reinstall SAGE Packages
+        run: |
+          echo "🔄 重新安装 SAGE packages (避免缓存的 .pth 文件问题)..."
+          pip install -e packages/sage-common
+          pip install -e packages/sage-kernel  
+          pip install -e packages/sage-middleware
+          pip install -e packages/sage-libs
+          pip install -e packages/sage-tools[cli]
+          pip install -e packages/sage[full]
 
       - name: Run Basic Tests
         run: |
@@ -330,17 +338,26 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Restore SAGE Installation
+      - name: Restore Build Artifacts
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
-            ~/.local
             packages/sage-middleware/src/sage/middleware/components/*/python/*.so
             packages/sage-middleware/src/sage/middleware/components/*/build
             packages/sage-middleware/src/sage/middleware/components/*/install
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
+
+      - name: Reinstall SAGE Packages
+        run: |
+          echo "🔄 重新安装 SAGE packages (避免缓存的 .pth 文件问题)..."
+          pip install -e packages/sage-common
+          pip install -e packages/sage-kernel  
+          pip install -e packages/sage-middleware
+          pip install -e packages/sage-libs
+          pip install -e packages/sage-tools[cli]
+          pip install -e packages/sage[full]
 
       - name: Install Test Dependencies
         run: |
@@ -379,17 +396,26 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Restore SAGE Installation
+      - name: Restore Build Artifacts
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
-            ~/.local
             packages/sage-middleware/src/sage/middleware/components/*/python/*.so
             packages/sage-middleware/src/sage/middleware/components/*/build
             packages/sage-middleware/src/sage/middleware/components/*/install
           key: ${{ needs.build-sage.outputs.cache-key }}
           fail-on-cache-miss: true
+
+      - name: Reinstall SAGE Packages
+        run: |
+          echo "🔄 重新安装 SAGE packages (避免缓存的 .pth 文件问题)..."
+          pip install -e packages/sage-common
+          pip install -e packages/sage-kernel  
+          pip install -e packages/sage-middleware
+          pip install -e packages/sage-libs
+          pip install -e packages/sage-tools[cli]
+          pip install -e packages/sage[full]
 
       - name: Validate PyPI Release Readiness
         run: |
