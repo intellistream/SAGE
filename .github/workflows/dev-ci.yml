@@ -29,7 +29,7 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  CACHE_VERSION: v2-simplified
+  CACHE_VERSION: v3-validated  # 增加版本号以包含验证逻辑
 
 jobs:
   build-sage:
@@ -91,12 +91,53 @@ jobs:
           }
         timeout-minutes: 5
 
-      - name: Install SAGE
-        if: steps.cache-sage.outputs.cache-hit != 'true'
+      - name: Verify Cache Validity
+        id: cache-validation
+        if: steps.cache-sage.outputs.cache-hit == 'true'
         run: |
-          echo "🚀 安装SAGE（使用改进的安装系统）..."
+          echo "🔍 验证缓存的安装是否有效..."
+          CACHE_VALID=true
+          
+          # 检查基本的 SAGE 导入
+          if python -c "import sage; import sage.common" 2>/dev/null; then
+            echo "✅ 缓存的 SAGE 安装有效"
+          else
+            echo "❌ 缓存的 SAGE 安装无效，需要重新安装"
+            CACHE_VALID=false
+          fi
+          
+          # 检查CLI工具
+          if command -v sage >/dev/null 2>&1; then
+            echo "✅ sage CLI 可用"
+          else
+            echo "❌ sage CLI 不可用，需要重新安装"
+            CACHE_VALID=false
+          fi
+          
+          echo "valid=${CACHE_VALID}" >> $GITHUB_OUTPUT
+
+      - name: Install SAGE
+        if: steps.cache-sage.outputs.cache-hit != 'true' || steps.cache-validation.outputs.valid == 'false'
+        run: |
+          if [ "${{ steps.cache-validation.outputs.valid }}" == "false" ]; then
+            echo "🔄 强制重新安装SAGE（缓存验证失败）..."
+          else
+            echo "🚀 安装SAGE（使用改进的安装系统）..."
+          fi
+          
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --pip --yes
+          
+          # 验证安装成功
+          echo "🔍 验证SAGE安装..."
+          python -c "import sage; import sage.common; print('✅ SAGE核心模块导入成功')"
+          
+          if command -v sage >/dev/null 2>&1; then
+            echo "✅ sage CLI工具可用"
+          else
+            echo "❌ sage CLI工具不可用"
+            exit 1
+          fi
           
           # 验证扩展构建结果（开发者模式应该已经构建了扩展）
           echo "🔍 验证扩展构建结果..."
@@ -104,8 +145,10 @@ jobs:
             echo "✅ 找到.so文件:"
             find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
           else
-            echo "❌ 未找到.so文件，扩展构建可能失败"
+            echo "⚠️ 未找到.so文件，扩展构建可能失败（但不阻断流程）"
           fi
+          
+          echo "✅ SAGE安装验证完成"
         timeout-minutes: 20
 
       - name: Verify Installation
