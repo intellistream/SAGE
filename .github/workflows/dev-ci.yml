@@ -29,7 +29,7 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  CACHE_VERSION: v5-cpp-extensions-fix  # 修复C++扩展导入问题，强制重建缓存
+  # 移除手动CACHE_VERSION，让缓存完全基于代码内容自动失效
 
 jobs:
   build-sage:
@@ -56,25 +56,36 @@ jobs:
       - name: Generate Cache Key
         id: cache-key
         run: |
+          echo "🔑 生成智能缓存键（基于代码内容）..."
+          
           # 包含Python文件、配置文件和C++扩展相关文件
-          HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" -o -name "*.cpp" -o -name "*.hpp" -o -name "CMakeLists.txt" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-          # 也包含系统依赖安装脚本
-          DEPS_HASH=$(find tools/install/ -name "*.sh" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
-          # 包含子模块状态信息（重要！）
+          SAGE_CODE_HASH=$(find packages/ -name "*.py" -o -name "pyproject.toml" -o -name "*.cpp" -o -name "*.hpp" -o -name "CMakeLists.txt" -o -name "*.h" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          echo "📄 SAGE代码hash: ${SAGE_CODE_HASH}"
+          
+          # 系统依赖和构建脚本
+          BUILD_SCRIPTS_HASH=$(find tools/ -name "*.sh" -o -name "*.py" | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          echo "🔧 构建脚本hash: ${BUILD_SCRIPTS_HASH}"
+          
+          # 子模块状态（关键！）
           SUBMODULE_HASH=$(git submodule status | md5sum | cut -d' ' -f1)
-          # CI配置文件也应该影响缓存
-          CI_HASH=$(md5sum .github/workflows/dev-ci.yml | cut -d' ' -f1)
-          COMBINED_HASH=$(echo "${HASH}-${DEPS_HASH}-${SUBMODULE_HASH}-${CI_HASH}" | md5sum | cut -d' ' -f1)
-          CACHE_KEY="sage-simplified-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-${COMBINED_HASH}"
+          echo "📦 子模块状态hash: ${SUBMODULE_HASH}"
+          
+          # CI配置和其他重要文件
+          CONFIG_HASH=$(cat .github/workflows/dev-ci.yml quickstart.sh | md5sum | cut -d' ' -f1)
+          echo "⚙️ 配置文件hash: ${CONFIG_HASH}"
+          
+          # 生成最终缓存键
+          COMBINED_HASH=$(echo "${SAGE_CODE_HASH}-${BUILD_SCRIPTS_HASH}-${SUBMODULE_HASH}-${CONFIG_HASH}" | md5sum | cut -d' ' -f1)
+          CACHE_KEY="sage-auto-${{ runner.os }}-py311-${COMBINED_HASH}"
           echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
-          echo "🔑 Generated cache key: ${CACHE_KEY}"
+          echo "🔑 最终缓存键: ${CACHE_KEY}"
 
       - name: Debug Cache Status
         run: |
           echo "🔍 缓存调试信息:"
-          echo "- Cache Version: ${{ env.CACHE_VERSION }}"
           echo "- Runner OS: ${{ runner.os }}"
-          echo "- Expected Key: sage-simplified-${{ env.CACHE_VERSION }}-${{ runner.os }}-py311-*"
+          echo "- 缓存策略: 基于代码内容自动失效"
+          echo "- 包含文件: Python源码, C++源码, 配置文件, 子模块状态, CI配置"
 
       - name: Cache SAGE Installation
         id: cache-sage
