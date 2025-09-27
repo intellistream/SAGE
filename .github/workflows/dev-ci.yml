@@ -93,9 +93,15 @@ jobs:
           echo "🚀 安装SAGE（使用改进的安装系统）..."
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --pip --yes
-          # 验证构建结果
+          
+          # 验证扩展构建结果（开发者模式应该已经构建了扩展）
           echo "🔍 验证扩展构建结果..."
-          find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f || echo "未找到.so文件"          
+          if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
+            echo "✅ 找到.so文件:"
+            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
+          else
+            echo "❌ 未找到.so文件，扩展构建可能失败"
+          fi
         timeout-minutes: 20
 
       - name: Verify Installation

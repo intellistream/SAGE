@@ -12,35 +12,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 install_cpp_extensions() {
     local log_file="$1"
     
-    echo -e "${DIM}正在检查系统构建工具...${NC}"
     echo "$(date): 开始安装C++扩展" >> "$log_file"
+    echo -e "${DIM}正在构建C++扩展...${NC}"
     
-    # 检查必要的构建工具
-    local missing_tools=()
-    
-    if ! command -v gcc >/dev/null 2>&1 && ! command -v g++ >/dev/null 2>&1; then
-        missing_tools+=("gcc/g++")
-    fi
-    
-    if ! command -v cmake >/dev/null 2>&1; then
-        missing_tools+=("cmake")
-    fi
-    
-    if ! command -v make >/dev/null 2>&1; then
-        missing_tools+=("make")
-    fi
-    
-    if [ ${#missing_tools[@]} -gt 0 ]; then
-        echo -e "${WARNING} 缺少构建工具: ${missing_tools[*]}"
-        echo -e "${DIM}Ubuntu/Debian: sudo apt install build-essential cmake${NC}"
-        echo -e "${DIM}CentOS/RHEL: sudo yum groupinstall 'Development Tools' && sudo yum install cmake${NC}"
-        echo -e "${DIM}macOS: xcode-select --install && brew install cmake${NC}"
-        echo "$(date): 构建工具检查失败: ${missing_tools[*]}" >> "$log_file"
-        return 1
-    fi
-    
-    echo -e "${CHECK} 构建工具检查完成"
-    echo ""
+    # 系统依赖已经在comprehensive_system_check中检查和安装了
+    # 这里直接尝试构建扩展
     
     # 尝试使用 sage 命令安装扩展
     echo -e "${DIM}正在安装C++扩展...${NC}"
@@ -136,10 +112,40 @@ install_dev_packages() {
     if install_cpp_extensions "$log_file"; then
         echo -e "${CHECK} C++ 扩展安装成功 (sage_db, sage_flow)"
         echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
+        
+        # 验证扩展是否真的可用
+        echo -e "${DIM}验证扩展可用性...${NC}"
+        if python3 -c "
+try:
+    from sage.middleware.components.extensions_compat import check_extensions_availability
+    available = check_extensions_availability()
+    total = sum(available.values())
+    if total > 0:
+        print('✅ 扩展验证成功: {}/{} 可用'.format(total, len(available)))
+    else:
+        print('⚠️ 扩展构建完成但不可用')
+        exit(1)
+except ImportError:
+    print('⚠️ 无法验证扩展状态')
+    exit(1)
+" 2>/dev/null; then
+            echo -e "${CHECK} 扩展功能验证通过"
+        else
+            echo -e "${WARNING} 扩展构建完成但验证失败"
+        fi
     else
         echo -e "${WARNING} C++ 扩展安装失败，基础Python功能不受影响"
         echo -e "${DIM}稍后可手动安装: sage extensions install all${NC}"
         echo -e "${DIM}或查看日志了解详情: $log_file${NC}"
+        
+        # 在CI环境中显示更多调试信息
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            echo -e "${INFO} CI环境调试信息:"
+            echo -e "${DIM}检查系统依赖状态...${NC}"
+            gcc --version 2>/dev/null || echo "gcc 不可用"
+            cmake --version 2>/dev/null || echo "cmake 不可用"
+            find /usr/lib* -name "*blas*" -o -name "*lapack*" 2>/dev/null | head -3 || echo "未找到BLAS/LAPACK"
+        fi
     fi
     
     echo ""
