@@ -17,6 +17,7 @@ from sage.tools.cli.commands.head import app as head_app
 from sage.tools.cli.commands.job import app as job_app
 from sage.tools.cli.commands.jobmanager import app as jobmanager_app
 from sage.tools.cli.commands.llm import app as llm_app  # 新增LLM命令
+from sage.tools.cli.commands.pipeline import app as pipeline_app
 from sage.tools.cli.commands.studio import app as studio_app
 from sage.tools.cli.commands.test_extensions import app as test_extensions_app
 from sage.tools.cli.commands.version import app as version_app
@@ -62,6 +63,7 @@ app.add_typer(jobmanager_app, name="jobmanager", help="⚡ JobManager - 作业�
 app.add_typer(worker_app, name="worker", help="🔧 Worker - 工作节点管理")
 app.add_typer(cluster_app, name="cluster", help="🌐 Cluster - 集群管理和状态监控")
 app.add_typer(head_app, name="head", help="🎯 Head - 集群头节点管理")
+app.add_typer(pipeline_app, name="pipeline", help="🛠️ Pipeline 构建助手")
 
 
 @app.callback()
