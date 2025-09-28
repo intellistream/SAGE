@@ -27,7 +27,10 @@ import json
 import random
 import argparse
 from typing import Dict, Any, List, Optional
-import yaml
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CUR_DIR, "..", ".."))
