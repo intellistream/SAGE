@@ -298,8 +298,8 @@ def build_pipeline(video_path: str, chroma_conf: Dict[str, Any], embedding_conf:
                 return
             self.count += 1
             if self.count >= self.max_frames:
-                # Trigger environment to stop
-                raise SystemExit("Reached max frames, stopping pipeline")
+                # Signal environment to stop processing further frames
+                return False
 
     env.from_batch(VideoBatch, video_path=video_path, sample_every=sample_every) \
        .map(VideoAIAnalyzer, analysis_interval=analysis_interval) \
