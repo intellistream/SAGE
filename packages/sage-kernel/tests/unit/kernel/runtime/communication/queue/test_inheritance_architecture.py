@@ -6,8 +6,11 @@
 
 import pytest
 from sage.kernel.runtime.communication.queue_descriptor import (
-    BaseQueueDescriptor, PythonQueueDescriptor, RPCQueueDescriptor,
-    resolve_descriptor)
+    BaseQueueDescriptor,
+    PythonQueueDescriptor,
+    RPCQueueDescriptor,
+    resolve_descriptor,
+)
 
 # 检查Ray是否可用
 try:

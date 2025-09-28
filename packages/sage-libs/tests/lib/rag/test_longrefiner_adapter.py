@@ -11,8 +11,7 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.longrefiner.longrefiner_adapter import \
-        LongRefinerAdapter
+    from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 
     LONGREFINER_AVAILABLE = True
 except ImportError as e:
@@ -36,8 +35,7 @@ class TestLongRefinerAdapter:
         if not LONGREFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
-        from sage.libs.rag.longrefiner.longrefiner_adapter import \
-            LongRefinerAdapter
+        from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 
         assert LongRefinerAdapter is not None
 

@@ -145,8 +145,9 @@ try:
             """生产物品到队列"""
             try:
                 # 从字典重建队列描述符
-                from sage.kernel.runtime.communication.queue_descriptor import \
-                    resolve_descriptor
+                from sage.kernel.runtime.communication.queue_descriptor import (
+                    resolve_descriptor,
+                )
 
                 queue_desc = resolve_descriptor(queue_desc_dict)
 
@@ -168,8 +169,9 @@ try:
             """从队列消费物品"""
             try:
                 # 从字典重建队列描述符
-                from sage.kernel.runtime.communication.queue_descriptor import \
-                    resolve_descriptor
+                from sage.kernel.runtime.communication.queue_descriptor import (
+                    resolve_descriptor,
+                )
 
                 queue_desc = resolve_descriptor(queue_desc_dict)
 

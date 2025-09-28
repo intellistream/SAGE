@@ -3,12 +3,10 @@ from typing import List, Tuple
 
 import json_repair
 import numpy as np
-from sage.libs.rag.longrefiner.longrefiner.prompt_template import \
-    PromptTemplate
+from sage.libs.rag.longrefiner.longrefiner.prompt_template import PromptTemplate
 from sage.libs.rag.longrefiner.longrefiner.task_instruction import *
 from tqdm import tqdm
-from transformers import (AutoModel, AutoModelForSequenceClassification,
-                          AutoTokenizer)
+from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 

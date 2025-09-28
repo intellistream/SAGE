@@ -9,8 +9,9 @@
 import sys
 from pathlib import Path
 
-from sage.tools.dev.utils.intermediate_results_checker import \
-    print_intermediate_results_check
+from sage.tools.dev.utils.intermediate_results_checker import (
+    print_intermediate_results_check,
+)
 
 # 添加 sage-tools 到 Python 路径
 script_path = Path(__file__).parent

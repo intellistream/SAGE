@@ -18,11 +18,20 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 from sage.common.utils.system.environment import (
-    detect_execution_environment, detect_gpu_resources,
-    get_environment_capabilities, get_network_interfaces, get_ray_cluster_info,
-    get_system_resources, is_docker_environment, is_kubernetes_environment,
-    is_ray_available, is_ray_cluster_active, is_slurm_environment,
-    recommend_backend, validate_environment_for_backend)
+    detect_execution_environment,
+    detect_gpu_resources,
+    get_environment_capabilities,
+    get_network_interfaces,
+    get_ray_cluster_info,
+    get_system_resources,
+    is_docker_environment,
+    is_kubernetes_environment,
+    is_ray_available,
+    is_ray_cluster_active,
+    is_slurm_environment,
+    recommend_backend,
+    validate_environment_for_backend,
+)
 
 
 @pytest.mark.unit

@@ -10,10 +10,10 @@ SAGE Config Command - Refactored Version
 from pathlib import Path
 
 import typer
+
 # 使用新的核心模块
 from sage.tools.cli.core import BaseCommand, CLIException, cli_command
-from sage.tools.cli.core.config import (create_default_config,
-                                        load_and_validate_config)
+from sage.tools.cli.core.config import create_default_config, load_and_validate_config
 from sage.tools.cli.core.utils import save_yaml_file
 
 app = typer.Typer(name="config", help="⚙️ Configuration management")

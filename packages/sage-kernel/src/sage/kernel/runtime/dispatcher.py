@@ -111,8 +111,7 @@ class Dispatcher:
                 and "JoinOperator" in task.operator.__class__.__name__
             ):
                 # 这是一个 JoinOperator，创建一个停止信号并直接发送
-                from sage.kernel.runtime.communication.router.packet import \
-                    StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 stop_signal = StopSignal(source_node_name)
 

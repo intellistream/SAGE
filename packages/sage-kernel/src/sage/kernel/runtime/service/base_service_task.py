@@ -90,8 +90,7 @@ class BaseServiceTask(ABC):
         """获取logger，优先使用ctx.logger，否则使用CustomLogger"""
         if not hasattr(self, "_logger") or self._logger is None:
             if self.ctx is None:
-                from sage.common.utils.logging.custom_logger import \
-                    CustomLogger
+                from sage.common.utils.logging.custom_logger import CustomLogger
 
                 self._logger = CustomLogger(
                     name=f"{self.__class__.__name__}_{self.service_name}"

@@ -10,8 +10,9 @@ if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
     from sage.kernel.jobmanager.compiler.service_node import ServiceNode
-    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import \
-        BaseQueueDescriptor
+    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
+        BaseQueueDescriptor,
+    )
 
 # task, operator和function "形式上共享"的运行上下文
 

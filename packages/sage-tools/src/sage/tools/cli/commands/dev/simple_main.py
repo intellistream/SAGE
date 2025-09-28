@@ -162,7 +162,7 @@ def quality(
         console.print("\n📦 运行导入排序检查 (isort)...")
 
         if should_fix:
-            cmd = ["isort"] + target_paths
+            cmd = ["isort", "--profile", "black"] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -389,7 +389,7 @@ def _run_quality_check(
                 if not quiet:
                     console.print("[green]✅ 导入排序检查通过 √ [/green]")
         elif fix:
-            cmd = ["isort"] + target_paths
+            cmd = ["isort", "--profile", "black"] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -620,8 +620,7 @@ def status(
     try:
         from pathlib import Path
 
-        from sage.tools.dev.tools.project_status_checker import \
-            ProjectStatusChecker
+        from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
 
         # 自动检测项目根目录
         project_path = Path(project_root).resolve()
@@ -781,8 +780,7 @@ def test(
         from pathlib import Path
 
         from rich.rule import Rule
-        from sage.tools.dev.tools.enhanced_test_runner import \
-            EnhancedTestRunner
+        from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
 
         # 0. 测试目录获取
         if not quiet:
@@ -931,8 +929,10 @@ def home(
 ):
     """管理SAGE目录"""
     try:
-        from sage.common.config.output_paths import (get_sage_paths,
-                                                     initialize_sage_paths)
+        from sage.common.config.output_paths import (
+            get_sage_paths,
+            initialize_sage_paths,
+        )
 
         # 使用统一的路径系统
         if path:
@@ -1949,8 +1949,7 @@ def _run_tools_test(test_type: str, verbose: bool, packages: str):
         try:
             import time
 
-            from sage.tools.dev.tools.enhanced_test_runner import \
-                EnhancedTestRunner
+            from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
 
             runner = EnhancedTestRunner(project_root)
 

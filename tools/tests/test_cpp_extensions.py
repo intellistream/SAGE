@@ -23,8 +23,9 @@ class TestCppExtensions:
     def test_sage_db_import(self):
         """测试 sage_db 扩展导入"""
         try:
-            from sage.middleware.components.sage_db.python.sage_db import \
-                SageDB  # noqa: F401
+            from sage.middleware.components.sage_db.python.sage_db import (  # noqa: F401
+                SageDB,
+            )
 
             assert True, "sage_db 扩展导入成功"
         except ImportError as e:
@@ -33,8 +34,9 @@ class TestCppExtensions:
     def test_sage_flow_import(self):
         """测试 sage_flow 扩展导入"""
         try:
-            from sage.middleware.components.sage_flow.python.sage_flow import \
-                StreamEnvironment  # noqa: F401
+            from sage.middleware.components.sage_flow.python.sage_flow import (  # noqa: F401
+                StreamEnvironment,
+            )
 
             assert True, "sage_flow 扩展导入成功"
         except ImportError as e:
@@ -43,8 +45,9 @@ class TestCppExtensions:
     def test_sage_db_microservice_import(self):
         """测试 sage_db micro_service 导入"""
         try:
-            from sage.middleware.components.sage_db.python.micro_service.sage_db_service import \
-                SageDBService  # noqa: F401
+            from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (  # noqa: F401
+                SageDBService,
+            )
 
             assert True, "sage_db micro_service 导入成功"
         except ImportError as e:
@@ -53,8 +56,9 @@ class TestCppExtensions:
     def test_sage_flow_microservice_import(self):
         """测试 sage_flow micro_service 导入"""
         try:
-            from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import \
-                SageFlowService  # noqa: F401
+            from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import (  # noqa: F401
+                SageFlowService,
+            )
 
             assert True, "sage_flow micro_service 导入成功"
         except ImportError as e:

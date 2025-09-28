@@ -16,8 +16,7 @@ from typing import Any, Dict, Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sage.common.utils.network.local_tcp_server import (BaseTcpServer,
-                                                        LocalTcpServer)
+from sage.common.utils.network.local_tcp_server import BaseTcpServer, LocalTcpServer
 
 
 class TestBaseTcpServer:

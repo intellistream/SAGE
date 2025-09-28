@@ -7,12 +7,11 @@ from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.components.neuromem.memory_collection.base_collection import \
-    BaseMemoryCollection
-from sage.middleware.components.neuromem.search_engine.vdb_index import \
-    index_factory
-from sage.middleware.components.neuromem.utils.path_utils import \
-    get_default_data_dir
+from sage.middleware.components.neuromem.memory_collection.base_collection import (
+    BaseMemoryCollection,
+)
+from sage.middleware.components.neuromem.search_engine.vdb_index import index_factory
+from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
 from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 
 
@@ -591,8 +590,9 @@ class VDBMemoryCollection(BaseMemoryCollection):
             try:
                 # 直接使用索引类的load方法
                 if idx_type == "FaissIndex":
-                    from sage.middleware.components.neuromem.search_engine.vdb_index.faiss_index import \
-                        FaissIndex
+                    from sage.middleware.components.neuromem.search_engine.vdb_index.faiss_index import (
+                        FaissIndex,
+                    )
 
                     idx = FaissIndex.load(index_name, idx_path)
                 else:

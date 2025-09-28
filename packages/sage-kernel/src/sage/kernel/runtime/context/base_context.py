@@ -3,8 +3,10 @@ from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.kernel.runtime.service.service_caller import (ServiceCallProxy,
-                                                            ServiceManager)
+    from sage.kernel.runtime.service.service_caller import (
+        ServiceCallProxy,
+        ServiceManager,
+    )
 
 
 class ServiceDict:
@@ -19,8 +21,7 @@ class ServiceDict:
 
     def __getitem__(self, service_name: str):
         if service_name not in self._service_proxies:
-            from sage.kernel.runtime.service.service_caller import \
-                ServiceCallProxy
+            from sage.kernel.runtime.service.service_caller import ServiceCallProxy
 
             self._service_proxies[service_name] = ServiceCallProxy(
                 self._service_manager, service_name, logger=self.logger
@@ -133,8 +134,7 @@ class BaseRuntimeContext:
     def service_manager(self) -> "ServiceManager":
         """Lazy-loaded service manager"""
         if self._service_manager is None:
-            from sage.kernel.runtime.service.service_caller import \
-                ServiceManager
+            from sage.kernel.runtime.service.service_caller import ServiceManager
 
             self._service_manager = ServiceManager(self, logger=self.logger)
         return self._service_manager

@@ -50,8 +50,7 @@ def check_sage_installation():
 
         # 尝试导入 JobManagerClient
         try:
-            from sage.kernel.jobmanager.jobmanager_client import \
-                JobManagerClient
+            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 
             print(f"✅ JobManagerClient 导入成功: {JobManagerClient}")
         except ImportError as e:
@@ -86,8 +85,7 @@ def check_sage_installation():
 
             # 检查是否有 logging.custom_logger
             try:
-                from sage.utils.logging.custom_logger import \
-                    CustomLogger  # noqa: F401
+                from sage.utils.logging.custom_logger import CustomLogger  # noqa: F401
 
                 print(f"✅ CustomLogger 导入成功")
             except ImportError as e:

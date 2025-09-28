@@ -13,17 +13,22 @@ from typing import Any, Dict
 
 import psutil
 import typer
+
 # 导入系统工具模块
-from sage.common.utils.system.network import (aggressive_port_cleanup,
-                                              check_port_binding_permission,
-                                              find_port_processes,
-                                              send_tcp_health_check,
-                                              wait_for_port_release)
-from sage.common.utils.system.process import (create_sudo_manager,
-                                              find_processes_by_name,
-                                              get_process_info,
-                                              kill_process_with_sudo,
-                                              terminate_process)
+from sage.common.utils.system.network import (
+    aggressive_port_cleanup,
+    check_port_binding_permission,
+    find_port_processes,
+    send_tcp_health_check,
+    wait_for_port_release,
+)
+from sage.common.utils.system.process import (
+    create_sudo_manager,
+    find_processes_by_name,
+    get_process_info,
+    kill_process_with_sudo,
+    terminate_process,
+)
 
 app = typer.Typer(
     name="jobmanager",
@@ -370,8 +375,9 @@ class JobManagerController:
 
     def is_port_occupied(self) -> bool:
         """检查端口是否被占用"""
-        from sage.common.utils.system.network import \
-            is_port_occupied as check_port_occupied
+        from sage.common.utils.system.network import (
+            is_port_occupied as check_port_occupied,
+        )
 
         return check_port_occupied(self.host, self.port)
 

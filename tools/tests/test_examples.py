@@ -40,8 +40,7 @@ def find_project_root() -> Path:
         if sage_common_path.exists():
             sys.path.insert(0, str(sage_common_path))
 
-        from sage.common.config.output_paths import \
-            find_project_root as find_sage_root
+        from sage.common.config.output_paths import find_project_root as find_sage_root
 
         return find_sage_root()
     except ImportError:

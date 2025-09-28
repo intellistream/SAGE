@@ -4,10 +4,10 @@
 import hashlib
 from typing import Any, Callable, Dict, List, Optional
 
-from sage.middleware.components.neuromem.storage_engine.metadata_storage import \
-    MetadataStorage
-from sage.middleware.components.neuromem.storage_engine.text_storage import \
-    TextStorage
+from sage.middleware.components.neuromem.storage_engine.metadata_storage import (
+    MetadataStorage,
+)
+from sage.middleware.components.neuromem.storage_engine.text_storage import TextStorage
 
 # from sage.middleware.services.neuromem..storage_engine.text_storage import TextStorage
 # from sage.middleware.services.neuromem..storage_engine.metadata_storage import MetadataStorage

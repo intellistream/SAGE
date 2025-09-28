@@ -2,8 +2,9 @@ import os
 from typing import Any, Dict, List, Optional, Union
 
 from sage.core.api.service.base_service import BaseService
-from sage.middleware.components.neuromem.memory_collection.vdb_collection import \
-    VDBMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
 

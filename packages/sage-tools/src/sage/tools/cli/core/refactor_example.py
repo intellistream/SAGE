@@ -9,11 +9,19 @@ SAGE CLI Refactoring Example
 from typing import Optional
 
 import typer
+
 # 导入核心模块
-from sage.tools.cli.core import (BaseCommand, CLIException, JobManagerCommand,
-                                 OutputFormatter, RemoteCommand,
-                                 ValidationError, cli_command, validate_host,
-                                 validate_port)
+from sage.tools.cli.core import (
+    BaseCommand,
+    CLIException,
+    JobManagerCommand,
+    OutputFormatter,
+    RemoteCommand,
+    ValidationError,
+    cli_command,
+    validate_host,
+    validate_port,
+)
 
 app = typer.Typer(name="example", help="重构示例命令")
 

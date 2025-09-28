@@ -7,7 +7,9 @@ import numpy as np
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.middleware.components.sage_flow.python.sage_flow import (
-        SimpleStreamSource, StreamEnvironment)
+        SimpleStreamSource,
+        StreamEnvironment,
+    )
 except ModuleNotFoundError:
     import sys
     from pathlib import Path
@@ -31,7 +33,9 @@ except ModuleNotFoundError:
 
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.middleware.components.sage_flow.python.sage_flow import (
-        SimpleStreamSource, StreamEnvironment)
+        SimpleStreamSource,
+        StreamEnvironment,
+    )
 
 
 def main():

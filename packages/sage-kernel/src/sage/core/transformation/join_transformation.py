@@ -208,8 +208,7 @@ class JoinTransformation(BaseTransformation):
         Returns:
             bool: 是否为keyed stream
         """
-        from sage.core.transformation.keyby_transformation import \
-            KeyByTransformation
+        from sage.core.transformation.keyby_transformation import KeyByTransformation
 
         # 直接是KeyByTransformation
         if isinstance(transformation, KeyByTransformation):

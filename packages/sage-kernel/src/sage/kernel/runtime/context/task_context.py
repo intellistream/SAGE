@@ -13,8 +13,9 @@ if TYPE_CHECKING:
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
     from sage.kernel.jobmanager.compiler.graph_node import TaskNode
-    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import \
-        BaseQueueDescriptor
+    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
+        BaseQueueDescriptor,
+    )
     from sage.kernel.runtime.communication.router.packet import Packet
 # task, operator和function "形式上共享"的运行上下文
 
@@ -220,8 +221,7 @@ class TaskContext(BaseRuntimeContext):
                     return
 
             # 导入JobManagerClient来发送网络请求
-            from sage.kernel.jobmanager.jobmanager_client import \
-                JobManagerClient
+            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 
             self.logger.info(
                 f"Task {node_name} sending stop signal back to JobManager at {self.jobmanager_host}:{self.jobmanager_port}"
@@ -317,8 +317,7 @@ class TaskContext(BaseRuntimeContext):
     def _get_router(self):
         """延迟初始化router，避免直接暴露BaseRouter给core组件"""
         if not hasattr(self, "_router") or self._router is None:
-            from sage.kernel.runtime.communication.router.router import \
-                BaseRouter
+            from sage.kernel.runtime.communication.router.router import BaseRouter
 
             self._router = BaseRouter(self)
             self.logger.debug(f"Initialized router for TaskContext {self.name}")

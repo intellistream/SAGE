@@ -138,8 +138,7 @@ class JobManager:  # Job Manager
 
     def _create_execution_graph(self, env: "BaseEnvironment") -> "ExecutionGraph":
         """创建执行图"""
-        from sage.kernel.jobmanager.compiler.execution_graph import \
-            ExecutionGraph
+        from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
 
         return ExecutionGraph(env)
 

@@ -2,8 +2,11 @@ from typing import List, Tuple
 
 import torch
 from sage.core.api.function.map_function import MapFunction
-from transformers import (AutoModelForCausalLM,
-                          AutoModelForSequenceClassification, AutoTokenizer)
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
 
 
 class BGEReranker(MapFunction):

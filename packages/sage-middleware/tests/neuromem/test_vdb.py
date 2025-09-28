@@ -1,8 +1,9 @@
 import json
 import os
 
-from sage.middleware.components.neuromem.memory_collection.vdb_collection import \
-    VDBMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
 
 
 def test_vdb_collection():

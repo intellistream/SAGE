@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, Any, Tuple, Type
 
-from sage.kernel.runtime.context.context_injection import \
-    create_service_with_context
+from sage.kernel.runtime.context.context_injection import create_service_with_context
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext

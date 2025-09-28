@@ -83,8 +83,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
         """创建RPC队列实例"""
         try:
             # 动态导入 RPC Queue，避免循环依赖
-            from sage.kernel.runtime.communication.rpc.rpc_queue import \
-                RPCQueue
+            from sage.kernel.runtime.communication.rpc.rpc_queue import RPCQueue
 
             # 创建RPC Queue客户端
             rpc_queue = RPCQueue(

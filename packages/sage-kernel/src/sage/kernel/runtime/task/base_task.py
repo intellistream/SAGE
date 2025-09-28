@@ -158,10 +158,8 @@ class BaseTask(ABC):
 
                         # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
                         # Comap不能直接套用Join的逻辑，否则会出问题
-                        from sage.core.operator.join_operator import \
-                            JoinOperator
-                        from sage.core.operator.sink_operator import \
-                            SinkOperator
+                        from sage.core.operator.join_operator import JoinOperator
+                        from sage.core.operator.sink_operator import SinkOperator
 
                         if isinstance(self.operator, SinkOperator):
                             self.logger.info(
@@ -193,10 +191,8 @@ class BaseTask(ABC):
 
                         # 停止当前task的worker loop
                         # 但是要特别处理某些操作符
-                        from sage.core.operator.filter_operator import \
-                            FilterOperator
-                        from sage.core.operator.keyby_operator import \
-                            KeyByOperator
+                        from sage.core.operator.filter_operator import FilterOperator
+                        from sage.core.operator.keyby_operator import KeyByOperator
                         from sage.core.operator.map_operator import MapOperator
 
                         # 对于中间转换操作符，需要额外的逻辑确保它们不会过早停止

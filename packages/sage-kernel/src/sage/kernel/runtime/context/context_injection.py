@@ -131,8 +131,7 @@ if __name__ != "__main__":
         from typing import TYPE_CHECKING
 
         if TYPE_CHECKING:
-            from sage.kernel.runtime.context.service_context import \
-                ServiceContext
+            from sage.kernel.runtime.context.service_context import ServiceContext
             from sage.kernel.runtime.context.task_context import TaskContext
     except ImportError:
         pass

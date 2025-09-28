@@ -22,11 +22,12 @@ sage_kernel_src = os.path.join(current_dir, "../../../../../src")
 sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
-    from sage.kernel.runtime.communication.queue_descriptor import \
-        RayQueueDescriptor
+    from sage.kernel.runtime.communication.queue_descriptor import RayQueueDescriptor
     from sage.kernel.utils.ray.ray import ensure_ray_initialized
-    from sage.kernel.utils.test_log_manager import (get_test_log_manager,
-                                                    setup_quiet_ray_logging)
+    from sage.kernel.utils.test_log_manager import (
+        get_test_log_manager,
+        setup_quiet_ray_logging,
+    )
 
     # 设置安静的日志记录
     setup_quiet_ray_logging()
@@ -63,8 +64,9 @@ class PersistentQueueActor:
 
         # 在Ray Actor中导入所需模块 - 直接导入而不设置路径
         try:
-            from sage.kernel.runtime.communication.queue_descriptor import \
-                resolve_descriptor
+            from sage.kernel.runtime.communication.queue_descriptor import (
+                resolve_descriptor,
+            )
 
             self.queue_desc = resolve_descriptor(queue_desc_dict)
             self.queue = self.queue_desc.queue_instance  # 获取实际的队列对象
@@ -205,8 +207,9 @@ class QueueCoordinatorActor:
     def register_queue(self, queue_name: str, queue_desc_dict: Dict[str, Any]):
         """注册一个队列"""
         try:
-            from sage.kernel.runtime.communication.queue_descriptor import \
-                resolve_descriptor
+            from sage.kernel.runtime.communication.queue_descriptor import (
+                resolve_descriptor,
+            )
 
             queue_desc = resolve_descriptor(queue_desc_dict)
             self.managed_queues[queue_name] = {

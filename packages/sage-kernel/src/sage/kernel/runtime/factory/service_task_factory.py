@@ -36,8 +36,7 @@ class ServiceTaskFactory:
         """
         if self.remote:
             # 创建Ray服务任务
-            from sage.kernel.runtime.service.ray_service_task import \
-                RayServiceTask
+            from sage.kernel.runtime.service.ray_service_task import RayServiceTask
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
             ray_service_task = RayServiceTask.options(lifetime="detached").remote(
@@ -51,8 +50,7 @@ class ServiceTaskFactory:
 
         else:
             # 创建本地服务任务
-            from sage.kernel.runtime.service.local_service_task import \
-                LocalServiceTask
+            from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
             service_task = LocalServiceTask(
                 service_factory=self.service_factory, ctx=ctx
