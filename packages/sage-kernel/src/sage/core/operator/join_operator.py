@@ -1,4 +1,4 @@
-from typing import Any, List, Union
+from typing import Any
 
 from sage.core.communication.packet import Packet
 

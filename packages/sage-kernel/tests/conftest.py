@@ -8,6 +8,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 # 获取项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
@@ -26,6 +28,7 @@ os.environ.setdefault("SAGE_LOG_LEVEL", "INFO")
 
 # 确保Ray在测试环境中正确初始化（如果需要且有足够内存）
 try:
+    # ray may be optional in test environments; import locally after path setup
     import ray
     from sage.common.config.output_paths import get_sage_paths
 
@@ -50,8 +53,6 @@ except (ImportError, ValueError, RuntimeError) as e:
     # Ray不是必需的，或者内存不足时跳过
     print(f"⚠️ Ray初始化跳过: {e}")
     pass
-
-import pytest
 
 
 @pytest.fixture

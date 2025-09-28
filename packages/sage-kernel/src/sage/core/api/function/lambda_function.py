@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Any, Callable, Hashable, List, Optional, Tuple, Type
+from typing import Any, Callable, Hashable, List, Type
 
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.filter_function import FilterFunction
@@ -8,7 +8,6 @@ from sage.core.api.function.flatmap_function import FlatMapFunction
 from sage.core.api.function.keyby_function import KeyByFunction
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
 
 logger = logging.getLogger(__name__)
 

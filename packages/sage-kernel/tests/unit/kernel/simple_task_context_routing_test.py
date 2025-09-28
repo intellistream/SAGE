@@ -2,13 +2,13 @@
 
 import os
 import sys
-
-sys.path.insert(0, "/home/flecther/workspace/SAGE/packages/sage-core/src")
-sys.path.insert(0, "/home/flecther/workspace/SAGE/packages/sage-kernel/src")
-
 from unittest.mock import MagicMock, Mock
 
 import pytest
+
+# Project-specific sys.path tweaks may be required in tests; keep them explicit
+sys.path.insert(0, "/home/flecther/workspace/SAGE/packages/sage-core/src")
+sys.path.insert(0, "/home/flecther/workspace/SAGE/packages/sage-kernel/src")
 
 
 class MockTaskContext:

@@ -11,6 +11,11 @@ import os
 import random
 import time
 
+from sage.core.api.function.sink_function import SinkFunction
+from sage.core.api.function.source_function import SourceFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.runtime.communication.router.packet import StopSignal
+
 # 设置日志级别为ERROR减少输出
 os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
@@ -21,12 +26,6 @@ for logger_name in ["sage", "JobManager", "ray", "asyncio", "urllib3"]:
 
 # 禁用所有INFO级别的日志
 logging.getLogger().setLevel(logging.ERROR)
-
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.remote_environment import RemoteEnvironment
-from sage.kernel.runtime.communication.router.packet import StopSignal
 
 
 class NumberSequenceSource(SourceFunction):

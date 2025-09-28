@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Type, Union
+from typing import TYPE_CHECKING, List, Type
 
-from ray.actor import ActorHandle
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.factory.function_factory import FunctionFactory
 from sage.core.factory.operator_factory import OperatorFactory

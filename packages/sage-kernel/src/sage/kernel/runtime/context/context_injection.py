@@ -6,7 +6,7 @@ Context Injection Utilities
 """
 
 import logging
-from typing import Any, Dict, Optional, Tuple, Type, TypeVar, Union
+from typing import Optional, Type, TypeVar
 
 # 定义类型变量
 T = TypeVar("T")

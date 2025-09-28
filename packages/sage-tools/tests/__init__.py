@@ -7,13 +7,13 @@ import os
 import sys
 from pathlib import Path
 
+# 测试标记
+import pytest
+
 # 确保sage.tools模块可以被导入
 test_dir = Path(__file__).parent
 project_root = test_dir.parent.parent.parent
 sys.path.insert(0, str(project_root))
-
-# 测试标记
-import pytest
 
 # 定义测试标记
 pytest_marks = {

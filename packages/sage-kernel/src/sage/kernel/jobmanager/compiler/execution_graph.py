@@ -11,7 +11,7 @@ ExecutionGraph管理整个图的构建和运行时上下文，包含：
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING, Dict, List
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.base_environment import BaseEnvironment
@@ -28,10 +28,6 @@ if TYPE_CHECKING:
 from .graph_edge import GraphEdge
 from .graph_node import TaskNode
 from .service_node import ServiceNode
-
-if TYPE_CHECKING:
-    from ray.actor import ActorHandle
-    from sage.kernel.jobmanager.job_manager import JobManager
 
 
 class ExecutionGraph:

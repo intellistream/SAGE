@@ -1,6 +1,8 @@
-import asyncio
-import os
+import base64
+import struct
 import sys
+
+import requests
 
 if sys.version_info < (3, 9):
     pass
@@ -62,12 +64,6 @@ async def siliconcloud_embedding(
     n = len(decode_bytes) // 4
     float_array = struct.unpack("<" + "f" * n, decode_bytes)
     return list(float_array)
-
-
-import base64
-import struct
-
-import requests
 
 
 def siliconcloud_embedding_sync(

@@ -1,6 +1,3 @@
-from typing import Any, Union
-
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.communication.packet import Packet
 
 from .base_operator import BaseOperator

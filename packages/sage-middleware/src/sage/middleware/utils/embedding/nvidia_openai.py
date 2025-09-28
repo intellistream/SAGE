@@ -12,7 +12,7 @@ else:
 # openai is required for this module
 
 try:
-    from openai import AsyncOpenAI
+    from openai import AsyncOpenAI, OpenAI
 except ImportError:
     raise ImportError(
         "openai package is required for NVIDIA OpenAI embedding functionality. "
@@ -50,11 +50,6 @@ async def nvidia_openai_embed(
     )
 
     return response.data[0].embedding
-
-
-import os
-
-from openai import OpenAI  # 同步 client
 
 
 def nvidia_openai_embed_sync(

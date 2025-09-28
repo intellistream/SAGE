@@ -9,14 +9,14 @@
 import sys
 from pathlib import Path
 
+from sage.tools.dev.utils.intermediate_results_checker import \
+    print_intermediate_results_check
+
 # 添加 sage-tools 到 Python 路径
 script_path = Path(__file__).parent
 tools_src = script_path.parent.parent / "packages" / "sage-tools" / "src"
 if tools_src.exists():
     sys.path.insert(0, str(tools_src))
-
-from sage.tools.dev.utils.intermediate_results_checker import \
-    print_intermediate_results_check
 
 
 def main():

@@ -19,19 +19,20 @@ Issues 统一同步脚本 - 支持所有属性的同步
 日期: 2025-08-30
 """
 import argparse
+import glob
 import json
+import re
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
+
+import requests
+from github_helper import GitHubProjectManager
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR.parent))  # Add parent directory to path
 
-import glob
-import re
-import time
-
-import requests
 
 # 动态导入config模块
 try:
@@ -46,7 +47,6 @@ except ImportError:
 
 # Import github_helper directly
 sys.path.insert(0, str(SCRIPT_DIR))
-from github_helper import GitHubProjectManager
 
 
 class GitHubClient:

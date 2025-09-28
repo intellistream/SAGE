@@ -8,10 +8,9 @@ and system capabilities for SAGE applications.
 
 import importlib
 import os
-import socket
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 
 def detect_execution_environment() -> str:

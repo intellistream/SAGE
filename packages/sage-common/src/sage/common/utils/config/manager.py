@@ -7,12 +7,11 @@
 """
 
 import json
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import yaml
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 __all__ = ["load_config", "save_config", "ConfigManager", "BaseConfig"]
 

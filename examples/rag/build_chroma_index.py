@@ -136,7 +136,7 @@ def load_knowledge_to_chromadb():
         # 删除旧集合并创建新集合
         try:
             client.delete_collection(name=collection_name)
-        except:
+        except Exception:
             pass
         index_type = "flat"  # 可选: "flat", "hnsw"
         collection = client.create_collection(

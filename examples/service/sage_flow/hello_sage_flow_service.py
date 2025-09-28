@@ -10,7 +10,6 @@ try:
     from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import \
         SageFlowService
 except ModuleNotFoundError:
-    import os
     import sys
     from pathlib import Path
 

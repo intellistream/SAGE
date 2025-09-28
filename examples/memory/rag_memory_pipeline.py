@@ -1,7 +1,4 @@
 # @test:skip           - 跳过测试
-
-import time
-
 import yaml
 from rag_memory_service import RAGMemoryService
 from sage.common.utils.logging.custom_logger import CustomLogger

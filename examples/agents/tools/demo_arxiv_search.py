@@ -15,10 +15,9 @@ Examples included:
 - Parameter variations and configurations
 """
 
-import json
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
+import pytest  # noqa: F401
 from arxiv_search_tool import ArxivSearchTool
 
 

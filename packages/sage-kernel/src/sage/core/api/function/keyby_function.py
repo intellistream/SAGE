@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Hashable, Optional, Union
+from typing import Any, Hashable
 
 from sage.core.api.function.base_function import BaseFunction
 

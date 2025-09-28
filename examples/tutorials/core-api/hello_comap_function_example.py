@@ -11,6 +11,11 @@ import os
 import random
 import time
 
+from sage.core.api.function.comap_function import BaseCoMapFunction
+from sage.core.api.function.sink_function import SinkFunction
+from sage.core.api.function.source_function import SourceFunction
+from sage.core.api.local_environment import LocalEnvironment
+
 # 设置日志级别为ERROR减少输出
 os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
@@ -21,12 +26,6 @@ for logger_name in ["sage", "JobManager", "ray", "asyncio", "urllib3"]:
 
 # 禁用所有INFO级别的日志
 logging.getLogger().setLevel(logging.ERROR)
-
-from sage.core.api.function.comap_function import BaseCoMapFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.remote_environment import RemoteEnvironment
 
 
 # 温度传感器数据源
@@ -149,7 +148,6 @@ class TypeSpecificProcessor(BaseCoMapFunction):
 
 # 汇总输出函数
 class SensorSink(SinkFunction):
-
     def execute(self, data):
         if isinstance(data, dict) and "alert" in data:
             prefix = "🚨 ALERT" if data["alert"] else "📊 DATA"

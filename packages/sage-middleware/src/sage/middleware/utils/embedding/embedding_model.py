@@ -1,26 +1,23 @@
 import os
 
+# flake8: noqa: E402
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-
 import sys
-
-# 添加项目根目录到Python路径
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
-)
-
 import time
 
 from dotenv import load_dotenv
+from sage.middleware.utils.embedding import (_cohere, bedrock, hf, jina,
+                                             lollms, mockembedder,
+                                             nvidia_openai, ollama, openai,
+                                             siliconcloud, zhipu)
+from transformers import AutoModel, AutoTokenizer
 
 load_dotenv()
 
-from sage.middleware.utils.embedding import bedrock  # , instructor
-from sage.middleware.utils.embedding import (_cohere, hf, jina, lollms,
-                                             mockembedder, nvidia_openai,
-                                             ollama, openai, siliconcloud,
-                                             zhipu)
-from transformers import AutoModel, AutoTokenizer
+# Ensure project root is on sys.path for imports that rely on package layout
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
+)
 
 
 class EmbeddingModel:

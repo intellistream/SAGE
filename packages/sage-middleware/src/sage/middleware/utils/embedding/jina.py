@@ -1,6 +1,8 @@
 import asyncio
 import os
 
+import requests
+
 # Dependencies should be installed via requirements.txt
 # tenacity is required for this module
 
@@ -57,11 +59,6 @@ async def jina_embed(
     data_list = await fetch_data(url, headers, data)
     print(data_list)
     return data_list[0]["embedding"]
-
-
-import os
-
-import requests
 
 
 def jina_embed_sync(

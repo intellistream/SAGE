@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING
 
 from sage.core.communication.packet import Packet
 from sage.core.operator.base_operator import BaseOperator

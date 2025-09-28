@@ -14,15 +14,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import typer
+import yaml
+from colorama import Back, Fore, Style, init
+from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+from tabulate import tabulate
 
 # 添加项目路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
-import yaml
-from colorama import Back, Fore, Style, init
-from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
-from tabulate import tabulate
 
 # 初始化colorama
 init(autoreset=True)

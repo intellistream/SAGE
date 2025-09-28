@@ -15,12 +15,11 @@ import tempfile
 from pathlib import Path
 
 import yaml
+from sage.tools.cli.commands.config import auto_update_generator
+from sage.tools.cli.utils.llm_detection import LLMServiceInfo
 
 # Add SAGE tools to path
 sys.path.insert(0, "packages/sage-tools/src")
-
-from sage.tools.cli.commands.config import auto_update_generator
-from sage.tools.cli.utils.llm_detection import LLMServiceInfo
 
 
 def create_sample_config():
