@@ -53,7 +53,7 @@ dependencies = [
     "torchvision==0.22.1",
     "httpx==0.28.1",
     "socksio==1.0.0",
-    "numpy>=2.0.0,<3.0.0",  # 统一numpy版本范围，兼容numpy 2.x
+    "numpy>=2.0.0,<2.3.0",  # 兼容vllm/numba约束(需要NumPy 2.2或更低版本)
     "Cython==3.1.2",
     "pybind11==3.0.0",
     "aioboto3==14.1.0",
@@ -214,32 +214,38 @@ include = "\\.pyi?$"
 extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
 
 [tool.ruff]
-target-version = ["py310", "py311", "py312"]
+# 与flake8保持一致的配置
+target-version = "py311"
 line-length = 88
+
+[tool.ruff.lint]
+# 启用的规则集（与flake8兼容）
 select = [
-    "E",
-    "W",
-    "F",
-    "I",
-    "B",
-    "C4",
-    "UP",
-]
-ignore = [
-    "E501",
-    "B008",
-    "C901",
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings  
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "C90",  # mccabe complexity
 ]
 
-[tool.ruff.per-file-ignores]
-"__init__.py" = [
-    "F401",
+# 忽略的错误（与flake8 .flake8文件保持一致）
+ignore = [
+    "E501",  # line too long (handled by formatter)
 ]
-"tests/**/*" = [
-    "PLR2004",
-    "S101",
-    "TID252",
-]
+
+# 复杂度限制（与flake8保持一致）
+mccabe = { max-complexity = 10 }
+
+# 文件特定忽略
+per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
+
+[tool.ruff.lint.isort]
+known-first-party = ["sage"]
+force-single-line = false
+combine-as-imports = true
 
 [tool.mypy]
 python_dynamic = ["version"]

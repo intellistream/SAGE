@@ -62,7 +62,7 @@ class ProgressBar:
         if message:
             print(f" {message}", end="")
 
-        print(f"\r", end="", flush=True)
+        print("\r", end="", flush=True)
         self.last_print_time = current_time
 
     def finish(self):

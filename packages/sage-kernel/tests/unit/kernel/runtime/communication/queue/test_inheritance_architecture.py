@@ -4,17 +4,17 @@
 验证 BaseQueueDescriptor 及其子类的功能完整性
 """
 
-import time
-from unittest.mock import MagicMock, patch
-
 import pytest
 from sage.kernel.runtime.communication.queue_descriptor import (
-    BaseQueueDescriptor, PythonQueueDescriptor, RayQueueDescriptor,
-    RPCQueueDescriptor, resolve_descriptor)
+    BaseQueueDescriptor,
+    PythonQueueDescriptor,
+    RPCQueueDescriptor,
+    resolve_descriptor,
+)
 
 # 检查Ray是否可用
 try:
-    import ray
+    import ray  # noqa: F401
 
     RAY_AVAILABLE = True
 except ImportError:

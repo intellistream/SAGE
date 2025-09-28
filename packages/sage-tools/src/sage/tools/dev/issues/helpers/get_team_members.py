@@ -11,7 +11,6 @@ Creates in `output/`:
 Token resolution order: GITHUB_TOKEN env var -> .github_token file searched upward from repo -> user's home .github_token
 """
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -72,7 +71,9 @@ class TeamMembersCollector:
         while url:
             resp = requests.get(url, headers=self.headers, params=params)
             if resp.status_code != 200:
-                error_msg = f"获取团队 {team_slug} 成员失败: {resp.status_code} {resp.text}"
+                error_msg = (
+                    f"获取团队 {team_slug} 成员失败: {resp.status_code} {resp.text}"
+                )
                 print(f"❌ {error_msg}", file=sys.stderr)
                 return []
             data = resp.json()
@@ -110,7 +111,7 @@ class TeamMembersCollector:
                 print(f"✅ {slug}: {len(members)} 人")
             else:
                 print(f"❌ {slug}: 获取失败")
-        
+
         if success_count == 0:
             print("所有团队获取失败，无法生成团队信息", file=sys.stderr)
             return None
@@ -200,7 +201,7 @@ def main():
     if not token:
         print(
             "未找到 GitHub Token。请设置 GITHUB_TOKEN 环境变量或在仓库根目录创建 .github_token 文件",
-            file=sys.stderr
+            file=sys.stderr,
         )
         sys.exit(1)
 

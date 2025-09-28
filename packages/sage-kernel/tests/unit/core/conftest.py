@@ -2,8 +2,7 @@
 Core模块测试的配置文件
 """
 
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import pytest
 
@@ -240,8 +239,7 @@ class IntegrationTestHelper:
     @staticmethod
     def create_full_pipeline_scenario():
         """创建完整管道场景"""
-        from sage.core.api.pipeline import (DataTransformStep, FilterStep,
-                                            Pipeline)
+        from sage.core.api.pipeline import DataTransformStep, FilterStep, Pipeline
 
         pipeline = Pipeline("integration_test_pipeline")
 

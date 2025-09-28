@@ -1,15 +1,12 @@
-import json
 import re
 from typing import List, Tuple
 
 import json_repair
 import numpy as np
-from sage.libs.rag.longrefiner.longrefiner.prompt_template import \
-    PromptTemplate
+from sage.libs.rag.longrefiner.longrefiner.prompt_template import PromptTemplate
 from sage.libs.rag.longrefiner.longrefiner.task_instruction import *
 from tqdm import tqdm
-from transformers import (AutoModel, AutoModelForSequenceClassification,
-                          AutoTokenizer)
+from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 
@@ -58,13 +55,14 @@ class LongRefiner:
         gpu_device: int = 0,
         gpu_memory_utilization: float = 0.7,
     ):
-        # 不设置CUDA_VISIBLE_DEVICES，让各个模型可以使用不同的GPU
+        # 直接通过vLLM的参数指定GPU设备，避免修改全局环境变量
         self.model = LLM(
             base_model_path,
             enable_lora=True,
             max_model_len=max_model_len,
             gpu_memory_utilization=gpu_memory_utilization,
             tensor_parallel_size=1,  # 单GPU设置
+            device=f"cuda:{gpu_device}",
         )
         self.tokenizer = AutoTokenizer.from_pretrained(base_model_path)
         self.step_to_config = {
@@ -150,7 +148,7 @@ class LongRefiner:
                     return_tensors="pt",
                     max_length=512,
                 )
-                device = f"cuda:{self.gpu_device}"
+                device = f"cuda:{self.score_gpu_device}"
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 if "bce" in self.score_model_name or "jina" in self.score_model_name:
                     flatten_scores = (
@@ -210,7 +208,7 @@ class LongRefiner:
                     truncation=True,
                     return_tensors="pt",
                 )
-                device = f"cuda:{self.gpu_device}"
+                device = f"cuda:{self.score_gpu_device}"
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 output = self.score_model(**inputs, return_dict=True)
                 q_emb = pooling(
@@ -265,7 +263,7 @@ class LongRefiner:
             )
             self.local_score_func = self._cal_score_sbert
 
-        # 指定GPU设备
+        # 指定GPU设备 - 使用score模型专用的GPU设备
         device = f"cuda:{gpu_device}"
         self.score_model.to(device)
         self.score_model.eval()
@@ -649,7 +647,7 @@ class LongRefiner:
                 }
 
         # fill the middle content of sections and subsections
-        if "abstract" in structured_doc and structured_doc["abstract"] != None:
+        if "abstract" in structured_doc and structured_doc["abstract"] is not None:
             structured_doc["abstract"] = self._fill_full_content(
                 original_doc_content, structured_doc["abstract"]
             )
@@ -680,7 +678,7 @@ class LongRefiner:
                     for subsection, subsection_content in section_item[
                         "subsections"
                     ].items():
-                        if subsection_content != None and subsection_content != "":
+                        if subsection_content is not None and subsection_content != "":
                             abs = original_doc_content.split(subsection_content)[0]
                             structured_doc["abstract"] = abs
                             break
@@ -780,7 +778,7 @@ class LongRefiner:
                             ):
                                 if (
                                     subsection_content == ""
-                                    or subsection_content == None
+                                    or subsection_content is None
                                 ):
                                     del section_dict["subsections"][subsection]
                                 else:

@@ -7,8 +7,7 @@ in both local and remote environments.
 
 import threading
 import time
-from typing import Any, Dict
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from sage.kernel.runtime.dispatcher import Dispatcher

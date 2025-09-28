@@ -6,16 +6,22 @@
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from typing import List, Optional
 
 import requests
 
-# Import main config from parent directory
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import config
+# 动态导入config模块
+try:
+    # 尝试相对导入（当作为模块运行时）
+    from ..config import IssuesConfig
+except ImportError:
+    # 如果相对导入失败，使用绝对导入
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from config import IssuesConfig
+
+config = IssuesConfig()
 
 
 class GitHubIssueCreator:
@@ -147,7 +153,7 @@ class GitHubIssueCreator:
 
         url = f"https://api.github.com/repos/{self.repo}/issues"
 
-        print(f"\n🚀 正在创建GitHub Issue...")
+        print("\n🚀 正在创建GitHub Issue...")
         print(f"📝 标题: {clean_data['title']}")
         if clean_data.get("labels"):
             print(f"🏷️ 标签: {', '.join(clean_data['labels'])}")
@@ -159,7 +165,7 @@ class GitHubIssueCreator:
 
             if response.status_code == 201:
                 issue_info = response.json()
-                print(f"\n✅ Issue创建成功!")
+                print("\n✅ Issue创建成功!")
                 print(f"🔗 Issue链接: {issue_info['html_url']}")
                 print(f"📊 Issue编号: #{issue_info['number']}")
                 return True

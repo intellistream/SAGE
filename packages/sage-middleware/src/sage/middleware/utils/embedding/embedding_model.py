@@ -1,26 +1,32 @@
 import os
 
+# flake8: noqa: E402
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-
 import sys
-
-# 添加项目根目录到Python路径
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
-)
-
 import time
 
 from dotenv import load_dotenv
+from sage.middleware.utils.embedding import (
+    _cohere,
+    bedrock,
+    hf,
+    jina,
+    lollms,
+    mockembedder,
+    nvidia_openai,
+    ollama,
+    openai,
+    siliconcloud,
+    zhipu,
+)
+from transformers import AutoModel, AutoTokenizer
 
 load_dotenv()
 
-from sage.middleware.utils.embedding import bedrock  # , instructor
-from sage.middleware.utils.embedding import (_cohere, hf, jina, lollms,
-                                             mockembedder, nvidia_openai,
-                                             ollama, openai, siliconcloud,
-                                             zhipu)
-from transformers import AutoModel, AutoTokenizer
+# Ensure project root is on sys.path for imports that rely on package layout
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
+)
 
 
 class EmbeddingModel:
@@ -51,7 +57,7 @@ class EmbeddingModel:
             if "model" not in kwargs:
                 raise ValueError("hf method need model")
             model_name = kwargs["model"]
-            # Try to load HF models; if unavailable (offline/rate limited), fall back to mockembedder
+            # Load HF models - fail explicitly if unavailable
             try:
                 self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
                 self.kwargs["embed_model"] = AutoModel.from_pretrained(
@@ -59,21 +65,12 @@ class EmbeddingModel:
                 )
                 self.kwargs.pop("model")
             except Exception as e:
-                # Fallback: use deterministic mock embedder with the expected dimension
-                # Keep behavior stable for tests/offline environments
-                import warnings
-
-                warnings.warn(
-                    f"Falling back to mockembedder for '{model_name}' due to model load failure: {e}"
-                )
-                # Switch method to mock so downstream uses the correct encode path
-                method = "mockembedder"
-                # Initialize mock embedder with the dimension inferred from set_dim
-                self.kwargs = {
-                    "embed_model": mockembedder.MockTextEmbedder(
-                        model_name="mock-model", fixed_dim=self.dim or 128
-                    )
-                }
+                # 明确失败，不静默回退到mockembedder
+                raise RuntimeError(
+                    f"Failed to load embedding model '{model_name}': {e}. "
+                    f"Please ensure the model is available or use a different embedding method. "
+                    f"For testing with mock embedder, explicitly set method='mockembedder'."
+                ) from e
         elif method == "mockembedder":
             # 初始化 mockembedder
             self.kwargs["embed_model"] = mockembedder.MockTextEmbedder(

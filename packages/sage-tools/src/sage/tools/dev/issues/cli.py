@@ -7,7 +7,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -28,22 +27,28 @@ def status():
     config = IssuesConfig()
 
     # 显示配置信息
-    console.print(f"\n⚙️ 配置信息:")
+    console.print("\n⚙️ 配置信息:")
     console.print(f"  • 项目根目录: {config.project_root}")
     console.print(f"  • 工作目录: {config.workspace_path}")
     console.print(f"  • 输出目录: {config.output_path}")
     console.print(f"  • 元数据目录: {config.metadata_path}")
     console.print(f"  • GitHub仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
+    if config.github_token:
+        console.print(
+            f"  • GitHub Token来源: {config.github_token_env or '未知环境变量'}"
+        )
 
     # 测试GitHub连接
-    console.print(f"\n🔍 GitHub连接:")
+    console.print("\n🔍 GitHub连接:")
     try:
         if config.test_github_connection():
             console.print("  ✅ [green]连接正常[/green]")
         else:
             console.print("  ❌ [red]连接失败 - 请检查GitHub Token[/red]")
             console.print("  💡 设置方法:")
-            console.print("    export GITHUB_TOKEN=your_token")
+            console.print(
+                "    export GITHUB_TOKEN=your_token  # 或 export GIT_TOKEN=your_token / export SAGE_REPO_TOKEN=your_token"
+            )
             console.print("    或创建 ~/.github_token 文件")
     except Exception as e:
         console.print(f"  ❌ [red]连接错误: {e}[/red]")
@@ -54,7 +59,7 @@ def status():
             downloader = IssuesDownloader(config)
             download_status = downloader.get_download_status()
 
-            console.print(f"\n📂 本地数据:")
+            console.print("\n📂 本地数据:")
             console.print(f"  • Issues数量: {download_status['issues_count']}")
             console.print(f"  • 最后更新: {download_status['last_update'] or '未知'}")
 
@@ -65,7 +70,7 @@ def status():
         except Exception as e:
             console.print(f"\n📂 [red]本地数据状态获取失败: {e}[/red]")
     else:
-        console.print(f"\n📂 本地数据: [yellow]需要GitHub Token才能查看[/yellow]")
+        console.print("\n📂 本地数据: [yellow]需要GitHub Token才能查看[/yellow]")
 
 
 @app.command("download")
@@ -81,7 +86,9 @@ def download(
     if not config.github_token:
         console.print("❌ [red]GitHub Token未配置[/red]")
         console.print("💡 设置方法:")
-        console.print("   export GITHUB_TOKEN=your_token")
+        console.print(
+            "   export GITHUB_TOKEN=your_token  # 或 export GIT_TOKEN=your_token / export SAGE_REPO_TOKEN=your_token"
+        )
         console.print("   或创建 ~/.github_token 文件")
         raise typer.Exit(1)
 
@@ -100,7 +107,7 @@ def download(
     if success:
         # 显示下载结果
         status = downloader.get_download_status()
-        console.print(f"\n✅ [green]下载成功![/green]")
+        console.print("\n✅ [green]下载成功![/green]")
         console.print(f"📊 Issues数量: {status['issues_count']}")
         console.print(f"📂 保存位置: {status['workspace_path']}")
     else:
@@ -220,7 +227,7 @@ def show_config():
     console.print(table)
 
     # 显示用户设置
-    console.print(f"\n📋 用户设置:")
+    console.print("\n📋 用户设置:")
     console.print(f"  • 同步更新历史: {getattr(config, 'sync_update_history', True)}")
     console.print(f"  • 自动备份: {getattr(config, 'auto_backup', True)}")
     console.print(f"  • 详细输出: {getattr(config, 'verbose_output', False)}")
@@ -352,12 +359,12 @@ def sync_issues(
 
         # 构建命令参数
         cmd_args = [sys.executable, str(sync_script)]
-        if direction != "upload":
-            cmd_args.extend(["--direction", direction])
         if dry_run:
-            cmd_args.append("--dry-run")
+            cmd_args.append("preview")  # Use preview command for dry-run
+        else:
+            cmd_args.append("sync")  # Use sync command for actual sync
         if force:
-            cmd_args.append("--force")
+            cmd_args.append("--auto-confirm")
 
         # 执行同步
         result = subprocess.run(

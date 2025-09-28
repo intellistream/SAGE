@@ -1,7 +1,6 @@
-from typing import Any, Iterable, Optional
+from typing import Any
 
 from sage.core.api.function.flatmap_collector import Collector
-from sage.core.api.function.flatmap_function import FlatMapFunction
 from sage.core.communication.packet import Packet
 from sage.core.operator.base_operator import BaseOperator
 

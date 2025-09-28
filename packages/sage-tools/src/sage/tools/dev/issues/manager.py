@@ -4,7 +4,6 @@ SAGE Issues管理工具 - 核心管理器 (适配sage-tools版本)
 Lightweight manager that uses the centralized config
 and calls helper scripts from helpers/ when available.
 """
-import argparse
 import json
 import os
 import subprocess
@@ -78,12 +77,12 @@ class IssuesManager:
                             all_usernames.extend(team_data)
 
                     print(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
-                    
+
                     # 如果没有成员，视为无效的团队信息
                     if len(all_usernames) == 0:
                         print("⚠️ 团队信息存在但没有成员，将尝试更新")
                         return None
-                    
+
                     return {"teams": processed_teams, "all_usernames": all_usernames}
             except Exception as e:
                 print(f"⚠️ 加载团队信息失败: {e}")
@@ -315,28 +314,28 @@ class IssuesManager:
 
         stats = self._generate_statistics(issues)
 
-        print(f"\n📈 Issues统计报告")
+        print("\n📈 Issues统计报告")
         print("=" * 40)
         print(f"总Issues数: {stats['total']}")
         print(f"开放Issues: {stats['open']}")
         print(f"已关闭Issues: {stats['closed']}")
 
         if stats["labels"]:
-            print(f"\n🏷️ 标签分布 (前10):")
+            print("\n🏷️ 标签分布 (前10):")
             for label, count in sorted(
                 stats["labels"].items(), key=lambda x: x[1], reverse=True
             )[:10]:
                 print(f"  - {label}: {count}")
 
         if stats["assignees"]:
-            print(f"\n👤 分配情况 (前10):")
+            print("\n👤 分配情况 (前10):")
             for assignee, count in sorted(
                 stats["assignees"].items(), key=lambda x: x[1], reverse=True
             )[:10]:
                 print(f"  - {assignee}: {count}")
 
         if stats["authors"]:
-            print(f"\n✍️ 作者分布 (前10):")
+            print("\n✍️ 作者分布 (前10):")
             for author, count in sorted(
                 stats["authors"].items(), key=lambda x: x[1], reverse=True
             )[:10]:
@@ -385,7 +384,7 @@ class IssuesManager:
             total_members += member_count
             print(f"  - {team_name}: {member_count} 成员")
 
-        print(f"\n📈 团队总览:")
+        print("\n📈 团队总览:")
         print(f"  - 团队总数: {len(teams)}")
         print(f"  - 成员总数: {total_members}")
 
@@ -472,7 +471,9 @@ class IssuesManager:
         if not self.config.github_token:
             print("❌ GitHub Token未配置，无法更新团队信息")
             print("💡 请设置GitHub Token:")
-            print("   export GITHUB_TOKEN=your_token")
+            print(
+                "   export GITHUB_TOKEN=your_token  # 或 export GIT_TOKEN=your_token / export SAGE_REPO_TOKEN=your_token"
+            )
             print("   或创建 ~/.github_token 文件")
             return False
 

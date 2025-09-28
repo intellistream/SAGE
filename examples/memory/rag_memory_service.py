@@ -5,14 +5,14 @@ from sage.core.api.service.base_service import BaseService
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
 config = {
-    "manager_path": "examples/memory/data/neuromem",
+    "manager_path": ".sage/examples/memory/rag_memory_service",
     "name": "RAGMemoryCollection",
     "backend_type": "VDB",
     "description": "rag memory collection",
     "index_config": {
         "name": "test_index",
-        "embedding_model": "default",
-        "dim": 384,
+        "embedding_model": "mockembedder",
+        "dim": 128,
         "backend_type": "FAISS",
         "description": "rag memory index",
         "index_parameter": {},
@@ -30,9 +30,7 @@ class RAGMemoryService(BaseService):
 
         # Try to load existing collection; if missing, create one locally with mock/offline embeddings
         if self.memory_manager.has_collection(config.get("name")):
-            self.rag_collection = self.memory_manager.get_collection(
-                config.get("name")
-            )
+            self.rag_collection = self.memory_manager.get_collection(config.get("name"))
             self._logger.info("Successfully loaded RAG memory from disk")
         else:
             self._logger.warning(
@@ -68,9 +66,9 @@ class RAGMemoryService(BaseService):
             raw_data=data, index_name="test_index", metadata=metadata
         )
         if result:
-            self._logger.info(f"Successfully insert data into rag memory")
+            self._logger.info("Successfully insert data into rag memory")
         else:
-            self._logger.info(f"Failed to insert data into rag memory")
+            self._logger.info("Failed to insert data into rag memory")
 
 
 if __name__ == "__main__":

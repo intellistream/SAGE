@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 
@@ -46,7 +46,7 @@ class ChromaBackend:
         """初始化 ChromaDB 客户端"""
         try:
             import chromadb
-            from chromadb.config import Settings
+            from chromadb.config import Settings  # noqa: F401
 
             # 判断使用本地还是远程模式
             if self.host in ["localhost", "127.0.0.1"] and not self.config.get(
@@ -496,7 +496,7 @@ class ChromaUtils:
             ChromaDB 是否已安装并可用
         """
         try:
-            import chromadb
+            import chromadb  # noqa: F401
 
             return True
         except ImportError:

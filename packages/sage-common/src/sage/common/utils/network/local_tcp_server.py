@@ -1,4 +1,3 @@
-import json
 import os
 import pickle
 import socket
@@ -145,7 +144,7 @@ class BaseTcpServer(ABC):
         """TCP服务器主循环"""
         try:
             self.logger.debug(f"{self.server_name} loop started")
-        except:
+        except Exception:
             print(f"{self.server_name} loop started")
 
         while self.running:
@@ -166,7 +165,7 @@ class BaseTcpServer(ABC):
 
                 try:
                     self.logger.debug(f"New TCP client connected from {address}")
-                except:
+                except Exception:
                     print(f"New TCP client connected from {address}")
 
                 # 在新线程中处理客户端
@@ -183,7 +182,7 @@ class BaseTcpServer(ABC):
                 if self.running:
                     try:
                         self.logger.error(f"Error accepting TCP connection: {e}")
-                    except:
+                    except Exception:
                         print(f"Error accepting TCP connection: {e}")
                 break
             except Exception as e:
@@ -194,7 +193,7 @@ class BaseTcpServer(ABC):
 
         try:
             self.logger.debug(f"{self.server_name} loop stopped")
-        except:
+        except Exception:
             print(f"{self.server_name} loop stopped")
 
     def _handle_client(self, client_socket: socket.socket, address: tuple):
@@ -232,7 +231,7 @@ class BaseTcpServer(ABC):
                         self.logger.error(
                             f"Error processing message from {address}: {e}"
                         )
-                    except:
+                    except Exception:
                         print(f"Error processing message from {address}: {e}")
                     # 发送错误响应
                     error_response = self._create_error_response(
@@ -246,16 +245,16 @@ class BaseTcpServer(ABC):
             # 安全地记录错误，避免I/O错误
             try:
                 self.logger.error(f"Error handling TCP client {address}: {e}")
-            except:
+            except Exception:
                 print(f"Error handling TCP client {address}: {e}")
         finally:
             try:
                 client_socket.close()
-            except:
+            except Exception:
                 pass
             try:
                 self.logger.debug(f"TCP client {address} disconnected")
-            except:
+            except Exception:
                 pass
 
     def _receive_full_message(
@@ -269,7 +268,7 @@ class BaseTcpServer(ABC):
             if not chunk:
                 try:
                     self.logger.warning("Connection closed while receiving message")
-                except:
+                except Exception:
                     print("Connection closed while receiving message")
                 return None
             message_data += chunk
@@ -351,7 +350,7 @@ class BaseTcpServer(ABC):
         """析构函数，确保资源清理"""
         try:
             self.stop()
-        except:
+        except Exception:
             pass
 
 
@@ -425,7 +424,7 @@ class LocalTcpServer(BaseTcpServer):
             if message_type is None:
                 # 无法提取消息类型，使用默认处理器
                 self.logger.warning(
-                    f"Could not extract message type from message, using default handler"
+                    "Could not extract message type from message, using default handler"
                 )
                 return self._use_default_handler(message, client_address, None)
 

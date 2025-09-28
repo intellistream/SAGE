@@ -20,7 +20,7 @@ from .manager import IssuesManager
 
 # 如果在CLI环境中，也导出CLI应用
 try:
-    from .cli import app as cli_app
+    from .cli import app as cli_app  # noqa: F401
 
     __all__ = ["IssuesManager", "IssuesConfig", "cli_app"]
 except ImportError:

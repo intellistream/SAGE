@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import (TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type,
-                    Union)
+from typing import TYPE_CHECKING, Type
 
 from sage.core.operator.filter_operator import FilterOperator
 from sage.core.transformation.base_transformation import BaseTransformation
@@ -9,7 +8,6 @@ from sage.core.transformation.base_transformation import BaseTransformation
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.core.api.function.base_function import BaseFunction
-    from sage.core.operator.base_operator import BaseOperator
 
 
 class FilterTransformation(BaseTransformation):

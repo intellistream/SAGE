@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING, Union
 
-from sage.common.utils.logging.custom_logger import CustomLogger
-
 if TYPE_CHECKING:
     from sage.core.api.service.base_service import BaseService
     from sage.core.factory.service_factory import ServiceFactory
@@ -38,8 +36,7 @@ class ServiceTaskFactory:
         """
         if self.remote:
             # 创建Ray服务任务
-            from sage.kernel.runtime.service.ray_service_task import \
-                RayServiceTask
+            from sage.kernel.runtime.service.ray_service_task import RayServiceTask
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
             ray_service_task = RayServiceTask.options(lifetime="detached").remote(
@@ -53,8 +50,7 @@ class ServiceTaskFactory:
 
         else:
             # 创建本地服务任务
-            from sage.kernel.runtime.service.local_service_task import \
-                LocalServiceTask
+            from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
             service_task = LocalServiceTask(
                 service_factory=self.service_factory, ctx=ctx

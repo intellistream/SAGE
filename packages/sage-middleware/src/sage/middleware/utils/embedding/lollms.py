@@ -1,10 +1,12 @@
 import sys
 
+import requests
+
 if sys.version_info < (3, 9):
-    from typing import AsyncIterator
+    pass
 else:
-    from collections.abc import AsyncIterator
-import pipmaster as pm  # Pipmaster for dynamic library install
+    pass
+
 
 # Dependencies should be installed via requirements.txt
 # aiohttp and tenacity are required for this module
@@ -18,7 +20,7 @@ except ImportError:
     )
 
 try:
-    import tenacity
+    import tenacity  # noqa: F401
 except ImportError:
     raise ImportError(
         "tenacity package is required for Lollms embedding functionality. "
@@ -60,9 +62,6 @@ async def lollms_embed(
         ) as response:
             result = await response.json()
             return result["vector"]
-
-
-import requests
 
 
 def lollms_embed_sync(

@@ -15,9 +15,8 @@ from typing import Any, Dict, List, Optional, Union
 
 from .exceptions import CLIException, ConnectionError, ValidationError
 from .output import OutputFormatter
-from .utils import format_command_for_display, run_subprocess
-from .validation import (validate_host, validate_path, validate_port,
-                         validate_timeout)
+from .utils import run_subprocess
+from .validation import validate_host, validate_path, validate_port, validate_timeout
 
 
 class SSHConfig:

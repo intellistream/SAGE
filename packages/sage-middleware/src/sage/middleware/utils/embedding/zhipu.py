@@ -1,18 +1,16 @@
-import json
-import re
 import sys
 
 if sys.version_info < (3, 9):
     pass
 else:
     pass
-import pipmaster as pm  # Pipmaster for dynamic library install
+
 
 # Dependencies should be installed via requirements.txt
 # zhipuai is required for this module
 
 try:
-    import zhipuai
+    import zhipuai  # noqa: F401
 except ImportError:
     raise ImportError(
         "zhipuai package is required for ZhipuAI embedding functionality. "

@@ -1,10 +1,9 @@
 import os
-from logging import Manager
-from re import M
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 
-from sage.middleware.components.neuromem.memory_collection.vdb_collection import \
-    VDBMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
 

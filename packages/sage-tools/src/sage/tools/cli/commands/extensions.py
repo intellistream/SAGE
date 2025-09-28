@@ -7,7 +7,6 @@ SAGE Extensions Manager
 """
 
 import subprocess
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -64,20 +63,37 @@ def print_warning(msg: str):
     typer.echo(f"{Colors.YELLOW}⚠️ {msg}{Colors.RESET}")
 
 
-def run_command(cmd, check=True):
+def run_command(cmd, check=True, capture_output=True):
     """运行命令"""
     print_info(f"Running: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
     try:
         result = subprocess.run(
-            cmd, shell=isinstance(cmd, str), check=check, capture_output=True, text=True
+            cmd,
+            shell=isinstance(cmd, str),
+            check=check,
+            capture_output=capture_output,
+            text=True,
         )
+        # 如果不捕获输出但仍想返回结果，创建一个简单的结果对象
+        if not capture_output:
+
+            class SimpleResult:
+                def __init__(self, returncode):
+                    self.returncode = returncode
+                    self.stdout = ""
+                    self.stderr = ""
+
+            result = SimpleResult(
+                result.returncode if hasattr(result, "returncode") else 0
+            )
         return result
     except subprocess.CalledProcessError as e:
         print_error(f"Command failed: {e}")
-        if e.stdout:
-            typer.echo(f"STDOUT: {e.stdout}")
-        if e.stderr:
-            typer.echo(f"STDERR: {e.stderr}")
+        if capture_output:
+            if e.stdout:
+                typer.echo(f"STDOUT: {e.stdout}")
+            if e.stderr:
+                typer.echo(f"STDERR: {e.stderr}")
         raise
 
 
@@ -94,7 +110,7 @@ def check_build_tools() -> bool:
         else:
             print_warning("gcc 不可用")
             tools_available = False
-    except:
+    except Exception:
         print_warning("gcc 不可用")
         tools_available = False
 
@@ -106,7 +122,7 @@ def check_build_tools() -> bool:
         else:
             print_warning("cmake 不可用")
             tools_available = False
-    except:
+    except Exception:
         print_warning("cmake 不可用")
         tools_available = False
 
@@ -237,8 +253,11 @@ def install(
             original_cwd = os.getcwd()
             os.chdir(ext_dir)
             try:
+                # 在构建过程中不捕获输出，直接显示实时错误信息
                 result = run_command(
-                    ["bash", "build.sh", "--install-deps"], check=False
+                    ["bash", "build.sh", "--install-deps"],
+                    check=False,
+                    capture_output=False,
                 )
             finally:
                 os.chdir(original_cwd)
@@ -274,18 +293,53 @@ def install(
                                 f"已安装 Python 扩展模块到: {repo_target_dir}"
                             )
 
-                            # 2) 复制到已安装包的 site-packages 目录（CI/运行时导入）
+                            # 2) 复制完整的 Python 模块到 site-packages 目录（CI/运行时导入）
                             try:
                                 import sysconfig
 
                                 platlib = Path(sysconfig.get_paths()["platlib"])
                                 site_target_dir = platlib / site_rel
                                 site_target_dir.mkdir(parents=True, exist_ok=True)
+
+                                # 复制 .so 文件
                                 for so in candidates:
                                     shutil.copy2(so, site_target_dir / so.name)
+
+                                # 复制完整的 Python 模块目录结构
+                                python_source_dir = ext_dir / "python"
+                                if python_source_dir.exists():
+                                    # 复制所有 Python 文件（.py, __init__.py 等）
+                                    for py_file in python_source_dir.rglob("*.py"):
+                                        rel_path = py_file.relative_to(
+                                            python_source_dir
+                                        )
+                                        target_py_file = site_target_dir / rel_path
+                                        target_py_file.parent.mkdir(
+                                            parents=True, exist_ok=True
+                                        )
+                                        shutil.copy2(py_file, target_py_file)
+
+                                    # 处理 micro_service 目录（sage_db 和 sage_flow 都有）
+                                    micro_service_dir = (
+                                        python_source_dir / "micro_service"
+                                    )
+                                    if micro_service_dir.exists():
+                                        target_micro_service = (
+                                            site_target_dir / "micro_service"
+                                        )
+                                        if target_micro_service.exists():
+                                            shutil.rmtree(target_micro_service)
+                                        shutil.copytree(
+                                            micro_service_dir, target_micro_service
+                                        )
+                                        print_success(
+                                            f"已安装 {ext_name} micro_service 模块到 site-packages: {target_micro_service}"
+                                        )
+
                                 print_success(
                                     f"已安装 Python 扩展模块到 site-packages: {site_target_dir}"
                                 )
+
                             except Exception as e:
                                 print_warning(
                                     f"无法复制到 site-packages（可能未安装包）: {e}"
@@ -295,11 +349,53 @@ def install(
                     print_warning(f"复制扩展产物时发生问题: {e}")
             else:
                 print_error(f"{ext_name} 构建失败")
-                if result.stderr:
+                if hasattr(result, "stderr") and result.stderr:
                     typer.echo(f"错误信息: {result.stderr}")
+
+                # 提供详细的诊断信息
+                print_warning("🔍 构建诊断信息:")
+
+                # 检查构建目录
+                build_dir = ext_dir / "build"
+                if build_dir.exists():
+                    cmake_cache = build_dir / "CMakeCache.txt"
+                    if cmake_cache.exists():
+                        typer.echo(f"📋 CMake 缓存文件存在: {cmake_cache}")
+                        # 显示关键的 CMake 变量
+                        try:
+                            with open(cmake_cache, "r") as f:
+                                content = f.read()
+                                for key in [
+                                    "BLAS_FOUND",
+                                    "LAPACK_FOUND",
+                                    "FAISS_FOUND",
+                                ]:
+                                    if key in content:
+                                        lines = [
+                                            line
+                                            for line in content.split("\n")
+                                            if key in line and not line.startswith("//")
+                                        ]
+                                        if lines:
+                                            typer.echo(
+                                                f"   {key}: {lines[0].split('=')[-1] if '=' in lines[0] else 'unknown'}"
+                                            )
+                        except Exception:
+                            pass
+
+                # 提供帮助信息
+                typer.echo("\n💡 故障排除建议:")
+                typer.echo(
+                    "   1. 检查系统依赖: ./tools/install/install_system_deps.sh --verify-only"
+                )
+                typer.echo(
+                    f"   2. 手动构建: cd {ext_dir} && bash build.sh --clean --install-deps"
+                )
+                typer.echo(f"   3. 查看构建日志: {build_dir}/CMakeFiles/CMakeError.log")
 
         except Exception as e:
             print_error(f"{ext_name} 构建失败: {e}")
+            typer.echo(f"异常详情: {type(e).__name__}: {str(e)}")
 
     # 总结
     typer.echo(f"\n{Colors.BOLD}安装完成{Colors.RESET}")

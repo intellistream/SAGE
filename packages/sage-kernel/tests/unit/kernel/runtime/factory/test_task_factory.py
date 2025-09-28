@@ -5,7 +5,7 @@ Tests the TaskFactory class which creates task instances
 for both local and remote execution environments.
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from sage.kernel.runtime.factory.task_factory import TaskFactory

@@ -1,7 +1,5 @@
-import logging
 import time
 
-from pydantic import Json
 from sage.common.utils.config.loader import load_config
 from sage.core.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.batch import JSONLBatch
@@ -41,8 +39,6 @@ def pipeline_run(config: dict) -> None:
 if __name__ == "__main__":
     import os
     import sys
-
-    from sage.common.utils.logging.custom_logger import CustomLogger
 
     # 检查是否在测试模式下运行
     if (

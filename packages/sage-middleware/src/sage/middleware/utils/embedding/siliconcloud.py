@@ -1,6 +1,8 @@
-import asyncio
-import os
+import base64
+import struct
 import sys
+
+import requests
 
 if sys.version_info < (3, 9):
     pass
@@ -10,11 +12,6 @@ import base64
 import struct
 
 import aiohttp
-import numpy as np
-import pipmaster as pm  # Pipmaster for dynamic library install
-from openai import APIConnectionError, APITimeoutError, RateLimitError
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
 
 
 async def siliconcloud_embedding(
@@ -63,12 +60,6 @@ async def siliconcloud_embedding(
     n = len(decode_bytes) // 4
     float_array = struct.unpack("<" + "f" * n, decode_bytes)
     return list(float_array)
-
-
-import base64
-import struct
-
-import requests
 
 
 def siliconcloud_embedding_sync(

@@ -5,13 +5,10 @@ This tool analyzes and reports on project dependencies across all packages.
 """
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Set
-
-import yaml
+from typing import Any, Dict, List
 
 try:
     import tomllib  # Python 3.11+
@@ -421,7 +418,7 @@ class DependencyAnalyzer:
             if result.returncode == 0 and result.stdout:
                 return json.loads(result.stdout)
 
-        except:
+        except Exception:
             pass
 
         return []  # Return empty list if safety is not available

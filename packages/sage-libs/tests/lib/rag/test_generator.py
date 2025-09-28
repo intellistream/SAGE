@@ -2,12 +2,8 @@
 测试 sage.libs.rag.generator 模块
 """
 
-import json
 import os
-import tempfile
-import time
-from typing import Any, Dict
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -57,7 +53,7 @@ class TestOpenAIGenerator:
 
         # 验证初始化
         assert generator.config == config
-        assert generator.enable_profile == False
+        assert generator.enable_profile is False
         assert generator.num == 1
 
         # 验证OpenAIClient被正确调用
@@ -100,7 +96,7 @@ class TestOpenAIGenerator:
             # 重新初始化以设置profile路径
             generator.__init__(config=config, enable_profile=True)
 
-            assert generator.enable_profile == True
+            assert generator.enable_profile is True
 
     @patch("sage.libs.rag.generator.OpenAIClient")
     def test_openai_generator_initialization_no_api_key(self, mock_openai_client):
@@ -154,17 +150,16 @@ class TestOpenAIGenerator:
         input_data = ["Test prompt"]
         result = generator.execute(input_data)
 
-        # 验证结果
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        user_query, response = result
-        assert user_query is None  # 因为只有一个输入
-        assert response == "Generated response"
-        mock_client_instance.generate.assert_called_once_with("Test prompt")
+        # 新实现：单输入返回字典，包含 generated 与 generate_time
+        assert isinstance(result, dict)
+        assert result["generated"] == "Generated response"
+        assert "generate_time" in result
+        expected_messages = [{"role": "user", "content": "Test prompt"}]
+        mock_client_instance.generate.assert_called_once_with(expected_messages)
 
     @patch("sage.libs.rag.generator.OpenAIClient")
-    def test_execute_with_dict_input(self, mock_openai_client):
-        """测试execute方法处理字典输入"""
+    def test_execute_with_two_string_inputs(self, mock_openai_client):
+        """测试execute方法处理两个字符串输入（原始query + prompt）"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
 
@@ -182,20 +177,21 @@ class TestOpenAIGenerator:
 
         generator = OpenAIGenerator(config=config)
 
-        # 测试字典输入 - OpenAIGenerator期望列表输入
+        # 测试两个字符串输入（原始query + prompt）
         input_data = ["What is AI?", "Please explain artificial intelligence."]
         result = generator.execute(input_data)
 
-        # 验证结果
+        # 新实现：当第一个参数是字符串时，返回 (None, response)
         assert isinstance(result, tuple)
         assert len(result) == 2
         user_query, response = result
-        assert user_query == "What is AI?"
+        assert user_query is None
         assert response == "Generated response"
 
-        mock_client_instance.generate.assert_called_once_with(
-            "Please explain artificial intelligence."
-        )
+        expected_messages = [
+            {"role": "user", "content": "Please explain artificial intelligence."}
+        ]
+        mock_client_instance.generate.assert_called_once_with(expected_messages)
 
     @patch("sage.libs.rag.generator.OpenAIClient")
     def test_execute_with_profile_enabled(self, mock_openai_client):
@@ -238,12 +234,10 @@ class TestOpenAIGenerator:
             with patch("time.time", return_value=1234567890.0):
                 result = generator.execute(input_data)
 
-            # 验证结果
-            assert isinstance(result, tuple)
-            assert len(result) == 2
-            user_query, response = result
-            assert user_query is None
-            assert response == "Generated response"
+            # 新实现：单输入返回字典
+            assert isinstance(result, dict)
+            assert result["generated"] == "Generated response"
+            assert "generate_time" in result
 
     @patch("sage.libs.rag.generator.OpenAIClient")
     def test_execute_with_api_error(self, mock_openai_client):
@@ -302,6 +296,89 @@ class TestOpenAIGenerator:
         assert generator.num == 3
 
     @patch("sage.libs.rag.generator.OpenAIClient")
+    def test_execute_with_dict_input_returns_generate_time(self, mock_openai_client):
+        """测试execute方法处理字典输入时返回generate_time字段"""
+        if not GENERATOR_AVAILABLE:
+            pytest.skip("Generator module not available")
+
+        config = {
+            "model_name": "gpt-4o-mini",
+            "base_url": "http://localhost:8000/v1",
+            "api_key": "test_key",
+            "seed": 42,
+        }
+
+        # Mock OpenAIClient和其响应
+        mock_client_instance = Mock()
+        mock_client_instance.generate.return_value = "Generated response"
+        mock_openai_client.return_value = mock_client_instance
+
+        generator = OpenAIGenerator(config=config)
+
+        # 测试字典输入 - OpenAIGenerator期望列表输入: [original_data, prompt]
+        original_data = {"query": "What is AI?", "other_field": "value"}
+        prompt = "Please explain artificial intelligence."
+        input_data = [original_data, prompt]
+
+        with patch("time.time", side_effect=[1000.0, 1001.5]):  # start, end times
+            result = generator.execute(input_data)
+
+        # 验证结果是字典格式且包含generate_time
+        assert isinstance(result, dict)
+        assert "generated" in result
+        assert "generate_time" in result
+        assert result["generated"] == "Generated response"
+        assert result["generate_time"] == 1.5  # 1001.5 - 1000.0
+        assert result["query"] == "What is AI?"
+        assert result["other_field"] == "value"
+
+        # 验证调用参数
+        expected_messages = [{"role": "user", "content": prompt}]
+        mock_client_instance.generate.assert_called_once_with(expected_messages)
+
+    @patch("sage.libs.rag.generator.OpenAIClient")
+    def test_execute_with_messages_list_input(self, mock_openai_client):
+        """测试execute方法处理消息列表输入"""
+        if not GENERATOR_AVAILABLE:
+            pytest.skip("Generator module not available")
+
+        config = {
+            "model_name": "gpt-4o-mini",
+            "base_url": "http://localhost:8000/v1",
+            "api_key": "test_key",
+            "seed": 42,
+        }
+
+        # Mock OpenAIClient和其响应
+        mock_client_instance = Mock()
+        mock_client_instance.generate.return_value = "Generated response"
+        mock_openai_client.return_value = mock_client_instance
+
+        generator = OpenAIGenerator(config=config)
+
+        # 测试消息列表输入 - 已格式化的消息
+        original_data = {"query": "What is AI?"}
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "What is artificial intelligence?"},
+        ]
+        input_data = [original_data, messages]
+
+        with patch("time.time", side_effect=[1000.0, 1002.0]):  # start, end times
+            result = generator.execute(input_data)
+
+        # 验证结果
+        assert isinstance(result, dict)
+        assert "generated" in result
+        assert "generate_time" in result
+        assert result["generated"] == "Generated response"
+        assert result["generate_time"] == 2.0  # 1002.0 - 1000.0
+        assert result["query"] == "What is AI?"
+
+        # 验证直接传递消息列表
+        mock_client_instance.generate.assert_called_once_with(messages)
+
+    @patch("sage.libs.rag.generator.OpenAIClient")
     def test_configuration_validation(self, mock_openai_client):
         """测试配置验证"""
         if not GENERATOR_AVAILABLE:
@@ -353,13 +430,11 @@ class TestOpenAIGeneratorIntegration:
 
             result = generator.execute(test_data)
 
-            # 验证结果结构
+            # 新实现：当第一个参数为字符串时返回 (None, response)
             assert isinstance(result, tuple)
             assert len(result) == 2
             user_query, response = result
-            assert (
-                user_query == "Analyze the following context and answer the question."
-            )
+            assert user_query is None
             assert response == "Mocked response"
 
 
@@ -553,11 +628,9 @@ class TestGeneratorIntegration:
             openai_result = openai_gen.execute(test_input)
             hf_result = hf_gen.execute(test_input)
 
-            # 验证结果格式一致性
-            assert isinstance(openai_result, tuple)
+            # 新实现：OpenAI 单输入返回字典；HF 返回元组
+            assert isinstance(openai_result, dict)
             assert isinstance(hf_result, tuple)
-            assert len(openai_result) == 2
-            assert len(hf_result) == 2
 
             # 验证两个生成器都被正确调用
             mock_openai_instance.generate.assert_called_once()

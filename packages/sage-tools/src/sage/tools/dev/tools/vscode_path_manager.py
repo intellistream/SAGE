@@ -6,9 +6,8 @@ This tool automatically updates VS Code settings.json with Python path configura
 
 import glob
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Dict, List
 
 from ..core.exceptions import SAGEDevToolkitError
 

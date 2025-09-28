@@ -6,14 +6,16 @@ import os
 import sys
 
 import pytest
+from sage.kernel.utils.ray.ray import (
+    RAY_AVAILABLE,
+    ensure_ray_initialized,
+    get_sage_kernel_runtime_env,
+)
 
 # 添加正确的项目路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sage_kernel_src = os.path.join(current_dir, "../../../../../src")
 sys.path.insert(0, os.path.abspath(sage_kernel_src))
-
-from sage.kernel.utils.ray.ray import (RAY_AVAILABLE, ensure_ray_initialized,
-                                       get_sage_kernel_runtime_env)
 
 
 @pytest.mark.skipif(not RAY_AVAILABLE, reason="Ray not available")
@@ -52,12 +54,16 @@ class TestRayInitialization:
         @ray.remote
         def test_sage_import():
             try:
-                from sage.kernel.runtime.communication.queue_descriptor import \
-                    RayQueueDescriptor
+                from sage.kernel.runtime.communication.queue_descriptor import (  # noqa: F401
+                    RayQueueDescriptor,
+                )
 
                 return True
             except ImportError as e:
                 return str(e)
+
+        # Add project source to PYTHONPATH before importing sage modules
+        # noqa: E402 - import must occur after sys.path modification
 
         result = ray.get(test_sage_import.remote())
         assert result is True, f"无法在Ray Actor中导入sage模块: {result}"

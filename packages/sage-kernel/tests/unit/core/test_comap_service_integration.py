@@ -4,10 +4,7 @@ CoMap函数中服务调用集成测试
 参考算子内的service call语法糖和dataflow comap test
 """
 
-import threading
 import time
-import unittest
-from unittest.mock import Mock
 
 import pytest
 from sage.core.api.function.comap_function import BaseCoMapFunction
@@ -130,7 +127,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         else:
             # This is a recommendation request, handle it differently
             print(
-                f"[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
+                "[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
             )
             return {
                 "type": "recommendation_request_received",
@@ -146,7 +143,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
 
         try:
             print(
-                f"[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0"
+                "[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0"
             )
             update_result = self.call_service["user_profile"].update_activity(
                 user_id, activity_description, timeout=10.0

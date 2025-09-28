@@ -4,7 +4,6 @@ Python Queue Descriptor - Python标准库队列描述符
 支持本地进程内队列（queue.Queue）和多进程队列（multiprocessing.Queue）
 """
 
-import logging
 from queue import Queue
 from typing import Any, Dict, Optional
 

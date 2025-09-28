@@ -2,17 +2,15 @@ import inspect
 import json
 import os
 import shutil
-import warnings
 from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.components.neuromem.memory_collection.base_collection import \
-    BaseMemoryCollection
-from sage.middleware.components.neuromem.search_engine.kv_index import \
-    KVIndexFactory
-from sage.middleware.components.neuromem.utils.path_utils import \
-    get_default_data_dir
+from sage.middleware.components.neuromem.memory_collection.base_collection import (
+    BaseMemoryCollection,
+)
+from sage.middleware.components.neuromem.search_engine.kv_index import KVIndexFactory
+from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
 
 # 通过config文件指定默认索引，neuromem默认索引，用户指定索引
 
@@ -132,7 +130,7 @@ class KVMemoryCollection(BaseMemoryCollection):
         Args:
             store_path: 保存路径，如果为None则使用默认路径
         """
-        self.logger.debug(f"KVMemoryCollection: store called")
+        self.logger.debug("KVMemoryCollection: store called")
 
         if store_path is None:
             store_path = get_default_data_dir()
@@ -253,7 +251,7 @@ class KVMemoryCollection(BaseMemoryCollection):
             metadata: 元数据字典
             *index_names: 要插入的索引名称列表
         """
-        self.logger.debug(f"KVMemoryCollection: insert called")
+        self.logger.debug("KVMemoryCollection: insert called")
 
         stable_id = self._get_stable_id(raw_text)
         self.text_storage.store(stable_id, raw_text)
@@ -282,7 +280,7 @@ class KVMemoryCollection(BaseMemoryCollection):
         Args:
             raw_text: 要删除的原始文本
         """
-        self.logger.debug(f"KVMemoryCollection: delete called")
+        self.logger.debug("KVMemoryCollection: delete called")
 
         stable_id = self._get_stable_id(raw_text)
         self.text_storage.delete(stable_id)
@@ -309,7 +307,7 @@ class KVMemoryCollection(BaseMemoryCollection):
             new_metadata: 新的元数据
             *index_names: 要更新的索引名称列表
         """
-        self.logger.debug(f"KVMemoryCollection: update called")
+        self.logger.debug("KVMemoryCollection: update called")
 
         old_id = self._get_stable_id(former_text)
         if not self.text_storage.has(old_id):
@@ -345,7 +343,7 @@ class KVMemoryCollection(BaseMemoryCollection):
             metadata_filter_func: 元数据过滤函数
             **metadata_conditions: 元数据过滤条件
         """
-        self.logger.debug(f"KVMemoryCollection: retrieve called")
+        self.logger.debug("KVMemoryCollection: retrieve called")
 
         if index_name is None or index_name not in self.indexes:
             self.logger.warning(f"Index '{index_name}' does not exist.")
@@ -492,7 +490,6 @@ class KVMemoryCollection(BaseMemoryCollection):
 
 if __name__ == "__main__":
     import tempfile
-    import time
 
     print("=== KVMemoryCollection 测试开始 ===")
 

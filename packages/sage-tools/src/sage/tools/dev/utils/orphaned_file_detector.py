@@ -6,7 +6,6 @@ SAGE 废弃文件检查器
 
 import os
 import re
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Set, Tuple

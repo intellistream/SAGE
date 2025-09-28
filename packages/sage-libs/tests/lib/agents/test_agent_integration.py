@@ -8,7 +8,7 @@ including the interaction between all components.
 import json
 import os
 import tempfile
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -25,7 +25,7 @@ try:
     from sage.libs.agents.planning.llm_planner import LLMPlanner
     from sage.libs.agents.profile.profile import BaseProfile
     from sage.libs.agents.runtime.agent import AgentRuntime
-    from sage.libs.rag.generator import OpenAIGenerator
+    from sage.libs.rag.generator import OpenAIGenerator  # noqa: F401
 
     SAGE_COMPONENTS_AVAILABLE = True
 except ImportError:

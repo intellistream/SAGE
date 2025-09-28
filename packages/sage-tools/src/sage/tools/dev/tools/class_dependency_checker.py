@@ -5,11 +5,9 @@ This tool analyzes class-level dependencies and relationships in the codebase.
 """
 
 import ast
-import json
-import os
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 from ..core.exceptions import SAGEDevToolkitError
 
@@ -334,7 +332,7 @@ class ClassDependencyChecker:
         """Get full attribute name from AST node."""
         try:
             return ast.unparse(attr_node)
-        except:
+        except Exception:
             # Fallback for older Python versions
             parts = []
             node = attr_node

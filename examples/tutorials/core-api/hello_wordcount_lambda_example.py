@@ -10,11 +10,11 @@ import os
 import time
 from collections import Counter
 
-# 设置日志级别为ERROR减少输出
-os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
-
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
+
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 
 # 简单的句子源，重复输出同一句话

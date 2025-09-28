@@ -1,8 +1,7 @@
-import copy
 import json
 import os
 
-import pipmaster as pm  # Pipmaster for dynamic library install
+import boto3
 
 # Dependencies should be installed via requirements.txt
 # aioboto3 and tenacity are required for this module
@@ -16,15 +15,15 @@ except ImportError:
     )
 
 try:
-    from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                          wait_exponential)
+    from tenacity import retry  # noqa: F401
+    from tenacity import retry_if_exception_type  # noqa: F401
+    from tenacity import stop_after_attempt  # noqa: F401
+    from tenacity import wait_exponential  # noqa: F401
 except ImportError:
     raise ImportError(
         "tenacity package is required for AWS Bedrock embedding functionality. "
         "Please install it via: pip install tenacity"
     )
-
-import numpy as np
 
 
 class BedrockError(Exception):
@@ -96,12 +95,6 @@ async def bedrock_embed(
 
         else:
             raise ValueError(f"Model provider '{model_provider}' is not supported!")
-
-
-import json
-import os
-
-import boto3
 
 
 def bedrock_embed_sync(
