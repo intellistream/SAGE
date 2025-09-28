@@ -130,17 +130,6 @@ def _read_sage_data_from_files():
     return data
 
 
-import json
-import os
-from pathlib import Path
-from typing import List, Optional
-
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
-
-
 def _load_version():
     """加载版本信息"""
     try:

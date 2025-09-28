@@ -11,16 +11,15 @@ from pathlib import Path
 from typing import List
 
 import pytest
+from example_strategies import (ExampleEnvironmentManager, ExampleTestFilters,
+                                ExampleTestStrategies)
+from sage.tools.dev.issues.tests import IssuesTestSuite
+from test_examples import ExampleAnalyzer, ExampleTestSuite
 
 # 添加项目路径
 current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir.parent.parent / "packages" / "sage-tools" / "src"))
 sys.path.insert(0, str(current_dir))
-
-from example_strategies import (ExampleEnvironmentManager, ExampleTestFilters,
-                                ExampleTestStrategies)
-from sage.tools.dev.issues.tests import IssuesTestSuite
-from test_examples import ExampleAnalyzer, ExampleTestSuite
 
 
 class TestExamplesIntegration:

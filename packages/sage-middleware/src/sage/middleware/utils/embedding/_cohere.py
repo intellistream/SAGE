@@ -26,11 +26,6 @@ async def cohere_embed(
     return response.embeddings
 
 
-import os
-
-import cohere
-
-
 def cohere_embed_sync(
     texts: list[str],
     api_key: str = None,

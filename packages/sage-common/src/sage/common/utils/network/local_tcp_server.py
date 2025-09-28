@@ -145,7 +145,7 @@ class BaseTcpServer(ABC):
         """TCP服务器主循环"""
         try:
             self.logger.debug(f"{self.server_name} loop started")
-        except:
+        except Exception:
             print(f"{self.server_name} loop started")
 
         while self.running:

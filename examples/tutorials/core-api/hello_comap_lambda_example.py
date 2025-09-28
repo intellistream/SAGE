@@ -27,17 +27,16 @@ import sys
 import time
 from typing import Any, List
 
+from sage.core.api.function.comap_function import BaseCoMapFunction
+from sage.core.api.function.source_function import SourceFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.runtime.communication.router.packet import StopSignal
+
 # 设置日志级别为ERROR减少输出
 os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 # Add the project root to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from sage.core.api.function.comap_function import BaseCoMapFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
-# Remove this import - use the correct one below
-from sage.kernel.runtime.communication.router.packet import StopSignal
 
 
 class ListSource(SourceFunction):

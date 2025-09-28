@@ -119,7 +119,7 @@ def create_qa_pipeline():
         try:
             env.close()
             print("✅ QA流处理管道已关闭")
-        except:
+        except Exception:
             pass
 
 

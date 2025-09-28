@@ -14,13 +14,13 @@ import signal
 import subprocess
 import time
 
-# 设置日志级别为ERROR减少输出
-os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
-
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.remote_environment import RemoteEnvironment
 from sage.kernel.runtime.communication.router.packet import StopSignal
+
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 # 全局变量存储JobManager进程
 jobmanager_process = None

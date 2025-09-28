@@ -5,12 +5,11 @@
 
 import os
 import sys
-
-sys.path.append("/home/shuhao/SAGE")
-
 import unittest.mock
 
 import numpy as np
+
+sys.path.append("/home/shuhao/SAGE")
 
 
 def mock_model_load_failure(*args, **kwargs):

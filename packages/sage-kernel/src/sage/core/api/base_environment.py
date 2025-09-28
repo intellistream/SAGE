@@ -10,12 +10,11 @@ from typing import TYPE_CHECKING, Any, List, Optional, Type, Union
 from sage.core.api.compatibility import (safe_import_custom_logger,
                                          safe_import_kernel_client)
 from sage.core.api.function.lambda_function import wrap_lambda
+from sage.core.factory.service_factory import ServiceFactory
 
 # 获取闭源模块的类（如果可用，否则使用回退实现）
 _JobManagerClient = safe_import_kernel_client()
 _CustomLogger = safe_import_custom_logger()
-
-from sage.core.factory.service_factory import ServiceFactory
 
 if TYPE_CHECKING:
     from sage.core.api.datastream import DataStream

@@ -66,9 +66,9 @@ class RAGMemoryService(BaseService):
             raw_data=data, index_name="test_index", metadata=metadata
         )
         if result:
-            self._logger.info(f"Successfully insert data into rag memory")
+            self._logger.info("Successfully insert data into rag memory")
         else:
-            self._logger.info(f"Failed to insert data into rag memory")
+            self._logger.info("Failed to insert data into rag memory")
 
 
 if __name__ == "__main__":

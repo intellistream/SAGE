@@ -1,5 +1,7 @@
 import sys
 
+import requests
+
 if sys.version_info < (3, 9):
     from typing import AsyncIterator
 else:
@@ -60,9 +62,6 @@ async def lollms_embed(
         ) as response:
             result = await response.json()
             return result["vector"]
-
-
-import requests
 
 
 def lollms_embed_sync(

@@ -12,11 +12,11 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from license_core import LicenseConfig, LicenseCore
+
 # Add shared components to path
 shared_dir = Path(__file__).parent.parent / "shared"
 sys.path.insert(0, str(shared_dir))
-
-from license_core import LicenseConfig, LicenseCore
 
 
 class LicenseVendor:

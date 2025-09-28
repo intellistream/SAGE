@@ -1,9 +1,9 @@
-import asyncio
-import copy
 import os
 
+# flake8: noqa: E402
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import asyncio
+import copy
 from functools import lru_cache
 
 # Dependencies should be installed via requirements.txt
@@ -56,9 +56,6 @@ def initialize_hf_model(model_name):
         hf_tokenizer.pad_token = hf_tokenizer.eos_token
 
     return hf_model, hf_tokenizer
-
-
-import torch
 
 
 def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:

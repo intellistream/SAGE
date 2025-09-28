@@ -5,10 +5,9 @@
 
 import os
 import sys
+import unittest.mock
 
 sys.path.append("/home/shuhao/SAGE")
-
-import unittest.mock
 
 
 def mock_model_load_failure(*args, **kwargs):

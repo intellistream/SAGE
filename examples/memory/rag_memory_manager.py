@@ -30,12 +30,12 @@ class RAGMemoryManager:
 
         if self.memory_manager.has_collection(config.get("name")):
             self.rag_collection = self.memory_manager.get_collection(config.get("name"))
-            self.logger.info(f"Successfully load rag memory from disk")
+            self.logger.info("Successfully load rag memory from disk")
             self.init_status = True
         else:
             self.rag_collection = self.memory_manager.create_collection(config)
             self.rag_collection.create_index(config.get("index_config"))
-            self.logger.info(f"Successfully create rag memory")
+            self.logger.info("Successfully create rag memory")
 
     def init(self, texts, metadatas):
         self.rag_collection.batch_insert_data(texts, metadatas)

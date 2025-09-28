@@ -87,7 +87,7 @@ class BaseTcpClient(ABC):
             if self._socket:
                 try:
                     self._socket.close()
-                except:
+                except Exception:
                     pass
                 self._socket = None
             return False
@@ -97,7 +97,7 @@ class BaseTcpClient(ABC):
         if self._socket:
             try:
                 self._socket.close()
-            except:
+            except Exception:
                 pass
             self._socket = None
 
@@ -363,5 +363,5 @@ class BaseTcpClient(ABC):
         """析构函数，确保连接清理"""
         try:
             self.disconnect()
-        except:
+        except Exception:
             pass

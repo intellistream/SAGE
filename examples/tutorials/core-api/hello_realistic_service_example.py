@@ -501,7 +501,7 @@ def test_realistic_sage_workflow():
         try:
             env.stop()
             print("环境已清理")
-        except:
+        except Exception:
             pass
 
 

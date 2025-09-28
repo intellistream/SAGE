@@ -13,7 +13,8 @@ else:
 # openai is required for this module
 
 try:
-    from openai import AsyncOpenAI  # 确保导入了这个
+    from openai import AsyncOpenAI, OpenAI  # 确保导入了这个
+    from openai.types import CreateEmbeddingResponse
 except ImportError:
     raise ImportError(
         "openai package is required for OpenAI embedding functionality. "
@@ -60,12 +61,6 @@ async def openai_embed(
     )
 
     return response.data[0].embedding
-
-
-import os
-
-from openai import OpenAI  # 同步版 client
-from openai.types import CreateEmbeddingResponse
 
 
 def openai_embed_sync(

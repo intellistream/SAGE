@@ -5,11 +5,11 @@
 
 import os
 import sys
+import unittest.mock
 
 sys.path.append("/home/shuhao/SAGE")
 
 # 模拟网络问题，阻止HuggingFace模型下载
-import unittest.mock
 
 
 def mock_model_load_failure(*args, **kwargs):

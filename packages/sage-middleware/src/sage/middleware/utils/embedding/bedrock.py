@@ -2,6 +2,8 @@ import copy
 import json
 import os
 
+import boto3
+
 # Dependencies should be installed via requirements.txt
 # aioboto3 and tenacity are required for this module
 
@@ -94,12 +96,6 @@ async def bedrock_embed(
 
         else:
             raise ValueError(f"Model provider '{model_provider}' is not supported!")
-
-
-import json
-import os
-
-import boto3
 
 
 def bedrock_embed_sync(
