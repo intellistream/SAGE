@@ -11,7 +11,7 @@ This covers the new functionality added in commit 12aec700c63407e1f5d79455b2d64a
 import json
 import os
 import tempfile
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

@@ -3,9 +3,8 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
-import pytest
 from sage.core.api.function.comap_function import BaseCoMapFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction

@@ -61,10 +61,7 @@ def quality(
 
     默认情况下会自动修复格式化和导入排序问题，对于无法自动修复的问题给出警告。
     """
-    import datetime
-    import os
     import subprocess
-    import sys
     from pathlib import Path
 
     from sage.common.config.output_paths import get_sage_paths
@@ -262,7 +259,6 @@ def _save_quality_error_log(logs_base_dir, tool_name: str, error_content: str):
         error_content: 错误内容
     """
     import datetime
-    from pathlib import Path
 
     try:
         # 生成时间戳目录名
@@ -957,7 +953,6 @@ def home(
         elif action == "clean":
             # 清理旧日志文件
             import time
-            from pathlib import Path
 
             logs_dir = sage_paths.logs_dir
             if not logs_dir.exists():
@@ -1408,7 +1403,6 @@ def _run_diagnose_mode(project_root: str):
         import importlib
         import pkgutil
         import subprocess
-        import sys
         from pathlib import Path
 
         console.print("🔍 SAGE 完整安装诊断")
@@ -1880,8 +1874,6 @@ def _show_packages_status(
 def _check_package_dependencies(package_name: str, verbose: bool):
     """检查单个包的依赖"""
     try:
-        import subprocess
-        from pathlib import Path
 
         # 尝试读取 pyproject.toml 依赖
         console.print(f"    🔗 检查 {package_name} 依赖...")

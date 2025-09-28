@@ -14,7 +14,6 @@ from typing import Optional
 import psutil
 import requests
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 console = Console()

@@ -7,7 +7,6 @@ SAGE Extensions Manager
 """
 
 import subprocess
-import sys
 from pathlib import Path
 from typing import Optional
 

@@ -6,10 +6,8 @@ SAGE Issues下载工具 - 新架构版本
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime
-from pathlib import Path
 
 import requests
 

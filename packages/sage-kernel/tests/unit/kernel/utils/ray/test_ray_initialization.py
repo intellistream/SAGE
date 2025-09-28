@@ -52,7 +52,7 @@ class TestRayInitialization:
         def test_sage_import():
             try:
                 from sage.kernel.runtime.communication.queue_descriptor import \
-                    RayQueueDescriptor
+                    RayQueueDescriptor  # noqa: F401
 
                 return True
             except ImportError as e:

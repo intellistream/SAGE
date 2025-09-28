@@ -8,7 +8,6 @@ SAGE Examples 测试的 pytest 集成
 import os
 import sys
 from pathlib import Path
-from typing import List
 
 import pytest
 from example_strategies import (ExampleEnvironmentManager, ExampleTestFilters,

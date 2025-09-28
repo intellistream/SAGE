@@ -4,7 +4,6 @@
 验证基类功能和子类特定功能都正常工作
 """
 
-import os
 import sys
 
 # 添加SAGE路径

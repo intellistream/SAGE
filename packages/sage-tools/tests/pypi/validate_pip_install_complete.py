@@ -29,14 +29,12 @@ SAGE PyPI发布准备完整验证脚本
 """
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 
 class CompletePipInstallTester:

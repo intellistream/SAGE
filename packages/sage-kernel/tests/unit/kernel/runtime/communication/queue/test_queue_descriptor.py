@@ -12,11 +12,9 @@ Queue Descriptor Comprehensive Test Suite
 """
 
 import json
-import os
 import sys
 import time
 from queue import Empty, Full
-from unittest.mock import Mock, patch
 
 import pytest
 

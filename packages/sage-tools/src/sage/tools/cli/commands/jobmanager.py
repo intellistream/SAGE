@@ -5,15 +5,11 @@ SAGE JobManager CLI
 This module provides CLI commands to manage the JobManager lifecycle using Typer.
 """
 
-import getpass
-import json
 import os
-import socket
 import subprocess
 import sys
 import time
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import psutil
 import typer
@@ -21,17 +17,13 @@ import typer
 from sage.common.utils.system.network import (aggressive_port_cleanup,
                                               check_port_binding_permission,
                                               find_port_processes,
-                                              is_port_occupied,
                                               send_tcp_health_check,
                                               wait_for_port_release)
-from sage.common.utils.system.process import (check_process_ownership,
-                                              create_sudo_manager,
+from sage.common.utils.system.process import (create_sudo_manager,
                                               find_processes_by_name,
                                               get_process_info,
                                               kill_process_with_sudo,
-                                              terminate_process,
-                                              terminate_processes_by_name,
-                                              verify_sudo_password)
+                                              terminate_process)
 
 app = typer.Typer(
     name="jobmanager",

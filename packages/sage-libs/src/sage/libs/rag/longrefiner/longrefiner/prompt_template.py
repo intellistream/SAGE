@@ -1,9 +1,3 @@
-import warnings
-
-import tiktoken
-from transformers import AutoConfig, AutoTokenizer
-
-
 class PromptTemplate:
     placeholders = ["reference", "question"]
     base_system_prompt = (

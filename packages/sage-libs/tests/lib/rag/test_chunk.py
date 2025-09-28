@@ -2,9 +2,6 @@
 测试 sage.libs.rag.chunk 模块
 """
 
-from typing import List
-from unittest.mock import MagicMock, Mock, patch
-
 import pytest
 
 # 尝试导入chunk模块

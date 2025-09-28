@@ -2,7 +2,6 @@ import inspect
 import json
 import os
 import shutil
-import warnings
 from typing import Any, Callable, Dict, List, Optional
 
 import yaml
@@ -492,7 +491,6 @@ class KVMemoryCollection(BaseMemoryCollection):
 
 if __name__ == "__main__":
     import tempfile
-    import time
 
     print("=== KVMemoryCollection 测试开始 ===")
 

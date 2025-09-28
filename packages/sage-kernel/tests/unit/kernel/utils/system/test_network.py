@@ -13,8 +13,7 @@ import json
 import socket
 import subprocess
 import time
-from typing import Any, Dict, List, Tuple
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from sage.common.utils.system.network import (_find_processes_with_fuser,

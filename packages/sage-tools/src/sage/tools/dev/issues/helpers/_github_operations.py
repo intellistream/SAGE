@@ -4,12 +4,8 @@ GitHub Issues操作执行脚本
 基于AI分析结果执行GitHub操作
 """
 
-import glob
-import json
-import os
 import sys
 import time
-from datetime import datetime
 from pathlib import Path
 
 import requests

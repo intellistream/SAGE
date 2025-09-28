@@ -6,7 +6,6 @@
 # pip install pytest-mock
 # ================================
 
-from unittest.mock import MagicMock
 
 import pytest
 import requests

@@ -4,10 +4,7 @@ CoMap函数中服务调用集成测试
 参考算子内的service call语法糖和dataflow comap test
 """
 
-import threading
 import time
-import unittest
-from unittest.mock import Mock
 
 import pytest
 from sage.core.api.function.comap_function import BaseCoMapFunction

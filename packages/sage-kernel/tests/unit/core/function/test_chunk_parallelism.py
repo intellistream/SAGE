@@ -1,8 +1,7 @@
 import threading
 import time
-from typing import Any, Dict, List
+from typing import Dict, List
 
-import pytest
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction

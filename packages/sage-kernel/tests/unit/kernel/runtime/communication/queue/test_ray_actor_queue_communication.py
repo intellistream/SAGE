@@ -9,11 +9,10 @@ Ray Queue Actor 引用传递和并发测试
 4. 队列在Actor生命周期中的持久性
 """
 
-import asyncio
 import os
 import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import pytest
 

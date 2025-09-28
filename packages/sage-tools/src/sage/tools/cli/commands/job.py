@@ -14,8 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import typer
-import yaml
-from colorama import Back, Fore, Style, init
+from colorama import Fore, Style, init
 from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 from tabulate import tabulate
 

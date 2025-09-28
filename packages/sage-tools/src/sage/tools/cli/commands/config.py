@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Configuration management commands for SAGE."""
 
-from pathlib import Path
-from typing import Optional
 
 import typer
 

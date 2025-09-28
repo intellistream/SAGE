@@ -1,10 +1,9 @@
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
-from sage.common.config.output_paths import get_states_file
 from sage.core.api.function.map_function import MapFunction
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
 

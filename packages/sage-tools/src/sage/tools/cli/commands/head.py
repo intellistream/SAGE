@@ -4,7 +4,6 @@ SAGE Head Manager CLI
 Ray Head节点管理相关命令
 """
 
-import os
 import subprocess
 import time
 from pathlib import Path

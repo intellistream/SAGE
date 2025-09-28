@@ -5,11 +5,9 @@ SAGE C++ Extensions 测试的 pytest 集成
 测试 C++ 扩展的安装、导入和示例程序运行
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 import pytest
 
@@ -26,7 +24,7 @@ class TestCppExtensions:
         """测试 sage_db 扩展导入"""
         try:
             from sage.middleware.components.sage_db.python.sage_db import \
-                SageDB
+                SageDB  # noqa: F401
 
             assert True, "sage_db 扩展导入成功"
         except ImportError as e:
@@ -36,7 +34,7 @@ class TestCppExtensions:
         """测试 sage_flow 扩展导入"""
         try:
             from sage.middleware.components.sage_flow.python.sage_flow import \
-                StreamEnvironment
+                StreamEnvironment  # noqa: F401
 
             assert True, "sage_flow 扩展导入成功"
         except ImportError as e:
@@ -46,7 +44,7 @@ class TestCppExtensions:
         """测试 sage_db micro_service 导入"""
         try:
             from sage.middleware.components.sage_db.python.micro_service.sage_db_service import \
-                SageDBService
+                SageDBService  # noqa: F401
 
             assert True, "sage_db micro_service 导入成功"
         except ImportError as e:
@@ -56,7 +54,7 @@ class TestCppExtensions:
         """测试 sage_flow micro_service 导入"""
         try:
             from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import \
-                SageFlowService
+                SageFlowService  # noqa: F401
 
             assert True, "sage_flow micro_service 导入成功"
         except ImportError as e:

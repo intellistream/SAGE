@@ -1,8 +1,6 @@
-import asyncio
 import os
 
 import cohere
-import numpy as np
 
 
 async def cohere_embed(

@@ -4,8 +4,7 @@
 
 import json
 import os
-import tempfile
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 

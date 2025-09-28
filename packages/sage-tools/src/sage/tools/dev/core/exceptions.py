@@ -5,7 +5,7 @@ This module defines the exception hierarchy for the SAGE Development Toolkit.
 All toolkit-specific exceptions inherit from SAGEDevToolkitError.
 """
 
-from typing import Any, Optional
+from typing import Optional
 
 
 class SAGEDevToolkitError(Exception):

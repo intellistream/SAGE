@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 from rouge import Rouge
 from sage.core.api.function.map_function import MapFunction

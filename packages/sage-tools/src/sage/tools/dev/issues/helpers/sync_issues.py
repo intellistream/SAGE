@@ -19,7 +19,6 @@ Issues 统一同步脚本 - 支持所有属性的同步
 日期: 2025-08-30
 """
 import argparse
-import glob
 import json
 import re
 import sys

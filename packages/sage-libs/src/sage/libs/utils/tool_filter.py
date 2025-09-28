@@ -1,8 +1,8 @@
 import json
-from typing import List, Set, Union
+from typing import Set
 
 from sage.core.api.function.filter_function import FilterFunction
-from sage.libs.context.model_context import ModelContext, QualityLabel
+from sage.libs.context.model_context import ModelContext
 
 
 class ToolFilter(FilterFunction):

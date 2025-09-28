@@ -10,11 +10,10 @@ Coverage: TCP server, message handling, connection management
 """
 
 import pickle
-import socket
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional
-from unittest.mock import MagicMock, Mock, call, patch
+from typing import Any, Dict, Optional
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sage.common.utils.network.local_tcp_server import (BaseTcpServer,

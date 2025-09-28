@@ -3,12 +3,11 @@ SAGE Tools 测试包初始化
 """
 
 # 测试配置
-import os
 import sys
 from pathlib import Path
 
 # 测试标记
-import pytest
+import pytest  # noqa: F401
 
 # 确保sage.tools模块可以被导入
 test_dir = Path(__file__).parent

@@ -3,7 +3,7 @@
 """
 
 import json
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
@@ -12,8 +12,9 @@ import requests
 pytest_plugins = []
 
 try:
-    from sage.libs.agents.agent import (FORMAT_INSTRUCTIONS, PREFIX, Agent,
-                                        BochaSearch, Tool)
+    from sage.libs.agents.agent import BaseAgent  # noqa: F401
+    from sage.libs.agents.agent import BochaSearch  # noqa: F401
+    from sage.libs.agents.agent import FORMAT_INSTRUCTIONS, PREFIX, Tool
 
     AGENT_AVAILABLE = True
 except ImportError as e:
@@ -295,7 +296,7 @@ class TestAgentModuleFallback:
         """测试模块导入降级"""
         # 这个测试总是运行，检查模块可用性
         try:
-            from sage.libs.agents.agent import Tool
+            from sage.libs.agents.agent import Tool  # noqa: F401
 
             assert True  # 导入成功
         except ImportError:

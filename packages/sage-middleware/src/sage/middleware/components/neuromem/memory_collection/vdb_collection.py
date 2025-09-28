@@ -647,9 +647,6 @@ if __name__ == "__main__":
     import shutil
     import tempfile
 
-    import torch
-    from transformers import AutoModel, AutoTokenizer
-
     def colored(text, color):
         colors = {
             "green": "\033[92m",

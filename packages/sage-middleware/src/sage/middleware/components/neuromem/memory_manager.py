@@ -14,7 +14,6 @@ from sage.middleware.components.neuromem.memory_collection.vdb_collection import
     VDBMemoryCollection
 from sage.middleware.components.neuromem.utils.path_utils import \
     get_default_data_dir
-from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 
 
 class MemoryManager:

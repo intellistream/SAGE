@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # from sage.libs.agents.memory import memory_service_adapter
 from sage.core.api.function.map_function import MapFunction

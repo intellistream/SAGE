@@ -7,9 +7,7 @@ SAGE CLI Output Formatter
 """
 
 import json
-import sys
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 try:

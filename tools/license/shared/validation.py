@@ -4,9 +4,9 @@ License Validation Module
 
 import os
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from license_core import LicenseCore, LicenseInfo
+from license_core import LicenseCore
 
 
 class LicenseValidator:

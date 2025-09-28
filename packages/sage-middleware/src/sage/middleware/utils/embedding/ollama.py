@@ -1,16 +1,16 @@
 import sys
 
 if sys.version_info < (3, 9):
-    from typing import AsyncIterator
+    pass
 else:
-    from collections.abc import AsyncIterator
+    pass
 
 
 # Dependencies should be installed via requirements.txt
 # ollama and tenacity are required for this module to work
 
 try:
-    import ollama
+    import ollama  # noqa: F401
 except ImportError:
     raise ImportError(
         "ollama package is required for Ollama embedding functionality. "
@@ -18,17 +18,12 @@ except ImportError:
     )
 
 try:
-    import tenacity
+    import tenacity  # noqa: F401
 except ImportError:
     raise ImportError(
         "tenacity package is required for Ollama embedding functionality. "
         "Please install it via: pip install tenacity"
     )
-
-
-from typing import Union
-
-import numpy as np
 
 
 async def ollama_embed(text: str, embed_model, **kwargs) -> list:

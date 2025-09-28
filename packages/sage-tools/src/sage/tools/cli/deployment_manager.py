@@ -10,7 +10,7 @@ import subprocess
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Tuple
 
 import typer
 

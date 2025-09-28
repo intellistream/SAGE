@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from rich.console import Console
-from rich.progress import Progress, TaskID
+from rich.progress import Progress
 
 from .exceptions import SAGEDevToolkitError
 
@@ -665,7 +665,6 @@ def _create_sage_home_symlink() -> Optional[Path]:
     Returns:
         软链接路径，如果创建失败则返回None
     """
-    import os
 
     current_dir = Path.cwd()
     sage_home = Path.home() / ".sage"

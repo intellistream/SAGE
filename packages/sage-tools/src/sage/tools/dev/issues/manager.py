@@ -4,7 +4,6 @@ SAGE Issues管理工具 - 核心管理器 (适配sage-tools版本)
 Lightweight manager that uses the centralized config
 and calls helper scripts from helpers/ when available.
 """
-import argparse
 import json
 import os
 import subprocess

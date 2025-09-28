@@ -1,18 +1,14 @@
-import copy
-import os
 import threading
 import time
-from abc import ABC, abstractmethod
+from abc import ABC
 from queue import Empty as QueueEmpty
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 try:
     from ray.util.queue import Empty as RayQueueEmpty
 except ImportError:
     RayQueueEmpty = QueueEmpty
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.communication.router.packet import Packet, StopSignal
-from sage.kernel.runtime.communication.router.router import BaseRouter
 from sage.kernel.runtime.context.task_context import TaskContext
 
 if TYPE_CHECKING:
@@ -162,8 +158,6 @@ class BaseTask(ABC):
 
                         # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
                         # Comap不能直接套用Join的逻辑，否则会出问题
-                        from sage.core.operator.comap_operator import \
-                            CoMapOperator
                         from sage.core.operator.join_operator import \
                             JoinOperator
                         from sage.core.operator.sink_operator import \

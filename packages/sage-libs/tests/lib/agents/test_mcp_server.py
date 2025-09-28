@@ -1,5 +1,4 @@
 # tests/lib/agents/test_mcp_server.py
-import types
 import uuid
 
 import pytest

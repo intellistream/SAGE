@@ -5,12 +5,11 @@ This module provides utilities for installing and validating SAGE enterprise fea
 based on license status. It integrates with the existing license management system.
 """
 
-import json
 import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 
 class SAGEEnterpriseInstaller:

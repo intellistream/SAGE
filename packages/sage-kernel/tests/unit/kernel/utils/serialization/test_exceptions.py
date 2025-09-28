@@ -346,7 +346,6 @@ class TestSerializationErrorIntegration:
         """测试SerializationError的日志记录"""
         import importlib
         import logging
-        import sys
 
         # 使用importlib来避免io模块冲突
         io_module = importlib.import_module("io")

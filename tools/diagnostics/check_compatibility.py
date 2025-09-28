@@ -4,9 +4,7 @@ SAGE 兼容性检查脚本
 验证闭源依赖包的版本是否与当前项目兼容
 """
 
-import importlib
 import os
-import subprocess
 import sys
 
 import pkg_resources
@@ -67,7 +65,7 @@ def check_dependency_versions():
         print("\n尝试验证关键模块导入:")
         try:
             from sage.kernel.jobmanager.jobmanager_client import \
-                JobManagerClient
+                JobManagerClient  # noqa: F401
 
             print("✅ JobManagerClient 导入成功")
         except ImportError as e:

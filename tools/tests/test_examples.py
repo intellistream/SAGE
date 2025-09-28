@@ -10,19 +10,16 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
-import threading
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
-import pytest
+import pytest  # noqa: F401
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, track
 from rich.table import Table
 
 console = Console()
@@ -32,7 +29,7 @@ def find_project_root() -> Path:
     """查找项目根目录，使用统一的路径管理"""
     try:
         # 尝试导入统一的路径管理
-        import os
+        import os  # noqa: F401
         import sys
 
         # 添加sage-common到路径

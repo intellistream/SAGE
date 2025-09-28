@@ -8,13 +8,12 @@ SAGE CLI Config Validation
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from .exceptions import ConfigurationError, ValidationError
-from .utils import load_yaml_file, save_yaml_file
-from .validation import (validate_config_dict, validate_host,
-                         validate_log_level, validate_path, validate_port,
-                         validate_timeout)
+from .utils import load_yaml_file
+from .validation import (validate_config_dict, validate_host, validate_path,
+                         validate_port, validate_timeout)
 
 
 class ConfigValidator:

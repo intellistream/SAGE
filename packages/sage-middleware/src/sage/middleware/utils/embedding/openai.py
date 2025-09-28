@@ -1,12 +1,10 @@
-import asyncio
-import logging
 import os
 import sys
 
 if sys.version_info < (3, 9):
-    from typing import AsyncIterator
+    pass
 else:
-    from collections.abc import AsyncIterator
+    pass
 
 
 # Dependencies should be installed via requirements.txt

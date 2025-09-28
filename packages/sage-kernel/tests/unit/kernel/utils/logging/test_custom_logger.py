@@ -15,8 +15,7 @@ import os
 import tempfile
 import threading
 from contextlib import contextmanager
-from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import patch
 
 import pytest
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -520,7 +519,6 @@ class TestUtilityMethods:
             )
 
             # 捕获打印输出
-            import builtins
             # 使用内置的StringIO来避免导入冲突
             import importlib
             import sys

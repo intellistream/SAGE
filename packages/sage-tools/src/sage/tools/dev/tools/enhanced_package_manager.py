@@ -4,12 +4,10 @@ Enhanced SAGE Package Manager - Integrated from scripts/sage-package-manager.py
 This tool provides comprehensive package management for the SAGE monorepo.
 """
 
-import json
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List
 
 from ..core.exceptions import SAGEDevToolkitError
 

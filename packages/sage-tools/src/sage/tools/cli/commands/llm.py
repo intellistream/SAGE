@@ -2,11 +2,8 @@
 """LLM service management commands for SAGE."""
 
 import os
-import signal
 import subprocess
 import time
-from pathlib import Path
-from typing import Optional
 
 import psutil
 import typer

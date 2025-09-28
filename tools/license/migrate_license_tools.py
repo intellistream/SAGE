@@ -4,7 +4,6 @@ SAGE License Migration Tool
 Migrate from legacy scripts/sage-license.py to new tools/license/ structure
 """
 
-import os
 import shutil
 import sys
 from pathlib import Path

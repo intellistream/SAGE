@@ -7,14 +7,13 @@ SAGE CLI Base Classes
 """
 
 import functools
-import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import typer
 
-from .config import create_default_config_validator, load_and_validate_config
+from .config import load_and_validate_config
 from .exceptions import CLIException, ConfigurationError, ConnectionError
 from .output import OutputFormatter, print_status
 from .utils import find_project_root

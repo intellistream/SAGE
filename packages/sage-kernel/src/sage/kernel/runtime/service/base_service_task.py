@@ -11,8 +11,6 @@ import traceback
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from sage.common.utils.logging.custom_logger import CustomLogger
-
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.context.service_context import ServiceContext

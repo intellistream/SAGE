@@ -3,8 +3,6 @@
 SAGE Core CLI - 统一命令行接口
 所有SAGE核心功能的统一入口点
 """
-import sys
-from typing import Optional
 
 import typer
 from rich.console import Console

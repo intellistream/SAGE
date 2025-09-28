@@ -4,11 +4,8 @@ SAGE 安装诊断脚本
 检查 sage namespace package 的安装状态和模块可用性
 """
 
-import importlib
 import os
-import pkgutil
 import sys
-from pathlib import Path
 
 
 def check_sage_installation():
@@ -89,7 +86,8 @@ def check_sage_installation():
 
             # 检查是否有 logging.custom_logger
             try:
-                from sage.utils.logging.custom_logger import CustomLogger
+                from sage.utils.logging.custom_logger import \
+                    CustomLogger  # noqa: F401
 
                 print(f"✅ CustomLogger 导入成功")
             except ImportError as e:

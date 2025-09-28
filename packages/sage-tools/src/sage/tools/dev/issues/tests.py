@@ -5,20 +5,16 @@ SAGE Issues 管理 - 测试套件
 基于原始test_issues_manager.sh的Python实现
 """
 
-import json
 import os
 import shutil
-import subprocess
 import sys
-import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
-import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, track
+from rich.progress import track
 from rich.table import Table
 
 from .config import IssuesConfig

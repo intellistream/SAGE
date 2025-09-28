@@ -14,7 +14,7 @@ Tests for sage.common.utils.system.environment module
 import os
 import subprocess
 import sys
-from unittest.mock import MagicMock, call, mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 from sage.common.utils.system.environment import (

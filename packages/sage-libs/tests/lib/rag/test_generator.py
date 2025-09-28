@@ -2,12 +2,8 @@
 测试 sage.libs.rag.generator 模块
 """
 
-import json
 import os
-import tempfile
-import time
-from typing import Any, Dict
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

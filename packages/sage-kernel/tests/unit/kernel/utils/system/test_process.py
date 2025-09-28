@@ -9,12 +9,9 @@ Test Framework: pytest
 Coverage: Process management, sudo operations, system monitoring
 """
 
-import getpass
-import os
 import subprocess
 import time
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import psutil
 import pytest

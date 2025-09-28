@@ -10,7 +10,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import uvicorn
 from fastapi import FastAPI, HTTPException

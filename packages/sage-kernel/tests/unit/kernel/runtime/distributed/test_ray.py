@@ -4,9 +4,7 @@ Test suite for sage.kernels.runtime.distributed.ray module
 Tests Ray integration and initialization functions.
 """
 
-import os
-import socket
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 from sage.kernel.utils.ray.ray import (ensure_ray_initialized,

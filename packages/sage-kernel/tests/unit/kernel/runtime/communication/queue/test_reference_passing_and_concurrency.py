@@ -10,14 +10,11 @@
 """
 
 import logging
-import multiprocessing
 import os
-import queue
 import sys
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import pytest
 
@@ -27,10 +24,13 @@ sage_kernel_src = os.path.join(current_dir, "../../../../../src")
 sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
-    from sage.kernel.runtime.communication.queue_descriptor import (
-        BaseQueueDescriptor, PythonQueueDescriptor, RayQueueDescriptor,
-        resolve_descriptor)
-    from sage.kernel.utils.ray.ray import ensure_ray_initialized
+    from sage.kernel.runtime.communication.queue_descriptor import (  # noqa: F401
+        BaseQueueDescriptor,
+        PythonQueueDescriptor,
+        RayQueueDescriptor,
+        resolve_descriptor,
+    )
+    from sage.kernel.utils.ray.ray import ensure_ray_initialized  # noqa: F401
 
     print("✓ 成功导入队列描述符")
 except ImportError as e:
@@ -163,7 +163,7 @@ try:
         """Ray Actor 消费者"""
 
         def consume_items(
-            self, queue_desc_dict: Dict[str, Any], actor_id: int, expected_items: int
+            self, queue_desc_dict: dict[str, Any], actor_id: int, expected_items: int
         ):
             """从队列消费物品"""
             try:
@@ -376,7 +376,7 @@ class TestPythonQueueConcurrency:
         total_operations = sum(completed_operations)
         operations_per_second = total_operations / duration if duration > 0 else 0
 
-        print(f"压力测试结果:")
+        print("压力测试结果:")
         print(f"  总操作数: {total_operations}")
         print(f"  耗时: {duration:.2f}秒")
         print(f"  操作/秒: {operations_per_second:.2f}")

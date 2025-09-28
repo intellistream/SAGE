@@ -10,11 +10,9 @@ import datetime
 import shutil
 import subprocess
 import sys
-import tempfile
-import threading
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import typer
 from rich.console import Console

@@ -7,7 +7,7 @@ This module provides the main FastAPI application for the SAGE Web UI.
 import json
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
