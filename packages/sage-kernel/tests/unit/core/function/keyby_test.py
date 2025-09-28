@@ -2,7 +2,6 @@ import json
 import os
 import threading
 import time
-from pathlib import Path
 from typing import Any, Dict, List
 
 from sage.common.config.output_paths import get_sage_paths
@@ -165,7 +164,7 @@ class TestKeyByFunctionality:
         finally:
             try:
                 env.close()
-            except:
+            except Exception:
                 pass  # 忽略关闭时的错误
 
         # 保存结果到文件
@@ -206,7 +205,7 @@ class TestKeyByFunctionality:
         finally:
             try:
                 env.close()
-            except:
+            except Exception:
                 pass
 
         # 保存结果到文件
@@ -265,7 +264,7 @@ class TestKeyByFunctionality:
                     user_distribution[user_id] = set()
                 user_distribution[user_id].add(instance_id)
 
-        print(f"\n🎯 User Distribution Across Instances:")
+        print("\n🎯 User Distribution Across Instances:")
         for user_id, instances in user_distribution.items():
             print(f"   - {user_id}: routed to instance(s) {instances}")
 
@@ -312,7 +311,7 @@ class TestKeyByFunctionality:
             first_instance_data = list(received_data.values())[0]
             total_unique_messages = len(first_instance_data)
 
-        print(f"\n🎯 Broadcast Verification:")
+        print("\n🎯 Broadcast Verification:")
         print(f"   - Total unique messages generated: {total_unique_messages}")
         print(f"   - Instances message counts: {instance_counts}")
 
@@ -325,7 +324,7 @@ class TestKeyByFunctionality:
             return True
         else:
             print(
-                f"⚠️  Note: Instance counts differ, this might be due to timing or test duration"
+                "⚠️  Note: Instance counts differ, this might be due to timing or test duration"
             )
             # 如果差异不大（比如只差1-2条消息），仍然认为测试通过
             min_count = min(instance_counts.values())
@@ -383,7 +382,7 @@ class TestAdvancedKeyBy:
         finally:
             try:
                 env.close()
-            except:
+            except Exception:
                 pass
 
         # 保存结果到文件
@@ -421,7 +420,7 @@ class TestAdvancedKeyBy:
                 key_distribution[key].add(instance_id)
                 print(f"   - Key '{key}': {data['content']}")
 
-        print(f"\n🎯 Key-to-Instance Mapping:")
+        print("\n🎯 Key-to-Instance Mapping:")
         for key, instances in key_distribution.items():
             print(f"   - Key '{key}': routed to instance(s) {instances}")
 

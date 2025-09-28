@@ -2,15 +2,14 @@ import os
 
 # flake8: noqa: E402
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-import asyncio
-import copy
 from functools import lru_cache
 
 # Dependencies should be installed via requirements.txt
 # transformers, torch, tenacity, and numpy are required for this module
 
 try:
-    from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModel  # noqa: F401
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 except ImportError:
     raise ImportError(
         "transformers package is required for HuggingFace embedding functionality. "
@@ -26,7 +25,7 @@ except ImportError:
     )
 
 try:
-    import tenacity
+    import tenacity  # noqa: F401
 except ImportError:
     raise ImportError(
         "tenacity package is required for HuggingFace embedding functionality. "
@@ -34,7 +33,7 @@ except ImportError:
     )
 
 try:
-    import numpy
+    import numpy  # noqa: F401
 except ImportError:
     raise ImportError(
         "numpy package is required for HuggingFace embedding functionality. "

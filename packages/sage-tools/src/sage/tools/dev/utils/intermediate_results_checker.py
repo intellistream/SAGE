@@ -126,7 +126,7 @@ class IntermediateResultsChecker:
                             "path": str(item.relative_to(self.project_root)),
                             "type": "directory" if item.is_dir() else "file",
                             "pattern": pattern,
-                            "message": f"应移动到 .sage/ 目录中",
+                            "message": "应移动到 .sage/ 目录中",
                             "location": "project_root",
                         }
                     )

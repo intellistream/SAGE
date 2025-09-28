@@ -6,8 +6,9 @@ from typing import Any, Dict, List, Optional
 import faiss
 import numpy as np
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.components.neuromem.search_engine.vdb_index.base_vdb_index import \
-    BaseVDBIndex
+from sage.middleware.components.neuromem.search_engine.vdb_index.base_vdb_index import (
+    BaseVDBIndex,
+)
 
 
 class FaissIndex(BaseVDBIndex):
@@ -17,7 +18,7 @@ class FaissIndex(BaseVDBIndex):
         初始化 FaissIndex 实例，支持两种初始化方式：
         1. 通过声明来创建：传入 config
         2. 通过 FaissIndex.load() 来加载：调用load方法
-        
+
         Initialize the FaissIndex instance with two initialization methods:
         1. Creation: by config and new
         2. Load from disk: use load method

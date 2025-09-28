@@ -7,11 +7,17 @@ from sage.common.utils.config.loader import load_config
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.batch import HFDatasetBatch
-from sage.libs.rag.evaluate import (AccuracyEvaluate, BRSEvaluate,
-                                    CompressionRateEvaluate,
-                                    ContextRecallEvaluate, F1Evaluate,
-                                    LatencyEvaluate, RecallEvaluate,
-                                    RougeLEvaluate, TokenCountEvaluate)
+from sage.libs.rag.evaluate import (
+    AccuracyEvaluate,
+    BRSEvaluate,
+    CompressionRateEvaluate,
+    ContextRecallEvaluate,
+    F1Evaluate,
+    LatencyEvaluate,
+    RecallEvaluate,
+    RougeLEvaluate,
+    TokenCountEvaluate,
+)
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 from sage.libs.rag.promptor import QAPromptor

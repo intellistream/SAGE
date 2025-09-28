@@ -4,8 +4,7 @@
 
 import json
 import os
-import tempfile
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
@@ -13,9 +12,14 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.io_utils.source import (APISource, CSVFileSource,
-                                           DatabaseSource, JSONFileSource,
-                                           KafkaSource, TextFileSource)
+    from sage.libs.io_utils.source import (
+        APISource,
+        CSVFileSource,
+        DatabaseSource,
+        JSONFileSource,
+        KafkaSource,
+        TextFileSource,
+    )
 
     IO_SOURCE_AVAILABLE = True
 except ImportError as e:

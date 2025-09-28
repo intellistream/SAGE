@@ -11,8 +11,6 @@ import traceback
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from sage.common.utils.logging.custom_logger import CustomLogger
-
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.context.service_context import ServiceContext
@@ -92,8 +90,7 @@ class BaseServiceTask(ABC):
         """获取logger，优先使用ctx.logger，否则使用CustomLogger"""
         if not hasattr(self, "_logger") or self._logger is None:
             if self.ctx is None:
-                from sage.common.utils.logging.custom_logger import \
-                    CustomLogger
+                from sage.common.utils.logging.custom_logger import CustomLogger
 
                 self._logger = CustomLogger(
                     name=f"{self.__class__.__name__}_{self.service_name}"
@@ -557,7 +554,7 @@ class BaseServiceTask(ABC):
                     self.logger.debug(f"Found request queue descriptor: {request_qd}")
                 else:
                     self.logger.warning(
-                        f"No request queue descriptor found in service context"
+                        "No request queue descriptor found in service context"
                     )
 
                 response_qds = self.ctx.get_service_response_queue_descriptors()

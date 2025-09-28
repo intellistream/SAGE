@@ -6,10 +6,19 @@ import sys
 import time
 
 from dotenv import load_dotenv
-from sage.middleware.utils.embedding import (_cohere, bedrock, hf, jina,
-                                             lollms, mockembedder,
-                                             nvidia_openai, ollama, openai,
-                                             siliconcloud, zhipu)
+from sage.middleware.utils.embedding import (
+    _cohere,
+    bedrock,
+    hf,
+    jina,
+    lollms,
+    mockembedder,
+    nvidia_openai,
+    ollama,
+    openai,
+    siliconcloud,
+    zhipu,
+)
 from transformers import AutoModel, AutoTokenizer
 
 load_dotenv()

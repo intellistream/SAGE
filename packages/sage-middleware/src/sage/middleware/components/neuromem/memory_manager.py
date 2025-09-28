@@ -4,17 +4,19 @@ import shutil
 from typing import Any, Dict, List, Optional, Union
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.components.neuromem.memory_collection.base_collection import \
-    BaseMemoryCollection
-from sage.middleware.components.neuromem.memory_collection.graph_collection import \
-    GraphMemoryCollection
-from sage.middleware.components.neuromem.memory_collection.kv_collection import \
-    KVMemoryCollection
-from sage.middleware.components.neuromem.memory_collection.vdb_collection import \
-    VDBMemoryCollection
-from sage.middleware.components.neuromem.utils.path_utils import \
-    get_default_data_dir
-from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
+from sage.middleware.components.neuromem.memory_collection.base_collection import (
+    BaseMemoryCollection,
+)
+from sage.middleware.components.neuromem.memory_collection.graph_collection import (
+    GraphMemoryCollection,
+)
+from sage.middleware.components.neuromem.memory_collection.kv_collection import (
+    KVMemoryCollection,
+)
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
+from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
 
 
 class MemoryManager:

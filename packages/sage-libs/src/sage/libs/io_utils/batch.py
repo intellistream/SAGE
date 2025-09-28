@@ -1,6 +1,5 @@
 import json
 import os
-import time
 
 from sage.core.api.function.batch_function import BatchFunction
 

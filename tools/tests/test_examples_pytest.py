@@ -8,11 +8,13 @@ SAGE Examples 测试的 pytest 集成
 import os
 import sys
 from pathlib import Path
-from typing import List
 
 import pytest
-from example_strategies import (ExampleEnvironmentManager, ExampleTestFilters,
-                                ExampleTestStrategies)
+from example_strategies import (
+    ExampleEnvironmentManager,
+    ExampleTestFilters,
+    ExampleTestStrategies,
+)
 from sage.tools.dev.issues.tests import IssuesTestSuite
 from test_examples import ExampleAnalyzer, ExampleTestSuite
 

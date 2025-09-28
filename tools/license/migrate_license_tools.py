@@ -4,7 +4,6 @@ SAGE License Migration Tool
 Migrate from legacy scripts/sage-license.py to new tools/license/ structure
 """
 
-import os
 import shutil
 import sys
 from pathlib import Path
@@ -41,7 +40,7 @@ def migrate_license_tools():
         deprecation_script = project_root / "scripts" / "sage-license.py"
         with open(deprecation_script, "w") as f:
             f.write(
-                f'''#!/usr/bin/env python3
+                '''#!/usr/bin/env python3
 """
 DEPRECATED: SAGE License Management
 
@@ -69,7 +68,7 @@ def main():
     print("Please use instead:")
     print("  python tools/license/sage_license.py", " ".join(sys.argv[1:]))
     print("")
-    
+
     # Forward to new script
     new_script = Path(__file__).parent.parent / "tools" / "license" / "sage_license.py"
     if new_script.exists():

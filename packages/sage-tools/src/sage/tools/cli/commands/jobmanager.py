@@ -5,33 +5,30 @@ SAGE JobManager CLI
 This module provides CLI commands to manage the JobManager lifecycle using Typer.
 """
 
-import getpass
-import json
 import os
-import socket
 import subprocess
 import sys
 import time
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import psutil
 import typer
+
 # 导入系统工具模块
-from sage.common.utils.system.network import (aggressive_port_cleanup,
-                                              check_port_binding_permission,
-                                              find_port_processes,
-                                              is_port_occupied,
-                                              send_tcp_health_check,
-                                              wait_for_port_release)
-from sage.common.utils.system.process import (check_process_ownership,
-                                              create_sudo_manager,
-                                              find_processes_by_name,
-                                              get_process_info,
-                                              kill_process_with_sudo,
-                                              terminate_process,
-                                              terminate_processes_by_name,
-                                              verify_sudo_password)
+from sage.common.utils.system.network import (
+    aggressive_port_cleanup,
+    check_port_binding_permission,
+    find_port_processes,
+    send_tcp_health_check,
+    wait_for_port_release,
+)
+from sage.common.utils.system.process import (
+    create_sudo_manager,
+    find_processes_by_name,
+    get_process_info,
+    kill_process_with_sudo,
+    terminate_process,
+)
 
 app = typer.Typer(
     name="jobmanager",
@@ -198,7 +195,7 @@ class JobManagerController:
             proc_info = get_process_info(proc.pid)
             proc_user = proc_info.get("user", "N/A")
 
-            typer.echo(f"\n📋 Process Information:")
+            typer.echo("\n📋 Process Information:")
             typer.echo(f"   PID: {proc_info.get('pid', 'N/A')}")
             typer.echo(f"   Name: {proc_info.get('name', 'N/A')}")
             typer.echo(f"   User: {proc_user}")
@@ -234,7 +231,7 @@ class JobManagerController:
                         )
 
         # 再次检查是否还有残留进程
-        typer.echo(f"\n🔍 Checking for remaining processes...")
+        typer.echo("\n🔍 Checking for remaining processes...")
         time.sleep(2)
         remaining = find_processes_by_name(self.process_names)
 
@@ -347,10 +344,10 @@ class JobManagerController:
                     health = self.check_health()
                     if health.get("status") == "success":
                         typer.echo(
-                            f"JobManager is ready and healthy (took {i+1} seconds)"
+                            f"JobManager is ready and healthy (took {i + 1} seconds)"
                         )
                         return True
-                    typer.echo(f"Waiting... ({i+1}/{wait_for_ready})")
+                    typer.echo(f"Waiting... ({i + 1}/{wait_for_ready})")
 
                 typer.echo("JobManager did not become ready within timeout")
                 # 检查进程是否还在运行
@@ -366,7 +363,7 @@ class JobManagerController:
                         _, stderr = process.communicate(timeout=1)
                         if stderr:
                             typer.echo(f"Process stderr: {stderr.decode()}")
-                except:
+                except Exception:
                     pass
                 return False
 
@@ -378,8 +375,9 @@ class JobManagerController:
 
     def is_port_occupied(self) -> bool:
         """检查端口是否被占用"""
-        from sage.common.utils.system.network import \
-            is_port_occupied as check_port_occupied
+        from sage.common.utils.system.network import (
+            is_port_occupied as check_port_occupied,
+        )
 
         return check_port_occupied(self.host, self.port)
 
@@ -542,9 +540,9 @@ def start(
         daemon=not foreground, wait_for_ready=wait_time, force=force
     )
     if success:
-        typer.echo(f"\n✅ Operation 'start' completed successfully")
+        typer.echo("\n✅ Operation 'start' completed successfully")
     else:
-        typer.echo(f"\n❌ Operation 'start' failed")
+        typer.echo("\n❌ Operation 'start' failed")
         raise typer.Exit(code=1)
 
 
@@ -575,9 +573,9 @@ def stop(
         success = controller.stop_gracefully()
 
     if success:
-        typer.echo(f"\n✅ Operation 'stop' completed successfully")
+        typer.echo("\n✅ Operation 'stop' completed successfully")
     else:
-        typer.echo(f"\n❌ Operation 'stop' failed")
+        typer.echo("\n❌ Operation 'stop' failed")
         raise typer.Exit(code=1)
 
 
@@ -610,7 +608,7 @@ def status(
     """
     controller = JobManagerController(host, port)
     controller.status()
-    typer.echo(f"\n✅ Operation 'status' completed successfully")
+    typer.echo("\n✅ Operation 'status' completed successfully")
 
 
 @app.command()
@@ -631,9 +629,9 @@ def kill(
 
     success = controller.force_kill()
     if success:
-        typer.echo(f"\n✅ Operation 'kill' completed successfully")
+        typer.echo("\n✅ Operation 'kill' completed successfully")
     else:
-        typer.echo(f"\n❌ Operation 'kill' failed")
+        typer.echo("\n❌ Operation 'kill' failed")
         raise typer.Exit(code=1)
 
 

@@ -3,9 +3,9 @@ import sys
 import requests
 
 if sys.version_info < (3, 9):
-    from typing import AsyncIterator
+    pass
 else:
-    from collections.abc import AsyncIterator
+    pass
 
 
 # Dependencies should be installed via requirements.txt
@@ -20,7 +20,7 @@ except ImportError:
     )
 
 try:
-    import tenacity
+    import tenacity  # noqa: F401
 except ImportError:
     raise ImportError(
         "tenacity package is required for Lollms embedding functionality. "

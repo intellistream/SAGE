@@ -13,8 +13,12 @@ from unittest.mock import Mock
 
 import pytest
 from sage.common.utils.serialization.config import (
-    ATTRIBUTE_BLACKLIST, BLACKLIST, RAY_OPERATOR_EXCLUDE_ATTRS,
-    RAY_TRANSFORMATION_EXCLUDE_ATTRS, SKIP_VALUE)
+    ATTRIBUTE_BLACKLIST,
+    BLACKLIST,
+    RAY_OPERATOR_EXCLUDE_ATTRS,
+    RAY_TRANSFORMATION_EXCLUDE_ATTRS,
+    SKIP_VALUE,
+)
 
 
 @pytest.mark.unit
@@ -98,7 +102,7 @@ class TestAttributeBlacklist:
         """测试属性名都是字符串"""
         for attr in ATTRIBUTE_BLACKLIST:
             assert isinstance(attr, str), f"Attribute {attr} is not a string"
-            assert len(attr) > 0, f"Attribute name cannot be empty"
+            assert len(attr) > 0, "Attribute name cannot be empty"
 
 
 @pytest.mark.unit
@@ -159,7 +163,7 @@ class TestRayTransformationExcludeAttrs:
         """测试Ray转换排除属性名都是字符串"""
         for attr in RAY_TRANSFORMATION_EXCLUDE_ATTRS:
             assert isinstance(attr, str), f"Attribute {attr} is not a string"
-            assert len(attr) > 0, f"Attribute name cannot be empty"
+            assert len(attr) > 0, "Attribute name cannot be empty"
 
 
 @pytest.mark.unit
@@ -192,7 +196,7 @@ class TestRayOperatorExcludeAttrs:
         """测试Ray算子排除属性名都是字符串"""
         for attr in RAY_OPERATOR_EXCLUDE_ATTRS:
             assert isinstance(attr, str), f"Attribute {attr} is not a string"
-            assert len(attr) > 0, f"Attribute name cannot be empty"
+            assert len(attr) > 0, "Attribute name cannot be empty"
 
     def test_ray_operator_excludes_weakref_comment(self):
         """测试Ray算子排除列表关于__weakref__的注释"""

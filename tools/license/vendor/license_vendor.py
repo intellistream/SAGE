@@ -60,7 +60,7 @@ class LicenseVendor:
             try:
                 with open(info_file, "r") as f:
                     records = json.load(f)
-            except:
+            except Exception:
                 records = []
 
         # Add new record
@@ -182,7 +182,7 @@ def main():
         license_key = vendor.generate_license_key(customer, days)
         vendor.save_generated_license(license_key, customer, days)
 
-        print(f"🎉 License generated successfully!")
+        print("🎉 License generated successfully!")
         print(f"📧 Customer: {customer}")
         print(f"⏰ Valid for: {days} days")
         print(f"🔑 License Key: {license_key}")

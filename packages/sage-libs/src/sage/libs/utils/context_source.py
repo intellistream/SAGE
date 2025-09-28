@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -254,7 +253,7 @@ class ContextFileSource(SourceFunction):
             self.logger.info(f"ContextFileSource skipped to index {index}")
         else:
             self.logger.warning(
-                f"Invalid index {index}, valid range: 0-{len(self.template_files)-1}"
+                f"Invalid index {index}, valid range: 0-{len(self.template_files) - 1}"
             )
 
     def get_source_info(self) -> dict:

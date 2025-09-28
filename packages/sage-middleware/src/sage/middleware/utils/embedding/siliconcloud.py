@@ -12,10 +12,6 @@ import base64
 import struct
 
 import aiohttp
-import numpy as np
-from openai import APIConnectionError, APITimeoutError, RateLimitError
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
 
 
 async def siliconcloud_embedding(

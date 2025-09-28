@@ -13,7 +13,6 @@ try:
     # Prefer relative import when installed as a package
     from . import _sage_db  # type: ignore
 except ImportError:  # pragma: no cover - repo/local build fallback
-    import glob
     import importlib
     import sys
     from pathlib import Path

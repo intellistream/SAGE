@@ -1,18 +1,14 @@
-import copy
-import os
 import threading
 import time
-from abc import ABC, abstractmethod
+from abc import ABC
 from queue import Empty as QueueEmpty
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 try:
     from ray.util.queue import Empty as RayQueueEmpty
 except ImportError:
     RayQueueEmpty = QueueEmpty
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.communication.router.packet import Packet, StopSignal
-from sage.kernel.runtime.communication.router.router import BaseRouter
 from sage.kernel.runtime.context.task_context import TaskContext
 
 if TYPE_CHECKING:
@@ -37,7 +33,7 @@ class BaseTask(ABC):
                 f"🎯 Task: Using queue descriptor for input buffer: {self.input_qd.queue_id}"
             )
         else:
-            self.logger.info(f"🎯 Task: No input queue (source/spout node)")
+            self.logger.info("🎯 Task: No input queue (source/spout node)")
 
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
@@ -162,12 +158,8 @@ class BaseTask(ABC):
 
                         # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
                         # Comap不能直接套用Join的逻辑，否则会出问题
-                        from sage.core.operator.comap_operator import \
-                            CoMapOperator
-                        from sage.core.operator.join_operator import \
-                            JoinOperator
-                        from sage.core.operator.sink_operator import \
-                            SinkOperator
+                        from sage.core.operator.join_operator import JoinOperator
+                        from sage.core.operator.sink_operator import SinkOperator
 
                         if isinstance(self.operator, SinkOperator):
                             self.logger.info(
@@ -199,10 +191,8 @@ class BaseTask(ABC):
 
                         # 停止当前task的worker loop
                         # 但是要特别处理某些操作符
-                        from sage.core.operator.filter_operator import \
-                            FilterOperator
-                        from sage.core.operator.keyby_operator import \
-                            KeyByOperator
+                        from sage.core.operator.filter_operator import FilterOperator
+                        from sage.core.operator.keyby_operator import KeyByOperator
                         from sage.core.operator.map_operator import MapOperator
 
                         # 对于中间转换操作符，需要额外的逻辑确保它们不会过早停止

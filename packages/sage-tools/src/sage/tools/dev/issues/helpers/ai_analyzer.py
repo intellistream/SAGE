@@ -5,7 +5,6 @@ AI 分析器（简化实现）
 参考 legacy 实现，提供本地 issues 的简单分析功能并输出到 output/ 目录
 """
 import argparse
-import json
 import re
 import sys
 from datetime import datetime

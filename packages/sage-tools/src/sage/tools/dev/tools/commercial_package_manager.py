@@ -4,12 +4,10 @@ Commercial Package Manager - Integrated from scripts/commercial-package-manager.
 This tool manages commercial SAGE packages and their deployment.
 """
 
-import json
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from ..core.exceptions import SAGEDevToolkitError
 
@@ -244,7 +242,7 @@ class CommercialPackageManager:
                 capture_output=True,
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
 
     def _check_components_built(self, package_info: Dict) -> bool:

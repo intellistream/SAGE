@@ -188,8 +188,6 @@ class JoinTransformation(BaseTransformation):
         Raises:
             ValueError: 如果有流没有被keyed
         """
-        from sage.core.transformation.keyby_transformation import \
-            KeyByTransformation
 
         for i, transformation in enumerate(stream_transformations):
             # 检查是否是KeyByTransformation或者其下游
@@ -210,8 +208,7 @@ class JoinTransformation(BaseTransformation):
         Returns:
             bool: 是否为keyed stream
         """
-        from sage.core.transformation.keyby_transformation import \
-            KeyByTransformation
+        from sage.core.transformation.keyby_transformation import KeyByTransformation
 
         # 直接是KeyByTransformation
         if isinstance(transformation, KeyByTransformation):

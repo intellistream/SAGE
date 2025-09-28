@@ -1,6 +1,5 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/tests/lib/agents/test_profile.py
 
-import pytest
 # 如果你已经配置好了 pythonpath（见第2节），下面这行导入能直接成功：
 from sage.libs.agents.profile.profile import BaseProfile
 

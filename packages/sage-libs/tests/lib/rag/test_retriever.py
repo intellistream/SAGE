@@ -625,11 +625,11 @@ class TestMilvusDenseRetriever:
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             # 测试保存配置
-            assert retriever.save_config("/path/to/config") == True
+            assert retriever.save_config("/path/to/config") is True
             mock_backend.save_config.assert_called_with("/path/to/config")
 
             # 测试加载配置
-            assert retriever.load_config("/path/to/config") == True
+            assert retriever.load_config("/path/to/config") is True
             mock_backend.load_config.assert_called_with("/path/to/config")
 
             # 测试获取集合信息
@@ -638,7 +638,7 @@ class TestMilvusDenseRetriever:
             assert info["count"] == 100
 
             # 测试删除集合
-            assert retriever.delete_collection("test_collection") == True
+            assert retriever.delete_collection("test_collection") is True
             mock_backend.delete_collection.assert_called_with("test_collection")
 
     @patch("sage.libs.rag.retriever.MilvusUtils")
@@ -1084,11 +1084,11 @@ class TestMilvusSparseRetriever:
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             # 测试保存配置
-            assert retriever.save_config("/path/to/config") == True
+            assert retriever.save_config("/path/to/config") is True
             mock_backend.save_config.assert_called_with("/path/to/config")
 
             # 测试加载配置
-            assert retriever.load_config("/path/to/config") == True
+            assert retriever.load_config("/path/to/config") is True
             mock_backend.load_config.assert_called_with("/path/to/config")
 
             # 测试获取集合信息

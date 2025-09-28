@@ -9,7 +9,6 @@ from typing import Optional
 import typer
 from sage.tools.cli.commands.cluster import app as cluster_app
 from sage.tools.cli.commands.config import app as config_app
-from sage.tools.cli.commands.deploy import app as deploy_app
 from sage.tools.cli.commands.dev import app as dev_app  # 新增dev命令
 from sage.tools.cli.commands.doctor import app as doctor_app
 from sage.tools.cli.commands.extensions import app as extensions_app

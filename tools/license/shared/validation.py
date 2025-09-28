@@ -4,9 +4,9 @@ License Validation Module
 
 import os
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from license_core import LicenseCore, LicenseInfo
+from license_core import LicenseCore
 
 
 class LicenseValidator:
@@ -43,7 +43,7 @@ class LicenseValidator:
                         "type": "commercial",
                         **info.__dict__,
                     }
-            except:
+            except Exception:
                 pass
 
         # No license, return open-source
@@ -61,7 +61,7 @@ class LicenseValidator:
             try:
                 expires = datetime.fromisoformat(expires_str)
                 return datetime.now() < expires
-            except:
+            except Exception:
                 pass
 
         return True

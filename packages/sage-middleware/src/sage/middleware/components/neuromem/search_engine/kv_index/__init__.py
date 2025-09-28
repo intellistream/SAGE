@@ -112,7 +112,7 @@ class KVIndexFactory:
             index_class: 索引类
         """
         if not issubclass(index_class, BaseKVIndex):
-            raise ValueError(f"Index class must be a subclass of BaseKVIndex")
+            raise ValueError("Index class must be a subclass of BaseKVIndex")
 
         cls._index_registry[index_type] = index_class
 

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING
 
 from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.runtime.task.local_task import LocalTask
@@ -6,7 +6,6 @@ from sage.kernel.runtime.task.ray_task import RayTask
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 if TYPE_CHECKING:
-    from ray.actor import ActorHandle
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.context.task_context import TaskContext
 

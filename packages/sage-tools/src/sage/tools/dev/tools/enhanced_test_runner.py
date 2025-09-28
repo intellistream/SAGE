@@ -5,19 +5,15 @@ This tool provides intelligent test execution with support for diff-based testin
 parallel execution, and comprehensive reporting.
 """
 
-import importlib.util
-import json
 import os
 import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List
 
-from sage.common.config.output_paths import (get_logs_dir, get_reports_dir,
-                                             get_sage_paths)
+from sage.common.config.output_paths import get_sage_paths
 
 from ..core.exceptions import SAGEDevToolkitError
 from ..utils.intermediate_results_checker import IntermediateResultsChecker
@@ -71,7 +67,7 @@ class EnhancedTestRunner:
     def _check_pytest_benchmark_available(self) -> bool:
         """Check if pytest-benchmark plugin is available."""
         try:
-            import pytest_benchmark
+            import pytest_benchmark  # noqa: F401
 
             return True
         except ImportError:
@@ -104,7 +100,7 @@ class EnhancedTestRunner:
             failed = summary.get("failed", 0)
             execution_time = result.get("execution_time", 0)
 
-            print(f"\n📊 Test Summary:")
+            print("\n📊 Test Summary:")
             print(f"   Total: {total}")
             print(f"   Passed: {passed} ✅")
             print(f"   Failed: {failed} ❌")
@@ -449,7 +445,7 @@ class EnhancedTestRunner:
 
             # Exit early on failure if quick mode
             if quick and not result["passed"]:
-                print(f"\n❌ Stopping on first failure (quick mode)")
+                print("\n❌ Stopping on first failure (quick mode)")
                 break
 
         return results

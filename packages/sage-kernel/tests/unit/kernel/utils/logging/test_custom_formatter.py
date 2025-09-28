@@ -10,8 +10,7 @@ Tests for sage.common.utils.logging.custom_formatter module
 """
 
 import logging
-from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from sage.common.utils.logging.custom_formatter import CustomFormatter
@@ -362,7 +361,6 @@ class TestCustomFormatterIntegration:
 
     def test_real_logging_scenario(self):
         """测试真实日志场景"""
-        import sys
         from io import StringIO
 
         # 创建字符串缓冲区来捕获日志输出

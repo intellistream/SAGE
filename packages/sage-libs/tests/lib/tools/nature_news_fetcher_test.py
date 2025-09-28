@@ -6,10 +6,10 @@
 # pip install pytest-mock
 # ================================
 
-from unittest.mock import MagicMock
 
 import pytest
 import requests
+
 # ================================
 # 关键修改：根据您的项目结构更新 import 语句
 # 假设您的源文件位于 sage.apps.lib/tools/nature_news_fetcher.py

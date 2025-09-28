@@ -4,8 +4,10 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, List, Optional, Type, Union
 
 # 使用兼容性层安全导入闭源依赖
-from sage.core.api.compatibility import (safe_import_custom_logger,
-                                         safe_import_kernel_client)
+from sage.core.api.compatibility import (
+    safe_import_custom_logger,
+    safe_import_kernel_client,
+)
 from sage.core.api.function.lambda_function import wrap_lambda
 from sage.core.factory.service_factory import ServiceFactory
 
@@ -42,14 +44,16 @@ class BaseEnvironment(ABC):
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
         if not hasattr(self, "_transformation_classes"):
-            from sage.core.transformation.base_transformation import \
-                BaseTransformation
-            from sage.core.transformation.batch_transformation import \
-                BatchTransformation
-            from sage.core.transformation.future_transformation import \
-                FutureTransformation
-            from sage.core.transformation.source_transformation import \
-                SourceTransformation
+            from sage.core.transformation.base_transformation import BaseTransformation
+            from sage.core.transformation.batch_transformation import (
+                BatchTransformation,
+            )
+            from sage.core.transformation.future_transformation import (
+                FutureTransformation,
+            )
+            from sage.core.transformation.source_transformation import (
+                SourceTransformation,
+            )
 
             self._transformation_classes = {
                 "BaseTransformation": BaseTransformation,
@@ -450,8 +454,9 @@ class BaseEnvironment(ABC):
         """
         从数据集合创建批处理数据源
         """
-        from sage.core.api.function.simple_batch_function import \
-            SimpleBatchIteratorFunction
+        from sage.core.api.function.simple_batch_function import (
+            SimpleBatchIteratorFunction,
+        )
 
         # 获取BatchTransformation类
         BatchTransformation = self._get_transformation_classes()["BatchTransformation"]
@@ -468,8 +473,9 @@ class BaseEnvironment(ABC):
         """
         从任何可迭代对象创建批处理数据源
         """
-        from sage.core.api.function.simple_batch_function import \
-            IterableBatchIteratorFunction
+        from sage.core.api.function.simple_batch_function import (
+            IterableBatchIteratorFunction,
+        )
 
         # 尝试获取总数量
         total_count = kwargs.pop("total_count", None)

@@ -6,11 +6,9 @@ SAGE Middleware Package Setup with Fallback Strategy
 
 import os
 import subprocess
-import sys
-import warnings
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import setup
 from setuptools.command.build_ext import build_ext
 from setuptools.command.develop import develop
 from setuptools.command.install import install

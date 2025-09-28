@@ -1,8 +1,9 @@
 import json
 import os
 
-from sage.middleware.components.neuromem.memory_collection.vdb_collection import \
-    VDBMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
 
 
 def test_vdb_collection():
@@ -46,7 +47,7 @@ def test_vdb_collection():
     )
     print("搜索结果:")
     for i, result in enumerate(results):
-        print(f"  {i+1}. {result['text']}")
+        print(f"  {i + 1}. {result['text']}")
         print(f"     元数据: {result['metadata']}")
 
     # 验证结果

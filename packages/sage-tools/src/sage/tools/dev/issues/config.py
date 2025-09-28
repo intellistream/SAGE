@@ -6,7 +6,6 @@ SAGE Issues管理工具 - 配置管理 (适配sage-tools版本)
 
 import json
 import os
-import sys
 from pathlib import Path
 from typing import Optional
 

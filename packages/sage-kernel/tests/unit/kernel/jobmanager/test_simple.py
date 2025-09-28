@@ -2,8 +2,6 @@
 简单测试来验证JobManager的基本功能
 """
 
-from unittest.mock import MagicMock, Mock, patch
-
 import pytest
 from sage.kernel.jobmanager.job_manager import JobManager
 

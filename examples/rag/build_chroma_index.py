@@ -102,7 +102,7 @@ def load_knowledge_to_chromadb():
         (os.path.join(data_dir, "qa_knowledge_base.docx"), "docx_collection"),
     ]
 
-    print(f"=== 预加载多格式知识库到 ChromaDB ===")
+    print("=== 预加载多格式知识库到 ChromaDB ===")
     print(f"存储路径: {persistence_path}")
 
     # 初始化嵌入模型（在测试模式下不下载大模型）

@@ -11,7 +11,6 @@ Creates in `output/`:
 Token resolution order: GITHUB_TOKEN env var -> .github_token file searched upward from repo -> user's home .github_token
 """
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path

@@ -1,4 +1,3 @@
-import os
 from typing import TYPE_CHECKING
 
 from sage.kernel.runtime.task.base_task import BaseTask
