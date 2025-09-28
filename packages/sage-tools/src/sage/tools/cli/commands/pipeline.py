@@ -15,6 +15,7 @@ from ..pipeline_builder import (
     TemplateParameter,
     get_pipeline_templates,
 )
+from ..pipeline_builder.sql import sql_cli_app
 
 app = typer.Typer(help="🛠️ Pipeline 构建助手 - 交互式生成管道配置和样板代码")
 
@@ -169,3 +170,7 @@ def show_template(key: str):
             for param in template.parameters
         ],
     }, ensure_ascii=False, indent=2))
+
+
+# Add SQL-based pipeline commands as subcommand
+app.add_typer(sql_cli_app, name="sql", help="📊 SQL-based pipeline definition and management")
