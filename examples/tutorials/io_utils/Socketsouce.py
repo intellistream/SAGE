@@ -54,8 +54,8 @@ def main():
         print("✅ Test passed: Example structure validated")
         sys.exit(0)
     server_thread = threading.Thread(target=start_server, args=("127.0.0.1", 9000))
-    time.sleep(1)  # 确保服务器先启动
     server_thread.start()
+    time.sleep(1)  # 确保服务器先启动
     # 配置 SocketSource
     config = {
         "host": "127.0.0.1",
