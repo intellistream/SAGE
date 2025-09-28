@@ -38,10 +38,12 @@ class SafeBiologyRetriever(MapFunction):
 
         def init_service():
             try:
-                from sage.middleware.components.neuromem.memory_service import \
-                    MemoryService
-                from sage.middleware.utils.embedding.embedding_api import \
-                    apply_embedding_model
+                from sage.middleware.components.neuromem.memory_service import (
+                    MemoryService,
+                )
+                from sage.middleware.utils.embedding.embedding_api import (
+                    apply_embedding_model,
+                )
 
                 embedding_model = apply_embedding_model("default")
                 memory_service = MemoryService()

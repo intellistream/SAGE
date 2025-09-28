@@ -105,9 +105,9 @@ class ArxivSearchTool:
             k = max_results
             demo = [
                 {
-                    "title": f"Survey of LLM Agents ({i+1})",
+                    "title": f"Survey of LLM Agents ({i + 1})",
                     "authors": "Alice, Bob",
-                    "link": f"https://arxiv.org/abs/2509.{1234+i}",
+                    "link": f"https://arxiv.org/abs/2509.{1234 + i}",
                     "abstract": "(mock) An overview of LLM-based agents, planning, and tool use.",
                 }
                 for i in range(k)

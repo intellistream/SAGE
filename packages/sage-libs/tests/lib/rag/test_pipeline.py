@@ -2,8 +2,7 @@
 测试 sage.libs.rag.pipeline 模块
 """
 
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 

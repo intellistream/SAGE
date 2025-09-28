@@ -62,8 +62,7 @@ def sage_test_env_config():
     返回标准化的测试环境配置，确保所有测试使用.sage目录
     而不是在项目根目录创建test_env目录
     """
-    from sage.common.config.output_paths import (get_sage_paths,
-                                                 get_test_env_dir)
+    from sage.common.config.output_paths import get_sage_paths, get_test_env_dir
 
     # 使用统一的路径管理
     sage_paths = get_sage_paths()
@@ -88,7 +87,7 @@ def setup_test_environment():
         import sage.core
         import sage.kernel
 
-        print(f"✓ 测试环境设置成功")
+        print("✓ 测试环境设置成功")
         print(f"✓ sage.kernel: {sage.kernel.__path__}")
         print(f"✓ sage.core: {sage.core.__path__}")
         print(f"✓ sage.common: {sage.common.__path__}")

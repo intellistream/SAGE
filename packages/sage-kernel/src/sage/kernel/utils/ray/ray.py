@@ -1,8 +1,3 @@
-import os
-import socket
-import threading
-from pathlib import Path
-
 try:
     import ray
 
@@ -24,7 +19,6 @@ def get_sage_kernel_runtime_env():
     获取Sage内核的Ray运行环境配置，确保Actor可以访问sage模块
     """
     import os
-    import sys
 
     # 动态获取sage-kernel源码路径
     current_file = os.path.abspath(__file__)
@@ -124,7 +118,7 @@ def ensure_ray_initialized(runtime_env=None):
 
             # 使用标准模式但限制资源，支持async actors和队列
             ray.init(**init_kwargs)
-            print(f"Ray initialized in standard mode with limited resources")
+            print("Ray initialized in standard mode with limited resources")
         except Exception as e:
             print(f"Failed to initialize Ray: {e}")
             raise

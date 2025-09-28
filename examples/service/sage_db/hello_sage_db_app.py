@@ -6,7 +6,10 @@ import numpy as np
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.middleware.components.sage_db.python.sage_db import (
-        DatabaseConfig, IndexType, SageDB)
+        DatabaseConfig,
+        IndexType,
+        SageDB,
+    )
 except ModuleNotFoundError:
     import sys
     from pathlib import Path
@@ -30,7 +33,10 @@ except ModuleNotFoundError:
 
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.middleware.components.sage_db.python.sage_db import (
-        DatabaseConfig, IndexType, SageDB)
+        DatabaseConfig,
+        IndexType,
+        SageDB,
+    )
 
 
 def main():

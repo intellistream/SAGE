@@ -136,7 +136,7 @@ class DualStreamCoMap(BaseCoMapFunction):
     def map1(self, data):
         self.stream1_count += 1
         thread_id = threading.get_ident() % 10000
-        result = f"S1:{data*10}"
+        result = f"S1:{data * 10}"
         print(
             f"🔀 DualStreamCoMap[{self.instance_id}].map1: {data} -> {result} (thread:{thread_id}, s1_count:{self.stream1_count})"
         )
@@ -162,20 +162,20 @@ def test_single_stream_parallelism():
         .sink(ResultCollector, parallelism=1)
     )  # 1 sink
 
-    print(f"\n📋 Pipeline Analysis:")
+    print("\n📋 Pipeline Analysis:")
     print(f"Total transformations: {len(env.pipeline)}")
     for i, trans in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
+            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
         )
 
-    print(f"\n💡 Expected behavior:")
-    print(f"  - Source produces: 1,2,3,4,5,6,7,8,9,10")
+    print("\n💡 Expected behavior:")
+    print("  - Source produces: 1,2,3,4,5,6,7,8,9,10")
     print(
-        f"  - 3 Square instances process: 1²=1, 2²=4, 3²=9, 4²=16, 5²=25, 6²=36, 7²=49, 8²=64, 9²=81, 10²=100"
+        "  - 3 Square instances process: 1²=1, 2²=4, 3²=9, 4²=16, 5²=25, 6²=36, 7²=49, 8²=64, 9²=81, 10²=100"
     )
-    print(f"  - 2 Filter instances pass even squares: 4,16,36,64,100")
-    print(f"  - 1 Sink collects all: [4,16,36,64,100]")
+    print("  - 2 Filter instances pass even squares: 4,16,36,64,100")
+    print("  - 1 Sink collects all: [4,16,36,64,100]")
 
     return env
 
@@ -199,19 +199,17 @@ def test_direct_parallelism_specification():
         .sink(ResultCollector, parallelism=2)
     )  # 2 sinks
 
-    print(f"\n📋 Pipeline Analysis:")
+    print("\n📋 Pipeline Analysis:")
     for i, trans in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
+            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
         )
 
-    print(f"\n💡 Expected behavior:")
-    print(f"  - Source produces: 1,2,3,4,5,6,7,8")
-    print(
-        f"  - 4 Square instances should distribute work: 1²,4²,9²,16²,25²,36²,49²,64²"
-    )
-    print(f"  - 1 Filter passes even squares: 4,16,36,64")
-    print(f"  - 2 Sink instances should collect results")
+    print("\n💡 Expected behavior:")
+    print("  - Source produces: 1,2,3,4,5,6,7,8")
+    print("  - 4 Square instances should distribute work: 1²,4²,9²,16²,25²,36²,49²,64²")
+    print("  - 1 Filter passes even squares: 4,16,36,64")
+    print("  - 2 Sink instances should collect results")
 
     return env
 
@@ -236,17 +234,17 @@ def test_multi_stream_parallelism():
         .sink(ResultCollector, parallelism=1)
     )  # 1 sink
 
-    print(f"\n📋 Pipeline Analysis:")
+    print("\n📋 Pipeline Analysis:")
     for i, trans in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
+            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
         )
 
-    print(f"\n💡 Expected behavior:")
-    print(f"  - Stream1 produces: 1,2,3,4,5 -> CoMap.map0 -> S0:1,S0:2,S0:3,S0:4,S0:5")
-    print(f"  - Stream2 produces: 1,2,3 -> CoMap.map1 -> S1:10,S1:20,S1:30")
-    print(f"  - 2 CoMap instances should distribute the processing")
-    print(f"  - Final results: [S0:1,S0:2,S0:3,S0:4,S0:5,S1:10,S1:20,S1:30]")
+    print("\n💡 Expected behavior:")
+    print("  - Stream1 produces: 1,2,3,4,5 -> CoMap.map0 -> S0:1,S0:2,S0:3,S0:4,S0:5")
+    print("  - Stream2 produces: 1,2,3 -> CoMap.map1 -> S1:10,S1:20,S1:30")
+    print("  - 2 CoMap instances should distribute the processing")
+    print("  - Final results: [S0:1,S0:2,S0:3,S0:4,S0:5,S1:10,S1:20,S1:30]")
 
     return env
 
@@ -268,17 +266,17 @@ def test_execution_graph_validation():
         .sink(ResultCollector, parallelism=1)
     )  # Should create 1 sink node
 
-    print(f"\n📋 ExecutionGraph Node Expectations:")
-    print(f"  - SimpleNumberSource: 1 source node")
-    print(f"  - SquareFunction: 2 parallel map nodes")
-    print(f"  - EvenFilter: 3 parallel filter nodes")
-    print(f"  - ResultCollector: 1 sink node")
-    print(f"  - Total expected nodes: 7")
+    print("\n📋 ExecutionGraph Node Expectations:")
+    print("  - SimpleNumberSource: 1 source node")
+    print("  - SquareFunction: 2 parallel map nodes")
+    print("  - EvenFilter: 3 parallel filter nodes")
+    print("  - ResultCollector: 1 sink node")
+    print("  - Total expected nodes: 7")
 
-    print(f"\n📋 Pipeline Transformations:")
+    print("\n📋 Pipeline Transformations:")
     for i, trans in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism})"
+            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism})"
         )
         print(f"     -> Will create {trans.parallelism} parallel execution nodes")
 
@@ -310,15 +308,15 @@ def main():
     print("✅ ExecutionGraph nodes: Confirmed correct node count calculation")
 
     total_transformations = sum(len(env.pipeline) for env in [env1, env2, env3, env4])
-    print(f"\n📊 Total test environments: 4")
+    print("\n📊 Total test environments: 4")
     print(f"📊 Total transformations tested: {total_transformations}")
 
-    print(f"\n💡 Key validations completed:")
-    print(f"   ✓ Parallelism parameters correctly set on transformations")
-    print(f"   ✓ Direct parallelism specification works as expected")
-    print(f"   ✓ Multi-stream operations support parallelism")
-    print(f"   ✓ ExecutionGraph will create proper parallel nodes")
-    print(f"   ✓ Debug output shows instance distribution")
+    print("\n💡 Key validations completed:")
+    print("   ✓ Parallelism parameters correctly set on transformations")
+    print("   ✓ Direct parallelism specification works as expected")
+    print("   ✓ Multi-stream operations support parallelism")
+    print("   ✓ ExecutionGraph will create proper parallel nodes")
+    print("   ✓ Debug output shows instance distribution")
 
 
 if __name__ == "__main__":

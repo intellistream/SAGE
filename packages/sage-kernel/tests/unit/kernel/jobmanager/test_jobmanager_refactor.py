@@ -4,7 +4,6 @@
 验证基类功能和子类特定功能都正常工作
 """
 
-import os
 import sys
 
 # 添加SAGE路径
@@ -27,7 +26,7 @@ def test_base_tcp_client():
                 return {"action": "test_server_info"}
 
         client = TestClient("127.0.0.1", 19001)
-        print(f"✓ BaseTcpClient基类创建成功")
+        print("✓ BaseTcpClient基类创建成功")
         print(f"  - Host: {client.host}")
         print(f"  - Port: {client.port}")
         print(f"  - Timeout: {client.timeout}")
@@ -53,7 +52,7 @@ def test_jobmanager_client():
 
         # 创建客户端
         client = JobManagerClient("127.0.0.1", 19001, timeout=10.0)
-        print(f"✓ JobManagerClient创建成功")
+        print("✓ JobManagerClient创建成功")
         print(f"  - Host: {client.host}")
         print(f"  - Port: {client.port}")
         print(f"  - Timeout: {client.timeout}")
@@ -82,7 +81,7 @@ def test_jobmanager_client():
             print(f"✗ 缺少方法: {missing_methods}")
             return False
         else:
-            print(f"✓ 所有必需方法都存在")
+            print("✓ 所有必需方法都存在")
 
         # 测试继承的基类方法
         health_req = client._build_health_check_request()
@@ -142,7 +141,7 @@ def main():
         if test():
             passed += 1
 
-    print(f"\n=== 测试结果 ===")
+    print("\n=== 测试结果 ===")
     print(f"通过: {passed}/{total}")
 
     if passed == total:

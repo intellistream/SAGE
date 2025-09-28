@@ -3,13 +3,12 @@ import os
 import re
 import time
 from collections import Counter
-from typing import Any, List, Literal, Optional, Union
+from typing import List
 from urllib.parse import quote
 
 import feedparser
 import fitz
 import requests
-from PIL import Image
 from sage.core.api.function.map_function import MapFunction
 
 
@@ -169,7 +168,7 @@ class Paper:
                 if not found_abstract:
                     try:
                         text = json.dumps(block)
-                    except:
+                    except Exception:
                         continue
                     if re.search(r"\bAbstract\b", text, re.IGNORECASE):
                         found_abstract = True

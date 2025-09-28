@@ -451,7 +451,7 @@ class ProjectStatusChecker:
         )
 
         summary_lines = [
-            f"📊 SAGE 项目状态报告",
+            "📊 SAGE 项目状态报告",
             f"⏰ 检查时间: {status_data['timestamp']}",
             f"📁 项目路径: {status_data['project_root']}",
             f"✅ 检查项目: {successful_checks}/{total_checks}",

@@ -10,15 +10,13 @@ Coverage: TCP server, message handling, connection management
 """
 
 import pickle
-import socket
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional
-from unittest.mock import MagicMock, Mock, call, patch
+from typing import Any, Dict, Optional
+from unittest.mock import MagicMock, patch
 
 import pytest
-from sage.common.utils.network.local_tcp_server import (BaseTcpServer,
-                                                        LocalTcpServer)
+from sage.common.utils.network.local_tcp_server import BaseTcpServer, LocalTcpServer
 
 
 class TestBaseTcpServer:
@@ -37,7 +35,7 @@ class TestBaseTcpServer:
                 message = pickle.loads(message_data)
                 self.received_messages.append((message, client_address))
                 return {"type": "test_response", "status": "success"}
-            except:
+            except Exception:
                 return {"type": "error_response", "status": "error"}
 
     @pytest.mark.unit
@@ -983,7 +981,7 @@ class TestErrorHandlingScenarios:
                     assert response is not None
                     if response.get("status") == "error":
                         assert "error_code" in response.get("payload", {})
-                except:
+                except Exception:
                     # If pickling fails, that's also acceptable
                     pass
 
@@ -1015,14 +1013,14 @@ class TestErrorHandlingScenarios:
                 for i in range(50):
                     server.register_handler(f"type_{i}", lambda m, a: {})
                     if i % 10 == 0:
-                        server.unregister_handler(f"type_{i//2}")
+                        server.unregister_handler(f"type_{i // 2}")
 
             def process_messages():
                 for i in range(100):
                     message = {"type": f"type_{i % 20}", "data": f"test_{i}"}
                     try:
                         server._process_message(message, ("127.0.0.1", 12345))
-                    except:
+                    except Exception:
                         pass  # Some messages may fail due to handler changes
 
             # Run concurrent operations

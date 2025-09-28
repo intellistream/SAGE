@@ -6,9 +6,7 @@ SAGE C++ Extensions Test Command
 测试 SAGE C++ 扩展的安装和功能
 """
 
-import sys
 from pathlib import Path
-from typing import Tuple
 
 import typer
 

@@ -53,7 +53,7 @@ def execute_fix_plan(
         print(f"📋 加载修复计划: {fix_plan_file_or_data}")
     else:
         fix_plan = fix_plan_file_or_data
-        print(f"📋 接收修复计划数据")
+        print("📋 接收修复计划数据")
 
     print(f"📊 计划修复 {fix_plan['total_fixes_needed']} 个错误分配的issues")
 
@@ -118,7 +118,7 @@ def execute_fix_plan(
         )
 
         if dry_run:
-            print(f"  ✅ DRY RUN: 将会移动此issue")
+            print("  ✅ DRY RUN: 将会移动此issue")
             success_count += 1
         else:
             try:
@@ -187,7 +187,7 @@ def execute_fix_plan(
                                         }
                                     )
                         else:
-                            print(f"  ❌ 缺少item_id，无法清理")
+                            print("  ❌ 缺少item_id，无法清理")
                             error_count += 1
                             errors.append(
                                 {
@@ -248,7 +248,7 @@ def execute_fix_plan(
                                     else:
                                         print(f"  ⚠️  删除失败: {delete_result}")
                                         print(
-                                            f"  ✅ 已添加到目标项目，但请手动从源项目删除"
+                                            "  ✅ 已添加到目标项目，但请手动从源项目删除"
                                         )
                                         success_count += 1  # 仍然算作部分成功
                                 else:
@@ -289,12 +289,12 @@ def execute_fix_plan(
                 error_count += 1
 
     # 显示结果摘要
-    print(f"\n📊 修复结果摘要:")
+    print("\n📊 修复结果摘要:")
     print(f"  ✅ 成功: {success_count}")
     print(f"  ❌ 失败: {error_count}")
 
     if errors:
-        print(f"\n❌ 错误详情:")
+        print("\n❌ 错误详情:")
         for error in errors:
             print(f"  Issue #{error['issue_number']}: {error['error']}")
 

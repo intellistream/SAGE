@@ -449,13 +449,13 @@ class TestFilterFunctionality:
                 positive = data.get("positive")
                 print(f"   - Value: {value}, Positive: {positive}")
 
-        print(f"\n🎯 Filter Summary:")
+        print("\n🎯 Filter Summary:")
         print(f"   - Total filtered data: {len(all_filtered_data)}")
 
         # 验证：所有通过的数据都应该是正数
         for data in all_filtered_data:
             assert (
-                data.get("positive") == True
+                data.get("positive") is True
             ), f"❌ Non-positive data passed filter: {data}"
 
         # 验证：应该有正数通过（基于测试数据）
@@ -481,12 +481,12 @@ class TestFilterFunctionality:
                     f"   - Value: {value}, Positive: {positive}, Category: {category}"
                 )
 
-        print(f"\n🎯 Chained Filter Summary:")
+        print("\n🎯 Chained Filter Summary:")
         print(f"   - Total data after both filters: {len(all_filtered_data)}")
 
         # 验证：所有数据都应该是正偶数
         for data in all_filtered_data:
-            assert data.get("positive") == True, f"❌ Non-positive data: {data}"
+            assert data.get("positive") is True, f"❌ Non-positive data: {data}"
             assert data.get("category") == "even", f"❌ Non-even data: {data}"
             assert data.get("value") > 0, f"❌ Non-positive value: {data}"
             assert data.get("value") % 2 == 0, f"❌ Non-even value: {data}"
@@ -509,7 +509,7 @@ class TestFilterFunctionality:
                 status = user.get("status")
                 print(f"   - User: {name}, Age: {age}, Status: {status}")
 
-        print(f"\n🎯 User Filter Summary:")
+        print("\n🎯 User Filter Summary:")
         print(f"   - Total filtered users: {len(all_filtered_users)}")
 
         # 验证：所有用户都应该是活跃且成年的
@@ -533,7 +533,7 @@ class TestFilterFunctionality:
                 value = data.get("value")
                 print(f"   - Value: {value}")
 
-        print(f"\n🎯 Lambda Filter Summary:")
+        print("\n🎯 Lambda Filter Summary:")
         print(f"   - Total data in range (0,5): {len(all_filtered_data)}")
 
         # 验证：所有数据的值都应该在0到5之间（不包括0和5）
@@ -584,7 +584,7 @@ class TestFilterFunctionality:
                 premium = data.get("is_premium")
                 print(f"   - User: {username}, Age: {age}, Premium: {premium}")
 
-        print(f"\n🎯 Integration Summary:")
+        print("\n🎯 Integration Summary:")
         print(f"   - Total processed users: {len(all_results)}")
 
         # 验证：所有用户都应该满足条件且格式正确

@@ -15,8 +15,7 @@ import os
 import tempfile
 import threading
 from contextlib import contextmanager
-from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import patch
 
 import pytest
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -520,7 +519,6 @@ class TestUtilityMethods:
             )
 
             # 捕获打印输出
-            import builtins
             # 使用内置的StringIO来避免导入冲突
             import importlib
             import sys
@@ -765,8 +763,8 @@ class TestCustomLoggerPerformance:
             log_file = os.path.join(temp_dir, "perf_test.log")
             with open(log_file, "r") as f:
                 content = f.read()
-                assert f"Debug message {num_logs-4}" in content
-                assert f"Error message {num_logs-1}" in content
+                assert f"Debug message {num_logs - 4}" in content
+                assert f"Error message {num_logs - 1}" in content
 
     def test_multiple_handlers_performance(self):
         """测试多handler性能"""

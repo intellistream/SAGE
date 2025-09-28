@@ -3,8 +3,6 @@ import os
 import time
 
 from jinja2 import Template
-from sage.common.config.output_paths import get_states_file
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
 
 QA_prompt_template = """Instruction:
@@ -293,7 +291,7 @@ class QAPromptor(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 

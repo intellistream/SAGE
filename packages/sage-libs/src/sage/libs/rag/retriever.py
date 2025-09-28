@@ -104,8 +104,7 @@ class ChromaRetriever(MapFunction):
     def _init_embedding_model(self):
         """初始化 embedding 模型"""
         try:
-            from sage.middleware.utils.embedding.embedding_model import \
-                EmbeddingModel
+            from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
 
             embedding_method = self.embedding_config.get("method", "default")
             model = self.embedding_config.get(
@@ -317,7 +316,7 @@ class ChromaRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -404,8 +403,7 @@ class MilvusDenseRetriever(MapFunction):
     def _init_embedding_model(self):
         """初始化embedding模型"""
         try:
-            from sage.middleware.utils.embedding.embedding_model import \
-                EmbeddingModel
+            from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
 
             embedding_method = self.embedding_config.get("method", "default")
             model = self.embedding_config.get(
@@ -624,7 +622,7 @@ class MilvusDenseRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -906,7 +904,7 @@ class MilvusSparseRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -1322,5 +1320,5 @@ class Wiki18FAISSRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass

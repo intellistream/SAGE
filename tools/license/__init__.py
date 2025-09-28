@@ -49,7 +49,7 @@ if not _ENTERPRISE_AVAILABLE:
     import warnings
 
     warnings.warn(
-        f"SAGE sage-kernel Enterprise features require a valid commercial license. "
+        "SAGE sage-kernel Enterprise features require a valid commercial license. "
         "Enterprise functionality will be disabled. "
         "Please contact your SAGE vendor for licensing information.",
         UserWarning,
@@ -63,8 +63,8 @@ def require_enterprise_license(func):
     def wrapper(*args, **kwargs):
         if not _ENTERPRISE_AVAILABLE:
             raise RuntimeError(
-                f"SAGE sage-kernel Enterprise feature requires a valid commercial license. "
-                f"This functionality is not available with your current license."
+                "SAGE sage-kernel Enterprise feature requires a valid commercial license. "
+                "This functionality is not available with your current license."
             )
         return func(*args, **kwargs)
 

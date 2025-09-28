@@ -3,9 +3,7 @@
 测试本地包安装模式的脚本
 """
 import os
-import subprocess
 import sys
-import tempfile
 
 import pytest
 

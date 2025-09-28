@@ -22,11 +22,10 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 
 class FastPipValidator:
@@ -215,7 +214,7 @@ class FastPipValidator:
 
             wheel_files = list(dist_dir.glob("*.whl"))
             if not wheel_files:
-                print(f"  ❌ 未找到wheel包文件")
+                print("  ❌ 未找到wheel包文件")
                 return None
 
             wheel_file = wheel_files[0]
@@ -382,7 +381,7 @@ class TestBatch(BatchFunction):
     def __init__(self):
         super().__init__()
         self.count = 0
-    
+
     def execute(self):
         if self.count < 2:
             self.count += 1
@@ -393,7 +392,7 @@ class TestSink(SinkFunction):
     def __init__(self):
         super().__init__()
         self.received = []
-    
+
     def execute(self, data):
         self.received.append(data)
 
@@ -472,7 +471,7 @@ else:
         try:
             if self.test_dir.exists():
                 shutil.rmtree(self.test_dir)
-                print(f"  ✅ 测试目录已清理")
+                print("  ✅ 测试目录已清理")
             else:
                 print("  ℹ️  测试目录不存在，无需清理")
 

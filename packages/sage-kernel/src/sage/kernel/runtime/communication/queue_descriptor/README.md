@@ -89,7 +89,7 @@ item = queue.get(timeout=1.0)
 try:
     queue.put_nowait("item")
     item = queue.get_nowait()
-except:
+except Exception:
     pass
 
 # Status checks

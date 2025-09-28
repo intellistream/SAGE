@@ -243,5 +243,5 @@ if __name__ == "__main__":
     else:
         print("\n⚠️  Some examples had issues. Check the implementation.")
 
-    print(f"\nFor the real agent implementation, see: agent.py")
-    print(f"For configuration examples, see: ../config/config_agent_min.yaml")
+    print("\nFor the real agent implementation, see: agent.py")
+    print("For configuration examples, see: ../config/config_agent_min.yaml")

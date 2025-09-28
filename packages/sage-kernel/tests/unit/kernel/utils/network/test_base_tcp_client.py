@@ -11,9 +11,8 @@ Tests for sage.common.utils.network.base_tcp_client module
 
 import json
 import socket
-import threading
 import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sage.common.utils.network.base_tcp_client import BaseTcpClient
@@ -54,7 +53,7 @@ class TestBaseTcpClient:
         if hasattr(self.client, "_socket") and self.client._socket:
             try:
                 self.client.disconnect()
-            except:
+            except Exception:
                 pass
 
     def test_client_initialization(self):

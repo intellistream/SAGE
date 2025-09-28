@@ -4,11 +4,9 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
 from sage.libs.context.model_context import ModelContext
 
 

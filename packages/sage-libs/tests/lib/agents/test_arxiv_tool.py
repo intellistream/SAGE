@@ -5,9 +5,7 @@ This covers essential functionality and integration with SAGE components.
 For usage examples, see examples/agents/tools/demo_arxiv_search.py
 """
 
-import json
-import logging
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 

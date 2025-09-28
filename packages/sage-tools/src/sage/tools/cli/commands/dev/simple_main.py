@@ -61,10 +61,7 @@ def quality(
 
     默认情况下会自动修复格式化和导入排序问题，对于无法自动修复的问题给出警告。
     """
-    import datetime
-    import os
     import subprocess
-    import sys
     from pathlib import Path
 
     from sage.common.config.output_paths import get_sage_paths
@@ -165,7 +162,7 @@ def quality(
         console.print("\n📦 运行导入排序检查 (isort)...")
 
         if should_fix:
-            cmd = ["isort"] + target_paths
+            cmd = ["isort", "--profile", "black"] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -262,7 +259,6 @@ def _save_quality_error_log(logs_base_dir, tool_name: str, error_content: str):
         error_content: 错误内容
     """
     import datetime
-    from pathlib import Path
 
     try:
         # 生成时间戳目录名
@@ -393,7 +389,7 @@ def _run_quality_check(
                 if not quiet:
                     console.print("[green]✅ 导入排序检查通过 √ [/green]")
         elif fix:
-            cmd = ["isort"] + target_paths
+            cmd = ["isort", "--profile", "black"] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -624,8 +620,7 @@ def status(
     try:
         from pathlib import Path
 
-        from sage.tools.dev.tools.project_status_checker import \
-            ProjectStatusChecker
+        from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
 
         # 自动检测项目根目录
         project_path = Path(project_root).resolve()
@@ -785,8 +780,7 @@ def test(
         from pathlib import Path
 
         from rich.rule import Rule
-        from sage.tools.dev.tools.enhanced_test_runner import \
-            EnhancedTestRunner
+        from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
 
         # 0. 测试目录获取
         if not quiet:
@@ -935,8 +929,10 @@ def home(
 ):
     """管理SAGE目录"""
     try:
-        from sage.common.config.output_paths import (get_sage_paths,
-                                                     initialize_sage_paths)
+        from sage.common.config.output_paths import (
+            get_sage_paths,
+            initialize_sage_paths,
+        )
 
         # 使用统一的路径系统
         if path:
@@ -957,7 +953,6 @@ def home(
         elif action == "clean":
             # 清理旧日志文件
             import time
-            from pathlib import Path
 
             logs_dir = sage_paths.logs_dir
             if not logs_dir.exists():
@@ -1358,7 +1353,7 @@ def _generate_markdown_output(result, analysis_type):
                 markdown_lines.append(f"## {key.replace('_', ' ').title()}")
                 markdown_lines.append("")
                 if isinstance(value, (list, dict)):
-                    markdown_lines.append(f"```json")
+                    markdown_lines.append("```json")
                     import json
 
                     try:
@@ -1408,7 +1403,6 @@ def _run_diagnose_mode(project_root: str):
         import importlib
         import pkgutil
         import subprocess
-        import sys
         from pathlib import Path
 
         console.print("🔍 SAGE 完整安装诊断")
@@ -1880,8 +1874,6 @@ def _show_packages_status(
 def _check_package_dependencies(package_name: str, verbose: bool):
     """检查单个包的依赖"""
     try:
-        import subprocess
-        from pathlib import Path
 
         # 尝试读取 pyproject.toml 依赖
         console.print(f"    🔗 检查 {package_name} 依赖...")
@@ -1957,8 +1949,7 @@ def _run_tools_test(test_type: str, verbose: bool, packages: str):
         try:
             import time
 
-            from sage.tools.dev.tools.enhanced_test_runner import \
-                EnhancedTestRunner
+            from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
 
             runner = EnhancedTestRunner(project_root)
 

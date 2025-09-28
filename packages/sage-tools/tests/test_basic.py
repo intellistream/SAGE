@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 def test_sage_common_import():
     """测试sage.common模块是否能正常导入"""
     try:
-        import sage.common
+        import sage.common  # noqa: F401
 
         assert True
     except ImportError as e:

@@ -96,7 +96,7 @@ class LicenseClient:
                     days_left = (expires - datetime.now()).days
                     if days_left < 30:
                         print(f"⚠️  License expires in {days_left} days")
-                except:
+                except Exception:
                     pass
         else:
             print("Features: Open-source functionality")

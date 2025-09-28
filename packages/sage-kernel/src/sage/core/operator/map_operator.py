@@ -110,5 +110,5 @@ class MapOperator(BaseOperator):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_time_records()
-            except:
+            except Exception:
                 pass

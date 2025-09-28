@@ -1,10 +1,7 @@
 # 简单的解耦测试，验证BaseOperator不再直接依赖BaseRouter
 
-import os
 import sys
-from unittest.mock import MagicMock, Mock
-
-import pytest
+from unittest.mock import Mock
 
 # Project-specific sys.path tweaks may be required in tests; keep them explicit
 sys.path.insert(0, "/home/flecther/workspace/SAGE/packages/sage-core/src")
@@ -76,7 +73,7 @@ class TestBaseOperatorDecoupling:
 
         # 测试发送数据包
         result = operator.send_packet("test_packet")
-        assert result == True
+        assert result is True
 
         # 测试发送停止信号
         operator.send_stop_signal("stop_signal")

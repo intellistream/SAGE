@@ -89,7 +89,7 @@ class LambdaKeyByFunction(KeyByFunction):
 
     def __init__(self, lambda_func, **kwargs):
         self.lambda_func = lambda_func
-        self.logger.debug(f"LambdaKeyByFunction initialized with lambda")
+        self.logger.debug("LambdaKeyByFunction initialized with lambda")
 
     def execute(self, data: Any) -> Hashable:
         """

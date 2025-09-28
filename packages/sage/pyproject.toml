@@ -78,5 +78,44 @@ where = ["src"]
 [tool.setuptools.package-dir]
 "" = "src"
 
+[tool.ruff]
+# 与flake8保持一致的配置
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+# 启用的规则集（与flake8兼容）
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings  
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "C90",  # mccabe complexity
+]
+
+# 忽略的错误（与flake8 .flake8文件保持一致）
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+# 复杂度限制（与flake8保持一致）
+mccabe = { max-complexity = 10 }
+
+# 文件特定忽略
+per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
+
+[tool.ruff.lint.isort]
+known-first-party = ["sage"]
+
+[tool.ruff.isort]
+known-first-party = ["sage"]
+# 移除profile字段，Ruff不支持此字段
+# 使用force-single-line = false 来模拟black风格
+force-single-line = false
+combine-as-imports = true
+
 [tool.setuptools.dynamic]
 version = {attr = "sage._version.__version__"}

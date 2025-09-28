@@ -8,14 +8,8 @@ This script demonstrates the complete workflow:
 3. After: One-command auto-configuration
 """
 
-import os
-import shutil
 import sys
-import tempfile
-from pathlib import Path
 
-import yaml
-from sage.tools.cli.commands.config import auto_update_generator
 from sage.tools.cli.utils.llm_detection import LLMServiceInfo
 
 # Add SAGE tools to path
@@ -109,7 +103,7 @@ def demonstrate_detection():
         print(f"{i}. {service.name.upper()} Service")
         print(f"   URL: {service.base_url}")
         print(f"   Models: {', '.join(service.models)}")
-        print(f"   Status: ✅ Available")
+        print("   Status: ✅ Available")
         print()
 
     return services

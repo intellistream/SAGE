@@ -118,7 +118,7 @@ class CoMapTransformation(BaseTransformation):
             raise ValueError(
                 f"CoMap function {self.function_class.__name__} supports maximum "
                 f"{supported_count} input streams, but {input_count} streams provided. "
-                f"Please implement map{supported_count} through map{input_count-1} methods."
+                f"Please implement map{supported_count} through map{input_count - 1} methods."
             )
 
         if input_count < 2:

@@ -127,7 +127,7 @@ class Generator(MapFunction):
                     for i, ctx in enumerate(ctxs):
                         if "text" in ctx and ctx["text"].strip():
                             title = ctx.get("title", "")
-                            evidence = f"[{i+1}] {title}\n{ctx['text']}"
+                            evidence = f"[{i + 1}] {title}\n{ctx['text']}"
                             evidences.append(evidence)
                             retrieved_context.append(ctx["text"])  # 保存原始上下文文本
                     context = "\n".join(evidences)

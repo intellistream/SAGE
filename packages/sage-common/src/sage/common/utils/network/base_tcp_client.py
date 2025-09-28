@@ -108,12 +108,12 @@ class BaseTcpClient(ABC):
         """为JobManager连接失败提供友好的帮助信息"""
         self.logger.error("❌ 无法连接到JobManager服务")
         self.logger.error("📋 请检查以下步骤：")
-        self.logger.error(f"   1. JobManager是否已启动？")
+        self.logger.error("   1. JobManager是否已启动？")
         self.logger.error(
             f"      启动命令: sage jobmanager start --host {self.host} --port {self.port}"
         )
         self.logger.error(f"   2. 主机地址是否正确？ (当前: {self.host}:{self.port})")
-        self.logger.error(f"   3. 防火墙是否阻止了连接？")
+        self.logger.error("   3. 防火墙是否阻止了连接？")
         self.logger.error(
             "💡 提示：如果是第一次使用RemoteEnvironment，请先启动JobManager服务"
         )

@@ -104,7 +104,7 @@ def example_error_handling():
 
         result = tool.call({"query": "neural networks", "max_results": 3})
 
-        print(f"Network error occurred, using offline fallback:")
+        print("Network error occurred, using offline fallback:")
         print(f"Offline mock: {result['meta'].get('offline_mock', False)}")
         print(f"Results: {len(result['output'])} papers")
 
@@ -137,7 +137,7 @@ def example_mcp_integration():
                 "arxiv_search", {"query": "GPT language models", "max_results": 1}
             )
 
-            print(f"Called through MCP Registry:")
+            print("Called through MCP Registry:")
             print(f"Tool: {tool.name}")
             print(f"Result: {result['output'][0]['title']}")
 

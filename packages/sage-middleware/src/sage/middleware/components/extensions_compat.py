@@ -3,7 +3,6 @@ SAGE Middleware Components - 运行时兼容性检测
 """
 
 import warnings
-from typing import Any, Optional
 
 # 尝试导入C++扩展，失败时使用纯Python实现
 _SAGE_DB_AVAILABLE = False
@@ -23,7 +22,7 @@ except ImportError:
 
 try:
     from sage.middleware.components.sage_flow.python import _sage_flow
-    from sage.middleware.components.sage_flow.python.sage_flow import *
+    from sage.middleware.components.sage_flow.python.sage_flow import *  # noqa: F401
 
     _SAGE_FLOW_AVAILABLE = True
 except ImportError:

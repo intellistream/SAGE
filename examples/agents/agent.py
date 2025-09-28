@@ -21,8 +21,7 @@ sys.path.insert(0, project_root)
 
 # 加载环境配置
 try:
-    from tools.env_config import (get_api_key, load_sage_env,
-                                  should_use_real_api)
+    from tools.env_config import get_api_key, load_sage_env, should_use_real_api
 
     load_sage_env()  # 立即加载环境变量
 except ImportError:

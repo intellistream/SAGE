@@ -1,5 +1,4 @@
 import numpy as np
-from InstructorEmbedding import INSTRUCTOR
 from sentence_transformers import SentenceTransformer
 
 

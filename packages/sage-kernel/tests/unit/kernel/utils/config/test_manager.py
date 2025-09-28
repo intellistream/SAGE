@@ -13,13 +13,17 @@ Tests for sage.common.utils.config.manager module
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import yaml
 from pydantic import ValidationError
-from sage.common.utils.config.manager import (BaseConfig, ConfigManager,
-                                              load_config, save_config)
+from sage.common.utils.config.manager import (
+    BaseConfig,
+    ConfigManager,
+    load_config,
+    save_config,
+)
 
 
 @pytest.mark.unit
@@ -155,7 +159,7 @@ class TestConfigManager:
 
             # 检查是否有tomli可以加载
             try:
-                import tomli
+                import tomli  # noqa: F401
 
                 loaded_config = self.manager.load("test.toml")
                 assert loaded_config["app_name"] == "SAGE"
