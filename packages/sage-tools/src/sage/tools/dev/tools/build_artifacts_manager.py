@@ -344,7 +344,7 @@ find . -name "*.egg-info" -type d -not -path "./.venv/*" -not -path "./.git/*" |
     fi
 done
 
-# Clean dist directories  
+# Clean dist directories
 echo
 echo "📦 Cleaning dist directories..."
 find . -name "dist" -type d -not -path "./.venv/*" -not -path "./.git/*" | while read -r dir; do
@@ -364,7 +364,7 @@ find . -name "__pycache__" -type d -not -path "./.venv/*" -not -path "./.git/*" 
 done
 
 # Clean build directories
-echo  
+echo
 echo "🔨 Cleaning build directories..."
 find . -name "build" -type d -not -path "./.venv/*" -not -path "./.git/*" | while read -r dir; do
     if [ -d "$dir" ]; then
@@ -465,7 +465,7 @@ echo "🗑️  To see what would be removed without actually deleting, use: sage
 - Clean __pycache__ directories during development
 - Remove temporary files older than 1 day
 
-## Weekly (Recommended)  
+## Weekly (Recommended)
 ```bash
 sage-dev clean --categories pycache,temp --older-than-days 7
 ```
@@ -492,7 +492,7 @@ Create maintenance scripts using SAGE toolkit:
 sage-dev clean --categories pycache,temp --older-than-days 1 --force
 ```
 
-### Weekly cleanup script  
+### Weekly cleanup script
 ```bash
 #!/bin/bash
 # scripts/weekly_cleanup.sh

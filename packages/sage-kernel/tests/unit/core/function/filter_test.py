@@ -455,7 +455,7 @@ class TestFilterFunctionality:
         # 验证：所有通过的数据都应该是正数
         for data in all_filtered_data:
             assert (
-                data.get("positive") == True
+                data.get("positive") is True
             ), f"❌ Non-positive data passed filter: {data}"
 
         # 验证：应该有正数通过（基于测试数据）
@@ -486,7 +486,7 @@ class TestFilterFunctionality:
 
         # 验证：所有数据都应该是正偶数
         for data in all_filtered_data:
-            assert data.get("positive") == True, f"❌ Non-positive data: {data}"
+            assert data.get("positive") is True, f"❌ Non-positive data: {data}"
             assert data.get("category") == "even", f"❌ Non-even data: {data}"
             assert data.get("value") > 0, f"❌ Non-positive value: {data}"
             assert data.get("value") % 2 == 0, f"❌ Non-even value: {data}"

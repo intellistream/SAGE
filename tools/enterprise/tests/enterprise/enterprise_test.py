@@ -161,7 +161,7 @@ class EnterpriseValidator:
 
         print(f"总测试数: {total_tests}")
         print(f"成功测试: {successful_tests}")
-        print(f"成功率: {successful_tests/total_tests*100:.1f}%")
+        print(f"成功率: {successful_tests / total_tests * 100:.1f}%")
 
         # 详细信息
         for test_name, result in results.items():

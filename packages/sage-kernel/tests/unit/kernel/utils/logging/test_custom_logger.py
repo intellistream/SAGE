@@ -763,8 +763,8 @@ class TestCustomLoggerPerformance:
             log_file = os.path.join(temp_dir, "perf_test.log")
             with open(log_file, "r") as f:
                 content = f.read()
-                assert f"Debug message {num_logs-4}" in content
-                assert f"Error message {num_logs-1}" in content
+                assert f"Debug message {num_logs - 4}" in content
+                assert f"Error message {num_logs - 1}" in content
 
     def test_multiple_handlers_performance(self):
         """测试多handler性能"""

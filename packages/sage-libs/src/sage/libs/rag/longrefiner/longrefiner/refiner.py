@@ -647,7 +647,7 @@ class LongRefiner:
                 }
 
         # fill the middle content of sections and subsections
-        if "abstract" in structured_doc and structured_doc["abstract"] != None:
+        if "abstract" in structured_doc and structured_doc["abstract"] is not None:
             structured_doc["abstract"] = self._fill_full_content(
                 original_doc_content, structured_doc["abstract"]
             )
@@ -678,7 +678,7 @@ class LongRefiner:
                     for subsection, subsection_content in section_item[
                         "subsections"
                     ].items():
-                        if subsection_content != None and subsection_content != "":
+                        if subsection_content is not None and subsection_content != "":
                             abs = original_doc_content.split(subsection_content)[0]
                             structured_doc["abstract"] = abs
                             break
@@ -778,7 +778,7 @@ class LongRefiner:
                             ):
                                 if (
                                     subsection_content == ""
-                                    or subsection_content == None
+                                    or subsection_content is None
                                 ):
                                     del section_dict["subsections"][subsection]
                                 else:

@@ -236,7 +236,7 @@ async def root():
     <head>
         <title>SAGE Web UI</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; 
+            body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0;
                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                    min-height: 100vh; display: flex; justify-content: center; align-items: center; }
             .container { background: white; padding: 2rem; border-radius: 10px;

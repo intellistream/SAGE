@@ -161,7 +161,7 @@ def validate_single_stream_parallelism():
     print(f"Total transformations: {len(env.pipeline)}")
     for i, transformation in enumerate(env.pipeline):
         print(
-            f"  {i+1:2d}. {transformation.function_class.__name__:20s} | "
+            f"  {i + 1:2d}. {transformation.function_class.__name__:20s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
         )
@@ -206,7 +206,7 @@ def validate_multi_stream_parallelism():
     print(f"Total transformations: {len(env.pipeline)}")
     for i, transformation in enumerate(env.pipeline):
         print(
-            f"  {i+1:2d}. {transformation.function_class.__name__:20s} | "
+            f"  {i + 1:2d}. {transformation.function_class.__name__:20s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
         )
@@ -244,7 +244,7 @@ def validate_execution_graph_nodes():
         print("\n🔍 Pipeline transformations:")
         for i, transformation in enumerate(env.pipeline):
             print(
-                f"  {i+1}. {transformation.basename} (parallelism: {transformation.parallelism})"
+                f"  {i + 1}. {transformation.basename} (parallelism: {transformation.parallelism})"
             )
 
         # Note: ExecutionGraph node creation happens during execution

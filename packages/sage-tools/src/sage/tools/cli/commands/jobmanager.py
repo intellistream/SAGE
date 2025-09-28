@@ -344,10 +344,10 @@ class JobManagerController:
                     health = self.check_health()
                     if health.get("status") == "success":
                         typer.echo(
-                            f"JobManager is ready and healthy (took {i+1} seconds)"
+                            f"JobManager is ready and healthy (took {i + 1} seconds)"
                         )
                         return True
-                    typer.echo(f"Waiting... ({i+1}/{wait_for_ready})")
+                    typer.echo(f"Waiting... ({i + 1}/{wait_for_ready})")
 
                 typer.echo("JobManager did not become ready within timeout")
                 # 检查进程是否还在运行

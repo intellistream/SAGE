@@ -189,7 +189,7 @@ def validate_remote_single_stream_parallelism():
     print(f"Ray workers available: {env.platform} (distributed execution)")
     for i, transformation in enumerate(env.pipeline):
         print(
-            f"  {i+1:2d}. {transformation.function_class.__name__:25s} | "
+            f"  {i + 1:2d}. {transformation.function_class.__name__:25s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
         )
@@ -239,7 +239,7 @@ def validate_remote_multi_stream_parallelism():
     print(f"Environment platform: {env.platform}")
     for i, transformation in enumerate(env.pipeline):
         print(
-            f"  {i+1:2d}. {transformation.function_class.__name__:25s} | "
+            f"  {i + 1:2d}. {transformation.function_class.__name__:25s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
         )
@@ -283,7 +283,7 @@ def validate_ray_distributed_execution():
     print("\n🔍 Pipeline transformations:")
     for i, transformation in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {transformation.basename} (parallelism: {transformation.parallelism})"
+            f"  {i + 1}. {transformation.basename} (parallelism: {transformation.parallelism})"
         )
 
     print("\n💡 Key aspects of remote distributed execution:")

@@ -492,7 +492,7 @@ class GitHubIssuesExecutor:
 
 ### 类型标签
 - `bug`: Bug报告
-- `feature`: 新功能 
+- `feature`: 新功能
 - `enhancement`: 功能增强
 - `documentation`: 文档相关
 - `refactor`: 代码重构
@@ -500,7 +500,7 @@ class GitHubIssuesExecutor:
 - `algorithm`: 算法相关
 - `dataset`: 数据集相关
 
-### 优先级标签  
+### 优先级标签
 - `priority:high`: 高优先级
 - `priority:medium`: 中优先级
 - `priority:low`: 低优先级

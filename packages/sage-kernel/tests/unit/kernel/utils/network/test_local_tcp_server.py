@@ -1013,7 +1013,7 @@ class TestErrorHandlingScenarios:
                 for i in range(50):
                     server.register_handler(f"type_{i}", lambda m, a: {})
                     if i % 10 == 0:
-                        server.unregister_handler(f"type_{i//2}")
+                        server.unregister_handler(f"type_{i // 2}")
 
             def process_messages():
                 for i in range(100):

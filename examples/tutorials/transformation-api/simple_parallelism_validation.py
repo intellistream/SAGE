@@ -136,7 +136,7 @@ class DualStreamCoMap(BaseCoMapFunction):
     def map1(self, data):
         self.stream1_count += 1
         thread_id = threading.get_ident() % 10000
-        result = f"S1:{data*10}"
+        result = f"S1:{data * 10}"
         print(
             f"🔀 DualStreamCoMap[{self.instance_id}].map1: {data} -> {result} (thread:{thread_id}, s1_count:{self.stream1_count})"
         )
@@ -166,7 +166,7 @@ def test_single_stream_parallelism():
     print(f"Total transformations: {len(env.pipeline)}")
     for i, trans in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
+            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
         )
 
     print("\n💡 Expected behavior:")
@@ -202,7 +202,7 @@ def test_direct_parallelism_specification():
     print("\n📋 Pipeline Analysis:")
     for i, trans in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
+            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
         )
 
     print("\n💡 Expected behavior:")
@@ -237,7 +237,7 @@ def test_multi_stream_parallelism():
     print("\n📋 Pipeline Analysis:")
     for i, trans in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
+            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism}, basename={trans.basename})"
         )
 
     print("\n💡 Expected behavior:")
@@ -276,7 +276,7 @@ def test_execution_graph_validation():
     print("\n📋 Pipeline Transformations:")
     for i, trans in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {trans.function_class.__name__} (parallelism={trans.parallelism})"
+            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism})"
         )
         print(f"     -> Will create {trans.parallelism} parallel execution nodes")
 

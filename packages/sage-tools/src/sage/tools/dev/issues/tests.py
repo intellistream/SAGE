@@ -269,7 +269,7 @@ class IssuesTestSuite:
         console.print(f"\n📈 总计: {total} 个测试")
         console.print(f"✅ 通过: {passed} 个")
         console.print(f"❌ 失败: {total - passed} 个")
-        console.print(f"📊 成功率: {passed/total*100:.1f}%")
+        console.print(f"📊 成功率: {passed / total * 100:.1f}%")
 
         # CI环境特殊处理
         is_ci = os.environ.get("CI") == "true"

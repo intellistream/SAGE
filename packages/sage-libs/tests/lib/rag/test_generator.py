@@ -53,7 +53,7 @@ class TestOpenAIGenerator:
 
         # 验证初始化
         assert generator.config == config
-        assert generator.enable_profile == False
+        assert generator.enable_profile is False
         assert generator.num == 1
 
         # 验证OpenAIClient被正确调用
@@ -96,7 +96,7 @@ class TestOpenAIGenerator:
             # 重新初始化以设置profile路径
             generator.__init__(config=config, enable_profile=True)
 
-            assert generator.enable_profile == True
+            assert generator.enable_profile is True
 
     @patch("sage.libs.rag.generator.OpenAIClient")
     def test_openai_generator_initialization_no_api_key(self, mock_openai_client):

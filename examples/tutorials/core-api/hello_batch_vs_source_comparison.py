@@ -104,10 +104,10 @@ def compare_implementations():
     for i in range(len(data) + 2):  # 多执行几次展示停止逻辑
         result = old_func.execute()
         if isinstance(result, StopSignal):
-            print(f"   第{i+1}次执行: 收到停止信号 {result}")
+            print(f"   第{i + 1}次执行: 收到停止信号 {result}")
             break
         else:
-            print(f"   第{i+1}次执行: 处理数据 {result}")
+            print(f"   第{i + 1}次执行: 处理数据 {result}")
 
     # 2. 新式实现
     print("\n" + "=" * 60)
@@ -128,7 +128,7 @@ def compare_implementations():
 
         if result is not None:
             print(
-                f"   第{i+1}次执行: 处理数据 {result} - 进度 {current}/{total} ({completion:.0%})"
+                f"   第{i + 1}次执行: 处理数据 {result} - 进度 {current}/{total} ({completion:.0%})"
             )
         i += 1
 

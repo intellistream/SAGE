@@ -73,7 +73,7 @@ class TestBaseOperatorDecoupling:
 
         # 测试发送数据包
         result = operator.send_packet("test_packet")
-        assert result == True
+        assert result is True
 
         # 测试发送停止信号
         operator.send_stop_signal("stop_signal")

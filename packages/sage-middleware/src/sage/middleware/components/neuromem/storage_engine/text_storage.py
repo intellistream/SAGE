@@ -77,7 +77,7 @@ class TextStorage:
 
 """测试预期输出
 Retrieved: hello world
-After clear: 
+After clear:
 """
 
 if __name__ == "__main__":

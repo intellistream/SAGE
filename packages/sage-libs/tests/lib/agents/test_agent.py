@@ -133,7 +133,7 @@ class TestBochaSearch:
         payload = json.loads(payload_str)
 
         assert payload["query"] == "机器学习"
-        assert payload["summary"] == True
+        assert payload["summary"] is True
         assert payload["count"] == 10
         assert payload["page"] == 1
 

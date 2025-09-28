@@ -534,7 +534,7 @@ setup(
                     for f in all_files[:10]:
                         console.print(f"       - {f}")
                     if len(all_files) > 10:
-                        console.print(f"       ... 还有 {len(all_files)-10} 个文件")
+                        console.print(f"       ... 还有 {len(all_files) - 10} 个文件")
                 else:
                     if pyc_count > 0:
                         console.print("    ✅ wheel包包含.pyc文件", style="green")

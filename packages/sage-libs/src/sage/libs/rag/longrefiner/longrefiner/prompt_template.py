@@ -153,6 +153,6 @@ class PromptTemplate:
                     idx=idx, title=title, text=text
                 )
             else:
-                format_reference += f"Doc {idx+1}(Title: {title}) {text}\n"
+                format_reference += f"Doc {idx + 1}(Title: {title}) {text}\n"
 
         return format_reference

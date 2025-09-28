@@ -77,7 +77,7 @@ class TestLongRefinerAdapter:
                     config=complete_config, enable_profile=False
                 )
                 assert adapter.cfg == complete_config
-                assert adapter.enable_profile == False
+                assert adapter.enable_profile is False
                 # 验证基本属性存在
                 assert hasattr(adapter, "cfg")
                 assert hasattr(adapter, "enable_profile")
@@ -114,7 +114,7 @@ class TestLongRefinerAdapter:
                     config=complete_config, enable_profile=True, ctx=mock_ctx
                 )
 
-                assert adapter.enable_profile == True
+                assert adapter.enable_profile is True
                 assert hasattr(adapter, "data_records")
                 assert adapter.data_records == []
                 # 验证目录创建被调用

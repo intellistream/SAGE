@@ -376,7 +376,7 @@ def main():
     if args.show_details:
         print("\n📋 详细结果 (前10个样本):")
         for i, item in enumerate(evaluation_result["detailed_results"][:10]):
-            print(f"\n样本 {i+1} (ID: {item.get('id', 'N/A')}):")
+            print(f"\n样本 {i + 1} (ID: {item.get('id', 'N/A')}):")
             print(f"   问题: {item['question'][:100]}...")
             print(f"   真实答案: {item['ground_truth']}")
             print(f"   预测: {item['model_output'][:100]}...")

@@ -179,7 +179,7 @@ class IssuesSyncer:
         print(f"🔎 检查 {len(files)} 个JSON文件...")
 
         for i, f in enumerate(files):
-            print(f"🔎 进度: {i+1}/{len(files)} - Issue #{f.stem.split('_')[1]}")
+            print(f"🔎 进度: {i + 1}/{len(files)} - Issue #{f.stem.split('_')[1]}")
 
             try:
                 # 使用数据管理器读取issue
@@ -701,7 +701,7 @@ class IssuesSyncer:
 
         for i, f in enumerate(files):
             if i % 10 == 0:
-                print(f"🔎 进度: {i+1}/{len(files)}")
+                print(f"🔎 进度: {i + 1}/{len(files)}")
 
             try:
                 # 读取本地数据

@@ -142,11 +142,11 @@ class AgentRuntime(MapFunction):
         for obs in observations:
             if obs.get("ok"):
                 lines.append(
-                    f"#{obs['step']+1} 工具 {obs['tool']} 成功：{obs.get('result')}"
+                    f"#{obs['step'] + 1} 工具 {obs['tool']} 成功：{obs.get('result')}"
                 )
             else:
                 lines.append(
-                    f"#{obs['step']+1} 工具 {obs['tool']} 失败：{obs.get('error')}"
+                    f"#{obs['step'] + 1} 工具 {obs['tool']} 失败：{obs.get('error')}"
                 )
         return "\n".join(lines)
 

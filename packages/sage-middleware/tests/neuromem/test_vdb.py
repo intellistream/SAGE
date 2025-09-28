@@ -47,7 +47,7 @@ def test_vdb_collection():
     )
     print("搜索结果:")
     for i, result in enumerate(results):
-        print(f"  {i+1}. {result['text']}")
+        print(f"  {i + 1}. {result['text']}")
         print(f"     元数据: {result['metadata']}")
 
     # 验证结果
