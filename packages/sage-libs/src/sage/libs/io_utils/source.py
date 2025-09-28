@@ -226,7 +226,9 @@ class SocketSource(SourceFunction):
                     return None
             else:
                 # 没有完整消息，等待更多数据
-                return None
+                message = self.buffer.decode(self.encoding).strip()
+                self.buffer = b""
+                return message
         return None
 
     def execute(self) -> Union[str, dict, None]:
@@ -244,15 +246,7 @@ class SocketSource(SourceFunction):
             )
             return message
         data = None
-        # 接收新数据
-        timeout = 5  # seconds
-        start_time = time.time()
         while data is None and message is None:
-            if time.time() - start_time > timeout:
-                self.logger.warning(
-                    f"{self.__class__.__name__}: 接收数据超时，未收到完整消息"
-                )
-                break
             data = self._receive_data()
             if data:
                 self.buffer += data
