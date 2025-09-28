@@ -745,7 +745,7 @@ def analyze():
     analyzer = ExampleAnalyzer()
     examples = analyzer.discover_examples()
 
-    console.print(f"📊 [bold blue]Examples 分析报告[/bold blue]")
+    console.print("📊 [bold blue]Examples 分析报告[/bold blue]")
     console.print(f"总计发现 {len(examples)} 个示例文件\n")
 
     # 按类别统计

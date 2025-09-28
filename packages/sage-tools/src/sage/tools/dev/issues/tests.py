@@ -251,7 +251,7 @@ class IssuesTestSuite:
     def generate_report(self, passed: int, total: int):
         """生成测试报告"""
         console.print("\n" + "=" * 60)
-        console.print(f"📊 [bold blue]测试结果汇总[/bold blue]")
+        console.print("📊 [bold blue]测试结果汇总[/bold blue]")
         console.print("=" * 60)
 
         table = Table(title="测试详情")

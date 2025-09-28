@@ -25,7 +25,7 @@ def load_knowledge_to_milvus(config):
     persistence_path = config.get("milvus_sparse").get("persistence_path")
     collection_name = config.get("milvus_sparse").get("collection_name")
 
-    print(f"=== 增量加载知识库到 Milvus ===")
+    print("=== 增量加载知识库到 Milvus ===")
     print(f"DB: {persistence_path} | 集合: {collection_name}")
 
     print("初始化Milvus...")

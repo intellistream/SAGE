@@ -1353,7 +1353,7 @@ def _generate_markdown_output(result, analysis_type):
                 markdown_lines.append(f"## {key.replace('_', ' ').title()}")
                 markdown_lines.append("")
                 if isinstance(value, (list, dict)):
-                    markdown_lines.append(f"```json")
+                    markdown_lines.append("```json")
                     import json
 
                     try:

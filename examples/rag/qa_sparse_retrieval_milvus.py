@@ -27,7 +27,7 @@ def pipeline_run():
     print("=== 启动基于 Milvus 的 RAG 问答系统 ===")
     print("配置信息:")
     print(f"  - 源文件: {config['source']['data_path']}")
-    print(f"  - 检索器: MilvusSparseRetriever (Milvus 专用)")
+    print("  - 检索器: MilvusSparseRetriever (Milvus 专用)")
     print(f"  - Top-K: {config['retriever']['top_k']}")
     print(f"  - 集合名称: {config['retriever']['milvus_sparse']['collection_name']}")
 

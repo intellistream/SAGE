@@ -130,7 +130,7 @@ class PersistentQueueActor:
     def get_items(self, max_items: int, timeout_per_item: float = 1.0):
         """从队列获取多个项目"""
         if self.queue is None:
-            return [f"get_error:Queue not initialized"]
+            return ["get_error:Queue not initialized"]
 
         results = []
         for i in range(max_items):

@@ -118,7 +118,7 @@ def ensure_ray_initialized(runtime_env=None):
 
             # 使用标准模式但限制资源，支持async actors和队列
             ray.init(**init_kwargs)
-            print(f"Ray initialized in standard mode with limited resources")
+            print("Ray initialized in standard mode with limited resources")
         except Exception as e:
             print(f"Failed to initialize Ray: {e}")
             raise

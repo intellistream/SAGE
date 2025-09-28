@@ -246,7 +246,7 @@ class LLMPlanner(MapFunction):
 
         # 4) 兜底：若仍无法解析，直接把原文作为 reply
         if steps is None:
-            print(f"🐛 Debug: 使用兜底策略，返回原文作为回复")
+            print("🐛 Debug: 使用兜底策略，返回原文作为回复")
             return [{"type": "reply", "text": out.strip()[:2000]}][: self.max_steps]
 
         # 5) 轻量合法化（结构+必填参数）

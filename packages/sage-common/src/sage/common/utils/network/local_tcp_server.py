@@ -424,7 +424,7 @@ class LocalTcpServer(BaseTcpServer):
             if message_type is None:
                 # 无法提取消息类型，使用默认处理器
                 self.logger.warning(
-                    f"Could not extract message type from message, using default handler"
+                    "Could not extract message type from message, using default handler"
                 )
                 return self._use_default_handler(message, client_address, None)
 

@@ -37,7 +37,7 @@ class Dispatcher:
         """
         接收停止信号并处理
         """
-        self.logger.info(f"Dispatcher received stop signal.")
+        self.logger.info("Dispatcher received stop signal.")
         self.received_stop_signals += 1
         if self.received_stop_signals >= self.total_stop_signals:
             self.logger.info(

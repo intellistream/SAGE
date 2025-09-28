@@ -103,7 +103,7 @@ def demonstrate_detection():
         print(f"{i}. {service.name.upper()} Service")
         print(f"   URL: {service.base_url}")
         print(f"   Models: {', '.join(service.models)}")
-        print(f"   Status: ✅ Available")
+        print("   Status: ✅ Available")
         print()
 
     return services

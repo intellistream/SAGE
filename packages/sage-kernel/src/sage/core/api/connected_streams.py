@@ -299,7 +299,7 @@ class ConnectedStreams:
 
         # 类型检查
         if not isinstance(function, type) or not issubclass(function, BaseJoinFunction):
-            raise TypeError(f"Join function must inherit from BaseJoinFunction")
+            raise TypeError("Join function must inherit from BaseJoinFunction")
 
         # TODO: 验证流都是keyed的
         # Issue URL: https://github.com/intellistream/SAGE/issues/225

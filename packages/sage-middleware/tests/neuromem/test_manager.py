@@ -50,12 +50,12 @@ def test_neuromem_manager():
         threshold=0.3,  # 使用合理的阈值
     )
     assert any("想吃广东菜" in r["text"] for r in results), "找不到匹配的文本"
-    print(f"✅ 测试一：创建集合通过！")
+    print("✅ 测试一：创建集合通过！")
 
     # 测试二：查看集合是否存在
     assert manager.has_collection("test_collection"), "has_collection有误"
     assert not manager.has_collection("kv_collection"), "has_collection有误"
-    print(f"✅ 测试二：集合存在性通过！")
+    print("✅ 测试二：集合存在性通过！")
 
     # 测试三：删除集合
     # 创建一个新的内存集合
@@ -69,14 +69,14 @@ def test_neuromem_manager():
     assert manager.has_collection("delete_collection"), "has_collection有误"
     manager.delete_collection("delete_collection")
     assert not manager.has_collection("delete_collection"), "delete_collection有误"
-    print(f"✅ 测试三：删除集合通过！")
+    print("✅ 测试三：删除集合通过！")
 
     # 测试四：列举所有集合
     all_collections = manager.list_collection()
     assert any(
         c["name"] == "test_collection" for c in all_collections
     ), "list_collection有误"
-    print(f"✅ 测试四：列举所有集合通过！")
+    print("✅ 测试四：列举所有集合通过！")
 
     # 测试五：持久化测试
     manager.store_collection()
@@ -90,7 +90,7 @@ def test_neuromem_manager():
         threshold=0.3,  # 使用合理的阈值
     )
     assert any("想吃广东菜" in r["text"] for r in results), "找不到匹配的文本"
-    print(f"✅ 测试五：持久化测试通过！")
+    print("✅ 测试五：持久化测试通过！")
 
     # 清理测试环境
     manager.delete_collection("test_collection")

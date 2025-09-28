@@ -150,7 +150,7 @@ def status_cluster():
 
     # 3. 显示集群访问信息
     if head_running:
-        typer.echo(f"\n🌐 集群访问信息:")
+        typer.echo("\n🌐 集群访问信息:")
         typer.echo(f"   Dashboard: http://{head_host}:{dashboard_port}")
         typer.echo(f"   Ray集群地址: {head_host}:{head_config.get('head_port', 6379)}")
 
@@ -232,12 +232,12 @@ def cluster_info():
         for i, (host, port) in enumerate(workers, 1):
             typer.echo(f"     {i}. {host}:{port}")
 
-    typer.echo(f"\n🔗 SSH配置:")
+    typer.echo("\n🔗 SSH配置:")
     typer.echo(f"   用户: {ssh_config.get('user', 'N/A')}")
     typer.echo(f"   密钥路径: {ssh_config.get('key_path', 'N/A')}")
     typer.echo(f"   连接超时: {ssh_config.get('connect_timeout', 'N/A')}s")
 
-    typer.echo(f"\n🛠️ 远程环境:")
+    typer.echo("\n🛠️ 远程环境:")
     typer.echo(f"   SAGE目录: {remote_config.get('sage_home', 'N/A')}")
     typer.echo(f"   Python路径: {remote_config.get('python_path', 'N/A')}")
     typer.echo(f"   Ray命令: {remote_config.get('ray_command', 'N/A')}")

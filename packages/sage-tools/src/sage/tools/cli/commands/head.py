@@ -71,7 +71,7 @@ def start_head():
     ray_command = head_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
     conda_env = head_config.get("conda_env", "sage")
 
-    typer.echo(f"📋 配置信息:")
+    typer.echo("📋 配置信息:")
     typer.echo(f"   Head主机: {head_host}")
     typer.echo(f"   Head端口: {head_port}")
     typer.echo(f"   Dashboard: {dashboard_host}:{dashboard_port}")

@@ -100,7 +100,7 @@ class EnhancedTestRunner:
             failed = summary.get("failed", 0)
             execution_time = result.get("execution_time", 0)
 
-            print(f"\n📊 Test Summary:")
+            print("\n📊 Test Summary:")
             print(f"   Total: {total}")
             print(f"   Passed: {passed} ✅")
             print(f"   Failed: {failed} ❌")
@@ -445,7 +445,7 @@ class EnhancedTestRunner:
 
             # Exit early on failure if quick mode
             if quick and not result["passed"]:
-                print(f"\n❌ Stopping on first failure (quick mode)")
+                print("\n❌ Stopping on first failure (quick mode)")
                 break
 
         return results

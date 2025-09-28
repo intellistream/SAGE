@@ -214,7 +214,7 @@ class FastPipValidator:
 
             wheel_files = list(dist_dir.glob("*.whl"))
             if not wheel_files:
-                print(f"  ❌ 未找到wheel包文件")
+                print("  ❌ 未找到wheel包文件")
                 return None
 
             wheel_file = wheel_files[0]
@@ -471,7 +471,7 @@ else:
         try:
             if self.test_dir.exists():
                 shutil.rmtree(self.test_dir)
-                print(f"  ✅ 测试目录已清理")
+                print("  ✅ 测试目录已清理")
             else:
                 print("  ℹ️  测试目录不存在，无需清理")
 

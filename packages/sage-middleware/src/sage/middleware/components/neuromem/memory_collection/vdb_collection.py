@@ -490,7 +490,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
             return lambda m: True
 
     def store(self, store_path: Optional[str] = None):
-        self.logger.debug(f"VDBMemoryCollection: store called")
+        self.logger.debug("VDBMemoryCollection: store called")
 
         if store_path is None:
             # 使用默认数据目录

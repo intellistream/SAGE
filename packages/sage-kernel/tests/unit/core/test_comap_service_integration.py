@@ -127,7 +127,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         else:
             # This is a recommendation request, handle it differently
             print(
-                f"[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
+                "[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
             )
             return {
                 "type": "recommendation_request_received",
@@ -143,7 +143,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
 
         try:
             print(
-                f"[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0"
+                "[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0"
             )
             update_result = self.call_service["user_profile"].update_activity(
                 user_id, activity_description, timeout=10.0

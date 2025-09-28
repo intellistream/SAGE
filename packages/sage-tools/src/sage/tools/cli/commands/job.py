@@ -201,7 +201,7 @@ def stop_job(
                 print(f"Job to stop: {job_name} ({job_uuid})")
                 print(f"Current status: {job_status}")
 
-            if not typer.confirm(f"Are you sure you want to stop this job?"):
+            if not typer.confirm("Are you sure you want to stop this job?"):
                 print("ℹ️ Operation cancelled")
                 return
 
@@ -247,7 +247,7 @@ def continue_job(
                 print(f"Job to continue: {job_name} ({job_uuid})")
                 print(f"Current status: {job_status}")
 
-            if not typer.confirm(f"Are you sure you want to continue this job?"):
+            if not typer.confirm("Are you sure you want to continue this job?"):
                 print("ℹ️ Operation cancelled")
                 return
 
@@ -294,7 +294,7 @@ def delete_job(
                 print(f"Current status: {job_status}")
 
             if not typer.confirm(
-                f"Are you sure you want to delete this job? This action cannot be undone."
+                "Are you sure you want to delete this job? This action cannot be undone."
             ):
                 print("ℹ️ Operation cancelled")
                 return
@@ -434,7 +434,7 @@ def system_info():
             status_counts[status] = status_counts.get(status, 0) + 1
 
         if status_counts:
-            print(f"\nJob Status Summary:")
+            print("\nJob Status Summary:")
             for status, count in status_counts.items():
                 print(f"  {status}: {count}")
 
@@ -596,7 +596,7 @@ def _format_job_table(jobs: List[Dict[str, Any]], short_uuid: bool = False):
             print(
                 f"   Example: sage job show 1  or  sage job show {jobs[0].get('uuid', '')}"
             )
-        print(f"   Use --full-uuid to see complete UUIDs")
+        print("   Use --full-uuid to see complete UUIDs")
 
 
 def _format_job_details(job_info: Dict[str, Any], verbose: bool = False):
@@ -629,7 +629,7 @@ def _format_job_details(job_info: Dict[str, Any], verbose: bool = False):
             print(f"Error: {job_info['error']}")
 
         # 显示更多详细信息
-        print(f"\nEnvironment Details:")
+        print("\nEnvironment Details:")
         env_info = job_info.get("environment", {})
         for key, value in env_info.items():
             print(f"  {key}: {value}")

@@ -87,7 +87,7 @@ def setup_test_environment():
         import sage.core
         import sage.kernel
 
-        print(f"✓ 测试环境设置成功")
+        print("✓ 测试环境设置成功")
         print(f"✓ sage.kernel: {sage.kernel.__path__}")
         print(f"✓ sage.core: {sage.core.__path__}")
         print(f"✓ sage.common: {sage.common.__path__}")

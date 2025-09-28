@@ -55,7 +55,7 @@ def start_jobmanager():
             return True
         else:
             stdout, stderr = jobmanager_process.communicate()
-            print(f"❌ JobManager failed to start:")
+            print("❌ JobManager failed to start:")
             print(f"stdout: {stdout.decode()}")
             print(f"stderr: {stderr.decode()}")
             return False
@@ -138,7 +138,7 @@ class FileLineSource(SourceFunction):
     def execute(self):
         if self.current_index >= len(self.lines):
             # 文件读完，发送停止信号
-            return StopSignal(f"FileReader_EOF")
+            return StopSignal("FileReader_EOF")
 
         line = self.lines[self.current_index]
         self.current_index += 1
@@ -160,7 +160,7 @@ class CountdownSource(SourceFunction):
     def execute(self):
         if self.current_number < 0:
             # 倒计时结束，发送停止信号
-            return StopSignal(f"Countdown_Finished")
+            return StopSignal("Countdown_Finished")
 
         result = self.current_number
         print(f"[Countdown] T-minus {self.current_number}")

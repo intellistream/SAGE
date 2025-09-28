@@ -436,7 +436,7 @@ setup(
             )
 
             if result.returncode == 0:
-                console.print(f"  ✅ 构建成功", style="green")
+                console.print("  ✅ 构建成功", style="green")
 
                 # 查找构建的wheel文件
                 dist_files = list(Path("dist").glob("*.whl"))

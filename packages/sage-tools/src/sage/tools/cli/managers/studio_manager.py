@@ -674,7 +674,7 @@ if __name__ == "__main__":
 
                 return True
             else:
-                console.print(f"[red]Studio 构建失败[/red]")
+                console.print("[red]Studio 构建失败[/red]")
                 if result.stdout:
                     console.print("构建输出:")
                     console.print(result.stdout)

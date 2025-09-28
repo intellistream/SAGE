@@ -157,7 +157,7 @@ def validate_single_stream_parallelism():
     )  # 1 sink
 
     # Analyze pipeline
-    print(f"\n📋 PIPELINE ANALYSIS:")
+    print("\n📋 PIPELINE ANALYSIS:")
     print(f"Total transformations: {len(env.pipeline)}")
     for i, transformation in enumerate(env.pipeline):
         print(
@@ -202,7 +202,7 @@ def validate_multi_stream_parallelism():
     )  # 2 sinks
 
     # Analyze pipeline
-    print(f"\n📋 PIPELINE ANALYSIS:")
+    print("\n📋 PIPELINE ANALYSIS:")
     print(f"Total transformations: {len(env.pipeline)}")
     for i, transformation in enumerate(env.pipeline):
         print(
@@ -231,26 +231,26 @@ def validate_execution_graph_nodes():
         .sink(ValidationSink, parallelism=1)
     )  # Should create 1 node
 
-    print(f"\n📋 Expected execution nodes:")
-    print(f"  - ListSource: 1 node (source)")
-    print(f"  - NodeTest (map): 2 nodes (parallelism=2)")
-    print(f"  - ParallelFilter: 3 nodes (parallelism=3)")
-    print(f"  - ValidationSink: 1 node (parallelism=1)")
-    print(f"  - Total expected: 7 nodes")
+    print("\n📋 Expected execution nodes:")
+    print("  - ListSource: 1 node (source)")
+    print("  - NodeTest (map): 2 nodes (parallelism=2)")
+    print("  - ParallelFilter: 3 nodes (parallelism=3)")
+    print("  - ValidationSink: 1 node (parallelism=1)")
+    print("  - Total expected: 7 nodes")
 
     # Get execution graph
     try:
         # Try to access execution graph information
-        print(f"\n🔍 Pipeline transformations:")
+        print("\n🔍 Pipeline transformations:")
         for i, transformation in enumerate(env.pipeline):
             print(
                 f"  {i+1}. {transformation.basename} (parallelism: {transformation.parallelism})"
             )
 
         # Note: ExecutionGraph node creation happens during execution
-        print(f"\n💡 Note: Actual node creation occurs during pipeline execution.")
+        print("\n💡 Note: Actual node creation occurs during pipeline execution.")
         print(
-            f"    Each transformation with parallelism=N will create N parallel operator nodes."
+            "    Each transformation with parallelism=N will create N parallel operator nodes."
         )
 
     except Exception as e:
@@ -277,17 +277,17 @@ def main():
     print("✅ Execution graph validation: Verified transformation parallelism settings")
     print("✅ LocalEnvironment parallelism hints: WORKING CORRECTLY")
 
-    print(f"\n📊 Total environments created: 3")
+    print("\n📊 Total environments created: 3")
     print(
         f"📊 Total transformations tested: {len(env1.pipeline) + len(env2.pipeline) + len(env3.pipeline)}"
     )
 
-    print(f"\n💡 Key validations:")
-    print(f"   - Parallelism parameters correctly passed to transformations")
-    print(f"   - Direct parallelism specification works as expected")
-    print(f"   - Both single and multi-stream operations support parallelism")
+    print("\n💡 Key validations:")
+    print("   - Parallelism parameters correctly passed to transformations")
+    print("   - Direct parallelism specification works as expected")
+    print("   - Both single and multi-stream operations support parallelism")
     print(
-        f"   - ExecutionGraph will create corresponding parallel nodes during execution"
+        "   - ExecutionGraph will create corresponding parallel nodes during execution"
     )
 
 

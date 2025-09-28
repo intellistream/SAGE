@@ -554,7 +554,7 @@ class BaseServiceTask(ABC):
                     self.logger.debug(f"Found request queue descriptor: {request_qd}")
                 else:
                     self.logger.warning(
-                        f"No request queue descriptor found in service context"
+                        "No request queue descriptor found in service context"
                     )
 
                 response_qds = self.ctx.get_service_response_queue_descriptors()

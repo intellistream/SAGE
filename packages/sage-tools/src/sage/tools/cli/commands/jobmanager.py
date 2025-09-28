@@ -195,7 +195,7 @@ class JobManagerController:
             proc_info = get_process_info(proc.pid)
             proc_user = proc_info.get("user", "N/A")
 
-            typer.echo(f"\n📋 Process Information:")
+            typer.echo("\n📋 Process Information:")
             typer.echo(f"   PID: {proc_info.get('pid', 'N/A')}")
             typer.echo(f"   Name: {proc_info.get('name', 'N/A')}")
             typer.echo(f"   User: {proc_user}")
@@ -231,7 +231,7 @@ class JobManagerController:
                         )
 
         # 再次检查是否还有残留进程
-        typer.echo(f"\n🔍 Checking for remaining processes...")
+        typer.echo("\n🔍 Checking for remaining processes...")
         time.sleep(2)
         remaining = find_processes_by_name(self.process_names)
 
@@ -540,9 +540,9 @@ def start(
         daemon=not foreground, wait_for_ready=wait_time, force=force
     )
     if success:
-        typer.echo(f"\n✅ Operation 'start' completed successfully")
+        typer.echo("\n✅ Operation 'start' completed successfully")
     else:
-        typer.echo(f"\n❌ Operation 'start' failed")
+        typer.echo("\n❌ Operation 'start' failed")
         raise typer.Exit(code=1)
 
 
@@ -573,9 +573,9 @@ def stop(
         success = controller.stop_gracefully()
 
     if success:
-        typer.echo(f"\n✅ Operation 'stop' completed successfully")
+        typer.echo("\n✅ Operation 'stop' completed successfully")
     else:
-        typer.echo(f"\n❌ Operation 'stop' failed")
+        typer.echo("\n❌ Operation 'stop' failed")
         raise typer.Exit(code=1)
 
 
@@ -608,7 +608,7 @@ def status(
     """
     controller = JobManagerController(host, port)
     controller.status()
-    typer.echo(f"\n✅ Operation 'status' completed successfully")
+    typer.echo("\n✅ Operation 'status' completed successfully")
 
 
 @app.command()
@@ -629,9 +629,9 @@ def kill(
 
     success = controller.force_kill()
     if success:
-        typer.echo(f"\n✅ Operation 'kill' completed successfully")
+        typer.echo("\n✅ Operation 'kill' completed successfully")
     else:
-        typer.echo(f"\n❌ Operation 'kill' failed")
+        typer.echo("\n❌ Operation 'kill' failed")
         raise typer.Exit(code=1)
 
 

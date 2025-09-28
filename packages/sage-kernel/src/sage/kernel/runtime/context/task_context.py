@@ -216,7 +216,7 @@ class TaskContext(BaseRuntimeContext):
                 if local_jobmanager:
                     local_jobmanager.receive_node_stop_signal(self.env_uuid, node_name)
                     self.logger.info(
-                        f"Successfully sent stop signal to local JobManager"
+                        "Successfully sent stop signal to local JobManager"
                     )
                     return
 
@@ -342,7 +342,7 @@ class TaskContext(BaseRuntimeContext):
         try:
             router = self._get_router()
             router.send_stop_signal(stop_signal)
-            self.logger.debug(f"Sent stop signal through TaskContext")
+            self.logger.debug("Sent stop signal through TaskContext")
         except Exception as e:
             self.logger.error(f"Failed to send stop signal through TaskContext: {e}")
 

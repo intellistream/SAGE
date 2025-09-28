@@ -65,13 +65,13 @@ class ModelContext:
 
         # 原始问题
         if self.raw_question:
-            output_lines.append(f"❓ Original Question:")
+            output_lines.append("❓ Original Question:")
             output_lines.append(f"   {self.raw_question}")
             output_lines.append("")
 
         # 工具配置信息
         if self.tool_config:
-            output_lines.append(f"🔧 Tool Configuration:")
+            output_lines.append("🔧 Tool Configuration:")
             self._format_tool_config(output_lines)
             output_lines.append("")
 
@@ -99,7 +99,7 @@ class ModelContext:
 
         # 处理步骤信息
         if self.prompts:
-            output_lines.append(f"⚙️  Processing Steps:")
+            output_lines.append("⚙️  Processing Steps:")
             system_prompts = [p for p in self.prompts if p.get("role") == "system"]
             user_prompts = [p for p in self.prompts if p.get("role") == "user"]
 
@@ -120,7 +120,7 @@ class ModelContext:
 
         # AI响应
         if self.response:
-            output_lines.append(f"🎯 AI Response:")
+            output_lines.append("🎯 AI Response:")
             response_lines = self.response.split("\n")
             for line in response_lines:
                 output_lines.append(f"   {line}")
@@ -128,7 +128,7 @@ class ModelContext:
 
         # 评估详情
         if self.evaluation:
-            output_lines.append(f"🔍 Evaluation Details:")
+            output_lines.append("🔍 Evaluation Details:")
             output_lines.append(f"   • Reasoning: {self.evaluation.reasoning}")
 
             if self.evaluation.specific_issues:
@@ -142,7 +142,7 @@ class ModelContext:
                 )
 
             if self.evaluation.should_return_to_chief:
-                output_lines.append(f"   • ⚠️  Should return to Chief for reprocessing")
+                output_lines.append("   • ⚠️  Should return to Chief for reprocessing")
             output_lines.append("")
 
         # 状态指示
@@ -166,7 +166,7 @@ class ModelContext:
         if self.evaluation:
             status_indicators.append(f"🔍 Evaluated ({self.evaluation.label.value})")
         if self.tool_config:
-            status_indicators.append(f"🔧 Tool Config")
+            status_indicators.append("🔧 Tool Config")
 
         if status_indicators:
             output_lines.append(f"📋 Status: {' | '.join(status_indicators)}")
@@ -221,7 +221,7 @@ class ModelContext:
 
             elif key == "search_analysis":
                 if isinstance(value, dict):
-                    output_lines.append(f"   • Search Analysis:")
+                    output_lines.append("   • Search Analysis:")
                     if "analysis" in value:
                         analysis_text = (
                             value["analysis"][:100] + "..."
@@ -241,7 +241,7 @@ class ModelContext:
 
             elif key == "optimization_metadata":
                 if isinstance(value, dict):
-                    output_lines.append(f"   • Optimization Metadata:")
+                    output_lines.append("   • Optimization Metadata:")
                     for meta_key, meta_value in value.items():
                         if isinstance(meta_value, (str, int, float, bool)):
                             output_lines.append(f"     - {meta_key}: {meta_value}")

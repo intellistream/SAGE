@@ -307,7 +307,7 @@ class GitHubIssuesExecutor:
             comment_url, headers=self.headers, json=comment_data
         )
         if comment_response.status_code == 201:
-            print(f"    ✅ 添加合并说明评论")
+            print("    ✅ 添加合并说明评论")
         else:
             print(f"    ❌ 添加评论失败: {comment_response.text}")
 

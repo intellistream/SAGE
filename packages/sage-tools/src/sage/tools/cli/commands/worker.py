@@ -146,7 +146,7 @@ def start_workers():
     ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
     conda_env = remote_config.get("conda_env", "sage")
 
-    typer.echo(f"📋 配置信息:")
+    typer.echo("📋 配置信息:")
     typer.echo(f"   Head节点: {head_host}:{head_port}")
     typer.echo(f"   Worker节点: {len(workers)} 个")
     typer.echo(f"   Worker绑定主机: {worker_bind_host}")
@@ -579,7 +579,7 @@ def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 ho
         typer.echo(f"✅ 新节点 {host}:{port} 部署成功")
 
         # 启动worker
-        typer.echo(f"🔧 启动新Worker节点...")
+        typer.echo("🔧 启动新Worker节点...")
         head_config = config_manager.get_head_config()
         worker_config = config_manager.get_worker_config()
         remote_config = config_manager.get_remote_config()

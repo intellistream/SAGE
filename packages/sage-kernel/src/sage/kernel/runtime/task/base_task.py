@@ -33,7 +33,7 @@ class BaseTask(ABC):
                 f"🎯 Task: Using queue descriptor for input buffer: {self.input_qd.queue_id}"
             )
         else:
-            self.logger.info(f"🎯 Task: No input queue (source/spout node)")
+            self.logger.info("🎯 Task: No input queue (source/spout node)")
 
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None

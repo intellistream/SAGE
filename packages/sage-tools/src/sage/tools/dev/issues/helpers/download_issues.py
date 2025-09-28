@@ -530,7 +530,7 @@ class IssuesDownloader:
             # 生成下载报告
             self.generate_download_report(issues, saved_count, state, view_results)
 
-            print(f"🎉 下载和视图生成完成！")
+            print("🎉 下载和视图生成完成！")
             print(f"📁 数据源位置: {self.data_manager.data_dir}")
             print(f"📁 Markdown视图: {self.data_manager.markdown_dir}")
             print(f"📁 元数据视图: {self.data_manager.metadata_dir}")
@@ -688,7 +688,7 @@ def main():
     config = IssuesConfig()
 
     if args.verbose:
-        print(f"🔧 配置信息:")
+        print("🔧 配置信息:")
         print(f"   仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
         print(f"   工作目录: {config.workspace_path}")
         print(f"   Token状态: {'✅' if config.github_token else '❌'}")

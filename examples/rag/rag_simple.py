@@ -77,7 +77,7 @@ class SimplePromptor(MapFunction):
 请给出简洁准确的回答："""
 
         result = {"query": query, "prompt": prompt}
-        print(f"✅ 构建提示完成")
+        print("✅ 构建提示完成")
         return result
 
 
@@ -88,7 +88,7 @@ class SimpleGenerator(MapFunction):
         query = data["query"]
         prompt = data["prompt"]
 
-        print(f"🤖 AI生成中...")
+        print("🤖 AI生成中...")
 
         # 模拟AI回答
         if "张先生" in query and "手机" in query:

@@ -17,7 +17,7 @@ def check_sage_installation():
     try:
         import sage
 
-        print(f"✅ sage 包导入成功")
+        print("✅ sage 包导入成功")
         print(f"   路径: {sage.__file__}")
         print(f"   版本: {getattr(sage, '__version__', 'Unknown')}")
         if hasattr(sage, "__path__"):
@@ -31,7 +31,7 @@ def check_sage_installation():
     try:
         import sage.kernel
 
-        print(f"✅ sage.kernel 导入成功")
+        print("✅ sage.kernel 导入成功")
         print(f"   路径: {getattr(sage.kernel, '__file__', 'namespace package')}")
         if hasattr(sage.kernel, "__path__"):
             print(f"   命名空间路径: {sage.kernel.__path__}")
@@ -46,7 +46,7 @@ def check_sage_installation():
                         for f in sorted(files):
                             print(f"       - {f}")
                     except PermissionError:
-                        print(f"       权限不足，无法列出内容")
+                        print("       权限不足，无法列出内容")
 
         # 尝试导入 JobManagerClient
         try:
@@ -79,7 +79,7 @@ def check_sage_installation():
     try:
         import sage.utils
 
-        print(f"✅ sage.utils 导入成功")
+        print("✅ sage.utils 导入成功")
         if hasattr(sage.utils, "__path__"):
             print(f"   命名空间路径: {sage.utils.__path__}")
 
@@ -87,7 +87,7 @@ def check_sage_installation():
             try:
                 from sage.utils.logging.custom_logger import CustomLogger  # noqa: F401
 
-                print(f"✅ CustomLogger 导入成功")
+                print("✅ CustomLogger 导入成功")
             except ImportError as e:
                 print(f"❌ CustomLogger 导入失败: {e}")
 
@@ -99,7 +99,7 @@ def check_sage_installation():
     try:
         import sage.middleware
 
-        print(f"✅ sage.middleware 导入成功")
+        print("✅ sage.middleware 导入成功")
         if hasattr(sage.middleware, "__path__"):
             print(f"   命名空间路径: {sage.middleware.__path__}")
     except ImportError as e:
@@ -155,10 +155,10 @@ def check_sage_installation():
             print(f"❌ 无法获取 {pkg_name} 信息")
 
     # 7. 检查 Python 路径
-    print(f"\n🐍 Python 路径信息:")
+    print("\n🐍 Python 路径信息:")
     print(f"   Python 版本: {sys.version}")
     print(f"   Python 路径: {sys.executable}")
-    print(f"   模块搜索路径:")
+    print("   模块搜索路径:")
     for path in sys.path[:5]:  # 只显示前5个路径
         print(f"     {path}")
 

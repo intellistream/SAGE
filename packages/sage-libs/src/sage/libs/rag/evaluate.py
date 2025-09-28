@@ -160,7 +160,7 @@ class AccuracyEvaluate(MapFunction):
         pred = nd.get("generated", "")
 
         if not golds or not pred:
-            print(f"\033[93m[Acc] : 0.0000\033[0m")
+            print("\033[93m[Acc] : 0.0000\033[0m")
             return nd
 
         pred_norm = self._normalize_text(pred)
@@ -222,7 +222,7 @@ class ContextRecallEvaluate(MapFunction):
         pred = nd.get("generated", "")
 
         if not golds or not pred:
-            print(f"\033[93m[Context Recall] : 0.0000\033[0m")
+            print("\033[93m[Context Recall] : 0.0000\033[0m")
             return nd
 
         pred_norm = self._normalize_text(pred)

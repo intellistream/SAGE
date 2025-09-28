@@ -40,7 +40,7 @@ def migrate_license_tools():
         deprecation_script = project_root / "scripts" / "sage-license.py"
         with open(deprecation_script, "w") as f:
             f.write(
-                f'''#!/usr/bin/env python3
+                '''#!/usr/bin/env python3
 """
 DEPRECATED: SAGE License Management
 

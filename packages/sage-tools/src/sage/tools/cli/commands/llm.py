@@ -85,7 +85,7 @@ def start_llm_service(
     else:
         env = None
 
-    typer.echo(f"🚀 启动vLLM服务...")
+    typer.echo("🚀 启动vLLM服务...")
     typer.echo(f"   模型: {model}")
     typer.echo(f"   端口: {port}")
     typer.echo(f"   认证: {auth_token}")
@@ -104,7 +104,7 @@ def start_llm_service(
             )
             typer.echo(f"✅ vLLM服务已在后台启动 (PID: {process.pid})")
             typer.echo(f"🌐 服务地址: http://localhost:{port}")
-            typer.echo(f"📋 使用 'sage llm status' 查看服务状态")
+            typer.echo("📋 使用 'sage llm status' 查看服务状态")
         else:
             # Run in foreground
             typer.echo("📝 按 Ctrl+C 停止服务")
@@ -175,7 +175,7 @@ def llm_service_status(
     processes = _find_llm_processes(port)
 
     typer.echo(f"🔍 LLM服务状态 (端口 {port}):")
-    typer.echo(f"📡 端口状态: ✅ 活跃")
+    typer.echo("📡 端口状态: ✅ 活跃")
 
     if processes:
         typer.echo(f"🔧 相关进程 ({len(processes)} 个):")

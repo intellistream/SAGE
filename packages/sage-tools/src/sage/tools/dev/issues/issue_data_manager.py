@@ -62,7 +62,7 @@ class IssueDataManager:
         try:
             issue_number = issue_data.get("number")
             if not issue_number:
-                print(f"❌ Issue数据缺少编号")
+                print("❌ Issue数据缺少编号")
                 return False
 
             # 处理milestone信息

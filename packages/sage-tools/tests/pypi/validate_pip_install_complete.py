@@ -1018,7 +1018,7 @@ if __name__ == "__main__":
                 if stdout:
                     print(f"      标准输出: {stdout[:200]}")
                 if returncode == 0:
-                    print(f"      调试信息: 返回码为0但未找到成功标识")
+                    print("      调试信息: 返回码为0但未找到成功标识")
                     print(f"      完整输出: {repr(full_output[:300])}")
 
             return success

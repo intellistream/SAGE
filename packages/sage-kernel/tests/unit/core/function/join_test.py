@@ -1196,7 +1196,7 @@ class TestJoinFunctionality:
                         f"   - User: {user_name} ({user_id}) -> Order: {order_id} (${amount})"
                     )
 
-        print(f"\n🎯 User-Order Join Summary:")
+        print("\n🎯 User-Order Join Summary:")
         print(f"   - Total user-order joins: {len(all_joins)}")
 
         # 验证Join结果
@@ -1238,7 +1238,7 @@ class TestJoinFunctionality:
                         without_payment += 1
                         print(f"   - User: {user_name} -> No payment")
 
-        print(f"\n🎯 User-Payment Join Summary:")
+        print("\n🎯 User-Payment Join Summary:")
         print(f"   - Total user-payment joins: {len(all_joins)}")
         print(f"   - With payments: {with_payment}")
         print(f"   - Without payments: {without_payment}")
@@ -1267,7 +1267,7 @@ class TestJoinFunctionality:
                         f"   - Order: {order_id} -> Event: {event_type} (time_diff: {time_diff}ms)"
                     )
 
-        print(f"\n🎯 Order-Event Join Summary:")
+        print("\n🎯 Order-Event Join Summary:")
         print(f"   - Total order-event joins: {len(all_joins)}")
 
         # 验证窗口Join结果
@@ -1303,7 +1303,7 @@ class TestJoinFunctionality:
                 user_id = data.get("user_id", "unknown")
                 print(f"   - {join_type}: user {user_id}")
 
-        print(f"\n🎯 Complex Multi-Join Summary:")
+        print("\n🎯 Complex Multi-Join Summary:")
         print(f"   - User-payment joins: {len(user_payment_joins)}")
         print(f"   - User-order joins: {len(user_order_joins)}")
         print(f"   - Total joins: {len(user_payment_joins) + len(user_order_joins)}")

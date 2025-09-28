@@ -155,7 +155,7 @@ def auto_update_generator(
             chosen_model = selected.default_model
 
     target_section = section or selected.generator_section
-    typer.echo(f"✅ 即将更新配置：")
+    typer.echo("✅ 即将更新配置：")
     typer.echo(f"  服务: {selected.description}")
     typer.echo(f"  配置段: generator.{target_section}")
     typer.echo(f"  URL: {selected.base_url}")

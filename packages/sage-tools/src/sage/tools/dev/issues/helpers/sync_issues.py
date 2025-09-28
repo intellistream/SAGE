@@ -229,7 +229,7 @@ class IssuesSyncer:
                 print(f"   - {change['description']}")
             if len(project_changes) > 10:
                 print(f"   ... 以及其他 {len(project_changes) - 10} 个项目板更改")
-            print(f"💡 使用 --apply-projects 参数来应用项目板更改")
+            print("💡 使用 --apply-projects 参数来应用项目板更改")
 
             # 只处理基本属性更改
             if basic_changes:
@@ -269,20 +269,20 @@ class IssuesSyncer:
                 success_count += len(project_changes)
                 print(f"✅ 成功处理 {len(project_changes)} 个项目板更改")
             else:
-                print(f"❌ 项目板更改处理失败")
+                print("❌ 项目板更改处理失败")
 
         print(f"\n✨ 同步完成: {success_count}/{len(changes)} 个更改成功")
 
         # 如果有成功的更改，重新生成视图
         if success_count > 0:
-            print(f"\n🔄 重新生成视图...")
+            print("\n🔄 重新生成视图...")
             try:
                 # 重新下载并更新本地数据
                 self._update_local_data_after_sync(basic_changes[:success_count])
 
                 # 重新生成所有视图
                 self.data_manager.generate_all_views()
-                print(f"✅ 视图重新生成完成")
+                print("✅ 视图重新生成完成")
             except Exception as e:
                 print(f"⚠️ 视图重新生成失败: {e}")
 
@@ -590,7 +590,7 @@ class IssuesSyncer:
         basic_changes = [c for c in changes if c["type"] == "basic"]
         project_changes = [c for c in changes if c["type"] == "project"]
 
-        print(f"\n📊 同步状态概览:")
+        print("\n📊 同步状态概览:")
         print(f"   总共需要同步: {len(changes)} 个更改")
 
         if basic_changes:
@@ -615,8 +615,8 @@ class IssuesSyncer:
             for project, count in project_count.items():
                 print(f"      - {project}: {count} 个")
 
-        print(f"\n💡 运行 'sync_issues.py sync' 来同步所有更改")
-        print(f"💡 运行 'sync_issues.py sync <issue_number>' 来同步单个issue")
+        print("\n💡 运行 'sync_issues.py sync' 来同步所有更改")
+        print("💡 运行 'sync_issues.py sync <issue_number>' 来同步单个issue")
 
     def detect_basic_changes(self):
         """检测基本属性更改 (assignee, labels, title, body, milestone)"""
@@ -1293,7 +1293,7 @@ class IssuesSyncer:
                         break
 
             if already:
-                print(f"  ⏭️ 目标 project 已包含此 issue，跳过 add")
+                print("  ⏭️ 目标 project 已包含此 issue，跳过 add")
                 entry["added"] = False
             else:
                 if dry_run:
@@ -1314,7 +1314,7 @@ class IssuesSyncer:
                         entry["added"] = False
                         entry["add_response"] = resp2
                     else:
-                        print(f"  ✅ 已添加到目标 project")
+                        print("  ✅ 已添加到目标 project")
                         entry["added"] = True
                         entry["add_response"] = resp2
 
@@ -1326,7 +1326,7 @@ class IssuesSyncer:
                 # GitHub API now requires both projectId and itemId for deleteProjectV2Item
                 from_project_id = act.get("from_project_id")
                 if not from_project_id:
-                    print(f"  ❌ 缺少 from_project_id，无法删除原项目中的 item")
+                    print("  ❌ 缺少 from_project_id，无法删除原项目中的 item")
                     entry["deleted"] = False
                     entry["delete_response"] = {"error": "missing from_project_id"}
                 else:
@@ -1342,7 +1342,7 @@ class IssuesSyncer:
                         entry["deleted"] = False
                         entry["delete_response"] = resp3
                     else:
-                        print(f"  ✅ 已从原组织 project 删除 item")
+                        print("  ✅ 已从原组织 project 删除 item")
                         entry["deleted"] = True
                         entry["delete_response"] = resp3
 
