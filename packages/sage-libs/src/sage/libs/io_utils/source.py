@@ -226,9 +226,7 @@ class SocketSource(SourceFunction):
                     return None
             else:
                 # 没有完整消息，等待更多数据
-                message = self.buffer.decode(self.encoding).strip()
-                self.buffer = b""
-                return message
+                return None
         return None
 
     def execute(self) -> Union[str, dict, None]:
