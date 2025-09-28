@@ -323,7 +323,12 @@ def run_demo(duration: int = 20, interval: float = 0.25, thresholds: Dict[str, f
 
     (
         env.from_batch(TelemetryBatch, interval=interval)
-        .map(AlertDetector, cpu_threshold=thresholds["cpu"], err_threshold=thresholds["err"], latency_ms=thresholds["lat"])  # noqa: E501
+        .map(
+            AlertDetector,
+            cpu_threshold=thresholds["cpu"],
+            err_threshold=thresholds["err"],
+            latency_ms=thresholds["lat"],
+        )
         .map(rca)
         .map(RemediationPlanner)
         .sink(ChatOpsSink, slack_webhook=slack_webhook or os.environ.get("SAGE_SLACK_WEBHOOK"))
