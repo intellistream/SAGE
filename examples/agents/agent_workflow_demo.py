@@ -41,10 +41,7 @@ def example_iter_queries():
 
     # Import the agent module
     try:
-        import sys
-
-        sys.path.append("..")
-        from agent import iter_queries
+        from examples.agents.agent import iter_queries
 
         # Example 1: Local JSONL file
         temp_file = create_test_queries_file()

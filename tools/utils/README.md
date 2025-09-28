@@ -18,7 +18,7 @@
 
 ### LLM自动配置演示
 ```bash
-cd /home/shuhao/SAGE
+# 在SAGE项目根目录下运行
 python tools/utils/demo_llm_autoconfig.py
 ```
 
