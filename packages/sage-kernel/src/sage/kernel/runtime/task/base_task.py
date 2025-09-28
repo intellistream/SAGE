@@ -20,7 +20,9 @@ if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
 
 
-QUEUE_EMPTY_EXCEPTIONS = (QueueEmpty,) if RayQueueEmpty is QueueEmpty else (QueueEmpty, RayQueueEmpty)
+QUEUE_EMPTY_EXCEPTIONS = (
+    (QueueEmpty,) if RayQueueEmpty is QueueEmpty else (QueueEmpty, RayQueueEmpty)
+)
 
 
 class BaseTask(ABC):

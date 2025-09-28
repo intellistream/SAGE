@@ -51,11 +51,11 @@ from github_helper import GitHubProjectManager
 
 class GitHubClient:
     """Simple GitHub API client"""
-    
+
     def __init__(self, config):
         self.config = config
         self.session = requests.Session()
-        
+
         if config.github_token:
             headers = {
                 "Authorization": f"token {config.github_token}",

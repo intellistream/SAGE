@@ -7,7 +7,7 @@ from sage.middleware.components.neuromem.memory_manager import MemoryManager
 config = {
     "manager_path": ".sage/examples/memory/rag_memory_service",
     "name": "RAGMemoryCollection",
-    "backend_type": "VDB", 
+    "backend_type": "VDB",
     "description": "rag memory collection",
     "index_config": {
         "name": "test_index",

@@ -11,6 +11,7 @@ from sage.core.api.local_environment import LocalEnvironment
 # 添加全局打印锁来防止并发输出混乱
 _print_lock = threading.Lock()
 
+
 def thread_safe_print(*args, **kwargs):
     """线程安全的打印函数"""
     with _print_lock:
@@ -115,7 +116,7 @@ class ChunkCollector(SinkFunction):
     # 类级别的结果收集 - 只用于测试目的
     _collected_chunks: List[Dict] = None
     _lock = threading.Lock()
-    
+
     @classmethod
     def _ensure_chunks_list(cls):
         """确保chunks列表被初始化"""
@@ -136,10 +137,10 @@ class ChunkCollector(SinkFunction):
 
         with self._lock:
             self._ensure_chunks_list()
-            
+
             if chunks is None:  # Stop signal
                 return
-                
+
             if isinstance(chunks, list):
                 self._collected_chunks.extend(chunks)
                 thread_safe_print(
@@ -181,7 +182,6 @@ class LaggyChunkCollector(ChunkCollector):
         super().execute(chunks)
 
 
-
 class TestChunkParallelism:
     """测试chunk算子的并行性优化"""
 
@@ -193,7 +193,7 @@ class TestChunkParallelism:
 
         # 清空之前的数据
         ChunkCollector.clear_collected_chunks()
-        
+
         env = LocalEnvironment(name="chunk_parallelism_test")
 
         # 测试文档
@@ -215,7 +215,7 @@ class TestChunkParallelism:
 
         # 获取收集的结果
         collected_chunks = ChunkCollector.get_collected_chunks()
-        
+
         # 验证结果
         assert len(collected_chunks) > 0
         assert all(chunk.get("chunk_id") for chunk in collected_chunks)
@@ -328,10 +328,19 @@ class TestChunkParallelism:
         # 创建完整的测试文档集合，包括普通文档和大文档
         large_content = "This is a large document with extensive content. " * 50
         documents = [
-            {"content": "Another document containing different information and data.", "id": "doc2"},
-            {"content": "Large document with extensive content that needs chunking for processing.", "id": "doc3"},
+            {
+                "content": "Another document containing different information and data.",
+                "id": "doc2",
+            },
+            {
+                "content": "Large document with extensive content that needs chunking for processing.",
+                "id": "doc3",
+            },
             {"content": "Short text document.", "id": "doc4"},
-            {"content": "Medium sized document with reasonable content length.", "id": "doc5"},
+            {
+                "content": "Medium sized document with reasonable content length.",
+                "id": "doc5",
+            },
             {"content": large_content, "id": "large_doc1"},
             {"content": large_content, "id": "large_doc2"},
         ]
@@ -345,7 +354,7 @@ class TestChunkParallelism:
 
         # 使用autostop=True让SAGE自动检测批处理完成
         env.submit(autostop=True)
-        
+
         # 验证处理结果
         collected_chunks = ChunkCollector.get_collected_chunks()
         assert len(collected_chunks) > 0
@@ -361,7 +370,7 @@ class TestChunkParallelism:
         # 验证大文档产生了足够的chunks（如果被处理的话）
         large_doc1_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
         large_doc2_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc2"]
-        
+
         # 大文档应该产生大量chunks
         assert (
             len(large_doc1_chunks) > 30
@@ -416,7 +425,9 @@ class TestChunkParallelism:
 
         env = LocalEnvironment(name="graceful_shutdown_drain_test")
 
-        large_content = "Synthetic large document content to simulate heavy processing. " * 60
+        large_content = (
+            "Synthetic large document content to simulate heavy processing. " * 60
+        )
         documents = [
             {"content": large_content, "id": "slow_doc1"},
             {"content": large_content, "id": "slow_doc2"},

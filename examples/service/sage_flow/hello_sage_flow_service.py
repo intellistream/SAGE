@@ -72,7 +72,7 @@ def main():
 
     # 运行一次，将队列中的数据消费（内部会执行 env.execute()）
     svc.run()
-    
+
     # 等待异步处理完成（参考 hello_sage_flow_app.py 的实现）
     max_wait_time = 5.0  # 最多等待5秒
     wait_interval = 0.1  # 每次等待100ms
@@ -92,7 +92,7 @@ def main():
         # 在示例中不要抛出异常，只是警告
     else:
         logging.info("✅ 数据处理验证通过")
-    
+
     logging.info("Service demo done")
 
 

@@ -40,7 +40,11 @@ def _build_fake_client() -> SimpleNamespace:
     def health_check() -> Dict[str, object]:
         return {
             "status": "success",
-            "daemon_status": {"socket_service": "running", "actor_name": "demo", "namespace": "default"},
+            "daemon_status": {
+                "socket_service": "running",
+                "actor_name": "demo",
+                "namespace": "default",
+            },
         }
 
     def get_server_info() -> Dict[str, object]:

@@ -363,7 +363,7 @@ def sync_issues(
         if dry_run:
             cmd_args.append("preview")  # Use preview command for dry-run
         else:
-            cmd_args.append("sync")     # Use sync command for actual sync
+            cmd_args.append("sync")  # Use sync command for actual sync
         if force:
             cmd_args.append("--auto-confirm")
 

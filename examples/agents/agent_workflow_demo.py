@@ -16,7 +16,7 @@ This demo shows:
 import json
 import os
 import tempfile
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 
 def create_test_queries_file():

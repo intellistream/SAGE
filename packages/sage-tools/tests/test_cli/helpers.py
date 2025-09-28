@@ -14,9 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Sequence
 
-from typer.testing import CliRunner
-
 from sage.tools.cli.main import app as sage_app
+from typer.testing import CliRunner
 
 # Type alias for factory functions that return context managers (e.g. mocks).
 PatchFactory = Callable[[], object]
@@ -117,7 +116,11 @@ class FakeConfigManager:
     def remove_worker_ssh_host(self, host: str, port: int = 22) -> bool:
         hosts = self._config.setdefault("workers_ssh_hosts", [])
         original_len = len(hosts)
-        hosts[:] = [item for item in hosts if not (item["host"] == host and item.get("port", 22) == port)]
+        hosts[:] = [
+            item
+            for item in hosts
+            if not (item["host"] == host and item.get("port", 22) == port)
+        ]
         return len(hosts) < original_len
 
     def get_worker_config_path(self) -> Path:
