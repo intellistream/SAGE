@@ -363,7 +363,7 @@ class JobManagerController:
                         _, stderr = process.communicate(timeout=1)
                         if stderr:
                             typer.echo(f"Process stderr: {stderr.decode()}")
-                except:
+                except Exception:
                     pass
                 return False
 

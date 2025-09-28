@@ -316,7 +316,7 @@ class ChromaRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -622,7 +622,7 @@ class MilvusDenseRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -904,7 +904,7 @@ class MilvusSparseRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -1320,5 +1320,5 @@ class Wiki18FAISSRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass

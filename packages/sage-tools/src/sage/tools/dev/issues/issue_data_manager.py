@@ -335,7 +335,7 @@ class IssueDataManager:
                                 timestamp.replace("Z", "+00:00")
                             )
                             time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-                        except:
+                        except Exception:
                             time_str = timestamp
 
                         update_history_section += f"- **{time_str}**: {action}\n"
@@ -348,7 +348,7 @@ class IssueDataManager:
                                 update_history_section += (
                                     f"  - GitHub最后更新: {github_time_str}\n"
                                 )
-                            except:
+                            except Exception:
                                 pass
                 update_history_section += "\n"
 
@@ -624,7 +624,7 @@ class IssueDataManager:
                 elif line.startswith("**Issue #**:"):
                     try:
                         issue_data["number"] = int(line.split(":")[1].strip())
-                    except:
+                    except Exception:
                         pass
                 elif line.startswith("**状态**:"):
                     issue_data["state"] = line.split(":")[1].strip()

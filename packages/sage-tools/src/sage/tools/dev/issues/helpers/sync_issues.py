@@ -168,7 +168,7 @@ class IssuesSyncer:
                             )
                             if updated_date.replace(tzinfo=None) > cutoff_date:
                                 filtered_files.append(f)
-                except:
+                except Exception:
                     continue
 
             files = filtered_files
@@ -689,7 +689,7 @@ class IssuesSyncer:
                             )
                             if updated_date.replace(tzinfo=None) > cutoff_date:
                                 filtered_files.append(f)
-                except:
+                except Exception:
                     continue
 
             files = filtered_files

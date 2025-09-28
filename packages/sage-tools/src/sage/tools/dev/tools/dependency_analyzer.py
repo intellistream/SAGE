@@ -418,7 +418,7 @@ class DependencyAnalyzer:
             if result.returncode == 0 and result.stdout:
                 return json.loads(result.stdout)
 
-        except:
+        except Exception:
             pass
 
         return []  # Return empty list if safety is not available

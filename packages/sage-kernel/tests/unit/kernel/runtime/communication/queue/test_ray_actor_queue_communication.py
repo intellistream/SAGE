@@ -178,7 +178,7 @@ class PersistentQueueActor:
                 else:  # 读操作
                     try:
                         item = self.queue.get(timeout=0.1)
-                    except:
+                    except Exception:
                         # 队列空时跳过
                         pass
                 completed_ops += 1
@@ -427,7 +427,7 @@ class TestRayQueueActorCommunication:
             for actor in producers + consumers:
                 try:
                     ray.kill(actor)
-                except:
+                except Exception:
                     pass
 
         assert total_produced > 0, "应该生产了一些项目"
@@ -545,7 +545,7 @@ class TestRayQueueActorCommunication:
             for actor in stress_actors:
                 try:
                     ray.kill(actor)
-                except:
+                except Exception:
                     pass
 
 

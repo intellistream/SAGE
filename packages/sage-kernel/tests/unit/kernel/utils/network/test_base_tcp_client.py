@@ -53,7 +53,7 @@ class TestBaseTcpClient:
         if hasattr(self.client, "_socket") and self.client._socket:
             try:
                 self.client.disconnect()
-            except:
+            except Exception:
                 pass
 
     def test_client_initialization(self):

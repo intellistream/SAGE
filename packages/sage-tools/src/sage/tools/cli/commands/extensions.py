@@ -110,7 +110,7 @@ def check_build_tools() -> bool:
         else:
             print_warning("gcc 不可用")
             tools_available = False
-    except:
+    except Exception:
         print_warning("gcc 不可用")
         tools_available = False
 
@@ -122,7 +122,7 @@ def check_build_tools() -> bool:
         else:
             print_warning("cmake 不可用")
             tools_available = False
-    except:
+    except Exception:
         print_warning("cmake 不可用")
         tools_available = False
 

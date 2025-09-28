@@ -332,7 +332,7 @@ class ClassDependencyChecker:
         """Get full attribute name from AST node."""
         try:
             return ast.unparse(attr_node)
-        except:
+        except Exception:
             # Fallback for older Python versions
             parts = []
             node = attr_node

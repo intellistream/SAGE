@@ -136,7 +136,7 @@ def status_cluster():
 
         status_head()
         head_running = True
-    except:
+    except Exception:
         head_running = False
 
     # 2. 检查Worker节点
@@ -145,7 +145,7 @@ def status_cluster():
         from .worker import status_workers
 
         status_workers()
-    except:
+    except Exception:
         pass
 
     # 3. 显示集群访问信息

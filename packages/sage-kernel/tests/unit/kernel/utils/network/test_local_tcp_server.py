@@ -35,7 +35,7 @@ class TestBaseTcpServer:
                 message = pickle.loads(message_data)
                 self.received_messages.append((message, client_address))
                 return {"type": "test_response", "status": "success"}
-            except:
+            except Exception:
                 return {"type": "error_response", "status": "error"}
 
     @pytest.mark.unit
@@ -981,7 +981,7 @@ class TestErrorHandlingScenarios:
                     assert response is not None
                     if response.get("status") == "error":
                         assert "error_code" in response.get("payload", {})
-                except:
+                except Exception:
                     # If pickling fails, that's also acceptable
                     pass
 
@@ -1020,7 +1020,7 @@ class TestErrorHandlingScenarios:
                     message = {"type": f"type_{i % 20}", "data": f"test_{i}"}
                     try:
                         server._process_message(message, ("127.0.0.1", 12345))
-                    except:
+                    except Exception:
                         pass  # Some messages may fail due to handler changes
 
             # Run concurrent operations

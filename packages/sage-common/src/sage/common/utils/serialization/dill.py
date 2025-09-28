@@ -27,13 +27,13 @@ try:
 
     with tempfile.NamedTemporaryFile() as tmp_file:
         _BLACKLIST.append(type(tmp_file))  # 文件句柄
-except:
+except Exception:
     pass
 
 try:
     _BLACKLIST.append(type(threading.Lock()))  # 锁
     _BLACKLIST.append(type(threading.RLock()))  # 递归锁
-except:
+except Exception:
     pass
 
 # 序列化时需要排除的属性名

@@ -85,7 +85,7 @@ def worker_consumer(
                 item = queue_desc.get(timeout=1.0)
                 consumed_items.append(item)
                 logger.debug(f"Consumer {worker_id} got: {item}")
-            except:
+            except Exception:
                 continue
 
         logger.info(f"Consumer {worker_id} consumed {len(consumed_items)} items")
@@ -110,7 +110,7 @@ def worker_mixed_operations(
                 try:
                     item = queue_desc.get(timeout=0.1)
                     logger.debug(f"Mixed worker {worker_id} got: {item}")
-                except:
+                except Exception:
                     # 队列为空时跳过
                     pass
             operations_completed += 1
@@ -185,7 +185,7 @@ try:
                     try:
                         item = queue_desc.get(timeout=1.0)
                         consumed_items.append(item)
-                    except:
+                    except Exception:
                         continue
 
                 return consumed_items
@@ -336,7 +336,7 @@ class TestPythonQueueConcurrency:
             try:
                 item = original_desc.get_nowait()
                 items_from_original.append(item)
-            except:
+            except Exception:
                 break
 
         print(f"从原始描述符读取的项目: {len(items_from_original)}")

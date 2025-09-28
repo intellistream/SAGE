@@ -107,6 +107,6 @@ class LicenseCore:
             try:
                 with open(self.config.CONFIG_FILE, "r") as f:
                     return json.load(f)
-            except:
+            except Exception:
                 pass
         return {}

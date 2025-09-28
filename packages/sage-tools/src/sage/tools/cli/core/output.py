@@ -201,7 +201,7 @@ def format_table(
 
     try:
         return tabulate(table_data, headers=headers, tablefmt=tablefmt)
-    except:
+    except Exception:
         # 如果tabulate不可用，使用简单格式
         result = []
         if headers:

@@ -107,7 +107,7 @@ def cache_embedding_models():
             import huggingface_hub
 
             huggingface_hub.constants.DEFAULT_REQUEST_TIMEOUT = 60
-        except:
+        except Exception:
             pass
 
     except ImportError:

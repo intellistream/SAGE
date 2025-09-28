@@ -242,7 +242,7 @@ class CommercialPackageManager:
                 capture_output=True,
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
 
     def _check_components_built(self, package_info: Dict) -> bool:

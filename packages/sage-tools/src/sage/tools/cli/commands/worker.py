@@ -242,7 +242,7 @@ RAY_PIDS=$(pgrep -f 'raylet|core_worker' || true)
 if [[ -n "$RAY_PIDS" ]]; then
     echo "[SUCCESS] Ray Worker启动成功，进程PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
     echo "[INFO] 节点已连接到集群: {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
-    
+
     # 验证Ray状态
     if timeout 10 {ray_command} status > /dev/null 2>&1; then
         echo "[SUCCESS] Ray集群连接验证成功" | tee -a "$LOG_DIR/worker.log"
@@ -438,7 +438,7 @@ if [[ -n "$RAY_PIDS" ]]; then
             ps -p "$pid" -o pid,ppid,pcpu,pmem,etime,cmd --no-headers 2>/dev/null || true
         fi
     done
-    
+
     echo ""
     echo "--- Ray集群连接状态 ---"
     timeout 10 {ray_command} status 2>/dev/null || echo "[警告] 无法获取Ray集群状态"

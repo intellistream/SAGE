@@ -1,6 +1,8 @@
 import os
+import shutil
 
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
 
 
 def test_neuromem_manager():
@@ -95,14 +97,18 @@ def test_neuromem_manager():
     # 清理测试环境
     manager.delete_collection("test_collection")
 
+    data_dir = get_default_data_dir()
+    if os.path.exists(data_dir):
+        shutil.rmtree(os.path.dirname(data_dir))
+        print(f"✅ 已清理测试数据目录: {data_dir}")
+
 
 if __name__ == "__main__":
-    import shutil
 
     test_neuromem_manager()
 
-    # 清理测试过程中生成的data目录
-    data_dir = "data"
-    if os.path.exists(data_dir):
-        shutil.rmtree(data_dir)
-        print(f"✅ 已清理测试数据目录: {data_dir}")
+    # # 清理测试过程中生成的data目录
+    # data_dir = "data"
+    # if os.path.exists(data_dir):
+    #     shutil.rmtree(data_dir)
+    #     print(f"✅ 已清理测试数据目录: {data_dir}")

@@ -173,7 +173,7 @@ class CoMapOperator(BaseOperator):
                     # 检查方法是否为抽象方法或抛出NotImplementedError
                     if not getattr(method, "__isabstractmethod__", False):
                         max_index = index
-                except:
+                except Exception:
                     # 如果获取方法时出错，停止检查
                     break
                 index += 1

@@ -321,7 +321,7 @@ show_size() {{
 safe_remove() {{
     local path="$1"
     local type="$2"
-    
+
     if [ -e "$path" ]; then
         echo "  🗑️  Removing $type: $path"
         if [ "$type" = "directory" ]; then

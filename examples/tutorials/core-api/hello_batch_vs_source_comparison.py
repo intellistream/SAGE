@@ -168,11 +168,11 @@ def compare_implementations():
             super().__init__(ctx, **kwargs)
             self.data = data
             self.index = 0
-        
+
         def execute(self) -> Any:
             if self.index >= len(self.data):
                 return StopSignal("my_source")  # 手动管理停止
-            
+
             result = self.data[self.index]
             self.index += 1
             return result
@@ -184,12 +184,12 @@ def compare_implementations():
         """
     # 直接使用内置实现
     batch_func = SimpleBatchFunction(data, ctx)
-    
+
     # 或者自定义数据源
     class MyBatchFunction(BatchFunction):
         def get_total_count(self) -> int:
             return len(self.my_data)
-        
+
         def get_data_source(self) -> Iterator[Any]:
             return iter(self.my_data)
     """

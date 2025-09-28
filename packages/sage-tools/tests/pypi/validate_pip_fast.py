@@ -381,7 +381,7 @@ class TestBatch(BatchFunction):
     def __init__(self):
         super().__init__()
         self.count = 0
-    
+
     def execute(self):
         if self.count < 2:
             self.count += 1
@@ -392,7 +392,7 @@ class TestSink(SinkFunction):
     def __init__(self):
         super().__init__()
         self.received = []
-    
+
     def execute(self, data):
         self.received.append(data)
 

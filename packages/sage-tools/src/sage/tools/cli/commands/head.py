@@ -120,7 +120,7 @@ echo "[INFO] Ray启动命令退出码: $RAY_EXIT_CODE" | tee -a "$LOG_DIR/head.l
 if [ $RAY_EXIT_CODE -eq 0 ]; then
     echo "[SUCCESS] Ray Head启动成功" | tee -a "$LOG_DIR/head.log"
     sleep 3
-    
+
     RAY_PIDS=$(pgrep -f 'raylet|gcs_server|dashboard' 2>/dev/null || true)
     if [[ -n "$RAY_PIDS" ]]; then
         echo "[SUCCESS] Ray Head进程正在运行，PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/head.log"
@@ -271,18 +271,18 @@ if [[ -n "$RAY_PIDS" ]]; then
             ps -p "$pid" -o pid,ppid,pcpu,pmem,etime,cmd --no-headers 2>/dev/null || true
         fi
     done
-    
+
     echo ""
     echo "--- Ray集群状态 ---"
     timeout 10 {ray_command} status 2>/dev/null || echo "[警告] 无法获取Ray集群状态"
-    
+
     echo ""
     echo "--- 端口监听状态 ---"
     echo "Head端口 {head_port}:"
     netstat -tlnp 2>/dev/null | grep ":{head_port}" || echo "  未监听"
     echo "Dashboard端口 {dashboard_port}:"
     netstat -tlnp 2>/dev/null | grep ":{dashboard_port}" || echo "  未监听"
-    
+
     exit 0
 else
     echo "[已停止] 未发现Ray Head进程"

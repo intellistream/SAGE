@@ -533,7 +533,7 @@ class ExampleRunner:
 
             input_indicators = ["input(", "raw_input(", "getpass."]
             return any(indicator in content for indicator in input_indicators)
-        except:
+        except Exception:
             return False
 
     def _prepare_environment(self, example_info: ExampleInfo) -> Dict[str, str]:

@@ -60,7 +60,7 @@ class LicenseVendor:
             try:
                 with open(info_file, "r") as f:
                     records = json.load(f)
-            except:
+            except Exception:
                 records = []
 
         # Add new record

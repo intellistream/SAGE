@@ -168,7 +168,7 @@ class Paper:
                 if not found_abstract:
                     try:
                         text = json.dumps(block)
-                    except:
+                    except Exception:
                         continue
                     if re.search(r"\bAbstract\b", text, re.IGNORECASE):
                         found_abstract = True

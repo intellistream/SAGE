@@ -68,7 +68,7 @@ def main():
     print("Please use instead:")
     print("  python tools/license/sage_license.py", " ".join(sys.argv[1:]))
     print("")
-    
+
     # Forward to new script
     new_script = Path(__file__).parent.parent / "tools" / "license" / "sage_license.py"
     if new_script.exists():

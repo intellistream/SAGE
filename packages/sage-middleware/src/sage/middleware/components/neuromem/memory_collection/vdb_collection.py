@@ -915,7 +915,7 @@ if __name__ == "__main__":
             # 清理测试数据
             try:
                 shutil.rmtree(test_dir)
-            except:
+            except Exception:
                 pass
 
     run_test()

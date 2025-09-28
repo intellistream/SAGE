@@ -131,7 +131,7 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
                 data = json.loads(match)
                 if isinstance(data, list):
                     return data
-            except:
+            except Exception:
                 continue
     except Exception:
         pass

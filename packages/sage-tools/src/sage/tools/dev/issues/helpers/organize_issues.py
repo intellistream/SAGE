@@ -107,7 +107,7 @@ class IssuesOrganizer:
                     closed_at = datetime.fromisoformat(
                         closed_at_str.replace("Z", "+00:00")
                     )
-                except:
+                except Exception:
                     continue
                 issue_info = {
                     "number": issue["metadata"]["number"],

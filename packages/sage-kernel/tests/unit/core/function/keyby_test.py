@@ -164,7 +164,7 @@ class TestKeyByFunctionality:
         finally:
             try:
                 env.close()
-            except:
+            except Exception:
                 pass  # 忽略关闭时的错误
 
         # 保存结果到文件
@@ -205,7 +205,7 @@ class TestKeyByFunctionality:
         finally:
             try:
                 env.close()
-            except:
+            except Exception:
                 pass
 
         # 保存结果到文件
@@ -382,7 +382,7 @@ class TestAdvancedKeyBy:
         finally:
             try:
                 env.close()
-            except:
+            except Exception:
                 pass
 
         # 保存结果到文件

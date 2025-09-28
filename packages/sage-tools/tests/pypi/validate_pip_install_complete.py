@@ -534,7 +534,7 @@ class TestBatchFunction(BatchFunction):
     def __init__(self):
         super().__init__()
         self.counter = 0
-    
+
     def execute(self):
         if self.counter < 3:
             result = f"data_{self.counter}"
@@ -561,7 +561,7 @@ class TestSinkFunction(SinkFunction):
     def __init__(self):
         super().__init__()
         self.received = []
-    
+
     def execute(self, data):
         self.received.append(data)
 
@@ -673,13 +673,13 @@ sys.exit(0 if success_count == 4 else 1)
 try:
     import sage
     print("✅ sage模块导入成功")
-    
+
     # 检查是否有CLI相关的属性
     if hasattr(sage, '__main__'):
         print("✅ sage模块支持命令行调用")
     else:
         print("⚠️  sage模块不支持命令行调用")
-        
+
 except Exception as e:
     print(f"❌ sage模块导入失败: {e}")
 """
@@ -718,15 +718,15 @@ try:
     # 测试开发工具导入
     from sage.tools.dev.core.toolkit import SAGEDevToolkit
     print("✅ SAGEDevToolkit 导入成功")
-    
+
     # 创建工具包实例
     toolkit = SAGEDevToolkit("./test_project")
     print("✅ SAGEDevToolkit 实例创建成功")
-    
+
     # 测试项目分析功能
     result = toolkit.analyze_project()
     print(f"✅ 项目分析完成: {type(result)}")
-    
+
 except ImportError as e:
     print(f"⚠️  开发工具模块导入失败（这在pip安装版本中是正常的）: {e}")
 except Exception as e:
@@ -794,7 +794,7 @@ logger = CustomLogger(outputs=[("console", "INFO")], name="example_test")
 
 class DataSource(BatchFunction):
     """数据源：生成测试数据"""
-    
+
     def __init__(self, data_list):
         super().__init__()
         self.data_list = data_list
@@ -805,7 +805,7 @@ class DataSource(BatchFunction):
         if self.index >= len(self.data_list):
             logger.info("数据源已耗尽")
             return None
-        
+
         data = self.data_list[self.index]
         self.index += 1
         logger.info(f"生成数据: {data}")
@@ -813,7 +813,7 @@ class DataSource(BatchFunction):
 
 class DataProcessor(BatchFunction):
     """数据处理器：处理数据"""
-    
+
     def __init__(self, source):
         super().__init__()
         self.source = source
@@ -822,7 +822,7 @@ class DataProcessor(BatchFunction):
         data = self.source.execute()
         if data is None:
             return None
-        
+
         # 简单的数据处理
         processed = f"processed_{data}"
         logger.info(f"处理数据: {data} -> {processed}")
@@ -830,7 +830,7 @@ class DataProcessor(BatchFunction):
 
 class DataSink(SinkFunction):
     """数据接收器：收集处理后的数据"""
-    
+
     def __init__(self):
         super().__init__()
         self.results = []
@@ -849,7 +849,7 @@ def main():
 
         # 准备测试数据
         test_data = ["apple", "banana", "cherry", "date", "elderberry"]
-        
+
         # 创建组件
         source = DataSource(test_data)
         processor = DataProcessor(source)
@@ -857,7 +857,7 @@ def main():
 
         # 执行流水线
         logger.info("开始执行流水线...")
-        
+
         while True:
             data = processor.execute()
             if data is None:
@@ -867,9 +867,9 @@ def main():
         # 验证结果
         expected_count = len(test_data)
         actual_count = len(sink.results)
-        
+
         logger.info(f"流水线执行完成: 期望 {expected_count} 条，实际 {actual_count} 条")
-        
+
         if actual_count == expected_count:
             print("✅ 示例执行成功！")
             print(f"📊 处理数据: {actual_count} 条")
@@ -942,39 +942,39 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 
 class TestSageCore(unittest.TestCase):
     """SAGE核心功能测试"""
-    
+
     def test_local_environment_creation(self):
         """测试LocalEnvironment创建"""
         env = LocalEnvironment("test_env")
         self.assertIsNotNone(env)
         self.assertEqual(env.name, "test_env")
-        
+
     def test_batch_function_inheritance(self):
         """测试BatchFunction继承"""
-        
+
         class TestBatch(BatchFunction):
             def execute(self):
                 return "test_data"
-                
+
         batch = TestBatch()
         self.assertIsNotNone(batch)
         self.assertEqual(batch.execute(), "test_data")
-        
+
     def test_sink_function_inheritance(self):
         """测试SinkFunction继承"""
-        
+
         class TestSink(SinkFunction):
             def __init__(self):
                 super().__init__()
                 self.data = None
-                
+
             def execute(self, data):
                 self.data = data
-                
+
         sink = TestSink()
         sink.execute("test_data")
         self.assertEqual(sink.data, "test_data")
-        
+
     def test_custom_logger_creation(self):
         """测试CustomLogger创建"""
         logger = CustomLogger(outputs=[("console", "INFO")], name="test_logger")

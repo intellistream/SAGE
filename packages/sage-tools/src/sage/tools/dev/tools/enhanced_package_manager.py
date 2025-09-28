@@ -348,7 +348,7 @@ class EnhancedPackageManager:
                 capture_output=True,
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
 
     def _get_package_version(self, package_path: Path) -> str:
@@ -365,7 +365,7 @@ class EnhancedPackageManager:
                     if match:
                         return match.group(1)
             return "unknown"
-        except:
+        except Exception:
             return "unknown"
 
     def _detect_circular_dependencies(
