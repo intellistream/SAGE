@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING, Union
 
-from sage.common.utils.logging.custom_logger import CustomLogger
-
 if TYPE_CHECKING:
     from sage.core.api.service.base_service import BaseService
     from sage.core.factory.service_factory import ServiceFactory

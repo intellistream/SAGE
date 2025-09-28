@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 
 import yaml
 from sage.common.utils.config.loader import load_config

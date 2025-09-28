@@ -24,7 +24,6 @@ showing different ways to define multi-stream processing without requiring class
 
 import os
 import sys
-import time
 from typing import Any, List
 
 from sage.core.api.function.comap_function import BaseCoMapFunction

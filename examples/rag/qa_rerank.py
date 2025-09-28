@@ -54,8 +54,6 @@ def pipeline_run():
 if __name__ == "__main__":
     import os
 
-    from sage.common.utils.logging.custom_logger import CustomLogger
-
     # 检查是否在测试模式下运行
     if (
         os.getenv("SAGE_EXAMPLES_MODE") == "test"

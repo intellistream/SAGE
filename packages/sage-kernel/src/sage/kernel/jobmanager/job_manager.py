@@ -1,8 +1,5 @@
-import json
 import os
-import pickle
 import signal
-import socket
 import sys
 import threading
 import time
@@ -10,7 +7,6 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-from uuid import UUID
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.utils.serialization.dill import deserialize_object

@@ -10,7 +10,6 @@ SAGE 远程批处理测试示例
 import atexit
 import os
 import random
-import signal
 import subprocess
 import time
 

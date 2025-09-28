@@ -1,28 +1,17 @@
 from __future__ import annotations
 
-from typing import (TYPE_CHECKING, Any, Generic, List, Optional, Tuple, Type,
-                    TypeVar, Union, get_args, get_origin)
+from typing import (TYPE_CHECKING, Any, Generic, Type, TypeVar, Union,
+                    get_args, get_origin)
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.base_function import BaseFunction
-from sage.core.api.function.lambda_function import (detect_lambda_type,
-                                                    wrap_lambda)
+from sage.core.api.function.lambda_function import wrap_lambda
 
 from .connected_streams import ConnectedStreams
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.core.transformation.base_transformation import BaseTransformation
-    from sage.core.transformation.filter_transformation import \
-        FilterTransformation
-    from sage.core.transformation.flatmap_transformation import \
-        FlatMapTransformation
-    from sage.core.transformation.keyby_transformation import \
-        KeyByTransformation
-    from sage.core.transformation.map_transformation import MapTransformation
-    from sage.core.transformation.sink_transformation import SinkTransformation
-    from sage.core.transformation.source_transformation import \
-        SourceTransformation
 
     from .datastream import DataStream
 

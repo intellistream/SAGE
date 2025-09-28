@@ -2,8 +2,6 @@ import os
 import time
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
-import ray
-from ray.actor import ActorHandle
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
@@ -12,9 +10,8 @@ from sage.kernel.utils.ray.ray import ensure_ray_initialized
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
-    from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
+    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
     from sage.kernel.runtime.context.service_context import ServiceContext
-    from sage.kernel.runtime.context.task_context import TaskContext
 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service

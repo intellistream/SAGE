@@ -1,14 +1,6 @@
-from collections import deque
-from typing import TYPE_CHECKING, Any, Deque, Dict, Tuple, Union
-
-from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.batch_function import BatchFunction
 from sage.core.communication.packet import Packet
 from sage.core.operator.base_operator import BaseOperator
 from sage.kernel.runtime.communication.router.packet import StopSignal
-
-if TYPE_CHECKING:
-    from sage.core.communication.metronome import Metronome
 
 
 class BatchOperator(BaseOperator):

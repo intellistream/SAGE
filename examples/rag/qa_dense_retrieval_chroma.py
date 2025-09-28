@@ -1,8 +1,6 @@
 import os
-import time
 
 import yaml
-from dotenv import load_dotenv
 from sage.common.utils.config.loader import load_config
 from sage.core.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.batch import JSONLBatch
@@ -53,8 +51,6 @@ def pipeline_run(config: dict) -> None:
 if __name__ == "__main__":
     # CustomLogger.disable_global_console_debug()
     import sys
-
-    from sage.common.utils.logging.custom_logger import CustomLogger
 
     # 检查是否在测试模式下运行
     if (
