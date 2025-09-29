@@ -2,10 +2,8 @@
 测试 sage.libs.rag.reranker 模块
 """
 
-from typing import List, Tuple
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
-import numpy as np
 import pytest
 import torch
 

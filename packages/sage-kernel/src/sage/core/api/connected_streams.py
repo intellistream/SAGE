@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import (TYPE_CHECKING, Any, Callable, Generic, List, Type, TypeVar,
-                    Union, get_args, get_origin)
+from typing import TYPE_CHECKING, List, Type, Union
 
 from sage.core.api.base_environment import BaseEnvironment
 from sage.core.api.function.base_function import BaseFunction
@@ -12,8 +11,6 @@ from sage.core.transformation.join_transformation import JoinTransformation
 
 if TYPE_CHECKING:
     from sage.core.transformation.base_transformation import BaseTransformation
-    from sage.core.transformation.map_transformation import MapTransformation
-    from sage.core.transformation.sink_transformation import SinkTransformation
 
     from .datastream import DataStream
 
@@ -51,14 +48,10 @@ class ConnectedStreams:
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
         if not hasattr(self, "_transformation_classes"):
-            from sage.core.transformation.base_transformation import \
-                BaseTransformation
-            from sage.core.transformation.join_transformation import \
-                JoinTransformation
-            from sage.core.transformation.map_transformation import \
-                MapTransformation
-            from sage.core.transformation.sink_transformation import \
-                SinkTransformation
+            from sage.core.transformation.base_transformation import BaseTransformation
+            from sage.core.transformation.join_transformation import JoinTransformation
+            from sage.core.transformation.map_transformation import MapTransformation
+            from sage.core.transformation.sink_transformation import SinkTransformation
 
             self._transformation_classes = {
                 "BaseTransformation": BaseTransformation,
@@ -250,8 +243,7 @@ class ConnectedStreams:
                 )
 
         # Import CoMapTransformation (delayed import to avoid circular dependencies)
-        from sage.core.transformation.comap_transformation import \
-            CoMapTransformation
+        from sage.core.transformation.comap_transformation import CoMapTransformation
 
         # 使用传入的parallelism或者之前设置的hint
         actual_parallelism = parallelism if parallelism is not None else 1
@@ -307,7 +299,7 @@ class ConnectedStreams:
 
         # 类型检查
         if not isinstance(function, type) or not issubclass(function, BaseJoinFunction):
-            raise TypeError(f"Join function must inherit from BaseJoinFunction")
+            raise TypeError("Join function must inherit from BaseJoinFunction")
 
         # TODO: 验证流都是keyed的
         # Issue URL: https://github.com/intellistream/SAGE/issues/225

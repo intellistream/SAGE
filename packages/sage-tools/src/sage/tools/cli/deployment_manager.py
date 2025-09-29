@@ -10,7 +10,7 @@ import subprocess
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Tuple
 
 import typer
 
@@ -112,7 +112,7 @@ class DeploymentManager:
             if not file_path.exists():
                 typer.echo(f"⚠️  关键文件不存在: {file_path}")
                 # 列出实际存在的文件供调试
-                typer.echo(f"📋 实际存在的文件:")
+                typer.echo("📋 实际存在的文件:")
                 for item in self.project_root.iterdir():
                     if item.is_file():
                         typer.echo(f"   - {item.name}")
@@ -510,13 +510,13 @@ class DeploymentManager:
                 typer.echo(f"🔍 开始诊断SSH连接到 {host}:{port}")
 
                 # 测试网络连通性
-                typer.echo(f"⚡ 测试网络连通性...")
+                typer.echo("⚡ 测试网络连通性...")
                 ping_cmd = ["ping", "-c", "1", "-W", "5", host]
                 ping_result = subprocess.run(
                     ping_cmd, capture_output=True, text=True, timeout=10
                 )
                 if ping_result.returncode == 0:
-                    typer.echo(f"✅ 网络连通性正常")
+                    typer.echo("✅ 网络连通性正常")
                 else:
                     typer.echo(f"❌ 网络不通: {ping_result.stderr}")
                     return False
@@ -537,7 +537,7 @@ class DeploymentManager:
                 finally:
                     sock.close()
 
-                typer.echo(f"🔐 执行SSH命令测试...")
+                typer.echo("🔐 执行SSH命令测试...")
 
             except Exception as e:
                 typer.echo(f"❌ 连接诊断失败: {e}")
@@ -624,7 +624,7 @@ class DeploymentManager:
                 return False
 
             # 步骤3: 执行安装（增加超时时间）
-            typer.echo(f"\n3️⃣ 执行SAGE安装...")
+            typer.echo("\n3️⃣ 执行SAGE安装...")
             typer.echo(
                 f"📦 安装命令: {quickstart_env_str} ./quickstart.sh {quickstart_args_str}"
             )

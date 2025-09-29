@@ -6,12 +6,9 @@ running only previously failed tests with the --failed option.
 """
 
 import json
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set
-
-from sage.common.config.output_paths import get_sage_paths
+from typing import Dict, List, Optional
 
 
 class TestFailureCache:
@@ -264,7 +261,7 @@ class TestFailureCache:
         """Print current cache status in a user-friendly format."""
         info = self.get_cache_info()
 
-        print(f"📊 Test Failure Cache Status")
+        print("📊 Test Failure Cache Status")
         print(f"   Cache file: {info['cache_file']}")
         print(f"   Failed tests: {info['failed_tests_count']}")
 
@@ -280,6 +277,6 @@ class TestFailureCache:
             print(f"   Execution time: {last_summary.get('execution_time', 0):.2f}s")
 
         if info["has_failed_tests"]:
-            print(f"\n   Use 'sage-dev test --failed' to re-run failed tests")
+            print("\n   Use 'sage-dev test --failed' to re-run failed tests")
         else:
-            print(f"\n   No failed tests cached")
+            print("\n   No failed tests cached")

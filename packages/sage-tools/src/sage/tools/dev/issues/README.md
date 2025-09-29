@@ -95,8 +95,8 @@ echo "your_github_token" > ~/.github_token
 ## 🔄 迁移说明
 
 ### 原有工具位置
-- **原位置**: `/home/shuhao/SAGE/tools/issues-management/`
-- **新位置**: `/home/shuhao/SAGE/packages/sage-tools/src/sage/tools/dev/issues/`
+- **原位置**: `~/SAGE/tools/issues-management/`
+- **新位置**: `~/SAGE/packages/sage-tools/src/sage/tools/dev/issues/`
 
 ### 命令对比
 | 原命令 | 新命令 |

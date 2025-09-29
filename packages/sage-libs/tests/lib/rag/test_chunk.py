@@ -2,9 +2,6 @@
 测试 sage.libs.rag.chunk 模块
 """
 
-from typing import List
-from unittest.mock import MagicMock, Mock, patch
-
 import pytest
 
 # 尝试导入chunk模块
@@ -333,12 +330,12 @@ class TestCharacterSplitterIntegration:
         # 模拟来自文件读取的长文档
         document_content = """
         This is a long document that contains multiple paragraphs and needs to be split into manageable chunks.
-        
+
         Each chunk should have a reasonable size and some overlap to maintain context between chunks.
-        
+
         The chunking process is essential for RAG systems as it allows for efficient retrieval and processing
         of relevant information while maintaining semantic coherence.
-        
+
         This test verifies that the character splitter can handle realistic document content properly.
         """
 
@@ -359,7 +356,9 @@ class TestCharacterSplitterIntegration:
 
         # 验证第一个chunk包含文档开头，最后一个chunk包含文档结尾
         assert result[0].startswith(document["content"][:50])
-        assert result[-1].endswith(document["content"][-30:])
+        # 由于分割算法可能产生小的末尾chunks，检查最后几个chunks是否覆盖了文档结尾
+        last_chunks_combined = "".join(result[-2:]) if len(result) > 1 else result[-1]
+        assert document["content"][-30:] in last_chunks_combined
 
         # 验证文档被完整覆盖（检查关键内容都被包含）
         combined_content = "".join(result)

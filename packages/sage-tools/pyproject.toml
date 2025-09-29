@@ -111,7 +111,7 @@ frontend = [
     "pydantic-settings>=2.0.0",
     "configparser>=5.3.0",
     "pandas>=2.0.0",
-    "numpy>=2.0.0,<3.0.0",
+    "numpy>=2.0.0,<2.3.0",  # 兼容vllm/numba约束
     "plotly>=5.15.0",
     "dash>=2.11.0",
     "streamlit>=1.25.0",
@@ -133,9 +133,7 @@ web = [
 # Studio 低代码界面 (需要额外的 Node.js 环境)
 # 注意：Studio 的 npm 依赖通过 sage studio install 命令按需安装
 studio = [
-    "isage-tools[frontend]",
-    # Note: Studio requires Node.js 18+ and npm
-    # Auto-setup script will be provided
+    # 仅包含必要的 Python 依赖，npm 依赖由安装命令处理
 ]
 
 # 完整UI套件 (包含所有前端功能)
@@ -209,9 +207,6 @@ where = ["src"]
 "sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
 "sage.tools.studio" = ["py.typed", "*.pyi", "templates/*.html", "static/*"]
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.tools._version.__version__"}
-
 # Development tools configuration
 [tool.black]
 line-length = 88
@@ -229,8 +224,38 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.ruff]
+# 与flake8保持一致的配置
+target-version = "py311"
 line-length = 88
-target-version = ["py310", "py311", "py312"]
+
+[tool.ruff.lint]
+# 启用的规则集（与flake8兼容）
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings  
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "C90",  # mccabe complexity
+]
+
+# 忽略的错误（与flake8 .flake8文件保持一致）
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+# 复杂度限制（与flake8保持一致）
+mccabe = { max-complexity = 10 }
+
+# 文件特定忽略
+per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
+
+[tool.ruff.lint.isort]
+known-first-party = ["sage"]
+force-single-line = false
+combine-as-imports = true
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -266,3 +291,7 @@ markers = [
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.tools._version.__version__"}
+

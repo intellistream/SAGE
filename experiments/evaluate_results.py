@@ -307,7 +307,7 @@ def print_evaluation_summary(evaluation_result: Dict[str, Any]):
     print("📊 评估结果摘要")
     print("=" * 60)
 
-    print(f"🔧 实验配置:")
+    print("🔧 实验配置:")
     print(f"   模型: {config['model_name']}")
     # 兼容新的配置格式
     if "use_context" in config:
@@ -323,14 +323,14 @@ def print_evaluation_summary(evaluation_result: Dict[str, Any]):
         print(f"   完成批次: {config['completed_batches']}")
     print(f"   时间: {config['timestamp']}")
 
-    print(f"\n📈 评估指标:")
+    print("\n📈 评估指标:")
     for metric, score in scores.items():
         print(f"   {metric.upper()}: {score:.4f}")
 
     # 添加检索质量分析
     if "retrieval_analysis" in evaluation_result:
         retrieval_stats = evaluation_result["retrieval_analysis"]
-        print(f"\n🔍 检索质量分析:")
+        print("\n🔍 检索质量分析:")
         print(f"   上下文覆盖率: {retrieval_stats['context_coverage']:.4f}")
         print(f"   平均检索数量: {retrieval_stats['avg_context_count']:.2f}")
         print(f"   上下文相关性: {retrieval_stats['context_relevance_rate']:.4f}")
@@ -365,7 +365,7 @@ def main():
     evaluation_result = calculate_detailed_scores(results_data, args.metric)
 
     # 分析检索质量（如果有检索上下文）
-    print(f"🔍 正在分析检索质量...")
+    print("🔍 正在分析检索质量...")
     retrieval_analysis = analyze_retrieval_quality(evaluation_result)
     evaluation_result["retrieval_analysis"] = retrieval_analysis
 
@@ -374,9 +374,9 @@ def main():
 
     # 显示详细结果（如果请求）
     if args.show_details:
-        print(f"\n📋 详细结果 (前10个样本):")
+        print("\n📋 详细结果 (前10个样本):")
         for i, item in enumerate(evaluation_result["detailed_results"][:10]):
-            print(f"\n样本 {i+1} (ID: {item.get('id', 'N/A')}):")
+            print(f"\n样本 {i + 1} (ID: {item.get('id', 'N/A')}):")
             print(f"   问题: {item['question'][:100]}...")
             print(f"   真实答案: {item['ground_truth']}")
             print(f"   预测: {item['model_output'][:100]}...")

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 from sage.core.api.function.map_function import MapFunction
 

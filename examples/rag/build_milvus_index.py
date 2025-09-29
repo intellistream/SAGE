@@ -22,7 +22,7 @@ def load_knowledge_to_milvus(config):
     persistence_path = config.get("milvus_dense").get("persistence_path")
     collection_name = config.get("milvus_dense").get("collection_name")
 
-    print(f"=== 预加载知识库到 ChromaDB ===")
+    print("=== 预加载知识库到 ChromaDB ===")
     print(f"文件: {knowledge_file} | DB: {persistence_path} | 集合: {collection_name}")
 
     loader = TextLoader(knowledge_file)

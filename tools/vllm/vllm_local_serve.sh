@@ -175,5 +175,19 @@ print_info "服务将在 http://localhost:8000 上运行"
 print_info "API Key: token-abc123"
 print_info "按 Ctrl+C 停止服务"
 
-# 启动 vllm 本地服务
-vllm serve "$MODEL" --dtype auto --api-key token-abc123
+# 设置环境变量以优化内存使用和离线模式
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export CUDA_VISIBLE_DEVICES=0
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+
+# 启动 vllm 本地服务 (使用内存优化参数)
+vllm serve "$MODEL" \
+    --dtype auto \
+    --api-key token-abc123 \
+    --gpu-memory-utilization 0.5 \
+    --max-model-len 512 \
+    --max-num-batched-tokens 1024 \
+    --max-num-seqs 16 \
+    --enforce-eager \
+    --disable-log-stats

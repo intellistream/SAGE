@@ -181,3 +181,5 @@ examples/data/neuromem_vdb/
 !examples/memory/data/neuromem/vdb_collection/RAGMemoryCollection/indexes/test_index/faiss.index
 packages/sage-tools/src/sage/tools/studio/node_modules/*
 packages/sage-tools/src/sage/tools/studio/.angular/*
+
+**/node_modules

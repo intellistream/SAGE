@@ -78,7 +78,7 @@ class FeedbackDelayer(BaseFunction):
         if data is None:
             return None
 
-        print(f"⏱️  Adding delay before feedback...")
+        print("⏱️  Adding delay before feedback...")
         time.sleep(1)  # 1秒延迟，便于观察
         print(f"🔙 Sending feedback: {data}")
         return data

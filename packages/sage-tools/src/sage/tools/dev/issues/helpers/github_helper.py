@@ -5,16 +5,20 @@
 """
 
 import json
-import os
 import sys
 import time
 from pathlib import Path
 
 import requests
 
-# 添加上级目录到sys.path以导入config
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from ..config import IssuesConfig as Config
+# 动态导入config模块
+try:
+    # 尝试相对导入（当作为模块运行时）
+    from ..config import IssuesConfig
+except ImportError:
+    # 如果相对导入失败，使用绝对导入
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from config import IssuesConfig
 
 
 class GitHubProjectManager:
@@ -34,7 +38,7 @@ class GitHubProjectManager:
 
     def _get_github_token(self):
         """获取GitHub token"""
-        config = Config()
+        config = IssuesConfig()
         token = config.github_token
         if token:
             print("✅ 从 IssuesConfig 获取到 GitHub Token")
@@ -47,7 +51,7 @@ class GitHubProjectManager:
     def _load_configurations(self):
         """加载团队和项目配置"""
         try:
-            config = Config()
+            config = IssuesConfig()
             # 加载项目映射配置
             boards_file = config.metadata_path / "boards_metadata.json"
             with open(boards_file, "r", encoding="utf-8") as f:

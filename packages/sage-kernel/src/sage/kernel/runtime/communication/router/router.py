@@ -1,3 +1,4 @@
+# flake8: noqa: F401
 # sage.kernels.runtime/base_router.py
 import traceback
 from abc import ABC, abstractmethod
@@ -16,8 +17,9 @@ except ImportError:
     ActorHandle = None
 
 if TYPE_CHECKING:
-    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import \
-        BaseQueueDescriptor
+    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
+        BaseQueueDescriptor,
+    )
     from sage.kernel.runtime.communication.router.connection import Connection
     from sage.kernel.runtime.communication.router.packet import StopSignal
     from sage.kernel.runtime.context.task_context import TaskContext

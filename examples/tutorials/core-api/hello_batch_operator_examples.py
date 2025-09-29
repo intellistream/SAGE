@@ -8,8 +8,6 @@
 from typing import Any, Iterator, List
 
 from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.local_environment import LocalEnvironment
 
 
 class SimpleBatchFunction(BatchFunction):
@@ -233,7 +231,7 @@ class BatchTaskExample:
             completion = simple_batch.get_completion_rate()
 
             print(
-                f"第{i+1}次执行: 结果={result}, 进度={current}/{total} ({completion:.1%}), 完成={simple_batch.is_finished()}"
+                f"第{i + 1}次执行: 结果={result}, 进度={current}/{total} ({completion:.1%}), 完成={simple_batch.is_finished()}"
             )
 
             if simple_batch.is_finished():

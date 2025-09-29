@@ -10,19 +10,16 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
-import threading
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
-import pytest
+import pytest  # noqa: F401
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, track
 from rich.table import Table
 
 console = Console()
@@ -32,7 +29,7 @@ def find_project_root() -> Path:
     """查找项目根目录，使用统一的路径管理"""
     try:
         # 尝试导入统一的路径管理
-        import os
+        import os  # noqa: F401
         import sys
 
         # 添加sage-common到路径
@@ -43,8 +40,7 @@ def find_project_root() -> Path:
         if sage_common_path.exists():
             sys.path.insert(0, str(sage_common_path))
 
-        from sage.common.config.output_paths import \
-            find_project_root as find_sage_root
+        from sage.common.config.output_paths import find_project_root as find_sage_root
 
         return find_sage_root()
     except ImportError:
@@ -537,7 +533,7 @@ class ExampleRunner:
 
             input_indicators = ["input(", "raw_input(", "getpass."]
             return any(indicator in content for indicator in input_indicators)
-        except:
+        except Exception:
             return False
 
     def _prepare_environment(self, example_info: ExampleInfo) -> Dict[str, str]:
@@ -694,13 +690,91 @@ class ExampleTestSuite:
 
         console.print(f"📄 测试结果已保存到: {output_file}")
 
+    def run_all_tests(
+        self, categories: Optional[List[str]] = None, quick_only: bool = False
+    ) -> Dict[str, int]:
+        """运行所有测试"""
+        console.print("🚀 [bold blue]开始运行 SAGE Examples 测试[/bold blue]")
+
+        # 发现所有示例
+        examples = self.analyzer.discover_examples()
+
+        if not examples:
+            console.print("[yellow]没有发现任何示例文件[/yellow]")
+            return {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "timeout": 0}
+
+        # 过滤示例
+        filtered_examples = self._filter_examples(examples, categories, quick_only)
+
+        if not filtered_examples:
+            console.print("[yellow]没有符合条件的示例文件[/yellow]")
+            return {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "timeout": 0}
+
+        # 显示摘要
+        self._show_examples_summary(filtered_examples)
+
+        # 运行测试
+        console.print(f"\n🧪 开始测试 {len(filtered_examples)} 个示例文件...")
+
+        self.results = []
+        for i, example in enumerate(filtered_examples, 1):
+            console.print(
+                f"[{i}/{len(filtered_examples)}] 测试 {Path(example.file_path).name}..."
+            )
+
+            result = self.runner.run_example(example)
+            self.results.append(result)
+
+            # 显示结果
+            status_emoji = {
+                "passed": "✅",
+                "failed": "❌",
+                "skipped": "⏭️",
+                "timeout": "⏰",
+            }.get(result.status, "❓")
+
+            console.print(
+                f"  {status_emoji} {result.status.upper()} ({result.execution_time:.2f}s)"
+            )
+            if result.error:
+                console.print(f"    错误: {result.error}")
+
+        # 显示结果和统计
+        console.print("\n" + "=" * 50)
+        self._show_results()
+        stats = self._get_statistics()
+
+        return stats
+
+    def _filter_examples(
+        self,
+        examples: List[ExampleInfo],
+        categories: Optional[List[str]] = None,
+        quick_only: bool = False,
+    ) -> List[ExampleInfo]:
+        """过滤示例"""
+        filtered = examples
+
+        # 按类别过滤
+        if categories:
+            filtered = [e for e in filtered if e.category in categories]
+
+        # 按运行时间过滤
+        if quick_only:
+            filtered = [e for e in filtered if e.estimated_runtime == "quick"]
+
+        # 检查测试标记
+        filtered = [e for e in filtered if "skip" not in e.test_tags]
+
+        return filtered
+
 
 # CLI 接口
 app = typer.Typer(help="SAGE Examples 测试工具")
 
 
 @app.command("test")
-def test_cmd(
+def run_tests_cmd(
     categories: Optional[List[str]] = typer.Option(
         None, "--category", "-c", help="指定测试类别"
     ),
@@ -749,7 +823,7 @@ def analyze():
     analyzer = ExampleAnalyzer()
     examples = analyzer.discover_examples()
 
-    console.print(f"📊 [bold blue]Examples 分析报告[/bold blue]")
+    console.print("📊 [bold blue]Examples 分析报告[/bold blue]")
     console.print(f"总计发现 {len(examples)} 个示例文件\n")
 
     # 按类别统计

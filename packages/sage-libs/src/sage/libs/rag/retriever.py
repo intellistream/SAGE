@@ -104,8 +104,7 @@ class ChromaRetriever(MapFunction):
     def _init_embedding_model(self):
         """初始化 embedding 模型"""
         try:
-            from sage.middleware.utils.embedding.embedding_model import \
-                EmbeddingModel
+            from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
 
             embedding_method = self.embedding_config.get("method", "default")
             model = self.embedding_config.get(
@@ -263,7 +262,10 @@ class ChromaRetriever(MapFunction):
                 self._save_data_record(input_query, standardized_docs)
 
             # 提取所有原始文档的text字段，供retrieved_docs使用
-            retrieved_texts = [doc.get("text", doc.get("content", str(doc))) for doc in standardized_docs]
+            retrieved_texts = [
+                doc.get("text", doc.get("content", str(doc)))
+                for doc in standardized_docs
+            ]
 
             if is_dict_input:
                 data["results"] = standardized_docs
@@ -314,7 +316,7 @@ class ChromaRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -401,8 +403,7 @@ class MilvusDenseRetriever(MapFunction):
     def _init_embedding_model(self):
         """初始化embedding模型"""
         try:
-            from sage.middleware.utils.embedding.embedding_model import \
-                EmbeddingModel
+            from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
 
             embedding_method = self.embedding_config.get("method", "default")
             model = self.embedding_config.get(
@@ -577,7 +578,12 @@ class MilvusDenseRetriever(MapFunction):
                 data["retrieved_documents"] = []
                 return data
             else:
-                return {"query": input_query, "retrieved_docs": [], "retrieved_documents": [], "input": data}
+                return {
+                    "query": input_query,
+                    "retrieved_docs": [],
+                    "retrieved_documents": [],
+                    "input": data,
+                }
 
     def save_config(self, save_path: str) -> bool:
         """
@@ -616,7 +622,7 @@ class MilvusDenseRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -860,7 +866,12 @@ class MilvusSparseRetriever(MapFunction):
                 data["retrieved_documents"] = []
                 return data
             else:
-                return {"query": input_query, "retrieved_docs": [], "retrieved_documents": [], "input": data}
+                return {
+                    "query": input_query,
+                    "retrieved_docs": [],
+                    "retrieved_documents": [],
+                    "input": data,
+                }
 
     def save_config(self, save_path: str) -> bool:
         """
@@ -893,7 +904,7 @@ class MilvusSparseRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 
@@ -1230,7 +1241,12 @@ class Wiki18FAISSRetriever(MapFunction):
                 data["retrieved_docs"] = retrieved_texts
                 return data
             else:
-                return {"query": input_query, "results": retrieved_docs, "retrieved_docs": retrieved_texts, "input": data}
+                return {
+                    "query": input_query,
+                    "results": retrieved_docs,
+                    "retrieved_docs": retrieved_texts,
+                    "input": data,
+                }
 
         except Exception as e:
             self.logger.error(f"FAISS retrieval failed: {str(e)}")
@@ -1304,5 +1320,5 @@ class Wiki18FAISSRetriever(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass

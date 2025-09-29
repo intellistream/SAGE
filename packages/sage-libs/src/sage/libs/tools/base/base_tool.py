@@ -1,5 +1,5 @@
 # sage.lib/tools/base/base_tool.py
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 
 class BaseTool:

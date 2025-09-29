@@ -5,20 +5,16 @@ SAGE Issues 管理 - 测试套件
 基于原始test_issues_manager.sh的Python实现
 """
 
-import json
 import os
 import shutil
-import subprocess
 import sys
-import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
-import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, track
+from rich.progress import track
 from rich.table import Table
 
 from .config import IssuesConfig
@@ -255,7 +251,7 @@ class IssuesTestSuite:
     def generate_report(self, passed: int, total: int):
         """生成测试报告"""
         console.print("\n" + "=" * 60)
-        console.print(f"📊 [bold blue]测试结果汇总[/bold blue]")
+        console.print("📊 [bold blue]测试结果汇总[/bold blue]")
         console.print("=" * 60)
 
         table = Table(title="测试详情")
@@ -273,7 +269,7 @@ class IssuesTestSuite:
         console.print(f"\n📈 总计: {total} 个测试")
         console.print(f"✅ 通过: {passed} 个")
         console.print(f"❌ 失败: {total - passed} 个")
-        console.print(f"📊 成功率: {passed/total*100:.1f}%")
+        console.print(f"📊 成功率: {passed / total * 100:.1f}%")
 
         # CI环境特殊处理
         is_ci = os.environ.get("CI") == "true"

@@ -5,10 +5,7 @@ Tests the ActorWrapper class which provides transparent proxying
 between local objects and Ray actors.
 """
 
-import asyncio
-import concurrent.futures
-from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from sage.kernel.utils.ray.actor import ActorWrapper

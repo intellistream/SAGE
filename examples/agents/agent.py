@@ -6,6 +6,13 @@ import os
 import sys
 from typing import Any, Dict, Iterable
 
+from sage.common.utils.config.loader import load_config
+from sage.libs.agents.action.mcp_registry import MCPRegistry
+from sage.libs.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agents.profile.profile import BaseProfile
+from sage.libs.agents.runtime.agent import AgentRuntime
+from sage.libs.rag.generator import OpenAIGenerator
+
 # 添加项目路径到 sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, "..", "..")
@@ -14,8 +21,7 @@ sys.path.insert(0, project_root)
 
 # 加载环境配置
 try:
-    from tools.env_config import (get_api_key, load_sage_env,
-                                  should_use_real_api)
+    from tools.env_config import get_api_key, load_sage_env, should_use_real_api
 
     load_sage_env()  # 立即加载环境变量
 except ImportError:
@@ -29,14 +35,6 @@ except ImportError:
 
     def should_use_real_api():
         return False
-
-
-from sage.common.utils.config.loader import load_config
-from sage.libs.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agents.planning.llm_planner import LLMPlanner
-from sage.libs.agents.profile.profile import BaseProfile
-from sage.libs.agents.runtime.agent import AgentRuntime
-from sage.libs.rag.generator import OpenAIGenerator
 
 
 # ====== 读取 source ======

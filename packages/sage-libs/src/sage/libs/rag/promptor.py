@@ -3,8 +3,6 @@ import os
 import time
 
 from jinja2 import Template
-from sage.common.config.output_paths import get_states_file
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
 
 QA_prompt_template = """Instruction:
@@ -92,10 +90,13 @@ class QAPromptor(MapFunction):
         self.enable_profile = enable_profile
 
         # 使用配置文件中的模板，如果没有则使用默认模板
-        self.use_short_answer = config.get("use_short_answer", False)  # 是否使用短答案模式
-        
+        self.use_short_answer = config.get(
+            "use_short_answer", False
+        )  # 是否使用短答案模式
+
         if "template" in config:
             from jinja2 import Template
+
             self.prompt_template = Template(config["template"])
         else:
             # 根据配置选择模板
@@ -290,7 +291,7 @@ class QAPromptor(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 

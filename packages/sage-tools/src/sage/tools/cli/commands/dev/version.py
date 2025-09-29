@@ -126,7 +126,7 @@ def update_version_file(
 
 def parse_version(version_str: str) -> Tuple[int, int, int, str]:
     """解析版本号为(major, minor, patch, suffix)"""
-    # 匹配形如 "0.1.3.1" 或 "0.1.3-alpha.1" 的版本号
+    # 匹配形如 "0.1.4" 或 "0.1.3-alpha.1" 的版本号
     match = re.match(r"(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|[\-\.]?(.*))?", version_str)
     if match:
         major, minor, patch, build, suffix = match.groups()
@@ -144,7 +144,7 @@ def parse_version(version_str: str) -> Tuple[int, int, int, str]:
 def increment_version(version_str: str, increment_type: str) -> str:
     """增加版本号"""
     if "." in version_str and len(version_str.split(".")) >= 4:
-        # 处理四位版本号，如 "0.1.3.1"
+        # 处理四位版本号，如 "0.1.4"
         parts = version_str.split(".")
         major, minor, patch, build = (
             int(parts[0]),

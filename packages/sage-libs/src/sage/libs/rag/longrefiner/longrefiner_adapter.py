@@ -96,7 +96,9 @@ class LongRefinerAdapter(MapFunction):
             score_gpu_device=score_gpu_device,  # 使用配置文件中的score_gpu_device
         )
 
-        self.logger.info(f"LongRefiner初始化成功，主模型使用GPU {gpu_device}，Score模型使用GPU {score_gpu_device}")
+        self.logger.info(
+            f"LongRefiner初始化成功，主模型使用GPU {gpu_device}，Score模型使用GPU {score_gpu_device}"
+        )
 
     def execute(self, data):
         # 处理不同的输入格式
@@ -216,5 +218,5 @@ class LongRefinerAdapter(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass

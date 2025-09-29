@@ -7,7 +7,7 @@ This module provides the main FastAPI application for the SAGE Web UI.
 import json
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -130,17 +130,6 @@ def _read_sage_data_from_files():
     return data
 
 
-import json
-import os
-from pathlib import Path
-from typing import List, Optional
-
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
-
-
 def _load_version():
     """加载版本信息"""
     try:
@@ -247,7 +236,7 @@ async def root():
     <head>
         <title>SAGE Web UI</title>
         <style>
-            body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; 
+            body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0;
                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                    min-height: 100vh; display: flex; justify-content: center; align-items: center; }
             .container { background: white; padding: 2rem; border-radius: 10px;

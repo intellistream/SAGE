@@ -20,7 +20,7 @@ except ImportError:
     DOTENV_AVAILABLE = False
 
 try:
-    import pytest
+    import pytest  # noqa: F401
 
     PYTEST_AVAILABLE = True
 except ImportError:

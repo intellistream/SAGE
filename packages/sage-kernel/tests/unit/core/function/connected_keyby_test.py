@@ -351,7 +351,7 @@ class TestConnectedStreamsKeyBy:
                     f"   - User {user_id} ({data_type}): {data.get('name', data.get('event', 'N/A'))}"
                 )
 
-        print(f"\n🎯 User Distribution Across Instances:")
+        print("\n🎯 User Distribution Across Instances:")
         for user_id, instances in user_distribution.items():
             print(f"   - {user_id}: routed to instance(s) {instances}")
 
@@ -398,11 +398,11 @@ class TestConnectedStreamsKeyBy:
                     stream1_key_distribution[key].add(instance_id)
                     print(f"   - Stream1 key '{key}': {data['event']}")
 
-        print(f"\n🎯 Stream 0 (User) Key Distribution:")
+        print("\n🎯 Stream 0 (User) Key Distribution:")
         for key, instances in stream0_key_distribution.items():
             print(f"   - User {key}: routed to instance(s) {instances}")
 
-        print(f"\n🎯 Stream 1 (Event) Key Distribution:")
+        print("\n🎯 Stream 1 (Event) Key Distribution:")
         for key, instances in stream1_key_distribution.items():
             print(f"   - Session {key}: routed to instance(s) {instances}")
 
@@ -449,7 +449,7 @@ class TestConnectedStreamsKeyBy:
                         f"   - Enriched Event: {user_id} {event_name} from stream {source_stream}"
                     )
 
-        print(f"\n🎯 CoMap Results Summary:")
+        print("\n🎯 CoMap Results Summary:")
         print(f"   - User updates: {len(user_updates)}")
         print(f"   - Enriched events: {len(enriched_events)}")
 

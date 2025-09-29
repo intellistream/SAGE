@@ -1,8 +1,5 @@
-import json
 import os
-import pickle
 import signal
-import socket
 import sys
 import threading
 import time
@@ -10,19 +7,15 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-from uuid import UUID
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.common.utils.serialization.dill import deserialize_object
 from sage.kernel.jobmanager.job_info import JobInfo
 from sage.kernel.jobmanager.job_manager_server import JobManagerServer
 from sage.kernel.runtime.dispatcher import Dispatcher
 
 if TYPE_CHECKING:
-    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
     from sage.core.api.base_environment import BaseEnvironment
-
-import ray
+    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
 
 
 class JobManager:  # Job Manager
@@ -145,8 +138,7 @@ class JobManager:  # Job Manager
 
     def _create_execution_graph(self, env: "BaseEnvironment") -> "ExecutionGraph":
         """创建执行图"""
-        from sage.kernel.jobmanager.compiler.execution_graph import \
-            ExecutionGraph
+        from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
 
         return ExecutionGraph(env)
 

@@ -8,12 +8,12 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from license_core import LicenseCore
+from validation import LicenseValidator
+
 # Add shared components to path
 shared_dir = Path(__file__).parent.parent / "shared"
 sys.path.insert(0, str(shared_dir))
-
-from license_core import LicenseCore
-from validation import LicenseValidator
 
 
 class LicenseClient:
@@ -96,7 +96,7 @@ class LicenseClient:
                     days_left = (expires - datetime.now()).days
                     if days_left < 30:
                         print(f"⚠️  License expires in {days_left} days")
-                except:
+                except Exception:
                     pass
         else:
             print("Features: Open-source functionality")

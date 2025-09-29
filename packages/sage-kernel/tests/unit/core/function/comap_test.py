@@ -3,9 +3,8 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
-import pytest
 from sage.core.api.function.comap_function import BaseCoMapFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
@@ -564,7 +563,7 @@ class TestCoMapFunctionality:
                         f"   - {processor}: Payment {payment_id} ({status}, seq #{sequence}) from stream {source_stream}"
                     )
 
-        print(f"\n🎯 CoMap Processing Summary:")
+        print("\n🎯 CoMap Processing Summary:")
         print(f"   - Processed orders: {len(processed_orders)}")
         print(f"   - Processed payments: {len(processed_payments)}")
 
@@ -629,7 +628,7 @@ class TestCoMapFunctionality:
                         f"   - {enrichment}: Inventory {product} (seq #{sequence}) from stream {source_stream}"
                     )
 
-        print(f"\n🎯 Three-Stream CoMap Summary:")
+        print("\n🎯 Three-Stream CoMap Summary:")
         print(f"   - Enriched orders: {len(enriched_orders)}")
         print(f"   - Enriched payments: {len(enriched_payments)}")
         print(f"   - Enriched inventory: {len(enriched_inventory)}")
@@ -673,7 +672,7 @@ class TestCoMapFunctionality:
                     print(f"   - Enriched Payment: {payment_id} ({status})")
                     print(f"     Stats: {stats}")
 
-        print(f"\n🎯 Stateful CoMap Summary:")
+        print("\n🎯 Stateful CoMap Summary:")
         print(f"   - Cached orders: {len(cached_orders)}")
         print(f"   - Enriched payments: {len(enriched_payments)}")
 

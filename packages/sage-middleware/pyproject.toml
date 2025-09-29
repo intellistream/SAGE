@@ -2,6 +2,8 @@
 requires = [
     "setuptools>=64",
     "wheel",
+    "pybind11>=2.10.0",  # C++ 扩展绑定
+    "cmake>=3.20",       # C++ 构建工具 (如果系统没有)
 ]
 build-backend = "setuptools.build_meta"
 
@@ -47,15 +49,13 @@ dependencies = [
     # Authentication and security
     "python-jose==3.5.0",
     "passlib==1.7.4",
-    "ascii_colors>=0.11.4",
-    "pipmaster>=0.9.2",
     
     # Task queue
     "celery==5.5.3",
     "flower==2.0.1",
     
     # API clients
-    "openai>=1.52.0,<=1.90.0",  # 与vllm兼容的openai版本
+    "openai>=1.99.1",  # vLLM 0.10.1.1兼容的openai版本
     "ollama==0.5.1",
     "zhipuai==2.1.5.20250801",
     "cohere>=5.16.1",
@@ -191,6 +191,18 @@ namespaces = true
     "templates/*",
     "static/*",
 ]
+# C++ 扩展相关文件
+"sage.middleware.components.sage_db.python" = [
+    "*.so",
+    "*.py",
+    "*.pyi",
+]
+"sage.middleware.components.sage_flow.python" = [
+    "*.so", 
+    "*.py",
+    "*.pyi",
+    "micro_service/*",
+]
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -252,6 +264,40 @@ overrides = [
     { module = "sage.service.*", ignore_missing_imports = false },
     { module = "fastapi.*", ignore_missing_imports = true },
 ]
+
+[tool.ruff]
+# 与flake8保持一致的配置
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+# 启用的规则集（与flake8兼容）
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings  
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "C90",  # mccabe complexity
+]
+
+# 忽略的错误（与flake8 .flake8文件保持一致）
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+# 复杂度限制（与flake8保持一致）
+mccabe = { max-complexity = 10 }
+
+# 文件特定忽略
+per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
+
+[tool.ruff.lint.isort]
+known-first-party = ["sage"]
+force-single-line = false
+combine-as-imports = true
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.middleware._version.__version__"}

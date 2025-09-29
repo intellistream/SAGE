@@ -11,7 +11,6 @@ Creates in `output/`:
 Token resolution order: GITHUB_TOKEN env var -> .github_token file searched upward from repo -> user's home .github_token
 """
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -72,9 +71,10 @@ class TeamMembersCollector:
         while url:
             resp = requests.get(url, headers=self.headers, params=params)
             if resp.status_code != 200:
-                print(
-                    f"❌ 获取团队 {team_slug} 成员失败: {resp.status_code} {resp.text}"
+                error_msg = (
+                    f"获取团队 {team_slug} 成员失败: {resp.status_code} {resp.text}"
                 )
+                print(f"❌ {error_msg}", file=sys.stderr)
                 return []
             data = resp.json()
             for member in data:
@@ -101,12 +101,23 @@ class TeamMembersCollector:
         return members
 
     def collect(self):
+        success_count = 0
         for slug in self.teams.keys():
             print(f"📋 获取团队 {slug} 成员...")
             members = self._get_team_members(slug)
-            self.teams[slug]["members"] = members
-            print(f"✅ {slug}: {len(members)} 人")
-        return self.teams
+            if members:  # Only count as success if we got members
+                self.teams[slug]["members"] = members
+                success_count += 1
+                print(f"✅ {slug}: {len(members)} 人")
+            else:
+                print(f"❌ {slug}: 获取失败")
+
+        if success_count == 0:
+            print("所有团队获取失败，无法生成团队信息", file=sys.stderr)
+            return None
+        else:
+            print(f"✅ 成功获取 {success_count}/{len(self.teams)} 个团队的信息")
+            return self.teams
 
     def write_outputs(self, teams_data):
         # JSON
@@ -189,12 +200,16 @@ def main():
 
     if not token:
         print(
-            "❌ 未找到 GitHub Token。请设置 GITHUB_TOKEN 环境变量或在仓库根目录创建 .github_token 文件"
+            "未找到 GitHub Token。请设置 GITHUB_TOKEN 环境变量或在仓库根目录创建 .github_token 文件",
+            file=sys.stderr,
         )
         sys.exit(1)
 
     collector = TeamMembersCollector(token)
     teams = collector.collect()
+    if teams is None:
+        print("无法获取任何团队信息，退出", file=sys.stderr)
+        sys.exit(1)
     collector.write_outputs(teams)
     print("\n🎉 metadata 文件生成完成")
 

@@ -701,7 +701,7 @@ class MilvusUtils:
         检查 MilvusDB 是否可用
         """
         try:
-            import pymilvus
+            import pymilvus  # noqa: F401
 
             return True
         except ImportError:

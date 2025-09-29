@@ -452,13 +452,13 @@ class ExampleEnvironmentManager:
         for temp_file in self.temp_files:
             try:
                 os.unlink(temp_file)
-            except:
+            except Exception:
                 pass
 
         for temp_dir in self.temp_dirs:
             try:
                 shutil.rmtree(temp_dir)
-            except:
+            except Exception:
                 pass
 
         self.temp_files.clear()

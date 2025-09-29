@@ -1,8 +1,6 @@
-import asyncio
 import os
 
 import cohere
-import numpy as np
 
 
 async def cohere_embed(
@@ -24,11 +22,6 @@ async def cohere_embed(
         # embedding_types=embedding_types
     )
     return response.embeddings
-
-
-import os
-
-import cohere
 
 
 def cohere_embed_sync(

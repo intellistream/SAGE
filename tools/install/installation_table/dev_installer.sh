@@ -8,64 +8,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 导入核心安装器函数
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 
-# 安装C++扩展函数
-install_cpp_extensions() {
-    local log_file="$1"
-    
-    echo -e "${DIM}正在检查系统构建工具...${NC}"
-    echo "$(date): 开始安装C++扩展" >> "$log_file"
-    
-    # 检查必要的构建工具
-    local missing_tools=()
-    
-    if ! command -v gcc >/dev/null 2>&1 && ! command -v g++ >/dev/null 2>&1; then
-        missing_tools+=("gcc/g++")
-    fi
-    
-    if ! command -v cmake >/dev/null 2>&1; then
-        missing_tools+=("cmake")
-    fi
-    
-    if ! command -v make >/dev/null 2>&1; then
-        missing_tools+=("make")
-    fi
-    
-    if [ ${#missing_tools[@]} -gt 0 ]; then
-        echo -e "${WARNING} 缺少构建工具: ${missing_tools[*]}"
-        echo -e "${DIM}Ubuntu/Debian: sudo apt install build-essential cmake${NC}"
-        echo -e "${DIM}CentOS/RHEL: sudo yum groupinstall 'Development Tools' && sudo yum install cmake${NC}"
-        echo -e "${DIM}macOS: xcode-select --install && brew install cmake${NC}"
-        echo "$(date): 构建工具检查失败: ${missing_tools[*]}" >> "$log_file"
-        return 1
-    fi
-    
-    echo -e "${CHECK} 构建工具检查完成"
-    echo ""
-    
-    # 尝试使用 sage 命令安装扩展
-    echo -e "${DIM}正在安装C++扩展...${NC}"
-    
-    if command -v sage >/dev/null 2>&1; then
-        SAGE_CMD="sage"
-    elif python3 -c "import sage.tools.cli.main" 2>/dev/null; then
-        SAGE_CMD="python3 -m sage.tools.cli.main"
-    else
-        echo -e "${WARNING} 找不到 sage CLI 工具"
-        echo "$(date): 找不到 sage CLI 工具" >> "$log_file"
-        return 1
-    fi
-    
-    echo -e "${DIM}使用命令: ${SAGE_CMD} extensions install all --force${NC}"
-    
-    # 执行扩展安装，重定向输出到日志
-    if $SAGE_CMD extensions install all --force >> "$log_file" 2>&1; then
-        echo "$(date): C++扩展安装成功" >> "$log_file"
-        return 0
-    else
-        echo "$(date): C++扩展安装失败" >> "$log_file"
-        return 1
-    fi
-}
+# C++扩展安装已移至main_installer.sh中的标准安装流程
 
 # 安装开发包
 install_dev_packages() {
@@ -128,19 +71,8 @@ install_dev_packages() {
     
     echo ""
     
-    # 安装C++扩展（开发者模式特有）
-    echo -e "${BOLD}  🧩 配置C++扩展环境（开发者模式）...${NC}"
-    echo ""
-    
-    # 尝试安装 C++ 扩展
-    if install_cpp_extensions "$log_file"; then
-        echo -e "${CHECK} C++ 扩展安装成功 (sage_db, sage_flow)"
-        echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
-    else
-        echo -e "${WARNING} C++ 扩展安装失败，基础Python功能不受影响"
-        echo -e "${DIM}稍后可手动安装: sage extensions install all${NC}"
-        echo -e "${DIM}或查看日志了解详情: $log_file${NC}"
-    fi
+    # C++扩展已在标准安装流程中安装完成
+    echo -e "${BOLD}  ℹ️  C++扩展已在标准安装流程中完成${NC}"
     
     echo ""
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

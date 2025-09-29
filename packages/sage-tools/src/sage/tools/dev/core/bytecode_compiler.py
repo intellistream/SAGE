@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from rich.console import Console
-from rich.progress import Progress, TaskID
+from rich.progress import Progress
 
 from .exceptions import SAGEDevToolkitError
 
@@ -436,7 +436,7 @@ setup(
             )
 
             if result.returncode == 0:
-                console.print(f"  ✅ 构建成功", style="green")
+                console.print("  ✅ 构建成功", style="green")
 
                 # 查找构建的wheel文件
                 dist_files = list(Path("dist").glob("*.whl"))
@@ -534,7 +534,7 @@ setup(
                     for f in all_files[:10]:
                         console.print(f"       - {f}")
                     if len(all_files) > 10:
-                        console.print(f"       ... 还有 {len(all_files)-10} 个文件")
+                        console.print(f"       ... 还有 {len(all_files) - 10} 个文件")
                 else:
                     if pyc_count > 0:
                         console.print("    ✅ wheel包包含.pyc文件", style="green")
@@ -665,7 +665,6 @@ def _create_sage_home_symlink() -> Optional[Path]:
     Returns:
         软链接路径，如果创建失败则返回None
     """
-    import os
 
     current_dir = Path.cwd()
     sage_home = Path.home() / ".sage"
