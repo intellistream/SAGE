@@ -993,7 +993,7 @@ class LongRefiner:
 
         # select by budget(ratio)
         refined_node_list = self.select_by_budget(
-            question_list, doc_structuring_result, all_nodes, idx2node, budget, ratio
+            question_list, document_list, doc_structuring_result, all_nodes, idx2node, budget, ratio
         )
         for item_node_list in refined_node_list:
             for node in item_node_list:
@@ -1009,6 +1009,7 @@ class LongRefiner:
     def select_by_budget(
         self,
         question_list: List[str],
+        document_list: List[List[dict]],
         structured_document_list: List[List[dict]],
         all_nodes: List[dict],
         idx2node: dict,
