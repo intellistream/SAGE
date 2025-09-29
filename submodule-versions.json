@@ -1,0 +1,22 @@
+{
+  "description": "SAGE子模块版本锁定配置",
+  "submodules": {
+    "sage_db": {
+      "repository": "https://github.com/intellistream/sageDB.git",
+      "version": "v1.0.0",
+      "commit": "94e32b6ee77d879c3051cc69bffd492788d10148",
+      "last_updated": "2025-09-29"
+    },
+    "sage_flow": {
+      "repository": "https://github.com/intellistream/sageFlow.git", 
+      "version": "v1.0.0",
+      "commit": "2f2084781ffad2ccf0f54fcc0cc375047b89addd",
+      "last_updated": "2025-09-29"
+    }
+  },
+  "update_policy": {
+    "frequency": "weekly",
+    "responsible": "maintainer",
+    "auto_update": false
+  }
+}

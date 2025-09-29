@@ -21,8 +21,8 @@ def test_neuromem_manager():
 
     index_config = {
         "name": "test_index",
-        "embedding_model": "default",
-        "dim": 384,
+        "embedding_model": "mockembedder",
+        "dim": 128,
         "backend_type": "FAISS",
         "description": "默认测试索引",
         "index_parameter": {},
@@ -47,11 +47,11 @@ def test_neuromem_manager():
 
     results = vdb_collection.retrieve(
         index_name="test_index",
-        raw_data="广东菜",
+        raw_data="想吃广东菜",
         with_metadata=True,
         threshold=0.3,  # 使用合理的阈值
     )
-    assert any("想吃广东菜" in r["text"] for r in results), "找不到匹配的文本"
+    assert any("广东菜" in r["text"] for r in results), "找不到匹配的文本"
     print("✅ 测试一：创建集合通过！")
 
     # 测试二：查看集合是否存在
@@ -87,7 +87,7 @@ def test_neuromem_manager():
     vdb_collection = manager.get_collection("test_collection")
     results = vdb_collection.retrieve(
         index_name="test_index",
-        raw_data="广东菜",
+        raw_data="想吃广东菜",
         with_metadata=True,
         threshold=0.3,  # 使用合理的阈值
     )

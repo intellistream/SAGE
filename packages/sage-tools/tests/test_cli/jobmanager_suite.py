@@ -10,14 +10,15 @@ from .helpers import CLITestCase
 
 
 def collect_cases() -> list[CLITestCase]:
-    status_patch = lambda: patch(
-        "sage.tools.cli.commands.jobmanager.JobManagerController.status",
-        return_value={
-            "health": {"status": "success"},
-            "processes": [],
-            "port_occupied": False,
-        },
-    )
+    def status_patch():
+        return patch(
+            "sage.tools.cli.commands.jobmanager.JobManagerController.status",
+            return_value={
+                "health": {"status": "success"},
+                "processes": [],
+                "port_occupied": False,
+            },
+        )
 
     return [
         CLITestCase(

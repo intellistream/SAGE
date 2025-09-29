@@ -12,23 +12,23 @@ try:
     from sage.middleware.components.sage_db.python import _sage_db
 
     _SAGE_DB_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     _sage_db = None
     warnings.warn(
-        "SAGE DB C++扩展不可用，某些高性能功能将受限。"
+        f"SAGE DB C++扩展不可用，某些高性能功能将受限。错误: {e}\n"
         "安装完整版本：pip install --force-reinstall isage-middleware",
         UserWarning,
     )
 
 try:
     from sage.middleware.components.sage_flow.python import _sage_flow
-    from sage.middleware.components.sage_flow.python.sage_flow import *  # noqa: F401
+    from sage.middleware.components.sage_flow.python.sage_flow import *  # noqa: F401, F403
 
     _SAGE_FLOW_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     _sage_flow = None
     warnings.warn(
-        "SAGE Flow C++扩展不可用，流处理功能将受限。"
+        f"SAGE Flow C++扩展不可用，流处理功能将受限。错误: {e}\n"
         "安装完整版本：pip install --force-reinstall isage-middleware",
         UserWarning,
     )
