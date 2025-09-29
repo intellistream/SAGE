@@ -994,9 +994,9 @@ class IssuesSyncer:
             if line.strip() == "## Project归属":
                 # 查找下一行的项目信息
                 for j in range(i + 1, min(i + 5, len(lines))):
-                    l = lines[j].strip()
-                    if l.startswith("- **") and "**" in l:
-                        team_match = re.search(r"\*\*(.+?)\*\*", l)
+                    l_strip = lines[j].strip()
+                    if l_strip.startswith("- **") and "**" in l_strip:
+                        team_match = re.search(r"\*\*(.+?)\*\*", l_strip)
                         if team_match:
                             return team_match.group(1)
                 break

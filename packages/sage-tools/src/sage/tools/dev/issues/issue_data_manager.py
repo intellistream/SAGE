@@ -107,8 +107,8 @@ class IssueDataManager:
                     "state": issue_data.get("state", "open"),
                     "state_reason": issue_data.get("state_reason"),
                     "labels": [
-                        l.get("name") if isinstance(l, dict) else l
-                        for l in issue_data.get("labels", [])
+                        l_strip.get("name") if isinstance(l_strip, dict) else l_strip
+                        for l_strip in issue_data.get("labels", [])
                     ],
                     "assignees": [
                         a.get("login") if isinstance(a, dict) else a
@@ -181,8 +181,6 @@ class IssueDataManager:
                     ),
                     # 新增：父子关系信息
                     "parent_issue_url": issue_data.get("parent_issue_url"),
-                    # 新增：issue类型信息
-                    "type": issue_data.get("type"),
                 },
                 "content": {
                     "body": issue_data.get("body", ""),

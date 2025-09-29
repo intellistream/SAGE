@@ -2,7 +2,7 @@
 # 忽略的错误代码
 # E501: line too long (handled by black)
 # W503: line break before binary operator (conflicts with W504)
-ignore = E501,W503,F841,F811,E203
+ignore = E501,W503,F841,F811,E203,F402
 
 # 最大行长度（与black保持一致）
 max-line-length = 88

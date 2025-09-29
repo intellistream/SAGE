@@ -141,7 +141,7 @@ def detect_lambda_type(func: Callable) -> str:
             and return_annotation.__origin__ == list
         ):
             return "flatmap"
-        elif return_annotation == type(None) or return_annotation is None:
+        elif return_annotation is type(None) or return_annotation is None:
             return "sink"
         else:
             # 默认为 map

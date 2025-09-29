@@ -434,7 +434,7 @@ class UniversalSerializer:
             loaded_obj = UniversalSerializer.load_object_from_file(path)
 
             # 检查类型是否匹配
-            if type(obj) != type(loaded_obj):
+            if type(obj) is not type(loaded_obj):
                 return False
 
             # 复制属性

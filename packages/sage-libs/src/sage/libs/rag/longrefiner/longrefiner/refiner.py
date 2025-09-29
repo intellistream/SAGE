@@ -4,7 +4,14 @@ from typing import List, Tuple
 import json_repair
 import numpy as np
 from sage.libs.rag.longrefiner.longrefiner.prompt_template import PromptTemplate
-from sage.libs.rag.longrefiner.longrefiner.task_instruction import *
+from sage.libs.rag.longrefiner.longrefiner.task_instruction import (
+    SYSTEM_PROMPT_STEP1,
+    SYSTEM_PROMPT_STEP2,
+    SYSTEM_PROMPT_STEP3,
+    USER_PROMPT_STEP1,
+    USER_PROMPT_STEP2,
+    USER_PROMPT_STEP3,
+)
 from tqdm import tqdm
 from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 from vllm import LLM, SamplingParams
@@ -1007,7 +1014,8 @@ class LongRefiner:
             ), "budget is None, ratio must be a float between 0 and 1"
             idx2budget = {}
             for idx in idx2node:
-                item_documents = document_list[idx]
+                # 下面这个是啥？为什么会突然使用没有被导入的变量名称？
+                item_documents = document_list[idx]  # noqa: F821
                 doc_contents = " ".join([doc["contents"] for doc in item_documents])
                 doc_length = len(self.tokenizer(doc_contents)["input_ids"])
                 budget = int(doc_length * ratio)
