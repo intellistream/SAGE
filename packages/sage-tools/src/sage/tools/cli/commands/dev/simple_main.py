@@ -30,6 +30,10 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: PyPI发布管理功能不可用: {e}[/yellow]")
 
+# 删除：CI 子命令（已由 GitHub Workflows 承担 CI/CD）
+# 过去这里会 add_typer(ci_app, name="ci", ...)
+# 现在不再提供本地 CI 包装命令，建议直接依赖 GitHub Actions。
+
 # 添加版本管理子命令
 try:
     from .version import app as version_app
@@ -418,7 +422,7 @@ def _run_quality_check(
                 quality_issues = True
             else:
                 if not quiet:
-                    console.print("[green]✅ 代码质量检查通过[/green]")
+                    console.print("[green]✅ 代码质量检查通过 √ [/green]")
         except FileNotFoundError:
             if not quiet:
                 console.print("[yellow]⚠️ flake8 未安装，跳过代码质量检查[/yellow]")
@@ -837,19 +841,19 @@ def test(
             if has_quality_issues and not quiet:
                 console.print("[yellow]⚠️ 发现代码质量问题，但继续运行测试[/yellow]")
             elif not quiet:
-                console.print("[green]✅ 代码质量检查通过，继续运行测试[/green]")
+                console.print("[green]🎉 所有代码质量检查通过，继续运行测试[/green]")
         elif not quiet:
             console.print("[yellow]⚠️ 跳过代码质量检查[/yellow]")
 
         # 诊断模式
         if diagnose:
-            console.print("🔍 运行诊断模式...")
+            console.print(Rule("[bold cyan]🔍 运行诊断模式...[/bold cyan]"))
             _run_diagnose_mode(str(project_path))
             return
 
         # Issues Manager 测试
         if issues_manager:
-            console.print("🔧 运行 Issues Manager 测试...")
+            console.print(Rule("[bold cyan]🔍 运行 Issues Manager 测试...[/bold cyan]"))
             _run_issues_manager_test(str(project_path), verbose)
             return
 
@@ -864,7 +868,7 @@ def test(
         # 配置测试参数
         test_config = {
             "verbose": verbose and not quiet,
-            "jobs": jobs,
+            "workers": jobs,
             "timeout": timeout,
             "continue_on_error": continue_on_error,
             "target_packages": target_packages,
@@ -872,9 +876,9 @@ def test(
         }
 
         if not quiet:
-            console.print(f"🧪 运行 {test_type} 测试...")
+            console.print(Rule(f"[bold cyan]🧪 运行 {test_type} 测试...[/bold cyan]"))
             console.print(
-                f"⚙️ 配置: {jobs}并发, {timeout}s超时, {'继续执行' if continue_on_error else '遇错停止'}"
+                f"测试配置: {jobs} 线程测试,     {timeout}s 超时退出,     {'遇到错误继续执行模式' if continue_on_error else '遇错停止模式'}"
             )
 
         start_time = time.time()
@@ -1626,9 +1630,6 @@ def _run_quick_tests(runner, config: dict, quiet: bool):
 
 def _run_all_tests(runner, config: dict, quiet: bool):
     """运行全部测试"""
-    if not quiet:
-        console.print("🧪 全面测试模式")
-
     return runner.run_tests(mode="all", **config)
 
 

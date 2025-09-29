@@ -78,8 +78,8 @@ class DeploymentManager:
         if not path.exists():
             return False
 
-        # 检查必需文件
-        required_files = ["pyproject.toml", "project_config.toml"]
+        # 检查必需文件 - 使用现在实际存在的标识文件
+        required_files = ["quickstart.sh", "README.md"]
         for file_name in required_files:
             if not (path / file_name).exists():
                 return False
@@ -92,7 +92,7 @@ class DeploymentManager:
 
         # 检查packages目录下是否有sage相关包
         packages_dir = path / "packages"
-        sage_packages = ["sage", "sage-common", "sage-kernel"]
+        sage_packages = ["sage", "sage-common", "sage-kernel","sage-libs","sage-middleware","sage-tools"]
         has_sage_package = any((packages_dir / pkg).exists() for pkg in sage_packages)
 
         return has_sage_package
@@ -106,7 +106,7 @@ class DeploymentManager:
             raise FileNotFoundError(f"项目根目录不存在: {self.project_root}")
 
         # 检查关键文件是否存在
-        key_files = ["project_config.toml", "pyproject.toml"]
+        key_files = ["quickstart.sh", "README.md"]
         for file_name in key_files:
             file_path = self.project_root / file_name
             if not file_path.exists():
@@ -152,7 +152,7 @@ class DeploymentManager:
                             "*.egg-info/",
                             ".pytest_cache/",
                             ".tox/",
-                            "node_modules/",
+                            "node_modules",  # 排除任何深度的node_modules目录
                             ".git/",
                             ".vscode/",
                             ".idea/",
@@ -184,9 +184,10 @@ class DeploymentManager:
 
                 # 4. 添加必需的配置文件
                 required_files = [
-                    "project_config.toml",
-                    "pyproject.toml",
                     "quickstart.sh",
+                    "README.md",
+                    "LICENSE",
+                    "CONTRIBUTING.md",
                 ]
                 for filename in required_files:
                     file_path = self.project_root / filename
@@ -470,7 +471,7 @@ class DeploymentManager:
             sage_home = remote_config.get("sage_home", "/home/sage")
 
             # 构建 quickstart 参数
-            quickstart_args = ["--standard"]
+            quickstart_args = ["--dev", "--yes"]  # 使用开发者安装模式，并跳过确认提示
 
             # 使用配置中的环境名，如果没有配置则使用 'sage'
             env_name = remote_config.get("conda_env", "sage")
@@ -628,13 +629,18 @@ class DeploymentManager:
             typer.echo(
                 f"📦 安装命令: {quickstart_env_str} ./quickstart.sh {quickstart_args_str}"
             )
-            typer.echo("⏰ 注意: 这一步可能需要5-10分钟，请耐心等待...")
+            typer.echo("⏰ 注意: 这一步可能需要10-20分钟，请耐心等待...")
+            typer.echo("🔍 如果长时间无输出，可能在下载或编译大型包（torch, numpy等）")
 
             install_command = (
                 f"set -e\n"
                 f"cd {sage_home}/SAGE\n"
                 f"echo '📦 开始执行SAGE安装...'\n"
                 f"echo '命令: {quickstart_env_str} ./quickstart.sh {quickstart_args_str}'\n"
+                f"echo '⏰ 开始时间: $(date)'\n"
+                f"# 创建安装进度监控\n"
+                f"mkdir -p .sage/logs\n"
+                f"touch .sage/logs/progress.log\n"
                 f"# 设置conda环境\n"
                 f"for conda_path in \\\n"
                 f"    '$HOME/miniconda3/etc/profile.d/conda.sh' \\\n"
@@ -643,21 +649,67 @@ class DeploymentManager:
                 f"    '/usr/local/miniconda3/etc/profile.d/conda.sh' \\\n"
                 f"    '/usr/local/anaconda3/etc/profile.d/conda.sh'; do\n"
                 f'    if [ -f "$conda_path" ]; then\n'
+                f'        echo "🐍 使用conda: $conda_path"\n'
                 f'        source "$conda_path"\n'
                 f"        break\n"
                 f"    fi\n"
                 f"done\n"
                 f"# 设置环境变量并执行quickstart脚本\n"
                 f"export {quickstart_env_str.replace(' ', ' export ')}\n"
+                f"echo '🚀 开始执行quickstart脚本...'\n"
                 f"chmod +x ./quickstart.sh\n"
-                f"./quickstart.sh {quickstart_args_str}\n"
-                f"echo '✅ SAGE安装完成'\n"
+                f"# 使用tee同时输出到终端和日志文件，添加时间戳\n"
+                f"(timeout 1200 ./quickstart.sh {quickstart_args_str} 2>&1 | tee >(while IFS= read -r line; do echo \"[$(date +'%H:%M:%S')] $line\"; done > .sage/logs/progress.log)) &\n"
+                f"INSTALL_PID=$!\n"
+                f"# 监控安装进程，每30秒报告一次状态\n"
+                f"while kill -0 $INSTALL_PID 2>/dev/null; do\n"
+                f"    sleep 30\n"
+                f"    echo \"[$(date +'%H:%M:%S')] 📊 安装进行中，进程ID: $INSTALL_PID\"\n"
+                f"    if [ -f .sage/logs/progress.log ]; then\n"
+                f"        tail -3 .sage/logs/progress.log | head -1\n"
+                f"    fi\n"
+                f"done\n"
+                f"wait $INSTALL_PID\n"
+                f"INSTALL_RESULT=$?\n"
+                f"if [ $INSTALL_RESULT -eq 124 ]; then\n"
+                f"    echo '❌ quickstart脚本执行超时（1200秒）'\n"
+                f"    exit 1\n"
+                f"elif [ $INSTALL_RESULT -ne 0 ]; then\n"
+                f"    echo '❌ quickstart脚本执行失败，返回码: $INSTALL_RESULT'\n"
+                f"    if [ -f .sage/logs/progress.log ]; then\n"
+                f"        echo '📋 最后几行日志:'\n"
+                f"        tail -10 .sage/logs/progress.log\n"
+                f"    fi\n"
+                f"    exit 1\n"
+                f"fi\n"
+                f"echo '✅ SAGE安装完成 - $(date)'\n"
             )
 
-            # 安装步骤使用更长的超时时间
+            # 安装步骤使用更长的超时时间（增加到20分钟）
             if not self.execute_ssh_command_with_progress(
-                host, port, install_command, 600, "SAGE安装"
-            ):  # 10分钟
+                host, port, install_command, 1200, "SAGE安装"
+            ):  # 20分钟
+                # 安装失败，尝试获取日志信息
+                typer.echo("🔍 获取安装失败的详细信息...")
+                log_check_cmd = (
+                    f"cd {sage_home}/SAGE\n"
+                    f"echo '=== 检查安装日志 ==='\n"
+                    f"if [ -f .sage/logs/install.log ]; then\n"
+                    f"    echo '📋 最后50行安装日志:'\n" 
+                    f"    tail -50 .sage/logs/install.log\n"
+                    f"else\n"
+                    f"    echo '❌ 未找到安装日志文件'\n"
+                    f"fi\n"
+                    f"echo '\\n=== 检查Python环境 ==='\n"
+                    f"python3 --version 2>/dev/null || echo '❌ Python3不可用'\n"
+                    f"pip3 --version 2>/dev/null || echo '❌ pip3不可用'\n"
+                    f"echo '\\n=== 检查磁盘空间 ==='\n"
+                    f"df -h . | head -2\n"
+                )
+                
+                self.execute_ssh_command_with_progress(
+                    host, port, log_check_cmd, 60, "日志检查"
+                )
                 return False
 
             # 步骤4: 清理和完成

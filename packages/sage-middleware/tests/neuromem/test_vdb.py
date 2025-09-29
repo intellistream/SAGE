@@ -24,8 +24,8 @@ def test_vdb_collection():
     # 创建索引配置
     index_config = {
         "name": "test_index",
-        "embedding_model": "default",
-        "dim": 384,
+        "embedding_model": "mockembedder",
+        "dim": 128,
         "backend_type": "FAISS",
         "description": "默认测试索引",
         "index_parameter": {},
@@ -39,7 +39,7 @@ def test_vdb_collection():
 
     # 搜索测试
     results = test_collection.retrieve(
-        raw_data="数据库事务可确保操作的原子性与一致性",
+        raw_data="数据库事务可确保操作的原子性与一致性。",
         index_name="test_index",
         topk=3,  # 注意：这里使用topk而不是top_k
         threshold=0.3,  # 使用合理的阈值
