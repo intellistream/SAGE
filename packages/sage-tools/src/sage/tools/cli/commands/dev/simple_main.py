@@ -67,6 +67,7 @@ def quality(
     """
     import subprocess
     from pathlib import Path
+
     from sage.common.config.output_paths import get_sage_paths
 
     project_path = Path(project_root).resolve()
