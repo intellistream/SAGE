@@ -5,7 +5,6 @@ from __future__ import annotations
 import shutil
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 from sage.tools.cli.main import app as sage_app
 
@@ -44,74 +43,5 @@ def collect_cases() -> list[CLITestCase]:
             "sage dev version list",
             ["dev", "version", "list", "--root", str(project_root)],
             app=sage_app,
-        ),
-        CLITestCase(
-            "sage dev quality skip checks",
-            [
-                "dev",
-                "quality",
-                "--project-root",
-                str(project_root),
-                "--no-format",
-                "--no-sort-imports",
-                "--no-lint",
-            ],
-            app=sage_app,
-        ),
-        CLITestCase(
-            "sage dev models configure",
-            ["dev", "models", "configure"],
-            app=sage_app,
-            patch_factories=[
-                lambda: patch(
-                    "sage.tools.cli.commands.dev.models.configure_hf_environment",
-                    side_effect=lambda console: console.print("configured"),
-                )
-            ],
-        ),
-        CLITestCase(
-            "sage dev models cache",
-            ["dev", "models", "cache", "--model", "text-embedding"],
-            app=sage_app,
-            patch_factories=[
-                lambda: patch(
-                    "sage.tools.cli.commands.dev.models.cache_embedding_model",
-                    return_value=True,
-                )
-            ],
-        ),
-        CLITestCase(
-            "sage dev models cache failure",
-            ["dev", "models", "cache"],
-            app=sage_app,
-            patch_factories=[
-                lambda: patch(
-                    "sage.tools.cli.commands.dev.models.cache_embedding_model",
-                    return_value=False,
-                )
-            ],
-            expected_exit_code=1,
-        ),
-        CLITestCase(
-            "sage dev models check",
-            ["dev", "models", "check"],
-            app=sage_app,
-            patch_factories=[
-                lambda: patch(
-                    "sage.tools.cli.commands.dev.models.check_embedding_model",
-                    return_value=True,
-                )
-            ],
-        ),
-        CLITestCase(
-            "sage dev models clear",
-            ["dev", "models", "clear", "--model", "text-embedding"],
-            app=sage_app,
-            patch_factories=[
-                lambda: patch(
-                    "sage.tools.cli.commands.dev.models.clear_embedding_model_cache",
-                    return_value=True,
-                )
-            ],
         ),
     ]

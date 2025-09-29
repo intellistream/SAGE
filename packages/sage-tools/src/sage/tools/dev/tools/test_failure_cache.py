@@ -277,6 +277,6 @@ class TestFailureCache:
             print(f"   Execution time: {last_summary.get('execution_time', 0):.2f}s")
 
         if info["has_failed_tests"]:
-            print("\n   Use 'sage dev test --failed' to re-run failed tests")
+            print("\n   Use 'sage-dev test --failed' to re-run failed tests")
         else:
             print("\n   No failed tests cached")

@@ -74,7 +74,7 @@ class TestCLICommandsFull:
             [
                 sys.executable,
                 "-m",
-                "sage.tools.cli.commands.dev.main",
+                "sage.tools.cli.commands.dev.simple_main",
                 "status",
                 "--output-format",
                 "summary",
@@ -89,7 +89,7 @@ class TestCLICommandsFull:
             [
                 sys.executable,
                 "-m",
-                "sage.tools.cli.commands.dev.main",
+                "sage.tools.cli.commands.dev.simple_main",
                 "status",
                 "--output-format",
                 "json",
@@ -129,7 +129,7 @@ class TestCLICommandsFull:
             [
                 sys.executable,
                 "-m",
-                "sage.tools.cli.commands.dev.main",
+                "sage.tools.cli.commands.dev.simple_main",
                 "status",
                 "--output-format",
                 "markdown",
@@ -144,7 +144,7 @@ class TestCLICommandsFull:
             [
                 sys.executable,
                 "-m",
-                "sage.tools.cli.commands.dev.main",
+                "sage.tools.cli.commands.dev.simple_main",
                 "analyze",
                 "--analysis-type",
                 "all",
@@ -166,7 +166,7 @@ class TestCLICommandsFull:
             [
                 sys.executable,
                 "-m",
-                "sage.tools.cli.commands.dev.main",
+                "sage.tools.cli.commands.dev.simple_main",
                 "clean",
                 "--dry-run",
             ]
@@ -199,7 +199,7 @@ class TestCLICommandsFull:
         """测试关键模块导入功能"""
         modules_to_test = [
             "sage.tools.cli.main",
-            "sage.tools.cli.commands.dev.main",
+            "sage.tools.cli.commands.dev.simple_main",
             "sage.tools.dev.tools.project_status_checker",
             "sage.tools.dev.tools.dependency_analyzer",
         ]
@@ -218,7 +218,7 @@ class TestCLICommandsFull:
             [
                 sys.executable,
                 "-m",
-                "sage.tools.cli.commands.dev.main",
+                "sage.tools.cli.commands.dev.simple_main",
                 "home",
                 "status",
             ]
@@ -235,7 +235,7 @@ class TestCLICommandsFull:
             [
                 sys.executable,
                 "-c",
-                "from sage.tools.cli.commands.dev.main import test; print('Test command importable')",
+                "from sage.tools.cli.commands.dev.simple_main import test; print('Test command importable')",
             ]
         )
         assert result["success"], f"Test command import failed: {result['stderr']}"

@@ -112,9 +112,7 @@ def get_api_key(service: str, *, required: bool = True) -> Optional[str]:
     env_var = mapping.get(service.lower())
     if not env_var:
         available = ", ".join(sorted(mapping))
-        raise ValueError(
-            f"Unknown service '{service}'. Available services: {available}"
-        )
+        raise ValueError(f"Unknown service '{service}'. Available services: {available}")
 
     value = os.getenv(env_var)
     if not value and required:

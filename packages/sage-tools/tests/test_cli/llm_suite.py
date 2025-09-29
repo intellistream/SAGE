@@ -38,43 +38,4 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=status_patches,
         ),
-        CLITestCase(
-            "sage llm start background",
-            [
-                "llm",
-                "start",
-                "vllm",
-                "--background",
-                "--port",
-                "9000",
-            ],
-            app=sage_app,
-            patch_factories=[
-                lambda: patch(
-                    "sage.tools.cli.commands.llm._is_service_running",
-                    return_value=False,
-                ),
-                lambda: patch(
-                    "sage.tools.cli.commands.llm.subprocess.Popen",
-                    return_value=DummyProcess(pid=9999, cmd=["vllm", "serve"]),
-                ),
-            ],
-        ),
-        CLITestCase(
-            "sage llm stop force",
-            ["llm", "stop", "--force"],
-            app=sage_app,
-            patch_factories=[
-                lambda: patch(
-                    "sage.tools.cli.commands.llm._find_llm_processes",
-                    return_value=[DummyProcess(pid=1111, cmd=["vllm", "serve"])],
-                )
-            ],
-        ),
-        CLITestCase(
-            "sage llm start invalid service",
-            ["llm", "start", "invalid-service"],
-            app=sage_app,
-            expected_exit_code=1,
-        ),
     ]

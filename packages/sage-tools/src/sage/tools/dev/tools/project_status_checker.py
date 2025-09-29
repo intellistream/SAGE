@@ -382,28 +382,13 @@ class ProjectStatusChecker:
     def _get_installed_packages(self) -> Dict[str, str]:
         """获取已安装的包列表和版本"""
         try:
-            try:
-                from importlib import metadata as importlib_metadata
-            except ImportError:  # pragma: no cover - Python <3.8 fallback
-                import importlib_metadata  # type: ignore
+            import pkg_resources
 
-            installed: Dict[str, str] = {}
-            for dist in importlib_metadata.distributions():
-                name: Optional[str]
-                try:
-                    name = dist.metadata["Name"]  # type: ignore[index]
-                except Exception:
-                    metadata_obj = getattr(dist, "metadata", None)
-                    name = (
-                        metadata_obj.get("Name")
-                        if hasattr(metadata_obj, "get")
-                        else None
-                    )
-                if not name:
-                    continue
-                installed[str(name)] = dist.version
+            installed = {}
+            for dist in pkg_resources.working_set:
+                installed[dist.project_name] = dist.version
             return installed
-        except Exception:
+        except ImportError:
             # 回退方案：使用pip list
             try:
                 result = subprocess.run(

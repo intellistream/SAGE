@@ -95,18 +95,18 @@ sage-core stop
 
 ```bash
 # Run tests
-sage dev test
+sage-dev test
 
 # Code analysis
-sage dev analyze
+sage-dev analyze
 
 # Package management
-sage dev package build
-sage dev package publish
+sage-dev package build
+sage-dev package publish
 
 # Generate reports
-sage dev report coverage
-sage dev report performance
+sage-dev report coverage
+sage-dev report performance
 ```
 
 ### Using Frontend

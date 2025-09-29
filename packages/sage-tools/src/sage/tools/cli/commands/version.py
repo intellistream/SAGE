@@ -52,7 +52,7 @@ def show():
     print("   sage job list         # 查看作业列表")
     print("   sage studio start     # 启动Studio可视化编辑器")
     print("   sage extensions       # 查看可用扩展")
-    print("   sage dev --help       # 开发工具")
+    print("   sage-dev --help       # 开发工具")
     print("   sage jobmanager start # 启动作业管理器服务")
 
 

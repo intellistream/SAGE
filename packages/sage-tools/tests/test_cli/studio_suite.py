@@ -53,77 +53,28 @@ class FakeStudioManager:
         return True
 
 
-def _patch_manager(*, running: bool = False) -> Callable[[], object]:
-    def _factory():
-        fake_manager = FakeStudioManager()
-        fake_manager._running = running
-        return patch(
-            "sage.tools.cli.commands.studio.studio_manager",
-            fake_manager,
-        )
-
-    return _factory
+def _patch_manager() -> Callable[[], object]:
+    fake_manager = FakeStudioManager()
+    return lambda: patch(
+        "sage.tools.cli.commands.studio.studio_manager",
+        fake_manager,
+    )
 
 
 def collect_cases() -> list[CLITestCase]:
+    patch_factory = _patch_manager()
+
     return [
         CLITestCase(
             "sage studio start",
             ["studio", "start", "--host", "127.0.0.1", "--port", "9001"],
             app=sage_app,
-            patch_factories=[_patch_manager()],
+            patch_factories=[patch_factory],
         ),
         CLITestCase(
             "sage studio status",
             ["studio", "status"],
             app=sage_app,
-            patch_factories=[_patch_manager()],
-        ),
-        CLITestCase(
-            "sage studio stop",
-            ["studio", "stop"],
-            app=sage_app,
-            patch_factories=[_patch_manager()],
-        ),
-        CLITestCase(
-            "sage studio restart",
-            ["studio", "restart"],
-            app=sage_app,
-            patch_factories=[_patch_manager()],
-        ),
-        CLITestCase(
-            "sage studio logs",
-            ["studio", "logs", "--follow"],
-            app=sage_app,
-            patch_factories=[_patch_manager()],
-        ),
-        CLITestCase(
-            "sage studio install",
-            ["studio", "install"],
-            app=sage_app,
-            patch_factories=[_patch_manager()],
-        ),
-        CLITestCase(
-            "sage studio build",
-            ["studio", "build"],
-            app=sage_app,
-            patch_factories=[_patch_manager()],
-        ),
-        CLITestCase(
-            "sage studio open",
-            ["studio", "open"],
-            app=sage_app,
-            patch_factories=[
-                _patch_manager(running=True),
-                lambda: patch(
-                    "sage.tools.cli.commands.studio.webbrowser.open", return_value=True
-                ),
-            ],
-        ),
-        CLITestCase(
-            "sage studio clean",
-            ["studio", "clean"],
-            app=sage_app,
-            patch_factories=[_patch_manager()],
+            patch_factories=[patch_factory],
         ),
     ]

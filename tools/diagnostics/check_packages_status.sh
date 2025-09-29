@@ -12,7 +12,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PACKAGES_DIR="$PROJECT_ROOT/packages"
-export PROJECT_ROOT
 
 # 颜色配置
 GREEN='\033[0;32m'
@@ -25,35 +24,12 @@ NC='\033[0m'
 echo -e "${BOLD}📋 SAGE Framework 包状态检查${NC}"
 echo -e "====================================="
 
-# 检查是否可获取增强信息
-ENHANCED_MODE=false
-PACKAGE_INFO_JSON=""
-
-if command -v python3 &> /dev/null; then
-    if PACKAGE_INFO_JSON=$(python3 <<'PY'
-import json
-import os
-import sys
-
-try:
-    from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
-except Exception as e:
-    print(f"Error importing ProjectStatusChecker: {e}", file=sys.stderr)
-    raise SystemExit(1)
-
-project_root = os.environ.get("PROJECT_ROOT")
-checker = ProjectStatusChecker(project_root)
-packages = checker._check_packages().get("packages", {})
-print(json.dumps(packages, ensure_ascii=False))
-PY
-    ); then
-        ENHANCED_MODE=true
-        export PACKAGE_INFO_JSON
-    fi
-fi
-
-if [ "$ENHANCED_MODE" = false ]; then
-    echo -e "${YELLOW}⚠️ 未能加载增强检查模块，将显示基础信息${NC}"
+# 检查 sage-dev 是否可用
+if ! command -v sage-dev &> /dev/null; then
+    echo -e "${YELLOW}⚠️ sage-dev 命令未找到，将使用基础检查${NC}"
+    BASIC_MODE=true
+else
+    BASIC_MODE=false
 fi
 
 # 获取包列表
@@ -106,48 +82,11 @@ except Exception as e:
         echo -e "  ${CYAN}🧪 测试文件: $test_files 个${NC}"
     fi
     
-    # 展示增强信息（如果可用）
-    if [ "$ENHANCED_MODE" = true ]; then
-        CURRENT_PACKAGE="$package"
-        export CURRENT_PACKAGE
-        if EXTRA_INFO=$(python3 <<'PY'
-import json
-import os
-
-package = os.environ.get("CURRENT_PACKAGE")
-packages = json.loads(os.environ.get("PACKAGE_INFO_JSON", "{}"))
-info = packages.get(package)
-
-if not info:
-    raise SystemExit(0)
-
-lines = []
-
-installed = info.get("installed")
-version = info.get("version")
-if installed:
-    if version:
-        lines.append(f"✅ 已安装 (版本 {version})")
-    else:
-        lines.append("✅ 已安装")
-else:
-    lines.append("⚠️ 未安装")
-
-if info.get("importable"):
-    module = info.get("module_name", "未知模块")
-    lines.append(f"✅ 可导入: {module}")
-    import_path = info.get("import_path")
-    if import_path:
-        lines.append(f"📂 模块路径: {import_path}")
-else:
-    lines.append("⚠️ 无法导入主模块")
-
-print("\n".join(f"    {line}" for line in lines))
-PY
-        ); then
-            if [ -n "$EXTRA_INFO" ]; then
-                echo "$EXTRA_INFO"
-            fi
+    # 使用 sage-dev info（如果可用）
+    if [ "$BASIC_MODE" = false ]; then
+        echo -e "  ${CYAN}🔍 详细信息:${NC}"
+        if sage-dev info "$package_path" 2>/dev/null | grep -E "(构建文件|Python文件)" | sed 's/^/    /'; then
+            :
         else
             echo -e "    ${YELLOW}获取详细信息失败${NC}"
         fi
@@ -170,8 +109,9 @@ done
 echo -e "已构建: ${BOLD}$built_packages${NC}"
 echo -e "未构建: ${BOLD}$((${#packages[@]} - built_packages))${NC}"
 
-if [ "$ENHANCED_MODE" = false ]; then
-    echo -e "\n${YELLOW}💡 提示: 安装并初始化项目后可使用 'sage dev status --packages --project-root ${PROJECT_ROOT}' 获取更详细信息${NC}"
+if [ "$BASIC_MODE" = true ]; then
+    echo -e "\n${YELLOW}💡 提示: 安装 sage-dev-toolkit 可获取更详细信息${NC}"
+    echo -e "   pip install -e packages/sage-dev-toolkit"
 fi
 
 echo -e "\n${GREEN}✅ 检查完成${NC}"

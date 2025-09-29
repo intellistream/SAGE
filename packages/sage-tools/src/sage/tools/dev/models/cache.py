@@ -86,7 +86,7 @@ def _prepare_requests_session():
         retry_strategy = Retry(
             total=3,
             status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            allowed_methods=["HEAD", "GET", "OPTIONS"],
             backoff_factor=1,
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
@@ -133,7 +133,7 @@ def cache_embedding_model(
         except Exception as exc:  # pragma: no cover - network dependent
             console.print(f"  ❌ 下载失败: {exc}")
             if attempt < retries - 1:
-                delay = 2**attempt
+                delay = 2 ** attempt
                 console.print(f"  ⏳ {delay} 秒后重试")
                 time.sleep(delay)
             else:
@@ -148,7 +148,7 @@ def cache_embedding_model(
         except Exception as exc:  # pragma: no cover - network dependent
             console.print(f"  ❌ 下载失败: {exc}")
             if attempt < retries - 1:
-                delay = 2**attempt
+                delay = 2 ** attempt
                 console.print(f"  ⏳ {delay} 秒后重试")
                 time.sleep(delay)
             else:
@@ -157,18 +157,14 @@ def cache_embedding_model(
     if verify and tokenizer is not None and model is not None:
         try:
             console.print("🧪 验证模型输出...")
-            inputs = tokenizer(
-                "测试文本", return_tensors="pt", padding=True, truncation=True
-            )
+            inputs = tokenizer("测试文本", return_tensors="pt", padding=True, truncation=True)
             outputs = model(**inputs)
             console.print(f"  ✅ 输出维度: {tuple(outputs.last_hidden_state.shape)}")
         except Exception as exc:  # pragma: no cover - runtime dependent
             console.print(f"❌ 模型验证失败: {exc}")
             return False
 
-    cache_dir = os.environ.get(
-        "TRANSFORMERS_CACHE", "~/.cache/huggingface/transformers"
-    )
+    cache_dir = os.environ.get("TRANSFORMERS_CACHE", "~/.cache/huggingface/transformers")
     console.print(f"✅ 模型缓存完成，位置: {cache_dir}")
     return True
 
@@ -188,9 +184,7 @@ def check_embedding_model(
     console.print(f"🔍 检查模型 {model_name} 是否就绪")
     try:
         AutoTokenizer.from_pretrained(model_name, local_files_only=True)
-        AutoModel.from_pretrained(
-            model_name, local_files_only=True, trust_remote_code=True
-        )
+        AutoModel.from_pretrained(model_name, local_files_only=True, trust_remote_code=True)
         console.print("✅ 模型已在本地缓存")
         return True
     except Exception:
@@ -205,7 +199,7 @@ def check_embedding_model(
         except Exception as exc:
             console.print(f"  ❌ 尝试 {attempt + 1} 失败: {exc}")
             if attempt < 2:
-                delay = 2**attempt
+                delay = 2 ** attempt
                 console.print(f"  ⏳ {delay} 秒后重试")
                 time.sleep(delay)
 

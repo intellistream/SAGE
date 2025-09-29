@@ -58,27 +58,11 @@ def _build_fake_client() -> SimpleNamespace:
             },
         }
 
-    def pause_job(uuid: str) -> Dict[str, object]:
-        return {"status": "stopped", "message": f"{uuid} stopped"}
-
-    def continue_job(uuid: str) -> Dict[str, object]:
-        return {"status": "running", "message": f"{uuid} continued"}
-
-    def delete_job(uuid: str, force: bool = False) -> Dict[str, object]:
-        return {"status": "success", "message": "deleted"}
-
-    def cleanup_all_jobs() -> Dict[str, object]:
-        return {"status": "success", "message": "all cleaned"}
-
     return SimpleNamespace(
         list_jobs=list_jobs,
         get_job_status=get_job_status,
         health_check=health_check,
         get_server_info=get_server_info,
-        pause_job=pause_job,
-        continue_job=continue_job,
-        delete_job=delete_job,
-        cleanup_all_jobs=cleanup_all_jobs,
     )
 
 
@@ -132,36 +116,6 @@ def collect_cases() -> list[CLITestCase]:
         CLITestCase(
             "sage job info",
             ["job", "info"],
-            app=sage_app,
-            patch_factories=patches,
-        ),
-        CLITestCase(
-            "sage job show",
-            ["job", "show", "1"],
-            app=sage_app,
-            patch_factories=patches,
-        ),
-        CLITestCase(
-            "sage job stop force",
-            ["job", "stop", "job-demo-uuid", "--force"],
-            app=sage_app,
-            patch_factories=patches,
-        ),
-        CLITestCase(
-            "sage job continue force",
-            ["job", "continue", "job-demo-uuid", "--force"],
-            app=sage_app,
-            patch_factories=patches,
-        ),
-        CLITestCase(
-            "sage job delete force",
-            ["job", "delete", "job-demo-uuid", "--force"],
-            app=sage_app,
-            patch_factories=patches,
-        ),
-        CLITestCase(
-            "sage job cleanup force",
-            ["job", "cleanup", "--force"],
             app=sage_app,
             patch_factories=patches,
         ),

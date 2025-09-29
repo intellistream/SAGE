@@ -17,9 +17,7 @@ from sage.tools.dev.models.cache import (
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CICD embedding模型管理")
-    parser.add_argument(
-        "--model", default=DEFAULT_MODEL_NAME, help="需要操作的模型标识"
-    )
+    parser.add_argument("--model", default=DEFAULT_MODEL_NAME, help="需要操作的模型标识")
     parser.add_argument("--check", action="store_true", help="检查模型可用性")
     parser.add_argument("--cache", action="store_true", help="缓存模型")
     parser.add_argument("--clear-cache", action="store_true", help="清除模型缓存")
@@ -52,13 +50,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if check_embedding_model(args.model) else 1
 
     if args.cache:
-        return (
-            0
-            if cache_embedding_model(
-                args.model, verify=args.verify, retries=args.retries
-            )
-            else 1
-        )
+        return 0 if cache_embedding_model(args.model, verify=args.verify, retries=args.retries) else 1
 
     # 默认行为与历史脚本保持一致：先检查，不通过则执行缓存
     if check_embedding_model(args.model):
@@ -66,11 +58,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     print("模型不可用，开始缓存...")
-    return (
-        0
-        if cache_embedding_model(args.model, verify=args.verify, retries=args.retries)
-        else 1
-    )
+    return 0 if cache_embedding_model(args.model, verify=args.verify, retries=args.retries) else 1
 
 
 if __name__ == "__main__":
