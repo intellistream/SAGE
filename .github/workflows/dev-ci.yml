@@ -308,7 +308,7 @@ jobs:
             
             # 显示构建的文件
             echo "📋 构建的包文件:"
-            find dist/ -name "*.whl" -o -name "*.tar.gz" | sort
+            find packages/sage/dist/ -name "*.whl" -o -name "*.tar.gz" | sort
           else
             echo "❌ 包构建失败"
             exit 1
@@ -328,16 +328,16 @@ jobs:
           
           # 安装核心包进行测试
           echo "📦 测试安装核心包..."
-          if ls dist/isage-*.whl 1> /dev/null 2>&1; then
-            pip install dist/isage-*.whl
+          if ls packages/sage/dist/isage-*.whl 1> /dev/null 2>&1; then
+            pip install packages/sage/dist/isage-*.whl
             python -c "import sage; print('✅ sage核心包安装成功')"
           else
             echo "⚠️ 未找到核心包wheel文件"
           fi
           
           # 测试工具包安装
-          if ls dist/isage_tools-*.whl 1> /dev/null 2>&1; then
-            pip install dist/isage_tools-*.whl
+          if ls packages/sage-tools/dist/isage_tools-*.whl 1> /dev/null 2>&1; then
+            pip install packages/sage-tools/dist/isage_tools-*.whl # ⬅️ 使用正确的路径
             python -c "import sage.tools; print('✅ sage-tools包安装成功')"
           else
             echo "⚠️ 未找到工具包wheel文件"
