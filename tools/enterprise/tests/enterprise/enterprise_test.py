@@ -33,7 +33,9 @@ class EnterpriseValidator:
             result = subprocess.run(
                 [
                     sys.executable,
-                    str(self.project_root / "tools/license/sage_license.py"),
+                    "-m",
+                    "sage.tools.cli.main",
+                    "license",
                     "status",
                 ],
                 capture_output=True,
