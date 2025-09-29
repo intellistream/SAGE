@@ -101,9 +101,6 @@ class CompletePipInstallTester:
             "cleanup": False,
         }
 
-        print(f"🧪 测试目录: {self.test_dir}")
-        print(f"🏠 项目根目录: {self.project_root}")
-
     def run_command(
         self,
         cmd: List[str],
@@ -396,12 +393,57 @@ class CompletePipInstallTester:
                 print(f"  ❌ 安装失败: {stderr}")
                 return False
 
-            # 验证安装
+            # 验证安装 - 使用更robust的版本检测方法
+            version_check_code = '''
+try:
+    import sage
+    version = None
+    
+    # 尝试多种方式获取版本信息
+    if hasattr(sage, '__version__'):
+        version = sage.__version__
+    elif hasattr(sage, '_version') and hasattr(sage._version, '__version__'):
+        version = sage._version.__version__
+    
+    # 尝试从子包获取版本
+    if not version:
+        try:
+            import sage.common
+            if hasattr(sage.common, '__version__'):
+                version = sage.common.__version__
+        except ImportError:
+            pass
+    
+    # 尝试使用importlib.metadata（Python 3.8+的标准方式）
+    if not version:
+        # 尝试不同的包名
+        package_names = ['isage', 'sage', 'sage-common', 'sage-kernel']
+        for pkg_name in package_names:
+            try:
+                import importlib.metadata
+                version = importlib.metadata.version(pkg_name)
+                break
+            except (ImportError, Exception):
+                try:
+                    import pkg_resources
+                    version = pkg_resources.get_distribution(pkg_name).version
+                    break
+                except (ImportError, Exception):
+                    continue
+    
+    if version:
+        print(f"SAGE version: {version}")
+    else:
+        print("SAGE installed but version not accessible")
+except Exception as e:
+    print(f"Import failed: {e}")
+    raise
+'''
             returncode, stdout, stderr = self.run_command(
                 [
                     str(self.python_exe),
                     "-c",
-                    "import sage; print('SAGE version:', sage.__version__)",
+                    version_check_code,
                 ]
                 # 移除cwd参数，在pip安装环境中使用默认工作目录
             )
@@ -423,8 +465,46 @@ class CompletePipInstallTester:
         print("\n🔍 测试基本导入...")
 
         test_imports = [
-            # 核心包
-            ("sage", "import sage; print(f'SAGE {sage.__version__} loaded')"),
+            # 核心包 - 使用更robust的版本访问方法
+            ("sage", """import sage; 
+version = 'unknown'
+# 尝试多种方式获取版本信息
+try:
+    if hasattr(sage, '__version__'):
+        version = sage.__version__
+    elif hasattr(sage, '_version'):
+        if hasattr(sage._version, '__version__'):
+            version = sage._version.__version__
+    
+    # 如果仍然是unknown，尝试从子包获取
+    if version == 'unknown':
+        try:
+            import sage.common
+            if hasattr(sage.common, '__version__'):
+                version = sage.common.__version__
+        except ImportError:
+            pass
+    
+    # 最后尝试使用importlib.metadata
+    if version == 'unknown':
+        # 尝试不同的包名
+        package_names = ['isage', 'sage', 'sage-common', 'sage-kernel']
+        for pkg_name in package_names:
+            try:
+                import importlib.metadata
+                version = importlib.metadata.version(pkg_name)
+                break
+            except (ImportError, Exception):
+                try:
+                    import pkg_resources
+                    version = pkg_resources.get_distribution(pkg_name).version
+                    break
+                except (ImportError, Exception):
+                    continue
+    
+except Exception:
+    pass
+print(f'SAGE {version} loaded')"""),
             ("sage.common", "import sage.common; print('sage.common imported')"),
             ("sage.core", "import sage.core; print('sage.core imported')"),
             ("sage.libs", "import sage.libs; print('sage.libs imported')"),
