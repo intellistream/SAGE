@@ -101,9 +101,6 @@ class CompletePipInstallTester:
             "cleanup": False,
         }
 
-        print(f"🧪 测试目录: {self.test_dir}")
-        print(f"🏠 项目根目录: {self.project_root}")
-
     def run_command(
         self,
         cmd: List[str],
