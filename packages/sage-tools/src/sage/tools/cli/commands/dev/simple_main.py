@@ -30,6 +30,10 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: PyPI发布管理功能不可用: {e}[/yellow]")
 
+# 删除：CI 子命令（已由 GitHub Workflows 承担 CI/CD）
+# 过去这里会 add_typer(ci_app, name="ci", ...)
+# 现在不再提供本地 CI 包装命令，建议直接依赖 GitHub Actions。
+
 # 添加版本管理子命令
 try:
     from .version import app as version_app
@@ -63,7 +67,6 @@ def quality(
     """
     import subprocess
     from pathlib import Path
-
     from sage.common.config.output_paths import get_sage_paths
 
     project_path = Path(project_root).resolve()
