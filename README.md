@@ -164,7 +164,7 @@ After installation, configure your API keys and environment settings:
 **Quick Setup**
 ```bash
 # Run the interactive environment setup
-./tools/setup_env.sh
+python -m sage.tools.cli.main config env setup
 ```
 
 **Manual Setup**

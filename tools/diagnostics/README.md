@@ -13,9 +13,9 @@
 - `test_mock_embedder.py` - 测试MockEmbedder场景
 
 ### 系统检查脚本  
-- `check_compatibility.py` - 检查系统兼容性
 - `check_packages_status.sh` - 检查包状态
 - `diagnose_sage.py` - 综合诊断SAGE系统
+- 使用 `python -m sage.tools.cli.main doctor compat` 检查闭源依赖兼容性
 
 ## 使用方法
 
