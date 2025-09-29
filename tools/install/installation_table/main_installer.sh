@@ -11,6 +11,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../fixes/libstdcxx_fix.sh"
 
 # pip 缓存清理函数
 clean_pip_cache() {
@@ -215,6 +216,10 @@ install_sage() {
             echo "$(date): 开始标准安装模式" >> "$log_file"
             install_core_packages "$mode"
             install_scientific_packages
+
+            # 在安装 C++ 扩展前确保 libstdc++ 符号满足要求
+            echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
+            ensure_libstdcxx_compatibility "$log_file" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试构建扩展"
             
             # 安装C++扩展（标准功能）
             echo ""
@@ -229,6 +234,10 @@ install_sage() {
             echo "$(date): 开始开发者安装模式" >> "$log_file"
             install_core_packages "$mode"
             install_scientific_packages
+
+            # 在安装 C++ 扩展前确保 libstdc++ 符号满足要求
+            echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
+            ensure_libstdcxx_compatibility "$log_file" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试构建扩展"
             
             # 安装C++扩展（标准功能）
             echo ""
