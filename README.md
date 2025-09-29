@@ -7,6 +7,10 @@
 [![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
+[![WeChat Group](https://img.shields.io/badge/WeChat-加入微信群-brightgreen?style=flat&logo=wechat)](./docs/COMMUNITY.md)
+[![QQ Group](https://img.shields.io/badge/【IntelliStream课题组讨论QQ群】-blue?style=flat&logo=tencentqq)](https://qm.qq.com/q/bcnuyQVcvm)
+[![Slack](https://img.shields.io/badge/Slack-Join%20Slack-purple?style=flat&logo=slack)](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
+
 **SAGE** is a high-performance streaming framework for building AI-powered data processing pipelines. Transform complex LLM reasoning workflows into transparent, scalable, and maintainable systems through declarative dataflow abstractions.
 
 ## Why Choose SAGE?
@@ -256,6 +260,20 @@ Consider adding wrapper scripts (future enhancement) for: `lint`, `format`, `tes
 - Provide `scripts/dev.sh` helper with common commands.
 - Add architecture diagram (docs/images/architecture.svg) referenced here.
 - Offer Dockerfile + reproducible container instructions.
+
+## 🤝 Join Our Community
+
+Connect with other SAGE developers, get help, and stay updated on the latest developments:
+
+**💬 [Join SAGE Community](./docs/COMMUNITY.md)** - Complete guide to all our communication channels
+
+Quick links:
+- **WeChat Group**: Scan QR codes for instant chat (Chinese/English)
+- **QQ Group**: [IntelliStream课题组讨论群](https://qm.qq.com/q/bcnuyQVcvm)
+- **Slack**: [Join our workspace](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
+- **GitHub Discussions**: [Technical Q&A and feature requests](https://github.com/intellistream/SAGE/discussions)
+
+We welcome questions, bug reports, feature requests, and contributions from developers worldwide!
 
 ## License
 
