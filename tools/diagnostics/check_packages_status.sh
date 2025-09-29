@@ -33,10 +33,12 @@ if command -v python3 &> /dev/null; then
     if PACKAGE_INFO_JSON=$(python3 <<'PY'
 import json
 import os
+import sys
 
 try:
     from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
-except Exception:
+except Exception as e:
+    print(f"Error importing ProjectStatusChecker: {e}", file=sys.stderr)
     raise SystemExit(1)
 
 project_root = os.environ.get("PROJECT_ROOT")
