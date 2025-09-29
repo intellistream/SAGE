@@ -1903,7 +1903,5 @@ def _check_package_dependencies(package_name: str, verbose: bool):
             console.print(f"    ❌ 依赖检查失败: {e}")
 
 
-
-
 if __name__ == "__main__":
     app()

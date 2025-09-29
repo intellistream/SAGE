@@ -394,7 +394,11 @@ class ProjectStatusChecker:
                     name = dist.metadata["Name"]  # type: ignore[index]
                 except Exception:
                     metadata_obj = getattr(dist, "metadata", None)
-                    name = metadata_obj.get("Name") if hasattr(metadata_obj, "get") else None
+                    name = (
+                        metadata_obj.get("Name")
+                        if hasattr(metadata_obj, "get")
+                        else None
+                    )
                 if not name:
                     continue
                 installed[str(name)] = dist.version

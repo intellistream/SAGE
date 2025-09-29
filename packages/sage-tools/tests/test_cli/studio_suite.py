@@ -115,7 +115,9 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=[
                 _patch_manager(running=True),
-                lambda: patch("sage.tools.cli.commands.studio.webbrowser.open", return_value=True),
+                lambda: patch(
+                    "sage.tools.cli.commands.studio.webbrowser.open", return_value=True
+                ),
             ],
         ),
         CLITestCase(

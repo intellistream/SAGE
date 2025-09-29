@@ -116,7 +116,11 @@ def collect_cases() -> list[CLITestCase]:
             "sage config env check",
             ["config", "env", "check"],
             app=sage_app,
-            patch_factories=[lambda: patch_env_status(make_env_status(env_exists=True, template_exists=True))],
+            patch_factories=[
+                lambda: patch_env_status(
+                    make_env_status(env_exists=True, template_exists=True)
+                )
+            ],
         ),
         CLITestCase(
             "sage config env setup",
@@ -127,7 +131,9 @@ def collect_cases() -> list[CLITestCase]:
                     make_env_status(env_exists=False, template_exists=False),
                     make_env_status(env_exists=False, template_exists=False),
                 ),
-                lambda: patch("sage.tools.cli.commands.env.typer.confirm", return_value=False),
+                lambda: patch(
+                    "sage.tools.cli.commands.env.typer.confirm", return_value=False
+                ),
             ],
         ),
     ]

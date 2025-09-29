@@ -394,7 +394,7 @@ class CompletePipInstallTester:
                 return False
 
             # 验证安装 - 使用更robust的版本检测方法
-            version_check_code = '''
+            version_check_code = """
 try:
     import sage
     version = None
@@ -438,7 +438,7 @@ try:
 except Exception as e:
     print(f"Import failed: {e}")
     raise
-'''
+"""
             returncode, stdout, stderr = self.run_command(
                 [
                     str(self.python_exe),
@@ -466,7 +466,9 @@ except Exception as e:
 
         test_imports = [
             # 核心包 - 使用更robust的版本访问方法
-            ("sage", """import sage; 
+            (
+                "sage",
+                """import sage; 
 version = 'unknown'
 # 尝试多种方式获取版本信息
 try:
@@ -504,7 +506,8 @@ try:
     
 except Exception:
     pass
-print(f'SAGE {version} loaded')"""),
+print(f'SAGE {version} loaded')""",
+            ),
             ("sage.common", "import sage.common; print('sage.common imported')"),
             ("sage.core", "import sage.core; print('sage.core imported')"),
             ("sage.libs", "import sage.libs; print('sage.libs imported')"),
