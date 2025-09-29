@@ -690,13 +690,80 @@ class ExampleTestSuite:
 
         console.print(f"📄 测试结果已保存到: {output_file}")
 
+    def run_all_tests(self, categories: Optional[List[str]] = None, quick_only: bool = False) -> Dict[str, int]:
+        """运行所有测试"""
+        console.print("🚀 [bold blue]开始运行 SAGE Examples 测试[/bold blue]")
+        
+        # 发现所有示例
+        examples = self.analyzer.discover_examples()
+        
+        if not examples:
+            console.print("[yellow]没有发现任何示例文件[/yellow]")
+            return {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "timeout": 0}
+        
+        # 过滤示例
+        filtered_examples = self._filter_examples(examples, categories, quick_only)
+        
+        if not filtered_examples:
+            console.print("[yellow]没有符合条件的示例文件[/yellow]")
+            return {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "timeout": 0}
+        
+        # 显示摘要
+        self._show_examples_summary(filtered_examples)
+        
+        # 运行测试
+        console.print(f"\n🧪 开始测试 {len(filtered_examples)} 个示例文件...")
+        
+        self.results = []
+        for i, example in enumerate(filtered_examples, 1):
+            console.print(f"[{i}/{len(filtered_examples)}] 测试 {Path(example.file_path).name}...")
+            
+            result = self.runner.run_example(example)
+            self.results.append(result)
+            
+            # 显示结果
+            status_emoji = {
+                "passed": "✅",
+                "failed": "❌", 
+                "skipped": "⏭️",
+                "timeout": "⏰"
+            }.get(result.status, "❓")
+            
+            console.print(f"  {status_emoji} {result.status.upper()} ({result.execution_time:.2f}s)")
+            if result.error:
+                console.print(f"    错误: {result.error}")
+        
+        # 显示结果和统计
+        console.print("\n" + "="*50)
+        self._show_results()
+        stats = self._get_statistics()
+        
+        return stats
+    
+    def _filter_examples(self, examples: List[ExampleInfo], categories: Optional[List[str]] = None, quick_only: bool = False) -> List[ExampleInfo]:
+        """过滤示例"""
+        filtered = examples
+        
+        # 按类别过滤
+        if categories:
+            filtered = [e for e in filtered if e.category in categories]
+        
+        # 按运行时间过滤
+        if quick_only:
+            filtered = [e for e in filtered if e.estimated_runtime == "quick"]
+        
+        # 检查测试标记
+        filtered = [e for e in filtered if "skip" not in e.test_tags]
+        
+        return filtered
+
 
 # CLI 接口
 app = typer.Typer(help="SAGE Examples 测试工具")
 
 
 @app.command("test")
-def test_cmd(
+def run_tests_cmd(
     categories: Optional[List[str]] = typer.Option(
         None, "--category", "-c", help="指定测试类别"
     ),
