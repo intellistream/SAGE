@@ -250,7 +250,7 @@ jobs:
     name: Deployment Readiness Check
     runs-on: ubuntu-latest
     needs: [build-sage, quick-check, examples-test]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')) || (github.event_name == 'pull_request' && github.base_ref == 'main-dev')
     timeout-minutes: 30
     
     steps:
