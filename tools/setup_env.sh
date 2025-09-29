@@ -69,7 +69,7 @@ fi
 # Run environment check
 echo
 echo "🔍 Checking environment configuration..."
-$PYTHON_CMD "$PROJECT_ROOT/tools/env_config.py" setup
+$PYTHON_CMD -m sage.tools.cli.main config env setup --no-open
 
 echo
 echo "🎉 Environment setup complete!"

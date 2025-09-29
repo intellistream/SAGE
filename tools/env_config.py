@@ -1,221 +1,71 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-SAGE Environment Configuration Utilities
+"""Legacy wrapper for environment management utilities.
 
-This module provides utilities for loading and managing environment variables
-for the SAGE project, including API keys and development settings.
+The full implementation lives inside the :mod:`sage.tools` package. This script
+remains to support existing automation that has not yet been updated to the new
+CLI commands (``sage config env ...``).
 """
 
-import os
+from __future__ import annotations
+
 import sys
+from typing import Sequence
+
 from pathlib import Path
-from typing import Optional
 
-try:
-    from dotenv import load_dotenv
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT / "packages" / "sage-tools" / "src"))
 
-    DOTENV_AVAILABLE = True
-except ImportError:
-    DOTENV_AVAILABLE = False
-
-try:
-    import pytest  # noqa: F401
-
-    PYTEST_AVAILABLE = True
-except ImportError:
-    PYTEST_AVAILABLE = False
+from sage.tools.cli.commands.env import run_setup_interactive
+from sage.tools.utils import env as env_utils
 
 
-def find_project_root() -> Path:
-    """Find the SAGE project root directory."""
-    current = Path(__file__).parent
-    while current != current.parent:
-        if (current / "pyproject.toml").exists() or (current / ".git").exists():
-            return current
-        current = current.parent
-    return Path.cwd()
-
-
-def load_sage_env(env_file: Optional[str] = None, override: bool = False) -> bool:
-    """
-    Load environment variables from .env file.
-
-    Args:
-        env_file: Path to the .env file. If None, looks for .env in project root.
-        override: Whether to override existing environment variables.
-
-    Returns:
-        True if .env file was found and loaded, False otherwise.
-    """
-    if not DOTENV_AVAILABLE:
-        print(
-            "Warning: python-dotenv not available. Install with: pip install python-dotenv"
-        )
-        return False
-
-    if env_file is None:
-        project_root = find_project_root()
-        env_file = project_root / ".env"
-    else:
-        env_file = Path(env_file)
-
-    if env_file.exists():
-        load_dotenv(env_file, override=override)
-        print(f"✅ Loaded environment from: {env_file}")
-        return True
-    else:
-        # Look for .env in current directory as fallback
-        fallback_env = Path(".env")
-        if fallback_env.exists():
-            load_dotenv(fallback_env, override=override)
-            print(f"✅ Loaded environment from: {fallback_env}")
-            return True
-        else:
-            print(f"ℹ️  No .env file found at {env_file}")
-            return False
-
-
-def should_use_real_api() -> bool:
-    """
-    Check if we should use real API calls instead of test mode.
-
-    Returns:
-        True if should use real API calls, False for test mode
-    """
-    # Check environment variable first
-    if os.getenv("SAGE_USE_REAL_API") == "true":
-        return True
-
-    # Check sys.argv for the flag (simple but reliable)
-    if "--use-real-api" in sys.argv:
-        return True
-
-    return False
-
-
-def get_api_key(service: str, required: bool = True) -> Optional[str]:
-    """
-    Get API key for a service with helpful error messages.
-
-    Args:
-        service: Service name (e.g., 'openai', 'hf', 'siliconcloud')
-        required: Whether the API key is required
-
-    Returns:
-        API key string or None
-
-    Raises:
-        ValueError: If required API key is missing
-    """
-    service_mapping = {
-        "openai": "OPENAI_API_KEY",
-        "hf": "HF_TOKEN",
-        "huggingface": "HF_TOKEN",
-        "siliconcloud": "SILICONCLOUD_API_KEY",
-        "jina": "JINA_API_KEY",
-        "alibaba": "ALIBABA_API_KEY",
-        "vllm": "VLLM_API_KEY",
-    }
-
-    env_var = service_mapping.get(service.lower())
-    if not env_var:
-        available = ", ".join(service_mapping.keys())
-        raise ValueError(f"Unknown service '{service}'. Available: {available}")
-
-    api_key = os.getenv(env_var)
-
-    if not api_key and required:
-        project_root = find_project_root()
-        raise ValueError(
-            f"Missing required API key: {env_var}\n"
-            f"Please set it in your .env file at {project_root}/.env\n"
-            f"You can copy .env.template to .env and fill in your keys."
-        )
-
-    return api_key
-
-
-def check_environment() -> dict:
-    """
-    Check the current environment configuration.
-
-    Returns:
-        Dictionary with environment status information
-    """
-    status = {
-        "dotenv_available": DOTENV_AVAILABLE,
-        "project_root": find_project_root(),
-        "env_file_exists": False,
-        "env_template_exists": False,
-        "api_keys": {},
-    }
-
-    project_root = status["project_root"]
-    env_file = project_root / ".env"
-    env_template = project_root / ".env.template"
-
-    status["env_file_exists"] = env_file.exists()
-    status["env_template_exists"] = env_template.exists()
-
-    # Check API keys (but don't show actual values)
-    api_keys = [
-        "OPENAI_API_KEY",
-        "HF_TOKEN",
-        "SILICONCLOUD_API_KEY",
-        "JINA_API_KEY",
-        "ALIBABA_API_KEY",
-        "VLLM_API_KEY",
-    ]
-
-    for key in api_keys:
-        value = os.getenv(key)
-        status["api_keys"][key] = {
-            "set": value is not None,
-            "length": len(value) if value else 0,
-        }
-
-    return status
-
-
-def setup_env_interactive():
-    """Interactive setup for environment configuration."""
-    print("🔧 SAGE Environment Setup")
-    print("=" * 50)
-
-    status = check_environment()
-    project_root = status["project_root"]
-
-    print(f"Project root: {project_root}")
-    print(f"python-dotenv available: {status['dotenv_available']}")
-    print(f".env file exists: {status['env_file_exists']}")
-    print(f".env.template exists: {status['env_template_exists']}")
-
-    if not status["env_file_exists"]:
-        if status["env_template_exists"]:
-            print(f"\n📋 Copy {project_root}/.env.template to {project_root}/.env")
-            print("   and fill in your API keys.")
-        else:
-            print(f"\n📋 Create a .env file at {project_root}/.env")
-            print("   with your API keys.")
-
-    print("\n🔑 API Key Status:")
+def _print_status(status: dict) -> None:
+    print("🔍 环境变量状态")
+    print("=" * 40)
+    print(f"项目根目录: {status['project_root']}")
+    print(f"python-dotenv 可用: {status['dotenv_available']}")
+    print(f".env: {status['env_file_exists']} ({status['env_file']})")
+    print(f".env.template: {status['env_template_exists']} ({status['env_template']})")
+    print("\n🔑 API Keys:")
     for key, info in status["api_keys"].items():
-        status_icon = "✅" if info["set"] else "❌"
-        length_info = f"({info['length']} chars)" if info["set"] else ""
-        print(f"  {status_icon} {key} {length_info}")
-
-    return status
+        icon = "✅" if info["set"] else "❌"
+        length = info["length"] if info["set"] else 0
+        print(f"  {icon} {key} ({length} chars)")
 
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "setup":
-        setup_env_interactive()
+def main(argv: Sequence[str] | None = None) -> int:
+    args = list(argv or [])
+
+    if args and args[0] == "setup":
+        run_setup_interactive()
+        return 0
+
+    override = "--override" in args
+    path_arg = next((arg for arg in args if not arg.startswith("-")), None)
+
+    try:
+        loaded, resolved = env_utils.load_environment_file(
+            None if path_arg is None else Path(path_arg), override=override
+        )
+    except RuntimeError as exc:  # pragma: no cover - legacy wrapper
+        print(f"⚠️ {exc}")
+        return 1
+
+    if loaded:
+        print(f"✅ 已加载 .env: {resolved}")
     else:
-        # Try to load environment
-        load_sage_env()
-        status = check_environment()
+        target = resolved or env_utils.find_project_root() / ".env"
+        print(f"ℹ️ 未找到 .env 文件: {target}")
 
-        if not any(info["set"] for info in status["api_keys"].values()):
-            print("\n⚠️  No API keys detected!")
-            print("Run: python tools/env_config.py setup")
+    status = env_utils.check_environment_status()
+    _print_status(status)
+
+    if not any(info["set"] for info in status["api_keys"].values()):
+        print("\n⚠️ 未检测到任何 API Keys! 建议运行: sage config env setup")
+
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover - CLI entrypoint
+    sys.exit(main(sys.argv[1:]))

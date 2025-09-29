@@ -397,7 +397,7 @@ done
 
 echo
 echo "✅ Cleanup completed!"
-echo "🗑️  To see what would be removed without actually deleting, use: sage-dev clean --dry-run"
+echo "🗑️  To see what would be removed without actually deleting, use: sage dev clean --dry-run"
 """
 
         # 写入脚本文件
@@ -467,19 +467,19 @@ echo "🗑️  To see what would be removed without actually deleting, use: sage
 
 ## Weekly (Recommended)
 ```bash
-sage-dev clean --categories pycache,temp --older-than-days 7
+sage dev clean --categories pycache,temp --older-than-days 7
 ```
 
 ## Monthly (Deep Clean)
 ```bash
-sage-dev clean --categories all --older-than-days 30 --dry-run
-sage-dev clean --categories all --older-than-days 30
+sage dev clean --categories all --older-than-days 30 --dry-run
+sage dev clean --categories all --older-than-days 30
 ```
 
 ## Before Release
 ```bash
-sage-dev clean --categories all --force
-sage-dev clean --update-gitignore
+sage dev clean --categories all --force
+sage dev clean --update-gitignore
 ```
 
 ## Setup Automated Cleanup
@@ -489,19 +489,19 @@ Create maintenance scripts using SAGE toolkit:
 ```bash
 #!/bin/bash
 # scripts/daily_cleanup.sh
-sage-dev clean --categories pycache,temp --older-than-days 1 --force
+sage dev clean --categories pycache,temp --older-than-days 1 --force
 ```
 
 ### Weekly cleanup script
 ```bash
 #!/bin/bash
 # scripts/weekly_cleanup.sh
-sage-dev clean --categories all --older-than-days 7 --force
+sage dev clean --categories all --older-than-days 7 --force
 ```
 
 ### Generate shell script
 ```bash
-sage-dev clean --create-script
+sage dev clean --create-script
 bash scripts/cleanup_build_artifacts.sh
 ```
 """

@@ -44,6 +44,18 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: 版本管理功能不可用: {e}[/yellow]")
 
+# 添加模型缓存管理子命令
+try:
+    from .models import app as models_app
+
+    app.add_typer(
+        models_app,
+        name="models",
+        help="🤖 Embedding 模型缓存管理",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: 模型缓存功能不可用: {e}[/yellow]")
+
 
 @app.command()
 def quality(
@@ -236,14 +248,14 @@ def quality(
                 "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
             )
             console.print(
-                "[yellow]💡 建议运行: sage-dev quality --check-only 查看剩余问题[/yellow]"
+                "[yellow]💡 建议运行: sage dev quality --check-only 查看剩余问题[/yellow]"
             )
         else:
             console.print(
                 "[yellow]⚠️ 发现代码质量问题，自动修复功能可以处理格式化和导入排序问题[/yellow]"
             )
             console.print(
-                "[yellow]💡 建议运行: sage-dev quality (默认自动修复)[/yellow]"
+                "[yellow]💡 建议运行: sage dev quality (默认自动修复)[/yellow]"
             )
 
         # 如果设置了warn_only，只警告不中断
@@ -436,12 +448,12 @@ def _run_quality_check(
                 console.print(
                     "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
                 )
-                console.print("[yellow]💡 建议运行: sage-dev quality --fix[/yellow]")
+                console.print("[yellow]💡 建议运行: sage dev quality --fix[/yellow]")
             else:
                 console.print(
                     "[yellow]⚠️ 发现代码质量问题，使用 --fix 自动修复格式化和导入排序问题[/yellow]"
                 )
-                console.print("[yellow]💡 建议运行: sage-dev quality --fix[/yellow]")
+                console.print("[yellow]💡 建议运行: sage dev quality --fix[/yellow]")
 
         # 如果设置了warn_only，只警告不中断
         if not warn_only:
@@ -1516,22 +1528,25 @@ def _run_diagnose_mode(project_root: str):
 
         # 5. CLI 工具检查
         console.print("\n🖥️ CLI 工具检查...")
-        cli_commands = ["sage", "sage-dev"]
-        for cmd in cli_commands:
+        cli_commands = [
+            ("sage", ["sage", "--help"]),
+            ("sage dev", ["sage", "dev", "--help"]),
+        ]
+        for label, command in cli_commands:
             try:
                 result = subprocess.run(
-                    [cmd, "--help"], capture_output=True, text=True, timeout=10
+                    command, capture_output=True, text=True, timeout=10
                 )
                 if result.returncode == 0:
-                    console.print(f"  ✅ {cmd} 可用")
+                    console.print(f"  ✅ {label} 可用")
                 else:
-                    console.print(f"  ❌ {cmd} 返回错误码: {result.returncode}")
+                    console.print(f"  ❌ {label} 返回错误码: {result.returncode}")
             except subprocess.TimeoutExpired:
-                console.print(f"  ⚠️  {cmd} 超时")
+                console.print(f"  ⚠️  {label} 超时")
             except FileNotFoundError:
-                console.print(f"  ❌ {cmd} 未找到")
+                console.print(f"  ❌ {label} 未找到")
             except Exception as e:
-                console.print(f"  ❌ {cmd} 检查失败: {e}")
+                console.print(f"  ❌ {label} 检查失败: {e}")
 
         # 6. 依赖包检查
         console.print("\n📚 关键依赖检查...")
@@ -1887,108 +1902,6 @@ def _check_package_dependencies(package_name: str, verbose: bool):
             console.print(f"    ❌ 依赖检查失败: {e}")
 
 
-@app.command()
-def tools(
-    command: str = typer.Argument(..., help="工具命令: test, diagnose, status, help"),
-    test_type: str = typer.Option(
-        "quick", "--type", help="测试类型: quick, all, diagnose"
-    ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出"),
-    packages: str = typer.Option("", "--packages", "-p", help="指定包，逗号分隔"),
-):
-    """开发工具集合 - 替代 tools/tests/test 脚本"""
-
-    if command == "help":
-        _show_tools_help()
-        return
-    elif command == "test":
-        _run_tools_test(test_type, verbose, packages)
-    elif command == "diagnose":
-        _run_diagnose_mode(None, verbose)
-    elif command == "status":
-        _show_packages_status(verbose)
-    else:
-        console.print(f"[red]未知命令: {command}[/red]")
-        _show_tools_help()
-
-
-def _show_tools_help():
-    """显示工具帮助信息"""
-    console.print("🧪 [bold blue]SAGE Framework 开发工具[/bold blue]")
-    console.print()
-    console.print("[bold]使用方法:[/bold]")
-    console.print("  sage dev tools <command> [options]")
-    console.print()
-    console.print("[bold]命令:[/bold]")
-    console.print("  [green]test[/green]      运行测试 (quick|all|diagnose)")
-    console.print("  [green]diagnose[/green]  运行诊断和状态检查")
-    console.print("  [green]status[/green]    显示包状态")
-    console.print("  [green]help[/green]      显示此帮助")
-    console.print()
-    console.print("[bold]快速命令:[/bold]")
-    console.print("  sage dev tools test --type quick              # 快速测试")
-    console.print("  sage dev tools test --type all --verbose      # 测试所有包")
-    console.print("  sage dev tools diagnose                       # 运行诊断")
-    console.print("  sage dev tools test --packages sage-libs      # 测试指定包")
-    console.print()
-    console.print("[bold]详细用法:[/bold]")
-    console.print("  sage dev test --help                   # 查看完整测试选项")
-    console.print("  sage dev status --help                 # 查看状态选项")
-
-
-def _run_tools_test(test_type: str, verbose: bool, packages: str):
-    """运行工具测试"""
-    from pathlib import Path
-
-    project_root = str(Path(".").resolve())
-
-    if test_type == "diagnose":
-        _run_diagnose_mode(project_root, verbose)
-    else:
-        # 直接调用内部测试逻辑，而不是通过 test 函数
-        try:
-            import time
-
-            from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
-
-            runner = EnhancedTestRunner(project_root)
-
-            # 解析包列表
-            target_packages = []
-            if packages:
-                target_packages = [pkg.strip() for pkg in packages.split(",")]
-                console.print(f"🎯 指定测试包: {target_packages}")
-
-            # 配置测试参数
-            test_config = {
-                "verbose": verbose,
-                "jobs": 4,
-                "timeout": 300,
-                "continue_on_error": True,
-                "target_packages": target_packages,
-                "failed_only": False,
-            }
-
-            console.print(f"🧪 运行 {test_type} 测试...")
-
-            start_time = time.time()
-
-            # 执行测试
-            if test_type == "quick":
-                results = _run_quick_tests(runner, test_config, False)
-            elif test_type == "all":
-                results = runner.run_all_tests(**test_config)
-            else:
-                console.print(f"[red]未知测试类型: {test_type}[/red]")
-                return
-
-            duration = time.time() - start_time
-
-            # 显示结果
-            _display_test_results(results, duration, False)
-
-        except Exception as e:
-            console.print(f"[red]测试运行失败: {e}[/red]")
 
 
 if __name__ == "__main__":
