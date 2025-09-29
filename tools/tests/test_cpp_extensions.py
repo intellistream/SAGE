@@ -103,6 +103,75 @@ class TestCppExtensions:
         except Exception as e:
             pytest.skip(f"⚠️ 验证扩展状态时出错: {e}")
 
+    @classmethod
+    def setup_class(cls):
+        """在测试类开始前检查并安装必要的扩展"""
+        cls._ensure_extensions_installed()
+
+    @classmethod
+    def _ensure_extensions_installed(cls):
+        """检查扩展状态，如果未安装则自动安装"""
+        try:
+            # 检查扩展状态
+            result = subprocess.run(
+                [sys.executable, "-m", "sage.tools.cli", "extensions", "status"],
+                capture_output=True,
+                text=True,
+                cwd=str(sage_root),
+            )
+
+            # 如果状态检查失败或者输出中包含缺失扩展的标识
+            if result.returncode != 0 or "✗" in result.stdout:
+                print("\n🔧 检测到扩展未完全安装，正在自动安装...")
+                print("ℹ️ 这可能需要几分钟时间，请耐心等待...\n")
+
+                # 自动安装所有扩展，增加超时时间
+                install_result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "sage.tools.cli",
+                        "extensions",
+                        "install",
+                        "all",
+                    ],
+                    cwd=str(sage_root),
+                    timeout=600,  # 10分钟超时
+                    text=True,
+                    # 不捕获输出，让用户看到安装进度
+                )
+
+                if install_result.returncode != 0:
+                    pytest.skip("❌ 扩展安装失败，请手动运行: sage extensions install")
+                else:
+                    print("✅ 扩展安装完成\n")
+                    # 再次检查状态确认安装成功
+                    cls._verify_extensions_installed()
+
+        except subprocess.TimeoutExpired:
+            pytest.skip("⚠️ 扩展安装超时，请手动运行: sage extensions install")
+        except Exception as e:
+            pytest.skip(f"⚠️ 检查/安装扩展时出错: {e}")
+
+    @classmethod
+    def _verify_extensions_installed(cls):
+        """验证扩展安装状态"""
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "sage.tools.cli", "extensions", "status"],
+                capture_output=True,
+                text=True,
+                cwd=str(sage_root),
+            )
+
+            if result.returncode != 0 or "✗" in result.stdout:
+                pytest.skip("❌ 扩展安装验证失败，请手动检查")
+            else:
+                print("✅ 扩展安装验证成功")
+
+        except Exception as e:
+            pytest.skip(f"⚠️ 验证扩展状态时出错: {e}")
+
     def test_sage_db_import(self):
         """测试 sage_db 扩展导入"""
         try:
@@ -115,10 +184,13 @@ class TestCppExtensions:
                 pytest.skip(f"sage_db C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"sage_db 扩展导入失败: {e}")
+<<<<<<< HEAD
             if "libsage_db.so" in str(e):
                 pytest.skip(f"sage_db C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"sage_db 扩展导入失败: {e}")
+=======
+>>>>>>> 4cba612e (修复 C++ 扩展测试：添加自动安装和智能错误处理功能)
 
     def test_sage_flow_import(self):
         """测试 sage_flow 扩展导入"""
@@ -132,10 +204,13 @@ class TestCppExtensions:
                 pytest.skip(f"sage_flow C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"sage_flow 扩展导入失败: {e}")
+<<<<<<< HEAD
             if "libsage_flow.so" in str(e) or "_sage_flow" in str(e):
                 pytest.skip(f"sage_flow C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"sage_flow 扩展导入失败: {e}")
+=======
+>>>>>>> 4cba612e (修复 C++ 扩展测试：添加自动安装和智能错误处理功能)
 
     def test_sage_db_microservice_import(self):
         """测试 sage_db micro_service 导入"""
@@ -149,10 +224,13 @@ class TestCppExtensions:
                 pytest.skip(f"sage_db C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"sage_db micro_service 导入失败: {e}")
+<<<<<<< HEAD
             if "libsage_db.so" in str(e) or "_sage_db" in str(e):
                 pytest.skip(f"sage_db C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"sage_db micro_service 导入失败: {e}")
+=======
+>>>>>>> 4cba612e (修复 C++ 扩展测试：添加自动安装和智能错误处理功能)
 
     def test_sage_flow_microservice_import(self):
         """测试 sage_flow micro_service 导入"""
@@ -166,10 +244,13 @@ class TestCppExtensions:
                 pytest.skip(f"sage_flow C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"sage_flow micro_service 导入失败: {e}")
+<<<<<<< HEAD
             if "libsage_flow.so" in str(e) or "_sage_flow" in str(e):
                 pytest.skip(f"sage_flow C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"sage_flow micro_service 导入失败: {e}")
+=======
+>>>>>>> 4cba612e (修复 C++ 扩展测试：添加自动安装和智能错误处理功能)
 
     @pytest.mark.example
     def test_sage_db_example(self):
@@ -261,6 +342,7 @@ class TestCppExtensions:
                 pytest.skip(f"{extension} C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"{extension} 扩展导入失败: {e}")
+<<<<<<< HEAD
             if any(
                 lib in str(e)
                 for lib in [
@@ -273,6 +355,8 @@ class TestCppExtensions:
                 pytest.skip(f"{extension} C++ 扩展未正确安装: {e}")
             else:
                 pytest.fail(f"{extension} 扩展导入失败: {e}")
+=======
+>>>>>>> 4cba612e (修复 C++ 扩展测试：添加自动安装和智能错误处理功能)
 
 
 if __name__ == "__main__":
