@@ -201,6 +201,9 @@ The `.env` file is automatically ignored by git to keep your keys secure.
 
 **Distributed AI Inference**: Scale AI model serving across multiple nodes with automatic load balancing and fault tolerance.
 
+
+> 本地代码质量/测试请使用 `sage dev quality` 或 `sage dev test`，CI/CD 由 GitHub Workflows 自动完成。
+
 ## Documentation & Resources
 
 - **Documentation Site**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)

@@ -1,4 +1,7 @@
-﻿# SAGE 贡献指南
+﻿
+> 本地代码质量/测试请使用 `sage dev quality` 或 `sage dev test`，CI/CD 由 GitHub Workflows 自动完成。
+
+# SAGE 贡献指南
 
 > 本文档帮助你高效、规范地向 SAGE 贡献代码与文档。请在提交 Pull Request 前完整阅读。若英文协作者需要，可参考文末的 English Quick Guide。
 
