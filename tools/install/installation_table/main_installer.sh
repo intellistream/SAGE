@@ -58,13 +58,27 @@ install_cpp_extensions() {
     # 系统依赖已经在comprehensive_system_check中检查和安装了
     # 这里直接尝试构建扩展
     
+    # 确保在CI环境中PATH包含用户脚本目录
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        export PATH="$HOME/.local/bin:$PATH"
+        echo -e "${DIM}CI环境: 确保PATH包含~/.local/bin${NC}"
+        echo "$(date): CI环境PATH设置: $PATH" >> "$log_file"
+    fi
+    
     if command -v sage >/dev/null 2>&1; then
         SAGE_CMD="sage"
+        echo -e "${DIM}找到sage命令: $(which sage)${NC}"
     elif python3 -c "import sage.tools.cli.main" 2>/dev/null; then
         SAGE_CMD="python3 -m sage.tools.cli.main"
+        echo -e "${DIM}使用Python模块方式调用SAGE CLI${NC}"
     else
         echo -e "${WARNING} 找不到 sage CLI 工具"
         echo "$(date): 找不到 sage CLI 工具" >> "$log_file"
+        echo "$(date): PATH: $PATH" >> "$log_file"
+        echo "$(date): 检查sage命令可用性:" >> "$log_file"
+        command -v sage >> "$log_file" 2>&1 || echo "sage命令不在PATH中" >> "$log_file"
+        echo "$(date): 检查Python模块可用性:" >> "$log_file"
+        python3 -c "import sage.tools.cli.main; print('模块可用')" >> "$log_file" 2>&1 || echo "Python模块不可用" >> "$log_file"
         return 1
     fi
     
