@@ -174,17 +174,23 @@ create_conda_environment() {
     echo -e "${INFO} 创建新环境 '$env_name' (Python 3.11)..."
     
     # 在CI环境中使用更快的创建方式
+    # 预置所需 C++ 运行时库（libstdcxx-ng>=13 保证 GLIBCXX_3.4.30），可通过环境变量禁用
+    local extra_runtime_pkgs="libstdcxx-ng>=13"
+    if [ "${SAGE_DISABLE_LIBSTDCXX_PIN:-false}" = "true" ]; then
+        extra_runtime_pkgs=""  # 允许用户显式关闭
+    fi
+
     if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         if command -v mamba >/dev/null 2>&1; then
-            echo -e "${DIM}执行命令: mamba create -n $env_name python=3.11 -y${NC}"
-            local create_cmd="mamba create -n $env_name python=3.11 -y"
+            echo -e "${DIM}执行命令: mamba create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y${NC}"
+            local create_cmd="mamba create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y"
         else
-            echo -e "${DIM}执行命令: conda create -n $env_name python=3.11 -y --solver=libmamba${NC}"
-            local create_cmd="conda create -n $env_name python=3.11 -y --solver=libmamba"
+            echo -e "${DIM}执行命令: conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y --solver=libmamba${NC}"
+            local create_cmd="conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y --solver=libmamba"
         fi
     else
-        echo -e "${DIM}执行命令: conda create -n $env_name python=3.11 -y${NC}"
-        local create_cmd="conda create -n $env_name python=3.11 -y"
+        echo -e "${DIM}执行命令: conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y${NC}"
+        local create_cmd="conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y"
     fi
     
     # 先检查conda是否正常工作
