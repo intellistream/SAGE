@@ -18,6 +18,7 @@ install.log
 .sage/logs/
 .sage/tmp/
 .sage/cache/
+/.cmake-build/
 /deps/sageFlow/installation/dist/
 /deps/sageFlow/installation/sageflow.egg-info/
 /deps/sageFlow/installation/build/

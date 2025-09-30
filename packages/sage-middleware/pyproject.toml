@@ -197,11 +197,20 @@ namespaces = true
     "*.py",
     "*.pyi",
 ]
+"sage.middleware.components.sage_db" = [
+    "cmake/*.cmake",
+]
 "sage.middleware.components.sage_flow.python" = [
     "*.so", 
     "*.py",
     "*.pyi",
     "micro_service/*",
+]
+"sage.middleware.components.sage_flow" = [
+    "cmake/*.cmake",
+]
+"sage.middleware.components" = [
+     "cmake/*.cmake",
 ]
 
 [tool.pytest.ini_options]
