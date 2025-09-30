@@ -14,9 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Sequence
 
-from typer.testing import CliRunner
-
 from sage.tools.cli.main import app as sage_app
+from typer.testing import CliRunner
 
 # Type alias for factory functions that return context managers (e.g. mocks).
 PatchFactory = Callable[[], object]

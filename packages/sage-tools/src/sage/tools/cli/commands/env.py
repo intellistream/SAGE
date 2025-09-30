@@ -10,7 +10,6 @@ from typing import Optional
 import typer
 from rich.console import Console
 from rich.table import Table
-
 from sage.tools.utils import env as env_utils
 
 console = Console()

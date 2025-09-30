@@ -3,9 +3,8 @@ CLI主模块测试
 """
 
 import pytest
-from typer.testing import CliRunner
-
 from sage.tools.cli.main import app
+from typer.testing import CliRunner
 
 
 @pytest.mark.cli

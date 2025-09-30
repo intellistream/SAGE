@@ -6,8 +6,6 @@ import sys
 import time
 
 from dotenv import load_dotenv
-from transformers import AutoModel, AutoTokenizer
-
 from sage.middleware.utils.embedding import (
     _cohere,
     bedrock,
@@ -21,6 +19,7 @@ from sage.middleware.utils.embedding import (
     siliconcloud,
     zhipu,
 )
+from transformers import AutoModel, AutoTokenizer
 
 load_dotenv()
 

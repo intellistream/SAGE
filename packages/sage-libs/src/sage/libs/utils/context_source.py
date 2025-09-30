@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.source_function import SourceFunction
-
 from sage.libs.context.model_context import ModelContext
 
 

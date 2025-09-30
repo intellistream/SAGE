@@ -4,7 +4,6 @@ import time
 
 from sage.common.config.output_paths import get_states_file
 from sage.core.api.function.map_function import MapFunction
-
 from sage.libs.rag.longrefiner.longrefiner.refiner import LongRefiner
 
 

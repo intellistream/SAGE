@@ -6,7 +6,6 @@ SAGE Dev 命令组 - 简化版本
 
 import typer
 from rich.console import Console
-
 from sage.tools.utils.diagnostics import (
     collect_packages_status,
     print_packages_status,
@@ -811,7 +810,6 @@ def test(
         from pathlib import Path
 
         from rich.rule import Rule
-
         from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
 
         # 0. 测试目录获取

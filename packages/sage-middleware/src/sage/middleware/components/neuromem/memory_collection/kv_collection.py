@@ -5,7 +5,6 @@ import shutil
 from typing import Any, Callable, Dict, List, Optional
 
 import yaml
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.memory_collection.base_collection import (
     BaseMemoryCollection,

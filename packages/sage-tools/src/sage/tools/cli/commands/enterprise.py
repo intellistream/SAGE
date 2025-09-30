@@ -7,7 +7,6 @@ from typing import Optional
 import typer
 from rich.console import Console
 from rich.table import Table
-
 from sage.tools.enterprise import EnterpriseManager, check_enterprise_features
 
 console = Console()
