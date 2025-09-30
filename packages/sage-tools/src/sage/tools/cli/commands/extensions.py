@@ -352,6 +352,79 @@ def install(
                 if hasattr(result, "stderr") and result.stderr:
                     typer.echo(f"错误信息: {result.stderr}")
 
+                # 在CI环境中提供更详细的诊断信息
+                import os
+
+                is_ci = (
+                    os.getenv("CI")
+                    or os.getenv("GITHUB_ACTIONS")
+                    or os.getenv("GITLAB_CI")
+                )
+
+                if is_ci:
+                    typer.echo(
+                        f"\n{Colors.RED}==================== CI环境构建失败详细诊断 ===================={Colors.RESET}"
+                    )
+
+                    # 1. 显示构建目录内容
+                    build_dir = ext_dir / "build"
+                    if build_dir.exists():
+                        typer.echo(f"{Colors.YELLOW}📁 构建目录内容:{Colors.RESET}")
+                        try:
+                            for item in build_dir.rglob("*"):
+                                if item.is_file() and item.name.endswith(
+                                    (".log", ".txt")
+                                ):
+                                    typer.echo(f"   📄 {item.relative_to(build_dir)}")
+                        except Exception:
+                            pass
+
+                    # 2. 显示CMake错误日志
+                    cmake_error_log = build_dir / "CMakeFiles" / "CMakeError.log"
+                    if cmake_error_log.exists():
+                        typer.echo(
+                            f"\n{Colors.YELLOW}📋 CMake错误日志 (最后20行):{Colors.RESET}"
+                        )
+                        try:
+                            with open(cmake_error_log, "r") as f:
+                                lines = f.readlines()
+                                for line in lines[-20:]:
+                                    typer.echo(f"   {line.rstrip()}")
+                        except Exception as e:
+                            typer.echo(f"   无法读取CMake错误日志: {e}")
+
+                    # 3. 显示CMake输出日志
+                    cmake_output_log = build_dir / "CMakeFiles" / "CMakeOutput.log"
+                    if cmake_output_log.exists():
+                        typer.echo(
+                            f"\n{Colors.YELLOW}📋 CMake输出日志 (最后10行):{Colors.RESET}"
+                        )
+                        try:
+                            with open(cmake_output_log, "r") as f:
+                                lines = f.readlines()
+                                for line in lines[-10:]:
+                                    typer.echo(f"   {line.rstrip()}")
+                        except Exception as e:
+                            typer.echo(f"   无法读取CMake输出日志: {e}")
+
+                    # 4. 检查编译错误
+                    make_output = build_dir / "make_output.log"
+                    if make_output.exists():
+                        typer.echo(
+                            f"\n{Colors.YELLOW}🔨 Make输出日志 (最后30行):{Colors.RESET}"
+                        )
+                        try:
+                            with open(make_output, "r") as f:
+                                lines = f.readlines()
+                                for line in lines[-30:]:
+                                    typer.echo(f"   {line.rstrip()}")
+                        except Exception as e:
+                            typer.echo(f"   无法读取Make输出日志: {e}")
+
+                    typer.echo(
+                        f"{Colors.RED}================================================================{Colors.RESET}"
+                    )
+
                 # 提供详细的诊断信息
                 print_warning("🔍 构建诊断信息:")
 

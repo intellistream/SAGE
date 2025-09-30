@@ -92,7 +92,14 @@ class DeploymentManager:
 
         # 检查packages目录下是否有sage相关包
         packages_dir = path / "packages"
-        sage_packages = ["sage", "sage-common", "sage-kernel","sage-libs","sage-middleware","sage-tools"]
+        sage_packages = [
+            "sage",
+            "sage-common",
+            "sage-kernel",
+            "sage-libs",
+            "sage-middleware",
+            "sage-tools",
+        ]
         has_sage_package = any((packages_dir / pkg).exists() for pkg in sage_packages)
 
         return has_sage_package
@@ -695,7 +702,7 @@ class DeploymentManager:
                     f"cd {sage_home}/SAGE\n"
                     f"echo '=== 检查安装日志 ==='\n"
                     f"if [ -f .sage/logs/install.log ]; then\n"
-                    f"    echo '📋 最后50行安装日志:'\n" 
+                    f"    echo '📋 最后50行安装日志:'\n"
                     f"    tail -50 .sage/logs/install.log\n"
                     f"else\n"
                     f"    echo '❌ 未找到安装日志文件'\n"
@@ -706,7 +713,7 @@ class DeploymentManager:
                     f"echo '\\n=== 检查磁盘空间 ==='\n"
                     f"df -h . | head -2\n"
                 )
-                
+
                 self.execute_ssh_command_with_progress(
                     host, port, log_check_cmd, 60, "日志检查"
                 )

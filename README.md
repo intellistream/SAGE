@@ -164,7 +164,7 @@ After installation, configure your API keys and environment settings:
 **Quick Setup**
 ```bash
 # Run the interactive environment setup
-./tools/setup_env.sh
+python -m sage.tools.cli.main config env setup
 ```
 
 **Manual Setup**
@@ -186,6 +186,24 @@ HF_TOKEN=your_huggingface_token_here
 - `ALIBABA_API_KEY`: For DashScope models
 - `SAGE_LOG_LEVEL`: Set logging level (DEBUG, INFO, WARNING, ERROR)
 - `SAGE_TEST_MODE`: Enable test mode for examples
+
+## License Management (Commercial Editions)
+
+Use the unified CLI to manage commercial licenses:
+
+```bash
+# View current license status
+python -m sage.tools.cli.main license status
+
+# Install or remove a commercial license
+python -m sage.tools.cli.main license install <LICENSE-KEY>
+python -m sage.tools.cli.main license remove
+
+# Vendor utilities (SAGE team)
+python -m sage.tools.cli.main license vendor generate "Customer" --days 365
+python -m sage.tools.cli.main license vendor list
+python -m sage.tools.cli.main license vendor revoke <LICENSE-KEY>
+```
 
 **API Key Sources**
 - Get OpenAI API key: https://platform.openai.com/api-keys
