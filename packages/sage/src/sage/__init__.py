@@ -10,4 +10,21 @@ __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 # 确保版本信息在命名空间扩展后仍然可访问
 # 这是为了解决在pip安装环境中版本信息可能丢失的问题
-__all__ = ["__version__", "__author__", "__email__"]
+from .runtime.sugar import (
+	bind_runtime_context,
+	call_service,
+	call_service_async,
+	clear_runtime_context,
+	get_current_runtime_context,
+)
+
+__all__ = [
+	"__version__",
+	"__author__",
+	"__email__",
+	"bind_runtime_context",
+	"call_service",
+	"call_service_async",
+	"clear_runtime_context",
+	"get_current_runtime_context",
+]
