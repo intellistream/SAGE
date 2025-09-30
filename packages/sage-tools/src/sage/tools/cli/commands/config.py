@@ -4,13 +4,15 @@
 
 import typer
 
-# Import the LLM config subcommand
+# Import the configuration subcommands
+from .env import app as env_app
 from .llm_config import app as llm_config_app
 
 app = typer.Typer(name="config", help="⚙️ 配置管理")
 
-# Add LLM config subcommand
-app.add_typer(llm_config_app, name="llm")
+# Add config-related subcommands
+app.add_typer(llm_config_app, name="llm", help="🤖 LLM 服务配置管理")
+app.add_typer(env_app, name="env", help="🌱 环境变量与 .env 文件管理")
 
 
 @app.command("show")
