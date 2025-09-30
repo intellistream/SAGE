@@ -36,9 +36,7 @@ class Retriever(MapFunction):
         question = data
         data = {}
 
-        results = self.call_service(
-            "rag_memory", question, method="retrieve"
-        )
+        results = self.call_service("rag_memory", question, method="retrieve")
         data["question"] = question
         data["context"] = results
 

@@ -1,4 +1,5 @@
 """High-level sugar APIs for invoking SAGE services from user scripts."""
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -7,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from concurrent.futures import Future
+
     from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 

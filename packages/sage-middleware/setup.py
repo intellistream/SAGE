@@ -42,7 +42,9 @@ class BuildCExtensions(build_ext):
             env["SAGE_COMMON_DEPS_FILE"] = str(shared_deps)
 
         env.setdefault("SAGE_PYBIND11_VERSION", "2.13.0")
-        env.setdefault("SAGE_ENABLE_GPERFTOOLS", os.environ.get("SAGE_ENABLE_GPERFTOOLS", "0"))
+        env.setdefault(
+            "SAGE_ENABLE_GPERFTOOLS", os.environ.get("SAGE_ENABLE_GPERFTOOLS", "0")
+        )
         # SAGE_GPERFTOOLS_ROOT、SAGE_GPERFTOOLS_LIB 直接继承用户环境即可
         return env
 

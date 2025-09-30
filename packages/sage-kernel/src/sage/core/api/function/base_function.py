@@ -38,8 +38,8 @@ class BaseFunction(ABC):
         self,
         service_name: str,
         *args,
-    timeout: Optional[float] = None,
-    method: Optional[str] = None,
+        timeout: Optional[float] = None,
+        method: Optional[str] = None,
         **kwargs,
     ):
         """
@@ -62,8 +62,8 @@ class BaseFunction(ABC):
         self,
         service_name: str,
         *args,
-    timeout: Optional[float] = None,
-    method: Optional[str] = None,
+        timeout: Optional[float] = None,
+        method: Optional[str] = None,
         **kwargs,
     ):
         """

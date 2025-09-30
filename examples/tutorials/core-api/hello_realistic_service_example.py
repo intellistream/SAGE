@@ -338,9 +338,7 @@ class RecommendationFunction(BaseFunction):
                 rec["rank"] = i + 1
 
             # 缓存结果
-            self.call_service(
-                "cache", cache_key, recommendations, method="set"
-            )
+            self.call_service("cache", cache_key, recommendations, method="set")
 
             # 记录推荐完成
             self.call_service(
