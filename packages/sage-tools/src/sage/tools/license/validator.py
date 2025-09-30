@@ -1,23 +1,21 @@
-"""
-License Validation Module
-"""
+"""Validation helpers for SAGE licensing."""
+
+from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from license_core import LicenseCore
+from .core import LicenseConfig, LicenseCore
 
 
 class LicenseValidator:
-    """License validation and status checking"""
+    """Provides high-level checks for license availability and features."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.core = LicenseCore()
 
     def check_license_status(self) -> Dict[str, Any]:
-        """Check current license status from all sources"""
-        # Check environment variable first
         env_key = os.getenv("SAGE_LICENSE_KEY")
         if env_key:
             info = self.core.parse_license_key(env_key)
@@ -29,13 +27,13 @@ class LicenseValidator:
                     **info.__dict__,
                 }
 
-        # Check license file
         if self.core.config.LICENSE_FILE.exists():
             try:
-                with open(self.core.config.LICENSE_FILE, "r") as f:
-                    file_key = f.read().strip()
-
-                info = self.core.parse_license_key(file_key)
+                with open(
+                    self.core.config.LICENSE_FILE, "r", encoding="utf-8"
+                ) as stream:
+                    key = stream.read().strip()
+                info = self.core.parse_license_key(key)
                 if info:
                     return {
                         "has_license": True,
@@ -46,34 +44,33 @@ class LicenseValidator:
             except Exception:
                 pass
 
-        # No license, return open-source
         return {"has_license": False, "source": "none", "type": "open-source"}
 
     def has_valid_license(self) -> bool:
-        """Quick check if there's a valid license"""
         status = self.check_license_status()
-        if not status["has_license"]:
+        if not status.get("has_license"):
             return False
 
-        # Check expiration
         expires_str = status.get("expires_at")
-        if expires_str and expires_str != "N/A":
-            try:
-                expires = datetime.fromisoformat(expires_str)
-                return datetime.now() < expires
-            except Exception:
-                pass
+        if not expires_str or expires_str == "N/A":
+            return True
 
-        return True
+        try:
+            expires = datetime.fromisoformat(expires_str)
+        except Exception:
+            return True
 
-    def get_license_features(self) -> list:
-        """Get available license features"""
+        return datetime.now() < expires
+
+    def get_license_features(self) -> List[str]:
         status = self.check_license_status()
-        if status["has_license"]:
+        if status.get("has_license"):
             return status.get("features", [])
-        return ["open-source"]
+        return list(LicenseConfig.OPEN_SOURCE_FEATURES)
 
     def validate_feature_access(self, feature: str) -> bool:
-        """Check if a specific feature is available"""
         features = self.get_license_features()
         return feature in features or "enterprise" in features
+
+
+__all__ = ["LicenseValidator"]

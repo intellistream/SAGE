@@ -12,6 +12,11 @@ from sage.libs.agents.planning.llm_planner import LLMPlanner
 from sage.libs.agents.profile.profile import BaseProfile
 from sage.libs.agents.runtime.agent import AgentRuntime
 from sage.libs.rag.generator import OpenAIGenerator
+from sage.tools.utils.env import (
+    get_api_key,
+    load_environment_file,
+    should_use_real_api,
+)
 
 # 添加项目路径到 sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,20 +26,9 @@ sys.path.insert(0, project_root)
 
 # 加载环境配置
 try:
-    from tools.env_config import get_api_key, load_sage_env, should_use_real_api
-
-    load_sage_env()  # 立即加载环境变量
-except ImportError:
-    # Fallback if env_config is not available
-    def get_api_key(service: str, required: bool = True):
-        mapping = {"openai": "OPENAI_API_KEY"}
-        key = os.getenv(mapping.get(service, f"{service.upper()}_API_KEY"))
-        if required and not key:
-            raise ValueError(f"Missing API key for {service}")
-        return key
-
-    def should_use_real_api():
-        return False
+    load_environment_file()
+except RuntimeError as exc:
+    print(f"⚠️ 无法加载 .env: {exc}")
 
 
 # ====== 读取 source ======

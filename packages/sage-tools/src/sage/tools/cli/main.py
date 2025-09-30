@@ -11,10 +11,12 @@ from sage.tools.cli.commands.cluster import app as cluster_app
 from sage.tools.cli.commands.config import app as config_app
 from sage.tools.cli.commands.dev import app as dev_app  # 新增dev命令
 from sage.tools.cli.commands.doctor import app as doctor_app
+from sage.tools.cli.commands.enterprise import app as enterprise_app
 from sage.tools.cli.commands.extensions import app as extensions_app
 from sage.tools.cli.commands.head import app as head_app
 from sage.tools.cli.commands.job import app as job_app
 from sage.tools.cli.commands.jobmanager import app as jobmanager_app
+from sage.tools.cli.commands.license import app as license_app
 from sage.tools.cli.commands.llm import app as llm_app  # 新增LLM命令
 from sage.tools.cli.commands.pipeline import app as pipeline_app
 from sage.tools.cli.commands.studio import app as studio_app
@@ -45,6 +47,8 @@ app = typer.Typer(
 # 注册核心子命令
 app.add_typer(version_app, name="version", help="📋 版本信息")
 app.add_typer(config_app, name="config", help="⚙️ 配置管理")
+app.add_typer(enterprise_app, name="enterprise", help="🏢 企业版功能管理")
+app.add_typer(license_app, name="license", help="🛡️ 许可证管理 - 客户与厂商工具")
 app.add_typer(llm_app, name="llm", help="🤖 LLM服务管理 - 启动、停止、配置LLM服务")
 app.add_typer(doctor_app, name="doctor", help="🔍 系统诊断")
 
