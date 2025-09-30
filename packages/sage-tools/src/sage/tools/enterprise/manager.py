@@ -72,7 +72,9 @@ class EnterpriseManager:
             features = self.license_validator.get_license_features()
             has_valid = self.license_validator.has_valid_license()
 
-            commercial_enabled = bool(_ENTERPRISE_FEATURES.intersection(features)) and has_valid
+            commercial_enabled = (
+                bool(_ENTERPRISE_FEATURES.intersection(features)) and has_valid
+            )
 
             return {
                 "has_license": status.get("has_license", False),
@@ -130,11 +132,13 @@ class EnterpriseManager:
                     text=True,
                 )
             except Exception as exc:  # pragma: no cover - subprocess failure
-                results.append({
-                    "package": package,
-                    "status": "error",
-                    "error": str(exc),
-                })
+                results.append(
+                    {
+                        "package": package,
+                        "status": "error",
+                        "error": str(exc),
+                    }
+                )
                 log.append(f"Error installing {package}: {exc}")
                 continue
 
@@ -231,6 +235,7 @@ class EnterpriseManager:
 # ----------------------------------------------------------------------
 # Module level helpers
 # ----------------------------------------------------------------------
+
 
 def check_enterprise_features() -> Dict[str, Any]:
     manager = EnterpriseManager()

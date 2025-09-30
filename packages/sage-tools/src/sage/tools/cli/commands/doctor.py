@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """SAGE CLI Doctor Command — diagnose the local environment."""
 
-from rich.console import Console
 import typer
+from rich.console import Console
 
 from sage.tools.utils.diagnostics import check_dependency_versions
 

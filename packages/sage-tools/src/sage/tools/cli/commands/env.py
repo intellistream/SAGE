@@ -23,7 +23,9 @@ def _render_status(status: dict) -> None:
     project_root: Path = status["project_root"]
     console.print(f"📁 项目根目录: [cyan]{project_root}[/cyan]")
     console.print(f"python-dotenv 可用: {'✅' if status['dotenv_available'] else '⚠️'}")
-    console.print(f".env 存在: {'✅' if status['env_file_exists'] else '❌'} ({status['env_file']})")
+    console.print(
+        f".env 存在: {'✅' if status['env_file_exists'] else '❌'} ({status['env_file']})"
+    )
     console.print(
         f".env.template 存在: {'✅' if status['env_template_exists'] else '❌'} ({status['env_template']})"
     )

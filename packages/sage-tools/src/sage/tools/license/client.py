@@ -44,7 +44,9 @@ class LicenseClient:
             self.console.print(f"❌ [red]Failed to persist license: {exc}[/red]")
             return False
 
-        self.console.print("✅ [green]Commercial license installed successfully[/green]")
+        self.console.print(
+            "✅ [green]Commercial license installed successfully[/green]"
+        )
         self.console.print(f" • 类型: {info.type}")
         self.console.print(f" • 到期时间: {info.expires_at}")
         self.console.print(f" • 功能: {', '.join(info.features)}")
@@ -85,10 +87,7 @@ class LicenseClient:
                 except Exception:
                     pass
         else:
-            self.console.print(
-                "功能: "
-                + ", ".join(LicenseConfig.OPEN_SOURCE_FEATURES)
-            )
+            self.console.print("功能: " + ", ".join(LicenseConfig.OPEN_SOURCE_FEATURES))
             self.console.print("💡 商业版咨询: intellistream@outlook.com")
 
 

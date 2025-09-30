@@ -72,7 +72,9 @@ class LicenseCore:
         prefix, license_type, year_str, customer_hash, random_id, checksum = parts
 
         data_to_verify = f"{license_type}{year_str}{customer_hash}{random_id}"
-        expected_checksum = hashlib.sha256(data_to_verify.encode()).hexdigest()[:4].upper()
+        expected_checksum = (
+            hashlib.sha256(data_to_verify.encode()).hexdigest()[:4].upper()
+        )
 
         if checksum != expected_checksum:
             return None

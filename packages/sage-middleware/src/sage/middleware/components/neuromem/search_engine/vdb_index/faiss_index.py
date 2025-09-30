@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import faiss
 import numpy as np
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.search_engine.vdb_index.base_vdb_index import (
     BaseVDBIndex,

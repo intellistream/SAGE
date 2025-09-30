@@ -43,7 +43,9 @@ class LicenseVendor:
 
         return f"{self.config.PREFIX}-{license_type}-{year}-{customer_hash}-{random_id}-{checksum}"
 
-    def save_generated_license(self, license_key: str, customer: str, days: int) -> None:
+    def save_generated_license(
+        self, license_key: str, customer: str, days: int
+    ) -> None:
         records = []
         path = self.config.GENERATED_LICENSES_FILE
 

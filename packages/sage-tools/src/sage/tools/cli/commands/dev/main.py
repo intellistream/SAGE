@@ -811,6 +811,7 @@ def test(
         from pathlib import Path
 
         from rich.rule import Rule
+
         from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
 
         # 0. 测试目录获取
@@ -1629,7 +1630,7 @@ def _check_package_dependencies(package_name: str, verbose: bool):
 
     if verbose:
         console.print(
-            f"    ℹ️ 依赖检查已迁移到 `sage doctor packages --deps`，当前调用保持兼容"
+            "    ℹ️ 依赖检查已迁移到 `sage doctor packages --deps`，当前调用保持兼容"
         )
 
 

@@ -63,9 +63,9 @@ def _gather_dependency_status(
     for package, minimum in dependencies.items():
         try:
             installed_version = pkg_resources.get_distribution(package).version
-            compatible = pkg_resources.parse_version(installed_version) >= pkg_resources.parse_version(
-                minimum
-            )
+            compatible = pkg_resources.parse_version(
+                installed_version
+            ) >= pkg_resources.parse_version(minimum)
             statuses.append(
                 DependencyStatus(
                     name=package,
@@ -98,7 +98,9 @@ def _gather_dependency_status(
     return statuses
 
 
-def _render_status_table(statuses: Iterable[DependencyStatus], console: Console) -> None:
+def _render_status_table(
+    statuses: Iterable[DependencyStatus], console: Console
+) -> None:
     table = Table(title="SAGE 依赖兼容性", show_lines=True)
     table.add_column("依赖包")
     table.add_column("最低版本", justify="right")
@@ -158,13 +160,15 @@ def check_dependency_versions(
 
         package_list = " ".join(status.name for status in incompatible)
         if package_list:
-            console.print(f"\n建议升级命令: [bold]pip install --upgrade {package_list}[/bold]")
+            console.print(
+                f"\n建议升级命令: [bold]pip install --upgrade {package_list}[/bold]"
+            )
 
         if verify_import:
             console.print("\n尝试验证关键模块导入…")
             try:
-                from sage.kernel.jobmanager.jobmanager_client import (  # type: ignore import
-                    JobManagerClient,  # noqa: F401
+                from sage.kernel.jobmanager.jobmanager_client import (  # noqa: F401
+                    JobManagerClient,
                 )
             except Exception as exc:  # pragma: no cover - import runtime dependent
                 console.print(f"❌ JobManagerClient 导入失败: {exc}")
@@ -222,7 +226,9 @@ def run_installation_diagnostics(
                 import_results[module] = {
                     "status": "success",
                     "version": version,
-                    "path": str(module_path) if module_path != "Unknown" else module_path,
+                    "path": (
+                        str(module_path) if module_path != "Unknown" else module_path
+                    ),
                 }
                 console.print(f"  ✅ {module} (版本: {version})")
             except ImportError as exc:
@@ -305,9 +311,7 @@ def run_installation_diagnostics(
                 if result.returncode == 0:
                     console.print(f"  ✅ {label} 可用")
                 else:
-                    console.print(
-                        f"  ❌ {label} 返回错误码: {result.returncode}"
-                    )
+                    console.print(f"  ❌ {label} 返回错误码: {result.returncode}")
             except subprocess.TimeoutExpired:
                 console.print(f"  ⚠️  {label} 超时")
             except FileNotFoundError:
@@ -475,7 +479,9 @@ def print_packages_status(
         console.print(f"\n📦 {package_name}")
 
         console.print(
-            "  ✅ pyproject.toml" if info.get("has_pyproject") else "  ❌ pyproject.toml 缺失"
+            "  ✅ pyproject.toml"
+            if info.get("has_pyproject")
+            else "  ❌ pyproject.toml 缺失"
         )
         console.print(
             "  ✅ tests 目录" if info.get("has_tests") else "  ⚠️  tests 目录缺失"

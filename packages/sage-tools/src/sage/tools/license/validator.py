@@ -29,7 +29,9 @@ class LicenseValidator:
 
         if self.core.config.LICENSE_FILE.exists():
             try:
-                with open(self.core.config.LICENSE_FILE, "r", encoding="utf-8") as stream:
+                with open(
+                    self.core.config.LICENSE_FILE, "r", encoding="utf-8"
+                ) as stream:
                     key = stream.read().strip()
                 info = self.core.parse_license_key(key)
                 if info:

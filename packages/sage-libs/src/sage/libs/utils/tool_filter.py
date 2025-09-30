@@ -2,6 +2,7 @@ import json
 from typing import Set
 
 from sage.core.api.function.filter_function import FilterFunction
+
 from sage.libs.context.model_context import ModelContext
 
 

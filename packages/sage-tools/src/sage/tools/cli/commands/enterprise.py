@@ -68,8 +68,7 @@ def check():
 
     summary = data.get("summary", {})
     console.print(
-        f"企业功能启用: "
-        f"{'✅ 是' if summary.get('enterprise_enabled') else '❌ 否'}"
+        f"企业功能启用: " f"{'✅ 是' if summary.get('enterprise_enabled') else '❌ 否'}"
     )
 
 
@@ -103,10 +102,11 @@ def install(
     console.print(table)
 
     summary = (
-        f"{result.get('installed_packages', 0)}/"
-        f"{result.get('total_packages', 0)}"
+        f"{result.get('installed_packages', 0)}/" f"{result.get('total_packages', 0)}"
     )
-    console.print(f"安装状态: [bold]{result.get('status', 'unknown')}[/bold] ({summary})")
+    console.print(
+        f"安装状态: [bold]{result.get('status', 'unknown')}[/bold] ({summary})"
+    )
 
     if result.get("status") != "success":
         raise typer.Exit(1)

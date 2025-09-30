@@ -29,7 +29,9 @@ def status():
 
 @app.command()
 def install(
-    license_key: str = typer.Argument(..., help="要安装的许可证密钥", metavar="LICENSE-KEY"),
+    license_key: str = typer.Argument(
+        ..., help="要安装的许可证密钥", metavar="LICENSE-KEY"
+    ),
 ):
     """安装商业许可证。"""
 
@@ -82,7 +84,9 @@ def generate(
     """生成新的商业许可证。"""
 
     vendor = LicenseVendor(console=console)
-    license_key = vendor.generate_license_key(customer, days=days, license_type=license_type)
+    license_key = vendor.generate_license_key(
+        customer, days=days, license_type=license_type
+    )
     vendor.save_generated_license(license_key, customer, days)
 
     console.print("🎉 许可证生成成功!")
@@ -104,7 +108,9 @@ def vendor_list():
 
 @vendor_app.command()
 def revoke(
-    license_key: str = typer.Argument(..., help="要吊销的许可证密钥", metavar="LICENSE-KEY"),
+    license_key: str = typer.Argument(
+        ..., help="要吊销的许可证密钥", metavar="LICENSE-KEY"
+    ),
 ):
     """吊销指定的许可证。"""
 

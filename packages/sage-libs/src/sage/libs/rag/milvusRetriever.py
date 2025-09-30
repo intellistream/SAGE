@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 from sage.core.api.function.map_function import MapFunction
+
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
 
 
