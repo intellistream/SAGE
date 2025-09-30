@@ -22,6 +22,7 @@ concurrency:
 
 env:
   CI: true
+  SAGE_VERBOSE_BUILD: true
   HF_TOKEN: ${{ secrets.HF_TOKEN }}
   SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

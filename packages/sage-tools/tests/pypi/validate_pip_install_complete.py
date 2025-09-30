@@ -394,17 +394,17 @@ class CompletePipInstallTester:
                 return False
 
             # 验证安装 - 使用更robust的版本检测方法
-            version_check_code = '''
+            version_check_code = """
 try:
     import sage
     version = None
-    
+
     # 尝试多种方式获取版本信息
     if hasattr(sage, '__version__'):
         version = sage.__version__
     elif hasattr(sage, '_version') and hasattr(sage._version, '__version__'):
         version = sage._version.__version__
-    
+
     # 尝试从子包获取版本
     if not version:
         try:
@@ -413,7 +413,7 @@ try:
                 version = sage.common.__version__
         except ImportError:
             pass
-    
+
     # 尝试使用importlib.metadata（Python 3.8+的标准方式）
     if not version:
         # 尝试不同的包名
@@ -430,7 +430,7 @@ try:
                     break
                 except (ImportError, Exception):
                     continue
-    
+
     if version:
         print(f"SAGE version: {version}")
     else:
@@ -438,7 +438,7 @@ try:
 except Exception as e:
     print(f"Import failed: {e}")
     raise
-'''
+"""
             returncode, stdout, stderr = self.run_command(
                 [
                     str(self.python_exe),
@@ -466,7 +466,9 @@ except Exception as e:
 
         test_imports = [
             # 核心包 - 使用更robust的版本访问方法
-            ("sage", """import sage; 
+            (
+                "sage",
+                """import sage;
 version = 'unknown'
 # 尝试多种方式获取版本信息
 try:
@@ -475,7 +477,7 @@ try:
     elif hasattr(sage, '_version'):
         if hasattr(sage._version, '__version__'):
             version = sage._version.__version__
-    
+
     # 如果仍然是unknown，尝试从子包获取
     if version == 'unknown':
         try:
@@ -484,7 +486,7 @@ try:
                 version = sage.common.__version__
         except ImportError:
             pass
-    
+
     # 最后尝试使用importlib.metadata
     if version == 'unknown':
         # 尝试不同的包名
@@ -501,10 +503,11 @@ try:
                     break
                 except (ImportError, Exception):
                     continue
-    
+
 except Exception:
     pass
-print(f'SAGE {version} loaded')"""),
+print(f'SAGE {version} loaded')""",
+            ),
             ("sage.common", "import sage.common; print('sage.common imported')"),
             ("sage.core", "import sage.core; print('sage.core imported')"),
             ("sage.libs", "import sage.libs; print('sage.libs imported')"),
