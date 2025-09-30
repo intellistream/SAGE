@@ -6,6 +6,12 @@ SAGE Dev 命令组 - 简化版本
 
 import typer
 from rich.console import Console
+from sage.tools.utils.diagnostics import (
+    collect_packages_status,
+    print_packages_status,
+    print_packages_status_summary,
+    run_installation_diagnostics,
+)
 
 console = Console()
 app = typer.Typer(help="SAGE 开发工具集")
@@ -43,6 +49,18 @@ try:
     )
 except ImportError as e:
     console.print(f"[yellow]警告: 版本管理功能不可用: {e}[/yellow]")
+
+# 添加模型缓存管理子命令
+try:
+    from .models import app as models_app
+
+    app.add_typer(
+        models_app,
+        name="models",
+        help="🤖 Embedding 模型缓存管理",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: 模型缓存功能不可用: {e}[/yellow]")
 
 
 @app.command()
@@ -237,14 +255,14 @@ def quality(
                 "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
             )
             console.print(
-                "[yellow]💡 建议运行: sage-dev quality --check-only 查看剩余问题[/yellow]"
+                "[yellow]💡 建议运行: sage dev quality --check-only 查看剩余问题[/yellow]"
             )
         else:
             console.print(
                 "[yellow]⚠️ 发现代码质量问题，自动修复功能可以处理格式化和导入排序问题[/yellow]"
             )
             console.print(
-                "[yellow]💡 建议运行: sage-dev quality (默认自动修复)[/yellow]"
+                "[yellow]💡 建议运行: sage dev quality (默认自动修复)[/yellow]"
             )
 
         # 如果设置了warn_only，只警告不中断
@@ -437,12 +455,12 @@ def _run_quality_check(
                 console.print(
                     "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
                 )
-                console.print("[yellow]💡 建议运行: sage-dev quality --fix[/yellow]")
+                console.print("[yellow]💡 建议运行: sage dev quality --fix[/yellow]")
             else:
                 console.print(
                     "[yellow]⚠️ 发现代码质量问题，使用 --fix 自动修复格式化和导入排序问题[/yellow]"
                 )
-                console.print("[yellow]💡 建议运行: sage-dev quality --fix[/yellow]")
+                console.print("[yellow]💡 建议运行: sage dev quality --fix[/yellow]")
 
         # 如果设置了warn_only，只警告不中断
         if not warn_only:
@@ -640,8 +658,12 @@ def status(
 
         # 如果只检查包状态
         if packages_only:
-            _show_packages_status(
-                project_path, verbose, check_versions, check_dependencies
+            print_packages_status(
+                project_path,
+                console=console,
+                verbose=verbose,
+                check_versions=check_versions,
+                check_dependencies=check_dependencies,
             )
             return
 
@@ -649,7 +671,7 @@ def status(
             # JSON格式输出
             status_data = checker.check_all(verbose=False)
             # 添加包状态信息
-            status_data["packages_status"] = _get_packages_status_data(project_path)
+            status_data["packages_status"] = collect_packages_status(project_path)
             import json
 
             console.print(json.dumps(status_data, indent=2, ensure_ascii=False))
@@ -661,8 +683,12 @@ def status(
             console.print("=" * 60)
             # 添加包状态信息
             console.print("\n📦 包状态详情:")
-            _show_packages_status(
-                project_path, True, check_versions, check_dependencies
+            print_packages_status(
+                project_path,
+                console=console,
+                verbose=True,
+                check_versions=check_versions,
+                check_dependencies=check_dependencies,
             )
         elif output_format == "markdown":
             # Markdown格式输出
@@ -679,7 +705,7 @@ def status(
             console.print(f"\n{summary}")
 
             # 显示包状态摘要
-            _show_packages_status_summary(project_path)
+            print_packages_status_summary(project_path, console=console)
 
             # 显示关键信息和警告
             issues = []
@@ -848,7 +874,7 @@ def test(
         # 诊断模式
         if diagnose:
             console.print(Rule("[bold cyan]🔍 运行诊断模式...[/bold cyan]"))
-            _run_diagnose_mode(str(project_path))
+            run_installation_diagnostics(project_path, console=console)
             return
 
         # Issues Manager 测试
@@ -1402,183 +1428,9 @@ def _generate_markdown_output(result, analysis_type):
 
 
 def _run_diagnose_mode(project_root: str):
-    """运行诊断模式，检查 SAGE 安装状态 - 集成 diagnose_sage.py 功能"""
-    try:
-        import importlib
-        import pkgutil
-        import subprocess
-        from pathlib import Path
+    """Backward-compatible wrapper using the shared diagnostics utility."""
 
-        console.print("🔍 SAGE 完整安装诊断")
-        console.print("=" * 50)
-
-        # 1. 基础导入测试
-        console.print("📦 基础导入测试...")
-        imports_to_test = [
-            "sage",
-            "sage.common",
-            "sage.kernel",
-            "sage.libs",
-            "sage.middleware",
-        ]
-
-        import_results = {}
-        for module in imports_to_test:
-            try:
-                imported_module = importlib.import_module(module)
-                version = getattr(imported_module, "__version__", "Unknown")
-                path = getattr(
-                    imported_module,
-                    "__file__",
-                    getattr(imported_module, "__path__", "Unknown"),
-                )
-                import_results[module] = {
-                    "status": "success",
-                    "version": version,
-                    "path": str(path) if path != "Unknown" else path,
-                }
-                console.print(f"  ✅ {module} (版本: {version})")
-            except ImportError as e:
-                import_results[module] = {"status": "failed", "error": str(e)}
-                console.print(f"  ❌ {module}: {str(e)}")
-            except Exception as e:
-                import_results[module] = {"status": "error", "error": str(e)}
-                console.print(f"  ❌ {module}: {str(e)}")
-
-        # 2. 命名空间包检查
-        console.print("\n🔗 命名空间包检查...")
-        try:
-            import sage
-
-            if hasattr(sage, "__path__"):
-                console.print(f"  ✅ sage 命名空间路径: {sage.__path__}")
-
-                # 检查子包
-                for finder, name, ispkg in pkgutil.iter_modules(
-                    sage.__path__, sage.__name__ + "."
-                ):
-                    if name.split(".")[-1] in [
-                        "common",
-                        "kernel",
-                        "libs",
-                        "middleware",
-                        "tools",
-                    ]:
-                        console.print(f"    📦 发现子包: {name}")
-            else:
-                console.print("  ⚠️  sage 不是命名空间包")
-        except Exception as e:
-            console.print(f"  ❌ 命名空间检查失败: {e}")
-
-        # 3. 包结构检查
-        console.print("\n🏗️ 包结构检查...")
-        packages_dir = Path(project_root) / "packages"
-        if packages_dir.exists():
-            structure_status = {}
-            for package_dir in packages_dir.iterdir():
-                if package_dir.is_dir() and package_dir.name.startswith("sage-"):
-                    package_name = package_dir.name
-                    structure_info = {
-                        "pyproject": (package_dir / "pyproject.toml").exists(),
-                        "setup": (package_dir / "setup.py").exists(),
-                        "src": (package_dir / "src").exists(),
-                        "tests": (package_dir / "tests").exists(),
-                    }
-                    structure_status[package_name] = structure_info
-
-                    console.print(f"  📦 {package_name}")
-                    console.print(
-                        "    ✅ pyproject.toml"
-                        if structure_info["pyproject"]
-                        else "    ❌ pyproject.toml 缺失"
-                    )
-                    if structure_info["src"]:
-                        console.print("    ✅ src/ 目录")
-                    if structure_info["tests"]:
-                        console.print("    ✅ tests/ 目录")
-                    else:
-                        console.print("    ⚠️  tests/ 目录缺失")
-        else:
-            console.print("  ❌ packages 目录不存在")
-
-        # 4. 环境变量检查
-        console.print("\n🌍 环境变量检查...")
-        import os
-
-        env_vars = ["SAGE_HOME", "PYTHONPATH", "PATH"]
-        for var in env_vars:
-            value = os.environ.get(var)
-            if value:
-                console.print(
-                    f"  ✅ {var}: {value[:100]}{'...' if len(value) > 100 else ''}"
-                )
-            else:
-                console.print(f"  ⚠️  {var}: 未设置")
-
-        # 5. CLI 工具检查
-        console.print("\n🖥️ CLI 工具检查...")
-        cli_commands = ["sage", "sage-dev"]
-        for cmd in cli_commands:
-            try:
-                result = subprocess.run(
-                    [cmd, "--help"], capture_output=True, text=True, timeout=10
-                )
-                if result.returncode == 0:
-                    console.print(f"  ✅ {cmd} 可用")
-                else:
-                    console.print(f"  ❌ {cmd} 返回错误码: {result.returncode}")
-            except subprocess.TimeoutExpired:
-                console.print(f"  ⚠️  {cmd} 超时")
-            except FileNotFoundError:
-                console.print(f"  ❌ {cmd} 未找到")
-            except Exception as e:
-                console.print(f"  ❌ {cmd} 检查失败: {e}")
-
-        # 6. 依赖包检查
-        console.print("\n📚 关键依赖检查...")
-        key_dependencies = [
-            "typer",
-            "rich",
-            "pydantic",
-            "fastapi",
-            "pytest",
-            "numpy",
-            "pandas",
-        ]
-
-        for dep in key_dependencies:
-            try:
-                imported = importlib.import_module(dep)
-                version = getattr(imported, "__version__", "Unknown")
-                console.print(f"  ✅ {dep} (版本: {version})")
-            except ImportError:
-                console.print(f"  ⚠️  {dep} 未安装")
-            except Exception as e:
-                console.print(f"  ❌ {dep} 检查失败: {e}")
-
-        # 7. 生成总结
-        console.print("\n📋 诊断总结:")
-        successful_imports = sum(
-            1 for result in import_results.values() if result["status"] == "success"
-        )
-        total_imports = len(import_results)
-
-        console.print(f"  📊 导入成功率: {successful_imports}/{total_imports}")
-
-        if successful_imports == total_imports:
-            console.print("  🎉 SAGE 安装完整，所有模块可正常导入")
-        elif successful_imports > 0:
-            console.print("  ⚠️  SAGE 部分安装，部分模块存在问题")
-        else:
-            console.print("  ❌ SAGE 安装存在严重问题，无法导入核心模块")
-
-        console.print("\n✅ 完整诊断完成")
-
-    except Exception as e:
-        console.print(f"[red]诊断失败: {e}[/red]")
-        import traceback
-
-        console.print(f"[red]详细错误:\n{traceback.format_exc()}[/red]")
+    run_installation_diagnostics(project_root, console=console)
 
 
 def _run_issues_manager_test(project_root: str, verbose: bool):
@@ -1746,250 +1598,38 @@ def _display_test_results(
 
 
 def _get_packages_status_data(project_path) -> dict:
-    """获取包状态数据"""
-    try:
-        from pathlib import Path
+    """保持向后兼容，委托给共享的诊断工具。"""
 
-        if isinstance(project_path, str):
-            project_path = Path(project_path)
-
-        packages_dir = project_path / "packages"
-        if not packages_dir.exists():
-            return {"error": "packages directory not found"}
-
-        packages_status = {}
-
-        for package_dir in packages_dir.iterdir():
-            if package_dir.is_dir() and package_dir.name.startswith("sage-"):
-                package_name = package_dir.name
-                status_info = {
-                    "name": package_name,
-                    "path": str(package_dir),
-                    "has_pyproject": (package_dir / "pyproject.toml").exists(),
-                    "has_setup": (package_dir / "setup.py").exists(),
-                    "has_tests": (package_dir / "tests").exists(),
-                    "version": "unknown",
-                }
-
-                # 尝试获取版本信息
-                try:
-                    import subprocess
-
-                    result = subprocess.run(
-                        [
-                            "python",
-                            "-c",
-                            f"import {package_name.replace('-', '.')}; print(getattr({package_name.replace('-', '.')}, '__version__', 'unknown'))",
-                        ],
-                        capture_output=True,
-                        text=True,
-                        timeout=5,
-                    )
-
-                    if result.returncode == 0:
-                        status_info["version"] = result.stdout.strip()
-                        status_info["import_status"] = "success"
-                    else:
-                        status_info["import_status"] = "failed"
-                        status_info["import_error"] = result.stderr.strip()
-                except Exception as e:
-                    status_info["import_status"] = "error"
-                    status_info["import_error"] = str(e)
-
-                packages_status[package_name] = status_info
-
-        return {"total_packages": len(packages_status), "packages": packages_status}
-
-    except Exception as e:
-        return {"error": str(e)}
+    return collect_packages_status(project_path)
 
 
 def _show_packages_status_summary(project_path):
-    """显示包状态摘要"""
-    console.print("\n📦 包状态摘要:")
+    """向后兼容: 使用新的包状态摘要渲染函数。"""
 
-    data = _get_packages_status_data(project_path)
-    if "error" in data:
-        console.print(f"[red]❌ {data['error']}[/red]")
-        return
-
-    total = data["total_packages"]
-    packages = data["packages"]
-
-    importable = sum(
-        1 for pkg in packages.values() if pkg.get("import_status") == "success"
-    )
-    has_tests = sum(1 for pkg in packages.values() if pkg.get("has_tests", False))
-
-    console.print(f"  📊 总包数: {total}")
-    console.print(f"  ✅ 可导入: {importable}/{total}")
-    console.print(f"  🧪 有测试: {has_tests}/{total}")
+    print_packages_status_summary(project_path, console=console)
 
 
 def _show_packages_status(
     project_path, verbose: bool, check_versions: bool, check_dependencies: bool
 ):
-    """显示详细包状态"""
-    console.print("📦 SAGE Framework 包状态详情")
-    console.print("=" * 50)
+    """显示详细包状态 (保持向后兼容)。"""
 
-    data = _get_packages_status_data(project_path)
-    if "error" in data:
-        console.print(f"[red]❌ {data['error']}[/red]")
-        return
-
-    packages = data["packages"]
-
-    for package_name, info in packages.items():
-        console.print(f"\n📦 {package_name}")
-
-        # 基础信息
-        if info.get("has_pyproject"):
-            console.print("  ✅ pyproject.toml")
-        else:
-            console.print("  ❌ pyproject.toml 缺失")
-
-        if info.get("has_tests"):
-            console.print("  ✅ tests 目录")
-        else:
-            console.print("  ⚠️  tests 目录缺失")
-
-        # 导入状态
-        if info.get("import_status") == "success":
-            version = info.get("version", "unknown")
-            console.print(f"  ✅ 导入成功 (版本: {version})")
-        else:
-            console.print("  ❌ 导入失败")
-            if verbose and info.get("import_error"):
-                console.print(f"     错误: {info['import_error']}")
-
-        # 详细版本信息
-        if check_versions and verbose:
-            console.print(f"  📍 路径: {info.get('path', 'unknown')}")
-
-        # 依赖检查
-        if check_dependencies:
-            _check_package_dependencies(package_name, verbose)
+    print_packages_status(
+        project_path,
+        console=console,
+        verbose=verbose,
+        check_versions=check_versions,
+        check_dependencies=check_dependencies,
+    )
 
 
 def _check_package_dependencies(package_name: str, verbose: bool):
-    """检查单个包的依赖"""
-    try:
+    """保持原有函数存在以防外部引用。"""
 
-        # 尝试读取 pyproject.toml 依赖
-        console.print(f"    🔗 检查 {package_name} 依赖...")
-
-        # 这里可以添加更详细的依赖检查逻辑
-        # 暂时简化处理
-        console.print("    ℹ️  依赖检查功能待完善")
-
-    except Exception as e:
-        if verbose:
-            console.print(f"    ❌ 依赖检查失败: {e}")
-
-
-@app.command()
-def tools(
-    command: str = typer.Argument(..., help="工具命令: test, diagnose, status, help"),
-    test_type: str = typer.Option(
-        "quick", "--type", help="测试类型: quick, all, diagnose"
-    ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出"),
-    packages: str = typer.Option("", "--packages", "-p", help="指定包，逗号分隔"),
-):
-    """开发工具集合 - 替代 tools/tests/test 脚本"""
-
-    if command == "help":
-        _show_tools_help()
-        return
-    elif command == "test":
-        _run_tools_test(test_type, verbose, packages)
-    elif command == "diagnose":
-        _run_diagnose_mode(None, verbose)
-    elif command == "status":
-        _show_packages_status(verbose)
-    else:
-        console.print(f"[red]未知命令: {command}[/red]")
-        _show_tools_help()
-
-
-def _show_tools_help():
-    """显示工具帮助信息"""
-    console.print("🧪 [bold blue]SAGE Framework 开发工具[/bold blue]")
-    console.print()
-    console.print("[bold]使用方法:[/bold]")
-    console.print("  sage dev tools <command> [options]")
-    console.print()
-    console.print("[bold]命令:[/bold]")
-    console.print("  [green]test[/green]      运行测试 (quick|all|diagnose)")
-    console.print("  [green]diagnose[/green]  运行诊断和状态检查")
-    console.print("  [green]status[/green]    显示包状态")
-    console.print("  [green]help[/green]      显示此帮助")
-    console.print()
-    console.print("[bold]快速命令:[/bold]")
-    console.print("  sage dev tools test --type quick              # 快速测试")
-    console.print("  sage dev tools test --type all --verbose      # 测试所有包")
-    console.print("  sage dev tools diagnose                       # 运行诊断")
-    console.print("  sage dev tools test --packages sage-libs      # 测试指定包")
-    console.print()
-    console.print("[bold]详细用法:[/bold]")
-    console.print("  sage dev test --help                   # 查看完整测试选项")
-    console.print("  sage dev status --help                 # 查看状态选项")
-
-
-def _run_tools_test(test_type: str, verbose: bool, packages: str):
-    """运行工具测试"""
-    from pathlib import Path
-
-    project_root = str(Path(".").resolve())
-
-    if test_type == "diagnose":
-        _run_diagnose_mode(project_root, verbose)
-    else:
-        # 直接调用内部测试逻辑，而不是通过 test 函数
-        try:
-            import time
-
-            from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
-
-            runner = EnhancedTestRunner(project_root)
-
-            # 解析包列表
-            target_packages = []
-            if packages:
-                target_packages = [pkg.strip() for pkg in packages.split(",")]
-                console.print(f"🎯 指定测试包: {target_packages}")
-
-            # 配置测试参数
-            test_config = {
-                "verbose": verbose,
-                "jobs": 4,
-                "timeout": 300,
-                "continue_on_error": True,
-                "target_packages": target_packages,
-                "failed_only": False,
-            }
-
-            console.print(f"🧪 运行 {test_type} 测试...")
-
-            start_time = time.time()
-
-            # 执行测试
-            if test_type == "quick":
-                results = _run_quick_tests(runner, test_config, False)
-            elif test_type == "all":
-                results = runner.run_all_tests(**test_config)
-            else:
-                console.print(f"[red]未知测试类型: {test_type}[/red]")
-                return
-
-            duration = time.time() - start_time
-
-            # 显示结果
-            _display_test_results(results, duration, False)
-
-        except Exception as e:
-            console.print(f"[red]测试运行失败: {e}[/red]")
+    if verbose:
+        console.print(
+            "    ℹ️ 依赖检查已迁移到 `sage doctor packages --deps`，当前调用保持兼容"
+        )
 
 
 if __name__ == "__main__":

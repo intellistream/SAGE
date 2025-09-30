@@ -4,29 +4,10 @@
 
 ## 脚本说明
 
-### 演示脚本
-- `demo_llm_autoconfig.py` - 完整演示SAGE LLM自动配置功能 (#826)
-- `mock_vllm_server.py` - Mock vLLM服务器，用于测试LLM自动配置功能
+## 可用脚本
 
-### 系统工具脚本
-- `common_utils.sh` - 通用工具函数
-- `config.sh` - 配置管理脚本
-- `logging.sh` - 日志工具
-- `python_bridge.sh` - Python桥接脚本
+- `common_utils.sh` - 通用 Shell 工具函数，供维护脚本复用
+- `config.sh` - 环境配置变量与路径设置
+- `logging.sh` - 统一的彩色日志输出封装
 
-## 使用方法
-
-### LLM自动配置演示
-```bash
-# 在SAGE项目根目录下运行
-python tools/utils/demo_llm_autoconfig.py
-```
-
-### Mock vLLM服务器
-```bash
-python tools/utils/mock_vllm_server.py
-```
-
-## 注意事项
-
-演示脚本主要用于功能展示和测试，请根据实际需求调整配置。
+这些脚本会被 `tools/conda/` 与 `tools/maintenance/` 下的运维脚本加载，提供一致的日志与配置管理能力。
