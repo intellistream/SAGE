@@ -27,6 +27,25 @@ class BuildCExtensions(build_ext):
             self.build_sage_flow()
         super().run()
 
+    def _shared_env(self):
+        env = os.environ.copy()
+        shared_deps = (
+            Path(__file__).parent
+            / "src"
+            / "sage"
+            / "middleware"
+            / "components"
+            / "cmake"
+            / "sage_shared_dependencies.cmake"
+        )
+        if shared_deps.exists() and "SAGE_COMMON_DEPS_FILE" not in env:
+            env["SAGE_COMMON_DEPS_FILE"] = str(shared_deps)
+
+        env.setdefault("SAGE_PYBIND11_VERSION", "2.13.0")
+        env.setdefault("SAGE_ENABLE_GPERFTOOLS", os.environ.get("SAGE_ENABLE_GPERFTOOLS", "0"))
+        # SAGE_GPERFTOOLS_ROOT、SAGE_GPERFTOOLS_LIB 直接继承用户环境即可
+        return env
+
     def build_sage_db(self):
         """编译sage_db C扩展"""
         sage_db_dir = Path(__file__).parent / "src/sage/middleware/components/sage_db"
@@ -46,6 +65,7 @@ class BuildCExtensions(build_ext):
             result = subprocess.run(
                 ["bash", "build.sh", "--install-deps"],
                 cwd=sage_db_dir,
+                env=self._shared_env(),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -90,6 +110,7 @@ class BuildCExtensions(build_ext):
             result = subprocess.run(
                 ["bash", "build.sh", "--install-deps"],
                 cwd=sage_flow_dir,
+                env=self._shared_env(),
                 check=True,
                 capture_output=True,
                 text=True,
