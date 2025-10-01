@@ -25,7 +25,7 @@ echo ""
 
 # 检查长字符串的 API keys (超过 20 个字符的非空值)
 echo "2. 检查可疑的长字符串 API keys..."
-if grep -rE 'api_key:.*"[a-zA-Z0-9_-]{20,}"' "$CONFIG_DIR"/*.yaml 2>/dev/null | grep -v '""' | grep -v 'your_' | grep -v 'OPENAI_API_KEY'; then
+if grep -rE 'api_key:.*"[a-zA-Z0-9_-]{20,}"' "$CONFIG_DIR"/*.yaml 2>/dev/null | grep -v '""' | grep -v 'your_' | grep -v '\${OPENAI_API_KEY}'; then
     echo "❌ 发现可疑的长字符串 API keys"
     FOUND_ISSUES=$((FOUND_ISSUES + 1))
 else
