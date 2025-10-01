@@ -126,6 +126,9 @@ class JobManagerServer(BaseTcpServer):
     def _handle_submit_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理提交作业请求"""
         try:
+            # 获取 autostop 参数
+            autostop = request.get("autostop", False)
+            
             # 获取序列化的数据（新格式：base64编码的dill序列化数据）
             serialized_data_b64 = request.get("serialized_data")
             if serialized_data_b64:
@@ -162,11 +165,11 @@ class JobManagerServer(BaseTcpServer):
                     "request_id": request.get("request_id"),
                 }
 
-            # 调用JobManager的submit_job方法
+            # 调用JobManager的submit_job方法，传递 autostop 参数
             self.logger.debug(
-                f"Submitting deserialized environment: {getattr(env, 'name', 'Unknown')}"
+                f"Submitting deserialized environment: {getattr(env, 'name', 'Unknown')} (autostop={autostop})"
             )
-            job_uuid = self.jobmanager.submit_job(env)
+            job_uuid = self.jobmanager.submit_job(env, autostop=autostop)
 
             return {
                 "status": "success",
