@@ -48,6 +48,54 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Create .env File from Secrets
+        run: |
+          echo "🔐 从 GitHub Secrets 创建 .env 文件..."
+          cat > .env << EOF
+          # CI Environment Configuration (Auto-generated from GitHub Secrets)
+          # This file is created during CI/CD and should not be committed to git
+          
+          # ==================================================
+          # LLM Service API Keys
+          # ==================================================
+          
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+          
+          SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
+          JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          
+          # vLLM configuration for local/self-hosted services
+          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
+          VLLM_BASE_URL=http://localhost:8000/v1
+          VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+          
+          # ==================================================
+          # Hugging Face Configuration
+          # ==================================================
+          
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+          
+          # ==================================================
+          # CI/CD Settings
+          # ==================================================
+          
+          SAGE_DEBUG=false
+          SAGE_SKIP_CPP_EXTENSIONS=false
+          SAGE_LOG_LEVEL=INFO
+          SAGE_TEST_MODE=true
+          SAGE_EXAMPLES_MODE=test
+          EOF
+          
+          echo "✅ .env 文件创建完成"
+          echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
+          cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
+
       - name: Initialize Submodules
         run: |
           echo "🔁 初始化子模块（C++扩展依赖）..."
@@ -117,6 +165,54 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Create .env File from Secrets
+        run: |
+          echo "🔐 从 GitHub Secrets 创建 .env 文件..."
+          cat > .env << EOF
+          # CI Environment Configuration (Auto-generated from GitHub Secrets)
+          # This file is created during CI/CD and should not be committed to git
+          
+          # ==================================================
+          # LLM Service API Keys
+          # ==================================================
+          
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+          
+          SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
+          JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          
+          # vLLM configuration for local/self-hosted services
+          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
+          VLLM_BASE_URL=http://localhost:8000/v1
+          VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+          
+          # ==================================================
+          # Hugging Face Configuration
+          # ==================================================
+          
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+          
+          # ==================================================
+          # CI/CD Settings
+          # ==================================================
+          
+          SAGE_DEBUG=false
+          SAGE_SKIP_CPP_EXTENSIONS=false
+          SAGE_LOG_LEVEL=INFO
+          SAGE_TEST_MODE=true
+          SAGE_EXAMPLES_MODE=test
+          EOF
+          
+          echo "✅ .env 文件创建完成"
+          echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
+          cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
+
       - name: Initialize Submodules
         run: |
           echo "🔁 初始化子模块（C++扩展依赖）..."
@@ -158,6 +254,54 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+
+      - name: Create .env File from Secrets
+        run: |
+          echo "🔐 从 GitHub Secrets 创建 .env 文件..."
+          cat > .env << EOF
+          # CI Environment Configuration (Auto-generated from GitHub Secrets)
+          # This file is created during CI/CD and should not be committed to git
+          
+          # ==================================================
+          # LLM Service API Keys
+          # ==================================================
+          
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+          
+          SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
+          JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          
+          # vLLM configuration for local/self-hosted services
+          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
+          VLLM_BASE_URL=http://localhost:8000/v1
+          VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+          
+          # ==================================================
+          # Hugging Face Configuration
+          # ==================================================
+          
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+          
+          # ==================================================
+          # CI/CD Settings
+          # ==================================================
+          
+          SAGE_DEBUG=false
+          SAGE_SKIP_CPP_EXTENSIONS=false
+          SAGE_LOG_LEVEL=INFO
+          SAGE_TEST_MODE=true
+          SAGE_EXAMPLES_MODE=test
+          EOF
+          
+          echo "✅ .env 文件创建完成"
+          echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
+          cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
 
       - name: Initialize Submodules
         run: |
