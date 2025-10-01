@@ -172,7 +172,7 @@ class ServiceManager:
             TimeoutError: 调用超时
             RuntimeError: 服务调用失败
         """
-        legacy_via_position = kwargs.pop("__method_via_position__", False)
+        legacy_via_position = kwargs.pop("_legacy_method_position", False)
         method_name = method if method is not None else kwargs.pop("method", None)
 
         positional_args: Tuple[Any, ...]
