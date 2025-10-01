@@ -412,6 +412,55 @@ def _print_install_summary(success_count: int, total_count: int) -> None:
         print_warning(f"⚠️ 部分扩展安装失败 ({failures}个)")
 
 
+def _print_install_banner() -> None:
+    typer.echo(f"{Colors.BOLD}{Colors.BLUE}🧩 SAGE C++ 扩展安装器{Colors.RESET}")
+    typer.echo("=" * 50)
+
+
+def _missing_build_tools_instructions() -> None:
+    print_error("缺少必要的构建工具，无法安装C++扩展")
+    typer.echo("\n请安装以下工具:")
+    typer.echo("  • gcc/g++ (C++ 编译器)")
+    typer.echo("  • cmake (构建系统)")
+    typer.echo("  • make (构建工具)")
+    typer.echo("\nUbuntu/Debian: sudo apt install build-essential cmake")
+    typer.echo(
+        "CentOS/RHEL: sudo yum groupinstall 'Development Tools' && sudo yum install cmake"
+    )
+    typer.echo("macOS: xcode-select --install && brew install cmake")
+
+
+def _ensure_build_environment() -> None:
+    if check_build_tools():
+        return
+    _missing_build_tools_instructions()
+    raise typer.Exit(1)
+
+
+def _resolve_project_root() -> Path:
+    sage_root = find_sage_root()
+    if sage_root:
+        return sage_root
+    print_error("未找到SAGE项目根目录")
+    typer.echo("请在SAGE项目目录中运行此命令")
+    raise typer.Exit(1)
+
+
+def _install_selected_extensions(
+    extensions_to_install: List[str], sage_root: Path, force: bool
+) -> Tuple[int, int]:
+    success_count = 0
+    total_count = len(extensions_to_install)
+
+    for ext_name in extensions_to_install:
+        rel_path = EXTENSION_PATHS[ext_name]
+        ext_dir = sage_root / rel_path
+        if _install_extension(ext_name, ext_dir, force):
+            success_count += 1
+
+    return success_count, total_count
+
+
 @app.command()
 def install(
     extension: Optional[str] = typer.Argument(
@@ -427,41 +476,18 @@ def install(
         sage extensions install sage_db       # 只安装数据库扩展
         sage extensions install all --force   # 强制重新安装所有扩展
     """
-    typer.echo(f"{Colors.BOLD}{Colors.BLUE}🧩 SAGE C++ 扩展安装器{Colors.RESET}")
-    typer.echo("=" * 50)
+    _print_install_banner()
 
-    # 检查构建工具
-    if not check_build_tools():
-        print_error("缺少必要的构建工具，无法安装C++扩展")
-        typer.echo("\n请安装以下工具:")
-        typer.echo("  • gcc/g++ (C++ 编译器)")
-        typer.echo("  • cmake (构建系统)")
-        typer.echo("  • make (构建工具)")
-        typer.echo("\nUbuntu/Debian: sudo apt install build-essential cmake")
-        typer.echo(
-            "CentOS/RHEL: sudo yum groupinstall 'Development Tools' && sudo yum install cmake"
-        )
-        typer.echo("macOS: xcode-select --install && brew install cmake")
-        raise typer.Exit(1)
+    _ensure_build_environment()
 
-    # 查找SAGE根目录
-    sage_root = find_sage_root()
-    if not sage_root:
-        print_error("未找到SAGE项目根目录")
-        typer.echo("请在SAGE项目目录中运行此命令")
-        raise typer.Exit(1)
+    sage_root = _resolve_project_root()
 
     print_info(f"SAGE项目根目录: {sage_root}")
 
     extensions_to_install = _resolve_extensions_to_install(extension)
-    success_count = 0
-    total_count = len(extensions_to_install)
-
-    for ext_name in extensions_to_install:
-        rel_path = EXTENSION_PATHS[ext_name]
-        ext_dir = sage_root / rel_path
-        if _install_extension(ext_name, ext_dir, force):
-            success_count += 1
+    success_count, total_count = _install_selected_extensions(
+        extensions_to_install, sage_root, force
+    )
 
     _print_install_summary(success_count, total_count)
 
