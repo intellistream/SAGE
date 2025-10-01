@@ -1,10 +1,8 @@
 import json
-from pathlib import Path
 
 import pytest
-from typer.testing import CliRunner
-
 from sage.tools.cli.main import app
+from typer.testing import CliRunner
 
 
 def _has_sage_db() -> bool:

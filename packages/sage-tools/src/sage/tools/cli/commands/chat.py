@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 import os
 import re
@@ -24,7 +23,6 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-
 from sage.common.config.output_paths import (
     find_sage_project_root,
     get_sage_paths,
@@ -35,8 +33,8 @@ console = Console()
 
 try:  # pragma: no cover - runtime check
     from sage.middleware.components.sage_db.python.sage_db import (
-    SageDB,
-    SageDBException,
+        SageDB,
+        SageDBException,
     )
 
     SAGE_DB_AVAILABLE = True
@@ -70,7 +68,9 @@ METHODS_REQUIRE_MODEL = {
     "lollms",
 }
 
-GITHUB_DOCS_ZIP_URL = "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
+GITHUB_DOCS_ZIP_URL = (
+    "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
+)
 
 app = typer.Typer(
     help="🧭 嵌入式 SAGE 编程助手 (Docs + SageDB + LLM)",
@@ -356,7 +356,9 @@ def ensure_docs_corpus(index_root: Path) -> Path:
     return docs_path
 
 
-def bootstrap_default_index(index_root: Path, index_name: str) -> Optional[ChatManifest]:
+def bootstrap_default_index(
+    index_root: Path, index_name: str
+) -> Optional[ChatManifest]:
     try:
         source_dir = ensure_docs_corpus(index_root)
     except Exception as exc:
@@ -402,6 +404,7 @@ def load_or_bootstrap_manifest(index_root: Path, index_name: str) -> ChatManifes
         if manifest is None:
             raise typer.Exit(code=1)
         return manifest
+
 
 def ingest_source(
     source_dir: Path,
@@ -477,7 +480,9 @@ def ingest_source(
         num_chunks=total_chunks,
     )
     save_manifest(index_root, index_name, manifest)
-    console.print(Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green"))
+    console.print(
+        Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green")
+    )
     return manifest
 
 
@@ -582,9 +587,7 @@ class ResponseGenerator:
         references: Sequence[Dict[str, str]],
     ) -> str:
         if not contexts:
-            return (
-                "暂时没有从知识库检索到答案。请尝试改写提问，或运行 `sage chat ingest` 更新索引。"
-            )
+            return "暂时没有从知识库检索到答案。请尝试改写提问，或运行 `sage chat ingest` 更新索引。"
         top_ref = references[0] if references else {"title": "资料", "heading": ""}
         snippet = contexts[0].strip().replace("\n", " ")
         citation = top_ref.get("label", top_ref.get("title", "Docs"))
@@ -752,7 +755,7 @@ def main(
         "--index-root",
         help="索引输出目录 (未提供则使用 ~/.sage/cache/chat)",
     ),
-    stream: bool = typer.Option(False, "--stream", help="启用流式输出 (仅当后端支持)")
+    stream: bool = typer.Option(False, "--stream", help="启用流式输出 (仅当后端支持)"),
 ) -> None:
     if ctx.invoked_subcommand is not None:
         return
@@ -837,9 +840,7 @@ def ingest(
 
     needs_model = embedding_method in METHODS_REQUIRE_MODEL
     if needs_model and not embedding_model:
-        raise typer.BadParameter(
-            f"{embedding_method} 方法需要指定 --embedding-model"
-        )
+        raise typer.BadParameter(f"{embedding_method} 方法需要指定 --embedding-model")
 
     embedding_config: Dict[str, object] = {"method": embedding_method, "params": {}}
     if embedding_method == "mockembedder":
@@ -873,9 +874,7 @@ def ingest(
 @app.command("show")
 def show_manifest(
     index_name: str = typer.Option(DEFAULT_INDEX_NAME, "--index", "-i"),
-    index_root: Optional[str] = typer.Option(
-        None, "--index-root", help="索引所在目录"
-    ),
+    index_root: Optional[str] = typer.Option(None, "--index-root", help="索引所在目录"),
 ) -> None:
     ensure_sage_db()
     root = resolve_index_root(index_root)
@@ -894,7 +893,9 @@ def show_manifest(
     table.add_row("文档数量", str(manifest.num_documents))
     table.add_row("Chunk 数量", str(manifest.num_chunks))
     table.add_row("Embedding", json.dumps(manifest.embedding, ensure_ascii=False))
-    table.add_row("Chunk 配置", f"size={manifest.chunk_size}, overlap={manifest.chunk_overlap}")
+    table.add_row(
+        "Chunk 配置", f"size={manifest.chunk_size}, overlap={manifest.chunk_overlap}"
+    )
     console.print(table)
 
 
