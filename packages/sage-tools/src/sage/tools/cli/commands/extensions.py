@@ -434,6 +434,10 @@ def _missing_build_tools_instructions() -> None:
 
 
 def _ensure_build_environment() -> None:
+    """
+    Ensure that the required build tools for C++ extension installation are available.
+    If any required tools are missing, print instructions for installing them and exit the program.
+    """
     if check_build_tools():
         return
     _missing_build_tools_instructions()
