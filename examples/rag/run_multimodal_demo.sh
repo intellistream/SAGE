@@ -14,9 +14,11 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 # 检查SAGE路径
-SAGE_ROOT="/home/shuhao/SAGE"
+# 允许通过环境变量或第一个参数指定SAGE根目录，否则使用当前目录
+SAGE_ROOT="${SAGE_ROOT:-${1:-$(pwd)}}"
 if [ ! -d "$SAGE_ROOT" ]; then
     echo "❌ 错误：未找到SAGE根目录: $SAGE_ROOT"
+    echo "请通过环境变量 SAGE_ROOT 或作为第一个参数指定 SAGE 根目录"
     exit 1
 fi
 
