@@ -445,6 +445,15 @@ def _ensure_build_environment() -> None:
 
 
 def _resolve_project_root() -> Path:
+    """
+    Locate and return the root directory of the SAGE project.
+
+    Returns:
+        Path: The path to the SAGE project root directory.
+
+    Raises:
+        typer.Exit: If the SAGE project root cannot be found, prints an error message and exits.
+    """
     sage_root = find_sage_root()
     if sage_root:
         return sage_root
