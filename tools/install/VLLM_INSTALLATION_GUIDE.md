@@ -45,16 +45,25 @@
 
 ### 安装后使用
 
-安装完成后，可以使用以下方式启动 VLLM 服务：
+安装完成后，推荐使用 SAGE CLI 启动 VLLM 服务：
 
 ```bash
-# 使用默认模型（microsoft/DialoGPT-small）
-./tools/vllm/vllm_local_serve.sh
-
-# 使用指定模型
-./tools/vllm/vllm_local_serve.sh microsoft/DialoGPT-medium
-./tools/vllm/vllm_local_serve.sh meta-llama/Llama-2-7b-chat-hf
+# 推荐方式：使用 SAGE CLI（默认 vllm 服务）
+sage llm start                                    # 使用默认模型（microsoft/DialoGPT-small）
+sage llm start --model microsoft/DialoGPT-medium  # 使用指定模型
+sage llm start --background                       # 后台运行
+sage llm status                                   # 查看服务状态
+sage llm stop                                     # 停止服务
 ```
+
+**传统方式（已废弃）：**
+```bash
+# 传统脚本方式（不再推荐使用）
+# ./tools/vllm/vllm_local_serve.sh                   # 使用默认模型
+# ./tools/vllm/vllm_local_serve.sh microsoft/DialoGPT-medium  # 使用指定模型
+```
+
+> ⚠️ **重要**：传统的 `tools/vllm` 脚本已被废弃，请使用 `sage llm` 命令。
 
 ### 推荐模型
 
@@ -130,6 +139,6 @@ quickstart.sh                                       # 修改：传递 VLLM 参�
 
 ## 更多信息
 
-- VLLM 详细使用指南：`tools/README_vllm_local_serve.md`
-- 本地服务脚本：`tools/vllm/vllm_local_serve.sh`
+- SAGE CLI 帮助：`sage llm --help`
+- VLLM 服务状态：`sage llm status`
 - 安装日志：`install.log`
