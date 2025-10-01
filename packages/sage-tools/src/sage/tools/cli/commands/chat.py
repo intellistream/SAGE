@@ -122,7 +122,10 @@ class HashingEmbedder:
         for token in tokens:
             digest = hashlib.sha256(token.encode("utf-8")).digest()
             for offset in range(0, len(digest), 4):
-                idx = int.from_bytes(digest[offset : offset + 4], "little") % self._dim
+                chunk = digest[offset : offset + 4]
+                if len(chunk) < 4:
+                    chunk = chunk.ljust(4, b'\0')
+                idx = int.from_bytes(chunk, "little") % self._dim
                 vector[idx] += 1.0
 
         norm = sum(v * v for v in vector) ** 0.5 or 1.0
