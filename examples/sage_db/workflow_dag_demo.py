@@ -198,7 +198,7 @@ class SageDBRetrieverNode(MapFunction):
                 {
                     "title": metadata.get("title", "unknown"),
                     "score": float(item.get("score", 0.0)),
-                    "tags": metadata.get("tags", []),
+                    "tags": metadata.get("tags", "").split(",") if metadata.get("tags") else [],
                 }
             )
 
@@ -271,15 +271,15 @@ def build_embeddings(entries: Sequence[KnowledgeEntry], model: EmbeddingModel) -
     return np.asarray(vectors, dtype=np.float32)
 
 
-def prepare_metadata(entries: Sequence[KnowledgeEntry]) -> List[Dict[str, Any]]:
-    metadata: List[Dict[str, Any]] = []
+def prepare_metadata(entries: Sequence[KnowledgeEntry]) -> List[Dict[str, str]]:
+    metadata: List[Dict[str, str]] = []
     for item in entries:
         metadata.append(
             {
                 "title": item.title,
                 "text": item.text,
                 "topic": item.topic,
-                "tags": item.tags,
+                "tags": ",".join(item.tags),  # Serialize list to comma-separated string
             }
         )
     return metadata
