@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
 
 import numpy as np
+from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.core.api.function.map_function import MapFunction
+from sage.core.api.function.source_function import SourceFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.libs.rag.promptor import QAPromptor
 
 # Ensure repository packages are importable when running the script directly
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -25,11 +30,7 @@ for path in PACKAGE_SRC_ROOTS:
     if path.exists() and str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
-from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.map_function import MapFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
-from sage.libs.rag.promptor import QAPromptor
+
 try:
     from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
         SageDBService,
@@ -121,7 +122,9 @@ class BootstrappedSageDBService(SageDBService):
                 return
 
             if vectors.ndim != 2:
-                raise ValueError("initial_vectors must be a 2D array-like of shape (N, dim)")
+                raise ValueError(
+                    "initial_vectors must be a 2D array-like of shape (N, dim)"
+                )
 
             expected_count = vectors.shape[0]
             if initial_metadata is None:
@@ -198,7 +201,11 @@ class SageDBRetrieverNode(MapFunction):
                 {
                     "title": metadata.get("title", "unknown"),
                     "score": float(item.get("score", 0.0)),
-                    "tags": metadata.get("tags", "").split(",") if metadata.get("tags") else [],
+                    "tags": (
+                        metadata.get("tags", "").split(",")
+                        if metadata.get("tags")
+                        else []
+                    ),
                 }
             )
 
@@ -264,7 +271,9 @@ class ConsoleReporter(MapFunction):
         return payload
 
 
-def build_embeddings(entries: Sequence[KnowledgeEntry], model: EmbeddingModel) -> np.ndarray:
+def build_embeddings(
+    entries: Sequence[KnowledgeEntry], model: EmbeddingModel
+) -> np.ndarray:
     vectors = []
     for item in entries:
         vectors.append(model.embed(item.text))
@@ -318,12 +327,13 @@ def run_pipeline(top_k: int, queries: Sequence[str]) -> None:
     )
 
     env.submit()
-    
+
     # Wait for processing to complete
     import time
+
     time.sleep(5)  # Allow enough time for processing
-    
-    # Clean up environment  
+
+    # Clean up environment
     env.stop()
 
 

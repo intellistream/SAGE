@@ -73,7 +73,10 @@ def main() -> None:
 
     db = create_text_image_db(dimension=512)
     native = getattr(db, "_db", None) is not None
-    print("Backend:", "C++ accelerated" if native else "Python mock (build to enable native)")
+    print(
+        "Backend:",
+        "C++ accelerated" if native else "Python mock (build to enable native)",
+    )
 
     dataset = build_dataset()
     populate(db, dataset)
@@ -89,12 +92,16 @@ def main() -> None:
     print("\n🔎 fused retrieval (text + image cues)")
     results = db.search_multimodal(query, params)
     for idx, result in enumerate(results, start=1):
-        print(f"  {idx}. id={result.id:>2} score={result.score:.4f} metadata={result.metadata}")
+        print(
+            f"  {idx}. id={result.id:>2} score={result.score:.4f} metadata={result.metadata}"
+        )
 
     stats = db.get_modality_statistics()
     print("\n📊 modality stats:")
     for modality, info in stats.items():
-        print(f"  {modality.name:<6} -> count={info['count']} avg_dim={info['avg_dimension']:.1f}")
+        print(
+            f"  {modality.name:<6} -> count={info['count']} avg_dim={info['avg_dimension']:.1f}"
+        )
 
 
 if __name__ == "__main__":
