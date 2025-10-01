@@ -413,6 +413,9 @@ def _print_install_summary(success_count: int, total_count: int) -> None:
 
 
 def _print_install_banner() -> None:
+    """
+    Print a banner for the SAGE C++ extension installer to the terminal.
+    """
     typer.echo(f"{Colors.BOLD}{Colors.BLUE}🧩 SAGE C++ 扩展安装器{Colors.RESET}")
     typer.echo("=" * 50)
 
