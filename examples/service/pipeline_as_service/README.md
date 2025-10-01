@@ -24,6 +24,9 @@ services compose in more realistic setups.
   burst of requests concurrently and wait for futures to resolve.
 - `multi_client_pipeline_as_service.py` – Spawns two driver pipelines (new vs
   returning users) that share the same pipeline service endpoint.
+- `qa_pipeline_as_service.py` – Wraps the RAG QA pipeline as a service so an
+  interactive terminal client waits for each answer before accepting the next
+  question; exit by typing `bye bye` (or press `Ctrl+C` to interrupt).
 - `pipeline_bridge.py` – Shared queue bridge used to pass requests between the
   driver pipelines and the service-backed pipeline.
 
@@ -35,8 +38,32 @@ From the repository root you can run any scenario. For example:
 python examples/service/pipeline_as_service/hello_pipeline_as_service.py
 python examples/service/pipeline_as_service/async_client_pipeline_as_service.py
 python examples/service/pipeline_as_service/multi_client_pipeline_as_service.py
+python examples/service/pipeline_as_service/qa_pipeline_as_service.py
 ```
 
 You should see log output from both the service-backed pipeline and the client
 pipelines, including enrichment, scoring, service replies, and a shutdown
 acknowledgement once all work completes.
+
+### Offline/mock QA runs
+
+If you don't have an OpenAI-compatible endpoint handy, switch the QA pipeline
+to a mock generator that fabricates answers while exercising the same
+pipeline/service wiring:
+
+```bash
+SAGE_QA_GENERATOR=mock python examples/service/pipeline_as_service/qa_pipeline_as_service.py
+```
+
+The mock generator emits friendly placeholder replies so you can experience the
+request/response flow without external dependencies. By default the example
+selects the mock generator unless you explicitly export `SAGE_QA_GENERATOR`
+or point it to a concrete profile. You can also pick a
+different generator profile via `SAGE_QA_GENERATOR_PROFILE` (e.g. `local`,
+`remote`, `vllm`) to match entries from `examples/config/config_source.yaml`.
+
+> **Heads up**: When the script detects that the selected OpenAI/HF profile is
+> missing required fields (like `api_key` or `base_url`), it automatically
+> falls back to the mock generator and prints a warning describing how to point
+> it at a real endpoint. Update `examples/config/config_source.yaml` or export
+> `SAGE_QA_GENERATOR=mock` to control the behaviour explicitly.
