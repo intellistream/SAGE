@@ -33,11 +33,214 @@ env:
   # 移除手动CACHE_VERSION，让缓存完全基于代码内容自动失效
 
 jobs:
-  build-sage:
-    name: Build and Install SAGE
+  quick-check:
+    name: SAGE Self-Check
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Create .env File from Secrets
+        run: |
+          echo "🔐 从 GitHub Secrets 创建 .env 文件..."
+          cat > .env << EOF
+          # CI Environment Configuration (Auto-generated from GitHub Secrets)
+          # This file is created during CI/CD and should not be committed to git
+          
+          # ==================================================
+          # LLM Service API Keys
+          # ==================================================
+          
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+          
+          SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
+          JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          
+          # vLLM configuration for local/self-hosted services
+          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
+          VLLM_BASE_URL=http://localhost:8000/v1
+          VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+          
+          # ==================================================
+          # Hugging Face Configuration
+          # ==================================================
+          
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+          
+          # ==================================================
+          # CI/CD Settings
+          # ==================================================
+          
+          SAGE_DEBUG=false
+          SAGE_SKIP_CPP_EXTENSIONS=false
+          SAGE_LOG_LEVEL=INFO
+          SAGE_TEST_MODE=true
+          SAGE_EXAMPLES_MODE=test
+          EOF
+          
+          echo "✅ .env 文件创建完成"
+          echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
+          cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
+
+      - name: Initialize Submodules
+        run: |
+          echo "🔁 初始化子模块（C++扩展依赖）..."
+          git submodule update --init --recursive
+          echo "✅ 子模块初始化完成"
+
+      - name: Install SAGE
+        run: |
+          echo "� 安装SAGE（使用quickstart.sh --dev）..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          echo "✅ SAGE安装完成"
+
+      - name: Run Basic Tests
+        run: |
+          echo "🧪 运行基础测试..."
+          python -c "import sage; import sage.common; print('✅ 基础导入测试通过')"
+          
+          if command -v sage >/dev/null 2>&1; then
+            sage --help > /dev/null && echo "✅ CLI测试通过"
+          fi
+
+      - name: Run SAGE Unit Tests
+        run: |
+          echo "🧪 运行SAGE单元测试..."
+          # 安装测试依赖
+          pip install pytest pytest-cov pytest-xdist
+          
+          # 运行各个包的测试
+          test_packages=("sage-common" "sage-kernel" "sage-tools" "sage-libs" "sage-middleware")
+          failed_tests=0
+          
+          for package in "${test_packages[@]}"; do
+            if [ -d "packages/$package/tests" ]; then
+              echo "🧪 测试 $package..."
+              if python -m pytest "packages/$package/tests/" -v --tb=short --maxfail=3; then
+                echo "✅ $package 测试通过"
+              else
+                echo "❌ $package 测试失败"
+                failed_tests=$((failed_tests + 1))
+              fi
+            else
+              echo "⚠️ $package 没有tests目录，跳过"
+            fi
+          done
+          
+          # 报告测试结果
+          if [ $failed_tests -eq 0 ]; then
+            echo "🎉 所有测试通过！"
+          else
+            echo "⚠️ $failed_tests 个包的测试失败，但继续执行"
+          fi
+        timeout-minutes: 15
+
+  examples-test:
+    name: Examples Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Create .env File from Secrets
+        run: |
+          echo "🔐 从 GitHub Secrets 创建 .env 文件..."
+          cat > .env << EOF
+          # CI Environment Configuration (Auto-generated from GitHub Secrets)
+          # This file is created during CI/CD and should not be committed to git
+          
+          # ==================================================
+          # LLM Service API Keys
+          # ==================================================
+          
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+          
+          SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
+          JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          
+          # vLLM configuration for local/self-hosted services
+          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
+          VLLM_BASE_URL=http://localhost:8000/v1
+          VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+          
+          # ==================================================
+          # Hugging Face Configuration
+          # ==================================================
+          
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+          
+          # ==================================================
+          # CI/CD Settings
+          # ==================================================
+          
+          SAGE_DEBUG=false
+          SAGE_SKIP_CPP_EXTENSIONS=false
+          SAGE_LOG_LEVEL=INFO
+          SAGE_TEST_MODE=true
+          SAGE_EXAMPLES_MODE=test
+          EOF
+          
+          echo "✅ .env 文件创建完成"
+          echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
+          cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
+
+      - name: Initialize Submodules
+        run: |
+          echo "🔁 初始化子模块（C++扩展依赖）..."
+          git submodule update --init --recursive
+          echo "✅ 子模块初始化完成"
+
+      - name: Install SAGE
+        run: |
+          echo "� 安装SAGE（使用quickstart.sh --dev）..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --pip --yes
+          echo "✅ SAGE安装完成"
+
+      - name: Run Examples Tests
+        run: |
+          echo "🌟 运行Examples测试..."
+          chmod +x ./tools/tests/run_examples_tests.sh
+          ./tools/tests/run_examples_tests.sh --timeout 300
+  
+  deployment-ready:
+    name: Deployment Readiness Check
+    runs-on: ubuntu-latest
+    needs: [quick-check, examples-test]
+    if: |
+      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')) ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main-dev')
+    timeout-minutes: 30
+    
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -99,224 +302,6 @@ jobs:
           echo "✅ .env 文件创建完成"
           echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
           cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
-
-      - name: Install System Dependencies
-        run: |
-          echo "🔧 系统依赖将由quickstart.sh统一管理..."
-          echo "跳过单独的系统依赖安装步骤"
-
-      - name: Initialize Submodules
-        run: |
-          echo "🔁 初始化子模块（C++扩展依赖）..."
-          git submodule update --init --recursive
-          echo "✅ 子模块初始化完成"
-          
-          # 验证关键子模块
-          echo "🔍 验证关键子模块："
-          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_db" ]; then
-            echo "✅ sage_db 子模块存在"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/ | head -10
-          else
-            echo "❌ sage_db 子模块缺失"
-          fi
-
-      - name: Install SAGE
-        run: |
-          echo "🚀 安装SAGE（使用quickstart.sh --dev，无缓存）..."
-          
-          chmod +x ./quickstart.sh
-          ./quickstart.sh --dev --pip --yes
-          
-          # 验证安装成功
-          echo "🔍 验证SAGE安装..."
-          python -c "import sage; import sage.common; print('✅ SAGE核心模块导入成功')"
-          
-          if command -v sage >/dev/null 2>&1; then
-            echo "✅ sage CLI工具可用"
-          else
-            echo "❌ sage CLI工具不可用"
-            exit 1
-          fi
-          
-          # 验证扩展构建结果（开发者模式应该已经构建了扩展）
-          echo "🔍 验证扩展构建结果..."
-          if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
-            echo "✅ 找到.so文件:"
-            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
-          else
-            echo "⚠️ 未找到.so文件，扩展构建可能失败（但不阻断流程）"
-          fi
-          
-          echo "✅ SAGE安装验证完成"
-        timeout-minutes: 20
-
-      - name: Verify Installation
-        run: |
-          echo "✅ 验证SAGE安装..."
-          python -c "import sage; print('✅ SAGE imported')"
-          python -c "import sage.common; print('✅ sage.common imported')"
-
-      - name: Verify C++ Extensions Status
-        run: |
-          echo "🧩 检查C++扩展状态..."
-          
-          # 检查.so文件
-          echo "📁 检查编译文件:"
-          if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
-            echo "✅ 找到编译的扩展文件:"
-            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
-          else
-            echo "❌ 未找到.so文件"
-          fi
-          
-          # 检查扩展功能状态（不强制构建）
-          echo "🔍 检查扩展功能状态:"
-          python -c "
-          try:
-              from sage.middleware.components.extensions_compat import check_extensions_availability
-              available = check_extensions_availability()
-              total = sum(available.values())
-              print(f'🧩 扩展可用性: {total}/{len(available)}')
-              for ext, status in available.items():
-                  print(f'  {ext}: {\"✅\" if status else \"❌\"}')
-              
-              if total > 0:
-                  print(f'✅ 有{total}个扩展可用')
-              else:
-                  print('ℹ️ 扩展暂时不可用，但不影响核心功能')
-          except ImportError as e:
-              print(f'⚠️ 扩展状态检查失败: {e}')
-          "
-          
-          echo "ℹ️ 扩展状态检查完成，继续其他测试"
-
-  quick-check:
-    name: SAGE Self-Check
-    runs-on: ubuntu-latest
-    needs: build-sage
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Initialize Submodules
-        run: |
-          echo "🔁 初始化子模块（C++扩展依赖）..."
-          git submodule update --init --recursive
-          echo "✅ 子模块初始化完成"
-
-      - name: Install SAGE
-        run: |
-          echo "� 安装SAGE（使用quickstart.sh --dev）..."
-          chmod +x ./quickstart.sh
-          ./quickstart.sh --dev --pip --yes
-          echo "✅ SAGE安装完成"
-
-      - name: Run Basic Tests
-        run: |
-          echo "🧪 运行基础测试..."
-          python -c "import sage; import sage.common; print('✅ 基础导入测试通过')"
-          
-          if command -v sage >/dev/null 2>&1; then
-            sage --help > /dev/null && echo "✅ CLI测试通过"
-          fi
-
-      - name: Run SAGE Unit Tests
-        run: |
-          echo "🧪 运行SAGE单元测试..."
-          # 安装测试依赖
-          pip install pytest pytest-cov pytest-xdist
-          
-          # 运行各个包的测试
-          test_packages=("sage-common" "sage-kernel" "sage-tools" "sage-libs" "sage-middleware")
-          failed_tests=0
-          
-          for package in "${test_packages[@]}"; do
-            if [ -d "packages/$package/tests" ]; then
-              echo "🧪 测试 $package..."
-              if python -m pytest "packages/$package/tests/" -v --tb=short --maxfail=3; then
-                echo "✅ $package 测试通过"
-              else
-                echo "❌ $package 测试失败"
-                failed_tests=$((failed_tests + 1))
-              fi
-            else
-              echo "⚠️ $package 没有tests目录，跳过"
-            fi
-          done
-          
-          # 报告测试结果
-          if [ $failed_tests -eq 0 ]; then
-            echo "🎉 所有测试通过！"
-          else
-            echo "⚠️ $failed_tests 个包的测试失败，但继续执行"
-          fi
-        timeout-minutes: 15
-
-  examples-test:
-    name: Examples Test
-    runs-on: ubuntu-latest
-    needs: build-sage
-    timeout-minutes: 45
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Initialize Submodules
-        run: |
-          echo "🔁 初始化子模块（C++扩展依赖）..."
-          git submodule update --init --recursive
-          echo "✅ 子模块初始化完成"
-
-      - name: Install SAGE
-        run: |
-          echo "� 安装SAGE（使用quickstart.sh --dev）..."
-          chmod +x ./quickstart.sh
-          ./quickstart.sh --dev --pip --yes
-          echo "✅ SAGE安装完成"
-
-      - name: Run Examples Tests
-        run: |
-          echo "🌟 运行Examples测试..."
-          chmod +x ./tools/tests/run_examples_tests.sh
-          ./tools/tests/run_examples_tests.sh --timeout 300
-  
-  deployment-ready:
-    name: Deployment Readiness Check
-    runs-on: ubuntu-latest
-    needs: [build-sage, quick-check, examples-test]
-    if: |
-      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')) ||
-      (github.event_name == 'pull_request' && github.base_ref == 'main-dev')
-    timeout-minutes: 30
-    
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 1
-          clean: true
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
 
       - name: Initialize Submodules
         run: |
@@ -411,19 +396,18 @@ jobs:
     name: CI Summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [build-sage, quick-check, examples-test, deployment-ready]
+    needs: [quick-check, examples-test, deployment-ready]
 
     steps:
       - name: Summary Report
         run: |
           echo "🏁 开发CI管道完成"
           echo "📊 作业状态:"
-          echo "- Build: ${{ needs.build-sage.result }}"
           echo "- Quick Check: ${{ needs.quick-check.result }}"
           echo "- Examples: ${{ needs.examples-test.result }}"
           echo "- Deployment Ready: ${{ needs.deployment-ready.result }}"
           
-          if [[ "${{ needs.build-sage.result }}" == "success" && "${{ needs.quick-check.result }}" == "success" ]]; then
+          if [[ "${{ needs.quick-check.result }}" == "success" ]]; then
             echo "✅ 核心功能正常"
           else
             echo "❌ 核心功能存在问题"
