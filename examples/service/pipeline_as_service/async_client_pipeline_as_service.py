@@ -46,8 +46,8 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     from sage.core.api.function.sink_function import SinkFunction
     from sage.core.api.local_environment import LocalEnvironment
 
-from pipeline_bridge import PipelineBridge
 from hello_pipeline_as_service import (
+    SHUTDOWN_MESSAGE,
     DecisionSink,
     FeatureEnrichment,
     FeatureStoreService,
@@ -55,9 +55,8 @@ from hello_pipeline_as_service import (
     RiskScoring,
     RiskScoringService,
     ServiceDrivenSource,
-    SHUTDOWN_MESSAGE,
 )
-
+from pipeline_bridge import PipelineBridge
 
 ASYNC_ORDERS: List[Dict[str, float | str | int]] = [
     {"order_id": "async-1001", "user_id": "user-101", "amount": 210.5, "latency": 0.6},

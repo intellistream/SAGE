@@ -8,8 +8,8 @@ replies with a structured decision payload.
 
 from __future__ import annotations
 
-import queue
 import math
+import queue
 import random
 import time
 from typing import Any, Dict, List
@@ -57,7 +57,6 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
 
 from pipeline_bridge import PipelineBridge, PipelinePayload
 from sage.kernel.runtime.communication.router.packet import StopSignal
-
 
 ORDERS: List[Dict[str, str]] = [
     {"order_id": "o-1001", "user_id": "user-001", "amount": 129.9},
@@ -252,7 +251,9 @@ class OrderPipelineService(BaseService):
         try:
             return response_queue.get(timeout=self._request_timeout)
         except queue.Empty as exc:
-            raise TimeoutError("Pipeline service timed out waiting for a reply") from exc
+            raise TimeoutError(
+                "Pipeline service timed out waiting for a reply"
+            ) from exc
 
 
 class InvokePipeline(MapFunction):
@@ -307,11 +308,7 @@ def main():
         .sink(DecisionSink)
     )
 
-    (
-        env.from_batch(OrderSource, ORDERS)
-        .map(InvokePipeline)
-        .sink(DriverSink)
-    )
+    (env.from_batch(OrderSource, ORDERS).map(InvokePipeline).sink(DriverSink))
 
     env.submit(autostop=True)
 
