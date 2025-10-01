@@ -53,6 +53,23 @@ clean_pip_cache() {
 install_cpp_extensions() {
     local log_file="$1"
     
+    # 检查是否应该跳过C++扩展构建（用于CI缓存场景）
+    if [ "${SAGE_SKIP_CPP_BUILD:-}" = "1" ]; then
+        echo "$(date): 检测到 SAGE_SKIP_CPP_BUILD=1, 跳过C++扩展构建（使用缓存）" >> "$log_file"
+        echo -e "${YELLOW}⏭️  跳过C++扩展构建（使用缓存的构建产物）${NC}"
+        
+        # 验证缓存的扩展是否可用
+        echo -e "${DIM}验证缓存的C++扩展...${NC}"
+        if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
+            echo -e "${GREEN}✅ 找到缓存的.so文件${NC}"
+            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
+            return 0
+        else
+            echo -e "${YELLOW}⚠️  未找到缓存的.so文件，将继续构建${NC}"
+            echo "$(date): 警告: SAGE_SKIP_CPP_BUILD=1 但未找到.so文件，继续构建" >> "$log_file"
+        fi
+    fi
+    
     echo "$(date): 开始安装C++扩展" >> "$log_file"
     echo -e "${BLUE}🧩 安装C++扩展 (sage_db, sage_flow)...${NC}"
     

@@ -30,7 +30,12 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  # 移除手动CACHE_VERSION，让缓存完全基于代码内容自动失效
+  # 🔄 缓存策略说明：
+  # - 缓存C++扩展的构建产物(.so文件和build目录)
+  # - 缓存键基于源代码、子模块状态和构建配置的hash值
+  # - 每个job独立恢复缓存，避免job间依赖
+  # - editable install每次重新执行，确保正确链接
+  # - 使用SAGE_SKIP_CPP_BUILD环境变量跳过已缓存的构建
 
 jobs:
   build-sage:
@@ -51,6 +56,54 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+
+      - name: Generate Cache Key
+        id: cache-key
+        run: |
+          echo "🔑 生成缓存键（基于代码内容）..."
+          
+          # Python和C++源码hash
+          SAGE_CODE_HASH=$(find packages/ \( -name "*.py" -o -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "CMakeLists.txt" -o -name "pyproject.toml" \) -type f | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          echo "📄 SAGE代码hash: ${SAGE_CODE_HASH}"
+          
+          # 子模块状态（C++扩展依赖）
+          SUBMODULE_HASH=$(git submodule status | md5sum | cut -d' ' -f1)
+          echo "📦 子模块hash: ${SUBMODULE_HASH}"
+          
+          # 构建脚本和CI配置
+          BUILD_CONFIG_HASH=$(cat quickstart.sh .github/workflows/dev-ci.yml | md5sum | cut -d' ' -f1)
+          echo "⚙️ 构建配置hash: ${BUILD_CONFIG_HASH}"
+          
+          # 组合生成最终缓存键
+          CACHE_KEY="sage-v2-${{ runner.os }}-py311-${SAGE_CODE_HASH}-${SUBMODULE_HASH}-${BUILD_CONFIG_HASH}"
+          echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
+          echo "🔑 最终缓存键: ${CACHE_KEY}"
+
+      - name: Cache C++ Extensions
+        id: cache-extensions
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            packages/sage-middleware/src/sage/middleware/components/sage_db/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/sage_db/build
+            packages/sage-middleware/src/sage/middleware/components/sage_db/install
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/build
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/install
+          key: ${{ steps.cache-key.outputs.cache-key }}
+          restore-keys: |
+            sage-v2-${{ runner.os }}-py311-
+
+      - name: Cache Status Report
+        run: |
+          if [ "${{ steps.cache-extensions.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ 缓存命中！C++扩展构建产物已恢复"
+            echo "🔍 检查缓存的扩展文件："
+            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f || echo "⚠️ 未找到.so文件"
+          else
+            echo "ℹ️ 缓存未命中，需要构建C++扩展"
+          fi
 
       - name: Install System Dependencies
         run: |
@@ -74,7 +127,13 @@ jobs:
 
       - name: Install SAGE
         run: |
-          echo "🚀 安装SAGE（使用quickstart.sh --dev，无缓存）..."
+          if [ "${{ steps.cache-extensions.outputs.cache-hit }}" == "true" ]; then
+            echo "🚀 安装SAGE（使用缓存的C++扩展）..."
+            # 缓存命中时，跳过C++扩展构建，只做Python包安装
+            export SAGE_SKIP_CPP_BUILD=1
+          else
+            echo "🚀 安装SAGE（完整构建，包括C++扩展）..."
+          fi
           
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --pip --yes
@@ -90,7 +149,7 @@ jobs:
             exit 1
           fi
           
-          # 验证扩展构建结果（开发者模式应该已经构建了扩展）
+          # 验证扩展构建结果
           echo "🔍 验证扩展构建结果..."
           if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
             echo "✅ 找到.so文件:"
@@ -158,6 +217,44 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Generate Cache Key
+        id: cache-key
+        run: |
+          echo "🔑 生成缓存键（基于代码内容）..."
+          
+          # Python和C++源码hash
+          SAGE_CODE_HASH=$(find packages/ \( -name "*.py" -o -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "CMakeLists.txt" -o -name "pyproject.toml" \) -type f | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          echo "📄 SAGE代码hash: ${SAGE_CODE_HASH}"
+          
+          # 子模块状态
+          SUBMODULE_HASH=$(git submodule status | md5sum | cut -d' ' -f1)
+          echo "📦 子模块hash: ${SUBMODULE_HASH}"
+          
+          # 构建脚本和CI配置
+          BUILD_CONFIG_HASH=$(cat quickstart.sh .github/workflows/dev-ci.yml | md5sum | cut -d' ' -f1)
+          echo "⚙️ 构建配置hash: ${BUILD_CONFIG_HASH}"
+          
+          # 组合生成最终缓存键
+          CACHE_KEY="sage-v2-${{ runner.os }}-py311-${SAGE_CODE_HASH}-${SUBMODULE_HASH}-${BUILD_CONFIG_HASH}"
+          echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
+          echo "🔑 最终缓存键: ${CACHE_KEY}"
+
+      - name: Cache C++ Extensions
+        id: cache-extensions
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            packages/sage-middleware/src/sage/middleware/components/sage_db/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/sage_db/build
+            packages/sage-middleware/src/sage/middleware/components/sage_db/install
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/build
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/install
+          key: ${{ steps.cache-key.outputs.cache-key }}
+          restore-keys: |
+            sage-v2-${{ runner.os }}-py311-
+
       - name: Initialize Submodules
         run: |
           echo "🔁 初始化子模块（C++扩展依赖）..."
@@ -166,7 +263,12 @@ jobs:
 
       - name: Install SAGE
         run: |
-          echo "� 安装SAGE（使用quickstart.sh --dev）..."
+          if [ "${{ steps.cache-extensions.outputs.cache-hit }}" == "true" ]; then
+            echo "🚀 安装SAGE（使用缓存的C++扩展）..."
+            export SAGE_SKIP_CPP_BUILD=1
+          else
+            echo "🚀 安装SAGE（完整构建）..."
+          fi
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --pip --yes
           echo "✅ SAGE安装完成"
@@ -228,6 +330,44 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Generate Cache Key
+        id: cache-key
+        run: |
+          echo "🔑 生成缓存键（基于代码内容）..."
+          
+          # Python和C++源码hash
+          SAGE_CODE_HASH=$(find packages/ \( -name "*.py" -o -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "CMakeLists.txt" -o -name "pyproject.toml" \) -type f | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          echo "📄 SAGE代码hash: ${SAGE_CODE_HASH}"
+          
+          # 子模块状态
+          SUBMODULE_HASH=$(git submodule status | md5sum | cut -d' ' -f1)
+          echo "📦 子模块hash: ${SUBMODULE_HASH}"
+          
+          # 构建脚本和CI配置
+          BUILD_CONFIG_HASH=$(cat quickstart.sh .github/workflows/dev-ci.yml | md5sum | cut -d' ' -f1)
+          echo "⚙️ 构建配置hash: ${BUILD_CONFIG_HASH}"
+          
+          # 组合生成最终缓存键
+          CACHE_KEY="sage-v2-${{ runner.os }}-py311-${SAGE_CODE_HASH}-${SUBMODULE_HASH}-${BUILD_CONFIG_HASH}"
+          echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
+          echo "🔑 最终缓存键: ${CACHE_KEY}"
+
+      - name: Cache C++ Extensions
+        id: cache-extensions
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            packages/sage-middleware/src/sage/middleware/components/sage_db/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/sage_db/build
+            packages/sage-middleware/src/sage/middleware/components/sage_db/install
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/build
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/install
+          key: ${{ steps.cache-key.outputs.cache-key }}
+          restore-keys: |
+            sage-v2-${{ runner.os }}-py311-
+
       - name: Initialize Submodules
         run: |
           echo "🔁 初始化子模块（C++扩展依赖）..."
@@ -236,7 +376,12 @@ jobs:
 
       - name: Install SAGE
         run: |
-          echo "� 安装SAGE（使用quickstart.sh --dev）..."
+          if [ "${{ steps.cache-extensions.outputs.cache-hit }}" == "true" ]; then
+            echo "🚀 安装SAGE（使用缓存的C++扩展）..."
+            export SAGE_SKIP_CPP_BUILD=1
+          else
+            echo "🚀 安装SAGE（完整构建）..."
+          fi
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --pip --yes
           echo "✅ SAGE安装完成"
@@ -270,6 +415,44 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Generate Cache Key
+        id: cache-key
+        run: |
+          echo "🔑 生成缓存键（基于代码内容）..."
+          
+          # Python和C++源码hash
+          SAGE_CODE_HASH=$(find packages/ \( -name "*.py" -o -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "CMakeLists.txt" -o -name "pyproject.toml" \) -type f | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+          echo "📄 SAGE代码hash: ${SAGE_CODE_HASH}"
+          
+          # 子模块状态
+          SUBMODULE_HASH=$(git submodule status | md5sum | cut -d' ' -f1)
+          echo "📦 子模块hash: ${SUBMODULE_HASH}"
+          
+          # 构建脚本和CI配置
+          BUILD_CONFIG_HASH=$(cat quickstart.sh .github/workflows/dev-ci.yml | md5sum | cut -d' ' -f1)
+          echo "⚙️ 构建配置hash: ${BUILD_CONFIG_HASH}"
+          
+          # 组合生成最终缓存键
+          CACHE_KEY="sage-v2-${{ runner.os }}-py311-${SAGE_CODE_HASH}-${SUBMODULE_HASH}-${BUILD_CONFIG_HASH}"
+          echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
+          echo "🔑 最终缓存键: ${CACHE_KEY}"
+
+      - name: Cache C++ Extensions
+        id: cache-extensions
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            packages/sage-middleware/src/sage/middleware/components/sage_db/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/sage_db/build
+            packages/sage-middleware/src/sage/middleware/components/sage_db/install
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/python/*.so
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/build
+            packages/sage-middleware/src/sage/middleware/components/sage_flow/install
+          key: ${{ steps.cache-key.outputs.cache-key }}
+          restore-keys: |
+            sage-v2-${{ runner.os }}-py311-
+
       - name: Initialize Submodules
         run: |
           echo "🔁 初始化子模块（C++扩展依赖）..."
@@ -278,7 +461,12 @@ jobs:
 
       - name: Install SAGE
         run: |
-          echo "� 安装SAGE（使用quickstart.sh --dev）..."
+          if [ "${{ steps.cache-extensions.outputs.cache-hit }}" == "true" ]; then
+            echo "🚀 安装SAGE（使用缓存的C++扩展）..."
+            export SAGE_SKIP_CPP_BUILD=1
+          else
+            echo "🚀 安装SAGE（完整构建）..."
+          fi
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --pip --yes
           echo "✅ SAGE安装完成"
