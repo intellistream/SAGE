@@ -23,7 +23,7 @@ generator:
     model_name: meta-llama/Llama-2-13b-chat-hf
     seed: 42
   vllm:
-    api_key: token-abc123
+    api_key: ""
     method: openai
     model_name: microsoft/DialoGPT-small
     base_url: http://127.0.0.1:8000/v1
