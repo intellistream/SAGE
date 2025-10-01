@@ -3,9 +3,34 @@
 
 本目录包含一系列与 RAG（Retrieval-Augmented Generation，检索增强生成）相关的 Python 示例脚本，涵盖了密集检索、稀疏检索、混合检索、知识预加载、重排序、Refiner、无检索等典型场景，便于开发者快速理解和测试 SAGE 框架下的 RAG 能力。
 
+## 🌟 新功能：多模态数据融合
+
+### 🎯 多模态融合QA示例
+`qa_multimodal_fusion.py` - 展示如何使用多模态数据融合功能进行问答系统
+
+**核心特性：**
+- **多模态检索**：同时处理文本和图像数据，支持联合搜索
+- **动态融合策略**：可运行时切换不同的数据融合算法（加权平均、连接、注意力机制等）
+- **智能权重配置**：可配置文本和图像的融合权重
+- **完整QA流程**：从多模态查询到答案生成的完整流程
+
+**快速开始：**
+```bash
+python qa_multimodal_fusion.py
+```
+
+**支持的融合策略：**
+- `weighted_average`: 加权平均融合（推荐用于文本+图像）
+- `concatenation`: 向量连接融合
+- `attention_based`: 注意力机制融合
+- `tensor_fusion`: 张量融合
+
+详见：[多模态融合详细说明](README_multimodal_fusion.md)
+
 ## 目录结构
 
 - `rag.py` / `rag_simple.py`：最基础的 RAG 流程示例，适合快速入门。
+- `qa_multimodal_fusion.py`：**🆕 多模态数据融合QA示例**，支持文本+图像联合检索。
 - `preload_knowledge.py`：知识库预加载脚本，演示如何将知识数据导入 ChromaDB。
 - `qa_dense_retrieval.py`：密集向量检索示例，使用 embedding+ChromaDB 实现。
 - `qa_dense_retrieval_chroma.py`：专门演示 ChromaDB 密集检索。
@@ -17,6 +42,7 @@
 - `qa_refiner.py`：Refiner（答案精炼）流程示例。
 - `qa_rerank.py`：检索结果重排序示例。
 - `qa_without_retrieval.py`：无检索直接问答示例。
+- `README_multimodal_fusion.md`：多模态融合功能详细说明。
 - `README.md`：本说明文件。
 - `config/`：各脚本的配置文件目录。
 - `chroma_qa_database/`：ChromaDB 数据库文件及相关数据。

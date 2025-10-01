@@ -48,6 +48,10 @@ cd rag && python rag_simple.py
 # 2. 探索不同检索策略
 python qa_dense_retrieval.py      # 稠密检索
 python qa_bm25_retrieval.py       # 稀疏检索
+
+# 3. 🆕 多模态数据融合
+python qa_multimodal_fusion.py    # 文本+图像联合检索
+./run_multimodal_demo.sh          # 一键运行演示
 ```
 
 ### 🤖 智能体开发者
