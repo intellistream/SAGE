@@ -180,8 +180,7 @@ class MultimodalFusionRetriever:
 
         print(f"   📊 检索到 {len(top_results)} 个相关结果:")
         for i, result in enumerate(top_results, 1):
-            print(".3f"
-                  f"类型:{result['metadata'].get('type', 'unknown')}")
+            print(f"   {i}. 相似度:{result['similarity']:.3f} 类型:{result['metadata'].get('type', 'unknown')}")
 
         # 构建检索结果
         retrieved_context = "\n".join([
