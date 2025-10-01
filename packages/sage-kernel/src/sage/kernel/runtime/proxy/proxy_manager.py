@@ -45,16 +45,17 @@ class ProxyManager:
 
     def _resolve_service_descriptor(self, service_name: str) -> Optional[Any]:
         """Return a cached queue descriptor for the requested service."""
-        if service_name in self._service_queue_cache:
-            return self._service_queue_cache[service_name]
+        with self._lock:
+            if service_name in self._service_queue_cache:
+                return self._service_queue_cache[service_name]
 
-        descriptor = None
-        context = self._context
-        if hasattr(context, "service_qds") and context.service_qds:
-            descriptor = context.service_qds.get(service_name)
-            if descriptor is not None:
-                self._service_queue_cache[service_name] = descriptor
-        return descriptor
+            descriptor = None
+            context = self._context
+            if hasattr(context, "service_qds") and context.service_qds:
+                descriptor = context.service_qds.get(service_name)
+                if descriptor is not None:
+                    self._service_queue_cache[service_name] = descriptor
+            return descriptor
 
     # ------------------------------------------------------------------
     # Public API
