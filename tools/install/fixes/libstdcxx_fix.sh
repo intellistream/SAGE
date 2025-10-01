@@ -40,8 +40,17 @@ PY
 }
 
 ensure_libstdcxx_compatibility() {
-    local required_symbol="GLIBCXX_3.4.30"
     local log_file="${1:-install.log}"
+    local install_environment="${2:-conda}"
+    local required_symbol="GLIBCXX_3.4.30"
+
+    # 在 pip 或非 conda 环境中，跳过 libstdc++ 检查
+    # 因为 pip 环境依赖系统的 libstdc++，而不是 conda 管理的版本
+    if [ "$install_environment" = "pip" ] || [ "$install_environment" = "system" ]; then
+        echo -e "${DIM}使用 ${install_environment} 环境，跳过 libstdc++ 检查（依赖系统库）${NC}"
+        echo "$(date): 跳过 libstdc++ 检查（${install_environment} 环境）" >> "$log_file"
+        return 0
+    fi
 
     echo -e "${BLUE}🔧 检查 libstdc++ 符号 ${required_symbol} ...${NC}"
     echo "$(date): 开始检查 libstdc++ (${required_symbol})" >> "$log_file"
