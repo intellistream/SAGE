@@ -81,7 +81,9 @@ class RemoteEnvironment(BaseEnvironment):
             环境UUID
         """
         try:
-            logger.info(f"Submitting environment '{self.name}' to remote JobManager (autostop={autostop})")
+            logger.info(
+                f"Submitting environment '{self.name}' to remote JobManager (autostop={autostop})"
+            )
 
             # 第一步：使用 trim_object_for_ray 清理环境，排除不可序列化的内容
             logger.debug("Trimming environment for serialization")
@@ -102,11 +104,11 @@ class RemoteEnvironment(BaseEnvironment):
                     logger.info(
                         f"Environment submitted successfully with UUID: {self.env_uuid}"
                     )
-                    
+
                     # 如果启用 autostop，等待作业完成
                     if autostop:
                         self._wait_for_completion()
-                    
+
                     return env_uuid
                 else:
                     raise RuntimeError("JobManager returned success but no job UUID")
@@ -157,7 +159,7 @@ class RemoteEnvironment(BaseEnvironment):
                     # 获取作业状态
                     job_status = status_response.get("status")
                     logger.debug(f"Current job status: {job_status}")
-                    
+
                     if job_status in ["stopped", "failed", "completed"]:
                         logger.info(f"Remote job completed with status: {job_status}")
                         break

@@ -1,8 +1,9 @@
 """
 测试 autostop=True 在远程模式（Ray）下是否能正确清理服务
 """
-import time
+
 import sys
+import time
 from pathlib import Path
 
 # 添加 SAGE 包路径
@@ -18,12 +19,17 @@ src_paths = [
 for p in src_paths:
     sys.path.insert(0, str(p))
 
-from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.remote_environment import RemoteEnvironment
-from sage.core.api.service.base_service import BaseService
-
+from sage.common.utils.logging.custom_logger import (  # noqa: E402
+    CustomLogger,
+)
+from sage.core.api.function.batch_function import (  # noqa: E402
+    BatchFunction,
+)
+from sage.core.api.function.sink_function import SinkFunction  # noqa: E402
+from sage.core.api.remote_environment import (  # noqa: E402
+    RemoteEnvironment,
+)
+from sage.core.api.service.base_service import BaseService  # noqa: E402
 
 # 全局变量用于跟踪服务状态
 service_lifecycle = {
@@ -35,6 +41,7 @@ service_lifecycle = {
 
 class TestBatch(BatchFunction):
     """简单的批处理函数"""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.counter = 0
@@ -49,6 +56,7 @@ class TestBatch(BatchFunction):
 
 class TestSink(SinkFunction):
     """测试 Sink，会调用服务"""
+
     def execute(self, data):
         result = self.call_service("test_service", method="process", data=data)
         print(f"[Sink] Received: {data}, Service result: {result}")
@@ -56,6 +64,7 @@ class TestSink(SinkFunction):
 
 class TestService(BaseService):
     """测试服务，跟踪生命周期"""
+
     def __init__(self):
         super().__init__()
         self.counter = 0
@@ -64,7 +73,7 @@ class TestService(BaseService):
     def process(self, data):
         self.counter += 1
         return f"Processed by service (call #{self.counter})"
-    
+
     def cleanup(self):
         print(f"[TestService] ✓ Cleanup called - processed {self.counter} requests")
         super().cleanup()
@@ -75,6 +84,7 @@ def check_ray_initialized():
     """检查 Ray 是否已初始化"""
     try:
         import ray
+
         if not ray.is_initialized():
             print("[Info] Ray not initialized, initializing...")
             ray.init(ignore_reinit_error=True)
@@ -91,25 +101,25 @@ def main():
     print("=" * 80)
     print("Testing autostop=True with Ray Remote Mode")
     print("=" * 80)
-    
+
     # 检查 Ray
     if not check_ray_initialized():
         print("\n❌ Ray is not available, skipping remote mode test")
         print("   To install Ray: pip install ray")
         return
-    
+
     try:
         print("\n[Main] Creating RemoteEnvironment...")
         env = RemoteEnvironment("test_autostop_service_remote")
-        
+
         # 注册服务（remote=True 表示这是一个 Ray Actor）
         print("[Main] Registering service...")
         env.register_service("test_service", TestService)
-        
+
         # 构建管道
         print("[Main] Building pipeline...")
         env.from_batch(TestBatch).sink(TestSink)
-        
+
         # 提交作业（现在支持 autostop=True）
         print("\n[Main] Submitting job with autostop=True to remote JobManager...")
         print("-" * 80)
@@ -118,10 +128,10 @@ def main():
         elapsed_time = time.time() - start_time
         print("-" * 80)
         print(f"\n[Main] Job completed in {elapsed_time:.2f} seconds")
-        
+
         # 等待一下确保清理完成
         time.sleep(1.0)
-        
+
         # 验证
         print("\n" + "=" * 80)
         print("RemoteEnvironment autostop Test:")
@@ -130,21 +140,23 @@ def main():
         print("✅ autostop=True worked correctly!")
         print("✅ Services should be cleaned up automatically")
         print("=" * 80)
-        
+
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
-    
+
     finally:
         # 清理 Ray
         try:
             import ray
+
             if ray.is_initialized():
                 print("\n[Cleanup] Shutting down Ray...")
                 ray.shutdown()
                 print("[Cleanup] ✓ Ray shutdown complete")
-        except:
+        except Exception:
             pass
 
 

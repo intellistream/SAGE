@@ -78,8 +78,13 @@ class LocalEnvironment(BaseEnvironment):
                 if dispatcher_stopped:
                     # Dispatcher已停止，但还需要等待服务清理完成
                     # 检查是否所有服务都已清理
-                    if len(job_info.dispatcher.services) == 0 and len(job_info.dispatcher.tasks) == 0:
-                        self.logger.info("Dispatcher stopped and all resources cleaned up, batch processing completed")
+                    if (
+                        len(job_info.dispatcher.services) == 0
+                        and len(job_info.dispatcher.tasks) == 0
+                    ):
+                        self.logger.info(
+                            "Dispatcher stopped and all resources cleaned up, batch processing completed"
+                        )
                         break
                     else:
                         # 服务还在清理中，继续等待

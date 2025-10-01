@@ -128,7 +128,7 @@ class JobManagerServer(BaseTcpServer):
         try:
             # 获取 autostop 参数
             autostop = request.get("autostop", False)
-            
+
             # 获取序列化的数据（新格式：base64编码的dill序列化数据）
             serialized_data_b64 = request.get("serialized_data")
             if serialized_data_b64:

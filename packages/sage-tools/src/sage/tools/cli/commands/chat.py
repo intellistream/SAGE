@@ -124,7 +124,7 @@ class HashingEmbedder:
             for offset in range(0, len(digest), 4):
                 chunk = digest[offset : offset + 4]
                 if len(chunk) < 4:
-                    chunk = chunk.ljust(4, b'\0')
+                    chunk = chunk.ljust(4, b"\0")
                 idx = int.from_bytes(chunk, "little") % self._dim
                 vector[idx] += 1.0
 

@@ -100,7 +100,7 @@ class JobManager:  # Job Manager
     def submit_job(self, env: "BaseEnvironment", autostop: bool = False) -> str:
         """
         提交作业
-        
+
         Args:
             env: 环境对象
             autostop: 是否启用自动停止（批处理完成后自动清理资源）
@@ -132,7 +132,9 @@ class JobManager:  # Job Manager
         success = self._submit_to_dispatcher(job_info)
 
         if success:
-            self.logger.info(f"Environment '{env.name}' submitted with UUID {job_uuid} (autostop={autostop})")
+            self.logger.info(
+                f"Environment '{env.name}' submitted with UUID {job_uuid} (autostop={autostop})"
+            )
         else:
             raise Exception("Failed to submit job to dispatcher")
 
@@ -149,7 +151,11 @@ class JobManager:  # Job Manager
         return ExecutionGraph(env)
 
     def _create_job_info(
-        self, env: "BaseEnvironment", graph: "ExecutionGraph", job_uuid: str, autostop: bool = False
+        self,
+        env: "BaseEnvironment",
+        graph: "ExecutionGraph",
+        job_uuid: str,
+        autostop: bool = False,
     ) -> JobInfo:
         """创建JobInfo对象"""
         dispatcher = Dispatcher(graph, env)

@@ -31,10 +31,12 @@ class JobManagerClient(BaseTcpClient):
         """构建服务器信息请求"""
         return {"action": "get_server_info", "request_id": str(uuid.uuid4())}
 
-    def submit_job(self, serialized_data: bytes, autostop: bool = False) -> Dict[str, Any]:
+    def submit_job(
+        self, serialized_data: bytes, autostop: bool = False
+    ) -> Dict[str, Any]:
         """
         提交序列化的作业数据
-        
+
         Args:
             serialized_data: 序列化的作业数据
             autostop: 是否启用自动停止（批处理完成后自动清理资源）
