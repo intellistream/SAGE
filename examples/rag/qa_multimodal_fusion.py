@@ -20,7 +20,6 @@ import numpy as np
 from typing import Dict, List, Any
 
 # 添加SAGE路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
 
 from sage.common.utils.config.loader import load_config
 from sage.core.api.local_environment import LocalEnvironment
