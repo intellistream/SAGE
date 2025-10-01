@@ -550,8 +550,11 @@ def _resolve_generator(generator_section: Dict[str, Any]):
     if method == "openai":
         if not selected_config:
             return _mock_fallback("no OpenAI-compatible configuration block found")
-        if not selected_config.get("api_key"):
-            return _mock_fallback("missing api_key for OpenAI-compatible generator")
+        # 允许 api_key 为空字符串，Generator 会从环境变量读取
+        # Allow empty api_key, Generator will read from environment variables
+        api_key = selected_config.get("api_key")
+        if api_key is None:
+            return _mock_fallback("api_key field missing for OpenAI-compatible generator")
         if not selected_config.get("base_url"):
             return _mock_fallback("missing base_url for OpenAI-compatible generator")
         return OpenAIGenerator, selected_config, ""

@@ -36,10 +36,16 @@ class OpenAIGenerator(MapFunction):
         self.enable_profile = enable_profile
 
         # 实例化模型
+        # API key 优先级: 配置文件 > OPENAI_API_KEY > ALIBABA_API_KEY
+        api_key = (
+            self.config["api_key"]
+            or os.getenv("OPENAI_API_KEY")
+            or os.getenv("ALIBABA_API_KEY")
+        )
         self.model = OpenAIClient(
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
+            api_key=api_key,
             seed=self.config.get("seed", 42),
         )
         self.num = 1
