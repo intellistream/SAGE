@@ -64,7 +64,6 @@ except ModuleNotFoundError:  # pragma: no cover - local convenience path
 
 from pipeline_bridge import PipelineBridge
 
-
 CONFIG_PATH = (
     Path(__file__).resolve().parent.parent.parent / "config" / "config_source.yaml"
 )
@@ -469,7 +468,10 @@ class TerminalAnswerSink(SinkFunction):
         response = payload.get("response")
         request = payload.get("request", {})
 
-        if isinstance(response, dict) and response.get("status") == "shutdown_requested":
+        if (
+            isinstance(response, dict)
+            and response.get("status") == "shutdown_requested"
+        ):
             print("\n✅ QA session closed. Goodbye!", flush=True)
             if self._shutdown_event is not None:
                 self._shutdown_event.set()
@@ -554,7 +556,9 @@ def _resolve_generator(generator_section: Dict[str, Any]):
         # Allow empty api_key, Generator will read from environment variables
         api_key = selected_config.get("api_key")
         if api_key is None:
-            return _mock_fallback("api_key field missing for OpenAI-compatible generator")
+            return _mock_fallback(
+                "api_key field missing for OpenAI-compatible generator"
+            )
         if not selected_config.get("base_url"):
             return _mock_fallback("missing base_url for OpenAI-compatible generator")
         return OpenAIGenerator, selected_config, ""

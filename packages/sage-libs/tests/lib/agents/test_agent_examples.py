@@ -367,8 +367,12 @@ if __name__ == "__main__":
             with patch("examples.agents.agent.iter_queries") as mock_iter_queries:
                 with patch("os.path.exists", return_value=True):
                     # Mock both should_use_real_api and environment to bypass test mode
-                    with patch("examples.agents.agent.should_use_real_api", return_value=True):
-                        with patch.dict("os.environ", {"SAGE_EXAMPLES_MODE": "production"}):
+                    with patch(
+                        "examples.agents.agent.should_use_real_api", return_value=True
+                    ):
+                        with patch.dict(
+                            "os.environ", {"SAGE_EXAMPLES_MODE": "production"}
+                        ):
 
                             # Setup test config
                             test_config = {
@@ -401,7 +405,10 @@ if __name__ == "__main__":
                                         "init_kwargs": {},
                                     }
                                 ],
-                                "runtime": {"max_steps": 3, "summarizer": "reuse_generator"},
+                                "runtime": {
+                                    "max_steps": 3,
+                                    "summarizer": "reuse_generator",
+                                },
                                 "source": {
                                     "type": "local",
                                     "data_path": "/fake/path.jsonl",
@@ -413,7 +420,9 @@ if __name__ == "__main__":
                             mock_iter_queries.return_value = ["Search for ML papers"]
 
                             # Mock all components to avoid external dependencies
-                            with patch("examples.agents.agent.BaseProfile") as mock_profile:
+                            with patch(
+                                "examples.agents.agent.BaseProfile"
+                            ) as mock_profile:
                                 with patch(
                                     "examples.agents.agent.OpenAIGenerator"
                                 ) as mock_generator:
@@ -440,13 +449,13 @@ if __name__ == "__main__":
                                                     mock_module.ArxivSearchTool = (
                                                         mock_tool_class
                                                     )
-                                                    mock_import.return_value = mock_module
+                                                    mock_import.return_value = (
+                                                        mock_module
+                                                    )
 
                                                     # Setup mock runtime response
                                                     mock_runtime_instance = Mock()
-                                                    mock_runtime_instance.execute.return_value = (
-                                                        "Found 2 relevant papers about ML"
-                                                    )
+                                                    mock_runtime_instance.execute.return_value = "Found 2 relevant papers about ML"
                                                     mock_runtime.return_value = (
                                                         mock_runtime_instance
                                                     )

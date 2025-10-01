@@ -11,8 +11,6 @@ from typing import Any, Dict, List
 
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.function.batch_function import BatchFunction
-    from sage.core.api.function.map_function import MapFunction
     from sage.core.api.function.sink_function import SinkFunction
     from sage.core.api.local_environment import LocalEnvironment
 except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
@@ -39,12 +37,9 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
         sys.path.insert(0, str(extra_path))
 
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.function.batch_function import BatchFunction
-    from sage.core.api.function.map_function import MapFunction
     from sage.core.api.function.sink_function import SinkFunction
     from sage.core.api.local_environment import LocalEnvironment
 
-from pipeline_bridge import PipelineBridge
 from hello_pipeline_as_service import (
     DecisionSink,
     FeatureEnrichment,
@@ -56,6 +51,7 @@ from hello_pipeline_as_service import (
     RiskScoringService,
     ServiceDrivenSource,
 )
+from pipeline_bridge import PipelineBridge
 
 NEW_USER_ORDERS: List[Dict[str, float | str]] = [
     {"order_id": "multi-new-001", "user_id": "user-new-01", "amount": 29.99},
@@ -71,7 +67,13 @@ RETURNING_USER_ORDERS: List[Dict[str, float | str]] = [
 class SegmentedOrderSource(OrderSource):
     """Extend the base OrderSource to tag orders with a segment name."""
 
-    def __init__(self, orders: List[Dict[str, float | str]], segment: str, *, include_shutdown: bool = False):
+    def __init__(
+        self,
+        orders: List[Dict[str, float | str]],
+        segment: str,
+        *,
+        include_shutdown: bool = False,
+    ):
         super().__init__(orders, include_shutdown=include_shutdown)
         self._segment = segment
 
@@ -125,13 +127,23 @@ def main():
     )
 
     (
-        env.from_batch(SegmentedOrderSource, NEW_USER_ORDERS, segment="new_users", include_shutdown=False)
+        env.from_batch(
+            SegmentedOrderSource,
+            NEW_USER_ORDERS,
+            segment="new_users",
+            include_shutdown=False,
+        )
         .map(InvokePipeline)
         .sink(SegmentedDriverSink)
     )
 
     (
-        env.from_batch(SegmentedOrderSource, RETURNING_USER_ORDERS, segment="returning_users", include_shutdown=True)
+        env.from_batch(
+            SegmentedOrderSource,
+            RETURNING_USER_ORDERS,
+            segment="returning_users",
+            include_shutdown=True,
+        )
         .map(InvokePipeline)
         .sink(SegmentedDriverSink)
     )
