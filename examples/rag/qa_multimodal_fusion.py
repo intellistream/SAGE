@@ -40,7 +40,6 @@ class MultimodalFusionRetriever:
     """
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
         # 模拟多模态知识库数据
         self.multimodal_knowledge = [
