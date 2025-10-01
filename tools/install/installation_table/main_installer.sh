@@ -314,7 +314,7 @@ install_sage() {
 
             # 在安装 C++ 扩展前确保 libstdc++ 符号满足要求
             echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
-            ensure_libstdcxx_compatibility "$log_file" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试构建扩展"
+            ensure_libstdcxx_compatibility "$log_file" "$environment" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试构建扩展"
             
             # 安装C++扩展（标准功能）
             echo ""
@@ -332,7 +332,7 @@ install_sage() {
 
             # 在安装 C++ 扩展前确保 libstdc++ 符号满足要求
             echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
-            ensure_libstdcxx_compatibility "$log_file" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试构建扩展"
+            ensure_libstdcxx_compatibility "$log_file" "$environment" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试构建扩展"
             
             # 安装C++扩展（标准功能）
             echo ""
