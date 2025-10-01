@@ -517,7 +517,6 @@ class ExampleTestFilters:
         ]
         # 白名单：某些 demo 实例是安全且快速的，允许在测试中运行
         whitelist = {
-            "memory_service_demo.py",
             "hello_sage_flow_service.py",
         }
 
