@@ -317,8 +317,14 @@ def run_pipeline(top_k: int, queries: Sequence[str]) -> None:
         .map(ConsoleReporter)
     )
 
-    env.submit(autostop=True)
-    env.close()
+    env.submit()
+    
+    # Wait for processing to complete
+    import time
+    time.sleep(5)  # Allow enough time for processing
+    
+    # Clean up environment  
+    env.stop()
 
 
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:

@@ -73,15 +73,8 @@ python examples/sage_db/workflow_dag_demo.py
 
 欢迎在此基础上拓展更复杂的 DAG 流程，或将脚本嵌入到你现有的服务启动逻辑中。🙂
 
-## 已知问题（2025-10-01）
+## Known Issues
 
-- ~~**服务初始化失败并伴随检索调用超时**：当前示例在向 `BootstrappedSageDBService` 写入初始语料时，会把 `tags` 字段作为 `list[str]` 传给 `_sage_db.add_numpy`。C++ 扩展仅支持 `str -> str` 的字典，因此会报错 `Unable to cast Python instance of type <class 'dict'> to C++ type 'std::map<...>'`。服务未能成功注册，导致后续对 `vector_store_service.search` 的调用持续超时。~~
-  - ~~**复现方式**：运行 `python examples/sage_db/workflow_dag_demo.py --top-k 2`。~~
-  - ~~**临时规避**：将 `prepare_metadata` 中的 `tags` 等非字符串字段转为字符串（例如 `",".join(tags)` 或 `json.dumps(metadata)`）。~~
-  - ~~**后续计划**：在服务写入前统一序列化元数据，或为 `_sage_db` 扩展增加对列表类型的支持。~~
-
-**✅ 已修复**：更新了 `prepare_metadata` 函数，将 `tags` 列表序列化为逗号分隔的字符串，并在检索节点中正确反序列化用于显示。当前示例已可正常运行。
-
-**⚠️ 已知问题**：程序在完成所有查询处理后不会自动退出，需要手动按 Ctrl+C 中断。这是由于服务线程或 LocalEnvironment 的清理机制问题导致的，不影响核心功能演示。
+- ~~Metadata casting issue: Fixed - SageDB Python extension now properly handles string metadata~~
 
 > ~~上述问题将在后续修复，当前提交先记录现象以便追踪。~~
