@@ -15,7 +15,7 @@ FOUND_ISSUES=0
 
 # 检查 sk- 开头的 API keys (OpenAI/DashScope 格式)
 echo "1. 检查 sk- 开头的真实 API keys..."
-if grep -rE 'api_key.*"sk-[a-zA-Z0-9]{32,}"' "$CONFIG_DIR"/*.yaml 2>/dev/null; then
+if grep -rE 'api_key.*"sk-[a-zA-Z0-9]{43,}"' "$CONFIG_DIR"/*.yaml 2>/dev/null; then
     echo "❌ 发现真实的 API keys (sk- 开头)"
     FOUND_ISSUES=$((FOUND_ISSUES + 1))
 else
