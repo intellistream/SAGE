@@ -72,8 +72,6 @@ jobs:
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
           
-          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
-          
           # ==================================================
           # Hugging Face Configuration
           # ==================================================
@@ -189,8 +187,6 @@ jobs:
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
           
-          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
-          
           # ==================================================
           # Hugging Face Configuration
           # ==================================================
@@ -278,8 +274,6 @@ jobs:
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
-          
-          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
           
           # ==================================================
           # Hugging Face Configuration
