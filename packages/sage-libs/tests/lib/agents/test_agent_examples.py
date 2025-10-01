@@ -362,9 +362,10 @@ if __name__ == "__main__":
         with patch("examples.agents.agent.load_config") as mock_load_config:
             with patch("examples.agents.agent.iter_queries") as mock_iter_queries:
                 with patch("os.path.exists", return_value=True):
+                    with patch("examples.agents.agent.should_use_real_api", return_value=True):
 
-                    # Setup test config
-                    test_config = {
+                        # Setup test config
+                        test_config = {
                         "profile": {
                             "name": "TestAgent",
                             "role": "assistant",
