@@ -83,7 +83,7 @@ source:
 ## 📚 详细文档
 
 - [RAG示例说明](rag/README.md) - RAG相关示例详解
-- [Memory服务演示](memory/README_memory_service_demo.md) - Memory服务使用指南
+- [Memory服务示例](memory/README_memory_service.md) - Memory特性与RAG集成指南
 - [SageDB服务](service/sage_db/README.md) - 数据库服务示例
 - [SageFlow服务](service/sage_flow/README.md) - 流处理服务示例
 - [清理记录](CLEANUP_NOTES.md) - Examples vs Tests 清理记录
