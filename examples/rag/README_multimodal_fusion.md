@@ -30,7 +30,7 @@
 ### 基本运行
 
 ```bash
-cd /home/shuhao/SAGE
+cd /path/to/SAGE   # 或者 cd $SAGE_ROOT
 python examples/rag/qa_multimodal_fusion.py
 ```
 
