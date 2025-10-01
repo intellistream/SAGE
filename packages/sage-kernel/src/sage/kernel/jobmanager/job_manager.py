@@ -97,8 +97,14 @@ class JobManager:  # Job Manager
 
         return True
 
-    def submit_job(self, env: "BaseEnvironment") -> str:
-        """提交作业"""
+    def submit_job(self, env: "BaseEnvironment", autostop: bool = False) -> str:
+        """
+        提交作业
+        
+        Args:
+            env: 环境对象
+            autostop: 是否启用自动停止（批处理完成后自动清理资源）
+        """
         # 生成 UUID
         job_uuid = self._generate_job_uuid()
         env.uuid = job_uuid
@@ -119,14 +125,14 @@ class JobManager:  # Job Manager
         # 创建执行图
         graph = self._create_execution_graph(env)
 
-        # 创建 JobInfo 对象
-        job_info = self._create_job_info(env, graph, job_uuid)
+        # 创建 JobInfo 对象，传递 autostop 参数
+        job_info = self._create_job_info(env, graph, job_uuid, autostop)
 
         # 提交到调度器
         success = self._submit_to_dispatcher(job_info)
 
         if success:
-            self.logger.info(f"Environment '{env.name}' submitted with UUID {job_uuid}")
+            self.logger.info(f"Environment '{env.name}' submitted with UUID {job_uuid} (autostop={autostop})")
         else:
             raise Exception("Failed to submit job to dispatcher")
 
@@ -143,11 +149,11 @@ class JobManager:  # Job Manager
         return ExecutionGraph(env)
 
     def _create_job_info(
-        self, env: "BaseEnvironment", graph: "ExecutionGraph", job_uuid: str
+        self, env: "BaseEnvironment", graph: "ExecutionGraph", job_uuid: str, autostop: bool = False
     ) -> JobInfo:
         """创建JobInfo对象"""
         dispatcher = Dispatcher(graph, env)
-        job_info = JobInfo(env, graph, dispatcher, job_uuid)
+        job_info = JobInfo(env, graph, dispatcher, job_uuid, autostop=autostop)
         self.jobs[job_uuid] = job_info
         return job_info
 

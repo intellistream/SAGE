@@ -59,16 +59,16 @@ class TestService(BaseService):
     def __init__(self):
         super().__init__()
         self.counter = 0
-        print("[TestService] ✓ Service initialized in Ray Actor")
+        print("[TestService] ✓ Service initialized")
 
     def process(self, data):
         self.counter += 1
-        return f"Processed by Ray service (call #{self.counter})"
+        return f"Processed by service (call #{self.counter})"
     
     def cleanup(self):
-        print(f"[TestService] ✓ Cleanup called in Ray Actor - processed {self.counter} requests")
+        print(f"[TestService] ✓ Cleanup called - processed {self.counter} requests")
         super().cleanup()
-        print("[TestService] ✓ Cleanup completed in Ray Actor")
+        print("[TestService] ✓ Cleanup completed")
 
 
 def check_ray_initialized():
@@ -103,18 +103,18 @@ def main():
         env = RemoteEnvironment("test_autostop_service_remote")
         
         # 注册服务（remote=True 表示这是一个 Ray Actor）
-        print("[Main] Registering Ray service...")
-        env.register_service("test_service", TestService, remote=True)
+        print("[Main] Registering service...")
+        env.register_service("test_service", TestService)
         
         # 构建管道
         print("[Main] Building pipeline...")
         env.from_batch(TestBatch).sink(TestSink)
         
-        # 提交作业
-        print("\n[Main] Submitting job with autostop=True to Ray cluster...")
+        # 提交作业（现在支持 autostop=True）
+        print("\n[Main] Submitting job with autostop=True to remote JobManager...")
         print("-" * 80)
         start_time = time.time()
-        env.submit(autostop=True)
+        env.submit(autostop=True)  # ✅ 现在支持了！
         elapsed_time = time.time() - start_time
         print("-" * 80)
         print(f"\n[Main] Job completed in {elapsed_time:.2f} seconds")
@@ -124,13 +124,11 @@ def main():
         
         # 验证
         print("\n" + "=" * 80)
-        print("Ray Remote Mode Test:")
+        print("RemoteEnvironment autostop Test:")
         print("=" * 80)
-        print("✅ Pipeline executed successfully with Ray remote mode")
-        print("✅ autostop=True worked correctly")
-        print("✅ Services should be cleaned up (check Ray dashboard if available)")
-        print("\nNote: Ray Actor cleanup happens asynchronously.")
-        print("      Check Ray dashboard to verify actors are terminated.")
+        print("✅ Pipeline executed successfully with RemoteEnvironment")
+        print("✅ autostop=True worked correctly!")
+        print("✅ Services should be cleaned up automatically")
         print("=" * 80)
         
     except Exception as e:

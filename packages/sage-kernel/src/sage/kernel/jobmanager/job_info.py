@@ -16,11 +16,13 @@ class JobInfo:
         graph: "ExecutionGraph",
         dispatcher: "Dispatcher",
         uuid: str,
+        autostop: bool = False,
     ):
         self.environment = environment
         self.graph = graph
         self.dispatcher = dispatcher
         self.uuid = uuid
+        self.autostop = autostop  # 是否启用自动停止
 
         # 状态信息
         self.status = (
@@ -92,6 +94,7 @@ class JobInfo:
             "runtime": self.get_runtime(),
             "restart_count": self.restart_count,
             "last_update": self.last_update_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "autostop": self.autostop,  # 包含 autostop 状态
         }
 
     def get_status(self) -> Dict[str, Any]:
@@ -108,6 +111,7 @@ class JobInfo:
                 },
                 "dispatcher": {
                     "task_count": len(self.dispatcher.tasks),
+                    "service_count": len(self.dispatcher.services),  # 添加服务数量
                     "is_running": self.dispatcher.is_running,
                 },
             }
