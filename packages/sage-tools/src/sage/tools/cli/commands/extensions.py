@@ -191,7 +191,7 @@ def _clean_previous_build(ext_dir: Path) -> None:
 def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
     """运行构建脚本并将输出重定向到日志文件"""
     import subprocess
-    
+
     original_cwd = os.getcwd()
     os.chdir(ext_dir)
     try:
@@ -199,18 +199,18 @@ def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
         log_dir = sage_root / ".sage" / "logs" / "extensions"
         log_dir.mkdir(parents=True, exist_ok=True)
         log_file = log_dir / f"{ext_name}_build.log"
-        
+
         typer.echo(f"{Colors.DIM}   构建日志: {log_file}{Colors.RESET}")
         typer.echo(f"{Colors.DIM}   实时查看: tail -f {log_file}{Colors.RESET}")
-        
+
         with open(log_file, "w") as f:
             result = subprocess.run(
                 ["bash", "build.sh", "--install-deps"],
                 stdout=f,
                 stderr=subprocess.STDOUT,
-                text=True
+                text=True,
             )
-        
+
         # 如果构建失败，显示最后几行日志
         if result.returncode != 0:
             typer.echo(f"\n{Colors.YELLOW}构建失败，最后50行日志:{Colors.RESET}")
@@ -221,7 +221,7 @@ def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
                         typer.echo(f"  {line.rstrip()}")
             except Exception:
                 pass
-        
+
         return result
     finally:
         os.chdir(original_cwd)
@@ -391,7 +391,9 @@ def _diagnose_build_failure(ext_name: str, ext_dir: Path, result) -> None:
     _print_manual_diagnostics(ext_dir)
 
 
-def _install_extension(ext_name: str, ext_dir: Path, sage_root: Path, force: bool) -> bool:
+def _install_extension(
+    ext_name: str, ext_dir: Path, sage_root: Path, force: bool
+) -> bool:
     typer.echo(f"\n{Colors.YELLOW}━━━ 安装 {ext_name} ━━━{Colors.RESET}")
 
     if not ext_dir.exists():
@@ -526,11 +528,11 @@ def install(
     sage_root = _resolve_project_root()
 
     print_info(f"SAGE项目根目录: {sage_root}")
-    
+
     # 显示日志文件位置（放在.sage目录下）
     sage_logs_dir = sage_root / ".sage" / "logs" / "extensions"
     sage_logs_dir.mkdir(parents=True, exist_ok=True)
-    
+
     extensions_to_install = _resolve_extensions_to_install(extension)
     for ext_name in extensions_to_install:
         build_log = sage_logs_dir / f"{ext_name}_build.log"
@@ -559,10 +561,30 @@ def status():
 
     for module_name, description in extensions.items():
         try:
-            __import__(module_name)
-            print_success(f"{description} ✓")
-            available_count += 1
-        except ImportError as e:
+            # 使用超时机制避免卡死
+            import signal
+
+            def timeout_handler(signum, frame):
+                raise TimeoutError("Module import timeout")
+
+            # 设置5秒超时
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(5)
+
+            try:
+                __import__(module_name)
+                signal.alarm(0)  # 取消超时
+                print_success(f"{description} ✓")
+                available_count += 1
+            except TimeoutError:
+                signal.alarm(0)
+                print_warning(f"{description} ✗")
+                typer.echo("  原因: 导入超时（可能存在初始化问题）")
+            except ImportError as e:
+                signal.alarm(0)
+                print_warning(f"{description} ✗")
+                typer.echo(f"  原因: {e}")
+        except Exception as e:
             print_warning(f"{description} ✗")
             typer.echo(f"  原因: {e}")
 
