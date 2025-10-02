@@ -45,7 +45,7 @@ def validate(
     - 包的元数据和依赖关系正确
     - 代码结构符合PyPI发布要求
 
-    🔧 用户安装体验验证：
+    🔧 用户安装体验验证（使用本地构建的wheel包）：
     - 模拟用户执行 "pip install isage" 的完整过程
     - 验证安装后核心功能正常工作
     - 确保命令行工具可用（完整模式）
@@ -54,6 +54,11 @@ def validate(
 
     ⚡ 使用 --fast 选项可以进行快速验证，只测试核心功能
     🔬 完整模式会进行全面的发布准备验证
+
+    📝 注意：此命令使用本地构建的wheel包进行验证
+    💡 发布到TestPyPI后，请使用以下命令测试实际安装：
+       pip install --index-url https://test.pypi.org/simple/ \\
+                   --extra-index-url https://pypi.org/simple/ isage
 
     💡 建议在每次准备发布到PyPI前运行此命令！
     """
@@ -466,6 +471,15 @@ def publish(
     ⚡ 使用 --dry-run 可以先发布到TestPyPI进行测试
     📦 使用 --package 可以指定发布特定的包
 
+    🧪 TestPyPI测试安装：
+    发布到TestPyPI后，使用以下命令测试安装：
+        pip install --index-url https://test.pypi.org/simple/ \\
+                    --extra-index-url https://pypi.org/simple/ isage
+
+    注意：--extra-index-url 参数很重要！
+    TestPyPI可能缺少某些依赖包（如fastapi、uvicorn等），
+    添加此参数后会自动从正式PyPI获取这些依赖。
+
     💡 建议发布前先运行: sage dev pypi validate
     """
     if dry_run:
@@ -510,6 +524,9 @@ def publish(
             if dry_run:
                 console.print("\n🎉 [bold green]TestPyPI发布成功！[/bold green]")
                 console.print("🔍 [green]请在TestPyPI上验证包的完整性[/green]")
+                console.print("\n📝 [cyan]从TestPyPI安装测试（需要指定正式PyPI作为后备源）:[/cyan]")
+                console.print("   [yellow]pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ isage[/yellow]")
+                console.print("\n💡 [dim]--extra-index-url 参数确保从正式PyPI获取依赖包（如fastapi、uvicorn等）[/dim]")
                 console.print(
                     "💡 [blue]验证无误后可运行正式发布: sage dev pypi publish[/blue]"
                 )
@@ -676,6 +693,7 @@ class PyPIPublisher:
         self.publish_order = [
             "sage-common",  # 基础工具包
             "sage-kernel",  # 内核
+            "sage-tools",  # CLI工具（依赖common和kernel）
             "sage-middleware",  # 中间件
             "sage-libs",  # 应用库
             "sage",  # Meta包，依赖所有其他包
