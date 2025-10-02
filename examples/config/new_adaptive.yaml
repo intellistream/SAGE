@@ -23,7 +23,7 @@ refiner:
   method: "openai"
   model_name: "qwen-turbo"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  api_key: ""
   seed: 42
 
 generator:
@@ -33,7 +33,7 @@ generator:
     seed: 42
 
   vllm:
-    api_key: "token-abc123"
+    api_key: ""
     method: "openai"
     model_name: "meta-llama/Llama-2-13b-chat-hf"
     base_url: "http://sage3:8000/v1"
@@ -64,6 +64,6 @@ agent:
   method: "openai"
   model_name: "qwen-turbo"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  api_key: ""
   seed: 42
-  search_api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
+  search_api_key: ""
