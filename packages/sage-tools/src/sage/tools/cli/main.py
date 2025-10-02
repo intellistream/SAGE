@@ -7,6 +7,7 @@ Streaming-Augmented Generative Execution - AI Research and Graph Engine
 from typing import Optional
 
 import typer
+from sage.tools.cli.commands.chat import app as chat_app
 from sage.tools.cli.commands.cluster import app as cluster_app
 from sage.tools.cli.commands.config import app as config_app
 from sage.tools.cli.commands.dev import app as dev_app  # 新增dev命令
@@ -51,6 +52,7 @@ app.add_typer(enterprise_app, name="enterprise", help="🏢 企业版功能管�
 app.add_typer(license_app, name="license", help="🛡️ 许可证管理 - 客户与厂商工具")
 app.add_typer(llm_app, name="llm", help="🤖 LLM服务管理 - 启动、停止、配置LLM服务")
 app.add_typer(doctor_app, name="doctor", help="🔍 系统诊断")
+app.add_typer(chat_app, name="chat", help="🧭 编程助手 - 基于 SageDB 的文档问答")
 
 # 开发工具命令
 app.add_typer(dev_app, name="dev", help="🛠️ 开发工具 - 项目开发和管理")

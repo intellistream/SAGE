@@ -1,91 +1,62 @@
-# Sage Runtime 模块
+# SAGE Runtime
 
-Sage Runtime 负责将编译后的执行图在不同平台上实际运行，提供分布式计算和本地执行能力。
-这一块要重写，因为runtime_context重写了
-## 模块架构
+`sage.kernel.runtime` 将 JobManager 编译出的执行图落实到具体的任务、服务和通信资源上。代码完全在 Python 中实现，默认在本地进程内运行，同时保留 Ray 作为可选的远端执行后端。
 
-### 运行时基础 (`sage.kernels.runtime/`)
+## 模块总览
 
-- **`dispatcher.py`**: 运行时调度器
-  - `Dispatcher`: 核心的任务和服务调度器
-  - 管理任务生命周期和执行图部署
-  - 支持本地和分布式执行模式
-
-- **`runtime_context.py`**: 运行时上下文
-  - `RuntimeContext`: 运行时环境信息管理
-  - 提供任务、算子和函数共享的上下文
-  - 管理配置、日志和资源信息
-
-### 通信系统 (`communication/`)
-提供统一的通信框架，支持多种通信模式和数据路由。
-
-主要组件：
-- **队列系统**: 统一的队列抽象和多种队列实现
-- **路由系统**: 数据包路由、连接管理和负载均衡
-- **描述符系统**: 跨进程队列描述符传递
-
-### 工厂系统 (`factory/`)
-提供各种运行时组件的工厂类，负责创建和管理核心组件。
-
-主要组件：
-- **函数工厂**: 创建和管理函数实例
-- **算子工厂**: 创建各种类型的算子实例
-- **任务工厂**: 创建本地和远程任务实例
-- **服务工厂**: 创建各种类型的服务实例
-
-### 任务系统 (`task/`)
-提供任务执行抽象，支持本地和分布式任务执行模式。
-
-主要组件：
-- **任务基类**: 统一的任务接口和生命周期管理
-- **本地任务**: 本地进程内的任务执行
-- **Ray任务**: 基于 Ray Actor 的分布式任务
-
-### 服务系统 (`service/`)
-提供服务任务的执行框架，支持本地和分布式服务调用。
-
-主要组件：
-- **服务任务**: 统一的服务接口和队列监听
-- **服务调用器**: 同步和异步服务调用管理
-- **服务发现**: 服务注册和发现机制
-
-## 运行时架构
-
-### 核心架构
 ```
-┌─────────────────────────────────────┐
-│             Dispatcher              │  调度器和生命周期管理
-├─────────────────────────────────────┤
-│    Service Layer    │  Task Layer   │  服务调用和任务执行
-├─────────────────────┼───────────────┤
-│ Communication Layer │ Factory Layer │  通信路由和组件创建
-├─────────────────────┴───────────────┤
-│         Runtime Context             │  共享运行时上下文
-└─────────────────────────────────────┘
+runtime/
+├── dispatcher.py           # 提交执行图、创建任务/服务并负责生命周期
+├── task/                   # BaseTask + 本地/Ray 任务实现
+├── service/                # ServiceTask 基类、本地/Ray 服务实现、ServiceManager
+├── proxy/                  # ProxyManager，封装 ServiceManager + 队列缓存
+├── context/                # TaskContext / ServiceContext / BaseRuntimeContext
+├── communication/          # 队列描述符、Router、Packet 定义
+└── factory/                # 运行时构建 Operator/Task/Service 的工厂
 ```
 
-### 组件交互
-- **Dispatcher** 负责整个执行图的部署和管理
-- **RuntimeContext** 提供所有组件共享的运行时信息
-- **Factory** 创建各种运行时组件实例
-- **Task** 管理算子的执行和生命周期
-- **Communication** 处理组件间的数据传输
-- **Service** 提供服务化的调用接口
+核心职责：
 
-## 执行流程
+1. **Dispatcher**：根据执行图生成任务、服务实例，并统一启动/停止；处理 stop signal、日志、Ray 初始化等。
+2. **Task 子系统**：`BaseTask` 负责工作线程循环、从输入队列取包、调用算子、传播停止信号；`local_task.py` 在进程内运行任务，`ray_task.py` 则包装 Ray actor。
+3. **Service 子系统**：`BaseServiceTask` 监听请求队列、调用用户服务对象、把结果写回响应队列；`local_service_task.py` 使用标准队列，`ray_service_task.py` 通过 Ray actor 托管服务；`service_caller.py` 的 `ServiceManager` 负责请求/响应匹配与 Future 管理。
+4. **Proxy 层**：`ProxyManager` 嵌入到所有 `BaseRuntimeContext`，为 `call_service` / `call_service_async` 提供缓存和统一超时时间。
+5. **Runtime Context**：`TaskContext`/`ServiceContext` 封装日志、队列描述符、下游路由、stop 信号回传、服务队列映射等运行信息，暴露给任务与函数实例。
+6. **Communication**：`queue_descriptor` 提供可序列化的队列描述；`router` 负责 Round-Robin/Hash/Broadcast 路由以及 stop signal 广播。
 
-1. **图解析与初始化**: Dispatcher 接收执行图并解析节点信息
-2. **服务实例创建**: 根据服务节点创建服务任务实例
-3. **任务实例创建**: 根据计算节点创建任务实例
-4. **连接建立**: 建立任务间的数据通信连接
-5. **任务启动**: 启动所有任务的工作循环
-6. **数据流执行**: 任务按照数据依赖关系处理数据流
-7. **停止信号处理**: 接收并处理任务的停止信号
-8. **资源清理**: 清理所有任务和服务资源
+## 执行流程速览
 
-## 性能优化
+1. **Dispatcher.submit**
+  - 遍历 `ExecutionGraph.service_nodes`，通过 `service_task_factory.create_service_task(ctx)` 创建服务任务，并保存到 `Dispatcher.services`。
+  - 遍历 `ExecutionGraph.nodes`，使用 `task_factory.create_task` 创建任务实例，注入 `TaskContext`。
+2. **Dispatcher.start**
+  - 先启动所有服务任务（确保请求队列监听线程已运行），再启动每个任务的工作线程。
+3. **任务循环** (`BaseTask._worker_loop`)
+  - Source 节点直接调用 `operator.receive_packet`；其他节点从 `input_qd.get()` 取包。
+  - 收到数据时调用算子处理；收到 `StopSignal` 时根据算子类型执行自定义收尾（Join/Sink 等）并向下游传播，同时通知 JobManager。
+4. **服务调用**
+  - 任意运行时函数通过 `TaskContext.call_service(...)` → `ProxyManager.call_sync` 发送请求。
+  - `ServiceManager` 缓存服务队列，构造请求并写入队列，同时监听响应队列把结果放入 Future。
+  - `BaseServiceTask` 从请求队列取出消息，调用目标方法（默认 `process`），把结果写回响应队列。
+5. **停止与清理**
+  - Dispatcher 收到所有停止信号或显式 `stop()` 时，逐个停止任务/服务，等待线程退出，并调用 `cleanup()` 释放队列资源、关闭 Ray actor。
 
-- **并行执行**: 支持算子级别的并行化
-- **流水线处理**: 数据在管道中流式处理
-- **内存管理**: 优化内存使用和垃圾回收
-- **网络优化**: 减少分布式环境下的通信开销
+## 关键交互
+
+- **QueueDescriptor**：ExecutionGraph 在 JobManager 阶段构建所有队列描述符并写入 `TaskContext`/`ServiceContext`，运行时只需 `queue_descriptor.get_queue()` 即可拿到真实队列。
+- **Router**：`TaskContext.send_packet` 封装路由行为，算子只依赖 `ctx.send_packet` 而无需感知通信细节。
+- **Stop Signal**：`StopSignal` 在任务和服务之间沿着执行图传播，Dispatcher 用来判断作业是否完成，并触发服务补充清理。
+- **Ray 支持**：当环境的 `platform == "remote"` 时，Dispatcher 会保证 Ray 初始化，并把任务/服务包装成 `ActorWrapper` 以便在 Ray 上运行。
+
+## 扩展点
+
+- **自定义任务实现**：实现新的 `TaskFactory` 或扩展 `BaseTask`，可引入其他执行后端（如多进程、容器）。
+- **新的通信机制**：通过自定义 `QueueDescriptor` 或 `Connection`，即可接入不同的消息队列实现。
+- **服务拦截器**：`ServiceManager` 目前集中处理请求/响应匹配，可在此添加指标、拦截器或故障注入逻辑。
+
+参考文档：
+
+- `docs-public/docs_src/kernel/architecture.md`
+- `docs-public/docs_src/kernel/runtime_tasks.md`
+- `docs-public/docs_src/kernel/runtime_services.md`
+- `docs-public/docs_src/kernel/runtime_communication.md`

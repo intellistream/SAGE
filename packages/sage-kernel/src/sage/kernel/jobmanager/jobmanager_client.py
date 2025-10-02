@@ -31,8 +31,16 @@ class JobManagerClient(BaseTcpClient):
         """构建服务器信息请求"""
         return {"action": "get_server_info", "request_id": str(uuid.uuid4())}
 
-    def submit_job(self, serialized_data: bytes) -> Dict[str, Any]:
-        """提交序列化的作业数据"""
+    def submit_job(
+        self, serialized_data: bytes, autostop: bool = False
+    ) -> Dict[str, Any]:
+        """
+        提交序列化的作业数据
+
+        Args:
+            serialized_data: 序列化的作业数据
+            autostop: 是否启用自动停止（批处理完成后自动清理资源）
+        """
         # 验证输入参数
         if serialized_data is None:
             raise ValueError("Serialized data cannot be None")
@@ -43,6 +51,7 @@ class JobManagerClient(BaseTcpClient):
             "action": "submit_job",
             "request_id": str(uuid.uuid4()),
             "serialized_data": base64.b64encode(serialized_data).decode("utf-8"),
+            "autostop": autostop,  # 添加 autostop 参数
         }
 
         return self.send_request(request)

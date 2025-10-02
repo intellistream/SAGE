@@ -1,61 +1,32 @@
-# MemoryService 演示配置文件
-# 这个配置文件用于 memory_service_demo.py 示例
+# RAG Memory 服务配置模板
+# 可用于自定义 `rag_memory_service.py` 或流水线示例中的 MemoryService 行为。
 
-# MemoryService 配置
-memory_service:
-  # 底层服务名称（需要预先启动）
-  kv_service_name: "kv_service"
-  vdb_service_name: "vdb_service"
-  graph_service_name: "graph_service"
+rag_memory_service:
+  manager_path: ".sage/examples/memory/rag_memory_service"
+  collection:
+    name: "RAGMemoryCollection"
+    backend_type: "VDB"
+    description: "rag memory collection"
+    index_config:
+      name: "test_index"
+      embedding_model: "default"
+      dim: 384
+      backend_type: "FAISS"
+      description: "rag memory index"
+      index_parameter: {}
 
-  # 向量和搜索配置
-  default_vector_dimension: 384
-  max_search_results: 10
+default_search:
+  topk: 5
+  threshold: 0.1
+  with_metadata: true
 
-  # 功能开关
-  enable_caching: true
-  enable_knowledge_graph: true
-
-# 演示数据配置
-demo_data:
-  session_id: "demo_session_001"
-
-  # 示例对话数据
-  conversations:
-    - user_message: "你好，我想学习Python编程，应该从哪里开始？"
-      ai_response: "你好！学习Python编程是一个很好的选择。要开始学习，我建议：1. 安装Python环境 2. 学习基础语法 3. 练习编写简单程序"
-      topic: "programming"
-
-    - user_message: "Python中变量和数据类型有哪些？"
-      ai_response: "Python有以下基本数据类型：1. 整数(int) 2. 浮点数(float) 3. 字符串(str) 4. 布尔值(bool) 5. 列表(list) 6. 元组(tuple) 7. 字典(dict)"
-      topic: "programming"
-
-    - user_message: "我对机器学习很感兴趣，有什么建议？"
-      ai_response: "机器学习是一个很有前景的领域！建议从以下方面开始：1. 学习Python基础 2. 掌握数学基础（线性代数、概率论）3. 学习scikit-learn等库 4. 实践项目"
-      topic: "ai"
-
-    - user_message: "周末我想放松一下，有什么推荐？"
-      ai_response: "周末放松很重要！可以考虑：1. 户外活动如散步或骑行 2. 阅读书籍 3. 学习新技能 4. 和朋友聚餐 记住保持工作生活平衡！"
-      topic: "lifestyle"
-
-    - user_message: "我最近总是感觉疲惫，有什么改善方法？"
-      ai_response: "感觉疲惫可能是多种原因造成的。建议：1. 保证充足睡眠（7-9小时）2. 规律饮食，摄入均衡营养 3. 适量运动 4. 管理压力 5. 如持续严重，建议咨询医生"
+# 可选：预置需要写入的记忆样本
+seed_data:
+  - content: "我最近总是感觉疲惫，有什么改善方法？"
+    metadata:
+      answer: "建议保证充足睡眠并结合适度运动"
       topic: "health"
-
-# 检索演示配置
-retrieval_demo:
-  queries:
-    - "Python编程学习"
-    - "健康和疲惫"
-    - "机器学习建议"
-
-# 运行配置
-runtime:
-  # 是否启用详细日志
-  verbose_logging: false
-
-  # 批处理大小
-  batch_size: 1
-
-  # 超时设置（秒）
-  timeout: 30
+  - content: "我想开始学习 Python，有推荐的路线吗？"
+    metadata:
+      answer: "先掌握基础语法，再尝试小项目"
+      topic: "programming"

@@ -1,135 +1,49 @@
-# Communication Router 模块
+# Router 模块概览
 
-Communication Router 负责处理运行时的数据路由和连接管理，提供高效的数据包传输和负载均衡。
+`router` 子包提供运行时的数据路由 primitives，所有算子最终都通过 `TaskContext` 触发这里的逻辑。
 
-## 模块架构
+## 组成部分
 
-### 核心组件
+- `router.py`：`BaseRouter` 持有下游 `Connection` 集合，并实现 Round-Robin / Hash / Broadcast 三种策略；同时负责向所有下游队列广播 `StopSignal`。
+- `connection.py`：封装下游节点的元信息和队列描述符。包含基础的缓冲区负载查询字段（`get_buffer_load` / `_load_history`），目前仅用于调试日志，不会自动调整发送速率。
+- `packet.py`：定义 `Packet` 和 `StopSignal` 数据结构，用于封装 Payload 与停止事件。
 
-- **`router.py`**: 路由器基类和实现
-  - `BaseRouter`: 路由器抽象基类，定义路由接口
-  - 管理下游连接和数据包路由逻辑
-  - 支持负载均衡和故障检测
+## 工作流程
 
-- **`connection.py`**: 连接管理
-  - `Connection`: 表示节点间的连接对象
-  - 支持本地任务和 Ray Actor 之间的连接
-  - 提供负载监控和连接状态跟踪
+1. JobManager 编译执行图时，将每个边的队列描述符和目标索引写入 `Connection` 对象。
+2. `TaskContext` 在构造时组装 `downstream_groups`，运行时通过 `BaseRouter` 的 `send()` 将 `Packet` 投递到对应队列：
+   - **默认**：轮询同一广播组内的并行实例。
+   - **Hash**：当 `packet.partition_strategy == "hash"` 且提供 `partition_key` 时，根据哈希值选择目标。
+   - **Broadcast**：当策略为 `"broadcast"` 时，对广播组所有连接逐个发送。
+3. 停止信号沿同一路径传播，`BaseRouter.send_stop_signal()` 会调用每个连接的队列描述符，将 `StopSignal` 写入队列。
 
-- **`packet.py`**: 数据包定义
-  - `Packet`: 数据传输的基本单元
-  - 支持分区键和路由策略
-  - 提供时间戳和追踪信息
+## 常用 API
 
-## 核心功能
-
-### 1. 数据路由
 ```python
-from sage.kernels.runtime.communication.router import BaseRouter
+from sage.kernel.runtime.communication.router.packet import Packet
 
-class CustomRouter(BaseRouter):
-    def route_packet(self, packet):
-        # 实现自定义路由逻辑
-        target = self.select_target(packet)
-        self.send_to_target(target, packet)
+packet = Packet(payload={"value": 1})
+ctx.send_packet(packet)  # TaskContext 封装了 BaseRouter
+
+stop = StopSignal("SourceDone", source="Source_1")
+ctx.send_stop_signal(stop)
 ```
 
-### 2. 连接管理
+要查看当前任务的下游拓扑，可调用：
+
 ```python
-from sage.kernels.runtime.communication.router.connection import Connection
-
-# 创建连接
-connection = Connection(
-    broadcast_index=0,
-    parallel_index=1,
-    target_name="downstream_task",
-    target_handle=target_task,
-    target_input_index=0,
-    target_type="local"
-)
-
-# 监控连接负载
-load = connection.get_buffer_load()
+info = ctx.get_routing_info()
+print(info)
 ```
 
-### 3. 数据包处理
-```python
-from sage.kernels.runtime.communication.router.packet import Packet
+## 限制与扩展点
 
-# 创建数据包
-packet = Packet(
-    payload=data,
-    input_index=0,
-    partition_key="key1",
-    partition_strategy="hash"
-)
+- **负载均衡**：`Connection` 中的负载跟踪字段尚未被 `BaseRouter` 消费，如需自适应调度需自行扩展路由逻辑。
+- **错误处理**：当前实现将异常记录到日志，不会对失败的发送进行自动重试。
+- **自定义策略**：可以继承 `BaseRouter` 并覆写 `_route_packet` / `_route_round_robin_packet` 等方法，然后在构建 `TaskContext` 时注入自定义实现（需要扩展 `TaskContext._get_router`）。
 
-# 检查分区信息
-if packet.is_keyed():
-    # 处理分区逻辑
-    new_packet = packet.update_key("new_key")
-```
+更多上下文：
 
-## 路由策略
-
-### 1. 轮询路由 (Round Robin)
-- 均匀分配数据包到所有下游连接
-- 适用于无状态处理场景
-
-### 2. 键分区路由 (Key Partitioning)
-- 根据分区键将数据路由到特定节点
-- 保证相同键的数据发送到同一节点
-
-### 3. 负载均衡路由
-- 根据下游节点负载选择最优路径
-- 动态调整路由策略以避免热点
-
-## 性能特性
-
-### 连接监控
-- **负载跟踪**: 实时监控下游节点的缓冲区负载
-- **负载历史**: 维护负载变化趋势用于预测
-- **自适应调整**: 根据负载情况动态调整路由策略
-
-### 故障处理
-- **连接检测**: 检测下游连接的健康状态
-- **自动重试**: 对失败的数据传输进行重试
-- **降级处理**: 在部分节点故障时继续服务
-
-### 类型支持
-- **本地任务**: 支持本地进程内的任务连接
-- **Ray Actor**: 支持分布式 Ray Actor 连接
-- **混合模式**: 同时支持本地和远程连接
-
-## 扩展接口
-
-### 自定义路由器
-```python
-class MyCustomRouter(BaseRouter):
-    def __init__(self, ctx):
-        super().__init__(ctx)
-        self.custom_config = load_config()
-    
-    def select_downstream(self, packet):
-        # 实现自定义选择逻辑
-        return self.best_connection_for(packet)
-```
-
-### 连接工厂
-```python
-def create_connection(target_info):
-    return Connection(
-        broadcast_index=target_info.broadcast_idx,
-        parallel_index=target_info.parallel_idx,
-        target_name=target_info.name,
-        target_handle=target_info.handle,
-        target_input_index=target_info.input_idx
-    )
-```
-
-## 参考
-
-相关模块：
-- `../queue/`: 队列通信系统
-- `../../task/`: 任务执行系统
-- `../../service/`: 服务调用系统
+- `../queue_descriptor/README.md`
+- `../../runtime_tasks.md`
+- `../../runtime_services.md`

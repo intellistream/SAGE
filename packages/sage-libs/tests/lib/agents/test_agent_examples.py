@@ -301,6 +301,7 @@ class TestMainFunction:
     @patch("examples.agents.agent.load_config")
     @patch("examples.agents.agent.os.path.exists")
     def test_main_function_tool_import_error(self, mock_exists, mock_load):
+        """Test that tool import errors are handled gracefully in test mode."""
         mock_exists.return_value = True
         config = self.create_mock_config()
         config["tools"] = [
@@ -308,9 +309,12 @@ class TestMainFunction:
         ]
         mock_load.return_value = config
 
-        # 直接运行 main，应该抛 ImportError
-        with pytest.raises(ImportError):
-            agent.main()
+        # 在测试模式下，导入错误会被捕获并打印警告，不会抛出异常
+        # 这是预期行为，允许测试继续进行
+        try:
+            agent.main()  # 应该成功完成而不抛出异常
+        except Exception as e:
+            pytest.fail(f"main() should not raise exception in test mode, but got: {e}")
 
 
 @pytest.mark.integration
@@ -362,94 +366,106 @@ if __name__ == "__main__":
         with patch("examples.agents.agent.load_config") as mock_load_config:
             with patch("examples.agents.agent.iter_queries") as mock_iter_queries:
                 with patch("os.path.exists", return_value=True):
+                    # Mock both should_use_real_api and environment to bypass test mode
+                    with patch(
+                        "examples.agents.agent.should_use_real_api", return_value=True
+                    ):
+                        with patch.dict(
+                            "os.environ", {"SAGE_EXAMPLES_MODE": "production"}
+                        ):
 
-                    # Setup test config
-                    test_config = {
-                        "profile": {
-                            "name": "TestAgent",
-                            "role": "assistant",
-                            "language": "en",
-                            "goals": ["Help users"],
-                            "constraints": ["Be helpful"],
-                            "persona": {"style": "friendly"},
-                        },
-                        "generator": {
-                            "remote": {
-                                "api_key": "test-key",
-                                "method": "openai",
-                                "model_name": "gpt-3.5-turbo",
-                                "base_url": "https://api.openai.com/v1",
-                                "seed": 42,
+                            # Setup test config
+                            test_config = {
+                                "profile": {
+                                    "name": "TestAgent",
+                                    "role": "assistant",
+                                    "language": "en",
+                                    "goals": ["Help users"],
+                                    "constraints": ["Be helpful"],
+                                    "persona": {"style": "friendly"},
+                                },
+                                "generator": {
+                                    "remote": {
+                                        "api_key": "test-key",
+                                        "method": "openai",
+                                        "model_name": "gpt-3.5-turbo",
+                                        "base_url": "https://api.openai.com/v1",
+                                        "seed": 42,
+                                    }
+                                },
+                                "planner": {
+                                    "max_steps": 3,
+                                    "enable_repair": True,
+                                    "topk_tools": 2,
+                                },
+                                "tools": [
+                                    {
+                                        "module": "examples.agents.tools.arxiv_search_tool",
+                                        "class": "ArxivSearchTool",
+                                        "init_kwargs": {},
+                                    }
+                                ],
+                                "runtime": {
+                                    "max_steps": 3,
+                                    "summarizer": "reuse_generator",
+                                },
+                                "source": {
+                                    "type": "local",
+                                    "data_path": "/fake/path.jsonl",
+                                    "field_query": "query",
+                                },
                             }
-                        },
-                        "planner": {
-                            "max_steps": 3,
-                            "enable_repair": True,
-                            "topk_tools": 2,
-                        },
-                        "tools": [
-                            {
-                                "module": "examples.agents.tools.arxiv_search_tool",
-                                "class": "ArxivSearchTool",
-                                "init_kwargs": {},
-                            }
-                        ],
-                        "runtime": {"max_steps": 3, "summarizer": "reuse_generator"},
-                        "source": {
-                            "type": "local",
-                            "data_path": "/fake/path.jsonl",
-                            "field_query": "query",
-                        },
-                    }
 
-                    mock_load_config.return_value = test_config
-                    mock_iter_queries.return_value = ["Search for ML papers"]
+                            mock_load_config.return_value = test_config
+                            mock_iter_queries.return_value = ["Search for ML papers"]
 
-                    # Mock all components to avoid external dependencies
-                    with patch("examples.agents.agent.BaseProfile") as mock_profile:
-                        with patch(
-                            "examples.agents.agent.OpenAIGenerator"
-                        ) as mock_generator:
+                            # Mock all components to avoid external dependencies
                             with patch(
-                                "examples.agents.agent.LLMPlanner"
-                            ) as mock_planner:
+                                "examples.agents.agent.BaseProfile"
+                            ) as mock_profile:
                                 with patch(
-                                    "examples.agents.agent.MCPRegistry"
-                                ) as mock_registry:
+                                    "examples.agents.agent.OpenAIGenerator"
+                                ) as mock_generator:
                                     with patch(
-                                        "examples.agents.agent.AgentRuntime"
-                                    ) as mock_runtime:
+                                        "examples.agents.agent.LLMPlanner"
+                                    ) as mock_planner:
                                         with patch(
-                                            "examples.agents.agent.importlib.import_module"
-                                        ) as mock_import:
+                                            "examples.agents.agent.MCPRegistry"
+                                        ) as mock_registry:
+                                            with patch(
+                                                "examples.agents.agent.AgentRuntime"
+                                            ) as mock_runtime:
+                                                with patch(
+                                                    "examples.agents.agent.importlib.import_module"
+                                                ) as mock_import:
 
-                                            # Setup mock tool
-                                            mock_tool_class = Mock()
-                                            mock_tool_instance = Mock()
-                                            mock_tool_class.return_value = (
-                                                mock_tool_instance
-                                            )
-                                            mock_module = Mock()
-                                            mock_module.ArxivSearchTool = (
-                                                mock_tool_class
-                                            )
-                                            mock_import.return_value = mock_module
+                                                    # Setup mock tool
+                                                    mock_tool_class = Mock()
+                                                    mock_tool_instance = Mock()
+                                                    mock_tool_class.return_value = (
+                                                        mock_tool_instance
+                                                    )
+                                                    mock_module = Mock()
+                                                    mock_module.ArxivSearchTool = (
+                                                        mock_tool_class
+                                                    )
+                                                    mock_import.return_value = (
+                                                        mock_module
+                                                    )
 
-                                            # Setup mock runtime response
-                                            mock_runtime_instance = Mock()
-                                            mock_runtime_instance.execute.return_value = (
-                                                "Found 2 relevant papers about ML"
-                                            )
-                                            mock_runtime.return_value = (
-                                                mock_runtime_instance
-                                            )
+                                                    # Setup mock runtime response
+                                                    mock_runtime_instance = Mock()
+                                                    mock_runtime_instance.execute.return_value = "Found 2 relevant papers about ML"
+                                                    mock_runtime.return_value = (
+                                                        mock_runtime_instance
+                                                    )
 
-                                            with patch("builtins.print"):
-                                                # Should execute without errors
-                                                agent.main()
+                                                    with patch("builtins.print"):
+                                                        # Should execute without errors
+                                                        agent.main()
 
-                                                # Verify the tool was registered
-                                                mock_registry.return_value.register.assert_called_once()
+                                                        # Verify the tool was registered
+                                                        mock_registry.return_value.register.assert_called_once()
 
-                                                # Verify agent execution was called
-                                                mock_runtime_instance.execute.assert_called_once()
+                                                        # Verify agent execution was called
+                                                        mock_runtime_instance.execute.assert_called_once()

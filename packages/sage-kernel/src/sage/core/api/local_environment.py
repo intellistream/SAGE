@@ -76,8 +76,21 @@ class LocalEnvironment(BaseEnvironment):
                 # 所以我们也检查dispatcher是否已经开始停止过程
                 dispatcher_stopped = not job_info.dispatcher.is_running
                 if dispatcher_stopped:
-                    self.logger.info("Dispatcher stopped, batch processing completed")
-                    break
+                    # Dispatcher已停止，但还需要等待服务清理完成
+                    # 检查是否所有服务都已清理
+                    if (
+                        len(job_info.dispatcher.services) == 0
+                        and len(job_info.dispatcher.tasks) == 0
+                    ):
+                        self.logger.info(
+                            "Dispatcher stopped and all resources cleaned up, batch processing completed"
+                        )
+                        break
+                    else:
+                        # 服务还在清理中，继续等待
+                        self.logger.debug(
+                            f"Waiting for resources to be cleaned up: {len(job_info.dispatcher.tasks)} tasks, {len(job_info.dispatcher.services)} services"
+                        )
 
                 # 如果dispatcher正在停止过程中，等待更短的时间
                 # 这样可以避免在dispatcher停止过程中的race condition

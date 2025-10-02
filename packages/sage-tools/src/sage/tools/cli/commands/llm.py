@@ -19,7 +19,7 @@ app.add_typer(config_app, name="config")
 
 @app.command("start")
 def start_llm_service(
-    service: str = typer.Argument(..., help="要启动的服务类型 (vllm)"),
+    service: str = typer.Argument("vllm", help="要启动的服务类型 (默认: vllm)"),
     model: str = typer.Option(
         "microsoft/DialoGPT-small", "--model", "-m", help="要加载的模型名称"
     ),
