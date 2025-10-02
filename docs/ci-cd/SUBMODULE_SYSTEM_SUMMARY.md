@@ -28,7 +28,7 @@
 ./tools/maintenance/manage_submodule_branches.sh help
 ```
 
-### 2. 自动化 Hook：`.git/hooks/post-checkout`
+### 2. 自动化 Hook：`tools/maintenance/git-hooks/post-checkout`
 
 **功能**：
 - ✅ 在切换 SAGE 分支时自动触发
@@ -40,7 +40,29 @@
 # 切换分支会自动同步 submodules
 git checkout main-dev
 # 🔄 检测到分支切换，自动同步 submodule 分支...
+
+# 安装一次即可自动生效
+./tools/maintenance/setup_hooks.sh
+
+# 如果需要自定义，可手动复制
+cp tools/maintenance/git-hooks/post-checkout .git/hooks/post-checkout
+chmod +x .git/hooks/post-checkout
 ```
+
+### 3. 分支切换助手：`tools/maintenance/prepare_branch_checkout.sh`
+
+**功能**：
+- ✅ 在切换前比较当前与目标分支的 `.gitmodules`
+- ✅ 自动执行 `git submodule deinit -f` 并删除目标分支不再需要的子模块目录
+- ✅ 调用 `git checkout <target>`，随后运行 `manage_submodule_branches.sh switch`
+
+**使用示例**：
+```bash
+# 准备切换到 main 分支
+./tools/maintenance/prepare_branch_checkout.sh main
+```
+
+该脚本可以避免在目标分支缺少某些子模块时出现 “untracked working tree files would be overwritten” 的错误。
 
 ### 3. 详细文档：`docs/SUBMODULE_BRANCH_MANAGEMENT.md`
 

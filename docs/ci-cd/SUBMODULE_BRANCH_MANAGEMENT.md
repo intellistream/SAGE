@@ -17,8 +17,9 @@
 
 ```
 SAGE/
+├── tools/maintenance/git-hooks/post-checkout   # Git hook 示例（可选）
 ├── .git/hooks/
-│   └── post-checkout           # Git hook：自动同步（可选）
+│   └── post-checkout           # 拷贝示例后启用的 Git hook
 ├── tools/maintenance/
 │   └── manage_submodule_branches.sh  # 主管理脚本
 └── .gitmodules                 # Submodule 配置（根据分支不同）
@@ -124,7 +125,18 @@ sageDB.git                                         main-dev        main-dev
 
 ### 安装 Git Hook
 
-Hook 已自动创建在 `.git/hooks/post-checkout`，在切换分支时自动同步 submodules。
+仓库提供示例脚本 `tools/maintenance/git-hooks/post-checkout`，推荐通过 helper 一键安装：
+
+```bash
+./tools/maintenance/setup_hooks.sh
+```
+
+如需覆盖已存在的 hook，可追加 `--force`。也可以手动复制：
+
+```bash
+cp tools/maintenance/git-hooks/post-checkout .git/hooks/post-checkout
+chmod +x .git/hooks/post-checkout
+```
 
 ### 验证 Hook
 
@@ -144,6 +156,24 @@ git checkout main
 ```bash
 mv .git/hooks/post-checkout .git/hooks/post-checkout.disabled
 ```
+
+## 🧹 切换前清理缺失的 Submodule
+
+当目标分支（如 `main`）不再跟踪某些 submodule 时，直接 `git checkout` 可能因为本地仍保留旧的子模块目录而失败。使用辅助脚本可在切换前自动清理：
+
+```bash
+# 例如准备切换到 main 分支
+./tools/maintenance/prepare_branch_checkout.sh main
+```
+
+脚本会依次完成：
+
+1. 对比当前 `.gitmodules` 与目标分支的 `.gitmodules`；
+2. 自动执行 `git submodule deinit -f` 并删除目标分支不再需要的子模块目录；
+3. 执行 `git checkout <target>`；
+4. 调用 `manage_submodule_branches.sh switch`，确保切换后子模块状态正确。
+
+> 如果目标分支同样跟踪所有现有子模块，脚本不会删除任何目录，可安全重复执行。
 
 ## 📋 工作流程示例
 

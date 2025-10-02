@@ -66,31 +66,37 @@ switch_submodule_branch() {
     local target_branch="$2"
     local submodule_name=$(basename "$submodule_path")
     
-    if [ ! -d "$submodule_path/.git" ]; then
+    if [ ! -d "$submodule_path/.git" ] && [ ! -f "$submodule_path/.git" ]; then
         echo -e "${YELLOW}  ⚠️  Submodule ${submodule_name} 未初始化${NC}"
         return 1
     fi
     
     cd "$submodule_path"
-    
-    # 获取远程分支
-    git fetch origin
-    
-    # 检查目标分支是否存在
-    if ! git show-ref --verify --quiet refs/remotes/origin/$target_branch; then
-        echo -e "${RED}  ${CROSS} 远程分支 ${target_branch} 不存在${NC}"
-        cd - > /dev/null
-        return 1
+
+    # 获取远程分支，若失败则继续使用本地引用
+    if ! git fetch origin >/dev/null 2>&1; then
+        echo -e "${YELLOW}  ⚠️ 无法访问远程 origin，使用本地引用尝试切换${NC}"
     fi
-    
+
+    local target_ref="origin/$target_branch"
+    if ! git show-ref --verify --quiet "refs/remotes/$target_ref"; then
+        if git show-ref --verify --quiet "refs/heads/$target_branch"; then
+            target_ref="$target_branch"
+        else
+            echo -e "${RED}  ${CROSS} 未找到 ${target_branch} 对应的远程或本地分支${NC}"
+            cd - > /dev/null
+            return 1
+        fi
+    fi
+
     # 切换分支
     echo -e "${DIM}  切换到 ${target_branch} 分支...${NC}"
-    git checkout -B "$target_branch" "origin/$target_branch" 2>/dev/null || {
+    if ! git checkout -B "$target_branch" "$target_ref" >/dev/null 2>&1; then
         echo -e "${RED}  ${CROSS} 无法切换到 ${target_branch}${NC}"
         cd - > /dev/null
         return 1
-    }
-    
+    fi
+
     echo -e "${GREEN}  ${CHECK} 已切换到 ${target_branch}${NC}"
     cd - > /dev/null
     return 0
@@ -142,27 +148,27 @@ switch_submodules() {
     
     local success_count=0
     local fail_count=0
-    
-    # 遍历所有 submodules
-    while IFS= read -r submodule_path; do
+
+    mapfile -t submodules < <(get_submodules)
+    for submodule_path in "${submodules[@]}"; do
         local submodule_name=$(basename "$submodule_path")
         local current_config_branch=$(get_submodule_configured_branch "$submodule_path")
-        
+
         echo -e "${BLUE}📦 处理 submodule: ${submodule_name}${NC}"
         echo -e "${DIM}  当前配置分支: ${current_config_branch}${NC}"
         echo -e "${DIM}  目标分支: ${target_branch}${NC}"
-        
+
         # 更新 .gitmodules
         update_gitmodules_branch "$submodule_path" "$target_branch"
-        
+
         # 切换分支
         if switch_submodule_branch "$submodule_path" "$target_branch"; then
-            ((success_count++))
+            success_count=$((success_count + 1))
         else
-            ((fail_count++))
+            fail_count=$((fail_count + 1))
         fi
         echo ""
-    done < <(get_submodules)
+    done
     
     # 更新 submodule 注册信息
     echo -e "${DIM}更新 submodule 注册信息...${NC}"
