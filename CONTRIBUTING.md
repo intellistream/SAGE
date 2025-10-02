@@ -169,6 +169,20 @@ revert/<hash-fragment> 回滚
 
 > 不建议使用过长分支名；保持 3-5 个词以内。
 
+### 避免 docs-public 子模块冲突
+
+当多名贡献者同时更新 `docs-public` 文档子仓库与 SAGE 主仓库时，请遵循以下顺序，降低 submodule 指针冲突概率：
+
+1. **先合并子仓库 PR**：确保 `docs-public` 仓库里的 Pull Request 先在 upstream 合并，主仓库不要提前引用未合并的 commit。
+2. **同步主仓库指针**：在 SAGE 仓库执行 `git submodule update --remote docs-public`（或手动 checkout 到最新 commit），然后通过 `git add docs-public` 将子模块指针更新到刚刚合并的版本。
+3. **提交主仓库 PR**：提交、推送含有最新子模块指针的 PR，并在描述中注明对应的 `docs-public` 变更。
+
+协作注意事项：
+
+- 只保留一个主仓库分支负责更新 `docs-public` 子模块指针，其他分支在需要时 rebase/merge 后续版本即可。
+- 若多分支已经指向不同指针，合并时选择最新的 `docs-public` commit，再 `git add docs-public && git commit` 即可解决冲突。
+- Reviewer 合并顺序推荐：先合并 `docs-public` 仓库的 PR，再合并 SAGE 主仓库同步指针的 PR。
+
 ## 提交信息规范
 
 ### 基本格式
