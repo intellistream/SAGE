@@ -188,7 +188,6 @@ def _clean_previous_build(ext_dir: Path) -> None:
         shutil.rmtree(build_dir)
 
 
-
 def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
     """运行构建脚本并将输出重定向到日志文件"""
     import subprocess
@@ -209,37 +208,37 @@ def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
         # 添加进度指示
         # 进度显示状态
         progress_state = {"running": True, "last_update": time.time()}
-        
+
         def show_progress():
             """显示构建进度动画"""
             spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
             idx = 0
             start_time = time.time()
-            
+
             while progress_state["running"]:
                 elapsed = int(time.time() - start_time)
                 minutes = elapsed // 60
                 seconds = elapsed % 60
-                
+
                 # 显示进度动画和时间
                 spinner = spinner_chars[idx % len(spinner_chars)]
                 typer.echo(
                     f"\r{Colors.BLUE}{spinner}{Colors.RESET} 正在构建 {ext_name}... "
                     f"[{minutes:02d}:{seconds:02d}]  "
                     f"{Colors.DIM}(构建可能需要几分钟){Colors.RESET}",
-                    nl=False
+                    nl=False,
                 )
-                
+
                 idx += 1
                 time.sleep(0.1)
-            
+
             # 清除进度行
             typer.echo("\r" + " " * 80 + "\r", nl=False)
-        
+
         # 启动进度显示线程
         progress_thread = threading.Thread(target=show_progress, daemon=True)
         progress_thread.start()
-        
+
         try:
             with open(log_file, "w") as f:
                 result = subprocess.run(
@@ -255,9 +254,10 @@ def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
             if progress_thread.is_alive():
                 progress_thread.join(timeout=2.0)
             typer.echo()  # 换行
-            
+
             # 确保输出被刷新
             import sys
+
             sys.stdout.flush()
             sys.stderr.flush()
 
@@ -401,6 +401,7 @@ def _print_ci_failure_report(ext_dir: Path) -> None:
         f"{Colors.RED}================================================================{Colors.RESET}"
     )
 
+
 def _print_manual_diagnostics(ext_dir: Path) -> None:
     print_warning("🔍 构建诊断信息:")
 
@@ -477,9 +478,10 @@ def _install_extension(
 
     return True
 
+
 def _print_install_summary(success_count: int, total_count: int) -> None:
     import sys
-    
+
     typer.echo(f"\n{Colors.BOLD}安装完成{Colors.RESET}")
     typer.echo(f"成功: {success_count}/{total_count}")
 
@@ -489,7 +491,7 @@ def _print_install_summary(success_count: int, total_count: int) -> None:
     else:
         failures = total_count - success_count
         print_warning(f"⚠️ 部分扩展安装失败 ({failures}个)")
-    
+
     # 确保所有输出都被刷新
     sys.stdout.flush()
     sys.stderr.flush()
@@ -532,60 +534,55 @@ def _check_and_fix_libstdcxx() -> None:
     Check if conda environment has compatible libstdc++ for C++20 compilation.
     If not, attempt to upgrade it or warn the user.
     """
-    import sys
-    
     # Only relevant for conda environments
     conda_prefix = os.getenv("CONDA_PREFIX")
     if not conda_prefix:
         return
-    
+
     # Check GCC version
     try:
         result = subprocess.run(
-            ["gcc", "-dumpversion"],
-            capture_output=True,
-            text=True,
-            check=True
+            ["gcc", "-dumpversion"], capture_output=True, text=True, check=True
         )
-        gcc_major_version = int(result.stdout.strip().split('.')[0])
+        gcc_major_version = int(result.stdout.strip().split(".")[0])
     except Exception:
         # Can't determine GCC version, skip check
         return
-    
+
     # Only check if GCC >= 11 (which uses newer GLIBCXX)
     if gcc_major_version < 11:
         return
-    
+
     # Check conda libstdc++ version
     conda_libstdcxx = Path(conda_prefix) / "lib" / "libstdc++.so.6"
     if not conda_libstdcxx.exists():
         return
-    
+
     try:
         result = subprocess.run(
             ["strings", str(conda_libstdcxx)],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
-        glibcxx_versions = [line for line in result.stdout.splitlines() if line.startswith("GLIBCXX_")]
-        
+        glibcxx_versions = [
+            line for line in result.stdout.splitlines() if line.startswith("GLIBCXX_")
+        ]
+
         # Check if we have at least GLIBCXX_3.4.30 (needed for C++20/GCC 11+)
         has_modern_glibcxx = any("GLIBCXX_3.4.3" in v for v in glibcxx_versions)
-        
+
         if not has_modern_glibcxx:
-            print_warning(
-                f"检测到conda环境的libstdc++版本过低 (需要 GLIBCXX_3.4.30+)"
-            )
+            print_warning("检测到conda环境的libstdc++版本过低 (需要 GLIBCXX_3.4.30+)")
             print_info("正在尝试更新libstdc++...")
-            
+
             # Try to update using conda
             try:
                 result = subprocess.run(
                     ["conda", "install", "-c", "conda-forge", "libstdcxx-ng", "-y"],
                     capture_output=True,
                     text=True,
-                    timeout=120
+                    timeout=120,
                 )
                 if result.returncode == 0:
                     print_success("libstdc++已更新 ✓")
@@ -655,7 +652,7 @@ def install(
     _print_install_banner()
 
     _ensure_build_environment()
-    
+
     # Check and fix libstdc++ compatibility issues
     _check_and_fix_libstdcxx()
 
@@ -672,7 +669,6 @@ def install(
         build_log = sage_logs_dir / f"{ext_name}_build.log"
         typer.echo(f"{Colors.DIM}📝 {ext_name} 构建日志: {build_log}{Colors.RESET}")
     typer.echo("")
-
 
     success_count, total_count = _install_selected_extensions(
         extensions_to_install, sage_root, force
@@ -697,24 +693,24 @@ def status():
     for module_name, description in extensions.items():
         try:
             # 使用线程和超时机制避免卡死（更可靠的跨平台方案）
-            import threading
             import queue
-            
+            import threading
+
             result_queue = queue.Queue()
-            
+
             def try_import():
                 try:
                     __import__(module_name)
                     result_queue.put(("success", None))
                 except Exception as e:
                     result_queue.put(("error", e))
-            
+
             import_thread = threading.Thread(target=try_import, daemon=True)
             import_thread.start()
-            
+
             # 等待5秒超时
             import_thread.join(timeout=5.0)
-            
+
             if import_thread.is_alive():
                 # 线程仍在运行，说明超时了
                 print_warning(f"{description} ✗")
@@ -744,9 +740,10 @@ def status():
     if available_count < len(extensions):
         typer.echo(f"\n{Colors.YELLOW}💡 提示:{Colors.RESET}")
         typer.echo("运行 'sage extensions install' 安装缺失的扩展")
-    
+
     # 确保输出被刷新
     import sys
+
     sys.stdout.flush()
     sys.stderr.flush()
 

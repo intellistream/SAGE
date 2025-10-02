@@ -18,7 +18,6 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
-
 from sage.tools.cli.utils.dev_check import require_source_code
 
 console = Console()
@@ -531,9 +530,15 @@ def publish(
             if dry_run:
                 console.print("\n🎉 [bold green]TestPyPI发布成功！[/bold green]")
                 console.print("🔍 [green]请在TestPyPI上验证包的完整性[/green]")
-                console.print("\n📝 [cyan]从TestPyPI安装测试（需要指定正式PyPI作为后备源）:[/cyan]")
-                console.print("   [yellow]pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ isage[/yellow]")
-                console.print("\n💡 [dim]--extra-index-url 参数确保从正式PyPI获取依赖包（如fastapi、uvicorn等）[/dim]")
+                console.print(
+                    "\n📝 [cyan]从TestPyPI安装测试（需要指定正式PyPI作为后备源）:[/cyan]"
+                )
+                console.print(
+                    "   [yellow]pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ isage[/yellow]"
+                )
+                console.print(
+                    "\n💡 [dim]--extra-index-url 参数确保从正式PyPI获取依赖包（如fastapi、uvicorn等）[/dim]"
+                )
                 console.print(
                     "💡 [blue]验证无误后可运行正式发布: sage dev pypi publish[/blue]"
                 )
