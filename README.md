@@ -268,17 +268,6 @@ sage doctor          # Runs environment & module checks
 python -c "import sage; print(sage.__version__)"
 ```
 
-**Common Make-Like Aliases (Optional)**
-Consider adding wrapper scripts (future enhancement) for: `lint`, `format`, `test:quick`, `test:all`.
-
-## Suggested Future Improvements (Documentation & Tooling)
-
-- Add `CHANGELOG.md` with Keep a Changelog format.
-- Introduce `pre-commit` config (black, isort, ruff/mypy, shellcheck).
-- Provide `scripts/dev.sh` helper with common commands.
-- Add architecture diagram (docs/images/architecture.svg) referenced here.
-- Offer Dockerfile + reproducible container instructions.
-
 ## 🤝 Join Our Community
 
 Connect with other SAGE developers, get help, and stay updated on the latest developments:

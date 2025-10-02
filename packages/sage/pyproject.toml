@@ -22,23 +22,23 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 
-# SAGE Meta Package - 默认需要指定安装模式，基础依赖为空
+# SAGE Meta Package - 默认安装核心功能（minimal模式）
 dependencies = [
-    # 基础依赖为空，用户必须显式选择安装模式
-    # 使用: pip install isage[minimal|standard|dev]
-]
-
-[project.optional-dependencies]
-# 最小安装 - 核心功能 + 基础CLI (common + kernel + tools基础功能)
-minimal = [
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0", 
     "isage-tools[cli]>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
 ]
 
-# 标准安装 - 最小安装 + 中间件 + 应用包 + 科学计算库
+[project.optional-dependencies]
+# 最小安装 - 与默认安装相同（向后兼容）
+minimal = [
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0", 
+    "isage-tools[cli]>=0.1.0",
+]
+
+# 标准安装 - 默认安装 + 中间件 + 应用包 + 科学计算库
 standard = [
-    "isage[minimal]",           # 包含最小安装的所有功能
     "isage-middleware>=0.1.0",  # 中间件组件
     "isage-libs>=0.1.0",       # 应用包组件
     # 数据科学基础库
