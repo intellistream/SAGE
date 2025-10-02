@@ -56,6 +56,9 @@ install_cpp_extensions() {
     echo "$(date): 开始安装C++扩展" >> "$log_file"
     echo -e "${BLUE}🧩 安装C++扩展 (sage_db, sage_flow)...${NC}"
     echo -e "${DIM}📝 详细日志: ${log_file}${NC}"
+    echo -e "${YELLOW}⏱️  注意: C++扩展构建可能需要几分钟时间，请耐心等待...${NC}"
+    echo -e "${DIM}   - 正在编译C++代码和依赖库${NC}"
+    echo -e "${DIM}   - 可以在另一个终端查看实时日志: tail -f ${log_file}${NC}"
     echo ""
     
     # 系统依赖已经在comprehensive_system_check中检查和安装了
