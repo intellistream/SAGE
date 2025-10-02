@@ -188,6 +188,7 @@ def _clean_previous_build(ext_dir: Path) -> None:
         shutil.rmtree(build_dir)
 
 
+
 def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
     """运行构建脚本并将输出重定向到日志文件"""
     import subprocess
@@ -351,7 +352,6 @@ def _print_ci_failure_report(ext_dir: Path) -> None:
         f"{Colors.RED}================================================================{Colors.RESET}"
     )
 
-
 def _print_manual_diagnostics(ext_dir: Path) -> None:
     print_warning("🔍 构建诊断信息:")
 
@@ -427,7 +427,6 @@ def _install_extension(
         return False
 
     return True
-
 
 def _print_install_summary(success_count: int, total_count: int) -> None:
     typer.echo(f"\n{Colors.BOLD}安装完成{Colors.RESET}")
@@ -538,6 +537,7 @@ def install(
         build_log = sage_logs_dir / f"{ext_name}_build.log"
         typer.echo(f"{Colors.DIM}📝 {ext_name} 构建日志: {build_log}{Colors.RESET}")
     typer.echo("")
+
 
     success_count, total_count = _install_selected_extensions(
         extensions_to_install, sage_root, force
