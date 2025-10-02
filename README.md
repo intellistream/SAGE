@@ -95,6 +95,20 @@ sage doctor
 
 ## Architecture Excellence
 
+### System Architecture
+
+SAGE is built on a layered architecture that provides flexibility, scalability, and maintainability:
+
+![SAGE Architecture](docs/images/architecture.svg)
+
+The architecture consists of five main layers:
+
+1. **User Layer**: Applications built with SAGE (RAG, Agent, Memory, QA systems)
+2. **API Layer**: LocalEnvironment and RemoteEnvironment for different execution contexts
+3. **Core Layer**: Dispatcher, Job Manager, Service Manager, and Runtime execution engine
+4. **Libraries Layer**: RAG pipeline, Agent framework, Memory & Storage, Middleware components
+5. **Infrastructure Layer**: Compute backends (Ray, local), data storage, model services, monitoring
+
 ### Modular Design
 SAGE follows a clean separation of concerns with pluggable components that work together seamlessly:
 
