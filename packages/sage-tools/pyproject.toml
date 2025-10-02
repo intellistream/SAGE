@@ -35,7 +35,7 @@ classifiers = [
 ]
 license = "MIT"
 
-# 核心依赖 - 只包含tools特有的依赖
+# 核心依赖 - 包含tools特有的依赖和dev工具
 dependencies = [
     # SAGE framework dependencies  
     "isage-common>=0.1.0",  # 只依赖common，不重复其他包的依赖
@@ -46,6 +46,26 @@ dependencies = [
     "markdown>=3.4.4",
     "markupsafe>=2.0.1",
     "packaging>=20.5",
+    
+    # Dev tools - 确保 sage dev 命令可用
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.10.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    "flake8>=5.0.0",
+    "coverage>=7.0.0",
+    "bandit>=1.7.0",
+    "safety>=2.3.0",
+    "virtualenv>=20.31.2",
+    "filelock>=3.12.2,<4",
+    # 兼容性约束 - 确保与kubernetes等包兼容
+    "urllib3>=1.24.2,<2.4.0",  # kubernetes 34.x 要求 <2.4.0
 ]
 
 [project.optional-dependencies]
@@ -61,31 +81,14 @@ cli = [
     "shellingham>=1.5.4",
 ]
 
-# 开发工具依赖
+# 开发工具依赖 - 额外的开发辅助工具（核心dev工具已在默认依赖中）
 dev = [
-    "virtualenv>=20.31.2",
-    "filelock>=3.12.2,<4",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.10.0",
-    "pytest-timeout>=2.1.0",
-    "black>=23.0.0",
-    "isort>=5.10.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
-    "requests>=2.31.0",
-    "tomli>=2.0.0",
-    "packaging>=23.0",
-    "pytest-benchmark>=4.0.0",
+    "pre-commit>=3.0.0",
     "memory-profiler>=0.60.0",
     "line-profiler>=4.0.0",
-    "coverage>=7.0.0",
-    "flake8>=5.0.0",
-    "bandit>=1.7.0",
-    "safety>=2.3.0",
-    "pre-commit>=3.0.0",
     "httpx>=0.24.0",
+    "requests>=2.31.0",
+    "tomli>=2.0.0",
     # 发布工具
     "twine>=4.0.0",
     "build>=0.10.0",
@@ -111,7 +114,7 @@ frontend = [
     "pydantic-settings>=2.0.0",
     "configparser>=5.3.0",
     "pandas>=2.0.0",
-    "numpy>=2.0.0,<2.3.0",  # 兼容vllm/numba约束
+    "numpy>=1.26.0,<2.3.0",  # 兼容vllm/numba约束，同时兼顾离线环境
     "plotly>=5.15.0",
     "dash>=2.11.0",
     "streamlit>=1.25.0",

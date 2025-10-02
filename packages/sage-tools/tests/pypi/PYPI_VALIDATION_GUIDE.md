@@ -68,7 +68,33 @@ sage dev pypi clean
 
 # 清理所有包的构建文件
 sage dev pypi clean --all
+
+# 发布到TestPyPI进行预发布测试
+sage dev pypi publish --dry-run
+
+# 正式发布到PyPI
+sage dev pypi publish
 ```
+
+### TestPyPI测试安装
+
+在发布到TestPyPI后，需要正确测试安装：
+
+```bash
+# ✅ 正确的方式（包含 --extra-index-url）
+pip install --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            isage
+
+# ❌ 错误的方式（缺少 --extra-index-url）
+pip install --index-url https://test.pypi.org/simple/ isage
+```
+
+**重要说明**：
+- TestPyPI可能缺少某些依赖包（如`fastapi`、`uvicorn`等）
+- TestPyPI可能存在错误版本的包（如全大写的`FASTAPI`包）
+- `--extra-index-url https://pypi.org/simple/` 参数确保从正式PyPI获取依赖
+- 如果缺少此参数，安装可能失败并出现依赖错误
 
 ### 直接运行脚本
 

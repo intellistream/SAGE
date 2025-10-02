@@ -12,6 +12,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from sage.tools.cli.utils.dev_check import require_source_code
 
 console = Console()
 app = typer.Typer(help="🏷️ 版本管理 - 管理各个子包的版本信息")
@@ -178,8 +179,9 @@ def increment_version(version_str: str, increment_type: str) -> str:
 
 
 @app.command("list")
+@require_source_code
 def list_versions(root: str = typer.Option(".", "--root", "-r", help="项目根目录路径")):
-    """📋 列出所有包的版本信息"""
+    """📋 列出所有包的版本信息（仅开发模式）"""
     root_path = Path(root).resolve()
 
     console.print(
@@ -219,6 +221,7 @@ def list_versions(root: str = typer.Option(".", "--root", "-r", help="项目根�
 
 
 @app.command("set")
+@require_source_code
 def set_version(
     new_version: str = typer.Argument(..., help="新的版本号"),
     packages: Optional[List[str]] = typer.Option(
@@ -227,7 +230,7 @@ def set_version(
     root: str = typer.Option(".", "--root", "-r", help="项目根目录路径"),
     dry_run: bool = typer.Option(False, "--dry-run", help="预览模式，不实际修改文件"),
 ):
-    """🏷️ 设置指定包的版本号"""
+    """🏷️ 设置指定包的版本号（仅开发模式）"""
     root_path = Path(root).resolve()
 
     console.print(
@@ -277,6 +280,7 @@ def set_version(
 
 
 @app.command("bump")
+@require_source_code
 def bump_version(
     increment_type: str = typer.Argument(
         ..., help="版本增量类型: major, minor, patch, build"
@@ -287,7 +291,7 @@ def bump_version(
     root: str = typer.Option(".", "--root", "-r", help="项目根目录路径"),
     dry_run: bool = typer.Option(False, "--dry-run", help="预览模式，不实际修改文件"),
 ):
-    """⬆️ 增加版本号（major, minor, patch, build）"""
+    """⬆️ 增加版本号（major, minor, patch, build）（仅开发模式）"""
     if increment_type not in ["major", "minor", "patch", "build"]:
         console.print("[red]❌ 无效的增量类型，支持: major, minor, patch, build[/red]")
         raise typer.Exit(1)
@@ -343,6 +347,7 @@ def bump_version(
 
 
 @app.command("sync")
+@require_source_code
 def sync_versions(
     source_package: str = typer.Option(
         "sage", "--source", "-s", help="源包名（作为版本参考）"
@@ -350,7 +355,7 @@ def sync_versions(
     root: str = typer.Option(".", "--root", "-r", help="项目根目录路径"),
     dry_run: bool = typer.Option(False, "--dry-run", help="预览模式，不实际修改文件"),
 ):
-    """🔄 同步所有包的版本到指定包的版本"""
+    """🔄 同步所有包的版本到指定包的版本（仅开发模式）"""
     root_path = Path(root).resolve()
 
     console.print(

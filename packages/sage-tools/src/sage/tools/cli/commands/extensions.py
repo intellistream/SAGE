@@ -47,6 +47,7 @@ class Colors:
     YELLOW = "\033[93m"
     BLUE = "\033[94m"
     BOLD = "\033[1m"
+    DIM = "\033[2m"
     RESET = "\033[0m"
 
 
@@ -187,15 +188,91 @@ def _clean_previous_build(ext_dir: Path) -> None:
         shutil.rmtree(build_dir)
 
 
-def _run_build_script(ext_dir: Path):
+def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
+    """运行构建脚本并将输出重定向到日志文件"""
+    import subprocess
+    import threading
+    import time
+
     original_cwd = os.getcwd()
     os.chdir(ext_dir)
     try:
-        return run_command(
-            ["bash", "build.sh", "--install-deps"],
-            check=False,
-            capture_output=False,
-        )
+        # 将日志放在.sage目录下
+        log_dir = sage_root / ".sage" / "logs" / "extensions"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / f"{ext_name}_build.log"
+
+        typer.echo(f"{Colors.DIM}   构建日志: {log_file}{Colors.RESET}")
+        typer.echo(f"{Colors.DIM}   实时查看: tail -f {log_file}{Colors.RESET}\n")
+
+        # 添加进度指示
+        # 进度显示状态
+        progress_state = {"running": True, "last_update": time.time()}
+
+        def show_progress():
+            """显示构建进度动画"""
+            spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+            idx = 0
+            start_time = time.time()
+
+            while progress_state["running"]:
+                elapsed = int(time.time() - start_time)
+                minutes = elapsed // 60
+                seconds = elapsed % 60
+
+                # 显示进度动画和时间
+                spinner = spinner_chars[idx % len(spinner_chars)]
+                typer.echo(
+                    f"\r{Colors.BLUE}{spinner}{Colors.RESET} 正在构建 {ext_name}... "
+                    f"[{minutes:02d}:{seconds:02d}]  "
+                    f"{Colors.DIM}(构建可能需要几分钟){Colors.RESET}",
+                    nl=False,
+                )
+
+                idx += 1
+                time.sleep(0.1)
+
+            # 清除进度行
+            typer.echo("\r" + " " * 80 + "\r", nl=False)
+
+        # 启动进度显示线程
+        progress_thread = threading.Thread(target=show_progress, daemon=True)
+        progress_thread.start()
+
+        try:
+            with open(log_file, "w") as f:
+                result = subprocess.run(
+                    ["bash", "build.sh", "--install-deps"],
+                    stdout=f,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                )
+        finally:
+            # 停止进度显示
+            progress_state["running"] = False
+            # 等待线程结束，但不要无限等待
+            if progress_thread.is_alive():
+                progress_thread.join(timeout=2.0)
+            typer.echo()  # 换行
+
+            # 确保输出被刷新
+            import sys
+
+            sys.stdout.flush()
+            sys.stderr.flush()
+
+        # 如果构建失败，显示最后几行日志
+        if result.returncode != 0:
+            typer.echo(f"\n{Colors.YELLOW}构建失败，最后50行日志:{Colors.RESET}")
+            try:
+                with open(log_file, "r") as f:
+                    lines = f.readlines()
+                    for line in lines[-50:]:
+                        typer.echo(f"  {line.rstrip()}")
+            except Exception:
+                pass
+
+        return result
     finally:
         os.chdir(original_cwd)
 
@@ -364,7 +441,9 @@ def _diagnose_build_failure(ext_name: str, ext_dir: Path, result) -> None:
     _print_manual_diagnostics(ext_dir)
 
 
-def _install_extension(ext_name: str, ext_dir: Path, force: bool) -> bool:
+def _install_extension(
+    ext_name: str, ext_dir: Path, sage_root: Path, force: bool
+) -> bool:
     typer.echo(f"\n{Colors.YELLOW}━━━ 安装 {ext_name} ━━━{Colors.RESET}")
 
     if not ext_dir.exists():
@@ -380,7 +459,7 @@ def _install_extension(ext_name: str, ext_dir: Path, force: bool) -> bool:
         print_info(f"构建 {ext_name}...")
         if force:
             _clean_previous_build(ext_dir)
-        result = _run_build_script(ext_dir)
+        result = _run_build_script(ext_dir, ext_name, sage_root)
     except Exception as exc:
         print_error(f"{ext_name} 构建失败: {exc}")
         typer.echo(f"异常详情: {type(exc).__name__}: {exc}")
@@ -401,6 +480,8 @@ def _install_extension(ext_name: str, ext_dir: Path, force: bool) -> bool:
 
 
 def _print_install_summary(success_count: int, total_count: int) -> None:
+    import sys
+
     typer.echo(f"\n{Colors.BOLD}安装完成{Colors.RESET}")
     typer.echo(f"成功: {success_count}/{total_count}")
 
@@ -410,6 +491,10 @@ def _print_install_summary(success_count: int, total_count: int) -> None:
     else:
         failures = total_count - success_count
         print_warning(f"⚠️ 部分扩展安装失败 ({failures}个)")
+
+    # 确保所有输出都被刷新
+    sys.stdout.flush()
+    sys.stderr.flush()
 
 
 def _print_install_banner() -> None:
@@ -444,6 +529,78 @@ def _ensure_build_environment() -> None:
     raise typer.Exit(1)
 
 
+def _check_and_fix_libstdcxx() -> None:
+    """
+    Check if conda environment has compatible libstdc++ for C++20 compilation.
+    If not, attempt to upgrade it or warn the user.
+    """
+    # Only relevant for conda environments
+    conda_prefix = os.getenv("CONDA_PREFIX")
+    if not conda_prefix:
+        return
+
+    # Check GCC version
+    try:
+        result = subprocess.run(
+            ["gcc", "-dumpversion"], capture_output=True, text=True, check=True
+        )
+        gcc_major_version = int(result.stdout.strip().split(".")[0])
+    except Exception:
+        # Can't determine GCC version, skip check
+        return
+
+    # Only check if GCC >= 11 (which uses newer GLIBCXX)
+    if gcc_major_version < 11:
+        return
+
+    # Check conda libstdc++ version
+    conda_libstdcxx = Path(conda_prefix) / "lib" / "libstdc++.so.6"
+    if not conda_libstdcxx.exists():
+        return
+
+    try:
+        result = subprocess.run(
+            ["strings", str(conda_libstdcxx)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        glibcxx_versions = [
+            line for line in result.stdout.splitlines() if line.startswith("GLIBCXX_")
+        ]
+
+        # Check if we have at least GLIBCXX_3.4.30 (needed for C++20/GCC 11+)
+        has_modern_glibcxx = any("GLIBCXX_3.4.3" in v for v in glibcxx_versions)
+
+        if not has_modern_glibcxx:
+            print_warning("检测到conda环境的libstdc++版本过低 (需要 GLIBCXX_3.4.30+)")
+            print_info("正在尝试更新libstdc++...")
+
+            # Try to update using conda
+            try:
+                result = subprocess.run(
+                    ["conda", "install", "-c", "conda-forge", "libstdcxx-ng", "-y"],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if result.returncode == 0:
+                    print_success("libstdc++已更新 ✓")
+                else:
+                    print_warning("无法自动更新libstdc++")
+                    typer.echo("\n💡 请手动运行:")
+                    typer.echo("   conda install -c conda-forge libstdcxx-ng")
+            except subprocess.TimeoutExpired:
+                print_warning("更新超时")
+            except Exception as e:
+                print_warning(f"更新失败: {e}")
+                typer.echo("\n💡 请手动运行:")
+                typer.echo("   conda install -c conda-forge libstdcxx-ng")
+    except Exception:
+        # If we can't check, just continue
+        pass
+
+
 def _resolve_project_root() -> Path:
     """
     Locate and return the root directory of the SAGE project.
@@ -471,7 +628,7 @@ def _install_selected_extensions(
     for ext_name in extensions_to_install:
         rel_path = EXTENSION_PATHS[ext_name]
         ext_dir = sage_root / rel_path
-        if _install_extension(ext_name, ext_dir, force):
+        if _install_extension(ext_name, ext_dir, sage_root, force):
             success_count += 1
 
     return success_count, total_count
@@ -496,11 +653,23 @@ def install(
 
     _ensure_build_environment()
 
+    # Check and fix libstdc++ compatibility issues
+    _check_and_fix_libstdcxx()
+
     sage_root = _resolve_project_root()
 
     print_info(f"SAGE项目根目录: {sage_root}")
 
+    # 显示日志文件位置（放在.sage目录下）
+    sage_logs_dir = sage_root / ".sage" / "logs" / "extensions"
+    sage_logs_dir.mkdir(parents=True, exist_ok=True)
+
     extensions_to_install = _resolve_extensions_to_install(extension)
+    for ext_name in extensions_to_install:
+        build_log = sage_logs_dir / f"{ext_name}_build.log"
+        typer.echo(f"{Colors.DIM}📝 {ext_name} 构建日志: {build_log}{Colors.RESET}")
+    typer.echo("")
+
     success_count, total_count = _install_selected_extensions(
         extensions_to_install, sage_root, force
     )
@@ -523,10 +692,46 @@ def status():
 
     for module_name, description in extensions.items():
         try:
-            __import__(module_name)
-            print_success(f"{description} ✓")
-            available_count += 1
-        except ImportError as e:
+            # 使用线程和超时机制避免卡死（更可靠的跨平台方案）
+            import queue
+            import threading
+
+            result_queue = queue.Queue()
+
+            def try_import():
+                try:
+                    __import__(module_name)
+                    result_queue.put(("success", None))
+                except Exception as e:
+                    result_queue.put(("error", e))
+
+            import_thread = threading.Thread(target=try_import, daemon=True)
+            import_thread.start()
+
+            # 等待5秒超时
+            import_thread.join(timeout=5.0)
+
+            if import_thread.is_alive():
+                # 线程仍在运行，说明超时了
+                print_warning(f"{description} ✗")
+                typer.echo("  原因: 导入超时（可能存在初始化问题）")
+            else:
+                # 检查结果
+                try:
+                    status, error = result_queue.get_nowait()
+                    if status == "success":
+                        print_success(f"{description} ✓")
+                        available_count += 1
+                    else:
+                        print_warning(f"{description} ✗")
+                        if isinstance(error, ImportError):
+                            typer.echo(f"  原因: {error}")
+                        else:
+                            typer.echo(f"  原因: {error}")
+                except queue.Empty:
+                    print_warning(f"{description} ✗")
+                    typer.echo("  原因: 无法获取导入结果")
+        except Exception as e:
             print_warning(f"{description} ✗")
             typer.echo(f"  原因: {e}")
 
@@ -535,6 +740,12 @@ def status():
     if available_count < len(extensions):
         typer.echo(f"\n{Colors.YELLOW}💡 提示:{Colors.RESET}")
         typer.echo("运行 'sage extensions install' 安装缺失的扩展")
+
+    # 确保输出被刷新
+    import sys
+
+    sys.stdout.flush()
+    sys.stderr.flush()
 
 
 @app.command()

@@ -5,6 +5,29 @@
 
 > 本文档帮助你高效、规范地向 SAGE 贡献代码与文档。请在提交 Pull Request 前完整阅读。若英文协作者需要，可参考文末的 English Quick Guide。
 
+## 📚 开发者资源 / Developer Resources
+
+开始贡献前，请查看以下资源：
+
+- **[DEVELOPER.md](DEVELOPER.md)** - 完整开发指南，包含设置、工作流、测试等
+- **[CHANGELOG.md](CHANGELOG.md)** - 项目变更日志（遵循 Keep a Changelog 格式）
+- **[scripts/dev.sh](scripts/dev.sh)** - 开发助手脚本，提供常用命令
+- **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置
+- **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
+- **[docs/dev-notes/](docs/dev-notes/)** - 开发笔记和修复总结
+
+**快速开始开发**:
+```bash
+# 一键设置开发环境
+./scripts/dev.sh setup
+
+# 格式化代码
+./scripts/dev.sh format
+
+# 运行所有检查
+./scripts/dev.sh validate
+```
+
 ## 目录
 - [新人贡献快速流程](#新人贡献快速流程)
 - [分支与工作流](#分支与工作流)
