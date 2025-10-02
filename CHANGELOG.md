@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Improved documentation clarity and accessibility
+- Relaxed NumPy dependency bounds across SAGE packages to support offline installation environments
 
 ## [0.1.0] - 2025-10-02
 

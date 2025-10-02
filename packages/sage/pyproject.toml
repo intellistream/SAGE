@@ -30,7 +30,7 @@ dependencies = [
     "isage-tools[cli]>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
     "isage-libs>=0.1.0",       # 应用包组件
     # 数据科学基础库
-    "numpy>=2.0.0,<2.3.0",  # 兼容vllm/numba约束
+    "numpy>=1.26.0,<2.3.0",  # 兼容vllm/numba约束，同时兼顾离线环境预置版本
     "pandas>=1.3.0",
     "matplotlib>=3.4.0",
     "scipy>=1.15.0,<2.0.0",
@@ -50,7 +50,7 @@ standard = [
     "isage-middleware>=0.1.0",  # 中间件组件
     "isage-libs>=0.1.0",       # 应用包组件
     # 数据科学基础库
-    "numpy>=2.0.0,<2.3.0",  # 兼容vllm/numba约束
+    "numpy>=1.26.0,<2.3.0",  # 兼容vllm/numba约束，同时兼顾离线环境预置版本
     "pandas>=1.3.0",
     "matplotlib>=3.4.0",
     "scipy>=1.15.0,<2.0.0",
