@@ -262,6 +262,39 @@ git push -u origin fix/<short-topic>
 
 > See `CONTRIBUTING.md` for full commit conventions, branch naming, and test matrices.
 
+## Developer Shortcuts
+
+SAGE provides convenient Make-like commands for common development tasks:
+
+```bash
+# View all available commands
+make help
+# or
+./dev.sh help
+
+# Code quality
+make lint          # Run code checks
+make format        # Format code
+make quality       # Full quality check
+
+# Testing
+make test          # Run all tests
+make test-quick    # Quick tests only
+make test-all      # Full test suite with coverage
+
+# Build & Deploy
+make build         # Build packages
+make clean         # Clean build artifacts
+make publish       # Publish to TestPyPI
+make version       # Show current version
+
+# Documentation
+make docs          # Build documentation
+make docs-serve    # Serve docs locally
+```
+
+**See [docs/dev-notes/DEV_COMMANDS.md](./docs/dev-notes/DEV_COMMANDS.md) for complete command reference and workflows.**
+
 **Post-Install Diagnostics**
 ```bash
 sage doctor          # Runs environment & module checks
