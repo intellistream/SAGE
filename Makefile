@@ -88,14 +88,8 @@ publish:
 	sage dev pypi publish --dry-run
 
 publish-prod:
-	@echo "⚠️  发布到生产 PyPI..."
-	@read -p "确认发布到生产环境? [y/N] " -n 1 -r; \
-	echo; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		sage dev pypi publish; \
-	else \
-		echo "已取消"; \
-	fi
+	@echo "📦 发布到生产 PyPI..."
+	@sage dev pypi publish
 
 # 版本管理
 version:
