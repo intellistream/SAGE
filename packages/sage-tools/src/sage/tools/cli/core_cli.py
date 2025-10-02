@@ -4,9 +4,6 @@ SAGE Core CLI - 统一命令行接口
 所有SAGE核心功能的统一入口点
 """
 
-import sys
-from typing import Optional
-
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -102,10 +99,6 @@ except ImportError:
 if __name__ == "__main__":
     app()
 
-import sys
-from typing import Optional
-
-import typer
 
 app = typer.Typer(
     name="sage-core",

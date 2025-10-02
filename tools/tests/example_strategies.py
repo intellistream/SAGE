@@ -452,13 +452,13 @@ class ExampleEnvironmentManager:
         for temp_file in self.temp_files:
             try:
                 os.unlink(temp_file)
-            except:
+            except Exception:
                 pass
 
         for temp_dir in self.temp_dirs:
             try:
                 shutil.rmtree(temp_dir)
-            except:
+            except Exception:
                 pass
 
         self.temp_files.clear()
@@ -504,7 +504,7 @@ class ExampleTestFilters:
             if "gpu" in example_info.test_tags:
                 return True, "需要GPU支持，在测试环境中跳过"
 
-        # 基于文件名的传统过滤逻辑
+        # 基于文件名的传统过滤逻辑（配合白名单与标签放行）
         filename = file_path.name.lower()
 
         # 跳过明显的交互式或长时间运行的文件
@@ -515,15 +515,74 @@ class ExampleTestFilters:
             "benchmark",
             "stress_test",
         ]
+        # 白名单：某些 demo 实例是安全且快速的，允许在测试中运行
+        whitelist = {
+            "hello_sage_flow_service.py",
+        }
 
-        for pattern in skip_patterns:
-            if pattern in filename:
-                return True, f"文件名包含 '{pattern}'，通常需要交互或长时间运行"
+        # 解析文件内容（用于进一步判断是否重型/交互式，以及读取内嵌标签）
+        content = None
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception:
+            # 读不到内容时，维持原有保守策略
+            content = None
+
+        def has_heavy_indicators(text: str) -> bool:
+            if not text:
+                return False
+            heavy_keywords = [
+                "uvicorn",
+                "fastapi",
+                "flask",
+                "gradio",
+                "streamlit",
+                "ray.init",
+                "while True",
+                "run_forever",
+                "serve(",
+                "multiprocessing",
+                "spark",
+                "mlflow",
+            ]
+            return any(k in text for k in heavy_keywords)
+
+        def has_allow_demo_tag() -> bool:
+            # 优先从 example_info 中读取测试标签
+            if example_info and getattr(example_info, "test_tags", None):
+                tags = {t.lower() for t in example_info.test_tags}
+                return ("allow-demo" in tags) or ("allow_demo" in tags)
+            # 次选：直接在文件内容中扫描 @test:allow-demo
+            if content and "@test:allow-demo" in content:
+                return True
+            if content and "@test:allow_demo" in content:
+                return True
+            return False
+
+        # 对包含 demo 的文件采用更精细的判断：
+        if "demo" in filename and filename not in whitelist:
+            # 允许的安全类别（通常是 Mock/教学型示例）
+            safe_categories = {"tutorials", "memory", "agents"}
+            if has_allow_demo_tag():
+                pass  # 显式放行
+            elif category in safe_categories and not has_heavy_indicators(content):
+                # 安全类别且未检测到重型运行特征 -> 放行
+                pass
+            else:
+                return True, "文件名包含 'demo'，且未通过安全检查或标签放行"
+
+        if filename not in whitelist:
+            for pattern in skip_patterns:
+                if pattern in filename:
+                    return True, f"文件名包含 '{pattern}'，通常需要交互或长时间运行"
 
         # 类别特定的过滤规则
         if category == "service":
             # 服务类例子通常需要长时间运行
-            if "service" in filename or "server" in filename:
+            if filename not in whitelist and (
+                "service" in filename or "server" in filename
+            ):
                 return True, "服务类示例通常需要长时间运行"
 
         return False, ""

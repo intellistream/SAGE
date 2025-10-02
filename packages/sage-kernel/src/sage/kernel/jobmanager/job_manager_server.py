@@ -1,27 +1,13 @@
 import json
 import os
-import pickle
-import signal
-import socket
 import sys
-import threading
-import time
-import uuid
-from datetime import datetime
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
-from uuid import UUID
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import ray
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.utils.network.local_tcp_server import BaseTcpServer
 from sage.common.utils.serialization.dill import deserialize_object
-from sage.kernel.jobmanager.job_info import JobInfo
-from sage.kernel.runtime.dispatcher import Dispatcher
 
 if TYPE_CHECKING:
-    from sage.core.api.base_environment import BaseEnvironment
-    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
     from sage.kernel.jobmanager.job_manager import JobManager
 
 
@@ -140,6 +126,9 @@ class JobManagerServer(BaseTcpServer):
     def _handle_submit_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理提交作业请求"""
         try:
+            # 获取 autostop 参数
+            autostop = request.get("autostop", False)
+
             # 获取序列化的数据（新格式：base64编码的dill序列化数据）
             serialized_data_b64 = request.get("serialized_data")
             if serialized_data_b64:
@@ -176,11 +165,11 @@ class JobManagerServer(BaseTcpServer):
                     "request_id": request.get("request_id"),
                 }
 
-            # 调用JobManager的submit_job方法
+            # 调用JobManager的submit_job方法，传递 autostop 参数
             self.logger.debug(
-                f"Submitting deserialized environment: {getattr(env, 'name', 'Unknown')}"
+                f"Submitting deserialized environment: {getattr(env, 'name', 'Unknown')} (autostop={autostop})"
             )
-            job_uuid = self.jobmanager.submit_job(env)
+            job_uuid = self.jobmanager.submit_job(env, autostop=autostop)
 
             return {
                 "status": "success",

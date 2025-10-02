@@ -17,7 +17,6 @@ Issues整理脚本 - 根据关闭时间将issues移动到不同状态列
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -31,7 +30,7 @@ try:
 except ImportError:
     # 如果相对导入失败，使用绝对导入
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from config import IssuesConfig
+    from ..config import IssuesConfig
 
 
 class IssuesOrganizer:
@@ -108,7 +107,7 @@ class IssuesOrganizer:
                     closed_at = datetime.fromisoformat(
                         closed_at_str.replace("Z", "+00:00")
                     )
-                except:
+                except Exception:
                     continue
                 issue_info = {
                     "number": issue["metadata"]["number"],
@@ -212,7 +211,7 @@ class IssuesOrganizer:
             print(f"📋 项目: {project['title']} (#{project['number']})")
 
             # 显示所有字段
-            print(f"  📋 字段列表:")
+            print("  📋 字段列表:")
             for field in project.get("fields", {}).get("nodes", []):
                 field_name = field.get("name", "Unknown")
                 field_type = field.get("dataType", "Unknown")
@@ -462,7 +461,7 @@ class IssuesOrganizer:
 
                 time.sleep(0.5)
 
-        print(f"\n📊 整理完成!")
+        print("\n📊 整理完成!")
         print(f"  • 处理总数: {total_processed}")
         print(f"  • 成功更新: {total_success}")
         print(f"  • 更新失败: {total_processed - total_success}")

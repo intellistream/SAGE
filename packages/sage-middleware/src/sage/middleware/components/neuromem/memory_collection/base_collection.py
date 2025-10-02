@@ -2,16 +2,12 @@
 # python -m sage.core.sage.middleware.services.neuromem.memory_collection.base_collection
 
 import hashlib
-import os
 from typing import Any, Callable, Dict, List, Optional
 
-from dotenv import load_dotenv
-from sage.middleware.components.neuromem.storage_engine.metadata_storage import \
-    MetadataStorage
-from sage.middleware.components.neuromem.storage_engine.text_storage import \
-    TextStorage
-from sage.middleware.components.neuromem.utils.path_utils import \
-    get_default_data_dir
+from sage.middleware.components.neuromem.storage_engine.metadata_storage import (
+    MetadataStorage,
+)
+from sage.middleware.components.neuromem.storage_engine.text_storage import TextStorage
 
 # from sage.middleware.services.neuromem..storage_engine.text_storage import TextStorage
 # from sage.middleware.services.neuromem..storage_engine.metadata_storage import MetadataStorage

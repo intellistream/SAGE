@@ -1,10 +1,9 @@
-from typing import TYPE_CHECKING, Any, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Tuple, Type
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.base_function import BaseFunction
 
 if TYPE_CHECKING:
-    from ray.actor import ActorHandle
     from sage.kernel.runtime.context.task_context import TaskContext
 
 

@@ -6,10 +6,9 @@ SAGE Middleware Package Setup with C Extensions
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import setup
 from setuptools.command.build_ext import build_ext
 from setuptools.command.develop import develop
 from setuptools.command.install import install
@@ -20,29 +19,34 @@ class BuildCExtensions(build_ext):
 
     def run(self):
         """编译C扩展"""
-        # 检查是否在开发者模式下，如果是则跳过C扩展编译
-        if self.is_develop_mode():
-            print(
-                "🔧 开发者模式：跳过C扩展编译（使用 sage extensions install 手动安装）"
-            )
+        if os.environ.get("SAGE_SKIP_C_EXTENSIONS") == "1":
+            print("⏭️ 跳过C扩展编译（SAGE_SKIP_C_EXTENSIONS=1）")
         else:
+            # 在所有模式下尝试构建需要的扩展，失败不阻断安装
             self.build_sage_db()
+            self.build_sage_flow()
         super().run()
 
-    def is_develop_mode(self):
-        """检查是否在开发者模式下"""
-        # 检查环境变量
-        if os.environ.get("SAGE_SKIP_C_EXTENSIONS") == "1":
-            return True
+    def _shared_env(self):
+        env = os.environ.copy()
+        shared_deps = (
+            Path(__file__).parent
+            / "src"
+            / "sage"
+            / "middleware"
+            / "components"
+            / "cmake"
+            / "sage_shared_dependencies.cmake"
+        )
+        if shared_deps.exists() and "SAGE_COMMON_DEPS_FILE" not in env:
+            env["SAGE_COMMON_DEPS_FILE"] = str(shared_deps)
 
-        # 检查命令行参数（通过父命令判断）
-        import sys
-
-        for arg in sys.argv:
-            if arg in ["develop", "editable", "-e", "--editable"]:
-                return True
-
-        return False
+        env.setdefault("SAGE_PYBIND11_VERSION", "2.13.0")
+        env.setdefault(
+            "SAGE_ENABLE_GPERFTOOLS", os.environ.get("SAGE_ENABLE_GPERFTOOLS", "0")
+        )
+        # SAGE_GPERFTOOLS_ROOT、SAGE_GPERFTOOLS_LIB 直接继承用户环境即可
+        return env
 
     def build_sage_db(self):
         """编译sage_db C扩展"""
@@ -63,6 +67,7 @@ class BuildCExtensions(build_ext):
             result = subprocess.run(
                 ["bash", "build.sh", "--install-deps"],
                 cwd=sage_db_dir,
+                env=self._shared_env(),
                 check=True,
                 capture_output=True,
                 text=True,
@@ -77,6 +82,50 @@ class BuildCExtensions(build_ext):
         except Exception as e:
             print(f"❌ 编译过程出错: {e}")
             print("⚠️  继续安装Python部分（C扩展将不可用）")
+
+    def build_sage_flow(self):
+        """编译 sage_flow 组件（可能包含C/C++/Python扩展）"""
+        sage_flow_dir = (
+            Path(__file__).parent / "src/sage/middleware/components/sage_flow"
+        )
+
+        if not sage_flow_dir.exists():
+            print("⚠️  sage_flow 目录不存在，跳过构建")
+            return
+
+        # 如果是子模块但未初始化，目录可能为空
+        try:
+            if not any(sage_flow_dir.iterdir()):
+                print("ℹ️ 检测到 sage_flow 目录为空，可能是未初始化的子模块，跳过构建")
+                return
+        except Exception:
+            # 目录不可读，直接跳过
+            return
+
+        build_script = sage_flow_dir / "build.sh"
+        if not build_script.exists():
+            print("ℹ️ 未找到 sage_flow/build.sh，可能不需要本地构建，跳过")
+            return
+
+        print("🔧 编译 sage_flow 组件...")
+        try:
+            result = subprocess.run(
+                ["bash", "build.sh", "--install-deps"],
+                cwd=sage_flow_dir,
+                env=self._shared_env(),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            print("✅ sage_flow 构建成功")
+            print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"❌ sage_flow 构建失败: {e}")
+            print(f"错误输出: {e.stderr}")
+            print("⚠️  继续安装Python部分（sage_flow 相关示例可能不可用）")
+        except Exception as e:
+            print(f"❌ 构建过程出错: {e}")
+            print("⚠️  继续安装Python部分（sage_flow 相关示例可能不可用）")
 
 
 class CustomInstall(install):
@@ -94,9 +143,12 @@ class CustomDevelop(develop):
     """自定义开发安装命令"""
 
     def run(self):
-        # 在开发者模式下跳过C扩展编译
-        print("🔧 开发者模式：跳过C扩展编译（使用 sage extensions install 手动安装）")
-        # 直接运行开发安装，不调用build_ext
+        # 开发模式下默认也尝试构建C扩展（与生产一致），可通过环境变量关闭
+        if os.environ.get("SAGE_SKIP_C_EXTENSIONS") == "1":
+            print("⏭️ 开发模式：跳过C扩展编译（SAGE_SKIP_C_EXTENSIONS=1）")
+        else:
+            print("🔧 开发模式：编译C扩展（可通过 SAGE_SKIP_C_EXTENSIONS=1 跳过）")
+            self.run_command("build_ext")
         super().run()
 
 

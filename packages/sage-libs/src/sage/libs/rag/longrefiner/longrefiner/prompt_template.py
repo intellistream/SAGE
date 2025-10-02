@@ -1,9 +1,3 @@
-import warnings
-
-import tiktoken
-from transformers import AutoConfig, AutoTokenizer
-
-
 class PromptTemplate:
     placeholders = ["reference", "question"]
     base_system_prompt = (
@@ -159,6 +153,6 @@ class PromptTemplate:
                     idx=idx, title=title, text=text
                 )
             else:
-                format_reference += f"Doc {idx+1}(Title: {title}) {text}\n"
+                format_reference += f"Doc {idx + 1}(Title: {title}) {text}\n"
 
         return format_reference

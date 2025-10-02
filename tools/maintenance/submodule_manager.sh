@@ -9,9 +9,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# 引入工具模块
-source "../utils/logging.sh"
-source "../utils/common_utils.sh"
+# 引入工具模块（使用绝对路径，保证从任意目录执行）
+source "$SCRIPT_DIR/../lib/logging.sh"
+source "$SCRIPT_DIR/../lib/common_utils.sh"
 
 # 显示使用说明
 show_usage() {
@@ -27,6 +27,7 @@ show_usage() {
     echo "  sync              同步子模块URL配置"
     echo "  clean             清理未跟踪的子模块文件"
     echo "  docs-update       专门更新docs-public子模块"
+    # 以下命令已内置到常规流程，不再单独展示：repair-sage-db / clean-legacy-sage-db / migrate-sage-db
     echo "  help, -h, --help  显示此帮助信息"
     echo
     echo "示例:"
@@ -59,6 +60,16 @@ show_submodule_status() {
         echo
         print_status "子模块详细信息："
         git submodule foreach 'echo "  模块: $name | 路径: $sm_path | URL: $(git remote get-url origin)"'
+
+        # 如果 .gitmodules 声明了 sage_db，但索引中不是 gitlink，给出提示
+        local sd_path="packages/sage-middleware/src/sage/middleware/components/sage_db"
+        if git config -f .gitmodules --get "submodule.${sd_path}.path" >/dev/null 2>&1; then
+            if ! git ls-files -s -- "$sd_path" 2>/dev/null | grep -q "^160000 "; then
+                echo
+                print_warning "检测到 $sd_path 未以子模块形式注册（可能被当作普通目录或被删除）。"
+                print_status "运行: $0 update  将自动修复并恢复为子模块。"
+            fi
+        fi
     else
         print_error "无法获取子模块状态"
         return 1
@@ -70,6 +81,8 @@ init_submodules() {
     print_header "🔧 初始化子模块"
     
     print_status "正在初始化子模块..."
+    # 在初始化前确保 sage_db 路径为子模块（防止目录/子模块混淆）
+    ensure_sage_db_submodule || true
     if git submodule init; then
         print_success "子模块初始化完成"
         
@@ -91,6 +104,8 @@ update_submodules() {
     print_header "🔄 更新子模块"
     
     print_status "正在更新所有子模块到最新版本..."
+    # 在更新前自动修复 sage_db 状态
+    ensure_sage_db_submodule || true
     if git submodule update --recursive --remote; then
         print_success "所有子模块更新完成"
         
@@ -126,6 +141,9 @@ reset_submodules() {
         print_warning "子模块清理部分失败，继续..."
     fi
     
+    # 重置前修复 sage_db 的路径形态（避免目录/子模块形态不一致）
+    ensure_sage_db_submodule || true
+
     # 重新初始化
     if git submodule update --init --recursive --force; then
         print_success "子模块重置完成"
@@ -195,16 +213,109 @@ update_docs_submodule() {
     fi
 }
 
+# 确保 sage_db 为真正的 Git 子模块（修复常见的目录/子模块冲突）
+ensure_sage_db_submodule() {
+    local path="packages/sage-middleware/src/sage/middleware/components/sage_db"
+    local name="packages/sage-middleware/src/sage/middleware/components/sage_db"
+    local url branch
+
+    print_header "🧩 修复/确保 sage_db 为 Git 子模块"
+
+    # 从 .gitmodules 读取 URL/branch，若缺失则给默认值
+    if [ -f .gitmodules ]; then
+        url=$(git config -f .gitmodules --get "submodule.${name}.url" || true)
+        branch=$(git config -f .gitmodules --get "submodule.${name}.branch" || true)
+    fi
+    : "${url:=https://github.com/intellistream/sageDB.git}"
+    : "${branch:=main}"
+
+    print_status "目标路径: $path"
+    print_status "远程URL:  $url (branch: $branch)"
+
+    # 如果索引中是 gitlink (160000)，说明已经是子模块
+    if git ls-files -s -- "$path" 2>/dev/null | grep -q "^160000 "; then
+        print_success "已检测到 $path 为有效子模块"
+        print_status "执行初始化/更新..."
+        git submodule sync -- "$path" || true
+        git submodule update --init --recursive -- "$path"
+        return 0
+    fi
+
+    # 若不是 gitlink，则可能是普通文件/目录或不存在
+    print_warning "检测到 $path 不是子模块 (可能是普通目录或不存在)，开始修复..."
+
+    # 若存在旧的子模块绑定，先反初始化
+    git submodule deinit -f -- "$path" >/dev/null 2>&1 || true
+
+    # 若该路径下有已跟踪的普通文件，从索引中移除（保留工作区文件）
+    if git ls-files -- "$path" >/dev/null 2>&1 && [ -n "$(git ls-files -- "$path")" ]; then
+        print_status "从索引中移除已跟踪的普通文件 (不删除工作区)：$path"
+        git rm -r --cached "$path" || true
+    fi
+
+    # 清理可能残留的 .git/modules 记录
+    if [ -d ".git/modules/$path" ]; then
+        print_status "清理残留的 .git/modules/$path"
+        rm -rf ".git/modules/$path"
+    fi
+
+    # 删除工作区目录，准备重新添加为子模块
+    if [ -d "$path" ] || [ -f "$path" ]; then
+        print_status "删除工作区的旧目录/文件：$path"
+        rm -rf "$path"
+    fi
+
+    # 确保父目录存在
+    mkdir -p "$(dirname "$path")"
+
+    # 添加为子模块
+    print_status "添加子模块：git submodule add -b $branch $url $path"
+    if git submodule add -f -b "$branch" "$url" "$path"; then
+        print_success "子模块添加成功"
+    else
+        print_error "子模块添加失败，请检查网络/权限/URL"
+        return 1
+    fi
+
+    # 初始化并更新
+    print_status "初始化并更新子模块内容..."
+    git submodule update --init --recursive -- "$path"
+
+    print_success "sage_db 子模块修复完成"
+    print_status "现在可以运行: git submodule status"
+}
+
 # 主函数
 main() {
     # 切换到仓库根目录
     cd "$REPO_ROOT"
     
-    # 检查git仓库
-    check_git_repo
-    
-    # 解析命令
-    case "${1:-status}" in
+    # 解析命令（默认显示状态）
+    CMD="${1:-status}"
+
+    # 基础检查：必须是git仓库（help除外）
+    if [[ "$CMD" != "help" && "$CMD" != "-h" && "$CMD" != "--help" ]]; then
+        if [ ! -d "$REPO_ROOT/.git" ]; then
+            print_error "错误：当前目录不是git仓库"
+            exit 1
+        fi
+    fi
+
+    # 针对需要.gitmodules的命令进行特殊检查
+    REQUIRES_GITMODULES=(init update reset status sync clean docs-update)
+    for need in "${REQUIRES_GITMODULES[@]}"; do
+        if [[ "$CMD" == "$need" ]]; then
+            if [ ! -f "$REPO_ROOT/.gitmodules" ]; then
+                print_warning "未找到 .gitmodules，命令 '$CMD' 无可操作的子模块"
+                print_status "如需添加子模块，请先执行: git submodule add <URL> <PATH>"
+                exit 0
+            fi
+            break
+        fi
+    done
+
+    # 执行命令
+    case "$CMD" in
         "init")
             init_submodules
             ;;
@@ -225,6 +336,59 @@ main() {
             ;;
         "docs-update")
             update_docs_submodule
+            ;;
+        "repair-sage-db")
+            # 单独修复/确保 sage_db 为子模块
+            check_git_repo
+            ensure_sage_db_submodule
+            ;;
+        "clean-legacy-sage-db")
+            shift || true
+            CLEAN_FORCE="false"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -y|--yes)
+                        CLEAN_FORCE="true"; shift ;;
+                    *) break ;;
+                esac
+            done
+            legacy_dir="packages/sage-middleware/src/sage/middleware/components/sage_db"
+            if [[ -d "$legacy_dir" ]]; then
+                print_header "🧹 清理旧版内置 sage_db 目录"
+                if [[ "$CLEAN_FORCE" != "true" ]]; then
+                    print_warning "即将删除 $legacy_dir。该目录应已迁移为子模块。"
+                    echo -n "确定要删除吗？ [y/N]: "
+                    read -r ans
+                    if [[ ! $ans =~ ^[Yy]$ ]]; then
+                        print_status "已取消清理"
+                        exit 0
+                    fi
+                fi
+                # 保护：如果是子模块路径则禁止直接rm -rf
+                if git ls-files --stage | grep -q "\s$legacy_dir$"; then
+                    if git submodule status -- "$legacy_dir" >/dev/null 2>&1; then
+                        print_error "检测到 $legacy_dir 是子模块，请不要直接删除。"
+                        print_status "可使用: git submodule deinit -f -- $legacy_dir && rm -rf .git/modules/$legacy_dir && git rm -f $legacy_dir"
+                        exit 1
+                    fi
+                fi
+                rm -rf "$legacy_dir"
+                print_success "已删除旧目录: $legacy_dir"
+            else
+                print_status "未发现旧目录 (无需清理): $legacy_dir"
+            fi
+            ;;
+        "migrate-sage-db")
+            # 迁移流程：清理旧目录 -> 同步/初始化子模块 -> 拉取最新
+            print_header "🚚 迁移 sage_db 到 Git 子模块"
+            "$0" clean-legacy-sage-db -y || true
+            print_status "同步子模块配置 (.gitmodules)"
+            git submodule sync --recursive
+            print_status "修复/确保 sage_db 为 Git 子模块"
+            ensure_sage_db_submodule
+            print_status "初始化并更新所有子模块"
+            git submodule update --init --recursive || true
+            print_success "迁移完成。可执行: git submodule status"
             ;;
         "help"|"-h"|"--help")
             show_usage

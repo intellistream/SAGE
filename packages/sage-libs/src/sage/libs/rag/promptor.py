@@ -3,13 +3,20 @@ import os
 import time
 
 from jinja2 import Template
-from sage.common.config.output_paths import get_states_file
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
 
 QA_prompt_template = """Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
 Only give me the answer and do not output any other words.
+{%- if external_corpus %}
+Relevant corpus for the current question:
+{{ external_corpus }}
+{%- endif %}
+"""
+
+QA_short_answer_template = """Instruction:
+You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
+Please provide a concise answer and conclude with 'So the final answer is: [your answer]'.
 {%- if external_corpus %}
 Relevant corpus for the current question:
 {{ external_corpus }}
@@ -25,6 +32,7 @@ Content to summarize:
 {%- endif %}
 """
 QA_prompt_template = Template(QA_prompt_template)
+QA_short_answer_template = Template(QA_short_answer_template)
 summarization_prompt_template = Template(summarization_prompt_template)
 
 query_profiler_prompt_template = """
@@ -82,12 +90,20 @@ class QAPromptor(MapFunction):
         self.enable_profile = enable_profile
 
         # 使用配置文件中的模板，如果没有则使用默认模板
+        self.use_short_answer = config.get(
+            "use_short_answer", False
+        )  # 是否使用短答案模式
+
         if "template" in config:
             from jinja2 import Template
 
             self.prompt_template = Template(config["template"])
         else:
-            self.prompt_template = QA_prompt_template  # Load the QA prompt template
+            # 根据配置选择模板
+            if self.use_short_answer:
+                self.prompt_template = QA_short_answer_template
+            else:
+                self.prompt_template = QA_prompt_template  # Load the QA prompt template
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
@@ -275,7 +291,7 @@ class QAPromptor(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass
 
 

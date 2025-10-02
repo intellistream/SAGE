@@ -30,7 +30,7 @@ class SyncBatch(BatchFunction):
 
 class UpperMap(MapFunction):
     def execute(self, data):
-        print(f" 🔔 uppering word!!!")
+        print(" 🔔 uppering word!!!")
         time.sleep(1)
         return data.upper()
 

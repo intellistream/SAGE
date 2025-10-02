@@ -9,7 +9,7 @@ SAGE CLI Validation
 import re
 import socket
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 from urllib.parse import urlparse
 
 from .exceptions import ValidationError

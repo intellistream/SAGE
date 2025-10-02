@@ -15,6 +15,7 @@ source "$TOOLS_DIR/display_tools/colors.sh"
 source "$TOOLS_DIR/display_tools/output_formatter.sh"
 source "$TOOLS_DIR/display_tools/interface.sh"
 source "$TOOLS_DIR/examination_tools/system_check.sh"
+source "$TOOLS_DIR/examination_tools/system_deps.sh"
 source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
 source "$TOOLS_DIR/download_tools/argument_parser.sh"
 source "$TOOLS_DIR/installation_table/main_installer.sh"
@@ -119,6 +120,11 @@ main() {
     
     # 验证安装
     if verify_installation; then
+        # 标准模式和开发模式都包含C++扩展
+        if [ "$mode" = "standard" ] || [ "$mode" = "dev" ]; then
+            echo -e "${DIM}C++扩展状态已在安装过程中验证${NC}"
+        fi
+        
         show_usage_tips "$mode"
         # 如果安装了 VLLM，验证 VLLM 安装
         if [ "$install_vllm" = "true" ]; then

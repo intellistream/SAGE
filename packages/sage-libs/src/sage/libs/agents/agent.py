@@ -46,7 +46,7 @@ FORMAT_INSTRUCTIONS = """Always respond in the following JSON format:
 ```
 Notes:
 If you are taking an action, set 'final_answer' to "" and 'observation' to "".
-If you have enough information to answer, set 'action' to "", and fill in 'final_answer' directly. 
+If you have enough information to answer, set 'action' to "", and fill in 'final_answer' directly.
 """
 
 SUFFIX = """Begin!

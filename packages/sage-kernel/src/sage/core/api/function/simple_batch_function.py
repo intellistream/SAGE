@@ -1,5 +1,4 @@
-from typing import (TYPE_CHECKING, Any, Callable, Iterator, List, Optional,
-                    Union)
+from typing import TYPE_CHECKING, Any, Callable, Iterator, List, Optional
 
 from sage.core.api.function.base_function import BaseFunction
 

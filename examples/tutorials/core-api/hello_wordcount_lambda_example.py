@@ -10,11 +10,11 @@ import os
 import time
 from collections import Counter
 
-# 设置日志级别为ERROR减少输出
-os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
-
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
+
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 
 # 简单的句子源，重复输出同一句话
@@ -47,7 +47,7 @@ def main():
 
     def update_word_count(words_with_count):
         """更新全局词汇计数"""
-        nonlocal word_counts, total_processed
+        nonlocal total_processed
         word, count = words_with_count
         word_counts[word] += count
         total_processed += count

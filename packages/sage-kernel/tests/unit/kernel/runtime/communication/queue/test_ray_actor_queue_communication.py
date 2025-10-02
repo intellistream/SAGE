@@ -9,11 +9,10 @@ Ray Queue Actor 引用传递和并发测试
 4. 队列在Actor生命周期中的持久性
 """
 
-import asyncio
 import os
 import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import pytest
 
@@ -23,11 +22,12 @@ sage_kernel_src = os.path.join(current_dir, "../../../../../src")
 sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
-    from sage.kernel.runtime.communication.queue_descriptor import \
-        RayQueueDescriptor
+    from sage.kernel.runtime.communication.queue_descriptor import RayQueueDescriptor
     from sage.kernel.utils.ray.ray import ensure_ray_initialized
-    from sage.kernel.utils.test_log_manager import (get_test_log_manager,
-                                                    setup_quiet_ray_logging)
+    from sage.kernel.utils.test_log_manager import (
+        get_test_log_manager,
+        setup_quiet_ray_logging,
+    )
 
     # 设置安静的日志记录
     setup_quiet_ray_logging()
@@ -64,8 +64,9 @@ class PersistentQueueActor:
 
         # 在Ray Actor中导入所需模块 - 直接导入而不设置路径
         try:
-            from sage.kernel.runtime.communication.queue_descriptor import \
-                resolve_descriptor
+            from sage.kernel.runtime.communication.queue_descriptor import (
+                resolve_descriptor,
+            )
 
             self.queue_desc = resolve_descriptor(queue_desc_dict)
             self.queue = self.queue_desc.queue_instance  # 获取实际的队列对象
@@ -129,7 +130,7 @@ class PersistentQueueActor:
     def get_items(self, max_items: int, timeout_per_item: float = 1.0):
         """从队列获取多个项目"""
         if self.queue is None:
-            return [f"get_error:Queue not initialized"]
+            return ["get_error:Queue not initialized"]
 
         results = []
         for i in range(max_items):
@@ -177,7 +178,7 @@ class PersistentQueueActor:
                 else:  # 读操作
                     try:
                         item = self.queue.get(timeout=0.1)
-                    except:
+                    except Exception:
                         # 队列空时跳过
                         pass
                 completed_ops += 1
@@ -206,8 +207,9 @@ class QueueCoordinatorActor:
     def register_queue(self, queue_name: str, queue_desc_dict: Dict[str, Any]):
         """注册一个队列"""
         try:
-            from sage.kernel.runtime.communication.queue_descriptor import \
-                resolve_descriptor
+            from sage.kernel.runtime.communication.queue_descriptor import (
+                resolve_descriptor,
+            )
 
             queue_desc = resolve_descriptor(queue_desc_dict)
             self.managed_queues[queue_name] = {
@@ -425,7 +427,7 @@ class TestRayQueueActorCommunication:
             for actor in producers + consumers:
                 try:
                     ray.kill(actor)
-                except:
+                except Exception:
                     pass
 
         assert total_produced > 0, "应该生产了一些项目"
@@ -543,7 +545,7 @@ class TestRayQueueActorCommunication:
             for actor in stress_actors:
                 try:
                     ray.kill(actor)
-                except:
+                except Exception:
                     pass
 
 

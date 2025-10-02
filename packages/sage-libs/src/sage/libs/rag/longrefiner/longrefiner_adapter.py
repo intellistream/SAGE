@@ -69,12 +69,14 @@ class LongRefinerAdapter(MapFunction):
     def _init_refiner(self):
         # 从配置中获取 GPU 设备参数，默认为 0
         gpu_device = self.cfg.get("gpu_device", 0)
+        # score_gpu_device 如果不存在则使用与 gpu_device 相同的值
+        score_gpu_device = self.cfg.get("score_gpu_device", gpu_device)
         gpu_memory_utilization = self.cfg.get(
             "gpu_memory_utilization", 0.7
         )  # GPU内存占比，默认为0.7
 
         self.logger.info(
-            f"正在初始化LongRefiner，所有模型统一使用GPU {gpu_device}，GPU内存占比: {gpu_memory_utilization}"
+            f"正在初始化LongRefiner，主模型使用GPU {gpu_device}，Score模型使用GPU {score_gpu_device}，GPU内存占比: {gpu_memory_utilization}"
         )
 
         self.refiner = LongRefiner(
@@ -91,10 +93,12 @@ class LongRefinerAdapter(MapFunction):
             max_model_len=self.cfg["max_model_len"],
             gpu_device=gpu_device,
             gpu_memory_utilization=gpu_memory_utilization,
-            score_gpu_device=gpu_device,  # score模型使用相同的GPU设备
+            score_gpu_device=score_gpu_device,  # 使用配置文件中的score_gpu_device
         )
 
-        self.logger.info(f"LongRefiner初始化成功，所有模型统一使用GPU {gpu_device}")
+        self.logger.info(
+            f"LongRefiner初始化成功，主模型使用GPU {gpu_device}，Score模型使用GPU {score_gpu_device}"
+        )
 
     def execute(self, data):
         # 处理不同的输入格式
@@ -162,9 +166,12 @@ class LongRefinerAdapter(MapFunction):
 
         # 运行压缩
         try:
+            refine_start_time = time.time()  # 记录开始时间
             refined_items = self.refiner.run(
                 question, document_list, budget=self.cfg["budget"]
             )
+            refine_end_time = time.time()  # 记录结束时间
+            refine_time = refine_end_time - refine_start_time
 
             # 检查返回结果是否为空
             if not refined_items:
@@ -191,6 +198,7 @@ class LongRefinerAdapter(MapFunction):
             # 避免索引越界或模型加载失败
             self.logger.error(f"LongRefiner execution failed: {str(e)}")
             refined_texts = []
+            refine_time = 0.0  # 失败时设置时间为0
 
         # 保存数据记录（只有enable_profile=True时才保存）
         if self.enable_profile:
@@ -201,6 +209,8 @@ class LongRefinerAdapter(MapFunction):
         result["results"] = [
             {"text": text} for text in refined_texts
         ]  # 统一使用results字段，与检索器输出格式保持一致
+        result["refined_docs"] = refined_texts  # 添加精炼后的文档列表
+        result["refine_time"] = refine_time  # 添加精炼时间
         return result
 
     def __del__(self):
@@ -208,5 +218,5 @@ class LongRefinerAdapter(MapFunction):
         if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
-            except:
+            except Exception:
                 pass

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import (TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type,
-                    Union)
+from typing import TYPE_CHECKING, Type
 
 from sage.core.operator.source_operator import SourceOperator
 from sage.core.transformation.base_transformation import BaseTransformation

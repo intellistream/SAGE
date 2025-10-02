@@ -14,11 +14,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.core.factory.service_factory import ServiceFactory
-    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import \
-        BaseQueueDescriptor
+    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
+        BaseQueueDescriptor,
+    )
     from sage.kernel.runtime.context.service_context import ServiceContext
-    from sage.kernel.runtime.factory.service_task_factory import \
-        ServiceTaskFactory
+    from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory
 
 
 def _create_queue_descriptor(
@@ -36,13 +36,15 @@ def _create_queue_descriptor(
         对应平台的队列描述符
     """
     if env.platform == "remote":
-        from sage.kernel.runtime.communication.queue_descriptor.ray_queue_descriptor import \
-            RayQueueDescriptor
+        from sage.kernel.runtime.communication.queue_descriptor.ray_queue_descriptor import (
+            RayQueueDescriptor,
+        )
 
         return RayQueueDescriptor(maxsize=maxsize, queue_id=name)
     else:  # local 或其他情况使用 python 队列
-        from sage.kernel.runtime.communication.queue_descriptor.python_queue_descriptor import \
-            PythonQueueDescriptor
+        from sage.kernel.runtime.communication.queue_descriptor.python_queue_descriptor import (
+            PythonQueueDescriptor,
+        )
 
         return PythonQueueDescriptor(maxsize=maxsize, queue_id=name)
 

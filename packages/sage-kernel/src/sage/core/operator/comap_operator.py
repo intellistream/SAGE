@@ -1,6 +1,3 @@
-from typing import Any, Union
-
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.communication.packet import Packet
 
 from .base_operator import BaseOperator
@@ -137,8 +134,7 @@ class CoMapOperator(BaseOperator):
                 )
 
                 # 向下游传播停止信号
-                from sage.kernel.runtime.communication.router.packet import \
-                    StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 stop_signal = StopSignal(self.name, source=self.name)
                 self.router.send_stop_signal(stop_signal)
@@ -177,7 +173,7 @@ class CoMapOperator(BaseOperator):
                     # 检查方法是否为抽象方法或抛出NotImplementedError
                     if not getattr(method, "__isabstractmethod__", False):
                         max_index = index
-                except:
+                except Exception:
                     # 如果获取方法时出错，停止检查
                     break
                 index += 1

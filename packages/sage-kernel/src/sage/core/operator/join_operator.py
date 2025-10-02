@@ -1,4 +1,4 @@
-from typing import Any, List, Union
+from typing import Any
 
 from sage.core.communication.packet import Packet
 
@@ -132,8 +132,7 @@ class JoinOperator(BaseOperator):
             # 处理来自不同调用方式的参数
             if signal is not None:
                 # 来自 task_context 的调用，signal 是 StopSignal 对象
-                from sage.kernel.runtime.communication.router.packet import \
-                    StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 if isinstance(signal, StopSignal):
                     signal_name = signal.name
@@ -171,8 +170,9 @@ class JoinOperator(BaseOperator):
                         source_signals.add(sig)
                 else:
                     # StopSignal object
-                    from sage.kernel.runtime.communication.router.packet import \
-                        StopSignal
+                    from sage.kernel.runtime.communication.router.packet import (
+                        StopSignal,
+                    )
 
                     if isinstance(sig, StopSignal) and (
                         "Source" in sig.name or sig.name.startswith("Source")
@@ -202,8 +202,7 @@ class JoinOperator(BaseOperator):
                 self.ctx.send_stop_signal_back(self.name)
 
                 # 然后向下游传播停止信号
-                from sage.kernel.runtime.communication.router.packet import \
-                    StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 stop_signal = StopSignal(self.name)
                 self.logger.info(

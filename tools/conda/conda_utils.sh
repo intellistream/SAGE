@@ -5,11 +5,11 @@
 
 # 引入日志模块
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "../utils/logging.sh"
+source "../lib/logging.sh"
 
 # 加载配置（如果存在）
-if [ -f "../utils/config.sh" ]; then
-    source "../utils/config.sh"
+if [ -f "../lib/config.sh" ]; then
+    source "../lib/config.sh"
 fi
 
 # 默认配置值

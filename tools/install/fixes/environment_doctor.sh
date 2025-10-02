@@ -287,7 +287,7 @@ try:
     if 'site-packages' in numpy_path:
         shutil.rmtree(numpy_path, ignore_errors=True)
         print('清理了损坏的 numpy 安装')
-except:
+except Exception:
     pass
 " 2>/dev/null || true
     

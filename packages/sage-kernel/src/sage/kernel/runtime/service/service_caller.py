@@ -10,10 +10,10 @@ import time
 import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 if TYPE_CHECKING:
-    from sage.core.api.base_environment import BaseEnvironment
+    pass
 
 
 @dataclass
@@ -90,15 +90,33 @@ class ServiceManager:
         )
         self._listener_thread.start()
 
+    def cache_service_descriptor(self, service_name: str, descriptor: Any) -> None:
+        """Cache a queue descriptor or queue instance for subsequent calls."""
+
+        if descriptor is None:
+            return
+
+        queue_instance = getattr(descriptor, "queue_instance", descriptor)
+        if queue_instance is None:
+            return
+
+        self._service_queues[service_name] = queue_instance
+
     def _get_service_queue(self, service_name: str):
         """从TaskContext获取服务队列"""
+        if service_name in self._service_queues:
+            return self._service_queues[service_name]
+
         if self.context is not None:
             # 从TaskContext的服务队列描述符获取队列
             if (
                 hasattr(self.context, "service_qds")
                 and service_name in self.context.service_qds
             ):
-                return self.context.service_qds[service_name].queue_instance
+                descriptor = self.context.service_qds[service_name]
+                queue_instance = descriptor.queue_instance
+                self._service_queues[service_name] = queue_instance
+                return queue_instance
             else:
                 self.logger.error(
                     f"Service queue descriptor not found for service: {service_name}"
@@ -132,9 +150,9 @@ class ServiceManager:
     def call_sync(
         self,
         service_name: str,
-        method_name: str,
         *args,
         timeout: Optional[float] = 10.0,  # 增加默认超时时间到10秒
+        method: Optional[str] = None,
         **kwargs,
     ) -> Any:
         """
@@ -142,10 +160,10 @@ class ServiceManager:
 
         Args:
             service_name: 服务名称
-            method_name: 方法名称
-            *args: 位置参数
+            *args: 传递给服务方法的位置参数
             timeout: 超时时间（秒）
-            **kwargs: 关键字参数
+            method: 可选显式方法名称，默认为 ``"process"``
+            **kwargs: 传递给服务方法的关键字参数
 
         Returns:
             服务方法的返回值
@@ -154,6 +172,24 @@ class ServiceManager:
             TimeoutError: 调用超时
             RuntimeError: 服务调用失败
         """
+        legacy_via_position = kwargs.pop("_legacy_method_position", False)
+        method_name = method if method is not None else kwargs.pop("method", None)
+
+        positional_args: Tuple[Any, ...]
+        if legacy_via_position:
+            if not args:
+                raise ValueError(
+                    "Legacy service call indicated positional method "
+                    "but no method name was provided."
+                )
+            method_name = args[0]
+            positional_args = tuple(args[1:])
+        else:
+            positional_args = tuple(args)
+
+        if method_name is None:
+            method_name = "process"
+
         request_id = str(uuid.uuid4())
         call_start_time = time.time()
 
@@ -161,7 +197,7 @@ class ServiceManager:
             f"[SERVICE_CALL] Starting sync call: {service_name}.{method_name} (request_id: {request_id})"
         )
         self.logger.debug(
-            f"[SERVICE_CALL] Call args: {args}, kwargs: {kwargs}, timeout: {timeout}s"
+            f"[SERVICE_CALL] Call args: {positional_args}, kwargs: {kwargs}, timeout: {timeout}s"
         )
 
         # 创建等待事件
@@ -179,7 +215,7 @@ class ServiceManager:
                 "request_id": request_id,
                 "service_name": service_name,
                 "method_name": method_name,
-                "args": args,
+                "args": positional_args,
                 "kwargs": kwargs,
                 "timeout": timeout,
                 "timestamp": time.time(),
@@ -262,9 +298,9 @@ class ServiceManager:
     def call_async(
         self,
         service_name: str,
-        method_name: str,
         *args,
         timeout: Optional[float] = 30.0,
+        method: Optional[str] = None,
         **kwargs,
     ) -> Future:
         """
@@ -272,9 +308,9 @@ class ServiceManager:
 
         Args:
             service_name: 服务名称
-            method_name: 方法名称
             *args: 位置参数
             timeout: 超时时间（秒）
+            method: 可选显式方法名称
             **kwargs: 关键字参数
 
         Returns:
@@ -282,10 +318,22 @@ class ServiceManager:
         """
         # 在线程池中执行同步调用
         future = self._executor.submit(
-            self.call_sync, service_name, method_name, *args, timeout=timeout, **kwargs
+            self.call_sync,
+            service_name,
+            *args,
+            timeout=timeout,
+            method=method,
+            **kwargs,
         )
 
-        self.logger.debug(f"Started async call: {service_name}.{method_name}")
+        target_method = method if method is not None else kwargs.get("method")
+        if target_method is None and kwargs.get("__method_via_position__"):
+            target_method = args[0] if args else "<unknown>"
+
+        if target_method is None:
+            target_method = "process"
+
+        self.logger.debug(f"Started async call: {service_name}.{target_method}")
         return future
 
     def _response_listener(self):
@@ -483,7 +531,11 @@ class ServiceCallProxy:
 
             try:
                 result = self._service_manager.call_sync(
-                    self._service_name, method_name, *args, timeout=timeout, **kwargs
+                    self._service_name,
+                    *args,
+                    timeout=timeout,
+                    method=method_name,
+                    **kwargs,
                 )
 
                 proxy_call_time = time.time() - proxy_call_start

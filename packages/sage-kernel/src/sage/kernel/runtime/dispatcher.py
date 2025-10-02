@@ -2,8 +2,6 @@ import os
 import time
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
-import ray
-from ray.actor import ActorHandle
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
@@ -12,9 +10,8 @@ from sage.kernel.utils.ray.ray import ensure_ray_initialized
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
-    from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
+    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
     from sage.kernel.runtime.context.service_context import ServiceContext
-    from sage.kernel.runtime.context.task_context import TaskContext
 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
@@ -40,7 +37,7 @@ class Dispatcher:
         """
         接收停止信号并处理
         """
-        self.logger.info(f"Dispatcher received stop signal.")
+        self.logger.info("Dispatcher received stop signal.")
         self.received_stop_signals += 1
         if self.received_stop_signals >= self.total_stop_signals:
             self.logger.info(
@@ -86,12 +83,20 @@ class Dispatcher:
             self.logger.error(f"Error stopping node {node_name}: {e}", exc_info=True)
             return False
 
-        # 检查是否所有节点都已停止（不包括服务，服务可以继续运行）
+        # 检查是否所有节点都已停止
         if len(self.tasks) == 0:
             self.logger.info(
                 "All computation nodes stopped, batch processing completed"
             )
             self.is_running = False
+
+            # 当所有计算节点停止后，也应该清理服务
+            if len(self.services) > 0:
+                self.logger.info(
+                    f"Cleaning up {len(self.services)} services after batch completion"
+                )
+                self._cleanup_services_after_batch_completion()
+
             return True
         else:
             self.logger.info(
@@ -114,8 +119,7 @@ class Dispatcher:
                 and "JoinOperator" in task.operator.__class__.__name__
             ):
                 # 这是一个 JoinOperator，创建一个停止信号并直接发送
-                from sage.kernel.runtime.communication.router.packet import \
-                    StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 stop_signal = StopSignal(source_node_name)
 
@@ -127,6 +131,40 @@ class Dispatcher:
                     )
                 except Exception as e:
                     self.logger.error(f"Failed to notify JoinOperator {task_name}: {e}")
+
+    def _cleanup_services_after_batch_completion(self):
+        """在批处理完成后清理所有服务"""
+        self.logger.info("Cleaning up services after batch completion")
+
+        if self.remote:
+            # 清理 Ray 服务
+            self._cleanup_ray_services()
+        else:
+            # 清理本地服务
+            for service_name, service_task in list(self.services.items()):
+                try:
+                    # 先停止服务（如果还在运行）
+                    if hasattr(service_task, "is_running") and service_task.is_running:
+                        self.logger.debug(f"Stopping service task: {service_name}")
+                        if hasattr(service_task, "stop"):
+                            service_task.stop()
+
+                    # 清理服务（无论是否在运行）
+                    if hasattr(service_task, "cleanup"):
+                        self.logger.debug(f"Cleaning up service task: {service_name}")
+                        service_task.cleanup()
+
+                    self.logger.info(
+                        f"Service task '{service_name}' cleaned up successfully"
+                    )
+                except Exception as e:
+                    self.logger.error(
+                        f"Error cleaning up service task {service_name}: {e}"
+                    )
+
+        # 清空服务字典
+        self.services.clear()
+        self.logger.info("All services cleaned up")
 
     def setup_logging_system(self):
         self.logger = CustomLogger(

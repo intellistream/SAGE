@@ -10,11 +10,9 @@ import datetime
 import shutil
 import subprocess
 import sys
-import tempfile
-import threading
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import typer
 from rich.console import Console
@@ -144,7 +142,7 @@ def validate(
 
     except ImportError as e:
         console.print(f"[red]❌ 无法导入测试器: {e}[/red]")
-        console.print(f"[yellow]验证模块导入失败，请检查安装[/yellow]")
+        console.print("[yellow]验证模块导入失败，请检查安装[/yellow]")
         raise typer.Exit(1)
 
     # 创建测试器
@@ -276,7 +274,7 @@ def check(
                     text=True,
                 )
                 if result.returncode == 0:
-                    console.print(f"    📋 wheel内容检查通过")
+                    console.print("    📋 wheel内容检查通过")
                 else:
                     console.print(f"    ⚠️  wheel内容检查失败: {result.stderr}")
             except FileNotFoundError:
@@ -374,7 +372,7 @@ def build(
 
             return True
         else:
-            console.print(f"[red]❌ 构建失败[/red]")
+            console.print("[red]❌ 构建失败[/red]")
             if not verbose and result.stderr:
                 console.print(f"错误信息: {result.stderr}")
             return False
@@ -956,7 +954,7 @@ class PyPIPublisher:
         console.print("\n")
         console.print(table)
 
-        console.print(f"\n📊 [bold]发布摘要:[/bold]")
+        console.print("\n📊 [bold]发布摘要:[/bold]")
         console.print(f"✅ 成功: {success_count}")
         console.print(f"⚠️  跳过: {skipped_count}")
         console.print(f"❌ 失败: {failed_count}")

@@ -8,7 +8,6 @@ Tests for sage.common.utils.config.loader module
 - 错误处理和异常情况
 """
 
-import inspect
 import os
 import tempfile
 from pathlib import Path

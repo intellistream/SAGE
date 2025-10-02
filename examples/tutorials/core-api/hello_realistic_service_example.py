@@ -4,13 +4,10 @@
 使用SAGE的完整流水线机制，展示服务在真实算子中的使用
 """
 
-import json
 import time
 
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.remote_environment import RemoteEnvironment
-from sage.core.operator.base_operator import BaseOperator
 
 
 # 服务定义（重用之前的服务）
@@ -224,13 +221,18 @@ class FeatureEnrichmentFunction(BaseFunction):
 
         try:
             # 使用服务语法糖获取用户特征
-            user_features = self.call_service["feature_store"].get_user_features(
-                request["user_id"]
+            user_features = self.call_service(
+                "feature_store",
+                request["user_id"],
+                method="get_user_features",
             )
 
             # 批量获取物品特征
-            item_features = self.call_service["feature_store"].batch_get_features(
-                "item", request["candidate_items"]
+            item_features = self.call_service(
+                "feature_store",
+                "item",
+                request["candidate_items"],
+                method="batch_get_features",
             )
 
             # 丰富请求
@@ -242,12 +244,14 @@ class FeatureEnrichmentFunction(BaseFunction):
             }
 
             # 记录日志
-            self.call_service["log"].info(
+            self.call_service(
+                "log",
                 f"Features enriched for request {request['request_id']}",
                 {
                     "user_id": request["user_id"],
                     "item_count": len(request["candidate_items"]),
                 },
+                method="info",
             )
 
             self.logger.info(
@@ -260,8 +264,11 @@ class FeatureEnrichmentFunction(BaseFunction):
                 f"Feature enrichment failed for {request['request_id']}: {e}"
             )
             # 记录错误到日志服务
-            self.call_service["log"].error(
-                f"Feature enrichment failed: {e}", {"request_id": request["request_id"]}
+            self.call_service(
+                "log",
+                f"Feature enrichment failed: {e}",
+                {"request_id": request["request_id"]},
+                method="error",
             )
             return None
 
@@ -281,18 +288,20 @@ class RecommendationFunction(BaseFunction):
         try:
             # 检查缓存
             cache_key = f"rec_{enriched_request['user_id']}_{hash(str(enriched_request['candidate_items']))}"
-            cached_result = self.call_service["cache"].get(cache_key)
+            cached_result = self.call_service("cache", cache_key, method="get")
 
             if cached_result:
                 self.logger.info(
                     f"Using cached recommendations for: {enriched_request['request_id']}"
                 )
-                self.call_service["log"].info(
+                self.call_service(
+                    "log",
                     "Used cached recommendations",
                     {
                         "request_id": enriched_request["request_id"],
                         "cache_key": cache_key,
                     },
+                    method="info",
                 )
                 return {
                     **enriched_request,
@@ -306,7 +315,9 @@ class RecommendationFunction(BaseFunction):
             )
 
             # 使用模型服务进行预测
-            predictions = self.call_service["model"].batch_predict(feature_vectors)
+            predictions = self.call_service(
+                "model", feature_vectors, method="batch_predict"
+            )
 
             # 生成推荐结果
             recommendations = []
@@ -327,16 +338,18 @@ class RecommendationFunction(BaseFunction):
                 rec["rank"] = i + 1
 
             # 缓存结果
-            self.call_service["cache"].set(cache_key, recommendations)
+            self.call_service("cache", cache_key, recommendations, method="set")
 
             # 记录推荐完成
-            self.call_service["log"].info(
+            self.call_service(
+                "log",
                 "Recommendations generated successfully",
                 {
                     "request_id": enriched_request["request_id"],
                     "recommendation_count": len(recommendations),
                     "top_score": recommendations[0]["score"] if recommendations else 0,
                 },
+                method="info",
             )
 
             result = {
@@ -355,9 +368,11 @@ class RecommendationFunction(BaseFunction):
             self.logger.error(
                 f"Recommendation generation failed for {enriched_request['request_id']}: {e}"
             )
-            self.call_service["log"].error(
+            self.call_service(
+                "log",
                 f"Recommendation generation failed: {e}",
                 {"request_id": enriched_request["request_id"]},
+                method="error",
             )
             return None
 
@@ -422,7 +437,8 @@ class ResultSinkFunction(BaseFunction):
         }
 
         # 记录到日志服务
-        self.call_service["log"].info(
+        self.call_service(
+            "log",
             "Final recommendation result",
             {
                 "request_id": output["request_id"],
@@ -430,6 +446,7 @@ class ResultSinkFunction(BaseFunction):
                 "recommendation_count": len(output["recommendations"]),
                 "from_cache": output["from_cache"],
             },
+            method="info",
         )
 
         # 打印结果
@@ -501,7 +518,7 @@ def test_realistic_sage_workflow():
         try:
             env.stop()
             print("环境已清理")
-        except:
+        except Exception:
             pass
 
 

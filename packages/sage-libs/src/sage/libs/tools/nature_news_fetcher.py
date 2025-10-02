@@ -2,7 +2,6 @@ import logging
 import os
 import random
 import time
-from typing import Any, Dict
 
 import requests
 from bs4 import BeautifulSoup, Tag

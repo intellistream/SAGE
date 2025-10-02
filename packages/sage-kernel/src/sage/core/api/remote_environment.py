@@ -3,8 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from sage.common.utils.serialization.dill import (serialize_object,
-                                                  trim_object_for_ray)
+from sage.common.utils.serialization.dill import serialize_object, trim_object_for_ray
 from sage.core.api.base_environment import BaseEnvironment
 from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 
@@ -70,15 +69,21 @@ class RemoteEnvironment(BaseEnvironment):
             )
         return self._engine_client
 
-    def submit(self) -> str:
+    def submit(self, autostop: bool = False) -> str:
         """
         提交环境到远程JobManager
+
+        Args:
+            autostop (bool): 如果为True，方法将阻塞直到所有批处理任务完成后自动停止
+                           如果为False，方法立即返回，需要手动管理任务生命周期
 
         Returns:
             环境UUID
         """
         try:
-            logger.info(f"Submitting environment '{self.name}' to remote JobManager")
+            logger.info(
+                f"Submitting environment '{self.name}' to remote JobManager (autostop={autostop})"
+            )
 
             # 第一步：使用 trim_object_for_ray 清理环境，排除不可序列化的内容
             logger.debug("Trimming environment for serialization")
@@ -90,7 +95,7 @@ class RemoteEnvironment(BaseEnvironment):
 
             # 第三步：通过JobManager Client发送到JobManager端口
             logger.debug("Submitting serialized environment to JobManager")
-            response = self.client.submit_job(serialized_data)
+            response = self.client.submit_job(serialized_data, autostop=autostop)
 
             if response.get("status") == "success":
                 env_uuid = response.get("job_uuid")
@@ -99,6 +104,11 @@ class RemoteEnvironment(BaseEnvironment):
                     logger.info(
                         f"Environment submitted successfully with UUID: {self.env_uuid}"
                     )
+
+                    # 如果启用 autostop，等待作业完成
+                    if autostop:
+                        self._wait_for_completion()
+
                     return env_uuid
                 else:
                     raise RuntimeError("JobManager returned success but no job UUID")
@@ -109,6 +119,92 @@ class RemoteEnvironment(BaseEnvironment):
         except Exception as e:
             logger.error(f"Failed to submit environment: {e}")
             raise
+
+    def _wait_for_completion(self):
+        """
+        等待远程作业完成
+        通过轮询JobManager的作业状态来判断是否完成
+        """
+        import time
+
+        if not self.env_uuid:
+            logger.warning("No environment UUID found, cannot wait for completion")
+            return
+
+        logger.info("Waiting for remote job to complete...")
+
+        # 设置最大等待时间，避免无限等待
+        max_wait_time = 300.0  # 5分钟
+        start_time = time.time()
+        check_interval = 0.5  # 远程检查可以稍微频繁一些
+
+        try:
+            while time.time() - start_time < max_wait_time:
+                try:
+                    # 获取作业状态
+                    status_response = self.client.get_job_status(self.env_uuid)
+
+                    # 检查响应是否成功
+                    if not status_response.get("success", False):
+                        error_msg = status_response.get("message", "Unknown error")
+                        logger.error(f"Error getting job status: {error_msg}")
+                        # 如果是 not_found，说明作业已经完成并被清理
+                        if status_response.get("status") == "not_found":
+                            logger.info("Job not found (已完成并清理)")
+                            break
+                        # 其他错误继续等待
+                        time.sleep(check_interval)
+                        continue
+
+                    # 获取作业状态
+                    job_status = status_response.get("status")
+                    logger.debug(f"Current job status: {job_status}")
+
+                    if job_status in ["stopped", "failed", "completed"]:
+                        logger.info(f"Remote job completed with status: {job_status}")
+                        break
+
+                    # 检查 dispatcher 信息
+                    dispatcher_info = status_response.get("dispatcher", {})
+                    task_count = dispatcher_info.get("task_count", 1)
+                    service_count = dispatcher_info.get("service_count", 0)
+                    is_running = dispatcher_info.get("is_running", True)
+
+                    logger.debug(
+                        f"Dispatcher status: running={is_running}, tasks={task_count}, services={service_count}"
+                    )
+
+                    # 如果 dispatcher 已停止且所有资源已清理
+                    if not is_running and task_count == 0 and service_count == 0:
+                        logger.info("Remote job stopped and all resources cleaned up")
+                        break
+
+                except Exception as e:
+                    logger.warning(f"Error checking job status: {e}")
+                    # 发生错误时也继续等待，可能是网络问题
+
+                time.sleep(check_interval)
+
+            else:
+                # 超时了
+                logger.warning(
+                    f"Timeout waiting for remote job to complete after {max_wait_time}s"
+                )
+                logger.info("Job may still be running on remote JobManager")
+
+        except KeyboardInterrupt:
+            logger.info("Received interrupt signal, stopping remote job...")
+            self.stop()
+        except Exception as e:
+            logger.error(f"Error waiting for completion: {e}")
+            try:
+                self.stop()
+            except Exception as stop_error:
+                logger.error(f"Error stopping job after wait error: {stop_error}")
+
+        finally:
+            # 确保清理本地资源
+            self.is_running = False
 
     def stop(self) -> Dict[str, Any]:
         """

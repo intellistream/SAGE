@@ -1,0 +1,32 @@
+# RAG Memory 服务配置模板
+# 可用于自定义 `rag_memory_service.py` 或流水线示例中的 MemoryService 行为。
+
+rag_memory_service:
+  manager_path: ".sage/examples/memory/rag_memory_service"
+  collection:
+    name: "RAGMemoryCollection"
+    backend_type: "VDB"
+    description: "rag memory collection"
+    index_config:
+      name: "test_index"
+      embedding_model: "default"
+      dim: 384
+      backend_type: "FAISS"
+      description: "rag memory index"
+      index_parameter: {}
+
+default_search:
+  topk: 5
+  threshold: 0.1
+  with_metadata: true
+
+# 可选：预置需要写入的记忆样本
+seed_data:
+  - content: "我最近总是感觉疲惫，有什么改善方法？"
+    metadata:
+      answer: "建议保证充足睡眠并结合适度运动"
+      topic: "health"
+  - content: "我想开始学习 Python，有推荐的路线吗？"
+    metadata:
+      answer: "先掌握基础语法，再尝试小项目"
+      topic: "programming"

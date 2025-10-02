@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from sage.core.factory.function_factory import FunctionFactory
 

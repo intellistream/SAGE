@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Any, Callable, Hashable, List, Optional, Tuple, Type
+from typing import Any, Callable, Hashable, List, Type
 
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.filter_function import FilterFunction
@@ -8,7 +8,6 @@ from sage.core.api.function.flatmap_function import FlatMapFunction
 from sage.core.api.function.keyby_function import KeyByFunction
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +89,7 @@ class LambdaKeyByFunction(KeyByFunction):
 
     def __init__(self, lambda_func, **kwargs):
         self.lambda_func = lambda_func
-        self.logger.debug(f"LambdaKeyByFunction initialized with lambda")
+        self.logger.debug("LambdaKeyByFunction initialized with lambda")
 
     def execute(self, data: Any) -> Hashable:
         """
@@ -142,7 +141,7 @@ def detect_lambda_type(func: Callable) -> str:
             and return_annotation.__origin__ == list
         ):
             return "flatmap"
-        elif return_annotation == type(None) or return_annotation is None:
+        elif return_annotation is type(None) or return_annotation is None:
             return "sink"
         else:
             # 默认为 map

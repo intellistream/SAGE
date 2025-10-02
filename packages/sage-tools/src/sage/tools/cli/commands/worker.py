@@ -8,8 +8,6 @@ import os
 import subprocess
 import tempfile
 import time
-from pathlib import Path
-from typing import List, Tuple
 
 import typer
 
@@ -148,7 +146,7 @@ def start_workers():
     ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
     conda_env = remote_config.get("conda_env", "sage")
 
-    typer.echo(f"📋 配置信息:")
+    typer.echo("📋 配置信息:")
     typer.echo(f"   Head节点: {head_host}:{head_port}")
     typer.echo(f"   Worker节点: {len(workers)} 个")
     typer.echo(f"   Worker绑定主机: {worker_bind_host}")
@@ -244,7 +242,7 @@ RAY_PIDS=$(pgrep -f 'raylet|core_worker' || true)
 if [[ -n "$RAY_PIDS" ]]; then
     echo "[SUCCESS] Ray Worker启动成功，进程PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
     echo "[INFO] 节点已连接到集群: {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
-    
+
     # 验证Ray状态
     if timeout 10 {ray_command} status > /dev/null 2>&1; then
         echo "[SUCCESS] Ray集群连接验证成功" | tee -a "$LOG_DIR/worker.log"
@@ -440,7 +438,7 @@ if [[ -n "$RAY_PIDS" ]]; then
             ps -p "$pid" -o pid,ppid,pcpu,pmem,etime,cmd --no-headers 2>/dev/null || true
         fi
     done
-    
+
     echo ""
     echo "--- Ray集群连接状态 ---"
     timeout 10 {ray_command} status 2>/dev/null || echo "[警告] 无法获取Ray集群状态"
@@ -581,7 +579,7 @@ def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 ho
         typer.echo(f"✅ 新节点 {host}:{port} 部署成功")
 
         # 启动worker
-        typer.echo(f"🔧 启动新Worker节点...")
+        typer.echo("🔧 启动新Worker节点...")
         head_config = config_manager.get_head_config()
         worker_config = config_manager.get_worker_config()
         remote_config = config_manager.get_remote_config()

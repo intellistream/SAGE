@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, List, Tuple, Type, Union
+from typing import Any, List, Tuple, Union
 
 from sage.common.config.output_paths import get_output_file
 from sage.core.api.function.sink_function import SinkFunction

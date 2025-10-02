@@ -4,12 +4,10 @@ Enhanced SAGE Package Manager - Integrated from scripts/sage-package-manager.py
 This tool provides comprehensive package management for the SAGE monorepo.
 """
 
-import json
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List
 
 from ..core.exceptions import SAGEDevToolkitError
 
@@ -350,7 +348,7 @@ class EnhancedPackageManager:
                 capture_output=True,
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
 
     def _get_package_version(self, package_path: Path) -> str:
@@ -367,7 +365,7 @@ class EnhancedPackageManager:
                     if match:
                         return match.group(1)
             return "unknown"
-        except:
+        except Exception:
             return "unknown"
 
     def _detect_circular_dependencies(

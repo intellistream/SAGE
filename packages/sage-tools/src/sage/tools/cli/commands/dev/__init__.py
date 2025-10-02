@@ -1,7 +1,5 @@
-"""
-SAGE Dev 命令模块 - 简化版本
-"""
+"""SAGE Dev 命令模块导出。"""
 
-from .simple_main import app
+from .main import app
 
 __all__ = ["app"]

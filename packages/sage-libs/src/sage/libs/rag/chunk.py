@@ -1,4 +1,4 @@
-from typing import Any, List, Literal, Optional, Union
+from typing import List
 
 from sage.core.api.function.map_function import MapFunction
 from sentence_transformers import SentenceTransformer

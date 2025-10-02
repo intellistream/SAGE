@@ -10,17 +10,14 @@ SAGE 项目状态检查器
 """
 
 import importlib.util
-import json
 import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
 
 console = Console()
 
@@ -454,7 +451,7 @@ class ProjectStatusChecker:
         )
 
         summary_lines = [
-            f"📊 SAGE 项目状态报告",
+            "📊 SAGE 项目状态报告",
             f"⏰ 检查时间: {status_data['timestamp']}",
             f"📁 项目路径: {status_data['project_root']}",
             f"✅ 检查项目: {successful_checks}/{total_checks}",

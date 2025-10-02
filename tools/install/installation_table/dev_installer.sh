@@ -8,6 +8,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 导入核心安装器函数
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 
+# C++扩展安装已移至main_installer.sh中的标准安装流程
+
 # 安装开发包
 install_dev_packages() {
     # 获取项目根目录和日志文件
@@ -66,6 +68,11 @@ install_dev_packages() {
         echo -e "${WARNING} 部分工具不在 PATH 中: ${missing_tools[*]}"
         echo -e "${DIM}这在某些环境中是正常的，工具仍可通过 python -m 方式使用${NC}"
     fi
+    
+    echo ""
+    
+    # C++扩展已在标准安装流程中安装完成
+    echo -e "${BOLD}  ℹ️  C++扩展已在标准安装流程中完成${NC}"
     
     echo ""
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

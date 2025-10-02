@@ -29,20 +29,23 @@ SAGE PyPI发布准备完整验证脚本
 """
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 
 class CompletePipInstallTester:
     """完整的PyPI发布准备验证器"""
 
-    def __init__(self, test_dir: Optional[str] = None, skip_wheel: bool = False, use_conda_env: bool = False):
+    def __init__(
+        self,
+        test_dir: Optional[str] = None,
+        skip_wheel: bool = False,
+        use_conda_env: bool = False,
+    ):
         # 查找SAGE项目根目录
         current_file = Path(__file__).resolve()
         # 从 packages/sage-tools/tests/pypi/test_pip_install_complete.py 找到项目根目录
@@ -97,9 +100,6 @@ class CompletePipInstallTester:
             "unit_tests": False,
             "cleanup": False,
         }
-
-        print(f"🧪 测试目录: {self.test_dir}")
-        print(f"🏠 项目根目录: {self.project_root}")
 
     def run_command(
         self,
@@ -176,10 +176,10 @@ class CompletePipInstallTester:
 
         if self.use_conda_env:
             print("  📦 使用现有conda环境进行测试...")
-            
+
             # 即使使用conda环境，也需要创建测试目录用于存放临时文件
             self.test_dir.mkdir(parents=True, exist_ok=True)
-            
+
             # 验证Python可用性
             returncode, stdout, stderr = self.run_command(
                 [str(self.python_exe), "--version"]
@@ -189,12 +189,16 @@ class CompletePipInstallTester:
                 return False
 
             print(f"  ✅ 使用现有环境: {stdout.strip()}")
-            
+
             # 检查是否是conda环境
             returncode, stdout, stderr = self.run_command(
-                [str(self.python_exe), "-c", "import sys; print('conda' if 'conda' in sys.executable.lower() else 'other')"]
+                [
+                    str(self.python_exe),
+                    "-c",
+                    "import sys; print('conda' if 'conda' in sys.executable.lower() else 'other')",
+                ]
             )
-            if returncode == 0 and 'conda' in stdout.lower():
+            if returncode == 0 and "conda" in stdout.lower():
                 print("  ✅ 检测到conda环境")
             else:
                 print("  ⚠️  未检测到conda环境，使用系统Python")
@@ -389,12 +393,57 @@ class CompletePipInstallTester:
                 print(f"  ❌ 安装失败: {stderr}")
                 return False
 
-            # 验证安装
+            # 验证安装 - 使用更robust的版本检测方法
+            version_check_code = """
+try:
+    import sage
+    version = None
+
+    # 尝试多种方式获取版本信息
+    if hasattr(sage, '__version__'):
+        version = sage.__version__
+    elif hasattr(sage, '_version') and hasattr(sage._version, '__version__'):
+        version = sage._version.__version__
+
+    # 尝试从子包获取版本
+    if not version:
+        try:
+            import sage.common
+            if hasattr(sage.common, '__version__'):
+                version = sage.common.__version__
+        except ImportError:
+            pass
+
+    # 尝试使用importlib.metadata（Python 3.8+的标准方式）
+    if not version:
+        # 尝试不同的包名
+        package_names = ['isage', 'sage', 'sage-common', 'sage-kernel']
+        for pkg_name in package_names:
+            try:
+                import importlib.metadata
+                version = importlib.metadata.version(pkg_name)
+                break
+            except (ImportError, Exception):
+                try:
+                    import pkg_resources
+                    version = pkg_resources.get_distribution(pkg_name).version
+                    break
+                except (ImportError, Exception):
+                    continue
+
+    if version:
+        print(f"SAGE version: {version}")
+    else:
+        print("SAGE installed but version not accessible")
+except Exception as e:
+    print(f"Import failed: {e}")
+    raise
+"""
             returncode, stdout, stderr = self.run_command(
                 [
                     str(self.python_exe),
                     "-c",
-                    "import sage; print('SAGE version:', sage.__version__)",
+                    version_check_code,
                 ]
                 # 移除cwd参数，在pip安装环境中使用默认工作目录
             )
@@ -416,27 +465,92 @@ class CompletePipInstallTester:
         print("\n🔍 测试基本导入...")
 
         test_imports = [
-            # 核心包
-            ("sage", "import sage; print(f'SAGE {sage.__version__} loaded')"),
+            # 核心包 - 使用更robust的版本访问方法
+            (
+                "sage",
+                """import sage;
+version = 'unknown'
+# 尝试多种方式获取版本信息
+try:
+    if hasattr(sage, '__version__'):
+        version = sage.__version__
+    elif hasattr(sage, '_version'):
+        if hasattr(sage._version, '__version__'):
+            version = sage._version.__version__
+
+    # 如果仍然是unknown，尝试从子包获取
+    if version == 'unknown':
+        try:
+            import sage.common
+            if hasattr(sage.common, '__version__'):
+                version = sage.common.__version__
+        except ImportError:
+            pass
+
+    # 最后尝试使用importlib.metadata
+    if version == 'unknown':
+        # 尝试不同的包名
+        package_names = ['isage', 'sage', 'sage-common', 'sage-kernel']
+        for pkg_name in package_names:
+            try:
+                import importlib.metadata
+                version = importlib.metadata.version(pkg_name)
+                break
+            except (ImportError, Exception):
+                try:
+                    import pkg_resources
+                    version = pkg_resources.get_distribution(pkg_name).version
+                    break
+                except (ImportError, Exception):
+                    continue
+
+except Exception:
+    pass
+print(f'SAGE {version} loaded')""",
+            ),
             ("sage.common", "import sage.common; print('sage.common imported')"),
             ("sage.core", "import sage.core; print('sage.core imported')"),
             ("sage.libs", "import sage.libs; print('sage.libs imported')"),
-            ("sage.middleware", "import sage.middleware; print('sage.middleware imported')"),
+            (
+                "sage.middleware",
+                "import sage.middleware; print('sage.middleware imported')",
+            ),
             ("sage.tools", "import sage.tools; print('sage.tools imported')"),
-            
             # 核心API
-            ("LocalEnvironment", "from sage.core.api.local_environment import LocalEnvironment; print('LocalEnvironment imported')"),
-            ("BatchFunction", "from sage.core.api.function.batch_function import BatchFunction; print('BatchFunction imported')"),
-            ("SinkFunction", "from sage.core.api.function.sink_function import SinkFunction; print('SinkFunction imported')"),
-            
+            (
+                "LocalEnvironment",
+                "from sage.core.api.local_environment import LocalEnvironment; print('LocalEnvironment imported')",
+            ),
+            (
+                "BatchFunction",
+                "from sage.core.api.function.batch_function import BatchFunction; print('BatchFunction imported')",
+            ),
+            (
+                "SinkFunction",
+                "from sage.core.api.function.sink_function import SinkFunction; print('SinkFunction imported')",
+            ),
             # Libs组件 (RAG, 数据源等)
-            ("FileSource", "from sage.libs.io_utils.source import FileSource; print('FileSource imported')"),
-            ("TerminalSink", "from sage.libs.io_utils.sink import TerminalSink; print('TerminalSink imported')"),
-            ("OpenAIGenerator", "from sage.libs.rag.generator import OpenAIGenerator; print('OpenAIGenerator imported')"),
-            
+            (
+                "FileSource",
+                "from sage.libs.io_utils.source import FileSource; print('FileSource imported')",
+            ),
+            (
+                "TerminalSink",
+                "from sage.libs.io_utils.sink import TerminalSink; print('TerminalSink imported')",
+            ),
+            (
+                "OpenAIGenerator",
+                "from sage.libs.rag.generator import OpenAIGenerator; print('OpenAIGenerator imported')",
+            ),
             # Tools组件
-            ("CustomLogger", "from sage.common.utils.logging.custom_logger import CustomLogger; print('CustomLogger imported')"),
-            ("SAGEDevToolkit", "from sage.tools.dev.core.toolkit import SAGEDevToolkit; print('SAGEDevToolkit imported')"),
+            (
+                "CustomLogger",
+                "from sage.common.utils.logging.custom_logger import CustomLogger; print('CustomLogger imported')",
+            ),
+            (
+                "SAGEDevToolkit",
+                "from sage.tools.dev.core.toolkit import SAGEDevToolkit; print('SAGEDevToolkit imported')",
+            ),
         ]
 
         failed_imports = []
@@ -503,7 +617,7 @@ class TestBatchFunction(BatchFunction):
     def __init__(self):
         super().__init__()
         self.counter = 0
-    
+
     def execute(self):
         if self.counter < 3:
             result = f"data_{self.counter}"
@@ -530,7 +644,7 @@ class TestSinkFunction(SinkFunction):
     def __init__(self):
         super().__init__()
         self.received = []
-    
+
     def execute(self, data):
         self.received.append(data)
 
@@ -604,7 +718,7 @@ sys.exit(0 if success_count == 4 else 1)
                 # 测试sage --version
                 returncode, stdout, stderr = self.run_command(
                     [str(self.sage_exe), "--version"],
-                    cwd=self.test_dir  # 使用测试目录作为工作目录，避免依赖项目根目录
+                    cwd=self.test_dir,  # 使用测试目录作为工作目录，避免依赖项目根目录
                 )
 
                 if returncode == 0:
@@ -615,7 +729,7 @@ sys.exit(0 if success_count == 4 else 1)
                 # 测试sage --help
                 returncode, stdout, stderr = self.run_command(
                     [str(self.sage_exe), "--help"],
-                    cwd=self.test_dir  # 使用测试目录作为工作目录，避免依赖项目根目录
+                    cwd=self.test_dir,  # 使用测试目录作为工作目录，避免依赖项目根目录
                 )
 
                 if returncode == 0:
@@ -629,7 +743,7 @@ sys.exit(0 if success_count == 4 else 1)
                 # 尝试python -m sage
                 returncode, stdout, stderr = self.run_command(
                     [str(self.python_exe), "-m", "sage", "--version"],
-                    cwd=self.test_dir  # 使用测试目录作为工作目录，避免依赖项目根目录
+                    cwd=self.test_dir,  # 使用测试目录作为工作目录，避免依赖项目根目录
                 )
 
                 if returncode == 0:
@@ -642,13 +756,13 @@ sys.exit(0 if success_count == 4 else 1)
 try:
     import sage
     print("✅ sage模块导入成功")
-    
+
     # 检查是否有CLI相关的属性
     if hasattr(sage, '__main__'):
         print("✅ sage模块支持命令行调用")
     else:
         print("⚠️  sage模块不支持命令行调用")
-        
+
 except Exception as e:
     print(f"❌ sage模块导入失败: {e}")
 """
@@ -687,15 +801,15 @@ try:
     # 测试开发工具导入
     from sage.tools.dev.core.toolkit import SAGEDevToolkit
     print("✅ SAGEDevToolkit 导入成功")
-    
+
     # 创建工具包实例
     toolkit = SAGEDevToolkit("./test_project")
     print("✅ SAGEDevToolkit 实例创建成功")
-    
+
     # 测试项目分析功能
     result = toolkit.analyze_project()
     print(f"✅ 项目分析完成: {type(result)}")
-    
+
 except ImportError as e:
     print(f"⚠️  开发工具模块导入失败（这在pip安装版本中是正常的）: {e}")
 except Exception as e:
@@ -763,7 +877,7 @@ logger = CustomLogger(outputs=[("console", "INFO")], name="example_test")
 
 class DataSource(BatchFunction):
     """数据源：生成测试数据"""
-    
+
     def __init__(self, data_list):
         super().__init__()
         self.data_list = data_list
@@ -774,7 +888,7 @@ class DataSource(BatchFunction):
         if self.index >= len(self.data_list):
             logger.info("数据源已耗尽")
             return None
-        
+
         data = self.data_list[self.index]
         self.index += 1
         logger.info(f"生成数据: {data}")
@@ -782,7 +896,7 @@ class DataSource(BatchFunction):
 
 class DataProcessor(BatchFunction):
     """数据处理器：处理数据"""
-    
+
     def __init__(self, source):
         super().__init__()
         self.source = source
@@ -791,7 +905,7 @@ class DataProcessor(BatchFunction):
         data = self.source.execute()
         if data is None:
             return None
-        
+
         # 简单的数据处理
         processed = f"processed_{data}"
         logger.info(f"处理数据: {data} -> {processed}")
@@ -799,7 +913,7 @@ class DataProcessor(BatchFunction):
 
 class DataSink(SinkFunction):
     """数据接收器：收集处理后的数据"""
-    
+
     def __init__(self):
         super().__init__()
         self.results = []
@@ -818,7 +932,7 @@ def main():
 
         # 准备测试数据
         test_data = ["apple", "banana", "cherry", "date", "elderberry"]
-        
+
         # 创建组件
         source = DataSource(test_data)
         processor = DataProcessor(source)
@@ -826,7 +940,7 @@ def main():
 
         # 执行流水线
         logger.info("开始执行流水线...")
-        
+
         while True:
             data = processor.execute()
             if data is None:
@@ -836,9 +950,9 @@ def main():
         # 验证结果
         expected_count = len(test_data)
         actual_count = len(sink.results)
-        
+
         logger.info(f"流水线执行完成: 期望 {expected_count} 条，实际 {actual_count} 条")
-        
+
         if actual_count == expected_count:
             print("✅ 示例执行成功！")
             print(f"📊 处理数据: {actual_count} 条")
@@ -870,8 +984,8 @@ if __name__ == "__main__":
 
             # 运行示例
             returncode, stdout, stderr = self.run_command(
-                [str(self.python_exe), str(example_file)], 
-                timeout=60
+                [str(self.python_exe), str(example_file)],
+                timeout=60,
                 # 移除cwd参数，在pip安装环境中使用默认工作目录
             )
 
@@ -911,39 +1025,39 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 
 class TestSageCore(unittest.TestCase):
     """SAGE核心功能测试"""
-    
+
     def test_local_environment_creation(self):
         """测试LocalEnvironment创建"""
         env = LocalEnvironment("test_env")
         self.assertIsNotNone(env)
         self.assertEqual(env.name, "test_env")
-        
+
     def test_batch_function_inheritance(self):
         """测试BatchFunction继承"""
-        
+
         class TestBatch(BatchFunction):
             def execute(self):
                 return "test_data"
-                
+
         batch = TestBatch()
         self.assertIsNotNone(batch)
         self.assertEqual(batch.execute(), "test_data")
-        
+
     def test_sink_function_inheritance(self):
         """测试SinkFunction继承"""
-        
+
         class TestSink(SinkFunction):
             def __init__(self):
                 super().__init__()
                 self.data = None
-                
+
             def execute(self, data):
                 self.data = data
-                
+
         sink = TestSink()
         sink.execute("test_data")
         self.assertEqual(sink.data, "test_data")
-        
+
     def test_custom_logger_creation(self):
         """测试CustomLogger创建"""
         logger = CustomLogger(outputs=[("console", "INFO")], name="test_logger")
@@ -963,8 +1077,8 @@ if __name__ == "__main__":
 
             # 运行单元测试
             returncode, stdout, stderr = self.run_command(
-                [str(self.python_exe), str(test_file)], 
-                timeout=60
+                [str(self.python_exe), str(test_file)],
+                timeout=60,
                 # 移除cwd参数，在pip安装环境中使用默认工作目录
             )
 
@@ -987,7 +1101,7 @@ if __name__ == "__main__":
                 if stdout:
                     print(f"      标准输出: {stdout[:200]}")
                 if returncode == 0:
-                    print(f"      调试信息: 返回码为0但未找到成功标识")
+                    print("      调试信息: 返回码为0但未找到成功标识")
                     print(f"      完整输出: {repr(full_output[:300])}")
 
             return success
@@ -1104,7 +1218,9 @@ if __name__ == "__main__":
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SAGE PyPI完整安装测试脚本 - 测试 isage[dev] 完整开发环境")
+    parser = argparse.ArgumentParser(
+        description="SAGE PyPI完整安装测试脚本 - 测试 isage[dev] 完整开发环境"
+    )
     parser.add_argument(
         "--cleanup-only", action="store_true", help="仅清理之前的测试环境"
     )
@@ -1113,13 +1229,17 @@ def main():
         "--skip-wheel", action="store_true", help="跳过wheel构建，使用现有的wheel包"
     )
     parser.add_argument(
-        "--use-conda-env", action="store_true", help="在现有conda环境中进行验证，避免重复下载依赖"
+        "--use-conda-env",
+        action="store_true",
+        help="在现有conda环境中进行验证，避免重复下载依赖",
     )
 
     args = parser.parse_args()
 
     # 创建测试器
-    tester = CompletePipInstallTester(args.test_dir, args.skip_wheel, args.use_conda_env)
+    tester = CompletePipInstallTester(
+        args.test_dir, args.skip_wheel, args.use_conda_env
+    )
 
     try:
         if args.cleanup_only:

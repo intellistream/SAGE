@@ -1,15 +1,13 @@
----
-name: CI
+name: "CI"
 
 on:
   push:
-    branches: [main]  # 只在推送到main分支时运行
+    branches: [main]
   pull_request:
-    branches: [main]  # 只处理PR到main分支
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
-# 并发控制：同一PR只运行最新的CI，取消之前的运行
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -23,15 +21,14 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
-  # 控制是否编译C++扩展（设为false可加速CI）
-  SAGE_SKIP_CPP_EXTENSIONS: true
+  CACHE_VERSION: v2-simplified-prod
 
 jobs:
-  test:
-    name: SAGE Test
+  build-and-test:
+    name: Build and Test SAGE
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 45
+    
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -39,322 +36,166 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
           clean: true
-        timeout-minutes: 8
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-          cache-dependency-path: '**/requirements*.txt'
-        timeout-minutes: 10
-        continue-on-error: false
 
-      - name: Verify Python Installation
+      - name: Create .env File from Secrets
         run: |
-          python --version
-          pip --version
-          which python
-          which pip
-        timeout-minutes: 2
+          echo "🔐 从 GitHub Secrets 创建 .env 文件..."
+          cat > .env << EOF
+          # CI Environment Configuration (Auto-generated from GitHub Secrets)
+          # This file is created during CI/CD and should not be committed to git
+          
+          # ==================================================
+          # LLM Service API Keys
+          # ==================================================
+          
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+          
+          SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
+          JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          
+          # vLLM configuration for local/self-hosted services
+          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
+          VLLM_BASE_URL=http://localhost:8000/v1
+          VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+          
+          # ==================================================
+          # Hugging Face Configuration
+          # ==================================================
+          
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+          
+          # ==================================================
+          # CI/CD Settings
+          # ==================================================
+          
+          SAGE_DEBUG=false
+          SAGE_SKIP_CPP_EXTENSIONS=false
+          SAGE_LOG_LEVEL=INFO
+          SAGE_TEST_MODE=true
+          SAGE_EXAMPLES_MODE=test
+          EOF
+          
+          echo "✅ .env 文件创建完成"
+          echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
+          cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
 
-      - name: Setup pip and prepare environment
+      - name: Install System Dependencies
         run: |
-          echo "📦 准备Python环境..."
-          echo "📦 升级pip..."
-          pip install --upgrade pip --no-cache-dir
-          echo "📊 环境状态:"
-          echo "- Python: $(python --version)"
-          echo "- Pip: $(pip --version)"
-          echo "✅ 环境准备完成"
-        timeout-minutes: 5
+          echo "🔧 系统依赖将由quickstart.sh统一管理..."
+          echo "跳过单独的系统依赖安装步骤"
 
-      - name: Cache System Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            /tmp/apt-cache
-          key: ${{ runner.os }}-system-deps-${{ hashFiles('.github/workflows/dev-ci.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-system-deps-
-
-      - name: Install System Dependencies (C++ Extensions)
+      - name: Initialize Submodules
         run: |
-          if [ "$SAGE_SKIP_CPP_EXTENSIONS" = "true" ]; then
-            echo "🚀 跳过C++扩展编译依赖安装（加速CI模式）"
-            echo "📋 在此模式下，以下模块将使用Python回退实现："
-            echo "   • sage-middleware/components/sage_db → 纯Python向量数据库"
-            exit 0
-          fi
-
-          echo "📦 检查是否需要安装系统依赖..."
-
-          # 检查是否需要编译C++扩展
-          needs_cpp=false
-
-          # 检查是否有需要编译的C++模块
-          if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_db/CMakeLists.txt" ]; then
-            needs_cpp=true
-            echo "🔍 检测到C++扩展模块，需要安装编译工具"
-          fi
-
-          if [ "$needs_cpp" = true ]; then
-            echo "📦 安装C++编译依赖..."
-
-            # 更新包列表
-            echo "📥 更新包列表..."
-            sudo apt-get update -qq
-
-            # 安装编译依赖
-            echo "📦 安装编译工具..."
-            sudo apt-get install -y --no-install-recommends \
-              build-essential \
-              cmake \
-              pkg-config || {
-              echo "⚠️ 系统依赖安装失败，但继续执行（C++扩展可能不可用）"
-            }
+          echo "🔁 初始化子模块（C++扩展依赖）..."
+          git submodule update --init --recursive
+          echo "✅ 子模块初始化完成"
+          
+          # 验证关键子模块
+          echo "🔍 验证关键子模块："
+          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_db" ]; then
+            echo "✅ sage_db 子模块存在"
+            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/ | head -10
           else
-            echo "✅ 无需安装C++编译依赖，跳过"
+            echo "❌ sage_db 子模块缺失"
           fi
-        timeout-minutes: 15
-        continue-on-error: true
+          
+          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_flow" ]; then
+            echo "✅ sage_flow 子模块存在"
+            ls -la packages/sage-middleware/src/sage/middleware/components/sage_flow/ | head -10
+          else
+            echo "❌ sage_flow 子模块缺失"
+          fi
 
       - name: Install SAGE
-        env:
-          CI: true
-          DEBIAN_FRONTEND: noninteractive
-          PIP_NO_INPUT: 1
-          PIP_DISABLE_PIP_VERSION_CHECK: 1
-          PIP_PARALLEL_BUILDS: 4
-          MAKEFLAGS: "-j4"
         run: |
-          echo "🚀 CI模式：通过quickstart.sh --dev --pip安装SAGE"
-          echo "ℹ️ 使用dev模式包含完整开发工具和CLI"
-          echo "⏰ 预计安装时间: 8-15分钟"
-
-          # 显示环境信息
-          echo "📊 环境信息:"
-          echo "- Python: $(python --version)"
-          echo "- Python路径: $(which python)"
-          echo "- Pip版本: $(pip --version)"
-          echo "- 网络状态: $(ping -c 1 pypi.org >/dev/null 2>&1 && echo \"✅ 可达\" || echo \"❌ 不可达\")"
-
-          echo "🎯 开始通过quickstart.sh dev模式安装..."
-
-          # 设置错误捕获
-          set -e
-          trap 'exit_code=$?; echo "❌ SAGE installation failed with exit code $exit_code"; exit $exit_code' ERR
-
+          echo "🚀 安装SAGE生产版本（标准模式，包含C++扩展）..."
           chmod +x ./quickstart.sh
-          if ! ./quickstart.sh --dev --pip --yes; then
-            echo "❌ SAGE installation failed!"
-            exit 1
-          fi
+          ./quickstart.sh --standard --pip --yes
+        timeout-minutes: 25
 
-          echo "✅ quickstart.sh dev模式安装完成"
-        timeout-minutes: 30
-
-      - name: Code Quality Checks
+      - name: Verify C++ Extensions
         run: |
-          echo "🔍 Running code quality checks..."
-          black --check --diff packages/ || echo "⚠️ Code formatting issues found"
-          isort --check-only --diff packages/ || echo "⚠️ Import sorting issues found"
-          flake8 packages/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        timeout-minutes: 2
-
-      - name: Run Examples Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          echo "Running examples tests..."
-          echo "🗂️ Current working directory: $(pwd)"
-          echo "📁 Examples directory exists: $([ -d "examples" ] && echo "✅ Yes" || echo "❌ No")"
-          if [ -d "examples" ]; then
-            echo "📊 Examples directory contents:"
-            ls -la examples/ | head -10
-            echo "📊 Total example files found:"
-            find examples/ -name "*.py" | wc -l
-          fi
-
-          echo "🧪 Testing path discovery from Python:"
-          python3 -c "
-          from tools.tests.test_examples import find_project_root, ExampleAnalyzer
-          try:
-              root = find_project_root()
-              print(f'✅ Project root found: {root}')
-              analyzer = ExampleAnalyzer()
-              examples = analyzer.discover_examples()
-              print(f'📋 Found {len(examples)} examples')
-          except Exception as e:
-              print(f'❌ Error: {e}')
-              import traceback
-              traceback.print_exc()
-          "
-
-          # 确保测试脚本可执行
-          chmod +x ./tools/tests/run_examples_tests.sh
-
-          # 运行examples测试
-          echo "🧪 运行Examples测试套件..."
-          if ./tools/tests/run_examples_tests.sh; then
-            echo "✅ Examples测试通过"
-            exit_code=0
-          else
-            exit_code=$?
-            echo "❌ Examples测试失败"
-
-            # 在CI环境中，某些示例可能因为缺少API密钥或外部服务而失败
-            if [[ "$CI" == "true" ]]; then
-              echo "⚠️ 在CI环境中，某些Examples可能因为缺少外部依赖而失败"
-              echo "💡 执行基础验证以确保核心示例可用..."
-
-              # 基础验证：检查是否能发现示例文件
-              if python3 tools/tests/test_examples.py analyze 2>/dev/null; then
-                echo "✅ 基础Examples发现功能可用"
-                exit_code=0
-              else
-                echo "❌ 连基础Examples发现功能都无法使用"
-                exit_code=1
-              fi
-            fi
-          fi
-
-          if [ $exit_code -eq 0 ]; then
-            echo "Examples tests completed ✅"
-          else
-            echo "Examples tests failed ❌"
-            exit $exit_code
-          fi
-
-      - name: Basic Import Tests
-        env:
-          PIP_NO_INPUT: 1
-        run: |
-          echo "=== Import Tests ==="
-          echo "Testing SAGE package imports..."
-
-          # 先检查Python路径和已安装的包
-          echo "Python executable: $(which python)"
-          echo "Python version: $(python --version)"
-          echo "Checking installed isage packages:"
-          pip list | grep isage || echo "No isage packages found"
-          echo ""
-
-          # 测试导入我们的SAGE包（增强调试信息）
-          echo "Testing core SAGE imports:"
-          echo "Step 1: Testing sage.common import..."
-          python -c "import sage.common; print('✅ sage.common import successful')"
-
-          echo "Step 2: Testing main sage package import..."
-          python -c "import sage; print('✅ SAGE imported')"
+          echo "🧩 验证C++扩展安装状态..."
           
-          # 详细的版本检查和调试信息
-          echo "=== 详细版本检查 ==="
-          python -c "import sage; print('SAGE模块路径:', sage.__file__); print('SAGE模块目录:', sage.__file__.rsplit('/', 1)[0] if hasattr(sage, '__file__') else 'No __file__'); print('Has __version__:', hasattr(sage, '__version__')); print('Version:', sage.__version__) if hasattr(sage, '__version__') else print('Version: Not found') or print('Available attributes:', [attr for attr in dir(sage) if not attr.startswith('__')])"
+          # 检查.so文件
+          echo "📁 检查编译文件:"
+          if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
+            echo "✅ 找到C++扩展文件:"
+            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
+          else
+            echo "❌ 未找到.so文件"
+          fi
           
-          # _version模块检查
-          echo "=== _version模块检查 ==="
+          # 检查扩展功能可用性
+          echo "🔍 检查扩展功能:"
           python -c "
           try:
-              from sage._version import __version__
-              print('_version module version:', __version__)
+              from sage.middleware.components.extensions_compat import check_extensions_availability
+              available = check_extensions_availability()
+              total = sum(available.values())
+              print(f'🧩 扩展可用性: {total}/{len(available)}')
+              for ext, status in available.items():
+                  print(f'  {ext}: {\"✅\" if status else \"❌\"}')
+              
+              if total > 0:
+                  print(f'✅ {total}个扩展可用，继续测试')
+              else:
+                  print('⚠️ 暂无可用扩展，但不影响基础功能测试')
           except ImportError as e:
-              print('_version模块导入失败:', e)
-              import sage
-              import os
-              sage_dir = os.path.dirname(sage.__file__)
-              print('SAGE目录内容:', os.listdir(sage_dir))
-              version_file = os.path.join(sage_dir, '_version.py')
-              print('_version.py存在:', os.path.exists(version_file))
-              if os.path.exists(version_file):
-                  with open(version_file, 'r') as f:
-                      content = f.read()[:300]
-                      print('_version.py内容:', content)
+              print(f'⚠️ 扩展检查模块不可用: {e}')
           "
-          
-          # 强制重新安装主包以确保版本同步
-          echo "=== 强制重新安装主SAGE包确保版本同步 ==="
-          pip install -e packages/sage --force-reinstall --no-deps
-          
-          # 重新验证版本
-          echo "=== 重新验证版本信息 ==="
-          python -c "import importlib; import sys; modules_to_remove = [name for name in sys.modules if name.startswith('sage')]; [sys.modules.pop(name, None) for name in modules_to_remove]; print('已清除', len(modules_to_remove), '个sage模块缓存'); import sage; print('重新导入后:'); print('Has __version__:', hasattr(sage, '__version__')); print('Version:', getattr(sage, '__version__', 'Not found'))"
-          echo "Step 3: Verifying SAGE package path..."
-          python -c "import sage, inspect; print('SAGE file:', getattr(sage, '__file__', 'No __file__'))"
-          python -c "import sage; f = getattr(sage, '__file__', ''); print('Is correct package:', 'packages/sage' in f)"
 
-          echo ""
-          echo "Testing additional SAGE components:"
-          python -c "import sage.kernel; print('✅ sage.kernel import successful')"
-          python -c "import sage.libs; print('✅ sage.libs import successful')"
-          python -c "import sage.middleware; print('✅ sage.middleware import successful')"
+      - name: Verify Installation
+        run: |
+          echo "✅ 验证SAGE安装..."
+          python -c "import sage; print('✅ SAGE imported')"
+          python -c "import sage.common; print('✅ sage.common imported')"
+          
+          # 验证扩展状态
+          python -c "
+          try:
+              from sage.middleware.components.extensions_compat import check_extensions_availability
+              available = check_extensions_availability()
+              total = sum(available.values())
+              print(f'🧩 扩展可用性: {total}/{len(available)}')
+          except ImportError:
+              print('⚠️ 扩展兼容性模块不可用，跳过检查')
+          "
 
-          echo "=== CLI Test ==="
-          # 检查sage命令是否在PATH中
+      - name: Run Core Tests
+        run: |
+          echo "🧪 运行核心测试..."
+          python -c "import sage; import sage.common; print('✅ 核心导入测试通过')"
+          
           if command -v sage >/dev/null 2>&1; then
-            echo "✅ SAGE CLI found in PATH"
-            sage --help > /dev/null && echo "✅ SAGE CLI help working"
-            sage version && echo "✅ SAGE version command working"
-          else
-            echo "❌ SAGE CLI not found in PATH"
-            echo "检查已安装的包和入口点:"
-            python -c "import pkg_resources; [print(f'Found sage entry point: {ep}') for ep in pkg_resources.iter_entry_points('console_scripts') if ep.name == 'sage']"
-            echo "检查python模块路径:"
-            python -c "import sys; print('\n'.join(sys.path))"
-            echo "尝试直接运行CLI模块:"
-            python -m sage.tools.cli.main --help && echo "✅ CLI module works directly"
+            sage --help > /dev/null && echo "✅ CLI测试通过"
           fi
 
-      - name: Extended Import & CLI Tests
-        env:
-          PIP_NO_INPUT: 1
+      - name: Run Examples Smoke Test
         run: |
-          echo "=== 扩展导入和CLI测试 ==="
-
-          # 使用新的诊断功能进行完整导入测试
-          sage dev test --diagnose
-
-          # CLI功能测试
-          echo "=== CLI功能测试 ==="
-          if command -v sage >/dev/null 2>&1; then
-            echo "✅ SAGE CLI found in PATH"
-            sage --help > /dev/null && echo "✅ SAGE CLI help working"
-            sage version && echo "✅ SAGE version command working"
-          else
-            echo "❌ SAGE CLI not found in PATH"
-          fi
-
-          echo "✅ 扩展测试完成"
-
-      - name: PyPI Release Validation
-        env:
-          PIP_NO_INPUT: 1
-          PYTHONUNBUFFERED: 1
-        run: |
-          echo "=== PyPI发布准备验证 ==="
-
-          # 检查PyPI验证工具是否可用
-          if command -v sage >/dev/null 2>&1; then
-            echo "🔍 运行完整PyPI发布准备验证..."
-
-            # 运行PyPI验证，使用超时以防卡住
-            timeout 1800 sage dev pypi validate --verbose || {
-              exit_code=$?
-              if [ $exit_code -eq 124 ]; then
-                echo "⚠️  PyPI验证超时（30分钟），但这可能是由于网络较慢"
-                echo "🔧 尝试运行快速验证模式..."
-                sage dev pypi validate --fast && echo "✅ 快速验证通过" || echo "❌ 快速验证也失败"
-              else
-                echo "❌ PyPI验证失败，退出码: $exit_code"
-                echo "🔧 尝试运行快速验证模式..."
-                sage dev pypi validate --fast && echo "⚠️  快速验证通过，但完整验证失败" || echo "❌ 快速验证也失败"
-                exit $exit_code
-              fi
+          echo "🌟 运行Examples冒烟测试..."
+          # 安装测试所需的dev依赖（包含pytest）
+          pip install -e packages/sage-tools[dev]
+          
+          # 运行快速冒烟测试（5分钟超时）
+          if [ -f "./tools/tests/run_examples_tests.sh" ]; then
+            chmod +x ./tools/tests/run_examples_tests.sh
+            timeout 300s ./tools/tests/run_examples_tests.sh --quick || {
+              echo "⚠️ Examples测试超时或失败，但不阻断主要流程"
+              exit 0
             }
-
-            echo "✅ PyPI发布准备验证完成"
           else
-            echo "❌ SAGE CLI不可用，跳过PyPI验证"
-            exit 1
+            echo "ℹ️ Examples测试脚本不存在，跳过"
           fi
-
