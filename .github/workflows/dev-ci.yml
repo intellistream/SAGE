@@ -356,10 +356,17 @@ jobs:
           echo "🔍 查找构建的wheel文件..."
           find . -name "*.whl" -type f | head -10
           
-          # 安装核心包进行测试
-          echo "📦 测试安装核心包..."
+          # 创建本地包索引目录
+          echo "📦 创建本地包索引..."
+          mkdir -p /tmp/local_packages
+          find packages/*/dist -name "*.whl" -exec cp {} /tmp/local_packages/ \;
+          ls -lh /tmp/local_packages/
+          
+          # 使用本地包索引安装核心包进行测试
+          echo "📦 测试安装核心包（使用本地依赖）..."
           if ls packages/sage/dist/isage-*.whl 1> /dev/null 2>&1; then
-            pip install packages/sage/dist/isage-*.whl
+            # 使用--find-links从本地目录查找依赖，--no-index禁止从PyPI查找
+            pip install --find-links=/tmp/local_packages --no-index packages/sage/dist/isage-*.whl
             python -c "import sage; print('✅ sage核心包安装成功')"
           else
             echo "⚠️ 未找到核心包wheel文件"
@@ -367,7 +374,7 @@ jobs:
           
           # 测试工具包安装
           if ls packages/sage-tools/dist/isage_tools-*.whl 1> /dev/null 2>&1; then
-            pip install packages/sage-tools/dist/isage_tools-*.whl # ⬅️ 使用正确的路径
+            pip install --find-links=/tmp/local_packages --no-index packages/sage-tools/dist/isage_tools-*.whl
             python -c "import sage.tools; print('✅ sage-tools包安装成功')"
           else
             echo "⚠️ 未找到工具包wheel文件"

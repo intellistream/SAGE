@@ -125,6 +125,17 @@ main() {
             echo -e "${DIM}C++扩展状态已在安装过程中验证${NC}"
         fi
         
+        # 开发模式下自动设置 Git hooks（用于 submodule 管理）
+        if [ "$mode" = "dev" ]; then
+            echo ""
+            echo -e "${INFO} 设置 Git hooks（开发模式）..."
+            if [ -f "$SCRIPT_DIR/tools/maintenance/setup_hooks.sh" ]; then
+                bash "$SCRIPT_DIR/tools/maintenance/setup_hooks.sh" --force 2>/dev/null || {
+                    echo -e "${DIM}  ℹ️  Git hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
+                }
+            fi
+        fi
+        
         show_usage_tips "$mode"
         # 如果安装了 VLLM，验证 VLLM 安装
         if [ "$install_vllm" = "true" ]; then

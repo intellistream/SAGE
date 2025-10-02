@@ -95,6 +95,20 @@ sage doctor
 
 ## Architecture Excellence
 
+### System Architecture
+
+SAGE is built on a layered architecture that provides flexibility, scalability, and maintainability:
+
+![SAGE Architecture](docs/images/architecture.svg)
+
+The architecture consists of five main layers:
+
+1. **User Layer**: Applications built with SAGE (RAG, Agent, Memory, QA systems)
+2. **API Layer**: LocalEnvironment and RemoteEnvironment for different execution contexts
+3. **Core Layer**: Dispatcher, Job Manager, Service Manager, and Runtime execution engine
+4. **Libraries Layer**: RAG pipeline, Agent framework, Memory & Storage, Middleware components
+5. **Infrastructure Layer**: Compute backends (Ray, local), data storage, model services, monitoring
+
 ### Modular Design
 SAGE follows a clean separation of concerns with pluggable components that work together seamlessly:
 
@@ -262,22 +276,58 @@ git push -u origin fix/<short-topic>
 
 > See `CONTRIBUTING.md` for full commit conventions, branch naming, and test matrices.
 
+## Developer Shortcuts
+
+SAGE provides convenient Make-like commands for common development tasks:
+
+```bash
+# View all available commands
+make help
+# or
+./dev.sh help
+
+# Code quality
+make lint          # Run code checks
+make format        # Format code
+make quality       # Full quality check
+
+# Testing
+make test          # Run all tests
+make test-quick    # Quick tests only
+make test-all      # Full test suite with coverage
+
+# Build & Deploy
+make build         # Build packages
+make clean         # Clean build artifacts
+make publish       # Publish to TestPyPI
+make version       # Show current version
+
+# Documentation
+make docs          # Build documentation
+make docs-serve    # Serve docs locally
+```
+
+**See [docs/dev-notes/DEV_COMMANDS.md](./docs/dev-notes/DEV_COMMANDS.md) for complete command reference and workflows.**
+
 **Post-Install Diagnostics**
 ```bash
 sage doctor          # Runs environment & module checks
 python -c "import sage; print(sage.__version__)"
 ```
 
-**Common Make-Like Aliases (Optional)**
-Consider adding wrapper scripts (future enhancement) for: `lint`, `format`, `test:quick`, `test:all`.
+## 🤝 Join Our Community
 
-## Suggested Future Improvements (Documentation & Tooling)
+Connect with other SAGE developers, get help, and stay updated on the latest developments:
 
-- Add `CHANGELOG.md` with Keep a Changelog format.
-- Introduce `pre-commit` config (black, isort, ruff/mypy, shellcheck).
-- Provide `scripts/dev.sh` helper with common commands.
-- Add architecture diagram (docs/images/architecture.svg) referenced here.
-- Offer Dockerfile + reproducible container instructions.
+**💬 [Join SAGE Community](./docs/COMMUNITY.md)** - Complete guide to all our communication channels
+
+Quick links:
+- **WeChat Group**: Scan QR codes for instant chat (Chinese/English)
+- **QQ Group**: [IntelliStream课题组讨论群](https://qm.qq.com/q/bcnuyQVcvm)
+- **Slack**: [Join our workspace](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
+- **GitHub Discussions**: [Technical Q&A and feature requests](https://github.com/intellistream/SAGE/discussions)
+
+We welcome questions, bug reports, feature requests, and contributions from developers worldwide!
 
 ## 🤝 Join Our Community
 
