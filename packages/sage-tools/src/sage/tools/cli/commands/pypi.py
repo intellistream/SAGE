@@ -19,11 +19,14 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
+from sage.tools.cli.utils.dev_check import require_source_code
+
 console = Console()
 app = typer.Typer(help="📦 PyPI发布管理命令")
 
 
 @app.command()
+@require_source_code
 def validate(
     test_dir: Optional[str] = typer.Option(None, "--test-dir", help="指定测试目录"),
     skip_wheel: bool = typer.Option(False, "--skip-wheel", help="跳过wheel构建"),
@@ -36,7 +39,7 @@ def validate(
         True, "--check-auth/--skip-auth", help="检查PyPI认证配置"
     ),
 ):
-    """验证SAGE代码的PyPI发布准备状态
+    """验证SAGE代码的PyPI发布准备状态（仅开发模式）
 
     这个命令会模拟完整的PyPI发布和用户安装流程，确保：
 
@@ -216,11 +219,12 @@ def validate(
 
 
 @app.command()
+@require_source_code
 def check(
     package: str = typer.Option("sage", help="要检查的包名"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细输出"),
 ):
-    """检查SAGE包的构建状态
+    """检查SAGE包的构建状态（仅开发模式）
 
     检查wheel包是否已构建，以及基本的包信息。
     """
@@ -289,12 +293,13 @@ def check(
 
 
 @app.command()
+@require_source_code
 def build(
     package: str = typer.Option("sage", help="要构建的包名"),
     clean: bool = typer.Option(True, "--clean/--no-clean", help="构建前清理旧文件"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细输出"),
 ):
-    """构建SAGE wheel包
+    """构建SAGE wheel包（仅开发模式）
 
     清理并重新构建指定的包。
     """
@@ -391,11 +396,12 @@ def build(
 
 
 @app.command()
+@require_source_code
 def clean(
     package: str = typer.Option("sage", help="要清理的包名"),
     all_packages: bool = typer.Option(False, "--all", help="清理所有包"),
 ):
-    """清理构建文件
+    """清理构建文件（仅开发模式）
 
     清理指定包或所有包的构建文件。
     """
@@ -450,6 +456,7 @@ def clean(
 
 
 @app.command()
+@require_source_code
 def publish(
     dry_run: bool = typer.Option(False, "--dry-run", help="发布到TestPyPI进行测试"),
     skip_build: bool = typer.Option(False, "--skip-build", help="跳过构建步骤"),
@@ -458,7 +465,7 @@ def publish(
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细输出"),
 ):
-    """发布SAGE包到PyPI
+    """发布SAGE包到PyPI（仅开发模式）
 
     按照正确的依赖顺序构建和发布所有SAGE包到PyPI。
 
