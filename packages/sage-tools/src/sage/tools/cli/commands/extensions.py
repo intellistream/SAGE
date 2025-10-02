@@ -527,6 +527,83 @@ def _ensure_build_environment() -> None:
     raise typer.Exit(1)
 
 
+def _check_and_fix_libstdcxx() -> None:
+    """
+    Check if conda environment has compatible libstdc++ for C++20 compilation.
+    If not, attempt to upgrade it or warn the user.
+    """
+    import sys
+    
+    # Only relevant for conda environments
+    conda_prefix = os.getenv("CONDA_PREFIX")
+    if not conda_prefix:
+        return
+    
+    # Check GCC version
+    try:
+        result = subprocess.run(
+            ["gcc", "-dumpversion"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        gcc_major_version = int(result.stdout.strip().split('.')[0])
+    except Exception:
+        # Can't determine GCC version, skip check
+        return
+    
+    # Only check if GCC >= 11 (which uses newer GLIBCXX)
+    if gcc_major_version < 11:
+        return
+    
+    # Check conda libstdc++ version
+    conda_libstdcxx = Path(conda_prefix) / "lib" / "libstdc++.so.6"
+    if not conda_libstdcxx.exists():
+        return
+    
+    try:
+        result = subprocess.run(
+            ["strings", str(conda_libstdcxx)],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        glibcxx_versions = [line for line in result.stdout.splitlines() if line.startswith("GLIBCXX_")]
+        
+        # Check if we have at least GLIBCXX_3.4.30 (needed for C++20/GCC 11+)
+        has_modern_glibcxx = any("GLIBCXX_3.4.3" in v for v in glibcxx_versions)
+        
+        if not has_modern_glibcxx:
+            print_warning(
+                f"检测到conda环境的libstdc++版本过低 (需要 GLIBCXX_3.4.30+)"
+            )
+            print_info("正在尝试更新libstdc++...")
+            
+            # Try to update using conda
+            try:
+                result = subprocess.run(
+                    ["conda", "install", "-c", "conda-forge", "libstdcxx-ng", "-y"],
+                    capture_output=True,
+                    text=True,
+                    timeout=120
+                )
+                if result.returncode == 0:
+                    print_success("libstdc++已更新 ✓")
+                else:
+                    print_warning("无法自动更新libstdc++")
+                    typer.echo("\n💡 请手动运行:")
+                    typer.echo("   conda install -c conda-forge libstdcxx-ng")
+            except subprocess.TimeoutExpired:
+                print_warning("更新超时")
+            except Exception as e:
+                print_warning(f"更新失败: {e}")
+                typer.echo("\n💡 请手动运行:")
+                typer.echo("   conda install -c conda-forge libstdcxx-ng")
+    except Exception:
+        # If we can't check, just continue
+        pass
+
+
 def _resolve_project_root() -> Path:
     """
     Locate and return the root directory of the SAGE project.
@@ -578,6 +655,9 @@ def install(
     _print_install_banner()
 
     _ensure_build_environment()
+    
+    # Check and fix libstdc++ compatibility issues
+    _check_and_fix_libstdcxx()
 
     sage_root = _resolve_project_root()
 
