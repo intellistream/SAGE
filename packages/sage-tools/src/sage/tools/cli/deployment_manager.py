@@ -179,9 +179,9 @@ class DeploymentManager:
                     # 只添加必要的脚本文件
                     essential_scripts = [
                         "requirements/",  # 依赖文件
-                        "common_utils.sh",
-                        "logging.sh",
-                        "config.sh",  # 工具脚本
+                        "lib/common_utils.sh",
+                        "lib/logging.sh",
+                        "lib/config.sh",  # 工具脚本
                     ]
 
                     for script_item in essential_scripts:

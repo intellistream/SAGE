@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 引入日志模块
-source "../utils/logging.sh"
+source "../lib/logging.sh"
 
 print_header "🔧 Conda 服务条款修复工具"
 
