@@ -1,8 +1,6 @@
-import time
 from typing import TYPE_CHECKING, Any
 
 import ray
-from sage.common.utils.logging.custom_logger import CustomLogger
 
 from .base_service_task import BaseServiceTask
 

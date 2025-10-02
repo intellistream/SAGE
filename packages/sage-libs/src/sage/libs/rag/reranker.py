@@ -1,10 +1,12 @@
-import logging
 from typing import List, Tuple
 
 import torch
 from sage.core.api.function.map_function import MapFunction
-from transformers import (AutoModelForCausalLM,
-                          AutoModelForSequenceClassification, AutoTokenizer)
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
 
 
 class BGEReranker(MapFunction):
@@ -135,7 +137,7 @@ class BGEReranker(MapFunction):
             )[:top_k]
             reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
             self.logger.info(
-                f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m "
+                f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list}\033[0m "
             )
             self.logger.debug(
                 f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}"
@@ -334,7 +336,7 @@ class LLMbased_Reranker(MapFunction):
                 reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
                 emit_docs.append(reranked_docs_list)
                 self.logger.info(
-                    f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m "
+                    f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list}\033[0m "
                 )
                 self.logger.debug(
                     f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}"

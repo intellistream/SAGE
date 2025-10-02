@@ -2,8 +2,7 @@
 RAG Pipeline - RAG 系统的核心管道组件
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 
 class RAGPipeline:

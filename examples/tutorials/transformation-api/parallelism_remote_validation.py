@@ -176,19 +176,20 @@ def validate_remote_single_stream_parallelism():
 
     print("\n--- Test 2: Distributed processing with direct parallelism ---")
     result2 = (
-        source_stream
-        .map(DistributedProcessor, "SetDistMapper", parallelism=3)  # 3 parallel mappers
+        source_stream.map(
+            DistributedProcessor, "SetDistMapper", parallelism=3
+        )  # 3 parallel mappers
         .filter(DistributedFilter, parallelism=2)  # 2 parallel filters
         .sink(DistributedSink, parallelism=1)
     )  # 1 sink
 
     # Analyze pipeline
-    print(f"\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
+    print("\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
     print(f"Total transformations: {len(env.pipeline)}")
     print(f"Ray workers available: {env.platform} (distributed execution)")
     for i, transformation in enumerate(env.pipeline):
         print(
-            f"  {i+1:2d}. {transformation.function_class.__name__:25s} | "
+            f"  {i + 1:2d}. {transformation.function_class.__name__:25s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
         )
@@ -233,12 +234,12 @@ def validate_remote_multi_stream_parallelism():
     )  # 1 sink
 
     # Analyze pipeline
-    print(f"\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
+    print("\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
     print(f"Total transformations: {len(env.pipeline)}")
     print(f"Environment platform: {env.platform}")
     for i, transformation in enumerate(env.pipeline):
         print(
-            f"  {i+1:2d}. {transformation.function_class.__name__:25s} | "
+            f"  {i + 1:2d}. {transformation.function_class.__name__:25s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
         )
@@ -269,27 +270,27 @@ def validate_ray_distributed_execution():
         .sink(DistributedSink, parallelism=2)
     )  # 2 sinks
 
-    print(f"\n📋 Remote Distribution Test Pipeline:")
+    print("\n📋 Remote Distribution Test Pipeline:")
     print(f"  - Dataset size: {len(large_dataset)} items")
     print(
-        f"  - Expected parallel processors: 5 (will distribute based on available workers)"
+        "  - Expected parallel processors: 5 (will distribute based on available workers)"
     )
     print(
-        f"  - Expected parallel filters: 3 (will distribute based on available workers)"
+        "  - Expected parallel filters: 3 (will distribute based on available workers)"
     )
-    print(f"  - Expected sinks: 2 (will distribute based on available workers)")
+    print("  - Expected sinks: 2 (will distribute based on available workers)")
 
-    print(f"\n🔍 Pipeline transformations:")
+    print("\n🔍 Pipeline transformations:")
     for i, transformation in enumerate(env.pipeline):
         print(
-            f"  {i+1}. {transformation.basename} (parallelism: {transformation.parallelism})"
+            f"  {i + 1}. {transformation.basename} (parallelism: {transformation.parallelism})"
         )
 
-    print(f"\n💡 Key aspects of remote distributed execution:")
-    print(f"   - Each parallel instance may run on different remote workers")
-    print(f"   - Process IDs will differ across workers")
-    print(f"   - Work is distributed based on available resources")
-    print(f"   - RemoteEnvironment handles load balancing and coordination")
+    print("\n💡 Key aspects of remote distributed execution:")
+    print("   - Each parallel instance may run on different remote workers")
+    print("   - Process IDs will differ across workers")
+    print("   - Work is distributed based on available resources")
+    print("   - RemoteEnvironment handles load balancing and coordination")
 
     return env
 
@@ -313,26 +314,28 @@ def main():
         print("✅ Remote distributed execution: Verified parallel worker distribution")
         print("✅ RemoteEnvironment direct parallelism: WORKING CORRECTLY")
 
-        print(f"\n📊 Total remote environments created: 3")
+        print("\n📊 Total remote environments created: 3")
         print(
             f"📊 Total distributed transformations: {len(env1.pipeline) + len(env2.pipeline) + len(env3.pipeline)}"
         )
 
-        print(f"\n💡 Key remote validations:")
-        print(f"   - Parallelism settings work in distributed remote environment")
-        print(f"   - Direct parallelism specification distributes work across remote workers")
-        print(f"   - Multi-stream operations (CoMap) support distributed parallelism")
+        print("\n💡 Key remote validations:")
+        print("   - Parallelism settings work in distributed remote environment")
         print(
-            f"   - RemoteEnvironment automatically handles worker assignment and coordination"
+            "   - Direct parallelism specification distributes work across remote workers"
+        )
+        print("   - Multi-stream operations (CoMap) support distributed parallelism")
+        print(
+            "   - RemoteEnvironment automatically handles worker assignment and coordination"
         )
 
     except Exception as e:
         print(f"\n❌ Remote validation encountered an error: {e}")
         print(
-            f"💡 This might be due to RemoteEnvironment not being available or configured properly"
+            "💡 This might be due to RemoteEnvironment not being available or configured properly"
         )
-        print(f"   Please ensure the JobManager service is running and accessible")
-        print(f"   And that your system supports remote distributed execution")
+        print("   Please ensure the JobManager service is running and accessible")
+        print("   And that your system supports remote distributed execution")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,8 @@ import os
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
-manager_path = "examples/memory/data/neuromem"
+# 使用 .sage 目录存储测试数据
+manager_path = ".sage/examples/memory/rag_memory_manager"
 
 config = {
     "name": "RAGMemoryCollection",
@@ -12,8 +13,8 @@ config = {
     "description": "rag memory collection",
     "index_config": {
         "name": "test_index",
-        "embedding_model": "default",
-        "dim": 384,
+        "embedding_model": "mockembedder",
+        "dim": 128,
         "backend_type": "FAISS",
         "description": "rag memory index",
         "index_parameter": {},
@@ -29,12 +30,12 @@ class RAGMemoryManager:
 
         if self.memory_manager.has_collection(config.get("name")):
             self.rag_collection = self.memory_manager.get_collection(config.get("name"))
-            self.logger.info(f"Successfully load rag memory from disk")
+            self.logger.info("Successfully load rag memory from disk")
             self.init_status = True
         else:
             self.rag_collection = self.memory_manager.create_collection(config)
             self.rag_collection.create_index(config.get("index_config"))
-            self.logger.info(f"Successfully create rag memory")
+            self.logger.info("Successfully create rag memory")
 
     def init(self, texts, metadatas):
         self.rag_collection.batch_insert_data(texts, metadatas)

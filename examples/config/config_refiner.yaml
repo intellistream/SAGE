@@ -40,7 +40,7 @@ generator:
     seed: 42
 
   vllm:
-    api_key: "token-abc123"
+    api_key: ""
     method: "openai"
     model_name: "meta-llama/Llama-2-7b-chat-hf"
     base_url: "http://sage3:8000/v1"
@@ -68,9 +68,8 @@ refiner:
   score_model_path: "BAAI/bge-reranker-v2-m3"
   max_model_len: 25000
   budget: 2048
-  gpu_device: 1  # vLLM使用GPU 1
-  score_gpu_device: 1  # score模型使用GPU 0
-  gpu_memory_utilization: 0.7
+  gpu_device: 0  # vLLM使用GPU 1
+  gpu_memory_utilization: 0.5
 
 evaluate:
   platform: "local"

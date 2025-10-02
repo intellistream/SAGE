@@ -1,7 +1,7 @@
-import {Component, OnInit, OnDestroy} from '@angular/core';
-import {OverviewService} from "./overview.service";
-import {FormBuilder, FormGroup} from "@angular/forms";
-import {Job} from "../../model/Job";
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { OverviewService } from "./overview.service";
+import { FormBuilder, FormGroup } from "@angular/forms";
+import { Job } from "../../model/Job";
 import { NzGraphData, NzGraphDataDef, NzGraphComponent } from 'ng-zorro-antd/graph';
 
 @Component({
@@ -18,14 +18,14 @@ export class OverviewComponent implements OnInit, OnDestroy {
   pageSize = 10;            // Number of jobs per page
   currentPageJob: Job[] = [];
   private graphDataCache: Map<string, NzGraphData> = new Map();
-  
+
   operatorGraphDataMap: Map<string, NzGraphDataDef> = new Map();
   nzOperatorGraphDataMap: Map<string, NzGraphData> = new Map();
-  
+
   // 添加默认的图表数据属性
   nzOperatorGraphData: NzGraphData = new NzGraphData({ nodes: [], edges: [] });
 
-  constructor(private overviewService: OverviewService, private formBuilder: FormBuilder) {}
+  constructor(private overviewService: OverviewService, private formBuilder: FormBuilder) { }
 
   ngOnInit() {
     this.tableIsLoading = true;
@@ -93,7 +93,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     }
 
     // Update the table
-    const startIndex = (this.currentPageIndex-1) * this.pageSize;
+    const startIndex = (this.currentPageIndex - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
     this.currentPageJob = this.filteredJobs.slice(startIndex, endIndex);
     this.tableIsLoading = false;
@@ -106,7 +106,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     this.jobs.forEach(job => {
       if (job && job.jobId) {
         const operatorGraphData: NzGraphDataDef = { nodes: [], edges: [] };
-        
+
         if (job.operators && job.operators.length > 0) {
           // 添加操作符节点
           for (let i = 0; i < job.operators.length; i++) {
@@ -114,17 +114,17 @@ export class OverviewComponent implements OnInit, OnDestroy {
               id: job.operators[i].id,
               label: job.operators[i].name,
               instance: job.operators[i].numOfInstances
-            });
-            
+            } as any);
+
             // 添加边（连接相邻操作符）
-              if(i>0) {
-                let downstream = job.operators[i-1].downstream;
-                for (let j = 0 ; j < downstream.length ; ++ j){
-                  let v = String(job.operators[i-1].id);
-                  let w = String(downstream[j]);
-                  operatorGraphData.edges.push({v: v, w:w });
-                }
+            if (i > 0) {
+              let downstream = job.operators[i - 1].downstream;
+              for (let j = 0; j < downstream.length; ++j) {
+                let v = String(job.operators[i - 1].id);
+                let w = String(downstream[j]);
+                operatorGraphData.edges.push({ v: v, w: w } as any);
               }
+            }
           }
         } else {
           // 如果没有操作符，创建默认节点
@@ -132,9 +132,9 @@ export class OverviewComponent implements OnInit, OnDestroy {
             id: `job-${job.jobId}`,
             label: job.name || 'Unknown Job',
             instance: 1
-          });
+          } as any);
         }
-        
+
         // 存储图表数据
         this.operatorGraphDataMap.set(job.jobId, operatorGraphData);
         this.nzOperatorGraphDataMap.set(job.jobId, new NzGraphData(operatorGraphData));
@@ -149,7 +149,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     if (!job || !job.jobId) {
       return this.createDefaultGraphData('No Job Data');
     }
-    
+
     // 从预处理的数据中获取
     const cachedData = this.nzOperatorGraphDataMap.get(job.jobId);
     if (cachedData) {
@@ -160,27 +160,27 @@ export class OverviewComponent implements OnInit, OnDestroy {
     try {
       alert("111111");
       const graphDataDef: NzGraphDataDef = { nodes: [], edges: [] };
-      
+
       if (job.operators && Array.isArray(job.operators) && job.operators.length > 0) {
         // 添加操作符节点
         job.operators.forEach((operator, index) => {
           if (operator) {
             graphDataDef.nodes.push({
-              id: operator.id ,
-              label: operator.name ,
-              instance: operator.numOfInstances 
-            });
+              id: operator.id,
+              label: operator.name,
+              instance: operator.numOfInstances
+            } as any);
           }
         });
-        
+
         // 添加边
-        for (let i = 0; i < job.operators.length-1; i++) {
+        for (let i = 0; i < job.operators.length - 1; i++) {
           let downstream = job.operators[i].downstream;
-          for (let j = 0 ; j < downstream.length ; ++ j){
+          for (let j = 0; j < downstream.length; ++j) {
             let v = String(job.operators[i].id);
             let w = String(downstream[j]);
-            console.log(v,w);
-            graphDataDef.edges.push({v: v, w:w });
+            console.log(v, w);
+            graphDataDef.edges.push({ v: v, w: w } as any);
           }
 
         }
@@ -189,13 +189,13 @@ export class OverviewComponent implements OnInit, OnDestroy {
           id: `job-${job.jobId}`,
           label: job.name || 'Unknown Job',
           instance: 1
-        });
+        } as any);
       }
-      
+
       const graphData = new NzGraphData(graphDataDef);
       this.nzOperatorGraphDataMap.set(job.jobId, graphData);
       return graphData;
-      
+
     } catch (error) {
       console.error('Error creating graph data for job:', job.name, error);
       return this.createDefaultGraphData(job.name || 'Error Job');
@@ -209,12 +209,12 @@ export class OverviewComponent implements OnInit, OnDestroy {
         id: 'default',
         label: label,
         instance: 1
-      }],
+      } as any],
       edges: []
     };
     return new NzGraphData(graphDataDef);
   }
-  
+
   /**
    * 优化面板变化处理
    */

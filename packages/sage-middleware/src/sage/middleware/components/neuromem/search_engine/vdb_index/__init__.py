@@ -1,6 +1,6 @@
 # file sage/middleware/services/neuromem/search_engine/vdb_index/__init__.py
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Type  # noqa: F401
 
 from .base_vdb_index import BaseVDBIndex
 

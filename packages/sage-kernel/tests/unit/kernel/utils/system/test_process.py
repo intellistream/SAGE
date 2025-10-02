@@ -9,29 +9,28 @@ Test Framework: pytest
 Coverage: Process management, sudo operations, system monitoring
 """
 
-import getpass
-import os
 import subprocess
 import time
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import psutil
 import pytest
-from sage.common.utils.system.process import (SudoManager,
-                                              check_process_ownership,
-                                              create_sudo_manager,
-                                              find_processes_by_name,
-                                              get_process_children,
-                                              get_process_info,
-                                              get_system_process_summary,
-                                              is_process_running,
-                                              kill_process_with_sudo,
-                                              terminate_process,
-                                              terminate_process_tree,
-                                              terminate_processes_by_name,
-                                              verify_sudo_password,
-                                              wait_for_process_termination)
+from sage.common.utils.system.process import (
+    SudoManager,
+    check_process_ownership,
+    create_sudo_manager,
+    find_processes_by_name,
+    get_process_children,
+    get_process_info,
+    get_system_process_summary,
+    is_process_running,
+    kill_process_with_sudo,
+    terminate_process,
+    terminate_process_tree,
+    terminate_processes_by_name,
+    verify_sudo_password,
+    wait_for_process_termination,
+)
 
 
 class TestFindProcessesByName:

@@ -1,4 +1,3 @@
-import asyncio
 import os
 import sys
 
@@ -7,13 +6,12 @@ if sys.version_info < (3, 9):
 else:
     pass
 
-import pipmaster as pm  # Pipmaster for dynamic library install
 
 # Dependencies should be installed via requirements.txt
 # openai is required for this module
 
 try:
-    from openai import AsyncOpenAI
+    from openai import AsyncOpenAI, OpenAI
 except ImportError:
     raise ImportError(
         "openai package is required for NVIDIA OpenAI embedding functionality. "
@@ -51,11 +49,6 @@ async def nvidia_openai_embed(
     )
 
     return response.data[0].embedding
-
-
-import os
-
-from openai import OpenAI  # 同步 client
 
 
 def nvidia_openai_embed_sync(

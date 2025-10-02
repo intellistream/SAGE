@@ -25,7 +25,7 @@ def load_knowledge_to_milvus(config):
     persistence_path = config.get("milvus_dense").get("persistence_path")
     collection_name = "qa_dense_collection"  # 单集合
 
-    print(f"=== 预加载多格式知识库到 Milvus ===")
+    print("=== 预加载多格式知识库到 Milvus ===")
     print(f"DB: {persistence_path}")
     print(f"统一集合: {collection_name}")
 

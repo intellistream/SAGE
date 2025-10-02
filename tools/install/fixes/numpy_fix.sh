@@ -110,7 +110,7 @@ try:
     if 'site-packages' in numpy_path:
         shutil.rmtree(numpy_path, ignore_errors=True)
         print('Forcibly removed numpy directory')
-except:
+except Exception:
     pass
 " 2>/dev/null || true
             echo "$(date): 已清理pip numpy" >> "$log_file"

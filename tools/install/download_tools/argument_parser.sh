@@ -208,6 +208,7 @@ show_parameter_help() {
     echo -e "    ${DIM}包含: 标准安装 + tools + 开发工具 (pytest, black, mypy, pre-commit)${NC}"
     echo -e "    ${DIM}安装方式: 开发模式安装 (pip install -e)${NC}"
     echo -e "    ${DIM}适合: 为SAGE项目贡献代码的开发者${NC}"
+    echo -e "    ${DIM}自动安装: C++扩展 (sage_db, sage_flow) - 需要构建工具${NC}"
     echo ""
     
     echo -e "${BLUE}🔧 安装环境：${NC}"

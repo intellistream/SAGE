@@ -1,6 +1,6 @@
 import logging
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from abc import ABC
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
@@ -46,29 +46,43 @@ class BaseService(ABC):
             return self.ctx.name
         return self.__class__.__name__
 
-    @property
-    def call_service(self):
+    def call_service(
+        self,
+        service_name: str,
+        *args,
+        timeout: Optional[float] = None,
+        method: Optional[str] = None,
+        **kwargs,
+    ):
         """
         同步服务调用语法糖
 
         用法:
-            result = self.call_service["cache_service"].get("key1")
-            data = self.call_service["db_service"].query("SELECT * FROM users")
+            result = self.call_service("cache_service", key, method="get")
+            data = self.call_service("pipeline_name", payload)
         """
         if self.ctx is None:
             raise RuntimeError(
                 "Service context not initialized. Cannot access services."
             )
 
-        return self.ctx.call_service()
+        return self.ctx.call_service(
+            service_name, *args, timeout=timeout, method=method, **kwargs
+        )
 
-    @property
-    def call_service_async(self):
+    def call_service_async(
+        self,
+        service_name: str,
+        *args,
+        timeout: Optional[float] = None,
+        method: Optional[str] = None,
+        **kwargs,
+    ):
         """
         异步服务调用语法糖
 
         用法:
-            future = self.call_service_async["cache_service"].get("key1")
+            future = self.call_service_async("cache_service", key, method="get")
             result = future.result()  # 阻塞等待结果
 
             # 或者非阻塞检查
@@ -80,7 +94,9 @@ class BaseService(ABC):
                 "Service context not initialized. Cannot access services."
             )
 
-        return self.ctx.call_service_async()
+        return self.ctx.call_service_async(
+            service_name, *args, timeout=timeout, method=method, **kwargs
+        )
 
     def setup(self):
         """

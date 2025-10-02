@@ -17,8 +17,12 @@ from .download_issues import IssuesDownloader
 
 # 如果需要使用其他helper，可以尝试导入
 try:
-    from . import (ai_analyzer, create_issue, execute_fix_plan,
-                   get_team_members, github_helper, sync_issues)
+    from . import ai_analyzer  # noqa: F401
+    from . import create_issue  # noqa: F401
+    from . import execute_fix_plan  # noqa: F401
+    from . import get_team_members  # noqa: F401
+    from . import github_helper  # noqa: F401
+    from . import sync_issues  # noqa: F401
 
     __all__ = [
         "IssuesDownloader",

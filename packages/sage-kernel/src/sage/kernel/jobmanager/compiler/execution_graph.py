@@ -11,7 +11,7 @@ ExecutionGraph管理整个图的构建和运行时上下文，包含：
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING, Dict, List
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.base_environment import BaseEnvironment
@@ -28,10 +28,6 @@ if TYPE_CHECKING:
 from .graph_edge import GraphEdge
 from .graph_node import TaskNode
 from .service_node import ServiceNode
-
-if TYPE_CHECKING:
-    from ray.actor import ActorHandle
-    from sage.kernel.jobmanager.job_manager import JobManager
 
 
 class ExecutionGraph:
@@ -172,8 +168,9 @@ class ExecutionGraph:
                 service_node_name = get_name(f"service_{service_name}")
 
                 # 在ExecutionGraph中创建ServiceTaskFactory，而不是从环境中获取
-                from sage.kernel.runtime.factory.service_task_factory import \
-                    ServiceTaskFactory
+                from sage.kernel.runtime.factory.service_task_factory import (
+                    ServiceTaskFactory,
+                )
 
                 service_task_factory = ServiceTaskFactory(
                     service_factory=service_factory, remote=(env.platform == "remote")
@@ -261,8 +258,9 @@ class ExecutionGraph:
         self.logger.debug("Step 1: Generating parallel nodes for each transformation")
         for transformation in env.pipeline:
             # 安全检查：如果发现未填充的future transformation，报错
-            from sage.core.transformation.future_transformation import \
-                FutureTransformation
+            from sage.core.transformation.future_transformation import (
+                FutureTransformation,
+            )
 
             if isinstance(transformation, FutureTransformation):
                 if not transformation.filled:
@@ -293,8 +291,9 @@ class ExecutionGraph:
 
         for transformation in env.pipeline:
             # 跳过已填充的future transformation（它们在step 1中已被跳过）
-            from sage.core.transformation.future_transformation import \
-                FutureTransformation
+            from sage.core.transformation.future_transformation import (
+                FutureTransformation,
+            )
 
             if isinstance(transformation, FutureTransformation):
                 if transformation.filled:

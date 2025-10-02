@@ -7,8 +7,6 @@ SAGE Issues 数据管理器
 import json
 import os
 import re
-import shutil
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -64,7 +62,7 @@ class IssueDataManager:
         try:
             issue_number = issue_data.get("number")
             if not issue_number:
-                print(f"❌ Issue数据缺少编号")
+                print("❌ Issue数据缺少编号")
                 return False
 
             # 处理milestone信息
@@ -109,8 +107,8 @@ class IssueDataManager:
                     "state": issue_data.get("state", "open"),
                     "state_reason": issue_data.get("state_reason"),
                     "labels": [
-                        l.get("name") if isinstance(l, dict) else l
-                        for l in issue_data.get("labels", [])
+                        l_strip.get("name") if isinstance(l_strip, dict) else l_strip
+                        for l_strip in issue_data.get("labels", [])
                     ],
                     "assignees": [
                         a.get("login") if isinstance(a, dict) else a
@@ -183,8 +181,6 @@ class IssueDataManager:
                     ),
                     # 新增：父子关系信息
                     "parent_issue_url": issue_data.get("parent_issue_url"),
-                    # 新增：issue类型信息
-                    "type": issue_data.get("type"),
                 },
                 "content": {
                     "body": issue_data.get("body", ""),
@@ -337,7 +333,7 @@ class IssueDataManager:
                                 timestamp.replace("Z", "+00:00")
                             )
                             time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-                        except:
+                        except Exception:
                             time_str = timestamp
 
                         update_history_section += f"- **{time_str}**: {action}\n"
@@ -350,7 +346,7 @@ class IssueDataManager:
                                 update_history_section += (
                                     f"  - GitHub最后更新: {github_time_str}\n"
                                 )
-                            except:
+                            except Exception:
                                 pass
                 update_history_section += "\n"
 
@@ -626,7 +622,7 @@ class IssueDataManager:
                 elif line.startswith("**Issue #**:"):
                     try:
                         issue_data["number"] = int(line.split(":")[1].strip())
-                    except:
+                    except Exception:
                         pass
                 elif line.startswith("**状态**:"):
                     issue_data["state"] = line.split(":")[1].strip()
@@ -690,7 +686,7 @@ def main():
     parser = argparse.ArgumentParser(description="Issue数据管理器")
     parser.add_argument(
         "--workspace",
-        default="/home/shuhao/SAGE/output/issues-workspace",
+        default=os.path.expanduser("~/SAGE/output/issues-workspace"),
         help="工作目录路径",
     )
     parser.add_argument("--migrate", action="store_true", help="从旧格式迁移数据")

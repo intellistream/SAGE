@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Type
+from typing import Dict, Optional
 
 from .base_tool import BaseTool
 

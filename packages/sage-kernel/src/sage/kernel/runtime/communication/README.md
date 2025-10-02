@@ -1,182 +1,54 @@
-# Communication 通信模块
+# Communication 模块
 
-Communication 模块提供 SAGE 运行时的统一通信框架，支持多种通信模式和数据路由策略。
+`packages/sage-kernel/src/sage/kernel/runtime/communication` 收拢了运行时的数据通路：
 
-## 模块架构
+- `queue_descriptor/` 定义可序列化的队列描述符，执行图编译阶段会为节点和服务生成这些描述符并挂载到 `TaskContext` / `ServiceContext`。
+- `router/` 提供 `BaseRouter`、`Connection`、`Packet`、`StopSignal`，在任务运行时负责选择下游队列并写入数据包。
 
-### 队列通信系统 (`queue/`)
-提供统一的队列抽象和多种队列实现。
+以下内容基于当前仓库中的实现，不包含文档中未出现的“共享内存队列”“自动负载均衡”等尚未落地的特性。
 
-**核心组件**：
-- **队列描述符**: 统一的多态队列描述符系统
-- **队列桩**: 各种队列类型的封装和转换
-- **描述符扩展**: 队列描述符的基础设施支持
+## 队列描述符一览
 
-**主要特性**：
-- 支持本地队列、共享内存队列、Ray Actor 队列等
-- 统一的队列接口和序列化支持
-- 跨进程队列描述符传递
+| 类名 | 对应文件 | 说明 |
+| --- | --- | --- |
+| `PythonQueueDescriptor` | `python_queue_descriptor.py` | 默认实现，懒加载 `queue.Queue`，适合本地线程内通信。`maxsize` 可配置，未调用前可序列化。|
+| `RayQueueDescriptor` | `ray_queue_descriptor.py` | 在 Ray 环境下通过命名 `RayQueueManager` Actor 共享队列；本地模式下退化为 `SimpleTestQueue`。需要在调用前确保 Ray 已初始化。|
+| `RPCQueueDescriptor` | `rpc_queue_descriptor.py` | 预留的远程队列描述符，依赖尚未随仓库发布的 `communication.rpc.rpc_queue`，目前不建议在生产中启用。|
 
-### 路由系统 (`router/`)
-处理数据包路由、连接管理和负载均衡。
+公共基类 `BaseQueueDescriptor` 提供：
 
-**核心组件**：
-- **路由器**: 负责数据包的智能路由和分发
-- **连接管理**: 管理节点间的通信连接
-- **数据包**: 定义通信的基本数据单元
+- 队列接口代理：`put` / `get` / `qsize` / `empty` 等调用会转发给实际队列对象。
+- 懒加载：第一次访问 `queue_instance` 时才创建底层队列，可通过 `clear_cache()` 重置。
+- 序列化：`to_dict()` / `to_json()` 仅包含可序列化字段；若需跨进程传输，请在初始化前调用，或使用 `to_serializable_descriptor()` 去除队列实例。
+- 克隆：`clone()` 会生成同类型的新描述符，常用于为下游任务分配独立队列 ID。
 
-**主要特性**：
-- 多种路由策略（轮询、键分区、负载均衡）
-- 实时负载监控和自适应调整
-- 支持本地和分布式混合连接
+## 路由层核心
 
-## 通信模式
+- `Packet`：数据包载体，携带 `payload`、`input_index` 以及可选的 `partition_key` 与 `partition_strategy`。支持 `inherit_partition_info()`、`update_key()` 等便捷方法。
+- `StopSignal`：停止信号，沿执行图传播，用于批处理作业的收尾。
+- `Connection`：封装下游节点的 `queue_descriptor`、并行度索引和输入端口。包含基础的负载记录字段，但当前实现仅用于日志/调试，没有自动调度逻辑。
+- `BaseRouter`：由 `TaskContext` 在运行时实例化。核心能力包括：
+  - Round-Robin：所有未指定策略的数据包按广播组轮询发送。
+  - Hash：当 `Packet.partition_strategy == "hash"` 且携带 `partition_key` 时，根据哈希值选择并行实例。
+  - Broadcast：当策略为 `"broadcast"` 时，对同一广播组所有连接逐一写入。
+  - Stop 信号广播：`send_stop_signal()` 将 `StopSignal` 投递给所有下游队列。
 
-### 1. 点对点通信
-```python
-from sage.kernels.runtime.communication.queue_descriptor import QueueDescriptor
-from sage.kernels.runtime.communication.router import Connection
+### 与任务执行的关系
 
-# 创建队列描述符
-descriptor = QueueDescriptor(
-    queue_id="p2p_queue",
-    queue_type="local",
-    metadata={"maxsize": 1000}
-)
+1. JobManager 编译执行图时，为每个节点生成输入队列描述符和下游连接映射。
+2. `TaskContext` 保存这些信息并暴露 `send_packet()` / `send_stop_signal()` API，算子层只需调用上下文接口即可发送数据。
+3. 运行时由 `Dispatcher` 启动任务线程，`BaseTask` 从 `input_qd` 读取 `Packet`，处理后通过 `ctx.send_packet()` 写入下游队列。
+4. 停止信号传播依赖相同的路由机制，最终由 Dispatcher 汇总并触发资源清理。
 
-# 建立连接
-connection = Connection(
-    broadcast_index=0,
-    parallel_index=0,
-    target_name="receiver",
-    target_handle=receiver_task,
-    target_input_index=0
-)
-```
+## 调试与注意事项
 
-### 2. 广播通信
-```python
-# 创建广播路由器
-router = BroadcastRouter(ctx)
+- **队列实例为空**：`PythonQueueDescriptor` 在调用 `queue_instance` 前不可序列化，跨进程传递时请在另一端重新实例化或调用 `clear_cache()`。
+- **Ray 模式**：确保 `ray.init()` 已运行，否则 `RayQueueDescriptor` 会因找不到全局管理器而抛错；本地单机测试时会自动回退到 `SimpleTestQueue`。
+- **RPC 描述符**：仓库中未包含 `RPCQueue` 的实现，如需远程队列请自行补全或避免使用该类。
+- **负载信息**：`Connection.get_buffer_load()` 仅在底层队列支持 `qsize/maxsize` 时返回有效值，当前版本没有根据该指标自动调整速率。
 
-# 添加多个下游连接
-for i, target in enumerate(targets):
-    connection = Connection(
-        broadcast_index=i,
-        parallel_index=0,
-        target_name=f"target_{i}",
-        target_handle=target,
-        target_input_index=0
-    )
-    router.add_connection(connection)
-```
+## 关联文档
 
-### 3. 分区通信
-```python
-from sage.kernels.runtime.communication.router.packet import Packet
-
-# 创建带分区键的数据包
-packet = Packet(
-    payload=data,
-    partition_key=user_id,
-    partition_strategy="hash"
-)
-
-# 路由器根据分区键选择目标
-router.route(packet)
-```
-
-## 队列类型支持
-
-### 本地队列 (Local Queue)
-- **适用场景**: 单进程内线程间通信
-- **特点**: 低延迟，高性能
-- **实现**: 基于 Python `queue.Queue`
-
-### 共享内存队列 (Shared Memory Queue)
-- **适用场景**: 多进程间通信
-- **特点**: 高效的跨进程数据传输
-- **实现**: 基于共享内存机制
-
-### Ray Actor 队列
-- **适用场景**: 分布式计算环境
-- **特点**: 跨节点通信，自动容错
-- **实现**: 基于 Ray 分布式框架
-
-### SAGE 队列
-- **适用场景**: 高性能流处理
-- **特点**: 专为 SAGE 优化的高性能队列
-- **实现**: 自定义实现，支持背压和流控
-
-## 性能优化
-
-### 负载均衡
-- **动态负载监控**: 实时跟踪下游节点负载
-- **自适应路由**: 根据负载情况动态调整路由策略
-- **负载预测**: 基于历史数据预测负载趋势
-
-### 内存管理
-- **零拷贝传输**: 在可能的情况下避免数据拷贝
-- **缓冲区管理**: 智能缓冲区大小调整
-- **内存池**: 复用内存对象减少 GC 压力
-
-### 网络优化
-- **连接复用**: 复用网络连接减少开销
-- **批量传输**: 合并小数据包提高传输效率
-- **压缩传输**: 对大数据进行压缩传输
-
-## 故障处理
-
-### 连接故障
-- **健康检查**: 定期检查连接健康状态
-- **自动重连**: 连接断开时自动重新建立
-- **故障转移**: 将流量转移到健康的连接
-
-### 数据丢失防护
-- **确认机制**: 可选的消息确认机制
-- **重传策略**: 失败消息的重传处理
-- **持久化**: 关键数据的持久化存储
-
-## 监控和调试
-
-### 通信指标
-- **吞吐量**: 消息传输速率统计
-- **延迟**: 端到端消息延迟测量
-- **队列状态**: 队列大小和利用率监控
-
-### 调试支持
-- **消息追踪**: 跟踪消息的完整传输路径
-- **性能分析**: 通信性能瓶颈分析
-- **日志记录**: 详细的通信日志记录
-
-## 配置选项
-
-### 队列配置
-```yaml
-communication:
-  queue:
-    default_type: "local"
-    max_size: 10000
-    timeout: 30
-  
-  router:
-    strategy: "load_balance"
-    health_check_interval: 5
-    max_retries: 3
-```
-
-### 性能调优
-```yaml
-performance:
-  batch_size: 100
-  compression: true
-  zero_copy: true
-  memory_pool_size: 1024
-```
-
-## 参考
-
-相关模块：
-- `../task/`: 任务执行系统
-- `../service/`: 服务调用框架
-- `../../core/`: 核心执行引擎
+- `docs-public/docs_src/kernel/runtime_tasks.md`
+- `docs-public/docs_src/kernel/runtime_services.md`
+- `docs-public/docs_src/kernel/runtime_communication.md`

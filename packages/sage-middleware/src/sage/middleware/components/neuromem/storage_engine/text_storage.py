@@ -3,10 +3,12 @@
 
 from typing import List, Optional
 
-from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
-    BaseKVBackend
-from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import \
-    DictKVBackend
+from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import (
+    BaseKVBackend,
+)
+from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import (
+    DictKVBackend,
+)
 
 
 class TextStorage:
@@ -75,7 +77,7 @@ class TextStorage:
 
 """测试预期输出
 Retrieved: hello world
-After clear: 
+After clear:
 """
 
 if __name__ == "__main__":

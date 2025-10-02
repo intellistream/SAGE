@@ -349,14 +349,14 @@ def main():
 
     # 显示简要摘要
     compliance = reporter.analyze_test_compliance()
-    print(f"\n快速摘要:")
+    print("\n快速摘要:")
     print(f"- 测试合规率: {compliance['compliance_rate']:.1f}%")
     print(f"- 源文件总数: {compliance['total_source_files']}")
     print(f"- 已覆盖文件: {compliance['covered_files']}")
     print(f"- 未覆盖文件: {compliance['uncovered_files']}")
 
     if compliance["uncovered_source_files"]:
-        print(f"\n需要创建测试的文件:")
+        print("\n需要创建测试的文件:")
         for src_file in compliance["uncovered_source_files"][:5]:  # 只显示前5个
             print(f"  - {src_file}")
         if len(compliance["uncovered_source_files"]) > 5:

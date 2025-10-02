@@ -5,6 +5,7 @@
 # 导入颜色定义和输出格式化
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/output_formatter.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/system_deps.sh"
 
 # ============================================================================
 # 预检查（静默检查，用于决定输出格式）
@@ -240,6 +241,13 @@ comprehensive_system_check() {
     check_cpu_architecture
     echo ""
     check_gpu_configuration
+    echo ""
+    
+    # 系统依赖检查和安装
+    if ! check_and_install_system_dependencies "$log_file"; then
+        echo -e "${CROSS} 系统依赖安装失败，但继续进行其他检查"
+        echo "$(date): 系统依赖安装失败，但继续进行其他检查" >> "$log_file"
+    fi
     echo ""
     
     # 模式特定检查

@@ -14,7 +14,6 @@ from typing import Optional
 import psutil
 import requests
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 console = Console()
@@ -260,8 +259,7 @@ class StudioManager:
 
                 # 安装缺失的包
                 env = os.environ.copy()
-                cache_dir = Path.home() / ".sage" / "studio" / "cache" / "npm"
-                env["npm_config_cache"] = str(cache_dir)
+                env["npm_config_cache"] = str(self.npm_cache_dir)
 
                 for package in missing_packages:
                     result = subprocess.run(
@@ -558,21 +556,21 @@ from pathlib import Path
 
 class SPAHandler(http.server.SimpleHTTPRequestHandler):
     """支持 SPA 路由的 HTTP 处理器"""
-    
+
     def __init__(self, *args, directory=None, **kwargs):
         self.directory = directory
         super().__init__(*args, **kwargs)
-    
+
     def do_GET(self):
         """处理 GET 请求，支持 SPA 路由回退"""
         # 获取请求的文件路径
         file_path = Path(self.directory) / self.path.lstrip('/')
-        
+
         # 如果是文件且存在，直接返回
         if file_path.is_file():
             super().do_GET()
             return
-            
+
         # 如果是目录且包含 index.html，返回 index.html
         if file_path.is_dir():
             index_file = file_path / "index.html"
@@ -580,7 +578,7 @@ class SPAHandler(http.server.SimpleHTTPRequestHandler):
                 self.path = str(index_file.relative_to(Path(self.directory)))
                 super().do_GET()
                 return
-        
+
         # 对于 SPA 路由（不存在的路径），返回根目录的 index.html
         root_index = Path(self.directory) / "index.html"
         if root_index.exists():
@@ -589,7 +587,7 @@ class SPAHandler(http.server.SimpleHTTPRequestHandler):
         else:
             # 如果连 index.html 都不存在，返回 404
             self.send_error(404, "File not found")
-    
+
     def end_headers(self):
         """添加 CORS 头"""
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -601,18 +599,18 @@ def main():
     PORT = {port}
     HOST = "{host}"
     DIRECTORY = "{str(self.dist_dir)}"
-    
+
     print(f"启动 SAGE Studio SPA 服务器...")
     print(f"地址: http://{{HOST}}:{{PORT}}")
     print(f"目录: {{DIRECTORY}}")
     print("按 Ctrl+C 停止服务器")
-    
+
     # 更改工作目录
     os.chdir(DIRECTORY)
-    
+
     # 创建处理器，传入目录参数
     handler = lambda *args, **kwargs: SPAHandler(*args, directory=DIRECTORY, **kwargs)
-    
+
     try:
         with socketserver.TCPServer((HOST, PORT), handler) as httpd:
             httpd.serve_forever()
@@ -676,7 +674,7 @@ if __name__ == "__main__":
 
                 return True
             else:
-                console.print(f"[red]Studio 构建失败[/red]")
+                console.print("[red]Studio 构建失败[/red]")
                 if result.stdout:
                     console.print("构建输出:")
                     console.print(result.stdout)

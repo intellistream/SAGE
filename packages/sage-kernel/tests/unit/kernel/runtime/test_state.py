@@ -5,17 +5,18 @@ Tests state management functionality including serialization
 and object attribute filtering.
 """
 
-import pickle
-import threading
-from collections.abc import Mapping, Sequence, Set
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import patch
 
 import pytest
-from sage.kernel.utils.persistence.state import (_BLACKLIST, _filter_attrs,
-                                                 _gather_attrs,
-                                                 _is_serializable, _prepare,
-                                                 load_function_state,
-                                                 save_function_state)
+from sage.kernel.utils.persistence.state import (
+    _BLACKLIST,
+    _filter_attrs,
+    _gather_attrs,
+    _is_serializable,
+    _prepare,
+    load_function_state,
+    save_function_state,
+)
 
 
 class SerializableTestObject:

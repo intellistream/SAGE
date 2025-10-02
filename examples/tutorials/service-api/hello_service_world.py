@@ -21,7 +21,7 @@ class HelloBatch(BatchFunction):
 class PrintSink(SinkFunction):
     def execute(self, data):
         # 调用服务
-        self.call_service["hello_service"].hello()
+        self.call_service("hello_service", method="hello")
         print(data)
 
 

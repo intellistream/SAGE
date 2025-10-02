@@ -2,8 +2,7 @@
 测试SinkFunction的单元测试
 """
 
-from abc import ABC, abstractmethod
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from sage.core.api.function.sink_function import SinkFunction

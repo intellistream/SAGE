@@ -134,16 +134,18 @@ def safe_import_openai_client():
 
 def safe_import_dill_functions():
     """安全导入 dill 序列化函数"""
-    from .fallbacks import (deserialize_object, serialize_object,
-                            trim_object_for_ray)
+    from .fallbacks import deserialize_object, serialize_object, trim_object_for_ray
 
     try:
-        from sage.common.utils.serialization.dill import \
-            deserialize_object as real_deserialize
-        from sage.common.utils.serialization.dill import \
-            serialize_object as real_serialize
-        from sage.common.utils.serialization.dill import \
-            trim_object_for_ray as real_trim
+        from sage.common.utils.serialization.dill import (
+            deserialize_object as real_deserialize,
+        )
+        from sage.common.utils.serialization.dill import (
+            serialize_object as real_serialize,
+        )
+        from sage.common.utils.serialization.dill import (
+            trim_object_for_ray as real_trim,
+        )
 
         return real_serialize, real_deserialize, real_trim
     except ImportError:

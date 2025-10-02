@@ -4,10 +4,7 @@ CoMap函数中服务调用集成测试
 参考算子内的service call语法糖和dataflow comap test
 """
 
-import threading
 import time
-import unittest
-from unittest.mock import Mock
 
 import pytest
 from sage.core.api.function.comap_function import BaseCoMapFunction
@@ -130,7 +127,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         else:
             # This is a recommendation request, handle it differently
             print(
-                f"[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
+                "[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
             )
             return {
                 "type": "recommendation_request_received",
@@ -146,10 +143,14 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
 
         try:
             print(
-                f"[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0"
+                "[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0"
             )
-            update_result = self.call_service["user_profile"].update_activity(
-                user_id, activity_description, timeout=10.0
+            update_result = self.call_service(
+                "user_profile",
+                user_id,
+                activity_description,
+                timeout=10.0,
+                method="update_activity",
             )
         except Exception as e:
             update_result = f"Service call failed: {str(e)[:100]}"
@@ -158,8 +159,13 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
             )
 
         try:
-            track_result = self.call_service["recommendation"].track_interaction(
-                user_id, item_id, interaction_type, timeout=10.0
+            track_result = self.call_service(
+                "recommendation",
+                user_id,
+                item_id,
+                interaction_type,
+                timeout=10.0,
+                method="track_interaction",
             )
         except Exception as e:
             track_result = {"tracked": False, "error": str(e)[:100]}
@@ -168,8 +174,11 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         # 使用服务调用语法糖 - 异步调用缓存服务清理相关缓存（增加容错处理）
         cache_key_pattern = f"rec_{user_id}"
         try:
-            cache_future = self.call_service_async["cache"].invalidate(
-                cache_key_pattern, timeout=10.0
+            cache_future = self.call_service_async(
+                "cache",
+                cache_key_pattern,
+                timeout=10.0,
+                method="invalidate",
             )
         except Exception as e:
             cache_future = None
@@ -215,8 +224,8 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         # 检查缓存 - 使用同步服务调用（增加容错处理）
         cache_key = f"rec_{user_id}_{context}"
         try:
-            cached_recommendations = self.call_service["cache"].get(
-                cache_key, timeout=10.0
+            cached_recommendations = self.call_service(
+                "cache", cache_key, timeout=10.0, method="get"
             )
         except Exception as e:
             cached_recommendations = None
@@ -238,8 +247,11 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
 
             # 异步获取用户画像
             try:
-                profile_future = self.call_service_async["user_profile"].get_profile(
-                    user_id, timeout=10.0
+                profile_future = self.call_service_async(
+                    "user_profile",
+                    user_id,
+                    timeout=10.0,
+                    method="get_profile",
                 )
             except Exception as e:
                 profile_future = None
@@ -267,16 +279,26 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
 
             # 根据用户兴趣获取推荐（增加容错处理）
             try:
-                recommendations = self.call_service[
-                    "recommendation"
-                ].get_recommendations(user_interests, user_id, timeout=10.0)
+                recommendations = self.call_service(
+                    "recommendation",
+                    user_interests,
+                    user_id,
+                    timeout=10.0,
+                    method="get_recommendations",
+                )
             except Exception as e:
                 recommendations = [f"item_{user_id}_{context}"]  # 使用默认推荐
                 self.logger.warning(f"Recommendation service call failed: {e}")
 
             # 缓存推荐结果（增加容错处理）
             try:
-                self.call_service["cache"].set(cache_key, recommendations, timeout=10.0)
+                self.call_service(
+                    "cache",
+                    cache_key,
+                    recommendations,
+                    timeout=10.0,
+                    method="set",
+                )
             except Exception as e:
                 self.logger.warning(f"Cache set service call failed: {e}")
 

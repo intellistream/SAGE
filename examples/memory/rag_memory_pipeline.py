@@ -1,7 +1,4 @@
 # @test:skip           - 跳过测试
-
-import time
-
 import yaml
 from rag_memory_service import RAGMemoryService
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -39,7 +36,7 @@ class Retriever(MapFunction):
         question = data
         data = {}
 
-        results = self.call_service["rag_memory"].retrieve(question)
+        results = self.call_service("rag_memory", question, method="retrieve")
         data["question"] = question
         data["context"] = results
 
@@ -51,8 +48,11 @@ class Writer(MapFunction):
         q_and_ctx, answer = data
         question = q_and_ctx.get("question")
 
-        self.call_service["rag_memory"].insert(
-            question, {"answer": answer, "topic": "健康-个性化"}
+        self.call_service(
+            "rag_memory",
+            question,
+            {"answer": answer, "topic": "健康-个性化"},
+            method="insert",
         )
         data = {}
         data["question"] = question

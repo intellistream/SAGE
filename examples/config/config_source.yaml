@@ -10,10 +10,10 @@ generator:
     seed: 42
 
   vllm:
-    api_key: "token-abc123"
+    api_key: ""
     method: "openai"
-    model_name: "meta-llama/Llama-2-7b-chat-hf"
-    base_url: "http://sage3:8000/v1"
+    model_name: "qwen-turbo-2025-02-11"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     seed: 42
 
   remote:
