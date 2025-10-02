@@ -28,7 +28,7 @@
 ./tools/maintenance/manage_submodule_branches.sh help
 ```
 
-### 2. 自动化 Hook：`.git/hooks/post-checkout`
+### 2. 自动化 Hook：`tools/maintenance/git-hooks/post-checkout`
 
 **功能**：
 - ✅ 在切换 SAGE 分支时自动触发
@@ -40,6 +40,10 @@
 # 切换分支会自动同步 submodules
 git checkout main-dev
 # 🔄 检测到分支切换，自动同步 submodule 分支...
+
+# 安装一次即可自动生效
+cp tools/maintenance/git-hooks/post-checkout .git/hooks/post-checkout
+chmod +x .git/hooks/post-checkout
 ```
 
 ### 3. 详细文档：`docs/SUBMODULE_BRANCH_MANAGEMENT.md`

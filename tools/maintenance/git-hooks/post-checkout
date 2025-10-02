@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Git passes three arguments to post-checkout; they are not required for this hook.
+# shellcheck disable=SC2034
+old_ref="$1"
+# shellcheck disable=SC2034
+new_ref="$2"
+# shellcheck disable=SC2034
+checkout_type="$3"
+
+repo_root="$(git rev-parse --show-toplevel)"
+if [[ -z "${repo_root}" ]]; then
+  echo "[post-checkout] Unable to determine repository root" >&2
+  exit 0
+fi
+
+script_path="$repo_root/tools/maintenance/manage_submodule_branches.sh"
+if [[ ! -x "$script_path" ]]; then
+  echo "[post-checkout] manage_submodule_branches.sh not executable; skipping submodule sync." >&2
+  exit 0
+fi
+
+# Run the switch command to align submodule branches with the current checkout.
+"$script_path" switch || {
+  echo "[post-checkout] Failed to synchronize submodule branches" >&2
+  exit 1
+}

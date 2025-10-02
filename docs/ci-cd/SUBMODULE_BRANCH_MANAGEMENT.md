@@ -17,8 +17,9 @@
 
 ```
 SAGE/
+├── tools/maintenance/git-hooks/post-checkout   # Git hook 示例（可选）
 ├── .git/hooks/
-│   └── post-checkout           # Git hook：自动同步（可选）
+│   └── post-checkout           # 拷贝示例后启用的 Git hook
 ├── tools/maintenance/
 │   └── manage_submodule_branches.sh  # 主管理脚本
 └── .gitmodules                 # Submodule 配置（根据分支不同）
@@ -124,7 +125,12 @@ sageDB.git                                         main-dev        main-dev
 
 ### 安装 Git Hook
 
-Hook 已自动创建在 `.git/hooks/post-checkout`，在切换分支时自动同步 submodules。
+仓库提供示例脚本 `tools/maintenance/git-hooks/post-checkout`，可在切换分支时自动同步 submodules。
+
+```bash
+cp tools/maintenance/git-hooks/post-checkout .git/hooks/post-checkout
+chmod +x .git/hooks/post-checkout
+```
 
 ### 验证 Hook
 
