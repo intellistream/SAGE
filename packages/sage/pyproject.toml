@@ -61,16 +61,9 @@ standard = [
 # 开发者安装 - 标准安装 + 完整开发工具套件
 dev = [
     "isage[standard]",  # 包含标准安装的所有功能
-    # 确保包含sage-tools的开发依赖（包含flake8等）
-    "isage-tools[dev]>=0.1.0",
-    # 额外的开发和测试工具（补充sage-tools[dev]中没有的）
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "isort>=5.10.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
+    # isage-tools 现在默认包含核心dev工具（black, isort, flake8, pytest等）
+    # 这里只添加额外的开发辅助工具
+    "isage-tools[dev]>=0.1.0",  # 额外的profiling和发布工具
     "pre-commit>=3.0.0",
 ]
 
