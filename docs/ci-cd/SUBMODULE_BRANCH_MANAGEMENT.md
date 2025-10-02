@@ -157,6 +157,24 @@ git checkout main
 mv .git/hooks/post-checkout .git/hooks/post-checkout.disabled
 ```
 
+## 🧹 切换前清理缺失的 Submodule
+
+当目标分支（如 `main`）不再跟踪某些 submodule 时，直接 `git checkout` 可能因为本地仍保留旧的子模块目录而失败。使用辅助脚本可在切换前自动清理：
+
+```bash
+# 例如准备切换到 main 分支
+./tools/maintenance/prepare_branch_checkout.sh main
+```
+
+脚本会依次完成：
+
+1. 对比当前 `.gitmodules` 与目标分支的 `.gitmodules`；
+2. 自动执行 `git submodule deinit -f` 并删除目标分支不再需要的子模块目录；
+3. 执行 `git checkout <target>`；
+4. 调用 `manage_submodule_branches.sh switch`，确保切换后子模块状态正确。
+
+> 如果目标分支同样跟踪所有现有子模块，脚本不会删除任何目录，可安全重复执行。
+
 ## 📋 工作流程示例
 
 ### 场景 1：开始新功能开发
