@@ -55,6 +55,8 @@ install_cpp_extensions() {
     
     echo "$(date): 开始安装C++扩展" >> "$log_file"
     echo -e "${BLUE}🧩 安装C++扩展 (sage_db, sage_flow)...${NC}"
+    echo -e "${DIM}📝 详细日志: ${log_file}${NC}"
+    echo ""
     
     # 系统依赖已经在comprehensive_system_check中检查和安装了
     # 这里直接尝试构建扩展
@@ -91,22 +93,34 @@ install_cpp_extensions() {
     # 在CI环境中显示实时输出，同时保存到日志
     if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
         echo -e "${DIM}CI环境: 显示详细安装过程...${NC}"
-        if $SAGE_CMD extensions install all --force 2>&1 | tee -a "$log_file"; then
-            install_success=true
-        else
-            install_success=false
-        fi
+        $SAGE_CMD extensions install all --force 2>&1 | tee -a "$log_file"
+        exit_code=${PIPESTATUS[0]}
     else
         # 非CI环境只保存到日志
-        if $SAGE_CMD extensions install all --force >> "$log_file" 2>&1; then
-            install_success=true
-        else
-            install_success=false
-        fi
+        $SAGE_CMD extensions install all --force >> "$log_file" 2>&1
+        exit_code=$?
     fi
     
-    if [ "$install_success" = "true" ]; then
-        echo "$(date): C++扩展安装成功" >> "$log_file"
+    # 注意: 段错误(退出码139)可能在清理阶段发生，但扩展已成功安装
+    # 通过检查扩展状态来确定实际结果
+    if [ $exit_code -eq 0 ]; then
+        install_success=true
+    elif [ $exit_code -eq 139 ]; then
+        # 段错误可能发生在Python退出清理阶段
+        echo -e "${DIM}命令返回段错误，检查扩展是否实际安装成功...${NC}"
+        echo "$(date): 检测到段错误(退出码139)，验证扩展状态" >> "$log_file"
+        # 稍后通过status命令验证
+        install_success="check_status"
+    else
+        install_success=false
+    fi
+    
+    if [ "$install_success" = "true" ] || [ "$install_success" = "check_status" ]; then
+        if [ "$install_success" = "check_status" ]; then
+            echo "$(date): 通过状态检查验证扩展安装" >> "$log_file"
+        else
+            echo "$(date): C++扩展安装成功" >> "$log_file"
+        fi
         
         # 验证扩展是否真的可用
         echo -e "${DIM}验证扩展可用性...${NC}"
@@ -274,6 +288,10 @@ install_sage() {
     if [ "$install_vllm" = "true" ]; then
         echo -e "${PURPLE}包含 VLLM 支持${NC}"
     fi
+    echo ""
+    echo -e "${BLUE}📝 安装日志: ${log_file}${NC}"
+    echo -e "${DIM}   可以使用以下命令实时查看日志:${NC}"
+    echo -e "${DIM}   tail -f ${log_file}${NC}"
     echo ""
     
     # 配置安装环境（包含所有检查）

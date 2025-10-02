@@ -47,6 +47,7 @@ class Colors:
     YELLOW = "\033[93m"
     BLUE = "\033[94m"
     BOLD = "\033[1m"
+    DIM = "\033[2m"
     RESET = "\033[0m"
 
 
@@ -187,15 +188,41 @@ def _clean_previous_build(ext_dir: Path) -> None:
         shutil.rmtree(build_dir)
 
 
-def _run_build_script(ext_dir: Path):
+def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
+    """运行构建脚本并将输出重定向到日志文件"""
+    import subprocess
+    
     original_cwd = os.getcwd()
     os.chdir(ext_dir)
     try:
-        return run_command(
-            ["bash", "build.sh", "--install-deps"],
-            check=False,
-            capture_output=False,
-        )
+        # 将日志放在.sage目录下
+        log_dir = sage_root / ".sage" / "logs" / "extensions"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / f"{ext_name}_build.log"
+        
+        typer.echo(f"{Colors.DIM}   构建日志: {log_file}{Colors.RESET}")
+        typer.echo(f"{Colors.DIM}   实时查看: tail -f {log_file}{Colors.RESET}")
+        
+        with open(log_file, "w") as f:
+            result = subprocess.run(
+                ["bash", "build.sh", "--install-deps"],
+                stdout=f,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+        
+        # 如果构建失败，显示最后几行日志
+        if result.returncode != 0:
+            typer.echo(f"\n{Colors.YELLOW}构建失败，最后50行日志:{Colors.RESET}")
+            try:
+                with open(log_file, "r") as f:
+                    lines = f.readlines()
+                    for line in lines[-50:]:
+                        typer.echo(f"  {line.rstrip()}")
+            except Exception:
+                pass
+        
+        return result
     finally:
         os.chdir(original_cwd)
 
@@ -364,7 +391,7 @@ def _diagnose_build_failure(ext_name: str, ext_dir: Path, result) -> None:
     _print_manual_diagnostics(ext_dir)
 
 
-def _install_extension(ext_name: str, ext_dir: Path, force: bool) -> bool:
+def _install_extension(ext_name: str, ext_dir: Path, sage_root: Path, force: bool) -> bool:
     typer.echo(f"\n{Colors.YELLOW}━━━ 安装 {ext_name} ━━━{Colors.RESET}")
 
     if not ext_dir.exists():
@@ -380,7 +407,7 @@ def _install_extension(ext_name: str, ext_dir: Path, force: bool) -> bool:
         print_info(f"构建 {ext_name}...")
         if force:
             _clean_previous_build(ext_dir)
-        result = _run_build_script(ext_dir)
+        result = _run_build_script(ext_dir, ext_name, sage_root)
     except Exception as exc:
         print_error(f"{ext_name} 构建失败: {exc}")
         typer.echo(f"异常详情: {type(exc).__name__}: {exc}")
@@ -471,7 +498,7 @@ def _install_selected_extensions(
     for ext_name in extensions_to_install:
         rel_path = EXTENSION_PATHS[ext_name]
         ext_dir = sage_root / rel_path
-        if _install_extension(ext_name, ext_dir, force):
+        if _install_extension(ext_name, ext_dir, sage_root, force):
             success_count += 1
 
     return success_count, total_count
@@ -499,8 +526,17 @@ def install(
     sage_root = _resolve_project_root()
 
     print_info(f"SAGE项目根目录: {sage_root}")
-
+    
+    # 显示日志文件位置（放在.sage目录下）
+    sage_logs_dir = sage_root / ".sage" / "logs" / "extensions"
+    sage_logs_dir.mkdir(parents=True, exist_ok=True)
+    
     extensions_to_install = _resolve_extensions_to_install(extension)
+    for ext_name in extensions_to_install:
+        build_log = sage_logs_dir / f"{ext_name}_build.log"
+        typer.echo(f"{Colors.DIM}📝 {ext_name} 构建日志: {build_log}{Colors.RESET}")
+    typer.echo("")
+
     success_count, total_count = _install_selected_extensions(
         extensions_to_install, sage_root, force
     )
