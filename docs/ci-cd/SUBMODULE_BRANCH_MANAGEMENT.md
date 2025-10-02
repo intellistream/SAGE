@@ -125,7 +125,13 @@ sageDB.git                                         main-dev        main-dev
 
 ### 安装 Git Hook
 
-仓库提供示例脚本 `tools/maintenance/git-hooks/post-checkout`，可在切换分支时自动同步 submodules。
+仓库提供示例脚本 `tools/maintenance/git-hooks/post-checkout`，推荐通过 helper 一键安装：
+
+```bash
+./tools/maintenance/setup_hooks.sh
+```
+
+如需覆盖已存在的 hook，可追加 `--force`。也可以手动复制：
 
 ```bash
 cp tools/maintenance/git-hooks/post-checkout .git/hooks/post-checkout

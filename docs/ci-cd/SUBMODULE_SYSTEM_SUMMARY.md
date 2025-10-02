@@ -42,6 +42,9 @@ git checkout main-dev
 # 🔄 检测到分支切换，自动同步 submodule 分支...
 
 # 安装一次即可自动生效
+./tools/maintenance/setup_hooks.sh
+
+# 如果需要自定义，可手动复制
 cp tools/maintenance/git-hooks/post-checkout .git/hooks/post-checkout
 chmod +x .git/hooks/post-checkout
 ```
