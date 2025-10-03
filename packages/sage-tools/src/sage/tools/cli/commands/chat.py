@@ -139,7 +139,7 @@ def ensure_sage_db() -> None:
         return
     message = (
         "[red]SageDB C++ 扩展不可用，无法使用 `sage chat`。[/red]\n"
-        "请先构建 SageDB 组件：`cd packages/sage-middleware && bash build.sh`."
+        "请先构建 SageDB 组件：`sage extensions install`."
     )
     if SAGE_DB_IMPORT_ERROR:
         message += f"\n原始错误: {SAGE_DB_IMPORT_ERROR}"
