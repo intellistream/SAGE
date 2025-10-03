@@ -329,20 +329,6 @@ Quick links:
 
 We welcome questions, bug reports, feature requests, and contributions from developers worldwide!
 
-## 🤝 Join Our Community
-
-Connect with other SAGE developers, get help, and stay updated on the latest developments:
-
-**💬 [Join SAGE Community](./docs/COMMUNITY.md)** - Complete guide to all our communication channels
-
-Quick links:
-- **WeChat Group**: Scan QR codes for instant chat (Chinese/English)
-- **QQ Group**: [IntelliStream课题组讨论群](https://qm.qq.com/q/bcnuyQVcvm)
-- **Slack**: [Join our workspace](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
-- **GitHub Discussions**: [Technical Q&A and feature requests](https://github.com/intellistream/SAGE/discussions)
-
-We welcome questions, bug reports, feature requests, and contributions from developers worldwide!
-
 ## License
 
 SAGE is licensed under the [MIT License](./LICENSE).
