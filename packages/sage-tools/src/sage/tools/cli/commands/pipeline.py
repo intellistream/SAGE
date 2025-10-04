@@ -19,6 +19,15 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from sage.common.config.output_paths import get_sage_paths
+from sage.tools.cli.commands.pipeline_domain import (
+    load_custom_contexts,
+    load_domain_contexts,
+)
+from sage.tools.cli.commands.pipeline_knowledge import (
+    build_query_payload,
+    get_default_knowledge_base,
+    PipelineKnowledgeBase,
+)
 
 try:  # pragma: no cover - optional dependency at runtime only
     from sage.libs.utils.openaiclient import OpenAIClient
@@ -133,6 +142,13 @@ def _validate_plan(plan: Dict[str, Any]) -> None:
     if not isinstance(plan["stages"], list) or not plan["stages"]:
         raise PipelineBuilderError("stages 字段必须是非空列表。")
 
+    if not isinstance(plan.get("sink"), dict) or not plan["sink"].get("class"):
+        raise PipelineBuilderError("sink 字段必须是包含 class 的对象。")
+
+    source = plan.get("source")
+    if source is not None and not isinstance(source, dict):
+        raise PipelineBuilderError("source 字段必须是对象。")
+
     pipeline_block = plan["pipeline"]
     if "name" not in pipeline_block:
         pipeline_block["name"] = "untitled-pipeline"
@@ -141,6 +157,19 @@ def _validate_plan(plan: Dict[str, Any]) -> None:
     if "version" not in pipeline_block:
         pipeline_block["version"] = "1.0.0"
 
+    for stage in plan["stages"]:
+        if not isinstance(stage, dict):
+            raise PipelineBuilderError("stages 列表中的元素必须是对象。")
+        stage_id = stage.get("id")
+        stage["id"] = _slugify(str(stage_id)) if stage_id else _slugify(stage.get("class", "stage"))
+        if not stage.get("class"):
+            raise PipelineBuilderError("每个 stage 必须包含 class 字段。")
+        params = stage.get("params", {})
+        if params is None:
+            stage["params"] = {}
+        elif not isinstance(params, dict):
+            raise PipelineBuilderError("stage 的 params 必须是对象 (key/value)。")
+
 
 @dataclass
 class BuilderConfig:
@@ -148,13 +177,17 @@ class BuilderConfig:
     model: str
     base_url: Optional[str]
     api_key: Optional[str]
-    domain_contexts: Tuple[str, ...]
+    domain_contexts: Tuple[str, ...] = ()
+    knowledge_base: Optional[PipelineKnowledgeBase] = None
+    knowledge_top_k: int = 6
+    show_knowledge: bool = False
 
 
 class PipelinePlanGenerator:
     def __init__(self, config: BuilderConfig) -> None:
         self.config = config
         self._client = None  # type: Optional[Any]
+        self._last_knowledge_contexts: Tuple[str, ...] = ()
 
         if self.config.backend != "mock":
             if not OPENAI_AVAILABLE:
@@ -173,11 +206,45 @@ class PipelinePlanGenerator:
         previous_plan: Optional[Dict[str, Any]] = None,
         feedback: Optional[str] = None,
     ) -> Dict[str, Any]:
+        knowledge_contexts: Tuple[str, ...] = ()
+        if self.config.knowledge_base is not None:
+            try:
+                query_payload = build_query_payload(
+                    requirements, previous_plan, feedback
+                )
+                results = self.config.knowledge_base.search(
+                    query_payload,
+                    top_k=self.config.knowledge_top_k,
+                )
+                knowledge_contexts = tuple(item.text for item in results)
+                self._last_knowledge_contexts = knowledge_contexts
+            except Exception as exc:  # pragma: no cover - defensive
+                console.print(
+                    f"[yellow]检索知识库时出错，将继续使用内建上下文: {exc}[/yellow]"
+                )
+                self._last_knowledge_contexts = ()
+
+            self._last_knowledge_contexts = ()
+
+        if self.config.show_knowledge and knowledge_contexts:
+            console.print(
+                Panel(
+                    "\n\n".join(knowledge_contexts),
+                    title="知识库检索结果",
+                    style="blue",
+                )
+            )
+
         if self.config.backend == "mock":
             return self._mock_plan(requirements, previous_plan, feedback)
 
         assert self._client is not None  # for type checker
-        user_prompt = self._build_prompt(requirements, previous_plan, feedback)
+        user_prompt = self._build_prompt(
+            requirements,
+            previous_plan,
+            feedback,
+            knowledge_contexts,
+        )
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
@@ -194,11 +261,17 @@ class PipelinePlanGenerator:
         requirements: Dict[str, Any],
         previous_plan: Optional[Dict[str, Any]],
         feedback: Optional[str],
+        knowledge_contexts: Tuple[str, ...],
     ) -> str:
         blocks = [
             "请根据以下需求生成符合 SAGE 框架的 pipeline 配置 JSON：",
             json.dumps(requirements, ensure_ascii=False, indent=2),
         ]
+
+        if knowledge_contexts:
+            blocks.append("以下是从 SAGE 知识库检索到的参考信息：")
+            for idx, snippet in enumerate(knowledge_contexts, start=1):
+                blocks.append(f"知识[{idx}]:\n{snippet.strip()}")
 
         if self.config.domain_contexts:
             blocks.append("以下是与 SAGE 管道构建相关的参考资料：")
@@ -430,6 +503,43 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
     non_interactive: bool = typer.Option(
         False, help="非交互模式 (需要同时提供名称和目标)"
     ),
+    context_limit: int = typer.Option(
+        4,
+        "--context-limit",
+        min=0,
+        max=12,
+        help="提示中包含的示例配置数量",
+    ),
+    context_file: List[Path] = typer.Option(
+        [],
+        "--context-file",
+        "-c",
+        help="额外上下文文件 (纯文本)，可重复指定",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+    ),
+    show_contexts: bool = typer.Option(
+        False, "--show-contexts", help="打印用于提示的大模型上下文"
+    ),
+    disable_knowledge: bool = typer.Option(
+        False,
+        "--no-knowledge",
+        help="禁用从本地知识库自动检索上下文",
+    ),
+    knowledge_top_k: int = typer.Option(
+        5,
+        "--knowledge-top-k",
+        min=1,
+        max=12,
+        help="每次检索返回的知识片段数量",
+    ),
+    show_knowledge: bool = typer.Option(
+        False,
+        "--show-knowledge",
+        help="打印知识库检索结果",
+    ),
 ) -> None:
     """使用大模型交互式生成 SAGE pipeline 配置。"""
 
@@ -449,11 +559,45 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
         interactive=not non_interactive,
     )
 
+    try:
+        domain_contexts = list(load_domain_contexts(limit=context_limit))
+    except Exception as exc:  # pragma: no cover - defensive
+        raise PipelineBuilderError(f"加载默认上下文失败: {exc}") from exc
+
+    if context_file:
+        try:
+            custom_contexts = load_custom_contexts(tuple(context_file))
+            domain_contexts.extend(custom_contexts)
+        except RuntimeError as exc:
+            raise PipelineBuilderError(str(exc)) from exc
+
+    if show_contexts and domain_contexts:
+        console.print(
+            Panel(
+                "\n\n".join(domain_contexts),
+                title="LLM 提示上下文",
+                style="magenta",
+            )
+        )
+
+    knowledge_base: Optional[PipelineKnowledgeBase] = None
+    if not disable_knowledge:
+        try:
+            knowledge_base = get_default_knowledge_base()
+        except Exception as exc:
+            console.print(
+                f"[yellow]初始化知识库失败，将继续使用静态上下文: {exc}[/yellow]"
+            )
+
     config = BuilderConfig(
         backend=backend,
         model=resolved_model,
         base_url=resolved_base_url,
         api_key=resolved_api_key,
+        domain_contexts=tuple(domain_contexts),
+        knowledge_base=knowledge_base,
+        knowledge_top_k=knowledge_top_k,
+        show_knowledge=show_knowledge,
     )
 
     generator = PipelinePlanGenerator(config)

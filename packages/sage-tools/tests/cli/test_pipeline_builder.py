@@ -3,7 +3,12 @@ from pathlib import Path
 import yaml
 from typer.testing import CliRunner
 
+from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.main import app
+from sage.tools.cli.commands.pipeline_knowledge import (
+    PipelineKnowledgeBase,
+    build_query_payload,
+)
 
 
 runner = CliRunner()
@@ -19,6 +24,7 @@ def test_pipeline_builder_mock_non_interactive(tmp_path):
             "build",
             "--backend",
             "mock",
+            "--no-knowledge",
             "--name",
             "QA Helper",
             "--goal",
@@ -49,6 +55,7 @@ def test_pipeline_builder_missing_fields_non_interactive(tmp_path):
             "build",
             "--backend",
             "mock",
+            "--no-knowledge",
             "--non-interactive",
             "--output",
             str(tmp_path / "config.yaml"),
@@ -58,3 +65,55 @@ def test_pipeline_builder_missing_fields_non_interactive(tmp_path):
     assert result.exit_code != 0
     assert result.exception is not None
     assert "必须提供" in str(result.exception)
+
+
+def test_load_domain_contexts_provides_examples():
+    contexts = load_domain_contexts(limit=2)
+    assert contexts, "context loader should yield at least one snippet"
+    joined = "\n".join(contexts)
+    assert "Pipeline" in joined or "SAGE" in joined
+
+
+def test_pipeline_knowledge_base_retrieval(tmp_path):
+        docs_dir = tmp_path / "docs-public" / "docs_src"
+        docs_dir.mkdir(parents=True)
+        (docs_dir / "builder.md").write_text("SAGE Pipeline Builder 支持多阶段配置", encoding="utf-8")
+
+        examples_dir = tmp_path / "examples" / "config"
+        examples_dir.mkdir(parents=True)
+        (examples_dir / "demo.yaml").write_text(
+                """
+pipeline:
+    name: demo
+    description: test
+stages:
+    - id: retriever
+        class: sage.libs.rag.retriever.SimpleRetriever
+        summary: demo retriever
+sink:
+    class: sage.libs.io.TerminalSink
+""".strip(),
+                encoding="utf-8",
+        )
+
+        libs_dir = tmp_path / "packages" / "sage-libs" / "src" / "sage" / "libs"
+        libs_dir.mkdir(parents=True, exist_ok=True)
+        (libs_dir / "demo.py").write_text(
+                '"""Simple pipeline components."""\nclass DemoStage:\n    """Demo stage for tests."""',
+                encoding="utf-8",
+        )
+
+        kb = PipelineKnowledgeBase(project_root=tmp_path, max_chunks=200)
+        results = kb.search("retriever component", top_k=3)
+        assert results, "knowledge base should return results"
+        assert any("retriever" in item.text for item in results)
+
+
+def test_build_query_payload_includes_feedback():
+        payload = build_query_payload(
+                {"goal": "test", "name": "demo"},
+                previous_plan={"stages": [{"id": "retriever", "class": "Demo"}]},
+                feedback="需要加速",
+        )
+        assert "retriever" in payload
+        assert "需要加速" in payload
