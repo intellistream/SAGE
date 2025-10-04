@@ -5,7 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
+import shutil
+import tempfile
+import urllib.request
+import zipfile
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -15,6 +20,11 @@ import yaml
 
 from sage.common.config.output_paths import get_sage_paths
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
+
+GITHUB_DOCS_ZIP_URL = (
+    "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
+)
+DOCS_CACHE_SUBDIR = "pipeline-builder/docs"
 
 CHUNK_SIZE = 600
 CHUNK_OVERLAP = 120
@@ -31,6 +41,73 @@ class KnowledgeChunk:
     kind: str
     score: float = 0.0
     vector: Optional[List[float]] = None
+
+
+def _should_download_docs() -> bool:
+    flag = os.getenv("SAGE_PIPELINE_DOWNLOAD_DOCS", "1").lower()
+    return flag not in {"0", "false", "no"}
+
+
+def _docs_cache_root() -> Path:
+    return get_sage_paths().cache_dir / DOCS_CACHE_SUBDIR
+
+
+def _download_docs(cache_root: Path) -> Optional[Path]:
+    if not _should_download_docs():
+        return None
+
+    cache_root.mkdir(parents=True, exist_ok=True)
+    url = os.getenv("SAGE_PIPELINE_DOCS_URL", GITHUB_DOCS_ZIP_URL)
+    fd, tmp_path = tempfile.mkstemp(prefix="sage_docs_", suffix=".zip")
+    os.close(fd)
+    tmp_file = Path(tmp_path)
+
+    try:
+        urllib.request.urlretrieve(url, tmp_file)
+        with zipfile.ZipFile(tmp_file, "r") as zf:
+            zf.extractall(cache_root)
+    except Exception as exc:  # pragma: no cover - network error
+        if tmp_file.exists():
+            tmp_file.unlink()
+        raise RuntimeError(f"下载 docs-public 文档失败: {exc}") from exc
+    finally:
+        if tmp_file.exists():
+            tmp_file.unlink()
+
+    extracted_docs: Optional[Path] = None
+    for candidate in cache_root.glob("**/docs_src"):
+        if candidate.is_dir():
+            extracted_docs = candidate
+            break
+
+    if extracted_docs is None:
+        raise RuntimeError("下载的文档包中未找到 docs_src 目录")
+
+    target = cache_root / "docs_src"
+    if target.exists() and target != extracted_docs:
+        shutil.rmtree(target, ignore_errors=True)
+
+    if extracted_docs != target:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(extracted_docs), target)
+
+    return target
+
+
+def _resolve_docs_dir(project_root: Path, allow_download: bool) -> Optional[Path]:
+    local_docs = project_root / "docs-public" / "docs_src"
+    if local_docs.exists():
+        return local_docs
+
+    cache_root = _docs_cache_root()
+    cached_docs = cache_root / "docs_src"
+    if cached_docs.exists():
+        return cached_docs
+
+    if not allow_download:
+        return None
+
+    return _download_docs(cache_root)
 
 
 def _normalize_whitespace(value: str) -> str:
@@ -146,18 +223,21 @@ def _summarize_python(path: Path) -> str:
     return docstrings or text[:1200]
 
 
-def _discover_documents(project_root: Path) -> MutableSequence[KnowledgeChunk]:
+def _discover_documents(
+    project_root: Path, allow_download: bool
+) -> MutableSequence[KnowledgeChunk]:
     chunks: MutableSequence[KnowledgeChunk] = []
 
-    docs_dir = project_root / "docs-public" / "docs_src"
-    if docs_dir.exists():
+    docs_dir = _resolve_docs_dir(project_root, allow_download=allow_download)
+    if docs_dir is not None and docs_dir.exists():
         for md in docs_dir.rglob("*.md"):
             if md.is_file():
                 content = _read_file(md)
-                for idx, chunk in enumerate(_chunk_text(content)):
+                for chunk in _chunk_text(content):
+                    rel = md.relative_to(docs_dir)
                     chunks.append(
                         KnowledgeChunk(
-                            text=f"{chunk}\n\n(Source: {md.relative_to(project_root)})",
+                            text=f"{chunk}\n\n(Source: docs/{rel})",
                             source=str(md),
                             kind="docs",
                         )
@@ -224,11 +304,14 @@ class PipelineKnowledgeBase:
         self,
         project_root: Optional[Path] = None,
         max_chunks: int = 2000,
+        allow_download: bool = True,
     ) -> None:
         root = project_root or getattr(get_sage_paths(), "project_root", None)
         self.project_root = Path(root) if root else Path.cwd()
         self._embedder = _HashingEmbedder(dim=384)
-        all_chunks = _discover_documents(self.project_root)
+        all_chunks = _discover_documents(
+            self.project_root, allow_download=allow_download
+        )
         if max_chunks and len(all_chunks) > max_chunks:
             all_chunks = all_chunks[:max_chunks]
         for chunk in all_chunks:
@@ -257,8 +340,10 @@ class PipelineKnowledgeBase:
 
 
 @lru_cache(maxsize=1)
-def get_default_knowledge_base(max_chunks: int = 2000) -> PipelineKnowledgeBase:
-    return PipelineKnowledgeBase(max_chunks=max_chunks)
+def get_default_knowledge_base(
+    max_chunks: int = 2000, allow_download: bool = True
+) -> PipelineKnowledgeBase:
+    return PipelineKnowledgeBase(max_chunks=max_chunks, allow_download=allow_download)
 
 
 def build_query_payload(
