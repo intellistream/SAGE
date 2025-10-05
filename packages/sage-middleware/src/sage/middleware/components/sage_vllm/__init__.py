@@ -1,4 +1,4 @@
-"""vLLM components for SAGE middleware."""
+"""SAGE's integrated vLLM component package."""
 
 from .service import VLLMService, VLLMServiceConfig, register_vllm_service
 

@@ -79,7 +79,7 @@ Responsibilities:
 - The module will live in `packages/sage-common/src/sage/common/model_registry/vllm_registry.py` so it can be imported both by CLI and middleware.
 - `huggingface-hub` will become an explicit dependency for `isage-tools` (CLI) and is already available in middleware.
 
-### 4.2 Middleware Service (`packages/sage-middleware/src/sage/middleware/components/vllm/service.py`)
+### 4.2 Middleware Service (`packages/sage-middleware/src/sage/middleware/components/sage_vllm/service.py`)
 
 Key pieces:
 
