@@ -319,7 +319,7 @@ def _validate_graph_plan(plan: Dict[str, Any]) -> None:
         slugified = _slugify(str(node_id))
         node["id"] = slugified
         if slugified in seen_ids:
-            raise PipelineBuilderError(f"节点 id 重复: {slugified}")
+            raise PipelineBuilderError(f"节点 id 重复 : {slugified}")
         seen_ids.add(slugified)
 
         if not node.get("class"):
