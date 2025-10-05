@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""测试新增的应用模板功能"""
+"""
+测试新增的应用模板功能
+
+@test:skip - 需要真实 API Key，不在 CI 中运行
+"""
 
 import os
 import sys

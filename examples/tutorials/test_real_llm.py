@@ -3,6 +3,8 @@
 实际测试：验证 LLM + Templates 功能
 
 这个脚本会真实调用大模型来生成 Pipeline 配置
+
+@test:skip - 需要真实 API Key，不在 CI 中运行
 """
 
 import os
