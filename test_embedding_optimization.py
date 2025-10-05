@@ -8,7 +8,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "packages" / "sage-middleware" / "src"))
 
-from sage.middleware.utils.embedding import (
+from sage.middleware.components.sage_embedding import (
     get_embedding_model,
     list_embedding_models,
     check_model_availability,
@@ -138,7 +138,7 @@ def test_backward_compatibility():
     print("="*60)
     
     # 旧的 API 应该仍然可用
-    from sage.middleware.utils.embedding import EmbeddingModel
+    from sage.middleware.components.sage_embedding import EmbeddingModel
     
     emb = EmbeddingModel(method="mockembedder", fixed_dim=128)
     print(f"✓ EmbeddingModel 仍可用: {emb}")

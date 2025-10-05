@@ -6,7 +6,7 @@ import sys
 import time
 
 from dotenv import load_dotenv
-from sage.middleware.utils.embedding import (
+from sage.middleware.components.sage_embedding import (
     _cohere,
     bedrock,
     hf,

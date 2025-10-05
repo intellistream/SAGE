@@ -44,7 +44,7 @@ cd /path/to/SAGE
 ### 30 秒上手
 
 ```python
-from sage.middleware.utils.embedding import EmbeddingFactory
+from sage.middleware.components.sage_embedding import EmbeddingFactory
 
 # 创建 embedder
 embedder = EmbeddingFactory.create("hash", dimension=384)
@@ -197,7 +197,7 @@ sage pipeline build \
 #### 创建 Embedder
 
 ```python
-from sage.middleware.utils.embedding import EmbeddingFactory
+from sage.middleware.components.sage_embedding import EmbeddingFactory
 
 # 基本创建
 embedder = EmbeddingFactory.create("hash", dimension=384)
@@ -229,7 +229,7 @@ metadata = embedder.get_metadata()
 #### 查看可用方法
 
 ```python
-from sage.middleware.utils.embedding.registry import EmbeddingRegistry
+from sage.middleware.components.sage_embedding.registry import EmbeddingRegistry
 
 # 列出所有方法
 methods = EmbeddingRegistry.list_methods()

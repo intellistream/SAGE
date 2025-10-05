@@ -32,7 +32,7 @@ from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
 from sage.tools.cli.core.exceptions import CLIException
 from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
-from sage.middleware.utils.embedding import get_embedding_model
+from sage.middleware.components.sage_embedding import get_embedding_model
 
 console = Console()
 

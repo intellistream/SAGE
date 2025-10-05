@@ -11,7 +11,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 
-from sage.middleware.utils.embedding import (
+from sage.middleware.components.sage_embedding import (
     list_embedding_models,
     check_model_availability,
     get_embedding_model,

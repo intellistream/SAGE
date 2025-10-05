@@ -354,18 +354,18 @@ class BaseEmbedding(ABC):
 
 ```python
 # ✅ 旧的 EmbeddingModel 仍然可用
-from sage.middleware.utils.embedding import EmbeddingModel
+from sage.middleware.components.sage_embedding import EmbeddingModel
 
 emb = EmbeddingModel(method="mockembedder", fixed_dim=128)
 vec = emb.embed("test")
 
 # ✅ 旧的 apply_embedding_model 仍然可用
-from sage.middleware.utils.embedding import apply_embedding_model
+from sage.middleware.components.sage_embedding import apply_embedding_model
 
 emb = apply_embedding_model(name="hf", model="...")
 
 # ✅ MockTextEmbedder 仍然可用
-from sage.middleware.utils.embedding.mockembedder import MockTextEmbedder
+from sage.middleware.components.sage_embedding.mockembedder import MockTextEmbedder
 
 emb = MockTextEmbedder(model_name="mock", fixed_dim=128)
 vec = emb.encode("test")

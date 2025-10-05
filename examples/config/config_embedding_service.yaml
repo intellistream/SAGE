@@ -1,0 +1,283 @@
+# Embedding Service Configuration for Pipeline Builder
+
+# Example 1: RAG Pipeline with vLLM Embedding
+rag_pipeline_vllm:
+  name: "rag_with_vllm_embedding"
+  
+  services:
+    # vLLM service for both LLM and embedding
+    vllm:
+      class: sage.middleware.components.sage_vllm.VLLMService
+      config:
+        model_id: "Qwen/Qwen2.5-7B-Instruct"
+        embedding_model_id: "BAAI/bge-base-en-v1.5"
+        auto_download: true
+        engine:
+          dtype: "auto"
+          tensor_parallel_size: 1
+          gpu_memory_utilization: 0.9
+    
+    # Unified embedding service using vLLM backend
+    embedding:
+      class: sage.middleware.components.sage_embedding.EmbeddingService
+      config:
+        method: "vllm"
+        vllm_service_name: "vllm"
+        batch_size: 128
+        normalize: true
+        cache_enabled: true
+        cache_size: 10000
+    
+    # Vector database service
+    vector_db:
+      class: sage.middleware.components.sage_db.SageDBService
+      config:
+        dimension: 768
+        index_type: "AUTO"
+  
+  operators:
+    - name: query_embedding
+      type: embedding_operator
+      config:
+        embedding_service: "embedding"
+        input_field: "query"
+        output_field: "query_vector"
+    
+    - name: retrieve
+      type: vector_search_operator
+      config:
+        db_service: "vector_db"
+        query_field: "query_vector"
+        top_k: 5
+    
+    - name: generate
+      type: llm_generate_operator
+      config:
+        llm_service: "vllm"
+        prompt_template: |
+          Based on the following context, answer the question.
+          
+          Context: {context}
+          
+          Question: {query}
+          
+          Answer:
+
+---
+
+# Example 2: Multi-Embedding Strategy
+multi_embedding_pipeline:
+  name: "multi_embedding_strategy"
+  
+  services:
+    # Fast local embedding for real-time queries
+    embedding_fast:
+      class: sage.middleware.components.sage_embedding.EmbeddingService
+      config:
+        method: "hf"
+        model: "BAAI/bge-small-zh-v1.5"
+        batch_size: 32
+        normalize: true
+        cache_enabled: true
+    
+    # High-quality cloud embedding for indexing
+    embedding_quality:
+      class: sage.middleware.components.sage_embedding.EmbeddingService
+      config:
+        method: "openai"
+        model: "text-embedding-3-large"
+        api_key: "${OPENAI_API_KEY}"
+        batch_size: 100
+        normalize: true
+    
+    # vLLM for batch processing
+    vllm:
+      class: sage.middleware.components.sage_vllm.VLLMService
+      config:
+        model_id: "BAAI/bge-large-en-v1.5"
+    
+    embedding_batch:
+      class: sage.middleware.components.sage_embedding.EmbeddingService
+      config:
+        method: "vllm"
+        vllm_service_name: "vllm"
+        batch_size: 256
+  
+  operators:
+    - name: query_embed
+      type: embedding_operator
+      config:
+        embedding_service: "embedding_fast"  # Fast for queries
+        input_field: "query"
+    
+    - name: document_embed
+      type: embedding_operator
+      config:
+        embedding_service: "embedding_quality"  # High quality for docs
+        input_field: "documents"
+        is_batch: true
+
+---
+
+# Example 3: Knowledge Base Building
+knowledge_base_pipeline:
+  name: "build_knowledge_base"
+  
+  services:
+    vllm:
+      class: sage.middleware.components.sage_vllm.VLLMService
+      config:
+        model_id: "BAAI/bge-base-en-v1.5"
+        embedding_model_id: "BAAI/bge-base-en-v1.5"
+    
+    embedding:
+      class: sage.middleware.components.sage_embedding.EmbeddingService
+      config:
+        method: "vllm"
+        vllm_service_name: "vllm"
+        batch_size: 256
+        normalize: true
+    
+    vector_db:
+      class: sage.middleware.components.sage_db.SageDBService
+      config:
+        dimension: 768
+        index_type: "HNSW"
+  
+  operators:
+    - name: load_documents
+      type: document_loader_operator
+      config:
+        source: "data/documents/"
+    
+    - name: chunk_documents
+      type: text_chunking_operator
+      config:
+        chunk_size: 512
+        overlap: 50
+    
+    - name: embed_chunks
+      type: embedding_operator
+      config:
+        embedding_service: "embedding"
+        input_field: "chunks"
+        is_batch: true
+        batch_size: 256
+    
+    - name: index_vectors
+      type: vector_indexing_operator
+      config:
+        db_service: "vector_db"
+        vector_field: "embeddings"
+        metadata_fields: ["doc_id", "chunk_id", "text"]
+
+---
+
+# Example 4: Hybrid Embedding (Sparse + Dense)
+hybrid_embedding_pipeline:
+  name: "hybrid_embedding_search"
+  
+  services:
+    # Dense embedding
+    embedding_dense:
+      class: sage.middleware.components.sage_embedding.EmbeddingService
+      config:
+        method: "hf"
+        model: "BAAI/bge-base-en-v1.5"
+        normalize: true
+    
+    # Sparse embedding (BM25)
+    embedding_sparse:
+      class: sage.middleware.components.sage_embedding.EmbeddingService
+      config:
+        method: "bm25s"
+        normalize: false
+    
+    # Vector DB for dense vectors
+    vector_db_dense:
+      class: sage.middleware.components.sage_db.SageDBService
+      config:
+        dimension: 768
+    
+    # Vector DB for sparse vectors
+    vector_db_sparse:
+      class: sage.middleware.components.sage_db.SageDBService
+      config:
+        dimension: 10000  # BM25 vocabulary size
+        index_type: "FLAT"
+  
+  operators:
+    - name: embed_dense
+      type: embedding_operator
+      config:
+        embedding_service: "embedding_dense"
+        input_field: "query"
+        output_field: "dense_vector"
+    
+    - name: embed_sparse
+      type: embedding_operator
+      config:
+        embedding_service: "embedding_sparse"
+        input_field: "query"
+        output_field: "sparse_vector"
+    
+    - name: search_dense
+      type: vector_search_operator
+      config:
+        db_service: "vector_db_dense"
+        query_field: "dense_vector"
+        top_k: 10
+    
+    - name: search_sparse
+      type: vector_search_operator
+      config:
+        db_service: "vector_db_sparse"
+        query_field: "sparse_vector"
+        top_k: 10
+    
+    - name: merge_results
+      type: hybrid_fusion_operator
+      config:
+        fusion_method: "reciprocal_rank"
+        weights:
+          dense: 0.6
+          sparse: 0.4
+
+---
+
+# Example 5: Multi-lingual Embedding
+multilingual_pipeline:
+  name: "multilingual_rag"
+  
+  services:
+    vllm:
+      class: sage.middleware.components.sage_vllm.VLLMService
+      config:
+        model_id: "intfloat/multilingual-e5-large"
+        embedding_model_id: "intfloat/multilingual-e5-large"
+    
+    embedding:
+      class: sage.middleware.components.sage_embedding.EmbeddingService
+      config:
+        method: "vllm"
+        vllm_service_name: "vllm"
+        batch_size: 128
+        normalize: true
+        cache_enabled: true
+  
+  operators:
+    - name: detect_language
+      type: language_detection_operator
+    
+    - name: embed_with_prefix
+      type: multilingual_embedding_operator
+      config:
+        embedding_service: "embedding"
+        # E5 models require task-specific prefixes
+        query_prefix: "query: "
+        passage_prefix: "passage: "
+    
+    - name: cross_lingual_search
+      type: vector_search_operator
+      config:
+        top_k: 5

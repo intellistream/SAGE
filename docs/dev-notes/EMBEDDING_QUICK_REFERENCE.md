@@ -54,7 +54,7 @@ sage pipeline analyze-embedding "查询" -m hash -m openai -m hf
 ### 基本使用
 
 ```python
-from sage.middleware.utils.embedding import EmbeddingFactory
+from sage.middleware.components.sage_embedding import EmbeddingFactory
 
 # 创建 embedder
 embedder = EmbeddingFactory.create("hash", dimension=384)
@@ -201,7 +201,7 @@ export OPENAI_BASE_URL=https://your-proxy.com/v1
 ```python
 # 直接使用 numpy 数组
 import numpy as np
-from sage.middleware.utils.embedding import BaseEmbedding
+from sage.middleware.components.sage_embedding import BaseEmbedding
 
 class CustomEmbedding(BaseEmbedding):
     def embed(self, text: str) -> list:

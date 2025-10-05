@@ -135,7 +135,7 @@ class SomeEmbedding(BaseEmbedding):
 ### 1. 基本使用
 
 ```python
-from sage.middleware.utils.embedding import get_embedding_model
+from sage.middleware.components.sage_embedding import get_embedding_model
 
 # 本地模型（无需 API Key）
 emb = get_embedding_model("hash", dim=384)
@@ -153,7 +153,7 @@ vec = emb.embed("hello world")
 ### 2. 列出所有方法
 
 ```python
-from sage.middleware.utils.embedding import list_embedding_models
+from sage.middleware.components.sage_embedding import list_embedding_models
 
 models = list_embedding_models()
 for method, info in models.items():
@@ -168,7 +168,7 @@ for method, info in models.items():
 ### 3. 检查可用性
 
 ```python
-from sage.middleware.utils.embedding import check_model_availability
+from sage.middleware.components.sage_embedding import check_model_availability
 
 # 检查 OpenAI
 status = check_model_availability("openai")
@@ -183,7 +183,7 @@ print(status['message'])  # ✅ 可用
 ### 4. 高级用法
 
 ```python
-from sage.middleware.utils.embedding import (
+from sage.middleware.components.sage_embedding import (
     OpenAIEmbedding,
     JinaEmbedding,
     ZhipuEmbedding,

@@ -299,7 +299,7 @@ sage pipeline analyze-embedding "如何构建 RAG" \
 ### 快速开始
 
 ```python
-from sage.middleware.utils.embedding import EmbeddingFactory
+from sage.middleware.components.sage_embedding import EmbeddingFactory
 
 # 1. 创建 embedding 实例
 embedder = EmbeddingFactory.create("hash", dimension=384)

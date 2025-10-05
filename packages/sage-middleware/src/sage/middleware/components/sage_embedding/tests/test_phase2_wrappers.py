@@ -9,7 +9,7 @@ This test suite validates:
 """
 
 import pytest
-from sage.middleware.utils.embedding import (
+from sage.middleware.components.sage_embedding import (
     list_embedding_models,
     check_model_availability,
     get_embedding_model,
@@ -67,7 +67,7 @@ class TestPhase2Registration:
     
     def test_wrapper_imports(self):
         """测试所有 wrapper 类可以被导入"""
-        from sage.middleware.utils.embedding import (
+        from sage.middleware.components.sage_embedding import (
             HashEmbedding,
             MockEmbedding,
             HFEmbedding,
@@ -134,7 +134,7 @@ class TestAPIKeyMethods:
     def test_openai_requires_api_key(self):
         """测试 OpenAI 需要 API Key"""
         import os
-        from sage.middleware.utils.embedding import OpenAIEmbedding
+        from sage.middleware.components.sage_embedding import OpenAIEmbedding
         # 临时清除环境变量
         old_key = os.environ.pop("OPENAI_API_KEY", None)
         try:
@@ -147,7 +147,7 @@ class TestAPIKeyMethods:
     def test_jina_requires_api_key(self):
         """测试 Jina 需要 API Key"""
         import os
-        from sage.middleware.utils.embedding import JinaEmbedding
+        from sage.middleware.components.sage_embedding import JinaEmbedding
         old_key = os.environ.pop("JINA_API_KEY", None)
         try:
             with pytest.raises(RuntimeError, match="需要 API Key"):
@@ -159,7 +159,7 @@ class TestAPIKeyMethods:
     def test_zhipu_requires_api_key(self):
         """测试 Zhipu 需要 API Key"""
         import os
-        from sage.middleware.utils.embedding import ZhipuEmbedding
+        from sage.middleware.components.sage_embedding import ZhipuEmbedding
         old_key = os.environ.pop("ZHIPU_API_KEY", None)
         try:
             with pytest.raises(RuntimeError, match="需要 API Key"):
@@ -171,7 +171,7 @@ class TestAPIKeyMethods:
     def test_cohere_requires_api_key(self):
         """测试 Cohere 需要 API Key"""
         import os
-        from sage.middleware.utils.embedding import CohereEmbedding
+        from sage.middleware.components.sage_embedding import CohereEmbedding
         old_key = os.environ.pop("COHERE_API_KEY", None)
         try:
             with pytest.raises(RuntimeError, match="需要 API Key"):
@@ -183,7 +183,7 @@ class TestAPIKeyMethods:
     def test_bedrock_requires_credentials(self):
         """测试 Bedrock 需要 AWS 凭证"""
         import os
-        from sage.middleware.utils.embedding import BedrockEmbedding
+        from sage.middleware.components.sage_embedding import BedrockEmbedding
         # 保存并清除 AWS 凭证
         old_keys = {
             "AWS_ACCESS_KEY_ID": os.environ.pop("AWS_ACCESS_KEY_ID", None),
@@ -200,7 +200,7 @@ class TestAPIKeyMethods:
     def test_siliconcloud_requires_api_key(self):
         """测试 SiliconCloud 需要 API Key"""
         import os
-        from sage.middleware.utils.embedding import SiliconCloudEmbedding
+        from sage.middleware.components.sage_embedding import SiliconCloudEmbedding
         old_key = os.environ.pop("SILICONCLOUD_API_KEY", None)
         try:
             with pytest.raises(RuntimeError, match="需要 API Key"):
@@ -212,7 +212,7 @@ class TestAPIKeyMethods:
     def test_nvidia_openai_requires_api_key(self):
         """测试 NVIDIA OpenAI 需要 API Key"""
         import os
-        from sage.middleware.utils.embedding import NvidiaOpenAIEmbedding
+        from sage.middleware.components.sage_embedding import NvidiaOpenAIEmbedding
         old_key = os.environ.pop("OPENAI_API_KEY", None)
         try:
             with pytest.raises(RuntimeError, match="需要 API Key"):
