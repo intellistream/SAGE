@@ -546,8 +546,6 @@ class PipelinePlanGenerator:
         self._last_blueprint_contexts: Tuple[str, ...] = ()
         self._template_matches: Tuple[templates.TemplateMatch, ...] = ()
         self._last_template_contexts: Tuple[str, ...] = ()
-        self._template_matches: Tuple[templates.TemplateMatch, ...] = ()
-        self._last_template_contexts: Tuple[str, ...] = ()
 
         if self.config.backend != "mock":
             if not OPENAI_AVAILABLE:
