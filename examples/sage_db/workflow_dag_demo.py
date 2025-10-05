@@ -39,9 +39,8 @@ try:
 except ImportError as exc:  # pragma: no cover - surface build guidance early
     if "_sage_db" in str(exc):
         raise SystemExit(
-            "❌ SageDB native extension not found. Build it before running this demo:\n"
-            "   cd packages/sage-middleware/src/sage/middleware/components/sage_db\n"
-            "   ./build.sh"
+            "❌ SageDB native extension not found. Install it before running this demo:\n"
+            "   sage extensions install sage_db  # add --force to rebuild"
         ) from exc
     raise
 
