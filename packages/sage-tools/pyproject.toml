@@ -46,6 +46,7 @@ dependencies = [
     "markdown>=3.4.4",
     "markupsafe>=2.0.1",
     "packaging>=20.5",
+    "huggingface-hub>=0.23.0",
     
     # Dev tools - 确保 sage dev 命令可用
     "pytest>=7.0.0",
