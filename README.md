@@ -73,6 +73,9 @@ Run a simple example to get started:
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
+# Initialize git submodules (docs-public, sageDB, sageLLM, etc.)
+git submodule update --init --recursive
+
 # Install with quickstart (recommended)
 ./quickstart.sh --dev --yes
 
@@ -167,7 +170,7 @@ pip install isage[dev]       # Everything + development tools
 
 **Key Installation Features**
 - 🎯 Interactive menu for first-time users
-- 🤖 Optional vLLM integration with `--vllm`
+- 🤖 vLLM integration with `--vllm`
 - 🐍 Supports conda or system Python via `--pip`
 - ⚡ Three modes: minimal / standard / dev
 
