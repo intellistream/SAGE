@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import re
@@ -19,6 +20,8 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from sage.common.config.output_paths import get_sage_paths
+from sage.core.api.base_environment import BaseEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 from sage.tools.cli.commands.pipeline_domain import (
     load_custom_contexts,
     load_domain_contexts,
@@ -28,6 +31,7 @@ from sage.tools.cli.commands.pipeline_knowledge import (
     get_default_knowledge_base,
     PipelineKnowledgeBase,
 )
+from sage.tools.cli.core.exceptions import CLIException
 
 try:  # pragma: no cover - optional dependency at runtime only
     from sage.libs.utils.openaiclient import OpenAIClient
@@ -169,6 +173,168 @@ def _validate_plan(plan: Dict[str, Any]) -> None:
             stage["params"] = {}
         elif not isinstance(params, dict):
             raise PipelineBuilderError("stage 的 params 必须是对象 (key/value)。")
+
+
+def _expand_params(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _expand_params(val) for key, val in value.items()}
+    if isinstance(value, list):
+        return [_expand_params(item) for item in value]
+    if isinstance(value, str):
+        return os.path.expandvars(os.path.expanduser(value))
+    return value
+
+
+def _import_attr(path: str) -> Any:
+    try:
+        module_name, attr_name = path.rsplit(".", 1)
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise CLIException(f"Invalid class path: {path}") from exc
+
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as exc:
+        raise CLIException(f"无法导入模块 {module_name}: {exc}") from exc
+
+    try:
+        return getattr(module, attr_name)
+    except AttributeError as exc:
+        raise CLIException(f"模块 {module_name} 不包含 {attr_name}") from exc
+
+
+def _ensure_pipeline_dict(data: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(data, dict):
+        raise CLIException("Pipeline 配置必须是字典结构。")
+    return data
+
+
+def _create_environment(
+    plan: Dict[str, Any], host: Optional[str], port: Optional[int]
+) -> BaseEnvironment:
+    pipeline_meta = plan.get("pipeline") or {}
+    pipeline_name = pipeline_meta.get("name", "sage-pipeline")
+    env_settings = plan.get("environment") or {}
+    env_config = _expand_params(env_settings.get("config") or {})
+
+    env_type = (pipeline_meta.get("type") or "local").lower()
+    if env_type == "remote":
+        from sage.core.api.remote_environment import RemoteEnvironment  # import lazily
+
+        resolved_host = host or env_settings.get("host") or "127.0.0.1"
+        resolved_port = port or env_settings.get("port") or 19001
+        return RemoteEnvironment(
+            name=pipeline_name,
+            config=env_config,
+            host=resolved_host,
+            port=int(resolved_port),
+        )
+
+    return LocalEnvironment(name=pipeline_name, config=env_config)
+
+
+def _register_services(env: BaseEnvironment, services: List[Dict[str, Any]]) -> None:
+    for service in services or []:
+        name = service.get("name")
+        class_path = service.get("class")
+        if not name or not class_path:
+            raise CLIException("每个 service 需要 name 和 class 字段。")
+
+        service_class = _import_attr(class_path)
+        args = service.get("args") or []
+        if not isinstance(args, list):
+            raise CLIException(f"Service {name} 的 args 必须是数组。")
+        params = _expand_params(service.get("params") or {})
+        env.register_service(name, service_class, *args, **params)
+
+
+def _apply_source(env: BaseEnvironment, source: Dict[str, Any]):
+    if not source:
+        raise CLIException("Pipeline 缺少 source 定义。")
+
+    class_path = source.get("class")
+    if not class_path:
+        raise CLIException("source 需要提供 class 字段。")
+
+    function_class = _import_attr(class_path)
+    args = source.get("args") or []
+    if not isinstance(args, list):
+        raise CLIException("source 的 args 必须是数组。")
+    params = _expand_params(source.get("params") or {})
+    kind = (source.get("kind") or "batch").lower()
+
+    if kind in {"batch", "collection"}:
+        return env.from_batch(function_class, *args, **params)
+    if kind in {"source", "stream"}:
+        return env.from_source(function_class, *args, **params)
+    if kind == "future":
+        future_name = params.get("name") or source.get("id") or "future"
+        return env.from_future(future_name)
+
+    # Default to from_source for unknown kinds
+    return env.from_source(function_class, *args, **params)
+
+
+def _apply_stage(stream, stage: Dict[str, Any]):
+    class_path = stage.get("class")
+    if not class_path:
+        raise CLIException("stage 缺少 class 字段。")
+
+    function_class = _import_attr(class_path)
+    args = stage.get("args") or []
+    if not isinstance(args, list):
+        raise CLIException(f"stage {stage.get('id')} 的 args 必须是数组。")
+    params = _expand_params(stage.get("params") or {})
+    kind = (stage.get("kind") or "map").lower()
+
+    if kind in {"map", "service", "batch"}:
+        return stream.map(function_class, *args, **params)
+    if kind == "flatmap":
+        return stream.flatmap(function_class, *args, **params)
+    if kind == "filter":
+        return stream.filter(function_class, *args, **params)
+    if kind == "keyby":
+        strategy = params.pop("strategy", "hash")
+        return stream.keyby(function_class, strategy=strategy, *args, **params)
+    if kind == "sink":
+        stream.sink(function_class, *args, **params)
+        return stream
+
+    console.print(
+        f"[yellow]⚠️ 未知的 stage 类型 {kind}，默认使用 map。[/yellow]"
+    )
+    return stream.map(function_class, *args, **params)
+
+
+def _apply_sink(stream, sink: Dict[str, Any]):
+    if not sink:
+        raise CLIException("Pipeline 缺少 sink 定义。")
+
+    class_path = sink.get("class")
+    if not class_path:
+        raise CLIException("sink 需要提供 class 字段。")
+
+    function_class = _import_attr(class_path)
+    args = sink.get("args") or []
+    if not isinstance(args, list):
+        raise CLIException("sink 的 args 必须是数组。")
+    params = _expand_params(sink.get("params") or {})
+    stream.sink(function_class, *args, **params)
+
+
+def _load_pipeline_file(path: Path) -> Dict[str, Any]:
+    try:
+        content = path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise CLIException(f"找不到 pipeline 配置文件: {path}") from exc
+    except OSError as exc:
+        raise CLIException(f"读取 pipeline 文件失败: {exc}") from exc
+
+    try:
+        data = yaml.safe_load(content) or {}
+    except yaml.YAMLError as exc:
+        raise CLIException(f"解析 YAML 失败: {exc}") from exc
+
+    return _ensure_pipeline_dict(data)
 
 
 @dataclass
@@ -645,6 +811,83 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
 
     output_path = _save_plan(plan, output, overwrite)
     console.print(f"✅ 配置已保存到: [green]{output_path}[/green]")
+
+
+@app.command("run")
+def run_pipeline(
+    config: Path = typer.Argument(..., exists=False, help="Pipeline YAML 配置文件"),
+    autostop: bool = typer.Option(
+        True, "--autostop/--no-autostop", help="提交后是否等待批处理完成"
+    ),
+    host: Optional[str] = typer.Option(
+        None,
+        "--host",
+        help="远程环境 JobManager 主机 (仅当 pipeline.type=remote 时生效)",
+    ),
+    port: Optional[int] = typer.Option(
+        None,
+        "--port",
+        min=1,
+        max=65535,
+        help="远程环境 JobManager 端口 (仅当 pipeline.type=remote 时生效)",
+    ),
+) -> None:
+    """加载 YAML 配置并运行 SAGE pipeline。"""
+
+    try:
+        config_path = Path(config).expanduser().resolve()
+        plan = _load_pipeline_file(config_path)
+
+        pipeline_meta = plan.get("pipeline") or {}
+        pipeline_name = pipeline_meta.get("name", config_path.stem)
+
+        console.print(
+            Panel.fit(
+                f"名称: [cyan]{pipeline_name}[/cyan]\n类型: {pipeline_meta.get('type', 'local')}\n来源: {config_path}",
+                title="运行 Pipeline",
+                style="blue",
+            )
+        )
+
+        env = _create_environment(plan, host, port)
+
+        services = plan.get("services") or []
+        if services:
+            console.print(f"🔧 注册 {len(services)} 个服务...")
+            _register_services(env, services)
+
+        source = plan.get("source")
+        stream = _apply_source(env, source)
+
+        stages = plan.get("stages") or []
+        for stage in stages:
+            stage_id = stage.get("id", "stage")
+            console.print(f"➡️  应用阶段: {stage_id}")
+            stream = _apply_stage(stream, stage)
+
+        sink = plan.get("sink")
+        console.print("🛬 配置终端 sink")
+        _apply_sink(stream, sink)
+
+        if plan.get("monitors"):
+            console.print("[yellow]📈 当前版本暂未自动配置 monitors，需手动集成。[/yellow]")
+
+        console.print("🚀 提交 pipeline...")
+        job_uuid = env.submit(autostop=autostop)
+
+        if job_uuid:
+            console.print(f"✅ Pipeline 已提交，作业 UUID: [green]{job_uuid}[/green]")
+        else:
+            console.print("✅ Pipeline 已提交。")
+
+        if autostop:
+            console.print("🎉 批处理完成并自动清理。")
+        else:
+            console.print("⏳ Pipeline 正在运行，可使用 'sage job list' 查看状态。")
+
+    except CLIException as exc:
+        console.print(f"[red]❌ {exc}[/red]")
+        raise typer.Exit(1) from exc
 
 
 __all__ = ["app"]

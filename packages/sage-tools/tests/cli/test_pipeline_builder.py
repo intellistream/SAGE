@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 import zipfile
 
 import yaml
@@ -146,3 +147,117 @@ def test_build_query_payload_includes_feedback():
     )
     assert "retriever" in payload
     assert "需要加速" in payload
+
+
+def test_pipeline_run_success(tmp_path, monkeypatch):
+    module_dir = tmp_path / "demo_components"
+    module_dir.mkdir()
+    (module_dir / "__init__.py").write_text("", encoding="utf-8")
+    component_file = module_dir / "ops.py"
+    component_file.write_text(
+        """
+from sage.core.api.function.batch_function import BatchFunction
+from sage.core.api.function.map_function import MapFunction
+from sage.core.api.function.sink_function import SinkFunction
+
+
+class DemoBatch(BatchFunction):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._emitted = False
+
+    def execute(self):
+        if self._emitted:
+            return None
+        self._emitted = True
+        return "hello"
+
+
+class UpperCase(MapFunction):
+    def execute(self, value):
+        return str(value).upper()
+
+
+class CollectSink(SinkFunction):
+    collected = []
+
+    def execute(self, value):
+        self.collected.append(value)
+        return value
+        """,
+        encoding="utf-8",
+    )
+
+    sys.path.insert(0, str(tmp_path))
+
+    config_path = tmp_path / "pipeline.yaml"
+    config_path.write_text(
+        """
+pipeline:
+  name: demo-pipeline
+  type: local
+source:
+  id: demo-source
+  kind: batch
+  class: demo_components.ops.DemoBatch
+  params: {}
+stages:
+  - id: uppercase
+    kind: map
+    class: demo_components.ops.UpperCase
+    params: {}
+sink:
+  id: collector
+  kind: sink
+  class: demo_components.ops.CollectSink
+  params: {}
+services: []
+""",
+        encoding="utf-8",
+    )
+
+    submitted: dict[str, object] = {}
+
+    def fake_submit(self, autostop: bool = False):
+        submitted["autostop"] = autostop
+        submitted["functions"] = [
+            getattr(transformation, "function_class", None)
+            for transformation in self.pipeline
+        ]
+        return "uuid-demo"
+
+    monkeypatch.setattr(
+        "sage.core.api.local_environment.LocalEnvironment.submit",
+        fake_submit,
+    )
+    monkeypatch.setattr(
+        "sage.core.api.local_environment.LocalEnvironment._wait_for_completion",
+        lambda self: None,
+    )
+
+    try:
+        result = runner.invoke(
+            app,
+            ["pipeline", "run", str(config_path)],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0, result.stdout
+        assert submitted["autostop"] is True
+        function_names = [fn.__name__ for fn in submitted["functions"] if fn]
+        assert "DemoBatch" in function_names
+        assert "UpperCase" in function_names
+        assert "CollectSink" in function_names
+    finally:
+        sys.path.remove(str(tmp_path))
+
+
+def test_pipeline_run_missing_file():
+    result = runner.invoke(
+        app,
+        ["pipeline", "run", "/nonexistent/pipeline.yaml"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0
+    assert "❌" in result.stdout

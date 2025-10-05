@@ -12,6 +12,7 @@ import time
 from dotenv import load_dotenv
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
+from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
 
@@ -105,7 +106,7 @@ class SimpleGenerator(MapFunction):
         return result
 
 
-class SimpleTerminalSink(MapFunction):
+class SimpleTerminalSink(SinkFunction):
     """简化的终端输出"""
 
     def execute(self, data):
@@ -116,7 +117,6 @@ class SimpleTerminalSink(MapFunction):
         print(f"❓ 问题: {query}")
         print(f"💬 回答: {answer}")
         print("=" * 60 + "\n")
-        return data  # MapFunction需要返回数据
 
 
 def pipeline_run():
@@ -134,7 +134,7 @@ def pipeline_run():
         .map(SimpleRetriever)
         .map(SimplePromptor)
         .map(SimpleGenerator)
-        .map(SimpleTerminalSink)  # 改为map，因为我们用的是MapFunction
+        .sink(SimpleTerminalSink)
     )
 
     try:
