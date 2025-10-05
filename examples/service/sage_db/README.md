@@ -10,13 +10,13 @@
 
 ## 运行前置
 
-SAGE-DB 依赖已编译的 Python 扩展模块 `_sage_db`。如未构建，请先执行组件下的构建脚本：
+SAGE-DB 依赖已编译的 Python 扩展模块 `_sage_db`。如未安装，可运行：
 
 ```bash
-bash packages/sage-middleware/src/sage/middleware/components/sage_db/build.sh
+sage extensions install sage_db  # 若需重新编译可加 --force
 ```
 
-脚本会在 `python/` 目录旁复制 `_sage_db` 扩展，示例中的相对导入即可找到。
+该命令会在仓库根目录下构建并同步 `_sage_db` 扩展，示例中的相对导入即可找到。
 
 ## 运行示例
 

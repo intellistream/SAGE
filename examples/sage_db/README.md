@@ -10,12 +10,11 @@
 
 ## 运行准备
 
-1. **编译 SageDB Python 扩展**（首次运行时必需）：
+1. **安装 SageDB Python 扩展**（首次运行时必需）：
 
-   ```bash
-   cd packages/sage-middleware/src/sage/middleware/components/sage_db
-   ./build.sh
-   ```
+  ```bash
+  sage extensions install sage_db  # 若需重新编译可追加 --force
+  ```
 
 2. （可选）如果你要运行其他官方示例或使用真实的大模型接口，请确保相关环境变量/API Key 就绪。
 

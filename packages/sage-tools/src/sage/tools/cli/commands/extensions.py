@@ -170,6 +170,41 @@ EXTENSION_PATHS: Dict[str, str] = {
     "sage_flow": "packages/sage-middleware/src/sage/middleware/components/sage_flow",
 }
 
+EXTENSION_MODULES: Dict[str, str] = {
+    "sage_db": "sage.middleware.components.sage_db.python._sage_db",
+    "sage_flow": "sage.middleware.components.sage_flow.python._sage_flow",
+}
+
+
+def _extension_is_available(ext_name: str, timeout: float = 3.0) -> bool:
+    module_name = EXTENSION_MODULES.get(ext_name)
+    if not module_name:
+        return False
+
+    import queue
+    import threading
+
+    result_queue: "queue.Queue[bool]" = queue.Queue()
+
+    def _try_import():
+        try:
+            __import__(module_name)
+            result_queue.put(True)
+        except Exception:
+            result_queue.put(False)
+
+    import_thread = threading.Thread(target=_try_import, daemon=True)
+    import_thread.start()
+    import_thread.join(timeout=timeout)
+
+    if import_thread.is_alive():
+        return False
+
+    try:
+        return result_queue.get_nowait()
+    except queue.Empty:
+        return False
+
 
 def _resolve_extensions_to_install(extension: Optional[str]) -> List[str]:
     if extension is None or extension == "all":
@@ -626,6 +661,13 @@ def _install_selected_extensions(
     total_count = len(extensions_to_install)
 
     for ext_name in extensions_to_install:
+        if not force and _extension_is_available(ext_name):
+            print_success(
+                f"{ext_name} 已安装且可用，跳过重新构建（使用 --force 重新安装）"
+            )
+            success_count += 1
+            continue
+
         rel_path = EXTENSION_PATHS[ext_name]
         ext_dir = sage_root / rel_path
         if _install_extension(ext_name, ext_dir, sage_root, force):
