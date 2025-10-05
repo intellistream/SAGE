@@ -19,6 +19,7 @@ from typing import Iterable, List, Mapping, MutableSequence, Optional, Sequence,
 import yaml
 
 from sage.common.config.output_paths import get_sage_paths
+from sage.middleware.utils.embedding.factory import EmbeddingFactory
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 
 GITHUB_DOCS_ZIP_URL = (
@@ -305,10 +306,25 @@ class PipelineKnowledgeBase:
         project_root: Optional[Path] = None,
         max_chunks: int = 2000,
         allow_download: bool = True,
+        embedding_method: str = "hash",
+        embedding_model: Optional[str] = None,
+        embedding_params: Optional[Mapping[str, object]] = None,
     ) -> None:
         root = project_root or getattr(get_sage_paths(), "project_root", None)
         self.project_root = Path(root) if root else Path.cwd()
-        self._embedder = _HashingEmbedder(dim=384)
+        
+        # Use the new unified embedding system
+        self.embedding_method = embedding_method
+        try:
+            params = dict(embedding_params or {})
+            if embedding_model:
+                params["model"] = embedding_model
+            self._embedder = EmbeddingFactory.create(embedding_method, **params)
+        except Exception as exc:
+            # Fallback to hash embedding if the requested method fails
+            print(f"⚠️  无法创建 {embedding_method} embedding，使用 hash 作为后备: {exc}")
+            self._embedder = EmbeddingFactory.create("hash", dimension=384)
+        
         all_chunks = _discover_documents(
             self.project_root, allow_download=allow_download
         )
@@ -341,9 +357,28 @@ class PipelineKnowledgeBase:
 
 @lru_cache(maxsize=1)
 def get_default_knowledge_base(
-    max_chunks: int = 2000, allow_download: bool = True
+    max_chunks: int = 2000, 
+    allow_download: bool = True,
+    embedding_method: Optional[str] = None,
+    embedding_model: Optional[str] = None,
 ) -> PipelineKnowledgeBase:
-    return PipelineKnowledgeBase(max_chunks=max_chunks, allow_download=allow_download)
+    """Get or create the default knowledge base.
+    
+    Args:
+        max_chunks: Maximum number of chunks to keep
+        allow_download: Whether to download docs if not found locally
+        embedding_method: Which embedding method to use (hash, openai, hf, etc.)
+        embedding_model: Specific model to use for the embedding method
+    """
+    method = embedding_method or os.getenv("SAGE_PIPELINE_EMBEDDING_METHOD", "hash")
+    model = embedding_model or os.getenv("SAGE_PIPELINE_EMBEDDING_MODEL")
+    
+    return PipelineKnowledgeBase(
+        max_chunks=max_chunks, 
+        allow_download=allow_download,
+        embedding_method=method,
+        embedding_model=model,
+    )
 
 
 def build_query_payload(

@@ -1106,6 +1106,17 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
         "--show-knowledge",
         help="打印知识库检索结果",
     ),
+    embedding_method: Optional[str] = typer.Option(
+        None,
+        "--embedding-method",
+        "-e",
+        help="知识库检索使用的 embedding 方法 (hash/openai/hf/zhipu 等)",
+    ),
+    embedding_model: Optional[str] = typer.Option(
+        None,
+        "--embedding-model",
+        help="Embedding 模型名称 (如 text-embedding-3-small)",
+    ),
 ) -> None:
     """使用大模型交互式生成 SAGE pipeline 配置。"""
 
@@ -1149,7 +1160,16 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
     knowledge_base: Optional[PipelineKnowledgeBase] = None
     if not disable_knowledge:
         try:
-            knowledge_base = get_default_knowledge_base()
+            knowledge_base = get_default_knowledge_base(
+                embedding_method=embedding_method,
+                embedding_model=embedding_model,
+            )
+            # Show which embedding method is being used
+            method_name = embedding_method or os.getenv("SAGE_PIPELINE_EMBEDDING_METHOD", "hash")
+            console.print(
+                f"🎯 知识库使用 [cyan]{method_name}[/cyan] embedding 方法",
+                style="dim"
+            )
         except Exception as exc:
             console.print(
                 f"[yellow]初始化知识库失败，将继续使用静态上下文: {exc}[/yellow]"
@@ -1260,6 +1280,148 @@ def run_pipeline(
     except CLIException as exc:
         console.print(f"[red]❌ {exc}[/red]")
         raise typer.Exit(1) from exc
+
+
+@app.command("analyze-embedding")
+def analyze_embedding_methods(
+    query: str = typer.Argument(..., help="测试查询文本"),
+    top_k: int = typer.Option(3, "--top-k", "-k", min=1, max=10, help="返回 Top-K 结果数量"),
+    methods: Optional[List[str]] = typer.Option(
+        None,
+        "--method",
+        "-m",
+        help="指定要比较的 embedding 方法（可多次使用）",
+    ),
+    show_vectors: bool = typer.Option(False, "--show-vectors", help="显示向量详情"),
+) -> None:
+    """分析和比较不同 embedding 方法在 Pipeline Builder 知识库上的检索效果。
+    
+    这个命令帮助你选择最适合你场景的 embedding 方法。
+    
+    示例:
+        sage pipeline analyze-embedding "如何构建 RAG pipeline"
+        sage pipeline analyze-embedding "向量检索" -m hash -m openai -m hf
+    """
+    from sage.middleware.utils.embedding.registry import EmbeddingRegistry
+    
+    # 如果没有指定方法，使用默认的几个常用方法
+    if not methods:
+        all_methods = EmbeddingRegistry.list_methods()
+        # 优先选择免费/本地方法
+        default_methods = []
+        for m in ["hash", "mockembedder", "hf"]:
+            if m in all_methods:
+                default_methods.append(m)
+        methods = default_methods[:3] if default_methods else all_methods[:3]
+    
+    console.print(
+        Panel(
+            f"🔍 查询: [cyan]{query}[/cyan]\n"
+            f"📊 对比方法: {', '.join(methods)}\n"
+            f"📚 知识库: SAGE Pipeline Builder",
+            title="Embedding 方法分析",
+            style="blue",
+        )
+    )
+    
+    results_by_method = {}
+    
+    for method in methods:
+        try:
+            console.print(f"\n⚙️  测试方法: [cyan]{method}[/cyan]")
+            
+            # 创建使用该 embedding 方法的知识库
+            kb = PipelineKnowledgeBase(
+                max_chunks=500,  # 使用较小的数据集加快测试
+                allow_download=False,
+                embedding_method=method,
+            )
+            
+            # 执行检索
+            import time
+            start = time.time()
+            search_results = kb.search(query, top_k=top_k)
+            elapsed = time.time() - start
+            
+            results_by_method[method] = {
+                "results": search_results,
+                "time": elapsed,
+                "dimension": len(search_results[0].vector) if search_results and search_results[0].vector else 0,
+            }
+            
+            console.print(
+                f"   ✓ 检索完成 (耗时: {elapsed*1000:.2f}ms, 维度: {results_by_method[method]['dimension']})"
+            )
+            
+        except Exception as exc:
+            console.print(f"   ✗ [red]{method} 失败: {exc}[/red]")
+            continue
+    
+    if not results_by_method:
+        console.print("[red]所有方法都失败了，请检查配置。[/red]")
+        raise typer.Exit(1)
+    
+    # 显示对比结果
+    console.print("\n" + "="*80)
+    console.print("[bold green]📊 检索结果对比[/bold green]\n")
+    
+    for method, data in results_by_method.items():
+        console.print(f"[bold cyan]━━━ {method.upper()} ━━━[/bold cyan]")
+        console.print(
+            f"⏱️  耗时: {data['time']*1000:.2f}ms | "
+            f"📐 维度: {data['dimension']}"
+        )
+        
+        table = Table(show_header=True, header_style="bold magenta", box=None)
+        table.add_column("排名", style="dim", width=4)
+        table.add_column("得分", justify="right", width=8)
+        table.add_column("类型", width=8)
+        table.add_column("文本片段", width=60)
+        
+        for idx, chunk in enumerate(data["results"], 1):
+            preview = chunk.text[:100].replace("\n", " ") + "..." if len(chunk.text) > 100 else chunk.text.replace("\n", " ")
+            table.add_row(
+                f"#{idx}",
+                f"{chunk.score:.4f}",
+                chunk.kind,
+                preview,
+            )
+        
+        console.print(table)
+        
+        if show_vectors and data["results"]:
+            first_vec = data["results"][0].vector
+            if first_vec:
+                vec_preview = str(first_vec[:10])[:-1] + ", ...]"
+                console.print(f"   向量示例: {vec_preview}\n")
+        
+        console.print()
+    
+    # 推荐最佳方法
+    console.print("[bold yellow]💡 推荐建议:[/bold yellow]\n")
+    
+    fastest = min(results_by_method.items(), key=lambda x: x[1]["time"])
+    console.print(
+        f"⚡ 最快方法: [green]{fastest[0]}[/green] "
+        f"({fastest[1]['time']*1000:.2f}ms)"
+    )
+    
+    # 简单的相关性评估（基于平均得分）
+    avg_scores = {
+        method: sum(r.score for r in data["results"]) / len(data["results"])
+        if data["results"] else 0
+        for method, data in results_by_method.items()
+    }
+    best_relevance = max(avg_scores.items(), key=lambda x: x[1])
+    console.print(
+        f"🎯 最相关方法: [green]{best_relevance[0]}[/green] "
+        f"(平均得分: {best_relevance[1]:.4f})"
+    )
+    
+    console.print(
+        f"\n💡 [dim]使用推荐方法:[/dim] "
+        f"[cyan]sage pipeline build --embedding-method {best_relevance[0]}[/cyan]"
+    )
 
 
 __all__ = [

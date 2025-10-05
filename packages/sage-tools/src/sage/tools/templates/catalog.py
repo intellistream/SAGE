@@ -276,6 +276,235 @@ TEMPLATE_LIBRARY: Tuple[ApplicationTemplate, ...] = (
             "可扩展：替换多模态检索器为 SageDB / 向量数据库",
         ),
     ),
+    ApplicationTemplate(
+        id="rag-dense-milvus",
+        title="Milvus 密集向量检索问答",
+        description="生产级 RAG 系统，使用 Milvus 向量数据库进行大规模语义检索，支持 BGE 嵌入模型。",
+        tags=(
+            "rag",
+            "qa",
+            "milvus",
+            "dense",
+            "vector",
+            "embedding",
+            "向量检索",
+            "向量数据库",
+            "生产环境",
+            "语义搜索",
+        ),
+        example_path="examples/rag/qa_dense_retrieval_milvus.py",
+        blueprint_id="rag-dense-milvus",
+        default_requirements={
+            "name": "milvus-dense-qa",
+            "goal": "构建基于 Milvus 的生产级语义问答系统",
+            "description": "使用密集向量检索和大模型生成，支持大规模知识库",
+        },
+        guidance=textwrap.dedent(
+            """
+            适合生产环境的大规模语义检索场景，支持百万级文档检索。
+            需要预先使用 build_milvus_dense_index.py 构建向量索引。
+            可配置不同的嵌入模型（BGE、OpenAI、sentence-transformers等）。
+            """
+        ),
+        notes=_notes(
+            "基于 examples/rag/qa_dense_retrieval_milvus.py",
+            "需要运行中的 Milvus 服务实例",
+            "需要预先构建向量索引",
+            "支持分布式部署和高并发查询",
+        ),
+    ),
+    ApplicationTemplate(
+        id="rag-rerank",
+        title="重排序增强检索问答",
+        description="两阶段检索架构：初始召回 + BGE 重排序，显著提升检索精确度。",
+        tags=(
+            "rag",
+            "qa",
+            "rerank",
+            "reranker",
+            "precision",
+            "重排序",
+            "精确度",
+            "两阶段",
+            "召回",
+            "精排",
+        ),
+        example_path="examples/rag/qa_rerank.py",
+        blueprint_id="rag-rerank",
+        default_requirements={
+            "name": "rerank-qa-system",
+            "goal": "构建高精度的重排序问答系统",
+            "description": "通过两阶段检索优化答案质量：粗排召回 + 精细重排",
+        },
+        guidance=textwrap.dedent(
+            """
+            适合对答案精确度要求高的场景。第一阶段召回更多候选（如 top-20），
+            第二阶段使用 BGE cross-encoder 重排序选出最相关的结果（如 top-5）。
+            相比单阶段检索，可显著提升精确度，但计算成本稍高。
+            """
+        ),
+        notes=_notes(
+            "基于 examples/rag/qa_rerank.py",
+            "两阶段架构：Chroma 召回 + BGE Reranker 精排",
+            "需要配置向量数据库和 BGE reranker 模型",
+            "适合高精度场景如法律、医疗、金融问答",
+        ),
+    ),
+    ApplicationTemplate(
+        id="rag-bm25-sparse",
+        title="BM25 关键词检索问答",
+        description="传统关键词检索，基于 BM25 算法进行词法匹配，无需向量化。",
+        tags=(
+            "rag",
+            "qa",
+            "bm25",
+            "sparse",
+            "keyword",
+            "关键词",
+            "稀疏检索",
+            "词法",
+            "传统检索",
+        ),
+        example_path="examples/rag/qa_bm25_retrieval.py",
+        blueprint_id="rag-bm25-sparse",
+        default_requirements={
+            "name": "bm25-keyword-qa",
+            "goal": "构建基于关键词匹配的问答系统",
+            "description": "使用 BM25 算法进行传统文本检索，适合精确词匹配场景",
+        },
+        guidance=textwrap.dedent(
+            """
+            BM25 是经典的词法检索算法，适合：
+            1. 精确关键词匹配场景
+            2. 资源受限环境（无需 GPU 和向量化）
+            3. 与密集检索结合的混合检索系统
+            相比语义检索，在专有名词和精确匹配方面表现更好。
+            """
+        ),
+        notes=_notes(
+            "基于 examples/rag/qa_bm25_retrieval.py",
+            "无需向量化，计算成本低",
+            "适合关键词精确匹配场景",
+            "可与密集检索结合形成混合检索",
+        ),
+    ),
+    ApplicationTemplate(
+        id="agent-workflow",
+        title="LLM 智能体工作流",
+        description="自主智能体系统，支持 LLM 规划、工具调用和复杂任务执行。",
+        tags=(
+            "agent",
+            "llm",
+            "planning",
+            "tool",
+            "mcp",
+            "智能体",
+            "工具调用",
+            "规划",
+            "自主",
+            "任务执行",
+        ),
+        example_path="examples/agents/agent.py",
+        blueprint_id="agent-workflow",
+        default_requirements={
+            "name": "autonomous-agent",
+            "goal": "构建自主规划和执行任务的智能体",
+            "description": "使用 LLM 进行任务规划，调用 MCP 工具完成复杂任务",
+        },
+        guidance=textwrap.dedent(
+            """
+            智能体系统适合需要多步骤推理和工具调用的复杂任务：
+            1. LLM Planner 负责任务分解和规划
+            2. MCP Registry 管理可用工具
+            3. Agent Runtime 执行规划并调用工具
+            支持的场景：数据分析、代码生成、信息收集、自动化操作等。
+            """
+        ),
+        notes=_notes(
+            "基于 examples/agents/agent.py",
+            "支持 Model Context Protocol (MCP) 工具标准",
+            "需要配置 LLM API 和工具库",
+            "适合复杂的多步骤推理任务",
+        ),
+    ),
+    ApplicationTemplate(
+        id="rag-memory-enhanced",
+        title="记忆增强对话问答",
+        description="支持多轮对话的 RAG 系统，通过记忆服务维护上下文状态。",
+        tags=(
+            "rag",
+            "memory",
+            "conversation",
+            "multi-turn",
+            "dialogue",
+            "记忆",
+            "对话",
+            "上下文",
+            "多轮",
+            "会话",
+        ),
+        example_path="examples/memory/rag_memory_pipeline.py",
+        blueprint_id="rag-memory-enhanced",
+        default_requirements={
+            "name": "conversational-rag",
+            "goal": "构建支持多轮对话的上下文感知问答系统",
+            "description": "使用记忆服务存储历史对话，实现上下文连贯的问答",
+        },
+        guidance=textwrap.dedent(
+            """
+            记忆增强 RAG 适合对话式应用：
+            1. 自动存储问答历史到记忆服务
+            2. 检索时考虑历史上下文
+            3. 生成时保持对话连贯性
+            记忆服务使用 ChromaDB 或其他向量库作为存储后端。
+            """
+        ),
+        notes=_notes(
+            "基于 examples/memory/rag_memory_pipeline.py",
+            "使用服务架构管理会话状态",
+            "支持长期记忆和短期记忆",
+            "适合客服机器人、个人助手等对话应用",
+        ),
+    ),
+    ApplicationTemplate(
+        id="multimodal-cross-search",
+        title="跨模态搜索引擎",
+        description="支持文本、图像及融合检索的多模态搜索系统，可配置融合策略。",
+        tags=(
+            "multimodal",
+            "cross-modal",
+            "search",
+            "fusion",
+            "image",
+            "text",
+            "跨模态",
+            "搜索",
+            "图文",
+            "检索",
+        ),
+        example_path="examples/multimodal/cross_modal_search.py",
+        blueprint_id="multimodal-cross-search",
+        default_requirements={
+            "name": "cross-modal-search",
+            "goal": "构建跨模态搜索引擎",
+            "description": "支持文本、图像和融合三种检索模式的多模态搜索",
+        },
+        guidance=textwrap.dedent(
+            """
+            跨模态搜索支持三种检索模式：
+            1. 纯文本检索：使用文本嵌入
+            2. 纯图像检索：使用图像嵌入
+            3. 融合检索：可配置加权平均、RRF 等融合策略
+            适合电商、新闻、社交媒体等图文混合场景。
+            """
+        ),
+        notes=_notes(
+            "基于 examples/multimodal/cross_modal_search.py",
+            "支持多种融合策略配置",
+            "可使用 SageDB 或其他多模态向量库",
+            "适合图文混合检索场景",
+        ),
+    ),
 )
 
 DEFAULT_TEMPLATE_ID = TEMPLATE_LIBRARY[0].id

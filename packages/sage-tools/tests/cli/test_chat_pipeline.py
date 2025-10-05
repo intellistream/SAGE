@@ -107,12 +107,16 @@ def fake_generator(monkeypatch):
 def test_pipeline_chat_coordinator_handles_flow(monkeypatch, tmp_path, fake_generator):
     prompts = itertools.chain(
         [
+            # 场景模板相关
+            # "qa",  # 模板选择（由 confirm 返回 False 跳过）
+            # 需求收集
             "DemoPipeline",  # 名称
             "构建一个问答应用",  # 目标
             "文档知识库",  # 数据来源
             "实时",  # 延迟
             "",  # 约束
-            str(tmp_path / "demo.yaml"),  # 保存路径
+            # 保存路径
+            str(tmp_path / "demo.yaml"),
         ]
     )
     prompt_iter = iter(prompts)
@@ -123,7 +127,8 @@ def test_pipeline_chat_coordinator_handles_flow(monkeypatch, tmp_path, fake_gene
         except StopIteration:
             return default or ""
 
-    confirms = iter([True, True, True])
+    # 调整 confirm 顺序：不使用模板、配置满意、保存文件、立即运行、autostop
+    confirms = iter([False, True, True, True])
 
     def fake_confirm(message, default=False, **kwargs):
         try:
@@ -148,3 +153,79 @@ def test_pipeline_chat_coordinator_handles_flow(monkeypatch, tmp_path, fake_gene
     assert saved_path.exists()
     assert fake_generator["executed"].get("plan") == fake_generator["plan"]
     assert fake_generator["executed"].get("autostop") is True
+
+
+def test_scenario_templates():
+    """测试场景模板功能"""
+    # 测试获取模板
+    qa_template = chat_module._get_scenario_template("qa")
+    assert qa_template is not None
+    assert qa_template["name"] == "问答助手"
+    assert "data_sources" in qa_template
+    
+    # 测试不存在的模板
+    invalid = chat_module._get_scenario_template("nonexistent")
+    assert invalid is None
+
+
+def test_validate_pipeline_config():
+    """测试配置验证功能"""
+    # 有效配置
+    valid_plan = {
+        "pipeline": {
+            "name": "test",
+            "type": "local",
+        },
+        "source": {
+            "class": "test.Source",
+            "params": {},
+        },
+        "sink": {
+            "class": "test.Sink",
+            "params": {},
+        },
+        "stages": [
+            {
+                "id": "stage1",
+                "kind": "map",
+                "class": "test.Stage",
+            }
+        ],
+    }
+    is_valid, errors = chat_module._validate_pipeline_config(valid_plan)
+    assert is_valid
+    assert len(errors) == 0
+    
+    # 无效配置 - 缺少必需字段
+    invalid_plan = {
+        "pipeline": {"name": "test"},  # 缺少 type
+        "source": {},  # 缺少 class
+    }
+    is_valid, errors = chat_module._validate_pipeline_config(invalid_plan)
+    assert not is_valid
+    assert len(errors) > 0
+    assert any("type" in err for err in errors)
+    assert any("class" in err for err in errors)
+
+
+def test_normalize_list_field():
+    """测试列表字段规范化"""
+    # 逗号分隔
+    result = chat_module._normalize_list_field("a,b,c")
+    assert result == ["a", "b", "c"]
+    
+    # 中文逗号
+    result = chat_module._normalize_list_field("文档，数据库，API")
+    assert result == ["文档", "数据库", "API"]
+    
+    # 混合分隔符
+    result = chat_module._normalize_list_field("a,b;c/d")
+    assert result == ["a", "b", "c", "d"]
+    
+    # 空字符串
+    result = chat_module._normalize_list_field("")
+    assert result == []
+    
+    # 带空格
+    result = chat_module._normalize_list_field("  a  ,  b  ")
+    assert result == ["a", "b"]

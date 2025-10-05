@@ -12,6 +12,7 @@ from sage.tools.cli.commands.cluster import app as cluster_app
 from sage.tools.cli.commands.config import app as config_app
 from sage.tools.cli.commands.dev import app as dev_app  # 新增dev命令
 from sage.tools.cli.commands.doctor import app as doctor_app
+from sage.tools.cli.commands.embedding import app as embedding_app  # 新增embedding命令
 from sage.tools.cli.commands.enterprise import app as enterprise_app
 from sage.tools.cli.commands.extensions import app as extensions_app
 from sage.tools.cli.commands.head import app as head_app
@@ -56,6 +57,7 @@ app.add_typer(chat_app, name="chat", help="🧭 编程助手 - 基于 SageDB 的
 app.add_typer(
     pipeline_app, name="pipeline", help="🧱 Pipeline Builder - 大模型辅助的配置生成"
 )
+app.add_typer(embedding_app, name="embedding", help="🎯 Embedding 管理 - 管理和测试 embedding 方法")
 
 # 开发工具命令
 app.add_typer(dev_app, name="dev", help="🛠️ 开发工具 - 项目开发和管理")
