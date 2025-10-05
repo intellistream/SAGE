@@ -10,7 +10,7 @@ import re
 import textwrap
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import typer
 import yaml
@@ -22,6 +22,8 @@ from rich.table import Table
 from sage.common.config.output_paths import get_sage_paths
 from sage.core.api.base_environment import BaseEnvironment
 from sage.core.api.local_environment import LocalEnvironment
+from sage.tools import templates
+from sage.tools.cli import pipeline_blueprints as blueprints
 from sage.tools.cli.commands.pipeline_domain import (
     load_custom_contexts,
     load_domain_contexts,
@@ -103,8 +105,127 @@ SYSTEM_PROMPT = textwrap.dedent(
 ).strip()
 
 
+GRAPH_SYSTEM_PROMPT = textwrap.dedent(
+    """
+    You are SAGE Pipeline Architect, an expert agent workflow designer.
+    Create expressive multi-stage graph pipelines that can include agents, tools, services,
+    and messaging channels. Support branching, multi-agent orchestration, shared memories,
+    and control flows whenever helpful.
+
+    Produce a single JSON object with the structure:
+    {
+        "pipeline": {
+            "name": str,
+            "description": str,
+            "version": "1.0.0",
+            "type": "local" | "remote"
+        },
+        "graph": {
+            "nodes": [
+                {
+                    "id": str,
+                    "title": str,
+                    "kind": "source" | "agent" | "tool" | "service" | "sink" | "router",
+                    "class": str,
+                    "params": { ... },
+                    "inputs": [str],  # upstream node IDs
+                    "outputs": [str],
+                    "metadata": { ... }
+                }
+            ],
+            "channels": [
+                {
+                    "id": str,
+                    "type": "memory" | "event" | "queue" | "stream",
+                    "description": str,
+                    "participants": [str]
+                }
+            ]
+        },
+        "agents": [
+            {
+                "id": str,
+                "role": str,
+                "goals": [str],
+                "tools": [str],
+                "memory": {
+                    "type": str,
+                    "config": { ... }
+                }
+            }
+        ],
+        "services": [ ... ],
+        "monitors": [ ... ],
+        "notes": [str]
+    }
+
+    Guidelines:
+    - Encourage the use of multiple agents when the task benefits from specialization.
+    - Use inputs/outputs to express the DAG; omit when not relevant.
+    - Fill params with concrete configuration that can run on SAGE where possible.
+    - Include channels when agents need to coordinate or share state.
+    - Ensure node IDs are unique kebab-case strings. Outputs list may be omitted when obvious.
+    - Prefer referencing existing SAGE components (e.g. sage.libs.rag.*, examples.*) but
+      custom classes are allowed if necessary—describe them in notes.
+    """
+).strip()
+
+
 console = Console()
 app = typer.Typer(help="🧠 使用大模型交互式创建 SAGE pipeline 配置")
+
+
+def _render_blueprint_panel(
+    matches: Sequence[Tuple[blueprints.PipelineBlueprint, float]]
+) -> Panel:
+    lines: List[str] = []
+    for index, (blueprint, score) in enumerate(matches, start=1):
+        lines.append(
+            textwrap.dedent(
+                f"""
+                [{index}] {blueprint.title} ({blueprint.id})
+                匹配度: {score:.2f} | 关键词: {', '.join(blueprint.keywords) or '通用'}
+                场景: {blueprint.description}
+                """
+            ).strip()
+        )
+    body = "\n\n".join(lines) or "暂无可用蓝图"
+    return Panel(body, title="蓝图库候选", style="magenta")
+
+
+def _render_template_panel(
+    matches: Sequence[templates.TemplateMatch],
+) -> Panel:
+    lines: List[str] = []
+    for index, match in enumerate(matches, start=1):
+        template = match.template
+        lines.append(
+            textwrap.dedent(
+                f"""
+                [{index}] {template.title} ({template.id})
+                匹配度: {match.score:.2f} | 标签: {', '.join(template.tags) or '通用'}
+                示例: {template.example_path}
+                场景: {template.description}
+                """
+            ).strip()
+        )
+    body = "\n\n".join(lines) or "暂无应用模板"
+    return Panel(body, title="应用模板推荐", style="green")
+
+
+def _blueprint_contexts(
+    matches: Sequence[Tuple[blueprints.PipelineBlueprint, float]]
+) -> Tuple[str, ...]:
+    return tuple(
+        blueprints.render_blueprint_prompt(blueprint, score)
+        for blueprint, score in matches
+    )
+
+
+def _template_contexts(
+    matches: Sequence[templates.TemplateMatch],
+) -> Tuple[str, ...]:
+    return tuple(match.template.render_prompt(match.score) for match in matches)
 
 
 class PipelineBuilderError(RuntimeError):
@@ -173,6 +294,59 @@ def _validate_plan(plan: Dict[str, Any]) -> None:
             stage["params"] = {}
         elif not isinstance(params, dict):
             raise PipelineBuilderError("stage 的 params 必须是对象 (key/value)。")
+
+
+def _validate_graph_plan(plan: Dict[str, Any]) -> None:
+    pipeline_meta = plan.get("pipeline")
+    graph = plan.get("graph")
+
+    if not isinstance(pipeline_meta, dict):
+        raise PipelineBuilderError("graph 配置缺少 pipeline 信息。")
+    if not isinstance(graph, dict):
+        raise PipelineBuilderError("graph 配置缺少 graph 节点定义。")
+
+    nodes = graph.get("nodes")
+    if not isinstance(nodes, list) or not nodes:
+        raise PipelineBuilderError("graph.nodes 必须是非空列表。")
+
+    seen_ids: set[str] = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            raise PipelineBuilderError("graph.nodes 中的元素必须是对象。")
+        node_id = node.get("id")
+        if not node_id:
+            raise PipelineBuilderError("每个节点都需要 id。")
+        slugified = _slugify(str(node_id))
+        node["id"] = slugified
+        if slugified in seen_ids:
+            raise PipelineBuilderError(f"节点 id 重复: {slugified}")
+        seen_ids.add(slugified)
+
+        if not node.get("class"):
+            raise PipelineBuilderError(f"节点 {slugified} 缺少 class 字段。")
+
+        for key in ("inputs", "outputs"):
+            if key in node and node[key] is not None and not isinstance(node[key], list):
+                raise PipelineBuilderError(f"节点 {slugified} 的 {key} 字段必须是列表。")
+
+    channels = graph.get("channels") or []
+    if not isinstance(channels, list):
+        raise PipelineBuilderError("graph.channels 必须是列表。")
+    for channel in channels:
+        if not isinstance(channel, dict):
+            raise PipelineBuilderError("graph.channels 中的元素必须是对象。")
+        if not channel.get("id"):
+            raise PipelineBuilderError("每个 channel 需要 id。")
+
+    for block_name in ("agents", "services", "monitors"):
+        if block_name in plan and plan[block_name] is not None and not isinstance(
+            plan[block_name], list
+        ):
+            raise PipelineBuilderError(f"{block_name} 字段必须是列表。")
+
+    notes = plan.get("notes")
+    if notes is not None and not isinstance(notes, list):
+        raise PipelineBuilderError("notes 字段必须是字符串列表。")
 
 
 def _expand_params(value: Any) -> Any:
@@ -349,11 +523,31 @@ class BuilderConfig:
     show_knowledge: bool = False
 
 
+@dataclass
+class GraphBuilderConfig:
+    backend: str
+    model: str
+    base_url: Optional[str]
+    api_key: Optional[str]
+    domain_contexts: Tuple[str, ...] = ()
+    knowledge_base: Optional[PipelineKnowledgeBase] = None
+    knowledge_top_k: int = 6
+    show_knowledge: bool = False
+
+
 class PipelinePlanGenerator:
     def __init__(self, config: BuilderConfig) -> None:
         self.config = config
         self._client = None  # type: Optional[Any]
         self._last_knowledge_contexts: Tuple[str, ...] = ()
+        self._blueprint_matches: Tuple[
+            Tuple[blueprints.PipelineBlueprint, float], ...
+        ] = ()
+        self._last_blueprint_contexts: Tuple[str, ...] = ()
+        self._template_matches: Tuple[templates.TemplateMatch, ...] = ()
+        self._last_template_contexts: Tuple[str, ...] = ()
+        self._template_matches: Tuple[templates.TemplateMatch, ...] = ()
+        self._last_template_contexts: Tuple[str, ...] = ()
 
         if self.config.backend != "mock":
             if not OPENAI_AVAILABLE:
@@ -390,8 +584,6 @@ class PipelinePlanGenerator:
                 )
                 self._last_knowledge_contexts = ()
 
-            self._last_knowledge_contexts = ()
-
         if self.config.show_knowledge and knowledge_contexts:
             console.print(
                 Panel(
@@ -401,8 +593,30 @@ class PipelinePlanGenerator:
                 )
             )
 
+        self._template_matches = tuple(
+            templates.match_templates(requirements, top_k=3)
+        )
+        self._last_template_contexts = _template_contexts(self._template_matches)
+        if self._template_matches and self.config.show_knowledge:
+            console.print(_render_template_panel(self._template_matches))
+
         if self.config.backend == "mock":
-            return self._mock_plan(requirements, previous_plan, feedback)
+            self._blueprint_matches = tuple(
+                blueprints.match_blueprints(requirements)
+            )
+            self._last_blueprint_contexts = _blueprint_contexts(
+                self._blueprint_matches
+            )
+            if self._blueprint_matches and self.config.show_knowledge:
+                console.print(_render_blueprint_panel(self._blueprint_matches))
+            return self._blueprint_plan(requirements, previous_plan, feedback)
+
+        self._blueprint_matches = tuple(blueprints.match_blueprints(requirements))
+        if self._blueprint_matches and self.config.show_knowledge:
+            console.print(_render_blueprint_panel(self._blueprint_matches))
+        self._last_blueprint_contexts = _blueprint_contexts(
+            self._blueprint_matches
+        )
 
         assert self._client is not None  # for type checker
         user_prompt = self._build_prompt(
@@ -410,6 +624,8 @@ class PipelinePlanGenerator:
             previous_plan,
             feedback,
             knowledge_contexts,
+            self._last_template_contexts,
+            self._last_blueprint_contexts,
         )
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -428,11 +644,23 @@ class PipelinePlanGenerator:
         previous_plan: Optional[Dict[str, Any]],
         feedback: Optional[str],
         knowledge_contexts: Tuple[str, ...],
+        template_contexts: Tuple[str, ...],
+        blueprint_contexts: Tuple[str, ...],
     ) -> str:
         blocks = [
             "请根据以下需求生成符合 SAGE 框架的 pipeline 配置 JSON：",
             json.dumps(requirements, ensure_ascii=False, indent=2),
         ]
+
+        if template_contexts:
+            blocks.append("以下应用模板仅作灵感参考，请结合需求自行设计：")
+            for idx, snippet in enumerate(template_contexts, start=1):
+                blocks.append(f"模板[{idx}]:\n{snippet.strip()}")
+
+        if blueprint_contexts:
+            blocks.append("以下蓝图可直接复用或在此基础上扩展：")
+            for idx, snippet in enumerate(blueprint_contexts, start=1):
+                blocks.append(f"蓝图[{idx}]:\n{snippet.strip()}")
 
         if knowledge_contexts:
             blocks.append("以下是从 SAGE 知识库检索到的参考信息：")
@@ -457,75 +685,174 @@ class PipelinePlanGenerator:
         )
         return "\n\n".join(blocks)
 
-    @staticmethod
-    def _mock_plan(
+    def _blueprint_plan(
+        self,
         requirements: Dict[str, Any],
         previous_plan: Optional[Dict[str, Any]],
         feedback: Optional[str],
     ) -> Dict[str, Any]:
-        name = _slugify(requirements.get("name") or "demo-pipeline")
-        description = requirements.get("goal", "Auto-generated pipeline")
-        plan = {
-            "pipeline": {
-                "name": name,
-                "description": description,
-                "version": "1.0.0",
-                "type": "local",
-            },
-            "source": {
-                "class": "examples.rag.rag_simple.SimpleQuestionSource",
-                "params": {"questions": ["示例问题"]},
-                "summary": "Sample in-memory question list",
-            },
-            "stages": [
-                {
-                    "id": "retriever",
-                    "kind": "map",
-                    "class": "examples.rag.rag_simple.SimpleRetriever",
-                    "params": {},
-                    "summary": "Keyword-based retriever for demo",
-                },
-                {
-                    "id": "promptor",
-                    "kind": "map",
-                    "class": "examples.rag.rag_simple.SimplePromptor",
-                    "params": {},
-                    "summary": "Builds prompts for generator",
-                },
-                {
-                    "id": "generator",
-                    "kind": "map",
-                    "class": "sage.libs.rag.generator.OpenAIGenerator",
-                    "params": {
-                        "method": "openai",
-                        "model_name": DEFAULT_MODEL,
-                        "base_url": DEFAULT_BASE_URL,
-                        "api_key": "${OPENAI_API_KEY}",
-                    },
-                    "summary": "LLM generator via OpenAI-compatible endpoint",
-                },
-            ],
-            "sink": {
-                "class": "examples.rag.rag_simple.SimpleTerminalSink",
-                "params": {},
-                "summary": "Print answers to console",
-            },
-            "services": [],
-            "monitors": [],
-            "notes": [
-                "Mock backend生成，仅用于离线测试。",
-                "部署时请完善数据源与生成模型参数。",
-            ],
-        }
+        blueprint = (
+            self._blueprint_matches[0][0]
+            if self._blueprint_matches
+            else blueprints.DEFAULT_BLUEPRINT
+        )
+        return blueprints.build_pipeline_plan(blueprint, requirements, feedback)
 
-        if feedback and "file" in feedback.lower():
-            plan["sink"] = {
-                "class": "sage.libs.io_utils.file.FileSink",
-                "params": {"path": "output/pipeline_results.txt"},
-                "summary": "Persist results to local file",
-            }
 
+class GraphPlanGenerator:
+    def __init__(self, config: GraphBuilderConfig) -> None:
+        self.config = config
+        self._client: Optional[Any] = None
+        self._last_knowledge_contexts: Tuple[str, ...] = ()
+        self._blueprint_matches: Tuple[
+            Tuple[blueprints.PipelineBlueprint, float], ...
+        ] = ()
+        self._last_blueprint_contexts: Tuple[str, ...] = ()
+
+        if self.config.backend != "mock":
+            if not OPENAI_AVAILABLE:
+                message = "未能导入 OpenAIClient：{}".format(OPENAI_IMPORT_ERROR)
+                raise PipelineBuilderError(message)
+            self._client = OpenAIClient(
+                model_name=self.config.model,
+                base_url=self.config.base_url,
+                api_key=self.config.api_key,
+                seed=17,
+            )
+
+    def generate(
+        self,
+        requirements: Dict[str, Any],
+        previous_plan: Optional[Dict[str, Any]] = None,
+        feedback: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        knowledge_contexts: Tuple[str, ...] = ()
+        if self.config.knowledge_base is not None:
+            try:
+                query_payload = build_query_payload(
+                    requirements, previous_plan, feedback
+                )
+                results = self.config.knowledge_base.search(
+                    query_payload, top_k=self.config.knowledge_top_k
+                )
+                knowledge_contexts = tuple(item.text for item in results)
+                self._last_knowledge_contexts = knowledge_contexts
+            except Exception as exc:  # pragma: no cover - defensive
+                console.print(
+                    f"[yellow]检索知识库时出错，将继续使用静态上下文: {exc}[/yellow]"
+                )
+                self._last_knowledge_contexts = ()
+
+        if self.config.show_knowledge and knowledge_contexts:
+            console.print(
+                Panel(
+                    "\n\n".join(knowledge_contexts),
+                    title="知识库检索结果",
+                    style="blue",
+                )
+            )
+
+        self._template_matches = tuple(
+            templates.match_templates(requirements, top_k=4)
+        )
+        self._last_template_contexts = _template_contexts(self._template_matches)
+        if self._template_matches and self.config.show_knowledge:
+            console.print(_render_template_panel(self._template_matches))
+
+        if self.config.backend == "mock":
+            self._blueprint_matches = tuple(
+                blueprints.match_blueprints(requirements)
+            )
+            self._last_blueprint_contexts = _blueprint_contexts(
+                self._blueprint_matches
+            )
+            if self._blueprint_matches and self.config.show_knowledge:
+                console.print(_render_blueprint_panel(self._blueprint_matches))
+            return self._blueprint_plan(requirements, previous_plan, feedback)
+
+        self._blueprint_matches = tuple(blueprints.match_blueprints(requirements))
+        if self._blueprint_matches and self.config.show_knowledge:
+            console.print(_render_blueprint_panel(self._blueprint_matches))
+        self._last_blueprint_contexts = _blueprint_contexts(
+            self._blueprint_matches
+        )
+
+        assert self._client is not None
+        user_prompt = self._build_prompt(
+            requirements,
+            previous_plan,
+            feedback,
+            knowledge_contexts,
+            self._last_template_contexts,
+            self._last_blueprint_contexts,
+        )
+        messages = [
+            {"role": "system", "content": GRAPH_SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        console.print("🤖 正在请求大模型设计图谱...", style="cyan")
+        response = self._client.generate(messages, max_tokens=1600, temperature=0.35)
+        plan = _extract_json_object(response)
         return plan
+
+    def _build_prompt(
+        self,
+        requirements: Dict[str, Any],
+        previous_plan: Optional[Dict[str, Any]],
+        feedback: Optional[str],
+        knowledge_contexts: Tuple[str, ...],
+        template_contexts: Tuple[str, ...],
+        blueprint_contexts: Tuple[str, ...],
+    ) -> str:
+        blocks: List[str] = [
+            "请根据以下需求设计一个多智能体 SAGE pipeline 图谱：",
+            json.dumps(requirements, ensure_ascii=False, indent=2),
+        ]
+
+        if template_contexts:
+            blocks.append("以下应用模板可作为参考灵感，请主动规划合适的多智能体结构：")
+            for idx, snippet in enumerate(template_contexts, start=1):
+                blocks.append(f"模板[{idx}]:\n{snippet.strip()}")
+
+        if blueprint_contexts:
+            blocks.append("以下蓝图可作为起点进行扩展：")
+            for idx, snippet in enumerate(blueprint_contexts, start=1):
+                blocks.append(f"蓝图[{idx}]:\n{snippet.strip()}")
+
+        if knowledge_contexts:
+            blocks.append("以下是从 SAGE 知识库检索到的参考信息：")
+            for idx, snippet in enumerate(knowledge_contexts, start=1):
+                blocks.append(f"知识[{idx}]:\n{snippet.strip()}")
+
+        if self.config.domain_contexts:
+            blocks.append("以下是与 SAGE 组件相关的参考资料：")
+            for idx, snippet in enumerate(self.config.domain_contexts, start=1):
+                blocks.append(f"参考[{idx}]:\n{snippet.strip()}")
+
+        if previous_plan:
+            blocks.append("上一版图谱结构供参考：")
+            blocks.append(json.dumps(previous_plan, ensure_ascii=False, indent=2))
+
+        if feedback:
+            blocks.append("请依据以下反馈调整图谱：")
+            blocks.append(feedback.strip())
+
+        blocks.append("严格输出单个 JSON 对象，不要包含 markdown、注释或多余文字。")
+        return "\n\n".join(blocks)
+
+    def _blueprint_plan(
+        self,
+        requirements: Dict[str, Any],
+        previous_plan: Optional[Dict[str, Any]],
+        feedback: Optional[str],
+    ) -> Dict[str, Any]:
+        blueprint = (
+            self._blueprint_matches[0][0]
+            if self._blueprint_matches
+            else blueprints.DEFAULT_BLUEPRINT
+        )
+        return blueprints.build_graph_plan(blueprint, requirements, feedback)
 
 
 def _render_plan(plan: Dict[str, Any]) -> None:
@@ -569,6 +896,14 @@ def _plan_to_yaml(plan: Dict[str, Any]) -> str:
     return yaml.safe_dump(data, allow_unicode=True, sort_keys=False)
 
 
+def render_pipeline_plan(plan: Dict[str, Any]) -> None:
+    _render_plan(plan)
+
+
+def _graph_plan_to_yaml(plan: Dict[str, Any]) -> str:
+    return yaml.safe_dump(plan, allow_unicode=True, sort_keys=False)
+
+
 def _save_plan(plan: Dict[str, Any], output: Optional[Path], overwrite: bool) -> Path:
     yaml_text = _plan_to_yaml(plan)
     if output is None:
@@ -593,6 +928,73 @@ def _save_plan(plan: Dict[str, Any], output: Optional[Path], overwrite: bool) ->
 def _preview_yaml(yaml_text: str) -> None:
     syntax = Syntax(yaml_text, "yaml", theme="monokai", line_numbers=False)
     console.print(Panel(syntax, title="YAML 预览"))
+
+
+def pipeline_plan_to_yaml(plan: Dict[str, Any]) -> str:
+    return _plan_to_yaml(plan)
+
+
+def preview_pipeline_plan(plan: Dict[str, Any]) -> None:
+    yaml_text = _plan_to_yaml(plan)
+    _preview_yaml(yaml_text)
+
+
+def save_pipeline_plan(
+    plan: Dict[str, Any], output: Optional[Path], overwrite: bool
+) -> Path:
+    return _save_plan(plan, output, overwrite)
+
+
+def execute_pipeline_plan(
+    plan: Dict[str, Any],
+    autostop: bool = True,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+    *,
+    console_override: Optional[Console] = None,
+) -> Optional[str]:
+    """Apply a pipeline configuration and submit it to the target environment."""
+
+    log_console = console_override or console
+
+    env = _create_environment(plan, host, port)
+
+    services = plan.get("services") or []
+    if services:
+        log_console.print(f"🔧 注册 {len(services)} 个服务...")
+        _register_services(env, services)
+
+    source = plan.get("source")
+    log_console.print("🚰 配置 source")
+    stream = _apply_source(env, source)
+
+    stages = plan.get("stages") or []
+    for stage in stages:
+        stage_id = stage.get("id", "stage")
+        log_console.print(f"➡️  应用阶段: {stage_id}")
+        stream = _apply_stage(stream, stage)
+
+    sink = plan.get("sink")
+    log_console.print("🛬 配置终端 sink")
+    _apply_sink(stream, sink)
+
+    if plan.get("monitors"):
+        log_console.print("[yellow]📈 当前版本暂未自动配置 monitors，需手动集成。[/yellow]")
+
+    log_console.print("🚀 提交 pipeline...")
+    job_uuid = env.submit(autostop=autostop)
+
+    if job_uuid:
+        log_console.print(f"✅ Pipeline 已提交，作业 UUID: [green]{job_uuid}[/green]")
+    else:
+        log_console.print("✅ Pipeline 已提交。")
+
+    if autostop:
+        log_console.print("🎉 批处理完成并自动清理。")
+    else:
+        log_console.print("⏳ Pipeline 正在运行，可使用 'sage job list' 查看状态。")
+
+    return job_uuid
 
 
 def _collect_requirements(
@@ -849,45 +1251,29 @@ def run_pipeline(
             )
         )
 
-        env = _create_environment(plan, host, port)
-
-        services = plan.get("services") or []
-        if services:
-            console.print(f"🔧 注册 {len(services)} 个服务...")
-            _register_services(env, services)
-
-        source = plan.get("source")
-        stream = _apply_source(env, source)
-
-        stages = plan.get("stages") or []
-        for stage in stages:
-            stage_id = stage.get("id", "stage")
-            console.print(f"➡️  应用阶段: {stage_id}")
-            stream = _apply_stage(stream, stage)
-
-        sink = plan.get("sink")
-        console.print("🛬 配置终端 sink")
-        _apply_sink(stream, sink)
-
-        if plan.get("monitors"):
-            console.print("[yellow]📈 当前版本暂未自动配置 monitors，需手动集成。[/yellow]")
-
-        console.print("🚀 提交 pipeline...")
-        job_uuid = env.submit(autostop=autostop)
-
-        if job_uuid:
-            console.print(f"✅ Pipeline 已提交，作业 UUID: [green]{job_uuid}[/green]")
-        else:
-            console.print("✅ Pipeline 已提交。")
-
-        if autostop:
-            console.print("🎉 批处理完成并自动清理。")
-        else:
-            console.print("⏳ Pipeline 正在运行，可使用 'sage job list' 查看状态。")
+        execute_pipeline_plan(
+            plan,
+            autostop=autostop,
+            host=host,
+            port=port,
+            console_override=console,
+        )
 
     except CLIException as exc:
         console.print(f"[red]❌ {exc}[/red]")
         raise typer.Exit(1) from exc
 
 
-__all__ = ["app"]
+__all__ = [
+    "app",
+    "BuilderConfig",
+    "GraphBuilderConfig",
+    "PipelinePlanGenerator",
+    "GraphPlanGenerator",
+    "PipelineBuilderError",
+    "render_pipeline_plan",
+    "pipeline_plan_to_yaml",
+    "preview_pipeline_plan",
+    "save_pipeline_plan",
+    "execute_pipeline_plan",
+]

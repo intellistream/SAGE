@@ -14,7 +14,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import typer
 from rich.console import Console
@@ -27,6 +27,10 @@ from sage.common.config.output_paths import (
     find_sage_project_root,
     get_sage_paths,
 )
+from sage.tools.cli.commands import pipeline as pipeline_builder
+from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
+from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
+from sage.tools.cli.core.exceptions import CLIException
 from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
 
 console = Console()
@@ -600,6 +604,259 @@ class ResponseGenerator:
         )
 
 
+PIPELINE_TRIGGER_VERBS = (
+    "构建",
+    "生成",
+    "搭建",
+    "创建",
+    "设计",
+    "build",
+    "create",
+    "design",
+    "orchestrate",
+)
+
+PIPELINE_TRIGGER_TERMS = (
+    "pipeline",
+    "工作流",
+    "流程",
+    "图谱",
+    "大模型应用",
+    "应用",
+    "app",
+    "application",
+    "workflow",
+    "agent",
+    "agents",
+)
+
+
+def _looks_like_pipeline_request(message: str) -> bool:
+    text = message.strip()
+    if not text:
+        return False
+
+    lowered = text.lower()
+    if lowered.startswith("pipeline:") or lowered.startswith("workflow:"):
+        return True
+
+    has_verb = any(token in text for token in PIPELINE_TRIGGER_VERBS)
+    has_term = any(token in text for token in PIPELINE_TRIGGER_TERMS)
+    if has_verb and has_term:
+        return True
+
+    if "llm" in lowered and "build" in lowered and ("app" in lowered or "application" in lowered):
+        return True
+
+    return False
+
+
+def _default_pipeline_name(seed: str) -> str:
+    headline = seed.strip().splitlines()[0] if seed.strip() else "LLM 应用"
+    headline = re.sub(r"[。！？.!?]", " ", headline)
+    tokens = [tok for tok in re.split(r"\s+", headline) if tok]
+    if not tokens:
+        return "LLM 应用"
+    if len(tokens) == 1:
+        word = tokens[0]
+        return f"{word} 应用" if len(word) <= 10 else word[:10]
+    trimmed = " ".join(tokens[:4])
+    return trimmed[:32] if len(trimmed) > 32 else trimmed
+
+
+def _normalize_list_field(raw_value: str) -> List[str]:
+    if not raw_value.strip():
+        return []
+    return [item.strip() for item in re.split(r"[,，/；;]", raw_value) if item.strip()]
+
+
+class PipelineChatCoordinator:
+    def __init__(
+        self,
+        backend: str,
+        model: str,
+        base_url: Optional[str],
+        api_key: Optional[str],
+    ) -> None:
+        self.backend = backend
+        self.model = model
+        self.base_url = base_url
+        self.api_key = api_key
+        self.knowledge_top_k = 5
+        self.show_knowledge = False
+        self._domain_contexts: Tuple[str, ...] | None = None
+        self._knowledge_base: Optional[Any] = None
+
+    def detect(self, message: str) -> bool:
+        return _looks_like_pipeline_request(message)
+
+    def _ensure_api_key(self) -> bool:
+        if self.backend == "mock":
+            return True
+        if self.api_key:
+            return True
+
+        console.print(
+            "[yellow]当前使用真实模型后端，需要提供 API Key 才能生成 pipeline。[/yellow]"
+        )
+        provided = typer.prompt("请输入 LLM API Key (留空取消)", default="")
+        if not provided.strip():
+            console.print("已取消 pipeline 构建流程。", style="yellow")
+            return False
+
+        self.api_key = provided.strip()
+        return True
+
+    def _ensure_contexts(self) -> Tuple[str, ...]:
+        if self._domain_contexts is None:
+            try:
+                self._domain_contexts = tuple(load_domain_contexts(limit=4))
+            except Exception as exc:  # pragma: no cover - defensive
+                console.print(f"[yellow]加载默认上下文失败: {exc}[/yellow]")
+                self._domain_contexts = ()
+        return self._domain_contexts
+
+    def _ensure_knowledge_base(self) -> Optional[Any]:
+        if self._knowledge_base is None:
+            try:
+                self._knowledge_base = get_default_knowledge_base()
+            except Exception as exc:  # pragma: no cover - defensive
+                console.print(
+                    f"[yellow]初始化 pipeline 知识库失败，将跳过检索: {exc}[/yellow]"
+                )
+                self._knowledge_base = None
+        return self._knowledge_base
+
+    def _collect_requirements(self, initial_request: str) -> Dict[str, Any]:
+        default_name = _default_pipeline_name(initial_request)
+        name = typer.prompt("Pipeline 名称", default=default_name)
+        goal = typer.prompt("Pipeline 目标描述", default=initial_request.strip() or default_name)
+        data_sources = typer.prompt(
+            "主要数据来源 (逗号分隔，可留空)", default="文档知识库"
+        )
+        latency = typer.prompt(
+            "延迟/吞吐需求 (可留空)", default="实时响应优先"
+        )
+        constraints = typer.prompt("特殊约束 (可留空)", default="")
+
+        requirements: Dict[str, Any] = {
+            "name": name.strip() or default_name,
+            "goal": goal.strip() or initial_request.strip() or default_name,
+            "data_sources": _normalize_list_field(data_sources),
+            "latency_budget": latency.strip(),
+            "constraints": constraints.strip(),
+            "initial_prompt": initial_request.strip(),
+        }
+        return requirements
+
+    def _build_config(self) -> pipeline_builder.BuilderConfig:
+        domain_contexts = self._ensure_contexts() or ()
+        knowledge_base = self._ensure_knowledge_base()
+        return pipeline_builder.BuilderConfig(
+            backend=self.backend,
+            model=self.model,
+            base_url=self.base_url,
+            api_key=self.api_key,
+            domain_contexts=domain_contexts,
+            knowledge_base=knowledge_base,
+            knowledge_top_k=self.knowledge_top_k,
+            show_knowledge=self.show_knowledge,
+        )
+
+    def _generate_plan(self, requirements: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        config = self._build_config()
+        generator = pipeline_builder.PipelinePlanGenerator(config)
+
+        plan: Optional[Dict[str, Any]] = None
+        feedback: Optional[str] = None
+
+        for _ in range(6):
+            try:
+                plan = generator.generate(requirements, plan, feedback)
+            except pipeline_builder.PipelineBuilderError as exc:
+                console.print(f"[red]生成 pipeline 失败: {exc}[/red]")
+                if not typer.confirm("是否尝试重新生成？", default=True):
+                    return None
+                feedback = typer.prompt("请提供更多需求或修改建议", default="")
+                if not feedback.strip():
+                    feedback = None
+                continue
+
+            pipeline_builder.render_pipeline_plan(plan)
+            pipeline_builder.preview_pipeline_plan(plan)
+
+            if typer.confirm("对该配置满意吗？", default=True):
+                return plan
+
+            feedback = typer.prompt("请输入需要调整的地方 (留空结束)", default="")
+            if not feedback.strip():
+                console.print("未提供调整意见，保持当前版本。", style="yellow")
+                return plan
+
+        return plan
+
+    def handle(self, message: str) -> bool:
+        if not self.detect(message):
+            return False
+
+        if not self._ensure_api_key():
+            return True
+
+        console.print("🎯 检测到构建 SAGE pipeline 的请求，启动智能编排流程。", style="magenta")
+        requirements = self._collect_requirements(message)
+
+        plan = self._generate_plan(requirements)
+        if plan is None:
+            console.print("[yellow]未生成可用的 pipeline 配置。[/yellow]")
+            return True
+
+        destination = typer.prompt(
+            "保存到文件 (留空使用默认输出目录)", default=""
+        ).strip()
+        output_path: Optional[Path] = Path(destination).expanduser() if destination else None
+        overwrite = False
+        if output_path and output_path.exists():
+            overwrite = typer.confirm("目标文件已存在，是否覆盖？", default=False)
+            if not overwrite:
+                console.print("已取消保存，结束本次构建。", style="yellow")
+                return True
+
+        saved_path = pipeline_builder.save_pipeline_plan(plan, output_path, overwrite)
+        console.print(f"✅ Pipeline 配置已保存至 [green]{saved_path}[/green]")
+
+        if not typer.confirm("是否立即运行该 pipeline？", default=True):
+            return True
+
+        autostop = typer.confirm("提交后等待执行完成 (autostop)?", default=True)
+
+        pipeline_type = (plan.get("pipeline", {}).get("type") or "local").lower()
+        host: Optional[str] = None
+        port_value: Optional[int] = None
+        if pipeline_type == "remote":
+            host = typer.prompt("远程 JobManager host", default="127.0.0.1").strip() or None
+            port_text = typer.prompt("远程 JobManager 端口", default="19001").strip()
+            try:
+                port_value = int(port_text)
+            except ValueError:
+                console.print("[yellow]端口格式不合法，使用默认 19001。[/yellow]")
+                port_value = 19001
+
+        try:
+            pipeline_builder.execute_pipeline_plan(
+                plan,
+                autostop=autostop,
+                host=host,
+                port=port_value,
+                console_override=console,
+            )
+        except CLIException as exc:
+            console.print(f"[red]❌ 运行 pipeline 失败: {exc}")
+        except Exception as exc:  # pragma: no cover - defensive
+            console.print(f"[red]❌ 遇到未知错误: {exc}")
+
+        return True
+
+
 def render_references(references: Sequence[Dict[str, str]]) -> Table:
     table = Table(title="知识引用", show_header=True, header_style="bold cyan")
     table.add_column("#", justify="right", width=3)
@@ -655,9 +912,10 @@ def interactive_chat(
     ask: Optional[str],
     stream: bool,
 ) -> None:
-    embedder = build_embedder(manifest.embed_config)
-    db = open_database(manifest)
+    embedder: Optional[Any] = None
+    db: Optional[Any] = None
     generator = ResponseGenerator(backend, model, base_url, api_key)
+    pipeline_coordinator = PipelineChatCoordinator(backend, model, base_url, api_key)
 
     console.print(
         Panel(
@@ -669,8 +927,17 @@ def interactive_chat(
         )
     )
 
+    def ensure_retriever() -> Tuple[Any, Any]:
+        nonlocal embedder, db
+        if embedder is None:
+            embedder = build_embedder(manifest.embed_config)
+        if db is None:
+            db = open_database(manifest)
+        return db, embedder
+
     def answer_once(query: str) -> None:
-        payload = retrieve_context(db, embedder, query, top_k)
+        current_db, current_embedder = ensure_retriever()
+        payload = retrieve_context(current_db, current_embedder, query, top_k)
         contexts = payload["contexts"]
         references = payload["references"]
 
@@ -692,6 +959,8 @@ def interactive_chat(
             console.print(Panel(Markdown(reply), title="回答", style="bold green"))
 
     if ask:
+        if pipeline_coordinator.handle(ask):
+            return
         answer_once(ask)
         return
 
@@ -707,6 +976,8 @@ def interactive_chat(
         if question.lower().strip() in {"exit", "quit", "q"}:
             console.print("再见 👋", style="cyan")
             break
+        if pipeline_coordinator.handle(question):
+            continue
         answer_once(question)
 
 
