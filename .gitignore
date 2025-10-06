@@ -190,3 +190,4 @@ packages/sage-tools/src/sage/tools/studio/node_modules/*
 packages/sage-tools/src/sage/tools/studio/.angular/*
 
 **/node_modules
+packages/sage-libs/src/sage/libs/applications/medical_diagnosis/data/*

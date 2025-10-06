@@ -1,193 +1,109 @@
-# 腰椎MRI医疗诊断Agent
+# 医疗诊断应用 - 快速入门
 
-基于SAGE框架构建的医疗诊断智能助手，专注于腰椎MRI影像分析和诊断报告生成。
+这是医疗诊断应用的快速入门示例目录。
 
-## 📋 功能特性
+## ⚠️ 重要说明
 
-### 1. 多模态数据处理
-- **影像分析**: 处理T2加权矢状位MRI图像
-- **报告解析**: 提取医疗报告中的关键信息
-- **知识库构建**: 构建疾病-影像-诊断知识图谱
-
-### 2. 智能诊断流程
-- **影像特征提取**: 自动识别椎体和椎间盘区域
-- **病变检测**: 检测退行性变化、椎间盘突出等
-- **诊断建议生成**: 基于影像和病史生成诊断报告
-- **相似病例检索**: 检索相似病例辅助诊断
-
-### 3. RAG增强诊断
-- **医学知识库**: 腰椎疾病诊断标准和治疗指南
-- **病例库**: 历史病例和诊断报告
-- **混合检索**: 结合影像相似度和文本语义检索
-
-## 🏗️ 系统架构
-
+**完整应用已迁移到:**
 ```
-medical_diagnosis/
-├── agents/                    # Agent定义
-│   ├── diagnostic_agent.py   # 主诊断Agent
-│   ├── image_analyzer.py     # 影像分析Agent
-│   └── report_generator.py   # 报告生成Agent
-├── config/                    # 配置文件
-│   ├── agent_config.yaml     # Agent配置
-│   ├── pipeline_config.yaml  # Pipeline配置
-│   └── model_config.yaml     # 模型配置
-├── tools/                     # 工具函数
-│   ├── image_processor.py    # 图像预处理
-│   ├── feature_extractor.py  # 特征提取
-│   └── knowledge_base.py     # 知识库管理
-├── pipelines/                 # Pipeline定义
-│   ├── indexing_pipeline.py  # 数据索引Pipeline
-│   └── diagnosis_pipeline.py # 诊断Pipeline
-└── run_diagnosis.py          # 主运行脚本
+packages/sage-libs/src/sage/libs/applications/medical_diagnosis/
 ```
+
+本目录仅包含快速演示示例，用于：
+- 5分钟快速了解系统功能
+- 教学和文档演示
+- 快速验证环境配置
 
 ## 🚀 快速开始
 
-### 1. 自动设置数据集（推荐）
-
-运行自动设置脚本，它会：
-- 检查并安装依赖
-- 自动下载腰椎MRI数据集
-- 预处理数据并生成训练/测试集
-- 验证数据完整性
+### 运行快速演示（无需数据集）
 
 ```bash
-cd examples/medical_diagnosis
+# 在项目根目录执行
+python examples/medical_diagnosis/quick_start.py
+```
+
+这将展示：
+- 系统初始化流程
+- 模拟诊断过程
+- 基本使用方法
+
+### 查看功能特性
+
+```bash
+python examples/medical_diagnosis/quick_start.py --show-features
+```
+
+## 📚 完整应用
+
+如需使用完整功能，请参考完整应用：
+
+### 1. 安装依赖
+
+```bash
+pip install sage-libs[medical]
+```
+
+或手动安装：
+```bash
+pip install huggingface_hub datasets pillow scikit-learn
+```
+
+### 2. 准备数据集
+
+```bash
+cd packages/sage-libs/src/sage/libs/applications/medical_diagnosis/
 ./setup_data.sh
 ```
 
-### 2. 手动设置数据集（可选）
-
-如果你想手动控制每个步骤：
+### 3. 运行完整测试
 
 ```bash
-# 2.1 下载数据集
-python scripts/download_lumbar_dataset.py
+# 单病例测试
+python -m sage.libs.applications.medical_diagnosis.test_diagnosis --mode single
 
-# 2.2 预处理数据
-python examples/medical_diagnosis/scripts/prepare_data.py
-
-# 2.3 探索数据集
-python examples/medical_diagnosis/scripts/explore_dataset.py
+# 批量测试
+python -m sage.libs.applications.medical_diagnosis.test_diagnosis --mode batch
 ```
 
-### 3. 运行诊断测试
+### 4. 交互式使用
 
 ```bash
-# 单病例诊断测试
-python examples/medical_diagnosis/test_diagnosis.py --mode single
-
-# 批量诊断测试
-python examples/medical_diagnosis/test_diagnosis.py --mode batch
+python -m sage.libs.applications.medical_diagnosis.run_diagnosis --interactive
 ```
 
-### 4. 使用诊断应用
+## 📖 完整文档
 
-```bash
-# 单病例诊断
-python examples/medical_diagnosis/run_diagnosis.py \
-  --image path/to/mri.jpg \
-  --age 45 \
-  --gender 男 \
-  --symptoms "腰痛伴下肢放射痛"
+请访问完整应用目录获取详细文档：
+- 📁 [完整应用代码](../../packages/sage-libs/src/sage/libs/applications/medical_diagnosis/)
+- 📄 [详细README](../../packages/sage-libs/src/sage/libs/applications/medical_diagnosis/README.md)
+- 🔧 [配置说明](../../packages/sage-libs/src/sage/libs/applications/medical_diagnosis/config/)
+- 🧪 [测试指南](../../packages/sage-libs/src/sage/libs/applications/medical_diagnosis/test_diagnosis.py)
 
-# 批量诊断
-python examples/medical_diagnosis/run_diagnosis.py \
-  --batch data/test_cases/ \
-  --output results/
+## 🎯 学习路径
 
-# 交互式模式
-python examples/medical_diagnosis/run_diagnosis.py --interactive
-```
+1. **初学者**: 运行本目录的 `quick_start.py`
+2. **进阶**: 查看完整应用的 Agent 实现
+3. **高级**: 修改配置和扩展功能
+4. **专家**: 贡献新的医疗诊断模型
 
-## 📊 数据集信息
+## 💡 示例 vs 应用
 
-**数据集**: UniDataPro/lumbar-spine-mri
+### Examples (本目录)
+- ✅ 简单快速（<200行代码）
+- ✅ 教学目的
+- ✅ 无需数据准备
+- ✅ 5分钟运行完成
 
-**内容**:
-- 腰椎MRI影像（T2加权矢状位）
-- 医疗诊断报告
-- 疾病标注（退行性病变、椎间盘突出等）
+### Applications (完整应用)
+- ✅ 生产级代码（>1000行）
+- ✅ 完整架构（Agents + Tools + Pipelines）
+- ✅ 真实数据集
+- ✅ 完整测试覆盖
+- ✅ 可独立安装使用
 
-**应用场景**:
-- 腰椎退行性疾病诊断
-- 椎间盘突出检测
-- 脊柱管狭窄评估
+## 🔗 相关链接
 
-## 🔧 技术栈
-
-- **SAGE框架**: 底层Pipeline和Agent框架
-- **多模态Embedding**: 图像+文本联合嵌入
-- **VLLMService**: 高性能LLM推理
-- **SageDB**: 向量数据库（存储影像特征和病例）
-- **Vision-Language Model**: 医疗影像理解模型
-
-## 📖 使用示例
-
-### 交互式诊断
-```python
-from medical_diagnosis.agents.diagnostic_agent import DiagnosticAgent
-
-# 初始化诊断Agent
-agent = DiagnosticAgent(config_path="config/agent_config.yaml")
-
-# 提交诊断请求
-result = agent.diagnose(
-    image_path="data/test/mri_001.dcm",
-    patient_info={
-        "age": 45,
-        "gender": "male",
-        "symptoms": "下背部疼痛，左腿麻木"
-    }
-)
-
-print(result.diagnosis_report)
-print(result.similar_cases)
-```
-
-### Pipeline批量处理
-```python
-from medical_diagnosis.pipelines.diagnosis_pipeline import DiagnosisPipeline
-
-# 批量处理多个病例
-pipeline = DiagnosisPipeline()
-results = pipeline.batch_process(
-    image_dir="data/medical/batch_cases/",
-    output_dir="output/diagnoses/"
-)
-```
-
-## 🎯 核心能力
-
-### 1. 影像分析
-- 椎体分割和识别（L1-L5）
-- 椎间盘定位（L1/L2 - L5/S1）
-- 病变区域检测
-- 影像质量评估
-
-### 2. 诊断推理
-- 基于影像特征的初步诊断
-- 结合病史和症状的综合分析
-- 检索相似病例辅助决策
-- 多Agent协作诊断
-
-### 3. 报告生成
-- 结构化诊断报告
-- 影像描述和发现
-- 诊断结论和建议
-- 治疗方案推荐
-
-## ⚠️ 免责声明
-
-**本系统仅用于学习和研究目的，不能替代专业医生的诊断。**
-
-所有诊断结果需要经过专业医师审核和确认。本系统不承担任何医疗责任。
-
-## 📝 许可证
-
-遵循SAGE项目许可证。
-
-## 🤝 贡献
-
-欢迎提交问题和改进建议！
+- [SAGE Framework](https://github.com/intellistream/SAGE)
+- [Applications Organization Strategy](../../docs/dev-notes/APPLICATION_ORGANIZATION_STRATEGY.md)
+- [Lumbar Spine MRI Dataset](https://huggingface.co/datasets/UniDataPro/lumbar-spine-mri)
