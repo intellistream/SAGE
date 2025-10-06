@@ -98,10 +98,7 @@ sage doctor
 
 ### System Architecture
 
-SAGE is built on a layered architecture that provides flexibility, scalability, and maintainability:
-
-![SAGE Architecture](docs/images/architecture.svg)
-
+SAGE is built on a layered architecture that provides flexibility, scalability, and maintainability.
 The architecture consists of five main layers:
 
 1. **User Layer**: Applications built with SAGE (RAG, Agent, Memory, QA systems)
