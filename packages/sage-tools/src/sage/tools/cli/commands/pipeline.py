@@ -1302,7 +1302,7 @@ def analyze_embedding_methods(
         sage pipeline analyze-embedding "如何构建 RAG pipeline"
         sage pipeline analyze-embedding "向量检索" -m hash -m openai -m hf
     """
-    from sage.middleware.utils.embedding.registry import EmbeddingRegistry
+    from sage.middleware.components.sage_embedding.registry import EmbeddingRegistry
     
     # 如果没有指定方法，使用默认的几个常用方法
     if not methods:
@@ -1424,6 +1424,252 @@ def analyze_embedding_methods(
     )
 
 
+@app.command("create-embedding")
+def create_embedding_pipeline(
+    template: str = typer.Option(
+        "rag",
+        "--template",
+        "-t",
+        help="Pipeline 模板类型: rag, knowledge-base, hybrid-search, multi-strategy",
+    ),
+    embedding_method: str = typer.Option(
+        "hf",
+        "--embedding-method",
+        "-e",
+        help="Embedding 方法 (hf/openai/jina/zhipu/cohere/bedrock/ollama/siliconcloud/nvidia_openai/vllm)",
+    ),
+    embedding_model: Optional[str] = typer.Option(
+        None,
+        "--embedding-model",
+        "-m",
+        help="Embedding 模型名称（未指定则使用默认）",
+    ),
+    use_vllm: bool = typer.Option(
+        False,
+        "--vllm",
+        help="使用 vLLM 服务进行高性能 embedding",
+    ),
+    llm_model: Optional[str] = typer.Option(
+        None,
+        "--llm-model",
+        help="LLM 模型名称（RAG 模板需要）",
+    ),
+    dense_method: Optional[str] = typer.Option(
+        None,
+        "--dense-method",
+        help="Hybrid 模板：Dense embedding 方法",
+    ),
+    sparse_method: Optional[str] = typer.Option(
+        None,
+        "--sparse-method",
+        help="Hybrid 模板：Sparse embedding 方法（默认 bm25s）",
+    ),
+    query_method: Optional[str] = typer.Option(
+        None,
+        "--query-method",
+        help="Multi-strategy 模板：查询用 embedding 方法（快速）",
+    ),
+    doc_method: Optional[str] = typer.Option(
+        None,
+        "--doc-method",
+        help="Multi-strategy 模板：文档用 embedding 方法（高质量）",
+    ),
+    batch_method: Optional[str] = typer.Option(
+        None,
+        "--batch-method",
+        help="Multi-strategy 模板：批量处理用 embedding 方法",
+    ),
+    chunk_size: int = typer.Option(512, "--chunk-size", help="文档分块大小"),
+    chunk_overlap: int = typer.Option(50, "--chunk-overlap", help="分块重叠大小"),
+    batch_size: int = typer.Option(32, "--batch-size", help="批处理大小"),
+    enable_cache: bool = typer.Option(True, "--cache/--no-cache", help="启用缓存"),
+    normalize: bool = typer.Option(True, "--normalize/--no-normalize", help="向量归一化"),
+    output: Optional[Path] = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="输出 YAML 文件路径",
+    ),
+    overwrite: bool = typer.Option(False, "--overwrite", help="覆盖已存在的文件"),
+    interactive: bool = typer.Option(
+        False,
+        "--interactive",
+        "-i",
+        help="交互式配置模板参数",
+    ),
+) -> None:
+    """使用预定义模板创建基于 EmbeddingService 的 pipeline。
+    
+    支持的模板:
+    - rag: RAG pipeline with embedding service
+    - knowledge-base: 高吞吐量知识库构建
+    - hybrid-search: Dense + Sparse 混合检索
+    - multi-strategy: 智能路由多策略 embedding
+    
+    示例:
+        # 创建 HuggingFace RAG pipeline
+        sage pipeline create-embedding -t rag -e hf -m BAAI/bge-small-zh-v1.5
+        
+        # 创建 vLLM 高性能知识库构建
+        sage pipeline create-embedding -t knowledge-base --vllm
+        
+        # 创建混合检索 pipeline
+        sage pipeline create-embedding -t hybrid-search --dense-method openai --sparse-method bm25s
+        
+        # 创建多策略智能路由
+        sage pipeline create-embedding -t multi-strategy --query-method hash --doc-method openai
+    """
+    from .pipeline_embedding import generate_embedding_pipeline
+    
+    # 交互式配置
+    if interactive:
+        console.print(
+            Panel(
+                "🎯 交互式 Embedding Pipeline 配置向导",
+                style="cyan",
+            )
+        )
+        
+        template_choices = ["rag", "knowledge-base", "hybrid-search", "multi-strategy"]
+        template = typer.prompt(
+            "选择模板类型",
+            type=str,
+            default=template,
+            show_choices=True,
+        )
+        
+        if template not in template_choices:
+            console.print(f"[red]无效的模板: {template}[/red]")
+            raise typer.Exit(1)
+        
+        embedding_method = typer.prompt(
+            "Embedding 方法 (hf/openai/jina/zhipu/cohere/bedrock/ollama/siliconcloud/nvidia_openai/vllm)",
+            type=str,
+            default=embedding_method,
+        )
+        
+        if embedding_method not in ["vllm", "hash", "mockembedder"]:
+            embedding_model = typer.prompt(
+                "Embedding 模型名称",
+                type=str,
+                default=embedding_model or "",
+            )
+        
+        use_vllm = typer.confirm("使用 vLLM 服务?", default=use_vllm)
+        
+        if template == "rag":
+            llm_model = typer.prompt(
+                "LLM 模型名称",
+                type=str,
+                default=llm_model or "Qwen/Qwen2.5-7B-Instruct",
+            )
+        elif template == "hybrid-search":
+            dense_method = typer.prompt(
+                "Dense embedding 方法",
+                type=str,
+                default=dense_method or embedding_method,
+            )
+            sparse_method = typer.prompt(
+                "Sparse embedding 方法",
+                type=str,
+                default=sparse_method or "bm25s",
+            )
+        elif template == "multi-strategy":
+            query_method = typer.prompt(
+                "查询用 embedding 方法 (快速)",
+                type=str,
+                default=query_method or "hash",
+            )
+            doc_method = typer.prompt(
+                "文档用 embedding 方法 (高质量)",
+                type=str,
+                default=doc_method or embedding_method,
+            )
+            batch_method = typer.prompt(
+                "批量处理用 embedding 方法",
+                type=str,
+                default=batch_method or "vllm" if use_vllm else embedding_method,
+            )
+    
+    # 构建参数
+    kwargs = {
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
+        "batch_size": batch_size,
+        "enable_cache": enable_cache,
+        "normalize": normalize,
+    }
+    
+    # 根据模板类型添加特定参数
+    if template == "rag":
+        if not llm_model:
+            llm_model = "Qwen/Qwen2.5-7B-Instruct"
+        kwargs["llm_model"] = llm_model
+    elif template == "hybrid-search":
+        if not dense_method:
+            dense_method = embedding_method
+        if not sparse_method:
+            sparse_method = "bm25s"
+        kwargs["dense_method"] = dense_method
+        kwargs["sparse_method"] = sparse_method
+        # dense_model 使用 embedding_model
+        if embedding_model:
+            kwargs["dense_model"] = embedding_model
+    elif template == "multi-strategy":
+        if not query_method:
+            query_method = "hash"
+        if not doc_method:
+            doc_method = embedding_method
+        if not batch_method:
+            batch_method = "vllm" if use_vllm else embedding_method
+        kwargs["query_method"] = query_method
+        kwargs["doc_method"] = doc_method
+        kwargs["batch_method"] = batch_method
+    
+    # 生成配置
+    console.print(
+        Panel(
+            f"📋 模板: [cyan]{template}[/cyan]\n"
+            f"🔧 Embedding: [cyan]{embedding_method}[/cyan]\n"
+            f"🚀 vLLM: [cyan]{use_vllm}[/cyan]",
+            title="生成 Pipeline 配置",
+            style="blue",
+        )
+    )
+    
+    try:
+        plan = generate_embedding_pipeline(
+            use_case=template,
+            embedding_method=embedding_method,
+            embedding_model=embedding_model,
+            use_vllm=use_vllm,
+            **kwargs,
+        )
+    except ValueError as exc:
+        console.print(f"[red]生成失败: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    
+    # 显示配置
+    _render_plan(plan)
+    
+    # 预览 YAML
+    yaml_text = _plan_to_yaml(plan)
+    _preview_yaml(yaml_text)
+    
+    # 保存
+    if not interactive or typer.confirm("保存配置?", default=True):
+        output_path = _save_plan(plan, output, overwrite)
+        console.print(f"✅ 配置已保存到: [green]{output_path}[/green]")
+        
+        # 提示如何运行
+        console.print(
+            f"\n💡 运行此 pipeline:\n"
+            f"   [cyan]sage pipeline run {output_path}[/cyan]"
+        )
+    else:
+        console.print("[yellow]未保存配置。[/yellow]")
+
+
 __all__ = [
     "app",
     "BuilderConfig",
@@ -1436,4 +1682,6 @@ __all__ = [
     "preview_pipeline_plan",
     "save_pipeline_plan",
     "execute_pipeline_plan",
+    "create_embedding_pipeline",
+    "analyze_embedding_methods",
 ]

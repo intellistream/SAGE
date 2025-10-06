@@ -110,39 +110,3 @@ class MockEmbedding(BaseEmbedding):
             "requires_model_download": False,
             "default_dimension": 128,
         }
-
-
-# 向后兼容：保持与原 mockembedder.py 相同的类名
-class MockTextEmbedder(MockEmbedding):
-    """向后兼容的别名
-    
-    保持与旧代码 `mockembedder.MockTextEmbedder` 的兼容性。
-    
-    Examples:
-        >>> # 旧代码仍可正常工作
-        >>> from sage.middleware.utils.embedding.mockembedder import MockTextEmbedder
-        >>> emb = MockTextEmbedder(model_name="mock", fixed_dim=128)
-        >>> vec = emb.encode("test")
-    """
-    
-    def __init__(self, model_name: str = "mock", fixed_dim: int = 128, **kwargs: Any) -> None:
-        """向后兼容的初始化方法
-        
-        Args:
-            model_name: 模型名称（兼容性参数，实际不使用）
-            fixed_dim: 向量维度
-            **kwargs: 其他参数
-        """
-        super().__init__(fixed_dim=fixed_dim, **kwargs)
-        self.model_name = model_name
-    
-    def encode(self, text: str) -> List[float]:
-        """向后兼容的 encode 方法（别名）
-        
-        Args:
-            text: 输入文本
-        
-        Returns:
-            embedding 向量
-        """
-        return self.embed(text)

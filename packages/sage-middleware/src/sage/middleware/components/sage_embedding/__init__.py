@@ -42,7 +42,7 @@ from .factory import (
 
 # 导入所有 wrappers
 from .wrappers.hash_wrapper import HashEmbedding
-from .wrappers.mock_wrapper import MockEmbedding, MockTextEmbedder
+from .wrappers.mock_wrapper import MockEmbedding
 from .wrappers.hf_wrapper import HFEmbedding
 from .wrappers.openai_wrapper import OpenAIEmbedding
 from .wrappers.jina_wrapper import JinaEmbedding
@@ -254,7 +254,6 @@ __all__ = [
     # Wrappers（高级用途）
     "HashEmbedding",
     "MockEmbedding",
-    "MockTextEmbedder",
     "HFEmbedding",
     "OpenAIEmbedding",
     "JinaEmbedding",

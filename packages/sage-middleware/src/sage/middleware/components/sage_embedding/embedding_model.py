@@ -73,8 +73,9 @@ class EmbeddingModel:
                 ) from e
         elif method == "mockembedder":
             # 初始化 mockembedder
-            self.kwargs["embed_model"] = mockembedder.MockTextEmbedder(
-                model_name="mock-model", fixed_dim=kwargs.get("fixed_dim", 128)
+            from .wrappers.mock_wrapper import MockEmbedding
+            self.kwargs["embed_model"] = MockEmbedding(
+                fixed_dim=kwargs.get("fixed_dim", 128)
             )
         self.embed_fn = self._get_embed_function(method)
 
