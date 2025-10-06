@@ -12,7 +12,6 @@ from sage.middleware.components.sage_embedding import (
     hf,
     jina,
     lollms,
-    mockembedder,
     nvidia_openai,
     ollama,
     openai,
@@ -120,9 +119,7 @@ class EmbeddingModel:
             "ollama": ollama.ollama_embed_sync,
             "siliconcloud": siliconcloud.siliconcloud_embedding_sync,
             "cohere": _cohere.cohere_embed_sync,
-            "mockembedder": lambda text, **kwargs: kwargs["embed_model"]
-            .encode(text)
-            .tolist(),
+            "mockembedder": lambda text, **kwargs: kwargs["embed_model"].embed(text),
             # "instructor": instructor.instructor_embed
         }
         if method not in mapping:
