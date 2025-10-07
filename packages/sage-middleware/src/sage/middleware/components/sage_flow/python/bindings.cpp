@@ -3,7 +3,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/functional.h>
 
-// C++ headers from candy (SAGE-Flow)
+// C++ headers from sageFlow
 #include "common/data_types.h"
 #include "function/sink_function.h"
 #include "stream/stream.h"
@@ -11,7 +11,7 @@
 #include "stream/data_stream_source/simple_stream_source.h"
 
 namespace py = pybind11;
-using namespace candy;  // NOLINT
+using namespace sageFlow;  // NOLINT
 
 PYBIND11_MODULE(_sage_flow, m) {
     m.doc() = "SAGE Flow - Stream processing engine";
