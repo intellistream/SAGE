@@ -176,17 +176,31 @@ SETUP_EOF
 
 # 构建 Python 扩展
 echo "🔧 编译 Python 绑定..."
-$PYTHON_CMD "$SCRIPT_DIR/setup_temp.py" build_ext --inplace
+$PYTHON_CMD "$SCRIPT_DIR/setup_temp.py" build_ext --inplace 2>&1
 
 # 清理临时文件
 rm -f "$SCRIPT_DIR/setup_temp.py"
 
-# 检查生成的 .so 文件
+# 检查生成的 .so 文件（可能在 python/ 目录或 build/ 目录）
+SO_FILE=$(find "$PYTHON_DIR" -name "_sage_db*.so" -type f 2>/dev/null | head -1)
+if [ -z "$SO_FILE" ]; then
+    # 如果 python/ 目录没有，检查 build/ 目录
+    SO_FILE=$(find "$SCRIPT_DIR/build" -name "_sage_db*.so" -type f 2>/dev/null | head -1)
+    if [ -n "$SO_FILE" ]; then
+        echo "ℹ️  在 build/ 目录找到 .so 文件，复制到 python/ 目录..."
+        cp "$SO_FILE" "$PYTHON_DIR/"
+    fi
+fi
+
+# 最终检查
 SO_FILE=$(find "$PYTHON_DIR" -name "_sage_db*.so" -type f 2>/dev/null | head -1)
 if [ -f "$SO_FILE" ]; then
     echo "✅ Python 绑定构建成功: $(basename $SO_FILE)"
 else
     echo "❌ 错误: 未找到生成的 .so 文件"
+    echo "🔍 搜索路径:"
+    echo "   - $PYTHON_DIR"
+    echo "   - $SCRIPT_DIR/build"
     exit 1
 fi
 

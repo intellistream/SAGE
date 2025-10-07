@@ -124,31 +124,15 @@ include_dirs = [
     str(build_dir / "_deps" / "tomlplusplus-src" / "include"),
 ]
 
-# 库目录
-library_dirs = [
-    str(install_dir / "lib"),
-    str(build_dir / "src"),
-    str(build_dir),
-]
-
-# 链接库 - 注意：CMake 可能生成 libsageflow.a 或 libsageflow.so
-libraries = ["sageflow"]
-
-# 添加运行时库路径
-runtime_library_dirs = [
-    str(install_dir / "lib"),
-    str(build_dir / "src"),
-    str(build_dir),
-]
+# sageflow 是 INTERFACE 库（header-only），不需要链接实际的库文件
+# 所有实现都在头文件中，只需要包含目录即可
+libraries = []
 
 ext_modules = [
     Pybind11Extension(
         "_sage_flow",
         [str(script_dir / "python" / "bindings.cpp")],
         include_dirs=include_dirs,
-        library_dirs=library_dirs,
-        libraries=libraries,
-        runtime_library_dirs=runtime_library_dirs,
         cxx_std=20,
         extra_compile_args=["-O3"],
     ),
