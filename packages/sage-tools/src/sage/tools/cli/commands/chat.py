@@ -58,6 +58,8 @@ DEFAULT_TOP_K = 4
 DEFAULT_BACKEND = "mock"
 DEFAULT_EMBEDDING_METHOD = "hash"
 DEFAULT_FIXED_DIM = 384
+DEFAULT_FINETUNE_MODEL = "sage_code_expert"
+DEFAULT_FINETUNE_PORT = 8000
 SUPPORTED_MARKDOWN_SUFFIXES = {".md", ".markdown", ".mdx"}
 
 METHODS_REQUIRE_MODEL = {
@@ -517,15 +519,23 @@ class ResponseGenerator:
         base_url: Optional[str],
         api_key: Optional[str],
         temperature: float = 0.2,
+        finetune_model: Optional[str] = None,
+        finetune_port: int = DEFAULT_FINETUNE_PORT,
     ) -> None:
         self.backend = backend.lower()
         self.model = model
         self.base_url = base_url
         self.api_key = api_key
         self.temperature = temperature
+        self.finetune_model = finetune_model
+        self.finetune_port = finetune_port
+        self.vllm_process = None  # 用于追踪启动的 vLLM 进程
 
         if self.backend == "mock":
             self.client = None
+        elif self.backend == "finetune":
+            # 使用微调模型
+            self._setup_finetune_backend()
         else:
             try:
                 from sage.libs.utils.openaiclient import OpenAIClient
@@ -538,6 +548,147 @@ class ResponseGenerator:
                 self.client = OpenAIClient(model_name=model, **kwargs)
             except Exception as exc:  # pragma: no cover - runtime check
                 raise RuntimeError(f"无法初始化 OpenAIClient: {exc}") from exc
+
+    def _setup_finetune_backend(self) -> None:
+        """设置微调模型 backend"""
+        import subprocess
+        import time
+        import requests
+        from pathlib import Path
+        
+        model_name = self.finetune_model or DEFAULT_FINETUNE_MODEL
+        port = self.finetune_port
+        
+        # 检查 SAGE 根目录
+        try:
+            sage_root = find_sage_project_root()
+            if not sage_root:
+                raise RuntimeError("无法找到 SAGE 项目根目录")
+        except Exception as exc:
+            raise RuntimeError(f"无法定位 SAGE 根目录: {exc}") from exc
+        
+        # 检查微调模型是否存在
+        finetune_dir = sage_root / "finetune_output" / model_name
+        merged_path = finetune_dir / "merged_model"
+        checkpoint_path = finetune_dir / "checkpoints"
+        
+        if not finetune_dir.exists():
+            raise FileNotFoundError(
+                f"微调模型不存在: {model_name}\n"
+                f"请先运行微调或指定其他模型:\n"
+                f"  sage finetune quickstart {model_name}"
+            )
+        
+        # 检查服务是否已运行
+        try:
+            response = requests.get(f"http://localhost:{port}/health", timeout=1)
+            service_running = response.status_code == 200
+        except:
+            service_running = False
+        
+        if service_running:
+            console.print(f"[green]✅ vLLM 服务已在端口 {port} 运行[/green]")
+            model_to_use = self.model if self.model != "qwen-max" else None
+        else:
+            console.print(f"[yellow]⏳ 正在启动微调模型 vLLM 服务...[/yellow]")
+            
+            # 检查是否有合并模型
+            if not merged_path.exists():
+                console.print(f"[yellow]⚠️  未找到合并模型，正在自动合并 LoRA 权重...[/yellow]")
+                
+                # 检查是否有 checkpoint
+                if not checkpoint_path.exists():
+                    raise FileNotFoundError(
+                        f"未找到模型或 checkpoint: {model_name}\n"
+                        f"请确保已完成训练或运行: sage finetune merge {model_name}"
+                    )
+                
+                # 尝试自动合并
+                try:
+                    console.print("[cyan]正在合并 LoRA 权重...[/cyan]")
+                    from sage.tools.cli.commands.finetune import merge_lora
+                    merge_lora(model_name)
+                    console.print("[green]✅ 权重合并完成[/green]")
+                except Exception as merge_exc:
+                    raise RuntimeError(
+                        f"自动合并失败: {merge_exc}\n"
+                        f"请手动运行: sage finetune merge {model_name}"
+                    ) from merge_exc
+            
+            # 启动 vLLM 服务
+            cmd = [
+                "python", "-m", "vllm.entrypoints.openai.api_server",
+                "--model", str(merged_path),
+                "--host", "0.0.0.0",
+                "--port", str(port),
+                "--gpu-memory-utilization", "0.9",
+            ]
+            
+            try:
+                self.vllm_process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True
+                )
+            except Exception as exc:
+                raise RuntimeError(f"启动 vLLM 服务失败: {exc}") from exc
+            
+            # 等待服务启动
+            console.print("[cyan]⏳ 等待服务启动（最多 60 秒）...[/cyan]")
+            for i in range(60):
+                try:
+                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
+                    if response.status_code == 200:
+                        console.print("[green]✅ vLLM 服务启动成功！[/green]\n")
+                        break
+                except:
+                    pass
+                time.sleep(1)
+            else:
+                if self.vllm_process:
+                    self.vllm_process.terminate()
+                raise RuntimeError("vLLM 服务启动超时（60秒）")
+            
+            # 读取实际的模型名称
+            meta_file = finetune_dir / "finetune_meta.json"
+            if meta_file.exists():
+                import json
+                with open(meta_file) as f:
+                    meta = json.load(f)
+                model_to_use = meta.get("model", str(merged_path))
+            else:
+                model_to_use = str(merged_path)
+        
+        # 设置 OpenAI 客户端连接到本地 vLLM
+        try:
+            from sage.libs.utils.openaiclient import OpenAIClient
+            
+            self.client = OpenAIClient(
+                model_name=model_to_use or str(merged_path),
+                base_url=f"http://localhost:{port}/v1",
+                api_key="EMPTY",
+                seed=42
+            )
+            self.model = model_to_use or str(merged_path)
+            console.print(f"[green]✅ 已连接到微调模型: {model_name}[/green]\n")
+        except Exception as exc:
+            if self.vllm_process:
+                self.vllm_process.terminate()
+            raise RuntimeError(f"无法连接到 vLLM 服务: {exc}") from exc
+
+    def cleanup(self) -> None:
+        """清理资源（如果启动了 vLLM 进程）"""
+        if self.vllm_process:
+            try:
+                console.print("\n[yellow]⏳ 正在关闭 vLLM 服务...[/yellow]")
+                self.vllm_process.terminate()
+                self.vllm_process.wait(timeout=10)
+                console.print("[green]✅ vLLM 服务已关闭[/green]")
+            except:
+                if self.vllm_process.poll() is None:
+                    self.vllm_process.kill()
+            self.vllm_process = None
 
     def answer(
         self,
@@ -1189,10 +1340,16 @@ def interactive_chat(
     api_key: Optional[str],
     ask: Optional[str],
     stream: bool,
+    finetune_model: Optional[str] = None,
+    finetune_port: int = DEFAULT_FINETUNE_PORT,
 ) -> None:
     embedder: Optional[Any] = None
     db: Optional[Any] = None
-    generator = ResponseGenerator(backend, model, base_url, api_key)
+    generator = ResponseGenerator(
+        backend, model, base_url, api_key,
+        finetune_model=finetune_model,
+        finetune_port=finetune_port
+    )
     pipeline_coordinator = PipelineChatCoordinator(backend, model, base_url, api_key)
 
     console.print(
@@ -1244,6 +1401,12 @@ def interactive_chat(
 
     # 显示帮助信息
     console.print("\n[bold cyan]🧭 SAGE Chat 使用指南[/bold cyan]")
+    
+    # 显示当前配置
+    if backend == "finetune":
+        console.print(f"[green]✅ 使用微调模型: {finetune_model or DEFAULT_FINETUNE_MODEL}[/green]")
+        console.print(f"[dim]端口: {finetune_port}[/dim]\n")
+    
     console.print("""
 [dim]基本命令：
   • 直接输入问题获取文档相关回答
@@ -1254,24 +1417,25 @@ def interactive_chat(
 [/dim]
     """)
     
-    while True:
-        try:
-            question = typer.prompt("🤖 你的问题")
-        except (EOFError, KeyboardInterrupt):
-            console.print("\n再见 👋", style="cyan")
-            break
-        if not question.strip():
-            continue
+    try:
+        while True:
+            try:
+                question = typer.prompt("🤖 你的问题")
+            except (EOFError, KeyboardInterrupt):
+                console.print("\n再见 👋", style="cyan")
+                break
+            if not question.strip():
+                continue
+                
+            question_lower = question.lower().strip()
             
-        question_lower = question.lower().strip()
-        
-        # 处理特殊命令
-        if question_lower in {"exit", "quit", "q"}:
-            console.print("再见 👋", style="cyan")
-            break
-        elif question_lower in {"help", "帮助", "?"}:
-            console.print("\n[bold cyan]📚 帮助信息[/bold cyan]")
-            console.print("""
+            # 处理特殊命令
+            if question_lower in {"exit", "quit", "q"}:
+                console.print("再见 👋", style="cyan")
+                break
+            elif question_lower in {"help", "帮助", "?"}:
+                console.print("\n[bold cyan]📚 帮助信息[/bold cyan]")
+                console.print("""
 [dim]功能说明：
   1. 文档问答：直接提问关于 SAGE 的问题
   2. Pipeline 构建：描述你想要的应用场景
@@ -1287,19 +1451,22 @@ def interactive_chat(
   • templates - 查看可用场景模板
   • exit/quit - 退出对话
 [/dim]
-            """)
-            continue
-        elif question_lower in {"templates", "模板"}:
-            _show_scenario_templates()
-            console.print("[dim]提示：在 Pipeline 构建流程中可以选择使用这些模板[/dim]\n")
-            continue
-            
-        # 处理 Pipeline 构建请求
-        if pipeline_coordinator.handle(question):
-            continue
-            
-        # 处理普通问答
-        answer_once(question)
+                """)
+                continue
+            elif question_lower in {"templates", "模板"}:
+                _show_scenario_templates()
+                console.print("[dim]提示：在 Pipeline 构建流程中可以选择使用这些模板[/dim]\n")
+                continue
+                
+            # 处理 Pipeline 构建请求
+            if pipeline_coordinator.handle(question):
+                continue
+                
+            # 处理普通问答
+            answer_once(question)
+    finally:
+        # 清理资源
+        generator.cleanup()
 
 
 @app.callback()
@@ -1328,12 +1495,12 @@ def main(
     backend: str = typer.Option(
         DEFAULT_BACKEND,
         "--backend",
-        help="回答生成后端: mock / openai / compatible",
+        help="回答生成后端: mock / openai / compatible / finetune / vllm / ollama",
     ),
     model: str = typer.Option(
         "qwen-max",
         "--model",
-        help="回答生成模型名称",
+        help="回答生成模型名称（finetune backend 会自动从配置读取）",
     ),
     base_url: Optional[str] = typer.Option(
         None,
@@ -1344,6 +1511,16 @@ def main(
         lambda: os.environ.get("SAGE_CHAT_API_KEY"),
         "--api-key",
         help="LLM API Key (默认读取环境变量 SAGE_CHAT_API_KEY)",
+    ),
+    finetune_model: Optional[str] = typer.Option(
+        DEFAULT_FINETUNE_MODEL,
+        "--finetune-model",
+        help="使用 finetune backend 时的微调模型名称（finetune_output/ 下的目录名）",
+    ),
+    finetune_port: int = typer.Option(
+        DEFAULT_FINETUNE_PORT,
+        "--finetune-port",
+        help="finetune backend 使用的 vLLM 服务端口",
     ),
     index_root: Optional[str] = typer.Option(
         None,
@@ -1369,6 +1546,8 @@ def main(
         api_key=api_key,
         ask=ask,
         stream=stream,
+        finetune_model=finetune_model,
+        finetune_port=finetune_port,
     )
 
 

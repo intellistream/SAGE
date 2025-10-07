@@ -15,6 +15,7 @@ from sage.tools.cli.commands.doctor import app as doctor_app
 from sage.tools.cli.commands.embedding import app as embedding_app  # 新增embedding命令
 from sage.tools.cli.commands.enterprise import app as enterprise_app
 from sage.tools.cli.commands.extensions import app as extensions_app
+from sage.tools.finetune import app as finetune_app  # 微调命令（直接从核心模块导入）
 from sage.tools.cli.commands.head import app as head_app
 from sage.tools.cli.commands.job import app as job_app
 from sage.tools.cli.commands.jobmanager import app as jobmanager_app
@@ -66,6 +67,7 @@ app.add_typer(dev_app, name="dev", help="🛠️ 开发工具 - 项目开发和�
 app.add_typer(extensions_app, name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
 app.add_typer(test_extensions_app, name="test", help="🧪 测试 - 扩展和功能测试")
 app.add_typer(studio_app, name="studio", help="🎨 Studio - 低代码可视化管道编辑器")
+app.add_typer(finetune_app, name="finetune", help="🎓 模型微调 - 多场景大模型微调工具")
 
 # 作业和集群管理命令
 app.add_typer(job_app, name="job", help="📋 作业管理 - 提交、监控、管理作业")
