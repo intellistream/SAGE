@@ -60,9 +60,20 @@ echo "🔧 编译 C++ 库..."
 # 构建 sageflow 动态库（现在是 SHARED 库，可以直接构建）
 cmake --build . --config Release -j$(nproc) --target sageflow
 
-# 安装 C++ 库
+# 手动安装 sageflow 库（避免安装 gtest 等测试依赖）
 echo "📦 安装 C++ 库..."
-cmake --install . --prefix "$SUBMODULE_DIR/install"
+INSTALL_LIB_DIR="$SUBMODULE_DIR/install/lib"
+mkdir -p "$INSTALL_LIB_DIR"
+
+# 复制 libsageflow.so
+if [ -f "$BUILD_DIR/lib/libsageflow.so" ]; then
+    cp "$BUILD_DIR/lib/libsageflow.so" "$INSTALL_LIB_DIR/"
+    echo "✅ 已安装 libsageflow.so"
+else
+    echo "❌ 错误: 未找到 libsageflow.so"
+    ls -la "$BUILD_DIR/lib/" || echo "lib/ 目录不存在"
+    exit 1
+fi
 
 echo "✅ C++ 库构建完成"
 
