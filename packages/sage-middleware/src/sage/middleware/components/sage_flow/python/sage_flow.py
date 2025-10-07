@@ -7,24 +7,17 @@ All Python-facing APIs for SAGE-Flow live under this module.
 from typing import Any, Callable, Dict, Optional
 
 import numpy as np
-import sys
 
+# Initialize to None first
 _sage_flow = None
 
-# Try multiple import strategies
 try:
-    # Strategy 1: Relative import (works if __init__.py already imported it)
-    from . import _sage_flow
-except ImportError:
-    try:
-        # Strategy 2: Check if it's already in sys.modules (from __init__.py)
-        _sage_flow = sys.modules.get('sage.middleware.components.sage_flow.python._sage_flow')
-    except Exception:
-        pass
-
-# If still not found, try to locate and import the .so file
-if _sage_flow is None:
+    # Prefer relative import when installed as a package
+    from . import _sage_flow  # type: ignore
+except ImportError:  # pragma: no cover - repo/local build fallback
     import importlib
+    import os
+    import sys
     from pathlib import Path
 
     here = Path(__file__).resolve().parent
@@ -54,11 +47,13 @@ if _sage_flow is None:
                     sys.path.insert(0, str(p))
                 break
 
-    if found_so:
+    # Import the module
+    if found_so or _sage_flow is None:
         try:
-            _sage_flow = importlib.import_module("_sage_flow")
+            _sage_flow = importlib.import_module("_sage_flow")  # type: ignore
         except Exception:
-            pass  # Will set stub definitions below
+            # If import still fails, _sage_flow remains None
+            pass
 
 # Only define these if _sage_flow was successfully imported
 if _sage_flow is not None:
