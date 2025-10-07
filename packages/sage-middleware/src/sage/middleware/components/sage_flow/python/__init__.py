@@ -14,11 +14,15 @@ if _DEBUG:
     print(f"[SAGE_FLOW __init__] __name__ = {__name__}")
     print(f"[SAGE_FLOW __init__] sys.path = {sys.path[:3]}...")
 
+# Initialize _sage_flow to None
+_sage_flow = None
+
 # Try to import the C++ extension module
 try:
     from . import _sage_flow  # noqa: F401
     if _DEBUG:
         print(f"[SAGE_FLOW __init__] Successfully imported _sage_flow via relative import")
+        print(f"[SAGE_FLOW __init__] _sage_flow = {_sage_flow}")
 except ImportError as e:
     if _DEBUG:
         print(f"[SAGE_FLOW __init__] Relative import failed: {e}")
@@ -76,11 +80,13 @@ except ImportError as e:
             print(f"[SAGE_FLOW __init__] Found .so file: {so_file_found}")
             print(f"[SAGE_FLOW __init__] Attempting to import...")
         try:
-            import _sage_flow  # noqa: F401
+            import _sage_flow as _sage_flow_module  # noqa: F401
+            _sage_flow = _sage_flow_module  # Assign to module-level variable
             # Also make it available as a relative import
-            sys.modules[__name__ + '._sage_flow'] = _sage_flow
+            sys.modules[__name__ + '._sage_flow'] = _sage_flow_module
             if _DEBUG:
                 print(f"[SAGE_FLOW __init__] Successfully imported _sage_flow via absolute import")
+                print(f"[SAGE_FLOW __init__] _sage_flow = {_sage_flow}")
                 print(f"[SAGE_FLOW __init__] Registered in sys.modules as: {__name__ + '._sage_flow'}")
         except ImportError as e2:
             if _DEBUG:
@@ -104,6 +110,8 @@ except ImportError as e:
 
 if _DEBUG:
     print(f"[SAGE_FLOW __init__] Final _sage_flow = {_sage_flow}")
+    if _sage_flow is not None:
+        print(f"[SAGE_FLOW __init__] _sage_flow attributes: {dir(_sage_flow)[:5]}...")
 
 # Export _sage_flow so it can be imported from this module
 __all__ = ['_sage_flow']
