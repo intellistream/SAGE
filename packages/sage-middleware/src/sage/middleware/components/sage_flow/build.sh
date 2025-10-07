@@ -124,32 +124,34 @@ include_dirs = [
     str(build_dir / "_deps" / "tomlplusplus-src" / "include"),
 ]
 
-# sageFlow 虽然是 INTERFACE 库，但包含有虚函数的类需要链接其实现
-# 收集必要的源文件
-sageflow_src_dir = submodule_dir / "src"
-required_sources = [
-    # Core data types and streams
-    str(sageflow_src_dir / "common" / "data_types.cpp"),
-    str(sageflow_src_dir / "stream" / "stream.cpp"),
-    str(sageflow_src_dir / "stream" / "stream_environment.cpp"),
-    # Data stream sources
-    str(sageflow_src_dir / "stream" / "data_stream_source" / "data_stream_source.cpp"),
-    str(sageflow_src_dir / "stream" / "data_stream_source" / "simple_stream_source.cpp"),
-    # Functions
-    str(sageflow_src_dir / "function" / "sink_function.cpp"),
+# 库目录 - sageFlow的静态库
+library_dirs = [str(build_dir / "lib")]
+
+# 链接sageFlow的所有组件静态库
+libraries = [
+    "execution",
+    "stream", 
+    "query",
+    "operator",
+    "function",
+    "common",
+    "utils",
+    "concurrency",
+    "storage",
+    "compute_engine",
+    "index"
 ]
 
-# Python bindings source
-sources = [str(script_dir / "python" / "bindings.cpp")] + required_sources
-
-# No external libraries needed
-libraries = []
+# Python bindings source (只需要bindings.cpp)
+sources = [str(script_dir / "python" / "bindings.cpp")]
 
 ext_modules = [
     Pybind11Extension(
         "_sage_flow",
         sources,
         include_dirs=include_dirs,
+        library_dirs=library_dirs,
+        libraries=libraries,
         cxx_std=20,
         extra_compile_args=["-O3"],
     ),
