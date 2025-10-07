@@ -146,8 +146,14 @@ library_dirs = [
     str(build_dir),
 ]
 
-# 链接库
-libraries = ["sagedb"]
+# 链接库 - 注意：库文件名是 libsage_db.so，链接时用 sage_db
+libraries = ["sage_db"]
+
+# 添加运行时库路径，确保运行时能找到 .so
+runtime_library_dirs = [
+    str(install_dir / "lib"),
+    str(build_dir),
+]
 
 ext_modules = [
     Pybind11Extension(
@@ -156,6 +162,7 @@ ext_modules = [
         include_dirs=include_dirs,
         library_dirs=library_dirs,
         libraries=libraries,
+        runtime_library_dirs=runtime_library_dirs,
         cxx_std=17,
         extra_compile_args=["-O3"],
     ),
