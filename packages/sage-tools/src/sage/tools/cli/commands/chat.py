@@ -559,22 +559,19 @@ class ResponseGenerator:
         model_name = self.finetune_model or DEFAULT_FINETUNE_MODEL
         port = self.finetune_port
         
-        # 检查 SAGE 根目录
-        try:
-            sage_root = find_sage_project_root()
-            if not sage_root:
-                raise RuntimeError("无法找到 SAGE 项目根目录")
-        except Exception as exc:
-            raise RuntimeError(f"无法定位 SAGE 根目录: {exc}") from exc
+        # 使用 SAGE 配置目录
+        sage_config_dir = Path.home() / ".sage"
+        finetune_output_dir = sage_config_dir / "finetune_output"
         
         # 检查微调模型是否存在
-        finetune_dir = sage_root / "finetune_output" / model_name
+        finetune_dir = finetune_output_dir / model_name
         merged_path = finetune_dir / "merged_model"
         checkpoint_path = finetune_dir / "checkpoints"
         
         if not finetune_dir.exists():
             raise FileNotFoundError(
                 f"微调模型不存在: {model_name}\n"
+                f"路径: {finetune_dir}\n"
                 f"请先运行微调或指定其他模型:\n"
                 f"  sage finetune quickstart {model_name}"
             )
@@ -606,8 +603,25 @@ class ResponseGenerator:
                 # 尝试自动合并
                 try:
                     console.print("[cyan]正在合并 LoRA 权重...[/cyan]")
-                    from sage.tools.cli.commands.finetune import merge_lora
-                    merge_lora(model_name)
+                    from sage.tools.finetune.service import merge_lora_weights
+                    
+                    # 读取 meta 获取基础模型
+                    meta_file = finetune_dir / "finetune_meta.json"
+                    if meta_file.exists():
+                        import json
+                        with open(meta_file) as f:
+                            meta = json.load(f)
+                        base_model = meta.get("model", "")
+                    else:
+                        raise RuntimeError("未找到 meta 信息文件")
+                    
+                    # 找到最新的 checkpoint
+                    checkpoints = sorted(checkpoint_path.glob("checkpoint-*"))
+                    if not checkpoints:
+                        raise RuntimeError("未找到 checkpoint")
+                    
+                    latest_checkpoint = checkpoints[-1]
+                    merge_lora_weights(latest_checkpoint, base_model, merged_path)
                     console.print("[green]✅ 权重合并完成[/green]")
                 except Exception as merge_exc:
                     raise RuntimeError(
@@ -1515,7 +1529,7 @@ def main(
     finetune_model: Optional[str] = typer.Option(
         DEFAULT_FINETUNE_MODEL,
         "--finetune-model",
-        help="使用 finetune backend 时的微调模型名称（finetune_output/ 下的目录名）",
+        help="使用 finetune backend 时的微调模型名称（~/.sage/finetune_output/ 下的目录名）",
     ),
     finetune_port: int = typer.Option(
         DEFAULT_FINETUNE_PORT,

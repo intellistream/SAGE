@@ -24,6 +24,7 @@ from rich.panel import Panel
 from sage.tools.finetune.models import FinetuneTask, TASK_NAMES
 from sage.tools.finetune.utils import (
     get_sage_root,
+    get_finetune_output_dir,
     check_training_dependencies,
     show_install_instructions,
 )
@@ -80,7 +81,7 @@ def start_finetune(
     
     # 设置输出目录
     if not output:
-        output_dir = Path.cwd() / "finetune_output" / task_type.value
+        output_dir = get_finetune_output_dir() / task_type.value
     else:
         output_dir = Path(output)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -135,7 +136,7 @@ def run_training(
 @app.command("list")
 def list_outputs(directory: Optional[str] = typer.Option(None, "--dir", "-d")):
     """📋 列出所有微调输出"""
-    output_dir = Path(directory) if directory else get_sage_root() / "finetune_output"
+    output_dir = Path(directory) if directory else get_finetune_output_dir()
     
     if not output_dir.exists():
         console.print(f"[yellow]⚠️  目录不存在: {output_dir}[/yellow]")
@@ -175,7 +176,7 @@ def clean_outputs(
     force: bool = typer.Option(False, "--force", "-f"),
 ):
     """🧹 清理微调输出"""
-    output_dir = Path(directory) if directory else get_sage_root() / "finetune_output"
+    output_dir = Path(directory) if directory else get_finetune_output_dir()
     
     if not output_dir.exists():
         console.print(f"[yellow]⚠️  目录不存在[/yellow]")
@@ -292,7 +293,7 @@ def show_examples():
         ("SAGE代码理解", "sage finetune quickstart code"),
         ("问答微调", "sage finetune start --task qa --data qa.json"),
         ("指令微调", "sage finetune start --task instruction --data inst.json"),
-        ("运行训练", "sage finetune run finetune_output/code"),
+        ("运行训练", "sage finetune run ~/.sage/finetune_output/code"),
         ("合并模型", "sage finetune merge code"),
         ("启动服务", "sage finetune serve code --port 8000"),
         ("聊天测试", "sage finetune chat code"),
@@ -408,8 +409,8 @@ def _find_checkpoint(model_name: str):
     checkpoint_path = Path(model_name)
     
     if not checkpoint_path.exists():
-        sage_root = get_sage_root()
-        checkpoint_dir = sage_root / "finetune_output" / model_name / "checkpoints"
+        output_dir = get_finetune_output_dir()
+        checkpoint_dir = output_dir / model_name / "checkpoints"
         
         if checkpoint_dir.exists():
             checkpoints = sorted(checkpoint_dir.glob("checkpoint-*"))
@@ -439,11 +440,11 @@ def _find_checkpoint(model_name: str):
 
 def _find_model_for_serving(model_name: str):
     """查找用于服务的模型路径"""
-    sage_root = get_sage_root()
+    output_dir = get_finetune_output_dir()
     
     # 优先查找合并模型
-    merged_path = sage_root / "finetune_output" / model_name / "merged_model"
-    checkpoint_path = sage_root / "finetune_output" / model_name / "checkpoints"
+    merged_path = output_dir / model_name / "merged_model"
+    checkpoint_path = output_dir / model_name / "checkpoints"
     
     if merged_path.exists():
         console.print(f"✅ 合并模型: [cyan]{merged_path}[/cyan]\n")

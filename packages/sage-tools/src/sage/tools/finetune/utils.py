@@ -28,6 +28,28 @@ def get_sage_root() -> Path:
     return Path.cwd()
 
 
+def get_sage_config_dir() -> Path:
+    """获取 SAGE 配置目录（~/.sage）
+    
+    Returns:
+        Path: SAGE 配置目录路径，如果不存在会自动创建
+    """
+    sage_dir = Path.home() / ".sage"
+    sage_dir.mkdir(parents=True, exist_ok=True)
+    return sage_dir
+
+
+def get_finetune_output_dir() -> Path:
+    """获取 finetune 默认输出目录（~/.sage/finetune_output）
+    
+    Returns:
+        Path: Finetune 输出目录路径，如果不存在会自动创建
+    """
+    output_dir = get_sage_config_dir() / "finetune_output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
 def check_training_dependencies() -> bool:
     """检查微调训练依赖是否已安装"""
     try:

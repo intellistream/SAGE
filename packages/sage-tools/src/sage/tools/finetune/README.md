@@ -21,7 +21,7 @@
 sage finetune quickstart code
 
 # 可用任务类型: code | qa | chat | instruction | custom
-# 模型保存在: finetune_output/<任务类型>/
+# 模型保存在: ~/.sage/finetune_output/<任务类型>/
 ```
 
 ### 2️⃣ 使用微调模型
@@ -39,7 +39,7 @@ sage chat --backend finetune --finetune-model code --index docs-public
 
 **查看可用模型**:
 ```bash
-ls finetune_output/  # 显示所有已微调的模型
+ls ~/.sage/finetune_output/  # 显示所有已微调的模型
 ```
 
 ---
@@ -70,7 +70,7 @@ trainer.train()
 sage finetune start --task code --auto
 
 # 3. 监控训练（在浏览器中打开）
-tensorboard --logdir finetune_output/code/logs
+tensorboard --logdir ~/.sage/finetune_output/code/logs
 
 # 4. 合并 LoRA 权重
 sage finetune merge code
@@ -183,7 +183,7 @@ config = TrainingConfig(
 
 ```bash
 # 查看已有模型
-ls finetune_output/
+ls ~/.sage/finetune_output/
 
 # 确保使用正确的模型名称
 sage chat --backend finetune --finetune-model <实际模型名>
@@ -196,7 +196,7 @@ sage chat --backend finetune --finetune-model <实际模型名>
 watch -n 1 nvidia-smi
 
 # TensorBoard 可视化
-tensorboard --logdir finetune_output/*/logs
+tensorboard --logdir ~/.sage/finetune_output/*/logs
 ```
 
 ---

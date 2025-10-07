@@ -56,8 +56,8 @@ class TrainingConfig:
     """最大序列长度（RTX 3060 建议 1024，更大的卡可以用 2048）"""
     
     # 训练超参数
-    output_dir: Path = Path("./finetune_output")
-    """输出目录"""
+    output_dir: Path = Path.home() / ".sage" / "finetune_output"
+    """输出目录（默认：~/.sage/finetune_output）"""
     
     num_train_epochs: int = 3
     """训练轮数"""
