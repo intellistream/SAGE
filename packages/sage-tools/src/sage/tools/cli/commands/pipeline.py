@@ -23,7 +23,7 @@ from sage.common.config.output_paths import get_sage_paths
 from sage.core.api.base_environment import BaseEnvironment
 from sage.core.api.local_environment import LocalEnvironment
 from sage.tools import templates
-from sage.tools.cli import pipeline_blueprints as blueprints
+from sage.tools.templates import pipeline_blueprints as blueprints
 from sage.tools.cli.commands.pipeline_domain import (
     load_custom_contexts,
     load_domain_contexts,

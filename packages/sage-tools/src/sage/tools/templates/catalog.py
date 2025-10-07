@@ -7,7 +7,7 @@ import textwrap
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from sage.tools.cli import pipeline_blueprints
+from sage.tools.templates import pipeline_blueprints
 
 
 @dataclass(frozen=True)
