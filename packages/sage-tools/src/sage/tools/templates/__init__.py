@@ -8,6 +8,7 @@ from .catalog import (
     list_templates,
     match_templates,
 )
+from . import pipeline_blueprints
 
 __all__ = [
     "ApplicationTemplate",
@@ -16,4 +17,5 @@ __all__ = [
     "list_template_ids",
     "list_templates",
     "match_templates",
+    "pipeline_blueprints",
 ]
