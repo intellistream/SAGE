@@ -7,13 +7,24 @@ All Python-facing APIs for SAGE-Flow live under this module.
 from typing import Any, Callable, Dict, Optional
 
 import numpy as np
+import sys
 
+_sage_flow = None
+
+# Try multiple import strategies
 try:
+    # Strategy 1: Relative import (works if __init__.py already imported it)
     from . import _sage_flow
-except ImportError as e:
-    import glob
+except ImportError:
+    try:
+        # Strategy 2: Check if it's already in sys.modules (from __init__.py)
+        _sage_flow = sys.modules.get('sage.middleware.components.sage_flow.python._sage_flow')
+    except Exception:
+        pass
+
+# If still not found, try to locate and import the .so file
+if _sage_flow is None:
     import importlib
-    import sys
     from pathlib import Path
 
     here = Path(__file__).resolve().parent
@@ -43,20 +54,33 @@ except ImportError as e:
                     sys.path.insert(0, str(p))
                 break
 
-    try:
-        _sage_flow = importlib.import_module("_sage_flow")
-    except Exception:
-        raise ImportError(
-            f"_sage_flow native module not found. Please build the extension by running 'sage extensions install sage_flow' or executing the build.sh under packages/sage-middleware/src/sage/middleware/components/sage_flow. "
-            f"Searched in: {[str(p) for p in candidate_paths if p.exists()]}, Found .so files: {found_so}"
-        ) from e
+    if found_so:
+        try:
+            _sage_flow = importlib.import_module("_sage_flow")
+        except Exception:
+            pass  # Will set stub definitions below
 
-DataType = _sage_flow.DataType
-VectorData = _sage_flow.VectorData
-VectorRecord = _sage_flow.VectorRecord
-Stream = _sage_flow.Stream
-StreamEnvironment = _sage_flow.StreamEnvironment
-SimpleStreamSource = _sage_flow.SimpleStreamSource
+# Only define these if _sage_flow was successfully imported
+if _sage_flow is not None:
+    DataType = _sage_flow.DataType
+    VectorData = _sage_flow.VectorData
+    VectorRecord = _sage_flow.VectorRecord
+    Stream = _sage_flow.Stream
+    StreamEnvironment = _sage_flow.StreamEnvironment
+    SimpleStreamSource = _sage_flow.SimpleStreamSource
+else:
+    # Provide stub definitions for when extension is not available
+    import warnings
+    warnings.warn(
+        "_sage_flow extension not available. Stream processing features will be limited.",
+        ImportWarning
+    )
+    DataType = None
+    VectorData = None
+    VectorRecord = None
+    Stream = None
+    StreamEnvironment = None
+    SimpleStreamSource = None
 
 
 class SageFlow:
