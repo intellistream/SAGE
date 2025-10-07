@@ -57,11 +57,11 @@ fi
 
 # 只构建 C++ 库目标（不构建 Python 模块）
 echo "🔧 编译 C++ 库..."
-# 尝试构建 candy 目标（sageFlow 的主库）
-if cmake --build . --config Release -j$(nproc) --target candy 2>&1 | tee /tmp/build.log; then
-    echo "✅ candy 目标构建成功"
+# 尝试构建 sageflow 目标（sageFlow 的主库）
+if cmake --build . --config Release -j$(nproc) --target sageflow 2>&1 | tee /tmp/build.log; then
+    echo "✅ sageflow 目标构建成功"
 elif grep -q "No rule to make target" /tmp/build.log; then
-    # 如果 candy 目标不存在，尝试构建所有目标但忽略 Python 绑定错误
+    # 如果 sageflow 目标不存在，尝试构建所有目标但忽略 Python 绑定错误
     echo "ℹ️  尝试构建所有C++目标..."
     cmake --build . --config Release -j$(nproc) 2>&1 | grep -v "_sage_flow" || true
 fi
@@ -131,8 +131,8 @@ library_dirs = [
     str(build_dir),
 ]
 
-# 链接库 - 注意：CMake 可能生成 libcandy.a 或 libcandy.so
-libraries = ["candy"]
+# 链接库 - 注意：CMake 可能生成 libsageflow.a 或 libsageflow.so
+libraries = ["sageflow"]
 
 # 添加运行时库路径
 runtime_library_dirs = [
