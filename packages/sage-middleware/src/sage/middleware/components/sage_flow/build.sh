@@ -149,7 +149,7 @@ ext_modules = [
         library_dirs=library_dirs,
         libraries=libraries,
         runtime_library_dirs=runtime_library_dirs,
-        cxx_std=17,
+        cxx_std=20,
         extra_compile_args=["-O3"],
     ),
 ]
