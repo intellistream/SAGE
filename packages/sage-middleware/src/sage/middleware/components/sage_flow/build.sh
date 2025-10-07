@@ -57,18 +57,12 @@ fi
 
 # 只构建 C++ 库目标（不构建 Python 模块）
 echo "🔧 编译 C++ 库..."
-# 尝试构建 sageflow 目标（sageFlow 的主库）
-if cmake --build . --config Release -j$(nproc) --target sageflow 2>&1 | tee /tmp/build.log; then
-    echo "✅ sageflow 目标构建成功"
-elif grep -q "No rule to make target" /tmp/build.log; then
-    # 如果 sageflow 目标不存在，尝试构建所有目标但忽略 Python 绑定错误
-    echo "ℹ️  尝试构建所有C++目标..."
-    cmake --build . --config Release -j$(nproc) 2>&1 | grep -v "_sage_flow" || true
-fi
+# 构建 sageflow 动态库（现在是 SHARED 库，可以直接构建）
+cmake --build . --config Release -j$(nproc) --target sageflow
 
 # 安装 C++ 库
 echo "📦 安装 C++ 库..."
-cmake --install . --prefix "$SUBMODULE_DIR/install" 2>&1 || echo "⚠️  部分安装步骤跳过"
+cmake --install . --prefix "$SUBMODULE_DIR/install"
 
 echo "✅ C++ 库构建完成"
 
@@ -124,22 +118,19 @@ include_dirs = [
     str(build_dir / "_deps" / "tomlplusplus-src" / "include"),
 ]
 
-# 库目录 - sageFlow的静态库
-library_dirs = [str(build_dir / "lib")]
+# 库目录 - sageFlow 动态库
+library_dirs = [
+    str(install_dir / "lib"),
+    str(build_dir / "lib"),
+]
 
-# 链接sageFlow的所有组件静态库
-libraries = [
-    "execution",
-    "stream", 
-    "query",
-    "operator",
-    "function",
-    "common",
-    "utils",
-    "concurrency",
-    "storage",
-    "compute_engine",
-    "index"
+# 链接 sageFlow 动态库（像 sage_db 一样）
+libraries = ["sageflow"]
+
+# 添加运行时库路径
+runtime_library_dirs = [
+    str(install_dir / "lib"),
+    str(build_dir / "lib"),
 ]
 
 # Python bindings source (只需要bindings.cpp)
@@ -152,6 +143,7 @@ ext_modules = [
         include_dirs=include_dirs,
         library_dirs=library_dirs,
         libraries=libraries,
+        runtime_library_dirs=runtime_library_dirs,
         cxx_std=20,
         extra_compile_args=["-O3"],
     ),
