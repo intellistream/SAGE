@@ -12,13 +12,15 @@
 ## 📂 新的目录结构
 
 ```
+```
 tools/maintenance/
-├── sage-maintenance.sh          # 🌟 主脚本 - 统一入口点
-├── setup_hooks.sh               # Git hooks 安装脚本
-├── sage-jobmanager.sh           # Job 管理工具（特定服务）
-├── README.md                    # 用户文档
-├── git-hooks/                   # Git 钩子模板
-│   └── post-checkout            # 自动切换 submodule 分支
+├── sage-maintenance.sh          # 主脚本（用户入口）
+├── setup_hooks.sh
+├── README.md                    # 更新的用户文档
+├── QUICK_REFERENCE.md           # 快速参考卡片
+├── REFACTORING_SUMMARY.md       # 重构总结
+├── git-hooks/
+│   └── post-checkout            # 已更新路径
 └── helpers/                     # 内部辅助脚本
     ├── common.sh                # 通用函数库
     ├── manage_submodule_branches.sh
@@ -27,6 +29,7 @@ tools/maintenance/
     ├── prepare_branch_checkout.sh
     ├── quick_cleanup.sh
     └── check_config_security.sh
+```
 ```
 
 ## 🆕 主要变更

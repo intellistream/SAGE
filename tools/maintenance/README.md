@@ -42,7 +42,6 @@ This directory contains various maintenance and utility scripts for the SAGE pro
 tools/maintenance/
 ├── sage-maintenance.sh          # 🌟 主脚本 - 统一入口
 ├── setup_hooks.sh               # Git hooks 安装脚本
-├── sage-jobmanager.sh           # Job 管理工具（特定服务）
 ├── README.md                    # 本文档
 ├── git-hooks/                   # Git 钩子模板
 │   └── post-checkout           # 自动切换 submodule 分支
