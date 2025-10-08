@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from sage.tools.cli.main import app as sage_app
@@ -28,8 +29,21 @@ def _patch_llm_helpers() -> list:
     ]
 
 
+def _raise_not_implemented(*_args, **_kwargs):
+    raise NotImplementedError("placeholder")
+
+
 def collect_cases() -> list[CLITestCase]:
     status_patches = _patch_llm_helpers()
+    fake_info = SimpleNamespace(
+        model_id="demo/model",
+        revision="main",
+        path="/tmp/demo",
+        size_bytes=1024,
+        size_mb=1.0,
+        last_used_iso="2024-01-01T00:00:00",
+        tags=["text"],
+    )
 
     return [
         CLITestCase(
@@ -37,5 +51,61 @@ def collect_cases() -> list[CLITestCase]:
             ["llm", "status"],
             app=sage_app,
             patch_factories=status_patches,
+        ),
+        CLITestCase(
+            "sage llm model show --json",
+            ["llm", "model", "show", "--json"],
+            app=sage_app,
+            patch_factories=[
+                lambda: patch(
+                    "sage.tools.cli.commands.llm.vllm_registry.list_models",
+                    return_value=[fake_info],
+                )
+            ],
+        ),
+        CLITestCase(
+            "sage llm model download",
+            ["llm", "model", "download", "--model", "demo/model"],
+            app=sage_app,
+            patch_factories=[
+                lambda: patch(
+                    "sage.tools.cli.commands.llm.vllm_registry.download_model",
+                    return_value=fake_info,
+                )
+            ],
+        ),
+        CLITestCase(
+            "sage llm model delete",
+            ["llm", "model", "delete", "--model", "demo/model", "--yes"],
+            app=sage_app,
+            patch_factories=[
+                lambda: patch(
+                    "sage.tools.cli.commands.llm.vllm_registry.delete_model",
+                    return_value=None,
+                )
+            ],
+        ),
+        CLITestCase(
+            "sage llm fine-tune (stub)",
+            [
+                "llm",
+                "fine-tune",
+                "--base-model",
+                "demo/model",
+                "--dataset",
+                "data.json",
+                "--output",
+                "out",
+            ],
+            app=sage_app,
+            patch_factories=[
+                lambda: patch(
+                    "sage.tools.cli.commands.llm.VLLMService",
+                    return_value=SimpleNamespace(
+                        fine_tune=_raise_not_implemented,
+                        cleanup=lambda: None,
+                    ),
+                )
+            ],
         ),
     ]

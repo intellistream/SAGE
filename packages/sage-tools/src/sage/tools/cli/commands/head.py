@@ -10,7 +10,7 @@ from pathlib import Path
 
 import typer
 
-from ..config_manager import get_config_manager
+from ...management.config_manager import get_config_manager
 
 app = typer.Typer(name="head", help="Ray Head节点管理")
 

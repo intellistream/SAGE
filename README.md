@@ -73,6 +73,9 @@ Run a simple example to get started:
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
+# Initialize git submodules (docs-public, sageDB, sageLLM, etc.)
+git submodule update --init --recursive
+
 # Install with quickstart (recommended)
 ./quickstart.sh --dev --yes
 
@@ -167,7 +170,7 @@ pip install isage[dev]       # Everything + development tools
 
 **Key Installation Features**
 - 🎯 Interactive menu for first-time users
-- 🤖 Optional vLLM integration with `--vllm`
+- 🤖 vLLM integration with `--vllm`
 - 🐍 Supports conda or system Python via `--pip`
 - ⚡ Three modes: minimal / standard / dev
 
@@ -201,29 +204,12 @@ HF_TOKEN=your_huggingface_token_here
 - `SAGE_LOG_LEVEL`: Set logging level (DEBUG, INFO, WARNING, ERROR)
 - `SAGE_TEST_MODE`: Enable test mode for examples
 
-## License Management (Commercial Editions)
-
-Use the unified CLI to manage commercial licenses:
-
-```bash
-# View current license status
-python -m sage.tools.cli.main license status
-
-# Install or remove a commercial license
-python -m sage.tools.cli.main license install <LICENSE-KEY>
-python -m sage.tools.cli.main license remove
-
-# Vendor utilities (SAGE team)
-python -m sage.tools.cli.main license vendor generate "Customer" --days 365
-python -m sage.tools.cli.main license vendor list
-python -m sage.tools.cli.main license vendor revoke <LICENSE-KEY>
-```
-
 **API Key Sources**
 - Get OpenAI API key: https://platform.openai.com/api-keys
 - Get Hugging Face token: https://huggingface.co/settings/tokens
 
 The `.env` file is automatically ignored by git to keep your keys secure.
+
 
 ## Use Cases
 
