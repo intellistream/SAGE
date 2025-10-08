@@ -80,9 +80,9 @@ class DiagnosticAgent:
     
     def _setup_components(self):
         """设置组件"""
-        from agents.image_analyzer import ImageAnalyzer
-        from agents.report_generator import ReportGenerator
-        from tools.knowledge_base import MedicalKnowledgeBase
+        from sage.libs.applications.medical_diagnosis.agents.image_analyzer import ImageAnalyzer
+        from sage.libs.applications.medical_diagnosis.agents.report_generator import ReportGenerator
+        from sage.libs.applications.medical_diagnosis.tools.knowledge_base import MedicalKnowledgeBase
         
         # 初始化各个组件
         self.image_analyzer = ImageAnalyzer(self.config)
