@@ -259,7 +259,7 @@ run_doctor() {
         while IFS= read -r line; do
             # 检查行首是否有 '-' (未初始化)
             if [[ ! "$line" =~ ^- ]]; then
-                ((initialized_submodules++)) || true
+                ((initialized_submodules++))
             fi
         done < <(git submodule status 2>/dev/null || echo "")
         
