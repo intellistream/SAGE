@@ -10,3 +10,13 @@ except ImportError:
     __version__ = "0.1.4"
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
+
+# Export applications module
+from sage.libs import applications
+
+__all__ = [
+    "__version__",
+    "__author__",
+    "__email__",
+    "applications",
+]

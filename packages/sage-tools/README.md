@@ -17,6 +17,7 @@ This package provides the core utilities, command-line interface, development to
 - Beautiful table formatting and progress bars
 - Cross-platform shell integration
 - Core SAGE system management commands
+- LLM 驱动的 `sage pipeline` 构建器会结合蓝图与应用模板提供建议
 
 ### 🔧 Development Toolkit (`sage.dev`)
 - Automated testing with pytest integration
@@ -89,7 +90,25 @@ sage status
 sage-core start
 sage-core status
 sage-core stop
+
+# LLM-driven pipeline builder (uses templates as inspiration)
+sage pipeline build --backend openai
 ```
+
+### Pipeline Templates & Blueprint Guidance
+
+- 运行 `sage pipeline build` 时，大模型会读取 `sage.tools.templates` 中的应用模板，作为灵感提示帮助快速起草可运行的 pipeline。
+- 在 mock 模式下（`--backend mock`），生成的配置直接复用模板对应的蓝图组件，可离线演示。
+- 也可以在 Python 中列出模板：
+
+    ```python
+    from sage.tools import templates
+
+    for match in templates.match_templates({"goal": "构建客服知识助手"}):
+            print(match.template.id, match.score)
+    ```
+
+模板目录位于 `sage.tools.templates`，每个模板都提供 `pipeline_plan()` 和 `graph_plan()` 帮助方法，方便在脚本或测试中直接加载并二次定制。
 
 ### Using Development Tools
 

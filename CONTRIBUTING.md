@@ -194,10 +194,10 @@ revert/<hash-fragment> 回滚
 
 ### 避免子模块指针冲突
 
-本仓库目前包含多个 Git submodule（如 `docs-public`、`packages/sage-middleware/src/sage/middleware/components/sage_db`、`packages/sage-middleware/src/sage/middleware/components/sage_flow` 等）。当多人并行修改这些子仓库时，请遵循以下通用流程，降低 submodule 指针冲突概率：
+本仓库目前包含多个 Git submodule（如 `docs-public`、`packages/sage-middleware/src/sage/middleware/components/sage_db`、`packages/sage-middleware/src/sage/middleware/components/sage_flow`、`packages/sage-middleware/src/sage/middleware/components/sage_vllm/sageLLM` 等）。当多人并行修改这些子仓库时，请遵循以下通用流程，降低 submodule 指针冲突概率：
 
 1. **先合并子仓库 PR**：针对某个子仓库的变更，务必先让它在对应的子仓库仓库内合并到 upstream，不要在主仓库引用未合并的 commit。
-2. **同步主仓库指针**：在 SAGE 仓库根目录执行 `git submodule update --remote <submodule-path>`（或使用 `./tools/maintenance/submodule_manager.sh update`）获取最新 commit，随后 `git add <submodule-path>` 更新指针。
+2. **同步主仓库指针**：在 SAGE 仓库根目录执行 `git submodule update --remote <submodule-path>`（或使用 `./tools/maintenance/manage_submodule_branches.sh switch`）获取最新 commit，随后 `git add <submodule-path>` 更新指针。
 3. **提交主仓库 PR**：提交、推送包含最新子模块指针的 PR，并在描述中清楚标注对应子仓库的改动链接。
 
 协作注意事项：

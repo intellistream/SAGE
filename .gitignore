@@ -167,6 +167,12 @@ data/neuromem_vdb/
 examples/rag/chroma_*/
 examples/data/neuromem_vdb/
 
+# 医疗诊断数据集和处理结果
+data/medical/
+examples/medical_diagnosis/data/processed/
+examples/medical_diagnosis/data/samples/
+examples/medical_diagnosis/data/test_results/
+
 # 临时和测试数据文件
 **/*.vector
 **/*.index
@@ -184,3 +190,4 @@ packages/sage-tools/src/sage/tools/studio/node_modules/*
 packages/sage-tools/src/sage/tools/studio/.angular/*
 
 **/node_modules
+packages/sage-libs/src/sage/libs/applications/medical_diagnosis/data/*

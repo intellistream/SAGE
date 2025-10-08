@@ -45,25 +45,26 @@
 
 ### 安装后使用
 
-安装完成后，推荐使用 SAGE CLI 启动 VLLM 服务：
+安装完成后，推荐使用 SAGE CLI 的阻塞式 VLLM 服务与模型管理功能：
 
 ```bash
-# 推荐方式：使用 SAGE CLI（默认 vllm 服务）
-sage llm start                                    # 使用默认模型（microsoft/DialoGPT-small）
-sage llm start --model microsoft/DialoGPT-medium  # 使用指定模型
-sage llm start --background                       # 后台运行
-sage llm status                                   # 查看服务状态
-sage llm stop                                     # 停止服务
+# 查看本地与远程模型信息（包含大小、路径、缓存状态）
+sage llm model show
+
+# 预下载或删除模型（默认会放到 ~/.cache/sage/vllm）
+sage llm model download meta-llama/Llama-2-7b-chat-hf
+sage llm model delete microsoft/DialoGPT-small
+
+# 运行阻塞式推理服务（支持流式或一次性输出）
+sage llm run --model meta-llama/Llama-2-7b-chat-hf --prompt "Hello"
+
+# 占位命令：微调流程将在后续版本开放
+sage llm fine-tune --help
 ```
 
-**传统方式（已废弃）：**
-```bash
-# 传统脚本方式（不再推荐使用）
-# ./tools/vllm/vllm_local_serve.sh                   # 使用默认模型
-# ./tools/vllm/vllm_local_serve.sh microsoft/DialoGPT-medium  # 使用指定模型
-```
+如果仍需兼容旧的后台服务管理命令，可继续使用 `sage llm start|status|stop`，但这些命令会打印弃用提示并将在未来移除。
 
-> ⚠️ **重要**：传统的 `tools/vllm` 脚本已被废弃，请使用 `sage llm` 命令。
+> ⚠️ **重要**：传统的 `tools/vllm` 脚本已被废弃，请使用新的 `sage llm` CLI 功能。
 
 ### 推荐模型
 
