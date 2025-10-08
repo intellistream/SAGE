@@ -176,6 +176,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
         
         当前实现为逐个调用 embed()。
         TODO: 如果 API 支持批量，可以优化。
+        Issue URL: https://github.com/intellistream/SAGE/issues/912
         
         Args:
             texts: 输入文本列表
@@ -184,6 +185,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
             embedding 向量列表
         """
         # TODO: 检查 SiliconCloud API 是否支持批量
+        # Issue URL: https://github.com/intellistream/SAGE/issues/911
         return [self.embed(text) for text in texts]
     
     def get_dim(self) -> int:

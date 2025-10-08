@@ -207,6 +207,7 @@ class BedrockEmbedding(BaseEmbedding):
         
         当前实现为逐个调用 embed()。
         TODO: 如果模型支持批量接口，可以优化。
+        Issue URL: https://github.com/intellistream/SAGE/issues/908
         
         Args:
             texts: 输入文本列表
@@ -215,6 +216,7 @@ class BedrockEmbedding(BaseEmbedding):
             embedding 向量列表
         """
         # TODO: 检查 Bedrock API 是否支持批量
+        # Issue URL: https://github.com/intellistream/SAGE/issues/907
         return [self.embed(text) for text in texts]
     
     def get_dim(self) -> int:

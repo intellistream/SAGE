@@ -48,6 +48,7 @@ class ReportGenerator:
         print(f"   Loading LLM: {self.config['models']['llm_model']}")
         
         # TODO: 集成 SAGE VLLMService
+        # Issue URL: https://github.com/intellistream/SAGE/issues/901
         # from sage.middleware.components.sage_vllm.service import VLLMService
         # self.llm_service = VLLMService(...)
         
@@ -187,6 +188,7 @@ class ReportGenerator:
     def _generate_with_llm(self, prompt: str) -> str:
         """使用LLM生成报告"""
         # TODO: 调用VLLMService
+        # Issue URL: https://github.com/intellistream/SAGE/issues/900
         # response = self.llm_service.generate(
         #     prompt=prompt,
         #     max_tokens=1024,

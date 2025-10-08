@@ -36,6 +36,7 @@ class MedicalKnowledgeBase:
         print(f"   Setting up knowledge base services...")
         
         # TODO: 集成 SAGE EmbeddingService 和 SageDB
+        # Issue URL: https://github.com/intellistream/SAGE/issues/906
         # from sage.middleware.components.sage_embedding.service import EmbeddingService
         # from sage.middleware.components.sage_db.service import SageDBService
         
@@ -48,6 +49,7 @@ class MedicalKnowledgeBase:
     def _load_knowledge(self):
         """加载医学知识"""
         # TODO: 从数据集和医学文献加载知识
+        # Issue URL: https://github.com/intellistream/SAGE/issues/905
         self.knowledge_base = self._get_default_knowledge()
         self.case_database = []
     
@@ -106,6 +108,7 @@ class MedicalKnowledgeBase:
             return self._get_mock_cases()[:top_k]
         
         # TODO: 实现真实的向量检索
+        # Issue URL: https://github.com/intellistream/SAGE/issues/904
         # 1. 对查询文本进行embedding
         # 2. 对影像特征进行embedding
         # 3. 多模态检索（文本+影像）
@@ -195,6 +198,7 @@ class MedicalKnowledgeBase:
     def add_case(self, case_data: Dict[str, Any]):
         """添加新病例到知识库"""
         # TODO: 实现病例添加
+        # Issue URL: https://github.com/intellistream/SAGE/issues/903
         # 1. 提取影像特征
         # 2. 生成文本embedding
         # 3. 存入向量数据库
@@ -203,6 +207,7 @@ class MedicalKnowledgeBase:
     def update_knowledge(self, knowledge_data: Dict[str, Any]):
         """更新医学知识"""
         # TODO: 实现知识更新
+        # Issue URL: https://github.com/intellistream/SAGE/issues/902
         self.knowledge_base.append(knowledge_data)
 
 

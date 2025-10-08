@@ -111,6 +111,7 @@ class HFEmbedding(BaseEmbedding):
         
         当前实现为逐个调用 embed()。
         TODO: 实现真正的批量处理以提高效率。
+        Issue URL: https://github.com/intellistream/SAGE/issues/910
         
         Args:
             texts: 输入文本列表
@@ -119,6 +120,7 @@ class HFEmbedding(BaseEmbedding):
             embedding 向量列表
         """
         # TODO: 优化为真正的批量处理
+        # Issue URL: https://github.com/intellistream/SAGE/issues/909
         return [self.embed(text) for text in texts]
     
     def get_dim(self) -> int:

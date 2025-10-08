@@ -44,6 +44,7 @@ class ImageAnalyzer:
     def _setup_models(self):
         """设置视觉模型"""
         # TODO: 集成 SAGE VLLMService 或其他视觉模型
+        # Issue URL: https://github.com/intellistream/SAGE/issues/899
         print(f"   Loading vision model: {self.config['models']['vision_model']}")
         
         # 这里可以集成:
@@ -97,6 +98,7 @@ class ImageAnalyzer:
     def _load_image(self, image_path: Path):
         """加载影像"""
         # TODO: 实现 DICOM 或常规图像加载
+        # Issue URL: https://github.com/intellistream/SAGE/issues/898
         try:
             from PIL import Image
             return np.array(Image.open(image_path).convert('L'))
@@ -111,11 +113,13 @@ class ImageAnalyzer:
         
         # 简单质量评估：对比度、清晰度等
         # TODO: 实现更复杂的质量评估算法
+        # Issue URL: https://github.com/intellistream/SAGE/issues/897
         return 0.85
     
     def _segment_vertebrae(self, image) -> List[Dict[str, Any]]:
         """分割椎体"""
         # TODO: 使用分割模型识别 L1-L5 椎体
+        # Issue URL: https://github.com/intellistream/SAGE/issues/896
         
         # 模拟输出
         vertebrae_names = ["L1", "L2", "L3", "L4", "L5"]
@@ -135,6 +139,7 @@ class ImageAnalyzer:
     def _segment_discs(self, image) -> List[Dict[str, Any]]:
         """分割椎间盘"""
         # TODO: 使用分割模型识别椎间盘
+        # Issue URL: https://github.com/intellistream/SAGE/issues/895
         
         # 模拟输出
         disc_levels = ["L1/L2", "L2/L3", "L3/L4", "L4/L5", "L5/S1"]
@@ -195,6 +200,7 @@ class ImageAnalyzer:
     def _extract_features(self, image) -> Optional[np.ndarray]:
         """提取影像特征向量"""
         # TODO: 使用预训练模型提取特征
+        # Issue URL: https://github.com/intellistream/SAGE/issues/894
         # 可以使用 CLIP, DINOv2, 或医学影像专用模型
         
         # 模拟768维特征向量
