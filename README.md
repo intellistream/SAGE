@@ -1,5 +1,6 @@
 ﻿# SAGE - Streaming-Augmented Generative Execution
 > A declarative, composable framework for building transparent LLM-powered systems through dataflow abstractions.
+
 [![CI](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
@@ -100,10 +101,7 @@ sage doctor
 
 ### System Architecture
 
-SAGE is built on a layered architecture that provides flexibility, scalability, and maintainability:
-
-![SAGE Architecture](docs/images/architecture.svg)
-
+SAGE is built on a layered architecture that provides flexibility, scalability, and maintainability.
 The architecture consists of five main layers:
 
 1. **User Layer**: Applications built with SAGE (RAG, Agent, Memory, QA systems)
@@ -300,20 +298,6 @@ make docs-serve    # Serve docs locally
 sage doctor          # Runs environment & module checks
 python -c "import sage; print(sage.__version__)"
 ```
-
-## 🤝 Join Our Community
-
-Connect with other SAGE developers, get help, and stay updated on the latest developments:
-
-**💬 [Join SAGE Community](./docs/COMMUNITY.md)** - Complete guide to all our communication channels
-
-Quick links:
-- **WeChat Group**: Scan QR codes for instant chat (Chinese/English)
-- **QQ Group**: [IntelliStream课题组讨论群](https://qm.qq.com/q/bcnuyQVcvm)
-- **Slack**: [Join our workspace](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
-- **GitHub Discussions**: [Technical Q&A and feature requests](https://github.com/intellistream/SAGE/discussions)
-
-We welcome questions, bug reports, feature requests, and contributions from developers worldwide!
 
 ## 🤝 Join Our Community
 
