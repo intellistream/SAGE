@@ -1,6 +1,7 @@
 #!/bin/bash
 # 🛠️ SAGE 维护工具主脚本
 # 统一的维护工具入口，整合所有常用维护功能
+# Unified maintenance tool entry point, integrating all common maintenance functions
 
 set -e
 
