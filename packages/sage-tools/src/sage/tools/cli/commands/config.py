@@ -18,7 +18,7 @@ app.add_typer(env_app, name="env", help="🌱 环境变量与 .env 文件管理"
 @app.command("show")
 def config_info():
     """显示配置信息"""
-    from ..config_manager import get_config_manager
+    from ...management.config_manager import get_config_manager
 
     try:
         config_manager = get_config_manager()
@@ -45,7 +45,7 @@ def init_config(
     force: bool = typer.Option(False, "--force", "-f", help="强制覆盖现有配置")
 ):
     """初始化SAGE配置文件"""
-    from ..config_manager import get_config_manager
+    from ...management.config_manager import get_config_manager
 
     try:
         config_manager = get_config_manager()

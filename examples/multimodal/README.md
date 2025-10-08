@@ -15,9 +15,8 @@ Run any script from the repository root:
 python examples/multimodal/text_image_quickstart.py
 ```
 
-To get full performance, build the native module before running:
+To get full performance, install the native module before running:
 
 ```bash
-cd packages/sage-middleware/src/sage/middleware/components/sage_db
-./build.sh  # enables _sage_db and the accelerated MultimodalSageDB backend
+sage extensions install sage_db  # add --force if you need to rebuild
 ```

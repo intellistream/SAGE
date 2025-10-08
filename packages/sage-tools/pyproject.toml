@@ -38,14 +38,19 @@ license = "MIT"
 # 核心依赖 - 包含tools特有的依赖和dev工具
 dependencies = [
     # SAGE framework dependencies  
-    "isage-common>=0.1.0",  # 只依赖common，不重复其他包的依赖
-    
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-middleware>=0.1.0",
+    "isage-libs>=0.1.0",
+    # (故意不依赖 isage 元包以避免循环引用)
+
     # Tools-specific dependencies
     "click>=8.0.0",
     "jinja2>=2.11.1",
     "markdown>=3.4.4",
     "markupsafe>=2.0.1",
     "packaging>=20.5",
+    "huggingface-hub>=0.23.0",
     
     # Dev tools - 确保 sage dev 命令可用
     "pytest>=7.0.0",
