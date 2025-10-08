@@ -36,6 +36,7 @@ class MedicalKnowledgeBase:
         print(f"   Setting up knowledge base services...")
         
         # TODO: 集成 SAGE EmbeddingService 和 SageDB
+        # 参见跟踪问题: https://github.com/your-org/your-repo/issues/123
         # Issue URL: https://github.com/intellistream/SAGE/issues/906
         # from sage.middleware.components.sage_embedding.service import EmbeddingService
         # from sage.middleware.components.sage_db.service import SageDBService
