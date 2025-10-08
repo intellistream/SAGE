@@ -131,6 +131,15 @@ tools/maintenance/
 
 ## 📚 详细说明
 
+### Submodule 分支管理策略
+
+**重要**: SAGE 使用自动化的 submodule 分支管理：
+
+- **main 分支** → submodules 使用 `main` 分支（稳定版）
+- **其他所有分支** → submodules 使用 `main-dev` 分支（开发版）
+
+详细策略和使用场景请参考：[**Submodule 分支策略文档**](SUBMODULE_STRATEGY.md)
+
 ### 当前 Submodule 结构
 
 重构后的 submodule 路径（2025年10月更新）：
