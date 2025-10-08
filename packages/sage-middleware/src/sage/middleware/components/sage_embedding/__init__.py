@@ -72,7 +72,7 @@ def _register_all_methods():
     
     # Mock Embedder
     EmbeddingRegistry.register(
-        method="mockembedder",
+        method="mock_embedder",
         display_name="Mock Embedder",
         description="随机 embedding（单元测试用）",
         wrapper_class=MockEmbedding,
