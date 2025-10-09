@@ -32,9 +32,9 @@ app = typer.Typer(
 )
 
 
-# 延迟导入并注册所有子命令
-# 这些 import 语句会在模块加载时执行，但由于我们已经优化了各个子模块，
-# 它们内部的重量级依赖（如 transformers）不会被立即加载
+# 注册所有子命令
+# 这些 import 语句会在模块加载时执行，因此相关子模块的依赖会被立即加载。
+# 如果需要延迟加载重量级依赖（如 transformers），请在各子模块内部实现延迟导入。
 from sage.tools.cli.commands.chat import app as chat_app
 from sage.tools.cli.commands.cluster import app as cluster_app
 from sage.tools.cli.commands.config import app as config_app
