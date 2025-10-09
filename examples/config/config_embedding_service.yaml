@@ -7,7 +7,7 @@ rag_pipeline_vllm:
   services:
     # vLLM service for both LLM and embedding
     vllm:
-      class: sage.middleware.components.sage_vllm.VLLMService
+      class: sage.common.components.sage_vllm.VLLMService
       config:
         model_id: "Qwen/Qwen2.5-7B-Instruct"
         embedding_model_id: "BAAI/bge-base-en-v1.5"
@@ -92,7 +92,7 @@ multi_embedding_pipeline:
     
     # vLLM for batch processing
     vllm:
-      class: sage.middleware.components.sage_vllm.VLLMService
+      class: sage.common.components.sage_vllm.VLLMService
       config:
         model_id: "BAAI/bge-large-en-v1.5"
     
@@ -125,7 +125,7 @@ knowledge_base_pipeline:
   
   services:
     vllm:
-      class: sage.middleware.components.sage_vllm.VLLMService
+      class: sage.common.components.sage_vllm.VLLMService
       config:
         model_id: "BAAI/bge-base-en-v1.5"
         embedding_model_id: "BAAI/bge-base-en-v1.5"
@@ -251,7 +251,7 @@ multilingual_pipeline:
   
   services:
     vllm:
-      class: sage.middleware.components.sage_vllm.VLLMService
+      class: sage.common.components.sage_vllm.VLLMService
       config:
         model_id: "intfloat/multilingual-e5-large"
         embedding_model_id: "intfloat/multilingual-e5-large"
