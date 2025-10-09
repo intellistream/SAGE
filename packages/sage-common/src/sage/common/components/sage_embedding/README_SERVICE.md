@@ -35,7 +35,7 @@
 ## 快速开始
 
 ```python
-from sage.components.sage_embedding.embedding_api import apply_embedding_model
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 
 # 使用默认模型
 model = apply_embedding_model(name="default")
