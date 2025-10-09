@@ -1,7 +1,7 @@
 """
-Ray 分布式工具
+Ray distributed utilities.
 
-包含 Ray Actor 封装和 Ray 初始化相关的工具函数。
+Includes Ray Actor wrappers and Ray initialization utility functions.
 """
 
 from sage.kernel.utils.ray.actor import ActorWrapper
