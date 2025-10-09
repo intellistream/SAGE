@@ -8,14 +8,14 @@ This module provides a consistent API for different embedding providers:
 - OpenAI and other API-based services
 
 Quick Start:
-    >>> from sage.components.sage_embedding import get_embedding_model
+    >>> from sage.common.components.sage_embedding import get_embedding_model
     >>> 
     >>> # Create an embedding model
     >>> emb = get_embedding_model("hash", dim=384)
     >>> vec = emb.embed("hello world")
     >>> 
     >>> # List available methods
-    >>> from sage.components.sage_embedding import list_embedding_models
+    >>> from sage.common.components.sage_embedding import list_embedding_models
     >>> models = list_embedding_models()
     >>> for method, info in models.items():
     ...     print(f"{method}: {info['description']}")

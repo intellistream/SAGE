@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import numpy as np
 
 from sage.kernel.api.service.base_service import BaseService
-from sage.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
+from sage.common.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
 
 
 @dataclass

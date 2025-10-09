@@ -25,7 +25,7 @@ def demo_basic_embedding_service():
     print("Demo 1: 基本 Embedding Service")
     print("="*60)
     
-    from sage.components.sage_embedding import EmbeddingService
+    from sage.common.components.sage_embedding import EmbeddingService
     
     # 配置: 使用 HuggingFace 模型
     config = {
