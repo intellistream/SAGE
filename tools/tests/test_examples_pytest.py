@@ -182,28 +182,19 @@ class TestExamplesIntegration:
                 assert skip, f"文件 {file_path} 应该被跳过: {reason}"
 
     @pytest.mark.integration
+    @pytest.mark.skipif(
+        not any(os.getenv(var) for var in ["GITHUB_TOKEN", "GIT_TOKEN", "SAGE_REPO_TOKEN"]),
+        reason="需要 GitHub token (GITHUB_TOKEN, GIT_TOKEN 或 SAGE_REPO_TOKEN) 才能运行此测试"
+    )
     def test_examples_integration_with_issues_manager(self):
-        """测试与 Issues 管理器的集成"""
+        """测试与 Issues 管理器的集成
+        
+        注意：此测试需要 GitHub token 才能运行。
+        如果没有设置 GITHUB_TOKEN、GIT_TOKEN 或 SAGE_REPO_TOKEN，
+        测试将自动跳过。
+        """
         print("🧪 开始集成测试: test_examples_integration_with_issues_manager")
         
-        import os
-        # 显示可用的 token 环境变量（不打印实际值）
-        print("\n🔍 检查环境变量:")
-        token_available = False
-        for env_name in ("GITHUB_TOKEN", "GIT_TOKEN", "SAGE_REPO_TOKEN"):
-            if os.getenv(env_name):
-                print(f"  ✅ {env_name}: 已设置 (长度: {len(os.getenv(env_name))})")
-                token_available = True
-            else:
-                print(f"  ❌ {env_name}: 未设置")
-        
-        # 如果没有任何 token，跳过测试而不是失败
-        if not token_available:
-            pytest.skip(
-                "⚠️ 跳过测试：缺少GitHub token。\n"
-                "请在 CI 环境中设置 GITHUB_TOKEN、GIT_TOKEN 或 SAGE_REPO_TOKEN 环境变量之一来运行此测试。"
-            )
-
         # 这个测试验证 examples 测试可以与现有的问题管理系统集成
         try:
             issues_suite = IssuesTestSuite()
@@ -211,13 +202,10 @@ class TestExamplesIntegration:
             print(f"\n📂 元数据目录: {issues_suite.manager.metadata_dir}")
             print(f"📂 工作目录: {issues_suite.manager.workspace_dir}")
             
-            # 检查 token
-            if issues_suite.manager.config.github_token:
-                print(f"✅ GitHub Token 已加载 (来源: {issues_suite.manager.config.github_token_env})")
-            else:
-                pytest.skip(
-                    "⚠️ 跳过测试：GitHub token 未能正确加载到 IssuesTestSuite 中。"
-                )
+            # 验证 token 已加载
+            if not issues_suite.manager.config.github_token:
+                pytest.fail("GitHub token 未能正确加载到 IssuesTestSuite 中")
+                return
 
             # 如果团队信息未找到，尝试更新
             if not issues_suite.manager.team_info:

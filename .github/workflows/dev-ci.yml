@@ -29,6 +29,7 @@ env:
   JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+  GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
   HF_ENDPOINT: https://hf-mirror.com
   # 移除手动CACHE_VERSION，让缓存完全基于代码内容自动失效
 
@@ -71,6 +72,14 @@ jobs:
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          # ==================================================
+          # GitHub Token for Repository Access
+          # ==================================================
+          
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          
+          
           
           # ==================================================
           # Hugging Face Configuration
@@ -188,6 +197,14 @@ jobs:
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
           
           # ==================================================
+          # GitHub Token for Repository Access
+          # ==================================================
+          
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          
+          
+          
+          # ==================================================
           # Hugging Face Configuration
           # ==================================================
           
@@ -274,6 +291,14 @@ jobs:
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          # ==================================================
+          # GitHub Token for Repository Access
+          # ==================================================
+          
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          
+          
           
           # ==================================================
           # Hugging Face Configuration
