@@ -10,7 +10,7 @@ import numpy as np
 
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
-from sage.core.api.service.base_service import BaseService
+from sage.kernel.api.service.base_service import BaseService
 
 try:  # Optional dependency – raise during setup if unavailable
     from vllm import LLM, SamplingParams

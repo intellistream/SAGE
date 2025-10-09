@@ -2,7 +2,7 @@ import os
 
 import yaml
 from sage.common.utils.config.loader import load_config
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.batch import JSONLBatch
 from sage.libs.io_utils.sink import TerminalSink
 from sage.libs.rag.generator import OpenAIGenerator

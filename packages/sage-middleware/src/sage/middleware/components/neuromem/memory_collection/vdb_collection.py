@@ -12,7 +12,7 @@ from sage.middleware.components.neuromem.memory_collection.base_collection impor
 )
 from sage.middleware.components.neuromem.search_engine.vdb_index import index_factory
 from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
-from sage.components.sage_embedding.embedding_api import apply_embedding_model
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 
 
 class VDBMemoryCollection(BaseMemoryCollection):

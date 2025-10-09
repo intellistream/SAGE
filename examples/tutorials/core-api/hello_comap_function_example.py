@@ -11,10 +11,10 @@ import os
 import random
 import time
 
-from sage.core.api.function.comap_function import BaseCoMapFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.comap_function import BaseCoMapFunction
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.source_function import SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 # 设置日志级别为ERROR减少输出
 os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")

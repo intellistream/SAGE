@@ -19,7 +19,7 @@ import time
 from typing import List
 
 import numpy as np
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.sink import TerminalSink
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.promptor import QAPromptor

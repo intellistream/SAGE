@@ -1,6 +1,6 @@
 from typing import List, Tuple, Union
 
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 
 
 class MemoryWriter(MapFunction):

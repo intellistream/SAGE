@@ -8,14 +8,14 @@ This module provides a consistent API for different embedding providers:
 - OpenAI and other API-based services
 
 Quick Start:
-    >>> from sage.components.sage_embedding import get_embedding_model
+    >>> from sage.common.components.sage_embedding import get_embedding_model
     >>> 
     >>> # Create an embedding model
     >>> emb = get_embedding_model("hash", dim=384)
     >>> vec = emb.embed("hello world")
     >>> 
     >>> # List available methods
-    >>> from sage.components.sage_embedding import list_embedding_models
+    >>> from sage.common.components.sage_embedding import list_embedding_models
     >>> models = list_embedding_models()
     >>> for method, info in models.items():
     ...     print(f"{method}: {info['description']}")
@@ -88,7 +88,7 @@ def _register_all_methods():
         method="hf",
         display_name="HuggingFace Models",
         description="本地 Transformer 模型（高质量语义 embedding）",
-        wrapper_class="sage.components.sage_embedding.wrappers.hf_wrapper:HFEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.hf_wrapper:HFEmbedding",
         requires_api_key=False,
         requires_model_download=True,
         default_dimension=None,  # 动态推断
@@ -106,7 +106,7 @@ def _register_all_methods():
         method="openai",
         display_name="OpenAI Embedding",
         description="OpenAI 官方 API（高质量，支持兼容 API）",
-        wrapper_class="sage.components.sage_embedding.wrappers.openai_wrapper:OpenAIEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.openai_wrapper:OpenAIEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=1536,
@@ -122,7 +122,7 @@ def _register_all_methods():
         method="jina",
         display_name="Jina AI Embedding",
         description="Jina AI 多语言 embedding（支持 late chunking）",
-        wrapper_class="sage.components.sage_embedding.wrappers.jina_wrapper:JinaEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.jina_wrapper:JinaEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=1024,
@@ -137,7 +137,7 @@ def _register_all_methods():
         method="zhipu",
         display_name="ZhipuAI Embedding",
         description="智谱 AI 中文 embedding（国内访问快）",
-        wrapper_class="sage.components.sage_embedding.wrappers.zhipu_wrapper:ZhipuEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.zhipu_wrapper:ZhipuEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=1024,
@@ -152,7 +152,7 @@ def _register_all_methods():
         method="cohere",
         display_name="Cohere Embedding",
         description="Cohere 多语言 embedding（支持多种 input_type）",
-        wrapper_class="sage.components.sage_embedding.wrappers.cohere_wrapper:CohereEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.cohere_wrapper:CohereEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=1024,
@@ -168,7 +168,7 @@ def _register_all_methods():
         method="bedrock",
         display_name="AWS Bedrock Embedding",
         description="AWS Bedrock 托管服务（支持多种模型）",
-        wrapper_class="sage.components.sage_embedding.wrappers.bedrock_wrapper:BedrockEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.bedrock_wrapper:BedrockEmbedding",
         requires_api_key=True,  # AWS 凭证
         requires_model_download=False,
         default_dimension=1024,
@@ -184,7 +184,7 @@ def _register_all_methods():
         method="ollama",
         display_name="Ollama Embedding",
         description="Ollama 本地部署（数据隐私，免费）",
-        wrapper_class="sage.components.sage_embedding.wrappers.ollama_wrapper:OllamaEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.ollama_wrapper:OllamaEmbedding",
         requires_api_key=False,
         requires_model_download=True,
         default_dimension=768,
@@ -200,7 +200,7 @@ def _register_all_methods():
         method="siliconcloud",
         display_name="SiliconCloud Embedding",
         description="硅基流动（国内访问快，价格优惠）",
-        wrapper_class="sage.components.sage_embedding.wrappers.siliconcloud_wrapper:SiliconCloudEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper:SiliconCloudEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=768,
@@ -216,7 +216,7 @@ def _register_all_methods():
         method="nvidia_openai",
         display_name="NVIDIA NIM Embedding",
         description="NVIDIA NIM（OpenAI 兼容，支持检索优化）",
-        wrapper_class="sage.components.sage_embedding.wrappers.nvidia_openai_wrapper:NvidiaOpenAIEmbedding",
+        wrapper_class="sage.common.components.sage_embedding.wrappers.nvidia_openai_wrapper:NvidiaOpenAIEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=2048,

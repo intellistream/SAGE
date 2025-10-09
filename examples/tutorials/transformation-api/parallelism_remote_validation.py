@@ -15,10 +15,10 @@ import os
 import threading
 import time
 
-from sage.core.api.function.base_function import BaseFunction
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.comap_function import BaseCoMapFunction
-from sage.core.api.remote_environment import RemoteEnvironment
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.comap_function import BaseCoMapFunction
+from sage.kernel.api.remote_environment import RemoteEnvironment
 
 
 class NumberListSource(BatchFunction):

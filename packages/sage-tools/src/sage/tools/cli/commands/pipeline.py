@@ -20,8 +20,8 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from sage.common.config.output_paths import get_sage_paths
-from sage.core.api.base_environment import BaseEnvironment
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.base_environment import BaseEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.tools import templates
 from sage.tools.templates import pipeline_blueprints as blueprints
 from sage.tools.cli.commands.pipeline_domain import (
@@ -392,7 +392,7 @@ def _create_environment(
 
     env_type = (pipeline_meta.get("type") or "local").lower()
     if env_type == "remote":
-        from sage.core.api.remote_environment import RemoteEnvironment  # import lazily
+        from sage.kernel.api.remote_environment import RemoteEnvironment  # import lazily
 
         resolved_host = host or env_settings.get("host") or "127.0.0.1"
         resolved_port = port or env_settings.get("port") or 19001
@@ -1302,7 +1302,7 @@ def analyze_embedding_methods(
         sage pipeline analyze-embedding "如何构建 RAG pipeline"
         sage pipeline analyze-embedding "向量检索" -m hash -m openai -m hf
     """
-    from sage.components.sage_embedding.registry import EmbeddingRegistry
+    from sage.common.components.sage_embedding.registry import EmbeddingRegistry
     
     # 如果没有指定方法，使用默认的几个常用方法
     if not methods:

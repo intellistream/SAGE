@@ -3,6 +3,8 @@
 演示 SAGE Pipeline Builder 中的大模型交互流程
 
 这个脚本展示了用户请求如何通过 RAG 和 LLM 转换为完整的 Pipeline 配置
+
+@test:allow-demo
 """
 
 from sage.tools.cli.commands import pipeline as pipeline_builder

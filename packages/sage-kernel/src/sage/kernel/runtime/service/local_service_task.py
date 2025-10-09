@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
-    from sage.core.factory.service_factory import ServiceFactory
+    from sage.kernel.runtime.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.context.service_context import ServiceContext
 
 

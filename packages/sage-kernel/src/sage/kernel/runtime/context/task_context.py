@@ -9,10 +9,10 @@ from sage.kernel.runtime.communication.router.router import BaseRouter
 from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
-    from sage.core.api.base_environment import BaseEnvironment
-    from sage.core.transformation.base_transformation import BaseTransformation
-    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
-    from sage.kernel.jobmanager.compiler.graph_node import TaskNode
+    from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
+    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
+    from sage.kernel.runtime.graph.graph_node import TaskNode
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
         BaseQueueDescriptor,
     )
@@ -221,7 +221,7 @@ class TaskContext(BaseRuntimeContext):
                     return
 
             # 导入JobManagerClient来发送网络请求
-            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+            from sage.kernel.runtime.jobmanager_client import JobManagerClient
 
             self.logger.info(
                 f"Task {node_name} sending stop signal back to JobManager at {self.jobmanager_host}:{self.jobmanager_port}"

@@ -6,8 +6,8 @@ BatchOperator vs SourceOperator 对比示例
 
 from typing import Any, Iterator
 
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.source_function import SourceFunction
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.source_function import SourceFunction
 from sage.kernel.runtime.communication.router.packet import StopSignal
 
 
