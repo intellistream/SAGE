@@ -40,25 +40,23 @@ from .factory import (
     check_model_availability,
 )
 
-# 导入所有 wrappers
+# 只导入轻量级的 wrappers，其他使用延迟导入
 from .wrappers.hash_wrapper import HashEmbedding
 from .wrappers.mock_wrapper import MockEmbedding
-from .wrappers.hf_wrapper import HFEmbedding
-from .wrappers.openai_wrapper import OpenAIEmbedding
-from .wrappers.jina_wrapper import JinaEmbedding
-from .wrappers.zhipu_wrapper import ZhipuEmbedding
-from .wrappers.cohere_wrapper import CohereEmbedding
-from .wrappers.bedrock_wrapper import BedrockEmbedding
-from .wrappers.ollama_wrapper import OllamaEmbedding
-from .wrappers.siliconcloud_wrapper import SiliconCloudEmbedding
-from .wrappers.nvidia_openai_wrapper import NvidiaOpenAIEmbedding
+
+# 重量级 wrappers 使用延迟导入，避免在模块加载时加载大型依赖
+# 这些会在 _register_all_methods() 中按需导入
 
 
 # 注册所有 embedding 方法
 def _register_all_methods():
-    """注册所有内置的 embedding 方法"""
+    """注册所有内置的 embedding 方法
     
-    # Hash Embedding
+    使用延迟导入 wrapper_class，通过传递字符串路径而不是类对象。
+    这样可以避免在模块加载时就导入所有重量级依赖。
+    """
+    
+    # Hash Embedding - 轻量级，直接导入
     EmbeddingRegistry.register(
         method="hash",
         display_name="Hash Embedding",
@@ -70,7 +68,7 @@ def _register_all_methods():
         example_models=["hash-384", "hash-768"],
     )
     
-    # Mock Embedder
+    # Mock Embedder - 轻量级，直接导入
     EmbeddingRegistry.register(
         method="mock_embedder",
         display_name="Mock Embedder",
@@ -82,12 +80,15 @@ def _register_all_methods():
         example_models=["mock-128", "mock-384"],
     )
     
+    # 以下使用字符串路径进行延迟注册，避免导入重量级依赖
+    # 实际导入会在 EmbeddingFactory.create() 时进行
+    
     # HuggingFace Models
     EmbeddingRegistry.register(
         method="hf",
         display_name="HuggingFace Models",
         description="本地 Transformer 模型（高质量语义 embedding）",
-        wrapper_class=HFEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.hf_wrapper:HFEmbedding",
         requires_api_key=False,
         requires_model_download=True,
         default_dimension=None,  # 动态推断
@@ -105,7 +106,7 @@ def _register_all_methods():
         method="openai",
         display_name="OpenAI Embedding",
         description="OpenAI 官方 API（高质量，支持兼容 API）",
-        wrapper_class=OpenAIEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.openai_wrapper:OpenAIEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=1536,
@@ -121,7 +122,7 @@ def _register_all_methods():
         method="jina",
         display_name="Jina AI Embedding",
         description="Jina AI 多语言 embedding（支持 late chunking）",
-        wrapper_class=JinaEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.jina_wrapper:JinaEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=1024,
@@ -136,7 +137,7 @@ def _register_all_methods():
         method="zhipu",
         display_name="ZhipuAI Embedding",
         description="智谱 AI 中文 embedding（国内访问快）",
-        wrapper_class=ZhipuEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.zhipu_wrapper:ZhipuEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=1024,
@@ -151,7 +152,7 @@ def _register_all_methods():
         method="cohere",
         display_name="Cohere Embedding",
         description="Cohere 多语言 embedding（支持多种 input_type）",
-        wrapper_class=CohereEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.cohere_wrapper:CohereEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=1024,
@@ -167,7 +168,7 @@ def _register_all_methods():
         method="bedrock",
         display_name="AWS Bedrock Embedding",
         description="AWS Bedrock 托管服务（支持多种模型）",
-        wrapper_class=BedrockEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.bedrock_wrapper:BedrockEmbedding",
         requires_api_key=True,  # AWS 凭证
         requires_model_download=False,
         default_dimension=1024,
@@ -183,7 +184,7 @@ def _register_all_methods():
         method="ollama",
         display_name="Ollama Embedding",
         description="Ollama 本地部署（数据隐私，免费）",
-        wrapper_class=OllamaEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.ollama_wrapper:OllamaEmbedding",
         requires_api_key=False,
         requires_model_download=True,
         default_dimension=768,
@@ -199,7 +200,7 @@ def _register_all_methods():
         method="siliconcloud",
         display_name="SiliconCloud Embedding",
         description="硅基流动（国内访问快，价格优惠）",
-        wrapper_class=SiliconCloudEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.siliconcloud_wrapper:SiliconCloudEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=768,
@@ -215,7 +216,7 @@ def _register_all_methods():
         method="nvidia_openai",
         display_name="NVIDIA NIM Embedding",
         description="NVIDIA NIM（OpenAI 兼容，支持检索优化）",
-        wrapper_class=NvidiaOpenAIEmbedding,
+        wrapper_class="sage.components.sage_embedding.wrappers.nvidia_openai_wrapper:NvidiaOpenAIEmbedding",
         requires_api_key=True,
         requires_model_download=False,
         default_dimension=2048,

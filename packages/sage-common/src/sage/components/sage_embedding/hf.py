@@ -4,47 +4,25 @@ import os
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 from functools import lru_cache
 
-# Dependencies should be installed via requirements.txt
-# transformers, torch, tenacity, and numpy are required for this module
-
-try:
-    from transformers import AutoModel  # noqa: F401
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-except ImportError:
-    raise ImportError(
-        "transformers package is required for HuggingFace embedding functionality. "
-        "Please install it via: pip install transformers"
-    )
-
-try:
-    import torch
-except ImportError:
-    raise ImportError(
-        "torch package is required for HuggingFace embedding functionality. "
-        "Please install it via: pip install torch"
-    )
-
-try:
-    import tenacity  # noqa: F401
-except ImportError:
-    raise ImportError(
-        "tenacity package is required for HuggingFace embedding functionality. "
-        "Please install it via: pip install tenacity"
-    )
-
-try:
-    import numpy  # noqa: F401
-except ImportError:
-    raise ImportError(
-        "numpy package is required for HuggingFace embedding functionality. "
-        "Please install it via: pip install numpy"
-    )
+# 延迟导入：transformers, torch, tenacity, numpy 等重量级依赖
+# 只在实际调用函数时才导入，避免在模块加载时就加载这些库
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 @lru_cache(maxsize=1)
 def initialize_hf_model(model_name):
+    """初始化 HuggingFace 模型（延迟导入依赖）"""
+    # 延迟导入 transformers
+    try:
+        from transformers import AutoModel  # noqa: F401
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+    except ImportError as e:
+        raise ImportError(
+            "transformers package is required for HuggingFace embedding functionality. "
+            "Please install it via: pip install transformers"
+        ) from e
+    
     hf_tokenizer = AutoTokenizer.from_pretrained(
         model_name, device_map="auto", trust_remote_code=True
     )
@@ -69,6 +47,15 @@ def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:
     Returns:
         list[float]: embedding 向量
     """
+    # 延迟导入 torch
+    try:
+        import torch
+    except ImportError as e:
+        raise ImportError(
+            "torch package is required for HuggingFace embedding functionality. "
+            "Please install it via: pip install torch"
+        ) from e
+    
     device = next(embed_model.parameters()).device
     encoded_texts = tokenizer(
         text, return_tensors="pt", padding=True, truncation=True
