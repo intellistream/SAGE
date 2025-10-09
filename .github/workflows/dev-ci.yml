@@ -247,7 +247,12 @@ jobs:
   
   deployment-ready:
     name: Deployment Readiness Check
+    # GitHub 免费 Runner 配置（磁盘空间约 14GB，可能不足）
     runs-on: ubuntu-latest
+    
+    # 如果遇到磁盘空间不足，可以切换到 self-hosted runner:
+    # runs-on: self-hosted
+    
     needs: [quick-check, examples-test]
     if: |
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')) ||
@@ -267,6 +272,45 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+
+      - name: Free up disk space (Aggressive)
+        run: |
+          echo "🧹 激进清理磁盘空间（Deployment Readiness 需要在新虚拟环境安装所有依赖）..."
+          echo "📊 清理前磁盘使用情况："
+          df -h
+          
+          # 删除不需要的软件和工具链
+          echo "🗑️ 删除 .NET、Android、GHC 等大型工具链..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          
+          # 删除更多不需要的包
+          echo "🗑️ 删除不需要的系统包..."
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/lib/node_modules
+          
+          # 清理 APT 缓存
+          echo "🗑️ 清理 APT 缓存..."
+          sudo apt-get clean
+          sudo apt-get autoclean
+          
+          # 清理 Docker 镜像和容器
+          echo "🗑️ 清理 Docker..."
+          docker system prune -af --volumes 2>/dev/null || true
+          
+          # 清理 pip 缓存
+          echo "🗑️ 清理 pip 缓存..."
+          pip cache purge || true
+          
+          echo "✅ 清理完成，当前磁盘使用情况："
+          df -h
+          echo "📊 根分区剩余空间："
+          df -h / | tail -1 | awk '{print "可用: " $4 " (" $5 " 已使用)"}'
 
       - name: Create .env File from Secrets
         run: |
