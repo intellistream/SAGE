@@ -8,20 +8,6 @@ import time
 from dotenv import load_dotenv
 
 # 延迟导入：这些模块在需要时才导入，避免在模块加载时就加载重量级依赖
-# from sage.components.sage_embedding import (
-#     _cohere,
-#     bedrock,
-#     hf,
-#     jina,
-#     lollms,
-#     nvidia_openai,
-#     ollama,
-#     openai,
-#     siliconcloud,
-#     zhipu,
-# )
-# from transformers import AutoModel, AutoTokenizer
-
 load_dotenv()
 
 # Ensure project root is on sys.path for imports that rely on package layout
