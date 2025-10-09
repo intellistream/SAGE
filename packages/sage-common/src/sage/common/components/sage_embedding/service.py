@@ -13,8 +13,8 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 
-from sage.core.api.service.base_service import BaseService
-from sage.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
+from sage.kernel.api.service.base_service import BaseService
+from sage.common.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
 
 
 @dataclass
@@ -70,7 +70,7 @@ class EmbeddingService(BaseService):
         # In config:
         services:
           embedding:
-            class: sage.components.sage_embedding.EmbeddingService
+            class: sage.common.components.sage_embedding.EmbeddingService
             config:
               method: "hf"
               model: "BAAI/bge-small-zh-v1.5"
@@ -90,7 +90,7 @@ class EmbeddingService(BaseService):
               embedding_model_id: "BAAI/bge-base-en-v1.5"
           
           embedding:
-            class: sage.components.sage_embedding.EmbeddingService
+            class: sage.common.components.sage_embedding.EmbeddingService
             config:
               method: "vllm"
               vllm_service_name: "vllm"

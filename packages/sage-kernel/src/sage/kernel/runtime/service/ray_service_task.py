@@ -14,7 +14,7 @@ except ImportError:
     RAY_QUEUE_AVAILABLE = False
 
 if TYPE_CHECKING:
-    from sage.core.factory.service_factory import ServiceFactory
+    from sage.kernel.runtime.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.context.service_context import ServiceContext
 
 

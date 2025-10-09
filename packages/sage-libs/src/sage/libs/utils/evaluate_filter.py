@@ -1,4 +1,4 @@
-from sage.core.api.function.filter_function import FilterFunction
+from sage.kernel.api.function.filter_function import FilterFunction
 from sage.libs.context.model_context import ModelContext, QualityLabel
 
 

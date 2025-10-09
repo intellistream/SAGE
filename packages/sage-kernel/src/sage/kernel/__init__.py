@@ -17,7 +17,7 @@ try:
 except ImportError:
     # 如果导入失败，使用兼容性层
     try:
-        from sage.core.api.compatibility import safe_import_jobmanager_client
+        from sage.kernel.api.compatibility import safe_import_jobmanager_client
 
         JobManagerClient = safe_import_jobmanager_client()
     except ImportError:

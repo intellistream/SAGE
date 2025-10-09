@@ -4,7 +4,7 @@ import time
 
 from dotenv import load_dotenv
 from sage.common.utils.config.loader import load_config
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.sink import FileSink, TerminalSink
 from sage.libs.io_utils.source import FileSource
 from sage.libs.rag.generator import OpenAIGenerator

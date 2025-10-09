@@ -11,8 +11,8 @@ from typing import Any, Dict, List
 
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.function.sink_function import SinkFunction
-    from sage.core.api.local_environment import LocalEnvironment
+    from sage.kernel.api.function.sink_function import SinkFunction
+    from sage.kernel.api.local_environment import LocalEnvironment
 except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     import sys
     from pathlib import Path
@@ -37,8 +37,8 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
         sys.path.insert(0, str(extra_path))
 
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.function.sink_function import SinkFunction
-    from sage.core.api.local_environment import LocalEnvironment
+    from sage.kernel.api.function.sink_function import SinkFunction
+    from sage.kernel.api.local_environment import LocalEnvironment
 
 from hello_pipeline_as_service import (
     DecisionSink,

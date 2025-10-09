@@ -5,8 +5,8 @@ import threading
 import time
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.source import SocketSource
 
 

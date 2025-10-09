@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 __all__ = ["load_config", "save_config", "ConfigManager", "BaseConfig"]
 
@@ -19,9 +19,10 @@ __all__ = ["load_config", "save_config", "ConfigManager", "BaseConfig"]
 class BaseConfig(BaseModel):
     """基础配置类"""
 
-    class Config:
-        extra = "allow"  # 允许额外字段
-        validate_assignment = True  # 验证赋值
+    model_config = ConfigDict(
+        extra="allow",  # 允许额外字段
+        validate_assignment=True,  # 验证赋值
+    )
 
 
 class ConfigManager:

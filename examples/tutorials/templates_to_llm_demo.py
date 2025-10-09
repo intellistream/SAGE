@@ -3,6 +3,8 @@
 详细演示：大模型如何参考 Templates
 
 这个脚本展示了从 Template 匹配到传递给 LLM 的完整过程
+
+@test:allow-demo
 """
 
 from sage.tools import templates

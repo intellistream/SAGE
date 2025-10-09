@@ -6,7 +6,7 @@ import numpy as np
 # Try direct imports; if running from repo without installation, add local package paths
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.local_environment import LocalEnvironment
+    from sage.kernel.api.local_environment import LocalEnvironment
     from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import (
         SageFlowService,
     )
@@ -35,7 +35,7 @@ except ModuleNotFoundError:
         sys.path.insert(0, str(p))
 
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.local_environment import LocalEnvironment
+    from sage.kernel.api.local_environment import LocalEnvironment
     from sage.middleware.components.sage_flow.python.micro_service.sage_flow_service import (
         SageFlowService,
     )

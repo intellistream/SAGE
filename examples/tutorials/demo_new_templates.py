@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""演示新增模板的使用方法"""
+"""演示新增模板的使用方法
+
+@test:allow-demo
+"""
 
 from rich.console import Console
 from rich.panel import Panel
