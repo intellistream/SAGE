@@ -42,7 +42,7 @@ services:
 
   # VLLMService backend for batch embedding
   - name: vllm-backend
-    class: sage.middleware.components.sage_vllm.service.VLLMService
+    class: sage.common.components.sage_vllm.service.VLLMService
     params:
       model_name: BAAI/bge-large-zh-v1.5
       task: embed

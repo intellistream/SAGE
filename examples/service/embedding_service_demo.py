@@ -104,7 +104,7 @@ def demo_vllm_embedding_service():
     config_example = """
 services:
   vllm:
-    class: sage.middleware.components.sage_vllm.VLLMService
+    class: sage.common.components.sage_vllm.VLLMService
     config:
       model_id: "BAAI/bge-base-en-v1.5"
       embedding_model_id: "BAAI/bge-base-en-v1.5"
@@ -168,7 +168,7 @@ services:
   
   # 3. vLLM 高吞吐 embedding (用于大规模批处理)
   vllm:
-    class: sage.middleware.components.sage_vllm.VLLMService
+    class: sage.common.components.sage_vllm.VLLMService
     config:
       model_id: "BAAI/bge-large-en-v1.5"
   

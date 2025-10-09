@@ -149,7 +149,7 @@ services:
       normalize: true
 
   - name: vllm-service
-    class: sage.middleware.components.sage_vllm.service.VLLMService
+    class: sage.common.components.sage_vllm.service.VLLMService
     params:
       model_name: Qwen/Qwen2.5-7B-Instruct
 

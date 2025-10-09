@@ -1,6 +1,6 @@
 #!/bin/bash
-# 🧹 清理旧的 sage_db 和 sage_flow submodule 配置
-# 背景：重构后 sageDB 和 sageFlow 下沉到子目录中，需要清理旧配置
+# 🧹 清理旧的 sage_db、sage_flow 和 sage_vllm submodule 配置
+# 背景：重构后相关组件下沉到子目录中，需要清理旧配置
 
 set -e
 
@@ -21,12 +21,15 @@ cd "$REPO_ROOT"
 OLD_SUBMODULES=(
     "packages/sage-middleware/src/sage/middleware/components/sage_db"
     "packages/sage-middleware/src/sage/middleware/components/sage_flow"
+    "packages/sage-middleware/src/sage/middleware/components/sage_vllm"
+    "packages/sage-middleware/src/sage/middleware/components/sage_vllm/sageLLM"
 )
 
 # 新的 submodule 路径（需要清理重建）
 NEW_SUBMODULES=(
     "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"
     "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"
+    "packages/sage-common/src/sage/common/components/sage_vllm/sageLLM"
 )
 
 for submodule_path in "${OLD_SUBMODULES[@]}"; do
