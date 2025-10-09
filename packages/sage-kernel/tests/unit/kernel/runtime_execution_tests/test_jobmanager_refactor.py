@@ -35,12 +35,13 @@ def test_base_tcp_client():
         # 测试错误响应创建
         error_resp = client._create_error_response("TEST_ERROR", "Test error message")
         print(f"✓ 错误响应创建测试通过: {error_resp['status']}")
-
-        return True
+        
+        # 使用 assert 而不是 return
+        assert True, "BaseTcpClient基类测试通过"
 
     except Exception as e:
         print(f"✗ BaseTcpClient基类测试失败: {e}")
-        return False
+        assert False, f"BaseTcpClient基类测试失败: {e}"
 
 
 def test_jobmanager_client():

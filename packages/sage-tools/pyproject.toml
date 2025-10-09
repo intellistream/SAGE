@@ -299,6 +299,15 @@ markers = [
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
 ]
+filterwarnings = [
+    # 忽略已知的第三方库弃用警告
+    "ignore::DeprecationWarning:pkg_resources",
+    "ignore:.*pkg_resources is deprecated.*:UserWarning",
+    "ignore:.*SWIG.*:DeprecationWarning",
+    "ignore:.*SwigPyPacked.*:DeprecationWarning",
+    "ignore:.*SwigPyObject.*:DeprecationWarning",
+    "ignore:.*swigvarlink.*:DeprecationWarning",
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.tools._version.__version__"}

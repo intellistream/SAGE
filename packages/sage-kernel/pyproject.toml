@@ -186,6 +186,20 @@ markers = [
     "ray: marks tests requiring Ray framework (may be slow)",
     "distributed: marks tests requiring distributed setup",
 ]
+filterwarnings = [
+    # 忽略已知的第三方库弃用警告
+    "ignore::DeprecationWarning:ray._private.client_mode_hook",
+    "ignore:.*local mode is an experimental feature.*:DeprecationWarning",
+    "ignore::DeprecationWarning:pkg_resources",
+    "ignore:.*SWIG.*:DeprecationWarning",
+    "ignore:.*SwigPyPacked.*:DeprecationWarning",
+    "ignore:.*SwigPyObject.*:DeprecationWarning",
+    "ignore:.*swigvarlink.*:DeprecationWarning",
+    # 用户警告过滤
+    "ignore:.*pkg_resources is deprecated.*:UserWarning",
+    # pytest 相关警告
+    "ignore::pytest.PytestReturnNotNoneWarning",
+]
 
 [tool.coverage.run]
 data_file = ".sage/logs/.coverage"
