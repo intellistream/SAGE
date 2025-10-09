@@ -11,22 +11,17 @@ except ImportError:
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
 
-# 导出核心组件
+# 导出核心组件 - 直接从具体模块导入，避免循环
 try:
-    from .jobmanager.jobmanager_client import JobManagerClient
+    from sage.kernel.runtime.jobmanager_client import JobManagerClient
 except ImportError:
-    # 如果导入失败，使用兼容性层
-    try:
-        from sage.kernel.api.compatibility import safe_import_jobmanager_client
-
-        JobManagerClient = safe_import_jobmanager_client()
-    except ImportError:
-        # 最后的备用方案
-        class JobManagerClient:
-            def __init__(self, *args, **kwargs):
-                raise ImportError(
-                    "JobManagerClient is not available. Please check your installation."
-                )
+    # 如果导入失败，提供一个占位符
+    JobManagerClient = None
+    import warnings
+    warnings.warn(
+        "JobManagerClient is not available. Some features may be limited.",
+        ImportWarning
+    )
 
 
 __all__ = ["__version__", "__author__", "__email__", "JobManagerClient"]
