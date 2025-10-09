@@ -7,8 +7,8 @@
 	url = https://github.com/intellistream/sageLLM.git
 	branch = main-dev
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"]
-        path = packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
-        url = https://github.com/intellistream/sageDB.git
+    path = packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
+    url = https://github.com/intellistream/sageDB.git
 	branch = main-dev
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"]
 	path = packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow
