@@ -1,69 +1,69 @@
 """
-Kernel 共享异常类
+Shared Kernel Exception Classes
 
-定义了 sage-kernel 中使用的异常类层次结构。
+Defines the exception class hierarchy used in sage-kernel.
 """
 
 
 class KernelError(Exception):
     """
-    Kernel 基础异常
+    Base Kernel Exception
     
-    所有 sage-kernel 相关异常的基类。
+    The base class for all sage-kernel related exceptions.
     """
     pass
 
 
 class SchedulingError(KernelError):
     """
-    调度相关异常
+    Scheduling Related Exception
     
-    在任务调度、资源分配等过程中发生的异常。
+    Exception occurring during task scheduling, resource allocation, etc.
     """
     pass
 
 
 class FaultToleranceError(KernelError):
     """
-    容错相关异常
+    Fault Tolerance Related Exception
     
-    在故障检测、恢复等过程中发生的异常。
+    Exception occurring during fault detection, recovery, etc.
     """
     pass
 
 
 class ResourceAllocationError(SchedulingError):
     """
-    资源分配异常
+    Resource Allocation Exception
     
-    当无法分配所需资源时抛出。
+    Raised when required resources cannot be allocated.
     """
     pass
 
 
 class RecoveryError(FaultToleranceError):
     """
-    恢复失败异常
+    Recovery Failure Exception
     
-    当任务或作业恢复失败时抛出。
+    Raised when task or job recovery fails.
     """
     pass
 
 
 class CheckpointError(FaultToleranceError):
     """
-    Checkpoint 异常
+    Checkpoint Exception
     
-    在保存或加载 checkpoint 时发生的异常。
+    Exception occurring when saving or loading a checkpoint.
     """
     pass
 
 
 class PlacementError(SchedulingError):
     """
-    放置策略异常
+    Placement Strategy Exception
     
-    在决定任务放置位置时发生的异常。
+    Exception occurring when deciding task placement.
     """
     pass
 
