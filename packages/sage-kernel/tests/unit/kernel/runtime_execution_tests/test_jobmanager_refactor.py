@@ -79,7 +79,6 @@ def test_jobmanager_client():
 
         if missing_methods:
             print(f"✗ 缺少方法: {missing_methods}")
-            return False
         else:
             print("✓ 所有必需方法都存在")
 
@@ -93,14 +92,12 @@ def test_jobmanager_client():
         # 测试上下文管理器（不会实际连接）
         print(f"✓ 上下文管理器支持: {hasattr(client, '__enter__')}")
 
-        return True
 
     except Exception as e:
         print(f"✗ JobManagerClient测试失败: {e}")
         import traceback
 
         traceback.print_exc()
-        return False
 
 
 def test_backward_compatibility():
@@ -121,11 +118,9 @@ def test_backward_compatibility():
         client3 = JobManagerClient(timeout=5.0)
         print(f"✓ 新参数支持: timeout={client3.timeout}")
 
-        return True
 
     except Exception as e:
         print(f"✗ 向后兼容性测试失败: {e}")
-        return False
 
 
 def main():

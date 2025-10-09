@@ -482,14 +482,12 @@ def test_comap_service_integration():
     try:
         test_instance.test_comap_service_integration()
         print("\n🎉 All tests passed! CoMap service integration is working correctly.")
-        return True
     except Exception as e:
         print(f"\n💥 Test failed: {e}")
         import traceback
 
         traceback.print_exc()
         pytest.fail(f"CoMap service integration test failed: {e}")
-        return False
 
 
 if __name__ == "__main__":

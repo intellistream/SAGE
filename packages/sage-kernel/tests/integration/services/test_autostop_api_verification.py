@@ -35,19 +35,15 @@ def test_remote_environment_autostop_signature():
 
     print(f"submit() 参数列表: {params}")
 
-    if "autostop" in params:
-        print("✅ RemoteEnvironment.submit() 支持 autostop 参数")
+    assert "autostop" in params, "RemoteEnvironment.submit() 不支持 autostop 参数"
+    print("✅ RemoteEnvironment.submit() 支持 autostop 参数")
 
-        # 获取默认值
-        autostop_param = sig.parameters["autostop"]
-        print(
-            f"   - 参数类型: {autostop_param.annotation if autostop_param.annotation != inspect.Parameter.empty else 'any'}"
-        )
-        print(f"   - 默认值: {autostop_param.default}")
-        return True
-    else:
-        print("❌ RemoteEnvironment.submit() 不支持 autostop 参数")
-        return False
+    # 获取默认值
+    autostop_param = sig.parameters["autostop"]
+    print(
+        f"   - 参数类型: {autostop_param.annotation if autostop_param.annotation != inspect.Parameter.empty else 'any'}"
+    )
+    print(f"   - 默认值: {autostop_param.default}")
 
 
 def test_jobmanager_client_signature():
@@ -63,18 +59,16 @@ def test_jobmanager_client_signature():
 
     print(f"submit_job() 参数列表: {params}")
 
-    if "autostop" in params:
-        print("✅ JobManagerClient.submit_job() 支持 autostop 参数")
+    assert "autostop" in params, "对应的方法不支持 autostop 参数"
+
+
+    print("✅ JobManagerClient.submit_job() 支持 autostop 参数")
 
         autostop_param = sig.parameters["autostop"]
         print(
             f"   - 参数类型: {autostop_param.annotation if autostop_param.annotation != inspect.Parameter.empty else 'any'}"
         )
         print(f"   - 默认值: {autostop_param.default}")
-        return True
-    else:
-        print("❌ JobManagerClient.submit_job() 不支持 autostop 参数")
-        return False
 
 
 def test_jobmanager_signature():
@@ -90,18 +84,16 @@ def test_jobmanager_signature():
 
     print(f"submit_job() 参数列表: {params}")
 
-    if "autostop" in params:
-        print("✅ JobManager.submit_job() 支持 autostop 参数")
+    assert "autostop" in params, "对应的方法不支持 autostop 参数"
+
+
+    print("✅ JobManager.submit_job() 支持 autostop 参数")
 
         autostop_param = sig.parameters["autostop"]
         print(
             f"   - 参数类型: {autostop_param.annotation if autostop_param.annotation != inspect.Parameter.empty else 'any'}"
         )
         print(f"   - 默认值: {autostop_param.default}")
-        return True
-    else:
-        print("❌ JobManager.submit_job() 不支持 autostop 参数")
-        return False
 
 
 def test_jobinfo_signature():
@@ -117,18 +109,16 @@ def test_jobinfo_signature():
 
     print(f"__init__() 参数列表: {params}")
 
-    if "autostop" in params:
-        print("✅ JobInfo.__init__() 支持 autostop 参数")
+    assert "autostop" in params, "对应的方法不支持 autostop 参数"
+
+
+    print("✅ JobInfo.__init__() 支持 autostop 参数")
 
         autostop_param = sig.parameters["autostop"]
         print(
             f"   - 参数类型: {autostop_param.annotation if autostop_param.annotation != inspect.Parameter.empty else 'any'}"
         )
         print(f"   - 默认值: {autostop_param.default}")
-        return True
-    else:
-        print("❌ JobInfo.__init__() 不支持 autostop 参数")
-        return False
 
 
 def test_wait_for_completion_exists():
@@ -137,12 +127,10 @@ def test_wait_for_completion_exists():
     print("Test 5: RemoteEnvironment._wait_for_completion() 方法存在性验证")
     print("=" * 80)
 
-    if hasattr(RemoteEnvironment, "_wait_for_completion"):
-        print("✅ RemoteEnvironment 有 _wait_for_completion() 方法")
-        return True
-    else:
-        print("❌ RemoteEnvironment 没有 _wait_for_completion() 方法")
-        return False
+    assert hasattr(RemoteEnvironment, "_wait_for_completion"), "RemoteEnvironment 没有 _wait_for_completion() 方法"
+
+
+    print("✅ RemoteEnvironment 有 _wait_for_completion() 方法")
 
 
 def main():

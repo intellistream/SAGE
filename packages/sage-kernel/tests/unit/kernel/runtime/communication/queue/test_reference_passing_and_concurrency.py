@@ -308,7 +308,6 @@ class TestPythonQueueConcurrency:
             "⚠️ Python multiprocessing.Queue的队列描述符引用很难跨进程传递，跳过此测试"
         )
         print("✓ 多进程测试跳过")
-        return True
 
     def test_queue_reference_integrity(self):
         """测试队列引用的完整性"""

@@ -39,7 +39,7 @@ service_lifecycle = {
 }
 
 
-class TestBatch(BatchFunction):
+class DemoBatch(BatchFunction):
     """简单的批处理函数"""
 
     def __init__(self, **kwargs):
@@ -54,7 +54,7 @@ class TestBatch(BatchFunction):
         return f"Message {self.counter}"
 
 
-class TestSink(SinkFunction):
+class DemoSink(SinkFunction):
     """测试 Sink，会调用服务"""
 
     def execute(self, data):
@@ -62,7 +62,7 @@ class TestSink(SinkFunction):
         print(f"[Sink] Received: {data}, Service result: {result}")
 
 
-class TestService(BaseService):
+class DemoService(BaseService):
     """测试服务，跟踪生命周期"""
 
     def __init__(self):
@@ -114,11 +114,11 @@ def main():
 
         # 注册服务（remote=True 表示这是一个 Ray Actor）
         print("[Main] Registering service...")
-        env.register_service("test_service", TestService)
+        env.register_service("test_service", DemoService)
 
         # 构建管道
         print("[Main] Building pipeline...")
-        env.from_batch(TestBatch).sink(TestSink)
+        env.from_batch(DemoBatch).sink(DemoSink)
 
         # 提交作业（现在支持 autostop=True）
         print("\n[Main] Submitting job with autostop=True to remote JobManager...")
