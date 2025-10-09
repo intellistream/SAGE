@@ -208,8 +208,9 @@ show_status() {
         local config_branch=$(get_submodule_configured_branch "$submodule_path")
         local actual_branch="N/A"
         
-        if [ -d "$submodule_path/.git" ]; then
-            actual_branch=$(cd "$submodule_path" && git rev-parse --abbrev-ref HEAD)
+        # 检查 submodule 是否已初始化（.git 可能是文件或目录）
+        if [ -e "$submodule_path/.git" ]; then
+            actual_branch=$(cd "$submodule_path" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "detached")
         fi
         
         # 颜色标记
