@@ -134,18 +134,118 @@ PYBIND11_MODULE(_sage_db, m) {
             config.metric = metric;
             return std::make_unique<SageDB>(config);
         }), py::arg("dimension"), py::arg("index_type") = IndexType::AUTO, py::arg("metric") = DistanceMetric::L2)
-        .def("add", &SageDB::add, py::arg("vector"), py::arg("metadata") = Metadata{})
-        .def("add_batch", &SageDB::add_batch, 
-             py::arg("vectors"), py::arg("metadata") = std::vector<Metadata>{})
-        .def("remove", &SageDB::remove)
-        .def("update", &SageDB::update, py::arg("id"), py::arg("vector"), py::arg("metadata") = Metadata{})
-        .def("search", py::overload_cast<const Vector&, uint32_t, bool>(&SageDB::search, py::const_),
-             py::arg("query"), py::arg("k") = 10, py::arg("include_metadata") = true)
-        .def("search", py::overload_cast<const Vector&, const SearchParams&>(&SageDB::search, py::const_))
-        .def("filtered_search", &SageDB::filtered_search)
-        .def("batch_search", &SageDB::batch_search)
-        .def("build_index", &SageDB::build_index)
-        .def("train_index", &SageDB::train_index, py::arg("training_data") = std::vector<Vector>{})
+        // Vector operations with GIL release for better multi-threading
+        .def("add", [](SageDB& self, const Vector& vector, const Metadata& metadata) -> VectorId {
+            // Release GIL during C++ computation
+            py::gil_scoped_release release;
+            VectorId id = self.add(vector, metadata);
+            py::gil_scoped_acquire acquire;
+            return id;
+        }, py::arg("vector"), py::arg("metadata") = Metadata{},
+           "Add a single vector with optional metadata. Thread-safe with GIL released.")
+        
+        .def("add_batch", [](SageDB& self, const std::vector<Vector>& vectors, 
+                            const std::vector<Metadata>& metadata) -> std::vector<VectorId> {
+            // Release GIL for batch operations
+            py::gil_scoped_release release;
+            auto ids = self.add_batch(vectors, metadata);
+            py::gil_scoped_acquire acquire;
+            return ids;
+        }, py::arg("vectors"), py::arg("metadata") = std::vector<Metadata>{},
+           "Batch add vectors. GIL released for true parallelism.")
+        
+        .def("remove", [](SageDB& self, VectorId id) -> bool {
+            py::gil_scoped_release release;
+            bool result = self.remove(id);
+            py::gil_scoped_acquire acquire;
+            return result;
+        })
+        
+        .def("update", [](SageDB& self, VectorId id, const Vector& vector, 
+                         const Metadata& metadata) -> bool {
+            py::gil_scoped_release release;
+            bool result = self.update(id, vector, metadata);
+            py::gil_scoped_acquire acquire;
+            return result;
+        }, py::arg("id"), py::arg("vector"), py::arg("metadata") = Metadata{})
+        
+        // Search operations - GIL released for maximum parallelism
+        .def("search", [](const SageDB& self, const Vector& query, uint32_t k, 
+                         bool include_metadata) -> std::vector<QueryResult> {
+            // Release GIL - this is the key for multi-threaded search performance!
+            py::gil_scoped_release release;
+            auto results = self.search(query, k, include_metadata);
+            py::gil_scoped_acquire acquire;
+            return results;
+        }, py::arg("query"), py::arg("k") = 10, py::arg("include_metadata") = true,
+           R"pbdoc(
+               Search for k nearest neighbors. 
+               
+               This operation releases the GIL, allowing multiple Python threads
+               to search concurrently with true parallelism. Performance scales
+               linearly with the number of CPU cores.
+               
+               Args:
+                   query: Query vector
+                   k: Number of nearest neighbors to return
+                   include_metadata: Whether to include metadata in results
+                   
+               Returns:
+                   List of QueryResult objects sorted by distance
+           )pbdoc")
+        
+        .def("search", [](const SageDB& self, const Vector& query, 
+                         const SearchParams& params) -> std::vector<QueryResult> {
+            py::gil_scoped_release release;
+            auto results = self.search(query, params);
+            py::gil_scoped_acquire acquire;
+            return results;
+        })
+        
+        .def("filtered_search", [](const SageDB& self, const Vector& query, 
+                                   const SearchParams& params,
+                                   std::function<bool(const Metadata&)> filter) -> std::vector<QueryResult> {
+            py::gil_scoped_release release;
+            auto results = self.filtered_search(query, params, filter);
+            py::gil_scoped_acquire acquire;
+            return results;
+        })
+        
+        .def("batch_search", [](const SageDB& self, const std::vector<Vector>& queries, 
+                               const SearchParams& params) -> std::vector<std::vector<QueryResult>> {
+            // Batch search with GIL released - highest performance operation!
+            py::gil_scoped_release release;
+            auto results = self.batch_search(queries, params);
+            py::gil_scoped_acquire acquire;
+            return results;
+        }, R"pbdoc(
+               Batch search for maximum throughput.
+               
+               Processes multiple queries with GIL released. This is the highest
+               performance search method - use it when you have multiple queries.
+               
+               Args:
+                   queries: List of query vectors
+                   params: Search parameters
+                   
+               Returns:
+                   List of result lists, one per query
+           )pbdoc")
+        
+        // Index management operations with GIL release
+        .def("build_index", [](SageDB& self) {
+            py::gil_scoped_release release;
+            self.build_index();
+            py::gil_scoped_acquire acquire;
+        }, "Build/rebuild the search index. GIL released during index construction.")
+        
+        .def("train_index", [](SageDB& self, const std::vector<Vector>& training_data) {
+            py::gil_scoped_release release;
+            self.train_index(training_data);
+            py::gil_scoped_acquire acquire;
+        }, py::arg("training_data") = std::vector<Vector>{},
+           "Train the index (for algorithms that require training). GIL released.")
+        
         .def("is_trained", &SageDB::is_trained)
         .def("set_metadata", &SageDB::set_metadata)
         .def("get_metadata", [](const SageDB& db, VectorId id) {
@@ -182,7 +282,7 @@ PYBIND11_MODULE(_sage_db, m) {
     m.def("distance_metric_to_string", &distance_metric_to_string);
     m.def("string_to_distance_metric", &string_to_distance_metric);
     
-    // NumPy array support
+    // NumPy array support with GIL release
     m.def("add_numpy", [](SageDB& db, py::array_t<float> vectors, py::list metadata_list = py::list()) {
         py::buffer_info buf = vectors.request();
         
@@ -197,6 +297,7 @@ PYBIND11_MODULE(_sage_db, m) {
             throw std::runtime_error("Vector dimension mismatch");
         }
         
+        // Prepare data while holding GIL
         std::vector<Vector> vec_list;
         vec_list.reserve(num_vectors);
         
@@ -220,9 +321,14 @@ PYBIND11_MODULE(_sage_db, m) {
             }
         }
         
-        return db.add_batch(vec_list, meta_list);
+        // Release GIL for batch insertion
+        py::gil_scoped_release release;
+        auto ids = db.add_batch(vec_list, meta_list);
+        py::gil_scoped_acquire acquire;
+        
+        return ids;
     }, py::arg("db"), py::arg("vectors"), py::arg("metadata") = py::list(),
-       "Add vectors from NumPy array with optional metadata");
+       "Add vectors from NumPy array. GIL released during insertion for parallelism.");
     
     m.def("search_numpy", [](const SageDB& db, py::array_t<float> query, const SearchParams& params) {
         py::buffer_info buf = query.request();
@@ -231,13 +337,19 @@ PYBIND11_MODULE(_sage_db, m) {
             throw std::runtime_error("Query vector dimension mismatch");
         }
         
+        // Prepare query vector while holding GIL
         Vector query_vec(buf.shape[0]);
         float* ptr = static_cast<float*>(buf.ptr);
         for (size_t i = 0; i < buf.shape[0]; ++i) {
             query_vec[i] = ptr[i];
         }
         
-        return db.search(query_vec, params);
+        // Release GIL for search
+        py::gil_scoped_release release;
+        auto results = db.search(query_vec, params);
+        py::gil_scoped_acquire acquire;
+        
+        return results;
     }, py::arg("db"), py::arg("query"), py::arg("params") = SearchParams(),
-       "Search with NumPy query vector");
+       "Search with NumPy query vector. GIL released for true multi-threaded search.");
 }
