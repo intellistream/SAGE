@@ -18,12 +18,12 @@ from typing import Any, Dict, List
 # directly from the source tree without installing the package.
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.function.batch_function import BatchFunction
-    from sage.core.api.function.map_function import MapFunction
-    from sage.core.api.function.sink_function import SinkFunction
-    from sage.core.api.function.source_function import SourceFunction
-    from sage.core.api.local_environment import LocalEnvironment
-    from sage.core.api.service.base_service import BaseService
+    from sage.kernel.api.function.batch_function import BatchFunction
+    from sage.kernel.api.function.map_function import MapFunction
+    from sage.kernel.api.function.sink_function import SinkFunction
+    from sage.kernel.api.function.source_function import SourceFunction
+    from sage.kernel.api.local_environment import LocalEnvironment
+    from sage.kernel.api.service.base_service import BaseService
 except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     import sys
     from pathlib import Path
@@ -48,12 +48,12 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
         sys.path.insert(0, str(extra_path))
 
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.function.batch_function import BatchFunction
-    from sage.core.api.function.map_function import MapFunction
-    from sage.core.api.function.sink_function import SinkFunction
-    from sage.core.api.function.source_function import SourceFunction
-    from sage.core.api.local_environment import LocalEnvironment
-    from sage.core.api.service.base_service import BaseService
+    from sage.kernel.api.function.batch_function import BatchFunction
+    from sage.kernel.api.function.map_function import MapFunction
+    from sage.kernel.api.function.sink_function import SinkFunction
+    from sage.kernel.api.function.source_function import SourceFunction
+    from sage.kernel.api.local_environment import LocalEnvironment
+    from sage.kernel.api.service.base_service import BaseService
 
 from pipeline_bridge import PipelineBridge, PipelinePayload
 from sage.kernel.runtime.communication.router.packet import StopSignal

@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 
-from sage.core.api.service.base_service import BaseService
+from sage.kernel.api.service.base_service import BaseService
 from sage.middleware.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
 
 

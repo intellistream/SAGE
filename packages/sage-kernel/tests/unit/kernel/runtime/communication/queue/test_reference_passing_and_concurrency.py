@@ -30,7 +30,7 @@ try:
         RayQueueDescriptor,
         resolve_descriptor,
     )
-    from sage.kernel.utils.ray.ray import ensure_ray_initialized  # noqa: F401
+    from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized  # noqa: F401
 
     print("✓ 成功导入队列描述符")
 except ImportError as e:

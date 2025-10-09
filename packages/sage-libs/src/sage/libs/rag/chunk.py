@@ -1,6 +1,6 @@
 from typing import List
 
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
 

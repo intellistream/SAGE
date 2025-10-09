@@ -11,9 +11,9 @@ from typing import Any, Dict, Iterable, List, Sequence
 
 import numpy as np
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.map_function import MapFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.api.function.source_function import SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.rag.promptor import QAPromptor
 
 # Ensure repository packages are importable when running the script directly

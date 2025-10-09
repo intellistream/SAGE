@@ -20,7 +20,7 @@ src_paths = [
 for p in src_paths:
     sys.path.insert(0, str(p))
 
-from sage.core.api.remote_environment import RemoteEnvironment  # noqa: E402
+from sage.kernel.api.remote_environment import RemoteEnvironment  # noqa: E402
 
 
 def test_remote_environment_autostop_signature():
@@ -56,7 +56,7 @@ def test_jobmanager_client_signature():
     print("Test 2: JobManagerClient.submit_job() 方法签名验证")
     print("=" * 80)
 
-    from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+    from sage.kernel.runtime.jobmanager_client import JobManagerClient
 
     sig = inspect.signature(JobManagerClient.submit_job)
     params = list(sig.parameters.keys())
@@ -83,7 +83,7 @@ def test_jobmanager_signature():
     print("Test 3: JobManager.submit_job() 方法签名验证")
     print("=" * 80)
 
-    from sage.kernel.jobmanager.job_manager import JobManager
+    from sage.kernel.runtime.job_manager import JobManager
 
     sig = inspect.signature(JobManager.submit_job)
     params = list(sig.parameters.keys())
@@ -110,7 +110,7 @@ def test_jobinfo_signature():
     print("Test 4: JobInfo.__init__() 方法签名验证")
     print("=" * 80)
 
-    from sage.kernel.jobmanager.job_info import JobInfo
+    from sage.kernel.runtime.job_info import JobInfo
 
     sig = inspect.signature(JobInfo.__init__)
     params = list(sig.parameters.keys())

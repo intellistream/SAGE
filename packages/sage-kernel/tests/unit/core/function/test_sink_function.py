@@ -5,7 +5,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from sage.core.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.sink_function import SinkFunction
 
 
 class MockSinkFunction(SinkFunction):

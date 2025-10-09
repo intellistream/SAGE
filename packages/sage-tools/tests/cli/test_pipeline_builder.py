@@ -157,9 +157,9 @@ def test_pipeline_run_success(tmp_path, monkeypatch):
     component_file = module_dir / "ops.py"
     component_file.write_text(
         """
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.map_function import MapFunction
-from sage.core.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.api.function.sink_function import SinkFunction
 
 
 class DemoBatch(BatchFunction):

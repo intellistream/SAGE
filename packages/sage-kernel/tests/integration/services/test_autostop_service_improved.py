@@ -24,12 +24,12 @@ for p in src_paths:
 from sage.common.utils.logging.custom_logger import (  # noqa: E402
     CustomLogger,
 )
-from sage.core.api.function.batch_function import (  # noqa: E402
+from sage.kernel.api.function.batch_function import (  # noqa: E402
     BatchFunction,
 )
-from sage.core.api.function.sink_function import SinkFunction  # noqa: E402
-from sage.core.api.local_environment import LocalEnvironment  # noqa: E402
-from sage.core.api.service.base_service import BaseService  # noqa: E402
+from sage.kernel.api.function.sink_function import SinkFunction  # noqa: E402
+from sage.kernel.api.local_environment import LocalEnvironment  # noqa: E402
+from sage.kernel.api.service.base_service import BaseService  # noqa: E402
 
 # 全局变量用于跟踪服务状态
 service_lifecycle = {

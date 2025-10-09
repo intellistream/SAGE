@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.service.base_service import BaseService
+from sage.kernel.api.service.base_service import BaseService
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
 config = {

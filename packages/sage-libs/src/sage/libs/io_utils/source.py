@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from typing import Optional, Union
 
-from sage.core.api.function.source_function import SourceFunction
+from sage.kernel.api.function.source_function import SourceFunction
 
 
 class FileSource(SourceFunction):

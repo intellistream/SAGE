@@ -7,7 +7,7 @@
 
 from typing import Any, Iterator, List
 
-from sage.core.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.batch_function import BatchFunction
 
 
 class SimpleBatchFunction(BatchFunction):

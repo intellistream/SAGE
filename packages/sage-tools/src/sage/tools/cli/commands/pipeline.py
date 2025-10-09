@@ -20,8 +20,8 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from sage.common.config.output_paths import get_sage_paths
-from sage.core.api.base_environment import BaseEnvironment
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.base_environment import BaseEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.tools import templates
 from sage.tools.templates import pipeline_blueprints as blueprints
 from sage.tools.cli.commands.pipeline_domain import (
@@ -392,7 +392,7 @@ def _create_environment(
 
     env_type = (pipeline_meta.get("type") or "local").lower()
     if env_type == "remote":
-        from sage.core.api.remote_environment import RemoteEnvironment  # import lazily
+        from sage.kernel.api.remote_environment import RemoteEnvironment  # import lazily
 
         resolved_host = host or env_settings.get("host") or "127.0.0.1"
         resolved_port = port or env_settings.get("port") or 19001

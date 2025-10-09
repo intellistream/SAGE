@@ -4,7 +4,7 @@ import time
 from typing import Any, Dict, List
 
 import requests
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 from sage.libs.context.model_context import ModelContext
 from sage.libs.context.search_result import SearchResult
 from sage.libs.context.search_session import SearchSession

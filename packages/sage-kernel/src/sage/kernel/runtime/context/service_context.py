@@ -7,9 +7,9 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
-    from sage.core.api.base_environment import BaseEnvironment
-    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
-    from sage.kernel.jobmanager.compiler.service_node import ServiceNode
+    from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
+    from sage.kernel.runtime.graph.service_node import ServiceNode
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
         BaseQueueDescriptor,
     )
