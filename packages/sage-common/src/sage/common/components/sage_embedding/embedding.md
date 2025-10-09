@@ -9,7 +9,7 @@
 ### 基本用法
 
 ```python
-from sage.components.sage_embedding.embedding_api import apply_embedding_model
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 
 # 创建embedding模型实例
 model = apply_embedding_model(name="default")
@@ -24,7 +24,7 @@ dimension = model.get_dim()
 ### Default
 使用默认的本能地embedding模型：
 ```python
-from sage.components.sage_embedding.embedding_api import apply_embedding_model
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 model = apply_embedding_model("default")
 embedding = model.embed("hello world")
 dimension = model.get_dim()

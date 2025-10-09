@@ -700,7 +700,7 @@ __all__ = [
 ```python
 # packages/sage-tools/src/sage/tools/cli/commands/chat.py
 
-from sage.components.sage_embedding import get_embedding_model
+from sage.common.components.sage_embedding import get_embedding_model
 
 def build_embedder(config: Dict[str, object]) -> BaseEmbedding:
     """构建 embedder（简化版）"""
@@ -714,7 +714,7 @@ def build_embedder(config: Dict[str, object]) -> BaseEmbedding:
 ### 示例 2: 用户查询可用模型
 
 ```python
-from sage.components.sage_embedding import list_embedding_models
+from sage.common.components.sage_embedding import list_embedding_models
 
 models = list_embedding_models()
 for method, info in models.items():
@@ -742,7 +742,7 @@ openai: OpenAI 官方或兼容 API
 ### 示例 3: 检查模型状态
 
 ```python
-from sage.components.sage_embedding import check_model_availability
+from sage.common.components.sage_embedding import check_model_availability
 
 # 检查 HuggingFace 模型
 status = check_model_availability("hf", model="BAAI/bge-small-zh-v1.5")
@@ -816,7 +816,7 @@ class EmbeddingModel(BaseEmbedding):
 
 ```python
 # 阶段 1: 使用新接口，保持功能不变
-from sage.components.sage_embedding import get_embedding_model
+from sage.common.components.sage_embedding import get_embedding_model
 
 def build_embedder(config):
     return get_embedding_model(**config)
@@ -953,7 +953,7 @@ emb = manager.get_model(...)
 ### 核心 API
 ```python
 # 简单直接的接口
-from sage.components.sage_embedding import get_embedding_model
+from sage.common.components.sage_embedding import get_embedding_model
 
 emb = get_embedding_model("hf", model="BAAI/bge-small-zh-v1.5")
 vec = emb.embed("hello world")

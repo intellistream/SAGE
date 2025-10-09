@@ -117,7 +117,7 @@ class EmbeddingRegistry:
             >>> EmbeddingRegistry.register(
             ...     method="openai",
             ...     display_name="OpenAI Embedding API",
-            ...     wrapper_class="sage.components.sage_embedding.wrappers.openai_wrapper:OpenAIEmbedding",
+            ...     wrapper_class="sage.common.components.sage_embedding.wrappers.openai_wrapper:OpenAIEmbedding",
             ...     requires_api_key=True,
             ... )
         """

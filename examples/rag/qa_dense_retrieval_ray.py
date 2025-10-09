@@ -41,7 +41,7 @@ class SafeBiologyRetriever(MapFunction):
                 from sage.middleware.components.neuromem.memory_service import (
                     MemoryService,
                 )
-                from sage.components.sage_embedding.embedding_api import (
+                from sage.common.components.sage_embedding.embedding_api import (
                     apply_embedding_model,
                 )
 

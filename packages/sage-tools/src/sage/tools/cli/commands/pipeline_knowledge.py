@@ -19,7 +19,7 @@ from typing import Iterable, List, Mapping, MutableSequence, Optional, Sequence,
 import yaml
 
 from sage.common.config.output_paths import get_sage_paths
-from sage.components.sage_embedding.factory import EmbeddingFactory
+from sage.common.components.sage_embedding.factory import EmbeddingFactory
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 
 GITHUB_DOCS_ZIP_URL = (

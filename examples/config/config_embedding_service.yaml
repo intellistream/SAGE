@@ -19,7 +19,7 @@ rag_pipeline_vllm:
     
     # Unified embedding service using vLLM backend
     embedding:
-      class: sage.components.sage_embedding.EmbeddingService
+      class: sage.common.components.sage_embedding.EmbeddingService
       config:
         method: "vllm"
         vllm_service_name: "vllm"
@@ -72,7 +72,7 @@ multi_embedding_pipeline:
   services:
     # Fast local embedding for real-time queries
     embedding_fast:
-      class: sage.components.sage_embedding.EmbeddingService
+      class: sage.common.components.sage_embedding.EmbeddingService
       config:
         method: "hf"
         model: "BAAI/bge-small-zh-v1.5"
@@ -82,7 +82,7 @@ multi_embedding_pipeline:
     
     # High-quality cloud embedding for indexing
     embedding_quality:
-      class: sage.components.sage_embedding.EmbeddingService
+      class: sage.common.components.sage_embedding.EmbeddingService
       config:
         method: "openai"
         model: "text-embedding-3-large"
@@ -97,7 +97,7 @@ multi_embedding_pipeline:
         model_id: "BAAI/bge-large-en-v1.5"
     
     embedding_batch:
-      class: sage.components.sage_embedding.EmbeddingService
+      class: sage.common.components.sage_embedding.EmbeddingService
       config:
         method: "vllm"
         vllm_service_name: "vllm"
@@ -131,7 +131,7 @@ knowledge_base_pipeline:
         embedding_model_id: "BAAI/bge-base-en-v1.5"
     
     embedding:
-      class: sage.components.sage_embedding.EmbeddingService
+      class: sage.common.components.sage_embedding.EmbeddingService
       config:
         method: "vllm"
         vllm_service_name: "vllm"
@@ -180,7 +180,7 @@ hybrid_embedding_pipeline:
   services:
     # Dense embedding
     embedding_dense:
-      class: sage.components.sage_embedding.EmbeddingService
+      class: sage.common.components.sage_embedding.EmbeddingService
       config:
         method: "hf"
         model: "BAAI/bge-base-en-v1.5"
@@ -188,7 +188,7 @@ hybrid_embedding_pipeline:
     
     # Sparse embedding (BM25)
     embedding_sparse:
-      class: sage.components.sage_embedding.EmbeddingService
+      class: sage.common.components.sage_embedding.EmbeddingService
       config:
         method: "bm25s"
         normalize: false
@@ -257,7 +257,7 @@ multilingual_pipeline:
         embedding_model_id: "intfloat/multilingual-e5-large"
     
     embedding:
-      class: sage.components.sage_embedding.EmbeddingService
+      class: sage.common.components.sage_embedding.EmbeddingService
       config:
         method: "vllm"
         vllm_service_name: "vllm"

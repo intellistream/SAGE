@@ -1302,7 +1302,7 @@ def analyze_embedding_methods(
         sage pipeline analyze-embedding "如何构建 RAG pipeline"
         sage pipeline analyze-embedding "向量检索" -m hash -m openai -m hf
     """
-    from sage.components.sage_embedding.registry import EmbeddingRegistry
+    from sage.common.components.sage_embedding.registry import EmbeddingRegistry
     
     # 如果没有指定方法，使用默认的几个常用方法
     if not methods:
