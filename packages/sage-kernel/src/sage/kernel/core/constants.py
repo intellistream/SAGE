@@ -1,26 +1,26 @@
 """
-Kernel 共享常量
+Kernel shared constants
 
-定义了 sage-kernel 中使用的常量。
+Defines constants used in sage-kernel.
 """
 
-# 默认配置
-DEFAULT_CHECKPOINT_INTERVAL = 60  # 秒
-DEFAULT_HEALTH_CHECK_INTERVAL = 30  # 秒
+# Default configuration
+DEFAULT_CHECKPOINT_INTERVAL = 60  # seconds
+DEFAULT_HEALTH_CHECK_INTERVAL = 30  # seconds
 DEFAULT_MAX_RESTART_ATTEMPTS = 3
-DEFAULT_CLEANUP_TIMEOUT = 5.0  # 秒
+DEFAULT_CLEANUP_TIMEOUT = 5.0  # seconds
 
-# 重启策略
+# Restart strategies
 RESTART_STRATEGY_FIXED = "fixed_delay"
 RESTART_STRATEGY_EXPONENTIAL = "exponential_backoff"
 RESTART_STRATEGY_FAILURE_RATE = "failure_rate"
 
-# 放置策略
+# Placement strategies
 PLACEMENT_STRATEGY_SIMPLE = "simple"
 PLACEMENT_STRATEGY_RESOURCE_AWARE = "resource_aware"
 PLACEMENT_STRATEGY_LOAD_BALANCE = "load_balance"
 
-# 调度策略
+# Scheduling strategies
 SCHEDULING_STRATEGY_FIFO = "fifo"
 SCHEDULING_STRATEGY_PRIORITY = "priority"
 SCHEDULING_STRATEGY_RESOURCE_AWARE = "resource_aware"
