@@ -137,11 +137,13 @@ class RecoveryManager(BaseFaultHandler):
                     if self.logger:
                         self.logger.info(f"Loaded checkpoint for task {task_id}")
                     # TODO: 实际恢复状态的逻辑
+                    # Issue URL: https://github.com/intellistream/SAGE/issues/926
             except Exception as e:
                 if self.logger:
                     self.logger.warning(f"Failed to load checkpoint for {task_id}: {e}")
         
         # TODO: 实际重启任务的逻辑
+        # Issue URL: https://github.com/intellistream/SAGE/issues/925
         # 这里应该调用任务的重启方法
         
         success = True  # 暂时假设成功
