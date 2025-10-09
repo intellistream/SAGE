@@ -238,7 +238,7 @@ environment:
 Use the EmbeddingService info endpoint:
 
 ```python
-from sage.middleware.components.sage_embedding.service import EmbeddingService
+from sage.components.sage_embedding.service import EmbeddingService
 
 service = EmbeddingService(method="hf", model_name="BAAI/bge-small-zh-v1.5")
 info = service.get_info()

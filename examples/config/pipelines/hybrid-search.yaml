@@ -14,7 +14,7 @@ environment:
 services:
   # Dense embedding service (OpenAI)
   - name: embedding-service-dense
-    class: sage.middleware.components.sage_embedding.service.EmbeddingService
+    class: sage.components.sage_embedding.service.EmbeddingService
     params:
       method: openai
       model_name: text-embedding-3-small
@@ -24,7 +24,7 @@ services:
 
   # Sparse embedding service (BM25s)
   - name: embedding-service-sparse
-    class: sage.middleware.components.sage_embedding.service.EmbeddingService
+    class: sage.components.sage_embedding.service.EmbeddingService
     params:
       method: bm25s
       cache_embeddings: true

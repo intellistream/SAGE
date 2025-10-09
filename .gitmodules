@@ -2,13 +2,13 @@
 	path = docs-public
 	url = https://github.com/intellistream/SAGE-Pub.git
 	branch = main-dev
-[submodule "packages/sage-middleware/src/sage/middleware/components/sage_vllm/sageLLM"]
-	path = packages/sage-middleware/src/sage/middleware/components/sage_vllm/sageLLM
+[submodule "packages/sage-common/src/sage/common/components/sage_vllm/sageLLM"]
+	path = packages/sage-common/src/sage/common/components/sage_vllm/sageLLM
 	url = https://github.com/intellistream/sageLLM.git
 	branch = main-dev
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"]
-        path = packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
-        url = https://github.com/intellistream/sageDB.git
+    path = packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
+    url = https://github.com/intellistream/sageDB.git
 	branch = main-dev
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"]
 	path = packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow

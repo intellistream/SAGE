@@ -15,7 +15,7 @@ environment:
 services:
   # EmbeddingService with vLLM backend for high performance
   - name: embedding-service
-    class: sage.middleware.components.sage_embedding.service.EmbeddingService
+    class: sage.components.sage_embedding.service.EmbeddingService
     params:
       method: vllm
       model_name: BAAI/bge-large-zh-v1.5
@@ -25,7 +25,7 @@ services:
 
   # VLLMService for embedding backend
   - name: vllm-backend
-    class: sage.middleware.components.sage_vllm.service.VLLMService
+    class: sage.common.components.sage_vllm.service.VLLMService
     params:
       model_name: BAAI/bge-large-zh-v1.5
       task: embed

@@ -6,20 +6,8 @@ import sys
 import time
 
 from dotenv import load_dotenv
-from sage.middleware.components.sage_embedding import (
-    _cohere,
-    bedrock,
-    hf,
-    jina,
-    lollms,
-    nvidia_openai,
-    ollama,
-    openai,
-    siliconcloud,
-    zhipu,
-)
-from transformers import AutoModel, AutoTokenizer
 
+# 延迟导入：这些模块在需要时才导入，避免在模块加载时就加载重量级依赖
 load_dotenv()
 
 # Ensure project root is on sys.path for imports that rely on package layout
@@ -58,6 +46,8 @@ class EmbeddingModel:
             model_name = kwargs["model"]
             # Load HF models - fail explicitly if unavailable
             try:
+                # 延迟导入 transformers
+                from transformers import AutoModel, AutoTokenizer
                 self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
                 self.kwargs["embed_model"] = AutoModel.from_pretrained(
                     model_name, trust_remote_code=True
@@ -106,7 +96,21 @@ class EmbeddingModel:
         return self.dim
 
     def _get_embed_function(self, method: str):
-        """根据方法名返回对应的 embedding 函数"""
+        """根据方法名返回对应的 embedding 函数（延迟导入相关模块）"""
+        # 延迟导入：只在实际使用时才导入对应的模块
+        from sage.components.sage_embedding import (
+            _cohere,
+            bedrock,
+            hf,
+            jina,
+            lollms,
+            nvidia_openai,
+            ollama,
+            openai,
+            siliconcloud,
+            zhipu,
+        )
+        
         mapping = {
             "openai": openai.openai_embed_sync,
             "zhipu": zhipu.zhipu_embedding_sync,

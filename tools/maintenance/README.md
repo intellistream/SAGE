@@ -108,7 +108,7 @@ git checkout main-dev   # → submodules 切到 main-dev
 - `docs-public/` - 文档
 - `packages/.../sage_db/sageDB/` - 数据库
 - `packages/.../sage_flow/sageFlow/` - 工作流
-- `packages/.../sage_vllm/sageLLM/` - LLM 服务
+- `packages/sage-common/src/sage/common/components/sage_vllm/sageLLM/` - LLM 服务
 
 **重要**: `sage_db` 和 `sage_flow` 本身不是 submodules，实际 submodules 在其子目录中。
 
