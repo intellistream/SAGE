@@ -4,7 +4,7 @@
 	branch = main-dev
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_vllm/sageLLM"]
 	path = packages/sage-middleware/src/sage/middleware/components/sage_vllm/sageLLM
-	url = https://github.com/intellistream/sageLLM
+	url = https://github.com/intellistream/sageLLM.git
 	branch = main-dev
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"]
         path = packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
