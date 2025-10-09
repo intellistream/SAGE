@@ -119,7 +119,7 @@ python qa_multimodal_fusion.py
 
 ```python
 from sage.libs.utils.chroma import ChromaBackend
-from sage.middleware.components.sage_embedding.embedding_model import EmbeddingModel
+from sage.components.sage_embedding.embedding_model import EmbeddingModel
 
 # 加载文本数据
 with open('data/qa_knowledge_base.txt', 'r', encoding='utf-8') as f:

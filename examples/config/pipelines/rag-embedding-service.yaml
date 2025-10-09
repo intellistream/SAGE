@@ -14,7 +14,7 @@ environment:
 services:
   # EmbeddingService for document and query embedding
   - name: embedding-service
-    class: sage.middleware.components.sage_embedding.service.EmbeddingService
+    class: sage.components.sage_embedding.service.EmbeddingService
     params:
       method: hf
       model_name: BAAI/bge-small-zh-v1.5
