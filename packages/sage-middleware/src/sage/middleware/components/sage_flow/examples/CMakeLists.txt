@@ -1,2 +1,0 @@
-add_subdirectory(Streaming)
-add_subdirectory(Source)

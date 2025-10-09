@@ -69,7 +69,7 @@ class EmbeddingPipelineTemplates:
             }
             
             config["services"]["embedding"] = {
-                "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                "class": "sage.components.sage_embedding.EmbeddingService",
                 "config": {
                     "method": "vllm",
                     "vllm_service_name": "vllm",
@@ -95,7 +95,7 @@ class EmbeddingPipelineTemplates:
                 embedding_config["api_key"] = f"${{{embedding_method.upper()}_API_KEY}}"
             
             config["services"]["embedding"] = {
-                "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                "class": "sage.components.sage_embedding.EmbeddingService",
                 "config": embedding_config
             }
         
@@ -203,7 +203,7 @@ Answer:""",
             }
             
             config["services"]["embedding"] = {
-                "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                "class": "sage.components.sage_embedding.EmbeddingService",
                 "config": {
                     "method": "vllm",
                     "vllm_service_name": "vllm",
@@ -225,7 +225,7 @@ Answer:""",
                 embedding_config["api_key"] = f"${{{embedding_method.upper()}_API_KEY}}"
             
             config["services"]["embedding"] = {
-                "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                "class": "sage.components.sage_embedding.EmbeddingService",
                 "config": embedding_config
             }
         
@@ -305,7 +305,7 @@ Answer:""",
             "services": {
                 # Dense embedding service
                 "embedding_dense": {
-                    "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                    "class": "sage.components.sage_embedding.EmbeddingService",
                     "config": {
                         "method": dense_method,
                         "model": dense_model or "BAAI/bge-base-en-v1.5",
@@ -316,7 +316,7 @@ Answer:""",
                 },
                 # Sparse embedding service
                 "embedding_sparse": {
-                    "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                    "class": "sage.components.sage_embedding.EmbeddingService",
                     "config": {
                         "method": sparse_method,
                         "normalize": False,
@@ -413,7 +413,7 @@ Answer:""",
             "services": {
                 # Fast local for queries
                 "embedding_fast": {
-                    "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                    "class": "sage.components.sage_embedding.EmbeddingService",
                     "config": {
                         "method": query_method,
                         "model": "BAAI/bge-small-zh-v1.5",
@@ -425,7 +425,7 @@ Answer:""",
                 },
                 # High quality for important documents
                 "embedding_quality": {
-                    "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                    "class": "sage.components.sage_embedding.EmbeddingService",
                     "config": {
                         "method": doc_method,
                         "model": "text-embedding-3-large",
@@ -443,7 +443,7 @@ Answer:""",
                     }
                 },
                 "embedding_batch": {
-                    "class": "sage.middleware.components.sage_embedding.EmbeddingService",
+                    "class": "sage.components.sage_embedding.EmbeddingService",
                     "config": {
                         "method": "vllm",
                         "vllm_service_name": "vllm",

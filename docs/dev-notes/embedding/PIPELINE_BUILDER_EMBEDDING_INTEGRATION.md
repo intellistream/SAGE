@@ -30,7 +30,7 @@ Pipeline Builder 现在完全集成了 SAGE 的统一 embedding 系统，支持 
 Pipeline Builder 的知识库现在使用统一的 `EmbeddingFactory`：
 
 ```python
-from sage.middleware.components.sage_embedding.factory import EmbeddingFactory
+from sage.components.sage_embedding.factory import EmbeddingFactory
 
 # 旧实现（硬编码）
 self._embedder = _HashingEmbedder(dim=384)
@@ -479,7 +479,7 @@ packages/sage-tools/src/sage/tools/cli/commands/
 
 ```python
 # 新增导入
-from sage.middleware.components.sage_embedding.factory import EmbeddingFactory
+from sage.components.sage_embedding.factory import EmbeddingFactory
 
 # PipelineKnowledgeBase.__init__ 新增参数
 def __init__(

@@ -25,7 +25,7 @@ def demo_basic_embedding_service():
     print("Demo 1: 基本 Embedding Service")
     print("="*60)
     
-    from sage.middleware.components.sage_embedding import EmbeddingService
+    from sage.components.sage_embedding import EmbeddingService
     
     # 配置: 使用 HuggingFace 模型
     config = {
@@ -114,7 +114,7 @@ services:
         gpu_memory_utilization: 0.9
   
   embedding:
-    class: sage.middleware.components.sage_embedding.EmbeddingService
+    class: sage.components.sage_embedding.EmbeddingService
     config:
       method: "vllm"
       vllm_service_name: "vllm"
@@ -150,7 +150,7 @@ def demo_multi_embedding_pipeline():
 services:
   # 1. 快速本地 embedding (用于实时查询)
   embedding_fast:
-    class: sage.middleware.components.sage_embedding.EmbeddingService
+    class: sage.components.sage_embedding.EmbeddingService
     config:
       method: "hf"
       model: "BAAI/bge-small-zh-v1.5"  # 小模型, 快速
@@ -159,7 +159,7 @@ services:
   
   # 2. 高质量云端 embedding (用于离线索引)
   embedding_quality:
-    class: sage.middleware.components.sage_embedding.EmbeddingService
+    class: sage.components.sage_embedding.EmbeddingService
     config:
       method: "openai"
       model: "text-embedding-3-large"
@@ -173,7 +173,7 @@ services:
       model_id: "BAAI/bge-large-en-v1.5"
   
   embedding_batch:
-    class: sage.middleware.components.sage_embedding.EmbeddingService
+    class: sage.components.sage_embedding.EmbeddingService
     config:
       method: "vllm"
       vllm_service_name: "vllm"

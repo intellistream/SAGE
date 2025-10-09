@@ -74,8 +74,11 @@ Run a simple example to get started:
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
-# Initialize git submodules (docs-public, sageDB, sageLLM, etc.)
-git submodule update --init --recursive
+# Switch to development branch
+git checkout main-dev
+
+# Initialize submodules (automatically switches to correct branch)
+./tools/maintenance/sage-maintenance.sh submodule init
 
 # Install with quickstart (recommended)
 ./quickstart.sh --dev --yes
