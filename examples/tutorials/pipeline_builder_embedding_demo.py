@@ -3,6 +3,8 @@
 SAGE Pipeline Builder - Embedding Integration 示例
 
 演示如何使用不同的 embedding 方法来增强 Pipeline Builder 的知识检索能力。
+
+@test:allow-demo
 """
 
 from pathlib import Path
