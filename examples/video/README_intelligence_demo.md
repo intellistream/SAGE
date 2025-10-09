@@ -16,12 +16,17 @@ application that highlights several core strengths of SAGE:
 
 ## Prerequisites
 
-Install the project dependencies (TorCH, torchvision, transformers, OpenCV) via the
-project quickstart or manually:
+Install the required dependencies for video processing:
 
 ```bash
+# Method 1: Install via sage-libs (recommended)
+pip install -e packages/sage-libs[video]
+
+# Method 2: Install via quickstart (includes all dev dependencies)
 ./quickstart.sh --dev --yes
-# or ensure pip packages: torch torchvision transformers opencv-python pillow pyyaml
+
+# Method 3: Manual installation
+pip install torch torchvision transformers opencv-python pillow pyyaml
 ```
 
 Download a short MP4 file (720p is sufficient) and place it anywhere on disk.
