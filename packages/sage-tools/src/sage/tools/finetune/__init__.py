@@ -25,18 +25,30 @@ SAGE Finetune - 轻量级大模型微调工具
     trainer.train(dataset)
 """
 
-from .trainer import LoRATrainer
+# 延迟导入：只在实际使用时才加载 transformers 等重量级依赖
+# 这对于 CLI --help 等轻量级操作很重要
+
 from .config import TrainingConfig, LoRAConfig, PresetConfigs
 from .data import prepare_dataset, load_training_data
 from .cli import app  # CLI 应用
 
+# LoRATrainer 延迟导入，使用 __getattr__
+def __getattr__(name):
+    """延迟导入 LoRATrainer，避免在模块加载时就导入 transformers"""
+    if name == "LoRATrainer":
+        from .trainer import LoRATrainer
+        return LoRATrainer
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
-    # 核心训练类
+    # 核心训练类（延迟导入）
     "LoRATrainer",
+    # 配置类（轻量级，直接导入）
     "TrainingConfig",
     "LoRAConfig",
     "PresetConfigs",
-    # 数据处理
+    # 数据处理（轻量级，直接导入）
     "prepare_dataset",
     "load_training_data",
     # CLI 应用
@@ -44,12 +56,3 @@ __all__ = [
 ]
 
 __version__ = "0.1.0"
-
-__all__ = [
-    "LoRATrainer",
-    "TrainingConfig",
-    "LoRAConfig",
-    "PresetConfigs",
-    "prepare_dataset",
-    "load_training_data",
-]

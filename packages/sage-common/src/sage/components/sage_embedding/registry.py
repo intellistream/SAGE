@@ -1,7 +1,8 @@
 """Embedding model registry for managing available embedding methods."""
 
 import os
-from typing import Dict, List, Type, Optional, Any
+import importlib
+from typing import Dict, List, Type, Optional, Any, Union
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -28,7 +29,7 @@ class ModelInfo:
         requires_model_download: 是否需要下载模型
         default_dimension: 默认维度（可选）
         example_models: 示例模型名称列表
-        wrapper_class: Wrapper 类引用
+        wrapper_class: Wrapper 类引用或字符串路径（用于延迟导入）
     """
     method: str
     display_name: str
@@ -37,7 +38,20 @@ class ModelInfo:
     requires_model_download: bool
     default_dimension: Optional[int]
     example_models: List[str]
-    wrapper_class: Type
+    wrapper_class: Union[Type, str]  # 支持类对象或字符串路径
+    
+    def get_wrapper_class(self) -> Type:
+        """获取 wrapper 类，支持延迟导入
+        
+        Returns:
+            Wrapper 类对象
+        """
+        if isinstance(self.wrapper_class, str):
+            # 字符串格式: "module.path:ClassName"
+            module_path, class_name = self.wrapper_class.rsplit(":", 1)
+            module = importlib.import_module(module_path)
+            return getattr(module, class_name)
+        return self.wrapper_class
 
 
 class EmbeddingRegistry:
@@ -73,7 +87,7 @@ class EmbeddingRegistry:
         method: str,
         display_name: str,
         description: str,
-        wrapper_class: Type,
+        wrapper_class: Union[Type, str],  # 支持类对象或字符串路径
         requires_api_key: bool = False,
         requires_model_download: bool = False,
         default_dimension: Optional[int] = None,
@@ -85,20 +99,26 @@ class EmbeddingRegistry:
             method: 方法名称（唯一标识符）
             display_name: 显示名称
             description: 描述信息
-            wrapper_class: Wrapper 类
+            wrapper_class: Wrapper 类或字符串路径 (格式: "module.path:ClassName")
             requires_api_key: 是否需要 API Key
             requires_model_download: 是否需要下载模型
             default_dimension: 默认维度
             example_models: 示例模型名称列表
         
         Examples:
+            >>> # 直接注册类对象
+            >>> EmbeddingRegistry.register(
+            ...     method="hash",
+            ...     display_name="Hash Embedding",
+            ...     wrapper_class=HashEmbedding,
+            ... )
+            >>> 
+            >>> # 使用字符串路径进行延迟导入
             >>> EmbeddingRegistry.register(
             ...     method="openai",
             ...     display_name="OpenAI Embedding API",
-            ...     description="OpenAI 官方或兼容 API",
-            ...     wrapper_class=OpenAIEmbedding,
+            ...     wrapper_class="sage.components.sage_embedding.wrappers.openai_wrapper:OpenAIEmbedding",
             ...     requires_api_key=True,
-            ...     example_models=["text-embedding-3-small"],
             ... )
         """
         cls._registry[method] = ModelInfo(
@@ -143,6 +163,26 @@ class EmbeddingRegistry:
             HuggingFace Models
         """
         return cls._registry.get(method)
+    
+    @classmethod
+    def get_wrapper_class(cls, method: str) -> Optional[Type]:
+        """获取指定方法的 Wrapper 类（支持延迟导入）
+        
+        Args:
+            method: 方法名称
+        
+        Returns:
+            Wrapper 类对象，如果方法未注册则返回 None
+        
+        Examples:
+            >>> cls = EmbeddingRegistry.get_wrapper_class("hf")
+            >>> if cls:
+            ...     emb = cls(model="BAAI/bge-small-zh-v1.5")
+        """
+        info = cls.get_model_info(method)
+        if not info:
+            return None
+        return info.get_wrapper_class()
     
     @classmethod
     def check_status(cls, method: str, **kwargs: Any) -> ModelStatus:
