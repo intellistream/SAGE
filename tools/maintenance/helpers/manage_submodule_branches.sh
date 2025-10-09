@@ -226,35 +226,32 @@ show_status() {
 
 # 显示帮助
 show_help() {
-    cat << EOF
-${ROCKET} SAGE Submodule 分支管理工具
-
-用法:
-  $0 [命令] [选项]
-
-命令:
-  switch            根据当前 SAGE 分支切换 submodules 到对应分支
-                    - main 分支 → submodules 的 main 分支
-                    - 其他分支 → submodules 的 main-dev 分支
-  status            显示当前 submodule 分支状态
-  help              显示此帮助信息
-
-示例:
-  # 切换 submodule 分支（根据当前 SAGE 分支）
-  $0 switch
-
-  # 查看当前状态
-  $0 status
-
-工作流程:
-  1. 切换 SAGE 分支后运行 'switch' 自动同步 submodule 分支
-  2. 运行 'status' 查看当前配置
-
-前置条件:
-  - 所有 submodules 的远程仓库已有 main 和 main-dev 分支
-  - 你有相应的访问权限
-
-EOF
+    echo -e "${ROCKET} ${BOLD}SAGE Submodule 分支管理工具${NC}"
+    echo ""
+    echo -e "${BOLD}用法:${NC}"
+    echo -e "  $0 [命令] [选项]"
+    echo ""
+    echo -e "${BOLD}命令:${NC}"
+    echo -e "  ${GREEN}switch${NC}            根据当前 SAGE 分支切换 submodules 到对应分支"
+    echo -e "                    - main 分支 → submodules 的 main 分支"
+    echo -e "                    - 其他分支 → submodules 的 main-dev 分支"
+    echo -e "  ${GREEN}status${NC}            显示当前 submodule 分支状态"
+    echo -e "  ${GREEN}help${NC}              显示此帮助信息"
+    echo ""
+    echo -e "${BOLD}示例:${NC}"
+    echo -e "  # 切换 submodule 分支（根据当前 SAGE 分支）"
+    echo -e "  $0 switch"
+    echo ""
+    echo -e "  # 查看当前状态"
+    echo -e "  $0 status"
+    echo ""
+    echo -e "${BOLD}工作流程:${NC}"
+    echo -e "  1. 切换 SAGE 分支后运行 'switch' 自动同步 submodule 分支"
+    echo -e "  2. 运行 'status' 查看当前配置"
+    echo ""
+    echo -e "${BOLD}前置条件:${NC}"
+    echo -e "  - 所有 submodules 的远程仓库已有 main 和 main-dev 分支"
+    echo -e "  - 你有相应的访问权限"
 }
 
 # 主程序

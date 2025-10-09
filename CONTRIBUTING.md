@@ -54,6 +54,9 @@ git fetch origin
 git checkout main-dev
 git pull --ff-only origin main-dev
 
+# 初始化 submodules（会自动切换到正确的分支）
+./tools/maintenance/sage-maintenance.sh submodule init
+
 # 安装开发环境 (默认 dev 模式 + conda)
 ./quickstart.sh --dev --yes
 
@@ -63,6 +66,10 @@ git pull --ff-only origin main-dev
 # 标准模式 + 安装 VLLM 支持
 ./quickstart.sh --standard --vllm --yes
 ```
+
+**重要提示：**
+- ✅ 使用 `./tools/maintenance/sage-maintenance.sh submodule init` 初始化 submodules
+- ❌ 不要使用 `git submodule update --init`（会导致 detached HEAD）
 
 ### 第二步：创建功能分支（勿在 main-dev 直接开发）
 

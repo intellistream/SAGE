@@ -40,55 +40,53 @@ fi
 # 显示帮助信息
 # ============================================================================
 show_help() {
-    cat << EOF
-${ROCKET} ${BOLD}SAGE 维护工具${NC}
-
-${BOLD}用法:${NC}
-  $(basename "$0") <命令> [选项]
-
-${BOLD}📦 Submodule 管理:${NC}
-  ${GREEN}submodule status${NC}          显示 submodule 状态
-  ${GREEN}submodule switch${NC}          切换 submodule 分支（根据当前 SAGE 分支）
-  ${GREEN}submodule init${NC}            初始化所有 submodules
-  ${GREEN}submodule update${NC}          更新所有 submodules
-  ${GREEN}submodule fix-conflict${NC}    解决 submodule 冲突
-  ${GREEN}submodule cleanup${NC}         清理旧的 submodule 配置
-
-${BOLD}🔧 项目维护:${NC}
-  ${GREEN}clean${NC}                     清理构建产物和缓存
-  ${GREEN}clean-deep${NC}                深度清理（包括 Python 缓存、日志等）
-  ${GREEN}security-check${NC}            检查配置文件中的敏感信息
-  ${GREEN}setup-hooks${NC}               安装/重新安装 Git hooks
-  
-${BOLD}🔍 诊断工具:${NC}
-  ${GREEN}doctor${NC}                    运行完整的健康检查
-  ${GREEN}status${NC}                    显示项目整体状态
-
-${BOLD}示例:${NC}
-  # 显示 submodule 状态
-  $(basename "$0") submodule status
-  
-  # 清理项目
-  $(basename "$0") clean
-  
-  # 运行完整健康检查
-  $(basename "$0") doctor
-  
-  # 解决 submodule 冲突
-  $(basename "$0") submodule fix-conflict
-
-${BOLD}选项:${NC}
-  -h, --help               显示此帮助信息
-  -v, --verbose            显示详细输出
-  -f, --force              强制执行（跳过确认）
-
-${BOLD}环境要求:${NC}
-  - Git 仓库根目录
-  - 开发模式下建议先运行: ${DIM}./quickstart.sh --dev${NC}
-
-${BOLD}更多信息:${NC}
-  查看文档: ${DIM}tools/maintenance/README.md${NC}
-EOF
+    echo -e "${ROCKET} ${BOLD}SAGE 维护工具${NC}"
+    echo ""
+    echo -e "${BOLD}用法:${NC}"
+    echo -e "  $(basename "$0") <命令> [选项]"
+    echo ""
+    echo -e "${BOLD}📦 Submodule 管理:${NC}"
+    echo -e "  ${GREEN}submodule status${NC}          显示 submodule 状态"
+    echo -e "  ${GREEN}submodule switch${NC}          切换 submodule 分支（根据当前 SAGE 分支）"
+    echo -e "  ${GREEN}submodule init${NC}            初始化所有 submodules"
+    echo -e "  ${GREEN}submodule update${NC}          更新所有 submodules"
+    echo -e "  ${GREEN}submodule fix-conflict${NC}    解决 submodule 冲突"
+    echo -e "  ${GREEN}submodule cleanup${NC}         清理旧的 submodule 配置"
+    echo ""
+    echo -e "${BOLD}🔧 项目维护:${NC}"
+    echo -e "  ${GREEN}clean${NC}                     清理构建产物和缓存"
+    echo -e "  ${GREEN}clean-deep${NC}                深度清理（包括 Python 缓存、日志等）"
+    echo -e "  ${GREEN}security-check${NC}            检查配置文件中的敏感信息"
+    echo -e "  ${GREEN}setup-hooks${NC}               安装/重新安装 Git hooks"
+    echo ""
+    echo -e "${BOLD}🔍 诊断工具:${NC}"
+    echo -e "  ${GREEN}doctor${NC}                    运行完整的健康检查"
+    echo -e "  ${GREEN}status${NC}                    显示项目整体状态"
+    echo ""
+    echo -e "${BOLD}示例:${NC}"
+    echo -e "  # 显示 submodule 状态"
+    echo -e "  $(basename "$0") submodule status"
+    echo ""
+    echo -e "  # 清理项目"
+    echo -e "  $(basename "$0") clean"
+    echo ""
+    echo -e "  # 运行完整健康检查"
+    echo -e "  $(basename "$0") doctor"
+    echo ""
+    echo -e "  # 解决 submodule 冲突"
+    echo -e "  $(basename "$0") submodule fix-conflict"
+    echo ""
+    echo -e "${BOLD}选项:${NC}"
+    echo -e "  -h, --help               显示此帮助信息"
+    echo -e "  -v, --verbose            显示详细输出"
+    echo -e "  -f, --force              强制执行（跳过确认）"
+    echo ""
+    echo -e "${BOLD}环境要求:${NC}"
+    echo -e "  - Git 仓库根目录"
+    echo -e "  - 开发模式下建议先运行: ${DIM}./quickstart.sh --dev${NC}"
+    echo ""
+    echo -e "${BOLD}更多信息:${NC}"
+    echo -e "  查看文档: ${DIM}tools/maintenance/README.md${NC}"
 }
 
 # ============================================================================
@@ -113,8 +111,14 @@ submodule_init() {
     echo -e "${BLUE}${PACKAGE} 初始化 Submodules${NC}"
     echo ""
     
+    # 初始化 submodules
     git submodule update --init --recursive
     echo -e "${GREEN}${CHECK} Submodules 初始化完成${NC}"
+    echo ""
+    
+    # 自动切换到正确的分支
+    echo -e "${BLUE}${INFO} 切换 submodules 到正确的分支...${NC}"
+    bash "${HELPERS_DIR}/manage_submodule_branches.sh" switch
 }
 
 submodule_update() {
