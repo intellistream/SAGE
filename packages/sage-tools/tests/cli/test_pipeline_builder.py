@@ -228,11 +228,11 @@ services: []
         return "uuid-demo"
 
     monkeypatch.setattr(
-        "sage.core.api.local_environment.LocalEnvironment.submit",
+        "sage.kernel.api.local_environment.LocalEnvironment.submit",
         fake_submit,
     )
     monkeypatch.setattr(
-        "sage.core.api.local_environment.LocalEnvironment._wait_for_completion",
+        "sage.kernel.api.local_environment.LocalEnvironment._wait_for_completion",
         lambda self: None,
     )
 

@@ -5,9 +5,9 @@ from typing import Any, Dict, List
 import yaml
 from dotenv import load_dotenv
 from sage.common.utils.config.loader import load_config
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.map_function import MapFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.common.config.output_paths import get_output_file
 
 
