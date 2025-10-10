@@ -147,6 +147,39 @@ class SelfRAGGenerator(MapFunction):
         return text
 
 
+def process_item(item: Dict[str, Any], config: dict) -> Dict[str, Any]:
+    """
+    Process a single item through the Self-RAG pipeline.
+    
+    This is a simplified interface for benchmark runner integration.
+    
+    Args:
+        item: Data item with keys: question, answers, ctxs
+        config: Pipeline configuration
+    
+    Returns:
+        Result dictionary with: id, question, prediction, ground_truth
+    """
+    # Initialize components
+    retriever = SelfRAGRetriever(config)
+    promptor = SelfRAGPromptor(config)
+    generator = SelfRAGGenerator(config)
+    
+    # Process through pipeline
+    retrieved = retriever.execute(item)
+    prompted = promptor.execute(retrieved)
+    result = generator.execute(prompted)
+    
+    # Format output
+    return {
+        "id": item.get("id", "unknown"),
+        "question": item["question"],
+        "prediction": result["prediction"],
+        "ground_truth": item.get("answers", []),
+        "retrieved_docs": result.get("retrieved_docs", [])
+    }
+
+
 def run_selfrag_pipeline(config_path: str):
     """
     Run Self-RAG pipeline.

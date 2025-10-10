@@ -185,71 +185,63 @@ def load_results(file_path: str) -> Dict[str, Any]:
         return json.load(f)
 
 
-def calculate_detailed_scores(
+def calculate_overall_scores(
     results_data: Dict[str, Any], metric: str = "all"
 ) -> Dict[str, Any]:
     """
-    计算详细的评估分数
+    计算整体评估分数（不输出每个样本的详细分数）
+    
     Args:
         results_data: 推理结果数据
         metric: 评估指标
     Returns:
-        包含详细分数的数据
+        包含整体分数的数据
     """
     results = results_data["results"]
 
     # 提取预测和真实答案
-    predictions = [item["model_output"] for item in results]
-    ground_truths = [item["ground_truth"] for item in results]
+    # 兼容不同的字段名称
+    predictions = []
+    ground_truths = []
+    
+    for item in results:
+        # 预测结果字段
+        pred = item.get("prediction") or item.get("model_output", "")
+        predictions.append(pred)
+        
+        # 真实答案字段
+        gt = item.get("ground_truth", [])
+        if isinstance(gt, str):
+            gt = [gt]
+        ground_truths.append(gt)
 
     # 计算整体指标
     overall_scores = evaluate_predictions(predictions, ground_truths, metric)
 
-    # 计算每个样本的详细分数
-    detailed_results = []
-    for item in results:
-        pred = item["model_output"]
-        truths = item["ground_truth"]
-
-        sample_scores = {}
-        if metric in ["accuracy", "all"]:
-            sample_scores["accuracy"] = compute_accuracy_single(pred, truths)
-
-        if metric in ["f1", "all"]:
-            sample_scores["f1"] = (
-                max([compute_f1(pred, gt) for gt in truths]) if truths else 0.0
-            )
-
-        if metric in ["exact_match", "all"]:
-            sample_scores["exact_match"] = (
-                max([compute_exact_match(pred, gt) for gt in truths]) if truths else 0
-            )
-
-        # 添加分数到原始数据
-        detailed_item = item.copy()
-        detailed_item["scores"] = sample_scores
-        detailed_results.append(detailed_item)
-
-    # 构建完整的评估结果
+    # 构建评估结果（只包含整体指标）
     evaluation_result = {
-        "experiment_config": results_data["experiment_config"],
+        "metadata": results_data.get("metadata", {}),
         "overall_scores": overall_scores,
-        "detailed_results": detailed_results,
-        "summary": {"total_samples": len(results), "evaluation_metric": metric},
+        "summary": {
+            "total_samples": len(results),
+            "evaluation_metric": metric,
+        },
     }
 
     return evaluation_result
 
 
-def analyze_retrieval_quality(evaluation_result: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_retrieval_quality(evaluation_result: Dict[str, Any], results_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     分析检索质量
+    
     Args:
         evaluation_result: 评估结果数据
+        results_data: 原始结果数据
     Returns:
         检索质量分析结果
     """
-    detailed_results = evaluation_result["detailed_results"]
+    detailed_results = results_data["results"]
 
     # 统计检索相关信息
     total_samples = len(detailed_results)
@@ -260,20 +252,30 @@ def analyze_retrieval_quality(evaluation_result: Dict[str, Any]) -> Dict[str, An
     context_relevance_scores = []
 
     for item in detailed_results:
-        if "retrieved_context" in item and item["retrieved_context"]:
+        # 兼容不同的字段名称
+        contexts = item.get("retrieved_docs") or item.get("retrieved_context", [])
+        
+        if contexts:
             samples_with_context += 1
-            context_lengths.append(len(item["retrieved_context"]))
+            context_lengths.append(len(contexts))
 
             # 简单的相关性分析：检查真实答案是否出现在检索的上下文中
-            ground_truth = item["ground_truth"]
-            contexts = item["retrieved_context"]
+            ground_truth = item.get("ground_truth", [])
+            if isinstance(ground_truth, str):
+                ground_truth = [ground_truth]
 
             # 对每个真实答案检查是否在上下文中
             found_in_context = False
             for gt in ground_truth:
                 gt_normalized = normalize_text_basic(gt)
                 for context in contexts:
-                    context_normalized = normalize_text_basic(context)
+                    # 处理不同的上下文格式
+                    if isinstance(context, dict):
+                        context_text = context.get("text", "")
+                    else:
+                        context_text = str(context)
+                    
+                    context_normalized = normalize_text_basic(context_text)
                     if gt_normalized in context_normalized:
                         found_in_context = True
                         break
@@ -299,7 +301,7 @@ def analyze_retrieval_quality(evaluation_result: Dict[str, Any]) -> Dict[str, An
 
 def print_evaluation_summary(evaluation_result: Dict[str, Any]):
     """打印评估结果摘要"""
-    config = evaluation_result["experiment_config"]
+    metadata = evaluation_result.get("metadata", {})
     scores = evaluation_result["overall_scores"]
     summary = evaluation_result["summary"]
 
@@ -307,41 +309,48 @@ def print_evaluation_summary(evaluation_result: Dict[str, Any]):
     print("📊 评估结果摘要")
     print("=" * 60)
 
-    print("🔧 实验配置:")
-    print(f"   模型: {config['model_name']}")
-    # 兼容新的配置格式
-    if "use_context" in config:
-        print(f"   使用上下文: {config['use_context']}")
-    elif "mode" in config:
-        print(f"   模式: {config['mode']}")
-    if config.get("top_k"):
-        print(f"   Top-K: {config['top_k']}")
-    if config.get("batch_size"):
-        print(f"   批次大小: {config['batch_size']}")
-    print(f"   样本数: {summary['total_samples']}")
-    if config.get("completed_batches"):
-        print(f"   完成批次: {config['completed_batches']}")
-    print(f"   时间: {config['timestamp']}")
+    # 打印配置信息
+    if metadata:
+        print("🔧 配置信息:")
+        if "pipeline_name" in metadata:
+            print(f"   Pipeline: {metadata['pipeline_name']}")
+        if "timestamp" in metadata:
+            print(f"   时间: {metadata['timestamp']}")
+        if "config" in metadata:
+            config = metadata["config"]
+            if "pipeline" in config and "pipeline_config" in config["pipeline"]:
+                pipeline_config = config["pipeline"]["pipeline_config"]
+                if "model_name" in pipeline_config:
+                    print(f"   模型: {pipeline_config['model_name']}")
+                if "top_k" in pipeline_config:
+                    print(f"   Top-K: {pipeline_config['top_k']}")
+        if "total_samples" in metadata:
+            print(f"   样本数: {metadata['total_samples']}")
+        elif "summary" in metadata and "total_samples" in summary:
+            print(f"   样本数: {summary['total_samples']}")
 
-    print("\n📈 评估指标:")
+    print(f"\n📊 总样本数: {summary['total_samples']}")
+    print(f"📏 评估指标: {summary['evaluation_metric']}")
+    
+    print("\n📈 整体性能指标:")
     for metric, score in scores.items():
-        print(f"   {metric.upper()}: {score:.4f}")
+        print(f"   {metric.upper()}: {score:.2f}%")
 
     # 添加检索质量分析
     if "retrieval_analysis" in evaluation_result:
         retrieval_stats = evaluation_result["retrieval_analysis"]
         print("\n🔍 检索质量分析:")
-        print(f"   上下文覆盖率: {retrieval_stats['context_coverage']:.4f}")
+        print(f"   上下文覆盖率: {100 * retrieval_stats['context_coverage']:.2f}%")
         print(f"   平均检索数量: {retrieval_stats['avg_context_count']:.2f}")
-        print(f"   上下文相关性: {retrieval_stats['context_relevance_rate']:.4f}")
+        print(f"   上下文相关性: {100 * retrieval_stats['context_relevance_rate']:.2f}%")
 
     print("=" * 60)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="评估LLM/RAG推理结果")
+    parser = argparse.ArgumentParser(description="评估RAG推理结果")
     parser.add_argument(
-        "--results-file", type=str, required=True, help="推理结果文件路径"
+        "--results", "-r", type=str, required=True, help="推理结果文件路径"
     )
     parser.add_argument(
         "--metric",
@@ -349,61 +358,39 @@ def main():
         default="all",
         help="评估指标",
     )
-    parser.add_argument("--output", type=str, help="输出评估结果文件路径")
-    parser.add_argument(
-        "--show-details", action="store_true", help="显示每个样本的详细分数"
-    )
+    parser.add_argument("--output", "-o", type=str, help="输出评估结果文件路径")
 
     args = parser.parse_args()
 
     # 加载推理结果
-    print(f"📥 正在加载推理结果: {args.results_file}")
-    results_data = load_results(args.results_file)
+    print(f"📥 正在加载推理结果: {args.results}")
+    results_data = load_results(args.results)
 
-    # 计算评估分数
+    # 计算整体评估分数
     print(f"🔄 正在计算评估指标: {args.metric}")
-    evaluation_result = calculate_detailed_scores(results_data, args.metric)
+    evaluation_result = calculate_overall_scores(results_data, args.metric)
 
     # 分析检索质量（如果有检索上下文）
     print("🔍 正在分析检索质量...")
-    retrieval_analysis = analyze_retrieval_quality(evaluation_result)
+    retrieval_analysis = analyze_retrieval_quality(evaluation_result, results_data)
     evaluation_result["retrieval_analysis"] = retrieval_analysis
 
     # 打印摘要
     print_evaluation_summary(evaluation_result)
 
-    # 显示详细结果（如果请求）
-    if args.show_details:
-        print("\n📋 详细结果 (前10个样本):")
-        for i, item in enumerate(evaluation_result["detailed_results"][:10]):
-            print(f"\n样本 {i + 1} (ID: {item.get('id', 'N/A')}):")
-            print(f"   问题: {item['question'][:100]}...")
-            print(f"   真实答案: {item['ground_truth']}")
-            print(f"   预测: {item['model_output'][:100]}...")
-            print(f"   分数: {item['scores']}")
-
-            # 显示检索上下文信息（如果存在）
-            if "retrieved_context" in item and item["retrieved_context"]:
-                print(f"   检索上下文数量: {len(item['retrieved_context'])}")
-                print(
-                    f"   检索上下文预览: {item['retrieved_context'][0][:150]}..."
-                    if item["retrieved_context"]
-                    else "无"
-                )
-
-    # 保存详细评估结果
+    # 保存评估结果
     if args.output:
         output_path = args.output
     else:
-        # 生成默认输出文件名到.sage/experiments目录
-        input_path = Path(args.results_file)
+        # 生成默认输出文件名
+        input_path = Path(args.results)
         output_filename = f"evaluation_{input_path.stem}.json"
-        output_path = get_output_file(output_filename, "experiments")
+        output_path = get_output_file(output_filename, "benchmarks")
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(evaluation_result, f, indent=2, ensure_ascii=False)
 
-    print(f"\n✅ 详细评估结果已保存到: {output_path}")
+    print(f"\n✅ 评估结果已保存到: {output_path}")
 
 
 if __name__ == "__main__":
