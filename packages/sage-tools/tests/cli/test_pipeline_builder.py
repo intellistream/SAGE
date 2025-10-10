@@ -1,17 +1,15 @@
-from pathlib import Path
 import sys
 import zipfile
+from pathlib import Path
 
 import yaml
-from typer.testing import CliRunner
-
+from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.commands.pipeline_knowledge import (
     PipelineKnowledgeBase,
     build_query_payload,
 )
-from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.main import app
-
+from typer.testing import CliRunner
 
 runner = CliRunner()
 
@@ -119,7 +117,9 @@ def test_pipeline_knowledge_base_remote_download(tmp_path, monkeypatch):
     # Produce a fake remote docs archive
     docs_src = tmp_path / "remote" / "docs_src"
     docs_src.mkdir(parents=True)
-    (docs_src / "guide.md").write_text("# 指南\nPipeline Builder 远程文档", encoding="utf-8")
+    (docs_src / "guide.md").write_text(
+        "# 指南\nPipeline Builder 远程文档", encoding="utf-8"
+    )
 
     zip_path = tmp_path / "docs.zip"
     with zipfile.ZipFile(zip_path, "w") as zf:

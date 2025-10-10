@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Optional
 
 import bm25s
 import Stemmer
-from sage.middleware.components.neuromem.search_engine.kv_index.base_kv_index import (
+
+from .base_kv_index import (
     BaseKVIndex,
 )
 

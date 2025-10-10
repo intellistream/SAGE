@@ -9,10 +9,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.kernel.fault_tolerance.recovery import RecoveryManager
+from sage.kernel.runtime.dispatcher import Dispatcher
 from sage.kernel.runtime.job_info import JobInfo
 from sage.kernel.runtime.job_manager_server import JobManagerServer
-from sage.kernel.runtime.dispatcher import Dispatcher
-from sage.kernel.fault_tolerance.recovery import RecoveryManager
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
@@ -57,7 +57,7 @@ class JobManager:  # Job Manager
 
             # 设置日志系统
             self.setup_logging_system()
-            
+
             # 初始化故障恢复管理器
             self.recovery_manager = RecoveryManager()
             self.recovery_manager.logger = self.logger
@@ -216,25 +216,29 @@ class JobManager:  # Job Manager
             recovery_result = self.recovery_manager.recover_job(
                 job_id=env_uuid,
                 dispatcher=job_info.dispatcher,
-                restart_count=job_info.restart_count
+                restart_count=job_info.restart_count,
             )
-            
+
             if recovery_result["success"]:
                 job_info.restart_count += 1
                 job_info.update_status("running")
-                
+
                 self.logger.info(
                     f"Job {env_uuid} recovered successfully (restart #{job_info.restart_count})"
                 )
-                
+
                 return {
                     "uuid": env_uuid,
                     "status": "running",
                     "message": f"Job recovered successfully (restart #{job_info.restart_count})",
                 }
             else:
-                job_info.update_status("failed", error=recovery_result.get("error", "Unknown error"))
-                self.logger.error(f"Failed to recover job {env_uuid}: {recovery_result.get('error')}")
+                job_info.update_status(
+                    "failed", error=recovery_result.get("error", "Unknown error")
+                )
+                self.logger.error(
+                    f"Failed to recover job {env_uuid}: {recovery_result.get('error')}"
+                )
                 return {
                     "uuid": env_uuid,
                     "status": "failed",

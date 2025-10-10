@@ -6,11 +6,12 @@ from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.components.neuromem.memory_collection.base_collection import (
+
+from ..search_engine.kv_index import KVIndexFactory
+from ..utils.path_utils import get_default_data_dir
+from .base_collection import (
     BaseMemoryCollection,
 )
-from sage.middleware.components.neuromem.search_engine.kv_index import KVIndexFactory
-from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
 
 # 通过config文件指定默认索引，neuromem默认索引，用户指定索引
 

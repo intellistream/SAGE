@@ -4,7 +4,7 @@ import json
 import os
 from typing import Any, Dict
 
-from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import (
+from .base_kv_backend import (
     BaseKVBackend,
 )
 

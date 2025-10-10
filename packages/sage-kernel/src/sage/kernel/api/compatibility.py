@@ -83,7 +83,9 @@ def safe_import_kernel_client():
     from .fallbacks import MockJobManagerClient
 
     return CompatibilityLayer.import_with_fallback(
-        "sage.kernel.runtime.jobmanager_client", "JobManagerClient", MockJobManagerClient
+        "sage.kernel.runtime.jobmanager_client",
+        "JobManagerClient",
+        MockJobManagerClient,
     )
 
 

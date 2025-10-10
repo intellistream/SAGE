@@ -35,7 +35,7 @@ def test_base_tcp_client():
         # 测试错误响应创建
         error_resp = client._create_error_response("TEST_ERROR", "Test error message")
         print(f"✓ 错误响应创建测试通过: {error_resp['status']}")
-        
+
         # 使用 assert 而不是 return
         assert True, "BaseTcpClient基类测试通过"
 
@@ -93,7 +93,6 @@ def test_jobmanager_client():
         # 测试上下文管理器（不会实际连接）
         print(f"✓ 上下文管理器支持: {hasattr(client, '__enter__')}")
 
-
     except Exception as e:
         print(f"✗ JobManagerClient测试失败: {e}")
         import traceback
@@ -118,7 +117,6 @@ def test_backward_compatibility():
         # 测试新的timeout参数
         client3 = JobManagerClient(timeout=5.0)
         print(f"✓ 新参数支持: timeout={client3.timeout}")
-
 
     except Exception as e:
         print(f"✗ 向后兼容性测试失败: {e}")

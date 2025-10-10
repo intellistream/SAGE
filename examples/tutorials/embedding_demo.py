@@ -8,9 +8,9 @@ SAGE Embedding 方法演示
 """
 
 from sage.common.components.sage_embedding import (
-    list_embedding_models,
     check_model_availability,
     get_embedding_model,
+    list_embedding_models,
 )
 
 
@@ -27,37 +27,37 @@ def print_separator(title=""):
 def list_all_methods():
     """列出所有可用的 embedding 方法"""
     print_separator("所有 Embedding 方法")
-    
+
     models = list_embedding_models()
-    
+
     for method, info in models.items():
         print(f"\n📦 {method} - {info['display_name']}")
         print(f"   描述: {info['description']}")
-        
+
         features = []
-        if info['requires_api_key']:
+        if info["requires_api_key"]:
             features.append("🔑 需要 API Key")
         else:
             features.append("🔓 无需 API Key")
-        
-        if info['requires_download']:
+
+        if info["requires_download"]:
             features.append("📥 需要下载模型")
         else:
             features.append("☁️ 云端服务")
-        
-        if info['default_dimension']:
+
+        if info["default_dimension"]:
             features.append(f"📊 默认维度: {info['default_dimension']}")
-        
+
         print(f"   特性: {', '.join(features)}")
-        
-        if info['examples']:
+
+        if info["examples"]:
             print(f"   示例: {', '.join(info['examples'][:3])}")
 
 
 def check_all_status():
     """检查所有方法的可用性"""
     print_separator("方法可用性检查")
-    
+
     methods = [
         "hash",
         "mockembedder",
@@ -71,7 +71,7 @@ def check_all_status():
         "siliconcloud",
         "nvidia_openai",
     ]
-    
+
     for method in methods:
         result = check_model_availability(method)
         status_icon = {
@@ -81,14 +81,14 @@ def check_all_status():
             "needs_download": "⚠️",
             "unavailable": "❌",
         }.get(result["status"], "❓")
-        
+
         print(f"{status_icon} {method:20} - {result['message']}")
 
 
 def demo_no_api_key_methods():
     """演示无需 API Key 的方法"""
     print_separator("演示：无需 API Key 的方法")
-    
+
     # Hash Embedding
     print("\n1. Hash Embedding (轻量级)")
     try:
@@ -99,7 +99,7 @@ def demo_no_api_key_methods():
         print(f"   向量示例: {vec[:5]}...")
     except Exception as e:
         print(f"   ❌ 错误: {e}")
-    
+
     # Mock Embedding
     print("\n2. Mock Embedding (测试用)")
     try:
@@ -115,10 +115,10 @@ def demo_no_api_key_methods():
 def demo_batch_embedding():
     """演示批量 embedding"""
     print_separator("演示：批量 Embedding")
-    
+
     print("\n批量处理 3 个文本:")
     texts = ["文本1", "文本2", "文本3"]
-    
+
     try:
         emb = get_embedding_model("hash", dim=256)
         vecs = emb.embed_batch(texts)
@@ -133,9 +133,9 @@ def demo_batch_embedding():
 def demo_api_key_methods():
     """演示需要 API Key 的方法（仅展示如何调用）"""
     print_separator("演示：需要 API Key 的方法（代码示例）")
-    
+
     examples = {
-        "openai": '''
+        "openai": """
 # OpenAI Embedding
 emb = get_embedding_model(
     "openai",
@@ -143,8 +143,8 @@ emb = get_embedding_model(
     api_key="sk-xxx"
 )
 vec = emb.embed("hello world")
-''',
-        "jina": '''
+""",
+        "jina": """
 # Jina Embedding (Late Chunking)
 emb = get_embedding_model(
     "jina",
@@ -153,8 +153,8 @@ emb = get_embedding_model(
     api_key="jina-xxx"
 )
 vec = emb.embed("你好世界")
-''',
-        "zhipu": '''
+""",
+        "zhipu": """
 # 智谱 Embedding (批量)
 emb = get_embedding_model(
     "zhipu",
@@ -162,8 +162,8 @@ emb = get_embedding_model(
     api_key="zhipu-xxx"
 )
 vecs = emb.embed_batch(["文本1", "文本2", "文本3"])
-''',
-        "cohere": '''
+""",
+        "cohere": """
 # Cohere Embedding (多种 input_type)
 emb = get_embedding_model(
     "cohere",
@@ -172,8 +172,8 @@ emb = get_embedding_model(
     api_key="cohere-xxx"
 )
 vec = emb.embed("positive review")
-''',
-        "bedrock": '''
+""",
+        "bedrock": """
 # AWS Bedrock Embedding
 emb = get_embedding_model(
     "bedrock",
@@ -182,8 +182,8 @@ emb = get_embedding_model(
     aws_secret_access_key="xxx"
 )
 vec = emb.embed("hello world")
-''',
-        "ollama": '''
+""",
+        "ollama": """
 # Ollama Embedding (本地)
 emb = get_embedding_model(
     "ollama",
@@ -191,8 +191,8 @@ emb = get_embedding_model(
     base_url="http://localhost:11434"
 )
 vec = emb.embed("hello world")
-''',
-        "siliconcloud": '''
+""",
+        "siliconcloud": """
 # SiliconCloud Embedding
 emb = get_embedding_model(
     "siliconcloud",
@@ -200,8 +200,8 @@ emb = get_embedding_model(
     api_key="silicon-xxx"
 )
 vec = emb.embed("你好")
-''',
-        "nvidia_openai": '''
+""",
+        "nvidia_openai": """
 # NVIDIA NIM Embedding
 emb = get_embedding_model(
     "nvidia_openai",
@@ -210,9 +210,9 @@ emb = get_embedding_model(
     api_key="nvapi-xxx"
 )
 vec = emb.embed("document text")
-''',
+""",
     }
-    
+
     for method, code in examples.items():
         print(f"\n{method}:")
         print(code)
@@ -220,30 +220,32 @@ vec = emb.embed("document text")
 
 def main():
     """主函数"""
-    print("""
+    print(
+        """
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
 ║     SAGE Embedding 方法演示                              ║
 ║     Phase 2 Complete - 11 个统一接口                     ║
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
-    """)
-    
+    """
+    )
+
     # 1. 列出所有方法
     list_all_methods()
-    
+
     # 2. 检查可用性
     check_all_status()
-    
+
     # 3. 演示无 API Key 方法
     demo_no_api_key_methods()
-    
+
     # 4. 演示批量 embedding
     demo_batch_embedding()
-    
+
     # 5. 展示 API Key 方法示例
     demo_api_key_methods()
-    
+
     print_separator()
     print("\n✅ 演示完成！")
     print("\n💡 提示:")
