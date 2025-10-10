@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
     from sage.kernel.runtime.dispatcher import Dispatcher
+    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
 
 
 class JobInfo:

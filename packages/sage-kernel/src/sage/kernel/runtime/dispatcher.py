@@ -3,17 +3,20 @@ import time
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.kernel.fault_tolerance.factory import (
+    create_fault_handler_from_config,
+    create_lifecycle_manager,
+)
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 from sage.kernel.scheduler.api import BaseScheduler
-from sage.kernel.fault_tolerance.lifecycle import ActorLifecycleManager
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
     from sage.kernel.runtime.context.service_context import ServiceContext
+    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
@@ -29,21 +32,29 @@ class Dispatcher:
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
         self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
-        
+
         # 使用调度器和容错管理器
         # 调度器由 Environment 传入，如果没有则使用默认的 FIFO 调度器
         self.scheduler: BaseScheduler = env.scheduler if hasattr(env, 'scheduler') else None
         if self.scheduler is None:
             from sage.kernel.scheduler.impl import FIFOScheduler
             self.scheduler = FIFOScheduler(platform=env.platform)
-        self.lifecycle_manager = ActorLifecycleManager()
-        
+
+        # 从 Environment 配置创建容错处理器
+        fault_tolerance_config = env.config.get("fault_tolerance", {})
+        self.fault_handler = create_fault_handler_from_config(fault_tolerance_config)
+        self.lifecycle_manager = create_lifecycle_manager()
+
         self.setup_logging_system()
-        
-        # 注入 logger 到 lifecycle_manager
+
+        # 注入 logger 到容错管理器
+        self.fault_handler.logger = self.logger
         self.lifecycle_manager.logger = self.logger
-        
+
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
+        if fault_tolerance_config:
+            strategy = fault_tolerance_config.get("strategy", "restart")
+            self.logger.info(f"Fault tolerance enabled: strategy={strategy}")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()
@@ -285,23 +296,23 @@ class Dispatcher:
         for service_node_name, service_node in self.graph.service_nodes.items():
             try:
                 service_name = service_node.service_name
-                
+
                 # 为service创建专用的runtime context
                 service_ctx = self._create_service_context(service_name)
-                
+
                 # 使用调度器创建和调度服务任务
                 service_task = self.scheduler.schedule_service(
-                    service_node=service_node,
-                    runtime_ctx=service_ctx
+                    service_node=service_node, runtime_ctx=service_ctx
                 )
                 self.services[service_name] = service_task
-                
+
                 self.logger.debug(
                     f"Scheduled service task '{service_name}' of type '{service_task.__class__.__name__}'"
                 )
             except Exception as e:
                 self.logger.error(
-                    f"Failed to schedule service task {service_name}: {e}", exc_info=True
+                    f"Failed to schedule service task {service_name}: {e}",
+                    exc_info=True,
                 )
                 # 可以选择继续或停止，这里选择继续但记录错误
 
@@ -310,8 +321,7 @@ class Dispatcher:
             try:
                 # 使用调度器创建和调度任务
                 task = self.scheduler.schedule_task(
-                    task_node=graph_node,
-                    runtime_ctx=graph_node.ctx
+                    task_node=graph_node, runtime_ctx=graph_node.ctx
                 )
                 self.tasks[node_name] = task
 
@@ -319,7 +329,9 @@ class Dispatcher:
                     f"Scheduled task '{node_name}' of type '{task.__class__.__name__}'"
                 )
             except Exception as e:
-                self.logger.error(f"Failed to schedule task {node_name}: {e}", exc_info=True)
+                self.logger.error(
+                    f"Failed to schedule task {node_name}: {e}", exc_info=True
+                )
                 raise e
 
         # 连接关系已经在execution graph层通过task context设置好了，无需在此处设置
@@ -392,9 +404,7 @@ class Dispatcher:
             if self.remote:
                 # 使用生命周期管理器清理所有Ray资源
                 self.lifecycle_manager.cleanup_all(
-                    tasks=self.tasks,
-                    services=self.services,
-                    cleanup_timeout=5.0
+                    tasks=self.tasks, services=self.services, cleanup_timeout=5.0
                 )
             else:
                 # 清理本地任务

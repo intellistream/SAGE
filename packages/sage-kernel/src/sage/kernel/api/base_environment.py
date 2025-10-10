@@ -44,7 +44,9 @@ class BaseEnvironment(ABC):
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
         if not hasattr(self, "_transformation_classes"):
-            from sage.kernel.api.transformation.base_transformation import BaseTransformation
+            from sage.kernel.api.transformation.base_transformation import (
+                BaseTransformation,
+            )
             from sage.kernel.api.transformation.batch_transformation import (
                 BatchTransformation,
             )

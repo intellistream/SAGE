@@ -1,5 +1,5 @@
-from sage.kernel.runtime.communication.packet import Packet
 from sage.kernel.api.operator.base_operator import BaseOperator
+from sage.kernel.runtime.communication.packet import Packet
 from sage.kernel.runtime.communication.router.packet import StopSignal
 
 

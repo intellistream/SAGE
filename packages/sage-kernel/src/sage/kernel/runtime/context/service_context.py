@@ -8,11 +8,11 @@ from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
-    from sage.kernel.runtime.graph.service_node import ServiceNode
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
         BaseQueueDescriptor,
     )
+    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
+    from sage.kernel.runtime.graph.service_node import ServiceNode
 
 # task, operator和function "形式上共享"的运行上下文
 
