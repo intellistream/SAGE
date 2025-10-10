@@ -225,6 +225,7 @@ def example_5_developer_custom_strategy():
             
             # 实际的恢复逻辑
             # TODO: 实现具体的恢复策略
+            # Issue URL: https://github.com/intellistream/SAGE/issues/933
             
             return True
     
