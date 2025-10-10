@@ -11,9 +11,16 @@ Requirements:
 Usage:
     python examples/apps/run_video_intelligence.py --video path/to/video.mp4
     python examples/apps/run_video_intelligence.py --video path/to/video.mp4 --config custom_config.yaml
+
+Test Configuration:
+    @test_category: apps
+    @test_speed: slow
+    @test_requires: [video]
+    @test_skip_ci: true
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 

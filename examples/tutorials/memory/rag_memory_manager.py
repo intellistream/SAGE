@@ -69,8 +69,32 @@ def init_history_memory():
     if not memory.init_status:
         base_dir = os.path.dirname(__file__)
         file_path = os.path.join(base_dir, "data/toy_memory.json")
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        
+        # Check if data file exists
+        if not os.path.exists(file_path):
+            print(f"⚠️  Data file not found: {file_path}")
+            print("Creating sample data for demonstration...")
+            # Create sample data inline
+            data = [
+                {
+                    "text": "我一写代码就喜欢抓点零食，不吃东西嘴巴就觉得空空的，有什么健康的替代吗？",
+                    "metadata": {
+                        "answer": "你可以准备一些低热量的小零食，比如坚果、黄瓜条，既能满足嘴馋又不容易发胖。",
+                        "topic": "健康-个性化"
+                    }
+                },
+                {
+                    "text": "我不太喜欢喝白开水，基本都靠饮料补水，这样是不是会让身体负担太重？",
+                    "metadata": {
+                        "answer": "饮料里常常含糖量很高，长期会增加肥胖和糖尿病风险。可以试试在水里加柠檬片或薄荷叶，口感会好些。",
+                        "topic": "健康-个性化"
+                    }
+                }
+            ]
+        else:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        
         texts = [item["text"] for item in data]
         metadatas = [item.get("metadata", {}) for item in data]
         memory.init(texts, metadatas)

@@ -65,6 +65,15 @@ High-performance vector storage and search.
 - **[sage_db/](sage_db/)** - SAGE DB tutorials
   - `workflow_demo.py` - Workflow patterns
 
+### Service Integration
+Build and deploy AI services.
+
+- **[service/](service/)** - Service patterns ⭐ NEW
+  - `embedding_service_demo.py` - Embedding service
+  - `pipeline_as_service/` - Pipeline services
+  - `sage_db/` - SAGE DB service
+  - `sage_flow/` - SAGE Flow service
+
 ### Utilities
 - **[fault_tolerance.py](fault_tolerance.py)** - Error handling and recovery
 
@@ -79,18 +88,19 @@ High-performance vector storage and search.
 1. `agents/basic_agent.py` - Build an agent
 2. `rag/simple_rag.py` - Create a RAG system
 3. `multimodal/quickstart.py` - Multimodal basics
+4. `service/embedding_service_demo.py` - Build a service
 
 ### Advanced (3+ hours)
 1. `memory/` - Add memory to your systems
 2. `scheduler/` - Parallelize your workloads
-3. `service-api/` - Build services
+3. `service/` - Build production services
 
 ## 🚀 Beyond Tutorials
 
 Once you've mastered the tutorials:
 
-### Production Examples
-See `examples/rag/` and `examples/service/` for production-ready patterns.
+### Advanced Examples
+See `examples/rag/` and `examples/memory/` for production-ready patterns.
 
 ### Real Applications
 Check out `examples/apps/` for complete applications:

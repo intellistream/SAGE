@@ -12,6 +12,12 @@ Usage:
     python examples/apps/run_medical_diagnosis.py
     python examples/apps/run_medical_diagnosis.py --case-id case_0001
     python examples/apps/run_medical_diagnosis.py --interactive
+
+Test Configuration:
+    @test_category: apps
+    @test_speed: slow
+    @test_requires: [medical, data]
+    @test_skip_ci: true
 """
 
 import argparse
