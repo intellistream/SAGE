@@ -218,6 +218,13 @@ def build_pipeline(env: LocalEnvironment, config: Dict[str, Any]) -> None:
     memory_service_name = memory_cfg.get("service_name", "video_memory_service")
     memory_collection = memory_cfg.get("collection_name", "demo_collection")
     enable_neuromem = bool(integrations_cfg.get("enable_neuromem", False))
+    
+    # Disable NeuroMem in test mode (requires pre-created collection)
+    if os.environ.get("SAGE_EXAMPLES_MODE") == "test":
+        if enable_neuromem:
+            logger.info("Test mode: Disabling NeuroMem (requires collection setup)")
+            enable_neuromem = False
+    
     if enable_neuromem and NeuroMemVDBService is None:
         logger.warning(
             "NeuroMemVDBService is unavailable (module missing). Disabling NeuroMem integration."

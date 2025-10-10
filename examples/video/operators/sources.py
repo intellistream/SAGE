@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional
 
 import cv2
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.function.batch_function import BatchFunction
 
 
@@ -35,7 +34,7 @@ class VideoFrameSource(BatchFunction):
         self.fps = float(fps if fps > 0 else 30.0)
         self.frame_cursor = 0
         self.frames_emitted = 0
-        self.logger = CustomLogger(outputs=[("console", "INFO")], name="VideoFrameSource")
+        # logger is provided by BaseFunction via ctx
 
     def execute(self) -> Optional[Dict[str, Any]]:
         if not self.cap or not self.cap.isOpened():
