@@ -3,7 +3,10 @@ import time
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.fault_tolerance.lifecycle import ActorLifecycleManager
+from sage.kernel.fault_tolerance.factory import (
+    create_fault_handler_from_config,
+    create_lifecycle_manager,
+)
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.scheduler.task_scheduler import TaskScheduler
@@ -32,14 +35,22 @@ class Dispatcher:
 
         # 使用调度器和容错管理器
         self.scheduler = TaskScheduler(env.platform)
-        self.lifecycle_manager = ActorLifecycleManager()
+
+        # 从 Environment 配置创建容错处理器
+        fault_tolerance_config = env.config.get("fault_tolerance", {})
+        self.fault_handler = create_fault_handler_from_config(fault_tolerance_config)
+        self.lifecycle_manager = create_lifecycle_manager()
 
         self.setup_logging_system()
 
-        # 注入 logger 到 lifecycle_manager
+        # 注入 logger 到容错管理器
+        self.fault_handler.logger = self.logger
         self.lifecycle_manager.logger = self.logger
 
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
+        if fault_tolerance_config:
+            strategy = fault_tolerance_config.get("strategy", "restart")
+            self.logger.info(f"Fault tolerance enabled: strategy={strategy}")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()

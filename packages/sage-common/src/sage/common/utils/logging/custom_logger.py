@@ -61,15 +61,15 @@ class CustomLogger:
     ):
         """
         初始化自定义Logger
-        
+
         Supports multiple invocation methods for better user experience:
-        
+
         1. Simple invocation (recommended):
            logger = CustomLogger("MyLogger")
-           
+
         2. 完整配置：
            logger = CustomLogger([("console", "INFO"), ("app.log", "DEBUG")], name="MyLogger")
-           
+
         3. 关键字参数（向后兼容）：
            logger = CustomLogger(name="MyLogger")
            logger = CustomLogger(outputs=[("console", "INFO")], name="MyLogger")
@@ -91,17 +91,17 @@ class CustomLogger:
         Examples:
             # 最简单的用法（推荐）
             logger = CustomLogger("MyApp")
-            
+
             # 仅控制台输出
             logger = CustomLogger("MyApp")
             logger.info("Hello")
-            
+
             # 完整配置
             logger = CustomLogger([
                 ("console", "INFO"),
                 ("app.log", "DEBUG"),
             ], name="MyApp", log_base_folder="/var/log")
-            
+
             # 向后兼容的方式
             logger = CustomLogger(
                 outputs=[("console", "INFO")],
@@ -111,7 +111,7 @@ class CustomLogger:
         # 智能参数处理
         resolved_name = None
         resolved_outputs = None
-        
+
         # 处理第一个位置参数 name_or_outputs
         if name_or_outputs is not None:
             if isinstance(name_or_outputs, str):
@@ -125,21 +125,21 @@ class CustomLogger:
                     f"First argument must be str (name) or list (outputs), "
                     f"got {type(name_or_outputs).__name__}"
                 )
-        
+
         # 处理 name 关键字参数（优先级更高）
         if name is not None:
             resolved_name = name
-        
+
         # 处理 outputs 关键字参数（优先级更高）
         if outputs is not None:
             resolved_outputs = outputs
-        
+
         # 设置默认值
         if resolved_name is None:
             resolved_name = "Logger"
         if resolved_outputs is None:
             resolved_outputs = [("console", "INFO")]
-        
+
         self.name = resolved_name
         self.log_base_folder = log_base_folder
 
