@@ -16,142 +16,135 @@ ModuleNotFoundError: No module named 'sage.kernel.api'
 ## 根本原因
 
 1. **setuptools 版本依赖问题**：`setuptools>=77.0.0` 需要 `packaging>=24.2`，但构建系统中未声明此依赖
-2. **命名空间包配置**：SAGE 使用多个子包（sage-common, sage-kernel, sage-libs 等）共享 `sage` 命名空间，需要正确配置
+2. **命名空间包配置不当**：最初使用 `pkg_resources.declare_namespace()` 方式，但这需要特殊的 setuptools 配置且已被弃用
+3. **sage/__init__.py 未被打包**：使用过时的 namespace_packages 配置导致 `sage/__init__.py` 文件没有被包含在 wheel 包中
 
-## 解决方案
+## 最终解决方案
 
 ### 1. 添加 packaging 依赖
 
 在所有包的 `pyproject.toml` 中的 `[build-system]` 部分添加 `packaging>=24.2`：
 
-**修改的文件：**
-- `/home/shuhao/SAGE/packages/sage/pyproject.toml`
-- `/home/shuhao/SAGE/packages/sage-common/pyproject.toml`
-- `/home/shuhao/SAGE/packages/sage-kernel/pyproject.toml`
-- `/home/shuhao/SAGE/packages/sage-libs/pyproject.toml`
-- `/home/shuhao/SAGE/packages/sage-middleware/pyproject.toml`
-- `/home/shuhao/SAGE/packages/sage-tools/pyproject.toml`
-
-**修改内容：**
 ```toml
 [build-system]
 requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 ```
 
-### 2. 使用 pkg_resources 声明命名空间
+### 2. 使用 pkgutil.extend_path() 声明命名空间
 
-在所有子包的 `src/sage/__init__.py` 中使用 `pkg_resources.declare_namespace()`：
+在所有子包的 `src/sage/__init__.py` 中使用**标准库方式**：
 
-**修改的文件：**
-- `/home/shuhao/SAGE/packages/sage-common/src/sage/__init__.py`
-- `/home/shuhao/SAGE/packages/sage-kernel/src/sage/__init__.py`
-- `/home/shuhao/SAGE/packages/sage-libs/src/sage/__init__.py`
-- `/home/shuhao/SAGE/packages/sage-middleware/src/sage/__init__.py`
-- `/home/shuhao/SAGE/packages/sage-tools/src/sage/__init__.py`
-
-**代码内容：**
 ```python
-"""SAGE 命名空间包 - 使用 setuptools 命名空间包机制"""
-# 声明为setuptools命名空间包
-__import__('pkg_resources').declare_namespace(__name__)
+# This is a namespace package
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)
 ```
 
-### 3. 添加 setup.cfg 配置
+**关键优势**：
+- ✅ Python 标准库内置，无需额外依赖
+- ✅ 不需要特殊的 setuptools 配置
+- ✅ `sage/__init__.py` 文件会自动被打包
+- ✅ 兼容性好，适用于所有 Python 3.x 版本
 
-为所有子包添加 `setup.cfg` 文件来声明命名空间：
+### 3. 移除过时的配置
 
-**创建的文件：**
-- `/home/shuhao/SAGE/packages/sage-common/setup.cfg`
-- `/home/shuhao/SAGE/packages/sage-kernel/setup.cfg`
-- `/home/shuhao/SAGE/packages/sage-libs/setup.cfg`
-- `/home/shuhao/SAGE/packages/sage-middleware/setup.cfg`
-- `/home/shuhao/SAGE/packages/sage-tools/setup.cfg`
+**不要使用**以下过时配置：
+- ❌ `setup.cfg` 中的 `[options] namespace_packages = sage`
+- ❌ `setup.py` 中的 `namespace_packages=['sage']`
+- ❌ `pkg_resources.declare_namespace(__name__)`
 
-**配置内容：**
-```ini
-[options]
-namespace_packages = sage
-zip_safe = False
-```
+这些方式已被 setuptools 标记为弃用，会导致构建错误。
 
 ## 技术细节
 
-### 命名空间包机制
+### 命名空间包的三种实现方式对比
 
-SAGE 采用 **setuptools 命名空间包** 方式：
+| 方式 | 状态 | 优缺点 |
+|------|------|--------|
+| **pkgutil.extend_path()** | ✅ 推荐 | Python 标准库，简单可靠，自动打包 __init__.py |
+| **pkg_resources.declare_namespace()** | ⚠️ 弃用 | 需要特殊配置，setuptools 已标记为弃用 |
+| **PEP 420 隐式命名空间** | ⚠️ 限制 | 无 __init__.py，某些工具不兼容 |
 
-1. **`pkg_resources.declare_namespace()`**：在运行时声明命名空间
-2. **`setup.cfg` 中的 `namespace_packages`**：在打包时声明命名空间
-3. **`pyproject.toml` 中的 `namespaces = true`**：告诉 setuptools 查找命名空间包
+### 为什么不使用 PEP 420？
 
-### 为什么不使用 PEP 420 隐式命名空间？
+PEP 420 隐式命名空间包（完全删除 `__init__.py`）虽然是 Python 3.3+ 的特性，但存在以下问题：
 
-PEP 420 隐式命名空间包（完全删除 `__init__.py`）虽然是 Python 3.3+ 的推荐方式，但在以下场景可能有问题：
-
-1. **开发模式安装**：`pip install -e .` 可能无法正确处理
-2. **工具兼容性**：某些旧工具可能不支持
-3. **调试困难**：问题排查更复杂
-
-setuptools 命名空间包提供了更好的兼容性和可靠性。
+1. **Pylance/PyLance 无法识别**：导致 IDE 自动补全失效
+2. **某些打包工具不兼容**：如 setuptools 的某些旧版本
+3. **调试困难**：没有明确的标记文件
 
 ## 验证方法
 
-### 本地验证
+### 检查 wheel 包内容
 
 ```bash
-# 构建包
-cd /home/shuhao/SAGE/packages/sage-common
-python -m build --wheel
+python -c "
+import zipfile
+wheel_file = 'packages/sage-kernel/dist/isage_kernel-*.whl'
+with zipfile.ZipFile(wheel_file, 'r') as zf:
+    if 'sage/__init__.py' in zf.namelist():
+        print('✅ sage/__init__.py 已打包')
+        print(zf.read('sage/__init__.py').decode('utf-8'))
+"
+```
 
-cd /home/shuhao/SAGE/packages/sage-kernel
-python -m build --wheel
+### 本地完整测试
 
-# 在虚拟环境中测试
+```bash
+# 创建测试环境
 python -m venv /tmp/test_env
 source /tmp/test_env/bin/activate
-pip install packages/sage-common/dist/isage_common-*.whl
-pip install packages/sage-kernel/dist/isage_kernel-*.whl
+
+# 构建并安装
+pip install wheel setuptools>=77.0.0 packaging>=24.2
+cd packages/sage-common && python -m build --wheel && cd ../..
+cd packages/sage-kernel && python -m build --wheel && cd ../..
+pip install packages/sage-common/dist/*.whl
+pip install packages/sage-kernel/dist/*.whl
 
 # 测试导入
 python -c "from sage.kernel.api.local_environment import LocalEnvironment; print('✅ Success')"
+python -c "from sage.kernel.api.function.batch_function import BatchFunction; print('✅ Success')"
+python -c "from sage.kernel.api.function.sink_function import SinkFunction; print('✅ Success')"
 ```
-
-### CI/CD 验证
-
-在 `.github/workflows/dev-ci.yml` 中的 "Validate PyPI Release Readiness" 步骤会自动验证。
 
 ## 影响范围
 
-**受影响的包：**
+**修改的包（共5个）：**
 - isage-common
-- isage-kernel
+- isage-kernel  
 - isage-libs
 - isage-middleware
 - isage-tools
 
-**不受影响的包：**
-- isage (元包，无需命名空间)
+**修改的文件类型：**
+- `pyproject.toml`：添加 packaging>=24.2 依赖
+- `src/sage/__init__.py`：使用 pkgutil.extend_path()
+- `setup.cfg`：移除 namespace_packages 配置
+- `setup.py`：为缺少的包添加基础配置
 
-## 注意事项
+## 测试结果
 
-1. **开发安装**：使用 `pip install -e .` 时，所有依赖的命名空间包都必须已安装
-2. **包安装顺序**：建议按以下顺序安装：
-   - isage-common
-   - isage-kernel
-   - isage-middleware
-   - isage-libs
-   - isage-tools
-   - isage (元包会自动处理依赖)
-
-3. **PyPI 发布**：构建前确保环境中有 `packaging>=24.2`
+✅ **所有测试通过**：
+```
+✅ sage-common wheel 构建成功
+✅ sage-kernel wheel 构建成功
+✅ sage/__init__.py 正确打包到 wheel 中
+✅ import sage
+✅ import sage.common
+✅ import sage.kernel
+✅ from sage.kernel.api.local_environment import LocalEnvironment
+✅ from sage.kernel.api.function.batch_function import BatchFunction
+✅ from sage.kernel.api.function.sink_function import SinkFunction
+```
 
 ## 相关文档
 
 - [Python Packaging Guide - Namespace Packages](https://packaging.python.org/guides/packaging-namespace-packages/)
-- [setuptools documentation - Namespace Packages](https://setuptools.pypa.io/en/latest/userguide/package_discovery.html#namespace-packages)
+- [pkgutil documentation](https://docs.python.org/3/library/pkgutil.html#pkgutil.extend_path)
 - [PEP 420 - Implicit Namespace Packages](https://www.python.org/dev/peps/pep-0420/)
 
-## 更新时间
+## 更新历史
 
-2025-10-10
+- **2025-10-10 初版**：使用 pkg_resources.declare_namespace()
+- **2025-10-10 最终版**：改用 pkgutil.extend_path()（推荐方案）
