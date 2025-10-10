@@ -1,5 +1,5 @@
 """
-测试 sage.libs.rag.longrefiner.longrefiner_adapter 模块
+测试 sage.libs.rag.refiner 模块
 """
 
 import tempfile
@@ -11,12 +11,12 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
+    from sage.libs.rag.refiner import RefinerOperator
 
-    LONGREFINER_AVAILABLE = True
+    REFINER_AVAILABLE = True
 except ImportError as e:
-    LONGREFINER_AVAILABLE = False
-    pytestmark = pytest.mark.skip(f"LongRefiner module not available: {e}")
+    REFINER_AVAILABLE = False
+    pytestmark = pytest.mark.skip(f"Refiner module not available: {e}")
 
 
 @pytest.fixture
@@ -27,22 +27,22 @@ def temp_dir():
 
 
 @pytest.mark.unit
-class TestLongRefinerAdapter:
-    """测试LongRefinerAdapter类"""
+class TestRefinerOperator:
+    """测试RefinerOperator类"""
 
-    def test_longrefiner_adapter_import(self):
-        """测试LongRefinerAdapter导入"""
-        if not LONGREFINER_AVAILABLE:
-            pytest.skip("LongRefiner module not available")
+    def test_refiner_operator_import(self):
+        """测试RefinerOperator导入"""
+        if not REFINER_AVAILABLE:
+            pytest.skip("Refiner module not available")
 
-        from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
+        from sage.libs.rag.refiner import RefinerOperator
 
-        assert LongRefinerAdapter is not None
+        assert RefinerOperator is not None
 
-    def test_longrefiner_adapter_initialization_missing_config(self):
-        """测试LongRefinerAdapter初始化缺少配置"""
-        if not LONGREFINER_AVAILABLE:
-            pytest.skip("LongRefiner module not available")
+    def test_refiner_operator_initialization_missing_config(self):
+        """测试RefinerOperator初始化缺少配置"""
+        if not REFINER_AVAILABLE:
+            pytest.skip("Refiner module not available")
 
         incomplete_config = {
             "base_model_path": "/path/to/model",
@@ -50,13 +50,13 @@ class TestLongRefinerAdapter:
         }
 
         with pytest.raises(RuntimeError) as exc_info:
-            LongRefinerAdapter(config=incomplete_config)
+            RefinerOperator(config=incomplete_config)
 
         assert "缺少配置字段" in str(exc_info.value)
 
     def test_longrefiner_adapter_initialization_complete_config(self):
-        """测试LongRefinerAdapter完整配置初始化"""
-        if not LONGREFINER_AVAILABLE:
+        """测试RefinerOperator完整配置初始化"""
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         complete_config = {
@@ -71,9 +71,9 @@ class TestLongRefinerAdapter:
         }
 
         # 简化测试，只验证基本初始化逻辑
-        with patch("sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"):
+        with patch("sage.libs.rag.refiner.LongRefiner"):
             try:
-                adapter = LongRefinerAdapter(
+                adapter = RefinerOperator(
                     config=complete_config, enable_profile=False
                 )
                 assert adapter.cfg == complete_config
@@ -83,11 +83,11 @@ class TestLongRefinerAdapter:
                 assert hasattr(adapter, "enable_profile")
             except Exception as e:
                 # 如果依赖不可用，跳过测试
-                pytest.skip(f"LongRefinerAdapter initialization failed: {e}")
+                pytest.skip(f"RefinerOperator initialization failed: {e}")
 
     def test_longrefiner_adapter_with_profile_enabled(self, temp_dir):
-        """测试启用profile的LongRefinerAdapter"""
-        if not LONGREFINER_AVAILABLE:
+        """测试启用profile的RefinerOperator"""
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         complete_config = {
@@ -106,11 +106,11 @@ class TestLongRefinerAdapter:
         mock_ctx.env_base_dir = temp_dir
 
         # 简化测试，专注于profile功能
-        with patch("sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"), patch(
+        with patch("sage.libs.rag.refiner.LongRefiner"), patch(
             "os.makedirs"
         ) as mock_makedirs:
             try:
-                adapter = LongRefinerAdapter(
+                adapter = RefinerOperator(
                     config=complete_config, enable_profile=True, ctx=mock_ctx
                 )
 
@@ -121,12 +121,12 @@ class TestLongRefinerAdapter:
                 mock_makedirs.assert_called()
 
             except Exception as e:
-                pytest.skip(f"LongRefinerAdapter profile initialization failed: {e}")
+                pytest.skip(f"RefinerOperator profile initialization failed: {e}")
 
 
 @pytest.mark.unit
-class TestLongRefinerAdapterMethods:
-    """测试LongRefinerAdapter方法"""
+class TestRefinerOperatorMethods:
+    """测试RefinerOperator方法"""
 
     def get_complete_config(self):
         """获取完整配置"""
@@ -143,13 +143,13 @@ class TestLongRefinerAdapterMethods:
 
     def test_save_data_record_disabled(self):
         """测试未启用profile时不保存数据记录"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = self.get_complete_config()
         # 避免真实模型加载
-        with patch("sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"):
-            adapter = LongRefinerAdapter(config=config, enable_profile=False)
+        with patch("sage.libs.rag.refiner.LongRefiner"):
+            adapter = RefinerOperator(config=config, enable_profile=False)
 
             # 调用_save_data_record应该直接返回，不执行任何操作
             adapter._save_data_record("question", ["doc1"], ["refined1"])
@@ -161,15 +161,15 @@ class TestLongRefinerAdapterMethods:
     @patch("json.dump")
     def test_save_data_record_enabled(self, mock_json_dump, mock_open, temp_dir):
         """测试启用profile时保存数据记录"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = self.get_complete_config()
         mock_ctx = Mock()
         mock_ctx.env_base_dir = temp_dir
 
-        with patch("sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"):
-            adapter = LongRefinerAdapter(
+        with patch("sage.libs.rag.refiner.LongRefiner"):
+            adapter = RefinerOperator(
                 config=config, enable_profile=True, ctx=mock_ctx
             )
 
@@ -198,18 +198,18 @@ class TestLongRefinerAdapterMethods:
 
     def test_init_refiner(self):
         """测试refiner初始化"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = self.get_complete_config()
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+            "sage.libs.rag.refiner.LongRefiner"
         ) as mock_longrefiner_class:
             mock_refiner = Mock()
             mock_longrefiner_class.return_value = mock_refiner
 
-            adapter = LongRefinerAdapter(config=config, enable_profile=False)
+            adapter = RefinerOperator(config=config, enable_profile=False)
 
             # 初始化时 refiner 已创建
             assert adapter.refiner is not None
@@ -238,8 +238,8 @@ class TestLongRefinerAdapterMethods:
 
 
 @pytest.mark.unit
-class TestLongRefinerAdapterExecution:
-    """测试LongRefinerAdapter执行"""
+class TestRefinerOperatorExecution:
+    """测试RefinerOperator执行"""
 
     def get_complete_config(self):
         """获取完整配置"""
@@ -256,13 +256,13 @@ class TestLongRefinerAdapterExecution:
 
     def test_execute_with_dict_docs(self):
         """测试执行字典格式文档"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = self.get_complete_config()
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+            "sage.libs.rag.refiner.LongRefiner"
         ) as mock_longrefiner_class:
             # 模拟refiner
             mock_refiner = Mock()
@@ -272,7 +272,7 @@ class TestLongRefinerAdapterExecution:
             ]
             mock_longrefiner_class.return_value = mock_refiner
 
-            adapter = LongRefinerAdapter(config=config, enable_profile=False)
+            adapter = RefinerOperator(config=config, enable_profile=False)
 
             # 测试数据：字典格式文档（使用 dict 输入避免 tuple.copy 问题）
             question = "What is artificial intelligence?"
@@ -303,20 +303,20 @@ class TestLongRefinerAdapterExecution:
 
     def test_execute_with_string_docs(self):
         """测试执行字符串格式文档"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = self.get_complete_config()
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+            "sage.libs.rag.refiner.LongRefiner"
         ) as mock_longrefiner_class:
             # 模拟refiner
             mock_refiner = Mock()
             mock_refiner.run.return_value = ["Refined document"]
             mock_longrefiner_class.return_value = mock_refiner
 
-            adapter = LongRefinerAdapter(config=config, enable_profile=False)
+            adapter = RefinerOperator(config=config, enable_profile=False)
 
             # 测试数据：字符串格式文档（通过 references 提供）
             question = "What is machine learning?"
@@ -338,20 +338,20 @@ class TestLongRefinerAdapterExecution:
 
     def test_execute_with_exception(self):
         """测试执行异常处理"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = self.get_complete_config()
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+            "sage.libs.rag.refiner.LongRefiner"
         ) as mock_longrefiner_class:
             # 模拟refiner抛出异常
             mock_refiner = Mock()
             mock_refiner.run.side_effect = Exception("model load failed")
             mock_longrefiner_class.return_value = mock_refiner
 
-            adapter = LongRefinerAdapter(config=config, enable_profile=False)
+            adapter = RefinerOperator(config=config, enable_profile=False)
 
             question = "Test question"
             docs = [{"text": "Test document"}]
@@ -366,8 +366,8 @@ class TestLongRefinerAdapterExecution:
 
 
 @pytest.mark.integration
-class TestLongRefinerAdapterIntegration:
-    """LongRefinerAdapter集成测试"""
+class TestRefinerOperatorIntegration:
+    """RefinerOperator集成测试"""
 
     def test_full_workflow_simulation(self, temp_dir):
         """测试完整工作流模拟"""
@@ -390,7 +390,7 @@ class TestLongRefinerAdapterIntegration:
 
         # 模拟完整的文档精炼工作流
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+            "sage.libs.rag.refiner.LongRefiner"
         ) as mock_refiner_class:
             mock_refiner = Mock()
             mock_refiner.run.return_value = [
@@ -400,7 +400,7 @@ class TestLongRefinerAdapterIntegration:
             mock_refiner_class.return_value = mock_refiner
 
             # 创建适配器
-            adapter = LongRefinerAdapter(
+            adapter = RefinerOperator(
                 config=config, enable_profile=True, ctx=mock_ctx
             )
 
@@ -427,7 +427,7 @@ class TestLongRefinerAdapterIntegration:
 
     def test_adapter_in_pipeline(self):
         """测试适配器在管道中的使用"""
-        # 模拟在SAGE管道中使用LongRefinerAdapter
+        # 模拟在SAGE管道中使用RefinerOperator
 
         # 创建管道步骤
         pipeline_steps = []
@@ -469,12 +469,12 @@ class TestLongRefinerAdapterIntegration:
 
 
 @pytest.mark.external
-class TestLongRefinerAdapterExternal:
-    """LongRefinerAdapter外部依赖测试"""
+class TestRefinerOperatorExternal:
+    """RefinerOperator外部依赖测试"""
 
     def test_model_loading_failure(self):
         """测试模型加载失败"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = {
@@ -489,12 +489,12 @@ class TestLongRefinerAdapterExternal:
         }
 
         # 首先避免构造期间触发真实初始化
-        with patch.object(LongRefinerAdapter, "_init_refiner", return_value=None):
-            adapter = LongRefinerAdapter(config=config, enable_profile=False)
+        with patch.object(RefinerOperator, "_init_refiner", return_value=None):
+            adapter = RefinerOperator(config=config, enable_profile=False)
 
         # 随后模拟 _init_refiner 期间的失败
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner",
+            "sage.libs.rag.refiner.LongRefiner",
             side_effect=Exception("model init failed"),
         ):
             with pytest.raises(Exception):
@@ -502,8 +502,8 @@ class TestLongRefinerAdapterExternal:
 
 
 @pytest.mark.unit
-class TestLongRefinerAdapterFallback:
-    """LongRefinerAdapter降级测试"""
+class TestRefinerOperatorFallback:
+    """RefinerOperator降级测试"""
 
     def test_adapter_fallback(self):
         """测试适配器降级"""
@@ -606,12 +606,12 @@ class TestLongRefinerAdapterFallback:
 
 
 @pytest.mark.unit
-class TestLongRefinerAdapterFixes:
-    """测试LongRefinerAdapter的修复和改进"""
+class TestRefinerOperatorFixes:
+    """测试RefinerOperator的修复和改进"""
 
     def test_gpu_device_unified_configuration(self):
         """测试统一GPU设备配置（修复#3）"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = {
@@ -628,10 +628,10 @@ class TestLongRefinerAdapterFixes:
         }
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+            "sage.libs.rag.refiner.LongRefiner"
         ) as mock_longrefiner:
             try:
-                adapter = LongRefinerAdapter(config=config)
+                adapter = RefinerOperator(config=config)
 
                 # 验证LongRefiner被正确调用，所有GPU设备统一
                 mock_longrefiner.assert_called_once()
@@ -647,7 +647,7 @@ class TestLongRefinerAdapterFixes:
 
     def test_output_format_standardization(self):
         """测试输出格式标准化（修复#2）"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = {
@@ -666,11 +666,11 @@ class TestLongRefinerAdapterFixes:
         mock_refiner.run.return_value = ["Refined text 1", "Refined text 2"]
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner",
+            "sage.libs.rag.refiner.LongRefiner",
             return_value=mock_refiner,
         ):
             try:
-                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+                adapter = RefinerOperator(config=config, enable_profile=False)
 
                 # 测试输入数据（来自Wiki18FAISSRetriever格式）
                 input_data = {
@@ -708,7 +708,7 @@ class TestLongRefinerAdapterFixes:
 
     def test_wiki18_faiss_input_compatibility(self):
         """测试与Wiki18FAISSRetriever输出的兼容性"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = {
@@ -727,11 +727,11 @@ class TestLongRefinerAdapterFixes:
         mock_refiner.run.return_value = ["Compressed content"]
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner",
+            "sage.libs.rag.refiner.LongRefiner",
             return_value=mock_refiner,
         ):
             try:
-                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+                adapter = RefinerOperator(config=config, enable_profile=False)
 
                 # 模拟Wiki18FAISSRetriever的输出格式
                 wiki18_output = {
@@ -771,7 +771,7 @@ class TestLongRefinerAdapterFixes:
 
     def test_document_formatting_with_titles(self):
         """测试文档格式化处理（带标题）"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = {
@@ -790,11 +790,11 @@ class TestLongRefinerAdapterFixes:
         mock_refiner.run.return_value = ["Formatted content"]
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner",
+            "sage.libs.rag.refiner.LongRefiner",
             return_value=mock_refiner,
         ):
             try:
-                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+                adapter = RefinerOperator(config=config, enable_profile=False)
 
                 # 测试带标题的文档
                 input_data = {
@@ -828,7 +828,7 @@ class TestLongRefinerAdapterFixes:
 
     def test_error_handling_empty_results(self):
         """测试空结果的错误处理"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         config = {
@@ -847,11 +847,11 @@ class TestLongRefinerAdapterFixes:
         mock_refiner.run.return_value = []  # 空结果
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner",
+            "sage.libs.rag.refiner.LongRefiner",
             return_value=mock_refiner,
         ):
             try:
-                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+                adapter = RefinerOperator(config=config, enable_profile=False)
 
                 input_data = {
                     "query": "test query",
@@ -870,7 +870,7 @@ class TestLongRefinerAdapterFixes:
 
     def test_backward_compatibility_config(self):
         """测试配置的向后兼容性"""
-        if not LONGREFINER_AVAILABLE:
+        if not REFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
 
         # 测试老配置格式（没有score_gpu_device）
@@ -888,10 +888,10 @@ class TestLongRefinerAdapterFixes:
         }
 
         with patch(
-            "sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner"
+            "sage.libs.rag.refiner.LongRefiner"
         ) as mock_longrefiner:
             try:
-                adapter = LongRefinerAdapter(config=old_config)
+                adapter = RefinerOperator(config=old_config)
 
                 # 验证LongRefiner被正确调用
                 call_args = mock_longrefiner.call_args

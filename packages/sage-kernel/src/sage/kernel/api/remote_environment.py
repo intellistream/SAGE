@@ -31,6 +31,7 @@ class RemoteEnvironment(BaseEnvironment):
         config: dict | None = None,
         host: str = "127.0.0.1",
         port: int = 19001,
+        scheduler=None,
     ):
         """
         初始化远程环境
@@ -40,8 +41,9 @@ class RemoteEnvironment(BaseEnvironment):
             config: 环境配置
             host: JobManager服务主机
             port: JobManager服务端口
+            scheduler: 调度器，可选。支持字符串 ("fifo", "load_aware") 或 BaseScheduler 实例
         """
-        super().__init__(name, config, platform="remote")
+        super().__init__(name, config, platform="remote", scheduler=scheduler)
 
         # 远程连接配置
         self.daemon_host = host

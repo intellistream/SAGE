@@ -1,34 +1,60 @@
+"""
+LongRefinerAdapter - SAGE Libs适配器
+====================================
+
+这是一个简化的适配器，用于在SAGE管道中使用Refiner。
+核心实现已移至 sage.middleware.components.sage_refiner。
+
+用法：
+    from sage.libs.rag.longrefiner import LongRefinerAdapter
+    
+    config = {
+        "algorithm": "long_refiner",  # 或 "simple"
+        "budget": 2048,
+        ...
+    }
+    
+    env.from_batch(...)
+       .map(ChromaRetriever, retriever_config)
+       .map(LongRefinerAdapter, config)  # 添加压缩
+       .map(Generator, generator_config)
+"""
+
 import json
 import os
 import time
+from typing import Any, Dict, Optional
 
 from sage.common.config.output_paths import get_states_file
-from sage.kernel.api.function.map_function import MapFunction
-from sage.libs.rag.longrefiner.longrefiner.refiner import LongRefiner
+from sage.core.api.function.map_function import MapFunction
 
 
 class LongRefinerAdapter(MapFunction):
+    """
+    LongRefiner适配器 - 用于SAGE管道
+    
+    这个类已经重构为使用 sage.middleware.components.sage_refiner 的服务。
+    保持向后兼容，现有应用无需修改。
+    
+    推荐配置:
+        config = {
+            "algorithm": "long_refiner",  # 算法选择
+            "budget": 2048,               # token预算
+            "enable_cache": True,         # 启用缓存
+            # LongRefiner特定配置
+            "base_model_path": "Qwen/Qwen2.5-3B-Instruct",
+            "query_analysis_module_lora_path": "/path/to/lora/query",
+            ...
+        }
+    """
+
     def __init__(self, config: dict, enable_profile=False, ctx=None):
         super().__init__(config=config, ctx=ctx)
-        required = [
-            "base_model_path",
-            "query_analysis_module_lora_path",
-            "doc_structuring_module_lora_path",
-            "global_selection_module_lora_path",
-            "score_model_name",
-            "score_model_path",
-            "max_model_len",
-            "budget",
-        ]
-        missing = [k for k in required if k not in config]
-        if missing:
-            raise RuntimeError(f"[LongRefinerAdapter] 缺少配置字段: {missing}")
         self.cfg = config
         self.enable_profile = enable_profile
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            # Use unified output path system
             self.data_base_path = str(get_states_file("dummy", "refiner_data").parent)
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -67,38 +93,49 @@ class LongRefinerAdapter(MapFunction):
             self.logger.error(f"Failed to persist data records: {e}")
 
     def _init_refiner(self):
-        # 从配置中获取 GPU 设备参数，默认为 0
-        gpu_device = self.cfg.get("gpu_device", 0)
-        # score_gpu_device 如果不存在则使用与 gpu_device 相同的值
-        score_gpu_device = self.cfg.get("score_gpu_device", gpu_device)
-        gpu_memory_utilization = self.cfg.get(
-            "gpu_memory_utilization", 0.7
-        )  # GPU内存占比，默认为0.7
+        """初始化Refiner服务"""
+        try:
+            from sage.middleware.components.sage_refiner import RefinerService
+            
+            # 使用middleware的RefinerService
+            # 自动处理算法选择、配置验证等
+            self.refiner_service = RefinerService(self.cfg)
+            
+            # 获取底层refiner实例（用于直接调用）
+            self.refiner = self.refiner_service._get_refiner()
+            
+            algorithm = self.cfg.get("algorithm", "long_refiner")
+            self.logger.info(f"Refiner initialized with algorithm: {algorithm}")
+            
+        except ImportError:
+            # 如果middleware不可用，回退到直接使用LongRefiner
+            self.logger.warning(
+                "sage.middleware.components.sage_refiner not available, "
+                "falling back to direct LongRefiner import"
+            )
+            from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.refiner import (
+                LongRefiner,
+            )
+            
+            gpu_device = self.cfg.get("gpu_device", 0)
+            score_gpu_device = self.cfg.get("score_gpu_device", gpu_device)
+            gpu_memory_utilization = self.cfg.get("gpu_memory_utilization", 0.7)
 
-        self.logger.info(
-            f"正在初始化LongRefiner，主模型使用GPU {gpu_device}，Score模型使用GPU {score_gpu_device}，GPU内存占比: {gpu_memory_utilization}"
-        )
-
-        self.refiner = LongRefiner(
-            base_model_path=self.cfg["base_model_path"],
-            query_analysis_module_lora_path=self.cfg["query_analysis_module_lora_path"],
-            doc_structuring_module_lora_path=self.cfg[
-                "doc_structuring_module_lora_path"
-            ],
-            global_selection_module_lora_path=self.cfg[
-                "global_selection_module_lora_path"
-            ],
-            score_model_name=self.cfg["score_model_name"],
-            score_model_path=self.cfg["score_model_path"],
-            max_model_len=self.cfg["max_model_len"],
-            gpu_device=gpu_device,
-            gpu_memory_utilization=gpu_memory_utilization,
-            score_gpu_device=score_gpu_device,  # 使用配置文件中的score_gpu_device
-        )
-
-        self.logger.info(
-            f"LongRefiner初始化成功，主模型使用GPU {gpu_device}，Score模型使用GPU {score_gpu_device}"
-        )
+            self.refiner = LongRefiner(
+                base_model_path=self.cfg["base_model_path"],
+                query_analysis_module_lora_path=self.cfg["query_analysis_module_lora_path"],
+                doc_structuring_module_lora_path=self.cfg["doc_structuring_module_lora_path"],
+                global_selection_module_lora_path=self.cfg["global_selection_module_lora_path"],
+                score_model_name=self.cfg["score_model_name"],
+                score_model_path=self.cfg["score_model_path"],
+                max_model_len=self.cfg["max_model_len"],
+                gpu_device=gpu_device,
+                gpu_memory_utilization=gpu_memory_utilization,
+                score_gpu_device=score_gpu_device,
+            )
+            self.refiner_service = None
+            
+            self.logger.info(f"LongRefiner initialized (fallback mode)")
 
     def execute(self, data):
         # 处理不同的输入格式

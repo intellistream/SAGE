@@ -19,7 +19,7 @@ from sage.libs.rag.evaluate import (
     TokenCountEvaluate,
 )
 from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
+from sage.libs.rag.refiner import RefinerOperator
 from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.retriever import Wiki18FAISSRetriever
 
@@ -32,7 +32,7 @@ def pipeline_run(config):
     (
         env.from_batch(HFDatasetBatch, config["source"])
         .map(Wiki18FAISSRetriever, config["retriever"], enable_profile=enable_profile)
-        .map(LongRefinerAdapter, config["refiner"], enable_profile=enable_profile)
+        .map(RefinerOperator, config["refiner"], enable_profile=enable_profile)
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
         .map(
             OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile
