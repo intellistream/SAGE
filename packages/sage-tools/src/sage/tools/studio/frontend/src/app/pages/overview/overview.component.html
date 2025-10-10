@@ -13,8 +13,7 @@
             <nz-form-item>
               <nz-form-control>
                 <nz-select nzPlaceHolder="Name" nzAllowClear formControlName="name">
-                  <nz-option
-                    *ngFor="let job of currentPageJob" [nzLabel]="job.name" [nzValue]="job.name">
+                  <nz-option *ngFor="let job of currentPageJob" [nzLabel]="job.name" [nzValue]="job.name">
                   </nz-option>
                 </nz-select>
               </nz-form-control>
@@ -44,8 +43,8 @@
           <tr>
             <th>Name</th>
             <th>Working Threads</th>
-<!--            <th>CPU Utilization</th>-->
-<!--            <th>RAM Utilization</th>-->
+            <!--            <th>CPU Utilization</th>-->
+            <!--            <th>RAM Utilization</th>-->
             <th>Create Time</th>
             <th>Duration</th>
             <th>Status</th>
@@ -55,16 +54,14 @@
           <tr *ngFor="let application of currentPageJob">
             <td>
               <nz-collapse>
-                <nz-collapse-panel 
-                  [nzHeader]="application.name" 
-                  [nzActive]="false"
+                <nz-collapse-panel [nzHeader]="application.name" [nzActive]="false"
                   (nzActiveChange)="onPanelChange(application.jobId, $event)">
                   <div class="job-header">
                     <span class="job-info"><b>Working Threads:</b> {{application.nthreads}}</span>
                     <span class="job-info"><b>Create Time:</b> {{application.startTime}}</span>
                     <span class="job-info"><b>Duration:</b> {{application.duration}} s</span>
                     <span class="job-info">
-                      <b>Status:</b> 
+                      <b>Status:</b>
                       <nz-tag [nzColor]="application.isRunning?'#2db7f5':'#cd201f'">
                         {{application.isRunning?"running":"stopped"}}
                       </nz-tag>
@@ -96,27 +93,25 @@
                     <ng-container [ngSwitch]="application?.name">
                       <!-- QA 图 -->
                       <img *ngSwitchCase="'qa'" src="assets/qa.png" alt="QA Topology" class="responsive-image" />
-                      
+
                       <!-- Ingest 图 -->
-                      <img *ngSwitchCase="'ingest'" src="assets/ingest.png" alt="Ingest Topology" class="responsive-image" />
-                      
+                      <img *ngSwitchCase="'ingest'" src="assets/ingest.png" alt="Ingest Topology"
+                        class="responsive-image" />
+
                       <!-- Multi-agent 图 -->
-                      <img *ngSwitchCase="'multi-agent'" src="assets/multi_agent.png" alt="Multi-agent Topology" class="responsive-image" />
-                      
+                      <img *ngSwitchCase="'multi-agent'" src="assets/multi_agent.png" alt="Multi-agent Topology"
+                        class="responsive-image" />
+
                       <!-- 默认渲染 nz-graph -->
-                      <nz-graph *ngSwitchDefault
-                        nz-graph-zoom
-                        [nzGraphData]="getOperatorGraphData(application)"
-                        [nzAutoSize]="true"
-                        [nzRankDirection]="'LR'"
+                      <nz-graph *ngSwitchDefault nz-graph-zoom [nzGraphData]="getOperatorGraphData(application)"
+                        [nzAutoSize]="true" [nzRankDirection]="'LR'"
                         (nzGraphInitialized)="onOperatorGraphInitialized($event)">
-                        
+
                         <ng-container *nzGraphNode="let node">
                           <foreignObject x="0" y="0" width="140px" height="80px">
-                            <div class="operator-node" nz-popover
-                                 [nzPopoverContent]="'instance: ' + node.instance"
-                                 [nzPopoverTitle]="node.label"
-                                 nzPopoverPlacement="right">
+                            <div class="operator-node" nz-popover [nzPopoverContent]="'instance: ' + node.instance"
+                              [nzPopoverTitle]="node.label" nzPopoverPlacement="right"
+                              (click)="handleNodeClick(node, application)" style="cursor: pointer;">
                               <span>{{ node.label }}</span>
                             </div>
                           </foreignObject>
@@ -124,17 +119,42 @@
                       </nz-graph>
                     </ng-container>
                   </div>
-                  
+
                 </nz-collapse-panel>
               </nz-collapse>
             </td>
             <td>{{application.nthreads}}</td>
             <td>{{application.startTime}}</td>
             <td>{{application.duration}} s</td>
-            <td><nz-tag [nzColor]="application.isRunning?'#2db7f5':'#cd201f'">{{application.isRunning?"running":"stopped"}}</nz-tag></td>
+            <td><nz-tag
+                [nzColor]="application.isRunning?'#2db7f5':'#cd201f'">{{application.isRunning?"running":"stopped"}}</nz-tag>
+            </td>
           </tr>
         </tbody>
       </nz-table>
     </div>
   </nz-content>
 </div>
+
+<!-- FileSource 输入对话框 -->
+<nz-modal [(nzVisible)]="isInputModalVisible" nzTitle="FileSource 查询输入" [nzOkText]="'发送查询'" [nzCancelText]="'取消'"
+  (nzOnCancel)="handleCancelInput()" (nzOnOk)="handleSubmitInput()" [nzOkLoading]="isSubmittingQuery" [nzWidth]="600">
+
+  <div *nzModalContent>
+    <p>当前FileSource节点ID: <strong>{{ currentNodeId }}</strong></p>
+    <p>请输入您的查询问题，这将替代从文件读取的方式：</p>
+
+    <nz-form-item>
+      <nz-form-label nzRequired>查询内容</nz-form-label>
+      <nz-form-control>
+        <textarea nz-input [(ngModel)]="fileSourceQuestion" placeholder="请输入您的问题..."
+          [nzAutosize]="{ minRows: 3, maxRows: 6 }" maxlength="1000">
+        </textarea>
+        <div class="char-count">{{ fileSourceQuestion?.length || 0 }}/1000</div>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-alert *ngIf="querySubmissionError" nzType="error" [nzMessage]="querySubmissionError" nzShowIcon nzCloseable>
+    </nz-alert>
+  </div>
+</nz-modal>

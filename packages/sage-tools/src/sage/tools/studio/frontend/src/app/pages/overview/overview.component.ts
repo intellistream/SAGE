@@ -1,8 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { OverviewService } from "./overview.service";
 import { FormBuilder, FormGroup } from "@angular/forms";
 import { Job } from "../../model/Job";
 import { NzGraphData, NzGraphDataDef, NzGraphComponent } from 'ng-zorro-antd/graph';
+import { NzModalService } from 'ng-zorro-antd/modal'; // 引入对话框服务
 
 @Component({
   selector: 'app-home',
@@ -10,6 +12,13 @@ import { NzGraphData, NzGraphDataDef, NzGraphComponent } from 'ng-zorro-antd/gra
   styleUrls: ['./overview.component.less']
 })
 export class OverviewComponent implements OnInit, OnDestroy {
+  // 新增：用于存储用户输入的问题
+  fileSourceQuestion: string = '';
+  // 新增：当前点击的节点ID
+  currentNodeId: string = '';
+  // 新增：当前作业ID
+  currentJobId: string = '';
+
   filterForm!: FormGroup;
   jobs: Job[] = [];
   filteredJobs: Job[] = [];
@@ -25,7 +34,17 @@ export class OverviewComponent implements OnInit, OnDestroy {
   // 添加默认的图表数据属性
   nzOperatorGraphData: NzGraphData = new NzGraphData({ nodes: [], edges: [] });
 
-  constructor(private overviewService: OverviewService, private formBuilder: FormBuilder) { }
+  // FileSource 对话框相关属性
+  isInputModalVisible = false;
+  isSubmittingQuery = false;
+  querySubmissionError = '';
+
+  constructor(
+    private overviewService: OverviewService,
+    private formBuilder: FormBuilder,
+    private modal: NzModalService, // 注入对话框服务
+    private http: HttpClient // 注入HTTP客户端
+  ) { }
 
   ngOnInit() {
     this.tableIsLoading = true;
@@ -253,4 +272,133 @@ export class OverviewComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.clearGraphCache();
   }
+
+
+  /**
+ * 新增：处理节点点击
+ */
+  handleNodeClick(node: any, job: Job): void {
+    // 只处理FileSource节点 
+    if (node.label === 'FileSource') {
+      this.currentNodeId = node.id;
+      this.currentJobId = job.jobId; // 设置当前作业ID
+      console.log(`点击FileSource节点: ${node.id}, 所属作业: ${job.jobId}`);
+      // 显示选项对话框
+      this.showOptionModal();
+    }
+  }
+
+  /**
+   * 新增：显示选项对话框（文件读取问题/对话）
+   */
+  private showOptionModal(): void {
+    const ref = this.modal.create({
+      nzTitle: '选择操作类型',
+      nzContent: '请选择需要执行的操作：',
+      nzFooter: [
+        {
+          label: '文件读取问题',
+          type: 'default',
+          onClick: () => {
+            this.modal.info({
+              nzTitle: '文件读取问题',
+              nzContent: '已选择文件读取问题处理流程'
+            });
+            ref.close();
+          },
+          className: 'filesource-file-btn'
+        },
+        {
+          label: '对话',
+          type: 'primary',
+          onClick: () => {
+            this.showInputModal();
+            ref.close();
+          },
+          className: 'filesource-dialog-btn'
+        }
+      ]
+    });
+  }
+
+  /**
+   * 新增：显示对话输入对话框
+   */
+  private showInputModal(): void {
+    this.fileSourceQuestion = '';
+    this.querySubmissionError = '';
+    this.isInputModalVisible = true;
+  }
+
+  /**
+   * 处理取消输入
+   */
+  handleCancelInput(): void {
+    this.isInputModalVisible = false;
+    this.fileSourceQuestion = '';
+    this.querySubmissionError = '';
+  }
+
+  /**
+   * 处理提交输入
+   */
+  handleSubmitInput(): void {
+    if (!this.fileSourceQuestion?.trim()) {
+      this.querySubmissionError = '请输入查询内容';
+      return;
+    }
+
+    this.isSubmittingQuery = true;
+    this.querySubmissionError = '';
+
+    // 准备发送给后端的数据
+    const requestData = {
+      nodeId: String(this.currentNodeId), // 确保转换为字符串
+      jobId: this.currentJobId || 'unknown_job', // 需要添加当前作业ID
+      query: this.fileSourceQuestion.trim()
+    };
+
+    console.log('发送FileSource输入到后端:', requestData);
+
+    // 发送HTTP请求到后端API
+    this.http.post('http://localhost:8080/api/filesource/input', requestData).subscribe({
+      next: (response: any) => {
+        console.log('后端响应:', response);
+        const pipelinePath = response?.storage?.pipeline_path;
+
+        // 显示成功消息
+        this.modal.success({
+          nzTitle: '查询提交成功',
+          nzContent: `查询已成功发送到SAGE处理管道！<br/>
+                     查询ID: ${response.queryId}<br/>
+                     节点ID: ${response.nodeId}<br/>
+                     状态: ${response.message}${pipelinePath ? `<br/>写入文件: ${pipelinePath}` : ''}`
+        });
+
+        // 关闭对话框
+        this.handleCancelInput();
+      },
+      error: (error) => {
+        console.error('提交查询时发生错误:', error);
+        let errorMsg = '请重试';
+        if (error.error?.detail) {
+          if (Array.isArray(error.error.detail)) {
+            errorMsg = error.error.detail.map((e: any) => `${e.loc?.join('.')}: ${e.msg}`).join('; ');
+          } else {
+            errorMsg = error.error.detail;
+          }
+        } else if (error.message) {
+          errorMsg = error.message;
+        }
+        this.querySubmissionError = `提交查询失败: ${errorMsg}`;
+        this.isSubmittingQuery = false;
+      },
+      complete: () => {
+        this.isSubmittingQuery = false;
+      }
+    });
+  }
+
+
+
 }

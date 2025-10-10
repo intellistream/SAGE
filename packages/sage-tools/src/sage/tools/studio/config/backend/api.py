@@ -13,14 +13,23 @@ from pathlib import Path
 from typing import List, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from datetime import datetime
+
+try:
+    from .query_storage import FileSourceQueryStorage
+except ImportError:  # pragma: no cover - fallback when running as script
+    from query_storage import FileSourceQueryStorage  # type: ignore
 
 
 def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str) -> dict:
     """将拓扑图数据转换为 Job 格式"""
     from datetime import datetime
+    import os
 
     # 从拓扑图数据中提取信息
     name = pipeline_data.get("name", f"拓扑图 {pipeline_id}")
@@ -60,7 +69,23 @@ def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str) -> dict:
         operators.append(operator)
 
     # 创建 Job 对象
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # 尝试从拓扑图数据中获取创建时间，如果没有则使用文件创建时间或当前时间
+    create_time = pipeline_data.get("createTime")
+    if not create_time:
+        # 尝试从pipeline_id中提取时间戳（如果是timestamp格式）
+        try:
+            if pipeline_id.startswith("pipeline_"):
+                timestamp_str = pipeline_id.replace("pipeline_", "")
+                if timestamp_str.isdigit():
+                    timestamp = int(timestamp_str)
+                    create_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        except (ValueError, OSError):
+            create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     job = {
         "jobId": pipeline_id,
         "name": name,
@@ -68,7 +93,7 @@ def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str) -> dict:
         "nthreads": "1",
         "cpu": "0%",
         "ram": "0GB",
-        "startTime": current_time,
+        "startTime": create_time,
         "duration": "00:00:00",
         "nevents": 0,
         "minProcessTime": 0,
@@ -164,6 +189,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 添加验证错误处理器
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f"Validation error on {request.method} {request.url}: {exc.errors()}")
+    print(f"Request body: {await request.body()}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": str(await request.body())}
+    )
+
 
 def _read_sage_data_from_files():
     """从 .sage 目录的文件中读取实际的 SAGE 数据"""
@@ -189,6 +224,17 @@ def _read_sage_data_from_files():
                 try:
                     with open(pipeline_file, "r", encoding="utf-8") as f:
                         pipeline_data = json.load(f)
+                        
+                        # 如果拓扑图数据中没有createTime，尝试使用文件的创建时间
+                        if "createTime" not in pipeline_data:
+                            try:
+                                # 获取文件的修改时间作为创建时间
+                                file_mtime = pipeline_file.stat().st_mtime
+                                from datetime import datetime
+                                pipeline_data["createTime"] = datetime.fromtimestamp(file_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                            except Exception as e:
+                                print(f"Error getting file time for {pipeline_file}: {e}")
+                        
                         # 将拓扑图转换为 Job 格式
                         job_from_pipeline = _convert_pipeline_to_job(
                             pipeline_data, pipeline_file.stem
@@ -530,9 +576,14 @@ async def submit_pipeline(topology_data: dict):
 
         # 生成文件名（使用时间戳）
         import time
+        from datetime import datetime
 
         timestamp = int(time.time())
         pipeline_file = pipelines_dir / f"pipeline_{timestamp}.json"
+
+        # 添加创建时间到拓扑数据中
+        if "createTime" not in topology_data:
+            topology_data["createTime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # 保存拓扑数据到文件
         with open(pipeline_file, "w", encoding="utf-8") as f:
@@ -549,10 +600,289 @@ async def submit_pipeline(topology_data: dict):
         raise HTTPException(status_code=500, detail=f"提交拓扑图失败: {str(e)}")
 
 
+# FileSource 用户输入处理相关的数据模型
+class FileSourceInputRequest(BaseModel):
+    nodeId: str
+    jobId: str  
+    query: str
+
+class FileSourceInputResponse(BaseModel):
+    status: str
+    message: str
+    nodeId: str
+    jobId: str
+    queryId: Optional[str] = None
+    storage: Optional[dict] = None
+
+# 全局存储用户输入的查询（在生产环境中应该使用数据库）
+user_queries = {}
+query_storage = FileSourceQueryStorage()
+
+# ---------------------------------------------------------------------------
+# In-memory runtime state (placeholder for real engine integration)
+# ---------------------------------------------------------------------------
+job_runtime_status = {}  # job_id -> {"isRunning": bool, "startTime": str}
+job_logs = {}            # job_id -> list[str] (incremental log lines like Q/A or system)
+job_configs_cache = {}   # pipeline_id -> config content string
+
+@app.post("/api/filesource/input", response_model=FileSourceInputResponse)
+async def submit_filesource_input(request: FileSourceInputRequest):
+    """接收FileSource节点的用户输入查询"""
+    try:
+        print(f"Received FileSource input - NodeId: {request.nodeId}, JobId: {request.jobId}")
+        print(f"Query content: {request.query}")
+        
+        # 生成查询ID
+        import time
+        query_id = f"query_{int(time.time())}"
+        
+        storage_info = query_storage.save_query(
+            request.jobId, request.nodeId, request.query, query_id
+        )
+
+        # 存储查询数据
+        user_queries[query_id] = {
+            "nodeId": request.nodeId,
+            "jobId": request.jobId, 
+            "query": request.query,
+            "timestamp": time.time(),
+            "processed": True,
+            "storage": storage_info
+        }
+        
+        print(f"Stored query with ID: {query_id}")
+        
+        # 这里可以添加触发管道执行的逻辑
+        # 比如通知SAGE系统使用这个用户输入而不是文件输入
+        
+        return FileSourceInputResponse(
+            status="success",
+            message="查询已写入文件，等待管道消费",
+            nodeId=request.nodeId,
+            jobId=request.jobId,
+            queryId=query_id,
+            storage=storage_info
+        )
+        
+    except Exception as e:
+        print(f"Error processing FileSource input: {e}")
+        raise HTTPException(status_code=500, detail=f"处理FileSource输入失败: {str(e)}")
+
+@app.get("/api/filesource/queries")
+async def get_filesource_queries():
+    """获取所有FileSource用户查询"""
+    try:
+        return {"queries": user_queries}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取查询失败: {str(e)}")
+
+@app.get("/api/filesource/queries/{query_id}")
+async def get_filesource_query(query_id: str):
+    """获取特定的FileSource查询"""
+    try:
+        if query_id not in user_queries:
+            raise HTTPException(status_code=404, detail="查询未找到")
+        return {"query": user_queries[query_id]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取查询失败: {str(e)}")
+
 @app.get("/health")
 async def health_check():
     """健康检查"""
     return {"status": "healthy", "service": "SAGE Studio Backend"}
+
+
+# ---------------------------------------------------------------------------
+# Placeholder endpoints required by frontend (job detail / status / logs)
+# NOTE: Must be defined BEFORE uvicorn.run to work when running as script
+# ---------------------------------------------------------------------------
+
+@app.get("/jobInfo/get/{job_id}")
+async def get_job(job_id: str):
+    """Return job (pipeline) detail. Tries to map pipeline_* file to Job format.
+    If not found, returns a minimal placeholder so the UI won't 404.
+    """
+    sage_data = _read_sage_data_from_files()
+    for job in sage_data.get("jobs", []):
+        if job.get("jobId") == job_id:
+            # merge runtime isRunning flag if we have started it
+            runtime = job_runtime_status.get(job_id)
+            if runtime:
+                job["isRunning"] = runtime.get("isRunning", job.get("isRunning", False))
+                # Optionally update duration
+                if runtime.get("isRunning") and runtime.get("startTime"):
+                    try:
+                        start_dt = datetime.strptime(runtime["startTime"], "%Y-%m-%d %H:%M:%S")
+                        delta = datetime.now() - start_dt
+                        job["duration"] = str(delta).split(".")[0]
+                    except Exception:
+                        pass
+            return job
+
+    # Not found -> fabricate minimal structure expected by UI
+    fabricated = {
+        "jobId": job_id,
+        "name": job_id,
+        "isRunning": False,
+        "nthreads": "1",
+        "cpu": "0%",
+        "ram": "0GB",
+        "startTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "duration": "00:00:00",
+        "nevents": 0,
+        "minProcessTime": 0,
+        "maxProcessTime": 0,
+        "meanProcessTime": 0,
+        "latency": 0,
+        "throughput": 0,
+        "ncore": 1,
+        "periodicalThroughput": [0],
+        "periodicalLatency": [0],
+        "totalTimeBreakdown": {"totalTime": 0, "serializeTime": 0, "persistTime": 0, "streamProcessTime": 0, "overheadTime": 0},
+        "schedulerTimeBreakdown": {"overheadTime": 0, "streamTime": 0, "totalTime": 0, "txnTime": 0},
+        "operators": [
+            {"id": 0, "name": "FileSource", "numOfInstances": 1, "downstream": [1]},
+            {"id": 1, "name": "TerminalSink", "numOfInstances": 1, "downstream": []},
+        ],
+    }
+    return fabricated
+
+
+@app.get("/api/signal/status/{job_id}")
+async def get_job_status(job_id: str):
+    """Return runtime status used by frontend (expects use_ray field)."""
+    runtime = job_runtime_status.get(job_id, {"isRunning": False})
+    return {
+        "job_id": job_id,
+        "status": "running" if runtime.get("isRunning") else "stopped",
+        "use_ray": False,  # placeholder
+        "isRunning": runtime.get("isRunning", False),
+    }
+
+
+@app.post("/api/signal/start/{job_id}")
+async def start_job(job_id: str):
+    """Mark a job as started and append a system log line."""
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    job_runtime_status[job_id] = {"isRunning": True, "startTime": now}
+    logs = job_logs.setdefault(job_id, [])
+    logs.append(f"[SYSTEM] Job {job_id} started at {now}")
+    return {"status": "success", "job_id": job_id, "use_ray": False, "duration": 0}
+
+
+@app.post("/api/signal/stop/{job_id}/{duration}")
+async def stop_job(job_id: str, duration: str):
+    runtime = job_runtime_status.get(job_id)
+    if runtime:
+        runtime["isRunning"] = False
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logs = job_logs.setdefault(job_id, [])
+    logs.append(f"[SYSTEM] Job {job_id} stopped at {now} after {duration}")
+    return True
+
+
+@app.get("/api/signal/sink/{job_id}")
+async def get_sink_lines(job_id: str, offset: int = 0):
+    """Return incremental log/Q&A lines with offset semantics."""
+    lines = job_logs.setdefault(job_id, [])
+    # Seed a friendly placeholder once so the UI sees something and advances offset
+    if not lines and offset == 0:
+        lines.append(f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query.")
+    # If there are stored FileSource queries, optionally surface them as Q lines
+    # (Simple heuristic: for newly seen queries, add Q/A placeholder once.)
+    existing_q_prefixes = {l for l in lines if l.startswith('[Q]')}
+    for qid, qdata in list(user_queries.items()):
+        if qdata.get("jobId") == job_id:
+            q_line = f"[Q] {qdata['query']}"
+            if q_line not in existing_q_prefixes:
+                lines.append(q_line)
+                # placeholder answer
+                lines.append(f"[A] (placeholder answer for {qid})")
+    slice_lines = lines[offset:]
+    new_offset = len(lines)
+    return {"offset": new_offset, "lines": slice_lines}
+
+
+# ------------------------------
+# batchInfo placeholders to satisfy UI calls
+# ------------------------------
+@app.get("/batchInfo/get/all/{job_id}/{operator_id}")
+async def get_all_batches(job_id: str, operator_id: str):
+    """Return an empty list as placeholder for historical batches."""
+    return []
+
+
+@app.get("/batchInfo/get/{job_id}/{batch_id}/{operator_id}")
+async def get_batch_by_id(job_id: str, batch_id: int, operator_id: str):
+    """Return a minimal placeholder batch object for charts to render safely."""
+    return {
+        "batchId": batch_id,
+        "jobId": job_id,
+        "operatorID": operator_id,
+        "throughput": 0,
+        "minLatency": 0,
+        "maxLatency": 0,
+        "avgLatency": 0,
+        "batchSize": 0,
+        "batchDuration": 0,
+        "latestBatchId": batch_id,
+        "overallTimeBreakdown": {"serializeTime": 0, "persistTime": 0, "streamProcessTime": 0, "overheadTime": 0, "totalTime": 0},
+        "schedulerTimeBreakdown": {"constructTime": 0, "exploreTime": 0, "usefulTime": 0, "abortTime": 0},
+        "accumulativeLatency": 0,
+        "accumulativeThroughput": 0,
+        "scheduler": "",
+        "tpg": []
+    }
+
+
+class ConfigUpdateRequest(BaseModel):
+    config: str
+
+
+@app.get("/jobInfo/config/{pipeline_id}")
+async def get_pipeline_config(pipeline_id: str):
+    """Return stored config content or a default template."""
+    # Memory cache first
+    if pipeline_id in job_configs_cache:
+        return {"data": job_configs_cache[pipeline_id]}
+    sage_dir = _get_sage_dir()
+    cfg_dir = sage_dir / "configs"
+    cfg_dir.mkdir(parents=True, exist_ok=True)
+    cfg_file = cfg_dir / f"{pipeline_id}.yaml"
+    if cfg_file.exists():
+        content = cfg_file.read_text(encoding="utf-8")
+        job_configs_cache[pipeline_id] = content
+        return {"data": content}
+    # default template
+    default_cfg = (
+        "# Auto-generated placeholder config for " + pipeline_id + "\n"
+        "source:\n"
+        "  type: FileSource\n"
+        "  data_path: '~/.sage/studio/queries/" + pipeline_id + "/filesource_input.txt'\n"
+        "retriever:\n"
+        "  top_k: 5\n"
+        "llm:\n"
+        "  model_name: gpt-4o-mini\n"
+        "pipeline:\n"
+        "  name: '" + pipeline_id + "'\n"
+    )
+    job_configs_cache[pipeline_id] = default_cfg
+    cfg_file.write_text(default_cfg, encoding="utf-8")
+    return {"data": default_cfg}
+
+
+@app.put("/jobInfo/config/update/{pipeline_id}")
+async def update_pipeline_config(pipeline_id: str, req: ConfigUpdateRequest):
+    sage_dir = _get_sage_dir()
+    cfg_dir = sage_dir / "configs"
+    cfg_dir.mkdir(parents=True, exist_ok=True)
+    cfg_file = cfg_dir / f"{pipeline_id}.yaml"
+    cfg_file.write_text(req.config, encoding="utf-8")
+    job_configs_cache[pipeline_id] = req.config
+    return {"status": "success"}
+
 
 
 if __name__ == "__main__":
