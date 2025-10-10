@@ -6,7 +6,7 @@ and generating diagnostic reports using multi-agent collaboration.
 
 Quick Start:
     >>> from sage.libs.applications.medical_diagnosis import DiagnosticAgent
-    >>> 
+    >>>
     >>> agent = DiagnosticAgent()
     >>> result = agent.diagnose(
     ...     image_path="path/to/mri.jpg",
@@ -23,9 +23,9 @@ Components:
 For full documentation, see README.md in this directory.
 """
 
-from .agents.diagnostic_agent import DiagnosticAgent, DiagnosisResult
+from .agents.diagnostic_agent import DiagnosisResult, DiagnosticAgent
 from .agents.image_analyzer import ImageAnalyzer, ImageFeatures
-from .agents.report_generator import ReportGenerator, DiagnosisReport
+from .agents.report_generator import DiagnosisReport, ReportGenerator
 from .tools.knowledge_base import MedicalKnowledgeBase
 
 __all__ = [

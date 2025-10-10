@@ -18,11 +18,10 @@ def test_multimodal_template_pipeline_plan_uses_real_components():
     source_class = plan["source"]["class"]
     stage_classes = [stage["class"] for stage in plan["stages"]]
 
+    assert source_class == "examples.rag.qa_multimodal_fusion.MultimodalQuestionSource"
     assert (
-        source_class
-        == "examples.rag.qa_multimodal_fusion.MultimodalQuestionSource"
+        "examples.rag.qa_multimodal_fusion.MultimodalFusionRetriever" in stage_classes
     )
-    assert "examples.rag.qa_multimodal_fusion.MultimodalFusionRetriever" in stage_classes
     assert "sage.libs.rag.generator.OpenAIGenerator" in stage_classes
     assert plan["sink"]["class"] == "sage.libs.io_utils.sink.TerminalSink"
 

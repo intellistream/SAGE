@@ -32,10 +32,10 @@ for path in PACKAGE_SRC_ROOTS:
 
 
 try:
+    from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
     from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
         SageDBService,
     )
-    from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 except ImportError as exc:  # pragma: no cover - surface build guidance early
     if "_sage_db" in str(exc):
         raise SystemExit(

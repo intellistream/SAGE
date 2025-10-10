@@ -91,7 +91,9 @@ class MilvusDenseRetriever(MapFunction):
     def _init_embedding_model(self):
         """初始化embedding模型"""
         try:
-            from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
+            from sage.common.components.sage_embedding.embedding_model import (
+                EmbeddingModel,
+            )
 
             embedding_method = self.embedding_config.get("method", "default")
             model = self.embedding_config.get(

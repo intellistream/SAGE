@@ -3,6 +3,7 @@
 
 import os
 import sys
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -11,7 +12,7 @@ from rich.table import Table
 project_root = os.path.join(os.path.dirname(__file__), "../..")
 sys.path.insert(0, project_root)
 
-from sage.tools.templates.catalog import match_templates, get_template, list_templates
+from sage.tools.templates.catalog import get_template, list_templates, match_templates
 
 console = Console()
 
@@ -136,7 +137,9 @@ def test_template_matching():
         )
 
         if success:
-            console.print(f"\n✅ 成功: 顶部匹配为预期模板 '{expected}'", style="bold green")
+            console.print(
+                f"\n✅ 成功: 顶部匹配为预期模板 '{expected}'", style="bold green"
+            )
         else:
             console.print(
                 f"\n⚠️  警告: 预期 '{expected}' 但得到 '{top_match}'",

@@ -27,7 +27,9 @@ class ApplicationTemplate:
     def blueprint(self) -> pipeline_blueprints.PipelineBlueprint:
         blueprint = _BLUEPRINT_INDEX.get(self.blueprint_id)
         if blueprint is None:
-            raise KeyError(f"Blueprint '{self.blueprint_id}' not found for template '{self.id}'")
+            raise KeyError(
+                f"Blueprint '{self.blueprint_id}' not found for template '{self.id}'"
+            )
         return blueprint
 
     def pipeline_plan(self) -> Dict[str, Any]:
@@ -57,7 +59,9 @@ class ApplicationTemplate:
             f"              • {stage['id']}: {stage['class']} ({stage.get('summary', '')})"
             for stage in stages
         ]
-        stage_text = "\n".join(stage_lines) if stage_lines else "              • (无阶段信息)"
+        stage_text = (
+            "\n".join(stage_lines) if stage_lines else "              • (无阶段信息)"
+        )
         note_lines = [f"- {note}" for note in plan.get("notes", []) if note]
         notes_text = "\n".join(note_lines) if note_lines else "  - 无"
         score_line = f"匹配度: {score:.2f}" if score is not None else ""
@@ -121,7 +125,9 @@ def match_templates(
     return top
 
 
-def _score_template(requirements: Dict[str, Any], template: ApplicationTemplate) -> float:
+def _score_template(
+    requirements: Dict[str, Any], template: ApplicationTemplate
+) -> float:
     text = _requirements_text(requirements)
     if not text:
         return 0.2
@@ -171,7 +177,9 @@ def _requirements_text(requirements: Dict[str, Any]) -> str:
     return " ".join(parts).lower()
 
 
-_BLUEPRINT_INDEX = {blueprint.id: blueprint for blueprint in pipeline_blueprints.BLUEPRINT_LIBRARY}
+_BLUEPRINT_INDEX = {
+    blueprint.id: blueprint for blueprint in pipeline_blueprints.BLUEPRINT_LIBRARY
+}
 
 
 def _notes(*values: str) -> Tuple[str, ...]:
@@ -188,7 +196,7 @@ TEMPLATE_LIBRARY: Tuple[ApplicationTemplate, ...] = (
         id="rag-simple-demo",
         title="客服知识助手 (RAG Simple)",
         description="面向客服问答的简化RAG工作流，使用内置示例算子即可离线演示。",
-    tags=("rag", "qa", "support", "问答", "客户支持", "知识助手"),
+        tags=("rag", "qa", "support", "问答", "客户支持", "知识助手"),
         example_path="examples/rag/rag_simple.py",
         blueprint_id="rag-simple-demo",
         default_requirements={

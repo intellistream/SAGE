@@ -23,6 +23,8 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+from sage.common.components.sage_embedding import get_embedding_model
+from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 from sage.common.config.output_paths import (
     find_sage_project_root,
     get_sage_paths,
@@ -31,8 +33,6 @@ from sage.tools.cli.commands import pipeline as pipeline_builder
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
 from sage.tools.cli.core.exceptions import CLIException
-from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
-from sage.common.components.sage_embedding import get_embedding_model
 
 console = Console()
 
@@ -189,15 +189,15 @@ def save_manifest(
 
 def build_embedder(config: Dict[str, object]) -> Any:
     """构建 embedder 实例（使用新的统一接口）
-    
+
     Args:
         config: embedding 配置
             - method: 方法名 (hash, hf, openai, mockembedder, ...)
             - params: 方法特定参数
-    
+
     Returns:
         BaseEmbedding 实例
-    
+
     Examples:
         >>> config = {"method": "hash", "params": {"dim": 384}}
         >>> emb = build_embedder(config)
@@ -205,7 +205,7 @@ def build_embedder(config: Dict[str, object]) -> Any:
     """
     method = str(config.get("method", DEFAULT_EMBEDDING_METHOD))
     params = dict(config.get("params", {}))
-    
+
     # 统一使用新接口，不需要特殊处理！
     return get_embedding_model(method, **params)
 
@@ -553,21 +553,22 @@ class ResponseGenerator:
         """设置微调模型 backend"""
         import subprocess
         import time
-        import requests
         from pathlib import Path
-        
+
+        import requests
+
         model_name = self.finetune_model or DEFAULT_FINETUNE_MODEL
         port = self.finetune_port
-        
+
         # 使用 SAGE 配置目录
         sage_config_dir = Path.home() / ".sage"
         finetune_output_dir = sage_config_dir / "finetune_output"
-        
+
         # 检查微调模型是否存在
         finetune_dir = finetune_output_dir / model_name
         merged_path = finetune_dir / "merged_model"
         checkpoint_path = finetune_dir / "checkpoints"
-        
+
         if not finetune_dir.exists():
             raise FileNotFoundError(
                 f"微调模型不存在: {model_name}\n"
@@ -575,51 +576,54 @@ class ResponseGenerator:
                 f"请先运行微调或指定其他模型:\n"
                 f"  sage finetune quickstart {model_name}"
             )
-        
+
         # 检查服务是否已运行
         try:
             response = requests.get(f"http://localhost:{port}/health", timeout=1)
             service_running = response.status_code == 200
         except:
             service_running = False
-        
+
         if service_running:
             console.print(f"[green]✅ vLLM 服务已在端口 {port} 运行[/green]")
             model_to_use = self.model if self.model != "qwen-max" else None
         else:
             console.print(f"[yellow]⏳ 正在启动微调模型 vLLM 服务...[/yellow]")
-            
+
             # 检查是否有合并模型
             if not merged_path.exists():
-                console.print(f"[yellow]⚠️  未找到合并模型，正在自动合并 LoRA 权重...[/yellow]")
-                
+                console.print(
+                    f"[yellow]⚠️  未找到合并模型，正在自动合并 LoRA 权重...[/yellow]"
+                )
+
                 # 检查是否有 checkpoint
                 if not checkpoint_path.exists():
                     raise FileNotFoundError(
                         f"未找到模型或 checkpoint: {model_name}\n"
                         f"请确保已完成训练或运行: sage finetune merge {model_name}"
                     )
-                
+
                 # 尝试自动合并
                 try:
                     console.print("[cyan]正在合并 LoRA 权重...[/cyan]")
                     from sage.tools.finetune.service import merge_lora_weights
-                    
+
                     # 读取 meta 获取基础模型
                     meta_file = finetune_dir / "finetune_meta.json"
                     if meta_file.exists():
                         import json
+
                         with open(meta_file) as f:
                             meta = json.load(f)
                         base_model = meta.get("model", "")
                     else:
                         raise RuntimeError("未找到 meta 信息文件")
-                    
+
                     # 找到最新的 checkpoint
                     checkpoints = sorted(checkpoint_path.glob("checkpoint-*"))
                     if not checkpoints:
                         raise RuntimeError("未找到 checkpoint")
-                    
+
                     latest_checkpoint = checkpoints[-1]
                     merge_lora_weights(latest_checkpoint, base_model, merged_path)
                     console.print("[green]✅ 权重合并完成[/green]")
@@ -628,31 +632,39 @@ class ResponseGenerator:
                         f"自动合并失败: {merge_exc}\n"
                         f"请手动运行: sage finetune merge {model_name}"
                     ) from merge_exc
-            
+
             # 启动 vLLM 服务
             cmd = [
-                "python", "-m", "vllm.entrypoints.openai.api_server",
-                "--model", str(merged_path),
-                "--host", "0.0.0.0",
-                "--port", str(port),
-                "--gpu-memory-utilization", "0.9",
+                "python",
+                "-m",
+                "vllm.entrypoints.openai.api_server",
+                "--model",
+                str(merged_path),
+                "--host",
+                "0.0.0.0",
+                "--port",
+                str(port),
+                "--gpu-memory-utilization",
+                "0.9",
             ]
-            
+
             try:
                 self.vllm_process = subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
-                    universal_newlines=True
+                    universal_newlines=True,
                 )
             except Exception as exc:
                 raise RuntimeError(f"启动 vLLM 服务失败: {exc}") from exc
-            
+
             # 等待服务启动
             console.print("[cyan]⏳ 等待服务启动（最多 60 秒）...[/cyan]")
             for i in range(60):
                 try:
-                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
+                    response = requests.get(
+                        f"http://localhost:{port}/health", timeout=1
+                    )
                     if response.status_code == 200:
                         console.print("[green]✅ vLLM 服务启动成功！[/green]\n")
                         break
@@ -663,26 +675,27 @@ class ResponseGenerator:
                 if self.vllm_process:
                     self.vllm_process.terminate()
                 raise RuntimeError("vLLM 服务启动超时（60秒）")
-            
+
             # 读取实际的模型名称
             meta_file = finetune_dir / "finetune_meta.json"
             if meta_file.exists():
                 import json
+
                 with open(meta_file) as f:
                     meta = json.load(f)
                 model_to_use = meta.get("model", str(merged_path))
             else:
                 model_to_use = str(merged_path)
-        
+
         # 设置 OpenAI 客户端连接到本地 vLLM
         try:
             from sage.libs.utils.openaiclient import OpenAIClient
-            
+
             self.client = OpenAIClient(
                 model_name=model_to_use or str(merged_path),
                 base_url=f"http://localhost:{port}/v1",
                 api_key="EMPTY",
-                seed=42
+                seed=42,
             )
             self.model = model_to_use or str(merged_path)
             console.print(f"[green]✅ 已连接到微调模型: {model_name}[/green]\n")
@@ -821,7 +834,9 @@ def _show_scenario_templates() -> None:
     """显示可用的场景模板"""
     console.print("\n[bold cyan]📚 可用场景模板：[/bold cyan]\n")
     for key, template in COMMON_SCENARIOS.items():
-        console.print(f"  [yellow]{key:10}[/yellow] - {template['name']}: {template['goal']}")
+        console.print(
+            f"  [yellow]{key:10}[/yellow] - {template['name']}: {template['goal']}"
+        )
     console.print()
 
 
@@ -839,7 +854,11 @@ def _looks_like_pipeline_request(message: str) -> bool:
     if has_verb and has_term:
         return True
 
-    if "llm" in lowered and "build" in lowered and ("app" in lowered or "application" in lowered):
+    if (
+        "llm" in lowered
+        and "build" in lowered
+        and ("app" in lowered or "application" in lowered)
+    ):
         return True
 
     return False
@@ -867,12 +886,12 @@ def _normalize_list_field(raw_value: str) -> List[str]:
 def _validate_pipeline_config(plan: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """
     验证生成的 Pipeline 配置是否合法
-    
+
     Returns:
         (is_valid, error_messages)
     """
     errors = []
-    
+
     # 检查必需的顶层字段
     if "pipeline" not in plan:
         errors.append("缺少 'pipeline' 字段")
@@ -884,7 +903,7 @@ def _validate_pipeline_config(plan: Dict[str, Any]) -> Tuple[bool, List[str]]:
             for required in ["name", "type"]:
                 if required not in pipeline:
                     errors.append(f"'pipeline' 缺少必需字段 '{required}'")
-    
+
     # 检查 source
     if "source" not in plan:
         errors.append("缺少 'source' 字段")
@@ -892,7 +911,7 @@ def _validate_pipeline_config(plan: Dict[str, Any]) -> Tuple[bool, List[str]]:
         errors.append("'source' 必须是字典类型")
     elif "class" not in plan["source"]:
         errors.append("'source' 缺少 'class' 字段")
-    
+
     # 检查 sink
     if "sink" not in plan:
         errors.append("缺少 'sink' 字段")
@@ -900,7 +919,7 @@ def _validate_pipeline_config(plan: Dict[str, Any]) -> Tuple[bool, List[str]]:
         errors.append("'sink' 必须是字典类型")
     elif "class" not in plan["sink"]:
         errors.append("'sink' 缺少 'class' 字段")
-    
+
     # 检查 stages（可选但如果存在需要是列表）
     if "stages" in plan:
         stages = plan["stages"]
@@ -914,56 +933,56 @@ def _validate_pipeline_config(plan: Dict[str, Any]) -> Tuple[bool, List[str]]:
                     for required in ["id", "kind", "class"]:
                         if required not in stage:
                             errors.append(f"stages[{idx}] 缺少必需字段 '{required}'")
-    
+
     return (len(errors) == 0, errors)
 
 
 def _check_class_imports(plan: Dict[str, Any]) -> List[str]:
     """
     检查配置中的类是否可以导入
-    
+
     Returns:
         List of import warnings
     """
     warnings = []
     classes_to_check = []
-    
+
     # 收集所有类名
     if "source" in plan and isinstance(plan["source"], dict):
         if "class" in plan["source"]:
             classes_to_check.append(("source", plan["source"]["class"]))
-    
+
     if "sink" in plan and isinstance(plan["sink"], dict):
         if "class" in plan["sink"]:
             classes_to_check.append(("sink", plan["sink"]["class"]))
-    
+
     if "stages" in plan and isinstance(plan["stages"], list):
         for idx, stage in enumerate(plan["stages"]):
             if isinstance(stage, dict) and "class" in stage:
                 classes_to_check.append((f"stages[{idx}]", stage["class"]))
-    
+
     # 尝试导入每个类
     for location, class_path in classes_to_check:
         if not class_path or not isinstance(class_path, str):
             continue
-            
+
         try:
             # 分割模块路径和类名
             parts = class_path.rsplit(".", 1)
             if len(parts) != 2:
                 warnings.append(f"{location}: 类路径格式不正确 '{class_path}'")
                 continue
-            
+
             module_path, class_name = parts
-            
+
             # 尝试导入（但不实际执行，只是检查语法）
             # 注意：这里只做基本检查，不执行真实导入以避免副作用
             if not module_path or not class_name:
                 warnings.append(f"{location}: 类路径 '{class_path}' 无效")
-                
+
         except Exception as exc:
             warnings.append(f"{location}: 类 '{class_path}' 可能无法导入 - {exc}")
-    
+
     return warnings
 
 
@@ -1027,28 +1046,38 @@ class PipelineChatCoordinator:
     def _collect_requirements(self, initial_request: str) -> Dict[str, Any]:
         console.print("\n[bold cyan]📋 需求收集[/bold cyan]", style="bold")
         console.print("请提供以下信息以生成最适合的 Pipeline 配置：\n", style="dim")
-        
+
         # 询问是否使用模板
         use_template = typer.confirm("是否使用预设场景模板？", default=False)
         template_data = None
-        
+
         if use_template:
             _show_scenario_templates()
-            template_key = typer.prompt(
-                "选择场景模板 (输入关键字，如 'qa', 'rag', 'chat' 等)",
-                default="qa"
-            ).strip().lower()
+            template_key = (
+                typer.prompt(
+                    "选择场景模板 (输入关键字，如 'qa', 'rag', 'chat' 等)", default="qa"
+                )
+                .strip()
+                .lower()
+            )
             template_data = _get_scenario_template(template_key)
             if template_data:
-                console.print(f"\n✅ 已加载 [green]{template_data['name']}[/green] 模板\n")
+                console.print(
+                    f"\n✅ 已加载 [green]{template_data['name']}[/green] 模板\n"
+                )
             else:
-                console.print(f"\n⚠️  未找到模板 '{template_key}'，将使用自定义配置\n", style="yellow")
-        
+                console.print(
+                    f"\n⚠️  未找到模板 '{template_key}'，将使用自定义配置\n",
+                    style="yellow",
+                )
+
         default_name = _default_pipeline_name(initial_request)
-        
+
         # 提示用户可以简化输入
-        console.print("💡 [dim]提示：直接回车将使用默认值（基于您的描述自动推断）[/dim]\n")
-        
+        console.print(
+            "💡 [dim]提示：直接回车将使用默认值（基于您的描述自动推断）[/dim]\n"
+        )
+
         # 如果有模板，使用模板的默认值
         if template_data:
             name = typer.prompt("📛 Pipeline 名称", default=template_data["name"])
@@ -1058,23 +1087,27 @@ class PipelineChatCoordinator:
             default_constraints = template_data["constraints"]
         else:
             name = typer.prompt("📛 Pipeline 名称", default=default_name)
-            goal = typer.prompt("🎯 Pipeline 目标描述", default=initial_request.strip() or default_name)
+            goal = typer.prompt(
+                "🎯 Pipeline 目标描述", default=initial_request.strip() or default_name
+            )
             default_sources = "文档知识库"
             default_latency = "实时响应优先"
             default_constraints = ""
-        
+
         # 提供更详细的说明
         console.print("\n[dim]数据来源示例：文档知识库、用户输入、数据库、API 等[/dim]")
         data_sources = typer.prompt(
             "📦 主要数据来源 (逗号分隔)", default=default_sources
         )
-        
-        console.print("\n[dim]延迟需求示例：实时响应优先、批处理可接受、高吞吐量优先[/dim]")
-        latency = typer.prompt(
-            "⚡ 延迟/吞吐需求", default=default_latency
+
+        console.print(
+            "\n[dim]延迟需求示例：实时响应优先、批处理可接受、高吞吐量优先[/dim]"
         )
-        
-        console.print("\n[dim]约束条件示例：仅使用本地模型、内存限制 4GB、必须支持流式输出[/dim]")
+        latency = typer.prompt("⚡ 延迟/吞吐需求", default=default_latency)
+
+        console.print(
+            "\n[dim]约束条件示例：仅使用本地模型、内存限制 4GB、必须支持流式输出[/dim]"
+        )
         constraints = typer.prompt("⚙️  特殊约束 (可留空)", default=default_constraints)
 
         requirements: Dict[str, Any] = {
@@ -1085,20 +1118,22 @@ class PipelineChatCoordinator:
             "constraints": constraints.strip(),
             "initial_prompt": initial_request.strip(),
         }
-        
+
         # 显示收集到的需求摘要
         console.print("\n[bold green]✅ 需求收集完成[/bold green]")
         summary_table = Table(show_header=False, box=None, padding=(0, 2))
         summary_table.add_row("名称:", f"[cyan]{requirements['name']}[/cyan]")
         summary_table.add_row("目标:", f"[yellow]{requirements['goal']}[/yellow]")
-        summary_table.add_row("数据源:", f"[magenta]{', '.join(requirements['data_sources'])}[/magenta]")
-        if requirements['latency_budget']:
-            summary_table.add_row("延迟需求:", requirements['latency_budget'])
-        if requirements['constraints']:
-            summary_table.add_row("约束条件:", requirements['constraints'])
+        summary_table.add_row(
+            "数据源:", f"[magenta]{', '.join(requirements['data_sources'])}[/magenta]"
+        )
+        if requirements["latency_budget"]:
+            summary_table.add_row("延迟需求:", requirements["latency_budget"])
+        if requirements["constraints"]:
+            summary_table.add_row("约束条件:", requirements["constraints"])
         console.print(summary_table)
         console.print()
-        
+
         return requirements
 
     def _build_config(self) -> pipeline_builder.BuilderConfig:
@@ -1117,7 +1152,7 @@ class PipelineChatCoordinator:
 
     def _generate_plan(self, requirements: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         console.print("\n[bold magenta]🤖 正在生成 Pipeline 配置...[/bold magenta]\n")
-        
+
         config = self._build_config()
         generator = pipeline_builder.PipelinePlanGenerator(config)
 
@@ -1126,27 +1161,28 @@ class PipelineChatCoordinator:
 
         for round_num in range(1, 7):  # 最多 6 轮
             console.print(f"[dim]>>> 第 {round_num} 轮生成...[/dim]")
-            
+
             try:
                 plan = generator.generate(requirements, plan, feedback)
                 console.print("[green]✓[/green] 生成成功\n")
             except pipeline_builder.PipelineBuilderError as exc:
                 console.print(f"[red]✗ 生成失败: {exc}[/red]\n")
-                
+
                 # 提供更详细的错误处理建议
                 if "API" in str(exc) or "key" in str(exc).lower():
                     console.print("[yellow]💡 建议：检查 API Key 是否正确配置[/yellow]")
                 elif "timeout" in str(exc).lower():
                     console.print("[yellow]💡 建议：网络可能不稳定，可以重试[/yellow]")
                 elif "JSON" in str(exc) or "parse" in str(exc).lower():
-                    console.print("[yellow]💡 建议：模型输出格式异常，尝试简化需求描述[/yellow]")
-                
+                    console.print(
+                        "[yellow]💡 建议：模型输出格式异常，尝试简化需求描述[/yellow]"
+                    )
+
                 if not typer.confirm("\n是否尝试重新生成？", default=True):
                     return None
-                    
+
                 feedback = typer.prompt(
-                    "请提供更多需求或修改建议（直接回车使用原需求重试）", 
-                    default=""
+                    "请提供更多需求或修改建议（直接回车使用原需求重试）", default=""
                 )
                 if not feedback.strip():
                     feedback = None
@@ -1156,26 +1192,30 @@ class PipelineChatCoordinator:
             console.print("[bold cyan]📄 生成的 Pipeline 配置：[/bold cyan]")
             pipeline_builder.render_pipeline_plan(plan)
             pipeline_builder.preview_pipeline_plan(plan)
-            
+
             # 验证配置
             console.print("\n[dim]>>> 正在验证配置...[/dim]")
             is_valid, errors = _validate_pipeline_config(plan)
-            
+
             if not is_valid:
                 console.print("[red]⚠️  配置验证发现问题：[/red]")
                 for error in errors:
                     console.print(f"  • [red]{error}[/red]")
-                console.print("\n[yellow]建议：在反馈中说明这些问题，让模型重新生成[/yellow]")
-                
-                if not typer.confirm("是否继续使用此配置（可能无法正常运行）？", default=False):
+                console.print(
+                    "\n[yellow]建议：在反馈中说明这些问题，让模型重新生成[/yellow]"
+                )
+
+                if not typer.confirm(
+                    "是否继续使用此配置（可能无法正常运行）？", default=False
+                ):
                     feedback = typer.prompt(
                         "请描述需要修正的问题或提供额外要求",
-                        default="请修复配置验证中发现的问题"
+                        default="请修复配置验证中发现的问题",
                     )
                     continue
             else:
                 console.print("[green]✓[/green] 配置验证通过")
-                
+
                 # 检查类导入（警告级别）
                 import_warnings = _check_class_imports(plan)
                 if import_warnings:
@@ -1183,8 +1223,12 @@ class PipelineChatCoordinator:
                     for warning in import_warnings[:5]:  # 最多显示5个
                         console.print(f"  • [yellow]{warning}[/yellow]")
                     if len(import_warnings) > 5:
-                        console.print(f"  [dim]... 还有 {len(import_warnings) - 5} 个警告[/dim]")
-                    console.print("[dim]提示：这些警告不一定导致运行失败，但建议检查[/dim]")
+                        console.print(
+                            f"  [dim]... 还有 {len(import_warnings) - 5} 个警告[/dim]"
+                        )
+                    console.print(
+                        "[dim]提示：这些警告不一定导致运行失败，但建议检查[/dim]"
+                    )
 
             if typer.confirm("\n✨ 对该配置满意吗？", default=True):
                 console.print("\n[bold green]🎉 Pipeline 配置已确认！[/bold green]\n")
@@ -1192,8 +1236,8 @@ class PipelineChatCoordinator:
 
             console.print("\n[yellow]⚙️  进入优化模式...[/yellow]")
             feedback = typer.prompt(
-                "请输入需要调整的地方（例如：使用流式输出、改用本地模型、添加监控）\n留空结束", 
-                default=""
+                "请输入需要调整的地方（例如：使用流式输出、改用本地模型、添加监控）\n留空结束",
+                default="",
             )
             if not feedback.strip():
                 console.print("[yellow]未提供调整意见，保持当前版本。[/yellow]")
@@ -1203,7 +1247,7 @@ class PipelineChatCoordinator:
         console.print("\n[yellow]⚠️  已达到最大优化轮数（6 轮）[/yellow]")
         if plan and typer.confirm("是否使用最后一次生成的配置？", default=True):
             return plan
-            
+
         return plan
 
     def handle(self, message: str) -> bool:
@@ -1214,21 +1258,25 @@ class PipelineChatCoordinator:
             return True
 
         # 显示欢迎信息和功能说明
-        console.print("\n" + "="*70)
-        console.print("[bold magenta]🚀 SAGE Pipeline Builder - 智能编排助手[/bold magenta]")
-        console.print("="*70)
-        console.print("""
+        console.print("\n" + "=" * 70)
+        console.print(
+            "[bold magenta]🚀 SAGE Pipeline Builder - 智能编排助手[/bold magenta]"
+        )
+        console.print("=" * 70)
+        console.print(
+            """
 [dim]功能说明：
   • 基于您的描述自动生成 SAGE Pipeline 配置
   • 使用 RAG 技术检索相关文档和示例
   • 支持多轮对话优化配置
   • 可直接运行生成的 Pipeline
 [/dim]
-        """)
-        
+        """
+        )
+
         console.print("🎯 [cyan]检测到 Pipeline 构建请求[/cyan]")
         console.print(f"📝 您的需求: [yellow]{message}[/yellow]\n")
-        
+
         # 收集需求
         requirements = self._collect_requirements(message)
 
@@ -1243,7 +1291,9 @@ class PipelineChatCoordinator:
         destination = typer.prompt(
             "保存到文件 (直接回车使用默认输出目录)", default=""
         ).strip()
-        output_path: Optional[Path] = Path(destination).expanduser() if destination else None
+        output_path: Optional[Path] = (
+            Path(destination).expanduser() if destination else None
+        )
         overwrite = False
         if output_path and output_path.exists():
             overwrite = typer.confirm("⚠️  目标文件已存在，是否覆盖？", default=False)
@@ -1267,10 +1317,15 @@ class PipelineChatCoordinator:
         pipeline_type = (plan.get("pipeline", {}).get("type") or "local").lower()
         host: Optional[str] = None
         port_value: Optional[int] = None
-        
+
         if pipeline_type == "remote":
-            console.print("\n[yellow]检测到远程 Pipeline，需要配置 JobManager 连接信息[/yellow]")
-            host = typer.prompt("远程 JobManager host", default="127.0.0.1").strip() or None
+            console.print(
+                "\n[yellow]检测到远程 Pipeline，需要配置 JobManager 连接信息[/yellow]"
+            )
+            host = (
+                typer.prompt("远程 JobManager host", default="127.0.0.1").strip()
+                or None
+            )
             port_text = typer.prompt("远程 JobManager 端口", default="19001").strip()
             try:
                 port_value = int(port_text)
@@ -1289,14 +1344,16 @@ class PipelineChatCoordinator:
                 console_override=console,
             )
             if job_id:
-                console.print(f"\n[bold green]✅ Pipeline 已提交，Job ID: {job_id}[/bold green]")
+                console.print(
+                    f"\n[bold green]✅ Pipeline 已提交，Job ID: {job_id}[/bold green]"
+                )
             else:
                 console.print("\n[bold green]✅ Pipeline 执行完成[/bold green]")
         except Exception as exc:
             console.print(f"\n[red]❌ Pipeline 执行失败: {exc}[/red]")
             console.print("\n[dim]提示：请检查配置文件和依赖项是否正确[/dim]")
-            
-        console.print("\n" + "="*70 + "\n")
+
+        console.print("\n" + "=" * 70 + "\n")
         return True
 
 
@@ -1360,9 +1417,12 @@ def interactive_chat(
     embedder: Optional[Any] = None
     db: Optional[Any] = None
     generator = ResponseGenerator(
-        backend, model, base_url, api_key,
+        backend,
+        model,
+        base_url,
+        api_key,
         finetune_model=finetune_model,
-        finetune_port=finetune_port
+        finetune_port=finetune_port,
     )
     pipeline_coordinator = PipelineChatCoordinator(backend, model, base_url, api_key)
 
@@ -1415,13 +1475,16 @@ def interactive_chat(
 
     # 显示帮助信息
     console.print("\n[bold cyan]🧭 SAGE Chat 使用指南[/bold cyan]")
-    
+
     # 显示当前配置
     if backend == "finetune":
-        console.print(f"[green]✅ 使用微调模型: {finetune_model or DEFAULT_FINETUNE_MODEL}[/green]")
+        console.print(
+            f"[green]✅ 使用微调模型: {finetune_model or DEFAULT_FINETUNE_MODEL}[/green]"
+        )
         console.print(f"[dim]端口: {finetune_port}[/dim]\n")
-    
-    console.print("""
+
+    console.print(
+        """
 [dim]基本命令：
   • 直接输入问题获取文档相关回答
   • 输入包含 'pipeline'、'构建应用' 等关键词触发 Pipeline 构建模式
@@ -1429,8 +1492,9 @@ def interactive_chat(
   • 输入 'templates' 查看可用场景模板
   • 输入 'exit'、'quit' 或 'q' 退出对话
 [/dim]
-    """)
-    
+    """
+    )
+
     try:
         while True:
             try:
@@ -1440,16 +1504,17 @@ def interactive_chat(
                 break
             if not question.strip():
                 continue
-                
+
             question_lower = question.lower().strip()
-            
+
             # 处理特殊命令
             if question_lower in {"exit", "quit", "q"}:
                 console.print("再见 👋", style="cyan")
                 break
             elif question_lower in {"help", "帮助", "?"}:
                 console.print("\n[bold cyan]📚 帮助信息[/bold cyan]")
-                console.print("""
+                console.print(
+                    """
 [dim]功能说明：
   1. 文档问答：直接提问关于 SAGE 的问题
   2. Pipeline 构建：描述你想要的应用场景
@@ -1465,17 +1530,20 @@ def interactive_chat(
   • templates - 查看可用场景模板
   • exit/quit - 退出对话
 [/dim]
-                """)
+                """
+                )
                 continue
             elif question_lower in {"templates", "模板"}:
                 _show_scenario_templates()
-                console.print("[dim]提示：在 Pipeline 构建流程中可以选择使用这些模板[/dim]\n")
+                console.print(
+                    "[dim]提示：在 Pipeline 构建流程中可以选择使用这些模板[/dim]\n"
+                )
                 continue
-                
+
             # 处理 Pipeline 构建请求
             if pipeline_coordinator.handle(question):
                 continue
-                
+
             # 处理普通问答
             answer_once(question)
     finally:
@@ -1632,13 +1700,13 @@ def ingest(
 
     # 构建 embedding 配置（新接口会自动处理默认值）
     embedding_config: Dict[str, object] = {"method": embedding_method, "params": {}}
-    
+
     # 设置方法特定参数
     if embedding_method == "mockembedder":
         embedding_config["params"]["fixed_dim"] = fixed_dim
     elif embedding_method == "hash":
         embedding_config["params"]["dim"] = fixed_dim
-    
+
     # 设置模型名称（如果提供）
     if embedding_model:
         embedding_config["params"]["model"] = embedding_model

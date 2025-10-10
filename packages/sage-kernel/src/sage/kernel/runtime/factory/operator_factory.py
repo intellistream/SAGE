@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING, Type
 
 if TYPE_CHECKING:
-    from sage.kernel.runtime.factory.function_factory import FunctionFactory
     from sage.kernel.api.operator.base_operator import BaseOperator
     from sage.kernel.runtime.context.task_context import TaskContext
+    from sage.kernel.runtime.factory.function_factory import FunctionFactory
 
 
 class OperatorFactory:
