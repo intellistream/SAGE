@@ -11,13 +11,13 @@ Scheduler Module - 分布式任务调度
 """
 
 from sage.kernel.scheduler.base import BaseScheduler
-from sage.kernel.scheduler.task_scheduler import TaskScheduler
-from sage.kernel.scheduler.resource_manager import ResourceManager
 from sage.kernel.scheduler.placement import (
     PlacementStrategy,
-    SimplePlacementStrategy,
     ResourceAwarePlacementStrategy,
+    SimplePlacementStrategy,
 )
+from sage.kernel.scheduler.resource_manager import ResourceManager
+from sage.kernel.scheduler.task_scheduler import TaskScheduler
 
 __all__ = [
     "BaseScheduler",

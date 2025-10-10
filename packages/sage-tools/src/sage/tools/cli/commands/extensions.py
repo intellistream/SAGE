@@ -359,7 +359,7 @@ def _copy_python_artifacts(ext_name: str, ext_dir: Path) -> None:
         return
 
     site_target_dir = platlib / site_rel
-    
+
     # 检查是否有写权限
     try:
         site_target_dir.mkdir(parents=True, exist_ok=True)
@@ -532,14 +532,16 @@ def _install_extension(
         return False
 
     print_success(f"{ext_name} 构建成功 ✓")
-    
+
     # 复制产物（权限错误不应导致失败，因为已经复制到项目目录）
     try:
         _copy_python_artifacts(ext_name, ext_dir)
     except Exception as exc:
         # 如果是权限错误，只是警告，不视为失败
         if isinstance(exc, (PermissionError, OSError)):
-            print_warning(f"复制扩展产物到 site-packages 时权限不足（已安装到项目目录）: {exc}")
+            print_warning(
+                f"复制扩展产物到 site-packages 时权限不足（已安装到项目目录）: {exc}"
+            )
         else:
             print_warning(f"复制扩展产物时发生问题: {exc}")
             # 对于其他错误，仍然视为失败

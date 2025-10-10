@@ -1,11 +1,9 @@
+import json
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-import json
-
 import pytest
-
 from sage.common.model_registry import vllm_registry
 
 
@@ -22,7 +20,9 @@ def _force_tmp_root(tmp_path, monkeypatch):
 
 
 def test_download_and_manifest_roundtrip(tmp_path):
-    with patch.object(vllm_registry, "snapshot_download", side_effect=_fake_snapshot_download):
+    with patch.object(
+        vllm_registry, "snapshot_download", side_effect=_fake_snapshot_download
+    ):
         info = vllm_registry.download_model("intellistream/test-model", revision="main")
 
     assert info.model_id == "intellistream/test-model"
@@ -42,7 +42,9 @@ def test_download_and_manifest_roundtrip(tmp_path):
 
 
 def test_ensure_model_available_auto_download(tmp_path):
-    with patch.object(vllm_registry, "snapshot_download", side_effect=_fake_snapshot_download):
+    with patch.object(
+        vllm_registry, "snapshot_download", side_effect=_fake_snapshot_download
+    ):
         path = vllm_registry.ensure_model_available(
             "intellistream/new-model",
             auto_download=True,
@@ -51,7 +53,9 @@ def test_ensure_model_available_auto_download(tmp_path):
 
 
 def test_delete_model_removes_manifest(tmp_path):
-    with patch.object(vllm_registry, "snapshot_download", side_effect=_fake_snapshot_download):
+    with patch.object(
+        vllm_registry, "snapshot_download", side_effect=_fake_snapshot_download
+    ):
         vllm_registry.download_model("intellistream/delete-me")
 
     assert vllm_registry.list_models()

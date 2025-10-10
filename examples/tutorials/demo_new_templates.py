@@ -5,9 +5,8 @@
 """
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.markdown import Markdown
-
+from rich.panel import Panel
 from sage.tools.templates.catalog import get_template, list_templates
 
 console = Console()
@@ -171,12 +170,8 @@ for match in matches:
     console.print("✅ 总结", style="bold blue")
     console.print(f"{'='*80}", style="bold blue")
 
-    console.print(
-        f"\n已展示 {len(new_template_ids)} 个新增模板", style="bold green"
-    )
-    console.print(
-        f"总计 {len(list_templates())} 个可用模板", style="bold cyan"
-    )
+    console.print(f"\n已展示 {len(new_template_ids)} 个新增模板", style="bold green")
+    console.print(f"总计 {len(list_templates())} 个可用模板", style="bold cyan")
     console.print(
         "\n💡 提示: 使用 'sage chat' 命令可以自动匹配最合适的模板！",
         style="bold yellow",

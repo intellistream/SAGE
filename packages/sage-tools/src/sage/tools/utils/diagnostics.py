@@ -13,10 +13,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+from packaging.version import parse as parse_version
 from rich.console import Console
 from rich.table import Table
-from packaging.version import parse as parse_version
-
 
 DEFAULT_DEPENDENCIES: Dict[str, str] = {
     "intellistream-sage-kernel": "0.1.5",

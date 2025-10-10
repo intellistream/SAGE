@@ -9,11 +9,11 @@ This module provides a consistent API for different embedding providers:
 
 Quick Start:
     >>> from sage.common.components.sage_embedding import get_embedding_model
-    >>> 
+    >>>
     >>> # Create an embedding model
     >>> emb = get_embedding_model("hash", dim=384)
     >>> vec = emb.embed("hello world")
-    >>> 
+    >>>
     >>> # List available methods
     >>> from sage.common.components.sage_embedding import list_embedding_models
     >>> models = list_embedding_models()
@@ -32,13 +32,13 @@ except ImportError:
 
 # 新架构：统一的 embedding 接口
 from .base import BaseEmbedding
-from .registry import EmbeddingRegistry, ModelStatus, ModelInfo
 from .factory import (
     EmbeddingFactory,
+    check_model_availability,
     get_embedding_model,
     list_embedding_models,
-    check_model_availability,
 )
+from .registry import EmbeddingRegistry, ModelInfo, ModelStatus
 
 # 只导入轻量级的 wrappers，其他使用延迟导入
 from .wrappers.hash_wrapper import HashEmbedding
@@ -51,11 +51,11 @@ from .wrappers.mock_wrapper import MockEmbedding
 # 注册所有 embedding 方法
 def _register_all_methods():
     """注册所有内置的 embedding 方法
-    
+
     使用延迟导入 wrapper_class，通过传递字符串路径而不是类对象。
     这样可以避免在模块加载时就导入所有重量级依赖。
     """
-    
+
     # Hash Embedding - 轻量级，直接导入
     EmbeddingRegistry.register(
         method="hash",
@@ -67,7 +67,7 @@ def _register_all_methods():
         default_dimension=384,
         example_models=["hash-384", "hash-768"],
     )
-    
+
     # Mock Embedder - 轻量级，直接导入
     EmbeddingRegistry.register(
         method="mock_embedder",
@@ -79,10 +79,10 @@ def _register_all_methods():
         default_dimension=128,
         example_models=["mock-128", "mock-384"],
     )
-    
+
     # 以下使用字符串路径进行延迟注册，避免导入重量级依赖
     # 实际导入会在 EmbeddingFactory.create() 时进行
-    
+
     # HuggingFace Models
     EmbeddingRegistry.register(
         method="hf",
@@ -100,7 +100,7 @@ def _register_all_methods():
             "sentence-transformers/all-mpnet-base-v2",
         ],
     )
-    
+
     # OpenAI Embedding
     EmbeddingRegistry.register(
         method="openai",
@@ -116,7 +116,7 @@ def _register_all_methods():
             "text-embedding-ada-002",
         ],
     )
-    
+
     # Jina Embedding
     EmbeddingRegistry.register(
         method="jina",
@@ -131,7 +131,7 @@ def _register_all_methods():
             "jina-embeddings-v2-base-en",
         ],
     )
-    
+
     # Zhipu Embedding
     EmbeddingRegistry.register(
         method="zhipu",
@@ -146,7 +146,7 @@ def _register_all_methods():
             "embedding-2",
         ],
     )
-    
+
     # Cohere Embedding
     EmbeddingRegistry.register(
         method="cohere",
@@ -162,7 +162,7 @@ def _register_all_methods():
             "embed-multilingual-light-v3.0",
         ],
     )
-    
+
     # AWS Bedrock Embedding
     EmbeddingRegistry.register(
         method="bedrock",
@@ -178,7 +178,7 @@ def _register_all_methods():
             "cohere.embed-multilingual-v3",
         ],
     )
-    
+
     # Ollama Embedding
     EmbeddingRegistry.register(
         method="ollama",
@@ -194,7 +194,7 @@ def _register_all_methods():
             "all-minilm",
         ],
     )
-    
+
     # SiliconCloud Embedding
     EmbeddingRegistry.register(
         method="siliconcloud",
@@ -210,7 +210,7 @@ def _register_all_methods():
             "BAAI/bge-base-en-v1.5",
         ],
     )
-    
+
     # NVIDIA OpenAI Embedding
     EmbeddingRegistry.register(
         method="nvidia_openai",
@@ -226,6 +226,7 @@ def _register_all_methods():
         ],
     )
 
+
 # 执行注册
 _register_all_methods()
 
@@ -236,22 +237,19 @@ from .embedding_model import EmbeddingModel, apply_embedding_model
 # Service interface (新增)
 from .service import EmbeddingService, EmbeddingServiceConfig
 
-
 # 统一导出接口
 __all__ = [
     # Service interface (新增 - 推荐用于 pipelines)
-    "EmbeddingService",              # ⭐ Service 主要 API
+    "EmbeddingService",  # ⭐ Service 主要 API
     "EmbeddingServiceConfig",
-    
     # 新架构（推荐使用 - 用于standalone）
     "BaseEmbedding",
     "EmbeddingRegistry",
     "EmbeddingFactory",
     "ModelStatus",
-    "get_embedding_model",           # ⭐ 主要 API
-    "list_embedding_models",         # ⭐ 模型发现
-    "check_model_availability",      # ⭐ 状态检查
-    
+    "get_embedding_model",  # ⭐ 主要 API
+    "list_embedding_models",  # ⭐ 模型发现
+    "check_model_availability",  # ⭐ 状态检查
     # Wrappers（高级用途）
     "HashEmbedding",
     "MockEmbedding",
@@ -264,7 +262,6 @@ __all__ = [
     "OllamaEmbedding",
     "SiliconCloudEmbedding",
     "NvidiaOpenAIEmbedding",
-    
     # 向后兼容（旧代码仍可使用）
     "EmbeddingModel",
     "apply_embedding_model",
