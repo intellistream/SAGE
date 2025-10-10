@@ -1,5 +1,28 @@
-# SAGE 示例集合 (sage-examples)
+# SAGE 示例集合
 
+## 📦 依赖安装
+
+部分示例需要额外的依赖包。推荐使用以下方式安装：
+
+```bash
+# 方法1：通过 sage-apps 安装应用相关依赖（推荐）
+pip install -e packages/sage-apps[all]  # 所有应用
+pip install -e packages/sage-apps[video]  # 仅视频应用
+pip install -e packages/sage-apps[medical]  # 仅医疗应用
+
+# 方法2：通过 sage-libs 安装库相关依赖
+pip install -e packages/sage-libs[examples]
+
+# 方法3：使用 requirements.txt（适用于 CI/CD 环境）
+pip install -r examples/requirements.txt
+```
+
+**各类示例的依赖说明**：
+- **应用示例** (`examples/apps/`): 使用 `sage-apps` 包，需要 `pip install -e packages/sage-apps[all]`
+- **RAG 示例** (`examples/rag/`): 核心依赖已包含在 `sage-libs` 中
+- **教程示例** (`examples/tutorials/`): 大部分无需额外依赖
+
+**注意**: 如果您使用 `./quickstart.sh --dev --yes` 安装了完整的开发环境，大部分依赖已经安装。
 本目录包含了SAGE框架的各种示例，采用**简单明了**的功能分类，方便用户快速找到需要的示例。
 
 ## ⚠️ 重要说明：Examples vs Tests
@@ -12,7 +35,22 @@
 
 如果您要编写或运行测试，请使用相应的测试目录，而不是examples目录。
 
-## 📚 目录结构
+## � 依赖安装
+
+部分示例需要额外的依赖包。您可以选择性安装：
+
+```bash
+# 安装所有示例依赖（推荐）
+pip install -r examples/requirements.txt
+
+# 或者仅安装特定示例的依赖
+# 视频处理示例需要：opencv-python, torch, torchvision, transformers
+pip install opencv-python torch torchvision transformers
+```
+
+**注意**: 如果您使用 `./quickstart.sh --dev --yes` 安装了完整的开发环境，大部分依赖已经安装。
+
+## �📚 目录结构
 
 ```
 examples/
@@ -65,6 +103,14 @@ cd agents && python agent_workflow_demo.py
 cd service && python sage_flow_example.py
 ```
 
+### 🛡️ 容错机制开发者
+```bash
+# 容错策略演示（Checkpoint、重启策略等）
+python fault_tolerance_demo.py
+```
+
+> **💡 说明**: 容错机制对应用用户是透明的，只需在配置文件中声明容错策略即可。开发者可以通过扩展 `BaseFaultHandler` 实现自定义容错策略。
+
 ## 🔧 路径配置
 
 ### Python代码中的配置引用
@@ -86,6 +132,7 @@ source:
 - [Memory服务示例](memory/README_memory_service.md) - Memory特性与RAG集成指南
 - [SageDB服务](service/sage_db/README.md) - 数据库服务示例
 - [SageFlow服务](service/sage_flow/README.md) - 流处理服务示例
+- [视频智能应用演示](video/README_intelligence_demo.md) - 多模型融合的视频分析Pipeline
 - [清理记录](CLEANUP_NOTES.md) - Examples vs Tests 清理记录
 
 ---

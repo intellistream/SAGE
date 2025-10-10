@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 
@@ -9,7 +9,7 @@ name = "isage"
 dynamic = ["version"]
 description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn"}
 ]
@@ -29,6 +29,7 @@ dependencies = [
     "isage-middleware>=0.1.0",  # CLI chat命令需要
     "isage-libs>=0.1.0",       # 应用包组件
     "isage-tools[cli]>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
+    "isage-studio>=0.1.0",     # Studio低代码界面
     # 数据科学基础库
     "numpy>=1.26.0,<2.3.0",  # 兼容vllm/numba约束，同时兼顾离线环境预置版本
     "pandas>=1.3.0",

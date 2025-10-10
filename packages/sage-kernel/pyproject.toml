@@ -2,6 +2,7 @@
 requires = [
     "setuptools>=64",
     "wheel",
+    "packaging>=24.2",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -13,6 +14,7 @@ dynamic = ["version"]
 description = "SAGE Kernel Module - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
 authors = [
     { name = "IntelliStream Team", email = "intellistream@outlook.com" },
 ]
@@ -74,7 +76,6 @@ dependencies = [
     "prompt_toolkit>=3.0.50",
     "filelock>=3.16.1",  # vllm兼容版本
 ]
-license = "MIT"
 
 [project.optional-dependencies]
 # 开发依赖

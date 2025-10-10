@@ -402,16 +402,24 @@ jobs:
       - name: Build SAGE Packages
         run: |
           echo "📦 构建SAGE wheel包..."
-          if sage dev pypi build; then
-            echo "✅ 包构建完成"
-            
-            # 显示构建的文件
-            echo "📋 构建的包文件:"
-            find packages/sage/dist/ -name "*.whl" -o -name "*.tar.gz" | sort
-          else
-            echo "❌ 包构建失败"
-            exit 1
-          fi
+          echo "ℹ️  已通过 'sage dev pypi validate' 步骤构建所有包"
+          
+          # 显示所有构建的文件
+          echo "📋 所有构建的包文件:"
+          find packages/*/dist/ -name "*.whl" | sort
+          
+          # 验证所有必需的包都已构建
+          echo ""
+          echo "� 验证必需的包:"
+          for pkg in sage-common sage-kernel sage-middleware sage-libs sage-tools sage; do
+            if ls packages/${pkg}/dist/*.whl 1> /dev/null 2>&1; then
+              echo "  ✅ ${pkg}: $(ls packages/${pkg}/dist/*.whl | xargs -n1 basename)"
+            else
+              echo "  ❌ ${pkg}: 未找到wheel文件"
+              exit 1
+            fi
+          done
+          echo "✅ 所有包构建完成"
 
       - name: Test Package Installation
         run: |
