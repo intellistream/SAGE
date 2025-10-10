@@ -121,7 +121,7 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
         self.summarizer = None
         if summarizer_model:
             if hf_pipeline is None:
-                logger = CustomLogger("SlidingWindowSummaryEmitter")
+                logger = CustomLogger(outputs=[("console", "INFO")], name="SlidingWindowSummaryEmitter")
                 logger.warning(
                     "transformers is not installed; summariser '%s' cannot be loaded. Falling back to template summaries.",
                     summarizer_model,
@@ -135,7 +135,7 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
                         device=device,
                     )
                 except Exception as exc:  # pragma: no cover - optional model
-                    logger = CustomLogger("SlidingWindowSummaryEmitter")
+                    logger = CustomLogger(outputs=[("console", "INFO")], name="SlidingWindowSummaryEmitter")
                     logger.warning(
                         "Failed to load summariser '%s': %s. Falling back to template summaries.",
                         summarizer_model,

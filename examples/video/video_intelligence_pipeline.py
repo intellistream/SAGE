@@ -25,6 +25,12 @@ import yaml
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 
+# Helper function to get logger
+def get_logger(name: str) -> CustomLogger:
+    """Get a CustomLogger instance with the given name."""
+    return CustomLogger(outputs=[("console", "INFO")], name=name)
+
+
 try:  # Optional middleware components
     from sage.middleware.components.neuromem.micro_service.neuromem_vdb_service import (
         NeuroMemVDBService,
@@ -182,7 +188,7 @@ def build_pipeline(env: LocalEnvironment, config: Dict[str, Any]) -> None:
     output_cfg = config.get("output", {})
     integrations_cfg = config.get("integrations", {})
 
-    logger = CustomLogger("video_intelligence_pipeline")
+    logger = get_logger("video_intelligence_pipeline")
 
     # ------------------------------------------------------------------
     # Service registrations (SageDB, SageFlow, NeuroMem)
@@ -461,11 +467,10 @@ def main() -> None:
     env = LocalEnvironment("video_intelligence_demo")
     build_pipeline(env, config)
 
-    CustomLogger("video_intelligence_demo").info(
-        "Starting pipeline on video '%s'", video_path
-    )
+    logger = get_logger("video_intelligence_demo")
+    logger.info("Starting pipeline on video '%s'", video_path)
     env.submit()
-    CustomLogger("video_intelligence_demo").info("Pipeline execution completed")
+    logger.info("Pipeline execution completed")
 
 
 if __name__ == "__main__":  # pragma: no cover

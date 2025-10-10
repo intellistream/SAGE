@@ -35,7 +35,7 @@ class VideoFrameSource(BatchFunction):
         self.fps = float(fps if fps > 0 else 30.0)
         self.frame_cursor = 0
         self.frames_emitted = 0
-        self.logger = CustomLogger()
+        self.logger = CustomLogger(outputs=[("console", "INFO")], name="VideoFrameSource")
 
     def execute(self) -> Optional[Dict[str, Any]]:
         if not self.cap or not self.cap.isOpened():
