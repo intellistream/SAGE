@@ -11,11 +11,21 @@ SAGE RAG Examples - 检索增强生成示例
 """RAG implementations for benchmarking.
 
 This module contains various RAG implementation approaches for performance comparison:
+
+Pipelines (pipelines/):
 - Dense retrieval (ChromaDB, Milvus, FAISS)
 - Sparse retrieval (BM25, Milvus sparse)
 - Hybrid retrieval (dense + sparse)
-- Multimodal fusion
+- Multimodal fusion (text + image + video)
 - Reranking strategies
+- Query refinement
+
+Tools (tools/):
+- Index building utilities (ChromaDB, Milvus)
+- Document loaders
+- Data preparation scripts
+
+See subdirectory READMEs for detailed usage.
 """
 
 __all__ = []

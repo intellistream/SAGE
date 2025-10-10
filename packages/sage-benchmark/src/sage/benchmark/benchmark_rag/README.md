@@ -13,12 +13,16 @@ SAGE RAG benchmarking 框架提供了一套完整的 RAG 系统性能评估工�
 ```
 benchmark_rag/
 ├── implementations/     # RAG 实现方案
-│   ├── qa_dense_retrieval_milvus.py   # Milvus 密集检索
-│   ├── qa_sparse_retrieval_milvus.py  # Milvus 稀疏检索
-│   ├── qa_hybrid_retrieval_milvus.py  # 混合检索
-│   ├── qa_multimodal_fusion.py        # 多模态融合
-│   ├── build_chroma_index.py          # ChromaDB 索引构建
-│   └── loaders/                       # 文档加载器
+│   ├── pipelines/      # RAG pipeline 实现
+│   │   ├── qa_dense_retrieval_milvus.py   # Milvus 密集检索
+│   │   ├── qa_sparse_retrieval_milvus.py  # Milvus 稀疏检索
+│   │   ├── qa_hybrid_retrieval_milvus.py  # 混合检索
+│   │   ├── qa_multimodal_fusion.py        # 多模态融合
+│   │   └── ...
+│   └── tools/          # 辅助工具
+│       ├── build_chroma_index.py          # ChromaDB 索引构建
+│       ├── build_milvus_dense_index.py    # Milvus 密集索引
+│       └── loaders/                       # 文档加载器
 ├── evaluation/          # 评测框架
 │   ├── pipeline_experiment.py         # 实验管道
 │   ├── evaluate_results.py            # 结果评估
@@ -92,30 +96,38 @@ Benchmark 使用的评估数据主要来自 [Self-RAG 仓库](https://github.com
 
 ## 使用方法
 
-### 1. 运行 RAG 实现
+### 1. 准备数据和索引
+
+首先构建向量索引：
+```bash
+# Build ChromaDB index
+python -m sage.benchmark.benchmark_rag.implementations.tools.build_chroma_index
+
+# Build Milvus dense index
+python -m sage.benchmark.benchmark_rag.implementations.tools.build_milvus_dense_index
+```
+
+### 2. 运行 RAG Pipeline
 
 ```bash
 # Dense retrieval with Milvus
-python -m sage.benchmark.benchmark_rag.implementations.qa_dense_retrieval_milvus
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_dense_retrieval_milvus
 
 # Sparse retrieval with Milvus
-python -m sage.benchmark.benchmark_rag.implementations.qa_sparse_retrieval_milvus
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_sparse_retrieval_milvus
 
 # Hybrid retrieval
-python -m sage.benchmark.benchmark_rag.implementations.qa_hybrid_retrieval_milvus
-
-# Build ChromaDB index
-python -m sage.benchmark.benchmark_rag.implementations.build_chroma_index
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_hybrid_retrieval_milvus
 ```
 
-### 2. 运行 Benchmark 实验
+### 3. 运行 Benchmark 实验
 
 使用默认配置文件运行实验：
 ```bash
 python -m sage.benchmark.benchmark_rag.evaluation.pipeline_experiment
 ```
 
-### 3. 配置文件设置
+### 4. 配置文件设置
 
 编辑 `evaluation/config/experiment_config.yaml`:
 

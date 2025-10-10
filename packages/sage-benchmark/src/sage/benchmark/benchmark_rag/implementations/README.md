@@ -1,7 +1,98 @@
 
-# SAGE RAG 示例项目说明
+# RAG Implementations
 
-本目录包含一系列与 RAG（Retrieval-Augmented Generation，检索增强生成）相关的 Python 示例脚本，涵盖了密集检索、稀疏检索、混合检索、知识预加载、重排序、Refiner、无检索等典型场景，便于开发者快速理解和测试 SAGE 框架下的 RAG 能力。
+Various RAG (Retrieval-Augmented Generation) implementations for performance benchmarking.
+
+## 📁 Directory Structure
+
+```
+implementations/
+├── pipelines/              # RAG pipeline implementations
+│   ├── Dense Retrieval
+│   │   ├── qa_dense_retrieval.py
+│   │   ├── qa_dense_retrieval_milvus.py
+│   │   ├── qa_dense_retrieval_chroma.py
+│   │   └── qa_dense_retrieval_ray.py
+│   ├── Sparse Retrieval
+│   │   ├── qa_bm25_retrieval.py
+│   │   └── qa_sparse_retrieval_milvus.py
+│   ├── Hybrid & Advanced
+│   │   ├── qa_rerank.py
+│   │   ├── qa_refiner.py
+│   │   └── qa_multiplex.py
+│   └── Multimodal
+│       └── qa_multimodal_fusion.py
+│
+└── tools/                  # Supporting tools
+    ├── build_chroma_index.py
+    ├── build_milvus_dense_index.py
+    ├── build_milvus_sparse_index.py
+    └── loaders/
+```
+
+## 🚀 Quick Start
+
+### Run a RAG Pipeline
+
+```bash
+# Dense retrieval with Milvus
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_dense_retrieval_milvus
+
+# Sparse retrieval with BM25
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_bm25_retrieval
+
+# Multimodal fusion
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_multimodal_fusion
+```
+
+### Build Vector Index
+
+```bash
+# Build ChromaDB index
+python -m sage.benchmark.benchmark_rag.implementations.tools.build_chroma_index
+
+# Build Milvus dense index
+python -m sage.benchmark.benchmark_rag.implementations.tools.build_milvus_dense_index
+```
+
+## 📊 Implementation Categories
+
+### Dense Retrieval
+Uses embedding-based similarity search:
+- Basic dense retrieval
+- Milvus-based
+- ChromaDB-based
+- Distributed with Ray
+
+### Sparse Retrieval
+Uses keyword-based methods:
+- BM25 retrieval
+- Milvus sparse vectors
+
+### Hybrid Methods
+Combines multiple approaches:
+- Reranking strategies
+- Query refinement
+- Mixed retrieval
+
+### Multimodal
+Handles multiple data types:
+- Text + Image + Video fusion
+
+## 🔧 Configuration
+
+All pipelines use YAML configuration files from `../config/`:
+- Vector database settings
+- Embedding model parameters
+- Retrieval hyperparameters
+
+See `../config/README.md` for details.
+
+## 📖 Documentation
+
+- **Pipelines**: See `pipelines/README.md`
+- **Tools**: See `tools/README.md`
+- **Multimodal**: See `README_multimodal_fusion.md`
 
 ## 🌟 新功能：多模态数据融合
 

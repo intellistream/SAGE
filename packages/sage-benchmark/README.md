@@ -20,13 +20,16 @@ sage-benchmark/
 │           ├── __init__.py
 │           └── benchmark_rag/           # RAG benchmarking
 │               ├── __init__.py
-│               ├── implementations/     # Various RAG implementations
-│               │   ├── qa_dense_retrieval_milvus.py
-│               │   ├── qa_sparse_retrieval_milvus.py
-│               │   ├── qa_hybrid_retrieval_milvus.py
-│               │   ├── qa_multimodal_fusion.py
-│               │   ├── build_chroma_index.py
-│               │   └── loaders/
+│               ├── implementations/     # RAG implementations
+│               │   ├── pipelines/      # RAG pipeline scripts
+│               │   │   ├── qa_dense_retrieval_milvus.py
+│               │   │   ├── qa_sparse_retrieval_milvus.py
+│               │   │   ├── qa_multimodal_fusion.py
+│               │   │   └── ...
+│               │   └── tools/          # Supporting tools
+│               │       ├── build_chroma_index.py
+│               │       ├── build_milvus_dense_index.py
+│               │       └── loaders/
 │               ├── evaluation/          # Experiment framework
 │               │   ├── pipeline_experiment.py
 │               │   ├── evaluate_results.py
@@ -76,14 +79,18 @@ Various RAG approaches for performance comparison:
 
 ### Quick Start
 
-1. **Run a RAG implementation**:
+1. **Build vector index** (prerequisite):
 ```bash
-python -m sage.benchmark.benchmark_rag.implementations.qa_dense_retrieval_milvus
+python -m sage.benchmark.benchmark_rag.implementations.tools.build_chroma_index
 ```
 
-2. **Build vector index**:
+2. **Run a RAG pipeline**:
 ```bash
-python -m sage.benchmark.benchmark_rag.implementations.build_chroma_index
+# Dense retrieval with Milvus
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_dense_retrieval_milvus
+
+# Sparse retrieval
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_sparse_retrieval_milvus
 ```
 
 3. **Run benchmark experiments**:
