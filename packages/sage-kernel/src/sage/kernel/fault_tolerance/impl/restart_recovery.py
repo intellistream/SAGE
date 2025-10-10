@@ -7,17 +7,6 @@ Restart-based Fault Tolerance Strategy
 import time
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/recovery.py
-from sage.kernel.core.exceptions import RecoveryError
-from sage.kernel.core.types import JobID, TaskID
-from sage.kernel.fault_tolerance.base import BaseFaultHandler
-from sage.kernel.fault_tolerance.checkpoint import CheckpointManager
-from sage.kernel.fault_tolerance.restart import (
-    ExponentialBackoffStrategy,
-    RestartStrategy,
-)
-
-=======
 from sage.kernel.core.types import JobID, TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
@@ -25,53 +14,30 @@ from sage.kernel.fault_tolerance.impl.restart_strategy import (
     RestartStrategy,
 )
 
->>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/restart_recovery.py
-
 if TYPE_CHECKING:
     from sage.kernel.runtime.dispatcher import Dispatcher
 
 
 class RestartBasedRecovery(BaseFaultHandler):
     """
-<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/recovery.py
-    恢复管理器
-
-    处理任务和作业的故障恢复，整合重启策略和 checkpoint。
-=======
     基于重启的容错恢复策略
-    
+
     任务失败时直接重启，不保存中间状态。
     适用于无状态任务或短时间运行的任务。
->>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/restart_recovery.py
     """
 
     def __init__(
         self,
         restart_strategy: Optional[RestartStrategy] = None,
-<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/recovery.py
-        checkpoint_manager: Optional[CheckpointManager] = None,
-        enable_checkpoint: bool = False,
-    ):
-        """
-        初始化恢复管理器
-
-=======
     ):
         """
         初始化重启容错策略
-        
->>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/restart_recovery.py
+
         Args:
             restart_strategy: 重启策略（默认使用指数退避）
         """
         self.restart_strategy = restart_strategy or ExponentialBackoffStrategy()
-<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/recovery.py
-        self.checkpoint_manager = checkpoint_manager
-        self.enable_checkpoint = enable_checkpoint
 
-=======
-        
->>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/restart_recovery.py
         # 记录失败信息
         self.failure_counts: Dict[TaskID, int] = {}
         self.failure_history: Dict[TaskID, list] = {}
@@ -136,13 +102,8 @@ class RestartBasedRecovery(BaseFaultHandler):
 
     def recover(self, task_id: TaskID) -> bool:
         """
-<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/recovery.py
-        恢复任务
-
-=======
         重启任务
-        
->>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/restart_recovery.py
+
         Args:
             task_id: 要恢复的任务 ID
 
@@ -165,24 +126,7 @@ class RestartBasedRecovery(BaseFaultHandler):
 
         # 等待重启延迟
         time.sleep(delay)
-<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/recovery.py
 
-        # 如果启用了 checkpoint，尝试从 checkpoint 恢复
-        if self.enable_checkpoint and self.checkpoint_manager:
-            try:
-                state = self.checkpoint_manager.load_checkpoint(task_id)
-                if state:
-                    if self.logger:
-                        self.logger.info(f"Loaded checkpoint for task {task_id}")
-                    # TODO: 实际恢复状态的逻辑
-                    # Issue URL: https://github.com/intellistream/SAGE/issues/926
-            except Exception as e:
-                if self.logger:
-                    self.logger.warning(f"Failed to load checkpoint for {task_id}: {e}")
-
-=======
-        
->>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/restart_recovery.py
         # TODO: 实际重启任务的逻辑
         # Issue URL: https://github.com/intellistream/SAGE/issues/925
         # 这里应该调用任务的重启方法
