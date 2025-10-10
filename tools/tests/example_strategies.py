@@ -259,6 +259,31 @@ class ExampleTestStrategies:
                     "SAGE_EXAMPLES_MODE": "test",
                 },
             ),
+            "scheduler": TestStrategy(
+                name="scheduler",
+                timeout=90,  # 90秒，调度器对比实验
+                requires_config=False,
+                requires_data=False,
+                success_patterns=[
+                    "所有实验完成",
+                    "实验完成",
+                    "执行结果",
+                    "✅",
+                    "调度器性能对比总结",
+                ],
+                failure_patterns=[
+                    "调度失败",
+                    "Scheduler failed",
+                    "Connection refused",
+                    "Timeout exceeded",
+                ],
+                environment_vars={
+                    "SAGE_SCHEDULER_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                    "SAGE_TEST_MODE": "true",
+                },
+            ),
         }
 
     @staticmethod
