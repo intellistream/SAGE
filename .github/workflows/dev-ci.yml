@@ -412,6 +412,13 @@ jobs:
             echo "❌ 包构建失败"
             exit 1
           fi
+          
+          # 构建 sage-studio 包（tools 依赖它）
+          echo "📦 构建 sage-studio 包..."
+          cd packages/sage-studio
+          python -m build --wheel --outdir dist
+          cd ../..
+          echo "✅ sage-studio 包构建完成"
 
       - name: Test Package Installation
         run: |

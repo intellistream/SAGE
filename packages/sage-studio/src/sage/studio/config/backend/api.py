@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 
-def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str) -> dict:
+def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str, file_path: Path = None) -> dict:
     """将拓扑图数据转换为 Job 格式"""
     from datetime import datetime
 
@@ -59,8 +59,30 @@ def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str) -> dict:
         }
         operators.append(operator)
 
-    # 创建 Job 对象
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # 从文件名或文件元数据中提取创建时间
+    create_time = None
+    
+    # 方法1: 从文件名解析时间戳 (pipeline_1759908680.json)
+    if pipeline_id.startswith("pipeline_"):
+        try:
+            timestamp_str = pipeline_id.replace("pipeline_", "")
+            timestamp = int(timestamp_str)
+            create_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+        except (ValueError, OSError) as e:
+            print(f"Failed to parse timestamp from pipeline_id {pipeline_id}: {e}")
+    
+    # 方法2: 如果解析失败,使用文件的修改时间
+    if create_time is None and file_path and file_path.exists():
+        try:
+            mtime = file_path.stat().st_mtime
+            create_time = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            print(f"Failed to get file mtime for {file_path}: {e}")
+    
+    # 方法3: 兜底使用当前时间
+    if create_time is None:
+        create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     job = {
         "jobId": pipeline_id,
         "name": name,
@@ -68,7 +90,7 @@ def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str) -> dict:
         "nthreads": "1",
         "cpu": "0%",
         "ram": "0GB",
-        "startTime": current_time,
+        "startTime": create_time,
         "duration": "00:00:00",
         "nevents": 0,
         "minProcessTime": 0,
@@ -189,9 +211,9 @@ def _read_sage_data_from_files():
                 try:
                     with open(pipeline_file, "r", encoding="utf-8") as f:
                         pipeline_data = json.load(f)
-                        # 将拓扑图转换为 Job 格式
+                        # 将拓扑图转换为 Job 格式，传递文件路径以提取真实创建时间
                         job_from_pipeline = _convert_pipeline_to_job(
-                            pipeline_data, pipeline_file.stem
+                            pipeline_data, pipeline_file.stem, pipeline_file
                         )
                         data["jobs"].append(job_from_pipeline)
                 except Exception as e:
@@ -553,6 +575,286 @@ async def submit_pipeline(topology_data: dict):
 async def health_check():
     """健康检查"""
     return {"status": "healthy", "service": "SAGE Studio Backend"}
+
+
+# ==================== 管道详情相关端点 ====================
+# 用于支持前端 View Details 功能的占位符端点
+
+# 全局状态存储（生产环境应使用数据库）
+job_runtime_status = {}  # {job_id: {status, use_ray, isRunning, ...}}
+job_logs = {}  # {job_id: [log_lines]}
+job_configs_cache = {}  # {pipeline_id: yaml_config}
+user_queries = {}  # {job_id: [(query, answer), ...]}
+
+
+@app.get("/jobInfo/get/{job_id}")
+async def get_job_detail(job_id: str):
+    """获取作业详细信息 - 包含操作符拓扑结构"""
+    try:
+        # 首先尝试从已保存的数据中查找
+        sage_data = _read_sage_data_from_files()
+        jobs = sage_data.get("jobs", [])
+        
+        # 查找匹配的作业
+        job = next((j for j in jobs if j.get("jobId") == job_id), None)
+        
+        if job:
+            return job
+        
+        # 如果没有找到实际数据，返回占位符数据（用于开发）
+        print(f"Job {job_id} not found in saved data, returning placeholder")
+        return {
+            "jobId": job_id,
+            "name": f"管道 {job_id}",
+            "isRunning": False,
+            "nthreads": "4",
+            "cpu": "0%",
+            "ram": "0GB",
+            "startTime": "2025-10-10 15:00:00",
+            "duration": "00:00:00",
+            "nevents": 0,
+            "minProcessTime": 0,
+            "maxProcessTime": 0,
+            "meanProcessTime": 0,
+            "latency": 0,
+            "throughput": 0,
+            "ncore": 4,
+            "periodicalThroughput": [0],
+            "periodicalLatency": [0],
+            "totalTimeBreakdown": {
+                "totalTime": 0,
+                "serializeTime": 0,
+                "persistTime": 0,
+                "streamProcessTime": 0,
+                "overheadTime": 0,
+            },
+            "schedulerTimeBreakdown": {
+                "overheadTime": 0,
+                "streamTime": 0,
+                "totalTime": 0,
+                "txnTime": 0,
+            },
+            "operators": [
+                {
+                    "id": 1,
+                    "name": "FileSource",
+                    "numOfInstances": 1,
+                    "throughput": 0,
+                    "latency": 0,
+                    "explorationStrategy": "greedy",
+                    "schedulingGranularity": "batch",
+                    "abortHandling": "rollback",
+                    "numOfTD": 0,
+                    "numOfLD": 0,
+                    "numOfPD": 0,
+                    "lastBatch": 0,
+                    "downstream": [2],
+                },
+                {
+                    "id": 2,
+                    "name": "TerminalSink",
+                    "numOfInstances": 1,
+                    "throughput": 0,
+                    "latency": 0,
+                    "explorationStrategy": "greedy",
+                    "schedulingGranularity": "batch",
+                    "abortHandling": "rollback",
+                    "numOfTD": 0,
+                    "numOfLD": 0,
+                    "numOfPD": 0,
+                    "lastBatch": 0,
+                    "downstream": [],
+                },
+            ],
+        }
+    except Exception as e:
+        print(f"Error getting job detail: {e}")
+        raise HTTPException(status_code=500, detail=f"获取作业详情失败: {str(e)}")
+
+
+@app.get("/api/signal/status/{job_id}")
+async def get_job_status(job_id: str):
+    """获取作业运行状态"""
+    try:
+        # 从内存中获取状态
+        status = job_runtime_status.get(
+            job_id,
+            {
+                "job_id": job_id,
+                "status": "idle",
+                "use_ray": False,
+                "isRunning": False,
+            },
+        )
+        return status
+    except Exception as e:
+        print(f"Error getting job status: {e}")
+        raise HTTPException(status_code=500, detail=f"获取作业状态失败: {str(e)}")
+
+
+@app.post("/api/signal/start/{job_id}")
+async def start_job(job_id: str):
+    """启动作业"""
+    try:
+        # 更新运行状态
+        job_runtime_status[job_id] = {
+            "job_id": job_id,
+            "status": "running",
+            "use_ray": False,
+            "isRunning": True,
+        }
+        
+        # 初始化日志
+        if job_id not in job_logs:
+            job_logs[job_id] = []
+        
+        job_logs[job_id].append(f"[SYSTEM] Job {job_id} started at 2025-10-10 15:30:00")
+        
+        return {"status": "success", "message": f"作业 {job_id} 已启动"}
+    except Exception as e:
+        print(f"Error starting job: {e}")
+        raise HTTPException(status_code=500, detail=f"启动作业失败: {str(e)}")
+
+
+@app.post("/api/signal/stop/{job_id}/{duration}")
+async def stop_job(job_id: str, duration: str):
+    """停止作业"""
+    try:
+        # 更新运行状态
+        job_runtime_status[job_id] = {
+            "job_id": job_id,
+            "status": "stopped",
+            "use_ray": False,
+            "isRunning": False,
+        }
+        
+        # 添加停止日志
+        if job_id in job_logs:
+            job_logs[job_id].append(
+                f"[SYSTEM] Job {job_id} stopped after {duration}"
+            )
+        
+        return {"status": "success", "message": f"作业 {job_id} 已停止"}
+    except Exception as e:
+        print(f"Error stopping job: {e}")
+        raise HTTPException(status_code=500, detail=f"停止作业失败: {str(e)}")
+
+
+@app.get("/api/signal/sink/{job_id}")
+async def get_job_logs(job_id: str, offset: int = 0):
+    """获取作业日志（增量）"""
+    try:
+        # 获取该作业的日志
+        logs = job_logs.get(job_id, [])
+        
+        # 如果是第一次请求（offset=0）且没有日志，返回种子消息
+        if offset == 0 and len(logs) == 0:
+            seed_line = f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query."
+            job_logs[job_id] = [seed_line]
+            return {"offset": 1, "lines": [seed_line]}
+        
+        # 返回从 offset 开始的新日志
+        new_logs = logs[offset:]
+        new_offset = len(logs)
+        
+        return {"offset": new_offset, "lines": new_logs}
+    except Exception as e:
+        print(f"Error getting job logs: {e}")
+        raise HTTPException(status_code=500, detail=f"获取作业日志失败: {str(e)}")
+
+
+@app.get("/batchInfo/get/all/{job_id}/{operator_id}")
+async def get_all_batches(job_id: str, operator_id: str):
+    """获取操作符的所有批次信息"""
+    try:
+        # operator_id 可以是字符串（如 "s1", "r1"）或数字
+        # 返回空数组作为占位符
+        # 实际实现需要从 SAGE 运行时获取批次统计数据
+        print(f"Getting batches for job={job_id}, operator={operator_id}")
+        return []
+    except Exception as e:
+        print(f"Error getting batches: {e}")
+        raise HTTPException(status_code=500, detail=f"获取批次信息失败: {str(e)}")
+
+
+@app.get("/batchInfo/get/{job_id}/{batch_id}/{operator_id}")
+async def get_batch_detail(job_id: str, batch_id: int, operator_id: str):
+    """获取单个批次的详细信息"""
+    try:
+        # operator_id 可以是字符串（如 "s1", "r1"）或数字
+        # 返回占位符批次数据
+        return {
+            "batchId": batch_id,
+            "operatorId": operator_id,
+            "processTime": 0,
+            "tupleCount": 0,
+            "timestamp": "2025-10-10 15:30:00",
+        }
+    except Exception as e:
+        print(f"Error getting batch detail: {e}")
+        raise HTTPException(status_code=500, detail=f"获取批次详情失败: {str(e)}")
+
+
+@app.get("/jobInfo/config/{pipeline_id}")
+async def get_pipeline_config(pipeline_id: str):
+    """获取管道配置（YAML格式）"""
+    try:
+        # 尝试从缓存获取
+        if pipeline_id in job_configs_cache:
+            return {"config": job_configs_cache[pipeline_id]}
+        
+        # 返回默认配置模板
+        default_config = """# SAGE Pipeline Configuration
+name: Example RAG Pipeline
+version: 1.0.0
+
+operators:
+  - name: FileSource
+    type: source
+    config:
+      file_path: /data/documents.txt
+  
+  - name: SimpleRetriever
+    type: retriever
+    config:
+      top_k: 5
+  
+  - name: TerminalSink
+    type: sink
+    config:
+      output_path: /tmp/output.txt
+"""
+        return {"config": default_config}
+    except Exception as e:
+        print(f"Error getting pipeline config: {e}")
+        raise HTTPException(status_code=500, detail=f"获取管道配置失败: {str(e)}")
+
+
+@app.put("/jobInfo/config/update/{pipeline_id}")
+async def update_pipeline_config(pipeline_id: str, config: dict):
+    """更新管道配置"""
+    try:
+        # 保存配置到缓存
+        config_yaml = config.get("config", "")
+        job_configs_cache[pipeline_id] = config_yaml
+        
+        # 可选：保存到文件
+        sage_dir = _get_sage_dir()
+        config_dir = sage_dir / "configs"
+        config_dir.mkdir(exist_ok=True)
+        
+        config_file = config_dir / f"{pipeline_id}.yaml"
+        with open(config_file, "w", encoding="utf-8") as f:
+            f.write(config_yaml)
+        
+        return {
+            "status": "success",
+            "message": "配置更新成功",
+            "file_path": str(config_file),
+        }
+    except Exception as e:
+        print(f"Error updating pipeline config: {e}")
+        raise HTTPException(status_code=500, detail=f"更新管道配置失败: {str(e)}")
 
 
 if __name__ == "__main__":

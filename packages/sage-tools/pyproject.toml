@@ -42,6 +42,7 @@ dependencies = [
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-libs>=0.1.0",
+    "isage-studio>=0.1.0",  # Studio functionality
     # (故意不依赖 isage 元包以避免循环引用)
 
     # Tools-specific dependencies
@@ -138,12 +139,6 @@ web = [
     "isage-tools[frontend]",
 ]
 
-# Studio 低代码界面 (需要额外的 Node.js 环境)
-# 注意：Studio 的 npm 依赖通过 sage studio install 命令按需安装
-studio = [
-    # 仅包含必要的 Python 依赖，npm 依赖由安装命令处理
-]
-
 # 完整UI套件 (包含所有前端功能)
 ui = [
     "isage-tools[frontend]",
@@ -213,7 +208,6 @@ where = ["src"]
 [tool.setuptools.package-data]
 "sage.tools.cli" = ["py.typed", "templates/*.yaml"]  
 "sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
-"sage.tools.studio" = ["py.typed", "*.pyi", "templates/*.html", "static/*"]
 
 # Development tools configuration
 [tool.black]
