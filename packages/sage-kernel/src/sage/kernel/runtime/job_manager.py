@@ -12,7 +12,7 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.job_info import JobInfo
 from sage.kernel.runtime.job_manager_server import JobManagerServer
 from sage.kernel.runtime.dispatcher import Dispatcher
-from sage.kernel.fault_tolerance.recovery import RecoveryManager
+from sage.kernel.fault_tolerance.factory import create_fault_handler_from_config
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
@@ -58,9 +58,9 @@ class JobManager:  # Job Manager
             # 设置日志系统
             self.setup_logging_system()
             
-            # 初始化故障恢复管理器
-            self.recovery_manager = RecoveryManager()
-            self.recovery_manager.logger = self.logger
+            # JobManager 级别的容错配置（默认为空，具体策略由各个 job 的 dispatcher 处理）
+            # 这里可以设置全局默认配置
+            self.default_fault_tolerance_config = {}
 
             # 初始化内置daemon（如果启用）
             self.server = None
@@ -212,33 +212,31 @@ class JobManager:  # Job Manager
                 # 等待停止完成
                 time.sleep(1.0)
 
-            # 使用 RecoveryManager 进行作业恢复
-            recovery_result = self.recovery_manager.recover_job(
-                job_id=env_uuid,
-                dispatcher=job_info.dispatcher,
-                restart_count=job_info.restart_count
-            )
-            
-            if recovery_result["success"]:
+            # 重启 dispatcher（容错由 dispatcher 的 fault_handler 处理）
+            try:
+                dispatcher = job_info.dispatcher
+                dispatcher.start()
+                
                 job_info.restart_count += 1
                 job_info.update_status("running")
                 
                 self.logger.info(
-                    f"Job {env_uuid} recovered successfully (restart #{job_info.restart_count})"
+                    f"Job {env_uuid} restarted successfully (restart #{job_info.restart_count})"
                 )
                 
                 return {
                     "uuid": env_uuid,
                     "status": "running",
-                    "message": f"Job recovered successfully (restart #{job_info.restart_count})",
+                    "message": f"Job restarted successfully (restart #{job_info.restart_count})",
                 }
-            else:
-                job_info.update_status("failed", error=recovery_result.get("error", "Unknown error"))
-                self.logger.error(f"Failed to recover job {env_uuid}: {recovery_result.get('error')}")
+                
+            except Exception as restart_error:
+                job_info.update_status("failed", error=str(restart_error))
+                self.logger.error(f"Failed to restart job {env_uuid}: {restart_error}")
                 return {
                     "uuid": env_uuid,
                     "status": "failed",
-                    "message": f"Failed to recover job: {recovery_result.get('error')}",
+                    "message": f"Failed to restart job: {restart_error}",
                 }
 
         except Exception as e:

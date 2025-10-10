@@ -1,7 +1,7 @@
 """
-Actor 和 Task 生命周期管理
+Actor 和 Task 生命周期管理实现
 
-负责管理 Actor 和 Task 的创建、监控、清理和终止。
+负责管理 Actor 和 Task 的创建、监控、清理和终止的具体实现。
 """
 
 from typing import Dict, Any, Tuple, Optional, List
@@ -12,9 +12,9 @@ from sage.kernel.core.exceptions import FaultToleranceError
 from sage.kernel.core.constants import DEFAULT_CLEANUP_TIMEOUT
 
 
-class ActorLifecycleManager:
+class LifecycleManagerImpl:
     """
-    Actor 生命周期管理器
+    Actor 生命周期管理器实现
     
     负责管理 Ray Actor 和本地 Task 的生命周期。
     """
@@ -209,4 +209,4 @@ class ActorLifecycleManager:
         return False
 
 
-__all__ = ["ActorLifecycleManager"]
+__all__ = ["LifecycleManagerImpl"]
