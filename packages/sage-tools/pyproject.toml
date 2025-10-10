@@ -30,7 +30,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
     "Topic :: Utilities",
 ]
-license = "MIT"
+license = {text = "MIT"}
 
 # 核心依赖 - 包含tools特有的依赖和dev工具
 dependencies = [

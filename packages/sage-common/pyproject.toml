@@ -7,7 +7,7 @@ name = "isage-common"
 dynamic = ["version"]
 description = "SAGE Core Common Utilities"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "SAGE Team", email = "info@sage-ai.org"}
 ]
