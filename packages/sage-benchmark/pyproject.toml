@@ -1,0 +1,91 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage-benchmark"
+dynamic = ["version"]
+description = "SAGE Benchmark - RAG and experimental benchmarks for SAGE framework"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+]
+keywords = [
+    "sage",
+    "benchmark",
+    "rag",
+    "retrieval-augmented-generation",
+    "evaluation",
+    "experiments",
+    "intellistream",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+license = "MIT"
+
+# Core dependencies
+dependencies = [
+    # SAGE framework dependencies  
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-middleware>=0.1.0",
+    "isage-libs>=0.1.0",
+    
+    # RAG and benchmark dependencies
+    "pyyaml>=6.0",
+    "chromadb>=0.4.0",
+    "pymilvus>=2.3.0",
+    "faiss-cpu>=1.7.4",
+    "sentence-transformers>=2.2.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+all = [
+    "isage-benchmark[dev]",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE"
+Repository = "https://github.com/intellistream/SAGE"
+Issues = "https://github.com/intellistream/SAGE/issues"
+
+[tool.setuptools]
+packages = ["sage_benchmark", "sage_benchmark.rag", "sage_benchmark.experiments"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage_benchmark.__version__"}
+
+[tool.setuptools.package-data]
+sage_benchmark = [
+    "rag/config/*.yaml",
+    "rag/data/**/*",
+    "experiments/config/*.yaml",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

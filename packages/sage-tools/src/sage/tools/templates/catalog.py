@@ -202,7 +202,7 @@ TEMPLATE_LIBRARY: Tuple[ApplicationTemplate, ...] = (
         default_requirements={
             "name": "customer-support-rag",
             "goal": "构建客服知识助手，针对常见问题进行检索增强回答",
-            "description": "使用examples.rag.rag_simple中的算子，演示从提问到答案的完整流程",
+            "description": "使用sage_benchmark.rag.rag_simple中的算子，演示从提问到答案的完整流程",
         },
         guidance=textwrap.dedent(
             """
@@ -211,7 +211,7 @@ TEMPLATE_LIBRARY: Tuple[ApplicationTemplate, ...] = (
             """
         ),
         notes=_notes(
-            "基于 examples.rag.rag_simple 模块",
+            "基于 sage_benchmark.rag.rag_simple 模块",
             "默认配置为本地演示，可逐步替换为生产组件",
         ),
     ),
@@ -279,7 +279,7 @@ TEMPLATE_LIBRARY: Tuple[ApplicationTemplate, ...] = (
             """
         ),
         notes=_notes(
-            "源自 examples.rag.qa_multimodal_fusion",
+            "源自 sage_benchmark.rag.qa_multimodal_fusion",
             "默认使用 OpenAIGenerator，需要配置 API Key",
             "可扩展：替换多模态检索器为 SageDB / 向量数据库",
         ),

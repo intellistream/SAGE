@@ -302,7 +302,9 @@ if __name__ == "__main__":
     CustomLogger.disable_global_console_debug()
     load_dotenv(override=False)
     # 加载配置文件
-    config_path = "./experiments/config/experiment_config.yaml"
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(current_dir, "config", "experiment_config.yaml")
     config = load_config(config_path)
 
     print("🚀 开始运行实验管道...")

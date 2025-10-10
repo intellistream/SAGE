@@ -26,7 +26,6 @@ examples/
 │   ├── agents/        # Agent tutorials
 │   │   ├── config/   # Agent configurations
 │   │   └── data/     # Agent test data
-│   ├── rag/           # RAG basics
 │   ├── multimodal/    # Text+Image+Video
 │   ├── memory/        # Memory systems
 │   │   ├── config/   # Memory configurations
@@ -42,16 +41,10 @@ examples/
 │   ├── run_video_intelligence.py
 │   └── run_medical_diagnosis.py
 │
-├── rag/               # 🔍 Advanced RAG examples
-│   ├── config/        # RAG configurations
-│   ├── data/          # RAG test data
-│   ├── qa_dense_retrieval*.py
-│   ├── qa_multimodal_fusion.py
-│   ├── build_*_index.py
-│   └── loaders/
-│
-└── memory/            # 💾 Advanced memory examples (DEPRECATED - use tutorials/memory)
+└── memory/            # � Advanced memory examples (DEPRECATED - use tutorials/memory)
 ```
+
+**Note**: RAG examples and experiments have been moved to `packages/sage-benchmark/`. See `packages/sage-benchmark/README.md` for details.
 
 ## 📚 Examples by Level
 
@@ -71,12 +64,15 @@ Simple, focused tutorials to learn SAGE basics.
 ### 🟡 Intermediate (30 min - 2 hours)
 Production-ready patterns and integrations.
 
-**Location**: `examples/rag/`, `examples/memory/`
+**Location**: `packages/sage-benchmark/`, `examples/memory/`
 
-- **Advanced RAG**: Dense/sparse retrieval, reranking, multimodal fusion
+- **Advanced RAG**: Dense/sparse retrieval, reranking, multimodal fusion (see `sage-benchmark`)
+- **Benchmarking**: Pipeline experiments and evaluation (see `sage-benchmark`)
 - **Memory Systems**: RAG with memory, persistence patterns
-- **Vector Databases**: Milvus, ChromaDB, FAISS integration
-- **Distributed RAG**: Ray-based parallel processing
+- **Vector Databases**: Milvus, ChromaDB, FAISS integration (see `sage-benchmark`)
+- **Distributed RAG**: Ray-based parallel processing (see `sage-benchmark`)
+
+**See**: `packages/sage-benchmark/README.md` for RAG and benchmark examples
 
 ### 🔴 Advanced (2+ hours)
 Complete applications and complex workflows.
@@ -99,6 +95,9 @@ pip install -e packages/sage-libs
 # All applications
 pip install -e packages/sage-apps[all]
 
+# RAG and benchmarking
+pip install -e packages/sage-benchmark
+
 # Or specific apps
 pip install -e packages/sage-apps[video]
 pip install -e packages/sage-apps[medical]
@@ -118,11 +117,13 @@ pip install -r examples/requirements.txt
 ## 🎯 Learning Paths
 
 ### Path 1: RAG Developer
-1. `tutorials/rag/simple_rag.py` - Learn basics
-2. `rag/qa_dense_retrieval.py` - Add vector search
-3. `rag/qa_rerank.py` - Improve results
-4. `rag/qa_multimodal_fusion.py` - Add multimodal
-5. `memory/rag_memory_pipeline.py` - Add memory
+1. `packages/sage-benchmark/sage_benchmark/rag/rag_simple.py` - Learn basics
+2. `packages/sage-benchmark/sage_benchmark/rag/qa_dense_retrieval_milvus.py` - Add vector search
+3. `packages/sage-benchmark/sage_benchmark/rag/qa_rerank.py` - Improve results
+4. `packages/sage-benchmark/sage_benchmark/rag/qa_multimodal_fusion.py` - Add multimodal
+5. `tutorials/memory/rag_memory_pipeline.py` - Add memory
+
+See `packages/sage-benchmark/README.md` for complete RAG documentation.
 
 ### Path 2: Agent Builder
 1. `tutorials/agents/basic_agent.py` - Agent basics
@@ -154,13 +155,15 @@ cp .env.example .env
 
 **Configurations:**
 ```bash
-# Each example category has its own config directory
-ls examples/rag/config/*.yaml
+# Tutorials have their own config directories
 ls examples/tutorials/agents/config/*.yaml
 ls examples/tutorials/memory/config/*.yaml
 
+# RAG configs are in sage-benchmark
+ls packages/sage-benchmark/sage_benchmark/rag/config/*.yaml
+
 # See respective README files for details
-cat examples/rag/config/README.md
+cat packages/sage-benchmark/sage_benchmark/rag/config/README.md
 ```
 
 **Troubleshooting:**
@@ -174,7 +177,7 @@ cat examples/rag/config/README.md
 
 - **Tutorials README**: `examples/tutorials/README.md`
 - **Apps README**: `examples/apps/README.md`
-- **RAG Config**: `examples/rag/config/README.md`
+- **RAG & Benchmarks**: `packages/sage-benchmark/README.md`
 - **Main Docs**: `docs/` and `docs-public/`
 - **API Docs**: Docstrings in `packages/sage-libs/`
 
@@ -182,28 +185,30 @@ cat examples/rag/config/README.md
 
 ### By Feature
 
-- **Agents**: `tutorials/agents/`, agent examples
-- **RAG**: `tutorials/rag/`, `rag/`
-- **Multimodal**: `tutorials/multimodal/`, `rag/qa_multimodal_fusion.py`
-- **Memory**: `tutorials/memory/`, `memory/`
+- **Agents**: `tutorials/agents/`
+- **RAG**: `packages/sage-benchmark/sage_benchmark/rag/`
+- **Multimodal**: `tutorials/multimodal/`, `sage-benchmark/sage_benchmark/rag/qa_multimodal_fusion.py`
+- **Memory**: `tutorials/memory/`
 - **Services**: `tutorials/service/`
 - **Streaming**: `tutorials/stream_mode/`
-- **Distributed**: `rag/qa_dense_retrieval_ray.py`
+- **Distributed**: `sage-benchmark/sage_benchmark/rag/qa_dense_retrieval_ray.py`
+- **Benchmarking**: `packages/sage-benchmark/sage_benchmark/experiments/`
 
 ### By Technology
 
-- **ChromaDB**: `rag/config/config_qa_chroma.yaml`, `rag/qa_dense_retrieval_chroma.py`
-- **Milvus**: `rag/config/config_*_milvus.yaml`, `rag/*_milvus.py`
-- **Ray**: `rag/config/config_ray.yaml`, `rag/qa_dense_retrieval_ray.py`
-- **OpenAI**: Most RAG examples
-- **Hugging Face**: `rag/qa_hf_model.py`
-- **Local LLMs**: `tutorials/rag/qa_local_llm.py`
+- **ChromaDB**: `sage-benchmark/sage_benchmark/rag/config/config_qa_chroma.yaml`
+- **Milvus**: `sage-benchmark/sage_benchmark/rag/config/config_*_milvus.yaml`
+- **Ray**: `sage-benchmark/sage_benchmark/rag/config/config_ray.yaml`
+- **OpenAI**: Most RAG examples in sage-benchmark
+- **Hugging Face**: `sage-benchmark/sage_benchmark/rag/qa_hf_model.py`
+- **Local LLMs**: Various examples in sage-benchmark
 
 ### By Use Case
 
-- **Question Answering**: `rag/qa_*.py`
-- **Document Search**: `rag/build_*_index.py`, `rag/qa_dense_retrieval.py`
+- **Question Answering**: `sage-benchmark/sage_benchmark/rag/qa_*.py`
+- **Document Search**: `sage-benchmark/sage_benchmark/rag/build_*_index.py`
 - **Image Search**: `tutorials/multimodal/`
 - **Video Analysis**: `apps/run_video_intelligence.py`
 - **Medical AI**: `apps/run_medical_diagnosis.py`
 - **Web Services**: `tutorials/service/pipeline_as_service/`
+- **Experiments**: `sage-benchmark/sage_benchmark/experiments/`
