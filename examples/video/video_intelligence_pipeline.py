@@ -10,6 +10,10 @@ KeyBy, Sink) and combines multiple AI capabilities:
 * Lightweight temporal anomaly detection
 * Sliding-window summarisation backed by an optional HuggingFace summariser
 * Structured event stream with keyed aggregation for observability
+
+@test:skip - Requires HuggingFace model downloads (CLIP, MobileNetV3).
+CI environments may have network restrictions preventing model downloads.
+Run locally with: python examples/video/video_intelligence_pipeline.py
 """
 
 from __future__ import annotations
