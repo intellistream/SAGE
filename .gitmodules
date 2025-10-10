@@ -14,3 +14,7 @@
 	path = packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow
 	url = https://github.com/intellistream/sageFlow.git
 	branch = main-dev
+[submodule "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"]
+	path = packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem
+	url = https://github.com/intellistream/neuromem.git
+	branch = main-dev
