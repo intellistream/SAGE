@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   todo_to_issue:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # 使用 ubuntu-latest runner
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

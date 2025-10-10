@@ -286,6 +286,7 @@ class ExampleAnalyzer:
             "pymilvus": "pymilvus",
             "redis": "redis",
             "kafka": "kafka-python",
+            "cv2": "opencv-python",
         }
 
         for imp in imports:
@@ -511,6 +512,7 @@ class ExampleRunner:
             "pyyaml": "yaml",
             "python-dotenv": "dotenv",
             "kafka-python": "kafka",
+            "opencv-python": "cv2",
         }
 
         for dep in dependencies:
@@ -543,6 +545,7 @@ class ExampleRunner:
         # 设置 Python 路径 - 使用动态路径而不是硬编码
         python_path = env.get("PYTHONPATH", "")
         sage_paths_all = [
+            str(self.project_root),  # Add project root for examples imports
             str(self.project_root / "packages" / "sage" / "src"),
             str(self.project_root / "packages" / "sage-common" / "src"),
             str(self.project_root / "packages" / "sage-kernel" / "src"),

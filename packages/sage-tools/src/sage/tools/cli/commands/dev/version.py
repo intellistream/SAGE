@@ -60,6 +60,14 @@ def find_version_files(root_path: Path) -> Dict[str, Path]:
                 version_file_patterns.append(
                     package_dir / "src" / "sage" / "tools" / "_version.py"
                 )
+            elif package_dir.name == "sage-studio":
+                version_file_patterns.append(
+                    package_dir / "src" / "sage" / "studio" / "_version.py"
+                )
+            elif package_dir.name == "sage-apps":
+                version_file_patterns.append(
+                    package_dir / "src" / "sage" / "apps" / "_version.py"
+                )
 
             for version_file in version_file_patterns:
                 if version_file.exists():
