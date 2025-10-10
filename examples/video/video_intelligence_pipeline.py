@@ -31,8 +31,8 @@ def get_logger(name: str) -> CustomLogger:
     return CustomLogger(outputs=[("console", "INFO")], name=name)
 
 
-try:  # Optional middleware components
-    from sage.middleware.components.neuromem.micro_service.neuromem_vdb_service import (
+try:  # Optional middleware components - sage_mem (migrated from neuromem)
+    from sage.middleware.components.sage_mem.services.neuromem_vdb_service import (
         NeuroMemVDBService,
     )
 except ImportError:  # pragma: no cover - optional dependency
