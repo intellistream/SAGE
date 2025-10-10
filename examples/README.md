@@ -1,20 +1,24 @@
-# SAGE 示例集合 (s## 📦 依赖安装
+# SAGE 示例集合
+
+## 📦 依赖安装
 
 部分示例需要额外的依赖包。推荐使用以下方式安装：
 
 ```bash
-# 方法1：通过 sage-libs 安装所有示例依赖（推荐）
-pip install -e packages/sage-libs[examples]
+# 方法1：通过 sage-apps 安装应用相关依赖（推荐）
+pip install -e packages/sage-apps[all]  # 所有应用
+pip install -e packages/sage-apps[video]  # 仅视频应用
+pip install -e packages/sage-apps[medical]  # 仅医疗应用
 
-# 方法2：仅安装视频处理相关依赖
-pip install -e packages/sage-libs[video]
+# 方法2：通过 sage-libs 安装库相关依赖
+pip install -e packages/sage-libs[examples]
 
 # 方法3：使用 requirements.txt（适用于 CI/CD 环境）
 pip install -r examples/requirements.txt
 ```
 
 **各类示例的依赖说明**：
-- **视频处理** (`examples/video/`): 需要 `opencv-python`, `torch`, `torchvision`, `transformers`
+- **应用示例** (`examples/apps/`): 使用 `sage-apps` 包，需要 `pip install -e packages/sage-apps[all]`
 - **RAG 示例** (`examples/rag/`): 核心依赖已包含在 `sage-libs` 中
 - **教程示例** (`examples/tutorials/`): 大部分无需额外依赖
 

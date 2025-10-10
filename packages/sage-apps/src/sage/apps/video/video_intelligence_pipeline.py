@@ -13,7 +13,8 @@ KeyBy, Sink) and combines multiple AI capabilities:
 
 @test:skip - Requires HuggingFace model downloads (CLIP, MobileNetV3).
 CI environments may have network restrictions preventing model downloads.
-Run locally with: python examples/video/video_intelligence_pipeline.py
+Run with: python -m sage.apps.video.video_intelligence_pipeline
+Or use: python examples/apps/run_video_intelligence.py
 """
 
 from __future__ import annotations
@@ -54,7 +55,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     SageFlowService = None  # type: ignore[assignment]
 
-from examples.video.operators import (
+from sage.apps.video.operators import (
     EventStatsSink,
     FrameEventEmitter,
     FrameLightweightFormatter,
@@ -160,7 +161,7 @@ def ensure_video_exists(video_path: str, auto_download: bool = True) -> str:
     
     # Determine download path
     if video_path == "./video_demo.mp4":
-        # Default case: download to examples/video directory
+        # Default case: download to current directory or sage.apps.video location
         download_path = str(Path(__file__).parent / "video_demo.mp4")
     else:
         # Use the configured path

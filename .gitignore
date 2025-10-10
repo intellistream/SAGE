@@ -191,3 +191,19 @@ packages/sage-tools/src/sage/tools/studio/.angular/*
 
 **/node_modules
 packages/sage-libs/src/sage/libs/applications/medical_diagnosis/data/*
+
+# ============================================
+# SAGE Apps 数据文件
+# ============================================
+# 医疗诊断应用数据
+packages/sage-apps/src/sage/apps/medical_diagnosis/data/processed/
+packages/sage-apps/src/sage/apps/medical_diagnosis/data/samples/
+
+# 通用数据目录（保留README和配置文件）
+packages/sage-apps/src/sage/apps/**/data/processed/
+packages/sage-apps/src/sage/apps/**/data/samples/
+packages/sage-apps/src/sage/apps/**/data/**/*.jpg
+packages/sage-apps/src/sage/apps/**/data/**/*.png
+packages/sage-apps/src/sage/apps/**/data/**/*.json
+!packages/sage-apps/src/sage/apps/**/data/**/README*
+!packages/sage-apps/src/sage/apps/**/data/**/config*
