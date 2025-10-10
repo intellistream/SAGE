@@ -37,9 +37,27 @@ class SceneConceptExtractor(MapFunction):
         self.top_k = max(1, top_k)
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
+        # Use smaller CLIP model to reduce memory usage
+        # Options ranked by size (smallest to largest):
+        # - openai/clip-vit-base-patch32: ~150MB, 86M params (BEST for memory)
+        # For even lower memory, we can use CPU and half precision
         model_name = "openai/clip-vit-base-patch32"
-        self.model = CLIPModel.from_pretrained(model_name).to(self.device)
-        self.processor = CLIPProcessor.from_pretrained(model_name)
+        
+        self.logger.info(f"Loading CLIP model: {model_name} on {self.device}")
+        
+        # Load with memory optimization
+        try:
+            # Use dtype instead of torch_dtype (torch_dtype is deprecated)
+            self.model = CLIPModel.from_pretrained(
+                model_name,
+                dtype=torch.float16 if self.device == "cuda" else torch.float32,
+                low_cpu_mem_usage=True
+            ).to(self.device)
+            self.processor = CLIPProcessor.from_pretrained(model_name)
+            self.logger.info("CLIP model loaded successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to load CLIP model: {e}")
+            raise
 
     def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
         pil_image: Image.Image = data.get("pil_image")
@@ -93,11 +111,18 @@ class FrameObjectClassifier(MapFunction):
         self.top_k = max(1, top_k)
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
+        self.logger.info(f"Loading MobileNetV3 model on {self.device}")
         weights = MobileNet_V3_Large_Weights.DEFAULT
         self.model = mobilenet_v3_large(weights=weights).to(self.device)
         self.model.eval()
+        
+        # Enable half precision for GPU to save memory
+        if self.device == "cuda":
+            self.model = self.model.half()
+            
         self.preprocess = weights.transforms()
         self.categories = weights.meta["categories"]
+        self.logger.info("MobileNetV3 model loaded successfully")
 
     def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
         pil_image: Image.Image = data.get("pil_image")

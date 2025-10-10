@@ -476,7 +476,41 @@ def main() -> None:
 
     logger = get_logger("video_intelligence_demo")
     logger.info("Starting pipeline on video '%s'", video_path)
-    env.submit()
+    
+    print("\n" + "="*80)
+    print("🎥 SAGE Video Intelligence Pipeline")
+    print("="*80)
+    print(f"📁 Video: {video_path}")
+    print(f"📊 Config: {config.get('video_path', 'default')}")
+    print(f"⚙️  Services: ", end="")
+    services = []
+    if config.get("integrations", {}).get("enable_sage_db"):
+        services.append("SageDB")
+    if config.get("integrations", {}).get("enable_sage_flow"):
+        services.append("SageFlow")
+    if config.get("integrations", {}).get("enable_neuromem") and os.environ.get("SAGE_EXAMPLES_MODE") != "test":
+        services.append("NeuroMem")
+    print(", ".join(services) if services else "None")
+    print("="*80 + "\n")
+    
+    # Submit and wait for pipeline to complete
+    env.submit(autostop=True)
+    
+    print("\n" + "="*80)
+    print("✅ Pipeline execution completed!")
+    
+    # Show output file locations
+    output_cfg = config.get("output", {})
+    if output_cfg:
+        print("\n📂 Output files generated:")
+        if output_cfg.get("timeline_path"):
+            print(f"   • Timeline: {output_cfg['timeline_path']}")
+        if output_cfg.get("summary_path"):
+            print(f"   • Summary: {output_cfg['summary_path']}")
+        if output_cfg.get("event_stats_path"):
+            print(f"   • Events: {output_cfg['event_stats_path']}")
+    print("="*80 + "\n")
+    
     logger.info("Pipeline execution completed")
 
 

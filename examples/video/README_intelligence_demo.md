@@ -100,3 +100,140 @@ YAML if a component is unavailable; the rest of the pipeline continues uninterru
   SAGE's RAG library for knowledge-grounded reports.
 
 Have fun exploring richer multi-modal applications on top of SAGE! 🎥
+
+## Output Format Details
+
+### 1. Timeline (video_timeline.jsonl)
+
+Each line is a JSON object representing one processed frame:
+
+```json
+{
+  "frame_id": 0,
+  "timestamp": 0.0,
+  "primary_scene": "Outdoor cycling activity",
+  "scene_confidences": {"Outdoor cycling activity": 0.85, "Car driving on a road": 0.12},
+  "top_object_labels": ["bicycle", "person", "tree"],
+  "object_confidences": [0.92, 0.88, 0.75],
+  "brightness": 128.5,
+  "is_bright_change": false,
+  "sagedb_neighbors": [{"frame_id": 12, "distance": 0.15}]
+}
+```
+
+**Fields:**
+- `frame_id`: Frame number in the video
+- `timestamp`: Time in seconds
+- `primary_scene`: Top CLIP-matched scene from templates
+- `scene_confidences`: Confidence scores for all scene templates
+- `top_object_labels`: Detected objects from MobileNetV3
+- `object_confidences`: Confidence for each detected object
+- `brightness`: Average frame brightness (0-255)
+- `is_bright_change`: Whether significant lighting change detected
+- `sagedb_neighbors`: Similar frames from vector database (if enabled)
+
+### 2. Summary (video_summary.json)
+
+Sliding-window natural language summaries:
+
+```json
+{
+  "window_count": 5,
+  "summaries": [
+    {
+      "window_id": 0,
+      "start_frame": 0,
+      "end_frame": 30,
+      "start_time": 0.0,
+      "end_time": 10.0,
+      "text": "The video shows outdoor cycling activity with people riding bicycles...",
+      "memory_recall": [
+        {"text": "Previous cycling scene from 2024-01-15", "score": 0.89}
+      ]
+    }
+  ]
+}
+```
+
+**Fields:**
+- `window_count`: Total number of windows processed
+- `summaries`: Array of window summaries
+  - `window_id`: Sequential window number
+  - `start_frame`/`end_frame`: Frame range in window
+  - `start_time`/`end_time`: Time range in seconds
+  - `text`: Natural language summary from HuggingFace model
+  - `memory_recall`: Related memories from NeuroMem (if enabled)
+
+### 3. Event Stats (video_event_stats.json)
+
+Aggregated statistics for detected events:
+
+```json
+{
+  "total_events": 45,
+  "event_counts": {
+    "scene_outdoor_cycling": 20,
+    "object_bicycle": 18,
+    "object_person": 22,
+    "brightness_change": 5,
+    "scene_car_driving": 12
+  }
+}
+```
+
+**Fields:**
+- `total_events`: Total number of events detected across all frames
+- `event_counts`: Counter for each event type
+  - Events are prefixed by type: `scene_`, `object_`, `brightness_change`, etc.
+
+### Using the Output
+
+**Analyze the timeline:**
+```python
+import json
+
+# Load timeline
+with open('artifacts/video_timeline.jsonl') as f:
+    frames = [json.loads(line) for line in f]
+
+# Find frames with specific scenes
+cycling_frames = [f for f in frames if 'cycling' in f['primary_scene'].lower()]
+print(f"Found {len(cycling_frames)} cycling frames")
+
+# Track brightness changes
+brightness_changes = [f for f in frames if f.get('is_bright_change')]
+print(f"Detected {len(brightness_changes)} scene transitions")
+```
+
+**Analyze summaries:**
+```python
+import json
+
+# Load summaries
+with open('artifacts/video_summary.json') as f:
+    data = json.load(f)
+
+# Print all summaries
+for summary in data['summaries']:
+    print(f"Window {summary['window_id']}: {summary['text']}")
+```
+
+**Visualize event distribution:**
+```python
+import json
+import matplotlib.pyplot as plt
+
+# Load event stats
+with open('artifacts/video_event_stats.json') as f:
+    stats = json.load(f)
+
+# Plot top 10 events
+events = sorted(stats['event_counts'].items(), key=lambda x: x[1], reverse=True)[:10]
+labels, counts = zip(*events)
+
+plt.barh(labels, counts)
+plt.xlabel('Count')
+plt.title('Top 10 Detected Events')
+plt.tight_layout()
+plt.show()
+```
