@@ -121,7 +121,9 @@ def test_wait_for_completion_exists():
     print("Test 5: RemoteEnvironment._wait_for_completion() 方法存在性验证")
     print("=" * 80)
 
-    assert hasattr(RemoteEnvironment, "_wait_for_completion"), "RemoteEnvironment 没有 _wait_for_completion() 方法"
+    assert hasattr(
+        RemoteEnvironment, "_wait_for_completion"
+    ), "RemoteEnvironment 没有 _wait_for_completion() 方法"
     print("✅ RemoteEnvironment 有 _wait_for_completion() 方法")
 
 

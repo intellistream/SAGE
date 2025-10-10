@@ -48,6 +48,7 @@ class EmbeddingModel:
             try:
                 # 延迟导入 transformers
                 from transformers import AutoModel, AutoTokenizer
+
                 self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
                 self.kwargs["embed_model"] = AutoModel.from_pretrained(
                     model_name, trust_remote_code=True
@@ -63,6 +64,7 @@ class EmbeddingModel:
         elif method == "mockembedder":
             # 初始化 mockembedder
             from .wrappers.mock_wrapper import MockEmbedding
+
             self.kwargs["embed_model"] = MockEmbedding(
                 fixed_dim=kwargs.get("fixed_dim", 128)
             )
@@ -110,7 +112,7 @@ class EmbeddingModel:
             siliconcloud,
             zhipu,
         )
-        
+
         mapping = {
             "openai": openai.openai_embed_sync,
             "zhipu": zhipu.zhipu_embedding_sync,

@@ -1,5 +1,5 @@
 # file sage/core/sage.middleware.services.neuromem./memory_collection/graph_collection.py
-from sage.middleware.components.neuromem.memory_collection.base_collection import (
+from .base_collection import (
     BaseMemoryCollection,
 )
 

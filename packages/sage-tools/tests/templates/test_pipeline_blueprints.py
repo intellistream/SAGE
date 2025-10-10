@@ -15,7 +15,9 @@ def test_match_blueprints_surface_relevant_candidate():
 
 
 def test_build_mock_pipeline_plan_uses_blueprint_components():
-    blueprint = pipeline_blueprints.select_blueprint({"goal": "运行hello world批处理示例"})
+    blueprint = pipeline_blueprints.select_blueprint(
+        {"goal": "运行hello world批处理示例"}
+    )
     plan = pipeline_blueprints.build_pipeline_plan(
         blueprint, {"goal": "运行hello world批处理示例"}
     )
@@ -53,6 +55,8 @@ def test_multimodal_blueprint_references_real_components():
         "examples.rag.qa_multimodal_fusion.MultimodalQuestionSource"
     )
     stage_classes = [stage.class_path for stage in blueprint.stages]
-    assert "examples.rag.qa_multimodal_fusion.MultimodalFusionRetriever" in stage_classes
+    assert (
+        "examples.rag.qa_multimodal_fusion.MultimodalFusionRetriever" in stage_classes
+    )
     assert "sage.libs.rag.generator.OpenAIGenerator" in stage_classes
     assert blueprint.sink.class_path == "sage.libs.io_utils.sink.TerminalSink"

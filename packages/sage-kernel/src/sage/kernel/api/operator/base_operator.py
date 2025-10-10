@@ -7,8 +7,8 @@ if TYPE_CHECKING:
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.function.base_function import BaseFunction
     from sage.kernel.runtime.communication.packet import Packet
-    from sage.kernel.runtime.factory.function_factory import FunctionFactory
     from sage.kernel.runtime.context.task_context import TaskContext
+    from sage.kernel.runtime.factory.function_factory import FunctionFactory
 
 
 class BaseOperator(ABC):

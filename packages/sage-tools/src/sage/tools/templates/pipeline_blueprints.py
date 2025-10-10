@@ -917,7 +917,9 @@ def requirements_text(requirements: Dict[str, Any]) -> str:
     return " ".join(parts).lower()
 
 
-def compute_match_score(requirements: Dict[str, Any], blueprint: PipelineBlueprint) -> float:
+def compute_match_score(
+    requirements: Dict[str, Any], blueprint: PipelineBlueprint
+) -> float:
     text = requirements_text(requirements)
     if not text:
         return 0.2
@@ -1041,7 +1043,10 @@ def build_graph_plan(
 def render_blueprint_prompt(blueprint: PipelineBlueprint, score: float) -> str:
     component_lines = [
         f"source → {blueprint.source.class_path}",
-        *[f"{stage.id} ({stage.kind}) → {stage.class_path}" for stage in blueprint.stages],
+        *[
+            f"{stage.id} ({stage.kind}) → {stage.class_path}"
+            for stage in blueprint.stages
+        ],
         f"sink → {blueprint.sink.class_path}",
     ]
     components_block = "\n".join(f"- {line}" for line in component_lines)

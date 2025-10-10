@@ -2,4 +2,4 @@
 
 from .knowledge_base import MedicalKnowledgeBase
 
-__all__ = ['MedicalKnowledgeBase']
+__all__ = ["MedicalKnowledgeBase"]

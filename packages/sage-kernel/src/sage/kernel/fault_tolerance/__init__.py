@@ -12,13 +12,13 @@ Fault Tolerance Module - 分布式容错
 """
 
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
-from sage.kernel.fault_tolerance.recovery import RecoveryManager
-from sage.kernel.fault_tolerance.lifecycle import ActorLifecycleManager
 from sage.kernel.fault_tolerance.checkpoint import CheckpointManager
+from sage.kernel.fault_tolerance.lifecycle import ActorLifecycleManager
+from sage.kernel.fault_tolerance.recovery import RecoveryManager
 from sage.kernel.fault_tolerance.restart import (
-    RestartStrategy,
-    FixedDelayStrategy,
     ExponentialBackoffStrategy,
+    FixedDelayStrategy,
+    RestartStrategy,
 )
 
 __all__ = [

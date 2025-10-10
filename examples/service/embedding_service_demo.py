@@ -21,12 +21,12 @@ sys.path.insert(0, str(sage_root / "packages" / "sage-common" / "src"))
 
 def demo_basic_embedding_service():
     """Demo 1: 基本的 Embedding Service 使用"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Demo 1: 基本 Embedding Service")
-    print("="*60)
-    
+    print("=" * 60)
+
     from sage.common.components.sage_embedding import EmbeddingService
-    
+
     # 配置: 使用 HuggingFace 模型
     config = {
         "method": "hf",
@@ -36,10 +36,10 @@ def demo_basic_embedding_service():
         "cache_enabled": True,
         "cache_size": 1000,
     }
-    
+
     service = EmbeddingService(config)
     service.setup()
-    
+
     # 获取服务信息
     info = service.process({"task": "info"})
     print(f"\n服务信息:")
@@ -47,19 +47,17 @@ def demo_basic_embedding_service():
     print(f"  模型: {info['model']}")
     print(f"  维度: {info['dimension']}")
     print(f"  缓存: {info['cache_enabled']}")
-    
+
     # 单个文本 embedding
-    result = service.process({
-        "task": "embed",
-        "inputs": "你好世界",
-        "options": {"return_stats": True}
-    })
-    
+    result = service.process(
+        {"task": "embed", "inputs": "你好世界", "options": {"return_stats": True}}
+    )
+
     print(f"\n单个文本 embedding:")
     print(f"  维度: {result['dimension']}")
     print(f"  向量前5个值: {result['vectors'][0][:5]}")
     print(f"  统计: {result['stats']}")
-    
+
     # 批量文本 embedding
     texts = [
         "人工智能正在改变世界",
@@ -67,38 +65,38 @@ def demo_basic_embedding_service():
         "深度学习推动了AI发展",
         "自然语言处理很重要",
     ]
-    
-    result = service.process({
-        "task": "embed",
-        "inputs": texts,
-        "options": {"return_stats": True}
-    })
-    
+
+    result = service.process(
+        {"task": "embed", "inputs": texts, "options": {"return_stats": True}}
+    )
+
     print(f"\n批量文本 embedding:")
     print(f"  文本数量: {result['count']}")
     print(f"  计算数量: {result['stats']['computed']}")
     print(f"  缓存数量: {result['stats']['cached']}")
-    
+
     # 再次查询相同文本 (测试缓存)
-    result2 = service.process({
-        "task": "embed",
-        "inputs": texts[:2],  # 重复前两个文本
-        "options": {"return_stats": True}
-    })
-    
+    result2 = service.process(
+        {
+            "task": "embed",
+            "inputs": texts[:2],  # 重复前两个文本
+            "options": {"return_stats": True},
+        }
+    )
+
     print(f"\n缓存测试:")
     print(f"  缓存命中: {result2['stats']['cached']}/{result2['count']}")
     print(f"  命中率: {result2['stats']['cache_hit_rate']:.2%}")
-    
+
     service.cleanup()
 
 
 def demo_vllm_embedding_service():
     """Demo 2: 使用 vLLM 作为 Embedding 后端 (需要 GPU)"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Demo 2: vLLM Embedding Service (高性能)")
-    print("="*60)
-    
+    print("=" * 60)
+
     # 注意: 这个示例需要实际的 vLLM service 运行
     print("\n配置示例:")
     config_example = """
@@ -137,10 +135,10 @@ result = self.call_service("embedding", payload={
 
 def demo_multi_embedding_pipeline():
     """Demo 3: 多 Embedding Service 的 Pipeline"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Demo 3: 多 Embedding 策略 Pipeline")
-    print("="*60)
-    
+    print("=" * 60)
+
     pipeline_config = """
 # 使用场景: RAG 系统
 # - 查询使用快速本地模型 (低延迟)
@@ -219,16 +217,16 @@ operators:
       
       return payload
     """
-    
+
     print(pipeline_config)
 
 
 def demo_embedding_operator():
     """Demo 4: 创建自定义的 Embedding Operator"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Demo 4: 自定义 Embedding Operator")
-    print("="*60)
-    
+    print("=" * 60)
+
     operator_code = '''
 from sage.libs.operators import BaseOperator
 from typing import Any, Dict, List
@@ -329,10 +327,10 @@ class RAGPipeline:
 
 def demo_performance_comparison():
     """Demo 5: 性能对比 - 不同 embedding 方法"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Demo 5: 性能对比")
-    print("="*60)
-    
+    print("=" * 60)
+
     comparison = """
 测试场景: 1000 个文档, 每个文档平均 100 tokens
 
@@ -381,10 +379,10 @@ vLLM (多GPU)      5000/s      3ms       硬件      超大规模部署
 
 def main():
     """运行所有示例"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Embedding Service 示例集")
-    print("="*60)
-    
+    print("=" * 60)
+
     demos = [
         ("基本使用", demo_basic_embedding_service),
         ("vLLM 后端", demo_vllm_embedding_service),
@@ -392,17 +390,17 @@ def main():
         ("自定义 Operator", demo_embedding_operator),
         ("性能对比", demo_performance_comparison),
     ]
-    
+
     print("\n可用示例:")
     for i, (name, _) in enumerate(demos, 1):
         print(f"  {i}. {name}")
-    
+
     print("\n选择要运行的示例 (1-5, 或 'all' 运行全部, 'q' 退出):")
     choice = input("> ").strip().lower()
-    
-    if choice == 'q':
+
+    if choice == "q":
         return
-    elif choice == 'all':
+    elif choice == "all":
         for name, demo_func in demos:
             try:
                 demo_func()
@@ -415,13 +413,14 @@ def main():
         except Exception as e:
             print(f"\n❌ {name} 失败: {e}")
             import traceback
+
             traceback.print_exc()
     else:
         print("无效选择")
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("示例结束")
-    print("="*60)
+    print("=" * 60)
 
 
 if __name__ == "__main__":

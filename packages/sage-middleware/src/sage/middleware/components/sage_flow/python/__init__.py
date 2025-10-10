@@ -7,7 +7,8 @@ This package is intended to house all Python-side modules for the component.
 # If this fails, sage_flow.py will handle the fallback logic
 try:
     from . import _sage_flow  # noqa: F401
-    __all__ = ['_sage_flow']
+
+    __all__ = ["_sage_flow"]
 except ImportError:
     # sage_flow.py will handle finding and importing the .so file
     __all__ = []

@@ -9,6 +9,7 @@ from enum import Enum
 
 class FinetuneTask(str, Enum):
     """微调任务类型"""
+
     CODE_UNDERSTANDING = "code"  # 代码理解（默认：SAGE代码库）
     QA_PAIRS = "qa"  # 问答对
     INSTRUCTION = "instruction"  # 指令微调
@@ -22,5 +23,5 @@ TASK_NAMES = {
     FinetuneTask.QA_PAIRS: "问答对微调",
     FinetuneTask.INSTRUCTION: "指令微调",
     FinetuneTask.CHAT: "对话微调",
-    FinetuneTask.CUSTOM: "自定义数据集"
+    FinetuneTask.CUSTOM: "自定义数据集",
 }

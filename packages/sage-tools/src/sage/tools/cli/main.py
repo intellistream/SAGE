@@ -42,7 +42,6 @@ from sage.tools.cli.commands.dev import app as dev_app
 from sage.tools.cli.commands.doctor import app as doctor_app
 from sage.tools.cli.commands.embedding import app as embedding_app
 from sage.tools.cli.commands.extensions import app as extensions_app
-from sage.tools.finetune import app as finetune_app
 from sage.tools.cli.commands.head import app as head_app
 from sage.tools.cli.commands.job import app as job_app
 from sage.tools.cli.commands.jobmanager import app as jobmanager_app
@@ -52,6 +51,7 @@ from sage.tools.cli.commands.studio import app as studio_app
 from sage.tools.cli.commands.test_extensions import app as test_extensions_app
 from sage.tools.cli.commands.version import app as version_app
 from sage.tools.cli.commands.worker import app as worker_app
+from sage.tools.finetune import app as finetune_app
 
 # 注册所有子命令
 app.add_typer(version_app, name="version", help="📋 版本信息")
@@ -59,8 +59,14 @@ app.add_typer(config_app, name="config", help="⚙️ 配置管理")
 app.add_typer(llm_app, name="llm", help="🤖 LLM服务管理 - 启动、停止、配置LLM服务")
 app.add_typer(doctor_app, name="doctor", help="🔍 系统诊断")
 app.add_typer(chat_app, name="chat", help="🧭 编程助手 - 基于 SageDB 的文档问答")
-app.add_typer(pipeline_app, name="pipeline", help="🧱 Pipeline Builder - 大模型辅助的配置生成")
-app.add_typer(embedding_app, name="embedding", help="🎯 Embedding 管理 - 管理和测试 embedding 方法")
+app.add_typer(
+    pipeline_app, name="pipeline", help="🧱 Pipeline Builder - 大模型辅助的配置生成"
+)
+app.add_typer(
+    embedding_app,
+    name="embedding",
+    help="🎯 Embedding 管理 - 管理和测试 embedding 方法",
+)
 app.add_typer(dev_app, name="dev", help="🛠️ 开发工具 - 项目开发和管理")
 app.add_typer(extensions_app, name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
 app.add_typer(test_extensions_app, name="test", help="🧪 测试 - 扩展和功能测试")

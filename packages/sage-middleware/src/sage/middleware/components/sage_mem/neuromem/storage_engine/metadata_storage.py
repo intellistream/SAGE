@@ -3,10 +3,12 @@
 
 from typing import Any, Dict, List, Optional
 
-from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import (
+from sage.common.utils.logging.custom_logger import CustomLogger
+
+from .kv_backend.base_kv_backend import (
     BaseKVBackend,
 )
-from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import (
+from .kv_backend.dict_kv_backend import (
     DictKVBackend,
 )
 

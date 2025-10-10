@@ -1,5 +1,6 @@
 """Reusable application templates derived from SAGE examples."""
 
+from . import pipeline_blueprints
 from .catalog import (
     ApplicationTemplate,
     TemplateMatch,
@@ -8,7 +9,6 @@ from .catalog import (
     list_templates,
     match_templates,
 )
-from . import pipeline_blueprints
 
 __all__ = [
     "ApplicationTemplate",

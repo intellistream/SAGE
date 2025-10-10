@@ -18,9 +18,10 @@ except ImportError:
     # 如果导入失败，提供一个占位符
     JobManagerClient = None
     import warnings
+
     warnings.warn(
         "JobManagerClient is not available. Some features may be limited.",
-        ImportWarning
+        ImportWarning,
     )
 
 
