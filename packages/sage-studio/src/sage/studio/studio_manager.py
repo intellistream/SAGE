@@ -23,7 +23,7 @@ class StudioManager:
     """Studio 管理器"""
 
     def __init__(self):
-        self.studio_dir = Path(__file__).parent.parent.parent / "studio"
+        self.studio_dir = Path(__file__).parent
         self.frontend_dir = self.studio_dir / "frontend"
         self.backend_dir = self.studio_dir / "config" / "backend"
 

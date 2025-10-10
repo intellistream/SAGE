@@ -1,25 +1,25 @@
 """
-ActorLifecycleManager 单元测试
+LifecycleManagerImpl 单元测试
 """
 
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from sage.kernel.fault_tolerance.lifecycle import ActorLifecycleManager
+from sage.kernel.fault_tolerance.impl.lifecycle_impl import LifecycleManagerImpl
 
 
-class TestActorLifecycleManager:
-    """ActorLifecycleManager 基础测试"""
+class TestLifecycleManagerImpl:
+    """LifecycleManagerImpl 基础测试"""
 
     def test_lifecycle_manager_initialization(self):
         """测试生命周期管理器初始化"""
-        manager = ActorLifecycleManager()
+        manager = LifecycleManagerImpl()
 
         assert manager.logger is None
 
     def test_lifecycle_manager_with_logger(self):
         """测试设置日志器"""
-        manager = ActorLifecycleManager()
+        manager = LifecycleManagerImpl()
         logger = Mock()
 
         manager.logger = logger
@@ -28,7 +28,7 @@ class TestActorLifecycleManager:
 
     def test_cleanup_actor_basic(self):
         """测试基本 Actor 清理"""
-        manager = ActorLifecycleManager()
+        manager = LifecycleManagerImpl()
 
         actor = Mock()
         actor.is_ray_actor.return_value = False
@@ -44,7 +44,7 @@ class TestActorLifecycleManager:
 
     def test_cleanup_all_tasks_only(self):
         """测试只清理任务"""
-        manager = ActorLifecycleManager()
+        manager = LifecycleManagerImpl()
 
         tasks = {
             "task_1": Mock(),
@@ -62,7 +62,7 @@ class TestActorLifecycleManager:
 
     def test_cleanup_all_tasks_and_services(self):
         """测试清理任务和服务"""
-        manager = ActorLifecycleManager()
+        manager = LifecycleManagerImpl()
 
         tasks = {
             "task_1": Mock(),
@@ -84,7 +84,7 @@ class TestActorLifecycleManager:
 
     def test_cleanup_all_empty_tasks(self):
         """测试清理空任务字典"""
-        manager = ActorLifecycleManager()
+        manager = LifecycleManagerImpl()
         manager.logger = Mock()
 
         # Should not raise any exception
@@ -93,12 +93,12 @@ class TestActorLifecycleManager:
         assert results == {}
 
 
-class TestActorLifecycleManagerEdgeCases:
-    """ActorLifecycleManager 边界条件测试"""
+class TestLifecycleManagerImplEdgeCases:
+    """LifecycleManagerImpl 边界条件测试"""
 
     def test_cleanup_actor_with_no_cleanup_method(self):
         """测试清理没有 cleanup 方法的 Actor"""
-        manager = ActorLifecycleManager()
+        manager = LifecycleManagerImpl()
 
         actor = Mock(spec=["is_ray_actor"])
         actor.is_ray_actor.return_value = False
@@ -111,12 +111,12 @@ class TestActorLifecycleManagerEdgeCases:
         assert kill_success is True
 
 
-class TestActorLifecycleManagerIntegration:
-    """ActorLifecycleManager 集成测试"""
+class TestLifecycleManagerImplIntegration:
+    """LifecycleManagerImpl 集成测试"""
 
     def test_complete_cleanup_workflow(self):
         """测试完整的清理流程"""
-        manager = ActorLifecycleManager()
+        manager = LifecycleManagerImpl()
         manager.logger = Mock()
 
         # Create tasks and services

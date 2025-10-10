@@ -1,7 +1,7 @@
 """
-重启策略
+重启策略实现
 
-定义任务失败后的重启策略。
+定义任务失败后的重启策略具体实现。
 """
 
 from abc import ABC, abstractmethod

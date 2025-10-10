@@ -99,6 +99,14 @@ cd agents && python agent_workflow_demo.py
 cd service && python sage_flow_example.py
 ```
 
+### 🛡️ 容错机制开发者
+```bash
+# 容错策略演示（Checkpoint、重启策略等）
+python fault_tolerance_demo.py
+```
+
+> **💡 说明**: 容错机制对应用用户是透明的，只需在配置文件中声明容错策略即可。开发者可以通过扩展 `BaseFaultHandler` 实现自定义容错策略。
+
 ## 🔧 路径配置
 
 ### Python代码中的配置引用

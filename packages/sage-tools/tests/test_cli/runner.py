@@ -31,7 +31,7 @@ SUITE_FILES: Sequence[str] = (
     "doctor_suite.py",
     "dev_suite.py",
     "extensions_suite.py",
-    "studio_suite.py",
+    # studio_suite.py moved to sage-studio package
     "job_suite.py",
     "jobmanager_suite.py",
     "worker_suite.py",

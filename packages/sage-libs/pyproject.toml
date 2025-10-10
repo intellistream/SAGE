@@ -1,8 +1,5 @@
 [build-system]
-requires = [
-    "setuptools>=64",
-    "wheel",
-]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 
@@ -32,7 +29,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: System :: Distributed Computing",
 ]
-license = "MIT"
+license = {text = "MIT"}
 
 # 核心依赖
 dependencies = [
