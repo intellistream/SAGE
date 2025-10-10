@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 import cv2
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.batch_function import BatchFunction
 
 
 class VideoFrameSource(BatchFunction):

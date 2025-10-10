@@ -22,7 +22,7 @@ from typing import Any, Dict, Optional
 import yaml
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 
 try:  # Optional middleware components
     from sage.middleware.components.neuromem.micro_service.neuromem_vdb_service import (

@@ -7,7 +7,7 @@ from typing import Any, Dict
 import numpy as np
 from PIL import Image
 
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 
 
 class FramePreprocessor(MapFunction):

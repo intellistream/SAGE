@@ -8,8 +8,8 @@ from typing import Any, Deque, Dict, Iterable, List, Optional
 import torch
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.flatmap_function import FlatMapFunction
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.flatmap_function import FlatMapFunction
+from sage.kernel.api.function.map_function import MapFunction
 
 try:
     from transformers import pipeline as hf_pipeline
