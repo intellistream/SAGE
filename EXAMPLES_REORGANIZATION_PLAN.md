@@ -158,10 +158,28 @@ git add -A
 git commit -m "checkpoint: before examples reorganization"
 ```
 
-### Step 2: 移动教程示例
+### Step 2: 移动教程示例 ✅ COMPLETED
 1. 创建新的 tutorials 子目录
 2. 移动简单示例
 3. 更新导入路径
+
+**已完成:**
+- ✅ 移动 agents → tutorials/agents/
+- ✅ 移动 multimodal → tutorials/multimodal/
+- ✅ 移动简单 RAG → tutorials/rag/
+- ✅ 移动 memory → tutorials/memory/
+- ✅ 移动 scheduler → tutorials/scheduler/
+- ✅ 移动 sage_db → tutorials/sage_db/
+- ✅ 移动 fault_tolerance_demo.py
+- ✅ 创建所有子目录的 README
+- ✅ 修复配置文件路径
+- ✅ 修复 import 路径
+- ✅ 删除空目录
+
+**成果:**
+- tutorials/ 现在包含 50+ 个学习示例
+- 清晰的分类结构
+- 完善的文档
 
 ### Step 3: 创建应用
 1. 将完整应用移动到 sage-apps
