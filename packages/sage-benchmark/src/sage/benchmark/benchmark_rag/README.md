@@ -1,23 +1,59 @@
-# SAGE 实验实例指南
+# SAGE RAG Benchmarking Guide
 
 ## 概述
 
-SAGE 实验框架提供了一套完整的问答系统评估工具，包括数据处理管道、模型推理和结果评估。该框架基于 SAGE 核心API构建，支持批量处理和多种评估指标。
+SAGE RAG benchmarking 框架提供了一套完整的 RAG 系统性能评估工具，包括：
+- **implementations/**: 各种 RAG 实现方案（dense, sparse, hybrid, multimodal）
+- **evaluation/**: 评测管道、指标计算和结果分析
+- **config/**: 各种 RAG 配置文件
+- **data/**: 测试数据集和查询
+
+## 目录结构
+
+```
+benchmark_rag/
+├── implementations/     # RAG 实现方案
+│   ├── qa_dense_retrieval_milvus.py   # Milvus 密集检索
+│   ├── qa_sparse_retrieval_milvus.py  # Milvus 稀疏检索
+│   ├── qa_hybrid_retrieval_milvus.py  # 混合检索
+│   ├── qa_multimodal_fusion.py        # 多模态融合
+│   ├── build_chroma_index.py          # ChromaDB 索引构建
+│   └── loaders/                       # 文档加载器
+├── evaluation/          # 评测框架
+│   ├── pipeline_experiment.py         # 实验管道
+│   ├── evaluate_results.py            # 结果评估
+│   └── config/                        # 评测配置
+├── config/              # RAG 配置文件
+└── data/                # 测试数据
+```
 
 ## 核心组件
 
-### 1. 实验管道 (`pipeline_experiment.py`)
+### 1. RAG 实现方案 (implementations/)
 
-基于 SAGE 框架的实验管道，包含四个主要算子：
+提供多种 RAG 实现用于性能对比：
+
+**向量数据库支持**:
+- Milvus (dense, sparse, hybrid)
+- ChromaDB (local, easy setup)
+- FAISS (efficient search)
+
+**检索方法**:
+- Dense retrieval (embedding-based)
+- Sparse retrieval (BM25, sparse vectors)
+- Hybrid retrieval (combining both)
+- Multimodal fusion (text + image + video)
+
+### 2. 评测框架 (evaluation/)
+
+基于 SAGE 框架的 benchmark 管道，包含四个主要算子：
 
 - **BatchFileSource**: 批量文件数据源算子，支持设置 batch_size 参数
 - **Generator**: 生成算子，支持控制是否使用检索上下文
 - **PostProcessor**: 后处理算子，处理答案并提取预测结果
-- **Sink**: 结果保存算子，保存实验结果到文件
+- **Sink**: 结果保存算子，保存 benchmark 结果到文件
 
-### 2. 结果评估 (`evaluate_results.py`)
-
-提供多种评估指标：
+评估指标：
 - **Accuracy**: 准确率评估
 - **F1 Score**: F1分数计算
 - **Exact Match**: 精确匹配评估
@@ -27,7 +63,7 @@ SAGE 实验框架提供了一套完整的问答系统评估工具，包括数据
 
 ### SelfRAG 数据集
 
-实验使用的评估数据主要来自 [Self-RAG 仓库](https://github.com/AkariAsai/self-rag) 的任务评估数据。
+Benchmark 使用的评估数据主要来自 [Self-RAG 仓库](https://github.com/AkariAsai/self-rag) 的任务评估数据。
 
 > **数据下载**: [Self-RAG 官方数据链接](https://drive.google.com/file/d/1TLKhWjez63H4uBtgCxyoyJsZi-IMgnDb/view?usp=share_link) 下载评估数据。
 
@@ -56,16 +92,32 @@ SAGE 实验框架提供了一套完整的问答系统评估工具，包括数据
 
 ## 使用方法
 
-### 1. 基本使用
+### 1. 运行 RAG 实现
 
 ```bash
-# 使用默认配置文件运行实验
-python experiments/pipeline_experiment.py
+# Dense retrieval with Milvus
+python -m sage.benchmark.benchmark_rag.implementations.qa_dense_retrieval_milvus
+
+# Sparse retrieval with Milvus
+python -m sage.benchmark.benchmark_rag.implementations.qa_sparse_retrieval_milvus
+
+# Hybrid retrieval
+python -m sage.benchmark.benchmark_rag.implementations.qa_hybrid_retrieval_milvus
+
+# Build ChromaDB index
+python -m sage.benchmark.benchmark_rag.implementations.build_chroma_index
 ```
 
-### 2. 配置文件设置
+### 2. 运行 Benchmark 实验
 
-编辑 `experiments/config/experiment_config.yaml`:
+使用默认配置文件运行实验：
+```bash
+python -m sage.benchmark.benchmark_rag.evaluation.pipeline_experiment
+```
+
+### 3. 配置文件设置
+
+编辑 `evaluation/config/experiment_config.yaml`:
 
 ```yaml
 source:
@@ -89,15 +141,20 @@ sink:
 ### 3. 评估结果
 
 ```bash
+### 4. 评估结果
+
+```bash
 # 评估实验结果
-python experiments/evaluate_results.py \
+python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results \
   --results-file experiment_results.json \
   --metric all \
   --show-details
 
 # 指定输出文件
-python experiments/evaluate_results.py \
+python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results \
   --results-file experiment_results.json \
+  --output evaluation_report.json
+```
   --metric accuracy \
   --output "./experiment/results/evaluation_output.json"
 ```

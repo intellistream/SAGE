@@ -2,7 +2,7 @@
     "id": 8,
     "name": "TerminalSink",
     "description": "Writes the received message to the console",
-    "module_path": "sage_benchmark.rag.rag_simple",
+    "module_path": "sage.benchmark.benchmark_rag.implementations.rag_simple",
     "class_name": "TerminalSink",
     "isCustom": false
 }

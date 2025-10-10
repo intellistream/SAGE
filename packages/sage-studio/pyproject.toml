@@ -12,7 +12,7 @@ description = "SAGE Studio - Low-Code Web UI for Pipeline Development"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "sage",

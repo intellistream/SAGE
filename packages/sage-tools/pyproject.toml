@@ -9,7 +9,7 @@ description = "SAGE Development Tools - CLI, Web UI, and Development Utilities"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "sage",

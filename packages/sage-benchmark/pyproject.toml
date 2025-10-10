@@ -3,7 +3,24 @@ requires = [
     "setuptools>=64",
     "wheel",
 ]
-build-backend = "setuptools.build_meta"
+build-[tool.setuptools]
+packages = [
+    "sage.benchmark",
+    "sage.benchmark.benchmark_rag",
+    "sage.benchmark.benchmark_rag.implementations",
+    "sage.benchmark.benchmark_rag.evaluation",
+]
+package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.benchmark.__version__"}
+
+[tool.setuptools.package-data]
+"sage.benchmark.benchmark_rag" = [
+    "config/*.yaml",
+    "data/**/*",
+    "evaluation/config/*.yaml",
+]tuptools.build_meta"
 
 [project]
 name = "isage-benchmark"
@@ -12,7 +29,7 @@ description = "SAGE Benchmark - RAG and experimental benchmarks for SAGE framewo
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "sage",
@@ -70,16 +87,17 @@ Repository = "https://github.com/intellistream/SAGE"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-packages = ["sage_benchmark", "sage_benchmark.rag", "sage_benchmark.experiments"]
+packages = ["sage.benchmark", "sage.benchmark.rag", "sage.benchmark.benchmark_rag"]
+package-dir = {"" = "src"}
 
 [tool.setuptools.dynamic]
-version = {attr = "sage_benchmark.__version__"}
+version = {attr = "sage.benchmark.__version__"}
 
 [tool.setuptools.package-data]
-sage_benchmark = [
+"sage.benchmark" = [
     "rag/config/*.yaml",
     "rag/data/**/*",
-    "experiments/config/*.yaml",
+    "benchmark_rag/config/*.yaml",
 ]
 
 [tool.black]

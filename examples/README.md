@@ -44,7 +44,7 @@ examples/
 └── memory/            # � Advanced memory examples (DEPRECATED - use tutorials/memory)
 ```
 
-**Note**: RAG examples and experiments have been moved to `packages/sage-benchmark/`. See `packages/sage-benchmark/README.md` for details.
+**Note**: RAG examples and benchmarks have been moved to `packages/sage-benchmark/`. See `packages/sage-benchmark/README.md` for details.
 
 ## 📚 Examples by Level
 
@@ -67,7 +67,7 @@ Production-ready patterns and integrations.
 **Location**: `packages/sage-benchmark/`, `examples/memory/`
 
 - **Advanced RAG**: Dense/sparse retrieval, reranking, multimodal fusion (see `sage-benchmark`)
-- **Benchmarking**: Pipeline experiments and evaluation (see `sage-benchmark`)
+- **RAG Benchmarking**: Performance evaluation and metrics (see `sage-benchmark/benchmark_rag`)
 - **Memory Systems**: RAG with memory, persistence patterns
 - **Vector Databases**: Milvus, ChromaDB, FAISS integration (see `sage-benchmark`)
 - **Distributed RAG**: Ray-based parallel processing (see `sage-benchmark`)
@@ -117,10 +117,10 @@ pip install -r examples/requirements.txt
 ## 🎯 Learning Paths
 
 ### Path 1: RAG Developer
-1. `packages/sage-benchmark/sage_benchmark/rag/rag_simple.py` - Learn basics
-2. `packages/sage-benchmark/sage_benchmark/rag/qa_dense_retrieval_milvus.py` - Add vector search
-3. `packages/sage-benchmark/sage_benchmark/rag/qa_rerank.py` - Improve results
-4. `packages/sage-benchmark/sage_benchmark/rag/qa_multimodal_fusion.py` - Add multimodal
+1. `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/rag_simple.py` - Learn basics
+2. `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_dense_retrieval_milvus.py` - Add vector search
+3. `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_rerank.py` - Improve results
+4. `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_multimodal_fusion.py` - Add multimodal
 5. `tutorials/memory/rag_memory_pipeline.py` - Add memory
 
 See `packages/sage-benchmark/README.md` for complete RAG documentation.
@@ -160,10 +160,10 @@ ls examples/tutorials/agents/config/*.yaml
 ls examples/tutorials/memory/config/*.yaml
 
 # RAG configs are in sage-benchmark
-ls packages/sage-benchmark/sage_benchmark/rag/config/*.yaml
+ls packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/*.yaml
 
 # See respective README files for details
-cat packages/sage-benchmark/sage_benchmark/rag/config/README.md
+cat packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/README.md
 ```
 
 **Troubleshooting:**
@@ -186,29 +186,29 @@ cat packages/sage-benchmark/sage_benchmark/rag/config/README.md
 ### By Feature
 
 - **Agents**: `tutorials/agents/`
-- **RAG**: `packages/sage-benchmark/sage_benchmark/rag/`
-- **Multimodal**: `tutorials/multimodal/`, `sage-benchmark/sage_benchmark/rag/qa_multimodal_fusion.py`
+- **RAG**: `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/`
+- **Multimodal**: `tutorials/multimodal/`, `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_multimodal_fusion.py`
 - **Memory**: `tutorials/memory/`
 - **Services**: `tutorials/service/`
 - **Streaming**: `tutorials/stream_mode/`
-- **Distributed**: `sage-benchmark/sage_benchmark/rag/qa_dense_retrieval_ray.py`
-- **Benchmarking**: `packages/sage-benchmark/sage_benchmark/experiments/`
+- **Distributed**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_dense_retrieval_ray.py`
+- **Benchmarking**: `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/`
 
 ### By Technology
 
-- **ChromaDB**: `sage-benchmark/sage_benchmark/rag/config/config_qa_chroma.yaml`
-- **Milvus**: `sage-benchmark/sage_benchmark/rag/config/config_*_milvus.yaml`
-- **Ray**: `sage-benchmark/sage_benchmark/rag/config/config_ray.yaml`
+- **ChromaDB**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/config_qa_chroma.yaml`
+- **Milvus**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/config_*_milvus.yaml`
+- **Ray**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/config_ray.yaml`
 - **OpenAI**: Most RAG examples in sage-benchmark
-- **Hugging Face**: `sage-benchmark/sage_benchmark/rag/qa_hf_model.py`
+- **Hugging Face**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_hf_model.py`
 - **Local LLMs**: Various examples in sage-benchmark
 
 ### By Use Case
 
-- **Question Answering**: `sage-benchmark/sage_benchmark/rag/qa_*.py`
-- **Document Search**: `sage-benchmark/sage_benchmark/rag/build_*_index.py`
+- **Question Answering**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_*.py`
+- **Document Search**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/build_*_index.py`
 - **Image Search**: `tutorials/multimodal/`
 - **Video Analysis**: `apps/run_video_intelligence.py`
 - **Medical AI**: `apps/run_medical_diagnosis.py`
 - **Web Services**: `tutorials/service/pipeline_as_service/`
-- **Experiments**: `sage-benchmark/sage_benchmark/experiments/`
+- **RAG Benchmarking**: `sage-benchmark/src/sage/benchmark/benchmark_rag/`

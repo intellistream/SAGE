@@ -165,7 +165,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
     PipelineBlueprint(
         id="rag-simple-demo",
         title="Simple RAG Demo",
-        description="Use the sage_benchmark.rag.rag_simple operators to run an end-to-end retrieval and answer pipeline.",
+        description="Use the sage.benchmark.benchmark_rag.implementations.rag_simple operators to run an end-to-end retrieval and answer pipeline.",
         keywords=(
             "rag",
             "qa",
@@ -180,7 +180,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         source=SourceSpec(
             id="question-source",
             title="Question Source",
-            class_path="sage_benchmark.rag.rag_simple.SimpleQuestionSource",
+            class_path="sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleQuestionSource",
             summary="Emit curated customer-style questions from the rag_simple example.",
         ),
         stages=(
@@ -188,7 +188,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
                 id="retriever",
                 title="Keyword Retriever",
                 kind="map",
-                class_path="sage_benchmark.rag.rag_simple.SimpleRetriever",
+                class_path="sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleRetriever",
                 summary="Lookup canned snippets matching question keywords.",
                 metadata={"description": "Deterministic dictionary-based retriever"},
             ),
@@ -196,25 +196,25 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
                 id="prompt-builder",
                 title="Prompt Builder",
                 kind="map",
-                class_path="sage_benchmark.rag.rag_simple.SimplePromptor",
+                class_path="sage.benchmark.benchmark_rag.implementations.rag_simple.SimplePromptor",
                 summary="Combine context and question into a generation prompt.",
             ),
             StageSpec(
                 id="generator",
                 title="Answer Generator",
                 kind="map",
-                class_path="sage_benchmark.rag.rag_simple.SimpleGenerator",
+                class_path="sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleGenerator",
                 summary="Create a formatted answer using rule-based heuristics.",
             ),
         ),
         sink=SinkSpec(
             id="terminal-sink",
             title="Terminal Sink",
-            class_path="sage_benchmark.rag.rag_simple.SimpleTerminalSink",
+            class_path="sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleTerminalSink",
             summary="Pretty-print answers to the terminal with context snippets.",
         ),
         notes=(
-            "基于 sage_benchmark.rag.rag_simple 模块构建，适合离线演示",
+            "基于 sage.benchmark.benchmark_rag.implementations.rag_simple 模块构建，适合离线演示",
             "无需外部服务或大模型依赖即可运行",
         ),
         graph_channels=(
@@ -321,7 +321,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         source=SourceSpec(
             id="landmark-question-source",
             title="Landmark Question Source",
-            class_path="sage_benchmark.rag.qa_multimodal_fusion.MultimodalQuestionSource",
+            class_path="sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalQuestionSource",
             summary="Emit landmark-themed questions covering位置、属性与建筑背景。",
         ),
         stages=(
@@ -329,7 +329,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
                 id="multimodal-retriever",
                 title="Multimodal Fusion Retriever",
                 kind="map",
-                class_path="sage_benchmark.rag.qa_multimodal_fusion.MultimodalFusionRetriever",
+                class_path="sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalFusionRetriever",
                 summary="Combine text and synthetic image embeddings to retrieve landmark context.",
                 metadata={
                     "description": "演示多模态嵌入融合及可配置检索策略",
@@ -380,7 +380,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
             summary="Render responses in JSON format for inspection or downstream tooling.",
         ),
         notes=(
-            "基于 sage_benchmark.rag.qa_multimodal_fusion 模块",
+            "基于 sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion 模块",
             "需要可用的 OpenAI 兼容推理服务或替换生成算子",
             "多模态融合可扩展至 SageDB 或外部向量库",
         ),
