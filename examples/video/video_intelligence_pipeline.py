@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -78,6 +79,91 @@ def load_config(config_path: Optional[str]) -> Dict[str, Any]:
         raise ValueError(f"Config file {path} must define a mapping at the top level")
 
     return data
+
+
+def download_test_video(output_path: str) -> bool:
+    """Download a small test video for automated testing.
+    
+    Args:
+        output_path: Path where the video should be saved
+        
+    Returns:
+        True if download succeeded, False otherwise
+    """
+    # Use a small sample video from a public source
+    # This is a ~1MB sample video suitable for testing
+    test_video_url = "https://sample-videos.com/video321/mp4/240/big_buck_bunny_240p_1mb.mp4"
+    
+    logger = CustomLogger("video_downloader")
+    
+    try:
+        logger.info(f"Downloading test video from {test_video_url}")
+        logger.info(f"Saving to {output_path}")
+        
+        # Create parent directory if it doesn't exist
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        
+        # Download the file
+        urllib.request.urlretrieve(test_video_url, output_path)
+        
+        # Verify the file exists and has content
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+            logger.info(f"Successfully downloaded test video ({os.path.getsize(output_path)} bytes)")
+            return True
+        else:
+            logger.error("Downloaded file is empty or doesn't exist")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Failed to download test video: {e}")
+        return False
+
+
+def ensure_video_exists(video_path: str, auto_download: bool = True) -> str:
+    """Ensure a video file exists, downloading a test video if needed.
+    
+    Args:
+        video_path: Configured video path
+        auto_download: Whether to automatically download a test video if file doesn't exist
+        
+    Returns:
+        Path to the video file
+        
+    Raises:
+        FileNotFoundError: If video doesn't exist and auto_download is False or download failed
+    """
+    logger = CustomLogger("video_validator")
+    
+    # If the configured path exists, use it
+    if os.path.exists(video_path):
+        logger.info(f"Using existing video file: {video_path}")
+        return video_path
+    
+    # If auto-download is disabled, raise an error
+    if not auto_download:
+        raise FileNotFoundError(
+            f"Video file '{video_path}' does not exist. Provide --video or update the config."
+        )
+    
+    # Try to download a test video
+    logger.warning(f"Video file '{video_path}' not found. Attempting to download test video...")
+    
+    # Determine download path
+    if video_path == "./video_demo.mp4":
+        # Default case: download to examples/video directory
+        download_path = str(Path(__file__).parent / "video_demo.mp4")
+    else:
+        # Use the configured path
+        download_path = video_path
+    
+    if download_test_video(download_path):
+        logger.info(f"Test video ready at: {download_path}")
+        return download_path
+    else:
+        raise FileNotFoundError(
+            f"Video file '{video_path}' does not exist and automatic download failed. "
+            f"Please provide a video file using --video or update the config."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -319,10 +405,14 @@ def main() -> None:
     config = apply_runtime_overrides(config, args)
 
     video_path = config.get("video_path")
-    if not video_path or not os.path.exists(video_path):
-        raise FileNotFoundError(
-            f"Video file '{video_path}' does not exist. Provide --video or update the config."
-        )
+    
+    # Ensure video exists, auto-downloading if needed
+    # In test/CI environments, auto-download is enabled by default
+    auto_download = os.environ.get("CI") == "true" or os.environ.get("SAGE_AUTO_DOWNLOAD", "true").lower() == "true"
+    video_path = ensure_video_exists(video_path, auto_download=auto_download)
+    
+    # Update config with the actual video path
+    config["video_path"] = video_path
 
     env = LocalEnvironment("video_intelligence_demo")
     build_pipeline(env, config)
