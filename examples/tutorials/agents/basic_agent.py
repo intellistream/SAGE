@@ -65,7 +65,7 @@ def iter_queries(source_cfg: Dict[str, Any]) -> Iterable[str]:
 def main():
     # ====== 读取配置 ======
     cfg_path = os.path.join(
-        os.path.dirname(__file__), "..", "config", "config_agent_min.yaml"
+        os.path.dirname(__file__), "..", "..", "config", "config_agent_min.yaml"
     )
     if not os.path.exists(cfg_path):
         print(f"❌ Configuration file not found: {cfg_path}")

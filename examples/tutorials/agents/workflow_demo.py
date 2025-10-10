@@ -41,7 +41,7 @@ def example_iter_queries():
 
     # Import the agent module
     try:
-        from examples.agents.agent import iter_queries
+        from examples.tutorials.agents.basic_agent import iter_queries
 
         # Example 1: Local JSONL file
         temp_file = create_test_queries_file()
@@ -244,4 +244,4 @@ if __name__ == "__main__":
         print("\n⚠️  Some examples had issues. Check the implementation.")
 
     print("\nFor the real agent implementation, see: agent.py")
-    print("For configuration examples, see: ../config/config_agent_min.yaml")
+    print("For configuration examples, see: ../../config/config_agent_min.yaml")
