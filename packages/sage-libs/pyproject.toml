@@ -121,10 +121,26 @@ medical = [
     "scikit-learn>=1.3.0",
 ]
 
+# Video intelligence examples dependencies
+video = [
+    "opencv-python>=4.5.0",  # Video processing
+    "torch>=2.0.0",  # PyTorch for models
+    "torchvision>=0.15.0",  # Vision models
+    "transformers>=4.30.0",  # CLIP and other transformers
+    "Pillow>=9.0.0",  # Image processing
+]
+
+# Examples dependencies (aggregate of all example-specific deps)
+examples = [
+    "isage-libs[video]",
+    "pyyaml>=6.0",  # Config files
+]
+
 # All applications (aggregate)
 all-apps = [
-    "sage-libs[medical]",
-    "sage-libs[finetune]",
+    "isage-libs[medical]",
+    "isage-libs[finetune]",
+    "isage-libs[examples]",
 ]
 
 # 开发依赖

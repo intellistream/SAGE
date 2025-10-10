@@ -70,7 +70,7 @@ install_core_packages() {
     # 检查所有必要的包目录是否存在
     local required_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-studio" "packages/sage-tools")
     if [ "$install_mode" != "minimal" ]; then
-        required_packages+=("packages/sage-middleware" "packages/sage-libs")
+        required_packages+=("packages/sage-middleware" "packages/sage-libs" "packages/sage-apps")
     fi
     required_packages+=("packages/sage")
     
@@ -123,7 +123,7 @@ install_core_packages() {
     
     # 安装中间件和应用包（对于非minimal模式）
     if [ "$install_mode" != "minimal" ]; then
-        local extended_packages=("packages/sage-middleware" "packages/sage-libs")
+        local extended_packages=("packages/sage-middleware" "packages/sage-libs" "packages/sage-apps")
         for package_dir in "${extended_packages[@]}"; do
             echo -e "${DIM}  正在安装: $package_dir${NC}"
             echo "$(date): 安装 $package_dir" >> "$log_file"
