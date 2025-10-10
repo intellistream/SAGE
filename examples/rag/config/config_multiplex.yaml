@@ -5,7 +5,7 @@ pipeline:
 
 source:
   # data_path: "sample/one_question.txt"
-  data_path: "examples/data/sample/question.txt"
+  data_path: "examples/rag/data/sample/question.txt"
   platform: "local"
 
 retriever:

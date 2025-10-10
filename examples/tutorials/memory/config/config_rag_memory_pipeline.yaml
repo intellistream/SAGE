@@ -1,5 +1,5 @@
 rag_config:
-  manager_path: "examples/memory/data/neuromem"
+  manager_path: "examples/tutorials/memory/data/neuromem"
   name: "RAGMemoryCollection"
   backend_type: "VDB"
   description: "rag memory collection"

@@ -24,13 +24,18 @@ examples/
 ├── tutorials/          # 📚 Learning tutorials (START HERE!)
 │   ├── hello_world.py
 │   ├── agents/        # Agent tutorials
+│   │   ├── config/   # Agent configurations
+│   │   └── data/     # Agent test data
 │   ├── rag/           # RAG basics
 │   ├── multimodal/    # Text+Image+Video
 │   ├── memory/        # Memory systems
-│   ├── service/       # Service integration ⭐ NEW
+│   │   ├── config/   # Memory configurations
+│   │   └── data/     # Memory test data
+│   ├── service/       # Service integration
 │   ├── scheduler/     # Task scheduling
 │   ├── sage_db/       # Vector database
-│   ├── core-api/      # Core operations
+│   ├── config/        # General configurations
+│   ├── data/          # General data utilities
 │   └── ...
 │
 ├── apps/              # 🎯 Production applications
@@ -38,20 +43,14 @@ examples/
 │   └── run_medical_diagnosis.py
 │
 ├── rag/               # 🔍 Advanced RAG examples
+│   ├── config/        # RAG configurations
+│   ├── data/          # RAG test data
 │   ├── qa_dense_retrieval*.py
 │   ├── qa_multimodal_fusion.py
 │   ├── build_*_index.py
 │   └── loaders/
 │
-├── memory/            # 💾 Advanced memory examples
-│   ├── rag_memory_*.py
-│   └── data/
-│
-├── data/              # 📊 Data utilities
-│   └── locomo_*.py
-│
-└── config/            # ⚙️ Configuration files
-    └── *.yaml
+└── memory/            # 💾 Advanced memory examples (DEPRECATED - use tutorials/memory)
 ```
 
 ## 📚 Examples by Level
@@ -155,22 +154,27 @@ cp .env.example .env
 
 **Configurations:**
 ```bash
-# Configuration files are in examples/config/
-# See examples/config/README.md for details
-ls examples/config/*.yaml
+# Each example category has its own config directory
+ls examples/rag/config/*.yaml
+ls examples/tutorials/agents/config/*.yaml
+ls examples/tutorials/memory/config/*.yaml
+
+# See respective README files for details
+cat examples/rag/config/README.md
 ```
 
 **Troubleshooting:**
 - Missing dependencies? Check `requirements.txt` in each category
 - Import errors? Make sure you installed SAGE: `pip install -e packages/sage-libs`
-- Need config? Copy from `examples/config/`
+- Need data? Check the `data/` subdirectory in each example category
+- Need config? Check the `config/` subdirectory in each example category
 - Need help? See `docs/COMMUNITY.md`
 
 ## 📖 Documentation
 
 - **Tutorials README**: `examples/tutorials/README.md`
 - **Apps README**: `examples/apps/README.md`
-- **Config README**: `examples/config/README.md`
+- **RAG Config**: `examples/rag/config/README.md`
 - **Main Docs**: `docs/` and `docs-public/`
 - **API Docs**: Docstrings in `packages/sage-libs/`
 
@@ -188,9 +192,9 @@ ls examples/config/*.yaml
 
 ### By Technology
 
-- **ChromaDB**: `config/config_qa_chroma.yaml`, `rag/qa_dense_retrieval_chroma.py`
-- **Milvus**: `config/config_*_milvus.yaml`, `rag/*_milvus.py`
-- **Ray**: `config/config_ray.yaml`, `rag/qa_dense_retrieval_ray.py`
+- **ChromaDB**: `rag/config/config_qa_chroma.yaml`, `rag/qa_dense_retrieval_chroma.py`
+- **Milvus**: `rag/config/config_*_milvus.yaml`, `rag/*_milvus.py`
+- **Ray**: `rag/config/config_ray.yaml`, `rag/qa_dense_retrieval_ray.py`
 - **OpenAI**: Most RAG examples
 - **Hugging Face**: `rag/qa_hf_model.py`
 - **Local LLMs**: `tutorials/rag/qa_local_llm.py`

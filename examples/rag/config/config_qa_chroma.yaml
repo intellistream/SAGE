@@ -3,7 +3,7 @@
 
 
 source:
-  data_path: "./examples/data/queries.jsonl"  # 修正相对路径
+  data_path: "./examples/rag/data/queries.jsonl"  # 修正相对路径
   platform: "local"
 
 retriever:

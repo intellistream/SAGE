@@ -1,11 +1,11 @@
 # Milvus 稠密向量检索配置（适配 MilvusDenseRetriever）
 
 source:
-  data_path: "./examples/data/queries.jsonl"
+  data_path: "./examples/rag/data/queries.jsonl"
   platform: "local"
 
 retriever:
-  preload_knowledge_file: "./examples/data/qa_knowledge_base.txt"
+  preload_knowledge_file: "./examples/rag/data/qa_knowledge_base.txt"
 
   # 通用参数
   top_k: 3                 # 返回文档数量
@@ -24,7 +24,7 @@ retriever:
     search_type: "sparse"     # 稀疏检索
 
     # # 知识文件（可选）：提供后将自动按段落读取并入库
-    # knowledge_file: "./examples/data/qa_knowledge_base.txt"
+    # knowledge_file: "./examples/rag/data/qa_knowledge_base.txt"
 
 promptor:
   template: |

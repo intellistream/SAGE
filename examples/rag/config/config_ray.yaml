@@ -1,28 +1,29 @@
 pipeline:
-  name: "sage-api-operator-test"
+  name: "sage-api-operator-operator_test"
   description: "Test pipeline for Sage API Operator"
   version: "1.0.0"
-  type: "remote"
+
+
 
 source:
-  data_path: "examples/data/sample/question.txt"
+  # data_path: "sample/one_question.txt"
+  data_path: "examples/rag/data/sample/question.txt"
+  platform: "remote"
 
 retriever:
-  kv_collection:
-    bm25s: True
-    topk: 3
+  platform: "remote"
   ltm:
     topk: 3
 
 reranker:
+  platform: "remote"
   model_name: "BAAI/bge-reranker-v2-m3"
   top_k: 3
-  
-promptor:
 
 refiner:
+  platform: "remote"
   method: "openai"
-  model_name: "qwen-turbo-0919"
+  model_name: "qwen-turbo"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   api_key: ""
   seed: 42
@@ -47,5 +48,10 @@ generator:
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     seed: 42
 
+writer:
+
+promptor:
+  platform: "remote"
+
 sink:
-  file_path: "output.txt"
+  platform: "remote"

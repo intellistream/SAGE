@@ -1,9 +1,5 @@
-# ChromaDB 专用 QA 配置文件
-# 适用于 qa_openai.py 的简化配置
-
-
 source:
-  data_path: "./examples/data/queries.jsonl"  # 修正相对路径
+  data_path: "./examples/rag/data/queries.jsonl"  # 修正相对路径
   platform: "local"
 
 retriever:
@@ -33,24 +29,16 @@ promptor:
     基于以下检索到的相关文档，回答用户问题：
     
     相关文档：
-    {retrieved_documents}
+    {external_corpus}
     
-    用户问题：{query}
-    
-    请提供准确、有用的回答：
+    请提供准确、有用的回答。
 
 generator:
-  vllm:
-    api_key: ""
-    method: "openai"
-    model_name: "meta-llama/Llama-2-13b-chat-hf"
-    base_url: "http://sage3:8000/v1"
+  local:
+    method: "hf"
+    model_name: "mistralai/Mistral-7B-Instruct-v0.1"
     seed: 42
 
 sink:
   enable_log: true
 
-reranker:
-  platform: "local"
-  model_name: "BAAI/bge-reranker-v2-m3"
-  topk: 1

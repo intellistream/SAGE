@@ -91,7 +91,7 @@ def _to_2dlist(arr):
 
 def load_knowledge_to_chromadb():
     # 配置参数
-    data_dir = "../data"
+    data_dir = "./data"  # 现在数据在 rag/data 目录下
     persistence_path = "./chroma_multi_store"
 
     # 文件与集合对应关系

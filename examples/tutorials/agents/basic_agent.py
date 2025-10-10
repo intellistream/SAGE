@@ -65,7 +65,7 @@ def iter_queries(source_cfg: Dict[str, Any]) -> Iterable[str]:
 def main():
     # ====== 读取配置 ======
     cfg_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "config", "config_agent_min.yaml"
+        os.path.dirname(__file__), "config", "config_agent_min.yaml"
     )
     if not os.path.exists(cfg_path):
         print(f"❌ Configuration file not found: {cfg_path}")
@@ -84,7 +84,8 @@ def main():
 
     # 在真实API模式下，使用简化的查询数据以避免超时
     if use_real_api:
-        config["source"]["data_path"] = "examples/data/agent_queries_test.jsonl"
+        # 使用测试数据
+        config["source"]["data_path"] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
 
     # ====== Generator======
     gen_cfg = config["generator"]["remote"]  # 可改为 "local"/"remote"

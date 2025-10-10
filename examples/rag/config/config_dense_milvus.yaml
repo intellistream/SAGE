@@ -1,13 +1,13 @@
 # Milvus 稠密向量检索配置（适配 MilvusDenseRetriever）
 
 source:
-  data_path: "./examples/data/queries.jsonl"
+  data_path: "./examples/rag/data/queries.jsonl"
   platform: "local"
 
 retriever:
   preload_knowledge_file:
-    - "./examples/data/qa_knowledge_chromaDB.txt"
-    - "./examples/data/qa_knowledge_rag.md"
+    - "./examples/rag/data/qa_knowledge_chromaDB.txt"
+    - "./examples/rag/data/qa_knowledge_rag.md"
 
   # 通用参数
   dimension: 384            # 向量维度，应与 embedding 模型一致
@@ -36,7 +36,7 @@ retriever:
     # 可选项
     dense_insert_batch_size: 128
     # 知识文件（可选）：提供后将自动按段落读取并入库
-    # knowledge_file: "./examples/data/qa_knowledge_base.txt"
+    # knowledge_file: "./examples/rag/data/qa_knowledge_base.txt"
 
 promptor:
   template: |

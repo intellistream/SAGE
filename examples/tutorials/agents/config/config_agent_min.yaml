@@ -8,7 +8,7 @@ pipeline:
 # 数据源：每行 JSON 必须至少包含一个字段：{"query": "...用户问题..."}
 source:
   type: "local"
-  data_path: "examples/data/agent_queries.jsonl"
+  data_path: "examples/tutorials/agents/data/agent_queries.jsonl"
   field_query: "query"  # 例如：
   # {"query": "在 arXiv 搜 2 篇 LLM agents survey，最后中文总结"}
 
