@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 
@@ -9,7 +9,7 @@ name = "isage"
 dynamic = ["version"]
 description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn"}
 ]
