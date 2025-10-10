@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 class LocalEnvironment(BaseEnvironment):
     """本地环境，直接使用本地JobManager实例"""
 
-    def __init__(self, name: str = "localenvironment", config: dict | None = None):
-        super().__init__(name, config, platform="local")
+    def __init__(self, name: str = "localenvironment", config: dict | None = None, scheduler=None):
+        super().__init__(name, config, platform="local", scheduler=scheduler)
 
         # 本地环境不需要客户端
         self._engine_client = None

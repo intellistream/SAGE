@@ -63,7 +63,7 @@ class BaseEnvironment(ABC):
             }
         return self._transformation_classes
 
-    def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
+    def __init__(self, name: str, config: dict | None, *, platform: str = "local", scheduler=None):
 
         self.name = name
         self.uuid: Optional[str]  # 由jobmanager生成
@@ -76,6 +76,10 @@ class BaseEnvironment(ABC):
         # 用于收集所有服务工厂，供ExecutionGraph构建服务节点时使用
         self.service_factories: dict = {}  # service_name -> ServiceFactory
 
+        # 调度器配置（用户可选）
+        self._scheduler = None
+        self._init_scheduler(scheduler)
+
         self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
         # JobManager 相关
         self._jobmanager: Optional[Any] = None
@@ -86,6 +90,48 @@ class BaseEnvironment(ABC):
 
         # 日志配置
         self.console_log_level: str = "INFO"  # 默认console日志等级
+
+    def _init_scheduler(self, scheduler):
+        """
+        初始化调度器
+        
+        Args:
+            scheduler: 可以是以下类型之一:
+                - None: 使用默认的 FIFO 调度器
+                - str: 调度器名称 ("fifo", "load_aware")
+                - BaseScheduler 实例: 自定义调度器实例
+        """
+        from sage.kernel.scheduler.api import BaseScheduler
+        from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
+        
+        if scheduler is None:
+            # 默认使用 FIFO 调度器
+            self._scheduler = FIFOScheduler(platform=self.platform)
+        elif isinstance(scheduler, str):
+            # 字符串指定调度器类型
+            scheduler_lower = scheduler.lower()
+            if scheduler_lower == "fifo":
+                self._scheduler = FIFOScheduler(platform=self.platform)
+            elif scheduler_lower in ["load_aware", "loadaware"]:
+                self._scheduler = LoadAwareScheduler(platform=self.platform)
+            else:
+                raise ValueError(
+                    f"Unknown scheduler type: {scheduler}. "
+                    f"Available options: 'fifo', 'load_aware'"
+                )
+        elif isinstance(scheduler, BaseScheduler):
+            # 直接使用提供的调度器实例
+            self._scheduler = scheduler
+        else:
+            raise TypeError(
+                f"scheduler must be None, str, or BaseScheduler instance, "
+                f"got {type(scheduler)}"
+            )
+    
+    @property
+    def scheduler(self):
+        """获取当前调度器实例"""
+        return self._scheduler
 
     ########################################################
     #                  user interface                      #

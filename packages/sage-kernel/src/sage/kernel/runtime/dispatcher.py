@@ -7,7 +7,7 @@ from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
-from sage.kernel.scheduler.task_scheduler import TaskScheduler
+from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.fault_tolerance.lifecycle import ActorLifecycleManager
 
 if TYPE_CHECKING:
@@ -31,7 +31,11 @@ class Dispatcher:
         self.is_running: bool = False
         
         # 使用调度器和容错管理器
-        self.scheduler = TaskScheduler(env.platform)
+        # 调度器由 Environment 传入，如果没有则使用默认的 FIFO 调度器
+        self.scheduler: BaseScheduler = env.scheduler if hasattr(env, 'scheduler') else None
+        if self.scheduler is None:
+            from sage.kernel.scheduler.impl import FIFOScheduler
+            self.scheduler = FIFOScheduler(platform=env.platform)
         self.lifecycle_manager = ActorLifecycleManager()
         
         self.setup_logging_system()
