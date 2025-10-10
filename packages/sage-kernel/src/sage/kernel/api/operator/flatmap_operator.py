@@ -1,8 +1,8 @@
 from typing import Any
 
 from sage.kernel.api.function.flatmap_collector import Collector
-from sage.kernel.runtime.communication.packet import Packet
 from sage.kernel.api.operator.base_operator import BaseOperator
+from sage.kernel.runtime.communication.packet import Packet
 
 
 class FlatMapOperator(BaseOperator):

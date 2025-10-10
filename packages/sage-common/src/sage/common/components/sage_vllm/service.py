@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
 import numpy as np
-
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
 from sage.kernel.api.service.base_service import BaseService
@@ -92,20 +91,28 @@ class VLLMService(BaseService):
 
         self.logger.info("VLLMService setup starting")
         self._load_text_engine(force_reload=False)
-        if self.config.embedding_model_id and self.config.embedding_model_id != self.config.model_id:
+        if (
+            self.config.embedding_model_id
+            and self.config.embedding_model_id != self.config.model_id
+        ):
             self._load_embedding_engine(force_reload=False)
         self.logger.info("VLLMService setup complete")
 
     def cleanup(self) -> None:
         with self._lock:
-            for engine_name, engine in {"text": self._text_engine, "embedding": self._embedding_engine}.items():
+            for engine_name, engine in {
+                "text": self._text_engine,
+                "embedding": self._embedding_engine,
+            }.items():
                 if engine is None:
                     continue
                 try:
                     if hasattr(engine, "shutdown"):
                         engine.shutdown()
                 except Exception as exc:  # pragma: no cover - shutdown best-effort
-                    self.logger.warning(f"Failed to shutdown {engine_name} engine: {exc}")
+                    self.logger.warning(
+                        f"Failed to shutdown {engine_name} engine: {exc}"
+                    )
             self._text_engine = None
             self._embedding_engine = None
 
@@ -122,12 +129,16 @@ class VLLMService(BaseService):
         if task == "embed":
             return self.embed(inputs, **options)
         if task == "show_models":
-            return [self._model_info_to_dict(info) for info in vllm_registry.list_models()]
+            return [
+                self._model_info_to_dict(info) for info in vllm_registry.list_models()
+            ]
         if task == "download_model":
             target = options.get("model_id") or inputs
             if not target:
                 raise ValueError("'download_model' task requires 'model_id'")
-            info = vllm_registry.download_model(str(target), revision=options.get("revision"))
+            info = vllm_registry.download_model(
+                str(target), revision=options.get("revision")
+            )
             if self.config.auto_reload and str(target) == self.config.model_id:
                 self.switch_model(str(target), revision=options.get("revision"))
             return self._model_info_to_dict(info)
@@ -230,7 +241,9 @@ class VLLMService(BaseService):
     # ------------------------------------------------------------------
     def switch_model(self, model_id: str, *, revision: Optional[str] = None) -> None:
         with self._lock:
-            self.logger.info(f"Switching vLLM model from {self.config.model_id} to {model_id}")
+            self.logger.info(
+                f"Switching vLLM model from {self.config.model_id} to {model_id}"
+            )
             self.config.model_id = model_id
             vllm_registry.ensure_model_available(
                 model_id,
@@ -238,7 +251,10 @@ class VLLMService(BaseService):
                 auto_download=self.config.auto_download,
             )
             self._load_text_engine(force_reload=True, revision=revision)
-            if not self.config.embedding_model_id or self.config.embedding_model_id == model_id:
+            if (
+                not self.config.embedding_model_id
+                or self.config.embedding_model_id == model_id
+            ):
                 self._embedding_engine = self._text_engine
 
     def show_models(self) -> List[Dict[str, Any]]:
@@ -249,7 +265,9 @@ class VLLMService(BaseService):
         missing = [field for field in required_fields if field not in request]
         if missing:
             raise ValueError(f"Fine-tune request missing fields: {', '.join(missing)}")
-        raise NotImplementedError("Fine-tuning pipeline is not implemented yet. Please contact the fine-tune team.")
+        raise NotImplementedError(
+            "Fine-tuning pipeline is not implemented yet. Please contact the fine-tune team."
+        )
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -265,7 +283,9 @@ class VLLMService(BaseService):
             "tags": info.tags,
         }
 
-    def _load_text_engine(self, *, force_reload: bool, revision: Optional[str] = None) -> LLM:
+    def _load_text_engine(
+        self, *, force_reload: bool, revision: Optional[str] = None
+    ) -> LLM:
         with self._lock:
             if self._text_engine is not None and not force_reload:
                 return self._text_engine
@@ -284,12 +304,17 @@ class VLLMService(BaseService):
             self._text_engine = LLM(**engine_kwargs)  # type: ignore[operator-not-callable]
             self._sampling_defaults = self._build_sampling_params(self.config.sampling)
 
-            if not self.config.embedding_model_id or self.config.embedding_model_id == self.config.model_id:
+            if (
+                not self.config.embedding_model_id
+                or self.config.embedding_model_id == self.config.model_id
+            ):
                 self._embedding_engine = self._text_engine
 
             return self._text_engine
 
-    def _load_embedding_engine(self, *, force_reload: bool, revision: Optional[str] = None) -> LLM:
+    def _load_embedding_engine(
+        self, *, force_reload: bool, revision: Optional[str] = None
+    ) -> LLM:
         with self._lock:
             if self._embedding_engine is not None and not force_reload:
                 return self._embedding_engine
@@ -360,7 +385,9 @@ class VLLMService(BaseService):
         return SamplingParams(**params)
 
 
-def register_vllm_service(environment: Any, service_name: str, config: Dict[str, Any]) -> Any:
+def register_vllm_service(
+    environment: Any, service_name: str, config: Dict[str, Any]
+) -> Any:
     """Helper to register the vLLM service with a SAGE environment."""
 
     return environment.register_service(service_name, VLLMService, config)

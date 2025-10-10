@@ -14,8 +14,8 @@ from typing import Callable
 import numpy as np
 
 try:
-    from sage.middleware.components.sage_flow.service import SageFlowService
     from sage.middleware.components.sage_flow.python import sage_flow as _sf
+    from sage.middleware.components.sage_flow.service import SageFlowService
 except ImportError as exc:  # pragma: no cover - environment misconfigured
     raise SystemExit(
         "Unable to import SageFlow bindings. Ensure 'sage-middleware' is installed "

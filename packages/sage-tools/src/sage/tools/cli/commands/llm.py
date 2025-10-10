@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional
 
 import psutil
 import typer
-
 from sage.common.model_registry import vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install
@@ -34,7 +33,9 @@ app.add_typer(model_app, name="model")
 # Model management commands
 # ---------------------------------------------------------------------------
 @model_app.command("show")
-def show_models(json_output: bool = typer.Option(False, "--json", help="以 JSON 格式输出")):
+def show_models(
+    json_output: bool = typer.Option(False, "--json", help="以 JSON 格式输出")
+):
     """列出本地缓存的模型。"""
 
     infos = vllm_registry.list_models()
@@ -55,7 +56,9 @@ def show_models(json_output: bool = typer.Option(False, "--json", help="以 JSON
         return
 
     if not infos:
-        typer.echo("📭 本地尚未缓存任何 vLLM 模型。使用 'sage llm model download --model <name>' 开始下载。")
+        typer.echo(
+            "📭 本地尚未缓存任何 vLLM 模型。使用 'sage llm model download --model <name>' 开始下载。"
+        )
         return
 
     header = f"{'模型ID':48} {'Revision':12} {'Size(MB)':>10} {'Last Used':>20}"
@@ -116,9 +119,15 @@ def delete_model(
 # ---------------------------------------------------------------------------
 @app.command("run")
 def run_vllm_service(
-    model: str = typer.Option("meta-llama/Llama-3.1-8B-Instruct", "--model", "-m", help="生成模型"),
-    embedding_model: Optional[str] = typer.Option(None, "--embedding-model", help="嵌入模型（默认同生成模型）"),
-    auto_download: bool = typer.Option(True, "--auto-download/--no-auto-download", help="缺失时自动下载模型"),
+    model: str = typer.Option(
+        "meta-llama/Llama-3.1-8B-Instruct", "--model", "-m", help="生成模型"
+    ),
+    embedding_model: Optional[str] = typer.Option(
+        None, "--embedding-model", help="嵌入模型（默认同生成模型）"
+    ),
+    auto_download: bool = typer.Option(
+        True, "--auto-download/--no-auto-download", help="缺失时自动下载模型"
+    ),
     temperature: float = typer.Option(0.7, "--temperature", help="采样温度"),
     top_p: float = typer.Option(0.95, "--top-p", help="Top-p 采样"),
     max_tokens: int = typer.Option(512, "--max-tokens", help="最大生成 token 数"),
@@ -173,12 +182,16 @@ def fine_tune_stub(
     base_model: str = typer.Option(..., "--base-model", help="基础模型名称"),
     dataset_path: str = typer.Option(..., "--dataset", help="训练数据路径"),
     output_dir: str = typer.Option(..., "--output", help="输出目录"),
-    auto_download: bool = typer.Option(True, "--auto-download/--no-auto-download", help="自动确保基础模型就绪"),
+    auto_download: bool = typer.Option(
+        True, "--auto-download/--no-auto-download", help="自动确保基础模型就绪"
+    ),
 ):
     """提交 fine-tune 请求（当前为占位实现）。"""
 
     if VLLMService is None:  # pragma: no cover - dependency guard
-        typer.echo("❌ 当前环境未安装 isage-middleware[vllm]，无法调用 fine-tune 接口。")
+        typer.echo(
+            "❌ 当前环境未安装 isage-middleware[vllm]，无法调用 fine-tune 接口。"
+        )
         raise typer.Exit(1)
 
     service = VLLMService({"model_id": base_model, "auto_download": auto_download})
@@ -223,7 +236,9 @@ def start_llm_service(
 ):
     """启动旧版进程模式 vLLM 服务。"""
 
-    typer.echo("⚠️ 该命令采用旧的进程方式启动 vLLM。推荐使用 'sage llm run' 获取阻塞式内置服务体验。")
+    typer.echo(
+        "⚠️ 该命令采用旧的进程方式启动 vLLM。推荐使用 'sage llm run' 获取阻塞式内置服务体验。"
+    )
 
     if service.lower() != "vllm":
         typer.echo(f"❌ 暂不支持的服务类型: {service}")

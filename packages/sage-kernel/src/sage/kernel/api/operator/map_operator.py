@@ -3,8 +3,8 @@ import os
 import time
 from typing import TYPE_CHECKING
 
-from sage.kernel.runtime.communication.packet import Packet
 from sage.kernel.api.operator.base_operator import BaseOperator
+from sage.kernel.runtime.communication.packet import Packet
 from sage.kernel.runtime.context.task_context import TaskContext
 
 if TYPE_CHECKING:
