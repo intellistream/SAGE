@@ -62,9 +62,9 @@ class CustomLogger:
         """
         初始化自定义Logger
         
-        支持多种调用方式以提供更好的用户体验：
+        Supports multiple invocation methods for better user experience:
         
-        1. 简单调用（推荐）：
+        1. Simple invocation (recommended):
            logger = CustomLogger("MyLogger")
            
         2. 完整配置：
