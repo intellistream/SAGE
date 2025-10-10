@@ -51,11 +51,11 @@ class MyCustomFaultHandler(BaseFaultHandler):
     def handle_failure(self, task_id, error):
         # 自定义容错逻辑
         pass
-    
+
     def can_recover(self, task_id):
         # 自定义恢复判断
         pass
-    
+
     def recover(self, task_id):
         # 自定义恢复实现
         pass
@@ -75,11 +75,11 @@ class MyCustomFaultHandler(BaseFaultHandler):
 - impl: 实现层模块（内含各种策略实现）
 """
 
-# 只导出开发者扩展需要的基类
-from sage.kernel.fault_tolerance.base import BaseFaultHandler
-
 # 导出实现层供开发者参考和扩展
 from sage.kernel.fault_tolerance import impl
+
+# 只导出开发者扩展需要的基类
+from sage.kernel.fault_tolerance.base import BaseFaultHandler
 
 __all__ = [
     "BaseFaultHandler",  # 开发者继承此类实现自定义策略

@@ -14,14 +14,14 @@ from sage.kernel.core.types import TaskID
 
 class LifecycleManagerImpl:
     """
-<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/lifecycle.py
-    Actor 生命周期管理器
+    <<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/lifecycle.py
+        Actor 生命周期管理器
 
-=======
-    Actor 生命周期管理器实现
-    
->>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/lifecycle_impl.py
-    负责管理 Ray Actor 和本地 Task 的生命周期。
+    =======
+        Actor 生命周期管理器实现
+
+    >>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/lifecycle_impl.py
+        负责管理 Ray Actor 和本地 Task 的生命周期。
     """
 
     def __init__(self):

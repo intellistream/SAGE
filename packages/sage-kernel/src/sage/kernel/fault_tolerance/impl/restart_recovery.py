@@ -16,13 +16,15 @@ from sage.kernel.fault_tolerance.restart import (
     ExponentialBackoffStrategy,
     RestartStrategy,
 )
+
 =======
+from sage.kernel.core.types import JobID, TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
+    ExponentialBackoffStrategy,
     RestartStrategy,
-    ExponentialBackoffStrategy
 )
-from sage.kernel.core.types import TaskID, JobID
+
 >>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/restart_recovery.py
 
 if TYPE_CHECKING:

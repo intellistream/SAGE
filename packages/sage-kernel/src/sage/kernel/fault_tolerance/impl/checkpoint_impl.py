@@ -15,14 +15,14 @@ from sage.kernel.core.types import TaskID
 
 class CheckpointManagerImpl:
     """
-<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/checkpoint.py
-    Checkpoint 管理器
+    <<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/checkpoint.py
+        Checkpoint 管理器
 
-=======
-    Checkpoint 管理器实现
-    
->>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/checkpoint_impl.py
-    负责保存和恢复任务的状态快照。
+    =======
+        Checkpoint 管理器实现
+
+    >>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/checkpoint_impl.py
+        负责保存和恢复任务的状态快照。
     """
 
     def __init__(self, checkpoint_dir: str = ".sage_checkpoints"):

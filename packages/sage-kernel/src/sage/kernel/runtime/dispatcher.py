@@ -3,16 +3,15 @@ import time
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.kernel.fault_tolerance.factory import (
+    create_fault_handler_from_config,
+    create_lifecycle_manager,
+)
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.scheduler.task_scheduler import TaskScheduler
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
-from sage.kernel.scheduler.task_scheduler import TaskScheduler
-from sage.kernel.fault_tolerance.factory import (
-    create_fault_handler_from_config,
-    create_lifecycle_manager,
-)
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
@@ -36,14 +35,14 @@ class Dispatcher:
 
         # 使用调度器和容错管理器
         self.scheduler = TaskScheduler(env.platform)
-        
+
         # 从 Environment 配置创建容错处理器
         fault_tolerance_config = env.config.get("fault_tolerance", {})
         self.fault_handler = create_fault_handler_from_config(fault_tolerance_config)
         self.lifecycle_manager = create_lifecycle_manager()
-        
+
         self.setup_logging_system()
-        
+
         # 注入 logger 到容错管理器
         self.fault_handler.logger = self.logger
         self.lifecycle_manager.logger = self.logger
