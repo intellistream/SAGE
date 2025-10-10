@@ -1,7 +1,7 @@
 """
-Checkpoint 管理
+Checkpoint 管理实现
 
-负责任务状态的保存和恢复。
+负责任务状态的保存和恢复的具体实现。
 """
 
 import os
@@ -13,10 +13,15 @@ from sage.kernel.core.exceptions import CheckpointError
 from sage.kernel.core.types import TaskID
 
 
-class CheckpointManager:
+class CheckpointManagerImpl:
     """
+<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/checkpoint.py
     Checkpoint 管理器
 
+=======
+    Checkpoint 管理器实现
+    
+>>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/checkpoint_impl.py
     负责保存和恢复任务的状态快照。
     """
 
@@ -219,4 +224,4 @@ class CheckpointManager:
         }
 
 
-__all__ = ["CheckpointManager"]
+__all__ = ["CheckpointManagerImpl"]

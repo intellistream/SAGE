@@ -1,7 +1,7 @@
 """
-Actor 和 Task 生命周期管理
+Actor 和 Task 生命周期管理实现
 
-负责管理 Actor 和 Task 的创建、监控、清理和终止。
+负责管理 Actor 和 Task 的创建、监控、清理和终止的具体实现。
 """
 
 import time
@@ -12,10 +12,15 @@ from sage.kernel.core.exceptions import FaultToleranceError
 from sage.kernel.core.types import TaskID
 
 
-class ActorLifecycleManager:
+class LifecycleManagerImpl:
     """
+<<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/lifecycle.py
     Actor 生命周期管理器
 
+=======
+    Actor 生命周期管理器实现
+    
+>>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/lifecycle_impl.py
     负责管理 Ray Actor 和本地 Task 的生命周期。
     """
 
@@ -209,4 +214,4 @@ class ActorLifecycleManager:
         return False
 
 
-__all__ = ["ActorLifecycleManager"]
+__all__ = ["LifecycleManagerImpl"]
