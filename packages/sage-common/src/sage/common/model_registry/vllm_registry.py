@@ -20,7 +20,9 @@ except ImportError:  # pragma: no cover - defer failure until download call
     snapshot_download = None  # type: ignore
 
 
-_DEFAULT_ROOT = Path(os.getenv("SAGE_VLLM_MODEL_ROOT", Path.home() / ".sage" / "models" / "vllm"))
+_DEFAULT_ROOT = Path(
+    os.getenv("SAGE_VLLM_MODEL_ROOT", Path.home() / ".sage" / "models" / "vllm")
+)
 _MANIFEST_NAME = "metadata.json"
 
 
@@ -42,7 +44,7 @@ class ModelInfo:
 
     @property
     def size_mb(self) -> float:
-        return self.size_bytes / 1024 ** 2
+        return self.size_bytes / 1024**2
 
     @property
     def last_used_iso(self) -> Optional[str]:
@@ -77,7 +79,9 @@ def _load_manifest(root: Path) -> Dict[str, dict]:
         with manifest_path.open("r", encoding="utf-8") as handle:
             return json.load(handle)
     except json.JSONDecodeError as exc:  # pragma: no cover - unexpected corruption
-        raise ModelRegistryError(f"Corrupted manifest at {manifest_path}: {exc}") from exc
+        raise ModelRegistryError(
+            f"Corrupted manifest at {manifest_path}: {exc}"
+        ) from exc
 
 
 def _save_manifest(root: Path, manifest: Dict[str, dict]) -> None:
@@ -146,7 +150,9 @@ def get_model_path(model_id: str, root: Optional[Path] = None) -> Path:
     manifest = _load_manifest(root)
     entry = manifest.get(model_id)
     if not entry:
-        raise ModelNotFoundError(f"Model '{model_id}' is not downloaded. Run 'sage llm model download'.")
+        raise ModelNotFoundError(
+            f"Model '{model_id}' is not downloaded. Run 'sage llm model download'."
+        )
     path = Path(entry["path"])
     if not path.exists():
         raise ModelNotFoundError(

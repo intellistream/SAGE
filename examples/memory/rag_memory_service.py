@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
-from sage.middleware.components.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 
 config = {
     "manager_path": ".sage/examples/memory/rag_memory_service",

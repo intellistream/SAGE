@@ -6,7 +6,7 @@ Finetune CLI - Core Logic
 
 import json
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -23,135 +23,149 @@ def prepare_training_data(
     output_dir: Path,
     format: str = "alpaca",
     custom_data_path: Optional[Path] = None,
-    **kwargs
+    **kwargs,
 ) -> Path:
     """准备训练数据集（支持多种任务类型）"""
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     training_data = []
-    
+
     if task_type == FinetuneTask.CODE_UNDERSTANDING:
         # 代码理解任务 - 收集代码文件
-        extensions = kwargs.get('extensions', ['.py', '.yaml', '.yml', '.toml', '.md', '.rst'])
+        extensions = kwargs.get(
+            "extensions", [".py", ".yaml", ".yml", ".toml", ".md", ".rst"]
+        )
         files = collect_sage_code_files(root_dir, extensions=extensions)
-        
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console,
         ) as progress:
             task = progress.add_task(
-                f"📝 准备代码理解数据 ({len(files)} 个文件)...",
-                total=len(files)
+                f"📝 准备代码理解数据 ({len(files)} 个文件)...", total=len(files)
             )
-            
+
             for file_path in files:
                 try:
-                    content = file_path.read_text(encoding='utf-8')
+                    content = file_path.read_text(encoding="utf-8")
                     rel_path = file_path.relative_to(root_dir)
-                    
+
                     if format == "alpaca":
                         # 文件功能解释
-                        training_data.append({
-                            "instruction": f"请解释项目中 {rel_path} 文件的功能和实现",
-                            "input": "",
-                            "output": content
-                        })
-                        
+                        training_data.append(
+                            {
+                                "instruction": f"请解释项目中 {rel_path} 文件的功能和实现",
+                                "input": "",
+                                "output": content,
+                            }
+                        )
+
                         # 代码问答
-                        if file_path.suffix == '.py':
-                            training_data.append({
-                                "instruction": f"项目中 {rel_path} 文件包含哪些类和函数？请详细说明。",
-                                "input": content[:1500],
-                                "output": f"这是 {rel_path} 的代码实现，包含了核心功能。让我为你详细分析..."
-                            })
-                            
+                        if file_path.suffix == ".py":
+                            training_data.append(
+                                {
+                                    "instruction": f"项目中 {rel_path} 文件包含哪些类和函数？请详细说明。",
+                                    "input": content[:1500],
+                                    "output": f"这是 {rel_path} 的代码实现，包含了核心功能。让我为你详细分析...",
+                                }
+                            )
+
                             # 代码修改建议
-                            training_data.append({
-                                "instruction": f"如何改进 {rel_path} 中的代码？",
-                                "input": content[:1000],
-                                "output": f"基于 {rel_path} 的代码分析，我建议从以下几个方面改进..."
-                            })
-                    
+                            training_data.append(
+                                {
+                                    "instruction": f"如何改进 {rel_path} 中的代码？",
+                                    "input": content[:1000],
+                                    "output": f"基于 {rel_path} 的代码分析，我建议从以下几个方面改进...",
+                                }
+                            )
+
                     progress.update(task, advance=1)
                 except Exception as e:
                     console.print(f"[yellow]⚠️  跳过文件 {file_path}: {e}[/yellow]")
                     continue
-    
+
     elif task_type == FinetuneTask.QA_PAIRS:
         # 问答对任务
         if custom_data_path and custom_data_path.exists():
-            with open(custom_data_path, 'r', encoding='utf-8') as f:
+            with open(custom_data_path, "r", encoding="utf-8") as f:
                 qa_data = json.load(f)
-            
+
             for item in qa_data:
                 if format == "alpaca":
-                    training_data.append({
-                        "instruction": item.get("question", ""),
-                        "input": item.get("context", ""),
-                        "output": item.get("answer", "")
-                    })
+                    training_data.append(
+                        {
+                            "instruction": item.get("question", ""),
+                            "input": item.get("context", ""),
+                            "output": item.get("answer", ""),
+                        }
+                    )
         else:
             console.print("[yellow]⚠️  需要提供问答数据文件路径[/yellow]")
-    
+
     elif task_type == FinetuneTask.INSTRUCTION:
         # 指令微调任务
         if custom_data_path and custom_data_path.exists():
-            with open(custom_data_path, 'r', encoding='utf-8') as f:
+            with open(custom_data_path, "r", encoding="utf-8") as f:
                 instruction_data = json.load(f)
-            
+
             for item in instruction_data:
                 if format == "alpaca":
-                    training_data.append({
-                        "instruction": item.get("instruction", ""),
-                        "input": item.get("input", ""),
-                        "output": item.get("output", "")
-                    })
+                    training_data.append(
+                        {
+                            "instruction": item.get("instruction", ""),
+                            "input": item.get("input", ""),
+                            "output": item.get("output", ""),
+                        }
+                    )
         else:
             console.print("[yellow]⚠️  需要提供指令数据文件路径[/yellow]")
-    
+
     elif task_type == FinetuneTask.CHAT:
         # 对话微调任务
         if custom_data_path and custom_data_path.exists():
-            with open(custom_data_path, 'r', encoding='utf-8') as f:
+            with open(custom_data_path, "r", encoding="utf-8") as f:
                 chat_data = json.load(f)
-            
+
             for item in chat_data:
                 if format == "chat":
-                    training_data.append({
-                        "conversations": item.get("conversations", [])
-                    })
+                    training_data.append(
+                        {"conversations": item.get("conversations", [])}
+                    )
                 elif format == "alpaca":
                     # 转换为alpaca格式
                     conversations = item.get("conversations", [])
                     if len(conversations) >= 2:
-                        training_data.append({
-                            "instruction": conversations[0].get("content", ""),
-                            "input": "",
-                            "output": conversations[1].get("content", "")
-                        })
+                        training_data.append(
+                            {
+                                "instruction": conversations[0].get("content", ""),
+                                "input": "",
+                                "output": conversations[1].get("content", ""),
+                            }
+                        )
         else:
             console.print("[yellow]⚠️  需要提供对话数据文件路径[/yellow]")
-    
+
     elif task_type == FinetuneTask.CUSTOM:
         # 自定义数据集
         if custom_data_path and custom_data_path.exists():
-            with open(custom_data_path, 'r', encoding='utf-8') as f:
+            with open(custom_data_path, "r", encoding="utf-8") as f:
                 training_data = json.load(f)
             console.print(f"✅ 已加载自定义数据集: {len(training_data)} 条")
         else:
             console.print("[red]❌ 自定义任务需要提供数据文件路径[/red]")
             import typer
+
             raise typer.Exit(1)
-    
+
     # 保存训练数据
     output_file = output_dir / f"training_data_{task_type.value}_{format}.json"
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(training_data, f, ensure_ascii=False, indent=2)
-    
+
     console.print(f"\n✅ 训练数据已生成: [cyan]{output_file}[/cyan]")
     console.print(f"   📊 共 {len(training_data)} 条训练样本")
-    
+
     return output_file
 
 
@@ -159,12 +173,12 @@ def generate_training_config(
     model_name: str,
     dataset_path: Path,
     output_dir: Path,
-    framework: str = "llama-factory"
+    framework: str = "llama-factory",
 ) -> Path:
     """生成训练配置文件"""
-    
+
     config = {}
-    
+
     if framework == "llama-factory":
         config = {
             "model_name_or_path": model_name,
@@ -215,9 +229,9 @@ def generate_training_config(
             "lr_scheduler_type": "linear",
             "seed": 3407,
         }
-    
+
     config_path = output_dir / f"{framework}_config.json"
-    with open(config_path, 'w', encoding='utf-8') as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
-    
+
     return config_path

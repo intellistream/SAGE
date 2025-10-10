@@ -22,7 +22,7 @@ def initialize_hf_model(model_name):
             "transformers package is required for HuggingFace embedding functionality. "
             "Please install it via: pip install transformers"
         ) from e
-    
+
     hf_tokenizer = AutoTokenizer.from_pretrained(
         model_name, device_map="auto", trust_remote_code=True
     )
@@ -55,7 +55,7 @@ def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:
             "torch package is required for HuggingFace embedding functionality. "
             "Please install it via: pip install torch"
         ) from e
-    
+
     device = next(embed_model.parameters()).device
     encoded_texts = tokenizer(
         text, return_tensors="pt", padding=True, truncation=True

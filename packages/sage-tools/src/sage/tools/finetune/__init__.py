@@ -14,13 +14,13 @@ SAGE Finetune - 轻量级大模型微调工具
 
 使用示例:
     from sage.tools.finetune import LoRATrainer, TrainingConfig
-    
+
     config = TrainingConfig(
         model_name="Qwen/Qwen2.5-Coder-1.5B-Instruct",
         output_dir="./output",
         num_epochs=3,
     )
-    
+
     trainer = LoRATrainer(config)
     trainer.train(dataset)
 """
@@ -28,15 +28,17 @@ SAGE Finetune - 轻量级大模型微调工具
 # 延迟导入：只在实际使用时才加载 transformers 等重量级依赖
 # 这对于 CLI --help 等轻量级操作很重要
 
-from .config import TrainingConfig, LoRAConfig, PresetConfigs
-from .data import prepare_dataset, load_training_data
 from .cli import app  # CLI 应用
+from .config import LoRAConfig, PresetConfigs, TrainingConfig
+from .data import load_training_data, prepare_dataset
+
 
 # LoRATrainer 延迟导入，使用 __getattr__
 def __getattr__(name):
     """延迟导入 LoRATrainer，避免在模块加载时就导入 transformers"""
     if name == "LoRATrainer":
         from .trainer import LoRATrainer
+
         return LoRATrainer
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

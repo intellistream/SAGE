@@ -3,14 +3,15 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import pytest
-
 from sage.tools.cli.commands import chat as chat_module
 from sage.tools.cli.commands import pipeline as pipeline_builder
 
 
 def test_looks_like_pipeline_request_detection():
     assert chat_module._looks_like_pipeline_request("请帮我构建一个大模型应用")
-    assert chat_module._looks_like_pipeline_request("build an LLM pipeline for retrieval")
+    assert chat_module._looks_like_pipeline_request(
+        "build an LLM pipeline for retrieval"
+    )
     assert not chat_module._looks_like_pipeline_request("SAGE 是什么？")
 
 
@@ -48,7 +49,9 @@ def fake_generator(monkeypatch):
     class DummyGenerator:
         def __init__(self, config):
             self.config = config
-            self.calls: list[tuple[Dict[str, Any], Optional[Dict[str, Any]], Optional[str]]] = []
+            self.calls: list[
+                tuple[Dict[str, Any], Optional[Dict[str, Any]], Optional[str]]
+            ] = []
 
         def generate(
             self,
@@ -70,7 +73,9 @@ def fake_generator(monkeypatch):
 
     executed: dict[str, Any] = {}
 
-    def fake_execute(plan_obj, autostop=True, host=None, port=None, console_override=None):
+    def fake_execute(
+        plan_obj, autostop=True, host=None, port=None, console_override=None
+    ):
         executed.update(
             {
                 "plan": plan_obj,
@@ -93,7 +98,9 @@ def fake_generator(monkeypatch):
     monkeypatch.setattr(pipeline_builder, "execute_pipeline_plan", fake_execute)
     monkeypatch.setattr(pipeline_builder, "save_pipeline_plan", fake_save)
 
-    monkeypatch.setattr(chat_module, "load_domain_contexts", lambda limit=4: ("默认上下文",))
+    monkeypatch.setattr(
+        chat_module, "load_domain_contexts", lambda limit=4: ("默认上下文",)
+    )
     monkeypatch.setattr(chat_module, "get_default_knowledge_base", lambda: None)
 
     return {
@@ -162,7 +169,7 @@ def test_scenario_templates():
     assert qa_template is not None
     assert qa_template["name"] == "问答助手"
     assert "data_sources" in qa_template
-    
+
     # 测试不存在的模板
     invalid = chat_module._get_scenario_template("nonexistent")
     assert invalid is None
@@ -195,7 +202,7 @@ def test_validate_pipeline_config():
     is_valid, errors = chat_module._validate_pipeline_config(valid_plan)
     assert is_valid
     assert len(errors) == 0
-    
+
     # 无效配置 - 缺少必需字段
     invalid_plan = {
         "pipeline": {"name": "test"},  # 缺少 type
@@ -213,19 +220,19 @@ def test_normalize_list_field():
     # 逗号分隔
     result = chat_module._normalize_list_field("a,b,c")
     assert result == ["a", "b", "c"]
-    
+
     # 中文逗号
     result = chat_module._normalize_list_field("文档，数据库，API")
     assert result == ["文档", "数据库", "API"]
-    
+
     # 混合分隔符
     result = chat_module._normalize_list_field("a,b;c/d")
     assert result == ["a", "b", "c", "d"]
-    
+
     # 空字符串
     result = chat_module._normalize_list_field("")
     assert result == []
-    
+
     # 带空格
     result = chat_module._normalize_list_field("  a  ,  b  ")
     assert result == ["a", "b"]

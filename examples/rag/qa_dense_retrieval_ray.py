@@ -38,15 +38,19 @@ class SafeBiologyRetriever(MapFunction):
 
         def init_service():
             try:
-                from sage.middleware.components.neuromem.memory_service import (
-                    MemoryService,
-                )
+                # TODO: MemoryService has been deprecated.
+                # Use NeuroMemVDBService instead:
+                # from sage.middleware.components.sage_mem import NeuroMemVDBService
                 from sage.common.components.sage_embedding.embedding_api import (
                     apply_embedding_model,
                 )
 
-                embedding_model = apply_embedding_model("default")
-                memory_service = MemoryService()
+                raise NotImplementedError(
+                    "MemoryService is deprecated. Please use NeuroMemVDBService from sage_mem instead."
+                )
+
+                # embedding_model = apply_embedding_model("default")
+                # memory_service = MemoryService()
 
                 # 检查集合是否存在
                 collections = memory_service.list_collections()

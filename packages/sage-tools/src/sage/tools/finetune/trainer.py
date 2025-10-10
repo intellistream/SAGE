@@ -5,27 +5,28 @@ LoRA 训练器模块
 """
 
 import sys
-import torch
 from pathlib import Path
 from typing import Optional, Union
 
+import torch
+from datasets import Dataset
+from peft import LoraConfig as PeftLoraConfig
+from peft import get_peft_model
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    TrainingArguments,
-    Trainer,
     DataCollatorForLanguageModeling,
+    Trainer,
+    TrainingArguments,
 )
-from peft import LoraConfig as PeftLoraConfig, get_peft_model
-from datasets import Dataset
 
-from .config import TrainingConfig, LoRAConfig
-from .data import prepare_dataset, load_training_data, format_alpaca_sample
+from .config import LoRAConfig, TrainingConfig
+from .data import format_alpaca_sample, load_training_data, prepare_dataset
 
 
 class LoRATrainer:
     """LoRA 微调训练器
-    
+
     示例:
         >>> config = TrainingConfig(
         ...     model_name="Qwen/Qwen2.5-Coder-1.5B-Instruct",
@@ -35,10 +36,10 @@ class LoRATrainer:
         >>> trainer = LoRATrainer(config)
         >>> trainer.train()
     """
-    
+
     def __init__(self, config: TrainingConfig):
         """初始化训练器
-        
+
         Args:
             config: 训练配置
         """
@@ -47,11 +48,11 @@ class LoRATrainer:
         self.tokenizer = None
         self.dataset = None
         self.trainer = None
-    
+
     def load_model_and_tokenizer(self):
         """加载模型和分词器"""
         print("🤖 加载模型和分词器...")
-        
+
         # 量化配置
         if self.config.load_in_8bit:
             print("⚠️  使用 8-bit 量化加载（节省显存）")
@@ -63,6 +64,7 @@ class LoRATrainer:
         elif self.config.load_in_4bit:
             print("⚠️  使用 4-bit 量化加载（最大化节省显存）")
             from transformers import BitsAndBytesConfig
+
             load_kwargs = {
                 "quantization_config": BitsAndBytesConfig(
                     load_in_4bit=True,
@@ -78,26 +80,25 @@ class LoRATrainer:
                 "torch_dtype": "auto",
                 "device_map": "auto",
             }
-        
+
         # 加载模型
         self.model = AutoModelForCausalLM.from_pretrained(
-            self.config.model_name,
-            **load_kwargs
+            self.config.model_name, **load_kwargs
         )
-        
+
         # 加载分词器
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
-        
+
         # 设置 pad_token
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        
+
         print(f"✅ 模型加载完成: {self.config.model_name}\n")
-    
+
     def apply_lora(self):
         """应用 LoRA 适配器"""
         print("🔧 应用 LoRA 适配器...")
-        
+
         # 转换配置
         lora_config = PeftLoraConfig(
             r=self.config.lora.r,
@@ -107,29 +108,29 @@ class LoRATrainer:
             bias=self.config.lora.bias,
             task_type=self.config.lora.task_type,
         )
-        
+
         self.model = get_peft_model(self.model, lora_config)
         self.model.print_trainable_parameters()
         print()
-    
+
     def prepare_data(self):
         """准备训练数据"""
         print("📊 准备数据集...")
-        
+
         if self.config.data_path is None:
             raise ValueError("未指定数据路径 (data_path)")
-        
+
         self.dataset = prepare_dataset(
             self.config.data_path,
             self.tokenizer,
             self.config.max_length,
         )
         print()
-    
+
     def setup_trainer(self):
         """设置 Trainer"""
         print("⚙️  配置训练器...")
-        
+
         # 训练参数
         training_args = TrainingArguments(
             output_dir=str(self.config.checkpoint_dir),
@@ -151,43 +152,42 @@ class LoRATrainer:
             dataloader_num_workers=self.config.dataloader_num_workers,
             seed=self.config.seed,
         )
-        
+
         # 创建 Trainer
         self.trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=self.dataset,
-            data_collator=DataCollatorForLanguageModeling(
-                self.tokenizer,
-                mlm=False
-            ),
+            data_collator=DataCollatorForLanguageModeling(self.tokenizer, mlm=False),
         )
-        
+
         print(f"✅ 训练器配置完成")
         print(f"   • 有效 batch size: {self.config.effective_batch_size}")
         print(f"   • 总样本数: {len(self.dataset)}")
         print(f"   • 训练轮数: {self.config.num_train_epochs}")
-        print(f"   • 预计步数: ~{len(self.dataset) // self.config.effective_batch_size * self.config.num_train_epochs}")
+        print(
+            f"   • 预计步数: ~{len(self.dataset) // self.config.effective_batch_size * self.config.num_train_epochs}"
+        )
         print()
-    
+
     def train(self):
         """执行训练"""
         # 1. 加载模型
         if self.model is None:
             self.load_model_and_tokenizer()
-        
+
         # 2. 应用 LoRA
-        if not hasattr(self.model, 'peft_config'):
+        if not hasattr(self.model, "peft_config"):
             self.apply_lora()
-        
+
         # 3. 准备数据
         if self.dataset is None:
             self.prepare_data()
-        
+
         # 4. 设置训练器
         if self.trainer is None:
             self.setup_trainer()
-        
+
         # 5. 开始训练
         print("🚀 开始训练...\n")
         print("💡 建议:")
@@ -198,15 +198,19 @@ class LoRATrainer:
         if self.config.gradient_checkpointing:
             print("  • 当前启用梯度检查点")
         print()
-        
+
         try:
             self.trainer.train()
         except RuntimeError as e:
             if "out of memory" in str(e).lower():
                 print("\n❌ 显存不足 (OOM) 错误!")
                 print("\n💡 建议:")
-                print(f"  1. 减小 max_length (当前 {self.config.max_length} -> {self.config.max_length // 2})")
-                print(f"  2. 减小 batch_size (当前 {self.config.per_device_train_batch_size})")
+                print(
+                    f"  1. 减小 max_length (当前 {self.config.max_length} -> {self.config.max_length // 2})"
+                )
+                print(
+                    f"  2. 减小 batch_size (当前 {self.config.per_device_train_batch_size})"
+                )
                 if not self.config.load_in_8bit and not self.config.load_in_4bit:
                     print("  3. 启用量化: load_in_8bit=True")
                 if not self.config.gradient_checkpointing:
@@ -215,26 +219,26 @@ class LoRATrainer:
                 sys.exit(1)
             else:
                 raise
-        
+
         # 6. 保存模型
         self.save_model()
-        
+
         # 7. 显示完成信息
         self.print_completion_info()
-    
+
     def save_model(self):
         """保存模型"""
         print("\n💾 保存模型...")
-        
+
         # 保存 LoRA 权重
         self.model.save_pretrained(str(self.config.lora_dir))
         self.tokenizer.save_pretrained(str(self.config.lora_dir))
-        
+
         # 保存配置
         self.config.save(self.config.output_dir / "training_config.json")
-        
+
         print(f"✅ 模型已保存到: {self.config.lora_dir}")
-    
+
     def print_completion_info(self):
         """打印完成信息"""
         print(f"\n{'='*60}")
@@ -257,32 +261,33 @@ class LoRATrainer:
 
 def train_from_meta(output_dir: Union[str, Path]):
     """从元信息文件训练
-    
+
     这个函数用于兼容旧的 simple_finetune.py 脚本
-    
+
     Args:
         output_dir: 输出目录（包含 finetune_meta.json）
     """
     output_dir = Path(output_dir)
-    
+
     # 读取元信息
     meta_file = output_dir / "finetune_meta.json"
     if not meta_file.exists():
         print(f"❌ 未找到元信息文件: {meta_file}")
         print("请先运行: sage finetune quickstart")
         sys.exit(1)
-    
+
     import json
+
     with open(meta_file) as f:
         meta = json.load(f)
-    
+
     # 创建配置
     config = TrainingConfig(
         model_name=meta.get("model", "Qwen/Qwen2.5-Coder-1.5B-Instruct"),
         data_path=Path(meta.get("dataset")),
         output_dir=output_dir,
     )
-    
+
     # 创建训练器并训练
     trainer = LoRATrainer(config)
     trainer.train()
@@ -295,5 +300,5 @@ if __name__ == "__main__":
         print("\n示例:")
         print("  python -m sage.tools.finetune.trainer finetune_output/code")
         sys.exit(1)
-    
+
     train_from_meta(sys.argv[1])

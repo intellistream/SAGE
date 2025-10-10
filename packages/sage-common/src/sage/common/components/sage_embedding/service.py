@@ -12,9 +12,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
-
-from sage.kernel.api.service.base_service import BaseService
 from sage.common.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
+from sage.kernel.api.service.base_service import BaseService
 
 
 @dataclass
@@ -29,10 +28,10 @@ class EmbeddingServiceConfig:
     normalize: bool = True  # Normalize vectors
     cache_enabled: bool = False  # Enable embedding cache
     cache_size: int = 10000  # LRU cache size
-    
+
     # Method-specific configs
     config: Dict[str, Any] = field(default_factory=dict)
-    
+
     # vLLM-specific (if method == "vllm")
     vllm_service_name: Optional[str] = None  # Name of vLLM service to use
     vllm_auto_download: bool = False
@@ -59,13 +58,13 @@ class EmbeddingServiceConfig:
 
 class EmbeddingService(BaseService):
     """Unified embedding service for SAGE.
-    
+
     This service provides a consistent interface for all embedding methods:
     - Local models (HuggingFace transformers)
     - API-based services (OpenAI, Jina, Zhipu, Cohere, etc.)
     - vLLM-powered embedding models (high performance)
     - Hash-based and mock embeddings (for testing)
-    
+
     Examples:
         # In config:
         services:
@@ -76,11 +75,11 @@ class EmbeddingService(BaseService):
               model: "BAAI/bge-small-zh-v1.5"
               batch_size: 32
               normalize: true
-        
+
         # In pipeline/operator:
         result = self.call_service("embedding", texts=["hello", "world"])
         vectors = result["vectors"]  # List[List[float]]
-        
+
         # Using vLLM backend:
         services:
                     vllm:
@@ -88,7 +87,7 @@ class EmbeddingService(BaseService):
             config:
               model_id: "BAAI/bge-base-en-v1.5"
               embedding_model_id: "BAAI/bge-base-en-v1.5"
-          
+
           embedding:
             class: sage.common.components.sage_embedding.EmbeddingService
             config:
@@ -109,13 +108,17 @@ class EmbeddingService(BaseService):
     # ------------------------------------------------------------------
     def setup(self) -> None:
         """Initialize the embedding service."""
-        self.logger.info(f"EmbeddingService setup starting: method={self.config.method}")
-        
+        self.logger.info(
+            f"EmbeddingService setup starting: method={self.config.method}"
+        )
+
         with self._lock:
             if self.config.method == "vllm":
                 # Use vLLM service for embeddings
                 if not self.config.vllm_service_name:
-                    raise ValueError("vLLM method requires 'vllm_service_name' in config")
+                    raise ValueError(
+                        "vLLM method requires 'vllm_service_name' in config"
+                    )
                 self.logger.info(f"Using vLLM service: {self.config.vllm_service_name}")
                 # Don't create embedder - will use service call
             else:
@@ -127,17 +130,20 @@ class EmbeddingService(BaseService):
                     kwargs["api_key"] = self.config.api_key
                 if self.config.base_url:
                     kwargs["base_url"] = self.config.base_url
-                
+
                 self._embedder = EmbeddingFactory.create(self.config.method, **kwargs)
                 self._dimension = self._embedder.get_dimension()
                 self.logger.info(f"Embedding model loaded: dim={self._dimension}")
-            
+
             # Setup cache if enabled
             if self.config.cache_enabled:
                 from functools import lru_cache
+
                 self._cache = {}
-                self.logger.info(f"Embedding cache enabled: size={self.config.cache_size}")
-        
+                self.logger.info(
+                    f"Embedding cache enabled: size={self.config.cache_size}"
+                )
+
         self.logger.info("EmbeddingService setup complete")
 
     def cleanup(self) -> None:
@@ -157,7 +163,7 @@ class EmbeddingService(BaseService):
     # ------------------------------------------------------------------
     def process(self, payload: Dict[str, Any]) -> Any:
         """Process embedding requests.
-        
+
         Payload format:
             {
                 "task": "embed",  # or "info", "list_methods"
@@ -181,7 +187,7 @@ class EmbeddingService(BaseService):
             return self.list_methods()
         if task == "get_dimension":
             return {"dimension": self.get_dimension()}
-        
+
         raise ValueError(f"Unsupported task '{task}'")
 
     def embed(
@@ -193,13 +199,13 @@ class EmbeddingService(BaseService):
         return_stats: bool = False,
     ) -> Dict[str, Any]:
         """Generate embeddings for text(s).
-        
+
         Args:
             texts: Single text or list of texts
             normalize: Override config normalize setting
             batch_size: Override config batch_size
             return_stats: Include embedding statistics
-        
+
         Returns:
             {
                 "vectors": List[List[float]],
@@ -215,7 +221,7 @@ class EmbeddingService(BaseService):
             texts = [texts]
         elif not isinstance(texts, list):
             texts = list(texts)
-        
+
         if not texts:
             return {
                 "vectors": [],
@@ -224,15 +230,15 @@ class EmbeddingService(BaseService):
                 "method": self.config.method,
                 "model": self.config.model,
             }
-        
+
         normalize = normalize if normalize is not None else self.config.normalize
         batch_size = batch_size or self.config.batch_size
-        
+
         # Check cache
         cached_results = []
         uncached_texts = []
         uncached_indices = []
-        
+
         if self.config.cache_enabled and self._cache is not None:
             for i, text in enumerate(texts):
                 if text in self._cache:
@@ -243,10 +249,10 @@ class EmbeddingService(BaseService):
         else:
             uncached_texts = texts
             uncached_indices = list(range(len(texts)))
-        
+
         # Generate embeddings for uncached texts
         vectors = [None] * len(texts)
-        
+
         if uncached_texts:
             if self.config.method == "vllm":
                 # Use vLLM service
@@ -258,15 +264,15 @@ class EmbeddingService(BaseService):
                         "options": {
                             "normalize": normalize,
                             "batch_size": batch_size,
-                        }
-                    }
+                        },
+                    },
                 )
                 uncached_vectors = result["vectors"]
             else:
                 # Use standard embedder
                 uncached_vectors = []
                 for i in range(0, len(uncached_texts), batch_size):
-                    batch = uncached_texts[i:i + batch_size]
+                    batch = uncached_texts[i : i + batch_size]
                     if len(batch) == 1:
                         vec = self._embedder.embed(batch[0])
                         if normalize:
@@ -277,55 +283,59 @@ class EmbeddingService(BaseService):
                         if normalize:
                             batch_vecs = [self._normalize_vector(v) for v in batch_vecs]
                         uncached_vectors.extend(batch_vecs)
-            
+
             # Update cache and results
-            for idx, text, vec in zip(uncached_indices, uncached_texts, uncached_vectors):
+            for idx, text, vec in zip(
+                uncached_indices, uncached_texts, uncached_vectors
+            ):
                 vectors[idx] = vec
                 if self.config.cache_enabled and self._cache is not None:
                     # LRU eviction
                     if len(self._cache) >= self.config.cache_size:
                         self._cache.pop(next(iter(self._cache)))
                     self._cache[text] = vec
-        
+
         # Add cached results
         for idx, vec in cached_results:
             vectors[idx] = vec
-        
+
         # Build response
         result = {
             "vectors": vectors,
-            "dimension": len(vectors[0]) if vectors and vectors[0] else self.get_dimension(),
+            "dimension": (
+                len(vectors[0]) if vectors and vectors[0] else self.get_dimension()
+            ),
             "count": len(vectors),
             "method": self.config.method,
             "model": self.config.model or self.config.method,
         }
-        
+
         if return_stats:
             result["stats"] = {
                 "cached": len(cached_results),
                 "computed": len(uncached_texts),
                 "cache_hit_rate": len(cached_results) / len(texts) if texts else 0.0,
             }
-        
+
         return result
 
     def get_dimension(self) -> int:
         """Get embedding dimension."""
         if self._dimension is not None:
             return self._dimension
-        
+
         if self.config.method == "vllm":
             # Query vLLM service
             result = self.call_service(
                 self.config.vllm_service_name,
-                payload={"task": "embed", "inputs": "test"}
+                payload={"task": "embed", "inputs": "test"},
             )
             self._dimension = result.get("dimension", 768)
         elif self._embedder is not None:
             self._dimension = self._embedder.get_dimension()
         else:
             self._dimension = 768  # Default
-        
+
         return self._dimension
 
     def get_info(self) -> Dict[str, Any]:
@@ -338,16 +348,16 @@ class EmbeddingService(BaseService):
             "normalize": self.config.normalize,
             "cache_enabled": self.config.cache_enabled,
         }
-        
+
         if self.config.cache_enabled and self._cache is not None:
             info["cache_stats"] = {
                 "size": len(self._cache),
                 "capacity": self.config.cache_size,
             }
-        
+
         if self.config.method == "vllm":
             info["vllm_service"] = self.config.vllm_service_name
-        
+
         return info
 
     def list_methods(self) -> List[Dict[str, Any]]:
@@ -356,23 +366,27 @@ class EmbeddingService(BaseService):
         for method in EmbeddingRegistry.list_methods():
             info = EmbeddingRegistry.get_model_info(method)
             if info:
-                methods.append({
-                    "name": method,
-                    "description": info.description,
-                    "requires_api_key": info.requires_api_key,
-                    "requires_model_download": info.requires_model_download,
-                    "status": info.status.value,
-                })
-        
+                methods.append(
+                    {
+                        "name": method,
+                        "description": info.description,
+                        "requires_api_key": info.requires_api_key,
+                        "requires_model_download": info.requires_model_download,
+                        "status": info.status.value,
+                    }
+                )
+
         # Add vLLM method
-        methods.append({
-            "name": "vllm",
-            "description": "High-performance vLLM embedding service",
-            "requires_api_key": False,
-            "requires_model_download": True,
-            "status": "available",
-        })
-        
+        methods.append(
+            {
+                "name": "vllm",
+                "description": "High-performance vLLM embedding service",
+                "requires_api_key": False,
+                "requires_model_download": True,
+                "status": "available",
+            }
+        )
+
         return methods
 
     # ------------------------------------------------------------------

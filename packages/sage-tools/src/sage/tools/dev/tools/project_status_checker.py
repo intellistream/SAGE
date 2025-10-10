@@ -387,12 +387,13 @@ class ProjectStatusChecker:
 
             installed = {}
             for dist in metadata.distributions():
-                installed[dist.metadata['Name']] = dist.version
+                installed[dist.metadata["Name"]] = dist.version
             return installed
         except ImportError:
             # Python < 3.8 回退方案：使用 pkg_resources（带警告抑制）
             try:
                 import warnings
+
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore", category=DeprecationWarning)
                     import pkg_resources
@@ -403,7 +404,7 @@ class ProjectStatusChecker:
                 return installed
             except ImportError:
                 pass
-        
+
         # 最终回退方案：使用pip list
         try:
             result = subprocess.run(
