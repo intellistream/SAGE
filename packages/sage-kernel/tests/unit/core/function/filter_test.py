@@ -2,10 +2,10 @@ import threading
 import time
 from typing import Any, Dict, List
 
-from sage.core.api.function.filter_function import FilterFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.filter_function import FilterFunction
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.source_function import SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 class NumberDataSource(SourceFunction):

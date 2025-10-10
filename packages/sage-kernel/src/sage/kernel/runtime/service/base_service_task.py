@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:
-    from sage.core.factory.service_factory import ServiceFactory
+    from sage.kernel.runtime.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.context.service_context import ServiceContext
 
 

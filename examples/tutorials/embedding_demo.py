@@ -3,9 +3,11 @@
 SAGE Embedding 方法演示
 
 展示所有 11 个 embedding 方法的使用。
+
+@test:allow-demo
 """
 
-from sage.components.sage_embedding import (
+from sage.common.components.sage_embedding import (
     list_embedding_models,
     check_model_availability,
     get_embedding_model,

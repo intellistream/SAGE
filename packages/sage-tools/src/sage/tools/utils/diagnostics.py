@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import importlib.metadata
 import os
 import pkgutil
 import subprocess
@@ -14,11 +15,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from rich.console import Console
 from rich.table import Table
-
-try:  # pragma: no cover - optional dependency in some environments
-    import pkg_resources
-except ImportError:  # pragma: no cover - tooling should ensure this exists
-    pkg_resources = None  # type: ignore[assignment]
+from packaging.version import parse as parse_version
 
 
 DEFAULT_DEPENDENCIES: Dict[str, str] = {
@@ -47,25 +44,11 @@ def _gather_dependency_status(
 ) -> List[DependencyStatus]:
     statuses: List[DependencyStatus] = []
 
-    if pkg_resources is None:
-        for name, required in dependencies.items():
-            statuses.append(
-                DependencyStatus(
-                    name=name,
-                    required=required,
-                    installed=None,
-                    compatible=False,
-                    error="pkg_resources 未安装",
-                )
-            )
-        return statuses
-
     for package, minimum in dependencies.items():
         try:
-            installed_version = pkg_resources.get_distribution(package).version
-            compatible = pkg_resources.parse_version(
-                installed_version
-            ) >= pkg_resources.parse_version(minimum)
+            # 使用 importlib.metadata 替代 pkg_resources
+            installed_version = importlib.metadata.version(package)
+            compatible = parse_version(installed_version) >= parse_version(minimum)
             statuses.append(
                 DependencyStatus(
                     name=package,
@@ -74,7 +57,7 @@ def _gather_dependency_status(
                     compatible=compatible,
                 )
             )
-        except pkg_resources.DistributionNotFound:
+        except importlib.metadata.PackageNotFoundError:
             statuses.append(
                 DependencyStatus(
                     name=package,
@@ -167,7 +150,7 @@ def check_dependency_versions(
         if verify_import:
             console.print("\n尝试验证关键模块导入…")
             try:
-                from sage.kernel.jobmanager.jobmanager_client import (  # noqa: F401
+                from sage.kernel.runtime.jobmanager_client import (  # noqa: F401
                     JobManagerClient,
                 )
             except Exception as exc:  # pragma: no cover - import runtime dependent

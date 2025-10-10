@@ -381,30 +381,45 @@ class ProjectStatusChecker:
 
     def _get_installed_packages(self) -> Dict[str, str]:
         """获取已安装的包列表和版本"""
+        # 优先使用 importlib.metadata (Python 3.8+)，避免使用已弃用的 pkg_resources
         try:
-            import pkg_resources
+            import importlib.metadata as metadata
 
             installed = {}
-            for dist in pkg_resources.working_set:
-                installed[dist.project_name] = dist.version
+            for dist in metadata.distributions():
+                installed[dist.metadata['Name']] = dist.version
             return installed
         except ImportError:
-            # 回退方案：使用pip list
+            # Python < 3.8 回退方案：使用 pkg_resources（带警告抑制）
             try:
-                result = subprocess.run(
-                    [sys.executable, "-m", "pip", "list", "--format=json"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-                if result.returncode == 0:
-                    import json
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning)
+                    import pkg_resources
 
-                    packages = json.loads(result.stdout)
-                    return {pkg["name"]: pkg["version"] for pkg in packages}
-            except Exception:
+                installed = {}
+                for dist in pkg_resources.working_set:
+                    installed[dist.project_name] = dist.version
+                return installed
+            except ImportError:
                 pass
-            return {}
+        
+        # 最终回退方案：使用pip list
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "list", "--format=json"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                import json
+
+                packages = json.loads(result.stdout)
+                return {pkg["name"]: pkg["version"] for pkg in packages}
+        except Exception:
+            pass
+        return {}
 
     def _get_package_name_from_pyproject(self, pyproject_path: Path) -> Optional[str]:
         """从pyproject.toml中获取包名"""

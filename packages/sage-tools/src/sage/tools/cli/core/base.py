@@ -284,7 +284,7 @@ class JobManagerCommand(ServiceCommand):
     def connect(self) -> bool:
         """连接到JobManager守护进程"""
         try:
-            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+            from sage.kernel.runtime.jobmanager_client import JobManagerClient
 
             self.client = JobManagerClient(self.daemon_host, self.daemon_port)
 

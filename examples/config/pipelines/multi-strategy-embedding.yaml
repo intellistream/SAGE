@@ -14,7 +14,7 @@ environment:
 services:
   # Fast embedding for real-time queries (< 1ms)
   - name: embedding-service-fast
-    class: sage.components.sage_embedding.service.EmbeddingService
+    class: sage.common.components.sage_embedding.service.EmbeddingService
     params:
       method: hash
       cache_embeddings: true
@@ -22,7 +22,7 @@ services:
 
   # High-quality embedding for documents
   - name: embedding-service-quality
-    class: sage.components.sage_embedding.service.EmbeddingService
+    class: sage.common.components.sage_embedding.service.EmbeddingService
     params:
       method: openai
       model_name: text-embedding-3-large
@@ -32,7 +32,7 @@ services:
 
   # High-throughput embedding for batch processing
   - name: embedding-service-batch
-    class: sage.components.sage_embedding.service.EmbeddingService
+    class: sage.common.components.sage_embedding.service.EmbeddingService
     params:
       method: vllm
       model_name: BAAI/bge-large-zh-v1.5
@@ -42,7 +42,7 @@ services:
 
   # VLLMService backend for batch embedding
   - name: vllm-backend
-    class: sage.middleware.components.sage_vllm.service.VLLMService
+    class: sage.common.components.sage_vllm.service.VLLMService
     params:
       model_name: BAAI/bge-large-zh-v1.5
       task: embed

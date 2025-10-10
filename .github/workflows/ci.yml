@@ -20,6 +20,7 @@ env:
   JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+  GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
   HF_ENDPOINT: https://hf-mirror.com
   CACHE_VERSION: v2-simplified-prod
 
@@ -68,6 +69,12 @@ jobs:
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
           
           WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+          
+          # ==================================================
+          # GitHub Token for Repository Access
+          # ==================================================
+          
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
           
           # ==================================================
           # Hugging Face Configuration

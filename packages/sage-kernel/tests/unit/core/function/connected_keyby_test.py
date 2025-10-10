@@ -3,11 +3,11 @@ import time
 from typing import Any, Dict, List
 
 import pytest
-from sage.core.api.function.comap_function import BaseCoMapFunction
-from sage.core.api.function.keyby_function import KeyByFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.comap_function import BaseCoMapFunction
+from sage.kernel.api.function.keyby_function import KeyByFunction
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.source_function import SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 class UserDataSource(SourceFunction):

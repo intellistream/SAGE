@@ -11,8 +11,8 @@ if os.getenv("SAGE_EXAMPLES_MODE") == "test":
     sys.exit(0)
 
 from sage.common.utils.config.loader import load_config
-from sage.core.api.function.map_function import MapFunction
-from sage.core.api.remote_environment import RemoteEnvironment
+from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.libs.io_utils.sink import FileSink
 from sage.libs.io_utils.source import FileSource
 from sage.libs.rag.generator import OpenAIGenerator
@@ -41,7 +41,7 @@ class SafeBiologyRetriever(MapFunction):
                 from sage.middleware.components.neuromem.memory_service import (
                     MemoryService,
                 )
-                from sage.components.sage_embedding.embedding_api import (
+                from sage.common.components.sage_embedding.embedding_api import (
                     apply_embedding_model,
                 )
 

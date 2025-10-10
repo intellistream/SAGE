@@ -116,8 +116,13 @@ init_submodules() {
     
     if [ "$need_init" = true ]; then
         echo -e "${DIM}初始化 submodules...${NC}"
-        git submodule update --init --recursive
-        echo -e "${CHECK} Submodules 初始化完成${NC}"
+        git submodule sync --recursive >/dev/null 2>&1 || true
+        git config --file .git/config --remove-section "submodule.packages/sage-middleware/src/sage/middleware/components/sage_vllm/sageLLM" >/dev/null 2>&1 || true
+        if git submodule update --init --recursive; then
+            echo -e "${CHECK} Submodules 初始化完成${NC}"
+        else
+            echo -e "${YELLOW}  ⚠️ 检测到旧的 submodule 路径（可能正在重定位），跳过自动初始化${NC}"
+        fi
     else
         echo -e "${CHECK} 所有 submodules 已初始化${NC}"
     fi

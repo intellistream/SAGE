@@ -11,10 +11,10 @@ CoMap（Co-processing Map）是一种多流处理操作，允许对连接的多�
 """
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.comap_function import BaseCoMapFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.comap_function import BaseCoMapFunction
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 class SimpleDataSource(BatchFunction):
