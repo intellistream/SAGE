@@ -15,6 +15,7 @@ Usage:
 """
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -29,6 +30,72 @@ except ImportError as e:
     print("\nPlease install sage-apps with medical dependencies:")
     print("  pip install -e packages/sage-apps[medical]")
     sys.exit(1)
+
+
+def check_and_setup_data(data_dir: str, auto_setup: bool = False) -> bool:
+    """检查数据是否存在，如果不存在则提示用户自动设置"""
+    data_path = Path(data_dir)
+    processed_dir = data_path / "processed"
+    
+    # 检查数据是否存在
+    if processed_dir.exists() and (processed_dir / "train_index.json").exists():
+        return True
+    
+    print(f"\n{'='*60}")
+    print("数据集未找到")
+    print("="*60)
+    print(f"期望的数据目录: {data_dir}")
+    print(f"")
+    
+    # 查找 setup_data.sh 脚本
+    setup_script = data_path.parent / "setup_data.sh"
+    
+    if not setup_script.exists():
+        # 尝试其他可能的位置
+        setup_script = project_root / "packages/sage-apps/src/sage/apps/medical_diagnosis/setup_data.sh"
+    
+    if not setup_script.exists():
+        print("❌ 数据设置脚本未找到")
+        print(f"")
+        print("期望结构:")
+        print("  {data_dir}/processed/images/")
+        print("  {data_dir}/processed/train_index.json")
+        print("  {data_dir}/processed/test_index.json")
+        return False
+    
+    print(f"找到数据设置脚本: {setup_script}")
+    print(f"")
+    print("🤖 自动下载并准备数据集...")
+    print(f"提示: 如果不想自动下载，请使用 Ctrl+C 取消")
+    print(f"")
+    print(f"开始自动设置数据集...")
+    print(f"=" * 60)
+    
+    try:
+        # 运行 setup_data.sh
+        result = subprocess.run(
+            ["bash", str(setup_script)],
+            cwd=str(setup_script.parent),
+            check=True,
+            text=True
+        )
+        
+        print(f"=" * 60)
+        print(f"✅ 数据集设置完成！")
+        print(f"")
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"=" * 60)
+        print(f"❌ 数据集设置失败")
+        print(f"")
+        print(f"您可以手动运行以下命令来设置数据:")
+        print(f"  bash {setup_script}")
+        print(f"")
+        return False
+    except Exception as e:
+        print(f"❌ 发生错误: {e}")
+        return False
 
 
 def main():
@@ -90,16 +157,19 @@ Features:
         help="Enable verbose logging"
     )
     
+    parser.add_argument(
+        "--auto-setup",
+        action="store_true",
+        help="Automatically download and setup data without prompting"
+    )
+    
     args = parser.parse_args()
     
-    # Validate data directory
-    data_path = Path(args.data_dir)
-    if not data_path.exists():
-        print(f"Error: Data directory not found: {args.data_dir}")
-        print("\nExpected structure:")
-        print("  {data_dir}/processed/images/")
-        print("  {data_dir}/processed/all_cases.json")
-        sys.exit(1)
+    # Check and setup data if needed
+    if not check_and_setup_data(args.data_dir, auto_setup=args.auto_setup):
+        print(f"\n⚠️  警告: 数据集未就绪")
+        print(f"系统将尝试使用模拟数据运行...")
+        print(f"")
     
     print("=" * 60)
     print("SAGE Medical Diagnosis System")

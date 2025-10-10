@@ -71,25 +71,54 @@ from sage.apps.video.operators import (
     VideoFrameSource,
 )
 
-DEFAULT_CONFIG_PATH = (
-    Path(__file__).resolve().parents[1] / "config" / "config_video_intelligence.yaml"
-)
+# Default config path
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "default_config.yaml"
 
 
 def load_config(config_path: Optional[str]) -> Dict[str, Any]:
     """Load YAML configuration for the demo."""
 
-    path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
-    if not path.exists():
-        raise FileNotFoundError(f"Config file not found: {path}")
-
-    with path.open("r", encoding="utf-8") as handle:
-        data = yaml.safe_load(handle) or {}
-
-    if not isinstance(data, dict):
-        raise ValueError(f"Config file {path} must define a mapping at the top level")
-
-    return data
+    # If user provided a config path, use it
+    if config_path:
+        path = Path(config_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Config file not found: {path}")
+        
+        with path.open("r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle) or {}
+        if not isinstance(data, dict):
+            raise ValueError(f"Config file {path} must define a mapping at the top level")
+        print(f"[INFO] Loaded config from: {path}")
+        return data
+    
+    # Use default config
+    if DEFAULT_CONFIG_PATH.exists():
+        with DEFAULT_CONFIG_PATH.open("r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle) or {}
+        if not isinstance(data, dict):
+            raise ValueError(f"Config file {DEFAULT_CONFIG_PATH} must define a mapping at the top level")
+        print(f"[INFO] Loaded config from: {DEFAULT_CONFIG_PATH}")
+        return data
+    
+    # If no config file found, return default configuration
+    print(f"[WARNING] No config file found")
+    print(f"[INFO] Using built-in default configuration")
+    return {
+        "video_path": None,
+        "output_dir": "output/video_intelligence",
+        "max_frames": None,
+        "sample_every_n_frames": 3,
+        "frame_resize": 336,
+        "analysis": {
+            "clip_top_k": 4,
+            "classifier_top_k": 5,
+            "min_event_confidence": 0.25,
+        },
+        "models": {
+            "clip": "openai/clip-vit-base-patch32",
+            "mobilenet": "google/mobilenet_v3_small_100_224",
+        }
+    }
 
 
 def download_test_video(output_path: str) -> bool:
@@ -456,25 +485,40 @@ def main() -> None:
 
     video_path = config.get("video_path")
     
-    # In test mode, try to download a test video if none exists
-    if os.environ.get("SAGE_EXAMPLES_MODE") == "test":
-        if not video_path or not os.path.exists(video_path):
-            print("[INFO] Test mode: Attempting to download test video")
-            test_video = download_test_video()
-            if test_video:
-                video_path = test_video
-                config["video_path"] = video_path
-                # Limit frames for faster testing
-                if "max_frames" not in config:
-                    config["max_frames"] = 30  # Only process 30 frames in test mode
-            else:
-                print("[WARNING] Test mode: Could not download test video, skipping demo")
-                return
-    
+    # If no video file provided, try to download a test video
     if not video_path or not os.path.exists(video_path):
-        raise FileNotFoundError(
-            f"Video file '{video_path}' does not exist. Provide --video or update the config."
-        )
+        print("\n" + "="*80)
+        print("📥 No video file provided - attempting to download test video...")
+        print("="*80)
+        test_video = download_test_video()
+        if test_video:
+            video_path = test_video
+            config["video_path"] = video_path
+            print(f"✅ Test video downloaded: {test_video}")
+            
+            # In test mode, limit frames for faster testing
+            if os.environ.get("SAGE_EXAMPLES_MODE") == "test" and "max_frames" not in config:
+                config["max_frames"] = 30
+                print("[INFO] Test mode: Limiting to 30 frames for faster testing")
+        else:
+            print("\n" + "="*80)
+            print("❌ Error: Could not download test video")
+            print("="*80)
+            print("\nPlease provide a video file using one of these methods:")
+            print("  1. Command line: --video path/to/video.mp4")
+            print("  2. Config file: Set 'video_path' in the config YAML")
+            print("\nExample:")
+            print("  python examples/apps/run_video_intelligence.py --video my_video.mp4")
+            print("="*80 + "\n")
+            raise FileNotFoundError(
+                "Could not download test video and no video file provided. "
+                "Please provide --video or update the config."
+            )
+        print("="*80 + "\n")
+    
+    # Double check video file exists
+    if not video_path or not os.path.exists(video_path):
+        raise FileNotFoundError(f"Video file '{video_path}' does not exist.")
 
     env = LocalEnvironment("video_intelligence_demo")
     build_pipeline(env, config)

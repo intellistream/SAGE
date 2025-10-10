@@ -64,8 +64,8 @@ Features:
     parser.add_argument(
         "--config",
         type=str,
-        default="examples/config/config_video_intelligence.yaml",
-        help="Path to configuration file (default: examples/config/config_video_intelligence.yaml)"
+        default=None,
+        help="Path to configuration file"
     )
     
     parser.add_argument(
@@ -82,22 +82,25 @@ Features:
     
     args = parser.parse_args()
     
-    # Validate video file
+    # Validate video file if provided
     if args.video and not Path(args.video).exists():
         print(f"Error: Video file not found: {args.video}")
         sys.exit(1)
     
-    # Validate config file
+    # Validate config file if provided
     if args.config and not Path(args.config).exists():
-        print(f"Warning: Config file not found: {args.config}")
-        print("Using default configuration...")
+        print(f"Error: Config file not found: {args.config}")
+        sys.exit(1)
     
     print("=" * 60)
     print("SAGE Video Intelligence Pipeline")
     print("=" * 60)
     if args.video:
         print(f"Video: {args.video}")
-    print(f"Config: {args.config}")
+    if args.config:
+        print(f"Config: {args.config}")
+    else:
+        print(f"Config: Using default configuration")
     if args.max_frames:
         print(f"Max Frames: {args.max_frames}")
     if args.output:
