@@ -399,6 +399,38 @@ def apply_runtime_overrides(config: Dict[str, Any], args: argparse.Namespace) ->
     return config
 
 
+def download_test_video() -> str:
+    """Download a small test video for CI/testing purposes.
+    
+    Uses a public domain short video clip suitable for testing.
+    Returns the path to the downloaded video file.
+    """
+    import urllib.request
+    from pathlib import Path
+    
+    # Use a small public domain video (approx 1-2MB)
+    # Sample videos from Pexels (free to use)
+    test_video_url = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4"
+    
+    # Download to a temp location
+    video_dir = Path("/tmp/sage_test_videos")
+    video_dir.mkdir(exist_ok=True)
+    video_path = video_dir / "test_video.mp4"
+    
+    if video_path.exists():
+        print(f"[INFO] Test video already exists at {video_path}")
+        return str(video_path)
+    
+    try:
+        print(f"[INFO] Downloading test video from {test_video_url}")
+        urllib.request.urlretrieve(test_video_url, str(video_path))
+        print(f"[INFO] Test video downloaded to {video_path}")
+        return str(video_path)
+    except Exception as e:
+        print(f"[WARNING] Failed to download test video: {e}")
+        return None
+
+
 def main() -> None:
     args = parse_args()
     config = load_config(args.config_path)
@@ -406,13 +438,25 @@ def main() -> None:
 
     video_path = config.get("video_path")
     
-    # Ensure video exists, auto-downloading if needed
-    # In test/CI environments, auto-download is enabled by default
-    auto_download = os.environ.get("CI") == "true" or os.environ.get("SAGE_AUTO_DOWNLOAD", "true").lower() == "true"
-    video_path = ensure_video_exists(video_path, auto_download=auto_download)
+    # In test mode, try to download a test video if none exists
+    if os.environ.get("SAGE_EXAMPLES_MODE") == "test":
+        if not video_path or not os.path.exists(video_path):
+            print("[INFO] Test mode: Attempting to download test video")
+            test_video = download_test_video()
+            if test_video:
+                video_path = test_video
+                config["video_path"] = video_path
+                # Limit frames for faster testing
+                if "max_frames" not in config:
+                    config["max_frames"] = 30  # Only process 30 frames in test mode
+            else:
+                print("[WARNING] Test mode: Could not download test video, skipping demo")
+                return
     
-    # Update config with the actual video path
-    config["video_path"] = video_path
+    if not video_path or not os.path.exists(video_path):
+        raise FileNotFoundError(
+            f"Video file '{video_path}' does not exist. Provide --video or update the config."
+        )
 
     env = LocalEnvironment("video_intelligence_demo")
     build_pipeline(env, config)
