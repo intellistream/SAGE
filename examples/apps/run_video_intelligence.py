@@ -76,6 +76,18 @@ Features:
 
     args = parser.parse_args()
 
+    # If no video is provided, show help and exit successfully (for testing purposes)
+    if not args.video:
+        print("=" * 60)
+        print("SAGE Video Intelligence Pipeline")
+        print("=" * 60)
+        print("No video file provided. This example requires a video file to process.")
+        print("\nUsage:")
+        print("  python examples/apps/run_video_intelligence.py --video path/to/video.mp4")
+        print("\nFor more information, use --help")
+        print("=" * 60)
+        sys.exit(0)
+
     # Validate video file if provided
     if args.video and not Path(args.video).exists():
         print(f"Error: Video file not found: {args.video}")
