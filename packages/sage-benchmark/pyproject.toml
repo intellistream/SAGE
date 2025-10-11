@@ -3,24 +3,7 @@ requires = [
     "setuptools>=64",
     "wheel",
 ]
-build-[tool.setuptools]
-packages = [
-    "sage.benchmark",
-    "sage.benchmark.benchmark_rag",
-    "sage.benchmark.benchmark_rag.implementations",
-    "sage.benchmark.benchmark_rag.evaluation",
-]
-package-dir = {"" = "src"}
-
-[tool.setuptools.dynamic]
-version = {attr = "sage.benchmark.__version__"}
-
-[tool.setuptools.package-data]
-"sage.benchmark.benchmark_rag" = [
-    "config/*.yaml",
-    "data/**/*",
-    "evaluation/config/*.yaml",
-]tuptools.build_meta"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-benchmark"
@@ -105,7 +88,6 @@ version = {attr = "sage.benchmark.__version__"}
     "config/*.yaml",
     "data/**/*",
     "evaluation/config/*.yaml",
-]
 ]
 
 [tool.black]
