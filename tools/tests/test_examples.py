@@ -328,9 +328,22 @@ class ExampleAnalyzer:
         return list(set(tags))
 
     def _get_category(self, file_path: Path) -> str:
-        """获取示例类别"""
+        """获取示例类别
+        
+        对于 examples/tutorials/rag/simple_rag.py 这样的文件，
+        返回 'rag' 而不是 'tutorials'，以便更细粒度的分类。
+        对于 examples/apps/run_app.py 这样的文件，返回 'apps'。
+        """
         relative_path = file_path.relative_to(self.examples_root)
-        return str(relative_path.parts[0]) if relative_path.parts else "unknown"
+        if not relative_path.parts:
+            return "unknown"
+        
+        # 如果第一级目录是 tutorials，并且有第二级目录，使用第二级
+        if len(relative_path.parts) >= 3 and relative_path.parts[0] == "tutorials":
+            return str(relative_path.parts[1])
+        
+        # 否则使用第一级目录
+        return str(relative_path.parts[0])
 
     def discover_examples(self) -> List[ExampleInfo]:
         """发现所有示例文件"""
