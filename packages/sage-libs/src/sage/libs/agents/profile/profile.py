@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 
 
 @dataclass

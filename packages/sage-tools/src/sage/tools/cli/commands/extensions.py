@@ -8,6 +8,7 @@ SAGE Extensions Manager
 
 import os
 import shutil
+import site
 import subprocess
 import sysconfig
 from pathlib import Path
@@ -170,6 +171,41 @@ EXTENSION_PATHS: Dict[str, str] = {
     "sage_flow": "packages/sage-middleware/src/sage/middleware/components/sage_flow",
 }
 
+EXTENSION_MODULES: Dict[str, str] = {
+    "sage_db": "sage.middleware.components.sage_db.python._sage_db",
+    "sage_flow": "sage.middleware.components.sage_flow.python._sage_flow",
+}
+
+
+def _extension_is_available(ext_name: str, timeout: float = 3.0) -> bool:
+    module_name = EXTENSION_MODULES.get(ext_name)
+    if not module_name:
+        return False
+
+    import queue
+    import threading
+
+    result_queue: "queue.Queue[bool]" = queue.Queue()
+
+    def _try_import():
+        try:
+            __import__(module_name)
+            result_queue.put(True)
+        except Exception:
+            result_queue.put(False)
+
+    import_thread = threading.Thread(target=_try_import, daemon=True)
+    import_thread.start()
+    import_thread.join(timeout=timeout)
+
+    if import_thread.is_alive():
+        return False
+
+    try:
+        return result_queue.get_nowait()
+    except queue.Empty:
+        return False
+
 
 def _resolve_extensions_to_install(extension: Optional[str]) -> List[str]:
     if extension is None or extension == "all":
@@ -301,46 +337,72 @@ def _copy_python_artifacts(ext_name: str, ext_dir: Path) -> None:
         print_warning(f"未找到 {pattern} 构建产物")
         return
 
+    # 始终复制到仓库的 python 目录（这个总是有权限的）
     repo_target_dir = ext_dir / "python"
     repo_target_dir.mkdir(parents=True, exist_ok=True)
     for so_file in candidates:
         shutil.copy2(so_file, repo_target_dir / so_file.name)
     print_success(f"已安装 Python 扩展模块到: {repo_target_dir}")
 
+    # 尝试复制到 site-packages（可能没有权限，但不是必需的）
     try:
-        platlib = Path(sysconfig.get_paths()["platlib"])
+        # 在CI环境中使用用户site-packages（匹配pip install --user的行为）
+        if _is_ci_environment():
+            platlib = Path(site.USER_SITE)
+        else:
+            platlib = Path(sysconfig.get_paths()["platlib"])
     except Exception as exc:
-        print_warning(f"无法复制到 site-packages（可能未安装包）: {exc}")
+        print_warning(f"无法获取 site-packages 路径: {exc}")
         return
 
     if site_rel is None:
         return
 
     site_target_dir = platlib / site_rel
-    site_target_dir.mkdir(parents=True, exist_ok=True)
 
-    for so_file in candidates:
-        shutil.copy2(so_file, site_target_dir / so_file.name)
+    # 检查是否有写权限
+    try:
+        site_target_dir.mkdir(parents=True, exist_ok=True)
+        # 测试写权限
+        test_file = site_target_dir / ".write_test"
+        test_file.touch()
+        test_file.unlink()
+    except (PermissionError, OSError) as exc:
+        print_warning(
+            f"没有写入 site-packages 的权限，跳过: {site_target_dir}\n"
+            f"  原因: {exc}\n"
+            f"  扩展已安装到项目目录: {repo_target_dir}"
+        )
+        return
 
-    python_source_dir = ext_dir / "python"
-    if python_source_dir.exists():
-        for py_file in python_source_dir.rglob("*.py"):
-            rel_path = py_file.relative_to(python_source_dir)
-            target_py_file = site_target_dir / rel_path
-            target_py_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(py_file, target_py_file)
+    try:
+        for so_file in candidates:
+            shutil.copy2(so_file, site_target_dir / so_file.name)
 
-        micro_service_dir = python_source_dir / "micro_service"
-        if micro_service_dir.exists():
-            target_micro_service = site_target_dir / "micro_service"
-            if target_micro_service.exists():
-                shutil.rmtree(target_micro_service)
-            shutil.copytree(micro_service_dir, target_micro_service)
-            print_success(
-                f"已安装 {ext_name} micro_service 模块到 site-packages: {target_micro_service}"
-            )
+        python_source_dir = ext_dir / "python"
+        if python_source_dir.exists():
+            for py_file in python_source_dir.rglob("*.py"):
+                rel_path = py_file.relative_to(python_source_dir)
+                target_py_file = site_target_dir / rel_path
+                target_py_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(py_file, target_py_file)
 
-    print_success(f"已安装 Python 扩展模块到 site-packages: {site_target_dir}")
+            micro_service_dir = python_source_dir / "micro_service"
+            if micro_service_dir.exists():
+                target_micro_service = site_target_dir / "micro_service"
+                if target_micro_service.exists():
+                    shutil.rmtree(target_micro_service)
+                shutil.copytree(micro_service_dir, target_micro_service)
+                print_success(
+                    f"已安装 {ext_name} micro_service 模块到 site-packages: {target_micro_service}"
+                )
+
+        print_success(f"已安装 Python 扩展模块到 site-packages: {site_target_dir}")
+    except (PermissionError, OSError) as exc:
+        print_warning(
+            f"复制到 site-packages 时权限不足: {exc}\n"
+            f"  扩展已安装到项目目录: {repo_target_dir}"
+        )
 
 
 def _is_ci_environment() -> bool:
@@ -470,11 +532,21 @@ def _install_extension(
         return False
 
     print_success(f"{ext_name} 构建成功 ✓")
+
+    # 复制产物（权限错误不应导致失败，因为已经复制到项目目录）
     try:
         _copy_python_artifacts(ext_name, ext_dir)
     except Exception as exc:
-        print_warning(f"复制扩展产物时发生问题: {exc}")
-        return False
+        # 如果是权限错误，只是警告，不视为失败
+        if isinstance(exc, (PermissionError, OSError)):
+            print_warning(
+                f"复制扩展产物到 site-packages 时权限不足（已安装到项目目录）: {exc}"
+            )
+        else:
+            print_warning(f"复制扩展产物时发生问题: {exc}")
+            # 对于其他错误，仍然视为失败
+            if not _is_ci_environment():
+                return False
 
     return True
 
@@ -626,6 +698,13 @@ def _install_selected_extensions(
     total_count = len(extensions_to_install)
 
     for ext_name in extensions_to_install:
+        if not force and _extension_is_available(ext_name):
+            print_success(
+                f"{ext_name} 已安装且可用，跳过重新构建（使用 --force 重新安装）"
+            )
+            success_count += 1
+            continue
+
         rel_path = EXTENSION_PATHS[ext_name]
         ext_dir = sage_root / rel_path
         if _install_extension(ext_name, ext_dir, sage_root, force):

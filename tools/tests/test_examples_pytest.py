@@ -182,25 +182,82 @@ class TestExamplesIntegration:
                 assert skip, f"文件 {file_path} 应该被跳过: {reason}"
 
     @pytest.mark.integration
+    @pytest.mark.skipif(
+        not any(
+            os.getenv(var) for var in ["GITHUB_TOKEN", "GIT_TOKEN", "SAGE_REPO_TOKEN"]
+        ),
+        reason="需要 GitHub token (GITHUB_TOKEN, GIT_TOKEN 或 SAGE_REPO_TOKEN) 才能运行此测试",
+    )
     def test_examples_integration_with_issues_manager(self):
-        """测试与 Issues 管理器的集成"""
+        """测试与 Issues 管理器的集成
+
+        注意：此测试需要 GitHub token 才能运行。
+        如果没有设置 GITHUB_TOKEN、GIT_TOKEN 或 SAGE_REPO_TOKEN，
+        测试将自动跳过。
+        """
         print("🧪 开始集成测试: test_examples_integration_with_issues_manager")
 
         # 这个测试验证 examples 测试可以与现有的问题管理系统集成
         try:
             issues_suite = IssuesTestSuite()
 
+            print(f"\n📂 元数据目录: {issues_suite.manager.metadata_dir}")
+            print(f"📂 工作目录: {issues_suite.manager.workspace_dir}")
+
+            # 验证 token 已加载
+            if not issues_suite.manager.config.github_token:
+                pytest.fail("GitHub token 未能正确加载到 IssuesTestSuite 中")
+                return
+
             # 如果团队信息未找到，尝试更新
             if not issues_suite.manager.team_info:
-                print("📋 团队信息未找到，尝试更新...")
-                if issues_suite.manager.config.github_token:
-                    success = issues_suite.manager.update_team_info()
-                    if not success:
-                        pytest.skip("无法获取团队信息，跳过集成测试")
-                else:
-                    pytest.skip("缺少GitHub token，无法获取团队信息，跳过集成测试")
+                print("\n📋 团队信息未找到，正在更新...")
+                success = issues_suite.manager.update_team_info()
+
+                if not success:
+                    pytest.fail(
+                        "❌ 无法获取团队信息。\n"
+                        f"GitHub Token 来源: {issues_suite.manager.config.github_token_env}\n"
+                        "请检查:\n"
+                        "  1. Token 权限是否正确 (需要 read:org 权限)\n"
+                        "  2. 是否有访问 intellistream 组织的权限\n"
+                        "  3. 网络连接是否正常"
+                    )
+
+                # 重新加载团队信息
+                issues_suite.manager.team_info = issues_suite.manager._load_team_info()
+
+                if not issues_suite.manager.team_info:
+                    # 检查文件是否生成
+                    team_config_path = (
+                        issues_suite.manager.metadata_dir / "team_config.py"
+                    )
+                    if team_config_path.exists():
+                        print(f"⚠️ team_config.py 存在但加载失败: {team_config_path}")
+                        # 读取文件内容查看
+                        with open(team_config_path, "r") as f:
+                            content = f.read()
+                            print(f"文件内容 (前 500 字符):\n{content[:500]}")
+
+                    pytest.fail(
+                        "❌ 更新团队信息后仍然无法加载。\n"
+                        f"元数据目录: {issues_suite.manager.metadata_dir}\n"
+                        f"team_config.py 存在: {team_config_path.exists()}\n"
+                        "请检查文件写入权限和 Python 模块导入"
+                    )
+
+                print(
+                    f"✅ 成功加载团队信息 ({len(issues_suite.manager.team_info.get('all_usernames', []))} 位成员)"
+                )
+            else:
+                print(
+                    f"✅ 团队信息已存在 ({len(issues_suite.manager.team_info.get('all_usernames', []))} 位成员)"
+                )
+
         except Exception as e:
-            pytest.skip(f"IssuesTestSuite初始化失败: {e}")
+            import traceback
+
+            pytest.fail(f"IssuesTestSuite初始化失败:\n{traceback.format_exc()}")
 
         example_suite = ExampleTestSuite()
 

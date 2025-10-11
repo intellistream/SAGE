@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 import typer
 from colorama import Fore, Style, init
-from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+from sage.kernel.runtime.jobmanager_client import JobManagerClient
 from tabulate import tabulate
 
 # 添加项目路径

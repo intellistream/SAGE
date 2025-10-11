@@ -3,7 +3,7 @@ import os
 import time
 
 from jinja2 import Template
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 
 QA_prompt_template = """Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.

@@ -7,7 +7,10 @@ Tests Ray integration and initialization functions.
 from unittest.mock import patch
 
 import pytest
-from sage.kernel.utils.ray.ray import ensure_ray_initialized, is_distributed_environment
+from sage.kernel.utils.ray.ray_utils import (
+    ensure_ray_initialized,
+    is_distributed_environment,
+)
 
 # Mark tests that need mock updates as expected to fail temporarily
 needs_mock_update = pytest.mark.xfail(
@@ -20,8 +23,8 @@ class TestRayIntegration:
 
     @pytest.mark.unit
     @pytest.mark.ray
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_not_initialized(self, mock_ray):
         """Test ensure_ray_initialized when Ray is not initialized"""
         # Configure mocks
@@ -47,8 +50,8 @@ class TestRayIntegration:
         # runtime_env should be included with default sage config
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_already_initialized(self, mock_ray):
         """Test ensure_ray_initialized when Ray is already initialized"""
         # Configure mocks
@@ -62,8 +65,8 @@ class TestRayIntegration:
         mock_ray.init.assert_not_called()
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_auto_connection_success(self, mock_ray):
         """Test successful Ray initialization"""
         mock_ray.is_initialized.return_value = False
@@ -80,8 +83,8 @@ class TestRayIntegration:
         # runtime_env should be included with default sage config
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_initialization_fails(self, mock_ray):
         """Test behavior when Ray initialization fails"""
         mock_ray.is_initialized.return_value = False
@@ -103,25 +106,24 @@ class TestRayIntegration:
         assert "log_to_driver" in call_kwargs
         # runtime_env should be included with default sage config
 
-    @needs_mock_update
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_all_attempts_fail(self, mock_ray):
-        """Test behavior when all Ray initialization attempts fail"""
+        """Test behavior when Ray initialization fails"""
         mock_ray.is_initialized.return_value = False
-        mock_ray.init.side_effect = [
-            ConnectionError("No cluster"),
-            RuntimeError("Local init failed"),
-        ]
+        mock_ray.init.side_effect = RuntimeError("Local init failed")
 
-        # Should raise the final exception
+        # Should raise the exception
         with pytest.raises(RuntimeError, match="Local init failed"):
             ensure_ray_initialized()
 
+        # Should only attempt once
+        assert mock_ray.init.call_count == 1
+
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_is_distributed_environment_ray_available_and_initialized(self, mock_ray):
         """Test is_distributed_environment when Ray is available and initialized"""
         mock_ray.is_initialized.return_value = True
@@ -132,8 +134,8 @@ class TestRayIntegration:
         mock_ray.is_initialized.assert_called_once()
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_is_distributed_environment_ray_available_not_initialized(self, mock_ray):
         """Test is_distributed_environment when Ray is available but not initialized"""
         mock_ray.is_initialized.return_value = False
@@ -144,7 +146,7 @@ class TestRayIntegration:
         mock_ray.is_initialized.assert_called_once()
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", False)
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", False)
     def test_is_distributed_environment_ray_not_available(self):
         """Test is_distributed_environment when Ray is not available"""
         result = is_distributed_environment()
@@ -152,8 +154,8 @@ class TestRayIntegration:
         assert result is False
 
     @pytest.mark.integration
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_integration(self, mock_ray):
         """Integration test for Ray initialization process"""
         # Simulate real Ray behavior
@@ -170,8 +172,8 @@ class TestRayIntegration:
         assert mock_ray.init.call_count == 1
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_with_print_statements(self, mock_ray):
         """Test that appropriate messages are printed during initialization"""
         mock_ray.is_initialized.return_value = False
@@ -185,18 +187,14 @@ class TestRayIntegration:
             print_calls = [call[0][0] for call in mock_print.call_args_list]
             assert any("Ray initialized" in msg for msg in print_calls)
 
-    @needs_mock_update
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_error_handling(self, mock_ray):
         """Test error handling and reporting in ensure_ray_initialized"""
         mock_ray.is_initialized.return_value = False
         error_message = "Critical Ray failure"
-        mock_ray.init.side_effect = [
-            ConnectionError("Connection failed"),
-            RuntimeError(error_message),
-        ]
+        mock_ray.init.side_effect = RuntimeError(error_message)
 
         with patch("builtins.print") as mock_print:
             with pytest.raises(RuntimeError, match=error_message):
@@ -212,8 +210,8 @@ class TestRayIntegrationEdgeCases:
     """Test edge cases and error conditions"""
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_initialized_ignore_reinit_error_parameter(self, mock_ray):
         """Test that ignore_reinit_error parameter is properly passed"""
         mock_ray.is_initialized.return_value = False
@@ -227,8 +225,8 @@ class TestRayIntegrationEdgeCases:
             assert call[1]["ignore_reinit_error"] is True
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_multiple_concurrent_initializations(self, mock_ray):
         """Test concurrent calls to ensure_ray_initialized"""
         import threading
@@ -258,7 +256,7 @@ class TestRayIntegrationEdgeCases:
         assert len(results) == 5
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", False)
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", False)
     def test_ray_module_import_variations(self):
         """Test different scenarios of Ray module availability"""
         # Test when ray module is completely unavailable
@@ -266,8 +264,8 @@ class TestRayIntegrationEdgeCases:
         assert result is False
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ray_is_initialized_exception(self, mock_ray):
         """Test when ray.is_initialized() raises an exception"""
         mock_ray.is_initialized.side_effect = Exception("Ray internal error")
@@ -277,10 +275,9 @@ class TestRayIntegrationEdgeCases:
         # Should return False when ray check fails
         assert result is False
 
-    @needs_mock_update
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_with_specific_exceptions(self, mock_ray):
         """Test ensure_ray_initialized with specific exception types"""
         mock_ray.is_initialized.return_value = False
@@ -294,10 +291,13 @@ class TestRayIntegrationEdgeCases:
         ]
 
         for exception in exception_types:
-            mock_ray.init.side_effect = [exception, RuntimeError("Final error")]
+            mock_ray.init.side_effect = exception
 
-            with pytest.raises(RuntimeError):
+            with pytest.raises(type(exception)):
                 ensure_ray_initialized()
+
+            # Reset for next iteration
+            mock_ray.init.reset_mock()
 
             # Reset for next test
             mock_ray.init.side_effect = None
@@ -308,8 +308,8 @@ class TestRayPerformance:
     """Performance and stress tests for Ray integration"""
 
     @pytest.mark.slow
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_ensure_ray_performance(self, mock_ray):
         """Test performance of ensure_ray_initialized calls"""
         import time
@@ -328,8 +328,8 @@ class TestRayPerformance:
         assert elapsed < 0.1  # Less than 100ms for 1000 calls
 
     @pytest.mark.slow
-    @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray.ray")
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
+    @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_is_distributed_environment_performance(self, mock_ray):
         """Test performance of is_distributed_environment calls"""
         import time
@@ -352,7 +352,7 @@ class TestRayPerformance:
 @pytest.fixture
 def mock_ray_module():
     """Provide a fully mocked Ray module"""
-    with patch("sage.kernel.utils.ray.ray.ray") as mock_ray:
+    with patch("sage.kernel.utils.ray.ray_utils.ray") as mock_ray:
         mock_ray.is_initialized.return_value = False
         mock_ray.init.return_value = None
         yield mock_ray

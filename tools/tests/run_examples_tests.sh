@@ -139,6 +139,30 @@ check_environment() {
         }
     fi
     
+    # 安装 examples 的可选依赖（如果需要）
+    if [[ "$CI" == "true" || -z "$CATEGORY" || "$CATEGORY" == "video" ]]; then
+        echo "检查 Examples 可选依赖..."
+        # 在 CI 环境或运行 video 测试时，安装 examples 依赖
+        if ! python3 -c "import cv2" 2>/dev/null && [[ "$CATEGORY" == "video" || -z "$CATEGORY" ]]; then
+            echo -e "${YELLOW}📦 安装 Examples 依赖（通过 sage-libs[examples]）...${NC}"
+            # 优先尝试通过 sage-libs 安装
+            if [[ -f "packages/sage-libs/pyproject.toml" ]]; then
+                pip install -q -e "packages/sage-libs[examples]" 2>/dev/null || {
+                    echo -e "${YELLOW}⚠️ 通过 sage-libs 安装失败，尝试使用 requirements.txt...${NC}"
+                    if [[ -f "examples/requirements.txt" ]]; then
+                        pip install -q -r examples/requirements.txt || {
+                            echo -e "${YELLOW}⚠️ 无法安装所有 examples 依赖，某些示例可能被跳过${NC}"
+                        }
+                    fi
+                }
+            elif [[ -f "examples/requirements.txt" ]]; then
+                pip install -q -r examples/requirements.txt || {
+                    echo -e "${YELLOW}⚠️ 无法安装所有 examples 依赖，某些示例可能被跳过${NC}"
+                }
+            fi
+        fi
+    fi
+    
     echo -e "${GREEN}✅ 环境检查完成${NC}"
 }
 

@@ -1,12 +1,13 @@
 """
-SAGE - Streaming-Augmented Generative Execution
+Ray distributed utilities.
+
+Includes Ray Actor wrappers and Ray initialization utility functions.
 """
 
-# 直接从本包的_version模块加载版本信息
-try:
-    from sage.kernel._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+from sage.kernel.utils.ray.actor import ActorWrapper
+from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
+
+__all__ = [
+    "ActorWrapper",
+    "ensure_ray_initialized",
+]

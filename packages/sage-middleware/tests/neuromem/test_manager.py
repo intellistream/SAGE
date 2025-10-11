@@ -1,8 +1,10 @@
 import os
 import shutil
 
-from sage.middleware.components.neuromem.memory_manager import MemoryManager
-from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.sage_mem.neuromem.utils.path_utils import (
+    get_default_data_dir,
+)
 
 
 def test_neuromem_manager():

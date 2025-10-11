@@ -328,7 +328,7 @@ class FastPipValidator:
 import sys
 try:
     import sage
-    from sage.core.api.local_environment import LocalEnvironment
+    from sage.kernel.api.local_environment import LocalEnvironment
     from sage.libs.io_utils.source import FileSource
     from sage.libs.io_utils.sink import TerminalSink
     from sage.common.utils.logging.custom_logger import CustomLogger
@@ -368,9 +368,9 @@ except ImportError as e:
 
         # 核心功能测试（简化版）
         test_script = """
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.sink_function import SinkFunction
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.sink_function import SinkFunction
 
 # 测试环境创建
 env = LocalEnvironment("test_env")

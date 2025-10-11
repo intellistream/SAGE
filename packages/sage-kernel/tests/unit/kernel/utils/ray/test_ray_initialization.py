@@ -6,7 +6,7 @@ import os
 import sys
 
 import pytest
-from sage.kernel.utils.ray.ray import (
+from sage.kernel.utils.ray.ray_utils import (
     RAY_AVAILABLE,
     ensure_ray_initialized,
     get_sage_kernel_runtime_env,

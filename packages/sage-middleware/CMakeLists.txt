@@ -10,5 +10,5 @@ set(SAGE_COMMON_DEPS_FILE
     CACHE FILEPATH "Common dependency configuration for SAGE extensions"
 )
 
-add_subdirectory(src/sage/middleware/components/sage_db)
-add_subdirectory(src/sage/middleware/components/sage_flow)
+add_subdirectory(src/sage/middleware/components/sage_db/sageDB)
+add_subdirectory(src/sage/middleware/components/sage_flow/sageFlow)

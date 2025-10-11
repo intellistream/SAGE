@@ -11,8 +11,8 @@ import time
 
 import typer
 
-from ..config_manager import get_config_manager
-from ..deployment_manager import DeploymentManager
+from ...management.config_manager import get_config_manager
+from ...management.deployment_manager import DeploymentManager
 
 app = typer.Typer(name="worker", help="Ray Worker节点管理")
 

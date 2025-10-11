@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
     from sage.kernel.runtime.communication.queue_descriptor import RayQueueDescriptor
-    from sage.kernel.utils.ray.ray import ensure_ray_initialized
+    from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
     from sage.kernel.utils.test_log_manager import (
         get_test_log_manager,
         setup_quiet_ray_logging,

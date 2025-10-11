@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,7 @@ name = "isage-common"
 dynamic = ["version"]
 description = "SAGE Core Common Utilities"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "SAGE Team", email = "info@sage-ai.org"}
 ]
@@ -29,6 +29,12 @@ dependencies = [
     "colorama>=0.4.6",
     "psutil>=6.1.0",
     "dill>=0.3.8",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+vllm = [
+    "vllm>=0.9.2",
 ]
 
 [project.urls]

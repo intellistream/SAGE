@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from sage.common.config.output_paths import get_states_file
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 from sage.libs.utils.chroma import ChromaBackend, ChromaUtils
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
 
@@ -104,7 +104,9 @@ class ChromaRetriever(MapFunction):
     def _init_embedding_model(self):
         """初始化 embedding 模型"""
         try:
-            from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
+            from sage.common.components.sage_embedding.embedding_model import (
+                EmbeddingModel,
+            )
 
             embedding_method = self.embedding_config.get("method", "default")
             model = self.embedding_config.get(
@@ -403,7 +405,9 @@ class MilvusDenseRetriever(MapFunction):
     def _init_embedding_model(self):
         """初始化embedding模型"""
         try:
-            from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
+            from sage.common.components.sage_embedding.embedding_model import (
+                EmbeddingModel,
+            )
 
             embedding_method = self.embedding_config.get("method", "default")
             model = self.embedding_config.get(

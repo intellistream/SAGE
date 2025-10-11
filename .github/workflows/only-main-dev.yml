@@ -13,7 +13,7 @@ concurrency:
 jobs:
   check:
     name: check
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Block PRs that are not from main-dev
         env:

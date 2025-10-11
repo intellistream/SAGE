@@ -212,6 +212,78 @@ class ExampleTestStrategies:
                     "SAGE_LOG_LEVEL": "ERROR",
                 },
             ),
+            "medical_diagnosis": TestStrategy(
+                name="medical_diagnosis",
+                timeout=300,  # 5分钟，医学影像分析需要加载模型
+                requires_config=False,
+                requires_data=True,
+                success_patterns=[
+                    "诊断完成",
+                    "Diagnosis completed",
+                    "报告生成完成",
+                    "Report generated",
+                    "✅",
+                ],
+                failure_patterns=[
+                    "模型加载失败",
+                    "Model loading failed",
+                    "数据不存在",
+                    "Data not found",
+                ],
+                environment_vars={
+                    "SAGE_MEDICAL_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                },
+            ),
+            "multimodal": TestStrategy(
+                name="multimodal",
+                timeout=180,  # 3分钟，多模态处理需要时间
+                requires_config=True,
+                requires_data=True,
+                success_patterns=[
+                    "Processing completed",
+                    "处理完成",
+                    "Search completed",
+                    "搜索完成",
+                    "✅",
+                ],
+                failure_patterns=[
+                    "Model not found",
+                    "API key missing",
+                    "Connection failed",
+                ],
+                environment_vars={
+                    "SAGE_MULTIMODAL_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                },
+            ),
+            "scheduler": TestStrategy(
+                name="scheduler",
+                timeout=90,  # 90秒，调度器对比实验
+                requires_config=False,
+                requires_data=False,
+                success_patterns=[
+                    "所有实验完成",
+                    "实验完成",
+                    "执行结果",
+                    "✅",
+                    "调度器性能对比总结",
+                ],
+                failure_patterns=[
+                    "调度失败",
+                    "Scheduler failed",
+                    "Connection refused",
+                    "Timeout exceeded",
+                ],
+                environment_vars={
+                    "SAGE_SCHEDULER_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                    "SAGE_TEST_MODE": "true",
+                },
+            ),
         }
 
     @staticmethod

@@ -4,7 +4,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
 
 
@@ -91,7 +91,9 @@ class MilvusDenseRetriever(MapFunction):
     def _init_embedding_model(self):
         """初始化embedding模型"""
         try:
-            from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
+            from sage.common.components.sage_embedding.embedding_model import (
+                EmbeddingModel,
+            )
 
             embedding_method = self.embedding_config.get("method", "default")
             model = self.embedding_config.get(

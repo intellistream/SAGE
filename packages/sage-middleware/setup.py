@@ -158,5 +158,5 @@ if __name__ == "__main__":
             "build_ext": BuildCExtensions,
             "install": CustomInstall,
             "develop": CustomDevelop,
-        }
+        },
     )

@@ -6,8 +6,8 @@ SAGE Cluster Manager CLI
 
 import typer
 
-from ..config_manager import get_config_manager
-from ..deployment_manager import DeploymentManager
+from ...management.config_manager import get_config_manager
+from ...management.deployment_manager import DeploymentManager
 from .head import app as head_app
 from .worker import app as worker_app
 
@@ -42,7 +42,7 @@ def start_cluster():
     # 2. 启动所有Worker节点
     typer.echo("第2步: 启动所有Worker节点")
     try:
-        from ..config_manager import get_config_manager
+        from ...management.config_manager import get_config_manager
         from .worker import start_workers
 
         # 检查是否配置了worker节点

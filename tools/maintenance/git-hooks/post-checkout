@@ -15,7 +15,7 @@ if [[ -z "${repo_root}" ]]; then
   exit 0
 fi
 
-script_path="$repo_root/tools/maintenance/manage_submodule_branches.sh"
+script_path="$repo_root/tools/maintenance/helpers/manage_submodule_branches.sh"
 if [[ ! -x "$script_path" ]]; then
   echo "[post-checkout] manage_submodule_branches.sh not executable; skipping submodule sync." >&2
   exit 0

@@ -84,12 +84,10 @@ def setup_test_environment():
     # 验证关键模块可以导入
     try:
         import sage.common
-        import sage.core
         import sage.kernel
 
         print("✓ 测试环境设置成功")
         print(f"✓ sage.kernel: {sage.kernel.__path__}")
-        print(f"✓ sage.core: {sage.core.__path__}")
         print(f"✓ sage.common: {sage.common.__path__}")
     except ImportError as e:
         print(f"❌ 测试环境设置失败: {e}")

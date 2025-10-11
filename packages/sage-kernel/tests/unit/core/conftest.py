@@ -239,7 +239,7 @@ class IntegrationTestHelper:
     @staticmethod
     def create_full_pipeline_scenario():
         """创建完整管道场景"""
-        from sage.core.api.pipeline import DataTransformStep, FilterStep, Pipeline
+        from sage.kernel.api.pipeline import DataTransformStep, FilterStep, Pipeline
 
         pipeline = Pipeline("integration_test_pipeline")
 

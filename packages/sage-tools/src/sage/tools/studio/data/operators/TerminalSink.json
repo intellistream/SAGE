@@ -1,8 +1,0 @@
-{
-    "id": 8,
-    "name": "TerminalSink",
-    "description": "Writes the received message to the console",
-    "module_path": "examples.rag.rag_simple",
-    "class_name": "TerminalSink",
-    "isCustom": false
-}

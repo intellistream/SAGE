@@ -5,7 +5,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 
 PlanStep = Dict[
     str, Any

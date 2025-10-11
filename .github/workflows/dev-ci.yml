@@ -29,6 +29,7 @@ env:
   JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+  GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
   HF_ENDPOINT: https://hf-mirror.com
   # 移除手动CACHE_VERSION，让缓存完全基于代码内容自动失效
 
@@ -71,6 +72,14 @@ jobs:
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          # ==================================================
+          # GitHub Token for Repository Access
+          # ==================================================
+          
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          
+          
           
           # ==================================================
           # Hugging Face Configuration
@@ -188,6 +197,14 @@ jobs:
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
           
           # ==================================================
+          # GitHub Token for Repository Access
+          # ==================================================
+          
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          
+          
+          
+          # ==================================================
           # Hugging Face Configuration
           # ==================================================
           
@@ -230,7 +247,12 @@ jobs:
   
   deployment-ready:
     name: Deployment Readiness Check
+    # GitHub 免费 Runner 配置（磁盘空间约 14GB，可能不足）
     runs-on: ubuntu-latest
+    
+    # 如果遇到磁盘空间不足，可以切换到 self-hosted runner:
+    # runs-on: self-hosted
+    
     needs: [quick-check, examples-test]
     if: |
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')) ||
@@ -250,6 +272,45 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+
+      - name: Free up disk space (Aggressive)
+        run: |
+          echo "🧹 激进清理磁盘空间（Deployment Readiness 需要在新虚拟环境安装所有依赖）..."
+          echo "📊 清理前磁盘使用情况："
+          df -h
+          
+          # 删除不需要的软件和工具链
+          echo "🗑️ 删除 .NET、Android、GHC 等大型工具链..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          
+          # 删除更多不需要的包
+          echo "🗑️ 删除不需要的系统包..."
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/lib/node_modules
+          
+          # 清理 APT 缓存
+          echo "🗑️ 清理 APT 缓存..."
+          sudo apt-get clean
+          sudo apt-get autoclean
+          
+          # 清理 Docker 镜像和容器
+          echo "🗑️ 清理 Docker..."
+          docker system prune -af --volumes 2>/dev/null || true
+          
+          # 清理 pip 缓存
+          echo "🗑️ 清理 pip 缓存..."
+          pip cache purge || true
+          
+          echo "✅ 清理完成，当前磁盘使用情况："
+          df -h
+          echo "📊 根分区剩余空间："
+          df -h / | tail -1 | awk '{print "可用: " $4 " (" $5 " 已使用)"}'
 
       - name: Create .env File from Secrets
         run: |
@@ -274,6 +335,14 @@ jobs:
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          
+          # ==================================================
+          # GitHub Token for Repository Access
+          # ==================================================
+          
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          
+          
           
           # ==================================================
           # Hugging Face Configuration
@@ -333,16 +402,24 @@ jobs:
       - name: Build SAGE Packages
         run: |
           echo "📦 构建SAGE wheel包..."
-          if sage dev pypi build; then
-            echo "✅ 包构建完成"
-            
-            # 显示构建的文件
-            echo "📋 构建的包文件:"
-            find packages/sage/dist/ -name "*.whl" -o -name "*.tar.gz" | sort
-          else
-            echo "❌ 包构建失败"
-            exit 1
-          fi
+          echo "ℹ️  已通过 'sage dev pypi validate' 步骤构建所有包"
+          
+          # 显示所有构建的文件
+          echo "📋 所有构建的包文件:"
+          find packages/*/dist/ -name "*.whl" | sort
+          
+          # 验证所有必需的包都已构建
+          echo ""
+          echo "� 验证必需的包:"
+          for pkg in sage-common sage-kernel sage-middleware sage-libs sage-tools sage; do
+            if ls packages/${pkg}/dist/*.whl 1> /dev/null 2>&1; then
+              echo "  ✅ ${pkg}: $(ls packages/${pkg}/dist/*.whl | xargs -n1 basename)"
+            else
+              echo "  ❌ ${pkg}: 未找到wheel文件"
+              exit 1
+            fi
+          done
+          echo "✅ 所有包构建完成"
 
       - name: Test Package Installation
         run: |
@@ -365,8 +442,8 @@ jobs:
           # 使用本地包索引安装核心包进行测试
           echo "📦 测试安装核心包（使用本地依赖）..."
           if ls packages/sage/dist/isage-*.whl 1> /dev/null 2>&1; then
-            # 使用--find-links从本地目录查找依赖，--no-index禁止从PyPI查找
-            pip install --find-links=/tmp/local_packages --no-index packages/sage/dist/isage-*.whl
+            # 使用--find-links从本地目录优先查找SAGE包，其他依赖从PyPI下载
+            pip install --find-links=/tmp/local_packages packages/sage/dist/isage-*.whl
             python -c "import sage; print('✅ sage核心包安装成功')"
           else
             echo "⚠️ 未找到核心包wheel文件"
@@ -374,7 +451,7 @@ jobs:
           
           # 测试工具包安装
           if ls packages/sage-tools/dist/isage_tools-*.whl 1> /dev/null 2>&1; then
-            pip install --find-links=/tmp/local_packages --no-index packages/sage-tools/dist/isage_tools-*.whl
+            pip install --find-links=/tmp/local_packages packages/sage-tools/dist/isage_tools-*.whl
             python -c "import sage.tools; print('✅ sage-tools包安装成功')"
           else
             echo "⚠️ 未找到工具包wheel文件"

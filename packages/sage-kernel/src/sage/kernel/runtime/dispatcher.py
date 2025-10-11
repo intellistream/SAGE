@@ -3,15 +3,20 @@ import time
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.kernel.fault_tolerance.factory import (
+    create_fault_handler_from_config,
+    create_lifecycle_manager,
+)
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
+from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.utils.ray.actor import ActorWrapper
-from sage.kernel.utils.ray.ray import ensure_ray_initialized
+from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 
 if TYPE_CHECKING:
-    from sage.core.api.base_environment import BaseEnvironment
-    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
+    from sage.kernel.api.base_environment import BaseEnvironment
     from sage.kernel.runtime.context.service_context import ServiceContext
+    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
@@ -27,8 +32,32 @@ class Dispatcher:
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
         self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
+
+        # 使用调度器和容错管理器
+        # 调度器由 Environment 传入，如果没有则使用默认的 FIFO 调度器
+        self.scheduler: BaseScheduler = (
+            env.scheduler if hasattr(env, "scheduler") else None
+        )
+        if self.scheduler is None:
+            from sage.kernel.scheduler.impl import FIFOScheduler
+
+            self.scheduler = FIFOScheduler(platform=env.platform)
+
+        # 从 Environment 配置创建容错处理器
+        fault_tolerance_config = env.config.get("fault_tolerance", {})
+        self.fault_handler = create_fault_handler_from_config(fault_tolerance_config)
+        self.lifecycle_manager = create_lifecycle_manager()
+
         self.setup_logging_system()
+
+        # 注入 logger 到容错管理器
+        self.fault_handler.logger = self.logger
+        self.lifecycle_manager.logger = self.logger
+
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
+        if fault_tolerance_config:
+            strategy = fault_tolerance_config.get("strategy", "restart")
+            self.logger.info(f"Fault tolerance enabled: strategy={strategy}")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()
@@ -266,45 +295,46 @@ class Dispatcher:
         """编译图结构，创建节点并建立连接"""
         self.logger.info(f"Compiling Job for graph: {self.name}")
 
-        # 第一步：创建所有服务任务实例
+        # 第一步：调度所有服务任务
         for service_node_name, service_node in self.graph.service_nodes.items():
             try:
                 service_name = service_node.service_name
-                service_task_factory = service_node.service_task_factory
 
-                # 为service task创建专用的runtime context
+                # 为service创建专用的runtime context
                 service_ctx = self._create_service_context(service_name)
 
-                # 使用ServiceTaskFactory创建服务任务，注入runtime context
-                service_task = service_task_factory.create_service_task(service_ctx)
-                self.services[service_name] = service_task
-                service_type = (
-                    "Ray Actor (wrapped)" if service_task_factory.remote else "Local"
+                # 使用调度器创建和调度服务任务
+                service_task = self.scheduler.schedule_service(
+                    service_node=service_node, runtime_ctx=service_ctx
                 )
+                self.services[service_name] = service_task
+
                 self.logger.debug(
-                    f"Added {service_type} service task '{service_name}' of type '{service_task.__class__.__name__}' with runtime context"
+                    f"Scheduled service task '{service_name}' of type '{service_task.__class__.__name__}'"
                 )
             except Exception as e:
                 self.logger.error(
-                    f"Failed to create service task {service_name}: {e}", exc_info=True
+                    f"Failed to schedule service task {service_name}: {e}",
+                    exc_info=True,
                 )
                 # 可以选择继续或停止，这里选择继续但记录错误
 
-        # 第二步：创建所有节点实例
+        # 第二步：调度所有计算任务节点
         for node_name, graph_node in self.graph.nodes.items():
             try:
-                # 使用TaskNode中的task_factory创建任务，而不是从transformation获取
-                task = graph_node.task_factory.create_task(
-                    graph_node.name, graph_node.ctx
+                # 使用调度器创建和调度任务
+                task = self.scheduler.schedule_task(
+                    task_node=graph_node, runtime_ctx=graph_node.ctx
                 )
-
                 self.tasks[node_name] = task
 
                 self.logger.debug(
-                    f"Added node '{node_name}' of type '{task.__class__.__name__}'"
+                    f"Scheduled task '{node_name}' of type '{task.__class__.__name__}'"
                 )
             except Exception as e:
-                self.logger.error(f"Failed to create nodes: {e}", exc_info=True)
+                self.logger.error(
+                    f"Failed to schedule task {node_name}: {e}", exc_info=True
+                )
                 raise e
 
         # 连接关系已经在execution graph层通过task context设置好了，无需在此处设置
@@ -375,10 +405,10 @@ class Dispatcher:
                 self.stop()
 
             if self.remote:
-                # 清理 Ray Actors
-                self._cleanup_ray_actors()
-                # 清理 Ray Services
-                self._cleanup_ray_services()
+                # 使用生命周期管理器清理所有Ray资源
+                self.lifecycle_manager.cleanup_all(
+                    tasks=self.tasks, services=self.services, cleanup_timeout=5.0
+                )
             else:
                 # 清理本地任务
                 for node_name, task in self.tasks.items():
@@ -407,130 +437,6 @@ class Dispatcher:
 
         except Exception as e:
             self.logger.error(f"Error during dispatcher cleanup: {e}")
-
-    def _cleanup_ray_actors(self):
-        """清理所有Ray Actor"""
-        if not self.tasks:
-            return
-
-        self.logger.info(f"Cleaning up {len(self.tasks)} actors...")
-
-        # 使用ActorWrapper的cleanup_and_kill方法
-        cleanup_results = []
-        for task_id, actor_wrapper in self.tasks.items():
-            try:
-                if hasattr(actor_wrapper, "cleanup_and_kill"):
-                    # 使用ActorWrapper的封装方法
-                    cleanup_success, kill_success = actor_wrapper.cleanup_and_kill(
-                        cleanup_timeout=5.0, no_restart=True
-                    )
-                    cleanup_results.append((task_id, cleanup_success, kill_success))
-
-                    if kill_success:
-                        self.logger.debug(
-                            f"Successfully killed actor for task {task_id}"
-                        )
-                    else:
-                        self.logger.warning(f"Failed to kill actor for task {task_id}")
-                else:
-                    # 备用方案：直接使用kill_actor方法
-                    if hasattr(actor_wrapper, "kill_actor"):
-                        kill_success = actor_wrapper.kill_actor(no_restart=True)
-                        cleanup_results.append((task_id, False, kill_success))
-                    else:
-                        self.logger.warning(
-                            f"ActorWrapper for task {task_id} does not support kill operations"
-                        )
-                        cleanup_results.append((task_id, False, False))
-
-            except Exception as e:
-                self.logger.warning(f"Error during cleanup for task {task_id}: {e}")
-                cleanup_results.append((task_id, False, False))
-
-        # 报告清理结果
-        successful_cleanups = sum(
-            1 for _, cleanup_success, _ in cleanup_results if cleanup_success
-        )
-        successful_kills = sum(
-            1 for _, _, kill_success in cleanup_results if kill_success
-        )
-
-        if successful_kills == len(self.tasks):
-            self.logger.info(f"Successfully cleaned up all {len(self.tasks)} actors")
-        else:
-            self.logger.warning(
-                f"Cleanup completed: {successful_cleanups}/{len(self.tasks)} cleanups, {successful_kills}/{len(self.tasks)} kills successful"
-            )
-
-    def _cleanup_ray_services(self):
-        """清理所有Ray服务任务"""
-        if not self.services:
-            return
-
-        self.logger.info(f"Cleaning up {len(self.services)} service tasks...")
-
-        # 清理服务任务 - 现在统一使用相同的接口
-        cleanup_results = []
-        for service_name, service_task in self.services.items():
-            try:
-                if hasattr(service_task, "cleanup_and_kill"):
-                    # 这是一个ActorWrapper包装的Ray服务任务
-                    cleanup_success, kill_success = service_task.cleanup_and_kill(
-                        cleanup_timeout=5.0, no_restart=True
-                    )
-                    cleanup_results.append((service_name, kill_success))
-
-                    if kill_success:
-                        self.logger.debug(
-                            f"Successfully killed Ray service actor {service_name}"
-                        )
-                    else:
-                        self.logger.warning(
-                            f"Failed to kill Ray service actor {service_name}"
-                        )
-
-                elif hasattr(service_task, "cleanup"):
-                    # 这是一个本地服务任务
-                    service_task.cleanup()
-                    cleanup_results.append((service_name, True))
-                    self.logger.debug(
-                        f"Successfully cleaned up local service task {service_name}"
-                    )
-                else:
-                    self.logger.warning(
-                        f"Service task {service_name} does not support cleanup"
-                    )
-                    cleanup_results.append((service_name, False))
-
-            except Exception as e:
-                self.logger.warning(
-                    f"Error during cleanup for service task {service_name}: {e}"
-                )
-                cleanup_results.append((service_name, False))
-
-        # 报告清理结果
-        successful_cleanups = sum(1 for _, success in cleanup_results if success)
-
-        if successful_cleanups == len(self.services):
-            self.logger.info(
-                f"Successfully cleaned up all {len(self.services)} service tasks"
-            )
-        else:
-            self.logger.warning(
-                f"Service task cleanup completed: {successful_cleanups}/{len(self.services)} successful"
-            )
-
-    def _wait_for_cleanup_completion(
-        self, cleanup_futures: List[Tuple[Any, Any]], timeout: float = 5.0
-    ):
-        """
-        等待清理操作完成 (已弃用)
-        此方法现在不再使用，因为我们使用ActorWrapper.cleanup_and_kill()方法
-        """
-        self.logger.debug(
-            "_wait_for_cleanup_completion is deprecated, cleanup is now handled by ActorWrapper"
-        )
-        pass
 
     def get_task_status(self) -> Dict[str, Any]:
         """获取所有任务的状态"""

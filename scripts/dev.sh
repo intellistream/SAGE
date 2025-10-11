@@ -195,6 +195,13 @@ cmd_clean() {
     print_info "Removing test and coverage artifacts..."
     rm -rf .pytest_cache/ .coverage htmlcov/ .mypy_cache/ .ruff_cache/
     
+    print_info "Removing empty directories in packages..."
+    # Find and remove empty directories in packages, excluding .git directories
+    # Use a loop to handle deeply nested empty directories
+    for i in {1..5}; do
+        find packages/ -type d -empty -not -path "*/.git/*" -delete 2>/dev/null || true
+    done
+    
     print_success "Clean complete"
 }
 

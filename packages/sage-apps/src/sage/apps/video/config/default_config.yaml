@@ -1,0 +1,63 @@
+# Default configuration for the SAGE video intelligence pipeline
+# Copy this file and tweak the parameters for your own experiments.
+
+video_path: null  # Must be provided via --video argument or config override
+# Process one frame every N frames. Increase to downsample for long videos.
+sample_every_n_frames: 3
+# Uncomment to shorten runs for quick debugging
+# max_frames: 180
+frame_resize: 336
+
+analysis:
+  # CLIP templates that steer zero-shot scene understanding
+  clip_templates:
+    - "Outdoor cycling activity"
+    - "Relaxing in a park"
+    - "Discussing in an office"
+    - "Working out in a gym"
+    - "Night-time city scene"
+    - "Casual indoor conversation"
+    - "Sports match in progress"
+    - "Crowded street"
+    - "Car driving on a road"
+    - "Animal present in frame"
+  clip_top_k: 4
+  classifier_top_k: 5
+  min_event_confidence: 0.25
+  brightness_delta_threshold: 35.0
+
+window_summary:
+  window_seconds: 8.0
+  stride_seconds: 4.0
+  max_frames_per_window: 120
+  summarizer_model: "sshleifer/distilbart-cnn-12-6"
+  max_summary_tokens: 96
+
+output:
+  timeline_path: "artifacts/video_timeline.jsonl"
+  summary_path: "artifacts/video_summary.json"
+  event_stats_path: "artifacts/video_event_stats.json"
+  preview_every: 12
+
+integrations:
+  enable_sage_db: true
+  enable_sage_flow: true
+  enable_neuromem: true
+
+  sage_db:
+    service_name: "video_scene_db"
+    dimension: 512
+    index_type: "AUTO"
+    neighbor_k: 3
+
+  sage_flow:
+    service_name: "video_vector_flow"
+    dim: 512
+    dtype: "Float32"
+    auto_flush: 1
+
+  neuromem:
+    service_name: "video_memory_service"
+    collection_name: "demo_collection"
+    topk: 3
+    with_metadata: true

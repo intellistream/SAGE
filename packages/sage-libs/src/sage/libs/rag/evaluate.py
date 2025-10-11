@@ -2,7 +2,7 @@ from collections import Counter
 from typing import Any, Dict, Tuple, Union
 
 from rouge import Rouge
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoTokenizer
 

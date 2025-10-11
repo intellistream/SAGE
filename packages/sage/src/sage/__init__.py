@@ -1,30 +1,23 @@
 """
 SAGE - Streaming-Augmented Generative Execution
+
+This is a namespace package that includes:
+- sage.common: Common utilities
+- sage.kernel: Core kernel functionality
+- sage.middleware: Middleware components
+- sage.libs: Application libraries
+- sage.tools: Development tools
 """
 
 # 动态加载版本信息
 from ._version import __author__, __email__, __version__  # noqa: F401
 
 # 扩展命名空间包路径以支持子包
+# 这必须在任何子包导入之前完成
 __path__ = __import__("pkgutil").extend_path(__path__, __name__)
-
-# 确保版本信息在命名空间扩展后仍然可访问
-# 这是为了解决在pip安装环境中版本信息可能丢失的问题
-from .runtime.sugar import (
-    bind_runtime_context,
-    call_service,
-    call_service_async,
-    clear_runtime_context,
-    get_current_runtime_context,
-)
 
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
-    "bind_runtime_context",
-    "call_service",
-    "call_service_async",
-    "clear_runtime_context",
-    "get_current_runtime_context",
 ]

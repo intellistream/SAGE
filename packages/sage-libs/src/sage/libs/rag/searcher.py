@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 import requests
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 
 
 class BochaWebSearch(MapFunction):

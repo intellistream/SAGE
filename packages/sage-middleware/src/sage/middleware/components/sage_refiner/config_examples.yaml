@@ -1,0 +1,122 @@
+# Refiner配置示例
+
+# ===== 简单配置（使用SimpleRefiner，不需要模型）=====
+simple_refiner:
+  algorithm: simple
+  budget: 2048
+  enable_cache: true
+  cache_size: 1000
+  cache_ttl: 3600
+  enable_metrics: true
+
+# ===== LongRefiner配置（需要模型和LoRA权重）=====
+long_refiner:
+  algorithm: long_refiner
+  budget: 4000
+  enable_cache: true
+  
+  # 模型配置
+  base_model_path: "Qwen/Qwen2.5-3B-Instruct"
+  max_model_len: 25000
+  gpu_device: 0
+  gpu_memory_utilization: 0.7
+  
+  # LoRA模块路径
+  query_analysis_module_lora_path: "/path/to/models/lora/query_analysis"
+  doc_structuring_module_lora_path: "/path/to/models/lora/doc_structuring"
+  global_selection_module_lora_path: "/path/to/models/lora/global_selection"
+  
+  # 评分模型
+  score_model_name: "bge-reranker-v2-m3"
+  score_model_path: "BAAI/bge-reranker-v2-m3"
+  score_gpu_device: 1  # 可选：使用另一个GPU
+  
+  # 监控
+  enable_metrics: true
+  enable_profiling: true
+  metrics_output_path: "./outputs/refiner_metrics.json"
+
+# ===== 生产环境配置 =====
+production:
+  algorithm: long_refiner
+  budget: 3000
+  enable_cache: true
+  cache_size: 5000
+  cache_ttl: 7200
+  
+  base_model_path: "Qwen/Qwen2.5-3B-Instruct"
+  query_analysis_module_lora_path: "${MODEL_DIR}/lora/query_analysis"
+  doc_structuring_module_lora_path: "${MODEL_DIR}/lora/doc_structuring"
+  global_selection_module_lora_path: "${MODEL_DIR}/lora/global_selection"
+  score_model_path: "BAAI/bge-reranker-v2-m3"
+  
+  gpu_device: 0
+  max_model_len: 25000
+  batch_size: 4
+  enable_metrics: true
+
+# ===== 开发/测试配置 =====
+development:
+  algorithm: simple
+  budget: 1000
+  enable_cache: false
+  enable_metrics: true
+  enable_profiling: true
+
+# ===== 不压缩配置（用于对比实验）=====
+no_compression:
+  algorithm: none
+  enable_metrics: true
+
+# ===== Context Service配置 =====
+context_service:
+  # 一个flag即可开关
+  enable_context_service: true
+  
+  # 上下文管理配置
+  max_context_length: 8192
+  auto_compress: true
+  compress_threshold: 0.8
+  
+  # Refiner配置
+  refiner:
+    algorithm: long_refiner
+    budget: 4000
+    enable_cache: true
+    base_model_path: "Qwen/Qwen2.5-3B-Instruct"
+    query_analysis_module_lora_path: "/path/to/lora/query"
+    doc_structuring_module_lora_path: "/path/to/lora/doc"
+    global_selection_module_lora_path: "/path/to/lora/global"
+    score_model_path: "BAAI/bge-reranker-v2-m3"
+    gpu_device: 0
+
+# ===== RAG管道配置示例 =====
+rag_pipeline:
+  # 数据源
+  source:
+    dataset_path: "your_dataset"
+    split: "test"
+  
+  # 检索器
+  retriever:
+    top_k: 10
+    db_path: "./chroma_db"
+  
+  # Refiner（可选，通过enable控制）
+  enable_refiner: true
+  refiner:
+    algorithm: simple
+    budget: 4000
+    enable_cache: true
+    enable_profile: true
+  
+  # Promptor
+  promptor:
+    template: "qa"
+    max_length: 8000
+  
+  # Generator
+  generator:
+    model: "gpt-3.5-turbo"
+    temperature: 0.7
+    max_tokens: 512
