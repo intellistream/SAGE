@@ -7,17 +7,17 @@ SAGE Refiner - 上下文压缩和精炼组件
 
 使用示例:
     >>> from sage.middleware.components.sage_refiner import RefinerService, RefinerConfig
-    >>> 
+    >>>
     >>> # 创建配置
     >>> config = RefinerConfig(
     ...     algorithm="long_refiner",
     ...     budget=2048,
     ...     enable_cache=True
     ... )
-    >>> 
+    >>>
     >>> # 创建服务
     >>> service = RefinerService(config)
-    >>> 
+    >>>
     >>> # 压缩上下文
     >>> result = service.refine(
     ...     query="用户问题",
@@ -25,20 +25,20 @@ SAGE Refiner - 上下文压缩和精炼组件
     ... )
 """
 
+from sage.middleware.components.sage_refiner.python.algorithms import (
+    LongRefinerAlgorithm,
+    SimpleRefiner,
+)
 from sage.middleware.components.sage_refiner.python.base import (
     BaseRefiner,
     RefineResult,
     RefinerMetrics,
 )
 from sage.middleware.components.sage_refiner.python.config import (
-    RefinerConfig,
     RefinerAlgorithm,
+    RefinerConfig,
 )
 from sage.middleware.components.sage_refiner.python.service import RefinerService
-from sage.middleware.components.sage_refiner.python.algorithms import (
-    LongRefinerAlgorithm,
-    SimpleRefiner,
-)
 
 __all__ = [
     # 基础类

@@ -10,14 +10,14 @@ Refiner Operator - SAGE RAG 算子
 
 用法:
     from sage.libs.rag.refiner import RefinerOperator
-    
+
     config = {
         "algorithm": "long_refiner",  # 或 "simple", "none"
         "budget": 2048,
         "enable_cache": True,
         ...
     }
-    
+
     env.map(RefinerOperator, config)
 """
 
@@ -33,16 +33,16 @@ from sage.kernel.api.function.map_function import MapFunction
 class RefinerOperator(MapFunction):
     """
     Refiner 算子 - 用于 SAGE 管道中的上下文压缩
-    
+
     委托给 sage.middleware.components.sage_refiner.RefinerService
-    
+
     配置示例:
         config = {
             "algorithm": "long_refiner",  # 算法: long_refiner, simple, none
             "budget": 2048,               # token 预算
             "enable_cache": True,         # 启用缓存
             "enable_profile": False,      # 启用数据记录
-            
+
             # LongRefiner 特定配置
             "base_model_path": "Qwen/Qwen2.5-3B-Instruct",
             "query_analysis_module_lora_path": "/path/to/lora/query",
@@ -69,21 +69,21 @@ class RefinerOperator(MapFunction):
     def _init_refiner(self):
         """初始化 Refiner 服务"""
         from sage.middleware.components.sage_refiner import RefinerService
-        
+
         # 使用 middleware 的 RefinerService
         self.refiner_service = RefinerService(self.cfg)
-        
+
         algorithm = self.cfg.get("algorithm", "long_refiner")
         self.logger.info(f"RefinerOperator initialized with algorithm: {algorithm}")
 
     def execute(self, data):
         """
         执行上下文压缩
-        
+
         输入格式:
             - dict: {"query": str, "results": List[Dict], ...}
             - tuple: (query, docs_list)
-            
+
         输出格式:
             dict: {
                 ...原始字段,
@@ -138,11 +138,11 @@ class RefinerOperator(MapFunction):
             result_data = data.copy()
         else:
             result_data = {"query": query}
-        
+
         result_data["results"] = [{"text": text} for text in refined_texts]
         result_data["refined_docs"] = refined_texts
         result_data["refine_metrics"] = metrics
-        
+
         return result_data
 
     def _normalize_documents(self, docs: List[Union[str, Dict]]) -> List[Dict]:
@@ -152,20 +152,22 @@ class RefinerOperator(MapFunction):
             if isinstance(doc, dict):
                 # 提取文本
                 text = doc.get("text") or doc.get("contents") or str(doc)
-                
+
                 # 添加标题（如果有）
                 if "title" in doc and doc["title"]:
                     text = f"{doc['title']}\n{doc['title']} {text}"
-                
+
                 normalized.append({"text": text, **doc})
             elif isinstance(doc, str):
                 normalized.append({"text": doc})
             else:
                 normalized.append({"text": str(doc)})
-        
+
         return normalized
 
-    def _save_data_record(self, query: str, input_docs: List[Dict], refined_docs: List[str]):
+    def _save_data_record(
+        self, query: str, input_docs: List[Dict], refined_docs: List[str]
+    ):
         """保存数据记录（仅当 enable_profile=True）"""
         if not self.enable_profile:
             return
@@ -178,7 +180,7 @@ class RefinerOperator(MapFunction):
             "budget": self.cfg.get("budget"),
         }
         self.data_records.append(record)
-        
+
         # 每10条记录持久化一次
         if len(self.data_records) >= 10:
             self._persist_data_records()

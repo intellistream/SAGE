@@ -27,13 +27,13 @@ class LongRefinerAlgorithm(BaseRefiner):
     LongRefiner算法实现
 
     这是一个SOTA的上下文压缩算法，使用LoRA微调的多模块协同工作。
-    
+
     核心组件：
     - Query Analysis Module: 理解查询意图
-    - Document Structuring Module: 提取文档结构化信息  
+    - Document Structuring Module: 提取文档结构化信息
     - Global Selection Module: 全局内容选择
     - Score Model: 评估内容相关性
-    
+
     配置要求：
     - base_model_path: 基础LLM路径
     - query_analysis_module_lora_path: 查询分析LoRA权重

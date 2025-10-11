@@ -168,7 +168,10 @@ class ContextService:
         return {
             "content": formatted,
             "length": len(formatted.split()),
-            "metrics": {"original_turns": len(history), "kept_turns": len(recent_history) // 2},
+            "metrics": {
+                "original_turns": len(history),
+                "kept_turns": len(recent_history) // 2,
+            },
         }
 
     def add_to_history(self, role: str, content: str) -> None:

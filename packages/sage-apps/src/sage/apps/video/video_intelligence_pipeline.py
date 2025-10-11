@@ -26,9 +26,9 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
+
 
 # Helper function to get logger
 def get_logger(name: str) -> CustomLogger:
@@ -83,23 +83,27 @@ def load_config(config_path: Optional[str]) -> Dict[str, Any]:
         path = Path(config_path)
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {path}")
-        
+
         with path.open("r", encoding="utf-8") as handle:
             data = yaml.safe_load(handle) or {}
         if not isinstance(data, dict):
-            raise ValueError(f"Config file {path} must define a mapping at the top level")
+            raise ValueError(
+                f"Config file {path} must define a mapping at the top level"
+            )
         print(f"[INFO] Loaded config from: {path}")
         return data
-    
+
     # Use default config
     if DEFAULT_CONFIG_PATH.exists():
         with DEFAULT_CONFIG_PATH.open("r", encoding="utf-8") as handle:
             data = yaml.safe_load(handle) or {}
         if not isinstance(data, dict):
-            raise ValueError(f"Config file {DEFAULT_CONFIG_PATH} must define a mapping at the top level")
+            raise ValueError(
+                f"Config file {DEFAULT_CONFIG_PATH} must define a mapping at the top level"
+            )
         print(f"[INFO] Loaded config from: {DEFAULT_CONFIG_PATH}")
         return data
-    
+
     # If no config file found, return default configuration
     print(f"[WARNING] No config file found")
     print(f"[INFO] Using built-in default configuration")
@@ -117,43 +121,47 @@ def load_config(config_path: Optional[str]) -> Dict[str, Any]:
         "models": {
             "clip": "openai/clip-vit-base-patch32",
             "mobilenet": "google/mobilenet_v3_small_100_224",
-        }
+        },
     }
 
 
 def download_test_video(output_path: str) -> bool:
     """Download a small test video for automated testing.
-    
+
     Args:
         output_path: Path where the video should be saved
-        
+
     Returns:
         True if download succeeded, False otherwise
     """
     # Use a small sample video from a public source
     # This is a ~1MB sample video suitable for testing
-    test_video_url = "https://sample-videos.com/video321/mp4/240/big_buck_bunny_240p_1mb.mp4"
-    
+    test_video_url = (
+        "https://sample-videos.com/video321/mp4/240/big_buck_bunny_240p_1mb.mp4"
+    )
+
     logger = CustomLogger("video_downloader")
-    
+
     try:
         logger.info(f"Downloading test video from {test_video_url}")
         logger.info(f"Saving to {output_path}")
-        
+
         # Create parent directory if it doesn't exist
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Download the file
         urllib.request.urlretrieve(test_video_url, output_path)
-        
+
         # Verify the file exists and has content
         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-            logger.info(f"Successfully downloaded test video ({os.path.getsize(output_path)} bytes)")
+            logger.info(
+                f"Successfully downloaded test video ({os.path.getsize(output_path)} bytes)"
+            )
             return True
         else:
             logger.error("Downloaded file is empty or doesn't exist")
             return False
-            
+
     except Exception as e:
         logger.error(f"Failed to download test video: {e}")
         return False
@@ -161,33 +169,35 @@ def download_test_video(output_path: str) -> bool:
 
 def ensure_video_exists(video_path: str, auto_download: bool = True) -> str:
     """Ensure a video file exists, downloading a test video if needed.
-    
+
     Args:
         video_path: Configured video path
         auto_download: Whether to automatically download a test video if file doesn't exist
-        
+
     Returns:
         Path to the video file
-        
+
     Raises:
         FileNotFoundError: If video doesn't exist and auto_download is False or download failed
     """
     logger = CustomLogger("video_validator")
-    
+
     # If the configured path exists, use it
     if os.path.exists(video_path):
         logger.info(f"Using existing video file: {video_path}")
         return video_path
-    
+
     # If auto-download is disabled, raise an error
     if not auto_download:
         raise FileNotFoundError(
             f"Video file '{video_path}' does not exist. Provide --video or update the config."
         )
-    
+
     # Try to download a test video
-    logger.warning(f"Video file '{video_path}' not found. Attempting to download test video...")
-    
+    logger.warning(
+        f"Video file '{video_path}' not found. Attempting to download test video..."
+    )
+
     # Determine download path
     if video_path == "./video_demo.mp4":
         # Default case: download to current directory or sage.apps.video location
@@ -195,7 +205,7 @@ def ensure_video_exists(video_path: str, auto_download: bool = True) -> str:
     else:
         # Use the configured path
         download_path = video_path
-    
+
     if download_test_video(download_path):
         logger.info(f"Test video ready at: {download_path}")
         return download_path
@@ -252,13 +262,13 @@ def build_pipeline(env: LocalEnvironment, config: Dict[str, Any]) -> None:
     memory_service_name = memory_cfg.get("service_name", "video_memory_service")
     memory_collection = memory_cfg.get("collection_name", "demo_collection")
     enable_neuromem = bool(integrations_cfg.get("enable_neuromem", False))
-    
+
     # Disable NeuroMem in test mode (requires pre-created collection)
     if os.environ.get("SAGE_EXAMPLES_MODE") == "test":
         if enable_neuromem:
             logger.info("Test mode: Disabling NeuroMem (requires collection setup)")
             enable_neuromem = False
-    
+
     if enable_neuromem and NeuroMemVDBService is None:
         logger.warning(
             "NeuroMemVDBService is unavailable (module missing). Disabling NeuroMem integration."
@@ -429,7 +439,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def apply_runtime_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
+def apply_runtime_overrides(
+    config: Dict[str, Any], args: argparse.Namespace
+) -> Dict[str, Any]:
     if args.video_path:
         config["video_path"] = args.video_path
     if args.max_frames is not None:
@@ -448,26 +460,26 @@ def apply_runtime_overrides(config: Dict[str, Any], args: argparse.Namespace) ->
 
 def download_test_video() -> str:
     """Download a small test video for CI/testing purposes.
-    
+
     Uses a public domain short video clip suitable for testing.
     Returns the path to the downloaded video file.
     """
     import urllib.request
     from pathlib import Path
-    
+
     # Use a small public domain video (approx 1-2MB)
     # Sample videos from Pexels (free to use)
     test_video_url = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4"
-    
+
     # Download to a temp location
     video_dir = Path("/tmp/sage_test_videos")
     video_dir.mkdir(exist_ok=True)
     video_path = video_dir / "test_video.mp4"
-    
+
     if video_path.exists():
         print(f"[INFO] Test video already exists at {video_path}")
         return str(video_path)
-    
+
     try:
         print(f"[INFO] Downloading test video from {test_video_url}")
         urllib.request.urlretrieve(test_video_url, str(video_path))
@@ -484,38 +496,43 @@ def main() -> None:
     config = apply_runtime_overrides(config, args)
 
     video_path = config.get("video_path")
-    
+
     # If no video file provided, try to download a test video
     if not video_path or not os.path.exists(video_path):
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("📥 No video file provided - attempting to download test video...")
-        print("="*80)
+        print("=" * 80)
         test_video = download_test_video()
         if test_video:
             video_path = test_video
             config["video_path"] = video_path
             print(f"✅ Test video downloaded: {test_video}")
-            
+
             # In test mode, limit frames for faster testing
-            if os.environ.get("SAGE_EXAMPLES_MODE") == "test" and "max_frames" not in config:
+            if (
+                os.environ.get("SAGE_EXAMPLES_MODE") == "test"
+                and "max_frames" not in config
+            ):
                 config["max_frames"] = 30
                 print("[INFO] Test mode: Limiting to 30 frames for faster testing")
         else:
-            print("\n" + "="*80)
+            print("\n" + "=" * 80)
             print("❌ Error: Could not download test video")
-            print("="*80)
+            print("=" * 80)
             print("\nPlease provide a video file using one of these methods:")
             print("  1. Command line: --video path/to/video.mp4")
             print("  2. Config file: Set 'video_path' in the config YAML")
             print("\nExample:")
-            print("  python examples/apps/run_video_intelligence.py --video my_video.mp4")
-            print("="*80 + "\n")
+            print(
+                "  python examples/apps/run_video_intelligence.py --video my_video.mp4"
+            )
+            print("=" * 80 + "\n")
             raise FileNotFoundError(
                 "Could not download test video and no video file provided. "
                 "Please provide --video or update the config."
             )
-        print("="*80 + "\n")
-    
+        print("=" * 80 + "\n")
+
     # Double check video file exists
     if not video_path or not os.path.exists(video_path):
         raise FileNotFoundError(f"Video file '{video_path}' does not exist.")
@@ -525,10 +542,10 @@ def main() -> None:
 
     logger = get_logger("video_intelligence_demo")
     logger.info("Starting pipeline on video '%s'", video_path)
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("🎥 SAGE Video Intelligence Pipeline")
-    print("="*80)
+    print("=" * 80)
     print(f"📁 Video: {video_path}")
     print(f"📊 Config: {config.get('video_path', 'default')}")
     print(f"⚙️  Services: ", end="")
@@ -537,17 +554,20 @@ def main() -> None:
         services.append("SageDB")
     if config.get("integrations", {}).get("enable_sage_flow"):
         services.append("SageFlow")
-    if config.get("integrations", {}).get("enable_neuromem") and os.environ.get("SAGE_EXAMPLES_MODE") != "test":
+    if (
+        config.get("integrations", {}).get("enable_neuromem")
+        and os.environ.get("SAGE_EXAMPLES_MODE") != "test"
+    ):
         services.append("NeuroMem")
     print(", ".join(services) if services else "None")
-    print("="*80 + "\n")
-    
+    print("=" * 80 + "\n")
+
     # Submit and wait for pipeline to complete
     env.submit(autostop=True)
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("✅ Pipeline execution completed!")
-    
+
     # Show output file locations
     output_cfg = config.get("output", {})
     if output_cfg:
@@ -558,8 +578,8 @@ def main() -> None:
             print(f"   • Summary: {output_cfg['summary_path']}")
         if output_cfg.get("event_stats_path"):
             print(f"   • Events: {output_cfg['event_stats_path']}")
-    print("="*80 + "\n")
-    
+    print("=" * 80 + "\n")
+
     logger.info("Pipeline execution completed")
 
 

@@ -18,7 +18,6 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 from dotenv import load_dotenv
-
 from sage.common.config.output_paths import get_output_file
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.function.batch_function import BatchFunction
@@ -35,7 +34,7 @@ def load_config(path: str) -> dict:
 class BatchDataLoader(BatchFunction):
     """
     Batch data loader for benchmark datasets.
-    
+
     Supports loading large datasets in batches for efficient processing.
     Compatible with Self-RAG dataset format and other QA datasets.
     """
@@ -44,12 +43,12 @@ class BatchDataLoader(BatchFunction):
         self.config = config
         self.data_path = config.get("data_path")
         self.max_samples = config.get("max_samples", None)
-        
+
         # Load data
         data = self._load_data()
         if self.max_samples:
-            data = data[:self.max_samples]
-        
+            data = data[: self.max_samples]
+
         self.batch_size = config.get("batch_size", len(data))
         self.current_batch = 0
         self.total_batches = (len(data) + self.batch_size - 1) // self.batch_size
@@ -62,12 +61,14 @@ class BatchDataLoader(BatchFunction):
             for line in f:
                 if line.strip():
                     data.append(json.loads(line))
-        
+
         # Limit samples if max_samples is set
         if self.max_samples and self.max_samples > 0:
-            print(f"📊 Limiting dataset to {self.max_samples} samples (total available: {len(data)})")
-            data = data[:self.max_samples]
-        
+            print(
+                f"📊 Limiting dataset to {self.max_samples} samples (total available: {len(data)})"
+            )
+            data = data[: self.max_samples]
+
         return data
 
     def execute(self) -> Optional[Dict[str, Any]]:
@@ -92,10 +93,10 @@ class BatchDataLoader(BatchFunction):
 class PipelineRunner(MapFunction):
     """
     Generic pipeline runner that can execute any RAG pipeline.
-    
+
     Dynamically loads and runs pipeline implementations from
     implementations/pipelines/ directory.
-    
+
     Expected pipeline interface:
     - process_item(item: Dict, config: Dict) -> Dict
     """
@@ -104,24 +105,24 @@ class PipelineRunner(MapFunction):
         self.config = config
         self.pipeline_name = config.get("pipeline_name")
         self.pipeline_config = config.get("pipeline_config", {})
-        
+
         # Dynamically import pipeline module
         self.pipeline_module = self._load_pipeline()
 
     def _load_pipeline(self):
         """Dynamically load pipeline implementation."""
         module_path = f"sage.benchmark.benchmark_rag.implementations.pipelines.{self.pipeline_name}"
-        
+
         try:
             module = importlib.import_module(module_path)
-            
+
             # Verify the module has process_item function
-            if not hasattr(module, 'process_item'):
+            if not hasattr(module, "process_item"):
                 raise ImportError(
                     f"Pipeline module {module_path} must have a 'process_item' function "
                     f"with signature: process_item(item: Dict, config: Dict) -> Dict"
                 )
-            
+
             return module
         except ImportError as e:
             raise ImportError(
@@ -133,7 +134,7 @@ class PipelineRunner(MapFunction):
     def execute(self, batch_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute pipeline on a batch of data."""
         batch = batch_data["batch_data"]
-        
+
         # Process each item in the batch
         results = []
         for i, item in enumerate(batch):
@@ -141,21 +142,23 @@ class PipelineRunner(MapFunction):
                 # Run the pipeline on this item
                 result = self.pipeline_module.process_item(item, self.pipeline_config)
                 results.append(result)
-                
+
                 # Progress indicator
                 if (i + 1) % 10 == 0:
                     print(f"  Processed {i + 1}/{len(batch)} items in batch...")
-                    
+
             except Exception as e:
                 # Log error but continue processing
                 print(f"⚠️  Error processing item {item.get('id', 'unknown')}: {e}")
-                results.append({
-                    "id": item.get("id", "unknown"),
-                    "question": item.get("question", ""),
-                    "error": str(e),
-                    "ground_truth": item.get("answers", [])
-                })
-        
+                results.append(
+                    {
+                        "id": item.get("id", "unknown"),
+                        "question": item.get("question", ""),
+                        "error": str(e),
+                        "ground_truth": item.get("answers", []),
+                    }
+                )
+
         return {
             "results": results,
             "batch_id": batch_data["batch_id"],
@@ -166,7 +169,7 @@ class PipelineRunner(MapFunction):
 class ResultsCollector(MapFunction):
     """
     Collects and saves benchmark results.
-    
+
     Handles incremental or final saving of results with metadata.
     """
 
@@ -202,7 +205,7 @@ class ResultsCollector(MapFunction):
     def _save_results(self, current_batch: int, total_batches: int):
         """Save results to file with metadata."""
         elapsed_time = time.time() - self.start_time
-        
+
         output = {
             "metadata": {
                 "pipeline_name": self.config.get("pipeline_name", "unknown"),
@@ -228,7 +231,7 @@ class ResultsCollector(MapFunction):
 def run_benchmark(config: dict) -> None:
     """
     Run benchmark with the specified configuration.
-    
+
     Args:
         config: Configuration dictionary with:
             - data: Data loading configuration
@@ -238,10 +241,10 @@ def run_benchmark(config: dict) -> None:
     print("=" * 60)
     print("🚀 Starting RAG Benchmark")
     print("=" * 60)
-    
+
     pipeline_name = config.get("pipeline", {}).get("pipeline_name", "unknown")
     data_path = config.get("data", {}).get("data_path", "unknown")
-    
+
     print(f"📊 Pipeline: {pipeline_name}")
     print(f"📁 Dataset: {data_path}")
     print(f"💾 Output: {config.get('output', {}).get('output_path', 'default')}")
@@ -268,9 +271,7 @@ def main():
     """Main entry point for benchmark runner."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Run RAG pipeline benchmarks"
-    )
+    parser = argparse.ArgumentParser(description="Run RAG pipeline benchmarks")
     parser.add_argument(
         "--config",
         type=str,
@@ -305,7 +306,7 @@ def main():
         # Use default config path
         current_dir = Path(__file__).parent
         default_config = current_dir / "config" / "benchmark_config.yaml"
-        
+
         if default_config.exists():
             config = load_config(str(default_config))
         else:

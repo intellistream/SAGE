@@ -3,7 +3,9 @@ from typing import List, Tuple
 
 import json_repair
 import numpy as np
-from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.prompt_template import PromptTemplate
+from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.prompt_template import (
+    PromptTemplate,
+)
 from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.task_instruction import (
     SYSTEM_PROMPT_STEP1,
     SYSTEM_PROMPT_STEP2,

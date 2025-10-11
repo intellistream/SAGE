@@ -7,7 +7,7 @@ LongRefiner - 向后兼容模块
 
 推荐使用:
     from sage.libs.rag.refiner import RefinerOperator
-    
+
 向后兼容:
     from sage.libs.rag.longrefiner import LongRefinerAdapter  # 仍然可用
 """

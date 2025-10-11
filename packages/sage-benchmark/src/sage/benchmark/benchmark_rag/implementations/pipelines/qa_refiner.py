@@ -19,8 +19,8 @@ from sage.libs.rag.evaluate import (
     TokenCountEvaluate,
 )
 from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.refiner import RefinerOperator
 from sage.libs.rag.promptor import QAPromptor
+from sage.libs.rag.refiner import RefinerOperator
 from sage.libs.rag.retriever import Wiki18FAISSRetriever
 
 

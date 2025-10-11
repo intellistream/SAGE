@@ -190,7 +190,7 @@ def calculate_overall_scores(
 ) -> Dict[str, Any]:
     """
     计算整体评估分数（不输出每个样本的详细分数）
-    
+
     Args:
         results_data: 推理结果数据
         metric: 评估指标
@@ -203,12 +203,12 @@ def calculate_overall_scores(
     # 兼容不同的字段名称
     predictions = []
     ground_truths = []
-    
+
     for item in results:
         # 预测结果字段
         pred = item.get("prediction") or item.get("model_output", "")
         predictions.append(pred)
-        
+
         # 真实答案字段
         gt = item.get("ground_truth", [])
         if isinstance(gt, str):
@@ -231,10 +231,12 @@ def calculate_overall_scores(
     return evaluation_result
 
 
-def analyze_retrieval_quality(evaluation_result: Dict[str, Any], results_data: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_retrieval_quality(
+    evaluation_result: Dict[str, Any], results_data: Dict[str, Any]
+) -> Dict[str, Any]:
     """
     分析检索质量
-    
+
     Args:
         evaluation_result: 评估结果数据
         results_data: 原始结果数据
@@ -254,7 +256,7 @@ def analyze_retrieval_quality(evaluation_result: Dict[str, Any], results_data: D
     for item in detailed_results:
         # 兼容不同的字段名称
         contexts = item.get("retrieved_docs") or item.get("retrieved_context", [])
-        
+
         if contexts:
             samples_with_context += 1
             context_lengths.append(len(contexts))
@@ -274,7 +276,7 @@ def analyze_retrieval_quality(evaluation_result: Dict[str, Any], results_data: D
                         context_text = context.get("text", "")
                     else:
                         context_text = str(context)
-                    
+
                     context_normalized = normalize_text_basic(context_text)
                     if gt_normalized in context_normalized:
                         found_in_context = True
@@ -331,7 +333,7 @@ def print_evaluation_summary(evaluation_result: Dict[str, Any]):
 
     print(f"\n📊 总样本数: {summary['total_samples']}")
     print(f"📏 评估指标: {summary['evaluation_metric']}")
-    
+
     print("\n📈 整体性能指标:")
     for metric, score in scores.items():
         print(f"   {metric.upper()}: {score:.2f}%")
@@ -342,7 +344,9 @@ def print_evaluation_summary(evaluation_result: Dict[str, Any]):
         print("\n🔍 检索质量分析:")
         print(f"   上下文覆盖率: {100 * retrieval_stats['context_coverage']:.2f}%")
         print(f"   平均检索数量: {retrieval_stats['avg_context_count']:.2f}")
-        print(f"   上下文相关性: {100 * retrieval_stats['context_relevance_rate']:.2f}%")
+        print(
+            f"   上下文相关性: {100 * retrieval_stats['context_relevance_rate']:.2f}%"
+        )
 
     print("=" * 60)
 

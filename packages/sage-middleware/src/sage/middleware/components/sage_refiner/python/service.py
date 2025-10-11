@@ -171,7 +171,9 @@ class RefinerService:
 
         # 初始化
         if not self.refiner.is_initialized:
-            algo_name = algorithm.value if hasattr(algorithm, 'value') else str(algorithm)
+            algo_name = (
+                algorithm.value if hasattr(algorithm, "value") else str(algorithm)
+            )
             self.logger.info(f"Initializing refiner: {algo_name}")
             self.refiner.initialize()
             self.logger.info(f"Refiner initialized: {algo_name}")

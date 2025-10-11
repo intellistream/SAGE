@@ -65,7 +65,9 @@ class BaseEnvironment(ABC):
             }
         return self._transformation_classes
 
-    def __init__(self, name: str, config: dict | None, *, platform: str = "local", scheduler=None):
+    def __init__(
+        self, name: str, config: dict | None, *, platform: str = "local", scheduler=None
+    ):
 
         self.name = name
         self.uuid: Optional[str]  # 由jobmanager生成
@@ -96,7 +98,7 @@ class BaseEnvironment(ABC):
     def _init_scheduler(self, scheduler):
         """
         初始化调度器
-        
+
         Args:
             scheduler: 可以是以下类型之一:
                 - None: 使用默认的 FIFO 调度器
@@ -105,7 +107,7 @@ class BaseEnvironment(ABC):
         """
         from sage.kernel.scheduler.api import BaseScheduler
         from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
-        
+
         if scheduler is None:
             # 默认使用 FIFO 调度器
             self._scheduler = FIFOScheduler(platform=self.platform)
@@ -129,7 +131,7 @@ class BaseEnvironment(ABC):
                 f"scheduler must be None, str, or BaseScheduler instance, "
                 f"got {type(scheduler)}"
             )
-    
+
     @property
     def scheduler(self):
         """获取当前调度器实例"""

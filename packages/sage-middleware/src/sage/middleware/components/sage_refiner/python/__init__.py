@@ -8,8 +8,8 @@ from sage.middleware.components.sage_refiner.python.base import (
     RefinerMetrics,
 )
 from sage.middleware.components.sage_refiner.python.config import (
-    RefinerConfig,
     RefinerAlgorithm,
+    RefinerConfig,
 )
 from sage.middleware.components.sage_refiner.python.service import RefinerService
 

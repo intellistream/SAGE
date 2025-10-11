@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-
 from sage.kernel.api.function.map_function import MapFunction
 
 
@@ -30,7 +29,9 @@ class SageMiddlewareIntegrator(MapFunction):
         self.flow_auto_flush = max(1, int(flow_auto_flush))
         self._flow_since_flush = 0
 
-    def _format_neighbors(self, neighbors: List[Dict[str, Any]], entry_id: Any) -> List[Dict[str, Any]]:
+    def _format_neighbors(
+        self, neighbors: List[Dict[str, Any]], entry_id: Any
+    ) -> List[Dict[str, Any]]:
         formatted: List[Dict[str, Any]] = []
         for item in neighbors:
             if item.get("id") == entry_id:
@@ -164,11 +165,14 @@ class SummaryMemoryAugmentor(MapFunction):
             formatted: List[Dict[str, Any]] = []
             for item in results:
                 if isinstance(item, dict):
-                    formatted.append({
-                        "text": item.get("text") or item.get("history_query"),
-                        "answer": item.get("answer") or item.get("metadata", {}).get("answer"),
-                        "source": item.get("source_collection"),
-                    })
+                    formatted.append(
+                        {
+                            "text": item.get("text") or item.get("history_query"),
+                            "answer": item.get("answer")
+                            or item.get("metadata", {}).get("answer"),
+                            "source": item.get("source_collection"),
+                        }
+                    )
                 else:
                     formatted.append({"text": str(item), "source": None})
             data["memory_recall"] = formatted

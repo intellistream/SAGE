@@ -437,10 +437,12 @@ class CustomLogger:
 
         print(f"Removed output: {target_config['target']}")
 
-    def _log_with_caller_info(self, level: int, message: str, *args, exc_info: bool = False, **kwargs):
+    def _log_with_caller_info(
+        self, level: int, message: str, *args, exc_info: bool = False, **kwargs
+    ):
         """
         使用调用者信息记录日志，而不是CustomLogger的信息
-        
+
         支持 Python logging 标准格式化：
         - logger.info("Hello %s", "world")
         - logger.info("User %s logged in at %s", username, timestamp)
@@ -464,7 +466,7 @@ class CustomLogger:
                     msg=message,
                     args=args,  # 支持格式化参数
                     exc_info=err,
-                    **kwargs
+                    **kwargs,
                 )
 
                 # 直接调用handlers处理记录
@@ -489,7 +491,9 @@ class CustomLogger:
 
     def error(self, message: str, *args, exc_info: bool = False, **kwargs):
         """Error级别日志，支持格式化参数"""
-        self._log_with_caller_info(logging.ERROR, message, *args, exc_info=exc_info, **kwargs)
+        self._log_with_caller_info(
+            logging.ERROR, message, *args, exc_info=exc_info, **kwargs
+        )
 
     def critical(self, message: str, *args, **kwargs):
         """Critical级别日志，支持格式化参数"""

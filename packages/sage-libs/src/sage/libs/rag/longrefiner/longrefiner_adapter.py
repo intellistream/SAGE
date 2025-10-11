@@ -7,13 +7,13 @@ LongRefinerAdapter - SAGE Libs适配器
 
 用法：
     from sage.libs.rag.longrefiner import LongRefinerAdapter
-    
+
     config = {
         "algorithm": "long_refiner",  # 或 "simple"
         "budget": 2048,
         ...
     }
-    
+
     env.from_batch(...)
        .map(ChromaRetriever, retriever_config)
        .map(LongRefinerAdapter, config)  # 添加压缩
@@ -32,10 +32,10 @@ from sage.core.api.function.map_function import MapFunction
 class LongRefinerAdapter(MapFunction):
     """
     LongRefiner适配器 - 用于SAGE管道
-    
+
     这个类已经重构为使用 sage.middleware.components.sage_refiner 的服务。
     保持向后兼容，现有应用无需修改。
-    
+
     推荐配置:
         config = {
             "algorithm": "long_refiner",  # 算法选择
@@ -96,17 +96,17 @@ class LongRefinerAdapter(MapFunction):
         """初始化Refiner服务"""
         try:
             from sage.middleware.components.sage_refiner import RefinerService
-            
+
             # 使用middleware的RefinerService
             # 自动处理算法选择、配置验证等
             self.refiner_service = RefinerService(self.cfg)
-            
+
             # 获取底层refiner实例（用于直接调用）
             self.refiner = self.refiner_service._get_refiner()
-            
+
             algorithm = self.cfg.get("algorithm", "long_refiner")
             self.logger.info(f"Refiner initialized with algorithm: {algorithm}")
-            
+
         except ImportError:
             # 如果middleware不可用，回退到直接使用LongRefiner
             self.logger.warning(
@@ -116,16 +116,22 @@ class LongRefinerAdapter(MapFunction):
             from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.refiner import (
                 LongRefiner,
             )
-            
+
             gpu_device = self.cfg.get("gpu_device", 0)
             score_gpu_device = self.cfg.get("score_gpu_device", gpu_device)
             gpu_memory_utilization = self.cfg.get("gpu_memory_utilization", 0.7)
 
             self.refiner = LongRefiner(
                 base_model_path=self.cfg["base_model_path"],
-                query_analysis_module_lora_path=self.cfg["query_analysis_module_lora_path"],
-                doc_structuring_module_lora_path=self.cfg["doc_structuring_module_lora_path"],
-                global_selection_module_lora_path=self.cfg["global_selection_module_lora_path"],
+                query_analysis_module_lora_path=self.cfg[
+                    "query_analysis_module_lora_path"
+                ],
+                doc_structuring_module_lora_path=self.cfg[
+                    "doc_structuring_module_lora_path"
+                ],
+                global_selection_module_lora_path=self.cfg[
+                    "global_selection_module_lora_path"
+                ],
                 score_model_name=self.cfg["score_model_name"],
                 score_model_path=self.cfg["score_model_path"],
                 max_model_len=self.cfg["max_model_len"],
@@ -134,7 +140,7 @@ class LongRefinerAdapter(MapFunction):
                 score_gpu_device=score_gpu_device,
             )
             self.refiner_service = None
-            
+
             self.logger.info(f"LongRefiner initialized (fallback mode)")
 
     def execute(self, data):

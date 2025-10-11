@@ -3,7 +3,7 @@ SAGE - Streaming-Augmented Generative Execution
 
 This is a namespace package that includes:
 - sage.common: Common utilities
-- sage.kernel: Core kernel functionality  
+- sage.kernel: Core kernel functionality
 - sage.middleware: Middleware components
 - sage.libs: Application libraries
 - sage.tools: Development tools

@@ -6,7 +6,6 @@ from collections import Counter, deque
 from typing import Any, Deque, Dict, Iterable, List, Optional
 
 import torch
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.function.flatmap_function import FlatMapFunction
 from sage.kernel.api.function.map_function import MapFunction
@@ -34,18 +33,22 @@ class TemporalAnomalyDetector(MapFunction):
         if brightness is not None and self.prev_brightness is not None:
             delta = abs(brightness - self.prev_brightness)
             if delta >= self.threshold:
-                anomalies.append({
-                    "type": "lighting_shift",
-                    "delta": float(delta),
-                })
+                anomalies.append(
+                    {
+                        "type": "lighting_shift",
+                        "delta": float(delta),
+                    }
+                )
         self.prev_brightness = brightness
 
         if primary_scene and self.prev_scene and primary_scene != self.prev_scene:
-            anomalies.append({
-                "type": "scene_transition",
-                "from": self.prev_scene,
-                "to": primary_scene,
-            })
+            anomalies.append(
+                {
+                    "type": "scene_transition",
+                    "from": self.prev_scene,
+                    "to": primary_scene,
+                }
+            )
         if primary_scene:
             self.prev_scene = primary_scene
 
@@ -68,32 +71,38 @@ class FrameEventEmitter(FlatMapFunction):
         for concept in data.get("scene_concepts", []):
             if concept["score"] < self.min_confidence:
                 continue
-            events.append({
-                "event_type": "scene_concept",
-                "label": concept["label"],
-                "score": concept["score"],
-                "frame_id": frame_id,
-                "timestamp": timestamp,
-            })
+            events.append(
+                {
+                    "event_type": "scene_concept",
+                    "label": concept["label"],
+                    "score": concept["score"],
+                    "frame_id": frame_id,
+                    "timestamp": timestamp,
+                }
+            )
 
         for prediction in data.get("object_predictions", []):
             if prediction["score"] < self.min_confidence:
                 continue
-            events.append({
-                "event_type": "object",
-                "label": prediction["label"],
-                "score": prediction["score"],
-                "frame_id": frame_id,
-                "timestamp": timestamp,
-            })
+            events.append(
+                {
+                    "event_type": "object",
+                    "label": prediction["label"],
+                    "score": prediction["score"],
+                    "frame_id": frame_id,
+                    "timestamp": timestamp,
+                }
+            )
 
         for anomaly in data.get("anomalies", []):
-            events.append({
-                "event_type": anomaly.get("type", "anomaly"),
-                "frame_id": frame_id,
-                "timestamp": timestamp,
-                **{k: v for k, v in anomaly.items() if k != "type"},
-            })
+            events.append(
+                {
+                    "event_type": anomaly.get("type", "anomaly"),
+                    "frame_id": frame_id,
+                    "timestamp": timestamp,
+                    **{k: v for k, v in anomaly.items() if k != "type"},
+                }
+            )
 
         return events
 
@@ -121,7 +130,9 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
         self.summarizer = None
         if summarizer_model:
             if hf_pipeline is None:
-                logger = CustomLogger(outputs=[("console", "INFO")], name="SlidingWindowSummaryEmitter")
+                logger = CustomLogger(
+                    outputs=[("console", "INFO")], name="SlidingWindowSummaryEmitter"
+                )
                 logger.warning(
                     "transformers is not installed; summariser '%s' cannot be loaded. Falling back to template summaries.",
                     summarizer_model,
@@ -135,7 +146,10 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
                         device=device,
                     )
                 except Exception as exc:  # pragma: no cover - optional model
-                    logger = CustomLogger(outputs=[("console", "INFO")], name="SlidingWindowSummaryEmitter")
+                    logger = CustomLogger(
+                        outputs=[("console", "INFO")],
+                        name="SlidingWindowSummaryEmitter",
+                    )
                     logger.warning(
                         "Failed to load summariser '%s': %s. Falling back to template summaries.",
                         summarizer_model,
@@ -204,9 +218,13 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
                     do_sample=False,
                 )[0]["summary_text"].strip()
             except Exception:  # pragma: no cover - fallback path
-                raw_summary = self._fallback_summary(_top(all_concepts, 3), _top(all_objects, 5))
+                raw_summary = self._fallback_summary(
+                    _top(all_concepts, 3), _top(all_objects, 5)
+                )
         else:
-            raw_summary = self._fallback_summary(_top(all_concepts, 3), _top(all_objects, 5))
+            raw_summary = self._fallback_summary(
+                _top(all_concepts, 3), _top(all_objects, 5)
+            )
 
         return {
             "summary_id": self.summary_index,

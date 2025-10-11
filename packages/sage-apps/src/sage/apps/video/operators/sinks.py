@@ -37,19 +37,23 @@ class TimelineSink(SinkFunction):
             scene = safe_data.get("primary_scene", "Unknown scene")
             objects = ", ".join(safe_data.get("top_object_labels", [])[:3])
             brightness = safe_data.get("brightness", 0)
-            
+
             print(f"\n{'='*70}")
             print(f"📹 Frame {frame_id} @ {timestamp:.2f}s")
             print(f"   Scene: {scene}")
             print(f"   Objects: {objects or 'none detected'}")
             print(f"   Brightness: {brightness:.1f}")
-            
+
             # Show scene scores if available
             scene_scores = safe_data.get("scene_scores", {})
             if scene_scores:
-                top_scenes = sorted(scene_scores.items(), key=lambda x: x[1], reverse=True)[:3]
-                print(f"   Top scenes: {', '.join(f'{s}({v:.2f})' for s, v in top_scenes)}")
-            
+                top_scenes = sorted(
+                    scene_scores.items(), key=lambda x: x[1], reverse=True
+                )[:3]
+                print(
+                    f"   Top scenes: {', '.join(f'{s}({v:.2f})' for s, v in top_scenes)}"
+                )
+
             print(f"{'='*70}")
 
     def __del__(self) -> None:  # pragma: no cover - defensive cleanup
@@ -68,16 +72,16 @@ class SummarySink(SinkFunction):
 
     def execute(self, data: Dict[str, Any]) -> None:
         self.records.append(data)
-        
+
         # Print summary to console
         window_id = len(self.records)
         summary_text = data.get("summary", "")
         start_time = data.get("window_start_seconds", 0)
         end_time = data.get("window_end_seconds", 0)
-        
+
         print(f"\n🎬 Summary Window #{window_id} ({start_time:.1f}s - {end_time:.1f}s)")
         print(f"   {summary_text[:200]}{'...' if len(summary_text) > 200 else ''}")
-        
+
         # Show memory recall if available
         memory_recall = data.get("memory_recall", [])
         if memory_recall:

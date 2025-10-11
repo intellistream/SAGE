@@ -43,9 +43,18 @@ def test_pipeline_builder_mock_non_interactive(tmp_path):
     assert data["pipeline"]["name"] == "qa-helper"
     assert data["stages"], "stages should not be empty"
     classes = [stage["class"] for stage in data["stages"]]
-    assert "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleGenerator" in classes
-    assert data["source"]["class"] == "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleQuestionSource"
-    assert data["sink"]["class"] == "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleTerminalSink"
+    assert (
+        "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleGenerator"
+        in classes
+    )
+    assert (
+        data["source"]["class"]
+        == "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleQuestionSource"
+    )
+    assert (
+        data["sink"]["class"]
+        == "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleTerminalSink"
+    )
 
 
 def test_pipeline_builder_missing_fields_non_interactive(tmp_path):

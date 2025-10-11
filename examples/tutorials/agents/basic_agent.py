@@ -85,7 +85,9 @@ def main():
     # 在真实API模式下，使用简化的查询数据以避免超时
     if use_real_api:
         # 使用测试数据
-        config["source"]["data_path"] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
+        config["source"][
+            "data_path"
+        ] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
 
     # ====== Generator======
     gen_cfg = config["generator"]["remote"]  # 可改为 "local"/"remote"

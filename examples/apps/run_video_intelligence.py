@@ -59,46 +59,33 @@ Features:
   - Frame-by-frame analysis
   - Comprehensive video insights
   - Configurable processing pipeline
-        """
+        """,
     )
-    
+
+    parser.add_argument("--video", type=str, help="Path to the video file to analyze")
+
     parser.add_argument(
-        "--video",
-        type=str,
-        help="Path to the video file to analyze"
+        "--config", type=str, default=None, help="Path to configuration file"
     )
-    
+
     parser.add_argument(
-        "--config",
-        type=str,
-        default=None,
-        help="Path to configuration file"
+        "--max-frames", type=int, help="Maximum number of frames to process"
     )
-    
-    parser.add_argument(
-        "--max-frames",
-        type=int,
-        help="Maximum number of frames to process"
-    )
-    
-    parser.add_argument(
-        "--output",
-        type=str,
-        help="Output directory for results"
-    )
-    
+
+    parser.add_argument("--output", type=str, help="Output directory for results")
+
     args = parser.parse_args()
-    
+
     # Validate video file if provided
     if args.video and not Path(args.video).exists():
         print(f"Error: Video file not found: {args.video}")
         sys.exit(1)
-    
+
     # Validate config file if provided
     if args.config and not Path(args.config).exists():
         print(f"Error: Config file not found: {args.config}")
         sys.exit(1)
-    
+
     print("=" * 60)
     print("SAGE Video Intelligence Pipeline")
     print("=" * 60)
@@ -114,7 +101,7 @@ Features:
         print(f"Output: {args.output}")
     print("=" * 60)
     print()
-    
+
     # Call the video intelligence main function
     # The actual implementation will handle the arguments
     try:
@@ -122,6 +109,7 @@ Features:
     except Exception as e:
         print(f"Error running video intelligence pipeline: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

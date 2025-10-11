@@ -11,13 +11,17 @@ from typing import Any, Dict, List, Optional, Union
 
 try:
     from sage.core.api.function.map_function import MapFunction
+
     SAGE_CORE_AVAILABLE = True
 except ImportError:
     SAGE_CORE_AVAILABLE = False
+
     # 创建dummy基类
     class MapFunction:
         """Dummy MapFunction for non-SAGE environments"""
+
         pass
+
 
 from sage.middleware.components.sage_refiner.python.service import RefinerService
 

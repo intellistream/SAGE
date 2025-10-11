@@ -24,22 +24,22 @@ def check_and_setup_data(auto_setup: bool = False):
     current_dir = Path(__file__).parent
     data_dir = current_dir / "data" / "processed"
     setup_script = current_dir / "setup_data.sh"
-    
+
     # 检查数据是否存在
     if data_dir.exists() and (data_dir / "train_index.json").exists():
         print(f"✓ 数据集已就绪: {data_dir}")
         return True
-    
+
     print(f"⚠️  数据集未找到: {data_dir}")
     print(f"")
-    
+
     # 检查 setup_data.sh 是否存在
     if not setup_script.exists():
         print(f"❌ 数据设置脚本未找到: {setup_script}")
         print(f"")
         print(f"请手动准备数据或检查安装是否完整")
         return False
-    
+
     # 自动下载数据
     print(f"数据集设置脚本: {setup_script}")
     print(f"")
@@ -48,7 +48,7 @@ def check_and_setup_data(auto_setup: bool = False):
     print(f"")
     print(f"开始自动设置数据集...")
     print(f"=" * 70)
-    
+
     try:
         # 运行 setup_data.sh
         result = subprocess.run(
@@ -56,13 +56,13 @@ def check_and_setup_data(auto_setup: bool = False):
             cwd=str(current_dir),
             check=True,
             text=True,
-            capture_output=False
+            capture_output=False,
         )
-        
+
         print(f"=" * 70)
         print(f"✅ 数据集设置完成！")
         return True
-        
+
     except subprocess.CalledProcessError as e:
         print(f"=" * 70)
         print(f"❌ 数据集设置失败")
@@ -129,8 +129,10 @@ def parse_args():
     parser.add_argument("--interactive", action="store_true", help="交互式模式")
 
     parser.add_argument("--verbose", "-v", action="store_true", help="显示详细信息")
-    
-    parser.add_argument("--auto-setup", action="store_true", help="自动下载并设置数据（无需确认）")
+
+    parser.add_argument(
+        "--auto-setup", action="store_true", help="自动下载并设置数据（无需确认）"
+    )
 
     return parser.parse_args()
 
@@ -155,7 +157,7 @@ def diagnose_single_case(
     print(f"✅ 诊断完成")
     print(f"{'='*70}")
     # DiagnosisReport 使用 diagnoses (复数) 而不是 diagnosis
-    if hasattr(result, 'diagnoses') and result.diagnoses:
+    if hasattr(result, "diagnoses") and result.diagnoses:
         print(f"诊断: {', '.join(result.diagnoses)}")
     print(f"置信度: {result.confidence:.2%}")
 
@@ -276,12 +278,12 @@ def main():
     print(f"\n{'='*70}")
     print(f"📦 检查数据集状态...")
     print(f"{'='*70}\n")
-    
+
     if not check_and_setup_data(auto_setup=args.auto_setup):
         print(f"\n⚠️  警告: 数据集未就绪")
         print(f"系统将使用模拟数据运行演示模式")
         print(f"")
-    
+
     # 初始化Agent
     print(f"\n🚀 初始化诊断Agent...")
     print(f"{'='*70}")

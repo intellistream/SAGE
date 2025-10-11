@@ -13,5 +13,5 @@ def test_version():
 def test_package_imports():
     """Test basic package imports work."""
     import sage.apps
-    
+
     assert hasattr(sage.apps, "__version__")

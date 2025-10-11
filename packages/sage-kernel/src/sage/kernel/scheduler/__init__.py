@@ -9,22 +9,22 @@ Scheduler Module - 分布式任务调度
 用户使用方式:
     # 基础用法 - 使用默认调度器
     env = LocalEnvironment()
-    
+
     # 指定调度器类型（字符串）
     env = LocalEnvironment(scheduler="fifo")  # FIFO 策略
     env = LocalEnvironment(scheduler="sla")   # SLA-aware 策略
-    
+
     # 构建 pipeline（并行度在 operator 级别）
     (env.from_source(MySource)
         .map(MyOperator, parallelism=4)   # 4个并行实例
         .filter(MyFilter, parallelism=2)  # 2个并行实例
         .sink(MySink))
-    
+
     env.submit()  # 调度器自动工作
 
 开发者对比不同策略:
     from sage.kernel.scheduler.impl import FIFOScheduler, SLAScheduler
-    
+
     # 实验对比
     for scheduler_cls in [FIFOScheduler, SLAScheduler]:
         env = LocalEnvironment(scheduler=scheduler_cls())

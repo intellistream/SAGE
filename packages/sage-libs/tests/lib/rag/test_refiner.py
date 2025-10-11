@@ -73,9 +73,7 @@ class TestRefinerOperator:
         # 简化测试，只验证基本初始化逻辑
         with patch("sage.libs.rag.refiner.LongRefiner"):
             try:
-                adapter = RefinerOperator(
-                    config=complete_config, enable_profile=False
-                )
+                adapter = RefinerOperator(config=complete_config, enable_profile=False)
                 assert adapter.cfg == complete_config
                 assert adapter.enable_profile is False
                 # 验证基本属性存在
@@ -169,9 +167,7 @@ class TestRefinerOperatorMethods:
         mock_ctx.env_base_dir = temp_dir
 
         with patch("sage.libs.rag.refiner.LongRefiner"):
-            adapter = RefinerOperator(
-                config=config, enable_profile=True, ctx=mock_ctx
-            )
+            adapter = RefinerOperator(config=config, enable_profile=True, ctx=mock_ctx)
 
             # 模拟文件操作
             mock_file = Mock()
@@ -203,9 +199,7 @@ class TestRefinerOperatorMethods:
 
         config = self.get_complete_config()
 
-        with patch(
-            "sage.libs.rag.refiner.LongRefiner"
-        ) as mock_longrefiner_class:
+        with patch("sage.libs.rag.refiner.LongRefiner") as mock_longrefiner_class:
             mock_refiner = Mock()
             mock_longrefiner_class.return_value = mock_refiner
 
@@ -261,9 +255,7 @@ class TestRefinerOperatorExecution:
 
         config = self.get_complete_config()
 
-        with patch(
-            "sage.libs.rag.refiner.LongRefiner"
-        ) as mock_longrefiner_class:
+        with patch("sage.libs.rag.refiner.LongRefiner") as mock_longrefiner_class:
             # 模拟refiner
             mock_refiner = Mock()
             mock_refiner.run.return_value = [
@@ -308,9 +300,7 @@ class TestRefinerOperatorExecution:
 
         config = self.get_complete_config()
 
-        with patch(
-            "sage.libs.rag.refiner.LongRefiner"
-        ) as mock_longrefiner_class:
+        with patch("sage.libs.rag.refiner.LongRefiner") as mock_longrefiner_class:
             # 模拟refiner
             mock_refiner = Mock()
             mock_refiner.run.return_value = ["Refined document"]
@@ -343,9 +333,7 @@ class TestRefinerOperatorExecution:
 
         config = self.get_complete_config()
 
-        with patch(
-            "sage.libs.rag.refiner.LongRefiner"
-        ) as mock_longrefiner_class:
+        with patch("sage.libs.rag.refiner.LongRefiner") as mock_longrefiner_class:
             # 模拟refiner抛出异常
             mock_refiner = Mock()
             mock_refiner.run.side_effect = Exception("model load failed")
@@ -389,9 +377,7 @@ class TestRefinerOperatorIntegration:
         mock_ctx.env_base_dir = temp_dir
 
         # 模拟完整的文档精炼工作流
-        with patch(
-            "sage.libs.rag.refiner.LongRefiner"
-        ) as mock_refiner_class:
+        with patch("sage.libs.rag.refiner.LongRefiner") as mock_refiner_class:
             mock_refiner = Mock()
             mock_refiner.run.return_value = [
                 {"contents": "精炼后的重要文档1"},
@@ -400,9 +386,7 @@ class TestRefinerOperatorIntegration:
             mock_refiner_class.return_value = mock_refiner
 
             # 创建适配器
-            adapter = RefinerOperator(
-                config=config, enable_profile=True, ctx=mock_ctx
-            )
+            adapter = RefinerOperator(config=config, enable_profile=True, ctx=mock_ctx)
 
             # 测试数据（英文）
             question = "What are AI applications in healthcare?"
@@ -627,9 +611,7 @@ class TestRefinerOperatorFixes:
             "gpu_memory_utilization": 0.7,
         }
 
-        with patch(
-            "sage.libs.rag.refiner.LongRefiner"
-        ) as mock_longrefiner:
+        with patch("sage.libs.rag.refiner.LongRefiner") as mock_longrefiner:
             try:
                 adapter = RefinerOperator(config=config)
 
@@ -887,9 +869,7 @@ class TestRefinerOperatorFixes:
             # 注意：没有score_gpu_device字段
         }
 
-        with patch(
-            "sage.libs.rag.refiner.LongRefiner"
-        ) as mock_longrefiner:
+        with patch("sage.libs.rag.refiner.LongRefiner") as mock_longrefiner:
             try:
                 adapter = RefinerOperator(config=old_config)
 

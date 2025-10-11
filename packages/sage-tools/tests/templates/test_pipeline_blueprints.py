@@ -56,7 +56,8 @@ def test_multimodal_blueprint_references_real_components():
     )
     stage_classes = [stage.class_path for stage in blueprint.stages]
     assert (
-        "sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalFusionRetriever" in stage_classes
+        "sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalFusionRetriever"
+        in stage_classes
     )
     assert "sage.libs.rag.generator.OpenAIGenerator" in stage_classes
     assert blueprint.sink.class_path == "sage.libs.io_utils.sink.TerminalSink"

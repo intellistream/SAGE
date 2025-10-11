@@ -1,12 +1,16 @@
 """Operator collection for the video intelligence demo."""
 
-from .sources import VideoFrameSource
-from .preprocessing import FramePreprocessor
-from .perception import SceneConceptExtractor, FrameObjectClassifier
-from .analytics import TemporalAnomalyDetector, FrameEventEmitter, SlidingWindowSummaryEmitter
+from .analytics import (
+    FrameEventEmitter,
+    SlidingWindowSummaryEmitter,
+    TemporalAnomalyDetector,
+)
 from .formatters import FrameLightweightFormatter
 from .integrations import SageMiddlewareIntegrator, SummaryMemoryAugmentor
-from .sinks import TimelineSink, SummarySink, EventStatsSink
+from .perception import FrameObjectClassifier, SceneConceptExtractor
+from .preprocessing import FramePreprocessor
+from .sinks import EventStatsSink, SummarySink, TimelineSink
+from .sources import VideoFrameSource
 
 __all__ = [
     "VideoFrameSource",

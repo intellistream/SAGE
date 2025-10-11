@@ -8,9 +8,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from torchvision.models import MobileNet_V3_Large_Weights, mobilenet_v3_large
-
 from sage.kernel.api.function.map_function import MapFunction
+from torchvision.models import MobileNet_V3_Large_Weights, mobilenet_v3_large
 
 try:
     from transformers import CLIPModel, CLIPProcessor
@@ -42,9 +41,9 @@ class SceneConceptExtractor(MapFunction):
         # - openai/clip-vit-base-patch32: ~150MB, 86M params (BEST for memory)
         # For even lower memory, we can use CPU and half precision
         model_name = "openai/clip-vit-base-patch32"
-        
+
         self.logger.info(f"Loading CLIP model: {model_name} on {self.device}")
-        
+
         # Load with memory optimization
         # Note: In test/CI environments without internet or with network restrictions,
         # model loading may fail. We gracefully degrade to passthrough mode.
@@ -53,7 +52,7 @@ class SceneConceptExtractor(MapFunction):
             self.model = CLIPModel.from_pretrained(
                 model_name,
                 dtype=torch.float16 if self.device == "cuda" else torch.float32,
-                low_cpu_mem_usage=True
+                low_cpu_mem_usage=True,
             ).to(self.device)
             self.processor = CLIPProcessor.from_pretrained(model_name)
             self.logger.info("CLIP model loaded successfully")
@@ -106,10 +105,12 @@ class SceneConceptExtractor(MapFunction):
         top_scores, top_indices = torch.topk(scores, top_k)
         concepts: List[Dict[str, Any]] = []
         for score, idx in zip(top_scores.tolist(), top_indices.tolist()):
-            concepts.append({
-                "label": self.templates[idx],
-                "score": float(score),
-            })
+            concepts.append(
+                {
+                    "label": self.templates[idx],
+                    "score": float(score),
+                }
+            )
 
         data["scene_concepts"] = concepts
         data["primary_scene"] = concepts[0]["label"] if concepts else "Unknown"
@@ -126,16 +127,16 @@ class FrameObjectClassifier(MapFunction):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
         self.logger.info(f"Loading MobileNetV3 model on {self.device}")
-        
+
         try:
             weights = MobileNet_V3_Large_Weights.DEFAULT
             self.model = mobilenet_v3_large(weights=weights).to(self.device)
             self.model.eval()
-            
+
             # Enable half precision for GPU to save memory
             if self.device == "cuda":
                 self.model = self.model.half()
-                
+
             self.preprocess = weights.transforms()
             self.categories = weights.meta["categories"]
             self.logger.info("MobileNetV3 model loaded successfully")
@@ -169,10 +170,12 @@ class FrameObjectClassifier(MapFunction):
         top_scores, top_indices = torch.topk(probs, k)
         predictions: List[Dict[str, Any]] = []
         for score, idx in zip(top_scores.tolist(), top_indices.tolist()):
-            predictions.append({
-                "label": self.categories[idx],
-                "score": float(score),
-            })
+            predictions.append(
+                {
+                    "label": self.categories[idx],
+                    "score": float(score),
+                }
+            )
 
         data["object_predictions"] = predictions
         return data

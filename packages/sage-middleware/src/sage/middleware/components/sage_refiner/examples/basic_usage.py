@@ -6,9 +6,9 @@
 """
 
 from sage.middleware.components.sage_refiner import (
+    RefinerAlgorithm,
     RefinerConfig,
     RefinerService,
-    RefinerAlgorithm,
 )
 
 
@@ -113,7 +113,9 @@ def batch_processing():
     for i, (query, result) in enumerate(zip(queries, results)):
         print(f"\n查询 {i+1}: {query}")
         print(f"  压缩率: {result.metrics.compression_rate:.2f}x")
-        print(f"  原始/精炼 tokens: {result.metrics.original_tokens}/{result.metrics.refined_tokens}")
+        print(
+            f"  原始/精炼 tokens: {result.metrics.original_tokens}/{result.metrics.refined_tokens}"
+        )
 
     service.shutdown()
     print("\n✓ 完成\n")
