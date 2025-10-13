@@ -33,22 +33,16 @@ from sage.tools.cli.commands import pipeline as pipeline_builder
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
 from sage.tools.cli.core.exceptions import CLIException
+from sage.middleware.components.sage_db.python.sage_db import (
+    SageDB,
+    SageDBException,
+)
 
 console = Console()
 
-try:  # pragma: no cover - runtime check
-    from sage.middleware.components.sage_db.python.sage_db import (
-        SageDB,
-        SageDBException,
-    )
-
-    SAGE_DB_AVAILABLE = True
-    SAGE_DB_IMPORT_ERROR: Optional[Exception] = None
-except Exception as exc:  # pragma: no cover - runtime check
-    SageDB = None  # type: ignore
-    SageDBException = Exception  # type: ignore
-    SAGE_DB_AVAILABLE = False
-    SAGE_DB_IMPORT_ERROR = exc
+# sage-tools 现在依赖所有SAGE子包，可以直接导入
+SAGE_DB_AVAILABLE = True
+SAGE_DB_IMPORT_ERROR: Optional[Exception] = None
 
 
 DEFAULT_INDEX_NAME = "docs-public"
