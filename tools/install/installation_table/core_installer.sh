@@ -68,10 +68,14 @@ install_core_packages() {
     echo ""
     
     # 检查所有必要的包目录是否存在
-    local required_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-studio" "packages/sage-tools")
+    local required_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-tools")
     if [ "$install_mode" != "minimal" ]; then
-        required_packages+=("packages/sage-middleware" "packages/sage-libs" "packages/sage-apps")
+        required_packages+=("packages/sage-middleware" "packages/sage-libs")
     fi
+    # 可选包（存在时添加）
+    [ -d "packages/sage-studio" ] && required_packages+=("packages/sage-studio")
+    [ -d "packages/sage-apps" ] && required_packages+=("packages/sage-apps")
+    [ -d "packages/sage-benchmark" ] && required_packages+=("packages/sage-benchmark")
     required_packages+=("packages/sage")
     
     for package_dir in "${required_packages[@]}"; do
@@ -108,7 +112,7 @@ install_core_packages() {
     
     # 第一步：安装核心依赖包（避免PyPI依赖解析问题）
     echo -e "${DIM}步骤 1/2: 安装本地依赖包...${NC}"
-    local core_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-studio" "packages/sage-tools")
+    local core_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-tools")
     
     for package_dir in "${core_packages[@]}"; do
         echo -e "${DIM}  正在安装: $package_dir${NC}"
@@ -121,9 +125,14 @@ install_core_packages() {
         fi
     done
     
-    # 安装中间件和应用包（对于非minimal模式）
+    # 安装中间件、应用包和可选组件（对于非minimal模式）
     if [ "$install_mode" != "minimal" ]; then
-        local extended_packages=("packages/sage-middleware" "packages/sage-libs" "packages/sage-apps")
+        local extended_packages=("packages/sage-middleware" "packages/sage-libs")
+        # 添加可选包（如果存在）
+        [ -d "packages/sage-studio" ] && extended_packages+=("packages/sage-studio")
+        [ -d "packages/sage-apps" ] && extended_packages+=("packages/sage-apps")
+        [ -d "packages/sage-benchmark" ] && extended_packages+=("packages/sage-benchmark")
+        
         for package_dir in "${extended_packages[@]}"; do
             echo -e "${DIM}  正在安装: $package_dir${NC}"
             echo "$(date): 安装 $package_dir" >> "$log_file"

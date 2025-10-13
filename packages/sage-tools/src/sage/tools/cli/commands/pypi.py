@@ -703,12 +703,15 @@ class PyPIPublisher:
 
         # 发布顺序（按依赖关系）
         self.publish_order = [
-            "sage-common",  # 基础工具包
-            "sage-kernel",  # 内核
-            "sage-tools",  # CLI工具（依赖common和kernel）
+            "sage-common",      # 基础工具包
+            "sage-kernel",      # 内核
+            "sage-tools",       # CLI工具（依赖common和kernel）
             "sage-middleware",  # 中间件
-            "sage-libs",  # 应用库
-            "sage",  # Meta包，依赖所有其他包
+            "sage-libs",        # 应用库
+            "sage-apps",        # 应用示例（依赖common、kernel、middleware、libs）
+            "sage-benchmark",   # 基准测试（依赖common、kernel、middleware、libs）
+            "sage-studio",      # Studio低代码界面（依赖common、kernel、middleware、libs）
+            "sage",             # Meta包，依赖所有其他包
         ]
 
     def log_to_file(self, message: str):
