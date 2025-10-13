@@ -179,11 +179,21 @@ install_core_packages() {
     echo -e "${DIM}步骤 3/3: 安装主SAGE包 (${install_mode}模式)...${NC}"
     echo "$(date): 安装主SAGE包 ($install_mode模式)" >> "$log_file"
     
-    # 使用 --no-deps 避免从 PyPI 下载依赖（本地包已安装）
+    # 3a. 先用 --no-deps 安装 sage meta-package（避免重复安装本地包）
     local install_target="packages/sage[$install_mode]"
-    echo -e "${DIM}执行: $PIP_CMD install $install_flags $install_target --no-deps${NC}"
+    echo -e "${DIM}  3a. 安装 sage meta-package (--no-deps)...${NC}"
     
-    if $PIP_CMD install $install_flags "$install_target" $pip_args --no-deps 2>&1 | tee -a "$log_file"; then
+    if ! $PIP_CMD install $install_flags "$install_target" $pip_args --no-deps >> "$log_file" 2>&1; then
+        echo -e "${CROSS} 安装 sage meta-package 失败！"
+        echo "$(date): 安装 sage meta-package 失败" >> "$log_file"
+        return 1
+    fi
+    
+    # 3b. 然后安装外部依赖（不加 --no-deps，但使用 --no-build-isolation 避免重新构建本地包）
+    echo -e "${DIM}  3b. 安装外部依赖...${NC}"
+    echo "$(date): 安装外部依赖" >> "$log_file"
+    
+    if $PIP_CMD install "$install_target" $pip_args --no-build-isolation 2>&1 | tee -a "$log_file"; then
         echo ""
         echo -e "${CHECK} SAGE ($install_mode 模式) 安装成功！"
         echo ""
