@@ -1,128 +1,177 @@
-# Pull Request: Reorganize Maintenance Scripts
+# Pull Request: Complete Package Build Configuration - BREAKING CHANGE
 
-## 🎯 目标
+## ⚠️ BREAKING CHANGE
 
-重构 `tools/maintenance` 维护脚本，解决：
-1. 脚本分散，使用不便
-2. submodule 路径重构后的遗留问题
-3. 缺乏统一的诊断工具
+This PR adds 3 previously missing packages to the build/test/deployment pipeline. This is a **breaking change** because:
+- The dependency structure has been restructured 
+- `sage-tools` now depends on ALL other SAGE packages
+- Installation order is critical and enforced with `--no-deps` flag
+- Existing development environments may need reinstallation
 
-## 📦 主要变更
+## 🐛 Problem
 
-### 1. 创建统一主脚本 `sage-maintenance.sh`
+CI/CD "deployment readiness check" failed with:
+```
+ERROR: Could not find a version that satisfies the requirement isage-studio>=0.1.0
+```
 
-提供一站式维护工具：
+**Root Cause Analysis:**
+1. SAGE has 9 packages but only 6 were configured in build/test scripts
+2. Missing packages: `sage-apps`, `sage-benchmark`, `sage-studio`
+3. Dependency structure was unclear, causing circular dependencies
+4. Installation script didn't enforce dependency order
+
+## 🔧 Solution
+
+### 1. Add Missing Packages to Build Pipeline
+
+Updated all build/test/validation scripts:
+- `packages/sage-tools/src/sage/tools/cli/commands/pypi.py` - publish order
+- `packages/sage-tools/tests/pypi/validate_pip_install_complete.py` - validation
+- `.github/workflows/dev-ci.yml` - CI test arrays
+
+### 2. Restructure Dependency Hierarchy
+
+**New Dependency Order:**
+```
+sage-common (base)
+  ↓
+sage-kernel (depends on common)
+  ↓
+sage-middleware, sage-libs, sage-apps, sage-benchmark, sage-studio
+  ↓
+sage-tools (depends on ALL above packages - dev tools)
+  ↓
+sage (meta-package, depends on tools for transitive dependencies)
+```
+
+**Key Changes:**
+- `sage-tools` is now a **comprehensive dev tool package** depending on all others
+- Removed circular dependency: `sage-middleware` no longer depends on `sage-tools`
+- `sage-tools/cli/commands/chat.py`: Removed try-except imports (direct imports)
+- `sage/pyproject.toml`: Simplified to mainly depend on `sage-tools`
+
+### 3. Fix Installation Script with `--no-deps` 
+
+**Critical Fix in `tools/install/installation_table/core_installer.sh`:**
+
+Added `--no-deps` flag to all `pip install` commands to prevent PyPI lookups:
 
 ```bash
-# 健康检查
-./tools/maintenance/sage-maintenance.sh doctor
+# Before (BROKEN):
+pip install -e packages/sage-tools
 
-# Submodule 管理
-./tools/maintenance/sage-maintenance.sh submodule status
-./tools/maintenance/sage-maintenance.sh submodule cleanup
-
-# 项目清理
-./tools/maintenance/sage-maintenance.sh clean
+# After (WORKS):
+pip install -e packages/sage-tools --no-deps
 ```
 
-**功能**:
-- 🔍 自动诊断 (`doctor` 命令)
-- 📦 Submodule 管理 (status, switch, cleanup, etc.)
-- 🧹 项目清理 (clean, clean-deep)
-- 🛡️ 安全检查
-- 🔧 Git hooks 管理
+**Why this is necessary:**
+- When installing editable packages, pip checks `pyproject.toml` dependencies
+- Without `--no-deps`, pip tries to download missing dependencies from PyPI
+- With `--no-deps`, we manually control installation order
+- Local packages are already installed in correct dependency sequence
 
-### 2. 重组目录结构
+**3-Step Installation Process:**
+1. **Step 1/3**: Install base packages (`sage-common`, `sage-kernel`)
+2. **Step 2/3**: Install mid-level packages (`middleware`, `libs`, `apps`, `benchmark`, `studio`, `tools`)
+3. **Step 3/3**: Install meta-package (`sage`)
 
-```
-tools/maintenance/
-├── sage-maintenance.sh      # 主脚本（用户入口）
-├── setup_hooks.sh
-├── README.md               # 精简版文档
-├── git-hooks/
-└── helpers/                # 内部脚本
-    ├── common.sh
-    ├── cleanup_old_submodules.sh  # 新增
-    └── 其他辅助脚本...
-```
+## 📦 Files Modified
 
-**移动**:
-- `sage-jobmanager.sh` → `scripts/` (CLI 工具，不属于维护脚本)
-- 其他 `*.sh` → `helpers/` (内部实现)
+1. **`packages/sage-tools/pyproject.toml`**
+   - Added dependencies on all 7 other SAGE packages
+   - Removed try-except pattern dependencies
 
-### 3. 新增功能
+2. **`packages/sage-tools/src/sage/tools/cli/commands/chat.py`**
+   - Removed conditional imports
+   - Direct import: `from sage.middleware import ChatMiddleware`
 
-#### `cleanup_old_submodules.sh`
-解决 submodule 重构遗留问题：
-```
-error: refusing to create/use in another submodule's git dir
-```
+3. **`packages/sage-middleware/pyproject.toml`**
+   - Removed circular dependency on `sage-tools`
 
-#### `doctor` 命令
-自动检查并提供修复建议：
-- Git 仓库状态
-- Git Hooks 安装
-- Submodules 初始化
-- 旧配置残留
-- Python 环境
-- 构建产物
+4. **`packages/sage/pyproject.toml`**
+   - Simplified optional dependencies
+   - Mainly depends on `sage-tools` for transitive access
 
-### 4. Submodule 分支策略
+5. **`tools/install/installation_table/core_installer.sh`**
+   - Added `--no-deps` flag to all pip install commands
+   - Updated to 3-step installation process
+   - Enforces dependency order
 
-| SAGE 分支 | Submodules 分支 |
-|-----------|----------------|
-| `main` | `main` (稳定版) |
-| 其他分支 | `main-dev` (开发版) |
+6. **`.github/workflows/dev-ci.yml`**
+   - Added missing packages to test matrices
+   - Added validation for all 9 packages
 
-通过 Git hooks 自动切换，无需手动管理。
+7. **`packages/sage-tools/src/sage/tools/cli/commands/pypi.py`**
+   - Updated publish order with all 9 packages
 
-### 5. 修复 Submodule 路径
+8. **`packages/sage-tools/tests/pypi/validate_pip_install_complete.py`**
+   - Updated validation to check all 9 packages
 
-更新所有脚本以适应新结构：
+## ✅ Testing
 
-```
-旧: packages/.../sage_db/           (submodule)
-新: packages/.../sage_db/sageDB/    (submodule 在子目录)
-```
+- [x] Local installation successful with new script
+- [x] All 9 packages install in correct order
+- [x] No PyPI lookup attempts during installation
+- [x] Import tests pass for all packages
+- [ ] CI/CD passes (in progress)
 
-## ✅ 测试结果
+## 🔄 Migration Guide
 
-- ✅ 所有命令正常工作
-- ✅ Doctor 成功诊断问题
-- ✅ Submodule cleanup 清理旧配置
-- ✅ 所有 4 个 submodules 正确初始化
-- ✅ Git hooks 路径更新
+**For Existing Developers:**
 
-## 📊 变更统计
-
-- **新增**: sage-maintenance.sh, helpers/common.sh, helpers/cleanup_old_submodules.sh, scripts/README.md
-- **修改**: README.md (精简), git-hooks/post-checkout, PR_DESCRIPTION.md
-- **移动**: 5个脚本到 helpers/, sage-jobmanager.sh 到 scripts/
-- **删除**: 3个冗余文档 (QUICK_REFERENCE.md, REFACTORING_SUMMARY.md, SUBMODULE_STRATEGY.md)
-
-## 🔄 合并后操作
-
-团队成员拉取后如遇问题：
+If you encounter installation issues after pulling:
 
 ```bash
-# 1. 运行诊断
-./tools/maintenance/sage-maintenance.sh doctor
+# 1. Clean existing installation
+pip uninstall -y isage-common isage-kernel isage-middleware isage-libs \
+                 isage-apps isage-benchmark isage-studio isage-tools isage
 
-# 2. 按提示修复（通常是）
-./tools/maintenance/sage-maintenance.sh submodule cleanup
-git submodule sync
-git submodule update --init --recursive
+# 2. Re-run installation
+./quickstart.sh
 ```
 
-## 📝 向后兼容
+**Why reinstallation is needed:**
+- Dependency structure has changed
+- Old installations may have incorrect dependency resolution
+- New `--no-deps` strategy requires clean slate
 
-- ✅ helpers 中的脚本仍可独立运行
-- ✅ Git hooks 自动更新
-- ✅ 现有工作流不受影响
+## 📊 Impact Analysis
+
+**What Changed:**
+- 9 packages now built/tested instead of 6 (+50% coverage)
+- Installation order strictly enforced
+- Dependency graph clarified and documented
+- `sage-tools` role changed from "minimal utility" to "comprehensive dev package"
+
+**What's Compatible:**
+- API interfaces unchanged
+- Import paths unchanged
+- CLI commands unchanged
+- Functionality unchanged
+
+**What Breaks:**
+- Existing development environments need reinstallation
+- Custom installation scripts must use `--no-deps` pattern
+- Dependency assumptions (tools is now top-level, not base-level)
+
+## 🎯 Verification
+
+Once CI passes, verify:
+1. All 9 packages install successfully
+2. Deployment readiness check finds all packages
+3. No PyPI lookup errors
+4. Import tests pass for all packages
 
 ---
 
-**分支**: `refactor/maintenance-scripts-unification`  
-**目标**: `main-dev`  
-**类型**: Refactoring  
-**优先级**: Medium
+**Branch**: `fix/ci-missing-packages`  
+**Target**: `main-dev`  
+**Type**: BREAKING CHANGE (dependency restructure)  
+**Priority**: High (blocks CI/CD)
+
+**Commits:**
+- `fa7e6595`: Initial fix - add missing packages to build/test scripts
+- `c9981e2e`: Remove isage-studio from sage-tools core dependencies
+- `09b704f7`: Restructure dependencies - sage-tools as top-level dev package
+- `53f01125`: Fix installer with --no-deps to avoid PyPI lookups
