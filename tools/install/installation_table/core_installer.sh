@@ -175,9 +175,9 @@ install_core_packages() {
     echo -e "${CHECK} 本地依赖包安装完成"
     echo ""
     
-    # 第三步：安装主SAGE包（现在所有依赖都已本地可用）
-    echo -e "${DIM}步骤 3/3: 安装主SAGE包 (${install_mode}模式)...${NC}"
-    echo "$(date): 安装主SAGE包 ($install_mode模式)" >> "$log_file"
+    # 第三步：安装主SAGE包和外部依赖
+    echo -e "${DIM}步骤 3/3: 安装外部依赖...${NC}"
+    echo "$(date): 安装外部依赖" >> "$log_file"
     
     # 3a. 先用 --no-deps 安装 sage meta-package（避免重复安装本地包）
     local install_target="packages/sage[$install_mode]"
@@ -189,13 +189,15 @@ install_core_packages() {
         return 1
     fi
     
-    # 3b. 然后安装外部依赖（不加 --no-deps，但使用 --no-build-isolation 避免重新构建本地包）
-    echo -e "${DIM}  3b. 安装外部依赖...${NC}"
-    echo "$(date): 安装外部依赖" >> "$log_file"
+    # 3b. 重新安装 sage[mode] 来获取所有外部依赖（本地包已经是 editable，不会被重装）
+    echo -e "${DIM}  3b. 安装外部依赖（numpy, typer, rich 等）...${NC}"
+    echo "$(date): 安装外部依赖（允许重复以确保依赖安装）" >> "$log_file"
     
-    if $PIP_CMD install "$install_target" $pip_args --no-build-isolation 2>&1 | tee -a "$log_file"; then
+    # 使用 --force-reinstall --no-deps 只针对 sage 包，然后用普通安装获取依赖
+    # 实际上，由于本地包是 -e 安装，pip 会识别它们已安装，只会安装缺失的外部依赖
+    if $PIP_CMD install "$install_target" $pip_args 2>&1 | tee -a "$log_file"; then
         echo ""
-        echo -e "${CHECK} SAGE ($install_mode 模式) 安装成功！"
+        echo -e "${CHECK} SAGE ($install_mode 模式) 和外部依赖安装成功！"
         echo ""
         
         # 验证sage命令
