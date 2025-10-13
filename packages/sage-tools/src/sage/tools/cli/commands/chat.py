@@ -29,10 +29,8 @@ from sage.common.config.output_paths import (
     find_sage_project_root,
     get_sage_paths,
 )
-from sage.middleware.components.sage_db.python.sage_db import (
-    SageDB,
-    SageDBException,
-)
+# 延迟导入 sage_db 以允许 CLI 在没有 C++ 扩展的情况下启动
+# from sage.middleware.components.sage_db.python.sage_db import SageDB, SageDBException
 from sage.tools.cli.commands import pipeline as pipeline_builder
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
@@ -40,9 +38,32 @@ from sage.tools.cli.core.exceptions import CLIException
 
 console = Console()
 
-# sage-tools 现在依赖所有SAGE子包，可以直接导入
-SAGE_DB_AVAILABLE = True
+# sage_db 需要 C++ 扩展，使用延迟导入
+SAGE_DB_AVAILABLE = False
 SAGE_DB_IMPORT_ERROR: Optional[Exception] = None
+SageDB = None  # type: ignore
+SageDBException = Exception  # type: ignore
+
+
+def _lazy_import_sage_db():
+    """延迟导入 sage_db，只在需要时导入"""
+    global SageDB, SageDBException, SAGE_DB_AVAILABLE, SAGE_DB_IMPORT_ERROR
+    
+    if SAGE_DB_AVAILABLE:
+        return  # 已经成功导入
+    
+    try:
+        from sage.middleware.components.sage_db.python.sage_db import (
+            SageDB as _SageDB,
+            SageDBException as _SageDBException,
+        )
+        SageDB = _SageDB
+        SageDBException = _SageDBException
+        SAGE_DB_AVAILABLE = True
+        SAGE_DB_IMPORT_ERROR = None
+    except (ImportError, ModuleNotFoundError) as e:
+        SAGE_DB_AVAILABLE = False
+        SAGE_DB_IMPORT_ERROR = e
 
 
 DEFAULT_INDEX_NAME = "docs-public"
@@ -99,10 +120,13 @@ class ChatManifest:
 
 
 def ensure_sage_db() -> None:
-    """Exit early if the SageDB extension is unavailable."""
-
+    """确保 SageDB 扩展可用，如果不可用则提前退出。"""
+    # 尝试延迟导入
+    _lazy_import_sage_db()
+    
     if SAGE_DB_AVAILABLE:
         return
+    
     message = (
         "[red]SageDB C++ 扩展不可用，无法使用 `sage chat`。[/red]\n"
         "请先通过命令 `sage extensions install sage_db` 构建 SageDB 组件（如需重新安装可加上 --force）。"
