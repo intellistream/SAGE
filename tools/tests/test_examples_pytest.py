@@ -52,13 +52,13 @@ class TestExamplesIntegration:
 
         # 检查是否有不同类别的示例
         categories = {example.category for example in examples}
-        expected_categories = {"tutorials", "rag", "memory"}
+        expected_categories = {"tutorials", "apps"}
         assert expected_categories.issubset(
             categories
         ), f"应该包含基本类别: {expected_categories}"
 
     @pytest.mark.quick_examples
-    @pytest.mark.parametrize("category", ["tutorials", "rag", "memory"])
+    @pytest.mark.parametrize("category", ["tutorials", "apps"])
     def test_category_examples(self, analyzer, category):
         """测试特定类别的示例发现"""
         # 只测试发现功能，不实际执行示例（避免长时间运行）
