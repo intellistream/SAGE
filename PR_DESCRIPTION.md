@@ -71,10 +71,17 @@ pip install -e packages/sage-tools --no-deps
 - With `--no-deps`, we manually control installation order
 - Local packages are already installed in correct dependency sequence
 
-**3-Step Installation Process:**
-1. **Step 1/3**: Install base packages (`sage-common`, `sage-kernel`)
-2. **Step 2/3**: Install mid-level packages (`middleware`, `libs`, `apps`, `benchmark`, `studio`, `tools`)
-3. **Step 3/3**: Install meta-package (`sage`)
+**Enhanced 3-Step Installation Process:**
+1. **Step 1/3**: Install base packages (`sage-common`, `sage-kernel`) with `--no-deps`
+2. **Step 2/3**: Install mid-level packages (`middleware`, `libs`, `apps`, `benchmark`, `studio`, `tools`) with `--no-deps`
+3. **Step 3/3**: Install meta-package in two phases:
+   - **3a**: Install `sage` meta-package with `--no-deps` (avoid re-installing local packages)
+   - **3b**: Install external dependencies (numpy, etc.) with `--no-build-isolation`
+
+This two-phase approach in step 3 ensures:
+- All local SAGE packages remain as editable installations
+- External dependencies (like numpy, pandas, etc.) are properly installed
+- No redundant re-installation of local packages
 
 ## 📦 Files Modified
 
@@ -94,9 +101,10 @@ pip install -e packages/sage-tools --no-deps
    - Mainly depends on `sage-tools` for transitive access
 
 5. **`tools/install/installation_table/core_installer.sh`**
-   - Added `--no-deps` flag to all pip install commands
-   - Updated to 3-step installation process
-   - Enforces dependency order
+   - Added `--no-deps` flag to all pip install commands for local packages
+   - Updated to enhanced 3-step installation process
+   - Step 3 split into 3a (install meta-package) and 3b (install external deps)
+   - Enforces dependency order while ensuring external dependencies are installed
 
 6. **`.github/workflows/dev-ci.yml`**
    - Added missing packages to test matrices
@@ -175,3 +183,5 @@ Once CI passes, verify:
 - `c9981e2e`: Remove isage-studio from sage-tools core dependencies
 - `09b704f7`: Restructure dependencies - sage-tools as top-level dev package
 - `53f01125`: Fix installer with --no-deps to avoid PyPI lookups
+- `7f48c2d9`: Fix sage dev quality to skip submodules
+- `bcd4086c`: Install external dependencies after local packages
