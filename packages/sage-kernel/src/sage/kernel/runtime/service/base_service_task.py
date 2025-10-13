@@ -11,6 +11,14 @@ import traceback
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
+from sage.kernel.runtime.monitoring import (
+    MetricsCollector,
+    MetricsReporter,
+    ResourceMonitor,
+    ServicePerformanceMetrics,
+    RESOURCE_MONITOR_AVAILABLE,
+)
+
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
@@ -69,6 +77,49 @@ class BaseServiceTask(ABC):
         # 队列监听相关
         self._queue_listener_thread: Optional[threading.Thread] = None
         self._queue_listener_running = False
+        
+        # === 性能监控 ===
+        self._enable_monitoring = getattr(ctx, 'enable_monitoring', False) if ctx else False
+        self.metrics_collector: Optional[MetricsCollector] = None
+        self.resource_monitor: Optional[ResourceMonitor] = None
+        self.metrics_reporter: Optional[MetricsReporter] = None
+        
+        if self._enable_monitoring:
+            try:
+                self.metrics_collector = MetricsCollector(
+                    name=self.service_name,
+                    window_size=getattr(ctx, 'metrics_window_size', 10000) if ctx else 10000,
+                    enable_detailed_tracking=getattr(ctx, 'enable_detailed_tracking', True) if ctx else True,
+                )
+                
+                # 尝试启动资源监控
+                if RESOURCE_MONITOR_AVAILABLE:
+                    try:
+                        self.resource_monitor = ResourceMonitor(
+                            sampling_interval=getattr(ctx, 'resource_sampling_interval', 1.0) if ctx else 1.0,
+                            enable_auto_start=True,
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to start resource monitoring for service {self.service_name}: {e}"
+                        )
+                
+                # 可选：启动性能汇报器
+                if ctx and getattr(ctx, 'enable_auto_report', False):
+                    self.metrics_reporter = MetricsReporter(
+                        metrics_collector=self.metrics_collector,
+                        resource_monitor=self.resource_monitor,
+                        report_interval=getattr(ctx, 'report_interval', 60),
+                        enable_auto_report=True,
+                        report_callback=lambda report: self.logger.info(f"\n{report}"),
+                    )
+                
+                self.logger.info(f"Performance monitoring enabled for service {self.service_name}")
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to initialize monitoring for service {self.service_name}: {e}"
+                )
+                self._enable_monitoring = False
 
         self.logger.info(
             f"Base service task '{self.service_name}' initialized successfully"
@@ -408,6 +459,13 @@ class BaseServiceTask(ABC):
                 f"with args={args}, kwargs={kwargs}"
             )
 
+            # 记录请求开始（如果启用监控）
+            if self._enable_monitoring and self.metrics_collector:
+                self.metrics_collector.record_packet_start(
+                    packet_id=request_id,
+                    method_name=method_name,
+                )
+
             # 调用服务方法
             try:
                 self.logger.debug(
@@ -419,12 +477,28 @@ class BaseServiceTask(ABC):
                 self.logger.info(
                     f"[SERVICE_TASK] Service method {method_name} succeeded: {result}"
                 )
+                
+                # 记录请求成功
+                if self._enable_monitoring and self.metrics_collector:
+                    self.metrics_collector.record_packet_end(
+                        packet_id=request_id,
+                        success=True,
+                    )
+                    
             except Exception as e:
                 result = None
                 success = False
                 error_msg = str(e)
                 self.logger.error(f"[SERVICE_TASK] Service method call failed: {e}")
                 self.logger.debug(f"Stack trace: {traceback.format_exc()}")
+                
+                # 记录请求失败
+                if self._enable_monitoring and self.metrics_collector:
+                    self.metrics_collector.record_packet_end(
+                        packet_id=request_id,
+                        success=False,
+                        error_type=type(e).__name__,
+                    )
 
             # 计算执行时间
             execution_time = time.time() - request_start_time
@@ -749,6 +823,14 @@ class BaseServiceTask(ABC):
                     f"Service instance '{self.service_name}' has no cleanup or close method"
                 )
 
+            # 停止监控组件
+            if self._enable_monitoring:
+                if self.metrics_reporter:
+                    self.metrics_reporter.stop_reporting()
+                if self.resource_monitor:
+                    self.resource_monitor.stop_monitoring()
+                self.logger.debug(f"Stopped monitoring for service {self.service_name}")
+
             # 队列清理现在由ServiceContext管理，这里不需要直接清理队列
             self.logger.debug(
                 f"Queue cleanup is managed by ServiceContext for service '{self.service_name}'"
@@ -791,3 +873,76 @@ class BaseServiceTask(ABC):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
+
+    # === Performance Monitoring API ===
+
+    def get_current_metrics(self) -> Optional[ServicePerformanceMetrics]:
+        """
+        获取当前性能指标
+
+        Returns:
+            ServicePerformanceMetrics 实例，如果监控未启用则返回 None
+        """
+        if not self._enable_monitoring or not self.metrics_collector:
+            return None
+
+        # 获取基础指标
+        task_metrics = self.metrics_collector.get_real_time_metrics()
+        
+        # 转换为服务指标
+        metrics = ServicePerformanceMetrics(
+            service_name=self.service_name,
+            uptime=task_metrics.uptime,
+            total_requests_processed=task_metrics.total_packets_processed,
+            total_requests_failed=task_metrics.total_packets_failed,
+            requests_per_second=task_metrics.packets_per_second,
+            min_response_time=task_metrics.min_latency,
+            max_response_time=task_metrics.max_latency,
+            avg_response_time=task_metrics.avg_latency,
+            p50_response_time=task_metrics.p50_latency,
+            p95_response_time=task_metrics.p95_latency,
+            p99_response_time=task_metrics.p99_latency,
+            request_queue_avg_wait_time=task_metrics.input_queue_avg_wait_time,
+            error_breakdown=task_metrics.error_breakdown,
+            last_minute_rps=task_metrics.last_minute_tps,
+            last_5min_rps=task_metrics.last_5min_tps,
+            last_hour_rps=task_metrics.last_hour_tps,
+            timestamp=task_metrics.timestamp,
+        )
+
+        # 添加资源监控数据
+        if self.resource_monitor:
+            cpu, memory = self.resource_monitor.get_current_usage()
+            metrics.cpu_usage_percent = cpu
+            metrics.memory_usage_mb = memory
+
+        # 添加请求队列深度
+        if self.ctx:
+            try:
+                request_qd = self.request_queue_descriptor
+                if request_qd and hasattr(request_qd.queue_instance, 'qsize'):
+                    metrics.request_queue_depth = request_qd.queue_instance.qsize()
+            except Exception:
+                pass
+
+        return metrics
+
+    def reset_metrics(self) -> None:
+        """重置性能指标"""
+        if self.metrics_collector:
+            self.metrics_collector.reset_metrics()
+
+    def export_metrics(self, format: str = "json") -> Optional[str]:
+        """
+        导出性能指标
+
+        Args:
+            format: 导出格式 ("json", "prometheus", "csv", "human")
+
+        Returns:
+            格式化的指标字符串，如果监控未启用则返回 None
+        """
+        if not self._enable_monitoring or not self.metrics_reporter:
+            return None
+
+        return self.metrics_reporter.generate_report(format=format)

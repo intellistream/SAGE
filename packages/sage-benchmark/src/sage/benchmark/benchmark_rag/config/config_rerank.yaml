@@ -3,7 +3,7 @@
 
 
 source:
-  data_path: "./examples/rag/data/queries.jsonl"  # 修正相对路径
+  data_path: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/queries.jsonl"  # 相对于 SAGE 根目录
   platform: "local"
 
 retriever:
@@ -43,7 +43,7 @@ generator:
   vllm:
     api_key: ""
     method: "openai"
-    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    model_name: "meta-llama/Llama-2-7b-chat-hf"
     base_url: "http://sage3:8000/v1"
     seed: 42
 

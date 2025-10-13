@@ -67,7 +67,7 @@ if __name__ == "__main__":
     # CustomLogger.disable_global_console_debug()
     # 加载配置文件
     config_path = os.path.join(
-        os.path.dirname(__file__), "..", "config", "config_rerank.yaml"
+        os.path.dirname(__file__), "..", "..", "config", "config_rerank.yaml"
     )
     if not os.path.exists(config_path):
         print(f"❌ Configuration file not found: {config_path}")
