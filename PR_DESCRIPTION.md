@@ -13,6 +13,8 @@ This PR adds 3 previously missing packages to the build/test/deployment pipeline
 CI/CD "deployment readiness check" failed with:
 ```
 ERROR: Could not find a version that satisfies the requirement isage-studio>=0.1.0
+ModuleNotFoundError: No module named 'numpy'
+ModuleNotFoundError: No module named '_sage_db'
 ```
 
 **Root Cause Analysis:**
@@ -20,6 +22,8 @@ ERROR: Could not find a version that satisfies the requirement isage-studio>=0.1
 2. Missing packages: `sage-apps`, `sage-benchmark`, `sage-studio`
 3. Dependency structure was unclear, causing circular dependencies
 4. Installation script didn't enforce dependency order
+5. External dependencies (numpy, etc.) not installed with `--no-deps`
+6. C++ extensions (sage_db) couldn't be built due to chicken-and-egg problem
 
 ## 🔧 Solution
 
@@ -48,87 +52,119 @@ sage (meta-package, depends on tools for transitive dependencies)
 **Key Changes:**
 - `sage-tools` is now a **comprehensive dev tool package** depending on all others
 - Removed circular dependency: `sage-middleware` no longer depends on `sage-tools`
-- `sage-tools/cli/commands/chat.py`: Removed try-except imports (direct imports)
+- `sage-tools/cli/commands/chat.py`: Uses **lazy import** for sage_db
 - `sage/pyproject.toml`: Simplified to mainly depend on `sage-tools`
 
-### 3. Fix Installation Script with `--no-deps` 
+### 3. Fix Installation with `--no-deps` and External Dependencies
 
 **Critical Fix in `tools/install/installation_table/core_installer.sh`:**
 
-Added `--no-deps` flag to all `pip install` commands to prevent PyPI lookups:
+Added `--no-deps` flag to prevent PyPI lookups during local package installation:
 
 ```bash
-# Before (BROKEN):
-pip install -e packages/sage-tools
+# Step 1 & 2: Install local packages with --no-deps
+pip install -e packages/sage-common --no-deps
+pip install -e packages/sage-middleware --no-deps
+# ... etc
 
-# After (WORKS):
-pip install -e packages/sage-tools --no-deps
+# Step 3a: Install sage meta-package with --no-deps
+pip install -e packages/sage[default] --no-deps
+
+# Step 3b: Install external dependencies WITHOUT --no-deps
+pip install packages/sage[default]  # Pip智能地只安装缺失的外部依赖
 ```
 
-**Why this is necessary:**
-- When installing editable packages, pip checks `pyproject.toml` dependencies
-- Without `--no-deps`, pip tries to download missing dependencies from PyPI
-- With `--no-deps`, we manually control installation order
-- Local packages are already installed in correct dependency sequence
+**Why this works:**
+- `--no-deps` prevents pip from trying to download SAGE packages from PyPI
+- We manually control local package installation order
+- Final step without `--no-deps` lets pip install external dependencies
+- Pip is smart: detects local packages already installed (editable mode), only installs missing external deps (numpy, pandas, typer, rich, etc.)
 
-**Enhanced 3-Step Installation Process:**
-1. **Step 1/3**: Install base packages (`sage-common`, `sage-kernel`) with `--no-deps`
-2. **Step 2/3**: Install mid-level packages (`middleware`, `libs`, `apps`, `benchmark`, `studio`, `tools`) with `--no-deps`
-3. **Step 3/3**: Install meta-package in two phases:
-   - **3a**: Install `sage` meta-package with `--no-deps` (avoid re-installing local packages)
-   - **3b**: Install external dependencies (numpy, etc.) with `--no-build-isolation`
+### 4. Enable CLI Startup Without C++ Extensions (Lazy Import)
 
-This two-phase approach in step 3 ensures:
-- All local SAGE packages remain as editable installations
-- External dependencies (like numpy, pandas, etc.) are properly installed
-- No redundant re-installation of local packages
+**Problem:** Chicken-and-egg situation:
+- Need `sage extensions install` command to build C++ extensions
+- But `sage` CLI couldn't start without C++ extensions already built  
+- `chat.py` had top-level import of `sage_db` which requires `_sage_db.so`
+
+**Solution:** Implement lazy import pattern in `chat.py`:
+
+```python
+# Before: Top-level import (breaks CLI without C++)
+from sage.middleware.components.sage_db.python.sage_db import SageDB
+
+# After: Lazy import (CLI works without C++)
+def _lazy_import_sage_db():
+    global SageDB, SAGE_DB_AVAILABLE
+    try:
+        from sage.middleware.components.sage_db.python.sage_db import SageDB as _SageDB
+        SageDB = _SageDB
+        SAGE_DB_AVAILABLE = True
+    except ImportError as e:
+        SAGE_DB_AVAILABLE = False
+        SAGE_DB_IMPORT_ERROR = e
+
+# Import only when needed
+def ensure_sage_db():
+    _lazy_import_sage_db()
+    if not SAGE_DB_AVAILABLE:
+        show_error_and_exit()
+```
+
+**Benefits:**
+- ✅ `sage` CLI starts without C++ extensions
+- ✅ `sage extensions install all` works in fresh environments
+- ✅ Matches local installation flow (install packages → build extensions)
+- ✅ Clear error message when C++ extensions unavailable
 
 ## 📦 Files Modified
 
 1. **`packages/sage-tools/pyproject.toml`**
    - Added dependencies on all 7 other SAGE packages
-   - Removed try-except pattern dependencies
+   - Comprehensive dev tool package
 
 2. **`packages/sage-tools/src/sage/tools/cli/commands/chat.py`**
-   - Removed conditional imports
-   - Direct import: `from sage.middleware import ChatMiddleware`
+   - Implemented lazy import for sage_db
+   - CLI can start without C++ extensions
 
 3. **`packages/sage-middleware/pyproject.toml`**
    - Removed circular dependency on `sage-tools`
 
 4. **`packages/sage/pyproject.toml`**
    - Simplified optional dependencies
-   - Mainly depends on `sage-tools` for transitive access
+   - Mainly depends on `sage-tools`
 
 5. **`tools/install/installation_table/core_installer.sh`**
-   - Added `--no-deps` flag to all pip install commands for local packages
-   - Updated to enhanced 3-step installation process
-   - Step 3 split into 3a (install meta-package) and 3b (install external deps)
-   - Enforces dependency order while ensuring external dependencies are installed
+   - Step 1-2: Install local packages with `--no-deps`
+   - Step 3a: Install sage meta-package with `--no-deps`
+   - Step 3b: Install external dependencies without `--no-deps`
 
 6. **`.github/workflows/dev-ci.yml`**
    - Added missing packages to test matrices
-   - Added validation for all 9 packages
 
 7. **`packages/sage-tools/src/sage/tools/cli/commands/pypi.py`**
    - Updated publish order with all 9 packages
 
 8. **`packages/sage-tools/tests/pypi/validate_pip_install_complete.py`**
-   - Updated validation to check all 9 packages
+   - Validates all 9 packages
+
+9. **Development documentation** (moved to `docs/dev-notes/`)
+   - Organized root-level dev docs into proper structure
 
 ## ✅ Testing
 
-- [x] Local installation successful with new script
+- [x] Local installation successful
 - [x] All 9 packages install in correct order
-- [x] No PyPI lookup attempts during installation
-- [x] Import tests pass for all packages
+- [x] External dependencies (numpy, typer, rich) installed
+- [x] `sage` CLI starts without C++ extensions
+- [x] `sage extensions install all` works
 - [ ] CI/CD passes (in progress)
 
 ## 🔄 Migration Guide
 
 **For Existing Developers:**
 
-If you encounter installation issues after pulling:
+If you encounter installation issues:
 
 ```bash
 # 1. Clean existing installation
@@ -139,18 +175,19 @@ pip uninstall -y isage-common isage-kernel isage-middleware isage-libs \
 ./quickstart.sh
 ```
 
-**Why reinstallation is needed:**
-- Dependency structure has changed
-- Old installations may have incorrect dependency resolution
-- New `--no-deps` strategy requires clean slate
+**Why reinstallation needed:**
+- Dependency structure changed
+- Installation order now critical
+- New lazy import pattern for C++ extensions
 
 ## 📊 Impact Analysis
 
 **What Changed:**
-- 9 packages now built/tested instead of 6 (+50% coverage)
+- 9 packages now built/tested (was 6, +50% coverage)
 - Installation order strictly enforced
-- Dependency graph clarified and documented
-- `sage-tools` role changed from "minimal utility" to "comprehensive dev package"
+- Dependency graph clarified
+- `sage-tools` role: minimal utility → comprehensive dev package
+- CLI can start without C++ extensions (lazy import)
 
 **What's Compatible:**
 - API interfaces unchanged
@@ -159,17 +196,18 @@ pip uninstall -y isage-common isage-kernel isage-middleware isage-libs \
 - Functionality unchanged
 
 **What Breaks:**
-- Existing development environments need reinstallation
-- Custom installation scripts must use `--no-deps` pattern
-- Dependency assumptions (tools is now top-level, not base-level)
+- Existing dev environments need reinstallation
+- Custom install scripts must use `--no-deps` pattern
+- Dependency assumptions changed
 
 ## 🎯 Verification
 
-Once CI passes, verify:
+Once CI passes:
 1. All 9 packages install successfully
 2. Deployment readiness check finds all packages
-3. No PyPI lookup errors
-4. Import tests pass for all packages
+3. External dependencies present (numpy, typer, rich)
+4. C++ extensions build via `sage extensions install`
+5. Import tests pass
 
 ---
 
@@ -179,9 +217,11 @@ Once CI passes, verify:
 **Priority**: High (blocks CI/CD)
 
 **Commits:**
-- `fa7e6595`: Initial fix - add missing packages to build/test scripts
-- `c9981e2e`: Remove isage-studio from sage-tools core dependencies
-- `09b704f7`: Restructure dependencies - sage-tools as top-level dev package
-- `53f01125`: Fix installer with --no-deps to avoid PyPI lookups
-- `7f48c2d9`: Fix sage dev quality to skip submodules
+- `fa7e6595`: Initial fix - add missing packages
+- `c9981e2e`: Remove isage-studio dependency
+- `09b704f7`: Restructure dependencies - sage-tools as top-level
+- `53f01125`: Add --no-deps to avoid PyPI lookups
 - `bcd4086c`: Install external dependencies after local packages
+- `aa4e4087`: Simplify external dependency installation
+- `4ed4a57f`: Organize development documentation
+- `d00c2a30`: Lazy import for sage_db to allow CLI startup without C++
