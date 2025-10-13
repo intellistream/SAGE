@@ -110,23 +110,29 @@ install_core_packages() {
     
     echo "$(date): 开始安装本地依赖包" >> "$log_file"
     
-    # 第一步：安装核心依赖包（避免PyPI依赖解析问题）
-    echo -e "${DIM}步骤 1/2: 安装本地依赖包...${NC}"
-    local core_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-tools")
+    # 本地开发安装策略：
+    # 使用 -e (editable) 模式安装，但添加 --no-deps 避免从PyPI下载依赖
+    # 因为我们会按正确的依赖顺序手动安装所有包
+    local install_flags="-e"
     
-    for package_dir in "${core_packages[@]}"; do
+    # 第一步：安装基础包（无其他SAGE依赖）
+    echo -e "${DIM}步骤 1/3: 安装基础包...${NC}"
+    local base_packages=("packages/sage-common" "packages/sage-kernel")
+    
+    for package_dir in "${base_packages[@]}"; do
         echo -e "${DIM}  正在安装: $package_dir${NC}"
         echo "$(date): 安装 $package_dir" >> "$log_file"
         
-        if ! $PIP_CMD install -e "$package_dir" $pip_args >> "$log_file" 2>&1; then
+        if ! $PIP_CMD install $install_flags "$package_dir" $pip_args --no-deps >> "$log_file" 2>&1; then
             echo -e "${CROSS} 安装 $package_dir 失败！"
             echo "$(date): 安装 $package_dir 失败" >> "$log_file"
             return 1
         fi
     done
     
-    # 安装中间件、应用包和可选组件（对于非minimal模式）
+    # 第二步：安装中间件、应用包和可选组件（对于非minimal模式）
     if [ "$install_mode" != "minimal" ]; then
+        echo -e "${DIM}步骤 2/3: 安装中间件和应用包...${NC}"
         local extended_packages=("packages/sage-middleware" "packages/sage-libs")
         # 添加可选包（如果存在）
         [ -d "packages/sage-studio" ] && extended_packages+=("packages/sage-studio")
@@ -137,25 +143,47 @@ install_core_packages() {
             echo -e "${DIM}  正在安装: $package_dir${NC}"
             echo "$(date): 安装 $package_dir" >> "$log_file"
             
-            if ! $PIP_CMD install -e "$package_dir" $pip_args >> "$log_file" 2>&1; then
+            if ! $PIP_CMD install $install_flags "$package_dir" $pip_args --no-deps >> "$log_file" 2>&1; then
                 echo -e "${CROSS} 安装 $package_dir 失败！"
                 echo "$(date): 安装 $package_dir 失败" >> "$log_file"
                 return 1
             fi
         done
+        
+        # 安装 tools（依赖所有上述包）
+        echo -e "${DIM}  正在安装: packages/sage-tools${NC}"
+        echo "$(date): 安装 packages/sage-tools" >> "$log_file"
+        
+        if ! $PIP_CMD install $install_flags "packages/sage-tools" $pip_args --no-deps >> "$log_file" 2>&1; then
+            echo -e "${CROSS} 安装 packages/sage-tools 失败！"
+            echo "$(date): 安装 packages/sage-tools 失败" >> "$log_file"
+            return 1
+        fi
+    else
+        # minimal 模式下，tools 只依赖 common 和 kernel，可以直接安装
+        echo -e "${DIM}步骤 2/3: 安装工具包...${NC}"
+        echo -e "${DIM}  正在安装: packages/sage-tools${NC}"
+        echo "$(date): 安装 packages/sage-tools (minimal mode)" >> "$log_file"
+        
+        if ! $PIP_CMD install $install_flags "packages/sage-tools" $pip_args --no-deps >> "$log_file" 2>&1; then
+            echo -e "${CROSS} 安装 packages/sage-tools 失败！"
+            echo "$(date): 安装 packages/sage-tools 失败" >> "$log_file"
+            return 1
+        fi
     fi
     
     echo -e "${CHECK} 本地依赖包安装完成"
     echo ""
     
-    # 第二步：安装主SAGE包（现在所有依赖都已本地可用）
-    echo -e "${DIM}步骤 2/2: 安装主SAGE包 (${install_mode}模式)...${NC}"
+    # 第三步：安装主SAGE包（现在所有依赖都已本地可用）
+    echo -e "${DIM}步骤 3/3: 安装主SAGE包 (${install_mode}模式)...${NC}"
     echo "$(date): 安装主SAGE包 ($install_mode模式)" >> "$log_file"
     
+    # 使用 --no-deps 避免从 PyPI 下载依赖（本地包已安装）
     local install_target="packages/sage[$install_mode]"
-    echo -e "${DIM}执行: $PIP_CMD install -e $install_target${NC}"
+    echo -e "${DIM}执行: $PIP_CMD install $install_flags $install_target --no-deps${NC}"
     
-    if $PIP_CMD install -e "$install_target" $pip_args 2>&1 | tee -a "$log_file"; then
+    if $PIP_CMD install $install_flags "$install_target" $pip_args --no-deps 2>&1 | tee -a "$log_file"; then
         echo ""
         echo -e "${CHECK} SAGE ($install_mode 模式) 安装成功！"
         echo ""
