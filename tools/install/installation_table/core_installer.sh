@@ -148,6 +148,23 @@ install_core_packages() {
                 echo "$(date): 安装 $package_dir 失败" >> "$log_file"
                 return 1
             fi
+            
+            # sage-middleware 安装后，触发 C++ 扩展构建
+            if [[ "$package_dir" == *"sage-middleware"* ]]; then
+                echo -e "${DIM}  构建 sage-middleware C++ 扩展（sage_db, sage_flow）...${NC}"
+                echo "$(date): 构建 sage-middleware C++ 扩展" >> "$log_file"
+                
+                # 直接运行 setup.py build_ext
+                cd "$package_dir" || continue
+                if python3 setup.py build_ext >> "$log_file" 2>&1; then
+                    echo -e "${CHECK} C++ 扩展构建成功"
+                    echo "$(date): C++ 扩展构建成功" >> "$log_file"
+                else
+                    echo -e "${WARN} C++ 扩展构建失败（将继续，但 sage_db/sage_flow 功能可能不可用）"
+                    echo "$(date): C++ 扩展构建失败（非致命）" >> "$log_file"
+                fi
+                cd - > /dev/null || return 1
+            fi
         done
         
         # 安装 tools（依赖所有上述包）
