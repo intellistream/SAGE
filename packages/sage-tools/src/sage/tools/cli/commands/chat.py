@@ -29,14 +29,14 @@ from sage.common.config.output_paths import (
     find_sage_project_root,
     get_sage_paths,
 )
-from sage.tools.cli.commands import pipeline as pipeline_builder
-from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
-from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
-from sage.tools.cli.core.exceptions import CLIException
 from sage.middleware.components.sage_db.python.sage_db import (
     SageDB,
     SageDBException,
 )
+from sage.tools.cli.commands import pipeline as pipeline_builder
+from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
+from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
+from sage.tools.cli.core.exceptions import CLIException
 
 console = Console()
 

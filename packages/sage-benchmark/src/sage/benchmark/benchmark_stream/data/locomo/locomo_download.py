@@ -1,6 +1,7 @@
 # @test:skip           - 跳过测试
 
 import os
+
 import requests
 from tqdm import tqdm
 
@@ -29,7 +30,7 @@ def download_from_huggingface(
 
     # 构建下载 URL
     base_url = mirror_url if use_mirror else "https://huggingface.co"
-    
+
     # 根据仓库类型构建不同的 URL
     if repo_type == "dataset":
         download_url = f"{base_url}/datasets/{repo_id}/resolve/main/{filename}"
@@ -82,17 +83,17 @@ if __name__ == "__main__":
     print("Locomo 数据集下载工具")
     print("=" * 60)
     print("\n使用 Hugging Face 镜像下载数据集...")
-    
+
     try:
         repo_id = "KimmoZZZ/locomo"
         filename = "locomo10.json"
-        
+
         download_from_huggingface(
             repo_id=repo_id,
             filename=filename,
             use_mirror=True,  # 使用镜像
             mirror_url="https://hf-mirror.com",  # 默认镜像站点
-            repo_type="dataset"  # 数据集类型
+            repo_type="dataset",  # 数据集类型
         )
     except Exception as e:
         print(f"\n错误: {e}")
@@ -100,4 +101,3 @@ if __name__ == "__main__":
         print("1. 检查网络连接")
         print("2. 尝试使用其他镜像站点")
         print("3. 确认数据集仓库 ID 是否正确")
-

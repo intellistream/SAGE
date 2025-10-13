@@ -269,7 +269,6 @@ class CompletePipInstallTester:
             "sage-benchmark",
             "sage-studio",
             "sage",
-        
         ]
         built_packages = []
 
