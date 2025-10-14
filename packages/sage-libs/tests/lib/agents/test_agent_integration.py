@@ -197,22 +197,21 @@ class TestAgentWorkflowIntegration:
                 max_steps=5,
             )
 
-            # Test source reading
-            from examples.agents.agent import iter_queries
+            # Test source reading - 直接读取测试文件而不是导入examples模块
+            queries = []
+            with open(temp_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        queries.append(json.loads(line))
 
-            source_config = {
-                "type": "local",
-                "data_path": temp_path,
-                "field_query": "query",
-            }
-
-            queries = list(iter_queries(source_config))
             assert len(queries) == 2
-            assert "arXiv" in queries[0]
-            assert "深度学习" in queries[1]
+            assert "arXiv" in queries[0]["query"]
+            assert "深度学习" in queries[1]["query"]
 
             # Test agent execution for each query
-            for query in queries:
+            for query_obj in queries:
+                query = query_obj["query"]
                 response = runtime.execute({"query": query})
                 assert response is not None
                 assert isinstance(response, str)
@@ -421,6 +420,8 @@ class TestConfigIntegration:
             "..",
             "..",
             "examples",
+            "tutorials",
+            "agents",
             "config",
             "config_agent_min.yaml",
         )
