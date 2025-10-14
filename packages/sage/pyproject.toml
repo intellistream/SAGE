@@ -28,6 +28,7 @@ dependencies = [
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",  # CLI chat命令需要
     "isage-libs>=0.1.0",       # 应用包组件
+    "isage-benchmark>=0.1.0",  # 基准测试和实验包
     "isage-tools[cli]>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
     "isage-studio>=0.1.0",     # Studio低代码界面
     # 数据科学基础库

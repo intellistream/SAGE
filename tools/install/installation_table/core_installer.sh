@@ -123,7 +123,7 @@ install_core_packages() {
     
     # 安装中间件和应用包（对于非minimal模式）
     if [ "$install_mode" != "minimal" ]; then
-        local extended_packages=("packages/sage-middleware" "packages/sage-libs" "packages/sage-apps")
+        local extended_packages=("packages/sage-middleware" "packages/sage-libs" "packages/sage-apps" "packages/sage-benchmark")
         for package_dir in "${extended_packages[@]}"; do
             echo -e "${DIM}  正在安装: $package_dir${NC}"
             echo "$(date): 安装 $package_dir" >> "$log_file"
