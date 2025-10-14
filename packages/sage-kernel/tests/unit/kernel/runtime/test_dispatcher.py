@@ -36,6 +36,9 @@ class MockEnvironment:
 
         self.env_base_dir = str(get_test_env_dir("test_logs"))
         self.console_log_level = "INFO"
+        
+        # 添加 config 属性以支持 Dispatcher 的容错配置
+        self.config = {}
 
 
 class TestDispatcher:

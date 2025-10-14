@@ -37,7 +37,7 @@ jobs:
   quick-check:
     name: SAGE Self-Check
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout Repository
@@ -128,17 +128,22 @@ jobs:
       - name: Run SAGE Unit Tests
         run: |
           echo "🧪 运行SAGE单元测试..."
-          # 安装测试依赖
+          # 安装测试依赖（包括 pytest-xdist 用于并行测试）
           pip install pytest pytest-cov pytest-xdist
           
-          # 运行各个包的测试
-          test_packages=("sage-common" "sage-kernel" "sage-tools" "sage-libs" "sage-middleware")
+          # 运行各个包的测试（按依赖顺序，跳过没有测试的包）
+          # 使用 -n auto 启用并行测试，使用 -m "not slow" 跳过慢速测试
+          # 排除 pypi 测试（这些是手动验证用的）
+          test_packages=("sage-common" "sage-kernel" "sage-tools" "sage-libs" "sage-middleware" "sage-apps" "sage-benchmark" "sage-studio")
           failed_tests=0
           
           for package in "${test_packages[@]}"; do
             if [ -d "packages/$package/tests" ]; then
               echo "🧪 测试 $package..."
-              if python -m pytest "packages/$package/tests/" -v --tb=short --maxfail=3; then
+              if python -m pytest "packages/$package/tests/" \
+                  -v -n auto -m "not slow" \
+                  --ignore="packages/$package/tests/pypi" \
+                  --tb=short --maxfail=3; then
                 echo "✅ $package 测试通过"
               else
                 echo "❌ $package 测试失败"
@@ -155,7 +160,7 @@ jobs:
           else
             echo "⚠️ $failed_tests 个包的测试失败，但继续执行"
           fi
-        timeout-minutes: 15
+        timeout-minutes: 20
 
   examples-test:
     name: Examples Test
@@ -410,8 +415,8 @@ jobs:
           
           # 验证所有必需的包都已构建
           echo ""
-          echo "� 验证必需的包:"
-          for pkg in sage-common sage-kernel sage-middleware sage-libs sage-tools sage; do
+          echo "🔍 验证必需的包:"
+          for pkg in sage-common sage-kernel sage-middleware sage-libs sage-tools sage-apps sage-benchmark sage-studio sage; do
             if ls packages/${pkg}/dist/*.whl 1> /dev/null 2>&1; then
               echo "  ✅ ${pkg}: $(ls packages/${pkg}/dist/*.whl | xargs -n1 basename)"
             else
