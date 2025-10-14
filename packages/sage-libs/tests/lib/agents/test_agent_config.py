@@ -25,6 +25,8 @@ class TestAgentConfigValidation:
             "..",
             "..",
             "examples",
+            "tutorials",
+            "agents",
             "config",
             "config_agent_min.yaml",
         )
@@ -267,6 +269,8 @@ class TestConfigWithComponents:
             "..",
             "..",
             "examples",
+            "tutorials",
+            "agents",
             "config",
             "config_agent_min.yaml",
         )
@@ -297,6 +301,8 @@ class TestConfigWithComponents:
             "..",
             "..",
             "examples",
+            "tutorials",
+            "agents",
             "config",
             "config_agent_min.yaml",
         )

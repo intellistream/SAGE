@@ -708,6 +708,9 @@ class PyPIPublisher:
             "sage-tools",  # CLI工具（依赖common和kernel）
             "sage-middleware",  # 中间件
             "sage-libs",  # 应用库
+            "sage-apps",  # 应用示例（依赖common、kernel、middleware、libs）
+            "sage-benchmark",  # 基准测试（依赖common、kernel、middleware、libs）
+            "sage-studio",  # Studio低代码界面（依赖common、kernel、middleware、libs）
             "sage",  # Meta包，依赖所有其他包
         ]
 

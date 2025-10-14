@@ -265,6 +265,9 @@ class CompletePipInstallTester:
             "sage-middleware",
             "sage-libs",
             "sage-tools",
+            "sage-apps",
+            "sage-benchmark",
+            "sage-studio",
             "sage",
         ]
         built_packages = []
