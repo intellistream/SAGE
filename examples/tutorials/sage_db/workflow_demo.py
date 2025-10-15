@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""LLM workflow DAG demo that wires SageDB retrieval into the SAGE pipeline."""
+"""LLM workflow DAG demo that wires SageDB retrieval into the SAGE pipeline.
+
+@test:allow-demo
+"""
 
 from __future__ import annotations
 

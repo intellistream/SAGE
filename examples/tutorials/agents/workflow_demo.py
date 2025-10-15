@@ -11,6 +11,8 @@ This demo shows:
 - How to read queries from different sources
 - Complete agent workflow with mocked components
 - Integration examples for learning purposes
+
+@test:allow-demo
 """
 
 import json
