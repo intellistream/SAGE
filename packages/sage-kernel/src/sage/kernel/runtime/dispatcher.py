@@ -1,6 +1,6 @@
 import os
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union,Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.fault_tolerance.factory import (
@@ -53,6 +53,7 @@ class Dispatcher:
         # 注入 logger 到容错管理器
         self.fault_handler.logger = self.logger
         self.lifecycle_manager.logger = self.logger
+        self.fault_handler.dispatcher = self
 
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if fault_tolerance_config:
@@ -322,6 +323,8 @@ class Dispatcher:
         # 第二步：调度所有计算任务节点
         for node_name, graph_node in self.graph.nodes.items():
             try:
+                # ✅ 注入 dispatcher 引用到 task context（关键步骤）
+                graph_node.ctx.dispatcher = self
                 # 使用调度器创建和调度任务
                 task = self.scheduler.schedule_task(
                     task_node=graph_node, runtime_ctx=graph_node.ctx
@@ -491,3 +494,131 @@ class Dispatcher:
             "task_status": self.get_task_status(),
             "service_status": self.get_service_status(),
         }
+    def handle_task_failure(self, task_id: str, error: Exception) -> bool:
+        """
+        处理任务失败
+        
+        Args:
+            task_id: 失败的任务 ID
+            error: 失败的异常信息
+            
+        Returns:
+            True 如果成功处理失败
+        """
+        self.logger.error(f"Task {task_id} failed: {error}")
+        
+        # 使用容错处理器处理失败
+        success = self.fault_handler.handle_failure(task_id, error)
+        
+        if success:
+            self.logger.info(f"Task {task_id} failure handled successfully")
+        else:
+            self.logger.error(f"Failed to handle task {task_id} failure")
+        
+        return success
+
+    def restart_task(self, task_id: str, restore_state: Optional[dict] = None) -> bool:
+        """
+        重启任务（用于容错恢复）
+        
+        Args:
+            task_id: 要重启的任务 ID
+            restore_state: 可选的状态，如果提供则在启动前恢复
+            
+        Returns:
+            True 如果重启成功
+        """
+        self.logger.info(f"🔄 Restarting task {task_id}")
+        
+        if task_id not in self.tasks:
+            self.logger.error(f"❌ Task {task_id} not found")
+            return False
+        
+        try:
+            task = self.tasks[task_id]
+            
+            # === 步骤 1: 停止旧任务 ===
+            if hasattr(task, 'is_running') and task.is_running:
+                self.logger.debug(f"Stopping old task {task_id}...")
+                if hasattr(task, 'stop'):
+                    task.stop()
+                    
+                # 等待任务停止
+                import time
+                max_wait = 5.0
+                waited = 0.0
+                while hasattr(task, 'is_running') and task.is_running and waited < max_wait:
+                    time.sleep(0.1)
+                    waited += 0.1
+                
+                if hasattr(task, 'is_running') and task.is_running:
+                    self.logger.warning(f"⚠️ Task {task_id} did not stop gracefully")
+            
+            # === 步骤 2: 清理旧任务资源 ===
+            if hasattr(task, 'cleanup'):
+                try:
+                    self.logger.debug(f"Cleaning up old task {task_id}...")
+                    task.cleanup()
+                except Exception as cleanup_error:
+                    self.logger.warning(f"⚠️ Error during cleanup: {cleanup_error}")
+            
+            # === 步骤 3: 获取 graph node 并重新创建任务 ===
+            graph_node = self.graph.nodes.get(task_id)
+            if not graph_node:
+                self.logger.error(f"❌ Graph node for {task_id} not found")
+                return False
+            
+            # 重新注入 dispatcher 引用到 context
+            graph_node.ctx.dispatcher = self
+            
+            self.logger.debug(f"Creating new task instance for {task_id}...")
+            
+            # 使用调度器重新创建任务（但不启动）
+            new_task = self.scheduler.schedule_task(
+                task_node=graph_node,
+                runtime_ctx=graph_node.ctx
+            )
+            
+            # 替换旧任务
+            self.tasks[task_id] = new_task
+            
+            self.logger.info(f"✅ New task instance created for {task_id}")
+            
+            # === 步骤 4: 如果有状态，先恢复状态 ===
+            if restore_state and hasattr(new_task, 'restore_state'):
+                self.logger.debug(f"Restoring state for {task_id}...")
+                try:
+                    new_task.restore_state(restore_state)
+                    self.logger.info(f"✅ State restored for task {task_id}")
+                except Exception as restore_error:
+                    self.logger.error(
+                        f"❌ Failed to restore state for {task_id}: {restore_error}",
+                        exc_info=True
+                    )
+                    return False
+            
+            # === 步骤 5: 启动新任务 ===
+            self.logger.debug(f"Starting new task {task_id}...")
+            new_task.start_running()
+            
+            self.logger.info(f"🎉 Task {task_id} restarted successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to restart task {task_id}: {e}", exc_info=True)
+            return False
+
+    def restart_task_with_state(self, task_id: str, state: dict) -> bool:
+        """
+        重启任务并恢复状态（专门用于 checkpoint 恢复）
+        
+        这是 restart_task 的便捷方法，明确表示要恢复状态
+        
+        Args:
+            task_id: 要重启的任务 ID
+            state: 要恢复的状态
+            
+        Returns:
+            True 如果重启和恢复成功
+        """
+        return self.restart_task(task_id, restore_state=state)

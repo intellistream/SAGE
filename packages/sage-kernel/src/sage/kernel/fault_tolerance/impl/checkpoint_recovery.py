@@ -98,46 +98,103 @@ class CheckpointBasedRecovery(BaseFaultHandler):
     def recover(self, task_id: TaskID) -> bool:
         """
         从 Checkpoint 恢复任务
-
+        
+        正确流程：
+        1. 加载 checkpoint
+        2. 调用 dispatcher.restart_task_with_state（内部会：停止→创建→恢复→启动）
+        
         Args:
             task_id: 要恢复的任务 ID
-
+            
         Returns:
             True 如果恢复成功
         """
         # 调用回调
         self.on_recovery_started(task_id)
-
+        
         try:
-            # 加载最新的 checkpoint
+            # === 步骤 1: 加载最新的 checkpoint ===
             state = self.checkpoint_manager.load_checkpoint(task_id)
-
+            
             if state is None:
                 if self.logger:
-                    self.logger.error(f"No checkpoint found for task {task_id}")
+                    self.logger.error(f"❌ No checkpoint found for task {task_id}")
                 self.on_recovery_completed(task_id, False)
                 return False
-
+            
             if self.logger:
-                self.logger.info(f"Loaded checkpoint for task {task_id}")
-
-            # TODO: 实际恢复任务状态的逻辑
-            # Issue URL: https://github.com/intellistream/SAGE/issues/926
-            # 这里需要根据具体的任务类型来恢复状态
-
-            success = True
-
+                self.logger.info(
+                    f"✅ Loaded checkpoint for task {task_id}, "
+                    f"processed_count={state.get('processed_count', 0)}, "
+                    f"checkpoint_counter={state.get('checkpoint_counter', 0)}"
+                )
+            
+            # === 步骤 2: 通过 dispatcher 重启任务并恢复状态 ===
+            if not hasattr(self, 'dispatcher') or not self.dispatcher:
+                if self.logger:
+                    self.logger.error(
+                        f"❌ No dispatcher available, cannot restart task {task_id}"
+                    )
+                self.on_recovery_completed(task_id, False)
+                return False
+            
+            # 使用新的 restart_task_with_state 方法
+            # 它会按正确顺序：停止 → 创建 → 恢复 → 启动
+            success = self.dispatcher.restart_task_with_state(task_id, state)
+            
+            if success:
+                if self.logger:
+                    self.logger.info(
+                        f"🎉 Task {task_id} restarted successfully and state restored"
+                    )
+            else:
+                if self.logger:
+                    self.logger.error(f"❌ Failed to restart task {task_id}")
+            
             # 调用回调
             self.on_recovery_completed(task_id, success)
-
+            
             return success
-
+            
         except Exception as e:
             if self.logger:
-                self.logger.error(f"Failed to recover task {task_id}: {e}")
-
+                self.logger.error(
+                    f"❌ Failed to recover task {task_id}: {e}", 
+                    exc_info=True
+                )
+            
             self.on_recovery_completed(task_id, False)
             return False
+
+    def on_recovery_started(self, task_id: TaskID):
+        """恢复开始时的回调"""
+        if self.logger:
+            self.logger.info(f"🔄 Starting recovery for task {task_id}")
+
+    def on_recovery_completed(self, task_id: TaskID, success: bool):
+        """恢复完成时的回调"""
+        if self.logger:
+            if success:
+                self.logger.info(f"✅ Recovery completed successfully for task {task_id}")
+                # 可以在这里添加更多逻辑，如：
+                # - 发送通知
+                # - 记录指标
+                # - 触发告警解除
+            else:
+                self.logger.error(f"❌ Recovery failed for task {task_id}")
+                # 可以在这里添加失败处理逻辑，如：
+                # - 发送告警
+                # - 记录失败原因
+                # - 触发备用方案
+
+    def on_failure_detected(self, task_id: TaskID, error: Exception):
+        """检测到失败时的回调"""
+        if self.logger:
+            self.logger.warning(f"⚠️ Failure detected for task {task_id}: {error}")
+            # 可以在这里添加更多逻辑，如：
+            # - 发送告警通知
+            # - 记录失败模式
+            # - 更新监控面板
 
     def save_checkpoint(
         self, task_id: TaskID, state: Dict[str, Any], force: bool = False

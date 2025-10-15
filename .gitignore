@@ -88,6 +88,7 @@ run.sh
 third_party/
 tmp_ray/
 dist/
+test_checkpoints/
 
 recommended_tests.txt
 local_workflow_logs/
