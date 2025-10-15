@@ -12,7 +12,7 @@ from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.function.sink_function import SinkFunction
 from sage.kernel.api.function.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.rag.generator import HuggingFaceGenerator
+from sage.libs.rag.generator import HFGenerator
 from sage.libs.rag.promptor import QAPromptor
 
 
@@ -47,7 +47,7 @@ class AnswerFormatter(MapFunction):
         if not data:
             return None
 
-        # HuggingFaceGenerator返回的格式是 (user_query, generated_text)
+        # HFGenerator返回的格式是 (user_query, generated_text)
         if isinstance(data, tuple) and len(data) >= 2:
             user_query = data[0]
             answer = data[1]
@@ -108,7 +108,7 @@ def create_qa_pipeline():
             env.from_source(TerminalInputSource)
             .map(QuestionProcessor)
             .map(QAPromptor, config["promptor"])
-            .map(HuggingFaceGenerator, config["generator"]["local"])
+            .map(HFGenerator, config["generator"]["local"])
             .map(AnswerFormatter)
             .sink(ConsoleSink)
         )
