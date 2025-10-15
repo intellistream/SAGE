@@ -1,7 +1,6 @@
 # @test:allow-demo
 """测试 Pipeline-as-Service with RAG Memory - Sequential Question Processing"""
 
-import os
 import queue
 import sys
 import time
@@ -9,7 +8,6 @@ from pathlib import Path
 from typing import Any, Dict
 
 import yaml
-from dotenv import load_dotenv
 from rag_memory_service import RAGMemoryService
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.function.batch_function import BatchFunction
@@ -20,9 +18,6 @@ from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service.base_service import BaseService
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.promptor import QAPromptor
-
-# 加载 .env 文件
-load_dotenv()
 
 
 class PipelineBridge:
@@ -145,15 +140,8 @@ class WritingMap(MapFunction):
         promptor = QAPromptor(promptor_config)
         prompted = promptor.execute(payload)
         
-        # 使用环境变量中的 SAGE_CHAT 配置
-        generator_config = {
-            "api_key": os.getenv("SAGE_CHAT_API_KEY", ""),
-            "method": os.getenv("SAGE_CHAT_BACKEND", "openai"),
-            "model_name": os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-            "base_url": os.getenv("SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
-            "seed": int(os.getenv("SAGE_CHAT_SEED", "42")),
-        }
-        
+        # 使用配置文件中的 generator 配置
+        generator_config = self.config.get("generator", {}).get("vllm", {})
         generator = OpenAIGenerator(generator_config)
         generator.ctx = self.ctx
         answer = generator.execute(prompted)
@@ -240,15 +228,8 @@ class QAPipelineMap(MapFunction):
         promptor = QAPromptor(promptor_config)
         prompted = promptor.execute({"question": question, "external_corpus": context})
         
-        # 步骤 3: 生成答案
-        generator_config = {
-            "api_key": os.getenv("SAGE_CHAT_API_KEY", ""),
-            "method": os.getenv("SAGE_CHAT_BACKEND", "openai"),
-            "model_name": os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-            "base_url": os.getenv("SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
-            "seed": int(os.getenv("SAGE_CHAT_SEED", "42")),
-        }
-        
+        # 步骤 3: 生成答案（使用配置文件中的 generator 配置）
+        generator_config = self.config.get("generator", {}).get("vllm", {})
         generator = OpenAIGenerator(generator_config)
         generator.ctx = self.ctx
         answer = generator.execute(prompted)
@@ -482,22 +463,31 @@ def main():
         env.from_source(QuestionController, config["source"]).map(ProcessQuestion).sink(DisplayAnswer, bridges, total_questions)
         
         print("🚀 启动 RAG Memory Pipeline...")
-        env.submit(autostop=True)
+        env.submit(autostop=False)  # 使用 autostop=False，因为 Service Pipelines 会持续轮询
+        
+        # 等待足够的时间让所有问题处理完成
+        # 每个问题大约需要 10-15 秒（检索 + 生成 + 写入）
+        expected_time = total_questions * 15 + 10  # 给每个问题 15 秒 + 10 秒缓冲
+        print(f"⏳ 等待 {expected_time} 秒让所有问题处理完成...")
+        time.sleep(expected_time)
+        
         print("✅ Pipeline 执行完成!")
         
     finally:
         # ============================================================
         # 【重要】清理资源 - 最佳实践
         # ============================================================
-        # 在应用结束时，务必调用 env.close() 来优雅地关闭所有资源：
-        # 1. 停止所有正在运行的 Pipeline
-        # 2. 关闭所有注册的 Service
-        # 3. 释放文件句柄、网络连接等资源
-        # 4. 防止资源泄漏和僵尸进程
+        # 在应用结束时，务必调用 env.stop() + env.close() 来优雅地关闭所有资源：
+        # 1. env.stop() - 停止所有正在运行的 Pipeline
+        # 2. env.close() - 关闭所有注册的 Service 并释放资源
+        # 3. 防止资源泄漏和僵尸进程
         # 
         # 使用 try-finally 确保即使发生异常也能清理资源。
         # 这是开发 SAGE 应用的推荐做法，可以减少 bug 和意外行为。
         # ============================================================
+        print("🛑 停止 Pipeline...")
+        env.stop()
+        
         print("🧹 清理环境资源...")
         env.close()
         print("✅ 环境已清理，程序正常退出")
