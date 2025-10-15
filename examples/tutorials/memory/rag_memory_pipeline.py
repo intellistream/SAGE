@@ -466,8 +466,8 @@ def main():
         env.submit(autostop=False)  # 使用 autostop=False，因为 Service Pipelines 会持续轮询
         
         # 等待足够的时间让所有问题处理完成
-        # 每个问题大约需要 10-15 秒（检索 + 生成 + 写入）
-        expected_time = total_questions * 15 + 10  # 给每个问题 15 秒 + 10 秒缓冲
+        # 每个问题大约需要 8-10 秒（检索 + 生成 + 写入）
+        expected_time = total_questions * 10 + 5  # 给每个问题 10 秒 + 5 秒缓冲
         print(f"⏳ 等待 {expected_time} 秒让所有问题处理完成...")
         time.sleep(expected_time)
         
