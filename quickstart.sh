@@ -47,7 +47,7 @@ sync_submodules_if_requested() {
     fi
 
     if ! bash "$SCRIPT_DIR/manage.sh"; then
-        echo -e "${YELLOW}⚠️  自动同步失败，请稍后运行 ${DIM}./manage.sh${NC}"
+        echo -e "${YELLOW}⚠️  自动同步失败，请稍后手动运行 ${DIM}./manage.sh bootstrap${NC}"
     fi
 }
 
