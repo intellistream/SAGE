@@ -14,7 +14,7 @@ class SourceOperator(BaseOperator):
     def process_packet(self, packet: "Packet" = None):
         try:
             result = self.function.execute()
-            
+
             self.logger.debug(
                 f"Operator {self.name} processed data with result: {result}"
             )
@@ -24,31 +24,33 @@ class SourceOperator(BaseOperator):
                 # 防止重复处理
                 if self._stop_signal_sent:
                     return
-                
+
                 self._stop_signal_sent = True
-                
+
                 self.logger.info(
                     f"Source Operator {self.name} received stop signal: {result}"
                 )
-                
+
                 # 设置停止信号的来源
                 result.source = self.name
-                
+
                 # 转发停止信号到下游
                 self.router.send_stop_signal(result)
-                
+
                 # 通知 JobManager 该节点停止（与其他节点一致）
                 if hasattr(self, "ctx") and hasattr(self.ctx, "request_stop"):
                     self.ctx.request_stop()
-                
+
                 # 设置任务停止标志（与其他节点一致）
                 if hasattr(self, "task"):
-                    if hasattr(self.task, "ctx") and hasattr(self.task.ctx, "set_stop_signal"):
+                    if hasattr(self.task, "ctx") and hasattr(
+                        self.task.ctx, "set_stop_signal"
+                    ):
                         self.task.ctx.set_stop_signal()
-                    
+
                     if hasattr(self.task, "is_running"):
                         self.task.is_running = False
-                
+
                 return
 
             if result is not None:
@@ -57,29 +59,29 @@ class SourceOperator(BaseOperator):
                 )
                 success = self.router.send(Packet(result))
                 self.logger.debug(f"SourceOperator {self.name}: Send result: {success}")
-                
+
                 # If sending failed (e.g., queue is closed), stop the task
                 if not success:
                     self.logger.warning(
                         f"Source Operator {self.name} failed to send packet, stopping task"
                     )
-                    
+
                     # 生成并发送停止信号
                     if not self._stop_signal_sent:
                         self._stop_signal_sent = True
                         stop_signal = StopSignal(f"{self.name}-send-failed")
                         self.router.send_stop_signal(stop_signal)
-                        
+
                         if hasattr(self, "ctx") and hasattr(self.ctx, "request_stop"):
                             self.ctx.request_stop()
-                    
+
                     if hasattr(self, "task"):
                         if hasattr(self.task, "ctx"):
                             self.task.ctx.set_stop_signal()
                         if hasattr(self.task, "is_running"):
                             self.task.is_running = False
-                    
+
                     return
-                    
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)

@@ -134,17 +134,34 @@ def quality(
         ]
         flake8_exclude = "test_env,venv,env,.venv,node_modules,build,dist,.git"
     else:
-        # 添加需要跳过质量检查的特定文件夹
+        # 添加需要跳过质量检查的特定文件夹（所有 git submodules）
+        # Submodules 列表：
+        # 1. docs-public (文档子模块)
+        # 2. sageLLM (LLM组件)
+        # 3. sageDB (数据库组件)
+        # 4. sageFlow (工作流组件)
+        # 5. neuromem (内存管理组件)
+
         # black 使用正则表达式
-        black_exclude = r".*/sageFlow/.*|.*/sageDB/.*|.*/sageLLM/.*"
+        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem)"
         # isort 使用多个 --skip-glob 参数（每个模式一个）
-        isort_skip_patterns = ["*/sageFlow/*", "*/sageDB/*", "*/sageLLM/*"]
+        isort_skip_patterns = [
+            "*/docs-public/*",
+            "*/sageFlow/*",
+            "*/sageDB/*",
+            "*/sageLLM/*",
+            "*/neuromem/*",
+        ]
         # flake8 使用逗号分隔的路径模式（支持通配符）
-        flake8_exclude = "*/sageFlow/*,*/sageDB/*,*/sageLLM/*"
+        flake8_exclude = (
+            "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        )
 
     console.print(f"🎯 检查目录: {', '.join(target_paths)}")
     if not target_paths or target_paths != [str(project_path)]:
-        console.print(f"⏭️  排除目录: sageFlow, sageDB, sageLLM")
+        console.print(
+            f"⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem"
+        )
 
     quality_issues = False
     error_timestamp = None
@@ -382,18 +399,35 @@ def _run_quality_check(
         ]
         flake8_exclude = "test_env,venv,env,.venv,node_modules,build,dist,.git"
     else:
-        # 添加需要跳过质量检查的特定文件夹
+        # 添加需要跳过质量检查的特定文件夹（所有 git submodules）
+        # Submodules 列表：
+        # 1. docs-public (文档子模块)
+        # 2. sageLLM (LLM组件)
+        # 3. sageDB (数据库组件)
+        # 4. sageFlow (工作流组件)
+        # 5. neuromem (内存管理组件)
+
         # black 使用正则表达式
-        black_exclude = r".*/sageFlow/.*|.*/sageDB/.*|.*/sageLLM/.*"
+        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem)"
         # isort 使用多个 --skip-glob 参数（每个模式一个）
-        isort_skip_patterns = ["*/sageFlow/*", "*/sageDB/*", "*/sageLLM/*"]
+        isort_skip_patterns = [
+            "*/docs-public/*",
+            "*/sageFlow/*",
+            "*/sageDB/*",
+            "*/sageLLM/*",
+            "*/neuromem/*",
+        ]
         # flake8 使用逗号分隔的路径模式（支持通配符）
-        flake8_exclude = "*/sageFlow/*,*/sageDB/*,*/sageLLM/*"
+        flake8_exclude = (
+            "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        )
 
     if not quiet:
         console.print(f"🎯 检查目录: {', '.join(str(p) for p in target_paths)}")
         if not target_paths or target_paths != [str(project_path)]:
-            console.print(f"⏭️  排除目录: sageFlow, sageDB, sageLLM")
+            console.print(
+                f"⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem"
+            )
 
     quality_issues = False
 
