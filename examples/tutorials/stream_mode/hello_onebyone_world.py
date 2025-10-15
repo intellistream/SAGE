@@ -5,19 +5,13 @@ from sage.kernel.api.function.batch_function import BatchFunction
 from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.function.sink_function import SinkFunction
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.runtime.communication.metronome import create_metronome
-
-metronome = create_metronome("sync_metronome")
 
 
 class SyncBatch(BatchFunction):
-    use_metronome = True
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.counter = 0
         self.max_count = 5
-        self.metronome = metronome
 
     def execute(self):
         if self.counter >= self.max_count:
@@ -36,19 +30,12 @@ class UpperMap(MapFunction):
 
 
 class SyncSink(SinkFunction):
-    use_metronome = True
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.metronome = metronome
-
     def execute(self, data):
         print(f" ✅ {data}")
         time.sleep(1)
 
 
 def main():
-    metronome.release_once()
     env = LocalEnvironment("Test_Sync")
     env.from_batch(SyncBatch).map(UpperMap).sink(SyncSink)
     env.submit(autostop=True)

@@ -8,11 +8,9 @@ from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import Locomo
 
 class LocomoSource(BatchFunction):
     """从Locomo数据集中逐个读取对话轮次的Source"""
-    use_metronome = True
 
-    def __init__(self, sample_id, metronome):
+    def __init__(self, sample_id):
         self.sample_id = sample_id
-        self.metronome = metronome
         self.loader = LocomoDataLoader()
         
         # 获取所有session和对话轮数
@@ -93,10 +91,8 @@ class LocomoSource(BatchFunction):
 
 class LocomoSink(SinkFunction):
     """将接收到的对话数据写入JSON文件的Sink"""
-    use_metronome = True
 
-    def __init__(self, metronome, output_name=None):
-        self.metronome = metronome
+    def __init__(self, output_name=None):
         self.output_name = output_name
         
         # 创建输出目录
@@ -141,7 +137,6 @@ class LocomoSink(SinkFunction):
         
         # 打印保存成功信息
         print(f"✅ LocomoSink 已保存：会话 {session_id}, 对话 {dialog_idx} (总对话数: {self.total_dialog_count}, 总记录数: {len(self.data_list)})")
-        print(f"🔓 LocomoSink 正在释放 metronome...")
 
 
 # ==== 测试代码 ====
@@ -149,13 +144,9 @@ if __name__ == "__main__":
     import time
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.kernel.runtime.communication.metronome import create_metronome
     
     # 禁用debug日志
     CustomLogger.disable_global_console_debug()
-    
-    # 创建metronome和lock
-    metronome = create_metronome("locomo_test_metronome")
     
     # 获取第一个sample_id进行测试
     loader = LocomoDataLoader()
@@ -165,12 +156,9 @@ if __name__ == "__main__":
     print(f"🧪 使用样本 ID 进行测试: {test_sample_id}")
     print("=" * 60)
     
-    # 创建测试用的Source和Sink类
-
     # 创建环境和pipeline
-    metronome.release_once()
     env = LocalEnvironment("Test_Locomo_IO")
-    env.from_batch(LocomoSource, sample_id=test_sample_id, metronome=metronome).sink(LocomoSink, metronome=metronome, output_name="test")
+    env.from_batch(LocomoSource, sample_id=test_sample_id).sink(LocomoSink, output_name="test")
     env.submit(autostop=True)
     
     print("=" * 60)
