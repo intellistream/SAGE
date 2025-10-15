@@ -1,4 +1,5 @@
 # @test:allow-demo    - 允许包含demo关键字的文件运行测试
+import sys
 
 import yaml
 from rag_memory_service import RAGMemoryService
@@ -61,7 +62,17 @@ class PrintSink(SinkFunction):
 
 
 def main():
-    with open("examples/config/config_rag_memory_pipeline.yaml", "r") as f:
+    from pathlib import Path
+
+    # 获取配置文件的正确路径
+    script_dir = Path(__file__).parent
+    config_file = script_dir / "config" / "config_rag_memory_pipeline.yaml"
+
+    if not config_file.exists():
+        print(f"❌ 配置文件不存在: {config_file}")
+        sys.exit(1)
+
+    with open(config_file, "r") as f:
         config = yaml.safe_load(f)
 
     env = LocalEnvironment("rag_memory_pipeline")
