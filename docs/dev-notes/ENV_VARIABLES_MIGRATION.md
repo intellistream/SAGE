@@ -1,8 +1,14 @@
 # 环境变量迁移指南
 
+## ⚠️ 重大变更 - 不向后兼容
+
+**`SAGE_CHAT_*` 环境变量已被完全移除，不再支持。**
+
+所有使用这些变量的代码必须更新为使用新的 `TEMP_GENERATOR_*` 变量或配置文件。
+
 ## 变更摘要
 
-为了更清晰地区分生产环境和演示/测试环境的配置，我们将环境变量进行了重命名。
+为了更清晰地区分生产环境和演示/测试环境的配置，我们将环境变量进行了重命名，并**完全移除**了旧的变量支持。
 
 ## 变更内容
 
@@ -77,20 +83,39 @@ generator = OpenAIGenerator(generator_config)
 
 ## 受影响的文件
 
-以下文件可能需要更新（仅供参考，大部分文档性质）：
+以下文件已更新，不再支持 `SAGE_CHAT_*` 变量：
 
-- `examples/tutorials/templates_to_llm_demo.py` - 文档说明
-- `examples/tutorials/test_new_templates.py` - 测试脚本
-- `examples/tutorials/test_real_llm.py` - 测试脚本
-- `packages/sage-tools/src/sage/tools/cli/commands/pipeline.py` - CLI 工具（兼容性保留）
-- `packages/sage-tools/src/sage/tools/cli/commands/chat.py` - CLI 工具（兼容性保留）
-- 各种文档文件
+- ✅ `examples/tutorials/templates_to_llm_demo.py` - 已更新
+- ✅ `examples/tutorials/test_new_templates.py` - 已更新
+- ✅ `examples/tutorials/test_real_llm.py` - 已更新
+- ✅ `packages/sage-tools/src/sage/tools/cli/commands/pipeline.py` - 已更新
+- ✅ `packages/sage-tools/src/sage/tools/cli/commands/chat.py` - 已更新
+- ✅ `docs-public/docs_src/tools/cli_reference.md` - 已更新
 
 ## 兼容性
 
-CLI 工具（如 `sage chat`、`sage pipeline`）会继续支持 `SAGE_CHAT_*` 环境变量以保持向后兼容性，但建议逐步迁移到：
-1. 使用配置文件（YAML）
-2. 使用新的 `TEMP_GENERATOR_*` 环境变量（仅用于临时测试）
+**不提供向后兼容性**。如果你的代码或配置中仍在使用 `SAGE_CHAT_*` 变量，程序将无法找到配置并报错。
+
+### 错误示例
+
+```bash
+# ❌ 这将不再工作
+export SAGE_CHAT_API_KEY="sk-xxx"
+sage chat
+
+# 错误信息: 未提供 API Key。请设置 TEMP_GENERATOR_API_KEY
+```
+
+### 正确做法
+
+```bash
+# ✅ 使用新的变量名
+export TEMP_GENERATOR_API_KEY="sk-xxx"
+sage chat
+
+# ✅ 或者使用配置文件（推荐）
+sage chat --config config.yaml
+```
 
 ## 最佳实践
 
