@@ -77,11 +77,11 @@ cd SAGE
 # Switch to development branch
 git checkout main-dev
 
-# Initialize submodules (automatically switches to correct branch)
-./tools/maintenance/sage-maintenance.sh submodule init
+# Bootstrap submodules & install hooks (init + branch switch)
+./manage.sh
 
 # Install with quickstart (recommended)
-./quickstart.sh --dev --yes
+./quickstart.sh --dev --yes      # 开发模式下会自动同步 submodules 并安装 hooks
 
 # Run hello world example
 python examples/tutorials/hello_world.py
@@ -143,14 +143,14 @@ cd SAGE
 
 **Common Non-Interactive Modes**
 ```bash
-# Developer installation
+# Developer installation (auto-sync submodules & hooks)
 ./quickstart.sh --dev --yes
 
 # Minimal core only
 ./quickstart.sh --minimal --yes
 
-# Standard + vLLM support
-./quickstart.sh --standard --vllm --yes
+# Standard + vLLM support (explicit submodule sync)
+./quickstart.sh --standard --sync-submodules --vllm --yes
 
 # Use system Python instead of conda
 ./quickstart.sh --minimal --pip --yes
@@ -189,20 +189,14 @@ python -m sage.tools.cli.main config env setup
 ```bash
 # Copy the environment template
 cp .env.template .env
-
-# Edit .env and add your API keys
-# Required for most examples:
-OPENAI_API_KEY=your_openai_api_key_here
-HF_TOKEN=your_huggingface_token_here
 ```
 
-**Environment Variables**
+Edit `.env` and add your API keys (required for most examples):
 - `OPENAI_API_KEY`: Required for GPT models and most LLM examples
 - `HF_TOKEN`: Required for Hugging Face model downloads
 - `SILICONCLOUD_API_KEY`: For alternative LLM services
 - `JINA_API_KEY`: For embedding services
 - `ALIBABA_API_KEY`: For DashScope models
-- `SAGE_LOG_LEVEL`: Set logging level (DEBUG, INFO, WARNING, ERROR)
 - `SAGE_TEST_MODE`: Enable test mode for examples
 
 **API Key Sources**

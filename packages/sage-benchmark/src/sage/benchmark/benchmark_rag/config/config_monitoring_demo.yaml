@@ -1,0 +1,59 @@
+# Performance Monitoring Demo 配置文件
+# 简化的 RAG Pipeline: Retrieval -> Prompt -> Generation
+# 启用性能监控功能,收集 TPS/延迟/资源使用等指标
+
+
+source:
+  data_path: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/queries.jsonl"
+  platform: "local"
+
+retriever:
+  # ChromaDB 向量检索配置
+  dimension: 384    # 使用 HuggingFace all-MiniLM-L6-v2 embedding 模型
+  top_k: 3          # 检索 top-3 相关文档
+  
+  chroma:
+    persistence_path: "./examples/rag/chroma_qa_database"
+    collection_name: "qa_knowledge_base"
+    use_embedding_query: true
+    
+    # ChromaDB 元数据配置
+    metadata:
+      hnsw:space: "cosine"           # 余弦相似度
+  
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "sentence-transformers/all-MiniLM-L6-v2"
+
+promptor:
+  template: |
+    基于以下检索到的相关文档，回答用户问题：
+    
+    相关文档：
+    {retrieved_documents}
+    
+    用户问题：{query}
+    
+    请提供准确、有用的回答：
+
+generator:
+  vllm:
+    api_key: ""
+    method: "openai"
+    model_name: "meta-llama/Llama-2-7b-chat-hf"
+    base_url: "http://sage3:8000/v1"
+    seed: 42
+    max_tokens: 256    # 限制生成长度以加快测试
+    temperature: 0.7
+
+sink:
+  enable_log: true
+
+# 监控配置 (可选,如果需要自定义监控参数)
+monitoring:
+  enabled: true                    # 启用监控
+  metrics_window_size: 1000        # 滑动窗口大小
+  resource_monitoring: true        # 启用 CPU/内存监控
+  sample_interval: 1.0             # 资源采样间隔(秒)
+  auto_report: false               # 不自动打印报告(由主程序控制)

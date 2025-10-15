@@ -93,9 +93,10 @@ license = {text = "MIT"}
 
 [project.optional-dependencies]
 # SAGE framework dependencies (for local development)
+# 注意：移除了 isage-tools 以避免循环依赖
+# 开发时应安装 isage[dev] 或 isage-tools[dev] 来获取完整工具链
 sage = [
     "isage-common>=0.1.0",
-    "isage-tools>=0.1.0",
 ]
 
 # VLLM支持（可选，需要CUDA）

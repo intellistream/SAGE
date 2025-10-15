@@ -374,8 +374,19 @@ class ExampleTestFilters:
             if "# SKIP_TEST" in content:
                 return True, "Contains SKIP_TEST marker"
 
-            if "input(" in content and "# NO_TEST_INPUT" not in content:
-                return True, "Requires user input"
+            # 检查文件是否在测试模式下有特殊处理
+            has_test_mode_check = any(
+                pattern in content
+                for pattern in [
+                    'os.getenv("SAGE_TEST_MODE")',
+                    'os.getenv("SAGE_EXAMPLES_MODE")',
+                    "SAGE_TEST_MODE",
+                    "SAGE_EXAMPLES_MODE",
+                ]
+            )
+
+            if "input(" in content and not has_test_mode_check:
+                return True, "Requires user input without test mode handling"
 
             if any(
                 keyword in content
@@ -632,11 +643,14 @@ class ExampleTestFilters:
                 return True
             return False
 
+        # 检查是否有允许 demo 的标签
+        allow_demo = has_allow_demo_tag()
+
         # 对包含 demo 的文件采用更精细的判断：
         if "demo" in filename and filename not in whitelist:
             # 允许的安全类别（通常是 Mock/教学型示例）
-            safe_categories = {"tutorials", "memory", "agents"}
-            if has_allow_demo_tag():
+            safe_categories = {"tutorials", "memory", "agents", "sage_db"}
+            if allow_demo:
                 pass  # 显式放行
             elif category in safe_categories and not has_heavy_indicators(content):
                 # 安全类别且未检测到重型运行特征 -> 放行
@@ -644,7 +658,8 @@ class ExampleTestFilters:
             else:
                 return True, "文件名包含 'demo'，且未通过安全检查或标签放行"
 
-        if filename not in whitelist:
+        # 如果有 allow-demo 标签，跳过后续的 demo 检查
+        if filename not in whitelist and not allow_demo:
             for pattern in skip_patterns:
                 if pattern in filename:
                     return True, f"文件名包含 '{pattern}'，通常需要交互或长时间运行"

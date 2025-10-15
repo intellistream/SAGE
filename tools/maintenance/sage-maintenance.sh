@@ -45,11 +45,16 @@ show_help() {
     echo -e "${BOLD}用法:${NC}"
     echo -e "  $(basename "$0") <命令> [选项]"
     echo ""
-    echo -e "${BOLD}📦 Submodule 管理:${NC}"
+    echo -e "${BOLD}${ROCKET} 快速开始:${NC}"
+    echo -e "  ${GREEN}submodule bootstrap${NC}      一键初始化并切换所有 submodule"
+    echo -e "  ${GREEN}bootstrap${NC}               与上面命令等效的简写"
+    echo ""
+    echo -e "${BOLD}${PACKAGE} Submodule 管理:${NC}"
     echo -e "  ${GREEN}submodule status${NC}          显示 submodule 状态"
     echo -e "  ${GREEN}submodule switch${NC}          切换 submodule 分支（根据当前 SAGE 分支）"
     echo -e "  ${GREEN}submodule init${NC}            初始化所有 submodules"
     echo -e "  ${GREEN}submodule update${NC}          更新所有 submodules"
+    echo -e "  ${GREEN}submodule bootstrap${NC}      初始化 + 切换分支，首选入口"
     echo -e "  ${GREEN}submodule fix-conflict${NC}    解决 submodule 冲突"
     echo -e "  ${GREEN}submodule cleanup${NC}         清理旧的 submodule 配置"
     echo ""
@@ -87,6 +92,7 @@ show_help() {
     echo ""
     echo -e "${BOLD}更多信息:${NC}"
     echo -e "  查看文档: ${DIM}tools/maintenance/README.md${NC}"
+    echo -e "  快捷入口: ${DIM}仓库根目录执行 ./manage.sh${NC}"
 }
 
 # ============================================================================
@@ -107,18 +113,22 @@ submodule_switch() {
     bash "${HELPERS_DIR}/manage_submodule_branches.sh" switch
 }
 
-submodule_init() {
-    echo -e "${BLUE}${PACKAGE} 初始化 Submodules${NC}"
-    echo ""
-    
+submodule_init_steps() {
     # 初始化 submodules
     git submodule update --init --recursive
     echo -e "${GREEN}${CHECK} Submodules 初始化完成${NC}"
     echo ""
-    
+
     # 自动切换到正确的分支
     echo -e "${BLUE}${INFO} 切换 submodules 到正确的分支...${NC}"
     bash "${HELPERS_DIR}/manage_submodule_branches.sh" switch
+}
+
+submodule_init() {
+    echo -e "${BLUE}${PACKAGE} 初始化 Submodules${NC}"
+    echo ""
+
+    submodule_init_steps
 }
 
 submodule_update() {
@@ -141,6 +151,15 @@ submodule_cleanup() {
     echo ""
     
     bash "${HELPERS_DIR}/cleanup_old_submodules.sh"
+}
+
+submodule_bootstrap() {
+    echo -e "${BLUE}${ROCKET} 引导 Submodules${NC}"
+    echo ""
+
+    submodule_init_steps
+
+    echo -e "${GREEN}${CHECK} Submodule 引导完成，可继续运行 quickstart${NC}"
 }
 
 # ============================================================================
@@ -424,6 +443,9 @@ main() {
                 update)
                     submodule_update
                     ;;
+                bootstrap)
+                    submodule_bootstrap
+                    ;;
                 fix-conflict|conflict)
                     submodule_fix_conflict
                     ;;
@@ -464,6 +486,9 @@ main() {
         # 状态
         status)
             show_status
+            ;;
+        bootstrap)
+            submodule_bootstrap
             ;;
         
         # 帮助

@@ -22,12 +22,13 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 
-# SAGE Meta Package - 默认安装核心功能
+# SAGE Meta Package - 通过 tools 传递依赖所有子包
 dependencies = [
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",  # CLI chat命令需要
     "isage-libs>=0.1.0",       # 应用包组件
+    "isage-benchmark>=0.1.0",  # 基准测试和实验包
     "isage-tools[cli]>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
     "isage-studio>=0.1.0",     # Studio低代码界面
     # 数据科学基础库
@@ -46,12 +47,15 @@ minimal = [
     "isage-kernel>=0.1.0",
 ]
 
-# 标准安装 - 默认安装 + 中间件 + 应用包 + 科学计算库
+# 标准安装 - 中间件 + 应用包 + 科学计算库
 standard = [
-    "isage-middleware>=0.1.0",  # 中间件组件
-    "isage-libs>=0.1.0",       # 应用包组件
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-middleware>=0.1.0",
+    "isage-libs>=0.1.0",
+    "isage-tools[cli]>=0.1.0",
     # 数据科学基础库
-    "numpy>=1.26.0,<2.3.0",  # 兼容vllm/numba约束，同时兼顾离线环境预置版本
+    "numpy>=1.26.0,<2.3.0",
     "pandas>=1.3.0",
     "matplotlib>=3.4.0",
     "scipy>=1.15.0,<2.0.0",
@@ -59,12 +63,21 @@ standard = [
     "ipykernel>=6.0.0",
 ]
 
-# 开发者安装 - 标准安装 + 完整开发工具套件
+# 完整安装 - 包含所有组件（通过 tools 传递依赖）
+full = [
+    "isage-tools[cli]>=0.1.0",  # tools 已包含所有子包
+    # 数据科学基础库
+    "numpy>=1.26.0,<2.3.0",
+    "pandas>=1.3.0",
+    "matplotlib>=3.4.0",
+    "scipy>=1.15.0,<2.0.0",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
+]
+
+# 开发者安装 - 完整功能 + 开发工具套件
 dev = [
-    "isage[standard]",  # 包含标准安装的所有功能
-    # isage-tools 现在默认包含核心dev工具（black, isort, flake8, pytest等）
-    # 这里只添加额外的开发辅助工具
-    "isage-tools[dev]>=0.1.0",  # 额外的profiling和发布工具
+    "isage-tools[dev]>=0.1.0",  # 包含所有子包和开发工具
     "pre-commit>=3.0.0",
 ]
 

@@ -313,7 +313,8 @@ class ExampleAnalyzer:
 
         # 查找所有 @test: 标记，支持注释和文档字符串中的标记
         # 匹配 # @test: 或 @test: (可能在文档字符串中)
-        pattern = r"(?:#\s*)?@test:(\w+)(?:=(\w+))?"
+        # 支持连字符和下划线，如 allow-demo, require-api
+        pattern = r"(?:#\s*)?@test:([\w-]+)(?:=([\w-]+))?"
         matches = re.findall(pattern, content, re.IGNORECASE)
 
         tags = []
@@ -328,9 +329,22 @@ class ExampleAnalyzer:
         return list(set(tags))
 
     def _get_category(self, file_path: Path) -> str:
-        """获取示例类别"""
+        """获取示例类别
+        
+        对于 examples/tutorials/rag/simple_rag.py 这样的文件，
+        返回 'rag' 而不是 'tutorials'，以便更细粒度的分类。
+        对于 examples/apps/run_app.py 这样的文件，返回 'apps'。
+        """
         relative_path = file_path.relative_to(self.examples_root)
-        return str(relative_path.parts[0]) if relative_path.parts else "unknown"
+        if not relative_path.parts:
+            return "unknown"
+        
+        # 如果第一级目录是 tutorials，并且有第二级目录，使用第二级
+        if len(relative_path.parts) >= 3 and relative_path.parts[0] == "tutorials":
+            return str(relative_path.parts[1])
+        
+        # 否则使用第一级目录
+        return str(relative_path.parts[0])
 
     def discover_examples(self) -> List[ExampleInfo]:
         """发现所有示例文件"""
@@ -532,6 +546,21 @@ class ExampleRunner:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+
+            # 检查文件是否在测试模式下有特殊处理
+            has_test_mode_check = any(
+                pattern in content
+                for pattern in [
+                    'os.getenv("SAGE_TEST_MODE")',
+                    'os.getenv("SAGE_EXAMPLES_MODE")',
+                    "SAGE_TEST_MODE",
+                    "SAGE_EXAMPLES_MODE",
+                ]
+            )
+
+            # 如果有测试模式检查，即使有 input() 也不算需要用户输入
+            if has_test_mode_check:
+                return False
 
             input_indicators = ["input(", "raw_input(", "getpass."]
             return any(indicator in content for indicator in input_indicators)

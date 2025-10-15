@@ -13,6 +13,8 @@ Examples included:
 - Error handling and offline fallback
 - Integration with MCP Registry
 - Parameter variations and configurations
+
+@test:allow-demo
 """
 
 from unittest.mock import patch

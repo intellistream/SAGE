@@ -66,7 +66,7 @@ class BaseEnvironment(ABC):
         return self._transformation_classes
 
     def __init__(
-        self, name: str, config: dict | None, *, platform: str = "local", scheduler=None
+        self, name: str, config: dict | None, *, platform: str = "local", scheduler=None, enable_monitoring: bool = False
     ):
 
         self.name = name
@@ -79,6 +79,9 @@ class BaseEnvironment(ABC):
         self._filled_futures: dict = {}
         # 用于收集所有服务工厂，供ExecutionGraph构建服务节点时使用
         self.service_factories: dict = {}  # service_name -> ServiceFactory
+
+        # 性能监控配置
+        self.enable_monitoring: bool = enable_monitoring
 
         # 调度器配置（用户可选）
         self._scheduler = None
