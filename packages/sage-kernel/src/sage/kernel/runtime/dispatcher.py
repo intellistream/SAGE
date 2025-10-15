@@ -33,15 +33,22 @@ class Dispatcher:
         self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
 
-        # 使用调度器和容错管理器
-        # 调度器由 Environment 传入，如果没有则使用默认的 FIFO 调度器
+        # 使用调度器和容错管理器（重构后架构）
+        # 调度器：纯决策者（返回 PlacementDecision）
+        # PlacementExecutor：纯执行者（接收决策，执行放置）
+        # Dispatcher：协调者（决策 → 执行）
+        
+        # 初始化调度器
         self.scheduler: BaseScheduler = (
             env.scheduler if hasattr(env, "scheduler") else None
         )
         if self.scheduler is None:
             from sage.kernel.scheduler.impl import FIFOScheduler
-
             self.scheduler = FIFOScheduler(platform=env.platform)
+        
+        # 初始化放置执行器（由 Dispatcher 持有，不在 Scheduler 中）
+        from sage.kernel.scheduler.placement import PlacementExecutor
+        self.placement_executor = PlacementExecutor()
 
         # 从 Environment 配置创建容错处理器
         fault_tolerance_config = env.config.get("fault_tolerance", {})
@@ -292,7 +299,15 @@ class Dispatcher:
 
     # Dispatcher will submit the job to LocalEngine or Ray Server.
     def submit(self):
-        """编译图结构，创建节点并建立连接"""
+        """
+        编译图结构，创建节点并建立连接
+        
+        重构后的流程：
+        1. 调用 Scheduler 获取调度决策
+        2. 根据决策等待（如果需要延迟调度）
+        3. 调用 PlacementExecutor 执行物理放置
+        4. 启动所有任务
+        """
         self.logger.info(f"Compiling Job for graph: {self.name}")
 
         # 第一步：调度所有服务任务
@@ -303,18 +318,35 @@ class Dispatcher:
                 # 为service创建专用的runtime context
                 service_ctx = self._create_service_context(service_name)
 
-                # 使用调度器创建和调度服务任务
-                service_task = self.scheduler.schedule_service(
-                    service_node=service_node, runtime_ctx=service_ctx
+                # === 新架构：Scheduler → Decision → Placement ===
+                # 1. 获取调度决策
+                decision = self.scheduler.make_service_decision(service_node)
+                
+                self.logger.debug(
+                    f"Service scheduling decision for '{service_name}': {decision}"
+                )
+                
+                # 2. 根据决策等待（如果需要延迟）
+                if decision.delay > 0:
+                    self.logger.debug(
+                        f"Delaying service placement of '{service_name}' by {decision.delay}s"
+                    )
+                    time.sleep(decision.delay)
+                
+                # 3. 执行物理放置
+                service_task = self.placement_executor.place_service(
+                    service_node=service_node,
+                    decision=decision,
+                    runtime_ctx=service_ctx
                 )
                 self.services[service_name] = service_task
 
                 self.logger.debug(
-                    f"Scheduled service task '{service_name}' of type '{service_task.__class__.__name__}'"
+                    f"Placed service task '{service_name}' of type '{service_task.__class__.__name__}'"
                 )
             except Exception as e:
                 self.logger.error(
-                    f"Failed to schedule service task {service_name}: {e}",
+                    f"Failed to schedule and place service task {service_name}: {e}",
                     exc_info=True,
                 )
                 # 可以选择继续或停止，这里选择继续但记录错误
@@ -322,18 +354,37 @@ class Dispatcher:
         # 第二步：调度所有计算任务节点
         for node_name, graph_node in self.graph.nodes.items():
             try:
-                # 使用调度器创建和调度任务
-                task = self.scheduler.schedule_task(
-                    task_node=graph_node, runtime_ctx=graph_node.ctx
+                # === 新架构：Scheduler → Decision → Placement ===
+                # 1. 获取调度决策
+                decision = self.scheduler.make_decision(graph_node)
+                
+                self.logger.debug(
+                    f"Task scheduling decision for '{node_name}': {decision}"
+                )
+                
+                # 2. 根据决策等待（如果需要延迟调度）
+                if decision.delay > 0:
+                    self.logger.debug(
+                        f"Delaying task placement of '{node_name}' by {decision.delay}s"
+                    )
+                    time.sleep(decision.delay)
+                
+                # 3. 执行物理放置
+                task = self.placement_executor.place_task(
+                    task_node=graph_node,
+                    decision=decision,
+                    runtime_ctx=graph_node.ctx
                 )
                 self.tasks[node_name] = task
 
                 self.logger.debug(
-                    f"Scheduled task '{node_name}' of type '{task.__class__.__name__}'"
+                    f"Placed task '{node_name}' of type '{task.__class__.__name__}' "
+                    f"on node '{decision.target_node or 'default'}'"
                 )
             except Exception as e:
                 self.logger.error(
-                    f"Failed to schedule task {node_name}: {e}", exc_info=True
+                    f"Failed to schedule and place task {node_name}: {e}",
+                    exc_info=True
                 )
                 raise e
 
