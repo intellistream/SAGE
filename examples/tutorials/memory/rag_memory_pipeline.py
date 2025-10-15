@@ -1,5 +1,4 @@
 # @test:allow-demo    - 允许包含demo关键字的文件运行测试
-import os
 
 import yaml
 from rag_memory_service import RAGMemoryService
