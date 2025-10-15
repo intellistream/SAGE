@@ -654,9 +654,5 @@ get_fix_environment() {
 
 # 获取是否自动同步 submodules
 get_sync_submodules() {
-    if [ -z "$SYNC_SUBMODULES" ]; then
-        echo "false"
-    else
-        echo "$SYNC_SUBMODULES"
-    fi
+    echo "${SYNC_SUBMODULES:-false}"
 }
