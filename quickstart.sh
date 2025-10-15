@@ -30,6 +30,28 @@ pre_check_system_environment
 setup_unicode_symbols
 
 # 主函数
+sync_submodules_if_requested() {
+    local should_sync="$1"
+
+    if [ "$should_sync" != "true" ]; then
+        return
+    fi
+
+    echo ""
+    echo -e "${BLUE}🔄 同步 SAGE submodules${NC}"
+
+    if [ ! -f "$SCRIPT_DIR/manage.sh" ]; then
+        echo -e "${YELLOW}⚠️  未找到 manage.sh，跳过自动同步${NC}"
+        echo -e "${DIM}提示: 手动运行 git submodule update --init --recursive${NC}"
+        return
+    fi
+
+    if ! bash "$SCRIPT_DIR/manage.sh"; then
+        echo -e "${YELLOW}⚠️  自动同步失败，请稍后运行 ${DIM}./manage.sh${NC}"
+    fi
+}
+
+# 主函数
 main() {
     # 解析命令行参数（包括帮助检查）
     parse_arguments "$@"
@@ -89,6 +111,7 @@ main() {
     local install_vllm=$(get_install_vllm)
     local auto_confirm=$(get_auto_confirm)
     local clean_cache=$(get_clean_pip_cache)
+    local sync_submodules=$(get_sync_submodules)
     
     # 如果不是自动确认模式，显示最终确认
     if [ "$auto_confirm" != "true" ]; then
@@ -114,6 +137,8 @@ main() {
     
     # 切换到项目根目录
     cd "$SCRIPT_DIR"
+
+    sync_submodules_if_requested "$sync_submodules"
     
     # 执行安装
     install_sage "$mode" "$environment" "$install_vllm" "$clean_cache"
