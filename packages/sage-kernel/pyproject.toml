@@ -111,6 +111,11 @@ docs = [
     "pymdown-extensions>=10.2.0",
 ]
 
+# 性能监控（可选）
+monitoring = [
+    "psutil>=5.9.0",  # 系统资源监控
+]
+
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"
