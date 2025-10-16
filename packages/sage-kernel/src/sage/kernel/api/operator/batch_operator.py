@@ -4,45 +4,20 @@ from sage.kernel.runtime.communication.router.packet import StopSignal
 
 
 class BatchOperator(BaseOperator):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # 检查function是否启用metronome
-        self._metronome = None
-        if hasattr(self.function, "use_metronome") and self.function.use_metronome:
-            if (
-                hasattr(self.function, "metronome")
-                and self.function.metronome is not None
-            ):
-                self._metronome = self.function.metronome
-                self.logger.info(
-                    f"BatchOperator {self.name} using metronome: {self._metronome.name}"
-                )
-            else:
-                self.logger.warning(
-                    f"BatchOperator {self.name} use_metronome=True but no metronome provided"
-                )
-
+    """
+    批处理操作符
+    
+    流量控制通过router的Queue实现：
+    - router.send(packet)内部使用queue.put()
+    - 当下游处理慢时，put()会自然阻塞，形成背压
+    - 无需额外的全局锁机制
+    """
+    
     def receive_packet(self, packet: "Packet"):
         self.process_packet(packet)
 
     def process_packet(self, packet: "Packet" = None):
         try:
-            # 如果启用了metronome，在执行前等待锁释放
-            if self._metronome is not None:
-                self.logger.debug(
-                    f"BatchOperator {self.name} waiting for metronome release"
-                )
-                if not self._metronome.wait_for_release(timeout=30.0):  # 30秒超时
-                    self.logger.error(
-                        f"BatchOperator {self.name} metronome wait timeout"
-                    )
-                    self.ctx.set_stop_signal()
-                    return
-                self.logger.debug(
-                    f"BatchOperator {self.name} got metronome release, executing function"
-                )
-
             result = self.function.execute()
             self.logger.debug(
                 f"Operator {self.name} processed data with result: {result}"
@@ -53,10 +28,6 @@ class BatchOperator(BaseOperator):
                 self.logger.info(
                     f"Batch Operator {self.name} completed, sending stop signal"
                 )
-
-                # 如果使用metronome，强制释放以避免死锁
-                if self._metronome is not None:
-                    self._metronome.force_release()
 
                 # 源节点完成时，先通知JobManager该节点完成
                 self.ctx.send_stop_signal_back(self.name)
@@ -70,6 +41,7 @@ class BatchOperator(BaseOperator):
                 return
 
             # 发送正常数据包
+            # router.send()内部的queue.put()会在队列满时自动阻塞，实现背压控制
             if result is not None:
                 success = self.router.send(Packet(result))
                 # If sending failed (e.g., queue is closed), stop the task
@@ -79,13 +51,6 @@ class BatchOperator(BaseOperator):
                     )
                     self.ctx.set_stop_signal()
                     return
-
-                # 如果启用了metronome，发送数据后立即锁定，等待Sink处理完成
-                if self._metronome is not None:
-                    self.logger.debug(
-                        f"BatchOperator {self.name} locking metronome after sending data"
-                    )
-                    self._metronome.lock_after_send()
 
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
