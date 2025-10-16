@@ -13,37 +13,32 @@ def _normalize_data(
     """将上游数据标准化为评测期望的字典结构。
 
     兼容多种入参形态：
-    - tuple: (user_query, generated_text)
-    - dict: 直接透传（但保证必要键存在）
+    - dict: 直接使用（标准格式）
+    - tuple: (user_query, generated_text) - 旧格式兼容
     - str/其他: 作为 generated 文本
 
     返回的字典至少包含：
     - 'generated': str
     - 'references': list[str]
-    - 'question': str | None
     - 其余键原样保留
     """
+    if isinstance(data, dict):
+        # 标准格式，直接返回
+        return data
+
     if isinstance(data, tuple):
-        # 典型来自 OpenAIGenerator 的输出
+        # 旧的 tuple 格式兼容: (user_query, generated_text)
         question = data[0] if len(data) > 0 else None
         generated = data[1] if len(data) > 1 else ""
         return {
-            "question": question,
+            "query": question,
             "generated": generated if isinstance(generated, str) else str(generated),
             "references": [],
         }
 
-    if isinstance(data, dict):
-        out = dict(data)
-        out.setdefault("generated", out.get("pred", ""))
-        out.setdefault("references", out.get("golds", []))
-        if not isinstance(out.get("references", []), list):
-            out["references"] = [str(out["references"])]
-        return out
-
-    # 其他类型，统一本为 generated 文本
+    # 其他类型，统一作为 generated 文本
     return {
-        "question": None,
+        "query": None,
         "generated": data if isinstance(data, str) else str(data),
         "references": [],
     }
@@ -152,11 +147,6 @@ class AccuracyEvaluate(MapFunction):
 
         # 获取参考答案
         golds = nd.get("references", [])
-        if not golds and "question" in nd:
-            question_data = nd.get("question", {})
-            if isinstance(question_data, dict):
-                golds = question_data.get("references", [])
-
         pred = nd.get("generated", "")
 
         if not golds or not pred:
@@ -165,11 +155,10 @@ class AccuracyEvaluate(MapFunction):
 
         pred_norm = self._normalize_text(pred)
 
-        # 准确率：检查预测答案是否与任一参考答案匹配（完全匹配或关键词匹配）
+        # 准确率：检查预测答案是否与任一参考答案匹配
         correct = False
         for gold in golds:
             gold_norm = self._normalize_text(gold)
-            # 检查是否有关键词匹配
             gold_words = set(gold_norm.split())
             pred_words = set(pred_norm.split())
             # 如果预测答案包含参考答案中的重要词汇，认为是正确的
@@ -185,21 +174,23 @@ class TokenCountEvaluate(MapFunction):
     def execute(self, data: dict):
         nd = _normalize_data(data)
 
-        # 只计算refined_docs的token数（这是LongRefiner压缩后的文档）
-        refined_docs = nd.get("refined_docs", [])
-        total_tokens = 0
+        # 按优先级获取文档
+        docs = nd.get("refining_docs") or nd.get("reranking_docs") or nd.get("retrieval_docs")
 
-        if refined_docs:
-            total_tokens = sum(len(str(doc).split()) for doc in refined_docs)
+        if not docs:
+            print("\033[92m[Token Count] : 0\033[0m")
+            return nd
 
-        print(f"\033[93m[Token Count] : {total_tokens}\033[0m")
+        # 计算总token数（简单估算：字符数/4）
+        total_tokens = sum(len(doc) // 4 for doc in docs)
+        print(f"\033[92m[Token Count] : {total_tokens}\033[0m")
         return nd
 
 
 class LatencyEvaluate(MapFunction):
     def execute(self, data: dict):
         nd = _normalize_data(data)
-        lat = nd.get("refine_time", 0.0) + nd.get("generate_time", 0.0)
+        lat = nd.get("refining_time", 0.0) + nd.get("generation_time", 0.0)
         print(f"\033[93m[Latency] : {lat:.2f}s\033[0m")
         return nd
 
@@ -214,11 +205,6 @@ class ContextRecallEvaluate(MapFunction):
 
         # Context Recall: 检查生成的答案是否包含了参考答案中的关键信息
         golds = nd.get("references", [])
-        if not golds and "question" in nd:
-            question_data = nd.get("question", {})
-            if isinstance(question_data, dict):
-                golds = question_data.get("references", [])
-
         pred = nd.get("generated", "")
 
         if not golds or not pred:
@@ -253,13 +239,13 @@ class CompressionRateEvaluate(MapFunction):
     def execute(self, data: dict):
         nd = _normalize_data(data)
 
-        # 获取原始检索文档的token数（从results字段的text中）
-        retrieved_docs = nd.get("retrieved_docs", [])
-        retrieved_tokens = self._count_tokens(retrieved_docs)
+        # 获取原始检索文档的token数
+        retrieval_docs = nd.get("retrieval_docs", [])
+        retrieved_tokens = self._count_tokens(retrieval_docs)
 
         # 获取refiner压缩后的文档token数
-        refined_docs = nd.get("refined_docs", [])
-        refined_tokens = self._count_tokens(refined_docs)
+        refining_docs = nd.get("refining_docs", [])
+        refined_tokens = self._count_tokens(refining_docs)
 
         # 计算压缩率
         if refined_tokens > 0:

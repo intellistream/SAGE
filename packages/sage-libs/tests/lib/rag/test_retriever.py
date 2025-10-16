@@ -115,12 +115,15 @@ class TestChromaRetriever:
             query = "What is artificial intelligence?"
             result = retriever.execute(query)
 
-            # 验证结果格式
+            # 验证结果格式 - 使用新的统一格式
             assert isinstance(result, dict)
             assert "query" in result
-            assert "results" in result
+            assert "retrieval_results" in result
+            assert "retrieval_docs" in result
+            assert "retrieval_time" in result
             assert result["query"] == query
-            assert len(result["results"]) == 2
+            assert len(result["retrieval_results"]) == 2
+            assert len(result["retrieval_docs"]) == 2
 
     @patch("sage.libs.rag.retriever.ChromaUtils")
     @patch("sage.libs.rag.retriever.ChromaBackend")
@@ -155,10 +158,11 @@ class TestChromaRetriever:
             input_data = {"query": "What is machine learning?", "other_field": "value"}
             result = retriever.execute(input_data)
 
-            # 验证结果格式
+            # 验证结果格式 - 使用新的统一格式
             assert isinstance(result, dict)
-            assert "results" in result
-            assert "retrieved_docs" in result  # 验证新增的retrieved_docs字段
+            assert "retrieval_results" in result
+            assert "retrieval_docs" in result
+            assert "retrieval_time" in result
             assert result["query"] == "What is machine learning?"
             assert result["other_field"] == "value"
 
@@ -226,10 +230,11 @@ class TestChromaRetriever:
             query = "测试查询"
             result = retriever.execute(query)
 
-            # 验证错误处理
+            # 验证错误处理 - 使用新的统一格式
             assert isinstance(result, dict)
             assert result["query"] == query
-            assert result["results"] == []
+            assert result["retrieval_results"] == []
+            assert result["retrieval_docs"] == []
 
 
 # 尝试导入检索模块

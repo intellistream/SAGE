@@ -38,12 +38,16 @@ answer = rag.generate("什么是机器学习？", top_k=5)
 
 ## 📖 详细文档
 
-更多详细的API参考、配置选项和高级用法，请参阅：
+更多详细的API参考、配置选项和高级用法,请参阅：
 
 **[📚 RAG API 完整参考文档](../../../docs-public/docs_src/librarys/rag/api_reference.md)**
 
+**[📋 RAG 统一数据格式规范](./DATA_FORMAT.md)** ⭐ 重要
+
 包含完整的：
 - API 使用指南和示例
+- 统一数据格式规范和字段说明
+- 各阶段数据流详解
 - 高级配置选项
 - 性能优化建议
 - 评估体系说明

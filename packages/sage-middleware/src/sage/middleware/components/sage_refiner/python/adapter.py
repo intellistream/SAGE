@@ -76,21 +76,28 @@ class RefinerAdapter(MapFunction):
         期望输入格式:
             {
                 "query" or "question": "用户问题",
-                "retrieved_docs" or "results": [...],  # 检索到的文档
+                "retrieval_results" or "retrieval_docs" or "results": [...],  # 检索到的文档
                 ... # 其他字段会保留
             }
 
         输出格式:
             {
                 ... # 原始字段
-                "refined_docs": [...],  # 精炼后的文档
-                "refine_metrics": {...},  # 精炼指标
+                "refining_results": [...],  # 精炼后的文档
+                "refining_docs": [...],  # 精炼后的文档（同refining_results）
+                "refining_time": float,  # 精炼耗时
             }
         """
         # 标准化输入
         if isinstance(data, dict):
             query = data.get("query") or data.get("question", "")
-            documents = data.get("retrieved_docs") or data.get("results", [])
+            # 优先读取新字段，兼容旧字段
+            documents = (
+                data.get("retrieval_results")
+                or data.get("retrieval_docs")
+                or data.get("retrieved_docs")
+                or data.get("results", [])
+            )
         else:
             self.logger.warning(f"Unexpected data format: {type(data)}")
             return data
@@ -99,8 +106,9 @@ class RefinerAdapter(MapFunction):
             self.logger.debug("No documents to refine, skipping")
             # 保留原始数据，添加空的精炼结果
             if isinstance(data, dict):
-                data["refined_docs"] = []
-                data["refine_metrics"] = {}
+                data["refining_results"] = []
+                data["refining_docs"] = []
+                data["refining_time"] = 0.0
             return data
 
         # 执行精炼
@@ -113,10 +121,11 @@ class RefinerAdapter(MapFunction):
                 use_cache=self.config.get("enable_cache", True),
             )
 
-            # 组装输出
+            # 组装输出 - 使用统一的字段格式
             output = data.copy() if isinstance(data, dict) else {}
-            output["refined_docs"] = result.refined_content
-            output["refine_metrics"] = result.metrics.to_dict()
+            output["refining_results"] = result.refined_content
+            output["refining_docs"] = result.refined_content  # 保持一致性
+            output["refining_time"] = result.metrics.refine_time
 
             # 性能日志
             if self.enable_profile:
@@ -132,8 +141,9 @@ class RefinerAdapter(MapFunction):
             self.logger.error(f"Refiner execution failed: {e}", exc_info=True)
             # 失败时返回原始数据
             if isinstance(data, dict):
-                data["refined_docs"] = documents
-                data["refine_metrics"] = {"error": str(e)}
+                data["refining_results"] = documents
+                data["refining_docs"] = documents
+                data["refining_time"] = 0.0
             return data
 
     def __del__(self):

@@ -155,7 +155,7 @@ class TestBGEReranker:
     def test_execute_with_tuple_input(
         self, mock_no_grad, mock_cuda_available, mock_model_class, mock_tokenizer_class
     ):
-        """测试execute方法处理元组输入"""
+        """测试execute方法处理字典输入（新格式）"""
         if not RERANKER_AVAILABLE:
             pytest.skip("Reranker module not available")
 
@@ -190,22 +190,27 @@ class TestBGEReranker:
 
         reranker = BGEReranker(config=config)
 
-        # 测试输入
-        query = "What is machine learning?"
-        docs = [
-            {"content": "Machine learning is a subset of AI", "score": 0.8},
-            {"content": "Deep learning uses neural networks", "score": 0.7},
-        ]
-        input_data = (query, docs)
+        # 测试输入 - 使用新的字典格式
+        input_data = {
+            "query": "What is machine learning?",
+            "retrieval_docs": [
+                "Machine learning is a subset of AI",
+                "Deep learning uses neural networks",
+            ],
+            "retrieval_results": [
+                "Machine learning is a subset of AI",
+                "Deep learning uses neural networks",
+            ],
+            "retrieval_time": 0.5,
+        }
 
         result = reranker.execute(input_data)
 
-        # 验证结果 - BGEReranker 返回 [query, docs_list]
-        assert isinstance(result, list)
-        assert len(result) == 2
-        query_result, docs_result = result
-        assert query_result == query
-        assert isinstance(docs_result, list)
+        # 验证结果 - BGEReranker 返回更新后的字典
+        assert isinstance(result, dict)
+        assert "reranking_results" in result
+        assert "reranking_docs" in result
+        assert "reranking_time" in result
 
     @patch("sage.libs.rag.reranker.AutoTokenizer")
     @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
@@ -225,27 +230,28 @@ class TestBGEReranker:
         mock_tokenizer_class.from_pretrained.return_value = mock_tokenizer
         mock_model_class.from_pretrained.return_value = mock_model
 
+        # 让model.to()返回同一个model对象
+        mock_model.to.return_value = mock_model
+
         config = {"model_name": "BAAI/bge-reranker-v2-m3", "top_k": 5}
 
         reranker = BGEReranker(config=config)
 
-        # 测试空文档列表
-        query = "What is AI?"
-        docs = []
-        input_data = (query, docs)
+        # 测试空文档列表 - 使用新格式
+        input_data = {
+            "query": "What is AI?",
+            "retrieval_docs": [],
+            "retrieval_results": [],
+            "retrieval_time": 0.5,
+        }
 
         result = reranker.execute(input_data)
 
-        # 验证结果 - BGEReranker 在空文档时返回 (query, [])，这与非空情况不一致
-        # 这可能是实现中的不一致性，但我们测试实际行为
-        if isinstance(result, tuple):
-            query_result, docs_result = result
-        else:
-            # 如果将来修复为一致的列表返回
-            assert isinstance(result, list)
-            query_result, docs_result = result
-        assert query_result == query
-        assert docs_result == []
+        # 验证结果 - 返回空的 reranking 结果
+        assert isinstance(result, dict)
+        assert result["reranking_results"] == []
+        assert result["reranking_docs"] == []
+        assert "reranking_time" in result
 
     @patch("sage.libs.rag.reranker.AutoTokenizer")
     @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
@@ -291,23 +297,29 @@ class TestBGEReranker:
 
         reranker = BGEReranker(config=config)
 
-        # 测试输入 - 多个文档
-        query = "machine learning algorithms"
-        docs = [
-            {"content": "Random forest is a machine learning algorithm", "score": 0.6},
-            {"content": "Cats are pets", "score": 0.5},
-            {"content": "Neural networks are used in machine learning", "score": 0.7},
-        ]
-        input_data = (query, docs)
+        # 测试输入 - 多个文档，使用新格式
+        input_data = {
+            "query": "machine learning algorithms",
+            "retrieval_docs": [
+                "Random forest is a machine learning algorithm",
+                "Cats are pets",
+                "Neural networks are used in machine learning",
+            ],
+            "retrieval_results": [
+                "Random forest is a machine learning algorithm",
+                "Cats are pets",
+                "Neural networks are used in machine learning",
+            ],
+            "retrieval_time": 0.5,
+        }
 
         result = reranker.execute(input_data)
 
-        # 验证结果 - BGEReranker 返回 [query, docs_list]
-        assert isinstance(result, list)
-        assert len(result) == 2
-        query_result, docs_result = result
-        assert query_result == query
-        assert len(docs_result) == 3
+        # 验证结果 - BGEReranker 返回更新后的字典
+        assert isinstance(result, dict)
+        assert "reranking_results" in result
+        assert "reranking_docs" in result
+        assert len(result["reranking_docs"]) == 3
 
     @patch("sage.libs.rag.reranker.AutoTokenizer")
     @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
@@ -351,25 +363,32 @@ class TestBGEReranker:
 
         reranker = BGEReranker(config=config)
 
-        # 测试输入 - 5个文档
-        query = "test query"
-        docs = [
-            {"content": "doc1", "score": 0.1},
-            {"content": "doc2", "score": 0.2},
-            {"content": "doc3", "score": 0.3},
-            {"content": "doc4", "score": 0.4},
-            {"content": "doc5", "score": 0.5},
-        ]
-        input_data = (query, docs)
+        # 测试输入 - 5个文档，使用新格式
+        input_data = {
+            "query": "test query",
+            "retrieval_docs": [
+                "doc1",
+                "doc2",
+                "doc3",
+                "doc4",
+                "doc5",
+            ],
+            "retrieval_results": [
+                "doc1",
+                "doc2",
+                "doc3",
+                "doc4",
+                "doc5",
+            ],
+            "retrieval_time": 0.5,
+        }
 
         result = reranker.execute(input_data)
 
-        # 验证结果 - BGEReranker 返回 [query, docs_list]
-        assert isinstance(result, list)
-        assert len(result) == 2
-        query_result, docs_result = result
-        assert query_result == query
-        assert len(docs_result) <= 3  # 被top_k限制
+        # 验证结果 - BGEReranker 返回更新后的字典，只保留top_k个文档
+        assert isinstance(result, dict)
+        assert "reranking_docs" in result
+        assert len(result["reranking_docs"]) == 3  # 应该只有3个文档
 
     @patch("sage.libs.rag.reranker.AutoTokenizer")
     @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
@@ -396,15 +415,19 @@ class TestBGEReranker:
 
         reranker = BGEReranker(config=config)
 
-        query = "test query"
-        docs = [{"content": "test doc", "score": 0.5}]
-        input_data = (query, docs)
+        # 使用新格式
+        input_data = {
+            "query": "test query",
+            "retrieval_docs": ["test doc"],
+            "retrieval_results": ["test doc"],
+            "retrieval_time": 0.5,
+        }
 
         # 验证异常处理
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(RuntimeError) as exc_info:
             reranker.execute(input_data)
 
-        assert "Tokenization failed" in str(exc_info.value)
+        assert "BGEReranker error" in str(exc_info.value)
 
 
 @pytest.mark.integration

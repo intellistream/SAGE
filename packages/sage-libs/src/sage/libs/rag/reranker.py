@@ -60,7 +60,7 @@ class BGEReranker(MapFunction):
             self.logger.error(f"Failed to load model {model_name}: {str(e)}")
             raise RuntimeError(f"Model loading failed: {str(e)}")
 
-    def execute(self, data: Tuple[str, List[str]]):
+    def execute(self, data: dict):
         """
         Executes the reranking process:
         1. Unpacks the input data (query and list of documents).
@@ -68,43 +68,38 @@ class BGEReranker(MapFunction):
         3. Calculates relevance scores using the model.
         4. Sorts documents based on their relevance scores.
 
-        :param data: A Data object containing a tuple of (query, doc_set), where:
-                     - query: The user query.
-                     - doc_set: List of retrieved documents.
-        :return: A Data object containing a tuple (query, reranked_documents_with_scores).
+        :param data: Dict containing query and retrieval results
+        :return: Dict with reranking_results, reranking_docs, reranking_time
         """
+        import time
+        start_time = time.time()
+        
         try:
-            # 处理不同的输入格式
-            if isinstance(data, dict):
-                # 来自 ChromaRetriever 的字典格式: {"query": ..., "results": [...]}
-                query = data.get("query", "")
-                doc_set = data.get("results", [])
-                if not query:
-                    self.logger.error("Missing 'query' field in dictionary input")
-                    return {"query": "", "results": []}
-            elif isinstance(data, (tuple, list)) and len(data) == 2:
-                # 传统的元组格式: (query, doc_set)
-                query, doc_set = data
-            else:
-                self.logger.error(
-                    f"Unexpected input format for BGEReranker: {type(data)}"
-                )
-                return {"query": "", "results": []}
+            query = data.get("query", "")
+            
+            # 按优先级获取文档列表
+            doc_set = data.get("refining_docs") or data.get("retrieval_docs", [])
+            
+            if not query:
+                self.logger.error("Missing 'query' field in input")
+                data.update({
+                    "reranking_results": [],
+                    "reranking_docs": [],
+                    "reranking_time": 0.0
+                })
+                return data
 
-            top_k = self.config.get("topk") or self.config.get(
-                "top_k", 3
-            )  # Get the top-k parameter for reranking
+            top_k = self.config.get("topk") or self.config.get("top_k", 3)
 
             # Handle empty document set case
             if not doc_set:
-                print(
-                    "BGEReranker received empty document set, returning empty results"
-                )
-                # 返回与输入格式一致的输出
-                if isinstance(data, dict):
-                    return {"query": query, "results": []}
-                else:
-                    return query, []
+                print("BGEReranker received empty document set, returning empty results")
+                data.update({
+                    "reranking_results": [],
+                    "reranking_docs": [],
+                    "reranking_time": time.time() - start_time
+                })
+                return data
 
             # Generate query-document pairs for scoring
             pairs = [(query, doc) for doc in doc_set]
@@ -127,20 +122,22 @@ class BGEReranker(MapFunction):
 
             # Create a list of scored documents
             scored_docs = [
-                {"retrieved_docs": doc, "relevance_score": score}
+                {"text": doc, "score": float(score)}
                 for doc, score in zip(doc_set, scores)
             ]
 
             # Sort the documents by relevance score in descending order
             reranked_docs = sorted(
-                scored_docs, key=lambda x: x["relevance_score"], reverse=True
+                scored_docs, key=lambda x: x["score"], reverse=True
             )[:top_k]
-            reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
+            
+            reranked_docs_list = [doc["text"] for doc in reranked_docs]
+            
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list}\033[0m "
             )
             self.logger.debug(
-                f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}"
+                f"Top score: {reranked_docs[0]['score'] if reranked_docs else 'N/A'}"
             )
 
             print(f"Rerank Results: {reranked_docs_list}")
@@ -148,14 +145,13 @@ class BGEReranker(MapFunction):
         except Exception as e:
             raise RuntimeError(f"BGEReranker error: {str(e)}")
 
-        # 返回与输入格式一致的输出
-        if isinstance(data, dict):
-            return {"query": query, "results": reranked_docs_list}
-        else:
-            return [
-                query,
-                reranked_docs_list,
-            ]  # Return the reranked documents along with the original query
+        # 更新data字典
+        data.update({
+            "reranking_results": reranked_docs,
+            "reranking_docs": reranked_docs_list,
+            "reranking_time": time.time() - start_time
+        })
+        return data
 
 
 class LLMbased_Reranker(MapFunction):
@@ -272,7 +268,7 @@ class LLMbased_Reranker(MapFunction):
         )
 
     # @torch.inference_mode()
-    def execute(self, data: Tuple[str, List[str]]) -> Tuple[str, List[str]]:
+    def execute(self, data: dict):
         """
         Executes the reranking process:
         1. Unpacks the input data (query and list of documents).
@@ -280,82 +276,75 @@ class LLMbased_Reranker(MapFunction):
         3. Calculates relevance scores based on 'Yes'/'No' predictions.
         4. Sorts documents based on their relevance scores.
 
-        :param data: A Data object containing a tuple of (query, doc_set), where:
-                     - query: The user query.
-                     - doc_set: List of retrieved documents.
-        :return: A Data object containing a tuple (query, reranked_documents_with_scores).
+        :param data: Dict containing query and retrieval results
+        :return: Dict with reranking_results, reranking_docs, reranking_time
         """
+        import time
+        start_time = time.time()
+        
         try:
-            # 处理不同的输入格式
-            if isinstance(data, dict):
-                # 来自 ChromaRetriever 的字典格式: {"query": ..., "results": [...]}
-                query = data.get("query", "")
-                doc_set = data.get("results", [])
-                if not query:
-                    self.logger.error("Missing 'query' field in dictionary input")
-                    return {"query": "", "results": []}
-            elif isinstance(data, (tuple, list)) and len(data) == 2:
-                # 传统的元组格式: (query, doc_set)
-                query, doc_set = data
-            else:
-                self.logger.error(
-                    f"Unexpected input format for LLMbased_Reranker: {type(data)}"
+            query = data.get("query", "")
+            
+            # 按优先级获取文档列表
+            retrieved_docs = data.get("refining_docs") or data.get("retrieval_docs", [])
+            
+            if not query:
+                self.logger.error("Missing 'query' field in input")
+                data.update({
+                    "reranking_results": [],
+                    "reranking_docs": [],
+                    "reranking_time": 0.0
+                })
+                return data
+
+            top_k = self.config["topk"]
+
+            # Generate query-document pairs for classification
+            pairs = [[query, doc] for doc in retrieved_docs]
+
+            # Tokenize the pairs and move inputs to the appropriate device
+            with torch.no_grad():
+                raw_inputs = self.get_inputs(pairs, self.tokenizer)
+                inputs = {k: v.to(self.device) for k, v in raw_inputs.items()}
+
+                scores = (
+                    self.model(**inputs, return_dict=True)
+                    .logits[:, -1, self.yes_loc]
+                    .view(-1)
+                    .float()
                 )
-                return {"query": "", "results": []}
 
-            doc_set = [doc_set]  # Wrap doc_set in a list for processing
-            top_k = self.config["topk"]  # Get the top-k parameter for reranking
-            emit_docs = []  # Initialize the list to store reranked documents
+            # Create a list of scored documents
+            scored_docs = [
+                {"text": doc, "score": float(score)}
+                for doc, score in zip(retrieved_docs, scores)
+            ]
 
-            for retrieved_docs in doc_set:
-                # Generate query-document pairs for classification
-                pairs = [[query, doc] for doc in retrieved_docs]
-
-                # Tokenize the pairs and move inputs to the appropriate device
-                with torch.no_grad():
-                    raw_inputs = self.get_inputs(pairs, self.tokenizer)
-                    inputs = {k: v.to(self.device) for k, v in raw_inputs.items()}
-
-                    scores = (
-                        self.model(**inputs, return_dict=True)
-                        .logits[:, -1, self.yes_loc]
-                        .view(-1)
-                        .float()
-                    )
-
-                # Create a list of scored documents
-                scored_docs = [
-                    {"retrieved_docs": doc, "relevance_score": score}
-                    for doc, score in zip(retrieved_docs, scores)
-                ]
-
-                # Sort the documents by relevance score in descending order
-                reranked_docs = sorted(
-                    scored_docs, key=lambda x: x["relevance_score"], reverse=True
-                )[:top_k]
-                reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
-                emit_docs.append(reranked_docs_list)
-                self.logger.info(
-                    f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list}\033[0m "
-                )
-                self.logger.debug(
-                    f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}"
-                )
+            # Sort the documents by relevance score in descending order
+            reranked_docs = sorted(
+                scored_docs, key=lambda x: x["score"], reverse=True
+            )[:top_k]
+            
+            reranked_docs_list = [doc["text"] for doc in reranked_docs]
+            
+            self.logger.info(
+                f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list}\033[0m "
+            )
+            self.logger.debug(
+                f"Top score: {reranked_docs[0]['score'] if reranked_docs else 'N/A'}"
+            )
 
         except Exception as e:
-            self.logger.error(f"{str(e)} when RerankerFuncton")
+            self.logger.error(f"{str(e)} when RerankerFunction")
             raise RuntimeError(f"Reranker error: {str(e)}")
 
-        emit_docs = emit_docs[0]  # Only return the first set of reranked documents
-
-        # 返回与输入格式一致的输出
-        if isinstance(data, dict):
-            return {"query": query, "results": emit_docs}
-        else:
-            return (
-                query,
-                emit_docs,
-            )  # Return the reranked documents along with the original query
+        # 更新data字典
+        data.update({
+            "reranking_results": reranked_docs,
+            "reranking_docs": reranked_docs_list,
+            "reranking_time": time.time() - start_time
+        })
+        return data
 
 
 # if __name__ == '__main__':

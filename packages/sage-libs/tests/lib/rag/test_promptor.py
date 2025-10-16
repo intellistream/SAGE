@@ -183,35 +183,39 @@ class TestQAPromptor:
         assert prompt_result[1]["role"] == "user"
 
     def test_execute_with_query_tuple(self):
-        """Test execute method with query tuple"""
+        """Test execute method with query dict using refining_docs"""
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # Test tuple input
-        query = "What is reinforcement learning?"
-        docs = [
-            {"content": "Reinforcement learning is a type of machine learning."},
-            {"content": "It involves agents learning through interaction."},
-        ]
-        input_data = (query, docs)
+        # Test dict input with refining_docs
+        input_data = {
+            "query": "What is reinforcement learning?",
+            "refining_docs": [
+                "Reinforcement learning is a type of machine learning.",
+                "It involves agents learning through interaction.",
+            ],
+        }
 
         result = promptor.execute(input_data)
 
-        # Verify result - tuple input triggers error handling, returns error message
+        # Verify result - returns [original_data, prompt]
         assert isinstance(result, list)
         assert len(result) == 2
-        system_msg, user_msg = result
+        original_data, prompt = result
 
-        # Verify error handling format
+        # Verify original data is preserved
+        assert original_data == input_data
+
+        # Verify prompt format
+        assert isinstance(prompt, list)
+        assert len(prompt) == 2
+        system_msg, user_msg = prompt
         assert system_msg["role"] == "system"
-        assert (
-            "error" in system_msg["content"].lower()
-            or "encountered" in system_msg["content"].lower()
-        )
         assert user_msg["role"] == "user"
+        assert "What is reinforcement learning?" in user_msg["content"]
 
     def test_execute_preserves_additional_fields(self):
         """Test execute method preserves additional fields"""
@@ -419,18 +423,20 @@ class TestPromptorIntegration:
         config = {"task_type": "qa"}
         promptor = QAPromptor(config=config)
 
-        # Simulate complete RAG pipeline data
+        # Simulate complete RAG pipeline data with new unified format
         pipeline_data = {
-            "question": "What are the benefits of renewable energy?",
-            "retrieved_docs": [
-                {"content": "Renewable energy reduces carbon emissions.", "score": 0.9},
-                {
-                    "content": "Solar and wind power are sustainable sources.",
-                    "score": 0.8,
-                },
-                {"content": "Renewable energy creates green jobs.", "score": 0.7},
+            "query": "What are the benefits of renewable energy?",
+            "retrieval_results": [
+                "Renewable energy reduces carbon emissions.",
+                "Solar and wind power are sustainable sources.",
+                "Renewable energy creates green jobs.",
             ],
-            "metadata": {"retrieval_method": "dense", "total_docs": 100, "top_k": 3},
+            "retrieval_docs": [
+                "Renewable energy reduces carbon emissions.",
+                "Solar and wind power are sustainable sources.",
+                "Renewable energy creates green jobs.",
+            ],
+            "retrieval_time": 0.5,
         }
 
         result = promptor.execute(pipeline_data)
@@ -443,9 +449,8 @@ class TestPromptorIntegration:
 
         # Verify data section
         assert isinstance(data, dict)
-        assert "question" in data
-        assert "retrieved_docs" in data
-        assert "metadata" in data
+        assert "query" in data
+        assert "retrieval_docs" in data
 
         # Verify messages section (OpenAI format)
         assert isinstance(messages, list)

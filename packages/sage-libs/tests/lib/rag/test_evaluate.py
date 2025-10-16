@@ -35,7 +35,7 @@ except ImportError as e:
 def sample_evaluation_data():
     """提供测试评估数据的fixture"""
     return {
-        "question": "什么是机器学习？",
+        "query": "什么是机器学习？",
         "generated": "机器学习是人工智能的一个分支，它使计算机能够自动学习。",
         "references": [
             "机器学习是人工智能的子领域，专注于算法的开发。",
@@ -58,7 +58,7 @@ class TestNormalizeData:
         result = _normalize_data(input_data)
 
         expected = {
-            "question": "什么是机器学习？",
+            "query": "什么是机器学习？",
             "generated": "机器学习是一种人工智能技术",
             "references": [],
         }
@@ -72,7 +72,7 @@ class TestNormalizeData:
         input_data = ()
         result = _normalize_data(input_data)
 
-        expected = {"question": None, "generated": "", "references": []}
+        expected = {"query": None, "generated": "", "references": []}
         assert result == expected
 
     def test_normalize_data_with_single_element_tuple(self):
@@ -83,7 +83,7 @@ class TestNormalizeData:
         input_data = ("What is AI?",)
         result = _normalize_data(input_data)
 
-        expected = {"question": "What is AI?", "generated": "", "references": []}
+        expected = {"query": "What is AI?", "generated": "", "references": []}
         assert result == expected
 
     def test_normalize_data_with_non_string_tuple(self):
@@ -94,7 +94,7 @@ class TestNormalizeData:
         input_data = ("What is ML?", 123)
         result = _normalize_data(input_data)
 
-        expected = {"question": "What is ML?", "generated": "123", "references": []}
+        expected = {"query": "What is ML?", "generated": "123", "references": []}
         assert result == expected
 
     def test_normalize_data_with_complete_dict(self):
@@ -103,7 +103,7 @@ class TestNormalizeData:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "What is AI?",
+            "query": "What is AI?",
             "generated": "AI is artificial intelligence.",
             "references": ["AI is machine intelligence.", "AI mimics human cognition."],
             "extra_field": "additional information",
@@ -114,12 +114,12 @@ class TestNormalizeData:
         assert result == input_data
 
     def test_normalize_data_with_pred_golds_dict(self):
-        """测试包含pred和golds字段的字典输入"""
+        """测试包含pred和golds的字典输入"""
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "What is machine learning?",
+            "query": "What is machine learning?",
             "pred": "ML is a subset of AI",
             "golds": [
                 "Machine learning is an AI technique",
@@ -128,15 +128,11 @@ class TestNormalizeData:
         }
         result = _normalize_data(input_data)
 
+        # _normalize_data 对字典输入直接返回，不做转换
         expected = {
-            "question": "What is machine learning?",
+            "query": "What is machine learning?",
             "pred": "ML is a subset of AI",
             "golds": [
-                "Machine learning is an AI technique",
-                "ML enables computers to learn",
-            ],
-            "generated": "ML is a subset of AI",
-            "references": [
                 "Machine learning is an AI technique",
                 "ML enables computers to learn",
             ],
@@ -149,13 +145,29 @@ class TestNormalizeData:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "What is deep learning?",
+            "query": "What is deep learning?",
+            "other_field": "additional information",
+        }
+        result = _normalize_data(input_data)
+
+        # _normalize_data 对字典输入直接返回，不添加字段
+        expected = {
+            "query": "What is deep learning?",
+            "other_field": "additional information",
+        }
+        assert result == expected
+        """测试缺少字段的字典输入"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        input_data = {
+            "query": "What is deep learning?",
             "other_field": "additional information",
         }
         result = _normalize_data(input_data)
 
         expected = {
-            "question": "What is deep learning?",
+            "query": "What is deep learning?",
             "other_field": "additional information",
             "generated": "",
             "references": [],
@@ -168,16 +180,17 @@ class TestNormalizeData:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "What is neural networks?",
+            "query": "What is neural networks?",
             "generated": "Neural networks are computing systems.",
             "references": "Neural networks mimic biological neurons",
         }
         result = _normalize_data(input_data)
 
+        # _normalize_data 对字典输入直接返回，不做转换
         expected = {
-            "question": "What is neural networks?",
+            "query": "What is neural networks?",
             "generated": "Neural networks are computing systems.",
-            "references": ["Neural networks mimic biological neurons"],
+            "references": "Neural networks mimic biological neurons",
         }
         assert result == expected
 
@@ -189,10 +202,9 @@ class TestNormalizeData:
         input_data = {"golds": "单个标准答案"}
         result = _normalize_data(input_data)
 
+        # _normalize_data 对字典输入直接返回
         expected = {
             "golds": "单个标准答案",
-            "generated": "",
-            "references": ["单个标准答案"],
         }
         assert result == expected
 
@@ -204,7 +216,7 @@ class TestNormalizeData:
         input_data = "这是一个测试答案"
         result = _normalize_data(input_data)
 
-        expected = {"question": None, "generated": "这是一个测试答案", "references": []}
+        expected = {"query": None, "generated": "这是一个测试答案", "references": []}
         assert result == expected
 
     def test_normalize_data_with_number_input(self):
@@ -215,7 +227,7 @@ class TestNormalizeData:
         input_data = 42
         result = _normalize_data(input_data)
 
-        expected = {"question": None, "generated": "42", "references": []}
+        expected = {"query": None, "generated": "42", "references": []}
         assert result == expected
 
     def test_normalize_data_with_none_input(self):
@@ -226,7 +238,7 @@ class TestNormalizeData:
         input_data = None
         result = _normalize_data(input_data)
 
-        expected = {"question": None, "generated": "None", "references": []}
+        expected = {"query": None, "generated": "None", "references": []}
         assert result == expected
 
     def test_normalize_data_preserves_extra_fields(self):
@@ -235,7 +247,7 @@ class TestNormalizeData:
             pytest.skip("Evaluate module not available")
 
         input_data = {
-            "question": "测试问题",
+            "query": "测试问题",
             "generated": "测试答案",
             "references": ["参考答案"],
             "metadata": {"source": "test"},
@@ -247,99 +259,68 @@ class TestNormalizeData:
         # 所有字段都应该被保留
         assert result == input_data
 
-    def test_normalize_data_with_question_references(self):
-        """测试从question.references中提取参考答案（实际pipeline数据格式）"""
+    def test_normalize_data_with_query_references(self):
+        """测试从query.references中提取参考答案（实际pipeline数据格式）"""
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
-        # 模拟实际pipeline中的数据结构
+        # 模拟实际pipeline中的数据结构（已更新为新格式）
         input_data = {
-            "question": {
-                "query": "Who has the highest goals in world football?",
-                "references": [
-                    "Ali Dael has the highest goals in men's world international football with 109 goals.",
-                    "The players with the highest all-time goals differ.",
-                ],
-            },
-            "results": [{"text": "some retrieval result"}],
+            "query": "Who has the highest goals in world football?",
+            "references": [
+                "Ali Dael has the highest goals in men's world international football with 109 goals.",
+                "The players with the highest all-time goals differ.",
+            ],
+            "retrieval_results": [{"text": "some retrieval result"}],
             "generated": "The highest goalscorer in FIFA World Cup history is Gerd Müller with 10 goals.",
-            "references": [],  # 空的顶级references
         }
         result = _normalize_data(input_data)
 
-        # 当前实现：不会从 question.references 回填顶级 references；当顶级 references 存在且为空时保持为空
+        # _normalize_data 对字典直接返回
         assert isinstance(result, dict)
-        assert (
-            result["question"]["query"]
-            == "Who has the highest goals in world football?"
-        )
-        assert result["results"] == [{"text": "some retrieval result"}]
-        assert result["generated"].startswith(
-            "The highest goalscorer in FIFA World Cup history"
-        )
-        assert result["references"] == []
+        assert result["query"] == "Who has the highest goals in world football?"
+        assert len(result["references"]) == 2
 
     def test_normalize_data_with_openai_generator_tuple(self):
         """测试OpenAIGenerator输出的tuple格式（实际pipeline数据格式）"""
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
-        # 模拟OpenAIGenerator的实际输出格式
+        # 模拟OpenAIGenerator的实际输出格式（tuple）
         input_data = (
-            {
-                "query": "Who has the highest goals in world football?",
-                "references": [
-                    "Ali Dael has the highest goals in men's world international football with 109 goals.",
-                    "Josef Bican has the highest goals all-time in men's football with 805 goals.",
-                ],
-            },
-            "  Gerd Müller",
+            "Who has the highest goals in world football?",
+            "Gerd Müller",
         )
         result = _normalize_data(input_data)
 
-        # 当前实现：tuple 输入仅提供 question 与 generated，references 为空
+        # tuple输入转换为字典
         assert isinstance(result, dict)
-        assert (
-            result["question"]["query"]
-            == "Who has the highest goals in world football?"
-        )
-        assert result["generated"] == "  Gerd Müller"
+        assert result["query"] == "Who has the highest goals in world football?"
+        assert result["generated"] == "Gerd Müller"
         assert result["references"] == []
 
     def test_normalize_data_references_priority(self):
-        """测试references提取的优先级：顶级references > golds > question.references"""
+        """测试references字段优先级处理"""
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
-        # 测试顶级references优先
+        # 现在统一格式，直接返回字典，不做转换
         input_data1 = {
-            "question": {"references": ["question ref"]},
-            "golds": ["golds ref"],
-            "references": ["top level ref"],
+            "references": ["main ref"],
             "generated": "answer",
         }
         result1 = _normalize_data(input_data1)
-        assert result1["references"] == ["top level ref"]
+        assert result1["references"] == ["main ref"]
 
-        # 测试golds其次
+        # 带其他字段
         input_data2 = {
-            "question": {"references": ["question ref"]},
             "golds": ["golds ref"],
             "references": [],  # 空的顶级references
             "generated": "answer",
         }
         result2 = _normalize_data(input_data2)
-        # 顶级 references 已存在（即便为空）时，不回退到 golds
+        # 字典直接返回
         assert result2["references"] == []
-
-        # 测试question.references最后
-        input_data3 = {
-            "question": {"references": ["question ref"]},
-            "generated": "answer",
-        }
-        result3 = _normalize_data(input_data3)
-        # 不会从 question.references 回填顶级 references（无 golds 且无顶级 references 时为空列表）
-        assert result3["references"] == []
 
 
 @pytest.mark.unit
@@ -729,7 +710,7 @@ class TestCompressionRateEvaluate:
         evaluator = CompressionRateEvaluate()
 
         test_data = {
-            "question": "What is artificial intelligence?",
+            "query": "What is artificial intelligence?",
             "generated": "AI is a field of computer science.",
             "references": [
                 "Artificial intelligence is the simulation of human intelligence."
@@ -754,7 +735,7 @@ class TestCompressionRateEvaluate:
         evaluator = CompressionRateEvaluate()
 
         test_data = {
-            "question": "What is machine learning?",
+            "query": "What is machine learning?",
             "generated": "Machine learning is a subset of AI.",
             "references": ["Machine learning is a method of data analysis."],
             "retrieved_docs": [],
@@ -779,13 +760,13 @@ class TestCompressionRateEvaluate:
 
         # Test specific compression rate calculation
         test_data = {
-            "question": "What is deep learning?",
+            "query": "What is deep learning?",
             "generated": "Deep learning uses neural networks.",
             "references": ["Deep learning is a machine learning technique."],
-            "retrieved_docs": [
+            "retrieval_docs": [
                 "Original document containing ten words about deep learning neural networks technology"
             ],  # 11 tokens
-            "refined_docs": ["Compressed neural networks document"],  # 4 tokens
+            "refining_docs": ["Compressed neural networks document"],  # 4 tokens
         }
 
         with patch("builtins.print") as mock_print:
@@ -827,13 +808,13 @@ class TestEvaluateIntegration:
 
         # 测试数据格式1：标准格式
         data1 = {
-            "question": "测试问题1",
+            "query": "测试问题1",
             "generated": "生成回答1",
             "references": ["参考答案1", "参考答案2"],
         }
 
         # 测试数据格式2：无参考答案
-        data2 = {"question": "测试问题2", "generated": "生成回答2", "references": []}
+        data2 = {"query": "测试问题2", "generated": "生成回答2", "references": []}
 
         evaluator = F1Evaluate()
 
@@ -856,7 +837,7 @@ class TestEvaluatePerformance:
 
         # 创建大量数据
         large_data = {
-            "question": "性能测试问题",
+            "query": "性能测试问题",
             "generated": " ".join([f"词{i}" for i in range(1000)]),
             "references": [" ".join([f"参考词{i}" for i in range(500)])],
         }
@@ -896,7 +877,7 @@ class TestEvaluateFallback:
                 return data
 
         evaluator = MockEvaluator("MockF1")
-        data = {"question": "test", "generated": "answer", "references": ["ref"]}
+        data = {"query": "test", "generated": "answer", "references": ["ref"]}
 
         with patch("builtins.print") as mock_print:
             result = evaluator.execute(data)

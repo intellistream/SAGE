@@ -200,25 +200,36 @@ class ChromaRetriever(MapFunction):
         """
         执行检索
         Args:
-            data: 查询字符串、元组或字典
+            data: 查询字符串或字典
         Returns:
-            dict: {"query": ..., "results": ..., "input": 原始输入, ...}
+            dict: {"query": ..., "retrieval_results": ..., "retrieval_docs": ..., "retrieval_time": ..., "input": 原始输入}
         """
+        import time
+        start_time = time.time()
+        
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
             input_query = data.get("query", "")
-        elif isinstance(data, tuple) and len(data) > 0:
-            input_query = data[0]
         else:
             input_query = data
 
         if not isinstance(input_query, str):
             self.logger.error(f"Invalid input query type: {type(input_query)}")
             if is_dict_input:
-                data["results"] = []
+                data.update({
+                    "retrieval_results": [],
+                    "retrieval_docs": [],
+                    "retrieval_time": 0.0
+                })
                 return data
             else:
-                return {"query": str(input_query), "results": [], "input": data}
+                return {
+                    "query": str(input_query),
+                    "retrieval_results": [],
+                    "retrieval_docs": [],
+                    "retrieval_time": 0.0,
+                    "input": data
+                }
 
         self.logger.info(
             f"[ {self.__class__.__name__}]: Starting {self.backend_type.upper()} retrieval for query: {input_query}"
@@ -263,31 +274,48 @@ class ChromaRetriever(MapFunction):
             if self.enable_profile:
                 self._save_data_record(input_query, standardized_docs)
 
-            # 提取所有原始文档的text字段，供retrieved_docs使用
-            retrieved_texts = [
+            # 提取所有原始文档的text字段，供retrieval_docs使用
+            retrieval_texts = [
                 doc.get("text", doc.get("content", str(doc)))
                 for doc in standardized_docs
             ]
 
+            retrieval_time = time.time() - start_time
+
             if is_dict_input:
-                data["results"] = standardized_docs
-                data["retrieved_docs"] = retrieved_texts
+                data.update({
+                    "retrieval_results": standardized_docs,
+                    "retrieval_docs": retrieval_texts,
+                    "retrieval_time": retrieval_time
+                })
                 return data
             else:
                 return {
                     "query": input_query,
-                    "results": standardized_docs,
-                    "retrieved_docs": retrieved_texts,
+                    "retrieval_results": standardized_docs,
+                    "retrieval_docs": retrieval_texts,
+                    "retrieval_time": retrieval_time,
                     "input": data,
                 }
 
         except Exception as e:
             self.logger.error(f"ChromaDB retrieval failed: {str(e)}")
+            retrieval_time = time.time() - start_time
             if is_dict_input:
-                data["results"] = []
+                data.update({
+                    "retrieval_results": [],
+                    "retrieval_docs": [],
+                    "retrieval_time": retrieval_time
+                })
                 return data
             else:
-                return {"query": input_query, "results": [], "input": data}
+                return {
+                    "query": input_query,
+                    "retrieval_results": [],
+                    "retrieval_docs": [],
+                    "retrieval_time": retrieval_time,
+                    "input": data
+                }
 
     def save_index(self, save_path: str) -> bool:
         """
@@ -1170,43 +1198,39 @@ class Wiki18FAISSRetriever(MapFunction):
         """
         执行检索
         Args:
-            data: 查询字符串、元组或字典
+            data: 查询字符串或字典
         Returns:
-            dict: {"query": ..., "results": ..., "input": 原始输入, ...}
+            dict: 符合RAG统一数据格式的字典
         """
         start_time = time.time()
 
-        # 支持字典类型输入，优先取 question 字段
+        # 解析输入
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
-            if "query" in data:
-                input_query = data["query"]
-            elif "question" in data:
-                input_query = data["question"]
-            else:
-                self.logger.error("输入字典必须包含 'query' 或 'question' 字段")
-                data["results"] = []
+            input_query = data.get("query", "")
+            if not input_query:
+                self.logger.error("输入字典必须包含 'query' 字段")
+                data["retrieval_results"] = []
+                data["retrieval_docs"] = []
+                data["retrieval_time"] = 0.0
                 return data
-        elif isinstance(data, tuple) and len(data) > 0:
-            input_query = data[0]
         else:
-            input_query = data
+            input_query = str(data)
 
-        if not isinstance(input_query, str):
-            self.logger.error(f"Invalid input query type: {type(input_query)}")
-            if is_dict_input:
-                data["results"] = []
-                return data
-            else:
-                return {"query": str(input_query), "results": [], "input": data}
-
-        if not input_query or not input_query.strip():
+        if not input_query.strip():
             self.logger.error("查询不能为空")
             if is_dict_input:
-                data["results"] = []
+                data["retrieval_results"] = []
+                data["retrieval_docs"] = []
+                data["retrieval_time"] = 0.0
                 return data
             else:
-                return {"query": "", "results": [], "input": data}
+                return {
+                    "query": "",
+                    "retrieval_results": [],
+                    "retrieval_docs": [],
+                    "retrieval_time": 0.0
+                }
 
         input_query = input_query.strip()
         self.logger.info(
@@ -1229,36 +1253,42 @@ class Wiki18FAISSRetriever(MapFunction):
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from FAISS\033[0m"
             )
-            self.logger.debug(
-                f"Retrieved documents: {retrieved_docs[:3]}..."
-            )  # 只显示前3个文档的预览
 
             # 保存数据记录（只有enable_profile=True时才保存）
             if self.enable_profile:
                 self._save_data_record(input_query, retrieved_docs)
 
-            # 提取所有原始文档的text字段，供retrieved_docs使用
+            # 提取文档文本
             retrieved_texts = [doc["text"] for doc in retrieved_docs if "text" in doc]
 
+            # 构造输出（使用统一字段名）
             if is_dict_input:
-                data["results"] = retrieved_docs
-                data["retrieved_docs"] = retrieved_texts
+                data["retrieval_results"] = retrieved_docs
+                data["retrieval_docs"] = retrieved_texts
+                data["retrieval_time"] = retrieval_time
                 return data
             else:
                 return {
                     "query": input_query,
-                    "results": retrieved_docs,
-                    "retrieved_docs": retrieved_texts,
-                    "input": data,
+                    "retrieval_results": retrieved_docs,
+                    "retrieval_docs": retrieved_texts,
+                    "retrieval_time": retrieval_time
                 }
 
         except Exception as e:
             self.logger.error(f"FAISS retrieval failed: {str(e)}")
             if is_dict_input:
-                data["results"] = []
+                data["retrieval_results"] = []
+                data["retrieval_docs"] = []
+                data["retrieval_time"] = 0.0
                 return data
             else:
-                return {"query": input_query, "results": [], "input": data}
+                return {
+                    "query": input_query,
+                    "retrieval_results": [],
+                    "retrieval_docs": [],
+                    "retrieval_time": 0.0
+                }
 
     def build_index_from_wiki18(self, wiki18_data_path: str, save_path: str = None):
         """

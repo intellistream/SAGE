@@ -32,19 +32,14 @@ def pipeline_run(config):
     (
         env.from_batch(HFDatasetBatch, config["source"])
         .map(Wiki18FAISSRetriever, config["retriever"], enable_profile=enable_profile)
-        .map(RefinerOperator, config["refiner"], enable_profile=enable_profile)
+        .map(RefinerOperator, config["refiner"])
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
         .map(
             OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile
         )
         .map(F1Evaluate, config["evaluate"])
-        .map(RecallEvaluate, config["evaluate"])
-        .map(RougeLEvaluate, config["evaluate"])
-        .map(BRSEvaluate, config["evaluate"])
-        .map(AccuracyEvaluate, config["evaluate"])
         .map(TokenCountEvaluate, config["evaluate"])
         .map(LatencyEvaluate, config["evaluate"])
-        .map(ContextRecallEvaluate, config["evaluate"])
         .map(CompressionRateEvaluate, config["evaluate"])
     )
 
@@ -78,7 +73,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     config_path = os.path.join(
-        os.path.dirname(__file__), "..", "config", "config_refiner.yaml"
+        os.path.dirname(__file__), "..", "..", "config", "config_refiner.yaml"
     )
 
     # 检查配置文件是否存在

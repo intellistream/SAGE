@@ -157,87 +157,44 @@ class QAPromptor(MapFunction):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    # sage_lib/functions/rag/qapromptor.py
     def execute(self, data) -> list:
         """
         生成 ChatGPT 风格的 prompt（system+user 两条消息）。
 
-        支持多种输入格式：
-        1. (query, external_corpus_list_or_str)  # 元组格式
-        2. query_str  # 纯字符串
-        3. {"query": ..., "results": [...]}  # 字典格式（来自检索器）
-        4. {"question": ..., "context": [...]}  # 字典格式（来自测试）
+        输入格式:
+            dict: {"query": ..., "refining_docs": [...]}  # 字典格式（来自上游算子）
+        
+        输出格式:
+            [original_data, prompt]
         """
         self.logger.info(f"QAPromptor received data: {data}")
         try:
-            # -------- 解析输入 --------
-            raw = data
-            original_data = data  # 保存原始数据以便返回
-
-            if isinstance(raw, dict):
-                # 字典格式输入 - 支持多种字段名
-                query = raw.get("query", raw.get("question", ""))
-
-                # 处理不同的上下文字段名
+            # 解析输入
+            if isinstance(data, dict):
+                query = data.get("query", "")
+                
+                # 优先使用精炼后的文档，其次使用检索文档
                 external_corpus_list = []
-
-                # 处理 results 字段（来自检索器）
-                if "results" in raw:
-                    results = raw.get("results", [])
-                    for result in results:
-                        if isinstance(result, dict) and "text" in result:
-                            external_corpus_list.append(result["text"])
-                        elif isinstance(result, str):
-                            external_corpus_list.append(result)
-                        else:
-                            external_corpus_list.append(str(result))
-
-                # 处理 context 字段（来自测试）
-                elif "context" in raw:
-                    context = raw.get("context", [])
-                    if isinstance(context, list):
-                        external_corpus_list.extend([str(c) for c in context])
-                    else:
-                        external_corpus_list.append(str(context))
-
-                # 处理 external_corpus 字段
-                elif "external_corpus" in raw:
-                    external_corpus = raw.get("external_corpus", "")
-                    if isinstance(external_corpus, list):
-                        external_corpus_list.extend([str(c) for c in external_corpus])
-                    else:
-                        external_corpus_list.append(str(external_corpus))
-
-                # 处理 retrieved_docs 字段
-                elif "retrieved_docs" in raw:
-                    retrieved_docs = raw.get("retrieved_docs", [])
-                    for doc in retrieved_docs:
-                        if isinstance(doc, dict) and "content" in doc:
-                            external_corpus_list.append(doc["content"])
-                        elif isinstance(doc, str):
-                            external_corpus_list.append(doc)
-                        else:
-                            external_corpus_list.append(str(doc))
-
-                external_corpus = "\n".join(external_corpus_list)
-
-            elif isinstance(raw, tuple) and len(raw) == 2:
-                # 元组格式输入
-                query, external_corpus = raw
-                if isinstance(external_corpus, list):
-                    external_corpus = "\n".join(external_corpus)
-                # 对于元组输入，保持原有行为，返回query而不是原始数据
-                original_data = query
+                
+                # 1. 尝试从 refining_docs 获取（精炼后的文档）
+                if "refining_docs" in data:
+                    external_corpus_list = data["refining_docs"]
+                # 2. 如果没有精炼文档，使用重排序文档
+                elif "reranking_docs" in data:
+                    external_corpus_list = data["reranking_docs"]
+                # 3. 如果没有重排序文档，使用检索文档
+                elif "retrieval_docs" in data:
+                    external_corpus_list = data["retrieval_docs"]
+                
+                external_corpus = "\n".join(external_corpus_list) if external_corpus_list else ""
+                original_data = data
             else:
-                # 字符串格式输入
-                query = str(raw)
+                # 其他格式不再支持
+                query = str(data)
                 external_corpus = ""
-                # 对于字符串输入，保持原有行为，返回query而不是原始数据
-                original_data = query
+                original_data = data
 
-            external_corpus = external_corpus or ""
-
-            # -------- system prompt --------
+            # 生成 system prompt
             if external_corpus:
                 system_prompt = {
                     "role": "system",
@@ -254,14 +211,13 @@ class QAPromptor(MapFunction):
                     ),
                 }
 
-            # -------- user prompt --------
+            # 生成 user prompt
             user_prompt = {
                 "role": "user",
                 "content": f"Question: {query}",
             }
-            self.logger.info(
-                f"QAPromptor generated prompt: {system_prompt['content']} | {user_prompt['content']}"
-            )
+            
+            self.logger.info(f"QAPromptor generated prompt for query: {query}")
             prompt = [system_prompt, user_prompt]
 
             # 保存数据记录（只有enable_profile=True时才保存）
@@ -271,20 +227,12 @@ class QAPromptor(MapFunction):
             return [original_data, prompt]
 
         except Exception as e:
-            self.logger.error(
-                "QAPromptor error: %s | input=%s", e, getattr(data, "data", "")
-            )
+            self.logger.error(f"QAPromptor error: {e}")
             fallback = [
                 {"role": "system", "content": "System encountered an error."},
-                {
-                    "role": "user",
-                    "content": (
-                        "Question: Error occurred. Please try again."
-                        f" (Original: {getattr(data, 'data', '')})"
-                    ),
-                },
+                {"role": "user", "content": "Question: Error occurred."},
             ]
-            return fallback
+            return [data, fallback]
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""

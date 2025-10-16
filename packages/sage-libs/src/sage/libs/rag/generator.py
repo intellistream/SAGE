@@ -90,7 +90,7 @@ class OpenAIGenerator(MapFunction):
 
     def execute(self, data: List[Any]) -> Dict[str, Any]:
         """
-        输入 : [original_data, prompt]  *或*  [prompt]
+        输入 : [original_data, prompt]
         输出 : 完整的数据字典，包含 generated 字段
 
         prompt 可以是:
@@ -109,7 +109,7 @@ class OpenAIGenerator(MapFunction):
 
         # 提取user_query
         if isinstance(original_data, dict):
-            user_query = original_data.get("query", original_data.get("question", ""))
+            user_query = original_data.get("query", "")
         else:
             user_query = None
 
@@ -129,7 +129,7 @@ class OpenAIGenerator(MapFunction):
         generate_start_time = time.time()
         response = self.model.generate(messages)
         generate_end_time = time.time()
-        generate_time = generate_end_time - generate_start_time
+        generation_time = generate_end_time - generate_start_time
 
         self.num += 1
 
@@ -139,20 +139,19 @@ class OpenAIGenerator(MapFunction):
 
         self.logger.info(f"[{self.__class__.__name__}] Response: {response}")
 
-        # 构建完整的输出数据，保持上游数据
+        # 构建完整的输出数据，保持上游数据（使用统一字段名）
         if isinstance(original_data, dict):
-            # 保持原始数据结构，添加generated字段
             result = dict(original_data)
             result["generated"] = response
-            result["generate_time"] = generate_time  # 添加生成时间
-            result["question"] = result.get(
-                "question",
-                {"query": user_query, "references": result.get("references", [])},
-            )
+            result["generation_time"] = generation_time
             return result
         else:
-            # 兼容原有tuple格式输出
-            return user_query, response
+            # 如果不是字典输入，返回最小格式
+            return {
+                "query": user_query or "",
+                "generated": response,
+                "generation_time": generation_time
+            }
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
