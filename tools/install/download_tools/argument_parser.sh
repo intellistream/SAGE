@@ -15,6 +15,9 @@ CLEAN_PIP_CACHE=true
 RUN_DOCTOR=false
 DOCTOR_ONLY=false
 FIX_ENVIRONMENT=false
+SYNC_SUBMODULES=""
+SYNC_SUBMODULES_EXPLICIT=false
+SYNC_SUBMODULES_NOTIFIED=false
 
 # 检测当前Python环境
 detect_current_environment() {
@@ -178,6 +181,7 @@ show_installation_menu() {
     else
         INSTALL_VLLM=false
     fi
+    refresh_sync_submodule_default
 }
 
 # 显示参数帮助信息
@@ -232,6 +236,9 @@ show_parameter_help() {
     echo ""
     echo -e "  ${BOLD}--yes, --y, -yes, -y${NC}                        ${CYAN}跳过确认提示${NC}"
     echo -e "    ${DIM}自动确认所有安装选项，适合自动化脚本${NC}"
+    echo ""
+    echo -e "  ${BOLD}--sync-submodules${NC}                          ${GREEN}安装前自动同步 submodules${NC}"
+    echo -e "    ${DIM}开发者模式默认启用，可用 --no-sync-submodules 跳过${NC}"
     echo ""
     echo -e "  ${BOLD}--doctor, --diagnose, --check-env${NC}           ${GREEN}环境诊断${NC}"
     echo -e "    ${DIM}全面检查 Python 环境、包管理器、依赖等问题${NC}"
@@ -330,6 +337,25 @@ parse_auto_confirm() {
     esac
 }
 
+parse_sync_submodules_option() {
+    local param="$1"
+    case "$param" in
+        "--sync-submodules")
+            SYNC_SUBMODULES="true"
+            SYNC_SUBMODULES_EXPLICIT=true
+            return 0
+            ;;
+        "--no-sync-submodules"|"--skip-submodules")
+            SYNC_SUBMODULES="false"
+            SYNC_SUBMODULES_EXPLICIT=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 解析 pip 缓存清理参数
 parse_cache_option() {
     local param="$1"
@@ -412,6 +438,9 @@ parse_arguments() {
         elif parse_auto_confirm "$param"; then
             # 自动确认参数
             shift
+        elif parse_sync_submodules_option "$param"; then
+            # 同步 submodule 参数
+            shift
         elif parse_cache_option "$param"; then
             # pip 缓存清理参数
             shift
@@ -438,6 +467,30 @@ parse_arguments() {
 }
 
 # 设置默认值并显示提示
+set_default_sync_submodules() {
+    if [ "$SYNC_SUBMODULES_EXPLICIT" = true ]; then
+        return
+    fi
+
+    local desired="false"
+    if [ "$INSTALL_MODE" = "dev" ]; then
+        desired="true"
+    fi
+
+    if [ -z "$SYNC_SUBMODULES" ] || [ "$SYNC_SUBMODULES" != "$desired" ]; then
+        SYNC_SUBMODULES="$desired"
+
+        if [ "$desired" = "true" ] && [ "$SYNC_SUBMODULES_NOTIFIED" = false ]; then
+            echo -e "${INFO} 开发者模式默认会同步所有 submodules"
+            SYNC_SUBMODULES_NOTIFIED=true
+        fi
+    fi
+}
+
+refresh_sync_submodule_default() {
+    set_default_sync_submodules
+}
+
 set_defaults_and_show_tips() {
     local has_defaults=false
     
@@ -475,6 +528,9 @@ set_defaults_and_show_tips() {
         echo -e "${INFO} 未指定安装模式，使用默认: ${YELLOW}开发者模式${NC}"
         has_defaults=true
     fi
+
+    # 根据当前安装模式决定是否同步 submodule
+    set_default_sync_submodules
     
     # 设置安装环境默认值（基于当前环境智能选择）
     if [ -z "$INSTALL_ENVIRONMENT" ]; then
@@ -538,6 +594,12 @@ show_install_configuration() {
     if [ "$INSTALL_VLLM" = true ]; then
         echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM${NC}"
     fi
+
+    if [ "$SYNC_SUBMODULES" = "true" ]; then
+        echo -e "  ${BLUE}Submodules:${NC} ${GREEN}自动同步${NC}"
+    else
+        echo -e "  ${BLUE}Submodules:${NC} ${DIM}跳过自动同步${NC}"
+    fi
     
     if [ "$CLEAN_PIP_CACHE" = false ]; then
         echo -e "  ${BLUE}特殊选项:${NC} ${YELLOW}跳过 pip 缓存清理${NC}"
@@ -588,4 +650,9 @@ get_doctor_only() {
 # 获取是否修复环境
 get_fix_environment() {
     echo "$FIX_ENVIRONMENT"
+}
+
+# 获取是否自动同步 submodules
+get_sync_submodules() {
+    echo "${SYNC_SUBMODULES:-false}"
 }
