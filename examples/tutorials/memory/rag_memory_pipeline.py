@@ -1,5 +1,10 @@
-# @test:allow-demo
-"""测试 Pipeline-as-Service with RAG Memory - Sequential Question Processing"""
+# @test:require-api
+# @test:timeout=180
+"""测试 Pipeline-as-Service with RAG Memory - Sequential Question Processing
+
+此示例需要 OpenAI API 密钥，且需要较长运行时间（约 60-90 秒）。
+在 CI 环境中会被自动跳过。
+"""
 
 import queue
 import sys
