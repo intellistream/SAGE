@@ -38,7 +38,7 @@ promptor:
 
 generator:
   vllm:
-    api_key: "sk-8298f15945af41988281d7348b008c96"
+    api_key: ""
     method: "openai"
     model_name: "qwen-turbo-2025-02-11"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
