@@ -45,3 +45,8 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+backend.log
+frontend.log
