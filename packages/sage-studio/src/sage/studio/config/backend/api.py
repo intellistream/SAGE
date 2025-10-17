@@ -10,7 +10,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -18,9 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 
-def _convert_pipeline_to_job(
-    pipeline_data: dict, pipeline_id: str, file_path: Path = None
-) -> dict:
+def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str, file_path: Path = None) -> dict:
     """将拓扑图数据转换为 Job 格式"""
     from datetime import datetime
 
@@ -63,18 +61,16 @@ def _convert_pipeline_to_job(
 
     # 从文件名或文件元数据中提取创建时间
     create_time = None
-
+    
     # 方法1: 从文件名解析时间戳 (pipeline_1759908680.json)
     if pipeline_id.startswith("pipeline_"):
         try:
             timestamp_str = pipeline_id.replace("pipeline_", "")
             timestamp = int(timestamp_str)
-            create_time = datetime.fromtimestamp(timestamp).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            create_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
         except (ValueError, OSError) as e:
             print(f"Failed to parse timestamp from pipeline_id {pipeline_id}: {e}")
-
+    
     # 方法2: 如果解析失败,使用文件的修改时间
     if create_time is None and file_path and file_path.exists():
         try:
@@ -82,14 +78,15 @@ def _convert_pipeline_to_job(
             create_time = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
             print(f"Failed to get file mtime for {file_path}: {e}")
-
+    
     # 方法3: 兜底使用当前时间
     if create_time is None:
         create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+    
     job = {
         "jobId": pipeline_id,
         "name": name,
+        "description": description,  # 添加描述字段
         "isRunning": False,  # 拓扑图默认不在运行
         "nthreads": "1",
         "cpu": "0%",
@@ -119,6 +116,13 @@ def _convert_pipeline_to_job(
             "txnTime": 0,
         },
         "operators": operators,
+        # 添加 config 字段，保留原始的 React Flow 格式数据
+        "config": {
+            "name": name,
+            "description": description,
+            "nodes": nodes,
+            "edges": edges,
+        },
     }
 
     return job
@@ -146,6 +150,7 @@ def _get_sage_dir() -> Path:
 class Job(BaseModel):
     jobId: str
     name: str
+    description: Optional[str] = ""  # 添加描述字段
     isRunning: bool
     nthreads: str
     cpu: str
@@ -164,6 +169,7 @@ class Job(BaseModel):
     totalTimeBreakdown: dict
     schedulerTimeBreakdown: dict
     operators: List[dict]
+    config: Optional[dict] = None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
 
 
 class OperatorInfo(BaseModel):
@@ -598,13 +604,13 @@ async def get_job_detail(job_id: str):
         # 首先尝试从已保存的数据中查找
         sage_data = _read_sage_data_from_files()
         jobs = sage_data.get("jobs", [])
-
+        
         # 查找匹配的作业
         job = next((j for j in jobs if j.get("jobId") == job_id), None)
-
+        
         if job:
             return job
-
+        
         # 如果没有找到实际数据，返回占位符数据（用于开发）
         print(f"Job {job_id} not found in saved data, returning placeholder")
         return {
@@ -707,13 +713,13 @@ async def start_job(job_id: str):
             "use_ray": False,
             "isRunning": True,
         }
-
+        
         # 初始化日志
         if job_id not in job_logs:
             job_logs[job_id] = []
-
+        
         job_logs[job_id].append(f"[SYSTEM] Job {job_id} started at 2025-10-10 15:30:00")
-
+        
         return {"status": "success", "message": f"作业 {job_id} 已启动"}
     except Exception as e:
         print(f"Error starting job: {e}")
@@ -731,11 +737,13 @@ async def stop_job(job_id: str, duration: str):
             "use_ray": False,
             "isRunning": False,
         }
-
+        
         # 添加停止日志
         if job_id in job_logs:
-            job_logs[job_id].append(f"[SYSTEM] Job {job_id} stopped after {duration}")
-
+            job_logs[job_id].append(
+                f"[SYSTEM] Job {job_id} stopped after {duration}"
+            )
+        
         return {"status": "success", "message": f"作业 {job_id} 已停止"}
     except Exception as e:
         print(f"Error stopping job: {e}")
@@ -748,17 +756,17 @@ async def get_job_logs(job_id: str, offset: int = 0):
     try:
         # 获取该作业的日志
         logs = job_logs.get(job_id, [])
-
+        
         # 如果是第一次请求（offset=0）且没有日志，返回种子消息
         if offset == 0 and len(logs) == 0:
             seed_line = f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query."
             job_logs[job_id] = [seed_line]
             return {"offset": 1, "lines": [seed_line]}
-
+        
         # 返回从 offset 开始的新日志
         new_logs = logs[offset:]
         new_offset = len(logs)
-
+        
         return {"offset": new_offset, "lines": new_logs}
     except Exception as e:
         print(f"Error getting job logs: {e}")
@@ -804,7 +812,7 @@ async def get_pipeline_config(pipeline_id: str):
         # 尝试从缓存获取
         if pipeline_id in job_configs_cache:
             return {"config": job_configs_cache[pipeline_id]}
-
+        
         # 返回默认配置模板
         default_config = """# SAGE Pipeline Configuration
 name: Example RAG Pipeline
@@ -839,16 +847,16 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
         # 保存配置到缓存
         config_yaml = config.get("config", "")
         job_configs_cache[pipeline_id] = config_yaml
-
+        
         # 可选：保存到文件
         sage_dir = _get_sage_dir()
         config_dir = sage_dir / "configs"
         config_dir.mkdir(exist_ok=True)
-
+        
         config_file = config_dir / f"{pipeline_id}.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
             f.write(config_yaml)
-
+        
         return {
             "status": "success",
             "message": "配置更新成功",
