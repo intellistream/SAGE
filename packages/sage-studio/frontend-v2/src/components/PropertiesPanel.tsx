@@ -8,6 +8,7 @@ export default function PropertiesPanel() {
     // 获取节点的配置参数定义
     const getNodeConfig = () => {
         // TODO: 从后端 API 获取节点配置定义
+        // Issue URL: https://github.com/intellistream/SAGE/issues/984
         // 这里先返回一些示例配置
         return {
             text: [

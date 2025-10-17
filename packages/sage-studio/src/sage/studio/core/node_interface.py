@@ -138,6 +138,7 @@ class NodeInterface(ABC):
                 raise ValueError(f"Missing required input: {input_def.name}")
         
         # TODO: 更详细的类型检查和验证规则
+        # Issue URL: https://github.com/intellistream/SAGE/issues/986
         return True
     
     async def on_initialize(self) -> None:

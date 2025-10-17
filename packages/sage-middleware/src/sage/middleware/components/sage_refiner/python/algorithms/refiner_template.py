@@ -71,6 +71,7 @@ class YourRefinerAlgorithm(BaseRefiner):
 
         try:
             # TODO: 加载模型或初始化资源
+            # Issue URL: https://github.com/intellistream/SAGE/issues/983
             # self.model = load_model(self.config.get("model_path"))
             # self.tokenizer = load_tokenizer(...)
 
@@ -116,6 +117,7 @@ class YourRefinerAlgorithm(BaseRefiner):
         use_budget = budget if budget is not None else self.config.get("budget", 2048)
 
         # 4. TODO: 执行你的压缩算法
+        # Issue URL: https://github.com/intellistream/SAGE/issues/982
         refine_start = time.time()
         compressed_texts = self._compress(query, texts, use_budget, **kwargs)
         refine_time = time.time() - refine_start
@@ -171,6 +173,7 @@ class YourRefinerAlgorithm(BaseRefiner):
         """
         # 简单实现：逐个调用refine
         # TODO: 如果你的算法支持真正的批处理，可以优化这里
+        # Issue URL: https://github.com/intellistream/SAGE/issues/981
         return [
             self.refine(query, docs, budget, **kwargs)
             for query, docs in zip(queries, documents_list)
@@ -196,6 +199,7 @@ class YourRefinerAlgorithm(BaseRefiner):
         yield result.refined_content
 
         # TODO: 如果支持流式，实现类似：
+        # Issue URL: https://github.com/intellistream/SAGE/issues/980
         # for chunk in self._compress_streaming(query, documents, budget):
         #     yield chunk
 
@@ -206,6 +210,7 @@ class YourRefinerAlgorithm(BaseRefiner):
         清理模型、释放GPU内存等。
         """
         # TODO: 清理资源
+        # Issue URL: https://github.com/intellistream/SAGE/issues/979
         if self.model is not None:
             del self.model
             self.model = None
@@ -259,6 +264,7 @@ class YourRefinerAlgorithm(BaseRefiner):
         核心压缩逻辑
 
         TODO: 在这里实现你的压缩算法
+        Issue URL: https://github.com/intellistream/SAGE/issues/978
 
         Args:
             query: 用户查询

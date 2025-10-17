@@ -89,6 +89,7 @@ class SAGEOperatorAdapter(NodeInterface):
     def _infer_inputs(self, operator) -> list[NodeInput]:
         """推断输入参数（简化版）"""
         # TODO: 更智能的参数推断
+        # Issue URL: https://github.com/intellistream/SAGE/issues/985
         # 可以通过分析 __init__ 方法、process 方法等
         return [
             NodeInput(
