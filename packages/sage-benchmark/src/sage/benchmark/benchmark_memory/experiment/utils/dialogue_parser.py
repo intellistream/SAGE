@@ -234,6 +234,7 @@ class DialogueParser:
     # 建议保持接口设计的一致性，参考现有方法的参数和返回值格式。
     #
     # TODO 1: 多模态消息解析支持
+    # Issue URL: https://github.com/intellistream/SAGE/issues/976
     # 使用场景：需要处理包含图片、语音、视频等多媒体内容的消息
     # 参考格式：
     # {
@@ -248,6 +249,7 @@ class DialogueParser:
     #     pass
     
     # TODO 2: 群组对话解析支持
+    # Issue URL: https://github.com/intellistream/SAGE/issues/975
     # 使用场景：处理多人对话、会议记录等群组对话场景
     # 参考格式：
     # {
@@ -263,6 +265,7 @@ class DialogueParser:
     #     pass
     
     # TODO 3: 带元数据的消息解析
+    # Issue URL: https://github.com/intellistream/SAGE/issues/974
     # 使用场景：需要额外的上下文信息，如时间戳、情感标签、地理位置等
     # 参考格式：
     # {
@@ -278,6 +281,7 @@ class DialogueParser:
     #     pass
     
     # TODO 4: 自定义格式注册机制
+    # Issue URL: https://github.com/intellistream/SAGE/issues/973
     # 使用场景：允许外部模块注册自己的消息格式验证器，增强可扩展性
     # 用法示例：
     # def my_validator(dialog: Dict[str, Any]) -> bool:
