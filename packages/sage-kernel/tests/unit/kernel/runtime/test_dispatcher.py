@@ -36,6 +36,9 @@ class MockEnvironment:
 
         self.env_base_dir = str(get_test_env_dir("test_logs"))
         self.console_log_level = "INFO"
+        
+        # 添加 config 属性以支持 Dispatcher 的容错配置
+        self.config = {}
 
 
 class TestDispatcher:
@@ -223,7 +226,7 @@ class TestDispatcher:
             pytest.fail(f"Logger should be functional: {e}")
 
     @pytest.mark.integration
-    @patch("sage.kernel.utils.ray.ray.ensure_ray_initialized")
+    @patch("sage.kernel.utils.ray.ray_utils.ensure_ray_initialized")
     def test_dispatcher_ray_integration(self, mock_ray_init, mock_graph):
         """Integration test for Ray initialization"""
         remote_env = MockEnvironment(platform="remote")

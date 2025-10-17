@@ -1,12 +1,20 @@
 """
-SAGE - Streaming-Augmented Generative Execution
+LongRefiner - 向后兼容模块
+=========================
+
+注意: 核心实现已迁移到 sage.middleware.components.sage_refiner
+      本模块仅提供向后兼容的别名。
+
+推荐使用:
+    from sage.libs.rag.refiner import RefinerOperator
+
+向后兼容:
+    from sage.libs.rag.longrefiner import LongRefinerAdapter  # 仍然可用
 """
 
-# 直接从本包的_version模块加载版本信息
-try:
-    from sage.libs._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+from sage.libs.rag.refiner import RefinerOperator
+
+# 向后兼容别名
+LongRefinerAdapter = RefinerOperator
+
+__all__ = ["LongRefinerAdapter", "RefinerOperator"]

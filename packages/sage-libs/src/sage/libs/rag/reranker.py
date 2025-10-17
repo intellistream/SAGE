@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 import torch
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 from transformers import (
     AutoModelForCausalLM,
     AutoModelForSequenceClassification,

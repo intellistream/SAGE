@@ -2,6 +2,7 @@
 requires = [
     "setuptools>=64",
     "wheel",
+    "packaging>=24.2",
     "pybind11>=2.10.0",  # C++ 扩展绑定
     "cmake>=3.20",       # C++ 构建工具 (如果系统没有)
 ]
@@ -16,7 +17,7 @@ description = "SAGE Middleware - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "data",
@@ -92,9 +93,10 @@ license = {text = "MIT"}
 
 [project.optional-dependencies]
 # SAGE framework dependencies (for local development)
+# 注意：移除了 isage-tools 以避免循环依赖
+# 开发时应安装 isage[dev] 或 isage-tools[dev] 来获取完整工具链
 sage = [
     "isage-common>=0.1.0",
-    "isage-tools>=0.1.0",
 ]
 
 # VLLM支持（可选，需要CUDA）

@@ -1,22 +1,220 @@
 #!/usr/bin/env python3
 """LLM service management commands for SAGE."""
 
+from __future__ import annotations
+
+import json
 import os
 import subprocess
 import time
+from typing import Any, Dict, List, Optional
 
 import psutil
 import typer
+from sage.common.model_registry import vllm_registry
+
+try:  # Optional dependency: middleware is not required for every CLI install
+    from sage.common.components.sage_vllm import VLLMService
+except Exception:  # pragma: no cover - handled gracefully at runtime
+    VLLMService = None  # type: ignore
 
 # Import config subcommands
 from .llm_config import app as config_app
 
 app = typer.Typer(help="🤖 LLM 服务管理")
+model_app = typer.Typer(help="📦 模型管理")
 
-# Add config subcommand
+# Add subcommands
 app.add_typer(config_app, name="config")
+app.add_typer(model_app, name="model")
 
 
+# ---------------------------------------------------------------------------
+# Model management commands
+# ---------------------------------------------------------------------------
+@model_app.command("show")
+def show_models(
+    json_output: bool = typer.Option(False, "--json", help="以 JSON 格式输出")
+):
+    """列出本地缓存的模型。"""
+
+    infos = vllm_registry.list_models()
+    if json_output:
+        payload = [
+            {
+                "model_id": info.model_id,
+                "revision": info.revision,
+                "path": str(info.path),
+                "size_bytes": info.size_bytes,
+                "size_mb": round(info.size_mb, 2),
+                "last_used": info.last_used_iso,
+                "tags": info.tags,
+            }
+            for info in infos
+        ]
+        typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+
+    if not infos:
+        typer.echo(
+            "📭 本地尚未缓存任何 vLLM 模型。使用 'sage llm model download --model <name>' 开始下载。"
+        )
+        return
+
+    header = f"{'模型ID':48} {'Revision':12} {'Size(MB)':>10} {'Last Used':>20}"
+    typer.echo(header)
+    typer.echo("-" * len(header))
+    for info in infos:
+        typer.echo(
+            f"{info.model_id[:48]:48} {str(info.revision or '-'):12} {info.size_mb:>10.2f} {info.last_used_iso or '-':>20}"
+        )
+
+
+@model_app.command("download")
+def download_model(
+    model: str = typer.Option(..., "--model", "-m", help="要下载的模型名称"),
+    revision: Optional[str] = typer.Option(None, "--revision", help="模型 revision"),
+    force: bool = typer.Option(False, "--force", "-f", help="强制重新下载"),
+    no_progress: bool = typer.Option(False, "--no-progress", help="隐藏下载进度"),
+):
+    """下载模型到本地缓存。"""
+
+    try:
+        info = vllm_registry.download_model(
+            model,
+            revision=revision,
+            force=force,
+            progress=not no_progress,
+        )
+    except Exception as exc:  # pragma: no cover - huggingface errors
+        typer.echo(f"❌ 下载失败: {exc}")
+        raise typer.Exit(1)
+
+    typer.echo("✅ 下载完成")
+    typer.echo(f"📁 路径: {info.path}")
+    typer.echo(f"📦 大小: {info.size_mb:.2f} MB")
+
+
+@model_app.command("delete")
+def delete_model(
+    model: str = typer.Option(..., "--model", "-m", help="要删除的模型名称"),
+    assume_yes: bool = typer.Option(False, "--yes", "-y", help="无需确认直接删除"),
+):
+    """删除本地缓存的模型。"""
+
+    if not assume_yes and not typer.confirm(f"确认删除本地模型 '{model}'?"):
+        raise typer.Exit(0)
+
+    try:
+        vllm_registry.delete_model(model)
+    except Exception as exc:  # pragma: no cover - filesystem errors
+        typer.echo(f"⚠️ 删除失败: {exc}")
+        raise typer.Exit(1)
+
+    typer.echo(f"🗑️ 已删除模型 {model}")
+
+
+# ---------------------------------------------------------------------------
+# Blocking service runner & fine-tune stub
+# ---------------------------------------------------------------------------
+@app.command("run")
+def run_vllm_service(
+    model: str = typer.Option(
+        "meta-llama/Llama-3.1-8B-Instruct", "--model", "-m", help="生成模型"
+    ),
+    embedding_model: Optional[str] = typer.Option(
+        None, "--embedding-model", help="嵌入模型（默认同生成模型）"
+    ),
+    auto_download: bool = typer.Option(
+        True, "--auto-download/--no-auto-download", help="缺失时自动下载模型"
+    ),
+    temperature: float = typer.Option(0.7, "--temperature", help="采样温度"),
+    top_p: float = typer.Option(0.95, "--top-p", help="Top-p 采样"),
+    max_tokens: int = typer.Option(512, "--max-tokens", help="最大生成 token 数"),
+):
+    """以阻塞模式运行 vLLM 服务，并提供交互式体验。"""
+
+    if VLLMService is None:  # pragma: no cover - dependency guard
+        typer.echo("❌ 当前环境未安装 isage-middleware[vllm]，无法加载内置服务。")
+        typer.echo("   请运行 `pip install isage-middleware[vllm]` 后重试。")
+        raise typer.Exit(1)
+
+    config_dict: Dict[str, Any] = {
+        "model_id": model,
+        "embedding_model_id": embedding_model,
+        "auto_download": auto_download,
+        "sampling": {
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_tokens": max_tokens,
+        },
+    }
+
+    service = VLLMService(config_dict)
+
+    try:
+        service.setup()
+        typer.echo("✅ vLLM 服务已加载完成。输入空行退出，或 Ctrl+C 结束。")
+        while True:
+            prompt = typer.prompt("💬 Prompt", default="")
+            if not prompt.strip():
+                break
+            outputs = service.generate(prompt)
+            if not outputs:
+                typer.echo("⚠️ 未获得生成结果。")
+                continue
+            choice = outputs[0]["generations"][0]
+            typer.echo(f"🧠 {choice['text'].strip()}")
+    except KeyboardInterrupt:
+        typer.echo("\n🛑 已中断。")
+    except Exception as exc:
+        typer.echo(f"❌ 运行失败: {exc}")
+        raise typer.Exit(1)
+    finally:
+        try:
+            service.cleanup()
+        except Exception:  # pragma: no cover - cleanup best-effort
+            pass
+
+
+@app.command("fine-tune")
+def fine_tune_stub(
+    base_model: str = typer.Option(..., "--base-model", help="基础模型名称"),
+    dataset_path: str = typer.Option(..., "--dataset", help="训练数据路径"),
+    output_dir: str = typer.Option(..., "--output", help="输出目录"),
+    auto_download: bool = typer.Option(
+        True, "--auto-download/--no-auto-download", help="自动确保基础模型就绪"
+    ),
+):
+    """提交 fine-tune 请求（当前为占位实现）。"""
+
+    if VLLMService is None:  # pragma: no cover - dependency guard
+        typer.echo(
+            "❌ 当前环境未安装 isage-middleware[vllm]，无法调用 fine-tune 接口。"
+        )
+        raise typer.Exit(1)
+
+    service = VLLMService({"model_id": base_model, "auto_download": auto_download})
+    try:
+        try:
+            service.fine_tune(
+                {
+                    "base_model": base_model,
+                    "dataset_path": dataset_path,
+                    "output_dir": output_dir,
+                }
+            )
+        except NotImplementedError as exc:
+            typer.echo(f"ℹ️ {exc}")
+        else:
+            typer.echo("✅ fine-tune 请求已提交")
+    finally:
+        service.cleanup()
+
+
+# ---------------------------------------------------------------------------
+# Legacy process-based controls (kept for backwards compatibility)
+# ---------------------------------------------------------------------------
 @app.command("start")
 def start_llm_service(
     service: str = typer.Argument("vllm", help="要启动的服务类型 (默认: vllm)"),
@@ -36,20 +234,22 @@ def start_llm_service(
     ),
     background: bool = typer.Option(False, "--background", "-b", help="后台运行服务"),
 ):
-    """启动LLM服务"""
+    """启动旧版进程模式 vLLM 服务。"""
+
+    typer.echo(
+        "⚠️ 该命令采用旧的进程方式启动 vLLM。推荐使用 'sage llm run' 获取阻塞式内置服务体验。"
+    )
 
     if service.lower() != "vllm":
         typer.echo(f"❌ 暂不支持的服务类型: {service}")
         typer.echo("💡 当前支持的服务类型: vllm")
         raise typer.Exit(1)
 
-    # Check if service is already running
     if _is_service_running(port):
         typer.echo(f"⚠️ 端口 {port} 已被占用，服务可能已在运行")
         if not typer.confirm("是否继续启动？"):
             raise typer.Exit(0)
 
-    # Build vllm command
     cmd = [
         "vllm",
         "serve",
@@ -73,7 +273,6 @@ def start_llm_service(
     ]
 
     if offline:
-        # Set environment variables for offline mode
         env = os.environ.copy()
         env.update(
             {
@@ -85,16 +284,10 @@ def start_llm_service(
     else:
         env = None
 
-    typer.echo("🚀 启动vLLM服务...")
-    typer.echo(f"   模型: {model}")
-    typer.echo(f"   端口: {port}")
-    typer.echo(f"   认证: {auth_token}")
-    typer.echo(f"   GPU内存: {gpu_memory_utilization}")
-    typer.echo(f"   离线模式: {offline}")
+    typer.echo("🚀 启动 vLLM 服务 (进程模式)...")
 
     try:
         if background:
-            # Run in background
             process = subprocess.Popen(
                 cmd,
                 env=env,
@@ -102,19 +295,18 @@ def start_llm_service(
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
             )
-            typer.echo(f"✅ vLLM服务已在后台启动 (PID: {process.pid})")
+            typer.echo(f"✅ vLLM 服务已在后台启动 (PID: {process.pid})")
             typer.echo(f"🌐 服务地址: http://localhost:{port}")
             typer.echo("📋 使用 'sage llm status' 查看服务状态")
         else:
-            # Run in foreground
             typer.echo("📝 按 Ctrl+C 停止服务")
             subprocess.run(cmd, env=env, check=True)
 
-    except subprocess.CalledProcessError as e:
-        typer.echo(f"❌ 启动失败: {e}")
+    except subprocess.CalledProcessError as exc:
+        typer.echo(f"❌ 启动失败: {exc}")
         raise typer.Exit(1)
     except KeyboardInterrupt:
-        typer.echo("\\n🛑 服务已停止")
+        typer.echo("\n🛑 服务已停止")
         raise typer.Exit(0)
 
 
@@ -123,11 +315,11 @@ def stop_llm_service(
     port: int = typer.Option(8000, "--port", "-p", help="要停止的服务端口"),
     force: bool = typer.Option(False, "--force", "-f", help="强制停止服务"),
 ):
-    """停止LLM服务"""
+    """停止旧版进程模式的 vLLM 服务。"""
 
     processes = _find_llm_processes(port)
     if not processes:
-        typer.echo(f"❌ 未找到运行在端口 {port} 的LLM服务")
+        typer.echo(f"❌ 未找到运行在端口 {port} 的 vLLM 进程")
         raise typer.Exit(1)
 
     typer.echo(f"🔍 找到 {len(processes)} 个相关进程:")
@@ -151,8 +343,8 @@ def stop_llm_service(
             proc.kill()
             stopped_count += 1
             typer.echo(f"🔥 强制终止进程 {proc.pid}")
-        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-            typer.echo(f"⚠️ 无法停止进程 {proc.pid}: {e}")
+        except (psutil.NoSuchProcess, psutil.AccessDenied) as exc:
+            typer.echo(f"⚠️ 无法停止进程 {proc.pid}: {exc}")
 
     if stopped_count > 0:
         typer.echo(f"✅ 成功停止 {stopped_count} 个进程")
@@ -164,17 +356,16 @@ def stop_llm_service(
 def llm_service_status(
     port: int = typer.Option(8000, "--port", "-p", help="要检查的服务端口"),
 ):
-    """查看LLM服务状态"""
+    """查看旧版进程模式 vLLM 服务状态。"""
 
-    # Check if port is in use
     if not _is_service_running(port):
         typer.echo(f"❌ 端口 {port} 未被占用")
+        typer.echo("ℹ️ 如果您使用的是 'sage llm run'，请在命令窗口中查看实时输出。")
         return
 
-    # Find related processes
     processes = _find_llm_processes(port)
 
-    typer.echo(f"🔍 LLM服务状态 (端口 {port}):")
+    typer.echo(f"🔍 LLM 服务状态 (端口 {port}):")
     typer.echo("📡 端口状态: ✅ 活跃")
 
     if processes:
@@ -197,12 +388,13 @@ def llm_service_status(
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 typer.echo(f"  PID {proc.pid}: 无法获取详细信息")
 
-    # Test API endpoint
     _test_api_endpoint(port)
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 def _is_service_running(port: int) -> bool:
-    """检查指定端口是否被占用"""
     import socket
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -210,39 +402,32 @@ def _is_service_running(port: int) -> bool:
         return result == 0
 
 
-def _find_llm_processes(port: int) -> list:
-    """查找与LLM服务相关的进程"""
-    processes = []
+def _find_llm_processes(port: int) -> List[psutil.Process]:
+    processes: List[psutil.Process] = []
 
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
-            cmdline = proc.info["cmdline"]
+            cmdline = proc.info.get("cmdline")
             if not cmdline:
                 continue
 
             cmdline_str = " ".join(cmdline).lower()
-
-            # Look for vllm, ollama, or processes using the specific port
             if any(keyword in cmdline_str for keyword in ["vllm", "ollama"]):
                 processes.append(proc)
             elif str(port) in cmdline_str and any(
                 keyword in cmdline_str for keyword in ["serve", "server", "api"]
             ):
                 processes.append(proc)
-
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
 
     return processes
 
 
-def _test_api_endpoint(port: int):
-    """测试API端点可用性"""
-    import json
+def _test_api_endpoint(port: int) -> None:
     import urllib.request
 
     try:
-        # Test with common auth tokens
         for token in [None, "token-abc123"]:
             try:
                 req = urllib.request.Request(f"http://localhost:{port}/v1/models")
@@ -260,16 +445,15 @@ def _test_api_endpoint(port: int):
                         typer.echo(f"🔐 认证token: {token}")
                     return
 
-            except urllib.error.HTTPError as e:
-                if e.code == 401:
-                    continue  # Try next token
-                else:
-                    typer.echo(f"🌐 API状态: ❌ HTTP {e.code}")
-                    return
+            except urllib.error.HTTPError as exc:
+                if exc.code == 401:
+                    continue
+                typer.echo(f"🌐 API状态: ❌ HTTP {exc.code}")
+                return
             except Exception:
                 continue
 
         typer.echo("🌐 API状态: ❌ 无法连接或需要认证")
 
-    except Exception as e:
-        typer.echo(f"🌐 API状态: ❌ 测试失败 ({e})")
+    except Exception as exc:  # pragma: no cover - network errors
+        typer.echo(f"🌐 API状态: ❌ 测试失败 ({exc})")

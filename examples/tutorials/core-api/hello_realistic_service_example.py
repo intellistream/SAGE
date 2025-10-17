@@ -6,8 +6,8 @@
 
 import time
 
-from sage.core.api.function.base_function import BaseFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 # 服务定义（重用之前的服务）

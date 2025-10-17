@@ -212,6 +212,78 @@ class ExampleTestStrategies:
                     "SAGE_LOG_LEVEL": "ERROR",
                 },
             ),
+            "medical_diagnosis": TestStrategy(
+                name="medical_diagnosis",
+                timeout=300,  # 5分钟，医学影像分析需要加载模型
+                requires_config=False,
+                requires_data=True,
+                success_patterns=[
+                    "诊断完成",
+                    "Diagnosis completed",
+                    "报告生成完成",
+                    "Report generated",
+                    "✅",
+                ],
+                failure_patterns=[
+                    "模型加载失败",
+                    "Model loading failed",
+                    "数据不存在",
+                    "Data not found",
+                ],
+                environment_vars={
+                    "SAGE_MEDICAL_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                },
+            ),
+            "multimodal": TestStrategy(
+                name="multimodal",
+                timeout=180,  # 3分钟，多模态处理需要时间
+                requires_config=True,
+                requires_data=True,
+                success_patterns=[
+                    "Processing completed",
+                    "处理完成",
+                    "Search completed",
+                    "搜索完成",
+                    "✅",
+                ],
+                failure_patterns=[
+                    "Model not found",
+                    "API key missing",
+                    "Connection failed",
+                ],
+                environment_vars={
+                    "SAGE_MULTIMODAL_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                },
+            ),
+            "scheduler": TestStrategy(
+                name="scheduler",
+                timeout=90,  # 90秒，调度器对比实验
+                requires_config=False,
+                requires_data=False,
+                success_patterns=[
+                    "所有实验完成",
+                    "实验完成",
+                    "执行结果",
+                    "✅",
+                    "调度器性能对比总结",
+                ],
+                failure_patterns=[
+                    "调度失败",
+                    "Scheduler failed",
+                    "Connection refused",
+                    "Timeout exceeded",
+                ],
+                environment_vars={
+                    "SAGE_SCHEDULER_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                    "SAGE_TEST_MODE": "true",
+                },
+            ),
         }
 
     @staticmethod
@@ -302,8 +374,19 @@ class ExampleTestFilters:
             if "# SKIP_TEST" in content:
                 return True, "Contains SKIP_TEST marker"
 
-            if "input(" in content and "# NO_TEST_INPUT" not in content:
-                return True, "Requires user input"
+            # 检查文件是否在测试模式下有特殊处理
+            has_test_mode_check = any(
+                pattern in content
+                for pattern in [
+                    'os.getenv("SAGE_TEST_MODE")',
+                    'os.getenv("SAGE_EXAMPLES_MODE")',
+                    "SAGE_TEST_MODE",
+                    "SAGE_EXAMPLES_MODE",
+                ]
+            )
+
+            if "input(" in content and not has_test_mode_check:
+                return True, "Requires user input without test mode handling"
 
             if any(
                 keyword in content
@@ -560,11 +643,14 @@ class ExampleTestFilters:
                 return True
             return False
 
+        # 检查是否有允许 demo 的标签
+        allow_demo = has_allow_demo_tag()
+
         # 对包含 demo 的文件采用更精细的判断：
         if "demo" in filename and filename not in whitelist:
             # 允许的安全类别（通常是 Mock/教学型示例）
-            safe_categories = {"tutorials", "memory", "agents"}
-            if has_allow_demo_tag():
+            safe_categories = {"tutorials", "memory", "agents", "sage_db"}
+            if allow_demo:
                 pass  # 显式放行
             elif category in safe_categories and not has_heavy_indicators(content):
                 # 安全类别且未检测到重型运行特征 -> 放行
@@ -572,7 +658,8 @@ class ExampleTestFilters:
             else:
                 return True, "文件名包含 'demo'，且未通过安全检查或标签放行"
 
-        if filename not in whitelist:
+        # 如果有 allow-demo 标签，跳过后续的 demo 检查
+        if filename not in whitelist and not allow_demo:
             for pattern in skip_patterns:
                 if pattern in filename:
                     return True, f"文件名包含 '{pattern}'，通常需要交互或长时间运行"

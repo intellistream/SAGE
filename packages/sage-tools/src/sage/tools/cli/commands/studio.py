@@ -7,8 +7,8 @@ from typing import Optional
 import typer
 from rich.console import Console
 
-# 导入StudioManager类
-from ..managers.studio_manager import StudioManager
+# 导入StudioManager类 - 从新的sage-studio包导入
+from sage.studio.studio_manager import StudioManager
 
 console = Console()
 app = typer.Typer(help="SAGE Studio - 图形化界面管理工具")

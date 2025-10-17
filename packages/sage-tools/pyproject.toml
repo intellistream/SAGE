@@ -1,8 +1,5 @@
 [build-system]
-requires = [
-    "setuptools>=64",
-    "wheel",
-]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -12,7 +9,7 @@ description = "SAGE Development Tools - CLI, Web UI, and Development Utilities"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "sage",
@@ -33,19 +30,27 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
     "Topic :: Utilities",
 ]
-license = "MIT"
+license = {text = "MIT"}
 
-# 核心依赖 - 包含tools特有的依赖和dev工具
+# 核心依赖 - 作为开发工具包，依赖所有SAGE子包
 dependencies = [
-    # SAGE framework dependencies  
-    "isage-common>=0.1.0",  # 只依赖common，不重复其他包的依赖
-    
+    # SAGE framework dependencies - 按依赖层次顺序
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-middleware>=0.1.0",
+    "isage-libs>=0.1.0",
+    "isage-apps>=0.1.0",
+    "isage-benchmark>=0.1.0",
+    "isage-studio>=0.1.0",
+    # 注意：不依赖 isage 元包以避免循环引用
+
     # Tools-specific dependencies
     "click>=8.0.0",
     "jinja2>=2.11.1",
     "markdown>=3.4.4",
     "markupsafe>=2.0.1",
     "packaging>=20.5",
+    "huggingface-hub>=0.23.0",
     
     # Dev tools - 确保 sage dev 命令可用
     "pytest>=7.0.0",
@@ -133,12 +138,6 @@ web = [
     "isage-tools[frontend]",
 ]
 
-# Studio 低代码界面 (需要额外的 Node.js 环境)
-# 注意：Studio 的 npm 依赖通过 sage studio install 命令按需安装
-studio = [
-    # 仅包含必要的 Python 依赖，npm 依赖由安装命令处理
-]
-
 # 完整UI套件 (包含所有前端功能)
 ui = [
     "isage-tools[frontend]",
@@ -208,7 +207,6 @@ where = ["src"]
 [tool.setuptools.package-data]
 "sage.tools.cli" = ["py.typed", "templates/*.yaml"]  
 "sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
-"sage.tools.studio" = ["py.typed", "*.pyi", "templates/*.html", "static/*"]
 
 # Development tools configuration
 [tool.black]
@@ -293,6 +291,15 @@ markers = [
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
+]
+filterwarnings = [
+    # 忽略已知的第三方库弃用警告
+    "ignore::DeprecationWarning:pkg_resources",
+    "ignore:.*pkg_resources is deprecated.*:UserWarning",
+    "ignore:.*SWIG.*:DeprecationWarning",
+    "ignore:.*SwigPyPacked.*:DeprecationWarning",
+    "ignore:.*SwigPyObject.*:DeprecationWarning",
+    "ignore:.*swigvarlink.*:DeprecationWarning",
 ]
 
 [tool.setuptools.dynamic]

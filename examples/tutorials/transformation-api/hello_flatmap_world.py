@@ -1,10 +1,10 @@
 # 此例意在说明FlatMap的使用
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.flatmap_function import FlatMapFunction
-from sage.core.api.function.map_function import MapFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.flatmap_function import FlatMapFunction
+from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 class HelloBatch(BatchFunction):

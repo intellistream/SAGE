@@ -10,8 +10,8 @@ import os
 import time
 from collections import Counter
 
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.source_function import SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 # 设置日志级别为ERROR减少输出
 os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")

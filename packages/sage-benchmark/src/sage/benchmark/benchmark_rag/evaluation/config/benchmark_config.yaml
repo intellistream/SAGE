@@ -1,0 +1,35 @@
+# Universal Benchmark Configuration
+# This is a template that can be used for any RAG pipeline benchmark
+
+# Data configuration
+data:
+  data_path: "data/selfrag/selfrag_dev_sample_100.jsonl"  # Path to dataset
+  batch_size: 100  # Number of samples per batch
+  max_samples: 100  # Limit to first N samples (null = use all data)
+                    # Useful for quick testing or limiting dataset size
+
+# Pipeline configuration
+pipeline:
+  pipeline_name: "selfrag"  # Name of pipeline in implementations/pipelines/
+  pipeline_config:  # Pipeline-specific configuration
+    # This section is passed to the pipeline implementation
+    # Structure depends on the specific pipeline
+    top_k: 5
+    model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+    gpu_memory_utilization: 0.8
+    temperature: 0.0
+    max_tokens: 100
+
+# Output configuration
+output:
+  output_path: "artifacts/benchmarks/benchmark_results.json"
+  save_mode: "incremental"  # "incremental" or "final"
+
+# Optional: Evaluation metrics configuration
+# evaluation:
+#   metrics:
+#     - "exact_match"
+#     - "f1_score"
+#     - "bleu"
+#   evaluator_config:
+#     # Metric-specific configuration

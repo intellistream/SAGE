@@ -10,10 +10,17 @@ except ImportError:
     RayQueueEmpty = QueueEmpty
 from sage.kernel.runtime.communication.router.packet import Packet, StopSignal
 from sage.kernel.runtime.context.task_context import TaskContext
+from sage.kernel.runtime.monitoring import (
+    MetricsCollector,
+    MetricsReporter,
+    ResourceMonitor,
+    TaskPerformanceMetrics,
+    RESOURCE_MONITOR_AVAILABLE,
+)
 
 if TYPE_CHECKING:
-    from sage.core.factory.operator_factory import OperatorFactory
-    from sage.core.operator.base_operator import BaseOperator
+    from sage.kernel.api.operator.base_operator import BaseOperator
+    from sage.kernel.runtime.factory.operator_factory import OperatorFactory
 
 
 QUEUE_EMPTY_EXCEPTIONS = (
@@ -38,9 +45,58 @@ class BaseTask(ABC):
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
+        
         # === 性能监控 ===
         self._processed_count = 0
         self._error_count = 0
+        
+        # 检查是否启用性能监控
+        self._enable_monitoring = getattr(ctx, 'enable_monitoring', False)
+        self.metrics_collector: Optional[MetricsCollector] = None
+        self.resource_monitor: Optional[ResourceMonitor] = None
+        self.metrics_reporter: Optional[MetricsReporter] = None
+        
+        if self._enable_monitoring:
+            try:
+                self.metrics_collector = MetricsCollector(
+                    name=self.ctx.name,
+                    window_size=getattr(ctx, 'metrics_window_size', 10000),
+                    enable_detailed_tracking=getattr(ctx, 'enable_detailed_tracking', True),
+                )
+                
+                # 尝试启动资源监控（需要psutil）
+                if RESOURCE_MONITOR_AVAILABLE:
+                    try:
+                        self.resource_monitor = ResourceMonitor(
+                            sampling_interval=getattr(ctx, 'resource_sampling_interval', 1.0),
+                            enable_auto_start=True,
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to start resource monitoring for task {self.name}: {e}"
+                        )
+                else:
+                    self.logger.debug(
+                        f"psutil not available, resource monitoring disabled for task {self.name}"
+                    )
+                
+                # 可选：启动性能汇报器
+                if getattr(ctx, 'enable_auto_report', False):
+                    self.metrics_reporter = MetricsReporter(
+                        metrics_collector=self.metrics_collector,
+                        resource_monitor=self.resource_monitor,
+                        report_interval=getattr(ctx, 'report_interval', 60),
+                        enable_auto_report=True,
+                        report_callback=lambda report: self.logger.info(f"\n{report}"),
+                    )
+                
+                self.logger.info(f"Performance monitoring enabled for task {self.name}")
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to initialize monitoring for task {self.name}: {e}"
+                )
+                self._enable_monitoring = False
+        
         try:
             self.operator: BaseOperator = operator_factory.create_operator(self.ctx)
             self.operator.task = self
@@ -92,6 +148,15 @@ class BaseTask(ABC):
         """Signal the worker loop to stop."""
         if not self.ctx.is_stop_requested():
             self.ctx.set_stop_signal()
+            self.logger.info(f"Node '{self.name}' received stop signal.")
+            # 立即标记任务为已停止，这样dispatcher就能正确检测到
+            self.is_running = False
+
+    def stop_source(self) -> None:
+        """Signal the worker loop to stop."""
+        if not self.ctx.is_stop_requested():
+            self.ctx.set_stop_signal()
+            self.ctx.send_stop_signal_back(self.name)
             self.logger.info(f"Node '{self.name}' received stop signal.")
             # 立即标记任务为已停止，这样dispatcher就能正确检测到
             self.is_running = False
@@ -158,8 +223,8 @@ class BaseTask(ABC):
 
                         # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
                         # Comap不能直接套用Join的逻辑，否则会出问题
-                        from sage.core.operator.join_operator import JoinOperator
-                        from sage.core.operator.sink_operator import SinkOperator
+                        from sage.kernel.api.operator.join_operator import JoinOperator
+                        from sage.kernel.api.operator.sink_operator import SinkOperator
 
                         if isinstance(self.operator, SinkOperator):
                             self.logger.info(
@@ -191,9 +256,13 @@ class BaseTask(ABC):
 
                         # 停止当前task的worker loop
                         # 但是要特别处理某些操作符
-                        from sage.core.operator.filter_operator import FilterOperator
-                        from sage.core.operator.keyby_operator import KeyByOperator
-                        from sage.core.operator.map_operator import MapOperator
+                        from sage.kernel.api.operator.filter_operator import (
+                            FilterOperator,
+                        )
+                        from sage.kernel.api.operator.keyby_operator import (
+                            KeyByOperator,
+                        )
+                        from sage.kernel.api.operator.map_operator import MapOperator
 
                         # 对于中间转换操作符，需要额外的逻辑确保它们不会过早停止
                         if isinstance(
@@ -215,7 +284,37 @@ class BaseTask(ABC):
 
                         continue
 
-                    self.operator.receive_packet(data_packet)
+                    # 记录包处理开始（如果启用监控）
+                    packet_id = None
+                    if self._enable_monitoring and self.metrics_collector:
+                        packet_id = self.metrics_collector.record_packet_start(
+                            packet_id=getattr(data_packet, 'packet_id', None),
+                            packet_size=getattr(data_packet, 'size', 0),
+                        )
+                    
+                    # 处理数据包
+                    try:
+                        self.operator.receive_packet(data_packet)
+                        
+                        # 记录包处理成功
+                        if self._enable_monitoring and self.metrics_collector and packet_id:
+                            self.metrics_collector.record_packet_end(
+                                packet_id=packet_id,
+                                success=True,
+                            )
+                        self._processed_count += 1
+                        
+                    except Exception as process_error:
+                        # 记录包处理失败
+                        if self._enable_monitoring and self.metrics_collector and packet_id:
+                            self.metrics_collector.record_packet_end(
+                                packet_id=packet_id,
+                                success=False,
+                                error_type=type(process_error).__name__,
+                            )
+                        self._error_count += 1
+                        raise
+                        
             except Exception as e:
                 self.logger.error(f"Critical error in node '{self.name}': {str(e)}")
             finally:
@@ -249,6 +348,14 @@ class BaseTask(ABC):
             # 停止任务
             if self.is_running:
                 self.stop()
+
+            # 停止监控组件
+            if self._enable_monitoring:
+                if self.metrics_reporter:
+                    self.metrics_reporter.stop_reporting()
+                if self.resource_monitor:
+                    self.resource_monitor.stop_monitoring()
+                self.logger.debug(f"Stopped monitoring for task {self.name}")
 
             # # 清理算子资源
             # if hasattr(self.operator, 'cleanup'):
@@ -351,3 +458,54 @@ class BaseTask(ABC):
                 )
 
         return drained_packets
+
+    # === Performance Monitoring API ===
+
+    def get_current_metrics(self) -> Optional[TaskPerformanceMetrics]:
+        """
+        获取当前性能指标
+
+        Returns:
+            TaskPerformanceMetrics 实例，如果监控未启用则返回 None
+        """
+        if not self._enable_monitoring or not self.metrics_collector:
+            return None
+
+        metrics = self.metrics_collector.get_real_time_metrics()
+
+        # 添加资源监控数据
+        if self.resource_monitor:
+            cpu, memory = self.resource_monitor.get_current_usage()
+            metrics.cpu_usage_percent = cpu
+            metrics.memory_usage_mb = memory
+
+        # 添加队列深度
+        if self.input_qd:
+            try:
+                queue_instance = self.input_qd.queue_instance
+                if hasattr(queue_instance, 'qsize'):
+                    metrics.input_queue_depth = queue_instance.qsize()
+            except Exception:
+                pass
+
+        return metrics
+
+    def reset_metrics(self) -> None:
+        """重置性能指标"""
+        if self.metrics_collector:
+            self.metrics_collector.reset_metrics()
+
+    def export_metrics(self, format: str = "json") -> Optional[str]:
+        """
+        导出性能指标
+
+        Args:
+            format: 导出格式 ("json", "prometheus", "csv", "human")
+
+        Returns:
+            格式化的指标字符串，如果监控未启用则返回 None
+        """
+        if not self._enable_monitoring or not self.metrics_reporter:
+            return None
+
+        return self.metrics_reporter.generate_report(format=format)

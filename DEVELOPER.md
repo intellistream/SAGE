@@ -5,6 +5,9 @@ Welcome to the SAGE development guide! This document will help you get started w
 ## Table of Contents
 
 - [Development Setup](#development-setup)
+  - [Prerequisites](#prerequisites)
+  - [Initial Setup](#initial-setup)
+  - [Submodule Management](#submodule-management)
 - [Development Workflow](#development-workflow)
 - [Code Quality](#code-quality)
 - [Testing](#testing)
@@ -27,7 +30,22 @@ Welcome to the SAGE development guide! This document will help you get started w
    cd SAGE
    ```
 
-2. **Run the developer setup script**
+2. **Switch to development branch**
+   ```bash
+   git checkout main-dev
+   ```
+
+3. **Initialize submodules**
+   ```bash
+   # Use the maintenance tool (recommended)
+   ./tools/maintenance/sage-maintenance.sh submodule init
+   
+   # This will:
+   # - Initialize all submodules
+   # - Automatically switch to the correct branch (main-dev)
+   ```
+
+4. **Run the developer setup script**
    ```bash
    ./scripts/dev.sh setup
    ```
@@ -37,10 +55,78 @@ Welcome to the SAGE development guide! This document will help you get started w
    - Install SAGE in development mode
    - Install all development dependencies
 
-3. **Verify the setup**
+5. **Verify the setup**
    ```bash
    ./scripts/dev.sh validate
+   
+   # Check project health
+   ./tools/maintenance/sage-maintenance.sh doctor
    ```
+
+### Submodule Management
+
+SAGE uses Git submodules for modular components (docs-public, sageDB, sageLLM, sageFlow). Use the maintenance tool for all submodule operations:
+
+#### Quick Reference
+
+```bash
+# Initialize submodules (first time or after clone)
+./tools/maintenance/sage-maintenance.sh submodule init
+
+# Check submodule status
+./tools/maintenance/sage-maintenance.sh submodule status
+
+# Switch submodule branches (after switching SAGE branch)
+./tools/maintenance/sage-maintenance.sh submodule switch
+
+# Update submodules to latest remote version
+./tools/maintenance/sage-maintenance.sh submodule update
+```
+
+#### Branch Matching Rules
+
+| SAGE Branch | Submodule Branch | Usage |
+|------------|------------------|-------|
+| `main` | `main` | Stable releases |
+| `main-dev` | `main-dev` | Development |
+| Other branches | `main-dev` | Default development |
+
+#### Important Notes
+
+⚠️ **Always use the maintenance tool instead of raw Git commands:**
+
+```bash
+# ❌ Don't use (causes detached HEAD)
+git submodule update --init
+
+# ✅ Use this instead
+./tools/maintenance/sage-maintenance.sh submodule init
+```
+
+#### Troubleshooting Submodules
+
+**Problem: Submodules in detached HEAD state**
+
+```bash
+# Fix: Switch to correct branch
+./tools/maintenance/sage-maintenance.sh submodule switch
+```
+
+**Problem: Submodule conflicts during merge**
+
+```bash
+# Fix: Resolve conflicts automatically
+./tools/maintenance/sage-maintenance.sh submodule fix-conflict
+```
+
+**Problem: Old submodule configuration**
+
+```bash
+# Fix: Clean up old config
+./tools/maintenance/sage-maintenance.sh submodule cleanup
+```
+
+For more details, see [tools/maintenance/README.md](tools/maintenance/README.md).
 
 ### Alternative: Manual Setup
 

@@ -74,8 +74,14 @@ Run a simple example to get started:
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
+# Switch to development branch
+git checkout main-dev
+
+# Bootstrap submodules & install hooks (init + branch switch)
+./manage.sh
+
 # Install with quickstart (recommended)
-./quickstart.sh --dev --yes
+./quickstart.sh --dev --yes      # 开发模式下会自动同步 submodules 并安装 hooks
 
 # Run hello world example
 python examples/tutorials/hello_world.py
@@ -137,14 +143,14 @@ cd SAGE
 
 **Common Non-Interactive Modes**
 ```bash
-# Developer installation
+# Developer installation (auto-sync submodules & hooks)
 ./quickstart.sh --dev --yes
 
 # Minimal core only
 ./quickstart.sh --minimal --yes
 
-# Standard + vLLM support
-./quickstart.sh --standard --vllm --yes
+# Standard + vLLM support (explicit submodule sync)
+./quickstart.sh --standard --sync-submodules --vllm --yes
 
 # Use system Python instead of conda
 ./quickstart.sh --minimal --pip --yes
@@ -165,7 +171,7 @@ pip install isage[dev]       # Everything + development tools
 
 **Key Installation Features**
 - 🎯 Interactive menu for first-time users
-- 🤖 Optional vLLM integration with `--vllm`
+- 🤖 vLLM integration with `--vllm`
 - 🐍 Supports conda or system Python via `--pip`
 - ⚡ Three modes: minimal / standard / dev
 
@@ -183,45 +189,22 @@ python -m sage.tools.cli.main config env setup
 ```bash
 # Copy the environment template
 cp .env.template .env
-
-# Edit .env and add your API keys
-# Required for most examples:
-OPENAI_API_KEY=your_openai_api_key_here
-HF_TOKEN=your_huggingface_token_here
 ```
 
-**Environment Variables**
+Edit `.env` and add your API keys (required for most examples):
 - `OPENAI_API_KEY`: Required for GPT models and most LLM examples
 - `HF_TOKEN`: Required for Hugging Face model downloads
 - `SILICONCLOUD_API_KEY`: For alternative LLM services
 - `JINA_API_KEY`: For embedding services
 - `ALIBABA_API_KEY`: For DashScope models
-- `SAGE_LOG_LEVEL`: Set logging level (DEBUG, INFO, WARNING, ERROR)
 - `SAGE_TEST_MODE`: Enable test mode for examples
-
-## License Management (Commercial Editions)
-
-Use the unified CLI to manage commercial licenses:
-
-```bash
-# View current license status
-python -m sage.tools.cli.main license status
-
-# Install or remove a commercial license
-python -m sage.tools.cli.main license install <LICENSE-KEY>
-python -m sage.tools.cli.main license remove
-
-# Vendor utilities (SAGE team)
-python -m sage.tools.cli.main license vendor generate "Customer" --days 365
-python -m sage.tools.cli.main license vendor list
-python -m sage.tools.cli.main license vendor revoke <LICENSE-KEY>
-```
 
 **API Key Sources**
 - Get OpenAI API key: https://platform.openai.com/api-keys
 - Get Hugging Face token: https://huggingface.co/settings/tokens
 
 The `.env` file is automatically ignored by git to keep your keys secure.
+
 
 ## Use Cases
 

@@ -9,14 +9,14 @@ from sage.kernel.runtime.communication.router.router import BaseRouter
 from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
-    from sage.core.api.base_environment import BaseEnvironment
-    from sage.core.transformation.base_transformation import BaseTransformation
-    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
-    from sage.kernel.jobmanager.compiler.graph_node import TaskNode
+    from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
         BaseQueueDescriptor,
     )
     from sage.kernel.runtime.communication.router.packet import Packet
+    from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
+    from sage.kernel.runtime.graph.graph_node import TaskNode
 # task, operator和function "形式上共享"的运行上下文
 
 
@@ -39,6 +39,9 @@ class TaskContext(BaseRuntimeContext):
         self.env_base_dir: str = env.env_base_dir
         self.env_uuid = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
+        
+        # 性能监控配置
+        self.enable_monitoring: bool = getattr(env, "enable_monitoring", False)
 
         self.parallel_index: int = graph_node.parallel_index
         self.parallelism: int = graph_node.parallelism
@@ -221,7 +224,7 @@ class TaskContext(BaseRuntimeContext):
                     return
 
             # 导入JobManagerClient来发送网络请求
-            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+            from sage.kernel.runtime.jobmanager_client import JobManagerClient
 
             self.logger.info(
                 f"Task {node_name} sending stop signal back to JobManager at {self.jobmanager_host}:{self.jobmanager_port}"

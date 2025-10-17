@@ -2,6 +2,7 @@
 requires = [
     "setuptools>=64",
     "wheel",
+    "packaging>=24.2",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -13,8 +14,9 @@ dynamic = ["version"]
 description = "SAGE Kernel Module - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
 authors = [
-    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "data",
@@ -74,7 +76,6 @@ dependencies = [
     "prompt_toolkit>=3.0.50",
     "filelock>=3.16.1",  # vllm兼容版本
 ]
-license = "MIT"
 
 [project.optional-dependencies]
 # 开发依赖
@@ -108,6 +109,11 @@ docs = [
     "markupsafe>=2.0.1",
     "packaging>=20.5",
     "pymdown-extensions>=10.2.0",
+]
+
+# 性能监控（可选）
+monitoring = [
+    "psutil>=5.9.0",  # 系统资源监控
 ]
 
 [project.urls]
@@ -185,6 +191,20 @@ markers = [
     "cli: marks tests as CLI tests",
     "ray: marks tests requiring Ray framework (may be slow)",
     "distributed: marks tests requiring distributed setup",
+]
+filterwarnings = [
+    # 忽略已知的第三方库弃用警告
+    "ignore::DeprecationWarning:ray._private.client_mode_hook",
+    "ignore:.*local mode is an experimental feature.*:DeprecationWarning",
+    "ignore::DeprecationWarning:pkg_resources",
+    "ignore:.*SWIG.*:DeprecationWarning",
+    "ignore:.*SwigPyPacked.*:DeprecationWarning",
+    "ignore:.*SwigPyObject.*:DeprecationWarning",
+    "ignore:.*swigvarlink.*:DeprecationWarning",
+    # 用户警告过滤
+    "ignore:.*pkg_resources is deprecated.*:UserWarning",
+    # pytest 相关警告
+    "ignore::pytest.PytestReturnNotNoneWarning",
 ]
 
 [tool.coverage.run]

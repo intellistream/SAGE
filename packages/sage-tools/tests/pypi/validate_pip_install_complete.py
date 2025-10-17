@@ -265,6 +265,9 @@ class CompletePipInstallTester:
             "sage-middleware",
             "sage-libs",
             "sage-tools",
+            "sage-apps",
+            "sage-benchmark",
+            "sage-studio",
             "sage",
         ]
         built_packages = []
@@ -519,15 +522,15 @@ print(f'SAGE {version} loaded')""",
             # 核心API
             (
                 "LocalEnvironment",
-                "from sage.core.api.local_environment import LocalEnvironment; print('LocalEnvironment imported')",
+                "from sage.kernel.api.local_environment import LocalEnvironment; print('LocalEnvironment imported')",
             ),
             (
                 "BatchFunction",
-                "from sage.core.api.function.batch_function import BatchFunction; print('BatchFunction imported')",
+                "from sage.kernel.api.function.batch_function import BatchFunction; print('BatchFunction imported')",
             ),
             (
                 "SinkFunction",
-                "from sage.core.api.function.sink_function import SinkFunction; print('SinkFunction imported')",
+                "from sage.kernel.api.function.sink_function import SinkFunction; print('SinkFunction imported')",
             ),
             # Libs组件 (RAG, 数据源等)
             (
@@ -603,7 +606,7 @@ success_count = 0
 
 # 测试LocalEnvironment
 if test_component("LocalEnvironment", """
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 env = LocalEnvironment('test_env')
 print(f"  环境创建: {env.name}")
 """):
@@ -611,7 +614,7 @@ print(f"  环境创建: {env.name}")
 
 # 测试BatchFunction
 if test_component("BatchFunction", """
-from sage.core.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.batch_function import BatchFunction
 
 class TestBatchFunction(BatchFunction):
     def __init__(self):
@@ -638,7 +641,7 @@ print(f"  批处理函数执行: {len(results)} 条数据")
 
 # 测试SinkFunction
 if test_component("SinkFunction", """
-from sage.core.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.sink_function import SinkFunction
 
 class TestSinkFunction(SinkFunction):
     def __init__(self):
@@ -865,9 +868,9 @@ print("🎉 开发工具测试完成")
 测试从数据源到数据接收的完整流程
 """
 
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.sink_function import SinkFunction
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.sink_function import SinkFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 import tempfile
 import os
@@ -1018,9 +1021,9 @@ if __name__ == "__main__":
 """
 
 import unittest
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.sink_function import SinkFunction
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.batch_function import BatchFunction
+from sage.kernel.api.function.sink_function import SinkFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 class TestSageCore(unittest.TestCase):

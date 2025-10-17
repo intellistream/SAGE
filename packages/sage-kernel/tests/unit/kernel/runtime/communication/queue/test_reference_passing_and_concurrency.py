@@ -30,7 +30,7 @@ try:
         RayQueueDescriptor,
         resolve_descriptor,
     )
-    from sage.kernel.utils.ray.ray import ensure_ray_initialized  # noqa: F401
+    from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized  # noqa: F401
 
     print("✓ 成功导入队列描述符")
 except ImportError as e:
@@ -308,7 +308,6 @@ class TestPythonQueueConcurrency:
             "⚠️ Python multiprocessing.Queue的队列描述符引用很难跨进程传递，跳过此测试"
         )
         print("✓ 多进程测试跳过")
-        return True
 
     def test_queue_reference_integrity(self):
         """测试队列引用的完整性"""

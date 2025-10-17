@@ -1,10 +1,11 @@
+import csv
 import json
 import socket
 import time
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
-from sage.core.api.function.source_function import SourceFunction
+from sage.kernel.api.function.source_function import SourceFunction
 
 
 class FileSource(SourceFunction):
@@ -278,3 +279,189 @@ class SocketSource(SourceFunction):
 
     def __del__(self):
         self.close()
+
+
+# ============================================================================
+# 额外的Source类实现
+# ============================================================================
+
+
+class TextFileSource(SourceFunction):
+    """
+    文本文件源 - 读取文本文件内容
+
+    配置参数:
+    - file_path: 文件路径
+    - encoding: 文件编码 (默认utf-8)
+    - read_mode: 读取模式 ('all', 'lines') (默认'all')
+    """
+
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config or {}
+        self.file_path = self.config.get("file_path")
+        self.encoding = self.config.get("encoding", "utf-8")
+        self.read_mode = self.config.get("read_mode", "all")
+
+    def execute(self, data=None) -> Union[str, List[str]]:
+        """读取文本文件"""
+        try:
+            with open(self.file_path, "r", encoding=self.encoding) as f:
+                if self.read_mode == "lines":
+                    return f.readlines()
+                else:
+                    return f.read()
+        except FileNotFoundError:
+            self.logger.error(f"File not found: {self.file_path}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Error reading file: {e}")
+            raise
+
+
+class JSONFileSource(SourceFunction):
+    """
+    JSON文件源 - 读取JSON文件内容
+
+    配置参数:
+    - file_path: 文件路径
+    - encoding: 文件编码 (默认utf-8)
+    """
+
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config or {}
+        self.file_path = self.config.get("file_path")
+        self.encoding = self.config.get("encoding", "utf-8")
+
+    def execute(self, data=None) -> Union[Dict, List]:
+        """读取JSON文件"""
+        try:
+            with open(self.file_path, "r", encoding=self.encoding) as f:
+                return json.load(f)
+        except FileNotFoundError:
+            self.logger.error(f"File not found: {self.file_path}")
+            raise
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Invalid JSON format: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Error reading JSON file: {e}")
+            raise
+
+
+class CSVFileSource(SourceFunction):
+    """
+    CSV文件源 - 读取CSV文件内容
+
+    配置参数:
+    - file_path: 文件路径
+    - delimiter: 分隔符 (默认',')
+    - encoding: 文件编码 (默认utf-8)
+    - has_header: 是否有表头 (默认True)
+    """
+
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config or {}
+        self.file_path = self.config.get("file_path")
+        self.delimiter = self.config.get("delimiter", ",")
+        self.encoding = self.config.get("encoding", "utf-8")
+        self.has_header = self.config.get("has_header", True)
+
+    def execute(self, data=None) -> List[Dict]:
+        """读取CSV文件"""
+        try:
+            with open(self.file_path, "r", encoding=self.encoding) as f:
+                if self.has_header:
+                    reader = csv.DictReader(f, delimiter=self.delimiter)
+                    return list(reader)
+                else:
+                    reader = csv.reader(f, delimiter=self.delimiter)
+                    return list(reader)
+        except FileNotFoundError:
+            self.logger.error(f"File not found: {self.file_path}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Error reading CSV file: {e}")
+            raise
+
+
+class KafkaSource(SourceFunction):
+    """
+    Kafka源 - 从Kafka topic读取消息（占位实现）
+
+    配置参数:
+    - bootstrap_servers: Kafka服务器列表
+    - topic: Kafka topic名称
+    - group_id: 消费者组ID
+    """
+
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config or {}
+        self.bootstrap_servers = self.config.get("bootstrap_servers", ["localhost:9092"])
+        self.topic = self.config.get("topic")
+        self.group_id = self.config.get("group_id", "sage_consumer")
+
+    def execute(self, data=None) -> Optional[Dict]:
+        """读取Kafka消息（占位实现）"""
+        self.logger.warning("KafkaSource is a placeholder implementation")
+        # 实际实现需要kafka-python库
+        # from kafka import KafkaConsumer
+        # consumer = KafkaConsumer(self.topic, ...)
+        return None
+
+
+class DatabaseSource(SourceFunction):
+    """
+    数据库源 - 从数据库查询数据（占位实现）
+
+    配置参数:
+    - connection_string: 数据库连接字符串
+    - query: SQL查询语句
+    - params: 查询参数
+    """
+
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config or {}
+        self.connection_string = self.config.get("connection_string")
+        self.query = self.config.get("query")
+        self.params = self.config.get("params", {})
+
+    def execute(self, data=None) -> Optional[List[Dict]]:
+        """执行数据库查询（占位实现）"""
+        self.logger.warning("DatabaseSource is a placeholder implementation")
+        # 实际实现需要数据库驱动（如psycopg2, pymysql等）
+        return None
+
+
+class APISource(SourceFunction):
+    """
+    API源 - 从REST API获取数据（占位实现）
+
+    配置参数:
+    - url: API端点URL
+    - method: HTTP方法 (GET, POST等)
+    - headers: HTTP头部
+    - params: 请求参数
+    - timeout: 请求超时时间
+    """
+
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config or {}
+        self.url = self.config.get("url")
+        self.method = self.config.get("method", "GET")
+        self.headers = self.config.get("headers", {})
+        self.params = self.config.get("params", {})
+        self.timeout = self.config.get("timeout", 30)
+
+    def execute(self, data=None) -> Optional[Union[Dict, List]]:
+        """调用API获取数据（占位实现）"""
+        self.logger.warning("APISource is a placeholder implementation")
+        # 实际实现需要requests库
+        # import requests
+        # response = requests.request(self.method, self.url, ...)
+        return None

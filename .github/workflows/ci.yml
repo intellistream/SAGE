@@ -20,6 +20,7 @@ env:
   JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+  GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
   HF_ENDPOINT: https://hf-mirror.com
   CACHE_VERSION: v2-simplified-prod
 
@@ -70,6 +71,12 @@ jobs:
           WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
           
           # ==================================================
+          # GitHub Token for Repository Access
+          # ==================================================
+          
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          
+          # ==================================================
           # Hugging Face Configuration
           # ==================================================
           
@@ -93,68 +100,192 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          echo "🔧 系统依赖将由quickstart.sh统一管理..."
-          echo "跳过单独的系统依赖安装步骤"
+          echo "🔧 安装C++扩展构建所需的系统依赖..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev \
+            git
+          
+          echo "✅ 系统依赖安装完成"
+          echo "📋 验证关键工具："
+          gcc --version | head -1
+          g++ --version | head -1
+          cmake --version | head -1
+          make --version | head -1
 
       - name: Initialize Submodules
         run: |
-          echo "🔁 初始化子模块（C++扩展依赖）..."
+          echo "🔁 初始化Git子模块（C++扩展源码）..."
           git submodule update --init --recursive
           echo "✅ 子模块初始化完成"
           
           # 验证关键子模块
           echo "🔍 验证关键子模块："
-          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_db" ]; then
+          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" ]; then
             echo "✅ sage_db 子模块存在"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/ | head -10
+            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB/ | head -10
           else
             echo "❌ sage_db 子模块缺失"
+            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/ || echo "sage_db目录不存在"
           fi
           
-          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_flow" ]; then
+          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" ]; then
             echo "✅ sage_flow 子模块存在"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_flow/ | head -10
+            ls -la packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow/ | head -10
           else
             echo "❌ sage_flow 子模块缺失"
+            ls -la packages/sage-middleware/src/sage/middleware/components/sage_flow/ || echo "sage_flow目录不存在"
           fi
 
       - name: Install SAGE
         run: |
-          echo "🚀 安装SAGE生产版本（标准模式，包含C++扩展）..."
+          echo "🚀 安装SAGE（标准模式，包含C++扩展）..."
+          echo "📝 环境变量设置："
+          echo "  CI=true"
+          echo "  PATH=$PATH"
+          
+          # 确保PATH包含用户安装的脚本
+          export PATH="$HOME/.local/bin:$PATH"
+          
           chmod +x ./quickstart.sh
+          
+          # 在CI环境中，quickstart.sh会自动检测并安装系统依赖
+          # 然后调用 'sage extensions install all' 来构建C++扩展
+          echo ""
+          echo "开始安装（将构建C++扩展）..."
           ./quickstart.sh --standard --pip --yes
+          
+          echo ""
+          echo "✅ 安装脚本执行完成"
+          echo "📋 检查安装日志中的扩展构建信息："
+          if [ -f "install.log" ]; then
+            echo "查找C++扩展构建相关日志..."
+            grep -A 5 "安装C++扩展" install.log || echo "未找到扩展构建日志"
+            echo ""
+            grep -A 5 "extensions install" install.log || echo "未找到extensions install命令日志"
+          fi
         timeout-minutes: 25
 
       - name: Verify C++ Extensions
         run: |
           echo "🧩 验证C++扩展安装状态..."
           
+          # 检查子模块目录结构
+          echo ""
+          echo "� 检查子模块目录结构："
+          for component in sage_db sage_flow; do
+            component_dir="packages/sage-middleware/src/sage/middleware/components/${component}"
+            if [ -d "$component_dir" ]; then
+              echo "✅ $component 目录存在"
+              # 检查是否有子模块目录
+              if [ "$component" = "sage_db" ] && [ -d "${component_dir}/sageDB" ]; then
+                echo "  ✅ sageDB 子模块已初始化"
+                ls -la "${component_dir}/sageDB" | head -5
+              elif [ "$component" = "sage_flow" ] && [ -d "${component_dir}/sageFlow" ]; then
+                echo "  ✅ sageFlow 子模块已初始化"
+                ls -la "${component_dir}/sageFlow" | head -5
+              else
+                echo "  ❌ 子模块目录未找到"
+              fi
+            else
+              echo "❌ $component 目录不存在"
+            fi
+          done
+          
           # 检查.so文件
-          echo "📁 检查编译文件:"
-          if find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f | grep -q "\.so"; then
+          echo ""
+          echo "📁 检查已编译的.so文件:"
+          so_files=$(find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f 2>/dev/null || true)
+          if [ -n "$so_files" ]; then
             echo "✅ 找到C++扩展文件:"
-            find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f
+            echo "$so_files"
+            
+            # 检查每个.so文件的依赖
+            echo ""
+            echo "🔗 检查.so文件依赖:"
+            for so in $so_files; do
+              echo "  文件: $so"
+              ldd "$so" 2>&1 | head -10 || echo "    无法检查依赖"
+            done
           else
             echo "❌ 未找到.so文件"
+            echo "🔍 可能的构建日志位置："
+            find . -name "CMakeError.log" -o -name "make_output.log" 2>/dev/null | head -5 || true
           fi
           
           # 检查扩展功能可用性
-          echo "🔍 检查扩展功能:"
+          echo ""
+          echo "🔍 测试扩展Python导入:"
           python -c "
+          import sys
+          print(f'Python 版本: {sys.version}')
+          print(f'Python 路径: {sys.executable}')
+          print()
+          
+          # 尝试导入扩展
+          extensions_status = {}
+          
+          # 测试 sage_db
+          try:
+              from sage.middleware.components.sage_db.python import sage_db
+              print('✅ sage_db Python wrapper 导入成功')
+              try:
+                  from sage.middleware.components.sage_db.python import _sage_db
+                  print('✅ _sage_db C++ extension 导入成功')
+                  extensions_status['sage_db'] = True
+              except ImportError as e:
+                  print(f'❌ _sage_db C++ extension 导入失败: {e}')
+                  extensions_status['sage_db'] = False
+          except Exception as e:
+              print(f'❌ sage_db 导入失败: {e}')
+              extensions_status['sage_db'] = False
+          
+          print()
+          
+          # 测试 sage_flow
+          try:
+              from sage.middleware.components.sage_flow.python import sage_flow
+              print('✅ sage_flow Python wrapper 导入成功')
+              try:
+                  from sage.middleware.components.sage_flow.python import _sage_flow
+                  print('✅ _sage_flow C++ extension 导入成功')
+                  extensions_status['sage_flow'] = True
+              except ImportError as e:
+                  print(f'❌ _sage_flow C++ extension 导入失败: {e}')
+                  extensions_status['sage_flow'] = False
+          except Exception as e:
+              print(f'❌ sage_flow 导入失败: {e}')
+              extensions_status['sage_flow'] = False
+          
+          print()
+          
+          # 使用兼容性检查
           try:
               from sage.middleware.components.extensions_compat import check_extensions_availability
               available = check_extensions_availability()
               total = sum(available.values())
-              print(f'🧩 扩展可用性: {total}/{len(available)}')
+              print(f'🧩 扩展可用性总结: {total}/{len(available)}')
               for ext, status in available.items():
-                  print(f'  {ext}: {\"✅\" if status else \"❌\"}')
+                  symbol = '✅' if status else '❌'
+                  print(f'  {symbol} {ext}: {\"可用\" if status else \"不可用\"}')
               
-              if total > 0:
-                  print(f'✅ {total}个扩展可用，继续测试')
+              if total == 0:
+                  print()
+                  print('⚠️ 警告: 没有C++扩展可用')
+                  print('这将导致某些测试失败')
+                  sys.exit(1)
               else:
-                  print('⚠️ 暂无可用扩展，但不影响基础功能测试')
+                  print()
+                  print(f'✅ {total}个扩展可用，继续测试')
           except ImportError as e:
-              print(f'⚠️ 扩展检查模块不可用: {e}')
+              print(f'❌ 扩展检查模块不可用: {e}')
+              import traceback
+              traceback.print_exc()
+              sys.exit(1)
           "
 
       - name: Verify Installation

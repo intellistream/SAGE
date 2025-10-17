@@ -120,14 +120,48 @@ def quality(
     # 如果没有这些目录，则使用根目录但排除一些明显的第三方目录
     if not target_paths:
         target_paths = [str(project_path)]
-        excluded_dirs = [
-            "--exclude",
-            "test_env,venv,env,.venv,node_modules,build,dist,.git",
+        # 标准第三方目录排除
+        black_exclude = r"test_env|venv|env|\.venv|node_modules|build|dist|\.git"
+        isort_skip_patterns = [
+            "test_env",
+            "venv",
+            "env",
+            ".venv",
+            "node_modules",
+            "build",
+            "dist",
+            ".git",
         ]
+        flake8_exclude = "test_env,venv,env,.venv,node_modules,build,dist,.git"
     else:
-        excluded_dirs = []
+        # 添加需要跳过质量检查的特定文件夹（所有 git submodules）
+        # Submodules 列表：
+        # 1. docs-public (文档子模块)
+        # 2. sageLLM (LLM组件)
+        # 3. sageDB (数据库组件)
+        # 4. sageFlow (工作流组件)
+        # 5. neuromem (内存管理组件)
+
+        # black 使用正则表达式
+        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem)"
+        # isort 使用多个 --skip-glob 参数（每个模式一个）
+        isort_skip_patterns = [
+            "*/docs-public/*",
+            "*/sageFlow/*",
+            "*/sageDB/*",
+            "*/sageLLM/*",
+            "*/neuromem/*",
+        ]
+        # flake8 使用逗号分隔的路径模式（支持通配符）
+        flake8_exclude = (
+            "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        )
 
     console.print(f"🎯 检查目录: {', '.join(target_paths)}")
+    if not target_paths or target_paths != [str(project_path)]:
+        console.print(
+            f"⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem"
+        )
 
     quality_issues = False
     error_timestamp = None
@@ -140,9 +174,7 @@ def quality(
         console.print("\n🎨 运行代码格式化检查 (black)...")
 
         if should_fix:
-            cmd = ["black"] + target_paths
-            if excluded_dirs:
-                cmd.extend(excluded_dirs)
+            cmd = ["black", "--exclude", black_exclude] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -160,10 +192,10 @@ def quality(
         else:
             # 检查模式
             cmd = (
-                ["black", "--check"] + (["--diff"] if check_only else []) + target_paths
+                ["black", "--check", "--exclude", black_exclude]
+                + (["--diff"] if check_only else [])
+                + target_paths
             )
-            if excluded_dirs:
-                cmd.extend(excluded_dirs)
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -184,7 +216,11 @@ def quality(
         console.print("\n📦 运行导入排序检查 (isort)...")
 
         if should_fix:
-            cmd = ["isort", "--profile", "black"] + target_paths
+            cmd = ["isort", "--profile", "black"]
+            # 为每个模式添加 --skip-glob 参数
+            for pattern in isort_skip_patterns:
+                cmd.extend(["--skip-glob", pattern])
+            cmd.extend(target_paths)
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -201,11 +237,13 @@ def quality(
                 )
         else:
             # 检查模式
-            cmd = (
-                ["isort", "--check-only"]
-                + (["--diff"] if check_only else [])
-                + target_paths
-            )
+            cmd = ["isort", "--check-only"]
+            # 为每个模式添加 --skip-glob 参数
+            for pattern in isort_skip_patterns:
+                cmd.extend(["--skip-glob", pattern])
+            if check_only:
+                cmd.append("--diff")
+            cmd.extend(target_paths)
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -226,8 +264,8 @@ def quality(
         console.print("\n🔍 运行代码检查 (flake8)...")
 
         try:
-            # flake8配置通过项目根目录的.flake8文件控制
-            cmd = ["flake8"] + target_paths
+            # flake8配置通过项目根目录的.flake8文件控制，同时添加命令行排除
+            cmd = ["flake8", "--exclude", flake8_exclude] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -347,15 +385,49 @@ def _run_quality_check(
     # 如果没有这些目录，则使用根目录但排除一些明显的第三方目录
     if not target_paths:
         target_paths = [str(project_path)]
-        excluded_dirs = [
-            "--exclude",
-            "test_env,venv,env,.venv,node_modules,build,dist,.git",
+        # 标准第三方目录排除
+        black_exclude = r"test_env|venv|env|\.venv|node_modules|build|dist|\.git"
+        isort_skip_patterns = [
+            "test_env",
+            "venv",
+            "env",
+            ".venv",
+            "node_modules",
+            "build",
+            "dist",
+            ".git",
         ]
+        flake8_exclude = "test_env,venv,env,.venv,node_modules,build,dist,.git"
     else:
-        excluded_dirs = []
+        # 添加需要跳过质量检查的特定文件夹（所有 git submodules）
+        # Submodules 列表：
+        # 1. docs-public (文档子模块)
+        # 2. sageLLM (LLM组件)
+        # 3. sageDB (数据库组件)
+        # 4. sageFlow (工作流组件)
+        # 5. neuromem (内存管理组件)
+
+        # black 使用正则表达式
+        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem)"
+        # isort 使用多个 --skip-glob 参数（每个模式一个）
+        isort_skip_patterns = [
+            "*/docs-public/*",
+            "*/sageFlow/*",
+            "*/sageDB/*",
+            "*/sageLLM/*",
+            "*/neuromem/*",
+        ]
+        # flake8 使用逗号分隔的路径模式（支持通配符）
+        flake8_exclude = (
+            "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        )
 
     if not quiet:
         console.print(f"🎯 检查目录: {', '.join(str(p) for p in target_paths)}")
+        if not target_paths or target_paths != [str(project_path)]:
+            console.print(
+                f"⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem"
+            )
 
     quality_issues = False
 
@@ -365,9 +437,13 @@ def _run_quality_check(
             console.print("🎨 运行代码格式化检查 (使用black作为代码格式化工具)...")
 
         if check_only:
-            cmd = ["black", "--check", "--diff"] + target_paths
-            if excluded_dirs:
-                cmd.extend(excluded_dirs)
+            cmd = [
+                "black",
+                "--check",
+                "--diff",
+                "--exclude",
+                black_exclude,
+            ] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -379,9 +455,7 @@ def _run_quality_check(
                 if not quiet:
                     console.print("[green]✅ 代码格式检查通过 √ [/green]")
         elif fix:
-            cmd = ["black"] + target_paths
-            if excluded_dirs:
-                cmd.extend(excluded_dirs)
+            cmd = ["black", "--exclude", black_exclude] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -399,7 +473,11 @@ def _run_quality_check(
             console.print("🎨 运行导入排序检查 (使用isort为import语句排序)...")
 
         if check_only:
-            cmd = ["isort", "--check-only", "--diff"] + target_paths
+            cmd = ["isort", "--check-only", "--diff"]
+            # 为每个模式添加 --skip-glob 参数
+            for pattern in isort_skip_patterns:
+                cmd.extend(["--skip-glob", pattern])
+            cmd.extend(target_paths)
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -411,7 +489,11 @@ def _run_quality_check(
                 if not quiet:
                     console.print("[green]✅ 导入排序检查通过 √ [/green]")
         elif fix:
-            cmd = ["isort", "--profile", "black"] + target_paths
+            cmd = ["isort", "--profile", "black"]
+            # 为每个模式添加 --skip-glob 参数
+            for pattern in isort_skip_patterns:
+                cmd.extend(["--skip-glob", pattern])
+            cmd.extend(target_paths)
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
@@ -429,8 +511,8 @@ def _run_quality_check(
             console.print("🎨 运行代码检查 (使用flake8作为静态代码分析工具)...")
 
         try:
-            # flake8配置通过项目根目录的.flake8文件控制
-            cmd = ["flake8"] + target_paths
+            # flake8配置通过项目根目录的.flake8文件控制，同时添加命令行排除
+            cmd = ["flake8", "--exclude", flake8_exclude] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
