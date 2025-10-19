@@ -108,9 +108,9 @@ sage chat --backend finetune --finetune-model code
 
 ```bash
 # 环境变量配置
-export SAGE_CHAT_BACKEND="finetune"
-export SAGE_CHAT_FINETUNE_MODEL="code"
-export SAGE_CHAT_FINETUNE_PORT="8000"
+export SAGE_DEBUG_BACKEND="finetune"
+export SAGE_DEBUG_FINETUNE_MODEL="code"
+export SAGE_DEBUG_FINETUNE_PORT="8000"
 
 # 然后直接运行
 sage chat
