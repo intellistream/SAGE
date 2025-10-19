@@ -89,6 +89,7 @@ class TaskContext(BaseRuntimeContext):
         if execution_graph:
             self._build_downstream_groups(graph_node, execution_graph)
 
+        self.dispatcher = None  # 延迟注入，避免循环依赖
     def _build_downstream_groups(
         self, graph_node: "TaskNode", execution_graph: "ExecutionGraph"
     ):

@@ -146,12 +146,17 @@ class RemoteEnvironment(BaseEnvironment):
                     # 获取作业状态
                     status_response = self.client.get_job_status(self.env_uuid)
 
+                    # 服务器返回的响应有两层结构:
+                    # { "status": "success", "job_status": { "success": True, "status": "running", ... } }
+                    # 需要提取内层的 job_status
+                    job_status_data = status_response.get("job_status", status_response)
+                    
                     # 检查响应是否成功
-                    if not status_response.get("success", False):
-                        error_msg = status_response.get("message", "Unknown error")
+                    if not job_status_data.get("success", False):
+                        error_msg = job_status_data.get("message", "Unknown error")
                         logger.error(f"Error getting job status: {error_msg}")
                         # 如果是 not_found，说明作业已经完成并被清理
-                        if status_response.get("status") == "not_found":
+                        if job_status_data.get("status") == "not_found":
                             logger.info("Job not found (已完成并清理)")
                             break
                         # 其他错误继续等待
@@ -159,7 +164,7 @@ class RemoteEnvironment(BaseEnvironment):
                         continue
 
                     # 获取作业状态
-                    job_status = status_response.get("status")
+                    job_status = job_status_data.get("status")
                     logger.debug(f"Current job status: {job_status}")
 
                     if job_status in ["stopped", "failed", "completed"]:
