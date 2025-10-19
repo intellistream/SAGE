@@ -138,8 +138,8 @@ sage chat --backend finetune --finetune-model sage_code_expert
 
 ```bash
 # 在 ~/.bashrc 中配置
-export SAGE_CHAT_BACKEND="finetune"
-export SAGE_CHAT_FINETUNE_MODEL="sage_code_expert"
+export SAGE_DEBUG_BACKEND="finetune"
+export SAGE_DEBUG_FINETUNE_MODEL="sage_code_expert"
 
 # 直接运行
 sage chat
@@ -269,7 +269,7 @@ sage chat --backend finetune --finetune-model model_name
 
 **或者使用环境变量**:
 ```bash
-echo 'export SAGE_CHAT_BACKEND=finetune' >> ~/.bashrc
+echo 'export SAGE_DEBUG_BACKEND=finetune' >> ~/.bashrc
 source ~/.bashrc
 sage chat  # 自动使用微调模型
 ```
