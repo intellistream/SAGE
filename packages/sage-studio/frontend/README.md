@@ -48,7 +48,7 @@ npm run preview
 ## 📁 项目结构
 
 ```
-frontend-v2/
+frontend/
 ├── src/
 │   ├── components/          # React 组件
 │   │   ├── FlowEditor.tsx   # React Flow 编辑器

@@ -2,34 +2,9 @@
 
 **SAGE Studio** 是一个现代化的低代码 Web UI 包，用于可视化开发和管理 SAGE RAG 数据流水线。
 
-> **版本**: 2.0.0-alpha.3 (Phase 2 完成，Phase 3 进行中)  
 > **包名**: `isage-studio`  
 > **技术栈**: React 18 + FastAPI  
 > **最后更新**: 2025-10-17
-
-## 🎯 核心功能
-
-### Phase 1: 接口抽象 ✅ (100%)
-- ✅ 插件系统架构
-- ✅ 节点定义和执行引擎
-- ✅ 流程引擎和验证
-- ✅ FastAPI 后端 API
-- ✅ 11/11 集成测试通过
-
-### Phase 2: React 可视化编辑器 ✅ (100%)
-- ✅ **拖放式编辑器**: React Flow 图形界面
-- ✅ **流程管理**: 保存、加载、运行、停止
-- ✅ **动态配置**: 自动生成节点配置表单
-- ✅ **画布控制**: 缩放、平移、对齐
-- ✅ **格式兼容**: Angular/React Flow 格式自动转换
-- ✅ **状态轮询**: 实时节点状态更新 ⚡ NEW!
-- ✅ **撤销/重做**: 操作历史管理 (50步) ⚡ NEW!
-- ✅ **键盘快捷键**: Ctrl+Z/Y/S, Delete ⚡ NEW!
-
-### Phase 3: 追平体验 🔄 (15%)
-- 🔄 **Playground**: 交互式调试面板 (规划中)
-- ⏳ **Tweaks**: 运行时参数覆盖
-- ⏳ **模板库**: 10+ 常见 RAG 模板
 
 ## � 快速开始
 
@@ -37,18 +12,18 @@
 
 - **Python**: 3.8+ (推荐 3.10)
 - **Node.js**: 16+ (推荐 18)
-- **Conda**: sage 环境（已自动激活）
+- **Conda**: sage 环境
 
 ### 启动服务
 
 ```bash
 # 启动后端 API（在 sage 环境中）
-cd /home/chaotic/SAGE/packages/sage-studio
+cd SAGE/packages/sage-studio
 python -m sage.studio.config.backend.api &
 # 后端运行在: http://localhost:8080
 
 # 2. 启动前端界面（React v2）
-cd frontend-v2
+cd frontend
 npm install  # 首次运行
 npm run dev
 # 前端访问: http://localhost:3000 或 http://localhost:3001
@@ -62,7 +37,7 @@ lsof -i :8080
 
 # 检查 conda 环境
 conda info --envs | grep "*"
-# 应该显示: sage * /home/chaotic/miniconda3/envs/sage
+# 应该显示: sage * miniconda3/envs/sage
 
 # 验证 Phase 1 功能
 python verify_standalone.py
@@ -90,7 +65,7 @@ pip install -e .
 ### React 前端 v2.0（推荐）
 
 ```bash
-cd frontend-v2
+cd frontend
 
 # 开发模式
 npm run dev          # 启动开发服务器 (localhost:3000/3001)
@@ -141,7 +116,7 @@ sage-studio/
 ├── QUICK_ACCESS.md               # 快速访问入口 ⭐
 ├── STANDALONE_MODE_INDEX.md      # Phase 1 文档导航
 │
-├── frontend-v2/                  # React 前端 v2.0 ⭐
+├── frontend/                  # React 前端 v2.0 ⭐
 │   ├── src/
 │   │   ├── components/           # React 组件
 │   │   │   ├── FlowCanvas.tsx    # React Flow 画布
@@ -245,7 +220,7 @@ Backend API (localhost:8080)
 ### React 前端开发（v2.0）
 
 ```bash
-cd frontend-v2
+cd frontend
 
 # 开发服务器
 npm run dev              # http://localhost:3000
@@ -272,7 +247,7 @@ npm test
 ### 后端开发（FastAPI）
 
 ```bash
-cd /home/chaotic/SAGE/packages/sage-studio
+cd SAGE/packages/sage-studio
 
 # 开发模式
 python -m sage.studio.config.backend.api
@@ -306,7 +281,7 @@ tail -f ~/.sage/logs/api.log
 # 后端：kill 进程后重启 Python
 
 # 清理缓存
-rm -rf frontend-v2/node_modules
+rm -rf frontend/node_modules
 rm -rf .sage/states/*
 ```
 
@@ -324,9 +299,6 @@ rm -rf .sage/states/*
 - `starlette>=0.40,<0.47` - Web 工具包
 - `websockets>=11.0` - WebSocket 支持
 
-### 前端（需要 Node.js）
-- Angular 框架（通过 npm 管理）
-- 详见 `frontend/package.json`
 
 ## 🔄 升级指南
 
@@ -383,54 +355,6 @@ pip install --upgrade isage isage-studio isage-tools
 from sage.studio.studio_manager import StudioManager
 ```
 
-## 📚 文档导航
-
-### 核心文档 ⭐
-- **[QUICK_ACCESS.md](./QUICK_ACCESS.md)** - 快速访问入口
-- **[frontend-v2/README.md](./frontend-v2/README.md)** - React 前端详细说明
-- **[frontend-v2/CHANGELOG.md](./frontend-v2/CHANGELOG.md)** - 更新日志
-
-### Phase 2 文档
-- **[PHASE2_COMPLETION_REPORT.md](./frontend-v2/PHASE2_COMPLETION_REPORT.md)** - 85% 完成报告
-- **[FORMAT_FIX_REPORT.md](./frontend-v2/FORMAT_FIX_REPORT.md)** - 格式兼容修复
-- **[API_INTEGRATION.md](./frontend-v2/docs/API_INTEGRATION.md)** - API 集成指南
-
-### Phase 1 文档
-- **[STANDALONE_MODE_INDEX.md](./STANDALONE_MODE_INDEX.md)** - 完整文档索引
-- **[QUICK_REFERENCE.md](./docs/standalone-mode/QUICK_REFERENCE.md)** - 5分钟速查
-
-### 其他资源
-- [SAGE 主文档](https://intellistream.github.io/SAGE-Pub/)
-- [CONTRIBUTING.md](../../CONTRIBUTING.md)
-
-## 🎯 下一步计划
-
-### 当前重点：Phase 3 - 追平体验 (1-2周)
-
-**P0 - 最高优先级**:
-1. 🔥 **Playground** (3-5天) - 交互式调试面板
-   - 实时与流程对话
-   - 显示中间步骤输出
-   - WebSocket 实时通信
-
-**P1 - 高优先级**:
-2. ⏳ **Tweaks** (2-3天) - 运行时参数覆盖
-3. ⏳ **模板库** (3-5天) - 10+ 常见 RAG 模板
-4. ⏳ **日志查看** - 集成 getJobLogs API
-
-### 未来规划
-
-**Phase 4**: RAG 专业化与差异化 (1-2月)
-- RAG 评估套件 ⭐⭐⭐⭐⭐
-- 深度可解释性
-- AI 辅助优化
-- Agent 支持
-
-详见：
-- [Phase 3 规划](./frontend-v2/PHASE3_PLAYGROUND_PLAN.md)
-- [竞品分析](./COMPETITIVE_ANALYSIS.md)
-- [战略路线图](./docs/STUDIO_EVOLUTION_ROADMAP.md)
-
 ## 🐛 故障排除
 
 ### 常见问题
@@ -447,7 +371,7 @@ python -m sage.studio.config.backend.api &
 
 **前端编译错误**:
 ```bash
-cd frontend-v2
+cd frontend
 rm -rf node_modules package-lock.json
 npm install
 npm run dev
