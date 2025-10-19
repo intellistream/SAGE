@@ -61,6 +61,8 @@ class BaseTask(ABC):
         self.metrics_collector: Optional[MetricsCollector] = None
         self.resource_monitor: Optional[ResourceMonitor] = None
         self.metrics_reporter: Optional[MetricsReporter] = None
+
+        self.fault_handler = None  # Will be set by dispatcher if applicable
         
         if self._enable_monitoring:
             try:
@@ -261,8 +263,6 @@ class BaseTask(ABC):
                         f"⚠️ Operator {self.operator.__class__.__name__} does not support restore_state()"
                     )
             
-            # === 验证状态恢复 ===
-            self._verify_state_restoration(state)
             
             self.logger.info(f"🎉 Complete state restoration finished for task {self.name}")
             
@@ -513,7 +513,7 @@ class BaseTask(ABC):
                         raise
                         
             except Exception as e:
-                if fault_handler and hasattr(fault_handler, 'save_checkpoint'):
+                if fault_handler :
                     try:
                         current_state = self.get_state()
                         saved = fault_handler.save_checkpoint(
@@ -538,12 +538,8 @@ class BaseTask(ABC):
                 self._error_count += 1
                 
                 # 通知 dispatcher 处理失败
-                if hasattr(self.ctx, 'dispatcher') and self.ctx.dispatcher:
-                    self.logger.info(
-                        f"Task {self.name} notifying dispatcher of failure..."
-                    )
-                    handled = self.ctx.dispatcher.handle_task_failure(self.name, e)
-                    
+                if fault_handler :
+                    handled = fault_handler.handle_failure(self.name, e)  
                     if handled:
                         self.logger.info(
                             f"Task {self.name} failure was handled by fault tolerance, "

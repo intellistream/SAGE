@@ -429,6 +429,9 @@ class Dispatcher:
         for node_name, graph_node in self.graph.nodes.items():
             try:
                 # === 新架构：Scheduler → Decision → Placement ===
+                # 注入 dispatcher 引用到 context (用于容错处理)
+                graph_node.ctx.dispatcher = self
+
                 # 1. 获取调度决策
                 decision = self.scheduler.make_decision(graph_node)
                 
