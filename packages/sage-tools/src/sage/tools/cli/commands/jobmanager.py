@@ -304,7 +304,7 @@ class JobManagerController:
         # 在 start 方法的开头添加：
         typer.echo(f"Using Python interpreter: {sys.executable}")
         # 构建启动命令
-        jobmanager_module = "sage.kernel.jobmanager.job_manager"
+        jobmanager_module = "sage.kernel.runtime.job_manager"
         cmd = [
             sys.executable,
             "-m",

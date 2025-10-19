@@ -37,6 +37,8 @@ install.log
 test_logs/
 draft/
 logs/
+/temp/
+/.test_checkpoints/
 output/
 **/__pycache__/
 gitlogs.txt

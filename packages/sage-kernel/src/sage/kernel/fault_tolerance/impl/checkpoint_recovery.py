@@ -5,12 +5,13 @@ Checkpoint-based Fault Tolerance Strategy
 """
 
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from sage.kernel.core.types import TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.checkpoint_impl import CheckpointManagerImpl
-
+if TYPE_CHECKING:
+    from sage.kernel.runtime.dispatcher import Dispatcher
 
 class CheckpointBasedRecovery(BaseFaultHandler):
     """
@@ -47,6 +48,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
         self.last_checkpoint_time: Dict[TaskID, float] = {}
 
         self.logger = None  # 可以后续注入
+        self.dispatcher: Optional["Dispatcher"] = None  # 可以后续注入
 
     def handle_failure(self, task_id: TaskID, error: Exception) -> bool:
         """
@@ -94,75 +96,54 @@ class CheckpointBasedRecovery(BaseFaultHandler):
         has_checkpoint = len(self.checkpoint_manager.list_checkpoints(task_id)) > 0
 
         return failure_count < self.max_recovery_attempts and has_checkpoint
+    
+    def _is_remote_task(self, task_id: TaskID) -> bool:
+        """判断是否为远程任务"""
+        if not hasattr(self, "dispatcher") or not self.dispatcher:
+            return False
+        task = self.dispatcher.tasks.get(task_id)
+        from sage.kernel.utils.ray.actor import ActorWrapper
+        return isinstance(task, ActorWrapper)
 
     def recover(self, task_id: TaskID) -> bool:
         """
-        从 Checkpoint 恢复任务
-        
-        正确流程：
-        1. 加载 checkpoint
-        2. 调用 dispatcher.restart_task_with_state（内部会：停止→创建→恢复→启动）
-        
-        Args:
-            task_id: 要恢复的任务 ID
-            
-        Returns:
-            True 如果恢复成功
+        从 Checkpoint 恢复任务（本地或远程）
         """
-        # 调用回调
         self.on_recovery_started(task_id)
-        
         try:
-            # === 步骤 1: 加载最新的 checkpoint ===
             state = self.checkpoint_manager.load_checkpoint(task_id)
-            
             if state is None:
                 if self.logger:
-                    self.logger.error(f"❌ No checkpoint found for task {task_id}")
+                    self.logger.error(f"No checkpoint found for task {task_id}")
                 self.on_recovery_completed(task_id, False)
                 return False
-            
+
             if self.logger:
                 self.logger.info(
-                    f"✅ Loaded checkpoint for task {task_id}, "
+                    f"Loaded checkpoint for task {task_id}, "
                     f"processed_count={state.get('processed_count', 0)}, "
                     f"checkpoint_counter={state.get('checkpoint_counter', 0)}"
                 )
-            
-            # === 步骤 2: 通过 dispatcher 重启任务并恢复状态 ===
-            if not hasattr(self, 'dispatcher') or not self.dispatcher:
+
+            if not hasattr(self, "dispatcher") or not self.dispatcher:
                 if self.logger:
-                    self.logger.error(
-                        f"❌ No dispatcher available, cannot restart task {task_id}"
-                    )
+                    self.logger.error("No dispatcher available for recovery")
                 self.on_recovery_completed(task_id, False)
                 return False
-            
-            # 使用新的 restart_task_with_state 方法
-            # 它会按正确顺序：停止 → 创建 → 恢复 → 启动
+
             success = self.dispatcher.restart_task_with_state(task_id, state)
-            
-            if success:
-                if self.logger:
-                    self.logger.info(
-                        f"🎉 Task {task_id} restarted successfully and state restored"
-                    )
-            else:
-                if self.logger:
-                    self.logger.error(f"❌ Failed to restart task {task_id}")
-            
-            # 调用回调
+
+            if success and self.logger:
+                self.logger.info(f"Task {task_id} restarted and state restored")
+            elif not success and self.logger:
+                self.logger.error(f"Failed to restart task {task_id}")
+
             self.on_recovery_completed(task_id, success)
-            
             return success
-            
+
         except Exception as e:
             if self.logger:
-                self.logger.error(
-                    f"❌ Failed to recover task {task_id}: {e}", 
-                    exc_info=True
-                )
-            
+                self.logger.error(f"Recover task {task_id} failed: {e}", exc_info=True)
             self.on_recovery_completed(task_id, False)
             return False
 

@@ -273,46 +273,7 @@ class BaseTask(ABC):
             )
             raise
     
-    def _verify_state_restoration(self, original_state: dict):
-        """
-        验证状态是否正确恢复（用于调试）
-        
-        Args:
-            original_state: 原始保存的状态
-        """
-        try:
-            # 验证 Task 层状态
-            assert self._processed_count == original_state.get('processed_count', 0)
-            assert self._error_count == original_state.get('error_count', 0)
-            
-            # 如果有 operator 状态，验证关键字段
-            if 'operator_state' in original_state and original_state['operator_state']:
-                operator_state = original_state['operator_state']
-                
-                # 验证 function 状态（如果有）
-                if 'function_state' in operator_state:
-                    function_state = operator_state['function_state']
-                    function = self.operator.function
-                    
-                    # 验证几个关键属性是否恢复
-                    for attr_name, expected_value in function_state.items():
-                        if attr_name.startswith('__') and attr_name.endswith('__'):
-                            continue  # 跳过元数据
-                        
-                        if hasattr(function, attr_name):
-                            actual_value = getattr(function, attr_name)
-                            if actual_value != expected_value:
-                                self.logger.warning(
-                                    f"⚠️ State mismatch for {attr_name}: "
-                                    f"expected={expected_value}, actual={actual_value}"
-                                )
-            
-            self.logger.debug("✅ State restoration verification passed")
-            
-        except AssertionError as e:
-            self.logger.warning(f"⚠️ State restoration verification failed: {e}")
-        except Exception as e:
-            self.logger.debug(f"State verification skipped: {e}")
+
     
     def save_checkpoint_if_needed(self, fault_handler) -> bool:
         """
@@ -393,14 +354,6 @@ class BaseTask(ABC):
             # 立即标记任务为已停止，这样dispatcher就能正确检测到
             self.is_running = False
 
-    def stop_source(self) -> None:
-        """Signal the worker loop to stop."""
-        if not self.ctx.is_stop_requested():
-            self.ctx.set_stop_signal()
-            self.ctx.send_stop_signal_back(self.name)
-            self.logger.info(f"Node '{self.name}' received stop signal.")
-            # 立即标记任务为已停止，这样dispatcher就能正确检测到
-            self.is_running = False
 
     def get_object(self):
         return self
@@ -424,6 +377,9 @@ class BaseTask(ABC):
             self.logger.debug(f"Task {self.name} has fault_handler: {type(fault_handler).__name__}")
         
         # Main execution loop
+        print(f"[DIAGNOSE] Task {self.name}: Entering worker loop, is_spout={self.is_spout}, stop={self.ctx.is_stop_requested()}")
+        self.logger.info(f"[DIAGNOSE] Task {self.name}: Entering worker loop, is_spout={self.is_spout}")
+        
         while not self.ctx.is_stop_requested():
             try:
                 # ✅ 定期保存 checkpoint

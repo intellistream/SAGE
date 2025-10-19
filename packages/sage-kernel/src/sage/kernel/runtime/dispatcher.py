@@ -1,5 +1,6 @@
 import os
 import time
+import ray
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union,Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -9,6 +10,7 @@ from sage.kernel.fault_tolerance.factory import (
 )
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
+from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
@@ -32,6 +34,16 @@ class Dispatcher:
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
         self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
+        # HeartbeatMonitor 实例 (监控线程)
+        self.heartbeat_monitor: Optional["HeartbeatMonitor"] = None
+        
+        # 容错配置
+        self.fault_tolerance_config = {
+            "enabled": False,  # 是否启用容错
+            "heartbeat_interval": 5.0,  # 心跳间隔 (秒)
+            "heartbeat_timeout": 15.0,  # 超时阈值 (秒)
+            "max_restart_attempts": 3,  # 最大重启次数
+        }
 
         # 使用调度器和容错管理器（重构后架构）
         # 调度器：纯决策者（返回 PlacementDecision）
@@ -69,6 +81,65 @@ class Dispatcher:
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()
+
+
+    def enable_fault_tolerance(
+        self,
+        heartbeat_interval: float = 5.0,
+        heartbeat_timeout: float = 15.0,
+        max_restart_attempts: int = 3
+    ):
+        """
+        启用 Remote 环境故障容错
+        
+        Args:
+            heartbeat_interval: 心跳发送间隔 (秒)
+            heartbeat_timeout: 心跳超时阈值 (秒)
+            max_restart_attempts: 最大重启尝试次数
+        """
+        self.fault_tolerance_config.update({
+        "enabled": True,
+        "heartbeat_interval": heartbeat_interval,
+        "heartbeat_timeout": heartbeat_timeout,
+        "max_restart_attempts": max_restart_attempts,
+    })
+    
+        self.logger.info(
+        f"🛡️  Fault tolerance enabled: "
+        f"interval={heartbeat_interval}s, timeout={heartbeat_timeout}s"
+    )
+        
+    def _init_heartbeat_monitor(self):
+        """
+        初始化 HeartbeatMonitor 监控线程
+        
+        在所有任务创建后调用,开始心跳监控
+        """
+        if not self.fault_tolerance_config["enabled"]:
+            return
+        
+        if self.heartbeat_monitor is not None:
+            self.logger.warning("HeartbeatMonitor already initialized")
+            return
+        
+        try:
+            from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
+            
+            # 创建 HeartbeatMonitor
+            self.heartbeat_monitor = HeartbeatMonitor(
+                dispatcher=self,
+                check_interval=self.fault_tolerance_config["heartbeat_interval"]
+            )
+            # 启动监控线程
+            self.heartbeat_monitor.start()
+            
+            self.logger.info("🔍 HeartbeatMonitor started")
+            
+        except Exception as e:
+            self.logger.error(
+                f"❌ Failed to initialize HeartbeatMonitor: {e}",
+                exc_info=True
+            )
 
     def receive_stop_signal(self):
         """
@@ -248,6 +319,8 @@ class Dispatcher:
         self.logger.info(
             f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks"
         )
+        if self.fault_tolerance_config["enabled"]and self.remote:
+            self._init_heartbeat_monitor()
         self.is_running = True
 
     def _create_service_context(self, service_name: str) -> "ServiceContext":
@@ -399,6 +472,11 @@ class Dispatcher:
 
     def stop(self):
         """停止所有任务和服务"""
+        if self.heartbeat_monitor is not None:
+            self.logger.info("🔍 Stopping HeartbeatMonitor...")
+            self.heartbeat_monitor.stop()
+            self.heartbeat_monitor = None
+
         if not self.is_running:
             self.logger.warning("Dispatcher is not running")
             return
@@ -533,38 +611,6 @@ class Dispatcher:
 
         return status
 
-    def get_statistics(self) -> Dict[str, Any]:
-        """获取dispatcher统计信息"""
-        return {
-            "name": self.name,
-            "is_running": self.is_running,
-            "task_count": len(self.tasks),
-            "service_count": len(self.services),
-            "task_status": self.get_task_status(),
-            "service_status": self.get_service_status(),
-        }
-    def handle_task_failure(self, task_id: str, error: Exception) -> bool:
-        """
-        处理任务失败
-        
-        Args:
-            task_id: 失败的任务 ID
-            error: 失败的异常信息
-            
-        Returns:
-            True 如果成功处理失败
-        """
-        self.logger.error(f"Task {task_id} failed: {error}")
-        
-        # 使用容错处理器处理失败
-        success = self.fault_handler.handle_failure(task_id, error)
-        
-        if success:
-            self.logger.info(f"Task {task_id} failure handled successfully")
-        else:
-            self.logger.error(f"Failed to handle task {task_id} failure")
-        
-        return success
 
     def restart_task(self, task_id: str, restore_state: Optional[dict] = None) -> bool:
         """
@@ -622,9 +668,10 @@ class Dispatcher:
             
             self.logger.debug(f"Creating new task instance for {task_id}...")
             
-            # 使用调度器重新创建任务（但不启动）
-            new_task = self.scheduler.schedule_task(
+            decision = self.scheduler.make_decision(graph_node)
+            new_task = self.placement_executor.place_task(
                 task_node=graph_node,
+                decision=decision,
                 runtime_ctx=graph_node.ctx
             )
             
@@ -671,3 +718,5 @@ class Dispatcher:
             True 如果重启和恢复成功
         """
         return self.restart_task(task_id, restore_state=state)
+    
+   

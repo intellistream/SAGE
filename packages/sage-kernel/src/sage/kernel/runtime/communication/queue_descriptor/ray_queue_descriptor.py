@@ -67,8 +67,18 @@ class RayQueueProxy:
         """向队列添加项目"""
         return ray.get(self.manager.put.remote(self.queue_id, item))
 
-    def get(self, timeout=None):
-        """从队列获取项目"""
+    def put_nowait(self, item):
+        """非阻塞添加项目到队列（实际上Ray队列始终是阻塞的）"""
+        return ray.get(self.manager.put.remote(self.queue_id, item))
+
+    def get(self, block=True, timeout=None):
+        """从队列获取项目
+        
+        Args:
+            block: 是否阻塞等待（为了API兼容性，但Ray队列始终是阻塞的）
+            timeout: 超时时间（秒）
+        """
+        # Ray队列不支持非阻塞模式，block参数仅用于API兼容性
         return ray.get(self.manager.get.remote(self.queue_id, timeout))
 
     def size(self):
