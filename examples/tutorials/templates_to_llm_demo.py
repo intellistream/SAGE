@@ -196,11 +196,11 @@ response = self._client.generate(
 
 在实际使用时 (backend != "mock"):
   • 使用 OpenAIClient 调用真实 API
-  • 需要配置 SAGE_CHAT_API_KEY
+  • 需要配置 TEMP_GENERATOR_API_KEY
   • 支持 OpenAI / 兼容接口 (vLLM, Ollama 等)
   
 示例:
-  export SAGE_CHAT_API_KEY="sk-xxx"
+  export TEMP_GENERATOR_API_KEY="sk-xxx"
   sage chat --backend openai --model qwen-max
     """
 

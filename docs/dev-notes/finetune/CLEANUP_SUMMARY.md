@@ -224,7 +224,7 @@ sage chat --backend finetune  # 一切自动化！
 
 **环境变量支持**:
 ```bash
-export SAGE_CHAT_BACKEND=finetune
+export SAGE_DEBUG_BACKEND=finetune
 sage chat  # 直接使用微调模型
 ```
 

@@ -47,14 +47,14 @@ except Exception as exc:  # pragma: no cover - runtime check
 
 DEFAULT_BACKEND = os.getenv("SAGE_PIPELINE_BUILDER_BACKEND", "openai")
 DEFAULT_MODEL = os.getenv("SAGE_PIPELINE_BUILDER_MODEL") or os.getenv(
-    "SAGE_CHAT_MODEL",
+    "TEMP_GENERATOR_MODEL",
     "qwen-turbo-2025-02-11",
 )
 DEFAULT_BASE_URL = os.getenv("SAGE_PIPELINE_BUILDER_BASE_URL") or os.getenv(
-    "SAGE_CHAT_BASE_URL"
+    "TEMP_GENERATOR_BASE_URL"
 )
 DEFAULT_API_KEY = os.getenv("SAGE_PIPELINE_BUILDER_API_KEY") or os.getenv(
-    "SAGE_CHAT_API_KEY"
+    "TEMP_GENERATOR_API_KEY"
 )
 
 
@@ -1119,7 +1119,7 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
 
     if backend != "mock" and not resolved_api_key:
         raise PipelineBuilderError(
-            "未提供 API Key。请通过 --api-key 或环境变量 SAGE_PIPELINE_BUILDER_API_KEY/SAGE_CHAT_API_KEY 设置。"
+            "未提供 API Key。请通过 --api-key 或环境变量 SAGE_PIPELINE_BUILDER_API_KEY/TEMP_GENERATOR_API_KEY 设置。"
         )
 
     requirements = _collect_requirements(

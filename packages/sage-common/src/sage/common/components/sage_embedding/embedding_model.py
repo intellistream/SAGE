@@ -49,10 +49,20 @@ class EmbeddingModel:
                 # 延迟导入 transformers
                 from transformers import AutoModel, AutoTokenizer
 
-                self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
-                self.kwargs["embed_model"] = AutoModel.from_pretrained(
-                    model_name, trust_remote_code=True
-                )
+                # 尝试使用本地缓存,如果失败则从网络下载
+                try:
+                    self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(
+                        model_name, local_files_only=True
+                    )
+                    self.kwargs["embed_model"] = AutoModel.from_pretrained(
+                        model_name, trust_remote_code=True, local_files_only=True
+                    )
+                except Exception:
+                    # 如果本地加载失败,尝试从网络下载
+                    self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
+                    self.kwargs["embed_model"] = AutoModel.from_pretrained(
+                        model_name, trust_remote_code=True
+                    )
                 self.kwargs.pop("model")
             except Exception as e:
                 # 明确失败，不静默回退到mockembedder
@@ -108,13 +118,13 @@ class EmbeddingModel:
             lollms,
             nvidia_openai,
             ollama,
-            openai,
+            openai_wrapper,
             siliconcloud,
             zhipu,
         )
 
         mapping = {
-            "openai": openai.openai_embed_sync,
+            "openai": openai_wrapper.openai_embed_sync,
             "zhipu": zhipu.zhipu_embedding_sync,
             "bedrock": bedrock.bedrock_embed_sync,
             "hf": hf.hf_embed_sync,

@@ -1,10 +1,7 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any
 
 from sage.kernel.api.function.base_function import BaseFunction
-
-if TYPE_CHECKING:
-    from sage.kernel.runtime.communication.metronome import Metronome
 
 
 class BatchFunction(BaseFunction):
@@ -13,11 +10,9 @@ class BatchFunction(BaseFunction):
 
     和SourceFunction一样简单，只需要实现execute方法。
     当execute返回None时，BatchOperator会自动发送停止信号。
+    
+    流量控制通过Queue的自然阻塞机制实现，无需额外同步。
     """
-
-    # 子类可以设置这个属性来启用metronome同步
-    use_metronome: bool = False
-    metronome: Optional["Metronome"] = None
 
     @abstractmethod
     def execute(self) -> Any:
