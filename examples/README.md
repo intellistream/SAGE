@@ -125,6 +125,8 @@ pip install -r examples/requirements.txt
 
 See `packages/sage-benchmark/README.md` for complete RAG documentation.
 
+**Note**: All RAG examples have been moved from `examples/rag/` to `packages/sage-benchmark/`.
+
 ### Path 2: Agent Builder
 1. `tutorials/agents/basic_agent.py` - Agent basics
 2. `tutorials/agents/workflow_demo.py` - Workflows
