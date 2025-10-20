@@ -9,11 +9,14 @@ import {
     Redo as RedoIcon,
     ZoomIn,
     ZoomOut,
+    MessageSquare,
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
+import { usePlaygroundStore } from '../store/playgroundStore'
 import { submitFlow, getAllJobs, startJob, stopJob } from '../services/api'
 import { useJobStatusPolling } from '../hooks/useJobStatusPolling'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import Playground from './Playground'
 
 export default function Toolbar() {
     const {
@@ -31,6 +34,8 @@ export default function Toolbar() {
         setCurrentJobId,
         isPolling,
     } = useFlowStore()
+
+    const { setIsOpen: setPlaygroundOpen } = usePlaygroundStore()
 
     const [saveModalOpen, setSaveModalOpen] = useState(false)
     const [loadModalOpen, setLoadModalOpen] = useState(false)
@@ -295,6 +300,16 @@ export default function Toolbar() {
                             </Button>
                         </Tooltip>
 
+                        <Tooltip title="Playground">
+                            <Button
+                                icon={<MessageSquare size={16} />}
+                                onClick={() => setPlaygroundOpen(true)}
+                                disabled={nodes.length === 0}
+                            >
+                                Playground
+                            </Button>
+                        </Tooltip>
+
                         <div className="h-6 w-px bg-gray-300 mx-2" />
 
                         <Tooltip title="保存流程">
@@ -416,6 +431,9 @@ export default function Toolbar() {
                     locale={{ emptyText: '暂无保存的流程' }}
                 />
             </Modal>
+
+            {/* Playground */}
+            <Playground />
         </>
     )
 }
