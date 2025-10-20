@@ -46,6 +46,7 @@ class OpenAIClient:
         --------------------
         * messages 允许传 list[dict] / dict ⇒ 最终转为 list[dict]
         * 支持 stream / n / logprobs 等 OpenAI 参数
+        * 支持 enable_thinking 等扩展参数（通过 extra_body 传递）
         * 失败统一抛 RuntimeError 供上层捕获
         """
         try:
@@ -58,6 +59,15 @@ class OpenAIClient:
             frequency_penalty = kwargs.get("frequency_penalty", 0)
             n = int(kwargs.get("n", 1))
             want_logprobs = bool(kwargs.get("logprobs", False))
+            
+            # -------- 处理扩展参数（通过 extra_body）--------
+            # 支持 Qwen 的 enable_thinking 等特殊参数
+            # 注意：vLLM 要求通过 chat_template_kwargs 传递给 chat template
+            extra_body = {}
+            if "enable_thinking" in kwargs:
+                extra_body["chat_template_kwargs"] = {
+                    "enable_thinking": kwargs["enable_thinking"]
+                }
 
             # -------- 兼容 messages 形态 --------
             # dict => 包成单元素 list
@@ -67,18 +77,25 @@ class OpenAIClient:
                 raise ValueError("`messages` must be list[dict]")
 
             # -------- 调用 OpenAI --------
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=temperature,
-                top_p=top_p,
-                max_tokens=max_tokens,
+            # 构建请求参数
+            request_params = {
+                "model": self.model_name,
+                "messages": messages,
+                "temperature": temperature,
+                "top_p": top_p,
+                "max_tokens": max_tokens,
                 # n=n,
                 # seed=self.seed,
                 # stream=stream,
                 # frequency_penalty=frequency_penalty,
                 # logprobs=want_logprobs,
-            )
+            }
+            
+            # 只有在有额外参数时才添加 extra_body
+            if extra_body:
+                request_params["extra_body"] = extra_body
+            
+            response = self.client.chat.completions.create(**request_params)
 
             # -------- 流式返回 --------
             if stream:
