@@ -21,3 +21,4 @@
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"]
 	path = packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB
 	url = https://github.com/intellistream/sageTSDB.git
+	branch = main-dev
