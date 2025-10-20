@@ -3,7 +3,7 @@
 
 
 source:
-  data_path: "./examples/rag/data/queries.jsonl"  # 修正相对路径
+  data_path: "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/queries.jsonl"  # 修正相对路径
   platform: "local"
 
 retriever:
@@ -12,7 +12,7 @@ retriever:
   top_k: 2
   
   chroma:
-    persistence_path: "./examples/rag/chroma_qa_database"
+    persistence_path: "./data/chroma_qa_database"
     collection_name: "qa_knowledge_base"
     use_embedding_query: true
     

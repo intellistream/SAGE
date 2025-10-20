@@ -164,7 +164,7 @@ temp_ci_test_env
 
 # 知识库和向量数据
 data/neuromem_vdb/
-examples/rag/chroma_*/
+examples/rag/
 examples/data/neuromem_vdb/
 
 # 医疗诊断数据集和处理结果

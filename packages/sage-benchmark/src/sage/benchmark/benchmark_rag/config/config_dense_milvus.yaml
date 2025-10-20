@@ -1,13 +1,13 @@
 # Milvus 稠密向量检索配置（适配 MilvusDenseRetriever）
 
 source:
-  data_path: "./examples/rag/data/queries.jsonl"
+  data_path: "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/queries.jsonl"
   platform: "local"
 
 retriever:
   preload_knowledge_file:
-    - "./examples/rag/data/qa_knowledge_chromaDB.txt"
-    - "./examples/rag/data/qa_knowledge_rag.md"
+    - "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_chromaDB.txt"
+    - "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_rag.md"
 
   # 通用参数
   dimension: 384            # 向量维度，应与 embedding 模型一致
@@ -21,7 +21,7 @@ retriever:
   # Milvus 后端（稠密检索）
   milvus_dense:
     # 本地 Milvus Lite（推荐用于快速试用）
-    persistence_path: "./examples/rag/milvus_qa_dense.db"
+    persistence_path: "./data/milvus_qa_dense.db"
 
     # 远程 Milvus（如需远程，请注释上面的 persistence_path，改为如下配置）
     # host: "127.0.0.1"
@@ -36,7 +36,7 @@ retriever:
     # 可选项
     dense_insert_batch_size: 128
     # 知识文件（可选）：提供后将自动按段落读取并入库
-    # knowledge_file: "./examples/rag/data/qa_knowledge_base.txt"
+    # knowledge_file: "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_base.txt"
 
 promptor:
   template: |
