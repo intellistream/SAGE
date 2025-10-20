@@ -127,7 +127,28 @@ class OpenAIGenerator(MapFunction):
 
         # 记录生成时间
         generate_start_time = time.time()
-        response = self.model.generate(messages)
+        
+        # 准备生成参数（从配置中提取）
+        generate_kwargs = {}
+        
+        # 支持的参数列表
+        supported_params = [
+            "max_tokens",
+            "temperature", 
+            "top_p",
+            "enable_thinking",  # Qwen 特有参数：禁用思考过程输出
+            "stream",
+            "frequency_penalty",
+            "n",
+            "logprobs"
+        ]
+        
+        # 从配置中提取参数并传递给 generate
+        for param in supported_params:
+            if param in self.config:
+                generate_kwargs[param] = self.config[param]
+        
+        response = self.model.generate(messages, **generate_kwargs)
         generate_end_time = time.time()
         generate_time = generate_end_time - generate_start_time
 
