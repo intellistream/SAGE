@@ -161,9 +161,18 @@ class TestLoadAwareScheduler:
             task_node.name = f"task_{i}"
             task_node.ctx = Mock()
 
+            # Mock transformation 和其属性
+            transformation = Mock()
+            transformation.cpu_required = 1.0
+            transformation.gpu_required = 0.0
+            transformation.memory_required = "1GB"
+            transformation.custom_resources = {}
+            task_node.transformation = transformation
+
             task_factory = Mock()
             task = Mock()
             task_factory.create_task.return_value = task
+            task_factory.remote = False
             task_node.task_factory = task_factory
 
             result = scheduler.schedule_task(task_node)
@@ -182,8 +191,18 @@ class TestLoadAwareScheduler:
             task_node = Mock()
             task_node.name = f"task_{i}"
             task_node.ctx = Mock()
+            
+            # Mock transformation 和其属性
+            transformation = Mock()
+            transformation.cpu_required = 1.0
+            transformation.gpu_required = 0.0
+            transformation.memory_required = "1GB"
+            transformation.custom_resources = {}
+            task_node.transformation = transformation
+            
             task_factory = Mock()
             task_factory.create_task.return_value = Mock()
+            task_factory.remote = False
             task_node.task_factory = task_factory
             scheduler.schedule_task(task_node)
 
@@ -218,8 +237,18 @@ class TestSchedulerIntegration:
         task_node2 = Mock()
         task_node2.name = "task2"
         task_node2.ctx = Mock()
+        
+        # Mock transformation 和其属性
+        transformation = Mock()
+        transformation.cpu_required = 1.0
+        transformation.gpu_required = 0.0
+        transformation.memory_required = "1GB"
+        transformation.custom_resources = {}
+        task_node2.transformation = transformation
+        
         task_factory2 = Mock()
         task_factory2.create_task.return_value = Mock()
+        task_factory2.remote = False
         task_node2.task_factory = task_factory2
         scheduler2.schedule_task(task_node2)
 
