@@ -14,7 +14,28 @@ try:
     import _sage_db
 except ImportError:
     print("Warning: C++ extension not available. Using mock implementation.")
-    _sage_db = None
+    class MockMultimodalSageDB:
+        def __init__(self, config):
+            self.config = config
+            self._data = {}
+            
+        def add(self, data):
+            # Mock implementation
+            return 0
+            
+        def search(self, query, params):
+            # Mock implementation
+            return []
+            
+        def get(self, id):
+            # Mock implementation
+            return None
+            
+    class MockModule:
+        def __init__(self):
+            self.MultimodalSageDB = MockMultimodalSageDB
+            
+    _sage_db = MockModule()
 
 
 class ModalityType(Enum):
@@ -133,13 +154,14 @@ class MultimodalSageDB:
             FusionStrategy(config.get("fusion_strategy", 1))
         )
 
-        # 如果C++扩展可用，初始化底层对象
-        if _sage_db:
+        # 初始化底层对象或使用内置实现
+        self._data_store: Dict[int, MultimodalData] = {}
+        self._next_id = 1
+        if hasattr(_sage_db, 'MultimodalSageDB'):
             self._db = _sage_db.MultimodalSageDB(config)
         else:
+            print("Using internal implementation for MultimodalSageDB")
             self._db = None
-            self._data_store: Dict[int, MultimodalData] = {}
-            self._next_id = 1
 
     def add_multimodal(self, data: MultimodalData) -> int:
         """
