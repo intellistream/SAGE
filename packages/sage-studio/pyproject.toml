@@ -12,7 +12,7 @@ description = "SAGE Studio - Low-Code Web UI for Pipeline Development"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
 ]
 keywords = [
     "sage",
@@ -21,7 +21,6 @@ keywords = [
     "web-ui",
     "pipeline",
     "development",
-    "frontend",
     "intellistream",
 ]
 classifiers = [
@@ -43,7 +42,7 @@ dependencies = [
     "isage-middleware>=0.1.0",
     "isage-libs>=0.1.0",
 
-    # Frontend dependencies
+    # Backend API dependencies
     "pydantic[email]>=2.0.0",
     # FastAPI 0.115.x 依赖 starlette >=0.40,<0.47
     "fastapi>=0.115,<0.116",
@@ -109,7 +108,6 @@ where = ["src"]
     "config/**/*",
     "data/**/*",
     "docs/**/*",
-    "frontend/**/*",
 ]
 
 # Development tools configuration
