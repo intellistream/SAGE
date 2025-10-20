@@ -250,10 +250,20 @@ def start_llm_service(
         if not typer.confirm("是否继续启动？"):
             raise typer.Exit(0)
 
+    # Try to resolve model from SAGE registry first
+    try:
+        model_path = vllm_registry.get_model_path(model)
+        typer.echo(f"📦 使用 SAGE 缓存的模型: {model_path}")
+        model_to_use = str(model_path)
+    except Exception:
+        # If not found in registry, use the model ID as-is
+        typer.echo(f"⚠️ 模型未在 SAGE 缓存中找到，尝试使用模型ID: {model}")
+        model_to_use = model
+
     cmd = [
         "vllm",
         "serve",
-        model,
+        model_to_use,
         "--dtype",
         "auto",
         "--api-key",

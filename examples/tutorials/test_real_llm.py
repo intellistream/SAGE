@@ -32,13 +32,13 @@ def test_real_llm_pipeline_generation():
 
     # 检查环境变量
     console.print("[bold]步骤 1: 检查环境配置[/bold]")
-    api_key = os.getenv("SAGE_CHAT_API_KEY")
-    base_url = os.getenv("SAGE_CHAT_BASE_URL")
-    model = os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11")
+    api_key = os.getenv("TEMP_GENERATOR_API_KEY")
+    base_url = os.getenv("TEMP_GENERATOR_BASE_URL")
+    model = os.getenv("TEMP_GENERATOR_MODEL", "qwen-turbo-2025-02-11")
 
     if not api_key or api_key.startswith("your_"):
         console.print("[red]❌ API Key 未配置或无效[/red]")
-        console.print("[yellow]请在 .env 中配置 SAGE_CHAT_API_KEY[/yellow]")
+        console.print("[yellow]请在 .env 中配置 TEMP_GENERATOR_API_KEY[/yellow]")
         return False
 
     console.print(f"✓ API Key: {api_key[:10]}...{api_key[-4:]}")

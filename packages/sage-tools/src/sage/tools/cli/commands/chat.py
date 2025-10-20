@@ -1608,9 +1608,9 @@ def main(
         help="LLM API base_url (例如 vLLM 或兼容 OpenAI 的接口)",
     ),
     api_key: Optional[str] = typer.Option(
-        lambda: os.environ.get("SAGE_CHAT_API_KEY"),
+        lambda: os.environ.get("TEMP_GENERATOR_API_KEY"),
         "--api-key",
-        help="LLM API Key (默认读取环境变量 SAGE_CHAT_API_KEY)",
+        help="LLM API Key (默认读取环境变量 TEMP_GENERATOR_API_KEY)",
     ),
     finetune_model: Optional[str] = typer.Option(
         DEFAULT_FINETUNE_MODEL,
