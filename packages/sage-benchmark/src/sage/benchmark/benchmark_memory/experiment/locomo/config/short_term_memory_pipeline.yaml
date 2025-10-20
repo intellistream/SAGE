@@ -1,0 +1,31 @@
+source:
+  questions:
+    - "我经常晚上十点以后才去健身房，又常常加班到很晚，结果早上起不来，还总是失眠，你觉得我该怎么调整生活习惯？"
+    - "我最近在减肥，晚上只吃水果，但白天又老是点外卖，嘴馋的时候还喜欢喝奶茶和吃零食，这样会不会营养失衡？"
+    - "我一紧张就胃痛，压力大的时候还特别想吃甜食缓解，最近记忆力也下降了，这些是不是都和生活方式有关？"
+  max_index: 3
+
+promptor:
+  template: |
+    你是一位友好的健康助手。请简洁、准确地回答用户的问题。
+
+    用户问题: {{ question }}
+
+    请提供有帮助的建议：
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "/home/zrc/.sage/models/vllm/Qwen__Qwen3-8B-AWQ"
+    base_url: "http://localhost:9090/v1"
+    seed: 42
+    max_tokens: 512
+    temperature: 0.7
+    # enable_thinking: 控制 Qwen3 模型的思考模式（硬开关）
+    # - false: 完全禁用思考过程，模型不会生成 <think>...</think> 块，提升响应效率
+    # - true: 启用思考模式，模型会在 <think> 块中展示推理过程，适合复杂任务
+    # 
+    # 实现原理：通过 vLLM API 的 extra_body.chat_template_kwargs 传递给 tokenizer.apply_chat_template()
+    # 参考：https://qwen.readthedocs.io/en/latest/deployment/vllm.html#thinking-non-thinking-modes
+    enable_thinking: false
