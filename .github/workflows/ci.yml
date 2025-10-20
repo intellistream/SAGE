@@ -37,6 +37,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 1
           clean: true
+          submodules: 'recursive'
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -117,29 +118,26 @@ jobs:
           cmake --version | head -1
           make --version | head -1
 
-      - name: Initialize Submodules
+      - name: Verify Submodules
         run: |
-          echo "🔁 初始化Git子模块（C++扩展源码）..."
-          git submodule update --init --recursive
-          echo "✅ 子模块初始化完成"
+          echo "� 验证Git子模块..."
+          git submodule status
           
           # 验证关键子模块
-          echo "🔍 验证关键子模块："
-          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" ]; then
-            echo "✅ sage_db 子模块存在"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB/ | head -10
-          else
-            echo "❌ sage_db 子模块缺失"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/ || echo "sage_db目录不存在"
-          fi
-          
-          if [ -d "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" ]; then
-            echo "✅ sage_flow 子模块存在"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow/ | head -10
-          else
-            echo "❌ sage_flow 子模块缺失"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_flow/ || echo "sage_flow目录不存在"
-          fi
+          echo ""
+          echo "� 验证关键子模块目录："
+          for submodule in \
+            "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" \
+            "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" \
+            "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"; do
+            if [ -d "$submodule" ]; then
+              echo "✅ $submodule 存在"
+              ls -la "$submodule" | head -5
+            else
+              echo "❌ $submodule 缺失"
+            fi
+            echo ""
+          done
 
       - name: Install SAGE
         run: |
