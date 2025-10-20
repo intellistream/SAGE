@@ -22,7 +22,7 @@ export default function StatusBar() {
                     <Circle size={10} fill="#1890ff" stroke="#1890ff" />
                     <span>连接: {edges.length}</span>
                 </Space>
-                <Tag color="#1890ff">SAGE Studio v2.0-alpha</Tag>
+                <Tag color="#1890ff">SAGE Studio-alpha</Tag>
             </Space>
         </div>
     )

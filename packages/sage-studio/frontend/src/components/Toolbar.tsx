@@ -273,7 +273,7 @@ export default function Toolbar() {
                 <div className="flex items-center justify-between w-full">
                     <Space>
                         <span className="text-lg font-bold text-gray-800 ml-4">
-                            SAGE Studio v2.0
+                            SAGE Studio
                         </span>
                     </Space>
 
