@@ -19,7 +19,7 @@ Usage 1: Direct Library Usage
 
 import numpy as np
 from sage.libs.unlearning import UnlearningEngine
-from sage.libs.unlearning.algorithms import LaplaceUnlearning
+from sage.libs.unlearning.algorithms import LaplaceMechanism
 
 
 def generate_test_data(n_vectors=50, dim=128):
@@ -95,7 +95,7 @@ def example_custom_mechanism():
     forget_ids = ids[:3]
     
     # 2. 创建自定义 Laplace 机制
-    custom_mechanism = LaplaceUnlearning(epsilon=0.5)
+    custom_mechanism = LaplaceMechanism(epsilon=0.5)
     print(f"✓ Created custom Laplace mechanism with ε=0.5")
     
     # 3. 使用自定义机制

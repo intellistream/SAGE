@@ -11,6 +11,8 @@ This example shows:
 
 **For Students**: This is your starting point!
 Modify and extend this example to test your algorithms.
+
+@test:allow-demo
 """
 
 import numpy as np
