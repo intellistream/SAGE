@@ -165,27 +165,35 @@ class TimeSeriesIndex:
     def _binary_search(
         self, timestamp: int, find_upper: bool = False
     ) -> int:
-        """Binary search for timestamp"""
-        left, right = 0, len(self._data) - 1
-        result = 0 if not find_upper else len(self._data) - 1
+        """
+        Binary search for timestamp.
+        If find_upper is False, returns the first index with timestamp >= target (lower bound).
+        If find_upper is True, returns the last index with timestamp <= target (upper bound).
+        """
+        low, high = 0, len(self._data) - 1
+        if not self._data:
+            return -1
 
-        while left <= right:
-            mid = (left + right) // 2
-            mid_time = self._data[mid].timestamp
-
-            if mid_time < timestamp:
-                left = mid + 1
-                if not find_upper:
-                    result = left
-            elif mid_time > timestamp:
-                right = mid - 1
-                if find_upper:
-                    result = right
-            else:
-                return mid
-
-        return result
-
+        if not find_upper:
+            # Lower bound: first index with timestamp >= target
+            while low <= high:
+                mid = (low + high) // 2
+                mid_time = self._data[mid].timestamp
+                if mid_time < timestamp:
+                    low = mid + 1
+                else:
+                    high = mid - 1
+            return low if low < len(self._data) else len(self._data) - 1
+        else:
+            # Upper bound: last index with timestamp <= target
+            while low <= high:
+                mid = (low + high) // 2
+                mid_time = self._data[mid].timestamp
+                if mid_time > timestamp:
+                    high = mid - 1
+                else:
+                    low = mid + 1
+            return high if high >= 0 else 0
     def _filter_by_tags(self, tags: Dict[str, str]) -> set:
         """Filter indices by tags"""
         matching_sets = []
