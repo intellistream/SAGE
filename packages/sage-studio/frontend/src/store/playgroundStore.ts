@@ -253,6 +253,7 @@ export const usePlaygroundStore = create<PlaygroundState>((set, get) => ({
 
     stopExecution: () => {
         // TODO: 实现停止执行的逻辑
+        // Issue URL: https://github.com/intellistream/SAGE/issues/1030
         set({
             isExecuting: false,
             canStop: false,
