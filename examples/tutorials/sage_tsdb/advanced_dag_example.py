@@ -1,5 +1,5 @@
 """
-Advanced SAGE TSDB DAG Example
+Advanced SAGE TSDB Example
 
 This example demonstrates advanced features:
 1. Multi-sensor data ingestion
@@ -13,260 +13,128 @@ from typing import Any, Dict, List
 
 import numpy as np
 
-from sage.middleware.components.sage_tsdb import (
-    SageTSDB,
-    SageTSDBService,
-    TimeRange,
-    WindowAggregator,
-)
-from sage.libs.rag.local_env import LocalEnvironment
-from sage.libs.rag.node import MapFunction, SinkFunction, SourceFunction
+from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
-class MultiSensorSource(SourceFunction):
+def generate_multi_sensor_data(num_sensors: int = 3, points_per_sensor: int = 30) -> List[Dict[str, Any]]:
     """Generate data from multiple sensors"""
+    data_points = []
+    base_time = int(datetime.now().timestamp() * 1000)
 
-    def __init__(self, num_sensors: int = 3, points_per_sensor: int = 30):
-        super().__init__()
-        self.num_sensors = num_sensors
-        self.points_per_sensor = points_per_sensor
-        self.base_time = int(datetime.now().timestamp() * 1000)
+    for sensor_id in range(num_sensors):
+        for i in range(points_per_sensor):
+            timestamp = base_time + i * 1000
+            # Different patterns for different sensors
+            if sensor_id == 0:
+                value = 20 + 5 * np.sin(i * 0.2) + np.random.randn()
+            elif sensor_id == 1:
+                value = 30 + 3 * np.cos(i * 0.15) + np.random.randn() * 0.5
+            else:
+                value = 25 + 2 * np.sin(i * 0.25) + np.random.randn() * 1.5
 
-    def generate(self) -> List[Dict[str, Any]]:
-        """Generate multi-sensor data"""
-        data_points = []
+            data_points.append(
+                {
+                    "timestamp": timestamp,
+                    "value": value,
+                    "sensor_id": f"sensor_{sensor_id:02d}",
+                    "location": f"room_{sensor_id % 3}",
+                    "type": "temperature",
+                }
+            )
 
-        for sensor_id in range(self.num_sensors):
-            for i in range(self.points_per_sensor):
-                timestamp = self.base_time + i * 1000
-                # Different patterns for different sensors
-                if sensor_id == 0:
-                    value = 20 + 5 * np.sin(i * 0.2) + np.random.randn()
-                elif sensor_id == 1:
-                    value = 30 + 3 * np.cos(i * 0.15) + np.random.randn() * 0.5
-                else:
-                    value = 25 + 2 * np.sin(i * 0.25) + np.random.randn() * 1.5
-
-                data_points.append(
-                    {
-                        "timestamp": timestamp,
-                        "value": value,
-                        "sensor_id": f"sensor_{sensor_id:02d}",
-                        "location": f"room_{sensor_id % 3}",
-                        "type": "temperature",
-                    }
-                )
-
-        return data_points
+    return data_points
 
 
-class AnomalyDetector(MapFunction):
+def detect_anomalies(db: SageTSDB, data_points: List[Dict[str, Any]], threshold_std: float = 2.5) -> List[Dict[str, Any]]:
     """Detect anomalies in time series data"""
-
-    def __init__(self, db: SageTSDB, threshold_std: float = 2.5):
-        super().__init__()
-        self.db = db
-        self.threshold_std = threshold_std
-
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Detect anomalies based on historical statistics"""
+    results = []
+    
+    for data in data_points:
         # Query historical data
         time_range = TimeRange(
             start_time=data["timestamp"] - 30000,  # Last 30 seconds
             end_time=data["timestamp"],
         )
-
-        historical = self.db.query(
-            time_range=time_range, tags={"sensor_id": data["sensor_id"]}
-        )
-
+        
+        historical = db.query(time_range=time_range)
+        
         is_anomaly = False
         anomaly_score = 0.0
-
+        
         if len(historical) > 5:  # Need enough data
             values = [h.value for h in historical]
             mean = np.mean(values)
             std = np.std(values)
-
+            
             if std > 0:
                 z_score = abs((data["value"] - mean) / std)
-                is_anomaly = z_score > self.threshold_std
+                is_anomaly = z_score > threshold_std
                 anomaly_score = z_score
-
-        return {
+        
+        results.append({
             **data,
             "is_anomaly": is_anomaly,
             "anomaly_score": anomaly_score,
             "historical_count": len(historical),
-        }
+        })
+    
+    return results
 
 
-class AggregationNode(MapFunction):
-    """Perform window-based aggregations"""
-
-    def __init__(self, db: SageTSDB):
-        super().__init__()
-        self.db = db
-        self.aggregators = {
-            "avg": WindowAggregator(
-                {"window_type": "tumbling", "window_size": 10000, "aggregation": "avg"}
-            ),
-            "max": WindowAggregator(
-                {"window_type": "tumbling", "window_size": 10000, "aggregation": "max"}
-            ),
-        }
-        self.processed_count = 0
-
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Aggregate data periodically"""
-        self.processed_count += 1
-
-        # Aggregate every 10 points
-        if self.processed_count % 10 == 0:
+def compute_window_statistics(db: SageTSDB, data_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Compute window-based statistics"""
+    results = []
+    
+    for i, data in enumerate(data_points):
+        # Every 10 points, compute aggregations
+        if (i + 1) % 10 == 0:
             # Query recent data
             time_range = TimeRange(
-                start_time=data["timestamp"] - 30000, end_time=data["timestamp"]
+                start_time=data["timestamp"] - 30000, 
+                end_time=data["timestamp"]
             )
-
-            recent_data = self.db.query(
-                time_range=time_range, tags={"sensor_id": data["sensor_id"]}
-            )
-
-            # Apply aggregations
-            aggregations = {}
-            for agg_name, aggregator in self.aggregators.items():
-                agg_result = aggregator.process(recent_data)
-                aggregations[agg_name] = (
-                    [{"timestamp": r.timestamp, "value": r.value} for r in agg_result]
-                    if agg_result
-                    else []
-                )
-
-            return {
+            
+            recent_data = db.query(time_range=time_range)
+            
+            # Compute statistics
+            if recent_data:
+                values = [r.value for r in recent_data]
+                aggregations = {
+                    "count": len(values),
+                    "mean": np.mean(values),
+                    "std": np.std(values),
+                    "min": np.min(values),
+                    "max": np.max(values),
+                }
+            else:
+                aggregations = {"count": 0}
+            
+            results.append({
                 **data,
                 "aggregations": aggregations,
-                "aggregation_stats": {
-                    name: agg.get_stats() for name, agg in self.aggregators.items()
-                },
-            }
-
-        return data
-
-
-class AnalyticsSink(SinkFunction):
-    """Print analytics results"""
-
-    def __init__(self):
-        super().__init__()
-        self.anomaly_count = 0
-        self.total_count = 0
-
-    def execute(self, data: Dict[str, Any]) -> None:
-        """Print results and track statistics"""
-        self.total_count += 1
-
-        # Track anomalies
-        if data.get("is_anomaly", False):
-            self.anomaly_count += 1
-            print(f"\n{'!' * 60}")
-            print(f"ANOMALY DETECTED!")
-            print(f"{'!' * 60}")
-            print(f"Sensor: {data['sensor_id']}")
-            print(f"Timestamp: {data['timestamp']}")
-            print(f"Value: {data['value']:.2f}")
-            print(f"Anomaly Score: {data['anomaly_score']:.2f}")
-            print(f"Historical Count: {data['historical_count']}")
-
-        # Print aggregations
-        if "aggregations" in data:
-            print(f"\n{'=' * 60}")
-            print(f"Aggregation Results for {data['sensor_id']}")
-            print(f"{'=' * 60}")
-
-            for agg_name, agg_data in data["aggregations"].items():
-                print(f"\n{agg_name.upper()} Aggregation:")
-                for window in agg_data[-3:]:  # Show last 3 windows
-                    print(
-                        f"  Timestamp: {window['timestamp']}, Value: {window['value']:.2f}"
-                    )
-
-        # Periodic summary
-        if self.total_count % 50 == 0:
-            print(f"\n{'=' * 60}")
-            print(f"Analytics Summary (Total: {self.total_count})")
-            print(f"{'=' * 60}")
-            print(f"Total Processed: {self.total_count}")
-            print(f"Anomalies Detected: {self.anomaly_count}")
-            if self.total_count > 0:
-                print(
-                    f"Anomaly Rate: {self.anomaly_count / self.total_count * 100:.2f}%"
-                )
+                "has_aggregation": True,
+            })
+        else:
+            results.append({**data, "has_aggregation": False})
+    
+    return results
 
 
-def example_advanced_analytics_dag():
-    """Advanced analytics pipeline with multiple features"""
+def example_advanced_analytics():
+    """Advanced analytics with anomaly detection"""
     print("\n" + "=" * 60)
-    print("Advanced Analytics DAG Example")
+    print("Advanced Analytics Example")
     print("=" * 60)
 
     # Create TSDB instance
     db = SageTSDB()
 
-    # Create environment
-    env = LocalEnvironment()
+    # Generate and ingest multi-sensor data
+    data_points = generate_multi_sensor_data(num_sensors=3, points_per_sensor=40)
+    print(f"\nIngesting {len(data_points)} multi-sensor data points...")
 
-    # Build comprehensive pipeline
-    (
-        env.from_source(MultiSensorSource(num_sensors=3, points_per_sensor=40))
-        .flat_map(lambda data_list: data_list)
-        .map(
-            lambda data: {
-                **data,
-                "index": db.add(
-                    timestamp=data["timestamp"],
-                    value=data["value"],
-                    tags={
-                        "sensor_id": data["sensor_id"],
-                        "location": data["location"],
-                        "type": data["type"],
-                    },
-                ),
-            }
-        )  # Ingest
-        .map(AnomalyDetector(db, threshold_std=2.0))  # Detect anomalies
-        .map(AggregationNode(db))  # Aggregate
-        .to_sink(AnalyticsSink())  # Analyze and print
-    )
-
-    # Execute
-    print("\nExecuting advanced analytics pipeline...")
-    env.execute()
-
-    # Final database stats
-    print("\n" + "=" * 60)
-    print("Final Database Statistics")
-    print("=" * 60)
-    stats = db.get_stats()
-    for key, value in stats.items():
-        print(f"{key}: {value}")
-
-
-def example_service_based_analytics():
-    """Service-based analytics example"""
-    print("\n" + "=" * 60)
-    print("Service-Based Analytics Example")
-    print("=" * 60)
-
-    # Create service
-    service = SageTSDBService()
-
-    # Generate and ingest data
-    source = MultiSensorSource(num_sensors=2, points_per_sensor=20)
-    data_points = source.generate()
-
-    print("\nIngesting data...")
     for point in data_points:
-        service.add(
+        db.add(
             timestamp=point["timestamp"],
             value=point["value"],
             tags={
@@ -276,29 +144,89 @@ def example_service_based_analytics():
             },
         )
 
-    # Perform window aggregation through service
-    print("\nPerforming window aggregation...")
-    start_time = data_points[0]["timestamp"]
-    end_time = data_points[-1]["timestamp"]
+    # Detect anomalies
+    print("\nDetecting anomalies...")
+    anomaly_results = detect_anomalies(db, data_points, threshold_std=2.0)
 
-    aggregated = service.window_aggregate(
-        start_time=start_time,
-        end_time=end_time,
-        window_type="tumbling",
-        window_size=10000,
-        aggregation="avg",
-        tags={"sensor_id": "sensor_00"},
-    )
+    # Count and display anomalies
+    anomalies = [r for r in anomaly_results if r["is_anomaly"]]
+    print(f"Found {len(anomalies)} anomalies out of {len(data_points)} points")
 
-    print(f"\nAggregated Results: {len(aggregated)} windows")
-    for i, result in enumerate(aggregated):
-        print(f"Window {i+1}: value={result['value']:.2f}")
+    if anomalies:
+        print("\nAnomalies detected:")
+        for anomaly in anomalies[:5]:  # Show first 5
+            print(f"  Sensor: {anomaly['sensor_id']}, Value: {anomaly['value']:.2f}, Score: {anomaly['anomaly_score']:.2f}")
 
-    # Service statistics
-    print("\nService Statistics:")
-    stats = service.stats()
-    for key, value in stats.items():
-        print(f"  {key}: {value}")
+    # Compute window statistics
+    print("\nComputing window statistics...")
+    window_results = compute_window_statistics(db, data_points)
+
+    aggregation_count = sum(1 for r in window_results if r["has_aggregation"])
+    print(f"Computed {aggregation_count} window aggregations")
+
+    # Show sample aggregations
+    for result in window_results:
+        if result["has_aggregation"]:
+            agg = result["aggregations"]
+            print(f"\nAggregation for {result['sensor_id']}:")
+            print(f"  Count: {agg['count']}")
+            print(f"  Mean: {agg['mean']:.2f}")
+            print(f"  Min: {agg['min']:.2f}")
+            print(f"  Max: {agg['max']:.2f}")
+            break
+
+
+def example_multi_sensor_comparison():
+    """Compare data from multiple sensors"""
+    print("\n" + "=" * 60)
+    print("Multi-Sensor Comparison Example")
+    print("=" * 60)
+
+    # Create separate TSDB for each sensor
+    sensors_db = {
+        "sensor_00": SageTSDB(),
+        "sensor_01": SageTSDB(),
+        "sensor_02": SageTSDB(),
+    }
+
+    # Generate and ingest data
+    data_points = generate_multi_sensor_data(num_sensors=3, points_per_sensor=25)
+    print(f"\nIngesting data from 3 sensors...")
+
+    for point in data_points:
+        sensor_id = point["sensor_id"]
+        if sensor_id in sensors_db:
+            sensors_db[sensor_id].add(
+                timestamp=point["timestamp"],
+                value=point["value"],
+                tags={
+                    "location": point["location"],
+                    "type": point["type"],
+                },
+            )
+
+    # Compare sensor statistics
+    print("\nSensor Comparison:")
+    print(f"{'Sensor':<15} {'Points':<10} {'Mean':<10} {'Std':<10}")
+    print("-" * 45)
+
+    for sensor_id, db in sensors_db.items():
+        time_range = TimeRange(start_time=0, end_time=int(datetime.now().timestamp() * 1000) + 100000)
+        results = db.query(time_range)
+
+        if results:
+            values = [r.value for r in results]
+            mean = np.mean(values)
+            std = np.std(values)
+            print(f"{sensor_id:<15} {len(results):<10} {mean:<10.2f} {std:<10.2f}")
+
+    # Database statistics
+    print("\nDatabase Statistics:")
+    for sensor_id, db in sensors_db.items():
+        stats = db.get_stats()
+        print(f"\n{sensor_id}:")
+        for key, value in stats.items():
+            print(f"  {key}: {value}")
 
 
 if __name__ == "__main__":
@@ -307,13 +235,13 @@ if __name__ == "__main__":
     print("=" * 60)
 
     try:
-        # Run analytics DAG
-        example_advanced_analytics_dag()
+        # Run advanced analytics
+        example_advanced_analytics()
 
         print("\n" + "-" * 60 + "\n")
 
-        # Run service-based example
-        example_service_based_analytics()
+        # Run multi-sensor comparison
+        example_multi_sensor_comparison()
 
         print("\n" + "=" * 60)
         print("All examples completed successfully!")

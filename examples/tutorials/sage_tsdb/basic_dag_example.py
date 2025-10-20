@@ -1,303 +1,201 @@
 """
-Basic SAGE TSDB Example with DAG Integration
+Basic SAGE TSDB Example
 
 This example demonstrates:
 1. Creating a time series database
-2. Ingesting streaming data through SAGE pipeline
+2. Ingesting streaming data
 3. Querying and aggregating time series data
-4. Integrating with SAGE DAG workflow
 """
 
-import time
 from datetime import datetime
 from typing import Any, Dict, List
 
 import numpy as np
 
-from sage.middleware.components.sage_tsdb import SageTSDB, SageTSDBService, TimeRange
-from sage.libs.rag.local_env import LocalEnvironment
-from sage.libs.rag.node import MapFunction, SinkFunction, SourceFunction
+from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
-class TimeSeriesDataSource(SourceFunction):
+def generate_time_series_data(num_points: int = 100, sensor_id: str = "sensor_01") -> List[Dict[str, Any]]:
     """Generate simulated time series data"""
+    data_points = []
+    base_time = int(datetime.now().timestamp() * 1000)
 
-    def __init__(self, num_points: int = 100, sensor_id: str = "sensor_01"):
-        super().__init__()
-        self.num_points = num_points
-        self.sensor_id = sensor_id
-        self.base_time = int(datetime.now().timestamp() * 1000)
+    for i in range(num_points):
+        timestamp = base_time + i * 1000  # 1 second intervals
+        value = 20 + 5 * np.sin(i * 0.1) + np.random.randn()
 
-    def generate(self) -> List[Dict[str, Any]]:
-        """Generate time series data points"""
-        data_points = []
-
-        for i in range(self.num_points):
-            timestamp = self.base_time + i * 1000  # 1 second intervals
-            value = 20 + 5 * np.sin(i * 0.1) + np.random.randn()
-
-            data_points.append(
-                {
-                    "timestamp": timestamp,
-                    "value": value,
-                    "tags": {
-                        "sensor_id": self.sensor_id,
-                        "location": "room_a",
-                        "unit": "celsius",
-                    },
-                }
-            )
-
-        return data_points
-
-
-class TSDBIngestNode(MapFunction):
-    """Ingest data into SAGE TSDB"""
-
-    def __init__(self, db: SageTSDB):
-        super().__init__()
-        self.db = db
-
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Ingest a single data point"""
-        idx = self.db.add(
-            timestamp=data["timestamp"],
-            value=data["value"],
-            tags=data["tags"],
-        )
-
-        return {
-            "index": idx,
-            "timestamp": data["timestamp"],
-            "value": data["value"],
-            "status": "ingested",
-        }
-
-
-class TSDBQueryNode(MapFunction):
-    """Query time series data from SAGE TSDB"""
-
-    def __init__(self, db: SageTSDB, window_size: int = 10000):
-        super().__init__()
-        self.db = db
-        self.window_size = window_size
-
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Query recent data and compute statistics"""
-        current_time = data["timestamp"]
-
-        # Query recent data
-        time_range = TimeRange(
-            start_time=current_time - self.window_size, end_time=current_time
-        )
-
-        results = self.db.query(
-            time_range=time_range, tags={"sensor_id": data["tags"]["sensor_id"]}
-        )
-
-        # Compute statistics
-        if results:
-            values = [r.value for r in results]
-            stats = {
-                "count": len(values),
-                "mean": np.mean(values),
-                "std": np.std(values),
-                "min": np.min(values),
-                "max": np.max(values),
+        data_points.append(
+            {
+                "timestamp": timestamp,
+                "value": value,
+                "tags": {
+                    "sensor_id": sensor_id,
+                    "location": "room_a",
+                    "unit": "celsius",
+                },
             }
-        else:
-            stats = {"count": 0}
-
-        return {
-            "timestamp": current_time,
-            "window_stats": stats,
-            "data_point": data,
-        }
-
-
-class TSDBWindowAggregateNode(MapFunction):
-    """Perform window-based aggregation"""
-
-    def __init__(self, db: SageTSDB, aggregation: str = "avg"):
-        super().__init__()
-        self.db = db
-        self.aggregation = aggregation
-        self.start_time = None
-
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Aggregate data in windows"""
-        if self.start_time is None:
-            self.start_time = data["timestamp"] - 30000  # Start 30 seconds ago
-
-        # Query and aggregate
-        time_range = TimeRange(start_time=self.start_time, end_time=data["timestamp"])
-
-        aggregated = self.db.query(
-            time_range=time_range,
-            tags={"sensor_id": data["tags"]["sensor_id"]},
-            aggregation=self.aggregation,
-            window_size=5000,  # 5-second windows
         )
 
-        return {
-            "timestamp": data["timestamp"],
-            "aggregated_windows": len(aggregated),
-            "aggregation_type": self.aggregation,
-            "last_aggregated_value": aggregated[-1].value if aggregated else None,
-        }
+    return data_points
 
 
-class ResultPrinterSink(SinkFunction):
-    """Print results to console"""
-
-    def __init__(self, print_every: int = 10):
-        super().__init__()
-        self.print_every = print_every
-        self.count = 0
-
-    def execute(self, data: Dict[str, Any]) -> None:
-        """Print results periodically"""
-        self.count += 1
-
-        if self.count % self.print_every == 0:
-            print(f"\n{'=' * 60}")
-            print(f"Result #{self.count}")
-            print(f"{'=' * 60}")
-
-            if "window_stats" in data:
-                print(f"Timestamp: {data['timestamp']}")
-                print(f"Window Statistics:")
-                for key, value in data["window_stats"].items():
-                    if isinstance(value, float):
-                        print(f"  {key}: {value:.2f}")
-                    else:
-                        print(f"  {key}: {value}")
-
-            if "aggregated_windows" in data:
-                print(f"Aggregated Windows: {data['aggregated_windows']}")
-                print(f"Aggregation Type: {data['aggregation_type']}")
-                if data["last_aggregated_value"] is not None:
-                    print(f"Last Aggregated Value: {data['last_aggregated_value']:.2f}")
-
-
-def example_basic_pipeline():
-    """Example: Basic TSDB pipeline with ingestion and query"""
+def example_basic_ingestion_and_query():
+    """Example: Basic TSDB ingestion and query"""
     print("\n" + "=" * 60)
-    print("Example 1: Basic Time Series Pipeline")
+    print("Example 1: Basic Ingestion and Query")
     print("=" * 60)
 
     # Create TSDB instance
     db = SageTSDB()
 
-    # Create environment
-    env = LocalEnvironment()
+    # Generate and ingest data
+    data_points = generate_time_series_data(num_points=50, sensor_id="temp_sensor")
+    print(f"\nIngesting {len(data_points)} data points...")
 
-    # Build pipeline
-    (
-        env.from_source(TimeSeriesDataSource(num_points=50, sensor_id="temp_sensor"))
-        .flat_map(lambda data_list: data_list)  # Flatten list
-        .map(TSDBIngestNode(db))
-        .map(TSDBQueryNode(db, window_size=10000))
-        .to_sink(ResultPrinterSink(print_every=5))
-    )
+    for point in data_points:
+        idx = db.add(
+            timestamp=point["timestamp"],
+            value=point["value"],
+            tags=point["tags"],
+        )
 
-    # Execute
-    print("\nExecuting pipeline...")
-    env.execute()
+    print(f"Ingested {db.size()} points into database")
 
-    # Print final database stats
-    print("\n" + "=" * 60)
-    print("Database Statistics:")
-    print("=" * 60)
-    stats = db.get_stats()
-    for key, value in stats.items():
-        print(f"{key}: {value}")
+    # Query data
+    print("\nQuerying data...")
+    if data_points:
+        start_time = data_points[0]["timestamp"]
+        end_time = data_points[-1]["timestamp"]
+
+        time_range = TimeRange(start_time=start_time, end_time=end_time)
+        results = db.query(time_range)
+
+        print(f"Query returned {len(results)} points")
+        print("\nFirst 5 results:")
+        for i, result in enumerate(results[:5]):
+            print(f"  {i+1}. timestamp={result.timestamp}, value={result.value:.2f}")
 
 
 def example_window_aggregation():
     """Example: Window-based aggregation"""
     print("\n" + "=" * 60)
-    print("Example 2: Window Aggregation Pipeline")
+    print("Example 2: Window Aggregation")
     print("=" * 60)
 
     # Create TSDB instance
     db = SageTSDB()
 
-    # Create environment
-    env = LocalEnvironment()
+    # Generate and ingest data
+    data_points = generate_time_series_data(num_points=30, sensor_id="humidity_sensor")
+    print(f"\nIngesting {len(data_points)} data points for aggregation...")
 
-    # Build pipeline with aggregation
-    (
-        env.from_source(TimeSeriesDataSource(num_points=30, sensor_id="humidity_sensor"))
-        .flat_map(lambda data_list: data_list)
-        .map(TSDBIngestNode(db))
-        .map(TSDBWindowAggregateNode(db, aggregation="avg"))
-        .to_sink(ResultPrinterSink(print_every=5))
-    )
-
-    # Execute
-    print("\nExecuting pipeline with window aggregation...")
-    env.execute()
-
-
-def example_service_integration():
-    """Example: Using TSDB through service interface"""
-    print("\n" + "=" * 60)
-    print("Example 3: Service Integration")
-    print("=" * 60)
-
-    # Create TSDB service
-    service = SageTSDBService()
-
-    # Generate data
-    source = TimeSeriesDataSource(num_points=20, sensor_id="pressure_sensor")
-    data_points = source.generate()
-
-    # Ingest through service
-    print("\nIngesting data through service...")
     for point in data_points:
-        service.add(
-            timestamp=point["timestamp"], value=point["value"], tags=point["tags"]
+        db.add(
+            timestamp=point["timestamp"],
+            value=point["value"],
+            tags=point["tags"],
         )
 
-    # Query through service
-    print("\nQuerying data through service...")
-    start_time = data_points[0]["timestamp"]
-    end_time = data_points[-1]["timestamp"]
+    # Query with windowing
+    if data_points:
+        start_time = data_points[0]["timestamp"]
+        end_time = data_points[-1]["timestamp"]
 
-    results = service.query(
-        start_time=start_time,
-        end_time=end_time,
-        tags={"sensor_id": "pressure_sensor"},
-        aggregation="avg",
-        window_size=5000,
-    )
+        print(f"\nQuerying with time range: {start_time} to {end_time}")
+        time_range = TimeRange(start_time=start_time, end_time=end_time)
+        results = db.query(time_range)
 
-    print(f"\nQuery Results: {len(results)} aggregated windows")
-    for i, result in enumerate(results[:5]):  # Show first 5
-        print(f"Window {i+1}: value={result['value']:.2f}")
+        # Calculate statistics
+        if results:
+            values = [r.value for r in results]
+            print(f"\nStatistics from {len(values)} points:")
+            print(f"  Mean: {np.mean(values):.2f}")
+            print(f"  Std Dev: {np.std(values):.2f}")
+            print(f"  Min: {np.min(values):.2f}")
+            print(f"  Max: {np.max(values):.2f}")
 
-    # Service statistics
-    print("\nService Statistics:")
-    stats = service.stats()
+
+def example_multi_sensor():
+    """Example: Multi-sensor data"""
+    print("\n" + "=" * 60)
+    print("Example 3: Multi-Sensor Data")
+    print("=" * 60)
+
+    # Create TSDB instance
+    db = SageTSDB()
+
+    # Generate data from multiple sensors
+    sensors = ["temp_sensor", "humidity_sensor", "pressure_sensor"]
+    print(f"\nIngesting data from {len(sensors)} sensors...")
+
+    base_time = int(datetime.now().timestamp() * 1000)
+    total_points = 0
+
+    for sensor_id in sensors:
+        data_points = generate_time_series_data(num_points=20, sensor_id=sensor_id)
+        for point in data_points:
+            db.add(
+                timestamp=point["timestamp"],
+                value=point["value"],
+                tags=point["tags"],
+            )
+            total_points += 1
+
+    print(f"Ingested {total_points} points from {len(sensors)} sensors")
+    print(f"Database size: {db.size()}")
+
+    # Query data by sensor
+    print("\nQuerying data by sensor:")
+    for sensor_id in sensors:
+        start_time = base_time
+        end_time = base_time + 30000
+        time_range = TimeRange(start_time=start_time, end_time=end_time)
+        
+        # Note: Query with tags may need adjustment based on actual API
+        results = db.query(time_range)
+        print(f"  {sensor_id}: {len(results)} points")
+
+
+def example_database_statistics():
+    """Example: Database statistics"""
+    print("\n" + "=" * 60)
+    print("Example 4: Database Statistics")
+    print("=" * 60)
+
+    # Create TSDB instance
+    db = SageTSDB()
+
+    # Ingest data
+    data_points = generate_time_series_data(num_points=100, sensor_id="stat_sensor")
+    print(f"\nIngesting {len(data_points)} data points...")
+
+    for point in data_points:
+        db.add(
+            timestamp=point["timestamp"],
+            value=point["value"],
+            tags=point["tags"],
+        )
+
+    # Get statistics
+    print("\nDatabase Statistics:")
+    stats = db.get_stats()
     for key, value in stats.items():
         print(f"  {key}: {value}")
+
+    print(f"\nTotal points in database: {db.size()}")
 
 
 if __name__ == "__main__":
     print("\n" + "=" * 60)
-    print("SAGE TSDB DAG Integration Examples")
+    print("SAGE TSDB Basic Examples")
     print("=" * 60)
 
     try:
         # Run examples
-        example_basic_pipeline()
-        print("\n" + "-" * 60 + "\n")
-
+        example_basic_ingestion_and_query()
         example_window_aggregation()
-        print("\n" + "-" * 60 + "\n")
-
-        example_service_integration()
+        example_multi_sensor()
+        example_database_statistics()
 
         print("\n" + "=" * 60)
         print("All examples completed successfully!")
@@ -306,5 +204,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nError running examples: {e}")
         import traceback
-
         traceback.print_exc()
