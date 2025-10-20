@@ -144,6 +144,9 @@ jobs:
               if python -m pytest "packages/$package/tests/" \
                   -v -n auto -m "not slow" \
                   --ignore="packages/$package/tests/pypi" \
+                  --cov="packages/$package/src" \
+                  --cov-append \
+                  --cov-report=term-missing \
                   --tb=short --maxfail=3; then
                 echo "✅ $package 测试通过"
               else
@@ -165,6 +168,51 @@ jobs:
             exit 1
           fi
         timeout-minutes: 20
+
+      - name: Generate Coverage Report
+        if: always()
+        run: |
+          echo "📊 生成全项目代码覆盖率报告..."
+          
+          # 创建覆盖率报告目录
+          mkdir -p .coverage_report
+          
+          # 生成 HTML 覆盖率报告
+          if command -v coverage >/dev/null 2>&1; then
+            coverage html -d .coverage_report/html || true
+            echo "✅ HTML 覆盖率报告已生成: .coverage_report/html"
+          fi
+          
+          # 生成总体覆盖率统计
+          echo ""
+          echo "================================"
+          echo "📈 全项目代码覆盖率统计"
+          echo "================================"
+          
+          coverage report --skip-covered --precision=2 || true
+          
+          # 生成 JSON 格式的覆盖率数据（用于后续分析）
+          coverage json -o .coverage_report/coverage.json || true
+          
+          # 生成 XML 格式的覆盖率数据（用于 CI/CD 集成）
+          coverage xml -o .coverage_report/coverage.xml || true
+          
+          echo ""
+          echo "✅ 覆盖率报告生成完成"
+          echo ""
+          echo "📁 报告位置："
+          echo "   - HTML 报告: .coverage_report/html/index.html"
+          echo "   - JSON 报告: .coverage_report/coverage.json"
+          echo "   - XML 报告: .coverage_report/coverage.xml"
+
+      - name: Upload Coverage Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: .coverage_report/
+          retention-days: 30
+          if-no-files-found: ignore
 
   examples-test:
     name: Examples Test
