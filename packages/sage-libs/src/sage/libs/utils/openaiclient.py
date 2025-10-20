@@ -84,16 +84,16 @@ class OpenAIClient:
                 "temperature": temperature,
                 "top_p": top_p,
                 "max_tokens": max_tokens,
-                # n=n,
-                # seed=self.seed,
-                # stream=stream,
-                # frequency_penalty=frequency_penalty,
-                # logprobs=want_logprobs,
             }
             
             # 只有在有额外参数时才添加 extra_body
             if extra_body:
                 request_params["extra_body"] = extra_body
+            
+            # 转发 generator.py 透传的其他参数到 OpenAI API
+            for key in ("stream", "n", "logprobs", "frequency_penalty", "seed"):
+                if key in kwargs:
+                    request_params[key] = kwargs[key]
             
             response = self.client.chat.completions.create(**request_params)
 
