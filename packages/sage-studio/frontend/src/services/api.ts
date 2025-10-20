@@ -232,6 +232,32 @@ export async function updatePipelineConfig(
     return response.data
 }
 
+/**
+ * Playground 执行接口
+ */
+export async function executePlayground(params: {
+    flowId: string
+    input: string
+    sessionId: string
+    stream?: boolean
+}): Promise<{
+    output: string
+    status: string
+    agentSteps?: Array<{
+        step: number
+        type: 'reasoning' | 'tool_call' | 'response'
+        content: string
+        timestamp: string
+        duration?: number
+        toolName?: string
+        toolInput?: any
+        toolOutput?: any
+    }>
+}> {
+    const response = await apiClient.post('/playground/execute', params)
+    return response.data
+}
+
 // ==================== 错误处理 ====================
 
 // 添加响应拦截器处理错误
