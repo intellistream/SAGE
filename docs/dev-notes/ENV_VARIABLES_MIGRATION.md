@@ -2,7 +2,7 @@
 
 ## ⚠️ 重大变更 - 不向后兼容
 
-**`SAGE_CHAT_*` 环境变量已被完全移除，不再支持。**
+**`SAGE_DEBUG_*` 环境变量已被完全移除，不再支持。**
 
 所有使用这些变量的代码必须更新为使用新的 `TEMP_GENERATOR_*` 变量或配置文件。
 
@@ -15,11 +15,11 @@
 ### 旧的环境变量（已废弃）
 
 ```bash
-SAGE_CHAT_BACKEND=openai
-SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
-SAGE_CHAT_API_KEY=sk-xxx
-SAGE_CHAT_SEED=42
+SAGE_DEBUG_BACKEND=openai
+SAGE_DEBUG_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+SAGE_DEBUG_MODEL=qwen-turbo-2025-02-11
+SAGE_DEBUG_API_KEY=sk-xxx
+SAGE_DEBUG_SEED=42
 ```
 
 ### 新的环境变量（推荐使用）
@@ -36,7 +36,7 @@ TEMP_GENERATOR_SEED=42
 ## 迁移原因
 
 1. **更清晰的命名**：`TEMP_GENERATOR_*` 明确表示这些是临时的、仅用于演示和测试的配置
-2. **避免混淆**：`SAGE_CHAT_*` 容易让人误以为是聊天功能的生产配置
+2. **避免混淆**：`SAGE_DEBUG_*` 容易让人误以为是聊天功能的生产配置
 3. **配置文件优先**：鼓励使用 YAML 配置文件而不是环境变量来配置生成器
 
 ## 迁移步骤
@@ -46,8 +46,8 @@ TEMP_GENERATOR_SEED=42
 1. 更新你的 `.env` 文件：
    ```bash
    # 旧的配置（删除）
-   # SAGE_CHAT_BACKEND=openai
-   # SAGE_CHAT_API_KEY=sk-xxx
+   # SAGE_DEBUG_BACKEND=openai
+   # SAGE_DEBUG_API_KEY=sk-xxx
    
    # 新的配置（添加）
    TEMP_GENERATOR_BACKEND=openai
@@ -65,8 +65,8 @@ TEMP_GENERATOR_SEED=42
 # ❌ 不推荐
 import os
 generator_config = {
-    "api_key": os.getenv("SAGE_CHAT_API_KEY"),  # 旧的
-    "model_name": os.getenv("SAGE_CHAT_MODEL"),
+    "api_key": os.getenv("SAGE_DEBUG_API_KEY"),  # 旧的
+    "model_name": os.getenv("SAGE_DEBUG_MODEL"),
 }
 ```
 
@@ -94,13 +94,13 @@ generator = OpenAIGenerator(generator_config)
 
 ## 兼容性
 
-**不提供向后兼容性**。如果你的代码或配置中仍在使用 `SAGE_CHAT_*` 变量，程序将无法找到配置并报错。
+**不提供向后兼容性**。如果你的代码或配置中仍在使用 `SAGE_DEBUG_*` 变量，程序将无法找到配置并报错。
 
 ### 错误示例
 
 ```bash
 # ❌ 这将不再工作
-export SAGE_CHAT_API_KEY="sk-xxx"
+export SAGE_DEBUG_API_KEY="sk-xxx"
 sage chat
 
 # 错误信息: 未提供 API Key。请设置 TEMP_GENERATOR_API_KEY
