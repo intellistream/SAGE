@@ -242,8 +242,10 @@ class WindowAggregator(TimeSeriesAlgorithm):
         # Extract values
         values = []
         for point in data:
+            # Flatten arrays/lists, append scalars
             if isinstance(point.value, (list, np.ndarray)):
-                values.extend(point.value)
+                # Use np.ravel to flatten, then convert to list and extend
+                values.extend(np.ravel(point.value).tolist())
             else:
                 values.append(point.value)
 
