@@ -292,7 +292,6 @@ class TestRefinerOperatorExecution:
             assert result["query"] == question
             assert "refining_results" in result and len(result["refining_results"]) == 2
             assert "refining_docs" in result and len(result["refining_docs"]) == 2
-            assert "refining_time" in result
             assert all("text" in d for d in result["refining_results"])
 
             # 验证refiner被调用
@@ -350,7 +349,6 @@ class TestRefinerOperatorExecution:
             assert result["query"] == question
             assert "refining_results" in result and len(result["refining_results"]) == 1
             assert "refining_docs" in result
-            assert "refining_time" in result
 
             # 验证refiner调用
             mock_service.refine.assert_called_once()
@@ -385,8 +383,6 @@ class TestRefinerOperatorExecution:
             # 应该返回原始文档作为fallback
             assert len(result.get("refining_results", [])) == 1
             assert result["refining_results"][0]["text"] == "Test document"
-            # 异常情况下refining_time应该为0
-            assert result.get("refining_time") == 0.0
 
 
 @pytest.mark.integration
@@ -453,7 +449,6 @@ class TestRefinerOperatorIntegration:
             assert result["query"] == question
             assert isinstance(result.get("refining_results", []), list)
             assert "refining_docs" in result
-            assert "refining_time" in result
 
             # 验证profile数据被记录
             assert hasattr(adapter, "data_records")
@@ -729,7 +724,6 @@ class TestRefinerOperatorFixes:
                 # 验证输出格式包含统一的字段名 - 使用新格式
                 assert "refining_results" in result
                 assert "refining_docs" in result
-                assert "refining_time" in result
 
                 # 验证refining_results字段格式正确
                 assert isinstance(result["refining_results"], list)
@@ -803,7 +797,6 @@ class TestRefinerOperatorFixes:
                         "FIFA World Cup top goalscorers content...",
                         "Capocannoniere content...",
                     ],
-                    "retrieval_time": 0.123,
                     "input": "original input data",
                 }
 
@@ -814,7 +807,6 @@ class TestRefinerOperatorFixes:
                 assert len(result["refining_results"]) == 1  # 被压缩
                 assert result["refining_results"][0]["text"] == "Compressed content"
                 assert "refining_docs" in result
-                assert "refining_time" in result
 
                 # 验证原始数据被保留
                 assert result["query"] == "Who has the highest goals in world football?"
@@ -868,7 +860,6 @@ class TestRefinerOperatorFixes:
                         }
                     ],
                     "retrieval_docs": ["Document content without title formatting"],
-                    "retrieval_time": 0.1,
                 }
 
                 result = adapter.execute(input_data)
@@ -888,7 +879,6 @@ class TestRefinerOperatorFixes:
                 assert len(result["refining_results"]) == 1
                 assert result["refining_results"][0]["text"] == "Formatted content"
                 assert "refining_docs" in result
-                assert "refining_time" in result
 
             except Exception as e:
                 pytest.skip(f"LongRefiner dependency not available: {e}")
@@ -931,7 +921,6 @@ class TestRefinerOperatorFixes:
                     "query": "test query",
                     "retrieval_results": [{"text": "Some content"}],
                     "retrieval_docs": ["Some content"],
-                    "retrieval_time": 0.1,
                 }
 
                 result = adapter.execute(input_data)

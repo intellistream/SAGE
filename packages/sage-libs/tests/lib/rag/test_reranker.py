@@ -201,7 +201,6 @@ class TestBGEReranker:
                 "Machine learning is a subset of AI",
                 "Deep learning uses neural networks",
             ],
-            "retrieval_time": 0.5,
         }
 
         result = reranker.execute(input_data)
@@ -210,7 +209,6 @@ class TestBGEReranker:
         assert isinstance(result, dict)
         assert "reranking_results" in result
         assert "reranking_docs" in result
-        assert "reranking_time" in result
 
     @patch("sage.libs.rag.reranker.AutoTokenizer")
     @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
@@ -242,7 +240,6 @@ class TestBGEReranker:
             "query": "What is AI?",
             "retrieval_docs": [],
             "retrieval_results": [],
-            "retrieval_time": 0.5,
         }
 
         result = reranker.execute(input_data)
@@ -251,7 +248,6 @@ class TestBGEReranker:
         assert isinstance(result, dict)
         assert result["reranking_results"] == []
         assert result["reranking_docs"] == []
-        assert "reranking_time" in result
 
     @patch("sage.libs.rag.reranker.AutoTokenizer")
     @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
@@ -310,7 +306,6 @@ class TestBGEReranker:
                 "Cats are pets",
                 "Neural networks are used in machine learning",
             ],
-            "retrieval_time": 0.5,
         }
 
         result = reranker.execute(input_data)
@@ -380,7 +375,6 @@ class TestBGEReranker:
                 "doc4",
                 "doc5",
             ],
-            "retrieval_time": 0.5,
         }
 
         result = reranker.execute(input_data)
@@ -420,7 +414,6 @@ class TestBGEReranker:
             "query": "test query",
             "retrieval_docs": ["test doc"],
             "retrieval_results": ["test doc"],
-            "retrieval_time": 0.5,
         }
 
         # 验证异常处理

@@ -126,11 +126,7 @@ class OpenAIGenerator(MapFunction):
             messages = [{"role": "user", "content": str(prompt)}]
 
         # 记录生成时间
-        generate_start_time = time.time()
         response = self.model.generate(messages)
-        generate_end_time = time.time()
-        generation_time = generate_end_time - generate_start_time
-
         self.num += 1
 
         # 保存数据记录（只有enable_profile=True时才保存）
@@ -143,14 +139,12 @@ class OpenAIGenerator(MapFunction):
         if isinstance(original_data, dict):
             result = dict(original_data)
             result["generated"] = response
-            result["generation_time"] = generation_time
             return result
         else:
             # 如果不是字典输入，返回最小格式
             return {
                 "query": user_query or "",
-                "generated": response,
-                "generation_time": generation_time
+                "generated": response
             }
 
     def __del__(self):

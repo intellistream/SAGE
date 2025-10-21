@@ -26,7 +26,7 @@ import time
 from typing import Any, Dict, Optional
 
 from sage.common.config.output_paths import get_states_file
-from sage.core.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 
 
 class LongRefinerAdapter(MapFunction):

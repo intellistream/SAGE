@@ -155,7 +155,6 @@ class TestOpenAIGenerator:
         # 新实现：单输入返回字典，包含 generated 与 generation_time
         assert isinstance(result, dict)
         assert result["generated"] == "Generated response"
-        assert "generation_time" in result
         expected_messages = [{"role": "user", "content": "Test prompt"}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
@@ -186,7 +185,6 @@ class TestOpenAIGenerator:
         # 新实现：返回字典
         assert isinstance(result, dict)
         assert result["generated"] == "Generated response"
-        assert "generation_time" in result
 
         expected_messages = [
             {"role": "user", "content": "Please explain artificial intelligence."}
@@ -237,7 +235,6 @@ class TestOpenAIGenerator:
             # 新实现：单输入返回字典
             assert isinstance(result, dict)
             assert result["generated"] == "Generated response"
-            assert "generation_time" in result
 
     @patch("sage.libs.rag.generator.OpenAIClient")
     def test_execute_with_api_error(self, mock_openai_client):
@@ -326,9 +323,7 @@ class TestOpenAIGenerator:
         # 验证结果是字典格式且包含generation_time
         assert isinstance(result, dict)
         assert "generated" in result
-        assert "generation_time" in result
         assert result["generated"] == "Generated response"
-        assert result["generation_time"] == 1.5  # 1001.5 - 1000.0
         assert result["query"] == "What is AI?"
         assert result["other_field"] == "value"
 
@@ -370,9 +365,7 @@ class TestOpenAIGenerator:
         # 验证结果
         assert isinstance(result, dict)
         assert "generated" in result
-        assert "generation_time" in result
         assert result["generated"] == "Generated response"
-        assert result["generation_time"] == 2.0  # 1002.0 - 1000.0
         assert result["query"] == "What is AI?"
 
         # 验证直接传递消息列表
@@ -433,7 +426,6 @@ class TestOpenAIGeneratorIntegration:
             # 新实现：返回字典
             assert isinstance(result, dict)
             assert result["generated"] == "Mocked response"
-            assert "generation_time" in result
 
 
 @pytest.mark.unit

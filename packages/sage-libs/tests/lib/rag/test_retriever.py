@@ -120,7 +120,6 @@ class TestChromaRetriever:
             assert "query" in result
             assert "retrieval_results" in result
             assert "retrieval_docs" in result
-            assert "retrieval_time" in result
             assert result["query"] == query
             assert len(result["retrieval_results"]) == 2
             assert len(result["retrieval_docs"]) == 2
@@ -162,7 +161,6 @@ class TestChromaRetriever:
             assert isinstance(result, dict)
             assert "retrieval_results" in result
             assert "retrieval_docs" in result
-            assert "retrieval_time" in result
             assert result["query"] == "What is machine learning?"
             assert result["other_field"] == "value"
 

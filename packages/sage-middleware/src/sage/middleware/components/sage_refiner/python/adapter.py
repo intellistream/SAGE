@@ -10,7 +10,7 @@ SAGE Function适配器
 from typing import Any, Dict, List, Optional, Union
 
 try:
-    from sage.core.api.function.map_function import MapFunction
+    from sage.kernel.api.function.map_function import MapFunction
 
     SAGE_CORE_AVAILABLE = True
 except ImportError:
@@ -85,7 +85,6 @@ class RefinerAdapter(MapFunction):
                 ... # 原始字段
                 "refining_results": [...],  # 精炼后的文档
                 "refining_docs": [...],  # 精炼后的文档（同refining_results）
-                "refining_time": float,  # 精炼耗时
             }
         """
         # 标准化输入
@@ -108,7 +107,6 @@ class RefinerAdapter(MapFunction):
             if isinstance(data, dict):
                 data["refining_results"] = []
                 data["refining_docs"] = []
-                data["refining_time"] = 0.0
             return data
 
         # 执行精炼
@@ -125,7 +123,6 @@ class RefinerAdapter(MapFunction):
             output = data.copy() if isinstance(data, dict) else {}
             output["refining_results"] = result.refined_content
             output["refining_docs"] = result.refined_content  # 保持一致性
-            output["refining_time"] = result.metrics.refine_time
 
             # 性能日志
             if self.enable_profile:
@@ -143,7 +140,6 @@ class RefinerAdapter(MapFunction):
             if isinstance(data, dict):
                 data["refining_results"] = documents
                 data["refining_docs"] = documents
-                data["refining_time"] = 0.0
             return data
 
     def __del__(self):

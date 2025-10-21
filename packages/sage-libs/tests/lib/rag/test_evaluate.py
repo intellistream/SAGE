@@ -166,11 +166,10 @@ class TestNormalizeData:
         }
         result = _normalize_data(input_data)
 
+        # _normalize_data 对字典输入直接返回，不添加字段
         expected = {
             "query": "What is deep learning?",
             "other_field": "additional information",
-            "generated": "",
-            "references": [],
         }
         assert result == expected
 

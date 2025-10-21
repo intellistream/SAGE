@@ -89,7 +89,6 @@ class RefinerOperator(MapFunction):
                 ...原始字段,
                 "refining_results": List[Dict],  # 压缩后的文档（结构化）
                 "refining_docs": List[str],      # 压缩后的文本
-                "refining_time": float,          # 压缩耗时
             }
         """
         # 解析输入
@@ -112,20 +111,17 @@ class RefinerOperator(MapFunction):
 
         # 调用 RefinerService
         try:
-            refine_start = time.time()
             result = self.refiner_service.refine(
                 query=query,
                 documents=documents,
                 budget=self.cfg.get("budget"),
             )
-            refine_time = time.time() - refine_start
 
             refined_texts = result.refined_content
 
         except Exception as e:
             self.logger.error(f"Refiner execution failed: {e}")
             refined_texts = [doc.get("text", str(doc)) for doc in documents]
-            refine_time = 0.0
 
         # 保存数据记录
         if self.enable_profile:
@@ -139,7 +135,6 @@ class RefinerOperator(MapFunction):
 
         result_data["refining_results"] = [{"text": text} for text in refined_texts]
         result_data["refining_docs"] = refined_texts
-        result_data["refining_time"] = refine_time
 
         return result_data
 

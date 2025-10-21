@@ -87,12 +87,34 @@ class MapOperator(BaseOperator):
                 end_time = time.time()
                 duration = end_time - start_time
 
-                # 保存时间记录（只有enable_profile=True时才保存）
+                # 将时间信息添加到结果中（如果结果是字典）
+                if isinstance(result, dict):
+                    # 根据 function 类型添加对应的时间字段
+                    function_class_name = self.function.__class__.__name__
+                    
+                    # Retriever 类
+                    if 'Retriever' in function_class_name:
+                        result['retrieval_time'] = duration
+                    # Reranker 类
+                    elif 'Reranker' in function_class_name:
+                        result['reranking_time'] = duration
+                    # Refiner 类
+                    elif 'Refiner' in function_class_name:
+                        result['refining_time'] = duration
+                    # Generator 类
+                    elif 'Generator' in function_class_name:
+                        result['generation_time'] = duration
+                    # Promptor 类（通常不需要时间字段，因为很快）
+                    # 其他情况可以添加通用的 execution_time
+                    else:
+                        result['execution_time'] = duration
+
+                # 保存时间记录到文件（只有enable_profile=True时才保存）
                 if self.enable_profile:
                     self._save_time_record(duration)
 
                 self.logger.debug(
-                    f"Operator {self.name} processed data with result: {result}"
+                    f"Operator {self.name} processed data in {duration:.4f}s with result: {result}"
                 )
                 result_packet = (
                     packet.inherit_partition_info(result)

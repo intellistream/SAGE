@@ -69,11 +69,9 @@ class BGEReranker(MapFunction):
         4. Sorts documents based on their relevance scores.
 
         :param data: Dict containing query and retrieval results
-        :return: Dict with reranking_results, reranking_docs, reranking_time
+        :return: Dict with reranking_results, reranking_docs
         """
         import time
-        start_time = time.time()
-        
         try:
             query = data.get("query", "")
             
@@ -84,8 +82,7 @@ class BGEReranker(MapFunction):
                 self.logger.error("Missing 'query' field in input")
                 data.update({
                     "reranking_results": [],
-                    "reranking_docs": [],
-                    "reranking_time": 0.0
+                    "reranking_docs": []
                 })
                 return data
 
@@ -96,8 +93,7 @@ class BGEReranker(MapFunction):
                 print("BGEReranker received empty document set, returning empty results")
                 data.update({
                     "reranking_results": [],
-                    "reranking_docs": [],
-                    "reranking_time": time.time() - start_time
+                    "reranking_docs": []
                 })
                 return data
 
@@ -148,8 +144,7 @@ class BGEReranker(MapFunction):
         # 更新data字典
         data.update({
             "reranking_results": reranked_docs,
-            "reranking_docs": reranked_docs_list,
-            "reranking_time": time.time() - start_time
+            "reranking_docs": reranked_docs_list
         })
         return data
 
@@ -277,11 +272,9 @@ class LLMbased_Reranker(MapFunction):
         4. Sorts documents based on their relevance scores.
 
         :param data: Dict containing query and retrieval results
-        :return: Dict with reranking_results, reranking_docs, reranking_time
+        :return: Dict with reranking_results, reranking_docs
         """
         import time
-        start_time = time.time()
-        
         try:
             query = data.get("query", "")
             
@@ -292,8 +285,7 @@ class LLMbased_Reranker(MapFunction):
                 self.logger.error("Missing 'query' field in input")
                 data.update({
                     "reranking_results": [],
-                    "reranking_docs": [],
-                    "reranking_time": 0.0
+                    "reranking_docs": []
                 })
                 return data
 
@@ -341,8 +333,7 @@ class LLMbased_Reranker(MapFunction):
         # 更新data字典
         data.update({
             "reranking_results": reranked_docs,
-            "reranking_docs": reranked_docs_list,
-            "reranking_time": time.time() - start_time
+            "reranking_docs": reranked_docs_list
         })
         return data
 

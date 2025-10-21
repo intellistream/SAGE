@@ -202,11 +202,8 @@ class ChromaRetriever(MapFunction):
         Args:
             data: 查询字符串或字典
         Returns:
-            dict: {"query": ..., "retrieval_results": ..., "retrieval_docs": ..., "retrieval_time": ..., "input": 原始输入}
+            dict: {"query": ..., "retrieval_results": ..., "retrieval_docs": ..., "input": 原始输入}
         """
-        import time
-        start_time = time.time()
-        
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
             input_query = data.get("query", "")
@@ -218,8 +215,7 @@ class ChromaRetriever(MapFunction):
             if is_dict_input:
                 data.update({
                     "retrieval_results": [],
-                    "retrieval_docs": [],
-                    "retrieval_time": 0.0
+                    "retrieval_docs": []
                 })
                 return data
             else:
@@ -227,7 +223,6 @@ class ChromaRetriever(MapFunction):
                     "query": str(input_query),
                     "retrieval_results": [],
                     "retrieval_docs": [],
-                    "retrieval_time": 0.0,
                     "input": data
                 }
 
@@ -280,13 +275,10 @@ class ChromaRetriever(MapFunction):
                 for doc in standardized_docs
             ]
 
-            retrieval_time = time.time() - start_time
-
             if is_dict_input:
                 data.update({
                     "retrieval_results": standardized_docs,
-                    "retrieval_docs": retrieval_texts,
-                    "retrieval_time": retrieval_time
+                    "retrieval_docs": retrieval_texts
                 })
                 return data
             else:
@@ -294,18 +286,15 @@ class ChromaRetriever(MapFunction):
                     "query": input_query,
                     "retrieval_results": standardized_docs,
                     "retrieval_docs": retrieval_texts,
-                    "retrieval_time": retrieval_time,
                     "input": data,
                 }
 
         except Exception as e:
             self.logger.error(f"ChromaDB retrieval failed: {str(e)}")
-            retrieval_time = time.time() - start_time
             if is_dict_input:
                 data.update({
                     "retrieval_results": [],
-                    "retrieval_docs": [],
-                    "retrieval_time": retrieval_time
+                    "retrieval_docs": []
                 })
                 return data
             else:
@@ -313,7 +302,6 @@ class ChromaRetriever(MapFunction):
                     "query": input_query,
                     "retrieval_results": [],
                     "retrieval_docs": [],
-                    "retrieval_time": retrieval_time,
                     "input": data
                 }
 
@@ -1202,8 +1190,6 @@ class Wiki18FAISSRetriever(MapFunction):
         Returns:
             dict: 符合RAG统一数据格式的字典
         """
-        start_time = time.time()
-
         # 解析输入
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
@@ -1228,8 +1214,7 @@ class Wiki18FAISSRetriever(MapFunction):
                 return {
                     "query": "",
                     "retrieval_results": [],
-                    "retrieval_docs": [],
-                    "retrieval_time": 0.0
+                    "retrieval_docs": []
                 }
 
         input_query = input_query.strip()
@@ -1249,7 +1234,6 @@ class Wiki18FAISSRetriever(MapFunction):
             retrieved_docs = self._format_retrieved_documents(scores, indices)
 
             # 记录检索时间
-            retrieval_time = time.time() - start_time
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from FAISS\033[0m"
             )
@@ -1265,14 +1249,12 @@ class Wiki18FAISSRetriever(MapFunction):
             if is_dict_input:
                 data["retrieval_results"] = retrieved_docs
                 data["retrieval_docs"] = retrieved_texts
-                data["retrieval_time"] = retrieval_time
                 return data
             else:
                 return {
                     "query": input_query,
                     "retrieval_results": retrieved_docs,
-                    "retrieval_docs": retrieved_texts,
-                    "retrieval_time": retrieval_time
+                    "retrieval_docs": retrieved_texts
                 }
 
         except Exception as e:
@@ -1286,8 +1268,7 @@ class Wiki18FAISSRetriever(MapFunction):
                 return {
                     "query": input_query,
                     "retrieval_results": [],
-                    "retrieval_docs": [],
-                    "retrieval_time": 0.0
+                    "retrieval_docs": []
                 }
 
     def build_index_from_wiki18(self, wiki18_data_path: str, save_path: str = None):
