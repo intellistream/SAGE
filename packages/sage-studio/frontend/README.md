@@ -142,11 +142,6 @@ GET /api/flows/:id
 3. **加载流程数据格式**: 需要确认后端返回的流程数据结构与转换逻辑匹配
 4. **运行状态持久化**: 刷新页面后运行状态丢失
 
-## 📚 文档
-
-- [API 集成文档](docs/API_INTEGRATION.md) - API 使用指南
-- [Phase 2 完成报告](docs/PHASE2_API_COMPLETE.md) - 当前进度
-
 ## 📝 技术栈
 
 - **框架**: React 18
@@ -158,7 +153,3 @@ GET /api/flows/:id
 - **HTTP 客户端**: Axios
 - **图标**: Lucide React
 - **样式**: Tailwind CSS 3
-
-## 📄 许可证
-
-MIT License - 详见 LICENSE 文件

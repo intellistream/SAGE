@@ -1,12 +1,11 @@
-# SAGE Studio v2.0
+# SAGE Studio
 
 **SAGE Studio** 是一个现代化的低代码 Web UI 包，用于可视化开发和管理 SAGE RAG 数据流水线。
 
 > **包名**: `isage-studio`  
 > **技术栈**: React 18 + FastAPI  
-> **最后更新**: 2025-10-17
 
-## � 快速开始
+## 快速开始
 
 ### 环境要求
 
@@ -14,10 +13,33 @@
 - **Node.js**: 16+ (推荐 18)
 - **Conda**: sage 环境
 
-### 启动服务
+### 🎯 推荐方式：使用 SAGE CLI（最简单！）
 
 ```bash
-# 启动后端 API（在 sage 环境中）
+# 一键启动 Studio（前端 + 后端）
+sage studio start
+
+# 查看运行状态
+sage studio status
+
+# 在浏览器中打开
+sage studio open
+
+# 查看日志
+sage studio logs
+
+# 停止服务
+sage studio stop
+```
+
+**访问地址**：
+- 🌐 前端：http://localhost:5173
+- 🔌 后端：http://localhost:8080
+
+### 方式二：手动启动（开发调试）
+
+```bash
+# 1. 启动后端 API（在 sage 环境中）
 cd SAGE/packages/sage-studio
 python -m sage.studio.config.backend.api &
 # 后端运行在: http://localhost:8080
