@@ -23,9 +23,16 @@ class StudioManager:
     """Studio 管理器"""
 
     def __init__(self):
-        self.studio_dir = Path(__file__).parent
-        self.frontend_dir = self.studio_dir / "frontend"
-        self.backend_dir = self.studio_dir / "config" / "backend"
+        # studio_manager.py 在 packages/sage-studio/src/sage/studio/
+        # 需要向上4层到达 packages/sage-studio/ 目录
+        # __file__ -> studio_manager.py
+        # .parent -> studio/
+        # .parent -> sage/
+        # .parent -> src/
+        # .parent -> sage-studio/
+        self.studio_package_dir = Path(__file__).parent.parent.parent.parent
+        self.frontend_dir = self.studio_package_dir / "frontend"
+        self.backend_dir = Path(__file__).parent / "config" / "backend"
 
         # 统一的 .sage 目录管理
         self.sage_dir = Path.home() / ".sage"
@@ -37,13 +44,14 @@ class StudioManager:
         self.backend_log_file = self.sage_dir / "studio_backend.log"
         self.config_file = self.sage_dir / "studio.config.json"
 
-        # 缓存和构建目录
+        # 缓存和构建目录（React + Vite）
         self.node_modules_dir = self.studio_sage_dir / "node_modules"
-        self.angular_cache_dir = self.studio_sage_dir / ".angular" / "cache"
+        self.vite_cache_dir = self.studio_sage_dir / ".vite"  # Vite 缓存
         self.npm_cache_dir = self.studio_sage_dir / "cache" / "npm"
         self.dist_dir = self.studio_sage_dir / "dist"
 
-        self.default_port = 4200
+        # React + Vite 默认端口是 5173
+        self.default_port = 5173
         self.backend_port = 8080
         self.default_host = "localhost"
 
@@ -55,7 +63,7 @@ class StudioManager:
         directories = [
             self.sage_dir,
             self.studio_sage_dir,
-            self.angular_cache_dir,
+            self.vite_cache_dir,  # Vite 缓存目录
             self.npm_cache_dir,
             self.dist_dir,
         ]
@@ -165,12 +173,13 @@ class StudioManager:
         """清理散乱的临时文件和缓存"""
         console.print("[blue]清理散乱的临时文件...[/blue]")
 
-        # 清理项目目录中的临时文件
+        # 清理项目目录中的临时文件（React + Vite）
         cleanup_patterns = [
-            self.studio_dir / ".angular",
-            self.studio_dir / "dist",
-            self.frontend_dir / ".angular",
+            self.studio_package_dir / ".vite",
+            self.studio_package_dir / "dist",
+            self.frontend_dir / ".vite",
             self.frontend_dir / "dist",
+            self.frontend_dir / "node_modules/.vite",  # Vite 缓存
         ]
 
         cleaned = False
@@ -221,66 +230,7 @@ class StudioManager:
             console.print("[yellow]警告: 目标 node_modules 不存在[/yellow]")
             return False
 
-    def ensure_angular_dependencies(self) -> bool:
-        """确保所有必要的 Angular 依赖都已安装"""
-        required_packages = [
-            "@angular/cdk",
-            "@angular/animations",
-            "@angular/common",
-            "@angular/core",
-            "@angular/forms",
-            "@angular/platform-browser",
-            "@angular/platform-browser-dynamic",
-            "@angular/router",
-        ]
-
-        console.print("[blue]检查 Angular 依赖...[/blue]")
-
-        # 检查 package.json 中是否已有这些依赖
-        package_json = self.frontend_dir / "package.json"
-        try:
-            import json
-
-            with open(package_json, "r") as f:
-                package_data = json.load(f)
-
-            dependencies = package_data.get("dependencies", {})
-            missing_packages = []
-
-            for package in required_packages:
-                if package not in dependencies:
-                    missing_packages.append(package)
-
-            if missing_packages:
-                console.print(
-                    f"[yellow]检测到缺失的依赖: {', '.join(missing_packages)}[/yellow]"
-                )
-                console.print("[blue]正在安装缺失的依赖...[/blue]")
-
-                # 安装缺失的包
-                env = os.environ.copy()
-                env["npm_config_cache"] = str(self.npm_cache_dir)
-
-                for package in missing_packages:
-                    result = subprocess.run(
-                        ["npm", "install", package, "--save"],
-                        cwd=self.frontend_dir,
-                        capture_output=True,
-                        text=True,
-                        env=env,
-                    )
-                    if result.returncode != 0:
-                        console.print(f"[red]安装 {package} 失败[/red]")
-                        return False
-                    console.print(f"[green]✓ {package} 安装成功[/green]")
-            else:
-                console.print("[green]✓ 所有 Angular 依赖已就绪[/green]")
-
-            return True
-
-        except Exception as e:
-            console.print(f"[red]检查依赖时出错: {e}[/red]")
-            return False
+    def install_dependencies(self) -> bool:
         """安装依赖"""
         if not self.frontend_dir.exists():
             console.print(f"[red]前端目录不存在: {self.frontend_dir}[/red]")
@@ -409,7 +359,7 @@ class StudioManager:
             return False
 
     def install(self) -> bool:
-        """安装 Studio 依赖"""
+        """安装 Studio 依赖（React + Vite）"""
         console.print("[blue]📦 安装 SAGE Studio 依赖...[/blue]")
 
         # 清理散乱的临时文件
@@ -418,11 +368,6 @@ class StudioManager:
         # 检查基础依赖
         if not self.check_dependencies():
             console.print("[red]❌ 依赖检查失败[/red]")
-            return False
-
-        # 确保 Angular 依赖完整
-        if not self.ensure_angular_dependencies():
-            console.print("[red]❌ Angular 依赖检查失败[/red]")
             return False
 
         # 安装所有依赖
@@ -436,77 +381,25 @@ class StudioManager:
         # 确保 node_modules 符号链接正确
         self.ensure_node_modules_link()
 
-        # 设置配置
-        if not self.setup_studio_config():
-            console.print("[red]❌ 配置设置失败[/red]")
-            return False
-
         console.print("[green]✅ Studio 安装完成[/green]")
         return True
 
-    def setup_studio_config(self) -> bool:
-        """设置 Studio 配置"""
-        console.print("[blue]配置 Studio 输出路径...[/blue]")
+    def setup_vite_config(self) -> bool:
+        """设置 Vite 配置（如果需要）"""
+        console.print("[blue]检查 Vite 配置...[/blue]")
 
         try:
-            # 直接在这里实现配置逻辑，而不是调用外部脚本
-            angular_json_path = self.frontend_dir / "angular.json"
+            vite_config_path = self.frontend_dir / "vite.config.ts"
 
-            if not angular_json_path.exists():
-                console.print("[yellow]angular.json 不存在，跳过配置[/yellow]")
+            if not vite_config_path.exists():
+                console.print("[yellow]vite.config.ts 不存在，使用默认配置[/yellow]")
                 return True
 
-            # 读取angular.json
-            with open(angular_json_path, "r") as f:
-                config = json.load(f)
-
-            # 计算相对路径
-            relative_dist_path = os.path.relpath(self.dist_dir, self.frontend_dir)
-            relative_cache_path = os.path.relpath(
-                self.angular_cache_dir, self.frontend_dir
-            )
-
-            # 更新输出路径
-            if (
-                "projects" in config
-                and "dashboard" in config["projects"]
-                and "architect" in config["projects"]["dashboard"]
-                and "build" in config["projects"]["dashboard"]["architect"]
-                and "options" in config["projects"]["dashboard"]["architect"]["build"]
-            ):
-
-                config["projects"]["dashboard"]["architect"]["build"]["options"][
-                    "outputPath"
-                ] = relative_dist_path
-
-                # 更新缓存配置
-                if "cli" not in config:
-                    config["cli"] = {}
-                if "cache" not in config["cli"]:
-                    config["cli"]["cache"] = {}
-
-                config["cli"]["cache"]["path"] = relative_cache_path
-                config["cli"]["cache"]["enabled"] = True
-                config["cli"]["cache"]["environment"] = "all"
-                config["cli"]["analytics"] = False
-
-                # 写回文件
-                with open(angular_json_path, "w") as f:
-                    json.dump(config, f, indent=2)
-
-                console.print(
-                    f"[green]✅ 已更新 angular.json 输出路径: {relative_dist_path}[/green]"
-                )
-                console.print(
-                    f"[green]✅ 已更新 angular.json 缓存路径: {relative_cache_path}[/green]"
-                )
-                return True
-            else:
-                console.print("[yellow]angular.json 结构不匹配，跳过配置[/yellow]")
-                return True
+            console.print("[green]✓ Vite 配置已就绪[/green]")
+            return True
 
         except Exception as e:
-            console.print(f"[red]配置失败: {e}[/red]")
+            console.print(f"[red]配置检查失败: {e}[/red]")
             return False
 
     def check_typescript_compilation(self) -> bool:
@@ -800,11 +693,6 @@ if __name__ == "__main__":
             console.print("[red]依赖检查失败[/red]")
             return False
 
-        # 设置 Studio 配置
-        if not self.setup_studio_config():
-            console.print("[red]Studio 配置失败[/red]")
-            return False
-
         # 检查并安装 npm 依赖
         node_modules = self.frontend_dir / "node_modules"
         if not node_modules.exists():
@@ -827,21 +715,21 @@ if __name__ == "__main__":
         try:
             # 根据模式选择启动命令
             if dev:
-                # 开发模式：使用 ng serve
-                console.print("[blue]启动开发模式...[/blue]")
+                # 开发模式：使用 Vite dev server
+                console.print("[blue]启动开发模式（Vite）...[/blue]")
                 cmd = [
-                    "npx",
-                    "ng",
-                    "serve",
+                    "npm",
+                    "run",
+                    "dev",
+                    "--",
                     "--host",
                     host,
                     "--port",
                     str(port),
-                    "--disable-host-check",
-                    "--configuration=development",
                 ]
             else:
-                # 生产模式：确保有构建输出，然后启动静态服务器
+                # 生产模式：使用 Vite preview 或 serve
+                # 首先确保有构建输出
                 if not self.dist_dir.exists():
                     console.print("[blue]检测到无构建输出，开始构建...[/blue]")
                     if not self.build():
@@ -850,43 +738,19 @@ if __name__ == "__main__":
                         self.stop_backend()
                         return False
 
-                console.print("[blue]启动生产服务器...[/blue]")
-
-                # 优先使用 serve 包（专为 SPA 设计）
-                use_custom_server = False
-                try:
-                    # 检查 serve 是否可用
-                    result = subprocess.run(
-                        ["npx", "--yes", "serve", "--version"],
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                    )
-
-                    if result.returncode == 0:
-                        console.print("[green]使用 serve 启动生产服务器...[/green]")
-                        cmd = [
-                            "npx",
-                            "--yes",
-                            "serve",
-                            str(self.dist_dir),
-                            "-l",
-                            str(port),
-                            "-n",  # 不打开浏览器
-                            "--cors",  # 启用 CORS
-                            "--single",  # 单页应用模式，所有路由都重定向到 index.html
-                        ]
-                    else:
-                        use_custom_server = True
-
-                except Exception:
-                    use_custom_server = True
-
-                if use_custom_server:
-                    console.print("[yellow]serve 不可用，使用自定义服务器...[/yellow]")
-                    # 创建自定义的 Python 服务器来处理 SPA 路由
-                    server_script = self.create_spa_server_script(port, host)
-                    cmd = [sys.executable, str(server_script)]
+                console.print("[blue]启动生产服务器（Vite Preview）...[/blue]")
+                
+                # 使用 Vite preview
+                cmd = [
+                    "npm",
+                    "run",
+                    "preview",
+                    "--",
+                    "--host",
+                    host,
+                    "--port",
+                    str(port),
+                ]
 
             # 启动进程
             process = subprocess.Popen(

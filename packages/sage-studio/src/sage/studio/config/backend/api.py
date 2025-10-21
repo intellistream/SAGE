@@ -10,7 +10,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -18,9 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 
-def _convert_pipeline_to_job(
-    pipeline_data: dict, pipeline_id: str, file_path: Path = None
-) -> dict:
+def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str, file_path: Path = None) -> dict:
     """将拓扑图数据转换为 Job 格式"""
     from datetime import datetime
 
@@ -63,18 +61,16 @@ def _convert_pipeline_to_job(
 
     # 从文件名或文件元数据中提取创建时间
     create_time = None
-
+    
     # 方法1: 从文件名解析时间戳 (pipeline_1759908680.json)
     if pipeline_id.startswith("pipeline_"):
         try:
             timestamp_str = pipeline_id.replace("pipeline_", "")
             timestamp = int(timestamp_str)
-            create_time = datetime.fromtimestamp(timestamp).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            create_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
         except (ValueError, OSError) as e:
             print(f"Failed to parse timestamp from pipeline_id {pipeline_id}: {e}")
-
+    
     # 方法2: 如果解析失败,使用文件的修改时间
     if create_time is None and file_path and file_path.exists():
         try:
@@ -82,14 +78,15 @@ def _convert_pipeline_to_job(
             create_time = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
             print(f"Failed to get file mtime for {file_path}: {e}")
-
+    
     # 方法3: 兜底使用当前时间
     if create_time is None:
         create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+    
     job = {
         "jobId": pipeline_id,
         "name": name,
+        "description": description,  # 添加描述字段
         "isRunning": False,  # 拓扑图默认不在运行
         "nthreads": "1",
         "cpu": "0%",
@@ -119,6 +116,13 @@ def _convert_pipeline_to_job(
             "txnTime": 0,
         },
         "operators": operators,
+        # 添加 config 字段，保留原始的 React Flow 格式数据
+        "config": {
+            "name": name,
+            "description": description,
+            "nodes": nodes,
+            "edges": edges,
+        },
     }
 
     return job
@@ -146,6 +150,7 @@ def _get_sage_dir() -> Path:
 class Job(BaseModel):
     jobId: str
     name: str
+    description: Optional[str] = ""  # 添加描述字段
     isRunning: bool
     nthreads: str
     cpu: str
@@ -164,6 +169,7 @@ class Job(BaseModel):
     totalTimeBreakdown: dict
     schedulerTimeBreakdown: dict
     operators: List[dict]
+    config: Optional[dict] = None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
 
 
 class OperatorInfo(BaseModel):
@@ -598,13 +604,13 @@ async def get_job_detail(job_id: str):
         # 首先尝试从已保存的数据中查找
         sage_data = _read_sage_data_from_files()
         jobs = sage_data.get("jobs", [])
-
+        
         # 查找匹配的作业
         job = next((j for j in jobs if j.get("jobId") == job_id), None)
-
+        
         if job:
             return job
-
+        
         # 如果没有找到实际数据，返回占位符数据（用于开发）
         print(f"Job {job_id} not found in saved data, returning placeholder")
         return {
@@ -707,13 +713,13 @@ async def start_job(job_id: str):
             "use_ray": False,
             "isRunning": True,
         }
-
+        
         # 初始化日志
         if job_id not in job_logs:
             job_logs[job_id] = []
-
+        
         job_logs[job_id].append(f"[SYSTEM] Job {job_id} started at 2025-10-10 15:30:00")
-
+        
         return {"status": "success", "message": f"作业 {job_id} 已启动"}
     except Exception as e:
         print(f"Error starting job: {e}")
@@ -731,11 +737,13 @@ async def stop_job(job_id: str, duration: str):
             "use_ray": False,
             "isRunning": False,
         }
-
+        
         # 添加停止日志
         if job_id in job_logs:
-            job_logs[job_id].append(f"[SYSTEM] Job {job_id} stopped after {duration}")
-
+            job_logs[job_id].append(
+                f"[SYSTEM] Job {job_id} stopped after {duration}"
+            )
+        
         return {"status": "success", "message": f"作业 {job_id} 已停止"}
     except Exception as e:
         print(f"Error stopping job: {e}")
@@ -748,17 +756,17 @@ async def get_job_logs(job_id: str, offset: int = 0):
     try:
         # 获取该作业的日志
         logs = job_logs.get(job_id, [])
-
+        
         # 如果是第一次请求（offset=0）且没有日志，返回种子消息
         if offset == 0 and len(logs) == 0:
             seed_line = f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query."
             job_logs[job_id] = [seed_line]
             return {"offset": 1, "lines": [seed_line]}
-
+        
         # 返回从 offset 开始的新日志
         new_logs = logs[offset:]
         new_offset = len(logs)
-
+        
         return {"offset": new_offset, "lines": new_logs}
     except Exception as e:
         print(f"Error getting job logs: {e}")
@@ -804,7 +812,7 @@ async def get_pipeline_config(pipeline_id: str):
         # 尝试从缓存获取
         if pipeline_id in job_configs_cache:
             return {"config": job_configs_cache[pipeline_id]}
-
+        
         # 返回默认配置模板
         default_config = """# SAGE Pipeline Configuration
 name: Example RAG Pipeline
@@ -839,16 +847,16 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
         # 保存配置到缓存
         config_yaml = config.get("config", "")
         job_configs_cache[pipeline_id] = config_yaml
-
+        
         # 可选：保存到文件
         sage_dir = _get_sage_dir()
         config_dir = sage_dir / "configs"
         config_dir.mkdir(exist_ok=True)
-
+        
         config_file = config_dir / f"{pipeline_id}.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
             f.write(config_yaml)
-
+        
         return {
             "status": "success",
             "message": "配置更新成功",
@@ -857,6 +865,266 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
     except Exception as e:
         print(f"Error updating pipeline config: {e}")
         raise HTTPException(status_code=500, detail=f"更新管道配置失败: {str(e)}")
+
+
+# ==================== Playground API ====================
+
+def _load_flow_data(flow_id: str) -> Optional[dict]:
+    """加载 Flow 数据"""
+    sage_dir = _get_sage_dir()
+    pipelines_dir = sage_dir / "pipelines"
+    
+    print(f"🔍 Looking for flow: {flow_id}")
+    print(f"📁 Sage dir: {sage_dir}")
+    print(f"📁 Pipelines dir: {pipelines_dir}")
+    print(f"📁 Pipelines dir exists: {pipelines_dir.exists()}")
+    
+    # 尝试加载 pipeline 文件
+    flow_file = pipelines_dir / f"{flow_id}.json"
+    print(f"📄 Flow file path: {flow_file}")
+    print(f"📄 Flow file exists: {flow_file.exists()}")
+    
+    if flow_file.exists():
+        with open(flow_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            print(f"✅ Loaded flow: {data.get('name', 'Unnamed')}")
+            return data
+    
+    print(f"❌ Flow file not found")
+    return None
+
+
+def _convert_to_flow_definition(flow_data: dict, flow_id: str):
+    """将前端 Flow 数据转换为 FlowDefinition"""
+    import sys
+    from pathlib import Path
+    
+    # 添加 sage-studio 到 Python 路径
+    studio_path = Path(__file__).parent.parent.parent.parent
+    if str(studio_path) not in sys.path:
+        sys.path.insert(0, str(studio_path))
+    
+    from sage.studio.core.flow_engine import FlowDefinition, FlowNodeInstance, FlowConnection
+    
+    name = flow_data.get("name", "Unnamed Flow")
+    description = flow_data.get("description", "")
+    nodes_data = flow_data.get("nodes", [])
+    edges_data = flow_data.get("edges", [])
+    
+    # 转换节点
+    nodes = []
+    for node_data in nodes_data:
+        node_instance = FlowNodeInstance(
+            id=node_data.get("id", ""),
+            node_id=node_data.get("data", {}).get("nodeId", "unknown"),
+            name=node_data.get("data", {}).get("label", "Unnamed Node"),
+            inputs=node_data.get("data", {}).get("properties", {})
+        )
+        nodes.append(node_instance)
+    
+    # 转换连接
+    connections = []
+    for edge_data in edges_data:
+        connection = FlowConnection(
+            source_node_id=edge_data.get("source", ""),
+            source_output_key="output",  # 默认输出 key
+            target_node_id=edge_data.get("target", ""),
+            target_input_key="input"  # 默认输入 key
+        )
+        connections.append(connection)
+    
+    # 找到入口节点（没有输入边的节点）
+    nodes_with_inputs = {edge.get("target") for edge in edges_data}
+    entry_nodes = [node.id for node in nodes if node.id not in nodes_with_inputs]
+    
+    return FlowDefinition(
+        id=flow_id,
+        name=name,
+        description=description,
+        nodes=nodes,
+        connections=connections,
+        entry_nodes=entry_nodes if entry_nodes else [nodes[0].id] if nodes else []
+    )
+
+
+def _convert_execution_to_agent_steps(flow_def, execution) -> List:
+    """将 Flow 执行结果转换为 Agent 步骤"""
+    from datetime import datetime
+    import sys
+    from pathlib import Path
+    
+    # 添加 sage-studio 到 Python 路径
+    studio_path = Path(__file__).parent.parent.parent.parent
+    if str(studio_path) not in sys.path:
+        sys.path.insert(0, str(studio_path))
+    
+    from sage.studio.core.flow_engine import NodeExecutionStatus
+    
+    agent_steps = []
+    step_num = 1
+    
+    # 遍历所有节点，按执行顺序生成步骤
+    for node in flow_def.nodes:
+        if node.status == NodeExecutionStatus.COMPLETED:
+            # 节点执行成功
+            agent_steps.append(AgentStep(
+                step=step_num,
+                type="tool_call",
+                content=f"执行节点: {node.name}",
+                timestamp=datetime.fromtimestamp(node.start_time).isoformat() if node.start_time else datetime.now().isoformat(),
+                duration=int(node.execution_time * 1000) if node.execution_time else 0,
+                toolName=node.name,
+                toolInput=node.inputs,
+                toolOutput=node.outputs
+            ))
+            step_num += 1
+            
+        elif node.status == NodeExecutionStatus.FAILED:
+            # 节点执行失败
+            agent_steps.append(AgentStep(
+                step=step_num,
+                type="tool_call",
+                content=f"执行节点失败: {node.name} - {node.error_message}",
+                timestamp=datetime.now().isoformat(),
+                duration=int(node.execution_time * 1000) if node.execution_time else 0,
+                toolName=node.name,
+                toolInput=node.inputs,
+                toolOutput={"error": node.error_message}
+            ))
+            step_num += 1
+    
+    return agent_steps if agent_steps else None
+
+
+def _generate_output_text(execution, flow_def) -> str:
+    """生成输出文本"""
+    import sys
+    from pathlib import Path
+    
+    # 添加 sage-studio 到 Python 路径
+    studio_path = Path(__file__).parent.parent.parent.parent
+    if str(studio_path) not in sys.path:
+        sys.path.insert(0, str(studio_path))
+    
+    from sage.studio.core.flow_engine import FlowStatus
+    
+    if execution.status == FlowStatus.COMPLETED:
+        # 尝试从最后一个节点获取输出
+        last_node = None
+        for node in reversed(flow_def.nodes):
+            if node.outputs:
+                last_node = node
+                break
+        
+        if last_node and last_node.outputs:
+            # 格式化输出
+            output_str = "Flow 执行成功！\n\n"
+            output_str += f"最终输出来自节点: {last_node.name}\n\n"
+            
+            for key, value in last_node.outputs.items():
+                if isinstance(value, str) and len(value) > 200:
+                    output_str += f"{key}: {value[:200]}...\n"
+                else:
+                    output_str += f"{key}: {value}\n"
+            
+            return output_str
+        else:
+            return f"Flow 执行成功！总耗时: {execution.execution_time:.2f}秒"
+    
+    elif execution.status == FlowStatus.FAILED:
+        return f"Flow 执行失败: {execution.error_message}"
+    
+    else:
+        return f"Flow 状态: {execution.status.value}"
+
+
+class PlaygroundExecuteRequest(BaseModel):
+    """Playground 执行请求"""
+    flowId: str
+    input: str
+    sessionId: str = "default"
+    stream: bool = False
+
+
+class AgentStep(BaseModel):
+    """Agent 执行步骤"""
+    step: int
+    type: str  # reasoning, tool_call, response
+    content: str
+    timestamp: str
+    duration: Optional[int] = None
+    toolName: Optional[str] = None
+    toolInput: Optional[dict] = None
+    toolOutput: Optional[dict] = None
+
+
+class PlaygroundExecuteResponse(BaseModel):
+    """Playground 执行响应"""
+    output: str
+    status: str
+    agentSteps: Optional[List[AgentStep]] = None
+
+
+@app.post("/api/playground/execute", response_model=PlaygroundExecuteResponse)
+async def execute_playground(request: PlaygroundExecuteRequest):
+    """执行 Playground Flow"""
+    try:
+        from datetime import datetime
+        import sys
+        from pathlib import Path
+        
+        # 添加 sage-studio 到 Python 路径
+        studio_path = Path(__file__).parent.parent.parent.parent
+        if str(studio_path) not in sys.path:
+            sys.path.insert(0, str(studio_path))
+        
+        from sage.studio.core.flow_engine import (
+            FlowEngine, FlowDefinition, FlowNodeInstance, FlowConnection,
+            NodeExecutionStatus
+        )
+        
+        print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
+        print(f"📝 Input: {request.input}")
+        
+        # 1. 加载 Flow 定义
+        flow_data = _load_flow_data(request.flowId)
+        if not flow_data:
+            raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
+        
+        # 2. 转换为 FlowDefinition
+        flow_def = _convert_to_flow_definition(flow_data, request.flowId)
+        
+        # 3. 执行 Flow
+        engine = FlowEngine()
+        execution = await engine.execute_flow(flow_def, {"input": request.input})
+        
+        # 4. 转换节点执行结果为 Agent 步骤
+        agent_steps = _convert_execution_to_agent_steps(flow_def, execution)
+        
+        # 5. 生成最终输出
+        output_text = _generate_output_text(execution, flow_def)
+        
+        print(f"✅ Playground execution completed: {execution.status.value}")
+        
+        return PlaygroundExecuteResponse(
+            output=output_text,
+            status=execution.status.value,
+            agentSteps=agent_steps if agent_steps else None
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"❌ Error executing playground: {e}")
+        print(traceback.format_exc())
+        
+        # 返回友好的错误信息
+        return PlaygroundExecuteResponse(
+            output=f"执行出错: {str(e)}",
+            status="failed",
+            agentSteps=None
+        )
 
 
 if __name__ == "__main__":

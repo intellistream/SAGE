@@ -41,7 +41,14 @@ htmlcov/
 # Node.js (for frontend)
 node_modules/
 npm-debug.log*
+.vite/
+dist/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+backend.log
+frontend.log

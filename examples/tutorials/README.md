@@ -100,7 +100,8 @@ Build and deploy AI services.
 Once you've mastered the tutorials:
 
 ### Advanced Examples
-See `examples/rag/` and `examples/memory/` for production-ready patterns.
+- **RAG & Benchmarks**: See `packages/sage-benchmark/` for production-ready RAG pipelines
+- **Memory Systems**: See `examples/tutorials/memory/` for advanced memory patterns
 
 ### Real Applications
 Check out `examples/apps/` for complete applications:

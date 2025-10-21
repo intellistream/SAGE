@@ -14,6 +14,8 @@ CMakeUserPresets.json
 # 构建和安装目录
 # ============================================
 install.log
+# 数据目录（运行时生成）
+/data/
 # SAGE 工作目录
 .sage/logs/
 .sage/tmp/
@@ -167,7 +169,7 @@ temp_ci_test_env
 
 # 知识库和向量数据
 data/neuromem_vdb/
-examples/rag/chroma_*/
+examples/rag/
 examples/data/neuromem_vdb/
 
 # 医疗诊断数据集和处理结果

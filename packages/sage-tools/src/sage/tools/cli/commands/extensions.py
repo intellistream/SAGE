@@ -169,11 +169,13 @@ def find_sage_root() -> Optional[Path]:
 EXTENSION_PATHS: Dict[str, str] = {
     "sage_db": "packages/sage-middleware/src/sage/middleware/components/sage_db",
     "sage_flow": "packages/sage-middleware/src/sage/middleware/components/sage_flow",
+    "sage_tsdb": "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB",
 }
 
 EXTENSION_MODULES: Dict[str, str] = {
     "sage_db": "sage.middleware.components.sage_db.python._sage_db",
     "sage_flow": "sage.middleware.components.sage_flow.python._sage_flow",
+    "sage_tsdb": "sage.middleware.components.sage_tsdb.python._sage_tsdb",
 }
 
 
@@ -318,6 +320,8 @@ def _artifact_pattern_and_site(ext_name: str) -> Tuple[Optional[str], Optional[P
         return "_sage_flow*.so", Path("sage/middleware/components/sage_flow/python")
     if ext_name == "sage_db":
         return "_sage_db*.so", Path("sage/middleware/components/sage_db/python")
+    if ext_name == "sage_tsdb":
+        return "_sage_tsdb*.so", Path("sage/middleware/components/sage_tsdb/python")
     return None, None
 
 
@@ -765,6 +769,7 @@ def status():
     extensions = {
         "sage.middleware.components.sage_db.python._sage_db": "数据库扩展 (C++)",
         "sage.middleware.components.sage_flow.python._sage_flow": "流处理引擎扩展 (C++)",
+        "sage.middleware.components.sage_tsdb.python._sage_tsdb": "时序数据库扩展 (C++)",
     }
 
     available_count = 0
@@ -845,6 +850,7 @@ def clean():
     mapping = {
         "sage_db": "packages/sage-middleware/src/sage/middleware/components/sage_db",
         "sage_flow": "packages/sage-middleware/src/sage/middleware/components/sage_flow",
+        "sage_tsdb": "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB",
     }
 
     for ext_name, rel_path in mapping.items():
@@ -889,6 +895,11 @@ def info():
             "features": ["pybind11 模块", "向量流", "回调 sink"],
             "status": "experimental",
         },
+        "sage_tsdb": {
+            "description": "时序数据库 Python 绑定",
+            "features": ["C++17 核心", "流式 Join", "窗口聚合", "高效索引"],
+            "status": "experimental",
+        },
     }
 
     for ext_name, info in extensions_info.items():
@@ -903,6 +914,8 @@ def info():
                 __import__("sage.middleware.components.sage_db.python._sage_db")
             elif ext_name == "sage_flow":
                 __import__("sage.middleware.components.sage_flow.python._sage_flow")
+            elif ext_name == "sage_tsdb":
+                __import__("sage.middleware.components.sage_tsdb.python._sage_tsdb")
             else:
                 __import__(f"sage_ext.{ext_name}")
             typer.echo(f"  安装: {Colors.GREEN}✓ 已安装{Colors.RESET}")

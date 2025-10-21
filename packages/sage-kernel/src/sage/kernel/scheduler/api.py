@@ -142,6 +142,69 @@ class BaseScheduler(ABC):
             reason=f"Service placement: {service_node.service_name}"
         )
 
+    def schedule_task(self, task_node: "TaskNode", runtime_ctx=None):
+        """
+        调度任务（兼容性方法）
+        
+        这是一个高级 API，用于直接创建和调度任务。
+        内部调用 make_decision() 获取调度决策，然后通过任务工厂创建任务。
+        
+        使用场景：
+        - 单元测试和集成测试
+        - 简单调度场景（不需要显式处理决策）
+        - 与现有代码兼容
+        
+        Args:
+            task_node: 任务节点
+            runtime_ctx: 运行时上下文（如果为 None，使用 task_node.ctx）
+        
+        Returns:
+            创建的任务实例
+        """
+        # 调用核心决策方法
+        decision = self.make_decision(task_node)
+        
+        # 根据决策延迟（如果需要）
+        if hasattr(decision, 'delay') and decision.delay > 0:
+            import time
+            time.sleep(decision.delay)
+        
+        # 通过任务工厂创建任务
+        ctx = runtime_ctx if runtime_ctx is not None else task_node.ctx
+        task = task_node.task_factory.create_task(task_node.name, ctx)
+        
+        return task
+
+    def schedule_service(self, service_node: "ServiceNode", runtime_ctx=None):
+        """
+        调度服务（兼容性方法）
+        
+        这是一个高级 API，用于直接创建和调度服务。
+        内部调用 make_service_decision() 获取调度决策，然后通过服务工厂创建服务。
+        
+        Args:
+            service_node: 服务节点
+            runtime_ctx: 运行时上下文（如果为 None，使用 service_node.ctx）
+        
+        Returns:
+            创建的服务任务实例
+        """
+        # 调用服务决策方法
+        decision = self.make_service_decision(service_node)
+        
+        # 根据决策延迟（如果需要）
+        if hasattr(decision, 'delay') and decision.delay > 0:
+            import time
+            time.sleep(decision.delay)
+        
+        # 通过服务工厂创建服务
+        ctx = runtime_ctx if runtime_ctx is not None else service_node.ctx
+        service = service_node.service_task_factory.create_service_task(
+            service_node.service_name, ctx
+        )
+        
+        return service
+
     def get_metrics(self) -> Dict[str, Any]:
         """
         获取调度器性能指标（供开发者对比不同策略）

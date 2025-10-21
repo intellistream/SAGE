@@ -13,7 +13,7 @@ retriever:
   top_k: 3          # 检索 top-3 相关文档
   
   chroma:
-    persistence_path: "./examples/rag/chroma_qa_database"
+    persistence_path: "./data/chroma_qa_database"
     collection_name: "qa_knowledge_base"
     use_embedding_query: true
     

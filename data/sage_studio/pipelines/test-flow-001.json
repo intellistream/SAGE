@@ -1,0 +1,48 @@
+{
+    "id": "test-flow-001",
+    "name": "Simple File Reader Test",
+    "description": "测试文件读取功能",
+    "nodes": [
+        {
+            "id": "node-1",
+            "type": "custom",
+            "position": {
+                "x": 100,
+                "y": 100
+            },
+            "data": {
+                "nodeId": "file_reader",
+                "label": "File Reader",
+                "properties": {
+                    "file_path": "/tmp/test_playground.txt",
+                    "encoding": "utf-8"
+                }
+            }
+        },
+        {
+            "id": "node-2",
+            "type": "custom",
+            "position": {
+                "x": 400,
+                "y": 100
+            },
+            "data": {
+                "nodeId": "logger",
+                "label": "Logger",
+                "properties": {
+                    "level": "INFO",
+                    "message": "File content"
+                }
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "edge-1",
+            "source": "node-1",
+            "target": "node-2",
+            "sourceHandle": "output",
+            "targetHandle": "input"
+        }
+    ]
+}

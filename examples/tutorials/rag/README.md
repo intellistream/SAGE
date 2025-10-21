@@ -29,5 +29,5 @@ python examples/tutorials/rag/qa_local_llm.py
 
 ## Next Steps
 
-- **Advanced RAG examples**: See `examples/rag/` for production-ready RAG pipelines
+- **Advanced RAG examples**: See `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/` for production-ready RAG pipelines and benchmarks
 - **RAG library**: `packages/sage-libs/src/sage/libs/rag/`
