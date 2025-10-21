@@ -30,10 +30,10 @@ Reference these configs when running RAG examples:
 
 ```bash
 # From project root
-python examples/rag/qa_dense_retrieval_milvus.py
+python packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_dense_retrieval_milvus.py
 
 # The script will automatically load config from:
-# examples/rag/config/config_dense_milvus.yaml
+# packages/sage-benchmark/src/sage/benchmark/benchmark_rag/config/config_dense_milvus.yaml
 ```
 
 ## Customization
@@ -47,4 +47,6 @@ cp config_dense_milvus.yaml my_custom_config.yaml
 
 ## Data Paths
 
-All data paths in these configs point to `../data/` directory.
+All data paths in these configs use relative paths from the project root:
+- Data files: `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/`
+- Persistence: `data/` (for vector databases and other runtime data)

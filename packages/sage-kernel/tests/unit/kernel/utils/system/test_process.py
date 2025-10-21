@@ -1028,13 +1028,13 @@ class TestIntegrationScenarios:
             assert ownership["needs_sudo"] is False
 
         # Terminate processes
-        with patch(
-            "sage.common.utils.system.process.terminate_process"
-        ) as mock_terminate:
+        # Use patch.object to patch the function in current module namespace
+        with patch.object(current_module, "terminate_process") as mock_terminate:
             mock_terminate.return_value = {"success": True, "method": "terminate"}
 
             result = terminate_process(1001)
             assert result["success"]
+            mock_terminate.assert_called_once_with(1001)
 
     @pytest.mark.integration
     def test_sudo_workflow(self):

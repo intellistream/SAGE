@@ -24,13 +24,13 @@ This directory contains sample data files for RAG (Retrieval-Augmented Generatio
 
 These files are referenced in the configuration files located in `../config/`.
 
-Example configuration:
+Example configuration (using paths relative to project root):
 ```yaml
 source:
-  data_path: "examples/rag/data/queries.jsonl"
+  data_path: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/queries.jsonl"
   
 retriever:
-  preload_knowledge_file: "examples/rag/data/qa_knowledge_base.txt"
+  preload_knowledge_file: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_base.txt"
 ```
 
 ## Custom Data
