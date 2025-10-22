@@ -14,7 +14,7 @@ class CounterStartSource(SourceFunction):
         super().__init__(**kwargs)
         self.started = False
 
-    def execute(self):
+    def execute(self, data=None):
         if not self.started:
             self.started = True
             print("🚀 Starting counter...")

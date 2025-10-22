@@ -20,7 +20,7 @@ class TestSource(SourceFunction):
         self.counter = 0
         self.logger.info("TestSource initialized")
     
-    def execute(self):
+    def execute(self, data=None):
         self.counter += 1
         self.logger.info(f"TestSource: generating data #{self.counter}")
         

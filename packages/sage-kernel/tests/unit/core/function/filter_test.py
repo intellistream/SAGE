@@ -25,7 +25,7 @@ class NumberDataSource(SourceFunction):
             {"value": 7, "category": "odd", "positive": True},
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.numbers):
             return None
 
@@ -86,7 +86,7 @@ class UserDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.users):
             return None
 

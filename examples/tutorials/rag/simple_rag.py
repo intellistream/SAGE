@@ -24,7 +24,7 @@ class SimpleQuestionSource(SourceFunction):
         super().__init__(**kwargs)
         self.sent = False
 
-    def execute(self):
+    def execute(self, data=None):
         if self.sent:
             return None
         self.sent = True

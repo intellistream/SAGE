@@ -59,7 +59,7 @@ class LLMSource(SourceFunction):
         super().__init__()
         self.bridge = bridge
     
-    def execute(self):
+    def execute(self, data=None):
         if self.bridge._closed:
             return None
         request = self.bridge.next(timeout=0.1)
@@ -145,7 +145,7 @@ class QuestionController(SourceFunction):
         self.max = config.get("max_index", len(self.questions))
         self.index = 0
     
-    def execute(self):
+    def execute(self, data=None):
         if self.index >= self.max:
             return None
         

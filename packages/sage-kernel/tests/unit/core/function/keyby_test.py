@@ -19,7 +19,7 @@ class KeyByTestDataSource(SourceFunction):
         self.counter = 0
         self.user_ids = ["user1", "user2", "user3", "user1", "user2", "user3"]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.user_ids):
             return None  # 停止生成数据
 

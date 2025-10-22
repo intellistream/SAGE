@@ -75,7 +75,7 @@ class ServiceDrivenSource(SourceFunction):
         self._bridge = bridge
         self._poll_interval = poll_interval
 
-    def execute(self):
+    def execute(self, data=None):
         request = self._bridge.next(timeout=self._poll_interval)
         if request is None:
             return None
@@ -98,7 +98,7 @@ class OrderSource(BatchFunction):
             self._orders.append(dict(SHUTDOWN_MESSAGE))
         self._index = 0
 
-    def execute(self):
+    def execute(self, data=None):
         if self._index >= len(self._orders):
             return None
 

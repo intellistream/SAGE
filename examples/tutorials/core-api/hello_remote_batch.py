@@ -105,7 +105,7 @@ class NumberSequenceSource(SourceFunction):
         self.counter = 0
         self.max_count = max_count
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= self.max_count:
             # 数据耗尽，发送停止信号
             return StopSignal(f"NumberSequence_{self.counter}")
@@ -135,7 +135,7 @@ class FileLineSource(SourceFunction):
         ]
         self.current_index = 0
 
-    def execute(self):
+    def execute(self, data=None):
         if self.current_index >= len(self.lines):
             # 文件读完，发送停止信号
             return StopSignal("FileReader_EOF")
@@ -157,7 +157,7 @@ class CountdownSource(SourceFunction):
         super().__init__(**kwargs)
         self.current_number = start_from
 
-    def execute(self):
+    def execute(self, data=None):
         if self.current_number < 0:
             # 倒计时结束，发送停止信号
             return StopSignal("Countdown_Finished")

@@ -48,7 +48,7 @@ class OrderDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.orders):
             return None
 
@@ -96,7 +96,7 @@ class PaymentDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.payments):
             return None
 
@@ -130,7 +130,7 @@ class InventoryDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.inventory):
             return None
 

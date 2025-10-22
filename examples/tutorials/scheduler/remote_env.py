@@ -19,7 +19,7 @@ class SimpleSource(SourceFunction):
         self.count = 0
         self.max_count = 10
 
-    def execute(self):
+    def execute(self, data=None):
         if self.count >= self.max_count:
             return None
 

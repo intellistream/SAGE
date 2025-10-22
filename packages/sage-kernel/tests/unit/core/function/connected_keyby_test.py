@@ -23,7 +23,7 @@ class UserDataSource(SourceFunction):
             {"id": 4, "user_id": "user1", "name": "Alice Updated", "type": "user"},
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.users):
             return None
 
@@ -70,7 +70,7 @@ class EventDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.events):
             return None
 

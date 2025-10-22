@@ -26,7 +26,7 @@ class DataSource(SourceFunction):
         self.total_items = total_items
         self.current = 0
 
-    def execute(self):
+    def execute(self, data=None):
         if self.current >= self.total_items:
             return None
 

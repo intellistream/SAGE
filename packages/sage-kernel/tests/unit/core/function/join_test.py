@@ -90,7 +90,7 @@ class OrderEventSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.order_events):
             return None
 
@@ -141,7 +141,7 @@ class UserProfileSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.user_profiles):
             return None
 

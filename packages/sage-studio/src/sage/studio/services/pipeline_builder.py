@@ -242,7 +242,7 @@ class PipelineBuilder:
                     super().__init__()
                     self.data = data if isinstance(data, list) else [data]
                 
-                def execute(self):
+                def execute(self, data=None):
                     """Execute the source function"""
                     return self.data
             

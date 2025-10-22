@@ -13,9 +13,12 @@ class SourceFunction(BaseFunction):
     """
 
     @abstractmethod
-    def execute(self) -> Any:
+    def execute(self, data=None) -> Any:
         """
         执行源函数逻辑，生产数据
+
+        Args:
+            data: 输入数据（对于源函数通常为 None，但保留参数以符合基类接口）
 
         Returns:
             生产的数据

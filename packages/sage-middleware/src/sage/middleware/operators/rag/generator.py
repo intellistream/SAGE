@@ -172,8 +172,12 @@ class OpenAIGenerator(MapOperator):
             )
             return result
         else:
-            # 兼容原有tuple格式输出
-            return user_query, response
+            # 兼容原有tuple格式输出，但符合返回类型
+            return {
+                "query": user_query if user_query is not None else "",
+                "generated": response,
+                "generate_time": generate_time
+            }
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
@@ -226,4 +230,4 @@ class HFGenerator(MapOperator):
             f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m "
         )
 
-        return (user_query, response)
+        return (user_query if user_query is not None else "", response if isinstance(response, str) else str(response))

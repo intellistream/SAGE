@@ -21,7 +21,7 @@ class SentenceSource(SourceFunction):
         ]
         self.index = 0
 
-    def execute(self):
+    def execute(self, data=None):
         # 无限流：每次输出一句话，模拟流数据源
         if self.index >= len(self.sentences):
             self.index = 0  # 重置索引，实现循环输出

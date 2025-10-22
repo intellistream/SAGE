@@ -34,7 +34,7 @@ class TemperatureSource(SourceFunction):
         super().__init__(**kwargs)
         self.counter = 0
 
-    def execute(self):
+    def execute(self, data=None):
         self.counter += 1
         # 模拟温度数据 (18-35°C)
         temperature = round(random.uniform(18.0, 35.0), 1)
@@ -52,7 +52,7 @@ class HumiditySource(SourceFunction):
         super().__init__(**kwargs)
         self.counter = 0
 
-    def execute(self):
+    def execute(self, data=None):
         self.counter += 1
         # 模拟湿度数据 (30-90%)
         humidity = round(random.uniform(30.0, 90.0), 1)
@@ -70,7 +70,7 @@ class PressureSource(SourceFunction):
         super().__init__(**kwargs)
         self.counter = 0
 
-    def execute(self):
+    def execute(self, data=None):
         self.counter += 1
         # 模拟压力数据 (900-1100 hPa)
         pressure = round(random.uniform(900.0, 1100.0), 1)

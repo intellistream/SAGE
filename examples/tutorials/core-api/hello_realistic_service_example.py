@@ -181,7 +181,7 @@ class RequestSourceFunction(BaseFunction):
         self.request_count = request_count
         self.current_count = 0
 
-    def execute(self):
+    def execute(self, data=None):
         """生成推荐请求（源算子不需要data参数）"""
         if self.current_count >= self.request_count:
             return None  # 停止生成

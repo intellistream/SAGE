@@ -11,7 +11,7 @@ class HelloStreaming(SourceFunction):
         super().__init__(**kwargs)
         self.counter = 0
 
-    def execute(self):
+    def execute(self, data=None):
         self.counter += 1
         return f"Hello, Streaming World! #{self.counter}"
 

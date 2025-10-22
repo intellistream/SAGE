@@ -43,7 +43,7 @@ class DocumentSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.documents):
             return None
 

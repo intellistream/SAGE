@@ -30,7 +30,7 @@ class SentenceSource(SourceFunction):
         ]
         self.counter = 0
 
-    def execute(self):
+    def execute(self, data=None):
         # 随机选择一个句子，或者循环输出
         sentence = self.sentences[self.counter % len(self.sentences)]
         self.counter += 1

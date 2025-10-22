@@ -5,7 +5,7 @@ import time
 from jinja2 import Template
 from sage.kernel.operators import MapOperator
 
-QA_prompt_template = """Instruction:
+QA_prompt_template_str = """Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
 Only give me the answer and do not output any other words.
 {%- if external_corpus %}
@@ -14,7 +14,7 @@ Relevant corpus for the current question:
 {%- endif %}
 """
 
-QA_short_answer_template = """Instruction:
+QA_short_answer_template_str = """Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
 Please provide a concise answer and conclude with 'So the final answer is: [your answer]'.
 {%- if external_corpus %}
@@ -23,7 +23,7 @@ Relevant corpus for the current question:
 {%- endif %}
 """
 
-summarization_prompt_template = """Instruction:
+summarization_prompt_template_str = """Instruction:
 You are an intelligent assistant. Summarize the content provided below in a concise and clear manner.
 Only provide the summary and do not include any additional information.
 {%- if external_corpus %}
@@ -31,11 +31,11 @@ Content to summarize:
 {{ external_corpus }}
 {%- endif %}
 """
-QA_prompt_template = Template(QA_prompt_template)
-QA_short_answer_template = Template(QA_short_answer_template)
-summarization_prompt_template = Template(summarization_prompt_template)
+QA_prompt_template = Template(QA_prompt_template_str)
+QA_short_answer_template = Template(QA_short_answer_template_str)
+summarization_prompt_template = Template(summarization_prompt_template_str)
 
-query_profiler_prompt_template = """
+query_profiler_prompt_template_str = """
 For the given query = how Trump earn his first 1 million dollars?: Analyze the language and internal structure of the query and provide the following information:
 
 1. Does it need joint reasoning across multiple documents?
@@ -64,7 +64,7 @@ Your output must be:
   "n_info_items": integer (1-6)
 }
 """
-query_profiler_prompt_template = Template(query_profiler_prompt_template)
+query_profiler_prompt_template = Template(query_profiler_prompt_template_str)
 
 
 class QAPromptor(MapOperator):
@@ -77,6 +77,8 @@ class QAPromptor(MapOperator):
         config: Configuration data for initializing the prompt rag (e.g., model details, etc.).
         prompt_template: A template used for generating the system prompt, typically includes context or instructions.
     """
+    
+    prompt_template: Template
 
     def __init__(self, config, enable_profile=False, **kwargs):
         super().__init__(**kwargs)
@@ -305,6 +307,8 @@ class SummarizationPromptor(MapOperator):
         config: Configuration data for initializing the prompt rag (e.g., model details, etc.).
         prompt_template: A template used for generating the system prompt, typically includes context or instructions.
     """
+    
+    prompt_template: Template
 
     def __init__(self, config):
         """
@@ -367,6 +371,8 @@ class QueryProfilerPromptor(MapOperator):
     QueryProfilerPromptor provides a prompt for profiling queries.
 
     """
+    
+    prompt_template: Template
 
     def __init__(self, config):
         """
