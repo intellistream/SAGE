@@ -48,7 +48,6 @@ from sage.tools.cli.commands.jobmanager import app as jobmanager_app
 from sage.tools.cli.commands.llm import app as llm_app
 from sage.tools.cli.commands.pipeline import app as pipeline_app
 from sage.tools.cli.commands.studio import app as studio_app
-from sage.tools.cli.commands.test_extensions import app as test_extensions_app
 from sage.tools.cli.commands.version import app as version_app
 from sage.tools.cli.commands.worker import app as worker_app
 from sage.tools.finetune import app as finetune_app
@@ -69,7 +68,6 @@ app.add_typer(
 )
 app.add_typer(dev_app, name="dev", help="🛠️ 开发工具 - 项目开发和管理")
 app.add_typer(extensions_app, name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
-app.add_typer(test_extensions_app, name="test", help="🧪 测试 - 扩展和功能测试")
 app.add_typer(studio_app, name="studio", help="🎨 Studio - 低代码可视化管道编辑器")
 app.add_typer(finetune_app, name="finetune", help="🎓 模型微调 - 多场景大模型微调工具")
 app.add_typer(job_app, name="job", help="📋 作业管理 - 提交、监控、管理作业")
