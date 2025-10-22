@@ -1,5 +1,10 @@
 """
-SAGE - Streaming-Augmented Generative Execution
+SAGE Kernel - 流式数据处理引擎和基础算子
+
+提供：
+- 数据流执行引擎：Environment, DataStream API
+- 基础算子：MapOperator, FilterOperator, FlatMapOperator
+- 运行时组件：JobManager, Scheduler
 """
 
 # 直接从本包的_version模块加载版本信息
@@ -24,5 +29,14 @@ except ImportError:
         ImportWarning,
     )
 
+# 导出子模块
+from . import api, operators
 
-__all__ = ["__version__", "__author__", "__email__", "JobManagerClient"]
+__all__ = [
+    "__version__",
+    "__author__",
+    "__email__",
+    "JobManagerClient",
+    "api",
+    "operators",
+]

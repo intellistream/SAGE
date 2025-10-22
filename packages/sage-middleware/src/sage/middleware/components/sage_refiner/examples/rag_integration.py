@@ -60,7 +60,7 @@ def rag_pipeline_with_refiner():
     # ===== 构建管道 =====
     # 这个代码需要在SAGE环境中运行
     """
-    from sage.core.api.local_environment import LocalEnvironment
+    from sage.kernel.api.local_environment import LocalEnvironment
     from sage.libs.io_utils.batch import JSONLBatch
     from sage.middleware.operators.rag import ChromaRetriever
     from sage.middleware.operators.rag import QAPromptor

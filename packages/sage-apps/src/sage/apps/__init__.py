@@ -7,8 +7,11 @@ capabilities across various domains:
 - medical_diagnosis: AI-assisted medical imaging diagnosis
 """
 
-__version__ = "0.1.0"
+from . import medical_diagnosis, video
+from ._version import __version__
 
 __all__ = [
     "__version__",
+    "medical_diagnosis",
+    "video",
 ]

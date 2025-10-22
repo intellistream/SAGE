@@ -7,12 +7,17 @@ including RAG (Retrieval-Augmented Generation) examples and benchmark experiment
 
 Components:
 -----------
-- rag: RAG examples with various vector databases and retrieval methods
+- benchmark_memory: Memory performance benchmarking
 - benchmark_rag: RAG performance benchmarking and evaluation tools
 - benchmark_agent: (Future) Agent performance benchmarking
 - benchmark_anns: (Future) Approximate Nearest Neighbor Search benchmarking
 """
 
-__version__ = "0.1.0"
+from . import benchmark_memory, benchmark_rag
+from ._version import __version__
 
-__all__ = ["__version__"]
+__all__ = [
+    "__version__",
+    "benchmark_memory",
+    "benchmark_rag",
+]
