@@ -1,10 +1,10 @@
 from typing import Any, Dict
 
 import requests
-from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.operators import MapOperator
 
 
-class BochaWebSearch(MapFunction):
+class BochaWebSearch(MapOperator):
 
     def __init__(self, config: Dict[str, Any], **kwargs):
         super().__init__(**kwargs)

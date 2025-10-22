@@ -4,13 +4,13 @@ import time
 from typing import Any, Dict, List
 
 import requests
-from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.operators import MapOperator
 from sage.libs.context.model_context import ModelContext
 from sage.libs.context.search_result import SearchResult
 from sage.libs.context.search_session import SearchSession
 
 
-class BochaSearchTool(MapFunction):
+class BochaSearchTool(MapOperator):
     """
     改进的Bocha搜索工具 - 使用新的分层搜索结果结构
     输入: ModelContext (包含搜索查询)

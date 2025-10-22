@@ -45,6 +45,7 @@ from sage.middleware.operators.rag.retriever import (
     MilvusSparseRetriever,
     Wiki18FAISSRetriever,
 )
+from sage.middleware.operators.rag.searcher import BochaWebSearch
 from sage.middleware.operators.rag.writer import MemoryWriter
 
 __all__ = [
@@ -82,4 +83,6 @@ __all__ = [
     # External Data Sources
     "ArxivPDFDownloader",
     "ArxivPDFParser",
+    # Web Search
+    "BochaWebSearch",
 ]
