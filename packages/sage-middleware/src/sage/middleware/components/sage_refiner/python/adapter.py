@@ -7,20 +7,24 @@ SAGE Function适配器
 注意: 此适配器需要SAGE核心依赖。如果没有SAGE环境，请直接使用RefinerService。
 """
 
-from typing import Any, Dict, List, Optional, Union
+import logging
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
-try:
+if TYPE_CHECKING:
     from sage.kernel.api.function.map_function import MapFunction
+else:
+    try:
+        from sage.kernel.api.function.map_function import MapFunction
 
-    SAGE_CORE_AVAILABLE = True
-except ImportError:
-    SAGE_CORE_AVAILABLE = False
+        SAGE_CORE_AVAILABLE = True
+    except ImportError:
+        SAGE_CORE_AVAILABLE = False
 
-    # 创建dummy基类
-    class MapFunction:
-        """Dummy MapFunction for non-SAGE environments"""
+        # 创建dummy基类
+        class MapFunction:
+            """Dummy MapFunction for non-SAGE environments"""
 
-        pass
+            pass
 
 
 from sage.middleware.components.sage_refiner.python.service import RefinerService
