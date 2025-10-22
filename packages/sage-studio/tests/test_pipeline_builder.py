@@ -3,7 +3,7 @@ Tests for PipelineBuilder - Visual Pipeline to SAGE Pipeline conversion
 """
 import pytest
 
-from sage.studio.models import VisualPipeline, VisualNode, VisualEdge
+from sage.studio.models import VisualPipeline, VisualNode, VisualConnection
 from sage.studio.services import PipelineBuilder
 
 
@@ -23,7 +23,8 @@ class TestPipelineBuilder:
         # 创建一个简单的 Visual Pipeline
         node1 = VisualNode(
             id="node1",
-            node_type="retriever",
+            type="retriever",
+            label="Retriever",
             config={
                 "top_k": 5,
                 "index_name": "test_index"
@@ -35,8 +36,7 @@ class TestPipelineBuilder:
             id="test_pipeline",
             name="Test Pipeline",
             nodes=[node1],
-            edges=[],
-            metadata={}
+            connections=[],
         )
         
         # 构建 Pipeline
@@ -51,31 +51,34 @@ class TestPipelineBuilder:
         # 创建两个节点
         node1 = VisualNode(
             id="node1",
-            node_type="retriever",
+            type="retriever",
+            label="Retriever",
             config={"top_k": 5},
             position={"x": 100, "y": 100}
         )
         
         node2 = VisualNode(
             id="node2",
-            node_type="generator",
+            type="generator",
+            label="Generator",
             config={"model": "gpt-3.5-turbo"},
             position={"x": 300, "y": 100}
         )
         
         # 创建边
-        edge = VisualEdge(
+        edge = VisualConnection(
             id="edge1",
-            source="node1",
-            target="node2"
+            source_node_id="node1",
+            source_port="output",
+            target_node_id="node2",
+            target_port="input"
         )
         
         visual_pipeline = VisualPipeline(
             id="test_pipeline",
             name="RAG Pipeline",
             nodes=[node1, node2],
-            edges=[edge],
-            metadata={}
+            connections=[edge],
         )
         
         # 构建 Pipeline
@@ -91,8 +94,7 @@ class TestPipelineBuilder:
             id="empty_pipeline",
             name="Empty Pipeline",
             nodes=[],
-            edges=[],
-            metadata={}
+            connections=[],
         )
         
         builder = PipelineBuilder()
@@ -104,16 +106,15 @@ class TestPipelineBuilder:
     
     def test_topological_sort_simple(self):
         """测试简单的拓扑排序"""
-        node1 = VisualNode(id="node1", node_type="retriever", config={}, position={})
-        node2 = VisualNode(id="node2", node_type="generator", config={}, position={})
-        edge = VisualEdge(id="edge1", source="node1", target="node2")
+        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
+        node2 = VisualNode(id="node2", type="generator", label="generator", config={}, position={})
+        edge = VisualConnection(id="edge1", source_node_id="node1", source_port="output", target_node_id="node2", target_port="input")
         
         pipeline = VisualPipeline(
             id="test",
             name="Test",
             nodes=[node2, node1],  # 故意打乱顺序
-            edges=[edge],
-            metadata={}
+            connections=[edge],
         )
         
         builder = PipelineBuilder()
@@ -130,24 +131,23 @@ class TestPipelineBuilder:
         # node1 -> node2 -> node4
         #       -> node3 -> node4
         
-        node1 = VisualNode(id="node1", node_type="retriever", config={}, position={})
-        node2 = VisualNode(id="node2", node_type="promptor", config={}, position={})
-        node3 = VisualNode(id="node3", node_type="promptor", config={}, position={})
-        node4 = VisualNode(id="node4", node_type="generator", config={}, position={})
+        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
+        node2 = VisualNode(id="node2", type="promptor", label="promptor", config={}, position={})
+        node3 = VisualNode(id="node3", type="promptor", label="promptor", config={}, position={})
+        node4 = VisualNode(id="node4", type="generator", label="generator", config={}, position={})
         
         edges = [
-            VisualEdge(id="e1", source="node1", target="node2"),
-            VisualEdge(id="e2", source="node1", target="node3"),
-            VisualEdge(id="e3", source="node2", target="node4"),
-            VisualEdge(id="e4", source="node3", target="node4"),
+            VisualConnection(id="e1", source_node_id="node1", source_port="output", target_node_id="node2", target_port="input"),
+            VisualConnection(id="e2", source_node_id="node1", source_port="output", target_node_id="node3", target_port="input"),
+            VisualConnection(id="e3", source_node_id="node2", source_port="output", target_node_id="node4", target_port="input"),
+            VisualConnection(id="e4", source_node_id="node3", source_port="output", target_node_id="node4", target_port="input"),
         ]
         
         pipeline = VisualPipeline(
             id="test",
             name="Test",
             nodes=[node4, node3, node2, node1],  # 故意打乱顺序
-            edges=edges,
-            metadata={}
+            connections=edges,
         )
         
         builder = PipelineBuilder()
@@ -164,28 +164,27 @@ class TestPipelineBuilder:
         # 创建一个有循环的依赖图
         # node1 -> node2 -> node3 -> node1
         
-        node1 = VisualNode(id="node1", node_type="retriever", config={}, position={})
-        node2 = VisualNode(id="node2", node_type="promptor", config={}, position={})
-        node3 = VisualNode(id="node3", node_type="generator", config={}, position={})
+        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
+        node2 = VisualNode(id="node2", type="promptor", label="promptor", config={}, position={})
+        node3 = VisualNode(id="node3", type="generator", label="generator", config={}, position={})
         
         edges = [
-            VisualEdge(id="e1", source="node1", target="node2"),
-            VisualEdge(id="e2", source="node2", target="node3"),
-            VisualEdge(id="e3", source="node3", target="node1"),  # 形成循环
+            VisualConnection(id="e1", source_node_id="node1", source_port="output", target_node_id="node2", target_port="input"),
+            VisualConnection(id="e2", source_node_id="node2", source_port="output", target_node_id="node3", target_port="input"),
+            VisualConnection(id="e3", source_node_id="node3", source_port="output", target_node_id="node1", target_port="input"),  # 形成循环
         ]
         
         pipeline = VisualPipeline(
             id="test",
             name="Test",
             nodes=[node1, node2, node3],
-            edges=edges,
-            metadata={}
+            connections=edges,
         )
         
         builder = PipelineBuilder()
         
         # 应该抛出 ValueError
-        with pytest.raises(ValueError, match="Cycle detected"):
+        with pytest.raises(ValueError, match="Circular dependency detected"):
             builder._topological_sort(pipeline)
     
     def test_get_operator_class(self):
@@ -204,7 +203,8 @@ class TestPipelineBuilder:
         """测试创建数据源"""
         node = VisualNode(
             id="source",
-            node_type="file_source",
+            type="file_source",
+            label="File Source",
             config={"data": [{"input": "test1"}, {"input": "test2"}]},
             position={}
         )
@@ -213,8 +213,7 @@ class TestPipelineBuilder:
             id="test",
             name="Test",
             nodes=[node],
-            edges=[],
-            metadata={}
+            connections=[],
         )
         
         builder = PipelineBuilder()
@@ -229,8 +228,7 @@ class TestPipelineBuilder:
             id="test",
             name="Test",
             nodes=[],
-            edges=[],
-            metadata={}
+            connections=[],
         )
         
         builder = PipelineBuilder()
@@ -258,36 +256,38 @@ class TestPipelineBuilderIntegration:
         # 创建完整的 RAG Pipeline
         retriever = VisualNode(
             id="retriever",
-            node_type="retriever",
+            type="retriever",
+            label="Retriever",
             config={"top_k": 5, "index_name": "test_index"},
             position={"x": 100, "y": 100}
         )
         
         promptor = VisualNode(
             id="promptor",
-            node_type="promptor",
+            type="promptor",
+            label="Promptor",
             config={"template": "Context: {context}\nQuestion: {question}"},
             position={"x": 300, "y": 100}
         )
         
         generator = VisualNode(
             id="generator",
-            node_type="generator",
+            type="generator",
+            label="Generator",
             config={"model": "gpt-3.5-turbo"},
             position={"x": 500, "y": 100}
         )
         
         edges = [
-            VisualEdge(id="e1", source="retriever", target="promptor"),
-            VisualEdge(id="e2", source="promptor", target="generator"),
+            VisualConnection(id="e1", source_node_id="retriever", source_port="output", target_node_id="promptor", target_port="input"),
+            VisualConnection(id="e2", source_node_id="promptor", source_port="output", target_node_id="generator", target_port="input"),
         ]
         
         visual_pipeline = VisualPipeline(
             id="rag_pipeline",
             name="RAG Pipeline",
             nodes=[retriever, promptor, generator],
-            edges=edges,
-            metadata={"description": "A complete RAG pipeline"}
+            connections=edges,
         )
         
         # 构建 Pipeline

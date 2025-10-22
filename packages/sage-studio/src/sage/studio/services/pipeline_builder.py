@@ -69,8 +69,8 @@ class PipelineBuilder:
             
             if stream is None:
                 # 第一个节点 - 创建 source
-                source = self._create_source(node, pipeline)
-                stream = env.add_source(source, name=node.label)
+                source_class, source_args, source_kwargs = self._create_source(node, pipeline)
+                stream = env.from_source(source_class, *source_args, name=node.label, **source_kwargs)
             else:
                 # 后续节点 - 添加 transformation
                 stream = stream.map(
@@ -94,10 +94,10 @@ class PipelineBuilder:
         
         # 检查所有节点类型是否已注册
         for node in pipeline.nodes:
-            if node.type not in self.operator_registry:
+            if self.registry.get_operator(node.type) is None:
                 raise ValueError(
                     f"Unknown node type: {node.type}. "
-                    f"Available types: {list(self.operator_registry.keys())}"
+                    f"Available types: {self.registry.list_types()}"
                 )
         
         # 检查连接是否有效
@@ -167,22 +167,40 @@ class PipelineBuilder:
         """
         创建数据源
         
+        Returns:
+            tuple: (source_class, args, kwargs)
+        
         TODO: 根据节点类型和配置创建合适的 Source
         """
-        from sage.libs.io_utils.source import ListSource
+        from sage.kernel.api.function.source_function import SourceFunction
         
-        # 简单实现：从节点配置中获取数据
+        # 简单实现：创建一个内存数据源类
+        class SimpleListSource(SourceFunction):
+            """Simple in-memory list source for testing"""
+            def __init__(self, data):
+                super().__init__()
+                self.data = data
+                self.index = 0
+            
+            def execute(self, context):
+                """Execute the source function"""
+                for item in self.data:
+                    context.collect(item)
+        
         initial_data = node.config.get("data", [{"input": "test"}])
-        return ListSource(initial_data)
+        return SimpleListSource, (initial_data,), {}
     
     def _create_sink(self, pipeline: VisualPipeline):
         """
         创建数据接收器
         
+        Returns:
+            Type: Sink class (not instance)
+        
         TODO: 根据 Pipeline 配置创建合适的 Sink
         """
         from sage.libs.io_utils.sink import PrintSink
-        return PrintSink()
+        return PrintSink
 
 
 # 全局 Builder 实例
