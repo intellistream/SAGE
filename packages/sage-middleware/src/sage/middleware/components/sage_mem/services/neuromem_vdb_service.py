@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, List, Optional, Union
 
-from sage.kernel.api.service.base_service import BaseService
+from sage.platform.service import BaseService
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
 )

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Dict, List
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
-    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
+    from sage.platform.queue.base_queue_descriptor import (
         BaseQueueDescriptor,
     )
     from sage.kernel.runtime.context.task_context import TaskContext
@@ -39,13 +39,13 @@ def _create_queue_descriptor(
         对应平台的队列描述符
     """
     if env.platform == "remote":
-        from sage.kernel.runtime.communication.queue_descriptor.ray_queue_descriptor import (
+        from sage.platform.queue.ray_queue_descriptor import (
             RayQueueDescriptor,
         )
 
         return RayQueueDescriptor(maxsize=maxsize, queue_id=name)
     else:  # local 或其他情况使用 python 队列
-        from sage.kernel.runtime.communication.queue_descriptor.python_queue_descriptor import (
+        from sage.platform.queue.python_queue_descriptor import (
             PythonQueueDescriptor,
         )
 

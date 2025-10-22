@@ -2,7 +2,7 @@ from collections import deque
 from typing import Any, Dict, List, Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.service.base_service import BaseService
+from sage.platform.service import BaseService
 from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
 
 

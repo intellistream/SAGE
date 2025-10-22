@@ -17,7 +17,7 @@ except ImportError:
     ActorHandle = None
 
 if TYPE_CHECKING:
-    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
+    from sage.platform.queue.base_queue_descriptor import (
         BaseQueueDescriptor,
     )
     from sage.kernel.runtime.communication.router.connection import Connection

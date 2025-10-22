@@ -22,7 +22,7 @@ sage_kernel_src = os.path.join(current_dir, "../../../../../src")
 sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
-    from sage.kernel.runtime.communication.queue_descriptor import RayQueueDescriptor
+    from sage.platform.queue import RayQueueDescriptor
     from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
     from sage.kernel.utils.test_log_manager import (
         get_test_log_manager,
@@ -64,7 +64,7 @@ class PersistentQueueActor:
 
         # 在Ray Actor中导入所需模块 - 直接导入而不设置路径
         try:
-            from sage.kernel.runtime.communication.queue_descriptor import (
+            from sage.platform.queue import (
                 resolve_descriptor,
             )
 
@@ -207,7 +207,7 @@ class QueueCoordinatorActor:
     def register_queue(self, queue_name: str, queue_desc_dict: Dict[str, Any]):
         """注册一个队列"""
         try:
-            from sage.kernel.runtime.communication.queue_descriptor import (
+            from sage.platform.queue import (
                 resolve_descriptor,
             )
 

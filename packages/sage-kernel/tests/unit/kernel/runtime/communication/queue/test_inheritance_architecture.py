@@ -5,7 +5,7 @@
 """
 
 import pytest
-from sage.kernel.runtime.communication.queue_descriptor import (
+from sage.platform.queue import (
     BaseQueueDescriptor,
     PythonQueueDescriptor,
     RPCQueueDescriptor,

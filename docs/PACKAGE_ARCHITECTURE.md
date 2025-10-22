@@ -2,7 +2,7 @@
 
 > 本文档描述 SAGE 项目的包结构、依赖关系和职责划分。
 >
-> 最后更新：2025-01-10（重构后）
+> 最后更新：2025-01-22（架构审查后）
 
 ## 📦 包概览
 
@@ -26,10 +26,49 @@ L1: sage-common         # 基础设施
 ### 层级说明
 
 - **L1 (Foundation)**: 基础设施，所有包都可以依赖
+- **L2 (Infrastructure)**: *预留层级* - 当前无独立包，基础设施已包含在 L1 和 L3 中
 - **L3 (Core)**: 核心功能，提供执行引擎和算法库
 - **L4 (Domain)**: 领域特定功能，基于 L1+L3 构建
 - **L5 (Applications)**: 应用层，组合使用下层功能
 - **L6 (Interface)**: 用户界面层
+
+#### 关于 L2 层
+
+⚠️ **重要发现**: 通过 2025-01 架构审查，我们发现 SAGE **需要 L2 (Platform) 层**。
+
+**当前状态**: L2 层缺失，导致基础设施组件错误地分布在 L3/L4：
+1. **Queue Descriptor** (消息队列抽象) - 当前在 sage-kernel (L3)
+   - 提供 Python/Ray/RPC 队列的统一接口
+   - 是通用基础设施，不是 SAGE 执行引擎特有逻辑
+   
+2. **KV Backend** (KV存储抽象) - 当前在 sage-middleware (L4)
+   - 提供 Dict/Redis/RocksDB 的统一接口
+   - 是通用存储抽象，不是领域特定逻辑
+
+3. **BaseService** (服务基类) - 当前在 sage-kernel (L3)
+   - 导致 sage-common (L1) 反向依赖 sage-kernel (L3)
+
+**为什么需要 L2**:
+1. **架构正确性**: 基础设施抽象应该在独立的平台层，而非混在核心引擎中
+2. **依赖清晰**: Queue/Storage 抽象应该被 L3 依赖，而不是作为 L3 的一部分
+3. **可复用性**: 平台服务可以被多个上层组件复用（kernel, middleware, apps）
+4. **可扩展性**: 便于添加新的队列/存储后端，无需修改核心引擎
+
+**计划重构**（待执行）:
+```
+创建 sage-platform (L2) 包：
+  - queue/: Queue Descriptor 抽象
+  - storage/: KV Backend 抽象  
+  - service/: Service 基类
+```
+
+**更新后的职责分布**:
+- **sage-common (L1)**: 纯粹的工具函数、配置、日志（无业务依赖）
+- **sage-platform (L2)**: 平台服务抽象（队列、存储、服务基类）
+- **sage-kernel (L3)**: 流式执行引擎（依赖 L2 的队列抽象）
+- **sage-middleware (L4)**: 领域组件（依赖 L2 的存储抽象）
+
+详见: [L2_LAYER_ANALYSIS.md](./dev-notes/L2_LAYER_ANALYSIS.md) 和本文档的"重构历史"章节。
 
 ## 🔍 包详细说明
 
@@ -334,6 +373,82 @@ graph TD
 - 完整的文档
 
 参见: [ARCHITECTURE_REVIEW_2025.md](./dev-notes/ARCHITECTURE_REVIEW_2025.md), [RESTRUCTURING_SUMMARY.md](./dev-notes/RESTRUCTURING_SUMMARY.md)
+
+### 2025-01 架构审查（Top-Layer Review）
+
+**审查范围**: sage-studio (L6), sage-apps/benchmark/tools (L5)
+
+**发现的问题**:
+
+1. **L2 层缺失** ⚠️
+   - **Queue Descriptor** 抽象（当前在 `sage-kernel/runtime/communication/queue_descriptor/`）
+     - 提供 Python Queue、Ray Queue、RPC Queue 的统一抽象
+     - 是通用的基础设施，不是 SAGE 执行引擎特有的逻辑
+     - **应该移动到新的 L2 (Platform) 层**
+   
+   - **KV Backend** 抽象（当前在 `sage-middleware/components/sage_mem/neuromem/storage_engine/kv_backend/`）
+     - 提供 Key-Value 存储的统一接口
+     - Dict、Redis、RocksDB 等后端实现
+     - **应该移动到新的 L2 (Platform) 层**
+
+2. **跨层依赖问题** ⚠️
+   - **sage-common → sage-kernel** (L1 → L3 违规)
+     - `sage.common.components.sage_embedding.service` 依赖 `sage.kernel.api.service.base_service`
+     - `sage.common.components.sage_vllm.service` 依赖 `sage.kernel.api.service.base_service`
+     - **问题**: L1 不应该依赖任何上层包
+     - **原因**: BaseService 应该是基础接口，但当前在 kernel
+   
+   - **sage-libs → sage-kernel** (L3 → L3，但耦合度高)
+     - sage-libs 的多个模块依赖 sage-kernel 的 Function API
+     - 当前设计合理（libs 需要 kernel 的算子基类）
+     - 但未来可考虑将 Function API 抽象下沉到更低层
+
+3. **代码位置问题** ✅ (已修复)
+   - **sage-tools**: TestFailureCache 在 tests/ 目录（已移动到 src/）
+   
+4. **测试覆盖不足** ⚠️
+   - **sage-benchmark**: 仅 1 个测试文件（test_hg.py - HuggingFace 连接测试）
+   - 缺少实际的 benchmark 功能测试
+
+**建议的重构方案**:
+
+```
+创建新的 sage-platform (L2) 包：
+
+packages/
+  sage-platform/          # L2 - 平台服务层（新建）
+    src/sage/platform/
+      queue/              # 从 sage-kernel/runtime/communication/queue_descriptor 移动
+        base_queue_descriptor.py
+        python_queue_descriptor.py
+        ray_queue_descriptor.py
+        rpc_queue_descriptor.py
+      
+      storage/            # 从 sage-middleware/components/sage_mem 移动
+        kv_backend/
+          base_kv_backend.py
+          dict_kv_backend.py
+          # 未来扩展: redis_kv_backend.py, rocksdb_kv_backend.py
+      
+      service/            # 从 sage-kernel 移动
+        base_service.py   # 解决 sage-common 的依赖问题
+```
+
+**更新后的架构层级**:
+```
+L1 (sage-common)       - 通用工具 (logging, config, decorators)
+L2 (sage-platform)     - 平台服务 (queue, storage, service 基类) [待创建]
+L3 (sage-kernel, libs) - 核心引擎 (runtime, jobmanager, compiler, algorithms)
+L4 (sage-middleware)   - 领域组件 (neuromem, sageDB, sageFlow, RAG operators)
+L5 (sage-apps, tools)  - 应用层
+L6 (sage-studio)       - 接口层
+```
+
+**状态**: 
+- ✅ 审查完成
+- ⏳ 重构待执行（等待审查完成后统一重构）
+
+参见: [L2_LAYER_ANALYSIS.md](./dev-notes/L2_LAYER_ANALYSIS.md)
 
 ## 🚀 使用指南
 

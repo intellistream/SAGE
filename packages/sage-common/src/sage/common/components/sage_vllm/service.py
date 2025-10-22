@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 import numpy as np
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
-from sage.kernel.api.service.base_service import BaseService
+from sage.platform.service import BaseService
 
 try:  # Optional dependency – raise during setup if unavailable
     from vllm import LLM, SamplingParams

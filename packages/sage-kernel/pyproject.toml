@@ -43,6 +43,7 @@ classifiers = [
 dependencies = [
     # SAGE framework dependencies
     "isage-common>=0.1.0",
+    "isage-platform>=0.1.0",
     
     # Kernel-specific dependencies
     "python-dotenv==1.1.1",

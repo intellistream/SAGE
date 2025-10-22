@@ -24,7 +24,7 @@ sage_kernel_src = os.path.join(current_dir, "../../../../../src")
 sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
-    from sage.kernel.runtime.communication.queue_descriptor import (  # noqa: F401
+    from sage.platform.queue import (  # noqa: F401
         BaseQueueDescriptor,
         PythonQueueDescriptor,
         RayQueueDescriptor,
@@ -145,7 +145,7 @@ try:
             """生产物品到队列"""
             try:
                 # 从字典重建队列描述符
-                from sage.kernel.runtime.communication.queue_descriptor import (
+                from sage.platform.queue import (
                     resolve_descriptor,
                 )
 
@@ -169,7 +169,7 @@ try:
             """从队列消费物品"""
             try:
                 # 从字典重建队列描述符
-                from sage.kernel.runtime.communication.queue_descriptor import (
+                from sage.platform.queue import (
                     resolve_descriptor,
                 )
 

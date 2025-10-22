@@ -54,7 +54,7 @@ class TestRayInitialization:
         @ray.remote
         def test_sage_import():
             try:
-                from sage.kernel.runtime.communication.queue_descriptor import (  # noqa: F401
+                from sage.platform.queue import (  # noqa: F401
                     RayQueueDescriptor,
                 )
 
