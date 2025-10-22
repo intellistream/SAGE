@@ -1,111 +1,321 @@
 """
-RAG Operators 统一数据结构
+RAG 专用数据类型定义
 
-定义 RAG pipeline 中各个算子之间传递的标准数据格式。
+基于 sage.common.core.data_types 的基础类型，为 RAG 场景定制的数据结构。
+
+继承关系：
+    BaseDocument (通用基础) → RAGDocument (RAG专用)
+    BaseQueryResult (通用基础) → RAGQuery/RAGResponse (RAG专用)
+
+设计原则：
+1. 继承通用类型，保持与其他算子的兼容性
+2. 添加 RAG 特定的字段（如 relevance_score, generated 等）
+3. 保持向后兼容，支持多种输入格式
+4. 类型安全，支持 IDE 和 Pylance 检查
+
+使用示例：
+    >>> from sage.middleware.operators.rag import RAGResponse, create_rag_response
+    >>> 
+    >>> # 算子输出标准格式
+    >>> response = create_rag_response(
+    ...     query="什么是机器学习",
+    ...     results=["doc1", "doc2"],
+    ...     generated="机器学习是...",
+    ...     execution_time=1.5
+    ... )
 """
 
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, Union
+
+# 导入基础类型
+from sage.common.core.data_types import (
+    BaseDocument,
+    BaseQueryResult,
+    ExtendedQueryResult,
+    QueryResultInput,
+    create_query_result as base_create_query_result,
+    extract_query as base_extract_query,
+    extract_results as base_extract_results,
+)
 
 
-class RAGDocument(TypedDict, total=False):
-    """RAG 文档标准格式"""
-    text: str  # 文档文本内容（必需）
-    title: Optional[str]  # 文档标题
-    contents: Optional[str]  # 文档内容（别名）
-    relevance_score: Optional[float]  # 相关性分数
+# ============================================================================
+# RAG 专用文档类型
+# ============================================================================
+
+
+class RAGDocument(BaseDocument, total=False):
+    """
+    RAG 文档结构 - 扩展基础文档，添加 RAG 特定字段
+    
+    继承 BaseDocument 的所有字段，添加了 RAG 场景常用的字段。
+    
+    继承的必需字段：
+        text: 文档文本内容
+    
+    继承的可选字段：
+        id, title, source, score, rank, metadata
+    
+    新增 RAG 专用字段：
+        contents: 原始完整内容（text 可能是摘要）
+        relevance_score: RAG 特定的相关性分数
+        embedding: 文档的向量嵌入
+        chunk_id: 分块ID（用于长文档分块）
+        references: 引用的其他文档ID列表
+    
+    示例：
+        >>> doc: RAGDocument = {
+        ...     "text": "Python是一种高级编程语言...",
+        ...     "title": "Python入门",
+        ...     "relevance_score": 0.92,
+        ...     "source": "textbook.pdf",
+        ...     "chunk_id": 5
+        ... }
+    """
+
+    contents: Optional[str]  # 原始完整内容
+    relevance_score: Optional[float]  # RAG相关性分数
+    embedding: Optional[List[float]]  # 向量嵌入
+    chunk_id: Optional[int]  # 分块ID
+    references: Optional[List[str]]  # 引用列表
+
+
+# ============================================================================
+# RAG 查询和响应类型
+# ============================================================================
+
+
+class RAGQuery(ExtendedQueryResult, total=False):
+    """
+    RAG 查询结构 - 扩展基础查询结果，添加 RAG pipeline 相关字段
+    
+    继承 ExtendedQueryResult，添加了 RAG pipeline 各阶段可能需要的字段。
+    这个类型用于在 RAG pipeline 的各个阶段传递数据。
+    
+    继承的必需字段：
+        query: 用户查询
+        results: 结果列表
+    
+    继承的可选字段：
+        query_id, timestamp, total_count, execution_time, context, metadata
+    
+    新增 RAG 专用字段：
+        external_corpus: 外部检索的文档
+        references: 引用文档列表
+        generated: 生成的文本（答案）
+        refined_docs: 精炼后的文档
+        reranked: 重排序标记
+        prompt: 使用的提示词模板
+        refine_metrics: 精炼阶段的指标
+        generate_time: 生成阶段耗时
+    
+    示例：
+        >>> query: RAGQuery = {
+        ...     "query": "什么是机器学习",
+        ...     "results": ["doc1", "doc2"],
+        ...     "context": "检索到的上下文...",
+        ...     "generated": "机器学习是...",
+        ...     "execution_time": 1.5
+        ... }
+    """
+
+    external_corpus: Optional[List[Union[str, Dict[str, Any]]]]  # 外部文档
+    references: Optional[List[str]]  # 引用列表
+    generated: Optional[str]  # 生成的答案
+    refined_docs: Optional[List[str]]  # 精炼后的文档
+    reranked: Optional[bool]  # 是否经过重排序
+    prompt: Optional[str]  # 使用的提示词
+    refine_metrics: Optional[Dict[str, Any]]  # 精炼指标
+    generate_time: Optional[float]  # 生成耗时
+
+
+class RAGResponse(BaseQueryResult, total=False):
+    """
+    RAG 响应结构 - RAG 算子的标准输出格式
+    
+    所有 RAG 算子都应该返回这个格式（或其父类型 BaseQueryResult）。
+    这确保了 RAG pipeline 各阶段的数据流一致性。
+    
+    继承的必需字段：
+        query: 原始查询
+        results: 处理后的结果列表
+    
+    推荐 RAG 专用字段：
+        generated: 最终生成的答案（Generator 输出）
+        context: 使用的上下文（字符串或列表）
+        execution_time: 执行时间
+        metadata: 各阶段的元数据
+    
+    示例：
+        >>> response: RAGResponse = {
+        ...     "query": "什么是机器学习",
+        ...     "results": ["doc1", "doc2"],
+        ...     "generated": "机器学习是...",
+        ...     "execution_time": 1.5
+        ... }
+    """
+
+    generated: Optional[str]  # 生成的答案
+    context: Optional[Union[str, List[str]]]  # 上下文
+    execution_time: Optional[float]  # 执行时间
     metadata: Optional[Dict[str, Any]]  # 元数据
 
 
-class RAGQuery(TypedDict, total=False):
-    """RAG 查询标准格式"""
-    query: str  # 查询文本（必需）
-    results: List[Any]  # 检索/处理结果
-    context: Optional[List[str]]  # 上下文
-    external_corpus: Optional[str]  # 外部语料
-    references: Optional[List[str]]  # 参考答案
-    generated: Optional[str]  # 生成的回答
-    refined_docs: Optional[List[str]]  # 精炼后的文档
-    prompt: Optional[Any]  # 提示词
-    refine_metrics: Optional[Dict[str, Any]]  # 精炼指标
-    generate_time: Optional[float]  # 生成时间
+# ============================================================================
+# 类型别名 - RAG 专用的灵活输入输出
+# ============================================================================
+
+# RAG 算子的输入可以是多种格式（向后兼容）
+RAGInput = Union[
+    RAGQuery,
+    RAGResponse,
+    QueryResultInput,  # 包含 dict, tuple, list 等
+]
+
+# RAG 算子的输出应该是标准格式
+RAGOutput = Union[RAGResponse, Dict[str, Any]]
 
 
-class RAGResponse(TypedDict):
-    """RAG 响应标准格式（最小必需字段）"""
-    query: str  # 原始查询
-    results: List[Any]  # 处理结果（文档列表、生成结果等）
+# ============================================================================
+# 辅助函数 - RAG 专用包装器
+# ============================================================================
 
 
-# 类型别名，用于更清晰的类型注解
-RAGInput = RAGQuery | RAGResponse | Dict[str, Any] | tuple[str, List[Any]] | list
-RAGOutput = RAGResponse | Dict[str, Any]
-
-
-def ensure_rag_response(data: Any, default_query: str = "") -> RAGResponse:
+def ensure_rag_response(data: RAGInput, default_query: str = "") -> RAGResponse:
     """
-    确保数据符合 RAGResponse 格式
+    确保数据符合 RAGResponse 格式（RAG 专用）
+    
+    这是 sage.common.core.data_types.ensure_query_result() 的 RAG 专用版本。
     
     Args:
-        data: 输入数据，可以是各种格式
-        default_query: 当无法提取 query 时的默认值
-        
+        data: 输入数据（可以是字典、元组、列表等）
+        default_query: 当无法提取查询时使用的默认值
+    
     Returns:
-        RAGResponse: 标准化的响应格式
+        RAGResponse: 标准化的 RAG 响应
+    
+    示例：
+        >>> ensure_rag_response(("query", ["a", "b"]))
+        {'query': 'query', 'results': ['a', 'b']}
+        
+        >>> ensure_rag_response({"question": "...", "docs": [...]})
+        {'query': '...', 'results': [...]}
     """
+    # 使用基础函数，然后转换为 RAGResponse
+    from sage.common.core.data_types import ensure_query_result
+
+    base_result = ensure_query_result(data, default_query)
+    rag_response: RAGResponse = {"query": base_result["query"], "results": base_result["results"]}
+    
+    # 如果是字典，保留额外的 RAG 字段
     if isinstance(data, dict):
-        return {
-            "query": data.get("query", default_query),
-            "results": data.get("results", [])
-        }
-    elif isinstance(data, (tuple, list)) and len(data) >= 2:
-        return {
-            "query": str(data[0]) if data[0] is not None else default_query,
-            "results": data[1] if isinstance(data[1], list) else [data[1]]
-        }
-    else:
-        return {
-            "query": default_query,
-            "results": []
-        }
+        for key in ["generated", "context", "execution_time", "metadata", "refine_metrics", "generate_time"]:
+            if key in data:
+                rag_response[key] = data[key]  # type: ignore
+    
+    return rag_response
 
 
-def extract_query(data: Any) -> str:
-    """从各种数据格式中提取查询文本"""
-    if isinstance(data, dict):
-        return data.get("query", "")
-    elif isinstance(data, (tuple, list)) and len(data) >= 1:
-        return str(data[0]) if data[0] is not None else ""
-    else:
-        return str(data)
-
-
-def extract_results(data: Any) -> List[Any]:
-    """从各种数据格式中提取结果列表"""
-    if isinstance(data, dict):
-        return data.get("results", [])
-    elif isinstance(data, (tuple, list)) and len(data) >= 2:
-        results = data[1]
-        return results if isinstance(results, list) else [results]
-    else:
-        return []
-
-
-def create_rag_response(query: str, results: List[Any], **kwargs) -> RAGResponse:
+def extract_query(data: RAGInput, default: str = "") -> str:
     """
-    创建标准的 RAG 响应
+    从任意格式中提取查询字符串（RAG 专用）
+    
+    直接使用基础函数，完全兼容。
     
     Args:
-        query: 查询文本
+        data: 输入数据
+        default: 默认值
+    
+    Returns:
+        str: 提取的查询字符串
+    
+    示例：
+        >>> extract_query({"query": "test"})
+        'test'
+        
+        >>> extract_query(("my query", ["results"]))
+        'my query'
+    """
+    return base_extract_query(data, default)
+
+
+def extract_results(data: RAGInput, default: Optional[List[Any]] = None) -> List[Any]:
+    """
+    从任意格式中提取结果列表（RAG 专用）
+    
+    直接使用基础函数，完全兼容。
+    
+    Args:
+        data: 输入数据
+        default: 默认值
+    
+    Returns:
+        List[Any]: 提取的结果列表
+    
+    示例:
+        >>> extract_results({"query": "test", "results": ["a", "b"]})
+        ['a', 'b']
+        
+        >>> extract_results(("query", ["a", "b"]))
+        ['a', 'b']
+    """
+    return base_extract_results(data, default)
+
+
+def create_rag_response(
+    query: str, results: List[Any], **kwargs
+) -> RAGResponse:
+    """
+    创建标准的 RAGResponse 对象
+    
+    Args:
+        query: 查询字符串
         results: 结果列表
-        **kwargs: 其他可选字段
-        
+        **kwargs: 额外的 RAG 字段（如 generated, execution_time, metadata 等）
+    
     Returns:
-        RAGResponse: 标准响应格式
+        RAGResponse: 标准化的 RAG 响应对象
+    
+    示例:
+        >>> create_rag_response(
+        ...     query="test",
+        ...     results=["a", "b"],
+        ...     generated="answer",
+        ...     execution_time=0.5,
+        ...     metadata={"model": "gpt-4"}
+        ... )
+        {'query': 'test', 'results': ['a', 'b'], 'generated': 'answer', 
+         'execution_time': 0.5, 'metadata': {'model': 'gpt-4'}}
     """
     response: RAGResponse = {
         "query": query,
-        "results": results
+        "results": results,
     }
-    # 添加其他字段
-    response.update(kwargs)  # type: ignore
+
+    # 添加额外的 RAG 字段
+    for key, value in kwargs.items():
+        if value is not None:
+            response[key] = value  # type: ignore
+
     return response
+
+
+# ============================================================================
+# 导出
+# ============================================================================
+
+
+__all__ = [
+    # RAG 专用类型
+    "RAGDocument",
+    "RAGQuery",
+    "RAGResponse",
+    # RAG 类型别名
+    "RAGInput",
+    "RAGOutput",
+    # RAG 辅助函数
+    "ensure_rag_response",
+    "extract_query",
+    "extract_results",
+    "create_rag_response",
+]

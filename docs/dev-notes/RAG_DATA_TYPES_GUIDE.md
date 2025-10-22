@@ -2,107 +2,103 @@
 
 ## 概述
 
-为了解决 SAGE RAG operators 之间数据格式不统一的问题，我们引入了标准化的数据类型系统。
+SAGE 现在提供了一套分层的标准化数据类型系统：
+
+```
+sage.common.core.data_types (通用基础层)
+    ↓ 继承
+sage.middleware.operators.rag.types (RAG 专用层)
+    ↓ 使用
+RAG Operators (Retriever, Reranker, Generator...)
+```
+
+**设计理念**：
+- 通用基础类型在 `sage-common` 中定义，适用于所有类型的算子
+- RAG 专用类型继承基础类型，添加 RAG 特定的字段
+- 其他领域（搜索、多模态等）可以类似地继承基础类型
+
+## 类型继承关系
+
+### 文档类型继承
+
+```python
+BaseDocument (通用)
+    ├── text: str                    # 文档内容
+    ├── id, title, source            # 基础元数据
+    └── score, rank, metadata        # 通用字段
+
+    ↓ 继承
+
+RAGDocument (RAG 专用)
+    ├── 继承所有 BaseDocument 字段
+    └── 新增：
+        ├── relevance_score          # RAG 相关性分数
+        ├── embedding                # 向量嵌入
+        ├── chunk_id                 # 分块ID
+        └── references               # 引用列表
+```
+
+### 查询-结果类型继承
+
+```python
+BaseQueryResult (通用)
+    ├── query: str                   # 查询文本
+    └── results: List[Any]           # 结果列表
+
+    ↓ 继承
+
+ExtendedQueryResult (通用扩展)
+    ├── 继承 BaseQueryResult
+    └── 新增：query_id, timestamp, execution_time, metadata...
+
+    ↓ 继承
+
+RAGQuery / RAGResponse (RAG 专用)
+    ├── 继承 ExtendedQueryResult / BaseQueryResult
+    └── 新增：
+        ├── generated                # 生成的答案
+        ├── context                  # 上下文
+        ├── refined_docs             # 精炼文档
+        └── refine_metrics           # 精炼指标
+```
 
 ## 核心类型
 
-### RAGResponse
-最基本的响应格式，所有算子都应该返回这个格式：
+### 通用基础类型（sage.common.core.data_types）
+
+### 通用基础类型（sage.common.core.data_types）
+
+这些类型可以被任何算子使用，不限于 RAG：
 
 ```python
-from sage.middleware.operators.rag import RAGResponse, create_rag_response
-
-# 标准格式
-response: RAGResponse = {
-    "query": "用户的查询",
-    "results": ["结果1", "结果2", "结果3"]
-}
-
-# 使用辅助函数创建
-response = create_rag_response(
-    query="用户的查询",
-    results=["结果1", "结果2"],
-    # 可选的额外字段
-    generated="生成的答案",
-    refine_metrics={"compression_rate": 0.5}
+from sage.common.core.data_types import (
+    BaseDocument,         # 基础文档结构
+    BaseQueryResult,      # 基础查询-结果对
+    ExtendedQueryResult,  # 扩展查询-结果对
+    # 辅助函数
+    extract_query,
+    extract_results,
+    create_query_result,
 )
-```
 
-### RAGInput
-灵活的输入类型，支持多种格式：
+# 基础查询-结果对
+result: BaseQueryResult = {
+    "query": "用户查询",
+    "results": ["结果1", "结果2"]
+}
 
-```python
-from sage.middleware.operators.rag import RAGInput
-
-# 支持的输入格式：
-# 1. 字典格式（推荐）
-data1: RAGInput = {"query": "问题", "results": ["doc1", "doc2"]}
-
-# 2. 元组格式（兼容旧代码）
-data2: RAGInput = ("问题", ["doc1", "doc2"])
-
-# 3. 列表格式
-data3: RAGInput = ["问题", ["doc1", "doc2"]]
-```
-
-### RAGDocument
-标准化的文档格式：
-
-```python
-from sage.middleware.operators.rag import RAGDocument
-
-doc: RAGDocument = {
-    "text": "文档内容",
-    "title": "文档标题",
-    "relevance_score": 0.95,
-    "metadata": {"source": "wikipedia"}
+# 扩展格式（添加更多字段）
+extended: ExtendedQueryResult = {
+    "query": "用户查询",
+    "results": ["结果1", "结果2"],
+    "execution_time": 0.5,
+    "metadata": {"model": "gpt-4"}
 }
 ```
 
-## 辅助函数
+### RAG 专用类型（sage.middleware.operators.rag.types）
 
-### extract_query()
-从任意格式提取查询文本：
-
-```python
-from sage.middleware.operators.rag import extract_query
-
-# 从字典提取
-query = extract_query({"query": "问题", "results": []})  # "问题"
-
-# 从元组提取
-query = extract_query(("问题", ["doc1"]))  # "问题"
-
-# 从字符串提取
-query = extract_query("直接的问题")  # "直接的问题"
-```
-
-### extract_results()
-从任意格式提取结果列表：
-
-```python
-from sage.middleware.operators.rag import extract_results
-
-# 从字典提取
-results = extract_results({"query": "问题", "results": ["a", "b"]})  # ["a", "b"]
-
-# 从元组提取
-results = extract_results(("问题", ["a", "b"]))  # ["a", "b"]
-```
-
-### ensure_rag_response()
-确保数据符合标准格式：
-
-```python
-from sage.middleware.operators.rag import ensure_rag_response
-
-# 转换各种格式
-response = ensure_rag_response(("query", ["results"]))
-# 结果: {"query": "query", "results": ["results"]}
-
-response = ensure_rag_response({"query": "q", "other_field": "value"})
-# 结果: {"query": "q", "results": []}
-```
+继承通用类型，添加 RAG 特定字段：
 
 ## 在 Operator 中使用
 
