@@ -1,35 +1,30 @@
 """
 流程执行引擎
 
-负责执行由节点组成的工作流
-支持顺序执行、并行执行和条件分支
+⚠️ 架构问题 - 待重构/删除 ⚠️
+=====================================
 
-架构说明：
------------
-当前实现（Phase 1）：
-    - Studio 使用自己的轻量级 FlowEngine
-    - 基于节点（Node）的可视化流程编排
-    - 异步执行，支持依赖解析和并行
-    - 适用于 Web UI 的交互式执行
+当前实现：Studio 有自己的执行引擎
+问题：
+1. 重复实现 - SAGE 已有完整的 DataStream 引擎
+2. 功能缺失 - 缺少容错、分布式、状态管理
+3. 架构割裂 - Studio 与 SAGE 核心脱节
 
-未来改进（Phase 2）：
-    - 集成 sage-kernel 的 DataStream API
-    - 将 Studio Flow 转换为 Kernel Pipeline
-    - 使用统一的执行引擎和调度器
-    - 支持分布式执行和容错
-    
-    实现路径：
-    1. 创建 KernelPipelineAdapter（见 adapters/kernel_adapter.py）
-    2. 将 FlowDefinition 转换为 DataStream pipeline
-    3. 复用 kernel 的 Transformation 和 Operator 系统
-    4. 保持 Studio UI 的用户体验不变
+正确架构：
+Studio (UI) → SAGE DataStream API → SAGE Engine
+    描述           调用                执行
 
-相关模块：
----------
-- sage.kernel.api.datastream: 核心数据流 API
-- sage.kernel.operators: 基础算子（MapOperator, FilterOperator）
-- sage.middleware.operators: 领域算子（RAG, LLM, Tools）
-- sage.studio.adapters.kernel_adapter: Flow 到 Pipeline 的转换适配器
+重构方案：见 docs/dev-notes/STUDIO_ARCHITECTURE_REFACTOR.md
+
+TODO:
+- [ ] 删除 FlowEngine
+- [ ] 创建 VisualPipeline 模型（只描述，不执行）
+- [ ] 创建 SagePipelineBuilder（转换为 SAGE API）
+- [ ] 重构 API 层直接使用 SAGE 执行环境
+
+---
+
+以下是当前的临时实现（将被移除）：
 """
 
 import asyncio
