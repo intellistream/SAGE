@@ -6,14 +6,14 @@
 
 ## 📦 包概览
 
-SAGE 采用分层单体架构（Modular Monolith），由 8 个独立包组成：
+SAGE 采用分层单体架构（Modular Monolith），由 9 个独立包组成：
 
 ```
-L6: sage-studio          # Web 界面管理工具
+L6: sage-studio          # Web UI 可视化接口
+    sage-tools          # CLI 命令行接口
     │
-L5: sage-apps           # 实际应用
-    sage-benchmark      # 基准测试和示例
-    sage-tools          # 开发和 CLI 工具
+L5: sage-apps           # 特定领域应用
+    sage-benchmark      # 性能基准测试
     │
 L4: sage-middleware     # 领域算子和组件
     │
@@ -28,11 +28,11 @@ L1: sage-common         # 基础设施
 ### 层级说明
 
 - **L1 (Foundation)**: 基础设施，所有包都可以依赖
-- **L2 (Infrastructure)**: *预留层级* - 当前无独立包，基础设施已包含在 L1 和 L3 中
+- **L2 (Platform)**: 平台服务（队列、存储、服务抽象）
 - **L3 (Core)**: 核心功能，提供执行引擎和算法库
-- **L4 (Domain)**: 领域特定功能，基于 L1+L3 构建
+- **L4 (Domain)**: 领域特定功能，基于 L1-L3 构建
 - **L5 (Applications)**: 应用层，组合使用下层功能
-- **L6 (Interface)**: 用户界面层
+- **L6 (Interface)**: 用户接口层（Web UI + CLI）
 
 #### 关于 L2 层
 
@@ -209,42 +209,53 @@ from sage.benchmark import benchmark_rag, benchmark_memory
 
 ---
 
-### sage-tools (L5)
-
-**职责**: 开发工具和 CLI
-
-**提供**:
-- `cli`: 命令行接口（`sage` 命令）
-- `dev`: 开发工具（测试、质量检查）
-- `finetune`: 模型微调工具
-- `management`: 系统管理工具
-- `studio`: Studio 相关工具
-- `utils`: 工具函数
-
-**依赖**: `sage-common`, `sage-kernel`, `sage-libs`, `sage-middleware`
-
-**公共 API**:
-```python
-from sage.tools import cli, dev, management
-```
-
----
-
 ### sage-studio (L6)
 
-**职责**: Web 界面管理工具
+**职责**: Web UI 可视化接口
 
 **提供**:
 - `StudioManager`: 主管理器
 - `models`: 数据模型
 - `services`: 服务层
 - `adapters`: Pipeline 适配器
+- `frontend`: 前端资源
 
 **依赖**: `sage-common`, `sage-kernel`, `sage-libs`, `sage-middleware`
 
 **公共 API**:
 ```python
 from sage.studio import StudioManager, models, services, adapters
+```
+
+---
+
+### sage-tools (L6)
+
+**职责**: CLI 命令行接口和开发工具
+
+**提供**:
+- `cli`: 完整命令行界面（`sage` 命令）
+  - `sage studio` - 管理 Web UI
+  - `sage dev` - 开发工具
+  - `sage pipeline` - Pipeline 构建器
+  - `sage llm/embedding` - 服务管理
+  - `sage job/cluster` - 作业和集群管理
+- `dev`: 开发工具套件（测试、质量检查、包管理）
+- `finetune`: 模型微调工具
+- `management`: 系统管理工具
+- `templates`: Pipeline 模板库
+
+**依赖**: `sage-common`, `sage-kernel`, `sage-libs`, `sage-middleware`, `sage-studio`
+
+**为什么在 L6？**
+1. **接口层定位**: 与 sage-studio 一样，sage-tools 是用户与 SAGE 交互的**入口点**
+2. **横向工具**: 为所有下层包（L1-L5）提供开发、测试、管理能力
+3. **系统管理**: 启动/停止服务、管理配置、监控状态
+4. **依赖方向**: 需要依赖 sage-studio（CLI 启动 Web UI）和其他所有包
+
+**公共 API**:
+```python
+from sage.tools import cli, dev, management, templates
 ```
 
 ## 🔗 依赖关系图
@@ -262,9 +273,9 @@ graph TD
     
     apps[sage-apps<br/>L5: 应用]
     benchmark[sage-benchmark<br/>L5: 基准测试]
-    tools[sage-tools<br/>L5: 工具]
     
     studio[sage-studio<br/>L6: Web UI]
+    tools[sage-tools<br/>L6: CLI]
     
     platform --> common
     
@@ -288,15 +299,19 @@ graph TD
     benchmark --> libs
     benchmark --> middleware
     
-    tools --> common
-    tools --> kernel
-    tools --> libs
-    tools --> middleware
-    
     studio --> common
     studio --> kernel
     studio --> libs
     studio --> middleware
+    
+    tools --> common
+    tools --> kernel
+    tools --> libs
+    tools --> middleware
+    tools --> studio
+    
+    style studio fill:#e1f5ff
+    style tools fill:#e1f5ff
 ```
 
 ## 📋 依赖规则
@@ -361,18 +376,18 @@ graph TD
 
 ## 📊 包统计
 
-| 包 | 模块数 | 测试数 | 代码行数 | 依赖数 |
-|---|--------|--------|----------|--------|
-| sage-common | 15+ | 12 | ~15K | 0 |
-| sage-platform | 3 | - | ~1K | 1 |
-| sage-kernel | 20+ | 23 | ~20K | 2 |
-| sage-libs | 25+ | 18 | ~18K | 2 |
-| sage-middleware | 30+ | 20 | ~25K | 4 |
-| sage-apps | 8 | 6 | ~8K | 4 |
-| sage-benchmark | 10+ | 10 | ~12K | 4 |
-| sage-tools | 15+ | 8 | ~10K | 4 |
-| sage-studio | 12+ | 6 | ~8K | 4 |
-| **总计** | **138+** | **103** | **~117K** | - |
+| 包 | 层级 | 模块数 | 测试数 | 代码行数 | 依赖数 |
+|---|------|--------|--------|----------|--------|
+| sage-common | L1 | 15+ | 12 | ~15K | 0 |
+| sage-platform | L2 | 3 | 19 | ~1K | 1 |
+| sage-kernel | L3 | 20+ | 23 | ~20K | 2 |
+| sage-libs | L3 | 25+ | 18 | ~18K | 2 |
+| sage-middleware | L4 | 30+ | 20 | ~25K | 4 |
+| sage-apps | L5 | 8 | 2 | ~8K | 3 |
+| sage-benchmark | L5 | 10+ | 1 | ~12K | 4 |
+| sage-studio | L6 | 12+ | 51 | ~8K | 4 |
+| sage-tools | L6 | 15+ | 14 | ~10K | 5 |
+| **总计** | - | **138+** | **160** | **~117K** | - |
 
 ## 🔄 重构历史
 
@@ -402,37 +417,31 @@ graph TD
 
 **审查范围**: sage-studio (L6), sage-apps/benchmark/tools (L5)
 
-**发现的问题**:
+**已解决的问题**:
 
-1. **L2 层缺失** ⚠️
-   - **Queue Descriptor** 抽象（当前在 `sage-kernel/runtime/communication/queue_descriptor/`）
-     - 提供 Python Queue、Ray Queue、RPC Queue 的统一抽象
-     - 是通用的基础设施，不是 SAGE 执行引擎特有的逻辑
-     - **应该移动到新的 L2 (Platform) 层**
-   
-   - **KV Backend** 抽象（当前在 `sage-middleware/components/sage_mem/neuromem/storage_engine/kv_backend/`）
-     - 提供 Key-Value 存储的统一接口
-     - Dict、Redis、RocksDB 等后端实现
-     - **应该移动到新的 L2 (Platform) 层**
+1. **L2 层缺失** ✅ (已解决)
+   - **Queue Descriptor** - 已迁移到 `sage-platform/queue`
+   - **KV Backend** - 已迁移到 `sage-platform/storage`
+   - **BaseService** - 已迁移到 `sage-platform/service`
 
-2. **跨层依赖问题** ⚠️
-   - **sage-common → sage-kernel** (L1 → L3 违规)
-     - `sage.common.components.sage_embedding.service` 依赖 `sage.kernel.api.service.base_service`
-     - `sage.common.components.sage_vllm.service` 依赖 `sage.kernel.api.service.base_service`
-     - **问题**: L1 不应该依赖任何上层包
-     - **原因**: BaseService 应该是基础接口，但当前在 kernel
-   
-   - **sage-libs → sage-kernel** (L3 → L3，但耦合度高)
-     - sage-libs 的多个模块依赖 sage-kernel 的 Function API
-     - 当前设计合理（libs 需要 kernel 的算子基类）
-     - 但未来可考虑将 Function API 抽象下沉到更低层
+2. **跨层依赖问题** ✅ (已解决)
+   - **sage-common → sage-kernel** (L1 → L3 违规) - 已通过 L2 层解决
+   - BaseService 现在位于 sage-platform (L2)，依赖链正确: L1 → L2 → L3
 
 3. **代码位置问题** ✅ (已修复)
-   - **sage-tools**: TestFailureCache 在 tests/ 目录（已移动到 src/）
-   
-4. **测试覆盖不足** ⚠️
-   - **sage-benchmark**: 仅 1 个测试文件（test_hg.py - HuggingFace 连接测试）
-   - 缺少实际的 benchmark 功能测试
+   - **sage-tools**: TestFailureCache 已移动到 src/
+   - **sage-tools 层级**: 已提升到 L6（接口层）
+
+4. **包依赖优化** ✅ (已修复)
+   - **sage-tools**: 移除了对 sage-apps 和 sage-benchmark 的不必要依赖
+   - sage-tools 现在只依赖真正需要的包：common, kernel, libs, middleware, studio
+
+**当前待改进**:
+
+1. **测试覆盖不足** ⚠️
+   - **sage-benchmark**: 仅 1 个测试文件（test_hg.py）
+   - **sage-apps**: 仅 2 个测试文件
+   - 需要添加更完整的功能测试
 
 **建议的重构方案**:
 

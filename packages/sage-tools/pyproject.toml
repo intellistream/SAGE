@@ -32,15 +32,15 @@ classifiers = [
 ]
 license = {text = "MIT"}
 
-# 核心依赖 - 作为开发工具包，依赖所有SAGE子包
+# 核心依赖 - 作为开发工具包，只依赖真正需要的SAGE子包
 dependencies = [
     # SAGE framework dependencies - 按依赖层次顺序
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-libs>=0.1.0",
-    "isage-apps>=0.1.0",
-    "isage-benchmark>=0.1.0",
+    # sage-tools 只在 CLI 中需要 sage-studio，不需要依赖 apps 和 benchmark
+    # 这些包应该根据用户需要独立安装
     "isage-studio>=0.1.0",
     # 注意：不依赖 isage 元包以避免循环引用
 
