@@ -19,12 +19,14 @@ import pytest
 # 添加正确的项目路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sage_kernel_src = os.path.join(current_dir, "../../../../../src")
+sage_kernel_tests = os.path.join(current_dir, "../../../../..")
 sys.path.insert(0, os.path.abspath(sage_kernel_src))
+sys.path.insert(0, os.path.abspath(sage_kernel_tests))
 
 try:
     from sage.platform.queue import RayQueueDescriptor
     from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
-    from sage.kernel.utils.test_log_manager import (
+    from unit.utils.test_log_manager import (
         get_test_log_manager,
         setup_quiet_ray_logging,
     )
