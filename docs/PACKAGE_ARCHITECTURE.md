@@ -20,6 +20,8 @@ L4: sage-middleware     # 领域算子和组件
 L3: sage-kernel         # 流式执行引擎
     sage-libs           # 算法库和 Agents 框架
     │
+L2: sage-platform       # 平台服务层
+    │
 L1: sage-common         # 基础设施
 ```
 
@@ -34,41 +36,34 @@ L1: sage-common         # 基础设施
 
 #### 关于 L2 层
 
-⚠️ **重要发现**: 通过 2025-01 架构审查，我们发现 SAGE **需要 L2 (Platform) 层**。
+✅ **已完成**: 通过 2025-01 架构审查和重构，成功创建了 **sage-platform (L2) 层**。
 
-**当前状态**: L2 层缺失，导致基础设施组件错误地分布在 L3/L4：
-1. **Queue Descriptor** (消息队列抽象) - 当前在 sage-kernel (L3)
+**重构成果** (commit 1da88c0a - 2025-01-22):
+1. **Queue Descriptor** - 从 sage-kernel (L3) 迁移到 sage-platform/queue
    - 提供 Python/Ray/RPC 队列的统一接口
-   - 是通用基础设施，不是 SAGE 执行引擎特有逻辑
+   - 通用基础设施，支持多种分布式场景
    
-2. **KV Backend** (KV存储抽象) - 当前在 sage-middleware (L4)
+2. **KV Backend** - 从 sage-middleware (L4) 迁移到 sage-platform/storage
    - 提供 Dict/Redis/RocksDB 的统一接口
-   - 是通用存储抽象，不是领域特定逻辑
+   - 通用存储抽象，支持灵活的后端替换
 
-3. **BaseService** (服务基类) - 当前在 sage-kernel (L3)
-   - 导致 sage-common (L1) 反向依赖 sage-kernel (L3)
+3. **BaseService** - 从 sage-kernel (L3) 迁移到 sage-platform/service
+   - 解决了 sage-common (L1) → sage-kernel (L3) 的依赖违规
+   - 服务基类现在位于正确的平台层
 
-**为什么需要 L2**:
-1. **架构正确性**: 基础设施抽象应该在独立的平台层，而非混在核心引擎中
-2. **依赖清晰**: Queue/Storage 抽象应该被 L3 依赖，而不是作为 L3 的一部分
-3. **可复用性**: 平台服务可以被多个上层组件复用（kernel, middleware, apps）
-4. **可扩展性**: 便于添加新的队列/存储后端，无需修改核心引擎
+**L2 层的价值**:
+1. ✅ **架构正确性**: 基础设施抽象独立于核心引擎
+2. ✅ **依赖清晰**: L1 → L2 → L3 的单向依赖链
+3. ✅ **可复用性**: 平台服务被多个上层组件复用
+4. ✅ **可扩展性**: 易于添加新的队列/存储后端
 
-**计划重构**（待执行）:
-```
-创建 sage-platform (L2) 包：
-  - queue/: Queue Descriptor 抽象
-  - storage/: KV Backend 抽象  
-  - service/: Service 基类
-```
-
-**更新后的职责分布**:
-- **sage-common (L1)**: 纯粹的工具函数、配置、日志（无业务依赖）
-- **sage-platform (L2)**: 平台服务抽象（队列、存储、服务基类）
+**当前职责分布**:
+- **sage-common (L1)**: 工具函数、配置、日志（无业务依赖）
+- **sage-platform (L2)**: 平台服务（队列、存储、服务基类）✨ 新增
 - **sage-kernel (L3)**: 流式执行引擎（依赖 L2 的队列抽象）
 - **sage-middleware (L4)**: 领域组件（依赖 L2 的存储抽象）
 
-详见: [L2_LAYER_ANALYSIS.md](./dev-notes/L2_LAYER_ANALYSIS.md) 和本文档的"重构历史"章节。
+详见: [L2_LAYER_ANALYSIS.md](./dev-notes/L2_LAYER_ANALYSIS.md), [TOP_LAYER_REVIEW_2025.md](./dev-notes/TOP_LAYER_REVIEW_2025.md)
 
 ## 🔍 包详细说明
 
@@ -90,6 +85,26 @@ L1: sage-common         # 基础设施
 from sage.common import core, components, config, utils, model_registry
 from sage.common.core import Parameter, Record, WindowedRecord
 from sage.common.components import sage_vllm, sage_embedding
+```
+
+---
+
+### sage-platform (L2)
+
+**职责**: 平台服务抽象
+
+**提供**:
+- `queue`: 消息队列抽象（Python, Ray, RPC）
+- `storage`: KV 存储后端接口
+- `service`: 服务基类
+
+**依赖**: `sage-common`
+
+**公共 API**:
+```python
+from sage.platform.queue import BaseQueueDescriptor, RayQueueDescriptor
+from sage.platform.storage import BaseKVBackend, DictKVBackend
+from sage.platform.service import BaseService
 ```
 
 ---
@@ -238,6 +253,8 @@ from sage.studio import StudioManager, models, services, adapters
 graph TD
     common[sage-common<br/>L1: 基础设施]
     
+    platform[sage-platform<br/>L2: 平台服务]
+    
     kernel[sage-kernel<br/>L3: 执行引擎]
     libs[sage-libs<br/>L3: 算法库]
     
@@ -249,11 +266,15 @@ graph TD
     
     studio[sage-studio<br/>L6: Web UI]
     
+    platform --> common
+    
     kernel --> common
+    kernel --> platform
     libs --> common
     libs --> kernel
     
     middleware --> common
+    middleware --> platform
     middleware --> kernel
     middleware --> libs
     
@@ -283,10 +304,11 @@ graph TD
 ### ✅ 允许的依赖
 
 1. **向下依赖**: 高层可以依赖低层
-   - L6 → L5, L4, L3, L1
-   - L5 → L4, L3, L1
-   - L4 → L3, L1
-   - L3 → L1
+   - L6 → L5, L4, L3, L2, L1
+   - L5 → L4, L3, L2, L1
+   - L4 → L3, L2, L1
+   - L3 → L2, L1
+   - L2 → L1
 
 2. **同层独立**: 同层包之间相互独立
    - kernel 和 libs 独立（都是 L3）
@@ -296,6 +318,7 @@ graph TD
 
 1. **向上依赖**: 低层不能依赖高层
    - common ❌→ 任何其他包
+   - platform ❌→ kernel, libs, middleware, apps, tools, studio
    - kernel/libs ❌→ middleware, apps, tools, studio
    - middleware ❌→ apps, benchmark, tools, studio
 
@@ -303,7 +326,7 @@ graph TD
    - 如果 A → B，则 B ❌→ A
 
 3. **跨层依赖**: 避免跨层直接依赖
-   - L6 不应该绕过 L5 直接使用 L3 的实现细节
+   - 尽量依赖相邻层，避免跨多层依赖
 
 ## 🏗️ 设计原则
 
@@ -341,14 +364,15 @@ graph TD
 | 包 | 模块数 | 测试数 | 代码行数 | 依赖数 |
 |---|--------|--------|----------|--------|
 | sage-common | 15+ | 12 | ~15K | 0 |
-| sage-kernel | 20+ | 23 | ~20K | 1 |
+| sage-platform | 3 | - | ~1K | 1 |
+| sage-kernel | 20+ | 23 | ~20K | 2 |
 | sage-libs | 25+ | 18 | ~18K | 2 |
-| sage-middleware | 30+ | 20 | ~25K | 3 |
+| sage-middleware | 30+ | 20 | ~25K | 4 |
 | sage-apps | 8 | 6 | ~8K | 4 |
 | sage-benchmark | 10+ | 10 | ~12K | 4 |
 | sage-tools | 15+ | 8 | ~10K | 4 |
 | sage-studio | 12+ | 6 | ~8K | 4 |
-| **总计** | **135+** | **103** | **~116K** | - |
+| **总计** | **138+** | **103** | **~117K** | - |
 
 ## 🔄 重构历史
 
@@ -446,9 +470,16 @@ L6 (sage-studio)       - 接口层
 
 **状态**: 
 - ✅ 审查完成
-- ⏳ 重构待执行（等待审查完成后统一重构）
+- ✅ 重构完成 (commit 1da88c0a - 2025-01-22)
 
-参见: [L2_LAYER_ANALYSIS.md](./dev-notes/L2_LAYER_ANALYSIS.md)
+**重构成果**:
+- 创建 sage-platform (L2) 包
+- 迁移 Queue Descriptor, KV Backend, BaseService 到 L2
+- 更新 60+ 个文件的导入路径
+- 修复 L1→L3 依赖违规
+- 所有测试通过
+
+参见: [L2_LAYER_ANALYSIS.md](./dev-notes/L2_LAYER_ANALYSIS.md), [TOP_LAYER_REVIEW_2025.md](./dev-notes/TOP_LAYER_REVIEW_2025.md)
 
 ## 🚀 使用指南
 
