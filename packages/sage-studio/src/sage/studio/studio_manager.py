@@ -24,13 +24,10 @@ class StudioManager:
 
     def __init__(self):
         # studio_manager.py 在 packages/sage-studio/src/sage/studio/
-        # 需要向上4层到达 packages/sage-studio/ 目录
+        # frontend 现在在 packages/sage-studio/src/sage/studio/frontend/
         # __file__ -> studio_manager.py
         # .parent -> studio/
-        # .parent -> sage/
-        # .parent -> src/
-        # .parent -> sage-studio/
-        self.studio_package_dir = Path(__file__).parent.parent.parent.parent
+        self.studio_package_dir = Path(__file__).parent
         self.frontend_dir = self.studio_package_dir / "frontend"
         self.backend_dir = Path(__file__).parent / "config" / "backend"
 

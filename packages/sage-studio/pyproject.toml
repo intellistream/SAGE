@@ -108,6 +108,7 @@ where = ["src"]
     "config/**/*",
     "data/**/*",
     "docs/**/*",
+    "frontend/**/*",
 ]
 
 # Development tools configuration
