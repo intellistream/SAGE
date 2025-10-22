@@ -12,7 +12,6 @@
   ],
   "ignore": [
     "**/.*",
-    "**/test_ray_*.py"
   ],
   "defineConstant": {
     "DEBUG": true
@@ -35,10 +34,25 @@
       "extraPaths": []
     },
     {
+      "root": "packages/sage-common/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src"
+      ]
+    },
+    {
       "root": "packages/sage-platform/src",
       "pythonVersion": "3.11",
       "extraPaths": [
         "packages/sage-common/src"
+      ]
+    },
+    {
+      "root": "packages/sage-platform/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src",
+        "packages/sage-platform/src"
       ]
     },
     {
@@ -47,6 +61,15 @@
       "extraPaths": [
         "packages/sage-common/src",
         "packages/sage-platform/src"
+      ]
+    },
+    {
+      "root": "packages/sage-kernel/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src",
+        "packages/sage-platform/src",
+        "packages/sage-kernel/src"
       ]
     },
     {
@@ -59,6 +82,16 @@
       ]
     },
     {
+      "root": "packages/sage-libs/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src",
+        "packages/sage-platform/src",
+        "packages/sage-kernel/src",
+        "packages/sage-libs/src"
+      ]
+    },
+    {
       "root": "packages/sage-middleware/src",
       "pythonVersion": "3.11",
       "extraPaths": [
@@ -66,6 +99,17 @@
         "packages/sage-platform/src",
         "packages/sage-kernel/src",
         "packages/sage-libs/src"
+      ]
+    },
+    {
+      "root": "packages/sage-middleware/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src",
+        "packages/sage-platform/src",
+        "packages/sage-kernel/src",
+        "packages/sage-libs/src",
+        "packages/sage-middleware/src"
       ]
     },
     {
@@ -80,6 +124,18 @@
       ]
     },
     {
+      "root": "packages/sage-apps/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src",
+        "packages/sage-platform/src",
+        "packages/sage-kernel/src",
+        "packages/sage-libs/src",
+        "packages/sage-middleware/src",
+        "packages/sage-apps/src"
+      ]
+    },
+    {
       "root": "packages/sage-benchmark/src",
       "pythonVersion": "3.11",
       "extraPaths": [
@@ -88,6 +144,18 @@
         "packages/sage-kernel/src",
         "packages/sage-libs/src",
         "packages/sage-middleware/src"
+      ]
+    },
+    {
+      "root": "packages/sage-benchmark/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src",
+        "packages/sage-platform/src",
+        "packages/sage-kernel/src",
+        "packages/sage-libs/src",
+        "packages/sage-middleware/src",
+        "packages/sage-benchmark/src"
       ]
     },
     {
@@ -102,6 +170,18 @@
       ]
     },
     {
+      "root": "packages/sage-studio/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src",
+        "packages/sage-platform/src",
+        "packages/sage-kernel/src",
+        "packages/sage-libs/src",
+        "packages/sage-middleware/src",
+        "packages/sage-studio/src"
+      ]
+    },
+    {
       "root": "packages/sage-tools/src",
       "pythonVersion": "3.11",
       "extraPaths": [
@@ -111,6 +191,19 @@
         "packages/sage-libs/src",
         "packages/sage-middleware/src",
         "packages/sage-studio/src"
+      ]
+    },
+    {
+      "root": "packages/sage-tools/tests",
+      "pythonVersion": "3.11",
+      "extraPaths": [
+        "packages/sage-common/src",
+        "packages/sage-platform/src",
+        "packages/sage-kernel/src",
+        "packages/sage-libs/src",
+        "packages/sage-middleware/src",
+        "packages/sage-studio/src",
+        "packages/sage-tools/src"
       ]
     }
   ]
