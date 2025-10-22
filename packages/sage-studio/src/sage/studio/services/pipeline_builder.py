@@ -17,8 +17,16 @@ Pipeline Builder - 将 Studio 可视化模型转换为 SAGE Pipeline
 from typing import Any, Dict, List, Optional, Set
 from collections import defaultdict, deque
 
+# 从 SAGE 公共 API 导入（参考 PACKAGE_ARCHITECTURE.md）
+from sage.kernel.api import LocalEnvironment
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.libs.io_utils.source import (
+    FileSource, JSONFileSource, CSVFileSource, TextFileSource,
+    SocketSource, KafkaSource, DatabaseSource, APISource
+)
+from sage.libs.io_utils.sink import (
+    TerminalSink, PrintSink, FileSink, MemWriteSink, RetriveSink
+)
 
 from ..models import VisualPipeline, VisualNode, VisualConnection
 from .node_registry import get_node_registry
@@ -165,42 +173,113 @@ class PipelineBuilder:
     
     def _create_source(self, node: VisualNode, pipeline: VisualPipeline):
         """
-        创建数据源
+        根据节点类型和配置创建合适的数据源
         
         Returns:
             tuple: (source_class, args, kwargs)
         
-        TODO: 根据节点类型和配置创建合适的 Source
+        支持的源类型：
+        - file: FileSource (文件路径)
+        - json_file: JSONFileSource (JSON 文件)
+        - csv_file: CSVFileSource (CSV 文件)
+        - text_file: TextFileSource (文本文件)
+        - socket: SocketSource (网络 socket)
+        - kafka: KafkaSource (Kafka topic)
+        - database: DatabaseSource (数据库查询)
+        - api: APISource (HTTP API)
+        - memory/data: 内存数据源（用于测试）
         """
         from sage.kernel.api.function.source_function import SourceFunction
         
-        # 简单实现：创建一个内存数据源类
-        class SimpleListSource(SourceFunction):
-            """Simple in-memory list source for testing"""
-            def __init__(self, data):
-                super().__init__()
-                self.data = data
-                self.index = 0
-            
-            def execute(self, context):
-                """Execute the source function"""
-                for item in self.data:
-                    context.collect(item)
+        source_type = node.config.get("source_type", "memory")
         
-        initial_data = node.config.get("data", [{"input": "test"}])
-        return SimpleListSource, (initial_data,), {}
+        # 文件源
+        if source_type == "file":
+            file_path = node.config.get("file_path", node.config.get("path"))
+            return FileSource, (file_path,), {}
+        
+        elif source_type == "json_file":
+            file_path = node.config.get("file_path", node.config.get("path"))
+            return JSONFileSource, (file_path,), {}
+        
+        elif source_type == "csv_file":
+            file_path = node.config.get("file_path", node.config.get("path"))
+            delimiter = node.config.get("delimiter", ",")
+            return CSVFileSource, (file_path, delimiter), {}
+        
+        elif source_type == "text_file":
+            file_path = node.config.get("file_path", node.config.get("path"))
+            return TextFileSource, (file_path,), {}
+        
+        # 网络源
+        elif source_type == "socket":
+            host = node.config.get("host", "localhost")
+            port = node.config.get("port", 9999)
+            return SocketSource, (host, port), {}
+        
+        elif source_type == "kafka":
+            topic = node.config.get("topic")
+            bootstrap_servers = node.config.get("bootstrap_servers", "localhost:9092")
+            return KafkaSource, (topic, bootstrap_servers), {}
+        
+        # 数据库源
+        elif source_type == "database":
+            query = node.config.get("query")
+            connection_string = node.config.get("connection_string")
+            return DatabaseSource, (query, connection_string), {}
+        
+        # API 源
+        elif source_type == "api":
+            url = node.config.get("url")
+            method = node.config.get("method", "GET")
+            return APISource, (url, method), {}
+        
+        # 内存数据源（默认，用于测试）
+        else:
+            class SimpleListSource(SourceFunction):
+                """Simple in-memory list source for testing and development"""
+                def __init__(self, data):
+                    super().__init__()
+                    self.data = data if isinstance(data, list) else [data]
+                
+                def execute(self, context):
+                    """Execute the source function"""
+                    for item in self.data:
+                        context.collect(item)
+            
+            initial_data = node.config.get("data", [{"input": "test data"}])
+            return SimpleListSource, (initial_data,), {}
     
     def _create_sink(self, pipeline: VisualPipeline):
         """
-        创建数据接收器
+        根据 Pipeline 配置创建合适的数据接收器
         
         Returns:
             Type: Sink class (not instance)
         
-        TODO: 根据 Pipeline 配置创建合适的 Sink
+        支持的接收器类型：
+        - terminal: TerminalSink (终端输出，带颜色)
+        - print: PrintSink (简单打印)
+        - file: FileSink (文件输出)
+        - memory: MemWriteSink (内存写入，用于测试)
+        - retrieve: RetriveSink (收集结果)
         """
-        from sage.libs.io_utils.sink import PrintSink
-        return PrintSink
+        
+        # 从 pipeline 的 execution_mode 或其他配置中获取 sink 类型
+        # 注意：VisualPipeline 可能没有直接的 sink 配置，这里使用默认值
+        sink_type = getattr(pipeline, "sink_type", "print")
+        
+        if sink_type == "terminal":
+            return TerminalSink
+        elif sink_type == "file":
+            return FileSink
+        elif sink_type == "memory":
+            return MemWriteSink
+        elif sink_type == "retrieve":
+            return RetriveSink
+        else:
+            # 默认使用 PrintSink
+            return PrintSink
 
 
 # 全局 Builder 实例
