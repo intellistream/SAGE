@@ -10,7 +10,7 @@ SAGE Function适配器
 from typing import Any, Dict, List, Optional, Union
 
 try:
-    from sage.core.api.function.map_function import MapFunction
+    from sage.kernel.api.function.map_function import MapFunction
 
     SAGE_CORE_AVAILABLE = True
 except ImportError:

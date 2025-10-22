@@ -70,7 +70,7 @@ def _register_all_methods():
 
     # Mock Embedder - 轻量级，直接导入
     EmbeddingRegistry.register(
-        method="mock_embedder",
+        method="mockembedder",
         display_name="Mock Embedder",
         description="随机 embedding（单元测试用）",
         wrapper_class=MockEmbedding,

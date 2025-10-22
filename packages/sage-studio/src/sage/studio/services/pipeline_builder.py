@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Set, Type
 from collections import defaultdict, deque
 
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.kernel.api.local_environment import LocalStreamEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.operators import MapOperator
 from sage.middleware.operators.rag import (
     OpenAIGenerator,
@@ -93,7 +93,7 @@ class PipelineBuilder:
         sorted_nodes = self._topological_sort(pipeline)
         
         # 3. 创建执行环境
-        env = LocalStreamEnvironment()
+        env = LocalEnvironment()
         
         # 4. 构建 DataStream Pipeline
         stream = None
