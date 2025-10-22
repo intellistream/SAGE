@@ -17,7 +17,7 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.function.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.rag.promptor import QAPromptor
+from sage.middleware.operators.rag import QAPromptor
 
 # Ensure repository packages are importable when running the script directly
 REPO_ROOT = Path(__file__).resolve().parents[1]

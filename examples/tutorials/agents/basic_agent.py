@@ -11,7 +11,7 @@ from sage.libs.agents.action.mcp_registry import MCPRegistry
 from sage.libs.agents.planning.llm_planner import LLMPlanner
 from sage.libs.agents.profile.profile import BaseProfile
 from sage.libs.agents.runtime.agent import AgentRuntime
-from sage.libs.rag.generator import OpenAIGenerator
+from sage.middleware.operators.rag import OpenAIGenerator
 from sage.tools.utils.env import (
     get_api_key,
     load_environment_file,

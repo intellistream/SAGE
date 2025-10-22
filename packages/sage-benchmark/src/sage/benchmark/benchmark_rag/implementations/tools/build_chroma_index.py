@@ -9,7 +9,7 @@ import os
 import sys
 
 import chromadb
-from sage.libs.rag.chunk import CharacterSplitter
+from sage.middleware.operators.rag import CharacterSplitter
 from sage.libs.rag.document_loaders import LoaderFactory
 
 

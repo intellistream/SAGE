@@ -5,9 +5,9 @@ from sage.common.utils.config.loader import load_config
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.batch import JSONLBatch
 from sage.libs.io_utils.sink import TerminalSink
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.retriever import MilvusDenseRetriever
+from sage.middleware.operators.rag import OpenAIGenerator
+from sage.middleware.operators.rag import QAPromptor
+from sage.middleware.operators.rag import MilvusDenseRetriever
 
 
 def load_config(path):

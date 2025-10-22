@@ -4,9 +4,9 @@ from sage.common.utils.config.loader import load_config
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.batch import JSONLBatch
 from sage.libs.io_utils.sink import TerminalSink
-from sage.libs.rag.generator import HFGenerator
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.retriever import ChromaRetriever
+from sage.middleware.operators.rag import HFGenerator
+from sage.middleware.operators.rag import QAPromptor
+from sage.middleware.operators.rag import ChromaRetriever
 
 
 def pipeline_run(config: dict) -> None:

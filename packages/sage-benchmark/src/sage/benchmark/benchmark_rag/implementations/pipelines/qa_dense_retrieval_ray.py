@@ -15,10 +15,10 @@ from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.libs.io_utils.sink import FileSink
 from sage.libs.io_utils.source import FileSource
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
+from sage.middleware.operators.rag import OpenAIGenerator
+from sage.middleware.operators.rag import QAPromptor
 
-# from sage.libs.rag.retriever import DenseRetriever  # 这个类不存在
+# from sage.middleware.operators.rag import DenseRetriever  # 这个类不存在
 
 
 class SafeBiologyRetriever(MapFunction):

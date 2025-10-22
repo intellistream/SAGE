@@ -29,8 +29,8 @@ try:  # pragma: no cover - allow running directly from source tree
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
     from sage.kernel.runtime.communication.router.packet import StopSignal
-    from sage.libs.rag.generator import HFGenerator, OpenAIGenerator
-    from sage.libs.rag.promptor import QAPromptor
+    from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator
+    from sage.middleware.operators.rag import QAPromptor
 except ModuleNotFoundError:  # pragma: no cover - local convenience path
     here = Path(__file__).resolve()
     repo_root: Optional[Path] = None
@@ -59,8 +59,8 @@ except ModuleNotFoundError:  # pragma: no cover - local convenience path
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
     from sage.kernel.runtime.communication.router.packet import StopSignal
-    from sage.libs.rag.generator import HFGenerator, OpenAIGenerator
-    from sage.libs.rag.promptor import QAPromptor
+    from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator
+    from sage.middleware.operators.rag import QAPromptor
 
 from pipeline_bridge import PipelineBridge
 

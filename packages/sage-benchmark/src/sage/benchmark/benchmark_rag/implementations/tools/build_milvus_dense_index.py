@@ -3,9 +3,9 @@ import sys
 
 import yaml
 from sage.common.utils.config.loader import load_config
-from sage.libs.rag.chunk import CharacterSplitter
+from sage.middleware.operators.rag import CharacterSplitter
 from sage.libs.rag.document_loaders import LoaderFactory
-from sage.libs.rag.milvusRetriever import MilvusDenseRetriever
+from sage.middleware.operators.rag import MilvusDenseRetriever
 
 
 def load_config(path):

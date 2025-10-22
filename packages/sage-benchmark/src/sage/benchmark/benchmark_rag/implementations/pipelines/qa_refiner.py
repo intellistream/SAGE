@@ -7,7 +7,7 @@ from sage.common.utils.config.loader import load_config
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.batch import HFDatasetBatch
-from sage.libs.rag.evaluate import (
+from sage.middleware.operators.rag import (
     AccuracyEvaluate,
     BRSEvaluate,
     CompressionRateEvaluate,
@@ -18,10 +18,10 @@ from sage.libs.rag.evaluate import (
     RougeLEvaluate,
     TokenCountEvaluate,
 )
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.refiner import RefinerOperator
-from sage.libs.rag.retriever import Wiki18FAISSRetriever
+from sage.middleware.operators.rag import OpenAIGenerator
+from sage.middleware.operators.rag import QAPromptor
+from sage.middleware.operators.rag import RefinerOperator
+from sage.middleware.operators.rag import Wiki18FAISSRetriever
 
 
 def pipeline_run(config):

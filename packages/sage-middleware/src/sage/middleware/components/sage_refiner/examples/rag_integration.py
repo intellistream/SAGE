@@ -62,10 +62,10 @@ def rag_pipeline_with_refiner():
     """
     from sage.core.api.local_environment import LocalEnvironment
     from sage.libs.io_utils.batch import JSONLBatch
-    from sage.libs.rag.retriever import ChromaRetriever
-    from sage.libs.rag.promptor import QAPromptor
-    from sage.libs.rag.generator import OpenAIGenerator
-    from sage.libs.rag.evaluate import F1Evaluate, CompressionRateEvaluate
+    from sage.middleware.operators.rag import ChromaRetriever
+    from sage.middleware.operators.rag import QAPromptor
+    from sage.middleware.operators.rag import OpenAIGenerator
+    from sage.middleware.operators.rag import F1Evaluate, CompressionRateEvaluate
     
     env = LocalEnvironment()
     

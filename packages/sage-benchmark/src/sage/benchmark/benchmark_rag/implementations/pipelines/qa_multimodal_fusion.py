@@ -21,8 +21,8 @@ from typing import List
 import numpy as np
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.sink import TerminalSink
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
+from sage.middleware.operators.rag import OpenAIGenerator
+from sage.middleware.operators.rag import QAPromptor
 
 # 添加SAGE路径
 
