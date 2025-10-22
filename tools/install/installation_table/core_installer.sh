@@ -47,17 +47,21 @@ install_core_packages() {
     echo ""
     
     case "$install_mode" in
-        "minimal")
-            echo -e "${GRAY}最小安装：基础功能 + CLI${NC}"
-            echo -e "${DIM}包含: sage命令, 基础API, 核心组件${NC}"
+        "core")
+            echo -e "${GRAY}核心运行时：L1-L3 (仅运行时)${NC}"
+            echo -e "${DIM}包含: common, platform, kernel (~100MB)${NC}"
             ;;
         "standard") 
-            echo -e "${GREEN}标准安装：完整功能 + 科学计算库${NC}"
-            echo -e "${DIM}包含: 完整功能 + numpy, pandas, matplotlib, jupyter${NC}"
+            echo -e "${GREEN}标准开发：L1-L4+L6 (核心+CLI+Web UI)${NC}"
+            echo -e "${DIM}包含: 完整功能 + numpy, pandas, matplotlib, jupyter (~200MB)${NC}"
+            ;;
+        "full")
+            echo -e "${PURPLE}完整功能：Standard+L5 (示例应用)${NC}"
+            echo -e "${DIM}包含: 标准 + apps, benchmark (~300MB)${NC}"
             ;;
         "dev")
-            echo -e "${YELLOW}开发者安装：标准安装 + 开发工具${NC}"
-            echo -e "${DIM}包含: 完整功能 + pytest, black, mypy, pre-commit${NC}"
+            echo -e "${YELLOW}框架开发：Full+开发工具${NC}"
+            echo -e "${DIM}包含: 完整功能 + pytest, black, mypy, pre-commit (~400MB)${NC}"
             ;;
         *)
             echo -e "${YELLOW}未知模式，使用开发者模式${NC}"
@@ -68,14 +72,19 @@ install_core_packages() {
     echo ""
     
     # 检查所有必要的包目录是否存在
-    local required_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-tools")
-    if [ "$install_mode" != "minimal" ]; then
-        required_packages+=("packages/sage-middleware" "packages/sage-libs")
+    local required_packages=("packages/sage-common" "packages/sage-platform" "packages/sage-kernel")
+    
+    # 根据模式添加更多包
+    if [ "$install_mode" != "core" ]; then
+        required_packages+=("packages/sage-middleware" "packages/sage-libs" "packages/sage-tools" "packages/sage-studio")
     fi
-    # 可选包（存在时添加）
-    [ -d "packages/sage-studio" ] && required_packages+=("packages/sage-studio")
-    [ -d "packages/sage-apps" ] && required_packages+=("packages/sage-apps")
-    [ -d "packages/sage-benchmark" ] && required_packages+=("packages/sage-benchmark")
+    
+    # full 和 dev 模式添加 L5 包（如果存在）
+    if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
+        [ -d "packages/sage-apps" ] && required_packages+=("packages/sage-apps")
+        [ -d "packages/sage-benchmark" ] && required_packages+=("packages/sage-benchmark")
+    fi
+    
     required_packages+=("packages/sage")
     
     for package_dir in "${required_packages[@]}"; do
@@ -115,9 +124,9 @@ install_core_packages() {
     # 因为我们会按正确的依赖顺序手动安装所有包
     local install_flags="-e"
     
-    # 第一步：安装基础包（无其他SAGE依赖）
-    echo -e "${DIM}步骤 1/3: 安装基础包...${NC}"
-    local base_packages=("packages/sage-common" "packages/sage-kernel")
+    # 第一步：安装基础包（L1-L2）
+    echo -e "${DIM}步骤 1/3: 安装基础包 (L1-L2)...${NC}"
+    local base_packages=("packages/sage-common" "packages/sage-platform")
     
     for package_dir in "${base_packages[@]}"; do
         echo -e "${DIM}  正在安装: $package_dir${NC}"
@@ -130,53 +139,72 @@ install_core_packages() {
         fi
     done
     
-    # 第二步：安装中间件、应用包和可选组件（对于非minimal模式）
-    if [ "$install_mode" != "minimal" ]; then
-        echo -e "${DIM}步骤 2/3: 安装中间件和应用包...${NC}"
-        local extended_packages=("packages/sage-middleware" "packages/sage-libs")
-        # 添加可选包（如果存在）
-        [ -d "packages/sage-studio" ] && extended_packages+=("packages/sage-studio")
-        [ -d "packages/sage-apps" ] && extended_packages+=("packages/sage-apps")
-        [ -d "packages/sage-benchmark" ] && extended_packages+=("packages/sage-benchmark")
+    # 第二步：安装核心引擎 (L3)
+    echo -e "${DIM}步骤 2/3: 安装核心引擎 (L3)...${NC}"
+    local core_packages=("packages/sage-kernel")
+    
+    if [ "$install_mode" != "core" ]; then
+        core_packages+=("packages/sage-libs")
+    fi
+    
+    for package_dir in "${core_packages[@]}"; do
+        echo -e "${DIM}  正在安装: $package_dir${NC}"
+        echo "$(date): 安装 $package_dir" >> "$log_file"
         
-        for package_dir in "${extended_packages[@]}"; do
-            echo -e "${DIM}  正在安装: $package_dir${NC}"
-            echo "$(date): 安装 $package_dir" >> "$log_file"
+        if ! $PIP_CMD install $install_flags "$package_dir" $pip_args --no-deps >> "$log_file" 2>&1; then
+            echo -e "${CROSS} 安装 $package_dir 失败！"
+            echo "$(date): 安装 $package_dir 失败" >> "$log_file"
+            return 1
+        fi
+    done
+    
+    # 第三步：安装上层包（L4-L6，根据模式）
+    if [ "$install_mode" != "core" ]; then
+        echo -e "${DIM}步骤 3/3: 安装上层包 (L4-L6)...${NC}"
+        
+        # L4: middleware
+        echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
+        if ! $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps >> "$log_file" 2>&1; then
+            echo -e "${CROSS} 安装 sage-middleware 失败！"
+            return 1
+        fi
+        
+        # L5: apps & benchmark (仅 full 和 dev 模式)
+        if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
+            if [ -d "packages/sage-apps" ]; then
+                echo -e "${DIM}  正在安装: packages/sage-apps${NC}"
+                $PIP_CMD install $install_flags "packages/sage-apps" $pip_args --no-deps >> "$log_file" 2>&1
+            fi
             
-            if ! $PIP_CMD install $install_flags "$package_dir" $pip_args --no-deps >> "$log_file" 2>&1; then
-                echo -e "${CROSS} 安装 $package_dir 失败！"
-                echo "$(date): 安装 $package_dir 失败" >> "$log_file"
+            if [ -d "packages/sage-benchmark" ]; then
+                echo -e "${DIM}  正在安装: packages/sage-benchmark${NC}"
+                $PIP_CMD install $install_flags "packages/sage-benchmark" $pip_args --no-deps >> "$log_file" 2>&1
+            fi
+        fi
+        
+        # L6: studio & tools
+        if [ -d "packages/sage-studio" ]; then
+            echo -e "${DIM}  正在安装: packages/sage-studio${NC}"
+            if ! $PIP_CMD install $install_flags "packages/sage-studio" $pip_args --no-deps >> "$log_file" 2>&1; then
+                echo -e "${CROSS} 安装 sage-studio 失败！"
                 return 1
             fi
-        done
+        fi
         
-        # 安装 tools（依赖所有上述包）
         echo -e "${DIM}  正在安装: packages/sage-tools${NC}"
-        echo "$(date): 安装 packages/sage-tools" >> "$log_file"
-        
         if ! $PIP_CMD install $install_flags "packages/sage-tools" $pip_args --no-deps >> "$log_file" 2>&1; then
-            echo -e "${CROSS} 安装 packages/sage-tools 失败！"
-            echo "$(date): 安装 packages/sage-tools 失败" >> "$log_file"
+            echo -e "${CROSS} 安装 sage-tools 失败！"
             return 1
         fi
     else
-        # minimal 模式下，tools 只依赖 common 和 kernel，可以直接安装
-        echo -e "${DIM}步骤 2/3: 安装工具包...${NC}"
-        echo -e "${DIM}  正在安装: packages/sage-tools${NC}"
-        echo "$(date): 安装 packages/sage-tools (minimal mode)" >> "$log_file"
-        
-        if ! $PIP_CMD install $install_flags "packages/sage-tools" $pip_args --no-deps >> "$log_file" 2>&1; then
-            echo -e "${CROSS} 安装 packages/sage-tools 失败！"
-            echo "$(date): 安装 packages/sage-tools 失败" >> "$log_file"
-            return 1
-        fi
+        echo -e "${DIM}步骤 3/3: 跳过上层包（core 模式）${NC}"
     fi
     
     echo -e "${CHECK} 本地依赖包安装完成"
     echo ""
     
-    # 第三步：安装主SAGE包和外部依赖
-    echo -e "${DIM}步骤 3/3: 安装外部依赖...${NC}"
+    # 第四步：安装主SAGE包和外部依赖
+    echo -e "${DIM}步骤 4/4: 安装外部依赖...${NC}"
     echo "$(date): 安装外部依赖" >> "$log_file"
     
     # 3a. 先用 --no-deps 安装 sage meta-package（避免重复安装本地包）

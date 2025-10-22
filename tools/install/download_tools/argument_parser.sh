@@ -79,27 +79,32 @@ show_installation_menu() {
     # 选择安装模式
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
-        echo -e "  ${GREEN}1)${NC} 标准安装    - common + kernel + middleware + libs + 数据科学库"
-        echo -e "  ${GRAY}2)${NC} 最小安装    - common + kernel (仅核心功能)"
-        echo -e "  ${YELLOW}3)${NC} 开发者安装  - 标准安装 + tools + 开发工具 ${DIM}(推荐)${NC}"
+        echo -e "  ${GRAY}1)${NC} 核心运行时  - L1-L3 ${DIM}(~100MB, 生产部署)${NC}"
+        echo -e "  ${GREEN}2)${NC} 标准开发    - L1-L4+L6 ${DIM}(~200MB, 应用开发)${NC}"
+        echo -e "  ${PURPLE}3)${NC} 完整功能    - Standard+L5 ${DIM}(~300MB, 学习示例)${NC}"
+        echo -e "  ${YELLOW}4)${NC} 框架开发    - Full+开发工具 ${DIM}(~400MB, 推荐)${NC}"
         echo ""
-        read -p "请选择安装模式 [1-3，默认3]: " mode_choice
+        read -p "请选择安装模式 [1-4，默认4]: " mode_choice
         
-        case "${mode_choice:-3}" in
+        case "${mode_choice:-4}" in
             1)
-                INSTALL_MODE="standard"
+                INSTALL_MODE="core"
                 break
                 ;;
             2)
-                INSTALL_MODE="minimal"
+                INSTALL_MODE="standard"
                 break
                 ;;
             3)
+                INSTALL_MODE="full"
+                break
+                ;;
+            4)
                 INSTALL_MODE="dev"
                 break
                 ;;
             *)
-                echo -e "${RED}无效选择，请输入 1、2 或 3${NC}"
+                echo -e "${RED}无效选择，请输入 1、2、3 或 4${NC}"
                 echo ""
                 ;;
         esac
@@ -196,22 +201,31 @@ show_parameter_help() {
     echo -e "${PURPLE}💡 无参数运行时将显示交互式菜单，引导您完成安装配置${NC}"
     echo ""
     
-    echo -e "${BLUE}📦 安装模式 (默认: 开发者模式)：${NC}"
+    echo -e "${BLUE}📦 安装模式 (quickstart.sh 默认: 开发者模式)：${NC}"
     echo ""
-    echo -e "  ${BOLD}--standard, --s, -standard, -s${NC}               ${GREEN}标准安装${NC}"
-    echo -e "    ${DIM}包含: common + kernel + middleware + libs + 数据科学库${NC}"
+    echo -e "  ${BOLD}--core, --c, -core, -c${NC}                      ${GRAY}核心运行时${NC}"
+    echo -e "    ${DIM}包含: L1-L3 (common + platform + kernel)${NC}"
     echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
-    echo -e "    ${DIM}适合: 数据科学、研究、学习${NC}"
+    echo -e "    ${DIM}适合: 容器部署、生产运行环境${NC}"
+    echo -e "    ${DIM}大小: ~100MB${NC}"
     echo ""
-    echo -e "  ${BOLD}--mini, --minimal, --m, -mini, -minimal, -m${NC}  ${GRAY}最小安装${NC}"
-    echo -e "    ${DIM}包含: common + kernel (仅核心功能)${NC}"
+    echo -e "  ${BOLD}--standard, --s, -standard, -s${NC}               ${GREEN}标准开发${NC}"
+    echo -e "    ${DIM}包含: L1-L4 + L6 (核心 + CLI + Web UI + RAG/LLM)${NC}"
     echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
-    echo -e "    ${DIM}适合: 容器部署、只需要SAGE核心功能的场景${NC}"
+    echo -e "    ${DIM}适合: 应用开发、日常使用${NC}"
+    echo -e "    ${DIM}大小: ~200MB${NC}"
     echo ""
-    echo -e "  ${BOLD}--dev, --d, -dev, -d${NC}                         ${YELLOW}开发者安装 (默认)${NC}"
-    echo -e "    ${DIM}包含: 标准安装 + tools + 开发工具 (pytest, black, mypy, pre-commit)${NC}"
+    echo -e "  ${BOLD}--full, --f, -full, -f${NC}                      ${PURPLE}完整功能${NC}"
+    echo -e "    ${DIM}包含: Standard + L5 (apps + benchmark)${NC}"
+    echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
+    echo -e "    ${DIM}适合: 学习示例、性能评估${NC}"
+    echo -e "    ${DIM}大小: ~300MB${NC}"
+    echo ""
+    echo -e "  ${BOLD}--dev, --d, -dev, -d${NC}                         ${YELLOW}框架开发 (默认)${NC}"
+    echo -e "    ${DIM}包含: Full + 开发工具 (pytest, black, mypy, pre-commit)${NC}"
     echo -e "    ${DIM}安装方式: 开发模式安装 (pip install -e)${NC}"
-    echo -e "    ${DIM}适合: 为SAGE项目贡献代码的开发者${NC}"
+    echo -e "    ${DIM}适合: 贡献 SAGE 框架源码${NC}"
+    echo -e "    ${DIM}大小: ~400MB${NC}"
     echo -e "    ${DIM}自动安装: C++扩展 (sage_db, sage_flow) - 需要构建工具${NC}"
     echo ""
     
@@ -259,10 +273,15 @@ show_parameter_help() {
     
     echo -e "${BLUE}💡 使用示例：${NC}"
     echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装${NC}"
-    echo -e "  ./quickstart.sh --dev                            ${DIM}# 开发者安装 + 智能环境选择${NC}"
+    echo -e "  ./quickstart.sh --dev                            ${DIM}# 开发者安装 (默认) + 智能环境选择${NC}"
     echo -e "  ./quickstart.sh --standard --conda               ${DIM}# 标准安装 + conda环境${NC}"
-    echo -e "  ./quickstart.sh --minimal --pip --yes            ${DIM}# 最小安装 + 当前环境 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --core --pip --yes               ${DIM}# 核心运行时 + 当前环境 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --full --yes                     ${DIM}# 完整功能 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --dev --vllm --yes               ${DIM}# 开发者安装 + VLLM支持 + 跳过确认${NC}"
+    echo ""
+    echo -e "${PURPLE}📝 注意：${NC}"
+    echo -e "  ${DIM}• quickstart.sh 默认使用 dev 模式（适合从源码安装的开发者）${NC}"
+    echo -e "  ${DIM}• pip 安装默认使用 standard 模式: pip install isage${NC}"
     echo ""
 }
 
@@ -273,16 +292,26 @@ show_parameter_help() {
 parse_install_mode() {
     local param="$1"
     case "$param" in
+        "--core"|"--c"|"-core"|"-c")
+            INSTALL_MODE="core"
+            return 0
+            ;;
         "--standard"|"--s"|"-standard"|"-s")
             INSTALL_MODE="standard"
             return 0
             ;;
-        "--mini"|"--minimal"|"--m"|"-mini"|"-minimal"|"-m")
-            INSTALL_MODE="minimal"
+        "--full"|"--f"|"-full"|"-f")
+            INSTALL_MODE="full"
             return 0
             ;;
         "--dev"|"--d"|"-dev"|"-d")
             INSTALL_MODE="dev"
+            return 0
+            ;;
+        # 向后兼容：保留 minimal 但映射到 core
+        "--mini"|"--minimal"|"--m"|"-mini"|"-minimal"|"-m")
+            INSTALL_MODE="core"
+            echo -e "${YELLOW}⚠️  --minimal 已更名为 --core，将使用 core 模式${NC}"
             return 0
             ;;
         *)
