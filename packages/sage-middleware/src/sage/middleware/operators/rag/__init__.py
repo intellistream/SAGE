@@ -14,75 +14,54 @@ These operators inherit from base operator classes in sage.kernel.operators
 and implement RAG-specific business logic.
 """
 
-from sage.middleware.operators.rag.arxiv import ArxivPDFDownloader, ArxivPDFParser
-from sage.middleware.operators.rag.chunk import (
-    CharacterSplitter,
-    SentenceTransformersTokenTextSplitter,
-)
-from sage.middleware.operators.rag.evaluate import (
-    AccuracyEvaluate,
-    BertRecallEvaluate,
-    BRSEvaluate,
-    CompressionRateEvaluate,
-    ContextRecallEvaluate,
-    F1Evaluate,
-    LatencyEvaluate,
-    RecallEvaluate,
-    RougeLEvaluate,
-    TokenCountEvaluate,
-)
-from sage.middleware.operators.rag.generator import HFGenerator, OpenAIGenerator
-from sage.middleware.operators.rag.promptor import (
-    QAPromptor,
-    QueryProfilerPromptor,
-    SummarizationPromptor,
-)
-from sage.middleware.operators.rag.refiner import RefinerOperator
-from sage.middleware.operators.rag.reranker import BGEReranker, LLMbased_Reranker
-from sage.middleware.operators.rag.retriever import (
-    ChromaRetriever,
-    MilvusDenseRetriever,
-    MilvusSparseRetriever,
-    Wiki18FAISSRetriever,
-)
-from sage.middleware.operators.rag.searcher import BochaWebSearch
-from sage.middleware.operators.rag.writer import MemoryWriter
-
-__all__ = [
+# Lazy imports to avoid optional dependency issues
+_IMPORTS = {
     # Generators
-    "OpenAIGenerator",
-    "HFGenerator",
+    "OpenAIGenerator": ("sage.middleware.operators.rag.generator", "OpenAIGenerator"),
+    "HFGenerator": ("sage.middleware.operators.rag.generator", "HFGenerator"),
     # Retrievers
-    "ChromaRetriever",
-    "MilvusDenseRetriever",
-    "MilvusSparseRetriever",
-    "Wiki18FAISSRetriever",
+    "ChromaRetriever": ("sage.middleware.operators.rag.retriever", "ChromaRetriever"),
+    "MilvusDenseRetriever": ("sage.middleware.operators.rag.retriever", "MilvusDenseRetriever"),
+    "MilvusSparseRetriever": ("sage.middleware.operators.rag.retriever", "MilvusSparseRetriever"),
+    "Wiki18FAISSRetriever": ("sage.middleware.operators.rag.retriever", "Wiki18FAISSRetriever"),
     # Rerankers
-    "BGEReranker",
-    "LLMbased_Reranker",
+    "BGEReranker": ("sage.middleware.operators.rag.reranker", "BGEReranker"),
+    "LLMbased_Reranker": ("sage.middleware.operators.rag.reranker", "LLMbased_Reranker"),
     # Promptors
-    "QAPromptor",
-    "SummarizationPromptor",
-    "QueryProfilerPromptor",
+    "QAPromptor": ("sage.middleware.operators.rag.promptor", "QAPromptor"),
+    "SummarizationPromptor": ("sage.middleware.operators.rag.promptor", "SummarizationPromptor"),
+    "QueryProfilerPromptor": ("sage.middleware.operators.rag.promptor", "QueryProfilerPromptor"),
     # Evaluation
-    "F1Evaluate",
-    "RecallEvaluate",
-    "BertRecallEvaluate",
-    "RougeLEvaluate",
-    "BRSEvaluate",
-    "AccuracyEvaluate",
-    "TokenCountEvaluate",
-    "LatencyEvaluate",
-    "ContextRecallEvaluate",
-    "CompressionRateEvaluate",
+    "F1Evaluate": ("sage.middleware.operators.rag.evaluate", "F1Evaluate"),
+    "RecallEvaluate": ("sage.middleware.operators.rag.evaluate", "RecallEvaluate"),
+    "BertRecallEvaluate": ("sage.middleware.operators.rag.evaluate", "BertRecallEvaluate"),
+    "RougeLEvaluate": ("sage.middleware.operators.rag.evaluate", "RougeLEvaluate"),
+    "BRSEvaluate": ("sage.middleware.operators.rag.evaluate", "BRSEvaluate"),
+    "AccuracyEvaluate": ("sage.middleware.operators.rag.evaluate", "AccuracyEvaluate"),
+    "TokenCountEvaluate": ("sage.middleware.operators.rag.evaluate", "TokenCountEvaluate"),
+    "LatencyEvaluate": ("sage.middleware.operators.rag.evaluate", "LatencyEvaluate"),
+    "ContextRecallEvaluate": ("sage.middleware.operators.rag.evaluate", "ContextRecallEvaluate"),
+    "CompressionRateEvaluate": ("sage.middleware.operators.rag.evaluate", "CompressionRateEvaluate"),
     # Document Processing
-    "CharacterSplitter",
-    "SentenceTransformersTokenTextSplitter",
-    "RefinerOperator",
-    "MemoryWriter",
-    # External Data Sources
-    "ArxivPDFDownloader",
-    "ArxivPDFParser",
+    "CharacterSplitter": ("sage.middleware.operators.rag.chunk", "CharacterSplitter"),
+    "SentenceTransformersTokenTextSplitter": ("sage.middleware.operators.rag.chunk", "SentenceTransformersTokenTextSplitter"),
+    "RefinerOperator": ("sage.middleware.operators.rag.refiner", "RefinerOperator"),
+    "MemoryWriter": ("sage.middleware.operators.rag.writer", "MemoryWriter"),
+    # External Data Sources (may require optional dependencies)
+    "ArxivPDFDownloader": ("sage.middleware.operators.rag.arxiv", "ArxivPDFDownloader"),
+    "ArxivPDFParser": ("sage.middleware.operators.rag.arxiv", "ArxivPDFParser"),
     # Web Search
-    "BochaWebSearch",
-]
+    "BochaWebSearch": ("sage.middleware.operators.rag.searcher", "BochaWebSearch"),
+}
+
+__all__ = list(_IMPORTS.keys())
+
+
+def __getattr__(name: str):
+    """Lazy import to avoid optional dependency issues at import time."""
+    if name in _IMPORTS:
+        module_name, attr_name = _IMPORTS[name]
+        import importlib
+        module = importlib.import_module(module_name)
+        return getattr(module, attr_name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

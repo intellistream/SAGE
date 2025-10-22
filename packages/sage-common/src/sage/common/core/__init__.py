@@ -1,17 +1,17 @@
 """
-Kernel Core Module - 共享类型、异常和常量
+Common Core Module - 共享类型、异常和常量
 
-这个模块包含 sage-kernel 中各个子模块共享的核心定义。
+这个模块包含 SAGE 框架中各个包共享的核心定义。
 """
 
-from sage.kernel.core.exceptions import (
+from sage.common.core.exceptions import (
     FaultToleranceError,
     KernelError,
     RecoveryError,
     ResourceAllocationError,
     SchedulingError,
 )
-from sage.kernel.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
+from sage.common.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
 
 __all__ = [
     # Types

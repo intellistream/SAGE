@@ -5,11 +5,11 @@ Refiner Operator - SAGE RAG 算子
 统一的 Refiner 算子，用于在 SAGE 管道中进行上下文压缩。
 
 架构:
-    sage-libs (本文件): 提供 SAGE Function 适配器
-    sage-middleware: 提供具体算法实现
+    sage-middleware (本文件): 提供 RAG 算子适配器
+    sage-middleware/components/sage_refiner: 提供具体算法实现
 
 用法:
-    from sage.libs.rag.refiner import RefinerOperator
+    from sage.middleware.operators.rag import RefinerOperator
 
     config = {
         "algorithm": "long_refiner",  # 或 "simple", "none"
