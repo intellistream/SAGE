@@ -22,17 +22,22 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 
-# SAGE Meta Package - 通过 tools 传递依赖所有子包
+# SAGE Meta Package - 默认安装标准开发环境
 dependencies = [
+    # L1: Foundation
     "isage-common>=0.1.0",
+    # L2: Platform
+    "isage-platform>=0.1.0",
+    # L3: Core
     "isage-kernel>=0.1.0",
-    "isage-middleware>=0.1.0",  # CLI chat命令需要
-    "isage-libs>=0.1.0",       # 应用包组件
-    "isage-benchmark>=0.1.0",  # 基准测试和实验包
-    "isage-tools[cli]>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
-    "isage-studio>=0.1.0",     # Studio低代码界面
+    "isage-libs>=0.1.0",
+    # L4: Domain
+    "isage-middleware>=0.1.0",
+    # L6: Interface
+    "isage-tools[cli]>=0.1.0",  # CLI 工具
+    "isage-studio>=0.1.0",      # Web UI
     # 数据科学基础库
-    "numpy>=1.26.0,<2.3.0",  # 兼容vllm/numba约束，同时兼顾离线环境预置版本
+    "numpy>=1.26.0,<2.3.0",
     "pandas>=1.3.0",
     "matplotlib>=3.4.0",
     "scipy>=1.15.0,<2.0.0",
@@ -41,19 +46,27 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# 最小安装 - 仅核心组件（不含middleware）
-minimal = [
-    "isage-common>=0.1.0",
-    "isage-kernel>=0.1.0",
+# 核心运行时 - 仅运行已有 pipeline（生产环境）
+# 用途：容器化部署、生产运行
+# 大小：~100MB
+core = [
+    "isage-common>=0.1.0",      # L1: Foundation
+    "isage-platform>=0.1.0",    # L2: Platform  
+    "isage-kernel>=0.1.0",      # L3: Core Engine
 ]
 
-# 标准安装 - 中间件 + 应用包 + 科学计算库
+# 标准开发环境 - 日常应用开发（默认）
+# 用途：开发 SAGE 应用、使用 RAG/LLM operators
+# 大小：~200MB
+# 注意：这与默认 dependencies 相同，保留是为了向后兼容
 standard = [
-    "isage-common>=0.1.0",
-    "isage-kernel>=0.1.0",
-    "isage-middleware>=0.1.0",
-    "isage-libs>=0.1.0",
-    "isage-tools[cli]>=0.1.0",
+    "isage-common>=0.1.0",      # L1
+    "isage-platform>=0.1.0",    # L2
+    "isage-kernel>=0.1.0",      # L3
+    "isage-libs>=0.1.0",        # L3
+    "isage-middleware>=0.1.0",  # L4
+    "isage-tools[cli]>=0.1.0",  # L6
+    "isage-studio>=0.1.0",      # L6
     # 数据科学基础库
     "numpy>=1.26.0,<2.3.0",
     "pandas>=1.3.0",
@@ -63,21 +76,21 @@ standard = [
     "ipykernel>=6.0.0",
 ]
 
-# 完整安装 - 包含所有组件（通过 tools 传递依赖）
+# 完整功能 - 包含示例应用和性能测试
+# 用途：学习 SAGE、运行示例、性能评估
+# 大小：~300MB
 full = [
-    "isage-tools[cli]>=0.1.0",  # tools 已包含所有子包
-    # 数据科学基础库
-    "numpy>=1.26.0,<2.3.0",
-    "pandas>=1.3.0",
-    "matplotlib>=3.4.0",
-    "scipy>=1.15.0,<2.0.0",
-    "jupyter>=1.0.0",
-    "ipykernel>=6.0.0",
+    "isage[standard]",
+    "isage-apps>=0.1.0",        # L5: 示例应用（医疗、视频）
+    "isage-benchmark>=0.1.0",   # L5: 性能基准测试
 ]
 
-# 开发者安装 - 完整功能 + 开发工具套件
+# 框架开发 - 修改 SAGE 框架本身
+# 用途：贡献代码、研究新功能
+# 大小：~400MB
 dev = [
-    "isage-tools[dev]>=0.1.0",  # 包含所有子包和开发工具
+    "isage[full]",
+    "isage-tools[dev]>=0.1.0",  # 完整开发工具套件
     "pre-commit>=3.0.0",
 ]
 

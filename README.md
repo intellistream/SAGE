@@ -159,11 +159,16 @@ cd SAGE
 
 **Quick PyPI Install**
 ```bash
-# Choose your installation mode:
-pip install isage[minimal]   # Core functionality  
-pip install isage[standard]  # Full features
-pip install isage[dev]       # Everything + development tools
+# Standard installation (recommended for most users) ✅
+pip install isage              # Core + CLI + Web UI (~200MB)
+
+# Other options:
+pip install isage[core]        # Runtime only (~100MB)
+pip install isage[full]        # + Apps & Benchmarks (~300MB)  
+pip install isage[dev]         # + Dev tools (~400MB)
 ```
+
+> **See [Installation Guide](docs/INSTALLATION_GUIDE.md) for detailed comparison and use cases.**
 
 > Note: PyPI install may not include all system dependencies; use quickstart.sh for complete environment setup.
 
