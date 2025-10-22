@@ -10,28 +10,35 @@ in the Python bindings. Expected results:
 - 8 threads: ~480+ QPS (4.0x+)
 """
 
+from __future__ import annotations
+
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import numpy as np
+import pytest
 
 # Add the package to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+if TYPE_CHECKING:
+    from python.sage_db import DatabaseConfig, DistanceMetric, IndexType, SageDB
+
 try:
     from python.sage_db import DatabaseConfig, DistanceMetric, IndexType, SageDB
+    SAGE_DB_AVAILABLE = True
 except ImportError:
-    print("❌ Failed to import SageDB. Please build the extension first:")
-    print("   cd packages/sage-middleware/src/sage/middleware/components/sage_db")
-    print("   ./build.sh")
-    sys.exit(1)
+    SAGE_DB_AVAILABLE = False
+    pytestmark = pytest.mark.skip(reason="SageDB C++ extension not built. Run ./build.sh to enable this test.")
 
 
-def prepare_test_database(dimension: int = 768, num_vectors: int = 10000) -> SageDB:
+def prepare_test_database(dimension: int = 768, num_vectors: int = 10000):
     """Create and populate a test database."""
+    if not SAGE_DB_AVAILABLE:
+        pytest.skip("SageDB not available")
     print(f"📊 Preparing test database ({num_vectors} vectors, {dimension} dims)...")
 
     config = DatabaseConfig(dimension)

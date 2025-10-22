@@ -3,6 +3,8 @@
 Direct C++ performance test - bypassing Python entirely
 """
 
+from __future__ import annotations
+
 import os
 import sys
 
@@ -11,9 +13,20 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TYPE_CHECKING
 
-import _sage_db
 import numpy as np
+import pytest
+
+if TYPE_CHECKING:
+    import _sage_db
+
+try:
+    import _sage_db
+    SAGE_DB_AVAILABLE = True
+except ImportError:
+    SAGE_DB_AVAILABLE = False
+    pytestmark = pytest.mark.skip(reason="SageDB C++ extension not built. Run ./build.sh to enable this test.")
 
 DIMENSION = 768
 NUM_VECTORS = 10000
@@ -22,6 +35,8 @@ NUM_QUERIES = 500
 
 def create_database():
     """Create and populate a SageDB database"""
+    if not SAGE_DB_AVAILABLE:
+        pytest.skip("SageDB not available")
     print(f"Creating SageDB ({NUM_VECTORS} vectors, {DIMENSION} dims)...")
 
     config = _sage_db.DatabaseConfig()
