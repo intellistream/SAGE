@@ -6,7 +6,7 @@
 
 from abc import ABC, abstractmethod
 
-from sage.kernel.core.constants import (
+from sage.common.core.constants import (
     DEFAULT_MAX_RESTART_ATTEMPTS,
     RESTART_STRATEGY_EXPONENTIAL,
     RESTART_STRATEGY_FIXED,

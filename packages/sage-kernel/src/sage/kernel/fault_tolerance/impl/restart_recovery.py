@@ -7,7 +7,7 @@ Restart-based Fault Tolerance Strategy
 import time
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from sage.kernel.core.types import JobID, TaskID
+from sage.common.core.types import JobID, TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
     ExponentialBackoffStrategy,

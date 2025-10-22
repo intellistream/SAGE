@@ -7,7 +7,7 @@ Checkpoint-based Fault Tolerance Strategy
 import time
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from sage.kernel.core.types import TaskID
+from sage.common.core.types import TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.checkpoint_impl import CheckpointManagerImpl
 if TYPE_CHECKING:

@@ -9,8 +9,8 @@ import pickle
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from sage.kernel.core.exceptions import CheckpointError
-from sage.kernel.core.types import TaskID
+from sage.common.core.exceptions import CheckpointError
+from sage.common.core.types import TaskID
 
 
 class CheckpointManagerImpl:
