@@ -24,7 +24,7 @@ Refiner Operator - SAGE RAG 算子
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
@@ -110,7 +110,7 @@ class RefinerOperator(MapOperator):
             refine_start = time.time()
             result = self.refiner_service.refine(
                 query=query,
-                documents=documents,
+                documents=cast(List[Union[str, Dict[str, Any]]], documents),
                 budget=self.cfg.get("budget"),
             )
             refine_time = time.time() - refine_start
@@ -153,9 +153,9 @@ class RefinerOperator(MapOperator):
 
         return result_data
 
-    def _normalize_documents(self, docs: List[Union[str, Dict]]) -> List[Dict]:
+    def _normalize_documents(self, docs: List[Union[str, Dict]]) -> List[Dict[str, Any]]:
         """标准化文档格式"""
-        normalized = []
+        normalized: List[Dict[str, Any]] = []
         for doc in docs:
             if isinstance(doc, dict):
                 # 提取文本
