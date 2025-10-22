@@ -14,23 +14,14 @@ Pipeline Builder - 将 Studio 可视化模型转换为 SAGE Pipeline
 - 状态管理（由 SAGE Engine 完成）
 """
 
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import Any, Dict, List, Optional, Set
 from collections import defaultdict, deque
 
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.operators import MapOperator
-from sage.middleware.operators.rag import (
-    OpenAIGenerator,
-    ChromaRetriever,
-    BGEReranker,
-    QAPromptor,
-)
-from sage.middleware.operators.llm import VLLMGenerator
-from sage.libs.io_utils.source import DataSource
-from sage.libs.io_utils.sink import PrintSink
 
 from ..models import VisualPipeline, VisualNode, VisualConnection
+from .node_registry import get_node_registry
 
 
 class PipelineBuilder:
@@ -44,34 +35,8 @@ class PipelineBuilder:
     """
     
     def __init__(self):
-        # 注册节点类型到 SAGE Operator 的映射
-        self.operator_registry: Dict[str, Type[MapOperator]] = {
-            # RAG Operators
-            "rag.generator": OpenAIGenerator,
-            "rag.generator.openai": OpenAIGenerator,
-            "rag.retriever": ChromaRetriever,
-            "rag.retriever.chroma": ChromaRetriever,
-            "rag.reranker": BGEReranker,
-            "rag.reranker.bge": BGEReranker,
-            "rag.promptor": QAPromptor,
-            "rag.promptor.qa": QAPromptor,
-            
-            # LLM Operators
-            "llm.vllm": VLLMGenerator,
-            "llm.generator": VLLMGenerator,
-            
-            # TODO: 添加更多算子映射
-        }
-    
-    def register_operator(self, node_type: str, operator_class: Type[MapOperator]):
-        """
-        注册自定义节点类型
-        
-        Args:
-            node_type: Studio 中的节点类型 ID
-            operator_class: 对应的 SAGE Operator 类
-        """
-        self.operator_registry[node_type] = operator_class
+        # 使用全局节点注册表
+        self.registry = get_node_registry()
     
     def build(self, pipeline: VisualPipeline) -> BaseEnvironment:
         """
@@ -190,30 +155,33 @@ class PipelineBuilder:
         
         return sorted_nodes
     
-    def _get_operator_class(self, node_type: str) -> Type[MapOperator]:
+    def _get_operator_class(self, node_type: str):
         """获取节点类型对应的 Operator 类"""
-        if node_type not in self.operator_registry:
-            raise ValueError(f"Unknown node type: {node_type}")
-        return self.operator_registry[node_type]
+        operator_class = self.registry.get_operator(node_type)
+        if not operator_class:
+            raise ValueError(f"Unknown node type: {node_type}. "
+                           f"Available types: {self.registry.list_types()}")
+        return operator_class
     
-    def _create_source(self, node: VisualNode, pipeline: VisualPipeline) -> DataSource:
+    def _create_source(self, node: VisualNode, pipeline: VisualPipeline):
         """
         创建数据源
         
         TODO: 根据节点类型和配置创建合适的 Source
         """
+        from sage.libs.io_utils.source import ListSource
+        
         # 简单实现：从节点配置中获取数据
         initial_data = node.config.get("data", [{"input": "test"}])
-        
-        from sage.libs.io_utils.source import ListSource
         return ListSource(initial_data)
     
-    def _create_sink(self, pipeline: VisualPipeline) -> PrintSink:
+    def _create_sink(self, pipeline: VisualPipeline):
         """
         创建数据接收器
         
         TODO: 根据 Pipeline 配置创建合适的 Sink
         """
+        from sage.libs.io_utils.sink import PrintSink
         return PrintSink()
 
 
