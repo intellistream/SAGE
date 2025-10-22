@@ -242,10 +242,9 @@ class PipelineBuilder:
                     super().__init__()
                     self.data = data if isinstance(data, list) else [data]
                 
-                def execute(self, context):
+                def execute(self):
                     """Execute the source function"""
-                    for item in self.data:
-                        context.collect(item)
+                    return self.data
             
             initial_data = node.config.get("data", [{"input": "test data"}])
             return SimpleListSource, (initial_data,), {}
