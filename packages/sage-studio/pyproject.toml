@@ -38,9 +38,9 @@ license = "MIT"
 dependencies = [
     # SAGE framework dependencies
     "isage-common>=0.1.0",
-    "isage-kernel>=0.1.0",
-    "isage-middleware>=0.1.0",
-    "isage-libs>=0.1.0",
+    "isage-kernel>=0.1.0",      # 需要：构建 Pipeline (Environment, DataStream API)
+    "isage-middleware>=0.1.0",  # 需要：领域算子 (RAG, LLM operators)
+    "isage-libs>=0.1.0",        # 需要：io_utils (Source/Sink) - TODO: 应该移到 kernel
 
     # Backend API dependencies
     "pydantic[email]>=2.0.0",

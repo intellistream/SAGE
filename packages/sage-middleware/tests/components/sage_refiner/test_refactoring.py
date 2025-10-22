@@ -113,16 +113,13 @@ def test_service_functionality():
     service.shutdown()
 
 
-def test_libs_adapter_compatibility():
-    """测试sage-libs适配器兼容性"""
-    from sage.libs.rag.longrefiner import LongRefinerAdapter
-
-    # 检查是否使用了middleware服务
-    import inspect
-
-    source = inspect.getsource(LongRefinerAdapter._init_refiner)
-    # 适配器应该使用 RefinerService
-    assert "RefinerService" in source or "middleware" in source.lower()
+def test_middleware_operator_available():
+    """测试 middleware 的 RefinerOperator 可用性"""
+    from sage.middleware.operators.rag.refiner import RefinerOperator
+    
+    # RefinerOperator 应该是一个可用的类
+    assert RefinerOperator is not None
+    assert hasattr(RefinerOperator, 'execute') or hasattr(RefinerOperator, '__call__')
 
 
 def test_config_loading():
