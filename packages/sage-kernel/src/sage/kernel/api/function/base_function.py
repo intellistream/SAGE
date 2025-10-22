@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+import logging
+import pickle
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.task_context import TaskContext
-
-import logging
 
 
 class BaseFunction(ABC):
@@ -26,7 +26,7 @@ class BaseFunction(ABC):
     )
 
     def __init__(self, *args, **kwargs):
-        self.ctx: "TaskContext" = None  # 运行时注入
+        self.ctx: Optional["TaskContext"] = None  # 运行时注入
         self._logger = None
 
     @property
@@ -193,7 +193,6 @@ class BaseFunction(ABC):
         
         # 尝试判断是否可以被 pickle 序列化
         try:
-            import pickle
             pickle.dumps(value)
             return True
         except (TypeError, pickle.PicklingError, AttributeError):
@@ -244,7 +243,7 @@ class BaseFunction(ABC):
                     )
 
     @abstractmethod
-    def execute(self, data: any):
+    def execute(self, data: Any):
         """
         Abstract method to be implemented by subclasses.
 
