@@ -131,7 +131,7 @@ def test_config_loading():
         "algorithm": "simple",
         "budget": 2048,
         "enable_cache": True,
-        "max_cache_size": 50,
+        "cache_size": 50,  # 使用正确的参数名
     }
     config = RefinerConfig.from_dict(config_dict)
     assert config.budget == 2048

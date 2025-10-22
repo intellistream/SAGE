@@ -322,7 +322,11 @@ class RefinerService:
 
         # 配置信息
         stats["config"] = {
-            "algorithm": self.config.algorithm.value,
+            "algorithm": (
+                self.config.algorithm.value
+                if hasattr(self.config.algorithm, "value")
+                else self.config.algorithm
+            ),
             "budget": self.config.budget,
             "enable_cache": self.config.enable_cache,
         }
