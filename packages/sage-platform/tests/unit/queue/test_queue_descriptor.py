@@ -18,35 +18,28 @@ from queue import Empty, Full
 
 import pytest
 
-# 添加项目路径到系统路径
-sys.path.insert(0, "/api-rework")
+from sage.platform.queue.base_queue_descriptor import (
+    BaseQueueDescriptor,
+    QueueDescriptor,
+)
+from sage.platform.queue.python_queue_descriptor import (
+    PythonQueueDescriptor,
+)
+
+# 尝试导入其他队列类型（可能不存在）
+try:
+    from sage.platform.queue.ray_queue_descriptor import (
+        RayQueueDescriptor,
+    )
+except ImportError:
+    RayQueueDescriptor = None
 
 try:
-    from sage.platform.queue.base_queue_descriptor import (
-        BaseQueueDescriptor,
-        QueueDescriptor,
+    from sage.platform.queue.rpc_queue_descriptor import (
+        RPCQueueDescriptor,
     )
-    from sage.platform.queue.python_queue_descriptor import (
-        PythonQueueDescriptor,
-    )
-
-    # 尝试导入其他队列类型（可能不存在）
-    try:
-        from sage.platform.queue.ray_queue_descriptor import (
-            RayQueueDescriptor,
-        )
-    except ImportError:
-        RayQueueDescriptor = None
-
-    try:
-        from sage.platform.queue.rpc_queue_descriptor import (
-            RPCQueueDescriptor,
-        )
-    except ImportError:
-        RPCQueueDescriptor = None
-
-except ImportError as e:
-    pytest.fail(f"导入失败: {e}")
+except ImportError:
+    RPCQueueDescriptor = None
 
 
 class _TestableQueueDescriptor(BaseQueueDescriptor):
