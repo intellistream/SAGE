@@ -14,6 +14,19 @@ These operators inherit from base operator classes in sage.kernel.operators
 and implement RAG-specific business logic.
 """
 
+# Export types for easier access
+from sage.middleware.operators.rag.types import (
+    RAGDocument,
+    RAGQuery,
+    RAGResponse,
+    RAGInput,
+    RAGOutput,
+    ensure_rag_response,
+    extract_query,
+    extract_results,
+    create_rag_response,
+)
+
 # Lazy imports to avoid optional dependency issues
 _IMPORTS = {
     # Generators
@@ -54,7 +67,21 @@ _IMPORTS = {
     "BochaWebSearch": ("sage.middleware.operators.rag.searcher", "BochaWebSearch"),
 }
 
-__all__ = list(_IMPORTS.keys())
+# Export all operator names and type utilities
+__all__ = [
+    # Types
+    "RAGDocument",
+    "RAGQuery", 
+    "RAGResponse",
+    "RAGInput",
+    "RAGOutput",
+    "ensure_rag_response",
+    "extract_query",
+    "extract_results",
+    "create_rag_response",
+    # Operators (lazy loaded)
+    *list(_IMPORTS.keys())
+]
 
 
 def __getattr__(name: str):

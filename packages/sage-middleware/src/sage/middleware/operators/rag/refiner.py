@@ -115,7 +115,15 @@ class RefinerOperator(MapOperator):
             )
             refine_time = time.time() - refine_start
 
-            refined_texts = result.refined_content
+            refined_texts_raw = result.refined_content
+            # 确保 refined_texts 是 List[str]
+            if isinstance(refined_texts_raw, str):
+                refined_texts = [refined_texts_raw]
+            elif isinstance(refined_texts_raw, list):
+                refined_texts = [str(item) for item in refined_texts_raw]
+            else:
+                refined_texts = [str(refined_texts_raw)]
+            
             metrics = {
                 "compression_rate": result.metrics.compression_rate,
                 "original_tokens": result.metrics.original_tokens,
