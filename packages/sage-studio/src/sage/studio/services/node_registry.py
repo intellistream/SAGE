@@ -18,15 +18,77 @@ class NodeRegistry:
     def _register_default_operators(self):
         """Register default Operator mappings"""
         
-        # RAG Operators
+        # Generic map operator
+        self._registry["map"] = MapOperator
+        
+        # RAG Generators
         try:
-            from sage.middleware.operators.rag import RefinerOperator
-            self._registry["refiner"] = RefinerOperator
+            from sage.middleware.operators.rag import OpenAIGenerator, HFGenerator
+            self._registry["openai_generator"] = OpenAIGenerator
+            self._registry["hf_generator"] = HFGenerator
+            self._registry["generator"] = OpenAIGenerator  # Default generator
         except ImportError:
             pass
         
-        # Generic map operator
-        self._registry["map"] = MapOperator
+        # RAG Retrievers
+        try:
+            from sage.middleware.operators.rag import (
+                ChromaRetriever,
+                MilvusDenseRetriever,
+                MilvusSparseRetriever,
+            )
+            self._registry["chroma_retriever"] = ChromaRetriever
+            self._registry["milvus_dense_retriever"] = MilvusDenseRetriever
+            self._registry["milvus_sparse_retriever"] = MilvusSparseRetriever
+            self._registry["retriever"] = ChromaRetriever  # Default retriever
+        except ImportError:
+            pass
+        
+        # RAG Rerankers
+        try:
+            from sage.middleware.operators.rag import BGEReranker
+            self._registry["bge_reranker"] = BGEReranker
+            self._registry["reranker"] = BGEReranker  # Default reranker
+        except ImportError:
+            pass
+        
+        # RAG Promptors
+        try:
+            from sage.middleware.operators.rag import (
+                QAPromptor,
+                SummarizationPromptor,
+            )
+            self._registry["qa_promptor"] = QAPromptor
+            self._registry["summarization_promptor"] = SummarizationPromptor
+            self._registry["promptor"] = QAPromptor  # Default promptor
+        except ImportError:
+            pass
+        
+        # Document Processing
+        try:
+            from sage.middleware.operators.rag import (
+                CharacterSplitter,
+                RefinerOperator,
+            )
+            self._registry["character_splitter"] = CharacterSplitter
+            self._registry["refiner"] = RefinerOperator
+            self._registry["chunker"] = CharacterSplitter  # Default chunker
+        except ImportError:
+            pass
+        
+        # Evaluation Operators
+        try:
+            from sage.middleware.operators.rag import (
+                F1Evaluate,
+                RecallEvaluate,
+                AccuracyEvaluate,
+            )
+            self._registry["f1_evaluate"] = F1Evaluate
+            self._registry["recall_evaluate"] = RecallEvaluate
+            self._registry["accuracy_evaluate"] = AccuracyEvaluate
+            self._registry["evaluator"] = F1Evaluate  # Default evaluator
+        except ImportError:
+            pass
     
     def register(self, node_type: str, operator_class: Type[MapOperator]):
         """Register a new node type"""
