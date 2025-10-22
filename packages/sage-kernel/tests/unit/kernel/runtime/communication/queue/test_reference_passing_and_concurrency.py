@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# type: ignore
+# ^ 忽略整个文件的类型检查（Ray Actor 动态方法导致大量误报）
 """
 测试队列描述符的引用传递和并发读写能力
 

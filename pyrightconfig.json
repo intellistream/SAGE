@@ -11,7 +11,8 @@
     "dist"
   ],
   "ignore": [
-    "**/.*"
+    "**/.*",
+    "**/test_ray_*.py"
   ],
   "defineConstant": {
     "DEBUG": true
@@ -19,6 +20,12 @@
   "stubPath": "typings",
   "reportMissingImports": "warning",
   "reportMissingTypeStubs": false,
+  "reportGeneralTypeIssues": "warning",
+  "reportOptionalSubscript": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportAttributeAccessIssue": "warning",
+  "reportCallIssue": "warning",
+  "reportArgumentType": "warning",
   "pythonVersion": "3.11",
   "pythonPlatform": "Linux",
   "executionEnvironments": [

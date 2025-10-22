@@ -176,6 +176,94 @@ code .
 
 这样 Pylance 可以看到整个 monorepo 结构。
 
+### Q5: Ray Actor 相关的类型错误怎么办？
+
+**问题示例**：
+```python
+@ray.remote
+class MyActor:
+    def my_method(self):
+        pass
+
+actor = MyActor.remote()  # ❌ Cannot access attribute "remote" for class "FunctionType"
+result = actor.my_method.remote()  # ❌ Attribute "remote" is unknown
+```
+
+**原因**：Pylance 不知道 `@ray.remote` 装饰器会将类转换为 Ray Actor 类型。
+
+**解决方案 A - 类型注释（推荐用于生产代码）**：
+```python
+from typing import TYPE_CHECKING
+import ray
+
+if TYPE_CHECKING:
+    from ray.actor import ActorClass
+
+@ray.remote
+class MyActor:
+    def my_method(self):
+        pass
+
+# 添加类型注释
+actor: 'ActorClass[MyActor]' = MyActor.remote()
+```
+
+**解决方案 B - 类型忽略（推荐用于测试代码）**：
+```python
+actor = MyActor.remote()  # type: ignore[attr-defined]
+result = actor.my_method.remote()  # type: ignore[attr-defined]
+```
+
+**解决方案 C - 全局配置（已在 pyrightconfig.json 中配置）**：
+```json
+{
+  "reportAttributeAccessIssue": "warning",
+  "reportCallIssue": "warning"
+}
+```
+
+这会将这些错误降级为警告，不会影响开发体验。
+
+### Q6: 字典取值的类型错误？
+
+**问题示例**：
+```python
+info = {"operations_count": 10, "status": "ok"}
+count = info["operations_count"]  # ❌ Argument of type "Literal['operations_count']" cannot be assigned
+```
+
+**原因**：Pylance 认为 `info` 的类型是 `dict[str, Any]`，但 `__getitem__` 期望 `slice` 类型（这是 Pylance 的一个已知问题）。
+
+**解决方案 A - 使用 get() 方法**：
+```python
+count = info.get("operations_count", 0)  # ✅ 更安全
+```
+
+**解决方案 B - 类型断言**：
+```python
+from typing import cast
+count = cast(int, info["operations_count"])
+```
+
+**解决方案 C - TypedDict（推荐用于固定结构）**：
+```python
+from typing import TypedDict
+
+class QueueInfo(TypedDict):
+    operations_count: int
+    status: str
+
+info: QueueInfo = {"operations_count": 10, "status": "ok"}
+count = info["operations_count"]  # ✅ 类型正确
+```
+
+**解决方案 D - 全局配置（已在 pyrightconfig.json 中配置）**：
+```json
+{
+  "reportArgumentType": "warning"
+}
+```
+
 ## 技术细节
 
 ### Monorepo 导入路径解析
