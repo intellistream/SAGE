@@ -1,0 +1,1983 @@
+/* Animations */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes streamFlow {
+    0% { transform: translateX(-100px); }
+    100% { transform: translateX(100px); }
+}
+
+@keyframes nodeFloat {
+    0% { 
+        transform: translate(0, 0) scale(1);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    50% { 
+        transform: translate(100vw, -50px) scale(1.2);
+        opacity: 0.8;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% { 
+        transform: translate(200vw, 0) scale(1);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        opacity: 0.3;
+        transform: scaleX(1);
+    }
+    50% { 
+        opacity: 0.8;
+        transform: scaleX(1.1);
+    }
+}
+
+@keyframes dataFlow {
+    0% {
+        transform: translateX(-100px);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(calc(100vw + 100px));
+        opacity: 0;
+    }
+}
+
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes labelFlow {
+    0% {
+        transform: translateX(-200px);
+        opacity: 0;
+    }
+    5% {
+        opacity: 1;
+    }
+    95% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(calc(100vw + 200px));
+        opacity: 0;
+    }
+}
+
+/* Enhanced Navigation Animations */
+@keyframes iconPulse {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
+    }
+    50% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 15px rgba(0, 0, 0, 0.2));
+    }
+}
+
+@keyframes iconRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-5deg);
+    }
+    75% {
+        transform: rotate(5deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes iconBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+/* Add hover animations to icons */
+.floating-nav-links a i {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1;
+}
+
+.nav-icon-play:hover i {
+    animation: iconRotate 0.6s ease-in-out;
+}
+
+.nav-icon-docs:hover i {
+    animation: iconPulse 0.8s ease-in-out;
+}
+
+.nav-icon-code:hover i {
+    animation: iconBounce 0.5s ease-in-out;
+}
+
+.nav-icon-github:hover i {
+    animation: iconRotate 0.4s ease-in-out;
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInFromBottom {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeInUp {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* Article Monitoring Animation System */
+/* 30-second loop with 4 phases (7.5s each) */
+
+.article-monitoring-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 2rem 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.article-monitoring-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Animation Controls */
+.animation-controls {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+    display: flex;
+    gap: 8px;
+}
+
+.control-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.control-btn.active {
+    background: rgba(59, 130, 246, 0.6);
+}
+
+/* ArXiv Source */
+.arxiv-source {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.arxiv-source::after {
+    content: 'ArXiv';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+/* Document Flow */
+.document-flow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.document {
+    position: absolute;
+    width: 40px;
+    height: 50px;
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+}
+
+.document::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 6px;
+    right: 6px;
+    height: 2px;
+    background: #64748b;
+    border-radius: 1px;
+    box-shadow: 0 6px 0 #64748b, 0 12px 0 #64748b, 0 18px 0 #64748b;
+}
+
+/* Processing Pipeline */
+.processing-pipeline {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 60px;
+}
+
+.process-stage {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    transition: all 0.3s ease;
+}
+
+.process-stage.text-parsing {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.process-stage.keyword-filter {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+}
+
+.process-stage.semantic-analysis {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.process-stage::after {
+    content: attr(data-label);
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.process-stage.active {
+    transform: scale(1.2);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.4);
+}
+
+/* Neural Network Visualization */
+.neural-network {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 120px;
+    height: 80px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.neural-layer {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.neural-layer.input { left: 0; }
+.neural-layer.hidden { left: 40px; }
+.neural-layer.output { right: 0; }
+
+.neural-node {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.neural-connection {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, #3b82f6, transparent);
+    opacity: 0.6;
+}
+
+/* User Delivery Interface */
+.user-interface {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.user-interface::after {
+    content: 'User';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+/* Particle Effects */
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #3b82f6;
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.particle.accepted {
+    background: #10b981;
+}
+
+.particle.rejected {
+    background: #ef4444;
+}
+
+/* Phase-specific Animations */
+
+/* Phase 1: Document Flow (0-7.5s) */
+@keyframes documentFlow {
+    0% {
+        left: 120px;
+        top: 50%;
+        opacity: 0;
+        transform: translateY(-50%) scale(0.8);
+    }
+    5% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+    }
+    25% {
+        left: 45%;
+        opacity: 1;
+    }
+    95% {
+        opacity: 1;
+    }
+    100% {
+        left: calc(100% - 120px);
+        opacity: 0;
+        transform: translateY(-50%) scale(0.8);
+    }
+}
+
+/* Phase 2: Processing Stages (7.5-15s) */
+@keyframes stageActivation {
+    0%, 20% { transform: scale(1); }
+    10% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes textHighlight {
+    0%, 100% {
+        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    }
+    50% {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+    }
+}
+
+/* Phase 3: Filtering Process (15-22.5s) */
+@keyframes filterDecision {
+    0% {
+        transform: translateY(-50%) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-50%) scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes acceptedPath {
+    0% { transform: translateY(-50%) translateX(0); }
+    100% { transform: translateY(-50%) translateX(200px); }
+}
+
+@keyframes rejectedPath {
+    0% { transform: translateY(-50%) translateX(0); }
+    100% { transform: translateY(-30%) translateX(100px) scale(0.5); }
+}
+
+/* Phase 4: User Delivery (22.5-30s) */
+@keyframes deliveryGlow {
+    0%, 100% {
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+    }
+    50% {
+        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.6);
+        transform: translateY(-50%) scale(1.1);
+    }
+}
+
+@keyframes particleStream {
+    0% {
+        left: 45%;
+        opacity: 0;
+        transform: scale(0);
+    }
+    10% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        left: calc(100% - 120px);
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+
+/* Neural Network Animation */
+@keyframes neuralPulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes connectionFlow {
+    0% {
+        opacity: 0;
+        transform: scaleX(0);
+        transform-origin: left;
+    }
+    50% {
+        opacity: 0.8;
+        transform: scaleX(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scaleX(1);
+        transform-origin: right;
+    }
+}
+
+/* Main Animation Classes */
+.article-monitoring-container.playing .document {
+    animation: documentFlow 7.5s infinite;
+}
+
+.article-monitoring-container.playing .document:nth-child(2) {
+    animation-delay: 1.5s;
+}
+
+.article-monitoring-container.playing .document:nth-child(3) {
+    animation-delay: 3s;
+}
+
+.article-monitoring-container.playing .document:nth-child(4) {
+    animation-delay: 4.5s;
+}
+
+.article-monitoring-container.playing .process-stage.text-parsing {
+    animation: stageActivation 2s infinite 7.5s;
+}
+
+.article-monitoring-container.playing .process-stage.keyword-filter {
+    animation: stageActivation 2s infinite 10s;
+}
+
+.article-monitoring-container.playing .process-stage.semantic-analysis {
+    animation: stageActivation 2s infinite 12.5s;
+}
+
+.article-monitoring-container.playing .neural-network {
+    opacity: 1;
+    animation: none;
+}
+
+.article-monitoring-container.playing .neural-node {
+    animation: neuralPulse 1.5s infinite 15s;
+}
+
+.article-monitoring-container.playing .neural-connection {
+    animation: connectionFlow 2s infinite 15s;
+}
+
+.article-monitoring-container.playing .user-interface {
+    animation: deliveryGlow 3s infinite 22.5s;
+}
+
+.article-monitoring-container.playing .particle {
+    animation: particleStream 7.5s infinite 22.5s;
+}
+
+.article-monitoring-container.playing .particle:nth-child(2) {
+    animation-delay: 23.5s;
+}
+
+.article-monitoring-container.playing .particle:nth-child(3) {
+    animation-delay: 25s;
+}
+
+/* Hover Effects */
+.article-monitoring-container:hover .process-stage {
+    transform: scale(1.05);
+}
+
+.article-monitoring-container:hover .arxiv-source,
+.article-monitoring-container:hover .user-interface {
+    transform: translateY(-50%) scale(1.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .article-monitoring-container {
+        height: 300px;
+    }
+    
+    .processing-pipeline {
+        gap: 40px;
+    }
+    
+    .process-stage {
+        width: 45px;
+        height: 45px;
+        font-size: 16px;
+    }
+    
+    .arxiv-source,
+    .user-interface {
+        width: 60px;
+        height: 60px;
+        font-size: 18px;
+    }
+}
+
+/* ========================================
+   DISTRIBUTED SMART HOME ANIMATION SYSTEM
+   25-second loop with 4 phases (6.25s each)
+   ======================================== */
+
+.smart-home-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 2rem 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.smart-home-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+/* Smart Home Devices */
+.laundry-robot {
+    position: absolute;
+    left: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.laundry-robot::after {
+    content: 'Robot';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.washing-machine {
+    position: absolute;
+    left: 200px;
+    top: 30%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 45px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.washing-machine::after {
+    content: 'Washer';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.drying-rack {
+    position: absolute;
+    right: 200px;
+    top: 30%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 30px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.drying-rack::after {
+    content: 'Dryer';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.environmental-sensor {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 8px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.environmental-sensor.temp-sensor {
+    top: 20%;
+    left: 30%;
+}
+
+.environmental-sensor.humidity-sensor {
+    top: 70%;
+    right: 30%;
+}
+
+.environmental-sensor.motion-sensor {
+    top: 15%;
+    right: 15%;
+}
+
+.environmental-sensor::after {
+    content: attr(data-label);
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+/* Network Connections */
+.network-connection {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.network-connection.robot-to-washer {
+    top: 50%;
+    left: 90px;
+    width: 110px;
+    transform: translateY(-50%) rotate(-15deg);
+}
+
+.network-connection.washer-to-dryer {
+    top: 30%;
+    left: 260px;
+    width: 140px;
+    transform: translateY(-50%);
+}
+
+.network-connection.robot-to-sensors {
+    top: 35%;
+    left: 90px;
+    width: 80px;
+    transform: translateY(-50%) rotate(-45deg);
+}
+
+.network-connection.sensors-to-dryer {
+    top: 45%;
+    right: 220px;
+    width: 100px;
+    transform: translateY(-50%) rotate(30deg);
+}
+
+/* Data Packets */
+.data-packet {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.data-packet.sensor-data {
+    background: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+.data-packet.control-signal {
+    background: #3b82f6;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+}
+
+.data-packet.status-update {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.data-packet.error-signal {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+/* Device Status Indicators */
+.device-status {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.device-status.idle {
+    background: #6b7280;
+}
+
+.device-status.active {
+    background: #10b981;
+    animation: statusPulse 2s infinite;
+}
+
+.device-status.communicating {
+    background: #3b82f6;
+    animation: statusPulse 1s infinite;
+}
+
+.device-status.error {
+    background: #ef4444;
+    animation: statusPulse 0.5s infinite;
+}
+
+/* Laundry Items */
+.laundry-item {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    opacity: 0;
+    transition: all 0.5s ease;
+}
+
+.laundry-item.in-washer {
+    background: #3b82f6;
+    animation: washingMotion 3s infinite;
+}
+
+.laundry-item.in-dryer {
+    background: #10b981;
+    animation: dryingMotion 2s infinite;
+}
+
+/* Phase-specific Animations */
+
+/* Phase 1: Network Initialization (0-6.25s) */
+@keyframes networkInitialization {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    80% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+}
+
+@keyframes connectionEstablish {
+    0% {
+        opacity: 0;
+        transform: scaleX(0);
+        transform-origin: left;
+    }
+    50% {
+        opacity: 0.8;
+        transform: scaleX(1);
+    }
+    100% {
+        opacity: 0.6;
+        transform: scaleX(1);
+    }
+}
+
+/* Phase 2: Environmental Monitoring (6.25-12.5s) */
+@keyframes sensorPulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.3);
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.6);
+    }
+}
+
+@keyframes dataCollection {
+    0% {
+        left: var(--start-x);
+        top: var(--start-y);
+        opacity: 0;
+        transform: scale(0);
+    }
+    10% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        left: var(--end-x);
+        top: var(--end-y);
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+
+/* Phase 3: Laundry Process Execution (12.5-18.75s) */
+@keyframes robotMovement {
+    0% {
+        left: 50px;
+        transform: translateY(-50%) rotate(0deg);
+    }
+    25% {
+        left: 180px;
+        transform: translateY(-50%) rotate(90deg);
+    }
+    50% {
+        left: 180px;
+        top: 30%;
+        transform: translateY(-50%) rotate(90deg);
+    }
+    75% {
+        left: 380px;
+        top: 30%;
+        transform: translateY(-50%) rotate(180deg);
+    }
+    100% {
+        left: 50px;
+        top: 50%;
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
+
+@keyframes washingMotion {
+    0%, 100% {
+        transform: rotate(0deg) translateX(0);
+    }
+    25% {
+        transform: rotate(90deg) translateX(2px);
+    }
+    50% {
+        transform: rotate(180deg) translateX(0);
+    }
+    75% {
+        transform: rotate(270deg) translateX(-2px);
+    }
+}
+
+@keyframes dryingMotion {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-3px) rotate(180deg);
+    }
+}
+
+@keyframes machineOperation {
+    0%, 100% {
+        transform: translateY(-50%) scale(1);
+        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+    }
+    50% {
+        transform: translateY(-50%) scale(1.05);
+        box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5);
+    }
+}
+
+/* Phase 4: Completion and Reset (18.75-25s) */
+@keyframes completionGlow {
+    0%, 100% {
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+    }
+    50% {
+        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.6);
+        transform: translateY(-50%) scale(1.1);
+    }
+}
+
+@keyframes statusPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes networkReset {
+    0% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 0.2;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Main Animation Classes */
+.smart-home-container.playing .laundry-robot {
+    animation: robotMovement 25s infinite;
+}
+
+.smart-home-container.playing .washing-machine {
+    animation: machineOperation 6s infinite 12.5s;
+}
+
+.smart-home-container.playing .drying-rack {
+    animation: completionGlow 4s infinite 18.75s;
+}
+
+.smart-home-container.playing .environmental-sensor {
+    animation: sensorPulse 3s infinite 6.25s;
+}
+
+.smart-home-container.playing .environmental-sensor.temp-sensor {
+    animation-delay: 6.25s;
+}
+
+.smart-home-container.playing .environmental-sensor.humidity-sensor {
+    animation-delay: 7s;
+}
+
+.smart-home-container.playing .environmental-sensor.motion-sensor {
+    animation-delay: 7.75s;
+}
+
+.smart-home-container.playing .network-connection {
+    animation: connectionEstablish 2s infinite;
+}
+
+.smart-home-container.playing .network-connection.robot-to-washer {
+    animation-delay: 1s;
+}
+
+.smart-home-container.playing .network-connection.washer-to-dryer {
+    animation-delay: 2s;
+}
+
+.smart-home-container.playing .network-connection.robot-to-sensors {
+    animation-delay: 0.5s;
+}
+
+.smart-home-container.playing .network-connection.sensors-to-dryer {
+    animation-delay: 1.5s;
+}
+
+/* Data Packet Animations */
+.smart-home-container.playing .data-packet {
+    animation: dataCollection 3s infinite;
+}
+
+.smart-home-container.playing .data-packet.sensor-data {
+    animation-delay: 6.25s;
+}
+
+.smart-home-container.playing .data-packet.control-signal {
+    animation-delay: 12.5s;
+}
+
+.smart-home-container.playing .data-packet.status-update {
+    animation-delay: 18.75s;
+}
+
+/* Hover Effects */
+.smart-home-container:hover .laundry-robot,
+.smart-home-container:hover .washing-machine,
+.smart-home-container:hover .drying-rack {
+    transform: translateY(-50%) scale(1.1);
+}
+
+.smart-home-container:hover .environmental-sensor {
+    transform: scale(1.2);
+}
+
+/* Device Tooltips */
+.device-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+.device-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.8);
+}
+
+.laundry-robot:hover .device-tooltip,
+.washing-machine:hover .device-tooltip,
+.drying-rack:hover .device-tooltip,
+.environmental-sensor:hover .device-tooltip {
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .smart-home-container {
+        height: 300px;
+    }
+    
+    .laundry-robot {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+    
+    .washing-machine {
+        width: 48px;
+        height: 36px;
+        font-size: 14px;
+    }
+    
+    .drying-rack {
+        width: 40px;
+        height: 24px;
+        font-size: 12px;
+    }
+    
+    .environmental-sensor {
+        width: 16px;
+        height: 16px;
+        font-size: 6px;
+    }
+    
+    .device-tooltip {
+        font-size: 10px;
+        padding: 6px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .smart-home-container {
+        height: 250px;
+    }
+    
+    .laundry-robot {
+        left: 30px;
+        width: 28px;
+        height: 28px;
+    }
+    
+    .washing-machine {
+        left: 150px;
+        width: 40px;
+        height: 30px;
+    }
+    
+    .drying-rack {
+        right: 150px;
+        width: 32px;
+        height: 20px;
+    }
+}
+
+/* ========================================
+   AUTO-SCALING CHAT SYSTEM ANIMATION
+   35-second loop with 4 phases (8.75s each)
+   ======================================== */
+
+.auto-scaling-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 2rem 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.auto-scaling-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 10%, rgba(16, 185, 129, 0.05) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+/* User Load Visualization */
+.user-load-section {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 120px;
+    height: 100px;
+}
+
+.user-load-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.user-icons-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    width: 100%;
+}
+
+.user-icon {
+    width: 12px;
+    height: 12px;
+    background: #10b981;
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 6px;
+    color: white;
+}
+
+.user-icon.active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.user-icon.warning {
+    background: #f59e0b;
+}
+
+.user-icon.critical {
+    background: #ef4444;
+}
+
+.user-count-display {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    font-weight: 600;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    backdrop-filter: blur(10px);
+}
+
+/* Load Balancer */
+.load-balancer {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    z-index: 5;
+}
+
+.load-balancer::after {
+    content: 'Load Balancer';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.load-balancer-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border: 2px solid #3b82f6;
+    border-radius: 12px;
+    opacity: 0;
+}
+
+/* Server Grid */
+.server-grid {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 140px;
+}
+
+.server-instance {
+    width: 40px;
+    height: 60px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 6px;
+    position: relative;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    cursor: pointer;
+}
+
+.server-instance.active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.server-instance.scaling {
+    animation: serverScaleIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.server-utilization {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.utilization-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+
+.server-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    color: white;
+    font-weight: 600;
+}
+
+/* Traffic Flow Lines */
+.traffic-flow {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.traffic-flow.user-to-lb {
+    top: 50%;
+    left: 140px;
+    width: 120px;
+    transform: translateY(-50%);
+}
+
+.traffic-flow.lb-to-servers {
+    top: 50%;
+    left: 60%;
+    width: 100px;
+    transform: translateY(-50%);
+}
+
+/* Scaling Triggers */
+.scaling-trigger {
+    position: absolute;
+    top: 15px;
+    right: 180px;
+    background: rgba(245, 158, 11, 0.9);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.scaling-trigger.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.scaling-trigger.critical {
+    background: rgba(239, 68, 68, 0.9);
+    animation: triggerPulse 1s infinite;
+}
+
+/* Resource Metrics Dashboard */
+.metrics-dashboard {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 200px;
+    height: 80px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 10px;
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.metrics-dashboard.visible {
+    opacity: 1;
+}
+
+.metric-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+.metric-label {
+    width: 40px;
+    font-weight: 600;
+}
+
+.metric-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    margin: 0 8px;
+    overflow: hidden;
+}
+
+.metric-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.metric-fill.cpu {
+    background: linear-gradient(90deg, #10b981, #f59e0b);
+}
+
+.metric-fill.memory {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+}
+
+.metric-fill.network {
+    background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.metric-value {
+    width: 30px;
+    text-align: right;
+    font-weight: 600;
+    color: white;
+}
+
+/* Cloud Provider Integration */
+.cloud-provider {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 50px;
+    height: 30px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.cloud-provider::after {
+    content: 'Cloud';
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.cloud-spawn-effect {
+    position: absolute;
+    top: 50px;
+    right: 45px;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #10b981;
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0);
+}
+
+/* Interactive Elements */
+.user-load-slider {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 150px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.slider-label {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.load-slider {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+.load-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.load-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* Phase-specific Animations */
+
+/* Phase 1: Initial Load (0-8.75s) */
+@keyframes userGrowth {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes trafficFlow {
+    0% {
+        opacity: 0;
+        transform: scaleX(0);
+        transform-origin: left;
+    }
+    50% {
+        opacity: 0.8;
+        transform: scaleX(1);
+    }
+    100% {
+        opacity: 0.6;
+        transform: scaleX(1);
+    }
+}
+
+/* Phase 2: Resource Optimization (8.75-17.5s) */
+@keyframes utilizationIncrease {
+    0% { width: 30%; }
+    50% { width: 70%; }
+    100% { width: 85%; }
+}
+
+@keyframes loadBalancerStress {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        box-shadow: 0 6px 24px rgba(245, 158, 11, 0.5);
+    }
+}
+
+@keyframes pulseWarning {
+    0%, 100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1.5);
+    }
+}
+
+/* Phase 3: Scaling Triggered (17.5-26.25s) */
+@keyframes serverScaleIn {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(180deg);
+    }
+    60% {
+        opacity: 1;
+        transform: scale(1.2) rotate(0deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+@keyframes cloudSpawn {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.5);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+@keyframes triggerPulse {
+    0%, 100% {
+        opacity: 0.9;
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-2px) scale(1.05);
+    }
+}
+
+/* Phase 4: Load Distribution (26.25-35s) */
+@keyframes loadDistribution {
+    0% { width: 85%; }
+    50% { width: 45%; }
+    100% { width: 35%; }
+}
+
+@keyframes systemStabilized {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.05);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+}
+
+/* Main Animation Classes */
+.auto-scaling-container.playing .user-icon {
+    animation: userGrowth 0.5s ease-out;
+}
+
+.auto-scaling-container.playing .traffic-flow {
+    animation: trafficFlow 2s infinite;
+}
+
+.auto-scaling-container.playing .traffic-flow.user-to-lb {
+    animation-delay: 0.5s;
+}
+
+.auto-scaling-container.playing .traffic-flow.lb-to-servers {
+    animation-delay: 1s;
+}
+
+.auto-scaling-container.playing .load-balancer-pulse {
+    animation: pulseWarning 3s infinite 8.75s;
+}
+
+.auto-scaling-container.playing .load-balancer {
+    animation: loadBalancerStress 4s infinite 8.75s;
+}
+
+.auto-scaling-container.playing .cloud-spawn-effect {
+    animation: cloudSpawn 1.5s ease-out 17.5s;
+}
+
+.auto-scaling-container.playing .server-instance.scaling {
+    animation: serverScaleIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Hover Effects */
+.auto-scaling-container:hover .server-instance {
+    transform: scale(1.05);
+}
+
+.auto-scaling-container:hover .load-balancer {
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.auto-scaling-container:hover .user-icon.active {
+    transform: scale(1.2);
+}
+
+.auto-scaling-container:hover .metrics-dashboard {
+    opacity: 1;
+}
+
+/* Interactive Hover States */
+.server-instance:hover {
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5);
+    transform: scale(1.1) !important;
+}
+
+.server-instance:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 8px;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.load-balancer:hover::before {
+    content: 'CPU: 75% | Memory: 60% | Connections: 1,247';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 8px;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .auto-scaling-container {
+        height: 300px;
+    }
+    
+    .server-grid {
+        width: 100px;
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .server-instance {
+        width: 32px;
+        height: 48px;
+    }
+    
+    .load-balancer {
+        width: 48px;
+        height: 48px;
+        font-size: 16px;
+    }
+    
+    .user-load-section {
+        width: 100px;
+        height: 80px;
+    }
+    
+    .user-icons-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+    
+    .user-icon {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .metrics-dashboard {
+        width: 160px;
+        height: 60px;
+        padding: 8px;
+    }
+    
+    .user-load-slider {
+        width: 120px;
+        padding: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .auto-scaling-container {
+        height: 250px;
+    }
+    
+    .server-grid {
+        width: 80px;
+    }
+    
+    .server-instance {
+        width: 28px;
+        height: 40px;
+    }
+    
+    .load-balancer {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
+    
+    .user-load-section {
+        width: 80px;
+        height: 60px;
+    }
+    
+    .user-icons-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .metrics-dashboard {
+        width: 140px;
+        height: 50px;
+        font-size: 8px;
+    }
+}

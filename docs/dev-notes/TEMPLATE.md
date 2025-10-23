@@ -1,9 +1,33 @@
 # [Feature/Fix Name] - Issue #[Number]
 
-**Date:** [YYYY-MM-DD]  
-**Author:** [Your Name/GitHub Handle]  
-**Type:** [Feature Implementation | Bug Fix | Refactoring | Documentation | Security Fix]  
-**Status:** [In Progress | Completed | Archived]
+**Date**: [YYYY-MM-DD]  
+**Author**: [Your Name/GitHub Handle]  
+**Summary**: [One-line summary of this document]  
+**Type**: [Feature Implementation | Bug Fix | Refactoring | Documentation | Security Fix]  
+**Status**: [In Progress | Completed | Archived]  
+**Related**: [#issue-number, #pr-number]
+
+---
+
+## 📂 文档分类说明
+
+此文档应放置在以下分类目录之一：
+
+- `architecture/` - 系统架构相关
+- `kernel/` - Kernel 层开发笔记
+- `middleware/` - Middleware 层开发笔记
+- `libs/` - Libs 层开发笔记
+- `apps/` - Apps 层开发笔记
+- `ci-cd/` - CI/CD 和构建相关
+- `performance/` - 性能优化相关
+- `security/` - 安全相关
+- `testing/` - 测试相关
+- `deployment/` - 部署相关
+- `migration/` - 迁移和重构相关
+- `tools/` - 开发工具相关
+- `archive/` - 已归档文档（只读）
+
+**⚠️ 重要**: 不要直接在 `docs/dev-notes/` 根目录创建文档！
 
 ---
 

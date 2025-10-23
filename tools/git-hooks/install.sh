@@ -123,6 +123,7 @@ if [ "$QUIET_MODE" = false ]; then
     print_info ""
     print_info "以下功能已激活:"
     print_info "  • 代码质量检查: black, isort, ruff, mypy（需要 pre-commit）"
+    print_info "  • Dev-notes 文档规范检查: 分类、元数据等"
     print_info "  • 架构合规性检查: 包依赖、导入路径等"
     print_info ""
     print_info "使用方法:"
@@ -130,7 +131,9 @@ if [ "$QUIET_MODE" = false ]; then
     print_info "  • 跳过检查: git commit --no-verify -m 'message'"
     print_info "  • 安装代码检查工具: pip install pre-commit"
     print_info ""
-    print_info "详细信息请查看: docs/PACKAGE_ARCHITECTURE.md"
+    print_info "相关文档:"
+    print_info "  • 架构规范: docs-public/docs_src/dev-notes/package-architecture.md"
+    print_info "  • 文档模板: docs/dev-notes/TEMPLATE.md"
     print_info "======================================================================"
 fi
 

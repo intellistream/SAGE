@@ -38,7 +38,7 @@ DEFAULT_FINETUNE_PORT = 8000
   * 启动 vLLM 服务
   * 等待服务就绪
   * 连接 OpenAI 客户端
-  
+
 - `cleanup()`: 清理资源
   * 退出时自动关闭启动的服务
 
@@ -158,13 +158,13 @@ sequenceDiagram
     User->>CLI: sage chat --backend finetune
     CLI->>Generator: 初始化 (backend="finetune")
     Generator->>Generator: 检查模型存在性
-    
+
     alt 模型不存在
         Generator-->>CLI: 报错
         CLI-->>User: 提示先运行微调
     else 模型存在
         Generator->>VLLM: 检查服务状态
-        
+
         alt 服务未运行
             Generator->>Generator: 检查合并模型
             alt 未合并
@@ -173,10 +173,10 @@ sequenceDiagram
             Generator->>VLLM: 启动服务
             Generator->>VLLM: 等待就绪
         end
-        
+
         Generator->>Generator: 连接 OpenAI 客户端
         CLI-->>User: 显示准备就绪
-        
+
         loop 对话循环
             User->>CLI: 输入问题
             CLI->>Generator: 生成回答
@@ -187,7 +187,7 @@ sequenceDiagram
             Generator-->>CLI: 返回回答
             CLI-->>User: 显示回答
         end
-        
+
         User->>CLI: 退出
         CLI->>Generator: cleanup()
         Generator->>VLLM: 终止服务（如果是我们启动的）

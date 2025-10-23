@@ -29,7 +29,7 @@ jobs:
     name: Build and Test SAGE
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -51,50 +51,50 @@ jobs:
           cat > .env << EOF
           # CI Environment Configuration (Auto-generated from GitHub Secrets)
           # This file is created during CI/CD and should not be committed to git
-          
+
           # ==================================================
           # LLM Service API Keys
           # ==================================================
-          
+
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
           OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
-          
+
           SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
           JINA_API_KEY=${{ secrets.JINA_API_KEY }}
           ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
-          
+
           # vLLM configuration for local/self-hosted services
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
-          
+
           WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
-          
+
           # ==================================================
           # GitHub Token for Repository Access
           # ==================================================
-          
+
           GIT_TOKEN=${{ secrets.GIT_TOKEN }}
-          
+
           # ==================================================
           # Hugging Face Configuration
           # ==================================================
-          
+
           HF_TOKEN=${{ secrets.HF_TOKEN }}
           HF_ENDPOINT=https://hf-mirror.com
-          
+
           # ==================================================
           # CI/CD Settings
           # ==================================================
-          
+
           SAGE_DEBUG=false
           SAGE_SKIP_CPP_EXTENSIONS=false
           SAGE_LOG_LEVEL=INFO
           SAGE_TEST_MODE=true
           SAGE_EXAMPLES_MODE=test
           EOF
-          
+
           echo "✅ .env 文件创建完成"
           echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
           cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
@@ -110,7 +110,7 @@ jobs:
             libopenblas-dev \
             liblapack-dev \
             git
-          
+
           echo "✅ 系统依赖安装完成"
           echo "📋 验证关键工具："
           gcc --version | head -1
@@ -122,7 +122,7 @@ jobs:
         run: |
           echo "� 验证Git子模块..."
           git submodule status
-          
+
           # 验证关键子模块
           echo ""
           echo "� 验证关键子模块目录："
@@ -145,18 +145,18 @@ jobs:
           echo "📝 环境变量设置："
           echo "  CI=true"
           echo "  PATH=$PATH"
-          
+
           # 确保PATH包含用户安装的脚本
           export PATH="$HOME/.local/bin:$PATH"
-          
+
           chmod +x ./quickstart.sh
-          
+
           # 在CI环境中，quickstart.sh会自动检测并安装系统依赖
           # 然后调用 'sage extensions install all' 来构建C++扩展
           echo ""
           echo "开始安装（将构建C++扩展）..."
           ./quickstart.sh --standard --pip --yes
-          
+
           echo ""
           echo "✅ 安装脚本执行完成"
           echo "📋 检查安装日志中的扩展构建信息："
@@ -171,7 +171,7 @@ jobs:
       - name: Verify C++ Extensions
         run: |
           echo "🧩 验证C++扩展安装状态..."
-          
+
           # 检查子模块目录结构
           echo ""
           echo "� 检查子模块目录结构："
@@ -193,7 +193,7 @@ jobs:
               echo "❌ $component 目录不存在"
             fi
           done
-          
+
           # 检查.so文件
           echo ""
           echo "📁 检查已编译的.so文件:"
@@ -201,7 +201,7 @@ jobs:
           if [ -n "$so_files" ]; then
             echo "✅ 找到C++扩展文件:"
             echo "$so_files"
-            
+
             # 检查每个.so文件的依赖
             echo ""
             echo "🔗 检查.so文件依赖:"
@@ -214,7 +214,7 @@ jobs:
             echo "🔍 可能的构建日志位置："
             find . -name "CMakeError.log" -o -name "make_output.log" 2>/dev/null | head -5 || true
           fi
-          
+
           # 检查扩展功能可用性
           echo ""
           echo "🔍 测试扩展Python导入:"
@@ -223,10 +223,10 @@ jobs:
           print(f'Python 版本: {sys.version}')
           print(f'Python 路径: {sys.executable}')
           print()
-          
+
           # 尝试导入扩展
           extensions_status = {}
-          
+
           # 测试 sage_db
           try:
               from sage.middleware.components.sage_db.python import sage_db
@@ -241,9 +241,9 @@ jobs:
           except Exception as e:
               print(f'❌ sage_db 导入失败: {e}')
               extensions_status['sage_db'] = False
-          
+
           print()
-          
+
           # 测试 sage_flow
           try:
               from sage.middleware.components.sage_flow.python import sage_flow
@@ -258,9 +258,9 @@ jobs:
           except Exception as e:
               print(f'❌ sage_flow 导入失败: {e}')
               extensions_status['sage_flow'] = False
-          
+
           print()
-          
+
           # 使用兼容性检查
           try:
               from sage.middleware.components.extensions_compat import check_extensions_availability
@@ -270,7 +270,7 @@ jobs:
               for ext, status in available.items():
                   symbol = '✅' if status else '❌'
                   print(f'  {symbol} {ext}: {\"可用\" if status else \"不可用\"}')
-              
+
               if total == 0:
                   print()
                   print('⚠️ 警告: 没有C++扩展可用')
@@ -291,7 +291,7 @@ jobs:
           echo "✅ 验证SAGE安装..."
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage.common; print('✅ sage.common imported')"
-          
+
           # 验证扩展状态
           python -c "
           try:
@@ -303,10 +303,35 @@ jobs:
               print('⚠️ 扩展兼容性模块不可用，跳过检查')
           "
 
+      - name: Run Dev-notes Documentation Check
+        run: |
+          echo "📚 检查 dev-notes 文档规范..."
+
+          # 检查是否有 dev-notes 变更
+          DEVNOTES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^docs/dev-notes/.*\.md$' || true)
+
+          if [ -n "$DEVNOTES_CHANGED" ]; then
+            echo "📝 发现 dev-notes 文档变更"
+            python tools/devnotes_checker.py \
+              --changed-only \
+              --diff "origin/${{ github.base_ref }}" \
+              --strict || {
+                echo ""
+                echo "❌ Dev-notes 文档不符合规范！"
+                echo "请查看上方日志了解详细信息"
+                echo "模板: docs/dev-notes/TEMPLATE.md"
+                exit 1
+              }
+          else
+            echo "ℹ️  没有 dev-notes 文档变更"
+          fi
+
+          echo "✅ Dev-notes 文档检查完成"
+
       - name: Run Architecture Compliance Check
         run: |
           echo "🏗️ 运行架构合规性检查..."
-          
+
           # 在 PR 中仅检查变更文件
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "📝 PR 模式：检查变更文件"
@@ -317,7 +342,7 @@ jobs:
                 echo ""
                 echo "❌ 架构合规性检查失败！"
                 echo "请查看上方日志了解详细信息"
-                echo "文档: docs/PACKAGE_ARCHITECTURE.md"
+                echo "文档: docs-public/docs_src/dev-notes/package-architecture.md"
                 exit 1
               }
           else
@@ -326,10 +351,10 @@ jobs:
             python tools/architecture_checker.py --changed-only --diff HEAD~5 || {
               echo ""
               echo "⚠️  发现架构问题，但不阻塞 CI"
-              echo "请尽快修复: docs/PACKAGE_ARCHITECTURE.md"
+              echo "请尽快修复: docs-public/docs_src/dev-notes/package-architecture.md"
             }
           fi
-          
+
           echo ""
           echo "✅ 架构检查完成"
 
@@ -337,7 +362,7 @@ jobs:
         run: |
           echo "🧪 运行核心测试..."
           python -c "import sage; import sage.common; print('✅ 核心导入测试通过')"
-          
+
           if command -v sage >/dev/null 2>&1; then
             sage --help > /dev/null && echo "✅ CLI测试通过"
           fi
@@ -347,7 +372,7 @@ jobs:
           echo "🧪 运行单元测试并收集覆盖率..."
           # 安装测试依赖
           pip install pytest pytest-cov pytest-timeout
-          
+
           # 运行测试并生成覆盖率报告
           pytest -v \
             --cov=packages \
@@ -386,7 +411,7 @@ jobs:
           echo "🌟 运行Examples冒烟测试..."
           # 安装测试所需的dev依赖（包含pytest）
           pip install -e packages/sage-tools[dev]
-          
+
           # 运行快速冒烟测试（5分钟超时）
           if [ -f "./tools/tests/run_examples_tests.sh" ]; then
             chmod +x ./tools/tests/run_examples_tests.sh

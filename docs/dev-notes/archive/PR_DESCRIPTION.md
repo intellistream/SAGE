@@ -3,7 +3,7 @@
 ## ⚠️ BREAKING CHANGE
 
 This PR adds 3 previously missing packages to the build/test/deployment pipeline. This is a **breaking change** because:
-- The dependency structure has been restructured 
+- The dependency structure has been restructured
 - `sage-tools` now depends on ALL other SAGE packages
 - Installation order is critical and enforced with `--no-deps` flag
 - Existing development environments may need reinstallation

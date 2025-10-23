@@ -44,7 +44,7 @@ ensure_libstdcxx_compatibility() {
         echo "$(date): 跳过 libstdc++ 检查（${install_environment} 环境）" >> "$log_file"
         return 0
     fi
-    
+
     # ... 继续原有的检查逻辑（仅对 conda 环境）
 }
 ```

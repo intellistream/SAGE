@@ -90,11 +90,11 @@ env.submit()  # ⚠️ RemoteEnvironment.submit() 不支持 autostop 参数
 
 def receive_node_stop_signal(self, node_name: str):
     # ... 停止节点 ...
-    
+
     if len(self.tasks) == 0:
         # 所有任务完成
         self.is_running = False
-        
+
         if len(self.services) > 0:
             # 🔑 关键：清理服务
             self._cleanup_services_after_batch_completion()
@@ -109,7 +109,7 @@ def _cleanup_services_after_batch_completion(self):
                 service_task.stop()
             if hasattr(service_task, "cleanup"):
                 service_task.cleanup()
-    
+
     self.services.clear()  # 清空服务字典
 ```
 
@@ -213,7 +213,7 @@ env.stop()  # 手动调用停止
 | **Ray** | LocalEnvironment + remote=True | ✅ | ✅ Ray Actors | 代码就绪 |
 | **完全远程** | RemoteEnvironment | ⚠️ 不支持 | ⚠️ 需要手动 | 待增强 |
 
-**结论：** 
+**结论：**
 - ✅ 大多数使用场景（本地 + Ray）都已支持
 - ⚠️ RemoteEnvironment 需要在未来版本中添加支持
 - 🎯 当前修复已经覆盖了主要的生产用例

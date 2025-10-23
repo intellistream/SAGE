@@ -197,7 +197,7 @@ SAGE_QA_GENERATOR=openai SAGE_QA_GENERATOR_PROFILE=vllm \
 
 ---
 
-**重要提醒：** 
+**重要提醒：**
 - 所有之前泄露的真实 API keys 应该立即在对应平台上撤销/重新生成
 - 建议检查 git 历史记录，确保之前提交的 keys 也被清理
 - 如果 keys 已经被提交到公共仓库，必须立即撤销并重新生成

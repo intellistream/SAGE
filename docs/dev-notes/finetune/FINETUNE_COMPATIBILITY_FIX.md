@@ -25,14 +25,14 @@ ImportError: cannot import name 'LlamaFlashAttention2' from 'transformers.models
 finetune = [
     # LoRA/PEFT 支持
     "peft>=0.7.0",
-    
+
     # 训练加速
     "accelerate>=0.25.0",
-    
+
     # 监控和可视化
     "tensorboard>=2.14.0",
     "wandb>=0.16.0",
-    
+
     # TRL for RLHF/DPO
     "trl>=0.23.0",
 ]
@@ -87,20 +87,20 @@ def check_training_dependencies() -> bool:
 ```python
 def start_training(config_path: Path, use_native: bool = True):
     """启动训练过程
-    
+
     Args:
         config_path: 训练配置文件路径
         use_native: 是否使用 SAGE 原生训练脚本（推荐）
     """
     sage_root = get_sage_root()
     train_script = sage_root / "scripts" / "simple_finetune.py"
-    
+
     if use_native:
         # 使用 SAGE 原生训练脚本
         with open(config_path) as f:
             config = json.load(f)
         output_dir = Path(config.get("output_dir", "finetune_output"))
-        
+
         cmd = ["python", str(train_script), str(output_dir)]
     else:
         # 尝试使用 LLaMA-Factory (可能不兼容)
@@ -115,9 +115,9 @@ def run_training(
     use_native: bool = typer.Option(True, "--use-native/--use-llamafactory", help="使用 SAGE 原生训练脚本（推荐）"),
 ):
     """🚀 运行微调训练
-    
+
     使用已有的配置文件或输出目录启动训练
-    
+
     示例:
       sage finetune run finetune_output/code              # 使用输出目录
       sage finetune run config.json --use-llamafactory    # 使用 LLaMA-Factory
@@ -342,7 +342,7 @@ sage finetune run path/to/config.json
 **文档版本**: v1.0  
 **更新时间**: 2025-10-07  
 **作者**: GitHub Copilot  
-**相关文档**: 
+**相关文档**:
 - `FINETUNE_README.md` - 功能总览
 - `FINETUNE_QUICKSTART.md` - 快速开始
 - `FINETUNE_DEPENDENCIES.md` - 依赖说明

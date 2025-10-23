@@ -10,7 +10,7 @@
 
 ## 修复方案
 
-### 1. 修改 `dispatcher.py` 
+### 1. 修改 `dispatcher.py`
 
 #### 修改 `receive_node_stop_signal` 方法
 在所有计算节点停止后，添加服务清理逻辑：
@@ -22,14 +22,14 @@ if len(self.tasks) == 0:
         "All computation nodes stopped, batch processing completed"
     )
     self.is_running = False
-    
+
     # 当所有计算节点停止后，也应该清理服务
     if len(self.services) > 0:
         self.logger.info(
             f"Cleaning up {len(self.services)} services after batch completion"
         )
         self._cleanup_services_after_batch_completion()
-    
+
     return True
 ```
 
@@ -38,7 +38,7 @@ if len(self.tasks) == 0:
 def _cleanup_services_after_batch_completion(self):
     """在批处理完成后清理所有服务"""
     self.logger.info("Cleaning up services after batch completion")
-    
+
     if self.remote:
         # 清理 Ray 服务
         self._cleanup_ray_services()
@@ -51,18 +51,18 @@ def _cleanup_services_after_batch_completion(self):
                     self.logger.debug(f"Stopping service task: {service_name}")
                     if hasattr(service_task, "stop"):
                         service_task.stop()
-                
+
                 # 清理服务（无论是否在运行）
                 if hasattr(service_task, "cleanup"):
                     self.logger.debug(f"Cleaning up service task: {service_name}")
                     service_task.cleanup()
-                
+
                 self.logger.info(f"Service task '{service_name}' cleaned up successfully")
             except Exception as e:
                 self.logger.error(
                     f"Error cleaning up service task {service_name}: {e}"
                 )
-    
+
     # 清空服务字典
     self.services.clear()
     self.logger.info("All services cleaned up")

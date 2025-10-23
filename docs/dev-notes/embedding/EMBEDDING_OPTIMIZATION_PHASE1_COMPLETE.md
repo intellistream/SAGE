@@ -193,15 +193,15 @@ RuntimeError: hf 方法需要 API Key。
 def build_embedder(config):
     method = config.get("method")
     params = config.get("params", {})
-    
+
     if method == "hash":  # ← 特殊处理
         dim = params.get("dim", DEFAULT_FIXED_DIM)
         return HashingEmbedder(dim)  # ← 特殊类
-    
+
     if method == "mockembedder":  # ← 特殊处理
         if "fixed_dim" not in params:
             params["fixed_dim"] = DEFAULT_FIXED_DIM
-    
+
     return EmbeddingModel(method=method, **params)
 ```
 
@@ -211,7 +211,7 @@ def build_embedder(config):
     """构建 embedder 实例（使用新的统一接口）"""
     method = config.get("method", DEFAULT_EMBEDDING_METHOD)
     params = config.get("params", {})
-    
+
     # 统一使用新接口，不需要特殊处理！
     return get_embedding_model(method, **params)
 ```

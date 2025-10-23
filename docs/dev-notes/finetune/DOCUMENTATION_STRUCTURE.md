@@ -54,7 +54,7 @@ graph TD
     B -->|需要详细信息| C[README.md]
     B -->|想用聊天功能| D[CHAT_BACKEND.md]
     C -->|深入了解| E[开发者文档]
-    
+
     F[开发者] -->|了解架构| E
     E -->|参考 API| C
     E -->|快速测试| B

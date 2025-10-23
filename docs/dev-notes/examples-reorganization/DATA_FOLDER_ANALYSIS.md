@@ -75,7 +75,7 @@ examples/data/
 
 ### 🗂️ 特殊目录
 
-**neuromem_datasets/** 
+**neuromem_datasets/**
 - 包含 `locomo_dataloader.py` 和 `locomo_download.py`
 - 这些是数据下载工具，不是数据文件
 - 建议: 移动到 `examples/data/` 目录外（如 `tools/` 或单独的示例）

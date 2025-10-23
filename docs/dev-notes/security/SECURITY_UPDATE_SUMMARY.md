@@ -286,7 +286,7 @@ SAGE_QA_GENERATOR=openai SAGE_QA_GENERATOR_PROFILE=vllm \
 
 ## 🎉 完成状态
 
-**所有工作已完成！** 
+**所有工作已完成！**
 
 SAGE 项目的 API key 管理现在完全符合安全最佳实践。
 

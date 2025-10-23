@@ -579,7 +579,7 @@ sage pipeline build --name "环境变量测试" --goal "测试" --non-interactiv
 
 ```bash
 # 快速迭代，使用 hash
-sage pipeline build --name "dev" --goal "..." 
+sage pipeline build --name "dev" --goal "..."
 ```
 
 ### 2. 测试阶段

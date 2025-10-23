@@ -11,12 +11,12 @@
 def submit(self, autostop: bool = False) -> str:
     """
     提交环境到远程JobManager
-    
+
     Args:
         autostop: 如果为True，方法将阻塞直到所有批处理任务完成后自动停止
     """
     # ... 提交作业 ...
-    
+
     if autostop:
         self._wait_for_completion()  # 等待作业完成
 ```

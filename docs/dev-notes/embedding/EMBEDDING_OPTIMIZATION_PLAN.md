@@ -24,10 +24,10 @@ packages/sage-middleware/src/sage/middleware/utils/embedding/
 
 class HashingEmbedder:
     """Lightweight embedding that hashes tokens into a fixed-length vector."""
-    
+
     def __init__(self, dim: int = DEFAULT_FIXED_DIM) -> None:
         self._dim = max(64, int(dim))
-    
+
     def embed(self, text: str) -> List[float]:
         # 实现哈希embedding...
 ```
@@ -44,18 +44,18 @@ class HashingEmbedder:
 def build_embedder(config: Dict[str, object]) -> Any:
     method = str(config.get("method", DEFAULT_EMBEDDING_METHOD))
     params = dict(config.get("params", {}))
-    
+
     if method == "hash":
         return HashingEmbedder(dim)  # ← 特殊处理
-    
+
     if method == "mockembedder" and "fixed_dim" not in params:
         params["fixed_dim"] = DEFAULT_FIXED_DIM
-    
+
     embedder = EmbeddingModel(method=method, **params)  # ← 其他走标准接口
     return embedder
 ```
 
-**问题**: 
+**问题**:
 - `hash` 方法需要特殊处理
 - 默认参数逻辑分散
 - 类型不统一 (`HashingEmbedder` vs `EmbeddingModel`)
@@ -180,30 +180,30 @@ from typing import List, Optional, Dict, Any
 
 class BaseEmbedding(ABC):
     """所有 Embedding 模型的抽象基类"""
-    
+
     def __init__(self, **kwargs):
         self.config = kwargs
-    
+
     @abstractmethod
     def embed(self, text: str) -> List[float]:
         """单文本 embedding"""
         pass
-    
+
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """批量 embedding（默认实现：逐个调用）"""
         return [self.embed(text) for text in texts]
-    
+
     @abstractmethod
     def get_dim(self) -> int:
         """获取 embedding 维度"""
         pass
-    
+
     @property
     @abstractmethod
     def method_name(self) -> str:
         """返回方法名（如 'hf', 'openai'）"""
         pass
-    
+
     @classmethod
     def get_model_info(cls) -> Dict[str, Any]:
         """返回模型元信息（子类可选实现）"""
@@ -250,9 +250,9 @@ class ModelInfo:
 
 class EmbeddingRegistry:
     """Embedding 模型注册表"""
-    
+
     _registry: Dict[str, ModelInfo] = {}
-    
+
     @classmethod
     def register(
         cls,
@@ -276,39 +276,39 @@ class EmbeddingRegistry:
             example_models=example_models or [],
             wrapper_class=wrapper_class,
         )
-    
+
     @classmethod
     def list_methods(cls) -> List[str]:
         """列出所有已注册的方法"""
         return list(cls._registry.keys())
-    
+
     @classmethod
     def get_model_info(cls, method: str) -> Optional[ModelInfo]:
         """获取模型信息"""
         return cls._registry.get(method)
-    
+
     @classmethod
     def check_status(cls, method: str, **kwargs) -> ModelStatus:
         """检查模型状态"""
         info = cls.get_model_info(method)
         if not info:
             return ModelStatus.UNAVAILABLE
-        
+
         # API Key 检查
         if info.requires_api_key:
             api_key = kwargs.get("api_key") or os.getenv(f"{method.upper()}_API_KEY")
             if not api_key:
                 return ModelStatus.NEEDS_API_KEY
-        
+
         # 本地模型缓存检查
         if info.requires_model_download:
             model_name = kwargs.get("model")
             if model_name and is_model_cached(model_name):
                 return ModelStatus.CACHED
             return ModelStatus.NEEDS_DOWNLOAD
-        
+
         return ModelStatus.AVAILABLE
-    
+
     @classmethod
     def get_wrapper_class(cls, method: str) -> Optional[Type]:
         """获取 Wrapper 类"""
@@ -341,12 +341,12 @@ from .registry import EmbeddingRegistry, ModelStatus
 
 class EmbeddingFactory:
     """Embedding 模型工厂"""
-    
+
     @staticmethod
     def create(method: str, **kwargs) -> BaseEmbedding:
         """
         创建 Embedding 实例
-        
+
         Args:
             method: embedding 方法名 (hf, openai, hash, mockembedder, ...)
             **kwargs: 方法特定参数
@@ -354,28 +354,28 @@ class EmbeddingFactory:
                 - api_key: API 密钥 (openai, jina 等需要)
                 - base_url: API 端点 (openai 可选)
                 - fixed_dim: 固定维度 (mockembedder, hash 需要)
-        
+
         Returns:
             BaseEmbedding 实例
-        
+
         Raises:
             ValueError: 不支持的方法或缺少必要参数
             RuntimeError: 模型不可用
-        
+
         Examples:
             >>> # HuggingFace 模型
             >>> emb = EmbeddingFactory.create(
             ...     method="hf",
             ...     model="BAAI/bge-small-zh-v1.5"
             ... )
-            
+
             >>> # OpenAI API
             >>> emb = EmbeddingFactory.create(
             ...     method="openai",
             ...     model="text-embedding-3-small",
             ...     api_key=os.getenv("OPENAI_API_KEY")
             ... )
-            
+
             >>> # Mock embedder (测试)
             >>> emb = EmbeddingFactory.create(
             ...     method="mockembedder",
@@ -390,7 +390,7 @@ class EmbeddingFactory:
                 f"不支持的 embedding 方法: {method}\n"
                 f"可用方法: {available}"
             )
-        
+
         # 检查状态
         status = EmbeddingRegistry.check_status(method, **kwargs)
         if status == ModelStatus.NEEDS_API_KEY:
@@ -398,7 +398,7 @@ class EmbeddingFactory:
                 f"{method} 方法需要 API Key。\n"
                 f"请设置环境变量 {method.upper()}_API_KEY 或传递 api_key 参数。"
             )
-        
+
         # 创建实例
         try:
             return wrapper_class(**kwargs)
@@ -406,12 +406,12 @@ class EmbeddingFactory:
             raise RuntimeError(
                 f"创建 {method} embedding 实例失败: {e}"
             ) from e
-    
+
     @staticmethod
     def list_models() -> Dict[str, Dict[str, Any]]:
         """
         列出所有可用的 embedding 方法
-        
+
         Returns:
             Dict[method_name, model_info]
         """
@@ -428,12 +428,12 @@ class EmbeddingFactory:
                     "examples": info.example_models,
                 }
         return result
-    
+
     @staticmethod
     def check_availability(method: str, **kwargs) -> Dict[str, Any]:
         """
         检查特定方法的可用性
-        
+
         Returns:
             {
                 "status": "available|needs_api_key|needs_download|unavailable",
@@ -442,7 +442,7 @@ class EmbeddingFactory:
             }
         """
         status = EmbeddingRegistry.check_status(method, **kwargs)
-        
+
         messages = {
             ModelStatus.AVAILABLE: ("✅ 可用", "可以直接使用"),
             ModelStatus.CACHED: ("✅ 已缓存", "模型已下载到本地"),
@@ -456,9 +456,9 @@ class EmbeddingFactory:
             ),
             ModelStatus.UNAVAILABLE: ("❌ 不可用", "方法未注册"),
         }
-        
+
         message, action = messages.get(status, ("❓ 未知", ""))
-        
+
         return {
             "status": status.value,
             "message": message,
@@ -481,20 +481,20 @@ from ..base import BaseEmbedding
 
 class HashEmbedding(BaseEmbedding):
     """基于哈希的轻量级 Embedding（用于快速测试）"""
-    
+
     def __init__(self, dim: int = 384, **kwargs):
         super().__init__(dim=dim, **kwargs)
         self._dim = max(64, int(dim))
-    
+
     def embed(self, text: str) -> List[float]:
         if not text:
             return [0.0] * self._dim
-        
+
         vector = [0.0] * self._dim
         tokens = re.findall(r"[\w\u4e00-\u9fa5]+", text.lower())
         if not tokens:
             tokens = [text.lower()]
-        
+
         for token in tokens:
             digest = hashlib.sha256(token.encode("utf-8")).digest()
             for offset in range(0, len(digest), 4):
@@ -503,18 +503,18 @@ class HashEmbedding(BaseEmbedding):
                     chunk = chunk.ljust(4, b"\0")
                 idx = int.from_bytes(chunk, "little") % self._dim
                 vector[idx] += 1.0
-        
+
         # 归一化
         norm = sum(v * v for v in vector) ** 0.5 or 1.0
         return [v / norm for v in vector]
-    
+
     def get_dim(self) -> int:
         return self._dim
-    
+
     @property
     def method_name(self) -> str:
         return "hash"
-    
+
     @classmethod
     def get_model_info(cls):
         return {
@@ -535,12 +535,12 @@ from ..hf import hf_embed_sync  # 复用现有实现
 
 class HFEmbedding(BaseEmbedding):
     """HuggingFace Embedding Wrapper"""
-    
+
     def __init__(self, model: str, **kwargs):
         super().__init__(model=model, **kwargs)
-        
+
         from transformers import AutoModel, AutoTokenizer
-        
+
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(model)
             self.embed_model = AutoModel.from_pretrained(
@@ -550,25 +550,25 @@ class HFEmbedding(BaseEmbedding):
             raise RuntimeError(
                 f"Failed to load HuggingFace model '{model}': {e}"
             ) from e
-        
+
         # 推断维度
         self._dim = self._infer_dimension()
-    
+
     def embed(self, text: str) -> List[float]:
         return hf_embed_sync(text, self.tokenizer, self.embed_model)
-    
+
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """优化的批量 embedding"""
         # TODO: 实现真正的批量处理
         return [self.embed(text) for text in texts]
-    
+
     def get_dim(self) -> int:
         return self._dim
-    
+
     @property
     def method_name(self) -> str:
         return "hf"
-    
+
     def _infer_dimension(self) -> int:
         """通过 embedding 一个示例文本推断维度"""
         try:
@@ -576,7 +576,7 @@ class HFEmbedding(BaseEmbedding):
             return len(sample)
         except:
             return 768  # 默认维度
-    
+
     @classmethod
     def get_model_info(cls):
         return {
@@ -608,7 +608,7 @@ from .wrappers.openai_wrapper import OpenAIEmbedding
 # 注册所有方法
 def _register_all():
     """注册所有 embedding 方法"""
-    
+
     EmbeddingRegistry.register(
         method="hash",
         display_name="Hash Embedding",
@@ -617,7 +617,7 @@ def _register_all():
         default_dimension=384,
         example_models=["hash-384", "hash-768"],
     )
-    
+
     EmbeddingRegistry.register(
         method="mockembedder",
         display_name="Mock Embedder",
@@ -626,7 +626,7 @@ def _register_all():
         default_dimension=128,
         example_models=["mock-128", "mock-384"],
     )
-    
+
     EmbeddingRegistry.register(
         method="hf",
         display_name="HuggingFace Models",
@@ -639,7 +639,7 @@ def _register_all():
             "sentence-transformers/all-MiniLM-L6-v2",
         ],
     )
-    
+
     EmbeddingRegistry.register(
         method="openai",
         display_name="OpenAI Embedding API",
@@ -652,7 +652,7 @@ def _register_all():
             "text-embedding-ada-002",
         ],
     )
-    
+
     # ... 注册其他方法
 
 _register_all()
@@ -661,7 +661,7 @@ _register_all()
 def get_embedding_model(method: str, **kwargs) -> BaseEmbedding:
     """
     获取 Embedding 模型实例（推荐使用）
-    
+
     Examples:
         >>> emb = get_embedding_model("hf", model="BAAI/bge-small-zh-v1.5")
         >>> vec = emb.embed("hello world")
@@ -706,7 +706,7 @@ def build_embedder(config: Dict[str, object]) -> BaseEmbedding:
     """构建 embedder（简化版）"""
     method = str(config.get("method", "hash"))
     params = dict(config.get("params", {}))
-    
+
     # 一行搞定，不需要特殊处理！
     return get_embedding_model(method, **params)
 ```
@@ -729,11 +729,11 @@ for method, info in models.items():
 ```
 hash: 轻量级哈希 embedding（测试用）
   示例: hash-384, hash-768
-  
+
 hf: 本地 Transformer 模型
   ⚠️ 需要下载模型
   示例: BAAI/bge-small-zh-v1.5, BAAI/bge-base-zh-v1.5
-  
+
 openai: OpenAI 官方或兼容 API
   ⚠️ 需要 API Key
   示例: text-embedding-3-small, text-embedding-3-large
@@ -798,17 +798,17 @@ packages/sage-middleware/src/sage/middleware/utils/embedding/
 
 class EmbeddingModel(BaseEmbedding):
     """向后兼容的 EmbeddingModel 类"""
-    
+
     def __init__(self, method: str = "openai", **kwargs):
         # 内部使用新架构
         self._impl = get_embedding_model(method, **kwargs)
-    
+
     def embed(self, text: str) -> list[float]:
         return self._impl.embed(text)
-    
+
     def get_dim(self):
         return self._impl.get_dim()
-    
+
     # ... 其他方法委托给 _impl
 ```
 
