@@ -1,12 +1,13 @@
-.PHONY: help install lint format test test-quick test-all quality clean build publish check version docs
+.PHONY: help install lint format test test-quick test-all quality clean build publish check version docs build-extensions
 
 # 默认目标：显示帮助
 help:
 	@echo "🚀 SAGE 开发工具快捷命令"
 	@echo ""
 	@echo "📦 安装与设置:"
-	@echo "  make install      - 快速安装 SAGE（开发模式）"
-	@echo "  make install-deps - 仅安装依赖"
+	@echo "  make install         - 快速安装 SAGE（开发模式）"
+	@echo "  make install-deps    - 仅安装依赖"
+	@echo "  make build-extensions - 构建 C++ 扩展（DB, Flow, TSDB）"
 	@echo ""
 	@echo "✨ 代码质量:"
 	@echo "  make lint         - 运行代码检查（flake8）"
@@ -43,6 +44,13 @@ install:
 install-deps:
 	@echo "📦 安装依赖..."
 	pip install -r requirements.txt || true
+
+# C++ 扩展构建
+build-extensions:
+	@echo "🔨 构建 C++ 扩展..."
+	@echo "Building TSDB extension..."
+	@cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb && ./build_tsdb.sh
+	@echo "✅ All C++ extensions built successfully!"
 
 # 代码质量
 lint:
