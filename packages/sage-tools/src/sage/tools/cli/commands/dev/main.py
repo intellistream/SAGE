@@ -4,6 +4,9 @@ SAGE Dev 命令组 - 简化版本
 这个模块提供统一的dev命令接口，调用sage.tools.dev中的核心功能。
 """
 
+from pathlib import Path
+from typing import List, Tuple
+
 import typer
 from rich.console import Console
 from sage.tools.utils.diagnostics import (
@@ -88,13 +91,14 @@ def quality(
 
     from sage.common.config.output_paths import get_sage_paths
 
-    project_path = Path(project_root).resolve()
+    # 使用不同的变量名避免类型冲突
+    project_dir = Path(project_root).resolve()
 
-    if not project_path.exists():
-        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+    if not project_dir.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_dir}[/red]")
         raise typer.Exit(1)
 
-    console.print(f"📁 项目根目录: {project_path}")
+    console.print(f"📁 项目根目录: {project_dir}")
 
     # 获取SAGE路径用于日志保存
     try:
@@ -102,13 +106,13 @@ def quality(
         logs_base_dir = sage_paths.logs_dir / "tool" / "quality"
     except Exception as e:
         console.print(f"[yellow]⚠️ 无法获取SAGE路径，将使用项目根目录: {e}[/yellow]")
-        logs_base_dir = project_path / ".sage" / "logs" / "tool" / "quality"
+        logs_base_dir = project_dir / ".sage" / "logs" / "tool" / "quality"
 
     # 确定要检查的目录 - 只检查项目代码，避免第三方库
     target_paths = []
-    packages_dir = project_path / "packages"
-    tools_dir = project_path / "tools"
-    examples_dir = project_path / "examples"
+    packages_dir = project_dir / "packages"
+    tools_dir = project_dir / "tools"
+    examples_dir = project_dir / "examples"
 
     if packages_dir.exists():
         target_paths.append(str(packages_dir))
@@ -119,7 +123,7 @@ def quality(
 
     # 如果没有这些目录，则使用根目录但排除一些明显的第三方目录
     if not target_paths:
-        target_paths = [str(project_path)]
+        target_paths = [str(project_dir)]
         # 标准第三方目录排除
         black_exclude = r"test_env|venv|env|\.venv|node_modules|build|dist|\.git"
         isort_skip_patterns = [
@@ -158,7 +162,7 @@ def quality(
         )
 
     console.print(f"🎯 检查目录: {', '.join(target_paths)}")
-    if not target_paths or target_paths != [str(project_path)]:
+    if not target_paths or target_paths != [str(project_dir)]:
         console.print(
             f"⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem"
         )
@@ -176,7 +180,7 @@ def quality(
         if should_fix:
             cmd = ["black", "--exclude", black_exclude] + target_paths
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode == 0:
                 console.print("[green]✅ 代码格式化完成[/green]")
@@ -197,7 +201,7 @@ def quality(
                 + target_paths
             )
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode != 0:
                 console.print("[yellow]⚠️ 发现代码格式问题[/yellow]")
@@ -222,7 +226,7 @@ def quality(
                 cmd.extend(["--skip-glob", pattern])
             cmd.extend(target_paths)
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode == 0:
                 console.print("[green]✅ 导入排序完成[/green]")
@@ -245,7 +249,7 @@ def quality(
                 cmd.append("--diff")
             cmd.extend(target_paths)
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode != 0:
                 console.print("[yellow]⚠️ 发现导入排序问题[/yellow]")
@@ -267,7 +271,7 @@ def quality(
             # flake8配置通过项目根目录的.flake8文件控制，同时添加命令行排除
             cmd = ["flake8", "--exclude", flake8_exclude] + target_paths
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode != 0:
                 console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
@@ -367,13 +371,14 @@ def _run_quality_check(
     import subprocess
     from pathlib import Path
 
-    project_path = Path(project_path).resolve()
+    # 使用不同的变量名避免类型冲突
+    project_dir = Path(project_path).resolve()
 
     # 确定要检查的目录 - 只检查项目代码，避免第三方库
     target_paths = []
-    packages_dir = project_path / "packages"
-    tools_dir = project_path / "tools"
-    examples_dir = project_path / "examples"
+    packages_dir = project_dir / "packages"
+    tools_dir = project_dir / "tools"
+    examples_dir = project_dir / "examples"
 
     if packages_dir.exists():
         target_paths.append(str(packages_dir))
@@ -384,7 +389,7 @@ def _run_quality_check(
 
     # 如果没有这些目录，则使用根目录但排除一些明显的第三方目录
     if not target_paths:
-        target_paths = [str(project_path)]
+        target_paths = [str(project_dir)]
         # 标准第三方目录排除
         black_exclude = r"test_env|venv|env|\.venv|node_modules|build|dist|\.git"
         isort_skip_patterns = [
@@ -424,7 +429,7 @@ def _run_quality_check(
 
     if not quiet:
         console.print(f"🎯 检查目录: {', '.join(str(p) for p in target_paths)}")
-        if not target_paths or target_paths != [str(project_path)]:
+        if not target_paths or target_paths != [str(project_dir)]:
             console.print(
                 f"⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem"
             )
@@ -445,7 +450,7 @@ def _run_quality_check(
                 black_exclude,
             ] + target_paths
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode != 0:
                 if not quiet:
@@ -457,7 +462,7 @@ def _run_quality_check(
         elif fix:
             cmd = ["black", "--exclude", black_exclude] + target_paths
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode == 0:
                 if not quiet:
@@ -479,7 +484,7 @@ def _run_quality_check(
                 cmd.extend(["--skip-glob", pattern])
             cmd.extend(target_paths)
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode != 0:
                 if not quiet:
@@ -495,7 +500,7 @@ def _run_quality_check(
                 cmd.extend(["--skip-glob", pattern])
             cmd.extend(target_paths)
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode == 0:
                 if not quiet:
@@ -514,7 +519,7 @@ def _run_quality_check(
             # flake8配置通过项目根目录的.flake8文件控制，同时添加命令行排除
             cmd = ["flake8", "--exclude", flake8_exclude] + target_paths
             result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
             )
             if result.returncode != 0:
                 if not quiet:
@@ -1098,7 +1103,7 @@ def home(
             )
 
             # 显示各个子目录状态
-            subdirs = [
+            subdirs: List[Tuple[str, Path]] = [
                 ("logs", sage_paths.logs_dir),
                 ("output", sage_paths.output_dir),
                 ("temp", sage_paths.temp_dir),
@@ -1106,11 +1111,11 @@ def home(
                 ("reports", sage_paths.reports_dir),
             ]
 
-            for name, path in subdirs:
-                status = "存在" if path.exists() else "不存在"
-                if path.exists():
-                    size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
-                    file_count = len(list(path.rglob("*")))
+            for name, dir_path in subdirs:
+                status = "存在" if dir_path.exists() else "不存在"
+                if dir_path.exists():
+                    size = sum(f.stat().st_size for f in dir_path.rglob("*") if f.is_file())
+                    file_count = len(list(dir_path.rglob("*")))
                     console.print(
                         f"  � {name}: {status} ({file_count} 个文件, {size} 字节)"
                     )
