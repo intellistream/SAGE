@@ -201,8 +201,7 @@ packages/sage-libs/src/sage/libs/applications/medical_diagnosis/data/*
 # SAGE Apps 数据文件
 # ============================================
 # 医疗诊断应用数据
-packages/sage-apps/src/sage/apps/medical_diagnosis/data/processed/
-packages/sage-apps/src/sage/apps/medical_diagnosis/data/samples/
+packages/sage-apps/src/sage/apps/medical_diagnosis/data/*
 
 # 通用数据目录（保留README和配置文件）
 packages/sage-apps/src/sage/apps/**/data/processed/
