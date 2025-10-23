@@ -1,5 +1,6 @@
-"""
-SAGE Output Path Configuration
+"""SAGE Output Path Configuration
+
+Layer: L1 (Foundation - Common Configuration)
 
 This module provides a centralized configuration system for all output paths in SAGE.
 All intermediate results, logs, outputs, and temporary files should use this system
@@ -8,6 +9,10 @@ to ensure consistent placement.
 Supports both development environments and pip-installed environments:
 - Development: Uses project_root/.sage/
 - Pip-installed: Uses ~/.sage/
+
+Architecture:
+    This is a L1 foundation component providing configuration management.
+    It does not contain business logic, only path and environment management.
 """
 
 import os
@@ -360,6 +365,10 @@ class SageOutputPaths:
         - logs/ -> .sage/logs/
         - output/ -> .sage/output/
         """
+        # Skip migration if project_root is None or same as sage_dir parent
+        if self.project_root is None or not self.project_root.exists():
+            return
+            
         migrations = [
             (self.project_root / "logs", self.logs_dir),
             (self.project_root / "output", self.output_dir),

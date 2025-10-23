@@ -10,18 +10,14 @@ import random
 import sys
 from pathlib import Path
 
-# 设置项目路径
-project_root = Path(__file__).parent.parent.parent
-medical_diagnosis_dir = Path(__file__).parent
-sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(medical_diagnosis_dir))
+# 获取医疗诊断目录路径（用于访问数据和配置文件）
+medical_diagnosis_dir = Path(__file__).parent.parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
 
-# 导入我们的Agent
-from agents.diagnostic_agent import DiagnosticAgent
-from agents.image_analyzer import ImageAnalyzer
-from agents.report_generator import ReportGenerator
-
-from tools.knowledge_base import MedicalKnowledgeBase
+# 导入医疗诊断模块
+from sage.apps.medical_diagnosis.agents.diagnostic_agent import DiagnosticAgent
+from sage.apps.medical_diagnosis.agents.image_analyzer import ImageAnalyzer
+from sage.apps.medical_diagnosis.agents.report_generator import ReportGenerator
+from sage.apps.medical_diagnosis.tools.knowledge_base import MedicalKnowledgeBase
 
 
 def test_single_case():

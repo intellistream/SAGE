@@ -1,5 +1,8 @@
-"""
+""""
 Fault Tolerance Module - 分布式容错
+
+Layer: L3 (Kernel - Fault Tolerance)
+Dependencies: sage.platform (L2), sage.common (L1)
 
 容错对应用用户是透明的 - 用户只需在 Environment 配置中声明容错策略即可。
 容错对开发者是可扩展的 - 开发者可以实现自己的容错策略。

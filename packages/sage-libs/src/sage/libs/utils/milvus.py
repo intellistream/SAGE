@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -15,7 +15,7 @@ import numpy as np
 class MilvusBackend:
     """Milvus 后端管理器（支持本地 Milvus Lite 与远程 Milvus）"""
 
-    def __init__(self, config: Dict[str, Any], logger: logging.Logger = None):
+    def __init__(self, config: Dict[str, Any], logger: Union[logging.Logger, Any] = None):
         """
         初始化 Milvus 后端
 

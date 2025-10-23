@@ -1,7 +1,7 @@
 """NVIDIA NIM (OpenAI-compatible) embedding wrapper."""
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from ..base import BaseEmbedding
 
@@ -64,7 +64,7 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
         api_key: Optional[str] = None,
         input_type: str = "passage",
         trunc: str = "NONE",
-        encode: str = "float",
+        encode: Literal["float", "base64"] = "float",
         **kwargs: Any,
     ) -> None:
         """初始化 NVIDIA OpenAI Embedding
@@ -103,10 +103,10 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
 
         self._model = model
         self._base_url = base_url
-        self._api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self._api_key = api_key or os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY")
         self._input_type = input_type
         self._trunc = trunc
-        self._encode = encode
+        self._encode: Literal["float", "base64"] = encode
         self._kwargs = kwargs
 
         # 检查 API Key
@@ -114,7 +114,8 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
             raise RuntimeError(
                 "NVIDIA OpenAI embedding 需要 API Key。\n"
                 "解决方案:\n"
-                "  1. 设置环境变量: export OPENAI_API_KEY='your-key'\n"
+                "  1. 设置环境变量: export NVIDIA_API_KEY='your-key'\n"
+                "     或: export OPENAI_API_KEY='your-key'\n"
                 "  2. 传递参数: NvidiaOpenAIEmbedding(api_key='your-key', ...)\n"
                 "\n"
                 "获取 API Key: https://build.nvidia.com/"

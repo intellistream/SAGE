@@ -4,7 +4,6 @@ import os
 from typing import Any, Dict, List, Optional
 
 from ..base import BaseEmbedding
-from ..openai import openai_embed_sync  # 复用现有实现
 
 
 class OpenAIEmbedding(BaseEmbedding):
@@ -115,12 +114,14 @@ class OpenAIEmbedding(BaseEmbedding):
             RuntimeError: 如果 API 调用失败
         """
         try:
-            return openai_embed_sync(
-                text=text,
+            from openai import OpenAI
+
+            client = OpenAI(api_key=self._api_key, base_url=self._base_url)
+            response = client.embeddings.create(
                 model=self._model,
-                api_key=self._api_key,
-                base_url=self._base_url,
+                input=text,
             )
+            return response.data[0].embedding
         except Exception as e:
             raise RuntimeError(
                 f"OpenAI embedding 失败: {e}\n"

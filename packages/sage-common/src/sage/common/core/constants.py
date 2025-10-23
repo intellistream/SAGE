@@ -1,7 +1,10 @@
 """
-Kernel shared constants
+Common Core Constants
 
-Defines constants used in sage-kernel.
+定义了 SAGE 框架中使用的常量。
+这些常量可以被所有 SAGE 包使用，主要用于 kernel 的任务调度和容错配置。
+
+Layer: L1 (Foundation)
 """
 
 # Default configuration

@@ -1,3 +1,17 @@
+"""Base Service Abstract Class
+
+Layer: L2 (Platform Services)
+
+Provides the base class for all SAGE services with:
+- Service context integration
+- Logger management
+- Service-to-service communication helpers
+
+Architecture Note:
+- Uses TYPE_CHECKING import for ServiceContext (L3) - acceptable for type hints only
+- Runtime injection of context happens through ServiceFactory
+"""
+
 import logging
 from abc import ABC
 from typing import TYPE_CHECKING, Optional
@@ -7,8 +21,7 @@ if TYPE_CHECKING:
 
 
 class BaseService(ABC):
-    """
-    BaseService is the abstract base class for all services in SAGE.
+    """BaseService is the abstract base class for all services in SAGE.
     It defines the core interface and provides access to runtime context and logger.
     """
 

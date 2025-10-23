@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from sage.common.config.output_paths import get_states_file
@@ -1166,7 +1166,7 @@ class Wiki18FAISSRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"保存检索记录失败: {e}")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: Union[str, Dict[str, Any], Tuple]) -> Dict[str, Any]:
         """
         执行检索
         Args:
@@ -1260,7 +1260,7 @@ class Wiki18FAISSRetriever(MapOperator):
             else:
                 return {"query": input_query, "results": [], "input": data}
 
-    def build_index_from_wiki18(self, wiki18_data_path: str, save_path: str = None):
+    def build_index_from_wiki18(self, wiki18_data_path: str, save_path: Optional[str] = None):
         """
         从Wiki18数据集构建FAISS索引
 

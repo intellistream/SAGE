@@ -1,23 +1,32 @@
-"""
-SAGE Platform - Queue Abstractions
+"""SAGE Platform - Queue Abstractions
+
+Layer: L2 (Platform Services - Queue Module)
 
 Unified queue descriptor interface supporting multiple backends.
+
+This module provides queue descriptors that abstract different queue implementations:
+- PythonQueueDescriptor: Standard Python queue.Queue
+- RayQueueDescriptor: Ray distributed queue
+- RPCQueueDescriptor: Remote procedure call queue (requires L3 registration)
+
+Architecture:
+✅ Clean L2 design - no direct imports from L3
+✅ RPCQueueDescriptor uses factory pattern - L3 registers implementation
 """
 
 # 导出队列描述符类
 from .base_queue_descriptor import BaseQueueDescriptor
 from .python_queue_descriptor import PythonQueueDescriptor
 from .ray_queue_descriptor import RayQueueDescriptor
-from .rpc_queue_descriptor import RPCQueueDescriptor
+from .rpc_queue_descriptor import RPCQueueDescriptor, register_rpc_queue_factory
 
 
 def resolve_descriptor(data):
-    """
-    从序列化数据解析出对应的队列描述符实例
-
+    """从序列化数据解析出对应的队列描述符实例
+    
     Args:
         data: 包含队列描述符信息的字典
-
+        
     Returns:
         对应类型的队列描述符实例
     """
@@ -40,5 +49,6 @@ __all__ = [
     "PythonQueueDescriptor",
     "RayQueueDescriptor",
     "RPCQueueDescriptor",
+    "register_rpc_queue_factory",
     "resolve_descriptor",
 ]

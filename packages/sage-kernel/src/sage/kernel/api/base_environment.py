@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, Union
 
 from sage.kernel.api.function.lambda_function import wrap_lambda
 from sage.kernel.runtime.factory.service_factory import ServiceFactory
@@ -12,8 +12,8 @@ try:
     from sage.common.utils.logging.custom_logger import CustomLogger
 except ImportError:
     # 如果 CustomLogger 不可用，使用标准 logging
-    import logging
-    CustomLogger = logging.getLogger
+    import logging as _logging
+    CustomLogger = _logging.Logger  # type: ignore
 
 if TYPE_CHECKING:
     from sage.kernel.api.datastream import DataStream
@@ -158,7 +158,8 @@ class BaseEnvironment(ABC):
 
         # 如果logger已经初始化，更新其配置
         if hasattr(self, "_logger") and self._logger is not None:
-            self._logger.update_output_level("console", self.console_log_level)
+            if hasattr(self._logger, "update_output_level"):
+                self._logger.update_output_level("console", self.console_log_level)  # type: ignore
 
     def register_service(self, service_name: str, service_class: Type, *args, **kwargs):
         """
@@ -297,7 +298,7 @@ class BaseEnvironment(ABC):
         return self._get_datastream_class()(self, transformation)
 
     def from_source(
-        self, function: Union[Type["BaseFunction"], callable], *args, **kwargs
+        self, function: Union[Type["BaseFunction"], Callable], *args, **kwargs
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
@@ -313,7 +314,7 @@ class BaseEnvironment(ABC):
         return self._get_datastream_class()(self, transformation)
 
     def from_collection(
-        self, function: Union[Type["BaseFunction"], callable], *args, **kwargs
+        self, function: Union[Type["BaseFunction"], Callable], *args, **kwargs
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数

@@ -282,12 +282,12 @@ class DataStream(Generic[T]):
         """
         便捷的打印方法 - 将数据流输出到控制台
 
-        这是 sink(PrintSink, ...) 的简化版本，提供快速调试和查看数据流内容的能力
+        这是 sink(InternalPrintSink, ...) 的简化版本，提供快速调试和查看数据流内容的能力
 
         Args:
             prefix: 输出前缀，默认为空
             separator: 前缀与内容之间的分隔符，默认为 " | "
-            colored: 是否启用彩色输出，默认为True
+            colored: 是否启用彩色输出，默认为True（当前未实现）
 
         Returns:
             DataStream: 返回新的数据流用于链式调用
@@ -298,10 +298,14 @@ class DataStream(Generic[T]):
             stream.print("结果: ")  # 带前缀打印
             stream.print()  # 简单打印
             ```
+        
+        Note:
+            使用 kernel 内置的打印功能，不依赖 sage-libs。
+            如需更高级的打印功能，请使用 sage.libs.io_utils.sink.PrintSink。
         """
-        from sage.libs.io_utils.sink import PrintSink
+        from sage.kernel.api.function._internal_print_sink import InternalPrintSink
 
-        return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
+        return self.sink(InternalPrintSink, prefix=prefix, separator=separator, colored=colored)
 
     # ---------------------------------------------------------------------
     # internel methods

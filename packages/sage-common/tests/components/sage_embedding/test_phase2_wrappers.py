@@ -66,18 +66,37 @@ class TestPhase2Registration:
             assert not missing, f"方法 {method} 缺少字段: {missing}"
 
     def test_wrapper_imports(self):
-        """测试所有 wrapper 类可以被导入"""
-        from sage.common.components.sage_embedding import (
+        """测试所有 wrapper 类可以被导入
+
+        Note: Heavy wrappers use lazy loading, so they must be imported
+        from their specific modules, not from the top-level package.
+        """
+        from sage.common.components.sage_embedding import HashEmbedding, MockEmbedding
+        from sage.common.components.sage_embedding.wrappers.bedrock_wrapper import (
             BedrockEmbedding,
+        )
+        from sage.common.components.sage_embedding.wrappers.cohere_wrapper import (
             CohereEmbedding,
-            HashEmbedding,
+        )
+        from sage.common.components.sage_embedding.wrappers.hf_wrapper import (
             HFEmbedding,
+        )
+        from sage.common.components.sage_embedding.wrappers.jina_wrapper import (
             JinaEmbedding,
-            MockEmbedding,
+        )
+        from sage.common.components.sage_embedding.wrappers.nvidia_openai_wrapper import (
             NvidiaOpenAIEmbedding,
+        )
+        from sage.common.components.sage_embedding.wrappers.ollama_wrapper import (
             OllamaEmbedding,
+        )
+        from sage.common.components.sage_embedding.wrappers.openai_wrapper import (
             OpenAIEmbedding,
+        )
+        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
             SiliconCloudEmbedding,
+        )
+        from sage.common.components.sage_embedding.wrappers.zhipu_wrapper import (
             ZhipuEmbedding,
         )
 
@@ -100,6 +119,7 @@ class TestPhase2Registration:
             assert hasattr(wrapper_cls, "embed")
             assert hasattr(wrapper_cls, "get_dim")
             print(f"✓ {wrapper_cls.__name__} 导入成功")
+
 
 
 class TestNoAPIKeyMethods:
@@ -135,7 +155,9 @@ class TestAPIKeyMethods:
         """测试 OpenAI 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding import OpenAIEmbedding
+        from sage.common.components.sage_embedding.wrappers.openai_wrapper import (
+            OpenAIEmbedding,
+        )
 
         # 临时清除环境变量
         old_key = os.environ.pop("OPENAI_API_KEY", None)
@@ -150,7 +172,9 @@ class TestAPIKeyMethods:
         """测试 Jina 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding import JinaEmbedding
+        from sage.common.components.sage_embedding.wrappers.jina_wrapper import (
+            JinaEmbedding,
+        )
 
         old_key = os.environ.pop("JINA_API_KEY", None)
         try:
@@ -164,21 +188,25 @@ class TestAPIKeyMethods:
         """测试 Zhipu 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding import ZhipuEmbedding
+        from sage.common.components.sage_embedding.wrappers.zhipu_wrapper import (
+            ZhipuEmbedding,
+        )
 
-        old_key = os.environ.pop("ZHIPU_API_KEY", None)
+        old_key = os.environ.pop("ZHIPUAI_API_KEY", None)
         try:
             with pytest.raises(RuntimeError, match="需要 API Key"):
                 ZhipuEmbedding(model="embedding-3")
         finally:
             if old_key:
-                os.environ["ZHIPU_API_KEY"] = old_key
+                os.environ["ZHIPUAI_API_KEY"] = old_key
 
     def test_cohere_requires_api_key(self):
         """测试 Cohere 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding import CohereEmbedding
+        from sage.common.components.sage_embedding.wrappers.cohere_wrapper import (
+            CohereEmbedding,
+        )
 
         old_key = os.environ.pop("COHERE_API_KEY", None)
         try:
@@ -192,9 +220,11 @@ class TestAPIKeyMethods:
         """测试 Bedrock 需要 AWS 凭证"""
         import os
 
-        from sage.common.components.sage_embedding import BedrockEmbedding
+        from sage.common.components.sage_embedding.wrappers.bedrock_wrapper import (
+            BedrockEmbedding,
+        )
 
-        # 保存并清除 AWS 凭证
+        # 临时清除 AWS 环境变量
         old_keys = {
             "AWS_ACCESS_KEY_ID": os.environ.pop("AWS_ACCESS_KEY_ID", None),
             "AWS_SECRET_ACCESS_KEY": os.environ.pop("AWS_SECRET_ACCESS_KEY", None),
@@ -211,7 +241,9 @@ class TestAPIKeyMethods:
         """测试 SiliconCloud 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding import SiliconCloudEmbedding
+        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
+            SiliconCloudEmbedding,
+        )
 
         old_key = os.environ.pop("SILICONCLOUD_API_KEY", None)
         try:
@@ -225,15 +257,21 @@ class TestAPIKeyMethods:
         """测试 NVIDIA OpenAI 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding import NvidiaOpenAIEmbedding
+        from sage.common.components.sage_embedding.wrappers.nvidia_openai_wrapper import (
+            NvidiaOpenAIEmbedding,
+        )
 
-        old_key = os.environ.pop("OPENAI_API_KEY", None)
+        # 清除所有可能的API key环境变量
+        old_nvidia_key = os.environ.pop("NVIDIA_API_KEY", None)
+        old_openai_key = os.environ.pop("OPENAI_API_KEY", None)
         try:
             with pytest.raises(RuntimeError, match="需要 API Key"):
                 NvidiaOpenAIEmbedding(model="nvidia/llama-3.2-nv-embedqa-1b-v1")
         finally:
-            if old_key:
-                os.environ["OPENAI_API_KEY"] = old_key
+            if old_nvidia_key:
+                os.environ["NVIDIA_API_KEY"] = old_nvidia_key
+            if old_openai_key:
+                os.environ["OPENAI_API_KEY"] = old_openai_key
 
 
 class TestModelAvailability:

@@ -1,4 +1,10 @@
-"""Base class for all embedding models."""
+"""Base class for all embedding models.
+
+Layer: L1 (Foundation - Common Components)
+
+This module defines the abstract base class that all embedding wrappers must implement,
+ensuring a consistent interface across all embedding providers.
+"""
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional

@@ -1,8 +1,12 @@
 """Embedding Service for SAGE.
 
+Layer: L1 (Foundation - Common Components)
+
 This service provides a unified interface for all embedding methods,
 including local models (HuggingFace), API-based (OpenAI, Jina, etc.),
 and vLLM-based embedding models.
+
+Note: This service component is designed to be used by L2 (Platform) and higher layers.
 """
 
 from __future__ import annotations
@@ -132,7 +136,7 @@ class EmbeddingService(BaseService):
                     kwargs["base_url"] = self.config.base_url
 
                 self._embedder = EmbeddingFactory.create(self.config.method, **kwargs)
-                self._dimension = self._embedder.get_dimension()
+                self._dimension = self._embedder.get_dim()
                 self.logger.info(f"Embedding model loaded: dim={self._dimension}")
 
             # Setup cache if enabled
@@ -151,7 +155,7 @@ class EmbeddingService(BaseService):
         with self._lock:
             if self._embedder is not None:
                 if hasattr(self._embedder, "cleanup"):
-                    self._embedder.cleanup()
+                    self._embedder.cleanup()  # type: ignore
                 self._embedder = None
             if self._cache is not None:
                 self._cache.clear()
@@ -180,6 +184,8 @@ class EmbeddingService(BaseService):
         options = (payload or {}).get("options", {})
 
         if task == "embed":
+            if inputs is None:
+                raise ValueError("'inputs' is required for task 'embed'")
             return self.embed(inputs, **options)
         if task == "info":
             return self.get_info()
@@ -256,6 +262,8 @@ class EmbeddingService(BaseService):
         if uncached_texts:
             if self.config.method == "vllm":
                 # Use vLLM service
+                if not self.config.vllm_service_name:
+                    raise ValueError("vllm_service_name is required for vLLM method")
                 result = self.call_service(
                     self.config.vllm_service_name,
                     payload={
@@ -326,16 +334,19 @@ class EmbeddingService(BaseService):
 
         if self.config.method == "vllm":
             # Query vLLM service
+            if not self.config.vllm_service_name:
+                raise ValueError("vllm_service_name is required for vLLM method")
             result = self.call_service(
                 self.config.vllm_service_name,
                 payload={"task": "embed", "inputs": "test"},
             )
             self._dimension = result.get("dimension", 768)
         elif self._embedder is not None:
-            self._dimension = self._embedder.get_dimension()
+            self._dimension = self._embedder.get_dim()
         else:
             self._dimension = 768  # Default
 
+        assert self._dimension is not None
         return self._dimension
 
     def get_info(self) -> Dict[str, Any]:
@@ -366,13 +377,21 @@ class EmbeddingService(BaseService):
         for method in EmbeddingRegistry.list_methods():
             info = EmbeddingRegistry.get_model_info(method)
             if info:
+                # Determine status based on requirements
+                if info.requires_api_key:
+                    status = "needs_api_key"
+                elif info.requires_model_download:
+                    status = "needs_download"
+                else:
+                    status = "available"
+                    
                 methods.append(
                     {
                         "name": method,
                         "description": info.description,
                         "requires_api_key": info.requires_api_key,
                         "requires_model_download": info.requires_model_download,
-                        "status": info.status.value,
+                        "status": status,
                     }
                 )
 

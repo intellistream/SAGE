@@ -1,14 +1,30 @@
 """
 SAGE Kernel API - 用户友好的流处理API接口
 
+Layer: L3 (Kernel - Public API)
+Dependencies: sage.platform (L2), sage.common (L1)
+
 这个模块提供了 SAGE 的核心 API，包括：
 - 环境配置（LocalEnvironment, RemoteEnvironment）
-- 函数定义（BatchFunction, SinkFunction, SourceFunction等）
 - 数据流操作（DataStream）
+- 函数定义（BatchFunction, SinkFunction, SourceFunction等）
+- 算子抽象（MapOperator, FilterOperator等）
+
+Architecture:
+- 提供用户友好的流式处理 API
+- 内部使用 runtime 模块实现执行
+- 支持本地和远程两种执行模式
 
 示例：
+    ```python
     from sage.kernel.api import LocalEnvironment
-    from sage.kernel.api.function import MapFunction, BatchFunction, SinkFunction
+    from sage.kernel.api.function import MapFunction, SinkFunction
+    
+    env = LocalEnvironment("my_app")
+    stream = env.from_collection([1, 2, 3])
+    stream.map(lambda x: x * 2).print()
+    env.execute()
+    ```
 """
 
 # 导入主要 API 类

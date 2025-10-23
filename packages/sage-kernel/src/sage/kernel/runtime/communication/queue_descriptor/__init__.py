@@ -1,5 +1,12 @@
 """
 SAGE - Streaming-Augmented Generative Execution
+
+Layer: L3 (Kernel)
+Dependencies: sage.platform (L2)
+
+Architecture Notes:
+- L3 queue descriptors inherit from L2 base classes
+- RPCQueueDescriptor is imported from sage-platform (L2) - proper downward dependency
 """
 
 # 直接从本包的_version模块加载版本信息
@@ -11,11 +18,13 @@ except ImportError:
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
 
-# 导出队列描述符类
+# 导出队列描述符类 - L3实现
 from .base_queue_descriptor import BaseQueueDescriptor
 from .python_queue_descriptor import PythonQueueDescriptor
 from .ray_queue_descriptor import RayQueueDescriptor
-from .rpc_queue_descriptor import RPCQueueDescriptor
+
+# RPCQueueDescriptor从L2导入 - 正确的向下依赖
+from sage.platform.queue import RPCQueueDescriptor
 
 
 def resolve_descriptor(data):

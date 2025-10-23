@@ -1,7 +1,25 @@
 """
 Fault Tolerance Usage Examples
 
+Layer: L3 (Kernel - Examples)
+Dependencies: sage.libs (L3 - optional, for examples only)
+
 展示应用用户如何使用容错（无感知）以及开发者如何扩展容错策略。
+
+⚠️ IMPORTANT - 架构说明:
+    本文件是**可选示例代码**，不是 kernel 的核心功能。
+    示例中使用 sage.libs 的 Source/Sink 是为了演示完整的容错流程。
+    
+    如果 sage.libs 不可用，这些示例将无法运行，但不影响 kernel 的核心功能。
+    
+    用户可以使用自己的 Source/Sink 实现，无需依赖 sage.libs。
+
+Architecture Note:
+    这些示例导入 sage.libs 是**合理的**，因为：
+    1. 示例代码不是核心 API
+    2. 用于演示完整的使用场景
+    3. 导入失败不会影响 kernel 功能
+    4. 用户可以用自己的实现替代
 """
 
 # ============================================================================
@@ -14,10 +32,29 @@ def example_1_user_checkpoint_strategy():
     示例 1: 应用用户使用 Checkpoint 策略
 
     用户只需在 Environment 配置中声明，无需编写任何容错代码。
+    
+    Note: 此示例使用 sage.libs 的 Source/Sink，如果不可用请使用自己的实现。
     """
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.libs.io_utils.sink import TerminalSink
-    from sage.libs.io_utils.source import FileSource
+    
+    # 可选依赖：sage.libs 的 Source/Sink
+    # 用户可以用自己的实现替代
+    try:
+        try:
+
+            from sage.libs.io_utils.sink import TerminalSink
+
+            from sage.libs.io_utils.source import FileSource
+
+        except ImportError:
+
+            raise ImportError("This example requires sage.libs")
+    except ImportError:
+        raise ImportError(
+            "This example requires sage.libs. "
+            "Install it with: pip install sage-libs\n"
+            "Or use your own Source/Sink implementations."
+        )
 
     # 创建环境时声明使用 Checkpoint 容错策略
     env = LocalEnvironment(
@@ -55,8 +92,15 @@ def example_2_user_restart_strategy():
     使用指数退避重启策略，用户同样无需编写容错代码。
     """
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.libs.io_utils.sink import TerminalSink
-    from sage.libs.io_utils.source import FileSource
+    try:
+
+        from sage.libs.io_utils.sink import TerminalSink
+
+        from sage.libs.io_utils.source import FileSource
+
+    except ImportError:
+
+        raise ImportError("This example requires sage.libs")
 
     # 使用指数退避重启策略
     env = LocalEnvironment(
@@ -93,8 +137,15 @@ def example_3_user_no_fault_tolerance():
     示例 3: 用户不配置容错（使用默认行为）
     """
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.libs.io_utils.sink import TerminalSink
-    from sage.libs.io_utils.source import FileSource
+    try:
+
+        from sage.libs.io_utils.sink import TerminalSink
+
+        from sage.libs.io_utils.source import FileSource
+
+    except ImportError:
+
+        raise ImportError("This example requires sage.libs")
 
     # 不配置 fault_tolerance，使用默认行为
     env = LocalEnvironment("simple_pipeline")
@@ -119,8 +170,15 @@ def example_4_user_yaml_config():
     """
     from sage.common.utils.config.loader import load_config
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.libs.io_utils.sink import TerminalSink
-    from sage.libs.io_utils.source import FileSource
+    try:
+
+        from sage.libs.io_utils.sink import TerminalSink
+
+        from sage.libs.io_utils.source import FileSource
+
+    except ImportError:
+
+        raise ImportError("This example requires sage.libs")
 
     # config.yaml 内容示例：
     # fault_tolerance:

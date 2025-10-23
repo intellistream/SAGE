@@ -1,7 +1,10 @@
 """
-Shared Kernel Exception Classes
+Common Core Exception Classes
 
-Defines the exception class hierarchy used in sage-kernel.
+定义了 SAGE 框架中使用的异常类层次结构。
+这些异常可以被所有 SAGE 包使用，主要用于 kernel 的任务调度和容错。
+
+Layer: L1 (Foundation)
 """
 
 

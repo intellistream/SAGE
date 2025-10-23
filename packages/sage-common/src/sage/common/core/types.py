@@ -1,7 +1,10 @@
 """
-Kernel 共享类型定义
+Common Core Types
 
-定义了 sage-kernel 中使用的核心数据类型和枚举。
+定义了 SAGE 框架中使用的核心数据类型和枚举。
+这些类型可以被所有 SAGE 包使用（kernel, libs, middleware 等）。
+
+Layer: L1 (Foundation)
 """
 
 from enum import Enum

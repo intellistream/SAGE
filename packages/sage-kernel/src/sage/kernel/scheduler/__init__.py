@@ -1,6 +1,9 @@
 """
 Scheduler Module - 分布式任务调度（重构后架构）
 
+Layer: L3 (Kernel - Scheduler)
+Dependencies: sage.platform (L2), sage.common (L1)
+
 架构原则：
 1. 职责分离：
    - Scheduler: 纯决策者（返回 PlacementDecision）

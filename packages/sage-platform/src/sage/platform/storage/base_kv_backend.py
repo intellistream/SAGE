@@ -1,3 +1,15 @@
+"""Base Key-Value Backend Abstract Class
+
+Layer: L2 (Platform Services - Storage)
+
+Abstract base class for key-value storage backends.
+Defines the interface that all KV storage implementations must follow.
+
+Architecture:
+- Pure L2 abstraction, no dependencies on upper layers
+- Provides backend-agnostic storage interface
+"""
+
 # file: sage/core/sage.middleware.services.neuromem./storage_engine/kv_backend/base_kv_backend.py
 
 from abc import ABC, abstractmethod
@@ -5,8 +17,8 @@ from typing import Any
 
 
 class BaseKVBackend(ABC):
-    """
-    Abstract base class for key-value backends.
+    """Abstract base class for key-value backends.
+    
     抽象基类，用于定义 KV 存储后端接口规范。
     """
 

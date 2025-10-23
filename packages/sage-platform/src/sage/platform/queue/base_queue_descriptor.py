@@ -1,5 +1,6 @@
-"""
-Base Queue Descriptor - 统一多态通信描述符基类
+"""Base Queue Descriptor - 统一多态通信描述符基类
+
+Layer: L2 (Platform Services - Queue Descriptors)
 
 提供一个统一的多态队列描述符结构，支持：
 1. 直接调用队列方法 (put, get, empty, qsize等)
@@ -8,6 +9,10 @@ Base Queue Descriptor - 统一多态通信描述符基类
 4. 跨进程传递队列描述符信息
 
 通过继承支持各种队列类型：本地队列、共享内存队列、Ray队列、SAGE队列等。
+
+Architecture:
+- L2 abstraction for queue interfaces
+- Subclasses may need to import concrete implementations from L3 (architectural debt)
 """
 
 import json

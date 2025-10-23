@@ -1,4 +1,17 @@
-"""Blocking vLLM service integration for SAGE."""
+"""Blocking vLLM service integration for SAGE.
+
+Layer: L1 (Foundation - Common Components)
+
+This module provides a SAGE service wrapper around vLLM for:
+- High-performance LLM text generation
+- LLM-based embeddings
+- Model management (download, switch, fine-tune)
+
+Dependencies:
+    - sage.platform.service (L2 - BaseService interface)
+    - sage.common.model_registry (L1 - Model management)
+    - vllm (external - optional dependency)
+"""
 
 from __future__ import annotations
 
@@ -75,8 +88,8 @@ class VLLMService(BaseService):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
         self.config = VLLMServiceConfig.from_dict(config)
-        self._text_engine: Optional[LLM] = None
-        self._embedding_engine: Optional[LLM] = None
+        self._text_engine: Optional["LLM"] = None  # type: ignore
+        self._embedding_engine: Optional["LLM"] = None  # type: ignore
         self._sampling_defaults = self._build_sampling_params(self.config.sampling)
         self._lock = threading.RLock()
 
@@ -125,8 +138,12 @@ class VLLMService(BaseService):
         options = (payload or {}).get("options", {})
 
         if task == "generate":
+            if inputs is None:
+                raise ValueError("'generate' task requires 'inputs'")
             return self.generate(inputs, **options)
         if task == "embed":
+            if inputs is None:
+                raise ValueError("'embed' task requires 'inputs'")
             return self.embed(inputs, **options)
         if task == "show_models":
             return [
@@ -285,7 +302,7 @@ class VLLMService(BaseService):
 
     def _load_text_engine(
         self, *, force_reload: bool, revision: Optional[str] = None
-    ) -> LLM:
+    ) -> "LLM":  # type: ignore
         with self._lock:
             if self._text_engine is not None and not force_reload:
                 return self._text_engine
@@ -314,7 +331,7 @@ class VLLMService(BaseService):
 
     def _load_embedding_engine(
         self, *, force_reload: bool, revision: Optional[str] = None
-    ) -> LLM:
+    ) -> "LLM":  # type: ignore
         with self._lock:
             if self._embedding_engine is not None and not force_reload:
                 return self._embedding_engine
@@ -372,14 +389,14 @@ class VLLMService(BaseService):
             return [texts]
         return [str(text) for text in texts]
 
-    def _merge_sampling_params(self, overrides: Dict[str, Any]) -> SamplingParams:
+    def _merge_sampling_params(self, overrides: Dict[str, Any]) -> "SamplingParams":  # type: ignore
         merged = dict(_DEFAULT_SAMPLING)
         merged.update(self.config.sampling)
         merged.update({k: v for k, v in overrides.items() if v is not None})
         filtered = {k: v for k, v in merged.items() if v is not None}
         return self._build_sampling_params(filtered)
 
-    def _build_sampling_params(self, params: Dict[str, Any]) -> SamplingParams:
+    def _build_sampling_params(self, params: Dict[str, Any]) -> "SamplingParams":  # type: ignore
         if SamplingParams is None:
             raise RuntimeError("vLLM is not installed; cannot create SamplingParams")
         return SamplingParams(**params)

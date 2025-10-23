@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import numpy as np
 
@@ -15,7 +15,7 @@ import numpy as np
 class ChromaBackend:
     """ChromaDB 后端管理器"""
 
-    def __init__(self, config: Dict[str, Any], logger: logging.Logger = None):
+    def __init__(self, config: Dict[str, Any], logger: Union[logging.Logger, Any] = None):
         """
         初始化 ChromaDB 后端
 
