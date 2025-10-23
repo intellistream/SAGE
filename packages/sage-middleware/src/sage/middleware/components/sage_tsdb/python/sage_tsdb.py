@@ -3,6 +3,8 @@ SAGE TSDB - High-performance time series database for streaming data
 
 This module provides Python APIs for time series data storage, querying,
 and processing with support for out-of-order data and various algorithms.
+
+Uses C++ implementation for high performance when available, with pure Python fallback.
 """
 
 from dataclasses import dataclass
@@ -11,6 +13,14 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+
+# Try to import C++ bindings
+try:
+    from . import _sage_tsdb
+    HAS_CPP_BACKEND = True
+except ImportError:
+    _sage_tsdb = None
+    HAS_CPP_BACKEND = False
 
 
 class AggregationType(Enum):
@@ -223,6 +233,8 @@ class SageTSDB:
     - Fast queries with time range and tag filtering
     - Pluggable algorithms for stream processing
     - Window-based aggregations
+    
+    Uses C++ backend when available for optimal performance.
     """
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -233,7 +245,16 @@ class SageTSDB:
             config: Optional configuration dictionary
         """
         self._config = config or {}
-        self._index = TimeSeriesIndex()
+        
+        # Use C++ backend if available
+        if HAS_CPP_BACKEND:
+            self._db = _sage_tsdb.TimeSeriesDB()
+            self._backend = "cpp"
+        else:
+            # Fallback to pure Python implementation
+            self._index = TimeSeriesIndex()
+            self._backend = "python"
+            
         self._algorithms: Dict[str, Any] = {}
 
     def add(
@@ -258,10 +279,28 @@ class SageTSDB:
         if isinstance(timestamp, datetime):
             timestamp = int(timestamp.timestamp() * 1000)
 
-        data = TimeSeriesData(
-            timestamp=timestamp, value=value, tags=tags, fields=fields
-        )
-        return self._index.add(data)
+        if self._backend == "cpp":
+            # Use C++ backend
+            if isinstance(value, np.ndarray):
+                value_list = value.tolist()
+            elif isinstance(value, (list, tuple)):
+                value_list = list(value)
+            else:
+                value_list = value
+                
+            # C++ backend handles tags/fields differently
+            return self._db.add(
+                timestamp,
+                value_list if isinstance(value_list, list) else value_list,
+                tags or {},
+                fields or {}
+            )
+        else:
+            # Pure Python implementation
+            data = TimeSeriesData(
+                timestamp=timestamp, value=value, tags=tags, fields=fields
+            )
+            return self._index.add(data)
 
     def add_batch(
         self,
@@ -459,14 +498,25 @@ class SageTSDB:
     @property
     def size(self) -> int:
         """Get number of data points"""
-        return self._index.size()
+        if self._backend == "cpp":
+            return self._db.size()
+        else:
+            return self._index.size()
 
     def get_stats(self) -> Dict[str, Any]:
         """Get database statistics"""
-        return {
+        stats = {
             "size": self.size,
+            "backend": self._backend,
             "algorithms": list(self._algorithms.keys()),
         }
+        
+        if self._backend == "cpp":
+            # Get C++ specific stats
+            cpp_stats = self._db.get_stats()
+            stats.update(cpp_stats)
+            
+        return stats
 
 
 __all__ = [
