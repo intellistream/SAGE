@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from sage.common.config.output_paths import get_states_file
+from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 from sage.kernel.operators import MapOperator
 from sage.libs.utils.chroma import ChromaBackend, ChromaUtils
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
@@ -103,34 +104,25 @@ class ChromaRetriever(MapOperator):
 
     def _init_embedding_model(self):
         """初始化 embedding 模型"""
-        try:
-            from sage.common.components.sage_embedding.embedding_model import (
-                EmbeddingModel,
-            )
+        embedding_method = self.embedding_config.get("method", "default")
+        model = self.embedding_config.get(
+            "model", "sentence-transformers/all-MiniLM-L6-v2"
+        )
 
-            embedding_method = self.embedding_config.get("method", "default")
-            model = self.embedding_config.get(
-                "model", "sentence-transformers/all-MiniLM-L6-v2"
-            )
+        self.logger.info(
+            f"Initializing embedding model with method: {embedding_method}"
+        )
+        self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
 
-            self.logger.info(
-                f"Initializing embedding model with method: {embedding_method}"
-            )
-            self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
-
-            # 验证向量维度
-            if hasattr(self.embedding_model, "get_dim"):
-                model_dim = self.embedding_model.get_dim()
-                if model_dim != self.vector_dimension:
-                    self.logger.warning(
-                        f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
-                    )
-                    # 更新向量维度以匹配模型
-                    self.vector_dimension = model_dim
-
-        except ImportError as e:
-            self.logger.error(f"Failed to import EmbeddingModel: {e}")
-            raise ImportError("Embedding model dependencies not available")
+        # 验证向量维度
+        if hasattr(self.embedding_model, "get_dim"):
+            model_dim = self.embedding_model.get_dim()
+            if model_dim != self.vector_dimension:
+                self.logger.warning(
+                    f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
+                )
+                # 更新向量维度以匹配模型
+                self.vector_dimension = model_dim
 
     def add_documents(
         self, documents: List[str], doc_ids: Optional[List[str]] = None
@@ -404,33 +396,25 @@ class MilvusDenseRetriever(MapOperator):
 
     def _init_embedding_model(self):
         """初始化embedding模型"""
-        try:
-            from sage.common.components.sage_embedding.embedding_model import (
-                EmbeddingModel,
-            )
+        embedding_method = self.embedding_config.get("method", "default")
+        model = self.embedding_config.get(
+            "model", "sentence-transformers/all-MiniLM-L6-v2"
+        )
 
-            embedding_method = self.embedding_config.get("method", "default")
-            model = self.embedding_config.get(
-                "model", "sentence-transformers/all-MiniLM-L6-v2"
-            )
+        self.logger.info(
+            f"Initializing embedding model with method: {embedding_method}"
+        )
+        self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
 
-            self.logger.info(
-                f"Initializing embedding model with method: {embedding_method}"
-            )
-            self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
-
-            # 验证向量维度
-            if hasattr(self.embedding_model, "get_dim"):
-                model_dim = self.embedding_model.get_dim()
-                if model_dim != self.vector_dimension:
-                    self.logger.warning(
-                        f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
-                    )
-                    # 更新向量维度以匹配模型
-                    self.vector_dimension = model_dim
-        except ImportError as e:
-            self.logger.error(f"Failed to import EmbeddingModel: {e}")
-            raise ImportError("Embedding model dependencies not available")
+        # 验证向量维度
+        if hasattr(self.embedding_model, "get_dim"):
+            model_dim = self.embedding_model.get_dim()
+            if model_dim != self.vector_dimension:
+                self.logger.warning(
+                    f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
+                )
+                # 更新向量维度以匹配模型
+                self.vector_dimension = model_dim
 
     def add_documents(
         self, documents: List[str], doc_ids: Optional[List[str]] = None
