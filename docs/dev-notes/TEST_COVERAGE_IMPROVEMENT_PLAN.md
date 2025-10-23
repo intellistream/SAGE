@@ -183,7 +183,11 @@ def test_openai_embedding(mock_openai):
 ### Week 1 (Current)
 - [x] Fix CI test failures
 - [x] Document coverage gaps
-- [ ] Set up coverage tracking
+- [x] Set up codecov integration ✅ **(Just Completed)**
+  - Added pytest-cov to CI workflow
+  - Configured codecov.yml with package targets
+  - Added codecov badge to README
+  - Created setup guide: `docs/dev-notes/CODECOV_SETUP_GUIDE.md`
 
 ### Week 2-3
 - [ ] sage-common: 25% → 60%
@@ -212,9 +216,11 @@ def test_openai_embedding(mock_openai):
 ## 📝 Next Steps
 
 **Immediate** (This Week):
-1. Run full test suite locally and document all failures
-2. Fix pytest configuration for multi-package workspace
-3. Add coverage reporting to CI workflow
+1. ~~Run full test suite locally and document all failures~~ ✅
+2. ~~Fix pytest configuration for multi-package workspace~~ ✅
+3. ~~Add coverage reporting to CI workflow~~ ✅ **DONE**
+4. **Configure CODECOV_TOKEN in GitHub secrets** 🔑
+   - See `docs/dev-notes/CODECOV_SETUP_GUIDE.md` for instructions
 
 **Short Term** (Next 2 Weeks):
 1. Write tests for highest-priority modules (logging, config)
