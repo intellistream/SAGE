@@ -24,22 +24,22 @@ from dp_unlearning.base_mechanism import BasePrivacyMechanism
 class GaussianMechanism(BasePrivacyMechanism):
     """
     Gaussian mechanism for (ε,δ)-DP.
-    
+
     **STUDENT RESEARCH TASK**: Implement this mechanism!
-    
+
     The Gaussian mechanism adds noise from N(0, σ²) where σ is calibrated
     to achieve (ε,δ)-DP for a given sensitivity.
-    
+
     Key formula:
         σ ≥ Δf * sqrt(2 * ln(1.25/δ)) / ε
-    
+
     Research tasks:
     1. Implement noise generation with correct σ
     2. Derive tight (ε,δ) guarantees
     3. Implement analytic Gaussian mechanism (tighter bounds)
     4. Compare with Laplace mechanism empirically
     """
-    
+
     def __init__(
         self,
         epsilon: float,
@@ -48,7 +48,7 @@ class GaussianMechanism(BasePrivacyMechanism):
     ):
         """
         Initialize Gaussian mechanism.
-        
+
         Args:
             epsilon: Privacy parameter
             delta: Failure probability
@@ -60,24 +60,24 @@ class GaussianMechanism(BasePrivacyMechanism):
             sensitivity=sensitivity,
             name="Gaussian"
         )
-        
+
         # TODO: Compute the required σ
         self.sigma = self._compute_sigma()
-    
+
     def _compute_sigma(self) -> float:
         """
         Compute required σ for (ε,δ)-DP.
-        
+
         **STUDENT TODO**: Implement this!
-        
+
         Standard formula:
             σ = Δf * sqrt(2 * ln(1.25/δ)) / ε
-        
+
         But you can improve this:
         - Use analytic Gaussian mechanism (Balle & Wang 2018)
         - Use tight bounds from concentrated DP
         - Implement numerical optimization for tightest σ
-        
+
         Returns:
             Required standard deviation
         """
@@ -85,10 +85,10 @@ class GaussianMechanism(BasePrivacyMechanism):
         # TODO: Implement tighter bound (see Balle & Wang 2018)
         if self.delta == 0 or self.delta >= 1:
             raise ValueError(f"Delta must be in (0, 1), got {self.delta}")
-        
+
         sigma = self.sensitivity * math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
         return sigma
-    
+
     def compute_noise(
         self,
         sensitivity: Optional[float] = None,
@@ -97,9 +97,9 @@ class GaussianMechanism(BasePrivacyMechanism):
     ) -> float:
         """
         Generate Gaussian noise: N(0, σ²).
-        
+
         **STUDENT TODO**: Complete this implementation!
-        
+
         Steps:
         1. If parameters override defaults, recompute σ
         2. Sample from N(0, σ²)
@@ -110,22 +110,22 @@ class GaussianMechanism(BasePrivacyMechanism):
             # Need to recompute sigma with new parameters
             # For now, just use default sigma
             pass
-        
+
         # Generate Gaussian noise
         noise = np.random.normal(0, self.sigma)
         return noise
-    
+
     def privacy_cost(self) -> Tuple[float, float]:
         """
         Gaussian mechanism satisfies (ε,δ)-DP.
-        
+
         **STUDENT TODO**: Derive tight bounds!
-        
+
         You can improve this by:
         - Using Renyi DP composition
         - Using concentrated DP
         - Implementing privacy amplification
-        
+
         Returns:
             (epsilon, delta)
         """
@@ -143,10 +143,10 @@ TODO for Students - Research Tasks:
 
 1. **Analytic Gaussian Mechanism** (Medium difficulty):
    Implement the tighter analysis from Balle & Wang (2018).
-   
+
    Key insight: Standard Gaussian calibration is loose. Use numerical
    optimization to find the minimal σ that satisfies (ε,δ)-DP.
-   
+
    class AnalyticGaussianMechanism(GaussianMechanism):
        def _compute_sigma(self):
            # Binary search for minimal σ
@@ -155,12 +155,12 @@ TODO for Students - Research Tasks:
 
 2. **Concentrated DP Gaussian** (Hard difficulty):
    Implement Gaussian mechanism using concentrated DP (Dwork & Rothblum 2016).
-   
+
    Benefits:
    - Tighter composition
    - Better privacy-utility trade-off
    - Unified treatment with Renyi DP
-   
+
    class ConcentratedGaussianMechanism(GaussianMechanism):
        def privacy_cost_concentrated(self):
            # Return ρ-zCDP parameter
@@ -168,10 +168,10 @@ TODO for Students - Research Tasks:
 
 3. **Subsampled Gaussian** (Research-level):
    Implement privacy amplification by subsampling.
-   
+
    If you sample q fraction of data and apply Gaussian mechanism,
    you get amplified privacy: ε' ≈ q * ε (roughly).
-   
+
    class SubsampledGaussianMechanism(GaussianMechanism):
        def __init__(self, epsilon, delta, sensitivity, sampling_rate):
            # Compute amplified epsilon

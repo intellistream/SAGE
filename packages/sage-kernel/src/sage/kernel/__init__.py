@@ -46,13 +46,13 @@ from . import api, operators
 try:
     from sage.platform.queue import register_rpc_queue_factory
     from sage.kernel.runtime.communication.rpc import RPCQueue
-    
+
     def _rpc_queue_factory(**kwargs):
         """RPC队列工厂函数 - 由L2调用创建L3实例"""
         return RPCQueue(**kwargs)
-    
+
     register_rpc_queue_factory(_rpc_queue_factory)
-    
+
 except ImportError as e:
     import warnings
     warnings.warn(

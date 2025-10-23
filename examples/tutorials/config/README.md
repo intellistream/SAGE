@@ -120,23 +120,23 @@ Most configuration files follow this general structure:
 source:
   type: "directory" | "file" | "huggingface"
   path: "path/to/data"
-  
+
 # Embedding
 embedding:
   model_name: "BAAI/bge-small-en-v1.5"
   dimension: 384
-  
+
 # Vector Store
 vector_store:
   type: "chroma" | "milvus" | "faiss"
   collection_name: "my_collection"
-  
+
 # LLM
 llm:
   provider: "openai" | "huggingface" | "vllm"
   model_name: "gpt-3.5-turbo"
   api_key: "${OPENAI_API_KEY}"  # From environment
-  
+
 # Retrieval
 retrieval:
   top_k: 3
@@ -189,11 +189,11 @@ source:
 
 embedding:
   model_name: "BAAI/bge-small-en-v1.5"
-  
+
 vector_store:
   type: "chroma"
   collection_name: "my_docs"
-  
+
 llm:
   provider: "openai"
   model_name: "gpt-3.5-turbo"
@@ -205,12 +205,12 @@ llm:
 agent:
   name: "MyAgent"
   role: "assistant"
-  
+
 llm:
   provider: "openai"
   model_name: "gpt-4"
   temperature: 0.7
-  
+
 tools:
   - name: "web_search"
     enabled: true

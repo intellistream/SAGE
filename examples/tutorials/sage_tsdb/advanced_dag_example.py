@@ -48,54 +48,54 @@ def generate_multi_sensor_data(num_sensors: int = 3, points_per_sensor: int = 30
 def detect_anomalies(db: SageTSDB, data_points: List[Dict[str, Any]], threshold_std: float = 2.5) -> List[Dict[str, Any]]:
     """Detect anomalies in time series data"""
     results = []
-    
+
     for data in data_points:
         # Query historical data
         time_range = TimeRange(
             start_time=data["timestamp"] - 30000,  # Last 30 seconds
             end_time=data["timestamp"],
         )
-        
+
         historical = db.query(time_range=time_range)
-        
+
         is_anomaly = False
         anomaly_score = 0.0
-        
+
         if len(historical) > 5:  # Need enough data
             values = [h.value for h in historical]
             mean = np.mean(values)
             std = np.std(values)
-            
+
             if std > 0:
                 z_score = abs((data["value"] - mean) / std)
                 is_anomaly = z_score > threshold_std
                 anomaly_score = z_score
-        
+
         results.append({
             **data,
             "is_anomaly": is_anomaly,
             "anomaly_score": anomaly_score,
             "historical_count": len(historical),
         })
-    
+
     return results
 
 
 def compute_window_statistics(db: SageTSDB, data_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Compute window-based statistics"""
     results = []
-    
+
     for i, data in enumerate(data_points):
         # Every 10 points, compute aggregations
         if (i + 1) % 10 == 0:
             # Query recent data
             time_range = TimeRange(
-                start_time=data["timestamp"] - 30000, 
+                start_time=data["timestamp"] - 30000,
                 end_time=data["timestamp"]
             )
-            
+
             recent_data = db.query(time_range=time_range)
-            
+
             # Compute statistics
             if recent_data:
                 values = [r.value for r in recent_data]
@@ -108,7 +108,7 @@ def compute_window_statistics(db: SageTSDB, data_points: List[Dict[str, Any]]) -
                 }
             else:
                 aggregations = {"count": 0}
-            
+
             results.append({
                 **data,
                 "aggregations": aggregations,
@@ -116,7 +116,7 @@ def compute_window_statistics(db: SageTSDB, data_points: List[Dict[str, Any]]) -
             })
         else:
             results.append({**data, "has_aggregation": False})
-    
+
     return results
 
 

@@ -234,7 +234,7 @@ class SageTSDB:
     - Fast queries with time range and tag filtering
     - Pluggable algorithms for stream processing
     - Window-based aggregations
-    
+
     Uses C++ backend when available for optimal performance.
     """
 
@@ -246,7 +246,7 @@ class SageTSDB:
             config: Optional configuration dictionary
         """
         self._config = config or {}
-        
+
         # Use C++ backend if available
         if HAS_CPP_BACKEND:
             self._db = _sage_tsdb.TimeSeriesDB()
@@ -255,7 +255,7 @@ class SageTSDB:
             # Fallback to pure Python implementation
             self._index = TimeSeriesIndex()
             self._backend = "python"
-            
+
         self._algorithms: Dict[str, Any] = {}
 
     def add(
@@ -288,7 +288,7 @@ class SageTSDB:
                 value_list = list(value)
             else:
                 value_list = value
-                
+
             # C++ backend handles tags/fields differently
             return self._db.add(
                 timestamp,
@@ -512,12 +512,12 @@ class SageTSDB:
             "backend": self._backend,
             "algorithms": list(self._algorithms.keys()),
         }
-        
+
         if self._backend == "cpp":
             # Get C++ specific stats
             cpp_stats = self._db.get_stats()
             stats.update(cpp_stats)
-            
+
         return stats
 
 

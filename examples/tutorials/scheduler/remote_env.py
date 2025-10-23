@@ -180,23 +180,23 @@ def main():
         print(
             """
 💡 关键要点：
-  
+
   1️⃣  三种指定调度器的方式：
      • 不指定 (使用默认 FIFO)
        env = RemoteEnvironment()
-     
+
      • 字符串指定
        env = RemoteEnvironment(scheduler="fifo")
        env = RemoteEnvironment(scheduler="load_aware")
-     
+
      • 实例指定
        scheduler = LoadAwareScheduler(max_concurrent=20)
        env = RemoteEnvironment(scheduler=scheduler)
-  
+
   2️⃣  并行度在 operator 级别配置：
      .map(Processor, parallelism=4)
      .filter(Filter, parallelism=2)
-  
+
   3️⃣  调度器在应用级别工作，用户无感知：
      • 自动处理所有任务调度
      • 尊重 operator 的 parallelism 设置

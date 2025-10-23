@@ -11,7 +11,7 @@ tests/
 ├── run_pytest.py              # pytest-based 测试运行器
 ├── test_basic.py              # 基础功能测试
 ├── test_cli/                  # CLI 相关测试
-│   ├── __init__.py            
+│   ├── __init__.py  
 │   ├── test_main.py           # CLI 主模块单元测试
 │   ├── test_commands_full.py  # 完整 CLI 命令功能测试
 │   └── test_smoke.py          # 快速冒烟测试
@@ -95,7 +95,7 @@ pytest -n auto                       # 需要 pytest-xdist 插件
    def project_root():
        # 返回项目根目录
        pass
-   
+
    def test_something(project_root):
        # 使用fixture
        pass

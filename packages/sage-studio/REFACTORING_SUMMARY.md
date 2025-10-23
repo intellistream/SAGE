@@ -122,7 +122,7 @@ Expanded from 2 to 20+ operator types:
   from sage.common.logging import CustomLogger
   ```
 
-**Impact**: 
+**Impact**:
 - Removed 501 lines of unnecessary code
 - Eliminated misleading warnings
 - Cleaner architecture following PACKAGE_ARCHITECTURE.md

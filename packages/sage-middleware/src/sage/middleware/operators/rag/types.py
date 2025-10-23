@@ -15,7 +15,7 @@ RAG 专用数据类型定义
 
 使用示例：
     >>> from sage.middleware.operators.rag import RAGResponse, create_rag_response
-    >>> 
+    >>>
     >>> # 算子输出标准格式
     >>> response = create_rag_response(
     ...     query="什么是机器学习",
@@ -47,22 +47,22 @@ from sage.common.core.data_types import (
 class RAGDocument(BaseDocument, total=False):
     """
     RAG 文档结构 - 扩展基础文档，添加 RAG 特定字段
-    
+
     继承 BaseDocument 的所有字段，添加了 RAG 场景常用的字段。
-    
+
     继承的必需字段：
         text: 文档文本内容
-    
+
     继承的可选字段：
         id, title, source, score, rank, metadata
-    
+
     新增 RAG 专用字段：
         contents: 原始完整内容（text 可能是摘要）
         relevance_score: RAG 特定的相关性分数
         embedding: 文档的向量嵌入
         chunk_id: 分块ID（用于长文档分块）
         references: 引用的其他文档ID列表
-    
+
     示例：
         >>> doc: RAGDocument = {
         ...     "text": "Python是一种高级编程语言...",
@@ -88,17 +88,17 @@ class RAGDocument(BaseDocument, total=False):
 class RAGQuery(ExtendedQueryResult, total=False):
     """
     RAG 查询结构 - 扩展基础查询结果，添加 RAG pipeline 相关字段
-    
+
     继承 ExtendedQueryResult，添加了 RAG pipeline 各阶段可能需要的字段。
     这个类型用于在 RAG pipeline 的各个阶段传递数据。
-    
+
     继承的必需字段：
         query: 用户查询
         results: 结果列表
-    
+
     继承的可选字段：
         query_id, timestamp, total_count, execution_time, context, metadata
-    
+
     新增 RAG 专用字段：
         external_corpus: 外部检索的文档
         references: 引用文档列表
@@ -108,7 +108,7 @@ class RAGQuery(ExtendedQueryResult, total=False):
         prompt: 使用的提示词模板
         refine_metrics: 精炼阶段的指标
         generate_time: 生成阶段耗时
-    
+
     示例：
         >>> query: RAGQuery = {
         ...     "query": "什么是机器学习",
@@ -132,20 +132,20 @@ class RAGQuery(ExtendedQueryResult, total=False):
 class RAGResponse(BaseQueryResult, total=False):
     """
     RAG 响应结构 - RAG 算子的标准输出格式
-    
+
     所有 RAG 算子都应该返回这个格式（或其父类型 BaseQueryResult）。
     这确保了 RAG pipeline 各阶段的数据流一致性。
-    
+
     继承的必需字段：
         query: 原始查询
         results: 处理后的结果列表
-    
+
     推荐 RAG 专用字段：
         generated: 最终生成的答案（Generator 输出）
         context: 使用的上下文（字符串或列表）
         execution_time: 执行时间
         metadata: 各阶段的元数据
-    
+
     示例：
         >>> response: RAGResponse = {
         ...     "query": "什么是机器学习",
@@ -184,20 +184,20 @@ RAGOutput = Union[RAGResponse, Dict[str, Any]]
 def ensure_rag_response(data: RAGInput, default_query: str = "") -> RAGResponse:
     """
     确保数据符合 RAGResponse 格式（RAG 专用）
-    
+
     这是 sage.common.core.data_types.ensure_query_result() 的 RAG 专用版本。
-    
+
     Args:
         data: 输入数据（可以是字典、元组、列表等）
         default_query: 当无法提取查询时使用的默认值
-    
+
     Returns:
         RAGResponse: 标准化的 RAG 响应
-    
+
     示例：
         >>> ensure_rag_response(("query", ["a", "b"]))
         {'query': 'query', 'results': ['a', 'b']}
-        
+
         >>> ensure_rag_response({"question": "...", "docs": [...]})
         {'query': '...', 'results': [...]}
     """
@@ -206,33 +206,33 @@ def ensure_rag_response(data: RAGInput, default_query: str = "") -> RAGResponse:
 
     base_result = ensure_query_result(data, default_query)
     rag_response: RAGResponse = {"query": base_result["query"], "results": base_result["results"]}
-    
+
     # 如果是字典，保留额外的 RAG 字段
     if isinstance(data, dict):
         for key in ["generated", "context", "execution_time", "metadata", "refine_metrics", "generate_time"]:
             if key in data:
                 rag_response[key] = data[key]  # type: ignore
-    
+
     return rag_response
 
 
 def extract_query(data: RAGInput, default: str = "") -> str:
     """
     从任意格式中提取查询字符串（RAG 专用）
-    
+
     直接使用基础函数，完全兼容。
-    
+
     Args:
         data: 输入数据
         default: 默认值
-    
+
     Returns:
         str: 提取的查询字符串
-    
+
     示例：
         >>> extract_query({"query": "test"})
         'test'
-        
+
         >>> extract_query(("my query", ["results"]))
         'my query'
     """
@@ -242,20 +242,20 @@ def extract_query(data: RAGInput, default: str = "") -> str:
 def extract_results(data: RAGInput, default: Optional[List[Any]] = None) -> List[Any]:
     """
     从任意格式中提取结果列表（RAG 专用）
-    
+
     直接使用基础函数，完全兼容。
-    
+
     Args:
         data: 输入数据
         default: 默认值
-    
+
     Returns:
         List[Any]: 提取的结果列表
-    
+
     示例:
         >>> extract_results({"query": "test", "results": ["a", "b"]})
         ['a', 'b']
-        
+
         >>> extract_results(("query", ["a", "b"]))
         ['a', 'b']
     """
@@ -267,15 +267,15 @@ def create_rag_response(
 ) -> RAGResponse:
     """
     创建标准的 RAGResponse 对象
-    
+
     Args:
         query: 查询字符串
         results: 结果列表
         **kwargs: 额外的 RAG 字段（如 generated, execution_time, metadata 等）
-    
+
     Returns:
         RAGResponse: 标准化的 RAG 响应对象
-    
+
     示例:
         >>> create_rag_response(
         ...     query="test",
@@ -284,7 +284,7 @@ def create_rag_response(
         ...     execution_time=0.5,
         ...     metadata={"model": "gpt-4"}
         ... )
-        {'query': 'test', 'results': ['a', 'b'], 'generated': 'answer', 
+        {'query': 'test', 'results': ['a', 'b'], 'generated': 'answer',
          'execution_time': 0.5, 'metadata': {'model': 'gpt-4'}}
     """
     response: RAGResponse = {

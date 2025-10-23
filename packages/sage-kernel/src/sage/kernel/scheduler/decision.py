@@ -13,12 +13,12 @@ from typing import Any, Dict, Optional
 class PlacementDecision:
     """
     调度决策：Scheduler.make_decision() 的返回值
-    
+
     职责分离：
     - Scheduler 返回决策（这个类）
     - Dispatcher 协调执行
     - PlacementExecutor 执行放置
-    
+
     决策内容：
     1. 放置位置（target_node）
     2. 资源需求（resource_requirements）
@@ -26,7 +26,7 @@ class PlacementDecision:
     4. 放置策略（placement_strategy）
     5. 元数据（reason, priority）
     """
-    
+
     # ===== 放置位置 =====
     target_node: Optional[str] = None
     """目标物理节点 ID（Ray node_id）
@@ -34,7 +34,7 @@ class PlacementDecision:
     - "node-xxx": 指定节点
     - "local": 强制本地执行
     """
-    
+
     # ===== 资源需求 =====
     resource_requirements: Optional[Dict[str, Any]] = None
     """资源需求配置
@@ -44,20 +44,20 @@ class PlacementDecision:
     - memory: 内存大小（支持字符串如 "8GB" 或字节数）
     - 自定义资源: 用户定义的资源类型
     """
-    
+
     # ===== 调度时机 =====
     delay: float = 0.0
     """延迟调度时间（秒）
     - 0.0: 立即调度
     - > 0: 延迟指定秒数后调度
     """
-    
+
     immediate: bool = True
     """是否立即调度
     - True: 立即执行
     - False: 可以批量延迟调度
     """
-    
+
     # ===== 放置策略 =====
     placement_strategy: str = "default"
     """放置策略类型
@@ -67,50 +67,50 @@ class PlacementDecision:
     - "affinity": 亲和性放置（靠近数据源）
     - "anti_affinity": 反亲和性（远离特定任务）
     """
-    
+
     affinity_tasks: Optional[list[str]] = None
     """亲和性任务列表（需要靠近的任务名）"""
-    
+
     anti_affinity_tasks: Optional[list[str]] = None
     """反亲和性任务列表（需要远离的任务名）"""
-    
+
     # ===== 元数据 =====
     reason: str = ""
     """决策原因（用于日志和调试）
     示例: "Load-aware: node-2 has lowest CPU usage"
     """
-    
+
     priority: int = 0
     """调度优先级（数值越大优先级越高）
     - 0: 普通优先级
     - > 0: 高优先级
     - < 0: 低优先级
     """
-    
+
     metadata: Dict[str, Any] = field(default_factory=dict)
     """额外的元数据（用于扩展）"""
-    
+
     def __repr__(self) -> str:
         """可读的字符串表示"""
         parts = [
             f"PlacementDecision(",
             f"target_node={self.target_node}",
         ]
-        
+
         if self.resource_requirements:
             parts.append(f"resources={self.resource_requirements}")
-        
+
         if self.delay > 0:
             parts.append(f"delay={self.delay}s")
-        
+
         if self.placement_strategy != "default":
             parts.append(f"strategy={self.placement_strategy}")
-        
+
         if self.reason:
             parts.append(f"reason='{self.reason}'")
-        
+
         return ", ".join(parts) + ")"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典（用于序列化）"""
         return {
@@ -125,12 +125,12 @@ class PlacementDecision:
             "priority": self.priority,
             "metadata": self.metadata,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PlacementDecision":
         """从字典创建（用于反序列化）"""
         return cls(**data)
-    
+
     @classmethod
     def immediate_default(cls, reason: str = "") -> "PlacementDecision":
         """快捷方法：立即使用默认配置调度"""
@@ -142,7 +142,7 @@ class PlacementDecision:
             placement_strategy="default",
             reason=reason or "Immediate default placement"
         )
-    
+
     @classmethod
     def with_resources(
         cls,
@@ -159,7 +159,7 @@ class PlacementDecision:
             resources["gpu"] = gpu
         if memory is not None:
             resources["memory"] = memory
-        
+
         return cls(
             target_node=None,
             resource_requirements=resources if resources else None,
@@ -168,7 +168,7 @@ class PlacementDecision:
             placement_strategy="default",
             reason=reason or f"Resource requirements: {resources}"
         )
-    
+
     @classmethod
     def with_node(
         cls,
@@ -185,7 +185,7 @@ class PlacementDecision:
             placement_strategy=strategy,
             reason=reason or f"Target node: {node_id}"
         )
-    
+
     @classmethod
     def with_delay(
         cls,

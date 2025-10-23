@@ -46,10 +46,10 @@ def main():
 Examples:
   # Analyze a video file
   python %(prog)s --video path/to/video.mp4
-  
+
   # Use custom configuration
   python %(prog)s --video path/to/video.mp4 --config config_video_intelligence.yaml
-  
+
   # Process multiple frames
   python %(prog)s --video path/to/video.mp4 --max-frames 100
 

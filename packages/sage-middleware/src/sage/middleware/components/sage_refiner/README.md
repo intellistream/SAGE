@@ -61,7 +61,7 @@ def rag_pipeline_with_refiner():
         },
         "generator": {...}
     }
-    
+
     env = LocalEnvironment()
     (
         env.from_batch(...)
@@ -158,11 +158,11 @@ class MyRefiner(BaseRefiner):
     def initialize(self):
         # 初始化模型等资源
         pass
-    
+
     def refine(self, query, documents, budget=None, **kwargs):
         # 实现压缩逻辑
         return RefineResult(...)
-    
+
     def refine_batch(self, queries, documents_list, budget=None, **kwargs):
         # 批量处理
         return [...]
@@ -178,17 +178,17 @@ config = RefinerConfig(
     algorithm="long_refiner",
     budget=2048,
     compression_ratio=0.2,  # 或使用压缩比
-    
+
     # 缓存配置
     enable_cache=True,
     cache_size=1000,
     cache_ttl=3600,
-    
+
     # 性能配置
     gpu_device=0,
     max_model_len=25000,
     batch_size=4,
-    
+
     # 监控配置
     enable_metrics=True,
     enable_profiling=False
@@ -241,7 +241,7 @@ refiner:
   budget: 4000
   enable_cache: true
   cache_size: 1000
-  
+
   # LongRefiner配置
   base_model_path: "Qwen/Qwen2.5-3B-Instruct"
   query_analysis_module_lora_path: "/models/lora/query_analysis"
@@ -251,7 +251,7 @@ refiner:
   score_model_path: "BAAI/bge-reranker-v2-m3"
   max_model_len: 25000
   gpu_device: 0
-  
+
   # 性能配置
   enable_metrics: true
   metrics_output_path: "./outputs/refiner_metrics.json"

@@ -86,10 +86,10 @@ def parse_args():
 示例:
   # 诊断单个病例
   python run_diagnosis.py --image data/medical/test/case_001.jpg --age 45 --gender male --symptoms "腰痛伴左腿麻木"
-  
+
   # 批量处理
   python run_diagnosis.py --batch data/medical/batch_cases/ --output output/diagnoses/
-  
+
   # 交互式模式
   python run_diagnosis.py --interactive
         """,

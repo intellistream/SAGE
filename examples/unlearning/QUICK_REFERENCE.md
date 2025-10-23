@@ -34,7 +34,7 @@
    - ResultCollector (SinkFunction)         # 收集结果
    - UnlearningWithStateFunction (stateful) # 有状态处理
    - StateSink (state collector)            # 状态收集
-   
+
 → 示例 Pipeline:
    - example_basic_pipeline()          # 基础 Pipeline
    - example_stateful_pipeline()       # 有状态处理
@@ -56,14 +56,14 @@
 → 命令: python usage_3_memory_service.py
 → 关键类:
    - DPMemoryService (extends BaseService)
-   
+
 → 关键方法:
    - create_collection(name)
    - store_memory(collection, vector_id, vector)
    - retrieve_memories(collection, query_vector)
    - forget_with_dp(collection, vector_ids)
    - get_privacy_status(collection)
-   
+
 → 示例场景:
    - example_basic_dp_memory()          # 基础 VDB 遗忘
    - example_privacy_budget_management() # 隐私预算追踪
@@ -85,7 +85,7 @@
 → 命令: python usage_4_complete_rag.py
 → 关键类:
    - RAGUnlearningSystem (extends BaseService)
-   
+
 → 关键方法:
    - initialize_rag_corpus(corpus_path)
    - retrieve_relevant_documents(query, top_k)
@@ -93,7 +93,7 @@
    - handle_user_deletion_request(collection, user_id)    # GDPR
    - handle_malicious_content_removal(content_patterns)   # 恶意内容
    - get_audit_log()                                      # 审计追踪
-   
+
 → 示例场景:
    - example_basic_rag()            # 基础 RAG
    - example_malicious_content()    # 恶意内容删除
@@ -133,7 +133,7 @@
       │ SAGE        │    │ MemService     │
       │ Function    │    │ (VDB only)     │
       └─────────────┘    └────────────────┘
-          
+
       ┌──────────────────────────────┐
       │ 需要审计/GDPR/合规 吗？     │
       └───────┬──────────────┬───────┘
@@ -202,7 +202,7 @@ class MyUnlearningFunction(BaseFunction):
     def __init__(self):
         super().__init__()
         self.engine = UnlearningEngine(epsilon=1.0)
-    
+
     def execute(self, data):
         if data.get('should_forget'):
             result = self.engine.unlearn_vectors(...)
@@ -219,7 +219,7 @@ class MyMemService(BaseService):
         super().__init__()
         self.manager = MemoryManager()
         self.engine = UnlearningEngine(epsilon=1.0)
-    
+
     def forget(self, collection_name, vector_ids):
         collection = self.manager.get_collection(collection_name)
         # 获取向量、执行遗忘、更新 VDB

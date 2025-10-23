@@ -180,21 +180,21 @@ sage_db/
 
 ```python
 class SageDB:
-    def __init__(self, dimension: int, metric: str = "cosine", 
+    def __init__(self, dimension: int, metric: str = "cosine",
                  anns_algorithm: str = "brute_force"): ...
-    
-    def add_vectors(self, vectors: List[List[float]], 
+
+    def add_vectors(self, vectors: List[List[float]],
                    metadata: Optional[List[Dict]] = None) -> None: ...
-    
+
     def search(self, query: List[float], k: int = 10,
               filter: Optional[Dict] = None) -> List[SearchResult]: ...
-    
+
     def batch_search(self, queries: List[List[float]], k: int = 10) -> List[List[SearchResult]]: ...
-    
+
     def remove_vectors(self, ids: List[int]) -> None: ...
-    
+
     def save(self, path: str) -> None: ...
-    
+
     def load(self, path: str) -> None: ...
 ```
 
@@ -204,11 +204,11 @@ class SageDB:
 class MultimodalSageDB:
     def __init__(self, modality_dims: Dict[str, int],
                  fusion_strategy: str = "concatenation"): ...
-    
+
     def add_multimodal_data(self, **modality_vectors, metadata: Dict = None) -> None: ...
-    
+
     def search_multimodal(self, k: int = 10, **query_vectors) -> List[SearchResult]: ...
-    
+
     def register_fusion_strategy(self, name: str, strategy: Callable) -> None: ...
 ```
 
@@ -217,9 +217,9 @@ class MultimodalSageDB:
 ```python
 class SageDBService(Service):
     def __init__(self, name: str, config: SageDBServiceConfig): ...
-    
+
     async def add(self, vectors: List, metadata: List = None) -> None: ...
-    
+
     async def search(self, query: List, k: int = 10) -> List[Dict]: ...
 ```
 
@@ -232,9 +232,9 @@ class SageDBService(Service):
 ```cpp
 class MyANNSAlgorithm : public ANNSAlgorithm {
 public:
-    void fit(const std::vector<VectorEntry>& data, 
+    void fit(const std::vector<VectorEntry>& data,
              const AlgorithmParams& params) override;
-    
+
     std::vector<SearchResult> query(const Vector& q, int k,
                                    const QueryConfig& config) override;
     // ... 实现其他接口
@@ -258,7 +258,7 @@ db = SageDB(dimension=768, anns_algorithm="my_algorithm")
 ### 添加自定义融合策略
 
 ```python
-def my_fusion_strategy(vectors: Dict[str, np.ndarray], 
+def my_fusion_strategy(vectors: Dict[str, np.ndarray],
                        weights: Dict[str, float]) -> np.ndarray:
     # 实现自定义融合逻辑
     return fused_vector
@@ -296,11 +296,11 @@ class MyFunction(MapFunction):
     def execute(self, data):
         # 同步调用 - 安全！
         results = self.call_service("sage_db", query=data["vector"], k=10)
-        
+
         # 异步调用 - 并发安全！
         future = self.call_service_async("sage_db", query=data["vector"], k=10)
         results = future.result(timeout=5.0)
-        
+
         return results
 
 # 多个并发请求会被正确处理
@@ -323,14 +323,14 @@ env.register_service("sage_db", SageDBService)
 class SageDB {
 private:
     mutable std::shared_mutex rw_mutex_;  // 读写锁
-    
+
 public:
     // 写操作 - 独占锁
     VectorId add(const Vector& vector, const Metadata& metadata = {}) {
         std::unique_lock<std::shared_mutex> lock(rw_mutex_);
         // ... implementation ...
     }
-    
+
     // 读操作 - 共享锁（允许并发读）
     std::vector<QueryResult> search(const Vector& query, uint32_t k) const {
         std::shared_lock<std::shared_mutex> lock(rw_mutex_);
@@ -346,7 +346,7 @@ class SageDBService:
     def __init__(self, dimension: int = 768):
         # C++ 层已处理线程安全，Python 层无需额外锁
         self._db = SageDB.from_config(DatabaseConfig(dimension))
-    
+
     def search(self, query: np.ndarray, k: int = 10):
         # 直接调用 - C++ 内部会正确处理并发
         return self._db.search(query, k=k)
@@ -449,7 +449,7 @@ db2.load("my_database.idx")
 
 ### Q: 如何优化查询性能？
 
-**A**: 
+**A**:
 1. 使用批量查询接口 `batch_search()`
 2. 选择合适的 ANNS 算法和参数
 3. 对高频查询启用缓存

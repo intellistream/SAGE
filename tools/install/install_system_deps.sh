@@ -28,7 +28,7 @@ detect_os() {
 # 安装基础构建工具
 install_build_tools() {
     echo "📦 安装基础构建工具..."
-    
+
     case "$OS" in
         ubuntu|debian)
             apt-get update -qq
@@ -54,14 +54,14 @@ install_build_tools() {
             return 1
             ;;
     esac
-    
+
     echo "✅ 基础构建工具安装完成"
 }
 
 # 安装数学库 (BLAS/LAPACK)
 install_math_libraries() {
     echo "📦 安装数学库 (BLAS/LAPACK)..."
-    
+
     case "$OS" in
         ubuntu|debian)
             apt-get install -y --no-install-recommends \
@@ -88,34 +88,34 @@ install_math_libraries() {
             return 1
             ;;
     esac
-    
+
     echo "✅ 数学库安装完成"
 }
 
 # 验证安装
 verify_installation() {
     echo "🔍 验证安装..."
-    
+
     # 检查构建工具
     if ! command -v gcc &> /dev/null; then
         echo "❌ gcc 未找到"
         return 1
     fi
-    
+
     if ! command -v cmake &> /dev/null; then
         echo "❌ cmake 未找到"
         return 1
     fi
-    
+
     echo "✅ 构建工具验证通过"
-    
+
     # 检查库文件
     echo "🔍 检查 BLAS/LAPACK 库..."
-    
+
     # 尝试找到库文件
     BLAS_FOUND=false
     LAPACK_FOUND=false
-    
+
     for lib_path in /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/local/lib; do
         if [[ -f "$lib_path/libopenblas.so" || -f "$lib_path/libblas.so" ]]; then
             BLAS_FOUND=true
@@ -123,7 +123,7 @@ verify_installation() {
             break
         fi
     done
-    
+
     for lib_path in /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/local/lib; do
         if [[ -f "$lib_path/liblapack.so" ]]; then
             LAPACK_FOUND=true
@@ -131,7 +131,7 @@ verify_installation() {
             break
         fi
     done
-    
+
     if [[ "$BLAS_FOUND" == true && "$LAPACK_FOUND" == true ]]; then
         echo "✅ 数学库验证通过"
         return 0
@@ -146,7 +146,7 @@ main() {
     echo "🔍 检测操作系统..."
     detect_os
     echo "📋 操作系统: $OS"
-    
+
     # 检查权限和环境
     if [[ "${CI:-false}" == "true" ]]; then
         echo "🤖 CI 环境检测到，使用 sudo 安装依赖"
@@ -162,7 +162,7 @@ main() {
         echo "请以 root 用户运行或安装 sudo"
         exit 1
     fi
-    
+
     # 安装依赖
     if [[ -n "$SUDO" ]]; then
         echo "📝 将使用 sudo 安装系统包..."
@@ -172,10 +172,10 @@ main() {
         install_build_tools
         install_math_libraries
     fi
-    
+
     # 验证安装
     verify_installation
-    
+
     echo ""
     echo "🎉 系统依赖安装完成！"
     echo "现在可以运行 'sage extensions install all' 来构建 C++ 扩展"

@@ -19,7 +19,7 @@ test_install_mode() {
     echo ""
     echo "📦 测试安装模式: $mode"
     echo "   描述: $description"
-    
+
     # 构建正确的pip命令
     local pip_cmd
     if [ -z "$mode" ]; then

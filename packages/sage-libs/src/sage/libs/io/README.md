@@ -69,7 +69,7 @@ env = LocalEnvironment("data_processing")
 
 # 创建数据流
 data_stream = env.source(
-    FileSource, 
+    FileSource,
     file_path="input.csv",
     format="csv"
 )
@@ -166,11 +166,11 @@ class CustomSource(BaseSource):
     def __init__(self, config):
         super().__init__(config)
         self.initialize()
-    
+
     def read(self):
         # 实现数据读取逻辑
         return data_iterator
-    
+
     def close(self):
         # 清理资源
         pass
@@ -184,11 +184,11 @@ class CustomSink(BaseSink):
     def __init__(self, config):
         super().__init__(config)
         self.initialize()
-    
+
     def write(self, data):
         # 实现数据写入逻辑
         pass
-    
+
     def flush(self):
         # 刷新缓冲区
         pass

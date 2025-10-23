@@ -150,7 +150,7 @@ def example_multi_sensor():
         start_time = base_time
         end_time = base_time + 30000
         time_range = TimeRange(start_time=start_time, end_time=end_time)
-        
+
         # Note: Query with tags may need adjustment based on actual API
         results = db.query(time_range)
         print(f"  {sensor_id}: {len(results)} points")

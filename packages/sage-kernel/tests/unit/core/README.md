@@ -196,17 +196,17 @@ python -m pytest tests/core/ --cov=src/sage/core --cov-report=html --cov-report=
    ```python
    import pytest
    from unittest.mock import Mock
-   
+
    @pytest.mark.unit
    class TestNewModule:
        def test_creation(self):
            # 测试创建
            pass
-           
+
        def test_functionality(self):
            # 测试功能
            pass
-   
+
    @pytest.mark.integration  
    class TestNewModuleIntegration:
        def test_integration_scenario(self):
@@ -294,7 +294,7 @@ python -m pytest tests/core/ --cov=src/sage/core --cov-report=html --cov-report=
 ## 🆘 常见问题
 
 ### Q: 测试运行失败怎么办？
-A: 
+A:
 1. 检查依赖是否安装：`pip install -e .[dev]`
 2. 检查Python路径：确保在正确的目录运行
 3. 查看错误日志：使用`-v`参数获取详细输出
@@ -306,7 +306,7 @@ python -m pytest tests/core/test_pipeline.py::TestPipeline::test_creation -v -s
 ```
 
 ### Q: 覆盖率报告在哪里？
-A: 
+A:
 - HTML报告：`htmlcov/core/index.html`
 - 终端报告：运行测试时直接显示
 - JSON报告：`coverage-core.json`

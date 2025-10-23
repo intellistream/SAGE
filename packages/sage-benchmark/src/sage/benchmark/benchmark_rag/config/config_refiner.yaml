@@ -17,16 +17,16 @@ source:
 retriever:
   # 检索器类型选择: 'chroma' 或 'wiki18_faiss'
   type: "wiki18_faiss"  # 使用Wiki18 FAISS检索器
-  
+
   # 通用配置
   dimension: 1024    # BGE-M3模型的维度
   top_k: 8
-  
+
   # Wiki18 FAISS 专用配置 (type=wiki18_faiss 时生效)
   faiss:
     index_path: "/home/cyb/wiki18_fulldoc_bgem3_index.index"
     documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
-  
+
   # 嵌入模型配置
   embedding:
     method: "hf"

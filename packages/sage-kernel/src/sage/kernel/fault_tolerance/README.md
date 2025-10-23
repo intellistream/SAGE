@@ -154,7 +154,7 @@ def main():
             "sink": {}
         }
     )
-    
+
     # 定义 DAG - 用户不需要关心容错
     pipeline = (
         env.from_source(FileSource, env.config["source"])
@@ -162,7 +162,7 @@ def main():
            .map(OpenAIGenerator, env.config["generator"])
            .sink(TerminalSink, env.config["sink"])
     )
-    
+
     # 提交作业 - 容错由系统自动处理
     env.submit()
 
@@ -183,28 +183,28 @@ from sage.kernel.fault_tolerance.base import BaseFaultHandler
 class ReplicationBasedRecovery(BaseFaultHandler):
     """
     基于副本的容错策略
-    
+
     为每个任务创建多个副本，一个失败时切换到另一个。
     """
-    
+
     def __init__(self, num_replicas=3):
         self.num_replicas = num_replicas
         self.replicas = {}
         self.active_replicas = {}
         self.logger = None
-    
+
     def handle_failure(self, task_id: str, error: Exception) -> bool:
         """处理任务失败 - 切换到备用副本"""
         if self.logger:
             self.logger.warning(f"Task {task_id} failed: {error}")
-        
+
         if self.can_recover(task_id):
             return self.recover(task_id)
         else:
             if self.logger:
                 self.logger.error(f"No available replicas for {task_id}")
             return False
-    
+
     def can_recover(self, task_id: str) -> bool:
         """检查是否有可用的备用副本"""
         available_replicas = [
@@ -212,23 +212,23 @@ class ReplicationBasedRecovery(BaseFaultHandler):
             if r != self.active_replicas.get(task_id)
         ]
         return len(available_replicas) > 0
-    
+
     def recover(self, task_id: str) -> bool:
         """切换到健康的副本"""
         available_replicas = [
             r for r in self.replicas.get(task_id, [])
             if r != self.active_replicas.get(task_id)
         ]
-        
+
         if available_replicas:
             new_replica = available_replicas[0]
             self.active_replicas[task_id] = new_replica
-            
+
             if self.logger:
                 self.logger.info(f"Switched task {task_id} to replica {new_replica}")
-            
+
             return True
-        
+
         return False
 ```
 
@@ -265,7 +265,7 @@ from sage.kernel.fault_tolerance.impl.my_custom_fault_tolerance import Replicati
 
 def create_fault_handler_from_config(config):
     strategy = config.get("strategy", "restart")
-    
+
     if strategy == "replication":
         num_replicas = config.get("num_replicas", 3)
         return ReplicationBasedRecovery(num_replicas=num_replicas)

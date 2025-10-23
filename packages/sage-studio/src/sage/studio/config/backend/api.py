@@ -61,7 +61,7 @@ def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str, file_path: O
 
     # 从文件名或文件元数据中提取创建时间
     create_time = None
-    
+
     # 方法1: 从文件名解析时间戳 (pipeline_1759908680.json)
     if pipeline_id.startswith("pipeline_"):
         try:
@@ -70,7 +70,7 @@ def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str, file_path: O
             create_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
         except (ValueError, OSError) as e:
             print(f"Failed to parse timestamp from pipeline_id {pipeline_id}: {e}")
-    
+
     # 方法2: 如果解析失败,使用文件的修改时间
     if create_time is None and file_path and file_path.exists():
         try:
@@ -78,11 +78,11 @@ def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str, file_path: O
             create_time = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
             print(f"Failed to get file mtime for {file_path}: {e}")
-    
+
     # 方法3: 兜底使用当前时间
     if create_time is None:
         create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
     job = {
         "jobId": pipeline_id,
         "name": name,
@@ -604,13 +604,13 @@ async def get_job_detail(job_id: str):
         # 首先尝试从已保存的数据中查找
         sage_data = _read_sage_data_from_files()
         jobs = sage_data.get("jobs", [])
-        
+
         # 查找匹配的作业
         job = next((j for j in jobs if j.get("jobId") == job_id), None)
-        
+
         if job:
             return job
-        
+
         # 如果没有找到实际数据，返回占位符数据（用于开发）
         print(f"Job {job_id} not found in saved data, returning placeholder")
         return {
@@ -713,13 +713,13 @@ async def start_job(job_id: str):
             "use_ray": False,
             "isRunning": True,
         }
-        
+
         # 初始化日志
         if job_id not in job_logs:
             job_logs[job_id] = []
-        
+
         job_logs[job_id].append(f"[SYSTEM] Job {job_id} started at 2025-10-10 15:30:00")
-        
+
         return {"status": "success", "message": f"作业 {job_id} 已启动"}
     except Exception as e:
         print(f"Error starting job: {e}")
@@ -737,13 +737,13 @@ async def stop_job(job_id: str, duration: str):
             "use_ray": False,
             "isRunning": False,
         }
-        
+
         # 添加停止日志
         if job_id in job_logs:
             job_logs[job_id].append(
                 f"[SYSTEM] Job {job_id} stopped after {duration}"
             )
-        
+
         return {"status": "success", "message": f"作业 {job_id} 已停止"}
     except Exception as e:
         print(f"Error stopping job: {e}")
@@ -756,17 +756,17 @@ async def get_job_logs(job_id: str, offset: int = 0):
     try:
         # 获取该作业的日志
         logs = job_logs.get(job_id, [])
-        
+
         # 如果是第一次请求（offset=0）且没有日志，返回种子消息
         if offset == 0 and len(logs) == 0:
             seed_line = f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query."
             job_logs[job_id] = [seed_line]
             return {"offset": 1, "lines": [seed_line]}
-        
+
         # 返回从 offset 开始的新日志
         new_logs = logs[offset:]
         new_offset = len(logs)
-        
+
         return {"offset": new_offset, "lines": new_logs}
     except Exception as e:
         print(f"Error getting job logs: {e}")
@@ -812,7 +812,7 @@ async def get_pipeline_config(pipeline_id: str):
         # 尝试从缓存获取
         if pipeline_id in job_configs_cache:
             return {"config": job_configs_cache[pipeline_id]}
-        
+
         # 返回默认配置模板
         default_config = """# SAGE Pipeline Configuration
 name: Example RAG Pipeline
@@ -823,12 +823,12 @@ operators:
     type: source
     config:
       file_path: /data/documents.txt
-  
+
   - name: SimpleRetriever
     type: retriever
     config:
       top_k: 5
-  
+
   - name: TerminalSink
     type: sink
     config:
@@ -847,16 +847,16 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
         # 保存配置到缓存
         config_yaml = config.get("config", "")
         job_configs_cache[pipeline_id] = config_yaml
-        
+
         # 可选：保存到文件
         sage_dir = _get_sage_dir()
         config_dir = sage_dir / "configs"
         config_dir.mkdir(exist_ok=True)
-        
+
         config_file = config_dir / f"{pipeline_id}.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
             f.write(config_yaml)
-        
+
         return {
             "status": "success",
             "message": "配置更新成功",
@@ -873,23 +873,23 @@ def _load_flow_data(flow_id: str) -> Optional[dict]:
     """加载 Flow 数据"""
     sage_dir = _get_sage_dir()
     pipelines_dir = sage_dir / "pipelines"
-    
+
     print(f"🔍 Looking for flow: {flow_id}")
     print(f"📁 Sage dir: {sage_dir}")
     print(f"📁 Pipelines dir: {pipelines_dir}")
     print(f"📁 Pipelines dir exists: {pipelines_dir.exists()}")
-    
+
     # 尝试加载 pipeline 文件
     flow_file = pipelines_dir / f"{flow_id}.json"
     print(f"📄 Flow file path: {flow_file}")
     print(f"📄 Flow file exists: {flow_file.exists()}")
-    
+
     if flow_file.exists():
         with open(flow_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             print(f"✅ Loaded flow: {data.get('name', 'Unnamed')}")
             return data
-    
+
     print(f"❌ Flow file not found")
     return None
 
@@ -898,19 +898,19 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     """将前端 Flow 数据转换为 FlowDefinition"""
     import sys
     from pathlib import Path
-    
+
     # 添加 sage-studio 到 Python 路径
     studio_path = Path(__file__).parent.parent.parent.parent
     if str(studio_path) not in sys.path:
         sys.path.insert(0, str(studio_path))
-    
+
     from sage.studio.models import VisualPipeline, VisualNode, VisualConnection  # type: ignore[import-not-found]
-    
+
     name = flow_data.get("name", "Unnamed Flow")
     description = flow_data.get("description", "")
     nodes_data = flow_data.get("nodes", [])
     edges_data = flow_data.get("edges", [])
-    
+
     # 转换节点
     nodes = []
     for node_data in nodes_data:
@@ -922,7 +922,7 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
             config=node_data.get("data", {}).get("properties", {})
         )
         nodes.append(node)
-    
+
     # 转换连接
     connections = []
     for edge_data in edges_data:
@@ -934,7 +934,7 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
             target_port="input"  # 默认输入端口
         )
         connections.append(connection)
-    
+
     return VisualPipeline(
         id=flow_id,
         name=name,
@@ -979,41 +979,41 @@ async def execute_playground(request: PlaygroundExecuteRequest):
         import sys
         from pathlib import Path
         import time
-        
+
         # 添加 sage-studio 到 Python 路径
         studio_path = Path(__file__).parent.parent.parent.parent
         if str(studio_path) not in sys.path:
             sys.path.insert(0, str(studio_path))
-        
+
         from sage.studio.models import PipelineStatus, NodeStatus  # type: ignore[import-not-found]
         from sage.studio.services import get_pipeline_builder  # type: ignore[import-not-found]
-        
+
         print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
         print(f"📝 Input: {request.input}")
-        
+
         # 1. 加载 Flow 定义
         flow_data = _load_flow_data(request.flowId)
         if not flow_data:
             raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
-        
+
         # 2. 转换为 VisualPipeline
         visual_pipeline = _convert_to_flow_definition(flow_data, request.flowId)
-        
+
         # 3. 使用 PipelineBuilder 构建 SAGE Pipeline
         builder = get_pipeline_builder()
         sage_env = builder.build(visual_pipeline)
-        
+
         # 4. 执行 Pipeline
         start_time = time.time()
         job = sage_env.execute()
-        
+
         # 等待执行完成（简化版本，实际应该异步处理）
         # TODO: 实现真正的异步执行和状态轮询
         import asyncio
         await asyncio.sleep(0.1)  # 让出控制权
-        
+
         execution_time = time.time() - start_time
-        
+
         # 5. 生成执行步骤（简化版本）
         agent_steps = []
         for idx, node in enumerate(visual_pipeline.nodes, start=1):
@@ -1027,25 +1027,25 @@ async def execute_playground(request: PlaygroundExecuteRequest):
                 toolInput=node.config,
                 toolOutput={"status": "completed"}
             ))
-        
+
         # 6. 生成输出
         output_text = f"Pipeline 执行成功！总耗时: {execution_time:.2f}秒"
-        
+
         print(f"✅ Playground execution completed: {PipelineStatus.COMPLETED.value}")
-        
+
         return PlaygroundExecuteResponse(
             output=output_text,
             status=PipelineStatus.COMPLETED.value,
             agentSteps=agent_steps if agent_steps else None
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         import traceback
         print(f"❌ Error executing playground: {e}")
         print(traceback.format_exc())
-        
+
         # 返回友好的错误信息
         return PlaygroundExecuteResponse(
             output=f"执行出错: {str(e)}",

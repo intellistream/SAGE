@@ -67,7 +67,7 @@ finally:
     if progress_thread.is_alive():
         progress_thread.join(timeout=2.0)
     typer.echo()  # 换行
-    
+
     # 确保输出被刷新
     import sys
     sys.stdout.flush()
@@ -166,18 +166,18 @@ sage extensions status 2>&1 | cat
    ℹ️ 构建 sage_db...
       构建日志: /path/to/sage_db_build.log
       实时查看: tail -f /path/to/sage_db_build.log
-   
+
    ⠋ 正在构建 sage_db... [02:45]  (构建可能需要几分钟)
    ```
 
 3. **完成提示：**
    ```
    ✅ sage_db 构建成功 ✓
-   
+
    安装完成
    成功: 2/2
    ✅ 🎉 所有扩展安装成功！
-   
+
    运行 'sage extensions status' 验证安装
    ```
 

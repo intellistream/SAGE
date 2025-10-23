@@ -45,17 +45,17 @@ class BaseTask(ABC):
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
-        
-        
+
+
         # === 性能监控 ===
         self._processed_count = 0
         self._error_count = 0
-          
+
         # ✅ 添加 checkpoint 相关属性
         self._checkpoint_counter = 0
         self._last_checkpoint_time = 0.0
-        
-        
+
+
         # 检查是否启用性能监控
         self._enable_monitoring = getattr(ctx, 'enable_monitoring', False)
         self.metrics_collector: Optional[MetricsCollector] = None
@@ -63,7 +63,7 @@ class BaseTask(ABC):
         self.metrics_reporter: Optional[MetricsReporter] = None
 
         self.fault_handler = None  # Will be set by dispatcher if applicable
-        
+
         if self._enable_monitoring:
             try:
                 self.metrics_collector = MetricsCollector(
@@ -71,7 +71,7 @@ class BaseTask(ABC):
                     window_size=getattr(ctx, 'metrics_window_size', 10000),
                     enable_detailed_tracking=getattr(ctx, 'enable_detailed_tracking', True),
                 )
-                
+
                 # 尝试启动资源监控（需要psutil）
                 if RESOURCE_MONITOR_AVAILABLE:
                     try:
@@ -87,7 +87,7 @@ class BaseTask(ABC):
                     self.logger.debug(
                         f"psutil not available, resource monitoring disabled for task {self.name}"
                     )
-                
+
                 # 可选：启动性能汇报器
                 if getattr(ctx, 'enable_auto_report', False):
                     self.metrics_reporter = MetricsReporter(
@@ -97,14 +97,14 @@ class BaseTask(ABC):
                         enable_auto_report=True,
                         report_callback=lambda report: self.logger.info(f"\n{report}"),
                     )
-                
+
                 self.logger.info(f"Performance monitoring enabled for task {self.name}")
             except Exception as e:
                 self.logger.warning(
                     f"Failed to initialize monitoring for task {self.name}: {e}"
                 )
                 self._enable_monitoring = False
-        
+
         try:
             self.operator: BaseOperator = operator_factory.create_operator(self.ctx)
             self.operator.task = self
@@ -117,12 +117,12 @@ class BaseTask(ABC):
     def get_state(self) -> dict:
         """
         获取任务完整状态用于 checkpoint
-        
+
         包括：
         1. Task 层的状态（processed_count, error_count 等）
         2. Operator 层的状态（通过 operator.get_state()）
         3. Function 层的状态（通过 function.get_state()，已包含在 operator 中）
-        
+
         Returns:
             任务完整状态字典
         """
@@ -132,35 +132,35 @@ class BaseTask(ABC):
             'task_type': self.__class__.__name__,
             'is_spout': self.is_spout,
             'timestamp': time.time(),
-            
+
             # === Task 性能指标 ===
             'processed_count': self._processed_count,
             'error_count': self._error_count,
             'checkpoint_counter': self._checkpoint_counter,
             'last_checkpoint_time': self._last_checkpoint_time,
-            
+
             # === Task 配置 ===
             'delay': self.delay,
         }
-        
+
         # === Operator 和 Function 状态 ===
         if hasattr(self.operator, 'get_state'):
             try:
                 operator_state = self.operator.get_state()
                 state['operator_state'] = operator_state
-                
+
                 self.logger.debug(
                     f"Captured operator state for {self.name}: "
                     f"{list(operator_state.keys())}"
                 )
-                
+
                 # 如果 operator_state 包含 function_state，也记录
                 if 'function_state' in operator_state:
                     function_attrs = list(operator_state['function_state'].keys())
                     self.logger.debug(
                         f"Function state includes: {function_attrs}"
                     )
-                    
+
             except Exception as e:
                 self.logger.warning(
                     f"Failed to get operator state for {self.name}: {e}",
@@ -172,7 +172,7 @@ class BaseTask(ABC):
                 f"Operator {self.operator.__class__.__name__} does not support get_state()"
             )
             state['operator_state'] = None
-        
+
         # === Context 配置信息（只保存配置，不保存运行时对象）===
         try:
             state['context_config'] = {
@@ -183,7 +183,7 @@ class BaseTask(ABC):
             }
         except Exception as e:
             self.logger.warning(f"Failed to capture context config: {e}")
-        
+
         # 记录状态大小（用于监控）
         try:
             import sys
@@ -191,37 +191,37 @@ class BaseTask(ABC):
             self.logger.debug(f"Checkpoint state size for {self.name}: {state_size} bytes")
         except Exception:
             pass
-        
+
         return state
-    
+
     def restore_state(self, state: dict):
         """
         从 checkpoint 完整恢复任务状态
-        
+
         恢复顺序：
         1. Task 层状态
         2. Operator 层状态
         3. Function 层状态（通过 operator.restore_state）
-        
+
         Args:
             state: 保存的状态字典
         """
         self.logger.info(f"⏮️ Restoring state for task {self.name}")
-        
+
         try:
             # === 恢复 Task 层状态 ===
             self._processed_count = state.get('processed_count', 0)
             self._error_count = state.get('error_count', 0)
             self._checkpoint_counter = state.get('checkpoint_counter', 0)
             self._last_checkpoint_time = state.get('last_checkpoint_time', 0.0)
-            
+
             self.logger.info(
                 f"✅ Task state restored: "
                 f"processed={self._processed_count}, "
                 f"errors={self._error_count}, "
                 f"checkpoints={self._checkpoint_counter}"
             )
-            
+
             # === 恢复 Operator 和 Function 状态 ===
             operator_state = state.get('operator_state')
             if operator_state and hasattr(self.operator, 'restore_state'):
@@ -230,11 +230,11 @@ class BaseTask(ABC):
                     self.logger.info(
                         f"✅ Operator state restored for {self.name}"
                     )
-                    
+
                     # 验证 function 状态是否恢复
                     if hasattr(self.operator, 'function'):
                         function = self.operator.function
-                        
+
                         # 记录恢复的 function 属性
                         restored_attrs = []
                         if 'function_state' in operator_state:
@@ -242,12 +242,12 @@ class BaseTask(ABC):
                                 if hasattr(function, attr_name):
                                     value = getattr(function, attr_name)
                                     restored_attrs.append(f"{attr_name}={value}")
-                        
+
                         if restored_attrs:
                             self.logger.info(
                                 f"✅ Function attributes restored: {', '.join(restored_attrs)}"
                             )
-                            
+
                 except Exception as e:
                     self.logger.error(
                         f"❌ Failed to restore operator state: {e}",
@@ -262,52 +262,52 @@ class BaseTask(ABC):
                     self.logger.warning(
                         f"⚠️ Operator {self.operator.__class__.__name__} does not support restore_state()"
                     )
-            
-            
+
+
             self.logger.info(f"🎉 Complete state restoration finished for task {self.name}")
-            
+
         except Exception as e:
             self.logger.error(
                 f"❌ Critical error during state restoration for {self.name}: {e}",
                 exc_info=True
             )
             raise
-    
 
-    
+
+
     def save_checkpoint_if_needed(self, fault_handler) -> bool:
         """
         如果需要，保存 checkpoint
-        
+
         Args:
             fault_handler: 容错处理器
-            
+
         Returns:
             True 如果保存了 checkpoint
         """
         # 检查是否是 CheckpointBasedRecovery
         from sage.kernel.fault_tolerance.impl.checkpoint_recovery import CheckpointBasedRecovery
-        
+
         if not isinstance(fault_handler, CheckpointBasedRecovery):
             return False
-        
+
         current_time = time.time()
         interval = fault_handler.checkpoint_interval
-        
+
         # 检查是否应该保存 checkpoint
         if (current_time - self._last_checkpoint_time) >= interval:
             state = self.get_state()
             success = fault_handler.save_checkpoint(self.name, state)
-            
+
             if success:
                 self._last_checkpoint_time = current_time
                 self._checkpoint_counter += 1
                 self.logger.debug(
                     f"Checkpoint #{self._checkpoint_counter} saved for task {self.name}"
                 )
-            
+
             return success
-        
+
         return False
 
     @property
@@ -375,28 +375,28 @@ class BaseTask(ABC):
         if hasattr(self.ctx, 'dispatcher') and self.ctx.dispatcher and hasattr(self.ctx.dispatcher, 'fault_handler'):
             fault_handler = self.ctx.dispatcher.fault_handler
             self.logger.debug(f"Task {self.name} has fault_handler: {type(fault_handler).__name__}")
-        
+
         # Main execution loop
         print(f"[DIAGNOSE] Task {self.name}: Entering worker loop, is_spout={self.is_spout}, stop={self.ctx.is_stop_requested()}")
         self.logger.info(f"[DIAGNOSE] Task {self.name}: Entering worker loop, is_spout={self.is_spout}")
-        
+
         while not self.ctx.is_stop_requested():
             try:
                 # ✅ 定期保存 checkpoint
                 if fault_handler:
                     self.save_checkpoint_if_needed(fault_handler)
-                
+
                 if self.is_spout:
                     self.logger.debug(f"Running spout node '{self.name}'")
                     self.operator.receive_packet(None)
-                    
+
                     # 增加处理计数
                     self._processed_count += 1
-                    
+
                     # 检查是否在执行后收到了停止信号
                     if self.ctx.is_stop_requested():
                         break
-                    
+
                     self.logger.debug(f"self.delay: {self.delay}")
                     if self.delay > 0.002:
                         time.sleep(self.delay)
@@ -416,11 +416,11 @@ class BaseTask(ABC):
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
-                        
+
                     self.logger.debug(
                         f"Node '{self.name}' received data packet: {data_packet}, type: {type(data_packet)}"
                     )
-                    
+
                     if data_packet is None:
                         self.logger.info(
                             f"Task {self.name}: Received None packet, continuing loop"
@@ -488,11 +488,11 @@ class BaseTask(ABC):
                             packet_id=getattr(data_packet, 'packet_id', None),
                             packet_size=getattr(data_packet, 'size', 0),
                         )
-                    
+
                     # 处理数据包
                     try:
                         self.operator.receive_packet(data_packet)
-                        
+
                         # 记录包处理成功
                         if self._enable_monitoring and self.metrics_collector and packet_id:
                             self.metrics_collector.record_packet_end(
@@ -500,7 +500,7 @@ class BaseTask(ABC):
                                 success=True,
                             )
                         self._processed_count += 1
-                        
+
                     except Exception as process_error:
                         # 记录包处理失败
                         if self._enable_monitoring and self.metrics_collector and packet_id:
@@ -511,7 +511,7 @@ class BaseTask(ABC):
                             )
                         self._error_count += 1
                         raise
-                        
+
             except Exception as e:
                 if fault_handler :
                     try:
@@ -536,10 +536,10 @@ class BaseTask(ABC):
                     exc_info=True
                 )
                 self._error_count += 1
-                
+
                 # 通知 dispatcher 处理失败
                 if fault_handler :
-                    handled = fault_handler.handle_failure(self.name, e)  
+                    handled = fault_handler.handle_failure(self.name, e)
                     if handled:
                         self.logger.info(
                             f"Task {self.name} failure was handled by fault tolerance, "
@@ -558,7 +558,7 @@ class BaseTask(ABC):
                         f"No dispatcher available for fault handling, task {self.name} stopping"
                     )
                     break
-                    
+
         self.is_running = False
         self.logger.info(f"Task {self.name} worker loop exited")
 

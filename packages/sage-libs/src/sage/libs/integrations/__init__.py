@@ -9,7 +9,7 @@ including vector databases, LLM providers, and other AI services.
 Available Integrations:
 - OpenAI: OpenAI API client and utilities
 - Milvus: Milvus vector database integration
-- Chroma: ChromaDB vector database integration  
+- Chroma: ChromaDB vector database integration
 - Hugging Face: Hugging Face model hub integration
 """
 

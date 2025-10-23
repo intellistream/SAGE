@@ -264,7 +264,7 @@ print(tabulate(results, headers))
 查看 `refactor_example.py` 了解完整的重构示例，包括：
 
 - 简单命令重构 (`DoctorCommand`)
-- 服务连接命令重构 (`JobListCommand`) 
+- 服务连接命令重构 (`JobListCommand`)
 - 远程命令重构 (`ClusterStatusCommand`)
 - 装饰器使用示例
 - 验证功能示例

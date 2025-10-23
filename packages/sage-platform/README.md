@@ -73,7 +73,7 @@ class MyService(BaseService):
     def __init__(self, config):
         super().__init__(name="my_service")
         self.config = config
-    
+
     def process(self, request):
         # Service logic
         return response

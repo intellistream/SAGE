@@ -116,13 +116,13 @@ def main():
 Examples:
   # Run with default demo case
   python %(prog)s
-  
+
   # Analyze a specific case
   python %(prog)s --case-id case_0001
-  
+
   # Interactive mode
   python %(prog)s --interactive
-  
+
   # Use custom data directory
   python %(prog)s --data-dir path/to/medical/data
 

@@ -12,7 +12,7 @@ A clear and concise description of the bug.
 ## Steps to Reproduce
 1. List the steps to reproduce the bug.
 2. Include specific commands, actions, or navigation.
-3. Example: 
+3. Example:
    - Open the application
    - Click on "Feature X"
    - Observe the behavior

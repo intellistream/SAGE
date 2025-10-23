@@ -192,8 +192,8 @@ db->build_modality_index(ModalityType::IMAGE);
 // 获取模态统计信息进行优化
 auto stats = db->get_modality_statistics();
 for (const auto& stat : stats) {
-    std::cout << "Modality: " << (int)stat.type 
-              << ", Count: " << stat.count 
+    std::cout << "Modality: " << (int)stat.type
+              << ", Count: " << stat.count
               << ", Avg Norm: " << stat.avg_norm << std::endl;
 }
 ```
@@ -219,14 +219,14 @@ public:
         // 实现点云数据处理逻辑
         return extract_point_cloud_features(raw_data);
     }
-    
+
     bool validate(const std::vector<uint8_t>& raw_data) const override {
         // 验证点云数据格式
         return is_valid_point_cloud(raw_data);
     }
-    
-    ModalityType get_type() const override { 
-        return ModalityType::POINT_CLOUD; 
+
+    ModalityType get_type() const override {
+        return ModalityType::POINT_CLOUD;
     }
 };
 ```
@@ -248,7 +248,7 @@ public:
         // 实现基于图神经网络的融合逻辑
         return perform_gnn_fusion(modal_embeddings, params);
     }
-    
+
     FusionStrategy get_strategy_type() const override {
         return FusionStrategy::CUSTOM;
     }
@@ -267,12 +267,12 @@ db->register_fusion_strategy(FusionStrategy::CUSTOM, strategy);
 ```cpp
 TEST(MultimodalSageDBTest, BasicFunctionality) {
     auto db = MultimodalSageDBFactory::create_text_image_db(test_config);
-    
+
     // 测试数据插入
     MultimodalData test_data = create_test_data();
     VectorId id = db->add_multimodal(test_data);
     EXPECT_GT(id, 0);
-    
+
     // 测试查询
     auto results = db->search_multimodal(create_test_query(), test_params);
     EXPECT_FALSE(results.empty());
@@ -281,13 +281,13 @@ TEST(MultimodalSageDBTest, BasicFunctionality) {
 
 TEST(FusionEngineTest, WeightedAverageFusion) {
     FusionEngine engine;
-    engine.register_strategy(FusionStrategy::WEIGHTED_AVERAGE, 
+    engine.register_strategy(FusionStrategy::WEIGHTED_AVERAGE,
                            FusionStrategyFactory::create_weighted_average_fusion());
-    
+
     auto modal_embeddings = create_test_embeddings();
     FusionParams params;
     params.strategy = FusionStrategy::WEIGHTED_AVERAGE;
-    
+
     Vector result = engine.fuse_embeddings(modal_embeddings, params);
     EXPECT_EQ(result.size(), expected_dimension);
     EXPECT_GT(fusion_utils::vector_norm(result), 0.0f);
@@ -298,7 +298,7 @@ TEST(FusionEngineTest, WeightedAverageFusion) {
 
 ### 1. 依赖管理
 - OpenCV (图像处理)
-- FFmpeg (音视频处理) 
+- FFmpeg (音视频处理)
 - 机器学习框架 (TensorFlow/PyTorch的C++接口)
 - FAISS (向量检索)
 
@@ -315,7 +315,7 @@ public:
     void record_fusion_time(FusionStrategy strategy, double time_ms);
     void record_modality_processing_time(ModalityType type, double time_ms);
     void record_search_latency(double latency_ms);
-    
+
     void print_statistics() const;
 };
 ```

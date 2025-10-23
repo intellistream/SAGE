@@ -5,7 +5,7 @@
 The video intelligence pipeline test was failing in CI:
 
 ```
-OSError: We couldn't connect to 'https://hf-mirror.com' to load the files, 
+OSError: We couldn't connect to 'https://hf-mirror.com' to load the files,
 and couldn't find them in the cached files.
 ```
 

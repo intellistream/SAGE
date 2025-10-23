@@ -59,7 +59,7 @@ class OpenAIClient:
             frequency_penalty = kwargs.get("frequency_penalty", 0)
             n = int(kwargs.get("n", 1))
             want_logprobs = bool(kwargs.get("logprobs", False))
-            
+
             # -------- 处理扩展参数（通过 extra_body）--------
             # 支持 Qwen 的 enable_thinking 等特殊参数
             # 注意：vLLM 要求通过 chat_template_kwargs 传递给 chat template
@@ -85,16 +85,16 @@ class OpenAIClient:
                 "top_p": top_p,
                 "max_tokens": max_tokens,
             }
-            
+
             # 只有在有额外参数时才添加 extra_body
             if extra_body:
                 request_params["extra_body"] = extra_body
-            
+
             # 转发 generator.py 透传的其他参数到 OpenAI API
             for key in ("stream", "n", "logprobs", "frequency_penalty", "seed"):
                 if key in kwargs:
                     request_params[key] = kwargs[key]
-            
+
             response = self.client.chat.completions.create(**request_params)
 
             # -------- 流式返回 --------

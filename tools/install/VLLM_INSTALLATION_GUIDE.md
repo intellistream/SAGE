@@ -105,7 +105,7 @@ python -c "import transformers, torch, accelerate; print('All dependencies OK')"
    ```bash
    # 检查 NVIDIA 驱动
    nvidia-smi
-   
+
    # 检查 CUDA 版本
    nvcc --version
    ```
@@ -122,7 +122,7 @@ python -c "import transformers, torch, accelerate; print('All dependencies OK')"
    ```bash
    # 手动验证
    python -c "import vllm; print('VLLM installed successfully')"
-   
+
    # 查看安装日志
    cat install.log | grep -i vllm
    ```

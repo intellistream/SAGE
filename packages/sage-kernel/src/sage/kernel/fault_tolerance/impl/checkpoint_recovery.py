@@ -96,7 +96,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
         has_checkpoint = len(self.checkpoint_manager.list_checkpoints(task_id)) > 0
 
         return failure_count < self.max_recovery_attempts and has_checkpoint
-    
+
     def _is_remote_task(self, task_id: TaskID) -> bool:
         """判断是否为远程任务"""
         if not hasattr(self, "dispatcher") or not self.dispatcher:

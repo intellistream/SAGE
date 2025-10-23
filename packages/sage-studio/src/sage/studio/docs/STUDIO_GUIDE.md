@@ -12,7 +12,7 @@ SAGE Studio 是一个基于 Angular 16 的低代码可视化数据流管道编�
 ## 🚀 快速启动
 
 ### 前置条件
-- Node.js 18+ 
+- Node.js 18+
 - npm 或 yarn
 - SAGE 后端服务（可选，支持 Mock 数据）
 

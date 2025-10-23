@@ -285,11 +285,11 @@ def main():
   1. 用户在创建 Environment 时指定调度策略
      - env = LocalEnvironment(scheduler="fifo")
      - env = RemoteEnvironment(scheduler=LoadAwareScheduler())
-  
+
   2. 并行度在定义 transformation 时指定
      - .map(HeavyProcessor, parallelism=4)
      - .filter(LightFilter, parallelism=2)
-  
+
   3. 调度器在应用级别工作，对用户透明
      - 自动根据策略调度所有任务
      - 开发者可以轻松对比不同策略的性能

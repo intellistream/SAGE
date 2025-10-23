@@ -52,7 +52,7 @@ print_timestamped() {
     local level="$1"
     local message="$2"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    
+
     case "$level" in
         "INFO")
             echo -e "${BLUE}[$timestamp][INFO]${NC} $message"
@@ -81,12 +81,12 @@ print_progress() {
     local percentage=$((current * 100 / total))
     local filled=$((current * width / total))
     local empty=$((width - filled))
-    
+
     printf "\r${BLUE}[INFO]${NC} $description ["
     printf "%${filled}s" | tr ' ' '#'
     printf "%${empty}s" | tr ' ' '-'
     printf "] %d%%" $percentage
-    
+
     if [ $current -eq $total ]; then
         echo ""
     fi
@@ -96,16 +96,16 @@ print_progress() {
 confirm_action() {
     local message="$1"
     local default="${2:-n}"
-    
+
     if [ "$default" = "y" ]; then
         prompt="$message [Y/n]: "
     else
         prompt="$message [y/N]: "
     fi
-    
+
     read -p "$prompt" response
     response=${response:-$default}
-    
+
     case "$response" in
         [Yy]|[Yy][Ee][Ss])
             return 0

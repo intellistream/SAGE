@@ -110,7 +110,7 @@ services:
       engine:
         tensor_parallel_size: 1
         gpu_memory_utilization: 0.9
-  
+
   embedding:
     class: sage.common.components.sage_embedding.EmbeddingService
     config:
@@ -154,7 +154,7 @@ services:
       model: "BAAI/bge-small-zh-v1.5"  # 小模型, 快速
       batch_size: 32
       cache_enabled: true
-  
+
   # 2. 高质量云端 embedding (用于离线索引)
   embedding_quality:
     class: sage.common.components.sage_embedding.EmbeddingService
@@ -163,13 +163,13 @@ services:
       model: "text-embedding-3-large"
       api_key: "${OPENAI_API_KEY}"
       batch_size: 100
-  
+
   # 3. vLLM 高吞吐 embedding (用于大规模批处理)
   vllm:
     class: sage.common.components.sage_vllm.VLLMService
     config:
       model_id: "BAAI/bge-large-en-v1.5"
-  
+
   embedding_batch:
     class: sage.common.components.sage_embedding.EmbeddingService
     config:
@@ -188,13 +188,13 @@ operators:
       })
       payload["query_vector"] = result["vectors"][0]
       return payload
-  
+
   # 文档 embedding - 根据情况选择
   - name: document_embed
     type: custom
     code: |
       docs = payload["documents"]
-      
+
       # 小批量: 使用本地模型
       if len(docs) < 100:
           service = "embedding_fast"
@@ -206,15 +206,15 @@ operators:
           service = "embedding_quality"
       else:
           service = "embedding_fast"
-      
+
       result = self.call_service(service, payload={
           "task": "embed",
           "inputs": [d["text"] for d in docs]
       })
-      
+
       for doc, vec in zip(docs, result["vectors"]):
           doc["embedding"] = vec
-      
+
       return payload
     """
 
@@ -233,7 +233,7 @@ from typing import Any, Dict, List
 
 class SmartEmbeddingOperator(BaseOperator):
     """智能 Embedding Operator - 根据负载自动选择策略"""
-    
+
     def __init__(
         self,
         embedding_service: str = "embedding",
@@ -245,20 +245,20 @@ class SmartEmbeddingOperator(BaseOperator):
         self.batch_size = batch_size
         self.cache_threshold = cache_threshold
         self.vllm_threshold = vllm_threshold
-    
+
     def process(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         texts = payload.get("texts", [])
-        
+
         if not texts:
             payload["embeddings"] = []
             return payload
-        
+
         # 智能选择策略
         options = {
             "batch_size": self.batch_size,
             "return_stats": True,
         }
-        
+
         # 小批量: 启用缓存
         if len(texts) <= self.cache_threshold:
             # 假设有缓存配置的 service
@@ -269,24 +269,24 @@ class SmartEmbeddingOperator(BaseOperator):
             options["batch_size"] = min(512, len(texts))
         else:
             service = self.embedding_service
-        
+
         # 调用 embedding service
         result = self.call_service(service, payload={
             "task": "embed",
             "inputs": texts,
             "options": options
         })
-        
+
         # 附加结果
         payload["embeddings"] = result["vectors"]
         payload["embedding_dimension"] = result["dimension"]
         payload["embedding_stats"] = result.get("stats", {})
-        
+
         self.logger.info(
             f"Embedded {len(texts)} texts using {service}, "
             f"cache_hit_rate={result['stats'].get('cache_hit_rate', 0):.2%}"
         )
-        
+
         return payload
 
 
@@ -353,24 +353,24 @@ vLLM (GPU)        2000/s      5ms       硬件      大规模生产环境
 vLLM (多GPU)      5000/s      3ms       硬件      超大规模部署
 
 推荐配置:
-  
+
   1. 开发/测试:
      method: "hash" 或 "mockembedder"
-  
+
   2. 小规模生产 (< 1M 文档):
      method: "hf", model: "BAAI/bge-small-zh-v1.5"
-  
+
   3. 中等规模 (1M - 10M 文档):
      查询: method: "hf", cache_enabled: true
      索引: method: "openai" 或 "jina"
-  
+
   4. 大规模生产 (> 10M 文档):
      method: "vllm", vllm_service_name: "vllm"
      配置多 GPU 以提高吞吐量
-  
+
   5. 成本敏感:
      method: "hf" (完全免费, 需要 GPU 硬件)
-  
+
   6. 质量优先:
      method: "openai", model: "text-embedding-3-large"
 """

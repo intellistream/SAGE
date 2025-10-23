@@ -25,6 +25,6 @@ from .dp_unlearning.unlearning_engine import UnlearningEngine
 __version__ = "0.1.0"
 __all__ = [
     "BasePrivacyMechanism",
-    "PrivacyAccountant", 
+    "PrivacyAccountant",
     "UnlearningEngine",
 ]

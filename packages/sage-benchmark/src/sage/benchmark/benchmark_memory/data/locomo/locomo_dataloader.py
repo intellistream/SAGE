@@ -113,39 +113,39 @@ class LocomoDataLoader:
     def get_question_list(self, sample_id, session_x, dialog_y):
         """获取截止到指定对话（session_x, dialog_y）之前所有应该可见的问题列表
         用于流式评测：每输入一段对话后，返回所有此时应该可以回答的问题
-        
+
         Get all questions that should be visible up to the specified dialog (session_x, dialog_y).
         For streaming evaluation: after each dialog turn, return all questions that can be answered.
-        
+
         判断逻辑：
         - 对于单个 evidence (如 'D2:5')：如果 x < session_x，或者 x == session_x && y <= dialog_y，则包含
         - 对于多个 evidence (如 ['D2:5', 'D3:8'])：取最大的 x 和 y（优先比较 x），判断是否在范围内
-        
+
         Args:
             sample_id: sample id
             session_x: 当前 session 编号 (e.g., 1, 2, 3...)
             dialog_y: 当前对话轮次索引（从0开始，但 evidence 中是从1开始，所以实际比较时用 dialog_y + 1）
-            
+
         Returns:
             list of QA questions that are visible up to this point
         """
         sample = self.get_sample(sample_id)
         visible_questions = []
-        
+
         # evidence 中的 y 是从 1 开始的，所以当前对话的实际编号是 dialog_y + 1
         current_dialog_num = dialog_y + 1
-        
+
         for qa in sample.get("qa", []):
             evidence_list = qa.get("evidence", [])
-            
+
             # 如果没有 evidence，跳过
             if not evidence_list:
                 continue
-            
+
             # 解析所有 evidence，找到最大的 (x, y)
             max_session = -1
             max_dialog = -1
-            
+
             for evidence in evidence_list:
                 # 解析 evidence 格式: "Dx:y" 或 "Dx:y; Dz:w" (有些可能有分号)
                 # 先按分号分割，然后解析每个部分
@@ -157,7 +157,7 @@ class LocomoDataLoader:
                             coords = part[1:].split(':')  # 去掉开头的 'D'
                             x = int(coords[0])
                             y = int(coords[1])
-                            
+
                             # 更新最大值（优先比较 x，然后比较 y）
                             if x > max_session or (x == max_session and y > max_dialog):
                                 max_session = x
@@ -165,22 +165,22 @@ class LocomoDataLoader:
                         except (ValueError, IndexError):
                             # 解析失败，跳过这个 evidence
                             continue
-            
+
             # 判断这个问题是否在当前时间点可见
             # 如果 max_session < session_x，或者 max_session == session_x 且 max_dialog <= current_dialog_num
             if max_session != -1:  # 确保至少解析到了一个有效的 evidence
                 if max_session < session_x or (max_session == session_x and max_dialog <= current_dialog_num):
                     visible_questions.append(qa)
-        
+
         return visible_questions
 
     def get_turn(self, sample_id):
         """返回每个 session 的对话轮数信息
         Return the number of dialog turns for each session
-        
+
         Args:
             sample_id: sample id
-            
+
         Returns:
             list of tuples: [(session_id, max_dialog_index), ...]
             例如: [(1, 17), (2, 16), (3, 22), ...]
@@ -188,7 +188,7 @@ class LocomoDataLoader:
         """
         sample = self.get_sample(sample_id)
         conv = sample.get("conversation", {})
-        
+
         # 找到所有 session 的编号
         session_nums = [
             int(k.split("_")[1])
@@ -196,7 +196,7 @@ class LocomoDataLoader:
             if k.startswith("session_") and not k.endswith("_date_time")
         ]
         session_nums.sort()
-        
+
         result = []
         for session_num in session_nums:
             session_key = f"session_{session_num}"
@@ -205,18 +205,18 @@ class LocomoDataLoader:
                 # 最大索引 = 长度 - 1
                 max_index = len(session_content) - 1
                 result.append((session_num, max_index))
-        
+
         return result
 
     def get_dialog(self, sample_id, session_x, dialog_y):
         """返回指定位置的对话轮次（一组问答）
         Return the dialog turn at specified position (a pair of question-answer)
-        
+
         Args:
             sample_id: sample id
             session_x: session 编号
             dialog_y: 对话轮次索引（必须是偶数，表示一轮对话的开始）
-            
+
         Returns:
             list of dialog entries: [{"speaker": "xxx", "text": "xxx", ...}, ...]
             - 如果 dialog_y 和 dialog_y+1 都存在，返回这一对对话
@@ -226,25 +226,25 @@ class LocomoDataLoader:
         # 检查 dialog_y 必须是偶数
         if dialog_y % 2 != 0:
             raise ValueError(f"dialog_y must be even, got {dialog_y}")
-        
+
         sample = self.get_sample(sample_id)
         conv = sample.get("conversation", {})
-        
+
         session_key = f"session_{session_x}"
         session_content = conv.get(session_key, [])
-        
+
         if not session_content:
             raise ValueError(f"Session {session_x} not found in sample {sample_id}")
-        
+
         if dialog_y < 0 or dialog_y >= len(session_content):
             raise ValueError(
                 f"dialog_y {dialog_y} out of range for session {session_x} "
                 f"(valid range: 0-{len(session_content)-1})"
             )
-        
+
         # 获取对话
         result = []
-        
+
         # 第一个对话（dialog_y 位置）
         dialog_1 = session_content[dialog_y]
         result.append({
@@ -252,7 +252,7 @@ class LocomoDataLoader:
             "text": dialog_1.get("text"),
             "session_type": dialog_1.get("session_type", "text")
         })
-        
+
         # 第二个对话（dialog_y+1 位置，如果存在）
         if dialog_y + 1 < len(session_content):
             dialog_2 = session_content[dialog_y + 1]
@@ -261,7 +261,7 @@ class LocomoDataLoader:
                 "text": dialog_2.get("text"),
                 "session_type": dialog_2.get("session_type", "text")
             })
-        
+
         return result
 
 
@@ -276,7 +276,7 @@ if __name__ == "__main__":
     sample_ids = loader.get_sample_id()
     for sid in sample_ids:
         print(f"  - {sid}")
-    
+
     # 使用第一个 sample_id 进行后续测试
     sid = sample_ids[0]
     print(f"\n使用 sample_id: {sid} 进行后续测试")
@@ -291,7 +291,7 @@ if __name__ == "__main__":
         date_time = session['date_time']
         content = session['session_content']
         print(f"\nSession {session_id} | 时间: {date_time} | 总对话数: {len(content)}")
-        
+
         # 显示前两个对话
         for i, dialog in enumerate(content[:2]):
             speaker = dialog.get('speaker', 'N/A')
@@ -311,28 +311,28 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("4 & 5. Session 3 的对话和可见问题（交替输出）:")
     print("=" * 60)
-    
+
     # 找到 Session 3 的信息
     session_3_max_idx = None
     for session_id, max_idx in turns:
         if session_id == 3:
             session_3_max_idx = max_idx
             break
-    
+
     if session_3_max_idx is not None:
         # 遍历 Session 3 的所有偶数索引（每组对话）
         for dialog_idx in range(0, session_3_max_idx + 1, 2):
             # 4. 获取并输出对话
             dialogs = loader.get_dialog(sid, session_x=3, dialog_y=dialog_idx)
             last_idx = dialog_idx + len(dialogs) - 1
-            
+
             print(f"\n--- Session 3, Dialog {dialog_idx}-{last_idx} ---")
             for i, d in enumerate(dialogs):
                 speaker = d['speaker']
                 text = d['text']
                 text_preview = text[:60] + "..." if len(text) > 60 else text
                 print(f"  [{dialog_idx + i}] {speaker}: {text_preview}")
-            
+
             # 5. 获取并输出可见问题
             questions = loader.get_question_list(sid, session_x=3, dialog_y=last_idx)
             print(f"  >> 可见问题数: {len(questions)}")
@@ -355,7 +355,7 @@ if __name__ == "__main__":
                         print(f"     - {q['question']}")
     else:
         print("未找到 Session 3")
-    
+
     print("\n" + "=" * 60)
     print("测试完成")
     print("=" * 60)

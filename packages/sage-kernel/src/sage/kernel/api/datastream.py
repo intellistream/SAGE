@@ -300,7 +300,7 @@ class DataStream(Generic[T]):
             stream.print("结果: ")  # 带前缀打印
             stream.print()  # 简单打印
             ```
-        
+
         Note:
             使用 kernel 内置的打印功能，不依赖 sage-libs。
             如需更高级的打印功能，请使用 sage.libs.io.sink.PrintSink。

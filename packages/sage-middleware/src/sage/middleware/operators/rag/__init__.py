@@ -71,7 +71,7 @@ _IMPORTS = {
 __all__ = [
     # Types
     "RAGDocument",
-    "RAGQuery", 
+    "RAGQuery",
     "RAGResponse",
     "RAGInput",
     "RAGOutput",

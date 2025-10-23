@@ -30,14 +30,14 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 
 class RAGUnlearningSystem(BaseService):
     """RAG 系统中的隐私遗忘管理"""
-    
+
     def __init__(self, data_dir: str = None, epsilon: float = 1.0):
         super().__init__()
-        
+
         if data_dir is None:
             data_dir = os.path.join(os.getcwd(), "data", "rag_unlearning")
         os.makedirs(data_dir, exist_ok=True)
-        
+
         self.data_dir = data_dir
         self.manager = MemoryManager(data_dir)
         self.unlearning_engine = UnlearningEngine(
@@ -46,20 +46,20 @@ class RAGUnlearningSystem(BaseService):
             total_budget_epsilon=100.0,
             enable_compensation=True
         )
-        
+
         # 审计日志
         self.audit_log = []
-        
+
         self.logger.info("RAGUnlearningSystem initialized")
-    
+
     def initialize_rag_corpus(self, collection_name: str, documents: List[Dict[str, Any]]) -> bool:
         """
         初始化 RAG corpus
-        
+
         Args:
             collection_name: Collection 名称
             documents: 文档列表，每个包含 'id', 'content', 'vector', 'metadata'
-        
+
         Returns:
             是否成功
         """
@@ -70,10 +70,10 @@ class RAGUnlearningSystem(BaseService):
                 "backend_type": "VDB",
                 "description": f"RAG corpus: {collection_name}"
             })
-            
+
             if collection is None:
                 return False
-            
+
             # 创建索引
             index_config = {
                 "name": "content_index",
@@ -83,7 +83,7 @@ class RAGUnlearningSystem(BaseService):
                 "description": "Content search index"
             }
             collection.create_index(index_config)
-            
+
             # 插入文档
             for doc in documents:
                 collection.insert(
@@ -91,19 +91,19 @@ class RAGUnlearningSystem(BaseService):
                     index_name="content_index",
                     metadata=doc.get('metadata', {})
                 )
-            
+
             collection.init_index("content_index")
             self.manager.store_collection(collection_name)
-            
+
             self.logger.info(f"✓ Initialized RAG corpus with {len(documents)} documents")
             self._audit_log("INIT_CORPUS", collection_name, len(documents))
-            
+
             return True
-        
+
         except Exception as e:
             self.logger.error(f"Error initializing corpus: {e}")
             return False
-    
+
     def retrieve_relevant_documents(
         self,
         collection_name: str,
@@ -115,20 +115,20 @@ class RAGUnlearningSystem(BaseService):
             collection = self.manager.get_collection(collection_name)
             if collection is None:
                 return []
-            
+
             results = collection.retrieve(
                 raw_data=query,
                 index_name="content_index",
                 topk=topk,
                 with_metadata=True
             )
-            
+
             return results
-        
+
         except Exception as e:
             self.logger.error(f"Error retrieving documents: {e}")
             return []
-    
+
     def forget_documents(
         self,
         collection_name: str,
@@ -138,13 +138,13 @@ class RAGUnlearningSystem(BaseService):
     ) -> Dict[str, Any]:
         """
         遗忘指定的文档
-        
+
         Args:
             collection_name: Collection 名称
             document_ids: 要遗忘的文档 IDs
             reason: 遗忘原因
             user_id: 发起遗忘的用户 ID
-        
+
         Returns:
             操作结果
         """
@@ -152,24 +152,24 @@ class RAGUnlearningSystem(BaseService):
             collection = self.manager.get_collection(collection_name)
             if collection is None:
                 return {'success': False, 'error': 'Collection not found'}
-            
+
             index = collection.index_info.get("content_index", {}).get("index")
             if index is None:
                 return {'success': False, 'error': 'Index not found'}
-            
+
             # 收集要遗忘的向量
             vectors_to_forget = []
             valid_ids = []
-            
+
             for doc_id in document_ids:
                 if hasattr(index, 'vector_store') and doc_id in index.vector_store:
                     vector = index.vector_store[doc_id]
                     vectors_to_forget.append(vector)
                     valid_ids.append(doc_id)
-            
+
             if not vectors_to_forget:
                 return {'success': False, 'error': 'No documents found to forget'}
-            
+
             # 获取所有向量用于补偿
             all_vectors = []
             all_ids = []
@@ -178,13 +178,13 @@ class RAGUnlearningSystem(BaseService):
                     if vid not in valid_ids:  # 排除要遗忘的向量
                         all_vectors.append(vector)
                         all_ids.append(vid)
-            
+
             self.logger.info(f"Starting DP unlearning for {len(valid_ids)} documents...")
-            
+
             # 执行 DP 遗忘
             vectors_array = np.array(vectors_to_forget)
             all_vectors_array = np.array(all_vectors) if all_vectors else vectors_array
-            
+
             result = self.unlearning_engine.unlearn_vectors(
                 vectors_to_forget=vectors_array,
                 vector_ids_to_forget=valid_ids,
@@ -192,16 +192,16 @@ class RAGUnlearningSystem(BaseService):
                 all_vector_ids=all_ids,
                 perturbation_strategy="adaptive"
             )
-            
+
             if not result.success:
                 error = result.metadata.get('error', 'Unknown error')
                 self.logger.error(f"Unlearning failed: {error}")
                 return {'success': False, 'error': error}
-            
+
             # 更新 VDB 中的向量
             perturbed_vectors = result.metadata.get('perturbed_vectors', [])
             updated_count = 0
-            
+
             for doc_id, perturbed_vec in zip(valid_ids, perturbed_vectors):
                 try:
                     if hasattr(index, 'update'):
@@ -212,10 +212,10 @@ class RAGUnlearningSystem(BaseService):
                     updated_count += 1
                 except Exception as e:
                     self.logger.error(f"Failed to update vector for {doc_id}: {e}")
-            
+
             # 持久化
             self.manager.store_collection(collection_name)
-            
+
             # 记录审计日志
             self._audit_log(
                 "FORGET_DOCUMENTS",
@@ -227,12 +227,12 @@ class RAGUnlearningSystem(BaseService):
                     'privacy_cost': result.privacy_cost
                 }
             )
-            
+
             status = self.unlearning_engine.get_privacy_status()
             remaining = status['remaining_budget']
-            
+
             self.logger.info(f"✓ Successfully forgotten {updated_count} documents")
-            
+
             return {
                 'success': True,
                 'num_forgotten': updated_count,
@@ -245,11 +245,11 @@ class RAGUnlearningSystem(BaseService):
                     'delta': remaining['delta_remaining']
                 }
             }
-        
+
         except Exception as e:
             self.logger.error(f"Error in forget_documents: {e}")
             return {'success': False, 'error': str(e)}
-    
+
     def handle_user_deletion_request(
         self,
         collection_name: str,
@@ -258,12 +258,12 @@ class RAGUnlearningSystem(BaseService):
     ) -> Dict[str, Any]:
         """
         处理用户数据删除请求（如 GDPR 删除权）
-        
+
         Args:
             collection_name: Collection 名称
             user_id: 用户 ID
             user_keywords: 用户特定关键词（可选）
-        
+
         Returns:
             处理结果
         """
@@ -271,16 +271,16 @@ class RAGUnlearningSystem(BaseService):
             collection = self.manager.get_collection(collection_name)
             if collection is None:
                 return {'success': False, 'error': 'Collection not found'}
-            
+
             # 查找属于该用户的所有文档
             all_ids = collection.get_all_ids()
             user_docs = []
-            
+
             for doc_id in all_ids:
                 metadata = collection.metadata_storage.get(doc_id)
                 if metadata and metadata.get('user_id') == user_id:
                     user_docs.append(doc_id)
-            
+
             if not user_docs:
                 self.logger.info(f"No documents found for user {user_id}")
                 return {
@@ -288,9 +288,9 @@ class RAGUnlearningSystem(BaseService):
                     'num_forgotten': 0,
                     'message': 'No documents to delete'
                 }
-            
+
             self.logger.info(f"Found {len(user_docs)} documents for user {user_id}")
-            
+
             # 遗忘用户所有文档
             result = self.forget_documents(
                 collection_name=collection_name,
@@ -298,16 +298,16 @@ class RAGUnlearningSystem(BaseService):
                 reason="user_deletion_request",
                 user_id=user_id
             )
-            
+
             if result['success']:
                 self.logger.info(f"✓ Deleted all data for user {user_id}")
-            
+
             return result
-        
+
         except Exception as e:
             self.logger.error(f"Error handling deletion request: {e}")
             return {'success': False, 'error': str(e)}
-    
+
     def handle_malicious_content_removal(
         self,
         collection_name: str,
@@ -315,11 +315,11 @@ class RAGUnlearningSystem(BaseService):
     ) -> Dict[str, Any]:
         """
         处理恶意内容移除
-        
+
         Args:
             collection_name: Collection 名称
             detection_keywords: 恶意内容关键词
-        
+
         Returns:
             处理结果
         """
@@ -327,11 +327,11 @@ class RAGUnlearningSystem(BaseService):
             collection = self.manager.get_collection(collection_name)
             if collection is None:
                 return {'success': False, 'error': 'Collection not found'}
-            
+
             # 查找包含恶意内容的文档
             all_ids = collection.get_all_ids()
             malicious_docs = []
-            
+
             for doc_id in all_ids:
                 content = collection.text_storage.get(doc_id)
                 if content:
@@ -339,7 +339,7 @@ class RAGUnlearningSystem(BaseService):
                         if keyword.lower() in content.lower():
                             malicious_docs.append(doc_id)
                             break
-            
+
             if not malicious_docs:
                 self.logger.info("No malicious content detected")
                 return {
@@ -347,9 +347,9 @@ class RAGUnlearningSystem(BaseService):
                     'num_forgotten': 0,
                     'message': 'No malicious content found'
                 }
-            
+
             self.logger.warning(f"Detected {len(malicious_docs)} documents with malicious content")
-            
+
             # 遗忘恶意内容
             result = self.forget_documents(
                 collection_name=collection_name,
@@ -357,17 +357,17 @@ class RAGUnlearningSystem(BaseService):
                 reason="malicious_content",
                 user_id="system"
             )
-            
+
             return result
-        
+
         except Exception as e:
             self.logger.error(f"Error handling malicious content: {e}")
             return {'success': False, 'error': str(e)}
-    
+
     def get_audit_log(self) -> List[Dict[str, Any]]:
         """获取审计日志"""
         return self.audit_log
-    
+
     def _audit_log(self, operation: str, collection: str, count: int, extra: Dict = None):
         """记录审计事件"""
         log_entry = {
@@ -385,9 +385,9 @@ def example_basic_rag():
     print("\n" + "="*70)
     print("Example 1: Basic RAG System with Unlearning")
     print("="*70)
-    
+
     system = RAGUnlearningSystem(epsilon=1.0)
-    
+
     # 创建示例文档
     documents = [
         {
@@ -416,15 +416,15 @@ def example_basic_rag():
             'metadata': {'user_id': 'user_3', 'category': 'public'}
         },
     ]
-    
+
     # 为每个文档添加随机向量
     for doc in documents:
         doc['vector'] = np.random.randn(128).astype(np.float32)
         doc['vector'] = doc['vector'] / (np.linalg.norm(doc['vector']) + 1e-10)
-    
+
     # 初始化 corpus
     system.initialize_rag_corpus("knowledge_base", documents)
-    
+
     # 检索
     print("\n🔍 Retrieving documents...")
     results = system.retrieve_relevant_documents(
@@ -433,7 +433,7 @@ def example_basic_rag():
         topk=3
     )
     print(f"  Found {len(results)} relevant documents")
-    
+
     # 用户请求删除
     print("\n🗑️ Processing user deletion request...")
     result = system.handle_user_deletion_request(
@@ -444,7 +444,7 @@ def example_basic_rag():
     if result['success']:
         print(f"  Deleted: {result['num_forgotten']} documents")
         print(f"  Privacy cost: ε={result['privacy_cost']['epsilon']:.4f}")
-    
+
     print()
 
 
@@ -453,9 +453,9 @@ def example_malicious_content():
     print("\n" + "="*70)
     print("Example 2: Malicious Content Detection and Removal")
     print("="*70)
-    
+
     system = RAGUnlearningSystem(epsilon=1.0)
-    
+
     # 创建包含一些恶意内容的文档
     documents = [
         {
@@ -479,24 +479,24 @@ def example_malicious_content():
             'metadata': {'user_id': 'user_3', 'category': 'malicious'}
         },
     ]
-    
+
     for doc in documents:
         doc['vector'] = np.random.randn(128).astype(np.float32)
         doc['vector'] = doc['vector'] / (np.linalg.norm(doc['vector']) + 1e-10)
-    
+
     system.initialize_rag_corpus("content_db", documents)
-    
+
     # 检测并移除恶意内容
     print("\n🚨 Detecting malicious content...")
     result = system.handle_malicious_content_removal(
         "content_db",
         detection_keywords=["spam", "malware", "!!!"]
     )
-    
+
     print(f"  Success: {result['success']}")
     if result['success']:
         print(f"  Removed: {result['num_forgotten']} malicious documents")
-    
+
     print()
 
 
@@ -505,9 +505,9 @@ def example_audit_log():
     print("\n" + "="*70)
     print("Example 3: Audit Log and Compliance")
     print("="*70)
-    
+
     system = RAGUnlearningSystem(epsilon=1.0)
-    
+
     # 创建文档
     documents = []
     for i in range(10):
@@ -517,25 +517,25 @@ def example_audit_log():
             'metadata': {'user_id': f'user_{i % 3}', 'category': 'normal'},
             'vector': np.random.randn(128).astype(np.float32) / np.linalg.norm(np.random.randn(128).astype(np.float32))
         })
-    
+
     system.initialize_rag_corpus("audit_test", documents)
-    
+
     # 执行多个操作
     print("\n📝 Performing operations...")
-    
+
     # 用户 0 删除请求
     system.handle_user_deletion_request("audit_test", "user_0")
     print("  ✓ User deletion request processed")
-    
+
     # 恶意内容检测（无恶意内容）
     system.handle_malicious_content_removal("audit_test", ["malware"])
     print("  ✓ Malicious content check completed")
-    
+
     # 显示审计日志
     print("\n📋 Audit Log:")
     for entry in system.get_audit_log():
         print(f"  {entry['timestamp']}: {entry['operation']} on {entry['collection']} ({entry['count']} items)")
-    
+
     print()
 
 
@@ -546,14 +546,14 @@ def main():
     print("="*70)
     print("\n这些示例展示了在完整 RAG 系统中使用隐私遗忘。")
     print("包括：用户删除请求、恶意内容移除、合规审计\n")
-    
+
     CustomLogger.disable_global_console_debug()
-    
+
     # 运行示例
     example_basic_rag()
     example_malicious_content()
     example_audit_log()
-    
+
     print("="*70)
     print("✅ All examples completed successfully!")
     print("="*70)

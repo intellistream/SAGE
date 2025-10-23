@@ -6,13 +6,13 @@ from sage.kernel.runtime.communication.router.packet import StopSignal
 class BatchOperator(BaseOperator):
     """
     批处理操作符
-    
+
     流量控制通过router的Queue实现：
     - router.send(packet)内部使用queue.put()
     - 当下游处理慢时，put()会自然阻塞，形成背压
     - 无需额外的全局锁机制
     """
-    
+
     def receive_packet(self, packet: "Packet"):
         self.process_packet(packet)
 

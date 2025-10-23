@@ -9,10 +9,10 @@ Dependencies: sage.libs (L3 - optional examples only)
 ⚠️ IMPORTANT - 架构说明:
     本文件是**可选示例代码**，不是 kernel 的核心功能。
     示例中使用 sage.libs 的 Source/Sink 是为了演示完整的容错流程。
-    
+
     运行这些示例需要安装 sage.libs:
         pip install sage-libs
-    
+
     用户可以使用自己的 Source/Sink 实现，无需依赖 sage.libs。
 
 Architecture Note:
@@ -30,12 +30,12 @@ def example_1_user_checkpoint_strategy():
     示例 1: 应用用户使用 Checkpoint 策略
 
     用户只需在 Environment 配置中声明，无需编写任何容错代码。
-    
+
     Requirements:
         pip install sage-libs
     """
     from sage.kernel.api.local_environment import LocalEnvironment
-    
+
     # 此示例需要 sage.libs
     try:
         from sage.libs.io.sink import TerminalSink
@@ -81,12 +81,12 @@ def example_2_user_restart_strategy():
     示例 2: 应用用户使用 Restart 策略
 
     使用指数退避重启策略，用户同样无需编写容错代码。
-    
+
     Requirements:
         pip install sage-libs
     """
     from sage.kernel.api.local_environment import LocalEnvironment
-    
+
     try:
         from sage.libs.io.sink import TerminalSink
         from sage.libs.io.source import FileSource
@@ -129,12 +129,12 @@ def example_2_user_restart_strategy():
 def example_3_user_no_fault_tolerance():
     """
     示例 3: 用户不配置容错（使用默认行为）
-    
+
     Requirements:
         pip install sage-libs
     """
     from sage.kernel.api.local_environment import LocalEnvironment
-    
+
     try:
         from sage.libs.io.sink import TerminalSink
         from sage.libs.io.source import FileSource
@@ -164,13 +164,13 @@ def example_4_user_yaml_config():
     示例 4: 从 YAML 配置文件读取容错配置
 
     这是最常见的用法 - 配置在外部文件中管理。
-    
+
     Requirements:
         pip install sage-libs
     """
     from sage.common.utils.config.loader import load_config
     from sage.kernel.api.local_environment import LocalEnvironment
-    
+
     try:
         from sage.libs.io.sink import TerminalSink
         from sage.libs.io.source import FileSource

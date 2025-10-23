@@ -82,7 +82,7 @@ class BGEReranker(MapOperator):
             # 使用标准化函数提取数据
             query = extract_query(data)
             doc_set = extract_results(data)
-            
+
             if not query:
                 self.logger.error("Missing 'query' field in input")
                 return create_rag_response("", [])
@@ -275,7 +275,7 @@ class LLMbased_Reranker(MapOperator):
             # 使用标准化函数提取数据
             query = extract_query(data)
             doc_set = extract_results(data)
-            
+
             if not query:
                 self.logger.error("Missing 'query' field in input")
                 return create_rag_response("", [])

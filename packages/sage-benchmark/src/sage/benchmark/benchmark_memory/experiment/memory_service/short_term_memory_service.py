@@ -42,7 +42,7 @@ class ShortTermMemoryService(BaseService):
 
         # 使用 deque 作为队列，设置最大长度
         self.message_queue = deque(maxlen=self.max_messages)
-        
+
         # 初始化对话解析器
         self.dialogue_parser = DialogueParser()
 
@@ -53,10 +53,10 @@ class ShortTermMemoryService(BaseService):
     def insert(self, dialogs: List[Dict[str, Any]]) -> None:
         """
         插入对话历史到短期记忆中
-        
+
         Args:
             dialogs: 对话列表，每个对话包含 speaker, text, session_type 等字段
-        
+
         Raises:
             TypeError: 当输入不是列表或对话不是字典时
             ValueError: 当对话缺少必需字段时
@@ -64,7 +64,7 @@ class ShortTermMemoryService(BaseService):
         # 使用对话解析器进行验证（严格模式）
         try:
             validated_dialogs = self.dialogue_parser.parse_and_validate(
-                dialogs, 
+                dialogs,
                 strict_mode=True
             )
         except (TypeError, ValueError) as e:
@@ -75,7 +75,7 @@ class ShortTermMemoryService(BaseService):
         for dialog in validated_dialogs:
             # 插入到队列，如果超出最大长度，最旧的会自动被移除
             self.message_queue.append(dialog)
-            
+
             # 使用解析器提取信息用于日志
             info = self.dialogue_parser.extract_dialog_info(dialog)
             self._logger.debug(
@@ -90,7 +90,7 @@ class ShortTermMemoryService(BaseService):
     def retrieve(self) -> List[Dict[str, Any]]:
         """
         检索所有短期记忆中的对话
-        
+
         Returns:
             List[Dict[str, Any]]: 对话列表
         """
@@ -128,7 +128,7 @@ if __name__ == "__main__":
             }
         ]
         memory.insert(dialogs_1)
-        
+
         retrieved = memory.retrieve()
         print(f"当前队列大小: {len(retrieved)}/{memory.max_messages}")
         print("当前记忆内容:")
@@ -153,7 +153,7 @@ if __name__ == "__main__":
             }
         ]
         memory.insert(dialogs_2)
-        
+
         retrieved = memory.retrieve()
         print(f"当前队列大小: {len(retrieved)}/{memory.max_messages} (已达到最大容量)")
         print("当前记忆内容:")
@@ -173,7 +173,7 @@ if __name__ == "__main__":
             }
         ]
         memory.insert(dialogs_3)
-        
+
         retrieved = memory.retrieve()
         print(f"当前队列大小: {len(retrieved)}/{memory.max_messages}")
         print("⚠️  最旧的1条消息被移除，保留最新的4条")
@@ -199,14 +199,14 @@ if __name__ == "__main__":
             }
         ]
         memory.insert(dialogs_4)
-        
+
         retrieved = memory.retrieve()
         print(f"当前队列大小: {len(retrieved)}/{memory.max_messages}")
         print("⚠️  又有2条旧消息被移除，保留最新的4条")
         print("当前记忆内容:")
         for i, msg in enumerate(retrieved, 1):
             print(f"  {i}. [{msg['speaker']}]: {msg['text']}")
-        
+
         print("\n" + "=" * 70)
         print("✅ 测试完成！短期记忆服务采用队列方式管理，自动丢弃最旧的消息。")
         print("=" * 70 + "\n")

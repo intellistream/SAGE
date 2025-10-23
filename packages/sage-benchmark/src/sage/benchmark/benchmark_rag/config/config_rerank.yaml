@@ -10,19 +10,19 @@ retriever:
   # ChromaDB 专用配置
   dimension: 384    # 修改为与 HuggingFace all-MiniLM-L6-v2 匹配
   top_k: 2
-  
+
   chroma:
     persistence_path: "./data/chroma_qa_database"
     collection_name: "qa_knowledge_base"
     use_embedding_query: true
-    
+
     # 知识库已预加载，注释掉自动加载
     # knowledge_file: "../../data/qa_knowledge_base.txt"
-    
+
     # ChromaDB 元数据配置 (简化格式)
     metadata:
       hnsw:space: "cosine"           # 距离度量
-  
+
   # 嵌入模型配置
   embedding:
     method: "hf"
@@ -31,12 +31,12 @@ retriever:
 promptor:
   template: |
     基于以下检索到的相关文档，回答用户问题：
-    
+
     相关文档：
     {retrieved_documents}
-    
+
     用户问题：{query}
-    
+
     请提供准确、有用的回答：
 
 generator:

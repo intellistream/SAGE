@@ -160,7 +160,7 @@ from sage.lib.agents.agent import BaseAgent
 class CustomBot(BaseAgent):
     def __init__(self, config=None):
         super().__init__(config)
-    
+
     def process(self, input_data):
         # 自定义处理逻辑
         return processed_result

@@ -20,7 +20,7 @@ class ServiceManager:
     def __init__(self, context, logger=None):
         # 线程池 - 并发执行服务调用
         self._executor = ThreadPoolExecutor(max_workers=10)
-        
+
         # 这个锁只保护请求/响应映射表，不保护服务调用本身！
         self._result_lock = threading.RLock()
         self._request_results: Dict[str, ServiceResponse] = {}
@@ -62,41 +62,41 @@ namespace sage_db {
 class SageDB {
 private:
     // === 核心思想：读写分离 ===
-    
+
     // 1. 可变部分：向量和元数据（需要锁保护）
     mutable std::shared_mutex data_mutex_;
     std::shared_ptr<VectorStore> vector_store_;
     std::shared_ptr<MetadataStore> metadata_store_;
-    
+
     // 2. 不可变部分：搜索索引（无锁读取）
     std::atomic<std::shared_ptr<const ANNSAlgorithm>> search_index_;
     std::atomic<uint64_t> index_version_{0};
-    
+
     // 3. 写缓冲区（避免频繁重建索引）
     struct WriteBuffer {
         std::vector<VectorEntry> pending_vectors;
         size_t max_size = 1000;  // 累积 1000 个向量再重建索引
     } write_buffer_;
-    
+
     DatabaseConfig config_;
 
 public:
-    explicit SageDB(const DatabaseConfig& config) 
+    explicit SageDB(const DatabaseConfig& config)
         : config_(config) {
         vector_store_ = std::make_shared<VectorStore>(config.dimension);
         metadata_store_ = std::make_shared<MetadataStore>();
-        
+
         // 初始化空索引
         auto initial_index = create_anns_algorithm(config);
         search_index_.store(
             std::make_shared<const ANNSAlgorithm>(std::move(initial_index))
         );
     }
-    
+
     // ============================================
     // 写操作：细粒度锁 + 批量优化
     // ============================================
-    
+
     VectorId add(const Vector& vector, const Metadata& metadata = {}) {
         // 1. 快速路径：只锁数据存储（不锁索引）
         VectorId id;
@@ -108,124 +108,124 @@ public:
             }
             write_buffer_.pending_vectors.push_back({id, vector});
         }
-        
+
         // 2. 异步重建索引（如果需要）
         if (write_buffer_.pending_vectors.size() >= write_buffer_.max_size) {
             rebuild_index_async();
         }
-        
+
         return id;
     }
-    
+
     std::vector<VectorId> add_batch(
         const std::vector<Vector>& vectors,
         const std::vector<Metadata>& metadata = {}) {
-        
+
         std::vector<VectorId> ids;
         ids.reserve(vectors.size());
-        
+
         // 批量操作：一次锁定
         {
             std::unique_lock<std::shared_mutex> lock(data_mutex_);
-            
+
             for (size_t i = 0; i < vectors.size(); ++i) {
                 VectorId id = vector_store_->add(vectors[i]);
                 ids.push_back(id);
-                
+
                 if (i < metadata.size() && !metadata[i].empty()) {
                     metadata_store_->set(id, metadata[i]);
                 }
-                
+
                 write_buffer_.pending_vectors.push_back({id, vectors[i]});
             }
         }
-        
+
         // 批量插入后重建索引
         if (write_buffer_.pending_vectors.size() >= write_buffer_.max_size) {
             rebuild_index_async();
         }
-        
+
         return ids;
     }
-    
+
     // ============================================
     // 读操作：完全无锁！
     // ============================================
-    
+
     std::vector<QueryResult> search(
         const Vector& query,
         uint32_t k = 10,
         bool include_metadata = true) const {
-        
+
         // 1. 无锁读取索引指针（原子操作）
         auto index = search_index_.load(std::memory_order_acquire);
-        
+
         // 2. 在索引上搜索（完全并行，无锁）
         QueryConfig qc;
         qc.k = k;
         auto anns_results = index->query(query, qc);
-        
+
         // 3. 转换为 QueryResult
         std::vector<QueryResult> results;
         results.reserve(anns_results.ids.size());
-        
+
         for (size_t i = 0; i < anns_results.ids.size(); ++i) {
             QueryResult r;
             r.id = anns_results.ids[i];
             r.score = anns_results.distances[i];
-            
+
             // 只在需要时读取元数据（短暂共享锁）
             if (include_metadata) {
                 std::shared_lock<std::shared_mutex> lock(data_mutex_);
                 metadata_store_->get(r.id, r.metadata);
             }
-            
+
             results.push_back(std::move(r));
         }
-        
+
         return results;
     }
-    
+
     // 批量搜索：完全并行（可用 OpenMP）
     std::vector<std::vector<QueryResult>> batch_search(
         const std::vector<Vector>& queries,
         const SearchParams& params) const {
-        
+
         // 无锁加载索引
         auto index = search_index_.load(std::memory_order_acquire);
-        
+
         std::vector<std::vector<QueryResult>> all_results(queries.size());
-        
+
         // OpenMP 并行化（无锁！）
         #pragma omp parallel for schedule(dynamic) if(queries.size() > 4)
         for (size_t i = 0; i < queries.size(); ++i) {
             QueryConfig qc;
             qc.k = params.k;
             auto anns_results = index->query(queries[i], qc);
-            
+
             // 转换结果
             std::vector<QueryResult> results;
             results.reserve(anns_results.ids.size());
-            
+
             for (size_t j = 0; j < anns_results.ids.size(); ++j) {
                 QueryResult r;
                 r.id = anns_results.ids[j];
                 r.score = anns_results.distances[j];
-                
+
                 if (params.include_metadata) {
                     std::shared_lock<std::shared_mutex> lock(data_mutex_);
                     metadata_store_->get(r.id, r.metadata);
                 }
-                
+
                 results.push_back(std::move(r));
             }
-            
+
             all_results[i] = std::move(results);
         }
-        
+
         return all_results;
     }
-    
+
 private:
     // 异步重建索引（后台线程）
     void rebuild_index_async() {
@@ -236,24 +236,24 @@ private:
             snapshot = vector_store_->get_all_vectors();
             write_buffer_.pending_vectors.clear();
         }
-        
+
         // 后台线程构建新索引（无锁）
         std::thread([this, snapshot = std::move(snapshot)]() {
             auto new_index = create_anns_algorithm(config_);
-            
+
             AlgorithmParams params;
             // ... 设置参数 ...
-            
+
             // 训练和构建（CPU 密集，不持锁）
             new_index->fit(snapshot, params);
-            
+
             // 原子替换索引
             auto immutable_index = std::make_shared<const ANNSAlgorithm>(
                 std::move(new_index)
             );
             search_index_.store(immutable_index, std::memory_order_release);
             index_version_.fetch_add(1, std::memory_order_relaxed);
-            
+
         }).detach();
     }
 };
@@ -292,7 +292,7 @@ void add(vector) {
         lock(data_mutex);     // 只锁数据，不锁索引
         store.add(vector);
     }                         // 快速释放锁
-    
+
     // 异步重建索引（不阻塞）
     async_rebuild_if_needed();
 }
@@ -325,52 +325,52 @@ from typing import List, Dict, Optional
 class SageDBService:
     """
     高性能向量数据库服务
-    
+
     线程安全性：完全由 C++ 层保证，Python 层无需加锁
     """
-    
+
     def __init__(self, dimension: int = 768):
         # C++ 层已经是线程安全的，直接使用即可
         self._db = SageDB.from_config(DatabaseConfig(dimension))
         self._dim = dimension
-    
+
     def add(self, vector: np.ndarray, metadata: Optional[Dict] = None) -> int:
         """
         添加向量（线程安全）
-        
+
         C++ 层使用细粒度锁，这里无需额外同步
         """
         if not isinstance(vector, np.ndarray):
             vector = np.asarray(vector, dtype=np.float32)
-        
+
         # 直接调用 C++ - 内部已处理并发
         return self._db.add(vector, metadata or {})
-    
-    def add_batch(self, vectors: np.ndarray, 
+
+    def add_batch(self, vectors: np.ndarray,
                   metadata_list: Optional[List[Dict]] = None) -> List[int]:
         """
         批量添加（线程安全，且批量操作内部只锁一次）
         """
         if isinstance(vectors, list):
             vectors = np.asarray(vectors, dtype=np.float32)
-        
+
         # C++ 层的 add_batch 内部只获取一次锁
         return self._db.add_batch(vectors, metadata_list or [])
-    
-    def search(self, query: np.ndarray, k: int = 10, 
+
+    def search(self, query: np.ndarray, k: int = 10,
                include_metadata: bool = True) -> List[Dict]:
         """
         搜索（完全无锁，可高度并发）
-        
+
         多个线程可以同时调用此方法，性能线性扩展
         """
         if not isinstance(query, np.ndarray):
             query = np.asarray(query, dtype=np.float32)
-        
+
         # C++ search 是无锁的！
         # GIL 在 C++ 层被释放，真正的并行执行
         results = self._db.search(query, k=k, include_metadata=include_metadata)
-        
+
         # 格式化结果
         return [
             {
@@ -380,26 +380,26 @@ class SageDBService:
             }
             for r in results
         ]
-    
+
     def batch_search(self, queries: np.ndarray, k: int = 10) -> List[List[Dict]]:
         """
         批量搜索（内部使用 OpenMP 并行，无锁）
-        
+
         这是最高性能的搜索方式！
         """
         if isinstance(queries, list):
             queries = np.asarray(queries, dtype=np.float32)
-        
+
         # C++ batch_search 内部用 OpenMP 并行
         # 完全释放 GIL，CPU 利用率接近 100%
         results = self._db.batch_search(queries, SearchParams(k))
-        
+
         return [
             [{"id": int(r.id), "score": float(r.score), "metadata": dict(r.metadata)}
              for r in batch]
             for batch in results
         ]
-    
+
     def stats(self) -> Dict:
         """获取统计信息（线程安全）"""
         return {
@@ -429,7 +429,7 @@ class VectorSearchFunction(MapFunction):
     def execute(self, data):
         # ServiceManager 的锁只保护请求映射
         # SageDB.search() 是完全无锁的！
-        # 
+        #
         # 性能：10 个并发线程 = ~10x 吞吐量
         results = self.call_service(
             "sage_db",
@@ -443,9 +443,9 @@ class VectorSearchFunction(MapFunction):
 **执行流程分析**：
 
 ```
-Thread 1: call_service("sage_db", vec1, "search") 
+Thread 1: call_service("sage_db", vec1, "search")
   → ServiceManager._result_lock.acquire()       # 微秒级
-  → 生成 request_id, 放入队列                    
+  → 生成 request_id, 放入队列  
   → ServiceManager._result_lock.release()       # 微秒级
   → 调用 SageDBService.search()                 # 无锁！
     → C++ SageDB::search()                      # 无锁！
@@ -459,7 +459,7 @@ Thread 2: call_service("sage_db", vec2, "search")  # 同时进行
   → C++ SageDB::search()                        # 与 Thread 1 并行！
 ```
 
-**瓶颈在哪？** 
+**瓶颈在哪？**
 - ❌ 不在 ServiceManager（锁很短）
 - ❌ 不在 Python 层（GIL 已释放）
 - ✅ 只在 CPU 计算能力！
@@ -470,14 +470,14 @@ Thread 2: call_service("sage_db", vec2, "search")  # 同时进行
 class BatchVectorSearch(BatchFunction):
     """
     批量处理，性能最优！
-    
+
     一次调用处理 N 个查询，内部用 OpenMP 并行
     """
-    
+
     def execute(self, batch_data: List[Dict]) -> List[Dict]:
         # 提取所有查询向量
         queries = np.array([item["query_vector"] for item in batch_data])
-        
+
         # 单次服务调用，批量搜索
         # C++ 层用 OpenMP 并行，无锁，性能爆炸！
         results = self.call_service(
@@ -486,7 +486,7 @@ class BatchVectorSearch(BatchFunction):
             method="batch_search",
             k=10
         )
-        
+
         return [
             {"query": batch_data[i]["query_text"], "results": results[i]}
             for i in range(len(batch_data))
@@ -538,32 +538,32 @@ Vector numpy_to_vector(py::array_t<float> arr) {
 
 PYBIND11_MODULE(_sage_db, m) {
     m.doc() = "High-performance vector database with lock-free architecture";
-    
+
     // SageDB 类
     py::class_<SageDB, std::shared_ptr<SageDB>>(m, "SageDB")
-        
+
         // ========================================
         // 搜索：完全释放 GIL
         // ========================================
-        .def("search", 
+        .def("search",
             [](const SageDB& self,
                py::array_t<float> query,
                uint32_t k,
                bool include_metadata) -> py::list {
-                
+
                 // 1. 在 GIL 保护下转换输入
                 Vector query_vec = numpy_to_vector(query);
-                
+
                 // 2. 释放 GIL - 关键！
                 py::gil_scoped_release release;
-                
+
                 // 3. C++ 执行（无 Python 依赖）
                 //    此时其他 Python 线程可以运行！
                 auto cpp_results = self.search(query_vec, k, include_metadata);
-                
+
                 // 4. 重新获取 GIL
                 py::gil_scoped_acquire acquire;
-                
+
                 // 5. 转换结果为 Python 对象
                 py::list py_results;
                 for (const auto& r : cpp_results) {
@@ -575,7 +575,7 @@ PYBIND11_MODULE(_sage_db, m) {
                     }
                     py_results.append(item);
                 }
-                
+
                 return py_results;
             },
             py::arg("query"),
@@ -583,11 +583,11 @@ PYBIND11_MODULE(_sage_db, m) {
             py::arg("include_metadata") = true,
             R"pbdoc(
                 Thread-safe vector search with GIL released.
-                
+
                 Multiple threads can call this simultaneously and achieve
                 true parallelism. Performance scales linearly with CPU cores.
             )pbdoc")
-        
+
         // ========================================
         // 批量搜索：GIL 释放 + OpenMP 并行
         // ========================================
@@ -595,17 +595,17 @@ PYBIND11_MODULE(_sage_db, m) {
             [](const SageDB& self,
                py::array_t<float> queries,  // shape: (N, dim)
                const SearchParams& params) -> py::list {
-                
+
                 // 转换输入
                 auto buf = queries.request();
                 if (buf.ndim != 2) {
                     throw std::runtime_error("queries must be 2D array");
                 }
-                
+
                 size_t num_queries = buf.shape[0];
                 size_t dim = buf.shape[1];
                 float* data = static_cast<float*>(buf.ptr);
-                
+
                 std::vector<Vector> query_vecs;
                 query_vecs.reserve(num_queries);
                 for (size_t i = 0; i < num_queries; ++i) {
@@ -614,16 +614,16 @@ PYBIND11_MODULE(_sage_db, m) {
                         data + (i + 1) * dim
                     );
                 }
-                
+
                 // 释放 GIL - 批量操作
                 py::gil_scoped_release release;
-                
+
                 // C++ 批量搜索（OpenMP 并行）
                 auto cpp_results = self.batch_search(query_vecs, params);
-                
+
                 // 获取 GIL
                 py::gil_scoped_acquire acquire;
-                
+
                 // 转换结果
                 py::list all_results;
                 for (const auto& batch : cpp_results) {
@@ -637,18 +637,18 @@ PYBIND11_MODULE(_sage_db, m) {
                     }
                     all_results.append(batch_results);
                 }
-                
+
                 return all_results;
             },
             py::arg("queries"),
             py::arg("params"),
             R"pbdoc(
                 Batch search with internal OpenMP parallelization.
-                
+
                 This is the highest-performance search method.
                 Processes multiple queries in parallel with GIL released.
             )pbdoc")
-        
+
         // ========================================
         // 添加：短暂持锁，快速返回
         // ========================================
@@ -656,19 +656,19 @@ PYBIND11_MODULE(_sage_db, m) {
             [](SageDB& self,
                py::array_t<float> vector,
                const Metadata& metadata) -> VectorId {
-                
+
                 Vector vec = numpy_to_vector(vector);
-                
+
                 // 释放 GIL（虽然内部有锁，但很短）
                 py::gil_scoped_release release;
                 VectorId id = self.add(vec, metadata);
                 py::gil_scoped_acquire acquire;
-                
+
                 return id;
             },
             py::arg("vector"),
             py::arg("metadata") = Metadata{})
-        
+
         // ========================================
         // 批量添加：一次锁定
         // ========================================
@@ -676,28 +676,28 @@ PYBIND11_MODULE(_sage_db, m) {
             [](SageDB& self,
                py::array_t<float> vectors,  // shape: (N, dim)
                const std::vector<Metadata>& metadata_list) -> std::vector<VectorId> {
-                
+
                 auto buf = vectors.request();
                 size_t num_vectors = buf.shape[0];
                 size_t dim = buf.shape[1];
                 float* data = static_cast<float*>(buf.ptr);
-                
+
                 std::vector<Vector> vecs;
                 vecs.reserve(num_vectors);
                 for (size_t i = 0; i < num_vectors; ++i) {
                     vecs.emplace_back(data + i * dim, data + (i + 1) * dim);
                 }
-                
+
                 // 释放 GIL
                 py::gil_scoped_release release;
                 auto ids = self.add_batch(vecs, metadata_list);
                 py::gil_scoped_acquire acquire;
-                
+
                 return ids;
             },
             py::arg("vectors"),
             py::arg("metadata_list") = std::vector<Metadata>{});
-    
+
     // 其他绑定...
 }
 ```
@@ -713,12 +713,12 @@ db = SageDB(DatabaseConfig(768))
 
 def search_worker(worker_id, num_queries):
     query = np.random.rand(768).astype(np.float32)
-    
+
     start = time.time()
     for i in range(num_queries):
         results = db.search(query, k=10)
     elapsed = time.time() - start
-    
+
     print(f"Worker {worker_id}: {num_queries/elapsed:.1f} QPS")
 
 # 单线程基准
@@ -851,13 +851,13 @@ env.submit(autostop=True)
 class SageDB {
 private:
     mutable std::shared_mutex data_mutex_;  // 保护数据
-    
+
 public:
     VectorId add(const Vector& vector, const Metadata& metadata) {
         std::unique_lock lock(data_mutex_);
         // 现有实现
     }
-    
+
     std::vector<QueryResult> search(...) const {
         std::shared_lock lock(data_mutex_);
         // 现有实现
@@ -871,7 +871,7 @@ public:
 void test_concurrent_search() {
     SageDB db(config);
     // 添加数据...
-    
+
     std::vector<std::thread> threads;
     for (int i = 0; i < 10; ++i) {
         threads.emplace_back([&db]() {
@@ -919,14 +919,14 @@ threads = [threading.Thread(target=bench) for _ in range(8)]
 class SageDB {
 private:
     std::atomic<std::shared_ptr<const ANNSAlgorithm>> index_;
-    
+
     void rebuild_index_async() {
         std::thread([this]() {
             auto new_index = build_new_index();
             index_.store(new_index);
         }).detach();
     }
-    
+
 public:
     std::vector<QueryResult> search(...) const {
         auto idx = index_.load();  // 无锁！
@@ -943,15 +943,15 @@ public:
 std::vector<std::vector<QueryResult>> batch_search(
     const std::vector<Vector>& queries,
     const SearchParams& params) const {
-    
+
     auto idx = index_.load();
     std::vector<std::vector<QueryResult>> results(queries.size());
-    
+
     #pragma omp parallel for
     for (size_t i = 0; i < queries.size(); ++i) {
         results[i] = idx->query(queries[i], params);
     }
-    
+
     return results;
 }
 ```
@@ -1023,23 +1023,23 @@ import numpy as np
 
 def benchmark_concurrent_search(db, num_threads, queries_per_thread):
     """测试并发搜索性能"""
-    
+
     def worker(queries):
         start = time.time()
         for q in queries:
             db.search(q, k=10)
         return time.time() - start
-    
+
     # 准备查询
-    all_queries = [np.random.rand(768).astype(np.float32) 
+    all_queries = [np.random.rand(768).astype(np.float32)
                    for _ in range(num_threads * queries_per_thread)]
-    
+
     # 分配给线程
     query_batches = [
-        all_queries[i::num_threads] 
+        all_queries[i::num_threads]
         for i in range(num_threads)
     ]
-    
+
     # 并发执行
     start = time.time()
     threads = []
@@ -1047,13 +1047,13 @@ def benchmark_concurrent_search(db, num_threads, queries_per_thread):
         t = threading.Thread(target=worker, args=(batch,))
         threads.append(t)
         t.start()
-    
+
     for t in threads:
         t.join()
-    
+
     total_time = time.time() - start
     total_queries = num_threads * queries_per_thread
-    
+
     print(f"Threads: {num_threads}")
     print(f"Total QPS: {total_queries / total_time:.1f}")
     print(f"Per-thread QPS: {queries_per_thread / (total_time / num_threads):.1f}")
@@ -1087,37 +1087,37 @@ for num_threads in [1, 2, 4, 8]:
 // tests/test_concurrent_correctness.cpp
 TEST(SageDB, ConcurrentSearchCorrectness) {
     SageDB db(config);
-    
+
     // 添加已知数据
     std::vector<Vector> known_vectors = generate_test_vectors(1000);
     for (const auto& v : known_vectors) {
         db.add(v);
     }
-    
+
     // 并发搜索，验证结果一致性
     std::atomic<int> errors{0};
-    
+
     auto search_worker = [&]() {
         for (int i = 0; i < 100; ++i) {
             auto query = known_vectors[i % known_vectors.size()];
             auto results = db.search(query, 5);
-            
+
             // 第一个结果应该是查询本身（距离为 0）
             if (results.empty() || results[0].score > 1e-6) {
                 errors.fetch_add(1);
             }
         }
     };
-    
+
     std::vector<std::thread> threads;
     for (int i = 0; i < 10; ++i) {
         threads.emplace_back(search_worker);
     }
-    
+
     for (auto& t : threads) {
         t.join();
     }
-    
+
     EXPECT_EQ(errors.load(), 0) << "Concurrent searches produced incorrect results";
 }
 ```
@@ -1135,27 +1135,27 @@ private:
         std::atomic<uint64_t> index_rebuilds{0};
         std::atomic<uint64_t> search_time_us{0};
     } stats_;
-    
+
 public:
     std::vector<QueryResult> search(...) const {
         stats_.total_searches.fetch_add(1);
         auto start = high_resolution_clock::now();
-        
+
         auto results = /* ... */;
-        
+
         auto elapsed = duration_cast<microseconds>(
             high_resolution_clock::now() - start
         ).count();
         stats_.search_time_us.fetch_add(elapsed);
-        
+
         return results;
     }
-    
+
     PerformanceStats get_stats() const {
         return {
             .total_searches = stats_.total_searches.load(),
-            .avg_search_us = stats_.total_searches > 0 
-                ? stats_.search_time_us / stats_.total_searches 
+            .avg_search_us = stats_.total_searches > 0
+                ? stats_.search_time_us / stats_.total_searches
                 : 0,
             // ...
         };
@@ -1185,21 +1185,21 @@ class SageDBService:
         self._db = SageDB.from_config(DatabaseConfig(dimension))
         self._call_count = 0
         self._total_latency = 0.0
-    
+
     def search(self, query, k=10):
         import time
         start = time.time()
-        
+
         results = self._db.search(query, k=k)
-        
+
         latency = time.time() - start
         self._call_count += 1
         self._total_latency += latency
-        
+
         if self._call_count % 1000 == 0:
             avg = self._total_latency / self._call_count
             print(f"Average search latency: {avg*1000:.2f}ms")
-        
+
         return results
 ```
 
@@ -1254,24 +1254,24 @@ public:
     // 写操作 - 独占锁
     VectorId add(const Vector& vector, const Metadata& metadata = {}) {
         std::unique_lock<std::shared_mutex> lock(mutex_);
-        
+
         VectorId id = vector_store_->add(vector);
         if (!metadata.empty()) {
             metadata_store_->set(id, metadata);
         }
         return id;
     }
-    
+
     // 批量写 - 独占锁
     std::vector<VectorId> add_batch(
         const std::vector<Vector>& vectors,
         const std::vector<Metadata>& metadata = {}) {
-        
+
         std::unique_lock<std::shared_mutex> lock(mutex_);
-        
+
         std::vector<VectorId> ids;
         ids.reserve(vectors.size());
-        
+
         for (size_t i = 0; i < vectors.size(); ++i) {
             VectorId id = vector_store_->add(vectors[i]);
             if (i < metadata.size() && !metadata[i].empty()) {
@@ -1281,42 +1281,42 @@ public:
         }
         return ids;
     }
-    
+
     // 读操作 - 共享锁（允许多个线程同时读）
     std::vector<QueryResult> search(
         const Vector& query,
         uint32_t k = 10,
         bool include_metadata = true) const {
-        
+
         std::shared_lock<std::shared_mutex> lock(mutex_);
-        
+
         auto results = query_engine_->search(query, k);
-        
+
         if (include_metadata) {
             for (auto& result : results) {
                 metadata_store_->get(result.id, result.metadata);
             }
         }
-        
+
         return results;
     }
-    
+
     // 批量读 - 共享锁
     std::vector<std::vector<QueryResult>> batch_search(
         const std::vector<Vector>& queries,
         const SearchParams& params) const {
-        
+
         std::shared_lock<std::shared_mutex> lock(mutex_);
-        
+
         std::vector<std::vector<QueryResult>> all_results;
         all_results.reserve(queries.size());
-        
+
         // 可以在内部使用 OpenMP 并行化
         #pragma omp parallel for if(queries.size() > 10)
         for (size_t i = 0; i < queries.size(); ++i) {
             all_results[i] = query_engine_->search(queries[i], params.k);
         }
-        
+
         return all_results;
     }
 };
@@ -1339,18 +1339,18 @@ PYBIND11_MODULE(_sage_db, m) {
                           bool include_metadata) {
             // 释放 GIL - 允许真正的并行
             py::gil_scoped_release release;
-            
+
             // 转换 numpy array 到 C++ vector
             auto buf = query.request();
             Vector query_vec(static_cast<float*>(buf.ptr),
                            static_cast<float*>(buf.ptr) + buf.size);
-            
+
             // 执行搜索（可能与其他线程并发）
             auto results = self.search(query_vec, k, include_metadata);
-            
+
             // 重新获取 GIL
             py::gil_scoped_acquire acquire;
-            
+
             // 转换结果为 Python list
             py::list py_results;
             for (const auto& r : results) {
@@ -1360,7 +1360,7 @@ PYBIND11_MODULE(_sage_db, m) {
                 item["metadata"] = py::cast(r.metadata);
                 py_results.append(item);
             }
-            
+
             return py_results;
         },
         py::arg("query"),

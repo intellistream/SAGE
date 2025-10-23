@@ -34,26 +34,26 @@ license = {text = "MIT"}
 # 核心依赖
 dependencies = [
     "isage-kernel>=0.1.0",  # 继承 common 的所有依赖
-    
+
     # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
     "numpy>=1.26.0,<2.3.0",
-    
+
     # Libs-specific dependencies
     # Vector databases
     "chromadb>=1.0.20",
     "pymilvus[model]>=2.4.0",  # 包含BGEM3EmbeddingFunction支持
-    
+
     # Stream processing examples
     "kafka-python>=2.0.0",
     "redis>=4.0.0",
-    
+
     # Evaluation tools
     "datasets>=2.0.0",
     "evaluate>=0.4.0",
     "rouge>=1.0.0",
     "rouge-score>=0.1.0",
     "bleu>=0.3.0",
-    
+
     # Jupyter support
     "jupyter>=1.0.0",
     "notebook>=6.0.0",
@@ -87,15 +87,15 @@ llm = [
 finetune = [
     # LoRA/PEFT 支持
     "peft>=0.7.0",
-    
+
     # 训练加速
     "accelerate>=0.25.0",
     "bitsandbytes>=0.41.0",  # 量化训练（减少显存占用）
-    
+
     # 监控和可视化
     "tensorboard>=2.14.0",
     "wandb>=0.16.0",
-    
+
     # TRL for RLHF/DPO (已经是依赖项，这里明确标注)
     "trl>=0.23.0",
 ]
@@ -248,7 +248,7 @@ line-length = 88
 # 启用的规则集（与flake8兼容）
 select = [
     "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
+    "W",    # pycodestyle warnings
     "F",    # pyflakes
     "I",    # isort
     "B",    # flake8-bugbear

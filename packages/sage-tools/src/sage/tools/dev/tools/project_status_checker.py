@@ -33,7 +33,7 @@ class ProjectStatusChecker:
 
     def check_all(self, verbose: bool = False, quick: bool = False) -> Dict[str, Any]:
         """执行全面的状态检查
-        
+
         Args:
             verbose: 详细输出
             quick: 快速模式，跳过耗时检查（如依赖和服务检查）

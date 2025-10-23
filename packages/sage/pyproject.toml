@@ -51,14 +51,14 @@ dependencies = [
 # 大小：~100MB
 minimal = [
     "isage-common>=0.1.0",      # L1: Foundation
-    "isage-platform>=0.1.0",    # L2: Platform  
+    "isage-platform>=0.1.0",    # L2: Platform
     "isage-kernel>=0.1.0",      # L3: Core Engine
 ]
 
 # 核心运行时 - 等同于 minimal（向后兼容）
 core = [
     "isage-common>=0.1.0",      # L1: Foundation
-    "isage-platform>=0.1.0",    # L2: Platform  
+    "isage-platform>=0.1.0",    # L2: Platform
     "isage-kernel>=0.1.0",      # L3: Core Engine
 ]
 
@@ -122,7 +122,7 @@ line-length = 88
 # 启用的规则集（与flake8兼容）
 select = [
     "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
+    "W",    # pycodestyle warnings
     "F",    # pyflakes
     "I",    # isort
     "B",    # flake8-bugbear

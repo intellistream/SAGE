@@ -101,7 +101,7 @@ sage dev version sync --source sage --dry-run
    ```bash
    # Preview changes first
    sage dev version bump minor --dry-run
-   
+
    # Apply changes
    sage dev version bump minor
    ```

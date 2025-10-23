@@ -66,9 +66,9 @@ def rag_pipeline_with_refiner():
     from sage.middleware.operators.rag import QAPromptor
     from sage.middleware.operators.rag import OpenAIGenerator
     from sage.middleware.operators.rag import F1Evaluate, CompressionRateEvaluate
-    
+
     env = LocalEnvironment()
-    
+
     (
         env.from_batch(JSONLBatch, config["source"])
         .map(ChromaRetriever, config["retriever"])
@@ -78,7 +78,7 @@ def rag_pipeline_with_refiner():
         .map(F1Evaluate, config["evaluate"])
         .map(CompressionRateEvaluate, config["evaluate"])  # 评估压缩率
     )
-    
+
     env.submit()
     """
 

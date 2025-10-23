@@ -384,7 +384,7 @@ class EmbeddingService(BaseService):
                     status = "needs_download"
                 else:
                     status = "available"
-                    
+
                 methods.append(
                     {
                         "name": method,

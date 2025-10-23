@@ -92,12 +92,12 @@ config = {
     # 基础配置
     "algorithm": "simple",           # 算法选择
     "budget": 2048,                  # token 预算
-    
+
     # 性能优化
     "enable_cache": True,            # 启用缓存
     "cache_size": 100,               # 缓存大小
     "cache_ttl": 3600,               # 缓存过期时间(秒)
-    
+
     # 调试
     "enable_metrics": True,          # 启用性能指标
     "enable_profile": False,         # 启用数据记录

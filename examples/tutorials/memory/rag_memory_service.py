@@ -25,11 +25,11 @@ class RAGMemoryService(BaseService):
         super().__init__()
 
         self._logger = CustomLogger()
-        
+
         # 如果 config 为 None，尝试从 kwargs 构建
         if config is None:
             config = kwargs
-        
+
         # 如果还是空，说明有问题
         if not config:
             raise ValueError("RAGMemoryService requires configuration")

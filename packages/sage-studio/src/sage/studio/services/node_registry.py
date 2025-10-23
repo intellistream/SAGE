@@ -9,18 +9,18 @@ from sage.kernel.operators import MapOperator
 
 class NodeRegistry:
     """Node Registry - Mapping from Studio UI node types to SAGE Operator classes"""
-    
+
     def __init__(self):
         """Initialize Registry and register all available node types"""
         self._registry: Dict[str, Type[MapOperator]] = {}
         self._register_default_operators()
-    
+
     def _register_default_operators(self):
         """Register default Operator mappings"""
-        
+
         # Generic map operator
         self._registry["map"] = MapOperator
-        
+
         # RAG Generators
         try:
             from sage.middleware.operators.rag import OpenAIGenerator, HFGenerator
@@ -29,7 +29,7 @@ class NodeRegistry:
             self._registry["generator"] = OpenAIGenerator  # Default generator
         except ImportError:
             pass
-        
+
         # RAG Retrievers
         try:
             from sage.middleware.operators.rag import (
@@ -43,7 +43,7 @@ class NodeRegistry:
             self._registry["retriever"] = ChromaRetriever  # Default retriever
         except ImportError:
             pass
-        
+
         # RAG Rerankers
         try:
             from sage.middleware.operators.rag import BGEReranker
@@ -51,7 +51,7 @@ class NodeRegistry:
             self._registry["reranker"] = BGEReranker  # Default reranker
         except ImportError:
             pass
-        
+
         # RAG Promptors
         try:
             from sage.middleware.operators.rag import (
@@ -63,7 +63,7 @@ class NodeRegistry:
             self._registry["promptor"] = QAPromptor  # Default promptor
         except ImportError:
             pass
-        
+
         # Document Processing
         try:
             from sage.middleware.operators.rag import (
@@ -75,7 +75,7 @@ class NodeRegistry:
             self._registry["chunker"] = CharacterSplitter  # Default chunker
         except ImportError:
             pass
-        
+
         # Evaluation Operators
         try:
             from sage.middleware.operators.rag import (
@@ -89,15 +89,15 @@ class NodeRegistry:
             self._registry["evaluator"] = F1Evaluate  # Default evaluator
         except ImportError:
             pass
-    
+
     def register(self, node_type: str, operator_class: Type[MapOperator]):
         """Register a new node type"""
         self._registry[node_type] = operator_class
-    
+
     def get_operator(self, node_type: str) -> Optional[Type[MapOperator]]:
         """Get the Operator class for a node type"""
         return self._registry.get(node_type)
-    
+
     def list_types(self) -> list[str]:
         """List all registered node types"""
         return sorted(self._registry.keys())

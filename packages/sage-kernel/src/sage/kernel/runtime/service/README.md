@@ -122,7 +122,7 @@ service_queue = service_manager.get_service_queue(service_name)
 ### 线程池执行
 ```python
 self._executor = ThreadPoolExecutor(
-    max_workers=10, 
+    max_workers=10,
     thread_name_prefix="ServiceCall"
 )
 ```
@@ -169,7 +169,7 @@ service:
     max_workers: 10
     queue_timeout: 30
     request_queue_size: 10000
-    
+
   ray:
     resources: {"CPU": 2}
     lifetime: "detached"
@@ -193,7 +193,7 @@ class CustomServiceTask(BaseServiceTask):
     def __init__(self, service_factory, ctx):
         super().__init__(service_factory, ctx)
         # 自定义初始化
-    
+
     def custom_handle_request(self, request):
         # 自定义请求处理逻辑
         return self.service.process(request)
@@ -205,7 +205,7 @@ class ServiceMiddleware:
     def before_call(self, request):
         # 调用前的处理逻辑
         pass
-    
+
     def after_call(self, response):
         # 调用后的处理逻辑
         pass

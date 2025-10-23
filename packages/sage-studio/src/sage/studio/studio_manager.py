@@ -672,7 +672,7 @@ if __name__ == "__main__":
                         return False
 
                 console.print("[blue]启动生产服务器（Vite Preview）...[/blue]")
-                
+
                 # 使用 Vite preview
                 cmd = [
                     "npm",

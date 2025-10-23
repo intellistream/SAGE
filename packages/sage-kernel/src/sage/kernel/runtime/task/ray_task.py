@@ -27,16 +27,16 @@ MAX_MISSED_HEARTBEATS = 3  # 最大允许丢失心跳次数
 class RayTask(BaseTask):
     """
     带心跳监控的 RayTask
-    
+
     扩展自 BaseTask,添加心跳发送功能用于 Remote 环境故障检测:
     - 定期发送心跳到 Dispatcher
     - 报告任务状态和处理指标
     - 支持 Checkpoint 容错恢复
-    
+
     使用方法:
         # 创建时传入 dispatcher_ref
         task = RayTaskWithHeartbeat.remote(ctx, operator_factory, dispatcher_ref)
-        
+
         # 启动任务 (会自动启动心跳线程)
         ray.get(task.start_running.remote())
     """
@@ -48,7 +48,7 @@ class RayTask(BaseTask):
     ) -> None:
         """
         初始化 RayTask 并设置心跳机制
-        
+
         Args:
             runtime_context: 运行时上下文
             operator_factory: Operator 工厂
@@ -62,10 +62,10 @@ class RayTask(BaseTask):
     def put_packet(self, packet: "Packet"):
         """
         向任务的输入缓冲区放入数据包
-        
+
         Args:
             packet: 要放入的数据包
-            
+
         Returns:
             True 如果成功
         """
@@ -83,11 +83,11 @@ class RayTask(BaseTask):
             self.error_count += 1  # 更新错误计数
             return False
 
-   
+
     def stop(self) -> None:
         """
         停止任务 (重写父类方法,确保心跳线程也停止)
-        
+
         停止顺序:
         1. 调用父类 stop() 停止工作线程
         2. 心跳线程会检测 is_running=False 并自动退出
@@ -100,7 +100,7 @@ class RayTask(BaseTask):
     def get_heartbeat_stats(self) -> Dict[str, Any]:
         """
         获取心跳统计信息 (用于监控和调试)
-        
+
         Returns:
             统计信息字典
         """

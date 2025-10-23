@@ -55,50 +55,50 @@ jobs:
           cat > .env << EOF
           # CI Environment Configuration (Auto-generated from GitHub Secrets)
           # This file is created during CI/CD and should not be committed to git
-          
+
           # ==================================================
           # LLM Service API Keys
           # ==================================================
-          
+
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
           OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
-          
+
           SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
           JINA_API_KEY=${{ secrets.JINA_API_KEY }}
           ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
-          
+
           # vLLM configuration for local/self-hosted services
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
-          
+
           # ==================================================
           # GitHub Token for Repository Access
           # ==================================================
-          
+
           GIT_TOKEN=${{ secrets.GIT_TOKEN }}
-          
-          
-          
+
+
+
           # ==================================================
           # Hugging Face Configuration
           # ==================================================
-          
+
           HF_TOKEN=${{ secrets.HF_TOKEN }}
           HF_ENDPOINT=https://hf-mirror.com
-          
+
           # ==================================================
           # CI/CD Settings
           # ==================================================
-          
+
           SAGE_DEBUG=false
           SAGE_SKIP_CPP_EXTENSIONS=false
           SAGE_LOG_LEVEL=INFO
           SAGE_TEST_MODE=true
           SAGE_EXAMPLES_MODE=test
           EOF
-          
+
           echo "✅ .env 文件创建完成"
           echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
           cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
@@ -120,7 +120,7 @@ jobs:
         run: |
           echo "🧪 运行基础测试..."
           python -c "import sage; import sage.common; print('✅ 基础导入测试通过')"
-          
+
           if command -v sage >/dev/null 2>&1; then
             sage --help > /dev/null && echo "✅ CLI测试通过"
           fi
@@ -130,7 +130,7 @@ jobs:
           echo "🧪 运行SAGE单元测试..."
           # 安装测试依赖（包括 pytest-xdist 用于并行测试）
           pip install pytest pytest-cov pytest-xdist
-          
+
           # 运行各个包的测试（按依赖顺序，跳过没有测试的包）
           # 使用 -n auto 启用并行测试，使用 -m "not slow" 跳过慢速测试
           # 排除 pypi 测试（这些是手动验证用的）
@@ -173,30 +173,30 @@ jobs:
         if: always()
         run: |
           echo "📊 生成全项目代码覆盖率报告..."
-          
+
           # 创建覆盖率报告目录
           mkdir -p .coverage_report
-          
+
           # 生成 HTML 覆盖率报告
           if command -v coverage >/dev/null 2>&1; then
             coverage html -d .coverage_report/html || true
             echo "✅ HTML 覆盖率报告已生成: .coverage_report/html"
           fi
-          
+
           # 生成总体覆盖率统计
           echo ""
           echo "================================"
           echo "📈 全项目代码覆盖率统计"
           echo "================================"
-          
+
           coverage report --skip-covered --precision=2 || true
-          
+
           # 生成 JSON 格式的覆盖率数据（用于后续分析）
           coverage json -o .coverage_report/coverage.json || true
-          
+
           # 生成 XML 格式的覆盖率数据（用于 CI/CD 集成）
           coverage xml -o .coverage_report/coverage.xml || true
-          
+
           echo ""
           echo "✅ 覆盖率报告生成完成"
           echo ""
@@ -235,50 +235,50 @@ jobs:
           cat > .env << EOF
           # CI Environment Configuration (Auto-generated from GitHub Secrets)
           # This file is created during CI/CD and should not be committed to git
-          
+
           # ==================================================
           # LLM Service API Keys
           # ==================================================
-          
+
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
           OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
-          
+
           SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
           JINA_API_KEY=${{ secrets.JINA_API_KEY }}
           ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
-          
+
           # vLLM configuration for local/self-hosted services
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
-          
+
           # ==================================================
           # GitHub Token for Repository Access
           # ==================================================
-          
+
           GIT_TOKEN=${{ secrets.GIT_TOKEN }}
-          
-          
-          
+
+
+
           # ==================================================
           # Hugging Face Configuration
           # ==================================================
-          
+
           HF_TOKEN=${{ secrets.HF_TOKEN }}
           HF_ENDPOINT=https://hf-mirror.com
-          
+
           # ==================================================
           # CI/CD Settings
           # ==================================================
-          
+
           SAGE_DEBUG=false
           SAGE_SKIP_CPP_EXTENSIONS=false
           SAGE_LOG_LEVEL=INFO
           SAGE_TEST_MODE=true
           SAGE_EXAMPLES_MODE=test
           EOF
-          
+
           echo "✅ .env 文件创建完成"
           echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
           cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
@@ -301,21 +301,21 @@ jobs:
           echo "🌟 运行Examples测试..."
           chmod +x ./tools/tests/run_examples_tests.sh
           ./tools/tests/run_examples_tests.sh --timeout 300
-  
+
   deployment-ready:
     name: Deployment Readiness Check
     # GitHub 免费 Runner 配置（磁盘空间约 14GB，可能不足）
     runs-on: ubuntu-latest
-    
+
     # 如果遇到磁盘空间不足，可以切换到 self-hosted runner:
     # runs-on: self-hosted
-    
+
     needs: [quick-check, examples-test]
     if: |
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-dev')) ||
       (github.event_name == 'pull_request' && github.base_ref == 'main-dev')
     timeout-minutes: 30
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -335,7 +335,7 @@ jobs:
           echo "🧹 激进清理磁盘空间（Deployment Readiness 需要在新虚拟环境安装所有依赖）..."
           echo "📊 清理前磁盘使用情况："
           df -h
-          
+
           # 删除不需要的软件和工具链
           echo "🗑️ 删除 .NET、Android、GHC 等大型工具链..."
           sudo rm -rf /usr/share/dotnet
@@ -344,26 +344,26 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache/CodeQL
           sudo rm -rf /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          
+
           # 删除更多不需要的包
           echo "🗑️ 删除不需要的系统包..."
           sudo rm -rf /usr/share/swift
           sudo rm -rf /usr/local/.ghcup
           sudo rm -rf /usr/local/lib/node_modules
-          
+
           # 清理 APT 缓存
           echo "🗑️ 清理 APT 缓存..."
           sudo apt-get clean
           sudo apt-get autoclean
-          
+
           # 清理 Docker 镜像和容器
           echo "🗑️ 清理 Docker..."
           docker system prune -af --volumes 2>/dev/null || true
-          
+
           # 清理 pip 缓存
           echo "🗑️ 清理 pip 缓存..."
           pip cache purge || true
-          
+
           echo "✅ 清理完成，当前磁盘使用情况："
           df -h
           echo "📊 根分区剩余空间："
@@ -375,50 +375,50 @@ jobs:
           cat > .env << EOF
           # CI Environment Configuration (Auto-generated from GitHub Secrets)
           # This file is created during CI/CD and should not be committed to git
-          
+
           # ==================================================
           # LLM Service API Keys
           # ==================================================
-          
+
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
           OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
-          
+
           SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
           JINA_API_KEY=${{ secrets.JINA_API_KEY }}
           ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
-          
+
           # vLLM configuration for local/self-hosted services
           VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
           VLLM_BASE_URL=http://localhost:8000/v1
           VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
-          
+
           # ==================================================
           # GitHub Token for Repository Access
           # ==================================================
-          
+
           GIT_TOKEN=${{ secrets.GIT_TOKEN }}
-          
-          
-          
+
+
+
           # ==================================================
           # Hugging Face Configuration
           # ==================================================
-          
+
           HF_TOKEN=${{ secrets.HF_TOKEN }}
           HF_ENDPOINT=https://hf-mirror.com
-          
+
           # ==================================================
           # CI/CD Settings
           # ==================================================
-          
+
           SAGE_DEBUG=false
           SAGE_SKIP_CPP_EXTENSIONS=false
           SAGE_LOG_LEVEL=INFO
           SAGE_TEST_MODE=true
           SAGE_EXAMPLES_MODE=test
           EOF
-          
+
           echo "✅ .env 文件创建完成"
           echo "📋 验证 .env 文件内容（隐藏敏感信息）:"
           cat .env | grep -E "^[A-Z_]+=.+" | sed 's/=.*/=***/' || echo "⚠️ .env 文件为空或格式不正确"
@@ -460,11 +460,11 @@ jobs:
         run: |
           echo "📦 构建SAGE wheel包..."
           echo "ℹ️  已通过 'sage dev pypi validate' 步骤构建所有包"
-          
+
           # 显示所有构建的文件
           echo "📋 所有构建的包文件:"
           find packages/*/dist/ -name "*.whl" | sort
-          
+
           # 验证所有必需的包都已构建
           echo ""
           echo "🔍 验证必需的包:"
@@ -481,21 +481,21 @@ jobs:
       - name: Test Package Installation
         run: |
           echo "🧪 测试包安装..."
-          
+
           # 创建临时环境测试安装
           python -m venv /tmp/test_env
           source /tmp/test_env/bin/activate
-          
+
           # 查找构建的wheel文件
           echo "🔍 查找构建的wheel文件..."
           find . -name "*.whl" -type f | head -10
-          
+
           # 创建本地包索引目录
           echo "📦 创建本地包索引..."
           mkdir -p /tmp/local_packages
           find packages/*/dist -name "*.whl" -exec cp {} /tmp/local_packages/ \;
           ls -lh /tmp/local_packages/
-          
+
           # 使用本地包索引安装核心包进行测试
           echo "📦 测试安装核心包（使用本地依赖）..."
           if ls packages/sage/dist/isage-*.whl 1> /dev/null 2>&1; then
@@ -505,7 +505,7 @@ jobs:
           else
             echo "⚠️ 未找到核心包wheel文件"
           fi
-          
+
           # 测试工具包安装
           if ls packages/sage-tools/dist/isage_tools-*.whl 1> /dev/null 2>&1; then
             pip install --find-links=/tmp/local_packages packages/sage-tools/dist/isage_tools-*.whl
@@ -513,7 +513,7 @@ jobs:
           else
             echo "⚠️ 未找到工具包wheel文件"
           fi
-          
+
           deactivate
           echo "✅ 包安装测试完成"
 
@@ -525,7 +525,7 @@ jobs:
           echo "✅ 包构建成功"
           echo "✅ 包安装测试通过"
           echo "✅ 主分支推送"
-          echo "🎉 SAGE已准备好部署到PyPI"      
+          echo "🎉 SAGE已准备好部署到PyPI"
 
   summary:
     name: CI Summary
@@ -541,13 +541,13 @@ jobs:
           echo "- Quick Check: ${{ needs.quick-check.result }}"
           echo "- Examples: ${{ needs.examples-test.result }}"
           echo "- Deployment Ready: ${{ needs.deployment-ready.result }}"
-          
+
           if [[ "${{ needs.quick-check.result }}" == "success" ]]; then
             echo "✅ 核心功能正常"
           else
             echo "❌ 核心功能存在问题"
           fi
-          
+
           if [[ "${{ needs.deployment-ready.result }}" == "success" ]]; then
             echo "🚀 部署准备完成"
           elif [[ "${{ needs.deployment-ready.result }}" == "skipped" ]]; then

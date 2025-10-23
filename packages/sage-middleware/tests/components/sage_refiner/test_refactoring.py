@@ -15,7 +15,7 @@ Refiner 重构验证测试
 
 运行方式:
     pytest tests/components/sage_refiner/test_refactoring.py -v
-    
+
     或作为脚本运行（兼容旧用法）:
     python tests/components/sage_refiner/test_refactoring.py
 """
@@ -55,7 +55,7 @@ def test_middleware_imports():
     from sage.middleware.components.sage_refiner.python.adapter import (
         RefinerAdapter,
     )
-    
+
     # 如果能导入到这里，测试通过
     assert True
 
@@ -124,7 +124,7 @@ def test_service_functionality():
 def test_middleware_operator_available():
     """测试 middleware 的 RefinerOperator 可用性"""
     from sage.middleware.operators.rag.refiner import RefinerOperator
-    
+
     # RefinerOperator 应该是一个可用的类
     assert RefinerOperator is not None
     assert hasattr(RefinerOperator, 'execute') or hasattr(RefinerOperator, '__call__')
@@ -187,7 +187,7 @@ def test_file_structure():
 if __name__ == "__main__":
     # 如果作为脚本运行，使用 pytest
     import pytest
-    
+
     # 运行当前文件的所有测试
     exit_code = pytest.main([__file__, "-v", "--tb=short"])
     sys.exit(exit_code)

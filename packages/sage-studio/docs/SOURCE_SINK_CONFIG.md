@@ -260,7 +260,7 @@ result = env.execute()
 
 1. **Source 配置位置**: Source 的配置在**第一个节点**的 `config` 中
 2. **Sink 配置位置**: Sink 的配置在 **Pipeline** 层级（`pipeline.sink_type`）
-3. **默认值**: 
+3. **默认值**:
    - 默认 Source: 内存数据源（`memory`）
    - 默认 Sink: 打印接收器（`print`）
 4. **路径**: 文件路径支持相对路径和绝对路径
@@ -270,7 +270,7 @@ result = env.execute()
 
 - **完整 Source 列表**: `sage.libs.io.source`
 - **完整 Sink 列表**: `sage.libs.io.sink`
-- **SAGE 包架构**: `/docs/PACKAGE_ARCHITECTURE.md`
+- **SAGE 包架构**: `/docs-public/docs_src/dev-notes/package-architecture.md`
 - **Pipeline Builder**: `sage.studio.services.pipeline_builder`
 
 ## 🚀 扩展

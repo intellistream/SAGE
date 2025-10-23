@@ -123,7 +123,7 @@ class RefinerOperator(MapOperator):
                 refined_texts = [str(item) for item in refined_texts_raw]
             else:
                 refined_texts = [str(refined_texts_raw)]
-            
+
             metrics = {
                 "compression_rate": result.metrics.compression_rate,
                 "original_tokens": result.metrics.original_tokens,

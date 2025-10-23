@@ -150,7 +150,7 @@ class RemoteEnvironment(BaseEnvironment):
                     # { "status": "success", "job_status": { "success": True, "status": "running", ... } }
                     # 需要提取内层的 job_status
                     job_status_data = status_response.get("job_status", status_response)
-                    
+
                     # 检查响应是否成功
                     if not job_status_data.get("success", False):
                         error_msg = job_status_data.get("message", "Unknown error")

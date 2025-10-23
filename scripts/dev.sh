@@ -80,29 +80,29 @@ EOF
 # Setup development environment
 cmd_setup() {
     print_header "Setting up development environment"
-    
+
     # Check if pre-commit is installed
     if ! command -v pre-commit &> /dev/null; then
         print_info "Installing pre-commit..."
         pip install pre-commit
     fi
-    
+
     # Install pre-commit hooks
     print_info "Installing pre-commit hooks..."
     pre-commit install
     print_success "Pre-commit hooks installed"
-    
+
     # Install development dependencies
     print_info "Installing development dependencies..."
     pip install -e ".[dev]" || {
         print_warning "Failed to install with [dev] extras, trying basic install..."
         pip install -e .
     }
-    
+
     # Install additional dev tools
     print_info "Installing additional dev tools..."
     pip install black isort ruff mypy pytest pytest-cov pre-commit detect-secrets
-    
+
     print_success "Development environment setup complete!"
     print_info "Run '$0 validate' to verify everything works"
 }
@@ -133,42 +133,42 @@ cmd_test_integration() {
 # Linting
 cmd_lint() {
     print_header "Running linters"
-    
+
     print_info "Running ruff..."
     ruff check packages/ examples/ scripts/ || print_warning "Ruff found issues"
-    
+
     print_info "Running mypy..."
     mypy packages/ --ignore-missing-imports || print_warning "Mypy found issues"
-    
+
     print_info "Running shellcheck..."
     find . -name "*.sh" -not -path "./tools/conda/*" -exec shellcheck {} + || print_warning "Shellcheck found issues"
-    
+
     print_success "Linting complete"
 }
 
 # Format code
 cmd_format() {
     print_header "Formatting code"
-    
+
     print_info "Running black..."
     black packages/ examples/ scripts/ --line-length 100
-    
+
     print_info "Running isort..."
     isort packages/ examples/ scripts/ --profile black --line-length 100
-    
+
     print_success "Code formatted"
 }
 
 # Check formatting without modifying
 cmd_check() {
     print_header "Checking code format"
-    
+
     print_info "Checking with black..."
     black packages/ examples/ scripts/ --check --line-length 100
-    
+
     print_info "Checking with isort..."
     isort packages/ examples/ scripts/ --check --profile black --line-length 100
-    
+
     print_success "Format check complete"
 }
 
@@ -182,26 +182,26 @@ cmd_pre_commit() {
 # Clean build artifacts
 cmd_clean() {
     print_header "Cleaning build artifacts"
-    
+
     print_info "Removing Python cache files..."
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find . -type f -name "*.pyc" -delete
     find . -type f -name "*.pyo" -delete
     find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-    
+
     print_info "Removing build directories..."
     rm -rf build/ dist/ .eggs/
-    
+
     print_info "Removing test and coverage artifacts..."
     rm -rf .pytest_cache/ .coverage htmlcov/ .mypy_cache/ .ruff_cache/
-    
+
     print_info "Removing empty directories in packages..."
     # Find and remove empty directories in packages, excluding .git directories
     # Use a loop to handle deeply nested empty directories
     for i in {1..5}; do
         find packages/ -type d -empty -not -path "*/.git/*" -delete 2>/dev/null || true
     done
-    
+
     print_success "Clean complete"
 }
 
@@ -209,7 +209,7 @@ cmd_clean() {
 cmd_docs() {
     print_header "Building documentation"
     cd docs-public
-    
+
     if [ -f "build.sh" ]; then
         ./build.sh
     elif command -v mkdocs &> /dev/null; then
@@ -218,7 +218,7 @@ cmd_docs() {
         print_error "mkdocs not found. Install with: pip install mkdocs mkdocs-material"
         exit 1
     fi
-    
+
     print_success "Documentation built"
 }
 
@@ -226,7 +226,7 @@ cmd_docs() {
 cmd_serve_docs() {
     print_header "Serving documentation"
     cd docs-public
-    
+
     if command -v mkdocs &> /dev/null; then
         mkdocs serve
     else
@@ -238,33 +238,33 @@ cmd_serve_docs() {
 # Run full validation
 cmd_validate() {
     print_header "Running full validation suite"
-    
+
     local failed=0
-    
+
     print_info "Step 1/4: Checking code format..."
     if ! cmd_check; then
         print_error "Format check failed"
         ((failed++))
     fi
-    
+
     print_info "Step 2/4: Running linters..."
     if ! cmd_lint; then
         print_error "Linting failed"
         ((failed++))
     fi
-    
+
     print_info "Step 3/4: Running tests..."
     if ! cmd_test; then
         print_error "Tests failed"
         ((failed++))
     fi
-    
+
     print_info "Step 4/4: Running pre-commit hooks..."
     if ! cmd_pre_commit; then
         print_error "Pre-commit hooks failed"
         ((failed++))
     fi
-    
+
     if [ $failed -eq 0 ]; then
         print_success "All validation checks passed!"
         return 0
@@ -280,10 +280,10 @@ main() {
         usage
         exit 1
     fi
-    
+
     local command=$1
     shift
-    
+
     case "$command" in
         setup)
             cmd_setup "$@"

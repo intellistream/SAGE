@@ -89,14 +89,14 @@ for task_node in graph.nodes:
     decision = scheduler.make_decision(task_node)
     # → decision.target_node = "worker-node-2"
     # → decision.resource_requirements = {"cpu": 4, "gpu": 1}
-    
+
     # 2. 根据决策等待（如果需要）
     if decision.delay > 0:
         time.sleep(decision.delay)
-    
+
     # 3. PlacementExecutor 执行放置
     task = placement_executor.place_task(task_node, decision)
-    
+
     # 4. 启动任务
     task.start_running()
 ```
@@ -135,7 +135,7 @@ class GPUOperator:
     cpu_required = 4           # 需要 4 个 CPU 核心
     gpu_required = 1           # 需要 1 个 GPU
     memory_required = "8GB"    # 需要 8GB 内存
-    
+
     def process(self, data):
         # GPU 计算
         return data
@@ -373,7 +373,7 @@ class MyOperator:
     custom_resources = {          # 自定义资源
         "special_hardware": 1
     }
-    
+
     def process(self, data):
         # 处理逻辑
         return data
@@ -401,7 +401,7 @@ class GPUTask:
     cpu_required = 4
     gpu_required = 1
     memory_required = "8GB"
-    
+
     def process(self, data):
         # GPU 计算
         return data
@@ -491,7 +491,7 @@ class BaseScheduler(ABC):
     def make_service_decision(self, service_node: "ServiceNode") -> "PlacementDecision":
         """
         制定服务调度决策
-        
+
         默认实现：立即使用默认配置调度
         子类可以重写此方法提供自定义逻辑
         """
@@ -508,11 +508,11 @@ class FIFOScheduler(BaseScheduler):
     def make_service_decision(self, service_node: "ServiceNode") -> PlacementDecision:
         """FIFO 服务调度：按到达顺序立即调度"""
         self.scheduled_count += 1
-        
+
         decision = PlacementDecision.immediate_default(
             reason=f"FIFO service: {service_node.service_name} (#{self.scheduled_count})"
         )
-        
+
         self.decision_history.append(decision)
         return decision
 ```
@@ -524,7 +524,7 @@ class LoadAwareScheduler(BaseScheduler):
     def make_service_decision(self, service_node: "ServiceNode") -> PlacementDecision:
         """
         负载感知的服务调度
-        
+
         服务特殊处理：
         1. 提取服务的资源需求
         2. 选择资源充足且负载低的节点
@@ -536,7 +536,7 @@ class LoadAwareScheduler(BaseScheduler):
         memory_required = self._parse_memory(
             getattr(service_node.service_class, 'memory_required', 0)
         )
-        
+
         # 2. 使用 NodeSelector 选择节点（spread 策略）
         target_node = self.node_selector.select_best_node(
             cpu_required=cpu_required,
@@ -544,14 +544,14 @@ class LoadAwareScheduler(BaseScheduler):
             memory_required=memory_required,
             strategy="spread"  # 服务使用 spread 策略
         )
-        
+
         # 3. 跟踪服务分配
         if target_node:
             self.node_selector.track_task_placement(
-                service_node.service_name, 
+                service_node.service_name,
                 target_node
             )
-        
+
         # 4. 返回决策
         return PlacementDecision(
             target_node=target_node,
@@ -581,7 +581,7 @@ class LoadAwareScheduler(BaseScheduler):
    ❌ 不好：Node 1: [ServiceA, ServiceB, ServiceC]
            Node 2: []
            Node 3: []
-   
+
    ✅ 良好：Node 1: [ServiceA]
            Node 2: [ServiceB]
            Node 3: [ServiceC]
@@ -599,13 +599,13 @@ from sage.kernel.scheduler.impl import LoadAwareScheduler
 class CacheService:
     cpu_required = 2
     memory_required = "4GB"
-    
+
     def __init__(self):
         self.cache = {}
-    
+
     def get(self, key):
         return self.cache.get(key)
-    
+
     def set(self, key, value):
         self.cache[key] = value
 
@@ -633,20 +633,20 @@ env.submit()
 ```python
 class BaseScheduler(ABC):
     """调度器抽象基类"""
-    
+
     @abstractmethod
     def make_decision(self, task_node: "TaskNode") -> "PlacementDecision":
         """制定任务调度决策"""
         pass
-    
+
     def make_service_decision(self, service_node: "ServiceNode") -> "PlacementDecision":
         """制定服务调度决策（有默认实现）"""
         pass
-    
+
     def get_metrics(self) -> Dict[str, Any]:
         """获取调度器性能指标"""
         pass
-    
+
     def shutdown(self):
         """关闭调度器，释放资源"""
         pass
@@ -658,7 +658,7 @@ class BaseScheduler(ABC):
 @dataclass
 class PlacementDecision:
     """调度决策数据类"""
-    
+
     target_node: Optional[str] = None          # 目标节点 ID
     resource_requirements: Optional[Dict] = None  # 资源需求
     delay: float = 0.0                         # 延迟时间（秒）
@@ -666,12 +666,12 @@ class PlacementDecision:
     placement_strategy: Optional[str] = None   # 放置策略
     affinity: Optional[Dict] = None            # 亲和性配置
     reason: str = ""                           # 决策原因
-    
+
     @classmethod
     def immediate_default(cls, reason: str = "") -> "PlacementDecision":
         """创建立即调度到默认节点的决策"""
         return cls(immediate=True, reason=reason)
-    
+
     @classmethod
     def with_resources(cls, cpu: float, gpu: float = 0, memory: int = 0, **kwargs) -> "PlacementDecision":
         """创建带资源需求的决策"""
@@ -679,7 +679,7 @@ class PlacementDecision:
             resource_requirements={"cpu": cpu, "gpu": gpu, "memory": memory},
             **kwargs
         )
-    
+
     @classmethod
     def with_node(cls, node_id: str, **kwargs) -> "PlacementDecision":
         """创建指定节点的决策"""
@@ -691,11 +691,11 @@ class PlacementDecision:
 ```python
 class NodeSelector:
     """节点选择器 - 资源监控和节点选择"""
-    
+
     def __init__(self, cache_ttl: float = 1.0, enable_tracking: bool = False):
         """初始化节点选择器"""
         pass
-    
+
     def select_best_node(
         self,
         cpu_required: float = 0,
@@ -706,23 +706,23 @@ class NodeSelector:
     ) -> Optional[str]:
         """选择最优节点"""
         pass
-    
+
     def get_all_nodes(self) -> List[NodeResources]:
         """获取所有节点信息"""
         pass
-    
+
     def get_node(self, node_id: str) -> Optional[NodeResources]:
         """获取指定节点信息"""
         pass
-    
+
     def track_task_placement(self, task_name: str, node_id: str):
         """跟踪任务分配"""
         pass
-    
+
     def untrack_task(self, task_name: str):
         """取消任务跟踪"""
         pass
-    
+
     def get_cluster_stats(self) -> Dict[str, Any]:
         """获取集群统计信息"""
         pass
@@ -733,15 +733,15 @@ class NodeSelector:
 ```python
 class FIFOScheduler(BaseScheduler):
     """FIFO 调度器"""
-    
+
     def __init__(self, platform: str = "local"):
         """初始化 FIFO 调度器"""
         pass
-    
+
     def make_decision(self, task_node: "TaskNode") -> PlacementDecision:
         """FIFO 调度决策：立即使用默认配置调度"""
         pass
-    
+
     def make_service_decision(self, service_node: "ServiceNode") -> PlacementDecision:
         """FIFO 服务调度决策"""
         pass
@@ -752,7 +752,7 @@ class FIFOScheduler(BaseScheduler):
 ```python
 class LoadAwareScheduler(BaseScheduler):
     """负载感知调度器"""
-    
+
     def __init__(
         self,
         max_concurrent: int = 100,
@@ -761,22 +761,22 @@ class LoadAwareScheduler(BaseScheduler):
     ):
         """
         初始化负载感知调度器
-        
+
         Args:
             max_concurrent: 最大并发任务数
             platform: 平台类型 ('local' 或 'remote')
             strategy: 调度策略 ('balanced', 'pack', 'spread')
         """
         pass
-    
+
     def make_decision(self, task_node: "TaskNode") -> PlacementDecision:
         """负载感知调度决策"""
         pass
-    
+
     def make_service_decision(self, service_node: "ServiceNode") -> PlacementDecision:
         """负载感知服务调度决策"""
         pass
-    
+
     def task_completed(self, task_name: str):
         """任务完成时调用，释放资源"""
         pass
@@ -794,33 +794,33 @@ from sage.kernel.scheduler.decision import PlacementDecision
 
 class MyScheduler(BaseScheduler):
     """自定义调度器"""
-    
+
     def __init__(self, **config):
         super().__init__()
         # 初始化配置
         self.config = config
-    
+
     def make_decision(self, task_node: "TaskNode") -> PlacementDecision:
         """实现调度决策逻辑"""
         # 1. 分析任务需求
         parallelism = task_node.transformation.parallelism
-        
+
         # 2. 评估系统状态
         # ...
-        
+
         # 3. 制定决策
         decision = PlacementDecision(
             target_node="my-target-node",
             resource_requirements={"cpu": 2},
             reason="My custom logic"
         )
-        
+
         # 4. 记录历史
         self.scheduled_count += 1
         self.decision_history.append(decision)
-        
+
         return decision
-    
+
     def get_metrics(self) -> Dict[str, Any]:
         """返回调度器指标"""
         return {
@@ -856,18 +856,18 @@ from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
 def benchmark_scheduler(scheduler, name):
     """测试调度器性能"""
     env = LocalEnvironment(scheduler=scheduler)
-    
+
     # 构建相同的 pipeline
     env.from_source(source).map(operator, parallelism=10).sink(sink)
-    
+
     # 计时
     start = time.time()
     env.submit()
     elapsed = time.time() - start
-    
+
     # 获取指标
     metrics = scheduler.get_metrics()
-    
+
     print(f"\n{name} 调度器:")
     print(f"  执行时间: {elapsed:.2f}s")
     print(f"  平均调度延迟: {metrics['avg_latency_ms']:.2f}ms")
@@ -943,7 +943,7 @@ monitor_thread.start()
 
 #### Q1: 如何选择调度策略？
 
-**A**: 
+**A**:
 - 开发测试：使用 FIFO（简单快速）
 - 生产环境（通用）：使用 LoadAware + Balanced
 - 弹性集群：使用 LoadAware + Pack

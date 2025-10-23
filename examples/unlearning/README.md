@@ -425,13 +425,13 @@ from sage.libs.unlearning import ...
 def main():
     # Step 1: Setup
     print("Setting up...")
-    
+
     # Step 2: Main demonstration
     print("Demonstrating...")
-    
+
     # Step 3: Evaluation
     print("Evaluating...")
-    
+
     # Step 4: Visualization (optional)
     print("Visualizing...")
 

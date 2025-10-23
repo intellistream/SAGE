@@ -237,7 +237,7 @@ class DummyProcess:
 
     def oneshot(self):
         outer_self = self
-        
+
         class _Oneshot:
             def __enter__(self):
                 return outer_self

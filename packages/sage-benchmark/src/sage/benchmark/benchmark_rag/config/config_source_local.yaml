@@ -15,7 +15,7 @@ promptor:
   platform: "local"
   template: |
     User: {user_query}
-    Assistant: 
+    Assistant:
 
 sink:
   platform: "local"

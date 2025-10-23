@@ -759,7 +759,7 @@ def status(
         if output_format == "json":
             # JSON格式输出
             import json
-            
+
             status_data = checker.check_all(verbose=False, quick=quick)
             # 添加包状态信息
             status_data["packages_status"] = collect_packages_status(project_path)

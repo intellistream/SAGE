@@ -8,7 +8,7 @@ ignore = E501,W503,F841,F811,E203,F402
 max-line-length = 88
 
 # 排除的目录
-exclude = 
+exclude =
     .git,
     __pycache__,
     .venv,

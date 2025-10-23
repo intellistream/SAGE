@@ -28,7 +28,7 @@ Example configuration (using paths relative to project root):
 ```yaml
 source:
   data_path: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/queries.jsonl"
-  
+
 retriever:
   preload_knowledge_file: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_base.txt"
 ```

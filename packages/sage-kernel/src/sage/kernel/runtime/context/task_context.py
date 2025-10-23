@@ -39,7 +39,7 @@ class TaskContext(BaseRuntimeContext):
         self.env_base_dir: str = env.env_base_dir
         self.env_uuid = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
-        
+
         # 性能监控配置
         self.enable_monitoring: bool = getattr(env, "enable_monitoring", False)
 

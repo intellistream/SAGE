@@ -256,7 +256,7 @@ class TestRefinerOperatorExecution:
         with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
             # 创建 mock service 实例
             mock_service = Mock()
-            
+
             # 模拟 RefineResult
             mock_result = Mock()
             mock_result.refined_content = [
@@ -268,7 +268,7 @@ class TestRefinerOperatorExecution:
             mock_result.metrics.original_tokens = 100
             mock_result.metrics.refined_tokens = 50
             mock_result.metrics.refine_time = 1.0
-            
+
             mock_service.refine.return_value = mock_result
             mock_service_class.return_value = mock_service
 
@@ -313,7 +313,7 @@ class TestRefinerOperatorExecution:
         with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
             # 创建 mock service
             mock_service = Mock()
-            
+
             # 模拟 RefineResult
             mock_result = Mock()
             mock_result.refined_content = ["Refined document"]
@@ -322,7 +322,7 @@ class TestRefinerOperatorExecution:
             mock_result.metrics.original_tokens = 50
             mock_result.metrics.refined_tokens = 25
             mock_result.metrics.refine_time = 0.5
-            
+
             mock_service.refine.return_value = mock_result
             mock_service_class.return_value = mock_service
 
@@ -405,7 +405,7 @@ class TestRefinerOperatorIntegration:
         # 模拟完整的文档精炼工作流
         with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
             mock_service = Mock()
-            
+
             # 模拟 RefineResult
             mock_result = Mock()
             mock_result.refined_content = [
@@ -417,7 +417,7 @@ class TestRefinerOperatorIntegration:
             mock_result.metrics.original_tokens = 200
             mock_result.metrics.refined_tokens = 120
             mock_result.metrics.refine_time = 2.0
-            
+
             mock_service.refine.return_value = mock_result
             mock_service_class.return_value = mock_service
 
@@ -864,7 +864,7 @@ class TestRefinerOperatorFixes:
                 assert "text" in documents[0]
                 assert "title" in documents[0]  # 标题字段应该被保留
                 assert documents[0]["title"] == "Important Document"
-                
+
                 # 验证结果
                 assert "results" in result
                 assert len(result["results"]) == 1
@@ -959,11 +959,11 @@ class TestRefinerOperatorFixes:
                 # 验证配置被正确传递（RefinerService接收一个config参数）
                 passed_config = call_args[0][0] if call_args[0] else call_args.kwargs.get("config")
                 assert passed_config is not None
-                
+
                 # 验证adapter被正确创建
                 assert adapter is not None
                 assert adapter.refiner_service is not None
-                
+
                 # 验证配置中的gpu_device被保留
                 assert passed_config.get("gpu_device") == 1
 

@@ -115,7 +115,7 @@ db = SageTSDB()
 
 # 添加数据
 timestamp = int(datetime.now().timestamp() * 1000)
-db.add(timestamp=timestamp, value=42.5, 
+db.add(timestamp=timestamp, value=42.5,
        tags={"sensor": "temp_01", "location": "room_a"})
 
 # 查询数据
@@ -123,7 +123,7 @@ time_range = TimeRange(
     start_time=timestamp - 10000,
     end_time=timestamp + 10000
 )
-results = db.query(time_range=time_range, 
+results = db.query(time_range=time_range,
                   tags={"sensor": "temp_01"})
 
 print(f"Found {len(results)} data points")
@@ -174,7 +174,7 @@ from sage.middleware.components.sage_tsdb import SageTSDBService
 service = SageTSDBService()
 
 # 通过服务添加数据
-service.add(timestamp=timestamp, value=42.5, 
+service.add(timestamp=timestamp, value=42.5,
            tags={"sensor": "temp_01"})
 
 # 通过服务查询
@@ -215,7 +215,7 @@ class SageTSDBService:
     def add_batch(timestamps, values, tags_list=None, fields_list=None) -> list[int]
     def query(start_time, end_time, tags=None, aggregation=None, window_size=None) -> list[dict]
     def stream_join(left_stream, right_stream, window_size=None, join_key=None) -> list[dict]
-    def window_aggregate(start_time, end_time, window_type="tumbling", 
+    def window_aggregate(start_time, end_time, window_type="tumbling",
                         window_size=None, aggregation="avg") -> list[dict]
 ```
 
@@ -238,7 +238,7 @@ from sage.middleware.components.sage_tsdb.python.algorithms import TimeSeriesAlg
 class MyAlgorithm(TimeSeriesAlgorithm):
     def __init__(self, config=None):
         super().__init__(config)
-    
+
     def process(self, data, **kwargs):
         # 实现算法逻辑
         results = []
@@ -262,9 +262,9 @@ results = db.apply_algorithm("my_algo", data)
 
 class MyAlgorithm : public sage_tsdb::TimeSeriesAlgorithm {
 public:
-    MyAlgorithm(const AlgorithmConfig& config) 
+    MyAlgorithm(const AlgorithmConfig& config)
         : TimeSeriesAlgorithm(config) {}
-    
+
     std::vector<TimeSeriesData> process(
         const std::vector<TimeSeriesData>& input) override {
         // 实现高性能算法

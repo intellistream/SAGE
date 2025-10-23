@@ -37,11 +37,11 @@ class MyTool(BaseTool):
     def __init__(self, config=None):
         super().__init__(config)
         self.initialize()
-    
+
     def execute(self, input_data):
         # 工具执行逻辑
         return result
-    
+
     def validate_input(self, input_data):
         # 输入验证逻辑
         return True

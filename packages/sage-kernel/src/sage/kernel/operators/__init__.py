@@ -10,7 +10,7 @@ Dependencies: sage.kernel.api.function (L3 internal)
 基础算子类型：
 - BaseOperator: 所有算子的基类
 - MapOperator: 一对一映射算子
-- FilterOperator: 过滤算子  
+- FilterOperator: 过滤算子
 - FlatMapOperator: 一对多映射算子
 - AggregateOperator: 聚合算子
 

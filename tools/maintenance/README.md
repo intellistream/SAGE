@@ -139,7 +139,7 @@ git checkout main-dev
 SAGE 分支: main-dev
 
 Submodule 配置：
-Submodule                                          配置分支    当前分支   
+Submodule                                          配置分支    当前分支  
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 docs-public                                        main-dev    main-dev    (绿色 ✅)
 sageLLM                                            main-dev    main-dev    (绿色 ✅)

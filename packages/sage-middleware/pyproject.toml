@@ -45,23 +45,23 @@ classifiers = [
 dependencies = [
     # SAGE framework dependencies
     "isage-kernel>=0.1.0",  # 继承common的所有依赖
-    
+
     # Middleware-specific dependencies
     # Authentication and security
     "python-jose==3.5.0",
     "passlib==1.7.4",
-    
+
     # Task queue
     "celery==5.5.3",
     "flower==2.0.1",
-    
+
     # API clients
     "openai>=1.99.1",  # vLLM 0.10.1.1兼容的openai版本
     "ollama==0.5.1",
     "zhipuai==2.1.5.20250801",
     "cohere>=5.16.1",
     "anthropic>=0.25.0",
-    
+
     # ML/AI libraries
     "transformers>=4.54.1",
     "tokenizers>=0.21.0",  # 放宽版本约束
@@ -69,22 +69,22 @@ dependencies = [
     "bm25s==0.2.13",
     "rank-bm25>=0.2.0",
     "PyStemmer==3.0.0",
-    
+
     # Network and data processing
     "aiohttp==3.12.15",
     "frozenlist==1.7.0",
     "feedparser==6.0.11",
-    
+
     # ML acceleration
     "accelerate>=1.9.0",  # 放宽版本约束
     "sentence-transformers>=3.1.0",  # 放宽版本约束
     "InstructorEmbedding==1.0.1",
     "huggingface-hub>=0.34.0",  # 放宽版本约束
     "peft==0.17.0",
-    
+
     # Scientific computing
     "scipy>=1.15.0,<2.0.0",  # 统一scipy版本范围，与其他包兼容
-    
+
     # Documentation
     "markdown>=3.4.4",
     "pymdown-extensions>=10.2.1",
@@ -203,7 +203,7 @@ namespaces = true
     "cmake/*.cmake",
 ]
 "sage.middleware.components.sage_flow.python" = [
-    "*.so", 
+    "*.so",
     "*.py",
     "*.pyi",
     "micro_service/*",
@@ -285,7 +285,7 @@ line-length = 88
 # 启用的规则集（与flake8兼容）
 select = [
     "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
+    "W",    # pycodestyle warnings
     "F",    # pyflakes
     "I",    # isort
     "B",    # flake8-bugbear

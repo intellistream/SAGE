@@ -23,10 +23,10 @@ from .rpc_queue_descriptor import RPCQueueDescriptor, register_rpc_queue_factory
 
 def resolve_descriptor(data):
     """从序列化数据解析出对应的队列描述符实例
-    
+
     Args:
         data: 包含队列描述符信息的字典
-        
+
     Returns:
         对应类型的队列描述符实例
     """

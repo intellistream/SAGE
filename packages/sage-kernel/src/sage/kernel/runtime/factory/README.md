@@ -168,7 +168,7 @@ factory_config = {
 class CustomFactory:
     def __init__(self, config):
         self.config = config
-    
+
     def create_instance(self, name, context):
         # 实现自定义创建逻辑
         return self.build_component(name, context)

@@ -31,9 +31,9 @@ def _extract_prompt_bundle(data: Sequence[Any]) -> Tuple[Any, Any, Dict[str, Any
 class VLLMGenerator(MapOperator):
     """
     vLLM 生成算子 - 调用 vLLM 服务进行文本生成
-    
+
     继承自 kernel 的 MapOperator 基类，实现 LLM 推理的领域逻辑。
-    
+
     Example:
         ```python
         generator = VLLMGenerator(
@@ -87,7 +87,7 @@ class VLLMGenerator(MapOperator):
 class VLLMEmbedding(MapOperator):
     """
     vLLM 嵌入算子 - 从 vLLM 服务获取文本嵌入
-    
+
     Example:
         ```python
         embedder = VLLMEmbedding(service_name="vllm_service")

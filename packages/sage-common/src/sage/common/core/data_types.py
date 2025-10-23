@@ -22,12 +22,12 @@ from typing import Any, Dict, List, Optional, TypedDict, Union
 class BaseDocument(TypedDict, total=False):
     """
     基础文档结构 - 表示一个文本片段或检索到的内容
-    
+
     这是最基础的文档表示，所有领域特定的文档类型都应该继承这个类型。
-    
+
     必需字段：
         text: 文档的主要文本内容
-    
+
     可选字段：
         id: 文档的唯一标识符
         title: 文档标题
@@ -35,7 +35,7 @@ class BaseDocument(TypedDict, total=False):
         score: 相关性分数或置信度 (0.0-1.0)
         rank: 排序位置（从0开始）
         metadata: 任意额外元数据
-    
+
     示例：
         >>> doc: BaseDocument = {
         ...     "text": "Python是一种编程语言",
@@ -62,17 +62,17 @@ class BaseDocument(TypedDict, total=False):
 class BaseQueryResult(TypedDict):
     """
     基础查询-结果对结构 - 表示一个查询及其对应的结果列表
-    
+
     这是 SAGE 算子之间传递数据的标准格式。
     所有算子都应该能够接受这个格式的输入，并返回这个格式（或其扩展）的输出。
-    
+
     必需字段：
         query: 用户的查询文本
         results: 结果列表（可以是任何类型）
-    
+
     可选字段：
         None（子类可以添加）
-    
+
     示例：
         >>> data: BaseQueryResult = {
         ...     "query": "什么是机器学习",
@@ -87,9 +87,9 @@ class BaseQueryResult(TypedDict):
 class ExtendedQueryResult(BaseQueryResult, total=False):
     """
     扩展查询-结果结构 - 添加了常用的额外字段
-    
+
     继承 BaseQueryResult，添加了在实际应用中常用的字段。
-    
+
     额外可选字段：
         query_id: 查询的唯一标识符
         timestamp: 查询时间戳
@@ -97,7 +97,7 @@ class ExtendedQueryResult(BaseQueryResult, total=False):
         execution_time: 执行时间（秒）
         context: 额外的上下文信息
         metadata: 任意元数据
-    
+
     示例：
         >>> data: ExtendedQueryResult = {
         ...     "query": "Python教程",
@@ -148,20 +148,20 @@ def ensure_query_result(
 ) -> BaseQueryResult:
     """
     确保数据符合 BaseQueryResult 格式
-    
+
     将各种输入格式统一转换为标准的 BaseQueryResult 格式。
-    
+
     Args:
         data: 输入数据（可以是字典、元组、列表等）
         default_query: 当无法提取查询时使用的默认值
-    
+
     Returns:
         BaseQueryResult: 标准化的查询-结果对
-    
+
     示例：
         >>> ensure_query_result(("query", ["a", "b"]))
         {'query': 'query', 'results': ['a', 'b']}
-        
+
         >>> ensure_query_result({"question": "...", "docs": [...]})
         {'query': '...', 'results': [...]}
     """
@@ -193,18 +193,18 @@ def ensure_query_result(
 def extract_query(data: QueryResultInput, default: str = "") -> str:
     """
     从任意格式中提取查询字符串
-    
+
     Args:
         data: 输入数据
         default: 默认值
-    
+
     Returns:
         str: 提取的查询字符串
-    
+
     示例：
         >>> extract_query({"query": "test"})
         'test'
-        
+
         >>> extract_query(("my query", ["results"]))
         'my query'
     """
@@ -229,18 +229,18 @@ def extract_query(data: QueryResultInput, default: str = "") -> str:
 def extract_results(data: QueryResultInput, default: Optional[List[Any]] = None) -> List[Any]:
     """
     从任意格式中提取结果列表
-    
+
     Args:
         data: 输入数据
         default: 默认值
-    
+
     Returns:
         List[Any]: 提取的结果列表
-    
+
     示例:
         >>> extract_results({"query": "test", "results": ["a", "b"]})
         ['a', 'b']
-        
+
         >>> extract_results(("query", ["a", "b"]))
         ['a', 'b']
     """
@@ -274,15 +274,15 @@ def create_query_result(
 ) -> ExtendedQueryResult:
     """
     创建标准的 ExtendedQueryResult 对象
-    
+
     Args:
         query: 查询字符串
         results: 结果列表
         **kwargs: 额外的字段（如 execution_time, metadata 等）
-    
+
     Returns:
         ExtendedQueryResult: 标准化的查询结果对象
-    
+
     示例:
         >>> create_query_result(
         ...     query="test",

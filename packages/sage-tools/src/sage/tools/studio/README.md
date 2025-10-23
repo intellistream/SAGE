@@ -102,4 +102,4 @@ The module currently serves as a placeholder to:
 
 - Studio CLI commands: `sage.tools.cli.commands.studio`
 - Studio core: `sage.studio`
-- Architecture: `docs/PACKAGE_ARCHITECTURE.md`
+- Architecture: `docs-public/docs_src/dev-notes/package-architecture.md`

@@ -184,9 +184,9 @@ class TestSchedulerIntegration:
 
 **验证流程**:
 ```
-Scheduler.make_decision() 
-    → PlacementDecision 
-    → PlacementExecutor.place_task() 
+Scheduler.make_decision()
+    → PlacementDecision
+    → PlacementExecutor.place_task()
     → Task/Actor
 ```
 
@@ -211,7 +211,7 @@ class TestSchedulerPerformance:
 ```python
 class TestNodeResources:
     # NodeResources 数据类测试
-    
+
 class TestNodeSelector:
     def test_update_node_cache()                       # 节点缓存更新
     def test_select_best_node_balanced()               # 负载均衡策略
@@ -275,20 +275,20 @@ class TestNodeSelector:
 ```python
 class TestMyScheduler:
     """测试自定义调度器"""
-    
+
     def test_initialization(self):
         """测试初始化"""
         scheduler = MyScheduler(param=value)
         assert scheduler.param == value
-    
+
     def test_make_decision(self):
         """测试调度决策"""
         scheduler = MyScheduler()
         task_node = Mock()
         task_node.name = "test"
-        
+
         decision = scheduler.make_decision(task_node)
-        
+
         assert isinstance(decision, PlacementDecision)
         # 验证决策逻辑
 ```
@@ -299,15 +299,15 @@ class TestMyScheduler:
 def test_new_strategy(self):
     """测试新的调度策略"""
     scheduler = LoadAwareScheduler(strategy="new_strategy")
-    
+
     # Mock 节点
     # ...
-    
+
     best_node = scheduler.node_selector.select_best_node(
         cpu_required=2,
         strategy="new_strategy"
     )
-    
+
     # 验证策略正确性
     assert best_node == expected_node
 ```

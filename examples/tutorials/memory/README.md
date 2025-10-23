@@ -25,7 +25,7 @@ Complete RAG pipeline with memory integration.
 python examples/tutorials/memory/rag_memory_pipeline.py
 ```
 
-**Requirements**: 
+**Requirements**:
 - Configuration file (see `examples/config/config_rag_memory_pipeline.yaml`)
 - API keys (set in `.env`)
 

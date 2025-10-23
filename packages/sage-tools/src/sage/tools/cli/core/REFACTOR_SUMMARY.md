@@ -88,7 +88,7 @@ sage/cli/core/
 
 ### 5. **validation.py - 输入验证**
 - 主机地址验证 (`validate_host`)
-- 端口号验证 (`validate_port`) 
+- 端口号验证 (`validate_port`)
 - 文件路径验证 (`validate_path`)
 - UUID、邮箱、URL等格式验证
 - 内存大小、日志级别等专用验证
@@ -137,16 +137,16 @@ class JobListCommand(JobManagerCommand):
     def __init__(self):
         super().__init__()
         self.require_connection()
-    
+
     def execute(self, status=None, format_type="table"):
         response = self.client.list_jobs()
         if response.get("status") != "success":
             raise CLIException(f"Failed: {response.get('message')}")
-        
+
         jobs = response.get("jobs", [])
         if status:
             jobs = [job for job in jobs if job.get("status") == status]
-        
+
         self.formatter.print_data(jobs)
 
 @app.command("list")

@@ -10,7 +10,7 @@ SAGE Middleware Operators - 领域算子
 
 使用方式：
     from sage.middleware.operators import rag, llm, tools
-    
+
     # 或直接导入
     from sage.middleware.operators.rag import OpenAIGenerator
     from sage.middleware.operators.llm import VLLMGenerator
@@ -21,6 +21,6 @@ from . import llm, rag, tools
 
 __all__ = [
     "rag",
-    "llm", 
+    "llm",
     "tools",
 ]

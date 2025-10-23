@@ -48,10 +48,10 @@ SageDBException = Exception  # type: ignore
 def _lazy_import_sage_db():
     """延迟导入 sage_db，只在需要时导入"""
     global SageDB, SageDBException, SAGE_DB_AVAILABLE, SAGE_DB_IMPORT_ERROR
-    
+
     if SAGE_DB_AVAILABLE:
         return  # 已经成功导入
-    
+
     try:
         from sage.middleware.components.sage_db.python.sage_db import (
             SageDB as _SageDB,
@@ -123,10 +123,10 @@ def ensure_sage_db() -> None:
     """确保 SageDB 扩展可用，如果不可用则提前退出。"""
     # 尝试延迟导入
     _lazy_import_sage_db()
-    
+
     if SAGE_DB_AVAILABLE:
         return
-    
+
     message = (
         "[red]SageDB C++ 扩展不可用，无法使用 `sage chat`。[/red]\n"
         "请先通过命令 `sage extensions install sage_db` 构建 SageDB 组件（如需重新安装可加上 --force）。"
@@ -1536,7 +1536,7 @@ def interactive_chat(
 [dim]功能说明：
   1. 文档问答：直接提问关于 SAGE 的问题
   2. Pipeline 构建：描述你想要的应用场景
-  
+
 示例问题：
   • "SAGE 如何配置 RAG？"
   • "请帮我构建一个问答应用"

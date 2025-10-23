@@ -368,7 +368,7 @@ class SageOutputPaths:
         # Skip migration if project_root is None or same as sage_dir parent
         if self.project_root is None or not self.project_root.exists():
             return
-            
+
         migrations = [
             (self.project_root / "logs", self.logs_dir),
             (self.project_root / "output", self.output_dir),

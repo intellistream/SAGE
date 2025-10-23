@@ -62,10 +62,10 @@ declare -A ERROR_SOLUTIONS=(
 detect_error_type() {
     local error_output="$1"
     local error_type="unknown"
-    
+
     # 转换为小写便于匹配
     local error_lower=$(echo "$error_output" | tr '[:upper:]' '[:lower:]')
-    
+
     # 模式匹配检测错误类型
     if [[ "$error_lower" =~ numpy.*install.*fail|cannot.*uninstall.*numpy|no.*record.*file.*numpy ]]; then
         error_type="numpy_install_fail"
@@ -88,7 +88,7 @@ detect_error_type() {
     elif [[ "$error_lower" =~ cuda.*not.*found|nvidia.*driver ]]; then
         error_type="cuda_not_found"
     fi
-    
+
     echo "$error_type"
 }
 
@@ -97,24 +97,24 @@ show_friendly_error() {
     local error_output="$1"
     local error_type="$2"
     local context="${3:-安装过程中}"
-    
+
     if [ "$error_type" = "unknown" ]; then
         error_type=$(detect_error_type "$error_output")
     fi
-    
+
     echo -e "\n${RED}${BOLD}🚨 $context 遇到问题${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-    
+
     if [ "$error_type" != "unknown" ] && [ -n "${ERROR_EXPLANATIONS[$error_type]}" ]; then
         echo -e "\n${YELLOW}${BOLD}📋 问题类型：${NC}${ERROR_EXPLANATIONS[$error_type]}"
-        
+
         echo -e "\n${BLUE}${BOLD}🔍 问题说明：${NC}"
         echo -e "${DIM}${ERROR_CAUSES[$error_type]}${NC}"
-        
+
         echo -e "\n${PURPLE}${BOLD}💡 重要提醒：${NC}"
         echo -e "${YELLOW}这不是 SAGE 本身的问题，而是 Python 环境配置相关的常见问题。${NC}"
         echo -e "${YELLOW}类似问题在安装其他深度学习框架时也经常遇到。${NC}"
-        
+
         echo -e "\n${GREEN}${BOLD}🔧 推荐解决方案：${NC}"
         IFS='|' read -ra solutions <<< "${ERROR_SOLUTIONS[$error_type]}"
         local counter=1
@@ -122,29 +122,29 @@ show_friendly_error() {
             echo -e "  ${GREEN}$counter.${NC} $solution"
             ((counter++))
         done
-        
+
         echo -e "\n${CYAN}${BOLD}🤖 自动修复：${NC}"
         echo -e "SAGE 提供了自动诊断和修复工具，可以帮您解决大部分环境问题："
         echo -e "  ${DIM}./quickstart.sh --doctor --fix${NC}"
-        
+
     else
         echo -e "\n${YELLOW}${BOLD}📋 遇到了未知问题${NC}"
         echo -e "${DIM}这可能是一个新的环境配置问题${NC}"
-        
+
         echo -e "\n${GREEN}${BOLD}🔧 通用解决步骤：${NC}"
         echo -e "  ${GREEN}1.${NC} 运行环境诊断：${DIM}./quickstart.sh --doctor${NC}"
         echo -e "  ${GREEN}2.${NC} 检查系统要求：${DIM}Python 3.9-3.12, 5GB+ 磁盘空间${NC}"
         echo -e "  ${GREEN}3.${NC} 使用虚拟环境：${DIM}conda create -n sage-env python=3.11${NC}"
         echo -e "  ${GREEN}4.${NC} 查看详细日志：${DIM}cat install.log${NC}"
     fi
-    
+
     echo -e "\n${BLUE}${BOLD}📚 获取更多帮助：${NC}"
     echo -e "  • 安装故障排除指南：${DIM}https://github.com/intellistream/SAGE/wiki/Troubleshooting${NC}"
     echo -e "  • 环境配置最佳实践：${DIM}https://github.com/intellistream/SAGE/wiki/Environment-Setup${NC}"
     echo -e "  • 提交问题报告：${DIM}https://github.com/intellistream/SAGE/issues${NC}"
-    
+
     echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-    
+
     # 记录到日志
     if [ -f "$log_file" ]; then
         echo "$(date): [USER_FRIENDLY_ERROR] Type: $error_type, Context: $context" >> "$log_file"
@@ -160,40 +160,40 @@ execute_with_friendly_error() {
     local command="$1"
     local context="$2"
     local log_file="${3:-${SAGE_DIR:-$(pwd)/.sage}/logs/install.log}"
-    
+
     echo -e "${DIM}执行：$command${NC}"
-    
+
     # 确保日志目录存在
     mkdir -p "$(dirname "$log_file")"
-    
+
     # 执行命令并捕获输出
     local temp_output="${SAGE_DIR:-$(pwd)/.sage}/tmp/error_output_$(date +%s).tmp"
     mkdir -p "$(dirname "$temp_output")"
     local exit_code
-    
+
     if eval "$command" 2>&1 | tee "$temp_output"; then
         exit_code=0
     else
         exit_code=$?
     fi
-    
+
     # 如果命令失败，显示友好错误信息
     if [ $exit_code -ne 0 ]; then
         local error_output=$(cat "$temp_output")
         show_friendly_error "$error_output" "unknown" "$context"
-        
+
         # 询问是否继续
         echo -e "\n${YELLOW}是否尝试继续安装？${NC} ${DIM}[y/N]${NC}"
         read -r -t 30 response || response="n"
         response=${response,,}
-        
+
         if [[ ! "$response" =~ ^(y|yes)$ ]]; then
             echo -e "${YELLOW}安装已取消${NC}"
             cleanup_temp_files "$temp_output"
             exit $exit_code
         fi
     fi
-    
+
     cleanup_temp_files "$temp_output"
     return $exit_code
 }
@@ -204,7 +204,7 @@ cleanup_temp_files() {
     if [ -f "$temp_file" ]; then
         rm -f "$temp_file"
     fi
-    
+
     # 清理老的临时文件
     if [ -d "${SAGE_DIR:-$(pwd)/.sage}/tmp" ]; then
         find "${SAGE_DIR:-$(pwd)/.sage}/tmp" -name "error_output_*.tmp" -mtime +1 -delete 2>/dev/null || true
@@ -222,7 +222,7 @@ report_success() {
 report_partial_success() {
     local component="$1"
     local issue="$2"
-    
+
     echo -e "\n${YELLOW}${BOLD}⚠️  $component 安装基本完成${NC}"
     echo -e "${YELLOW}但存在一些小问题：$issue${NC}"
     echo -e "${DIM}这不会影响 SAGE 的核心功能${NC}"
@@ -233,11 +233,11 @@ show_installation_progress() {
     local step="$1"
     local total_steps="$2"
     local current_task="$3"
-    
+
     local progress=$((step * 100 / total_steps))
     local bar_length=30
     local filled_length=$((progress * bar_length / 100))
-    
+
     local bar=""
     for ((i=0; i<filled_length; i++)); do
         bar+="█"
@@ -245,11 +245,11 @@ show_installation_progress() {
     for ((i=filled_length; i<bar_length; i++)); do
         bar+="░"
     done
-    
+
     echo -e "\n${BLUE}${BOLD}📦 安装进度 [$step/$total_steps]${NC}"
     echo -e "${BLUE}[$bar] $progress%${NC}"
     echo -e "${DIM}当前步骤：$current_task${NC}"
-    
+
     # 根据步骤提供相应的用户提示
     case $step in
         1)
@@ -271,16 +271,16 @@ show_installation_progress() {
 handle_user_interrupt() {
     echo -e "\n\n${YELLOW}${BOLD}⚠️  检测到用户中断 (Ctrl+C)${NC}"
     echo -e "${BLUE}正在安全清理临时文件...${NC}"
-    
+
     # 清理可能的临时文件
     if [ -d "${SAGE_DIR:-$(pwd)/.sage}/tmp" ]; then
         find "${SAGE_DIR:-$(pwd)/.sage}/tmp" -name "sage_install_*" -type f -delete 2>/dev/null || true
         find "${SAGE_DIR:-$(pwd)/.sage}/tmp" -name "error_output_*.tmp" -type f -delete 2>/dev/null || true
     fi
-    
+
     # 备用清理
     find /tmp -name "sage_install_*" -type f -delete 2>/dev/null || true
-    
+
     echo -e "${YELLOW}安装已被用户取消${NC}"
     echo -e "${DIM}您可以稍后重新运行 ./quickstart.sh 继续安装${NC}"
     exit 130

@@ -10,7 +10,7 @@ class BatchFunction(BaseFunction):
 
     和SourceFunction一样简单，只需要实现execute方法。
     当execute返回None时，BatchOperator会自动发送停止信号。
-    
+
     流量控制通过Queue的自然阻塞机制实现，无需额外同步。
     """
 

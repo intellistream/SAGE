@@ -44,7 +44,7 @@ dependencies = [
     # SAGE framework dependencies
     "isage-common>=0.1.0",
     "isage-platform>=0.1.0",
-    
+
     # Kernel-specific dependencies
     "python-dotenv==1.1.1",
     "python_multipart==0.0.20",
@@ -243,7 +243,7 @@ line-length = 88
 # 启用的规则集（与flake8兼容）
 select = [
     "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
+    "W",    # pycodestyle warnings
     "F",    # pyflakes
     "I",    # isort
     "B",    # flake8-bugbear

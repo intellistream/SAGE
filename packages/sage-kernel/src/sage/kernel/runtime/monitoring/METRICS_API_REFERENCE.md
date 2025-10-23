@@ -161,20 +161,20 @@ def print_task_metrics(task_name, metrics):
     print(f"  ✅ Success: {metrics.total_packets_processed}")
     print(f"  ❌ Errors: {metrics.total_packets_failed}")
     print(f"  📊 TPS: {metrics.packets_per_second:.2f} packets/sec")
-    
+
     if metrics.p50_latency > 0:
         print(f"  ⏱️  Latency P50: {metrics.p50_latency:.1f}ms")
         print(f"  ⏱️  Latency P95: {metrics.p95_latency:.1f}ms")
         print(f"  ⏱️  Latency P99: {metrics.p99_latency:.1f}ms")
         print(f"  ⏱️  Avg Latency: {metrics.avg_latency:.1f}ms")
-    
+
     if metrics.cpu_usage_percent > 0 or metrics.memory_usage_mb > 0:
         print(f"  💻 CPU: {metrics.cpu_usage_percent:.1f}%")
         print(f"  🧠 Memory: {metrics.memory_usage_mb:.1f}MB")
-    
+
     if metrics.input_queue_depth > 0:
         print(f"  📥 Queue Depth: {metrics.input_queue_depth}")
-    
+
     if metrics.error_breakdown:
         print(f"  ❌ Error Breakdown: {metrics.error_breakdown}")
 ```
@@ -183,6 +183,6 @@ def print_task_metrics(task_name, metrics):
 
 **创建日期**: 2025-10-13  
 **版本**: 1.0  
-**相关文件**: 
+**相关文件**:
 - `packages/sage-kernel/src/sage/kernel/runtime/monitoring/metrics.py`
 - `packages/sage-benchmark/.../pipelines/qa_monitoring_demo.py`

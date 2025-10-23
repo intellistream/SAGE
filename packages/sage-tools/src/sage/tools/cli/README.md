@@ -285,7 +285,7 @@ from sage.cli.base import BaseCommand
 class CustomCommand(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--option', help='Custom option')
-    
+
     def handle(self, args):
         # 实现自定义逻辑
         return result

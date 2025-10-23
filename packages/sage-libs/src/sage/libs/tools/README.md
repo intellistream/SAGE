@@ -208,11 +208,11 @@ class CustomTool(BaseTool):
     def __init__(self, config=None):
         super().__init__(config)
         self.initialize()
-    
+
     def execute(self, input_data):
         # 实现工具逻辑
         return processed_result
-    
+
     def validate_input(self, input_data):
         # 输入验证
         return True

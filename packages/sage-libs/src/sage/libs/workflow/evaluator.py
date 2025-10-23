@@ -32,11 +32,11 @@ class WorkflowEvaluator:
 
     Example:
         >>> evaluator = WorkflowEvaluator()
-        >>> 
+        >>>
         >>> # Add benchmark workflows
         >>> evaluator.add_benchmark("simple", simple_workflow)
         >>> evaluator.add_benchmark("complex", complex_workflow)
-        >>> 
+        >>>
         >>> # Evaluate optimizers
         >>> results = evaluator.evaluate_all([optimizer1, optimizer2])
         >>> evaluator.print_comparison(results)

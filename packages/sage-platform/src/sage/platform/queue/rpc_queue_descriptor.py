@@ -26,10 +26,10 @@ _rpc_queue_factory: Optional[QueueFactory] = None
 
 def register_rpc_queue_factory(factory: QueueFactory) -> None:
     """注册RPC队列工厂函数
-    
+
     This function should be called by sage-kernel (L3) to register
     the concrete RPCQueue implementation.
-    
+
     Args:
         factory: Factory function that creates RPCQueue instances
             Signature: factory(queue_id, host, port, ...) -> RPCQueue
@@ -41,13 +41,13 @@ def register_rpc_queue_factory(factory: QueueFactory) -> None:
 
 class RPCQueueDescriptor(BaseQueueDescriptor):
     """RPC队列描述符
-    
+
     支持基于RPC的远程队列：
     - TCP连接
     - 远程队列访问
     - 连接池管理
     - 自动重连
-    
+
     Architecture Note:
     This descriptor (L2) does not import RPCQueue (L3) directly.
     Instead, it uses a factory pattern where L3 registers the implementation.
@@ -63,7 +63,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
         queue_id: Optional[str] = None,
     ):
         """初始化RPC队列描述符
-        
+
         Args:
             host: RPC服务器主机
             port: RPC服务器端口
@@ -110,7 +110,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
 
     def _create_queue_instance(self) -> Any:
         """创建RPC队列实例
-        
+
         使用工厂模式创建实例，避免直接依赖sage-kernel。
         """
         if _rpc_queue_factory is None:
@@ -120,7 +120,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
                 "The factory should be registered via: "
                 "from sage.kernel.runtime.communication.rpc import register_with_platform"
             )
-        
+
         try:
             # 使用注册的工厂函数创建队列实例
             rpc_queue = _rpc_queue_factory(
@@ -131,12 +131,12 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
                 retry_count=self.retry_count,
                 enable_pooling=self.enable_pooling,
             )
-            
+
             logger.info(
                 f"Successfully initialized RPC Queue: {self.queue_id} at {self.host}:{self.port}"
             )
             return rpc_queue
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize RPC Queue: {e}")
             raise RuntimeError(f"RPC Queue initialization failed: {e}") from e

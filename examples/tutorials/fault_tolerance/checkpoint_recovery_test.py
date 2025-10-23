@@ -14,32 +14,32 @@ from sage.kernel.api.function.sink_function import SinkFunction
 
 class TestSource(SourceFunction):
     """测试数据源 - 会在第 5 次迭代时模拟失败"""
-    
+
     def __init__(self):
         super().__init__()
         self.counter = 0
         self.logger.info("TestSource initialized")
-    
+
     def execute(self, data=None):
         self.counter += 1
         self.logger.info(f"TestSource: generating data #{self.counter}")
-        
+
         if self.counter > 10:
             self.logger.info("TestSource: finished")
             from sage.kernel.runtime.communication.router.packet import StopSignal
             return StopSignal("TestSource-completed")
-        
+
         # 模拟第 5 个数据处理时失败（只失败一次）
         if self.counter == 5 and not hasattr(self, '_failed_once'):
             self._failed_once = True
             self.logger.error("TestSource: simulating failure at counter=5")
             raise RuntimeError("Simulated failure at counter=5")
-        
+
         # 添加延迟以便观察 checkpoint
         time.sleep(0.5)
         self.logger.debug(f"TestSource: emitting data #{self.counter}")
         return {"id": self.counter, "value": f"data_{self.counter}"}
-    
+
     def get_state(self):
         """保存状态到 checkpoint"""
         state = {
@@ -48,7 +48,7 @@ class TestSource(SourceFunction):
         }
         self.logger.debug(f"TestSource: saving state: {state}")
         return state
-    
+
     def restore_state(self, state):
         """从 checkpoint 恢复状态"""
         self.counter = state.get('counter', 0)
@@ -59,26 +59,26 @@ class TestSource(SourceFunction):
 
 class TestProcessor(MapFunction):
     """测试处理器"""
-    
+
     def execute(self, data):
         if data is None:
             return None
-        
+
         self.logger.info(f"TestProcessor: processing {data}")
         return {"id": data["id"], "processed": data["value"].upper()}
 
 
 class TestSink(SinkFunction):
     """测试输出"""
-    
+
     def __init__(self):
         super().__init__()
         self.results = []
-    
+
     def execute(self, data):
         if data is None:
             return None
-        
+
         self.logger.info(f"TestSink: received {data}")
         self.results.append(data)
         print(f"✅ Processed: ID={data['id']}, Value={data['processed']}")
@@ -90,7 +90,7 @@ def test_checkpoint_recovery():
     print("\n" + "="*60)
     print("Testing Checkpoint-Based Fault Tolerance")
     print("="*60 + "\n")
-    
+
     env = LocalEnvironment(
         "checkpoint_test",
         config={
@@ -102,17 +102,17 @@ def test_checkpoint_recovery():
             }
         }
     )
-    
+
     # 启用详细日志
     env.set_console_log_level("INFO")
-    
+
     print("📝 Configuration:")
     print(f"  - Strategy: checkpoint")
     print(f"  - Checkpoint Interval: 2.0s")
     print(f"  - Max Recovery Attempts: 3")
     print(f"  - Checkpoint Directory: .test_checkpoints")
     print()
-    
+
     # 构建管道
     print("🔨 Building pipeline...")
     stream = (
@@ -121,7 +121,7 @@ def test_checkpoint_recovery():
         .sink(TestSink)
     )
     print("✅ Pipeline built\n")
-    
+
     # 提交执行
     print("🚀 Submitting pipeline...")
     try:
@@ -131,7 +131,7 @@ def test_checkpoint_recovery():
         print(f"\n❌ Pipeline failed: {e}")
         import traceback
         traceback.print_exc()
-    
+
     print("\n" + "="*60)
     print("Test Completed")
     print("="*60)
@@ -142,7 +142,7 @@ def test_restart_recovery():
     print("\n" + "="*60)
     print("Testing Restart-Based Fault Tolerance")
     print("="*60 + "\n")
-    
+
     env = LocalEnvironment(
         "restart_test",
         config={
@@ -156,16 +156,16 @@ def test_restart_recovery():
             }
         }
     )
-    
+
     env.set_console_log_level("INFO")
-    
+
     print("📝 Configuration:")
     print(f"  - Strategy: restart")
     print(f"  - Restart Strategy: exponential backoff")
     print(f"  - Initial Delay: 1.0s")
     print(f"  - Max Attempts: 3")
     print()
-    
+
     # 构建管道
     print("🔨 Building pipeline...")
     stream = (
@@ -174,7 +174,7 @@ def test_restart_recovery():
         .sink(TestSink)
     )
     print("✅ Pipeline built\n")
-    
+
     # 提交执行
     print("🚀 Submitting pipeline...")
     try:
@@ -184,7 +184,7 @@ def test_restart_recovery():
         print(f"\n❌ Pipeline failed: {e}")
         import traceback
         traceback.print_exc()
-    
+
     print("\n" + "="*60)
     print("Test Completed")
     print("="*60)
@@ -193,5 +193,5 @@ def test_restart_recovery():
 if __name__ == "__main__":
 
     test_checkpoint_recovery()
-    
+
     print("\n✨ All tests completed!\n")

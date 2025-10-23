@@ -9,7 +9,7 @@ from .extensions_compat import *
 
 __all__ = [
     "sage_db",
-    "sage_flow", 
+    "sage_flow",
     "sage_mem",
     "sage_refiner",
     "sage_tsdb",

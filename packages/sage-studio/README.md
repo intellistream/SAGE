@@ -332,7 +332,7 @@ React 前端会自动检测和转换 Angular 格式的流程：
 
 ```typescript
 // 自动检测逻辑（Toolbar.tsx）
-const isAngularFormat = 
+const isAngularFormat =
   pipeline.elements?.[0]?.data?.operatorId !== undefined;
 
 if (isAngularFormat) {

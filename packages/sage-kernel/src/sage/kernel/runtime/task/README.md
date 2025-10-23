@@ -218,7 +218,7 @@ task:
     max_buffer_size: 30000
     queue_maxsize: 50000
     worker_threads: 1
-  
+
   ray:
     lifetime: "detached"
     resources: {"CPU": 1}
@@ -242,7 +242,7 @@ class CustomTask(BaseTask):
     def __init__(self, runtime_context, operator_factory):
         super().__init__(runtime_context, operator_factory)
         # 自定义初始化逻辑
-    
+
     def custom_process(self, packet):
         # 自定义处理逻辑
         return self.operator.process(packet)

@@ -15,7 +15,7 @@ runner = CliRunner()
 
 class FakeStudioManager:
     """Mock StudioManager for testing."""
-    
+
     def __init__(self):
         self._running = False
         self._config = {"host": "127.0.0.1", "port": 7788}
@@ -85,7 +85,7 @@ def test_studio_stop_command(mock_studio_manager):
     """Test that 'sage studio stop' command works."""
     # Start the manager first
     mock_studio_manager._running = True
-    
+
     with patch("sage.tools.cli.commands.studio.studio_manager", mock_studio_manager):
         result = runner.invoke(sage_app, ["studio", "stop"])
         assert result.exit_code == 0

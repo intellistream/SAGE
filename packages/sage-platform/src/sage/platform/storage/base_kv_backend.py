@@ -18,7 +18,7 @@ from typing import Any
 
 class BaseKVBackend(ABC):
     """Abstract base class for key-value backends.
-    
+
     抽象基类，用于定义 KV 存储后端接口规范。
     """
 

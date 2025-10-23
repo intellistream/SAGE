@@ -41,7 +41,7 @@ python -c "from sage.libs.unlearning import UnlearningEngine; print('OK')"
 ImportError: cannot import name 'BaseFunction' from 'sage.kernel'
 ```
 
-**原因:** 
+**原因:**
 - SAGE 运行时未安装（usage_2, 3, 4 需要）
 - 或版本不兼容
 
@@ -467,13 +467,13 @@ if similarity > 0.7:
         ...,
         perturbation_strategy="aggressive"
     )
-    
+
     # 方案 2: 增加邻居补偿
     result = engine.unlearn_vectors(
         ...,
         apply_compensation=True
     )
-    
+
     # 方案 3: 使用更强的隐私机制
     from sage.libs.unlearning.privacy_mechanisms import GaussianUnlearning
     result = engine.unlearn_vectors(
@@ -543,10 +543,10 @@ def test_unlearning():
     vectors = np.random.randn(100, 128).astype(np.float32)
     vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
     ids = [f"doc_{i}" for i in range(100)]
-    
+
     # 创建引擎
     engine = UnlearningEngine(epsilon=1.0)
-    
+
     # 执行
     result = engine.unlearn_vectors(
         vectors_to_forget=vectors[:10],
@@ -554,19 +554,19 @@ def test_unlearning():
         all_vectors=vectors,
         all_vector_ids=ids
     )
-    
+
     # 验证
     assert result.success
     assert result.num_vectors_unlearned == 10
     assert result.privacy_cost[0] <= 1.0
-    
+
     # 效果检查
     for i, forgotten_id in enumerate(ids[:10]):
         orig = vectors[i]
         perturbed = result.metadata['perturbed_vectors'][i]
         similarity = np.dot(orig, perturbed)
         assert similarity < 0.9, f"Insufficient perturbation for {forgotten_id}"
-    
+
     print("✓ All tests passed")
 
 if __name__ == "__main__":

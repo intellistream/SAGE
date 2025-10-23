@@ -43,7 +43,7 @@ def pipeline_run():
 
     # 初始化环境 (启用监控功能)
     env = LocalEnvironment(enable_monitoring=True)
-    
+
     print("=" * 80)
     print("🔍 Performance Monitoring Demo - RAG Pipeline")
     print("=" * 80)
@@ -72,7 +72,7 @@ def pipeline_run():
     print("\n" + "=" * 80)
     print("📈 PERFORMANCE MONITORING REPORT")
     print("=" * 80)
-    
+
     # 获取并显示各个任务的性能指标
     try:
         job = env.jobmanager.jobs.get(env.env_uuid)

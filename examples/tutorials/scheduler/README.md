@@ -154,7 +154,7 @@ for name, scheduler in schedulers:
     # 构建相同的 pipeline
     build_pipeline(env)
     env.submit(autostop=True)
-    
+
     # 对比指标
     metrics = env.scheduler.get_metrics()
     print(f"{name}: {metrics}")
@@ -196,7 +196,7 @@ for name, scheduler in schedulers:
 
 ### Q: 如何选择调度器？
 
-A: 
+A:
 - **默认情况**: 不需要选择，使用默认的 FIFO 即可
 - **资源受限**: 使用 LoadAwareScheduler 控制并发
 - **自定义需求**: 实现自己的调度器

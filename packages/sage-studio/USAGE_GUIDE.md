@@ -134,9 +134,9 @@ from sage.studio.models import VisualNode, VisualConnection, VisualPipeline
 
 # 直接创建 Python 对象
 nodes = [
-    VisualNode(id="n1", type="retriever", label="Retriever", 
+    VisualNode(id="n1", type="retriever", label="Retriever",
                config={"top_k": 5}, position={"x": 100, "y": 100}),
-    VisualNode(id="n2", type="generator", label="Generator", 
+    VisualNode(id="n2", type="generator", label="Generator",
                config={"model": "gpt-4"}, position={"x": 300, "y": 100})
 ]
 
@@ -622,9 +622,9 @@ condition_node = VisualNode(
 
 ```python
 # 创建并行分支
-branch1 = VisualNode(id="b1", type="generator", label="Branch 1", 
+branch1 = VisualNode(id="b1", type="generator", label="Branch 1",
                      config={"model": "gpt-4"})
-branch2 = VisualNode(id="b2", type="generator", label="Branch 2", 
+branch2 = VisualNode(id="b2", type="generator", label="Branch 2",
                      config={"model": "claude-3"})
 
 # 两个分支从同一个源节点获取输入
@@ -736,10 +736,10 @@ def test_my_pipeline():
         ],
         connections=[]
     )
-    
+
     builder = get_pipeline_builder()
     env = builder.build(pipeline)
-    
+
     assert env is not None
 ```
 
@@ -776,7 +776,7 @@ dev_generator = VisualNode(
 
 - [SOURCE_SINK_CONFIG.md](./SOURCE_SINK_CONFIG.md) - Source/Sink 配置指南
 - [REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md) - 重构总结
-- [PACKAGE_ARCHITECTURE.md](../../docs/PACKAGE_ARCHITECTURE.md) - 包架构文档
+- [PACKAGE_ARCHITECTURE.md](../../docs-public/docs_src/dev-notes/package-architecture.md) - 包架构文档
 
 ---
 

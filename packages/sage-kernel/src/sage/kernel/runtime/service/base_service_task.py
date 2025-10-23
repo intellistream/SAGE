@@ -77,13 +77,13 @@ class BaseServiceTask(ABC):
         # 队列监听相关
         self._queue_listener_thread: Optional[threading.Thread] = None
         self._queue_listener_running = False
-        
+
         # === 性能监控 ===
         self._enable_monitoring = getattr(ctx, 'enable_monitoring', False) if ctx else False
         self.metrics_collector: Optional[MetricsCollector] = None
         self.resource_monitor: Optional[ResourceMonitor] = None
         self.metrics_reporter: Optional[MetricsReporter] = None
-        
+
         if self._enable_monitoring:
             try:
                 self.metrics_collector = MetricsCollector(
@@ -91,7 +91,7 @@ class BaseServiceTask(ABC):
                     window_size=getattr(ctx, 'metrics_window_size', 10000) if ctx else 10000,
                     enable_detailed_tracking=getattr(ctx, 'enable_detailed_tracking', True) if ctx else True,
                 )
-                
+
                 # 尝试启动资源监控
                 if RESOURCE_MONITOR_AVAILABLE:
                     try:
@@ -103,7 +103,7 @@ class BaseServiceTask(ABC):
                         self.logger.warning(
                             f"Failed to start resource monitoring for service {self.service_name}: {e}"
                         )
-                
+
                 # 可选：启动性能汇报器
                 if ctx and getattr(ctx, 'enable_auto_report', False):
                     self.metrics_reporter = MetricsReporter(
@@ -113,7 +113,7 @@ class BaseServiceTask(ABC):
                         enable_auto_report=True,
                         report_callback=lambda report: self.logger.info(f"\n{report}"),
                     )
-                
+
                 self.logger.info(f"Performance monitoring enabled for service {self.service_name}")
             except Exception as e:
                 self.logger.warning(
@@ -477,21 +477,21 @@ class BaseServiceTask(ABC):
                 self.logger.info(
                     f"[SERVICE_TASK] Service method {method_name} succeeded: {result}"
                 )
-                
+
                 # 记录请求成功
                 if self._enable_monitoring and self.metrics_collector:
                     self.metrics_collector.record_packet_end(
                         packet_id=request_id,
                         success=True,
                     )
-                    
+
             except Exception as e:
                 result = None
                 success = False
                 error_msg = str(e)
                 self.logger.error(f"[SERVICE_TASK] Service method call failed: {e}")
                 self.logger.debug(f"Stack trace: {traceback.format_exc()}")
-                
+
                 # 记录请求失败
                 if self._enable_monitoring and self.metrics_collector:
                     self.metrics_collector.record_packet_end(
@@ -888,7 +888,7 @@ class BaseServiceTask(ABC):
 
         # 获取基础指标
         task_metrics = self.metrics_collector.get_real_time_metrics()
-        
+
         # 转换为服务指标
         metrics = ServicePerformanceMetrics(
             service_name=self.service_name,

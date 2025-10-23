@@ -77,7 +77,7 @@ class QAPromptor(MapOperator):
         config: Configuration data for initializing the prompt rag (e.g., model details, etc.).
         prompt_template: A template used for generating the system prompt, typically includes context or instructions.
     """
-    
+
     prompt_template: Template
 
     def __init__(self, config, enable_profile=False, **kwargs):
@@ -307,7 +307,7 @@ class SummarizationPromptor(MapOperator):
         config: Configuration data for initializing the prompt rag (e.g., model details, etc.).
         prompt_template: A template used for generating the system prompt, typically includes context or instructions.
     """
-    
+
     prompt_template: Template
 
     def __init__(self, config):
@@ -371,7 +371,7 @@ class QueryProfilerPromptor(MapOperator):
     QueryProfilerPromptor provides a prompt for profiling queries.
 
     """
-    
+
     prompt_template: Template
 
     def __init__(self, config):

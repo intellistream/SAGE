@@ -96,15 +96,15 @@ To integrate a new pipeline with the benchmark runner:
 1. **Create pipeline in `implementations/pipelines/`**:
    ```python
    # implementations/pipelines/my_pipeline.py
-   
+
    def process_item(item: Dict, config: Dict) -> Dict:
        """
        Process a single data item.
-       
+
        Args:
            item: Data item (question, answers, etc.)
            config: Pipeline configuration
-       
+
        Returns:
            {
                "id": str,

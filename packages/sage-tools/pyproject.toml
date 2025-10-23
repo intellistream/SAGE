@@ -51,7 +51,7 @@ dependencies = [
     "markupsafe>=2.0.1",
     "packaging>=20.5",
     "huggingface-hub>=0.23.0",
-    
+
     # Dev tools - 确保 sage dev 命令可用
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -155,7 +155,7 @@ basic = [
 ]
 
 tools = [
-    "isage-tools[cli,dev]", 
+    "isage-tools[cli,dev]",
 ]
 
 # 文档生成
@@ -189,7 +189,7 @@ sage-dev = "sage.tools.cli.commands.dev:app"
 
 # 移除的命令（功能已合并到sage主命令）:
 # - sage-cli: 与sage重复
-# - sage-core: 与sage重复  
+# - sage-core: 与sage重复
 # - sage-jobmanager: 合并到 sage jobmanager
 # - sage-install: 合并到 sage doctor 或 sage version
 # - web-ui: 合并到 sage web-ui
@@ -205,7 +205,7 @@ where = ["src"]
 "" = "src"
 
 [tool.setuptools.package-data]
-"sage.tools.cli" = ["py.typed", "templates/*.yaml"]  
+"sage.tools.cli" = ["py.typed", "templates/*.yaml"]
 "sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
 
 # Development tools configuration
@@ -233,7 +233,7 @@ line-length = 88
 # 启用的规则集（与flake8兼容）
 select = [
     "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
+    "W",    # pycodestyle warnings
     "F",    # pyflakes
     "I",    # isort
     "B",    # flake8-bugbear

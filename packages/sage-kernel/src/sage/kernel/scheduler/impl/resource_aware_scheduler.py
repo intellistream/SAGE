@@ -38,13 +38,13 @@ if TYPE_CHECKING:
 class LoadAwareScheduler(BaseScheduler):
     """
     负载感知调度器 - 资源感知的智能调度
-    
+
     核心功能：
     1. 监控集群资源状态（CPU、GPU、内存）
     2. 根据任务需求选择最优节点
     3. 负载均衡调度
     4. 跟踪任务分配
-    
+
     调度策略：
     - 分析任务的资源需求（从 transformation 中提取）
     - 使用 NodeSelector 选择负载最低且满足需求的节点
@@ -76,7 +76,7 @@ class LoadAwareScheduler(BaseScheduler):
         self.total_latency = 0.0
         self.active_tasks = 0
         self.resource_utilization = []
-        
+
         # 集成 NodeSelector（资源感知核心）
         from sage.kernel.scheduler.node_selector import NodeSelector
         self.node_selector = NodeSelector(cache_ttl=0.5, enable_tracking=True)
@@ -84,55 +84,55 @@ class LoadAwareScheduler(BaseScheduler):
     def make_decision(self, task_node: "TaskNode") -> PlacementDecision:
         """
         负载感知调度决策：基于资源状态和任务需求选择最优节点
-        
+
         决策流程：
         1. 检查并发限制
         2. 提取任务资源需求
         3. 使用 NodeSelector 选择最优节点
         4. 跟踪任务分配
         5. 返回节点分配决策
-        
+
         Args:
             task_node: 任务节点
-        
+
         Returns:
             PlacementDecision: 包含目标节点和资源需求的决策
         """
         start_time = time.time()
-        
+
         # === 步骤 1: 检查并发限制（负载控制）===
         delay = 0.0
         while self.active_tasks >= self.max_concurrent:
             time.sleep(0.01)  # 等待资源释放
             delay += 0.01
-        
+
         # === 步骤 2: 提取任务资源需求 ===
         cpu_required = 1.0
         gpu_required = 0.0
         memory_required = 0
         custom_resources = {}
-        
+
         if hasattr(task_node, 'transformation') and task_node.transformation:
             # CPU 需求
             if hasattr(task_node.transformation, 'cpu_required'):
                 cpu_required = task_node.transformation.cpu_required
-            
+
             # GPU 需求
             if hasattr(task_node.transformation, 'gpu_required'):
                 gpu_required = task_node.transformation.gpu_required
-            
+
             # 内存需求
             if hasattr(task_node.transformation, 'memory_required'):
                 memory_str = task_node.transformation.memory_required
                 memory_required = self._parse_memory(memory_str)
-            
+
             # 自定义资源
             if hasattr(task_node.transformation, 'custom_resources'):
                 custom_resources = task_node.transformation.custom_resources
-        
+
         # === 步骤 3: 使用 NodeSelector 选择最优节点 ===
         target_node = None
-        
+
         # 只有远程模式才需要选择节点
         if task_node.task_factory.remote if hasattr(task_node, 'task_factory') else False:
             target_node = self.node_selector.select_best_node(
@@ -142,11 +142,11 @@ class LoadAwareScheduler(BaseScheduler):
                 custom_resources=custom_resources if custom_resources else None,
                 strategy=self.strategy
             )
-            
+
             # 跟踪任务分配
             if target_node:
                 self.node_selector.track_task_placement(task_node.name, target_node)
-        
+
         # === 步骤 4: 构建资源需求字典 ===
         resource_requirements = {}
         if cpu_required > 0:
@@ -157,17 +157,17 @@ class LoadAwareScheduler(BaseScheduler):
             resource_requirements['memory'] = memory_required
         if custom_resources:
             resource_requirements.update(custom_resources)
-        
+
         # === 步骤 5: 更新状态 ===
         self.active_tasks += 1
         self.scheduled_count += 1
         elapsed = time.time() - start_time
         self.total_latency += elapsed
-        
+
         # 记录资源利用率
         utilization = self.active_tasks / self.max_concurrent
         self.resource_utilization.append(utilization)
-        
+
         # === 步骤 6: 返回决策 ===
         # 获取节点信息用于日志
         node_info = ""
@@ -179,7 +179,7 @@ class LoadAwareScheduler(BaseScheduler):
                 node_info = target_node[:8]
         else:
             node_info = "default"
-        
+
         decision = PlacementDecision(
             target_node=target_node,
             resource_requirements=resource_requirements if resource_requirements else None,
@@ -189,23 +189,23 @@ class LoadAwareScheduler(BaseScheduler):
             reason=f"LoadAware: task={task_node.name}, node={node_info}, " +
                    f"req=[CPU:{cpu_required}, GPU:{gpu_required}], active={self.active_tasks}"
         )
-        
+
         self.decision_history.append(decision)
         return decision
-    
+
     def _parse_memory(self, memory) -> int:
         """
         解析内存字符串为字节数
-        
+
         Args:
             memory: 内存大小（字符串如 "8GB" 或整数字节数）
-        
+
         Returns:
             内存字节数
         """
         if isinstance(memory, int):
             return memory
-        
+
         if isinstance(memory, str):
             memory = memory.upper()
             if 'GB' in memory:
@@ -214,50 +214,50 @@ class LoadAwareScheduler(BaseScheduler):
                 return int(float(memory.replace('MB', '')) * 1024**2)
             elif 'KB' in memory:
                 return int(float(memory.replace('KB', '')) * 1024)
-        
+
         return 0
-    
+
     def make_service_decision(self, service_node: "ServiceNode") -> PlacementDecision:
         """
         负载感知的服务调度决策
-        
+
         服务通常需要长期运行，因此需要更谨慎的资源分配：
         1. 提取服务的资源需求
         2. 选择资源充足且负载低的节点
         3. 优先使用 spread 策略避免单点故障
-        
+
         Args:
             service_node: 服务节点
-        
+
         Returns:
             PlacementDecision: 服务调度决策
         """
         start_time = time.time()
-        
+
         # === 步骤 1: 提取服务资源需求 ===
         cpu_required = 1.0
         gpu_required = 0.0
         memory_required = 0
         custom_resources = {}
-        
+
         if hasattr(service_node, 'service_class') and service_node.service_class:
             # CPU 需求
             if hasattr(service_node.service_class, 'cpu_required'):
                 cpu_required = service_node.service_class.cpu_required
-            
+
             # GPU 需求
             if hasattr(service_node.service_class, 'gpu_required'):
                 gpu_required = service_node.service_class.gpu_required
-            
+
             # 内存需求
             if hasattr(service_node.service_class, 'memory_required'):
                 memory_str = service_node.service_class.memory_required
                 memory_required = self._parse_memory(memory_str)
-            
+
             # 自定义资源
             if hasattr(service_node.service_class, 'custom_resources'):
                 custom_resources = service_node.service_class.custom_resources
-        
+
         # === 步骤 2: 使用 NodeSelector 选择节点（优先使用 spread 策略）===
         # 服务通常需要长期运行，使用 spread 策略避免单点故障
         service_strategy = "spread"
@@ -268,14 +268,14 @@ class LoadAwareScheduler(BaseScheduler):
             custom_resources=custom_resources if custom_resources else None,
             strategy=service_strategy
         )
-        
+
         # 跟踪服务分配
         if target_node:
             self.node_selector.track_task_placement(
-                service_node.service_name, 
+                service_node.service_name,
                 target_node
             )
-        
+
         # === 步骤 3: 构建资源需求字典 ===
         resource_requirements = {}
         if cpu_required > 0:
@@ -286,12 +286,12 @@ class LoadAwareScheduler(BaseScheduler):
             resource_requirements['memory'] = memory_required
         if custom_resources:
             resource_requirements.update(custom_resources)
-        
+
         # === 步骤 4: 更新状态 ===
         self.scheduled_count += 1
         elapsed = time.time() - start_time
         self.total_latency += elapsed
-        
+
         # === 步骤 5: 返回决策 ===
         node_info = ""
         if target_node:
@@ -302,7 +302,7 @@ class LoadAwareScheduler(BaseScheduler):
                 node_info = target_node[:8]
         else:
             node_info = "default"
-        
+
         decision = PlacementDecision(
             target_node=target_node,
             resource_requirements=resource_requirements if resource_requirements else None,
@@ -312,21 +312,21 @@ class LoadAwareScheduler(BaseScheduler):
             reason=f"LoadAware Service: {service_node.service_name}, node={node_info}, " +
                    f"req=[CPU:{cpu_required}, GPU:{gpu_required}], strategy={service_strategy}"
         )
-        
+
         self.decision_history.append(decision)
         return decision
-    
+
     def task_completed(self, task_name: str):
         """
         任务完成时调用，释放资源并取消跟踪
-        
+
         注意：这个方法应该由 Dispatcher 在任务完成时调用
-        
+
         Args:
             task_name: 任务名称
         """
         self.active_tasks = max(0, self.active_tasks - 1)
-        
+
         # 取消任务跟踪
         self.node_selector.untrack_task(task_name)
 
@@ -345,7 +345,7 @@ class LoadAwareScheduler(BaseScheduler):
             if self.resource_utilization
             else 0
         )
-        
+
         # 获取集群统计
         cluster_stats = self.node_selector.get_cluster_stats()
 

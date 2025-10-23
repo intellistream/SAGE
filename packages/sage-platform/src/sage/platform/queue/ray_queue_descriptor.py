@@ -73,7 +73,7 @@ class RayQueueProxy:
 
     def get(self, block=True, timeout=None):
         """从队列获取项目
-        
+
         Args:
             block: 是否阻塞等待（为了API兼容性，但Ray队列始终是阻塞的）
             timeout: 超时时间（秒）

@@ -207,15 +207,15 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
         pip install typer rich pytest pytest-timeout
-        
+
     - name: Run quick examples tests
       run: |
         ./tools/tests/run_examples_tests.sh --quick --timeout 60
-        
+
     - name: Run pytest integration
       run: |
         cd tools/tests && python3 -m pytest test_examples_pytest.py -m quick_examples

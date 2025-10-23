@@ -152,7 +152,7 @@ class TaskPerformanceMetrics:
     total_packets_processed: int
     total_packets_failed: int
     packets_per_second: float
-    
+
     # 延迟统计（毫秒）
     min_latency: float
     max_latency: float
@@ -160,18 +160,18 @@ class TaskPerformanceMetrics:
     p50_latency: float
     p95_latency: float
     p99_latency: float
-    
+
     # 队列统计
     input_queue_depth: int
     input_queue_avg_wait_time: float
-    
+
     # 资源使用
     cpu_usage_percent: float
     memory_usage_mb: float
-    
+
     # 错误统计
     error_breakdown: Dict[str, int]
-    
+
     # 时间窗口统计
     last_minute_tps: float
     last_5min_tps: float
@@ -188,7 +188,7 @@ class ServicePerformanceMetrics:
     total_requests_processed: int
     total_requests_failed: int
     requests_per_second: float
-    
+
     # 响应时间统计（毫秒）
     min_response_time: float
     max_response_time: float
@@ -196,11 +196,11 @@ class ServicePerformanceMetrics:
     p50_response_time: float
     p95_response_time: float
     p99_response_time: float
-    
+
     # 资源使用
     cpu_usage_percent: float
     memory_usage_mb: float
-    
+
     # 并发统计
     concurrent_requests: int
     max_concurrent_requests: int

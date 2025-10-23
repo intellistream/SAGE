@@ -12,9 +12,9 @@ class LocalEnvironment(BaseEnvironment):
     """本地环境，直接使用本地JobManager实例"""
 
     def __init__(
-        self, 
-        name: str = "localenvironment", 
-        config: dict | None = None, 
+        self,
+        name: str = "localenvironment",
+        config: dict | None = None,
         scheduler=None,
         enable_monitoring: bool = False
     ):

@@ -57,11 +57,11 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
     # 检查是否已经处理过这个对象（引用去重）
     if obj_id in _object_map:
         return _object_map[obj_id]
-    
+
     # 创建新对象并加入映射表
     cleaned_obj = obj_class.__new__(obj_class)
     _object_map[obj_id] = cleaned_obj
-    
+
     # ... 递归处理属性
 ```
 

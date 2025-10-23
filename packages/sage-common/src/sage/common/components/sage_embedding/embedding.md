@@ -34,7 +34,7 @@ dimension = model.get_dim()
 使用Hugging Face的预训练模型：
 ```python
 model = apply_embedding_model(
-    name="hf", 
+    name="hf",
     model="sentence-transformers/all-MiniLM-L6-v2"
 )
 embedding = model.embed("This is huggingface.")

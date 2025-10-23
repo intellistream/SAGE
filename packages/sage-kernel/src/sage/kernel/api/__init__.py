@@ -19,7 +19,7 @@ Architecture:
     ```python
     from sage.kernel.api import LocalEnvironment
     from sage.kernel.api.function import MapFunction, SinkFunction
-    
+
     env = LocalEnvironment("my_app")
     stream = env.from_collection([1, 2, 3])
     stream.map(lambda x: x * 2).print()

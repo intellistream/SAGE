@@ -25,7 +25,7 @@ detect_current_environment() {
     local env_name=""
     local in_conda=false
     local in_venv=false
-    
+
     # 检测conda环境
     if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" != "base" ]; then
         env_type="conda"
@@ -36,7 +36,7 @@ detect_current_environment() {
         env_name=$(basename "$CONDA_PREFIX")
         in_conda=true
     fi
-    
+
     # 检测虚拟环境
     if [ -n "$VIRTUAL_ENV" ]; then
         if [ "$in_conda" = false ]; then
@@ -45,7 +45,7 @@ detect_current_environment() {
             in_venv=true
         fi
     fi
-    
+
     echo "$env_type|$env_name|$in_conda|$in_venv"
 }
 
@@ -56,7 +56,7 @@ get_smart_environment_recommendation() {
     local env_name=$(echo "$env_info" | cut -d'|' -f2)
     local in_conda=$(echo "$env_info" | cut -d'|' -f3)
     local in_venv=$(echo "$env_info" | cut -d'|' -f4)
-    
+
     if [ "$in_conda" = true ] || [ "$in_venv" = true ]; then
         # 用户已经在虚拟环境中，推荐直接使用
         echo "pip|$env_type|$env_name"
@@ -75,7 +75,7 @@ show_installation_menu() {
     echo ""
     echo -e "${BLUE}🔧 请选择安装配置${NC}"
     echo ""
-    
+
     # 选择安装模式
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
@@ -85,7 +85,7 @@ show_installation_menu() {
         echo -e "  ${YELLOW}4)${NC} 框架开发    - Full+开发工具 ${DIM}(~400MB, 推荐)${NC}"
         echo ""
         read -p "请选择安装模式 [1-4，默认4]: " mode_choice
-        
+
         case "${mode_choice:-4}" in
             1)
                 INSTALL_MODE="core"
@@ -109,15 +109,15 @@ show_installation_menu() {
                 ;;
         esac
     done
-    
+
     echo ""
-    
+
     # 检测当前环境并智能推荐
     local recommendation=$(get_smart_environment_recommendation)
     local recommended_env=$(echo "$recommendation" | cut -d'|' -f1)
     local current_env_type=$(echo "$recommendation" | cut -d'|' -f2)
     local current_env_name=$(echo "$recommendation" | cut -d'|' -f3)
-    
+
     # 显示当前环境信息
     if [ "$current_env_type" = "conda" ] && [ -n "$current_env_name" ]; then
         echo -e "${INFO} 检测到您当前在 conda 环境中: ${GREEN}$current_env_name${NC}"
@@ -126,13 +126,13 @@ show_installation_menu() {
     elif [ "$current_env_type" = "system" ]; then
         echo -e "${INFO} 检测到您当前在系统 Python 环境中"
     fi
-    
+
     echo ""
-    
+
     # 选择安装环境
     while true; do
         echo -e "${BOLD}2. 选择安装环境：${NC}"
-        
+
         if [ "$recommended_env" = "pip" ]; then
             # 推荐使用当前环境
             echo -e "  ${PURPLE}1)${NC} 使用当前环境 ${DIM}(推荐，已在虚拟环境中)${NC}"
@@ -144,10 +144,10 @@ show_installation_menu() {
             echo -e "  ${PURPLE}2)${NC} 使用当前系统环境"
             local default_choice=1
         fi
-        
+
         echo ""
         read -p "请选择安装环境 [1-2，默认$default_choice]: " env_choice
-        
+
         case "${env_choice:-$default_choice}" in
             1)
                 if [ "$recommended_env" = "pip" ]; then
@@ -171,16 +171,16 @@ show_installation_menu() {
                 ;;
         esac
     done
-    
+
     echo ""
-    
+
     # 选择是否安装 VLLM
     echo -e "${BOLD}3. AI 模型支持：${NC}"
     echo -e "  是否配置 VLLM 运行环境？${DIM}(用于本地大语言模型推理，配置系统依赖)${NC}"
     echo -e "  ${DIM}注意: VLLM Python包已包含在标准/开发者安装中${NC}"
     echo ""
     read -p "配置 VLLM 环境？[y/N]: " vllm_choice
-    
+
     if [[ $vllm_choice =~ ^[Yy]$ ]]; then
         INSTALL_VLLM=true
     else
@@ -200,7 +200,7 @@ show_parameter_help() {
     echo ""
     echo -e "${PURPLE}💡 无参数运行时将显示交互式菜单，引导您完成安装配置${NC}"
     echo ""
-    
+
     echo -e "${BLUE}📦 安装模式 (quickstart.sh 默认: 开发者模式)：${NC}"
     echo ""
     echo -e "  ${BOLD}--core, --c, -core, -c${NC}                      ${GRAY}核心运行时${NC}"
@@ -228,7 +228,7 @@ show_parameter_help() {
     echo -e "    ${DIM}大小: ~400MB${NC}"
     echo -e "    ${DIM}自动安装: C++扩展 (sage_db, sage_flow) - 需要构建工具${NC}"
     echo ""
-    
+
     echo -e "${BLUE}🔧 安装环境：${NC}"
     echo ""
     echo -e "  ${BOLD}--pip, -pip${NC}                                  ${PURPLE}使用当前环境${NC}"
@@ -236,7 +236,7 @@ show_parameter_help() {
     echo ""
     echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
     echo ""
-    
+
     echo -e "${BLUE}🤖 AI 模型支持：${NC}"
     echo ""
     echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}配置 VLLM 运行环境${NC}"
@@ -245,7 +245,7 @@ show_parameter_help() {
     echo -e "    ${DIM}注意: Python包已包含在标准安装中${NC}"
     echo -e "    ${DIM}包含使用指南和推荐模型信息${NC}"
     echo ""
-    
+
     echo -e "${BLUE}⚡ 其他选项：${NC}"
     echo ""
     echo -e "  ${BOLD}--yes, --y, -yes, -y${NC}                        ${CYAN}跳过确认提示${NC}"
@@ -270,7 +270,7 @@ show_parameter_help() {
     echo -e "    ${DIM}默认安装前会清理 pip 缓存，此选项可跳过${NC}"
     echo -e "    ${DIM}适用于网络受限或缓存清理可能出错的环境${NC}"
     echo ""
-    
+
     echo -e "${BLUE}💡 使用示例：${NC}"
     echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装${NC}"
     echo -e "  ./quickstart.sh --dev                            ${DIM}# 开发者安装 (默认) + 智能环境选择${NC}"
@@ -442,7 +442,7 @@ parse_doctor_option() {
 # 主参数解析函数
 parse_arguments() {
     local unknown_params=()
-    
+
     # 首先检查是否有帮助参数
     for arg in "$@"; do
         if parse_help_option "$arg"; then
@@ -450,11 +450,11 @@ parse_arguments() {
             exit 0
         fi
     done
-    
+
     # 解析其他参数
     while [[ $# -gt 0 ]]; do
         local param="$1"
-        
+
         if parse_install_mode "$param"; then
             # 安装模式参数
             shift
@@ -482,7 +482,7 @@ parse_arguments() {
             shift
         fi
     done
-    
+
     # 处理未知参数
     if [ ${#unknown_params[@]} -gt 0 ]; then
         echo -e "${CROSS} 发现未知参数: ${unknown_params[*]}"
@@ -490,7 +490,7 @@ parse_arguments() {
         show_parameter_help
         exit 1
     fi
-    
+
     # 设置默认值并显示提示
     set_defaults_and_show_tips
 }
@@ -522,13 +522,13 @@ refresh_sync_submodule_default() {
 
 set_defaults_and_show_tips() {
     local has_defaults=false
-    
+
     # 检测 CI 环境并自动设置为确认模式
     if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
         AUTO_CONFIRM=true
         echo -e "${INFO} 检测到 CI 环境，自动启用确认模式"
         has_defaults=true
-        
+
         # CI 环境中的环境选择逻辑
         if [ "$INSTALL_ENVIRONMENT" = "conda" ] && ! command -v conda &> /dev/null; then
             # CI 环境中强制使用 conda 但 conda 不可用时，自动降级到 pip
@@ -541,7 +541,7 @@ set_defaults_and_show_tips() {
             echo -e "${INFO} CI环境中未找到conda，自动使用pip模式"
             has_defaults=true
         fi
-        
+
         # 检查是否在受管理的Python环境中（如Ubuntu 24.04+）
         if [ "$INSTALL_ENVIRONMENT" = "pip" ] || [ -z "$INSTALL_ENVIRONMENT" ]; then
             if python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))" 2>/dev/null | grep -q "/usr/lib/python"; then
@@ -550,7 +550,7 @@ set_defaults_and_show_tips() {
             fi
         fi
     fi
-    
+
     # 设置安装模式默认值
     if [ -z "$INSTALL_MODE" ]; then
         INSTALL_MODE="dev"
@@ -560,16 +560,16 @@ set_defaults_and_show_tips() {
 
     # 根据当前安装模式决定是否同步 submodule
     set_default_sync_submodules
-    
+
     # 设置安装环境默认值（基于当前环境智能选择）
     if [ -z "$INSTALL_ENVIRONMENT" ]; then
         local recommendation=$(get_smart_environment_recommendation)
         local recommended_env=$(echo "$recommendation" | cut -d'|' -f1)
         local current_env_type=$(echo "$recommendation" | cut -d'|' -f2)
         local current_env_name=$(echo "$recommendation" | cut -d'|' -f3)
-        
+
         INSTALL_ENVIRONMENT="$recommended_env"
-        
+
         if [ "$recommended_env" = "pip" ] && [ "$current_env_type" != "system" ]; then
             echo -e "${INFO} 检测到虚拟环境，使用默认: ${PURPLE}当前环境 ($current_env_type: $current_env_name)${NC}"
         elif [ "$recommended_env" = "conda" ]; then
@@ -579,7 +579,7 @@ set_defaults_and_show_tips() {
         fi
         has_defaults=true
     fi
-    
+
     # 如果使用了默认值，显示提示
     if [ "$has_defaults" = true ]; then
         echo -e "${DIM}提示: 可使用 --help 查看所有可用选项${NC}"
@@ -601,7 +601,7 @@ show_install_configuration() {
             echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}开发者安装${NC}"
             ;;
     esac
-    
+
     case "$INSTALL_ENVIRONMENT" in
         "conda")
             echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
@@ -611,7 +611,7 @@ show_install_configuration() {
             local current_env_info=$(detect_current_environment)
             local env_type=$(echo "$current_env_info" | cut -d'|' -f1)
             local env_name=$(echo "$current_env_info" | cut -d'|' -f2)
-            
+
             if [ "$env_type" != "system" ]; then
                 echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}当前环境 ($env_type: $env_name)${NC}"
             else
@@ -619,7 +619,7 @@ show_install_configuration() {
             fi
             ;;
     esac
-    
+
     if [ "$INSTALL_VLLM" = true ]; then
         echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM${NC}"
     fi
@@ -629,7 +629,7 @@ show_install_configuration() {
     else
         echo -e "  ${BLUE}Submodules:${NC} ${DIM}跳过自动同步${NC}"
     fi
-    
+
     if [ "$CLEAN_PIP_CACHE" = false ]; then
         echo -e "  ${BLUE}特殊选项:${NC} ${YELLOW}跳过 pip 缓存清理${NC}"
     fi

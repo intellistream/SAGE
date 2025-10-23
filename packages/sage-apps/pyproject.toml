@@ -39,12 +39,12 @@ license = "MIT"
 
 # Core dependencies
 dependencies = [
-    # SAGE framework dependencies  
+    # SAGE framework dependencies
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",
     # 注意：apps 不直接依赖 libs，通过 middleware 访问功能
-    
+
     # Common application dependencies
     "pyyaml>=6.0",
     "pillow>=10.0.0",

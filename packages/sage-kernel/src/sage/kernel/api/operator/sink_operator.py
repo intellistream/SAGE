@@ -5,13 +5,13 @@ from sage.kernel.runtime.communication.packet import Packet
 class SinkOperator(BaseOperator):
     """
     汇聚操作符 - 数据终点
-    
+
     流量控制通过Queue的自然机制实现：
     - SinkOperator从queue中取数据并处理
     - 处理完成后queue自动释放空间给上游
     - 无需额外的同步机制
     """
-    
+
     def process_packet(self, packet: "Packet" = None):
         try:
             if packet is None or packet.payload is None:

@@ -25,7 +25,7 @@
 ```python
 def _print_install_summary(success_count: int, total_count: int) -> None:
     import sys
-    
+
     typer.echo(f"\n{Colors.BOLD}安装完成{Colors.RESET}")
     typer.echo(f"成功: {success_count}/{total_count}")
 
@@ -35,7 +35,7 @@ def _print_install_summary(success_count: int, total_count: int) -> None:
     else:
         failures = total_count - success_count
         print_warning(f"⚠️ 部分扩展安装失败 ({failures}个)")
-    
+
     # 确保所有输出都被刷新
     sys.stdout.flush()
     sys.stderr.flush()
@@ -53,7 +53,7 @@ finally:
     if progress_thread.is_alive():
         progress_thread.join(timeout=2.0)
     typer.echo()  # 换行
-    
+
     # 确保输出被刷新
     import sys
     sys.stdout.flush()

@@ -9,11 +9,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 install_vllm_packages() {
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/install.log"
-    
+
     echo ""
     echo -e "${GEAR} 准备 VLLM 环境..."
     echo "$(date): 开始准备 VLLM 环境" >> "$log_file"
-    
+
     # 检查是否在 conda 环境中
     if [[ "$CONDA_DEFAULT_ENV" != "" ]] && [[ "$CONDA_DEFAULT_ENV" != "base" ]]; then
         echo -e "${INFO} 检测到 conda 环境: $CONDA_DEFAULT_ENV"
@@ -22,7 +22,7 @@ install_vllm_packages() {
         echo -e "${WARNING} 建议在 conda 环境中使用 VLLM"
         echo "警告: 未检测到 conda 环境" >> "$log_file"
     fi
-    
+
     # 检测并安装 vLLM
     if command -v vllm >/dev/null 2>&1; then
         echo -e "${CHECK} VLLM 已安装"
@@ -30,16 +30,16 @@ install_vllm_packages() {
     else
         echo -e "${INFO} 正在安装 VLLM..."
         echo "$(date): 开始安装 VLLM" >> "$log_file"
-        
+
         # 直接使用 pip 安装 VLLM，因为：
         # 1. conda-forge 的版本通常较旧（0.9.2 vs 最新的 0.10.1.1）
         # 2. pip 版本更新更及时
         # 3. 避免复杂的依赖冲突
-        
+
         if [[ "$CONDA_DEFAULT_ENV" != "" ]] && [[ "$CONDA_DEFAULT_ENV" != "base" ]]; then
             echo -e "${INFO} 在 conda 环境 '$CONDA_DEFAULT_ENV' 中使用 pip 安装 VLLM..."
             echo "$(date): 在 conda 环境中使用 pip 安装" >> "$log_file"
-            
+
             if conda run -n "$CONDA_DEFAULT_ENV" pip install vllm >> "$log_file" 2>&1; then
                 echo -e "${CHECK} VLLM 安装成功！"
                 echo "$(date): VLLM 安装成功" >> "$log_file"
@@ -50,7 +50,7 @@ install_vllm_packages() {
         else
             echo -e "${INFO} 在系统环境中使用 pip 安装 VLLM..."
             echo "$(date): 在系统环境中使用 pip 安装" >> "$log_file"
-            
+
             if pip install vllm >> "$log_file" 2>&1; then
                 echo -e "${CHECK} VLLM 安装成功！"
                 echo "$(date): VLLM 安装成功" >> "$log_file"
@@ -60,13 +60,13 @@ install_vllm_packages() {
             fi
         fi
     fi
-    
+
     echo -e "${CHECK} VLLM 环境准备完成！"
     echo ""
-    
+
     # 显示使用提示
     show_vllm_usage_tips
-    
+
     echo "$(date): VLLM 环境准备完成" >> "$log_file"
 }
 
@@ -99,7 +99,7 @@ show_vllm_usage_tips() {
 # 验证 VLLM 安装
 verify_vllm_installation() {
     echo -e "${GEAR} 检查 VLLM 状态..."
-    
+
     if command -v vllm >/dev/null 2>&1; then
         local vllm_version=$(vllm --version 2>/dev/null || echo "未知版本")
         echo -e "${CHECK} VLLM 已安装: $vllm_version"

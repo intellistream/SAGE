@@ -120,7 +120,7 @@ def demonstrate_template_to_llm():
         "content": SYSTEM_PROMPT  # SAGE Pipeline 规范说明
     },
     {
-        "role": "user", 
+        "role": "user",
         "content": user_prompt  # 包含模板、需求、知识库检索等
     }
 ][/cyan]
@@ -186,7 +186,7 @@ response = self._client.generate(
   • 使用 DummyGenerator 替代 PipelinePlanGenerator
   • 不真正调用 OpenAI API
   • 返回预定义的配置
-  
+
 原因:
   1. 避免测试依赖外部 API
   2. 提高测试速度和稳定性
@@ -198,7 +198,7 @@ response = self._client.generate(
   • 使用 OpenAIClient 调用真实 API
   • 需要配置 TEMP_GENERATOR_API_KEY
   • 支持 OpenAI / 兼容接口 (vLLM, Ollama 等)
-  
+
 示例:
   export TEMP_GENERATOR_API_KEY="sk-xxx"
   sage chat --backend openai --model qwen-max
@@ -223,7 +223,7 @@ response = self._client.generate(
 
 方法 3: 代码断点
   在 pipeline.py:625 设置断点，查看 self._last_template_contexts 的值
-  
+
 方法 4: 打印提示词（调试用）
   在 pipeline.py:638 之后添加:
     print("="*80)

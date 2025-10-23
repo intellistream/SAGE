@@ -102,14 +102,14 @@ show_help() {
 submodule_status() {
     echo -e "${BLUE}${PACKAGE} Submodule 状态${NC}"
     echo ""
-    
+
     bash "${HELPERS_DIR}/manage_submodule_branches.sh" status
 }
 
 submodule_switch() {
     echo -e "${BLUE}${PACKAGE} 切换 Submodule 分支${NC}"
     echo ""
-    
+
     bash "${HELPERS_DIR}/manage_submodule_branches.sh" switch
 }
 
@@ -134,7 +134,7 @@ submodule_init() {
 submodule_update() {
     echo -e "${BLUE}${PACKAGE} 更新 Submodules${NC}"
     echo ""
-    
+
     git submodule update --remote --recursive
     echo -e "${GREEN}${CHECK} Submodules 更新完成${NC}"
 }
@@ -142,14 +142,14 @@ submodule_update() {
 submodule_fix_conflict() {
     echo -e "${BLUE}${WRENCH} 解决 Submodule 冲突${NC}"
     echo ""
-    
+
     bash "${HELPERS_DIR}/resolve_submodule_conflict.sh"
 }
 
 submodule_cleanup() {
     echo -e "${BLUE}${BROOM} 清理旧 Submodule 配置${NC}"
     echo ""
-    
+
     bash "${HELPERS_DIR}/cleanup_old_submodules.sh"
 }
 
@@ -169,14 +169,14 @@ submodule_bootstrap() {
 clean_project() {
     echo -e "${BLUE}${BROOM} 清理项目${NC}"
     echo ""
-    
+
     bash "${HELPERS_DIR}/quick_cleanup.sh"
 }
 
 clean_deep() {
     echo -e "${BLUE}${BROOM} 深度清理项目${NC}"
     echo ""
-    
+
     local confirm="n"
     if [ "${FORCE}" != "true" ]; then
         echo -e "${YELLOW}${INFO} 这将删除:${NC}"
@@ -190,21 +190,21 @@ clean_deep() {
     else
         confirm="y"
     fi
-    
+
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         # 运行标准清理
         bash "${HELPERS_DIR}/quick_cleanup.sh"
-        
+
         # 额外的深度清理
         echo -e "${DIM}清理 Python 缓存...${NC}"
         find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
         find . -type f -name "*.pyc" -delete 2>/dev/null || true
         find . -type f -name "*.pyo" -delete 2>/dev/null || true
         find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-        
+
         echo -e "${DIM}清理日志文件...${NC}"
         find logs -type f -name "*.log" -delete 2>/dev/null || true
-        
+
         echo -e "${GREEN}${CHECK} 深度清理完成${NC}"
     else
         echo -e "${YELLOW}已取消${NC}"
@@ -218,7 +218,7 @@ clean_deep() {
 security_check() {
     echo -e "${BLUE}${SHIELD} 安全检查${NC}"
     echo ""
-    
+
     bash "${HELPERS_DIR}/check_config_security.sh"
 }
 
@@ -229,12 +229,12 @@ security_check() {
 setup_hooks() {
     echo -e "${BLUE}${WRENCH} 设置 Git Hooks${NC}"
     echo ""
-    
+
     local force_flag=""
     if [ "${FORCE}" = "true" ]; then
         force_flag="--force"
     fi
-    
+
     bash "${SCRIPT_DIR}/setup_hooks.sh" ${force_flag}
 }
 
@@ -246,9 +246,9 @@ run_doctor() {
     echo -e "${BOLD}${CYAN}${ROCKET} SAGE 项目健康检查${NC}"
     echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    
+
     local issues=0
-    
+
     # 1. 检查 Git 仓库
     echo -e "${BLUE}1. 检查 Git 仓库...${NC}"
     if git rev-parse --git-dir > /dev/null 2>&1; then
@@ -260,7 +260,7 @@ run_doctor() {
         ((issues++))
     fi
     echo ""
-    
+
     # 2. 检查 Git Hooks
     echo -e "${BLUE}2. 检查 Git Hooks...${NC}"
     if [ -f ".git/hooks/post-checkout" ]; then
@@ -271,13 +271,13 @@ run_doctor() {
         ((issues++))
     fi
     echo ""
-    
+
     # 3. 检查 Submodules
     echo -e "${BLUE}3. 检查 Submodules...${NC}"
     if [ -f ".gitmodules" ]; then
         local total_submodules=$(git config --file .gitmodules --get-regexp path | wc -l)
         local initialized_submodules=0
-        
+
         # 使用 git submodule status 来检查
         while IFS= read -r line; do
             # 检查行首是否有 '-' (未初始化)
@@ -285,7 +285,7 @@ run_doctor() {
                 ((initialized_submodules++))
             fi
         done < <(git submodule status 2>/dev/null || echo "")
-        
+
         if [ "$initialized_submodules" -eq "$total_submodules" ] && [ "$total_submodules" -gt 0 ]; then
             echo -e "${GREEN}   ${CHECK} 所有 submodules 已初始化 (${initialized_submodules}/${total_submodules})${NC}"
         else
@@ -297,7 +297,7 @@ run_doctor() {
         echo -e "${YELLOW}   ⚠️  未找到 .gitmodules${NC}"
     fi
     echo ""
-    
+
     # 4. 检查旧的 submodule 配置
     echo -e "${BLUE}4. 检查旧的 submodule 配置...${NC}"
     local old_configs=0
@@ -307,7 +307,7 @@ run_doctor() {
     if git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_flow.url" &>/dev/null; then
         ((old_configs++)) || true
     fi
-    
+
     if [ "$old_configs" -eq 0 ]; then
         echo -e "${GREEN}   ${CHECK} 无旧配置${NC}"
     else
@@ -316,7 +316,7 @@ run_doctor() {
         ((issues++)) || true
     fi
     echo ""
-    
+
     # 5. 检查 Python 环境
     echo -e "${BLUE}5. 检查 Python 环境...${NC}"
     if command -v python &> /dev/null; then
@@ -327,7 +327,7 @@ run_doctor() {
         ((issues++)) || true
     fi
     echo ""
-    
+
     # 6. 检查构建产物
     echo -e "${BLUE}6. 检查构建产物...${NC}"
     local build_dirs=$(find . -maxdepth 3 -type d \( -name "dist" -o -name "build" -o -name "*.egg-info" \) 2>/dev/null | wc -l)
@@ -338,7 +338,7 @@ run_doctor() {
         echo -e "${GREEN}   ${CHECK} 无需清理${NC}"
     fi
     echo ""
-    
+
     # 总结
     echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     if [ "$issues" -eq 0 ]; then
@@ -357,7 +357,7 @@ show_status() {
     echo -e "${BOLD}${CYAN}${INFO} SAGE 项目状态${NC}"
     echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    
+
     # Git 信息
     if git rev-parse --git-dir > /dev/null 2>&1; then
         local branch=$(git rev-parse --abbrev-ref HEAD)
@@ -367,7 +367,7 @@ show_status() {
         echo -e "  提交: ${DIM}${commit}${NC}"
         echo ""
     fi
-    
+
     # Submodule 简要状态
     echo -e "${BLUE}Submodules:${NC}"
     git submodule status | head -5
@@ -375,7 +375,7 @@ show_status() {
         echo -e "${DIM}  ... 还有更多，运行 'submodule status' 查看完整列表${NC}"
     fi
     echo ""
-    
+
     # 工作区状态
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
         echo -e "${YELLOW}${INFO} 工作区有未提交的更改${NC}"
@@ -393,14 +393,14 @@ main() {
         echo -e "${RED}${CROSS} 错误：当前目录不是 Git 仓库${NC}"
         exit 1
     fi
-    
+
     # 切换到仓库根目录
     cd "$REPO_ROOT"
-    
+
     # 解析全局选项
     VERBOSE=false
     FORCE=false
-    
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             -v|--verbose)
@@ -420,11 +420,11 @@ main() {
                 ;;
         esac
     done
-    
+
     # 获取命令
     local command="${1:-help}"
     shift || true
-    
+
     # 执行命令
     case "$command" in
         # Submodule 命令
@@ -459,7 +459,7 @@ main() {
                     ;;
             esac
             ;;
-        
+
         # 清理命令
         clean)
             clean_project
@@ -467,22 +467,22 @@ main() {
         clean-deep)
             clean_deep
             ;;
-        
+
         # 安全检查
         security-check|security)
             security_check
             ;;
-        
+
         # Git Hooks
         setup-hooks|hooks)
             setup_hooks
             ;;
-        
+
         # 诊断
         doctor)
             run_doctor
             ;;
-        
+
         # 状态
         status)
             show_status
@@ -490,12 +490,12 @@ main() {
         bootstrap)
             submodule_bootstrap
             ;;
-        
+
         # 帮助
         help|--help|-h)
             show_help
             ;;
-        
+
         *)
             echo -e "${RED}${CROSS} 未知命令: $command${NC}"
             echo ""

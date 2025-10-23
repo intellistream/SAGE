@@ -39,7 +39,7 @@ Welcome to the SAGE development guide! This document will help you get started w
    ```bash
    # Use the maintenance tool (recommended)
    ./tools/maintenance/sage-maintenance.sh submodule init
-   
+
    # This will:
    # - Initialize all submodules
    # - Automatically switch to the correct branch (main-dev)
@@ -49,7 +49,7 @@ Welcome to the SAGE development guide! This document will help you get started w
    ```bash
    ./scripts/dev.sh setup
    ```
-   
+
    This will:
    - Install pre-commit hooks
    - Install SAGE in development mode
@@ -58,7 +58,7 @@ Welcome to the SAGE development guide! This document will help you get started w
 5. **Verify the setup**
    ```bash
    ./scripts/dev.sh validate
-   
+
    # Check project health
    ./tools/maintenance/sage-maintenance.sh doctor
    ```
@@ -412,7 +412,7 @@ We follow [Semantic Versioning](https://semver.org/):
    git add .
    git commit -m "feat: add new feature"
    ```
-   
+
    Follow [Conventional Commits](https://www.conventionalcommits.org/):
    - `feat:` New features
    - `fix:` Bug fixes
@@ -426,7 +426,7 @@ We follow [Semantic Versioning](https://semver.org/):
    ```bash
    git push origin feature/my-feature
    ```
-   
+
    Then create a pull request on GitHub.
 
 ### Code Review

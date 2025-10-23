@@ -16,17 +16,17 @@ Architecture:
 Usage Example:
     >>> from sage.libs.workflow import WorkflowGraph, BaseOptimizer
     >>> from sage.libs.workflow.optimizers import GreedyOptimizer
-    >>> 
+    >>>
     >>> # Define your workflow
     >>> workflow = WorkflowGraph()
     >>> workflow.add_agent("analyzer", cost=10, quality=0.8)
     >>> workflow.add_agent("generator", cost=20, quality=0.9)
     >>> workflow.add_dependency("analyzer", "generator")
-    >>> 
+    >>>
     >>> # Apply optimizer
     >>> optimizer = GreedyOptimizer()
     >>> optimized = optimizer.optimize(workflow, constraints={"max_cost": 50})
-    >>> 
+    >>>
     >>> # Evaluate results
     >>> metrics = optimizer.evaluate(workflow, optimized)
     >>> print(f"Cost reduction: {metrics.cost_reduction}%")

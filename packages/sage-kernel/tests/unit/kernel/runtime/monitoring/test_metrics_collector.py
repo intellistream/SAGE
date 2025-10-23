@@ -117,7 +117,7 @@ class TestMetricsCollector:
 
         # 添加一些延迟数据（毫秒）
         latencies = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-        
+
         result = collector.calculate_percentiles(latencies)
 
         # 验证百分位数在合理范围内（毫秒）

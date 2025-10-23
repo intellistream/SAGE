@@ -17,16 +17,16 @@
 ```python
 def main():
     env = LocalEnvironment("my_app")
-    
+
     # 注册服务
     env.register_service("my_service", MyService, config)
-    
+
     # 创建 Pipeline
     env.from_source(MySource).map(MyMap).sink(MySink)
-    
+
     # 提交并等待完成
     env.submit(autostop=True)
-    
+
     # ============================================================
     # 【重要】清理资源 - 最佳实践
     # ============================================================
@@ -51,12 +51,12 @@ class DisplayAnswer(SinkFunction):
         self.bridges = bridges or []
         self.total_tasks = total_tasks
         self.processed_count = 0
-    
+
     def execute(self, data):
         # ... 处理数据 ...
-        
+
         self.processed_count += 1
-        
+
         # 所有任务完成后，关闭 bridges
         if self.processed_count >= self.total_tasks:
             for bridge in self.bridges:
@@ -72,12 +72,12 @@ class MyServiceSource(SourceFunction):
     def __init__(self, bridge):
         super().__init__()
         self.bridge = bridge
-    
+
     def execute(self):
         # 检查 bridge 是否已关闭
         if self.bridge._closed:
             return None
-        
+
         request = self.bridge.next(timeout=0.1)
         return request if request else None
 ```

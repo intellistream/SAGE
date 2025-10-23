@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/output_formatter.sh"
 # 显示 SAGE LOGO
 show_logo() {
     echo ""
-    
+
     local logo_lines=(
         "   ███████╗ █████╗  ██████╗ ███████╗"
         "   ██╔════╝██╔══██╗██╔════╝ ██╔════╝"
@@ -18,11 +18,11 @@ show_logo() {
         "   ███████║██║  ██║╚██████╔╝███████╗"
         "   ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝"
     )
-    
+
     local width=$(get_terminal_width)
     local first_line_len=$(text_length "${logo_lines[0]}")
     local padding=0
-    
+
     if [ "$first_line_len" -lt "$width" ]; then
         padding=$(( (width - first_line_len) / 2 ))
     fi
@@ -30,22 +30,22 @@ show_logo() {
     # 如果启用了偏移，为 LOGO 添加额外偏移
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         # LOGO 偏移量，用户可通过环境变量自定义
-        
+
         local logo_offset="${SAGE_LOGO_OFFSET:-30}"  # 默认6个字符的额外偏移
         padding=$((padding + logo_offset))
     fi
-    
+
     local spaces=""
     for (( i=0; i<padding; i++ )); do
         spaces+=" "
     done
-    
+
     for line in "${logo_lines[@]}"; do
         printf "%s%b%s%b\n" "$spaces" "$CYAN$BOLD" "$line" "$NC"
     done
-    
+
     echo ""
-    
+
     # 网址和版权信息也应用相同的偏移逻辑
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         center_text_formatted "https://intellistream.github.io/SAGE-Pub/" "$GRAY"
@@ -60,7 +60,7 @@ show_logo() {
 show_welcome() {
     clear
     echo ""
-    
+
     # 使用与 LOGO 对齐的显示方式，确保 🚀 图标与下面的 S 字母对齐
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         draw_line_formatted
@@ -73,9 +73,9 @@ show_welcome() {
         align_with_logo "🚀 欢迎使用 SAGE 快速部署脚本" "$BOLD$WHITE"
         draw_line
     fi
-    
+
     show_logo
-    
+
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         draw_line_formatted
     else
@@ -127,11 +127,11 @@ show_help() {
 # 显示安装成功信息
 show_install_success() {
     local mode="$1"
-    
+
     echo ""
     echo_icon "🎉" "SAGE 安装成功！" 2 2
     echo ""
-    
+
     # 显示已安装的内容
     case "$mode" in
         "minimal")
@@ -150,7 +150,7 @@ show_install_success() {
             echo_icon "✅" "开发工具 (pytest, black, mypy, pre-commit)" 1 1
             ;;
     esac
-    
+
     echo ""
     echo -e "${BOLD}快速开始:${NC}"
     echo -e "  ${DIM}# 验证安装${NC}"
@@ -165,18 +165,18 @@ show_install_success() {
 # 显示使用提示
 show_usage_tips() {
     local mode="$1"
-    
+
     echo ""
     draw_line "─" "$GREEN"
     echo_icon "✨" "快速开始" 2 2
     draw_line "─" "$GREEN"
     echo ""
-    
+
     echo -e "${BLUE}基本使用：${NC}"
     echo -e "  python3 -c \"import sage; print('Hello SAGE!')\""
     echo -e "  sage --help"
     echo ""
-    
+
     case "$mode" in
         "minimal")
             echo -e "${BLUE}最小安装模式：${NC}"
@@ -208,7 +208,7 @@ show_usage_tips() {
             echo ""
             ;;
     esac
-    
+
     echo -e "${BLUE}文档和示例：${NC}"
     echo -e "  ${GRAY}https://intellistream.github.io/SAGE-Pub/${NC}"
     echo -e "  ${GRAY}./examples/  # 查看示例代码${NC}"

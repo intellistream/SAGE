@@ -72,17 +72,17 @@ from sage.libs.workflow import BaseOptimizer, OptimizationResult
 
 class MyOptimizer(BaseOptimizer):
     """Your custom optimization strategy."""
-    
+
     def __init__(self):
         super().__init__(name="MyOptimizer")
-    
+
     def optimize(self, workflow, constraints=None):
         import time
         start = time.time()
-        
+
         # Clone workflow for modification
         optimized = workflow.clone()
-        
+
         # YOUR OPTIMIZATION LOGIC HERE
         # Examples:
         # - Remove redundant nodes
@@ -90,13 +90,13 @@ class MyOptimizer(BaseOptimizer):
         # - Reorder for better parallelization
         # - Cache intermediate results
         # - Replace expensive models with cheaper alternatives
-        
+
         # Calculate metrics
         exec_time = time.time() - start
         metrics = self.calculate_metrics(
             workflow, optimized, exec_time
         )
-        
+
         return OptimizationResult(
             original_workflow=workflow,
             optimized_workflow=optimized,

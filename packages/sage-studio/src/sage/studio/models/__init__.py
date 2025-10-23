@@ -32,7 +32,7 @@ class NodeStatus(Enum):
 class VisualNode:
     """
     可视化节点模型（仅用于 UI 表示）
-    
+
     这个模型描述节点在 UI 中的表现，不包含执行逻辑。
     执行时会被转换为 SAGE 的 Operator。
     """
@@ -41,11 +41,11 @@ class VisualNode:
     label: str
     position: Dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0})  # UI 坐标
     config: Dict[str, Any] = field(default_factory=dict)  # 节点配置参数
-    
+
     # UI 状态（不参与执行）
     selected: bool = False
     collapsed: bool = False
-    
+
     # 执行状态（由 SAGE 引擎提供）
     status: NodeStatus = NodeStatus.PENDING
     error_message: Optional[str] = None
@@ -56,7 +56,7 @@ class VisualNode:
 class VisualConnection:
     """
     可视化连接模型（仅用于 UI 表示）
-    
+
     描述节点之间的数据流连接。
     """
     id: str
@@ -64,7 +64,7 @@ class VisualConnection:
     source_port: str  # 输出端口名称
     target_node_id: str
     target_port: str  # 输入端口名称
-    
+
     # UI 属性
     animated: bool = False
     label: str = ""
@@ -74,10 +74,10 @@ class VisualConnection:
 class VisualPipeline:
     """
     可视化 Pipeline 模型（仅用于 UI 表示和序列化）
-    
+
     这是 Studio 的核心数据模型，描述一个完整的 Pipeline。
     不包含执行逻辑，执行时会被 PipelineBuilder 转换为 SAGE DataStream。
-    
+
     Usage:
         # 在 UI 中创建
         pipeline = VisualPipeline(
@@ -86,7 +86,7 @@ class VisualPipeline:
             nodes=[...],
             connections=[...]
         )
-        
+
         # 转换为 SAGE Pipeline 并执行
         from sage.studio.services.pipeline_builder import PipelineBuilder
         builder = PipelineBuilder()
@@ -96,19 +96,19 @@ class VisualPipeline:
     id: str
     name: str
     description: str = ""
-    
+
     # Pipeline 结构
     nodes: List[VisualNode] = field(default_factory=list)
     connections: List[VisualConnection] = field(default_factory=list)
-    
+
     # 元数据
     created_at: Optional[float] = None
     updated_at: Optional[float] = None
     tags: List[str] = field(default_factory=list)
-    
+
     # 执行配置
     execution_mode: str = "local"  # "local", "distributed"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """序列化为字典（用于 API 传输和持久化）"""
         return {
@@ -140,7 +140,7 @@ class VisualPipeline:
             "updatedAt": self.updated_at,
             "tags": self.tags,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "VisualPipeline":
         """从字典反序列化"""
@@ -179,23 +179,23 @@ class VisualPipeline:
 class PipelineExecution:
     """
     Pipeline 执行状态模型
-    
+
     记录一次 Pipeline 的执行状态。
     实际执行由 SAGE 引擎完成，这里只是状态的表示层。
     """
     id: str  # 执行 ID（对应 SAGE Job ID）
     pipeline_id: str
     status: PipelineStatus = PipelineStatus.PENDING
-    
+
     # 时间信息
     start_time: Optional[float] = None
     end_time: Optional[float] = None
     execution_time: float = 0.0
-    
+
     # 执行结果
     error_message: Optional[str] = None
     node_statuses: Dict[str, NodeStatus] = field(default_factory=dict)
     outputs: Dict[str, Any] = field(default_factory=dict)
-    
+
     # SAGE Job 引用
     sage_job_id: Optional[str] = None

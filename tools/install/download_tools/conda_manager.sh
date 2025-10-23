@@ -22,7 +22,7 @@ ask_conda_environment() {
     if ! command -v conda &> /dev/null; then
         return 1  # conda 不可用，跳过
     fi
-    
+
     # 如果已经指定了环境名，直接使用
     if [ -n "$SAGE_ENV_NAME" ]; then
         echo ""
@@ -32,11 +32,11 @@ ask_conda_environment() {
         create_conda_environment "$SAGE_ENV_NAME"
         return $?
     fi
-    
+
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/install.log"
-    
+
     echo ""
     echo -e "${GEAR} ${BOLD}Conda 环境设置${NC}"
     echo ""
@@ -49,10 +49,10 @@ ask_conda_environment() {
     echo ""
     echo -e "${DIM}注意: 如果选择创建新环境但失败，将自动回退到当前环境${NC}"
     echo ""
-    
+
     # 记录到日志
     echo "$(date): 用户选择 Conda 环境配置" >> "$log_file"
-    
+
     # 如果是CI环境或远程部署，自动选择选项2（使用当前环境）
     if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         echo -e "${INFO} 检测到CI/远程部署环境，自动选择选项2：使用当前环境"
@@ -64,7 +64,7 @@ ask_conda_environment() {
             echo -ne "${BLUE}请选择 [1-3]: ${NC}"
             read -r conda_choice
             echo "$(date): 用户选择: $conda_choice" >> "$log_file"
-            
+
             case $conda_choice in
                 1|2|3)
                     break
@@ -75,7 +75,7 @@ ask_conda_environment() {
             esac
         done
     fi
-    
+
     # 处理用户选择
     case $conda_choice in
         1)
@@ -122,19 +122,19 @@ ask_conda_environment() {
 # 创建 conda 环境
 create_conda_environment() {
     local env_name="$1"
-    
+
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/install.log"
-    
+
     echo -e "${INFO} 创建 Conda 环境: $env_name"
     echo "$(date): 开始创建 Conda 环境: $env_name" >> "$log_file"
-    
+
     # 检查环境是否已存在
     if conda env list | grep -q "^$env_name "; then
         echo -e "${WARNING} 环境 '$env_name' 已存在"
         echo "$(date): 环境 '$env_name' 已存在" >> "$log_file"
-        
+
         # 如果是CI环境或远程部署，自动选择重新创建
         if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
             echo -e "${INFO} CI/远程部署环境检测到，自动删除并重新创建环境"
@@ -145,7 +145,7 @@ create_conda_environment() {
             read -r recreate
             echo "$(date): 用户选择重新创建: $recreate" >> "$log_file"
         fi
-        
+
         case "$recreate" in
             [yY]|[yY][eE][sS])
                 echo -e "${INFO} 删除现有环境..."
@@ -169,10 +169,10 @@ create_conda_environment() {
                 ;;
         esac
     fi
-    
+
     # 创建环境
     echo -e "${INFO} 创建新环境 '$env_name' (Python 3.11)..."
-    
+
     # 在CI环境中使用更快的创建方式
     # 预置所需 C++ 运行时库（libstdcxx-ng>=13 保证 GLIBCXX_3.4.30），可通过环境变量禁用
     local extra_runtime_pkgs="libstdcxx-ng>=13"
@@ -192,7 +192,7 @@ create_conda_environment() {
         echo -e "${DIM}执行命令: conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y${NC}"
         local create_cmd="conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y"
     fi
-    
+
     # 先检查conda是否正常工作
     if ! conda info &>/dev/null; then
         echo -e "${CROSS} Conda 无法正常工作，请检查 conda 安装"
@@ -200,11 +200,11 @@ create_conda_environment() {
         SAGE_ENV_NAME=""
         return 1
     fi
-    
+
     # 创建环境并显示详细输出
     local create_output=$($create_cmd 2>&1)
     local create_status=$?
-    
+
     # 验证环境是否真正创建成功
     local env_created=false
     if [ $create_status -eq 0 ]; then
@@ -219,7 +219,7 @@ create_conda_environment() {
             env_created=false
         fi
     fi
-    
+
     if [ "$env_created" = true ]; then
         activate_conda_environment "$env_name"
     else
@@ -227,17 +227,17 @@ create_conda_environment() {
         echo -e "${DIM}$create_output${NC}"
         echo ""
         echo -e "${INFO} 尝试诊断问题..."
-        
+
         # 检查磁盘空间
         local available_space=$(df -h ~/.conda 2>/dev/null | awk 'NR==2{print $4}' || echo "未知")
         echo -e "${INFO} ~/.conda 目录可用空间: $available_space"
-        
+
         # 检查权限
         if [ ! -w ~/.conda/envs 2>/dev/null ]; then
             echo -e "${WARNING} ~/.conda/envs 目录权限问题"
             echo -e "${DIM}尝试: mkdir -p ~/.conda/envs && chmod 755 ~/.conda/envs${NC}"
         fi
-        
+
         # 检查常见问题
         if echo "$create_output" | grep -q "PackagesNotFoundError"; then
             echo -e "${WARNING} Python 3.11 包未找到，尝试使用 Python 3.10"
@@ -265,7 +265,7 @@ create_conda_environment() {
             echo -e "${WARNING} 未知错误，建议手动检查 conda 配置"
             echo -e "${DIM}尝试手动创建: conda create -n $env_name python=3.11 -y${NC}"
         fi
-        
+
         echo -e "${INFO} 将使用当前环境继续安装"
         SAGE_ENV_NAME=""
         return 1
@@ -275,9 +275,9 @@ create_conda_environment() {
 # 激活 conda 环境
 activate_conda_environment() {
     local env_name="$1"
-    
+
     echo -e "${INFO} 激活环境: $env_name"
-    
+
     # 验证环境是否真的存在
     if ! conda env list | grep -q "^$env_name "; then
         echo -e "${CROSS} 环境 '$env_name' 不存在，无法激活"
@@ -289,19 +289,19 @@ activate_conda_environment() {
         export SAGE_ENV_NAME=""  # 确保导出空值
         return 1
     fi
-    
+
     # 测试 conda run 是否正常工作
     echo -e "${DIM}测试环境: conda run -n $env_name python --version${NC}"
     local test_output=$(conda run -n "$env_name" python --version 2>&1)
     local test_status=$?
-    
+
     if [ $test_status -eq 0 ]; then
         echo -e "${CHECK} 环境测试成功: $test_output"
-        
+
         # 设置环境变量，让子进程使用正确的 conda 环境
         export CONDA_DEFAULT_ENV="$env_name"
         export SAGE_ENV_NAME="$env_name"  # 确保SAGE_ENV_NAME被正确设置和导出
-        
+
         # 更新 pip 命令 - 在CI环境中使用更快的安装方式
         if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
             # CI环境：使用优化的pip命令和并行安装
@@ -320,7 +320,7 @@ activate_conda_environment() {
                 export PIP_CMD="conda run -n $env_name python -m pip"
                 echo -e "${INFO} CI环境：使用标准pip命令"
             fi
-            
+
             # 设置并行构建环境变量
             export PIP_PARALLEL_BUILDS=${PIP_PARALLEL_BUILDS:-4}
             export MAKEFLAGS=${MAKEFLAGS:-"-j4"}
@@ -330,7 +330,7 @@ activate_conda_environment() {
             export PIP_CMD="conda run -n $env_name python -m pip"
         fi
         export PYTHON_CMD="conda run -n $env_name python"
-        
+
         echo -e "${CHECK} 环境已激活"
         echo -e "${DIM}提示: 安装完成后运行 'conda activate $env_name' 来使用 SAGE${NC}"
         return 0

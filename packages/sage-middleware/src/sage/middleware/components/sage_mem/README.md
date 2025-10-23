@@ -112,7 +112,7 @@ from sage.middleware.components.sage_mem import MemoryManager, NeuroMemVDB
 
 ### Working with neuromem Submodule
 
-The `neuromem/` directory is a Git submodule pointing to an independent repository. 
+The `neuromem/` directory is a Git submodule pointing to an independent repository.
 
 #### First-time Setup (New Team Members)
 
