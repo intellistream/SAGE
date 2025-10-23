@@ -54,20 +54,45 @@ git submodule update --init --recursive
 git clone --recursive https://github.com/intellistream/SAGE.git
 ```
 
-### 2. 构建 C++ 核心
+### 2. 构建 C++ 核心与 Python 绑定
+
+#### 方法 1: 使用 Makefile（推荐）
 
 ```bash
-cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB
-
-# 构建
-./build.sh
-
-# 构建并测试
-./build.sh --test
-
-# 构建并安装
-./build.sh --install
+# 在 SAGE 根目录
+make build-extensions
 ```
+
+#### 方法 2: 使用构建脚本
+
+```bash
+cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb
+./build_tsdb.sh
+```
+
+#### 方法 3: 手动构建（调试用）
+
+```bash
+cd sageTSDB/build
+cmake .. -DBUILD_PYTHON_BINDINGS=ON
+make -j$(nproc)
+
+# 复制 Python 扩展到包目录
+cp python/_sage_tsdb*.so ../../python/
+```
+
+构建完成后，验证扩展状态：
+
+```bash
+sage extensions status
+```
+
+应该显示:
+```
+✅ 时序数据库扩展 (C++) ✓
+```
+
+**重要**: C++ 扩展提供 10-100x 的性能提升。如果不可用，系统会降级到纯 Python 实现。
 
 ### 3. 使用 Python 服务
 
