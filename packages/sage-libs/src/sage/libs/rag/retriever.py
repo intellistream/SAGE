@@ -973,16 +973,29 @@ class Wiki18FAISSRetriever(MapFunction):
             # 从配置获取模型路径，默认使用BGE-M3
             model_path = self.embedding_config.get("model", "BAAI/bge-m3")
 
-            # 从配置获取GPU设备，默认使用GPU 0
-            gpu_device = self.embedding_config.get("gpu_device", 0)
-
-            # 明确指定GPU设备
-            if torch.cuda.is_available():
-                device = f"cuda:{gpu_device}"
-                self.logger.info(f"BGE-M3模型将使用GPU {gpu_device}")
+            # 检查是否已经通过 CUDA_VISIBLE_DEVICES 设置了 GPU
+            import os
+            cuda_visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES", None)
+            
+            if cuda_visible_devices is not None:
+                # 如果已设置 CUDA_VISIBLE_DEVICES，使用 cuda（让系统自动选择）
+                if torch.cuda.is_available():
+                    device = "cuda"
+                    self.logger.info(f"BGE-M3模型将使用 CUDA_VISIBLE_DEVICES={cuda_visible_devices} 指定的GPU")
+                else:
+                    device = "cpu"
+                    self.logger.info("BGE-M3模型将使用CPU")
             else:
-                device = "cpu"
-                self.logger.info("BGE-M3模型将使用CPU")
+                # 从配置获取GPU设备，默认使用GPU 0
+                gpu_device = self.embedding_config.get("gpu_device", 0)
+
+                # 明确指定GPU设备
+                if torch.cuda.is_available():
+                    device = f"cuda:{gpu_device}"
+                    self.logger.info(f"BGE-M3模型将使用GPU {gpu_device}")
+                else:
+                    device = "cpu"
+                    self.logger.info("BGE-M3模型将使用CPU")
 
             # 初始化BGE-M3模型
             self.embedding_model = SentenceTransformer(model_path, device=device)

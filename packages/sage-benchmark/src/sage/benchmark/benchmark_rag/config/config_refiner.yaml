@@ -31,7 +31,7 @@ retriever:
   embedding:
     method: "hf"
     model: "BAAI/bge-m3"  # 使用BGE-M3模型进行Wiki18 FAISS检索
-    gpu_device: 0  # BGE-M3使用GPU 0，与refiner的vLLM共用GPU 0
+    gpu_device: 1
 
 generator:
   local:
@@ -43,7 +43,7 @@ generator:
     api_key: "token-abc123"
     method: "openai"
     model_name: "meta-llama/Llama-3.1-8B-Instruct"
-    base_url: "http://localhost:8000/v1"
+    base_url: "http://sage2:8000/v1"
     seed: 42
 
   remote:
@@ -68,8 +68,8 @@ refiner:
   score_model_path: "BAAI/bge-reranker-v2-m3"
   max_model_len: 25000
   budget: 2048
-  gpu_device: 0
-  gpu_memory_utilization: 0.5
+  gpu_device: 1  # Refiner使用GPU 1（避免与retriever的GPU 0冲突）
+  gpu_memory_utilization: 0.7
 
 evaluate:
   platform: "local"

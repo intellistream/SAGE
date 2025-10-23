@@ -1,4 +1,5 @@
 import re
+import warnings
 from typing import List, Tuple
 
 import json_repair
@@ -64,15 +65,34 @@ class LongRefiner:
         gpu_device: int = 0,
         gpu_memory_utilization: float = 0.7,
     ):
-        # 直接通过vLLM的参数指定GPU设备，避免修改全局环境变量
-        self.model = LLM(
-            base_model_path,
-            enable_lora=True,
-            max_model_len=max_model_len,
-            gpu_memory_utilization=gpu_memory_utilization,
-            tensor_parallel_size=1,  # 单GPU设置
-            device=f"cuda:{gpu_device}",
-        )
+        # vLLM 通过 CUDA_VISIBLE_DEVICES 环境变量指定GPU设备
+        import os
+        
+        # 检查是否已经手动设置了 CUDA_VISIBLE_DEVICES
+        original_cuda_visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES", None)
+        
+        if original_cuda_visible_devices is None:
+            # 没有手动设置，使用配置文件中的 gpu_device
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_device)
+            should_restore = True
+        else:
+            # 已经手动设置，尊重用户的设置，不修改
+            should_restore = False
+        
+        try:
+            self.model = LLM(
+                base_model_path,
+                enable_lora=True,
+                max_model_len=max_model_len,
+                gpu_memory_utilization=gpu_memory_utilization,
+                tensor_parallel_size=1,  # 单GPU设置
+                enforce_eager=True,  # 禁用CUDA Graph，避免与同GPU上的其他模型冲突
+            )
+        finally:
+            # 只有在我们修改了环境变量的情况下才恢复
+            if should_restore:
+                if "CUDA_VISIBLE_DEVICES" in os.environ:
+                    del os.environ["CUDA_VISIBLE_DEVICES"]
         self.tokenizer = AutoTokenizer.from_pretrained(base_model_path)
         self.step_to_config = {
             "query_analysis": {
@@ -150,14 +170,22 @@ class LongRefiner:
         for idx in tqdm(range(0, len(all_pairs), batch_size)):
             batch_pairs = all_pairs[idx : idx + batch_size]
             with torch.no_grad():
-                inputs = self.score_tokenizer(
-                    batch_pairs,
-                    padding=True,
-                    truncation=True,
-                    return_tensors="pt",
-                    max_length=512,
-                )
-                device = f"cuda:{self.score_gpu_device}"
+                # 抑制 tokenizer 的 truncation 警告
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*overflowing tokens.*")
+                    inputs = self.score_tokenizer(
+                        batch_pairs,
+                        padding=True,
+                        truncation=True,
+                        return_tensors="pt",
+                        max_length=512,
+                    )
+                # 使用与 score_model 相同的设备
+                import os
+                if os.environ.get("CUDA_VISIBLE_DEVICES") is not None:
+                    device = "cuda"
+                else:
+                    device = f"cuda:{self.score_gpu_device}"
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 if "bce" in self.score_model_name or "jina" in self.score_model_name:
                     flatten_scores = (
@@ -210,14 +238,22 @@ class LongRefiner:
                     q_list = [p[0] for p in batch_pairs]
                     d_list = [p[1] for p in batch_pairs]
 
-                inputs = self.score_tokenizer(
-                    q_list,
-                    max_length=256,
-                    padding=True,
-                    truncation=True,
-                    return_tensors="pt",
-                )
-                device = f"cuda:{self.score_gpu_device}"
+                # 抑制 tokenizer 的 truncation 警告
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*overflowing tokens.*")
+                    inputs = self.score_tokenizer(
+                        q_list,
+                        max_length=256,
+                        padding=True,
+                        truncation=True,
+                        return_tensors="pt",
+                    )
+                # 使用与 score_model 相同的设备
+                import os
+                if os.environ.get("CUDA_VISIBLE_DEVICES") is not None:
+                    device = "cuda"
+                else:
+                    device = f"cuda:{self.score_gpu_device}"
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 output = self.score_model(**inputs, return_dict=True)
                 q_emb = pooling(
@@ -227,13 +263,15 @@ class LongRefiner:
                     "mean",
                 )
                 q_emb = torch.nn.functional.normalize(q_emb, dim=-1)
-                inputs = self.score_tokenizer(
-                    d_list,
-                    max_length=512,
-                    padding=True,
-                    truncation=True,
-                    return_tensors="pt",
-                )
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*overflowing tokens.*")
+                    inputs = self.score_tokenizer(
+                        d_list,
+                        max_length=512,
+                        padding=True,
+                        truncation=True,
+                        return_tensors="pt",
+                    )
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 output = self.score_model(**inputs, return_dict=True)
                 d_emb = pooling(
@@ -272,8 +310,13 @@ class LongRefiner:
             )
             self.local_score_func = self._cal_score_sbert
 
-        # 指定GPU设备 - 使用score模型专用的GPU设备
-        device = f"cuda:{gpu_device}"
+        # 指定GPU设备 - 如果已设置 CUDA_VISIBLE_DEVICES，使用 "cuda"，否则使用具体编号
+        import os
+        if os.environ.get("CUDA_VISIBLE_DEVICES") is not None:
+            device = "cuda"  # 使用环境变量指定的GPU
+        else:
+            device = f"cuda:{gpu_device}"  # 使用配置文件指定的GPU
+        
         self.score_model.to(device)
         self.score_model.eval()
         self.score_model.half()
@@ -285,13 +328,13 @@ class LongRefiner:
         budget: int = 2048,
         ratio: float = None,
     ) -> List[str]:
-        print(
-            f"DEBUG: LongRefiner.run called with question='{question}', doc_count={len(document_list)}, budget={budget}"
-        )
+        # print(
+        #     f"DEBUG: LongRefiner.run called with question='{question}', doc_count={len(document_list)}, budget={budget}"
+        # )
         batch_result = self.batch_run([question], [document_list], budget, ratio)
-        print(
-            f"DEBUG: batch_run returned: {batch_result} (type: {type(batch_result)}, length: {len(batch_result) if batch_result else 'None'})"
-        )
+        # print(
+        #     f"DEBUG: batch_run returned: {batch_result} (type: {type(batch_result)}, length: {len(batch_result) if batch_result else 'None'})"
+        # )
 
         if not batch_result:
             print("ERROR: batch_run returned empty list!")
@@ -316,27 +359,27 @@ class LongRefiner:
         Output:
             List[str], each string is a refiner output of the document in document_list
         """
-        print(
-            f"DEBUG: batch_run called with {len(question_list)} questions, {len(document_list)} doc_lists"
-        )
+        # print(
+        #     f"DEBUG: batch_run called with {len(question_list)} questions, {len(document_list)} doc_lists"
+        # )
 
         try:
             # step1: query analysis
-            print("DEBUG: Starting query analysis...")
+            # print("DEBUG: Starting query analysis...")
             query_analysis_result = self.run_query_analysis(question_list)
-            print(
-                f"DEBUG: Query analysis completed: {len(query_analysis_result)} results"
-            )
+            # print(
+            #     f"DEBUG: Query analysis completed: {len(query_analysis_result)} results"
+            # )
 
             # step2: doc structuring
-            print("DEBUG: Starting doc structuring...")
+            # print("DEBUG: Starting doc structuring...")
             doc_structuring_result = self.run_doc_structuring(document_list)
-            print(
-                f"DEBUG: Doc structuring completed: {len(doc_structuring_result)} results"
-            )
+            # print(
+            #     f"DEBUG: Doc structuring completed: {len(doc_structuring_result)} results"
+            # )
 
             # step3: context selection (local + global)
-            print("DEBUG: Starting context selection...")
+            # print("DEBUG: Starting context selection...")
             # refined_content_list: List[str]: each string is the refined content of the question
             refined_content_list = self.run_all_search(
                 question_list=question_list,
@@ -346,7 +389,7 @@ class LongRefiner:
                 budget=budget,
                 ratio=ratio,
             )
-            print(f"DEBUG: Context selection completed: {refined_content_list}")
+            # print(f"DEBUG: Context selection completed: {refined_content_list}")
 
             return refined_content_list
         except Exception as e:
@@ -374,9 +417,11 @@ class LongRefiner:
         prompt_list = [
             prompt_template.get_prompt(question=question) for question in question_list
         ]
+        print(f"[Query Analysis] Processing {len(prompt_list)} questions...")
         output_list = self.model.generate(
             prompt_list, sampling_params=sampling_params, lora_request=lora_request
         )
+        print(f"[Query Analysis] Completed")
 
         query_analysis_result = []
         for output in output_list:
@@ -428,9 +473,11 @@ class LongRefiner:
             ],
             [],
         )
+        print(f"[Doc Structuring] Processing {len(prompt_list)} documents (from {len(document_list)} doc lists)...")
         output_list = self.model.generate(
             prompt_list, sampling_params=sampling_params, lora_request=lora_request
         )
+        print(f"[Doc Structuring] Completed")
 
         # parse output to structured content
         structured_doc_list = []
@@ -496,9 +543,12 @@ class LongRefiner:
                 )
                 prompt_list.append(prompt)
 
+        print(f"[Global Selection] Processing {len(prompt_list)} document selections...")
         output_list = self.model.generate(
             prompt_list, sampling_params=sampling_params, lora_request=lora_request
         )
+        print(f"[Global Selection] Completed")
+        
         global_selection_result = []
         idx = 0
         for question, item_doc_list in zip(question_list, structured_doc_list):
@@ -995,10 +1045,10 @@ class LongRefiner:
             budget,
             ratio,
         )
-        for item_node_list in refined_node_list:
-            for node in item_node_list:
-                print(node)
-                print("-----")
+        # for item_node_list in refined_node_list:
+        #     for node in item_node_list:
+        #         print(node)
+        #         print("-----")
 
         final_contents_list = [
             [node["contents"] for node in item_node_list]

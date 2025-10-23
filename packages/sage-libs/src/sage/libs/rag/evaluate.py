@@ -46,6 +46,8 @@ def _normalize_data(
 
 class F1Evaluate(MapFunction):
     def _get_tokens(self, text: str):
+        if not text:
+            return []
         return text.lower().split()
 
     def _f1_score(self, pred: str, ref: str):
@@ -62,16 +64,39 @@ class F1Evaluate(MapFunction):
         return 2 * prec * rec / (prec + rec)
 
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-        golds = nd.get("references", [])
-        pred = nd.get("generated", "")
-        best = max(self._f1_score(pred, g) for g in golds) if golds else 0.0
-        print(f"\033[93m[F1] : {best:.4f}\033[0m")
-        return nd
+        """
+        计算F1分数
+        期望输入: {"generated": str, "references": list[str], ...}
+        """
+        query = data.get("query", "")
+        golds = data.get("references", [])
+        pred = data.get("generated", "")
+        
+        # 打印 query, references 和 generated（带颜色）
+        print("\n" + "="*80)
+        if query:
+            print("\033[92m[Query]:\033[0m")
+            print(f"  \033[92m{query}\033[0m")
+        print("\033[96m[References (Expected)]:\033[0m")
+        for i, ref in enumerate(golds, 1):
+            print(f"  \033[96m{i}. {ref}\033[0m")
+        print("\033[95m[Generated (Actual)]:\033[0m")
+        print(f"  \033[95m{pred}\033[0m")
+        print("="*80)
+        
+        if not golds or not pred:
+            print(f"\033[93m[F1] : 0.0000\033[0m\n")
+            return data
+            
+        best = max(self._f1_score(pred, g) for g in golds)
+        print(f"\033[93m[F1] : {best:.4f}\033[0m\n")
+        return data
 
 
 class RecallEvaluate(MapFunction):
     def _get_tokens(self, text: str):
+        if not text:
+            return []
         return text.lower().split()
 
     def _recall(self, pred: str, ref: str):
@@ -83,12 +108,20 @@ class RecallEvaluate(MapFunction):
         return float(sum(common.values()) / sum(r.values()))
 
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-        golds = nd.get("references", [])
-        pred = nd.get("generated", "")
-        best = max(self._recall(pred, g) for g in golds) if golds else 0.0
+        """
+        计算Recall分数
+        期望输入: {"generated": str, "references": list[str], ...}
+        """
+        golds = data.get("references", [])
+        pred = data.get("generated", "")
+        
+        if not golds or not pred:
+            print(f"\033[93m[Recall] : 0.0000\033[0m")
+            return data
+            
+        best = max(self._recall(pred, g) for g in golds)
         print(f"\033[93m[Recall] : {best:.4f}\033[0m")
-        return nd
+        return data
 
 
 class BertRecallEvaluate(MapFunction):
@@ -98,9 +131,17 @@ class BertRecallEvaluate(MapFunction):
         self.model = AutoModel.from_pretrained("bert-base-uncased")
 
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-        golds = nd.get("references", [])
-        pred = nd.get("generated", "")
+        """
+        使用BERT计算语义相似度Recall
+        期望输入: {"generated": str, "references": list[str], ...}
+        """
+        golds = data.get("references", [])
+        pred = data.get("generated", "")
+        
+        if not golds or not pred:
+            print(f"\033[93m[BertRecall] : 0.0000\033[0m")
+            return data
+            
         scores = []
         for g in golds:
             encs = self.tokenizer([pred, g], return_tensors="pt", padding=True)
@@ -108,7 +149,7 @@ class BertRecallEvaluate(MapFunction):
             scores.append(float(cosine_similarity([embs[0]], [embs[1]])[0][0]))
         best = max(scores) if scores else 0.0
         print(f"\033[93m[BertRecall] : {best:.4f}\033[0m")
-        return nd
+        return data
 
 
 class RougeLEvaluate(MapFunction):
@@ -117,41 +158,68 @@ class RougeLEvaluate(MapFunction):
         self.rouge = Rouge()
 
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-        golds = nd.get("references", [])
-        pred = nd.get("generated", "")
-        scores = [self.rouge.get_scores(pred, g)[0]["rouge-l"]["f"] for g in golds]
+        """
+        计算ROUGE-L分数
+        期望输入: {"generated": str, "references": list[str], ...}
+        """
+        golds = data.get("references", [])
+        pred = data.get("generated", "")
+        
+        if not golds or not pred:
+            print(f"\033[93m[ROUGE-L] : 0.0000\033[0m")
+            return data
+            
+        scores = []
+        for g in golds:
+            try:
+                score = self.rouge.get_scores(pred, g)[0]["rouge-l"]["f"]
+                scores.append(score)
+            except Exception:
+                # 如果文本为空或格式不正确，跳过
+                continue
         best = max(scores) if scores else 0.0
         print(f"\033[93m[ROUGE-L] : {best:.4f}\033[0m")
-        return nd
+        return data
 
 
 class BRSEvaluate(MapFunction):
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-        golds = nd.get("references", [])
-        pred = nd.get("generated", "")
+        """
+        计算BRS (Bi-encoder Retrieval Score)
+        期望输入: {"generated": str, "references": list[str], ...}
+        """
+        golds = data.get("references", [])
+        pred = data.get("generated", "")
+        
+        if not golds or not pred:
+            print(f"\033[93m[BRS] : 0.0000\033[0m")
+            return data
+            
         scores = [(len(set(pred) & set(g)) / len(set(g))) if g else 0.0 for g in golds]
         best = max(scores) if scores else 0.0
         print(f"\033[93m[BRS] : {best:.4f}\033[0m")
-        return nd
+        return data
 
 
 class AccuracyEvaluate(MapFunction):
     def _normalize_text(self, text: str) -> str:
         """标准化文本用于比较"""
+        if not text:
+            return ""
         return text.lower().strip()
 
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-
+        """
+        计算准确率
+        期望输入: {"generated": str, "references": list[str], ...}
+        """
         # 获取参考答案
-        golds = nd.get("references", [])
-        pred = nd.get("generated", "")
+        golds = data.get("references", [])
+        pred = data.get("generated", "")
 
         if not golds or not pred:
             print("\033[93m[Acc] : 0.0000\033[0m")
-            return nd
+            return data
 
         pred_norm = self._normalize_text(pred)
 
@@ -167,49 +235,62 @@ class AccuracyEvaluate(MapFunction):
                 break
 
         print(f"\033[93m[Acc] : {float(correct):.4f}\033[0m")
-        return nd
+        return data
 
 
 class TokenCountEvaluate(MapFunction):
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-
-        # 按优先级获取文档
-        docs = nd.get("refining_docs") or nd.get("reranking_docs") or nd.get("retrieval_docs")
+        """
+        计算使用的token数量
+        期望输入: {"refining_docs": list[str], "retrieval_docs": list[str], ...}
+        """
+        # 按优先级获取文档：refining_docs > retrieval_docs
+        docs = data.get("refining_docs") or data.get("retrieval_docs") or []
 
         if not docs:
             print("\033[92m[Token Count] : 0\033[0m")
-            return nd
+            return data
 
-        # 计算总token数（简单估算：字符数/4）
-        total_tokens = sum(len(doc) // 4 for doc in docs)
+        # 计算总token数（简单估算：按空格分词）
+        total_tokens = sum(len(str(doc).split()) for doc in docs if doc)
         print(f"\033[92m[Token Count] : {total_tokens}\033[0m")
-        return nd
+        return data
 
 
 class LatencyEvaluate(MapFunction):
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-        lat = nd.get("refining_time", 0.0) + nd.get("generation_time", 0.0)
-        print(f"\033[93m[Latency] : {lat:.2f}s\033[0m")
-        return nd
+        """
+        计算延迟时间
+        期望输入: {"refining_time": float, "generation_time": float, ...}
+        """
+        refining_time = data.get("refining_time", 0.0)
+        generation_time = data.get("generation_time", 0.0)
+        retrieval_time = data.get("retrieval_time", 0.0)
+        
+        total_lat = refining_time + generation_time + retrieval_time
+        print(f"\033[93m[Latency] : {total_lat:.2f}s (retrieval: {retrieval_time:.2f}s, refining: {refining_time:.2f}s, generation: {generation_time:.2f}s)\033[0m")
+        return data
 
 
 class ContextRecallEvaluate(MapFunction):
     def _normalize_text(self, text: str) -> str:
         """标准化文本用于比较"""
+        if not text:
+            return ""
         return text.lower().strip()
 
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-
+        """
+        计算上下文召回率
+        期望输入: {"generated": str, "references": list[str], ...}
+        """
         # Context Recall: 检查生成的答案是否包含了参考答案中的关键信息
-        golds = nd.get("references", [])
-        pred = nd.get("generated", "")
+        golds = data.get("references", [])
+        pred = data.get("generated", "")
 
         if not golds or not pred:
             print("\033[93m[Context Recall] : 0.0000\033[0m")
-            return nd
+            return data
 
         pred_norm = self._normalize_text(pred)
         pred_words = set(pred_norm.split())
@@ -226,7 +307,7 @@ class ContextRecallEvaluate(MapFunction):
                 total_recall = max(total_recall, recall)  # 取最大值
 
         print(f"\033[93m[Context Recall] : {total_recall:.4f}\033[0m")
-        return nd
+        return data
 
 
 class CompressionRateEvaluate(MapFunction):
@@ -234,24 +315,26 @@ class CompressionRateEvaluate(MapFunction):
         """计算文档列表的总token数"""
         if not docs:
             return 0
-        return sum(len(str(d).split()) for d in docs)
+        return sum(len(str(d).split()) for d in docs if d)
 
     def execute(self, data: dict):
-        nd = _normalize_data(data)
-
+        """
+        计算压缩率
+        期望输入: {"retrieval_docs": list[str], "refining_docs": list[str], ...}
+        """
         # 获取原始检索文档的token数
-        retrieval_docs = nd.get("retrieval_docs", [])
+        retrieval_docs = data.get("retrieval_docs", [])
         retrieved_tokens = self._count_tokens(retrieval_docs)
 
         # 获取refiner压缩后的文档token数
-        refining_docs = nd.get("refining_docs", [])
+        refining_docs = data.get("refining_docs", [])
         refined_tokens = self._count_tokens(refining_docs)
 
         # 计算压缩率
-        if refined_tokens > 0:
+        if refined_tokens > 0 and retrieved_tokens > 0:
             compression_rate = retrieved_tokens / refined_tokens
         else:
-            compression_rate = 0.0
+            compression_rate = 1.0 if retrieved_tokens == refined_tokens else 0.0
 
-        print(f"\033[93m[Compression Rate] : {compression_rate:.2f}×\033[0m")
-        return nd
+        print(f"\033[93m[Compression Rate] : {compression_rate:.2f}× (retrieved: {retrieved_tokens} tokens → refined: {refined_tokens} tokens)\033[0m")
+        return data
