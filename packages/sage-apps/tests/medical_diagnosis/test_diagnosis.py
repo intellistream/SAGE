@@ -22,6 +22,7 @@ from sage.apps.medical_diagnosis.tools.knowledge_base import MedicalKnowledgeBas
 
 def test_single_case():
     """测试单个病例诊断"""
+    import pytest
 
     print("=" * 80)
     print("🧪 医疗诊断系统测试 - 单病例模式")
@@ -32,8 +33,7 @@ def test_single_case():
     test_index_path = data_dir / "test_index.json"
 
     if not test_index_path.exists():
-        print("❌ 测试数据不存在，请先运行 prepare_data.py")
-        return
+        pytest.skip("Test data not available. Run prepare_data.py first.")
 
     with open(test_index_path, "r", encoding="utf-8") as f:
         test_cases = json.load(f)
@@ -122,6 +122,7 @@ def test_single_case():
 
 def test_batch_mode():
     """测试批量诊断模式"""
+    import pytest
 
     print("=" * 80)
     print("🧪 医疗诊断系统测试 - 批量模式")
@@ -130,6 +131,9 @@ def test_batch_mode():
     # 加载测试数据
     data_dir = medical_diagnosis_dir / "data" / "processed"
     test_index_path = data_dir / "test_index.json"
+
+    if not test_index_path.exists():
+        pytest.skip("Test data not available. Run prepare_data.py first.")
 
     with open(test_index_path, "r", encoding="utf-8") as f:
         test_cases = json.load(f)
