@@ -18,6 +18,8 @@ Architecture:
 - 用于命令行管理、开发和部署 SAGE 应用
 """
 
+__layer__ = "L6"
+
 from . import cli, dev, finetune, management, studio, utils
 from ._version import __version__
 

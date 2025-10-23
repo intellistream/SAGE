@@ -1,0 +1,62 @@
+name: "Architecture Compliance Check"
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, main-dev]
+  workflow_dispatch:
+
+jobs:
+  architecture-check:
+    name: Check Architecture Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要完整历史来进行 diff
+          
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Run Architecture Compliance Check
+        run: |
+          echo "🔍 开始架构合规性检查..."
+          echo ""
+          echo "📋 当前分支: ${{ github.ref_name }}"
+          echo "📋 基准分支: ${{ github.base_ref || 'main' }}"
+          echo ""
+          
+          # 确定检查模式
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "🔄 PR 模式：仅检查变更文件"
+            python tools/architecture_checker.py \
+              --changed-only \
+              --diff "origin/${{ github.base_ref }}" \
+              --strict
+          else
+            echo "📦 Push 模式：检查全部文件"
+            python tools/architecture_checker.py --strict
+          fi
+          
+      - name: Architecture Check Summary
+        if: always()
+        run: |
+          echo "## 🏗️ 架构合规性检查" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ **检查通过** - 代码符合 SAGE 架构设计规范" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **检查失败** - 发现架构违规问题" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "请查看上方日志了解详细信息，并参考以下文档修复问题：" >> $GITHUB_STEP_SUMMARY
+            echo "- [SAGE 包架构文档](../docs/PACKAGE_ARCHITECTURE.md)" >> $GITHUB_STEP_SUMMARY
+            echo "- [依赖规则说明](../docs/PACKAGE_ARCHITECTURE.md#-依赖规则)" >> $GITHUB_STEP_SUMMARY
+          fi

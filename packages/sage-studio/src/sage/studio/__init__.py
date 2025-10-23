@@ -18,6 +18,8 @@ Architecture:
 - 用于可视化配置、监控和管理 SAGE 系统
 """
 
+__layer__ = "L6"
+
 from . import models, services
 from ._version import __version__
 from .studio_manager import StudioManager

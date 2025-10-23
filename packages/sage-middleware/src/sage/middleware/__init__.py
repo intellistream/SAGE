@@ -34,6 +34,8 @@ except ImportError:
     __email__ = "shuhao_zhang@hust.edu.cn"
 
 # 导出子模块
+__layer__ = "L4"
+
 from . import components, operators
 
 __all__ = [

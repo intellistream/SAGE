@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+# Git Pre-commit Hook for SAGE Architecture Compliance
+#
+# 在 git commit 前自动检查架构合规性
+#
+# 安装方法:
+#   cp tools/git-hooks/pre-commit .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+#
+# 或使用符号链接:
+#   ln -s ../../tools/git-hooks/pre-commit .git/hooks/pre-commit
+#
+
+set -e
+
+echo "🔍 运行 SAGE 架构合规性检查..."
+
+# 获取项目根目录
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+# 检查 architecture_checker.py 是否存在
+if [ ! -f "$ROOT_DIR/tools/architecture_checker.py" ]; then
+    echo "⚠️  警告: 找不到 architecture_checker.py，跳过检查"
+    exit 0
+fi
+
+# 获取暂存的 Python 文件
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+
+if [ -z "$STAGED_FILES" ]; then
+    echo "ℹ️  没有 Python 文件变更，跳过检查"
+    exit 0
+fi
+
+echo "📝 检查 $(echo "$STAGED_FILES" | wc -l) 个暂存的 Python 文件"
+
+# 运行架构检查（仅检查变更文件）
+if python3 "$ROOT_DIR/tools/architecture_checker.py" \
+    --root "$ROOT_DIR" \
+    --changed-only \
+    --diff HEAD; then
+    echo "✅ 架构合规性检查通过"
+    exit 0
+else
+    echo ""
+    echo "❌ 架构合规性检查失败！"
+    echo ""
+    echo "请修复上述问题后再提交。"
+    echo "如果您确定要强制提交，请使用: git commit --no-verify"
+    echo ""
+    exit 1
+fi

@@ -16,6 +16,8 @@ Architecture:
 - ✅ Clean design: Uses factory pattern for L3 dependencies (RPCQueue)
 """
 
+__layer__ = "L2"
+
 from sage.platform._version import __version__
 
 # Public API

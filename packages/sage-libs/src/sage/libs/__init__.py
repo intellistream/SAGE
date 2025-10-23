@@ -43,6 +43,8 @@ except ImportError:
     __email__ = "shuhao_zhang@hust.edu.cn"
 
 # Export submodules
+__layer__ = "L3"
+
 from . import (
     agents,
     context,

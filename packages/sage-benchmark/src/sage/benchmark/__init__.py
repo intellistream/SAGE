@@ -21,6 +21,8 @@ Architecture:
 - 提供各种场景的基准测试工具
 """
 
+__layer__ = "L5"
+
 from . import benchmark_memory, benchmark_rag
 from ._version import __version__
 

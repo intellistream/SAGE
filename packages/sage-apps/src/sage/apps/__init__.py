@@ -15,6 +15,8 @@ Architecture:
 - 提供端到端的应用解决方案
 """
 
+__layer__ = "L5"
+
 from . import medical_diagnosis, video
 from ._version import __version__
 
