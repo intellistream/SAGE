@@ -72,24 +72,26 @@ class F1Evaluate(MapFunction):
         golds = data.get("references", [])
         pred = data.get("generated", "")
         
-        # 打印 query, references 和 generated（带颜色）
-        print("\n" + "="*80)
-        if query:
-            print("\033[92m[Query]:\033[0m")
-            print(f"  \033[92m{query}\033[0m")
-        print("\033[96m[References (Expected)]:\033[0m")
-        for i, ref in enumerate(golds, 1):
-            print(f"  \033[96m{i}. {ref}\033[0m")
-        print("\033[95m[Generated (Actual)]:\033[0m")
-        print(f"  \033[95m{pred}\033[0m")
-        print("="*80)
-        
         if not golds or not pred:
-            print(f"\033[93m[F1] : 0.0000\033[0m\n")
+            print(f"\033[93m[F1] : 0.0000\033[0m")
             return data
             
         best = max(self._f1_score(pred, g) for g in golds)
-        print(f"\033[93m[F1] : {best:.4f}\033[0m\n")
+        
+        # # 详细信息输出（暂时注释）
+        # print("\n" + "="*80)
+        # if query:
+        #     print("\033[92m[Query]:\033[0m")
+        #     print(f"  \033[92m{query}\033[0m")
+        # print("\033[96m[References (Expected)]:\033[0m")
+        # for i, ref in enumerate(golds, 1):
+        #     print(f"  \033[96m{i}. {ref}\033[0m")
+        # print("\033[95m[Generated (Actual)]:\033[0m")
+        # print(f"  \033[95m{pred}\033[0m")
+        # print("="*80)
+        
+        print(f"\033[93m[F1] : {best:.4f}\033[0m")
+        
         return data
 
 
@@ -333,8 +335,12 @@ class CompressionRateEvaluate(MapFunction):
         # 计算压缩率
         if refined_tokens > 0 and retrieved_tokens > 0:
             compression_rate = retrieved_tokens / refined_tokens
+        elif retrieved_tokens == 0 and refined_tokens == 0:
+            # 两者都为空，压缩率为 0
+            compression_rate = 0.0
         else:
-            compression_rate = 1.0 if retrieved_tokens == refined_tokens else 0.0
+            # 一个为空另一个不为空，无法计算有效压缩率
+            compression_rate = 0.0
 
         print(f"\033[93m[Compression Rate] : {compression_rate:.2f}× (retrieved: {retrieved_tokens} tokens → refined: {refined_tokens} tokens)\033[0m")
         return data
