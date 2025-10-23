@@ -28,10 +28,10 @@ echo ""
 # 1. 运行 pre-commit 框架（代码质量检查）
 # ============================================================================
 
-if command -v pre-commit >/dev/null 2>&1 && [ -f "$ROOT_DIR/.pre-commit-config.yaml" ]; then
+if command -v pre-commit >/dev/null 2>&1 && [ -f "$ROOT_DIR/tools/pre-commit-config.yaml" ]; then
     echo -e "${BLUE}📋 步骤 1/2: 代码质量检查（black, isort, ruff 等）${NC}"
-    
-    if pre-commit run --from-ref HEAD --to-ref HEAD 2>&1 | grep -v "^$"; then
+
+    if pre-commit run --config "$ROOT_DIR/tools/pre-commit-config.yaml" --from-ref HEAD --to-ref HEAD 2>&1 | grep -v "^$"; then
         echo -e "${GREEN}✅ 代码质量检查通过${NC}"
     else
         # pre-commit 可能会自动修复一些问题

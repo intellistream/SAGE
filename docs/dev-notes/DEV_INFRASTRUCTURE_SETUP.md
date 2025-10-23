@@ -1,7 +1,7 @@
 # Development Infrastructure Setup - Summary
 
 **Date**: 2025-10-02  
-**Commits**: 
+**Commits**:
 - `510ae5e7` - docs: reorganize and cleanup dev-notes directory (#880)
 - `49586b5c` - feat: add development infrastructure and documentation
 
@@ -19,7 +19,7 @@
 **Location**: `/CHANGELOG.md`
 
 ### 2. Pre-commit Configuration
-- **File**: `.pre-commit-config.yaml`
+- **File**: `tools/pre-commit-config.yaml`
 - **Purpose**: Automated code quality checks before commits
 
 **Hooks included**:
@@ -104,7 +104,7 @@ pre-commit autoupdate
 - DEVELOPER.md (Useful Resources)
 
 ### 6. Secrets Baseline
-- **File**: `.secrets.baseline`
+- **File**: `tools/secrets.baseline`
 - **Purpose**: Baseline for detect-secrets hook
 - **Content**: Empty JSON object `{}`
 - **Usage**: Prevents false positives in secret detection
@@ -126,8 +126,8 @@ pre-commit autoupdate
 ## 📊 Statistics
 
 **Files Added**: 6
-- `.pre-commit-config.yaml`
-- `.secrets.baseline`
+- `tools/pre-commit-config.yaml`
+- `tools/secrets.baseline`
 - `CHANGELOG.md`
 - `DEVELOPER.md`
 - `docs/images/architecture.svg`
@@ -230,8 +230,9 @@ SAGE/
 ├── CONTRIBUTING.md        # Contribution guidelines
 ├── DEVELOPER.md          # Developer guide
 ├── README.md             # Main documentation
-├── .pre-commit-config.yaml  # Pre-commit hooks
-├── .secrets.baseline     # Secrets detection baseline
+├── tools/
+│   ├── pre-commit-config.yaml  # Pre-commit hooks
+│   └── secrets.baseline        # Secrets detection baseline
 ├── docs/
 │   ├── images/
 │   │   └── architecture.svg  # Architecture diagram

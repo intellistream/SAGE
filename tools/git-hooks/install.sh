@@ -95,7 +95,7 @@ print_info "📦 检查 pre-commit 框架..."
 if command -v pre-commit >/dev/null 2>&1; then
     print_info "   pre-commit 已安装，配置 hooks..."
     cd "$ROOT_DIR"
-    if pre-commit install --install-hooks >/dev/null 2>&1; then
+    if pre-commit install --config tools/pre-commit-config.yaml --install-hooks >/dev/null 2>&1; then
         print_success "✅ pre-commit 框架已配置"
     else
         print_warning "⚠️  pre-commit 框架配置失败"

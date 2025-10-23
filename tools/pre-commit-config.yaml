@@ -96,7 +96,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: [--baseline, .secrets.baseline]
+        args: [--baseline, tools/secrets.baseline]
         exclude: ^(\.env\.template|examples/config/.*\.yaml|tests/fixtures/)
 
 # To install pre-commit hooks:

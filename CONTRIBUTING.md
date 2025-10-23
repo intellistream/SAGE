@@ -12,7 +12,7 @@
 - **[DEVELOPER.md](DEVELOPER.md)** - 完整开发指南，包含设置、工作流、测试等
 - **[CHANGELOG.md](CHANGELOG.md)** - 项目变更日志（遵循 Keep a Changelog 格式）
 - **[scripts/dev.sh](scripts/dev.sh)** - 开发助手脚本，提供常用命令
-- **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置
+- **[tools/pre-commit-config.yaml](tools/pre-commit-config.yaml)** - Pre-commit 钩子配置
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
 - **[docs/dev-notes/](docs/dev-notes/)** - 开发笔记和修复总结
 
