@@ -303,6 +303,36 @@ jobs:
               print('⚠️ 扩展兼容性模块不可用，跳过检查')
           "
 
+      - name: Run Architecture Compliance Check
+        run: |
+          echo "🏗️ 运行架构合规性检查..."
+          
+          # 在 PR 中仅检查变更文件
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "📝 PR 模式：检查变更文件"
+            python tools/architecture_checker.py \
+              --changed-only \
+              --diff "origin/${{ github.base_ref }}" \
+              --strict || {
+                echo ""
+                echo "❌ 架构合规性检查失败！"
+                echo "请查看上方日志了解详细信息"
+                echo "文档: docs/PACKAGE_ARCHITECTURE.md"
+                exit 1
+              }
+          else
+            echo "📦 Push 模式：快速检查（仅扫描导入语句）"
+            # 在 push 时做快速检查，避免阻塞
+            python tools/architecture_checker.py --changed-only --diff HEAD~5 || {
+              echo ""
+              echo "⚠️  发现架构问题，但不阻塞 CI"
+              echo "请尽快修复: docs/PACKAGE_ARCHITECTURE.md"
+            }
+          fi
+          
+          echo ""
+          echo "✅ 架构检查完成"
+
       - name: Run Core Tests
         run: |
           echo "🧪 运行核心测试..."

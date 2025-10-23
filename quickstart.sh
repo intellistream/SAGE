@@ -150,13 +150,43 @@ main() {
             echo -e "${DIM}C++扩展状态已在安装过程中验证${NC}"
         fi
         
-        # 开发模式下自动设置 Git hooks（用于 submodule 管理）
+        # 自动安装代码质量和架构检查 Git hooks（所有模式）
+        echo ""
+        echo -e "${INFO} 安装代码质量和架构检查工具..."
+        
+        # 1. 安装 pre-commit 框架（代码质量）
+        if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
+            echo -e "${DIM}   安装 pre-commit 框架...${NC}"
+            if pip install -q pre-commit 2>/dev/null || pip3 install -q pre-commit 2>/dev/null; then
+                echo -e "${GREEN}   ✅ pre-commit 框架已安装${NC}"
+            else
+                echo -e "${YELLOW}   ⚠️  pre-commit 安装失败，代码格式检查将被跳过${NC}"
+            fi
+        fi
+        
+        # 2. 安装 Git hooks
+        if [ -f "$SCRIPT_DIR/tools/git-hooks/install.sh" ]; then
+            # 使用静默模式避免过多输出
+            if bash "$SCRIPT_DIR/tools/git-hooks/install.sh" --quiet 2>&1; then
+                echo -e "${GREEN}✅ Git hooks 已安装${NC}"
+                echo -e "${DIM}   • 代码质量检查: black, isort, ruff 等${NC}"
+                echo -e "${DIM}   • 架构合规性: 包依赖、导入路径等${NC}"
+                echo -e "${DIM}   • 跳过检查: git commit --no-verify${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Git hooks 安装失败（可能不在 Git 仓库中）${NC}"
+                echo -e "${DIM}   可稍后手动运行: ./tools/git-hooks/install.sh${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠️  未找到 hooks 安装脚本${NC}"
+        fi
+        
+        # 开发模式下额外设置 Git hooks（用于 submodule 管理）
         if [ "$mode" = "dev" ]; then
             echo ""
-            echo -e "${INFO} 设置 Git hooks（开发模式）..."
+            echo -e "${INFO} 设置额外的 Git hooks（开发模式）..."
             if [ -f "$SCRIPT_DIR/tools/maintenance/setup_hooks.sh" ]; then
                 bash "$SCRIPT_DIR/tools/maintenance/setup_hooks.sh" --force 2>/dev/null || {
-                    echo -e "${DIM}  ℹ️  Git hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
+                    echo -e "${DIM}  ℹ️  开发模式 hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
                 }
             fi
         fi
