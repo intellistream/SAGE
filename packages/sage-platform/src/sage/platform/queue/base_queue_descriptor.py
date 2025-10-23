@@ -83,6 +83,12 @@ class BaseQueueDescriptor(ABC):
         """是否可以序列化"""
         pass
 
+    @property
+    @abstractmethod
+    def metadata(self) -> Dict[str, Any]:
+        """队列元数据，包含创建队列所需的额外参数"""
+        pass
+
     def _validate(self):
         """验证描述符参数"""
         if not self.queue_id or not isinstance(self.queue_id, str):

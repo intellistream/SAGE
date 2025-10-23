@@ -150,8 +150,9 @@ class TimeSeriesIndex:
         self._ensure_sorted()
 
         # Binary search for time range
-        start_idx = self._binary_search(config.time_range.start_time)
-        end_idx = self._binary_search(config.time_range.end_time, find_upper=True)
+        # Note: TimeRange.__post_init__ converts datetime to int
+        start_idx = self._binary_search(config.time_range.start_time)  # type: ignore[arg-type]
+        end_idx = self._binary_search(config.time_range.end_time, find_upper=True)  # type: ignore[arg-type]
 
         # Filter by tags if specified
         if config.tags:
@@ -337,8 +338,8 @@ class SageTSDB:
 
         # Create data points
         n = len(ts_list)
-        tags_list = tags_list or [None] * n
-        fields_list = fields_list or [None] * n
+        tags_list = tags_list or [None] * n  # type: ignore[list-item]
+        fields_list = fields_list or [None] * n  # type: ignore[list-item]
 
         data_list = [
             TimeSeriesData(
@@ -450,14 +451,15 @@ class SageTSDB:
         elif aggregation == AggregationType.LAST:
             agg_value = values[-1]
         elif aggregation == AggregationType.STDDEV:
-            agg_value = float(np.std(values))
+            agg_value = float(np.std(values))  # type: ignore[arg-type]
         else:
             agg_value = sum(values) / len(values)
 
         # Merge tags from all data points
         merged_tags = {}
         for point in data:
-            merged_tags.update(point.tags)
+            if point.tags:
+                merged_tags.update(point.tags)
 
         return TimeSeriesData(
             timestamp=window_timestamp,

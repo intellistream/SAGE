@@ -9,17 +9,11 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+# 导入 DiagnosisReport，DiagnosisResult 作为别名以保持向后兼容
+from .report_generator import DiagnosisReport
 
-@dataclass
-class DiagnosisResult:
-    """诊断结果"""
-
-    diagnosis: str
-    confidence: float
-    findings: List[str]
-    recommendations: List[str]
-    similar_cases: List[Dict[str, Any]]
-    report: str
+# 向后兼容别名
+DiagnosisResult = DiagnosisReport
 
 
 class DiagnosticAgent:
