@@ -1,7 +1,7 @@
 import os
 import time
 
-from ..utils.openaiclient import OpenAIClient
+from ..integrations.openaiclient import OpenAIClient
 from .base.base_tool import BaseTool
 
 
