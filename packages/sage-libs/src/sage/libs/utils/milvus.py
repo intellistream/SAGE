@@ -75,7 +75,7 @@ class MilvusBackend:
                 "force_http", False
             ):
 
-                self.client = MilvusClient(self.persistence_path)
+                self.client = MilvusClient(self.persistence_path or "./milvus.db")
                 self.logger.info(
                     f"Initialized Milvus persistent client at: {self.persistence_path}"
                 )
@@ -309,10 +309,10 @@ class MilvusBackend:
         try:
             # 使用 BGEM3EmbeddingFunction 生成查询向量
             try:
-                from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+                from pymilvus.model.hybrid import BGEM3EmbeddingFunction  # type: ignore[import-not-found]
             except ImportError:
                 try:
-                    from pymilvus.model import BGEM3EmbeddingFunction
+                    from pymilvus.model import BGEM3EmbeddingFunction  # type: ignore[import-not-found]
                 except ImportError:
                     self.logger.error(
                         "Please install: pip install 'pymilvus[model]' or pip install pymilvus.model"
@@ -368,7 +368,7 @@ class MilvusBackend:
 
             if results and len(results) > 0:
                 for r in results:
-                    sparse_results.append(r.entity.get("text"))
+                    sparse_results.append(r.entity.get("text"))  # type: ignore[union-attr]
             return sparse_results
         except Exception as e:
             self.logger.error(f"Error executing Milvus sparse search: {e}")
@@ -401,7 +401,7 @@ class MilvusBackend:
             dense_results = []
             if results and len(results) > 0:
                 for r in results:
-                    dense_results.append(r.entity.get("text"))
+                    dense_results.append(r.entity.get("text"))  # type: ignore[union-attr]
             return dense_results
         except Exception as e:
             self.logger.error(f"Error executing Milvus search: {e}")
@@ -657,7 +657,7 @@ class MilvusBackend:
         更新指定文档
         """
         try:
-            self.client.update(
+            self.client.upsert(  # type: ignore[attr-defined]
                 collection_name=self.collection_name,
                 data=[
                     {"id": doc_id, "text": new_content, "dense": new_embedding.tolist()}

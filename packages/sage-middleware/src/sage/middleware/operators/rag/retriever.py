@@ -683,11 +683,11 @@ class MilvusSparseRetriever(MapOperator):
         try:
             # 尝试新的导入路径（PyMilvus 2.6.0+）
             try:
-                from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+                from pymilvus.model.hybrid import BGEM3EmbeddingFunction  # type: ignore[import-not-found]
             except ImportError:
                 # 如果失败，尝试直接从 model 导入
                 try:
-                    from pymilvus.model import BGEM3EmbeddingFunction
+                    from pymilvus.model import BGEM3EmbeddingFunction  # type: ignore[import-not-found]
                 except ImportError:
                     # 最后尝试安装单独的包
                     self.logger.error(
@@ -1065,7 +1065,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
             # FAISS搜索
             query_vector = query_vector.reshape(1, -1).astype("float32")
-            scores, indices = self.faiss_index.search(query_vector, top_k)
+            scores, indices = self.faiss_index.search(query_vector, top_k)  # type: ignore[call-overload]
 
             return scores[0].tolist(), indices[0].tolist()
 
@@ -1279,7 +1279,7 @@ class Wiki18FAISSRetriever(MapOperator):
             self.faiss_index = faiss.IndexFlatIP(dimension)  # 内积相似度
 
             # 添加向量到索引
-            self.faiss_index.add(doc_vectors.astype("float32"))
+            self.faiss_index.add(doc_vectors.astype("float32"))  # type: ignore[call-overload]
             self.documents = documents
 
             self.logger.info(

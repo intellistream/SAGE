@@ -385,7 +385,7 @@ class BaseEnvironment(ABC):
         else:
             # 尝试将其作为可迭代对象处理
             try:
-                iter(source)
+                iter(source)  # type: ignore[call-overload]
                 return self._from_batch_iterable(source, **kwargs)
             except TypeError:
                 raise TypeError(

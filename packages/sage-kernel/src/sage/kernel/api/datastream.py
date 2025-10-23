@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Generic,
+    Optional,
     Type,
     TypeVar,
     Union,
@@ -77,9 +79,9 @@ class DataStream(Generic[T]):
 
     def map(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: Union[Type[BaseFunction], Callable],
         *args,
-        parallelism: int = None,
+        parallelism: Optional[int] = None,
         **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
@@ -100,9 +102,9 @@ class DataStream(Generic[T]):
 
     def filter(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: Union[Type[BaseFunction], Callable],
         *args,
-        parallelism: int = None,
+        parallelism: Optional[int] = None,
         **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
@@ -125,9 +127,9 @@ class DataStream(Generic[T]):
 
     def flatmap(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: Union[Type[BaseFunction], Callable],
         *args,
-        parallelism: int = None,
+        parallelism: Optional[int] = None,
         **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
@@ -150,9 +152,9 @@ class DataStream(Generic[T]):
 
     def sink(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: Union[Type[BaseFunction], Callable],
         *args,
-        parallelism: int = None,
+        parallelism: Optional[int] = None,
         **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
@@ -171,10 +173,10 @@ class DataStream(Generic[T]):
 
     def keyby(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: Union[Type[BaseFunction], Callable],
         strategy: str = "hash",
         *args,
-        parallelism: int = None,
+        parallelism: Optional[int] = None,
         **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
@@ -316,8 +318,6 @@ class DataStream(Generic[T]):
 
         self._environment.pipeline.append(tr)
         new_stream = DataStream(self._environment, tr)
-        # 继承当前的parallelism hint到新stream，但不应用到当前transformation
-        new_stream._parallelism_hint = 1  # 新stream默认为1，除非显式设置
         return new_stream
 
     def _resolve_type_param(self):

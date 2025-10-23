@@ -20,6 +20,8 @@ Refiner 重构验证测试
     python tests/components/sage_refiner/test_refactoring.py
 """
 
+from typing import Any
+
 import sys
 from pathlib import Path
 import pytest
@@ -80,9 +82,15 @@ def test_service_functionality():
         RefinerService,
     )
 
+    from sage.middleware.components.sage_refiner import (
+        RefinerAlgorithm,
+        RefinerConfig,
+        RefinerService,
+    )
+
     # 创建配置
     config = RefinerConfig(
-        algorithm="simple",
+        algorithm=RefinerAlgorithm.SIMPLE,
         budget=1000,
         enable_cache=True,
         enable_metrics=True,
@@ -93,16 +101,16 @@ def test_service_functionality():
 
     # 测试压缩
     query = "测试查询"
-    documents = [
+    documents: list[dict[str, Any]] = [
         {"text": f"文档{i}" * 100, "score": 0.9 - i * 0.1} for i in range(5)
     ]
 
-    result = service.refine(query, documents)
+    result = service.refine(query, documents)  # type: ignore[arg-type]
     assert result is not None
     assert result.metrics is not None
 
     # 测试缓存
-    result2 = service.refine(query, documents)
+    result2 = service.refine(query, documents)  # type: ignore[arg-type]
     stats = service.get_stats()
     assert "cache_hit_rate" in stats
 
