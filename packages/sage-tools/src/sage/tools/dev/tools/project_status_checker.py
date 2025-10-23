@@ -28,23 +28,37 @@ class ProjectStatusChecker:
     def __init__(self, project_root: str = "."):
         self.project_root = Path(project_root).resolve()
         self.packages_dir = self.project_root / "packages"
+        # 缓存已安装的包列表，避免重复调用
+        self._installed_packages_cache: Optional[Dict[str, str]] = None
 
-    def check_all(self, verbose: bool = False) -> Dict[str, Any]:
-        """执行全面的状态检查"""
+    def check_all(self, verbose: bool = False, quick: bool = False) -> Dict[str, Any]:
+        """执行全面的状态检查
+        
+        Args:
+            verbose: 详细输出
+            quick: 快速模式，跳过耗时检查（如依赖和服务检查）
+        """
         status_data = {
             "timestamp": self._get_timestamp(),
             "project_root": str(self.project_root),
             "checks": {},
         }
 
-        # 依次执行各项检查
-        checks = [
-            ("environment", "环境检查", self._check_environment),
-            ("packages", "包状态检查", self._check_packages),
-            ("dependencies", "依赖检查", self._check_dependencies),
-            ("services", "服务状态检查", self._check_services),
-            ("configuration", "配置检查", self._check_configuration),
-        ]
+        # 根据模式决定检查项
+        if quick:
+            checks = [
+                ("environment", "环境检查", self._check_environment),
+                ("packages", "包状态检查", self._check_packages),
+                ("configuration", "配置检查", self._check_configuration),
+            ]
+        else:
+            checks = [
+                ("environment", "环境检查", self._check_environment),
+                ("packages", "包状态检查", self._check_packages),
+                ("dependencies", "依赖检查", self._check_dependencies),
+                ("services", "服务状态检查", self._check_services),
+                ("configuration", "配置检查", self._check_configuration),
+            ]
 
         for check_name, check_desc, check_func in checks:
             console.print(f"🔍 {check_desc}...")
@@ -102,6 +116,9 @@ class ProjectStatusChecker:
         if not self.packages_dir.exists():
             return packages_info
 
+        # 预加载已安装包列表（只调用一次）
+        self._installed_packages_cache = self._get_installed_packages()
+
         # 扫描packages目录
         for package_dir in self.packages_dir.iterdir():
             if package_dir.is_dir() and package_dir.name.startswith("sage-"):
@@ -141,8 +158,12 @@ class ProjectStatusChecker:
             if pyproject_path.exists():
                 package_name = self._get_package_name_from_pyproject(pyproject_path)
                 if package_name:
-                    # 检查是否已安装 (通过pip list)
-                    installed_packages = self._get_installed_packages()
+                    # 使用缓存的已安装包列表（避免重复调用）
+                    installed_packages = (
+                        self._installed_packages_cache
+                        if self._installed_packages_cache is not None
+                        else self._get_installed_packages()
+                    )
                     if package_name in installed_packages:
                         info["installed"] = True
                         info["version"] = installed_packages[package_name]

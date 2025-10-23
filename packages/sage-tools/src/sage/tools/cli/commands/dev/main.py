@@ -719,9 +719,11 @@ def status(
         False, "--versions", help="检查所有包的版本信息"
     ),
     check_dependencies: bool = typer.Option(False, "--deps", help="检查包依赖状态"),
+    quick: bool = typer.Option(True, "--quick/--full", help="快速模式（跳过耗时检查）"),
 ):
     """显示项目状态 - 集成包状态检查功能"""
     try:
+        # 延迟导入以减少启动时间
         from pathlib import Path
 
         from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
@@ -751,15 +753,15 @@ def status(
 
         if output_format == "json":
             # JSON格式输出
-            status_data = checker.check_all(verbose=False)
+            import json
+            
+            status_data = checker.check_all(verbose=False, quick=quick)
             # 添加包状态信息
             status_data["packages_status"] = collect_packages_status(project_path)
-            import json
-
             console.print(json.dumps(status_data, indent=2, ensure_ascii=False))
         elif output_format == "full":
             # 完整详细输出
-            status_data = checker.check_all(verbose=True)
+            status_data = checker.check_all(verbose=True, quick=False)  # 完整输出不使用快速模式
             console.print("\n" + "=" * 60)
             console.print(checker.generate_status_summary(status_data))
             console.print("=" * 60)
@@ -774,13 +776,13 @@ def status(
             )
         elif output_format == "markdown":
             # Markdown格式输出
-            status_data = checker.check_all(verbose=verbose)
+            status_data = checker.check_all(verbose=verbose, quick=quick)
             markdown_output = _generate_status_markdown_output(status_data)
             console.print(markdown_output)
         else:
-            # 简要摘要输出 (默认)
+            # 简要摘要输出 (默认) - 使用快速模式
             console.print("🔍 检查项目状态...")
-            status_data = checker.check_all(verbose=False)
+            status_data = checker.check_all(verbose=False, quick=quick)
 
             # 显示摘要
             summary = checker.generate_status_summary(status_data)
