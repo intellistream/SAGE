@@ -329,8 +329,8 @@ import sys
 try:
     import sage
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.libs.io_utils.source import FileSource
-    from sage.libs.io_utils.sink import TerminalSink
+    from sage.libs.io.source import FileSource
+    from sage.libs.io.sink import TerminalSink
     from sage.common.utils.logging.custom_logger import CustomLogger
     print("✅ 所有核心模块导入成功")
     sys.exit(0)

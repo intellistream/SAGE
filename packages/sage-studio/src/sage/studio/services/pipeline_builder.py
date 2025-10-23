@@ -20,11 +20,11 @@ from collections import defaultdict, deque
 # 从 SAGE 公共 API 导入（参考 PACKAGE_ARCHITECTURE.md）
 from sage.kernel.api import LocalEnvironment
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.libs.io_utils.source import (
+from sage.libs.io.source import (
     FileSource, JSONFileSource, CSVFileSource, TextFileSource,
     SocketSource, KafkaSource, DatabaseSource, APISource
 )
-from sage.libs.io_utils.sink import (
+from sage.libs.io.sink import (
     TerminalSink, PrintSink, FileSink, MemWriteSink, RetriveSink
 )
 

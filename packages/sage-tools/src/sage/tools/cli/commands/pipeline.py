@@ -35,7 +35,7 @@ from sage.tools.cli.core.exceptions import CLIException
 from sage.tools.templates import pipeline_blueprints as blueprints
 
 try:  # pragma: no cover - optional dependency at runtime only
-    from sage.libs.utils.openaiclient import OpenAIClient
+    from sage.libs.integrations.openaiclient import OpenAIClient
 
     OPENAI_AVAILABLE = True
     OPENAI_IMPORT_ERROR: Optional[Exception] = None

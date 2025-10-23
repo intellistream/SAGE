@@ -1,5 +1,5 @@
 import pytest
-from sage.libs.io_utils.sink import FileSink, MemWriteSink, RetriveSink, TerminalSink
+from sage.libs.io.sink import FileSink, MemWriteSink, RetriveSink, TerminalSink
 
 
 @pytest.fixture

@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Tuple
 
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
-from sage.libs.utils.huggingface import HFClient
-from sage.libs.utils.openaiclient import OpenAIClient
+from sage.libs.integrations.huggingface import HFClient
+from sage.libs.integrations.openaiclient import OpenAIClient
 
 
 class OpenAIGenerator(MapOperator):

@@ -15,8 +15,8 @@ from typing import Any, Dict, List
 
 from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io_utils.sink import FileSink
-from sage.libs.io_utils.source import FileSource
+from sage.libs.io.sink import FileSink
+from sage.libs.io.source import FileSource
 
 
 class SelfRAGRetriever(MapFunction):

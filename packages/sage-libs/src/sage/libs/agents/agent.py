@@ -5,7 +5,7 @@ from typing import Tuple
 
 import requests
 from sage.kernel.api.function.map_function import MapFunction
-from sage.libs.utils.openaiclient import OpenAIClient
+from sage.libs.integrations.openaiclient import OpenAIClient
 
 
 class Tool:
