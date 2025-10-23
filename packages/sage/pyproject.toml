@@ -46,9 +46,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# 核心运行时 - 仅运行已有 pipeline（生产环境）
-# 用途：容器化部署、生产运行
+# 最小化安装 - 仅核心功能（生产环境）
+# 用途：容器化部署、生产运行、最小依赖
 # 大小：~100MB
+minimal = [
+    "isage-common>=0.1.0",      # L1: Foundation
+    "isage-platform>=0.1.0",    # L2: Platform  
+    "isage-kernel>=0.1.0",      # L3: Core Engine
+]
+
+# 核心运行时 - 等同于 minimal（向后兼容）
 core = [
     "isage-common>=0.1.0",      # L1: Foundation
     "isage-platform>=0.1.0",    # L2: Platform  

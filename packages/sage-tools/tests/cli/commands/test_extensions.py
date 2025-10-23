@@ -68,7 +68,7 @@ def cpp_extensions():
     ]
 
     for test_name, import_statement in tests:
-        if test_import(test_name, import_statement):
+        if check_extension_import(test_name, import_statement):
             success_count += 1
 
     typer.echo()
@@ -82,8 +82,8 @@ def cpp_extensions():
         return False
 
 
-def test_import(test_name: str, import_statement: str) -> bool:
-    """测试模块导入"""
+def check_extension_import(test_name: str, import_statement: str) -> bool:
+    """测试模块导入（辅助函数，不是 pytest 测试）"""
     typer.echo(f"🔍 测试 {test_name}...")
 
     try:
