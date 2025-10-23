@@ -6,14 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, Union
 from sage.kernel.api.function.lambda_function import wrap_lambda
 from sage.kernel.runtime.factory.service_factory import ServiceFactory
 from sage.kernel.runtime.jobmanager_client import JobManagerClient
-
-# 尝试导入 CustomLogger，如果不可用则使用标准 logger
-try:
-    from sage.common.utils.logging.custom_logger import CustomLogger
-except ImportError:
-    # 如果 CustomLogger 不可用，使用标准 logging
-    import logging as _logging
-    CustomLogger = _logging.Logger  # type: ignore
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.kernel.api.datastream import DataStream
@@ -158,8 +151,7 @@ class BaseEnvironment(ABC):
 
         # 如果logger已经初始化，更新其配置
         if hasattr(self, "_logger") and self._logger is not None:
-            if hasattr(self._logger, "update_output_level"):
-                self._logger.update_output_level("console", self.console_log_level)  # type: ignore
+            self._logger.update_output_level("console", self.console_log_level)
 
     def register_service(self, service_name: str, service_class: Type, *args, **kwargs):
         """
