@@ -1,0 +1,84 @@
+# Codecov Configuration for SAGE Project
+# https://docs.codecov.com/docs/codecov-yaml
+
+codecov:
+  require_ci_to_pass: yes
+  notify:
+    wait_for_ci: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "50...80"
+  
+  status:
+    project:
+      default:
+        target: 50%
+        threshold: 1%
+        if_ci_failed: error
+    
+    patch:
+      default:
+        target: 60%
+        threshold: 5%
+        if_ci_failed: error
+
+  # 包级别覆盖率要求
+  package:
+    sage-common:
+      target: 60%
+    sage-kernel:
+      target: 50%
+    sage-platform:
+      target: 50%
+    sage-middleware:
+      target: 50%
+    sage-libs:
+      target: 50%
+    sage-tools:
+      target: 50%
+    sage-apps:
+      target: 40%
+    sage-benchmark:
+      target: 40%
+    sage-studio:
+      target: 40%
+
+comment:
+  layout: "reach,diff,flags,tree,footer"
+  behavior: default
+  require_changes: no
+  require_base: no
+  require_head: yes
+
+# 忽略测试文件和自动生成的代码
+ignore:
+  - "**/*_test.py"
+  - "**/test_*.py"
+  - "**/tests/**"
+  - "**/__pycache__/**"
+  - "**/build/**"
+  - "**/dist/**"
+  - "**/.venv/**"
+  - "**/venv/**"
+  - "**/.pytest_cache/**"
+  - "**/*.egg-info/**"
+  - "**/temp_*.py"
+  - "**/update_*.py"
+
+# 标记不同的测试类型
+flag_management:
+  default_rules:
+    carryforward: true
+    statuses:
+      - type: project
+        target: auto
+      - type: patch
+        target: auto
+
+flags:
+  unittests:
+    paths:
+      - packages/
+    carryforward: true

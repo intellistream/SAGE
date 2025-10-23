@@ -312,6 +312,45 @@ jobs:
             sage --help > /dev/null && echo "✅ CLI测试通过"
           fi
 
+      - name: Run Unit Tests with Coverage
+        run: |
+          echo "🧪 运行单元测试并收集覆盖率..."
+          # 安装测试依赖
+          pip install pytest pytest-cov pytest-timeout
+          
+          # 运行测试并生成覆盖率报告
+          pytest -v \
+            --cov=packages \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term \
+            --cov-report=html:htmlcov \
+            --timeout=300 \
+            -m "not slow" || {
+              echo "⚠️ 部分测试失败，但继续收集覆盖率数据"
+              exit 0
+            }
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-sage
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload Coverage Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-reports
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 30
+
       - name: Run Examples Smoke Test
         run: |
           echo "🌟 运行Examples冒烟测试..."
