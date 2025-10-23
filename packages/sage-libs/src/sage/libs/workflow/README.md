@@ -21,7 +21,7 @@ The Workflow Optimizer Framework provides a plug-and-play environment for studen
 ### 1. Create a Workflow
 
 ```python
-from sage.libs.workflow_optimizer import WorkflowGraph, NodeType
+from sage.libs.workflow import WorkflowGraph, NodeType
 
 # Define workflow
 workflow = WorkflowGraph(name="rag_pipeline")
@@ -46,7 +46,7 @@ workflow.add_edge("retriever", "generator")
 ### 2. Apply an Optimizer
 
 ```python
-from sage.libs.workflow_optimizer.optimizers import GreedyOptimizer
+from sage.libs.workflow.optimizers import GreedyOptimizer
 
 # Create optimizer
 optimizer = GreedyOptimizer()
@@ -68,7 +68,7 @@ print(f"Quality change: {result.metrics.quality_change:+.2f}")
 ### 3. Implement Custom Optimizer
 
 ```python
-from sage.libs.workflow_optimizer import BaseOptimizer, OptimizationResult
+from sage.libs.workflow import BaseOptimizer, OptimizationResult
 
 class MyOptimizer(BaseOptimizer):
     """Your custom optimization strategy."""
@@ -108,8 +108,8 @@ class MyOptimizer(BaseOptimizer):
 ### 4. Benchmark Multiple Optimizers
 
 ```python
-from sage.libs.workflow_optimizer import WorkflowEvaluator
-from sage.libs.workflow_optimizer.evaluator import create_synthetic_workflow
+from sage.libs.workflow import WorkflowEvaluator
+from sage.libs.workflow.evaluator import create_synthetic_workflow
 
 # Setup evaluator
 evaluator = WorkflowEvaluator()
@@ -119,7 +119,7 @@ evaluator.add_benchmark("small", create_synthetic_workflow(num_agents=5))
 evaluator.add_benchmark("large", create_synthetic_workflow(num_agents=15))
 
 # Compare optimizers
-from sage.libs.workflow_optimizer.optimizers import (
+from sage.libs.workflow.optimizers import (
     NoOpOptimizer,
     GreedyOptimizer,
     ParallelizationOptimizer
@@ -139,7 +139,7 @@ evaluator.print_comparison(results)
 ## Architecture
 
 ```
-workflow_optimizer/
+workflow/
 ├── __init__.py           # Public API
 ├── base.py               # Core abstractions (WorkflowGraph, BaseOptimizer)
 ├── constraints.py        # Constraint system
@@ -228,10 +228,10 @@ Identifies parallelization opportunities to reduce latency. Conceptual example.
 
 ```bash
 # Run all examples
-python -m sage.libs.workflow_optimizer.examples
+python -m sage.libs.workflow.examples
 
 # Or in Python
-from sage.libs.workflow_optimizer.examples import (
+from sage.libs.workflow.examples import (
     example_basic_workflow,
     example_custom_optimizer,
     example_benchmarking
@@ -296,10 +296,10 @@ See individual module docstrings for detailed API documentation:
 
 ```bash
 # Run tests (from package root)
-pytest packages/sage-libs/tests/workflow_optimizer/
+pytest packages/sage-libs/tests/workflow/
 
 # Run with coverage
-pytest --cov=sage.libs.workflow_optimizer packages/sage-libs/tests/workflow_optimizer/
+pytest --cov=sage.libs.workflow packages/sage-libs/tests/workflow/
 ```
 
 ## Contributing
@@ -329,7 +329,7 @@ Part of the SAGE project. See main LICENSE file.
 If you use this framework in research, please cite:
 
 ```bibtex
-@misc{sage_workflow_optimizer_2025,
+@misc{sage_workflow_2025,
   title={SAGE Workflow Optimizer Framework},
   author={SAGE Team},
   year={2025},

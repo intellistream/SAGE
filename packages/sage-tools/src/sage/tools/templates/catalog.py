@@ -251,7 +251,7 @@ TEMPLATE_LIBRARY: Tuple[ApplicationTemplate, ...] = (
             适合作为日志/监控集成的起点，可将 PrintSink 替换为 Kafka、Webhook 等下游。
             """
         ),
-        notes=_notes("依赖 sage.libs.io_utils.sink.PrintSink 组件。"),
+        notes=_notes("依赖 sage.libs.io.sink.PrintSink 组件。"),
     ),
     ApplicationTemplate(
         id="rag-multimodal-fusion",

@@ -1,6 +1,8 @@
 # SAGE 快速导入参考
 
 > 最常用的导入路径快速查询手册
+> 
+> 最后更新：2025-10-23（已更新至最新架构）
 
 ## 🚀 执行环境
 
@@ -15,8 +17,9 @@ env = LocalEnvironment("my_pipeline")
 ## 📊 数据源和输出
 
 ```python
-# I/O 工具
-from sage.libs.io_utils import FileSource, TerminalSink, JSONLBatch
+# I/O 工具 (注意：io_utils 已重命名为 io)
+from sage.libs.io import FileSource, TerminalSink
+from sage.libs.io.batch import JSONLBatch
 
 # 使用
 env.from_source(FileSource, {"file_path": "data.txt"})
@@ -45,17 +48,52 @@ from sage.middleware.operators.rag import (
 )
 ```
 
-## 🤖 Agents
+## 🤖 Agents 和 Bots
 
 ```python
 # Agents 框架（来自 libs）
 from sage.libs.agents import LangChainAgentAdapter
 
-# 使用
+# Pre-built Bots (新增 - 2025-10-23)
+from sage.libs.agents.bots import AnswerBot, QuestionBot, SearcherBot, CriticBot
+
+# 使用 Agents
 env.map(LangChainAgentAdapter, {
     "agent_config": {...},
     "tools": [...]
 })
+
+# 使用 Bots
+answer_bot = AnswerBot(config={"model": "gpt-4"})
+question_bot = QuestionBot(config={"role": "interviewer"})
+```
+
+## 🔌 第三方集成
+
+```python
+# 第三方服务集成（新模块 - 2025-10-23）
+from sage.libs.integrations import (
+    OpenAIClient,      # OpenAI API
+    MilvusBackend,     # Milvus 向量数据库
+    ChromaBackend,     # ChromaDB
+    HFClient,          # Hugging Face
+)
+
+# 使用示例
+client = OpenAIClient(api_key="...")
+response = client.chat_completion(messages=[...])
+```
+
+## 🎯 数据过滤器
+
+```python
+# 数据过滤和转换（新模块 - 2025-10-23）
+from sage.libs.filters import (
+    ToolFilter,        # 工具过滤
+    EvaluateFilter,    # 评估过滤
+    ContextSource,     # 上下文源
+    ContextSink,       # 上下文汇
+)
 ```
 
 ## 💾 内存和存储
@@ -122,7 +160,7 @@ logger = CustomLogger("my_pipeline")
 
 ```python
 from sage.kernel.api import LocalEnvironment
-from sage.libs.io_utils import FileSource, TerminalSink
+from sage.libs.io import FileSource, TerminalSink
 from sage.middleware.operators.rag import (
     ChromaRetriever,
     QAPromptor,
@@ -199,7 +237,7 @@ env.submit(autostop=True)
 |----------|-----------|------|
 | 执行环境 | `sage.kernel.api` | `LocalEnvironment` |
 | 基础算子类 | `sage.kernel.api.function` | `MapFunction` |
-| I/O 工具 | `sage.libs.io_utils` | `FileSource` |
+| I/O 工具 | `sage.libs.io` | `FileSource` |
 | RAG 算子 | `sage.middleware.operators.rag` | `ChromaRetriever` |
 | LLM 算子 | `sage.middleware.operators.llm` | `ChatOperator` |
 | Agents | `sage.libs.agents` | `LangChainAgentAdapter` |
@@ -221,7 +259,7 @@ env.submit(autostop=True)
 
 2. **数据处理** - 学习 I/O
    ```python
-   from sage.libs.io_utils import FileSource, TerminalSink
+   from sage.libs.io import FileSource, TerminalSink
    ```
 
 3. **RAG 基础** - 构建 RAG pipeline

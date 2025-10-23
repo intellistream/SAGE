@@ -296,12 +296,12 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         sink=SinkSpec(
             id="structured-print",
             title="Structured Print Sink",
-            class_path="sage.libs.io_utils.sink.PrintSink",
+            class_path="sage.libs.io.sink.PrintSink",
             summary="Stream outputs to console/logs using the reusable PrintSink operator.",
             params={"quiet": False},
         ),
         notes=(
-            "结合 tutorials 示例与 sage.libs.io_utils.PrintSink 组件",
+            "结合 tutorials 示例与 sage.libs.io.PrintSink 组件",
             "适合演示如何接入内置工具库的通用算子",
         ),
     ),
@@ -375,7 +375,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         sink=SinkSpec(
             id="terminal-json",
             title="Terminal JSON Sink",
-            class_path="sage.libs.io_utils.sink.TerminalSink",
+            class_path="sage.libs.io.sink.TerminalSink",
             params={"output_format": "json", "pretty_print": True},
             summary="Render responses in JSON format for inspection or downstream tooling.",
         ),
@@ -426,7 +426,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         source=SourceSpec(
             id="jsonl-question-source",
             title="JSONL Question Source",
-            class_path="sage.libs.io_utils.batch.JSONLBatch",
+            class_path="sage.libs.io.batch.JSONLBatch",
             params={
                 "data_path": "./data/questions.jsonl",
                 "field_query": "query",
@@ -484,7 +484,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         sink=SinkSpec(
             id="terminal-sink",
             title="Terminal Output Sink",
-            class_path="sage.libs.io_utils.sink.TerminalSink",
+            class_path="sage.libs.io.sink.TerminalSink",
             params={},
             summary="Display Q&A results in terminal.",
         ),
@@ -512,7 +512,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         source=SourceSpec(
             id="jsonl-batch-source",
             title="JSONL Batch Source",
-            class_path="sage.libs.io_utils.batch.JSONLBatch",
+            class_path="sage.libs.io.batch.JSONLBatch",
             params={
                 "data_path": "./data/questions.jsonl",
             },
@@ -565,7 +565,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         sink=SinkSpec(
             id="terminal-sink",
             title="Terminal Sink",
-            class_path="sage.libs.io_utils.sink.TerminalSink",
+            class_path="sage.libs.io.sink.TerminalSink",
             summary="Output Q&A results to terminal.",
         ),
         notes=(
@@ -592,7 +592,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         source=SourceSpec(
             id="jsonl-source",
             title="JSONL Batch Source",
-            class_path="sage.libs.io_utils.batch.JSONLBatch",
+            class_path="sage.libs.io.batch.JSONLBatch",
             params={
                 "data_path": "./data/questions.jsonl",
             },
@@ -635,7 +635,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         sink=SinkSpec(
             id="terminal-sink",
             title="Terminal Sink",
-            class_path="sage.libs.io_utils.sink.TerminalSink",
+            class_path="sage.libs.io.sink.TerminalSink",
             summary="Print results to terminal.",
         ),
         notes=(
@@ -704,7 +704,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         sink=SinkSpec(
             id="terminal-sink",
             title="Terminal Result Sink",
-            class_path="sage.libs.io_utils.sink.TerminalSink",
+            class_path="sage.libs.io.sink.TerminalSink",
             summary="Display agent execution results and reasoning traces.",
         ),
         services=(
@@ -847,7 +847,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         source=SourceSpec(
             id="multimodal-query-source",
             title="Multimodal Query Source",
-            class_path="sage.libs.io_utils.batch.JSONLBatch",
+            class_path="sage.libs.io.batch.JSONLBatch",
             params={
                 "data_path": "./data/multimodal_queries.jsonl",
             },
@@ -875,7 +875,7 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
         sink=SinkSpec(
             id="json-sink",
             title="JSON Output Sink",
-            class_path="sage.libs.io_utils.sink.TerminalSink",
+            class_path="sage.libs.io.sink.TerminalSink",
             params={
                 "output_format": "json",
                 "pretty_print": True,

@@ -268,8 +268,8 @@ result = env.execute()
 
 ## 🔗 参考
 
-- **完整 Source 列表**: `sage.libs.io_utils.source`
-- **完整 Sink 列表**: `sage.libs.io_utils.sink`
+- **完整 Source 列表**: `sage.libs.io.source`
+- **完整 Sink 列表**: `sage.libs.io.sink`
 - **SAGE 包架构**: `/docs/PACKAGE_ARCHITECTURE.md`
 - **Pipeline Builder**: `sage.studio.services.pipeline_builder`
 
@@ -277,7 +277,7 @@ result = env.execute()
 
 如果需要添加新的 Source 或 Sink 类型：
 
-1. 在 `sage.libs.io_utils.source` 或 `sage.libs.io_utils.sink` 中实现新类
+1. 在 `sage.libs.io.source` 或 `sage.libs.io.sink` 中实现新类
 2. 在 `PipelineBuilder._create_source()` 或 `_create_sink()` 中添加对应的 case
 3. 更新本文档
 
@@ -286,7 +286,7 @@ result = env.execute()
 ```python
 # 在 PipelineBuilder._create_source() 中添加
 elif source_type == "redis":
-    from sage.libs.io_utils.source import RedisSource
+    from sage.libs.io.source import RedisSource
     host = node.config.get("host", "localhost")
     port = node.config.get("port", 6379)
     key = node.config.get("key")

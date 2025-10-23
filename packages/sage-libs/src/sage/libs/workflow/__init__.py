@@ -14,8 +14,8 @@ Architecture:
     - Example optimizers for reference
 
 Usage Example:
-    >>> from sage.libs.workflow_optimizer import WorkflowGraph, BaseOptimizer
-    >>> from sage.libs.workflow_optimizer.optimizers import GreedyOptimizer
+    >>> from sage.libs.workflow import WorkflowGraph, BaseOptimizer
+    >>> from sage.libs.workflow.optimizers import GreedyOptimizer
     >>> 
     >>> # Define your workflow
     >>> workflow = WorkflowGraph()

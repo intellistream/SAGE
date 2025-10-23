@@ -27,7 +27,7 @@ def test_build_mock_pipeline_plan_uses_blueprint_components():
     assert "examples.tutorials.hello_world.UpperCaseMap" in classes
     assert plan["sink"]["class"] in {
         "examples.tutorials.hello_world.PrintSink",
-        "sage.libs.io_utils.sink.PrintSink",
+        "sage.libs.io.sink.PrintSink",
     }
     notes = plan.get("notes") or []
     assert notes, "blueprint plan should include descriptive notes"
@@ -60,4 +60,4 @@ def test_multimodal_blueprint_references_real_components():
         in stage_classes
     )
     assert "sage.libs.rag.generator.OpenAIGenerator" in stage_classes
-    assert blueprint.sink.class_path == "sage.libs.io_utils.sink.TerminalSink"
+    assert blueprint.sink.class_path == "sage.libs.io.sink.TerminalSink"

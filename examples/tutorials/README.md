@@ -18,7 +18,7 @@ Basic SAGE pipeline operations and data flow.
 - **[core-api/](core-api/)** - Core pipeline operations
 - **[transformation-api/](transformation-api/)** - Data transformation operators
 - **[stream_mode/](stream_mode/)** - Streaming data processing
-- **[io_utils/](io_utils/)** - Input/output utilities
+- **[io/](io/)** - Input/output utilities (renamed from io_utils)
 - **[service-api/](service-api/)** - Service integration patterns
 
 ### Agents

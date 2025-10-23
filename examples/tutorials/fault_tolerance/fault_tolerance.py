@@ -9,8 +9,8 @@
 # import sys
 
 # from sage.kernel.api.local_environment import LocalEnvironment
-# from sage.libs.io_utils.sink import TerminalSink
-# from sage.libs.io_utils.source import FileSource
+# from sage.libs.io.sink import TerminalSink
+# from sage.libs.io.source import FileSource
 
 
 # def demo_checkpoint_fault_tolerance():

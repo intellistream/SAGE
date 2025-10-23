@@ -21,9 +21,43 @@ except ImportError:
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
 
-# TODO: Import and export specific classes
-# from .source import *
-# from .sink import *
-# from .batch import *
+# Import and export specific classes
+from sage.libs.io.source import (
+    FileSource,
+    SocketSource,
+    TextFileSource,
+    JSONFileSource,
+    CSVFileSource,
+    KafkaSource,
+    DatabaseSource,
+    APISource,
+)
+from sage.libs.io.sink import (
+    TerminalSink,
+    RetriveSink,
+    FileSink,
+    MemWriteSink,
+    PrintSink,
+)
 
-__all__ = []
+__all__ = [
+    # Version info
+    "__version__",
+    "__author__",
+    "__email__",
+    # Sources
+    "FileSource",
+    "SocketSource",
+    "TextFileSource",
+    "JSONFileSource",
+    "CSVFileSource",
+    "KafkaSource",
+    "DatabaseSource",
+    "APISource",
+    # Sinks
+    "TerminalSink",
+    "RetriveSink",
+    "FileSink",
+    "MemWriteSink",
+    "PrintSink",
+]

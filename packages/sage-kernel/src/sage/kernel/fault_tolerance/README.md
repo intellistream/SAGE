@@ -48,8 +48,8 @@ fault_tolerance/
 
 ```python
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io_utils.source import FileSource
-from sage.libs.io_utils.sink import TerminalSink
+from sage.libs.io.source import FileSource
+from sage.libs.io.sink import TerminalSink
 
 # 使用 Checkpoint 容错策略
 env = LocalEnvironment(
@@ -133,10 +133,10 @@ env = LocalEnvironment("my_app", config={})
 
 ```python
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io_utils.source import FileSource
+from sage.libs.io.source import FileSource
 from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.io_utils.sink import TerminalSink
+from sage.libs.io.sink import TerminalSink
 
 def main():
     # 创建环境并配置容错策略

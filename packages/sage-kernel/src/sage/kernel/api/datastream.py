@@ -303,7 +303,7 @@ class DataStream(Generic[T]):
         
         Note:
             使用 kernel 内置的打印功能，不依赖 sage-libs。
-            如需更高级的打印功能，请使用 sage.libs.io_utils.sink.PrintSink。
+            如需更高级的打印功能，请使用 sage.libs.io.sink.PrintSink。
         """
         from sage.kernel.api.function._internal_print_sink import InternalPrintSink
 

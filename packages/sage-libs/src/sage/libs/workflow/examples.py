@@ -5,7 +5,7 @@ This example demonstrates how to use the framework to research and develop
 workflow optimization strategies.
 """
 
-from sage.libs.workflow_optimizer import (
+from sage.libs.workflow import (
     BudgetConstraint,
     ConstraintChecker,
     LatencyConstraint,
@@ -14,8 +14,8 @@ from sage.libs.workflow_optimizer import (
     WorkflowEvaluator,
     WorkflowGraph,
 )
-from sage.libs.workflow_optimizer.evaluator import create_synthetic_workflow
-from sage.libs.workflow_optimizer.optimizers import (
+from sage.libs.workflow.evaluator import create_synthetic_workflow
+from sage.libs.workflow.optimizers import (
     GreedyOptimizer,
     NoOpOptimizer,
     ParallelizationOptimizer,
@@ -151,7 +151,7 @@ def example_custom_optimizer():
     print("EXAMPLE 4: Custom Optimizer Implementation")
     print("=" * 80)
 
-    from sage.libs.workflow_optimizer import BaseOptimizer, OptimizationResult
+    from sage.libs.workflow import BaseOptimizer, OptimizationResult
 
     class CostThresholdOptimizer(BaseOptimizer):
         """
@@ -227,7 +227,7 @@ if __name__ == "__main__":
     print("✅ All examples completed!")
     print("=" * 80)
     print("\nNext steps for students:")
-    print("  1. Study the example optimizers in workflow_optimizer/optimizers/")
+    print("  1. Study the example optimizers in workflow/optimizers/")
     print("  2. Implement your own optimizer by inheriting from BaseOptimizer")
     print("  3. Test on synthetic workflows or create domain-specific benchmarks")
     print("  4. Compare your optimizer against baselines using WorkflowEvaluator")

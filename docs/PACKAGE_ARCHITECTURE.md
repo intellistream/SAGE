@@ -212,21 +212,53 @@ from sage.kernel.api.function import MapFunction, BatchFunction, SinkFunction
 
 **职责**: 算法库和 Agents 框架
 
+**最近更新**: 2025-10-23 - 完成模块重构（Issue #1040）
+
 **提供**:
-- `agents`: LangChain 风格的 Agents 框架
-- `rag`: RAG 工具和实用函数（非算子）
+- `agents`: LangChain 风格的 Agents 框架 + Pre-built Bots
+  - `agents.bots`: 预定义的智能体（AnswerBot, QuestionBot, SearcherBot, CriticBot）
+- `rag`: RAG 工具和实用函数（文档加载、pipeline）
 - `tools`: 工具函数和辅助类
-- `io_utils`: I/O 工具（source, sink, batch）
-- `utils`: 算法相关工具
+- `io`: I/O 工具（source, sink, batch）- **重命名自 io_utils**
+- `workflow`: 工作流优化框架 - **重命名自 workflow_optimizer**
+- `integrations`: 第三方服务集成 - **新增**（OpenAI, Milvus, Chroma, HF）
+- `filters`: 数据过滤器 - **新增**（tool_filter, evaluate_filter）
+- `context`: 上下文管理
 - `unlearning`: 隐私遗忘算法
 
-**依赖**: `sage-common`, `sage-kernel`
+**重构成果** (2025-10-23):
+- ✅ 规范化命名（io, workflow）
+- ✅ 功能分类（integrations, filters）
+- ✅ 删除废弃模块（utils, applications）
+- ✅ 添加 examples.py（agents, rag, unlearning）
+- ✅ 完整文档覆盖（10/10 modules）
+- ✅ 169 tests passed (0 failed)
+
+详见: [SAGE_LIBS_RESTRUCTURING_2025.md](./dev-notes/SAGE_LIBS_RESTRUCTURING_2025.md)
+
+**依赖**: `sage-common`, `sage-kernel` (可选)
 
 **公共 API**:
 ```python
-from sage.libs import agents, rag, tools, io_utils, utils
+# 核心模块
+from sage.libs import agents, rag, tools, io, workflow, unlearning
+
+# I/O (已重命名)
+from sage.libs.io import FileSource, TerminalSink
+from sage.libs.io.batch import JSONLBatch
+
+# Agents & Bots
 from sage.libs.agents import LangChainAgentAdapter
-from sage.libs.io_utils import FileSource, TerminalSink
+from sage.libs.agents.bots import AnswerBot, QuestionBot, SearcherBot, CriticBot
+
+# 第三方集成 (新增)
+from sage.libs.integrations import OpenAIClient, MilvusBackend, ChromaBackend
+
+# 工作流优化 (重命名)
+from sage.libs.workflow import WorkflowGraph, BaseOptimizer
+
+# 数据过滤 (新增)
+from sage.libs.filters import ToolFilter, EvaluateFilter
 ```
 
 ---
@@ -458,7 +490,7 @@ graph TD
 | sage-common | L1 | 15+ | 37 | ~15K | 0 | ✅ 通过 |
 | sage-platform | L2 | 3 | 19 | ~1K | 1 | ✅ 通过 |
 | sage-kernel | L3 | 20+ | 102 | ~20K | 2 | ✅ 通过 |
-| sage-libs | L3 | 25+ | 369 | ~18K | 2 | ✅ 通过 |
+| sage-libs | L3 | 10 | 169 | ~18K | 2 | ✅ 通过 |
 | sage-middleware | L4 | 30+ | 24 | ~25K | 4 | ✅ 通过 |
 | sage-apps | L5 | 8 | 21 | ~8K | 3 | ✅ 通过 |
 | sage-benchmark | L5 | 10+ | 17 | ~12K | 4 | ✅ 通过 |
@@ -467,6 +499,44 @@ graph TD
 | **总计** | - | **138+** | **654** | **~117K** | - | **100%** ✅ |
 
 ## 🔄 重构历史
+
+### 2025-10 sage-libs 模块重构 (Issue #1040)
+
+**问题**:
+1. 模块命名不规范（io_utils, workflow_optimizer）
+2. 功能分类不清晰（utils 混杂多种功能）
+3. 第三方集成和过滤器分散在不同模块
+4. 缺少标准文档和示例
+
+**解决方案** (4 个阶段):
+1. ✅ **Phase 1 - 目录重组**:
+   - 重命名: `io_utils` → `io`, `workflow_optimizer` → `workflow`
+   - 新建: `integrations/` (5个第三方集成), `filters/` (4个过滤器)
+   - 重组: `agents/bots/` (4个预定义智能体)
+   - 删除: `utils/`, `applications/` (废弃模块)
+
+2. ✅ **Phase 2 - 模块标准化**:
+   - 添加 6 个 `__init__.py` (规范导出)
+   - 添加 4 个 `README.md` (文档)
+   - 添加 3 个 `examples.py` (agents, rag, unlearning)
+
+3. ✅ **Phase 3 - 导入路径更新**:
+   - 更新 29 个文件的导入路径
+   - 覆盖 7 个包（libs, middleware, apps, benchmark, studio, tools, examples）
+
+4. ✅ **Phase 4 - 清理与验证**:
+   - 删除 `applications/` 空目录
+   - 修复 `tools/image_captioner.py` 导入
+   - 完成所有示例代码
+
+**成果**:
+- ✅ 10 个规范模块（vs 12 个混乱模块）
+- ✅ 169/169 测试通过 (0 失败)
+- ✅ 清晰的功能分类
+- ✅ 完整的文档覆盖 (10/10 modules)
+- ✅ 规范的 API 导出
+
+参见: [SAGE_LIBS_RESTRUCTURING_2025.md](./dev-notes/SAGE_LIBS_RESTRUCTURING_2025.md)
 
 ### 2025-01 重大重构
 

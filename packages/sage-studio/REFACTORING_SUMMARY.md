@@ -41,7 +41,7 @@ Implemented `_create_sink()` with 5 types:
 
 **Additional Work**:
 - Created `SOURCE_SINK_CONFIG.md` with comprehensive configuration documentation
-- Updated imports to use SAGE public APIs: `from sage.libs.io_utils.source/sink import ...`
+- Updated imports to use SAGE public APIs: `from sage.libs.io.source/sink import ...`
 - Follows PACKAGE_ARCHITECTURE.md guidelines (L6→L3 dependencies)
 
 **Impact**: Removed all TODO comments, proper architecture compliance
@@ -188,7 +188,7 @@ sage-libs (L3: Specialized Libraries)
 ```
 
 ### Import Patterns
-- ✅ Uses SAGE public APIs: `from sage.libs.io_utils.source/sink import ...`
+- ✅ Uses SAGE public APIs: `from sage.libs.io.source/sink import ...`
 - ✅ Direct imports: `from sage.kernel.runtime.jobmanager_client import JobManagerClient`
 - ❌ No internal module access: `from sage.kernel.runtime._internal.xxx`
 
