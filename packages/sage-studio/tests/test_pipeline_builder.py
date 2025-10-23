@@ -3,8 +3,8 @@ Tests for PipelineBuilder - Visual Pipeline to SAGE Pipeline conversion
 """
 import pytest
 
-from sage.studio.models import VisualPipeline, VisualNode, VisualConnection
-from sage.studio.services import PipelineBuilder
+from sage.studio.models import VisualPipeline, VisualNode, VisualConnection  # type: ignore[import-not-found]
+from sage.studio.services import PipelineBuilder  # type: ignore[import-not-found]
 
 
 class TestPipelineBuilder:
@@ -239,7 +239,7 @@ class TestPipelineBuilder:
     
     def test_get_pipeline_builder_singleton(self):
         """测试获取 PipelineBuilder 单例"""
-        from sage.studio.services import get_pipeline_builder
+        from sage.studio.services import get_pipeline_builder  # type: ignore[import-not-found]
         
         builder1 = get_pipeline_builder()
         builder2 = get_pipeline_builder()

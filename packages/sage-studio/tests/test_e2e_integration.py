@@ -10,8 +10,8 @@
 """
 
 import pytest
-from sage.studio.models import VisualNode, VisualConnection, VisualPipeline
-from sage.studio.services import PipelineBuilder, get_pipeline_builder
+from sage.studio.models import VisualNode, VisualConnection, VisualPipeline  # type: ignore[import-not-found]
+from sage.studio.services import PipelineBuilder, get_pipeline_builder  # type: ignore[import-not-found]
 
 
 class TestE2ESimplePipeline:

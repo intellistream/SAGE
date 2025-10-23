@@ -7,6 +7,7 @@ SAGE C++ Extensions Test Command
 """
 
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -98,7 +99,7 @@ def check_extension_import(test_name: str, import_statement: str) -> bool:
         return False
 
 
-def find_sage_root() -> Path:
+def find_sage_root() -> Optional[Path]:
     """查找 SAGE 项目根目录"""
     current = Path.cwd()
 

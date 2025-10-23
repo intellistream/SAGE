@@ -9,16 +9,17 @@ from __future__ import annotations
 
 import copy
 import tempfile
-from contextlib import ExitStack
+from contextlib import AbstractContextManager, ExitStack
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Iterable, List, Optional, Sequence
 
 from sage.tools.cli.main import app as sage_app
+from typer import Typer
 from typer.testing import CliRunner
 
 # Type alias for factory functions that return context managers (e.g. mocks).
-PatchFactory = Callable[[], object]
+PatchFactory = Callable[[], AbstractContextManager[Any]]
 CheckCallable = Callable[["CLITestResult"], None]
 
 
@@ -28,7 +29,7 @@ class CLITestCase:
 
     name: str
     args: Sequence[str]
-    app: object = sage_app
+    app: Typer = sage_app
     patch_factories: Sequence[PatchFactory] = field(default_factory=tuple)
     env: Optional[dict[str, str]] = None
     expected_exit_code: int = 0
@@ -235,11 +236,13 @@ class DummyProcess:
         return list(self._cmd)
 
     def oneshot(self):
+        outer_self = self
+        
         class _Oneshot:
-            def __enter__(self_inner):
-                return self
+            def __enter__(self):
+                return outer_self
 
-            def __exit__(self_inner, exc_type, exc, tb):
+            def __exit__(self, exc_type, exc, tb):
                 return False
 
         return _Oneshot()
