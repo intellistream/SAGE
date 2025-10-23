@@ -81,7 +81,7 @@ packages = [
 package-dir = {"" = "src"}
 
 [tool.setuptools.dynamic]
-version = {attr = "sage.benchmark.__version__"}
+version = {attr = "sage.benchmark._version.__version__"}
 
 [tool.setuptools.package-data]
 "sage.benchmark.benchmark_rag" = [

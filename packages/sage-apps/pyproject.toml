@@ -91,7 +91,7 @@ packages = ["sage.apps"]
 package-dir = {"" = "src"}
 
 [tool.setuptools.dynamic]
-version = {attr = "sage.apps.__version__"}
+version = {attr = "sage.apps._version.__version__"}
 
 [tool.setuptools.package-data]
 "sage.apps" = ["py.typed"]
