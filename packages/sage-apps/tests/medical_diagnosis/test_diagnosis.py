@@ -33,7 +33,7 @@ def test_single_case():
     test_index_path = data_dir / "test_index.json"
 
     if not test_index_path.exists():
-        pytest.skip("Test data not available. Run prepare_data.py first.")
+        pytest.skip(f"Test data not available at {test_index_path}. Run scripts/prepare_data.py first to generate test data.")
 
     with open(test_index_path, "r", encoding="utf-8") as f:
         test_cases = json.load(f)
@@ -133,7 +133,7 @@ def test_batch_mode():
     test_index_path = data_dir / "test_index.json"
 
     if not test_index_path.exists():
-        pytest.skip("Test data not available. Run prepare_data.py first.")
+        pytest.skip(f"Test data not available at {test_index_path}. Run scripts/prepare_data.py first to generate test data.")
 
     with open(test_index_path, "r", encoding="utf-8") as f:
         test_cases = json.load(f)
