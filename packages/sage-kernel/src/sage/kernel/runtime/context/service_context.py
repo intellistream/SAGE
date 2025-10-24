@@ -25,15 +25,15 @@ class ServiceContext(BaseRuntimeContext):
         self,
         service_node: "ServiceNode",
         env: "BaseEnvironment",
-        execution_graph: "ExecutionGraph" = None,
+        execution_graph: "ExecutionGraph | None" = None,
     ):
         super().__init__()  # Initialize base context
 
         self.name: str = service_node.name
 
-        self.env_name = env.name
-        self.env_base_dir: str = env.env_base_dir
-        self.env_uuid = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
+        self.env_name: str = env.name
+        self.env_base_dir: str | None = env.env_base_dir
+        self.env_uuid: str | None = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
 
         self._logger: Optional[CustomLogger] = None
@@ -78,6 +78,7 @@ class ServiceContext(BaseRuntimeContext):
     def logger(self) -> CustomLogger:
         """懒加载logger"""
         if self._logger is None:
+            base_dir = self.env_base_dir if self.env_base_dir is not None else "."
             self._logger = CustomLogger(
                 [
                     (
@@ -85,12 +86,12 @@ class ServiceContext(BaseRuntimeContext):
                         self.env_console_log_level,
                     ),  # 使用环境设置的控制台日志等级
                     (
-                        os.path.join(self.env_base_dir, f"{self.name}_debug.log"),
+                        os.path.join(base_dir, f"{self.name}_debug.log"),
                         "DEBUG",
                     ),  # 详细日志
-                    (os.path.join(self.env_base_dir, "Error.log"), "ERROR"),  # 错误日志
+                    (os.path.join(base_dir, "Error.log"), "ERROR"),  # 错误日志
                     (
-                        os.path.join(self.env_base_dir, f"{self.name}_info.log"),
+                        os.path.join(base_dir, f"{self.name}_info.log"),
                         "INFO",
                     ),  # 错误日志
                 ],
