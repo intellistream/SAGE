@@ -21,8 +21,16 @@ if TYPE_CHECKING:
 
 
 class TaskContext(BaseRuntimeContext):
-    # 定义不需要序列化的属性
-    __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
+    # 定义不需要序列化的属性（Ray序列化时会跳过这些）
+    __state_exclude__ = [
+        "_logger", 
+        "env", 
+        "_env_logger_cache",
+        "_stop_event",  # threading.Event 不可序列化
+        "_router",  # 包含锁的对象
+        "_local_jobmanager_ref",  # weakref 不可序列化
+        "dispatcher",  # 避免循环引用
+    ]
 
     def __init__(
         self,
@@ -216,13 +224,19 @@ class TaskContext(BaseRuntimeContext):
                 self.logger.info(
                     f"Task {node_name} sending stop signal directly to local JobManager"
                 )
-                local_jobmanager = self._local_jobmanager_ref()
-                if local_jobmanager:
-                    local_jobmanager.receive_node_stop_signal(self.env_uuid, node_name)
-                    self.logger.info(
-                        "Successfully sent stop signal to local JobManager"
+                # 检查 _local_jobmanager_ref 是否有效（不为 None 且可调用）
+                if self._local_jobmanager_ref is not None and callable(self._local_jobmanager_ref):
+                    local_jobmanager = self._local_jobmanager_ref()
+                    if local_jobmanager:
+                        local_jobmanager.receive_node_stop_signal(self.env_uuid, node_name)
+                        self.logger.info(
+                            "Successfully sent stop signal to local JobManager"
+                        )
+                        return
+                else:
+                    self.logger.debug(
+                        f"Local JobManager ref is not available (likely in Ray remote worker), using network client"
                     )
-                    return
 
             # 导入JobManagerClient来发送网络请求
             from sage.kernel.runtime.jobmanager_client import JobManagerClient
@@ -315,6 +329,48 @@ class TaskContext(BaseRuntimeContext):
         except Exception:
             # 在析构函数中不记录错误，避免在程序退出时产生问题
             pass
+
+    # ================== Ray 序列化支持 ==================
+    
+    def __getstate__(self):
+        """
+        自定义序列化方法，用于 Ray 分布式传输
+        排除不可序列化的对象（logger, threading.Event, weakref 等）
+        """
+        state = self.__dict__.copy()
+        
+        # 移除不可序列化的属性
+        for attr in self.__state_exclude__:
+            state.pop(attr, None)
+        
+        # 确保移除所有 threading 相关对象
+        if '_stop_event' in state:
+            del state['_stop_event']
+        
+        # 移除 router（包含锁）
+        if '_router' in state:
+            del state['_router']
+            
+        # 移除方法引用（bound methods 不可序列化）
+        # _build_downstream_groups 是一个方法，不应该被序列化
+        if '_build_downstream_groups' in state:
+            del state['_build_downstream_groups']
+        
+        return state
+    
+    def __setstate__(self, state):
+        """
+        自定义反序列化方法，在 Ray worker 中重建对象
+        重新初始化不可序列化的对象
+        """
+        self.__dict__.update(state)
+        
+        # 重新初始化需要延迟创建的对象
+        self._logger = None  # 懒加载
+        self._stop_event = None  # 延迟初始化
+        self._router = None  # 延迟初始化
+        self._local_jobmanager_ref = None  # 远程环境不需要
+        self.dispatcher = None  # 远程环境不需要
 
     # ================== 路由接口 - 封装BaseRouter功能 ==================
 

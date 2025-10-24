@@ -21,7 +21,10 @@ class SimpleSource(SourceFunction):
 
     def execute(self):
         if self.count >= self.max_count:
-            return None
+            # 返回 StopSignal 来正确停止任务
+            # 在函数内部导入以确保 Ray 远程执行时可用
+            from sage.kernel.runtime.communication.router.packet import StopSignal
+            return StopSignal("SimpleSource completed")
 
         data = f"item_{self.count}"
         self.count += 1
