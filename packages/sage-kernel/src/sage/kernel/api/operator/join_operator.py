@@ -169,7 +169,9 @@ class JoinOperator(BaseOperator):
                         source_signals.add(sig)
                 else:
                     # StopSignal object
-                    from sage.kernel.runtime.communication.router.packet import StopSignal
+                    from sage.kernel.runtime.communication.router.packet import (
+                        StopSignal,
+                    )
 
                     if isinstance(sig, StopSignal) and (
                         "Source" in sig.name or sig.name.startswith("Source")

@@ -20,9 +20,7 @@ class BaseOperator(ABC):
     __state_include__: list[str] = []
     __state_exclude__: list[str] = ["ctx", "function", "logger", "_logger"]
 
-    def __init__(
-        self, function_factory: "FunctionFactory", ctx: "TaskContext", *args, **kwargs
-    ):
+    def __init__(self, function_factory: "FunctionFactory", ctx: "TaskContext", *args, **kwargs):
         self.ctx: "TaskContext" = ctx
         self.function: "BaseFunction"
         try:
@@ -104,9 +102,7 @@ class BaseOperator(ABC):
                 if self._is_serializable(value):
                     operator_attrs[attr_name] = value
             except Exception as e:
-                self.logger.warning(
-                    f"Failed to get operator attribute '{attr_name}': {e}"
-                )
+                self.logger.warning(f"Failed to get operator attribute '{attr_name}': {e}")
 
         if operator_attrs:
             state["operator_attrs"] = operator_attrs
@@ -134,9 +130,7 @@ class BaseOperator(ABC):
                 try:
                     setattr(self, attr_name, value)
                 except Exception as e:
-                    self.logger.warning(
-                        f"Failed to restore operator attribute '{attr_name}': {e}"
-                    )
+                    self.logger.warning(f"Failed to restore operator attribute '{attr_name}': {e}")
 
     def _is_serializable(self, value: Any) -> bool:
         """检查值是否可序列化（与 BaseFunction 中的实现相同）"""
@@ -148,11 +142,11 @@ class BaseOperator(ABC):
 
         if isinstance(value, dict):
             return all(
-                self._is_serializable(k) and self._is_serializable(v)
-                for k, v in value.items()
+                self._is_serializable(k) and self._is_serializable(v) for k, v in value.items()
             )
 
         import pickle
+
         try:
             pickle.dumps(value)
             return True

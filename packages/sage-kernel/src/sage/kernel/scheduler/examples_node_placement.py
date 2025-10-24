@@ -11,6 +11,7 @@
 from typing import Any
 
 import ray
+
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.node_selector import NodeSelector
@@ -40,7 +41,7 @@ def example_inspect_cluster():
         print(f"  状态: {'活跃' if node['Alive'] else '离线'}")
 
         resources = node.get("Resources", {})
-        print(f"  资源:")
+        print("  资源:")
         print(f"    CPU: {resources.get('CPU', 0)}")
         print(f"    GPU: {resources.get('GPU', 0)}")
         print(f"    内存: {resources.get('memory', 0) / (1024**3):.2f} GB")
@@ -113,7 +114,11 @@ class NodeAwareScheduler(BaseScheduler):
         """
 
         # 检查任务是否需要 GPU
-        gpu_required = getattr(task_node.transformation, "gpu_required", 0) if hasattr(task_node, "transformation") else 0
+        gpu_required = (
+            getattr(task_node.transformation, "gpu_required", 0)
+            if hasattr(task_node, "transformation")
+            else 0
+        )
         needs_gpu = gpu_required > 0
 
         if needs_gpu:
@@ -282,7 +287,6 @@ def example_placement_execution():
     PlacementExecutor 如何根据决策执行放置
     """
 
-    from sage.kernel.scheduler.placement import PlacementExecutor
 
     # 这是 PlacementExecutor 内部的实现（简化版）
     def build_ray_options(decision: PlacementDecision):

@@ -122,7 +122,9 @@ class BaseTransformation:
         对于大多数transformation，多个上游输入会被合并到input_index=0
         只有特殊的comap等操作会分别处理多个输入到不同的input_index
         """
-        return not hasattr(self.function_class, "is_comap") or not getattr(self.function_class, "is_comap", False)
+        return not hasattr(self.function_class, "is_comap") or not getattr(
+            self.function_class, "is_comap", False
+        )
 
     # ---------------- 工具函数 ----------------
 

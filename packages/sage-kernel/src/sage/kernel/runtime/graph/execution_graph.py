@@ -11,7 +11,7 @@ ExecutionGraph管理整个图的构建和运行时上下文，包含：
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.base_environment import BaseEnvironment
@@ -39,12 +39,12 @@ class ExecutionGraph:
 
     def __init__(self, env: BaseEnvironment):
         self.env = env
-        self.nodes: Dict[str, TaskNode] = {}
-        self.service_nodes: Dict[str, ServiceNode] = {}  # 存储服务节点
-        self.edges: Dict[str, GraphEdge] = {}
+        self.nodes: dict[str, TaskNode] = {}
+        self.service_nodes: dict[str, ServiceNode] = {}  # 存储服务节点
+        self.edges: dict[str, GraphEdge] = {}
         # 初始化映射表
-        self.service_request_qds: Dict[str, "BaseQueueDescriptor"] = {}
-        self.service_response_qds: Dict[str, "BaseQueueDescriptor"] = {}
+        self.service_request_qds: dict[str, BaseQueueDescriptor] = {}
+        self.service_response_qds: dict[str, BaseQueueDescriptor] = {}
 
         # 首先设置日志系统
         self._setup_logging_system()
@@ -99,11 +99,9 @@ class ExecutionGraph:
                 ],
                 name=f"ExecutionGraph_{env_name}",
             )
-        except Exception as e:
+        except Exception:
             # 如果设置日志系统失败，创建一个基础的日志器
-            self.logger = CustomLogger(
-                [("console", "INFO")], name="ExecutionGraph_fallback"
-            )
+            self.logger = CustomLogger([("console", "INFO")], name="ExecutionGraph_fallback")
 
     def _generate_runtime_contexts(self):
         """
@@ -116,13 +114,9 @@ class ExecutionGraph:
         for node_name, node in self.nodes.items():
             try:
                 # 创建TaskContext，所有队列描述符和连接关系都在构造函数中处理
-                node.ctx = TaskContext(
-                    node, node.transformation, self.env, execution_graph=self
-                )
+                node.ctx = TaskContext(node, node.transformation, self.env, execution_graph=self)
 
-                input_queues_info = (
-                    "1 input queue" if node.input_qd else "no input queue (spout)"
-                )
+                input_queues_info = "1 input queue" if node.input_qd else "no input queue (spout)"
                 self.logger.debug(
                     f"Generated runtime context with {input_queues_info} for transformation node: {node_name}"
                 )
@@ -136,13 +130,9 @@ class ExecutionGraph:
         for service_name, service_node in self.service_nodes.items():
             try:
                 # 创建ServiceContext，所有队列描述符都在构造函数中处理
-                service_node.ctx = ServiceContext(
-                    service_node, self.env, execution_graph=self
-                )
+                service_node.ctx = ServiceContext(service_node, self.env, execution_graph=self)
 
-                self.logger.debug(
-                    f"Generated runtime context for service node: {service_name}"
-                )
+                self.logger.debug(f"Generated runtime context for service node: {service_name}")
             except Exception as e:
                 self.logger.error(
                     f"Failed to generate runtime context for service node {service_name}: {e}",
@@ -193,9 +183,7 @@ class ExecutionGraph:
                 )
 
             except Exception as e:
-                self.logger.error(
-                    f"Error creating service node for {service_name}: {e}"
-                )
+                self.logger.error(f"Error creating service node for {service_name}: {e}")
                 raise
 
         self.logger.info(f"Created {len(self.service_nodes)} service nodes")
@@ -220,21 +208,14 @@ class ExecutionGraph:
         for service_node_name, service_node in self.service_nodes.items():
             # Service request queue (重命名为更清晰的名称)
             if hasattr(service_node, "service_qd") and service_node.service_qd:
-                self.service_request_qds[service_node.service_name] = (
-                    service_node.service_qd
-                )
+                self.service_request_qds[service_node.service_name] = service_node.service_qd
                 self.logger.debug(
                     f"Extracted service request qd from service node: {service_node.service_name}"
                 )
 
             # Service response queue
-            if (
-                hasattr(service_node, "service_response_qd")
-                and service_node.service_response_qd
-            ):
-                self.service_response_qds[service_node_name] = (
-                    service_node.service_response_qd
-                )
+            if hasattr(service_node, "service_response_qd") and service_node.service_response_qd:
+                self.service_response_qds[service_node_name] = service_node.service_response_qd
                 self.logger.debug(
                     f"Extracted service response qd from service node: {service_node_name}"
                 )
@@ -250,7 +231,7 @@ class ExecutionGraph:
         根据transformation pipeline构建图, 支持并行度和多对多连接
         分为三步: 1) 生成并行节点 2) 生成物理边 3) 创建图结构
         """
-        transformation_to_node: Dict[str, List[str]] = (
+        transformation_to_node: dict[str, list[str]] = (
             {}
         )  # transformation basename -> list of node names
 
@@ -276,9 +257,7 @@ class ExecutionGraph:
                     node_name = get_name(f"{transformation.basename}_{i}")
                     node_names.append(node_name)
                     self.nodes[node_name] = TaskNode(node_name, transformation, i, env)
-                    self.logger.debug(
-                        f"Created node: {node_name} (parallel index: {i})"
-                    )
+                    self.logger.debug(f"Created node: {node_name} (parallel index: {i})")
                 except Exception as e:
                     error_name = node_name if node_name else f"{transformation.basename}_{i}"
                     self.logger.error(f"Error creating node {error_name}: {e}")
@@ -312,25 +291,20 @@ class ExecutionGraph:
                 ):
                     actual_upstream_trans = upstream_trans.actual_transformation
 
-                downstream_input_index = upstream_trans.downstreams[
-                    transformation.basename
-                ]
+                downstream_input_index = upstream_trans.downstreams[transformation.basename]
                 upstream_nodes = transformation_to_node[actual_upstream_trans.basename]
 
                 # 创建m*n条物理边
                 for i, upstream_node_name in enumerate(upstream_nodes):
                     upstream_node = self.nodes[upstream_node_name]
-                    output_group_edges: List[GraphEdge] = []
+                    output_group_edges: list[GraphEdge] = []
                     for j, downstream_node_name in enumerate(downstream_nodes):
                         # 创建边名
                         edge_name = f"({upstream_node_name})->({downstream_node_name})[{downstream_input_index}]"
 
                         # 获取节点对象
                         downstream_node = self.nodes[downstream_node_name]
-                        if (
-                            downstream_node.input_channels.get(downstream_input_index)
-                            is None
-                        ):
+                        if downstream_node.input_channels.get(downstream_input_index) is None:
                             downstream_node.input_channels[downstream_input_index] = []
 
                         # 创建边对象并连接
@@ -344,9 +318,7 @@ class ExecutionGraph:
 
                         # 将边添加到节点的channels中
                         output_group_edges.append(edge)
-                        downstream_node.input_channels[downstream_input_index].append(
-                            edge
-                        )
+                        downstream_node.input_channels[downstream_input_index].append(edge)
 
                         # 将边添加到图中
                         self.edges[edge_name] = edge
@@ -395,6 +367,4 @@ class ExecutionGraph:
                 # 源节点不需要等待停止信号
                 node.stop_signal_num = 0
 
-            self.logger.debug(
-                f"Node {node_name} expects {node.stop_signal_num} stop signals"
-            )
+            self.logger.debug(f"Node {node_name} expects {node.stop_signal_num} stop signals")

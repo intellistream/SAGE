@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-class TestLogManager:
+class LogManager:
     """测试日志管理器"""
 
     def __init__(self, project_root: str = None):
@@ -42,9 +42,7 @@ class TestLogManager:
         )
 
         # Ray 相关日志
-        self.ray_logger = self._create_logger(
-            "ray_tests", self.daily_log_dir / "ray_tests.log"
-        )
+        self.ray_logger = self._create_logger("ray_tests", self.daily_log_dir / "ray_tests.log")
 
         # 性能日志
         self.perf_logger = self._create_logger(
@@ -65,9 +63,7 @@ class TestLogManager:
         file_handler.setLevel(logging.DEBUG)
 
         # 格式器
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(formatter)
 
         logger.addHandler(file_handler)
@@ -97,7 +93,7 @@ class TestLogManager:
             return "日志文件不存在"
 
         try:
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 all_lines = f.readlines()
                 return "".join(all_lines[-lines:])
         except Exception as e:
@@ -108,11 +104,11 @@ class TestLogManager:
 _log_manager = None
 
 
-def get_test_log_manager(project_root: str = None) -> TestLogManager:
+def get_test_log_manager(project_root: str = None) -> "LogManager":
     """获取测试日志管理器实例"""
     global _log_manager
     if _log_manager is None:
-        _log_manager = TestLogManager(project_root)
+        _log_manager = LogManager(project_root)
     return _log_manager
 
 

@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterator
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from sage.common.core.functions import BaseFunction
 
@@ -14,7 +14,7 @@ class SimpleBatchIteratorFunction(BaseFunction):
     每次execute调用返回一个数据项，完成后返回None触发停止信号
     """
 
-    def __init__(self, data: list[Any], ctx: "TaskContext" | None = None, **kwargs):
+    def __init__(self, data: list[Any], ctx: Optional["TaskContext"] = None, **kwargs):
         super().__init__(ctx, **kwargs)
         self.data = data
         self.processed_count = 0
@@ -54,7 +54,7 @@ class FileBatchIteratorFunction(BaseFunction):
         self,
         file_path: str,
         encoding: str = "utf-8",
-        ctx: "TaskContext" | None = None,
+        ctx: Optional["TaskContext"] = None,
         **kwargs,
     ):
         super().__init__(ctx, **kwargs)
@@ -128,7 +128,12 @@ class RangeBatchIteratorFunction(BaseFunction):
     """
 
     def __init__(
-        self, start: int, end: int, step: int = 1, ctx: "TaskContext" | None = None, **kwargs
+        self,
+        start: int,
+        end: int,
+        step: int = 1,
+        ctx: Optional["TaskContext"] = None,
+        **kwargs,
     ):
         super().__init__(ctx, **kwargs)
         self.start = start
@@ -175,7 +180,7 @@ class GeneratorBatchIteratorFunction(BaseFunction):
         self,
         generator_func: Callable[[], Iterator[Any]],
         total_count: int | None = None,
-        ctx: "TaskContext" | None = None,
+        ctx: Optional["TaskContext"] = None,
         **kwargs,
     ):
         super().__init__(ctx, **kwargs)
@@ -239,7 +244,7 @@ class IterableBatchIteratorFunction(BaseFunction):
         self,
         iterable: Any,
         total_count: int | None = None,
-        ctx: "TaskContext" | None = None,
+        ctx: Optional["TaskContext"] = None,
         **kwargs,
     ):
         super().__init__(ctx, **kwargs)

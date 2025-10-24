@@ -10,6 +10,7 @@
 from unittest.mock import Mock
 
 import pytest
+
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
 
@@ -456,9 +457,7 @@ class TestSchedulerDecisionDelay:
         result = scheduler.schedule_service(service_node, runtime_ctx=custom_ctx)
 
         # 验证服务工厂使用了自定义上下文
-        service_factory.create_service_task.assert_called_once_with(
-            service_node.service_name, custom_ctx
-        )
+        service_factory.create_service_task.assert_called_once_with(custom_ctx)
         assert result == expected_service
 
 

@@ -14,7 +14,6 @@ import uuid
 from collections import deque
 from datetime import datetime, timedelta
 from threading import Lock
-from typing import Deque, Dict, List, Optional, Union
 
 from sage.kernel.runtime.monitoring.metrics import (
     PacketMetrics,
@@ -48,25 +47,25 @@ class MetricsCollector:
         self.enable_detailed_tracking = enable_detailed_tracking
 
         # 包/请求级别指标存储
-        self.packet_metrics: Deque[Union[PacketMetrics, ServiceRequestMetrics]] = deque(
+        self.packet_metrics: deque[PacketMetrics | ServiceRequestMetrics] = deque(
             maxlen=window_size
         )
 
         # 聚合指标存储（按时间分组）
-        self.aggregated_metrics: Dict[datetime, TaskPerformanceMetrics] = {}
+        self.aggregated_metrics: dict[datetime, TaskPerformanceMetrics] = {}
 
         # 运行时跟踪
-        self._in_flight: Dict[str, Union[PacketMetrics, ServiceRequestMetrics]] = {}
+        self._in_flight: dict[str, PacketMetrics | ServiceRequestMetrics] = {}
 
         # 统计计数器
         self._total_processed = 0
         self._total_failed = 0
-        self._error_breakdown: Dict[str, int] = {}
+        self._error_breakdown: dict[str, int] = {}
 
         # 时间窗口计数器（用于TPS计算）
-        self._last_minute_count: Deque[tuple] = deque()  # (timestamp, count)
-        self._last_5min_count: Deque[tuple] = deque()
-        self._last_hour_count: Deque[tuple] = deque()
+        self._last_minute_count: deque[tuple] = deque()  # (timestamp, count)
+        self._last_5min_count: deque[tuple] = deque()
+        self._last_hour_count: deque[tuple] = deque()
 
         # 启动时间
         self._start_time = time.time()
@@ -76,9 +75,9 @@ class MetricsCollector:
 
     def record_packet_start(
         self,
-        packet_id: Optional[str] = None,
+        packet_id: str | None = None,
         packet_size: int = 0,
-        method_name: Optional[str] = None,
+        method_name: str | None = None,
     ) -> str:
         """
         记录包处理开始
@@ -99,7 +98,7 @@ class MetricsCollector:
 
             if method_name:
                 # 服务请求指标
-                metrics: Union[PacketMetrics, ServiceRequestMetrics] = ServiceRequestMetrics(
+                metrics: PacketMetrics | ServiceRequestMetrics = ServiceRequestMetrics(
                     request_id=packet_id,
                     method_name=method_name,
                     arrival_time=current_time,
@@ -124,7 +123,7 @@ class MetricsCollector:
         self,
         packet_id: str,
         success: bool = True,
-        error_type: Optional[str] = None,
+        error_type: str | None = None,
         response_size: int = 0,
     ) -> None:
         """
@@ -144,9 +143,7 @@ class MetricsCollector:
             if not success:
                 self._total_failed += 1
                 if error_type:
-                    self._error_breakdown[error_type] = (
-                        self._error_breakdown.get(error_type, 0) + 1
-                    )
+                    self._error_breakdown[error_type] = self._error_breakdown.get(error_type, 0) + 1
 
             # 更新时间窗口计数器
             self._update_time_window_counters(current_time)
@@ -185,7 +182,7 @@ class MetricsCollector:
         while self._last_hour_count and self._last_hour_count[0][0] < cutoff_1hour:
             self._last_hour_count.popleft()
 
-    def calculate_percentiles(self, values: List[float]) -> Dict[str, float]:
+    def calculate_percentiles(self, values: list[float]) -> dict[str, float]:
         """
         计算百分位数
 
@@ -241,21 +238,15 @@ class MetricsCollector:
             last_minute_tps = (
                 len(self._last_minute_count) / 60.0 if self._last_minute_count else 0.0
             )
-            last_5min_tps = (
-                len(self._last_5min_count) / 300.0 if self._last_5min_count else 0.0
-            )
-            last_hour_tps = (
-                len(self._last_hour_count) / 3600.0 if self._last_hour_count else 0.0
-            )
+            last_5min_tps = len(self._last_5min_count) / 300.0 if self._last_5min_count else 0.0
+            last_hour_tps = len(self._last_hour_count) / 3600.0 if self._last_hour_count else 0.0
 
             # 计算平均TPS
             packets_per_second = self._total_processed / uptime if uptime > 0 else 0.0
 
             # 计算队列等待时间
             wait_times = [
-                m.queue_wait_time * 1000
-                for m in self.packet_metrics
-                if m.queue_wait_time > 0
+                m.queue_wait_time * 1000 for m in self.packet_metrics if m.queue_wait_time > 0
             ]
             avg_wait_time = sum(wait_times) / len(wait_times) if wait_times else 0.0
 
@@ -268,9 +259,7 @@ class MetricsCollector:
                 min_latency=min(execution_times) if execution_times else 0.0,
                 max_latency=max(execution_times) if execution_times else 0.0,
                 avg_latency=(
-                    sum(execution_times) / len(execution_times)
-                    if execution_times
-                    else 0.0
+                    sum(execution_times) / len(execution_times) if execution_times else 0.0
                 ),
                 p50_latency=percentiles["p50"],
                 p95_latency=percentiles["p95"],
@@ -287,8 +276,8 @@ class MetricsCollector:
             return metrics
 
     def get_metrics_history(
-        self, time_range: Optional[timedelta] = None
-    ) -> List[Union[PacketMetrics, ServiceRequestMetrics]]:
+        self, time_range: timedelta | None = None
+    ) -> list[PacketMetrics | ServiceRequestMetrics]:
         """
         获取历史性能指标
 
@@ -321,7 +310,7 @@ class MetricsCollector:
             self._last_hour_count.clear()
             self._start_time = time.time()
 
-    def get_summary(self) -> Dict[str, Union[str, int, float, Dict]]:
+    def get_summary(self) -> dict[str, str | int | float | dict]:
         """
         获取简要统计信息
 

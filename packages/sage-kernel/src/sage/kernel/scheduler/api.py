@@ -51,7 +51,7 @@ Scheduler API - 调度器核心 API 定义
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, Union
+from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -146,7 +146,9 @@ class BaseScheduler(ABC):
             reason=f"Service placement: {service_node.service_name}"
         )
 
-    def schedule_task(self, task_node: "TaskNode", runtime_ctx=None) -> Union["LocalTask", "ActorWrapper"]:
+    def schedule_task(
+        self, task_node: "TaskNode", runtime_ctx=None
+    ) -> Union["LocalTask", "ActorWrapper"]:
         """
         调度任务（兼容性方法）
 
@@ -180,7 +182,9 @@ class BaseScheduler(ABC):
 
         return task
 
-    def schedule_service(self, service_node: "ServiceNode", runtime_ctx=None) -> Union["LocalServiceTask", "ActorWrapper"]:
+    def schedule_service(
+        self, service_node: "ServiceNode", runtime_ctx=None
+    ) -> Union["LocalServiceTask", "ActorWrapper"]:
         """
         调度服务（兼容性方法）
 
@@ -209,7 +213,7 @@ class BaseScheduler(ABC):
 
         return service
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         获取调度器性能指标（供开发者对比不同策略）
 

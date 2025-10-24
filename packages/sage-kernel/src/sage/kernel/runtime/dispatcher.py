@@ -1,16 +1,13 @@
 import os
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any
 
-import ray
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.fault_tolerance.factory import (
     create_fault_handler_from_config,
     create_lifecycle_manager,
 )
 from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
-from sage.kernel.runtime.service.base_service_task import BaseServiceTask
-from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
@@ -19,8 +16,8 @@ if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
     from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
-    from sage.kernel.runtime.task.local_task import LocalTask
     from sage.kernel.runtime.service.local_service_task import LocalServiceTask
+    from sage.kernel.runtime.task.local_task import LocalTask
 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
@@ -33,11 +30,11 @@ class Dispatcher:
         self.name: str = env.name
         self.remote = env.platform == "remote"
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
-        self.tasks: Dict[str, Union["LocalTask", ActorWrapper]] = {}
-        self.services: Dict[str, Union["LocalServiceTask", ActorWrapper]] = {}  # 存储服务实例
+        self.tasks: dict[str, "LocalTask" | ActorWrapper] = {}
+        self.services: dict[str, "LocalServiceTask" | ActorWrapper] = {}  # 存储服务实例
         self.is_running: bool = False
         # HeartbeatMonitor 实例 (监控线程)
-        self.heartbeat_monitor: Optional["HeartbeatMonitor"] = None
+        self.heartbeat_monitor: "HeartbeatMonitor" | None = None
 
         # 容错配置
         self.fault_tolerance_config = {
@@ -142,9 +139,7 @@ class Dispatcher:
             self.logger.info("🔍 HeartbeatMonitor started")
 
         except Exception as e:
-            self.logger.error(
-                f"❌ Failed to initialize HeartbeatMonitor: {e}", exc_info=True
-            )
+            self.logger.error(f"❌ Failed to initialize HeartbeatMonitor: {e}", exc_info=True)
 
     def receive_stop_signal(self):
         """
@@ -198,9 +193,7 @@ class Dispatcher:
 
         # 检查是否所有节点都已停止
         if len(self.tasks) == 0:
-            self.logger.info(
-                "All computation nodes stopped, batch processing completed"
-            )
+            self.logger.info("All computation nodes stopped, batch processing completed")
             self.is_running = False
 
             # 当所有计算节点停止后，也应该清理服务
@@ -212,9 +205,7 @@ class Dispatcher:
 
             return True
         else:
-            self.logger.info(
-                f"Remaining nodes: {len(self.tasks)}, services: {len(self.services)}"
-            )
+            self.logger.info(f"Remaining nodes: {len(self.tasks)}, services: {len(self.services)}")
             return False
 
     def _notify_join_operators_on_source_stop(self, source_node_name: str):
@@ -273,13 +264,9 @@ class Dispatcher:
                         self.logger.debug(f"Cleaning up service task: {service_name}")
                         service_task.cleanup()
 
-                    self.logger.info(
-                        f"Service task '{service_name}' cleaned up successfully"
-                    )
+                    self.logger.info(f"Service task '{service_name}' cleaned up successfully")
                 except Exception as e:
-                    self.logger.error(
-                        f"Error cleaning up service task {service_name}: {e}"
-                    )
+                    self.logger.error(f"Error cleaning up service task {service_name}: {e}")
 
         # 清空服务字典
         self.services.clear()
@@ -309,7 +296,7 @@ class Dispatcher:
                     # ActorWrapper包装的服务
                     import ray
 
-                    actor_ref = getattr(service_task, "_actor")
+                    actor_ref = service_task._actor
                     if hasattr(actor_ref, "start_running"):
                         ray.get(actor_ref.start_running.remote())  # type: ignore
                 self.logger.debug(f"Started service task: {service_name}")
@@ -324,9 +311,7 @@ class Dispatcher:
                 task.start_running()
                 self.logger.debug(f"Started node: {node_name}")
             except Exception as e:
-                self.logger.error(
-                    f"Failed to start node {node_name}: {e}", exc_info=True
-                )
+                self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
 
         self.logger.info(
             f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks"
@@ -409,9 +394,7 @@ class Dispatcher:
                 # 1. 获取调度决策
                 decision = self.scheduler.make_service_decision(service_node)
 
-                self.logger.debug(
-                    f"Service scheduling decision for '{service_name}': {decision}"
-                )
+                self.logger.debug(f"Service scheduling decision for '{service_name}': {decision}")
 
                 # 2. 根据决策等待（如果需要延迟）
                 if decision.delay > 0:
@@ -449,9 +432,7 @@ class Dispatcher:
                 # 1. 获取调度决策
                 decision = self.scheduler.make_decision(graph_node)
 
-                self.logger.debug(
-                    f"Task scheduling decision for '{node_name}': {decision}"
-                )
+                self.logger.debug(f"Task scheduling decision for '{node_name}': {decision}")
 
                 # 2. 根据决策等待（如果需要延迟调度）
                 if decision.delay > 0:
@@ -569,9 +550,7 @@ class Dispatcher:
                             service_task.cleanup()
                         self.logger.debug(f"Cleaned up service task: {service_name}")
                     except Exception as e:
-                        self.logger.error(
-                            f"Error cleaning up service task {service_name}: {e}"
-                        )
+                        self.logger.error(f"Error cleaning up service task {service_name}: {e}")
 
             # 清空任务和服务字典
             self.tasks.clear()
@@ -582,7 +561,7 @@ class Dispatcher:
         except Exception as e:
             self.logger.error(f"Error during dispatcher cleanup: {e}")
 
-    def get_task_status(self) -> Dict[str, Any]:
+    def get_task_status(self) -> dict[str, Any]:
         """获取所有任务的状态"""
         status = {}
 
@@ -600,7 +579,7 @@ class Dispatcher:
 
         return status
 
-    def get_service_status(self) -> Dict[str, Any]:
+    def get_service_status(self) -> dict[str, Any]:
         """获取所有服务任务的状态"""
         status = {}
 
@@ -610,7 +589,7 @@ class Dispatcher:
                     service_status = service_task.get_statistics()
                 elif hasattr(service_task, "_actor"):
                     # ActorWrapper包装的服务
-                    actor_ref = getattr(service_task, "_actor")
+                    actor_ref = service_task._actor
                     if hasattr(actor_ref, "get_statistics"):
                         service_status = actor_ref.get_statistics()  # type: ignore
                     else:
@@ -631,7 +610,7 @@ class Dispatcher:
 
         return status
 
-    def restart_task(self, task_id: str, restore_state: Optional[dict] = None) -> bool:
+    def restart_task(self, task_id: str, restore_state: dict | None = None) -> bool:
         """
         重启任务（用于容错恢复）
 
@@ -662,11 +641,7 @@ class Dispatcher:
 
                 max_wait = 5.0
                 waited = 0.0
-                while (
-                    hasattr(task, "is_running")
-                    and task.is_running
-                    and waited < max_wait
-                ):
+                while hasattr(task, "is_running") and task.is_running and waited < max_wait:
                     time.sleep(0.1)
                     waited += 0.1
 
@@ -724,9 +699,7 @@ class Dispatcher:
             return True
 
         except Exception as e:
-            self.logger.error(
-                f"❌ Failed to restart task {task_id}: {e}", exc_info=True
-            )
+            self.logger.error(f"❌ Failed to restart task {task_id}: {e}", exc_info=True)
             return False
 
     def restart_task_with_state(self, task_id: str, state: dict) -> bool:

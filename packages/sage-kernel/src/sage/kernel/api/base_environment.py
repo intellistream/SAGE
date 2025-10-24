@@ -67,7 +67,7 @@ class BaseEnvironment(ABC):
 
         self.config: dict = dict(config or {})
         self.platform: str = platform
-        
+
         # JobManager 注入的属性
         self.jobmanager_host: str | None = None
         self.jobmanager_port: int | None = None
@@ -130,8 +130,7 @@ class BaseEnvironment(ABC):
             self._scheduler = scheduler
         else:
             raise TypeError(
-                f"scheduler must be None, str, or BaseScheduler instance, "
-                f"got {type(scheduler)}"
+                f"scheduler must be None, str, or BaseScheduler instance, " f"got {type(scheduler)}"
             )
 
     @property
@@ -156,9 +155,7 @@ class BaseEnvironment(ABC):
         """
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR"]
         if level.upper() not in valid_levels:
-            raise ValueError(
-                f"Invalid log level: {level}. Must be one of {valid_levels}"
-            )
+            raise ValueError(f"Invalid log level: {level}. Must be one of {valid_levels}")
 
         self.console_log_level = level.upper()
 
@@ -201,9 +198,7 @@ class BaseEnvironment(ABC):
 
         return service_factory
 
-    def register_service_factory(
-        self, service_name: str, service_factory: ServiceFactory
-    ):
+    def register_service_factory(self, service_name: str, service_factory: ServiceFactory):
         """
         注册服务工厂到环境中
 
@@ -279,9 +274,7 @@ class BaseEnvironment(ABC):
         from sage.kernel.api.function.kafka_source import KafkaSourceFunction
 
         # 获取SourceTransformation类
-        SourceTransformation = self._get_transformation_classes()[
-            "SourceTransformation"
-        ]
+        SourceTransformation = self._get_transformation_classes()["SourceTransformation"]
 
         # 创建Kafka Source Function
         transformation = SourceTransformation(
@@ -302,17 +295,13 @@ class BaseEnvironment(ABC):
 
         return self._get_datastream_class()(self, transformation)
 
-    def from_source(
-        self, function: type[BaseFunction] | Callable, *args, **kwargs
-    ) -> DataStream:
+    def from_source(self, function: type[BaseFunction] | Callable, *args, **kwargs) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, "flatmap")
 
         # 获取SourceTransformation类
-        SourceTransformation = self._get_transformation_classes()[
-            "SourceTransformation"
-        ]
+        SourceTransformation = self._get_transformation_classes()["SourceTransformation"]
         transformation = SourceTransformation(self, function, *args, **kwargs)
 
         self.pipeline.append(transformation)
@@ -335,9 +324,7 @@ class BaseEnvironment(ABC):
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
 
-    def from_batch(
-        self, source: type[BaseFunction] | Any, *args, **kwargs
-    ) -> DataStream:
+    def from_batch(self, source: type[BaseFunction] | Any, *args, **kwargs) -> DataStream:
         """
         统一的批处理数据源创建方法，支持多种输入类型
 
@@ -424,9 +411,7 @@ class BaseEnvironment(ABC):
             result.fill_future(future_stream)
         """
         # 获取FutureTransformation类
-        FutureTransformation = self._get_transformation_classes()[
-            "FutureTransformation"
-        ]
+        FutureTransformation = self._get_transformation_classes()["FutureTransformation"]
         transformation = FutureTransformation(self, name)
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
@@ -494,9 +479,7 @@ class BaseEnvironment(ABC):
         )
 
         self.pipeline.append(transformation)
-        self.logger.info(
-            f"Custom batch source created with {batch_function_class.__name__}"
-        )
+        self.logger.info(f"Custom batch source created with {batch_function_class.__name__}")
 
         return self._get_datastream_class()(self, transformation)
 
@@ -510,9 +493,7 @@ class BaseEnvironment(ABC):
 
         # 获取BatchTransformation类
         BatchTransformation = self._get_transformation_classes()["BatchTransformation"]
-        transformation = BatchTransformation(
-            self, SimpleBatchIteratorFunction, data=data, **kwargs
-        )
+        transformation = BatchTransformation(self, SimpleBatchIteratorFunction, data=data, **kwargs)
 
         self.pipeline.append(transformation)
         self.logger.info(f"Batch collection source created with {len(data)} items")

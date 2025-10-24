@@ -85,9 +85,7 @@ class RayServiceTask(BaseServiceTask):
             {
                 "actor_id": f"ray_actor_{self.service_name}",
                 "ray_node_id": (
-                    ray.get_runtime_context().node_id.hex()
-                    if ray.is_initialized()
-                    else "unknown"
+                    ray.get_runtime_context().node_id.hex() if ray.is_initialized() else "unknown"
                 ),
             }
         )

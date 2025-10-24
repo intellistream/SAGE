@@ -5,7 +5,7 @@ Fault Tolerance Factory
 这是内部使用的模块，应用用户不会直接使用。
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.checkpoint_recovery import CheckpointBasedRecovery
@@ -19,7 +19,7 @@ from sage.kernel.fault_tolerance.impl.restart_strategy import (
 
 
 def create_fault_handler_from_config(
-    config: Optional[Dict[str, Any]] = None,
+    config: dict[str, Any] | None = None,
 ) -> BaseFaultHandler:
     """
     从配置字典创建容错处理器
@@ -64,7 +64,7 @@ def create_fault_handler_from_config(
         )
 
 
-def _create_checkpoint_handler(config: Dict[str, Any]) -> CheckpointBasedRecovery:
+def _create_checkpoint_handler(config: dict[str, Any]) -> CheckpointBasedRecovery:
     """创建基于 Checkpoint 的容错处理器"""
     checkpoint_dir = config.get("checkpoint_dir", ".sage_checkpoints")
     checkpoint_interval = config.get("checkpoint_interval", 60.0)
@@ -77,14 +77,13 @@ def _create_checkpoint_handler(config: Dict[str, Any]) -> CheckpointBasedRecover
     )
 
 
-def _create_restart_handler(config: Dict[str, Any]) -> RestartBasedRecovery:
+def _create_restart_handler(config: dict[str, Any]) -> RestartBasedRecovery:
     """创建基于重启的容错处理器"""
-    from typing import Union
-    
+
     restart_strategy_type = config.get("restart_strategy", "exponential")
 
     # 创建重启策略
-    restart_strategy: Union[FixedDelayStrategy, ExponentialBackoffStrategy, FailureRateStrategy]
+    restart_strategy: FixedDelayStrategy | ExponentialBackoffStrategy | FailureRateStrategy
     if restart_strategy_type == "fixed":
         delay = config.get("delay", 5.0)
         max_attempts = config.get("max_attempts", 3)
