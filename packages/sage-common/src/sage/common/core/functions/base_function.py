@@ -165,11 +165,11 @@ class BaseFunction(ABC):
             True 如果可序列化
         """
         # 基本类型
-        if isinstance(value, (int, float, str, bool, type(None))):
+        if isinstance(value, int | float | str | bool | type(None)):
             return True
 
         # 容器类型（递归检查）
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return all(self._is_serializable(item) for item in value)
 
         if isinstance(value, dict):
@@ -231,14 +231,22 @@ class BaseFunction(ABC):
                     self.logger.warning(f"Failed to restore class attribute '{attr_name}': {e}")
 
     @abstractmethod
-    def execute(self, data: Any) -> Any:
+    def execute(self, *args, **kwargs) -> Any:
         """
         Abstract method to be implemented by subclasses.
 
         Each function must define its own execute logic that processes input data
         and returns the output.
 
-        :param data: Input data (for most functions) or None (for source functions).
+        Subclasses can define their own signature:
+        - Standard functions: execute(self, data: Any) -> Any
+        - Join functions: execute(self, payload: Any, key: Any, tag: int) -> list[Any]
+        - CoMap functions: execute(self, payload: Any, key: Any, tag: int) -> list[Any]
+        - Batch functions: execute(self) -> Any
+        - Source functions: execute(self, data: Any = None) -> Any
+
+        :param args: Positional arguments (typically data)
+        :param kwargs: Keyword arguments (for additional context)
         :return: Output data.
         """
         pass
