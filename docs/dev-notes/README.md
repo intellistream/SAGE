@@ -14,6 +14,7 @@
 | [NEUROMEM_ARCHITECTURE_ANALYSIS.md](NEUROMEM_ARCHITECTURE_ANALYSIS.md) | NeuroMem 架构分析 | ✅ 活跃 |
 | [VLLM_SERVICE_INTEGRATION_DESIGN.md](VLLM_SERVICE_INTEGRATION_DESIGN.md) | vLLM 服务集成设计 | ✅ 活跃 |
 | [SAGE_CHAT_ARCHITECTURE.md](SAGE_CHAT_ARCHITECTURE.md) | Chat 命令架构 | ✅ 活跃 |
+| [kernel/KERNEL_REFACTORING_COMPLETED.md](kernel/KERNEL_REFACTORING_COMPLETED.md) | Kernel 层重构完成报告 (Issue #1041) | ✅ 活跃 |
 
 ### 📋 系统文档
 
@@ -88,9 +89,9 @@ archive/
 
 ## 📊 统计
 
-- **活跃文档**: 15 个
+- **活跃文档**: 16 个
 - **归档文档**: 15+ 个
-- **文档分类**: 架构设计 (4) + 系统文档 (4) + 运维配置 (3) + 开发工具 (2) + 模板 (2)
+- **文档分类**: 架构设计 (5) + 系统文档 (4) + 运维配置 (3) + 开发工具 (2) + 模板 (2)
 
 ## 🆘 需要帮助？
 
