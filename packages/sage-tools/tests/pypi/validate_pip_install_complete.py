@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 SAGE PyPI发布准备完整验证脚本
 
@@ -34,7 +33,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 
 class CompletePipInstallTester:
@@ -42,7 +40,7 @@ class CompletePipInstallTester:
 
     def __init__(
         self,
-        test_dir: Optional[str] = None,
+        test_dir: str | None = None,
         skip_wheel: bool = False,
         use_conda_env: bool = False,
     ):
@@ -103,13 +101,13 @@ class CompletePipInstallTester:
 
     def run_command(
         self,
-        cmd: List[str],
-        cwd: Optional[Path] = None,
+        cmd: list[str],
+        cwd: Path | None = None,
         capture_output: bool = True,
         check: bool = False,
         timeout: int = 300,
         stream_output: bool = False,
-    ) -> Tuple[int, str, str]:
+    ) -> tuple[int, str, str]:
         """运行命令并返回结果"""
         try:
             if stream_output:
@@ -167,7 +165,7 @@ class CompletePipInstallTester:
 
         except subprocess.CalledProcessError as e:
             return e.returncode, e.stdout, e.stderr
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             return -1, "", f"Command timed out after {timeout}s"
 
     def setup_test_environment(self) -> bool:
@@ -181,9 +179,7 @@ class CompletePipInstallTester:
             self.test_dir.mkdir(parents=True, exist_ok=True)
 
             # 验证Python可用性
-            returncode, stdout, stderr = self.run_command(
-                [str(self.python_exe), "--version"]
-            )
+            returncode, stdout, stderr = self.run_command([str(self.python_exe), "--version"])
             if returncode != 0:
                 print(f"  ❌ Python验证失败: {stderr}")
                 return False
@@ -240,9 +236,7 @@ class CompletePipInstallTester:
                 print(f"  ⚠️  升级pip警告: {stderr}")
 
             # 验证虚拟环境
-            returncode, stdout, stderr = self.run_command(
-                [str(self.python_exe), "--version"]
-            )
+            returncode, stdout, stderr = self.run_command([str(self.python_exe), "--version"])
             if returncode != 0:
                 print(f"  ❌ Python验证失败: {stderr}")
                 return False
@@ -526,11 +520,11 @@ print(f'SAGE {version} loaded')""",
             ),
             (
                 "BatchFunction",
-                "from sage.kernel.api.function.batch_function import BatchFunction; print('BatchFunction imported')",
+                "from sage.common.core.functions.batch_function import BatchFunction; print('BatchFunction imported')",
             ),
             (
                 "SinkFunction",
-                "from sage.kernel.api.function.sink_function import SinkFunction; print('SinkFunction imported')",
+                "from sage.common.core.functions.sink_function import SinkFunction; print('SinkFunction imported')",
             ),
             # Libs组件 (RAG, 数据源等)
             (
@@ -614,7 +608,7 @@ print(f"  环境创建: {env.name}")
 
 # 测试BatchFunction
 if test_component("BatchFunction", """
-from sage.kernel.api.function.batch_function import BatchFunction
+from sage.common.core.functions.batch_function import BatchFunction
 
 class TestBatchFunction(BatchFunction):
     def __init__(self):
@@ -641,7 +635,7 @@ print(f"  批处理函数执行: {len(results)} 条数据")
 
 # 测试SinkFunction
 if test_component("SinkFunction", """
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.sink_function import SinkFunction
 
 class TestSinkFunction(SinkFunction):
     def __init__(self):
@@ -869,8 +863,8 @@ print("🎉 开发工具测试完成")
 """
 
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 import tempfile
 import os
@@ -1022,8 +1016,8 @@ if __name__ == "__main__":
 
 import unittest
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 class TestSageCore(unittest.TestCase):
@@ -1090,9 +1084,7 @@ if __name__ == "__main__":
             print(full_output)
 
             # 修复判断逻辑：检查返回码和输出（包括stderr）
-            success = returncode == 0 and (
-                "OK" in full_output or "Ran 4 tests" in full_output
-            )
+            success = returncode == 0 and ("OK" in full_output or "Ran 4 tests" in full_output)
             self.results["unit_tests"] = success
 
             if success:
@@ -1174,9 +1166,7 @@ if __name__ == "__main__":
         completed_steps = 0
 
         for step_name, step_func in steps:
-            print(
-                f"\n📋 执行测试步骤 ({completed_steps + 1}/{len(steps)}): {step_name}"
-            )
+            print(f"\n📋 执行测试步骤 ({completed_steps + 1}/{len(steps)}): {step_name}")
             try:
                 if step_func():
                     print(f"  ✅ {step_name} 通过")
@@ -1224,9 +1214,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="SAGE PyPI完整安装测试脚本 - 测试 isage[dev] 完整开发环境"
     )
-    parser.add_argument(
-        "--cleanup-only", action="store_true", help="仅清理之前的测试环境"
-    )
+    parser.add_argument("--cleanup-only", action="store_true", help="仅清理之前的测试环境")
     parser.add_argument("--test-dir", type=str, help="指定测试目录（可选）")
     parser.add_argument(
         "--skip-wheel", action="store_true", help="跳过wheel构建，使用现有的wheel包"
@@ -1240,9 +1228,7 @@ def main():
     args = parser.parse_args()
 
     # 创建测试器
-    tester = CompletePipInstallTester(
-        args.test_dir, args.skip_wheel, args.use_conda_env
-    )
+    tester = CompletePipInstallTester(args.test_dir, args.skip_wheel, args.use_conda_env)
 
     try:
         if args.cleanup_only:

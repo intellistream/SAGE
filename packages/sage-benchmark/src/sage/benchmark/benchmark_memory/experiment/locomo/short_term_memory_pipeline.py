@@ -10,13 +10,12 @@ import queue
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
 
 import yaml
+from sage.common.core.functions.map_function import MapFunction
+from sage.common.core.functions.sink_function import SinkFunction
+from sage.common.core.functions.source_function import SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.map_function import MapFunction
-from sage.kernel.api.function.sink_function import SinkFunction
-from sage.kernel.api.function.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 from sage.platform.service import BaseService
@@ -82,7 +81,7 @@ class LLMMap(MapFunction):
         payload = data["payload"]
         question = payload["question"]
 
-        print(f"🔧 LLMMap: 开始处理问题...")
+        print("🔧 LLMMap: 开始处理问题...")
 
         # 使用配置文件中的 promptor 配置
         promptor_config = self.config.get("promptor", {})
@@ -98,7 +97,7 @@ class LLMMap(MapFunction):
         promptor = QAPromptor(promptor_config)
         prompted = promptor.execute({"question": question})
 
-        print(f"📝 Prompt 准备完成，开始调用 LLM...")
+        print("📝 Prompt 准备完成，开始调用 LLM...")
 
         # 使用配置文件中的 generator 配置
         generator_config = self.config.get("generator", {}).get("vllm", {})
@@ -108,7 +107,7 @@ class LLMMap(MapFunction):
         # 生成答案
         answer = generator.execute(prompted)
 
-        print(f"✅ LLM 生成完成")
+        print("✅ LLM 生成完成")
 
         return {
             "payload": {"question": question, "answer": answer},
@@ -177,14 +176,14 @@ class ProcessQuestion(MapFunction):
         print(f"📝 问题 {index}/{total}: {question}")
         print(f"{'='*60}")
 
-        print(f"🔄 调用 LLM Service...")
+        print("🔄 调用 LLM Service...")
 
         # 调用 LLM Service（阻塞等待答案）
         result = self.call_service(
             "llm_service", {"question": question}, method="ask", timeout=120.0
         )
 
-        print(f"✅ 收到 LLM Service 的回答")
+        print("✅ 收到 LLM Service 的回答")
 
         result["index"] = index
         return result
@@ -249,7 +248,7 @@ class DisplayAnswer(SinkFunction):
         rendered_answer = self._render_markdown(answer_text)
 
         print(f"\n{'='*60}")
-        print(f"💡 AI 回答:")
+        print("💡 AI 回答:")
         print(f"{'='*60}")
         print(rendered_answer)
         print(f"{'='*60}")

@@ -15,7 +15,6 @@ Pipeline Builder - 将 Studio 可视化模型转换为 SAGE Pipeline
 """
 
 from collections import defaultdict, deque
-from typing import Any, Dict, List, Optional, Set
 
 # 从 SAGE 公共 API 导入（参考 PACKAGE_ARCHITECTURE.md）
 from sage.kernel.api import LocalEnvironment
@@ -38,7 +37,7 @@ from sage.libs.io.source import (
     TextFileSource,
 )
 
-from ..models import VisualConnection, VisualNode, VisualPipeline
+from ..models import VisualNode, VisualPipeline
 from .node_registry import get_node_registry
 
 
@@ -87,9 +86,7 @@ class PipelineBuilder:
 
             if stream is None:
                 # 第一个节点 - 创建 source
-                source_class, source_args, source_kwargs = self._create_source(
-                    node, pipeline
-                )
+                source_class, source_args, source_kwargs = self._create_source(node, pipeline)
                 stream = env.from_source(
                     source_class, *source_args, name=node.label, **source_kwargs
                 )
@@ -126,7 +123,7 @@ class PipelineBuilder:
             if conn.target_node_id not in node_ids:
                 raise ValueError(f"Connection target not found: {conn.target_node_id}")
 
-    def _topological_sort(self, pipeline: VisualPipeline) -> List[VisualNode]:
+    def _topological_sort(self, pipeline: VisualPipeline) -> list[VisualNode]:
         """
         对节点进行拓扑排序
 
@@ -167,8 +164,7 @@ class PipelineBuilder:
         if len(sorted_nodes) != len(pipeline.nodes):
             remaining = [n.label for n in pipeline.nodes if n not in sorted_nodes]
             raise ValueError(
-                f"Circular dependency detected in pipeline. "
-                f"Nodes in cycle: {remaining}"
+                f"Circular dependency detected in pipeline. " f"Nodes in cycle: {remaining}"
             )
 
         return sorted_nodes
@@ -178,8 +174,7 @@ class PipelineBuilder:
         operator_class = self.registry.get_operator(node_type)
         if not operator_class:
             raise ValueError(
-                f"Unknown node type: {node_type}. "
-                f"Available types: {self.registry.list_types()}"
+                f"Unknown node type: {node_type}. " f"Available types: {self.registry.list_types()}"
             )
         return operator_class
 
@@ -201,7 +196,7 @@ class PipelineBuilder:
         - api: APISource (HTTP API)
         - memory/data: 内存数据源（用于测试）
         """
-        from sage.kernel.api.function.source_function import SourceFunction
+        from sage.common.core.functions.source_function import SourceFunction
 
         source_type = node.config.get("source_type", "memory")
 

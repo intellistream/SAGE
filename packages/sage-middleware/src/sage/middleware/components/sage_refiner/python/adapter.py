@@ -7,14 +7,13 @@ SAGE Function适配器
 注意: 此适配器需要SAGE核心依赖。如果没有SAGE环境，请直接使用RefinerService。
 """
 
-import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from sage.kernel.api.function.map_function import MapFunction
+    from sage.common.core.functions.map_function import MapFunction
 else:
     try:
-        from sage.kernel.api.function.map_function import MapFunction
+        from sage.common.core.functions.map_function import MapFunction
 
         SAGE_CORE_AVAILABLE = True
     except ImportError:
@@ -53,7 +52,7 @@ class RefinerAdapter(MapFunction):
            .sink(...)
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, **kwargs):
+    def __init__(self, config: dict[str, Any] | None = None, **kwargs):
         """
         初始化适配器
 

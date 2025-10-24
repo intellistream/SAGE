@@ -10,10 +10,9 @@ This implementation uses the Self-RAG dataset format where each item contains:
 - ctxs: Pre-retrieved documents with title and text
 """
 
-import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from sage.kernel.api.function.map_function import MapFunction
+from sage.common.core.functions.map_function import MapFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.sink import FileSink
 from sage.libs.io.source import FileSource
@@ -217,7 +216,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         config_path = sys.argv[1]
 
-    print(f"🚀 Running Self-RAG Pipeline")
+    print("🚀 Running Self-RAG Pipeline")
     print(f"📝 Config: {config_path}")
 
     run_selfrag_pipeline(str(config_path))

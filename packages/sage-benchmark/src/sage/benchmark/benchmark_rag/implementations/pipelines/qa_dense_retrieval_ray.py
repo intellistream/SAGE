@@ -10,8 +10,8 @@ if os.getenv("SAGE_EXAMPLES_MODE") == "test":
     )
     sys.exit(0)
 
+from sage.common.core.functions.map_function import MapFunction
 from sage.common.utils.config.loader import load_config
-from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.libs.io.sink import FileSink
 from sage.libs.io.source import FileSource
@@ -40,9 +40,6 @@ class SafeBiologyRetriever(MapFunction):
                 # TODO: MemoryService has been deprecated.
                 # Use NeuroMemVDBService instead:
                 # from sage.middleware.components.sage_mem import NeuroMemVDBService
-                from sage.common.components.sage_embedding.embedding_api import (
-                    apply_embedding_model,
-                )
 
                 raise NotImplementedError(
                     "MemoryService is deprecated. Please use NeuroMemVDBService from sage_mem instead."
@@ -143,18 +140,13 @@ if __name__ == "__main__":
     import os
 
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_dense_retrieval_ray example")
         print("✅ Test passed: Example structure validated (requires complex setup)")
         sys.exit(0)
 
     # 加载配置并初始化日志
-    config_path = os.path.join(
-        os.path.dirname(__file__), "..", "config", "config_ray.yaml"
-    )
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_ray.yaml")
     if not os.path.exists(config_path):
         print(f"❌ Configuration file not found: {config_path}")
         print("Please create the configuration file first.")
