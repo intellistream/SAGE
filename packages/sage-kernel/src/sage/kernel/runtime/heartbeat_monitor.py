@@ -20,6 +20,7 @@ from sage.kernel.utils.ray.actor import ActorWrapper
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.dispatcher import Dispatcher
+    from sage.kernel.runtime.task.base_task import BaseTask
 
 
 class HeartbeatMonitor:

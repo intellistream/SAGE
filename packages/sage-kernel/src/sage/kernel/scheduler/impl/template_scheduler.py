@@ -62,7 +62,7 @@ class TemplateScheduler(BaseScheduler):
 
         # 调度器状态
         self.scheduled_count = 0
-        self.metrics: dict[str, float] = {}
+        self.metrics: dict[str, dict[str, float | int]] = {}
 
     def schedule_task(self, task_node: "TaskNode", runtime_ctx=None) -> "BaseTask":
         """

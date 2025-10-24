@@ -686,7 +686,8 @@ class Dispatcher:
                 return False
 
             # 重新注入 dispatcher 引用到 context
-            graph_node.ctx.dispatcher = self
+            if graph_node.ctx is not None:
+                graph_node.ctx.dispatcher = self
 
             self.logger.debug(f"Creating new task instance for {task_id}...")
 
