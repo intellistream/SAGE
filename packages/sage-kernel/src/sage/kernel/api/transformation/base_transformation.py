@@ -52,8 +52,8 @@ class BaseTransformation:
         self.parallelism = parallelism
 
         # 懒加载工厂
-        self._operator_factory: OperatorFactory = None
-        self._function_factory: FunctionFactory = None
+        self._operator_factory: OperatorFactory | None = None
+        self._function_factory: FunctionFactory | None = None
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
 
     # 增强的连接方法
@@ -122,7 +122,7 @@ class BaseTransformation:
         对于大多数transformation，多个上游输入会被合并到input_index=0
         只有特殊的comap等操作会分别处理多个输入到不同的input_index
         """
-        return not hasattr(self.function_class, "is_comap") or not self.function_class.is_comap
+        return not hasattr(self.function_class, "is_comap") or not getattr(self.function_class, "is_comap", False)
 
     # ---------------- 工具函数 ----------------
 
