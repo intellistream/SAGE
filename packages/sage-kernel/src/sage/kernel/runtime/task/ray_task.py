@@ -59,6 +59,49 @@ class RayTask(BaseTask):
 
         self.task_id = runtime_context.name
 
+    # ========== 属性别名 (映射到 BaseTask 的私有属性) ==========
+    @property
+    def input_buffer(self):
+        """输入缓冲区（通过队列描述符访问）"""
+        return self.input_qd.get_queue() if self.input_qd else None
+
+    @property
+    def packet_count(self) -> int:
+        """已处理数据包数量"""
+        return self._processed_count
+
+    @packet_count.setter
+    def packet_count(self, value: int) -> None:
+        self._processed_count = value
+
+    @property
+    def error_count(self) -> int:
+        """错误计数"""
+        return self._error_count
+
+    @error_count.setter
+    def error_count(self, value: int) -> None:
+        self._error_count = value
+
+    @property
+    def last_checkpoint_time(self) -> float:
+        """最后检查点时间"""
+        return self._last_checkpoint_time
+
+    @property
+    def _heartbeat_enabled(self) -> bool:
+        """心跳是否启用（始终为 False，兼容旧代码）"""
+        return False
+
+    @property
+    def heartbeat_interval(self) -> float:
+        """心跳间隔（默认值，兼容旧代码）"""
+        return HEARTBEAT_INTERVAL
+
+    def _get_current_status(self) -> str:
+        """获取当前状态"""
+        return "running" if self.is_running else "stopped"
+
     def put_packet(self, packet: "Packet"):
         """
         向任务的输入缓冲区放入数据包
