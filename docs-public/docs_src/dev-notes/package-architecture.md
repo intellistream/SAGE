@@ -500,6 +500,60 @@ graph TD
 
 ## 🔄 重构历史
 
+### 🚧 待办: 2025-10 Kernel API 层重构 (Issue #1041)
+
+**问题**:
+1. sage-libs (L3) 依赖 sage-kernel (L3) - 同层依赖不清晰
+2. kernel.api 在 L3，但 BaseService 在 L2 - 层级不一致
+3. kafka_source.py 重复实现（kernel 和 libs 都有）
+
+**依赖统计**:
+- sage-libs → sage.kernel: 14次导入 (MapFunction, FilterFunction, SinkFunction等)
+- sage-middleware → sage.kernel: 15次导入 (MapOperator)
+
+**解决方案**: 将函数接口下沉到 sage-common (L1)
+
+**核心决策** (2025-10-24):
+1. ✅ **函数接口 → L1 (common/core/functions)**
+   - 13个基础函数接口迁移到 common
+   - PrintSink 迁移到 common/components/debug
+   - 理由: libs 需要继承这些接口，应该独立于 kernel
+   
+2. ✅ **删除 kafka_source.py**
+   - 删除 kernel 中的重复实现
+   - 改进 libs 中的实现为完整版本
+   
+3. ✅ **一次性迁移** + 保留兼容层
+
+**新架构分层**:
+```
+L1 (sage-common)
+└── core/functions/     # ✅ 新增: BaseFunction, MapFunction等 (13个)
+
+L2 (sage-platform)
+└── queue/storage/service  # 平台服务
+
+L3 (sage-kernel)
+└── api/                # Environment + DataStream (执行环境)
+    ├── operator/       # 内部算子实现
+    └── transformation/ # 转换逻辑
+
+L3 (sage-libs)
+└── 使用 common.functions (不再依赖 kernel)
+```
+
+**预期成果**:
+- ✅ sage-libs (L3) → sage-common (L1) - 清晰的向下依赖
+- ✅ 解决 L3 ↔ L3 同层依赖问题
+- ✅ 函数接口在最底层，最大化复用
+- ✅ libs 完全独立于 kernel
+
+**预计工作量**: 7-8小时，影响~32-47个文件
+
+详见: [KERNEL_REFACTORING_ANALYSIS_1041.md](./architecture/KERNEL_REFACTORING_ANALYSIS_1041.md)
+
+---
+
 ### 2025-10 sage-libs 模块重构 (Issue #1040)
 
 **问题**:
