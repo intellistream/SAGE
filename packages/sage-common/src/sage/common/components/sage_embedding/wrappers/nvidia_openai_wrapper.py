@@ -95,10 +95,10 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
         # 检查依赖
         try:
             from openai import OpenAI  # noqa: F401
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
                 "NVIDIA OpenAI embedding 需要 openai 包。\n" "安装方法: pip install openai"
-            )
+            ) from err
 
         self._model = model
         self._base_url = base_url

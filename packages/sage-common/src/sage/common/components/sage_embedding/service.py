@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
+
 from sage.common.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
 from sage.platform.service import BaseService
 
@@ -25,24 +26,24 @@ class EmbeddingServiceConfig:
     """Configuration for EmbeddingService."""
 
     method: str  # "hf", "openai", "jina", "vllm", etc.
-    model: Optional[str] = None  # Model name/path
-    api_key: Optional[str] = None  # API key for cloud services
-    base_url: Optional[str] = None  # Custom API endpoint
+    model: str | None = None  # Model name/path
+    api_key: str | None = None  # API key for cloud services
+    base_url: str | None = None  # Custom API endpoint
     batch_size: int = 32  # Default batch size
     normalize: bool = True  # Normalize vectors
     cache_enabled: bool = False  # Enable embedding cache
     cache_size: int = 10000  # LRU cache size
 
     # Method-specific configs
-    config: Dict[str, Any] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
 
     # vLLM-specific (if method == "vllm")
-    vllm_service_name: Optional[str] = None  # Name of vLLM service to use
+    vllm_service_name: str | None = None  # Name of vLLM service to use
     vllm_auto_download: bool = False
-    vllm_engine_config: Dict[str, Any] = field(default_factory=dict)
+    vllm_engine_config: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "EmbeddingServiceConfig":
+    def from_dict(cls, data: dict[str, Any]) -> EmbeddingServiceConfig:
         """Create config from dictionary."""
         return cls(
             method=data["method"],
@@ -99,30 +100,26 @@ class EmbeddingService(BaseService):
               vllm_service_name: "vllm"
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         super().__init__()
         self.config = EmbeddingServiceConfig.from_dict(config)
-        self._embedder = None
+        self._embedder: Any | None = None  # BaseEmbedding instance or None
         self._lock = threading.RLock()
-        self._cache: Optional[Dict[str, List[float]]] = None
-        self._dimension: Optional[int] = None
+        self._cache: dict[str, list[float]] | None = None
+        self._dimension: int | None = None
 
     # ------------------------------------------------------------------
     # SAGE lifecycle hooks
     # ------------------------------------------------------------------
     def setup(self) -> None:
         """Initialize the embedding service."""
-        self.logger.info(
-            f"EmbeddingService setup starting: method={self.config.method}"
-        )
+        self.logger.info(f"EmbeddingService setup starting: method={self.config.method}")
 
         with self._lock:
             if self.config.method == "vllm":
                 # Use vLLM service for embeddings
                 if not self.config.vllm_service_name:
-                    raise ValueError(
-                        "vLLM method requires 'vllm_service_name' in config"
-                    )
+                    raise ValueError("vLLM method requires 'vllm_service_name' in config")
                 self.logger.info(f"Using vLLM service: {self.config.vllm_service_name}")
                 # Don't create embedder - will use service call
             else:
@@ -141,12 +138,9 @@ class EmbeddingService(BaseService):
 
             # Setup cache if enabled
             if self.config.cache_enabled:
-                from functools import lru_cache
 
                 self._cache = {}
-                self.logger.info(
-                    f"Embedding cache enabled: size={self.config.cache_size}"
-                )
+                self.logger.info(f"Embedding cache enabled: size={self.config.cache_size}")
 
         self.logger.info("EmbeddingService setup complete")
 
@@ -165,7 +159,7 @@ class EmbeddingService(BaseService):
     # ------------------------------------------------------------------
     # Public service API
     # ------------------------------------------------------------------
-    def process(self, payload: Dict[str, Any]) -> Any:
+    def process(self, payload: dict[str, Any]) -> Any:
         """Process embedding requests.
 
         Payload format:
@@ -198,12 +192,12 @@ class EmbeddingService(BaseService):
 
     def embed(
         self,
-        texts: Union[str, List[str]],
+        texts: str | list[str],
         *,
-        normalize: Optional[bool] = None,
-        batch_size: Optional[int] = None,
+        normalize: bool | None = None,
+        batch_size: int | None = None,
         return_stats: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate embeddings for text(s).
 
         Args:
@@ -236,6 +230,10 @@ class EmbeddingService(BaseService):
                 "method": self.config.method,
                 "model": self.config.model,
             }
+
+        # Ensure setup has been called
+        if self.config.method != "vllm" and self._embedder is None:
+            raise RuntimeError("EmbeddingService not setup. Call setup() first.")
 
         normalize = normalize if normalize is not None else self.config.normalize
         batch_size = batch_size or self.config.batch_size
@@ -278,6 +276,7 @@ class EmbeddingService(BaseService):
                 uncached_vectors = result["vectors"]
             else:
                 # Use standard embedder
+                assert self._embedder is not None  # Checked at method entry
                 uncached_vectors = []
                 for i in range(0, len(uncached_texts), batch_size):
                     batch = uncached_texts[i : i + batch_size]
@@ -294,7 +293,7 @@ class EmbeddingService(BaseService):
 
             # Update cache and results
             for idx, text, vec in zip(
-                uncached_indices, uncached_texts, uncached_vectors
+                uncached_indices, uncached_texts, uncached_vectors, strict=False
             ):
                 vectors[idx] = vec
                 if self.config.cache_enabled and self._cache is not None:
@@ -308,11 +307,14 @@ class EmbeddingService(BaseService):
             vectors[idx] = vec
 
         # Build response
+        first_vector: Optional[List[float]] = vectors[0] if vectors else None
+        dimension = (
+            len(first_vector) if first_vector is not None else self.get_dimension()
+        )
+
         result = {
             "vectors": vectors,
-            "dimension": (
-                len(vectors[0]) if vectors and vectors[0] else self.get_dimension()
-            ),
+            "dimension": dimension,
             "count": len(vectors),
             "method": self.config.method,
             "model": self.config.model or self.config.method,
@@ -351,7 +353,7 @@ class EmbeddingService(BaseService):
 
     def get_info(self) -> Dict[str, Any]:
         """Get embedding service information."""
-        info = {
+        info: Dict[str, Any] = {
             "method": self.config.method,
             "model": self.config.model,
             "dimension": self.get_dimension(),
@@ -361,17 +363,18 @@ class EmbeddingService(BaseService):
         }
 
         if self.config.cache_enabled and self._cache is not None:
-            info["cache_stats"] = {
+            cache_stats: Dict[str, int] = {
                 "size": len(self._cache),
                 "capacity": self.config.cache_size,
             }
+            info["cache_stats"] = cache_stats
 
         if self.config.method == "vllm":
             info["vllm_service"] = self.config.vllm_service_name
 
         return info
 
-    def list_methods(self) -> List[Dict[str, Any]]:
+    def list_methods(self) -> list[dict[str, Any]]:
         """List all available embedding methods."""
         methods = []
         for method in EmbeddingRegistry.list_methods():
@@ -411,7 +414,7 @@ class EmbeddingService(BaseService):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _normalize_vector(self, vec: List[float]) -> List[float]:
+    def _normalize_vector(self, vec: list[float]) -> list[float]:
         """Normalize a vector to unit length."""
         array = np.array(vec, dtype=np.float32)
         norm = np.linalg.norm(array)
