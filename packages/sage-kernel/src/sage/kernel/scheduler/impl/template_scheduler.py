@@ -15,9 +15,9 @@
 4. 在 impl/__init__.py 中导出
 5. 通过 Environment(scheduler=YourScheduler()) 使用
 """
-
+"""
 import time
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Union
 
 from sage.kernel.scheduler.api import BaseScheduler
 
@@ -25,8 +25,10 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
     from sage.kernel.runtime.graph.service_node import ServiceNode
     from sage.kernel.runtime.service.base_service_task import BaseServiceTask
+    from sage.kernel.runtime.service.local_service_task import LocalServiceTask
     from sage.kernel.runtime.task.base_task import BaseTask
-
+    from sage.kernel.runtime.task.local_task import LocalTask
+    from sage.kernel.utils.ray.actor import ActorWrapper
 
 class TemplateScheduler(BaseScheduler):
     """
@@ -64,7 +66,7 @@ class TemplateScheduler(BaseScheduler):
         self.scheduled_count = 0
         self.metrics: dict[str, dict[str, float | int]] = {}
 
-    def schedule_task(self, task_node: "TaskNode", runtime_ctx=None) -> "BaseTask":
+    def schedule_task(self, task_node: "TaskNode", runtime_ctx=None) -> Union["LocalTask", "ActorWrapper"]:
         """
         调度任务节点
 
@@ -79,7 +81,7 @@ class TemplateScheduler(BaseScheduler):
             runtime_ctx: 运行时上下文
 
         Returns:
-            创建的任务实例
+            创建的任务实例（LocalTask 或 ActorWrapper）
         """
         start_time = time.time()
 
@@ -141,7 +143,7 @@ class TemplateScheduler(BaseScheduler):
 
     def schedule_service(
         self, service_node: "ServiceNode", runtime_ctx=None
-    ) -> "BaseServiceTask":
+    ) -> Union["LocalServiceTask", "ActorWrapper"]:
         """
         调度服务节点
 
@@ -150,7 +152,7 @@ class TemplateScheduler(BaseScheduler):
             runtime_ctx: 运行时上下文
 
         Returns:
-            创建的服务任务实例
+            创建的服务任务实例（LocalServiceTask 或 ActorWrapper）
         """
         ctx = runtime_ctx if runtime_ctx is not None else service_node.ctx
         service_task = service_node.service_task_factory.create_service_task(ctx)

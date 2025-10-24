@@ -51,7 +51,7 @@ class SimpleTestQueue:
 def _is_ray_local_mode():
     """检查Ray是否在local mode下运行"""
     try:
-        return ray._private.worker.global_worker.mode == ray._private.worker.LOCAL_MODE
+        return ray._private.worker.global_worker.mode == ray._private.worker.LOCAL_MODE  # type: ignore[attr-defined]
     except Exception:
         return False
 

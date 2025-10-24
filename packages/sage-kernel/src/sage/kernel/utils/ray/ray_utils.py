@@ -83,7 +83,7 @@ def ensure_ray_initialized(runtime_env=None):
             # 使用统一的output_paths系统
             if SAGE_OUTPUT_PATHS_AVAILABLE:
                 try:
-                    sage_paths = get_sage_paths()
+                    sage_paths = get_sage_paths()  # type: ignore[possibly-unbound]
                     # 设置环境变量
                     sage_paths.setup_environment_variables()
                     ray_temp_dir = sage_paths.get_ray_temp_dir()
@@ -92,16 +92,6 @@ def ensure_ray_initialized(runtime_env=None):
                 except Exception as e:
                     print(
                         f"Warning: Failed to set Ray temp directory via output_paths: {e}"
-                    )
-
-                    # 如果没有成功设置，使用默认行为
-                    init_kwargs["_temp_dir"] = str(ray_temp_dir)
-                    print(
-                        f"Ray will use SAGE temp directory (fallback): {ray_temp_dir}"
-                    )
-                except Exception as e:
-                    print(
-                        f"Warning: Failed to set Ray temp directory via fallback: {e}"
                     )
 
             if ray_temp_dir is None:

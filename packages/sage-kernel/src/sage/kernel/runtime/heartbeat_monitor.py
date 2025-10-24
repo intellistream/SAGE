@@ -156,7 +156,7 @@ class HeartbeatMonitor:
         """
         try:
             # 调用 Ray Task 的 get_heartbeat_stats() 方法
-            heartbeat = task.get_heartbeat_stats()
+            heartbeat = task.get_heartbeat_stats()  # type: ignore[attr-defined]
             self.logger.debug(f"💓 Pulled heartbeat from {task_id}: {heartbeat}")
             return heartbeat  # type: ignore[return-value]
 
