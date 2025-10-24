@@ -22,8 +22,8 @@ class ServiceResponse:
 
     success: bool
     result: Any = None
-    error: str = None
-    request_id: str = None
+    error: str | None = None
+    request_id: str | None = None
 
 
 class ServiceManager:
@@ -436,11 +436,12 @@ class ServiceManager:
                 return
 
             # 存储结果
+            error_msg = response_data.get("error")
             self._request_results[request_id] = ServiceResponse(
                 request_id=request_id,
                 success=response_data.get("success", False),
                 result=response_data.get("result"),
-                error=response_data.get("error"),
+                error=str(error_msg) if error_msg is not None else None,
             )
 
             self.logger.debug(
