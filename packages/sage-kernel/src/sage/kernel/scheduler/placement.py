@@ -69,7 +69,7 @@ class PlacementExecutor:
 
     def place_task(
         self, task_node: "TaskNode", decision: "PlacementDecision", runtime_ctx=None
-    ) -> "BaseTask":
+    ):
         """
         根据调度决策执行物理放置
 
@@ -138,7 +138,7 @@ class PlacementExecutor:
 
     def _place_remote_task(
         self, task_node: "TaskNode", ctx, decision: "PlacementDecision"
-    ) -> "BaseTask":
+    ):
         """
         放置远程任务（创建 Ray Actor 并指定节点）
 
@@ -159,8 +159,9 @@ class PlacementExecutor:
         # 创建 Ray Actor
         from sage.kernel.runtime.task.ray_task import RayTask
         from sage.kernel.utils.ray.actor import ActorWrapper
+        import ray
 
-        task_actor = RayTask.options(**ray_options).remote(
+        task_actor = ray.remote(RayTask).options(**ray_options).remote(
             ctx, task_node.task_factory.operator_factory
         )
 
@@ -181,7 +182,7 @@ class PlacementExecutor:
         Returns:
             Ray options 字典
         """
-        options = {"lifetime": "detached"}
+        options: Dict[str, Any] = {"lifetime": "detached"}
 
         # === 指定目标节点 ===
         if decision.target_node:
@@ -254,7 +255,7 @@ class PlacementExecutor:
         service_node: "ServiceNode",
         decision: "PlacementDecision",
         runtime_ctx=None,
-    ) -> "BaseServiceTask":
+    ):
         """
         根据调度决策放置服务
 
