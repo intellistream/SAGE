@@ -11,7 +11,7 @@ class SourceOperator(BaseOperator):
     def receive_packet(self, packet: "Packet"):
         self.process_packet(packet)
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         """
         处理 Source 节点的数据生成
 

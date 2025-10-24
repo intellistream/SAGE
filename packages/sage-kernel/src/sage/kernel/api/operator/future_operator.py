@@ -13,9 +13,10 @@ class FutureOperator(BaseOperator):
     这个operator不会被实际执行，只是作为placeholder存在。
     """
 
-    def __init__(self, function_factory: FunctionFactory, basename: str, env_name: str):
-        super().__init__(function_factory, basename, env_name)
+    def __init__(self, function_factory: FunctionFactory, ctx, env_name: str = ""):
+        super().__init__(function_factory, ctx)  # type: ignore
         self.is_future = True
+        self.basename = getattr(ctx, "name", env_name)
 
     def process(self, data: Any) -> Any:
         """

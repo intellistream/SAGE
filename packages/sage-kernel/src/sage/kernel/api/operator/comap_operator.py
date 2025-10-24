@@ -46,7 +46,7 @@ class CoMapOperator(BaseOperator):
 
         self.logger.debug(f"Validated CoMap function {type(self.function).__name__}")
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         """CoMap处理多输入，保持分区信息"""
         try:
             if packet is None or packet.payload is None:

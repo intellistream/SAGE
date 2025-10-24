@@ -72,7 +72,7 @@ class MapOperator(BaseOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist time records: {e}")
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         try:
             if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")
@@ -100,7 +100,7 @@ class MapOperator(BaseOperator):
                     else None
                 )
                 if result_packet is not None:
-                    self.router.send(result_packet)
+                    self.router.send(result_packet)  # type: ignore
 
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)

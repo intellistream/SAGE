@@ -21,7 +21,7 @@ class KeyByOperator(BaseOperator):
             f"KeyByOperator '{self.name}' initialized with strategy: {partition_strategy}"
         )
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         """重写packet处理，添加分区信息"""
         try:
             if packet is None or packet.payload is None:

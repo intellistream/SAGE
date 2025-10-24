@@ -16,7 +16,7 @@ class BatchOperator(BaseOperator):
     def receive_packet(self, packet: "Packet"):
         self.process_packet(packet)
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         try:
             result = self.function.execute()
             self.logger.debug(

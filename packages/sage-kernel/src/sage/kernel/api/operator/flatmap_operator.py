@@ -33,7 +33,7 @@ class FlatMapOperator(BaseOperator):
         self.function.insert_collector(self.out)
         self.logger.info(f"FlatMapOperator '{self.name}' initialized with collector")
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         """
         重写packet处理，支持FlatMap的多输出特性
         """

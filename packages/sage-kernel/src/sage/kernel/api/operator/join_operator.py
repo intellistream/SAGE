@@ -55,7 +55,7 @@ class JoinOperator(BaseOperator):
 
         self.logger.debug(f"Validated Join function {type(self.function).__name__}")
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         """Join处理，将packet信息传递给join function"""
         try:
             if packet is None or packet.payload is None:

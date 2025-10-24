@@ -12,7 +12,7 @@ class SinkOperator(BaseOperator):
     - 无需额外的同步机制
     """
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         try:
             if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")
