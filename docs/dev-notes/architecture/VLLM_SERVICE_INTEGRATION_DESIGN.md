@@ -1,5 +1,10 @@
 # VLLM Service Integration – Design Proposal
 
+**Date**: 2024-09-20  
+**Author**: SAGE Team  
+**Summary**: vLLM 服务集成设计，包括 API 封装、配置管理和性能优化策略
+
+
 ## 1. Goals & Requirements
 
 Issue [#809](https://github.com/intellistream/SAGE/issues/809) asks us to promote vLLM from a standalone CLI launcher to a first-class, blocking SAGE service that can be orchestrated by the kernel. The target features are:

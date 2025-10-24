@@ -1,5 +1,12 @@
 # CHANGELOG - SAGE Embedding 系统
 
+**Date**: 2024-09-23  
+**Author**: SAGE Team  
+**Summary**: Embedding 变更日志
+
+---
+
+
 所有重要更改都记录在此文件中。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。

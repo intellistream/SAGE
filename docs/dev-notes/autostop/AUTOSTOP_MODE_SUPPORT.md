@@ -1,5 +1,10 @@
 # autostop 功能在不同模式下的支持情况
 
+**Date**: 2024-11-10  
+**Author**: SAGE Team  
+**Summary**: AutoStop 模式支持文档，包括自动停止机制的设计和实现
+
+
 ## 概述
 
 `autostop=True` 功能现在可以正确清理服务资源。本文档说明在不同运行模式下的支持情况。

@@ -1,5 +1,12 @@
 # SAGE Pipeline Builder - Embedding 增强集成 🎯
 
+**Date**: 2024-09-24  
+**Author**: SAGE Team  
+**Summary**: Pipeline Builder Embedding 集成
+
+---
+
+
 **完成时间:** 2024-10-06
 
 **目标:** 将统一的 Embedding 系统集成到 Pipeline Builder，提升知识检索质量和灵活性

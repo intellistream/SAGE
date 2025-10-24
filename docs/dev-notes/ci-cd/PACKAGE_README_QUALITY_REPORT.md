@@ -1,10 +1,10 @@
-**Date**: 2024-10-24
-**Author**: package_readme_checker.py
+# Package README Quality Report
+
+**Date**: 2024-10-24  
+**Author**: package_readme_checker.py  
 **Summary**: Package README 质量检查报告 - 自动生成的各包 README 文档质量评估
 
 ---
-
-# Package README Quality Report
 
 **Generated**: 2024-10-24 09:07:16
 

@@ -1,10 +1,10 @@
-**Date**: 2024-10-24
-**Author**: GitHub Copilot
+# 文档维护快速参考
+
+**Date**: 2024-10-24  
+**Author**: GitHub Copilot  
 **Summary**: 文档维护快速参考 - 常用命令和工作流程
 
 ---
-
-# 文档维护快速参考
 
 ## 🚀 快速命令
 
@@ -304,7 +304,7 @@ python tools/devnotes_checker.py --changed-only --diff HEAD~5
 
 ### 优秀示例
 
-- **Package README**: 
+- **Package README**:
   - `packages/sage-platform/README.md` (100分)
   - `packages/sage-common/README.md` (100分)
   - `packages/sage-benchmark/README.md` (90分)

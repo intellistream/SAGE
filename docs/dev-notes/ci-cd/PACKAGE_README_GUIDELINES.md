@@ -1,10 +1,10 @@
-**Date**: 2024-10-24
-**Author**: GitHub Copilot
+# Package README 编写指南
+
+**Date**: 2024-10-24  
+**Author**: GitHub Copilot  
 **Summary**: Package README 编写指南和质量检查工具使用说明
 
 ---
-
-# Package README 编写指南
 
 ## 一、概述
 

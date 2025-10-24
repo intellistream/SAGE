@@ -1,5 +1,10 @@
 # SAGE Chat 架构详解
 
+**Date**: 2024-10-15  
+**Author**: SAGE Team  
+**Summary**: SAGE Chat 架构设计文档，包括对话管理、上下文处理和多轮对话支持
+
+
 ## 🎯 核心问题解答
 
 ### Q1: 为什么 Mock LLM 也能支持 sage chat？

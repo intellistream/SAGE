@@ -1,5 +1,12 @@
 # Fix: libstdc++ CI Check Bug #869
 
+**Date**: 2024-11-02  
+**Author**: SAGE Team  
+**Summary**: libstdc++ CI 问题修复
+
+---
+
+
 ## 问题描述
 
 在 CI 环境中使用 `./quickstart.sh --dev --pip --yes` 安装 SAGE 时，会出现以下误导性警告信息：

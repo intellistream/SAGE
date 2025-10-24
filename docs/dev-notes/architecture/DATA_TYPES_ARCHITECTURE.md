@@ -1,5 +1,11 @@
 # SAGE 数据类型架构设计
 
+**Date**: 2024-10-20  
+**Author**: SAGE Team  
+**Summary**: SAGE 分层数据类型系统设计文档，包括 BaseDocument、RAGDocument 等核心类型的架构说明
+
+---
+
 ## 架构概览
 
 SAGE 采用分层的数据类型系统，从通用到专用逐层继承：

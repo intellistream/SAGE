@@ -1,5 +1,12 @@
 # SAGE Finetune 重构总结
 
+**Date**: 2024-10-12  
+**Author**: SAGE Team  
+**Summary**: Finetune 模块重构总结
+
+---
+
+
 > **✅ 当前文档**: 本文档描述了微调功能的模块化重构。完整 API 文档和使用指南见 `packages/sage-tools/src/sage/tools/finetune/README.md`。
 
 ## 🎯 重构目标

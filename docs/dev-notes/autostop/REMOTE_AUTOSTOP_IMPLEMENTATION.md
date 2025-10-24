@@ -1,5 +1,10 @@
 # RemoteEnvironment autostop 功能实现完成
 
+**Date**: 2024-11-15  
+**Author**: SAGE Team  
+**Summary**: 远程 AutoStop 实现文档，支持分布式环境下的自动停止功能
+
+
 ## ✅ 功能已实现
 
 我已成功为 `RemoteEnvironment` 添加了 `autostop` 功能支持！

@@ -1,7 +1,10 @@
 # Kernel 层重构分析 - Issue #1041
 
+**Date**: 2025-10-24  
+**Author**: SAGE Team  
+**Summary**: Kernel 层功能重构分析，探讨将部分功能下沉到 platform 或 common 层的可行性
+
 > **问题**: kernel 的部分功能应该下沉到 platform 或 common 层  
-> **日期**: 2025-10-24  
 > **状态**: 📋 分析中
 
 ---
@@ -633,15 +636,15 @@ L4: sage-middleware → sage-kernel ✅ 正常向下依赖
 L1: sage-common
     ├── core/functions/      ✅ 函数接口下沉到L1
     └── components/debug/    ✅ PrintSink下沉到L1
-    
+
 L2: sage-platform (队列、存储、服务)
-    
+
 L3: sage-kernel (执行引擎) ✅ 不再包含函数接口
     └── 依赖: common (函数接口), platform (队列、服务)
-    
+
     sage-libs ✅ 现在只依赖 common
     └── 依赖: common (函数接口)
-    
+
 L4: sage-middleware
     └── 依赖: common, platform, kernel, libs
 ```
@@ -681,13 +684,13 @@ L4: sage-middleware
 **决定**: 删除 `sage.kernel.api.function.kafka_source.py`
 
 **理由**:
-1. **重复实现**: 
+1. **重复实现**:
    - `sage-kernel`: KafkaSourceFunction (完整实现，202行)
    - `sage-libs`: KafkaSource (占位符，仅24行)
-2. **未被使用**: 
+2. **未被使用**:
    - kernel 中的实现只在 `base_environment.from_kafka_source()` 中使用
    - libs 中的实现是占位符
-3. **简化架构**: 
+3. **简化架构**:
    - Kafka 是具体功能，不是基础接口
    - 应该在应用层（libs 或 middleware）提供
 

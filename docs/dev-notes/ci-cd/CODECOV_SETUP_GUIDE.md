@@ -1,5 +1,12 @@
 # Codecov Integration Setup Guide
 
+**Date**: 2024-11-08  
+**Author**: SAGE Team  
+**Summary**: Codecov 配置指南
+
+---
+
+
 ## Overview
 This document explains how to set up codecov.io integration for the SAGE project to track test coverage across all commits and pull requests.
 

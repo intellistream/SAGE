@@ -1,5 +1,10 @@
 # Pull Request: Complete Package Build Configuration - BREAKING CHANGE
 
+**Date**: 2024-08-15  
+**Author**: SAGE Team  
+**Summary**: PR 描述模板和规范说明
+
+
 ## ⚠️ BREAKING CHANGE
 
 This PR adds 3 previously missing packages to the build/test/deployment pipeline. This is a **breaking change** because:

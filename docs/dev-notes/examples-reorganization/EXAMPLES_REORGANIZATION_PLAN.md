@@ -1,5 +1,12 @@
 # Examples 目录重组计划
 
+**Date**: 2024-10-19  
+**Author**: SAGE Team  
+**Summary**: Examples 重组计划
+
+---
+
+
 ## 目标
 
 1. **教程示例** (examples/tutorials/) - 简单的学习示例

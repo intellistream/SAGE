@@ -1,5 +1,12 @@
 # autostop=True 无法正常停止带有 service 的应用 - 修复方案
 
+**Date**: 2024-11-17  
+**Author**: SAGE Team  
+**Summary**: AutoStop 服务清理修复说明
+
+---
+
+
 ## 问题分析
 
 你遇到的问题是：当使用 `autostop=True` 提交带有 service 的应用时，虽然计算任务能正常完成，但**服务（service）无法被正确清理**，导致资源泄漏。

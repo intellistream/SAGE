@@ -1,10 +1,10 @@
-**Date**: 2024-10-24
-**Author**: GitHub Copilot
+# SAGE 项目文档全面检查报告
+
+**Date**: 2024-10-24  
+**Author**: GitHub Copilot  
 **Summary**: SAGE 项目文档全面检查报告 - 统计、分析和建议
 
 ---
-
-# SAGE 项目文档全面检查报告
 
 ## 一、文档总体统计
 
@@ -70,7 +70,7 @@
 - 主仓库: `.github/ISSUE_TEMPLATE/` (16 个)
 - sageFlow: `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow/.github/ISSUE_TEMPLATE/` (17 个)
 
-**建议**: 
+**建议**:
 - 如果 sageFlow 是独立仓库的子模块，保留其 Issue 模板（用于上游贡献）
 - 如果是内嵌组件，应移除其 Issue 模板，使用主仓库的
 

@@ -1,5 +1,12 @@
 # LLMTuner 兼容性问题修复报告
 
+**Date**: 2024-10-15  
+**Author**: SAGE Team  
+**Summary**: Finetune 兼容性修复
+
+---
+
+
 > **⚠️ 历史文档**: 本文档记录了早期的兼容性修复过程。当前训练功能已重构为 `sage.tools.finetune` 模块，详见 `FINETUNE_REFACTOR_SUMMARY.md` 和 `packages/sage-tools/src/sage/tools/finetune/README.md`。
 
 ## 问题描述

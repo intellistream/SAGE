@@ -1,5 +1,12 @@
 # SAGE Embedding 系统 🎯
 
+**Date**: 2024-09-27  
+**Author**: SAGE Team  
+**Summary**: Embedding 迁移说明
+
+---
+
+
 **版本**: 2.0.0  
 **状态**: ✅ Production Ready  
 **更新**: 2024-10-06

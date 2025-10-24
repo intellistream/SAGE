@@ -1,5 +1,12 @@
 # Development Infrastructure Setup - Summary
 
+**Date**: 2024-11-01  
+**Author**: SAGE Team  
+**Summary**: 开发基础设施配置指南
+
+---
+
+
 **Date**: 2025-10-02  
 **Commits**:
 - `510ae5e7` - docs: reorganize and cleanup dev-notes directory (#880)
