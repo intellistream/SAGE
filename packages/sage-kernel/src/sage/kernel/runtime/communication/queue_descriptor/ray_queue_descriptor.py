@@ -121,9 +121,8 @@ class RayQueueManager:
                 try:
                     from ray.util.queue import Queue
 
-                    self.queues[queue_id] = Queue(
-                        maxsize=maxsize if maxsize > 0 else None
-                    )
+                    queue_maxsize = maxsize if maxsize > 0 else 0
+                    self.queues[queue_id] = Queue(maxsize=queue_maxsize)
                     logger.debug(f"Created new Ray queue {queue_id} (distributed mode)")
                 except Exception as e:
                     # 如果Ray队列创建失败，回退到简单队列
@@ -236,7 +235,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
             queue_id: 队列唯一标识符
         """
         self.maxsize = maxsize
-        self._queue = None  # 延迟初始化
+        self._queue: Any = None  # 延迟初始化
         super().__init__(queue_id=queue_id)
 
     @property
@@ -260,12 +259,12 @@ class RayQueueDescriptor(BaseQueueDescriptor):
         if self._queue is None:
             manager = get_global_queue_manager()
             # 确保队列被创建，但不获取队列对象本身
-            ray.get(manager.get_or_create_queue.remote(self.queue_id, self.maxsize))
+            ray.get(manager.get_or_create_queue.remote(self.queue_id, self.maxsize))  # type: ignore
             # 返回一个队列代理对象
             self._queue = RayQueueProxy(manager, self.queue_id)
         return self._queue
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, include_non_serializable: bool = False) -> Dict[str, Any]:
         """序列化为字典，包含队列元信息"""
         return {
             "queue_type": self.queue_type,
