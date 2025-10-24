@@ -79,9 +79,12 @@ def _create_checkpoint_handler(config: Dict[str, Any]) -> CheckpointBasedRecover
 
 def _create_restart_handler(config: Dict[str, Any]) -> RestartBasedRecovery:
     """创建基于重启的容错处理器"""
+    from typing import Union
+    
     restart_strategy_type = config.get("restart_strategy", "exponential")
 
     # 创建重启策略
+    restart_strategy: Union[FixedDelayStrategy, ExponentialBackoffStrategy, FailureRateStrategy]
     if restart_strategy_type == "fixed":
         delay = config.get("delay", 5.0)
         max_attempts = config.get("max_attempts", 3)
