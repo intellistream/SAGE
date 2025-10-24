@@ -23,8 +23,8 @@ class ServiceTaskFactory:
         self.remote = remote
 
     def create_service_task(
-        self, ctx: "ServiceContext" = None
-    ) -> Union["BaseService", "ActorWrapper"]:
+        self, ctx: "ServiceContext | None" = None
+    ):
         """
         参考task_factory.create_task的逻辑，创建服务任务实例
 
@@ -37,15 +37,15 @@ class ServiceTaskFactory:
         if self.remote:
             # 创建Ray服务任务
             from sage.kernel.runtime.service.ray_service_task import RayServiceTask
+            from sage.kernel.utils.ray.actor import ActorWrapper
+            import ray
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
-            ray_service_task = RayServiceTask.options(lifetime="detached").remote(
+            ray_service_task = ray.remote(RayServiceTask).options(lifetime="detached").remote(
                 service_factory=self.service_factory, ctx=ctx
             )
 
             # 使用ActorWrapper包装
-            from sage.kernel.utils.ray.actor import ActorWrapper
-
             service_task = ActorWrapper(ray_service_task)
 
         else:
@@ -53,7 +53,7 @@ class ServiceTaskFactory:
             from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
             service_task = LocalServiceTask(
-                service_factory=self.service_factory, ctx=ctx
+                service_factory=self.service_factory, ctx=ctx  # type: ignore
             )
 
         return service_task
