@@ -18,7 +18,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 @dataclass
@@ -53,14 +53,15 @@ class PackageREADMECheck:
         required_found = sum(1 for s in required_sections if s.found)
         optional_found = sum(1 for s in optional_sections if s.found)
 
-        required_score = (
-            (required_found / len(required_sections) * 70) if required_sections else 0
-        )
-        optional_score = (
-            (optional_found / len(optional_sections) * 30) if optional_sections else 0
-        )
+        required_score = (required_found / len(required_sections) * 70) if required_sections else 0
+        optional_score = (optional_found / len(optional_sections) * 30) if optional_sections else 0
 
-        self.score = required_score + optional_score
+        base_score = required_score + optional_score
+
+        # Deduct points for issues (each issue -5 points, minimum 0)
+        issue_penalty = len(self.issues) * 5
+        self.score = max(0.0, base_score - issue_penalty)
+
         return self.score
 
 
@@ -96,9 +97,7 @@ class PackageREADMEChecker:
             return []
 
         return [
-            p.name
-            for p in self.packages_dir.iterdir()
-            if p.is_dir() and p.name.startswith("sage-")
+            p.name for p in self.packages_dir.iterdir() if p.is_dir() and p.name.startswith("sage-")
         ]
 
     def check_readme(self, package_name: str) -> PackageREADMECheck:
@@ -148,9 +147,7 @@ class PackageREADMEChecker:
         # Check for placeholder links
         placeholders = re.findall(r"\{[A-Z_]+\}", content)
         if placeholders:
-            result.issues.append(
-                f"Found placeholder text: {', '.join(set(placeholders))}"
-            )
+            result.issues.append(f"Found placeholder text: {', '.join(set(placeholders))}")
 
     def _check_badges(self, content: str, result: PackageREADMECheck):
         """Check if README has status badges."""
@@ -177,13 +174,9 @@ class PackageREADMEChecker:
 
         total_packages = len(results)
         packages_with_readme = sum(1 for r in results.values() if r.exists)
-        avg_score = (
-            sum(r.score for r in results.values()) / total_packages
-            if total_packages
-            else 0
-        )
+        avg_score = sum(r.score for r in results.values()) / total_packages if total_packages else 0
 
-        print(f"📊 Overall Statistics:")
+        print("📊 Overall Statistics:")
         print(f"  - Total packages: {total_packages}")
         print(f"  - Packages with README: {packages_with_readme}")
         print(f"  - Average quality score: {avg_score:.1f}/100")
@@ -192,7 +185,7 @@ class PackageREADMEChecker:
         # Sort by score
         sorted_results = sorted(results.items(), key=lambda x: x[1].score, reverse=True)
 
-        print(f"📋 Individual Package Scores:")
+        print("📋 Individual Package Scores:")
         print()
 
         for package_name, result in sorted_results:
@@ -275,9 +268,7 @@ def main():
     parser = argparse.ArgumentParser(description="Check package README quality")
     parser.add_argument("--package", help="Check specific package")
     parser.add_argument("--all", action="store_true", help="Check all packages")
-    parser.add_argument(
-        "--report", action="store_true", help="Generate detailed report"
-    )
+    parser.add_argument("--report", action="store_true", help="Generate detailed report")
     parser.add_argument("--output", help="Output file for report")
 
     args = parser.parse_args()
@@ -309,13 +300,15 @@ def main():
             print(report)
 
     # Exit with error if any package has low score
-    min_score = min(r.score for r in results.values())
-    if min_score < 60:
-        print(
-            f"\n⚠️  Warning: Some packages have low README quality (minimum: {min_score:.1f})"
-        )
+    failing_packages = [name for name, r in results.items() if r.score < 80 or r.issues]
+
+    if failing_packages:
+        print(f"\n❌ {len(failing_packages)} package(s) have README quality issues:")
+        for pkg in failing_packages:
+            print(f"   - {pkg}: {results[pkg].score:.1f}/100")
         return 1
 
+    print("\n✅ All package READMEs meet quality standards!")
     return 0
 
 
