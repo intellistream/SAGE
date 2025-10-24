@@ -151,7 +151,9 @@ def terminate_process(pid: int, timeout: int = 5) -> dict[str, Any]:
         }
 
 
-def terminate_processes_by_name(process_names: list[str], timeout: int = 5) -> dict[str, Any]:
+def terminate_processes_by_name(
+    process_names: list[str], timeout: int = 5
+) -> dict[str, Any]:
     """
     根据进程名称终止所有匹配的进程
 
@@ -186,7 +188,9 @@ def terminate_processes_by_name(process_names: list[str], timeout: int = 5) -> d
     return results
 
 
-def kill_process_with_sudo(pid: int, sudo_password: str | None = None) -> dict[str, Any]:
+def kill_process_with_sudo(
+    pid: int, sudo_password: str | None = None
+) -> dict[str, Any]:
     """
     使用sudo权限强制杀死进程
 
@@ -427,15 +431,15 @@ class SudoManager:
         if self._cached_password is not None:
             return self._cached_password
 
-        default_prompt = (
-            "🔐 This operation requires sudo privileges to manage processes owned by other users."
-        )
+        default_prompt = "🔐 This operation requires sudo privileges to manage processes owned by other users."
         if prompt_message:
             print(prompt_message)
         else:
             print(default_prompt)
 
-        password = getpass.getpass("Please enter your sudo password (or press Enter to skip): ")
+        password = getpass.getpass(
+            "Please enter your sudo password (or press Enter to skip): "
+        )
 
         if password.strip():
             # 验证密码是否正确
@@ -450,7 +454,9 @@ class SudoManager:
                 self._cached_password = ""
                 return ""
         else:
-            print("⚠️  No sudo password provided, may fail to manage processes owned by other users")
+            print(
+                "⚠️  No sudo password provided, may fail to manage processes owned by other users"
+            )
             self._cached_password = ""
             return ""
 
@@ -497,7 +503,9 @@ class SudoManager:
         self._cached_password = None
         self._password_verified = False
 
-    def execute_with_sudo(self, command: list[str], timeout: int = 30) -> dict[str, Any]:
+    def execute_with_sudo(
+        self, command: list[str], timeout: int = 30
+    ) -> dict[str, Any]:
         """
         使用sudo执行命令
 
@@ -557,7 +565,9 @@ def create_sudo_manager() -> SudoManager:
     return SudoManager()
 
 
-def check_process_ownership(pid: int, current_user: str | None = None) -> dict[str, Any]:
+def check_process_ownership(
+    pid: int, current_user: str | None = None
+) -> dict[str, Any]:
     """
     检查进程所有权，判断是否需要sudo权限
 

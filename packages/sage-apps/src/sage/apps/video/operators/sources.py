@@ -6,7 +6,7 @@ import os
 from typing import Any, Dict, Optional
 
 import cv2
-from sage.kernel.api.function.batch_function import BatchFunction
+from sage.common.core.functions.batch_function import BatchFunction
 
 
 class VideoFrameSource(BatchFunction):

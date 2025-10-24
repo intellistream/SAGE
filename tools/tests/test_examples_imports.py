@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 
-def test_import_file(file_path: Path) -> Tuple[bool, str]:
+def check_import_file(file_path: Path) -> Tuple[bool, str]:
     """
     测试一个 Python 文件是否可以成功导入
 
@@ -76,7 +76,7 @@ def main():
             continue
 
         # 测试导入
-        success, error = test_import_file(full_path)
+        success, error = check_import_file(full_path)
 
         if success:
             print(f"✅ PASS: {example_path}")
@@ -101,4 +101,9 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
+
+
+def test_examples_imports():
+    """Pytest entry point - runs the main import test"""
     main()

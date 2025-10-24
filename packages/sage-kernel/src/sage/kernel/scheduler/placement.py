@@ -123,7 +123,9 @@ class PlacementExecutor:
 
         return task
 
-    def _place_local_task(self, task_node: "TaskNode", ctx) -> Union["LocalTask", "ActorWrapper"]:
+    def _place_local_task(
+        self, task_node: "TaskNode", ctx
+    ) -> Union["LocalTask", "ActorWrapper"]:
         """
         放置本地任务（直接创建 LocalTask）
 

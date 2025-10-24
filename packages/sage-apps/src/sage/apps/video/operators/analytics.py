@@ -6,9 +6,9 @@ from collections import Counter, deque
 from typing import Any, Deque, Dict, Iterable, List, Optional
 
 import torch
+from sage.common.core.functions.flatmap_function import FlatMapFunction
+from sage.common.core.functions.map_function import MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.flatmap_function import FlatMapFunction
-from sage.kernel.api.function.map_function import MapFunction
 
 try:
     from transformers import pipeline as hf_pipeline

@@ -95,7 +95,9 @@ class DevNotesChecker:
 
         # 检查文件名（不能包含日期，日期应该在元数据中）
         if re.search(r"\d{4}[-_]\d{2}[-_]\d{2}", rel_path.name):
-            self.warnings.append(f"⚠️  {rel_path}: 文件名不应包含日期，请在文档元数据中标注日期")
+            self.warnings.append(
+                f"⚠️  {rel_path}: 文件名不应包含日期，请在文档元数据中标注日期"
+            )
 
         # 检查元数据
         if not self._check_metadata(file_path, rel_path):
@@ -156,7 +158,9 @@ class DevNotesChecker:
         if "Date" in metadata:
             date_str = metadata["Date"]
             if not re.match(r"\d{4}-\d{2}-\d{2}", date_str):
-                self.errors.append(f"❌ {rel_path}: 日期格式错误 '{date_str}'，应为 YYYY-MM-DD")
+                self.errors.append(
+                    f"❌ {rel_path}: 日期格式错误 '{date_str}'，应为 YYYY-MM-DD"
+                )
                 return False
 
             # 检查日期是否合理（不能是未来日期）
@@ -188,7 +192,9 @@ class DevNotesChecker:
                 + "\n".join(f"   - {f.name}" for f in devnotes_root_files[:10])
             )
             if len(devnotes_root_files) > 10:
-                self.errors.append(f"   ... 还有 {len(devnotes_root_files) - 10} 个文件")
+                self.errors.append(
+                    f"   ... 还有 {len(devnotes_root_files) - 10} 个文件"
+                )
             issues_found = True
 
         # 2. 检查项目根目录是否有应该在 dev-notes 的 markdown 文件
@@ -223,7 +229,9 @@ class DevNotesChecker:
     def check_changed_files(self, changed_files: List[str]) -> Tuple[int, int]:
         """检查变更的文件"""
         devnotes_files = [
-            f for f in changed_files if f.startswith("docs/dev-notes/") and f.endswith(".md")
+            f
+            for f in changed_files
+            if f.startswith("docs/dev-notes/") and f.endswith(".md")
         ]
 
         if not devnotes_files:

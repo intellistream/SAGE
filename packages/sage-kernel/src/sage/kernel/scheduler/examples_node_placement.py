@@ -11,7 +11,6 @@
 from typing import Any
 
 import ray
-
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.node_selector import NodeSelector
@@ -286,7 +285,6 @@ def example_placement_execution():
     """
     PlacementExecutor 如何根据决策执行放置
     """
-
 
     # 这是 PlacementExecutor 内部的实现（简化版）
     def build_ray_options(decision: PlacementDecision):

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from sage.kernel.api.function.map_function import MapFunction
+from sage.common.core.functions.map_function import MapFunction
 from torchvision.models import MobileNet_V3_Large_Weights, mobilenet_v3_large
 
 try:

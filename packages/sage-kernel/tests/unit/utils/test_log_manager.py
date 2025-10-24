@@ -13,7 +13,7 @@ from pathlib import Path
 class LogManager:
     """测试日志管理器"""
 
-    def __init__(self, project_root: str = None):
+    def __init__(self, project_root: str | None = None):
         from sage.common.config.output_paths import get_sage_paths
 
         if project_root is None:
@@ -42,7 +42,9 @@ class LogManager:
         )
 
         # Ray 相关日志
-        self.ray_logger = self._create_logger("ray_tests", self.daily_log_dir / "ray_tests.log")
+        self.ray_logger = self._create_logger(
+            "ray_tests", self.daily_log_dir / "ray_tests.log"
+        )
 
         # 性能日志
         self.perf_logger = self._create_logger(
@@ -63,7 +65,9 @@ class LogManager:
         file_handler.setLevel(logging.DEBUG)
 
         # 格式器
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         file_handler.setFormatter(formatter)
 
         logger.addHandler(file_handler)
@@ -104,7 +108,7 @@ class LogManager:
 _log_manager = None
 
 
-def get_test_log_manager(project_root: str = None) -> "LogManager":
+def get_test_log_manager(project_root: str | None = None) -> "LogManager":
     """获取测试日志管理器实例"""
     global _log_manager
     if _log_manager is None:

@@ -116,11 +116,15 @@ class LoadAwareScheduler(BaseScheduler):
         if hasattr(task_node, "transformation") and task_node.transformation:
             # CPU 需求
             if hasattr(task_node.transformation, "cpu_required"):
-                cpu_required = getattr(task_node.transformation, "cpu_required", cpu_required)
+                cpu_required = getattr(
+                    task_node.transformation, "cpu_required", cpu_required
+                )
 
             # GPU 需求
             if hasattr(task_node.transformation, "gpu_required"):
-                gpu_required = getattr(task_node.transformation, "gpu_required", gpu_required)
+                gpu_required = getattr(
+                    task_node.transformation, "gpu_required", gpu_required
+                )
 
             # 内存需求
             if hasattr(task_node.transformation, "memory_required"):
@@ -138,7 +142,11 @@ class LoadAwareScheduler(BaseScheduler):
         target_node = None
 
         # 只有远程模式才需要选择节点
-        if task_node.task_factory.remote if hasattr(task_node, "task_factory") else False:
+        if (
+            task_node.task_factory.remote
+            if hasattr(task_node, "task_factory")
+            else False
+        ):
             target_node = self.node_selector.select_best_node(
                 cpu_required=cpu_required,
                 gpu_required=gpu_required,
@@ -186,7 +194,9 @@ class LoadAwareScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=(resource_requirements if resource_requirements else None),
+            resource_requirements=(
+                resource_requirements if resource_requirements else None
+            ),
             delay=delay,
             immediate=(delay == 0),
             placement_strategy=self.strategy,
@@ -259,7 +269,9 @@ class LoadAwareScheduler(BaseScheduler):
                     memory_required = self._parse_memory(memory_str)
 
                 # 自定义资源
-                custom_resources = getattr(service_class, "custom_resources", custom_resources)
+                custom_resources = getattr(
+                    service_class, "custom_resources", custom_resources
+                )
 
         # === 步骤 2: 使用 NodeSelector 选择节点（优先使用 spread 策略）===
         # 服务通常需要长期运行，使用 spread 策略避免单点故障
@@ -274,7 +286,9 @@ class LoadAwareScheduler(BaseScheduler):
 
         # 跟踪服务分配
         if target_node:
-            self.node_selector.track_task_placement(service_node.service_name, target_node)
+            self.node_selector.track_task_placement(
+                service_node.service_name, target_node
+            )
 
         # === 步骤 3: 构建资源需求字典 ===
         resource_requirements = {}
@@ -305,7 +319,9 @@ class LoadAwareScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=(resource_requirements if resource_requirements else None),
+            resource_requirements=(
+                resource_requirements if resource_requirements else None
+            ),
             delay=0.0,  # 服务立即调度
             immediate=True,
             placement_strategy=service_strategy,
@@ -337,7 +353,9 @@ class LoadAwareScheduler(BaseScheduler):
         Returns:
             包含负载和资源利用率的指标
         """
-        avg_latency = self.total_latency / self.scheduled_count if self.scheduled_count > 0 else 0
+        avg_latency = (
+            self.total_latency / self.scheduled_count if self.scheduled_count > 0 else 0
+        )
         avg_utilization = (
             sum(self.resource_utilization) / len(self.resource_utilization)
             if self.resource_utilization

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from sage.kernel.api.function.map_function import MapFunction
+from sage.common.core.functions.map_function import MapFunction
 
 
 class SageMiddlewareIntegrator(MapFunction):
