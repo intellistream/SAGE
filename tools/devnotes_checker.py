@@ -95,9 +95,7 @@ class DevNotesChecker:
 
         # 检查文件名（不能包含日期，日期应该在元数据中）
         if re.search(r"\d{4}[-_]\d{2}[-_]\d{2}", rel_path.name):
-            self.warnings.append(
-                f"⚠️  {rel_path}: 文件名不应包含日期，请在文档元数据中标注日期"
-            )
+            self.warnings.append(f"⚠️  {rel_path}: 文件名不应包含日期，请在文档元数据中标注日期")
 
         # 检查元数据
         if not self._check_metadata(file_path, rel_path):
@@ -158,9 +156,7 @@ class DevNotesChecker:
         if "Date" in metadata:
             date_str = metadata["Date"]
             if not re.match(r"\d{4}-\d{2}-\d{2}", date_str):
-                self.errors.append(
-                    f"❌ {rel_path}: 日期格式错误 '{date_str}'，应为 YYYY-MM-DD"
-                )
+                self.errors.append(f"❌ {rel_path}: 日期格式错误 '{date_str}'，应为 YYYY-MM-DD")
                 return False
 
             # 检查日期是否合理（不能是未来日期）
@@ -176,30 +172,58 @@ class DevNotesChecker:
 
     def check_directory_structure(self) -> bool:
         """检查 dev-notes 目录结构"""
+        issues_found = False
+
         if not self.devnotes_dir.exists():
             self.errors.append(f"❌ dev-notes 目录不存在: {self.devnotes_dir}")
             return False
 
-        # 检查是否存在根目录下的文件（除了特殊文件）
-        root_files = [
+        # 1. 检查是否存在 dev-notes 根目录下的文件（除了特殊文件）
+        devnotes_root_files = [
             f for f in self.devnotes_dir.glob("*.md") if f.name not in SPECIAL_FILES
         ]
-        if root_files:
+        if devnotes_root_files:
             self.errors.append(
-                f"❌ dev-notes 根目录下有 {len(root_files)} 个文件需要整理:\n"
-                + "\n".join(f"   - {f.name}" for f in root_files[:10])
+                f"❌ dev-notes 根目录下有 {len(devnotes_root_files)} 个文件需要整理:\n"
+                + "\n".join(f"   - {f.name}" for f in devnotes_root_files[:10])
             )
-            if len(root_files) > 10:
-                self.errors.append(f"   ... 还有 {len(root_files) - 10} 个文件")
+            if len(devnotes_root_files) > 10:
+                self.errors.append(f"   ... 还有 {len(devnotes_root_files) - 10} 个文件")
+            issues_found = True
 
-        return len(root_files) == 0
+        # 2. 检查项目根目录是否有应该在 dev-notes 的 markdown 文件
+        # 允许的根目录文件（用户文档、贡献指南等）
+        allowed_root_md = {
+            "README.md",
+            "CONTRIBUTING.md",
+            "DEVELOPER.md",
+            "LICENSE.md",
+            "CHANGELOG.md",
+            "CODE_OF_CONDUCT.md",
+        }
+
+        project_root_files = [
+            f for f in self.root_dir.glob("*.md") if f.name not in allowed_root_md
+        ]
+
+        if project_root_files:
+            self.errors.append(
+                f"❌ 项目根目录下有 {len(project_root_files)} 个 markdown 文件应该移到 docs/dev-notes/ 下:\n"
+                + "\n".join(
+                    f"   - {f.name} → 建议移到 docs/dev-notes/<category>/"
+                    for f in project_root_files[:10]
+                )
+            )
+            if len(project_root_files) > 10:
+                self.errors.append(f"   ... 还有 {len(project_root_files) - 10} 个文件")
+            issues_found = True
+
+        return not issues_found
 
     def check_changed_files(self, changed_files: List[str]) -> Tuple[int, int]:
         """检查变更的文件"""
         devnotes_files = [
-            f
-            for f in changed_files
-            if f.startswith("docs/dev-notes/") and f.endswith(".md")
+            f for f in changed_files if f.startswith("docs/dev-notes/") and f.endswith(".md")
         ]
 
         if not devnotes_files:
@@ -385,23 +409,32 @@ def main():
     print("=" * 80)
 
     # 检查目录结构
+    structure_ok = True
     if args.check_structure:
         print("\n🔍 检查目录结构...")
         if not checker.check_directory_structure():
+            structure_ok = False
             print("\n❌ 目录结构检查失败")
-            if args.strict:
+        else:
+            print("\n✅ 目录结构检查通过")
+
+        # 如果只检查结构，不检查文件内容
+        if not args.all and not args.changed_only:
+            if not structure_ok:
+                checker.print_results(0, 0)
                 sys.exit(1)
+            sys.exit(0)
 
     # 执行检查
     if args.all:
-        print(f"\n🔍 检查模式: 全部文档")
+        print("\n🔍 检查模式: 全部文档")
         passed, failed = checker.check_all_files()
     elif args.changed_only:
-        print(f"\n🔍 检查模式: 仅变更的文档")
+        print("\n🔍 检查模式: 仅变更的文档")
         if args.diff:
             print(f"   差异目标: {args.diff}")
         else:
-            print(f"   差异目标: 暂存区")
+            print("   差异目标: 暂存区")
         changed_files = get_changed_files(args.root, args.diff)
         passed, failed = checker.check_changed_files(changed_files)
     else:
@@ -409,7 +442,7 @@ def main():
         sys.exit(0)
 
     # 打印结果
-    success = checker.print_results(passed, failed)
+    success = checker.print_results(passed, failed) and structure_ok
 
     sys.exit(0 if success else 1)
 
