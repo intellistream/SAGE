@@ -22,14 +22,17 @@ Placement 执行层 - 统一的任务/服务放置接口
 - 处理资源需求和放置策略
 """
 
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
     from sage.kernel.runtime.graph.service_node import ServiceNode
     from sage.kernel.runtime.service.base_service_task import BaseServiceTask
+    from sage.kernel.runtime.service.local_service_task import LocalServiceTask
     from sage.kernel.runtime.task.base_task import BaseTask
+    from sage.kernel.runtime.task.local_task import LocalTask
     from sage.kernel.scheduler.decision import PlacementDecision
+    from sage.kernel.utils.ray.actor import ActorWrapper
 
 
 class PlacementExecutor:
@@ -69,7 +72,7 @@ class PlacementExecutor:
 
     def place_task(
         self, task_node: "TaskNode", decision: "PlacementDecision", runtime_ctx=None
-    ):
+    ) -> Union["LocalTask", "ActorWrapper"]:
         """
         根据调度决策执行物理放置
 
@@ -86,7 +89,7 @@ class PlacementExecutor:
             runtime_ctx: 运行时上下文（可选）
 
         Returns:
-            创建的任务实例（LocalTask 或 RayTask）
+            创建的任务实例（LocalTask 或 ActorWrapper 包装的 RayTask）
         """
         # 1. 确定上下文
         ctx = runtime_ctx if runtime_ctx is not None else task_node.ctx
@@ -121,7 +124,7 @@ class PlacementExecutor:
 
         return task
 
-    def _place_local_task(self, task_node: "TaskNode", ctx) -> "BaseTask":
+    def _place_local_task(self, task_node: "TaskNode", ctx) -> Union["LocalTask", "ActorWrapper"]:
         """
         放置本地任务（直接创建 LocalTask）
 
@@ -130,7 +133,7 @@ class PlacementExecutor:
             ctx: 运行时上下文
 
         Returns:
-            LocalTask 实例
+            LocalTask 实例（本地模式）或 ActorWrapper（远程模式）
         """
         # 使用 TaskFactory 创建本地任务
         task = task_node.task_factory.create_task(task_node.name, ctx)
@@ -138,7 +141,7 @@ class PlacementExecutor:
 
     def _place_remote_task(
         self, task_node: "TaskNode", ctx, decision: "PlacementDecision"
-    ):
+    ) -> "ActorWrapper":
         """
         放置远程任务（创建 Ray Actor 并指定节点）
 
@@ -255,7 +258,7 @@ class PlacementExecutor:
         service_node: "ServiceNode",
         decision: "PlacementDecision",
         runtime_ctx=None,
-    ):
+    ) -> Union["LocalServiceTask", "ActorWrapper"]:
         """
         根据调度决策放置服务
 
@@ -265,7 +268,7 @@ class PlacementExecutor:
             runtime_ctx: 运行时上下文（可选）
 
         Returns:
-            创建的服务实例
+            创建的服务实例（LocalServiceTask 或 ActorWrapper 包装的 RayServiceTask）
         """
         # 1. 确定上下文
         ctx = runtime_ctx if runtime_ctx is not None else service_node.ctx

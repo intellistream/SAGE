@@ -19,6 +19,8 @@ if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
     from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
+    from sage.kernel.runtime.task.local_task import LocalTask
+    from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
@@ -31,8 +33,8 @@ class Dispatcher:
         self.name: str = env.name
         self.remote = env.platform == "remote"
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
-        self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
-        self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
+        self.tasks: Dict[str, Union["LocalTask", ActorWrapper]] = {}
+        self.services: Dict[str, Union["LocalServiceTask", ActorWrapper]] = {}  # 存储服务实例
         self.is_running: bool = False
         # HeartbeatMonitor 实例 (监控线程)
         self.heartbeat_monitor: Optional["HeartbeatMonitor"] = None

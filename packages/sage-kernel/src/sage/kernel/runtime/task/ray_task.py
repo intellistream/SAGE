@@ -43,21 +43,20 @@ class RayTask(BaseTask):
 
     def __init__(
         self,
-        runtime_context: "TaskContext",
+        ctx: "TaskContext",
         operator_factory: "OperatorFactory",
     ) -> None:
         """
         初始化 RayTask 并设置心跳机制
 
         Args:
-            runtime_context: 运行时上下文
+            ctx: 运行时上下文
             operator_factory: Operator 工厂
-            dispatcher_ref: Dispatcher 的 Ray Actor 引用 (用于发送心跳)
         """
         # 调用父类初始化
-        super().__init__(runtime_context, operator_factory)
+        super().__init__(ctx, operator_factory)
 
-        self.task_id = runtime_context.name
+        self.task_id = ctx.name
 
     # ========== 属性别名 (映射到 BaseTask 的私有属性) ==========
     @property
