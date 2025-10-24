@@ -32,7 +32,9 @@ class BaseServiceTask(ABC):
     所有服务任务（本地和远程）都应该继承此基类
     """
 
-    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext" = None):
+    def __init__(
+        self, service_factory: "ServiceFactory", ctx: "ServiceContext | None" = None
+    ):
         """
         初始化基础服务任务
 
