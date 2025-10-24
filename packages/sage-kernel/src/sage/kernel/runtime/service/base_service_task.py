@@ -47,6 +47,8 @@ class BaseServiceTask(ABC):
         self.ctx = ctx
 
         # 创建实际的服务实例
+        if ctx is None:
+            raise ValueError(f"ServiceContext is required for service '{self.service_name}'")
         self.service_instance = service_factory.create_service(ctx)
 
         # 为service_instance注入ctx（参考base_task的做法）
@@ -468,6 +470,13 @@ class BaseServiceTask(ABC):
             )  # 用于日志的名称
             timeout = request_data.get("timeout", 30.0)
 
+            # 验证必需参数
+            if not request_id or not method_name:
+                self.logger.error(
+                    f"[SERVICE_TASK] Missing required fields: request_id={request_id}, method_name={method_name}"
+                )
+                return
+
             self.logger.info(
                 f"[SERVICE_TASK] Processing service request {request_id}: {method_name} "
                 f"with args={args}, kwargs={kwargs}"
@@ -566,15 +575,6 @@ class BaseServiceTask(ABC):
         """
         发送响应到响应队列
 
-        Args:
-            response_queue_name: 响应队列名称
-            response_data: 响应数据
-        """
-
-    def _send_response(self, response_queue_name: str, response_data: Dict[str, Any]):
-        """
-        发送响应到响应队列
-
         ServiceManager发送请求时会指定自己的响应队列名称，
         BaseServiceTask通过这个名称找到对应的响应队列并发送响应。
 
@@ -598,7 +598,7 @@ class BaseServiceTask(ABC):
                 f"[SERVICE_TASK] Creating queue instance for: '{response_queue_name}'"
             )
             # 使用标准Python队列
-            response_queue = queue.Queue()
+            response_queue: Any = queue.Queue()
             self.logger.info(
                 f"[SERVICE_TASK] Created response queue instance type: {type(response_queue).__name__}"
             )
