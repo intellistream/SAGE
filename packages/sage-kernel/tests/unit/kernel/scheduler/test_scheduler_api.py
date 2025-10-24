@@ -20,7 +20,7 @@ class TestBaseScheduler:
     def test_scheduler_is_abstract(self):
         """测试 BaseScheduler 是抽象类"""
         with pytest.raises(TypeError):
-            BaseScheduler()
+            BaseScheduler()  # type: ignore[abstract]
 
     def test_fifo_scheduler_initialization(self):
         """测试 FIFO 调度器初始化"""
@@ -340,7 +340,7 @@ class TestSchedulerDecisionDelay:
         original_make_decision = scheduler.make_decision
 
         # Mock make_decision 以返回带有延迟的决策
-        def mock_make_decision_with_delay(node):
+        def mock_make_decision_with_delay(task_node):  # Fixed parameter name
             decision = PlacementDecision(
                 target_node="test_node",
                 delay=0.01,  # 10ms 延迟
@@ -350,7 +350,7 @@ class TestSchedulerDecisionDelay:
             )
             return decision
 
-        scheduler.make_decision = mock_make_decision_with_delay
+        scheduler.make_decision = mock_make_decision_with_delay  # type: ignore[method-assign]
 
         # 调度任务（应该包括延迟）
         import time
@@ -383,7 +383,7 @@ class TestSchedulerDecisionDelay:
         service_node.service_task_factory = service_factory
 
         # Mock make_service_decision 以返回带有延迟的决策
-        def mock_make_service_decision_with_delay(node):
+        def mock_make_service_decision_with_delay(service_node):  # Fixed parameter name
             decision = PlacementDecision(
                 target_node="test_node",
                 delay=0.01,  # 10ms 延迟
@@ -393,7 +393,7 @@ class TestSchedulerDecisionDelay:
             )
             return decision
 
-        scheduler.make_service_decision = mock_make_service_decision_with_delay
+        scheduler.make_service_decision = mock_make_service_decision_with_delay  # type: ignore[method-assign]
 
         # 调度服务（应该包括延迟）
         import time

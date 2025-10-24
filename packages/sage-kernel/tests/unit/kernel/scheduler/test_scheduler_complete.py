@@ -146,7 +146,7 @@ class TestBaseScheduler:
     def test_scheduler_is_abstract(self):
         """测试 BaseScheduler 是抽象类"""
         with pytest.raises(TypeError):
-            BaseScheduler()
+            BaseScheduler()  # type: ignore[abstract]
 
     def test_scheduler_interface(self):
         """测试调度器接口定义"""

@@ -148,7 +148,7 @@ class PlacementDecision:
         cls,
         cpu: Optional[int] = None,
         gpu: Optional[int] = None,
-        memory: Optional[str] = None,
+        memory: Optional[int | str] = None,  # Accept both int and str
         reason: str = "",
     ) -> "PlacementDecision":
         """快捷方法：指定资源需求"""
