@@ -5,9 +5,9 @@ from queue import Empty as QueueEmpty
 from typing import TYPE_CHECKING
 
 try:
-    from ray.util.queue import Empty as RayQueueEmpty
+    from ray.util.queue import Empty as RayQueueEmpty  # type: ignore
 except ImportError:
-    RayQueueEmpty = QueueEmpty
+    RayQueueEmpty = QueueEmpty  # type: ignore
 from sage.kernel.runtime.communication.router.packet import Packet, StopSignal
 from sage.kernel.runtime.context.task_context import TaskContext
 from sage.kernel.runtime.monitoring import (
@@ -103,7 +103,8 @@ class BaseTask(ABC):
 
         try:
             self.operator: BaseOperator = operator_factory.create_operator(self.ctx)
-            self.operator.task = self
+            if hasattr(self.operator, "task"):
+                self.operator.task = self  # type: ignore
         except Exception as e:
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
             raise
@@ -320,7 +321,8 @@ class BaseTask(ABC):
     def trigger(self, input_tag: str | None = None, packet: "Packet | None" = None) -> None:
         try:
             self.logger.debug(f"Received data in node {self.name}, channel {input_tag}")
-            self.operator.process_packet(packet)
+            if packet is not None:
+                self.operator.process_packet(packet)  # type: ignore
         except Exception as e:
             self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise
@@ -374,7 +376,8 @@ class BaseTask(ABC):
 
                 if self.is_spout:
                     self.logger.debug(f"Running spout node '{self.name}'")
-                    self.operator.receive_packet(None)
+                    if hasattr(self.operator, "receive_packet"):
+                        self.operator.receive_packet(None)  # type: ignore
 
                     # 增加处理计数
                     self._processed_count += 1
@@ -589,10 +592,11 @@ class BaseTask(ABC):
             #     self.router.cleanup()
 
             # 清理输入队列描述符
-            if self.input_qd and hasattr(self.input_qd, "cleanup"):
-                self.input_qd.cleanup()
-            elif self.input_qd and hasattr(self.input_qd, "close"):
-                self.input_qd.close()
+            if self.input_qd:
+                if hasattr(self.input_qd, "cleanup"):
+                    self.input_qd.cleanup()  # type: ignore
+                elif hasattr(self.input_qd, "close"):
+                    self.input_qd.close()  # type: ignore
 
             # 清理运行时上下文（包括service_manager）
             if hasattr(self.ctx, "cleanup"):
@@ -621,7 +625,8 @@ class BaseTask(ABC):
 
         # 完成最终的关闭逻辑
         try:
-            self.operator.handle_stop_signal()
+            if hasattr(self.operator, "handle_stop_signal"):
+                self.operator.handle_stop_signal()  # type: ignore
         except Exception as e:
             self.logger.error(
                 f"Error during sink operator finalization for {self.name}: {e}",
