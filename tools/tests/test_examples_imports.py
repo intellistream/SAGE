@@ -93,17 +93,16 @@ def main():
     )
     print("=" * 80)
 
-    # 返回适当的退出码
-    if fail_count > 0:
-        sys.exit(1)
-    else:
-        sys.exit(0)
+    # 返回失败数量而不是退出
+    return fail_count
 
 
 if __name__ == "__main__":
-    main()
+    fail_count = main()
+    sys.exit(1 if fail_count > 0 else 0)
 
 
 def test_examples_imports():
     """Pytest entry point - runs the main import test"""
-    main()
+    fail_count = main()
+    assert fail_count == 0, f"{fail_count} examples failed to import"
