@@ -87,8 +87,8 @@ def example_node_selector():
     print(f"有 GPU 的节点: {gpu_node}")
 
     # 策略 3: 选择满足资源需求的节点
-    node_with_resources = selector.select_node_with_resources(
-        cpu=8, memory=16 * 1024**3  # 16GB
+    node_with_resources = selector.select_best_node(
+        cpu_required=8, memory_required=16 * 1024**3  # 16GB
     )
     print(f"满足资源需求的节点: {node_with_resources}")
 
@@ -113,16 +113,13 @@ class NodeAwareScheduler(BaseScheduler):
         """
 
         # 检查任务是否需要 GPU
-        needs_gpu = (
-            hasattr(task_node, "transformation")
-            and hasattr(task_node.transformation, "gpu_required")
-            and task_node.transformation.gpu_required > 0
-        )
+        gpu_required = getattr(task_node.transformation, "gpu_required", 0) if hasattr(task_node, "transformation") else 0
+        needs_gpu = gpu_required > 0
 
         if needs_gpu:
             # GPU 任务：选择有 GPU 的节点
             target_node = self.node_selector.select_node_with_gpu()
-            gpu_count = task_node.transformation.gpu_required
+            gpu_count = gpu_required
 
             decision = PlacementDecision(
                 target_node=target_node,  # ← 指定目标节点

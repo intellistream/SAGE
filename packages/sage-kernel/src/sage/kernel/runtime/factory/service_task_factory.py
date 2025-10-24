@@ -42,7 +42,7 @@ class ServiceTaskFactory:
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
             ray_service_task = ray.remote(RayServiceTask).options(lifetime="detached").remote(
-                service_factory=self.service_factory, ctx=ctx
+                self.service_factory, ctx
             )
 
             # 使用ActorWrapper包装
@@ -53,7 +53,7 @@ class ServiceTaskFactory:
             from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
             service_task = LocalServiceTask(
-                service_factory=self.service_factory, ctx=ctx  # type: ignore
+                self.service_factory, ctx  # type: ignore
             )
 
         return service_task

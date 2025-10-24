@@ -40,7 +40,7 @@ class TaskFactory:
             )
             node = ActorWrapper(node)
         else:
-            node = LocalTask(runtime_context, self.operator_factory)  # type: ignore
+            node = LocalTask(ctx=runtime_context, operator_factory=self.operator_factory)  # type: ignore
         return node
 
     def __repr__(self) -> str:

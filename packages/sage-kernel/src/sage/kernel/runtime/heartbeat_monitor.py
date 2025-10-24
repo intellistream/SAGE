@@ -142,14 +142,14 @@ class HeartbeatMonitor:
             return {}
 
     def _pull_heartbeat(
-        self, task_id: str, task: ActorWrapper
+        self, task_id: str, task: Union["BaseTask", ActorWrapper]
     ) -> Optional[Dict[str, Any]]:
         """
         从 Ray Task 拉取心跳信息
 
         Args:
             task_id: 任务 ID
-            task_handle: Ray Task Actor 引用
+            task: Task 实例或 ActorWrapper
 
         Returns:
             心跳信息字典，如果调用失败返回 None
@@ -158,26 +158,24 @@ class HeartbeatMonitor:
             # 调用 Ray Task 的 get_heartbeat_stats() 方法
             heartbeat = task.get_heartbeat_stats()
             self.logger.debug(f"💓 Pulled heartbeat from {task_id}: {heartbeat}")
-            return heartbeat
-
-        except ray.exceptions.GetTimeoutError:
-            self.logger.warning(
-                f"⚠️  Timeout pulling heartbeat from {task_id} "
-                f"(timeout={self.call_timeout}s)"
-            )
-            return None
-
-        except ray.exceptions.RayActorError as e:
-            self.logger.error(
-                f"❌ RayActorError when pulling heartbeat from {task_id}: {e}"
-            )
-            return None
+            return heartbeat  # type: ignore[return-value]
 
         except Exception as e:
-            self.logger.error(
-                f"❌ Unexpected error pulling heartbeat from {task_id}: {e}",
-                exc_info=True,
-            )
+            # 捕获所有异常（包括 Ray 相关异常）
+            if "GetTimeoutError" in str(type(e).__name__):
+                self.logger.warning(
+                    f"⚠️  Timeout pulling heartbeat from {task_id} "
+                    f"(timeout={self.call_timeout}s)"
+                )
+            elif "RayActorError" in str(type(e).__name__):
+                self.logger.error(
+                    f"❌ RayActorError when pulling heartbeat from {task_id}: {e}"
+                )
+            else:
+                self.logger.error(
+                    f"❌ Unexpected error pulling heartbeat from {task_id}: {e}",
+                    exc_info=True,
+                )
             return None
 
     def _validate_heartbeat(self, heartbeat: Optional[Dict[str, Any]]) -> bool:
@@ -484,4 +482,4 @@ class HeartbeatMonitor:
             }
 
 
-__all__ = ["HeartbeatMonitorV2"]
+__all__ = ["HeartbeatMonitor"]

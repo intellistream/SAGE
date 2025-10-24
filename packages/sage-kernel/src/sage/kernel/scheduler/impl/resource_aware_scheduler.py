@@ -116,20 +116,21 @@ class LoadAwareScheduler(BaseScheduler):
         if hasattr(task_node, "transformation") and task_node.transformation:
             # CPU 需求
             if hasattr(task_node.transformation, "cpu_required"):
-                cpu_required = task_node.transformation.cpu_required
+                cpu_required = getattr(task_node.transformation, "cpu_required", cpu_required)
 
             # GPU 需求
             if hasattr(task_node.transformation, "gpu_required"):
-                gpu_required = task_node.transformation.gpu_required
+                gpu_required = getattr(task_node.transformation, "gpu_required", gpu_required)
 
             # 内存需求
             if hasattr(task_node.transformation, "memory_required"):
-                memory_str = task_node.transformation.memory_required
-                memory_required = self._parse_memory(memory_str)
+                memory_str = getattr(task_node.transformation, "memory_required", None)
+                if memory_str:
+                    memory_required = self._parse_memory(memory_str)
 
             # 自定义资源
             if hasattr(task_node.transformation, "custom_resources"):
-                custom_resources = task_node.transformation.custom_resources
+                custom_resources = getattr(task_node.transformation, "custom_resources", custom_resources)
 
         # === 步骤 3: 使用 NodeSelector 选择最优节点 ===
         target_node = None
@@ -247,23 +248,22 @@ class LoadAwareScheduler(BaseScheduler):
         memory_required = 0
         custom_resources = {}
 
-        if hasattr(service_node, "service_class") and service_node.service_class:
-            # CPU 需求
-            if hasattr(service_node.service_class, "cpu_required"):
-                cpu_required = service_node.service_class.cpu_required
+        if hasattr(service_node, "service_class"):
+            service_class = getattr(service_node, "service_class", None)
+            if service_class:
+                # CPU 需求
+                cpu_required = getattr(service_class, "cpu_required", cpu_required)
 
-            # GPU 需求
-            if hasattr(service_node.service_class, "gpu_required"):
-                gpu_required = service_node.service_class.gpu_required
+                # GPU 需求
+                gpu_required = getattr(service_class, "gpu_required", gpu_required)
 
-            # 内存需求
-            if hasattr(service_node.service_class, "memory_required"):
-                memory_str = service_node.service_class.memory_required
-                memory_required = self._parse_memory(memory_str)
+                # 内存需求
+                memory_str = getattr(service_class, "memory_required", None)
+                if memory_str:
+                    memory_required = self._parse_memory(memory_str)
 
-            # 自定义资源
-            if hasattr(service_node.service_class, "custom_resources"):
-                custom_resources = service_node.service_class.custom_resources
+                # 自定义资源
+                custom_resources = getattr(service_class, "custom_resources", custom_resources)
 
         # === 步骤 2: 使用 NodeSelector 选择节点（优先使用 spread 策略）===
         # 服务通常需要长期运行，使用 spread 策略避免单点故障
