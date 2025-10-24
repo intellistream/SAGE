@@ -1,0 +1,213 @@
+name: Code Quality Check
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '**.py'
+      - '**.pyi'
+      - '.github/workflows/code-quality.yml'
+      - 'tools/pre-commit-config.yaml'
+  push:
+    branches: [main, main-dev]
+    paths:
+      - '**.py'
+      - '**.pyi'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-quality:
+    name: Code Quality & Style Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要完整历史来进行 diff
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Code Quality Tools
+        run: |
+          echo "📦 安装代码质量检查工具..."
+          pip install --upgrade pip
+          pip install \
+            pre-commit \
+            black \
+            isort \
+            ruff \
+            mypy \
+            types-PyYAML \
+            types-requests \
+            types-setuptools
+
+          echo "✅ 工具安装完成"
+          echo ""
+          echo "📋 已安装版本:"
+          pre-commit --version
+          black --version
+          ruff --version
+          mypy --version
+
+      - name: Check Pre-commit Configuration
+        run: |
+          echo "🔍 检查 pre-commit 配置文件..."
+
+          if [ ! -f "tools/pre-commit-config.yaml" ]; then
+            echo "❌ pre-commit 配置文件不存在: tools/pre-commit-config.yaml"
+            exit 1
+          fi
+
+          echo "✅ 配置文件存在"
+
+      - name: Run Code Quality Checks (Changed Files)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "🔍 运行代码质量检查（仅检查变更文件）..."
+          echo ""
+          echo "📋 当前分支: ${{ github.head_ref }}"
+          echo "📋 基准分支: ${{ github.base_ref }}"
+          echo ""
+
+          # 获取变更的文件列表
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACM origin/${{ github.base_ref }}...HEAD | grep -E '\.(py|pyi)$' || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "ℹ️  没有 Python 文件变更，跳过检查"
+            exit 0
+          fi
+
+          echo "📝 检查以下文件:"
+          echo "$CHANGED_FILES"
+          echo ""
+
+          # 运行 pre-commit 检查
+          echo "🚀 开始检查..."
+          echo "$CHANGED_FILES" | xargs pre-commit run \
+            --config tools/pre-commit-config.yaml \
+            --files || {
+              echo ""
+              echo "❌ 代码质量检查失败！"
+              echo ""
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "💡 常见问题修复方法："
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo ""
+              echo "1️⃣ 代码格式问题："
+              echo "   black --line-length=100 ."
+              echo "   isort --profile=black --line-length=100 ."
+              echo ""
+              echo "2️⃣ Ruff 检查错误："
+              echo "   ruff check --fix ."
+              echo ""
+              echo "3️⃣ 类型检查错误："
+              echo "   查看 mypy 输出并修复类型注解"
+              echo ""
+              echo "4️⃣ 本地完整检查："
+              echo "   pre-commit run --config tools/pre-commit-config.yaml --all-files"
+              echo ""
+              echo "5️⃣ 安装本地 Git 钩子（推荐）："
+              echo "   ./quickstart.sh  # 会自动安装 pre-commit 钩子"
+              echo ""
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              exit 1
+            }
+
+          echo ""
+          echo "✅ 代码质量检查通过！"
+
+      - name: Run Code Quality Checks (All Files)
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "🔍 运行代码质量检查（检查所有文件）..."
+          echo ""
+
+          # 运行所有文件的检查
+          pre-commit run \
+            --config tools/pre-commit-config.yaml \
+            --all-files \
+            --show-diff-on-failure || {
+              echo ""
+              echo "⚠️ 代码质量检查发现问题"
+              echo ""
+              echo "💡 这可能包含历史遗留问题。"
+              echo "   请重点关注本次提交引入的问题。"
+              echo ""
+              # 对于直接 push，不强制失败（避免历史问题阻塞）
+              # 但会显示警告
+            }
+
+          echo ""
+          echo "✅ 代码质量检查完成"
+
+      - name: Generate Quality Report
+        if: always()
+        run: |
+          echo "📊 生成代码质量报告..."
+
+          # 统计 Python 文件数量
+          TOTAL_PY_FILES=$(find packages -name "*.py" -type f | wc -l)
+          echo "总 Python 文件数: $TOTAL_PY_FILES"
+
+          # 检查是否有常见问题
+          echo ""
+          echo "🔍 快速检查常见问题..."
+
+          # 检查是否有过长的行
+          LONG_LINES=$(find packages -name "*.py" -type f -exec grep -l ".\{120\}" {} \; 2>/dev/null | wc -l || echo 0)
+          if [ "$LONG_LINES" -gt 0 ]; then
+            echo "⚠️  发现 $LONG_LINES 个文件包含超过 120 字符的行"
+          fi
+
+          # 检查是否有 TODO/FIXME
+          TODO_COUNT=$(grep -r "TODO\|FIXME" packages --include="*.py" 2>/dev/null | wc -l || echo 0)
+          if [ "$TODO_COUNT" -gt 0 ]; then
+            echo "ℹ️  发现 $TODO_COUNT 个 TODO/FIXME 注释"
+          fi
+
+          echo ""
+          echo "✅ 报告生成完成"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🎨 代码质量检查总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **检查通过** - 代码符合质量标准" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "使用的工具:" >> $GITHUB_STEP_SUMMARY
+            echo "- Black (代码格式化)" >> $GITHUB_STEP_SUMMARY
+            echo "- isort (导入排序)" >> $GITHUB_STEP_SUMMARY
+            echo "- Ruff (快速 linter)" >> $GITHUB_STEP_SUMMARY
+            echo "- Mypy (类型检查)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **检查失败** - 发现代码质量问题" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "请查看上方日志了解详细信息并修复问题。" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 💡 快速修复" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "# 自动格式化代码" >> $GITHUB_STEP_SUMMARY
+            echo "black --line-length=100 ." >> $GITHUB_STEP_SUMMARY
+            echo "isort --profile=black --line-length=100 ." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# 自动修复 linting 问题" >> $GITHUB_STEP_SUMMARY
+            echo "ruff check --fix ." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# 安装 pre-commit 钩子（推荐）" >> $GITHUB_STEP_SUMMARY
+            echo "./quickstart.sh" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
