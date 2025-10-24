@@ -32,6 +32,13 @@
 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 已知问题跟踪 | ✅ 活跃 |
 | [DEV_INFRASTRUCTURE_SETUP.md](DEV_INFRASTRUCTURE_SETUP.md) | 开发基础设施配置 | ✅ 活跃 |
 
+### 🛠️ 开发工具
+
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [tools/pre-commit-auto-fix-guide.md](tools/pre-commit-auto-fix-guide.md) | Pre-commit 自动修复详细指南 | ✅ 活跃 |
+| [tools/pre-commit-quick-reference.md](tools/pre-commit-quick-reference.md) | Pre-commit 快速参考卡片 | ✅ 活跃 |
+
 ### 📄 模板
 
 | 文档 | 描述 |
@@ -70,6 +77,7 @@ archive/
 | 数据类型设计 | [DATA_TYPES_ARCHITECTURE.md](DATA_TYPES_ARCHITECTURE.md) |
 | Embedding 系统 | [EMBEDDING_README.md](EMBEDDING_README.md) |
 | 已知问题 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
+| Pre-commit 工具使用 | [tools/pre-commit-quick-reference.md](tools/pre-commit-quick-reference.md) 或 [详细指南](tools/pre-commit-auto-fix-guide.md) |
 
 ## 📝 文档原则
 
@@ -80,9 +88,9 @@ archive/
 
 ## 📊 统计
 
-- **活跃文档**: 13 个
+- **活跃文档**: 15 个
 - **归档文档**: 15+ 个
-- **文档分类**: 架构设计 (4) + 系统文档 (4) + 运维配置 (3) + 模板 (2)
+- **文档分类**: 架构设计 (4) + 系统文档 (4) + 运维配置 (3) + 开发工具 (2) + 模板 (2)
 
 ## 🆘 需要帮助？
 

@@ -8,8 +8,6 @@ if sys.version_info < (3, 9):
     pass
 else:
     pass
-import base64
-import struct
 
 import aiohttp
 
@@ -19,7 +17,7 @@ async def siliconcloud_embedding(
     model: str = "netease-youdao/bce-embedding-base_v1",
     base_url: str = "https://api.siliconflow.cn/v1/embeddings",
     max_token_size: int = 512,
-    api_key: str = None,
+    api_key: str | None = None,
 ) -> list:
     """
     Generate embedding for a single text using SiliconCloud (NetEase Youdao).
@@ -67,7 +65,7 @@ def siliconcloud_embedding_sync(
     model: str = "netease-youdao/bce-embedding-base_v1",
     base_url: str = "https://api.siliconflow.cn/v1/embeddings",
     max_token_size: int = 512,
-    api_key: str = None,
+    api_key: str | None = None,
 ) -> list[float]:
     """
     同步版本：使用 SiliconCloud (NetEase Youdao) 接口获取文本 embedding。

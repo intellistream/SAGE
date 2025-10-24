@@ -26,7 +26,7 @@ async def cohere_embed(
 
 def cohere_embed_sync(
     texts: list[str],
-    api_key: str = None,
+    api_key: str | None = None,
     model: str = "embed-multilingual-v3.0",
     input_type: str = "classification",
     embedding_types: list[str] = ["float"],

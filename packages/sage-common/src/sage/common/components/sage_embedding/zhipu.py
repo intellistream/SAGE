@@ -19,7 +19,7 @@ except ImportError:
 
 
 async def zhipu_embedding(
-    text: str, model: str = "embedding-3", api_key: str = None, **kwargs
+    text: str, model: str = "embedding-3", api_key: str | None = None, **kwargs
 ) -> list:
     """
     Generate embedding for a single text using ZhipuAI.
@@ -48,7 +48,7 @@ async def zhipu_embedding(
 
 
 def zhipu_embedding_sync(
-    text: str, model: str = "embedding-3", api_key: str = None, **kwargs
+    text: str, model: str = "embedding-3", api_key: str | None = None, **kwargs
 ) -> list[float]:
     """
     同步调用 ZhipuAI 生成 embedding 向量。

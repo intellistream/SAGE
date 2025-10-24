@@ -23,7 +23,7 @@ async def nvidia_openai_embed(
     text: str,
     model: str = "nvidia/llama-3.2-nv-embedqa-1b-v1",
     base_url: str = "https://integrate.api.nvidia.com/v1",
-    api_key: str = None,
+    api_key: str | None = None,
     input_type: str = "passage",  # query for retrieval, passage for embedding
     trunc: str = "NONE",  # NONE or START or END
     encode: str = "float",  # float or base64
@@ -37,9 +37,7 @@ async def nvidia_openai_embed(
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
 
-    openai_async_client = (
-        AsyncOpenAI() if base_url is None else AsyncOpenAI(base_url=base_url)
-    )
+    openai_async_client = AsyncOpenAI() if base_url is None else AsyncOpenAI(base_url=base_url)
 
     response = await openai_async_client.embeddings.create(
         model=model,
@@ -55,7 +53,7 @@ def nvidia_openai_embed_sync(
     text: str,
     model: str = "nvidia/llama-3.2-nv-embedqa-1b-v1",
     base_url: str = "https://integrate.api.nvidia.com/v1",
-    api_key: str = None,
+    api_key: str | None = None,
     input_type: str = "passage",  # query for retrieval, passage for embedding
     trunc: str = "NONE",  # NONE or START or END
     encode: str = "float",  # float or base64

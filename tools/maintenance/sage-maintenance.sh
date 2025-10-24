@@ -68,6 +68,13 @@ show_help() {
     echo -e "  ${GREEN}doctor${NC}                    运行完整的健康检查"
     echo -e "  ${GREEN}status${NC}                    显示项目整体状态"
     echo ""
+    echo -e "${BOLD}🔧 类型检查工具:${NC}"
+    echo -e "  ${GREEN}typecheck status${NC}          检查类型错误状态"
+    echo -e "  ${GREEN}typecheck show-new${NC}        显示格式化后新增的错误"
+    echo -e "  ${GREEN}typecheck explain <file>${NC}  解释文件修改原因"
+    echo -e "  ${GREEN}typecheck safe-commit${NC}     安全提交（逐步提示）"
+    echo -e "  ${GREEN}typecheck reset${NC}           撤销自动格式化"
+    echo ""
     echo -e "${BOLD}示例:${NC}"
     echo -e "  # 显示 submodule 状态"
     echo -e "  $(basename "$0") submodule status"
@@ -489,6 +496,34 @@ main() {
             ;;
         bootstrap)
             submodule_bootstrap
+            ;;
+
+        # 类型检查
+        typecheck|type)
+            local subcommand="${1:-status}"
+            shift || true
+            case "$subcommand" in
+                status)
+                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" check-status
+                    ;;
+                show-new|new)
+                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" show-new-errors
+                    ;;
+                explain)
+                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" explain-diff "$@"
+                    ;;
+                safe-commit|commit)
+                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" safe-commit "$@"
+                    ;;
+                reset)
+                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" reset-format
+                    ;;
+                *)
+                    echo -e "${RED}${CROSS} 未知的 typecheck 命令: $subcommand${NC}"
+                    echo -e "可用命令: status, show-new, explain, safe-commit, reset"
+                    exit 1
+                    ;;
+            esac
             ;;
 
         # 帮助

@@ -23,8 +23,8 @@ except ImportError:
 async def openai_embed(
     text: str,
     model: str = "text-embedding-3-small",
-    base_url: str = None,
-    api_key: str = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
 ) -> list:
     """
     Generate embedding for a single text using OpenAI Embedding API.
@@ -49,9 +49,7 @@ async def openai_embed(
     openai_async_client = (
         AsyncOpenAI(default_headers=default_headers, api_key=api_key)
         if base_url is None
-        else AsyncOpenAI(
-            base_url=base_url, default_headers=default_headers, api_key=api_key
-        )
+        else AsyncOpenAI(base_url=base_url, default_headers=default_headers, api_key=api_key)
     )
 
     response = await openai_async_client.embeddings.create(
@@ -64,8 +62,8 @@ async def openai_embed(
 def openai_embed_sync(
     text: str,
     model: str = "text-embedding-3-small",
-    base_url: str = None,
-    api_key: str = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
 ) -> list[float]:
     """
     同步生成 OpenAI embedding。

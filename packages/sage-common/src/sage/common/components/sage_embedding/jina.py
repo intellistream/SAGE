@@ -34,8 +34,8 @@ async def jina_embed(
     text: str,
     dimensions: int = 1024,
     late_chunking: bool = False,
-    base_url: str = None,
-    api_key: str = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
     model: str = "jina-embeddings-v3",
 ) -> list[float]:
     if api_key:
@@ -62,8 +62,8 @@ def jina_embed_sync(
     text: str,
     dimensions: int = 1024,
     late_chunking: bool = False,
-    base_url: str = None,
-    api_key: str = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
     model: str = "jina-embeddings-v3",
 ) -> list[float]:
     """

@@ -265,7 +265,9 @@ class BaseTask(ABC):
             True 如果保存了 checkpoint
         """
         # 检查是否是 CheckpointBasedRecovery
-        from sage.kernel.fault_tolerance.impl.checkpoint_recovery import CheckpointBasedRecovery
+        from sage.kernel.fault_tolerance.impl.checkpoint_recovery import (
+            CheckpointBasedRecovery,
+        )
 
         if not isinstance(fault_handler, CheckpointBasedRecovery):
             return False
@@ -315,7 +317,7 @@ class BaseTask(ABC):
 
     # 连接管理现在由TaskContext在构造时完成，不再需要动态添加连接
 
-    def trigger(self, input_tag: str | None = None, packet: "Packet" = None) -> None:
+    def trigger(self, input_tag: str | None = None, packet: "Packet | None" = None) -> None:
         try:
             self.logger.debug(f"Received data in node {self.name}, channel {input_tag}")
             self.operator.process_packet(packet)
@@ -442,8 +444,12 @@ class BaseTask(ABC):
                         should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
 
                         # 停止当前task的worker loop
-                        from sage.kernel.api.operator.filter_operator import FilterOperator
-                        from sage.kernel.api.operator.keyby_operator import KeyByOperator
+                        from sage.kernel.api.operator.filter_operator import (
+                            FilterOperator,
+                        )
+                        from sage.kernel.api.operator.keyby_operator import (
+                            KeyByOperator,
+                        )
                         from sage.kernel.api.operator.map_operator import MapOperator
 
                         if isinstance(self.operator, (KeyByOperator, MapOperator, FilterOperator)):
