@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Type, Union
 
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
-from sage.kernel.api.function.join_function import BaseJoinFunction
-from sage.kernel.api.function.lambda_function import wrap_lambda
+from sage.common.core.functions import BaseFunction
+from sage.common.core.functions import BaseCoMapFunction
+from sage.common.core.functions import BaseJoinFunction
+from sage.common.core.functions import wrap_lambda
 from sage.kernel.api.transformation.join_transformation import JoinTransformation
 
 if TYPE_CHECKING:
@@ -212,7 +212,7 @@ class ConnectedStreams:
             )
 
         # Import BaseCoMapFunction for type checking
-        from sage.kernel.api.function.comap_function import BaseCoMapFunction
+        from sage.common.core.functions import BaseCoMapFunction
 
         # Type validation: Check if function is a proper CoMap function
         if not isinstance(function, type):

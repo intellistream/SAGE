@@ -1,7 +1,13 @@
 """
-Common Core Module - 共享类型、异常和常量
+Common Core Module - 共享类型、异常、常量和函数接口
 
 这个模块包含 SAGE 框架中各个包共享的核心定义。
+
+包含:
+- data_types: 基础数据类型和查询结果
+- exceptions: 核心异常类型
+- types: 执行模式、状态等枚举
+- functions: 用户自定义函数的基础接口 (NEW)
 """
 
 from sage.common.core.data_types import (
@@ -23,6 +29,24 @@ from sage.common.core.exceptions import (
     SchedulingError,
 )
 from sage.common.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
+
+# Import function interfaces
+from sage.common.core.functions import (
+    BaseCoMapFunction,
+    BaseFunction,
+    BaseJoinFunction,
+    BatchFunction,
+    Collector,
+    FilterFunction,
+    FlatMapFunction,
+    FutureFunction,
+    KeyByFunction,
+    LambdaMapFunction,
+    MapFunction,
+    SinkFunction,
+    SourceFunction,
+    wrap_lambda,
+)
 
 __all__ = [
     # Types
@@ -48,4 +72,19 @@ __all__ = [
     "FaultToleranceError",
     "ResourceAllocationError",
     "RecoveryError",
+    # Function Interfaces
+    "BaseFunction",
+    "MapFunction",
+    "FilterFunction",
+    "FlatMapFunction",
+    "SinkFunction",
+    "SourceFunction",
+    "BatchFunction",
+    "KeyByFunction",
+    "BaseJoinFunction",
+    "BaseCoMapFunction",
+    "Collector",
+    "LambdaMapFunction",
+    "wrap_lambda",
+    "FutureFunction",
 ]

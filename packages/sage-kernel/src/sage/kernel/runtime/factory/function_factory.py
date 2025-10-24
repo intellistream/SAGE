@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Tuple, Type
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.base_function import BaseFunction
+from sage.common.core.functions import BaseFunction
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.task_context import TaskContext

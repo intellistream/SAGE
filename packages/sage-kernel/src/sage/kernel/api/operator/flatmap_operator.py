@@ -1,6 +1,6 @@
 from typing import Any
 
-from sage.kernel.api.function.flatmap_collector import Collector
+from sage.common.core.functions import Collector
 from sage.kernel.api.operator.base_operator import BaseOperator
 from sage.kernel.runtime.communication.packet import Packet
 

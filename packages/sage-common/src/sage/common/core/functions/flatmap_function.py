@@ -1,8 +1,8 @@
 from abc import abstractmethod
 from typing import Any, Iterable, Optional
 
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.function.flatmap_collector import Collector
+from sage.common.core.functions.base_function import BaseFunction
+from sage.common.core.functions.flatmap_collector import Collector
 
 
 class FlatMapFunction(BaseFunction):

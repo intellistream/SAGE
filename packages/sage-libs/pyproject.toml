@@ -33,7 +33,7 @@ license = {text = "MIT"}
 
 # 核心依赖
 dependencies = [
-    "isage-kernel>=0.1.0",  # 继承 common 的所有依赖
+    "isage-common>=0.1.0",  # 核心基础组件（包含函数接口）
 
     # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
     "numpy>=1.26.0,<2.3.0",
@@ -66,6 +66,7 @@ dependencies = [
 [project.optional-dependencies]
 # 完整功能 - 包含所有可选依赖
 full = [
+    "isage-kernel>=0.1.0",  # kernel 变为可选依赖（用于高级特性）
     "isage-libs[llm]",
     "isage-libs[finetune]",
     # 企业级数据库

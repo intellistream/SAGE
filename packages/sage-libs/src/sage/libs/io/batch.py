@@ -1,7 +1,7 @@
 import json
 import os
 
-from sage.kernel.api.function.batch_function import BatchFunction
+from sage.common.core.functions import BatchFunction
 
 try:
     from datasets import load_dataset

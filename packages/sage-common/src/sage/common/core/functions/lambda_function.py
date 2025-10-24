@@ -2,12 +2,12 @@ import inspect
 import logging
 from typing import Any, Callable, Hashable, List, Type
 
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.function.filter_function import FilterFunction
-from sage.kernel.api.function.flatmap_function import FlatMapFunction
-from sage.kernel.api.function.keyby_function import KeyByFunction
-from sage.kernel.api.function.map_function import MapFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.base_function import BaseFunction
+from sage.common.core.functions.filter_function import FilterFunction
+from sage.common.core.functions.flatmap_function import FlatMapFunction
+from sage.common.core.functions.keyby_function import KeyByFunction
+from sage.common.core.functions.map_function import MapFunction
+from sage.common.core.functions.sink_function import SinkFunction
 
 logger = logging.getLogger(__name__)
 

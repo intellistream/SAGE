@@ -6,7 +6,7 @@ from sage.kernel.api.transformation.base_transformation import BaseTransformatio
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.function.comap_function import BaseCoMapFunction
+    from sage.common.core.functions import BaseCoMapFunction
 
 
 class CoMapTransformation(BaseTransformation):

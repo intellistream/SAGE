@@ -6,7 +6,7 @@ from sage.kernel.api.transformation.base_transformation import BaseTransformatio
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.function.join_function import BaseJoinFunction
+    from sage.common.core.functions import BaseJoinFunction
 
 
 class JoinTransformation(BaseTransformation):

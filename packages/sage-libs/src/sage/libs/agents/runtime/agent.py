@@ -5,7 +5,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 # from sage.libs.agents.memory import memory_service_adapter
-from sage.kernel.api.function.map_function import MapFunction
+from sage.common.core.functions import MapFunction
 
 from ..action.mcp_registry import MCPRegistry
 from ..planning.llm_planner import LLMPlanner, PlanStep

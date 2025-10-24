@@ -8,7 +8,7 @@ from sage.kernel.runtime.factory.operator_factory import OperatorFactory
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.function.base_function import BaseFunction
+    from sage.common.core.functions import BaseFunction
     from sage.kernel.api.operator.base_operator import BaseOperator
 
 

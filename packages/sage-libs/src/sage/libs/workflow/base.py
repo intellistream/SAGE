@@ -13,7 +13,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 if TYPE_CHECKING:
-    from sage.kernel.api.function.map_function import MapFunction
+    from sage.common.core.functions import MapFunction
 
 
 class NodeType(Enum):

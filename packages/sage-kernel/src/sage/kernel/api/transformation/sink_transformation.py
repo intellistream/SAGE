@@ -7,7 +7,7 @@ from sage.kernel.api.transformation.base_transformation import BaseTransformatio
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.function.sink_function import SinkFunction
+    from sage.common.core.functions import SinkFunction
 
 
 class SinkTransformation(BaseTransformation):

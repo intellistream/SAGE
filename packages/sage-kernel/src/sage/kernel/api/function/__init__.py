@@ -1,40 +1,48 @@
 """
-SAGE Kernel API - Function Definitions
+SAGE Kernel API Functions - 向后兼容层
 
-提供各种用户自定义函数的基类：
-- MapFunction: 一对一映射
-- FlatMapFunction: 一对多映射
-- FilterFunction: 过滤
-- BatchFunction: 批处理
-- SinkFunction: 输出
-- SourceFunction: 数据源
+⚠️ Deprecated: 这些类已迁移到 sage.common.core.functions
+请使用: from sage.common.core.functions import MapFunction, SinkFunction, ...
+
+为了向后兼容，本模块仍然提供这些导入。
 """
 
-# 导入核心函数基类（sage-apps实际使用的）
-from .batch_function import BatchFunction
-from .filter_function import FilterFunction
-from .flatmap_function import FlatMapFunction
-from .map_function import MapFunction
-from .sink_function import SinkFunction
-from .source_function import SourceFunction
+import warnings
 
-# 版本信息
-try:
-    from sage.kernel._version import __author__, __email__, __version__
-except ImportError:
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+warnings.warn(
+    "Importing from sage.kernel.api.function is deprecated. "
+    "Please use: from sage.common.core.functions import MapFunction, ...",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# 从 common 重新导出
+from sage.common.core.functions import (
+    BaseFunction,
+    MapFunction,
+    FilterFunction,
+    FlatMapFunction,
+    SinkFunction,
+    SourceFunction,
+    BatchFunction,
+    KeyByFunction,
+    BaseJoinFunction,
+    BaseCoMapFunction,
+    LambdaMapFunction,
+    FutureFunction,
+)
 
 __all__ = [
-    "__version__",
-    "__author__",
-    "__email__",
-    "BatchFunction",
+    "BaseFunction",
+    "MapFunction",
     "FilterFunction",
     "FlatMapFunction",
-    "MapFunction",
     "SinkFunction",
     "SourceFunction",
+    "BatchFunction",
+    "KeyByFunction",
+    "BaseJoinFunction",
+    "BaseCoMapFunction",
+    "LambdaMapFunction",
+    "FutureFunction",
 ]
-

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Callable, Iterator, List, Optional
 
-from sage.kernel.api.function.base_function import BaseFunction
+from sage.common.core.functions import BaseFunction
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.task_context import TaskContext

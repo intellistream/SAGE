@@ -18,7 +18,7 @@ class FutureTransformation(BaseTransformation):
 
     def __init__(self, env: "BaseEnvironment", name: str):
         # 使用一个特殊的function作为占位符
-        from sage.kernel.api.function.future_function import FutureFunction
+        from sage.common.core.functions import FutureFunction
 
         # 设置operator类（必须在super().__init__之前）
         self.operator_class = FutureOperator

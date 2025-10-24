@@ -15,10 +15,10 @@ Note:
 import logging
 from typing import Any
 
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions import SinkFunction
 
 
-class InternalPrintSink(SinkFunction):
+class PrintSink(SinkFunction):
     """
     内置打印汇聚函数 - 支持 DataStream.print()
 

@@ -1,7 +1,7 @@
 import json
 from typing import Set
 
-from sage.kernel.api.function.filter_function import FilterFunction
+from sage.common.core.functions import FilterFunction
 from sage.libs.context.model_context import ModelContext
 
 

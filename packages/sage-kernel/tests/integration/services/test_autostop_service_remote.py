@@ -22,10 +22,10 @@ for p in src_paths:
 from sage.common.utils.logging.custom_logger import (  # noqa: E402
     CustomLogger,
 )
-from sage.kernel.api.function.batch_function import (  # noqa: E402
+from sage.common.core.functions import (  # noqa: E402
     BatchFunction,
 )
-from sage.kernel.api.function.sink_function import SinkFunction  # noqa: E402
+from sage.common.core.functions import SinkFunction  # noqa: E402
 from sage.kernel.api.remote_environment import (  # noqa: E402
     RemoteEnvironment,
 )

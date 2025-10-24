@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions import SinkFunction
 from sage.libs.context.model_context import ModelContext
 
 

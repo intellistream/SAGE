@@ -14,8 +14,8 @@ from typing import (
 )
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.function.lambda_function import wrap_lambda
+from sage.common.core.functions import BaseFunction
+from sage.common.core.functions import wrap_lambda
 
 from .connected_streams import ConnectedStreams
 
@@ -284,7 +284,7 @@ class DataStream(Generic[T]):
         """
         便捷的打印方法 - 将数据流输出到控制台
 
-        这是 sink(InternalPrintSink, ...) 的简化版本，提供快速调试和查看数据流内容的能力
+        这是 sink(PrintSink, ...) 的简化版本，提供快速调试和查看数据流内容的能力
 
         Args:
             prefix: 输出前缀，默认为空
@@ -305,9 +305,9 @@ class DataStream(Generic[T]):
             使用 kernel 内置的打印功能，不依赖 sage-libs。
             如需更高级的打印功能，请使用 sage.libs.io.sink.PrintSink。
         """
-        from sage.kernel.api.function._internal_print_sink import InternalPrintSink
+        from sage.common.components.debug import PrintSink
 
-        return self.sink(InternalPrintSink, prefix=prefix, separator=separator, colored=colored)
+        return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
     # ---------------------------------------------------------------------
     # internel methods

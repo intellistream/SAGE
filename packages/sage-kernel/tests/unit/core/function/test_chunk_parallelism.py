@@ -2,9 +2,9 @@ import threading
 import time
 from typing import Dict, List
 
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.function.sink_function import SinkFunction
-from sage.kernel.api.function.source_function import SourceFunction
+from sage.common.core.functions import BaseFunction
+from sage.common.core.functions import SinkFunction
+from sage.common.core.functions import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # 添加全局打印锁来防止并发输出混乱

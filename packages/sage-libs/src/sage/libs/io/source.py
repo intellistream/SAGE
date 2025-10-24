@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from sage.kernel.api.function.source_function import SourceFunction
+from sage.common.core.functions import SourceFunction
 
 
 class FileSource(SourceFunction):

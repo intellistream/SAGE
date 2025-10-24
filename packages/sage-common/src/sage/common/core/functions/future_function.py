@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sage.kernel.api.function.base_function import BaseFunction
+from sage.common.core.functions.base_function import BaseFunction
 
 
 class FutureFunction(BaseFunction):

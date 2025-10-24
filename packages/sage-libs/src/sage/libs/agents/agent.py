@@ -4,7 +4,7 @@ import time
 from typing import Tuple
 
 import requests
-from sage.kernel.api.function.map_function import MapFunction
+from sage.common.core.functions import MapFunction
 from sage.libs.integrations.openaiclient import OpenAIClient
 
 

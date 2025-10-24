@@ -4,12 +4,12 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
-from sage.kernel.api.function.filter_function import FilterFunction
-from sage.kernel.api.function.flatmap_function import FlatMapFunction
-from sage.kernel.api.function.join_function import BaseJoinFunction
-from sage.kernel.api.function.keyby_function import KeyByFunction
-from sage.kernel.api.function.sink_function import SinkFunction
-from sage.kernel.api.function.source_function import SourceFunction
+from sage.common.core.functions import FilterFunction
+from sage.common.core.functions import FlatMapFunction
+from sage.common.core.functions import BaseJoinFunction
+from sage.common.core.functions import KeyByFunction
+from sage.common.core.functions import SinkFunction
+from sage.common.core.functions import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # =====================================================================
