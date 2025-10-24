@@ -78,6 +78,12 @@ class BaseQueueDescriptor(ABC):
         """是否可以序列化"""
         pass
 
+    @property
+    @abstractmethod
+    def metadata(self) -> Dict[str, Any]:
+        """队列元数据（由子类实现）"""
+        pass
+
     def _validate(self):
         """验证描述符参数"""
         if not self.queue_id or not isinstance(self.queue_id, str):
@@ -92,32 +98,53 @@ class BaseQueueDescriptor(ABC):
     def put(
         self, item: Any, block: bool = True, timeout: Optional[float] = None
     ) -> None:
-        return self.queue_instance.put(item, block=block, timeout=timeout)
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.put(item, block=block, timeout=timeout)
 
     def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
         """从队列中获取项目"""
-        return self.queue_instance.get(block=block, timeout=timeout)
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.get(block=block, timeout=timeout)
 
     def empty(self) -> bool:
         """检查队列是否为空"""
-        return self.queue_instance.empty()
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.empty()
 
     def qsize(self) -> int:
         """获取队列大小"""
-        return self.queue_instance.qsize()
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.qsize()
 
     # 额外的队列方法（如果底层队列支持）
     def put_nowait(self, item: Any) -> None:
         """非阻塞放入项目"""
-        return self.queue_instance.put_nowait(item)
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.put_nowait(item)
 
     def get_nowait(self) -> Any:
         """非阻塞获取项目"""
-        return self.queue_instance.get_nowait()
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.get_nowait()
 
     def full(self) -> bool:
         """检查队列是否已满"""
-        return self.queue_instance.full()
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.full()
 
     # ============ 描述符管理方法 ============
 
@@ -162,11 +189,12 @@ class BaseQueueDescriptor(ABC):
         Args:
             include_non_serializable: 是否包含不可序列化的字段
         """
-        result = {
+        metadata_dict: Dict[str, Any] = {}
+        result: Dict[str, Any] = {
             "queue_id": self.queue_id,
             "queue_type": self.queue_type,
             "class_name": self.__class__.__name__,
-            "metadata": {},
+            "metadata": metadata_dict,
             "can_serialize": self.can_serialize,
             "created_timestamp": self.created_timestamp,
         }
@@ -178,12 +206,10 @@ class BaseQueueDescriptor(ABC):
 
             try:
                 json.dumps(value)  # 测试是否可序列化
-                result["metadata"][key] = value
+                metadata_dict[key] = value
             except (TypeError, ValueError):
                 if include_non_serializable:
-                    result["metadata"][
-                        key
-                    ] = f"<non-serializable: {type(value).__name__}>"
+                    metadata_dict[key] = f"<non-serializable: {type(value).__name__}>"
 
         return result
 
