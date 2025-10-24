@@ -1,14 +1,28 @@
-# sage-platform
+# SAGE Platform
 
-**Platform Services Layer (L2)** - Infrastructure abstractions for SAGE
+> Platform Services Layer (L2) - Infrastructure abstractions for SAGE
 
-## Overview
+[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
 
-`sage-platform` provides core infrastructure abstractions that sit between the foundation layer (`sage-common`) and the execution engine (`sage-kernel`). It includes:
+## 📋 Overview
+
+**SAGE Platform** provides core infrastructure abstractions that sit between the foundation layer (`sage-common`) and the execution engine (`sage-kernel`). This Layer-2 platform service offers:
 
 - **Queue Abstractions**: Unified interface for Python, Ray, and RPC queues
-- **Storage Abstractions**: Key-Value backend interfaces
-- **Service Base Classes**: Foundation for SAGE services
+- **Storage Abstractions**: Pluggable key-value storage backends
+- **Service Base Classes**: Foundation for building SAGE services
+- **Platform Interfaces**: Common patterns for distributed systems
+
+This package enables seamless switching between local and distributed execution modes without changing application code.
+
+## ✨ Key Features
+
+- **Polymorphic Queues**: Single API for Python Queue, Ray Queue, and RPC Queue
+- **Pluggable Storage**: In-memory, Redis, and custom storage backends
+- **Service Framework**: Base classes for building platform services
+- **Type-Safe**: Full type hints and runtime validation
+- **Zero-Overhead**: Minimal abstraction cost for local execution
 
 ## Components
 
@@ -79,17 +93,151 @@ class MyService(BaseService):
         return response
 ```
 
-## Installation
+## 📦 Package Structure
+
+```
+sage-platform/
+├── src/
+│   └── sage/
+│       └── platform/
+│           ├── __init__.py
+│           ├── queue/              # Queue abstractions
+│           │   ├── base.py
+│           │   ├── python_queue.py
+│           │   ├── ray_queue.py
+│           │   └── rpc_queue.py
+│           ├── storage/            # Storage backends
+│           │   └── kv_backend.py
+│           └── service/            # Service base classes
+│               └── base.py
+├── tests/
+├── pyproject.toml
+└── README.md
+```
+
+## 🚀 Installation
+
+### Basic Installation
 
 ```bash
-# Basic installation
-pip install isage-platform
+pip install sage-platform
+```
 
-# With Ray support
-pip install isage-platform[ray]
+### Development Installation
 
-# With Redis support
-pip install isage-platform[redis]
+```bash
+cd packages/sage-platform
+pip install -e .
+```
+
+### With Optional Dependencies
+
+```bash
+# With Ray support (distributed queues)
+pip install sage-platform[ray]
+
+# With Redis support (distributed storage)
+pip install sage-platform[redis]
+
+# Full installation
+pip install sage-platform[all]
+```
+
+## 📖 Quick Start
+
+### Using Queues
+
+```python
+from sage.platform.queue import RayQueueDescriptor
+
+# Create a distributed queue
+queue_desc = RayQueueDescriptor(
+    maxsize=1000,
+    queue_id="my_distributed_queue"
+)
+
+# Producer
+queue_desc.put({"task": "process_data", "data": [1, 2, 3]})
+
+# Consumer
+task = queue_desc.get()
+print(f"Processing: {task}")
+
+# Check queue status
+print(f"Queue size: {queue_desc.qsize()}")
+print(f"Empty: {queue_desc.empty()}")
+```
+
+### Using Storage
+
+```python
+from sage.platform.storage.kv_backend import DictKVBackend
+
+# Create storage backend
+storage = DictKVBackend()
+
+# Store data
+storage.set("user:1", {"name": "Alice", "age": 30})
+storage.set("user:2", {"name": "Bob", "age": 25})
+
+# Retrieve data
+user = storage.get("user:1")
+print(f"User: {user}")
+
+# List all keys
+keys = storage.get_all_keys()
+print(f"All keys: {keys}")
+
+# Persist to disk
+storage.store_data_to_disk("storage.pkl")
+```
+
+### Creating a Service
+
+```python
+from sage.platform.service import BaseService
+
+class DataProcessingService(BaseService):
+    def __init__(self, config):
+        super().__init__(name="data_processing")
+        self.config = config
+        self.initialize()
+    
+    def initialize(self):
+        """Initialize service resources"""
+        self.logger.info(f"Initializing {self.name}")
+    
+    def process(self, request):
+        """Process incoming requests"""
+        self.logger.debug(f"Processing request: {request}")
+        result = self._transform_data(request["data"])
+        return {"status": "success", "result": result}
+    
+    def _transform_data(self, data):
+        # Service logic
+        return [x * 2 for x in data]
+
+# Use service
+service = DataProcessingService({"param": "value"})
+result = service.process({"data": [1, 2, 3]})
+print(result)  # {"status": "success", "result": [2, 4, 6]}
+```
+
+## 🔧 Configuration
+
+Services can be configured through environment variables or configuration files:
+
+```yaml
+# platform_config.yaml
+platform:
+  queue:
+    backend: ray  # or python, rpc
+    maxsize: 1000
+  
+  storage:
+    backend: dict  # or redis
+    persist: true
+    save_path: ./storage
 ```
 
 ## Architecture Position
@@ -130,10 +278,46 @@ By creating L2:
 - ✅ Proper dependency direction
 - ✅ Better reusability across components
 
-## Contributing
+## 🧪 Testing
 
-See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guidelines.
+```bash
+# Run unit tests
+pytest tests/unit
 
-## License
+# Run integration tests
+pytest tests/integration
 
-MIT License - see [LICENSE](../../LICENSE) for details.
+# Run with coverage
+pytest --cov=sage.platform --cov-report=html
+```
+
+## 📚 Documentation
+
+- **User Guide**: See [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-platform/)
+- **API Reference**: See package docstrings and type hints
+- **Architecture**: See [Platform Layer Design](https://intellistream.github.io/SAGE-Pub/concepts/architecture/design-decisions/l2-platform-layer/)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+
+## 🔗 Related Packages
+
+- **sage-common**: Foundation layer (L1) - provides basic utilities
+- **sage-kernel**: Execution engine (L3) - uses platform abstractions
+- **sage-middleware**: Service layer (L4) - uses storage and queues
+- **sage-libs**: Library layer (L5) - uses all platform services
+
+## 📮 Support
+
+- **Documentation**: https://intellistream.github.io/SAGE-Pub/
+- **Issues**: https://github.com/intellistream/SAGE/issues
+- **Discussions**: https://github.com/intellistream/SAGE/discussions
+
+---
+
+**Part of the SAGE Framework** | [Main Repository](https://github.com/intellistream/SAGE)

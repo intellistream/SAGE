@@ -1,14 +1,29 @@
 # SAGE Benchmark
 
-**Benchmarking and RAG Examples for SAGE Framework**
+> Comprehensive benchmarking tools and RAG examples for the SAGE framework
 
-This package provides comprehensive benchmarking tools, RAG (Re## 📚 Documentation
+[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
 
-For detailed documentation on each component:
+## 📋 Overview
 
-- See `src/sage/benchmark/benchmark_rag/implementations/README.md` for RAG implementation details
-- See `src/sage/benchmark/benchmark_rag/evaluation/README.md` for benchmark experiment documentation
-- See `src/sage/benchmark/benchmark_rag/config/README.md` for configuration guidel-Augmented Generation) examples, and experimental pipelines for the SAGE framework.
+**SAGE Benchmark** provides a comprehensive suite of benchmarking tools and RAG (Retrieval-Augmented Generation) examples for evaluating SAGE framework performance. This package enables researchers and developers to:
+
+- **Benchmark RAG pipelines** with multiple retrieval strategies (dense, sparse, hybrid)
+- **Compare vector databases** (Milvus, ChromaDB, FAISS) for RAG applications
+- **Evaluate multimodal retrieval** with text, image, and video data
+- **Run reproducible experiments** with standardized configurations and metrics
+
+This package is designed for both research experiments and production system evaluation.
+
+## ✨ Key Features
+
+- **Multiple RAG Implementations**: Dense, sparse, hybrid, and multimodal retrieval
+- **Vector Database Support**: Milvus, ChromaDB, FAISS integration
+- **Experiment Framework**: Automated benchmarking with configurable experiments
+- **Evaluation Metrics**: Comprehensive metrics for RAG performance
+- **Sample Data**: Included test data for quick start
+- **Extensible Design**: Easy to add new benchmarks and retrieval methods
 
 ## 📦 Package Structure
 
@@ -79,28 +94,93 @@ Various RAG approaches for performance comparison:
 
 ### Quick Start
 
-1. **Build vector index** (prerequisite):
+#### 1. Build Vector Index
+
+First, prepare your vector index:
+
 ```bash
+# Build ChromaDB index (simplest)
 python -m sage.benchmark.benchmark_rag.implementations.tools.build_chroma_index
+
+# Or build Milvus dense index
+python -m sage.benchmark.benchmark_rag.implementations.tools.build_milvus_dense_index
 ```
 
-2. **Run a RAG pipeline**:
-```bash
+#### 2. Run a RAG Pipeline
+
+Test individual RAG pipelines:
+
+```python
 # Dense retrieval with Milvus
 python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_dense_retrieval_milvus
 
 # Sparse retrieval
 python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_sparse_retrieval_milvus
+
+# Hybrid retrieval (dense + sparse)
+python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_hybrid_retrieval_milvus
 ```
 
-3. **Run benchmark experiments**:
+#### 3. Run Benchmark Experiments
+
+Execute full benchmark suite:
+
 ```bash
+# Run comprehensive benchmark
 python -m sage.benchmark.benchmark_rag.evaluation.pipeline_experiment
+
+# Evaluate and generate reports
+python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results
 ```
 
-4. **Evaluate results**:
-```bash
-python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results
+#### 4. View Results
+
+Results are saved in `benchmark_results/`:
+- `experiment_TIMESTAMP/` - Individual experiment runs
+- `metrics.json` - Performance metrics
+- `comparison_report.md` - Comparison report
+
+## 📖 Quick Start
+
+### Basic Example
+
+```python
+from sage.benchmark.benchmark_rag.implementations.pipelines import qa_dense_retrieval_milvus
+from sage.benchmark.benchmark_rag.config import load_config
+
+# Load configuration
+config = load_config("config_dense_milvus.yaml")
+
+# Run RAG pipeline
+results = qa_dense_retrieval_milvus.run_pipeline(
+    query="What is SAGE?",
+    config=config
+)
+
+# View results
+print(f"Retrieved {len(results)} documents")
+for doc in results:
+    print(f"- {doc.content[:100]}...")
+```
+
+### Run Custom Benchmark
+
+```python
+from sage.benchmark.benchmark_rag.evaluation import PipelineExperiment
+
+# Define experiment configuration
+experiment = PipelineExperiment(
+    name="custom_rag_benchmark",
+    pipelines=["dense", "sparse", "hybrid"],
+    queries=["query1.txt", "query2.txt"],
+    metrics=["precision", "recall", "latency"]
+)
+
+# Run experiment
+results = experiment.run()
+
+# Generate report
+experiment.generate_report(results)
 ```
 
 ### Configuration
@@ -165,4 +245,21 @@ This package follows the same contribution guidelines as the main SAGE project. 
 
 ## 📄 License
 
-MIT License - see the main SAGE repository for details.
+This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+
+## 🔗 Related Packages
+
+- **sage-kernel**: Core computation engine for running benchmarks
+- **sage-libs**: RAG components and utilities
+- **sage-middleware**: Vector database services (Milvus, ChromaDB)
+- **sage-common**: Common utilities and data types
+
+## 📮 Support
+
+- **Documentation**: https://intellistream.github.io/SAGE-Pub/guides/packages/sage-benchmark/
+- **Issues**: https://github.com/intellistream/SAGE/issues
+- **Discussions**: https://github.com/intellistream/SAGE/discussions
+
+---
+
+**Part of the SAGE Framework** | [Main Repository](https://github.com/intellistream/SAGE)
