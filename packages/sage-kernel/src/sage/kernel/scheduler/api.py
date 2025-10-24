@@ -202,9 +202,7 @@ class BaseScheduler(ABC):
 
         # 通过服务工厂创建服务
         ctx = runtime_ctx if runtime_ctx is not None else service_node.ctx
-        service = service_node.service_task_factory.create_service_task(
-            service_node.service_name, ctx
-        )
+        service = service_node.service_task_factory.create_service_task(ctx)
 
         return service
 
