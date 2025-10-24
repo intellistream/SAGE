@@ -289,7 +289,7 @@ def example_placement_execution():
     def build_ray_options(decision: PlacementDecision):
         """将决策转换为 Ray Actor 选项"""
 
-        options = {"lifetime": "detached"}
+        options: dict[str, Any] = {"lifetime": "detached"}
 
         # === 关键：指定目标节点 ===
         if decision.target_node:
@@ -313,10 +313,10 @@ def example_placement_execution():
                 print(f"✓ 要求 GPU: {options['num_gpus']}")
 
             if "memory" in decision.resource_requirements:
-                memory_str = decision.resource_requirements["memory"]
-                memory_bytes = parse_memory(memory_str)
+                memory_value = decision.resource_requirements["memory"]
+                memory_bytes = parse_memory(memory_value)  # type: ignore[arg-type]
                 options["memory"] = memory_bytes
-                print(f"✓ 要求内存: {memory_str}")
+                print(f"✓ 要求内存: {memory_value}")
 
         return options
 

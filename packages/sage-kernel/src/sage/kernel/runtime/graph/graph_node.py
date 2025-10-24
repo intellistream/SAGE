@@ -84,7 +84,7 @@ class TaskNode:
         self.task_factory: "TaskFactory" = self._create_task_factory()
 
         self.stop_signal_num: int = 0  # 预期的源节点数量
-        self.ctx: "TaskContext" = None
+        self.ctx: "TaskContext | None" = None
 
     def _create_queue_descriptors(self, env: "BaseEnvironment"):
         """在节点构造时创建队列描述符"""

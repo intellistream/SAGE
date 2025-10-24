@@ -14,7 +14,7 @@ try:
     RAY_AVAILABLE = True
 except ImportError:
     RAY_AVAILABLE = False
-    ActorHandle = None
+    ActorHandle = None  # type: ignore[assignment,misc]
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.communication.router.connection import Connection

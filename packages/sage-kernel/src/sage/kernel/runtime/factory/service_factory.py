@@ -14,7 +14,7 @@ class ServiceFactory:
         service_name: str,
         service_class: Type,
         service_args: Tuple[Any, ...] = (),
-        service_kwargs: dict = None,
+        service_kwargs: dict | None = None,
     ):
         """
         初始化服务工厂
@@ -38,7 +38,7 @@ class ServiceFactory:
         self.service_args = service_args
         self.service_kwargs = service_kwargs or {}
 
-    def create_service(self, ctx: "ServiceContext" = None) -> Any:
+    def create_service(self, ctx: "ServiceContext | None" = None) -> Any:
         """
         创建服务实例
 

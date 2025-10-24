@@ -81,7 +81,7 @@ def create_with_context(
                 return instance
 
         # 现在调用 __init__，此时上下文已经可用
-        instance.__init__(*args, **kwargs)
+        instance.__init__(*args, **kwargs)  # type: ignore[misc]
     else:
         # 没有上下文时，使用正常的构造方式
         instance = target_class(*args, **kwargs)

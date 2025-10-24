@@ -13,7 +13,7 @@ class FunctionFactory:
         self,
         function_class: type[BaseFunction],
         function_args: tuple[Any, ...] = (),
-        function_kwargs: dict = None,
+        function_kwargs: dict | None = None,
     ):
         self.function_class = function_class
         self.function_args = function_args

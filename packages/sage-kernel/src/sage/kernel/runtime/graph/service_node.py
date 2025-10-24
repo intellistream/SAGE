@@ -80,7 +80,7 @@ class ServiceNode:
         # 在构造时创建队列描述符
         self._create_queue_descriptors(env)
 
-        self.ctx: "ServiceContext" = None
+        self.ctx: "ServiceContext | None" = None
 
     def _create_queue_descriptors(self, env: "BaseEnvironment"):
         """在服务节点构造时创建队列描述符"""

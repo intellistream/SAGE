@@ -25,7 +25,7 @@ try:
     from sage.kernel.runtime.jobmanager_client import JobManagerClient
 except ImportError:
     # 如果导入失败，提供一个占位符
-    JobManagerClient = None
+    JobManagerClient = None  # type: ignore[assignment,misc]
     import warnings
 
     warnings.warn(
