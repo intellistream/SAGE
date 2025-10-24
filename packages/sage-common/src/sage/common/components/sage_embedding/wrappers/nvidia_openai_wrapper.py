@@ -1,7 +1,7 @@
 """NVIDIA NIM (OpenAI-compatible) embedding wrapper."""
 
 import os
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from ..base import BaseEmbedding
 
@@ -61,7 +61,7 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
         self,
         model: str = "nvidia/llama-3.2-nv-embedqa-1b-v1",
         base_url: str = "https://integrate.api.nvidia.com/v1",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         input_type: str = "passage",
         trunc: str = "NONE",
         encode: Literal["float", "base64"] = "float",
@@ -97,15 +97,12 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
             from openai import OpenAI  # noqa: F401
         except ImportError:
             raise ImportError(
-                "NVIDIA OpenAI embedding 需要 openai 包。\n"
-                "安装方法: pip install openai"
+                "NVIDIA OpenAI embedding 需要 openai 包。\n" "安装方法: pip install openai"
             )
 
         self._model = model
         self._base_url = base_url
-        self._api_key = (
-            api_key or os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY")
-        )
+        self._api_key = api_key or os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY")
         self._input_type = input_type
         self._trunc = trunc
         self._encode: Literal["float", "base64"] = encode
@@ -114,19 +111,19 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
         # 检查 API Key
         if not self._api_key:
             raise RuntimeError(
-                "NVIDIA OpenAI embedding 需要 API Key。\n"
+                "NVIDIA OpenAI embedding 需要 API Key。\n"  # pragma: allowlist secret
                 "解决方案:\n"
-                "  1. 设置环境变量: export NVIDIA_API_KEY='your-key'\n"
-                "     或: export OPENAI_API_KEY='your-key'\n"
-                "  2. 传递参数: NvidiaOpenAIEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export NVIDIA_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "     或: export OPENAI_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: NvidiaOpenAIEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
-                "获取 API Key: https://build.nvidia.com/"
+                "获取 API Key: https://build.nvidia.com/"  # pragma: allowlist secret
             )
 
         # 获取维度
         self._dim = self._infer_dimension()
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -169,7 +166,7 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
                 f"提示: 检查 API Key 是否有效，网络连接是否正常"
             ) from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         使用 OpenAI 兼容 API 的批量接口（input 参数支持列表）。
@@ -256,7 +253,7 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
             return 2048
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:
