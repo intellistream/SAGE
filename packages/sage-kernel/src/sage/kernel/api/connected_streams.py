@@ -368,7 +368,7 @@ class ConnectedStreams:
             keyed_transformations = []
             for transformation, selector in zip(self.transformations, key_selector, strict=False):
                 # 创建单独的DataStream并应用keyby
-                individual_stream = DataStream(self._environment, transformation)
+                individual_stream: DataStream = DataStream(self._environment, transformation)
                 keyed_stream = individual_stream.keyby(selector, strategy=strategy)
                 keyed_transformations.append(keyed_stream.transformation)
 

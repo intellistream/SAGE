@@ -302,7 +302,7 @@ class DataStream(Generic[T]):
         tr.add_upstream(self.transformation, input_index=0)
 
         self._environment.pipeline.append(tr)
-        new_stream = DataStream(self._environment, tr)
+        new_stream: DataStream = DataStream(self._environment, tr)
         return new_stream
 
     def _resolve_type_param(self):

@@ -181,7 +181,7 @@ class FailureRateStrategy(RestartStrategy):
         self.max_failures_per_interval = max_failures_per_interval
         self.interval_seconds = interval_seconds
         self.delay = delay
-        self.failure_timestamps = []
+        self.failure_timestamps: list[float] = []
 
     def should_restart(self, failure_count: int) -> bool:
         """

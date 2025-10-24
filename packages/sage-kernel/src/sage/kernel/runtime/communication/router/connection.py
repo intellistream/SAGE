@@ -30,7 +30,7 @@ class Connection:
         self.target_input_index: int = target_input_index
 
         # 负载状态跟踪（保留用于监控）
-        self._load_history = []  # 存储最近的负载历史
+        self._load_history: list[float] = []  # 存储最近的负载历史
         self._last_load_check = time.time()
         self._load_trend = 0.0  # 负载趋势：正数表示增加，负数表示减少
         self._max_history_size = 10  # 保存最近10次的负载记录

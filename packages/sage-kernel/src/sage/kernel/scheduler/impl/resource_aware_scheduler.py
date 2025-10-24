@@ -75,7 +75,7 @@ class LoadAwareScheduler(BaseScheduler):
         self.strategy = strategy
         self.total_latency = 0.0
         self.active_tasks = 0
-        self.resource_utilization = []
+        self.resource_utilization: list[float] = []
 
         # 集成 NodeSelector（资源感知核心）
         from sage.kernel.scheduler.node_selector import NodeSelector

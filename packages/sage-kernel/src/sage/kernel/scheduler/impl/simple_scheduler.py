@@ -60,7 +60,7 @@ class FIFOScheduler(BaseScheduler):
         super().__init__()
         self.platform = platform
         self.total_latency = 0.0
-        self.start_times = {}
+        self.start_times: dict[str, float] = {}
 
     def make_decision(self, task_node: "TaskNode") -> PlacementDecision:
         """
