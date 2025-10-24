@@ -73,7 +73,8 @@ class Dispatcher:
 
         # 注入 logger 到容错管理器
         self.fault_handler.logger = self.logger
-        self.lifecycle_manager.logger = self.logger
+        if hasattr(self.lifecycle_manager, "logger"):
+            self.lifecycle_manager.logger = self.logger  # type: ignore
         self.fault_handler.dispatcher = self
 
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
@@ -235,10 +236,11 @@ class Dispatcher:
 
                 try:
                     # 直接调用 JoinOperator 的 handle_stop_signal 方法
-                    task.operator.handle_stop_signal(stop_signal)
-                    self.logger.info(
-                        f"Notified JoinOperator {task_name} about source {source_node_name} stopping"
-                    )
+                    if hasattr(task.operator, "handle_stop_signal"):
+                        task.operator.handle_stop_signal(stop_signal)  # type: ignore
+                        self.logger.info(
+                            f"Notified JoinOperator {task_name} about source {source_node_name} stopping"
+                        )
                 except Exception as e:
                     self.logger.error(f"Failed to notify JoinOperator {task_name}: {e}")
 
@@ -247,8 +249,13 @@ class Dispatcher:
         self.logger.info("Cleaning up services after batch completion")
 
         if self.remote:
-            # 清理 Ray 服务
-            self._cleanup_ray_services()
+            # 清理 Ray 服务 (使用生命周期管理器)
+            try:
+                self.lifecycle_manager.cleanup_all(
+                    tasks={}, services=self.services, cleanup_timeout=5.0
+                )
+            except Exception as e:
+                self.logger.error(f"Error cleaning up Ray services: {e}")
         else:
             # 清理本地服务
             for service_name, service_task in list(self.services.items()):
@@ -277,14 +284,15 @@ class Dispatcher:
         self.logger.info("All services cleaned up")
 
     def setup_logging_system(self):
+        base_dir = self.env.env_base_dir if self.env.env_base_dir is not None else "."
         self.logger = CustomLogger(
             [
                 ("console", "INFO"),  # 控制台显示重要信息
                 (
-                    os.path.join(self.env.env_base_dir, "Dispatcher.log"),
+                    os.path.join(base_dir, "Dispatcher.log"),
                     "DEBUG",
                 ),  # 详细日志
-                (os.path.join(self.env.env_base_dir, "Error.log"), "ERROR"),  # 错误日志
+                (os.path.join(base_dir, "Error.log"), "ERROR"),  # 错误日志
             ],
             name=f"Dispatcher_{self.name}",
         )
@@ -295,13 +303,13 @@ class Dispatcher:
             try:
                 if hasattr(service_task, "start_running"):
                     service_task.start_running()
-                elif hasattr(service_task, "_actor") and hasattr(
-                    service_task, "start_running"
-                ):
+                elif hasattr(service_task, "_actor"):
                     # ActorWrapper包装的服务
                     import ray
 
-                    ray.get(service_task.start_running.remote())
+                    actor_ref = getattr(service_task, "_actor")
+                    if hasattr(actor_ref, "start_running"):
+                        ray.get(actor_ref.start_running.remote())  # type: ignore
                 self.logger.debug(f"Started service task: {service_name}")
             except Exception as e:
                 self.logger.error(
@@ -388,6 +396,7 @@ class Dispatcher:
 
         # 第一步：调度所有服务任务
         for service_node_name, service_node in self.graph.service_nodes.items():
+            service_name = None
             try:
                 service_name = service_node.service_name
 
@@ -421,8 +430,9 @@ class Dispatcher:
                     f"Placed service task '{service_name}' of type '{service_task.__class__.__name__}'"
                 )
             except Exception as e:
+                error_service = service_name if service_name else service_node_name
                 self.logger.error(
-                    f"Failed to schedule and place service task {service_name}: {e}",
+                    f"Failed to schedule and place service task {error_service}: {e}",
                     exc_info=True,
                 )
                 # 可以选择继续或停止，这里选择继续但记录错误
@@ -596,11 +606,17 @@ class Dispatcher:
             try:
                 if hasattr(service_task, "get_statistics"):
                     service_status = service_task.get_statistics()
-                elif hasattr(service_task, "_actor") and hasattr(
-                    service_task._actor, "get_statistics"
-                ):
+                elif hasattr(service_task, "_actor"):
                     # ActorWrapper包装的服务
-                    service_status = service_task._actor.get_statistics()
+                    actor_ref = getattr(service_task, "_actor")
+                    if hasattr(actor_ref, "get_statistics"):
+                        service_status = actor_ref.get_statistics()  # type: ignore
+                    else:
+                        service_status = {
+                            "service_name": service_name,
+                            "type": service_task.__class__.__name__,
+                            "status": "unknown",
+                        }
                 else:
                     service_status = {
                         "service_name": service_name,
