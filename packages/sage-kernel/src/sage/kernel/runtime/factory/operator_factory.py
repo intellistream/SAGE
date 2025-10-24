@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.kernel.api.operator.base_operator import BaseOperator
@@ -10,9 +10,9 @@ class OperatorFactory:
     # 由transformation初始化
     def __init__(
         self,
-        operator_class: Type["BaseOperator"],
+        operator_class: type["BaseOperator"],
         function_factory: "FunctionFactory",
-        env_name: str = None,
+        env_name: str | None = None,
         remote: bool = False,
         **operator_kwargs
     ):

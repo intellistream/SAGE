@@ -28,9 +28,7 @@ class LambdaFilterFunction(FilterFunction):
 
     def __init__(self, lambda_func: Callable[[Any], bool], **kwargs):
         self.lambda_func = lambda_func
-        print(
-            f"🔧 LambdaFilterFunction.__init__ called with lambda_func: {lambda_func}"
-        )
+        print(f"🔧 LambdaFilterFunction.__init__ called with lambda_func: {lambda_func}")
 
     def execute(self, data: Any) -> bool:
         try:
@@ -53,9 +51,7 @@ class LambdaFlatMapFunction(FlatMapFunction):
     def execute(self, data: Any) -> list[Any]:
         result = self.lambda_func(data)
         if not isinstance(result, list):
-            raise TypeError(
-                f"FlatMap lambda function must return a list, got {type(result)}"
-            )
+            raise TypeError(f"FlatMap lambda function must return a list, got {type(result)}")
         return result
 
 
@@ -130,17 +126,12 @@ def detect_lambda_type(func: Callable) -> str:
 
         # 有参数但非单参数 -> 暂不支持
         if len(params) != 1:
-            raise ValueError(
-                f"Lambda function must have 0 or 1 parameter, got {len(params)}"
-            )
+            raise ValueError(f"Lambda function must have 0 or 1 parameter, got {len(params)}")
 
         # 根据返回类型注解判断
         if return_annotation == bool:
             return "filter"
-        elif (
-            hasattr(return_annotation, "__origin__")
-            and return_annotation.__origin__ == list
-        ):
+        elif hasattr(return_annotation, "__origin__") and return_annotation.__origin__ == list:
             return "flatmap"
         elif return_annotation is type(None) or return_annotation is None:
             return "sink"
@@ -152,7 +143,7 @@ def detect_lambda_type(func: Callable) -> str:
         return "map"
 
 
-def wrap_lambda(func: Callable, func_type: str = None) -> type[BaseFunction]:
+def wrap_lambda(func: Callable, func_type: str | None = None) -> type[BaseFunction]:
     """
     将 lambda 函数包装为对应的 Function 类
 

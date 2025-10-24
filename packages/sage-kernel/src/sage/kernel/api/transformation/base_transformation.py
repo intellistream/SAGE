@@ -18,7 +18,7 @@ class BaseTransformation:
         env: BaseEnvironment,
         function: type[BaseFunction],
         *args,
-        name: str = None,
+        name: str | None = None,
         parallelism: int = 1,
         **kwargs,
     ):
@@ -57,9 +57,7 @@ class BaseTransformation:
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
 
     # 增强的连接方法
-    def add_upstream(
-        self, upstream_trans: BaseTransformation, input_index: int = 0
-    ) -> None:
+    def add_upstream(self, upstream_trans: BaseTransformation, input_index: int = 0) -> None:
         """
         添加上游连接
 
@@ -124,10 +122,7 @@ class BaseTransformation:
         对于大多数transformation，多个上游输入会被合并到input_index=0
         只有特殊的comap等操作会分别处理多个输入到不同的input_index
         """
-        return (
-            not hasattr(self.function_class, "is_comap")
-            or not self.function_class.is_comap
-        )
+        return not hasattr(self.function_class, "is_comap") or not self.function_class.is_comap
 
     # ---------------- 工具函数 ----------------
 

@@ -86,9 +86,7 @@ class UserOrderInnerJoin(BaseJoinFunction):
 
         return results
 
-    def _create_join_result(
-        self, user_data: Any, order_data: Any, user_id: Any
-    ) -> dict:
+    def _create_join_result(self, user_data: Any, order_data: Any, user_id: Any) -> dict:
         return {
             "user_id": user_id,
             "user_name": user_data.get("name"),
@@ -106,8 +104,8 @@ class UserOrderLeftJoin(BaseJoinFunction):
 
     def __init__(self, timeout_ms: int = 30000, **kwargs):
         super().__init__(**kwargs)
-        self.user_cache = {}  # {user_id: (user_data, timestamp)}
-        self.order_cache = {}  # {user_id: [order_data, ...]}
+        self.user_cache: dict[Any, tuple[Any, int]] = {}  # {user_id: (user_data, timestamp)}
+        self.order_cache: dict[Any, list[Any]] = {}  # {user_id: [order_data, ...]}
         self.timeout_ms = timeout_ms
         import time
 
@@ -156,9 +154,7 @@ class UserOrderLeftJoin(BaseJoinFunction):
 
         return results
 
-    def _create_join_result(
-        self, user_data: Any, order_data: Any, user_id: Any
-    ) -> dict:
+    def _create_join_result(self, user_data: Any, order_data: Any, user_id: Any) -> dict:
         return {
             "user_id": user_id,
             "user_name": user_data.get("name"),
@@ -177,7 +173,9 @@ class WindowedEventJoin(BaseJoinFunction):
     def __init__(self, window_ms: int = 60000, **kwargs):
         super().__init__(**kwargs)
         self.window_ms = window_ms
-        self.event_buffer = {}  # {key: [(event_data, timestamp, tag), ...]}
+        self.event_buffer: dict[Any, list[tuple[Any, int, int]]] = (
+            {}
+        )  # {key: [(event_data, timestamp, tag), ...]}
         import time
 
         self.current_time = lambda: int(time.time() * 1000)
@@ -211,9 +209,7 @@ class WindowedEventJoin(BaseJoinFunction):
 
         for key in list(self.event_buffer.keys()):
             valid_events = [
-                (data, ts, tag)
-                for data, ts, tag in self.event_buffer[key]
-                if ts >= cutoff_time
+                (data, ts, tag) for data, ts, tag in self.event_buffer[key] if ts >= cutoff_time
             ]
             if valid_events:
                 self.event_buffer[key] = valid_events
@@ -222,24 +218,16 @@ class WindowedEventJoin(BaseJoinFunction):
 
     def _get_window_events(self, key: Any, current_time: int) -> list:
         cutoff_time = current_time - self.window_ms
-        return [
-            (data, ts, tag)
-            for data, ts, tag in self.event_buffer[key]
-            if ts >= cutoff_time
-        ]
+        return [(data, ts, tag) for data, ts, tag in self.event_buffer[key] if ts >= cutoff_time]
 
     def _find_event_combinations(self, events: list) -> list:
         # 示例：查找登录后的购买事件
         combinations = []
         login_events = [
-            (data, ts)
-            for data, ts, tag in events
-            if tag == 0 and data.get("action") == "login"
+            (data, ts) for data, ts, tag in events if tag == 0 and data.get("action") == "login"
         ]
         purchase_events = [
-            (data, ts)
-            for data, ts, tag in events
-            if tag == 1 and data.get("action") == "purchase"
+            (data, ts) for data, ts, tag in events if tag == 1 and data.get("action") == "purchase"
         ]
 
         for login_data, login_time in login_events:
@@ -256,7 +244,6 @@ class WindowedEventJoin(BaseJoinFunction):
             "login_time": login_data.get("timestamp"),
             "purchase_time": purchase_data.get("timestamp"),
             "purchase_amount": purchase_data.get("amount"),
-            "time_to_purchase": purchase_data.get("timestamp")
-            - login_data.get("timestamp"),
+            "time_to_purchase": purchase_data.get("timestamp") - login_data.get("timestamp"),
             "conversion": True,
         }

@@ -2,7 +2,7 @@ import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from .critic_evaluation import CriticEvaluation
@@ -18,25 +18,23 @@ class ModelContext:
     sequence: int = 0
     timestamp: int = field(default_factory=lambda: int(time.time() * 1000))
     # Generator content
-    raw_question: str = None
+    raw_question: str | None = None
     # 保留原有的retriver_chunks用于向后兼容，但优先使用search_session
-    retriver_chunks: List[str] = field(default_factory=list)
+    retriver_chunks: list[str] = field(default_factory=list)
     # 新的分层搜索结果结构
-    search_session: Optional[SearchSession] = None
-    prompts: List[Dict[str, str]] = field(default_factory=list)
-    response: str = None
+    search_session: SearchSession | None = None
+    prompts: list[dict[str, str]] = field(default_factory=list)
+    response: str | None = None
     uuid: str = field(default_factory=lambda: str(uuid4()))
-    tool_name: str = None
-    evaluation: CriticEvaluation = None
+    tool_name: str | None = None
+    evaluation: CriticEvaluation | None = None
     # Tool configuration - 存储工具相关的配置和中间结果
-    tool_config: Dict[str, Any] = field(default_factory=dict)
+    tool_config: dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:
         """格式化显示ModelContext内容"""
         # 时间格式化
-        timestamp_str = time.strftime(
-            "%Y-%m-%d %H:%M:%S", time.localtime(self.timestamp / 1000)
-        )
+        timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.timestamp / 1000))
 
         # 构建输出字符串
         output_lines = []
@@ -84,17 +82,13 @@ class ModelContext:
             output_lines.append("")
         elif self.retriver_chunks:
             # 向后兼容：显示老格式的检索结果
-            output_lines.append(
-                f"📚 Retrieved Information ({len(self.retriver_chunks)} sources):"
-            )
+            output_lines.append(f"📚 Retrieved Information ({len(self.retriver_chunks)} sources):")
             for i, chunk in enumerate(self.retriver_chunks[:3], 1):
                 preview = chunk[:150] + "..." if len(chunk) > 150 else chunk
                 output_lines.append(f"   [{i}] {preview}")
 
             if len(self.retriver_chunks) > 3:
-                output_lines.append(
-                    f"   ... and {len(self.retriver_chunks) - 3} more sources"
-                )
+                output_lines.append(f"   ... and {len(self.retriver_chunks) - 3} more sources")
             output_lines.append("")
 
         # 处理步骤信息
@@ -104,9 +98,7 @@ class ModelContext:
             user_prompts = [p for p in self.prompts if p.get("role") == "user"]
 
             if system_prompts:
-                output_lines.append(
-                    f"   • System instructions: {len(system_prompts)} phases"
-                )
+                output_lines.append(f"   • System instructions: {len(system_prompts)} phases")
             if user_prompts:
                 last_user_prompt = user_prompts[-1].get("content", "")
                 if last_user_prompt and last_user_prompt != self.raw_question:
@@ -132,14 +124,10 @@ class ModelContext:
             output_lines.append(f"   • Reasoning: {self.evaluation.reasoning}")
 
             if self.evaluation.specific_issues:
-                output_lines.append(
-                    f"   • Issues: {', '.join(self.evaluation.specific_issues)}"
-                )
+                output_lines.append(f"   • Issues: {', '.join(self.evaluation.specific_issues)}")
 
             if self.evaluation.suggestions:
-                output_lines.append(
-                    f"   • Suggestions: {', '.join(self.evaluation.suggestions)}"
-                )
+                output_lines.append(f"   • Suggestions: {', '.join(self.evaluation.suggestions)}")
 
             if self.evaluation.should_return_to_chief:
                 output_lines.append("   • ⚠️  Should return to Chief for reprocessing")
@@ -175,7 +163,7 @@ class ModelContext:
         output_lines.append("=" * 80)
         return "\n".join(output_lines)
 
-    def _format_search_session(self, output_lines: List[str]) -> None:
+    def _format_search_session(self, output_lines: list[str]) -> None:
         """格式化搜索会话的显示"""
         for i, query_result in enumerate(self.search_session.query_results, 1):
             output_lines.append(
@@ -185,14 +173,10 @@ class ModelContext:
             # 显示前3个结果
             for j, result in enumerate(query_result.get_top_results(3), 1):
                 title_preview = (
-                    result.title[:80] + "..."
-                    if len(result.title) > 80
-                    else result.title
+                    result.title[:80] + "..." if len(result.title) > 80 else result.title
                 )
                 content_preview = (
-                    result.content[:100] + "..."
-                    if len(result.content) > 100
-                    else result.content
+                    result.content[:100] + "..." if len(result.content) > 100 else result.content
                 )
                 output_lines.append(f"     [{j}] {title_preview}")
                 output_lines.append(f"         {content_preview}")
@@ -203,7 +187,7 @@ class ModelContext:
                     f"     ... and {query_result.get_results_count() - 3} more results"
                 )
 
-    def _format_tool_config(self, output_lines: List[str]) -> None:
+    def _format_tool_config(self, output_lines: list[str]) -> None:
         """格式化工具配置信息的显示"""
         for key, value in self.tool_config.items():
             if key == "search_queries":
@@ -213,9 +197,7 @@ class ModelContext:
                         preview = query[:80] + "..." if len(query) > 80 else query
                         output_lines.append(f"     [{i}] {preview}")
                     if len(value) > 5:
-                        output_lines.append(
-                            f"     ... and {len(value) - 5} more queries"
-                        )
+                        output_lines.append(f"     ... and {len(value) - 5} more queries")
                 else:
                     output_lines.append(f"   • Search Queries: {value}")
 
@@ -246,9 +228,7 @@ class ModelContext:
                         if isinstance(meta_value, (str, int, float, bool)):
                             output_lines.append(f"     - {meta_key}: {meta_value}")
                         else:
-                            output_lines.append(
-                                f"     - {meta_key}: {type(meta_value).__name__}"
-                            )
+                            output_lines.append(f"     - {meta_key}: {type(meta_value).__name__}")
                 else:
                     output_lines.append(f"   • Optimization Metadata: {value}")
 
@@ -261,9 +241,7 @@ class ModelContext:
                     value_str = str(value)
                     if len(value_str) > 50:
                         value_str = value_str[:50] + "..."
-                    output_lines.append(
-                        f"   • {key.replace('_', ' ').title()}: {value_str}"
-                    )
+                    output_lines.append(f"   • {key.replace('_', ' ').title()}: {value_str}")
 
     def _get_tool_emoji(self, tool_name: str) -> str:
         """根据工具名称返回对应的emoji"""
@@ -297,7 +275,7 @@ class ModelContext:
         }
         return quality_emojis.get(quality_label, "❔")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典格式"""
         result = {}
 
@@ -305,9 +283,7 @@ class ModelContext:
         result["sequence"] = self.sequence
         result["timestamp"] = self.timestamp
         result["raw_question"] = self.raw_question
-        result["retriver_chunks"] = (
-            self.retriver_chunks.copy() if self.retriver_chunks else []
-        )
+        result["retriver_chunks"] = self.retriver_chunks.copy() if self.retriver_chunks else []
         result["prompts"] = self.prompts.copy() if self.prompts else []
         result["response"] = self.response
         result["uuid"] = self.uuid
@@ -339,14 +315,14 @@ class ModelContext:
 
         return result
 
-    def _deep_copy_tool_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _deep_copy_tool_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """深拷贝tool_config"""
         import copy
 
         return copy.deepcopy(config)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ModelContext":
+    def from_dict(cls, data: dict[str, Any]) -> "ModelContext":
         """从字典创建ModelContext实例"""
         data = data.copy()
 
@@ -386,7 +362,7 @@ class ModelContext:
         )
 
     # 搜索结果相关方法
-    def create_search_session(self, original_question: str = None) -> SearchSession:
+    def create_search_session(self, original_question: str | None = None) -> SearchSession:
         """创建新的搜索会话"""
         if not self.search_session:
             self.search_session = SearchSession(
@@ -397,10 +373,10 @@ class ModelContext:
     def add_search_results(
         self,
         query: str,
-        results: List[SearchResult],
+        results: list[SearchResult],
         search_engine: str = "unknown",
         execution_time_ms: int = 0,
-        total_results_count: int = None,
+        total_results_count: int | None = None,
     ) -> None:
         """添加搜索结果"""
         if not self.search_session:
@@ -416,19 +392,19 @@ class ModelContext:
 
         self.search_session.add_query_results(query_results)
 
-    def get_search_queries(self) -> List[str]:
+    def get_search_queries(self) -> list[str]:
         """获取所有搜索查询"""
         if self.search_session:
             return self.search_session.get_all_queries()
         return self.get_tool_config("search_queries", [])
 
-    def get_all_search_results(self) -> List[SearchResult]:
+    def get_all_search_results(self) -> list[SearchResult]:
         """获取所有搜索结果"""
         if self.search_session:
             return self.search_session.get_all_results()
         return []
 
-    def get_results_by_query(self, query: str) -> List[SearchResult]:
+    def get_results_by_query(self, query: str) -> list[SearchResult]:
         """根据查询获取结果"""
         if self.search_session:
             query_results = self.search_session.get_results_by_query(query)
@@ -443,20 +419,21 @@ class ModelContext:
 
     def has_search_results(self) -> bool:
         """检查是否有搜索结果"""
-        return (
-            self.search_session and self.search_session.get_total_results_count() > 0
-        ) or (self.retriver_chunks and len(self.retriver_chunks) > 0)
+        return bool(
+            (self.search_session and self.search_session.get_total_results_count() > 0)
+            or (self.retriver_chunks and len(self.retriver_chunks) > 0)
+        )
 
     # 向后兼容的方法
     def set_search_queries(
-        self, queries: List[str], analysis: Dict[str, Any] = None
+        self, queries: list[str], analysis: dict[str, Any] | None = None
     ) -> None:
         """设置搜索查询（向后兼容）"""
         self.set_tool_config("search_queries", queries)
         if analysis:
             self.set_tool_config("search_analysis", analysis)
 
-    def get_search_analysis(self) -> Dict[str, Any]:
+    def get_search_analysis(self) -> dict[str, Any]:
         """获取搜索分析结果"""
         return self.get_tool_config("search_analysis", {})
 
@@ -478,7 +455,7 @@ class ModelContext:
             return default
         return self.tool_config.get(key, default)
 
-    def update_tool_config(self, config_dict: Dict[str, Any]) -> None:
+    def update_tool_config(self, config_dict: dict[str, Any]) -> None:
         """批量更新工具配置"""
         if self.tool_config is None:
             self.tool_config = {}
@@ -517,18 +494,18 @@ class ModelContext:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(self.to_json())
         except Exception as e:
-            raise IOError(f"Failed to save ModelContext to {file_path}: {e}")
+            raise OSError(f"Failed to save ModelContext to {file_path}: {e}")
 
     @classmethod
     def load_from_file(cls, file_path: str) -> "ModelContext":
         """从文件加载"""
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 return cls.from_json(f.read())
         except FileNotFoundError:
             raise FileNotFoundError(f"ModelContext file not found: {file_path}")
         except Exception as e:
-            raise IOError(f"Failed to load ModelContext from {file_path}: {e}")
+            raise OSError(f"Failed to load ModelContext from {file_path}: {e}")
 
     def clone(self) -> "ModelContext":
         """创建当前模板的深拷贝"""
@@ -539,8 +516,8 @@ class ModelContext:
         label: QualityLabel,
         confidence: float,
         reasoning: str,
-        issues: List[str] = None,
-        suggestions: List[str] = None,
+        issues: list[str] | None = None,
+        suggestions: list[str] | None = None,
     ) -> None:
         """更新或创建评估信息"""
         self.evaluation = CriticEvaluation(
@@ -551,8 +528,7 @@ class ModelContext:
             suggestions=suggestions or [],
             should_return_to_chief=label
             in [QualityLabel.FAILED_POOR_QUALITY, QualityLabel.INCOMPLETE_MISSING_INFO],
-            ready_for_output=label
-            in [QualityLabel.COMPLETE_EXCELLENT, QualityLabel.COMPLETE_GOOD],
+            ready_for_output=label in [QualityLabel.COMPLETE_EXCELLENT, QualityLabel.COMPLETE_GOOD],
         )
 
     # 其他方法保持不变...
@@ -562,30 +538,24 @@ class ModelContext:
 
     def is_ready_for_output(self) -> bool:
         """检查是否准备好输出"""
-        return (
-            self.evaluation
-            and self.evaluation.ready_for_output
-            and self.has_complete_response()
+        return bool(
+            self.evaluation and self.evaluation.ready_for_output and self.has_complete_response()
         )
 
-    def get_processing_summary(self) -> Dict[str, Any]:
+    def get_processing_summary(self) -> dict[str, Any]:
         """获取处理摘要信息"""
         return {
             "uuid": self.uuid,
             "tool_name": self.tool_name,
             "has_response": self.has_complete_response(),
             "has_evaluation": self.evaluation is not None,
-            "evaluation_label": (
-                self.evaluation.label.value if self.evaluation else None
-            ),
+            "evaluation_label": (self.evaluation.label.value if self.evaluation else None),
             "confidence": self.evaluation.confidence if self.evaluation else None,
             "ready_for_output": self.is_ready_for_output(),
             "search_results_count": self.get_search_results_count(),
             "prompts_count": len(self.prompts),
             "has_tool_config": bool(self.tool_config),
-            "tool_config_keys": (
-                list(self.tool_config.keys()) if self.tool_config else []
-            ),
+            "tool_config_keys": (list(self.tool_config.keys()) if self.tool_config else []),
             "has_search_queries": self.has_search_queries(),
             "search_queries_count": len(self.get_search_queries()),
             "timestamp": self.timestamp,

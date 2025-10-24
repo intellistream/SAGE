@@ -124,17 +124,15 @@ class FieldKeyByFunction(KeyByFunction):
             field_name = "location.region"
     """
 
-    field_name: str = None  # To be set by subclasses
+    field_name: str | None = None  # To be set by subclasses
 
-    def __init__(self, field_name: str = None, **kwargs):
+    def __init__(self, field_name: str | None = None, **kwargs):
         super().__init__(**kwargs)
         if field_name:
             self.field_name = field_name
         if not self.field_name:
             raise ValueError("field_name must be specified")
-        self.logger.debug(
-            f"FieldKeyByFunction initialized for field: {self.field_name}"
-        )
+        self.logger.debug(f"FieldKeyByFunction initialized for field: {self.field_name}")
 
     def execute(self, data: Any) -> Hashable:
         """
@@ -150,6 +148,9 @@ class FieldKeyByFunction(KeyByFunction):
             KeyError: If field is not found
             AttributeError: If data doesn't support field access
         """
+        if not self.field_name:
+            raise ValueError("field_name is not set")
+
         try:
             # Handle nested field access (e.g., "location.region")
             if "." in self.field_name:

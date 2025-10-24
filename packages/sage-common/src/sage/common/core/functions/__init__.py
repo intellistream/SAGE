@@ -40,7 +40,7 @@ from .source_function import SourceFunction
 try:
     from .flatmap_collector import Collector
 except ImportError:
-    Collector = None
+    Collector = None  # type: ignore
 
 __all__ = [
     "BaseFunction",

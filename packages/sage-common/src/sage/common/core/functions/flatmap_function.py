@@ -41,9 +41,10 @@ class FlatMapFunction(BaseFunction):
         """
         self.out = collector
         self.out.logger = self.logger
-        self.logger.debug(
-            f"Collector inserted into FlatMapFunction '{self.__class__.__name__}'"
-        )
+        if self.logger:
+            self.logger.debug(
+                f"Collector inserted into FlatMapFunction '{self.__class__.__name__}'"
+            )
 
     def collect(self, data: Any):
         """
@@ -54,9 +55,7 @@ class FlatMapFunction(BaseFunction):
             tag: Optional output tag
         """
         if self.out is None:
-            raise RuntimeError(
-                "Collector not initialized. This should be set by the operator."
-            )
+            raise RuntimeError("Collector not initialized. This should be set by the operator.")
 
         self.out.collect(data)
         self.logger.debug(f"Data collected: {data}")

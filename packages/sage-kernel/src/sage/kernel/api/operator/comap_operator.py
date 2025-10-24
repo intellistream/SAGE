@@ -78,15 +78,15 @@ class CoMapOperator(BaseOperator):
                 if packet:
                     error_packet = packet.inherit_partition_info(error_result)
                     self.router.send(error_packet)
-                    self.logger.info(
-                        f"CoMapOperator {self.name}: Sent error result downstream"
-                    )
+                    self.logger.info(f"CoMapOperator {self.name}: Sent error result downstream")
             except Exception as send_error:
                 self.logger.error(
                     f"Failed to send error result in CoMapOperator {self.name}: {send_error}"
                 )
 
-    def handle_stop_signal(self, stop_signal_name: str = None, input_index: int = None):
+    def handle_stop_signal(
+        self, stop_signal_name: str | None = None, input_index: int | None = None
+    ):
         """
         处理停止信号的传播
 
@@ -108,14 +108,10 @@ class CoMapOperator(BaseOperator):
                     if hasattr(self, "transformation") and hasattr(
                         self.transformation, "input_transformation_count"
                     ):
-                        self.expected_input_count = (
-                            self.transformation.input_transformation_count
-                        )
+                        self.expected_input_count = self.transformation.input_transformation_count
                     else:
                         # 从路由器的入站连接数推断（备用方案）
-                        self.expected_input_count = getattr(
-                            self.router, "input_count", 2
-                        )
+                        self.expected_input_count = getattr(self.router, "input_count", 2)
 
                     self.logger.debug(
                         f"CoMapOperator '{self.name}' expecting {self.expected_input_count} input streams"

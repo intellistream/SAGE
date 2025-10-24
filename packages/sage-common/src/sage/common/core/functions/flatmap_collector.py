@@ -9,6 +9,7 @@ class Collector:
 
     def __init__(self, *args, **kwargs):
         self._collected_data: list[Any] = []
+        self.logger: Any = kwargs.get("logger")  # Can be Logger or CustomLogger
 
     def collect(self, data: Any):
         """
@@ -20,7 +21,8 @@ class Collector:
         """
         # 批处理模式：先收集，后输出
         self._collected_data.append(data)
-        self.logger.debug(f"Data collected in batch mode: {data} data")
+        if self.logger:
+            self.logger.debug(f"Data collected in batch mode: {data} data")
 
     def get_collected_data(self) -> list[Any]:
         """
