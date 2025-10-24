@@ -51,10 +51,10 @@ class Dispatcher:
         # Dispatcher：协调者（决策 → 执行）
 
         # 初始化调度器
-        self.scheduler: BaseScheduler = (
-            env.scheduler if hasattr(env, "scheduler") else None
-        )
-        if self.scheduler is None:
+        self.scheduler: BaseScheduler
+        if hasattr(env, "scheduler") and env.scheduler is not None:
+            self.scheduler = env.scheduler
+        else:
             from sage.kernel.scheduler.impl import FIFOScheduler
 
             self.scheduler = FIFOScheduler(platform=env.platform)
@@ -325,7 +325,7 @@ class Dispatcher:
             self._init_heartbeat_monitor()
         self.is_running = True
 
-    def _create_service_context(self, service_name: str) -> "ServiceContext":
+    def _create_service_context(self, service_name: str) -> "ServiceContext | None":
         """
         获取service task的ServiceContext（从execution graph中已创建的service node获取）
 
@@ -333,7 +333,7 @@ class Dispatcher:
             service_name: 服务名称
 
         Returns:
-            从execution graph中获取的ServiceContext
+            从execution graph中获取的ServiceContext，如果未找到则返回 None
         """
         try:
             # 从execution graph的service_nodes中查找对应的service_node

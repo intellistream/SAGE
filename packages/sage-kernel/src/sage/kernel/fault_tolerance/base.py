@@ -15,6 +15,10 @@ class BaseFaultHandler(ABC):
     定义了处理故障、恢复任务的接口。
     """
 
+    def __init__(self):
+        self.logger: Any = None  # Will be injected by dispatcher
+        self.dispatcher: Any = None  # Will be injected by dispatcher
+
     @abstractmethod
     def handle_failure(self, task_id: str, error: Exception) -> bool:
         """
