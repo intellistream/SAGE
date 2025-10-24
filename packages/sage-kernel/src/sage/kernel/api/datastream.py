@@ -12,8 +12,6 @@ if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
-    from .datastream import DataStream
-
 T = TypeVar("T")
 
 
