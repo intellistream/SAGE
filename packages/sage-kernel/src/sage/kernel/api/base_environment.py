@@ -63,10 +63,16 @@ class BaseEnvironment(ABC):
     ):
 
         self.name = name
-        self.uuid: str | None  # 由jobmanager生成
+        self.uuid: str | None = None  # 由jobmanager生成
 
         self.config: dict = dict(config or {})
         self.platform: str = platform
+        
+        # JobManager 注入的属性
+        self.jobmanager_host: str | None = None
+        self.jobmanager_port: int | None = None
+        self.session_id: str | None = None
+        self.session_timestamp: Any | None = None  # datetime object
         # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
         self.pipeline: list[BaseTransformation] = []
         self._filled_futures: dict = {}

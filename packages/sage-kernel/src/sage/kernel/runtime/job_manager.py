@@ -20,8 +20,13 @@ if TYPE_CHECKING:
 
 
 class JobManager:  # Job Manager
-    instance = None
+    instance: "JobManager | None" = None
     instance_lock = threading.RLock()
+
+    _initialized: bool
+    jobs: Dict[str, JobInfo]
+    deleted_jobs: Dict[str, Dict[str, Any]]
+    default_fault_tolerance_config: Dict[str, Any]
 
     def __new__(cls, *args, **kwargs):
         if cls.instance is None:
@@ -316,6 +321,9 @@ class JobManager:  # Job Manager
     def receive_stop_signal(self, env_uuid: str):
         """接收停止信号"""
         job_info = self.jobs.get(env_uuid)
+        if job_info is None:
+            self.logger.warning(f"Job {env_uuid} not found")
+            return
         try:
             # 停止 dispatcher
             if (job_info.dispatcher.receive_stop_signal()) is True:
