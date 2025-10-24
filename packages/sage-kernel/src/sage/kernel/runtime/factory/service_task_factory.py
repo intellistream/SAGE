@@ -1,10 +1,8 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
-    from sage.kernel.utils.ray.actor import ActorWrapper
-    from sage.platform.service import BaseService
 
 
 class ServiceTaskFactory:
@@ -22,9 +20,7 @@ class ServiceTaskFactory:
         self.service_name = service_factory.service_name
         self.remote = remote
 
-    def create_service_task(
-        self, ctx: "ServiceContext | None" = None
-    ):
+    def create_service_task(self, ctx: "ServiceContext | None" = None):
         """
         参考task_factory.create_task的逻辑，创建服务任务实例
 
@@ -40,7 +36,7 @@ class ServiceTaskFactory:
             from sage.kernel.utils.ray.actor import ActorWrapper
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
-            ray_service_task = RayServiceTask.options(lifetime="detached").remote(
+            ray_service_task = RayServiceTask.options(lifetime="detached").remote(  # type: ignore[attr-defined]
                 self.service_factory, ctx
             )
 
@@ -51,9 +47,7 @@ class ServiceTaskFactory:
             # 创建本地服务任务
             from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
-            service_task = LocalServiceTask(
-                self.service_factory, ctx  # type: ignore
-            )
+            service_task = LocalServiceTask(self.service_factory, ctx)  # type: ignore
 
         return service_task
 

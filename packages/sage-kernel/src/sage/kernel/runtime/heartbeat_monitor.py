@@ -13,9 +13,8 @@ HeartbeatMonitor V2 - 简化版心跳监控器
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
-import ray
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 if TYPE_CHECKING:
@@ -67,10 +66,10 @@ class HeartbeatMonitor:
         self.effective_timeout = check_interval * max_missed_checks
 
         # 监控线程控制
-        self._monitor_thread: Optional[threading.Thread] = None
+        self._monitor_thread: threading.Thread | None = None
         self._running = False
         self._stop_event = threading.Event()
-        self._task_states: Dict[str, Dict[str, Any]] = {}
+        self._task_states: dict[str, dict[str, Any]] = {}
         self._states_lock = threading.Lock()
 
         # 监控统计
@@ -130,7 +129,7 @@ class HeartbeatMonitor:
         """检查监控是否运行中"""
         return self._running
 
-    def _get_active_tasks(self) -> Dict[str, Union["BaseTask", ActorWrapper]]:
+    def _get_active_tasks(self) -> dict[str, Union["BaseTask", ActorWrapper]]:
         """
         从 Dispatcher 获取所有活跃任务的引用
 
@@ -143,7 +142,7 @@ class HeartbeatMonitor:
 
     def _pull_heartbeat(
         self, task_id: str, task: Union["BaseTask", ActorWrapper]
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         从 Ray Task 拉取心跳信息
 
@@ -156,7 +155,7 @@ class HeartbeatMonitor:
         """
         try:
             # 调用 Ray Task 的 get_heartbeat_stats() 方法
-            heartbeat = task.get_heartbeat_stats()  # type: ignore[attr-defined]
+            heartbeat = task.get_heartbeat_stats()  # type: ignore[union-attr]
             self.logger.debug(f"💓 Pulled heartbeat from {task_id}: {heartbeat}")
             return heartbeat  # type: ignore[return-value]
 
@@ -168,9 +167,7 @@ class HeartbeatMonitor:
                     f"(timeout={self.call_timeout}s)"
                 )
             elif "RayActorError" in str(type(e).__name__):
-                self.logger.error(
-                    f"❌ RayActorError when pulling heartbeat from {task_id}: {e}"
-                )
+                self.logger.error(f"❌ RayActorError when pulling heartbeat from {task_id}: {e}")
             else:
                 self.logger.error(
                     f"❌ Unexpected error pulling heartbeat from {task_id}: {e}",
@@ -178,7 +175,7 @@ class HeartbeatMonitor:
                 )
             return None
 
-    def _validate_heartbeat(self, heartbeat: Optional[Dict[str, Any]]) -> bool:
+    def _validate_heartbeat(self, heartbeat: dict[str, Any] | None) -> bool:
         """
         验证心跳信息是否正常
 
@@ -281,9 +278,7 @@ class HeartbeatMonitor:
                                     f"🚨 Task {task_id} FAILURE: "
                                     f"consecutive call failures={state['consecutive_failures']}"
                                 )
-                                failed_tasks.append(
-                                    (task_id, "call_failure", heartbeat)
-                                )
+                                failed_tasks.append((task_id, "call_failure", heartbeat))
 
                             continue
 
@@ -301,9 +296,7 @@ class HeartbeatMonitor:
                                     f"🚨 Task {task_id} FAILURE: "
                                     f"consecutive invalid heartbeats={state['consecutive_failures']}"
                                 )
-                                failed_tasks.append(
-                                    (task_id, "invalid_heartbeat", heartbeat)
-                                )
+                                failed_tasks.append((task_id, "invalid_heartbeat", heartbeat))
 
                             continue
 
@@ -355,14 +348,10 @@ class HeartbeatMonitor:
                                     f"consecutive stale heartbeats={state['consecutive_stale']}, "
                                     f"time_since_last={time_since_last:.1f}s"
                                 )
-                                failed_tasks.append(
-                                    (task_id, "stale_heartbeat", heartbeat)
-                                )
+                                failed_tasks.append((task_id, "stale_heartbeat", heartbeat))
 
                     # === 清理已不存在的任务 ===
-                    disappeared_tasks = set(self._task_states.keys()) - set(
-                        active_tasks.keys()
-                    )
+                    disappeared_tasks = set(self._task_states.keys()) - set(active_tasks.keys())
                     for task_id in disappeared_tasks:
                         self.logger.info(f"🗑️  Task {task_id} removed from monitoring")
                         self._task_states.pop(task_id, None)
@@ -409,15 +398,13 @@ class HeartbeatMonitor:
                     break
 
             except Exception as e:
-                self.logger.error(
-                    f"❌ Unexpected error in monitor loop: {e}", exc_info=True
-                )
+                self.logger.error(f"❌ Unexpected error in monitor loop: {e}", exc_info=True)
                 # 避免无限错误循环
                 time.sleep(1.0)
 
         self.logger.info("🔍 Monitor loop stopped")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         获取监控统计信息
 
@@ -446,7 +433,7 @@ class HeartbeatMonitor:
             **self._stats,
         }
 
-    def get_task_status(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_task_status(self, task_id: str) -> dict[str, Any] | None:
         """
         获取指定任务的监控状态
 

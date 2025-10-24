@@ -25,7 +25,7 @@
 """
 
 import time
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
@@ -111,7 +111,7 @@ class LoadAwareScheduler(BaseScheduler):
         cpu_required = 1.0
         gpu_required = 0.0
         memory_required = 0
-        custom_resources = {}
+        custom_resources: dict[str, float] = {}
 
         if hasattr(task_node, "transformation") and task_node.transformation:
             # CPU 需求
@@ -130,17 +130,15 @@ class LoadAwareScheduler(BaseScheduler):
 
             # 自定义资源
             if hasattr(task_node.transformation, "custom_resources"):
-                custom_resources = getattr(task_node.transformation, "custom_resources", custom_resources)
+                custom_resources = getattr(
+                    task_node.transformation, "custom_resources", custom_resources
+                )
 
         # === 步骤 3: 使用 NodeSelector 选择最优节点 ===
         target_node = None
 
         # 只有远程模式才需要选择节点
-        if (
-            task_node.task_factory.remote
-            if hasattr(task_node, "task_factory")
-            else False
-        ):
+        if task_node.task_factory.remote if hasattr(task_node, "task_factory") else False:
             target_node = self.node_selector.select_best_node(
                 cpu_required=cpu_required,
                 gpu_required=gpu_required,
@@ -188,9 +186,7 @@ class LoadAwareScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=(
-                resource_requirements if resource_requirements else None
-            ),
+            resource_requirements=(resource_requirements if resource_requirements else None),
             delay=delay,
             immediate=(delay == 0),
             placement_strategy=self.strategy,
@@ -246,7 +242,7 @@ class LoadAwareScheduler(BaseScheduler):
         cpu_required = 1.0
         gpu_required = 0.0
         memory_required = 0
-        custom_resources = {}
+        custom_resources: dict[str, float] = {}
 
         if hasattr(service_node, "service_class"):
             service_class = getattr(service_node, "service_class", None)
@@ -278,9 +274,7 @@ class LoadAwareScheduler(BaseScheduler):
 
         # 跟踪服务分配
         if target_node:
-            self.node_selector.track_task_placement(
-                service_node.service_name, target_node
-            )
+            self.node_selector.track_task_placement(service_node.service_name, target_node)
 
         # === 步骤 3: 构建资源需求字典 ===
         resource_requirements = {}
@@ -311,9 +305,7 @@ class LoadAwareScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=(
-                resource_requirements if resource_requirements else None
-            ),
+            resource_requirements=(resource_requirements if resource_requirements else None),
             delay=0.0,  # 服务立即调度
             immediate=True,
             placement_strategy=service_strategy,
@@ -338,16 +330,14 @@ class LoadAwareScheduler(BaseScheduler):
         # 取消任务跟踪
         self.node_selector.untrack_task(task_name)
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         获取调度器性能指标
 
         Returns:
             包含负载和资源利用率的指标
         """
-        avg_latency = (
-            self.total_latency / self.scheduled_count if self.scheduled_count > 0 else 0
-        )
+        avg_latency = self.total_latency / self.scheduled_count if self.scheduled_count > 0 else 0
         avg_utilization = (
             sum(self.resource_utilization) / len(self.resource_utilization)
             if self.resource_utilization

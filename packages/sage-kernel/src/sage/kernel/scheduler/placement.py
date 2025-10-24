@@ -22,14 +22,12 @@ Placement 执行层 - 统一的任务/服务放置接口
 - 处理资源需求和放置策略
 """
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
     from sage.kernel.runtime.graph.service_node import ServiceNode
-    from sage.kernel.runtime.service.base_service_task import BaseServiceTask
     from sage.kernel.runtime.service.local_service_task import LocalServiceTask
-    from sage.kernel.runtime.task.base_task import BaseTask
     from sage.kernel.runtime.task.local_task import LocalTask
     from sage.kernel.scheduler.decision import PlacementDecision
     from sage.kernel.utils.ray.actor import ActorWrapper
@@ -97,6 +95,7 @@ class PlacementExecutor:
         # 2. 创建任务
         is_remote = task_node.task_factory.remote
 
+        task: "LocalTask" | "ActorWrapper"
         if is_remote:
             # 远程任务：使用决策创建 Ray Actor
             task = self._place_remote_task(task_node, ctx, decision)
@@ -163,8 +162,10 @@ class PlacementExecutor:
         from sage.kernel.runtime.task.ray_task import RayTask
         from sage.kernel.utils.ray.actor import ActorWrapper
 
-        task_actor = RayTask.options(**ray_options).remote(
-            ctx, task_node.task_factory.operator_factory
+        # Get operator_factory with explicit typing
+        operator_factory = task_node.task_factory.operator_factory  # type: ignore[has-type]
+        task_actor = RayTask.options(**ray_options).remote(  # type: ignore[attr-defined]
+            ctx, operator_factory
         )
 
         # 包装为 ActorWrapper
@@ -172,7 +173,7 @@ class PlacementExecutor:
 
         return task
 
-    def _build_ray_options(self, decision: "PlacementDecision") -> Dict[str, Any]:
+    def _build_ray_options(self, decision: "PlacementDecision") -> dict[str, Any]:
         """
         将调度决策转换为 Ray Actor 创建选项
 
@@ -184,7 +185,7 @@ class PlacementExecutor:
         Returns:
             Ray options 字典
         """
-        options: Dict[str, Any] = {"lifetime": "detached"}
+        options: dict[str, Any] = {"lifetime": "detached"}
 
         # === 指定目标节点 ===
         if decision.target_node:
@@ -291,7 +292,7 @@ class PlacementExecutor:
 
         return service
 
-    def get_placement_stats(self) -> Dict[str, Any]:
+    def get_placement_stats(self) -> dict[str, Any]:
         """
         获取放置统计信息
 
