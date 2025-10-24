@@ -1,0 +1,221 @@
+name: Examples Test
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'examples/**'
+      - 'packages/**/*.py'
+      - 'tools/tests/run_examples_tests.sh'
+  push:
+    branches: [main, main-dev]
+    paths:
+      - 'examples/**'
+      - 'packages/**/*.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+  ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+  VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+  GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+  HF_ENDPOINT: https://hf-mirror.com
+  SAGE_EXAMPLES_MODE: test
+
+jobs:
+  examples-test:
+    name: Test Examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+          clean: true
+          submodules: 'recursive'
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Create .env File from Secrets
+        run: |
+          echo "🔐 从 GitHub Secrets 创建 .env 文件..."
+          cat > .env << EOF
+          # CI Environment Configuration for Examples Testing
+
+          # LLM Service API Keys
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+
+          SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
+          JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+
+          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
+          VLLM_BASE_URL=http://localhost:8000/v1
+
+          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+
+          # GitHub Token
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+
+          # Hugging Face
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+
+          # Examples Test Mode
+          SAGE_DEBUG=false
+          SAGE_LOG_LEVEL=INFO
+          SAGE_TEST_MODE=true
+          SAGE_EXAMPLES_MODE=test
+          EOF
+
+          echo "✅ .env 文件创建完成"
+
+      - name: Install System Dependencies
+        run: |
+          echo "🔧 安装系统依赖..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            git
+
+          echo "✅ 系统依赖安装完成"
+
+      - name: Install SAGE
+        run: |
+          echo "🚀 安装 SAGE..."
+
+          export PATH="$HOME/.local/bin:$PATH"
+          chmod +x ./quickstart.sh
+
+          # 快速安装（examples 测试不需要 C++ 扩展）
+          ./quickstart.sh --standard --pip --yes
+
+          echo "✅ SAGE 安装完成"
+        timeout-minutes: 20
+
+      - name: Verify Installation
+        run: |
+          echo "✅ 验证 SAGE 安装..."
+          python -c "import sage; print('✅ SAGE imported')"
+          python -c "import sage.common; print('✅ sage.common imported')"
+
+          # 验证 CLI
+          if command -v sage >/dev/null 2>&1; then
+            sage --help > /dev/null && echo "✅ CLI 可用"
+          fi
+
+      - name: Install Examples Test Dependencies
+        run: |
+          echo "📦 安装 Examples 测试依赖..."
+
+          # 安装测试工具
+          pip install -e packages/sage-tools[dev]
+
+          # 安装 examples 可能需要的额外依赖
+          if [ -f "examples/requirements.txt" ]; then
+            pip install -r examples/requirements.txt
+          fi
+
+          echo "✅ 依赖安装完成"
+
+      - name: Run Examples Tests
+        run: |
+          echo "🌟 运行 Examples 完整测试..."
+          echo ""
+
+          # 检查测试脚本是否存在
+          if [ ! -f "./tools/tests/run_examples_tests.sh" ]; then
+            echo "❌ 测试脚本不存在: ./tools/tests/run_examples_tests.sh"
+            exit 1
+          fi
+
+          # 运行完整的 examples 测试
+          chmod +x ./tools/tests/run_examples_tests.sh
+          ./tools/tests/run_examples_tests.sh || {
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ Examples 测试失败！"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "💡 常见问题排查："
+            echo "1. 检查失败的 example 文件"
+            echo "2. 查看是否有导入错误"
+            echo "3. 确认 API keys 配置正确"
+            echo "4. 本地运行: ./tools/tests/run_examples_tests.sh"
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            exit 1
+          }
+
+          echo ""
+          echo "✅ 所有 Examples 测试通过！"
+
+      - name: Generate Examples Test Report
+        if: always()
+        run: |
+          echo "📊 生成 Examples 测试报告..."
+
+          # 统计 examples 数量
+          TOTAL_EXAMPLES=$(find examples -name "*.py" -type f | wc -l)
+          TUTORIAL_COUNT=$(find examples/tutorials -name "*.py" -type f 2>/dev/null | wc -l || echo 0)
+          APP_COUNT=$(find examples/apps -name "*.py" -type f 2>/dev/null | wc -l || echo 0)
+
+          echo "📦 Examples 统计:"
+          echo "  总数: $TOTAL_EXAMPLES"
+          echo "  教程: $TUTORIAL_COUNT"
+          echo "  应用: $APP_COUNT"
+
+          # 检查是否有 README
+          if [ -f "examples/README.md" ]; then
+            echo "  ✅ README.md 存在"
+          else
+            echo "  ⚠️  README.md 缺失"
+          fi
+
+          echo ""
+          echo "✅ 报告生成完成"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🌟 Examples 测试总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **测试通过** - 所有 Examples 运行正常" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # 统计信息
+            TOTAL=$(find examples -name "*.py" -type f | wc -l)
+            echo "📊 测试统计:" >> $GITHUB_STEP_SUMMARY
+            echo "- 总 Examples 数: $TOTAL" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **测试失败** - 部分 Examples 运行失败" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "请查看上方日志了解详细信息。" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 💡 排查建议" >> $GITHUB_STEP_SUMMARY
+            echo "1. 检查失败的 example 文件" >> $GITHUB_STEP_SUMMARY
+            echo "2. 本地运行测试脚本验证" >> $GITHUB_STEP_SUMMARY
+            echo "3. 确认所有依赖已安装" >> $GITHUB_STEP_SUMMARY
+          fi
