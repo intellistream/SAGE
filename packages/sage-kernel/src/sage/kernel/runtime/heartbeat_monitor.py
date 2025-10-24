@@ -13,7 +13,7 @@ HeartbeatMonitor V2 - 简化版心跳监控器
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import ray
 from sage.kernel.utils.ray.actor import ActorWrapper
@@ -129,13 +129,13 @@ class HeartbeatMonitor:
         """检查监控是否运行中"""
         return self._running
 
-    def _get_active_tasks(self) -> Dict[str, ActorWrapper]:
+    def _get_active_tasks(self) -> Dict[str, Union["BaseTask", ActorWrapper]]:
         """
         从 Dispatcher 获取所有活跃任务的引用
 
         """
         try:
-            return self.dispatcher.tasks
+            return self.dispatcher.tasks  # type: ignore[return-value]
         except Exception as e:
             self.logger.error(f"❌ Failed to get active tasks from Dispatcher: {e}")
             return {}

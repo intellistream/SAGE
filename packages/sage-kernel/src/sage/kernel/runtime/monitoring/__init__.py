@@ -25,7 +25,7 @@ try:
 
     RESOURCE_MONITOR_AVAILABLE = True
 except ImportError:
-    ResourceMonitor = None
+    ResourceMonitor = None  # type: ignore[assignment,misc]
     RESOURCE_MONITOR_AVAILABLE = False
 
 __all__ = [

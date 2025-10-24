@@ -152,7 +152,7 @@ class PlacementDecision:
         reason: str = "",
     ) -> "PlacementDecision":
         """快捷方法：指定资源需求"""
-        resources = {}
+        resources: dict[str, int | str] = {}
         if cpu is not None:
             resources["cpu"] = cpu
         if gpu is not None:

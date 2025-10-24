@@ -99,7 +99,7 @@ class MetricsCollector:
 
             if method_name:
                 # 服务请求指标
-                metrics = ServiceRequestMetrics(
+                metrics: Union[PacketMetrics, ServiceRequestMetrics] = ServiceRequestMetrics(
                     request_id=packet_id,
                     method_name=method_name,
                     arrival_time=current_time,
@@ -321,7 +321,7 @@ class MetricsCollector:
             self._last_hour_count.clear()
             self._start_time = time.time()
 
-    def get_summary(self) -> Dict[str, any]:
+    def get_summary(self) -> Dict[str, Union[str, int, float, Dict]]:
         """
         获取简要统计信息
 

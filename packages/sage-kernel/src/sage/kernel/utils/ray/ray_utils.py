@@ -3,7 +3,7 @@ try:
 
     RAY_AVAILABLE = True
 except ImportError:
-    ray = None
+    ray = None  # type: ignore[assignment]
     RAY_AVAILABLE = False
 
 try:

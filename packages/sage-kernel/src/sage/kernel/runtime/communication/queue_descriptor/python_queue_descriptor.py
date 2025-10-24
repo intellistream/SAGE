@@ -72,7 +72,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
     def queue_instance(self) -> Any:
         """获取队列实例，如果未初始化则创建"""
         if not self._initialized:
-            self._queue_instance = Queue(maxsize=self.maxsize)
+            self._queue_instance = Queue(maxsize=self.maxsize)  # type: ignore[assignment]
             self._initialized = True
         return self._queue_instance
 
