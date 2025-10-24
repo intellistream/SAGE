@@ -35,7 +35,7 @@ class BaseOperator(ABC):
 
     def send_packet(self, packet: "Packet") -> bool:
         """通过TaskContext发送数据包"""
-        return self.ctx.send_packet(packet)
+        return self.ctx.send_packet(packet)  # type: ignore
 
     def send_stop_signal(self, stop_signal: "StopSignal") -> None:
         """通过TaskContext发送停止信号"""
@@ -58,7 +58,7 @@ class BaseOperator(ABC):
         self.process_packet(packet)
 
     @abstractmethod
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         return
 
     def get_state(self) -> dict[str, Any]:
@@ -71,7 +71,7 @@ class BaseOperator(ABC):
         Returns:
             包含可序列化状态的字典
         """
-        state = {
+        state: dict[str, Any] = {
             "operator_type": self.__class__.__name__,
         }
 
@@ -152,9 +152,8 @@ class BaseOperator(ABC):
                 for k, v in value.items()
             )
 
+        import pickle
         try:
-            import pickle
-
             pickle.dumps(value)
             return True
         except (TypeError, pickle.PicklingError, AttributeError):
