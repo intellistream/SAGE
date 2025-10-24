@@ -232,9 +232,7 @@ class DisplayAnswer(SinkFunction):
         if not data:
             return
 
-        question = data.get("question", "")
         answer_data = data.get("answer", {})
-        index = data.get("index", 0)
 
         # 显示答案
         if isinstance(answer_data, dict):

@@ -47,14 +47,17 @@ class SafeBiologyRetriever(MapFunction):
 
                 # embedding_model = apply_embedding_model("default")
                 # memory_service = MemoryService()
-
-                # 检查集合是否存在
-                collections = memory_service.list_collections()
-                if collections["status"] == "success":
-                    collection_names = [c["name"] for c in collections["collections"]]
-                    if self.collection_name in collection_names:
-                        return memory_service
+                # 注意：由于 MemoryService 已废弃，这里直接返回 None
                 return None
+
+                # 以下代码已废弃，保留供参考
+                # 检查集合是否存在
+                # collections = memory_service.list_collections()
+                # if collections["status"] == "success":
+                #     collection_names = [c["name"] for c in collections["collections"]]
+                #     if self.collection_name in collection_names:
+                #         return memory_service
+                # return None
             except Exception as e:
                 print(f"初始化memory service失败: {e}")
                 return None

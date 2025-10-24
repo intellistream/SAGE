@@ -309,7 +309,7 @@ class CompletePipInstallTester:
         print(f"  📦 创建本地PyPI索引: {local_pypi_dir}")
 
         # 复制所有wheel文件到本地PyPI目录
-        for package, wheel_file in built_packages:
+        for _package, wheel_file in built_packages:
             shutil.copy2(wheel_file, local_pypi_dir)
             print(f"  📦 添加到本地索引: {wheel_file.name}")
 
