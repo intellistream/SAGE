@@ -11,7 +11,7 @@
 4. 向后兼容：支持多种输入格式（dict、tuple、list）
 """
 
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, TypedDict
 
 # ============================================================================
 # 基础文档类型
@@ -45,12 +45,12 @@ class BaseDocument(TypedDict, total=False):
     """
 
     text: str  # 必需：文档文本内容
-    id: Optional[Union[str, int]]  # 文档唯一标识符
-    title: Optional[str]  # 文档标题
-    source: Optional[str]  # 文档来源
-    score: Optional[float]  # 相关性分数 (0.0-1.0)
-    rank: Optional[int]  # 排序位置
-    metadata: Optional[Dict[str, Any]]  # 额外元数据
+    id: str | int | None  # 文档唯一标识符
+    title: str | None  # 文档标题
+    source: str | None  # 文档来源
+    score: float | None  # 相关性分数 (0.0-1.0)
+    rank: int | None  # 排序位置
+    metadata: dict[str, Any] | None  # 额外元数据
 
 
 # ============================================================================
@@ -80,7 +80,7 @@ class BaseQueryResult(TypedDict):
     """
 
     query: str  # 必需：用户查询
-    results: List[Any]  # 必需：结果列表
+    results: list[Any]  # 必需：结果列表
 
 
 class ExtendedQueryResult(BaseQueryResult, total=False):
@@ -107,12 +107,12 @@ class ExtendedQueryResult(BaseQueryResult, total=False):
         ... }
     """
 
-    query_id: Optional[str]  # 查询ID
-    timestamp: Optional[Union[int, float]]  # 时间戳
-    total_count: Optional[int]  # 结果总数
-    execution_time: Optional[float]  # 执行时间（秒）
-    context: Optional[Union[str, List[str], Dict[str, Any]]]  # 上下文信息
-    metadata: Optional[Dict[str, Any]]  # 额外元数据
+    query_id: str | None  # 查询ID
+    timestamp: int | float | None  # 时间戳
+    total_count: int | None  # 结果总数
+    execution_time: float | None  # 执行时间（秒）
+    context: str | list[str] | dict[str, Any] | None  # 上下文信息
+    metadata: dict[str, Any] | None  # 额外元数据
 
 
 # ============================================================================
@@ -125,16 +125,10 @@ class ExtendedQueryResult(BaseQueryResult, total=False):
 # 2. 扩展字典格式：包含额外字段的字典
 # 3. 元组格式（向后兼容）：("query", ["result1", "result2"])
 # 4. 列表格式（向后兼容）：["query", ["result1", "result2"]]
-QueryResultInput = Union[
-    BaseQueryResult,
-    ExtendedQueryResult,
-    Dict[str, Any],
-    tuple,
-    list,
-]
+QueryResultInput = BaseQueryResult | ExtendedQueryResult | dict[str, Any] | tuple | list
 
 # 输出格式：应该是标准的字典格式
-QueryResultOutput = Union[BaseQueryResult, ExtendedQueryResult, Dict[str, Any]]
+QueryResultOutput = BaseQueryResult | ExtendedQueryResult | dict[str, Any]
 
 
 # ============================================================================
@@ -142,9 +136,7 @@ QueryResultOutput = Union[BaseQueryResult, ExtendedQueryResult, Dict[str, Any]]
 # ============================================================================
 
 
-def ensure_query_result(
-    data: QueryResultInput, default_query: str = ""
-) -> BaseQueryResult:
+def ensure_query_result(data: QueryResultInput, default_query: str = "") -> BaseQueryResult:
     """
     确保数据符合 BaseQueryResult 格式
 
@@ -165,9 +157,7 @@ def ensure_query_result(
         {'query': '...', 'results': [...]}
     """
     if isinstance(data, dict):
-        query = (
-            data.get("query") or data.get("question") or data.get("q") or default_query
-        )
+        query = data.get("query") or data.get("question") or data.get("q") or default_query
         results = (
             data.get("results")
             or data.get("documents")
@@ -175,11 +165,18 @@ def ensure_query_result(
             or data.get("items")
             or []
         )
-        return {"query": str(query), "results": list(results)}
+        # Ensure results is a list
+        if not isinstance(results, list):
+            results = (
+                list(results)
+                if hasattr(results, "__iter__") and not isinstance(results, str)
+                else [results]
+            )
+        return {"query": str(query), "results": results}
 
-    if isinstance(data, (tuple, list)) and len(data) >= 2:
+    if isinstance(data, tuple | list) and len(data) >= 2:
         query = str(data[0]) if data[0] is not None else default_query
-        results = list(data[1]) if isinstance(data[1], (list, tuple)) else [data[1]]
+        results = list(data[1]) if isinstance(data[1], list | tuple) else [data[1]]
         return {"query": query, "results": results}
 
     # 无法解析，返回空结果
@@ -216,15 +213,13 @@ def extract_query(data: QueryResultInput, default: str = "") -> str:
             or default
         )
 
-    if isinstance(data, (tuple, list)) and len(data) > 0:
+    if isinstance(data, tuple | list) and len(data) > 0:
         return str(data[0]) if data[0] is not None else default
 
     return default
 
 
-def extract_results(
-    data: QueryResultInput, default: Optional[List[Any]] = None
-) -> List[Any]:
+def extract_results(data: QueryResultInput, default: list[Any] | None = None) -> list[Any]:
     """
     从任意格式中提取结果列表
 
@@ -254,22 +249,20 @@ def extract_results(
             or data.get("data")
         )
         if results is not None:
-            return list(results) if isinstance(results, (list, tuple)) else [results]
+            return list(results) if isinstance(results, list | tuple) else [results]
         return default
 
-    if isinstance(data, (tuple, list)) and len(data) >= 2:
+    if isinstance(data, tuple | list) and len(data) >= 2:
         results = data[1]
-        return list(results) if isinstance(results, (list, tuple)) else [results]
+        return list(results) if isinstance(results, list | tuple) else [results]
 
-    if isinstance(data, (list, tuple)):
+    if isinstance(data, list | tuple):
         return list(data)
 
     return default
 
 
-def create_query_result(
-    query: str, results: List[Any], **kwargs
-) -> ExtendedQueryResult:
+def create_query_result(query: str, results: list[Any], **kwargs) -> ExtendedQueryResult:
     """
     创建标准的 ExtendedQueryResult 对象
 
