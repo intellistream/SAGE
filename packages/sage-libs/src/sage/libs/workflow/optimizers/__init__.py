@@ -230,21 +230,20 @@ class ParallelizationOptimizer(BaseOptimizer):
                 max_latency = max(optimized.nodes[n].latency for n in nodes)
                 for node_id in nodes:
                     # All nodes in level execute in time of slowest node
-                    optimized.nodes[node_id].metadata["effective_latency"] = (
-                        max_latency
-                    )
+                    optimized.nodes[node_id].metadata["effective_latency"] = max_latency
 
         execution_time = time.time() - start_time
         metrics = self.calculate_metrics(
-            workflow, optimized, execution_time=execution_time, iterations=parallel_groups
+            workflow,
+            optimized,
+            execution_time=execution_time,
+            iterations=parallel_groups,
         )
 
         # Adjust latency reduction based on parallelization
         if parallel_groups > 0:
             # Estimate latency reduction (this is a simplified model)
-            metrics.latency_reduction = min(
-                50.0, parallel_groups * 10.0
-            )  # Cap at 50%
+            metrics.latency_reduction = min(50.0, parallel_groups * 10.0)  # Cap at 50%
 
         return OptimizationResult(
             original_workflow=workflow,

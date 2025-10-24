@@ -92,8 +92,7 @@ def example_2_user_restart_strategy():
         from sage.libs.io.source import FileSource
     except ImportError as e:
         raise ImportError(
-            "This example requires sage.libs. "
-            "Install it with: pip install sage-libs"
+            "This example requires sage.libs. " "Install it with: pip install sage-libs"
         ) from e
 
     # 使用指数退避重启策略
@@ -140,8 +139,7 @@ def example_3_user_no_fault_tolerance():
         from sage.libs.io.source import FileSource
     except ImportError as e:
         raise ImportError(
-            "This example requires sage.libs. "
-            "Install it with: pip install sage-libs"
+            "This example requires sage.libs. " "Install it with: pip install sage-libs"
         ) from e
 
     # 不配置 fault_tolerance，使用默认行为
@@ -176,8 +174,7 @@ def example_4_user_yaml_config():
         from sage.libs.io.source import FileSource
     except ImportError as e:
         raise ImportError(
-            "This example requires sage.libs. "
-            "Install it with: pip install sage-libs"
+            "This example requires sage.libs. " "Install it with: pip install sage-libs"
         ) from e
 
     # config.yaml 内容示例：

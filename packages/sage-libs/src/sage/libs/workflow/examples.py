@@ -174,11 +174,11 @@ def example_custom_optimizer():
 
             # Find nodes above threshold
             to_remove = [
-                nid for nid, node in optimized.nodes.items()
+                nid
+                for nid, node in optimized.nodes.items()
                 if node.cost > self.cost_threshold
                 # Don't remove input/output nodes
-                and optimized.get_predecessors(nid)
-                and optimized.get_successors(nid)
+                and optimized.get_predecessors(nid) and optimized.get_successors(nid)
             ]
 
             # Remove them

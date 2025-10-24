@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from sage.kernel.runtime.communication.router.packet import StopSignal
 
 if TYPE_CHECKING:
-    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.common.core.functions import BaseFunction
+    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.runtime.communication.packet import Packet
     from sage.kernel.runtime.context.task_context import TaskContext
     from sage.kernel.runtime.factory.function_factory import FunctionFactory
@@ -17,8 +17,8 @@ class BaseOperator(ABC):
     """
 
     # 控制状态保存的类属性（子类可覆盖）
-    __state_include__: List[str] = []
-    __state_exclude__: List[str] = ['ctx', 'function', 'logger', '_logger']
+    __state_include__: list[str] = []
+    __state_exclude__: list[str] = ["ctx", "function", "logger", "_logger"]
 
     def __init__(
         self, function_factory: "FunctionFactory", ctx: "TaskContext", *args, **kwargs
@@ -41,7 +41,7 @@ class BaseOperator(ABC):
         """通过TaskContext发送停止信号"""
         self.ctx.send_stop_signal(stop_signal)
 
-    def get_routing_info(self) -> Dict[str, Any]:
+    def get_routing_info(self) -> dict[str, Any]:
         """获取路由信息"""
         return self.ctx.get_routing_info()
 
@@ -61,7 +61,7 @@ class BaseOperator(ABC):
     def process_packet(self, packet: "Packet" = None):
         return
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """
         获取 Operator 的状态用于 checkpoint
 
@@ -72,13 +72,13 @@ class BaseOperator(ABC):
             包含可序列化状态的字典
         """
         state = {
-            'operator_type': self.__class__.__name__,
+            "operator_type": self.__class__.__name__,
         }
 
         # 保存 function 的状态
-        if hasattr(self.function, 'get_state'):
+        if hasattr(self.function, "get_state"):
             try:
-                state['function_state'] = self.function.get_state()
+                state["function_state"] = self.function.get_state()
             except Exception as e:
                 self.logger.warning(f"Failed to get function state: {e}")
 
@@ -95,10 +95,7 @@ class BaseOperator(ABC):
 
         # 过滤私有属性
         if not self.__state_include__:
-            attrs_to_save = {
-                attr for attr in attrs_to_save
-                if not attr.startswith('_')
-            }
+            attrs_to_save = {attr for attr in attrs_to_save if not attr.startswith("_")}
 
         # 收集可序列化的状态
         for attr_name in attrs_to_save:
@@ -112,11 +109,11 @@ class BaseOperator(ABC):
                 )
 
         if operator_attrs:
-            state['operator_attrs'] = operator_attrs
+            state["operator_attrs"] = operator_attrs
 
         return state
 
-    def restore_state(self, state: Dict[str, Any]):
+    def restore_state(self, state: dict[str, Any]):
         """
         从 checkpoint 恢复 Operator 的状态
 
@@ -124,16 +121,16 @@ class BaseOperator(ABC):
             state: 保存的状态字典
         """
         # 恢复 function 的状态
-        if 'function_state' in state and hasattr(self.function, 'restore_state'):
+        if "function_state" in state and hasattr(self.function, "restore_state"):
             try:
-                self.function.restore_state(state['function_state'])
+                self.function.restore_state(state["function_state"])
                 self.logger.info(f"Function state restored for operator {self.name}")
             except Exception as e:
                 self.logger.warning(f"Failed to restore function state: {e}")
 
         # 恢复 operator 自身的状态
-        if 'operator_attrs' in state:
-            for attr_name, value in state['operator_attrs'].items():
+        if "operator_attrs" in state:
+            for attr_name, value in state["operator_attrs"].items():
                 try:
                     setattr(self, attr_name, value)
                 except Exception as e:
@@ -157,6 +154,7 @@ class BaseOperator(ABC):
 
         try:
             import pickle
+
             pickle.dumps(value)
             return True
         except (TypeError, pickle.PicklingError, AttributeError):

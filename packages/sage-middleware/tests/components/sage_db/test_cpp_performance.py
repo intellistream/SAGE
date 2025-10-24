@@ -23,10 +23,13 @@ if TYPE_CHECKING:
 
 try:
     import _sage_db
+
     SAGE_DB_AVAILABLE = True
 except ImportError:
     SAGE_DB_AVAILABLE = False
-    pytestmark = pytest.mark.skip(reason="SageDB C++ extension not built. Run ./build.sh to enable this test.")
+    pytestmark = pytest.mark.skip(
+        reason="SageDB C++ extension not built. Run ./build.sh to enable this test."
+    )
 
 DIMENSION = 768
 NUM_VECTORS = 10000

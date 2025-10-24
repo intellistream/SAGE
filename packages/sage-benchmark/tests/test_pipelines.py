@@ -1,9 +1,11 @@
 """
 Tests for benchmark RAG pipelines
 """
-import pytest
-from pathlib import Path
+
 import importlib.util
+from pathlib import Path
+
+import pytest
 
 
 class TestPipelineImports:
@@ -12,7 +14,15 @@ class TestPipelineImports:
     @pytest.fixture
     def pipelines_dir(self):
         """Get pipelines directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "benchmark" / "benchmark_rag" / "implementations" / "pipelines"
+        return (
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "benchmark"
+            / "benchmark_rag"
+            / "implementations"
+            / "pipelines"
+        )
 
     def test_pipelines_directory_exists(self, pipelines_dir):
         """Verify pipelines directory exists"""
@@ -37,7 +47,9 @@ class TestPipelineImports:
         if not pipeline_path.exists():
             pytest.skip("qa_dense_retrieval.py not found")
 
-        spec = importlib.util.spec_from_file_location("qa_dense_retrieval", pipeline_path)
+        spec = importlib.util.spec_from_file_location(
+            "qa_dense_retrieval", pipeline_path
+        )
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             try:
@@ -54,7 +66,9 @@ class TestPipelineImports:
         if not pipeline_path.exists():
             pytest.skip("qa_sparse_retrieval_milvus.py not found")
 
-        spec = importlib.util.spec_from_file_location("qa_sparse_retrieval_milvus", pipeline_path)
+        spec = importlib.util.spec_from_file_location(
+            "qa_sparse_retrieval_milvus", pipeline_path
+        )
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             try:
@@ -71,7 +85,9 @@ class TestPipelineImports:
         if not pipeline_path.exists():
             pytest.skip("qa_dense_retrieval_milvus.py not found")
 
-        spec = importlib.util.spec_from_file_location("qa_dense_retrieval_milvus", pipeline_path)
+        spec = importlib.util.spec_from_file_location(
+            "qa_dense_retrieval_milvus", pipeline_path
+        )
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             try:
@@ -88,7 +104,15 @@ class TestPipelineStructure:
     @pytest.fixture
     def pipelines_dir(self):
         """Get pipelines directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "benchmark" / "benchmark_rag" / "implementations" / "pipelines"
+        return (
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "benchmark"
+            / "benchmark_rag"
+            / "implementations"
+            / "pipelines"
+        )
 
     def test_pipelines_not_empty(self, pipelines_dir):
         """Verify pipeline files are not empty"""
@@ -104,7 +128,9 @@ class TestPipelineStructure:
     def test_pipelines_have_main_or_class(self, pipelines_dir):
         """Verify pipeline files have main function or class definition"""
         python_files = list(pipelines_dir.glob("*.py"))
-        python_files = [f for f in python_files if f.name != "__init__.py" and f.name != "README.md"]
+        python_files = [
+            f for f in python_files if f.name != "__init__.py" and f.name != "README.md"
+        ]
 
         for py_file in python_files:
             content = py_file.read_text()
@@ -115,5 +141,6 @@ class TestPipelineStructure:
             has_if_name = 'if __name__ == "__main__"' in content
             has_pipeline_run = "def pipeline_run(" in content
 
-            assert has_main or has_class or has_if_name or has_pipeline_run, \
-                f"{py_file.name} should have main(), class, if __name__, or pipeline_run()"
+            assert (
+                has_main or has_class or has_if_name or has_pipeline_run
+            ), f"{py_file.name} should have main(), class, if __name__, or pipeline_run()"

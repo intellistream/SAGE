@@ -5,9 +5,9 @@ from sage.kernel.operators import MapOperator
 from sage.middleware.operators.rag.types import (
     RAGInput,
     RAGResponse,
+    create_rag_response,
     extract_query,
     extract_results,
-    create_rag_response,
 )
 from transformers import (
     AutoModelForCausalLM,

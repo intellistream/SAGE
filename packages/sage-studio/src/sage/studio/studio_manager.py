@@ -610,7 +610,9 @@ if __name__ == "__main__":
             console.print(f"[red]后端API停止失败: {e}[/red]")
             return False
 
-    def start(self, port: Optional[int] = None, host: Optional[str] = None, dev: bool = False) -> bool:
+    def start(
+        self, port: Optional[int] = None, host: Optional[str] = None, dev: bool = False
+    ) -> bool:
         """启动 Studio（前端和后端）"""
         # 首先启动后端API
         if not self.start_backend():

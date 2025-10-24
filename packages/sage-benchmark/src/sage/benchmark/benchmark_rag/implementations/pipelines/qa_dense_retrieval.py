@@ -6,8 +6,7 @@ from sage.common.utils.config.loader import load_config
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.sink import TerminalSink
 from sage.libs.io.source import FileSource
-from sage.middleware.operators.rag import OpenAIGenerator
-from sage.middleware.operators.rag import QAPromptor
+from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 
 
 def pipeline_run():

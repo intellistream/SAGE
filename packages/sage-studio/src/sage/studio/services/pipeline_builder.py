@@ -14,21 +14,31 @@ Pipeline Builder - 将 Studio 可视化模型转换为 SAGE Pipeline
 - 状态管理（由 SAGE Engine 完成）
 """
 
-from typing import Any, Dict, List, Optional, Set
 from collections import defaultdict, deque
+from typing import Any, Dict, List, Optional, Set
 
 # 从 SAGE 公共 API 导入（参考 PACKAGE_ARCHITECTURE.md）
 from sage.kernel.api import LocalEnvironment
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.libs.io.source import (
-    FileSource, JSONFileSource, CSVFileSource, TextFileSource,
-    SocketSource, KafkaSource, DatabaseSource, APISource
-)
 from sage.libs.io.sink import (
-    TerminalSink, PrintSink, FileSink, MemWriteSink, RetriveSink
+    FileSink,
+    MemWriteSink,
+    PrintSink,
+    RetriveSink,
+    TerminalSink,
+)
+from sage.libs.io.source import (
+    APISource,
+    CSVFileSource,
+    DatabaseSource,
+    FileSource,
+    JSONFileSource,
+    KafkaSource,
+    SocketSource,
+    TextFileSource,
 )
 
-from ..models import VisualPipeline, VisualNode, VisualConnection
+from ..models import VisualConnection, VisualNode, VisualPipeline
 from .node_registry import get_node_registry
 
 
@@ -77,15 +87,15 @@ class PipelineBuilder:
 
             if stream is None:
                 # 第一个节点 - 创建 source
-                source_class, source_args, source_kwargs = self._create_source(node, pipeline)
-                stream = env.from_source(source_class, *source_args, name=node.label, **source_kwargs)
+                source_class, source_args, source_kwargs = self._create_source(
+                    node, pipeline
+                )
+                stream = env.from_source(
+                    source_class, *source_args, name=node.label, **source_kwargs
+                )
             else:
                 # 后续节点 - 添加 transformation
-                stream = stream.map(
-                    operator_class,
-                    config=node.config,
-                    name=node.label
-                )
+                stream = stream.map(operator_class, config=node.config, name=node.label)
 
             node_outputs[node.id] = stream
 
@@ -167,8 +177,10 @@ class PipelineBuilder:
         """获取节点类型对应的 Operator 类"""
         operator_class = self.registry.get_operator(node_type)
         if not operator_class:
-            raise ValueError(f"Unknown node type: {node_type}. "
-                           f"Available types: {self.registry.list_types()}")
+            raise ValueError(
+                f"Unknown node type: {node_type}. "
+                f"Available types: {self.registry.list_types()}"
+            )
         return operator_class
 
     def _create_source(self, node: VisualNode, pipeline: VisualPipeline):
@@ -236,8 +248,10 @@ class PipelineBuilder:
 
         # 内存数据源（默认，用于测试）
         else:
+
             class SimpleListSource(SourceFunction):
                 """Simple in-memory list source for testing and development"""
+
                 def __init__(self, data):
                     super().__init__()
                     self.data = data if isinstance(data, list) else [data]

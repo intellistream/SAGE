@@ -1,7 +1,8 @@
-from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import LocomoDataLoader
-
 import time
 
+from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import (
+    LocomoDataLoader,
+)
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.function.batch_function import BatchFunction
 from sage.kernel.api.function.map_function import MapFunction

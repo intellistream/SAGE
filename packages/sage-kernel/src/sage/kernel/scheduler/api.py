@@ -138,6 +138,7 @@ class BaseScheduler(ABC):
         """
         # 默认实现：使用立即默认配置
         from sage.kernel.scheduler.decision import PlacementDecision
+
         return PlacementDecision.immediate_default(
             reason=f"Service placement: {service_node.service_name}"
         )
@@ -165,8 +166,9 @@ class BaseScheduler(ABC):
         decision = self.make_decision(task_node)
 
         # 根据决策延迟（如果需要）
-        if hasattr(decision, 'delay') and decision.delay > 0:
+        if hasattr(decision, "delay") and decision.delay > 0:
             import time
+
             time.sleep(decision.delay)
 
         # 通过任务工厂创建任务
@@ -193,8 +195,9 @@ class BaseScheduler(ABC):
         decision = self.make_service_decision(service_node)
 
         # 根据决策延迟（如果需要）
-        if hasattr(decision, 'delay') and decision.delay > 0:
+        if hasattr(decision, "delay") and decision.delay > 0:
             import time
+
             time.sleep(decision.delay)
 
         # 通过服务工厂创建服务

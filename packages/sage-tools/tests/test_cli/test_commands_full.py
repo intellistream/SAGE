@@ -80,7 +80,7 @@ class TestCLICommandsFull:
                 "--output-format",
                 "summary",
             ],
-            timeout=60  # 增加超时时间，status 命令较慢
+            timeout=60,  # 增加超时时间，status 命令较慢
         )
         assert result["success"], f"Status summary failed: {result['stderr']}"
         assert "状态报告" in result["stdout"]
@@ -96,7 +96,7 @@ class TestCLICommandsFull:
                 "--output-format",
                 "json",
             ],
-            timeout=60  # 增加超时时间，status 命令较慢
+            timeout=60,  # 增加超时时间，status 命令较慢
         )
         assert result["success"], f"Status JSON failed: {result['stderr']}"
         # 验证JSON格式 - 跳过调试输出，找到实际的JSON

@@ -13,7 +13,6 @@
 
 from typing import Any, Dict, List, Optional, TypedDict, Union
 
-
 # ============================================================================
 # 基础文档类型
 # ============================================================================
@@ -167,10 +166,7 @@ def ensure_query_result(
     """
     if isinstance(data, dict):
         query = (
-            data.get("query")
-            or data.get("question")
-            or data.get("q")
-            or default_query
+            data.get("query") or data.get("question") or data.get("q") or default_query
         )
         results = (
             data.get("results")
@@ -226,7 +222,9 @@ def extract_query(data: QueryResultInput, default: str = "") -> str:
     return default
 
 
-def extract_results(data: QueryResultInput, default: Optional[List[Any]] = None) -> List[Any]:
+def extract_results(
+    data: QueryResultInput, default: Optional[List[Any]] = None
+) -> List[Any]:
     """
     从任意格式中提取结果列表
 

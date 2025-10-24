@@ -1,21 +1,10 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Generic,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-)
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, get_args, get_origin
 
+from sage.common.core.functions import BaseFunction, wrap_lambda
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.common.core.functions import BaseFunction
-from sage.common.core.functions import wrap_lambda
 
 from .connected_streams import ConnectedStreams
 
@@ -31,7 +20,7 @@ T = TypeVar("T")
 class DataStream(Generic[T]):
     """表示单个transformation生成的流结果"""
 
-    def __init__(self, env: "BaseEnvironment", transformation: "BaseTransformation"):
+    def __init__(self, env: BaseEnvironment, transformation: BaseTransformation):
         self.logger = CustomLogger()
         self._environment = env
         self.transformation = transformation
@@ -79,11 +68,11 @@ class DataStream(Generic[T]):
 
     def map(
         self,
-        function: Union[Type[BaseFunction], Callable],
+        function: type[BaseFunction] | Callable,
         *args,
-        parallelism: Optional[int] = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "map")
 
@@ -102,11 +91,11 @@ class DataStream(Generic[T]):
 
     def filter(
         self,
-        function: Union[Type[BaseFunction], Callable],
+        function: type[BaseFunction] | Callable,
         *args,
-        parallelism: Optional[int] = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "filter")
 
@@ -127,11 +116,11 @@ class DataStream(Generic[T]):
 
     def flatmap(
         self,
-        function: Union[Type[BaseFunction], Callable],
+        function: type[BaseFunction] | Callable,
         *args,
-        parallelism: Optional[int] = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "flatmap")
 
@@ -152,11 +141,11 @@ class DataStream(Generic[T]):
 
     def sink(
         self,
-        function: Union[Type[BaseFunction], Callable],
+        function: type[BaseFunction] | Callable,
         *args,
-        parallelism: Optional[int] = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "sink")
 
@@ -173,12 +162,12 @@ class DataStream(Generic[T]):
 
     def keyby(
         self,
-        function: Union[Type[BaseFunction], Callable],
+        function: type[BaseFunction] | Callable,
         strategy: str = "hash",
         *args,
-        parallelism: Optional[int] = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "keyby")
 
@@ -200,9 +189,7 @@ class DataStream(Generic[T]):
         result = self._apply(tr)
         return result
 
-    def connect(
-        self, other: Union["DataStream", "ConnectedStreams"]
-    ) -> "ConnectedStreams":
+    def connect(self, other: DataStream | ConnectedStreams) -> ConnectedStreams:
         """连接两个数据流，返回ConnectedStreams
 
         Args:
@@ -221,7 +208,7 @@ class DataStream(Generic[T]):
             new_transformations = [self.transformation] + other.transformations
             return ConnectedStreams(self._environment, new_transformations)
 
-    def fill_future(self, future_stream: "DataStream") -> None:
+    def fill_future(self, future_stream: DataStream) -> None:
         """
         将当前数据流填充到预先声明的future stream中，创建反馈边。
 
@@ -280,7 +267,7 @@ class DataStream(Generic[T]):
     # ---------------------------------------------------------------------
     def print(
         self, prefix: str = "", separator: str = " | ", colored: bool = True
-    ) -> "DataStream":
+    ) -> DataStream:
         """
         便捷的打印方法 - 将数据流输出到控制台
 
@@ -312,7 +299,7 @@ class DataStream(Generic[T]):
     # ---------------------------------------------------------------------
     # internel methods
     # ---------------------------------------------------------------------
-    def _apply(self, tr: BaseTransformation) -> "DataStream":
+    def _apply(self, tr: BaseTransformation) -> DataStream:
         # 连接到输入索引0（单输入情况）
         tr.add_upstream(self.transformation, input_index=0)
 

@@ -28,7 +28,6 @@ from sage.common.core.exceptions import (
     ResourceAllocationError,
     SchedulingError,
 )
-from sage.common.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
 
 # Import function interfaces
 from sage.common.core.functions import (
@@ -47,6 +46,7 @@ from sage.common.core.functions import (
     SourceFunction,
     wrap_lambda,
 )
+from sage.common.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
 
 __all__ = [
     # Types

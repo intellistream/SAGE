@@ -262,4 +262,3 @@ __all__ = [
     "EmbeddingModel",
     "apply_embedding_model",
 ]
-

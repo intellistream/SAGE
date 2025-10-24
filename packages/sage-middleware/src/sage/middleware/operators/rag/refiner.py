@@ -153,7 +153,9 @@ class RefinerOperator(MapOperator):
 
         return result_data
 
-    def _normalize_documents(self, docs: List[Union[str, Dict]]) -> List[Dict[str, Any]]:
+    def _normalize_documents(
+        self, docs: List[Union[str, Dict]]
+    ) -> List[Dict[str, Any]]:
         """标准化文档格式"""
         normalized: List[Dict[str, Any]] = []
         for doc in docs:

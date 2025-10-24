@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 
 class Collector:
@@ -8,7 +8,7 @@ class Collector:
     """
 
     def __init__(self, *args, **kwargs):
-        self._collected_data: List[Any] = []
+        self._collected_data: list[Any] = []
 
     def collect(self, data: Any):
         """
@@ -22,7 +22,7 @@ class Collector:
         self._collected_data.append(data)
         self.logger.debug(f"Data collected in batch mode: {data} data")
 
-    def get_collected_data(self) -> List[Any]:
+    def get_collected_data(self) -> list[Any]:
         """
         Get all collected data.
 

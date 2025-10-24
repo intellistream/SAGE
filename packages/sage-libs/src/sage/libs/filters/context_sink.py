@@ -4,7 +4,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from sage.common.core.functions import SinkFunction
 from sage.libs.context.model_context import ModelContext
@@ -28,7 +28,7 @@ class ContextFileSink(SinkFunction):
         return str(template_data_dir)
 
     @staticmethod
-    def get_default_config() -> Dict[str, Any]:
+    def get_default_config() -> dict[str, Any]:
         """
         获取默认配置
 
@@ -47,7 +47,7 @@ class ContextFileSink(SinkFunction):
             "backup_index": True,  # 是否备份索引文件
         }
 
-    def __init__(self, config: Dict[str, Any], **kwargs):
+    def __init__(self, config: dict[str, Any], **kwargs):
         """
         初始化TemplateFileSink
 
@@ -71,7 +71,7 @@ class ContextFileSink(SinkFunction):
         if isinstance(config, dict):
             self.config.update(config)
         else:
-            raise TypeError("Expected a dict for config, got {}".format(type(config)))
+            raise TypeError(f"Expected a dict for config, got {type(config)}")
         if config:
             self.config.update(config)
 
@@ -219,7 +219,7 @@ class ContextFileSink(SinkFunction):
 
         with self.index_lock:
             try:
-                with open(self.index_file, "r", encoding="utf-8") as f:
+                with open(self.index_file, encoding="utf-8") as f:
                     index_data = json.load(f)
 
                 # 更新索引信息
@@ -319,7 +319,7 @@ class ContextFileSink(SinkFunction):
         )
         self.logger.info(f"New full directory: {self.full_directory}")
 
-    def get_storage_info(self) -> Dict[str, Any]:
+    def get_storage_info(self) -> dict[str, Any]:
         """
         获取存储信息统计
 
@@ -343,7 +343,7 @@ class ContextFileSink(SinkFunction):
             },
         }
 
-    def get_stage_statistics(self) -> Dict[str, Any]:
+    def get_stage_statistics(self) -> dict[str, Any]:
         """
         获取当前阶段的统计信息
 
@@ -354,7 +354,7 @@ class ContextFileSink(SinkFunction):
             if not self.index_file.exists():
                 return {"error": "Index file does not exist"}
 
-            with open(self.index_file, "r", encoding="utf-8") as f:
+            with open(self.index_file, encoding="utf-8") as f:
                 index_data = json.load(f)
 
             templates = list(index_data.get("templates", {}).values())

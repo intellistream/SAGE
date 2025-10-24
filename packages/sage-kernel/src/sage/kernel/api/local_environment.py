@@ -16,9 +16,15 @@ class LocalEnvironment(BaseEnvironment):
         name: str = "localenvironment",
         config: dict | None = None,
         scheduler=None,
-        enable_monitoring: bool = False
+        enable_monitoring: bool = False,
     ):
-        super().__init__(name, config, platform="local", scheduler=scheduler, enable_monitoring=enable_monitoring)
+        super().__init__(
+            name,
+            config,
+            platform="local",
+            scheduler=scheduler,
+            enable_monitoring=enable_monitoring,
+        )
 
         # 本地环境不需要客户端
         self._engine_client = None

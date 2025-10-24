@@ -6,11 +6,12 @@ SAGE Performance Monitoring Usage Example
 """
 
 import time
+
 from sage.kernel.runtime.monitoring import (
-    MetricsCollector,
-    ResourceMonitor,
-    MetricsReporter,
     RESOURCE_MONITOR_AVAILABLE,
+    MetricsCollector,
+    MetricsReporter,
+    ResourceMonitor,
 )
 
 
@@ -217,6 +218,7 @@ def main():
     except Exception as e:
         print(f"\nError running examples: {e}")
         import traceback
+
         traceback.print_exc()
 
 

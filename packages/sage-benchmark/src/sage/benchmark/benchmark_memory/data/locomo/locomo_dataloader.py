@@ -149,12 +149,12 @@ class LocomoDataLoader:
             for evidence in evidence_list:
                 # 解析 evidence 格式: "Dx:y" 或 "Dx:y; Dz:w" (有些可能有分号)
                 # 先按分号分割，然后解析每个部分
-                for part in evidence.split(';'):
+                for part in evidence.split(";"):
                     part = part.strip()
-                    if part.startswith('D') and ':' in part:
+                    if part.startswith("D") and ":" in part:
                         try:
                             # 提取 x 和 y
-                            coords = part[1:].split(':')  # 去掉开头的 'D'
+                            coords = part[1:].split(":")  # 去掉开头的 'D'
                             x = int(coords[0])
                             y = int(coords[1])
 
@@ -169,7 +169,9 @@ class LocomoDataLoader:
             # 判断这个问题是否在当前时间点可见
             # 如果 max_session < session_x，或者 max_session == session_x 且 max_dialog <= current_dialog_num
             if max_session != -1:  # 确保至少解析到了一个有效的 evidence
-                if max_session < session_x or (max_session == session_x and max_dialog <= current_dialog_num):
+                if max_session < session_x or (
+                    max_session == session_x and max_dialog <= current_dialog_num
+                ):
                     visible_questions.append(qa)
 
         return visible_questions
@@ -247,20 +249,24 @@ class LocomoDataLoader:
 
         # 第一个对话（dialog_y 位置）
         dialog_1 = session_content[dialog_y]
-        result.append({
-            "speaker": dialog_1.get("speaker"),
-            "text": dialog_1.get("text"),
-            "session_type": dialog_1.get("session_type", "text")
-        })
+        result.append(
+            {
+                "speaker": dialog_1.get("speaker"),
+                "text": dialog_1.get("text"),
+                "session_type": dialog_1.get("session_type", "text"),
+            }
+        )
 
         # 第二个对话（dialog_y+1 位置，如果存在）
         if dialog_y + 1 < len(session_content):
             dialog_2 = session_content[dialog_y + 1]
-            result.append({
-                "speaker": dialog_2.get("speaker"),
-                "text": dialog_2.get("text"),
-                "session_type": dialog_2.get("session_type", "text")
-            })
+            result.append(
+                {
+                    "speaker": dialog_2.get("speaker"),
+                    "text": dialog_2.get("text"),
+                    "session_type": dialog_2.get("session_type", "text"),
+                }
+            )
 
         return result
 
@@ -287,15 +293,15 @@ if __name__ == "__main__":
     print("=" * 60)
     sessions = loader.iter_session(sid)
     for session in sessions:
-        session_id = session['session_id']
-        date_time = session['date_time']
-        content = session['session_content']
+        session_id = session["session_id"]
+        date_time = session["date_time"]
+        content = session["session_content"]
         print(f"\nSession {session_id} | 时间: {date_time} | 总对话数: {len(content)}")
 
         # 显示前两个对话
         for i, dialog in enumerate(content[:2]):
-            speaker = dialog.get('speaker', 'N/A')
-            text = dialog.get('text', 'N/A')
+            speaker = dialog.get("speaker", "N/A")
+            text = dialog.get("text", "N/A")
             text_preview = text[:50] + "..." if len(text) > 50 else text
             print(f"  [{i}] {speaker}: {text_preview}")
 
@@ -305,7 +311,9 @@ if __name__ == "__main__":
     print("=" * 60)
     turns = loader.get_turn(sid)
     for session_id, max_dialog_idx in turns:
-        print(f"  Session {session_id}: 对话数 {max_dialog_idx + 1} (索引 0-{max_dialog_idx})")
+        print(
+            f"  Session {session_id}: 对话数 {max_dialog_idx + 1} (索引 0-{max_dialog_idx})"
+        )
 
     # 4 和 5 交替输出：Session 3 的所有对话和对应的可见问题
     print("\n" + "=" * 60)
@@ -328,8 +336,8 @@ if __name__ == "__main__":
 
             print(f"\n--- Session 3, Dialog {dialog_idx}-{last_idx} ---")
             for i, d in enumerate(dialogs):
-                speaker = d['speaker']
-                text = d['text']
+                speaker = d["speaker"]
+                text = d["text"]
                 text_preview = text[:60] + "..." if len(text) > 60 else text
                 print(f"  [{dialog_idx + i}] {speaker}: {text_preview}")
 
@@ -340,7 +348,9 @@ if __name__ == "__main__":
                 # 只显示最新增加的问题（与上一轮比较）
                 if dialog_idx > 0:
                     prev_idx = dialog_idx - 1
-                    prev_questions = loader.get_question_list(sid, session_x=3, dialog_y=prev_idx)
+                    prev_questions = loader.get_question_list(
+                        sid, session_x=3, dialog_y=prev_idx
+                    )
                     new_questions = [q for q in questions if q not in prev_questions]
                     if new_questions:
                         print(f"  >> 新增问题 ({len(new_questions)} 个):")

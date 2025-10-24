@@ -12,8 +12,7 @@ from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.function.sink_function import SinkFunction
 from sage.kernel.api.function.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.middleware.operators.rag import OpenAIGenerator
-from sage.middleware.operators.rag import QAPromptor
+from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 
 
 class TerminalInputSource(SourceFunction):

@@ -23,7 +23,8 @@ class NodeRegistry:
 
         # RAG Generators
         try:
-            from sage.middleware.operators.rag import OpenAIGenerator, HFGenerator
+            from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator
+
             self._registry["openai_generator"] = OpenAIGenerator
             self._registry["hf_generator"] = HFGenerator
             self._registry["generator"] = OpenAIGenerator  # Default generator
@@ -37,6 +38,7 @@ class NodeRegistry:
                 MilvusDenseRetriever,
                 MilvusSparseRetriever,
             )
+
             self._registry["chroma_retriever"] = ChromaRetriever
             self._registry["milvus_dense_retriever"] = MilvusDenseRetriever
             self._registry["milvus_sparse_retriever"] = MilvusSparseRetriever
@@ -47,6 +49,7 @@ class NodeRegistry:
         # RAG Rerankers
         try:
             from sage.middleware.operators.rag import BGEReranker
+
             self._registry["bge_reranker"] = BGEReranker
             self._registry["reranker"] = BGEReranker  # Default reranker
         except ImportError:
@@ -58,6 +61,7 @@ class NodeRegistry:
                 QAPromptor,
                 SummarizationPromptor,
             )
+
             self._registry["qa_promptor"] = QAPromptor
             self._registry["summarization_promptor"] = SummarizationPromptor
             self._registry["promptor"] = QAPromptor  # Default promptor
@@ -70,6 +74,7 @@ class NodeRegistry:
                 CharacterSplitter,
                 RefinerOperator,
             )
+
             self._registry["character_splitter"] = CharacterSplitter
             self._registry["refiner"] = RefinerOperator
             self._registry["chunker"] = CharacterSplitter  # Default chunker
@@ -79,10 +84,11 @@ class NodeRegistry:
         # Evaluation Operators
         try:
             from sage.middleware.operators.rag import (
+                AccuracyEvaluate,
                 F1Evaluate,
                 RecallEvaluate,
-                AccuracyEvaluate,
             )
+
             self._registry["f1_evaluate"] = F1Evaluate
             self._registry["recall_evaluate"] = RecallEvaluate
             self._registry["accuracy_evaluate"] = AccuracyEvaluate

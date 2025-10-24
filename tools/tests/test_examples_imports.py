@@ -5,8 +5,8 @@
 这个测试不运行示例，只检查导入是否有错误。
 """
 
-import sys
 import importlib.util
+import sys
 from pathlib import Path
 from typing import List, Tuple
 
@@ -48,11 +48,9 @@ def main():
         "tutorials/embedding_demo.py",
         "tutorials/pipeline_builder_embedding_demo.py",
         "tutorials/pipeline_builder_llm_demo.py",
-
         # Apps - 应用示例
         "apps/run_video_intelligence.py",
         "apps/run_medical_diagnosis.py",
-
         # Unlearning - 隐私遗忘
         "unlearning/usage_1_direct_library.py",
         "unlearning/usage_2_sage_function.py",
@@ -90,7 +88,9 @@ def main():
 
     print()
     print("=" * 80)
-    print(f"Results: {success_count} passed, {fail_count} failed, {skipped_count} skipped")
+    print(
+        f"Results: {success_count} passed, {fail_count} failed, {skipped_count} skipped"
+    )
     print("=" * 80)
 
     # 返回适当的退出码

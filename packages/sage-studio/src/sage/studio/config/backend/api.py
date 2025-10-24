@@ -18,7 +18,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 
-def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str, file_path: Optional[Path] = None) -> dict:
+def _convert_pipeline_to_job(
+    pipeline_data: dict, pipeline_id: str, file_path: Optional[Path] = None
+) -> dict:
     """将拓扑图数据转换为 Job 格式"""
     from datetime import datetime
 
@@ -67,7 +69,9 @@ def _convert_pipeline_to_job(pipeline_data: dict, pipeline_id: str, file_path: O
         try:
             timestamp_str = pipeline_id.replace("pipeline_", "")
             timestamp = int(timestamp_str)
-            create_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+            create_time = datetime.fromtimestamp(timestamp).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
         except (ValueError, OSError) as e:
             print(f"Failed to parse timestamp from pipeline_id {pipeline_id}: {e}")
 
@@ -169,7 +173,9 @@ class Job(BaseModel):
     totalTimeBreakdown: dict
     schedulerTimeBreakdown: dict
     operators: List[dict]
-    config: Optional[dict] = None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
+    config: Optional[dict] = (
+        None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
+    )
 
 
 class OperatorInfo(BaseModel):
@@ -740,9 +746,7 @@ async def stop_job(job_id: str, duration: str):
 
         # 添加停止日志
         if job_id in job_logs:
-            job_logs[job_id].append(
-                f"[SYSTEM] Job {job_id} stopped after {duration}"
-            )
+            job_logs[job_id].append(f"[SYSTEM] Job {job_id} stopped after {duration}")
 
         return {"status": "success", "message": f"作业 {job_id} 已停止"}
     except Exception as e:
@@ -869,6 +873,7 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
 
 # ==================== Playground API ====================
 
+
 def _load_flow_data(flow_id: str) -> Optional[dict]:
     """加载 Flow 数据"""
     sage_dir = _get_sage_dir()
@@ -904,7 +909,11 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     if str(studio_path) not in sys.path:
         sys.path.insert(0, str(studio_path))
 
-    from sage.studio.models import VisualPipeline, VisualNode, VisualConnection  # type: ignore[import-not-found]
+    from sage.studio.models import (  # type: ignore[import-not-found]
+        VisualConnection,
+        VisualNode,
+        VisualPipeline,
+    )
 
     name = flow_data.get("name", "Unnamed Flow")
     description = flow_data.get("description", "")
@@ -919,7 +928,7 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
             type=node_data.get("data", {}).get("nodeId", "unknown"),
             label=node_data.get("data", {}).get("label", "Unnamed Node"),
             position=node_data.get("position", {"x": 0, "y": 0}),
-            config=node_data.get("data", {}).get("properties", {})
+            config=node_data.get("data", {}).get("properties", {}),
         )
         nodes.append(node)
 
@@ -927,11 +936,13 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     connections = []
     for edge_data in edges_data:
         connection = VisualConnection(
-            id=edge_data.get("id", f"{edge_data.get('source')}-{edge_data.get('target')}"),
+            id=edge_data.get(
+                "id", f"{edge_data.get('source')}-{edge_data.get('target')}"
+            ),
             source_node_id=edge_data.get("source", ""),
             source_port="output",  # 默认输出端口
             target_node_id=edge_data.get("target", ""),
-            target_port="input"  # 默认输入端口
+            target_port="input",  # 默认输入端口
         )
         connections.append(connection)
 
@@ -940,12 +951,13 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
         name=name,
         description=description,
         nodes=nodes,
-        connections=connections
+        connections=connections,
     )
 
 
 class PlaygroundExecuteRequest(BaseModel):
     """Playground 执行请求"""
+
     flowId: str
     input: str
     sessionId: str = "default"
@@ -954,6 +966,7 @@ class PlaygroundExecuteRequest(BaseModel):
 
 class AgentStep(BaseModel):
     """Agent 执行步骤"""
+
     step: int
     type: str  # reasoning, tool_call, response
     content: str
@@ -966,6 +979,7 @@ class AgentStep(BaseModel):
 
 class PlaygroundExecuteResponse(BaseModel):
     """Playground 执行响应"""
+
     output: str
     status: str
     agentSteps: Optional[List[AgentStep]] = None
@@ -975,26 +989,35 @@ class PlaygroundExecuteResponse(BaseModel):
 async def execute_playground(request: PlaygroundExecuteRequest):
     """执行 Playground Flow - 使用 SAGE 引擎"""
     try:
-        from datetime import datetime
         import sys
-        from pathlib import Path
         import time
+        from datetime import datetime
+        from pathlib import Path
 
         # 添加 sage-studio 到 Python 路径
         studio_path = Path(__file__).parent.parent.parent.parent
         if str(studio_path) not in sys.path:
             sys.path.insert(0, str(studio_path))
 
-        from sage.studio.models import PipelineStatus, NodeStatus  # type: ignore[import-not-found]
-        from sage.studio.services import get_pipeline_builder  # type: ignore[import-not-found]
+        from sage.studio.models import (  # type: ignore[import-not-found]
+            NodeStatus,
+            PipelineStatus,
+        )
+        from sage.studio.services import (
+            get_pipeline_builder,  # type: ignore[import-not-found]
+        )
 
-        print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
+        print(
+            f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}"
+        )
         print(f"📝 Input: {request.input}")
 
         # 1. 加载 Flow 定义
         flow_data = _load_flow_data(request.flowId)
         if not flow_data:
-            raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
+            raise HTTPException(
+                status_code=404, detail=f"Flow not found: {request.flowId}"
+            )
 
         # 2. 转换为 VisualPipeline
         visual_pipeline = _convert_to_flow_definition(flow_data, request.flowId)
@@ -1010,6 +1033,7 @@ async def execute_playground(request: PlaygroundExecuteRequest):
         # 等待执行完成（简化版本，实际应该异步处理）
         # TODO: 实现真正的异步执行和状态轮询
         import asyncio
+
         await asyncio.sleep(0.1)  # 让出控制权
 
         execution_time = time.time() - start_time
@@ -1017,16 +1041,18 @@ async def execute_playground(request: PlaygroundExecuteRequest):
         # 5. 生成执行步骤（简化版本）
         agent_steps = []
         for idx, node in enumerate(visual_pipeline.nodes, start=1):
-            agent_steps.append(AgentStep(
-                step=idx,
-                type="tool_call",
-                content=f"执行节点: {node.label}",
-                timestamp=datetime.now().isoformat(),
-                duration=int(execution_time * 1000 / len(visual_pipeline.nodes)),
-                toolName=node.label,
-                toolInput=node.config,
-                toolOutput={"status": "completed"}
-            ))
+            agent_steps.append(
+                AgentStep(
+                    step=idx,
+                    type="tool_call",
+                    content=f"执行节点: {node.label}",
+                    timestamp=datetime.now().isoformat(),
+                    duration=int(execution_time * 1000 / len(visual_pipeline.nodes)),
+                    toolName=node.label,
+                    toolInput=node.config,
+                    toolOutput={"status": "completed"},
+                )
+            )
 
         # 6. 生成输出
         output_text = f"Pipeline 执行成功！总耗时: {execution_time:.2f}秒"
@@ -1036,21 +1062,20 @@ async def execute_playground(request: PlaygroundExecuteRequest):
         return PlaygroundExecuteResponse(
             output=output_text,
             status=PipelineStatus.COMPLETED.value,
-            agentSteps=agent_steps if agent_steps else None
+            agentSteps=agent_steps if agent_steps else None,
         )
 
     except HTTPException:
         raise
     except Exception as e:
         import traceback
+
         print(f"❌ Error executing playground: {e}")
         print(traceback.format_exc())
 
         # 返回友好的错误信息
         return PlaygroundExecuteResponse(
-            output=f"执行出错: {str(e)}",
-            status="failed",
-            agentSteps=None
+            output=f"执行出错: {str(e)}", status="failed", agentSteps=None
         )
 
 

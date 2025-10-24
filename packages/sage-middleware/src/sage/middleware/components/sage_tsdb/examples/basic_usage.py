@@ -11,7 +11,6 @@ This example demonstrates:
 from datetime import datetime, timedelta
 
 import numpy as np
-
 from sage.middleware.components.sage_tsdb import (
     SageTSDB,
     TimeRange,
@@ -46,9 +45,7 @@ def main():
     print("\n3. Adding batch data...")
     timestamps = [base_time + (i + 10) * 1000 for i in range(20)]
     values = [20 + 5 * np.sin(i * 0.5) + np.random.randn() for i in range(10, 30)]
-    tags_list = [
-        {"sensor": "temp_01", "location": "room_a"} for _ in range(20)
-    ]
+    tags_list = [{"sensor": "temp_01", "location": "room_a"} for _ in range(20)]
 
     db.add_batch(timestamps=timestamps, values=values, tags_list=tags_list)
     print(f"   Total data points: {db.size}")
@@ -62,8 +59,12 @@ def main():
 
     results = db.query(time_range=time_range, tags={"sensor": "temp_01"})
     print(f"   Found {len(results)} data points in time range")
-    print(f"   First result: timestamp={results[0].timestamp}, value={results[0].value:.2f}")
-    print(f"   Last result: timestamp={results[-1].timestamp}, value={results[-1].value:.2f}")
+    print(
+        f"   First result: timestamp={results[0].timestamp}, value={results[0].value:.2f}"
+    )
+    print(
+        f"   Last result: timestamp={results[-1].timestamp}, value={results[-1].value:.2f}"
+    )
 
     # Window aggregation
     print("\n5. Window-based aggregation...")

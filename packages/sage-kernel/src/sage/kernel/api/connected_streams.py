@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Type, Union
+from typing import TYPE_CHECKING
 
+from sage.common.core.functions import (
+    BaseCoMapFunction,
+    BaseFunction,
+    BaseJoinFunction,
+    wrap_lambda,
+)
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.common.core.functions import BaseFunction
-from sage.common.core.functions import BaseCoMapFunction
-from sage.common.core.functions import BaseJoinFunction
-from sage.common.core.functions import wrap_lambda
 from sage.kernel.api.transformation.join_transformation import JoinTransformation
 
 if TYPE_CHECKING:
@@ -28,9 +30,7 @@ class ConnectedStreams:
     3. 只有在应用多流操作（如comap）时才创建多输入的transformation
     """
 
-    def __init__(
-        self, env: "BaseEnvironment", transformations: List["BaseTransformation"]
-    ):
+    def __init__(self, env: BaseEnvironment, transformations: list[BaseTransformation]):
         self._environment = env
         self.transformations = transformations
 
@@ -71,11 +71,11 @@ class ConnectedStreams:
 
     def map(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: type[BaseFunction] | callable,
         *args,
         parallelism: int = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "map")
 
@@ -91,11 +91,11 @@ class ConnectedStreams:
 
     def sink(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: type[BaseFunction] | callable,
         *args,
         parallelism: int = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "sink")
 
@@ -111,7 +111,7 @@ class ConnectedStreams:
 
     def print(
         self, prefix: str = "", separator: str = " | ", colored: bool = True
-    ) -> "DataStream":
+    ) -> DataStream:
         """
         便捷的打印方法 - 将连接的数据流输出到控制台
 
@@ -127,9 +127,7 @@ class ConnectedStreams:
 
         return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
-    def connect(
-        self, other: Union["DataStream", "ConnectedStreams"]
-    ) -> "ConnectedStreams":
+    def connect(self, other: DataStream | ConnectedStreams) -> ConnectedStreams:
         """连接更多数据流
 
         Args:
@@ -149,11 +147,11 @@ class ConnectedStreams:
 
     def comap(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: type[BaseFunction] | callable,
         *args,
         parallelism: int = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         """
         Apply a CoMap function that processes each connected stream separately
 
@@ -271,11 +269,11 @@ class ConnectedStreams:
     # 在 connected_streams.py 中添加简化的join方法
     def join(
         self,
-        function: Union[Type[BaseJoinFunction], callable],
+        function: type[BaseJoinFunction] | callable,
         *args,
         parallelism: int = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         """
         Join two keyed streams using a join function.
 
@@ -325,9 +323,9 @@ class ConnectedStreams:
 
     def keyby(
         self,
-        key_selector: Union[Type[BaseFunction], List[Type[BaseFunction]]],
+        key_selector: type[BaseFunction] | list[type[BaseFunction]],
         strategy: str = "hash",
-    ) -> "ConnectedStreams":
+    ) -> ConnectedStreams:
         """
         Apply keyby partitioning to connected streams using composition approach
 
@@ -371,7 +369,9 @@ class ConnectedStreams:
 
             # 为每个流分别应用keyby
             keyed_transformations = []
-            for transformation, selector in zip(self.transformations, key_selector):
+            for transformation, selector in zip(
+                self.transformations, key_selector, strict=False
+            ):
                 # 创建单独的DataStream并应用keyby
                 individual_stream = DataStream(self._environment, transformation)
                 keyed_stream = individual_stream.keyby(selector, strategy=strategy)
@@ -394,7 +394,7 @@ class ConnectedStreams:
     # ---------------------------------------------------------------------
     def _parse_comap_functions(
         self,
-        function: Union[Type[BaseFunction], callable, List[callable]],
+        function: type[BaseFunction] | callable | list[callable],
         input_stream_count: int,
         *args,
         **kwargs,
@@ -449,8 +449,8 @@ class ConnectedStreams:
         )
 
     def _create_dynamic_comap_class(
-        self, function_list: List[callable], input_stream_count: int
-    ) -> Type[BaseCoMapFunction]:
+        self, function_list: list[callable], input_stream_count: int
+    ) -> type[BaseCoMapFunction]:
         """
         Dynamically create a CoMap class from a list of functions
 
@@ -520,7 +520,7 @@ class ConnectedStreams:
     # ---------------------------------------------------------------------
     def _parse_comap_functions(
         self,
-        function: Union[Type[BaseFunction], callable, List[callable]],
+        function: type[BaseFunction] | callable | list[callable],
         input_stream_count: int,
         *args,
         **kwargs,
@@ -575,8 +575,8 @@ class ConnectedStreams:
         )
 
     def _create_dynamic_comap_class(
-        self, function_list: List[callable], input_stream_count: int
-    ) -> Type[BaseCoMapFunction]:
+        self, function_list: list[callable], input_stream_count: int
+    ) -> type[BaseCoMapFunction]:
         """
         Dynamically create a CoMap class from a list of functions
 
@@ -645,7 +645,7 @@ class ConnectedStreams:
     # ---------------------------------------------------------------------
     # internal methods
     # ---------------------------------------------------------------------
-    def _apply(self, tr: BaseTransformation) -> "DataStream":
+    def _apply(self, tr: BaseTransformation) -> DataStream:
         """
         将多输入transformation应用到连接的流上
 

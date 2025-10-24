@@ -1,9 +1,11 @@
 """
 Tests for NodeRegistry - Studio to SAGE Operator mapping
 """
-import pytest
 
-from sage.studio.services.node_registry import NodeRegistry  # type: ignore[import-not-found]
+import pytest
+from sage.studio.services.node_registry import (
+    NodeRegistry,  # type: ignore[import-not-found]
+)
 
 
 class TestNodeRegistry:
@@ -94,6 +96,7 @@ class TestNodeRegistry:
 
         class CustomOperator(MapOperator):
             """自定义测试 Operator"""
+
             def map_function(self, item):
                 return {"custom": "data"}
 

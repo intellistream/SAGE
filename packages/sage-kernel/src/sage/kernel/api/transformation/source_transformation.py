@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from sage.kernel.api.operator.source_operator import SourceOperator
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 if TYPE_CHECKING:
-    from sage.kernel.api.base_environment import BaseEnvironment
     from sage.common.core.functions import BaseFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 class SourceTransformation(BaseTransformation):
@@ -15,8 +15,8 @@ class SourceTransformation(BaseTransformation):
 
     def __init__(
         self,
-        env: "BaseEnvironment",
-        function: Type["BaseFunction"],
+        env: BaseEnvironment,
+        function: type[BaseFunction],
         *args,
         delay: float = 1.0,  # Source 节点可配置延迟
         **kwargs,

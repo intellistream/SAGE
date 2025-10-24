@@ -26,9 +26,7 @@ class TimeSeriesAlgorithm(ABC):
         self.config = config or {}
 
     @abstractmethod
-    def process(
-        self, data: List[TimeSeriesData], **kwargs
-    ) -> Any:
+    def process(self, data: List[TimeSeriesData], **kwargs) -> Any:
         """
         Process time series data.
 

@@ -19,16 +19,10 @@ src_paths = [
 for p in src_paths:
     sys.path.insert(0, str(p))
 
-from sage.common.utils.logging.custom_logger import (  # noqa: E402
-    CustomLogger,
-)
-from sage.common.core.functions import (  # noqa: E402
-    BatchFunction,
-)
+from sage.common.core.functions import BatchFunction  # noqa: E402
 from sage.common.core.functions import SinkFunction  # noqa: E402
-from sage.kernel.api.remote_environment import (  # noqa: E402
-    RemoteEnvironment,
-)
+from sage.common.utils.logging.custom_logger import CustomLogger  # noqa: E402
+from sage.kernel.api.remote_environment import RemoteEnvironment  # noqa: E402
 from sage.platform.service import BaseService  # noqa: E402
 
 # 全局变量用于跟踪服务状态

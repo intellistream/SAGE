@@ -1,6 +1,7 @@
 import inspect
 import logging
-from typing import Any, Callable, Hashable, List, Type
+from collections.abc import Callable, Hashable
+from typing import Any
 
 from sage.common.core.functions.base_function import BaseFunction
 from sage.common.core.functions.filter_function import FilterFunction
@@ -46,10 +47,10 @@ class LambdaFilterFunction(FilterFunction):
 class LambdaFlatMapFunction(FlatMapFunction):
     """将返回列表的 lambda 函数包装为 FlatMapFunction"""
 
-    def __init__(self, lambda_func: Callable[[Any], List[Any]], **kwargs):
+    def __init__(self, lambda_func: Callable[[Any], list[Any]], **kwargs):
         self.lambda_func = lambda_func
 
-    def execute(self, data: Any) -> List[Any]:
+    def execute(self, data: Any) -> list[Any]:
         result = self.lambda_func(data)
         if not isinstance(result, list):
             raise TypeError(
@@ -151,7 +152,7 @@ def detect_lambda_type(func: Callable) -> str:
         return "map"
 
 
-def wrap_lambda(func: Callable, func_type: str = None) -> Type[BaseFunction]:
+def wrap_lambda(func: Callable, func_type: str = None) -> type[BaseFunction]:
     """
     将 lambda 函数包装为对应的 Function 类
 

@@ -1,5 +1,6 @@
 from abc import abstractmethod
-from typing import Any, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from sage.common.core.functions.base_function import BaseFunction
 from sage.common.core.functions.flatmap_collector import Collector
@@ -28,7 +29,7 @@ class FlatMapFunction(BaseFunction):
     """
 
     def __init__(self, *args, **kwargs):
-        self.out: Optional[Collector] = None
+        self.out: Collector | None = None
 
     def insert_collector(self, collector: Collector):
         """
@@ -61,7 +62,7 @@ class FlatMapFunction(BaseFunction):
         self.logger.debug(f"Data collected: {data}")
 
     @abstractmethod
-    def execute(self, data: Any) -> Optional[Iterable[Any]]:
+    def execute(self, data: Any) -> Iterable[Any] | None:
         """
         Abstract method to be implemented by subclasses.
 

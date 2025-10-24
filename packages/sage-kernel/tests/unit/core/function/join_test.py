@@ -2,14 +2,16 @@ import json
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
-from sage.common.core.functions import FilterFunction
-from sage.common.core.functions import FlatMapFunction
-from sage.common.core.functions import BaseJoinFunction
-from sage.common.core.functions import KeyByFunction
-from sage.common.core.functions import SinkFunction
-from sage.common.core.functions import SourceFunction
+from sage.common.core.functions import (
+    BaseJoinFunction,
+    FilterFunction,
+    FlatMapFunction,
+    KeyByFunction,
+    SinkFunction,
+    SourceFunction,
+)
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # =====================================================================
@@ -159,7 +161,7 @@ class UserProfileSource(SourceFunction):
 class OrderEventFlatMap(FlatMapFunction):
     """将订单事件分解为订单信息和事件信息"""
 
-    def execute(self, data: Any) -> List[Dict]:
+    def execute(self, data: Any) -> list[dict]:
         order_id = data.get("order_id")
         user_id = data.get("user_id")
         event_type = data.get("event")
@@ -211,7 +213,7 @@ class OrderEventFlatMap(FlatMapFunction):
 class UserProfileFlatMap(FlatMapFunction):
     """将用户档案分解为用户信息和偏好信息"""
 
-    def execute(self, data: Any) -> List[Dict]:
+    def execute(self, data: Any) -> list[dict]:
         user_id = data.get("user_id")
         name = data.get("name")
         email = data.get("email")
@@ -372,7 +374,7 @@ class UserOrderJoin(BaseJoinFunction):
         self.order_cache = {}  # {user_id: [order_data, ...]}
         self.join_count = 0
 
-    def execute(self, payload: Any, key: Any, tag: int) -> List[Any]:
+    def execute(self, payload: Any, key: Any, tag: int) -> list[Any]:
         results = []
         self.logger.debug(
             f"UserOrderJoin: processing key='{key}', tag={tag}, payload={payload}"
@@ -417,7 +419,7 @@ class UserOrderJoin(BaseJoinFunction):
 
     def _create_user_order_join(
         self, user_data: Any, order_data: Any, user_id: str
-    ) -> Dict:
+    ) -> dict:
         return {
             "join_type": "user_order",
             "user_id": user_id,
@@ -444,7 +446,7 @@ class UserPaymentJoin(BaseJoinFunction):
 
         self.current_time = lambda: int(time.time() * 1000)
 
-    def execute(self, payload: Any, key: Any, tag: int) -> List[Any]:
+    def execute(self, payload: Any, key: Any, tag: int) -> list[Any]:
         results = []
         current_time = self.current_time()
 
@@ -505,7 +507,7 @@ class UserPaymentJoin(BaseJoinFunction):
 
     def _create_user_payment_join(
         self, user_data: Any, payment_data: Any, user_id: str
-    ) -> Dict:
+    ) -> dict:
         return {
             "join_type": "user_payment",
             "user_id": user_id,
@@ -534,7 +536,7 @@ class OrderEventJoin(BaseJoinFunction):
 
         self.current_time = lambda: int(time.time() * 1000)
 
-    def execute(self, payload: Any, key: Any, tag: int) -> List[Any]:
+    def execute(self, payload: Any, key: Any, tag: int) -> list[Any]:
         current_time = self.current_time()
         results = []
 
@@ -581,7 +583,7 @@ class OrderEventJoin(BaseJoinFunction):
             else:
                 del self.event_buffer[key]
 
-    def _get_window_events(self, key: Any, current_time: int) -> List:
+    def _get_window_events(self, key: Any, current_time: int) -> list:
         cutoff_time = current_time - self.window_ms
         return [
             (data, ts, tag)
@@ -589,7 +591,7 @@ class OrderEventJoin(BaseJoinFunction):
             if ts >= cutoff_time
         ]
 
-    def _find_order_event_combinations(self, events: List, order_id: str) -> List:
+    def _find_order_event_combinations(self, events: list, order_id: str) -> list:
         combinations = []
 
         # 按tag分组事件
@@ -710,7 +712,7 @@ class JoinResultSink(SinkFunction):
             return results
 
         try:
-            with open(output_file, "r") as f:
+            with open(output_file) as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line:

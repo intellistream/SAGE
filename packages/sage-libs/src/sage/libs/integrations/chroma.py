@@ -15,7 +15,9 @@ import numpy as np
 class ChromaBackend:
     """ChromaDB 后端管理器"""
 
-    def __init__(self, config: Dict[str, Any], logger: Union[logging.Logger, Any] = None):
+    def __init__(
+        self, config: Dict[str, Any], logger: Union[logging.Logger, Any] = None
+    ):
         """
         初始化 ChromaDB 后端
 

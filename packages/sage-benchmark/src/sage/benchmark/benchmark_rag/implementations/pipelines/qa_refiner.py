@@ -14,14 +14,14 @@ from sage.middleware.operators.rag import (
     ContextRecallEvaluate,
     F1Evaluate,
     LatencyEvaluate,
+    OpenAIGenerator,
+    QAPromptor,
     RecallEvaluate,
+    RefinerOperator,
     RougeLEvaluate,
     TokenCountEvaluate,
+    Wiki18FAISSRetriever,
 )
-from sage.middleware.operators.rag import OpenAIGenerator
-from sage.middleware.operators.rag import QAPromptor
-from sage.middleware.operators.rag import RefinerOperator
-from sage.middleware.operators.rag import Wiki18FAISSRetriever
 
 
 def pipeline_run(config):

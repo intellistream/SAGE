@@ -21,9 +21,7 @@ from sage.common.utils.config.loader import load_config
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.batch import JSONLBatch
 from sage.libs.io.sink import TerminalSink
-from sage.middleware.operators.rag import OpenAIGenerator
-from sage.middleware.operators.rag import QAPromptor
-from sage.middleware.operators.rag import ChromaRetriever
+from sage.middleware.operators.rag import ChromaRetriever, OpenAIGenerator, QAPromptor
 
 
 def pipeline_run():
@@ -79,11 +77,13 @@ def pipeline_run():
         if job and hasattr(job, "dispatcher"):
             tasks = job.dispatcher.tasks
             for task_name, task in tasks.items():
-                if hasattr(task, 'get_current_metrics'):
+                if hasattr(task, "get_current_metrics"):
                     metrics = task.get_current_metrics()
                     print(f"\n🔧 Task: {task_name}")
                     print(f"  📦 Packets Processed: {metrics.total_packets_processed}")
-                    print(f"  ✅ Success: {metrics.total_packets_processed} | ❌ Errors: {metrics.total_packets_failed}")
+                    print(
+                        f"  ✅ Success: {metrics.total_packets_processed} | ❌ Errors: {metrics.total_packets_failed}"
+                    )
                     print(f"  📊 TPS: {metrics.packets_per_second:.2f} packets/sec")
                     if metrics.p50_latency > 0:
                         print(f"  ⏱️  Latency P50: {metrics.p50_latency:.1f}ms")
@@ -101,6 +101,7 @@ def pipeline_run():
             print("⚠️  Dispatcher or job not found, cannot retrieve metrics.")
     except Exception as e:
         import traceback
+
         print(f"⚠️  Could not retrieve detailed metrics: {e}")
         traceback.print_exc()
 

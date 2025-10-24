@@ -1,5 +1,6 @@
 from abc import abstractmethod
-from typing import Any, Hashable
+from collections.abc import Hashable
+from typing import Any
 
 from sage.common.core.functions.base_function import BaseFunction
 

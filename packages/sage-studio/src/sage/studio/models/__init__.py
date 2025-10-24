@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 class PipelineStatus(Enum):
     """Pipeline 状态"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -21,6 +22,7 @@ class PipelineStatus(Enum):
 
 class NodeStatus(Enum):
     """节点执行状态"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -36,10 +38,13 @@ class VisualNode:
     这个模型描述节点在 UI 中的表现，不包含执行逻辑。
     执行时会被转换为 SAGE 的 Operator。
     """
+
     id: str
     type: str  # 节点类型，如 "rag.generator", "rag.retriever"
     label: str
-    position: Dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0})  # UI 坐标
+    position: Dict[str, float] = field(
+        default_factory=lambda: {"x": 0, "y": 0}
+    )  # UI 坐标
     config: Dict[str, Any] = field(default_factory=dict)  # 节点配置参数
 
     # UI 状态（不参与执行）
@@ -59,6 +64,7 @@ class VisualConnection:
 
     描述节点之间的数据流连接。
     """
+
     id: str
     source_node_id: str
     source_port: str  # 输出端口名称
@@ -93,6 +99,7 @@ class VisualPipeline:
         env = builder.build(pipeline)
         job = env.execute()
     """
+
     id: str
     name: str
     description: str = ""
@@ -183,6 +190,7 @@ class PipelineExecution:
     记录一次 Pipeline 的执行状态。
     实际执行由 SAGE 引擎完成，这里只是状态的表示层。
     """
+
     id: str  # 执行 ID（对应 SAGE Job ID）
     pipeline_id: str
     status: PipelineStatus = PipelineStatus.PENDING

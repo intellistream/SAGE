@@ -44,8 +44,8 @@ from . import api, operators
 # 在初始化时注册RPCQueue实现到sage-platform的工厂
 # 这样L2层可以创建L3实例，但不需要直接导入L3代码
 try:
-    from sage.platform.queue import register_rpc_queue_factory
     from sage.kernel.runtime.communication.rpc import RPCQueue
+    from sage.platform.queue import register_rpc_queue_factory
 
     def _rpc_queue_factory(**kwargs):
         """RPC队列工厂函数 - 由L2调用创建L3实例"""
@@ -55,6 +55,7 @@ try:
 
 except ImportError as e:
     import warnings
+
     warnings.warn(
         f"Failed to register RPC queue factory: {e}. "
         "RPC queue functionality will not be available.",

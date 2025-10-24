@@ -56,7 +56,7 @@ class LoadAwareScheduler(BaseScheduler):
         self,
         platform: str = "local",
         max_concurrent: int = 10,
-        strategy: str = "balanced"
+        strategy: str = "balanced",
     ):
         """
         初始化负载感知调度器
@@ -79,6 +79,7 @@ class LoadAwareScheduler(BaseScheduler):
 
         # 集成 NodeSelector（资源感知核心）
         from sage.kernel.scheduler.node_selector import NodeSelector
+
         self.node_selector = NodeSelector(cache_ttl=0.5, enable_tracking=True)
 
     def make_decision(self, task_node: "TaskNode") -> PlacementDecision:
@@ -112,35 +113,39 @@ class LoadAwareScheduler(BaseScheduler):
         memory_required = 0
         custom_resources = {}
 
-        if hasattr(task_node, 'transformation') and task_node.transformation:
+        if hasattr(task_node, "transformation") and task_node.transformation:
             # CPU 需求
-            if hasattr(task_node.transformation, 'cpu_required'):
+            if hasattr(task_node.transformation, "cpu_required"):
                 cpu_required = task_node.transformation.cpu_required
 
             # GPU 需求
-            if hasattr(task_node.transformation, 'gpu_required'):
+            if hasattr(task_node.transformation, "gpu_required"):
                 gpu_required = task_node.transformation.gpu_required
 
             # 内存需求
-            if hasattr(task_node.transformation, 'memory_required'):
+            if hasattr(task_node.transformation, "memory_required"):
                 memory_str = task_node.transformation.memory_required
                 memory_required = self._parse_memory(memory_str)
 
             # 自定义资源
-            if hasattr(task_node.transformation, 'custom_resources'):
+            if hasattr(task_node.transformation, "custom_resources"):
                 custom_resources = task_node.transformation.custom_resources
 
         # === 步骤 3: 使用 NodeSelector 选择最优节点 ===
         target_node = None
 
         # 只有远程模式才需要选择节点
-        if task_node.task_factory.remote if hasattr(task_node, 'task_factory') else False:
+        if (
+            task_node.task_factory.remote
+            if hasattr(task_node, "task_factory")
+            else False
+        ):
             target_node = self.node_selector.select_best_node(
                 cpu_required=cpu_required,
                 gpu_required=gpu_required,
                 memory_required=memory_required,
                 custom_resources=custom_resources if custom_resources else None,
-                strategy=self.strategy
+                strategy=self.strategy,
             )
 
             # 跟踪任务分配
@@ -150,11 +155,11 @@ class LoadAwareScheduler(BaseScheduler):
         # === 步骤 4: 构建资源需求字典 ===
         resource_requirements = {}
         if cpu_required > 0:
-            resource_requirements['cpu'] = cpu_required
+            resource_requirements["cpu"] = cpu_required
         if gpu_required > 0:
-            resource_requirements['gpu'] = gpu_required
+            resource_requirements["gpu"] = gpu_required
         if memory_required > 0:
-            resource_requirements['memory'] = memory_required
+            resource_requirements["memory"] = memory_required
         if custom_resources:
             resource_requirements.update(custom_resources)
 
@@ -182,12 +187,14 @@ class LoadAwareScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=resource_requirements if resource_requirements else None,
+            resource_requirements=(
+                resource_requirements if resource_requirements else None
+            ),
             delay=delay,
             immediate=(delay == 0),
             placement_strategy=self.strategy,
-            reason=f"LoadAware: task={task_node.name}, node={node_info}, " +
-                   f"req=[CPU:{cpu_required}, GPU:{gpu_required}], active={self.active_tasks}"
+            reason=f"LoadAware: task={task_node.name}, node={node_info}, "
+            + f"req=[CPU:{cpu_required}, GPU:{gpu_required}], active={self.active_tasks}",
         )
 
         self.decision_history.append(decision)
@@ -208,12 +215,12 @@ class LoadAwareScheduler(BaseScheduler):
 
         if isinstance(memory, str):
             memory = memory.upper()
-            if 'GB' in memory:
-                return int(float(memory.replace('GB', '')) * 1024**3)
-            elif 'MB' in memory:
-                return int(float(memory.replace('MB', '')) * 1024**2)
-            elif 'KB' in memory:
-                return int(float(memory.replace('KB', '')) * 1024)
+            if "GB" in memory:
+                return int(float(memory.replace("GB", "")) * 1024**3)
+            elif "MB" in memory:
+                return int(float(memory.replace("MB", "")) * 1024**2)
+            elif "KB" in memory:
+                return int(float(memory.replace("KB", "")) * 1024)
 
         return 0
 
@@ -240,22 +247,22 @@ class LoadAwareScheduler(BaseScheduler):
         memory_required = 0
         custom_resources = {}
 
-        if hasattr(service_node, 'service_class') and service_node.service_class:
+        if hasattr(service_node, "service_class") and service_node.service_class:
             # CPU 需求
-            if hasattr(service_node.service_class, 'cpu_required'):
+            if hasattr(service_node.service_class, "cpu_required"):
                 cpu_required = service_node.service_class.cpu_required
 
             # GPU 需求
-            if hasattr(service_node.service_class, 'gpu_required'):
+            if hasattr(service_node.service_class, "gpu_required"):
                 gpu_required = service_node.service_class.gpu_required
 
             # 内存需求
-            if hasattr(service_node.service_class, 'memory_required'):
+            if hasattr(service_node.service_class, "memory_required"):
                 memory_str = service_node.service_class.memory_required
                 memory_required = self._parse_memory(memory_str)
 
             # 自定义资源
-            if hasattr(service_node.service_class, 'custom_resources'):
+            if hasattr(service_node.service_class, "custom_resources"):
                 custom_resources = service_node.service_class.custom_resources
 
         # === 步骤 2: 使用 NodeSelector 选择节点（优先使用 spread 策略）===
@@ -266,24 +273,23 @@ class LoadAwareScheduler(BaseScheduler):
             gpu_required=gpu_required,
             memory_required=memory_required,
             custom_resources=custom_resources if custom_resources else None,
-            strategy=service_strategy
+            strategy=service_strategy,
         )
 
         # 跟踪服务分配
         if target_node:
             self.node_selector.track_task_placement(
-                service_node.service_name,
-                target_node
+                service_node.service_name, target_node
             )
 
         # === 步骤 3: 构建资源需求字典 ===
         resource_requirements = {}
         if cpu_required > 0:
-            resource_requirements['cpu'] = cpu_required
+            resource_requirements["cpu"] = cpu_required
         if gpu_required > 0:
-            resource_requirements['gpu'] = gpu_required
+            resource_requirements["gpu"] = gpu_required
         if memory_required > 0:
-            resource_requirements['memory'] = memory_required
+            resource_requirements["memory"] = memory_required
         if custom_resources:
             resource_requirements.update(custom_resources)
 
@@ -305,12 +311,14 @@ class LoadAwareScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=resource_requirements if resource_requirements else None,
+            resource_requirements=(
+                resource_requirements if resource_requirements else None
+            ),
             delay=0.0,  # 服务立即调度
             immediate=True,
             placement_strategy=service_strategy,
-            reason=f"LoadAware Service: {service_node.service_name}, node={node_info}, " +
-                   f"req=[CPU:{cpu_required}, GPU:{gpu_required}], strategy={service_strategy}"
+            reason=f"LoadAware Service: {service_node.service_name}, node={node_info}, "
+            + f"req=[CPU:{cpu_required}, GPU:{gpu_required}], strategy={service_strategy}",
         )
 
         self.decision_history.append(decision)

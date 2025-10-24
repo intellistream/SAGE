@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
-
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
@@ -103,8 +102,12 @@ def example_stream_join_with_time_range():
     for i, (left, right) in enumerate(joined_pairs[:5]):
         time_diff = abs(left["timestamp"] - right["timestamp"])
         print(f"\nPair {i+1}:")
-        print(f"  Left:  seq={left['sequence']}, ts={left['timestamp']}, value={left['value']:.2f}")
-        print(f"  Right: seq={right['sequence']}, ts={right['timestamp']}, value={right['value']:.2f}")
+        print(
+            f"  Left:  seq={left['sequence']}, ts={left['timestamp']}, value={left['value']:.2f}"
+        )
+        print(
+            f"  Right: seq={right['sequence']}, ts={right['timestamp']}, value={right['value']:.2f}"
+        )
         print(f"  Time diff: {time_diff}ms")
 
     # Statistics
@@ -131,17 +134,25 @@ def example_stream_ingestion_and_join():
 
     # Generate streams
     print("\nGenerating streams...")
-    left_stream = generate_stream_data(stream_id="left", num_points=25, disorder_probability=0.2)
-    right_stream = generate_stream_data(stream_id="right", num_points=25, disorder_probability=0.2)
+    left_stream = generate_stream_data(
+        stream_id="left", num_points=25, disorder_probability=0.2
+    )
+    right_stream = generate_stream_data(
+        stream_id="right", num_points=25, disorder_probability=0.2
+    )
 
     # Ingest into databases
     print("\nIngesting left stream...")
     for data in left_stream:
-        db_left.add(timestamp=data["timestamp"], value=data["value"], tags={"stream": "left"})
+        db_left.add(
+            timestamp=data["timestamp"], value=data["value"], tags={"stream": "left"}
+        )
 
     print("Ingesting right stream...")
     for data in right_stream:
-        db_right.add(timestamp=data["timestamp"], value=data["value"], tags={"stream": "right"})
+        db_right.add(
+            timestamp=data["timestamp"], value=data["value"], tags={"stream": "right"}
+        )
 
     print(f"Left DB size: {db_left.size()}")
     print(f"Right DB size: {db_right.size()}")

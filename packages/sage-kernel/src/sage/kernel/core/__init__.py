@@ -24,7 +24,7 @@ warnings.warn(
     "sage.kernel.core has been moved to sage.common.core. "
     "Please update your imports to: from sage.common.core import ...",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 __all__ = [

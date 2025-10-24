@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # from sage.libs.agents.memory import memory_service_adapter
 from sage.common.core.functions import MapFunction
@@ -13,8 +13,8 @@ from ..profile.profile import BaseProfile
 
 
 def _missing_required(
-    arguments: Dict[str, Any], input_schema: Dict[str, Any]
-) -> List[str]:
+    arguments: dict[str, Any], input_schema: dict[str, Any]
+) -> list[str]:
     """基于 MCP JSON Schema 做最小必填参数校验。"""
     req = (input_schema or {}).get("required") or []
     return [k for k in req if k not in arguments]
@@ -47,14 +47,14 @@ class AgentRuntime(MapFunction):
 
     def step(self, user_query: str) -> str:
         # 1) 生成计划（MCP 风格）
-        plan: List[PlanStep] = self.planner.plan(
+        plan: list[PlanStep] = self.planner.plan(
             profile_system_prompt=self.profile.render_system_prompt(),
             user_query=user_query,
             tools=self.tools.describe(),
         )
 
-        observations: List[Dict[str, Any]] = []
-        reply_text: Optional[str] = None
+        observations: list[dict[str, Any]] = []
+        reply_text: str | None = None
 
         # 2) 逐步执行
         for i, step in enumerate(plan[: self.max_steps]):
@@ -189,7 +189,7 @@ class AgentRuntime(MapFunction):
             ):
                 try:
                     self.profile = self.profile.merged(**data["profile_overrides"])
-                except Exception as e:
+                except Exception:
                     # 失败则回退，不中断主流程
                     self.profile = original_profile
 

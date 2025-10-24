@@ -18,13 +18,13 @@ from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.function.sink_function import SinkFunction
 from sage.kernel.api.function.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
+from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 from sage.platform.service import BaseService
-from sage.middleware.operators.rag import OpenAIGenerator
-from sage.middleware.operators.rag import QAPromptor
 
 
 class PipelineBridge:
     """Pipeline 之间的通信桥梁"""
+
     def __init__(self):
         self._queue = queue.Queue()
         self._closed = False
@@ -53,8 +53,10 @@ class PipelineBridge:
 
 # ==================== LLM 问答服务 Pipeline ====================
 
+
 class LLMSource(SourceFunction):
     """从 bridge 接收问答请求"""
+
     def __init__(self, bridge):
         super().__init__()
         self.bridge = bridge
@@ -68,6 +70,7 @@ class LLMSource(SourceFunction):
 
 class LLMMap(MapFunction):
     """使用 LLM 生成答案"""
+
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -84,7 +87,9 @@ class LLMMap(MapFunction):
         # 使用配置文件中的 promptor 配置
         promptor_config = self.config.get("promptor", {})
         if not promptor_config.get("template"):
-            promptor_config["template"] = """你是一位友好的健康助手。请简洁、准确地回答用户的问题。
+            promptor_config[
+                "template"
+            ] = """你是一位友好的健康助手。请简洁、准确地回答用户的问题。
 
 用户问题: {{ question }}
 
@@ -106,16 +111,14 @@ class LLMMap(MapFunction):
         print(f"✅ LLM 生成完成")
 
         return {
-            "payload": {
-                "question": question,
-                "answer": answer
-            },
-            "response_queue": data["response_queue"]
+            "payload": {"question": question, "answer": answer},
+            "response_queue": data["response_queue"],
         }
 
 
 class LLMSink(SinkFunction):
     """将答案返回给调用者"""
+
     def execute(self, data):
         if not data:
             return
@@ -124,6 +127,7 @@ class LLMSink(SinkFunction):
 
 class LLMService(BaseService):
     """LLM 服务：接收问题，返回答案"""
+
     def __init__(self, bridge, config):
         super().__init__()
         self.bridge = bridge
@@ -137,8 +141,10 @@ class LLMService(BaseService):
 
 # ==================== Controller Pipeline（顺序发送问题）====================
 
+
 class QuestionController(SourceFunction):
     """顺序发送问题，每次只发送一个"""
+
     def __init__(self, config):
         super().__init__()
         self.questions = config.get("questions")
@@ -157,6 +163,7 @@ class QuestionController(SourceFunction):
 
 class ProcessQuestion(MapFunction):
     """调用 LLM Service 处理问题"""
+
     def execute(self, data):
         if not data:
             return None
@@ -173,7 +180,9 @@ class ProcessQuestion(MapFunction):
         print(f"🔄 调用 LLM Service...")
 
         # 调用 LLM Service（阻塞等待答案）
-        result = self.call_service("llm_service", {"question": question}, method="ask", timeout=120.0)
+        result = self.call_service(
+            "llm_service", {"question": question}, method="ask", timeout=120.0
+        )
 
         print(f"✅ 收到 LLM Service 的回答")
 
@@ -183,6 +192,7 @@ class ProcessQuestion(MapFunction):
 
 class DisplayAnswer(SinkFunction):
     """显示答案"""
+
     def __init__(self, bridges=None, total_questions=5):
         super().__init__()
         self.bridges = bridges or []
@@ -194,30 +204,30 @@ class DisplayAnswer(SinkFunction):
         """简单的 Markdown 渲染，用于终端显示"""
         import re
 
-        lines = text.split('\n')
+        lines = text.split("\n")
         formatted_lines = []
 
         for line in lines:
             # 处理 ### 三级标题
-            if line.startswith('###'):
-                title = line.replace('###', '').strip()
-                line = f'\033[1m{title}\033[0m'
+            if line.startswith("###"):
+                title = line.replace("###", "").strip()
+                line = f"\033[1m{title}\033[0m"
 
             # 处理 **加粗**
-            elif '**' in line:
-                line = re.sub(r'\*\*(.+?)\*\*', r'\033[1m\1\033[0m', line)
+            elif "**" in line:
+                line = re.sub(r"\*\*(.+?)\*\*", r"\033[1m\1\033[0m", line)
 
             # 处理数字列表项
-            if re.match(r'^\d+\.\s+', line):
-                line = re.sub(r'^(\d+)\.\s+', r'\033[1m\1.\033[0m ', line)
+            if re.match(r"^\d+\.\s+", line):
+                line = re.sub(r"^(\d+)\.\s+", r"\033[1m\1.\033[0m ", line)
 
             # 处理缩进的破折号列表项
-            elif re.match(r'^\s+-\s+', line):
-                line = re.sub(r'^(\s+)-\s+', r'\1\033[1m-\033[0m ', line)
+            elif re.match(r"^\s+-\s+", line):
+                line = re.sub(r"^(\s+)-\s+", r"\1\033[1m-\033[0m ", line)
 
             formatted_lines.append(line)
 
-        return '\n'.join(formatted_lines)
+        return "\n".join(formatted_lines)
 
     def execute(self, data):
         if not data:
@@ -289,11 +299,13 @@ def main():
         print("🎮 创建 Controller Pipeline（顺序发送问题）...")
         total_questions = config["source"].get("max_index", 5)
         bridges = [llm_bridge]
-        env.from_source(QuestionController, config["source"]).map(ProcessQuestion).sink(DisplayAnswer, bridges, total_questions)
+        env.from_source(QuestionController, config["source"]).map(ProcessQuestion).sink(
+            DisplayAnswer, bridges, total_questions
+        )
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🚀 启动 LLM Pipeline...")
-        print("="*60 + "\n")
+        print("=" * 60 + "\n")
 
         env.submit(autostop=False)
 
@@ -307,9 +319,9 @@ def main():
             elapsed = i + 5
             print(f"⏱️  已等待 {elapsed}/{expected_time} 秒...")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("✅ Pipeline 执行完成!")
-        print("="*60)
+        print("=" * 60)
 
     finally:
         print("\n🛑 停止 Pipeline...")

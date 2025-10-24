@@ -22,7 +22,7 @@ Placement 执行层 - 统一的任务/服务放置接口
 - 处理资源需求和放置策略
 """
 
-from typing import TYPE_CHECKING, Optional, Dict, Any
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -68,10 +68,7 @@ class PlacementExecutor:
         }
 
     def place_task(
-        self,
-        task_node: "TaskNode",
-        decision: "PlacementDecision",
-        runtime_ctx=None
+        self, task_node: "TaskNode", decision: "PlacementDecision", runtime_ctx=None
     ) -> "BaseTask":
         """
         根据调度决策执行物理放置
@@ -112,21 +109,19 @@ class PlacementExecutor:
         if decision.target_node:
             self.placement_stats["nodes_used"].add(decision.target_node)
 
-        self.placed_tasks.append({
-            "task_name": task_node.name,
-            "remote": is_remote,
-            "target_node": decision.target_node,
-            "resource_requirements": decision.resource_requirements,
-            "decision": decision,
-        })
+        self.placed_tasks.append(
+            {
+                "task_name": task_node.name,
+                "remote": is_remote,
+                "target_node": decision.target_node,
+                "resource_requirements": decision.resource_requirements,
+                "decision": decision,
+            }
+        )
 
         return task
 
-    def _place_local_task(
-        self,
-        task_node: "TaskNode",
-        ctx
-    ) -> "BaseTask":
+    def _place_local_task(self, task_node: "TaskNode", ctx) -> "BaseTask":
         """
         放置本地任务（直接创建 LocalTask）
 
@@ -142,10 +137,7 @@ class PlacementExecutor:
         return task
 
     def _place_remote_task(
-        self,
-        task_node: "TaskNode",
-        ctx,
-        decision: "PlacementDecision"
+        self, task_node: "TaskNode", ctx, decision: "PlacementDecision"
     ) -> "BaseTask":
         """
         放置远程任务（创建 Ray Actor 并指定节点）
@@ -169,8 +161,7 @@ class PlacementExecutor:
         from sage.kernel.utils.ray.actor import ActorWrapper
 
         task_actor = RayTask.options(**ray_options).remote(
-            ctx,
-            task_node.task_factory.operator_factory
+            ctx, task_node.task_factory.operator_factory
         )
 
         # 包装为 ActorWrapper
@@ -195,11 +186,12 @@ class PlacementExecutor:
         # === 指定目标节点 ===
         if decision.target_node:
             try:
-                from ray.util.scheduling_strategies import NodeAffinitySchedulingStrategy
+                from ray.util.scheduling_strategies import (
+                    NodeAffinitySchedulingStrategy,
+                )
 
                 options["scheduling_strategy"] = NodeAffinitySchedulingStrategy(
-                    node_id=decision.target_node,
-                    soft=False  # 硬要求：必须放到指定节点
+                    node_id=decision.target_node, soft=False  # 硬要求：必须放到指定节点
                 )
             except ImportError:
                 # Ray 版本不支持 NodeAffinitySchedulingStrategy
@@ -248,12 +240,12 @@ class PlacementExecutor:
 
         if isinstance(memory, str):
             memory = memory.upper()
-            if 'GB' in memory:
-                return int(float(memory.replace('GB', '')) * 1024**3)
-            elif 'MB' in memory:
-                return int(float(memory.replace('MB', '')) * 1024**2)
-            elif 'KB' in memory:
-                return int(float(memory.replace('KB', '')) * 1024)
+            if "GB" in memory:
+                return int(float(memory.replace("GB", "")) * 1024**3)
+            elif "MB" in memory:
+                return int(float(memory.replace("MB", "")) * 1024**2)
+            elif "KB" in memory:
+                return int(float(memory.replace("KB", "")) * 1024)
 
         return 1024**3  # 默认 1GB
 
@@ -261,7 +253,7 @@ class PlacementExecutor:
         self,
         service_node: "ServiceNode",
         decision: "PlacementDecision",
-        runtime_ctx=None
+        runtime_ctx=None,
     ) -> "BaseServiceTask":
         """
         根据调度决策放置服务
@@ -286,11 +278,13 @@ class PlacementExecutor:
         if decision.target_node:
             self.placement_stats["nodes_used"].add(decision.target_node)
 
-        self.placed_services.append({
-            "service_name": service_node.service_name,
-            "target_node": decision.target_node,
-            "decision": decision,
-        })
+        self.placed_services.append(
+            {
+                "service_name": service_node.service_name,
+                "target_node": decision.target_node,
+                "decision": decision,
+            }
+        )
 
         return service
 

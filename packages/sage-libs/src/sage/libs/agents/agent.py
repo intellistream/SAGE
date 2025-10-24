@@ -1,7 +1,6 @@
 import json
 import re
 import time
-from typing import Tuple
 
 import requests
 from sage.common.core.functions import MapFunction
@@ -111,7 +110,7 @@ class BaseAgent(MapFunction):
             "Invalid JSON format: No valid JSON found (either plain or wrapped in Markdown)"
         )
 
-    def execute(self, data: str) -> Tuple[str, str]:
+    def execute(self, data: str) -> tuple[str, str]:
         query = data
         agent_scratchpad = ""
         count = 0

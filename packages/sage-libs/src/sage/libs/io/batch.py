@@ -108,7 +108,7 @@ class JSONLBatch(BatchFunction):
         if not os.path.exists(self.file_path):
             raise FileNotFoundError(f"JSONL file not found: {self.file_path}")
 
-        self._file_handle = open(self.file_path, "r", encoding="utf-8")
+        self._file_handle = open(self.file_path, encoding="utf-8")
         self.logger.debug(f"Opened JSONL file: {self.file_path}")
 
     def execute(self):

@@ -62,6 +62,7 @@ def prepare_minimal_test_data():
 
     # Create placeholder image files (empty numpy arrays)
     import numpy as np
+
     for case in mock_test_cases:
         image_path = data_dir / case["image_path"]
         if not image_path.exists():

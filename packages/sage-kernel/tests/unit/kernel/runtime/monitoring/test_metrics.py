@@ -156,9 +156,7 @@ class TestServiceRequestMetrics:
 
     def test_calculate_times(self):
         """测试时间计算"""
-        request = ServiceRequestMetrics(
-            request_id="req_002", method_name="retrieve"
-        )
+        request = ServiceRequestMetrics(request_id="req_002", method_name="retrieve")
         request.arrival_time = 1000.0
         request.processing_start_time = 1001.5
         request.processing_end_time = 1005.0

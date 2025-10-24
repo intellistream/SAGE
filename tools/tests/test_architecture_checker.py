@@ -4,18 +4,18 @@ Tests for Architecture Compliance Checker
 测试架构检查器的各种场景
 """
 
-import sys
-from pathlib import Path
-import tempfile
 import shutil
+import sys
+import tempfile
+from pathlib import Path
 
 # 添加工具目录到 path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from architecture_checker import (
     ArchitectureChecker,
-    ImportStatement,
     ArchitectureViolation,
+    ImportStatement,
 )
 
 
@@ -33,12 +33,20 @@ def create_test_structure():
     ]
 
     for pkg in packages:
-        pkg_path = temp_dir / "packages" / pkg / "src" / "sage" / pkg.replace("sage-", "")
+        pkg_path = (
+            temp_dir / "packages" / pkg / "src" / "sage" / pkg.replace("sage-", "")
+        )
         pkg_path.mkdir(parents=True, exist_ok=True)
 
         # 创建 __init__.py
         init_file = pkg_path / "__init__.py"
-        layer = {"sage-common": "L1", "sage-platform": "L2", "sage-kernel": "L3", "sage-libs": "L3", "sage-middleware": "L4"}
+        layer = {
+            "sage-common": "L1",
+            "sage-platform": "L2",
+            "sage-kernel": "L3",
+            "sage-libs": "L3",
+            "sage-middleware": "L4",
+        }
         init_file.write_text(f'"""Package {pkg}"""\n__layer__ = "{layer[pkg]}"\n')
 
     return temp_dir
@@ -52,10 +60,7 @@ def test_legal_dependency():
 
     try:
         # 创建合法的导入
-        test_file = (
-            temp_dir
-            / "packages/sage-kernel/src/sage/kernel/test.py"
-        )
+        test_file = temp_dir / "packages/sage-kernel/src/sage/kernel/test.py"
         test_file.write_text(
             """
 from sage.common import utils
@@ -87,10 +92,7 @@ def test_illegal_upward_dependency():
 
     try:
         # 创建非法的向上依赖
-        test_file = (
-            temp_dir
-            / "packages/sage-common/src/sage/common/test.py"
-        )
+        test_file = temp_dir / "packages/sage-common/src/sage/common/test.py"
         test_file.write_text(
             """
 from sage.kernel import api  # L1 -> L3 非法
@@ -126,10 +128,7 @@ def test_illegal_same_layer_dependency():
     try:
         # sage-libs 可以依赖 sage-kernel（明确允许）
         # 但 sage-kernel 不能依赖 sage-libs
-        test_file = (
-            temp_dir
-            / "packages/sage-kernel/src/sage/kernel/test.py"
-        )
+        test_file = temp_dir / "packages/sage-kernel/src/sage/kernel/test.py"
         test_file.write_text(
             """
 from sage.libs import agents  # L3 -> L3 但未授权
@@ -160,10 +159,7 @@ def test_internal_import_warning():
 
     try:
         # 创建直接导入内部模块的代码
-        test_file = (
-            temp_dir
-            / "packages/sage-middleware/src/sage/middleware/test.py"
-        )
+        test_file = temp_dir / "packages/sage-middleware/src/sage/middleware/test.py"
         test_file.write_text(
             """
 from sage.kernel.runtime.dispatcher import Dispatcher  # 内部模块
@@ -194,10 +190,7 @@ def test_missing_layer_marker():
 
     try:
         # 删除一个包的 Layer 标记
-        init_file = (
-            temp_dir
-            / "packages/sage-kernel/src/sage/kernel/__init__.py"
-        )
+        init_file = temp_dir / "packages/sage-kernel/src/sage/kernel/__init__.py"
         init_file.write_text('"""Package sage-kernel"""\n')  # 没有 __layer__
 
         checker = ArchitectureChecker(temp_dir)

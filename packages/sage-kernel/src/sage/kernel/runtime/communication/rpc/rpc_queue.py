@@ -50,7 +50,7 @@ class RPCQueue:
         host: str = "localhost",
         port: int = 50051,
         maxsize: int = 0,
-        **kwargs
+        **kwargs,
     ):
         """
         初始化RPC队列
@@ -94,7 +94,9 @@ class RPCQueue:
             self._connected = True
         return True
 
-    def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
+    def put(
+        self, item: Any, block: bool = True, timeout: Optional[float] = None
+    ) -> None:
         """
         向队列发送数据
 

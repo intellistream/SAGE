@@ -121,7 +121,6 @@ class TestPhase2Registration:
             print(f"✓ {wrapper_cls.__name__} 导入成功")
 
 
-
 class TestNoAPIKeyMethods:
     """测试不需要 API Key 的方法（可以直接实例化）"""
 

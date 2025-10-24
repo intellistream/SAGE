@@ -18,12 +18,12 @@ SAGE Architecture Compliance Checker
 """
 
 import ast
-import sys
-from pathlib import Path
-from typing import Dict, List, Set, Tuple, Optional
-from dataclasses import dataclass, field
-from collections import defaultdict
 import re
+import sys
+from collections import defaultdict
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
 
 # ============================================================================
 # 架构定义
@@ -316,7 +316,9 @@ class ArchitectureChecker:
             return False
 
         # 检查 __init__.py 是否存在
-        init_file = package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
+        init_file = (
+            package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
+        )
         if not init_file.exists():
             self.warnings.append(
                 ArchitectureViolation(
@@ -333,7 +335,9 @@ class ArchitectureChecker:
     def check_layer_marker(self, package_name: str) -> bool:
         """检查包是否包含 Layer 标记"""
         package_path = self.root_dir / PACKAGE_PATHS[package_name]
-        init_file = package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
+        init_file = (
+            package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
+        )
 
         if not init_file.exists():
             return False
@@ -371,9 +375,7 @@ class ArchitectureChecker:
 
         return True
 
-    def run_checks(
-        self, changed_files: Optional[List[Path]] = None
-    ) -> CheckResult:
+    def run_checks(self, changed_files: Optional[List[Path]] = None) -> CheckResult:
         """运行所有检查"""
         print("🔍 开始架构合规性检查...\n")
 
@@ -537,9 +539,7 @@ def main():
     """主函数"""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="SAGE Architecture Compliance Checker"
-    )
+    parser = argparse.ArgumentParser(description="SAGE Architecture Compliance Checker")
     parser.add_argument(
         "--root",
         type=Path,

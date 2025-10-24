@@ -12,11 +12,12 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 import numpy as np
-
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
-def generate_multi_sensor_data(num_sensors: int = 3, points_per_sensor: int = 30) -> List[Dict[str, Any]]:
+def generate_multi_sensor_data(
+    num_sensors: int = 3, points_per_sensor: int = 30
+) -> List[Dict[str, Any]]:
     """Generate data from multiple sensors"""
     data_points = []
     base_time = int(datetime.now().timestamp() * 1000)
@@ -45,7 +46,9 @@ def generate_multi_sensor_data(num_sensors: int = 3, points_per_sensor: int = 30
     return data_points
 
 
-def detect_anomalies(db: SageTSDB, data_points: List[Dict[str, Any]], threshold_std: float = 2.5) -> List[Dict[str, Any]]:
+def detect_anomalies(
+    db: SageTSDB, data_points: List[Dict[str, Any]], threshold_std: float = 2.5
+) -> List[Dict[str, Any]]:
     """Detect anomalies in time series data"""
     results = []
 
@@ -71,17 +74,21 @@ def detect_anomalies(db: SageTSDB, data_points: List[Dict[str, Any]], threshold_
                 is_anomaly = z_score > threshold_std
                 anomaly_score = z_score
 
-        results.append({
-            **data,
-            "is_anomaly": is_anomaly,
-            "anomaly_score": anomaly_score,
-            "historical_count": len(historical),
-        })
+        results.append(
+            {
+                **data,
+                "is_anomaly": is_anomaly,
+                "anomaly_score": anomaly_score,
+                "historical_count": len(historical),
+            }
+        )
 
     return results
 
 
-def compute_window_statistics(db: SageTSDB, data_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def compute_window_statistics(
+    db: SageTSDB, data_points: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
     """Compute window-based statistics"""
     results = []
 
@@ -90,8 +97,7 @@ def compute_window_statistics(db: SageTSDB, data_points: List[Dict[str, Any]]) -
         if (i + 1) % 10 == 0:
             # Query recent data
             time_range = TimeRange(
-                start_time=data["timestamp"] - 30000,
-                end_time=data["timestamp"]
+                start_time=data["timestamp"] - 30000, end_time=data["timestamp"]
             )
 
             recent_data = db.query(time_range=time_range)
@@ -109,11 +115,13 @@ def compute_window_statistics(db: SageTSDB, data_points: List[Dict[str, Any]]) -
             else:
                 aggregations = {"count": 0}
 
-            results.append({
-                **data,
-                "aggregations": aggregations,
-                "has_aggregation": True,
-            })
+            results.append(
+                {
+                    **data,
+                    "aggregations": aggregations,
+                    "has_aggregation": True,
+                }
+            )
         else:
             results.append({**data, "has_aggregation": False})
 
@@ -155,7 +163,9 @@ def example_advanced_analytics():
     if anomalies:
         print("\nAnomalies detected:")
         for anomaly in anomalies[:5]:  # Show first 5
-            print(f"  Sensor: {anomaly['sensor_id']}, Value: {anomaly['value']:.2f}, Score: {anomaly['anomaly_score']:.2f}")
+            print(
+                f"  Sensor: {anomaly['sensor_id']}, Value: {anomaly['value']:.2f}, Score: {anomaly['anomaly_score']:.2f}"
+            )
 
     # Compute window statistics
     print("\nComputing window statistics...")
@@ -211,7 +221,9 @@ def example_multi_sensor_comparison():
     print("-" * 45)
 
     for sensor_id, db in sensors_db.items():
-        time_range = TimeRange(start_time=0, end_time=int(datetime.now().timestamp() * 1000) + 100000)
+        time_range = TimeRange(
+            start_time=0, end_time=int(datetime.now().timestamp() * 1000) + 100000
+        )
         results = db.query(time_range)
 
         if results:

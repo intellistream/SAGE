@@ -1,9 +1,11 @@
 """
 Tests for medical diagnosis application
 """
-import pytest
-from pathlib import Path
+
 import importlib.util
+from pathlib import Path
+
+import pytest
 
 
 class TestMedicalDiagnosisStructure:
@@ -12,7 +14,9 @@ class TestMedicalDiagnosisStructure:
     @pytest.fixture
     def medical_dir(self):
         """Get medical diagnosis directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+        return (
+            Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+        )
 
     def test_medical_directory_exists(self, medical_dir):
         """Verify medical diagnosis directory exists"""
@@ -58,8 +62,9 @@ class TestMedicalDiagnosisStructure:
         has_class = "class " in content
         has_if_name = 'if __name__ == "__main__"' in content
 
-        assert has_main or has_class or has_if_name, \
-            "run_diagnosis.py should have main() function, class definition, or if __name__ == '__main__'"
+        assert (
+            has_main or has_class or has_if_name
+        ), "run_diagnosis.py should have main() function, class definition, or if __name__ == '__main__'"
 
 
 class TestMedicalDiagnosisImports:
@@ -68,7 +73,9 @@ class TestMedicalDiagnosisImports:
     @pytest.fixture
     def medical_dir(self):
         """Get medical diagnosis directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+        return (
+            Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+        )
 
     def test_run_diagnosis_imports(self, medical_dir):
         """Test run_diagnosis.py can be imported"""
@@ -110,7 +117,14 @@ class TestMedicalDiagnosisConfig:
     @pytest.fixture
     def config_dir(self):
         """Get config directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis" / "config"
+        return (
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "apps"
+            / "medical_diagnosis"
+            / "config"
+        )
 
     def test_config_directory_exists(self, config_dir):
         """Verify config directory exists"""
@@ -118,7 +132,11 @@ class TestMedicalDiagnosisConfig:
 
     def test_config_files_exist(self, config_dir):
         """Verify config files exist"""
-        config_files = list(config_dir.glob("*.yaml")) + list(config_dir.glob("*.json")) + list(config_dir.glob("*.toml"))
+        config_files = (
+            list(config_dir.glob("*.yaml"))
+            + list(config_dir.glob("*.json"))
+            + list(config_dir.glob("*.toml"))
+        )
 
         # Should have at least one config file
         if len(config_files) > 0:

@@ -132,9 +132,7 @@ class WorkflowEvaluator:
         for optimizer in optimizers:
             optimizer_results = []
             for benchmark_name, workflow in self.benchmarks.items():
-                result = self.evaluate_optimizer(
-                    optimizer, workflow, benchmark_name
-                )
+                result = self.evaluate_optimizer(optimizer, workflow, benchmark_name)
                 optimizer_results.append(result)
             results[optimizer.name] = optimizer_results
 

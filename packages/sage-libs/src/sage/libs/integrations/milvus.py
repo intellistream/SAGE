@@ -15,7 +15,9 @@ import numpy as np
 class MilvusBackend:
     """Milvus 后端管理器（支持本地 Milvus Lite 与远程 Milvus）"""
 
-    def __init__(self, config: Dict[str, Any], logger: Union[logging.Logger, Any] = None):
+    def __init__(
+        self, config: Dict[str, Any], logger: Union[logging.Logger, Any] = None
+    ):
         """
         初始化 Milvus 后端
 
@@ -309,10 +311,14 @@ class MilvusBackend:
         try:
             # 使用 BGEM3EmbeddingFunction 生成查询向量
             try:
-                from pymilvus.model.hybrid import BGEM3EmbeddingFunction  # type: ignore[import-not-found]
+                from pymilvus.model.hybrid import (
+                    BGEM3EmbeddingFunction,  # type: ignore[import-not-found]
+                )
             except ImportError:
                 try:
-                    from pymilvus.model import BGEM3EmbeddingFunction  # type: ignore[import-not-found]
+                    from pymilvus.model import (
+                        BGEM3EmbeddingFunction,  # type: ignore[import-not-found]
+                    )
                 except ImportError:
                     self.logger.error(
                         "Please install: pip install 'pymilvus[model]' or pip install pymilvus.model"

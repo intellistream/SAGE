@@ -766,7 +766,9 @@ def status(
             console.print(json.dumps(status_data, indent=2, ensure_ascii=False))
         elif output_format == "full":
             # 完整详细输出
-            status_data = checker.check_all(verbose=True, quick=False)  # 完整输出不使用快速模式
+            status_data = checker.check_all(
+                verbose=True, quick=False
+            )  # 完整输出不使用快速模式
             console.print("\n" + "=" * 60)
             console.print(checker.generate_status_summary(status_data))
             console.print("=" * 60)
@@ -1114,7 +1116,9 @@ def home(
             for name, dir_path in subdirs:
                 status = "存在" if dir_path.exists() else "不存在"
                 if dir_path.exists():
-                    size = sum(f.stat().st_size for f in dir_path.rglob("*") if f.is_file())
+                    size = sum(
+                        f.stat().st_size for f in dir_path.rglob("*") if f.is_file()
+                    )
                     file_count = len(list(dir_path.rglob("*")))
                     console.print(
                         f"  � {name}: {status} ({file_count} 个文件, {size} 字节)"

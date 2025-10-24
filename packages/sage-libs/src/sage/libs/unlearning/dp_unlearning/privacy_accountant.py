@@ -32,8 +32,10 @@ class PrivacySpending:
     metadata: Dict = field(default_factory=dict)
 
     def __repr__(self) -> str:
-        return (f"PrivacySpending({self.operation}: ε={self.epsilon:.4f}, "
-                f"δ={self.delta:.6f}, mechanism={self.mechanism})")
+        return (
+            f"PrivacySpending({self.operation}: ε={self.epsilon:.4f}, "
+            f"δ={self.delta:.6f}, mechanism={self.mechanism})"
+        )
 
 
 class PrivacyAccountant:
@@ -60,7 +62,7 @@ class PrivacyAccountant:
         self,
         total_epsilon_budget: float,
         total_delta_budget: float = 1e-5,
-        composition_type: str = "basic"
+        composition_type: str = "basic",
     ):
         """
         Initialize privacy accountant.
@@ -77,7 +79,9 @@ class PrivacyAccountant:
             ValueError: If budgets are invalid
         """
         if total_epsilon_budget <= 0:
-            raise ValueError(f"epsilon budget must be positive, got {total_epsilon_budget}")
+            raise ValueError(
+                f"epsilon budget must be positive, got {total_epsilon_budget}"
+            )
         if not (0 < total_delta_budget < 1):
             raise ValueError(f"delta budget must be in (0,1), got {total_delta_budget}")
 
@@ -98,7 +102,7 @@ class PrivacyAccountant:
         delta: float,
         operation: str,
         mechanism: str,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> bool:
         """
         Record a privacy-consuming operation.
@@ -138,7 +142,7 @@ class PrivacyAccountant:
             epsilon=epsilon,
             delta=delta,
             mechanism=mechanism,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
         self._spending_history.append(spending)
 
@@ -149,9 +153,7 @@ class PrivacyAccountant:
         return True
 
     def _compute_composition(
-        self,
-        new_epsilon: float,
-        new_delta: float
+        self, new_epsilon: float, new_delta: float
     ) -> Tuple[float, float]:
         """
         Compute total privacy cost using composition theorem.
@@ -181,9 +183,7 @@ class PrivacyAccountant:
             raise ValueError(f"Unknown composition type: {self.composition_type}")
 
     def _basic_composition(
-        self,
-        new_epsilon: float,
-        new_delta: float
+        self, new_epsilon: float, new_delta: float
     ) -> Tuple[float, float]:
         """
         Basic composition: ε_total = Σε_i, δ_total = Σδ_i.
@@ -195,9 +195,7 @@ class PrivacyAccountant:
         return (total_epsilon, total_delta)
 
     def _advanced_composition(
-        self,
-        new_epsilon: float,
-        new_delta: float
+        self, new_epsilon: float, new_delta: float
     ) -> Tuple[float, float]:
         """
         Advanced composition theorem.
@@ -215,9 +213,7 @@ class PrivacyAccountant:
         return self._basic_composition(new_epsilon, new_delta)
 
     def _moments_composition(
-        self,
-        new_epsilon: float,
-        new_delta: float
+        self, new_epsilon: float, new_delta: float
     ) -> Tuple[float, float]:
         """
         Moments accountant (Renyi DP composition).
@@ -257,8 +253,10 @@ class PrivacyAccountant:
             True if operation is within budget
         """
         new_epsilon, new_delta = self._compute_composition(epsilon, delta)
-        return (new_epsilon <= self.total_epsilon_budget and
-                new_delta <= self.total_delta_budget)
+        return (
+            new_epsilon <= self.total_epsilon_budget
+            and new_delta <= self.total_delta_budget
+        )
 
     def get_spending_history(self) -> List[PrivacySpending]:
         """Get history of all privacy-consuming operations."""
@@ -288,9 +286,11 @@ class PrivacyAccountant:
         }
 
     def __repr__(self) -> str:
-        return (f"PrivacyAccountant(spent: ε={self._epsilon_spent:.4f}/{self.total_epsilon_budget:.4f}, "
-                f"δ={self._delta_spent:.6f}/{self.total_delta_budget:.6f}, "
-                f"operations={len(self._spending_history)})")
+        return (
+            f"PrivacyAccountant(spent: ε={self._epsilon_spent:.4f}/{self.total_epsilon_budget:.4f}, "
+            f"δ={self._delta_spent:.6f}/{self.total_delta_budget:.6f}, "
+            f"operations={len(self._spending_history)})"
+        )
 
 
 # ============================================================================

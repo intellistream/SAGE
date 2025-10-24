@@ -69,7 +69,9 @@ def get_extension_status() -> dict:
         "sage_db": _SAGE_DB_AVAILABLE,
         "sage_flow": _SAGE_FLOW_AVAILABLE,
         "sage_tsdb": _SAGE_TSDB_AVAILABLE,
-        "total_available": sum([_SAGE_DB_AVAILABLE, _SAGE_FLOW_AVAILABLE, _SAGE_TSDB_AVAILABLE]),
+        "total_available": sum(
+            [_SAGE_DB_AVAILABLE, _SAGE_FLOW_AVAILABLE, _SAGE_TSDB_AVAILABLE]
+        ),
         "total_extensions": 3,
     }
 

@@ -174,7 +174,9 @@ def main():
 if __name__ == "__main__":
     # 检查环境变量
     if not os.getenv("TEMP_GENERATOR_API_KEY"):
-        console.print("⚠️  警告: 未设置 TEMP_GENERATOR_API_KEY 环境变量", style="bold yellow")
+        console.print(
+            "⚠️  警告: 未设置 TEMP_GENERATOR_API_KEY 环境变量", style="bold yellow"
+        )
         console.print("将尝试使用 .env 文件中的配置")
 
     main()

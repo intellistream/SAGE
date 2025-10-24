@@ -140,7 +140,7 @@ class OpenAIGenerator(MapOperator):
             "stream",
             "frequency_penalty",
             "n",
-            "logprobs"
+            "logprobs",
         ]
 
         # 从配置中提取参数并传递给 generate
@@ -176,7 +176,7 @@ class OpenAIGenerator(MapOperator):
             return {
                 "query": user_query if user_query is not None else "",
                 "generated": response,
-                "generate_time": generate_time
+                "generate_time": generate_time,
             }
 
     def __del__(self):
@@ -230,4 +230,7 @@ class HFGenerator(MapOperator):
             f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m "
         )
 
-        return (user_query if user_query is not None else "", response if isinstance(response, str) else str(response))
+        return (
+            user_query if user_query is not None else "",
+            response if isinstance(response, str) else str(response),
+        )

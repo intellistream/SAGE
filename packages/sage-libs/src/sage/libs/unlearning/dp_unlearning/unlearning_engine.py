@@ -38,10 +38,12 @@ class UnlearningResult:
     metadata: Dict
 
     def __repr__(self) -> str:
-        return (f"UnlearningResult(success={self.success}, "
-                f"unlearned={self.num_vectors_unlearned}, "
-                f"compensated={self.num_neighbors_compensated}, "
-                f"privacy_cost=(ε={self.privacy_cost[0]:.4f}, δ={self.privacy_cost[1]:.6f}))")
+        return (
+            f"UnlearningResult(success={self.success}, "
+            f"unlearned={self.num_vectors_unlearned}, "
+            f"compensated={self.num_neighbors_compensated}, "
+            f"privacy_cost=(ε={self.privacy_cost[0]:.4f}, δ={self.privacy_cost[1]:.6f}))"
+        )
 
 
 class UnlearningEngine:
@@ -74,7 +76,7 @@ class UnlearningEngine:
         total_budget_epsilon: float = 10.0,
         total_budget_delta: float = 1e-4,
         mechanism: Optional[BasePrivacyMechanism] = None,
-        enable_compensation: bool = True
+        enable_compensation: bool = True,
     ):
         """
         Initialize unlearning engine.
@@ -91,12 +93,14 @@ class UnlearningEngine:
         self.mechanism = mechanism or SimpleLaplaceMechanism(epsilon=epsilon)
         self.privacy_accountant = PrivacyAccountant(
             total_epsilon_budget=total_budget_epsilon,
-            total_delta_budget=total_budget_delta
+            total_delta_budget=total_budget_delta,
         )
 
         # Unlearning components
         self.vector_perturbation = VectorPerturbation(self.mechanism)
-        self.neighbor_compensation = NeighborCompensation() if enable_compensation else None
+        self.neighbor_compensation = (
+            NeighborCompensation() if enable_compensation else None
+        )
 
         # Configuration
         self.enable_compensation = enable_compensation
@@ -110,7 +114,7 @@ class UnlearningEngine:
         all_vectors: Optional[np.ndarray] = None,
         all_vector_ids: Optional[List[str]] = None,
         perturbation_strategy: str = "uniform",
-        return_compensated_neighbors: bool = False
+        return_compensated_neighbors: bool = False,
     ) -> UnlearningResult:
         """
         Unlearn specified vectors with differential privacy.
@@ -154,14 +158,13 @@ class UnlearningEngine:
                 privacy_cost=(0, 0),
                 metadata={
                     "error": "Insufficient privacy budget",
-                    "remaining_budget": remaining
-                }
+                    "remaining_budget": remaining,
+                },
             )
 
         # Step 2: Perturb vectors
         perturbed_vectors = self.vector_perturbation.perturb_batch_vectors(
-            vectors_to_forget,
-            strategy=perturbation_strategy
+            vectors_to_forget, strategy=perturbation_strategy
         )
 
         # Step 3: (Optional) Compensate neighbors
@@ -188,8 +191,8 @@ class UnlearningEngine:
                 "num_vectors": n_forget,
                 "perturbation_strategy": perturbation_strategy,
                 "compensation_enabled": self.enable_compensation,
-                "num_compensated": num_compensated
-            }
+                "num_compensated": num_compensated,
+            },
         )
 
         # Step 5: Prepare result
@@ -201,8 +204,8 @@ class UnlearningEngine:
             metadata={
                 "perturbation_strategy": perturbation_strategy,
                 "perturbed_vectors": perturbed_vectors,
-                "privacy_accountant_summary": self.privacy_accountant.summary()
-            }
+                "privacy_accountant_summary": self.privacy_accountant.summary(),
+            },
         )
 
         if return_compensated_neighbors:
@@ -217,7 +220,7 @@ class UnlearningEngine:
         all_vector_ids: List[str],
         similarity_threshold: float = 0.9,
         max_unlearn: int = 100,
-        **kwargs
+        **kwargs,
     ) -> UnlearningResult:
         """
         Unlearn vectors similar to a query vector.
@@ -255,7 +258,7 @@ class UnlearningEngine:
                 num_vectors_unlearned=0,
                 num_neighbors_compensated=0,
                 privacy_cost=(0, 0),
-                metadata={"message": "No vectors matched similarity threshold"}
+                metadata={"message": "No vectors matched similarity threshold"},
             )
 
         # Extract vectors to forget
@@ -268,17 +271,17 @@ class UnlearningEngine:
             vector_ids_to_forget=ids_to_forget,
             all_vectors=all_vectors,
             all_vector_ids=all_vector_ids,
-            **kwargs
+            **kwargs,
         )
 
     def _compute_similarities(
-        self,
-        query: np.ndarray,
-        vectors: np.ndarray
+        self, query: np.ndarray, vectors: np.ndarray
     ) -> np.ndarray:
         """Compute cosine similarities."""
         query_norm = query / (np.linalg.norm(query) + 1e-10)
-        vectors_norm = vectors / (np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10)
+        vectors_norm = vectors / (
+            np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10
+        )
         return np.dot(vectors_norm, query_norm)
 
     def get_privacy_status(self) -> Dict:
@@ -286,7 +289,7 @@ class UnlearningEngine:
         return {
             "accountant_summary": self.privacy_accountant.summary(),
             "remaining_budget": self.privacy_accountant.get_remaining_budget(),
-            "mechanism": str(self.mechanism)
+            "mechanism": str(self.mechanism),
         }
 
     def reset(self):

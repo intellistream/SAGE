@@ -18,13 +18,13 @@ Usage 3: MemoryService Integration
 """
 
 import os
-import numpy as np
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from sage.kernel.api.service.base_service import BaseService
-from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+import numpy as np
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.kernel.api.service.base_service import BaseService
 from sage.libs.unlearning import UnlearningEngine
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 
 
 class DPMemoryService(BaseService):
@@ -34,7 +34,9 @@ class DPMemoryService(BaseService):
     支持使用 DP 遗忘操作从 VDB 中安全删除数据。
     """
 
-    def __init__(self, data_dir: Optional[str] = None, epsilon: float = 1.0, delta: float = 1e-5):
+    def __init__(
+        self, data_dir: Optional[str] = None, epsilon: float = 1.0, delta: float = 1e-5
+    ):
         super().__init__()
 
         # 初始化内存管理器
@@ -50,19 +52,21 @@ class DPMemoryService(BaseService):
             epsilon=epsilon,
             delta=delta,
             total_budget_epsilon=100.0,
-            enable_compensation=True
+            enable_compensation=True,
         )
 
         self.logger.info(f"Initialized UnlearningEngine with ε={epsilon}, δ={delta}")
 
-    def create_collection(self, collection_name: str, config: Optional[Dict] = None) -> bool:
+    def create_collection(
+        self, collection_name: str, config: Optional[Dict] = None
+    ) -> bool:
         """创建 VDB collection"""
         try:
             if config is None:
                 config = {
                     "name": collection_name,
                     "backend_type": "VDB",
-                    "description": f"DP-enabled collection: {collection_name}"
+                    "description": f"DP-enabled collection: {collection_name}",
                 }
 
             collection = self.manager.create_collection(config)
@@ -77,7 +81,7 @@ class DPMemoryService(BaseService):
                 "embedding_model": "mockembedder",
                 "dim": 128,
                 "backend_type": "FAISS",
-                "description": "Global index for similarity search"
+                "description": "Global index for similarity search",
             }
             collection.create_index(index_config)
             collection.init_index("global_index")
@@ -94,7 +98,7 @@ class DPMemoryService(BaseService):
         collection_name: str,
         content: str,
         vector: np.ndarray,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         """
         存储记忆到 VDB collection
@@ -116,9 +120,7 @@ class DPMemoryService(BaseService):
 
             # 使用 insert 方法存储数据
             memory_id = collection.insert(
-                raw_data=content,
-                index_name="global_index",
-                metadata=metadata
+                raw_data=content, index_name="global_index", metadata=metadata
             )
 
             self.logger.debug(f"Stored memory: {memory_id}")
@@ -129,10 +131,7 @@ class DPMemoryService(BaseService):
             return None
 
     def retrieve_memories(
-        self,
-        collection_name: str,
-        query_text: str,
-        topk: int = 5
+        self, collection_name: str, query_text: str, topk: int = 5
     ) -> List[Dict[str, Any]]:
         """
         检索相似的记忆
@@ -155,7 +154,7 @@ class DPMemoryService(BaseService):
                 raw_data=query_text,
                 index_name="global_index",
                 topk=topk,
-                with_metadata=True
+                with_metadata=True,
             )
 
             return results
@@ -168,7 +167,7 @@ class DPMemoryService(BaseService):
         self,
         collection_name: str,
         memory_ids: List[str],
-        perturbation_strategy: str = "adaptive"
+        perturbation_strategy: str = "adaptive",
     ) -> Dict[str, Any]:
         """
         使用差分隐私遗忘指定的记忆
@@ -186,25 +185,22 @@ class DPMemoryService(BaseService):
             if collection is None:
                 self.logger.error(f"Collection not found: {collection_name}")
                 return {
-                    'success': False,
-                    'error': f"Collection not found: {collection_name}"
+                    "success": False,
+                    "error": f"Collection not found: {collection_name}",
                 }
 
             # 从 VDB index 获取要遗忘的向量
             index = collection.index_info.get("global_index", {}).get("index")
             if index is None:
                 self.logger.error(f"Index not found in collection: {collection_name}")
-                return {
-                    'success': False,
-                    'error': "Index not found"
-                }
+                return {"success": False, "error": "Index not found"}
 
             vectors_to_forget = []
             valid_ids = []
 
             for mem_id in memory_ids:
                 # 从 vector_store 获取向量
-                if hasattr(index, 'vector_store') and mem_id in index.vector_store:
+                if hasattr(index, "vector_store") and mem_id in index.vector_store:
                     vector = index.vector_store[mem_id]
                     vectors_to_forget.append(vector)
                     valid_ids.append(mem_id)
@@ -213,17 +209,17 @@ class DPMemoryService(BaseService):
 
             if not vectors_to_forget:
                 self.logger.warning("No vectors found to forget")
-                return {
-                    'success': False,
-                    'error': 'No vectors found'
-                }
+                return {"success": False, "error": "No vectors found"}
 
             # 获取所有向量用于补偿
             all_vectors = []
             all_ids = []
-            if hasattr(index, 'vector_store'):
+            if hasattr(index, "vector_store"):
                 for vid, vector in index.vector_store.items():
-                    if vid not in self.unlearning_engine.privacy_accountant.get_remaining_budget():
+                    if (
+                        vid
+                        not in self.unlearning_engine.privacy_accountant.get_remaining_budget()
+                    ):
                         all_vectors.append(vector)
                         all_ids.append(vid)
 
@@ -241,26 +237,23 @@ class DPMemoryService(BaseService):
                 vector_ids_to_forget=valid_ids,
                 all_vectors=all_vectors_array,
                 all_vector_ids=all_ids,
-                perturbation_strategy=perturbation_strategy
+                perturbation_strategy=perturbation_strategy,
             )
 
             if not result.success:
-                error_msg = result.metadata.get('error', 'Unknown error')
+                error_msg = result.metadata.get("error", "Unknown error")
                 self.logger.error(f"Unlearning failed: {error_msg}")
-                return {
-                    'success': False,
-                    'error': error_msg
-                }
+                return {"success": False, "error": error_msg}
 
             # 获取扰动后的向量
-            perturbed_vectors = result.metadata.get('perturbed_vectors', [])
+            perturbed_vectors = result.metadata.get("perturbed_vectors", [])
 
             # 更新 VDB 中的向量
             updated_count = 0
             for mem_id, perturbed_vec in zip(valid_ids, perturbed_vectors):
                 try:
                     # 更新向量
-                    if hasattr(index, 'update'):
+                    if hasattr(index, "update"):
                         index.update(mem_id, perturbed_vec)
                     else:
                         # 备选：删除后重新插入
@@ -277,28 +270,27 @@ class DPMemoryService(BaseService):
 
             # 返回结果
             status = self.unlearning_engine.get_privacy_status()
-            remaining = status['remaining_budget']
+            remaining = status["remaining_budget"]
 
             return {
-                'success': True,
-                'num_forgotten': updated_count,
-                'privacy_cost': {
-                    'epsilon': result.privacy_cost[0],
-                    'delta': result.privacy_cost[1]
+                "success": True,
+                "num_forgotten": updated_count,
+                "privacy_cost": {
+                    "epsilon": result.privacy_cost[0],
+                    "delta": result.privacy_cost[1],
                 },
-                'remaining_budget': {
-                    'epsilon': remaining['epsilon_remaining'],
-                    'delta': remaining['delta_remaining']
+                "remaining_budget": {
+                    "epsilon": remaining["epsilon_remaining"],
+                    "delta": remaining["delta_remaining"],
                 },
-                'budget_utilization': status['accountant_summary']['budget_utilization']
+                "budget_utilization": status["accountant_summary"][
+                    "budget_utilization"
+                ],
             }
 
         except Exception as e:
             self.logger.error(f"Error in forget_with_dp: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     def get_privacy_status(self) -> Dict[str, Any]:
         """获取当前隐私预算状态"""
@@ -307,9 +299,9 @@ class DPMemoryService(BaseService):
 
 def example_basic_dp_memory():
     """示例1：基础 DP Memory Service"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Example 1: Basic DP Memory Service")
-    print("="*70)
+    print("=" * 70)
 
     # 创建服务
     service = DPMemoryService(epsilon=1.0, delta=1e-5)
@@ -324,13 +316,13 @@ def example_basic_dp_memory():
         content = f"This is document {i} with sensitive information"
         vector = np.random.randn(128).astype(np.float32)
         vector = vector / (np.linalg.norm(vector) + 1e-10)
-        metadata = {'doc_index': i, 'category': 'sensitive' if i % 2 == 0 else 'normal'}
+        metadata = {"doc_index": i, "category": "sensitive" if i % 2 == 0 else "normal"}
 
         mem_id = service.store_memory(
             collection_name="documents",
             content=content,
             vector=vector,
-            metadata=metadata
+            metadata=metadata,
         )
         if mem_id:
             memory_ids.append(mem_id)
@@ -348,11 +340,11 @@ def example_basic_dp_memory():
         result = service.forget_with_dp(
             collection_name="documents",
             memory_ids=forget_ids,
-            perturbation_strategy="selective"
+            perturbation_strategy="selective",
         )
 
         print(f"  Success: {result['success']}")
-        if result['success']:
+        if result["success"]:
             print(f"  Forgotten: {result['num_forgotten']} documents")
             print(f"  Privacy cost: ε={result['privacy_cost']['epsilon']:.4f}")
             print(f"  Remaining budget: ε={result['remaining_budget']['epsilon']:.4f}")
@@ -362,9 +354,9 @@ def example_basic_dp_memory():
 
 def example_privacy_budget_management():
     """示例2：隐私预算管理"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Example 2: Privacy Budget Management")
-    print("="*70)
+    print("=" * 70)
 
     service = DPMemoryService(epsilon=0.5, delta=1e-5)
     service.create_collection("sensitive_data")
@@ -385,19 +377,19 @@ def example_privacy_budget_management():
     forget_count = 0
     for batch_idx in range(3):
         # 每批遗忘 2 个
-        batch_ids = memory_ids[batch_idx*2:(batch_idx+1)*2]
+        batch_ids = memory_ids[batch_idx * 2 : (batch_idx + 1) * 2]
         if not batch_ids:
             break
 
         result = service.forget_with_dp(
             collection_name="sensitive_data",
             memory_ids=batch_ids,
-            perturbation_strategy="uniform"
+            perturbation_strategy="uniform",
         )
 
         forget_count += 1
 
-        if result['success']:
+        if result["success"]:
             print(f"  Batch {forget_count}: Success")
             print(f"    Forgotten: {result['num_forgotten']}")
             print(f"    Remaining ε: {result['remaining_budget']['epsilon']:.4f}")
@@ -410,9 +402,9 @@ def example_privacy_budget_management():
 
 def example_multi_collection():
     """示例3：多 Collection 管理"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Example 3: Multi-Collection Management")
-    print("="*70)
+    print("=" * 70)
 
     service = DPMemoryService(epsilon=1.0)
 
@@ -445,9 +437,9 @@ def example_multi_collection():
 
 def main():
     """运行所有示例"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("SAGE Unlearning Library - MemoryService Integration")
-    print("="*70)
+    print("=" * 70)
     print("\n这些示例展示了如何将 unlearning 集成到 MemoryService。")
     print("适合：RAG 系统的隐私遗忘、VDB 集成、数据生命周期管理\n")
 
@@ -459,9 +451,9 @@ def main():
     example_privacy_budget_management()
     example_multi_collection()
 
-    print("="*70)
+    print("=" * 70)
     print("✅ All examples completed successfully!")
-    print("="*70)
+    print("=" * 70)
     print("\n💡 Next steps:")
     print("  1. Integrate with real embedding models")
     print("  2. Implement custom forgetting policies")

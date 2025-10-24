@@ -11,7 +11,9 @@ import sys
 from pathlib import Path
 
 # 获取医疗诊断目录路径（用于访问数据和配置文件）
-medical_diagnosis_dir = Path(__file__).parent.parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+medical_diagnosis_dir = (
+    Path(__file__).parent.parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+)
 
 # 导入医疗诊断模块
 from sage.apps.medical_diagnosis.agents.diagnostic_agent import DiagnosticAgent
@@ -33,7 +35,9 @@ def test_single_case():
     test_index_path = data_dir / "test_index.json"
 
     if not test_index_path.exists():
-        pytest.skip(f"Test data not available at {test_index_path}. Run scripts/prepare_data.py first to generate test data.")
+        pytest.skip(
+            f"Test data not available at {test_index_path}. Run scripts/prepare_data.py first to generate test data."
+        )
 
     with open(test_index_path, "r", encoding="utf-8") as f:
         test_cases = json.load(f)
@@ -133,7 +137,9 @@ def test_batch_mode():
     test_index_path = data_dir / "test_index.json"
 
     if not test_index_path.exists():
-        pytest.skip(f"Test data not available at {test_index_path}. Run scripts/prepare_data.py first to generate test data.")
+        pytest.skip(
+            f"Test data not available at {test_index_path}. Run scripts/prepare_data.py first to generate test data."
+        )
 
     with open(test_index_path, "r", encoding="utf-8") as f:
         test_cases = json.load(f)

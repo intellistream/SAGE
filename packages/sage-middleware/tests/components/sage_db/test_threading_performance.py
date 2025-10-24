@@ -29,10 +29,13 @@ if TYPE_CHECKING:
 
 try:
     from python.sage_db import DatabaseConfig, DistanceMetric, IndexType, SageDB
+
     SAGE_DB_AVAILABLE = True
 except ImportError:
     SAGE_DB_AVAILABLE = False
-    pytestmark = pytest.mark.skip(reason="SageDB C++ extension not built. Run ./build.sh to enable this test.")
+    pytestmark = pytest.mark.skip(
+        reason="SageDB C++ extension not built. Run ./build.sh to enable this test."
+    )
 
 
 def prepare_test_database(dimension: int = 768, num_vectors: int = 10000):

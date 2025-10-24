@@ -10,8 +10,15 @@
 """
 
 import pytest
-from sage.studio.models import VisualNode, VisualConnection, VisualPipeline  # type: ignore[import-not-found]
-from sage.studio.services import PipelineBuilder, get_pipeline_builder  # type: ignore[import-not-found]
+from sage.studio.models import (  # type: ignore[import-not-found]
+    VisualConnection,
+    VisualNode,
+    VisualPipeline,
+)
+from sage.studio.services import (  # type: ignore[import-not-found]
+    PipelineBuilder,
+    get_pipeline_builder,
+)
 
 
 class TestE2ESimplePipeline:
@@ -25,14 +32,14 @@ class TestE2ESimplePipeline:
             type="generator",
             label="OpenAI Generator",
             config={"model": "gpt-3.5-turbo", "temperature": 0.7},
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         visual_pipeline = VisualPipeline(
             id="simple_gen",
             name="Simple Generator Pipeline",
             nodes=[generator],
-            connections=[]
+            connections=[],
         )
 
         # 构建并验证
@@ -50,7 +57,7 @@ class TestE2ESimplePipeline:
             type="retriever",
             label="Chroma Retriever",
             config={"collection_name": "docs", "top_k": 3},
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         generator = VisualNode(
@@ -58,7 +65,7 @@ class TestE2ESimplePipeline:
             type="generator",
             label="Generator",
             config={"model": "gpt-4"},
-            position={"x": 300, "y": 100}
+            position={"x": 300, "y": 100},
         )
 
         connection = VisualConnection(
@@ -67,14 +74,14 @@ class TestE2ESimplePipeline:
             source_port="output",
             target_node_id="gen1",
             target_port="input",
-            label="retrieval_results"
+            label="retrieval_results",
         )
 
         visual_pipeline = VisualPipeline(
             id="ret_gen",
             name="Retriever-Generator Pipeline",
             nodes=[retriever, generator],
-            connections=[connection]
+            connections=[connection],
         )
 
         builder = get_pipeline_builder()
@@ -98,20 +105,17 @@ class TestE2EComplexRAGPipeline:
             config={
                 "collection_name": "knowledge_base",
                 "top_k": 10,
-                "embedding_model": "text-embedding-ada-002"
+                "embedding_model": "text-embedding-ada-002",
             },
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         reranker = VisualNode(
             id="reranker1",
             type="bge_reranker",
             label="BGE Reranker",
-            config={
-                "model": "BAAI/bge-reranker-large",
-                "top_k": 5
-            },
-            position={"x": 300, "y": 100}
+            config={"model": "BAAI/bge-reranker-large", "top_k": 5},
+            position={"x": 300, "y": 100},
         )
 
         promptor = VisualNode(
@@ -121,19 +125,15 @@ class TestE2EComplexRAGPipeline:
             config={
                 "template": "Based on the following context:\n{context}\n\nAnswer the question: {question}"
             },
-            position={"x": 500, "y": 100}
+            position={"x": 500, "y": 100},
         )
 
         generator = VisualNode(
             id="generator1",
             type="openai_generator",
             label="OpenAI Generator",
-            config={
-                "model": "gpt-4-turbo",
-                "temperature": 0.3,
-                "max_tokens": 500
-            },
-            position={"x": 700, "y": 100}
+            config={"model": "gpt-4-turbo", "temperature": 0.3, "max_tokens": 500},
+            position={"x": 700, "y": 100},
         )
 
         connections = [
@@ -143,7 +143,7 @@ class TestE2EComplexRAGPipeline:
                 source_port="output",
                 target_node_id="reranker1",
                 target_port="input",
-                label="raw_results"
+                label="raw_results",
             ),
             VisualConnection(
                 id="c2",
@@ -151,7 +151,7 @@ class TestE2EComplexRAGPipeline:
                 source_port="output",
                 target_node_id="promptor1",
                 target_port="context",
-                label="reranked_results"
+                label="reranked_results",
             ),
             VisualConnection(
                 id="c3",
@@ -159,15 +159,15 @@ class TestE2EComplexRAGPipeline:
                 source_port="output",
                 target_node_id="generator1",
                 target_port="input",
-                label="formatted_prompt"
-            )
+                label="formatted_prompt",
+            ),
         ]
 
         visual_pipeline = VisualPipeline(
             id="full_rag",
             name="Full RAG with Reranker",
             nodes=[retriever, reranker, promptor, generator],
-            connections=connections
+            connections=connections,
         )
 
         # 构建并验证
@@ -186,7 +186,7 @@ class TestE2EComplexRAGPipeline:
             type="chroma_retriever",
             label="Chroma DB",
             config={"collection_name": "chroma_docs", "top_k": 5},
-            position={"x": 100, "y": 50}
+            position={"x": 100, "y": 50},
         )
 
         milvus_retriever = VisualNode(
@@ -194,7 +194,7 @@ class TestE2EComplexRAGPipeline:
             type="milvus_dense_retriever",  # 使用正确的类型名称
             label="Milvus DB",
             config={"collection_name": "milvus_docs", "top_k": 5},
-            position={"x": 100, "y": 150}
+            position={"x": 100, "y": 150},
         )
 
         # 融合节点（使用 map operator 进行融合）
@@ -203,7 +203,7 @@ class TestE2EComplexRAGPipeline:
             type="map",  # 使用实际可用的类型
             label="Result Fusion",
             config={"strategy": "reciprocal_rank_fusion"},
-            position={"x": 300, "y": 100}
+            position={"x": 300, "y": 100},
         )
 
         generator = VisualNode(
@@ -211,23 +211,38 @@ class TestE2EComplexRAGPipeline:
             type="generator",
             label="Generator",
             config={"model": "gpt-4"},
-            position={"x": 500, "y": 100}
+            position={"x": 500, "y": 100},
         )
 
         connections = [
-            VisualConnection(id="c1", source_node_id="ret_chroma", source_port="output",
-                           target_node_id="fusion1", target_port="input1"),
-            VisualConnection(id="c2", source_node_id="ret_milvus", source_port="output",
-                           target_node_id="fusion1", target_port="input2"),
-            VisualConnection(id="c3", source_node_id="fusion1", source_port="output",
-                           target_node_id="gen1", target_port="input")
+            VisualConnection(
+                id="c1",
+                source_node_id="ret_chroma",
+                source_port="output",
+                target_node_id="fusion1",
+                target_port="input1",
+            ),
+            VisualConnection(
+                id="c2",
+                source_node_id="ret_milvus",
+                source_port="output",
+                target_node_id="fusion1",
+                target_port="input2",
+            ),
+            VisualConnection(
+                id="c3",
+                source_node_id="fusion1",
+                source_port="output",
+                target_node_id="gen1",
+                target_port="input",
+            ),
         ]
 
         visual_pipeline = VisualPipeline(
             id="multi_ret",
             name="Multi-Retriever Fusion Pipeline",
             nodes=[chroma_retriever, milvus_retriever, fusion, generator],
-            connections=connections
+            connections=connections,
         )
 
         builder = get_pipeline_builder()
@@ -248,7 +263,7 @@ class TestE2ESourceSinkIntegration:
             type="character_splitter",
             label="Text Chunker",
             config={"chunk_size": 500, "overlap": 50},
-            position={"x": 300, "y": 100}
+            position={"x": 300, "y": 100},
         )
 
         generator = VisualNode(
@@ -256,7 +271,7 @@ class TestE2ESourceSinkIntegration:
             type="generator",
             label="Summarizer",
             config={"model": "gpt-3.5-turbo"},
-            position={"x": 500, "y": 100}
+            position={"x": 500, "y": 100},
         )
 
         visual_pipeline = VisualPipeline(
@@ -264,9 +279,14 @@ class TestE2ESourceSinkIntegration:
             name="File Processing Pipeline",
             nodes=[chunker, generator],
             connections=[
-                VisualConnection(id="c1", source_node_id="chunker1", source_port="output",
-                               target_node_id="gen1", target_port="input")
-            ]
+                VisualConnection(
+                    id="c1",
+                    source_node_id="chunker1",
+                    source_port="output",
+                    target_node_id="gen1",
+                    target_port="input",
+                )
+            ],
         )
 
         builder = get_pipeline_builder()
@@ -281,14 +301,14 @@ class TestE2ESourceSinkIntegration:
             type="generator",
             label="Text Generator",
             config={"model": "gpt-4"},
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         visual_pipeline = VisualPipeline(
             id="mem_sink",
             name="Memory Sink Pipeline",
             nodes=[generator],
-            connections=[]
+            connections=[],
         )
 
         builder = get_pipeline_builder()
@@ -306,11 +326,8 @@ class TestE2EChunkerEvaluatorPipeline:
             id="chunker1",
             type="character_splitter",  # 使用实际可用的类型
             label="Character Splitter",
-            config={
-                "chunk_size": 1000,
-                "overlap": 100
-            },
-            position={"x": 100, "y": 100}
+            config={"chunk_size": 1000, "overlap": 100},
+            position={"x": 100, "y": 100},
         )
 
         retriever = VisualNode(
@@ -318,7 +335,7 @@ class TestE2EChunkerEvaluatorPipeline:
             type="retriever",
             label="Vector Retriever",
             config={"top_k": 3},
-            position={"x": 300, "y": 100}
+            position={"x": 300, "y": 100},
         )
 
         generator = VisualNode(
@@ -326,7 +343,7 @@ class TestE2EChunkerEvaluatorPipeline:
             type="generator",
             label="Answer Generator",
             config={"model": "gpt-4"},
-            position={"x": 500, "y": 100}
+            position={"x": 500, "y": 100},
         )
 
         evaluator = VisualNode(
@@ -334,23 +351,38 @@ class TestE2EChunkerEvaluatorPipeline:
             type="accuracy_evaluate",  # 使用实际可用的类型
             label="Accuracy Evaluator",
             config={"threshold": 0.8},
-            position={"x": 700, "y": 100}
+            position={"x": 700, "y": 100},
         )
 
         connections = [
-            VisualConnection(id="c1", source_node_id="chunker1", source_port="output",
-                           target_node_id="ret1", target_port="input"),
-            VisualConnection(id="c2", source_node_id="ret1", source_port="output",
-                           target_node_id="gen1", target_port="input"),
-            VisualConnection(id="c3", source_node_id="gen1", source_port="output",
-                           target_node_id="eval1", target_port="input")
+            VisualConnection(
+                id="c1",
+                source_node_id="chunker1",
+                source_port="output",
+                target_node_id="ret1",
+                target_port="input",
+            ),
+            VisualConnection(
+                id="c2",
+                source_node_id="ret1",
+                source_port="output",
+                target_node_id="gen1",
+                target_port="input",
+            ),
+            VisualConnection(
+                id="c3",
+                source_node_id="gen1",
+                source_port="output",
+                target_node_id="eval1",
+                target_port="input",
+            ),
         ]
 
         visual_pipeline = VisualPipeline(
             id="chunk_eval",
             name="Chunking with Evaluation",
             nodes=[chunker, retriever, generator, evaluator],
-            connections=connections
+            connections=connections,
         )
 
         builder = get_pipeline_builder()
@@ -374,15 +406,15 @@ class TestE2EFromJSON:
                     "type": "retriever",
                     "label": "Retriever",
                     "config": {"top_k": 5},
-                    "position": {"x": 100, "y": 100}
+                    "position": {"x": 100, "y": 100},
                 },
                 {
                     "id": "node2",
                     "type": "generator",
                     "label": "Generator",
                     "config": {"model": "gpt-3.5-turbo"},
-                    "position": {"x": 300, "y": 100}
-                }
+                    "position": {"x": 300, "y": 100},
+                },
             ],
             "connections": [
                 {
@@ -390,9 +422,9 @@ class TestE2EFromJSON:
                     "source": "node1",  # from_dict 期望 'source' 而不是 'source_node_id'
                     "sourcePort": "output",
                     "target": "node2",  # from_dict 期望 'target' 而不是 'target_node_id'
-                    "targetPort": "input"
+                    "targetPort": "input",
                 }
-            ]
+            ],
         }
 
         # 从字典创建 VisualPipeline (使用 dataclass 的 from_dict 方法)
@@ -416,24 +448,43 @@ class TestE2EFromJSON:
             description="A complex RAG pipeline with multiple stages",
             nodes=[
                 VisualNode(
-                    id="n1", type="retriever", label="Retriever",
-                    config={"top_k": 5}, position={"x": 100, "y": 100}
+                    id="n1",
+                    type="retriever",
+                    label="Retriever",
+                    config={"top_k": 5},
+                    position={"x": 100, "y": 100},
                 ),
                 VisualNode(
-                    id="n2", type="reranker", label="Reranker",
-                    config={"model": "bge-reranker"}, position={"x": 300, "y": 100}
+                    id="n2",
+                    type="reranker",
+                    label="Reranker",
+                    config={"model": "bge-reranker"},
+                    position={"x": 300, "y": 100},
                 ),
                 VisualNode(
-                    id="n3", type="generator", label="Generator",
-                    config={"model": "gpt-4"}, position={"x": 500, "y": 100}
-                )
+                    id="n3",
+                    type="generator",
+                    label="Generator",
+                    config={"model": "gpt-4"},
+                    position={"x": 500, "y": 100},
+                ),
             ],
             connections=[
-                VisualConnection(id="c1", source_node_id="n1", source_port="output",
-                               target_node_id="n2", target_port="input"),
-                VisualConnection(id="c2", source_node_id="n2", source_port="output",
-                               target_node_id="n3", target_port="input")
-            ]
+                VisualConnection(
+                    id="c1",
+                    source_node_id="n1",
+                    source_port="output",
+                    target_node_id="n2",
+                    target_port="input",
+                ),
+                VisualConnection(
+                    id="c2",
+                    source_node_id="n2",
+                    source_port="output",
+                    target_node_id="n3",
+                    target_port="input",
+                ),
+            ],
         )
 
         # 序列化为字典
@@ -464,14 +515,11 @@ class TestE2EErrorHandling:
             type="non_existent_operator",
             label="Unknown",
             config={},
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         pipeline = VisualPipeline(
-            id="error_test",
-            name="Error Test",
-            nodes=[node],
-            connections=[]
+            id="error_test", name="Error Test", nodes=[node], connections=[]
         )
 
         builder = get_pipeline_builder()
@@ -489,10 +537,7 @@ class TestE2EErrorHandling:
     def test_empty_pipeline(self):
         """测试空流水线 - 应该抛出验证错误"""
         pipeline = VisualPipeline(
-            id="empty",
-            name="Empty Pipeline",
-            nodes=[],
-            connections=[]
+            id="empty", name="Empty Pipeline", nodes=[], connections=[]
         )
 
         builder = get_pipeline_builder()

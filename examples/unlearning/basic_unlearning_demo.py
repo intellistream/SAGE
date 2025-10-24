@@ -19,6 +19,7 @@ import numpy as np
 from sage.libs.unlearning import UnlearningEngine
 from sage.libs.unlearning.evaluation import UnlearningMetrics
 
+
 def generate_synthetic_vectors(n_vectors: int = 100, dim: int = 128) -> tuple:
     """
     Generate synthetic embedding vectors for testing.
@@ -37,9 +38,9 @@ def generate_synthetic_vectors(n_vectors: int = 100, dim: int = 128) -> tuple:
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("SAGE Unlearning Library - Basic Demo")
-    print("="*70)
+    print("=" * 70)
     print()
 
     # Step 1: Generate synthetic data
@@ -60,10 +61,10 @@ def main():
     # Step 3: Initialize Unlearning Engine
     print("Step 3: Initializing Unlearning Engine...")
     engine = UnlearningEngine(
-        epsilon=1.0,              # Privacy parameter
-        delta=1e-5,               # Failure probability
-        total_budget_epsilon=10.0, # Total privacy budget
-        enable_compensation=True   # Enable neighbor compensation
+        epsilon=1.0,  # Privacy parameter
+        delta=1e-5,  # Failure probability
+        total_budget_epsilon=10.0,  # Total privacy budget
+        enable_compensation=True,  # Enable neighbor compensation
     )
     print(f"  Engine initialized: {engine.mechanism}")
     print(f"  Privacy budget: ε={engine.privacy_accountant.total_epsilon_budget}")
@@ -78,11 +79,13 @@ def main():
         vector_ids_to_forget=ids_to_forget,
         all_vectors=all_vectors,
         all_vector_ids=all_ids,
-        perturbation_strategy="uniform"
+        perturbation_strategy="uniform",
     )
 
     print(f"\n  Result: {result}")
-    print(f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}")
+    print(
+        f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}"
+    )
     print(f"  Vectors unlearned: {result.num_vectors_unlearned}")
     print(f"  Neighbors compensated: {result.num_neighbors_compensated}")
     print()
@@ -90,9 +93,13 @@ def main():
     # Step 5: Check privacy budget
     print("Step 5: Checking remaining privacy budget...")
     status = engine.get_privacy_status()
-    remaining = status['remaining_budget']
-    print(f"  Remaining: ε={remaining['epsilon_remaining']:.4f}, δ={remaining['delta_remaining']:.6f}")
-    print(f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}")
+    remaining = status["remaining_budget"]
+    print(
+        f"  Remaining: ε={remaining['epsilon_remaining']:.4f}, δ={remaining['delta_remaining']:.6f}"
+    )
+    print(
+        f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}"
+    )
     print()
 
     # Step 6: Try different strategies
@@ -106,30 +113,36 @@ def main():
         test_result = test_engine.unlearn_vectors(
             vectors_to_forget=vectors_to_forget[:2],  # Use fewer vectors for comparison
             vector_ids_to_forget=ids_to_forget[:2],
-            perturbation_strategy=strategy
+            perturbation_strategy=strategy,
         )
 
-        perturbed = test_result.metadata['perturbed_vectors']
+        perturbed = test_result.metadata["perturbed_vectors"]
         original = vectors_to_forget[:2]
 
         # Measure impact
         l2_dist = np.mean([np.linalg.norm(o - p) for o, p in zip(original, perturbed)])
-        cos_sim = np.mean([
-            np.dot(o, p) / (np.linalg.norm(o) * np.linalg.norm(p))
-            for o, p in zip(original, perturbed)
-        ])
+        cos_sim = np.mean(
+            [
+                np.dot(o, p) / (np.linalg.norm(o) * np.linalg.norm(p))
+                for o, p in zip(original, perturbed)
+            ]
+        )
 
         print(f"  {strategy:12s}: L2={l2_dist:.4f}, CosSim={cos_sim:.4f}")
 
     print()
-    print("="*70)
+    print("=" * 70)
     print("Demo completed successfully!")
-    print("="*70)
+    print("=" * 70)
     print()
     print("Next steps for students:")
     print("  1. Implement new privacy mechanisms in algorithms/")
-    print("  2. Design better perturbation strategies in dp_unlearning/vector_perturbation.py")
-    print("  3. Enhance neighbor compensation in dp_unlearning/neighbor_compensation.py")
+    print(
+        "  2. Design better perturbation strategies in dp_unlearning/vector_perturbation.py"
+    )
+    print(
+        "  3. Enhance neighbor compensation in dp_unlearning/neighbor_compensation.py"
+    )
     print("  4. Add comprehensive evaluation metrics in evaluation/metrics.py")
     print()
 

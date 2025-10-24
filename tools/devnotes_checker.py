@@ -143,9 +143,7 @@ class DevNotesChecker:
                     break
 
         # 检查必需字段
-        missing_fields = [
-            field for field in REQUIRED_METADATA if field not in metadata
-        ]
+        missing_fields = [field for field in REQUIRED_METADATA if field not in metadata]
         if missing_fields:
             self.errors.append(
                 f"❌ {rel_path}: 缺少必需的元数据字段: {', '.join(missing_fields)}\n"
@@ -169,9 +167,7 @@ class DevNotesChecker:
             try:
                 doc_date = datetime.strptime(date_str, "%Y-%m-%d")
                 if doc_date > datetime.now():
-                    self.warnings.append(
-                        f"⚠️  {rel_path}: 日期是未来日期 '{date_str}'"
-                    )
+                    self.warnings.append(f"⚠️  {rel_path}: 日期是未来日期 '{date_str}'")
             except ValueError:
                 self.errors.append(f"❌ {rel_path}: 无效的日期 '{date_str}'")
                 return False
@@ -186,9 +182,7 @@ class DevNotesChecker:
 
         # 检查是否存在根目录下的文件（除了特殊文件）
         root_files = [
-            f
-            for f in self.devnotes_dir.glob("*.md")
-            if f.name not in SPECIAL_FILES
+            f for f in self.devnotes_dir.glob("*.md") if f.name not in SPECIAL_FILES
         ]
         if root_files:
             self.errors.append(
@@ -340,7 +334,8 @@ def main():
   python devnotes_checker.py --all --strict
 
 允许的分类目录:
-""" + "\n".join(f"  {k}: {v}" for k, v in ALLOWED_CATEGORIES.items()),
+"""
+        + "\n".join(f"  {k}: {v}" for k, v in ALLOWED_CATEGORIES.items()),
     )
 
     parser.add_argument(

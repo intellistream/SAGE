@@ -21,11 +21,12 @@ NodeSelector - 资源感知的节点选择器
 """
 
 import time
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import ray
+
     RAY_AVAILABLE = True
 except ImportError:
     RAY_AVAILABLE = False
@@ -34,6 +35,7 @@ except ImportError:
 @dataclass
 class NodeResources:
     """节点资源信息"""
+
     node_id: str
     hostname: str
     address: str
@@ -59,16 +61,13 @@ class NodeResources:
     alive: bool = True
 
     def can_fit(
-        self,
-        cpu_required: float = 0,
-        gpu_required: float = 0,
-        memory_required: int = 0
+        self, cpu_required: float = 0, gpu_required: float = 0, memory_required: int = 0
     ) -> bool:
         """检查节点是否能容纳任务"""
         return (
-            self.available_cpu >= cpu_required and
-            self.available_gpu >= gpu_required and
-            self.available_memory >= memory_required
+            self.available_cpu >= cpu_required
+            and self.available_gpu >= gpu_required
+            and self.available_memory >= memory_required
         )
 
     def compute_score(
@@ -76,7 +75,7 @@ class NodeResources:
         strategy: str = "balanced",
         cpu_weight: float = 0.4,
         gpu_weight: float = 0.4,
-        memory_weight: float = 0.2
+        memory_weight: float = 0.2,
     ) -> float:
         """
         计算节点得分（越低越好）
@@ -96,16 +95,16 @@ class NodeResources:
         if strategy == "balanced":
             # 负载均衡：综合使用率越低越好
             return (
-                self.cpu_usage * cpu_weight +
-                self.gpu_usage * gpu_weight +
-                self.memory_usage * memory_weight
+                self.cpu_usage * cpu_weight
+                + self.gpu_usage * gpu_weight
+                + self.memory_usage * memory_weight
             )
         elif strategy == "pack":
             # 紧凑放置：使用率越高越好（但要能容纳）
             return -(
-                self.cpu_usage * cpu_weight +
-                self.gpu_usage * gpu_weight +
-                self.memory_usage * memory_weight
+                self.cpu_usage * cpu_weight
+                + self.gpu_usage * gpu_weight
+                + self.memory_usage * memory_weight
             )
         elif strategy == "spread":
             # 分散放置：任务数越少越好
@@ -181,7 +180,9 @@ class NodeSelector:
                 # 计算使用率
                 cpu_usage = 1.0 - (available_cpu / total_cpu) if total_cpu > 0 else 0.0
                 gpu_usage = 1.0 - (available_gpu / total_gpu) if total_gpu > 0 else 0.0
-                memory_usage = 1.0 - (available_memory / total_memory) if total_memory > 0 else 0.0
+                memory_usage = (
+                    1.0 - (available_memory / total_memory) if total_memory > 0 else 0.0
+                )
 
                 # 限制范围
                 cpu_usage = max(0.0, min(1.0, cpu_usage))
@@ -191,7 +192,13 @@ class NodeSelector:
                 # 提取自定义资源
                 custom_resources = {}
                 for key, value in resources.items():
-                    if key not in ["CPU", "GPU", "memory", "object_store_memory", "node"]:
+                    if key not in [
+                        "CPU",
+                        "GPU",
+                        "memory",
+                        "object_store_memory",
+                        "node",
+                    ]:
                         custom_resources[key] = value
 
                 # 获取任务数
@@ -213,7 +220,7 @@ class NodeSelector:
                     gpu_usage=gpu_usage,
                     memory_usage=memory_usage,
                     task_count=task_count,
-                    alive=True
+                    alive=True,
                 )
 
                 new_cache[node_id] = node_res
@@ -247,7 +254,7 @@ class NodeSelector:
         memory_required: int = 0,
         custom_resources: Optional[Dict[str, float]] = None,
         strategy: str = "balanced",
-        exclude_nodes: Optional[List[str]] = None
+        exclude_nodes: Optional[List[str]] = None,
     ) -> Optional[str]:
         """
         根据资源需求和调度策略选择最优节点
@@ -301,8 +308,7 @@ class NodeSelector:
 
         # 根据策略计算得分并选择最优节点
         scored_nodes = [
-            (node, node.compute_score(strategy))
-            for node in candidate_nodes
+            (node, node.compute_score(strategy)) for node in candidate_nodes
         ]
 
         # 按得分排序（越低越好）
@@ -341,10 +347,7 @@ class NodeSelector:
         return self.select_best_node(strategy="spread")
 
     def select_pack_node(
-        self,
-        cpu_required: float = 0,
-        gpu_required: float = 0,
-        memory_required: int = 0
+        self, cpu_required: float = 0, gpu_required: float = 0, memory_required: int = 0
     ) -> Optional[str]:
         """
         选择使用率最高但能容纳任务的节点（紧凑放置，快捷方法）
@@ -361,7 +364,7 @@ class NodeSelector:
             cpu_required=cpu_required,
             gpu_required=gpu_required,
             memory_required=memory_required,
-            strategy="pack"
+            strategy="pack",
         )
 
     def track_task_placement(self, task_name: str, node_id: str) -> None:
@@ -390,7 +393,9 @@ class NodeSelector:
 
         node_id = self.task_node_map.pop(task_name, None)
         if node_id:
-            self.node_task_count[node_id] = max(0, self.node_task_count.get(node_id, 0) - 1)
+            self.node_task_count[node_id] = max(
+                0, self.node_task_count.get(node_id, 0) - 1
+            )
 
     def get_node_task_count(self, node_id: str) -> int:
         """获取节点上的任务数"""
@@ -417,7 +422,7 @@ class NodeSelector:
                 "avg_cpu_usage": 0,
                 "avg_gpu_usage": 0,
                 "avg_memory_usage": 0,
-                "total_tasks": 0
+                "total_tasks": 0,
             }
 
         total_cpu = sum(n.total_cpu for n in nodes)
@@ -453,10 +458,10 @@ class NodeSelector:
                     "cpu_usage": n.cpu_usage,
                     "gpu_usage": n.gpu_usage,
                     "memory_usage": n.memory_usage,
-                    "task_count": n.task_count
+                    "task_count": n.task_count,
                 }
                 for n in nodes
-            ]
+            ],
         }
 
 

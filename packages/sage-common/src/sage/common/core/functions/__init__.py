@@ -17,24 +17,24 @@ Dependencies: 无
 
 示例:
     from sage.common.core.functions import MapFunction
-    
+
     class MyMapper(MapFunction):
         def map(self, value):
             return value * 2
 """
 
 from .base_function import BaseFunction
-from .map_function import MapFunction
+from .batch_function import BatchFunction
+from .comap_function import BaseCoMapFunction
 from .filter_function import FilterFunction
 from .flatmap_function import FlatMapFunction
+from .future_function import FutureFunction
+from .join_function import BaseJoinFunction
+from .keyby_function import KeyByFunction
+from .lambda_function import LambdaMapFunction, wrap_lambda
+from .map_function import MapFunction
 from .sink_function import SinkFunction
 from .source_function import SourceFunction
-from .batch_function import BatchFunction
-from .keyby_function import KeyByFunction
-from .join_function import BaseJoinFunction
-from .comap_function import BaseCoMapFunction
-from .lambda_function import LambdaMapFunction, wrap_lambda
-from .future_function import FutureFunction
 
 # Note: flatmap_collector exports Collector, not FlatMapCollector
 try:

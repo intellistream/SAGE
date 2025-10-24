@@ -12,18 +12,18 @@
 """
 
 import time
-from unittest.mock import Mock, MagicMock, patch
-import pytest
+from unittest.mock import MagicMock, Mock, patch
 
-from sage.kernel.scheduler.decision import PlacementDecision
+import pytest
 from sage.kernel.scheduler.api import BaseScheduler
+from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
 from sage.kernel.scheduler.placement import PlacementExecutor
-
 
 # ============================================================================
 # PlacementDecision 测试
 # ============================================================================
+
 
 class TestPlacementDecision:
     """测试 PlacementDecision 数据类"""
@@ -47,7 +47,7 @@ class TestPlacementDecision:
             delay=0.5,
             immediate=False,
             placement_strategy="balanced",
-            reason="Test decision"
+            reason="Test decision",
         )
 
         assert decision.target_node == "worker-node-1"
@@ -71,24 +71,20 @@ class TestPlacementDecision:
     def test_with_resources(self):
         """测试 with_resources 快捷方法"""
         decision = PlacementDecision.with_resources(
-            cpu=4,
-            gpu=1,
-            memory=8589934592,
-            reason="Resource test"
+            cpu=4, gpu=1, memory=8589934592, reason="Resource test"
         )
 
         assert decision.resource_requirements == {
             "cpu": 4,
             "gpu": 1,
-            "memory": 8589934592
+            "memory": 8589934592,
         }
         assert decision.reason == "Resource test"
 
     def test_with_node(self):
         """测试 with_node 快捷方法"""
         decision = PlacementDecision.with_node(
-            node_id="worker-node-2",
-            reason="Node test"
+            node_id="worker-node-2", reason="Node test"
         )
 
         assert decision.target_node == "worker-node-2"
@@ -97,9 +93,7 @@ class TestPlacementDecision:
     def test_to_dict(self):
         """测试转换为字典"""
         decision = PlacementDecision(
-            target_node="node-1",
-            resource_requirements={"cpu": 2},
-            reason="Dict test"
+            target_node="node-1", resource_requirements={"cpu": 2}, reason="Dict test"
         )
 
         result = decision.to_dict()
@@ -117,7 +111,7 @@ class TestPlacementDecision:
             "delay": 0.5,
             "immediate": False,
             "placement_strategy": "pack",
-            "reason": "From dict test"
+            "reason": "From dict test",
         }
 
         decision = PlacementDecision.from_dict(data)
@@ -131,9 +125,7 @@ class TestPlacementDecision:
     def test_repr(self):
         """测试字符串表示"""
         decision = PlacementDecision(
-            target_node="node-1",
-            resource_requirements={"cpu": 4},
-            reason="Repr test"
+            target_node="node-1", resource_requirements={"cpu": 4}, reason="Repr test"
         )
 
         repr_str = repr(decision)
@@ -147,6 +139,7 @@ class TestPlacementDecision:
 # BaseScheduler 测试
 # ============================================================================
 
+
 class TestBaseScheduler:
     """测试 BaseScheduler 抽象基类"""
 
@@ -158,15 +151,16 @@ class TestBaseScheduler:
     def test_scheduler_interface(self):
         """测试调度器接口定义"""
         # 检查必须实现的方法
-        assert hasattr(BaseScheduler, 'make_decision')
-        assert hasattr(BaseScheduler, 'make_service_decision')
-        assert hasattr(BaseScheduler, 'get_metrics')
-        assert hasattr(BaseScheduler, 'shutdown')
+        assert hasattr(BaseScheduler, "make_decision")
+        assert hasattr(BaseScheduler, "make_service_decision")
+        assert hasattr(BaseScheduler, "get_metrics")
+        assert hasattr(BaseScheduler, "shutdown")
 
 
 # ============================================================================
 # FIFOScheduler 测试
 # ============================================================================
+
 
 class TestFIFOScheduler:
     """测试 FIFO 调度器"""
@@ -282,15 +276,14 @@ class TestFIFOScheduler:
 # LoadAwareScheduler 测试
 # ============================================================================
 
+
 class TestLoadAwareScheduler:
     """测试负载感知调度器"""
 
     def test_initialization(self):
         """测试初始化"""
         scheduler = LoadAwareScheduler(
-            max_concurrent=10,
-            platform="remote",
-            strategy="balanced"
+            max_concurrent=10, platform="remote", strategy="balanced"
         )
 
         assert scheduler.platform == "remote"
@@ -345,7 +338,7 @@ class TestLoadAwareScheduler:
         assert decision.resource_requirements["gpu"] == 1
         assert "memory" in decision.resource_requirements
 
-    @patch('sage.kernel.scheduler.node_selector.NodeSelector')
+    @patch("sage.kernel.scheduler.node_selector.NodeSelector")
     def test_make_decision_with_node_selector(self, mock_node_selector_class):
         """测试使用 NodeSelector 的决策"""
         # Mock NodeSelector
@@ -381,8 +374,7 @@ class TestLoadAwareScheduler:
         assert decision.target_node == "worker-node-2"
         mock_selector.select_best_node.assert_called_once()
         mock_selector.track_task_placement.assert_called_once_with(
-            task_node.name,
-            "worker-node-2"
+            task_node.name, "worker-node-2"
         )
 
     def test_make_service_decision(self):
@@ -483,6 +475,7 @@ class TestLoadAwareScheduler:
 # PlacementExecutor 测试
 # ============================================================================
 
+
 class TestPlacementExecutor:
     """测试放置执行器"""
 
@@ -521,8 +514,8 @@ class TestPlacementExecutor:
         assert executor.placement_stats["local_tasks"] == 1
         task_node.task_factory.create_task.assert_called_once()
 
-    @patch('sage.kernel.utils.ray.actor.ActorWrapper')
-    @patch('sage.kernel.runtime.task.ray_task.RayTask')
+    @patch("sage.kernel.utils.ray.actor.ActorWrapper")
+    @patch("sage.kernel.runtime.task.ray_task.RayTask")
     def test_place_remote_task_default(self, mock_ray_task, mock_wrapper):
         """测试放置远程任务（默认配置）"""
         executor = PlacementExecutor()
@@ -552,8 +545,8 @@ class TestPlacementExecutor:
         assert executor.placement_stats["remote_tasks"] == 1
         mock_ray_task.options.assert_called_once()
 
-    @patch('sage.kernel.utils.ray.actor.ActorWrapper')
-    @patch('sage.kernel.runtime.task.ray_task.RayTask')
+    @patch("sage.kernel.utils.ray.actor.ActorWrapper")
+    @patch("sage.kernel.runtime.task.ray_task.RayTask")
     def test_place_remote_task_with_node(self, mock_ray_task, mock_wrapper):
         """测试放置远程任务（指定节点）"""
         executor = PlacementExecutor()
@@ -574,8 +567,7 @@ class TestPlacementExecutor:
 
         # Mock decision (with node)
         decision = PlacementDecision(
-            target_node="worker-node-1",
-            resource_requirements={"cpu": 4, "gpu": 1}
+            target_node="worker-node-1", resource_requirements={"cpu": 4, "gpu": 1}
         )
 
         # 放置任务
@@ -598,7 +590,7 @@ class TestPlacementExecutor:
         assert options["lifetime"] == "detached"
         assert "scheduling_strategy" not in options  # 默认不指定节点
 
-    @patch('ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy')
+    @patch("ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy")
     def test_build_ray_options_with_node(self, mock_strategy):
         """测试构建 Ray 选项（指定节点）"""
         executor = PlacementExecutor()
@@ -607,10 +599,7 @@ class TestPlacementExecutor:
         options = executor._build_ray_options(decision)
 
         assert "scheduling_strategy" in options
-        mock_strategy.assert_called_once_with(
-            node_id="worker-node-1",
-            soft=False
-        )
+        mock_strategy.assert_called_once_with(node_id="worker-node-1", soft=False)
 
     def test_build_ray_options_with_resources(self):
         """测试构建 Ray 选项（资源需求）"""
@@ -620,7 +609,7 @@ class TestPlacementExecutor:
                 "cpu": 4,
                 "gpu": 1,
                 "memory": 8589934592,
-                "custom_resource": 2
+                "custom_resource": 2,
             }
         )
 
@@ -672,6 +661,7 @@ class TestPlacementExecutor:
 # 集成测试
 # ============================================================================
 
+
 class TestSchedulerIntegration:
     """测试调度器集成流程"""
 
@@ -701,7 +691,7 @@ class TestSchedulerIntegration:
         assert scheduler.scheduled_count == 1
         assert executor.placement_stats["total_tasks"] == 1
 
-    @patch('sage.kernel.scheduler.node_selector.NodeSelector')
+    @patch("sage.kernel.scheduler.node_selector.NodeSelector")
     def test_load_aware_scheduler_to_placement(self, mock_node_selector_class):
         """测试负载感知调度器到放置执行器的完整流程"""
         # Mock NodeSelector
@@ -761,6 +751,7 @@ class TestSchedulerIntegration:
 # ============================================================================
 # 性能测试
 # ============================================================================
+
 
 class TestSchedulerPerformance:
     """测试调度器性能"""

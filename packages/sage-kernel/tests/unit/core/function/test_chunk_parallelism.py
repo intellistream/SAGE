@@ -1,10 +1,7 @@
 import threading
 import time
-from typing import Dict, List
 
-from sage.common.core.functions import BaseFunction
-from sage.common.core.functions import SinkFunction
-from sage.common.core.functions import SourceFunction
+from sage.common.core.functions import BaseFunction, SinkFunction, SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # 添加全局打印锁来防止并发输出混乱
@@ -113,7 +110,7 @@ class ChunkCollector(SinkFunction):
     """收集分块结果的sink算子"""
 
     # 类级别的结果收集 - 只用于测试目的
-    _collected_chunks: List[Dict] = None
+    _collected_chunks: list[dict] = None
     _lock = threading.Lock()
 
     @classmethod

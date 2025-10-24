@@ -18,13 +18,13 @@ except ImportError:
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
 
+# RPCQueueDescriptor从L2导入 - 正确的向下依赖
+from sage.platform.queue import RPCQueueDescriptor
+
 # 导出队列描述符类 - L3实现
 from .base_queue_descriptor import BaseQueueDescriptor
 from .python_queue_descriptor import PythonQueueDescriptor
 from .ray_queue_descriptor import RayQueueDescriptor
-
-# RPCQueueDescriptor从L2导入 - 正确的向下依赖
-from sage.platform.queue import RPCQueueDescriptor
 
 
 def resolve_descriptor(data):

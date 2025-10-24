@@ -1,9 +1,11 @@
 """
 Tests for video application
 """
-import pytest
-from pathlib import Path
+
 import importlib.util
+from pathlib import Path
+
+import pytest
 
 
 class TestVideoAppStructure:
@@ -44,7 +46,9 @@ class TestVideoAppStructure:
         """Verify video_intelligence_pipeline.py is not empty"""
         pipeline_file = video_dir / "video_intelligence_pipeline.py"
         content = pipeline_file.read_text()
-        assert len(content.strip()) > 0, "video_intelligence_pipeline.py should not be empty"
+        assert (
+            len(content.strip()) > 0
+        ), "video_intelligence_pipeline.py should not be empty"
 
     def test_video_intelligence_has_main_or_class(self, video_dir):
         """Verify video_intelligence_pipeline.py has executable code"""
@@ -56,8 +60,9 @@ class TestVideoAppStructure:
         has_class = "class " in content
         has_if_name = 'if __name__ == "__main__"' in content
 
-        assert has_main or has_class or has_if_name, \
-            "video_intelligence_pipeline.py should have main() function, class definition, or if __name__ == '__main__'"
+        assert (
+            has_main or has_class or has_if_name
+        ), "video_intelligence_pipeline.py should have main() function, class definition, or if __name__ == '__main__'"
 
 
 class TestVideoAppImports:
@@ -72,7 +77,9 @@ class TestVideoAppImports:
         """Test video_intelligence_pipeline.py can be imported"""
         pipeline_file = video_dir / "video_intelligence_pipeline.py"
 
-        spec = importlib.util.spec_from_file_location("video_intelligence_pipeline", pipeline_file)
+        spec = importlib.util.spec_from_file_location(
+            "video_intelligence_pipeline", pipeline_file
+        )
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             try:
@@ -100,7 +107,14 @@ class TestVideoAppOperators:
     @pytest.fixture
     def operators_dir(self):
         """Get operators directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "video" / "operators"
+        return (
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "apps"
+            / "video"
+            / "operators"
+        )
 
     def test_operators_not_empty(self, operators_dir):
         """Verify operator files are not empty"""
@@ -136,7 +150,9 @@ class TestVideoAppConfig:
     @pytest.fixture
     def config_dir(self):
         """Get config directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "video" / "config"
+        return (
+            Path(__file__).parent.parent / "src" / "sage" / "apps" / "video" / "config"
+        )
 
     def test_config_directory_exists(self, config_dir):
         """Verify config directory exists"""
@@ -144,7 +160,11 @@ class TestVideoAppConfig:
 
     def test_config_files_exist(self, config_dir):
         """Verify config files exist"""
-        config_files = list(config_dir.glob("*.yaml")) + list(config_dir.glob("*.json")) + list(config_dir.glob("*.toml"))
+        config_files = (
+            list(config_dir.glob("*.yaml"))
+            + list(config_dir.glob("*.json"))
+            + list(config_dir.glob("*.toml"))
+        )
 
         # Should have at least one config file
         if len(config_files) > 0:

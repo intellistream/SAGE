@@ -1,9 +1,16 @@
 """
 Tests for Studio Data Models
 """
-import pytest
 
-from sage.studio.models import VisualNode, VisualConnection, VisualPipeline, PipelineExecution, PipelineStatus, NodeStatus  # type: ignore[import-not-found]
+import pytest
+from sage.studio.models import (  # type: ignore[import-not-found]
+    NodeStatus,
+    PipelineExecution,
+    PipelineStatus,
+    VisualConnection,
+    VisualNode,
+    VisualPipeline,
+)
 
 
 class TestVisualNode:
@@ -16,7 +23,7 @@ class TestVisualNode:
             type="retriever",
             label="Test Retriever",
             config={"top_k": 5},
-            position={"x": 100, "y": 200}
+            position={"x": 100, "y": 200},
         )
 
         assert node.id == "test_node"
@@ -32,7 +39,7 @@ class TestVisualNode:
             type="generator",
             label="Generator",
             config={},
-            position={"x": 0, "y": 0}
+            position={"x": 0, "y": 0},
         )
 
         assert node.config == {}
@@ -44,7 +51,7 @@ class TestVisualNode:
             type="retriever",
             label="Retriever",
             config={"top_k": 5},
-            position={"x": 100, "y": 200}
+            position={"x": 100, "y": 200},
         )
 
         # VisualNode 是 dataclass
@@ -63,7 +70,7 @@ class TestVisualConnection:
             source_node_id="node1",
             source_port="output",
             target_node_id="node2",
-            target_port="input"
+            target_port="input",
         )
 
         assert conn.id == "conn1"
@@ -78,7 +85,7 @@ class TestVisualConnection:
             source_port="output",
             target_node_id="node2",
             target_port="input",
-            label="data flow"
+            label="data flow",
         )
 
         assert conn.label == "data flow"
@@ -90,7 +97,7 @@ class TestVisualConnection:
             source_node_id="node1",
             source_port="output",
             target_node_id="node2",
-            target_port="input"
+            target_port="input",
         )
 
         # VisualConnection 是 dataclass，使用 __dict__
@@ -104,21 +111,33 @@ class TestVisualPipeline:
 
     def test_pipeline_creation(self):
         """测试创建 Pipeline"""
-        node1 = VisualNode(id="node1", type="retriever", label="Retriever", config={}, position={"x": 0, "y": 0})
-        node2 = VisualNode(id="node2", type="generator", label="Generator", config={}, position={"x": 100, "y": 0})
+        node1 = VisualNode(
+            id="node1",
+            type="retriever",
+            label="Retriever",
+            config={},
+            position={"x": 0, "y": 0},
+        )
+        node2 = VisualNode(
+            id="node2",
+            type="generator",
+            label="Generator",
+            config={},
+            position={"x": 100, "y": 0},
+        )
         conn = VisualConnection(
             id="conn1",
             source_node_id="node1",
             source_port="output",
             target_node_id="node2",
-            target_port="input"
+            target_port="input",
         )
 
         pipeline = VisualPipeline(
             id="pipeline1",
             name="Test Pipeline",
             nodes=[node1, node2],
-            connections=[conn]
+            connections=[conn],
         )
 
         assert pipeline.id == "pipeline1"
@@ -129,10 +148,7 @@ class TestVisualPipeline:
     def test_empty_pipeline(self):
         """测试创建空 Pipeline"""
         pipeline = VisualPipeline(
-            id="empty",
-            name="Empty Pipeline",
-            nodes=[],
-            connections=[]
+            id="empty", name="Empty Pipeline", nodes=[], connections=[]
         )
 
         assert len(pipeline.nodes) == 0
@@ -140,12 +156,15 @@ class TestVisualPipeline:
 
     def test_pipeline_serialization(self):
         """测试 Pipeline 序列化"""
-        node = VisualNode(id="node1", type="retriever", label="Retriever", config={}, position={"x": 0, "y": 0})
+        node = VisualNode(
+            id="node1",
+            type="retriever",
+            label="Retriever",
+            config={},
+            position={"x": 0, "y": 0},
+        )
         pipeline = VisualPipeline(
-            id="pipeline1",
-            name="Test Pipeline",
-            nodes=[node],
-            connections=[]
+            id="pipeline1", name="Test Pipeline", nodes=[node], connections=[]
         )
 
         # VisualPipeline 是 dataclass
@@ -160,14 +179,11 @@ class TestVisualPipeline:
             type="retriever",
             label="Retriever",
             config={"top_k": 5},
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         pipeline = VisualPipeline(
-            id="pipeline1",
-            name="Test Pipeline",
-            nodes=[node],
-            connections=[]
+            id="pipeline1", name="Test Pipeline", nodes=[node], connections=[]
         )
 
         assert pipeline.id == "pipeline1"
@@ -181,11 +197,12 @@ class TestPipelineExecution:
     def test_execution_creation(self):
         """测试创建 Execution"""
         from datetime import datetime
+
         execution = PipelineExecution(
             id="exec1",
             pipeline_id="pipeline1",
             status=PipelineStatus.RUNNING,
-            start_time=datetime.now()
+            start_time=datetime.now(),
         )
 
         assert execution.id == "exec1"
@@ -196,13 +213,14 @@ class TestPipelineExecution:
     def test_completed_execution(self):
         """测试完成的 Execution"""
         from datetime import datetime
+
         now = datetime.now()
         execution = PipelineExecution(
             id="exec1",
             pipeline_id="pipeline1",
             status=PipelineStatus.COMPLETED,
             start_time=now,
-            end_time=now
+            end_time=now,
         )
 
         assert execution.status == PipelineStatus.COMPLETED
@@ -211,11 +229,12 @@ class TestPipelineExecution:
     def test_execution_status(self):
         """测试 Execution 状态"""
         from datetime import datetime
+
         execution = PipelineExecution(
             id="exec1",
             pipeline_id="pipeline1",
             status=PipelineStatus.PENDING,
-            start_time=datetime.now()
+            start_time=datetime.now(),
         )
 
         assert execution.status == PipelineStatus.PENDING
@@ -232,7 +251,7 @@ class TestModelIntegration:
             type="retriever",
             label="Retriever",
             config={"top_k": 5, "index_name": "test"},
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         promptor = VisualNode(
@@ -240,7 +259,7 @@ class TestModelIntegration:
             type="promptor",
             label="Promptor",
             config={"template": "Context: {context}"},
-            position={"x": 300, "y": 100}
+            position={"x": 300, "y": 100},
         )
 
         generator = VisualNode(
@@ -248,7 +267,7 @@ class TestModelIntegration:
             type="generator",
             label="Generator",
             config={"model": "gpt-3.5-turbo"},
-            position={"x": 500, "y": 100}
+            position={"x": 500, "y": 100},
         )
 
         # 创建连接
@@ -258,14 +277,14 @@ class TestModelIntegration:
                 source_node_id="retriever",
                 source_port="output",
                 target_node_id="promptor",
-                target_port="input"
+                target_port="input",
             ),
             VisualConnection(
                 id="c2",
                 source_node_id="promptor",
                 source_port="output",
                 target_node_id="generator",
-                target_port="input"
+                target_port="input",
             ),
         ]
 
@@ -274,7 +293,7 @@ class TestModelIntegration:
             id="rag_pipeline",
             name="RAG Pipeline",
             nodes=[retriever, promptor, generator],
-            connections=connections
+            connections=connections,
         )
 
         # 验证 Pipeline 结构

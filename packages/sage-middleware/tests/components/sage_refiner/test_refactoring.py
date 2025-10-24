@@ -20,10 +20,10 @@ Refiner 重构验证测试
     python tests/components/sage_refiner/test_refactoring.py
 """
 
-from typing import Any
-
 import sys
 from pathlib import Path
+from typing import Any
+
 import pytest
 
 
@@ -37,23 +37,21 @@ def test_middleware_imports():
         RefineResult,
         RefinerService,
     )
+    from sage.middleware.components.sage_refiner.python.adapter import (
+        RefinerAdapter,
+    )
+    from sage.middleware.components.sage_refiner.python.algorithms.long_refiner import (
+        LongRefinerAlgorithm,
+    )
 
     # 测试算法
     from sage.middleware.components.sage_refiner.python.algorithms.simple import (
         SimpleRefiner,
     )
 
-    from sage.middleware.components.sage_refiner.python.algorithms.long_refiner import (
-        LongRefinerAlgorithm,
-    )
-
     # 测试服务
     from sage.middleware.components.sage_refiner.python.context_service import (
         ContextService,
-    )
-
-    from sage.middleware.components.sage_refiner.python.adapter import (
-        RefinerAdapter,
     )
 
     # 如果能导入到这里，测试通过
@@ -77,11 +75,6 @@ def test_algorithm_registration():
 
 def test_service_functionality():
     """测试服务功能"""
-    from sage.middleware.components.sage_refiner import (
-        RefinerConfig,
-        RefinerService,
-    )
-
     from sage.middleware.components.sage_refiner import (
         RefinerAlgorithm,
         RefinerConfig,
@@ -127,7 +120,7 @@ def test_middleware_operator_available():
 
     # RefinerOperator 应该是一个可用的类
     assert RefinerOperator is not None
-    assert hasattr(RefinerOperator, 'execute') or hasattr(RefinerOperator, '__call__')
+    assert hasattr(RefinerOperator, "execute") or hasattr(RefinerOperator, "__call__")
 
 
 def test_config_loading():
@@ -152,7 +145,14 @@ def test_config_loading():
 @pytest.mark.skip(reason="Documentation files may not exist in test environment")
 def test_documentation():
     """测试文档完整性"""
-    base_path = Path(__file__).parent.parent.parent.parent / "src" / "sage" / "middleware" / "components" / "sage_refiner"
+    base_path = (
+        Path(__file__).parent.parent.parent.parent
+        / "src"
+        / "sage"
+        / "middleware"
+        / "components"
+        / "sage_refiner"
+    )
 
     docs = {
         "README.md": "用户文档",
@@ -165,10 +165,19 @@ def test_documentation():
             assert doc_path.stat().st_size > 0, f"{desc} 文件为空"
 
 
-@pytest.mark.skip(reason="File structure test is too strict for flexible project layouts")
+@pytest.mark.skip(
+    reason="File structure test is too strict for flexible project layouts"
+)
 def test_file_structure():
     """测试文件结构"""
-    base_path = Path(__file__).parent.parent.parent.parent / "src" / "sage" / "middleware" / "components" / "sage_refiner"
+    base_path = (
+        Path(__file__).parent.parent.parent.parent
+        / "src"
+        / "sage"
+        / "middleware"
+        / "components"
+        / "sage_refiner"
+    )
 
     required_files = [
         "__init__.py",

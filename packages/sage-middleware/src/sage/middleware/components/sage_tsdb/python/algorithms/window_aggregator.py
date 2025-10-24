@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from .base import TimeSeriesAlgorithm
 from ..sage_tsdb import AggregationType, TimeSeriesData
+from .base import TimeSeriesAlgorithm
 
 
 class WindowType(Enum):
@@ -83,9 +83,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
             "data_points_processed": 0,
         }
 
-    def process(
-        self, data: List[TimeSeriesData], **kwargs
-    ) -> List[TimeSeriesData]:
+    def process(self, data: List[TimeSeriesData], **kwargs) -> List[TimeSeriesData]:
         """
         Process time series data with windowing.
 
@@ -170,9 +168,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
 
             # Get data points in this window
             window_data = [
-                point
-                for point in data
-                if window_start <= point.timestamp < window_end
+                point for point in data if window_start <= point.timestamp < window_end
             ]
 
             if window_data:

@@ -1,7 +1,7 @@
-from typing import TYPE_CHECKING, Any, Tuple, Type
+from typing import TYPE_CHECKING, Any
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.core.functions import BaseFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.task_context import TaskContext
@@ -11,8 +11,8 @@ class FunctionFactory:
     # 由transformation初始化
     def __init__(
         self,
-        function_class: Type[BaseFunction],
-        function_args: Tuple[Any, ...] = (),
+        function_class: type[BaseFunction],
+        function_args: tuple[Any, ...] = (),
         function_kwargs: dict = None,
     ):
         self.function_class = function_class

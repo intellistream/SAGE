@@ -1,6 +1,6 @@
 # agent/profile/profile.py
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 from sage.common.core.functions import MapFunction
 
@@ -11,8 +11,8 @@ class BaseProfile(MapFunction):
 
     name: str = "BaseAgent"  # 人格名
     role: str = "general assistant"  # 角色定位
-    goals: List[str] = field(default_factory=list)  # 长期/核心目标
-    tasks: List[str] = field(default_factory=list)  # 常见任务模板
+    goals: list[str] = field(default_factory=list)  # 长期/核心目标
+    tasks: list[str] = field(default_factory=list)  # 常见任务模板
     backstory: str = ""  # 人设背景
 
     # 输出偏好
@@ -37,7 +37,7 @@ class BaseProfile(MapFunction):
             "- Prefer structured, verifiable outputs.\n"
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """导出字典（方便存储/打印/日志）。"""
         return {
             "name": self.name,
@@ -50,7 +50,7 @@ class BaseProfile(MapFunction):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BaseProfile":
+    def from_dict(cls, data: dict[str, Any]) -> "BaseProfile":
         """从字典创建（若想从 JSON 加载就先 json.load 再丢进来）。"""
         return cls(
             name=data.get("name", "BaseAgent"),

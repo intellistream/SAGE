@@ -12,11 +12,11 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from sage.kernel.runtime.monitoring import (
+    RESOURCE_MONITOR_AVAILABLE,
     MetricsCollector,
     MetricsReporter,
     ResourceMonitor,
     ServicePerformanceMetrics,
-    RESOURCE_MONITOR_AVAILABLE,
 )
 
 if TYPE_CHECKING:
@@ -79,7 +79,9 @@ class BaseServiceTask(ABC):
         self._queue_listener_running = False
 
         # === 性能监控 ===
-        self._enable_monitoring = getattr(ctx, 'enable_monitoring', False) if ctx else False
+        self._enable_monitoring = (
+            getattr(ctx, "enable_monitoring", False) if ctx else False
+        )
         self.metrics_collector: Optional[MetricsCollector] = None
         self.resource_monitor: Optional[ResourceMonitor] = None
         self.metrics_reporter: Optional[MetricsReporter] = None
@@ -88,15 +90,23 @@ class BaseServiceTask(ABC):
             try:
                 self.metrics_collector = MetricsCollector(
                     name=self.service_name,
-                    window_size=getattr(ctx, 'metrics_window_size', 10000) if ctx else 10000,
-                    enable_detailed_tracking=getattr(ctx, 'enable_detailed_tracking', True) if ctx else True,
+                    window_size=(
+                        getattr(ctx, "metrics_window_size", 10000) if ctx else 10000
+                    ),
+                    enable_detailed_tracking=(
+                        getattr(ctx, "enable_detailed_tracking", True) if ctx else True
+                    ),
                 )
 
                 # 尝试启动资源监控
                 if RESOURCE_MONITOR_AVAILABLE:
                     try:
                         self.resource_monitor = ResourceMonitor(
-                            sampling_interval=getattr(ctx, 'resource_sampling_interval', 1.0) if ctx else 1.0,
+                            sampling_interval=(
+                                getattr(ctx, "resource_sampling_interval", 1.0)
+                                if ctx
+                                else 1.0
+                            ),
                             enable_auto_start=True,
                         )
                     except Exception as e:
@@ -105,16 +115,18 @@ class BaseServiceTask(ABC):
                         )
 
                 # 可选：启动性能汇报器
-                if ctx and getattr(ctx, 'enable_auto_report', False):
+                if ctx and getattr(ctx, "enable_auto_report", False):
                     self.metrics_reporter = MetricsReporter(
                         metrics_collector=self.metrics_collector,
                         resource_monitor=self.resource_monitor,
-                        report_interval=getattr(ctx, 'report_interval', 60),
+                        report_interval=getattr(ctx, "report_interval", 60),
                         enable_auto_report=True,
                         report_callback=lambda report: self.logger.info(f"\n{report}"),
                     )
 
-                self.logger.info(f"Performance monitoring enabled for service {self.service_name}")
+                self.logger.info(
+                    f"Performance monitoring enabled for service {self.service_name}"
+                )
             except Exception as e:
                 self.logger.warning(
                     f"Failed to initialize monitoring for service {self.service_name}: {e}"
@@ -920,7 +932,7 @@ class BaseServiceTask(ABC):
         if self.ctx:
             try:
                 request_qd = self.request_queue_descriptor
-                if request_qd and hasattr(request_qd.queue_instance, 'qsize'):
+                if request_qd and hasattr(request_qd.queue_instance, "qsize"):
                     metrics.request_queue_depth = request_qd.queue_instance.qsize()
             except Exception:
                 pass

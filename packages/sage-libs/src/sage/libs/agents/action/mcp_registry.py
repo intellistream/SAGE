@@ -1,7 +1,7 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/src/sage/libs/agents/action/mcp_registry.py
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from sage.common.core.functions import MapFunction
 
@@ -15,14 +15,14 @@ class MCPRegistry(MapFunction):
     """
 
     def __init__(self) -> None:
-        self._tools: Dict[str, Any] = {}
+        self._tools: dict[str, Any] = {}
 
     def register(self, tool_obj: Any) -> None:
         if not hasattr(tool_obj, "name") or not hasattr(tool_obj, "call"):
             raise TypeError("Tool must have `name` and `call(arguments)`")
         self._tools[tool_obj.name] = tool_obj
 
-    def describe(self) -> Dict[str, Dict[str, Any]]:
+    def describe(self) -> dict[str, dict[str, Any]]:
         return {
             name: {
                 "description": getattr(t, "description", ""),
@@ -31,7 +31,7 @@ class MCPRegistry(MapFunction):
             for name, t in self._tools.items()
         }
 
-    def call(self, name: str, arguments: Dict[str, Any]) -> Any:
+    def call(self, name: str, arguments: dict[str, Any]) -> Any:
         if name not in self._tools:
             raise KeyError(f"Tool not found: {name}")
         return self._tools[name].call(arguments)

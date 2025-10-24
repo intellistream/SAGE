@@ -13,10 +13,10 @@ from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.node_selector import NodeSelector
 
-
 # ============================================================
 # 示例 1: 查看集群节点信息
 # ============================================================
+
 
 def example_inspect_cluster():
     """查看 Ray 集群中的所有物理节点"""
@@ -37,7 +37,7 @@ def example_inspect_cluster():
         print(f"  主机名: {node.get('NodeManagerHostname', 'N/A')}")
         print(f"  状态: {'活跃' if node['Alive'] else '离线'}")
 
-        resources = node.get('Resources', {})
+        resources = node.get("Resources", {})
         print(f"  资源:")
         print(f"    CPU: {resources.get('CPU', 0)}")
         print(f"    GPU: {resources.get('GPU', 0)}")
@@ -70,6 +70,7 @@ def example_inspect_cluster():
 # 示例 2: 使用 NodeSelector 选择节点
 # ============================================================
 
+
 def example_node_selector():
     """使用 NodeSelector 根据策略选择节点"""
 
@@ -85,8 +86,7 @@ def example_node_selector():
 
     # 策略 3: 选择满足资源需求的节点
     node_with_resources = selector.select_node_with_resources(
-        cpu=8,
-        memory=16 * 1024**3  # 16GB
+        cpu=8, memory=16 * 1024**3  # 16GB
     )
     print(f"满足资源需求的节点: {node_with_resources}")
 
@@ -94,6 +94,7 @@ def example_node_selector():
 # ============================================================
 # 示例 3: Scheduler 返回指定节点的决策
 # ============================================================
+
 
 class NodeAwareScheduler(BaseScheduler):
     """
@@ -111,9 +112,9 @@ class NodeAwareScheduler(BaseScheduler):
 
         # 检查任务是否需要 GPU
         needs_gpu = (
-            hasattr(task_node, 'transformation') and
-            hasattr(task_node.transformation, 'gpu_required') and
-            task_node.transformation.gpu_required > 0
+            hasattr(task_node, "transformation")
+            and hasattr(task_node.transformation, "gpu_required")
+            and task_node.transformation.gpu_required > 0
         )
 
         if needs_gpu:
@@ -123,32 +124,31 @@ class NodeAwareScheduler(BaseScheduler):
 
             decision = PlacementDecision(
                 target_node=target_node,  # ← 指定目标节点
-                resource_requirements={
-                    "cpu": 4,
-                    "gpu": gpu_count,
-                    "memory": "16GB"
-                },
+                resource_requirements={"cpu": 4, "gpu": gpu_count, "memory": "16GB"},
                 placement_strategy="gpu",
-                reason=f"GPU task: selected node {target_node} with GPU"
+                reason=f"GPU task: selected node {target_node} with GPU",
             )
         else:
             # CPU 任务：选择负载最低的节点
             target_node = self.node_selector.select_least_loaded_node()
 
             # 提取资源需求
-            cpu = getattr(task_node.transformation, 'cpu_required', 1) \
-                  if hasattr(task_node, 'transformation') else 1
-            memory = getattr(task_node.transformation, 'memory_required', '1GB') \
-                     if hasattr(task_node, 'transformation') else '1GB'
+            cpu = (
+                getattr(task_node.transformation, "cpu_required", 1)
+                if hasattr(task_node, "transformation")
+                else 1
+            )
+            memory = (
+                getattr(task_node.transformation, "memory_required", "1GB")
+                if hasattr(task_node, "transformation")
+                else "1GB"
+            )
 
             decision = PlacementDecision(
                 target_node=target_node,  # ← 指定目标节点
-                resource_requirements={
-                    "cpu": cpu,
-                    "memory": memory
-                },
+                resource_requirements={"cpu": cpu, "memory": memory},
                 placement_strategy="load_aware",
-                reason=f"CPU task: selected least loaded node {target_node}"
+                reason=f"CPU task: selected least loaded node {target_node}",
             )
 
         # 记录决策
@@ -161,6 +161,7 @@ class NodeAwareScheduler(BaseScheduler):
 # ============================================================
 # 示例 4: 完整的调度流程
 # ============================================================
+
 
 def example_full_scheduling_flow():
     """
@@ -228,6 +229,7 @@ def example_full_scheduling_flow():
 # 示例 5: 手动指定节点（调试用）
 # ============================================================
 
+
 class DebugScheduler(BaseScheduler):
     """
     调试调度器：强制所有任务到指定节点
@@ -247,7 +249,7 @@ class DebugScheduler(BaseScheduler):
             target_node=self.debug_node_id,  # ← 强制指定节点
             resource_requirements=None,  # 使用默认资源
             placement_strategy="debug",
-            reason=f"Debug mode: all tasks on node {self.debug_node_id}"
+            reason=f"Debug mode: all tasks on node {self.debug_node_id}",
         )
 
         self.decision_history.append(decision)
@@ -275,6 +277,7 @@ def example_debug_scheduling():
 # 示例 6: 查看 PlacementExecutor 如何使用决策
 # ============================================================
 
+
 def example_placement_execution():
     """
     PlacementExecutor 如何根据决策执行放置
@@ -294,7 +297,7 @@ def example_placement_execution():
 
             options["scheduling_strategy"] = NodeAffinitySchedulingStrategy(
                 node_id=decision.target_node,  # ← 使用决策中的节点 ID
-                soft=False  # 硬要求：必须放到这个节点
+                soft=False,  # 硬要求：必须放到这个节点
             )
 
             print(f"✓ 将 Actor 放置到节点: {decision.target_node}")
@@ -323,21 +326,17 @@ def example_placement_execution():
             return memory_str
 
         memory_str = memory_str.upper()
-        if 'GB' in memory_str:
-            return int(float(memory_str.replace('GB', '')) * 1024**3)
-        elif 'MB' in memory_str:
-            return int(float(memory_str.replace('MB', '')) * 1024**2)
+        if "GB" in memory_str:
+            return int(float(memory_str.replace("GB", "")) * 1024**3)
+        elif "MB" in memory_str:
+            return int(float(memory_str.replace("MB", "")) * 1024**2)
         return 1024**3
 
     # 示例决策
     decision = PlacementDecision(
         target_node="f6e5d4c3b2a1098...",
-        resource_requirements={
-            "cpu": 4,
-            "gpu": 1,
-            "memory": "16GB"
-        },
-        reason="GPU task on worker-node-2"
+        resource_requirements={"cpu": 4, "gpu": 1, "memory": "16GB"},
+        reason="GPU task on worker-node-2",
     )
 
     print("决策:")

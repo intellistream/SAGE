@@ -48,7 +48,7 @@ class BasePrivacyMechanism(ABC):
         epsilon: float,
         delta: Optional[float] = None,
         sensitivity: float = 1.0,
-        name: str = "BasePrivacyMechanism"
+        name: str = "BasePrivacyMechanism",
     ):
         """
         Initialize privacy mechanism.
@@ -80,7 +80,7 @@ class BasePrivacyMechanism(ABC):
         self,
         sensitivity: Optional[float] = None,
         epsilon: Optional[float] = None,
-        delta: Optional[float] = None
+        delta: Optional[float] = None,
     ) -> float:
         """
         Compute noise magnitude for this mechanism.
@@ -120,9 +120,7 @@ class BasePrivacyMechanism(ABC):
         pass
 
     def perturb_vector(
-        self,
-        vector: np.ndarray,
-        indices_to_perturb: Optional[List[int]] = None
+        self, vector: np.ndarray, indices_to_perturb: Optional[List[int]] = None
     ) -> np.ndarray:
         """
         Perturb a vector with differential privacy.
@@ -176,6 +174,7 @@ class BasePrivacyMechanism(ABC):
 # STUDENT TASK 1: Implement a simple mechanism as reference
 # ============================================================================
 
+
 class SimpleLaplaceMechanism(BasePrivacyMechanism):
     """
     Reference implementation: Laplace mechanism for pure ε-DP.
@@ -184,13 +183,15 @@ class SimpleLaplaceMechanism(BasePrivacyMechanism):
     """
 
     def __init__(self, epsilon: float, sensitivity: float = 1.0):
-        super().__init__(epsilon=epsilon, delta=None, sensitivity=sensitivity, name="Laplace")
+        super().__init__(
+            epsilon=epsilon, delta=None, sensitivity=sensitivity, name="Laplace"
+        )
 
     def compute_noise(
         self,
         sensitivity: Optional[float] = None,
         epsilon: Optional[float] = None,
-        delta: Optional[float] = None
+        delta: Optional[float] = None,
     ) -> float:
         """
         Generate Laplace noise: Lap(Δf / ε).

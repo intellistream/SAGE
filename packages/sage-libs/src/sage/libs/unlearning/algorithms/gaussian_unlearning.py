@@ -10,13 +10,13 @@ This is a skeleton. Students should fill in the details.
 """
 
 import math
+import os
+import sys
 from typing import Optional, Tuple
 
 import numpy as np
 
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from dp_unlearning.base_mechanism import BasePrivacyMechanism
 
@@ -40,12 +40,7 @@ class GaussianMechanism(BasePrivacyMechanism):
     4. Compare with Laplace mechanism empirically
     """
 
-    def __init__(
-        self,
-        epsilon: float,
-        delta: float,
-        sensitivity: float = 1.0
-    ):
+    def __init__(self, epsilon: float, delta: float, sensitivity: float = 1.0):
         """
         Initialize Gaussian mechanism.
 
@@ -55,10 +50,7 @@ class GaussianMechanism(BasePrivacyMechanism):
             sensitivity: Query sensitivity
         """
         super().__init__(
-            epsilon=epsilon,
-            delta=delta,
-            sensitivity=sensitivity,
-            name="Gaussian"
+            epsilon=epsilon, delta=delta, sensitivity=sensitivity, name="Gaussian"
         )
 
         # TODO: Compute the required σ
@@ -86,14 +78,16 @@ class GaussianMechanism(BasePrivacyMechanism):
         if self.delta == 0 or self.delta >= 1:
             raise ValueError(f"Delta must be in (0, 1), got {self.delta}")
 
-        sigma = self.sensitivity * math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
+        sigma = (
+            self.sensitivity * math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
+        )
         return sigma
 
     def compute_noise(
         self,
         sensitivity: Optional[float] = None,
         epsilon: Optional[float] = None,
-        delta: Optional[float] = None
+        delta: Optional[float] = None,
     ) -> float:
         """
         Generate Gaussian noise: N(0, σ²).

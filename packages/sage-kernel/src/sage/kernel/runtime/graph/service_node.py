@@ -13,12 +13,12 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.platform.queue.base_queue_descriptor import (
-        BaseQueueDescriptor,
-    )
     from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory
+    from sage.platform.queue.base_queue_descriptor import (
+        BaseQueueDescriptor,
+    )
 
 
 def _create_queue_descriptor(

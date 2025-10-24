@@ -2,12 +2,10 @@ import json
 import os
 import threading
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from sage.common.config.output_paths import get_sage_paths
-from sage.common.core.functions import KeyByFunction
-from sage.common.core.functions import SinkFunction
-from sage.common.core.functions import SourceFunction
+from sage.common.core.functions import KeyByFunction, SinkFunction, SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 
@@ -46,7 +44,7 @@ class ParallelDebugSink(SinkFunction):
     """并行调试Sink，记录接收到的数据分布"""
 
     # 类级别的统计，所有实例共享
-    _received_data: Dict[int, List[Dict]] = {}
+    _received_data: dict[int, list[dict]] = {}
     _lock = threading.Lock()
 
     def __init__(self, **kwargs):
@@ -113,7 +111,7 @@ class ParallelDebugSink(SinkFunction):
         return str(filepath)
 
     @classmethod
-    def get_received_data(cls) -> Dict[int, List[Dict]]:
+    def get_received_data(cls) -> dict[int, list[dict]]:
         """获取所有并行实例接收到的数据"""
         with cls._lock:
             return dict(cls._received_data)
@@ -224,7 +222,7 @@ class TestKeyByFunctionality:
     ):
         """将验证结果保存到文件"""
         if os.path.exists(result_file):
-            with open(result_file, "r", encoding="utf-8") as f:
+            with open(result_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             data["verification"] = {
@@ -443,7 +441,7 @@ class TestAdvancedKeyBy:
     ):
         """将验证结果保存到文件"""
         if os.path.exists(result_file):
-            with open(result_file, "r", encoding="utf-8") as f:
+            with open(result_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             data["verification"] = {

@@ -15,7 +15,9 @@ class CriticBot:
     这是一个占位实现。实际使用时需要实现具体的评估逻辑。
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, ctx: Optional[Any] = None):
+    def __init__(
+        self, config: Optional[Dict[str, Any]] = None, ctx: Optional[Any] = None
+    ):
         """
         初始化CriticBot
 
@@ -26,7 +28,9 @@ class CriticBot:
         self.config = config or {}
         self.ctx = ctx
 
-    def critique(self, answer: str, question: str = "", context: str = "") -> Dict[str, Any]:
+    def critique(
+        self, answer: str, question: str = "", context: str = ""
+    ) -> Dict[str, Any]:
         """
         评估答案质量
 
@@ -39,11 +43,7 @@ class CriticBot:
             评估结果，包含分数和建议
         """
         # 占位实现
-        return {
-            "score": 0.0,
-            "feedback": "",
-            "suggestions": []
-        }
+        return {"score": 0.0, "feedback": "", "suggestions": []}
 
     def execute(self, data: Any) -> Any:
         """
@@ -56,9 +56,4 @@ class CriticBot:
             评估结果
         """
         # 占位实现
-        return {
-            "critique": {
-                "score": 0.0,
-                "feedback": ""
-            }
-        }
+        return {"critique": {"score": 0.0, "feedback": ""}}

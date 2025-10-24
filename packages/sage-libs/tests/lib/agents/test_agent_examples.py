@@ -208,9 +208,9 @@ class TestMainFunction:
         )
 
         # 关键：补丁打在真实模块位置（tutorials），因为agent是重新导出
-        with patch("examples.tutorials.agents.basic_agent.os.path.exists", return_value=False), patch(
-            "builtins.print"
-        ) as mock_print:
+        with patch(
+            "examples.tutorials.agents.basic_agent.os.path.exists", return_value=False
+        ), patch("builtins.print") as mock_print:
             with pytest.raises(SystemExit) as e:
                 agent.main()
 
@@ -310,7 +310,9 @@ class TestMainFunction:
             {"module": "nonexistent.module", "class": "NonexistentClass"}
         ]
         # Use a real test data file to avoid file access issues
-        config["source"]["data_path"] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
+        config["source"][
+            "data_path"
+        ] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
         mock_load.return_value = config
 
         # Set test mode environment variable
@@ -321,7 +323,9 @@ class TestMainFunction:
                 try:
                     agent.main()  # 应该成功完成而不抛出异常
                 except Exception as e:
-                    pytest.fail(f"main() should not raise exception in test mode, but got: {e}")
+                    pytest.fail(
+                        f"main() should not raise exception in test mode, but got: {e}"
+                    )
 
 
 @pytest.mark.integration
@@ -370,12 +374,17 @@ if __name__ == "__main__":
             pytest.skip("Agent examples module not available")
 
         # This test verifies the complete integration works with proper mocking
-        with patch("examples.tutorials.agents.basic_agent.load_config") as mock_load_config:
-            with patch("examples.tutorials.agents.basic_agent.iter_queries") as mock_iter_queries:
+        with patch(
+            "examples.tutorials.agents.basic_agent.load_config"
+        ) as mock_load_config:
+            with patch(
+                "examples.tutorials.agents.basic_agent.iter_queries"
+            ) as mock_iter_queries:
                 with patch("os.path.exists", return_value=True):
                     # Mock both should_use_real_api and environment to bypass test mode
                     with patch(
-                        "examples.tutorials.agents.basic_agent.should_use_real_api", return_value=True
+                        "examples.tutorials.agents.basic_agent.should_use_real_api",
+                        return_value=True,
                     ):
                         with patch.dict(
                             "os.environ", {"SAGE_EXAMPLES_MODE": "production"}
@@ -450,9 +459,15 @@ if __name__ == "__main__":
                                                     mock_tool_class = Mock()
                                                     mock_tool_instance = Mock()
                                                     # 关键修复：设置name, description, input_schema为正确的类型
-                                                    mock_tool_instance.name = "arxiv_search"
-                                                    mock_tool_instance.description = "Search arXiv papers"
-                                                    mock_tool_instance.input_schema = {"type": "object"}
+                                                    mock_tool_instance.name = (
+                                                        "arxiv_search"
+                                                    )
+                                                    mock_tool_instance.description = (
+                                                        "Search arXiv papers"
+                                                    )
+                                                    mock_tool_instance.input_schema = {
+                                                        "type": "object"
+                                                    }
                                                     mock_tool_class.return_value = (
                                                         mock_tool_instance
                                                     )

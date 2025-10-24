@@ -32,8 +32,8 @@ sys.path.insert(0, os.path.abspath(sage_kernel_src))
 sys.path.insert(0, os.path.abspath(sage_kernel_tests))
 
 try:
-    from sage.platform.queue import RayQueueDescriptor
     from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
+    from sage.platform.queue import RayQueueDescriptor
     from unit.utils.test_log_manager import (
         get_test_log_manager,
         setup_quiet_ray_logging,

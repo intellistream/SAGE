@@ -127,9 +127,7 @@ class DevNotesAnalyzer:
         """分析所有文件"""
         all_files = list(self.devnotes_dir.rglob("*.md"))
         # 排除特殊文件
-        all_files = [
-            f for f in all_files if f.name not in ["README.md", "TEMPLATE.md"]
-        ]
+        all_files = [f for f in all_files if f.name not in ["README.md", "TEMPLATE.md"]]
 
         results = []
         for file_path in all_files:
@@ -172,7 +170,9 @@ class DevNotesAnalyzer:
                 suggested = r.get("suggested_category", "unknown")
                 print(f"📄 {path}")
                 print(f"   建议分类: {suggested}/")
-                print(f"   移动命令: git mv docs/dev-notes/{path} docs/dev-notes/{suggested}/{path}")
+                print(
+                    f"   移动命令: git mv docs/dev-notes/{path} docs/dev-notes/{suggested}/{path}"
+                )
                 print()
 
         # 空文件（建议删除）
@@ -236,7 +236,9 @@ class DevNotesAnalyzer:
         print("=" * 80)
         print()
         print(f"1. 删除 {len(empty_files)} 个空文件或内容过少的文件")
-        print(f"2. 移动 {len([r for r in root_files if not r.get('is_empty')])} 个根目录文件到分类目录")
+        print(
+            f"2. 移动 {len([r for r in root_files if not r.get('is_empty')])} 个根目录文件到分类目录"
+        )
         print(f"3. 为 {len(missing_metadata)} 个文件补充元数据")
         print()
         print("💡 提示:")

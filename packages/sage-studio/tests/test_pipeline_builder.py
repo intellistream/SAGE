@@ -1,9 +1,13 @@
 """
 Tests for PipelineBuilder - Visual Pipeline to SAGE Pipeline conversion
 """
-import pytest
 
-from sage.studio.models import VisualPipeline, VisualNode, VisualConnection  # type: ignore[import-not-found]
+import pytest
+from sage.studio.models import (  # type: ignore[import-not-found]
+    VisualConnection,
+    VisualNode,
+    VisualPipeline,
+)
 from sage.studio.services import PipelineBuilder  # type: ignore[import-not-found]
 
 
@@ -25,11 +29,8 @@ class TestPipelineBuilder:
             id="node1",
             type="retriever",
             label="Retriever",
-            config={
-                "top_k": 5,
-                "index_name": "test_index"
-            },
-            position={"x": 100, "y": 100}
+            config={"top_k": 5, "index_name": "test_index"},
+            position={"x": 100, "y": 100},
         )
 
         visual_pipeline = VisualPipeline(
@@ -54,7 +55,7 @@ class TestPipelineBuilder:
             type="retriever",
             label="Retriever",
             config={"top_k": 5},
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         node2 = VisualNode(
@@ -62,7 +63,7 @@ class TestPipelineBuilder:
             type="generator",
             label="Generator",
             config={"model": "gpt-3.5-turbo"},
-            position={"x": 300, "y": 100}
+            position={"x": 300, "y": 100},
         )
 
         # 创建边
@@ -71,7 +72,7 @@ class TestPipelineBuilder:
             source_node_id="node1",
             source_port="output",
             target_node_id="node2",
-            target_port="input"
+            target_port="input",
         )
 
         visual_pipeline = VisualPipeline(
@@ -106,9 +107,19 @@ class TestPipelineBuilder:
 
     def test_topological_sort_simple(self):
         """测试简单的拓扑排序"""
-        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
-        node2 = VisualNode(id="node2", type="generator", label="generator", config={}, position={})
-        edge = VisualConnection(id="edge1", source_node_id="node1", source_port="output", target_node_id="node2", target_port="input")
+        node1 = VisualNode(
+            id="node1", type="retriever", label="retriever", config={}, position={}
+        )
+        node2 = VisualNode(
+            id="node2", type="generator", label="generator", config={}, position={}
+        )
+        edge = VisualConnection(
+            id="edge1",
+            source_node_id="node1",
+            source_port="output",
+            target_node_id="node2",
+            target_port="input",
+        )
 
         pipeline = VisualPipeline(
             id="test",
@@ -131,16 +142,48 @@ class TestPipelineBuilder:
         # node1 -> node2 -> node4
         #       -> node3 -> node4
 
-        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
-        node2 = VisualNode(id="node2", type="promptor", label="promptor", config={}, position={})
-        node3 = VisualNode(id="node3", type="promptor", label="promptor", config={}, position={})
-        node4 = VisualNode(id="node4", type="generator", label="generator", config={}, position={})
+        node1 = VisualNode(
+            id="node1", type="retriever", label="retriever", config={}, position={}
+        )
+        node2 = VisualNode(
+            id="node2", type="promptor", label="promptor", config={}, position={}
+        )
+        node3 = VisualNode(
+            id="node3", type="promptor", label="promptor", config={}, position={}
+        )
+        node4 = VisualNode(
+            id="node4", type="generator", label="generator", config={}, position={}
+        )
 
         edges = [
-            VisualConnection(id="e1", source_node_id="node1", source_port="output", target_node_id="node2", target_port="input"),
-            VisualConnection(id="e2", source_node_id="node1", source_port="output", target_node_id="node3", target_port="input"),
-            VisualConnection(id="e3", source_node_id="node2", source_port="output", target_node_id="node4", target_port="input"),
-            VisualConnection(id="e4", source_node_id="node3", source_port="output", target_node_id="node4", target_port="input"),
+            VisualConnection(
+                id="e1",
+                source_node_id="node1",
+                source_port="output",
+                target_node_id="node2",
+                target_port="input",
+            ),
+            VisualConnection(
+                id="e2",
+                source_node_id="node1",
+                source_port="output",
+                target_node_id="node3",
+                target_port="input",
+            ),
+            VisualConnection(
+                id="e3",
+                source_node_id="node2",
+                source_port="output",
+                target_node_id="node4",
+                target_port="input",
+            ),
+            VisualConnection(
+                id="e4",
+                source_node_id="node3",
+                source_port="output",
+                target_node_id="node4",
+                target_port="input",
+            ),
         ]
 
         pipeline = VisualPipeline(
@@ -164,14 +207,38 @@ class TestPipelineBuilder:
         # 创建一个有循环的依赖图
         # node1 -> node2 -> node3 -> node1
 
-        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
-        node2 = VisualNode(id="node2", type="promptor", label="promptor", config={}, position={})
-        node3 = VisualNode(id="node3", type="generator", label="generator", config={}, position={})
+        node1 = VisualNode(
+            id="node1", type="retriever", label="retriever", config={}, position={}
+        )
+        node2 = VisualNode(
+            id="node2", type="promptor", label="promptor", config={}, position={}
+        )
+        node3 = VisualNode(
+            id="node3", type="generator", label="generator", config={}, position={}
+        )
 
         edges = [
-            VisualConnection(id="e1", source_node_id="node1", source_port="output", target_node_id="node2", target_port="input"),
-            VisualConnection(id="e2", source_node_id="node2", source_port="output", target_node_id="node3", target_port="input"),
-            VisualConnection(id="e3", source_node_id="node3", source_port="output", target_node_id="node1", target_port="input"),  # 形成循环
+            VisualConnection(
+                id="e1",
+                source_node_id="node1",
+                source_port="output",
+                target_node_id="node2",
+                target_port="input",
+            ),
+            VisualConnection(
+                id="e2",
+                source_node_id="node2",
+                source_port="output",
+                target_node_id="node3",
+                target_port="input",
+            ),
+            VisualConnection(
+                id="e3",
+                source_node_id="node3",
+                source_port="output",
+                target_node_id="node1",
+                target_port="input",
+            ),  # 形成循环
         ]
 
         pipeline = VisualPipeline(
@@ -206,7 +273,7 @@ class TestPipelineBuilder:
             type="file_source",
             label="File Source",
             config={"data": [{"input": "test1"}, {"input": "test2"}]},
-            position={}
+            position={},
         )
 
         pipeline = VisualPipeline(
@@ -239,7 +306,9 @@ class TestPipelineBuilder:
 
     def test_get_pipeline_builder_singleton(self):
         """测试获取 PipelineBuilder 单例"""
-        from sage.studio.services import get_pipeline_builder  # type: ignore[import-not-found]
+        from sage.studio.services import (
+            get_pipeline_builder,  # type: ignore[import-not-found]
+        )
 
         builder1 = get_pipeline_builder()
         builder2 = get_pipeline_builder()
@@ -259,7 +328,7 @@ class TestPipelineBuilderIntegration:
             type="retriever",
             label="Retriever",
             config={"top_k": 5, "index_name": "test_index"},
-            position={"x": 100, "y": 100}
+            position={"x": 100, "y": 100},
         )
 
         promptor = VisualNode(
@@ -267,7 +336,7 @@ class TestPipelineBuilderIntegration:
             type="promptor",
             label="Promptor",
             config={"template": "Context: {context}\nQuestion: {question}"},
-            position={"x": 300, "y": 100}
+            position={"x": 300, "y": 100},
         )
 
         generator = VisualNode(
@@ -275,12 +344,24 @@ class TestPipelineBuilderIntegration:
             type="generator",
             label="Generator",
             config={"model": "gpt-3.5-turbo"},
-            position={"x": 500, "y": 100}
+            position={"x": 500, "y": 100},
         )
 
         edges = [
-            VisualConnection(id="e1", source_node_id="retriever", source_port="output", target_node_id="promptor", target_port="input"),
-            VisualConnection(id="e2", source_node_id="promptor", source_port="output", target_node_id="generator", target_port="input"),
+            VisualConnection(
+                id="e1",
+                source_node_id="retriever",
+                source_port="output",
+                target_node_id="promptor",
+                target_port="input",
+            ),
+            VisualConnection(
+                id="e2",
+                source_node_id="promptor",
+                source_port="output",
+                target_node_id="generator",
+                target_port="input",
+            ),
         ]
 
         visual_pipeline = VisualPipeline(

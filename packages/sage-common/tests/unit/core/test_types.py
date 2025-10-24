@@ -7,16 +7,16 @@ Tests the core type definitions, enums, and type aliases.
 import pytest
 from sage.common.core.types import (
     ExecutionMode,
+    JobID,
     JobStatus,
-    TaskStatus,
-    TaskID,
-    ServiceID,
     NodeID,
     QueueID,
-    JobID,
-    T,
-    TaskType,
+    ServiceID,
     ServiceType,
+    T,
+    TaskID,
+    TaskStatus,
+    TaskType,
 )
 
 

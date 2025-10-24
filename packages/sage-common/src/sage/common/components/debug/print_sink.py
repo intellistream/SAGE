@@ -124,10 +124,10 @@ class PrintSink(SinkFunction):
                 return f"[{preview}, ... (+{len(data)-5} more)]"
 
         # 尝试检测常见的数据对象
-        if hasattr(data, '__dict__'):
+        if hasattr(data, "__dict__"):
             # 对象：显示类名和主要属性
             class_name = data.__class__.__name__
-            attrs = getattr(data, '__dict__', {})
+            attrs = getattr(data, "__dict__", {})
             if attrs:
                 attr_str = ", ".join(f"{k}={v}" for k, v in list(attrs.items())[:3])
                 return f"{class_name}({attr_str})"
@@ -136,7 +136,7 @@ class PrintSink(SinkFunction):
         # 其他类型：使用 str() 转换
         try:
             return str(data)
-        except Exception as e:
+        except Exception:
             return f"<Unprintable: {type(data).__name__}>"
 
     def __repr__(self) -> str:

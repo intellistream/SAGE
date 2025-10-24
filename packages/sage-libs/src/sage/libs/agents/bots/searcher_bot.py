@@ -15,7 +15,9 @@ class SearcherBot:
     这是一个占位实现。实际使用时需要实现具体的搜索逻辑。
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, ctx: Optional[Any] = None):
+    def __init__(
+        self, config: Optional[Dict[str, Any]] = None, ctx: Optional[Any] = None
+    ):
         """
         初始化SearcherBot
 

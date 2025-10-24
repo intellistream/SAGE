@@ -10,10 +10,10 @@ and optimization strategies.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from sage.common.core.functions import MapFunction
+    pass
 
 
 class NodeType(Enum):
@@ -44,10 +44,10 @@ class WorkflowNode:
     id: str
     name: str
     node_type: NodeType
-    operator: Optional[Any] = None  # MapFunction type, but avoid import
-    config: Dict[str, Any] = field(default_factory=dict)
-    metrics: Dict[str, float] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    operator: Any | None = None  # MapFunction type, but avoid import
+    config: dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, float] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate node initialization."""
@@ -102,18 +102,18 @@ class WorkflowGraph:
             name: Name of the workflow
         """
         self.name = name
-        self.nodes: Dict[str, WorkflowNode] = {}
-        self.edges: Dict[str, Set[str]] = {}  # adjacency list
-        self.metadata: Dict[str, Any] = {}
+        self.nodes: dict[str, WorkflowNode] = {}
+        self.edges: dict[str, set[str]] = {}  # adjacency list
+        self.metadata: dict[str, Any] = {}
 
     def add_node(
         self,
         node_id: str,
         node_type: NodeType,
-        name: Optional[str] = None,
-        operator: Optional[Any] = None,
-        config: Optional[Dict[str, Any]] = None,
-        metrics: Optional[Dict[str, float]] = None,
+        name: str | None = None,
+        operator: Any | None = None,
+        config: dict[str, Any] | None = None,
+        metrics: dict[str, float] | None = None,
         **kwargs,
     ) -> WorkflowNode:
         """
@@ -196,15 +196,15 @@ class WorkflowGraph:
             raise ValueError(f"Node {node_id} does not exist")
         return self.nodes[node_id]
 
-    def get_predecessors(self, node_id: str) -> List[str]:
+    def get_predecessors(self, node_id: str) -> list[str]:
         """Get all nodes that have edges pointing to this node."""
         return [n for n, targets in self.edges.items() if node_id in targets]
 
-    def get_successors(self, node_id: str) -> List[str]:
+    def get_successors(self, node_id: str) -> list[str]:
         """Get all nodes that this node points to."""
         return list(self.edges.get(node_id, []))
 
-    def topological_sort(self) -> List[str]:
+    def topological_sort(self) -> list[str]:
         """
         Return nodes in topological order.
 
@@ -281,8 +281,8 @@ class OptimizationResult:
     original_workflow: WorkflowGraph
     optimized_workflow: WorkflowGraph
     metrics: "OptimizationMetrics"
-    steps: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    steps: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -342,13 +342,13 @@ class BaseOptimizer(ABC):
             name: Name of the optimizer
         """
         self.name = name
-        self.config: Dict[str, Any] = {}
+        self.config: dict[str, Any] = {}
 
     @abstractmethod
     def optimize(
         self,
         workflow: WorkflowGraph,
-        constraints: Optional[Dict[str, Any]] = None,
+        constraints: dict[str, Any] | None = None,
     ) -> OptimizationResult:
         """
         Optimize a workflow graph.

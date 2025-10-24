@@ -1,12 +1,12 @@
 """
 Tests for SAGE logging utilities
 """
+
 import logging
 import tempfile
 from pathlib import Path
 
 import pytest
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 
@@ -83,7 +83,7 @@ class TestCustomLogger:
         logger = CustomLogger(
             name="FileLogger",
             outputs=[(str(log_file), "INFO")],
-            log_base_folder=None  # 使用绝对路径
+            log_base_folder=None,  # 使用绝对路径
         )
 
         logger.info("Test message")
@@ -95,8 +95,7 @@ class TestCustomLogger:
     def test_logger_with_level(self):
         """测试设置日志级别"""
         logger = CustomLogger(
-            name="LevelLogger",
-            outputs=[("console", logging.WARNING)]
+            name="LevelLogger", outputs=[("console", logging.WARNING)]
         )
 
         # Logger的级别会设置为最低的handler级别
@@ -104,10 +103,7 @@ class TestCustomLogger:
 
     def test_logger_with_level_string(self):
         """测试使用字符串设置日志级别"""
-        logger = CustomLogger(
-            name="StringLevelLogger",
-            outputs=[("console", "ERROR")]
-        )
+        logger = CustomLogger(name="StringLevelLogger", outputs=[("console", "ERROR")])
 
     def test_get_available_levels(self):
         """测试获取可用日志级别"""
@@ -121,10 +117,7 @@ class TestCustomLogger:
 
     def test_multiple_log_calls(self):
         """测试多次日志调用"""
-        logger = CustomLogger(
-            name="level_test",
-            outputs=[("console", logging.DEBUG)]
-        )
+        logger = CustomLogger(name="level_test", outputs=[("console", logging.DEBUG)])
 
         # 测试各种级别的日志
         logger.debug("Debug message")
@@ -133,29 +126,20 @@ class TestCustomLogger:
         logger.error("Error message")
 
         # 验证可以多次调用
-        logger2 = CustomLogger(
-            name="level_test2",
-            outputs=[("console", logging.ERROR)]
-        )
+        logger2 = CustomLogger(name="level_test2", outputs=[("console", logging.ERROR)])
         logger2.error("Another error")
 
     def test_file_handler_creation(self, tmp_path):
         """测试文件handler的创建"""
         log_file = tmp_path / "handler_test.log"
 
-        logger = CustomLogger(
-            name="HandlerLogger",
-            outputs=[(str(log_file), "DEBUG")]
-        )
+        logger = CustomLogger(name="HandlerLogger", outputs=[(str(log_file), "DEBUG")])
 
     def test_logger_format(self):
         """Test logger output format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             log_file = Path(tmpdir) / "format_test.log"
-            logger = CustomLogger(
-                name="format_test",
-                outputs=[(str(log_file), "INFO")]
-            )
+            logger = CustomLogger(name="format_test", outputs=[(str(log_file), "INFO")])
             logger.info("Format test message")
 
             content = log_file.read_text()
@@ -186,11 +170,13 @@ class TestLoggingConfiguration:
     def test_logging_import(self):
         """Test that logging module can be imported"""
         from sage.common.utils import logging as sage_logging
+
         assert sage_logging is not None
 
     def test_custom_logger_import(self):
         """Test CustomLogger can be imported from utils"""
         from sage.common.utils.logging import CustomLogger as CL
+
         assert CL is not None
 
         logger = CL()
@@ -202,6 +188,7 @@ class TestLoggingIntegration:
 
     def test_logger_in_class(self):
         """Test using logger in a class"""
+
         class TestClass:
             def __init__(self):
                 self.logger = CustomLogger(name=self.__class__.__name__)

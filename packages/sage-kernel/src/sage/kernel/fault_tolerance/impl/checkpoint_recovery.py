@@ -5,13 +5,15 @@ Checkpoint-based Fault Tolerance Strategy
 """
 
 import time
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from sage.common.core.types import TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.checkpoint_impl import CheckpointManagerImpl
+
 if TYPE_CHECKING:
     from sage.kernel.runtime.dispatcher import Dispatcher
+
 
 class CheckpointBasedRecovery(BaseFaultHandler):
     """
@@ -103,6 +105,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
             return False
         task = self.dispatcher.tasks.get(task_id)
         from sage.kernel.utils.ray.actor import ActorWrapper
+
         return isinstance(task, ActorWrapper)
 
     def recover(self, task_id: TaskID) -> bool:
@@ -156,7 +159,9 @@ class CheckpointBasedRecovery(BaseFaultHandler):
         """恢复完成时的回调"""
         if self.logger:
             if success:
-                self.logger.info(f"✅ Recovery completed successfully for task {task_id}")
+                self.logger.info(
+                    f"✅ Recovery completed successfully for task {task_id}"
+                )
                 # 可以在这里添加更多逻辑，如：
                 # - 发送通知
                 # - 记录指标

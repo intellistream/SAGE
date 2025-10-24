@@ -29,6 +29,7 @@ from sage.common.config.output_paths import (
     find_sage_project_root,
     get_sage_paths,
 )
+
 # 延迟导入 sage_db 以允许 CLI 在没有 C++ 扩展的情况下启动
 # from sage.middleware.components.sage_db.python.sage_db import SageDB, SageDBException
 from sage.tools.cli.commands import pipeline as pipeline_builder
@@ -53,10 +54,11 @@ def _lazy_import_sage_db():
         return  # 已经成功导入
 
     try:
+        from sage.middleware.components.sage_db.python.sage_db import SageDB as _SageDB
         from sage.middleware.components.sage_db.python.sage_db import (
-            SageDB as _SageDB,
             SageDBException as _SageDBException,
         )
+
         SageDB = _SageDB
         SageDBException = _SageDBException
         SAGE_DB_AVAILABLE = True

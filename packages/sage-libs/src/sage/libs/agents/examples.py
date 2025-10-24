@@ -51,9 +51,9 @@ def example_agent_workflow():
     print("=" * 60)
 
     try:
-        from sage.libs.agents.bots.question_bot import QuestionBot
         from sage.libs.agents.bots.answer_bot import AnswerBot
         from sage.libs.agents.bots.critic_bot import CriticBot
+        from sage.libs.agents.bots.question_bot import QuestionBot
 
         # Create a workflow: Question → Answer → Critique
         workflow = {
@@ -92,7 +92,8 @@ def example_custom_bot():
     print("3. Implement your custom logic")
 
     print("\nExample code:")
-    print("""
+    print(
+        """
     from sage.libs.agents.bots.answer_bot import AnswerBot
 
     class CustomDomainBot(AnswerBot):
@@ -107,7 +108,8 @@ def example_custom_bot():
 
     # Usage
     medical_bot = CustomDomainBot(domain="Medical", config={"model": "gpt-4"})
-    """)
+    """
+    )
 
 
 def example_bot_integration():
@@ -126,7 +128,8 @@ def example_bot_integration():
     print("3. Connect to data sources and sinks")
 
     print("\nExample pipeline:")
-    print("""
+    print(
+        """
     from sage.libs.io.source import FileSource
     from sage.libs.io.sink import TerminalSink
     from sage.libs.agents.bots.answer_bot import AnswerBot
@@ -140,7 +143,8 @@ def example_bot_integration():
     for question in source:
         answer = bot.generate_answer(question)
         sink.write(answer)
-    """)
+    """
+    )
 
 
 def run_all_examples():

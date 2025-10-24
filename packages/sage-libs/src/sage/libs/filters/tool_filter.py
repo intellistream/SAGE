@@ -1,5 +1,4 @@
 import json
-from typing import Set
 
 from sage.common.core.functions import FilterFunction
 from sage.libs.context.model_context import ModelContext
@@ -25,11 +24,11 @@ class ToolFilter(FilterFunction):
         if not config:
             config = {}
 
-        self.target_tools: Set[str] = self._parse_tools(config.get("tools"))
-        self.exclude_tools: Set[str] = self._parse_tools(config.get("exclude"))
+        self.target_tools: set[str] = self._parse_tools(config.get("tools"))
+        self.exclude_tools: set[str] = self._parse_tools(config.get("exclude"))
         self.include_unknown: bool = config.get("include_unknown", False)
 
-    def _parse_tools(self, tools_input) -> Set[str]:
+    def _parse_tools(self, tools_input) -> set[str]:
         """解析工具输入为工具集合"""
         if not tools_input:
             return set()

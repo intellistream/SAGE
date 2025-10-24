@@ -320,8 +320,8 @@ class TestSchedulerDecisionDelay:
 
     def test_schedule_task_with_delay(self):
         """测试任务调度中的延迟处理"""
-        from sage.kernel.scheduler.impl import FIFOScheduler
         from sage.kernel.scheduler.decision import PlacementDecision
+        from sage.kernel.scheduler.impl import FIFOScheduler
 
         scheduler = FIFOScheduler(platform="local")
 
@@ -346,7 +346,7 @@ class TestSchedulerDecisionDelay:
                 delay=0.01,  # 10ms 延迟
                 immediate=False,
                 placement_strategy="fifo",
-                reason="Test delay"
+                reason="Test delay",
             )
             return decision
 
@@ -354,6 +354,7 @@ class TestSchedulerDecisionDelay:
 
         # 调度任务（应该包括延迟）
         import time
+
         start = time.time()
         result = scheduler.schedule_task(task_node)
         elapsed = time.time() - start
@@ -365,8 +366,8 @@ class TestSchedulerDecisionDelay:
 
     def test_schedule_service_with_delay(self):
         """测试服务调度中的延迟处理"""
-        from sage.kernel.scheduler.impl import FIFOScheduler
         from sage.kernel.scheduler.decision import PlacementDecision
+        from sage.kernel.scheduler.impl import FIFOScheduler
 
         scheduler = FIFOScheduler(platform="local")
 
@@ -388,7 +389,7 @@ class TestSchedulerDecisionDelay:
                 delay=0.01,  # 10ms 延迟
                 immediate=False,
                 placement_strategy="fifo",
-                reason="Test service delay"
+                reason="Test service delay",
             )
             return decision
 
@@ -396,6 +397,7 @@ class TestSchedulerDecisionDelay:
 
         # 调度服务（应该包括延迟）
         import time
+
         start = time.time()
         result = scheduler.schedule_service(service_node)
         elapsed = time.time() - start
@@ -454,7 +456,9 @@ class TestSchedulerDecisionDelay:
         result = scheduler.schedule_service(service_node, runtime_ctx=custom_ctx)
 
         # 验证服务工厂使用了自定义上下文
-        service_factory.create_service_task.assert_called_once_with(service_node.service_name, custom_ctx)
+        service_factory.create_service_task.assert_called_once_with(
+            service_node.service_name, custom_ctx
+        )
         assert result == expected_service
 
 
@@ -501,6 +505,7 @@ class TestSchedulerShutdown:
 
         # 验证返回了 PlacementDecision
         from sage.kernel.scheduler.decision import PlacementDecision
+
         assert isinstance(decision, PlacementDecision)
         assert "test_service" in decision.reason
 

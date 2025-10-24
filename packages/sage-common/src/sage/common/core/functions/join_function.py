@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 from sage.common.core.functions.base_function import BaseFunction
 
@@ -22,7 +22,7 @@ class BaseJoinFunction(BaseFunction):
         return True
 
     @abstractmethod
-    def execute(self, payload: Any, key: Any, tag: int) -> List[Any]:
+    def execute(self, payload: Any, key: Any, tag: int) -> list[Any]:
         """
         Process data from a specific stream and return join results.
 
@@ -56,7 +56,7 @@ class UserOrderInnerJoin(BaseJoinFunction):
         self.user_cache = {}  # {user_id: user_data}
         self.order_cache = {}  # {user_id: [order_data, ...]}
 
-    def execute(self, payload: Any, key: Any, tag: int) -> List[Any]:
+    def execute(self, payload: Any, key: Any, tag: int) -> list[Any]:
         results = []
 
         if tag == 0:  # 用户数据流
@@ -88,7 +88,7 @@ class UserOrderInnerJoin(BaseJoinFunction):
 
     def _create_join_result(
         self, user_data: Any, order_data: Any, user_id: Any
-    ) -> Dict:
+    ) -> dict:
         return {
             "user_id": user_id,
             "user_name": user_data.get("name"),
@@ -113,7 +113,7 @@ class UserOrderLeftJoin(BaseJoinFunction):
 
         self.current_time = lambda: int(time.time() * 1000)
 
-    def execute(self, payload: Any, key: Any, tag: int) -> List[Any]:
+    def execute(self, payload: Any, key: Any, tag: int) -> list[Any]:
         results = []
         current_time = self.current_time()
 
@@ -158,7 +158,7 @@ class UserOrderLeftJoin(BaseJoinFunction):
 
     def _create_join_result(
         self, user_data: Any, order_data: Any, user_id: Any
-    ) -> Dict:
+    ) -> dict:
         return {
             "user_id": user_id,
             "user_name": user_data.get("name"),
@@ -182,7 +182,7 @@ class WindowedEventJoin(BaseJoinFunction):
 
         self.current_time = lambda: int(time.time() * 1000)
 
-    def execute(self, payload: Any, key: Any, tag: int) -> List[Any]:
+    def execute(self, payload: Any, key: Any, tag: int) -> list[Any]:
         current_time = self.current_time()
         results = []
 
@@ -220,7 +220,7 @@ class WindowedEventJoin(BaseJoinFunction):
             else:
                 del self.event_buffer[key]
 
-    def _get_window_events(self, key: Any, current_time: int) -> List:
+    def _get_window_events(self, key: Any, current_time: int) -> list:
         cutoff_time = current_time - self.window_ms
         return [
             (data, ts, tag)
@@ -228,7 +228,7 @@ class WindowedEventJoin(BaseJoinFunction):
             if ts >= cutoff_time
         ]
 
-    def _find_event_combinations(self, events: List) -> List:
+    def _find_event_combinations(self, events: list) -> list:
         # 示例：查找登录后的购买事件
         combinations = []
         login_events = [
@@ -249,7 +249,7 @@ class WindowedEventJoin(BaseJoinFunction):
 
         return combinations
 
-    def _create_event_combination(self, combo, key: Any) -> Dict:
+    def _create_event_combination(self, combo, key: Any) -> dict:
         login_data, purchase_data = combo
         return {
             "user_id": key,

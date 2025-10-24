@@ -18,10 +18,9 @@ Architecture:
 
 __layer__ = "L2"
 
-from sage.platform._version import __version__
-
 # Public API
 from sage.platform import queue, service, storage
+from sage.platform._version import __version__
 
 __all__ = [
     "__version__",

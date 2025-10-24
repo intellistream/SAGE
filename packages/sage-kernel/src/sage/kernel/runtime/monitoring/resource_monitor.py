@@ -15,6 +15,7 @@ from typing import Deque, Optional, Tuple
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -68,9 +69,7 @@ class ResourceMonitor:
 
         self._running = True
         self._monitor_thread = threading.Thread(
-            target=self._monitor_loop,
-            daemon=True,
-            name="ResourceMonitor"
+            target=self._monitor_loop, daemon=True, name="ResourceMonitor"
         )
         self._monitor_thread.start()
 
@@ -128,7 +127,9 @@ class ResourceMonitor:
         _, memory = self.memory_samples[-1]
         return (cpu, memory)
 
-    def get_average_usage(self, time_window: Optional[float] = None) -> Tuple[float, float]:
+    def get_average_usage(
+        self, time_window: Optional[float] = None
+    ) -> Tuple[float, float]:
         """
         获取平均CPU和内存使用率
 
@@ -156,7 +157,9 @@ class ResourceMonitor:
 
         return (avg_cpu, avg_memory)
 
-    def get_peak_usage(self, time_window: Optional[float] = None) -> Tuple[float, float]:
+    def get_peak_usage(
+        self, time_window: Optional[float] = None
+    ) -> Tuple[float, float]:
         """
         获取峰值CPU和内存使用率
 

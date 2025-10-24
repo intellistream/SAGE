@@ -45,9 +45,7 @@ class VectorPerturbation:
         self.mechanism = mechanism
 
     def perturb_single_vector(
-        self,
-        vector: np.ndarray,
-        strategy: str = "uniform"
+        self, vector: np.ndarray, strategy: str = "uniform"
     ) -> np.ndarray:
         """
         Perturb a single vector with DP noise.
@@ -140,9 +138,7 @@ class VectorPerturbation:
         return perturbed
 
     def perturb_batch_vectors(
-        self,
-        vectors: np.ndarray,
-        strategy: str = "uniform"
+        self, vectors: np.ndarray, strategy: str = "uniform"
     ) -> np.ndarray:
         """
         Perturb a batch of vectors.
@@ -160,9 +156,7 @@ class VectorPerturbation:
         return perturbed_batch
 
     def measure_perturbation_impact(
-        self,
-        original: np.ndarray,
-        perturbed: np.ndarray
+        self, original: np.ndarray, perturbed: np.ndarray
     ) -> dict:
         """
         Measure the impact of perturbation on vector properties.
@@ -184,7 +178,7 @@ class VectorPerturbation:
             "l2_distance": l2_distance,
             "l1_distance": l1_distance,
             "cosine_similarity": cosine_similarity,
-            "relative_change": l2_distance / (np.linalg.norm(original) + 1e-10)
+            "relative_change": l2_distance / (np.linalg.norm(original) + 1e-10),
         }
 
 

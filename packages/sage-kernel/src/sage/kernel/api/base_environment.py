@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from sage.common.core.functions import wrap_lambda
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.factory.service_factory import ServiceFactory
 from sage.kernel.runtime.jobmanager_client import JobManagerClient
-from sage.common.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
-    from sage.kernel.api.datastream import DataStream
     from sage.common.core.functions import BaseFunction
+    from sage.kernel.api.datastream import DataStream
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 
@@ -52,16 +53,22 @@ class BaseEnvironment(ABC):
         return self._transformation_classes
 
     def __init__(
-        self, name: str, config: dict | None, *, platform: str = "local", scheduler=None, enable_monitoring: bool = False
+        self,
+        name: str,
+        config: dict | None,
+        *,
+        platform: str = "local",
+        scheduler=None,
+        enable_monitoring: bool = False,
     ):
 
         self.name = name
-        self.uuid: Optional[str]  # 由jobmanager生成
+        self.uuid: str | None  # 由jobmanager生成
 
         self.config: dict = dict(config or {})
         self.platform: str = platform
         # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
-        self.pipeline: List["BaseTransformation"] = []
+        self.pipeline: list[BaseTransformation] = []
         self._filled_futures: dict = {}
         # 用于收集所有服务工厂，供ExecutionGraph构建服务节点时使用
         self.service_factories: dict = {}  # service_name -> ServiceFactory
@@ -73,13 +80,13 @@ class BaseEnvironment(ABC):
         self._scheduler = None
         self._init_scheduler(scheduler)
 
-        self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
+        self.env_base_dir: str | None = None  # 环境基础目录，用于存储日志和其他文件
         # JobManager 相关
-        self._jobmanager: Optional[Any] = None
+        self._jobmanager: Any | None = None
 
         # Engine 客户端相关
-        self._engine_client: Optional[JobManagerClient] = None
-        self.env_uuid: Optional[str] = None
+        self._engine_client: JobManagerClient | None = None
+        self.env_uuid: str | None = None
 
         # 日志配置
         self.console_log_level: str = "INFO"  # 默认console日志等级
@@ -153,7 +160,7 @@ class BaseEnvironment(ABC):
         if hasattr(self, "_logger") and self._logger is not None:
             self._logger.update_output_level("console", self.console_log_level)
 
-    def register_service(self, service_name: str, service_class: Type, *args, **kwargs):
+    def register_service(self, service_name: str, service_class: type, *args, **kwargs):
         """
         注册服务到环境中
 
@@ -220,7 +227,7 @@ class BaseEnvironment(ABC):
         buffer_size: int = 10000,
         max_poll_records: int = 500,
         **kafka_config,
-    ) -> "DataStream":
+    ) -> DataStream:
         """
         创建Kafka数据源，采用Flink兼容的架构设计
 
@@ -290,8 +297,8 @@ class BaseEnvironment(ABC):
         return self._get_datastream_class()(self, transformation)
 
     def from_source(
-        self, function: Union[Type["BaseFunction"], Callable], *args, **kwargs
-    ) -> "DataStream":
+        self, function: type[BaseFunction] | Callable, *args, **kwargs
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, "flatmap")
@@ -306,8 +313,8 @@ class BaseEnvironment(ABC):
         return self._get_datastream_class()(self, transformation)
 
     def from_collection(
-        self, function: Union[Type["BaseFunction"], Callable], *args, **kwargs
-    ) -> "DataStream":
+        self, function: type[BaseFunction] | Callable, *args, **kwargs
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, "flatmap")
@@ -323,8 +330,8 @@ class BaseEnvironment(ABC):
         return self._get_datastream_class()(self, transformation)
 
     def from_batch(
-        self, source: Union[Type["BaseFunction"], Any], *args, **kwargs
-    ) -> "DataStream":
+        self, source: type[BaseFunction] | Any, *args, **kwargs
+    ) -> DataStream:
         """
         统一的批处理数据源创建方法，支持多种输入类型
 
@@ -393,7 +400,7 @@ class BaseEnvironment(ABC):
                     f"Expected BaseFunction subclass, list, tuple, or any iterable object."
                 )
 
-    def from_future(self, name: str) -> "DataStream":
+    def from_future(self, name: str) -> DataStream:
         """
         创建一个future stream占位符，用于建立反馈边。
 
@@ -450,14 +457,14 @@ class BaseEnvironment(ABC):
     #                auxiliary methods                     #
     ########################################################
 
-    def _append(self, transformation: "BaseTransformation"):
+    def _append(self, transformation: BaseTransformation):
         """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
 
     def _from_batch_function_class(
-        self, batch_function_class: Type["BaseFunction"], *args, **kwargs
-    ) -> "DataStream":
+        self, batch_function_class: type[BaseFunction], *args, **kwargs
+    ) -> DataStream:
         """
         从自定义批处理函数类创建批处理数据源
         """
@@ -487,9 +494,7 @@ class BaseEnvironment(ABC):
 
         return self._get_datastream_class()(self, transformation)
 
-    def _from_batch_collection(
-        self, data: Union[list, tuple], **kwargs
-    ) -> "DataStream":
+    def _from_batch_collection(self, data: list | tuple, **kwargs) -> DataStream:
         """
         从数据集合创建批处理数据源
         """
@@ -508,7 +513,7 @@ class BaseEnvironment(ABC):
 
         return self._get_datastream_class()(self, transformation)
 
-    def _from_batch_iterable(self, iterable: Any, **kwargs) -> "DataStream":
+    def _from_batch_iterable(self, iterable: Any, **kwargs) -> DataStream:
         """
         从任何可迭代对象创建批处理数据源
         """

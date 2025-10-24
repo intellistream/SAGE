@@ -15,8 +15,7 @@ from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.libs.io.sink import FileSink
 from sage.libs.io.source import FileSource
-from sage.middleware.operators.rag import OpenAIGenerator
-from sage.middleware.operators.rag import QAPromptor
+from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 
 # from sage.middleware.operators.rag import DenseRetriever  # 这个类不存在
 

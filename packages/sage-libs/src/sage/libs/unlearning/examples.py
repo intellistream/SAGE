@@ -6,8 +6,9 @@ This file demonstrates how to use the SAGE machine unlearning algorithms.
 Layer: L3 (Core - Algorithm Library)
 """
 
-import numpy as np
 from typing import Any, Dict, List
+
+import numpy as np
 
 
 def example_basic_unlearning():
@@ -31,7 +32,8 @@ def example_basic_unlearning():
         print("  4. Verify data removal")
 
         print("\nExample workflow:")
-        print("""
+        print(
+            """
         from sage.libs.unlearning.algorithms import GaussianUnlearning
 
         # Initialize unlearning algorithm
@@ -51,7 +53,8 @@ def example_basic_unlearning():
 
         # Verify unlearning
         print(f"Model updated: {updated_model is not None}")
-        """)
+        """
+        )
 
     except ImportError as e:
         print(f"✗ Import error: {e}")
@@ -70,8 +73,8 @@ def example_differential_privacy():
 
     try:
         from sage.libs.unlearning.dp_unlearning import (
-            VectorPerturbation,
             NeighborCompensation,
+            VectorPerturbation,
         )
 
         print("\n✓ DP-based unlearning components:")
@@ -80,7 +83,8 @@ def example_differential_privacy():
         print("  - Privacy Accountant: Track privacy budget")
 
         print("\nExample: Vector perturbation")
-        print("""
+        print(
+            """
         from sage.libs.unlearning.dp_unlearning import VectorPerturbation
 
         # Create DP mechanism
@@ -95,10 +99,12 @@ def example_differential_privacy():
             model_parameters=params,
             forget_gradient=forget_grad
         )
-        """)
+        """
+        )
 
         print("\nExample: Privacy accounting")
-        print("""
+        print(
+            """
         from sage.libs.unlearning.dp_unlearning import PrivacyAccountant
 
         # Track privacy budget across multiple unlearning operations
@@ -110,7 +116,8 @@ def example_differential_privacy():
         # Check remaining budget
         remaining = accountant.get_remaining_budget()
         print(f"Remaining privacy budget: {remaining}")
-        """)
+        """
+        )
 
     except ImportError as e:
         print(f"✗ Import error: {e}")
@@ -137,7 +144,8 @@ def example_evaluation_metrics():
         print("  - Model utility: Overall model performance")
 
         print("\nExample evaluation:")
-        print("""
+        print(
+            """
         from sage.libs.unlearning.evaluation import UnlearningMetrics
 
         # Create metrics evaluator
@@ -163,7 +171,8 @@ def example_evaluation_metrics():
         print(f"Forgetting score: {forget_score:.4f}")
         print(f"Retention score: {retain_score:.4f}")
         print(f"Similarity to retrained model: {similarity:.4f}")
-        """)
+        """
+        )
 
     except ImportError as e:
         print(f"✗ Import error: {e}")
@@ -186,7 +195,8 @@ def example_unlearning_algorithms():
     print("  - Gradient Ascent: Direct gradient-based removal")
 
     print("\nExample: Gaussian vs Laplace")
-    print("""
+    print(
+        """
     from sage.libs.unlearning.algorithms import (
         GaussianUnlearning,
         LaplaceUnlearning
@@ -209,10 +219,12 @@ def example_unlearning_algorithms():
     # Compare results
     gaussian_model = gaussian.unlearn(forget_indices)
     laplace_model = laplace.unlearn(forget_indices)
-    """)
+    """
+    )
 
     print("\nExample: SISA (Sharded training)")
-    print("""
+    print(
+        """
     # SISA enables efficient unlearning by sharding data
     from sage.libs.unlearning.algorithms import SISAUnlearning
 
@@ -227,7 +239,8 @@ def example_unlearning_algorithms():
 
     # Unlearn by retraining only affected shards
     sisa.unlearn(forget_indices)  # Much faster than full retraining
-    """)
+    """
+    )
 
 
 def example_real_world_scenario():
@@ -249,7 +262,8 @@ def example_real_world_scenario():
     print("  5. Document compliance")
 
     print("\nComplete example:")
-    print("""
+    print(
+        """
     from sage.libs.unlearning.algorithms import GaussianUnlearning
     from sage.libs.unlearning.evaluation import UnlearningMetrics
     from sage.libs.unlearning.dp_unlearning import PrivacyAccountant
@@ -296,7 +310,8 @@ def example_real_world_scenario():
 
     log_compliance(compliance_report)
     print("✓ GDPR deletion request processed successfully")
-    """)
+    """
+    )
 
 
 def run_all_examples():

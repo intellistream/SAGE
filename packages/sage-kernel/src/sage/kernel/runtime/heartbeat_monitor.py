@@ -14,9 +14,9 @@ import logging
 import threading
 import time
 from typing import TYPE_CHECKING, Any, Dict, Optional
-from sage.kernel.utils.ray.actor import ActorWrapper
 
 import ray
+from sage.kernel.utils.ray.actor import ActorWrapper
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.dispatcher import Dispatcher
@@ -102,9 +102,7 @@ class HeartbeatMonitor:
         self._stop_event.clear()
 
         self._monitor_thread = threading.Thread(
-            target=self._monitor_loop,
-            name="HeartbeatMonitor",
-            daemon=True
+            target=self._monitor_loop, name="HeartbeatMonitor", daemon=True
         )
         self._monitor_thread.start()
 
@@ -142,7 +140,9 @@ class HeartbeatMonitor:
             self.logger.error(f"❌ Failed to get active tasks from Dispatcher: {e}")
             return {}
 
-    def _pull_heartbeat(self, task_id: str, task: ActorWrapper) -> Optional[Dict[str, Any]]:
+    def _pull_heartbeat(
+        self, task_id: str, task: ActorWrapper
+    ) -> Optional[Dict[str, Any]]:
         """
         从 Ray Task 拉取心跳信息
 
@@ -175,7 +175,7 @@ class HeartbeatMonitor:
         except Exception as e:
             self.logger.error(
                 f"❌ Unexpected error pulling heartbeat from {task_id}: {e}",
-                exc_info=True
+                exc_info=True,
             )
             return None
 
@@ -282,7 +282,9 @@ class HeartbeatMonitor:
                                     f"🚨 Task {task_id} FAILURE: "
                                     f"consecutive call failures={state['consecutive_failures']}"
                                 )
-                                failed_tasks.append((task_id, "call_failure", heartbeat))
+                                failed_tasks.append(
+                                    (task_id, "call_failure", heartbeat)
+                                )
 
                             continue
 
@@ -300,7 +302,9 @@ class HeartbeatMonitor:
                                     f"🚨 Task {task_id} FAILURE: "
                                     f"consecutive invalid heartbeats={state['consecutive_failures']}"
                                 )
-                                failed_tasks.append((task_id, "invalid_heartbeat", heartbeat))
+                                failed_tasks.append(
+                                    (task_id, "invalid_heartbeat", heartbeat)
+                                )
 
                             continue
 
@@ -315,8 +319,8 @@ class HeartbeatMonitor:
                         # 1. timestamp 变化
                         # 2. packet_count 增加 (表示任务在处理数据)
                         has_update = (
-                            current_timestamp > last_timestamp or
-                            current_packet_count > last_packet_count
+                            current_timestamp > last_timestamp
+                            or current_packet_count > last_packet_count
                         )
 
                         if has_update:
@@ -352,19 +356,21 @@ class HeartbeatMonitor:
                                     f"consecutive stale heartbeats={state['consecutive_stale']}, "
                                     f"time_since_last={time_since_last:.1f}s"
                                 )
-                                failed_tasks.append((task_id, "stale_heartbeat", heartbeat))
+                                failed_tasks.append(
+                                    (task_id, "stale_heartbeat", heartbeat)
+                                )
 
                     # === 清理已不存在的任务 ===
-                    disappeared_tasks = set(self._task_states.keys()) - set(active_tasks.keys())
+                    disappeared_tasks = set(self._task_states.keys()) - set(
+                        active_tasks.keys()
+                    )
                     for task_id in disappeared_tasks:
                         self.logger.info(f"🗑️  Task {task_id} removed from monitoring")
                         self._task_states.pop(task_id, None)
 
                 # === 步骤 3: 处理失败任务 ===
                 if failed_tasks:
-                    self.logger.warning(
-                        f"⚠️  Detected {len(failed_tasks)} failed tasks"
-                    )
+                    self.logger.warning(f"⚠️  Detected {len(failed_tasks)} failed tasks")
 
                     for task_id, failure_type, heartbeat in failed_tasks:
                         self.logger.error(
@@ -391,7 +397,7 @@ class HeartbeatMonitor:
                         except Exception as e:
                             self.logger.error(
                                 f"❌ Failed to handle failure for {task_id}: {e}",
-                                exc_info=True
+                                exc_info=True,
                             )
 
                 # === 步骤 4: 更新统计 ===
@@ -405,8 +411,7 @@ class HeartbeatMonitor:
 
             except Exception as e:
                 self.logger.error(
-                    f"❌ Unexpected error in monitor loop: {e}",
-                    exc_info=True
+                    f"❌ Unexpected error in monitor loop: {e}", exc_info=True
                 )
                 # 避免无限错误循环
                 time.sleep(1.0)
@@ -468,12 +473,12 @@ class HeartbeatMonitor:
                 "consecutive_stale": state["consecutive_stale"],
                 "time_since_update": current_time - state["last_valid_timestamp"],
                 "is_at_risk": (
-                    state["consecutive_failures"] >= self.max_missed_checks - 1 or
-                    state["consecutive_stale"] >= self.max_missed_checks - 1
+                    state["consecutive_failures"] >= self.max_missed_checks - 1
+                    or state["consecutive_stale"] >= self.max_missed_checks - 1
                 ),
                 "is_failed": (
-                    state["consecutive_failures"] >= self.max_missed_checks or
-                    state["consecutive_stale"] >= self.max_missed_checks
+                    state["consecutive_failures"] >= self.max_missed_checks
+                    or state["consecutive_stale"] >= self.max_missed_checks
                 ),
             }
 

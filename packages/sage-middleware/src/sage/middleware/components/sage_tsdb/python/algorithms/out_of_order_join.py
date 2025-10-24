@@ -9,8 +9,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from .base import TimeSeriesAlgorithm
 from ..sage_tsdb import TimeSeriesData
+from .base import TimeSeriesAlgorithm
 
 
 @dataclass

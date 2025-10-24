@@ -140,7 +140,7 @@ class PlacementDecision:
             delay=0.0,
             immediate=True,
             placement_strategy="default",
-            reason=reason or "Immediate default placement"
+            reason=reason or "Immediate default placement",
         )
 
     @classmethod
@@ -149,7 +149,7 @@ class PlacementDecision:
         cpu: Optional[int] = None,
         gpu: Optional[int] = None,
         memory: Optional[str] = None,
-        reason: str = ""
+        reason: str = "",
     ) -> "PlacementDecision":
         """快捷方法：指定资源需求"""
         resources = {}
@@ -166,15 +166,12 @@ class PlacementDecision:
             delay=0.0,
             immediate=True,
             placement_strategy="default",
-            reason=reason or f"Resource requirements: {resources}"
+            reason=reason or f"Resource requirements: {resources}",
         )
 
     @classmethod
     def with_node(
-        cls,
-        node_id: str,
-        strategy: str = "default",
-        reason: str = ""
+        cls, node_id: str, strategy: str = "default", reason: str = ""
     ) -> "PlacementDecision":
         """快捷方法：指定目标节点"""
         return cls(
@@ -183,15 +180,11 @@ class PlacementDecision:
             delay=0.0,
             immediate=True,
             placement_strategy=strategy,
-            reason=reason or f"Target node: {node_id}"
+            reason=reason or f"Target node: {node_id}",
         )
 
     @classmethod
-    def with_delay(
-        cls,
-        delay_seconds: float,
-        reason: str = ""
-    ) -> "PlacementDecision":
+    def with_delay(cls, delay_seconds: float, reason: str = "") -> "PlacementDecision":
         """快捷方法：延迟调度"""
         return cls(
             target_node=None,
@@ -199,7 +192,7 @@ class PlacementDecision:
             delay=delay_seconds,
             immediate=False,
             placement_strategy="default",
-            reason=reason or f"Delayed by {delay_seconds}s"
+            reason=reason or f"Delayed by {delay_seconds}s",
         )
 
 

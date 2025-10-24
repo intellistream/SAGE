@@ -3,7 +3,6 @@ import json
 import socket
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
 
 from sage.common.core.functions import SourceFunction
 
@@ -59,7 +58,7 @@ class FileSource(SourceFunction):
         """
         try:
             while True:
-                with open(self.data_path, "r", encoding="utf-8") as f:
+                with open(self.data_path, encoding="utf-8") as f:
                     f.seek(self.file_pos)  # Move to the last read position
                     line = f.readline()
                     self.file_pos = f.tell()  # Update the new position
@@ -156,7 +155,7 @@ class SocketSource(SourceFunction):
             # 发送客户端ID用于负载均衡
             if self.load_balancing:
                 self._send_client_id()
-        except socket.error as e:
+        except OSError as e:
             self.logger.error(f"连接失败: {e}")
             self.is_connected = False
 
@@ -191,7 +190,7 @@ class SocketSource(SourceFunction):
             self.logger.error(f"重连失败: {e}")
             return False
 
-    def _receive_data(self) -> Optional[bytes]:
+    def _receive_data(self) -> bytes | None:
         """从套接字接收数据"""
         if not self.is_connected and self.protocol == "tcp":
             if not self.reconnect or not self._reconnect():
@@ -205,14 +204,14 @@ class SocketSource(SourceFunction):
             else:  # UDP
                 data, _ = self.socket.recvfrom(self.buffer_size)
                 return data
-        except socket.timeout:
+        except TimeoutError:
             return None  # 超时是正常情况
-        except socket.error as e:
+        except OSError as e:
             self.logger.error(f"接收数据错误: {e}")
             self.is_connected = False
             return None
 
-    def _process_buffer(self) -> Optional[str]:
+    def _process_buffer(self) -> str | None:
         """处理缓冲区并提取完整消息"""
         # 检查是否有完整消息
         if self.buffer:
@@ -228,7 +227,7 @@ class SocketSource(SourceFunction):
                 return None
         return None
 
-    def execute(self) -> Union[str, dict, None]:
+    def execute(self) -> str | dict | None:
         """
         从套接字读取数据并返回完整消息
 
@@ -303,10 +302,10 @@ class TextFileSource(SourceFunction):
         self.encoding = self.config.get("encoding", "utf-8")
         self.read_mode = self.config.get("read_mode", "all")
 
-    def execute(self, data=None) -> Union[str, List[str]]:
+    def execute(self, data=None) -> str | list[str]:
         """读取文本文件"""
         try:
-            with open(self.file_path, "r", encoding=self.encoding) as f:
+            with open(self.file_path, encoding=self.encoding) as f:
                 if self.read_mode == "lines":
                     return f.readlines()
                 else:
@@ -334,10 +333,10 @@ class JSONFileSource(SourceFunction):
         self.file_path = self.config.get("file_path")
         self.encoding = self.config.get("encoding", "utf-8")
 
-    def execute(self, data=None) -> Union[Dict, List]:
+    def execute(self, data=None) -> dict | list:
         """读取JSON文件"""
         try:
-            with open(self.file_path, "r", encoding=self.encoding) as f:
+            with open(self.file_path, encoding=self.encoding) as f:
                 return json.load(f)
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.file_path}")
@@ -369,10 +368,10 @@ class CSVFileSource(SourceFunction):
         self.encoding = self.config.get("encoding", "utf-8")
         self.has_header = self.config.get("has_header", True)
 
-    def execute(self, data=None) -> List[Dict]:
+    def execute(self, data=None) -> list[dict]:
         """读取CSV文件"""
         try:
-            with open(self.file_path, "r", encoding=self.encoding) as f:
+            with open(self.file_path, encoding=self.encoding) as f:
                 if self.has_header:
                     reader = csv.DictReader(f, delimiter=self.delimiter)
                     return list(reader)
@@ -400,11 +399,13 @@ class KafkaSource(SourceFunction):
     def __init__(self, config: dict = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
-        self.bootstrap_servers = self.config.get("bootstrap_servers", ["localhost:9092"])
+        self.bootstrap_servers = self.config.get(
+            "bootstrap_servers", ["localhost:9092"]
+        )
         self.topic = self.config.get("topic")
         self.group_id = self.config.get("group_id", "sage_consumer")
 
-    def execute(self, data=None) -> Optional[Dict]:
+    def execute(self, data=None) -> dict | None:
         """读取Kafka消息（占位实现）"""
         self.logger.warning("KafkaSource is a placeholder implementation")
         # 实际实现需要kafka-python库
@@ -430,7 +431,7 @@ class DatabaseSource(SourceFunction):
         self.query = self.config.get("query")
         self.params = self.config.get("params", {})
 
-    def execute(self, data=None) -> Optional[List[Dict]]:
+    def execute(self, data=None) -> list[dict] | None:
         """执行数据库查询（占位实现）"""
         self.logger.warning("DatabaseSource is a placeholder implementation")
         # 实际实现需要数据库驱动（如psycopg2, pymysql等）
@@ -458,7 +459,7 @@ class APISource(SourceFunction):
         self.params = self.config.get("params", {})
         self.timeout = self.config.get("timeout", 30)
 
-    def execute(self, data=None) -> Optional[Union[Dict, List]]:
+    def execute(self, data=None) -> dict | list | None:
         """调用API获取数据（占位实现）"""
         self.logger.warning("APISource is a placeholder implementation")
         # 实际实现需要requests库

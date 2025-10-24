@@ -1,9 +1,11 @@
 from collections import deque
 from typing import Any, Dict, List, Optional
 
+from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import (
+    DialogueParser,
+)
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.platform.service import BaseService
-from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
 
 
 class ShortTermMemoryService(BaseService):
@@ -11,7 +13,7 @@ class ShortTermMemoryService(BaseService):
         self,
         max_dialogue: Optional[int] = None,
         max_messages: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
 
@@ -36,9 +38,7 @@ class ShortTermMemoryService(BaseService):
             self.max_messages = max_messages
         else:
             # 都没提供，抛出错误
-            raise ValueError(
-                "Either max_dialogue or max_messages must be provided"
-            )
+            raise ValueError("Either max_dialogue or max_messages must be provided")
 
         # 使用 deque 作为队列，设置最大长度
         self.message_queue = deque(maxlen=self.max_messages)
@@ -64,8 +64,7 @@ class ShortTermMemoryService(BaseService):
         # 使用对话解析器进行验证（严格模式）
         try:
             validated_dialogs = self.dialogue_parser.parse_and_validate(
-                dialogs,
-                strict_mode=True
+                dialogs, strict_mode=True
             )
         except (TypeError, ValueError) as e:
             self._logger.error(f"Dialog validation failed: {e}")
@@ -119,13 +118,13 @@ if __name__ == "__main__":
             {
                 "speaker": "小明",
                 "text": "你好，今天天气真不错！",
-                "session_type": "text"
+                "session_type": "text",
             },
             {
                 "speaker": "小红",
                 "text": "是啊，阳光明媚，心情也很好！",
-                "session_type": "text"
-            }
+                "session_type": "text",
+            },
         ]
         memory.insert(dialogs_1)
 
@@ -144,13 +143,13 @@ if __name__ == "__main__":
             {
                 "speaker": "小明",
                 "text": "要不要一起去公园散步？",
-                "session_type": "text"
+                "session_type": "text",
             },
             {
                 "speaker": "小红",
                 "text": "好啊，我们去湖边走走吧！",
-                "session_type": "text"
-            }
+                "session_type": "text",
+            },
         ]
         memory.insert(dialogs_2)
 
@@ -166,11 +165,7 @@ if __name__ == "__main__":
         print("第3次插入 - 插入1条新消息 (触发窗口滑动)")
         print("=" * 70)
         dialogs_3 = [
-            {
-                "speaker": "小明",
-                "text": "那里的风景一定很美！",
-                "session_type": "text"
-            }
+            {"speaker": "小明", "text": "那里的风景一定很美！", "session_type": "text"}
         ]
         memory.insert(dialogs_3)
 
@@ -187,16 +182,12 @@ if __name__ == "__main__":
         print("第4次插入 - 再插入2条消息 (继续窗口滑动)")
         print("=" * 70)
         dialogs_4 = [
-            {
-                "speaker": "小红",
-                "text": "我们可以带相机拍照！",
-                "session_type": "text"
-            },
+            {"speaker": "小红", "text": "我们可以带相机拍照！", "session_type": "text"},
             {
                 "speaker": "小明",
                 "text": "太好了，我正想记录这美好的一天！",
-                "session_type": "text"
-            }
+                "session_type": "text",
+            },
         ]
         memory.insert(dialogs_4)
 
@@ -210,5 +201,6 @@ if __name__ == "__main__":
         print("\n" + "=" * 70)
         print("✅ 测试完成！短期记忆服务采用队列方式管理，自动丢弃最旧的消息。")
         print("=" * 70 + "\n")
+
     CustomLogger.disable_global_console_debug()
     test_short_term_memory()

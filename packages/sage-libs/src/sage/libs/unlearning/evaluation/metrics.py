@@ -34,7 +34,7 @@ class UnlearningMetrics:
         forgotten_vectors: np.ndarray,
         database_vectors: np.ndarray,
         query_vector: np.ndarray,
-        k: int = 10
+        k: int = 10,
     ) -> float:
         """
         Measure how often forgotten vectors still appear in top-k results.
@@ -69,7 +69,7 @@ class UnlearningMetrics:
         retained_vectors_before: np.ndarray,
         retained_vectors_after: np.ndarray,
         test_queries: np.ndarray,
-        k: int = 10
+        k: int = 10,
     ) -> float:
         """
         Measure how much retained data performance degrades.
@@ -101,9 +101,7 @@ class UnlearningMetrics:
 
     @staticmethod
     def privacy_utility_tradeoff(
-        epsilon: float,
-        delta: float,
-        utility_metric: float
+        epsilon: float, delta: float, utility_metric: float
     ) -> Dict[str, float]:
         """
         Compute privacy-utility trade-off metrics.
@@ -130,7 +128,7 @@ class UnlearningMetrics:
             "delta": delta,
             "utility": utility_metric,
             "privacy_loss": epsilon,  # TODO: Better privacy loss metric
-            "utility_loss": 1 - utility_metric  # TODO: Relative to baseline
+            "utility_loss": 1 - utility_metric,  # TODO: Relative to baseline
         }
 
 

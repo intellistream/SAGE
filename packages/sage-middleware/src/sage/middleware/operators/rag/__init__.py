@@ -17,14 +17,14 @@ and implement RAG-specific business logic.
 # Export types for easier access
 from sage.middleware.operators.rag.types import (
     RAGDocument,
-    RAGQuery,
-    RAGResponse,
     RAGInput,
     RAGOutput,
+    RAGQuery,
+    RAGResponse,
+    create_rag_response,
     ensure_rag_response,
     extract_query,
     extract_results,
-    create_rag_response,
 )
 
 # Lazy imports to avoid optional dependency issues
@@ -34,30 +34,63 @@ _IMPORTS = {
     "HFGenerator": ("sage.middleware.operators.rag.generator", "HFGenerator"),
     # Retrievers
     "ChromaRetriever": ("sage.middleware.operators.rag.retriever", "ChromaRetriever"),
-    "MilvusDenseRetriever": ("sage.middleware.operators.rag.retriever", "MilvusDenseRetriever"),
-    "MilvusSparseRetriever": ("sage.middleware.operators.rag.retriever", "MilvusSparseRetriever"),
-    "Wiki18FAISSRetriever": ("sage.middleware.operators.rag.retriever", "Wiki18FAISSRetriever"),
+    "MilvusDenseRetriever": (
+        "sage.middleware.operators.rag.retriever",
+        "MilvusDenseRetriever",
+    ),
+    "MilvusSparseRetriever": (
+        "sage.middleware.operators.rag.retriever",
+        "MilvusSparseRetriever",
+    ),
+    "Wiki18FAISSRetriever": (
+        "sage.middleware.operators.rag.retriever",
+        "Wiki18FAISSRetriever",
+    ),
     # Rerankers
     "BGEReranker": ("sage.middleware.operators.rag.reranker", "BGEReranker"),
-    "LLMbased_Reranker": ("sage.middleware.operators.rag.reranker", "LLMbased_Reranker"),
+    "LLMbased_Reranker": (
+        "sage.middleware.operators.rag.reranker",
+        "LLMbased_Reranker",
+    ),
     # Promptors
     "QAPromptor": ("sage.middleware.operators.rag.promptor", "QAPromptor"),
-    "SummarizationPromptor": ("sage.middleware.operators.rag.promptor", "SummarizationPromptor"),
-    "QueryProfilerPromptor": ("sage.middleware.operators.rag.promptor", "QueryProfilerPromptor"),
+    "SummarizationPromptor": (
+        "sage.middleware.operators.rag.promptor",
+        "SummarizationPromptor",
+    ),
+    "QueryProfilerPromptor": (
+        "sage.middleware.operators.rag.promptor",
+        "QueryProfilerPromptor",
+    ),
     # Evaluation
     "F1Evaluate": ("sage.middleware.operators.rag.evaluate", "F1Evaluate"),
     "RecallEvaluate": ("sage.middleware.operators.rag.evaluate", "RecallEvaluate"),
-    "BertRecallEvaluate": ("sage.middleware.operators.rag.evaluate", "BertRecallEvaluate"),
+    "BertRecallEvaluate": (
+        "sage.middleware.operators.rag.evaluate",
+        "BertRecallEvaluate",
+    ),
     "RougeLEvaluate": ("sage.middleware.operators.rag.evaluate", "RougeLEvaluate"),
     "BRSEvaluate": ("sage.middleware.operators.rag.evaluate", "BRSEvaluate"),
     "AccuracyEvaluate": ("sage.middleware.operators.rag.evaluate", "AccuracyEvaluate"),
-    "TokenCountEvaluate": ("sage.middleware.operators.rag.evaluate", "TokenCountEvaluate"),
+    "TokenCountEvaluate": (
+        "sage.middleware.operators.rag.evaluate",
+        "TokenCountEvaluate",
+    ),
     "LatencyEvaluate": ("sage.middleware.operators.rag.evaluate", "LatencyEvaluate"),
-    "ContextRecallEvaluate": ("sage.middleware.operators.rag.evaluate", "ContextRecallEvaluate"),
-    "CompressionRateEvaluate": ("sage.middleware.operators.rag.evaluate", "CompressionRateEvaluate"),
+    "ContextRecallEvaluate": (
+        "sage.middleware.operators.rag.evaluate",
+        "ContextRecallEvaluate",
+    ),
+    "CompressionRateEvaluate": (
+        "sage.middleware.operators.rag.evaluate",
+        "CompressionRateEvaluate",
+    ),
     # Document Processing
     "CharacterSplitter": ("sage.middleware.operators.rag.chunk", "CharacterSplitter"),
-    "SentenceTransformersTokenTextSplitter": ("sage.middleware.operators.rag.chunk", "SentenceTransformersTokenTextSplitter"),
+    "SentenceTransformersTokenTextSplitter": (
+        "sage.middleware.operators.rag.chunk",
+        "SentenceTransformersTokenTextSplitter",
+    ),
     "RefinerOperator": ("sage.middleware.operators.rag.refiner", "RefinerOperator"),
     "MemoryWriter": ("sage.middleware.operators.rag.writer", "MemoryWriter"),
     # External Data Sources (may require optional dependencies)
@@ -80,7 +113,7 @@ __all__ = [
     "extract_results",
     "create_rag_response",
     # Operators (lazy loaded)
-    *list(_IMPORTS.keys())
+    *list(_IMPORTS.keys()),
 ]
 
 
@@ -89,6 +122,7 @@ def __getattr__(name: str):
     if name in _IMPORTS:
         module_name, attr_name = _IMPORTS[name]
         import importlib
+
         module = importlib.import_module(module_name)
         return getattr(module, attr_name)
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

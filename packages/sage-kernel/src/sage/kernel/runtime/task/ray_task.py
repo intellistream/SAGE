@@ -83,7 +83,6 @@ class RayTask(BaseTask):
             self.error_count += 1  # 更新错误计数
             return False
 
-
     def stop(self) -> None:
         """
         停止任务 (重写父类方法,确保心跳线程也停止)
@@ -94,8 +93,6 @@ class RayTask(BaseTask):
         """
         super().stop()
         self.logger.info(f"RayTask {self.ctx.name} stopped (heartbeat will terminate)")
-
-
 
     def get_heartbeat_stats(self) -> Dict[str, Any]:
         """
@@ -114,6 +111,3 @@ class RayTask(BaseTask):
             "last_checkpoint_time": self.last_checkpoint_time,
             "is_running": self.is_running,
         }
-
-
-

@@ -33,11 +33,10 @@ from sage.common.core.data_types import (
     BaseQueryResult,
     ExtendedQueryResult,
     QueryResultInput,
-    create_query_result as base_create_query_result,
-    extract_query as base_extract_query,
-    extract_results as base_extract_results,
 )
-
+from sage.common.core.data_types import create_query_result as base_create_query_result
+from sage.common.core.data_types import extract_query as base_extract_query
+from sage.common.core.data_types import extract_results as base_extract_results
 
 # ============================================================================
 # RAG 专用文档类型
@@ -205,11 +204,21 @@ def ensure_rag_response(data: RAGInput, default_query: str = "") -> RAGResponse:
     from sage.common.core.data_types import ensure_query_result
 
     base_result = ensure_query_result(data, default_query)
-    rag_response: RAGResponse = {"query": base_result["query"], "results": base_result["results"]}
+    rag_response: RAGResponse = {
+        "query": base_result["query"],
+        "results": base_result["results"],
+    }
 
     # 如果是字典，保留额外的 RAG 字段
     if isinstance(data, dict):
-        for key in ["generated", "context", "execution_time", "metadata", "refine_metrics", "generate_time"]:
+        for key in [
+            "generated",
+            "context",
+            "execution_time",
+            "metadata",
+            "refine_metrics",
+            "generate_time",
+        ]:
             if key in data:
                 rag_response[key] = data[key]  # type: ignore
 
@@ -262,9 +271,7 @@ def extract_results(data: RAGInput, default: Optional[List[Any]] = None) -> List
     return base_extract_results(data, default)
 
 
-def create_rag_response(
-    query: str, results: List[Any], **kwargs
-) -> RAGResponse:
+def create_rag_response(query: str, results: List[Any], **kwargs) -> RAGResponse:
     """
     创建标准的 RAGResponse 对象
 

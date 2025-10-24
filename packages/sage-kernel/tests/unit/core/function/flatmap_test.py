@@ -1,10 +1,8 @@
 import threading
 import time
-from typing import Any, Dict, List
+from typing import Any
 
-from sage.common.core.functions import FilterFunction
-from sage.common.core.functions import SinkFunction
-from sage.common.core.functions import SourceFunction
+from sage.common.core.functions import FilterFunction, SinkFunction, SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 
@@ -99,7 +97,7 @@ class UserDataSource(SourceFunction):
 class FilterDebugSink(SinkFunction):
     """调试用的Sink，记录Filter处理后的数据"""
 
-    _received_data: Dict[int, List[Dict]] = {}
+    _received_data: dict[int, list[dict]] = {}
     _lock = threading.Lock()
 
     def __init__(self, **kwargs):
@@ -134,7 +132,7 @@ class FilterDebugSink(SinkFunction):
         return data
 
     @classmethod
-    def get_received_data(cls) -> Dict[int, List[Dict]]:
+    def get_received_data(cls) -> dict[int, list[dict]]:
         with cls._lock:
             return dict(cls._received_data)
 

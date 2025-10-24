@@ -1,16 +1,16 @@
 import os
 import time
-import ray
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union,Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
+import ray
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.fault_tolerance.factory import (
     create_fault_handler_from_config,
     create_lifecycle_manager,
 )
+from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
-from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
@@ -56,10 +56,12 @@ class Dispatcher:
         )
         if self.scheduler is None:
             from sage.kernel.scheduler.impl import FIFOScheduler
+
             self.scheduler = FIFOScheduler(platform=env.platform)
 
         # 初始化放置执行器（由 Dispatcher 持有，不在 Scheduler 中）
         from sage.kernel.scheduler.placement import PlacementExecutor
+
         self.placement_executor = PlacementExecutor()
 
         # 从 Environment 配置创建容错处理器
@@ -82,12 +84,11 @@ class Dispatcher:
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()
 
-
     def enable_fault_tolerance(
         self,
         heartbeat_interval: float = 5.0,
         heartbeat_timeout: float = 15.0,
-        max_restart_attempts: int = 3
+        max_restart_attempts: int = 3,
     ):
         """
         启用 Remote 环境故障容错
@@ -97,17 +98,19 @@ class Dispatcher:
             heartbeat_timeout: 心跳超时阈值 (秒)
             max_restart_attempts: 最大重启尝试次数
         """
-        self.fault_tolerance_config.update({
-        "enabled": True,
-        "heartbeat_interval": heartbeat_interval,
-        "heartbeat_timeout": heartbeat_timeout,
-        "max_restart_attempts": max_restart_attempts,
-    })
+        self.fault_tolerance_config.update(
+            {
+                "enabled": True,
+                "heartbeat_interval": heartbeat_interval,
+                "heartbeat_timeout": heartbeat_timeout,
+                "max_restart_attempts": max_restart_attempts,
+            }
+        )
 
         self.logger.info(
-        f"🛡️  Fault tolerance enabled: "
-        f"interval={heartbeat_interval}s, timeout={heartbeat_timeout}s"
-    )
+            f"🛡️  Fault tolerance enabled: "
+            f"interval={heartbeat_interval}s, timeout={heartbeat_timeout}s"
+        )
 
     def _init_heartbeat_monitor(self):
         """
@@ -128,7 +131,7 @@ class Dispatcher:
             # 创建 HeartbeatMonitor
             self.heartbeat_monitor = HeartbeatMonitor(
                 dispatcher=self,
-                check_interval=self.fault_tolerance_config["heartbeat_interval"]
+                check_interval=self.fault_tolerance_config["heartbeat_interval"],
             )
             # 启动监控线程
             self.heartbeat_monitor.start()
@@ -137,8 +140,7 @@ class Dispatcher:
 
         except Exception as e:
             self.logger.error(
-                f"❌ Failed to initialize HeartbeatMonitor: {e}",
-                exc_info=True
+                f"❌ Failed to initialize HeartbeatMonitor: {e}", exc_info=True
             )
 
     def receive_stop_signal(self):
@@ -319,7 +321,7 @@ class Dispatcher:
         self.logger.info(
             f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks"
         )
-        if self.fault_tolerance_config["enabled"]and self.remote:
+        if self.fault_tolerance_config["enabled"] and self.remote:
             self._init_heartbeat_monitor()
         self.is_running = True
 
@@ -411,7 +413,7 @@ class Dispatcher:
                 service_task = self.placement_executor.place_service(
                     service_node=service_node,
                     decision=decision,
-                    runtime_ctx=service_ctx
+                    runtime_ctx=service_ctx,
                 )
                 self.services[service_name] = service_task
 
@@ -448,9 +450,7 @@ class Dispatcher:
 
                 # 3. 执行物理放置
                 task = self.placement_executor.place_task(
-                    task_node=graph_node,
-                    decision=decision,
-                    runtime_ctx=graph_node.ctx
+                    task_node=graph_node, decision=decision, runtime_ctx=graph_node.ctx
                 )
                 self.tasks[node_name] = task
 
@@ -460,8 +460,7 @@ class Dispatcher:
                 )
             except Exception as e:
                 self.logger.error(
-                    f"Failed to schedule and place task {node_name}: {e}",
-                    exc_info=True
+                    f"Failed to schedule and place task {node_name}: {e}", exc_info=True
                 )
                 raise e
 
@@ -614,7 +613,6 @@ class Dispatcher:
 
         return status
 
-
     def restart_task(self, task_id: str, restore_state: Optional[dict] = None) -> bool:
         """
         重启任务（用于容错恢复）
@@ -636,24 +634,29 @@ class Dispatcher:
             task = self.tasks[task_id]
 
             # === 步骤 1: 停止旧任务 ===
-            if hasattr(task, 'is_running') and task.is_running:
+            if hasattr(task, "is_running") and task.is_running:
                 self.logger.debug(f"Stopping old task {task_id}...")
-                if hasattr(task, 'stop'):
+                if hasattr(task, "stop"):
                     task.stop()
 
                 # 等待任务停止
                 import time
+
                 max_wait = 5.0
                 waited = 0.0
-                while hasattr(task, 'is_running') and task.is_running and waited < max_wait:
+                while (
+                    hasattr(task, "is_running")
+                    and task.is_running
+                    and waited < max_wait
+                ):
                     time.sleep(0.1)
                     waited += 0.1
 
-                if hasattr(task, 'is_running') and task.is_running:
+                if hasattr(task, "is_running") and task.is_running:
                     self.logger.warning(f"⚠️ Task {task_id} did not stop gracefully")
 
             # === 步骤 2: 清理旧任务资源 ===
-            if hasattr(task, 'cleanup'):
+            if hasattr(task, "cleanup"):
                 try:
                     self.logger.debug(f"Cleaning up old task {task_id}...")
                     task.cleanup()
@@ -673,9 +676,7 @@ class Dispatcher:
 
             decision = self.scheduler.make_decision(graph_node)
             new_task = self.placement_executor.place_task(
-                task_node=graph_node,
-                decision=decision,
-                runtime_ctx=graph_node.ctx
+                task_node=graph_node, decision=decision, runtime_ctx=graph_node.ctx
             )
 
             # 替换旧任务
@@ -684,7 +685,7 @@ class Dispatcher:
             self.logger.info(f"✅ New task instance created for {task_id}")
 
             # === 步骤 4: 如果有状态，先恢复状态 ===
-            if restore_state and hasattr(new_task, 'restore_state'):
+            if restore_state and hasattr(new_task, "restore_state"):
                 self.logger.debug(f"Restoring state for {task_id}...")
                 try:
                     new_task.restore_state(restore_state)
@@ -692,7 +693,7 @@ class Dispatcher:
                 except Exception as restore_error:
                     self.logger.error(
                         f"❌ Failed to restore state for {task_id}: {restore_error}",
-                        exc_info=True
+                        exc_info=True,
                     )
                     return False
 
@@ -704,7 +705,9 @@ class Dispatcher:
             return True
 
         except Exception as e:
-            self.logger.error(f"❌ Failed to restart task {task_id}: {e}", exc_info=True)
+            self.logger.error(
+                f"❌ Failed to restart task {task_id}: {e}", exc_info=True
+            )
             return False
 
     def restart_task_with_state(self, task_id: str, state: dict) -> bool:
@@ -721,5 +724,3 @@ class Dispatcher:
             True 如果重启和恢复成功
         """
         return self.restart_task(task_id, restore_state=state)
-
-

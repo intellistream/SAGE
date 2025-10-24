@@ -11,10 +11,10 @@ from sage.common.core.data_types import (
     ExtendedQueryResult,
     QueryResultInput,
     QueryResultOutput,
+    create_query_result,
     ensure_query_result,
     extract_query,
     extract_results,
-    create_query_result,
 )
 
 

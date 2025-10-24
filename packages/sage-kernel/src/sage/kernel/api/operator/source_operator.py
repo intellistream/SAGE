@@ -21,9 +21,7 @@ class SourceOperator(BaseOperator):
         # 执行 function.execute()，如果抛出异常则向上传播
         result = self.function.execute()
 
-        self.logger.debug(
-            f"Operator {self.name} processed data with result: {result}"
-        )
+        self.logger.debug(f"Operator {self.name} processed data with result: {result}")
 
         # 检查是否收到停止信号
         if isinstance(result, StopSignal):
@@ -49,7 +47,9 @@ class SourceOperator(BaseOperator):
 
             # 设置任务停止标志（与其他节点一致）
             if hasattr(self, "task"):
-                if hasattr(self.task, "ctx") and hasattr(self.task.ctx, "set_stop_signal"):
+                if hasattr(self.task, "ctx") and hasattr(
+                    self.task.ctx, "set_stop_signal"
+                ):
                     self.task.ctx.set_stop_signal()
 
                 if hasattr(self.task, "is_running"):

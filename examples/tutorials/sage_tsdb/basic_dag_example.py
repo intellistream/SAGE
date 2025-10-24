@@ -11,11 +11,12 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 import numpy as np
-
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
-def generate_time_series_data(num_points: int = 100, sensor_id: str = "sensor_01") -> List[Dict[str, Any]]:
+def generate_time_series_data(
+    num_points: int = 100, sensor_id: str = "sensor_01"
+) -> List[Dict[str, Any]]:
     """Generate simulated time series data"""
     data_points = []
     base_time = int(datetime.now().timestamp() * 1000)
@@ -204,4 +205,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nError running examples: {e}")
         import traceback
+
         traceback.print_exc()

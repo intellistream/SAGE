@@ -1,28 +1,28 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Type
+from typing import TYPE_CHECKING
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.factory.function_factory import FunctionFactory
 from sage.kernel.runtime.factory.operator_factory import OperatorFactory
 
 if TYPE_CHECKING:
-    from sage.kernel.api.base_environment import BaseEnvironment
     from sage.common.core.functions import BaseFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
     from sage.kernel.api.operator.base_operator import BaseOperator
 
 
 class BaseTransformation:
     def __init__(
         self,
-        env: "BaseEnvironment",
-        function: Type["BaseFunction"],
+        env: BaseEnvironment,
+        function: type[BaseFunction],
         *args,
         name: str = None,
         parallelism: int = 1,
         **kwargs,
     ):
-        self.operator_class: Type[BaseOperator]  # 由子类设置
+        self.operator_class: type[BaseOperator]  # 由子类设置
 
         self.remote = env.platform == "remote"
         self.env_name = env.name
@@ -47,7 +47,7 @@ class BaseTransformation:
             f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}"
         )
 
-        self.upstreams: List[BaseTransformation] = []
+        self.upstreams: list[BaseTransformation] = []
         self.downstreams: dict[str, int] = {}
         self.parallelism = parallelism
 
@@ -58,7 +58,7 @@ class BaseTransformation:
 
     # 增强的连接方法
     def add_upstream(
-        self, upstream_trans: "BaseTransformation", input_index: int = 0
+        self, upstream_trans: BaseTransformation, input_index: int = 0
     ) -> None:
         """
         添加上游连接

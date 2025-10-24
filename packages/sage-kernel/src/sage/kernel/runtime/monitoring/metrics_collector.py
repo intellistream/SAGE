@@ -238,9 +238,15 @@ class MetricsCollector:
             percentiles = self.calculate_percentiles(execution_times)
 
             # 计算各时间窗口的TPS
-            last_minute_tps = len(self._last_minute_count) / 60.0 if self._last_minute_count else 0.0
-            last_5min_tps = len(self._last_5min_count) / 300.0 if self._last_5min_count else 0.0
-            last_hour_tps = len(self._last_hour_count) / 3600.0 if self._last_hour_count else 0.0
+            last_minute_tps = (
+                len(self._last_minute_count) / 60.0 if self._last_minute_count else 0.0
+            )
+            last_5min_tps = (
+                len(self._last_5min_count) / 300.0 if self._last_5min_count else 0.0
+            )
+            last_hour_tps = (
+                len(self._last_hour_count) / 3600.0 if self._last_hour_count else 0.0
+            )
 
             # 计算平均TPS
             packets_per_second = self._total_processed / uptime if uptime > 0 else 0.0
@@ -261,7 +267,11 @@ class MetricsCollector:
                 packets_per_second=packets_per_second,
                 min_latency=min(execution_times) if execution_times else 0.0,
                 max_latency=max(execution_times) if execution_times else 0.0,
-                avg_latency=sum(execution_times) / len(execution_times) if execution_times else 0.0,
+                avg_latency=(
+                    sum(execution_times) / len(execution_times)
+                    if execution_times
+                    else 0.0
+                ),
                 p50_latency=percentiles["p50"],
                 p95_latency=percentiles["p95"],
                 p99_latency=percentiles["p99"],
@@ -295,11 +305,7 @@ class MetricsCollector:
             current_time = time.time()
             cutoff_time = current_time - time_range.total_seconds()
 
-            return [
-                m
-                for m in self.packet_metrics
-                if m.arrival_time >= cutoff_time
-            ]
+            return [m for m in self.packet_metrics if m.arrival_time >= cutoff_time]
 
     def reset_metrics(self) -> None:
         """重置所有性能指标"""

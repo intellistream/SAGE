@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, List, Tuple, Union
+from typing import Any
 
 from sage.common.config.output_paths import get_output_file
 from sage.common.core.functions import SinkFunction
@@ -25,7 +25,9 @@ class TerminalSink(SinkFunction):
                 question, answer = data[0], data[1]
         else:
             question = str(data)
-        self.logger.info(f"Executing {self.__class__.__name__} [Q] Question :{question}")
+        self.logger.info(
+            f"Executing {self.__class__.__name__} [Q] Question :{question}"
+        )
         self.logger.info(f"Executing {self.__class__.__name__} [A] Answer :{answer}")
         print(f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m")
         print(f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m")
@@ -37,7 +39,7 @@ class RetriveSink(SinkFunction):
         super().__init__(**kwargs)
         self.config = config
 
-    def execute(self, data: Tuple[str, List[str]]):
+    def execute(self, data: tuple[str, list[str]]):
         question, chunks = data
 
         print(f"\033[96m[Q] Question :{question}\033[0m")
@@ -68,7 +70,7 @@ class FileSink(SinkFunction):
         with open(self.file_path, "w", encoding="utf-8") as f:
             f.write("=== QA Output Log ===\n")
 
-    def execute(self, data: Tuple[str, str]):
+    def execute(self, data: tuple[str, str]):
         # 添加详细的日志记录
         self.logger.info(f"FileSink.execute called with data: {data}")
         self.logger.info(f"Data type: {type(data)}")
@@ -126,7 +128,7 @@ class MemWriteSink(SinkFunction):
         with open(self.file_path, "w", encoding="utf-8") as f:
             f.write("=== Memory String Log ===\n")
 
-    def execute(self, data: Union[str, List[str], Tuple[str, str]]):
+    def execute(self, data: str | list[str] | tuple[str, str]):
         # 解析输入数据为字符串列表
         input_data = data
         strings = self._parse_input(input_data)

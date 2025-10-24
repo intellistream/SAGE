@@ -49,10 +49,7 @@ def example_basic_unlearning():
 
     # 3. 创建 unlearning engine
     engine = UnlearningEngine(
-        epsilon=1.0,
-        delta=1e-5,
-        total_budget_epsilon=10.0,
-        enable_compensation=True
+        epsilon=1.0, delta=1e-5, total_budget_epsilon=10.0, enable_compensation=True
     )
     print("✓ Created UnlearningEngine")
 
@@ -62,7 +59,7 @@ def example_basic_unlearning():
         vector_ids_to_forget=ids_to_forget,
         all_vectors=all_vectors,
         all_vector_ids=all_ids,
-        perturbation_strategy="uniform"
+        perturbation_strategy="uniform",
     )
 
     # 5. 查看结果
@@ -70,12 +67,16 @@ def example_basic_unlearning():
     print(f"  Success: {result.success}")
     print(f"  Vectors unlearned: {result.num_vectors_unlearned}")
     print(f"  Neighbors compensated: {result.num_neighbors_compensated}")
-    print(f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}")
+    print(
+        f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}"
+    )
 
     # 6. 获取扰动后的向量
-    perturbed = result.metadata['perturbed_vectors']
+    perturbed = result.metadata["perturbed_vectors"]
     print(f"\n📊 Vector Comparison:")
-    for i, (orig, pert, vec_id) in enumerate(zip(vectors_to_forget, perturbed, ids_to_forget)):
+    for i, (orig, pert, vec_id) in enumerate(
+        zip(vectors_to_forget, perturbed, ids_to_forget)
+    ):
         l2_dist = np.linalg.norm(orig - pert)
         cos_sim = np.dot(orig, pert) / (np.linalg.norm(orig) * np.linalg.norm(pert))
         print(f"  {vec_id}: L2={l2_dist:.4f}, CosSim={cos_sim:.4f}")
@@ -102,13 +103,13 @@ def example_custom_mechanism():
     engine = UnlearningEngine(
         mechanism=custom_mechanism,
         total_budget_epsilon=5.0,
-        enable_compensation=False  # 不使用补偿
+        enable_compensation=False,  # 不使用补偿
     )
 
     result = engine.unlearn_vectors(
         vectors_to_forget=forget_vectors,
         vector_ids_to_forget=forget_ids,
-        perturbation_strategy="selective"
+        perturbation_strategy="selective",
     )
 
     print(f"\n🎯 Result with custom mechanism:")
@@ -128,10 +129,7 @@ def example_batch_unlearning():
 
     # 2. 创建 engine
     engine = UnlearningEngine(
-        epsilon=0.5,
-        delta=1e-5,
-        total_budget_epsilon=20.0,
-        enable_compensation=True
+        epsilon=0.5, delta=1e-5, total_budget_epsilon=20.0, enable_compensation=True
     )
 
     # 3. 分批遗忘
@@ -150,21 +148,25 @@ def example_batch_unlearning():
             vector_ids_to_forget=forget_ids,
             all_vectors=all_vectors,
             all_vector_ids=all_ids,
-            perturbation_strategy="uniform"
+            perturbation_strategy="uniform",
         )
 
         total_forgotten += result.num_vectors_unlearned
-        print(f"  Batch {batch_idx + 1}: Forgotten {result.num_vectors_unlearned} vectors, "
-              f"Privacy cost: ε={result.privacy_cost[0]:.4f}")
+        print(
+            f"  Batch {batch_idx + 1}: Forgotten {result.num_vectors_unlearned} vectors, "
+            f"Privacy cost: ε={result.privacy_cost[0]:.4f}"
+        )
 
     # 4. 检查剩余预算
     status = engine.get_privacy_status()
-    remaining = status['remaining_budget']
+    remaining = status["remaining_budget"]
 
     print(f"\n📊 Summary:")
     print(f"  Total forgotten: {total_forgotten} vectors")
     print(f"  Remaining budget: ε={remaining['epsilon_remaining']:.4f}")
-    print(f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}")
+    print(
+        f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}"
+    )
     print()
 
 
@@ -192,7 +194,7 @@ def example_similarity_based_unlearning():
         all_vector_ids=all_ids,
         similarity_threshold=0.3,  # 相似度 > 0.3 的都遗忘
         max_unlearn=10,  # 最多遗忘10个
-        perturbation_strategy="adaptive"
+        perturbation_strategy="adaptive",
     )
 
     print(f"\n🎯 Similarity-based Unlearning Result:")
@@ -201,7 +203,7 @@ def example_similarity_based_unlearning():
     print(f"  Privacy cost: ε={result.privacy_cost[0]:.4f}")
 
     if result.num_vectors_unlearned > 0:
-        forgotten_ids = result.metadata.get('perturbed_vectors', [])
+        forgotten_ids = result.metadata.get("perturbed_vectors", [])
         print(f"  Forgotten vector IDs: {result.metadata.get('message', 'N/A')}")
 
     print()
@@ -218,7 +220,7 @@ def example_privacy_budget_management():
         epsilon=2.0,
         delta=1e-5,
         total_budget_epsilon=5.0,  # 小预算
-        enable_compensation=False
+        enable_compensation=False,
     )
 
     vectors, ids = generate_test_data(n_vectors=50, dim=64)
@@ -231,22 +233,26 @@ def example_privacy_budget_management():
     while True:
         forget_idx = operation_count % len(vectors)
         result = engine.unlearn_vectors(
-            vectors_to_forget=vectors[forget_idx:forget_idx+1],
+            vectors_to_forget=vectors[forget_idx : forget_idx + 1],
             vector_ids_to_forget=[ids[forget_idx]],
-            perturbation_strategy="uniform"
+            perturbation_strategy="uniform",
         )
 
         operation_count += 1
 
         if not result.success:
-            print(f"\n❌ Operation {operation_count} failed: {result.metadata.get('error')}")
+            print(
+                f"\n❌ Operation {operation_count} failed: {result.metadata.get('error')}"
+            )
             print(f"  Remaining budget: {result.metadata.get('remaining_budget')}")
             break
         else:
             status = engine.get_privacy_status()
-            remaining = status['remaining_budget']
-            print(f"  Operation {operation_count}: Success, "
-                  f"Remaining ε={remaining['epsilon_remaining']:.4f}")
+            remaining = status["remaining_budget"]
+            print(
+                f"  Operation {operation_count}: Success, "
+                f"Remaining ε={remaining['epsilon_remaining']:.4f}"
+            )
 
     print()
 

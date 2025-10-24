@@ -102,9 +102,7 @@ class SageTSDBService:
         if isinstance(value, list):
             value = np.array(value, dtype=np.float32)
 
-        idx = self._db.add(
-            timestamp=timestamp, value=value, tags=tags, fields=fields
-        )
+        idx = self._db.add(timestamp=timestamp, value=value, tags=tags, fields=fields)
 
         self._stats["total_writes"] += 1
         return idx
@@ -184,11 +182,15 @@ class SageTSDBService:
             formatted.append(
                 {
                     "timestamp": r.timestamp,
-                    "value": float(r.value)
-                    if isinstance(r.value, (int, float))
-                    else r.value.tolist()
-                    if isinstance(r.value, np.ndarray)
-                    else r.value,
+                    "value": (
+                        float(r.value)
+                        if isinstance(r.value, (int, float))
+                        else (
+                            r.value.tolist()
+                            if isinstance(r.value, np.ndarray)
+                            else r.value
+                        )
+                    ),
                     "tags": dict(r.tags) if r.tags else {},
                     "fields": dict(r.fields) if r.fields else {},
                 }
@@ -260,16 +262,20 @@ class SageTSDBService:
                 {
                     "left": {
                         "timestamp": left.timestamp,
-                        "value": float(left.value)
-                        if isinstance(left.value, (int, float))
-                        else left.value,
+                        "value": (
+                            float(left.value)
+                            if isinstance(left.value, (int, float))
+                            else left.value
+                        ),
                         "tags": dict(left.tags) if left.tags else {},
                     },
                     "right": {
                         "timestamp": right.timestamp,
-                        "value": float(right.value)
-                        if isinstance(right.value, (int, float))
-                        else right.value,
+                        "value": (
+                            float(right.value)
+                            if isinstance(right.value, (int, float))
+                            else right.value
+                        ),
                         "tags": dict(right.tags) if right.tags else {},
                     },
                 }
@@ -323,9 +329,11 @@ class SageTSDBService:
             results.append(
                 {
                     "timestamp": item.timestamp,
-                    "value": float(item.value)
-                    if isinstance(item.value, (int, float))
-                    else item.value,
+                    "value": (
+                        float(item.value)
+                        if isinstance(item.value, (int, float))
+                        else item.value
+                    ),
                     "tags": dict(item.tags) if item.tags else {},
                     "fields": dict(item.fields) if item.fields else {},
                 }

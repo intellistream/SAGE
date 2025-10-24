@@ -6,13 +6,13 @@ Tests the exception class hierarchy.
 
 import pytest
 from sage.common.core.exceptions import (
-    KernelError,
-    SchedulingError,
-    FaultToleranceError,
-    ResourceAllocationError,
-    RecoveryError,
     CheckpointError,
+    FaultToleranceError,
+    KernelError,
     PlacementError,
+    RecoveryError,
+    ResourceAllocationError,
+    SchedulingError,
 )
 
 

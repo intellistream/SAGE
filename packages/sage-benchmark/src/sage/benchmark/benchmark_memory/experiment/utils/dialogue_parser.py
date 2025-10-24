@@ -100,9 +100,7 @@ class DialogueParser:
         pass
 
     def validate_dialog_format(
-        self,
-        dialog: Dict[str, Any],
-        required_fields: Optional[List[str]] = None
+        self, dialog: Dict[str, Any], required_fields: Optional[List[str]] = None
     ) -> bool:
         """
         验证单个对话是否符合格式要求
@@ -131,7 +129,7 @@ class DialogueParser:
         self,
         dialogs: List[Dict[str, Any]],
         required_fields: Optional[List[str]] = None,
-        strict_mode: bool = True
+        strict_mode: bool = True,
     ) -> List[Dict[str, Any]]:
         """
         解析并验证对话列表（核心方法）
@@ -182,9 +180,7 @@ class DialogueParser:
                     continue
 
             # 验证必需字段
-            missing_fields = [
-                field for field in required_fields if field not in dialog
-            ]
+            missing_fields = [field for field in required_fields if field not in dialog]
 
             if missing_fields:
                 if strict_mode:
@@ -223,8 +219,11 @@ class DialogueParser:
             "speaker": dialog.get("speaker", "Unknown"),
             "text": dialog.get("text", ""),
             "session_type": dialog.get("session_type", "text"),
-            "text_preview": dialog.get("text", "")[:50] + "..."
-                           if len(dialog.get("text", "")) > 50 else dialog.get("text", "")
+            "text_preview": (
+                dialog.get("text", "")[:50] + "..."
+                if len(dialog.get("text", "")) > 50
+                else dialog.get("text", "")
+            ),
         }
         return info
 
@@ -301,7 +300,7 @@ _global_parser = DialogueParser()
 def parse_and_validate_dialogs(
     dialogs: List[Dict[str, Any]],
     required_fields: Optional[List[str]] = None,
-    strict_mode: bool = True
+    strict_mode: bool = True,
 ) -> List[Dict[str, Any]]:
     """
     全局便捷函数：解析并验证对话列表
@@ -325,8 +324,7 @@ def parse_and_validate_dialogs(
 
 
 def validate_dialog(
-    dialog: Dict[str, Any],
-    required_fields: Optional[List[str]] = None
+    dialog: Dict[str, Any], required_fields: Optional[List[str]] = None
 ) -> bool:
     """
     全局便捷函数：验证单个对话格式
@@ -366,13 +364,9 @@ if __name__ == "__main__":
             {
                 "speaker": "小明",
                 "text": "你好，今天天气真不错！",
-                "session_type": "text"
+                "session_type": "text",
             },
-            {
-                "speaker": "小红",
-                "text": "是啊，阳光明媚！",
-                "session_type": "text"
-            }
+            {"speaker": "小红", "text": "是啊，阳光明媚！", "session_type": "text"},
         ]
 
         result = parser.parse_and_validate(valid_dialogs)
@@ -381,12 +375,7 @@ if __name__ == "__main__":
         # 测试2: 缺少必需字段
         print("测试2: 处理缺少必需字段的对话（严格模式）")
         print("-" * 70)
-        invalid_dialogs = [
-            {
-                "speaker": "小明",
-                "text": "这条消息缺少 session_type"
-            }
-        ]
+        invalid_dialogs = [{"speaker": "小明", "text": "这条消息缺少 session_type"}]
 
         try:
             parser.parse_and_validate(invalid_dialogs, strict_mode=True)
@@ -398,20 +387,9 @@ if __name__ == "__main__":
         print("测试3: 非严格模式下跳过无效对话")
         print("-" * 70)
         mixed_dialogs = [
-            {
-                "speaker": "小明",
-                "text": "这是有效消息",
-                "session_type": "text"
-            },
-            {
-                "speaker": "小红",
-                "text": "这条缺少 session_type"  # 缺少字段
-            },
-            {
-                "speaker": "小李",
-                "text": "这也是有效消息",
-                "session_type": "text"
-            }
+            {"speaker": "小明", "text": "这是有效消息", "session_type": "text"},
+            {"speaker": "小红", "text": "这条缺少 session_type"},  # 缺少字段
+            {"speaker": "小李", "text": "这也是有效消息", "session_type": "text"},
         ]
 
         result = parser.parse_and_validate(mixed_dialogs, strict_mode=False)
@@ -424,7 +402,7 @@ if __name__ == "__main__":
         dialog = {
             "speaker": "小明",
             "text": "这是一条很长很长很长很长很长很长很长很长很长很长的消息，用于测试文本预览功能",
-            "session_type": "text"
+            "session_type": "text",
         }
 
         info = parser.extract_dialog_info(dialog)
@@ -436,9 +414,7 @@ if __name__ == "__main__":
         # 测试5: 使用全局便捷函数
         print("测试5: 使用全局便捷函数")
         print("-" * 70)
-        dialogs = [
-            {"speaker": "用户", "text": "测试消息", "session_type": "text"}
-        ]
+        dialogs = [{"speaker": "用户", "text": "测试消息", "session_type": "text"}]
         result = parse_and_validate_dialogs(dialogs)
         print(f"✓ 全局函数验证通过 {len(result)} 条对话")
 

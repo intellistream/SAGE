@@ -1,10 +1,9 @@
 import json
 import os
 from pathlib import Path
-from typing import List, Optional, Tuple
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.core.functions import SourceFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.libs.context.model_context import ModelContext
 
 
@@ -27,9 +26,9 @@ class ContextFileSource(SourceFunction):
         self,
         base_directory: str = None,
         load_mode: str = "sequential",  # "sequential", "recent", "random"
-        time_range: Optional[Tuple[int, int]] = None,
-        sequence_range: Optional[Tuple[int, int]] = None,
-        include_pattern: Optional[str] = None,
+        time_range: tuple[int, int] | None = None,
+        sequence_range: tuple[int, int] | None = None,
+        include_pattern: str | None = None,
         auto_reset: bool = True,
         **kwargs,
     ):
@@ -107,20 +106,20 @@ class ContextFileSource(SourceFunction):
 
                 random.shuffle(self.template_files)
 
-    def _load_index(self) -> Optional[dict]:
+    def _load_index(self) -> dict | None:
         """加载索引文件"""
         if not self.index_file.exists():
             self.logger.debug(f"Index file not found: {self.index_file}")
             return None
 
         try:
-            with open(self.index_file, "r", encoding="utf-8") as f:
+            with open(self.index_file, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             self.logger.error(f"Failed to load index: {e}")
             return None
 
-    def _find_template_files(self) -> List[Path]:
+    def _find_template_files(self) -> list[Path]:
         """查找所有模板文件"""
         template_files = []
 
@@ -137,7 +136,7 @@ class ContextFileSource(SourceFunction):
 
         return template_files
 
-    def _load_template_from_file(self, file_path: Path) -> Optional[ModelContext]:
+    def _load_template_from_file(self, file_path: Path) -> ModelContext | None:
         """从文件加载单个模板"""
         try:
             template = ModelContext.load_from_file(str(file_path))
@@ -167,7 +166,7 @@ class ContextFileSource(SourceFunction):
 
         return True
 
-    def _get_next_file(self) -> Optional[Path]:
+    def _get_next_file(self) -> Path | None:
         """获取下一个要读取的文件"""
         if not self.template_files:
             return None
@@ -193,7 +192,7 @@ class ContextFileSource(SourceFunction):
 
         return file_path
 
-    def execute(self) -> Optional[ModelContext]:
+    def execute(self) -> ModelContext | None:
         """
         读取下一个ModelContext
 
@@ -304,11 +303,11 @@ class TemplateIndexManager:
 
     def search_templates(
         self,
-        question_contains: Optional[str] = None,
-        has_response: Optional[bool] = None,
-        min_chunks: Optional[int] = None,
-        time_after: Optional[int] = None,
-    ) -> List[dict]:
+        question_contains: str | None = None,
+        has_response: bool | None = None,
+        min_chunks: int | None = None,
+        time_after: int | None = None,
+    ) -> list[dict]:
         """
         搜索模板记录
 
@@ -322,7 +321,7 @@ class TemplateIndexManager:
             List[dict]: 匹配的模板记录
         """
         try:
-            with open(self.index_file, "r", encoding="utf-8") as f:
+            with open(self.index_file, encoding="utf-8") as f:
                 index_data = json.load(f)
 
             templates = list(index_data.get("templates", {}).values())
@@ -359,7 +358,7 @@ class TemplateIndexManager:
     def get_statistics(self) -> dict:
         """获取模板统计信息"""
         try:
-            with open(self.index_file, "r", encoding="utf-8") as f:
+            with open(self.index_file, encoding="utf-8") as f:
                 index_data = json.load(f)
 
             templates = list(index_data.get("templates", {}).values())

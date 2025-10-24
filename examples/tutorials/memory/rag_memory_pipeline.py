@@ -21,8 +21,7 @@ from sage.kernel.api.function.sink_function import SinkFunction
 from sage.kernel.api.function.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service.base_service import BaseService
-from sage.middleware.operators.rag import OpenAIGenerator
-from sage.middleware.operators.rag import QAPromptor
+from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 
 
 class PipelineBridge:
@@ -50,6 +49,7 @@ class PipelineBridge:
 
 
 # ==================== 检索服务 ====================
+
 
 class RetrievalSource(SourceFunction):
     def __init__(self, bridge):
@@ -85,7 +85,7 @@ class RetrievalMap(MapFunction):
         context = results
         return {
             "payload": {"question": question, "context": context},
-            "response_queue": data["response_queue"]
+            "response_queue": data["response_queue"],
         }
 
 
@@ -106,9 +106,8 @@ class RetrievalService(BaseService):
         return response_q.get(timeout=10.0)
 
 
-
-
 # ==================== 写入服务 ====================
+
 
 class WritingSource(SourceFunction):
     def __init__(self, bridge):
@@ -135,7 +134,9 @@ class WritingMap(MapFunction):
         # 使用配置文件中的 promptor 配置
         promptor_config = self.config.get("promptor", {})
         if not promptor_config.get("template"):
-            promptor_config["template"] = """你是一位具备长期记忆的个人健康助手。
+            promptor_config[
+                "template"
+            ] = """你是一位具备长期记忆的个人健康助手。
 
 {%- if external_corpus %}
 以下是相关的历史问答：
@@ -162,7 +163,7 @@ class WritingMap(MapFunction):
 
         return {
             "payload": {"question": question, "answer": answer},
-            "response_queue": data["response_queue"]
+            "response_queue": data["response_queue"],
         }
 
 
@@ -171,7 +172,6 @@ class WritingSink(SinkFunction):
         if not data:
             return
         data["response_queue"].put(data["payload"])
-
 
 
 class WritingService(BaseService):
@@ -187,8 +187,10 @@ class WritingService(BaseService):
 
 # ==================== QA Pipeline Service（检索+生成+写入）====================
 
+
 class QAPipelineSource(SourceFunction):
     """从 bridge 接收 QA 请求"""
+
     def __init__(self, bridge):
         super().__init__()
         self.bridge = bridge
@@ -203,6 +205,7 @@ class QAPipelineSource(SourceFunction):
 
 class QAPipelineMap(MapFunction):
     """执行检索、生成答案、写入记忆的完整流程"""
+
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -223,7 +226,9 @@ class QAPipelineMap(MapFunction):
         # 步骤 2: 准备 prompt
         promptor_config = self.config.get("promptor", {})
         if not promptor_config.get("template"):
-            promptor_config["template"] = """你是一位具备长期记忆的个人健康助手。
+            promptor_config[
+                "template"
+            ] = """你是一位具备长期记忆的个人健康助手。
 
 {%- if external_corpus %}
 以下是相关的历史问答：
@@ -248,17 +253,14 @@ class QAPipelineMap(MapFunction):
         )
 
         return {
-            "payload": {
-                "question": question,
-                "answer": answer,
-                "context": context
-            },
-            "response_queue": data["response_queue"]
+            "payload": {"question": question, "answer": answer, "context": context},
+            "response_queue": data["response_queue"],
         }
 
 
 class QAPipelineSink(SinkFunction):
     """将答案返回给调用者"""
+
     def execute(self, data):
         if not data:
             return
@@ -267,6 +269,7 @@ class QAPipelineSink(SinkFunction):
 
 class QAPipelineService(BaseService):
     """QA Pipeline Service：接收问题，返回答案"""
+
     def __init__(self, bridge, config):
         super().__init__()
         self.bridge = bridge
@@ -280,8 +283,10 @@ class QAPipelineService(BaseService):
 
 # ==================== Controller Pipeline（顺序发送问题）====================
 
+
 class QuestionController(SourceFunction):
     """顺序发送问题，每次只发送一个"""
+
     def __init__(self, config):
         super().__init__()
         self.questions = config.get("questions")
@@ -301,6 +306,7 @@ class QuestionController(SourceFunction):
 
 class ProcessQuestion(MapFunction):
     """调用 QA Pipeline Service 处理问题"""
+
     def execute(self, data):
         if not data:
             return None
@@ -323,6 +329,7 @@ class ProcessQuestion(MapFunction):
 
 class DisplayAnswer(SinkFunction):
     """显示答案"""
+
     def __init__(self, bridges=None, total_questions=5):
         super().__init__()
         self.bridges = bridges or []
@@ -334,33 +341,33 @@ class DisplayAnswer(SinkFunction):
         """简单的 Markdown 渲染，用于终端显示"""
         import re
 
-        lines = text.split('\n')
+        lines = text.split("\n")
         formatted_lines = []
 
         for line in lines:
             # 处理 ### 三级标题
-            if line.startswith('###'):
+            if line.startswith("###"):
                 # 去掉 ### 并加粗整行
-                title = line.replace('###', '').strip()
-                line = f'\033[1m{title}\033[0m'
+                title = line.replace("###", "").strip()
+                line = f"\033[1m{title}\033[0m"
 
             # 处理 **加粗** (但跳过已经被标题处理过的行)
-            elif '**' in line:
-                line = re.sub(r'\*\*(.+?)\*\*', r'\033[1m\1\033[0m', line)
+            elif "**" in line:
+                line = re.sub(r"\*\*(.+?)\*\*", r"\033[1m\1\033[0m", line)
 
             # 处理数字列表项
-            if re.match(r'^\d+\.\s+', line):
+            if re.match(r"^\d+\.\s+", line):
                 # 给数字加粗
-                line = re.sub(r'^(\d+)\.\s+', r'\033[1m\1.\033[0m ', line)
+                line = re.sub(r"^(\d+)\.\s+", r"\033[1m\1.\033[0m ", line)
 
             # 处理缩进的破折号列表项
-            elif re.match(r'^\s+-\s+', line):
+            elif re.match(r"^\s+-\s+", line):
                 # 给破折号加粗
-                line = re.sub(r'^(\s+)-\s+', r'\1\033[1m-\033[0m ', line)
+                line = re.sub(r"^(\s+)-\s+", r"\1\033[1m-\033[0m ", line)
 
             formatted_lines.append(line)
 
-        return '\n'.join(formatted_lines)
+        return "\n".join(formatted_lines)
 
     def execute(self, data):
         if not data:
@@ -417,6 +424,7 @@ class DisplayAnswer(SinkFunction):
 
 def main():
     import sys
+
     sys.stdout.flush()
     sys.stderr.flush()
     print("=== main() 第 1 行 ===", file=sys.stderr, flush=True)
@@ -451,24 +459,34 @@ def main():
         # 注册服务
         print("注册服务...")
         env.register_service("retrieval_service", RetrievalService, retrieval_bridge)
-        env.register_service("qa_pipeline", QAPipelineService, qa_pipeline_bridge, config)
+        env.register_service(
+            "qa_pipeline", QAPipelineService, qa_pipeline_bridge, config
+        )
 
         # 检索 Pipeline（为 QA Pipeline 提供检索功能）
         print("创建检索 Pipeline...")
-        env.from_source(RetrievalSource, retrieval_bridge).map(RetrievalMap).sink(RetrievalSink)
+        env.from_source(RetrievalSource, retrieval_bridge).map(RetrievalMap).sink(
+            RetrievalSink
+        )
 
         # QA Pipeline（检索 + 生成 + 写入）
         print("创建 QA Pipeline...")
-        env.from_source(QAPipelineSource, qa_pipeline_bridge).map(QAPipelineMap, config).sink(QAPipelineSink)
+        env.from_source(QAPipelineSource, qa_pipeline_bridge).map(
+            QAPipelineMap, config
+        ).sink(QAPipelineSink)
 
         # Controller Pipeline（顺序发送问题）
         print("创建 Controller Pipeline...")
         total_questions = config["source"].get("max_index", 5)
         bridges = [retrieval_bridge, qa_pipeline_bridge]
-        env.from_source(QuestionController, config["source"]).map(ProcessQuestion).sink(DisplayAnswer, bridges, total_questions)
+        env.from_source(QuestionController, config["source"]).map(ProcessQuestion).sink(
+            DisplayAnswer, bridges, total_questions
+        )
 
         print("🚀 启动 RAG Memory Pipeline...")
-        env.submit(autostop=False)  # 使用 autostop=False，因为 Service Pipelines 会持续轮询
+        env.submit(
+            autostop=False
+        )  # 使用 autostop=False，因为 Service Pipelines 会持续轮询
 
         # 等待足够的时间让所有问题处理完成
         # 每个问题大约需要 8-10 秒（检索 + 生成 + 写入）

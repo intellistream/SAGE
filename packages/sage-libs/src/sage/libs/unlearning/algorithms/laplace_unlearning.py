@@ -32,7 +32,7 @@ class LaplaceMechanism(BasePrivacyMechanism):
         self,
         epsilon: float,
         sensitivity: float = 1.0,
-        clip_bound: Optional[float] = None
+        clip_bound: Optional[float] = None,
     ):
         """
         Initialize Laplace mechanism.
@@ -46,7 +46,7 @@ class LaplaceMechanism(BasePrivacyMechanism):
             epsilon=epsilon,
             delta=None,  # Pure DP has no delta
             sensitivity=sensitivity,
-            name="Laplace"
+            name="Laplace",
         )
         self.clip_bound = clip_bound
 
@@ -54,7 +54,7 @@ class LaplaceMechanism(BasePrivacyMechanism):
         self,
         sensitivity: Optional[float] = None,
         epsilon: Optional[float] = None,
-        delta: Optional[float] = None
+        delta: Optional[float] = None,
     ) -> float:
         """
         Generate Laplace noise: Lap(Δf / ε).

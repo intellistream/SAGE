@@ -17,6 +17,7 @@ import numpy as np
 # Try to import C++ bindings
 try:
     from . import _sage_tsdb
+
     HAS_CPP_BACKEND = True
 except ImportError:
     _sage_tsdb = None
@@ -173,9 +174,7 @@ class TimeSeriesIndex:
 
         return results
 
-    def _binary_search(
-        self, timestamp: int, find_upper: bool = False
-    ) -> int:
+    def _binary_search(self, timestamp: int, find_upper: bool = False) -> int:
         """
         Binary search for timestamp.
         If find_upper is False, returns the first index with timestamp >= target (lower bound).
@@ -205,6 +204,7 @@ class TimeSeriesIndex:
                 else:
                     low = mid + 1
             return high if high >= 0 else 0
+
     def _filter_by_tags(self, tags: Dict[str, str]) -> set:
         """Filter indices by tags"""
         matching_sets = []
@@ -294,7 +294,7 @@ class SageTSDB:
                 timestamp,
                 value_list if isinstance(value_list, list) else value_list,
                 tags or {},
-                fields or {}
+                fields or {},
             )
         else:
             # Pure Python implementation
@@ -478,9 +478,7 @@ class SageTSDB:
         """
         self._algorithms[name] = algorithm
 
-    def apply_algorithm(
-        self, name: str, data: List[TimeSeriesData], **kwargs
-    ) -> Any:
+    def apply_algorithm(self, name: str, data: List[TimeSeriesData], **kwargs) -> Any:
         """
         Apply a registered algorithm.
 

@@ -6,7 +6,7 @@ This file demonstrates how to use the SAGE RAG (Retrieval-Augmented Generation) 
 Layer: L3 (Core - Algorithm Library)
 """
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 def example_document_loading():
@@ -22,9 +22,9 @@ def example_document_loading():
 
     try:
         from sage.libs.rag.document_loaders import (
-            TextLoader,
-            PDFLoader,
             JSONLoader,
+            PDFLoader,
+            TextLoader,
         )
 
         print("\n✓ Available document loaders:")
@@ -34,12 +34,14 @@ def example_document_loading():
 
         # Example: Loading text files
         print("\nExample: Loading a text file")
-        print("""
+        print(
+            """
         loader = TextLoader("documents/article.txt")
         documents = loader.load()
         for doc in documents:
             print(f"Content: {doc.content[:100]}...")
-        """)
+        """
+        )
 
     except ImportError as e:
         print(f"✗ Import error: {e}")
@@ -69,7 +71,8 @@ def example_rag_pipeline():
         print("  6. Generator: Generate answers")
 
         print("\nExample pipeline setup:")
-        print("""
+        print(
+            """
         from sage.libs.rag.pipeline import RAGPipeline
         from sage.libs.rag.document_loaders import TextLoader
 
@@ -87,7 +90,8 @@ def example_rag_pipeline():
         # Query
         answer = pipeline.query("What is SAGE?")
         print(answer)
-        """)
+        """
+        )
 
     except ImportError as e:
         print(f"✗ Import error: {e}")
@@ -110,7 +114,8 @@ def example_vector_stores():
     print("  - FAISS: Facebook AI Similarity Search")
 
     print("\nExample: Using Milvus")
-    print("""
+    print(
+        """
     from sage.libs.integrations.milvus import MilvusBackend
     from sage.libs.rag.pipeline import RAGPipeline
 
@@ -123,10 +128,12 @@ def example_vector_stores():
 
     # Use in RAG pipeline
     pipeline = RAGPipeline(vector_store=milvus)
-    """)
+    """
+    )
 
     print("\nExample: Using ChromaDB")
-    print("""
+    print(
+        """
     from sage.libs.integrations.chroma import ChromaBackend
 
     # Create Chroma backend
@@ -140,7 +147,8 @@ def example_vector_stores():
 
     # Search
     results = chroma.search(query_embedding, top_k=5)
-    """)
+    """
+    )
 
 
 def example_profiling():
@@ -164,7 +172,8 @@ def example_profiling():
         print("  - Analyze relevance scores")
 
         print("\nExample profiling:")
-        print("""
+        print(
+            """
         from sage.libs.rag.profiler import RAGProfiler
         from sage.libs.rag.pipeline import RAGPipeline
 
@@ -181,7 +190,8 @@ def example_profiling():
         print(f"Retrieval time: {metrics['retrieval_ms']}ms")
         print(f"Generation time: {metrics['generation_ms']}ms")
         print(f"Total time: {metrics['total_ms']}ms")
-        """)
+        """
+        )
 
     except ImportError as e:
         print(f"✗ Import error: {e}")
@@ -205,7 +215,8 @@ def example_advanced_retrieval():
     print("  - Multi-hop retrieval: Iterative retrieval")
 
     print("\nExample: Hybrid search")
-    print("""
+    print(
+        """
     # Combine dense (embedding) and sparse (BM25) retrieval
     dense_results = vector_store.search(query_embedding, top_k=20)
     sparse_results = bm25_index.search(query_text, top_k=20)
@@ -213,10 +224,12 @@ def example_advanced_retrieval():
     # Merge and rerank
     combined = merge_results(dense_results, sparse_results)
     reranked = reranker.rerank(query, combined, top_k=5)
-    """)
+    """
+    )
 
     print("\nExample: Query expansion")
-    print("""
+    print(
+        """
     # Expand query with synonyms and related terms
     original_query = "machine learning algorithms"
     expanded_query = query_expander.expand(original_query)
@@ -224,7 +237,8 @@ def example_advanced_retrieval():
 
     # Use expanded query for retrieval
     results = vector_store.search(expanded_query, top_k=10)
-    """)
+    """
+    )
 
 
 def run_all_examples():

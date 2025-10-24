@@ -16,7 +16,7 @@ class FutureTransformation(BaseTransformation):
     在DAG构建阶段作为placeholder，在fill_future时被实际的transformation替换。
     """
 
-    def __init__(self, env: "BaseEnvironment", name: str):
+    def __init__(self, env: BaseEnvironment, name: str):
         # 使用一个特殊的function作为占位符
         from sage.common.core.functions import FutureFunction
 

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from sage.kernel.api.operator.batch_operator import BatchOperator
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 if TYPE_CHECKING:
-    from sage.kernel.api.base_environment import BaseEnvironment
     from sage.common.core.functions import BaseFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 class BatchTransformation(BaseTransformation):
@@ -15,8 +15,8 @@ class BatchTransformation(BaseTransformation):
 
     def __init__(
         self,
-        env: "BaseEnvironment",
-        function: Type["BaseFunction"],
+        env: BaseEnvironment,
+        function: type[BaseFunction],
         *args,
         delay: float = 0.1,  # 批处理节点通常处理速度更快
         progress_log_interval: int = 100,  # 进度日志间隔

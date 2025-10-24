@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 import logging
 import pickle
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.task_context import TaskContext
@@ -14,8 +14,8 @@ class BaseFunction(ABC):
     """
 
     # 子类可以覆盖这些属性来控制状态保存行为
-    __state_include__: List[str] = []  # 如果非空，只保存这些字段
-    __state_exclude__: List[str] = ['ctx', '_logger', 'logger']  # 排除这些字段
+    __state_include__: list[str] = []  # 如果非空，只保存这些字段
+    __state_exclude__: list[str] = ["ctx", "_logger", "logger"]  # 排除这些字段
 
     # 不可序列化的类型（会被自动排除）
     __unserializable_types__ = (
@@ -26,7 +26,7 @@ class BaseFunction(ABC):
     )
 
     def __init__(self, *args, **kwargs):
-        self.ctx: Optional["TaskContext"] = None  # 运行时注入
+        self.ctx: "TaskContext" | None = None  # 运行时注入
         self._logger = None
 
     @property
@@ -48,8 +48,8 @@ class BaseFunction(ABC):
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs,
     ):
         """同步服务调用语法糖"""
@@ -66,8 +66,8 @@ class BaseFunction(ABC):
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs,
     ):
         """异步服务调用语法糖"""
@@ -80,7 +80,7 @@ class BaseFunction(ABC):
             service_name, *args, timeout=timeout, method=method, **kwargs
         )
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """
         获取 Function 的状态用于 checkpoint
 
@@ -107,8 +107,9 @@ class BaseFunction(ABC):
         # 过滤掉私有属性（以 _ 开头的，除非在 include 中明确指定）
         if not self.__state_include__:
             attrs_to_save = {
-                attr for attr in attrs_to_save
-                if not attr.startswith('_') or attr in self.__state_include__
+                attr
+                for attr in attrs_to_save
+                if not attr.startswith("_") or attr in self.__state_include__
             }
 
         # 收集可序列化的状态
@@ -121,22 +122,22 @@ class BaseFunction(ABC):
                     state[attr_name] = value
                 else:
                     # 对于不可序列化的对象，尝试保存其类型信息
-                    if hasattr(value, '__class__'):
-                        state[f'__{attr_name}_type__'] = value.__class__.__name__
+                    if hasattr(value, "__class__"):
+                        state[f"__{attr_name}_type__"] = value.__class__.__name__
 
             except Exception as e:
                 # 如果获取属性失败，记录但继续
-                if hasattr(self, 'logger'):
+                if hasattr(self, "logger"):
                     self.logger.warning(
                         f"Failed to get state for attribute '{attr_name}': {e}"
                     )
 
         # 保存类属性（如 use_metronome）
-        state['__class_attrs__'] = self._get_class_attributes()
+        state["__class_attrs__"] = self._get_class_attributes()
 
         return state
 
-    def restore_state(self, state: Dict[str, Any]):
+    def restore_state(self, state: dict[str, Any]):
         """
         从 checkpoint 恢复 Function 的状态
 
@@ -148,20 +149,20 @@ class BaseFunction(ABC):
         # 恢复实例属性
         for attr_name, value in state.items():
             # 跳过元数据
-            if attr_name.startswith('__') and attr_name.endswith('__'):
+            if attr_name.startswith("__") and attr_name.endswith("__"):
                 continue
 
             try:
                 setattr(self, attr_name, value)
             except Exception as e:
-                if hasattr(self, 'logger'):
+                if hasattr(self, "logger"):
                     self.logger.warning(
                         f"Failed to restore attribute '{attr_name}': {e}"
                     )
 
         # 恢复类属性
-        if '__class_attrs__' in state:
-            self._restore_class_attributes(state['__class_attrs__'])
+        if "__class_attrs__" in state:
+            self._restore_class_attributes(state["__class_attrs__"])
 
     def _is_serializable(self, value: Any) -> bool:
         """
@@ -198,7 +199,7 @@ class BaseFunction(ABC):
         except (TypeError, pickle.PicklingError, AttributeError):
             return False
 
-    def _get_class_attributes(self) -> Dict[str, Any]:
+    def _get_class_attributes(self) -> dict[str, Any]:
         """
         获取类属性（如 use_metronome）
 
@@ -214,7 +215,7 @@ class BaseFunction(ABC):
 
             for attr_name, value in cls.__dict__.items():
                 # 跳过特殊属性和方法
-                if attr_name.startswith('_') or callable(value):
+                if attr_name.startswith("_") or callable(value):
                     continue
 
                 # 只保存可序列化的类属性
@@ -223,7 +224,7 @@ class BaseFunction(ABC):
 
         return class_attrs
 
-    def _restore_class_attributes(self, class_attrs: Dict[str, Any]):
+    def _restore_class_attributes(self, class_attrs: dict[str, Any]):
         """
         恢复类属性
 
@@ -237,7 +238,7 @@ class BaseFunction(ABC):
             try:
                 setattr(self, attr_name, value)
             except Exception as e:
-                if hasattr(self, 'logger'):
+                if hasattr(self, "logger"):
                     self.logger.warning(
                         f"Failed to restore class attribute '{attr_name}': {e}"
                     )

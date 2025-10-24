@@ -184,7 +184,11 @@ class MethodMetrics:
             "total_requests": self.total_requests,
             "total_failures": self.total_failures,
             "response_time": {
-                "min_ms": self.min_response_time if self.min_response_time != float("inf") else 0.0,
+                "min_ms": (
+                    self.min_response_time
+                    if self.min_response_time != float("inf")
+                    else 0.0
+                ),
                 "max_ms": self.max_response_time,
                 "avg_ms": self.avg_response_time,
                 "p50_ms": self.p50_response_time,
@@ -248,7 +252,11 @@ class ServicePerformanceMetrics:
             "total_requests_failed": self.total_requests_failed,
             "requests_per_second": self.requests_per_second,
             "response_time": {
-                "min_ms": self.min_response_time if self.min_response_time != float("inf") else 0.0,
+                "min_ms": (
+                    self.min_response_time
+                    if self.min_response_time != float("inf")
+                    else 0.0
+                ),
                 "max_ms": self.max_response_time,
                 "avg_ms": self.avg_response_time,
                 "p50_ms": self.p50_response_time,
