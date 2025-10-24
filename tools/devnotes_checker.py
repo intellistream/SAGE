@@ -32,6 +32,10 @@ ALLOWED_CATEGORIES = {
     "deployment": "部署相关",
     "migration": "迁移和重构相关",
     "tools": "开发工具相关",
+    "finetune": "微调和训练相关",
+    "embedding": "嵌入和向量化相关",
+    "autostop": "自动停止功能相关",
+    "examples-reorganization": "示例重组相关",
     "archive": "已归档文档（只读）",
 }
 

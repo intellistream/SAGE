@@ -33,6 +33,8 @@ help:
 	@echo "📚 文档:"
 	@echo "  make docs         - 构建文档"
 	@echo "  make docs-serve   - 本地预览文档"
+	@echo "  make docs-check   - 检查文档质量"
+	@echo "  make docs-report  - 生成文档质量报告"
 	@echo ""
 	@echo "💡 提示: 这些命令调用 'sage dev' 工具，需要源码安装模式"
 
@@ -114,3 +116,17 @@ docs:
 docs-serve:
 	@echo "🌐 启动文档服务器..."
 	cd docs-public && mkdocs serve
+
+docs-check:
+	@echo "🔍 检查文档质量..."
+	@echo "1️⃣  Checking dev-notes..."
+	@python tools/devnotes_checker.py --all
+	@echo ""
+	@echo "2️⃣  Checking package READMEs..."
+	@python tools/package_readme_checker.py --all
+	@echo ""
+	@echo "✅ Documentation check complete"
+
+docs-report:
+	@echo "📊 生成文档质量报告..."
+	@bash tools/maintenance/check_docs.sh
