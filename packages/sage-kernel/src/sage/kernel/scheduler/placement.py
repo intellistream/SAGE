@@ -162,9 +162,8 @@ class PlacementExecutor:
         # 创建 Ray Actor
         from sage.kernel.runtime.task.ray_task import RayTask
         from sage.kernel.utils.ray.actor import ActorWrapper
-        import ray
 
-        task_actor = ray.remote(RayTask).options(**ray_options).remote(
+        task_actor = RayTask.options(**ray_options).remote(
             ctx, task_node.task_factory.operator_factory
         )
 

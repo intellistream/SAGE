@@ -38,10 +38,9 @@ class ServiceTaskFactory:
             # 创建Ray服务任务
             from sage.kernel.runtime.service.ray_service_task import RayServiceTask
             from sage.kernel.utils.ray.actor import ActorWrapper
-            import ray
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
-            ray_service_task = ray.remote(RayServiceTask).options(lifetime="detached").remote(
+            ray_service_task = RayServiceTask.options(lifetime="detached").remote(
                 self.service_factory, ctx
             )
 

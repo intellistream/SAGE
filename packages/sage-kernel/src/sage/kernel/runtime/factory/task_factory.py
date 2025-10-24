@@ -34,8 +34,7 @@ class TaskFactory:
         runtime_context: "TaskContext | None" = None,
     ):
         if self.remote:
-            import ray
-            node = ray.remote(RayTask).options(lifetime="detached").remote(
+            node = RayTask.options(lifetime="detached").remote(
                 runtime_context, self.operator_factory
             )
             node = ActorWrapper(node)
