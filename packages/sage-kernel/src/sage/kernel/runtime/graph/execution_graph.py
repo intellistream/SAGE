@@ -250,9 +250,9 @@ class ExecutionGraph:
         根据transformation pipeline构建图, 支持并行度和多对多连接
         分为三步: 1) 生成并行节点 2) 生成物理边 3) 创建图结构
         """
-        transformation_to_node: Dict[BaseTransformation, List[str]] = (
+        transformation_to_node: Dict[str, List[str]] = (
             {}
-        )  # transformation -> list of node names
+        )  # transformation basename -> list of node names
 
         # 第一步：为每个transformation生成并行节点名字表，同时创建节点
         self.logger.debug("Step 1: Generating parallel nodes for each transformation")
@@ -271,6 +271,7 @@ class ExecutionGraph:
 
             node_names = []
             for i in range(transformation.parallelism):
+                node_name = ""
                 try:
                     node_name = get_name(f"{transformation.basename}_{i}")
                     node_names.append(node_name)
@@ -279,7 +280,8 @@ class ExecutionGraph:
                         f"Created node: {node_name} (parallel index: {i})"
                     )
                 except Exception as e:
-                    self.logger.error(f"Error creating node {node_name}: {e}")
+                    error_name = node_name if node_name else f"{transformation.basename}_{i}"
+                    self.logger.error(f"Error creating node {error_name}: {e}")
                     raise
             transformation_to_node[transformation.basename] = node_names
             self.logger.debug(
@@ -302,10 +304,11 @@ class ExecutionGraph:
             downstream_nodes = transformation_to_node[transformation.basename]
             for upstream_trans in transformation.upstreams:
                 # 如果上游是已填充的FutureTransformation，使用实际的transformation
-                actual_upstream_trans = upstream_trans
+                actual_upstream_trans: BaseTransformation = upstream_trans
                 if (
                     isinstance(upstream_trans, FutureTransformation)
                     and upstream_trans.filled
+                    and upstream_trans.actual_transformation is not None
                 ):
                     actual_upstream_trans = upstream_trans.actual_transformation
 
