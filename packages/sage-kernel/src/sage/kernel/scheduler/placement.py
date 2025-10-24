@@ -95,7 +95,7 @@ class PlacementExecutor:
         # 2. 创建任务
         is_remote = task_node.task_factory.remote
 
-        task: "LocalTask" | "ActorWrapper"
+        task: Union["LocalTask", "ActorWrapper"]
         if is_remote:
             # 远程任务：使用决策创建 Ray Actor
             task = self._place_remote_task(task_node, ctx, decision)
