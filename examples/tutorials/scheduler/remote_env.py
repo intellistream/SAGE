@@ -5,9 +5,9 @@ RemoteEnvironment 简单示例
 演示如何使用 RemoteEnvironment 和调度器
 """
 
-from sage.kernel.api.function.map_function import MapFunction
-from sage.kernel.api.function.sink_function import SinkFunction
-from sage.kernel.api.function.source_function import SourceFunction
+from sage.common.core.functions.map_function import MapFunction
+from sage.common.core.functions.sink_function import SinkFunction
+from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
 
 

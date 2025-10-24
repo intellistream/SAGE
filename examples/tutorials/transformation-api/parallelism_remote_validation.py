@@ -15,9 +15,9 @@ import os
 import threading
 import time
 
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
+from sage.common.core.functions.base_function import BaseFunction
+from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core.functions.comap_function import BaseCoMapFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
 
 

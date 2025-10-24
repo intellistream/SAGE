@@ -11,9 +11,9 @@ import os
 import random
 import time
 
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
-from sage.kernel.api.function.sink_function import SinkFunction
-from sage.kernel.api.function.source_function import SourceFunction
+from sage.common.core.functions.comap_function import BaseCoMapFunction
+from sage.common.core.functions.sink_function import SinkFunction
+from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # 设置日志级别为ERROR减少输出

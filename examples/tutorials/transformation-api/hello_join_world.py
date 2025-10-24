@@ -1,9 +1,9 @@
 # 此例用到了keyby和join操作符，展示如何将两个数据流按key进行关联。
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.join_function import BaseJoinFunction
-from sage.kernel.api.function.keyby_function import KeyByFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core.functions.join_function import BaseJoinFunction
+from sage.common.core.functions.keyby_function import KeyByFunction
+from sage.common.core.functions.sink_function import SinkFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

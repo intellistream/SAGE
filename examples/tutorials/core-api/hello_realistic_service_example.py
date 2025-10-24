@@ -6,7 +6,7 @@
 
 import time
 
-from sage.kernel.api.function.base_function import BaseFunction
+from sage.common.core.functions.base_function import BaseFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

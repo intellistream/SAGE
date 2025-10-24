@@ -26,8 +26,8 @@ import os
 import sys
 from typing import Any, List
 
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
-from sage.kernel.api.function.source_function import SourceFunction
+from sage.common.core.functions.comap_function import BaseCoMapFunction
+from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.runtime.communication.router.packet import StopSignal
 

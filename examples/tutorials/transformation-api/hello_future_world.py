@@ -1,10 +1,10 @@
 from time import sleep
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.base_function import BaseFunction
+from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core.functions.comap_function import BaseCoMapFunction
+from sage.common.core.functions.sink_function import SinkFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

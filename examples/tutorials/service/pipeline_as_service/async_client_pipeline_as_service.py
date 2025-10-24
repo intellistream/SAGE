@@ -13,9 +13,9 @@ from typing import Any, Dict, List
 
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.kernel.api.function.batch_function import BatchFunction
-    from sage.kernel.api.function.map_function import MapFunction
-    from sage.kernel.api.function.sink_function import SinkFunction
+    from sage.common.core.functions.batch_function import BatchFunction
+    from sage.common.core.functions.map_function import MapFunction
+    from sage.common.core.functions.sink_function import SinkFunction
     from sage.kernel.api.local_environment import LocalEnvironment
 except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     import sys
@@ -41,9 +41,9 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
         sys.path.insert(0, str(extra_path))
 
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.kernel.api.function.batch_function import BatchFunction
-    from sage.kernel.api.function.map_function import MapFunction
-    from sage.kernel.api.function.sink_function import SinkFunction
+    from sage.common.core.functions.batch_function import BatchFunction
+    from sage.common.core.functions.map_function import MapFunction
+    from sage.common.core.functions.sink_function import SinkFunction
     from sage.kernel.api.local_environment import LocalEnvironment
 
 from hello_pipeline_as_service import (

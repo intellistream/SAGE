@@ -1,6 +1,6 @@
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core.functions.sink_function import SinkFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service.base_service import BaseService
 

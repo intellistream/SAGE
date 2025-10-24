@@ -10,7 +10,7 @@ import os
 import time
 from collections import Counter
 
-from sage.kernel.api.function.source_function import SourceFunction
+from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # 设置日志级别为ERROR减少输出
