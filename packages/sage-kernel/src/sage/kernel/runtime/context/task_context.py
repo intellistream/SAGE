@@ -29,14 +29,14 @@ class TaskContext(BaseRuntimeContext):
         graph_node: "TaskNode",
         transformation: "BaseTransformation",
         env: "BaseEnvironment",
-        execution_graph: "ExecutionGraph" = None,
+        execution_graph: "ExecutionGraph | None" = None,
     ):
         super().__init__()  # Initialize base context
 
         self.name: str = graph_node.name
 
         self.env_name = env.name
-        self.env_base_dir: str = env.env_base_dir
+        self.env_base_dir: str | None = env.env_base_dir
         self.env_uuid = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
 
@@ -58,6 +58,7 @@ class TaskContext(BaseRuntimeContext):
         self.jobmanager_port = getattr(env, "jobmanager_port", 19001)
 
         # 为本地环境保存JobManager的弱引用
+        self._local_jobmanager_ref: Any
         if hasattr(env, "_jobmanager") and env._jobmanager is not None:
             import weakref
 
@@ -66,7 +67,7 @@ class TaskContext(BaseRuntimeContext):
             self._local_jobmanager_ref = None
 
         # 这些属性将在task层初始化，避免序列化问题
-        self._stop_event = None  # 延迟初始化
+        self._stop_event: Optional[threading.Event] = None  # 延迟初始化
         self.received_stop_signals = None  # 延迟初始化
         self.stop_signal_count = 0
 
@@ -136,6 +137,7 @@ class TaskContext(BaseRuntimeContext):
     def logger(self) -> CustomLogger:
         """懒加载logger"""
         if self._logger is None:
+            base_dir = self.env_base_dir if self.env_base_dir is not None else "."
             self._logger = CustomLogger(
                 [
                     (
@@ -143,12 +145,12 @@ class TaskContext(BaseRuntimeContext):
                         self.env_console_log_level,
                     ),  # 使用环境设置的控制台日志等级
                     (
-                        os.path.join(self.env_base_dir, f"{self.name}_debug.log"),
+                        os.path.join(base_dir, f"{self.name}_debug.log"),
                         "DEBUG",
                     ),  # 详细日志
-                    (os.path.join(self.env_base_dir, "Error.log"), "ERROR"),  # 错误日志
+                    (os.path.join(base_dir, "Error.log"), "ERROR"),  # 错误日志
                     (
-                        os.path.join(self.env_base_dir, f"{self.name}_info.log"),
+                        os.path.join(base_dir, f"{self.name}_info.log"),
                         "INFO",
                     ),  # 错误日志
                 ],
@@ -178,8 +180,8 @@ class TaskContext(BaseRuntimeContext):
                 f"Service '{service_name}' not found. Available services: {available_services}"
             )
 
-        # 通过service_manager获取实际的服务实例
-        return self.service_manager.get_service(service_name)
+        # 通过service_manager获取实际的服务队列
+        return self.service_manager._get_service_queue(service_name)
 
     @property
     def stop_event(self) -> threading.Event:
@@ -236,7 +238,8 @@ class TaskContext(BaseRuntimeContext):
             client = JobManagerClient(
                 host=self.jobmanager_host, port=self.jobmanager_port
             )
-            response = client.receive_node_stop_signal(self.env_uuid, node_name)
+            env_uuid = self.env_uuid if self.env_uuid is not None else ""
+            response = client.receive_node_stop_signal(env_uuid, node_name)
 
             if response.get("status") == "success":
                 self.logger.debug(f"Successfully sent stop signal for node {node_name}")
