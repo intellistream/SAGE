@@ -59,7 +59,7 @@ class BaseFaultHandler(ABC):
         """
         pass
 
-    def on_failure_detected(self, task_id: str, error: Exception):
+    def on_failure_detected(self, task_id: str, error: Exception):  # noqa: B027
         """
         故障检测回调
 
@@ -71,7 +71,7 @@ class BaseFaultHandler(ABC):
         """
         pass
 
-    def on_recovery_started(self, task_id: str):
+    def on_recovery_started(self, task_id: str):  # noqa: B027
         """
         恢复开始回调
 
@@ -82,7 +82,7 @@ class BaseFaultHandler(ABC):
         """
         pass
 
-    def on_recovery_completed(self, task_id: str, success: bool):
+    def on_recovery_completed(self, task_id: str, success: bool):  # noqa: B027
         """
         恢复完成回调
 

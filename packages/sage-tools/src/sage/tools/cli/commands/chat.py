@@ -586,7 +586,7 @@ class ResponseGenerator:
         try:
             response = requests.get(f"http://localhost:{port}/health", timeout=1)
             service_running = response.status_code == 200
-        except:
+        except Exception:  # noqa: S110
             service_running = False
 
         if service_running:
@@ -669,7 +669,7 @@ class ResponseGenerator:
                     if response.status_code == 200:
                         console.print("[green]✅ vLLM 服务启动成功！[/green]\n")
                         break
-                except:
+                except Exception:  # noqa: S110
                     pass
                 time.sleep(1)
             else:
@@ -713,7 +713,7 @@ class ResponseGenerator:
                 self.vllm_process.terminate()
                 self.vllm_process.wait(timeout=10)
                 console.print("[green]✅ vLLM 服务已关闭[/green]")
-            except:
+            except Exception:  # noqa: S110
                 if self.vllm_process.poll() is None:
                     self.vllm_process.kill()
             self.vllm_process = None

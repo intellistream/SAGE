@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor
 
 
-class BaseRouter(ABC):
+class BaseRouter(ABC):  # noqa: B024
     """
     路由器基类，负责管理下游连接和数据包路由
     子类只需要实现具体的数据发送逻辑
@@ -253,7 +253,7 @@ class BaseRouter(ABC):
             partition_strategy=packet.partition_strategy,
         )
 
-    def _adjust_delay_based_on_load(self):
+    def _adjust_delay_based_on_load(self):  # noqa: B027
         """根据下游负载调整延迟（目前是占位符实现）"""
         # 这是一个占位符方法，可以在未来根据队列负载情况调整发送延迟
         # 目前不做任何调整

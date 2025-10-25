@@ -39,7 +39,7 @@ class TimeSeriesAlgorithm(ABC):
         """
         pass
 
-    def reset(self):
+    def reset(self):  # noqa: B027
         """Reset algorithm state (for stateful algorithms)"""
         pass
 

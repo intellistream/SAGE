@@ -28,7 +28,7 @@ QUEUE_EMPTY_EXCEPTIONS = (
 )
 
 
-class BaseTask(ABC):
+class BaseTask(ABC):  # noqa: B024
     def __init__(self, ctx: "TaskContext", operator_factory: "OperatorFactory") -> None:
         self.ctx = ctx
 

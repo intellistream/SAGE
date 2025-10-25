@@ -42,7 +42,7 @@ class RestartStrategy(ABC):
         """
         pass
 
-    def on_restart_attempt(self, failure_count: int):
+    def on_restart_attempt(self, failure_count: int):  # noqa: B027
         """
         重启尝试回调
 
