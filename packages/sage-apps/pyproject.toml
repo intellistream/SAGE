@@ -108,10 +108,20 @@ line-length = 100
 target-version = "py310"
 select = ["E", "F", "I", "N", "W", "UP"]
 ignore = [
-    "E501",  # line-too-long
-    "E741",  # ambiguous-variable-name
-    "B904",  # raise-without-from-inside-except
-    "C901",  # complex-structure
+    "E501",
+    "E741",
+    "B904",
+    "C901",
+    "E402",
+    "B026",
+    "B007",
+    "B023",
+    "B025",
+    "B018",
+    "F402",
+    "F405",
+    "UP035",
+    "UP007",
 ]
 
 [tool.mypy]

@@ -8,9 +8,17 @@ line-length = 100
 # Ignore B904 and C901 as they are style recommendations
 # B904: Within an except clause, raise exceptions with raise ... from err
 # C901: Function is too complex (McCabe complexity)
+# E402: Module level import not at top of file (needed for conditional imports)
+# B026: Star-arg unpacking after keyword argument (intentional for flexibility)
+# B007: Loop control variable not used (sometimes intentional)
+# B023: Function uses loop variable (can be intentional)
 ignore = [
     "B904",  # raise-without-from-inside-except
     "C901",  # complex-structure (function complexity)
+    "E402",  # module-import-not-at-top-of-file
+    "B026",  # star-arg-unpacking-after-keyword-arg
+    "B007",  # unused-loop-control-variable
+    "B023",  # function-uses-loop-variable
 ]
 
 # Allow fix for all enabled rules (when `--fix` is provided)

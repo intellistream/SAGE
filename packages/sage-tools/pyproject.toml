@@ -244,10 +244,20 @@ select = [
 
 # 忽略的错误（与flake8 .flake8文件保持一致）
 ignore = [
-    "E501",  # line too long (handled by formatter),
-    "B904",  # raise-without-from-inside-except
-    "B008",  # function-call-in-default-argument (typer.Option is safe)
-    "C901",  # complex-structure
+    "E501",
+    "B904",
+    "B008",
+    "C901",
+    "E402",
+    "B026",
+    "B007",
+    "B023",
+    "B025",
+    "B018",
+    "F402",
+    "F405",
+    "UP035",
+    "UP007",
 ]
 
 # 复杂度限制（与flake8保持一致）

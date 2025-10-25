@@ -21,8 +21,8 @@ def example_document_loading():
     try:
         from sage.libs.rag.document_loaders import (
             JSONLoader,  # noqa: F401
-            PDFLoader,
-            TextLoader,
+            PDFLoader,  # noqa: F401
+            TextLoader,  # noqa: F401
         )
 
         print("\n✓ Available document loaders:")

@@ -31,7 +31,7 @@ try:
         BaseQueueDescriptor,  # noqa: F401
         PythonQueueDescriptor,
         RayQueueDescriptor,
-        resolve_descriptor,
+        resolve_descriptor,  # noqa: F401
     )
 
     print("✓ 成功导入队列描述符")
