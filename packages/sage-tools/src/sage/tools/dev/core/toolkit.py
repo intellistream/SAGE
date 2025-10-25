@@ -12,7 +12,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .config import ToolkitConfig
 from .exceptions import (
@@ -36,9 +36,9 @@ class SAGEDevToolkit:
 
     def __init__(
         self,
-        project_root: Optional[str] = None,
-        config_file: Optional[str] = None,
-        environment: Optional[str] = None,
+        project_root: str | None = None,
+        config_file: str | None = None,
+        environment: str | None = None,
     ):
         """
         Initialize the SAGE Development Toolkit.
@@ -87,9 +87,7 @@ class SAGEDevToolkit:
             console_handler = logging.StreamHandler()
             console_handler.setLevel(self.logger.level)
             formatter = logging.Formatter(
-                log_config.get(
-                    "format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-                )
+                log_config.get("format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             )
             console_handler.setFormatter(formatter)
             self.logger.addHandler(console_handler)
@@ -165,9 +163,7 @@ class SAGEDevToolkit:
                     self.tools[tool_name] = getattr(module, class_name)
                     self.logger.info(f"Successfully loaded tool: {tool_name}")
                 else:
-                    self.logger.warning(
-                        f"Tool class not found: {class_name} in {module_name}"
-                    )
+                    self.logger.warning(f"Tool class not found: {class_name} in {module_name}")
 
             except Exception as e:
                 self.logger.error(f"Failed to load tool {tool_name}: {e}")
@@ -175,7 +171,7 @@ class SAGEDevToolkit:
         if not self.tools:
             self.logger.warning("No tools were loaded successfully")
 
-    def run_tests(self, mode: str = "diff", **kwargs) -> Dict[str, Any]:
+    def run_tests(self, mode: str = "diff", **kwargs) -> dict[str, Any]:
         """
         Run tests using the enhanced test runner.
 
@@ -241,7 +237,7 @@ class SAGEDevToolkit:
         except Exception as e:
             raise TestExecutionError(f"Test execution failed: {e}") from e
 
-    def analyze_dependencies(self, analysis_type: str = "full") -> Dict[str, Any]:
+    def analyze_dependencies(self, analysis_type: str = "full") -> dict[str, Any]:
         """
         Analyze project dependencies.
 
@@ -292,8 +288,8 @@ class SAGEDevToolkit:
             raise DependencyAnalysisError(f"Dependency analysis failed: {e}") from e
 
     def manage_packages(
-        self, action: str, package_name: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, action: str, package_name: str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """
         Manage SAGE packages using the enhanced package manager.
 
@@ -345,7 +341,7 @@ class SAGEDevToolkit:
                 operation=action,
             ) from e
 
-    def generate_comprehensive_report(self) -> Dict[str, Any]:
+    def generate_comprehensive_report(self) -> dict[str, Any]:
         """
         Generate a comprehensive development report.
 
@@ -428,7 +424,7 @@ class SAGEDevToolkit:
         except Exception as e:
             raise ReportGenerationError(f"Failed to save report: {e}") from e
 
-    def _save_results(self, result_type: str, data: Dict[str, Any]) -> Path:
+    def _save_results(self, result_type: str, data: dict[str, Any]) -> Path:
         """Save results to output directory with timestamp."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_file = self.config.output_dir / f"{result_type}_{timestamp}.json"
@@ -438,9 +434,7 @@ class SAGEDevToolkit:
 
         return output_file
 
-    def _generate_markdown_report(
-        self, report: Dict[str, Any], output_file: Path
-    ) -> None:
+    def _generate_markdown_report(self, report: dict[str, Any], output_file: Path) -> None:
         """Generate markdown version of comprehensive report."""
         with open(output_file, "w", encoding="utf-8") as f:
             f.write("# SAGE Development Report\n\n")
@@ -451,9 +445,7 @@ class SAGEDevToolkit:
             f.write(f"- **Generated**: {metadata.get('timestamp', 'Unknown')}\n")
             f.write(f"- **Environment**: {metadata.get('environment', 'Unknown')}\n")
             f.write(f"- **Project Root**: {metadata.get('project_root', 'Unknown')}\n")
-            f.write(
-                f"- **Execution Time**: {metadata.get('execution_time', 0):.2f}s\n\n"
-            )
+            f.write(f"- **Execution Time**: {metadata.get('execution_time', 0):.2f}s\n\n")
 
             # Sections
             sections = report.get("sections", {})
@@ -463,9 +455,7 @@ class SAGEDevToolkit:
 
                 status = section_data.get("status", "unknown")
                 if status == "error":
-                    f.write(
-                        f"❌ **Error**: {section_data.get('error', 'Unknown error')}\n\n"
-                    )
+                    f.write(f"❌ **Error**: {section_data.get('error', 'Unknown error')}\n\n")
                 elif status == "success":
                     f.write("✅ **Status**: Success\n\n")
                     # Add summary data if available
@@ -479,7 +469,7 @@ class SAGEDevToolkit:
                 else:
                     f.write(f"⚠️ **Status**: {status}\n\n")
 
-    def get_tool_status(self) -> Dict[str, Any]:
+    def get_tool_status(self) -> dict[str, Any]:
         """Get status of all loaded tools."""
         return {
             "loaded_tools": list(self.tools.keys()),
@@ -487,11 +477,11 @@ class SAGEDevToolkit:
             "tools_config": self.config.get_tools_config(),
         }
 
-    def validate_configuration(self) -> List[str]:
+    def validate_configuration(self) -> list[str]:
         """Validate toolkit configuration and return any errors."""
         return self.config.validate()
 
-    def fix_import_paths(self, dry_run: bool = False) -> Dict[str, Any]:
+    def fix_import_paths(self, dry_run: bool = False) -> dict[str, Any]:
         """Fix import paths in SAGE packages."""
         if "import_fixer" not in self.tools:
             raise ToolError("Import path fixer not available")
@@ -502,7 +492,7 @@ class SAGEDevToolkit:
         except Exception as e:
             raise SAGEDevToolkitError(f"Import path fixing failed: {e}") from e
 
-    def update_vscode_paths(self, mode: str = "enhanced") -> Dict[str, Any]:
+    def update_vscode_paths(self, mode: str = "enhanced") -> dict[str, Any]:
         """Update VS Code Python path configurations."""
         if "vscode_manager" not in self.tools:
             raise ToolError("VS Code path manager not available")
@@ -513,7 +503,7 @@ class SAGEDevToolkit:
         except Exception as e:
             raise SAGEDevToolkitError(f"VS Code path update failed: {e}") from e
 
-    def list_available_tests(self) -> Dict[str, Any]:
+    def list_available_tests(self) -> dict[str, Any]:
         """List all available tests in the project."""
         if "test_runner" not in self.tools:
             raise ToolError("Test runner not available")
@@ -525,7 +515,7 @@ class SAGEDevToolkit:
             raise SAGEDevToolkitError(f"Test listing failed: {e}") from e
 
     @staticmethod
-    def get_version_info() -> Dict[str, Any]:
+    def get_version_info() -> dict[str, Any]:
         """Get SAGE version information from _version.py file."""
         try:
             # Find the _version.py file in the project root
@@ -559,7 +549,7 @@ class SAGEDevToolkit:
 
             # Execute _version.py to get all variables
             version_globals = {}
-            with open(version_file, "r", encoding="utf-8") as f:
+            with open(version_file, encoding="utf-8") as f:
                 exec(f.read(), version_globals)
 
             # Import sys to get Python version
@@ -574,15 +564,13 @@ class SAGEDevToolkit:
                 "author": version_globals.get("__author__", "IntelliStream Team"),
                 "email": version_globals.get("__email__", "unknown"),
                 "release_date": version_globals.get("__release_date__", "unknown"),
-                "release_status": version_globals.get(
-                    "__release_status__", "development"
-                ),
+                "release_status": version_globals.get("__release_status__", "development"),
                 "build": f"{version_globals.get('__version__', 'unknown')}-{version_globals.get('__release_status__', 'dev')}",
                 "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
                 "python_requires": version_globals.get("__python_requires__", ">=3.10"),
             }
 
-        except Exception as e:
+        except Exception:
             # Return default values if something goes wrong
             import sys
 
@@ -599,7 +587,7 @@ class SAGEDevToolkit:
                 "python_requires": ">=3.10",
             }
 
-    def analyze_project(self) -> Dict[str, Any]:
+    def analyze_project(self) -> dict[str, Any]:
         """
         Analyze the current project structure and dependencies.
 

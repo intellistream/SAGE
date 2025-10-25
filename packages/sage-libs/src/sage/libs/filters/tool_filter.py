@@ -34,14 +34,14 @@ class ToolFilter(FilterFunction):
             return set()
 
         if isinstance(tools_input, (list, set)):
-            return set(str(tool) for tool in tools_input)
+            return {str(tool) for tool in tools_input}
 
         if isinstance(tools_input, str):
             # JSON字符串
             if tools_input.strip().startswith("["):
                 try:
                     parsed = json.loads(tools_input)
-                    return set(str(tool) for tool in parsed)
+                    return {str(tool) for tool in parsed}
                 except json.JSONDecodeError:
                     pass
 

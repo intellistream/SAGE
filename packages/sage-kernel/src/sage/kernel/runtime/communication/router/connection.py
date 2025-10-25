@@ -3,9 +3,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sage.platform.queue.base_queue_descriptor import (
-        BaseQueueDescriptor,
-    )
+    from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor
 
 
 @dataclass
@@ -26,7 +24,7 @@ class Connection:
         self.broadcast_index: int = broadcast_index
         self.parallel_index: int = parallel_index
         self.target_name: str = target_name
-        self.queue_descriptor: "BaseQueueDescriptor" = queue_descriptor
+        self.queue_descriptor: BaseQueueDescriptor = queue_descriptor
         self.target_input_index: int = target_input_index
 
         # 负载状态跟踪（保留用于监控）

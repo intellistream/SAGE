@@ -13,11 +13,9 @@ import io
 import json
 import threading
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
-from sage.kernel.runtime.monitoring.metrics import (
-    TaskPerformanceMetrics,
-)
+from sage.kernel.runtime.monitoring.metrics import TaskPerformanceMetrics
 from sage.kernel.runtime.monitoring.metrics_collector import MetricsCollector
 from sage.kernel.runtime.monitoring.resource_monitor import ResourceMonitor
 
@@ -28,10 +26,10 @@ class MetricsReporter:
     def __init__(
         self,
         metrics_collector: MetricsCollector,
-        resource_monitor: Optional[ResourceMonitor] = None,
+        resource_monitor: ResourceMonitor | None = None,
         report_interval: int = 60,
         enable_auto_report: bool = False,
-        report_callback: Optional[Callable[[str], None]] = None,
+        report_callback: Callable[[str], None] | None = None,
     ):
         """
         初始化指标汇报器
@@ -49,7 +47,7 @@ class MetricsReporter:
         self.report_callback = report_callback
 
         # 汇报线程
-        self._report_thread: Optional[threading.Thread] = None
+        self._report_thread: threading.Thread | None = None
         self._running = False
 
         if enable_auto_report:
@@ -130,37 +128,29 @@ class MetricsReporter:
         task_name = metrics.task_name
 
         # 基础指标
-        lines.append(f"# HELP sage_task_uptime_seconds Task uptime in seconds")
-        lines.append(f"# TYPE sage_task_uptime_seconds gauge")
+        lines.append("# HELP sage_task_uptime_seconds Task uptime in seconds")
+        lines.append("# TYPE sage_task_uptime_seconds gauge")
         lines.append(f'sage_task_uptime_seconds{{task="{task_name}"}} {metrics.uptime}')
 
-        lines.append(
-            f"# HELP sage_task_packets_processed_total Total packets processed"
-        )
-        lines.append(f"# TYPE sage_task_packets_processed_total counter")
+        lines.append("# HELP sage_task_packets_processed_total Total packets processed")
+        lines.append("# TYPE sage_task_packets_processed_total counter")
         lines.append(
             f'sage_task_packets_processed_total{{task="{task_name}"}} {metrics.total_packets_processed}'
         )
 
-        lines.append(f"# HELP sage_task_packets_failed_total Total packets failed")
-        lines.append(f"# TYPE sage_task_packets_failed_total counter")
+        lines.append("# HELP sage_task_packets_failed_total Total packets failed")
+        lines.append("# TYPE sage_task_packets_failed_total counter")
         lines.append(
             f'sage_task_packets_failed_total{{task="{task_name}"}} {metrics.total_packets_failed}'
         )
 
-        lines.append(
-            f"# HELP sage_task_throughput_pps Current throughput in packets per second"
-        )
-        lines.append(f"# TYPE sage_task_throughput_pps gauge")
-        lines.append(
-            f'sage_task_throughput_pps{{task="{task_name}"}} {metrics.packets_per_second}'
-        )
+        lines.append("# HELP sage_task_throughput_pps Current throughput in packets per second")
+        lines.append("# TYPE sage_task_throughput_pps gauge")
+        lines.append(f'sage_task_throughput_pps{{task="{task_name}"}} {metrics.packets_per_second}')
 
         # 延迟指标
-        lines.append(
-            f"# HELP sage_task_latency_milliseconds Task latency in milliseconds"
-        )
-        lines.append(f"# TYPE sage_task_latency_milliseconds summary")
+        lines.append("# HELP sage_task_latency_milliseconds Task latency in milliseconds")
+        lines.append("# TYPE sage_task_latency_milliseconds summary")
         lines.append(
             f'sage_task_latency_milliseconds{{task="{task_name}",quantile="0.5"}} {metrics.p50_latency}'
         )
@@ -172,24 +162,18 @@ class MetricsReporter:
         )
 
         # 资源指标
-        lines.append(f"# HELP sage_task_cpu_percent CPU usage percentage")
-        lines.append(f"# TYPE sage_task_cpu_percent gauge")
-        lines.append(
-            f'sage_task_cpu_percent{{task="{task_name}"}} {metrics.cpu_usage_percent}'
-        )
+        lines.append("# HELP sage_task_cpu_percent CPU usage percentage")
+        lines.append("# TYPE sage_task_cpu_percent gauge")
+        lines.append(f'sage_task_cpu_percent{{task="{task_name}"}} {metrics.cpu_usage_percent}')
 
-        lines.append(f"# HELP sage_task_memory_megabytes Memory usage in megabytes")
-        lines.append(f"# TYPE sage_task_memory_megabytes gauge")
-        lines.append(
-            f'sage_task_memory_megabytes{{task="{task_name}"}} {metrics.memory_usage_mb}'
-        )
+        lines.append("# HELP sage_task_memory_megabytes Memory usage in megabytes")
+        lines.append("# TYPE sage_task_memory_megabytes gauge")
+        lines.append(f'sage_task_memory_megabytes{{task="{task_name}"}} {metrics.memory_usage_mb}')
 
         # 队列指标
-        lines.append(f"# HELP sage_task_queue_depth Current queue depth")
-        lines.append(f"# TYPE sage_task_queue_depth gauge")
-        lines.append(
-            f'sage_task_queue_depth{{task="{task_name}"}} {metrics.input_queue_depth}'
-        )
+        lines.append("# HELP sage_task_queue_depth Current queue depth")
+        lines.append("# TYPE sage_task_queue_depth gauge")
+        lines.append(f'sage_task_queue_depth{{task="{task_name}"}} {metrics.input_queue_depth}')
 
         return "\n".join(lines)
 

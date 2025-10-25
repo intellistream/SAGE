@@ -1,6 +1,6 @@
 """HuggingFace embedding wrapper."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseEmbedding
 from ..hf import hf_embed_sync  # 复用现有实现
@@ -84,7 +84,7 @@ class HFEmbedding(BaseEmbedding):
         self._dim = self._infer_dimension()
         self._model_name = model
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -99,11 +99,9 @@ class HFEmbedding(BaseEmbedding):
         try:
             return hf_embed_sync(text, self.tokenizer, self.embed_model)
         except Exception as e:
-            raise RuntimeError(
-                f"HuggingFace embedding 失败: {e}\n" f"文本: {text[:100]}..."
-            ) from e
+            raise RuntimeError(f"HuggingFace embedding 失败: {e}\n" f"文本: {text[:100]}...") from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         当前实现为逐个调用 embed()。
@@ -151,7 +149,7 @@ class HFEmbedding(BaseEmbedding):
             return 768
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

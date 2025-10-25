@@ -14,7 +14,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -29,9 +29,9 @@ class ProjectStatusChecker:
         self.project_root = Path(project_root).resolve()
         self.packages_dir = self.project_root / "packages"
         # 缓存已安装的包列表，避免重复调用
-        self._installed_packages_cache: Optional[Dict[str, str]] = None
+        self._installed_packages_cache: dict[str, str] | None = None
 
-    def check_all(self, verbose: bool = False, quick: bool = False) -> Dict[str, Any]:
+    def check_all(self, verbose: bool = False, quick: bool = False) -> dict[str, Any]:
         """执行全面的状态检查
 
         Args:
@@ -80,7 +80,7 @@ class ProjectStatusChecker:
 
         return status_data
 
-    def _check_environment(self) -> Dict[str, Any]:
+    def _check_environment(self) -> dict[str, Any]:
         """检查开发环境"""
         env_info = {
             "python_version": sys.version,
@@ -99,7 +99,7 @@ class ProjectStatusChecker:
 
         return env_info
 
-    def _check_packages(self) -> Dict[str, Any]:
+    def _check_packages(self) -> dict[str, Any]:
         """检查SAGE包状态"""
         packages_info = {
             "packages_dir_exists": self.packages_dir.exists(),
@@ -139,7 +139,7 @@ class ProjectStatusChecker:
 
         return packages_info
 
-    def _check_single_package(self, package_dir: Path) -> Dict[str, Any]:
+    def _check_single_package(self, package_dir: Path) -> dict[str, Any]:
         """检查单个包的状态"""
         info = {
             "path": str(package_dir),
@@ -181,9 +181,7 @@ class ProjectStatusChecker:
                         spec = importlib.util.find_spec(module_name)
                         if spec is not None:
                             info["importable"] = True
-                            info["import_path"] = (
-                                spec.origin if spec.origin else "Built-in"
-                            )
+                            info["import_path"] = spec.origin if spec.origin else "Built-in"
                             info["module_name"] = module_name
                     except ImportError:
                         pass
@@ -192,7 +190,7 @@ class ProjectStatusChecker:
 
         return info
 
-    def _check_dependencies(self) -> Dict[str, Any]:
+    def _check_dependencies(self) -> dict[str, Any]:
         """检查依赖状态"""
         deps_info = {"critical_packages": {}, "import_tests": {}}
 
@@ -231,7 +229,7 @@ class ProjectStatusChecker:
 
         return deps_info
 
-    def _check_services(self) -> Dict[str, Any]:
+    def _check_services(self) -> dict[str, Any]:
         """检查相关服务状态"""
         services_info = {
             "ray": self._check_ray_status(),
@@ -240,12 +238,10 @@ class ProjectStatusChecker:
 
         return services_info
 
-    def _check_ray_status(self) -> Dict[str, Any]:
+    def _check_ray_status(self) -> dict[str, Any]:
         """检查Ray服务状态"""
         try:
-            result = subprocess.run(
-                ["ray", "status"], capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["ray", "status"], capture_output=True, text=True, timeout=10)
             return {
                 "available": True,
                 "running": result.returncode == 0,
@@ -258,7 +254,7 @@ class ProjectStatusChecker:
         except Exception as e:
             return {"available": False, "error": str(e)}
 
-    def _check_jobmanager_status(self) -> Dict[str, Any]:
+    def _check_jobmanager_status(self) -> dict[str, Any]:
         """检查JobManager状态"""
         try:
             # 尝试导入jobmanager模块
@@ -271,7 +267,7 @@ class ProjectStatusChecker:
         except Exception as e:
             return {"available": False, "error": str(e)}
 
-    def _check_configuration(self) -> Dict[str, Any]:
+    def _check_configuration(self) -> dict[str, Any]:
         """检查配置状态"""
         config_info = {"config_files": {}, "sage_home_status": {}}
 
@@ -295,9 +291,7 @@ class ProjectStatusChecker:
                 "exists": sage_home_path.exists(),
                 "is_dir": sage_home_path.is_dir() if sage_home_path.exists() else False,
                 "logs_dir_exists": (
-                    (sage_home_path / "logs").exists()
-                    if sage_home_path.exists()
-                    else False
+                    (sage_home_path / "logs").exists() if sage_home_path.exists() else False
                 ),
             }
         else:
@@ -305,7 +299,7 @@ class ProjectStatusChecker:
 
         return config_info
 
-    def _display_check_result(self, check_name: str, result: Dict[str, Any]):
+    def _display_check_result(self, check_name: str, result: dict[str, Any]):
         """显示检查结果"""
         panel = Panel(
             self._format_result_for_display(result),
@@ -314,7 +308,7 @@ class ProjectStatusChecker:
         )
         console.print(panel)
 
-    def _format_result_for_display(self, result: Dict[str, Any]) -> str:
+    def _format_result_for_display(self, result: dict[str, Any]) -> str:
         """格式化结果用于显示"""
         if isinstance(result, dict):
             lines = []
@@ -333,19 +327,13 @@ class ProjectStatusChecker:
             if "critical_packages" in result and "import_tests" in result:
                 critical = result["critical_packages"]
                 imports = result["import_tests"]
-                available = sum(
-                    1 for pkg in critical.values() if pkg.get("available", False)
-                )
-                successful_imports = sum(
-                    1 for test in imports.values() if test == "success"
-                )
+                available = sum(1 for pkg in critical.values() if pkg.get("available", False))
+                successful_imports = sum(1 for test in imports.values() if test == "success")
                 lines.append(f"📚 关键依赖: {available}/{len(critical)} 可用")
                 lines.append(f"📥 导入测试: {successful_imports}/{len(imports)} 成功")
 
                 # 显示失败的导入
-                failed_imports = [
-                    name for name, test in imports.items() if test != "success"
-                ]
+                failed_imports = [name for name, test in imports.items() if test != "success"]
                 if failed_imports:
                     lines.append(f"❌ 导入失败: {', '.join(failed_imports[:3])}")
                 return "\n".join(lines)
@@ -374,12 +362,8 @@ class ProjectStatusChecker:
             # 特殊处理配置信息
             if "config_files" in result:
                 config_files = result["config_files"]
-                existing_files = [
-                    name for name, info in config_files.items() if info.get("exists")
-                ]
-                lines.append(
-                    f"📄 配置文件: {len(existing_files)}/{len(config_files)} 存在"
-                )
+                existing_files = [name for name, info in config_files.items() if info.get("exists")]
+                lines.append(f"📄 配置文件: {len(existing_files)}/{len(config_files)} 存在")
                 sage_home_status = result.get("sage_home_status", {})
                 if sage_home_status.get("configured", True):
                     lines.append(
@@ -400,7 +384,7 @@ class ProjectStatusChecker:
             return "\n".join(lines[:8])  # 限制显示行数
         return str(result)
 
-    def _get_installed_packages(self) -> Dict[str, str]:
+    def _get_installed_packages(self) -> dict[str, str]:
         """获取已安装的包列表和版本"""
         # 优先使用 importlib.metadata (Python 3.8+)，避免使用已弃用的 pkg_resources
         try:
@@ -443,7 +427,7 @@ class ProjectStatusChecker:
             pass
         return {}
 
-    def _get_package_name_from_pyproject(self, pyproject_path: Path) -> Optional[str]:
+    def _get_package_name_from_pyproject(self, pyproject_path: Path) -> str | None:
         """从pyproject.toml中获取包名"""
         try:
             # 尝试使用不同的TOML库
@@ -460,7 +444,7 @@ class ProjectStatusChecker:
                         data = tomli.load(f)
                 except ImportError:
                     # 回退到手动解析
-                    with open(pyproject_path, "r") as f:
+                    with open(pyproject_path) as f:
                         content = f.read()
                         # 简单解析name字段
                         import re
@@ -478,13 +462,11 @@ class ProjectStatusChecker:
 
         return datetime.now().isoformat()
 
-    def generate_status_summary(self, status_data: Dict[str, Any]) -> str:
+    def generate_status_summary(self, status_data: dict[str, Any]) -> str:
         """生成状态摘要"""
         total_checks = len(status_data["checks"])
         successful_checks = sum(
-            1
-            for check in status_data["checks"].values()
-            if check["status"] == "success"
+            1 for check in status_data["checks"].values() if check["status"] == "success"
         )
 
         summary_lines = [

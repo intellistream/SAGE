@@ -54,7 +54,7 @@ def test_install_mode(mode, description):
     print("✅ 检查通过: packages/sage")
 
     # 检查主包的pyproject.toml中是否包含对应的安装模式
-    with open(main_pyproject_path, "r", encoding="utf-8") as f:
+    with open(main_pyproject_path, encoding="utf-8") as f:
         content = f.read()
         assert f"{mode} = [" in content, f"{mode} 安装模式未在pyproject.toml中定义"
 

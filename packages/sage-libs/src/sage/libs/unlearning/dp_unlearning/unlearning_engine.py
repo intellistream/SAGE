@@ -17,7 +17,6 @@ Students should focus on:
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -34,8 +33,8 @@ class UnlearningResult:
     success: bool
     num_vectors_unlearned: int
     num_neighbors_compensated: int
-    privacy_cost: Tuple[float, float]  # (epsilon, delta)
-    metadata: Dict
+    privacy_cost: tuple[float, float]  # (epsilon, delta)
+    metadata: dict
 
     def __repr__(self) -> str:
         return (
@@ -75,7 +74,7 @@ class UnlearningEngine:
         delta: float = 1e-5,
         total_budget_epsilon: float = 10.0,
         total_budget_delta: float = 1e-4,
-        mechanism: Optional[BasePrivacyMechanism] = None,
+        mechanism: BasePrivacyMechanism | None = None,
         enable_compensation: bool = True,
     ):
         """
@@ -98,9 +97,7 @@ class UnlearningEngine:
 
         # Unlearning components
         self.vector_perturbation = VectorPerturbation(self.mechanism)
-        self.neighbor_compensation = (
-            NeighborCompensation() if enable_compensation else None
-        )
+        self.neighbor_compensation = NeighborCompensation() if enable_compensation else None
 
         # Configuration
         self.enable_compensation = enable_compensation
@@ -110,9 +107,9 @@ class UnlearningEngine:
     def unlearn_vectors(
         self,
         vectors_to_forget: np.ndarray,
-        vector_ids_to_forget: List[str],
-        all_vectors: Optional[np.ndarray] = None,
-        all_vector_ids: Optional[List[str]] = None,
+        vector_ids_to_forget: list[str],
+        all_vectors: np.ndarray | None = None,
+        all_vector_ids: list[str] | None = None,
         perturbation_strategy: str = "uniform",
         return_compensated_neighbors: bool = False,
     ) -> UnlearningResult:
@@ -172,8 +169,8 @@ class UnlearningEngine:
         compensated_neighbors = {}
 
         if self.enable_compensation and all_vectors is not None:
-            for i, (original, perturbed, vec_id) in enumerate(
-                zip(vectors_to_forget, perturbed_vectors, vector_ids_to_forget)
+            for _i, (original, perturbed, _vec_id) in enumerate(
+                zip(vectors_to_forget, perturbed_vectors, vector_ids_to_forget, strict=False)
             ):
                 neighbor_compensations = self.neighbor_compensation.apply_compensation(
                     original, perturbed, all_vectors, all_vector_ids
@@ -217,7 +214,7 @@ class UnlearningEngine:
         self,
         query_vector: np.ndarray,
         all_vectors: np.ndarray,
-        all_vector_ids: List[str],
+        all_vector_ids: list[str],
         similarity_threshold: float = 0.9,
         max_unlearn: int = 100,
         **kwargs,
@@ -274,17 +271,13 @@ class UnlearningEngine:
             **kwargs,
         )
 
-    def _compute_similarities(
-        self, query: np.ndarray, vectors: np.ndarray
-    ) -> np.ndarray:
+    def _compute_similarities(self, query: np.ndarray, vectors: np.ndarray) -> np.ndarray:
         """Compute cosine similarities."""
         query_norm = query / (np.linalg.norm(query) + 1e-10)
-        vectors_norm = vectors / (
-            np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10
-        )
+        vectors_norm = vectors / (np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10)
         return np.dot(vectors_norm, query_norm)
 
-    def get_privacy_status(self) -> Dict:
+    def get_privacy_status(self) -> dict:
         """Get current privacy budget status."""
         return {
             "accountant_summary": self.privacy_accountant.summary(),

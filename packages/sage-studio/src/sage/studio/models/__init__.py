@@ -42,10 +42,8 @@ class VisualNode:
     id: str
     type: str  # 节点类型，如 "rag.generator", "rag.retriever"
     label: str
-    position: Dict[str, float] = field(
-        default_factory=lambda: {"x": 0, "y": 0}
-    )  # UI 坐标
-    config: Dict[str, Any] = field(default_factory=dict)  # 节点配置参数
+    position: dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0})  # UI 坐标
+    config: dict[str, Any] = field(default_factory=dict)  # 节点配置参数
 
     # UI 状态（不参与执行）
     selected: bool = False
@@ -53,7 +51,7 @@ class VisualNode:
 
     # 执行状态（由 SAGE 引擎提供）
     status: NodeStatus = NodeStatus.PENDING
-    error_message: Optional[str] = None
+    error_message: str | None = None
     execution_time: float = 0.0
 
 
@@ -105,18 +103,18 @@ class VisualPipeline:
     description: str = ""
 
     # Pipeline 结构
-    nodes: List[VisualNode] = field(default_factory=list)
-    connections: List[VisualConnection] = field(default_factory=list)
+    nodes: list[VisualNode] = field(default_factory=list)
+    connections: list[VisualConnection] = field(default_factory=list)
 
     # 元数据
-    created_at: Optional[float] = None
-    updated_at: Optional[float] = None
-    tags: List[str] = field(default_factory=list)
+    created_at: float | None = None
+    updated_at: float | None = None
+    tags: list[str] = field(default_factory=list)
 
     # 执行配置
     execution_mode: str = "local"  # "local", "distributed"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """序列化为字典（用于 API 传输和持久化）"""
         return {
             "id": self.id,
@@ -149,7 +147,7 @@ class VisualPipeline:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "VisualPipeline":
+    def from_dict(cls, data: dict[str, Any]) -> "VisualPipeline":
         """从字典反序列化"""
         return cls(
             id=data["id"],
@@ -196,14 +194,14 @@ class PipelineExecution:
     status: PipelineStatus = PipelineStatus.PENDING
 
     # 时间信息
-    start_time: Optional[float] = None
-    end_time: Optional[float] = None
+    start_time: float | None = None
+    end_time: float | None = None
     execution_time: float = 0.0
 
     # 执行结果
-    error_message: Optional[str] = None
-    node_statuses: Dict[str, NodeStatus] = field(default_factory=dict)
-    outputs: Dict[str, Any] = field(default_factory=dict)
+    error_message: str | None = None
+    node_statuses: dict[str, NodeStatus] = field(default_factory=dict)
+    outputs: dict[str, Any] = field(default_factory=dict)
 
     # SAGE Job 引用
-    sage_job_id: Optional[str] = None
+    sage_job_id: str | None = None

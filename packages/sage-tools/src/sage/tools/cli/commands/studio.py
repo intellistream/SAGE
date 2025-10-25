@@ -2,8 +2,6 @@
 SAGE Studio CLI - Studio Web 界面管理命令
 """
 
-from typing import Optional
-
 import typer
 from rich.console import Console
 
@@ -19,7 +17,7 @@ studio_manager = StudioManager()
 
 @app.command()
 def start(
-    port: Optional[int] = typer.Option(None, "--port", "-p", help="指定端口"),
+    port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
     dev: bool = typer.Option(False, "--dev", help="开发模式"),
 ):
@@ -62,7 +60,7 @@ def stop():
 
 @app.command()
 def restart(
-    port: Optional[int] = typer.Option(None, "--port", "-p", help="指定端口"),
+    port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
     dev: bool = typer.Option(False, "--dev", help="开发模式"),
 ):

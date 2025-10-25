@@ -10,7 +10,6 @@ import sys
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.syntax import Syntax
 
 # 添加项目路径
 project_root = os.path.join(os.path.dirname(__file__), "../..")
@@ -43,10 +42,7 @@ def test_template_with_llm(scenario_name: str, requirements: dict):
 
     # 创建生成器
     try:
-        from sage.tools.cli.commands.pipeline import (
-            PipelineBuilderConfig,
-            load_domain_contexts,
-        )
+        from sage.tools.cli.commands.pipeline import PipelineBuilderConfig, load_domain_contexts
 
         # 加载领域上下文
         domain_contexts = list(load_domain_contexts(limit=3))
@@ -73,20 +69,14 @@ def test_template_with_llm(scenario_name: str, requirements: dict):
 
             # 显示生成的配置
             pipeline_info = config.get("pipeline", {})
-            console.print(
-                f"\n管道名称: {pipeline_info.get('name', 'N/A')}", style="yellow"
-            )
-            console.print(
-                f"管道描述: {pipeline_info.get('description', 'N/A')}", style="yellow"
-            )
+            console.print(f"\n管道名称: {pipeline_info.get('name', 'N/A')}", style="yellow")
+            console.print(f"管道描述: {pipeline_info.get('description', 'N/A')}", style="yellow")
 
             # 显示 stages
             stages = config.get("stages", [])
             console.print(f"\n处理阶段 ({len(stages)} 个):", style="bold cyan")
             for i, stage in enumerate(stages, 1):
-                console.print(
-                    f"  {i}. {stage.get('id', 'N/A')}: {stage.get('class', 'N/A')}"
-                )
+                console.print(f"  {i}. {stage.get('id', 'N/A')}: {stage.get('class', 'N/A')}")
                 console.print(f"     说明: {stage.get('summary', 'N/A')}", style="dim")
 
             return True
@@ -164,9 +154,7 @@ def main():
             f"✅ 成功: {success_count}/{total_count}\n"
             f"{'❌ 失败: ' + str(total_count - success_count) if success_count < total_count else '🎉 全部通过！'}",
             title="测试总结",
-            border_style=(
-                "bold green" if success_count == total_count else "bold yellow"
-            ),
+            border_style=("bold green" if success_count == total_count else "bold yellow"),
         )
     )
 
@@ -174,9 +162,7 @@ def main():
 if __name__ == "__main__":
     # 检查环境变量
     if not os.getenv("TEMP_GENERATOR_API_KEY"):
-        console.print(
-            "⚠️  警告: 未设置 TEMP_GENERATOR_API_KEY 环境变量", style="bold yellow"
-        )
+        console.print("⚠️  警告: 未设置 TEMP_GENERATOR_API_KEY 环境变量", style="bold yellow")
         console.print("将尝试使用 .env 文件中的配置")
 
     main()

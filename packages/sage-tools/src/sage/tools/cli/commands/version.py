@@ -29,7 +29,7 @@ def _load_version():
 
             if version_file.exists():
                 version_globals = {}
-                with open(version_file, "r", encoding="utf-8") as f:
+                with open(version_file, encoding="utf-8") as f:
                     exec(f.read(), version_globals)
                 return version_globals.get("__version__", "0.1.3")
         except Exception:

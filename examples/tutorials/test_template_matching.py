@@ -12,7 +12,7 @@ from rich.table import Table
 project_root = os.path.join(os.path.dirname(__file__), "../..")
 sys.path.insert(0, project_root)
 
-from sage.tools.templates.catalog import get_template, list_templates, match_templates
+from sage.tools.templates.catalog import list_templates, match_templates
 
 console = Console()
 
@@ -137,9 +137,7 @@ def test_template_matching():
         )
 
         if success:
-            console.print(
-                f"\n✅ 成功: 顶部匹配为预期模板 '{expected}'", style="bold green"
-            )
+            console.print(f"\n✅ 成功: 顶部匹配为预期模板 '{expected}'", style="bold green")
         else:
             console.print(
                 f"\n⚠️  警告: 预期 '{expected}' 但得到 '{top_match}'",
@@ -162,9 +160,7 @@ def test_template_matching():
 
     for result in results:
         status = "✅" if result["success"] else "❌"
-        summary_table.add_row(
-            result["name"], result["expected"], result["actual"], status
-        )
+        summary_table.add_row(result["name"], result["expected"], result["actual"], status)
 
     console.print(summary_table)
 
@@ -199,9 +195,7 @@ def test_template_matching():
         template_table.add_row(prefix + str(i), template.id, template.title, tags)
 
     console.print(template_table)
-    console.print(
-        f"\n总计: {len(all_templates)} 个模板 (包含 6 个新增)", style="bold cyan"
-    )
+    console.print(f"\n总计: {len(all_templates)} 个模板 (包含 6 个新增)", style="bold cyan")
 
 
 if __name__ == "__main__":

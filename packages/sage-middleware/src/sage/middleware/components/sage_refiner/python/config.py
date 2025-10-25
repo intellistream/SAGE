@@ -7,7 +7,7 @@ Refiner配置管理
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class RefinerAlgorithm(str, Enum):
@@ -36,7 +36,7 @@ class RefinerConfig:
     budget: int = 2048
     """token预算，控制压缩后的最大长度"""
 
-    compression_ratio: Optional[float] = None
+    compression_ratio: float | None = None
     """压缩比例（可选，与budget二选一）"""
 
     # ===== 缓存配置 =====
@@ -81,7 +81,7 @@ class RefinerConfig:
     score_model_path: str = "BAAI/bge-reranker-v2-m3"
     """评分模型路径"""
 
-    score_gpu_device: Optional[int] = None
+    score_gpu_device: int | None = None
     """评分模型GPU设备（None则使用gpu_device）"""
 
     # ===== 监控配置 =====
@@ -91,14 +91,14 @@ class RefinerConfig:
     enable_profiling: bool = False
     """是否启用详细性能分析"""
 
-    metrics_output_path: Optional[str] = None
+    metrics_output_path: str | None = None
     """性能指标输出路径"""
 
     # ===== 其他配置 =====
-    algorithm_params: Dict[str, Any] = field(default_factory=dict)
+    algorithm_params: dict[str, Any] = field(default_factory=dict)
     """算法特定的额外参数"""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "algorithm": (
@@ -129,7 +129,7 @@ class RefinerConfig:
         }
 
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> "RefinerConfig":
+    def from_dict(cls, config_dict: dict[str, Any]) -> "RefinerConfig":
         """从字典创建配置"""
         # 处理algorithm枚举
         if "algorithm" in config_dict and isinstance(config_dict["algorithm"], str):
@@ -142,7 +142,7 @@ class RefinerConfig:
         """从YAML文件加载配置"""
         import yaml
 
-        with open(yaml_path, "r") as f:
+        with open(yaml_path) as f:
             config_dict = yaml.safe_load(f)
         return cls.from_dict(config_dict)
 

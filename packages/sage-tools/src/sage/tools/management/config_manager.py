@@ -5,7 +5,7 @@ SAGE Configuration Manager
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import typer
 import yaml
@@ -14,7 +14,7 @@ import yaml
 class ConfigManager:
     """配置管理器"""
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         if config_path:
             self.config_path = Path(config_path)
         else:
@@ -22,19 +22,19 @@ class ConfigManager:
             self.config_path = Path.home() / ".sage" / "config.yaml"
         self._config = None
 
-    def load_config(self) -> Dict[str, Any]:
+    def load_config(self) -> dict[str, Any]:
         """加载配置文件"""
         if not self.config_path.exists():
             raise FileNotFoundError(f"配置文件不存在: {self.config_path}")
 
         try:
-            with open(self.config_path, "r", encoding="utf-8") as f:
+            with open(self.config_path, encoding="utf-8") as f:
                 self._config = yaml.safe_load(f)
             return self._config
         except Exception as e:
             raise RuntimeError(f"加载配置文件失败: {e}")
 
-    def save_config(self, config: Dict[str, Any]):
+    def save_config(self, config: dict[str, Any]):
         """保存配置文件"""
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -45,29 +45,29 @@ class ConfigManager:
             raise RuntimeError(f"保存配置文件失败: {e}")
 
     @property
-    def config(self) -> Dict[str, Any]:
+    def config(self) -> dict[str, Any]:
         """获取配置"""
         if self._config is None:
             self._config = self.load_config()
         return self._config
 
-    def get_head_config(self) -> Dict[str, Any]:
+    def get_head_config(self) -> dict[str, Any]:
         """获取head节点配置"""
         return self.config.get("head", {})
 
-    def get_worker_config(self) -> Dict[str, Any]:
+    def get_worker_config(self) -> dict[str, Any]:
         """获取worker配置"""
         return self.config.get("worker", {})
 
-    def get_ssh_config(self) -> Dict[str, Any]:
+    def get_ssh_config(self) -> dict[str, Any]:
         """获取SSH配置"""
         return self.config.get("ssh", {})
 
-    def get_remote_config(self) -> Dict[str, Any]:
+    def get_remote_config(self) -> dict[str, Any]:
         """获取远程路径配置"""
         return self.config.get("remote", {})
 
-    def get_workers_ssh_hosts(self) -> List[Tuple[str, int]]:
+    def get_workers_ssh_hosts(self) -> list[tuple[str, int]]:
         """解析worker SSH主机列表"""
         # 先从ssh.workers中读取
         ssh_config = self.get_ssh_config()
@@ -168,7 +168,7 @@ class ConfigManager:
         return default_config
 
 
-def get_config_manager(config_path: Optional[str] = None) -> ConfigManager:
+def get_config_manager(config_path: str | None = None) -> ConfigManager:
     """获取配置管理器实例"""
     return ConfigManager(config_path)
 
@@ -179,9 +179,7 @@ app = typer.Typer(help="SAGE configuration management")
 
 @app.command()
 def show(
-    config_path: Optional[str] = typer.Option(
-        None, "--config", "-c", help="Configuration file path"
-    )
+    config_path: str | None = typer.Option(None, "--config", "-c", help="Configuration file path")
 ):
     """显示当前配置"""
     config_manager = get_config_manager(config_path)
@@ -197,9 +195,7 @@ def show(
 
 @app.command()
 def create(
-    config_path: Optional[str] = typer.Option(
-        None, "--config", "-c", help="Configuration file path"
-    )
+    config_path: str | None = typer.Option(None, "--config", "-c", help="Configuration file path")
 ):
     """创建默认配置"""
     config_manager = get_config_manager(config_path)
@@ -211,9 +207,7 @@ def create(
 def set(
     key: str = typer.Argument(..., help="Configuration key"),
     value: str = typer.Argument(..., help="Configuration value"),
-    config_path: Optional[str] = typer.Option(
-        None, "--config", "-c", help="Configuration file path"
-    ),
+    config_path: str | None = typer.Option(None, "--config", "-c", help="Configuration file path"),
 ):
     """设置配置值"""
     config_manager = get_config_manager(config_path)

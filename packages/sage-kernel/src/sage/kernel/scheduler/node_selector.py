@@ -22,7 +22,7 @@ NodeSelector - 资源感知的节点选择器
 
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 try:
     import ray
@@ -44,7 +44,7 @@ class NodeResources:
     total_cpu: float
     total_gpu: float
     total_memory: int
-    custom_resources: Dict[str, float]
+    custom_resources: dict[str, float]
 
     # 可用资源
     available_cpu: float
@@ -136,12 +136,12 @@ class NodeSelector:
         self.enable_tracking = enable_tracking
 
         # 缓存
-        self.node_cache: Dict[str, NodeResources] = {}
+        self.node_cache: dict[str, NodeResources] = {}
         self.last_update: float = 0
 
         # 任务分配跟踪
-        self.node_task_count: Dict[str, int] = {}  # node_id -> task_count
-        self.task_node_map: Dict[str, str] = {}  # task_name -> node_id
+        self.node_task_count: dict[str, int] = {}  # node_id -> task_count
+        self.task_node_map: dict[str, str] = {}  # task_name -> node_id
 
     def _update_node_cache(self) -> None:
         """更新节点资源信息缓存"""
@@ -180,9 +180,7 @@ class NodeSelector:
                 # 计算使用率
                 cpu_usage = 1.0 - (available_cpu / total_cpu) if total_cpu > 0 else 0.0
                 gpu_usage = 1.0 - (available_gpu / total_gpu) if total_gpu > 0 else 0.0
-                memory_usage = (
-                    1.0 - (available_memory / total_memory) if total_memory > 0 else 0.0
-                )
+                memory_usage = 1.0 - (available_memory / total_memory) if total_memory > 0 else 0.0
 
                 # 限制范围
                 cpu_usage = max(0.0, min(1.0, cpu_usage))
@@ -228,11 +226,11 @@ class NodeSelector:
             self.node_cache = new_cache
             self.last_update = current_time
 
-        except Exception as e:
+        except Exception:
             # Ray 未初始化或其他错误
             pass
 
-    def get_all_nodes(self) -> List[NodeResources]:
+    def get_all_nodes(self) -> list[NodeResources]:
         """
         获取集群中所有活跃节点的资源信息
 
@@ -242,7 +240,7 @@ class NodeSelector:
         self._update_node_cache()
         return list(self.node_cache.values())
 
-    def get_node(self, node_id: str) -> Optional[NodeResources]:
+    def get_node(self, node_id: str) -> NodeResources | None:
         """获取指定节点的资源信息"""
         self._update_node_cache()
         return self.node_cache.get(node_id)
@@ -252,10 +250,10 @@ class NodeSelector:
         cpu_required: float = 0,
         gpu_required: float = 0,
         memory_required: int = 0,
-        custom_resources: Optional[Dict[str, float]] = None,
+        custom_resources: dict[str, float] | None = None,
         strategy: str = "balanced",
-        exclude_nodes: Optional[List[str]] = None,
-    ) -> Optional[str]:
+        exclude_nodes: list[str] | None = None,
+    ) -> str | None:
         """
         根据资源需求和调度策略选择最优节点
 
@@ -307,16 +305,14 @@ class NodeSelector:
             return None
 
         # 根据策略计算得分并选择最优节点
-        scored_nodes = [
-            (node, node.compute_score(strategy)) for node in candidate_nodes
-        ]
+        scored_nodes = [(node, node.compute_score(strategy)) for node in candidate_nodes]
 
         # 按得分排序（越低越好）
         scored_nodes.sort(key=lambda x: x[1])
 
         return scored_nodes[0][0].node_id
 
-    def select_least_loaded_node(self) -> Optional[str]:
+    def select_least_loaded_node(self) -> str | None:
         """
         选择负载最低的节点（快捷方法）
 
@@ -325,7 +321,7 @@ class NodeSelector:
         """
         return self.select_best_node(strategy="balanced")
 
-    def select_node_with_gpu(self, min_gpu_count: float = 1) -> Optional[str]:
+    def select_node_with_gpu(self, min_gpu_count: float = 1) -> str | None:
         """
         选择有足够 GPU 的节点（快捷方法）
 
@@ -337,7 +333,7 @@ class NodeSelector:
         """
         return self.select_best_node(gpu_required=min_gpu_count, strategy="balanced")
 
-    def select_spread_node(self) -> Optional[str]:
+    def select_spread_node(self) -> str | None:
         """
         选择任务数最少的节点（分散放置，快捷方法）
 
@@ -348,7 +344,7 @@ class NodeSelector:
 
     def select_pack_node(
         self, cpu_required: float = 0, gpu_required: float = 0, memory_required: int = 0
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         选择使用率最高但能容纳任务的节点（紧凑放置，快捷方法）
 
@@ -393,15 +389,13 @@ class NodeSelector:
 
         node_id = self.task_node_map.pop(task_name, None)
         if node_id:
-            self.node_task_count[node_id] = max(
-                0, self.node_task_count.get(node_id, 0) - 1
-            )
+            self.node_task_count[node_id] = max(0, self.node_task_count.get(node_id, 0) - 1)
 
     def get_node_task_count(self, node_id: str) -> int:
         """获取节点上的任务数"""
         return self.node_task_count.get(node_id, 0)
 
-    def get_cluster_stats(self) -> Dict[str, Any]:
+    def get_cluster_stats(self) -> dict[str, Any]:
         """
         获取集群统计信息
 

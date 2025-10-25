@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from sage.common.core.functions.sink_function import SinkFunction
 
@@ -21,7 +21,7 @@ class TimelineSink(SinkFunction):
         self.count = 0
         self.file = self.output_path.open("w", encoding="utf-8")
 
-    def execute(self, data: Dict[str, Any]) -> None:
+    def execute(self, data: dict[str, Any]) -> None:
         safe_data = {
             key: value
             for key, value in data.items()
@@ -47,12 +47,8 @@ class TimelineSink(SinkFunction):
             # Show scene scores if available
             scene_scores = safe_data.get("scene_scores", {})
             if scene_scores:
-                top_scenes = sorted(
-                    scene_scores.items(), key=lambda x: x[1], reverse=True
-                )[:3]
-                print(
-                    f"   Top scenes: {', '.join(f'{s}({v:.2f})' for s, v in top_scenes)}"
-                )
+                top_scenes = sorted(scene_scores.items(), key=lambda x: x[1], reverse=True)[:3]
+                print(f"   Top scenes: {', '.join(f'{s}({v:.2f})' for s, v in top_scenes)}")
 
             print(f"{'='*70}")
 
@@ -68,9 +64,9 @@ class SummarySink(SinkFunction):
         super().__init__()
         self.summary_path = Path(summary_path)
         self.summary_path.parent.mkdir(parents=True, exist_ok=True)
-        self.records: list[Dict[str, Any]] = []
+        self.records: list[dict[str, Any]] = []
 
-    def execute(self, data: Dict[str, Any]) -> None:
+    def execute(self, data: dict[str, Any]) -> None:
         self.records.append(data)
 
         # Print summary to console
@@ -108,7 +104,7 @@ class EventStatsSink(SinkFunction):
         self.total_events = 0
         self.log_every = max(1, log_every)
 
-    def execute(self, event: Dict[str, Any]) -> None:
+    def execute(self, event: dict[str, Any]) -> None:
         event_type = event.get("event_type", "unknown")
         self.counter[event_type] += 1
         self.total_events += 1

@@ -66,9 +66,9 @@ def test_list_models():
         print(f"    名称: {info['display_name']}")
         print(f"    描述: {info['description']}")
         if info["requires_api_key"]:
-            print(f"    ⚠️  需要 API Key")
+            print("    ⚠️  需要 API Key")
         if info["requires_download"]:
-            print(f"    ⚠️  需要下载模型")
+            print("    ⚠️  需要下载模型")
         if info["default_dimension"]:
             print(f"    默认维度: {info['default_dimension']}")
         if info["examples"]:
@@ -114,7 +114,7 @@ def test_error_handling():
 
     # 测试不存在的方法
     try:
-        emb = get_embedding_model("nonexistent_method")
+        get_embedding_model("nonexistent_method")
         print("❌ 应该抛出 ValueError")
         sys.exit(1)
     except ValueError as e:
@@ -122,7 +122,7 @@ def test_error_handling():
 
     # 测试缺少必要参数
     try:
-        emb = get_embedding_model("hf")  # 缺少 model 参数
+        get_embedding_model("hf")  # 缺少 model 参数
         print("❌ 应该抛出 ValueError")
         sys.exit(1)
     except ValueError as e:

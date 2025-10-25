@@ -10,10 +10,10 @@ import sys
 import time
 
 from dotenv import load_dotenv
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 
 
@@ -87,7 +87,7 @@ class SimpleGenerator(MapFunction):
 
     def execute(self, data):
         query = data["query"]
-        prompt = data["prompt"]
+        data["prompt"]
 
         print("🤖 AI生成中...")
 
@@ -154,10 +154,7 @@ def pipeline_run():
 
 if __name__ == "__main__":
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - rag_simple example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

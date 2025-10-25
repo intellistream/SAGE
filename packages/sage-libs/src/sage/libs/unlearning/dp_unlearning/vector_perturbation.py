@@ -13,8 +13,6 @@ Students can design novel perturbation strategies:
 4. Adaptive perturbation (adjust based on vector properties)
 """
 
-from typing import List, Optional, Tuple
-
 import numpy as np
 
 from .base_mechanism import BasePrivacyMechanism
@@ -44,9 +42,7 @@ class VectorPerturbation:
         """
         self.mechanism = mechanism
 
-    def perturb_single_vector(
-        self, vector: np.ndarray, strategy: str = "uniform"
-    ) -> np.ndarray:
+    def perturb_single_vector(self, vector: np.ndarray, strategy: str = "uniform") -> np.ndarray:
         """
         Perturb a single vector with DP noise.
 
@@ -137,9 +133,7 @@ class VectorPerturbation:
 
         return perturbed
 
-    def perturb_batch_vectors(
-        self, vectors: np.ndarray, strategy: str = "uniform"
-    ) -> np.ndarray:
+    def perturb_batch_vectors(self, vectors: np.ndarray, strategy: str = "uniform") -> np.ndarray:
         """
         Perturb a batch of vectors.
 
@@ -155,9 +149,7 @@ class VectorPerturbation:
             perturbed_batch[i] = self.perturb_single_vector(vector, strategy)
         return perturbed_batch
 
-    def measure_perturbation_impact(
-        self, original: np.ndarray, perturbed: np.ndarray
-    ) -> dict:
+    def measure_perturbation_impact(self, original: np.ndarray, perturbed: np.ndarray) -> dict:
         """
         Measure the impact of perturbation on vector properties.
 

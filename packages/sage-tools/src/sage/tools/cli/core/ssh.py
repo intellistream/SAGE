@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from .exceptions import CLIException, ConnectionError, ValidationError
 from .output import OutputFormatter
@@ -28,7 +28,7 @@ class SSHConfig:
         key_path: str,
         connect_timeout: int = 10,
         strict_host_key_checking: bool = False,
-        known_hosts_file: Optional[str] = None,
+        known_hosts_file: str | None = None,
     ):
         self.user = user
         self.key_path = validate_path(key_path, must_exist=True, must_be_file=True)
@@ -36,7 +36,7 @@ class SSHConfig:
         self.strict_host_key_checking = strict_host_key_checking
         self.known_hosts_file = known_hosts_file
 
-    def to_ssh_args(self) -> List[str]:
+    def to_ssh_args(self) -> list[str]:
         """转换为SSH命令行参数"""
         args = [
             "-i",
@@ -50,9 +50,7 @@ class SSHConfig:
         ]
 
         if not self.strict_host_key_checking:
-            args.extend(
-                ["-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null"]
-            )
+            args.extend(["-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null"])
         elif self.known_hosts_file:
             args.extend(["-o", f"UserKnownHostsFile={self.known_hosts_file}"])
 
@@ -95,9 +93,7 @@ class SSHManager:
         port = validate_port(port)
         timeout = validate_timeout(timeout)
 
-        self.formatter.print_info(
-            f"Executing on {self.config.user}@{host}:{port}: {command}"
-        )
+        self.formatter.print_info(f"Executing on {self.config.user}@{host}:{port}: {command}")
 
         ssh_cmd = (
             ["ssh"]
@@ -119,7 +115,7 @@ class SSHManager:
 
     def transfer_file(
         self,
-        local_path: Union[str, Path],
+        local_path: str | Path,
         host: str,
         port: int,
         remote_path: str,
@@ -151,9 +147,7 @@ class SSHManager:
             src, dst = str(local_path), f"{self.config.user}@{host}:{remote_path}"
         elif direction == "download":
             local_path = validate_path(local_path)
-            self.formatter.print_info(
-                f"Downloading {host}:{remote_path} to {local_path}"
-            )
+            self.formatter.print_info(f"Downloading {host}:{remote_path} to {local_path}")
             src, dst = f"{self.config.user}@{host}:{remote_path}", str(local_path)
         else:
             raise ValidationError(f"Invalid direction: {direction}")
@@ -172,9 +166,7 @@ class SSHManager:
 
         except CLIException as e:
             if "Connection" in str(e) or "connect" in str(e).lower():
-                raise ConnectionError(
-                    f"Failed to connect to {host}:{port} for file transfer: {e}"
-                )
+                raise ConnectionError(f"Failed to connect to {host}:{port} for file transfer: {e}")
             raise
 
     def test_connection(self, host: str, port: int = 22) -> bool:
@@ -192,9 +184,7 @@ class SSHManager:
         port = validate_port(port)
 
         try:
-            result = self.execute_command(
-                host, port, "echo 'Connection test'", timeout=10
-            )
+            result = self.execute_command(host, port, "echo 'Connection test'", timeout=10)
             return result.returncode == 0
         except Exception:
             return False
@@ -298,11 +288,11 @@ class RemoteExecutor:
 
     def batch_execute(
         self,
-        hosts_ports: List[tuple],
+        hosts_ports: list[tuple],
         command: str,
         parallel: bool = False,
         timeout: int = 60,
-    ) -> Dict[str, subprocess.CompletedProcess]:
+    ) -> dict[str, subprocess.CompletedProcess]:
         """
         批量执行命令
 
@@ -324,9 +314,7 @@ class RemoteExecutor:
                 host, port = host_port
                 key = f"{host}:{port}"
                 try:
-                    result = self.ssh_manager.execute_command(
-                        host, port, command, timeout
-                    )
+                    result = self.ssh_manager.execute_command(host, port, command, timeout)
                     return key, result
                 except Exception as e:
                     # 创建一个错误结果
@@ -349,9 +337,7 @@ class RemoteExecutor:
             for host, port in hosts_ports:
                 key = f"{host}:{port}"
                 try:
-                    result = self.ssh_manager.execute_command(
-                        host, port, command, timeout
-                    )
+                    result = self.ssh_manager.execute_command(host, port, command, timeout)
                     results[key] = result
                 except Exception as e:
                     # 创建一个错误结果
@@ -362,9 +348,7 @@ class RemoteExecutor:
 
         return results
 
-    def check_service_status(
-        self, host: str, port: int, service_name: str
-    ) -> Dict[str, Any]:
+    def check_service_status(self, host: str, port: int, service_name: str) -> dict[str, Any]:
         """
         检查远程服务状态
 

@@ -86,11 +86,7 @@ class Nature_News_Fetcher_Tool(BaseTool):
                 continue
 
             title_elem = article.find("h3", class_="c-card__title")  # type: ignore
-            title = (
-                title_elem.text.strip()
-                if isinstance(title_elem, Tag)
-                else "No title found"
-            )
+            title = title_elem.text.strip() if isinstance(title_elem, Tag) else "No title found"
 
             url_elem = title_elem.find("a") if isinstance(title_elem, Tag) else None  # type: ignore
             url = (
@@ -164,9 +160,7 @@ class Nature_News_Fetcher_Tool(BaseTool):
                 page_articles = self.parse_articles(html_content)
 
                 if not page_articles:
-                    logger.info(
-                        f"No articles found on page {page_number}. Stopping fetch."
-                    )
+                    logger.info(f"No articles found on page {page_number}. Stopping fetch.")
                     break  # No more articles found
 
                 all_articles.extend(page_articles)
@@ -221,9 +215,7 @@ if __name__ == "__main__":
         for i, article in enumerate(execution[:10], 1):
             print(f"\n{i}. Title: {article['title']}")
             print(f"   URL: {article['url']}")
-            print(
-                f"   Description: {article['description'][:100]}..."
-            )  # Show first 100 characters
+            print(f"   Description: {article['description'][:100]}...")  # Show first 100 characters
             print(f"   Authors: {', '.join(article['authors'])}")
             print(f"   Date: {article['date']}")
             print(f"   Image URL: {article['image_url']}")

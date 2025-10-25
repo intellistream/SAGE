@@ -63,9 +63,7 @@ class ParallelFilter(BaseFunction):
         super().__init__()
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
-            f"🔧 ParallelFilter instance {self.instance_id} created in thread {self.thread_id}"
-        )
+        print(f"🔧 ParallelFilter instance {self.instance_id} created in thread {self.thread_id}")
 
     def execute(self, data):
         current_thread = threading.get_ident()
@@ -75,9 +73,7 @@ class ParallelFilter(BaseFunction):
         if is_even:
             print(f"✅ Filter[{instance_id}]: {data} PASSED (thread: {current_thread})")
         else:
-            print(
-                f"❌ Filter[{instance_id}]: {data} BLOCKED (thread: {current_thread})"
-            )
+            print(f"❌ Filter[{instance_id}]: {data} BLOCKED (thread: {current_thread})")
         return is_even
 
 
@@ -139,19 +135,15 @@ def validate_single_stream_parallelism():
 
     # Test different parallelism levels
     print("\n--- Test 1: Direct parallelism parameters ---")
-    result1 = (
-        source_stream.map(
-            ParallelProcessor, "Mapper", parallelism=3
-        )  # 3 parallel mappers
+    (
+        source_stream.map(ParallelProcessor, "Mapper", parallelism=3)  # 3 parallel mappers
         .filter(ParallelFilter, parallelism=2)  # 2 parallel filters
         .sink(ValidationSink, parallelism=1)
     )  # 1 sink
 
     print("\n--- Test 2: Using direct parallelism ---")
-    result2 = (
-        source_stream.map(
-            ParallelProcessor, "SetMapper", parallelism=4
-        )  # 4 parallel mappers
+    (
+        source_stream.map(ParallelProcessor, "SetMapper", parallelism=4)  # 4 parallel mappers
         .filter(ParallelFilter, parallelism=3)  # 3 parallel filters
         .sink(ValidationSink, parallelism=1)
     )  # 1 sink
@@ -188,14 +180,14 @@ def validate_multi_stream_parallelism():
     print(f"📊 Stream2 data: {stream2_data}")
 
     print("\n--- Test 1: CoMap with direct parallelism ---")
-    result1 = (
+    (
         stream1.connect(stream2)
         .comap(MultiStreamCoMapProcessor, parallelism=2)  # 2 parallel CoMap processors
         .sink(ValidationSink, parallelism=1)
     )
 
     print("\n--- Test 2: CoMap with direct parallelism ---")
-    result2 = (
+    (
         stream1.connect(stream2)
         .comap(MultiStreamCoMapProcessor, parallelism=3)  # 3 parallel CoMap processors
         .sink(ValidationSink, parallelism=2)
@@ -224,7 +216,7 @@ def validate_execution_graph_nodes():
 
     # Create a simple pipeline with known parallelism
     numbers = [1, 2, 3, 4, 5]
-    result = (
+    (
         env.from_collection(NumberListSource, numbers)
         .map(ParallelProcessor, "NodeTest", parallelism=2)  # Should create 2 nodes
         .filter(ParallelFilter, parallelism=3)  # Should create 3 nodes
@@ -249,9 +241,7 @@ def validate_execution_graph_nodes():
 
         # Note: ExecutionGraph node creation happens during execution
         print("\n💡 Note: Actual node creation occurs during pipeline execution.")
-        print(
-            "    Each transformation with parallelism=N will create N parallel operator nodes."
-        )
+        print("    Each transformation with parallelism=N will create N parallel operator nodes.")
 
     except Exception as e:
         print(f"⚠️  Could not access execution graph details: {e}")
@@ -286,9 +276,7 @@ def main():
     print("   - Parallelism parameters correctly passed to transformations")
     print("   - Direct parallelism specification works as expected")
     print("   - Both single and multi-stream operations support parallelism")
-    print(
-        "   - ExecutionGraph will create corresponding parallel nodes during execution"
-    )
+    print("   - ExecutionGraph will create corresponding parallel nodes during execution")
 
 
 if __name__ == "__main__":

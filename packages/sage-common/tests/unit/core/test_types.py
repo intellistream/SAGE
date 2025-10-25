@@ -4,7 +4,6 @@ Tests for sage.common.core.types
 Tests the core type definitions, enums, and type aliases.
 """
 
-import pytest
 from sage.common.core.types import (
     ExecutionMode,
     JobID,

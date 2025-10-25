@@ -214,7 +214,7 @@ class WorkflowGraph:
         Raises:
             ValueError: If graph has cycles
         """
-        in_degree = {node: 0 for node in self.nodes}
+        in_degree = dict.fromkeys(self.nodes, 0)
         for node in self.nodes:
             for successor in self.edges[node]:
                 in_degree[successor] += 1
@@ -383,16 +383,12 @@ class BaseOptimizer(ABC):
         """
         orig_cost = original.total_cost()
         opt_cost = optimized.total_cost()
-        cost_reduction = (
-            ((orig_cost - opt_cost) / orig_cost * 100) if orig_cost > 0 else 0.0
-        )
+        cost_reduction = ((orig_cost - opt_cost) / orig_cost * 100) if orig_cost > 0 else 0.0
 
         orig_latency = original.total_latency()
         opt_latency = optimized.total_latency()
         latency_reduction = (
-            ((orig_latency - opt_latency) / orig_latency * 100)
-            if orig_latency > 0
-            else 0.0
+            ((orig_latency - opt_latency) / orig_latency * 100) if orig_latency > 0 else 0.0
         )
 
         quality_change = optimized.average_quality() - original.average_quality()

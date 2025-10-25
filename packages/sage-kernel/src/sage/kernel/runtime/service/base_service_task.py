@@ -32,9 +32,7 @@ class BaseServiceTask(ABC):
     所有服务任务（本地和远程）都应该继承此基类
     """
 
-    def __init__(
-        self, service_factory: "ServiceFactory", ctx: "ServiceContext | None" = None
-    ):
+    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext | None" = None):
         """
         初始化基础服务任务
 
@@ -48,9 +46,7 @@ class BaseServiceTask(ABC):
 
         # 创建实际的服务实例
         if ctx is None:
-            raise ValueError(
-                f"ServiceContext is required for service '{self.service_name}'"
-            )
+            raise ValueError(f"ServiceContext is required for service '{self.service_name}'")
         self.service_instance = service_factory.create_service(ctx)
 
         # 为service_instance注入ctx（参考base_task的做法）
@@ -62,9 +58,7 @@ class BaseServiceTask(ABC):
 
         # 如果service_instance有setup方法，调用它进行初始化
         if hasattr(self.service_instance, "setup"):
-            self.logger.debug(
-                f"Calling setup() method on service instance '{self.service_name}'"
-            )
+            self.logger.debug(f"Calling setup() method on service instance '{self.service_name}'")
             self.service_instance.setup()
             self.logger.debug(f"Service instance '{self.service_name}' setup completed")
 
@@ -85,9 +79,7 @@ class BaseServiceTask(ABC):
         self._queue_listener_running = False
 
         # === 性能监控 ===
-        self._enable_monitoring = (
-            getattr(ctx, "enable_monitoring", False) if ctx else False
-        )
+        self._enable_monitoring = getattr(ctx, "enable_monitoring", False) if ctx else False
         self.metrics_collector: MetricsCollector | None = None
         self.resource_monitor: ResourceMonitor | None = None
         self.metrics_reporter: MetricsReporter | None = None
@@ -96,9 +88,7 @@ class BaseServiceTask(ABC):
             try:
                 self.metrics_collector = MetricsCollector(
                     name=self.service_name,
-                    window_size=(
-                        getattr(ctx, "metrics_window_size", 10000) if ctx else 10000
-                    ),
+                    window_size=(getattr(ctx, "metrics_window_size", 10000) if ctx else 10000),
                     enable_detailed_tracking=(
                         getattr(ctx, "enable_detailed_tracking", True) if ctx else True
                     ),
@@ -109,9 +99,7 @@ class BaseServiceTask(ABC):
                     try:
                         self.resource_monitor = ResourceMonitor(
                             sampling_interval=(
-                                getattr(ctx, "resource_sampling_interval", 1.0)
-                                if ctx
-                                else 1.0
+                                getattr(ctx, "resource_sampling_interval", 1.0) if ctx else 1.0
                             ),
                             enable_auto_start=True,
                         )
@@ -130,18 +118,14 @@ class BaseServiceTask(ABC):
                         report_callback=lambda report: self.logger.info(f"\n{report}"),
                     )
 
-                self.logger.info(
-                    f"Performance monitoring enabled for service {self.service_name}"
-                )
+                self.logger.info(f"Performance monitoring enabled for service {self.service_name}")
             except Exception as e:
                 self.logger.warning(
                     f"Failed to initialize monitoring for service {self.service_name}: {e}"
                 )
                 self._enable_monitoring = False
 
-        self.logger.info(
-            f"Base service task '{self.service_name}' initialized successfully"
-        )
+        self.logger.info(f"Base service task '{self.service_name}' initialized successfully")
         self.logger.debug(f"Service class: {service_factory.service_class.__name__}")
         self.logger.debug(f"Service context: {'provided' if ctx else 'not provided'}")
 
@@ -150,9 +134,7 @@ class BaseServiceTask(ABC):
             request_qd = ctx.get_request_queue_descriptor()
             response_qds = ctx.get_service_response_queue_descriptors()
             self.logger.debug(f"Request queue descriptor: {request_qd}")
-            self.logger.debug(
-                f"Response queue descriptors: {len(response_qds)} available"
-            )
+            self.logger.debug(f"Response queue descriptors: {len(response_qds)} available")
 
     @property
     def logger(self):
@@ -161,9 +143,7 @@ class BaseServiceTask(ABC):
             if self.ctx is None:
                 from sage.common.utils.logging.custom_logger import CustomLogger
 
-                self._logger = CustomLogger(
-                    name=f"{self.__class__.__name__}_{self.service_name}"
-                )
+                self._logger = CustomLogger(name=f"{self.__class__.__name__}_{self.service_name}")
             else:
                 self._logger = self.ctx.logger
         return self._logger
@@ -205,18 +185,13 @@ class BaseServiceTask(ABC):
 
     def _start_queue_listener(self):
         """启动队列监听线程"""
-        if (
-            self._queue_listener_thread is not None
-            and self._queue_listener_thread.is_alive()
-        ):
+        if self._queue_listener_thread is not None and self._queue_listener_thread.is_alive():
             self.logger.warning(
                 f"Queue listener thread is already running for service '{self.service_name}'"
             )
             return
 
-        self.logger.debug(
-            f"Starting queue listener thread for service '{self.service_name}'"
-        )
+        self.logger.debug(f"Starting queue listener thread for service '{self.service_name}'")
         self._queue_listener_running = True
         self._queue_listener_thread = threading.Thread(
             target=self._queue_listener_loop,
@@ -231,14 +206,10 @@ class BaseServiceTask(ABC):
     def _stop_queue_listener(self):
         """停止队列监听线程"""
         if self._queue_listener_thread is None:
-            self.logger.debug(
-                f"No queue listener thread to stop for service '{self.service_name}'"
-            )
+            self.logger.debug(f"No queue listener thread to stop for service '{self.service_name}'")
             return
 
-        self.logger.debug(
-            f"Stopping queue listener thread for service '{self.service_name}'"
-        )
+        self.logger.debug(f"Stopping queue listener thread for service '{self.service_name}'")
         self._queue_listener_running = False
 
         # 等待线程结束（最多等待5秒）
@@ -257,9 +228,7 @@ class BaseServiceTask(ABC):
 
     def _queue_listener_loop(self):
         """队列监听循环 - 使用ServiceContext中的队列描述符"""
-        self.logger.info(
-            f"Queue listener loop started for service '{self.service_name}'"
-        )
+        self.logger.info(f"Queue listener loop started for service '{self.service_name}'")
         request_count = 0
 
         while self._queue_listener_running:
@@ -386,14 +355,10 @@ class BaseServiceTask(ABC):
 
             # 发送响应到响应队列
             if response_queue:
-                self.logger.debug(
-                    f"Sending response for request {request_id} to response queue"
-                )
+                self.logger.debug(f"Sending response for request {request_id} to response queue")
                 self._send_response_to_queue(response_queue, response_data)
             else:
-                self.logger.debug(
-                    f"No response queue specified for request {request_id}"
-                )
+                self.logger.debug(f"No response queue specified for request {request_id}")
 
             self.logger.info(
                 f"Completed direct service request {request_id} for service '{self.service_name}' "
@@ -417,12 +382,8 @@ class BaseServiceTask(ABC):
         request_id = response_data.get("request_id", "unknown")
 
         try:
-            self.logger.info(
-                f"[SERVICE_TASK] Starting response send for request {request_id}"
-            )
-            self.logger.info(
-                f"[SERVICE_TASK] Response queue type: {type(response_queue).__name__}"
-            )
+            self.logger.info(f"[SERVICE_TASK] Starting response send for request {request_id}")
+            self.logger.info(f"[SERVICE_TASK] Response queue type: {type(response_queue).__name__}")
             self.logger.debug(f"[SERVICE_TASK] Response data: {response_data}")
 
             # 使用阻塞的put方法，确保消息被成功发送
@@ -464,13 +425,11 @@ class BaseServiceTask(ABC):
             method_name = request_data.get("method_name")
             args = request_data.get("args", ())
             kwargs = request_data.get("kwargs", {})
-            response_queue = request_data.get(
-                "response_queue"
-            )  # 现在这是队列实例而不是名称
+            response_queue = request_data.get("response_queue")  # 现在这是队列实例而不是名称
             response_queue_name = request_data.get(
                 "response_queue_name", "unknown"
             )  # 用于日志的名称
-            timeout = request_data.get("timeout", 30.0)
+            request_data.get("timeout", 30.0)
 
             # 验证必需参数
             if not request_id or not method_name:
@@ -493,15 +452,11 @@ class BaseServiceTask(ABC):
 
             # 调用服务方法
             try:
-                self.logger.debug(
-                    f"[SERVICE_TASK] Calling service method {method_name}"
-                )
+                self.logger.debug(f"[SERVICE_TASK] Calling service method {method_name}")
                 result = self.call_method(method_name, *args, **kwargs)
                 success = True
                 error_msg = None
-                self.logger.info(
-                    f"[SERVICE_TASK] Service method {method_name} succeeded: {result}"
-                )
+                self.logger.info(f"[SERVICE_TASK] Service method {method_name} succeeded: {result}")
 
                 # 记录请求成功
                 if self._enable_monitoring and self.metrics_collector:
@@ -590,9 +545,7 @@ class BaseServiceTask(ABC):
             self.logger.info(
                 f"[SERVICE_TASK] Starting response send process for request {request_id}"
             )
-            self.logger.info(
-                f"[SERVICE_TASK] Target response queue name: '{response_queue_name}'"
-            )
+            self.logger.info(f"[SERVICE_TASK] Target response queue name: '{response_queue_name}'")
             self.logger.debug(f"[SERVICE_TASK] Response data: {response_data}")
 
             # 通过队列名称创建/获取队列实例（与ServiceManager的_get_response_queue方法保持一致）
@@ -629,9 +582,7 @@ class BaseServiceTask(ABC):
     def start_running(self):
         """启动服务任务"""
         if self.is_running:
-            self.logger.warning(
-                f"Service task '{self.service_name}' is already running"
-            )
+            self.logger.warning(f"Service task '{self.service_name}' is already running")
             return
 
         self.logger.info(f"Starting service task '{self.service_name}'")
@@ -643,38 +594,28 @@ class BaseServiceTask(ABC):
                 if request_qd:
                     self.logger.debug(f"Found request queue descriptor: {request_qd}")
                 else:
-                    self.logger.warning(
-                        "No request queue descriptor found in service context"
-                    )
+                    self.logger.warning("No request queue descriptor found in service context")
 
                 response_qds = self.ctx.get_service_response_queue_descriptors()
-                self.logger.debug(
-                    f"Found {len(response_qds)} response queue descriptors"
-                )
+                self.logger.debug(f"Found {len(response_qds)} response queue descriptors")
             else:
                 self.logger.warning(
                     f"No service context provided for service '{self.service_name}'"
                 )
 
             # 启动队列监听
-            self.logger.debug(
-                f"Starting queue listener for service '{self.service_name}'"
-            )
+            self.logger.debug(f"Starting queue listener for service '{self.service_name}'")
             self._start_queue_listener()
 
             # 启动服务实例
-            self.logger.debug(
-                f"Starting service instance for service '{self.service_name}'"
-            )
+            self.logger.debug(f"Starting service instance for service '{self.service_name}'")
             self._start_service_instance()
 
             self.is_running = True
             self.logger.info(f"Service task '{self.service_name}' started successfully")
 
         except Exception as e:
-            self.logger.error(
-                f"Failed to start service task '{self.service_name}': {e}"
-            )
+            self.logger.error(f"Failed to start service task '{self.service_name}': {e}")
             self.logger.debug(f"Stack trace: {traceback.format_exc()}")
             self.cleanup()
             raise
@@ -690,9 +631,7 @@ class BaseServiceTask(ABC):
 
         try:
             # 停止队列监听
-            self.logger.debug(
-                f"Step 1: Stopping queue listener for service '{self.service_name}'"
-            )
+            self.logger.debug(f"Step 1: Stopping queue listener for service '{self.service_name}'")
             self._stop_queue_listener()
 
             # 停止服务实例
@@ -797,9 +736,7 @@ class BaseServiceTask(ABC):
                     "request_queue_id": request_qd.queue_id if request_qd else None,
                     "request_queue_type": request_qd.queue_type if request_qd else None,
                     "response_queues_count": len(response_qds),
-                    "response_queue_names": (
-                        list(response_qds.keys()) if response_qds else []
-                    ),
+                    "response_queue_names": (list(response_qds.keys()) if response_qds else []),
                 }
             )
 
@@ -819,21 +756,13 @@ class BaseServiceTask(ABC):
 
             # 清理服务实例
             if hasattr(self.service_instance, "cleanup"):
-                self.logger.debug(
-                    f"Calling cleanup() on service instance '{self.service_name}'"
-                )
+                self.logger.debug(f"Calling cleanup() on service instance '{self.service_name}'")
                 self.service_instance.cleanup()
-                self.logger.debug(
-                    f"Service instance cleanup completed for '{self.service_name}'"
-                )
+                self.logger.debug(f"Service instance cleanup completed for '{self.service_name}'")
             elif hasattr(self.service_instance, "close"):
-                self.logger.debug(
-                    f"Calling close() on service instance '{self.service_name}'"
-                )
+                self.logger.debug(f"Calling close() on service instance '{self.service_name}'")
                 self.service_instance.close()
-                self.logger.debug(
-                    f"Service instance close completed for '{self.service_name}'"
-                )
+                self.logger.debug(f"Service instance close completed for '{self.service_name}'")
             else:
                 self.logger.debug(
                     f"Service instance '{self.service_name}' has no cleanup or close method"
@@ -852,17 +781,13 @@ class BaseServiceTask(ABC):
                 f"Queue cleanup is managed by ServiceContext for service '{self.service_name}'"
             )
 
-            self.logger.info(
-                f"Service task '{self.service_name}' cleanup completed successfully"
-            )
+            self.logger.info(f"Service task '{self.service_name}' cleanup completed successfully")
             self.logger.debug(
                 f"Final statistics - Requests: {self._request_count}, Errors: {self._error_count}"
             )
 
         except Exception as e:
-            self.logger.error(
-                f"Error during cleanup of service task '{self.service_name}': {e}"
-            )
+            self.logger.error(f"Error during cleanup of service task '{self.service_name}': {e}")
             self.logger.debug(f"Stack trace: {traceback.format_exc()}")
 
     def get_object(self):

@@ -4,13 +4,12 @@ Embedding CLI 命令
 提供命令行工具来管理和测试 embedding 方法。
 """
 
-from typing import List, Optional
-
 import typer
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
 from sage.common.components.sage_embedding import (
     check_model_availability,
     get_embedding_model,
@@ -111,9 +110,7 @@ def list_methods(
 @app.command(name="check")
 def check_method(
     method: str = typer.Argument(..., help="Embedding 方法名称"),
-    model: Optional[str] = typer.Option(
-        None, "--model", "-m", help="模型名称（如果需要）"
-    ),
+    model: str | None = typer.Option(None, "--model", "-m", help="模型名称（如果需要）"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出"),
 ):
     """检查特定 embedding 方法的可用性"""
@@ -143,11 +140,11 @@ def check_method(
         models = list_embedding_models()
         if method in models:
             info = models[method]
-            content += f"\n\n---\n\n"
+            content += "\n\n---\n\n"
             content += f"📦 **显示名称:** {info['display_name']}\n\n"
             content += f"📄 **描述:** {info['description']}\n\n"
             if info.get("examples"):
-                content += f"📋 **示例模型:**\n"
+                content += "📋 **示例模型:**\n"
                 for ex in info["examples"][:3]:
                     content += f"  - {ex}\n"
 
@@ -165,10 +162,10 @@ def check_method(
 def test_method(
     method: str = typer.Argument(..., help="Embedding 方法名称"),
     text: str = typer.Option("Hello, world!", "--text", "-t", help="测试文本"),
-    model: Optional[str] = typer.Option(None, "--model", "-m", help="模型名称"),
-    api_key: Optional[str] = typer.Option(None, "--api-key", "-k", help="API 密钥"),
+    model: str | None = typer.Option(None, "--model", "-m", help="模型名称"),
+    api_key: str | None = typer.Option(None, "--api-key", "-k", help="API 密钥"),
     show_vector: bool = typer.Option(False, "--show-vector", "-s", help="显示向量内容"),
-    dimension: Optional[int] = typer.Option(
+    dimension: int | None = typer.Option(
         None, "--dimension", "--dim", "-d", help="向量维度（部分方法支持）"
     ),
 ):
@@ -192,7 +189,7 @@ def test_method(
             vec = emb.embed(text)
 
         # 显示结果
-        console.print(f"[green]✅ 成功![/green]\n")
+        console.print("[green]✅ 成功![/green]\n")
 
         table = Table(box=box.SIMPLE, show_header=False)
         table.add_column("属性", style="cyan", width=15)
@@ -211,14 +208,12 @@ def test_method(
     except Exception as e:
         console.print(f"[red]❌ 错误:[/red] {e}")
         if "API Key" in str(e):
-            console.print(
-                "\n[yellow]💡 提示:[/yellow] 使用 --api-key 参数提供 API 密钥"
-            )
+            console.print("\n[yellow]💡 提示:[/yellow] 使用 --api-key 参数提供 API 密钥")
 
 
 @app.command(name="benchmark")
 def benchmark_methods(
-    methods: List[str] = typer.Argument(None, help="要测试的方法列表"),
+    methods: list[str] = typer.Argument(None, help="要测试的方法列表"),
     text: str = typer.Option("Hello, world!", "--text", "-t", help="测试文本"),
     count: int = typer.Option(10, "--count", "-c", help="重复次数"),
 ):

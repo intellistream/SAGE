@@ -12,10 +12,7 @@ from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 def pipeline_run():
     """创建并运行数据处理管道"""
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_dense_retrieval example")
         print("✅ Test passed: Example structure validated")
         return
@@ -27,14 +24,12 @@ def pipeline_run():
 
     # Batch Environment.
 
-    query_stream = (
+    (
         env.from_source(FileSource, config["source"])  # 处理且处理一整个file 一次。
         # .map(MilvusDenseRetriever, config["retriever"])  # 需要配置文件
         .map(QAPromptor, config["promptor"])
         .map(OpenAIGenerator, config["generator"]["vllm"])
-        .sink(
-            TerminalSink, config["sink"]
-        )  # TM (JVM) --> 会打印在某一台机器的console里
+        .sink(TerminalSink, config["sink"])  # TM (JVM) --> 会打印在某一台机器的console里
     )
 
     env.submit()
@@ -45,10 +40,7 @@ if __name__ == "__main__":
     import os
 
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_dense_retrieval example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

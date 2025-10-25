@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """下载腰椎MRI数据集"""
 
-import os
 from pathlib import Path
 
 from datasets import load_dataset
@@ -23,7 +22,7 @@ def download_lumbar_spine_dataset():
         print("\n🔄 方式1: 使用 datasets 库加载...")
         dataset = load_dataset(dataset_name, split="train")
 
-        print(f"✅ 数据集加载成功!")
+        print("✅ 数据集加载成功!")
         print(f"📊 样本数量: {len(dataset)}")
         print(f"📋 字段: {dataset.column_names}")
 
@@ -33,7 +32,7 @@ def download_lumbar_spine_dataset():
             f.write(f"Dataset: {dataset_name}\n")
             f.write(f"Samples: {len(dataset)}\n")
             f.write(f"Columns: {dataset.column_names}\n")
-            f.write(f"\nFirst sample:\n")
+            f.write("\nFirst sample:\n")
             if len(dataset) > 0:
                 for key, value in dataset[0].items():
                     f.write(f"  {key}: {type(value).__name__}\n")

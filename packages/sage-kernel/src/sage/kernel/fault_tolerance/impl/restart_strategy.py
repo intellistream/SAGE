@@ -6,11 +6,7 @@
 
 from abc import ABC, abstractmethod
 
-from sage.common.core.constants import (
-    DEFAULT_MAX_RESTART_ATTEMPTS,
-    RESTART_STRATEGY_EXPONENTIAL,
-    RESTART_STRATEGY_FIXED,
-)
+from sage.common.core.constants import DEFAULT_MAX_RESTART_ATTEMPTS
 
 
 class RestartStrategy(ABC):
@@ -63,9 +59,7 @@ class FixedDelayStrategy(RestartStrategy):
     每次重启使用固定的延迟时间。
     """
 
-    def __init__(
-        self, delay: float = 5.0, max_attempts: int = DEFAULT_MAX_RESTART_ATTEMPTS
-    ):
+    def __init__(self, delay: float = 5.0, max_attempts: int = DEFAULT_MAX_RESTART_ATTEMPTS):
         """
         初始化固定延迟策略
 
@@ -202,9 +196,7 @@ class FailureRateStrategy(RestartStrategy):
 
         # 清理过期的失败记录
         cutoff_time = current_time - self.interval_seconds
-        self.failure_timestamps = [
-            ts for ts in self.failure_timestamps if ts > cutoff_time
-        ]
+        self.failure_timestamps = [ts for ts in self.failure_timestamps if ts > cutoff_time]
 
         # 检查失败率
         return len(self.failure_timestamps) <= self.max_failures_per_interval

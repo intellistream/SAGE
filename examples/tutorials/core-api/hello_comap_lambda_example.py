@@ -97,15 +97,13 @@ def main():
     # Create streams and connect them
     temp_stream = env1.from_source(ListSource, [20.5, 22.1, 19.8, 25.3, 21.7])
     humidity_stream = env1.from_source(ListSource, [45, 52, 38, 67, 41])
-    pressure_stream = env1.from_source(
-        ListSource, [1013.2, 1015.8, 1012.1, 1018.5, 1014.3]
-    )
+    pressure_stream = env1.from_source(ListSource, [1013.2, 1015.8, 1012.1, 1018.5, 1014.3])
 
     # Connect streams properly
     connected_sensors = temp_stream.connect(humidity_stream).connect(pressure_stream)
 
     # Apply CoMap function
-    result1 = connected_sensors.comap(SensorCoMapFunction).print("Sensor Data")
+    connected_sensors.comap(SensorCoMapFunction).print("Sensor Data")
 
     # Execute example 1
     print("Processing sensor data...")
@@ -173,7 +171,7 @@ def main():
     connected_weather = temp_stream2.connect(humidity_stream2)
 
     # Apply weather CoMap function
-    result2 = connected_weather.comap(WeatherCoMapFunction).print("Weather Data")
+    connected_weather.comap(WeatherCoMapFunction).print("Weather Data")
 
     # Execute example 2
     print("Processing weather data...")
@@ -215,9 +213,7 @@ def main():
 
     # Create diverse data sources
     numeric_source = env3.from_source(ListSource, [15.5, -2.3, 105.7, 42.1, 0.0])
-    text_source = env3.from_source(
-        ListSource, ["hello", "world", "sage", "framework", "lambda"]
-    )
+    text_source = env3.from_source(ListSource, ["hello", "world", "sage", "framework", "lambda"])
     boolean_source = env3.from_source(ListSource, [True, False, True, True, False])
 
     # Create and connect streams
@@ -228,7 +224,7 @@ def main():
     connected_mixed = numeric_stream.connect(text_stream).connect(boolean_stream)
 
     # Apply mixed data CoMap function
-    result3 = connected_mixed.comap(MixedDataCoMapFunction).print("Mixed Data")
+    connected_mixed.comap(MixedDataCoMapFunction).print("Mixed Data")
 
     # Execute example 3
     print("Processing mixed data types...")
@@ -278,7 +274,7 @@ def main():
     connected_math = input1.connect(input2).connect(input3)
 
     # Apply mathematical transformations
-    result4 = connected_math.comap(MathCoMapFunction).print("Math Results")
+    connected_math.comap(MathCoMapFunction).print("Math Results")
 
     # Execute example 4
     print("Processing mathematical operations...")
@@ -325,9 +321,7 @@ def main():
     connected_validation = data1.connect(data2)
 
     # Apply validation and error handling
-    result5 = connected_validation.comap(ValidationCoMapFunction).print(
-        "Validated Data"
-    )
+    connected_validation.comap(ValidationCoMapFunction).print("Validated Data")
 
     # Execute example 5
     print("Processing with validation...")

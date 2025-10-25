@@ -21,11 +21,11 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 
 try:  # pragma: no cover - allow running directly from source tree
-    from sage.common.utils.config.loader import load_config
-    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.common.core.functions.map_function import MapFunction
     from sage.common.core.functions.sink_function import SinkFunction
     from sage.common.core.functions.source_function import SourceFunction
+    from sage.common.utils.config.loader import load_config
+    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
     from sage.kernel.runtime.communication.router.packet import StopSignal
@@ -63,9 +63,7 @@ except ModuleNotFoundError:  # pragma: no cover - local convenience path
 
 from pipeline_bridge import PipelineBridge
 
-CONFIG_PATH = (
-    Path(__file__).resolve().parent.parent.parent / "config" / "config_source.yaml"
-)
+CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "config_source.yaml"
 
 
 def _extract_answer_text(generated: Any) -> str:
@@ -347,9 +345,7 @@ class PublishAnswerSink(SinkFunction):
                 try:
                     response_queue.put({"status": "shutdown_ack"}, timeout=5.0)
                 except queue.Full:  # pragma: no cover - defensive guard
-                    self.logger.warning(
-                        "Response queue was full during shutdown acknowledgment"
-                    )
+                    self.logger.warning("Response queue was full during shutdown acknowledgment")
             return payload
 
         if not isinstance(payload, dict):
@@ -467,10 +463,7 @@ class TerminalAnswerSink(SinkFunction):
         response = payload.get("response")
         request = payload.get("request", {})
 
-        if (
-            isinstance(response, dict)
-            and response.get("status") == "shutdown_requested"
-        ):
+        if isinstance(response, dict) and response.get("status") == "shutdown_requested":
             print("\n✅ QA session closed. Goodbye!", flush=True)
             if self._shutdown_event is not None:
                 self._shutdown_event.set()
@@ -480,7 +473,7 @@ class TerminalAnswerSink(SinkFunction):
             print("❌ Unexpected response from QA pipeline", flush=True)
             return payload
 
-        question = request.get("query", request.get("question", ""))
+        request.get("query", request.get("question", ""))
         answer = response.get("answer", "")
         status = response.get("status", "ok")
         if status == "error":
@@ -555,9 +548,7 @@ def _resolve_generator(generator_section: Dict[str, Any]):
         # Allow empty api_key, Generator will read from environment variables
         api_key = selected_config.get("api_key")
         if api_key is None:
-            return _mock_fallback(
-                "api_key field missing for OpenAI-compatible generator"
-            )
+            return _mock_fallback("api_key field missing for OpenAI-compatible generator")
         if not selected_config.get("base_url"):
             return _mock_fallback("missing base_url for OpenAI-compatible generator")
         return OpenAIGenerator, selected_config, ""
@@ -610,19 +601,16 @@ def main():
         print(generator_notice, flush=True)
     print("Tip: Press Ctrl+C at any time to exit immediately.", flush=True)
 
-    shutdown_requested = False
-
     try:
         env.submit()
         while not shutdown_event.is_set():
             time.sleep(0.2)
     except KeyboardInterrupt:
         print("\n⚙️  Shutting down QA service...", flush=True)
-        shutdown_requested = True
         shutdown_event.set()
     finally:
         if shutdown_event.is_set():
-            shutdown_requested = True
+            pass
 
         try:
             bridge.close()
@@ -643,10 +631,7 @@ def main():
 
 
 if __name__ == "__main__":
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_pipeline_as_service is interactive")
         print("✅ Test passed: Interactive example structure validated")
         sys.exit(0)

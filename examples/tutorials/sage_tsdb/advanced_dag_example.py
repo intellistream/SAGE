@@ -96,9 +96,7 @@ def compute_window_statistics(
         # Every 10 points, compute aggregations
         if (i + 1) % 10 == 0:
             # Query recent data
-            time_range = TimeRange(
-                start_time=data["timestamp"] - 30000, end_time=data["timestamp"]
-            )
+            time_range = TimeRange(start_time=data["timestamp"] - 30000, end_time=data["timestamp"])
 
             recent_data = db.query(time_range=time_range)
 
@@ -201,7 +199,7 @@ def example_multi_sensor_comparison():
 
     # Generate and ingest data
     data_points = generate_multi_sensor_data(num_sensors=3, points_per_sensor=25)
-    print(f"\nIngesting data from 3 sensors...")
+    print("\nIngesting data from 3 sensors...")
 
     for point in data_points:
         sensor_id = point["sensor_id"]

@@ -8,7 +8,6 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
 
 @dataclass
@@ -41,7 +40,7 @@ class OrphanedFileDetector:
             "conftest.py",
         }
 
-    def get_all_python_files(self) -> List[Path]:
+    def get_all_python_files(self) -> list[Path]:
         """获取项目中所有Python文件"""
         python_files = []
 
@@ -84,12 +83,12 @@ class OrphanedFileDetector:
         except (ValueError, IndexError):
             return ""
 
-    def find_imports_in_file(self, file_path: Path) -> Set[str]:
+    def find_imports_in_file(self, file_path: Path) -> set[str]:
         """在单个文件中查找所有导入"""
         imports = set()
 
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 content = f.read()
 
             # 查找各种import语句
@@ -108,9 +107,7 @@ class OrphanedFileDetector:
 
         return imports
 
-    def check_file_references(
-        self, target_file: Path, all_files: List[Path]
-    ) -> List[str]:
+    def check_file_references(self, target_file: Path, all_files: list[Path]) -> list[str]:
         """检查文件是否被其他文件引用"""
         module_path = self.extract_module_path(target_file)
         if not module_path:
@@ -139,9 +136,7 @@ class OrphanedFileDetector:
 
         return references
 
-    def detect_orphaned_files(
-        self, check_directories: List[str] = None
-    ) -> List[OrphanedFile]:
+    def detect_orphaned_files(self, check_directories: list[str] = None) -> list[OrphanedFile]:
         """检测废弃文件"""
         if check_directories is None:
             check_directories = [
@@ -183,10 +178,10 @@ class OrphanedFileDetector:
 
         return orphaned_files
 
-    def get_file_analysis(self, file_path: Path) -> Dict:
+    def get_file_analysis(self, file_path: Path) -> dict:
         """获取文件的详细分析信息"""
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 content = f.read()
 
             lines = content.count("\n") + 1
@@ -218,7 +213,7 @@ def format_file_size(size_bytes: int) -> str:
 
 def analyze_orphaned_files(
     project_root: Path, verbose: bool = False
-) -> Tuple[List[OrphanedFile], Dict]:
+) -> tuple[list[OrphanedFile], dict]:
     """分析项目中的废弃文件"""
     detector = OrphanedFileDetector(project_root)
     orphaned_files = detector.detect_orphaned_files()

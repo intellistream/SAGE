@@ -4,7 +4,7 @@ Enhanced Pipeline Builder Templates with EmbeddingService Integration
 这个模块提供增强的 pipeline 模板，完全集成了新的 EmbeddingService。
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class EmbeddingPipelineTemplates:
@@ -13,11 +13,11 @@ class EmbeddingPipelineTemplates:
     @staticmethod
     def rag_with_embedding_service(
         embedding_method: str = "hf",
-        embedding_model: Optional[str] = None,
+        embedding_model: str | None = None,
         use_vllm: bool = False,
         llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """RAG Pipeline with dedicated EmbeddingService.
 
         Args:
@@ -158,12 +158,12 @@ Answer:""",
     @staticmethod
     def knowledge_base_builder(
         embedding_method: str = "hf",
-        embedding_model: Optional[str] = None,
+        embedding_model: str | None = None,
         use_vllm: bool = False,
         chunk_size: int = 512,
         chunk_overlap: int = 50,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Knowledge base building pipeline with EmbeddingService.
 
         Args:
@@ -289,9 +289,9 @@ Answer:""",
     def hybrid_search_pipeline(
         dense_method: str = "hf",
         sparse_method: str = "bm25s",
-        dense_model: Optional[str] = None,
+        dense_model: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Hybrid search pipeline with dense + sparse embeddings."""
         config = {
             "pipeline": {
@@ -393,7 +393,7 @@ Answer:""",
         doc_method: str = "openai",
         batch_method: str = "vllm",
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Multi-embedding strategy: different methods for different use cases."""
         config = {
             "pipeline": {
@@ -472,7 +472,7 @@ Answer:""",
         return config
 
 
-def generate_embedding_pipeline(use_case: str, **kwargs) -> Dict[str, Any]:
+def generate_embedding_pipeline(use_case: str, **kwargs) -> dict[str, Any]:
     """Generate embedding pipeline based on use case.
 
     Args:
@@ -493,8 +493,7 @@ def generate_embedding_pipeline(use_case: str, **kwargs) -> Dict[str, Any]:
 
     if use_case not in use_case_map:
         raise ValueError(
-            f"Unknown use case: {use_case}. "
-            f"Available: {', '.join(use_case_map.keys())}"
+            f"Unknown use case: {use_case}. " f"Available: {', '.join(use_case_map.keys())}"
         )
 
     return use_case_map[use_case](**kwargs)

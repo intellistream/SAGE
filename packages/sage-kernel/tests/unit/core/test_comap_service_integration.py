@@ -7,6 +7,7 @@ CoMap函数中服务调用集成测试
 import time
 
 import pytest
+
 from sage.common.core.functions import BaseCoMapFunction, SinkFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
@@ -28,9 +29,7 @@ class UserProfileService:
         }
 
     def get_profile(self, user_id: str):
-        return self.profiles.get(
-            user_id, {"name": "Unknown", "age": 0, "interests": []}
-        )
+        return self.profiles.get(user_id, {"name": "Unknown", "age": 0, "interests": []})
 
     def update_activity(self, user_id: str, activity: str):
         if user_id in self.profiles:
@@ -125,9 +124,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
             interaction_type = event_data["type"]
         else:
             # This is a recommendation request, handle it differently
-            print(
-                "[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
-            )
+            print("[DEBUG] CoMap.map0: Received recommendation request, skipping event processing")
             return {
                 "type": "recommendation_request_received",
                 "user_id": user_id,
@@ -141,9 +138,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         activity_description = f"{interaction_type}_{item_id}"
 
         try:
-            print(
-                "[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0"
-            )
+            print("[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0")
             update_result = self.call_service(
                 "user_profile",
                 user_id,
@@ -153,9 +148,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
             )
         except Exception as e:
             update_result = f"Service call failed: {str(e)[:100]}"
-            self.logger.error(
-                f"[DEBUG] CoMap.map0: user_profile service call failed: {e}"
-            )
+            self.logger.error(f"[DEBUG] CoMap.map0: user_profile service call failed: {e}")
 
         try:
             track_result = self.call_service(
@@ -206,9 +199,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
             result["cache_invalidation_error"] = "Cache service call not initiated"
 
         if self.ctx:
-            self.logger.info(
-                f"CoMap map0: processed event {event_data['type']} for user {user_id}"
-            )
+            self.logger.info(f"CoMap map0: processed event {event_data['type']} for user {user_id}")
 
         return result
 
@@ -257,7 +248,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
                 self.logger.warning(f"User profile async service call failed: {e}")
 
             # 在等待的同时做一些本地处理
-            request_info = {
+            {
                 "user_id": user_id,
                 "context": context,
                 "request_time": time.time(),
@@ -346,9 +337,7 @@ class ServiceTestSink(SinkFunction):
             cache_invalidation = data.get("cache_invalidation_started", False)
             print(f"📱 Event (Stream {source_stream}): User {user_id}")
             print(f"      Activity Update: {activity_update}")
-            print(
-                f"      Interaction Tracked: {interaction_tracked.get('tracked', False)}"
-            )
+            print(f"      Interaction Tracked: {interaction_tracked.get('tracked', False)}")
             print(
                 f"      Cache Invalidation: {'Started' if cache_invalidation else 'No cache result'}"
             )
@@ -456,7 +445,7 @@ class TestCoMapServiceIntegration:
         request_stream = env.from_batch(request_data)
 
         # 构建CoMap处理管道
-        result_stream = (
+        (
             event_stream.connect(request_stream)
             .comap(UserRecommendationCoMapFunction)
             .sink(ServiceTestSink, parallelism=1)

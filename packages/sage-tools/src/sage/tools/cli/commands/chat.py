@@ -2,7 +2,6 @@
 """SAGE Chat CLI - Embedded programming assistant backed by SageDB."""
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -11,10 +10,11 @@ import tempfile
 import textwrap
 import urllib.request
 import zipfile
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -23,25 +23,22 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+
 from sage.common.components.sage_embedding import get_embedding_model
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
-from sage.common.config.output_paths import (
-    find_sage_project_root,
-    get_sage_paths,
-)
+from sage.common.config.output_paths import find_sage_project_root, get_sage_paths
 
 # 延迟导入 sage_db 以允许 CLI 在没有 C++ 扩展的情况下启动
 # from sage.middleware.components.sage_db.python.sage_db import SageDB, SageDBException
 from sage.tools.cli.commands import pipeline as pipeline_builder
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
-from sage.tools.cli.core.exceptions import CLIException
 
 console = Console()
 
 # sage_db 需要 C++ 扩展，使用延迟导入
 SAGE_DB_AVAILABLE = False
-SAGE_DB_IMPORT_ERROR: Optional[Exception] = None
+SAGE_DB_IMPORT_ERROR: Exception | None = None
 SageDB = None  # type: ignore
 SageDBException = Exception  # type: ignore
 
@@ -54,8 +51,8 @@ def _lazy_import_sage_db():
         return  # 已经成功导入
 
     try:
-        from sage.middleware.components.sage_db.python.sage_db import SageDB as _SageDB
         from sage.middleware.components.sage_db.python.sage_db import (
+            SageDB as _SageDB,
             SageDBException as _SageDBException,
         )
 
@@ -92,9 +89,7 @@ METHODS_REQUIRE_MODEL = {
     "lollms",
 }
 
-GITHUB_DOCS_ZIP_URL = (
-    "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
-)
+GITHUB_DOCS_ZIP_URL = "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
 
 app = typer.Typer(
     help="🧭 嵌入式 SAGE 编程助手 (Docs + SageDB + LLM)",
@@ -110,14 +105,14 @@ class ChatManifest:
     db_path: Path
     created_at: str
     source_dir: str
-    embedding: Dict[str, object]
+    embedding: dict[str, object]
     chunk_size: int
     chunk_overlap: int
     num_documents: int
     num_chunks: int
 
     @property
-    def embed_config(self) -> Dict[str, object]:
+    def embed_config(self) -> dict[str, object]:
         return self.embedding
 
 
@@ -139,7 +134,7 @@ def ensure_sage_db() -> None:
     raise typer.Exit(code=1)
 
 
-def resolve_index_root(index_root: Optional[str]) -> Path:
+def resolve_index_root(index_root: str | None) -> Path:
     if index_root:
         root = Path(index_root).expanduser().resolve()
         root.mkdir(parents=True, exist_ok=True)
@@ -169,9 +164,7 @@ def db_file_path(index_root: Path, index_name: str) -> Path:
 def load_manifest(index_root: Path, index_name: str) -> ChatManifest:
     path = manifest_path(index_root, index_name)
     if not path.exists():
-        raise FileNotFoundError(
-            f"未找到索引 manifest: {path}. 请先运行 `sage chat ingest`."
-        )
+        raise FileNotFoundError(f"未找到索引 manifest: {path}. 请先运行 `sage chat ingest`.")
     payload = json.loads(path.read_text(encoding="utf-8"))
     manifest = ChatManifest(
         index_name=index_name,
@@ -207,7 +200,7 @@ def save_manifest(
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def build_embedder(config: Dict[str, object]) -> Any:
+def build_embedder(config: dict[str, object]) -> Any:
     """构建 embedder 实例（使用新的统一接口）
 
     Args:
@@ -239,10 +232,10 @@ def iter_markdown_files(source: Path) -> Iterable[Path]:
 _HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(?P<title>.+?)\s*$")
 
 
-def parse_markdown_sections(content: str) -> List[Dict[str, str]]:
-    sections: List[Dict[str, str]] = []
+def parse_markdown_sections(content: str) -> list[dict[str, str]]:
+    sections: list[dict[str, str]] = []
     current_title = "Introduction"
-    current_lines: List[str] = []
+    current_lines: list[str] = []
 
     for raw_line in content.splitlines():
         match = _HEADING_PATTERN.match(raw_line.strip())
@@ -260,14 +253,12 @@ def parse_markdown_sections(content: str) -> List[Dict[str, str]]:
             current_lines.append(raw_line)
 
     if current_lines:
-        sections.append(
-            {"heading": current_title, "content": "\n".join(current_lines).strip()}
-        )
+        sections.append({"heading": current_title, "content": "\n".join(current_lines).strip()})
 
     return [section for section in sections if section["content"]]
 
 
-def chunk_text(content: str, chunk_size: int, chunk_overlap: int) -> List[str]:
+def chunk_text(content: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     normalized = re.sub(r"\n{3,}", "\n\n", content).strip()
     if not normalized:
         return []
@@ -275,7 +266,7 @@ def chunk_text(content: str, chunk_size: int, chunk_overlap: int) -> List[str]:
     start = 0
     length = len(normalized)
     step = max(1, chunk_size - chunk_overlap)
-    chunks: List[str] = []
+    chunks: list[str] = []
 
     while start < length:
         end = min(length, start + chunk_size)
@@ -343,7 +334,7 @@ def ensure_docs_corpus(index_root: Path) -> Path:
     if tmp_file.exists():
         tmp_file.unlink()
 
-    extracted_docs: Optional[Path] = None
+    extracted_docs: Path | None = None
     for candidate in cache_root.glob("**/docs_src"):
         if candidate.is_dir():
             extracted_docs = candidate
@@ -362,16 +353,14 @@ def ensure_docs_corpus(index_root: Path) -> Path:
     return docs_path
 
 
-def bootstrap_default_index(
-    index_root: Path, index_name: str
-) -> Optional[ChatManifest]:
+def bootstrap_default_index(index_root: Path, index_name: str) -> ChatManifest | None:
     try:
         source_dir = ensure_docs_corpus(index_root)
     except Exception as exc:
         console.print(f"[red]无法准备文档语料: {exc}[/red]")
         return None
 
-    embedding_config: Dict[str, object] = {
+    embedding_config: dict[str, object] = {
         "method": DEFAULT_EMBEDDING_METHOD,
         "params": {"dim": DEFAULT_FIXED_DIM},
     }
@@ -418,8 +407,8 @@ def ingest_source(
     index_name: str,
     chunk_size: int,
     chunk_overlap: int,
-    embedding_config: Dict[str, object],
-    max_files: Optional[int] = None,
+    embedding_config: dict[str, object],
+    max_files: int | None = None,
 ) -> ChatManifest:
     ensure_sage_db()
 
@@ -447,7 +436,7 @@ def ingest_source(
 
         doc_title = sections[0]["heading"] if sections else file_path.stem
 
-        for section_idx, section in enumerate(sections):
+        for _section_idx, section in enumerate(sections):
             section_chunks = chunk_text(section["content"], chunk_size, chunk_overlap)
             for chunk_idx, chunk in enumerate(section_chunks):
                 vector = embedder.embed(chunk)
@@ -463,9 +452,7 @@ def ingest_source(
                 total_chunks += 1
 
         total_docs += 1
-        console.print(
-            f"📄 处理文档 {idx}: {rel_path} (sections={len(sections)})", style="cyan"
-        )
+        console.print(f"📄 处理文档 {idx}: {rel_path} (sections={len(sections)})", style="cyan")
 
     if total_chunks == 0:
         raise RuntimeError("未在文档中生成任何 chunk，检查源目录或 chunk 参数。")
@@ -486,9 +473,7 @@ def ingest_source(
         num_chunks=total_chunks,
     )
     save_manifest(index_root, index_name, manifest)
-    console.print(
-        Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green")
-    )
+    console.print(Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green"))
     return manifest
 
 
@@ -507,7 +492,7 @@ def open_database(manifest: ChatManifest) -> Any:
     return db
 
 
-def build_prompt(question: str, contexts: Sequence[str]) -> List[Dict[str, str]]:
+def build_prompt(question: str, contexts: Sequence[str]) -> list[dict[str, str]]:
     context_block = "\n\n".join(
         f"[{idx}] {textwrap.dedent(ctx).strip()}"
         for idx, ctx in enumerate(contexts, start=1)
@@ -536,10 +521,10 @@ class ResponseGenerator:
         self,
         backend: str,
         model: str,
-        base_url: Optional[str],
-        api_key: Optional[str],
+        base_url: str | None,
+        api_key: str | None,
         temperature: float = 0.2,
-        finetune_model: Optional[str] = None,
+        finetune_model: str | None = None,
         finetune_port: int = DEFAULT_FINETUNE_PORT,
     ) -> None:
         self.backend = backend.lower()
@@ -608,13 +593,11 @@ class ResponseGenerator:
             console.print(f"[green]✅ vLLM 服务已在端口 {port} 运行[/green]")
             model_to_use = self.model if self.model != "qwen-max" else None
         else:
-            console.print(f"[yellow]⏳ 正在启动微调模型 vLLM 服务...[/yellow]")
+            console.print("[yellow]⏳ 正在启动微调模型 vLLM 服务...[/yellow]")
 
             # 检查是否有合并模型
             if not merged_path.exists():
-                console.print(
-                    f"[yellow]⚠️  未找到合并模型，正在自动合并 LoRA 权重...[/yellow]"
-                )
+                console.print("[yellow]⚠️  未找到合并模型，正在自动合并 LoRA 权重...[/yellow]")
 
                 # 检查是否有 checkpoint
                 if not checkpoint_path.exists():
@@ -680,11 +663,9 @@ class ResponseGenerator:
 
             # 等待服务启动
             console.print("[cyan]⏳ 等待服务启动（最多 60 秒）...[/cyan]")
-            for i in range(60):
+            for _i in range(60):
                 try:
-                    response = requests.get(
-                        f"http://localhost:{port}/health", timeout=1
-                    )
+                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
                     if response.status_code == 200:
                         console.print("[green]✅ vLLM 服务启动成功！[/green]\n")
                         break
@@ -714,7 +695,7 @@ class ResponseGenerator:
             self.client = OpenAIClient(
                 model_name=model_to_use or str(merged_path),
                 base_url=f"http://localhost:{port}/v1",
-                api_key="EMPTY",
+                api_key="EMPTY",  # pragma: allowlist secret
                 seed=42,
             )
             self.model = model_to_use or str(merged_path)
@@ -741,7 +722,7 @@ class ResponseGenerator:
         self,
         question: str,
         contexts: Sequence[str],
-        references: Sequence[Dict[str, str]],
+        references: Sequence[dict[str, str]],
         stream: bool = False,
     ) -> str:
         if self.backend == "mock":
@@ -766,10 +747,12 @@ class ResponseGenerator:
     def _mock_answer(
         question: str,
         contexts: Sequence[str],
-        references: Sequence[Dict[str, str]],
+        references: Sequence[dict[str, str]],
     ) -> str:
         if not contexts:
-            return "暂时没有从知识库检索到答案。请尝试改写提问，或运行 `sage chat ingest` 更新索引。"
+            return (
+                "暂时没有从知识库检索到答案。请尝试改写提问，或运行 `sage chat ingest` 更新索引。"
+            )
         top_ref = references[0] if references else {"title": "资料", "heading": ""}
         snippet = contexts[0].strip().replace("\n", " ")
         citation = top_ref.get("label", top_ref.get("title", "Docs"))
@@ -845,7 +828,7 @@ COMMON_SCENARIOS = {
 }
 
 
-def _get_scenario_template(scenario_key: str) -> Optional[Dict[str, str]]:
+def _get_scenario_template(scenario_key: str) -> dict[str, str] | None:
     """获取场景模板"""
     return COMMON_SCENARIOS.get(scenario_key.lower())
 
@@ -854,9 +837,7 @@ def _show_scenario_templates() -> None:
     """显示可用的场景模板"""
     console.print("\n[bold cyan]📚 可用场景模板：[/bold cyan]\n")
     for key, template in COMMON_SCENARIOS.items():
-        console.print(
-            f"  [yellow]{key:10}[/yellow] - {template['name']}: {template['goal']}"
-        )
+        console.print(f"  [yellow]{key:10}[/yellow] - {template['name']}: {template['goal']}")
     console.print()
 
 
@@ -874,11 +855,7 @@ def _looks_like_pipeline_request(message: str) -> bool:
     if has_verb and has_term:
         return True
 
-    if (
-        "llm" in lowered
-        and "build" in lowered
-        and ("app" in lowered or "application" in lowered)
-    ):
+    if "llm" in lowered and "build" in lowered and ("app" in lowered or "application" in lowered):
         return True
 
     return False
@@ -897,13 +874,13 @@ def _default_pipeline_name(seed: str) -> str:
     return trimmed[:32] if len(trimmed) > 32 else trimmed
 
 
-def _normalize_list_field(raw_value: str) -> List[str]:
+def _normalize_list_field(raw_value: str) -> list[str]:
     if not raw_value.strip():
         return []
     return [item.strip() for item in re.split(r"[,，/；;]", raw_value) if item.strip()]
 
 
-def _validate_pipeline_config(plan: Dict[str, Any]) -> Tuple[bool, List[str]]:
+def _validate_pipeline_config(plan: dict[str, Any]) -> tuple[bool, list[str]]:
     """
     验证生成的 Pipeline 配置是否合法
 
@@ -957,7 +934,7 @@ def _validate_pipeline_config(plan: Dict[str, Any]) -> Tuple[bool, List[str]]:
     return (len(errors) == 0, errors)
 
 
-def _check_class_imports(plan: Dict[str, Any]) -> List[str]:
+def _check_class_imports(plan: dict[str, Any]) -> list[str]:
     """
     检查配置中的类是否可以导入
 
@@ -1011,8 +988,8 @@ class PipelineChatCoordinator:
         self,
         backend: str,
         model: str,
-        base_url: Optional[str],
-        api_key: Optional[str],
+        base_url: str | None,
+        api_key: str | None,
     ) -> None:
         self.backend = backend
         self.model = model
@@ -1020,8 +997,8 @@ class PipelineChatCoordinator:
         self.api_key = api_key
         self.knowledge_top_k = 5
         self.show_knowledge = False
-        self._domain_contexts: Tuple[str, ...] | None = None
-        self._knowledge_base: Optional[Any] = None
+        self._domain_contexts: tuple[str, ...] | None = None
+        self._knowledge_base: Any | None = None
 
     def detect(self, message: str) -> bool:
         return _looks_like_pipeline_request(message)
@@ -1032,9 +1009,7 @@ class PipelineChatCoordinator:
         if self.api_key:
             return True
 
-        console.print(
-            "[yellow]当前使用真实模型后端，需要提供 API Key 才能生成 pipeline。[/yellow]"
-        )
+        console.print("[yellow]当前使用真实模型后端，需要提供 API Key 才能生成 pipeline。[/yellow]")
         provided = typer.prompt("请输入 LLM API Key (留空取消)", default="")
         if not provided.strip():
             console.print("已取消 pipeline 构建流程。", style="yellow")
@@ -1043,7 +1018,7 @@ class PipelineChatCoordinator:
         self.api_key = provided.strip()
         return True
 
-    def _ensure_contexts(self) -> Tuple[str, ...]:
+    def _ensure_contexts(self) -> tuple[str, ...]:
         if self._domain_contexts is None:
             try:
                 self._domain_contexts = tuple(load_domain_contexts(limit=4))
@@ -1052,18 +1027,16 @@ class PipelineChatCoordinator:
                 self._domain_contexts = ()
         return self._domain_contexts
 
-    def _ensure_knowledge_base(self) -> Optional[Any]:
+    def _ensure_knowledge_base(self) -> Any | None:
         if self._knowledge_base is None:
             try:
                 self._knowledge_base = get_default_knowledge_base()
             except Exception as exc:  # pragma: no cover - defensive
-                console.print(
-                    f"[yellow]初始化 pipeline 知识库失败，将跳过检索: {exc}[/yellow]"
-                )
+                console.print(f"[yellow]初始化 pipeline 知识库失败，将跳过检索: {exc}[/yellow]")
                 self._knowledge_base = None
         return self._knowledge_base
 
-    def _collect_requirements(self, initial_request: str) -> Dict[str, Any]:
+    def _collect_requirements(self, initial_request: str) -> dict[str, Any]:
         console.print("\n[bold cyan]📋 需求收集[/bold cyan]", style="bold")
         console.print("请提供以下信息以生成最适合的 Pipeline 配置：\n", style="dim")
 
@@ -1074,17 +1047,13 @@ class PipelineChatCoordinator:
         if use_template:
             _show_scenario_templates()
             template_key = (
-                typer.prompt(
-                    "选择场景模板 (输入关键字，如 'qa', 'rag', 'chat' 等)", default="qa"
-                )
+                typer.prompt("选择场景模板 (输入关键字，如 'qa', 'rag', 'chat' 等)", default="qa")
                 .strip()
                 .lower()
             )
             template_data = _get_scenario_template(template_key)
             if template_data:
-                console.print(
-                    f"\n✅ 已加载 [green]{template_data['name']}[/green] 模板\n"
-                )
+                console.print(f"\n✅ 已加载 [green]{template_data['name']}[/green] 模板\n")
             else:
                 console.print(
                     f"\n⚠️  未找到模板 '{template_key}'，将使用自定义配置\n",
@@ -1094,9 +1063,7 @@ class PipelineChatCoordinator:
         default_name = _default_pipeline_name(initial_request)
 
         # 提示用户可以简化输入
-        console.print(
-            "💡 [dim]提示：直接回车将使用默认值（基于您的描述自动推断）[/dim]\n"
-        )
+        console.print("💡 [dim]提示：直接回车将使用默认值（基于您的描述自动推断）[/dim]\n")
 
         # 如果有模板，使用模板的默认值
         if template_data:
@@ -1116,21 +1083,15 @@ class PipelineChatCoordinator:
 
         # 提供更详细的说明
         console.print("\n[dim]数据来源示例：文档知识库、用户输入、数据库、API 等[/dim]")
-        data_sources = typer.prompt(
-            "📦 主要数据来源 (逗号分隔)", default=default_sources
-        )
+        data_sources = typer.prompt("📦 主要数据来源 (逗号分隔)", default=default_sources)
 
-        console.print(
-            "\n[dim]延迟需求示例：实时响应优先、批处理可接受、高吞吐量优先[/dim]"
-        )
+        console.print("\n[dim]延迟需求示例：实时响应优先、批处理可接受、高吞吐量优先[/dim]")
         latency = typer.prompt("⚡ 延迟/吞吐需求", default=default_latency)
 
-        console.print(
-            "\n[dim]约束条件示例：仅使用本地模型、内存限制 4GB、必须支持流式输出[/dim]"
-        )
+        console.print("\n[dim]约束条件示例：仅使用本地模型、内存限制 4GB、必须支持流式输出[/dim]")
         constraints = typer.prompt("⚙️  特殊约束 (可留空)", default=default_constraints)
 
-        requirements: Dict[str, Any] = {
+        requirements: dict[str, Any] = {
             "name": name.strip() or default_name,
             "goal": goal.strip() or initial_request.strip() or default_name,
             "data_sources": _normalize_list_field(data_sources),
@@ -1170,14 +1131,14 @@ class PipelineChatCoordinator:
             show_knowledge=self.show_knowledge,
         )
 
-    def _generate_plan(self, requirements: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _generate_plan(self, requirements: dict[str, Any]) -> dict[str, Any] | None:
         console.print("\n[bold magenta]🤖 正在生成 Pipeline 配置...[/bold magenta]\n")
 
         config = self._build_config()
         generator = pipeline_builder.PipelinePlanGenerator(config)
 
-        plan: Optional[Dict[str, Any]] = None
-        feedback: Optional[str] = None
+        plan: dict[str, Any] | None = None
+        feedback: str | None = None
 
         for round_num in range(1, 7):  # 最多 6 轮
             console.print(f"[dim]>>> 第 {round_num} 轮生成...[/dim]")
@@ -1194,9 +1155,7 @@ class PipelineChatCoordinator:
                 elif "timeout" in str(exc).lower():
                     console.print("[yellow]💡 建议：网络可能不稳定，可以重试[/yellow]")
                 elif "JSON" in str(exc) or "parse" in str(exc).lower():
-                    console.print(
-                        "[yellow]💡 建议：模型输出格式异常，尝试简化需求描述[/yellow]"
-                    )
+                    console.print("[yellow]💡 建议：模型输出格式异常，尝试简化需求描述[/yellow]")
 
                 if not typer.confirm("\n是否尝试重新生成？", default=True):
                     return None
@@ -1221,13 +1180,9 @@ class PipelineChatCoordinator:
                 console.print("[red]⚠️  配置验证发现问题：[/red]")
                 for error in errors:
                     console.print(f"  • [red]{error}[/red]")
-                console.print(
-                    "\n[yellow]建议：在反馈中说明这些问题，让模型重新生成[/yellow]"
-                )
+                console.print("\n[yellow]建议：在反馈中说明这些问题，让模型重新生成[/yellow]")
 
-                if not typer.confirm(
-                    "是否继续使用此配置（可能无法正常运行）？", default=False
-                ):
+                if not typer.confirm("是否继续使用此配置（可能无法正常运行）？", default=False):
                     feedback = typer.prompt(
                         "请描述需要修正的问题或提供额外要求",
                         default="请修复配置验证中发现的问题",
@@ -1243,12 +1198,8 @@ class PipelineChatCoordinator:
                     for warning in import_warnings[:5]:  # 最多显示5个
                         console.print(f"  • [yellow]{warning}[/yellow]")
                     if len(import_warnings) > 5:
-                        console.print(
-                            f"  [dim]... 还有 {len(import_warnings) - 5} 个警告[/dim]"
-                        )
-                    console.print(
-                        "[dim]提示：这些警告不一定导致运行失败，但建议检查[/dim]"
-                    )
+                        console.print(f"  [dim]... 还有 {len(import_warnings) - 5} 个警告[/dim]")
+                    console.print("[dim]提示：这些警告不一定导致运行失败，但建议检查[/dim]")
 
             if typer.confirm("\n✨ 对该配置满意吗？", default=True):
                 console.print("\n[bold green]🎉 Pipeline 配置已确认！[/bold green]\n")
@@ -1279,9 +1230,7 @@ class PipelineChatCoordinator:
 
         # 显示欢迎信息和功能说明
         console.print("\n" + "=" * 70)
-        console.print(
-            "[bold magenta]🚀 SAGE Pipeline Builder - 智能编排助手[/bold magenta]"
-        )
+        console.print("[bold magenta]🚀 SAGE Pipeline Builder - 智能编排助手[/bold magenta]")
         console.print("=" * 70)
         console.print(
             """
@@ -1308,12 +1257,8 @@ class PipelineChatCoordinator:
 
         # 保存配置
         console.print("[bold cyan]💾 保存配置文件[/bold cyan]")
-        destination = typer.prompt(
-            "保存到文件 (直接回车使用默认输出目录)", default=""
-        ).strip()
-        output_path: Optional[Path] = (
-            Path(destination).expanduser() if destination else None
-        )
+        destination = typer.prompt("保存到文件 (直接回车使用默认输出目录)", default="").strip()
+        output_path: Path | None = Path(destination).expanduser() if destination else None
         overwrite = False
         if output_path and output_path.exists():
             overwrite = typer.confirm("⚠️  目标文件已存在，是否覆盖？", default=False)
@@ -1335,17 +1280,12 @@ class PipelineChatCoordinator:
         autostop = typer.confirm("提交后等待执行完成 (autostop)?", default=True)
 
         pipeline_type = (plan.get("pipeline", {}).get("type") or "local").lower()
-        host: Optional[str] = None
-        port_value: Optional[int] = None
+        host: str | None = None
+        port_value: int | None = None
 
         if pipeline_type == "remote":
-            console.print(
-                "\n[yellow]检测到远程 Pipeline，需要配置 JobManager 连接信息[/yellow]"
-            )
-            host = (
-                typer.prompt("远程 JobManager host", default="127.0.0.1").strip()
-                or None
-            )
+            console.print("\n[yellow]检测到远程 Pipeline，需要配置 JobManager 连接信息[/yellow]")
+            host = typer.prompt("远程 JobManager host", default="127.0.0.1").strip() or None
             port_text = typer.prompt("远程 JobManager 端口", default="19001").strip()
             try:
                 port_value = int(port_text)
@@ -1364,9 +1304,7 @@ class PipelineChatCoordinator:
                 console_override=console,
             )
             if job_id:
-                console.print(
-                    f"\n[bold green]✅ Pipeline 已提交，Job ID: {job_id}[/bold green]"
-                )
+                console.print(f"\n[bold green]✅ Pipeline 已提交，Job ID: {job_id}[/bold green]")
             else:
                 console.print("\n[bold green]✅ Pipeline 执行完成[/bold green]")
         except Exception as exc:
@@ -1377,7 +1315,7 @@ class PipelineChatCoordinator:
         return True
 
 
-def render_references(references: Sequence[Dict[str, str]]) -> Table:
+def render_references(references: Sequence[dict[str, str]]) -> Table:
     table = Table(title="知识引用", show_header=True, header_style="bold cyan")
     table.add_column("#", justify="right", width=3)
     table.add_column("文档")
@@ -1399,12 +1337,12 @@ def retrieve_context(
     embedder: EmbeddingModel,
     question: str,
     top_k: int,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     query_vector = embedder.embed(question)
     results = db.search(query_vector, top_k, True)
 
-    contexts: List[str] = []
-    references: List[Dict[str, str]] = []
+    contexts: list[str] = []
+    references: list[dict[str, str]] = []
     for item in results:
         metadata = dict(item.metadata) if hasattr(item, "metadata") else {}
         contexts.append(metadata.get("text", ""))
@@ -1427,15 +1365,15 @@ def interactive_chat(
     top_k: int,
     backend: str,
     model: str,
-    base_url: Optional[str],
-    api_key: Optional[str],
-    ask: Optional[str],
+    base_url: str | None,
+    api_key: str | None,
+    ask: str | None,
     stream: bool,
-    finetune_model: Optional[str] = None,
+    finetune_model: str | None = None,
     finetune_port: int = DEFAULT_FINETUNE_PORT,
 ) -> None:
-    embedder: Optional[Any] = None
-    db: Optional[Any] = None
+    embedder: Any | None = None
+    db: Any | None = None
     generator = ResponseGenerator(
         backend,
         model,
@@ -1456,7 +1394,7 @@ def interactive_chat(
         )
     )
 
-    def ensure_retriever() -> Tuple[Any, Any]:
+    def ensure_retriever() -> tuple[Any, Any]:
         nonlocal embedder, db
         if embedder is None:
             embedder = build_embedder(manifest.embed_config)
@@ -1498,9 +1436,7 @@ def interactive_chat(
 
     # 显示当前配置
     if backend == "finetune":
-        console.print(
-            f"[green]✅ 使用微调模型: {finetune_model or DEFAULT_FINETUNE_MODEL}[/green]"
-        )
+        console.print(f"[green]✅ 使用微调模型: {finetune_model or DEFAULT_FINETUNE_MODEL}[/green]")
         console.print(f"[dim]端口: {finetune_port}[/dim]\n")
 
     console.print(
@@ -1555,9 +1491,7 @@ def interactive_chat(
                 continue
             elif question_lower in {"templates", "模板"}:
                 _show_scenario_templates()
-                console.print(
-                    "[dim]提示：在 Pipeline 构建流程中可以选择使用这些模板[/dim]\n"
-                )
+                console.print("[dim]提示：在 Pipeline 构建流程中可以选择使用这些模板[/dim]\n")
                 continue
 
             # 处理 Pipeline 构建请求
@@ -1580,7 +1514,7 @@ def main(
         "-i",
         help="索引名称，用于读取 manifest 和 SageDB 文件",
     ),
-    ask: Optional[str] = typer.Option(
+    ask: str | None = typer.Option(
         None,
         "--ask",
         "-q",
@@ -1604,17 +1538,17 @@ def main(
         "--model",
         help="回答生成模型名称（finetune backend 会自动从配置读取）",
     ),
-    base_url: Optional[str] = typer.Option(
+    base_url: str | None = typer.Option(
         None,
         "--base-url",
         help="LLM API base_url (例如 vLLM 或兼容 OpenAI 的接口)",
     ),
-    api_key: Optional[str] = typer.Option(
+    api_key: str | None = typer.Option(
         lambda: os.environ.get("TEMP_GENERATOR_API_KEY"),
         "--api-key",
         help="LLM API Key (默认读取环境变量 TEMP_GENERATOR_API_KEY)",
     ),
-    finetune_model: Optional[str] = typer.Option(
+    finetune_model: str | None = typer.Option(
         DEFAULT_FINETUNE_MODEL,
         "--finetune-model",
         help="使用 finetune backend 时的微调模型名称（~/.sage/finetune_output/ 下的目录名）",
@@ -1624,7 +1558,7 @@ def main(
         "--finetune-port",
         help="finetune backend 使用的 vLLM 服务端口",
     ),
-    index_root: Optional[str] = typer.Option(
+    index_root: str | None = typer.Option(
         None,
         "--index-root",
         help="索引输出目录 (未提供则使用 ~/.sage/cache/chat)",
@@ -1655,7 +1589,7 @@ def main(
 
 @app.command("ingest")
 def ingest(
-    source_dir: Optional[Path] = typer.Option(
+    source_dir: Path | None = typer.Option(
         None,
         "--source",
         "-s",
@@ -1665,9 +1599,7 @@ def ingest(
         resolve_path=True,
         help="文档来源目录 (默认 docs-public/docs_src)",
     ),
-    index_name: str = typer.Option(
-        DEFAULT_INDEX_NAME, "--index", "-i", help="索引名称"
-    ),
+    index_name: str = typer.Option(DEFAULT_INDEX_NAME, "--index", "-i", help="索引名称"),
     chunk_size: int = typer.Option(
         DEFAULT_CHUNK_SIZE,
         "--chunk-size",
@@ -1687,7 +1619,7 @@ def ingest(
         "--embedding-method",
         help="Embedding 方法 (mockembedder/hf/openai/...)",
     ),
-    embedding_model: Optional[str] = typer.Option(
+    embedding_model: str | None = typer.Option(
         None,
         "--embedding-model",
         help="Embedding 模型名称 (方法需要时提供)",
@@ -1699,12 +1631,12 @@ def ingest(
         min=64,
         max=2048,
     ),
-    max_files: Optional[int] = typer.Option(
+    max_files: int | None = typer.Option(
         None,
         "--max-files",
         help="仅处理指定数量的文件 (测试/调试用)",
     ),
-    index_root: Optional[str] = typer.Option(
+    index_root: str | None = typer.Option(
         None,
         "--index-root",
         help="索引输出目录 (未提供则使用 ~/.sage/cache/chat)",
@@ -1719,7 +1651,7 @@ def ingest(
         raise typer.BadParameter(f"{embedding_method} 方法需要指定 --embedding-model")
 
     # 构建 embedding 配置（新接口会自动处理默认值）
-    embedding_config: Dict[str, object] = {"method": embedding_method, "params": {}}
+    embedding_config: dict[str, object] = {"method": embedding_method, "params": {}}
 
     # 设置方法特定参数
     if embedding_method == "mockembedder":
@@ -1741,7 +1673,7 @@ def ingest(
         )
     )
 
-    manifest = ingest_source(
+    ingest_source(
         source_dir=target_source,
         index_root=root,
         index_name=index_name,
@@ -1755,7 +1687,7 @@ def ingest(
 @app.command("show")
 def show_manifest(
     index_name: str = typer.Option(DEFAULT_INDEX_NAME, "--index", "-i"),
-    index_root: Optional[str] = typer.Option(None, "--index-root", help="索引所在目录"),
+    index_root: str | None = typer.Option(None, "--index-root", help="索引所在目录"),
 ) -> None:
     ensure_sage_db()
     root = resolve_index_root(index_root)
@@ -1774,9 +1706,7 @@ def show_manifest(
     table.add_row("文档数量", str(manifest.num_documents))
     table.add_row("Chunk 数量", str(manifest.num_chunks))
     table.add_row("Embedding", json.dumps(manifest.embedding, ensure_ascii=False))
-    table.add_row(
-        "Chunk 配置", f"size={manifest.chunk_size}, overlap={manifest.chunk_overlap}"
-    )
+    table.add_row("Chunk 配置", f"size={manifest.chunk_size}, overlap={manifest.chunk_overlap}")
     console.print(table)
 
 

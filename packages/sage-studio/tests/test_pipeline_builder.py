@@ -3,6 +3,7 @@ Tests for PipelineBuilder - Visual Pipeline to SAGE Pipeline conversion
 """
 
 import pytest
+
 from sage.studio.models import (  # type: ignore[import-not-found]
     VisualConnection,
     VisualNode,
@@ -107,12 +108,8 @@ class TestPipelineBuilder:
 
     def test_topological_sort_simple(self):
         """测试简单的拓扑排序"""
-        node1 = VisualNode(
-            id="node1", type="retriever", label="retriever", config={}, position={}
-        )
-        node2 = VisualNode(
-            id="node2", type="generator", label="generator", config={}, position={}
-        )
+        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
+        node2 = VisualNode(id="node2", type="generator", label="generator", config={}, position={})
         edge = VisualConnection(
             id="edge1",
             source_node_id="node1",
@@ -142,18 +139,10 @@ class TestPipelineBuilder:
         # node1 -> node2 -> node4
         #       -> node3 -> node4
 
-        node1 = VisualNode(
-            id="node1", type="retriever", label="retriever", config={}, position={}
-        )
-        node2 = VisualNode(
-            id="node2", type="promptor", label="promptor", config={}, position={}
-        )
-        node3 = VisualNode(
-            id="node3", type="promptor", label="promptor", config={}, position={}
-        )
-        node4 = VisualNode(
-            id="node4", type="generator", label="generator", config={}, position={}
-        )
+        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
+        node2 = VisualNode(id="node2", type="promptor", label="promptor", config={}, position={})
+        node3 = VisualNode(id="node3", type="promptor", label="promptor", config={}, position={})
+        node4 = VisualNode(id="node4", type="generator", label="generator", config={}, position={})
 
         edges = [
             VisualConnection(
@@ -207,15 +196,9 @@ class TestPipelineBuilder:
         # 创建一个有循环的依赖图
         # node1 -> node2 -> node3 -> node1
 
-        node1 = VisualNode(
-            id="node1", type="retriever", label="retriever", config={}, position={}
-        )
-        node2 = VisualNode(
-            id="node2", type="promptor", label="promptor", config={}, position={}
-        )
-        node3 = VisualNode(
-            id="node3", type="generator", label="generator", config={}, position={}
-        )
+        node1 = VisualNode(id="node1", type="retriever", label="retriever", config={}, position={})
+        node2 = VisualNode(id="node2", type="promptor", label="promptor", config={}, position={})
+        node3 = VisualNode(id="node3", type="generator", label="generator", config={}, position={})
 
         edges = [
             VisualConnection(

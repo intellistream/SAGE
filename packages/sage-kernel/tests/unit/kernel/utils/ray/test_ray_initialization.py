@@ -6,6 +6,7 @@ import os
 import sys
 
 import pytest
+
 from sage.kernel.utils.ray.ray_utils import (
     RAY_AVAILABLE,
     ensure_ray_initialized,
@@ -54,9 +55,7 @@ class TestRayInitialization:
         @ray.remote
         def test_sage_import():
             try:
-                from sage.platform.queue import (  # noqa: F401
-                    RayQueueDescriptor,
-                )
+                from sage.platform.queue import RayQueueDescriptor  # noqa: F401
 
                 return True
             except ImportError as e:

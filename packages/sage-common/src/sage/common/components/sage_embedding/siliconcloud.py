@@ -1,13 +1,9 @@
 import base64
 import struct
-import sys
 
 import requests
 
-if sys.version_info < (3, 9):
-    pass
-else:
-    pass
+pass
 
 import aiohttp
 
@@ -33,7 +29,7 @@ async def siliconcloud_embedding(
         list[float]: The embedding vector
     """
     if api_key and not api_key.startswith("Bearer "):
-        api_key = "Bearer " + api_key
+        api_key = "Bearer " + api_key  # pragma: allowlist secret
 
     headers = {
         "Authorization": api_key,

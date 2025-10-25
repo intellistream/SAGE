@@ -60,7 +60,7 @@ def main():
             print("=" * 50)
 
     # 构建流处理管道
-    result = (
+    (
         env.from_source(SentenceSource, delay=1.0)  # 每秒产生一个句子
         # 数据清洗和预处理
         .map(lambda sentence: sentence.lower())  # 转小写

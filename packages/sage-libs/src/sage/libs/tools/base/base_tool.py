@@ -1,5 +1,5 @@
 # sage.lib/tools/base/base_tool.py
-from typing import Any, Dict
+from typing import Any
 
 
 class BaseTool:
@@ -7,9 +7,7 @@ class BaseTool:
     A base class for building tool classes that perform specific tasks, such as image processing or text detection.
     """
 
-    require_llm_engine = (
-        False  # Default is False, tools that need LLM should set this to True
-    )
+    require_llm_engine = False  # Default is False, tools that need LLM should set this to True
 
     def __init__(
         self,
@@ -77,7 +75,7 @@ class BaseTool:
         self.demo_commands = demo_commands
         self.user_metadata = user_metadata
 
-    def get_metadata(self) -> Dict[str, Any]:
+    def get_metadata(self) -> dict[str, Any]:
         """
         Returns the metadata for the tool.
 

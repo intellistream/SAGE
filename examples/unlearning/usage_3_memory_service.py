@@ -34,9 +34,7 @@ class DPMemoryService(BaseService):
     支持使用 DP 遗忘操作从 VDB 中安全删除数据。
     """
 
-    def __init__(
-        self, data_dir: Optional[str] = None, epsilon: float = 1.0, delta: float = 1e-5
-    ):
+    def __init__(self, data_dir: Optional[str] = None, epsilon: float = 1.0, delta: float = 1e-5):
         super().__init__()
 
         # 初始化内存管理器
@@ -57,9 +55,7 @@ class DPMemoryService(BaseService):
 
         self.logger.info(f"Initialized UnlearningEngine with ε={epsilon}, δ={delta}")
 
-    def create_collection(
-        self, collection_name: str, config: Optional[Dict] = None
-    ) -> bool:
+    def create_collection(self, collection_name: str, config: Optional[Dict] = None) -> bool:
         """创建 VDB collection"""
         try:
             if config is None:
@@ -216,10 +212,7 @@ class DPMemoryService(BaseService):
             all_ids = []
             if hasattr(index, "vector_store"):
                 for vid, vector in index.vector_store.items():
-                    if (
-                        vid
-                        not in self.unlearning_engine.privacy_accountant.get_remaining_budget()
-                    ):
+                    if vid not in self.unlearning_engine.privacy_accountant.get_remaining_budget():
                         all_vectors.append(vector)
                         all_ids.append(vid)
 
@@ -283,9 +276,7 @@ class DPMemoryService(BaseService):
                     "epsilon": remaining["epsilon_remaining"],
                     "delta": remaining["delta_remaining"],
                 },
-                "budget_utilization": status["accountant_summary"][
-                    "budget_utilization"
-                ],
+                "budget_utilization": status["accountant_summary"]["budget_utilization"],
             }
 
         except Exception as e:

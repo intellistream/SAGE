@@ -74,9 +74,7 @@ class ContextFileSource(SourceFunction):
         """初始化文件列表"""
         # 检查目录是否存在
         if not self.base_directory.exists():
-            self.logger.warning(
-                f"Template directory does not exist: {self.base_directory}"
-            )
+            self.logger.warning(f"Template directory does not exist: {self.base_directory}")
             self.template_files = []
             return
 
@@ -218,22 +216,16 @@ class ContextFileSource(SourceFunction):
 
             if template is not None:
                 self.loaded_count += 1
-                self.logger.debug(
-                    f"Loaded template {template.uuid} from {file_path.name}"
-                )
+                self.logger.debug(f"Loaded template {template.uuid} from {file_path.name}")
 
                 # 每加载10个模板记录一次统计
                 if self.loaded_count % 10 == 0:
-                    self.logger.info(
-                        f"ContextFileSource: {self.loaded_count} templates loaded"
-                    )
+                    self.logger.info(f"ContextFileSource: {self.loaded_count} templates loaded")
 
                 return template
 
             # 如果当前文件加载失败，继续尝试下一个文件
-            self.logger.debug(
-                f"Failed to load template from {file_path}, trying next file"
-            )
+            self.logger.debug(f"Failed to load template from {file_path}, trying next file")
 
         # 尝试次数用完，返回None
         self.logger.warning(f"Failed to load template after {max_attempts} attempts")
@@ -336,14 +328,10 @@ class TemplateIndexManager:
                 ]
 
             if has_response is not None:
-                templates = [
-                    t for t in templates if t.get("has_response") == has_response
-                ]
+                templates = [t for t in templates if t.get("has_response") == has_response]
 
             if min_chunks is not None:
-                templates = [
-                    t for t in templates if t.get("chunks_count", 0) >= min_chunks
-                ]
+                templates = [t for t in templates if t.get("chunks_count", 0) >= min_chunks]
 
             if time_after is not None:
                 templates = [t for t in templates if t.get("timestamp", 0) > time_after]
@@ -366,9 +354,7 @@ class TemplateIndexManager:
             stats = {
                 "total_templates": len(templates),
                 "with_response": sum(1 for t in templates if t.get("has_response")),
-                "without_response": sum(
-                    1 for t in templates if not t.get("has_response")
-                ),
+                "without_response": sum(1 for t in templates if not t.get("has_response")),
                 "avg_chunks": (
                     sum(t.get("chunks_count", 0) for t in templates) / len(templates)
                     if templates

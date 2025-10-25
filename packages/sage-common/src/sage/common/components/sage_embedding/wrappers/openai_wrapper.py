@@ -1,7 +1,7 @@
 """OpenAI embedding wrapper."""
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseEmbedding
 
@@ -64,8 +64,8 @@ class OpenAIEmbedding(BaseEmbedding):
     def __init__(
         self,
         model: str = "text-embedding-3-small",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         **kwargs: Any,
     ) -> None:
         """初始化 OpenAI Embedding
@@ -90,8 +90,8 @@ class OpenAIEmbedding(BaseEmbedding):
             raise RuntimeError(
                 "OpenAI embedding 需要 API Key。\n"
                 "解决方案:\n"
-                "  1. 设置环境变量: export OPENAI_API_KEY='your-key'\n"
-                "  2. 传递参数: OpenAIEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export OPENAI_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: OpenAIEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
                 "如果使用兼容 API（如阿里云 DashScope）:\n"
                 "  export OPENAI_API_KEY='your-dashscope-key'\n"
@@ -101,7 +101,7 @@ class OpenAIEmbedding(BaseEmbedding):
         # 推断或获取维度
         self._dim = self._infer_dimension()
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -130,7 +130,7 @@ class OpenAIEmbedding(BaseEmbedding):
                 f"提示: 检查 API Key 是否有效，网络连接是否正常"
             ) from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         使用 OpenAI API 的批量接口（input 参数支持列表）。
@@ -211,7 +211,7 @@ class OpenAIEmbedding(BaseEmbedding):
             return 1536
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

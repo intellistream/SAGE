@@ -20,7 +20,7 @@ Note: Pylance 类型检查说明：
 import os
 import sys
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -32,12 +32,13 @@ sys.path.insert(0, os.path.abspath(sage_kernel_src))
 sys.path.insert(0, os.path.abspath(sage_kernel_tests))
 
 try:
-    from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
-    from sage.platform.queue import RayQueueDescriptor
     from unit.utils.test_log_manager import (
         get_test_log_manager,
         setup_quiet_ray_logging,
     )
+
+    from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
+    from sage.platform.queue import RayQueueDescriptor
 
     # 设置安静的日志记录
     setup_quiet_ray_logging()
@@ -68,23 +69,19 @@ except ImportError:
 class PersistentQueueActor:
     """持久化队列Actor - 维护队列描述符的引用"""
 
-    def __init__(self, queue_desc_dict: Dict[str, Any], actor_name: str):
+    def __init__(self, queue_desc_dict: dict[str, Any], actor_name: str):
         """初始化Actor并建立队列连接"""
         self.actor_name = actor_name
 
         # 在Ray Actor中导入所需模块 - 直接导入而不设置路径
         try:
-            from sage.platform.queue import (
-                resolve_descriptor,
-            )
+            from sage.platform.queue import resolve_descriptor
 
             self.queue_desc = resolve_descriptor(queue_desc_dict)
             self.queue = self.queue_desc.queue_instance  # 获取实际的队列对象
             self.operations_count = 0
             self.last_operation_time = time.time()
-            print(
-                f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}"
-            )
+            print(f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}")
         except ImportError as e:
             # 如果导入失败，记录错误但继续初始化
             print(f"导入失败: {e}")
@@ -115,7 +112,7 @@ class PersistentQueueActor:
             "last_operation_time": self.last_operation_time,
         }
 
-    def put_items(self, items: List[str], delay_between_items: float = 0.0):
+    def put_items(self, items: list[str], delay_between_items: float = 0.0):
         """向队列放入多个项目"""
         if self.queue is None:
             return [f"put_error:{item}:Queue not initialized" for item in items]
@@ -143,7 +140,7 @@ class PersistentQueueActor:
             return ["get_error:Queue not initialized"]
 
         results = []
-        for i in range(max_items):
+        for _i in range(max_items):
             try:
                 item = self.queue.get(timeout=timeout_per_item)
                 results.append(f"get_success:{item}")
@@ -193,7 +190,7 @@ class PersistentQueueActor:
                         pass
                 completed_ops += 1
                 self.operations_count += 1
-            except Exception as e:
+            except Exception:
                 break
 
         end_time = time.time()
@@ -214,12 +211,10 @@ class QueueCoordinatorActor:
         self.managed_queues = {}
         self.coordination_log = []
 
-    def register_queue(self, queue_name: str, queue_desc_dict: Dict[str, Any]):
+    def register_queue(self, queue_name: str, queue_desc_dict: dict[str, Any]):
         """注册一个队列"""
         try:
-            from sage.platform.queue import (
-                resolve_descriptor,
-            )
+            from sage.platform.queue import resolve_descriptor
 
             queue_desc = resolve_descriptor(queue_desc_dict)
             self.managed_queues[queue_name] = {
@@ -233,9 +228,7 @@ class QueueCoordinatorActor:
             self.coordination_log.append(f"failed_register_queue:{queue_name}:{e}")
             return f"Queue {queue_name} registration failed: {e}"
 
-    def coordinate_batch_operation(
-        self, queue_name: str, operation: str, items: List[str]
-    ):
+    def coordinate_batch_operation(self, queue_name: str, operation: str, items: list[str]):
         """协调批量操作"""
         if queue_name not in self.managed_queues:
             return f"Queue {queue_name} not found"
@@ -258,7 +251,7 @@ class QueueCoordinatorActor:
                     results.append(f"error:{item}:{e}")
 
         elif operation == "get_batch":
-            for i in range(len(items)):  # items作为计数使用
+            for _i in range(len(items)):  # items作为计数使用
                 try:
                     item = queue.get(timeout=1.0)
                     results.append(f"success:{item}")
@@ -266,9 +259,7 @@ class QueueCoordinatorActor:
                     results.append(f"timeout:{e}")
                     break
 
-        self.coordination_log.append(
-            f"coordinated:{operation}:{queue_name}:{len(results)}"
-        )
+        self.coordination_log.append(f"coordinated:{operation}:{queue_name}:{len(results)}")
         return results
 
     def get_coordination_summary(self):
@@ -308,9 +299,7 @@ class TestRayQueueActorCommunication:
         ensure_ray_initialized()
 
         # 创建测试队列
-        self.test_queue = RayQueueDescriptor(
-            queue_id="test_ray_actor_comm", maxsize=1000
-        )
+        self.test_queue = RayQueueDescriptor(queue_id="test_ray_actor_comm", maxsize=1000)
         self.queue_dict = self.test_queue.to_dict()
 
     def teardown_method(self):
@@ -415,9 +404,7 @@ class TestRayQueueActorCommunication:
             consumer_futures = []
             expected_per_consumer = max(1, total_produced // num_consumers)
             for consumer in consumers:
-                future = consumer.get_items.remote(
-                    expected_per_consumer, timeout_per_item=1.0
-                )
+                future = consumer.get_items.remote(expected_per_consumer, timeout_per_item=1.0)
                 consumer_futures.append(future)
 
             # 等待消费完成，减少超时时间
@@ -453,17 +440,13 @@ class TestRayQueueActorCommunication:
         coordinator = QueueCoordinatorActor.remote()
 
         # 注册队列
-        register_result = ray.get(
-            coordinator.register_queue.remote("main_queue", self.queue_dict)
-        )
+        register_result = ray.get(coordinator.register_queue.remote("main_queue", self.queue_dict))
         print(f"队列注册结果: {register_result}")
 
         # 通过协调器进行批量写入
         items_to_write = ["coord_item1", "coord_item2", "coord_item3", "coord_item4"]
         batch_put_result = ray.get(
-            coordinator.coordinate_batch_operation.remote(
-                "main_queue", "put_batch", items_to_write
-            )
+            coordinator.coordinate_batch_operation.remote("main_queue", "put_batch", items_to_write)
         )
         print(f"批量写入结果: {len(batch_put_result)} 项目")
 
@@ -532,9 +515,7 @@ class TestRayQueueActorCommunication:
         # 并发执行操作，添加超时
         stress_futures = []
         for i, actor in enumerate(stress_actors):
-            future = actor.stress_test_operations.remote(
-                operations_per_actor
-            )  # 只传递操作数量
+            future = actor.stress_test_operations.remote(operations_per_actor)  # 只传递操作数量
             stress_futures.append(future)
 
         # 获取结果，设置较短超时避免死锁

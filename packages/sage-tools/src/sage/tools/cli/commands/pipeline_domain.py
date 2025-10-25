@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import textwrap
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, MutableMapping, Set, Tuple
 
 import yaml
+
 from sage.common.config.output_paths import get_sage_paths
 
 _BASE_GUIDE = textwrap.dedent(
@@ -35,7 +36,7 @@ _BASE_GUIDE = textwrap.dedent(
 @dataclass
 class _ExampleSummary:
     text: str
-    components: Mapping[str, Set[str]]
+    components: Mapping[str, set[str]]
 
 
 def _ensure_project_root() -> Path:
@@ -81,14 +82,14 @@ def _summarize_pipeline_file(path: Path) -> _ExampleSummary | None:
     description = str(pipeline_meta.get("description", ""))
     pipeline_type = str(pipeline_meta.get("type", "local"))
 
-    lines: List[str] = [
+    lines: list[str] = [
         f"Pipeline 示例: {name} ({path.name})",
         f"类型: {pipeline_type}",
     ]
     if description:
         lines.append(f"描述: {description}")
 
-    components: MutableMapping[str, Set[str]] = {
+    components: MutableMapping[str, set[str]] = {
         "sources": set(),
         "stages": set(),
         "sinks": set(),
@@ -102,9 +103,7 @@ def _summarize_pipeline_file(path: Path) -> _ExampleSummary | None:
         if source_class:
             components["sources"].add(source_class)
             summary = str(source.get("summary", ""))
-            lines.append(
-                f"Source -> {source_class}{' — ' + summary if summary else ''}"
-            )
+            lines.append(f"Source -> {source_class}{' — ' + summary if summary else ''}")
 
     stages = data.get("stages") or []
     if isinstance(stages, list) and stages:
@@ -183,15 +182,15 @@ def _format_component_catalog(components: Mapping[str, Iterable[str]]) -> str:
 
 
 @lru_cache(maxsize=32)
-def load_domain_contexts(limit: int = 4) -> Tuple[str, ...]:
+def load_domain_contexts(limit: int = 4) -> tuple[str, ...]:
     """Return contextual snippets describing SAGE pipelines for LLM prompting."""
 
     limit = max(0, int(limit))
-    contexts: List[str] = [_BASE_GUIDE]
+    contexts: list[str] = [_BASE_GUIDE]
 
     project_root = _ensure_project_root()
     example_dir = project_root / "examples" / "config"
-    component_map: Dict[str, Set[str]] = {
+    component_map: dict[str, set[str]] = {
         "sources": set(),
         "stages": set(),
         "sinks": set(),
@@ -200,7 +199,7 @@ def load_domain_contexts(limit: int = 4) -> Tuple[str, ...]:
     }
 
     if example_dir.exists():
-        summaries: List[_ExampleSummary] = []
+        summaries: list[_ExampleSummary] = []
         for path in sorted(example_dir.glob("*.yaml")):
             summary = _summarize_pipeline_file(path)
             if summary is None:
@@ -219,10 +218,10 @@ def load_domain_contexts(limit: int = 4) -> Tuple[str, ...]:
     return tuple(ctx for ctx in contexts if ctx.strip())
 
 
-def load_custom_contexts(paths: Iterable[Path]) -> Tuple[str, ...]:
+def load_custom_contexts(paths: Iterable[Path]) -> tuple[str, ...]:
     """Read additional context snippets from user-provided files."""
 
-    snippets: List[str] = []
+    snippets: list[str] = []
     for path in paths:
         try:
             text = path.read_text(encoding="utf-8")

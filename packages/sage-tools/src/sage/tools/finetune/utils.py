@@ -6,7 +6,6 @@ Finetune CLI - Utility Functions
 
 import os
 from pathlib import Path
-from typing import List
 
 from rich.console import Console
 from rich.panel import Panel
@@ -66,7 +65,7 @@ def show_install_instructions() -> None:
     console.print(
         Panel.fit(
             "[bold yellow]⚠️  微调依赖未安装[/bold yellow]\n\n"
-            f"微调功能需要安装 SAGE 微调依赖包\n\n"
+            "微调功能需要安装 SAGE 微调依赖包\n\n"
             "[bold cyan]推荐安装方式（从 SAGE 根目录）:[/bold cyan]\n"
             "[green]pip install -e packages/sage-libs[finetune][/green]\n\n"
             "这将安装以下依赖:\n"
@@ -88,8 +87,8 @@ def show_install_instructions() -> None:
 
 
 def collect_sage_code_files(
-    root_dir: Path, extensions: List[str] = None, exclude_dirs: List[str] = None
-) -> List[Path]:
+    root_dir: Path, extensions: list[str] = None, exclude_dirs: list[str] = None
+) -> list[Path]:
     """收集SAGE代码文件"""
     if extensions is None:
         extensions = [".py", ".yaml", ".yml", ".toml", ".md", ".rst"]
@@ -127,9 +126,7 @@ def collect_sage_code_files(
             dirs[:] = [
                 d
                 for d in dirs
-                if not any(
-                    d.startswith(ex.rstrip("*")) or d == ex for ex in exclude_dirs
-                )
+                if not any(d.startswith(ex.rstrip("*")) or d == ex for ex in exclude_dirs)
             ]
 
             for filename in filenames:

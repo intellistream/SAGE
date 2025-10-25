@@ -67,12 +67,12 @@ def example_basic_workflow():
         },
     )
 
-    print(f"\nOptimized workflow:")
+    print("\nOptimized workflow:")
     print(f"  Total cost: ${result.optimized_workflow.total_cost():.2f}")
     print(f"  Total latency: {result.optimized_workflow.total_latency():.2f}s")
     print(f"  Average quality: {result.optimized_workflow.average_quality():.2f}")
     print(f"\nMetrics: {result.metrics}")
-    print(f"\nOptimization steps:")
+    print("\nOptimization steps:")
     for step in result.steps:
         print(f"  - {step}")
 
@@ -139,7 +139,7 @@ def example_benchmarking():
 
     # Generate report
     report = evaluator.generate_report(results)
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"  Best cost reduction: {report['summary']['best_cost_optimizer']}")
     print(f"  Best latency reduction: {report['summary']['best_latency_optimizer']}")
     print(f"  Best quality improvement: {report['summary']['best_quality_optimizer']}")
@@ -191,9 +191,7 @@ def example_custom_optimizer():
                 steps.append(f"Removed {node_id} (cost={node.cost:.2f})")
 
             exec_time = time.time() - start
-            metrics = self.calculate_metrics(
-                workflow, optimized, exec_time, len(to_remove)
-            )
+            metrics = self.calculate_metrics(workflow, optimized, exec_time, len(to_remove))
 
             return OptimizationResult(
                 original_workflow=workflow,
@@ -211,7 +209,7 @@ def example_custom_optimizer():
 
     print(f"Optimized workflow cost: ${result.optimized_workflow.total_cost():.2f}")
     print(f"Metrics: {result.metrics}")
-    print(f"\nSteps taken:")
+    print("\nSteps taken:")
     for step in result.steps:
         print(f"  - {step}")
 

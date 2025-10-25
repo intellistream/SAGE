@@ -11,19 +11,18 @@ import shutil
 import tempfile
 import urllib.request
 import zipfile
+from collections.abc import Mapping, MutableSequence, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterable, List, Mapping, MutableSequence, Optional, Sequence, Tuple
 
 import yaml
+
 from sage.common.components.sage_embedding.factory import EmbeddingFactory
 from sage.common.config.output_paths import get_sage_paths
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 
-GITHUB_DOCS_ZIP_URL = (
-    "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
-)
+GITHUB_DOCS_ZIP_URL = "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
 DOCS_CACHE_SUBDIR = "pipeline-builder/docs"
 
 CHUNK_SIZE = 600
@@ -40,7 +39,7 @@ class KnowledgeChunk:
     source: str
     kind: str
     score: float = 0.0
-    vector: Optional[List[float]] = None
+    vector: list[float] | None = None
 
 
 def _should_download_docs() -> bool:
@@ -52,7 +51,7 @@ def _docs_cache_root() -> Path:
     return get_sage_paths().cache_dir / DOCS_CACHE_SUBDIR
 
 
-def _download_docs(cache_root: Path) -> Optional[Path]:
+def _download_docs(cache_root: Path) -> Path | None:
     if not _should_download_docs():
         return None
 
@@ -74,7 +73,7 @@ def _download_docs(cache_root: Path) -> Optional[Path]:
         if tmp_file.exists():
             tmp_file.unlink()
 
-    extracted_docs: Optional[Path] = None
+    extracted_docs: Path | None = None
     for candidate in cache_root.glob("**/docs_src"):
         if candidate.is_dir():
             extracted_docs = candidate
@@ -94,7 +93,7 @@ def _download_docs(cache_root: Path) -> Optional[Path]:
     return target
 
 
-def _resolve_docs_dir(project_root: Path, allow_download: bool) -> Optional[Path]:
+def _resolve_docs_dir(project_root: Path, allow_download: bool) -> Path | None:
     local_docs = project_root / "docs-public" / "docs_src"
     if local_docs.exists():
         return local_docs
@@ -119,12 +118,12 @@ def _normalize_whitespace(value: str) -> str:
 
 def _chunk_text(
     content: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP
-) -> List[str]:
+) -> list[str]:
     normalized = _normalize_whitespace(content)
     if not normalized:
         return []
 
-    chunks: List[str] = []
+    chunks: list[str] = []
     length = len(normalized)
     start = 0
     step = max(1, chunk_size - overlap)
@@ -149,7 +148,7 @@ class _HashingEmbedder:
     def __init__(self, dim: int = 384) -> None:
         self._dim = max(64, dim)
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         if not text:
             return [0.0] * self._dim
 
@@ -177,7 +176,7 @@ def _stable_hash(token: str) -> bytes:
 
 
 def _cosine_similarity(vec_a: Sequence[float], vec_b: Sequence[float]) -> float:
-    return float(sum(a * b for a, b in zip(vec_a, vec_b)))
+    return float(sum(a * b for a, b in zip(vec_a, vec_b, strict=False)))
 
 
 def _read_file(path: Path) -> str:
@@ -304,12 +303,12 @@ class PipelineKnowledgeBase:
 
     def __init__(
         self,
-        project_root: Optional[Path] = None,
+        project_root: Path | None = None,
         max_chunks: int = 2000,
         allow_download: bool = True,
         embedding_method: str = "hash",
-        embedding_model: Optional[str] = None,
-        embedding_params: Optional[Mapping[str, object]] = None,
+        embedding_model: str | None = None,
+        embedding_params: Mapping[str, object] | None = None,
     ) -> None:
         root = project_root or getattr(get_sage_paths(), "project_root", None)
         self.project_root = Path(root) if root else Path.cwd()
@@ -323,25 +322,21 @@ class PipelineKnowledgeBase:
             self._embedder = EmbeddingFactory.create(embedding_method, **params)
         except Exception as exc:
             # Fallback to hash embedding if the requested method fails
-            print(
-                f"⚠️  无法创建 {embedding_method} embedding，使用 hash 作为后备: {exc}"
-            )
+            print(f"⚠️  无法创建 {embedding_method} embedding，使用 hash 作为后备: {exc}")
             self._embedder = EmbeddingFactory.create("hash", dimension=384)
 
-        all_chunks = _discover_documents(
-            self.project_root, allow_download=allow_download
-        )
+        all_chunks = _discover_documents(self.project_root, allow_download=allow_download)
         if max_chunks and len(all_chunks) > max_chunks:
             all_chunks = all_chunks[:max_chunks]
         for chunk in all_chunks:
             chunk.vector = self._embedder.embed(chunk.text)
         self._chunks = list(all_chunks)
 
-    def search(self, query: str, top_k: int = TOP_K_DEFAULT) -> List[KnowledgeChunk]:
+    def search(self, query: str, top_k: int = TOP_K_DEFAULT) -> list[KnowledgeChunk]:
         if not query.strip():
             return []
         vector = self._embedder.embed(query)
-        scored: List[KnowledgeChunk] = []
+        scored: list[KnowledgeChunk] = []
         for chunk in self._chunks:
             if chunk.vector is None:
                 continue
@@ -362,8 +357,8 @@ class PipelineKnowledgeBase:
 def get_default_knowledge_base(
     max_chunks: int = 2000,
     allow_download: bool = True,
-    embedding_method: Optional[str] = None,
-    embedding_model: Optional[str] = None,
+    embedding_method: str | None = None,
+    embedding_model: str | None = None,
 ) -> PipelineKnowledgeBase:
     """Get or create the default knowledge base.
 
@@ -386,10 +381,10 @@ def get_default_knowledge_base(
 
 def build_query_payload(
     requirements: Mapping[str, object],
-    previous_plan: Optional[Mapping[str, object]] = None,
-    feedback: Optional[str] = None,
+    previous_plan: Mapping[str, object] | None = None,
+    feedback: str | None = None,
 ) -> str:
-    hints: List[str] = [json.dumps(requirements, ensure_ascii=False)]
+    hints: list[str] = [json.dumps(requirements, ensure_ascii=False)]
     if previous_plan:
         pipeline = previous_plan.get("pipeline") or {}
         if pipeline:

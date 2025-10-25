@@ -9,14 +9,16 @@ from __future__ import annotations
 
 import copy
 import tempfile
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, ExitStack
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, Sequence
+from typing import Any
 
-from sage.tools.cli.main import app as sage_app
 from typer import Typer
 from typer.testing import CliRunner
+
+from sage.tools.cli.main import app as sage_app
 
 # Type alias for factory functions that return context managers (e.g. mocks).
 PatchFactory = Callable[[], AbstractContextManager[Any]]
@@ -31,9 +33,9 @@ class CLITestCase:
     args: Sequence[str]
     app: Typer = sage_app
     patch_factories: Sequence[PatchFactory] = field(default_factory=tuple)
-    env: Optional[dict[str, str]] = None
+    env: dict[str, str] | None = None
     expected_exit_code: int = 0
-    check: Optional[CheckCallable] = None
+    check: CheckCallable | None = None
 
 
 @dataclass
@@ -55,21 +57,21 @@ class CLITestResult:
 class CLIRunSummary:
     """Summary returned by :func:`run_cases` or the CLI test runner."""
 
-    results: List[CLITestResult]
+    results: list[CLITestResult]
 
     @property
     def success(self) -> bool:
         return all(result.ok for result in self.results)
 
     @property
-    def failures(self) -> List[CLITestResult]:
+    def failures(self) -> list[CLITestResult]:
         return [result for result in self.results if not result.ok]
 
 
 class FakeConfigManager:
     """In-memory drop-in replacement for :class:`ConfigManager`."""
 
-    def __init__(self, config: Optional[dict] = None):
+    def __init__(self, config: dict | None = None):
         self._temp_dir = Path(tempfile.mkdtemp(prefix="sage_cli_config_"))
         self.config_path = self._temp_dir / "config.yaml"
         self._config = copy.deepcopy(config or default_config())
@@ -100,7 +102,7 @@ class FakeConfigManager:
     def get_remote_config(self) -> dict:
         return copy.deepcopy(self._config.get("remote", {}))
 
-    def get_workers_ssh_hosts(self) -> List[tuple[str, int]]:
+    def get_workers_ssh_hosts(self) -> list[tuple[str, int]]:
         hosts = self._config.get("workers_ssh_hosts", [])
         if isinstance(hosts, list):
             return [(item["host"], item.get("port", 22)) for item in hosts]
@@ -118,9 +120,7 @@ class FakeConfigManager:
         hosts = self._config.setdefault("workers_ssh_hosts", [])
         original_len = len(hosts)
         hosts[:] = [
-            item
-            for item in hosts
-            if not (item["host"] == host and item.get("port", 22) == port)
+            item for item in hosts if not (item["host"] == host and item.get("port", 22) == port)
         ]
         return len(hosts) < original_len
 
@@ -207,7 +207,7 @@ class FakeCompletedProcess:
 class DummyProcess:
     """A lightweight object emulating a running process for CLI tests."""
 
-    def __init__(self, pid: int = 1234, cmd: Optional[List[str]] = None):
+    def __init__(self, pid: int = 1234, cmd: list[str] | None = None):
         self.pid = pid
         self._cmd = cmd or ["python", "-m", "sage"]
 
@@ -218,7 +218,7 @@ class DummyProcess:
     def kill(self):
         return None
 
-    def wait(self, timeout: Optional[int] = None):
+    def wait(self, timeout: int | None = None):
         return 0
 
     def cpu_percent(self):

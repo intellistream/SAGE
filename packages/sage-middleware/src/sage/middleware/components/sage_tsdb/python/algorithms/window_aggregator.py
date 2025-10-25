@@ -7,7 +7,7 @@ including tumbling, sliding, and session windows.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
@@ -29,8 +29,8 @@ class WindowConfig:
 
     window_type: WindowType
     window_size: int  # milliseconds
-    slide_interval: Optional[int] = None  # for sliding windows (ms)
-    session_gap: Optional[int] = None  # for session windows (ms)
+    slide_interval: int | None = None  # for sliding windows (ms)
+    session_gap: int | None = None  # for session windows (ms)
     aggregation: AggregationType = AggregationType.AVG
 
 
@@ -49,7 +49,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
     - Support for late data handling
     """
 
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] = None):
         """
         Initialize window aggregator.
 
@@ -76,14 +76,14 @@ class WindowAggregator(TimeSeriesAlgorithm):
             self.aggregation = agg_str
 
         # State for incremental processing
-        self.windows: Dict[int, List[TimeSeriesData]] = {}
+        self.windows: dict[int, list[TimeSeriesData]] = {}
         self.stats = {
             "windows_created": 0,
             "windows_completed": 0,
             "data_points_processed": 0,
         }
 
-    def process(self, data: List[TimeSeriesData], **kwargs) -> List[TimeSeriesData]:
+    def process(self, data: list[TimeSeriesData], **kwargs) -> list[TimeSeriesData]:
         """
         Process time series data with windowing.
 
@@ -110,7 +110,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
 
         return []
 
-    def _tumbling_window(self, data: List[TimeSeriesData]) -> List[TimeSeriesData]:
+    def _tumbling_window(self, data: list[TimeSeriesData]) -> list[TimeSeriesData]:
         """Process with tumbling windows"""
         if not data:
             return []
@@ -149,7 +149,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
         self.stats["data_points_processed"] += len(data)
         return results
 
-    def _sliding_window(self, data: List[TimeSeriesData]) -> List[TimeSeriesData]:
+    def _sliding_window(self, data: list[TimeSeriesData]) -> list[TimeSeriesData]:
         """Process with sliding windows"""
         if not data:
             return []
@@ -167,9 +167,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
             window_end = window_start + self.window_size
 
             # Get data points in this window
-            window_data = [
-                point for point in data if window_start <= point.timestamp < window_end
-            ]
+            window_data = [point for point in data if window_start <= point.timestamp < window_end]
 
             if window_data:
                 agg_point = self._aggregate_window(window_data, window_start)
@@ -183,7 +181,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
         self.stats["data_points_processed"] += len(data)
         return results
 
-    def _session_window(self, data: List[TimeSeriesData]) -> List[TimeSeriesData]:
+    def _session_window(self, data: list[TimeSeriesData]) -> list[TimeSeriesData]:
         """Process with session windows"""
         if not data:
             return []
@@ -229,7 +227,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
         return self._align_to_window(timestamp)
 
     def _aggregate_window(
-        self, data: List[TimeSeriesData], window_timestamp: int
+        self, data: list[TimeSeriesData], window_timestamp: int
     ) -> TimeSeriesData:
         """Aggregate data in a window"""
         if not data:
@@ -287,7 +285,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
             "data_points_processed": 0,
         }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get aggregator statistics"""
         return {
             **self.stats,

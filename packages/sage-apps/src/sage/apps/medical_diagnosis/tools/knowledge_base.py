@@ -3,10 +3,7 @@
 负责医学知识和病例的检索
 """
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-import numpy as np
+from typing import Any
 
 
 class MedicalKnowledgeBase:
@@ -19,7 +16,7 @@ class MedicalKnowledgeBase:
     3. 多模态检索（文本+影像）
     """
 
-    def __init__(self, config: Dict):
+    def __init__(self, config: dict):
         """
         初始化知识库
 
@@ -34,7 +31,7 @@ class MedicalKnowledgeBase:
 
     def _setup_services(self):
         """设置服务"""
-        print(f"   Setting up knowledge base services...")
+        print("   Setting up knowledge base services...")
 
         # TODO: 集成 SAGE EmbeddingService 和 SageDB
         # 参见跟踪问题: https://github.com/your-org/your-repo/issues/123
@@ -55,7 +52,7 @@ class MedicalKnowledgeBase:
         self.knowledge_base = self._get_default_knowledge()
         self.case_database = []
 
-    def _get_default_knowledge(self) -> List[Dict[str, str]]:
+    def _get_default_knowledge(self) -> list[dict[str, str]]:
         """获取默认医学知识"""
         return [
             {
@@ -89,8 +86,8 @@ class MedicalKnowledgeBase:
         ]
 
     def retrieve_similar_cases(
-        self, query: str, image_features: Dict[str, Any], top_k: int = 5
-    ) -> List[Dict[str, Any]]:
+        self, query: str, image_features: dict[str, Any], top_k: int = 5
+    ) -> list[dict[str, Any]]:
         """
         检索相似病例
 
@@ -115,7 +112,7 @@ class MedicalKnowledgeBase:
 
         return []
 
-    def retrieve_knowledge(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+    def retrieve_knowledge(self, query: str, top_k: int = 3) -> list[dict[str, Any]]:
         """
         检索医学知识
 
@@ -135,7 +132,7 @@ class MedicalKnowledgeBase:
 
         return results[:top_k]
 
-    def _get_mock_cases(self) -> List[Dict[str, Any]]:
+    def _get_mock_cases(self) -> list[dict[str, Any]]:
         """获取模拟病例"""
         return [
             {
@@ -190,7 +187,7 @@ class MedicalKnowledgeBase:
             },
         ]
 
-    def add_case(self, case_data: Dict[str, Any]):
+    def add_case(self, case_data: dict[str, Any]):
         """添加新病例到知识库"""
         # TODO: 实现病例添加
         # Issue URL: https://github.com/intellistream/SAGE/issues/903
@@ -199,7 +196,7 @@ class MedicalKnowledgeBase:
         # 3. 存入向量数据库
         self.case_database.append(case_data)
 
-    def update_knowledge(self, knowledge_data: Dict[str, Any]):
+    def update_knowledge(self, knowledge_data: dict[str, Any]):
         """更新医学知识"""
         # TODO: 实现知识更新
         # Issue URL: https://github.com/intellistream/SAGE/issues/902
@@ -208,19 +205,13 @@ class MedicalKnowledgeBase:
 
 if __name__ == "__main__":
     # 测试
-    config = {
-        "services": {"vector_db": {"collection_name": "lumbar_cases", "top_k": 5}}
-    }
+    config = {"services": {"vector_db": {"collection_name": "lumbar_cases", "top_k": 5}}}
 
     kb = MedicalKnowledgeBase(config)
 
     # 测试检索
-    cases = kb.retrieve_similar_cases(
-        query="腰痛伴下肢麻木", image_features={}, top_k=3
-    )
+    cases = kb.retrieve_similar_cases(query="腰痛伴下肢麻木", image_features={}, top_k=3)
 
     print(f"检索到 {len(cases)} 个相似病例:")
     for case in cases:
-        print(
-            f"  - {case['case_id']}: {case['diagnosis']} (相似度: {case['similarity_score']})"
-        )
+        print(f"  - {case['case_id']}: {case['diagnosis']} (相似度: {case['similarity_score']})")

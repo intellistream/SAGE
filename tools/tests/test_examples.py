@@ -34,9 +34,7 @@ def find_project_root() -> Path:
 
         # 添加sage-common到路径
         current_dir = Path(__file__).parent
-        sage_common_path = (
-            current_dir.parent.parent / "packages" / "sage-common" / "src"
-        )
+        sage_common_path = current_dir.parent.parent / "packages" / "sage-common" / "src"
         if sage_common_path.exists():
             sys.path.insert(0, str(sage_common_path))
 
@@ -246,21 +244,16 @@ class ExampleAnalyzer:
         """估算运行时间"""
         # 检查是否有明显的长时间运行指标
         if any(
-            keyword in content
-            for keyword in ["time.sleep", "train", "fit", "epochs", "while True"]
+            keyword in content for keyword in ["time.sleep", "train", "fit", "epochs", "while True"]
         ):
             return "slow"
         # 检查是否是简单的教程示例（优先级高）
         elif any(
-            keyword in content
-            for keyword in ["Hello, World!", "HelloBatch", "simple", "basic"]
+            keyword in content for keyword in ["Hello, World!", "HelloBatch", "simple", "basic"]
         ):
             return "quick"
         # 检查网络请求等中等时间指标
-        elif any(
-            keyword in content
-            for keyword in ["requests.", "http.", "download", "ray.init"]
-        ):
+        elif any(keyword in content for keyword in ["requests.", "http.", "download", "ray.init"]):
             return "medium"
         # 文件大小作为参考
         elif len(content) < 3000:  # 小于3KB的文件通常是快速示例
@@ -270,7 +263,7 @@ class ExampleAnalyzer:
 
     def _extract_dependencies(self, imports: List[str]) -> List[str]:
         """提取外部依赖"""
-        sage_modules = {imp for imp in imports if imp.startswith("sage")}
+        {imp for imp in imports if imp.startswith("sage")}
         external_deps = []
 
         dependency_map = {
@@ -308,23 +301,44 @@ class ExampleAnalyzer:
         # @test:gpu - 需要GPU
         # @test:timeout=120 - 自定义超时时间
         # @test:category=batch - 自定义类别
+        # @test_skip_ci: true - CI环境中跳过
+        # @test_category: apps - 测试分类
         """
         import re
 
-        # 查找所有 @test: 标记，支持注释和文档字符串中的标记
+        tags = []
+
+        # Pattern 1: @test:tag 或 @test:tag=value 格式（旧格式）
         # 匹配 # @test: 或 @test: (可能在文档字符串中)
         # 支持连字符和下划线，如 allow-demo, require-api
-        pattern = r"(?:#\s*)?@test:([\w-]+)(?:=([\w-]+))?"
-        matches = re.findall(pattern, content, re.IGNORECASE)
+        pattern1 = r"(?:#\s*)?@test:([\w-]+)(?:=([\w-]+))?"
+        matches1 = re.findall(pattern1, content, re.IGNORECASE)
 
-        tags = []
-        for match in matches:
+        for match in matches1:
             if len(match) == 2 and match[1]:
                 # 带值的标记，如 timeout=120
                 tags.append(f"{match[0]}={match[1]}")
             else:
                 # 简单标记，如 skip
                 tags.append(match[0])
+
+        # Pattern 2: @test_tag: value 格式（新格式）
+        # 匹配类似 @test_skip_ci: true 或 @test_category: apps
+        pattern2 = r"@test_([\w-]+):\s*([\w\[\],\s-]+)"
+        matches2 = re.findall(pattern2, content, re.IGNORECASE)
+
+        for match in matches2:
+            tag_name = match[0]
+            tag_value = match[1].strip()
+            # 简化标记名（移除值为true的情况，直接使用标记名）
+            if tag_value.lower() == "true":
+                tags.append(tag_name)
+            elif tag_value.lower() == "false":
+                # false值不添加标记
+                continue
+            else:
+                # 其他值保留为 tag=value 格式
+                tags.append(f"{tag_name}={tag_value}")
 
         return list(set(tags))
 
@@ -487,10 +501,7 @@ class ExampleRunner:
                     pass
 
         # 从类别策略中获取超时
-        category = (
-            self._get_category_from_tags(example_info.test_tags)
-            or example_info.category
-        )
+        category = self._get_category_from_tags(example_info.test_tags) or example_info.category
 
         # 导入策略类
         try:
@@ -585,13 +596,9 @@ class ExampleRunner:
 
         # 对依赖已编译扩展的示例（如 sage_flow），避免通过源码空目录覆盖已安装的二进制模块
         is_sage_flow_example = "sage_flow" in example_info.file_path or any(
-            imp.startswith("sage.middleware.components.sage_flow")
-            for imp in example_info.imports
+            imp.startswith("sage.middleware.components.sage_flow") for imp in example_info.imports
         )
-        if (
-            is_sage_flow_example
-            and env.get("SAGE_EXAMPLES_USE_INSTALLED_MIDDLEWARE", "1") != "0"
-        ):
+        if is_sage_flow_example and env.get("SAGE_EXAMPLES_USE_INSTALLED_MIDDLEWARE", "1") != "0":
             # 去掉 middleware/src，让 Python 优先使用 site-packages 中已安装的模块
             mw_src = str(self.project_root / "packages" / "sage-middleware" / "src")
             sage_paths = [p for p in sage_paths_all if p != mw_src]
@@ -750,9 +757,7 @@ class ExampleTestSuite:
 
         self.results = []
         for i, example in enumerate(filtered_examples, 1):
-            console.print(
-                f"[{i}/{len(filtered_examples)}] 测试 {Path(example.file_path).name}..."
-            )
+            console.print(f"[{i}/{len(filtered_examples)}] 测试 {Path(example.file_path).name}...")
 
             result = self.runner.run_example(example)
             self.results.append(result)
@@ -807,9 +812,7 @@ app = typer.Typer(help="SAGE Examples 测试工具")
 
 @app.command("test")
 def run_tests_cmd(
-    categories: Optional[List[str]] = typer.Option(
-        None, "--category", "-c", help="指定测试类别"
-    ),
+    categories: Optional[List[str]] = typer.Option(None, "--category", "-c", help="指定测试类别"),
     quick_only: bool = typer.Option(False, "--quick", help="只运行快速测试"),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="结果输出文件"),
     timeout: int = typer.Option(60, "--timeout", "-t", help="单个测试超时时间(秒)"),
@@ -866,9 +869,7 @@ def analyze():
         categories[example.category].append(example)
 
     for category, cat_examples in categories.items():
-        console.print(
-            f"📁 [bold cyan]{category}[/bold cyan] ({len(cat_examples)} 个文件)"
-        )
+        console.print(f"📁 [bold cyan]{category}[/bold cyan] ({len(cat_examples)} 个文件)")
         for example in cat_examples:
             deps = ", ".join(example.dependencies) if example.dependencies else "无"
             console.print(

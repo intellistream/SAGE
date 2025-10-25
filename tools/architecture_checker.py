@@ -20,10 +20,9 @@ SAGE Architecture Compliance Checker
 import ast
 import re
 import sys
-from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
 # ============================================================================
 # 架构定义
@@ -316,9 +315,7 @@ class ArchitectureChecker:
             return False
 
         # 检查 __init__.py 是否存在
-        init_file = (
-            package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
-        )
+        init_file = package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
         if not init_file.exists():
             self.warnings.append(
                 ArchitectureViolation(
@@ -326,7 +323,7 @@ class ArchitectureChecker:
                     severity="WARNING",
                     file=init_file,
                     line=0,
-                    message=f"缺少 __init__.py，可能影响包导入",
+                    message="缺少 __init__.py，可能影响包导入",
                 )
             )
 
@@ -335,9 +332,7 @@ class ArchitectureChecker:
     def check_layer_marker(self, package_name: str) -> bool:
         """检查包是否包含 Layer 标记"""
         package_path = self.root_dir / PACKAGE_PATHS[package_name]
-        init_file = (
-            package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
-        )
+        init_file = package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
 
         if not init_file.exists():
             return False
@@ -355,7 +350,7 @@ class ArchitectureChecker:
                         severity="WARNING",
                         file=init_file,
                         line=0,
-                        message=f"缺少 __layer__ 标记",
+                        message="缺少 __layer__ 标记",
                         suggestion=f"在 __init__.py 中添加: __layer__ = '{expected_layer}'",
                     )
                 )
@@ -435,9 +430,7 @@ class ArchitectureChecker:
             if not self.check_layer_marker(package_name):
                 stats["missing_markers"] += 1
 
-        stats["internal_imports"] = len(
-            [v for v in self.warnings if v.type == "INTERNAL_IMPORT"]
-        )
+        stats["internal_imports"] = len([v for v in self.warnings if v.type == "INTERNAL_IMPORT"])
 
         # 生成结果
         result = CheckResult(

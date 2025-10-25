@@ -4,9 +4,9 @@ import queue
 import threading
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
+
 from sage.middleware.components.sage_flow.python.sage_flow import (
     SimpleStreamSource,
     StreamEnvironment,
@@ -30,7 +30,7 @@ class SageFlowService:
     def __init__(self, dim: int = 4, dtype: str = "Float32") -> None:
         self.dim = dim
         self.dtype = dtype
-        self._q: "queue.Queue[_Record]" = queue.Queue()
+        self._q: queue.Queue[_Record] = queue.Queue()
         self._env = StreamEnvironment()
         self._source = SimpleStreamSource("sage_flow_service_source")
         self._lock = threading.Lock()

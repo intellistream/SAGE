@@ -6,10 +6,6 @@ This file demonstrates how to use the SAGE machine unlearning algorithms.
 Layer: L3 (Core - Algorithm Library)
 """
 
-from typing import Any, Dict, List
-
-import numpy as np
-
 
 def example_basic_unlearning():
     """

@@ -71,7 +71,7 @@ def main():
     )
 
     # 对连接的流进行统一处理
-    final_result = (
+    (
         connected_streams.map(lambda data: f"Processed: {data[0]} -> {data[1]}")
         .print("🎯 Final Result")
         .sink(StatsSink, name="FinalSink")

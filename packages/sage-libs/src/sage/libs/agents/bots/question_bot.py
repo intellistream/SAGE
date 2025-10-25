@@ -5,7 +5,7 @@ QuestionBot - 问题生成Bot（占位实现）
 实际实现需要根据具体需求设计。
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class QuestionBot:
@@ -15,9 +15,7 @@ class QuestionBot:
     这是一个占位实现。实际使用时需要实现具体的问题生成逻辑。
     """
 
-    def __init__(
-        self, config: Optional[Dict[str, Any]] = None, ctx: Optional[Any] = None
-    ):
+    def __init__(self, config: dict[str, Any] | None = None, ctx: Any | None = None):
         """
         初始化QuestionBot
 

@@ -10,11 +10,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from example_strategies import (
-    ExampleEnvironmentManager,
-    ExampleTestFilters,
-    ExampleTestStrategies,
-)
+from example_strategies import ExampleEnvironmentManager, ExampleTestFilters, ExampleTestStrategies
 from sage.tools.dev.issues.tests import IssuesTestSuite
 from test_examples import ExampleAnalyzer, ExampleTestSuite
 
@@ -53,9 +49,7 @@ class TestExamplesIntegration:
         # 检查是否有不同类别的示例
         categories = {example.category for example in examples}
         expected_categories = {"tutorials", "apps"}
-        assert expected_categories.issubset(
-            categories
-        ), f"应该包含基本类别: {expected_categories}"
+        assert expected_categories.issubset(categories), f"应该包含基本类别: {expected_categories}"
 
     @pytest.mark.quick_examples
     @pytest.mark.parametrize("category", ["tutorials", "apps"])
@@ -93,9 +87,7 @@ class TestExamplesIntegration:
         # 运行 hello_world 示例
         for example in hello_world_examples:
             result = example_suite.runner.run_example(example)
-            assert (
-                result.status == "passed"
-            ), f"hello_world 示例应该运行成功: {result.error}"
+            assert result.status == "passed", f"hello_world 示例应该运行成功: {result.error}"
 
     @pytest.mark.quick_examples
     def test_example_categorization(self, analyzer):
@@ -127,9 +119,7 @@ class TestExamplesIntegration:
             sage_imports = [imp for imp in example.imports if imp.startswith("sage")]
             if sage_imports:
                 # 如果有SAGE导入，文件应该被识别为有主函数
-                assert (
-                    example.has_main or len(sage_imports) > 0
-                ), "有SAGE导入的文件应该有可执行内容"
+                assert example.has_main or len(sage_imports) > 0, "有SAGE导入的文件应该有可执行内容"
 
     def test_environment_setup(self, env_manager):
         """测试环境设置功能"""
@@ -156,7 +146,7 @@ class TestExamplesIntegration:
 
         # 找到一些真实的示例用于测试
         hello_world_examples = [e for e in examples if "hello_world" in e.file_path]
-        rag_examples = [e for e in examples if e.category == "rag"]
+        [e for e in examples if e.category == "rag"]
 
         # 测试 hello_world 示例不应该被跳过
         if hello_world_examples:
@@ -174,18 +164,14 @@ class TestExamplesIntegration:
         ]
 
         for file_path, category, should_skip in test_cases:
-            skip, reason = ExampleTestFilters.should_skip_file(
-                file_path, category, None
-            )
+            skip, reason = ExampleTestFilters.should_skip_file(file_path, category, None)
             if should_skip:
                 # 这些文件不存在，应该被跳过
                 assert skip, f"文件 {file_path} 应该被跳过: {reason}"
 
     @pytest.mark.integration
     @pytest.mark.skipif(
-        not any(
-            os.getenv(var) for var in ["GITHUB_TOKEN", "GIT_TOKEN", "SAGE_REPO_TOKEN"]
-        ),
+        not any(os.getenv(var) for var in ["GITHUB_TOKEN", "GIT_TOKEN", "SAGE_REPO_TOKEN"]),
         reason="需要 GitHub token (GITHUB_TOKEN, GIT_TOKEN 或 SAGE_REPO_TOKEN) 才能运行此测试",
     )
     def test_examples_integration_with_issues_manager(self):
@@ -229,9 +215,7 @@ class TestExamplesIntegration:
 
                 if not issues_suite.manager.team_info:
                     # 检查文件是否生成
-                    team_config_path = (
-                        issues_suite.manager.metadata_dir / "team_config.py"
-                    )
+                    team_config_path = issues_suite.manager.metadata_dir / "team_config.py"
                     if team_config_path.exists():
                         print(f"⚠️ team_config.py 存在但加载失败: {team_config_path}")
                         # 读取文件内容查看
@@ -254,7 +238,7 @@ class TestExamplesIntegration:
                     f"✅ 团队信息已存在 ({len(issues_suite.manager.team_info.get('all_usernames', []))} 位成员)"
                 )
 
-        except Exception as e:
+        except Exception:
             import traceback
 
             pytest.fail(f"IssuesTestSuite初始化失败:\n{traceback.format_exc()}")

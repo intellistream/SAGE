@@ -8,6 +8,7 @@ TPS calculation, and latency percentile computation.
 import time
 
 import pytest
+
 from sage.kernel.runtime.monitoring.metrics_collector import MetricsCollector
 
 
@@ -74,9 +75,7 @@ class TestMetricsCollector:
         collector = MetricsCollector(name="test_task")
 
         # 记录不同类型的错误
-        for i, error_type in enumerate(
-            ["ValueError", "TypeError", "ValueError", "NetworkError"]
-        ):
+        for i, error_type in enumerate(["ValueError", "TypeError", "ValueError", "NetworkError"]):
             packet_id = f"packet_{i:03d}"
             collector.record_packet_start(packet_id)
             collector.record_packet_end(packet_id, success=False, error_type=error_type)

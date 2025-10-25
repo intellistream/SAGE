@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
@@ -14,11 +14,11 @@ import numpy as np
 class ImageFeatures:
     """影像特征"""
 
-    vertebrae: List[Dict[str, Any]]  # 椎体信息
-    discs: List[Dict[str, Any]]  # 椎间盘信息
-    abnormalities: List[Dict[str, Any]]  # 异常发现
+    vertebrae: list[dict[str, Any]]  # 椎体信息
+    discs: list[dict[str, Any]]  # 椎间盘信息
+    abnormalities: list[dict[str, Any]]  # 异常发现
     image_quality: float  # 影像质量评分
-    image_embedding: Optional[np.ndarray] = None  # 影像嵌入向量
+    image_embedding: np.ndarray | None = None  # 影像嵌入向量
 
 
 class ImageAnalyzer:
@@ -32,7 +32,7 @@ class ImageAnalyzer:
     4. 影像特征提取和向量化
     """
 
-    def __init__(self, config: Dict):
+    def __init__(self, config: dict):
         """
         初始化影像分析器
 
@@ -56,7 +56,7 @@ class ImageAnalyzer:
 
         self.vision_model = "placeholder"  # 实际应该加载模型
 
-    def analyze(self, image_path: str) -> Dict[str, Any]:
+    def analyze(self, image_path: str) -> dict[str, Any]:
         """
         分析MRI影像
 
@@ -119,7 +119,7 @@ class ImageAnalyzer:
         # Issue URL: https://github.com/intellistream/SAGE/issues/897
         return 0.85
 
-    def _segment_vertebrae(self, image) -> List[Dict[str, Any]]:
+    def _segment_vertebrae(self, image) -> list[dict[str, Any]]:
         """分割椎体"""
         # TODO: 使用分割模型识别 L1-L5 椎体
         # Issue URL: https://github.com/intellistream/SAGE/issues/896
@@ -139,7 +139,7 @@ class ImageAnalyzer:
             for i, name in enumerate(vertebrae_names)
         ]
 
-    def _segment_discs(self, image) -> List[Dict[str, Any]]:
+    def _segment_discs(self, image) -> list[dict[str, Any]]:
         """分割椎间盘"""
         # TODO: 使用分割模型识别椎间盘
         # Issue URL: https://github.com/intellistream/SAGE/issues/895
@@ -160,8 +160,8 @@ class ImageAnalyzer:
         ]
 
     def _detect_abnormalities(
-        self, image, vertebrae: List[Dict], discs: List[Dict]
-    ) -> List[Dict[str, Any]]:
+        self, image, vertebrae: list[dict], discs: list[dict]
+    ) -> list[dict[str, Any]]:
         """检测异常"""
         abnormalities = []
 
@@ -184,9 +184,7 @@ class ImageAnalyzer:
                     {
                         "type": "disc_degeneration",
                         "location": disc["level"],
-                        "severity": (
-                            "mild" if disc["features"]["height"] > 5.0 else "moderate"
-                        ),
+                        "severity": ("mild" if disc["features"]["height"] > 5.0 else "moderate"),
                         "description": f"{disc['level']} 椎间盘退行性变",
                     }
                 )
@@ -205,7 +203,7 @@ class ImageAnalyzer:
 
         return abnormalities
 
-    def _extract_features(self, image) -> Optional[np.ndarray]:
+    def _extract_features(self, image) -> np.ndarray | None:
         """提取影像特征向量"""
         # TODO: 使用预训练模型提取特征
         # Issue URL: https://github.com/intellistream/SAGE/issues/894
@@ -216,12 +214,11 @@ class ImageAnalyzer:
             return np.random.randn(768).astype(np.float32)
         return None
 
-    def _create_mock_analysis(self) -> Dict[str, Any]:
+    def _create_mock_analysis(self) -> dict[str, Any]:
         """创建模拟分析结果（用于演示）"""
         return {
             "vertebrae": [
-                {"name": f"L{i}", "position": {"x": 100, "y": 50 + i * 80}}
-                for i in range(1, 6)
+                {"name": f"L{i}", "position": {"x": 100, "y": 50 + i * 80}} for i in range(1, 6)
             ],
             "discs": [
                 {

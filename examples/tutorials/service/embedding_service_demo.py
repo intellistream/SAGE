@@ -8,7 +8,6 @@ Embedding Service Demo - 展示如何使用统一的 EmbeddingService
 4. 如何使用缓存优化性能
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -42,7 +41,7 @@ def demo_basic_embedding_service():
 
     # 获取服务信息
     info = service.process({"task": "info"})
-    print(f"\n服务信息:")
+    print("\n服务信息:")
     print(f"  方法: {info['method']}")
     print(f"  模型: {info['model']}")
     print(f"  维度: {info['dimension']}")
@@ -53,7 +52,7 @@ def demo_basic_embedding_service():
         {"task": "embed", "inputs": "你好世界", "options": {"return_stats": True}}
     )
 
-    print(f"\n单个文本 embedding:")
+    print("\n单个文本 embedding:")
     print(f"  维度: {result['dimension']}")
     print(f"  向量前5个值: {result['vectors'][0][:5]}")
     print(f"  统计: {result['stats']}")
@@ -66,11 +65,9 @@ def demo_basic_embedding_service():
         "自然语言处理很重要",
     ]
 
-    result = service.process(
-        {"task": "embed", "inputs": texts, "options": {"return_stats": True}}
-    )
+    result = service.process({"task": "embed", "inputs": texts, "options": {"return_stats": True}})
 
-    print(f"\n批量文本 embedding:")
+    print("\n批量文本 embedding:")
     print(f"  文本数量: {result['count']}")
     print(f"  计算数量: {result['stats']['computed']}")
     print(f"  缓存数量: {result['stats']['cached']}")
@@ -84,7 +81,7 @@ def demo_basic_embedding_service():
         }
     )
 
-    print(f"\n缓存测试:")
+    print("\n缓存测试:")
     print(f"  缓存命中: {result2['stats']['cached']}/{result2['count']}")
     print(f"  命中率: {result2['stats']['cache_hit_rate']:.2%}")
 

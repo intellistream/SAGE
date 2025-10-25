@@ -3,7 +3,6 @@
 Test FAISS threading behavior to diagnose lock contention
 """
 
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -60,8 +59,7 @@ def benchmark_multi_thread(index, num_threads):
     # Prepare queries for each thread
     queries_per_thread = NUM_QUERIES // num_threads
     all_queries = [
-        np.random.randn(queries_per_thread, DIMENSION).astype("float32")
-        for _ in range(num_threads)
+        np.random.randn(queries_per_thread, DIMENSION).astype("float32") for _ in range(num_threads)
     ]
     for queries in all_queries:
         faiss.normalize_L2(queries)
@@ -73,7 +71,7 @@ def benchmark_multi_thread(index, num_threads):
             executor.submit(search_worker, index, queries, i)
             for i, queries in enumerate(all_queries)
         ]
-        results = [f.result() for f in as_completed(futures)]
+        [f.result() for f in as_completed(futures)]
 
     total_time = time.time() - start
     total_qps = (queries_per_thread * num_threads) / total_time
@@ -85,7 +83,7 @@ def benchmark_multi_thread(index, num_threads):
 
 def benchmark_shared_vs_clone(index, num_threads=4):
     """Test if cloning the index helps performance"""
-    print(f"\n🧪 Testing shared index vs cloned indices...")
+    print("\n🧪 Testing shared index vs cloned indices...")
 
     # Test 1: Shared index
     print("\n  Shared index:")
@@ -95,8 +93,7 @@ def benchmark_shared_vs_clone(index, num_threads=4):
     print("\n  Cloned indices (one per thread):")
     queries_per_thread = NUM_QUERIES // num_threads
     all_queries = [
-        np.random.randn(queries_per_thread, DIMENSION).astype("float32")
-        for _ in range(num_threads)
+        np.random.randn(queries_per_thread, DIMENSION).astype("float32") for _ in range(num_threads)
     ]
     for queries in all_queries:
         faiss.normalize_L2(queries)
@@ -110,7 +107,7 @@ def benchmark_shared_vs_clone(index, num_threads=4):
             executor.submit(search_worker, cloned_indices[i], queries, i)
             for i, queries in enumerate(all_queries)
         ]
-        results = [f.result() for f in as_completed(futures)]
+        [f.result() for f in as_completed(futures)]
 
     total_time = time.time() - start
     cloned_qps = (queries_per_thread * num_threads) / total_time

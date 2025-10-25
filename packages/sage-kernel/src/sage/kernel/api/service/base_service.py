@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
@@ -26,7 +26,7 @@ class BaseService(ABC):
         """
         # ctx 由 ServiceFactory 在 __init__ 调用前通过 __new__ 方法注入
         if not hasattr(self, "ctx"):
-            self.ctx: "ServiceContext" = None
+            self.ctx: ServiceContext = None
         self._logger = None
 
     @property
@@ -50,8 +50,8 @@ class BaseService(ABC):
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs,
     ):
         """
@@ -62,20 +62,16 @@ class BaseService(ABC):
             data = self.call_service("pipeline_name", payload)
         """
         if self.ctx is None:
-            raise RuntimeError(
-                "Service context not initialized. Cannot access services."
-            )
+            raise RuntimeError("Service context not initialized. Cannot access services.")
 
-        return self.ctx.call_service(
-            service_name, *args, timeout=timeout, method=method, **kwargs
-        )
+        return self.ctx.call_service(service_name, *args, timeout=timeout, method=method, **kwargs)
 
     def call_service_async(
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs,
     ):
         """
@@ -90,9 +86,7 @@ class BaseService(ABC):
                 result = future.result()
         """
         if self.ctx is None:
-            raise RuntimeError(
-                "Service context not initialized. Cannot access services."
-            )
+            raise RuntimeError("Service context not initialized. Cannot access services.")
 
         return self.ctx.call_service_async(
             service_name, *args, timeout=timeout, method=method, **kwargs

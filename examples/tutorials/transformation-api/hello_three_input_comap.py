@@ -10,10 +10,10 @@ CoMap（Co-processing Map）是一种多流处理操作，允许对连接的多�
 数据流进行协同处理，每个输入流通过专用的mapN方法独立处理。
 """
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.core.functions.batch_function import BatchFunction
 from sage.common.core.functions.comap_function import BaseCoMapFunction
 from sage.common.core.functions.sink_function import SinkFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 
 
@@ -85,12 +85,7 @@ def main():
 
     # 连接三个流并应用CoMap
     print("🔗 Connecting streams and applying CoMap...")
-    result = (
-        stream1.connect(stream2)
-        .connect(stream3)
-        .comap(ThreeStreamCoMapFunction)
-        .sink(ConsoleSink)
-    )
+    (stream1.connect(stream2).connect(stream3).comap(ThreeStreamCoMapFunction).sink(ConsoleSink))
 
     print("⚙️ Processing data...")
     print()

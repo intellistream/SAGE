@@ -25,7 +25,7 @@ RAG 专用数据类型定义
     ... )
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Union
 
 # 导入基础类型
 from sage.common.core.data_types import (
@@ -33,10 +33,9 @@ from sage.common.core.data_types import (
     BaseQueryResult,
     ExtendedQueryResult,
     QueryResultInput,
+    extract_query as base_extract_query,
+    extract_results as base_extract_results,
 )
-from sage.common.core.data_types import create_query_result as base_create_query_result
-from sage.common.core.data_types import extract_query as base_extract_query
-from sage.common.core.data_types import extract_results as base_extract_results
 
 # ============================================================================
 # RAG 专用文档类型
@@ -72,11 +71,11 @@ class RAGDocument(BaseDocument, total=False):
         ... }
     """
 
-    contents: Optional[str]  # 原始完整内容
-    relevance_score: Optional[float]  # RAG相关性分数
-    embedding: Optional[List[float]]  # 向量嵌入
-    chunk_id: Optional[int]  # 分块ID
-    references: Optional[List[str]]  # 引用列表
+    contents: str | None  # 原始完整内容
+    relevance_score: float | None  # RAG相关性分数
+    embedding: list[float] | None  # 向量嵌入
+    chunk_id: int | None  # 分块ID
+    references: list[str] | None  # 引用列表
 
 
 # ============================================================================
@@ -118,14 +117,14 @@ class RAGQuery(ExtendedQueryResult, total=False):
         ... }
     """
 
-    external_corpus: Optional[List[Union[str, Dict[str, Any]]]]  # 外部文档
-    references: Optional[List[str]]  # 引用列表
-    generated: Optional[str]  # 生成的答案
-    refined_docs: Optional[List[str]]  # 精炼后的文档
-    reranked: Optional[bool]  # 是否经过重排序
-    prompt: Optional[str]  # 使用的提示词
-    refine_metrics: Optional[Dict[str, Any]]  # 精炼指标
-    generate_time: Optional[float]  # 生成耗时
+    external_corpus: list[str | dict[str, Any]] | None  # 外部文档
+    references: list[str] | None  # 引用列表
+    generated: str | None  # 生成的答案
+    refined_docs: list[str] | None  # 精炼后的文档
+    reranked: bool | None  # 是否经过重排序
+    prompt: str | None  # 使用的提示词
+    refine_metrics: dict[str, Any] | None  # 精炼指标
+    generate_time: float | None  # 生成耗时
 
 
 class RAGResponse(BaseQueryResult, total=False):
@@ -154,10 +153,10 @@ class RAGResponse(BaseQueryResult, total=False):
         ... }
     """
 
-    generated: Optional[str]  # 生成的答案
-    context: Optional[Union[str, List[str]]]  # 上下文
-    execution_time: Optional[float]  # 执行时间
-    metadata: Optional[Dict[str, Any]]  # 元数据
+    generated: str | None  # 生成的答案
+    context: str | list[str] | None  # 上下文
+    execution_time: float | None  # 执行时间
+    metadata: dict[str, Any] | None  # 元数据
 
 
 # ============================================================================
@@ -172,7 +171,7 @@ RAGInput = Union[
 ]
 
 # RAG 算子的输出应该是标准格式
-RAGOutput = Union[RAGResponse, Dict[str, Any]]
+RAGOutput = Union[RAGResponse, dict[str, Any]]
 
 
 # ============================================================================
@@ -248,7 +247,7 @@ def extract_query(data: RAGInput, default: str = "") -> str:
     return base_extract_query(data, default)
 
 
-def extract_results(data: RAGInput, default: Optional[List[Any]] = None) -> List[Any]:
+def extract_results(data: RAGInput, default: list[Any] | None = None) -> list[Any]:
     """
     从任意格式中提取结果列表（RAG 专用）
 
@@ -271,7 +270,7 @@ def extract_results(data: RAGInput, default: Optional[List[Any]] = None) -> List
     return base_extract_results(data, default)
 
 
-def create_rag_response(query: str, results: List[Any], **kwargs) -> RAGResponse:
+def create_rag_response(query: str, results: list[Any], **kwargs) -> RAGResponse:
     """
     创建标准的 RAGResponse 对象
 

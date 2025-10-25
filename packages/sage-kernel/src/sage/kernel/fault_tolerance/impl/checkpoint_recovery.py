@@ -5,7 +5,7 @@ Checkpoint-based Fault Tolerance Strategy
 """
 
 import time
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from sage.common.core.types import TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
@@ -25,7 +25,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
 
     def __init__(
         self,
-        checkpoint_manager: Optional[CheckpointManagerImpl] = None,
+        checkpoint_manager: CheckpointManagerImpl | None = None,
         checkpoint_interval: float = 60.0,
         max_recovery_attempts: int = 3,
         checkpoint_dir: str = ".sage_checkpoints",
@@ -39,18 +39,16 @@ class CheckpointBasedRecovery(BaseFaultHandler):
             max_recovery_attempts: 最大恢复尝试次数
             checkpoint_dir: Checkpoint 存储目录
         """
-        self.checkpoint_manager = checkpoint_manager or CheckpointManagerImpl(
-            checkpoint_dir
-        )
+        self.checkpoint_manager = checkpoint_manager or CheckpointManagerImpl(checkpoint_dir)
         self.checkpoint_interval = checkpoint_interval
         self.max_recovery_attempts = max_recovery_attempts
 
         # 记录失败信息
-        self.failure_counts: Dict[TaskID, int] = {}
-        self.last_checkpoint_time: Dict[TaskID, float] = {}
+        self.failure_counts: dict[TaskID, int] = {}
+        self.last_checkpoint_time: dict[TaskID, float] = {}
 
         self.logger = None  # 可以后续注入
-        self.dispatcher: Optional["Dispatcher"] = None  # 可以后续注入
+        self.dispatcher: Dispatcher | None = None  # 可以后续注入
 
     def handle_failure(self, task_id: TaskID, error: Exception) -> bool:
         """
@@ -79,9 +77,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
             return self.recover(task_id)
         else:
             if self.logger:
-                self.logger.error(
-                    f"Task {task_id} cannot be recovered (max attempts reached)"
-                )
+                self.logger.error(f"Task {task_id} cannot be recovered (max attempts reached)")
             return False
 
     def can_recover(self, task_id: TaskID) -> bool:
@@ -159,9 +155,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
         """恢复完成时的回调"""
         if self.logger:
             if success:
-                self.logger.info(
-                    f"✅ Recovery completed successfully for task {task_id}"
-                )
+                self.logger.info(f"✅ Recovery completed successfully for task {task_id}")
                 # 可以在这里添加更多逻辑，如：
                 # - 发送通知
                 # - 记录指标
@@ -182,9 +176,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
             # - 记录失败模式
             # - 更新监控面板
 
-    def save_checkpoint(
-        self, task_id: TaskID, state: Dict[str, Any], force: bool = False
-    ) -> bool:
+    def save_checkpoint(self, task_id: TaskID, state: dict[str, Any], force: bool = False) -> bool:
         """
         保存任务 checkpoint
 

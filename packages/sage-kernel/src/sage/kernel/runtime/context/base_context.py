@@ -1,5 +1,5 @@
 from concurrent.futures import Future
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sage.common.utils.logging.custom_logger import CustomLogger
@@ -15,7 +15,7 @@ class BaseRuntimeContext:
 
     def __init__(self):
         # 服务调用相关
-        self._proxy_manager: Optional["ProxyManager"] = None
+        self._proxy_manager: ProxyManager | None = None
 
     @property
     def logger(self) -> "CustomLogger":
@@ -64,8 +64,8 @@ class BaseRuntimeContext:
         self,
         service_name: str,
         *args: Any,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs: Any,
     ) -> Any:
         """Invoke a service synchronously using the shared proxy layer."""
@@ -78,8 +78,8 @@ class BaseRuntimeContext:
         self,
         service_name: str,
         *args: Any,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs: Any,
     ) -> Future:
         """Invoke a service asynchronously and return a Future."""

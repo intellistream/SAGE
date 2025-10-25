@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 
 import ray
 from ray.actor import ActorHandle
@@ -8,7 +8,7 @@ from ray.actor import ActorHandle
 class ActorWrapper:
     """万能包装器，可以将任意对象包装成本地对象或Ray Actor"""
 
-    def __init__(self, obj: Union[Any, ActorHandle]):
+    def __init__(self, obj: Any | ActorHandle):
         # 使用 __dict__ 直接设置，避免触发 __setattr__
         object.__setattr__(self, "_obj", obj)
         object.__setattr__(self, "_execution_mode", self._detect_execution_mode())
@@ -25,17 +25,13 @@ class ActorWrapper:
     def __getattr__(self, name: str):
         """透明代理属性访问"""
         if name.startswith("_"):
-            raise AttributeError(
-                f"'{type(self).__name__}' object has no attribute '{name}'"
-            )
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
         # 获取原始属性/方法
         try:
             original_attr = getattr(self._obj, name)
         except AttributeError:
-            raise AttributeError(
-                f"'{type(self._obj).__name__}' object has no attribute '{name}'"
-            )
+            raise AttributeError(f"'{type(self._obj).__name__}' object has no attribute '{name}'")
 
         # 如果是方法，需要包装
         if callable(original_attr):

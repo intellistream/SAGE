@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any
 
 from sage.kernel.operators import MapOperator
 
 
-def _extract_prompt_bundle(data: Sequence[Any]) -> Tuple[Any, Any, Dict[str, Any]]:
+def _extract_prompt_bundle(data: Sequence[Any]) -> tuple[Any, Any, dict[str, Any]]:
     """Normalize pipeline inputs into (original, prompt, overrides)."""
 
     if not data:
@@ -19,7 +20,7 @@ def _extract_prompt_bundle(data: Sequence[Any]) -> Tuple[Any, Any, Dict[str, Any
     else:
         original, prompt = data[0], data[1]
 
-    overrides: Dict[str, Any] = {}
+    overrides: dict[str, Any] = {}
     if isinstance(prompt, dict) and "prompt" in prompt:
         overrides = dict(prompt.get("options", {}))
         prompt = prompt.get("prompt")
@@ -46,12 +47,12 @@ class VLLMGenerator(MapOperator):
 
     service_name: str = "vllm_service"
     timeout: float = 60.0
-    default_options: Dict[str, Any] = field(default_factory=dict)
+    default_options: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         super().__init__()
 
-    def execute(self, data: Sequence[Any]) -> Union[Tuple[Any, str], Dict[str, Any]]:
+    def execute(self, data: Sequence[Any]) -> tuple[Any, str] | dict[str, Any]:
         """执行生成"""
         original, prompt, overrides = _extract_prompt_bundle(data)
 
@@ -99,14 +100,14 @@ class VLLMEmbedding(MapOperator):
     service_name: str = "vllm_service"
     timeout: float = 30.0
     normalize: bool = True
-    default_options: Dict[str, Any] = field(default_factory=dict)
+    default_options: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         super().__init__()
 
-    def execute(self, data: Union[str, Sequence[str]]) -> Dict[str, Any]:
+    def execute(self, data: str | Sequence[str]) -> dict[str, Any]:
         """执行嵌入"""
-        texts: List[str]
+        texts: list[str]
         if isinstance(data, str):
             texts = [data]
         elif isinstance(data, Sequence):

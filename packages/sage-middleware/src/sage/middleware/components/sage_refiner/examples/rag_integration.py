@@ -8,8 +8,6 @@ RAG管道集成示例
 # 注意：这个示例需要完整的SAGE环境才能运行
 # 这里提供完整的代码结构供参考
 
-from sage.middleware.components.sage_refiner import RefinerAdapter
-
 
 def rag_pipeline_with_refiner():
     """

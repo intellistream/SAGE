@@ -1,9 +1,4 @@
-import sys
-
-if sys.version_info < (3, 9):
-    pass
-else:
-    pass
+pass
 
 
 # Dependencies should be installed via requirements.txt

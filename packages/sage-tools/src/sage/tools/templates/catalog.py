@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import textwrap
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sage.tools.templates import pipeline_blueprints
 
@@ -17,22 +17,20 @@ class ApplicationTemplate:
     id: str
     title: str
     description: str
-    tags: Tuple[str, ...]
+    tags: tuple[str, ...]
     example_path: str
     blueprint_id: str
-    default_requirements: Dict[str, Any]
+    default_requirements: dict[str, Any]
     guidance: str
-    notes: Tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
 
     def blueprint(self) -> pipeline_blueprints.PipelineBlueprint:
         blueprint = _BLUEPRINT_INDEX.get(self.blueprint_id)
         if blueprint is None:
-            raise KeyError(
-                f"Blueprint '{self.blueprint_id}' not found for template '{self.id}'"
-            )
+            raise KeyError(f"Blueprint '{self.blueprint_id}' not found for template '{self.id}'")
         return blueprint
 
-    def pipeline_plan(self) -> Dict[str, Any]:
+    def pipeline_plan(self) -> dict[str, Any]:
         """Return a deep copy of the pipeline plan for this template."""
 
         blueprint = self.blueprint()
@@ -42,7 +40,7 @@ class ApplicationTemplate:
             feedback=None,
         )
 
-    def graph_plan(self) -> Optional[Dict[str, Any]]:
+    def graph_plan(self) -> dict[str, Any] | None:
         blueprint = self.blueprint()
         return pipeline_blueprints.build_graph_plan(
             blueprint,
@@ -50,7 +48,7 @@ class ApplicationTemplate:
             feedback=None,
         )
 
-    def render_prompt(self, score: Optional[float] = None) -> str:
+    def render_prompt(self, score: float | None = None) -> str:
         """Render a prompt snippet describing the template for LLM guidance."""
 
         plan = self.pipeline_plan()
@@ -59,9 +57,7 @@ class ApplicationTemplate:
             f"              • {stage['id']}: {stage['class']} ({stage.get('summary', '')})"
             for stage in stages
         ]
-        stage_text = (
-            "\n".join(stage_lines) if stage_lines else "              • (无阶段信息)"
-        )
+        stage_text = "\n".join(stage_lines) if stage_lines else "              • (无阶段信息)"
         note_lines = [f"- {note}" for note in plan.get("notes", []) if note]
         notes_text = "\n".join(note_lines) if note_lines else "  - 无"
         score_line = f"匹配度: {score:.2f}" if score is not None else ""
@@ -95,11 +91,11 @@ class TemplateMatch:
     score: float
 
 
-def list_templates() -> Tuple[ApplicationTemplate, ...]:
+def list_templates() -> tuple[ApplicationTemplate, ...]:
     return TEMPLATE_LIBRARY
 
 
-def list_template_ids() -> Tuple[str, ...]:
+def list_template_ids() -> tuple[str, ...]:
     return tuple(template.id for template in TEMPLATE_LIBRARY)
 
 
@@ -111,9 +107,9 @@ def get_template(template_id: str) -> ApplicationTemplate:
 
 
 def match_templates(
-    requirements: Dict[str, Any],
+    requirements: dict[str, Any],
     top_k: int = 5,
-) -> List[TemplateMatch]:
+) -> list[TemplateMatch]:
     candidates = [
         TemplateMatch(template=template, score=_score_template(requirements, template))
         for template in TEMPLATE_LIBRARY
@@ -125,9 +121,7 @@ def match_templates(
     return top
 
 
-def _score_template(
-    requirements: Dict[str, Any], template: ApplicationTemplate
-) -> float:
+def _score_template(requirements: dict[str, Any], template: ApplicationTemplate) -> float:
     text = _requirements_text(requirements)
     if not text:
         return 0.2
@@ -154,8 +148,8 @@ def _score_template(
     return max(0.0, min(1.2, score))
 
 
-def _requirements_text(requirements: Dict[str, Any]) -> str:
-    parts: List[str] = []
+def _requirements_text(requirements: dict[str, Any]) -> str:
+    parts: list[str] = []
     for key in (
         "goal",
         "initial_prompt",
@@ -177,13 +171,11 @@ def _requirements_text(requirements: Dict[str, Any]) -> str:
     return " ".join(parts).lower()
 
 
-_BLUEPRINT_INDEX = {
-    blueprint.id: blueprint for blueprint in pipeline_blueprints.BLUEPRINT_LIBRARY
-}
+_BLUEPRINT_INDEX = {blueprint.id: blueprint for blueprint in pipeline_blueprints.BLUEPRINT_LIBRARY}
 
 
-def _notes(*values: str) -> Tuple[str, ...]:
-    cleaned: List[str] = []
+def _notes(*values: str) -> tuple[str, ...]:
+    cleaned: list[str] = []
     for value in values:
         value = value.strip()
         if value:
@@ -191,7 +183,7 @@ def _notes(*values: str) -> Tuple[str, ...]:
     return tuple(cleaned)
 
 
-TEMPLATE_LIBRARY: Tuple[ApplicationTemplate, ...] = (
+TEMPLATE_LIBRARY: tuple[ApplicationTemplate, ...] = (
     ApplicationTemplate(
         id="rag-simple-demo",
         title="客服知识助手 (RAG Simple)",

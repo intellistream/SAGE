@@ -9,7 +9,7 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class IssueDataManager:
@@ -47,9 +47,7 @@ class IssueDataManager:
         ]:
             directory.mkdir(parents=True, exist_ok=True)
 
-    def save_issue(
-        self, issue_data: Dict[str, Any], comments: List[Dict] = None
-    ) -> bool:
+    def save_issue(self, issue_data: dict[str, Any], comments: list[dict] = None) -> bool:
         """保存issue到单一数据源
 
         Args:
@@ -160,9 +158,7 @@ class IssueDataManager:
                         else None
                     ),
                     "author_association": issue_data.get("author_association"),
-                    "performed_via_github_app": issue_data.get(
-                        "performed_via_github_app"
-                    ),
+                    "performed_via_github_app": issue_data.get("performed_via_github_app"),
                     "type": issue_data.get("type"),
                     "projects": projects_info,
                     # 新增：关系和依赖信息
@@ -211,7 +207,7 @@ class IssueDataManager:
             print(f"❌ 保存Issue数据失败: {e}")
             return False
 
-    def get_issue(self, issue_number: int) -> Optional[Dict[str, Any]]:
+    def get_issue(self, issue_number: int) -> dict[str, Any] | None:
         """获取完整的issue数据
 
         Args:
@@ -225,13 +221,13 @@ class IssueDataManager:
             if not data_file.exists():
                 return None
 
-            with open(data_file, "r", encoding="utf-8") as f:
+            with open(data_file, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             print(f"❌ 读取Issue #{issue_number} 数据失败: {e}")
             return None
 
-    def list_all_issues(self) -> List[int]:
+    def list_all_issues(self) -> list[int]:
         """获取所有issue编号列表"""
         issue_numbers = []
         for data_file in self.data_dir.glob("issue_*.json"):
@@ -307,9 +303,7 @@ class IssueDataManager:
                             if emoji != "total_count" and count > 0:
                                 reaction_details.append(f"{emoji}: {count}")
                         if reaction_details:
-                            stats_section += (
-                                f"  - 详情: {', '.join(reaction_details)}\n"
-                            )
+                            stats_section += f"  - 详情: {', '.join(reaction_details)}\n"
                 if is_locked:
                     stats_section += "- 状态: 已锁定\n"
 
@@ -329,9 +323,7 @@ class IssueDataManager:
 
                     if timestamp:
                         try:
-                            dt = datetime.fromisoformat(
-                                timestamp.replace("Z", "+00:00")
-                            )
+                            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                             time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
                         except Exception:
                             time_str = timestamp
@@ -339,13 +331,9 @@ class IssueDataManager:
                         update_history_section += f"- **{time_str}**: {action}\n"
                         if github_updated:
                             try:
-                                dt = datetime.fromisoformat(
-                                    github_updated.replace("Z", "+00:00")
-                                )
+                                dt = datetime.fromisoformat(github_updated.replace("Z", "+00:00"))
                                 github_time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-                                update_history_section += (
-                                    f"  - GitHub最后更新: {github_time_str}\n"
-                                )
+                                update_history_section += f"  - GitHub最后更新: {github_time_str}\n"
                             except Exception:
                                 pass
                 update_history_section += "\n"
@@ -431,7 +419,7 @@ class IssueDataManager:
             print(f"❌ 生成Issue #{issue_number} 元数据视图失败: {e}")
             return False
 
-    def generate_all_views(self) -> Dict[str, int]:
+    def generate_all_views(self) -> dict[str, int]:
         """生成所有视图
 
         Returns:
@@ -526,19 +514,13 @@ class IssueDataManager:
                     )
 
             # 保存汇总文件
-            with open(
-                self.summaries_dir / "issues_by_team.json", "w", encoding="utf-8"
-            ) as f:
+            with open(self.summaries_dir / "issues_by_team.json", "w", encoding="utf-8") as f:
                 json.dump(issues_by_team, f, ensure_ascii=False, indent=2)
 
-            with open(
-                self.summaries_dir / "issues_by_milestone.json", "w", encoding="utf-8"
-            ) as f:
+            with open(self.summaries_dir / "issues_by_milestone.json", "w", encoding="utf-8") as f:
                 json.dump(issues_by_milestone, f, ensure_ascii=False, indent=2)
 
-            with open(
-                self.summaries_dir / "issues_by_state.json", "w", encoding="utf-8"
-            ) as f:
+            with open(self.summaries_dir / "issues_by_state.json", "w", encoding="utf-8") as f:
                 json.dump(issues_by_state, f, ensure_ascii=False, indent=2)
 
             print("✅ 汇总视图生成完成")
@@ -546,7 +528,7 @@ class IssueDataManager:
         except Exception as e:
             print(f"❌ 生成汇总视图失败: {e}")
 
-    def migrate_from_old_format(self) -> Dict[str, int]:
+    def migrate_from_old_format(self) -> dict[str, int]:
         """从旧格式迁移数据
 
         Returns:
@@ -571,11 +553,10 @@ class IssueDataManager:
                         # 尝试加载对应的metadata文件
                         issue_number = issue_data["number"]
                         metadata_file = (
-                            self.old_metadata_dir
-                            / f"issue_{issue_number}_metadata.json"
+                            self.old_metadata_dir / f"issue_{issue_number}_metadata.json"
                         )
                         if metadata_file.exists():
-                            with open(metadata_file, "r", encoding="utf-8") as f:
+                            with open(metadata_file, encoding="utf-8") as f:
                                 old_metadata = json.load(f)
                             # 合并数据
                             issue_data.update(old_metadata)
@@ -594,10 +575,10 @@ class IssueDataManager:
 
         return results
 
-    def _parse_old_markdown_file(self, md_file: Path) -> Optional[Dict]:
+    def _parse_old_markdown_file(self, md_file: Path) -> dict | None:
         """解析旧格式的markdown文件"""
         try:
-            with open(md_file, "r", encoding="utf-8") as f:
+            with open(md_file, encoding="utf-8") as f:
                 content = f.read()
 
             lines = content.split("\n")

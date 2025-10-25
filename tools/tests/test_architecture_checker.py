@@ -12,11 +12,7 @@ from pathlib import Path
 # 添加工具目录到 path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from architecture_checker import (
-    ArchitectureChecker,
-    ArchitectureViolation,
-    ImportStatement,
-)
+from architecture_checker import ArchitectureChecker
 
 
 def create_test_structure():
@@ -33,9 +29,7 @@ def create_test_structure():
     ]
 
     for pkg in packages:
-        pkg_path = (
-            temp_dir / "packages" / pkg / "src" / "sage" / pkg.replace("sage-", "")
-        )
+        pkg_path = temp_dir / "packages" / pkg / "src" / "sage" / pkg.replace("sage-", "")
         pkg_path.mkdir(parents=True, exist_ok=True)
 
         # 创建 __init__.py
@@ -197,9 +191,7 @@ def test_missing_layer_marker():
         result = checker.run_checks()
 
         # 应该产生警告
-        missing_markers = [
-            w for w in result.warnings if w.type == "MISSING_LAYER_MARKER"
-        ]
+        missing_markers = [w for w in result.warnings if w.type == "MISSING_LAYER_MARKER"]
         assert len(missing_markers) > 0, "应该检测到缺少 Layer 标记"
 
         print("  ✅ Layer 标记检测通过")

@@ -45,9 +45,7 @@ class Query_Profiler(FilterFunction):
         # 直接解包到变量
         need_joint_reasoning = profiler_result.need_joint_reasoning
         complexity = profiler_result.complexity
-        need_summarization = profiler_result.need_summarization
         summarization_length = profiler_result.summarization_length
-        n_info_items = profiler_result.n_info_items
 
         if need_joint_reasoning is False:
             synthesis_method = "map_rerank"

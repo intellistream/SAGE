@@ -12,7 +12,6 @@ import site
 import subprocess
 import sysconfig
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import typer
 
@@ -88,9 +87,7 @@ def run_command(cmd, check=True, capture_output=True):
                     self.stdout = ""
                     self.stderr = ""
 
-            result = SimpleResult(
-                result.returncode if hasattr(result, "returncode") else 0
-            )
+            result = SimpleResult(result.returncode if hasattr(result, "returncode") else 0)
         return result
     except subprocess.CalledProcessError as e:
         print_error(f"Command failed: {e}")
@@ -134,7 +131,7 @@ def check_build_tools() -> bool:
     return tools_available
 
 
-def find_sage_root() -> Optional[Path]:
+def find_sage_root() -> Path | None:
     """查找SAGE项目根目录"""
     current = Path.cwd()
 
@@ -166,13 +163,13 @@ def find_sage_root() -> Optional[Path]:
     return None
 
 
-EXTENSION_PATHS: Dict[str, str] = {
+EXTENSION_PATHS: dict[str, str] = {
     "sage_db": "packages/sage-middleware/src/sage/middleware/components/sage_db",
     "sage_flow": "packages/sage-middleware/src/sage/middleware/components/sage_flow",
     "sage_tsdb": "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB",
 }
 
-EXTENSION_MODULES: Dict[str, str] = {
+EXTENSION_MODULES: dict[str, str] = {
     "sage_db": "sage.middleware.components.sage_db.python._sage_db",
     "sage_flow": "sage.middleware.components.sage_flow.python._sage_flow",
     "sage_tsdb": "sage.middleware.components.sage_tsdb.python._sage_tsdb",
@@ -187,7 +184,7 @@ def _extension_is_available(ext_name: str, timeout: float = 3.0) -> bool:
     import queue
     import threading
 
-    result_queue: "queue.Queue[bool]" = queue.Queue()
+    result_queue: queue.Queue[bool] = queue.Queue()
 
     def _try_import():
         try:
@@ -209,7 +206,7 @@ def _extension_is_available(ext_name: str, timeout: float = 3.0) -> bool:
         return False
 
 
-def _resolve_extensions_to_install(extension: Optional[str]) -> List[str]:
+def _resolve_extensions_to_install(extension: str | None) -> list[str]:
     if extension is None or extension == "all":
         return list(EXTENSION_PATHS.keys())
     if extension not in EXTENSION_PATHS:
@@ -303,7 +300,7 @@ def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
         if result.returncode != 0:
             typer.echo(f"\n{Colors.YELLOW}构建失败，最后50行日志:{Colors.RESET}")
             try:
-                with open(log_file, "r") as f:
+                with open(log_file) as f:
                     lines = f.readlines()
                     for line in lines[-50:]:
                         typer.echo(f"  {line.rstrip()}")
@@ -315,7 +312,7 @@ def _run_build_script(ext_dir: Path, ext_name: str, sage_root: Path):
         os.chdir(original_cwd)
 
 
-def _artifact_pattern_and_site(ext_name: str) -> Tuple[Optional[str], Optional[Path]]:
+def _artifact_pattern_and_site(ext_name: str) -> tuple[str | None, Path | None]:
     if ext_name == "sage_flow":
         return "_sage_flow*.so", Path("sage/middleware/components/sage_flow/python")
     if ext_name == "sage_db":
@@ -404,15 +401,12 @@ def _copy_python_artifacts(ext_name: str, ext_dir: Path) -> None:
         print_success(f"已安装 Python 扩展模块到 site-packages: {site_target_dir}")
     except (PermissionError, OSError) as exc:
         print_warning(
-            f"复制到 site-packages 时权限不足: {exc}\n"
-            f"  扩展已安装到项目目录: {repo_target_dir}"
+            f"复制到 site-packages 时权限不足: {exc}\n" f"  扩展已安装到项目目录: {repo_target_dir}"
         )
 
 
 def _is_ci_environment() -> bool:
-    return bool(
-        os.getenv("CI") or os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI")
-    )
+    return bool(os.getenv("CI") or os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI"))
 
 
 def _print_ci_failure_report(ext_dir: Path) -> None:
@@ -488,13 +482,9 @@ def _print_manual_diagnostics(ext_dir: Path) -> None:
                 pass
 
     typer.echo("\n💡 故障排除建议:")
-    typer.echo(
-        "   1. 检查系统依赖: ./tools/install/install_system_deps.sh --verify-only"
-    )
+    typer.echo("   1. 检查系统依赖: ./tools/install/install_system_deps.sh --verify-only")
     typer.echo(f"   2. 手动构建: cd {ext_dir} && bash build.sh --clean --install-deps")
-    typer.echo(
-        f"   3. 查看构建日志: {(ext_dir / 'build' / 'CMakeFiles' / 'CMakeError.log')}"
-    )
+    typer.echo(f"   3. 查看构建日志: {(ext_dir / 'build' / 'CMakeFiles' / 'CMakeError.log')}")
 
 
 def _diagnose_build_failure(ext_name: str, ext_dir: Path, result) -> None:
@@ -507,9 +497,7 @@ def _diagnose_build_failure(ext_name: str, ext_dir: Path, result) -> None:
     _print_manual_diagnostics(ext_dir)
 
 
-def _install_extension(
-    ext_name: str, ext_dir: Path, sage_root: Path, force: bool
-) -> bool:
+def _install_extension(ext_name: str, ext_dir: Path, sage_root: Path, force: bool) -> bool:
     typer.echo(f"\n{Colors.YELLOW}━━━ 安装 {ext_name} ━━━{Colors.RESET}")
 
     if not ext_dir.exists():
@@ -543,9 +531,7 @@ def _install_extension(
     except Exception as exc:
         # 如果是权限错误，只是警告，不视为失败
         if isinstance(exc, (PermissionError, OSError)):
-            print_warning(
-                f"复制扩展产物到 site-packages 时权限不足（已安装到项目目录）: {exc}"
-            )
+            print_warning(f"复制扩展产物到 site-packages 时权限不足（已安装到项目目录）: {exc}")
         else:
             print_warning(f"复制扩展产物时发生问题: {exc}")
             # 对于其他错误，仍然视为失败
@@ -588,9 +574,7 @@ def _missing_build_tools_instructions() -> None:
     typer.echo("  • cmake (构建系统)")
     typer.echo("  • make (构建工具)")
     typer.echo("\nUbuntu/Debian: sudo apt install build-essential cmake")
-    typer.echo(
-        "CentOS/RHEL: sudo yum groupinstall 'Development Tools' && sudo yum install cmake"
-    )
+    typer.echo("CentOS/RHEL: sudo yum groupinstall 'Development Tools' && sudo yum install cmake")
     typer.echo("macOS: xcode-select --install && brew install cmake")
 
 
@@ -617,9 +601,7 @@ def _check_and_fix_libstdcxx() -> None:
 
     # Check GCC version
     try:
-        result = subprocess.run(
-            ["gcc", "-dumpversion"], capture_output=True, text=True, check=True
-        )
+        result = subprocess.run(["gcc", "-dumpversion"], capture_output=True, text=True, check=True)
         gcc_major_version = int(result.stdout.strip().split(".")[0])
     except Exception:
         # Can't determine GCC version, skip check
@@ -696,16 +678,14 @@ def _resolve_project_root() -> Path:
 
 
 def _install_selected_extensions(
-    extensions_to_install: List[str], sage_root: Path, force: bool
-) -> Tuple[int, int]:
+    extensions_to_install: list[str], sage_root: Path, force: bool
+) -> tuple[int, int]:
     success_count = 0
     total_count = len(extensions_to_install)
 
     for ext_name in extensions_to_install:
         if not force and _extension_is_available(ext_name):
-            print_success(
-                f"{ext_name} 已安装且可用，跳过重新构建（使用 --force 重新安装）"
-            )
+            print_success(f"{ext_name} 已安装且可用，跳过重新构建（使用 --force 重新安装）")
             success_count += 1
             continue
 
@@ -719,7 +699,7 @@ def _install_selected_extensions(
 
 @app.command()
 def install(
-    extension: Optional[str] = typer.Argument(
+    extension: str | None = typer.Argument(
         None, help="要安装的扩展名 (sage_db, sage_flow, 或 all)"
     ),
     force: bool = typer.Option(False, "--force", "-f", help="强制重新构建"),

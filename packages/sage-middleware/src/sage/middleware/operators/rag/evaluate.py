@@ -1,15 +1,16 @@
 from collections import Counter
-from typing import Any, Dict, Tuple, Union
+from typing import Any
 
 from rouge import Rouge
-from sage.kernel.operators import MapOperator
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoTokenizer
 
+from sage.kernel.operators import MapOperator
+
 
 def _normalize_data(
-    data: Union[Dict[str, Any], Tuple[Any, Any], str, Any],
-) -> Dict[str, Any]:
+    data: dict[str, Any] | tuple[Any, Any] | str | Any,
+) -> dict[str, Any]:
     """将上游数据标准化为评测期望的字典结构。
 
     兼容多种入参形态：

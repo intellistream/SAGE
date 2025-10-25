@@ -17,9 +17,7 @@ from ...management.deployment_manager import DeploymentManager
 app = typer.Typer(name="worker", help="Ray Worker节点管理")
 
 
-def execute_remote_command(
-    host: str, port: int, command: str, timeout: int = 60
-) -> bool:
+def execute_remote_command(host: str, port: int, command: str, timeout: int = 60) -> bool:
     """在远程主机上执行命令"""
     config_manager = get_config_manager()
     ssh_config = config_manager.get_ssh_config()
@@ -29,9 +27,7 @@ def execute_remote_command(
     typer.echo(f"🔗 连接到 {ssh_user}@{host}:{port}")
 
     # 创建临时脚本文件
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".sh", delete=False
-    ) as temp_script:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as temp_script:
         temp_script.write("#!/bin/bash\n")
         temp_script.write(command)
         temp_script_path = temp_script.name
@@ -57,7 +53,7 @@ def execute_remote_command(
             "bash -s",
         ]
 
-        with open(temp_script_path, "r") as script_file:
+        with open(temp_script_path) as script_file:
             result = subprocess.run(
                 ssh_cmd,
                 stdin=script_file,
@@ -281,9 +277,7 @@ fi"""
 
 
 @app.command("stop")
-def stop_workers(
-    force: bool = typer.Option(False, "--force", "-f", help="强制停止所有Ray进程")
-):
+def stop_workers(force: bool = typer.Option(False, "--force", "-f", help="强制停止所有Ray进程")):
     """停止所有Ray Worker节点"""
     typer.echo("🛑 停止Ray Worker节点...")
 

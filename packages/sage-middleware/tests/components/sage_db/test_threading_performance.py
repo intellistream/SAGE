@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -58,15 +58,11 @@ def prepare_test_database(dimension: int = 768, num_vectors: int = 10000):
     db.add_batch(vectors.tolist())
     elapsed = time.time() - start
 
-    print(
-        f"✅ Database ready. Insertion took {elapsed:.2f}s ({num_vectors/elapsed:.0f} vectors/s)"
-    )
+    print(f"✅ Database ready. Insertion took {elapsed:.2f}s ({num_vectors/elapsed:.0f} vectors/s)")
     return db
 
 
-def benchmark_single_thread(
-    db: SageDB, num_queries: int = 1000, dimension: int = 768
-) -> float:
+def benchmark_single_thread(db: SageDB, num_queries: int = 1000, dimension: int = 768) -> float:
     """Benchmark single-threaded search performance."""
     print(f"\n🔍 Single-threaded benchmark ({num_queries} queries)...")
 
@@ -87,7 +83,7 @@ def benchmark_single_thread(
 
 def benchmark_multi_thread(
     db: SageDB, num_threads: int, queries_per_thread: int = 500, dimension: int = 768
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Benchmark multi-threaded search performance."""
     print(
         f"\n🔍 Multi-threaded benchmark ({num_threads} threads, {queries_per_thread} queries/thread)..."
@@ -96,8 +92,7 @@ def benchmark_multi_thread(
     # Prepare queries for each thread
     np.random.seed(456)
     all_queries = [
-        np.random.rand(queries_per_thread, dimension).astype(np.float32)
-        for _ in range(num_threads)
+        np.random.rand(queries_per_thread, dimension).astype(np.float32) for _ in range(num_threads)
     ]
 
     results = [0.0] * num_threads
@@ -143,9 +138,7 @@ def benchmark_batch_search(
     db: SageDB, batch_size: int = 100, num_batches: int = 10, dimension: int = 768
 ) -> float:
     """Benchmark batch search performance."""
-    print(
-        f"\n🔍 Batch search benchmark ({num_batches} batches × {batch_size} queries)..."
-    )
+    print(f"\n🔍 Batch search benchmark ({num_batches} batches × {batch_size} queries)...")
 
     np.random.seed(789)
 
@@ -156,7 +149,7 @@ def benchmark_batch_search(
         queries = np.random.rand(batch_size, dimension).astype(np.float32)
 
         start = time.time()
-        results = db.batch_search(queries.tolist(), k=10)
+        db.batch_search(queries.tolist(), k=10)
         elapsed = time.time() - start
 
         total_time += elapsed
@@ -212,7 +205,7 @@ def main():
     print("PERFORMANCE SUMMARY")
     print("=" * 70)
     print(f"\nBaseline (1 thread):  {baseline_qps:>8.1f} QPS")
-    print(f"\nMulti-threaded Performance:")
+    print("\nMulti-threaded Performance:")
     print(f"{'Threads':<10} {'Total QPS':<12} {'Speedup':<12} {'Per-Thread QPS':<15}")
     print("-" * 50)
 

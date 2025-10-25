@@ -109,15 +109,15 @@ def test_checkpoint_recovery():
     env.set_console_log_level("INFO")
 
     print("📝 Configuration:")
-    print(f"  - Strategy: checkpoint")
-    print(f"  - Checkpoint Interval: 2.0s")
-    print(f"  - Max Recovery Attempts: 3")
-    print(f"  - Checkpoint Directory: .test_checkpoints")
+    print("  - Strategy: checkpoint")
+    print("  - Checkpoint Interval: 2.0s")
+    print("  - Max Recovery Attempts: 3")
+    print("  - Checkpoint Directory: .test_checkpoints")
     print()
 
     # 构建管道
     print("🔨 Building pipeline...")
-    stream = env.from_source(TestSource).map(TestProcessor).sink(TestSink)
+    env.from_source(TestSource).map(TestProcessor).sink(TestSink)
     print("✅ Pipeline built\n")
 
     # 提交执行
@@ -159,15 +159,15 @@ def test_restart_recovery():
     env.set_console_log_level("INFO")
 
     print("📝 Configuration:")
-    print(f"  - Strategy: restart")
-    print(f"  - Restart Strategy: exponential backoff")
-    print(f"  - Initial Delay: 1.0s")
-    print(f"  - Max Attempts: 3")
+    print("  - Strategy: restart")
+    print("  - Restart Strategy: exponential backoff")
+    print("  - Initial Delay: 1.0s")
+    print("  - Max Attempts: 3")
     print()
 
     # 构建管道
     print("🔨 Building pipeline...")
-    stream = env.from_source(TestSource).map(TestProcessor).sink(TestSink)
+    env.from_source(TestSource).map(TestProcessor).sink(TestSink)
     print("✅ Pipeline built\n")
 
     # 提交执行

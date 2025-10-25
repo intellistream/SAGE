@@ -24,7 +24,6 @@ Example:
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -46,7 +45,7 @@ class BasePrivacyMechanism(ABC):
     def __init__(
         self,
         epsilon: float,
-        delta: Optional[float] = None,
+        delta: float | None = None,
         sensitivity: float = 1.0,
         name: str = "BasePrivacyMechanism",
     ):
@@ -78,9 +77,9 @@ class BasePrivacyMechanism(ABC):
     @abstractmethod
     def compute_noise(
         self,
-        sensitivity: Optional[float] = None,
-        epsilon: Optional[float] = None,
-        delta: Optional[float] = None,
+        sensitivity: float | None = None,
+        epsilon: float | None = None,
+        delta: float | None = None,
     ) -> float:
         """
         Compute noise magnitude for this mechanism.
@@ -103,7 +102,7 @@ class BasePrivacyMechanism(ABC):
         pass
 
     @abstractmethod
-    def privacy_cost(self) -> Tuple[float, float]:
+    def privacy_cost(self) -> tuple[float, float]:
         """
         Compute the privacy cost of this operation.
 
@@ -120,7 +119,7 @@ class BasePrivacyMechanism(ABC):
         pass
 
     def perturb_vector(
-        self, vector: np.ndarray, indices_to_perturb: Optional[List[int]] = None
+        self, vector: np.ndarray, indices_to_perturb: list[int] | None = None
     ) -> np.ndarray:
         """
         Perturb a vector with differential privacy.
@@ -149,7 +148,7 @@ class BasePrivacyMechanism(ABC):
 
         return perturbed
 
-    def get_privacy_guarantee(self) -> Dict[str, float]:
+    def get_privacy_guarantee(self) -> dict[str, float]:
         """
         Get the privacy guarantee of this mechanism.
 
@@ -183,15 +182,13 @@ class SimpleLaplaceMechanism(BasePrivacyMechanism):
     """
 
     def __init__(self, epsilon: float, sensitivity: float = 1.0):
-        super().__init__(
-            epsilon=epsilon, delta=None, sensitivity=sensitivity, name="Laplace"
-        )
+        super().__init__(epsilon=epsilon, delta=None, sensitivity=sensitivity, name="Laplace")
 
     def compute_noise(
         self,
-        sensitivity: Optional[float] = None,
-        epsilon: Optional[float] = None,
-        delta: Optional[float] = None,
+        sensitivity: float | None = None,
+        epsilon: float | None = None,
+        delta: float | None = None,
     ) -> float:
         """
         Generate Laplace noise: Lap(Δf / ε).
@@ -203,7 +200,7 @@ class SimpleLaplaceMechanism(BasePrivacyMechanism):
         scale = sens / eps
         return np.random.laplace(0, scale)
 
-    def privacy_cost(self) -> Tuple[float, float]:
+    def privacy_cost(self) -> tuple[float, float]:
         """
         Laplace mechanism satisfies pure ε-DP.
 

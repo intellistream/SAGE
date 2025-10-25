@@ -1,1 +1,1 @@
-"""Components tests."""
+"""sage-common components tests."""

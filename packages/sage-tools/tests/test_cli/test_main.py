@@ -3,8 +3,9 @@ CLI主模块测试
 """
 
 import pytest
-from sage.tools.cli.main import app
 from typer.testing import CliRunner
+
+from sage.tools.cli.main import app
 
 
 @pytest.mark.cli
@@ -88,9 +89,7 @@ class TestDevCommands:
 
     def test_dev_analyze_health(self):
         """测试analyze健康检查"""
-        result = self.runner.invoke(
-            app, ["dev", "analyze", "--analysis-type", "health"]
-        )
+        result = self.runner.invoke(app, ["dev", "analyze", "--analysis-type", "health"])
         assert result.exit_code in [0, 1]
         if result.exit_code == 0:
             assert "分析" in result.stdout

@@ -63,20 +63,16 @@ def example_basic_unlearning():
     )
 
     # 5. 查看结果
-    print(f"\n🎯 Unlearning Result:")
+    print("\n🎯 Unlearning Result:")
     print(f"  Success: {result.success}")
     print(f"  Vectors unlearned: {result.num_vectors_unlearned}")
     print(f"  Neighbors compensated: {result.num_neighbors_compensated}")
-    print(
-        f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}"
-    )
+    print(f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}")
 
     # 6. 获取扰动后的向量
     perturbed = result.metadata["perturbed_vectors"]
-    print(f"\n📊 Vector Comparison:")
-    for i, (orig, pert, vec_id) in enumerate(
-        zip(vectors_to_forget, perturbed, ids_to_forget)
-    ):
+    print("\n📊 Vector Comparison:")
+    for i, (orig, pert, vec_id) in enumerate(zip(vectors_to_forget, perturbed, ids_to_forget)):
         l2_dist = np.linalg.norm(orig - pert)
         cos_sim = np.dot(orig, pert) / (np.linalg.norm(orig) * np.linalg.norm(pert))
         print(f"  {vec_id}: L2={l2_dist:.4f}, CosSim={cos_sim:.4f}")
@@ -97,7 +93,7 @@ def example_custom_mechanism():
 
     # 2. 创建自定义 Laplace 机制
     custom_mechanism = LaplaceMechanism(epsilon=0.5)
-    print(f"✓ Created custom Laplace mechanism with ε=0.5")
+    print("✓ Created custom Laplace mechanism with ε=0.5")
 
     # 3. 使用自定义机制
     engine = UnlearningEngine(
@@ -112,7 +108,7 @@ def example_custom_mechanism():
         perturbation_strategy="selective",
     )
 
-    print(f"\n🎯 Result with custom mechanism:")
+    print("\n🎯 Result with custom mechanism:")
     print(f"  Success: {result.success}")
     print(f"  Privacy cost: ε={result.privacy_cost[0]:.4f}")
     print()
@@ -161,12 +157,10 @@ def example_batch_unlearning():
     status = engine.get_privacy_status()
     remaining = status["remaining_budget"]
 
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"  Total forgotten: {total_forgotten} vectors")
     print(f"  Remaining budget: ε={remaining['epsilon_remaining']:.4f}")
-    print(
-        f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}"
-    )
+    print(f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}")
     print()
 
 
@@ -197,13 +191,13 @@ def example_similarity_based_unlearning():
         perturbation_strategy="adaptive",
     )
 
-    print(f"\n🎯 Similarity-based Unlearning Result:")
+    print("\n🎯 Similarity-based Unlearning Result:")
     print(f"  Success: {result.success}")
     print(f"  Vectors forgotten: {result.num_vectors_unlearned}")
     print(f"  Privacy cost: ε={result.privacy_cost[0]:.4f}")
 
     if result.num_vectors_unlearned > 0:
-        forgotten_ids = result.metadata.get("perturbed_vectors", [])
+        result.metadata.get("perturbed_vectors", [])
         print(f"  Forgotten vector IDs: {result.metadata.get('message', 'N/A')}")
 
     print()
@@ -241,9 +235,7 @@ def example_privacy_budget_management():
         operation_count += 1
 
         if not result.success:
-            print(
-                f"\n❌ Operation {operation_count} failed: {result.metadata.get('error')}"
-            )
+            print(f"\n❌ Operation {operation_count} failed: {result.metadata.get('error')}")
             print(f"  Remaining budget: {result.metadata.get('remaining_budget')}")
             break
         else:

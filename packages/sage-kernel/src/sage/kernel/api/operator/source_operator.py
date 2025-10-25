@@ -31,9 +31,7 @@ class SourceOperator(BaseOperator):
 
             self._stop_signal_sent = True
 
-            self.logger.info(
-                f"Source Operator {self.name} received stop signal: {result}"
-            )
+            self.logger.info(f"Source Operator {self.name} received stop signal: {result}")
 
             # 设置停止信号的来源
             result.source = self.name
@@ -47,9 +45,7 @@ class SourceOperator(BaseOperator):
 
             # 设置任务停止标志（与其他节点一致）
             if hasattr(self, "task"):
-                if hasattr(self.task, "ctx") and hasattr(
-                    self.task.ctx, "set_stop_signal"
-                ):
+                if hasattr(self.task, "ctx") and hasattr(self.task.ctx, "set_stop_signal"):
                     self.task.ctx.set_stop_signal()
 
                 if hasattr(self.task, "is_running"):
@@ -58,9 +54,7 @@ class SourceOperator(BaseOperator):
             return
 
         if result is not None:
-            self.logger.debug(
-                f"SourceOperator {self.name}: Sending packet with payload: {result}"
-            )
+            self.logger.debug(f"SourceOperator {self.name}: Sending packet with payload: {result}")
             success = self.router.send(Packet(result))
             self.logger.debug(f"SourceOperator {self.name}: Send result: {success}")
 

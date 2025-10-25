@@ -5,10 +5,9 @@ Actor 和 Task 生命周期管理实现
 """
 
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sage.common.core.constants import DEFAULT_CLEANUP_TIMEOUT
-from sage.common.core.exceptions import FaultToleranceError
 from sage.common.core.types import TaskID
 
 
@@ -33,7 +32,7 @@ class LifecycleManagerImpl:
         actor_wrapper,
         cleanup_timeout: float = DEFAULT_CLEANUP_TIMEOUT,
         no_restart: bool = True,
-    ) -> Tuple[bool, bool]:
+    ) -> tuple[bool, bool]:
         """
         清理并终止单个 Actor
 
@@ -85,10 +84,10 @@ class LifecycleManagerImpl:
 
     def cleanup_all(
         self,
-        tasks: Dict[TaskID, Any],
-        services: Optional[Dict[str, Any]] = None,
+        tasks: dict[TaskID, Any],
+        services: dict[str, Any] | None = None,
         cleanup_timeout: float = DEFAULT_CLEANUP_TIMEOUT,
-    ) -> Dict[str, Tuple[bool, bool]]:
+    ) -> dict[str, tuple[bool, bool]]:
         """
         清理所有任务和服务
 
@@ -123,9 +122,7 @@ class LifecycleManagerImpl:
                 if self.logger:
                     cleanup_ok, kill_ok = result
                     if kill_ok:
-                        self.logger.debug(
-                            f"Successfully cleaned up service: {service_id}"
-                        )
+                        self.logger.debug(f"Successfully cleaned up service: {service_id}")
                     else:
                         self.logger.warning(f"Failed to clean up service: {service_id}")
 
@@ -133,9 +130,9 @@ class LifecycleManagerImpl:
 
     def cleanup_batch(
         self,
-        actors: List[Tuple[str, Any]],
+        actors: list[tuple[str, Any]],
         cleanup_timeout: float = DEFAULT_CLEANUP_TIMEOUT,
-    ) -> Dict[str, Tuple[bool, bool]]:
+    ) -> dict[str, tuple[bool, bool]]:
         """
         批量清理 Actor
 
@@ -155,8 +152,8 @@ class LifecycleManagerImpl:
         return results
 
     def get_cleanup_statistics(
-        self, cleanup_results: Dict[str, Tuple[bool, bool]]
-    ) -> Dict[str, Any]:
+        self, cleanup_results: dict[str, tuple[bool, bool]]
+    ) -> dict[str, Any]:
         """
         获取清理统计信息
 
@@ -178,9 +175,7 @@ class LifecycleManagerImpl:
             "kill_rate": kill_success / total if total > 0 else 0,
         }
 
-    def wait_for_actors_stop(
-        self, tasks: Dict[TaskID, Any], timeout: float = 10.0
-    ) -> bool:
+    def wait_for_actors_stop(self, tasks: dict[TaskID, Any], timeout: float = 10.0) -> bool:
         """
         等待所有任务停止
 
@@ -196,7 +191,7 @@ class LifecycleManagerImpl:
         while time.time() - start_time < timeout:
             all_stopped = True
 
-            for task_id, task in tasks.items():
+            for _task_id, task in tasks.items():
                 if hasattr(task, "is_running") and task.is_running:
                     all_stopped = False
                     break

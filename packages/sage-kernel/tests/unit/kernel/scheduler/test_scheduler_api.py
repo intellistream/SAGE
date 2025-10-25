@@ -10,6 +10,7 @@
 from unittest.mock import Mock
 
 import pytest
+
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
 
@@ -337,7 +338,6 @@ class TestSchedulerDecisionDelay:
         task_node.task_factory = task_factory
 
         # 记录原始的 make_decision 方法
-        original_make_decision = scheduler.make_decision
 
         # Mock make_decision 以返回带有延迟的决策
         def mock_make_decision_with_delay(task_node):  # Fixed parameter name

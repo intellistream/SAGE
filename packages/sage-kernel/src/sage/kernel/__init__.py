@@ -31,6 +31,7 @@ except ImportError:
     warnings.warn(
         "JobManagerClient is not available. Some features may be limited.",
         ImportWarning,
+        stacklevel=2,
     )
 
 # 导出子模块
@@ -60,6 +61,7 @@ except ImportError as e:
         f"Failed to register RPC queue factory: {e}. "
         "RPC queue functionality will not be available.",
         ImportWarning,
+        stacklevel=2,
     )
 
 __all__ = [

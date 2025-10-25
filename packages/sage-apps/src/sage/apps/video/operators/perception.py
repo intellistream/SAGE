@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from sage.common.core.functions.map_function import MapFunction
 from torchvision.models import MobileNet_V3_Large_Weights, mobilenet_v3_large
+
+from sage.common.core.functions.map_function import MapFunction
 
 try:
     from transformers import CLIPModel, CLIPProcessor
@@ -26,7 +28,7 @@ class SceneConceptExtractor(MapFunction):
         self,
         templates: Iterable[str],
         top_k: int = 3,
-        device: Optional[str] = None,
+        device: str | None = None,
     ) -> None:
         super().__init__()
         self.templates = list(templates)
@@ -66,7 +68,7 @@ class SceneConceptExtractor(MapFunction):
             self.processor = None
             self.model_available = False
 
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         pil_image: Image.Image = data.get("pil_image")
         if pil_image is None:
             return data
@@ -103,7 +105,7 @@ class SceneConceptExtractor(MapFunction):
 
         top_k = min(self.top_k, scores.shape[-1])
         top_scores, top_indices = torch.topk(scores, top_k)
-        concepts: List[Dict[str, Any]] = []
+        concepts: list[dict[str, Any]] = []
         for score, idx in zip(top_scores.tolist(), top_indices.tolist()):
             concepts.append(
                 {
@@ -121,7 +123,7 @@ class SceneConceptExtractor(MapFunction):
 class FrameObjectClassifier(MapFunction):
     """Image classification via MobileNetV3 over ImageNet classes."""
 
-    def __init__(self, top_k: int = 5, device: Optional[str] = None) -> None:
+    def __init__(self, top_k: int = 5, device: str | None = None) -> None:
         super().__init__()
         self.top_k = max(1, top_k)
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -151,7 +153,7 @@ class FrameObjectClassifier(MapFunction):
             self.categories = None
             self.model_available = False
 
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         pil_image: Image.Image = data.get("pil_image")
         if pil_image is None:
             return data
@@ -168,7 +170,7 @@ class FrameObjectClassifier(MapFunction):
 
         k = min(self.top_k, probs.shape[0])
         top_scores, top_indices = torch.topk(probs, k)
-        predictions: List[Dict[str, Any]] = []
+        predictions: list[dict[str, Any]] = []
         for score, idx in zip(top_scores.tolist(), top_indices.tolist()):
             predictions.append(
                 {

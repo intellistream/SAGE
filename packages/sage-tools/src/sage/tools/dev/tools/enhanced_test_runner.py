@@ -11,7 +11,6 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List
 
 from sage.common.config.output_paths import get_sage_paths
 
@@ -35,7 +34,6 @@ class EnhancedTestRunner:
         self.intermediate_checker = IntermediateResultsChecker(str(self.project_root))
 
         # Get project name from path
-        project_name = self.project_root.name
 
         # 设置SAGE环境并获取目录路径
         try:
@@ -73,7 +71,7 @@ class EnhancedTestRunner:
         except ImportError:
             return False
 
-    def run_tests(self, mode: str = "diff", **kwargs) -> Dict:
+    def run_tests(self, mode: str = "diff", **kwargs) -> dict:
         """Run tests based on specified mode."""
         try:
             print(f"测试模式： {mode}")
@@ -105,9 +103,7 @@ class EnhancedTestRunner:
             print(f"   Passed: {passed} ✅")
             print(f"   Failed: {failed} ❌")
             print(f"   Duration: {execution_time:.2f}s")
-            print(
-                f"   Status: {'SUCCESS' if result.get('status') == 'success' else 'FAILED'}"
-            )
+            print(f"   Status: {'SUCCESS' if result.get('status') == 'success' else 'FAILED'}")
             print(f"   Logs: {self.test_logs_dir}")
             print(f"   Reports: {self.reports_dir}")
 
@@ -125,7 +121,7 @@ class EnhancedTestRunner:
         except Exception as e:
             raise SAGEDevToolkitError(f"Test execution failed: {e}")
 
-    def _run_all_tests(self, **kwargs) -> Dict:
+    def _run_all_tests(self, **kwargs) -> dict:
         """Run all tests in the project."""
         start_time = time.time()
 
@@ -156,7 +152,7 @@ class EnhancedTestRunner:
             "status": "success" if all(r["passed"] for r in results) else "failed",
         }
 
-    def _run_diff_tests(self, base_branch: str = "main", **kwargs) -> Dict:
+    def _run_diff_tests(self, base_branch: str = "main", **kwargs) -> dict:
         """Run tests for files affected by git diff."""
         start_time = time.time()
 
@@ -206,7 +202,7 @@ class EnhancedTestRunner:
             "status": "success" if all(r["passed"] for r in results) else "failed",
         }
 
-    def _run_package_tests(self, package_name: str, **kwargs) -> Dict:
+    def _run_package_tests(self, package_name: str, **kwargs) -> dict:
         """Run tests for a specific package."""
         start_time = time.time()
 
@@ -243,7 +239,7 @@ class EnhancedTestRunner:
             "status": "success" if all(r["passed"] for r in results) else "failed",
         }
 
-    def _run_failed_tests(self, **kwargs) -> Dict:
+    def _run_failed_tests(self, **kwargs) -> dict:
         """Run previously failed tests from cache."""
         start_time = time.time()
 
@@ -317,7 +313,7 @@ class EnhancedTestRunner:
         except ValueError:
             return str(test_file)
 
-    def _discover_all_test_files(self) -> List[Path]:
+    def _discover_all_test_files(self) -> list[Path]:
         """Discover all test files in the project."""
         test_files = []
 
@@ -333,7 +329,7 @@ class EnhancedTestRunner:
 
         return test_files
 
-    def _discover_package_test_files(self, package_dir: Path) -> List[Path]:
+    def _discover_package_test_files(self, package_dir: Path) -> list[Path]:
         """Discover test files in a specific package."""
         test_files = []
 
@@ -349,7 +345,7 @@ class EnhancedTestRunner:
 
         return test_files
 
-    def _get_changed_files(self, base_branch: str) -> List[Path]:
+    def _get_changed_files(self, base_branch: str) -> list[Path]:
         """Get files changed compared to base branch."""
         try:
             # Get changed files using git diff
@@ -381,7 +377,7 @@ class EnhancedTestRunner:
         except Exception as e:
             raise SAGEDevToolkitError(f"Failed to get changed files: {e}")
 
-    def _find_affected_test_files(self, changed_files: List[Path]) -> List[Path]:
+    def _find_affected_test_files(self, changed_files: list[Path]) -> list[Path]:
         """Find test files affected by changed files."""
         affected_packages = set()
 
@@ -411,7 +407,7 @@ class EnhancedTestRunner:
 
         return test_files
 
-    def _execute_test_files(self, test_files: List[Path], **kwargs) -> List[Dict]:
+    def _execute_test_files(self, test_files: list[Path], **kwargs) -> list[dict]:
         """Execute test files with optional parallel execution."""
         workers = kwargs.get("workers", 1)
         timeout = kwargs.get("timeout", 300)  # 5 minutes default
@@ -422,9 +418,7 @@ class EnhancedTestRunner:
         else:
             return self._execute_sequential(test_files, timeout, quick)
 
-    def _execute_sequential(
-        self, test_files: List[Path], timeout: int, quick: bool
-    ) -> List[Dict]:
+    def _execute_sequential(self, test_files: list[Path], timeout: int, quick: bool) -> list[dict]:
         """Execute test files sequentially."""
         results = []
         total_tests = len(test_files)
@@ -451,8 +445,8 @@ class EnhancedTestRunner:
         return results
 
     def _execute_parallel(
-        self, test_files: List[Path], workers: int, timeout: int, quick: bool
-    ) -> List[Dict]:
+        self, test_files: list[Path], workers: int, timeout: int, quick: bool
+    ) -> list[dict]:
         """Execute test files in parallel."""
         results = []
         total_tests = len(test_files)
@@ -463,9 +457,7 @@ class EnhancedTestRunner:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             # Submit all test files
             future_to_file = {
-                executor.submit(
-                    self._run_single_test_file, test_file, timeout, quick
-                ): test_file
+                executor.submit(self._run_single_test_file, test_file, timeout, quick): test_file
                 for test_file in test_files
             }
 
@@ -522,7 +514,7 @@ class EnhancedTestRunner:
 
     def _run_single_test_file(
         self, test_file: Path, timeout: int, quick: bool, skip_markers: str = None
-    ) -> Dict:
+    ) -> dict:
         """Run a single test file."""
         try:
             # Prepare command
@@ -617,7 +609,7 @@ class EnhancedTestRunner:
                 "error": str(e),
             }
 
-    def _calculate_summary(self, results: List[Dict]) -> Dict:
+    def _calculate_summary(self, results: list[dict]) -> dict:
         """Calculate test summary statistics."""
         total = len(results)
         passed = sum(1 for r in results if r["passed"])
@@ -632,7 +624,7 @@ class EnhancedTestRunner:
             "average_duration": total_duration / total if total > 0 else 0,
         }
 
-    def list_tests(self) -> Dict:
+    def list_tests(self) -> dict:
         """List all available tests."""
         try:
             test_structure = {}
@@ -659,7 +651,7 @@ class EnhancedTestRunner:
         except Exception as e:
             raise SAGEDevToolkitError(f"Test listing failed: {e}")
 
-    def get_failure_cache_info(self) -> Dict:
+    def get_failure_cache_info(self) -> dict:
         """Get information about the test failure cache."""
         return self.failure_cache.get_cache_info()
 
@@ -671,6 +663,6 @@ class EnhancedTestRunner:
         """Print test failure cache status."""
         self.failure_cache.print_cache_status()
 
-    def get_cache_history(self, limit: int = 5) -> List[Dict]:
+    def get_cache_history(self, limit: int = 5) -> list[dict]:
         """Get test run history from cache."""
         return self.failure_cache.get_history(limit)

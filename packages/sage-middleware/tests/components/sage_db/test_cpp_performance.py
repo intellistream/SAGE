@@ -64,7 +64,7 @@ def search_worker(db, queries, worker_id):
     start = time.time()
 
     for query in queries:
-        results = db.search(query.tolist(), k=10)
+        db.search(query.tolist(), k=10)
 
     duration = time.time() - start
     qps = len(queries) / duration
@@ -82,7 +82,7 @@ def benchmark_single_thread(db, num_queries=NUM_QUERIES):
 
     start = time.time()
     for query in queries:
-        results = db.search(query.tolist(), k=10)
+        db.search(query.tolist(), k=10)
     duration = time.time() - start
 
     qps = num_queries / duration
@@ -108,10 +108,9 @@ def benchmark_multi_thread(db, num_threads, queries_per_thread=NUM_QUERIES):
     start = time.time()
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = [
-            executor.submit(search_worker, db, queries, i)
-            for i, queries in enumerate(all_queries)
+            executor.submit(search_worker, db, queries, i) for i, queries in enumerate(all_queries)
         ]
-        results = [f.result() for f in as_completed(futures)]
+        [f.result() for f in as_completed(futures)]
 
     total_time = time.time() - start
     total_queries = queries_per_thread * num_threads

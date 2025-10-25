@@ -15,9 +15,6 @@ Students can enhance privacy accounting by:
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
-
-import numpy as np
 
 
 @dataclass
@@ -29,7 +26,7 @@ class PrivacySpending:
     epsilon: float
     delta: float
     mechanism: str
-    metadata: Dict = field(default_factory=dict)
+    metadata: dict = field(default_factory=dict)
 
     def __repr__(self) -> str:
         return (
@@ -79,9 +76,7 @@ class PrivacyAccountant:
             ValueError: If budgets are invalid
         """
         if total_epsilon_budget <= 0:
-            raise ValueError(
-                f"epsilon budget must be positive, got {total_epsilon_budget}"
-            )
+            raise ValueError(f"epsilon budget must be positive, got {total_epsilon_budget}")
         if not (0 < total_delta_budget < 1):
             raise ValueError(f"delta budget must be in (0,1), got {total_delta_budget}")
 
@@ -90,7 +85,7 @@ class PrivacyAccountant:
         self.composition_type = composition_type
 
         # Ledger of privacy spending
-        self._spending_history: List[PrivacySpending] = []
+        self._spending_history: list[PrivacySpending] = []
 
         # Current spent budget
         self._epsilon_spent = 0.0
@@ -102,7 +97,7 @@ class PrivacyAccountant:
         delta: float,
         operation: str,
         mechanism: str,
-        metadata: Optional[Dict] = None,
+        metadata: dict | None = None,
     ) -> bool:
         """
         Record a privacy-consuming operation.
@@ -152,9 +147,7 @@ class PrivacyAccountant:
 
         return True
 
-    def _compute_composition(
-        self, new_epsilon: float, new_delta: float
-    ) -> Tuple[float, float]:
+    def _compute_composition(self, new_epsilon: float, new_delta: float) -> tuple[float, float]:
         """
         Compute total privacy cost using composition theorem.
 
@@ -182,9 +175,7 @@ class PrivacyAccountant:
         else:
             raise ValueError(f"Unknown composition type: {self.composition_type}")
 
-    def _basic_composition(
-        self, new_epsilon: float, new_delta: float
-    ) -> Tuple[float, float]:
+    def _basic_composition(self, new_epsilon: float, new_delta: float) -> tuple[float, float]:
         """
         Basic composition: ε_total = Σε_i, δ_total = Σδ_i.
 
@@ -194,9 +185,7 @@ class PrivacyAccountant:
         total_delta = self._delta_spent + new_delta
         return (total_epsilon, total_delta)
 
-    def _advanced_composition(
-        self, new_epsilon: float, new_delta: float
-    ) -> Tuple[float, float]:
+    def _advanced_composition(self, new_epsilon: float, new_delta: float) -> tuple[float, float]:
         """
         Advanced composition theorem.
 
@@ -212,9 +201,7 @@ class PrivacyAccountant:
         # TODO: Implement advanced composition formula
         return self._basic_composition(new_epsilon, new_delta)
 
-    def _moments_composition(
-        self, new_epsilon: float, new_delta: float
-    ) -> Tuple[float, float]:
+    def _moments_composition(self, new_epsilon: float, new_delta: float) -> tuple[float, float]:
         """
         Moments accountant (Renyi DP composition).
 
@@ -227,7 +214,7 @@ class PrivacyAccountant:
         # TODO: Implement moments accountant
         return self._basic_composition(new_epsilon, new_delta)
 
-    def get_remaining_budget(self) -> Dict[str, float]:
+    def get_remaining_budget(self) -> dict[str, float]:
         """
         Get remaining privacy budget.
 
@@ -253,12 +240,9 @@ class PrivacyAccountant:
             True if operation is within budget
         """
         new_epsilon, new_delta = self._compute_composition(epsilon, delta)
-        return (
-            new_epsilon <= self.total_epsilon_budget
-            and new_delta <= self.total_delta_budget
-        )
+        return new_epsilon <= self.total_epsilon_budget and new_delta <= self.total_delta_budget
 
-    def get_spending_history(self) -> List[PrivacySpending]:
+    def get_spending_history(self) -> list[PrivacySpending]:
         """Get history of all privacy-consuming operations."""
         return self._spending_history.copy()
 
@@ -268,7 +252,7 @@ class PrivacyAccountant:
         self._epsilon_spent = 0.0
         self._delta_spent = 0.0
 
-    def summary(self) -> Dict:
+    def summary(self) -> dict:
         """
         Get summary statistics of privacy spending.
 

@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import numpy as np
 
@@ -15,9 +15,7 @@ import numpy as np
 class MilvusBackend:
     """Milvus 后端管理器（支持本地 Milvus Lite 与远程 Milvus）"""
 
-    def __init__(
-        self, config: Dict[str, Any], logger: Union[logging.Logger, Any] = None
-    ):
+    def __init__(self, config: dict[str, Any], logger: logging.Logger | Any = None):
         """
         初始化 Milvus 后端
 
@@ -31,14 +29,12 @@ class MilvusBackend:
         # 连接与集合配置
         self.host: str = self.config.get("host", "localhost")
         self.port: int = int(self.config.get("port", 19530))
-        self.persistence_path: Optional[str] = self.config.get(
+        self.persistence_path: str | None = self.config.get(
             "persistence_path", "./milvus_db"
         )  # 可选，优先级高于 host/port
 
-        self.collection_name: str = self.config.get(
-            "collection_name", "retriever_collection"
-        )
-        self.dim: Optional[int] = self.config.get("dim", 1024)  # 稠密向量维度
+        self.collection_name: str = self.config.get("collection_name", "retriever_collection")
+        self.dim: int | None = self.config.get("dim", 1024)  # 稠密向量维度
         raw_metric_type = self.config.get("metric_type")
         if not raw_metric_type:
             # 未提供则默认 COSINE，不做校验
@@ -55,9 +51,7 @@ class MilvusBackend:
         self.drop_ratio_search = self.config.get(
             "drop_ratio_search", 0.2
         )  # 稀疏向量搜索时，drop 比例
-        self.search_type = self.config.get(
-            "search_type", "sparse"
-        )  # 搜索类型，sparse 或 dense
+        self.search_type = self.config.get("search_type", "sparse")  # 搜索类型，sparse 或 dense
         self.dense_insert_batch_size = self.config.get(
             "dense_insert_batch_size", 128
         )  # 稠密向量插入批次大小
@@ -73,9 +67,7 @@ class MilvusBackend:
             from pymilvus import MilvusClient
 
             # 判断使用本地还是远程模式
-            if self.host in ["localhost", "127.0.0.1"] and not self.config.get(
-                "force_http", False
-            ):
+            if self.host in ["localhost", "127.0.0.1"] and not self.config.get("force_http", False):
 
                 self.client = MilvusClient(self.persistence_path or "./milvus.db")
                 self.logger.info(
@@ -111,9 +103,7 @@ class MilvusBackend:
             try:
                 # 通过检查集合是否能正常查询来验证集合存在
                 self.client.load_collection(collection_name=self.collection_name)
-                self.logger.info(
-                    f"Retrieved existing Milvus collection: {self.collection_name}"
-                )
+                self.logger.info(f"Retrieved existing Milvus collection: {self.collection_name}")
                 return
             except Exception:
                 # 集合不存在，需要创建新集合
@@ -137,14 +127,10 @@ class MilvusBackend:
                         is_primary=True,
                         auto_id=False,
                     )
-                    schema.add_field(
-                        "text", DataType.VARCHAR, max_length=2000
-                    )  # 文本字段
+                    schema.add_field("text", DataType.VARCHAR, max_length=2000)  # 文本字段
                     self.logger.info(self.search_type + "=" * 60)
                     if self.search_type == "sparse":
-                        schema.add_field(
-                            "sparse", DataType.SPARSE_FLOAT_VECTOR
-                        )  # 稀疏向量字段
+                        schema.add_field("sparse", DataType.SPARSE_FLOAT_VECTOR)  # 稀疏向量字段
 
                         index_params.add_index(
                             field_name="sparse",
@@ -153,9 +139,7 @@ class MilvusBackend:
                         )
 
                     if self.search_type == "dense":
-                        schema.add_field(
-                            "dense", DataType.FLOAT_VECTOR, dim=self.dim
-                        )  # 稠密向量
+                        schema.add_field("dense", DataType.FLOAT_VECTOR, dim=self.dim)  # 稠密向量
 
                         index_params.add_index(
                             field_name="dense",
@@ -184,10 +168,10 @@ class MilvusBackend:
 
     def add_dense_documents(
         self,
-        documents: List[str],
-        dense_embeddings: List[np.ndarray],
-        doc_ids: List[str],
-    ) -> List[str]:
+        documents: list[str],
+        dense_embeddings: list[np.ndarray],
+        doc_ids: list[str],
+    ) -> list[str]:
         """
         添加稠密向量文档，防止内存溢出，分批插入
 
@@ -200,14 +184,10 @@ class MilvusBackend:
         """
         try:
             # 转换 embedding 格式（milvus 需要 list 格式）
-            dense_embeddings_list = [
-                embedding.tolist() for embedding in dense_embeddings
-            ]
+            dense_embeddings_list = [embedding.tolist() for embedding in dense_embeddings]
             docs = []
             # 生成文档ID
-            doc_ids = [
-                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-            ]
+            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
             for i in range(len(documents)):
                 docs.append(
                     {
@@ -235,8 +215,8 @@ class MilvusBackend:
             return []
 
     def add_sparse_documents(
-        self, documents: List[str], sparse_embeddings, doc_ids: List[str]
-    ) -> List[str]:
+        self, documents: list[str], sparse_embeddings, doc_ids: list[str]
+    ) -> list[str]:
         """
         添加稀疏向量文档
 
@@ -258,33 +238,23 @@ class MilvusBackend:
                     # scipy sparse matrix to dict
                     coo = sparse_vector.tocoo()
                     sparse_dict = {
-                        int(idx): float(val) for idx, val in zip(coo.col, coo.data)
+                        int(idx): float(val) for idx, val in zip(coo.col, coo.data, strict=False)
                     }
-                elif hasattr(sparse_vector, "indices") and hasattr(
-                    sparse_vector, "data"
-                ):
+                elif hasattr(sparse_vector, "indices") and hasattr(sparse_vector, "data"):
                     # 处理 csr_array 格式
                     sparse_dict = {
                         int(idx): float(val)
-                        for idx, val in zip(sparse_vector.indices, sparse_vector.data)
+                        for idx, val in zip(sparse_vector.indices, sparse_vector.data, strict=False)
                     }
                 elif isinstance(sparse_vector, dict):
                     # 已经是字典格式
                     sparse_dict = sparse_vector
                 else:
                     # 尝试转换为字典
-                    self.logger.warning(
-                        f"Unknown sparse vector format: {type(sparse_vector)}"
-                    )
-                    sparse_dict = (
-                        dict(sparse_vector)
-                        if hasattr(sparse_vector, "__iter__")
-                        else {}
-                    )
+                    self.logger.warning(f"Unknown sparse vector format: {type(sparse_vector)}")
+                    sparse_dict = dict(sparse_vector) if hasattr(sparse_vector, "__iter__") else {}
 
-                docs.append(
-                    {"id": doc_ids[i], "text": documents[i], "sparse": sparse_dict}
-                )
+                docs.append({"id": doc_ids[i], "text": documents[i], "sparse": sparse_dict})
 
             # 插入数据
             self.client.insert(collection_name=self.collection_name, data=docs)
@@ -297,7 +267,7 @@ class MilvusBackend:
             self.logger.error(f"Error adding sparse documents to Milvus: {e}")
             return []
 
-    def sparse_search(self, query_text: str, top_k: int) -> List[str]:
+    def sparse_search(self, query_text: str, top_k: int) -> list[str]:
         """
         在 Milvus 中执行稀疏向量搜索
 
@@ -339,25 +309,21 @@ class MilvusBackend:
                 # scipy sparse matrix to dict
                 coo = sparse_vector.tocoo()
                 query_vector = {
-                    int(idx): float(val) for idx, val in zip(coo.col, coo.data)
+                    int(idx): float(val) for idx, val in zip(coo.col, coo.data, strict=False)
                 }
             elif hasattr(sparse_vector, "indices") and hasattr(sparse_vector, "data"):
                 # 处理 csr_array 格式
                 query_vector = {
                     int(idx): float(val)
-                    for idx, val in zip(sparse_vector.indices, sparse_vector.data)
+                    for idx, val in zip(sparse_vector.indices, sparse_vector.data, strict=False)
                 }
             elif isinstance(sparse_vector, dict):
                 # 已经是字典格式
                 query_vector = sparse_vector
             else:
                 # 尝试转换为字典
-                self.logger.warning(
-                    f"Unknown sparse vector format: {type(sparse_vector)}"
-                )
-                query_vector = (
-                    dict(sparse_vector) if hasattr(sparse_vector, "__iter__") else {}
-                )
+                self.logger.warning(f"Unknown sparse vector format: {type(sparse_vector)}")
+                query_vector = dict(sparse_vector) if hasattr(sparse_vector, "__iter__") else {}
 
             # 执行搜索
             hits = self.client.search(
@@ -380,7 +346,7 @@ class MilvusBackend:
             self.logger.error(f"Error executing Milvus sparse search: {e}")
             return []
 
-    def dense_search(self, query_vector: np.ndarray, top_k: int) -> List[str]:
+    def dense_search(self, query_vector: np.ndarray, top_k: int) -> list[str]:
         """
         在 Milvus 中执行稠密向量搜索
 
@@ -423,7 +389,7 @@ class MilvusBackend:
             self.logger.error(f"Error deleting Milvus collection: {e}")
             return False
 
-    def get_collection_info(self) -> Dict[str, Any]:
+    def get_collection_info(self) -> dict[str, Any]:
         """
         获取集合信息
 
@@ -495,7 +461,7 @@ class MilvusBackend:
         try:
             config_path = os.path.join(load_path, "milvus_config.json")
             if os.path.exists(config_path):
-                with open(config_path, "r", encoding="utf-8") as f:
+                with open(config_path, encoding="utf-8") as f:
                     config_info = json.load(f)
                 collection_name = config_info.get("collection_name")
                 if collection_name:
@@ -531,7 +497,7 @@ class MilvusBackend:
         """
         try:
             self.logger.info(f"Loading knowledge from file: {file_path}")
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # 将知识库按段落分割
@@ -539,9 +505,7 @@ class MilvusBackend:
 
             if documents:
                 # 生成文档ID
-                doc_ids = [
-                    f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-                ]
+                doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
 
                 # 生成 embedding
                 embeddings = []
@@ -550,9 +514,7 @@ class MilvusBackend:
                     embeddings.append(np.array(embedding, dtype=np.float32))
 
                 # dense 向量添加到 Milvus
-                added_dense_ids = self.add_dense_documents(
-                    documents, embeddings, doc_ids
-                )
+                added_dense_ids = self.add_dense_documents(documents, embeddings, doc_ids)
 
                 if added_dense_ids:
                     self.logger.info(
@@ -582,7 +544,7 @@ class MilvusBackend:
         """
         try:
             self.logger.info(f"Loading knowledge from file: {file_path}")
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # 将知识库按段落分割
@@ -590,40 +552,29 @@ class MilvusBackend:
 
             if documents:
                 # 生成文档ID
-                doc_ids = [
-                    f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-                ]
+                doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
 
                 try:
                     from pymilvus.model.hybrid import BGEM3EmbeddingFunction
 
-                    embedding_model = BGEM3EmbeddingFunction(
-                        use_fp16=False, device="cpu"
-                    )
+                    embedding_model = BGEM3EmbeddingFunction(use_fp16=False, device="cpu")
 
                     # 生成 sparse embedding
                     sparse_embeddings = embedding_model.encode_documents(documents)
 
                     # 提取稀疏向量部分
-                    if (
-                        isinstance(sparse_embeddings, dict)
-                        and "sparse" in sparse_embeddings
-                    ):
+                    if isinstance(sparse_embeddings, dict) and "sparse" in sparse_embeddings:
                         embeddings = sparse_embeddings["sparse"]
                     else:
                         # 如果返回格式不同，直接使用
                         embeddings = sparse_embeddings
 
                 except Exception as e:
-                    self.logger.error(
-                        f"Failed to import or use BGEM3EmbeddingFunction: {e}"
-                    )
+                    self.logger.error(f"Failed to import or use BGEM3EmbeddingFunction: {e}")
                     raise
 
                 # sparse 向量添加到 Milvus
-                added_sparse_ids = self.add_sparse_documents(
-                    documents, embeddings, doc_ids
-                )
+                added_sparse_ids = self.add_sparse_documents(documents, embeddings, doc_ids)
 
                 if added_sparse_ids:
                     self.logger.info(
@@ -645,29 +596,21 @@ class MilvusBackend:
         """清空集合中的所有文档，保留集合结构与索引"""
         try:
             # 通过过滤条件删除全部实体（匹配所有非空字符串id）
-            delete_result = self.client.delete(
-                collection_name=self.collection_name, filter='id != ""'
-            )
-            self.logger.info(
-                f"Cleared documents in Milvus collection '{self.collection_name}'"
-            )
+            self.client.delete(collection_name=self.collection_name, filter='id != ""')
+            self.logger.info(f"Cleared documents in Milvus collection '{self.collection_name}'")
             return True
         except Exception as e:
             self.logger.error(f"Failed to clear Milvus collection: {e}")
             return False
 
-    def update_document(
-        self, doc_id: str, new_content: str, new_embedding: np.ndarray
-    ) -> bool:
+    def update_document(self, doc_id: str, new_content: str, new_embedding: np.ndarray) -> bool:
         """
         更新指定文档
         """
         try:
             self.client.upsert(  # type: ignore[attr-defined]
                 collection_name=self.collection_name,
-                data=[
-                    {"id": doc_id, "text": new_content, "dense": new_embedding.tolist()}
-                ],
+                data=[{"id": doc_id, "text": new_content, "dense": new_embedding.tolist()}],
             )
             self.logger.info(
                 f"Updated document {doc_id} in Milvus collection '{self.collection_name}'"
@@ -684,9 +627,7 @@ class MilvusBackend:
         删除指定文档
         """
         try:
-            self.client.delete(
-                collection_name=self.collection_name, filter=f'id == "{doc_id}"'
-            )
+            self.client.delete(collection_name=self.collection_name, filter=f'id == "{doc_id}"')
             self.logger.info(
                 f"Deleted document {doc_id} in Milvus collection '{self.collection_name}'"
             )
@@ -714,7 +655,7 @@ class MilvusUtils:
             return False
 
     @staticmethod
-    def validate_milvus_config(config: Dict[str, Any]) -> bool:
+    def validate_milvus_config(config: dict[str, Any]) -> bool:
         """
         验证 Milvus 配置的有效性
         """

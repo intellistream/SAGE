@@ -323,9 +323,7 @@ def parse_and_validate_dialogs(
     return _global_parser.parse_and_validate(dialogs, required_fields, strict_mode)
 
 
-def validate_dialog(
-    dialog: Dict[str, Any], required_fields: Optional[List[str]] = None
-) -> bool:
+def validate_dialog(dialog: Dict[str, Any], required_fields: Optional[List[str]] = None) -> bool:
     """
     全局便捷函数：验证单个对话格式
 
@@ -409,7 +407,7 @@ if __name__ == "__main__":
         print(f"说话者: {info['speaker']}")
         print(f"消息类型: {info['session_type']}")
         print(f"文本预览: {info['text_preview']}")
-        print(f"✓ 成功提取对话信息\n")
+        print("✓ 成功提取对话信息\n")
 
         # 测试5: 使用全局便捷函数
         print("测试5: 使用全局便捷函数")

@@ -56,7 +56,7 @@ class OpenAIClient:
             temperature = kwargs.get("temperature", 1.0)
             top_p = kwargs.get("top_p", None)
             stream = bool(kwargs.get("stream", False))
-            frequency_penalty = kwargs.get("frequency_penalty", 0)
+            kwargs.get("frequency_penalty", 0)
             n = int(kwargs.get("n", 1))
             want_logprobs = bool(kwargs.get("logprobs", False))
 
@@ -65,9 +65,7 @@ class OpenAIClient:
             # 注意：vLLM 要求通过 chat_template_kwargs 传递给 chat template
             extra_body = {}
             if "enable_thinking" in kwargs:
-                extra_body["chat_template_kwargs"] = {
-                    "enable_thinking": kwargs["enable_thinking"]
-                }
+                extra_body["chat_template_kwargs"] = {"enable_thinking": kwargs["enable_thinking"]}
 
             # -------- 兼容 messages 形态 --------
             # dict => 包成单元素 list

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -51,15 +50,13 @@ def build_fallback_config(dimension: int = 8) -> _sage_db.DatabaseConfig:
     return cfg
 
 
-def generate_vectors(
-    dim: int, count: int = 64
-) -> Tuple[np.ndarray, List[Dict[str, str]]]:
+def generate_vectors(dim: int, count: int = 64) -> tuple[np.ndarray, list[dict[str, str]]]:
     rng = np.random.default_rng(seed=13)
     raw = rng.normal(size=(count, dim)).astype("float32")
     # Normalise to unit vectors for cosine distance
     norms = np.linalg.norm(raw, axis=1, keepdims=True) + 1e-12
     vectors = raw / norms
-    metadata: List[Dict[str, str]] = []
+    metadata: list[dict[str, str]] = []
     for idx in range(count):
         metadata.append(
             {
@@ -72,7 +69,7 @@ def generate_vectors(
 
 
 def ingest_numpy_batch(
-    db: _sage_db.SageDB, vectors: np.ndarray, metadata: List[Dict[str, str]]
+    db: _sage_db.SageDB, vectors: np.ndarray, metadata: list[dict[str, str]]
 ) -> None:
     print(f"➕ ingesting {len(vectors)} vectors via add_batch (numpy)")
     _sage_db.add_numpy(db, vectors, metadata)

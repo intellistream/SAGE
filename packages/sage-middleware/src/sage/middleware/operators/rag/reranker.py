@@ -1,6 +1,10 @@
-from typing import Any, Dict, List, Tuple
-
 import torch
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
+
 from sage.kernel.operators import MapOperator
 from sage.middleware.operators.rag.types import (
     RAGInput,
@@ -8,11 +12,6 @@ from sage.middleware.operators.rag.types import (
     create_rag_response,
     extract_query,
     extract_results,
-)
-from transformers import (
-    AutoModelForCausalLM,
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
 )
 
 
@@ -59,9 +58,7 @@ class BGEReranker(MapOperator):
         try:
             self.logger.info(f"Loading reranker: {model_name}")
             tokenizer = AutoTokenizer.from_pretrained(model_name)  # Load the tokenizer
-            model = AutoModelForSequenceClassification.from_pretrained(
-                model_name
-            )  # Load the model
+            model = AutoModelForSequenceClassification.from_pretrained(model_name)  # Load the model
             return tokenizer, model
         except Exception as e:
             self.logger.error(f"Failed to load model {model_name}: {str(e)}")
@@ -94,9 +91,7 @@ class BGEReranker(MapOperator):
 
             # Handle empty document set case
             if not doc_set:
-                print(
-                    "BGEReranker received empty document set, returning empty results"
-                )
+                print("BGEReranker received empty document set, returning empty results")
                 # 统一返回 dict 格式
                 return create_rag_response(query, [])
 
@@ -122,13 +117,13 @@ class BGEReranker(MapOperator):
             # Create a list of scored documents
             scored_docs = [
                 {"retrieved_docs": doc, "relevance_score": score}
-                for doc, score in zip(doc_set, scores)
+                for doc, score in zip(doc_set, scores, strict=False)
             ]
 
             # Sort the documents by relevance score in descending order
-            reranked_docs = sorted(
-                scored_docs, key=lambda x: x["relevance_score"], reverse=True
-            )[:top_k]
+            reranked_docs = sorted(scored_docs, key=lambda x: x["relevance_score"], reverse=True)[
+                :top_k
+            ]
             reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list}\033[0m "
@@ -213,12 +208,10 @@ class LLMbased_Reranker(MapOperator):
             prompt = "Given a query A and a passage B, determine whether the passage contains an answer to the query by providing a prediction of either 'Yes' or 'No'."
 
         sep = "\n"
-        prompt_inputs = tokenizer(
-            prompt, return_tensors=None, add_special_tokens=False
-        )["input_ids"]
-        sep_inputs = tokenizer(sep, return_tensors=None, add_special_tokens=False)[
+        prompt_inputs = tokenizer(prompt, return_tensors=None, add_special_tokens=False)[
             "input_ids"
         ]
+        sep_inputs = tokenizer(sep, return_tensors=None, add_special_tokens=False)["input_ids"]
 
         inputs = []
         for query, passage in pairs:
@@ -303,7 +296,7 @@ class LLMbased_Reranker(MapOperator):
                 # Create a list of scored documents
                 scored_docs = [
                     {"retrieved_docs": doc, "relevance_score": score}
-                    for doc, score in zip(retrieved_docs, scores)
+                    for doc, score in zip(retrieved_docs, scores, strict=False)
                 ]
 
                 # Sort the documents by relevance score in descending order

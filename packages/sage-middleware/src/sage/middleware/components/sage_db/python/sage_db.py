@@ -5,7 +5,8 @@ This module exposes Python APIs backed by the compiled _sage_db extension.
 It supports efficient similarity search, metadata filtering, and hybrid search.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 
@@ -128,8 +129,8 @@ class SageDB:
 
     def add(
         self,
-        vector: Union[List[float], np.ndarray],
-        metadata: Optional[Dict[str, str]] = None,
+        vector: list[float] | np.ndarray,
+        metadata: dict[str, str] | None = None,
     ) -> int:
         if isinstance(vector, np.ndarray):
             vector = vector.tolist()
@@ -137,9 +138,9 @@ class SageDB:
 
     def add_batch(
         self,
-        vectors: Union[List[List[float]], np.ndarray],
-        metadata: Optional[List[Dict[str, str]]] = None,
-    ) -> List[int]:
+        vectors: list[list[float]] | np.ndarray,
+        metadata: list[dict[str, str]] | None = None,
+    ) -> list[int]:
         if isinstance(vectors, np.ndarray):
             if len(vectors.shape) != 2:
                 raise ValueError("Vectors array must be 2-dimensional")
@@ -149,38 +150,38 @@ class SageDB:
 
     def search(
         self,
-        query: Union[List[float], np.ndarray],
+        query: list[float] | np.ndarray,
         k: int = 10,
         include_metadata: bool = True,
-    ) -> List[QueryResult]:
+    ) -> list[QueryResult]:
         if isinstance(query, np.ndarray):
             return _sage_db.search_numpy(self._db, query, SearchParams(k))
         return self._db.search(query, k, include_metadata)
 
     def search_with_params(
-        self, query: Union[List[float], np.ndarray], params: SearchParams
-    ) -> List[QueryResult]:
+        self, query: list[float] | np.ndarray, params: SearchParams
+    ) -> list[QueryResult]:
         if isinstance(query, np.ndarray):
             return _sage_db.search_numpy(self._db, query, params)
         return self._db.search(query, params)
 
     def filtered_search(
         self,
-        query: Union[List[float], np.ndarray],
+        query: list[float] | np.ndarray,
         params: SearchParams,
-        filter_fn: Callable[[Dict[str, str]], bool],
-    ) -> List[QueryResult]:
+        filter_fn: Callable[[dict[str, str]], bool],
+    ) -> list[QueryResult]:
         if isinstance(query, np.ndarray):
             query = query.tolist()
         return self._db.filtered_search(query, params, filter_fn)
 
     def search_by_metadata(
         self,
-        query: Union[List[float], np.ndarray],
+        query: list[float] | np.ndarray,
         params: SearchParams,
         metadata_key: str,
         metadata_value: str,
-    ) -> List[QueryResult]:
+    ) -> list[QueryResult]:
         if isinstance(query, np.ndarray):
             query = query.tolist()
         return self._db.query_engine().search_with_metadata(
@@ -189,12 +190,12 @@ class SageDB:
 
     def hybrid_search(
         self,
-        query: Union[List[float], np.ndarray],
+        query: list[float] | np.ndarray,
         params: SearchParams,
         text_query: str = "",
         vector_weight: float = 0.7,
         text_weight: float = 0.3,
-    ) -> List[QueryResult]:
+    ) -> list[QueryResult]:
         if isinstance(query, np.ndarray):
             query = query.tolist()
         return self._db.query_engine().hybrid_search(
@@ -204,15 +205,11 @@ class SageDB:
     def build_index(self):
         self._db.build_index()
 
-    def train_index(
-        self, training_vectors: Optional[Union[List[List[float]], np.ndarray]] = None
-    ):
+    def train_index(self, training_vectors: list[list[float]] | np.ndarray | None = None):
         if training_vectors is None:
             self._db.train_index()
         elif isinstance(training_vectors, np.ndarray):
-            training_list = [
-                training_vectors[i].tolist() for i in range(training_vectors.shape[0])
-            ]
+            training_list = [training_vectors[i].tolist() for i in range(training_vectors.shape[0])]
             self._db.train_index(training_list)
         else:
             self._db.train_index(training_vectors)
@@ -220,13 +217,13 @@ class SageDB:
     def is_trained(self) -> bool:
         return self._db.is_trained()
 
-    def set_metadata(self, vector_id: int, metadata: Dict[str, str]) -> bool:
+    def set_metadata(self, vector_id: int, metadata: dict[str, str]) -> bool:
         return self._db.set_metadata(vector_id, metadata)
 
-    def get_metadata(self, vector_id: int) -> Optional[Dict[str, str]]:
+    def get_metadata(self, vector_id: int) -> dict[str, str] | None:
         return self._db.get_metadata(vector_id)
 
-    def find_by_metadata(self, key: str, value: str) -> List[int]:
+    def find_by_metadata(self, key: str, value: str) -> list[int]:
         return self._db.find_by_metadata(key, value)
 
     def save(self, filepath: str):
@@ -247,7 +244,7 @@ class SageDB:
     def index_type(self) -> IndexType:
         return self._db.index_type()
 
-    def get_search_stats(self) -> Dict[str, Any]:
+    def get_search_stats(self) -> dict[str, Any]:
         stats = self._db.query_engine().get_last_search_stats()
         return {
             "total_candidates": stats.total_candidates,

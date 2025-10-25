@@ -17,11 +17,11 @@ from typing import Any, Dict, List
 # Try regular imports first; fall back to repo-relative paths when running
 # directly from the source tree without installing the package.
 try:
-    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.common.core.functions.batch_function import BatchFunction
     from sage.common.core.functions.map_function import MapFunction
     from sage.common.core.functions.sink_function import SinkFunction
     from sage.common.core.functions.source_function import SourceFunction
+    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
 except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
@@ -83,9 +83,7 @@ class ServiceDrivenSource(SourceFunction):
         if isinstance(request, StopSignal):
             return request
 
-        return PipelinePayload(
-            order=request.payload, response_queue=request.response_queue
-        )
+        return PipelinePayload(order=request.payload, response_queue=request.response_queue)
 
 
 class OrderSource(BatchFunction):
@@ -251,9 +249,7 @@ class OrderPipelineService(BaseService):
         try:
             return response_queue.get(timeout=self._request_timeout)
         except queue.Empty as exc:
-            raise TimeoutError(
-                "Pipeline service timed out waiting for a reply"
-            ) from exc
+            raise TimeoutError("Pipeline service timed out waiting for a reply") from exc
 
 
 class InvokePipeline(MapFunction):

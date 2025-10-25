@@ -6,8 +6,9 @@ from __future__ import annotations
 import copy
 import re
 import textwrap
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 
 def _slugify(value: str) -> str:
@@ -37,11 +38,11 @@ class SourceSpec:
     title: str
     class_path: str
     kind: str = "source"
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     summary: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_plan(self) -> Dict[str, Any]:
+    def to_plan(self) -> dict[str, Any]:
         return {
             "class": self.class_path,
             "kind": self.kind,
@@ -49,7 +50,7 @@ class SourceSpec:
             "summary": self.summary,
         }
 
-    def to_graph_node(self, outputs: Sequence[str]) -> Dict[str, Any]:
+    def to_graph_node(self, outputs: Sequence[str]) -> dict[str, Any]:
         node = {
             "id": self.id,
             "title": self.title,
@@ -70,11 +71,11 @@ class StageSpec:
     title: str
     kind: str
     class_path: str
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     summary: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_plan(self) -> Dict[str, Any]:
+    def to_plan(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "kind": self.kind,
@@ -83,9 +84,7 @@ class StageSpec:
             "summary": self.summary,
         }
 
-    def to_graph_node(
-        self, inputs: Sequence[str], outputs: Sequence[str]
-    ) -> Dict[str, Any]:
+    def to_graph_node(self, inputs: Sequence[str], outputs: Sequence[str]) -> dict[str, Any]:
         node = {
             "id": self.id,
             "title": self.title,
@@ -108,11 +107,11 @@ class SinkSpec:
     title: str
     class_path: str
     kind: str = "sink"
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     summary: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_plan(self) -> Dict[str, Any]:
+    def to_plan(self) -> dict[str, Any]:
         plan = {
             "class": self.class_path,
             "params": copy.deepcopy(self.params),
@@ -122,7 +121,7 @@ class SinkSpec:
             plan["kind"] = self.kind
         return plan
 
-    def to_graph_node(self, inputs: Sequence[str]) -> Dict[str, Any]:
+    def to_graph_node(self, inputs: Sequence[str]) -> dict[str, Any]:
         node = {
             "id": self.id,
             "title": self.title,
@@ -142,17 +141,17 @@ class PipelineBlueprint:
     id: str
     title: str
     description: str
-    keywords: Tuple[str, ...]
+    keywords: tuple[str, ...]
     source: SourceSpec
-    stages: Tuple[StageSpec, ...]
+    stages: tuple[StageSpec, ...]
     sink: SinkSpec
-    services: Tuple[Dict[str, Any], ...] = ()
-    monitors: Tuple[Dict[str, Any], ...] = ()
-    notes: Tuple[str, ...] = ()
-    graph_channels: Tuple[Dict[str, Any], ...] = ()
-    graph_agents: Tuple[Dict[str, Any], ...] = ()
+    services: tuple[dict[str, Any], ...] = ()
+    monitors: tuple[dict[str, Any], ...] = ()
+    notes: tuple[str, ...] = ()
+    graph_channels: tuple[dict[str, Any], ...] = ()
+    graph_agents: tuple[dict[str, Any], ...] = ()
 
-    def render_notes(self, feedback: Optional[str]) -> List[str]:
+    def render_notes(self, feedback: str | None) -> list[str]:
         notes = list(self.notes)
         if feedback and feedback.strip():
             notes.append(f"反馈: {feedback.strip()}")
@@ -161,7 +160,7 @@ class PipelineBlueprint:
         return notes
 
 
-BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
+BLUEPRINT_LIBRARY: tuple[PipelineBlueprint, ...] = (
     PipelineBlueprint(
         id="rag-simple-demo",
         title="Simple RAG Demo",
@@ -894,8 +893,8 @@ BLUEPRINT_LIBRARY: Tuple[PipelineBlueprint, ...] = (
 DEFAULT_BLUEPRINT = BLUEPRINT_LIBRARY[0]
 
 
-def requirements_text(requirements: Dict[str, Any]) -> str:
-    parts: List[str] = []
+def requirements_text(requirements: dict[str, Any]) -> str:
+    parts: list[str] = []
     for key in (
         "goal",
         "initial_prompt",
@@ -917,9 +916,7 @@ def requirements_text(requirements: Dict[str, Any]) -> str:
     return " ".join(parts).lower()
 
 
-def compute_match_score(
-    requirements: Dict[str, Any], blueprint: PipelineBlueprint
-) -> float:
+def compute_match_score(requirements: dict[str, Any], blueprint: PipelineBlueprint) -> float:
     text = requirements_text(requirements)
     if not text:
         return 0.2
@@ -947,12 +944,11 @@ def compute_match_score(
 
 
 def match_blueprints(
-    requirements: Dict[str, Any],
+    requirements: dict[str, Any],
     top_k: int = 3,
-) -> List[Tuple[PipelineBlueprint, float]]:
+) -> list[tuple[PipelineBlueprint, float]]:
     candidates = [
-        (blueprint, compute_match_score(requirements, blueprint))
-        for blueprint in BLUEPRINT_LIBRARY
+        (blueprint, compute_match_score(requirements, blueprint)) for blueprint in BLUEPRINT_LIBRARY
     ]
     candidates.sort(key=lambda item: item[1], reverse=True)
     top = candidates[: top_k or 1]
@@ -961,15 +957,15 @@ def match_blueprints(
     return top
 
 
-def select_blueprint(requirements: Dict[str, Any]) -> PipelineBlueprint:
+def select_blueprint(requirements: dict[str, Any]) -> PipelineBlueprint:
     return match_blueprints(requirements, top_k=1)[0][0]
 
 
 def build_pipeline_plan(
     blueprint: PipelineBlueprint,
-    requirements: Dict[str, Any],
-    feedback: Optional[str] = None,
-) -> Dict[str, Any]:
+    requirements: dict[str, Any],
+    feedback: str | None = None,
+) -> dict[str, Any]:
     plan = {
         "pipeline": {
             "name": _slugify(requirements.get("name") or blueprint.id),
@@ -989,11 +985,11 @@ def build_pipeline_plan(
 
 def build_graph_plan(
     blueprint: PipelineBlueprint,
-    requirements: Dict[str, Any],
-    feedback: Optional[str] = None,
-) -> Dict[str, Any]:
-    components: List[Any] = [blueprint.source, *blueprint.stages, blueprint.sink]
-    nodes: List[Dict[str, Any]] = []
+    requirements: dict[str, Any],
+    feedback: str | None = None,
+) -> dict[str, Any]:
+    components: list[Any] = [blueprint.source, *blueprint.stages, blueprint.sink]
+    nodes: list[dict[str, Any]] = []
 
     for index, component in enumerate(components):
         prev_id = components[index - 1].id if index > 0 else None
@@ -1043,10 +1039,7 @@ def build_graph_plan(
 def render_blueprint_prompt(blueprint: PipelineBlueprint, score: float) -> str:
     component_lines = [
         f"source → {blueprint.source.class_path}",
-        *[
-            f"{stage.id} ({stage.kind}) → {stage.class_path}"
-            for stage in blueprint.stages
-        ],
+        *[f"{stage.id} ({stage.kind}) → {stage.class_path}" for stage in blueprint.stages],
         f"sink → {blueprint.sink.class_path}",
     ]
     components_block = "\n".join(f"- {line}" for line in component_lines)

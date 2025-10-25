@@ -1,8 +1,7 @@
-from typing import List
-
-from sage.kernel.operators import MapOperator
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
+
+from sage.kernel.operators import MapOperator
 
 
 class CharacterSplitter(MapOperator):
@@ -25,7 +24,7 @@ class CharacterSplitter(MapOperator):
         self.overlap = self.config.get("overlap", 128)
         self.separator = self.config.get("separator", None)
 
-    def _split_text(self, text: str) -> List[str]:
+    def _split_text(self, text: str) -> list[str]:
         """
         支持用户指定分割符分块，否则按字符分块。
         """
@@ -47,7 +46,7 @@ class CharacterSplitter(MapOperator):
             start = next_start
         return chunks
 
-    def execute(self, document: dict) -> List[str]:
+    def execute(self, document: dict) -> list[str]:
         """
         接收 document 对象，分割其 content 字段为 chunk。
         :param document: {"content": ..., "metadata": ...}
@@ -77,9 +76,7 @@ class SentenceTransformersTokenTextSplitter(MapOperator):
     def __init__(self, config: dict) -> None:
         super().__init__()
         self.config = config.get("chunk", {})
-        self.model_name = self.config.get(
-            "model_name", "sentence-transformers/all-mpnet-base-v2"
-        )
+        self.model_name = self.config.get("model_name", "sentence-transformers/all-mpnet-base-v2")
         self.chunk_size = self.config.get("chunk_size", 512)
         self.chunk_overlap = self.config.get("chunk_overlap", 50)
 
@@ -102,7 +99,7 @@ class SentenceTransformersTokenTextSplitter(MapOperator):
         if self.chunk_size <= 0:
             raise ValueError("Chunk size must be greater than 0.")
 
-    def split_text_on_tokens(self, text: str) -> List[str]:
+    def split_text_on_tokens(self, text: str) -> list[str]:
         """
         Splits incoming text into smaller chunks using the tokenizer.
 
@@ -111,7 +108,7 @@ class SentenceTransformersTokenTextSplitter(MapOperator):
         """
         print(text)
         _max_length_equal_32_bit_integer: int = 2**32
-        splits: List[str] = []
+        splits: list[str] = []
         input_ids = self.tokenizer.encode(text, truncation=True, padding=False)
         start_idx = 0
 
@@ -136,7 +133,7 @@ class SentenceTransformersTokenTextSplitter(MapOperator):
 
         return splits
 
-    def execute(self, data: str) -> List[str]:
+    def execute(self, data: str) -> list[str]:
         """
         Splits the input text data into smaller token-based chunks.
 
@@ -149,9 +146,7 @@ class SentenceTransformersTokenTextSplitter(MapOperator):
             chunks = self.split_text_on_tokens(content)
             return chunks
         except Exception as e:
-            self.logger.error(
-                f"SentenceTransformersTokenTextSplitter error: {e}", exc_info=True
-            )
+            self.logger.error(f"SentenceTransformersTokenTextSplitter error: {e}", exc_info=True)
 
 
 # config={

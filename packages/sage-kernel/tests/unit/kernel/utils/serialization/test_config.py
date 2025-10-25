@@ -12,6 +12,7 @@ import threading
 from unittest.mock import Mock
 
 import pytest
+
 from sage.common.utils.serialization.config import (
     ATTRIBUTE_BLACKLIST,
     BLACKLIST,
@@ -116,8 +117,8 @@ class TestSkipValue:
         assert SKIP_VALUE is not True
         assert SKIP_VALUE != 0
         assert SKIP_VALUE != ""
-        assert SKIP_VALUE is not []
-        assert SKIP_VALUE is not {}
+        assert SKIP_VALUE != []
+        assert SKIP_VALUE != {}
 
     def test_skip_value_uniqueness(self):
         """测试SKIP_VALUE的唯一性"""
@@ -212,7 +213,7 @@ class TestExcludeListsComparison:
     def test_attribute_blacklist_vs_ray_lists(self):
         """测试通用属性黑名单与Ray专用列表的关系"""
         # Ray专用列表应该包含一些通用黑名单的属性
-        common_attrs = set(["logger", "_logger", "server_socket", "server_thread"])
+        common_attrs = {"logger", "_logger", "server_socket", "server_thread"}
 
         # 检查通用黑名单
         assert common_attrs.issubset(ATTRIBUTE_BLACKLIST)
@@ -268,9 +269,7 @@ class TestConfigurationUsageScenarios:
 
         for obj in test_objects:
             obj_type = type(obj)
-            assert (
-                obj_type in BLACKLIST
-            ), f"Object type {obj_type} should be in blacklist"
+            assert obj_type in BLACKLIST, f"Object type {obj_type} should be in blacklist"
 
     def test_attribute_filtering_scenario(self):
         """测试属性过滤场景"""
@@ -337,10 +336,7 @@ class TestConfigurationUsageScenarios:
         # 测试转换对象过滤
         transform_filtered = []
         for attr_name in dir(transformation):
-            if (
-                not attr_name.startswith("__")
-                and attr_name not in RAY_TRANSFORMATION_EXCLUDE_ATTRS
-            ):
+            if not attr_name.startswith("__") and attr_name not in RAY_TRANSFORMATION_EXCLUDE_ATTRS:
                 transform_filtered.append(attr_name)
 
         assert "transformation_data" in transform_filtered
@@ -350,10 +346,7 @@ class TestConfigurationUsageScenarios:
         # 测试算子对象过滤
         operator_filtered = []
         for attr_name in dir(operator):
-            if (
-                not attr_name.startswith("__")
-                and attr_name not in RAY_OPERATOR_EXCLUDE_ATTRS
-            ):
+            if not attr_name.startswith("__") and attr_name not in RAY_OPERATOR_EXCLUDE_ATTRS:
                 operator_filtered.append(attr_name)
 
         assert "operator_data" in operator_filtered

@@ -8,7 +8,7 @@ SAGE CLI Config Validation
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from .exceptions import ConfigurationError, ValidationError
 from .utils import load_yaml_file
@@ -41,7 +41,7 @@ class ConfigValidator:
         if validator_func:
             self.section_validators[section_name] = validator_func
 
-    def validate_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         验证配置字典
 
@@ -60,18 +60,16 @@ class ConfigValidator:
         # 检查必需节
         missing_sections = [s for s in self.required_sections if s not in config]
         if missing_sections:
-            raise ConfigurationError(
-                f"Missing required configuration sections: {missing_sections}"
-            )
+            raise ConfigurationError(f"Missing required configuration sections: {missing_sections}")
 
         # 验证各个节
         validated_config = {}
         for section_name, section_data in config.items():
             if section_name in self.section_validators:
                 try:
-                    validated_config[section_name] = self.section_validators[
-                        section_name
-                    ](section_data)
+                    validated_config[section_name] = self.section_validators[section_name](
+                        section_data
+                    )
                 except Exception as e:
                     raise ConfigurationError(
                         f"Invalid configuration in section '{section_name}': {e}"
@@ -82,7 +80,7 @@ class ConfigValidator:
         return validated_config
 
 
-def validate_head_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_head_config(config: dict[str, Any]) -> dict[str, Any]:
     """验证head节点配置"""
     required_keys = ["host", "head_port", "dashboard_port"]
     config = validate_config_dict(config, required_keys)
@@ -115,7 +113,7 @@ def validate_head_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def validate_worker_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_worker_config(config: dict[str, Any]) -> dict[str, Any]:
     """验证worker节点配置"""
     # worker配置都是可选的
     if "bind_host" in config:
@@ -130,7 +128,7 @@ def validate_worker_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def validate_ssh_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_ssh_config(config: dict[str, Any]) -> dict[str, Any]:
     """验证SSH配置"""
     required_keys = ["user"]
     config = validate_config_dict(config, required_keys)
@@ -139,9 +137,7 @@ def validate_ssh_config(config: Dict[str, Any]) -> Dict[str, Any]:
         key_path = config["key_path"]
         if key_path.startswith("~"):
             key_path = os.path.expanduser(key_path)
-        config["key_path"] = str(
-            validate_path(key_path, must_exist=True, must_be_file=True)
-        )
+        config["key_path"] = str(validate_path(key_path, must_exist=True, must_be_file=True))
 
     if "connect_timeout" in config:
         config["connect_timeout"] = validate_timeout(config["connect_timeout"])
@@ -169,7 +165,7 @@ def validate_ssh_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def validate_remote_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_remote_config(config: dict[str, Any]) -> dict[str, Any]:
     """验证远程配置"""
     if "sage_home" in config:
         # 远程路径不能在本地验证存在性，只检查格式
@@ -184,7 +180,7 @@ def validate_remote_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def validate_daemon_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_daemon_config(config: dict[str, Any]) -> dict[str, Any]:
     """验证守护进程配置"""
     required_keys = ["host", "port"]
     config = validate_config_dict(config, required_keys)
@@ -195,7 +191,7 @@ def validate_daemon_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def validate_output_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_output_config(config: dict[str, Any]) -> dict[str, Any]:
     """验证输出配置"""
     valid_formats = ["table", "json", "yaml"]
 
@@ -212,7 +208,7 @@ def validate_output_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def validate_monitor_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_monitor_config(config: dict[str, Any]) -> dict[str, Any]:
     """验证监控配置"""
     if "refresh_interval" in config:
         interval = config["refresh_interval"]
@@ -223,7 +219,7 @@ def validate_monitor_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def validate_jobmanager_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_jobmanager_config(config: dict[str, Any]) -> dict[str, Any]:
     """验证JobManager配置"""
     if "timeout" in config:
         config["timeout"] = validate_timeout(config["timeout"])
@@ -231,9 +227,7 @@ def validate_jobmanager_config(config: Dict[str, Any]) -> Dict[str, Any]:
     if "retry_attempts" in config:
         attempts = config["retry_attempts"]
         if not isinstance(attempts, int) or attempts < 0:
-            raise ValidationError(
-                "JobManager retry_attempts must be a non-negative integer"
-            )
+            raise ValidationError("JobManager retry_attempts must be a non-negative integer")
         config["retry_attempts"] = attempts
 
     return config
@@ -259,8 +253,8 @@ def create_default_config_validator() -> ConfigValidator:
 
 
 def load_and_validate_config(
-    config_path: Union[str, Path], validator: Optional[ConfigValidator] = None
-) -> Dict[str, Any]:
+    config_path: str | Path, validator: ConfigValidator | None = None
+) -> dict[str, Any]:
     """
     加载并验证配置文件
 
@@ -281,12 +275,10 @@ def load_and_validate_config(
         config = load_yaml_file(config_path)
         return validator.validate_config(config)
     except Exception as e:
-        raise ConfigurationError(
-            f"Failed to load and validate config file {config_path}: {e}"
-        )
+        raise ConfigurationError(f"Failed to load and validate config file {config_path}: {e}")
 
 
-def create_default_config() -> Dict[str, Any]:
+def create_default_config() -> dict[str, Any]:
     """创建默认配置"""
     return {
         "head": {

@@ -200,7 +200,7 @@ class TestChunkParallelism:
         ]
 
         # 使用parallelism参数直接设置2个并行chunk实例
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=20, overlap=5, parallelism=2)
             .sink(ChunkCollector, parallelism=1)
@@ -217,8 +217,8 @@ class TestChunkParallelism:
         assert all(chunk.get("chunk_id") for chunk in collected_chunks)
 
         # 验证所有文档都被处理
-        processed_doc_ids = set(chunk["doc_id"] for chunk in collected_chunks)
-        expected_doc_ids = set(doc["id"] for doc in documents)
+        processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
+        expected_doc_ids = {doc["id"] for doc in documents}
         assert processed_doc_ids == expected_doc_ids
 
         print(
@@ -246,7 +246,7 @@ class TestChunkParallelism:
         ]
 
         # 测试不同的并行度设置
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=15, overlap=3, parallelism=3)
             .sink(ChunkCollector, parallelism=2)
@@ -268,9 +268,7 @@ class TestChunkParallelism:
             assert "chunk_id" in chunk
             assert len(chunk["content"]) > 0
 
-        print(
-            f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks"
-        )
+        print(f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks")
 
     def test_chunk_parallelism_hints_large_documents(self):
         """测试大文档的chunk并行处理"""
@@ -291,7 +289,7 @@ class TestChunkParallelism:
         ]
 
         # 使用更高的并行度处理大文档
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=100, overlap=20, parallelism=4)
             .sink(ChunkCollector, parallelism=1)
@@ -342,7 +340,7 @@ class TestChunkParallelism:
         ]
 
         # 使用高并行度处理混合文档类型
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=50, overlap=10, parallelism=4)
             .sink(ChunkCollector, parallelism=2)
@@ -356,7 +354,7 @@ class TestChunkParallelism:
         assert len(collected_chunks) > 0
 
         # 验证所有文档都被处理
-        processed_doc_ids = set(chunk["doc_id"] for chunk in collected_chunks)
+        processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
         expected_doc_ids = {"doc2", "doc3", "doc4", "doc5", "large_doc1", "large_doc2"}
 
         assert (
@@ -395,7 +393,7 @@ class TestChunkParallelism:
             {"content": "Test document two.", "id": "test2"},
         ]
 
-        result1 = (
+        (
             env1.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=10, overlap=2, parallelism=2)
             .sink(ChunkCollector)
@@ -421,15 +419,13 @@ class TestChunkParallelism:
 
         env = LocalEnvironment(name="graceful_shutdown_drain_test")
 
-        large_content = (
-            "Synthetic large document content to simulate heavy processing. " * 60
-        )
+        large_content = "Synthetic large document content to simulate heavy processing. " * 60
         documents = [
             {"content": large_content, "id": "slow_doc1"},
             {"content": large_content, "id": "slow_doc2"},
         ]
 
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(SlowCharacterSplitter, chunk_size=60, overlap=15, parallelism=2)
             .sink(LaggyChunkCollector, parallelism=1)

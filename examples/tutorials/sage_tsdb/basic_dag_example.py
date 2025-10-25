@@ -54,7 +54,7 @@ def example_basic_ingestion_and_query():
     print(f"\nIngesting {len(data_points)} data points...")
 
     for point in data_points:
-        idx = db.add(
+        db.add(
             timestamp=point["timestamp"],
             value=point["value"],
             tags=point["tags"],

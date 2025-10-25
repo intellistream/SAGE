@@ -49,9 +49,7 @@ class SquareFunction(BaseFunction):
         super().__init__()
         self.instance_id = id(self) % 10000  # Short instance ID
         self.process_count = 0
-        print(
-            f"🔧 SquareFunction[{self.instance_id}] created in thread {threading.get_ident()}"
-        )
+        print(f"🔧 SquareFunction[{self.instance_id}] created in thread {threading.get_ident()}")
 
     def execute(self, data):
         self.process_count += 1
@@ -72,9 +70,7 @@ class EvenFilter(BaseFunction):
         self.instance_id = id(self) % 10000
         self.passed_count = 0
         self.blocked_count = 0
-        print(
-            f"🔧 EvenFilter[{self.instance_id}] created in thread {threading.get_ident()}"
-        )
+        print(f"🔧 EvenFilter[{self.instance_id}] created in thread {threading.get_ident()}")
 
     def execute(self, data):
         thread_id = threading.get_ident() % 10000
@@ -99,9 +95,7 @@ class ResultCollector(BaseFunction):
         super().__init__()
         self.instance_id = id(self) % 10000
         self.results = []
-        print(
-            f"🔧 ResultCollector[{self.instance_id}] created in thread {threading.get_ident()}"
-        )
+        print(f"🔧 ResultCollector[{self.instance_id}] created in thread {threading.get_ident()}")
 
     def execute(self, data):
         thread_id = threading.get_ident() % 10000
@@ -120,9 +114,7 @@ class DualStreamCoMap(BaseCoMapFunction):
         self.instance_id = id(self) % 10000
         self.stream0_count = 0
         self.stream1_count = 0
-        print(
-            f"🔧 DualStreamCoMap[{self.instance_id}] created in thread {threading.get_ident()}"
-        )
+        print(f"🔧 DualStreamCoMap[{self.instance_id}] created in thread {threading.get_ident()}")
 
     def map0(self, data):
         self.stream0_count += 1
@@ -151,11 +143,9 @@ def test_single_stream_parallelism():
 
     env = LocalEnvironment(name="single_stream_test")
 
-    print(
-        "\n🔍 Creating pipeline with parallelism: Source(1) -> Square(3) -> Filter(2) -> Sink(1)"
-    )
+    print("\n🔍 Creating pipeline with parallelism: Source(1) -> Square(3) -> Filter(2) -> Sink(1)")
 
-    result = (
+    (
         env.from_collection(SimpleNumberSource, 10)
         .map(SquareFunction, parallelism=3)  # 3 parallel square functions
         .filter(EvenFilter, parallelism=2)  # 2 parallel filters
@@ -192,7 +182,7 @@ def test_direct_parallelism_specification():
         "\n🔍 Creating pipeline with direct parallelism: Source(1) -> Square(4) -> Filter(1) -> Sink(2)"
     )
 
-    result = (
+    (
         env.from_collection(SimpleNumberSource, 8)
         .map(SquareFunction, parallelism=4)  # 4 parallel square functions
         .filter(EvenFilter, parallelism=1)  # 1 filter
@@ -228,7 +218,7 @@ def test_multi_stream_parallelism():
     stream1 = env.from_collection(SimpleNumberSource, 5)  # 1,2,3,4,5
     stream2 = env.from_collection(SimpleNumberSource, 3)  # 1,2,3
 
-    result = (
+    (
         stream1.connect(stream2)
         .comap(DualStreamCoMap, parallelism=2)  # 2 parallel CoMap instances
         .sink(ResultCollector, parallelism=1)
@@ -259,7 +249,7 @@ def test_execution_graph_validation():
 
     print("\n🔍 Creating test pipeline to validate ExecutionGraph node creation")
 
-    result = (
+    (
         env.from_collection(SimpleNumberSource, 6)
         .map(SquareFunction, parallelism=2)  # Should create 2 map nodes
         .filter(EvenFilter, parallelism=3)  # Should create 3 filter nodes
@@ -275,9 +265,7 @@ def test_execution_graph_validation():
 
     print("\n📋 Pipeline Transformations:")
     for i, trans in enumerate(env.pipeline):
-        print(
-            f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism})"
-        )
+        print(f"  {i + 1}. {trans.function_class.__name__} (parallelism={trans.parallelism})")
         print(f"     -> Will create {trans.parallelism} parallel execution nodes")
 
     total_expected_nodes = sum(trans.parallelism for trans in env.pipeline)
@@ -301,9 +289,7 @@ def main():
     print("VALIDATION SUMMARY")
     print("=" * 80)
     print("✅ Single stream parallelism: Verified with observable output")
-    print(
-        "✅ Direct parallelism specification: Tested with different parallelism levels"
-    )
+    print("✅ Direct parallelism specification: Tested with different parallelism levels")
     print("✅ Multi-stream CoMap: Validated parallel CoMap processing")
     print("✅ ExecutionGraph nodes: Confirmed correct node count calculation")
 

@@ -15,7 +15,7 @@ import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class BaseQueueDescriptor(ABC):
         created_timestamp: 创建时间戳（自动生成）
     """
 
-    def __init__(self, queue_id: Optional[str] = None):
+    def __init__(self, queue_id: str | None = None):
         """
         初始化队列描述符基类
 
@@ -80,7 +80,7 @@ class BaseQueueDescriptor(ABC):
 
     @property
     @abstractmethod
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """队列元数据（由子类实现）"""
         pass
 
@@ -95,15 +95,13 @@ class BaseQueueDescriptor(ABC):
 
     # ============ 队列接口实现 ============
 
-    def put(
-        self, item: Any, block: bool = True, timeout: Optional[float] = None
-    ) -> None:
+    def put(self, item: Any, block: bool = True, timeout: float | None = None) -> None:
         queue = self.queue_instance
         if queue is None:
             raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
         return queue.put(item, block=block, timeout=timeout)
 
-    def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
+    def get(self, block: bool = True, timeout: float | None = None) -> Any:
         """从队列中获取项目"""
         queue = self.queue_instance
         if queue is None:
@@ -150,7 +148,7 @@ class BaseQueueDescriptor(ABC):
 
     @property
     @abstractmethod
-    def queue_instance(self) -> Optional[Any]:
+    def queue_instance(self) -> Any | None:
         pass
 
     def get_queue(self) -> Any:
@@ -167,7 +165,7 @@ class BaseQueueDescriptor(ABC):
         """检查队列是否已初始化"""
         return self._initialized
 
-    def clone(self, new_queue_id: Optional[str] = None) -> "BaseQueueDescriptor":
+    def clone(self, new_queue_id: str | None = None) -> "BaseQueueDescriptor":
         """克隆描述符（不包含队列实例）"""
         # 创建同类型的新实例
         new_instance = type(self)(queue_id=new_queue_id or f"{self.queue_id}_clone")
@@ -182,15 +180,15 @@ class BaseQueueDescriptor(ABC):
 
     # ============ 序列化支持 ============
 
-    def to_dict(self, include_non_serializable: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_non_serializable: bool = False) -> dict[str, Any]:
         """
         转换为字典格式
 
         Args:
             include_non_serializable: 是否包含不可序列化的字段
         """
-        metadata_dict: Dict[str, Any] = {}
-        result: Dict[str, Any] = {
+        metadata_dict: dict[str, Any] = {}
+        result: dict[str, Any] = {
             "queue_id": self.queue_id,
             "queue_type": self.queue_type,
             "class_name": self.__class__.__name__,
@@ -249,7 +247,9 @@ class BaseQueueDescriptor(ABC):
             status_parts.append("non-serializable")
 
         status = ", ".join(status_parts)
-        return f"{self.__class__.__name__}(id='{self.queue_id}', type='{self.queue_type}', {status})"
+        return (
+            f"{self.__class__.__name__}(id='{self.queue_id}', type='{self.queue_type}', {status})"
+        )
 
     def __str__(self) -> str:
         return f"Queue[{self.queue_type}]({self.queue_id})"

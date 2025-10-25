@@ -25,7 +25,7 @@ FIFO 调度器 - First-In-First-Out Baseline
 """
 
 import time
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
@@ -118,16 +118,14 @@ class FIFOScheduler(BaseScheduler):
         self.decision_history.append(decision)
         return decision
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         获取 FIFO 调度器的性能指标
 
         Returns:
             指标字典
         """
-        avg_latency = (
-            self.total_latency / self.scheduled_count if self.scheduled_count > 0 else 0
-        )
+        avg_latency = self.total_latency / self.scheduled_count if self.scheduled_count > 0 else 0
         return {
             "scheduler_type": "FIFO",
             "total_scheduled": self.scheduled_count,

@@ -1,9 +1,10 @@
 import json
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
+
 from sage.kernel.operators import MapOperator
 from sage.libs.context.model_context import ModelContext
 from sage.libs.context.search_result import SearchResult
@@ -41,7 +42,7 @@ class BochaSearchTool(MapOperator):
             f"BochaSearchTool initialized with max_results_per_query: {self.max_results_per_query}"
         )
 
-    def _execute_single_search(self, query: str) -> Dict[str, Any]:
+    def _execute_single_search(self, query: str) -> dict[str, Any]:
         """
         执行单个搜索查询
 
@@ -57,18 +58,14 @@ class BochaSearchTool(MapOperator):
             {
                 "query": query,
                 "summary": True,
-                "count": max(
-                    10, self.max_results_per_query * 2
-                ),  # 请求更多结果以便筛选
+                "count": max(10, self.max_results_per_query * 2),  # 请求更多结果以便筛选
                 "page": 1,
             }
         )
 
         try:
             self.logger.debug(f"Executing search for query: '{query}'")
-            response = requests.post(
-                self.url, headers=self.headers, data=payload, timeout=30
-            )
+            response = requests.post(self.url, headers=self.headers, data=payload, timeout=30)
             response.raise_for_status()
 
             execution_time = int((time.time() - start_time) * 1000)
@@ -87,9 +84,7 @@ class BochaSearchTool(MapOperator):
             }
         except json.JSONDecodeError as e:
             execution_time = int((time.time() - start_time) * 1000)
-            self.logger.error(
-                f"Failed to parse search API response for query '{query}': {e}"
-            )
+            self.logger.error(f"Failed to parse search API response for query '{query}': {e}")
             return {
                 "error": "JSON decode error",
                 "data": {"webPages": {"value": []}},
@@ -97,8 +92,8 @@ class BochaSearchTool(MapOperator):
             }
 
     def _convert_api_response_to_search_results(
-        self, api_response: Dict[str, Any], query: str
-    ) -> List[SearchResult]:
+        self, api_response: dict[str, Any], query: str
+    ) -> list[SearchResult]:
         """
         将搜索API响应转换为SearchResult对象列表
 
@@ -125,9 +120,7 @@ class BochaSearchTool(MapOperator):
                 return search_results
 
             # 提取网页结果
-            web_pages = (
-                api_response.get("data", {}).get("webPages", {}).get("value", [])
-            )
+            web_pages = api_response.get("data", {}).get("webPages", {}).get("value", [])
 
             for i, page in enumerate(web_pages[: self.max_results_per_query]):
                 title = page.get("name", "No Title").strip()
@@ -171,9 +164,7 @@ class BochaSearchTool(MapOperator):
 
         return search_results
 
-    def _create_legacy_chunks_for_compatibility(
-        self, search_session: SearchSession
-    ) -> List[str]:
+    def _create_legacy_chunks_for_compatibility(self, search_session: SearchSession) -> list[str]:
         """
         为向后兼容性创建legacy格式的retriver_chunks
 
@@ -195,9 +186,7 @@ Source: {result.source}"""
 
         return legacy_chunks
 
-    def _log_search_summary(
-        self, context: ModelContext, total_queries: int, total_results: int
-    ):
+    def _log_search_summary(self, context: ModelContext, total_queries: int, total_results: int):
         """记录搜索摘要信息"""
         original_chunks = len(context.retriver_chunks) if context.retriver_chunks else 0
 
@@ -228,9 +217,7 @@ Source: {result.source}"""
 
             # 如果没有搜索查询，直接返回原上下文
             if not search_queries:
-                self.logger.info(
-                    "No search queries provided, returning original context"
-                )
+                self.logger.info("No search queries provided, returning original context")
                 return context
 
             # 创建搜索会话（如果还没有）
@@ -248,9 +235,7 @@ Source: {result.source}"""
                 execution_time = api_response.get("_execution_time_ms", 0)
 
                 # 转换为SearchResult对象
-                search_results = self._convert_api_response_to_search_results(
-                    api_response, query
-                )
+                search_results = self._convert_api_response_to_search_results(api_response, query)
 
                 # 计算总结果数（从API响应中获取，如果可用）
                 total_count_from_api = len(
@@ -268,15 +253,11 @@ Source: {result.source}"""
 
                 total_results += len(search_results)
 
-                self.logger.debug(
-                    f"Query '{query}' returned {len(search_results)} results"
-                )
+                self.logger.debug(f"Query '{query}' returned {len(search_results)} results")
 
             # 为向后兼容性更新retriver_chunks
             if context.search_session:
-                legacy_chunks = self._create_legacy_chunks_for_compatibility(
-                    context.search_session
-                )
+                legacy_chunks = self._create_legacy_chunks_for_compatibility(context.search_session)
                 if context.retriver_chunks is None:
                     context.retriver_chunks = []
                 context.retriver_chunks.extend(legacy_chunks)
@@ -295,9 +276,7 @@ Source: {result.source}"""
                 "search_engine": self.search_engine_name,
                 "execution_timestamp": int(time.time() * 1000),
                 "session_id": (
-                    context.search_session.session_id
-                    if context.search_session
-                    else None
+                    context.search_session.session_id if context.search_session else None
                 ),
             }
 
@@ -312,9 +291,7 @@ Source: {result.source}"""
             error_info = {
                 "bocha_search_error": str(e),
                 "error_timestamp": int(time.time() * 1000),
-                "attempted_queries": (
-                    search_queries if "search_queries" in locals() else []
-                ),
+                "attempted_queries": (search_queries if "search_queries" in locals() else []),
             }
 
             context.update_tool_config({"bocha_search_error": error_info})
@@ -357,17 +334,13 @@ class EnhancedBochaSearchTool(BochaSearchTool):
 
         return len(intersection) / len(union) if union else 0.0
 
-    def _deduplicate_search_results(
-        self, search_results: List[SearchResult]
-    ) -> List[SearchResult]:
+    def _deduplicate_search_results(self, search_results: list[SearchResult]) -> list[SearchResult]:
         """去重和多样性优化搜索结果"""
         if not self.deduplicate_results or not search_results:
             return search_results
 
         # 按相关性分数排序
-        sorted_results = sorted(
-            search_results, key=lambda x: x.relevance_score, reverse=True
-        )
+        sorted_results = sorted(search_results, key=lambda x: x.relevance_score, reverse=True)
 
         deduplicated = []
         seen_sources = set()
@@ -380,9 +353,7 @@ class EnhancedBochaSearchTool(BochaSearchTool):
             # 检查与已选结果的相似度
             is_diverse = True
             for existing in deduplicated:
-                similarity = self._calculate_content_similarity(
-                    result.content, existing.content
-                )
+                similarity = self._calculate_content_similarity(result.content, existing.content)
                 if similarity > self.diversity_threshold:
                     is_diverse = False
                     break
@@ -410,9 +381,7 @@ class EnhancedBochaSearchTool(BochaSearchTool):
             original_count = len(query_result.results)
 
             # 应用去重和多样性优化
-            query_result.results = self._deduplicate_search_results(
-                query_result.results
-            )
+            query_result.results = self._deduplicate_search_results(query_result.results)
 
             optimized_count = len(query_result.results)
             total_optimized += original_count - optimized_count
@@ -452,14 +421,10 @@ class EnhancedBochaSearchTool(BochaSearchTool):
             query_result.results = []
 
         # 重新分配最佳结果，保持每个查询至少有一个结果
-        results_per_query = self.max_total_chunks // len(
-            context.search_session.query_results
-        )
-        remaining_slots = self.max_total_chunks % len(
-            context.search_session.query_results
-        )
+        results_per_query = self.max_total_chunks // len(context.search_session.query_results)
+        remaining_slots = self.max_total_chunks % len(context.search_session.query_results)
 
-        query_result_counts = {qr: 0 for qr in context.search_session.query_results}
+        query_result_counts = dict.fromkeys(context.search_session.query_results, 0)
 
         for query_result, result in all_results:
             current_count = query_result_counts[query_result]
@@ -484,9 +449,7 @@ class EnhancedBochaSearchTool(BochaSearchTool):
             return
 
         # 重新生成legacy chunks
-        optimized_chunks = self._create_legacy_chunks_for_compatibility(
-            context.search_session
-        )
+        optimized_chunks = self._create_legacy_chunks_for_compatibility(context.search_session)
 
         # 合并到现有chunks中（保持之前可能存在的非搜索chunks）
         non_search_chunks = []
@@ -537,9 +500,7 @@ class EnhancedBochaSearchTool(BochaSearchTool):
             return context
 
         except Exception as e:
-            self.logger.error(
-                f"EnhancedBochaSearchTool execution failed: {e}", exc_info=True
-            )
+            self.logger.error(f"EnhancedBochaSearchTool execution failed: {e}", exc_info=True)
 
             # 错误处理：记录错误并继续基础搜索结果
             error_info = {

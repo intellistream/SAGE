@@ -6,8 +6,6 @@ This file demonstrates how to use the SAGE RAG (Retrieval-Augmented Generation) 
 Layer: L3 (Core - Algorithm Library)
 """
 
-from typing import Any, Dict, List
-
 
 def example_document_loading():
     """
@@ -21,11 +19,7 @@ def example_document_loading():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.document_loaders import (
-            JSONLoader,
-            PDFLoader,
-            TextLoader,
-        )
+        from sage.libs.rag.document_loaders import JSONLoader, PDFLoader, TextLoader
 
         print("\n✓ Available document loaders:")
         print("  - TextLoader: Load plain text files")

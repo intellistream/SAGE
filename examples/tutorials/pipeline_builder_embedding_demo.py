@@ -7,7 +7,6 @@ SAGE Pipeline Builder - Embedding Integration 示例
 @test:allow-demo
 """
 
-from pathlib import Path
 
 from sage.tools.cli.commands.pipeline_knowledge import (
     PipelineKnowledgeBase,
@@ -29,7 +28,7 @@ def example_1_basic_usage():
     results = kb.search(query, top_k=3)
 
     print(f"\n查询: {query}")
-    print(f"检索方法: hash")
+    print("检索方法: hash")
     print(f"结果数量: {len(results)}\n")
 
     for idx, chunk in enumerate(results, 1):
@@ -55,7 +54,7 @@ def example_2_custom_method():
     results = kb.search(query, top_k=3)
 
     print(f"\n查询: {query}")
-    print(f"检索方法: mockembedder")
+    print("检索方法: mockembedder")
     print(f"结果数量: {len(results)}\n")
 
     for idx, chunk in enumerate(results, 1):
@@ -115,8 +114,8 @@ def example_4_with_specific_model():
         results = kb.search(query, top_k=3)
 
         print(f"\n查询: {query}")
-        print(f"检索方法: HuggingFace")
-        print(f"模型: BAAI/bge-small-zh-v1.5")
+        print("检索方法: HuggingFace")
+        print("模型: BAAI/bge-small-zh-v1.5")
         print(f"结果数量: {len(results)}\n")
 
         for idx, chunk in enumerate(results, 1):
@@ -149,7 +148,7 @@ def example_5_environment_variables():
     query = "embedding 优化"
     results = kb.search(query, top_k=2)
 
-    print(f"\n环境变量: SAGE_PIPELINE_EMBEDDING_METHOD=mockembedder")
+    print("\n环境变量: SAGE_PIPELINE_EMBEDDING_METHOD=mockembedder")
     print(f"查询: {query}")
     print(f"结果数量: {len(results)}\n")
 

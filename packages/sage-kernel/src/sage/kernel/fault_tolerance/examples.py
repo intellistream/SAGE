@@ -63,7 +63,7 @@ def example_1_user_checkpoint_strategy():
     )
 
     # 正常定义 DAG - 完全不需要关心容错
-    pipeline = (
+    (
         env.from_source(FileSource, env.config["source"])
         .map(lambda x: x.upper())  # 一些处理
         .sink(TerminalSink, env.config["sink"])
@@ -113,7 +113,7 @@ def example_2_user_restart_strategy():
     )
 
     # 定义 DAG - 用户不关心容错
-    pipeline = (
+    (
         env.from_source(FileSource, env.config["source"])
         .map(lambda x: x.strip())
         .sink(TerminalSink, env.config["sink"])
@@ -146,7 +146,7 @@ def example_3_user_no_fault_tolerance():
     env = LocalEnvironment("simple_pipeline")
 
     # 正常定义和提交
-    pipeline = (
+    (
         env.from_source(FileSource, {"file_path": "data.txt"})
         .map(lambda x: x.upper())
         .sink(TerminalSink, {})
@@ -191,7 +191,7 @@ def example_4_user_yaml_config():
     # 容错配置从 YAML 文件读取
     env = LocalEnvironment("yaml_configured_pipeline", config=config)
 
-    pipeline = (
+    (
         env.from_source(FileSource, config["source"])
         .map(lambda x: x.strip())
         .sink(TerminalSink, config["sink"])

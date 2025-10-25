@@ -6,7 +6,7 @@
 """
 
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from sage.middleware.components.sage_refiner.python.base import (
     BaseRefiner,
@@ -46,8 +46,8 @@ class SimpleRefiner(BaseRefiner):
     def refine(
         self,
         query: str,
-        documents: List[Union[str, Dict[str, Any]]],
-        budget: Optional[int] = None,
+        documents: list[str | dict[str, Any]],
+        budget: int | None = None,
         **kwargs,
     ) -> RefineResult:
         """简单精炼"""
@@ -67,12 +67,7 @@ class SimpleRefiner(BaseRefiner):
                 texts.append(doc)
                 scores.append(1.0)
             elif isinstance(doc, dict):
-                text = (
-                    doc.get("contents")
-                    or doc.get("text")
-                    or doc.get("content")
-                    or str(doc)
-                )
+                text = doc.get("contents") or doc.get("text") or doc.get("content") or str(doc)
                 texts.append(text)
                 scores.append(doc.get("score", 1.0))
             else:
@@ -84,7 +79,9 @@ class SimpleRefiner(BaseRefiner):
 
         # 按score排序（如果有的话）
         if any(s != 1.0 for s in scores):
-            sorted_items = sorted(zip(texts, scores), key=lambda x: x[1], reverse=True)
+            sorted_items = sorted(
+                zip(texts, scores, strict=False), key=lambda x: x[1], reverse=True
+            )
             texts = [t for t, _ in sorted_items]
 
         # 逐个添加文档，直到达到budget
@@ -116,9 +113,7 @@ class SimpleRefiner(BaseRefiner):
             total_time=total_time,
             original_tokens=original_tokens,
             refined_tokens=refined_tokens,
-            compression_rate=(
-                original_tokens / refined_tokens if refined_tokens > 0 else 0.0
-            ),
+            compression_rate=(original_tokens / refined_tokens if refined_tokens > 0 else 0.0),
             algorithm=self.name,
             metadata={
                 "budget": use_budget,
@@ -135,13 +130,13 @@ class SimpleRefiner(BaseRefiner):
 
     def refine_batch(
         self,
-        queries: List[str],
-        documents_list: List[List[Union[str, Dict[str, Any]]]],
-        budget: Optional[int] = None,
+        queries: list[str],
+        documents_list: list[list[str | dict[str, Any]]],
+        budget: int | None = None,
         **kwargs,
-    ) -> List[RefineResult]:
+    ) -> list[RefineResult]:
         """批量精炼（逐个处理）"""
         return [
             self.refine(query, docs, budget, **kwargs)
-            for query, docs in zip(queries, documents_list)
+            for query, docs in zip(queries, documents_list, strict=False)
         ]

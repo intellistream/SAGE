@@ -6,7 +6,7 @@ Dispatcher 根据决策调用 PlacementExecutor 执行放置。
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass
@@ -28,7 +28,7 @@ class PlacementDecision:
     """
 
     # ===== 放置位置 =====
-    target_node: Optional[str] = None
+    target_node: str | None = None
     """目标物理节点 ID（Ray node_id）
     - None: 使用 Ray 默认负载均衡
     - "node-xxx": 指定节点
@@ -36,7 +36,7 @@ class PlacementDecision:
     """
 
     # ===== 资源需求 =====
-    resource_requirements: Optional[Dict[str, Any]] = None
+    resource_requirements: dict[str, Any] | None = None
     """资源需求配置
     示例: {"cpu": 4, "gpu": 1, "memory": "8GB", "custom_resource": 2}
     - cpu: CPU 核心数
@@ -68,10 +68,10 @@ class PlacementDecision:
     - "anti_affinity": 反亲和性（远离特定任务）
     """
 
-    affinity_tasks: Optional[list[str]] = None
+    affinity_tasks: list[str] | None = None
     """亲和性任务列表（需要靠近的任务名）"""
 
-    anti_affinity_tasks: Optional[list[str]] = None
+    anti_affinity_tasks: list[str] | None = None
     """反亲和性任务列表（需要远离的任务名）"""
 
     # ===== 元数据 =====
@@ -87,13 +87,13 @@ class PlacementDecision:
     - < 0: 低优先级
     """
 
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     """额外的元数据（用于扩展）"""
 
     def __repr__(self) -> str:
         """可读的字符串表示"""
         parts = [
-            f"PlacementDecision(",
+            "PlacementDecision(",
             f"target_node={self.target_node}",
         ]
 
@@ -111,7 +111,7 @@ class PlacementDecision:
 
         return ", ".join(parts) + ")"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典（用于序列化）"""
         return {
             "target_node": self.target_node,
@@ -127,7 +127,7 @@ class PlacementDecision:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PlacementDecision":
+    def from_dict(cls, data: dict[str, Any]) -> "PlacementDecision":
         """从字典创建（用于反序列化）"""
         return cls(**data)
 
@@ -146,9 +146,9 @@ class PlacementDecision:
     @classmethod
     def with_resources(
         cls,
-        cpu: Optional[int] = None,
-        gpu: Optional[int] = None,
-        memory: Optional[int | str] = None,  # Accept both int and str
+        cpu: int | None = None,
+        gpu: int | None = None,
+        memory: int | str | None = None,  # Accept both int and str
         reason: str = "",
     ) -> "PlacementDecision":
         """快捷方法：指定资源需求"""

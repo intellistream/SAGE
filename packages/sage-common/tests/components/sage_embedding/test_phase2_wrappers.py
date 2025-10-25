@@ -9,8 +9,8 @@ This test suite validates:
 """
 
 import pytest
+
 from sage.common.components.sage_embedding import (
-    EmbeddingRegistry,
     check_model_availability,
     get_embedding_model,
     list_embedding_models,

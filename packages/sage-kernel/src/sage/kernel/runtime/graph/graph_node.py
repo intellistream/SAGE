@@ -11,7 +11,7 @@ TaskNode - 图节点类
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
@@ -19,14 +19,10 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.context.task_context import TaskContext
     from sage.kernel.runtime.factory.task_factory import TaskFactory
     from sage.kernel.runtime.graph.graph_edge import GraphEdge
-    from sage.platform.queue.base_queue_descriptor import (
-        BaseQueueDescriptor,
-    )
+    from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor
 
 
-def _create_queue_descriptor(
-    env: "BaseEnvironment", name: str, maxsize: int
-) -> "BaseQueueDescriptor":
+def _create_queue_descriptor(env: BaseEnvironment, name: str, maxsize: int) -> BaseQueueDescriptor:
     """
     根据环境平台类型创建相应的队列描述符
 
@@ -39,15 +35,11 @@ def _create_queue_descriptor(
         对应平台的队列描述符
     """
     if env.platform == "remote":
-        from sage.platform.queue.ray_queue_descriptor import (
-            RayQueueDescriptor,
-        )
+        from sage.platform.queue.ray_queue_descriptor import RayQueueDescriptor
 
         return RayQueueDescriptor(maxsize=maxsize, queue_id=name)
     else:  # local 或其他情况使用 python 队列
-        from sage.platform.queue.python_queue_descriptor import (
-            PythonQueueDescriptor,
-        )
+        from sage.platform.queue.python_queue_descriptor import PythonQueueDescriptor
 
         return PythonQueueDescriptor(maxsize=maxsize, queue_id=name)
 
@@ -64,29 +56,29 @@ class TaskNode:
     def __init__(
         self,
         name: str,
-        transformation: "BaseTransformation",
+        transformation: BaseTransformation,
         parallel_index: int,
-        env: "BaseEnvironment",
+        env: BaseEnvironment,
     ):
         self.name: str = name
-        self.transformation: "BaseTransformation" = transformation
+        self.transformation: BaseTransformation = transformation
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         self.parallelism: int = transformation.parallelism
         self.is_spout: bool = transformation.is_spout
         self.is_sink: bool = transformation.is_sink
-        self.input_channels: Dict[int, List["GraphEdge"]] = {}
-        self.output_channels: List[List["GraphEdge"]] = []
+        self.input_channels: dict[int, list[GraphEdge]] = {}
+        self.output_channels: list[list[GraphEdge]] = []
 
         # 在构造时创建队列描述符
         self._create_queue_descriptors(env)
 
         # 在ExecutionGraph中创建TaskFactory，而不是在BaseTransformation中
-        self.task_factory: "TaskFactory" = self._create_task_factory()
+        self.task_factory: TaskFactory = self._create_task_factory()
 
         self.stop_signal_num: int = 0  # 预期的源节点数量
-        self.ctx: "TaskContext | None" = None
+        self.ctx: TaskContext | None = None
 
-    def _create_queue_descriptors(self, env: "BaseEnvironment"):
+    def _create_queue_descriptors(self, env: BaseEnvironment):
         """在节点构造时创建队列描述符"""
         # 为每个节点创建单一的输入队列描述符（被所有上游复用）
         if not self.is_spout:  # 源节点不需要输入队列
@@ -101,7 +93,7 @@ class TaskNode:
             env=env, name=f"service_response_{self.name}", maxsize=10000
         )
 
-    def _create_task_factory(self) -> "TaskFactory":
+    def _create_task_factory(self) -> TaskFactory:
         """在TaskNode中创建TaskFactory，避免BaseTransformation依赖runtime层"""
         from sage.kernel.runtime.factory.task_factory import TaskFactory
 

@@ -7,7 +7,6 @@ Finetune CLI - Service Management
 import json
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console
 from rich.panel import Panel
@@ -25,7 +24,7 @@ def start_training(config_path: Path, use_native: bool = True):
     try:
         if use_native:
             # 使用 SAGE 原生训练模块
-            console.print(f"[cyan]使用 SAGE 原生训练模块[/cyan]\n")
+            console.print("[cyan]使用 SAGE 原生训练模块[/cyan]\n")
 
             # 导入训练模块
             from sage.tools.finetune.trainer import train_from_meta
@@ -47,9 +46,7 @@ def start_training(config_path: Path, use_native: bool = True):
         else:
             # 尝试使用 LLaMA-Factory (可能不兼容)
             cmd = ["llamafactory-cli", "train", str(config_path)]
-            console.print(
-                f"[yellow]⚠️  使用 LLaMA-Factory (可能存在兼容性问题)[/yellow]"
-            )
+            console.print("[yellow]⚠️  使用 LLaMA-Factory (可能存在兼容性问题)[/yellow]")
             console.print(f"[cyan]执行命令: {' '.join(cmd)}[/cyan]\n")
 
             process = subprocess.Popen(
@@ -82,9 +79,7 @@ def start_training(config_path: Path, use_native: bool = True):
         console.print("  • 或安装 LLaMA-Factory: [cyan]pip install llmtuner[/cyan]")
 
 
-def merge_lora_weights(
-    checkpoint_path: Path, base_model: str, output_path: Path
-) -> bool:
+def merge_lora_weights(checkpoint_path: Path, base_model: str, output_path: Path) -> bool:
     """合并 LoRA 权重到基础模型
 
     Args:
@@ -122,7 +117,7 @@ def merge_lora_weights(
         tokenizer = AutoTokenizer.from_pretrained(base_model)
         tokenizer.save_pretrained(str(output_path))
 
-        console.print(f"\n[green]✅ 合并完成！[/green]")
+        console.print("\n[green]✅ 合并完成！[/green]")
         console.print(f"📁 合并模型已保存到: [cyan]{output_path}[/cyan]")
         return True
 
@@ -137,9 +132,9 @@ def serve_model_with_vllm(
     port: int = 8000,
     gpu_memory_utilization: float = 0.9,
     daemon: bool = False,
-    lora_path: Optional[Path] = None,
-    lora_name: Optional[str] = None,
-) -> Optional[subprocess.Popen]:
+    lora_path: Path | None = None,
+    lora_name: str | None = None,
+) -> subprocess.Popen | None:
     """使用 vLLM 启动模型服务
 
     Args:
@@ -206,7 +201,7 @@ def serve_model_with_vllm(
         with open(pid_file, "w") as f:
             f.write(str(process.pid))
 
-        console.print(f"\n[green]✅ 服务已在后台启动[/green]")
+        console.print("\n[green]✅ 服务已在后台启动[/green]")
         console.print(f"PID: {process.pid}")
         console.print(f"日志: [cyan]{log_file}[/cyan]")
         console.print(f"\n停止服务: [cyan]kill {process.pid}[/cyan]")

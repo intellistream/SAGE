@@ -51,7 +51,7 @@ def check_and_setup_data(data_dir: str, auto_setup: bool = False) -> bool:
     print("数据集未找到")
     print("=" * 60)
     print(f"期望的数据目录: {data_dir}")
-    print(f"")
+    print("")
 
     # 查找 setup_data.sh 脚本
     setup_script = data_path.parent / "setup_data.sh"
@@ -59,13 +59,12 @@ def check_and_setup_data(data_dir: str, auto_setup: bool = False) -> bool:
     if not setup_script.exists():
         # 尝试其他可能的位置
         setup_script = (
-            project_root
-            / "packages/sage-apps/src/sage/apps/medical_diagnosis/setup_data.sh"
+            project_root / "packages/sage-apps/src/sage/apps/medical_diagnosis/setup_data.sh"
         )
 
     if not setup_script.exists():
         print("❌ 数据设置脚本未找到")
-        print(f"")
+        print("")
         print("期望结构:")
         print("  {data_dir}/processed/images/")
         print("  {data_dir}/processed/train_index.json")
@@ -73,34 +72,34 @@ def check_and_setup_data(data_dir: str, auto_setup: bool = False) -> bool:
         return False
 
     print(f"找到数据设置脚本: {setup_script}")
-    print(f"")
+    print("")
     print("🤖 自动下载并准备数据集...")
-    print(f"提示: 如果不想自动下载，请使用 Ctrl+C 取消")
-    print(f"")
-    print(f"开始自动设置数据集...")
-    print(f"=" * 60)
+    print("提示: 如果不想自动下载，请使用 Ctrl+C 取消")
+    print("")
+    print("开始自动设置数据集...")
+    print("=" * 60)
 
     try:
         # 运行 setup_data.sh
-        result = subprocess.run(
+        subprocess.run(
             ["bash", str(setup_script)],
             cwd=str(setup_script.parent),
             check=True,
             text=True,
         )
 
-        print(f"=" * 60)
-        print(f"✅ 数据集设置完成！")
-        print(f"")
+        print("=" * 60)
+        print("✅ 数据集设置完成！")
+        print("")
         return True
 
-    except subprocess.CalledProcessError as e:
-        print(f"=" * 60)
-        print(f"❌ 数据集设置失败")
-        print(f"")
-        print(f"您可以手动运行以下命令来设置数据:")
+    except subprocess.CalledProcessError:
+        print("=" * 60)
+        print("❌ 数据集设置失败")
+        print("")
+        print("您可以手动运行以下命令来设置数据:")
         print(f"  bash {setup_script}")
-        print(f"")
+        print("")
         return False
     except Exception as e:
         print(f"❌ 发生错误: {e}")
@@ -135,9 +134,7 @@ Features:
         """,
     )
 
-    parser.add_argument(
-        "--case-id", type=str, help="Specific case ID to analyze (e.g., case_0001)"
-    )
+    parser.add_argument("--case-id", type=str, help="Specific case ID to analyze (e.g., case_0001)")
 
     parser.add_argument(
         "--data-dir",
@@ -152,9 +149,7 @@ Features:
         help="Run in interactive consultation mode",
     )
 
-    parser.add_argument(
-        "--output", type=str, help="Output directory for diagnostic reports"
-    )
+    parser.add_argument("--output", type=str, help="Output directory for diagnostic reports")
 
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
@@ -168,9 +163,9 @@ Features:
 
     # Check and setup data if needed
     if not check_and_setup_data(args.data_dir, auto_setup=args.auto_setup):
-        print(f"\n⚠️  警告: 数据集未就绪")
-        print(f"系统将尝试使用模拟数据运行...")
-        print(f"")
+        print("\n⚠️  警告: 数据集未就绪")
+        print("系统将尝试使用模拟数据运行...")
+        print("")
 
     print("=" * 60)
     print("SAGE Medical Diagnosis System")

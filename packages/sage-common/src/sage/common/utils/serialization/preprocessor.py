@@ -5,16 +5,15 @@
 import inspect
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
-from typing import Any, Dict, List, Optional
-from typing import Set as TypingSet
+from typing import Any
 
 from .config import ATTRIBUTE_BLACKLIST, BLACKLIST, SKIP_VALUE
 
 
-def gather_attrs(obj) -> Dict[str, Any]:
+def gather_attrs(obj) -> dict[str, Any]:
     """枚举实例 __dict__ 和 @property 属性。"""
     attrs = dict(getattr(obj, "__dict__", {}))
-    for name, prop in inspect.getmembers(type(obj), lambda x: isinstance(x, property)):
+    for name, _prop in inspect.getmembers(type(obj), lambda x: isinstance(x, property)):
         try:
             attrs[name] = getattr(obj, name)
         except Exception:
@@ -23,8 +22,8 @@ def gather_attrs(obj) -> Dict[str, Any]:
 
 
 def filter_attrs(
-    attrs: Dict[str, Any], include: Optional[List[str]], exclude: Optional[List[str]]
-) -> Dict[str, Any]:
+    attrs: dict[str, Any], include: list[str] | None, exclude: list[str] | None
+) -> dict[str, Any]:
     """根据 include/exclude 过滤字段字典。"""
     if include:
         # 如果指定了include，只保留include中的属性，忽略默认的blacklist
@@ -36,11 +35,7 @@ def filter_attrs(
     # 过滤掉不能设置的特殊属性
     UNSETABLE_ATTRS = {"__weakref__", "__dict__", "__class__"}
 
-    return {
-        k: v
-        for k, v in attrs.items()
-        if k not in all_exclude and k not in UNSETABLE_ATTRS
-    }
+    return {k: v for k, v in attrs.items() if k not in all_exclude and k not in UNSETABLE_ATTRS}
 
 
 def should_skip(obj: Any) -> bool:
@@ -68,9 +63,7 @@ def should_skip(obj: Any) -> bool:
     return False
 
 
-def has_circular_reference(
-    obj: Any, _seen: Optional[TypingSet[int]] = None, max_depth: int = 10
-) -> bool:
+def has_circular_reference(obj: Any, _seen: set[int] | None = None, max_depth: int = 10) -> bool:
     """检查对象是否包含循环引用"""
     if _seen is None:
         _seen = set()
@@ -91,9 +84,9 @@ def has_circular_reference(
         # 检查字典
         if isinstance(obj, Mapping):
             for k, v in obj.items():
-                if has_circular_reference(
-                    k, _seen, max_depth - 1
-                ) or has_circular_reference(v, _seen, max_depth - 1):
+                if has_circular_reference(k, _seen, max_depth - 1) or has_circular_reference(
+                    v, _seen, max_depth - 1
+                ):
                     return True
 
         # 检查序列
@@ -119,7 +112,7 @@ def has_circular_reference(
         _seen.remove(obj_id)
 
 
-def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any:
+def preprocess_for_dill(obj: Any, _seen: set[int] | None = None) -> Any:
     """
     递归预处理对象，清理不可序列化的内容，为dill序列化做准备。
 
@@ -263,7 +256,7 @@ def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any
     return obj
 
 
-def postprocess_from_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any:
+def postprocess_from_dill(obj: Any, _seen: set[int] | None = None) -> Any:
     """递归后处理从dill反序列化的对象，清理哨兵值。"""
     # print(f"postprocess_from_dill called for object: {obj}")
     if _seen is None:

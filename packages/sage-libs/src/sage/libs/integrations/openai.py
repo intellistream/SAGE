@@ -57,10 +57,10 @@ class OpenAIClient:
             temperature = kwargs.get("temperature", 1.0)
             top_p = kwargs.get("top_p", None)
             stream = bool(kwargs.get("stream", False))
-            frequency_penalty = kwargs.get("frequency_penalty", 0)
+            kwargs.get("frequency_penalty", 0)
             n = int(kwargs.get("n", 1))
             want_logprobs = bool(kwargs.get("logprobs", False))
-            seed = self.seed or (kwargs.get("seed", int(time.time() * 1000)))
+            self.seed or (kwargs.get("seed", int(time.time() * 1000)))
             # -------- 兼容 messages 形态 --------
             # dict => 包成单元素 list
             if isinstance(messages, dict):

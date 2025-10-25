@@ -11,6 +11,7 @@
 from typing import Any
 
 import ray
+
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.node_selector import NodeSelector
@@ -266,7 +267,7 @@ def example_debug_scheduling():
     debug_node_id = "a1b2c3d4e5f6..."  # 从 ray.nodes() 获取
 
     # 创建调试调度器
-    scheduler = DebugScheduler(debug_node_id)
+    DebugScheduler(debug_node_id)
 
     print(f"创建调试调度器，所有任务将被放置到节点: {debug_node_id}")
     print("(这是示例概念，实际使用需要配置 Environment)")

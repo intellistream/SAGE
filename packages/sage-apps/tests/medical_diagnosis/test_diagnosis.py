@@ -5,9 +5,7 @@
 """
 
 import json
-import os
 import random
-import sys
 from pathlib import Path
 
 # 获取医疗诊断目录路径（用于访问数据和配置文件）
@@ -17,9 +15,6 @@ medical_diagnosis_dir = (
 
 # 导入医疗诊断模块
 from sage.apps.medical_diagnosis.agents.diagnostic_agent import DiagnosticAgent
-from sage.apps.medical_diagnosis.agents.image_analyzer import ImageAnalyzer
-from sage.apps.medical_diagnosis.agents.report_generator import ReportGenerator
-from sage.apps.medical_diagnosis.tools.knowledge_base import MedicalKnowledgeBase
 
 
 def test_single_case():
@@ -39,13 +34,13 @@ def test_single_case():
             f"Test data not available at {test_index_path}. Run scripts/prepare_data.py first to generate test data."
         )
 
-    with open(test_index_path, "r", encoding="utf-8") as f:
+    with open(test_index_path, encoding="utf-8") as f:
         test_cases = json.load(f)
 
     # 随机选择一个测试病例
     case = random.choice(test_cases)
 
-    print(f"\n📋 测试病例信息:")
+    print("\n📋 测试病例信息:")
     print(f"   - 病例ID: {case['case_id']}")
     print(f"   - 患者ID: {case['patient_id']}")
     print(f"   - 年龄: {case['age']}岁")
@@ -68,7 +63,7 @@ def test_single_case():
     }
 
     # 初始化诊断系统
-    print(f"\n🔧 初始化诊断系统...")
+    print("\n🔧 初始化诊断系统...")
 
     config_path = medical_diagnosis_dir / "config" / "agent_config.yaml"
 
@@ -78,7 +73,7 @@ def test_single_case():
         print("   ✓ DiagnosticAgent 初始化成功")
 
         # 执行诊断
-        print(f"\n🔍 开始诊断...")
+        print("\n🔍 开始诊断...")
         result = agent.diagnose(image_path=str(image_path), patient_info=patient_info)
 
         # 显示结果
@@ -88,15 +83,15 @@ def test_single_case():
 
         print(f"\n病例ID: {case['patient_id']}")
         print(f"诊断时间: {result.timestamp}")
-        print(f"\n影像分析:")
+        print("\n影像分析:")
         print(f"  - 质量评分: {result.quality_score:.2f}")
         print(f"  - 检测到的病变: {len(result.findings)} 处")
 
-        print(f"\n主要发现:")
+        print("\n主要发现:")
         for finding in result.findings[:3]:
             print(f"  - {finding}")
 
-        print(f"\n诊断结论:")
+        print("\n诊断结论:")
         for i, diagnosis in enumerate(result.diagnoses, 1):
             print(f"  {i}. {diagnosis}")
 
@@ -104,16 +99,14 @@ def test_single_case():
 
         print(f"\n相似病例参考: {len(result.similar_cases)} 个")
 
-        print(f"\n📄 完整诊断报告:")
+        print("\n📄 完整诊断报告:")
         print("-" * 80)
         print(result.report)
         print("-" * 80)
 
         # 对比真实标签
         print(f"\n✅ 真实疾病: {case['disease']}")
-        print(
-            f"   诊断结果中是否包含: {'是' if case['disease'] in result.report else '否'}"
-        )
+        print(f"   诊断结果中是否包含: {'是' if case['disease'] in result.report else '否'}")
 
     except Exception as e:
         print(f"❌ 诊断过程出错: {e}")
@@ -141,7 +134,7 @@ def test_batch_mode():
             f"Test data not available at {test_index_path}. Run scripts/prepare_data.py first to generate test data."
         )
 
-    with open(test_index_path, "r", encoding="utf-8") as f:
+    with open(test_index_path, encoding="utf-8") as f:
         test_cases = json.load(f)
 
     # 选择前5个病例
@@ -171,7 +164,7 @@ def test_batch_mode():
     agent = DiagnosticAgent(config_path=str(config_path))
 
     # 批量诊断
-    print(f"\n🔍 开始批量诊断...")
+    print("\n🔍 开始批量诊断...")
     output_dir = medical_diagnosis_dir / "data" / "test_results"
 
     results = agent.batch_diagnose(cases=batch_cases, output_dir=str(output_dir))

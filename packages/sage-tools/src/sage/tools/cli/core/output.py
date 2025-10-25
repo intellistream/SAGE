@@ -8,7 +8,7 @@ SAGE CLI Output Formatter
 
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 try:
     from colorama import Back, Fore, Style, init
@@ -108,9 +108,7 @@ class OutputFormatter:
         """打印警告消息"""
         self.print_message(message, "warning", prefix)
 
-    def format_data(
-        self, data: Union[List[Dict], Dict], headers: Optional[List[str]] = None
-    ) -> str:
+    def format_data(self, data: list[dict] | dict, headers: list[str] | None = None) -> str:
         """
         格式化数据输出
 
@@ -146,9 +144,7 @@ class OutputFormatter:
 
         return str(data)
 
-    def print_data(
-        self, data: Union[List[Dict], Dict], headers: Optional[List[str]] = None
-    ):
+    def print_data(self, data: list[dict] | dict, headers: list[str] | None = None):
         """打印格式化数据"""
         formatted = self.format_data(data, headers)
         print(formatted)
@@ -167,8 +163,8 @@ class OutputFormatter:
 
 
 def format_table(
-    data: List[Dict[str, Any]],
-    headers: Optional[List[str]] = None,
+    data: list[dict[str, Any]],
+    headers: list[str] | None = None,
     tablefmt: str = "grid",
 ) -> str:
     """
@@ -256,7 +252,7 @@ def format_size(bytes_size: int) -> str:
     return f"{bytes_size:.1f}PB"
 
 
-def format_timestamp(timestamp: Union[float, str, datetime]) -> str:
+def format_timestamp(timestamp: float | str | datetime) -> str:
     """格式化时间戳"""
     if isinstance(timestamp, str):
         return timestamp

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
+from typer.testing import CliRunner
 
 # Import from sage-tools CLI (which still hosts the studio command integration)
 from sage.tools.cli.main import app as sage_app
-from typer.testing import CliRunner
 
 # Test runner
 runner = CliRunner()

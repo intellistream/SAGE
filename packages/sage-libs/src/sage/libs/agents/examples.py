@@ -6,8 +6,6 @@ This file demonstrates how to use the SAGE agents framework and pre-built bots.
 Layer: L3 (Core - Algorithm Library)
 """
 
-from typing import Any, Dict, List
-
 
 def example_basic_bot_usage():
     """
@@ -25,11 +23,11 @@ def example_basic_bot_usage():
         from sage.libs.agents.bots.question_bot import QuestionBot
 
         # Create bot instances
-        answer_bot = AnswerBot(config={"name": "AnswerBot"})
-        question_bot = QuestionBot(config={"name": "QuestionBot"})
+        AnswerBot(config={"name": "AnswerBot"})
+        QuestionBot(config={"name": "QuestionBot"})
 
-        print(f"\n✓ Created AnswerBot")
-        print(f"✓ Created QuestionBot")
+        print("\n✓ Created AnswerBot")
+        print("✓ Created QuestionBot")
 
         # Example usage (mock - actual usage requires LLM setup)
         print("\nNote: Actual bot execution requires LLM configuration")

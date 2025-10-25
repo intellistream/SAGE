@@ -9,7 +9,7 @@ SAGE CLI Validation
 import re
 import socket
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any
 from urllib.parse import urlparse
 
 from .exceptions import ValidationError
@@ -37,13 +37,13 @@ def validate_host(host: str) -> str:
     try:
         socket.inet_pton(socket.AF_INET, host)
         return host
-    except socket.error:
+    except OSError:
         pass
 
     try:
         socket.inet_pton(socket.AF_INET6, host)
         return host
-    except socket.error:
+    except OSError:
         pass
 
     # 检查是否为有效的主机名
@@ -62,7 +62,7 @@ def validate_host(host: str) -> str:
     return host
 
 
-def validate_port(port: Union[int, str]) -> int:
+def validate_port(port: int | str) -> int:
     """
     验证端口号
 
@@ -87,7 +87,7 @@ def validate_port(port: Union[int, str]) -> int:
 
 
 def validate_path(
-    path: Union[str, Path],
+    path: str | Path,
     must_exist: bool = False,
     must_be_file: bool = False,
     must_be_dir: bool = False,
@@ -286,10 +286,10 @@ def validate_service_name(name: str) -> str:
 
 
 def validate_config_dict(
-    config: Dict[str, Any],
-    required_keys: List[str] = None,
-    valid_keys: List[str] = None,
-) -> Dict[str, Any]:
+    config: dict[str, Any],
+    required_keys: list[str] = None,
+    valid_keys: list[str] = None,
+) -> dict[str, Any]:
     """
     验证配置字典
 
@@ -320,7 +320,7 @@ def validate_config_dict(
     return config
 
 
-def validate_timeout(timeout: Union[int, str, float]) -> int:
+def validate_timeout(timeout: int | str | float) -> int:
     """
     验证超时值
 
@@ -367,9 +367,7 @@ def validate_log_level(level: str) -> str:
 
     valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
     if level not in valid_levels:
-        raise ValidationError(
-            f"Invalid log level: {level}, must be one of {valid_levels}"
-        )
+        raise ValidationError(f"Invalid log level: {level}, must be one of {valid_levels}")
 
     return level
 

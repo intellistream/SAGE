@@ -2,30 +2,28 @@
 """LLM configuration commands for SAGE."""
 
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import typer
 import yaml
+
 from sage.tools.cli.utils.llm_detection import LLMServiceInfo, detect_all_services
 
 app = typer.Typer(help="🤖 LLM 服务配置自动化")
 
 
-def _load_yaml(path: Path) -> Dict:
+def _load_yaml(path: Path) -> dict:
     """Load YAML file, returning an empty dict if the file is blank."""
     content = path.read_text(encoding="utf-8")
     data = yaml.safe_load(content) if content.strip() else None
     return data or {}
 
 
-def _write_yaml(path: Path, data: Dict) -> None:
+def _write_yaml(path: Path, data: dict) -> None:
     """Persist YAML dictionary with stable formatting."""
-    path.write_text(
-        yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8"
-    )
+    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
-def _default_config_path() -> Optional[Path]:
+def _default_config_path() -> Path | None:
     """寻找默认的配置文件路径"""
     candidates = [
         Path.cwd() / "config" / "config.yaml",
@@ -41,7 +39,7 @@ def _default_config_path() -> Optional[Path]:
 
 
 def _select_service(
-    detections: List[LLMServiceInfo], assume_yes: bool, preferred_section: Optional[str]
+    detections: list[LLMServiceInfo], assume_yes: bool, preferred_section: str | None
 ) -> LLMServiceInfo:
     """选择要使用的服务"""
     if preferred_section:
@@ -55,9 +53,7 @@ def _select_service(
 
     typer.echo("🔍 检测到多个可用的本地 LLM 服务：")
     for idx, service in enumerate(detections, start=1):
-        typer.echo(
-            f"  {idx}. {service.description} -> generator.{service.generator_section}"
-        )
+        typer.echo(f"  {idx}. {service.description} -> generator.{service.generator_section}")
 
     choice = typer.prompt("请选择要使用的服务编号", default="1")
     try:
@@ -70,30 +66,30 @@ def _select_service(
 
 @app.command("auto")
 def auto_update_generator(
-    config_path: Optional[Path] = typer.Option(
+    config_path: Path | None = typer.Option(
         None,
         "--config-path",
         "-c",
         help="配置文件路径，默认自动探测 config/config.yaml 等常用位置",
     ),
-    prefer: Optional[str] = typer.Option(
+    prefer: str | None = typer.Option(
         None,
         "--prefer",
         help="优先检测的服务类型（ollama / vllm）",
     ),
-    model_name: Optional[str] = typer.Option(
+    model_name: str | None = typer.Option(
         None,
         "--model-name",
         "-m",
         help="指定要写入的模型名称（默认使用检测到的第一个模型）",
     ),
-    section: Optional[str] = typer.Option(
+    section: str | None = typer.Option(
         None,
         "--section",
         "-s",
         help="目标 generator 子配置（remote / vllm 等），默认依据服务类型",
     ),
-    auth_token: Optional[str] = typer.Option(
+    auth_token: str | None = typer.Option(
         None,
         "--auth-token",
         "-t",
@@ -138,9 +134,7 @@ def auto_update_generator(
     available_models = selected.models
     chosen_model = model_name or selected.default_model
     if model_name and model_name not in available_models:
-        typer.echo(
-            f"⚠️ 指定的模型 {model_name} 未出现在服务返回的列表中，将按原样写入配置。"
-        )
+        typer.echo(f"⚠️ 指定的模型 {model_name} 未出现在服务返回的列表中，将按原样写入配置。")
     elif not model_name and len(available_models) > 1 and not assume_yes:
         typer.echo("📋 服务提供的模型列表：")
         for idx, item in enumerate(available_models, start=1):
@@ -174,7 +168,7 @@ def auto_update_generator(
 
     config_data = _load_yaml(resolved_path)
     generator = config_data.setdefault("generator", {})
-    section_data: Dict[str, str] = generator.setdefault(target_section, {})
+    section_data: dict[str, str] = generator.setdefault(target_section, {})
 
     # Preserve existing API key/seed unless explicitly overridden
     section_data.setdefault("method", "openai")

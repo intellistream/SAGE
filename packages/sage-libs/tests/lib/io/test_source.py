@@ -97,7 +97,7 @@ class TestTextFileSource:
 
         try:
             source = TextFileSource(config=config)
-            result = source.execute(None)
+            source.execute(None)
 
             # 验证文件被打开
             mock_file.assert_called_once_with("mock_file.txt", "r", encoding="utf-8")
@@ -532,7 +532,7 @@ class TestSourceFallback:
             f.write(test_content)
 
         # 简单文件读取
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         assert content == test_content

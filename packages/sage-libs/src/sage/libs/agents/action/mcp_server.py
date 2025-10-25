@@ -9,7 +9,7 @@ from __future__ import annotations
 import importlib
 import time
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 from fastapi import FastAPI
@@ -20,11 +20,11 @@ app = FastAPI(title="SAGE MCP Server", version="0.1.0")
 # ---------------------------
 # In-memory registries
 # ---------------------------
-TOOLS: Dict[str, Any] = (
+TOOLS: dict[str, Any] = (
     {}
 )  # 本地&代理 工具对象：必须有 name/description/input_schema/call(arguments)
-REMOTE_ADAPTERS: Dict[str, "RemoteMCPAdapter"] = {}  # 远程 MCP 适配器
-MOUNT_MAP: Dict[str, Dict[str, str]] = {}  # adapter_id -> {local_name: remote_name}
+REMOTE_ADAPTERS: dict[str, RemoteMCPAdapter] = {}  # 远程 MCP 适配器
+MOUNT_MAP: dict[str, dict[str, str]] = {}  # adapter_id -> {local_name: remote_name}
 
 
 # ---------------------------
@@ -39,13 +39,9 @@ def _ensure_tool_interface(tool_obj: Any) -> None:
         raise TypeError("Tool must have `name` (str) and `call(arguments: dict)`")
     # description / input_schema 建议提供
     if not hasattr(tool_obj, "description"):
-        setattr(tool_obj, "description", "")
+        tool_obj.description = ""
     if not hasattr(tool_obj, "input_schema"):
-        setattr(
-            tool_obj,
-            "input_schema",
-            {"type": "object", "properties": {}, "required": []},
-        )
+        tool_obj.input_schema = {"type": "object", "properties": {}, "required": []}
 
 
 def register_tool(tool_obj: Any) -> None:
@@ -53,7 +49,7 @@ def register_tool(tool_obj: Any) -> None:
     TOOLS[tool_obj.name] = tool_obj
 
 
-def describe_tools() -> Dict[str, Dict[str, Any]]:
+def describe_tools() -> dict[str, dict[str, Any]]:
     return {
         name: {
             "description": getattr(t, "description", ""),
@@ -63,7 +59,7 @@ def describe_tools() -> Dict[str, Dict[str, Any]]:
     }
 
 
-def validate_required_args(tool_name: str, arguments: Dict[str, Any]) -> Optional[str]:
+def validate_required_args(tool_name: str, arguments: dict[str, Any]) -> str | None:
     schema = getattr(TOOLS[tool_name], "input_schema", {}) or {}
     req = schema.get("required") or []
     missing = [k for k in req if k not in (arguments or {})]
@@ -90,7 +86,7 @@ class RemoteMCPAdapter:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def _rpc(self, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    def _rpc(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         req = {
             "jsonrpc": "2.0",
             "id": uuid.uuid4().hex,
@@ -104,10 +100,10 @@ class RemoteMCPAdapter:
             raise RuntimeError(str(data["error"]))
         return data.get("result", {})
 
-    def list_tools(self) -> Dict[str, Dict[str, Any]]:
+    def list_tools(self) -> dict[str, dict[str, Any]]:
         return self._rpc("list_tools", {})
 
-    def call_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         return self._rpc("call_tool", {"name": name, "arguments": arguments})
 
 
@@ -118,7 +114,7 @@ class JSONRPCRequest(BaseModel):
     jsonrpc: str
     id: str
     method: str
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
 
 
 class JSONRPCResponse(BaseModel):
@@ -173,9 +169,7 @@ def jsonrpc(req: JSONRPCRequest):
             cls = getattr(mod, clsname)
             tool_obj = cls(**init_kwargs) if init_kwargs else cls()
             register_tool(tool_obj)
-            return JSONRPCResponse(
-                id=req.id, result={"ok": True, "name": tool_obj.name}
-            )
+            return JSONRPCResponse(id=req.id, result={"ok": True, "name": tool_obj.name})
 
         # 4) 挂载远程 MCP：把对方的每个工具映射为本地“代理工具”
         #    params: {"adapter_id":"t1","base_url":"http://host:9001","prefix":"up_"}
@@ -207,9 +201,7 @@ def jsonrpc(req: JSONRPCRequest):
             adapter_id = req.params["adapter_id"]
             prefix = req.params.get("prefix", "")
             if adapter_id not in REMOTE_ADAPTERS:
-                return JSONRPCResponse(
-                    id=req.id, error=f"Remote adapter not found: {adapter_id}"
-                )
+                return JSONRPCResponse(id=req.id, error=f"Remote adapter not found: {adapter_id}")
             adapter = REMOTE_ADAPTERS[adapter_id]
 
             # 先卸载旧代理
@@ -255,7 +247,7 @@ def _make_proxy_tool(
     adapter_id: str,
     local_name: str,
     remote_name: str,
-    meta: Dict[str, Any],
+    meta: dict[str, Any],
 ):
     """
     生成一个“本地代理工具”对象，它满足 name/description/input_schema/call(arguments) 接口，
@@ -264,14 +256,12 @@ def _make_proxy_tool(
 
     class _ProxyTool:
         name = local_name
-        description = meta.get(
-            "description", f"proxy for {remote_name} via {adapter_id}"
-        )
+        description = meta.get("description", f"proxy for {remote_name} via {adapter_id}")
         input_schema = meta.get(
             "input_schema", {"type": "object", "properties": {}, "required": []}
         )
 
-        def call(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        def call(self, arguments: dict[str, Any]) -> dict[str, Any]:
             result = adapter.call_tool(remote_name, arguments)
             # 统一返回格式建议：{"output": <result>, "meta": {...}}
             return {

@@ -1,12 +1,13 @@
-from typing import Any, Dict
+from typing import Any
 
 import requests
+
 from sage.kernel.operators import MapOperator
 
 
 class BochaWebSearch(MapOperator):
 
-    def __init__(self, config: Dict[str, Any], **kwargs):
+    def __init__(self, config: dict[str, Any], **kwargs):
         super().__init__(**kwargs)
         self.api_key = config.get("api_key")
         self.count = config.get("count", 10)
@@ -17,7 +18,7 @@ class BochaWebSearch(MapOperator):
         if not self.api_key:
             raise ValueError("BochaWebSearch requires an 'api_key' in config.")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: str) -> dict[str, Any]:
         query = data
         headers = {"Authorization": self.api_key, "Content-Type": "application/json"}
         payload = {

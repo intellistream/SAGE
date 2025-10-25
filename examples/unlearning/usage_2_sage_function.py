@@ -31,9 +31,7 @@ class UnlearningFunctionExample:
 
     def __init__(self, epsilon=1.0):
         """Initialize the function"""
-        self.engine = UnlearningEngine(
-            total_budget_epsilon=epsilon, enable_compensation=True
-        )
+        self.engine = UnlearningEngine(total_budget_epsilon=epsilon, enable_compensation=True)
         self.vectors_processed = 0
         self.vectors_forgotten = 0
 
@@ -82,7 +80,7 @@ def example_function_pattern():
         if should_forget:
             print(f"  - Vector {i}: Forgotten")
 
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"  Vectors processed: {func.vectors_processed}")
     print(f"  Vectors forgotten: {func.vectors_forgotten}")
     forgotten_count = sum(1 for r in results if r["action"] == "forgot")
@@ -100,9 +98,7 @@ def example_batched_unlearning():
 
     # Simulate batching vectors
     all_vectors = np.random.randn(100, 128).astype(np.float32)
-    all_vectors = all_vectors / (
-        np.linalg.norm(all_vectors, axis=1, keepdims=True) + 1e-10
-    )
+    all_vectors = all_vectors / (np.linalg.norm(all_vectors, axis=1, keepdims=True) + 1e-10)
     all_ids = [f"doc_{i}" for i in range(100)]
 
     # Forget vectors in batches
@@ -176,9 +172,7 @@ def example_stateful_processing():
                 self.state["vectors_accumulated"] = self.state["vectors_accumulated"][
                     num_to_forget:
                 ]
-                self.state["ids_accumulated"] = self.state["ids_accumulated"][
-                    num_to_forget:
-                ]
+                self.state["ids_accumulated"] = self.state["ids_accumulated"][num_to_forget:]
 
             return result
 
@@ -190,7 +184,7 @@ def example_stateful_processing():
         vector = vector / (np.linalg.norm(vector) + 1e-10)
         processor.add_vector(f"doc_{i}", vector)
 
-    print(f"Added 10 vectors to processor")
+    print("Added 10 vectors to processor")
 
     # Flush and forget in batches
     result = processor.flush_and_forget(num_to_forget=5)
@@ -199,7 +193,7 @@ def example_stateful_processing():
             f"Batch 1: Forgotten {result.num_vectors_unlearned}, Privacy cost: ε={result.privacy_cost[0]:.4f}"
         )
 
-    print(f"\n📊 Final state:")
+    print("\n📊 Final state:")
     print(f"  Total vectors forgotten: {processor.state['total_forgotten']}")
     print(f"  Total privacy spent: ε={processor.state['privacy_spent']:.4f}")
     print(f"  Vectors still in buffer: {len(processor.state['vectors_accumulated'])}")

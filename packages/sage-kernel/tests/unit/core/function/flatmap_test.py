@@ -125,9 +125,7 @@ class FilterDebugSink(SinkFunction):
         )
 
         # 打印调试信息
-        print(
-            f"🔍 [Instance {self.parallel_index}] Filtered data: {value}, Full: {data}"
-        )
+        print(f"🔍 [Instance {self.parallel_index}] Filtered data: {value}, Full: {data}")
 
         return data
 
@@ -179,9 +177,7 @@ class AdultUserFilter(FilterFunction):
     def execute(self, data: Any) -> bool:
         age = data.get("age", 0)
         is_adult = age >= 18
-        self.logger.info(
-            f"AdultUserFilter: {data.get('name')} (age {age}) -> {is_adult}"
-        )
+        self.logger.info(f"AdultUserFilter: {data.get('name')} (age {age}) -> {is_adult}")
         return is_adult
 
 
@@ -230,15 +226,13 @@ class TestFilterFunctionality:
 
         env = LocalEnvironment("positive_filter_test")
 
-        result_stream = (
+        (
             env.from_source(NumberDataSource, delay=0.2)
             .filter(PositiveNumberFilter)
             .sink(FilterDebugSink, parallelism=2)
         )
 
-        print(
-            "📊 Pipeline: NumberSource -> filter(PositiveNumberFilter) -> Sink(parallelism=2)"
-        )
+        print("📊 Pipeline: NumberSource -> filter(PositiveNumberFilter) -> Sink(parallelism=2)")
         print("🎯 Expected: Only positive numbers should pass through\n")
 
         try:
@@ -256,7 +250,7 @@ class TestFilterFunctionality:
 
         env = LocalEnvironment("chained_filter_test")
 
-        result_stream = (
+        (
             env.from_source(NumberDataSource, delay=0.2)
             .filter(PositiveNumberFilter)  # 先过滤正数
             .filter(EvenNumberFilter)  # 再过滤偶数
@@ -281,7 +275,7 @@ class TestFilterFunctionality:
 
         env = LocalEnvironment("user_filter_test")
 
-        result_stream = (
+        (
             env.from_source(UserDataSource, delay=0.3)
             .filter(ActiveUserFilter)
             .filter(AdultUserFilter)
@@ -306,7 +300,7 @@ class TestFilterFunctionality:
 
         env = LocalEnvironment("lambda_filter_test")
 
-        result_stream = (
+        (
             env.from_source(NumberDataSource, delay=0.2)
             .filter(lambda x: x["value"] > 0 and x["value"] < 5)  # 0 < value < 5
             .sink(FilterDebugSink, parallelism=1)
@@ -331,7 +325,7 @@ class TestFilterFunctionality:
         env = LocalEnvironment("extreme_filter_test")
 
         # 测试1：所有数据都通过
-        always_true_stream = (
+        (
             env.from_source(NumberDataSource, delay=0.2)
             .filter(AlwaysTrueFilter)
             .sink(FilterDebugSink, parallelism=1)
@@ -352,7 +346,7 @@ class TestFilterFunctionality:
         # 测试2：所有数据都被过滤
         env2 = LocalEnvironment("always_false_filter_test")
 
-        always_false_stream = (
+        (
             env2.from_source(NumberDataSource, delay=0.2)
             .filter(AlwaysFalseFilter)
             .sink(FilterDebugSink, parallelism=1)
@@ -376,7 +370,7 @@ class TestFilterFunctionality:
 
         env = LocalEnvironment("filter_map_integration_test")
 
-        result_stream = (
+        (
             env.from_source(UserDataSource, delay=0.3)
             .filter(ActiveUserFilter)  # 过滤活跃用户
             .map(
@@ -411,16 +405,14 @@ class TestFilterFunctionality:
         env = LocalEnvironment("filter_error_test")
 
         # 注意：这个测试可能会产生错误日志，这是预期的
-        result_stream = (
+        (
             env.from_source(NumberDataSource, delay=0.2)
             .filter(ErrorFilter)  # 故意抛出异常的过滤器
             .sink(FilterDebugSink, parallelism=1)
         )
 
         print("📊 Pipeline: NumberSource -> filter(ErrorFilter) -> Sink")
-        print(
-            "🎯 Expected: Errors should be handled gracefully, minimal data should pass\n"
-        )
+        print("🎯 Expected: Errors should be handled gracefully, minimal data should pass\n")
 
         try:
             env.submit()
@@ -452,9 +444,7 @@ class TestFilterFunctionality:
 
         # 验证：所有通过的数据都应该是正数
         for data in all_filtered_data:
-            assert (
-                data.get("positive") is True
-            ), f"❌ Non-positive data passed filter: {data}"
+            assert data.get("positive") is True, f"❌ Non-positive data passed filter: {data}"
 
         # 验证：应该有正数通过（基于测试数据）
         assert len(all_filtered_data) > 0, "❌ No data passed positive filter"
@@ -469,15 +459,13 @@ class TestFilterFunctionality:
         print("=" * 40)
 
         all_filtered_data = []
-        for instance_id, data_list in received_data.items():
+        for _instance_id, data_list in received_data.items():
             for data in data_list:
                 all_filtered_data.append(data)
                 value = data.get("value")
                 positive = data.get("positive")
                 category = data.get("category")
-                print(
-                    f"   - Value: {value}, Positive: {positive}, Category: {category}"
-                )
+                print(f"   - Value: {value}, Positive: {positive}, Category: {category}")
 
         print("\n🎯 Chained Filter Summary:")
         print(f"   - Total data after both filters: {len(all_filtered_data)}")
@@ -499,7 +487,7 @@ class TestFilterFunctionality:
         print("=" * 40)
 
         all_filtered_users = []
-        for instance_id, data_list in received_data.items():
+        for _instance_id, data_list in received_data.items():
             for user in data_list:
                 all_filtered_users.append(user)
                 name = user.get("name")
@@ -525,7 +513,7 @@ class TestFilterFunctionality:
         print("=" * 40)
 
         all_filtered_data = []
-        for instance_id, data_list in received_data.items():
+        for _instance_id, data_list in received_data.items():
             for data in data_list:
                 all_filtered_data.append(data)
                 value = data.get("value")
@@ -551,9 +539,7 @@ class TestFilterFunctionality:
         print(f"🔹 AlwaysTrueFilter: {all_pass_count} items passed")
 
         # 验证AlwaysFalseFilter结果
-        none_pass_count = sum(
-            len(data_list) for data_list in none_pass_results.values()
-        )
+        none_pass_count = sum(len(data_list) for data_list in none_pass_results.values())
         print(f"🔹 AlwaysFalseFilter: {none_pass_count} items passed")
 
         # 基于测试数据，AlwaysTrueFilter应该有数据通过
@@ -562,9 +548,7 @@ class TestFilterFunctionality:
         # AlwaysFalseFilter应该没有数据通过
         assert none_pass_count == 0, "❌ AlwaysFalseFilter should pass no data"
 
-        print(
-            "✅ Extreme filter tests passed: True filter passes all, False filter passes none"
-        )
+        print("✅ Extreme filter tests passed: True filter passes all, False filter passes none")
 
     def _verify_filter_map_integration_results(self):
         """验证Filter+Map集成结果"""
@@ -574,7 +558,7 @@ class TestFilterFunctionality:
         print("=" * 40)
 
         all_results = []
-        for instance_id, data_list in received_data.items():
+        for _instance_id, data_list in received_data.items():
             for data in data_list:
                 all_results.append(data)
                 username = data.get("username")
@@ -599,9 +583,7 @@ class TestFilterFunctionality:
             username = user.get("username", "")
             assert username.isupper(), f"❌ Username not uppercase: {user}"
 
-        print(
-            "✅ Filter + Map integration test passed: Correct filtering and transformation"
-        )
+        print("✅ Filter + Map integration test passed: Correct filtering and transformation")
 
     def _verify_error_handling_results(self):
         """验证错误处理结果"""
@@ -611,7 +593,7 @@ class TestFilterFunctionality:
         print("=" * 40)
 
         all_results = []
-        for instance_id, data_list in received_data.items():
+        for _instance_id, data_list in received_data.items():
             all_results.extend(data_list)
 
         print(f"🔹 Data that passed through error filter: {len(all_results)}")

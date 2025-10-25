@@ -1,5 +1,3 @@
-from typing import List, Tuple, Union
-
 from sage.kernel.operators import MapOperator
 
 
@@ -38,7 +36,7 @@ class MemoryWriter(MapOperator):
         # TODO: 在runtime_context中增加状态管理
         # Issue URL: https://github.com/intellistream/SAGE/issues/235
 
-    def execute(self, data: Union[str, List[str], Tuple[str, str]]):
+    def execute(self, data: str | list[str] | tuple[str, str]):
         input_data = data
 
         # 统一数据类型处理
@@ -71,9 +69,7 @@ class MemoryWriter(MapOperator):
                     documents=processed_data,
                     collection_config=config,
                 )
-                self.logger.debug(
-                    f"Stored {len(processed_data)} chunks to {mem_type.upper()}"
-                )
+                self.logger.debug(f"Stored {len(processed_data)} chunks to {mem_type.upper()}")
             except Exception as e:
                 self.logger.error(f"Failed to store to {mem_type.upper()}: {str(e)}")
 

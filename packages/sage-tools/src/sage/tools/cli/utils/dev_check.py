@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 开发模式检查工具
 
 提供装饰器和函数来检查命令是否在开发环境（源码安装）中运行
 """
 
+from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
-from typing import Callable
 
 import typer
 from rich.console import Console
@@ -42,9 +41,7 @@ def is_source_installation() -> bool:
                 "sage-libs",
             ]
             # 至少找到 3 个包才认为是有效的源码目录
-            found_count = sum(
-                1 for pkg in sage_packages if (packages_dir / pkg).exists()
-            )
+            found_count = sum(1 for pkg in sage_packages if (packages_dir / pkg).exists())
             if found_count >= 3:
                 return True
 
@@ -109,9 +106,7 @@ def require_source_code(func: Callable) -> Callable:
             console.print("   [cyan]# 或使用快速启动脚本[/cyan]")
             console.print("   ./quickstart.sh")
             console.print()
-            console.print(
-                "[dim]更多信息请访问: https://github.com/intellistream/SAGE[/dim]"
-            )
+            console.print("[dim]更多信息请访问: https://github.com/intellistream/SAGE[/dim]")
 
             raise typer.Exit(1)
 

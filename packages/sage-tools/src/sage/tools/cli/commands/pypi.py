@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 SAGE PyPI命令模块
 
@@ -12,12 +11,12 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional
 
 import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
+
 from sage.tools.cli.utils.dev_check import require_source_code
 
 console = Console()
@@ -27,16 +26,12 @@ app = typer.Typer(help="📦 PyPI发布管理命令")
 @app.command()
 @require_source_code
 def validate(
-    test_dir: Optional[str] = typer.Option(None, "--test-dir", help="指定测试目录"),
+    test_dir: str | None = typer.Option(None, "--test-dir", help="指定测试目录"),
     skip_wheel: bool = typer.Option(False, "--skip-wheel", help="跳过wheel构建"),
-    cleanup: bool = typer.Option(
-        True, "--cleanup/--no-cleanup", help="测试完成后清理临时文件"
-    ),
+    cleanup: bool = typer.Option(True, "--cleanup/--no-cleanup", help="测试完成后清理临时文件"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细输出"),
     fast: bool = typer.Option(False, "--fast", help="使用快速验证模式"),
-    check_auth: bool = typer.Option(
-        True, "--check-auth/--skip-auth", help="检查PyPI认证配置"
-    ),
+    check_auth: bool = typer.Option(True, "--check-auth/--skip-auth", help="检查PyPI认证配置"),
 ):
     """验证SAGE代码的PyPI发布准备状态（仅开发模式）
 
@@ -94,9 +89,7 @@ def validate(
 
         if not pypirc_exists:
             console.print("[yellow]⚠️  未找到.pypirc配置文件[/yellow]")
-            console.print(
-                "💡 [blue]发布时需要配置PyPI认证，运行以下命令查看配置帮助:[/blue]"
-            )
+            console.print("💡 [blue]发布时需要配置PyPI认证，运行以下命令查看配置帮助:[/blue]")
             console.print("   [cyan]sage dev pypi publish --help[/cyan]")
         else:
             console.print("✅ [green]PyPI认证配置已就绪[/green]")
@@ -130,9 +123,7 @@ def validate(
             raise typer.Exit(1)
 
         # 查找测试脚本
-        script_path = (
-            project_root / "packages" / "sage-tools" / "tests" / "pypi" / script_name
-        )
+        script_path = project_root / "packages" / "sage-tools" / "tests" / "pypi" / script_name
         if not script_path.exists():
             console.print(f"[red]❌ 测试脚本不存在: {script_path}[/red]")
             raise typer.Exit(1)
@@ -372,9 +363,7 @@ def build(
             if dist_dir.exists():
                 wheel_files = list(dist_dir.glob("*.whl"))
                 if wheel_files:
-                    console.print(
-                        f"📦 [green]生成了 {len(wheel_files)} 个wheel文件:[/green]"
-                    )
+                    console.print(f"📦 [green]生成了 {len(wheel_files)} 个wheel文件:[/green]")
                     for wheel_file in wheel_files:
                         file_size = wheel_file.stat().st_size / 1024  # KB
                         console.print(f"  • {wheel_file.name} ({file_size:.1f}KB)")
@@ -459,9 +448,7 @@ def clean(
 def publish(
     dry_run: bool = typer.Option(False, "--dry-run", help="发布到TestPyPI进行测试"),
     skip_build: bool = typer.Option(False, "--skip-build", help="跳过构建步骤"),
-    packages: Optional[List[str]] = typer.Option(
-        None, "--package", help="指定要发布的包"
-    ),
+    packages: list[str] | None = typer.Option(None, "--package", help="指定要发布的包"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细输出"),
 ):
     """发布SAGE包到PyPI（仅开发模式）
@@ -530,18 +517,14 @@ def publish(
             if dry_run:
                 console.print("\n🎉 [bold green]TestPyPI发布成功！[/bold green]")
                 console.print("🔍 [green]请在TestPyPI上验证包的完整性[/green]")
-                console.print(
-                    "\n📝 [cyan]从TestPyPI安装测试（需要指定正式PyPI作为后备源）:[/cyan]"
-                )
+                console.print("\n📝 [cyan]从TestPyPI安装测试（需要指定正式PyPI作为后备源）:[/cyan]")
                 console.print(
                     "   [yellow]pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ isage[/yellow]"
                 )
                 console.print(
                     "\n💡 [dim]--extra-index-url 参数确保从正式PyPI获取依赖包（如fastapi、uvicorn等）[/dim]"
                 )
-                console.print(
-                    "💡 [blue]验证无误后可运行正式发布: sage dev pypi publish[/blue]"
-                )
+                console.print("💡 [blue]验证无误后可运行正式发布: sage dev pypi publish[/blue]")
             else:
                 console.print("\n🎉 [bold green]PyPI发布成功！[/bold green]")
                 console.print("📦 [green]所有包已成功发布到PyPI[/green]")
@@ -648,7 +631,7 @@ def _check_pypi_credentials(project_root: Path, dry_run: bool = False) -> bool:
 
     # 验证配置文件格式
     try:
-        with open(pypirc_found, "r", encoding="utf-8") as f:
+        with open(pypirc_found, encoding="utf-8") as f:
             content = f.read()
 
         # 检查必要的配置节
@@ -656,9 +639,7 @@ def _check_pypi_credentials(project_root: Path, dry_run: bool = False) -> bool:
 
         if f"[{target_section}]" not in content:
             console.print(f"[red]❌ 配置文件缺少 [{target_section}] 节[/red]")
-            console.print(
-                f"💡 [yellow]请在 {pypirc_found} 中添加 {target_section} 配置[/yellow]"
-            )
+            console.print(f"💡 [yellow]请在 {pypirc_found} 中添加 {target_section} 配置[/yellow]")
             return False
 
         if "username" not in content or "password" not in content:
@@ -677,9 +658,7 @@ def _check_pypi_credentials(project_root: Path, dry_run: bool = False) -> bool:
 class PyPIPublisher:
     """PyPI发布管理器"""
 
-    def __init__(
-        self, project_root: Path, dry_run: bool = False, verbose: bool = False
-    ):
+    def __init__(self, project_root: Path, dry_run: bool = False, verbose: bool = False):
         self.project_root = project_root
         self.dry_run = dry_run
         self.verbose = verbose
@@ -697,9 +676,7 @@ class PyPIPublisher:
 
         # 初始化日志
         with open(self.log_file, "w", encoding="utf-8") as f:
-            f.write(
-                f"[{datetime.datetime.now()}] ======== SAGE PyPI发布开始 ========\n"
-            )
+            f.write(f"[{datetime.datetime.now()}] ======== SAGE PyPI发布开始 ========\n")
 
         # 发布顺序（按依赖关系）
         self.publish_order = [
@@ -786,9 +763,7 @@ class PyPIPublisher:
                 return True
             else:
                 console.print(f"  ❌ {package_name}: 构建失败")
-                self.log_to_file(
-                    f"{package_name}: 构建失败，退出码: {result.returncode}"
-                )
+                self.log_to_file(f"{package_name}: 构建失败，退出码: {result.returncode}")
                 return False
 
         except subprocess.TimeoutExpired:
@@ -828,9 +803,7 @@ class PyPIPublisher:
 
         cmd.append("dist/*")
 
-        self.log_to_file(
-            f"{package_name}: 开始上传到 {'TestPyPI' if self.dry_run else 'PyPI'}"
-        )
+        self.log_to_file(f"{package_name}: 开始上传到 {'TestPyPI' if self.dry_run else 'PyPI'}")
         self.log_to_file(f"{package_name}: 使用配置文件: {pypirc_path}")
         self.log_to_file(f"{package_name}: 上传命令: {' '.join(cmd)}")
 
@@ -856,14 +829,8 @@ class PyPIPublisher:
                 error_lower = error_output.lower()
 
                 # 如果是400错误但不是verbose模式，重试一次获取详细信息
-                if (
-                    "400" in error_output
-                    and not self.verbose
-                    and "warning" in error_lower
-                ):
-                    self.log_to_file(
-                        f"{package_name}: 检测到400错误，重试获取详细信息..."
-                    )
+                if "400" in error_output and not self.verbose and "warning" in error_lower:
+                    self.log_to_file(f"{package_name}: 检测到400错误，重试获取详细信息...")
 
                     # 重新构建带verbose的命令
                     verbose_cmd = cmd[:-1] + ["--verbose"] + [cmd[-1]]
@@ -883,8 +850,7 @@ class PyPIPublisher:
                     self.log_to_file(error_output)
 
                 if any(
-                    phrase in error_lower
-                    for phrase in ["file already exists", "already exists"]
+                    phrase in error_lower for phrase in ["file already exists", "already exists"]
                 ):
                     console.print(f"  ⚠️  {package_name}: 版本已存在，跳过")
                     self.log_to_file(f"{package_name}: 版本已存在，跳过")
@@ -909,9 +875,7 @@ class PyPIPublisher:
                 else:
                     console.print(f"  ❌ {package_name}: 上传失败")
                     console.print(f"     错误详情: {error_output[:100]}")
-                    self.log_to_file(
-                        f"{package_name}: 上传失败，退出码: {result.returncode}"
-                    )
+                    self.log_to_file(f"{package_name}: 上传失败，退出码: {result.returncode}")
                     return False
 
         except subprocess.TimeoutExpired:
@@ -924,7 +888,7 @@ class PyPIPublisher:
             return False
 
     def publish_packages(
-        self, specified_packages: Optional[List[str]] = None, skip_build: bool = False
+        self, specified_packages: list[str] | None = None, skip_build: bool = False
     ) -> bool:
         """发布包"""
         packages_dir = self.project_root / "packages"

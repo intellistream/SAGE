@@ -7,7 +7,7 @@ This tool manages commercial SAGE packages and their deployment.
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from ..core.exceptions import SAGEDevToolkitError
 
@@ -41,7 +41,7 @@ class CommercialPackageManager:
             },
         }
 
-    def list_commercial_packages(self) -> Dict[str, Any]:
+    def list_commercial_packages(self) -> dict[str, Any]:
         """List all commercial packages with their status."""
         try:
             package_list = []
@@ -70,7 +70,7 @@ class CommercialPackageManager:
 
     def install_commercial_package(
         self, package_name: str, dev_mode: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Install a commercial package."""
         try:
             if package_name not in self.packages:
@@ -80,9 +80,7 @@ class CommercialPackageManager:
             package_path = package_info["path"]
 
             if not package_path.exists():
-                raise SAGEDevToolkitError(
-                    f"Commercial package directory not found: {package_path}"
-                )
+                raise SAGEDevToolkitError(f"Commercial package directory not found: {package_path}")
 
             # Install dependencies first
             for dep in package_info["dependencies"]:
@@ -114,15 +112,13 @@ class CommercialPackageManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"Commercial package installation failed: {e}")
 
-    def build_commercial_extensions(self, package_name: str = None) -> Dict[str, Any]:
+    def build_commercial_extensions(self, package_name: str = None) -> dict[str, Any]:
         """Build C++ extensions for commercial packages."""
         try:
             if package_name:
                 # Build specific package
                 if package_name not in self.packages:
-                    raise SAGEDevToolkitError(
-                        f"Unknown commercial package: {package_name}"
-                    )
+                    raise SAGEDevToolkitError(f"Unknown commercial package: {package_name}")
 
                 package_path = self.packages[package_name]["path"]
                 return self._build_package_extensions(package_name, package_path)
@@ -131,9 +127,7 @@ class CommercialPackageManager:
                 results = {}
                 for name, info in self.packages.items():
                     if info["path"].exists():
-                        results[name] = self._build_package_extensions(
-                            name, info["path"]
-                        )
+                        results[name] = self._build_package_extensions(name, info["path"])
 
                 return {
                     "results": results,
@@ -144,7 +138,7 @@ class CommercialPackageManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"Extension building failed: {e}")
 
-    def check_commercial_status(self) -> Dict[str, Any]:
+    def check_commercial_status(self) -> dict[str, Any]:
         """Check status of all commercial packages."""
         try:
             status_info = {
@@ -187,16 +181,12 @@ class CommercialPackageManager:
             return "missing"
 
         # Check if it has pyproject.toml or setup.py
-        if (package_path / "pyproject.toml").exists() or (
-            package_path / "setup.py"
-        ).exists():
+        if (package_path / "pyproject.toml").exists() or (package_path / "setup.py").exists():
             return "ready"
 
         return "incomplete"
 
-    def _build_package_extensions(
-        self, package_name: str, package_path: Path
-    ) -> Dict[str, Any]:
+    def _build_package_extensions(self, package_name: str, package_path: Path) -> dict[str, Any]:
         """Build extensions for a specific package."""
         try:
             # Look for build script
@@ -245,7 +235,7 @@ class CommercialPackageManager:
         except Exception:
             return False
 
-    def _check_components_built(self, package_info: Dict) -> bool:
+    def _check_components_built(self, package_info: dict) -> bool:
         """Check if package components are built."""
         package_path = package_info["path"]
         if not package_path.exists():

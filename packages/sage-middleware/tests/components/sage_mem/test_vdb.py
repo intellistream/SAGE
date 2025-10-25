@@ -14,7 +14,7 @@ def test_vdb_collection():
     # 打开数据并批量插入
     base_dir = os.path.dirname(__file__)
     file_path = os.path.join(base_dir, "toy_data.json")
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         data = json.load(f)
     texts = [item["text"] for item in data]
     metadatas = [item.get("metadata", {}) for item in data]
@@ -57,9 +57,7 @@ def test_vdb_collection():
     print(f"\n✅ 测试通过！找到了 {len(results)} 个相关结果")
 
     # 可选：验证是否找到了完全匹配的文本
-    has_exact_match = any(
-        "数据库事务可确保操作的原子性与一致性" in r["text"] for r in results
-    )
+    has_exact_match = any("数据库事务可确保操作的原子性与一致性" in r["text"] for r in results)
     if has_exact_match:
         print("✅ 找到了完全匹配的文本")
     else:

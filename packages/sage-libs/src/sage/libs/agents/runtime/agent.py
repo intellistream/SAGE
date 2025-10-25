@@ -12,9 +12,7 @@ from ..planning.llm_planner import LLMPlanner, PlanStep
 from ..profile.profile import BaseProfile
 
 
-def _missing_required(
-    arguments: dict[str, Any], input_schema: dict[str, Any]
-) -> list[str]:
+def _missing_required(arguments: dict[str, Any], input_schema: dict[str, Any]) -> list[str]:
     """基于 MCP JSON Schema 做最小必填参数校验。"""
     req = (input_schema or {}).get("required") or []
     return [k for k in req if k not in arguments]
@@ -42,7 +40,9 @@ class AgentRuntime(MapFunction):
         self.planner = planner
         self.tools = tools
         # self.memory = memory
-        self.summarizer = summarizer  # 复用你的 generator 也行：execute([None, prompt]) -> (None, text)
+        self.summarizer = (
+            summarizer  # 复用你的 generator 也行：execute([None, prompt]) -> (None, text)
+        )
         self.max_steps = max_steps
 
     def step(self, user_query: str) -> str:
@@ -141,13 +141,9 @@ class AgentRuntime(MapFunction):
         lines = []
         for obs in observations:
             if obs.get("ok"):
-                lines.append(
-                    f"#{obs['step'] + 1} 工具 {obs['tool']} 成功：{obs.get('result')}"
-                )
+                lines.append(f"#{obs['step'] + 1} 工具 {obs['tool']} 成功：{obs.get('result')}")
             else:
-                lines.append(
-                    f"#{obs['step'] + 1} 工具 {obs['tool']} 失败：{obs.get('error')}"
-                )
+                lines.append(f"#{obs['step'] + 1} 工具 {obs['tool']} 失败：{obs.get('error')}")
         return "\n".join(lines)
 
     def execute(self, data: Any) -> str:
@@ -184,9 +180,7 @@ class AgentRuntime(MapFunction):
 
             # 临时覆写 profile（一次性，不污染实例）
             original_profile = self.profile
-            if "profile_overrides" in data and isinstance(
-                data["profile_overrides"], dict
-            ):
+            if "profile_overrides" in data and isinstance(data["profile_overrides"], dict):
                 try:
                     self.profile = self.profile.merged(**data["profile_overrides"])
                 except Exception:

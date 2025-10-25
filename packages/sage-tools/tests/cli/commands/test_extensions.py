@@ -7,7 +7,6 @@ SAGE C++ Extensions Test Command
 """
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 
@@ -31,9 +30,7 @@ def main(ctx: typer.Context):
         typer.echo()
         typer.echo("完整测试套件:")
         typer.echo("  sage dev test   - 运行完整的测试套件 (包括 C++ 扩展和示例)")
-        typer.echo(
-            "                    C++ 扩展测试在: tools/tests/test_cpp_extensions.py"
-        )
+        typer.echo("                    C++ 扩展测试在: tools/tests/test_cpp_extensions.py")
         typer.echo("  ./tools/tests/run_examples - 运行所有示例程序")
         typer.echo()
         typer.echo("使用 'sage test COMMAND --help' 查看具体命令的帮助")
@@ -99,7 +96,7 @@ def check_extension_import(test_name: str, import_statement: str) -> bool:
         return False
 
 
-def find_sage_root() -> Optional[Path]:
+def find_sage_root() -> Path | None:
     """查找 SAGE 项目根目录"""
     current = Path.cwd()
 

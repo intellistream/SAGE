@@ -3,17 +3,19 @@ import os
 import re
 import time
 from collections import Counter
-from typing import List
 from urllib.parse import quote
 
 import feedparser
 import fitz
 import requests
+
 from sage.kernel.operators import MapOperator
 
 
 class Paper:
-    def __init__(self, path, title="", url="", abs="", authors=[], **kwargs):
+    def __init__(self, path, title="", url="", abs="", authors=None, **kwargs):
+        if authors is None:
+            authors = []
         super().__init__(**kwargs)
         # 初始化函数，根据pdf路径初始化Paper对象
         self.url = url  # 文章链接
@@ -66,7 +68,7 @@ class Paper:
         # # 创建一个空列表，用于存储章节名称
         chapter_names = []
         for line in all_text.split("\n"):
-            line_list = line.split(" ")
+            line.split(" ")
             if "." in line:
                 point_split_list = line.split(".")
                 space_split_list = line.split(" ")
@@ -83,7 +85,6 @@ class Paper:
     def get_title(self):
         doc = self.pdf  # 打开pdf文件
         max_font_size = 0  # 初始化最大字体大小为0
-        max_string = ""  # 初始化最大字体大小对应的字符串为空
         max_font_sizes = [0]
         for page_index, page in enumerate(doc):  # 遍历每一页
             text = page.get_text("dict")  # 获取页面上的文本信息
@@ -97,9 +98,7 @@ class Paper:
                         max_font_sizes.append(font_size)
                         if font_size > max_font_size:  # 如果字体大小大于当前最大值
                             max_font_size = font_size  # 更新最大值
-                            max_string = block["lines"][0]["spans"][0][
-                                "text"
-                            ]  # 更新最大值对应的字符串
+                            block["lines"][0]["spans"][0]["text"]  # 更新最大值对应的字符串
         max_font_sizes.sort()
         # print("max_font_sizes", max_font_sizes[-10:])
         cur_title = ""
@@ -109,12 +108,8 @@ class Paper:
             for block in blocks:  # 遍历每个文本块
                 if block["type"] == 0 and len(block["lines"]):  # 如果是文字类型
                     if len(block["lines"][0]["spans"]):
-                        cur_string = block["lines"][0]["spans"][0][
-                            "text"
-                        ]  # 更新最大值对应的字符串
-                        font_flags = block["lines"][0]["spans"][0][
-                            "flags"
-                        ]  # 获取第一行第一段文字的字体特征
+                        cur_string = block["lines"][0]["spans"][0]["text"]  # 更新最大值对应的字符串
+                        block["lines"][0]["spans"][0]["flags"]  # 获取第一行第一段文字的字体特征
                         font_size = block["lines"][0]["spans"][0][
                             "size"
                         ]  # 获取第一行第一段文字的字体大小
@@ -184,25 +179,19 @@ class Paper:
                                 not font_heading
                                 and span["text"].isupper()
                                 and sum(
-                                    1
-                                    for c in span["text"]
-                                    if c.isupper() and ("A" <= c <= "Z")
+                                    1 for c in span["text"] if c.isupper() and ("A" <= c <= "Z")
                                 )
                                 > 4
                             ):  # 针对一些标题大小一样,但是全大写的论文
                                 upper_heading = True
                                 heading = span["text"].strip()
-                                if (
-                                    "References" in heading
-                                ):  # reference 以后的内容不考虑
+                                if "References" in heading:  # reference 以后的内容不考虑
                                     self.section_names = subheadings
                                     self.section_texts = section_dict
                                     return
                                 subheadings.append(heading)
                                 if last_heading is not None:
-                                    section_dict[last_heading] = section_dict[
-                                        last_heading
-                                    ].strip()
+                                    section_dict[last_heading] = section_dict[last_heading].strip()
                                 section_dict[heading] = ""
                                 last_heading = heading
                             if (
@@ -219,17 +208,13 @@ class Paper:
                                 elif heading_font != span["size"]:
                                     continue
                                 heading = span["text"].strip()
-                                if (
-                                    "References" in heading
-                                ):  # reference 以后的内容不考虑
+                                if "References" in heading:  # reference 以后的内容不考虑
                                     self.section_names = subheadings
                                     self.section_texts = section_dict
                                     return
                                 subheadings.append(heading)
                                 if last_heading is not None:
-                                    section_dict[last_heading] = section_dict[
-                                        last_heading
-                                    ].strip()
+                                    section_dict[last_heading] = section_dict[last_heading].strip()
                                 section_dict[heading] = ""
                                 last_heading = heading
                             # 否则将当前文本添加到上一个子标题的文本中
@@ -247,7 +232,7 @@ class ArxivPDFDownloader(MapOperator):
         self.save_dir = config.get("save_dir", "arxiv_pdfs")
         os.makedirs(self.save_dir, exist_ok=True)
 
-    def execute(self, data: str) -> List[str]:
+    def execute(self, data: str) -> list[str]:
         self.query = data
         base_url = "http://export.arxiv.org/api/query?"
         encoded_query = quote(self.query)
@@ -292,7 +277,7 @@ class ArxivPDFParser(MapOperator):
         self.output_dir = config.get("output_dir", "arxiv_structured_json")
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def execute(self, data: str) -> List[str]:
+    def execute(self, data: str) -> list[str]:
 
         pdf_paths = data
         output_paths = []

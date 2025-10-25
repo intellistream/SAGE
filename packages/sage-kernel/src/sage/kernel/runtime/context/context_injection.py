@@ -6,7 +6,7 @@ Context Injection Utilities
 """
 
 import logging
-from typing import Optional, Type, TypeVar
+from typing import Optional, TypeVar
 
 # 定义类型变量
 T = TypeVar("T")
@@ -14,8 +14,8 @@ ContextType = TypeVar("ContextType")
 
 
 def create_with_context(
-    target_class: Type[T],
-    context: Optional[ContextType],
+    target_class: type[T],
+    context: ContextType | None,
     context_attr_name: str = "ctx",
     *args,
     **kwargs,
@@ -66,9 +66,7 @@ def create_with_context(
             try:
                 setattr(instance, context_attr_name, context)
             except (AttributeError, TypeError) as e:
-                logging.warning(
-                    f"Failed to inject context into {target_class.__name__}: {e}"
-                )
+                logging.warning(f"Failed to inject context into {target_class.__name__}: {e}")
                 # 如果无法注入上下文，回退到普通构造方式
                 instance = target_class(*args, **kwargs)
                 # 尝试在构造后注入上下文
@@ -90,7 +88,7 @@ def create_with_context(
 
 
 def create_service_with_context(
-    service_class: Type[T], service_context: Optional["ServiceContext"], *args, **kwargs
+    service_class: type[T], service_context: Optional["ServiceContext"], *args, **kwargs
 ) -> T:
     """
     使用 ServiceContext 创建服务实例的便捷方法
@@ -108,7 +106,7 @@ def create_service_with_context(
 
 
 def create_task_with_context(
-    task_class: Type[T], task_context: Optional["TaskContext"], *args, **kwargs
+    task_class: type[T], task_context: Optional["TaskContext"], *args, **kwargs
 ) -> T:
     """
     使用 TaskContext 创建任务实例的便捷方法

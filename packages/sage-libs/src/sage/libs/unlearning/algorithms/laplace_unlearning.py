@@ -7,8 +7,6 @@ Implements the Laplace mechanism for pure ε-differential privacy.
 This is a reference implementation. Students can improve upon it!
 """
 
-from typing import Optional, Tuple
-
 import numpy as np
 
 from ..dp_unlearning.base_mechanism import BasePrivacyMechanism
@@ -32,7 +30,7 @@ class LaplaceMechanism(BasePrivacyMechanism):
         self,
         epsilon: float,
         sensitivity: float = 1.0,
-        clip_bound: Optional[float] = None,
+        clip_bound: float | None = None,
     ):
         """
         Initialize Laplace mechanism.
@@ -52,9 +50,9 @@ class LaplaceMechanism(BasePrivacyMechanism):
 
     def compute_noise(
         self,
-        sensitivity: Optional[float] = None,
-        epsilon: Optional[float] = None,
-        delta: Optional[float] = None,
+        sensitivity: float | None = None,
+        epsilon: float | None = None,
+        delta: float | None = None,
     ) -> float:
         """
         Generate Laplace noise: Lap(Δf / ε).
@@ -75,7 +73,7 @@ class LaplaceMechanism(BasePrivacyMechanism):
 
         return noise
 
-    def privacy_cost(self) -> Tuple[float, float]:
+    def privacy_cost(self) -> tuple[float, float]:
         """
         Laplace mechanism satisfies pure ε-DP.
 

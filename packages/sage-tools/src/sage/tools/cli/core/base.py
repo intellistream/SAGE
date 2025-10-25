@@ -8,8 +8,9 @@ SAGE CLI Base Classes
 
 import functools
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any
 
 import typer
 
@@ -24,7 +25,7 @@ class BaseCommand(ABC):
 
     def __init__(
         self,
-        config_path: Optional[Union[str, Path]] = None,
+        config_path: str | Path | None = None,
         output_format: str = "table",
         use_colors: bool = True,
     ):
@@ -53,9 +54,7 @@ class BaseCommand(ABC):
                 self.config = load_and_validate_config(self.config_path)
             else:
                 # 如果配置文件不存在，提示用户创建
-                self.formatter.print_warning(
-                    f"Configuration file not found: {self.config_path}"
-                )
+                self.formatter.print_warning(f"Configuration file not found: {self.config_path}")
                 self.formatter.print_info(
                     "Run 'sage config init' to create a default configuration"
                 )
@@ -75,8 +74,8 @@ class BaseCommand(ABC):
         pass
 
     def get_config_section(
-        self, section_name: str, default: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
+        self, section_name: str, default: dict[str, Any] = None
+    ) -> dict[str, Any]:
         """获取配置节"""
         return self.config.get(section_name, default or {})
 
@@ -163,7 +162,7 @@ class RemoteCommand(BaseCommand):
         self.ssh_manager = SSHManager(ssh_conf)
         self.remote_executor = RemoteExecutor(self.ssh_manager)
 
-    def get_worker_hosts(self) -> List[tuple]:
+    def get_worker_hosts(self) -> list[tuple]:
         """获取worker主机列表"""
         ssh_config = self.get_config_section("ssh")
         workers = ssh_config.get("workers", [])
@@ -190,7 +189,7 @@ class RemoteCommand(BaseCommand):
 
     def execute_on_workers(
         self, command: str, parallel: bool = False, timeout: int = 60
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """在所有worker节点上执行命令"""
         if not self.ssh_manager:
             self._setup_ssh()
@@ -199,9 +198,7 @@ class RemoteCommand(BaseCommand):
         if not worker_hosts:
             raise ConfigurationError("No worker hosts configured")
 
-        return self.remote_executor.batch_execute(
-            worker_hosts, command, parallel, timeout
-        )
+        return self.remote_executor.batch_execute(worker_hosts, command, parallel, timeout)
 
 
 def cli_command(name: str = None, help_text: str = None, require_config: bool = True):
@@ -222,9 +219,7 @@ def cli_command(name: str = None, help_text: str = None, require_config: bool = 
                 if require_config:
                     config_path = Path.home() / ".sage" / "config.yaml"
                     if not config_path.exists():
-                        print_status(
-                            "error", f"Configuration file not found: {config_path}"
-                        )
+                        print_status("error", f"Configuration file not found: {config_path}")
                         print_status(
                             "info",
                             "Run 'sage config init' to create a default configuration",
@@ -291,9 +286,7 @@ class JobManagerCommand(ServiceCommand):
             # 健康检查
             health = self.client.health_check()
             if health.get("status") != "success":
-                raise ConnectionError(
-                    f"Daemon health check failed: {health.get('message')}"
-                )
+                raise ConnectionError(f"Daemon health check failed: {health.get('message')}")
 
             self._connected = True
             return True
@@ -307,7 +300,7 @@ class JobManagerCommand(ServiceCommand):
             self._connected = False
             return False
 
-    def resolve_job_identifier(self, identifier: str) -> Optional[str]:
+    def resolve_job_identifier(self, identifier: str) -> str | None:
         """解析作业标识符（可以是作业编号或UUID）"""
         try:
             self.ensure_connected()
@@ -337,16 +330,12 @@ class JobManagerCommand(ServiceCommand):
                     return identifier
 
             # 然后尝试前缀匹配
-            matching_jobs = [
-                job for job in jobs if job.get("uuid", "").startswith(identifier)
-            ]
+            matching_jobs = [job for job in jobs if job.get("uuid", "").startswith(identifier)]
 
             if len(matching_jobs) == 1:
                 return matching_jobs[0].get("uuid")
             elif len(matching_jobs) > 1:
-                self.formatter.print_error(
-                    f"Ambiguous job identifier '{identifier}'. Matches:"
-                )
+                self.formatter.print_error(f"Ambiguous job identifier '{identifier}'. Matches:")
                 for i, job in enumerate(matching_jobs, 1):
                     self.formatter.print_info(
                         f"  {i}. {job.get('uuid')} ({job.get('name', 'unknown')})"

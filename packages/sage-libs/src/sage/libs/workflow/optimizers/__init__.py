@@ -28,7 +28,7 @@ class NoOpOptimizer(BaseOptimizer):
     def optimize(
         self,
         workflow: WorkflowGraph,
-        constraints: Optional[Dict[str, Any]] = None,
+        constraints: dict[str, Any] | None = None,
     ) -> OptimizationResult:
         """Return workflow unchanged."""
         start_time = time.time()
@@ -37,9 +37,7 @@ class NoOpOptimizer(BaseOptimizer):
         optimized = workflow.clone()
 
         execution_time = time.time() - start_time
-        metrics = self.calculate_metrics(
-            workflow, optimized, execution_time=execution_time
-        )
+        metrics = self.calculate_metrics(workflow, optimized, execution_time=execution_time)
 
         return OptimizationResult(
             original_workflow=workflow,
@@ -62,7 +60,7 @@ class GreedyOptimizer(BaseOptimizer):
     This is a simple example - students can implement more sophisticated strategies!
     """
 
-    def __init__(self, max_removals: Optional[int] = None):
+    def __init__(self, max_removals: int | None = None):
         """
         Initialize greedy optimizer.
 
@@ -75,7 +73,7 @@ class GreedyOptimizer(BaseOptimizer):
     def optimize(
         self,
         workflow: WorkflowGraph,
-        constraints: Optional[Dict[str, Any]] = None,
+        constraints: dict[str, Any] | None = None,
     ) -> OptimizationResult:
         """Optimize using greedy node removal."""
         start_time = time.time()
@@ -121,7 +119,7 @@ class GreedyOptimizer(BaseOptimizer):
         self,
         workflow: WorkflowGraph,
         node_id: str,
-        checker: Optional[ConstraintChecker],
+        checker: ConstraintChecker | None,
     ) -> bool:
         """Check if node can be safely removed."""
         # Don't remove nodes with no predecessors (input nodes)
@@ -152,9 +150,7 @@ class GreedyOptimizer(BaseOptimizer):
         for edges in workflow.edges.values():
             edges.discard(node_id)
 
-    def _build_constraint_checker(
-        self, constraints: Dict[str, Any]
-    ) -> ConstraintChecker:
+    def _build_constraint_checker(self, constraints: dict[str, Any]) -> ConstraintChecker:
         """Build constraint checker from constraint dictionary."""
         from ..constraints import (
             BudgetConstraint,
@@ -168,13 +164,9 @@ class GreedyOptimizer(BaseOptimizer):
         if "max_cost" in constraints:
             checker.add_constraint(BudgetConstraint(max_cost=constraints["max_cost"]))
         if "max_latency" in constraints:
-            checker.add_constraint(
-                LatencyConstraint(max_latency=constraints["max_latency"])
-            )
+            checker.add_constraint(LatencyConstraint(max_latency=constraints["max_latency"]))
         if "min_quality" in constraints:
-            checker.add_constraint(
-                QualityConstraint(min_quality=constraints["min_quality"])
-            )
+            checker.add_constraint(QualityConstraint(min_quality=constraints["min_quality"]))
 
         return checker
 
@@ -199,7 +191,7 @@ class ParallelizationOptimizer(BaseOptimizer):
     def optimize(
         self,
         workflow: WorkflowGraph,
-        constraints: Optional[Dict[str, Any]] = None,
+        constraints: dict[str, Any] | None = None,
     ) -> OptimizationResult:
         """Optimize by identifying parallelization opportunities."""
         start_time = time.time()
@@ -214,16 +206,12 @@ class ParallelizationOptimizer(BaseOptimizer):
             if len(nodes) > 1:
                 # These nodes can execute in parallel
                 parallel_groups += 1
-                steps.append(
-                    f"Level {level}: {len(nodes)} nodes can run in parallel: {nodes}"
-                )
+                steps.append(f"Level {level}: {len(nodes)} nodes can run in parallel: {nodes}")
 
                 # Mark nodes with parallelization metadata
                 for node_id in nodes:
                     optimized.nodes[node_id].metadata["parallel_level"] = level
-                    optimized.nodes[node_id].metadata["parallel_group_size"] = len(
-                        nodes
-                    )
+                    optimized.nodes[node_id].metadata["parallel_group_size"] = len(nodes)
 
                 # Reduce latency (conceptual - assumes parallel execution)
                 # In reality, this would depend on available resources
@@ -252,7 +240,7 @@ class ParallelizationOptimizer(BaseOptimizer):
             steps=steps,
         )
 
-    def _compute_levels(self, workflow: WorkflowGraph) -> Dict[int, list]:
+    def _compute_levels(self, workflow: WorkflowGraph) -> dict[int, list]:
         """Compute topological levels for parallelization."""
         levels = {}
         node_levels = {}

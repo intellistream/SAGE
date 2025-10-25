@@ -6,8 +6,8 @@ Refiner测试套件
 """
 
 import pytest
+
 from sage.middleware.components.sage_refiner import (
-    BaseRefiner,
     RefinerAlgorithm,
     RefinerConfig,
     RefinerService,
@@ -23,7 +23,7 @@ class TestRefinerConfig:
         config = RefinerConfig()
         assert config.algorithm == RefinerAlgorithm.LONG_REFINER
         assert config.budget == 2048
-        assert config.enable_cache == False
+        assert not config.enable_cache
 
     def test_config_from_dict(self):
         """测试从字典创建配置"""
@@ -35,7 +35,7 @@ class TestRefinerConfig:
         config = RefinerConfig.from_dict(config_dict)
         assert config.algorithm == RefinerAlgorithm.SIMPLE
         assert config.budget == 1000
-        assert config.enable_cache == True
+        assert config.enable_cache
 
     def test_config_to_dict(self):
         """测试配置转字典"""
@@ -129,9 +129,7 @@ class TestRefinerService:
 
     def test_service_cache(self):
         """测试缓存功能"""
-        config = RefinerConfig(
-            algorithm=RefinerAlgorithm.SIMPLE, budget=50, enable_cache=True
-        )
+        config = RefinerConfig(algorithm=RefinerAlgorithm.SIMPLE, budget=50, enable_cache=True)
         service = RefinerService(config)
 
         query = "测试"

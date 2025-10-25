@@ -60,7 +60,7 @@ repos:
     - types-PyYAML
     - types-requests
     - types-setuptools
-    args: [--ignore-missing-imports, --show-error-codes]
+    args: [--ignore-missing-imports, --show-error-codes, --explicit-package-bases]
     exclude: ^(docs/|examples/|tests/|setup.py)
 
   # Shell: shellcheck

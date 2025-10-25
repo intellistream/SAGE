@@ -12,7 +12,6 @@ This is a skeleton. Students should fill in the details.
 import math
 import os
 import sys
-from typing import Optional, Tuple
 
 import numpy as np
 
@@ -49,9 +48,7 @@ class GaussianMechanism(BasePrivacyMechanism):
             delta: Failure probability
             sensitivity: Query sensitivity
         """
-        super().__init__(
-            epsilon=epsilon, delta=delta, sensitivity=sensitivity, name="Gaussian"
-        )
+        super().__init__(epsilon=epsilon, delta=delta, sensitivity=sensitivity, name="Gaussian")
 
         # TODO: Compute the required σ
         self.sigma = self._compute_sigma()
@@ -78,16 +75,14 @@ class GaussianMechanism(BasePrivacyMechanism):
         if self.delta == 0 or self.delta >= 1:
             raise ValueError(f"Delta must be in (0, 1), got {self.delta}")
 
-        sigma = (
-            self.sensitivity * math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
-        )
+        sigma = self.sensitivity * math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
         return sigma
 
     def compute_noise(
         self,
-        sensitivity: Optional[float] = None,
-        epsilon: Optional[float] = None,
-        delta: Optional[float] = None,
+        sensitivity: float | None = None,
+        epsilon: float | None = None,
+        delta: float | None = None,
     ) -> float:
         """
         Generate Gaussian noise: N(0, σ²).
@@ -109,7 +104,7 @@ class GaussianMechanism(BasePrivacyMechanism):
         noise = np.random.normal(0, self.sigma)
         return noise
 
-    def privacy_cost(self) -> Tuple[float, float]:
+    def privacy_cost(self) -> tuple[float, float]:
         """
         Gaussian mechanism satisfies (ε,δ)-DP.
 

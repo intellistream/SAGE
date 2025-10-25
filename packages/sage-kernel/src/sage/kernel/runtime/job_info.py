@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
@@ -25,19 +25,17 @@ class JobInfo:
         self.autostop = autostop  # 是否启用自动停止
 
         # 状态信息
-        self.status = (
-            "initializing"  # initializing, running, stopped, failed, restarting
-        )
+        self.status = "initializing"  # initializing, running, stopped, failed, restarting
         self.start_time = datetime.now()
-        self.stop_time: Optional[datetime] = None
+        self.stop_time: datetime | None = None
         self.last_update_time = datetime.now()
-        self.error_message: Optional[str] = None
+        self.error_message: str | None = None
 
         # 统计信息
         self.restart_count = 0
 
         # 元数据信息
-        self.metadata: Dict[str, Any] = {}
+        self.metadata: dict[str, Any] = {}
 
     def add_metadata(self, key: str, value: Any):
         """添加元数据"""
@@ -47,7 +45,7 @@ class JobInfo:
         """获取元数据"""
         return self.metadata.get(key, default)
 
-    def update_status(self, new_status: str, error: Optional[str] = None):
+    def update_status(self, new_status: str, error: str | None = None):
         """更新作业状态"""
         old_status = self.status
         self.status = new_status
@@ -84,7 +82,7 @@ class JobInfo:
         else:
             return f"{seconds}s"
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """获取作业摘要信息"""
         return {
             "uuid": self.uuid,
@@ -97,7 +95,7 @@ class JobInfo:
             "autostop": self.autostop,  # 包含 autostop 状态
         }
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """获取详细状态信息"""
         status_info = self.get_summary()
 

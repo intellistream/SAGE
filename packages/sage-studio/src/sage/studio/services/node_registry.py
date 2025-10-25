@@ -2,8 +2,6 @@
 Node Registry - Maps Studio UI node types to SAGE Operators
 """
 
-from typing import Dict, Optional, Type
-
 from sage.kernel.operators import MapOperator
 
 
@@ -12,7 +10,7 @@ class NodeRegistry:
 
     def __init__(self):
         """Initialize Registry and register all available node types"""
-        self._registry: Dict[str, Type[MapOperator]] = {}
+        self._registry: dict[str, type[MapOperator]] = {}
         self._register_default_operators()
 
     def _register_default_operators(self):
@@ -57,10 +55,7 @@ class NodeRegistry:
 
         # RAG Promptors
         try:
-            from sage.middleware.operators.rag import (
-                QAPromptor,
-                SummarizationPromptor,
-            )
+            from sage.middleware.operators.rag import QAPromptor, SummarizationPromptor
 
             self._registry["qa_promptor"] = QAPromptor
             self._registry["summarization_promptor"] = SummarizationPromptor
@@ -70,10 +65,7 @@ class NodeRegistry:
 
         # Document Processing
         try:
-            from sage.middleware.operators.rag import (
-                CharacterSplitter,
-                RefinerOperator,
-            )
+            from sage.middleware.operators.rag import CharacterSplitter, RefinerOperator
 
             self._registry["character_splitter"] = CharacterSplitter
             self._registry["refiner"] = RefinerOperator
@@ -96,11 +88,11 @@ class NodeRegistry:
         except ImportError:
             pass
 
-    def register(self, node_type: str, operator_class: Type[MapOperator]):
+    def register(self, node_type: str, operator_class: type[MapOperator]):
         """Register a new node type"""
         self._registry[node_type] = operator_class
 
-    def get_operator(self, node_type: str) -> Optional[Type[MapOperator]]:
+    def get_operator(self, node_type: str) -> type[MapOperator] | None:
         """Get the Operator class for a node type"""
         return self._registry.get(node_type)
 

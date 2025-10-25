@@ -42,17 +42,17 @@ def demo_template_usage():
         console.print(f"{'='*80}", style="bold cyan")
 
         # 基本信息
-        console.print(f"\n📝 描述:", style="bold green")
+        console.print("\n📝 描述:", style="bold green")
         console.print(f"  {template.description}")
 
-        console.print(f"\n🏷️  标签:", style="bold blue")
+        console.print("\n🏷️  标签:", style="bold blue")
         console.print(f"  {', '.join(template.tags[:8])}")
 
-        console.print(f"\n📂 示例路径:", style="bold magenta")
+        console.print("\n📂 示例路径:", style="bold magenta")
         console.print(f"  {template.example_path}")
 
         # 显示 Pipeline 结构
-        console.print(f"\n🔧 Pipeline 结构:", style="bold cyan")
+        console.print("\n🔧 Pipeline 结构:", style="bold cyan")
         plan = template.pipeline_plan()
         source_class = plan.get("source", {}).get("class", "N/A")
         console.print(f"  Source: {source_class}", style="green")
@@ -70,12 +70,12 @@ def demo_template_usage():
         console.print(f"  Sink: {sink_class}", style="red")
 
         # 显示使用指南
-        console.print(f"\n💡 使用指南:", style="bold green")
+        console.print("\n💡 使用指南:", style="bold green")
         console.print(f"  {template.guidance.strip()}")
 
         # 显示注意事项
         if template.notes:
-            console.print(f"\n⚠️  注意事项:", style="bold yellow")
+            console.print("\n⚠️  注意事项:", style="bold yellow")
             for note in template.notes:
                 console.print(f"  • {note}")
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 try:  # pragma: no cover - import fallback is runtime dependent
     from dotenv import load_dotenv
@@ -13,7 +12,7 @@ except ImportError:  # pragma: no cover - handled at runtime
     load_dotenv = None  # type: ignore
 
 
-def find_project_root(start: Optional[Path] = None) -> Path:
+def find_project_root(start: Path | None = None) -> Path:
     """Locate the SAGE project root directory.
 
     The lookup walks upwards from ``start`` (or the current file location when
@@ -23,7 +22,7 @@ def find_project_root(start: Optional[Path] = None) -> Path:
     """
 
     current = start or Path(__file__).resolve().parent
-    pyproject_candidate: Optional[Path] = None
+    pyproject_candidate: Path | None = None
 
     while current != current.parent:
         if (current / ".git").exists():
@@ -38,8 +37,8 @@ def find_project_root(start: Optional[Path] = None) -> Path:
 
 
 def load_environment_file(
-    env_file: Optional[Path] = None, *, override: bool = False
-) -> Tuple[bool, Optional[Path]]:
+    env_file: Path | None = None, *, override: bool = False
+) -> tuple[bool, Path | None]:
     """Load a ``.env`` file into the current process.
 
     Args:
@@ -63,7 +62,7 @@ def load_environment_file(
             "python-dotenv is not installed. Install it with 'pip install python-dotenv'."
         )
 
-    candidate: Optional[Path] = None
+    candidate: Path | None = None
     if env_file is not None:
         candidate = env_file.expanduser()
     else:
@@ -90,7 +89,7 @@ def should_use_real_api() -> bool:
     return "--use-real-api" in sys.argv
 
 
-def get_api_key(service: str, *, required: bool = True) -> Optional[str]:
+def get_api_key(service: str, *, required: bool = True) -> str | None:
     """Fetch the API key for *service* from the environment.
 
     Args:
@@ -112,24 +111,20 @@ def get_api_key(service: str, *, required: bool = True) -> Optional[str]:
     env_var = mapping.get(service.lower())
     if not env_var:
         available = ", ".join(sorted(mapping))
-        raise ValueError(
-            f"Unknown service '{service}'. Available services: {available}"
-        )
+        raise ValueError(f"Unknown service '{service}'. Available services: {available}")
 
     value = os.getenv(env_var)
     if not value and required:
         project_root = find_project_root()
         raise ValueError(
-            (
-                f"Missing required API key: {env_var}. "
-                f"Set it in your .env file (see {project_root}/.env or .env.template)."
-            )
+            f"Missing required API key: {env_var}. "
+            f"Set it in your .env file (see {project_root}/.env or .env.template)."
         )
 
     return value
 
 
-def check_environment_status() -> Dict[str, object]:
+def check_environment_status() -> dict[str, object]:
     """Collect high-level information about the current environment state."""
 
     project_root = find_project_root()

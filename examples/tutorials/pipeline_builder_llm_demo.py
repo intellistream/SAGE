@@ -12,7 +12,6 @@ import json
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
-from sage.tools.cli.commands import pipeline as pipeline_builder
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
 
@@ -62,9 +61,9 @@ def demonstrate_llm_pipeline():
     console.print("\n[bold]步骤 3: 初始化知识库 (RAG)[/bold]")
     try:
         kb = get_default_knowledge_base(max_chunks=500, allow_download=False)
-        console.print(f"✓ 知识库初始化成功")
-        console.print(f"  - 文档来源: docs-public/, examples/, packages/sage-libs/")
-        console.print(f"  - 检索方法: 向量相似度匹配")
+        console.print("✓ 知识库初始化成功")
+        console.print("  - 文档来源: docs-public/, examples/, packages/sage-libs/")
+        console.print("  - 检索方法: 向量相似度匹配")
     except Exception as exc:
         console.print(f"[yellow]知识库初始化失败: {exc}[/yellow]")
         console.print("[dim]提示: 在实际使用中会自动下载或使用本地文档[/dim]")

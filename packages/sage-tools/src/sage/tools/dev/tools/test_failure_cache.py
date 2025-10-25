@@ -8,7 +8,6 @@ running only previously failed tests with the --failed option.
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class TestFailureCache:
@@ -60,9 +59,7 @@ class TestFailureCache:
             try:
                 self.cache_dir.mkdir(parents=True, exist_ok=True)
             except (OSError, PermissionError) as fallback_error:
-                print(
-                    f"Error: Could not create fallback cache directory: {fallback_error}"
-                )
+                print(f"Error: Could not create fallback cache directory: {fallback_error}")
                 # Use in-memory cache only
                 self.cache_dir = None
                 self.cache_file = None
@@ -75,11 +72,11 @@ class TestFailureCache:
 
         try:
             if self.cache_file.exists():
-                with open(self.cache_file, "r", encoding="utf-8") as f:
+                with open(self.cache_file, encoding="utf-8") as f:
                     data = json.load(f)
                     # Merge with default structure to handle schema changes
                     self._cache_data.update(data)
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             print(f"Warning: Could not load test failure cache: {e}")
             # Keep default cache data
 
@@ -95,10 +92,10 @@ class TestFailureCache:
 
             with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(self._cache_data, f, indent=2, ensure_ascii=False)
-        except IOError as e:
+        except OSError as e:
             print(f"Warning: Could not save test failure cache: {e}")
 
-    def update_from_test_results(self, test_results: Dict) -> None:
+    def update_from_test_results(self, test_results: dict) -> None:
         """Update cache with results from a test run."""
         try:
             # Extract failed test paths
@@ -148,18 +145,16 @@ class TestFailureCache:
             # Save to file
             self._save_cache()
 
-            print(
-                f"✅ Updated test failure cache: {len(failed_tests)} failed tests recorded"
-            )
+            print(f"✅ Updated test failure cache: {len(failed_tests)} failed tests recorded")
 
         except Exception as e:
             print(f"Warning: Failed to update test failure cache: {e}")
 
-    def get_failed_test_paths(self) -> List[str]:
+    def get_failed_test_paths(self) -> list[str]:
         """Get list of test files that failed in the last run."""
         return [f["test_file"] for f in self._cache_data["failed_tests"]]
 
-    def get_failed_test_details(self) -> List[Dict]:
+    def get_failed_test_details(self) -> list[dict]:
         """Get detailed information about failed tests."""
         return self._cache_data["failed_tests"].copy()
 
@@ -173,16 +168,14 @@ class TestFailureCache:
         self._save_cache()
         print("✅ Cleared test failure cache")
 
-    def get_cache_info(self) -> Dict:
+    def get_cache_info(self) -> dict:
         """Get information about the current cache state."""
         failed_count = len(self._cache_data["failed_tests"])
         last_updated = self._cache_data.get("last_updated")
         last_summary = self._cache_data.get("last_run_summary", {})
 
         return {
-            "cache_file": (
-                str(self.cache_file) if self.cache_file else "None (in-memory only)"
-            ),
+            "cache_file": (str(self.cache_file) if self.cache_file else "None (in-memory only)"),
             "failed_tests_count": failed_count,
             "last_updated": last_updated,
             "last_run_summary": last_summary,
@@ -190,11 +183,11 @@ class TestFailureCache:
             "cache_exists": self.cache_file.exists() if self.cache_file else False,
         }
 
-    def get_history(self, limit: int = 5) -> List[Dict]:
+    def get_history(self, limit: int = 5) -> list[dict]:
         """Get test run history."""
         return self._cache_data["history"][:limit]
 
-    def resolve_test_paths(self, packages_dir: Path) -> List[Path]:
+    def resolve_test_paths(self, packages_dir: Path) -> list[Path]:
         """
         Resolve cached failed test paths to actual file paths.
 
@@ -214,9 +207,7 @@ class TestFailureCache:
 
         return resolved_paths
 
-    def _resolve_single_test_path(
-        self, test_path: str, packages_dir: Path
-    ) -> Optional[Path]:
+    def _resolve_single_test_path(self, test_path: str, packages_dir: Path) -> Path | None:
         """Resolve a single test path to an actual file."""
         # If it's already an absolute path and exists
         if Path(test_path).is_absolute() and Path(test_path).exists():
@@ -238,9 +229,7 @@ class TestFailureCache:
                 potential_package = packages_dir / part
                 if potential_package.exists() and potential_package.is_dir():
                     # Reconstruct path from this package
-                    remaining_path = (
-                        "/".join(parts[i + 1 :]) if i + 1 < len(parts) else test_path
-                    )
+                    remaining_path = "/".join(parts[i + 1 :]) if i + 1 < len(parts) else test_path
                     full_path = potential_package / remaining_path
                     if full_path.exists():
                         return full_path

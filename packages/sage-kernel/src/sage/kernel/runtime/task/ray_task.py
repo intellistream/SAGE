@@ -4,11 +4,10 @@ Remote Environment Heartbeat Fault Tolerance Implementation
 为 RayTask 添加心跳发送功能,支持 Remote 环境下的故障检测和恢复。
 """
 
-import threading
-import time
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 import ray
+
 from sage.kernel.runtime.communication.router.packet import Packet
 from sage.kernel.runtime.task.base_task import BaseTask
 
@@ -136,7 +135,7 @@ class RayTask(BaseTask):
         super().stop()
         self.logger.info(f"RayTask {self.ctx.name} stopped (heartbeat will terminate)")
 
-    def get_heartbeat_stats(self) -> Dict[str, Any]:
+    def get_heartbeat_stats(self) -> dict[str, Any]:
         """
         获取心跳统计信息 (用于监控和调试)
 

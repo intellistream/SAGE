@@ -10,7 +10,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -19,7 +18,7 @@ from pydantic import BaseModel
 
 
 def _convert_pipeline_to_job(
-    pipeline_data: dict, pipeline_id: str, file_path: Optional[Path] = None
+    pipeline_data: dict, pipeline_id: str, file_path: Path | None = None
 ) -> dict:
     """将拓扑图数据转换为 Job 格式"""
     from datetime import datetime
@@ -38,16 +37,10 @@ def _convert_pipeline_to_job(
         for edge in edges:
             if edge.get("source") == node.get("id"):
                 # 找到目标节点的索引
-                target_node = next(
-                    (n for n in nodes if n.get("id") == edge.get("target")), None
-                )
+                target_node = next((n for n in nodes if n.get("id") == edge.get("target")), None)
                 if target_node:
                     target_index = next(
-                        (
-                            j
-                            for j, n in enumerate(nodes)
-                            if n.get("id") == edge.get("target")
-                        ),
+                        (j for j, n in enumerate(nodes) if n.get("id") == edge.get("target")),
                         None,
                     )
                     if target_index is not None:
@@ -69,9 +62,7 @@ def _convert_pipeline_to_job(
         try:
             timestamp_str = pipeline_id.replace("pipeline_", "")
             timestamp = int(timestamp_str)
-            create_time = datetime.fromtimestamp(timestamp).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            create_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
         except (ValueError, OSError) as e:
             print(f"Failed to parse timestamp from pipeline_id {pipeline_id}: {e}")
 
@@ -154,7 +145,7 @@ def _get_sage_dir() -> Path:
 class Job(BaseModel):
     jobId: str
     name: str
-    description: Optional[str] = ""  # 添加描述字段
+    description: str | None = ""  # 添加描述字段
     isRunning: bool
     nthreads: str
     cpu: str
@@ -168,14 +159,12 @@ class Job(BaseModel):
     latency: int
     throughput: int
     ncore: int
-    periodicalThroughput: List[int]
-    periodicalLatency: List[int]
+    periodicalThroughput: list[int]
+    periodicalLatency: list[int]
     totalTimeBreakdown: dict
     schedulerTimeBreakdown: dict
-    operators: List[dict]
-    config: Optional[dict] = (
-        None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
-    )
+    operators: list[dict]
+    config: dict | None = None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
 
 
 class OperatorInfo(BaseModel):
@@ -214,7 +203,7 @@ def _read_sage_data_from_files():
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
-                    with open(job_file, "r", encoding="utf-8") as f:
+                    with open(job_file, encoding="utf-8") as f:
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
@@ -225,7 +214,7 @@ def _read_sage_data_from_files():
         if pipelines_dir.exists():
             for pipeline_file in pipelines_dir.glob("pipeline_*.json"):
                 try:
-                    with open(pipeline_file, "r", encoding="utf-8") as f:
+                    with open(pipeline_file, encoding="utf-8") as f:
                         pipeline_data = json.load(f)
                         # 将拓扑图转换为 Job 格式，传递文件路径以提取真实创建时间
                         job_from_pipeline = _convert_pipeline_to_job(
@@ -239,7 +228,7 @@ def _read_sage_data_from_files():
         operators_file = sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
-                with open(operators_file, "r", encoding="utf-8") as f:
+                with open(operators_file, encoding="utf-8") as f:
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
@@ -249,7 +238,7 @@ def _read_sage_data_from_files():
         pipelines_file = sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
-                with open(pipelines_file, "r") as f:
+                with open(pipelines_file) as f:
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
@@ -267,7 +256,7 @@ async def root():
     return {"message": "SAGE Studio Backend API", "status": "running"}
 
 
-@app.get("/api/jobs/all", response_model=List[Job])
+@app.get("/api/jobs/all", response_model=list[Job])
 async def get_all_jobs():
     """获取所有作业信息"""
     try:
@@ -384,7 +373,7 @@ def _read_real_operators():
         # 读取所有 JSON 文件
         for json_file in operators_dir.glob("*.json"):
             try:
-                with open(json_file, "r", encoding="utf-8") as f:
+                with open(json_file, encoding="utf-8") as f:
                     operator_data = json.load(f)
 
                     # 检查是否有module_path和class_name字段
@@ -423,7 +412,7 @@ def _read_real_operators():
     return operators
 
 
-@app.get("/api/operators", response_model=List[OperatorInfo])
+@app.get("/api/operators", response_model=list[OperatorInfo])
 async def get_operators():
     """获取所有操作符信息"""
     try:
@@ -763,7 +752,9 @@ async def get_job_logs(job_id: str, offset: int = 0):
 
         # 如果是第一次请求（offset=0）且没有日志，返回种子消息
         if offset == 0 and len(logs) == 0:
-            seed_line = f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query."
+            seed_line = (
+                f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query."
+            )
             job_logs[job_id] = [seed_line]
             return {"offset": 1, "lines": [seed_line]}
 
@@ -874,7 +865,7 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
 # ==================== Playground API ====================
 
 
-def _load_flow_data(flow_id: str) -> Optional[dict]:
+def _load_flow_data(flow_id: str) -> dict | None:
     """加载 Flow 数据"""
     sage_dir = _get_sage_dir()
     pipelines_dir = sage_dir / "pipelines"
@@ -890,12 +881,12 @@ def _load_flow_data(flow_id: str) -> Optional[dict]:
     print(f"📄 Flow file exists: {flow_file.exists()}")
 
     if flow_file.exists():
-        with open(flow_file, "r", encoding="utf-8") as f:
+        with open(flow_file, encoding="utf-8") as f:
             data = json.load(f)
             print(f"✅ Loaded flow: {data.get('name', 'Unnamed')}")
             return data
 
-    print(f"❌ Flow file not found")
+    print("❌ Flow file not found")
     return None
 
 
@@ -936,9 +927,7 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     connections = []
     for edge_data in edges_data:
         connection = VisualConnection(
-            id=edge_data.get(
-                "id", f"{edge_data.get('source')}-{edge_data.get('target')}"
-            ),
+            id=edge_data.get("id", f"{edge_data.get('source')}-{edge_data.get('target')}"),
             source_node_id=edge_data.get("source", ""),
             source_port="output",  # 默认输出端口
             target_node_id=edge_data.get("target", ""),
@@ -971,10 +960,10 @@ class AgentStep(BaseModel):
     type: str  # reasoning, tool_call, response
     content: str
     timestamp: str
-    duration: Optional[int] = None
-    toolName: Optional[str] = None
-    toolInput: Optional[dict] = None
-    toolOutput: Optional[dict] = None
+    duration: int | None = None
+    toolName: str | None = None
+    toolInput: dict | None = None
+    toolOutput: dict | None = None
 
 
 class PlaygroundExecuteResponse(BaseModel):
@@ -982,7 +971,7 @@ class PlaygroundExecuteResponse(BaseModel):
 
     output: str
     status: str
-    agentSteps: Optional[List[AgentStep]] = None
+    agentSteps: list[AgentStep] | None = None
 
 
 @app.post("/api/playground/execute", response_model=PlaygroundExecuteResponse)
@@ -999,25 +988,18 @@ async def execute_playground(request: PlaygroundExecuteRequest):
         if str(studio_path) not in sys.path:
             sys.path.insert(0, str(studio_path))
 
-        from sage.studio.models import (  # type: ignore[import-not-found]
-            NodeStatus,
-            PipelineStatus,
-        )
+        from sage.studio.models import PipelineStatus  # type: ignore[import-not-found]
         from sage.studio.services import (
             get_pipeline_builder,  # type: ignore[import-not-found]
         )
 
-        print(
-            f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}"
-        )
+        print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
         print(f"📝 Input: {request.input}")
 
         # 1. 加载 Flow 定义
         flow_data = _load_flow_data(request.flowId)
         if not flow_data:
-            raise HTTPException(
-                status_code=404, detail=f"Flow not found: {request.flowId}"
-            )
+            raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
 
         # 2. 转换为 VisualPipeline
         visual_pipeline = _convert_to_flow_definition(flow_data, request.flowId)
@@ -1028,7 +1010,7 @@ async def execute_playground(request: PlaygroundExecuteRequest):
 
         # 4. 执行 Pipeline
         start_time = time.time()
-        job = sage_env.execute()
+        sage_env.execute()
 
         # 等待执行完成（简化版本，实际应该异步处理）
         # TODO: 实现真正的异步执行和状态轮询

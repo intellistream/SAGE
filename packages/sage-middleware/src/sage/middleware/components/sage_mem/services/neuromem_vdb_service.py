@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
@@ -9,9 +9,9 @@ from sage.platform.service import BaseService
 
 
 class NeuroMemVDBService(BaseService):
-    def __init__(self, collection_name: Union[str, List[str]]):
+    def __init__(self, collection_name: str | list[str]):
         self.manager = MemoryManager(self._get_default_data_dir())
-        self.online_register_collections: Dict[str, VDBMemoryCollection] = {}
+        self.online_register_collections: dict[str, VDBMemoryCollection] = {}
 
         # 处理collection_name参数，支持单个字符串或字符串列表
         if isinstance(collection_name, str):
@@ -34,9 +34,7 @@ class NeuroMemVDBService(BaseService):
                 # 检查是否有global_index，没有就创建一个
                 if "global_index" not in collection.indexes:
                     self.logger.info(f"Creating global_index for collection: {name}")
-                    collection.create_index(
-                        "global_index", description="Global index for all data"
-                    )
+                    collection.create_index("global_index", description="Global index for all data")
 
             except Exception as e:
                 self.logger.error(f"Failed to connect to collection '{name}': {str(e)}")
@@ -46,10 +44,10 @@ class NeuroMemVDBService(BaseService):
         self,
         query_text: str,
         topk: int = 5,
-        collection_name: Optional[str] = None,
+        collection_name: str | None = None,
         with_metadata: bool = False,
         **kwargs,
-    ) -> List[Any]:
+    ) -> list[Any]:
         """
         在所有online_register_collections上按照vdb_collection方式检索，默认使用global_index
 
@@ -100,20 +98,13 @@ class NeuroMemVDBService(BaseService):
                             result = {"text": result, "source_collection": name}
                 else:
                     # 如果不要metadata，也可以选择添加来源信息
-                    results = [
-                        {"text": result, "source_collection": name}
-                        for result in results
-                    ]
+                    results = [{"text": result, "source_collection": name} for result in results]
 
                 all_results.extend(results)
-                self.logger.debug(
-                    f"Retrieved {len(results)} results from collection: {name}"
-                )
+                self.logger.debug(f"Retrieved {len(results)} results from collection: {name}")
 
             except Exception as e:
-                self.logger.error(
-                    f"Error retrieving from collection '{name}': {str(e)}"
-                )
+                self.logger.error(f"Error retrieving from collection '{name}': {str(e)}")
 
         # 如果有多个collection的结果，可以按相似度重新排序（这里简化处理）
         return all_results[:topk] if len(all_results) > topk else all_results
@@ -125,9 +116,7 @@ class NeuroMemVDBService(BaseService):
 
         collection = self.online_register_collections[collection_name]
         collection.create_index(index_name, **kwargs)
-        self.logger.info(
-            f"Created index '{index_name}' for collection '{collection_name}'"
-        )
+        self.logger.info(f"Created index '{index_name}' for collection '{collection_name}'")
 
     @classmethod
     def _get_default_data_dir(cls):

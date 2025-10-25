@@ -10,8 +10,8 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 try:
-    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.common.core.functions.sink_function import SinkFunction
+    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
 except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     import sys

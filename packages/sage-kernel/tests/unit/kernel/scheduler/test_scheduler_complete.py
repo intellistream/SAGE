@@ -12,9 +12,10 @@
 """
 
 import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
+
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
@@ -83,9 +84,7 @@ class TestPlacementDecision:
 
     def test_with_node(self):
         """测试 with_node 快捷方法"""
-        decision = PlacementDecision.with_node(
-            node_id="worker-node-2", reason="Node test"
-        )
+        decision = PlacementDecision.with_node(node_id="worker-node-2", reason="Node test")
 
         assert decision.target_node == "worker-node-2"
         assert decision.reason == "Node test"
@@ -282,9 +281,7 @@ class TestLoadAwareScheduler:
 
     def test_initialization(self):
         """测试初始化"""
-        scheduler = LoadAwareScheduler(
-            max_concurrent=10, platform="remote", strategy="balanced"
-        )
+        scheduler = LoadAwareScheduler(max_concurrent=10, platform="remote", strategy="balanced")
 
         assert scheduler.platform == "remote"
         assert scheduler.max_concurrent == 10
@@ -373,9 +370,7 @@ class TestLoadAwareScheduler:
         # 验证节点选择
         assert decision.target_node == "worker-node-2"
         mock_selector.select_best_node.assert_called_once()
-        mock_selector.track_task_placement.assert_called_once_with(
-            task_node.name, "worker-node-2"
-        )
+        mock_selector.track_task_placement.assert_called_once_with(task_node.name, "worker-node-2")
 
     def test_make_service_decision(self):
         """测试服务调度决策"""
@@ -571,7 +566,7 @@ class TestPlacementExecutor:
         )
 
         # 放置任务
-        result = executor.place_task(task_node, decision)
+        executor.place_task(task_node, decision)
 
         # 验证调用参数
         call_kwargs = mock_ray_task.options.call_args[1]

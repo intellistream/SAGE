@@ -9,7 +9,7 @@ Students can define custom constraints or use built-in ones.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import WorkflowGraph
 
@@ -21,7 +21,7 @@ class BaseConstraint(ABC):
     Students can implement custom constraints by inheriting from this class.
     """
 
-    def __init__(self, name: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str, config: dict[str, Any] | None = None):
         """
         Initialize constraint.
 
@@ -186,7 +186,7 @@ class ConstraintChecker:
 
     def __init__(self):
         """Initialize constraint checker."""
-        self.constraints: List[BaseConstraint] = []
+        self.constraints: list[BaseConstraint] = []
 
     def add_constraint(self, constraint: BaseConstraint):
         """
@@ -208,7 +208,7 @@ class ConstraintChecker:
 
     def check_all(
         self, workflow: WorkflowGraph, stop_on_first: bool = False
-    ) -> List[ConstraintViolation]:
+    ) -> list[ConstraintViolation]:
         """
         Check all constraints.
 

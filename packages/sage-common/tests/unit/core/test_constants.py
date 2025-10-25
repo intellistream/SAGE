@@ -4,7 +4,6 @@ Tests for sage.common.core.constants
 Tests the constant definitions.
 """
 
-import pytest
 from sage.common.core.constants import (
     DEFAULT_CHECKPOINT_INTERVAL,
     DEFAULT_CLEANUP_TIMEOUT,

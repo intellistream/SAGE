@@ -1,4 +1,5 @@
 import pytest
+
 from sage.libs.io.sink import FileSink, MemWriteSink, RetriveSink, TerminalSink
 
 
@@ -37,7 +38,7 @@ def test_file_sink_writes(tmp_path, sample_qa_data):
     file_path = tmp_path / "qa_output.txt"
     sink = FileSink(config={"file_path": str(file_path)})
     sink.execute(sample_qa_data)
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         content = f.read()
     assert "Question:" in content
     assert "Answer  :" in content
@@ -54,7 +55,7 @@ def test_mem_write_sink_various_inputs(tmp_path):
     # Test with tuple of strings
     sink.execute(("tuple", "of", "strings"))
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         lines = f.readlines()
 
     # Check that lines were written (should be at least the header + entries)
@@ -69,6 +70,6 @@ def test_mem_write_sink_handles_non_string(tmp_path):
 
     # Provide a non-string, non-list, non-tuple input
     sink.execute(12345)
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         content = f.read()
     assert "12345" in content

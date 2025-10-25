@@ -2,7 +2,7 @@
 
 import hashlib
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseEmbedding
 
@@ -55,7 +55,7 @@ class HashEmbedding(BaseEmbedding):
         super().__init__(dim=dim, **kwargs)
         self._dim = max(64, int(dim))
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为哈希向量
 
         算法:
@@ -114,7 +114,7 @@ class HashEmbedding(BaseEmbedding):
         return "hash"
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

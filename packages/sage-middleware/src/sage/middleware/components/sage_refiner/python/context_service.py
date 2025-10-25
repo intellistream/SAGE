@@ -6,9 +6,8 @@
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
-from sage.middleware.components.sage_refiner.python.config import RefinerConfig
 from sage.middleware.components.sage_refiner.python.service import RefinerService
 
 
@@ -23,7 +22,7 @@ class ContextService:
     - 自动压缩策略
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         初始化Context Service
 
@@ -47,21 +46,21 @@ class ContextService:
         self.compress_threshold = self.config.get("compress_threshold", 0.8)
 
         # 上下文缓存
-        self.context_history: List[Dict[str, Any]] = []
+        self.context_history: list[dict[str, Any]] = []
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any]) -> "ContextService":
+    def from_config(cls, config: dict[str, Any]) -> "ContextService":
         """从配置字典创建服务"""
         return cls(config)
 
     def manage_context(
         self,
         query: str,
-        history: Optional[List[Dict[str, str]]] = None,
-        retrieved_docs: Optional[List[Union[str, Dict[str, Any]]]] = None,
-        system_prompt: Optional[str] = None,
+        history: list[dict[str, str]] | None = None,
+        retrieved_docs: list[str | dict[str, Any]] | None = None,
+        system_prompt: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         管理上下文
 
@@ -105,9 +104,7 @@ class ContextService:
             ):
                 # 压缩历史
                 compressed_history = self._compress_history(history)
-                context_parts.append(
-                    {"type": "history", "content": compressed_history["content"]}
-                )
+                context_parts.append({"type": "history", "content": compressed_history["content"]})
                 total_length += compressed_history["length"]
                 compression_applied = True
                 metrics["history_compression"] = compressed_history["metrics"]
@@ -117,9 +114,7 @@ class ContextService:
 
         # 3. 处理检索文档
         if retrieved_docs:
-            docs_budget = max(
-                self.max_context_length - total_length, self.max_context_length // 2
-            )
+            docs_budget = max(self.max_context_length - total_length, self.max_context_length // 2)
 
             if docs_budget > 0:
                 refine_result = self.refiner.refine(
@@ -148,7 +143,7 @@ class ContextService:
             "metrics": metrics,
         }
 
-    def _format_history(self, history: List[Dict[str, str]]) -> str:
+    def _format_history(self, history: list[dict[str, str]]) -> str:
         """格式化历史对话"""
         formatted = []
         for msg in history:
@@ -157,7 +152,7 @@ class ContextService:
             formatted.append(f"{role}: {content}")
         return "\n".join(formatted)
 
-    def _compress_history(self, history: List[Dict[str, str]]) -> Dict[str, Any]:
+    def _compress_history(self, history: list[dict[str, str]]) -> dict[str, Any]:
         """压缩历史对话"""
         # 简单策略：只保留最近的N轮对话
         # 未来可以使用更智能的压缩方法
@@ -182,7 +177,7 @@ class ContextService:
         """清空历史"""
         self.context_history.clear()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """获取服务统计"""
         return {
             "refiner_stats": self.refiner.get_stats(),

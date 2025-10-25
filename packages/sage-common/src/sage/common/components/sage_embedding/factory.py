@@ -1,7 +1,7 @@
 """Factory for creating embedding model instances."""
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import BaseEmbedding
 from .registry import EmbeddingRegistry, ModelStatus
@@ -116,9 +116,7 @@ class EmbeddingFactory:
             )
 
         if status == ModelStatus.UNAVAILABLE:
-            raise RuntimeError(
-                f"{method} 方法当前不可用。\n" f"请检查是否已正确安装相关依赖。"
-            )
+            raise RuntimeError(f"{method} 方法当前不可用。\n" f"请检查是否已正确安装相关依赖。")
 
         # 创建实例
         try:
@@ -132,13 +130,11 @@ class EmbeddingFactory:
             ) from e
         except Exception as e:
             raise RuntimeError(
-                f"创建 {method} embedding 实例失败: {e}\n"
-                f"方法: {method}\n"
-                f"参数: {kwargs}"
+                f"创建 {method} embedding 实例失败: {e}\n" f"方法: {method}\n" f"参数: {kwargs}"
             ) from e
 
     @staticmethod
-    def list_models() -> Dict[str, Dict[str, Any]]:
+    def list_models() -> dict[str, dict[str, Any]]:
         """列出所有可用的 embedding 方法
 
         Returns:
@@ -183,7 +179,7 @@ class EmbeddingFactory:
         return result
 
     @staticmethod
-    def check_availability(method: str, **kwargs: Any) -> Dict[str, Any]:
+    def check_availability(method: str, **kwargs: Any) -> dict[str, Any]:
         """检查特定方法的可用性
 
         Args:
@@ -264,7 +260,7 @@ def get_embedding_model(method: str, **kwargs: Any) -> BaseEmbedding:
     return EmbeddingFactory.create(method, **kwargs)
 
 
-def list_embedding_models() -> Dict[str, Dict[str, Any]]:
+def list_embedding_models() -> dict[str, dict[str, Any]]:
     """列出所有可用的 embedding 方法（便捷函数）
 
     Returns:
@@ -278,7 +274,7 @@ def list_embedding_models() -> Dict[str, Dict[str, Any]]:
     return EmbeddingFactory.list_models()
 
 
-def check_model_availability(method: str, **kwargs: Any) -> Dict[str, Any]:
+def check_model_availability(method: str, **kwargs: Any) -> dict[str, Any]:
     """检查模型可用性（便捷函数）
 
     Args:

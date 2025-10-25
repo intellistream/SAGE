@@ -6,11 +6,11 @@
 import time
 
 from dotenv import load_dotenv
-from sage.common.utils.config.loader import load_config
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
+from sage.common.utils.config.loader import load_config
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.middleware.operators.rag import HFGenerator, QAPromptor
 
@@ -133,10 +133,7 @@ if __name__ == "__main__":
     import sys
 
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_without_retrieval_local is interactive")
         print("✅ Test passed: Interactive example structure validated")
         sys.exit(0)

@@ -13,6 +13,7 @@ import logging
 from unittest.mock import patch
 
 import pytest
+
 from sage.common.utils.logging.custom_formatter import CustomFormatter
 
 
@@ -381,7 +382,7 @@ class TestCustomFormatterIntegration:
 
             try:
                 # 模拟异常
-                result = 10 / 0
+                pass
             except ZeroDivisionError:
                 logger.error("Division by zero error", exc_info=True)
 

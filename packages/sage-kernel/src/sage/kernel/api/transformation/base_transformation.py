@@ -57,9 +57,7 @@ class BaseTransformation:
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
 
     # 增强的连接方法
-    def add_upstream(
-        self, upstream_trans: BaseTransformation, input_index: int = 0
-    ) -> None:
+    def add_upstream(self, upstream_trans: BaseTransformation, input_index: int = 0) -> None:
         """
         添加上游连接
 

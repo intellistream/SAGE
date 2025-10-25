@@ -15,16 +15,14 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import yaml
 
 from .exceptions import CLIException, ValidationError
 
 
-def find_project_root(
-    start_path: Optional[Path] = None, markers: List[str] = None
-) -> Optional[Path]:
+def find_project_root(start_path: Path | None = None, markers: list[str] = None) -> Path | None:
     """
     查找项目根目录
 
@@ -69,9 +67,7 @@ def find_project_root(
     return None
 
 
-def ensure_directory(
-    path: Union[str, Path], parents: bool = True, exist_ok: bool = True
-) -> Path:
+def ensure_directory(path: str | Path, parents: bool = True, exist_ok: bool = True) -> Path:
     """
     确保目录存在
 
@@ -95,14 +91,14 @@ def ensure_directory(
 
 
 def run_subprocess(
-    command: Union[str, List[str]],
-    cwd: Optional[Path] = None,
-    timeout: Optional[int] = None,
+    command: str | list[str],
+    cwd: Path | None = None,
+    timeout: int | None = None,
     check: bool = True,
     capture_output: bool = True,
     text: bool = True,
-    shell: Optional[bool] = None,
-    env: Optional[Dict[str, str]] = None,
+    shell: bool | None = None,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
     """
     执行子进程命令
@@ -146,7 +142,7 @@ def run_subprocess(
             error_msg += f"\nStderr: {e.stderr}"
         raise CLIException(error_msg, e.returncode)
 
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         cmd_str = " ".join(command) if isinstance(command, list) else command
         raise CLIException(f"Command timeout: {cmd_str} (timeout: {timeout}s)")
 
@@ -155,7 +151,7 @@ def run_subprocess(
         raise CLIException(f"Unexpected error running command '{cmd_str}': {e}")
 
 
-def load_yaml_file(file_path: Union[str, Path]) -> Dict[str, Any]:
+def load_yaml_file(file_path: str | Path) -> dict[str, Any]:
     """
     加载YAML文件
 
@@ -174,13 +170,13 @@ def load_yaml_file(file_path: Union[str, Path]) -> Dict[str, Any]:
         raise CLIException(f"YAML file not found: {file_path}")
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     except Exception as e:
         raise CLIException(f"Failed to load YAML file {file_path}: {e}")
 
 
-def save_yaml_file(data: Dict[str, Any], file_path: Union[str, Path]):
+def save_yaml_file(data: dict[str, Any], file_path: str | Path):
     """
     保存数据到YAML文件
 
@@ -201,7 +197,7 @@ def save_yaml_file(data: Dict[str, Any], file_path: Union[str, Path]):
         raise CLIException(f"Failed to save YAML file {file_path}: {e}")
 
 
-def load_json_file(file_path: Union[str, Path]) -> Dict[str, Any]:
+def load_json_file(file_path: str | Path) -> dict[str, Any]:
     """
     加载JSON文件
 
@@ -220,13 +216,13 @@ def load_json_file(file_path: Union[str, Path]) -> Dict[str, Any]:
         raise CLIException(f"JSON file not found: {file_path}")
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         raise CLIException(f"Failed to load JSON file {file_path}: {e}")
 
 
-def save_json_file(data: Any, file_path: Union[str, Path], indent: int = 2):
+def save_json_file(data: Any, file_path: str | Path, indent: int = 2):
     """
     保存数据到JSON文件
 
@@ -248,7 +244,7 @@ def save_json_file(data: Any, file_path: Union[str, Path], indent: int = 2):
         raise CLIException(f"Failed to save JSON file {file_path}: {e}")
 
 
-def resolve_path(path: Union[str, Path], base_path: Optional[Path] = None) -> Path:
+def resolve_path(path: str | Path, base_path: Path | None = None) -> Path:
     """
     解析路径，支持相对路径和波浪号扩展
 
@@ -292,9 +288,7 @@ def is_port_available(host: str, port: int) -> bool:
         return False
 
 
-def wait_for_port(
-    host: str, port: int, timeout: int = 30, check_interval: float = 1.0
-) -> bool:
+def wait_for_port(host: str, port: int, timeout: int = 30, check_interval: float = 1.0) -> bool:
     """
     等待端口变为可用（服务启动）
 
@@ -323,9 +317,7 @@ def wait_for_port(
     return False
 
 
-def create_temp_file(
-    suffix: str = None, prefix: str = "sage_", content: str = None
-) -> Path:
+def create_temp_file(suffix: str = None, prefix: str = "sage_", content: str = None) -> Path:
     """
     创建临时文件
 
@@ -367,7 +359,7 @@ def create_temp_directory(prefix: str = "sage_") -> Path:
     return Path(temp_dir)
 
 
-def safe_delete(path: Union[str, Path], missing_ok: bool = True):
+def safe_delete(path: str | Path, missing_ok: bool = True):
     """
     安全删除文件或目录
 
@@ -390,7 +382,7 @@ def safe_delete(path: Union[str, Path], missing_ok: bool = True):
             raise CLIException(f"Failed to delete {path}: {e}")
 
 
-def parse_key_value_pairs(pairs: List[str]) -> Dict[str, str]:
+def parse_key_value_pairs(pairs: list[str]) -> dict[str, str]:
     """
     解析键值对列表
 
@@ -442,7 +434,7 @@ def setup_signal_handlers(cleanup_func=None):
     signal.signal(signal.SIGTERM, signal_handler)
 
 
-def format_command_for_display(command: Union[str, List[str]]) -> str:
+def format_command_for_display(command: str | list[str]) -> str:
     """
     格式化命令用于显示
 

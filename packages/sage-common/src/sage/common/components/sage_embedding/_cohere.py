@@ -8,8 +8,10 @@ async def cohere_embed(
     api_key: str,
     model: str = "embed-multilingual-v3.0",
     input_type: str = "classification",
-    embedding_types: list[str] = ["float"],
+    embedding_types: list[str] = None,
 ) -> list[float]:
+    if embedding_types is None:
+        embedding_types = ["float"]
     if api_key is None:
         api_key = os.environ.get("COHERE_API_KEY")
     # print(api_key)
@@ -29,7 +31,7 @@ def cohere_embed_sync(
     api_key: str | None = None,
     model: str = "embed-multilingual-v3.0",
     input_type: str = "classification",
-    embedding_types: list[str] = ["float"],
+    embedding_types: list[str] = None,
 ) -> list[list[float]]:
     """
     同步版本：使用 Cohere 同步客户端生成文本 embeddings。
@@ -44,6 +46,8 @@ def cohere_embed_sync(
     Returns:
         list[list[float]]: 每个文本对应的嵌入向量
     """
+    if embedding_types is None:
+        embedding_types = ["float"]
     if api_key is None:
         api_key = os.environ.get("COHERE_API_KEY")
     if api_key is None:

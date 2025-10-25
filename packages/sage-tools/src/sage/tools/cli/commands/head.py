@@ -59,7 +59,7 @@ def start_head():
 
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
-    remote_config = config_manager.get_remote_config()
+    config_manager.get_remote_config()
 
     head_host = head_config.get("host", "localhost")
     head_port = head_config.get("head_port", 6379)
@@ -146,9 +146,7 @@ fi"""
 
         if result.returncode == 0:
             typer.echo("✅ Ray Head节点启动成功")
-            typer.echo(
-                f"🌐 Dashboard访问地址: http://{dashboard_host}:{dashboard_port}"
-            )
+            typer.echo(f"🌐 Dashboard访问地址: http://{dashboard_host}:{dashboard_port}")
         else:
             typer.echo("❌ Ray Head节点启动失败")
             raise typer.Exit(1)

@@ -3,7 +3,7 @@ import socket
 import time
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class BaseTcpClient(ABC):
@@ -36,7 +36,7 @@ class BaseTcpClient(ABC):
 
         # 连接状态
         self.connected = False
-        self._socket: Optional[socket.socket] = None
+        self._socket: socket.socket | None = None
 
         # 日志记录器（子类可以设置自己的logger）
         self.logger = self._create_default_logger()
@@ -48,9 +48,7 @@ class BaseTcpClient(ABC):
         logger = logging.getLogger(f"{self.client_name}")
         if not logger.handlers:
             handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler.setFormatter(formatter)
             logger.addHandler(handler)
             logger.setLevel(logging.INFO)
@@ -71,9 +69,7 @@ class BaseTcpClient(ABC):
             self._socket.settimeout(self.timeout)
             self._socket.connect((self.host, self.port))
             self.connected = True
-            self.logger.debug(
-                f"{self.client_name} connected to {self.host}:{self.port}"
-            )
+            self.logger.debug(f"{self.client_name} connected to {self.host}:{self.port}")
             return True
 
         except Exception as e:
@@ -114,14 +110,12 @@ class BaseTcpClient(ABC):
         )
         self.logger.error(f"   2. 主机地址是否正确？ (当前: {self.host}:{self.port})")
         self.logger.error("   3. 防火墙是否阻止了连接？")
-        self.logger.error(
-            "💡 提示：如果是第一次使用RemoteEnvironment，请先启动JobManager服务"
-        )
+        self.logger.error("💡 提示：如果是第一次使用RemoteEnvironment，请先启动JobManager服务")
         self.logger.error(
             "📚 更多信息：https://intellistream.github.io/SAGE-Pub/kernel/jobmanager/"
         )
 
-    def _create_jobmanager_error_response(self) -> Dict[str, Any]:
+    def _create_jobmanager_error_response(self) -> dict[str, Any]:
         """创建JobManager连接失败的详细错误响应"""
         return {
             "status": "error",
@@ -142,7 +136,7 @@ class BaseTcpClient(ABC):
             "timestamp": time.time(),
         }
 
-    def send_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+    def send_request(self, request_data: dict[str, Any]) -> dict[str, Any]:
         """
         发送请求到服务器并返回响应
 
@@ -205,7 +199,7 @@ class BaseTcpClient(ABC):
 
         self.logger.debug(f"Sent data (size: {len(data)})")
 
-    def _receive_response(self) -> Optional[bytes]:
+    def _receive_response(self) -> bytes | None:
         """接收服务器响应"""
         if not self._socket:
             raise RuntimeError("Socket not connected")
@@ -218,9 +212,7 @@ class BaseTcpClient(ABC):
 
             response_length = int.from_bytes(response_length_data, byteorder="big")
 
-            if (
-                response_length <= 0 or response_length > 100 * 1024 * 1024
-            ):  # 100MB limit
+            if response_length <= 0 or response_length > 100 * 1024 * 1024:  # 100MB limit
                 self.logger.warning(f"Invalid response length: {response_length}")
                 return None
 
@@ -237,7 +229,7 @@ class BaseTcpClient(ABC):
             self.logger.error(f"Error receiving response: {e}")
             return None
 
-    def _receive_full_data(self, size: int) -> Optional[bytes]:
+    def _receive_full_data(self, size: int) -> bytes | None:
         """接收指定大小的完整数据"""
         if not self._socket:
             return None
@@ -251,7 +243,7 @@ class BaseTcpClient(ABC):
                     self.logger.warning("Connection closed while receiving data")
                     return None
                 data += chunk
-            except socket.timeout:
+            except TimeoutError:
                 self.logger.error("Timeout while receiving data")
                 return None
             except Exception as e:
@@ -260,7 +252,7 @@ class BaseTcpClient(ABC):
 
         return data
 
-    def _serialize_request(self, request_data: Dict[str, Any]) -> bytes:
+    def _serialize_request(self, request_data: dict[str, Any]) -> bytes:
         """
         序列化请求数据（默认使用JSON，子类可以重写）
 
@@ -279,7 +271,7 @@ class BaseTcpClient(ABC):
 
         return json.dumps(request_data).encode("utf-8")
 
-    def _deserialize_response(self, response_data: bytes) -> Dict[str, Any]:
+    def _deserialize_response(self, response_data: bytes) -> dict[str, Any]:
         """
         反序列化响应数据（默认使用JSON，子类可以重写）
 
@@ -297,9 +289,7 @@ class BaseTcpClient(ABC):
                 "ERR_DESERIALIZATION_FAILED", f"Failed to deserialize response: {e}"
             )
 
-    def _create_error_response(
-        self, error_code: str, error_message: str
-    ) -> Dict[str, Any]:
+    def _create_error_response(self, error_code: str, error_message: str) -> dict[str, Any]:
         """创建错误响应"""
         return {
             "status": "error",
@@ -308,7 +298,7 @@ class BaseTcpClient(ABC):
             "timestamp": int(time.time()),
         }
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         通用健康检查方法
 
@@ -319,7 +309,7 @@ class BaseTcpClient(ABC):
         return self.send_request(request)
 
     @abstractmethod
-    def _build_health_check_request(self) -> Dict[str, Any]:
+    def _build_health_check_request(self) -> dict[str, Any]:
         """
         构建健康检查请求（抽象方法）
         子类需要实现此方法来定义具体的健康检查请求格式
@@ -329,7 +319,7 @@ class BaseTcpClient(ABC):
         """
         pass
 
-    def get_server_info(self) -> Dict[str, Any]:
+    def get_server_info(self) -> dict[str, Any]:
         """
         获取服务器信息的通用方法
 
@@ -340,7 +330,7 @@ class BaseTcpClient(ABC):
         return self.send_request(request)
 
     @abstractmethod
-    def _build_server_info_request(self) -> Dict[str, Any]:
+    def _build_server_info_request(self) -> dict[str, Any]:
         """
         构建服务器信息请求（抽象方法）
         子类需要实现此方法来定义具体的服务器信息请求格式

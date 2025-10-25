@@ -55,18 +55,14 @@ def load_demo_db():
 def describe_results(title: str, results) -> None:
     print(f"\n{title}")
     for idx, result in enumerate(results, start=1):
-        print(
-            f"  {idx}. id={result.id:>2} score={result.score:.4f} metadata={result.metadata}"
-        )
+        print(f"  {idx}. id={result.id:>2} score={result.score:.4f} metadata={result.metadata}")
 
 
 def main() -> None:
     print("=== Cross-modal search walkthrough ===")
 
     db = load_demo_db()
-    backend = (
-        "C++ accelerated" if getattr(db, "_db", None) is not None else "Python mock"
-    )
+    backend = "C++ accelerated" if getattr(db, "_db", None) is not None else "Python mock"
     print("Backend:", backend)
 
     query_text = seeded_embedding(31, 768)

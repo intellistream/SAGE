@@ -5,7 +5,7 @@ SAGE DB 多模态融合算法模块 Python 接口示例
 """
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -48,8 +48,8 @@ class ModalData:
         self,
         modality_type: ModalityType,
         embedding: np.ndarray,
-        metadata: Optional[Dict[str, str]] = None,
-        raw_data: Optional[bytes] = None,
+        metadata: dict[str, str] | None = None,
+        raw_data: bytes | None = None,
     ):
         self.type = modality_type
         self.embedding = embedding.astype(np.float32)
@@ -62,15 +62,15 @@ class MultimodalData:
 
     def __init__(self, data_id: int = 0):
         self.id = data_id
-        self.modalities: Dict[ModalityType, ModalData] = {}
-        self.fused_embedding: Optional[np.ndarray] = None
-        self.global_metadata: Dict[str, str] = {}
+        self.modalities: dict[ModalityType, ModalData] = {}
+        self.fused_embedding: np.ndarray | None = None
+        self.global_metadata: dict[str, str] = {}
 
     def add_modality(self, modal_data: ModalData):
         """添加模态数据"""
         self.modalities[modal_data.type] = modal_data
 
-    def get_modality(self, modality_type: ModalityType) -> Optional[ModalData]:
+    def get_modality(self, modality_type: ModalityType) -> ModalData | None:
         """获取指定模态的数据"""
         return self.modalities.get(modality_type)
 
@@ -80,14 +80,14 @@ class FusionParams:
 
     def __init__(self, strategy: FusionStrategy = FusionStrategy.WEIGHTED_AVERAGE):
         self.strategy = strategy
-        self.modality_weights: Dict[ModalityType, float] = {
+        self.modality_weights: dict[ModalityType, float] = {
             ModalityType.TEXT: 0.4,
             ModalityType.IMAGE: 0.3,
             ModalityType.AUDIO: 0.2,
             ModalityType.VIDEO: 0.1,
         }
         self.target_dimension = 512
-        self.custom_params: Dict[str, float] = {}
+        self.custom_params: dict[str, float] = {}
 
 
 class MultimodalSearchParams:
@@ -95,7 +95,7 @@ class MultimodalSearchParams:
 
     def __init__(self, k: int = 10):
         self.k = k
-        self.target_modalities: List[ModalityType] = []
+        self.target_modalities: list[ModalityType] = []
         self.use_cross_modal_search = False
         self.query_fusion_params = FusionParams()
         self.include_metadata = True
@@ -104,9 +104,7 @@ class MultimodalSearchParams:
 class QueryResult:
     """查询结果类"""
 
-    def __init__(
-        self, data_id: int, score: float, metadata: Optional[Dict[str, str]] = None
-    ):
+    def __init__(self, data_id: int, score: float, metadata: dict[str, str] | None = None):
         self.id = data_id
         self.score = score
         self.metadata = metadata or {}
@@ -115,7 +113,7 @@ class QueryResult:
 class MultimodalSageDB:
     """多模态SAGE数据库Python接口"""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         初始化多模态数据库
 
@@ -129,16 +127,14 @@ class MultimodalSageDB:
         """
         self.config = config
         self.dimension = config.get("dimension", 512)
-        self.fusion_params = FusionParams(
-            FusionStrategy(config.get("fusion_strategy", 1))
-        )
+        self.fusion_params = FusionParams(FusionStrategy(config.get("fusion_strategy", 1)))
 
         # 如果C++扩展可用，初始化底层对象
         if _sage_db:
             self._db = _sage_db.MultimodalSageDB(config)
         else:
             self._db = None
-            self._data_store: Dict[int, MultimodalData] = {}
+            self._data_store: dict[int, MultimodalData] = {}
             self._next_id = 1
 
     def add_multimodal(self, data: MultimodalData) -> int:
@@ -162,8 +158,8 @@ class MultimodalSageDB:
 
     def add_from_embeddings(
         self,
-        embeddings: Dict[ModalityType, np.ndarray],
-        metadata: Optional[Dict[str, str]] = None,
+        embeddings: dict[ModalityType, np.ndarray],
+        metadata: dict[str, str] | None = None,
     ) -> int:
         """
         从嵌入向量添加多模态数据
@@ -186,9 +182,9 @@ class MultimodalSageDB:
 
     def search_multimodal(
         self,
-        query_modalities: Dict[ModalityType, np.ndarray],
+        query_modalities: dict[ModalityType, np.ndarray],
         params: MultimodalSearchParams,
-    ) -> List[QueryResult]:
+    ) -> list[QueryResult]:
         """
         多模态搜索
 
@@ -221,9 +217,9 @@ class MultimodalSageDB:
         self,
         query_modality: ModalityType,
         query_embedding: np.ndarray,
-        target_modalities: List[ModalityType],
+        target_modalities: list[ModalityType],
         params: MultimodalSearchParams,
-    ) -> List[QueryResult]:
+    ) -> list[QueryResult]:
         """
         跨模态搜索
 
@@ -248,14 +244,12 @@ class MultimodalSageDB:
             filtered_results = []
             for result in results:
                 data = self._data_store.get(result.id)
-                if data and any(
-                    modality in data.modalities for modality in target_modalities
-                ):
+                if data and any(modality in data.modalities for modality in target_modalities):
                     filtered_results.append(result)
 
             return filtered_results
 
-    def get_modality_statistics(self) -> Dict[ModalityType, Dict[str, Any]]:
+    def get_modality_statistics(self) -> dict[ModalityType, dict[str, Any]]:
         """
         获取模态统计信息
 
@@ -269,9 +263,7 @@ class MultimodalSageDB:
             stats = {}
             for modality_type in ModalityType:
                 count = sum(
-                    1
-                    for data in self._data_store.values()
-                    if modality_type in data.modalities
+                    1 for data in self._data_store.values() if modality_type in data.modalities
                 )
                 if count > 0:
                     embeddings = [
@@ -296,7 +288,7 @@ class MultimodalSageDB:
             self._db.update_fusion_params(params)
 
     def _calculate_similarity(
-        self, query_modalities: Dict[ModalityType, np.ndarray], data: MultimodalData
+        self, query_modalities: dict[ModalityType, np.ndarray], data: MultimodalData
     ) -> float:
         """计算相似度（简化版本）"""
         similarities = []
@@ -314,9 +306,7 @@ class MultimodalSageDB:
 
 
 # 便利函数
-def create_text_image_db(
-    dimension: int = 512, index_type: str = "IVF_FLAT"
-) -> MultimodalSageDB:
+def create_text_image_db(dimension: int = 512, index_type: str = "IVF_FLAT") -> MultimodalSageDB:
     """创建文本-图像多模态数据库"""
     config = {
         "dimension": dimension,
@@ -328,9 +318,7 @@ def create_text_image_db(
     return MultimodalSageDB(config)
 
 
-def create_audio_visual_db(
-    dimension: int = 1024, index_type: str = "IVF_FLAT"
-) -> MultimodalSageDB:
+def create_audio_visual_db(dimension: int = 1024, index_type: str = "IVF_FLAT") -> MultimodalSageDB:
     """创建音视频多模态数据库"""
     config = {
         "dimension": dimension,

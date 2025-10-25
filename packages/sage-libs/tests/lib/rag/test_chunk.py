@@ -244,7 +244,7 @@ class TestCharacterSplitter:
         assert len(result) >= expected_chunks - 1  # 允许一定误差
 
         # 验证每个chunk的长度
-        for i, chunk in enumerate(result[:-1]):  # 除了最后一个chunk
+        for _i, chunk in enumerate(result[:-1]):  # 除了最后一个chunk
             assert len(chunk) == 50
 
         # 验证重叠

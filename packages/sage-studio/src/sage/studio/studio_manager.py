@@ -9,7 +9,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 import psutil
 import requests
@@ -72,7 +71,7 @@ class StudioManager:
         """加载配置"""
         if self.config_file.exists():
             try:
-                with open(self.config_file, "r") as f:
+                with open(self.config_file) as f:
                     return json.load(f)
             except Exception:
                 pass
@@ -91,13 +90,13 @@ class StudioManager:
         except Exception as e:
             console.print(f"[red]保存配置失败: {e}[/red]")
 
-    def is_running(self) -> Optional[int]:
+    def is_running(self) -> int | None:
         """检查 Studio 前端是否运行中"""
         if not self.pid_file.exists():
             return None
 
         try:
-            with open(self.pid_file, "r") as f:
+            with open(self.pid_file) as f:
                 pid = int(f.read().strip())
 
             if psutil.pid_exists(pid):
@@ -109,21 +108,19 @@ class StudioManager:
         except Exception:
             return None
 
-    def is_backend_running(self) -> Optional[int]:
+    def is_backend_running(self) -> int | None:
         """检查 Studio 后端API是否运行中"""
         if not self.backend_pid_file.exists():
             return None
 
         try:
-            with open(self.backend_pid_file, "r") as f:
+            with open(self.backend_pid_file) as f:
                 pid = int(f.read().strip())
 
             if psutil.pid_exists(pid):
                 proc = psutil.Process(pid)
                 # 检查是否是Python进程且包含api.py
-                if "python" in proc.name().lower() and "api.py" in " ".join(
-                    proc.cmdline()
-                ):
+                if "python" in proc.name().lower() and "api.py" in " ".join(proc.cmdline()):
                     return pid
 
             # PID 文件存在但进程不存在，清理文件
@@ -136,9 +133,7 @@ class StudioManager:
         """检查依赖"""
         # 检查 Node.js
         try:
-            result = subprocess.run(
-                ["node", "--version"], capture_output=True, text=True
-            )
+            result = subprocess.run(["node", "--version"], capture_output=True, text=True)
             if result.returncode == 0:
                 node_version = result.stdout.strip()
                 console.print(f"[green]Node.js: {node_version}[/green]")
@@ -151,9 +146,7 @@ class StudioManager:
 
         # 检查 npm
         try:
-            result = subprocess.run(
-                ["npm", "--version"], capture_output=True, text=True
-            )
+            result = subprocess.run(["npm", "--version"], capture_output=True, text=True)
             if result.returncode == 0:
                 npm_version = result.stdout.strip()
                 console.print(f"[green]npm: {npm_version}[/green]")
@@ -246,7 +239,7 @@ class StudioManager:
             env["npm_config_cache"] = str(self.npm_cache_dir)
 
             # 安装依赖到项目目录
-            result = subprocess.run(
+            subprocess.run(
                 ["npm", "install"],
                 cwd=self.frontend_dir,
                 check=True,
@@ -494,9 +487,7 @@ if __name__ == "__main__":
                 if self.dist_dir.exists():
                     console.print(f"[blue]构建输出位置: {self.dist_dir}[/blue]")
                 else:
-                    console.print(
-                        f"[yellow]警告: 构建输出目录不存在: {self.dist_dir}[/yellow]"
-                    )
+                    console.print(f"[yellow]警告: 构建输出目录不存在: {self.dist_dir}[/yellow]")
 
                 return True
             else:
@@ -513,7 +504,7 @@ if __name__ == "__main__":
             console.print(f"[red]构建过程出错: {e}[/red]")
             return False
 
-    def start_backend(self, port: Optional[int] = None) -> bool:
+    def start_backend(self, port: int | None = None) -> bool:
         """启动后端API服务"""
         # 检查是否已运行
         running_pid = self.is_backend_running()
@@ -555,7 +546,7 @@ if __name__ == "__main__":
 
             # 等待后端启动
             console.print("[blue]等待后端API启动...[/blue]")
-            for i in range(15):  # 最多等待15秒
+            for _i in range(15):  # 最多等待15秒
                 try:
                     response = requests.get(
                         f"http://{config['host']}:{backend_port}/health", timeout=1
@@ -610,9 +601,7 @@ if __name__ == "__main__":
             console.print(f"[red]后端API停止失败: {e}[/red]")
             return False
 
-    def start(
-        self, port: Optional[int] = None, host: Optional[str] = None, dev: bool = False
-    ) -> bool:
+    def start(self, port: int | None = None, host: str | None = None, dev: bool = False) -> bool:
         """启动 Studio（前端和后端）"""
         # 首先启动后端API
         if not self.start_backend():
@@ -724,7 +713,7 @@ if __name__ == "__main__":
                 os.killpg(os.getpgid(frontend_pid), signal.SIGTERM)
 
                 # 等待进程结束
-                for i in range(10):
+                for _i in range(10):
                     if not psutil.pid_exists(frontend_pid):
                         break
                     time.sleep(1)
@@ -752,9 +741,7 @@ if __name__ == "__main__":
                 stopped_services.append("后端API")
 
         if stopped_services:
-            console.print(
-                f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]"
-            )
+            console.print(f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]")
             return True
         else:
             console.print("[yellow]Studio 未运行[/yellow]")
@@ -778,14 +765,10 @@ if __name__ == "__main__":
                 frontend_table.add_row("PID", str(frontend_pid))
                 frontend_table.add_row(
                     "启动时间",
-                    time.strftime(
-                        "%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())
-                    ),
+                    time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())),
                 )
                 frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
-                frontend_table.add_row(
-                    "内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB"
-                )
+                frontend_table.add_row("内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB")
             except psutil.NoSuchProcess:
                 frontend_table.add_row("状态", "[red]进程不存在[/red]")
         else:
@@ -823,9 +806,7 @@ if __name__ == "__main__":
                 if response.status_code == 200:
                     console.print(f"[green]✅ 服务可访问: {url}[/green]")
                 else:
-                    console.print(
-                        f"[yellow]⚠️ 服务响应异常: {response.status_code}[/yellow]"
-                    )
+                    console.print(f"[yellow]⚠️ 服务响应异常: {response.status_code}[/yellow]")
             except requests.RequestException:
                 console.print("[red]❌ 服务不可访问[/red]")
 
@@ -844,9 +825,7 @@ if __name__ == "__main__":
             return
 
         if follow:
-            console.print(
-                f"[blue]跟踪{service_name}日志 (按 Ctrl+C 退出): {log_file}[/blue]"
-            )
+            console.print(f"[blue]跟踪{service_name}日志 (按 Ctrl+C 退出): {log_file}[/blue]")
             try:
                 subprocess.run(["tail", "-f", str(log_file)])
             except KeyboardInterrupt:
@@ -854,7 +833,7 @@ if __name__ == "__main__":
         else:
             console.print(f"[blue]显示{service_name}日志: {log_file}[/blue]")
             try:
-                with open(log_file, "r") as f:
+                with open(log_file) as f:
                     lines = f.readlines()
                     # 显示最后50行
                     for line in lines[-50:]:

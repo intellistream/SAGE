@@ -12,8 +12,6 @@ Key questions:
 3. How do we balance privacy and utility?
 """
 
-from typing import Dict, List, Tuple
-
 import numpy as np
 
 
@@ -102,7 +100,7 @@ class UnlearningMetrics:
     @staticmethod
     def privacy_utility_tradeoff(
         epsilon: float, delta: float, utility_metric: float
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Compute privacy-utility trade-off metrics.
 

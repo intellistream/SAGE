@@ -6,12 +6,9 @@ LoRA 训练器模块
 
 import sys
 from pathlib import Path
-from typing import Optional, Union
 
 import torch
-from datasets import Dataset
-from peft import LoraConfig as PeftLoraConfig
-from peft import get_peft_model
+from peft import LoraConfig as PeftLoraConfig, get_peft_model
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -20,8 +17,8 @@ from transformers import (
     TrainingArguments,
 )
 
-from .config import LoRAConfig, TrainingConfig
-from .data import format_alpaca_sample, load_training_data, prepare_dataset
+from .config import TrainingConfig
+from .data import prepare_dataset
 
 
 class LoRATrainer:
@@ -82,9 +79,7 @@ class LoRATrainer:
             }
 
         # 加载模型
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.config.model_name, **load_kwargs
-        )
+        self.model = AutoModelForCausalLM.from_pretrained(self.config.model_name, **load_kwargs)
 
         # 加载分词器
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
@@ -161,7 +156,7 @@ class LoRATrainer:
             data_collator=DataCollatorForLanguageModeling(self.tokenizer, mlm=False),
         )
 
-        print(f"✅ 训练器配置完成")
+        print("✅ 训练器配置完成")
         print(f"   • 有效 batch size: {self.config.effective_batch_size}")
         print(f"   • 总样本数: {len(self.dataset)}")
         print(f"   • 训练轮数: {self.config.num_train_epochs}")
@@ -208,9 +203,7 @@ class LoRATrainer:
                 print(
                     f"  1. 减小 max_length (当前 {self.config.max_length} -> {self.config.max_length // 2})"
                 )
-                print(
-                    f"  2. 减小 batch_size (当前 {self.config.per_device_train_batch_size})"
-                )
+                print(f"  2. 减小 batch_size (当前 {self.config.per_device_train_batch_size})")
                 if not self.config.load_in_8bit and not self.config.load_in_4bit:
                     print("  3. 启用量化: load_in_8bit=True")
                 if not self.config.gradient_checkpointing:
@@ -244,22 +237,22 @@ class LoRATrainer:
         print(f"\n{'='*60}")
         print("🎉 训练完成！")
         print(f"{'='*60}")
-        print(f"\n📁 输出文件:")
+        print("\n📁 输出文件:")
         print(f"  • LoRA 权重: {self.config.lora_dir}")
         print(f"  • 检查点: {self.config.checkpoint_dir}")
         print(f"  • 训练日志: {self.config.log_dir}")
         print(f"  • 训练配置: {self.config.output_dir / 'training_config.json'}")
-        print(f"\n💡 下一步操作:")
-        print(f"  • 查看训练曲线:")
+        print("\n💡 下一步操作:")
+        print("  • 查看训练曲线:")
         print(f"    tensorboard --logdir {self.config.log_dir}")
-        print(f"  • 合并权重:")
+        print("  • 合并权重:")
         print(f"    sage finetune merge {self.config.output_dir.name}")
-        print(f"  • 测试模型:")
+        print("  • 测试模型:")
         print(f"    sage finetune chat {self.config.output_dir.name}")
         print()
 
 
-def train_from_meta(output_dir: Union[str, Path]):
+def train_from_meta(output_dir: str | Path):
     """从元信息文件训练
 
     这个函数用于兼容旧的 simple_finetune.py 脚本

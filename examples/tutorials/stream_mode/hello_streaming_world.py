@@ -1,7 +1,7 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

@@ -8,9 +8,10 @@ import json
 import os
 import re
 import textwrap
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 import typer
 import yaml
@@ -18,6 +19,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
+
 from sage.common.config.output_paths import get_sage_paths
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment
@@ -38,7 +40,7 @@ try:  # pragma: no cover - optional dependency at runtime only
     from sage.libs.integrations.openaiclient import OpenAIClient
 
     OPENAI_AVAILABLE = True
-    OPENAI_IMPORT_ERROR: Optional[Exception] = None
+    OPENAI_IMPORT_ERROR: Exception | None = None
 except Exception as exc:  # pragma: no cover - runtime check
     OPENAI_AVAILABLE = False
     OPENAI_IMPORT_ERROR = exc
@@ -53,9 +55,7 @@ DEFAULT_MODEL = os.getenv("SAGE_PIPELINE_BUILDER_MODEL") or os.getenv(
 DEFAULT_BASE_URL = os.getenv("SAGE_PIPELINE_BUILDER_BASE_URL") or os.getenv(
     "TEMP_GENERATOR_BASE_URL"
 )
-DEFAULT_API_KEY = os.getenv("SAGE_PIPELINE_BUILDER_API_KEY") or os.getenv(
-    "TEMP_GENERATOR_API_KEY"
-)
+DEFAULT_API_KEY = os.getenv("SAGE_PIPELINE_BUILDER_API_KEY") or os.getenv("TEMP_GENERATOR_API_KEY")
 
 
 SYSTEM_PROMPT = textwrap.dedent(
@@ -175,9 +175,9 @@ app = typer.Typer(help="🧠 使用大模型交互式创建 SAGE pipeline 配置
 
 
 def _render_blueprint_panel(
-    matches: Sequence[Tuple[blueprints.PipelineBlueprint, float]],
+    matches: Sequence[tuple[blueprints.PipelineBlueprint, float]],
 ) -> Panel:
-    lines: List[str] = []
+    lines: list[str] = []
     for index, (blueprint, score) in enumerate(matches, start=1):
         lines.append(
             textwrap.dedent(
@@ -195,7 +195,7 @@ def _render_blueprint_panel(
 def _render_template_panel(
     matches: Sequence[templates.TemplateMatch],
 ) -> Panel:
-    lines: List[str] = []
+    lines: list[str] = []
     for index, match in enumerate(matches, start=1):
         template = match.template
         lines.append(
@@ -213,17 +213,16 @@ def _render_template_panel(
 
 
 def _blueprint_contexts(
-    matches: Sequence[Tuple[blueprints.PipelineBlueprint, float]],
-) -> Tuple[str, ...]:
+    matches: Sequence[tuple[blueprints.PipelineBlueprint, float]],
+) -> tuple[str, ...]:
     return tuple(
-        blueprints.render_blueprint_prompt(blueprint, score)
-        for blueprint, score in matches
+        blueprints.render_blueprint_prompt(blueprint, score) for blueprint, score in matches
     )
 
 
 def _template_contexts(
     matches: Sequence[templates.TemplateMatch],
-) -> Tuple[str, ...]:
+) -> tuple[str, ...]:
     return tuple(match.template.render_prompt(match.score) for match in matches)
 
 
@@ -236,7 +235,7 @@ def _slugify(value: str) -> str:
     return slug or "pipeline"
 
 
-def _extract_json_object(text: str) -> Dict[str, Any]:
+def _extract_json_object(text: str) -> dict[str, Any]:
     candidate = text.strip()
     if candidate.startswith("```"):
         candidate = re.sub(r"^```(?:json)?", "", candidate, count=1).strip()
@@ -257,7 +256,7 @@ def _extract_json_object(text: str) -> Dict[str, Any]:
     raise PipelineBuilderError("无法解析大模型返回的 JSON，请重试或调整描述。")
 
 
-def _validate_plan(plan: Dict[str, Any]) -> None:
+def _validate_plan(plan: dict[str, Any]) -> None:
     if "pipeline" not in plan or "stages" not in plan or "sink" not in plan:
         raise PipelineBuilderError(
             "生成的配置缺少必要字段 (pipeline/stages/sink)。请尝试提供更多需求细节。"
@@ -285,11 +284,7 @@ def _validate_plan(plan: Dict[str, Any]) -> None:
         if not isinstance(stage, dict):
             raise PipelineBuilderError("stages 列表中的元素必须是对象。")
         stage_id = stage.get("id")
-        stage["id"] = (
-            _slugify(str(stage_id))
-            if stage_id
-            else _slugify(stage.get("class", "stage"))
-        )
+        stage["id"] = _slugify(str(stage_id)) if stage_id else _slugify(stage.get("class", "stage"))
         if not stage.get("class"):
             raise PipelineBuilderError("每个 stage 必须包含 class 字段。")
         params = stage.get("params", {})
@@ -299,7 +294,7 @@ def _validate_plan(plan: Dict[str, Any]) -> None:
             raise PipelineBuilderError("stage 的 params 必须是对象 (key/value)。")
 
 
-def _validate_graph_plan(plan: Dict[str, Any]) -> None:
+def _validate_graph_plan(plan: dict[str, Any]) -> None:
     pipeline_meta = plan.get("pipeline")
     graph = plan.get("graph")
 
@@ -329,14 +324,8 @@ def _validate_graph_plan(plan: Dict[str, Any]) -> None:
             raise PipelineBuilderError(f"节点 {slugified} 缺少 class 字段。")
 
         for key in ("inputs", "outputs"):
-            if (
-                key in node
-                and node[key] is not None
-                and not isinstance(node[key], list)
-            ):
-                raise PipelineBuilderError(
-                    f"节点 {slugified} 的 {key} 字段必须是列表。"
-                )
+            if key in node and node[key] is not None and not isinstance(node[key], list):
+                raise PipelineBuilderError(f"节点 {slugified} 的 {key} 字段必须是列表。")
 
     channels = graph.get("channels") or []
     if not isinstance(channels, list):
@@ -387,14 +376,14 @@ def _import_attr(path: str) -> Any:
         raise CLIException(f"模块 {module_name} 不包含 {attr_name}") from exc
 
 
-def _ensure_pipeline_dict(data: Dict[str, Any]) -> Dict[str, Any]:
+def _ensure_pipeline_dict(data: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise CLIException("Pipeline 配置必须是字典结构。")
     return data
 
 
 def _create_environment(
-    plan: Dict[str, Any], host: Optional[str], port: Optional[int]
+    plan: dict[str, Any], host: str | None, port: int | None
 ) -> BaseEnvironment:
     pipeline_meta = plan.get("pipeline") or {}
     pipeline_name = pipeline_meta.get("name", "sage-pipeline")
@@ -403,8 +392,8 @@ def _create_environment(
 
     env_type = (pipeline_meta.get("type") or "local").lower()
     if env_type == "remote":
-        from sage.kernel.api.remote_environment import (  # import lazily
-            RemoteEnvironment,
+        from sage.kernel.api.remote_environment import (
+            RemoteEnvironment,  # import lazily
         )
 
         resolved_host = host or env_settings.get("host") or "127.0.0.1"
@@ -419,7 +408,7 @@ def _create_environment(
     return LocalEnvironment(name=pipeline_name, config=env_config)
 
 
-def _register_services(env: BaseEnvironment, services: List[Dict[str, Any]]) -> None:
+def _register_services(env: BaseEnvironment, services: list[dict[str, Any]]) -> None:
     for service in services or []:
         name = service.get("name")
         class_path = service.get("class")
@@ -434,7 +423,7 @@ def _register_services(env: BaseEnvironment, services: List[Dict[str, Any]]) -> 
         env.register_service(name, service_class, *args, **params)
 
 
-def _apply_source(env: BaseEnvironment, source: Dict[str, Any]):
+def _apply_source(env: BaseEnvironment, source: dict[str, Any]):
     if not source:
         raise CLIException("Pipeline 缺少 source 定义。")
 
@@ -461,7 +450,7 @@ def _apply_source(env: BaseEnvironment, source: Dict[str, Any]):
     return env.from_source(function_class, *args, **params)
 
 
-def _apply_stage(stream, stage: Dict[str, Any]):
+def _apply_stage(stream, stage: dict[str, Any]):
     class_path = stage.get("class")
     if not class_path:
         raise CLIException("stage 缺少 class 字段。")
@@ -490,7 +479,7 @@ def _apply_stage(stream, stage: Dict[str, Any]):
     return stream.map(function_class, *args, **params)
 
 
-def _apply_sink(stream, sink: Dict[str, Any]):
+def _apply_sink(stream, sink: dict[str, Any]):
     if not sink:
         raise CLIException("Pipeline 缺少 sink 定义。")
 
@@ -506,7 +495,7 @@ def _apply_sink(stream, sink: Dict[str, Any]):
     stream.sink(function_class, *args, **params)
 
 
-def _load_pipeline_file(path: Path) -> Dict[str, Any]:
+def _load_pipeline_file(path: Path) -> dict[str, Any]:
     try:
         content = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
@@ -526,10 +515,10 @@ def _load_pipeline_file(path: Path) -> Dict[str, Any]:
 class BuilderConfig:
     backend: str
     model: str
-    base_url: Optional[str]
-    api_key: Optional[str]
-    domain_contexts: Tuple[str, ...] = ()
-    knowledge_base: Optional[PipelineKnowledgeBase] = None
+    base_url: str | None
+    api_key: str | None
+    domain_contexts: tuple[str, ...] = ()
+    knowledge_base: PipelineKnowledgeBase | None = None
     knowledge_top_k: int = 6
     show_knowledge: bool = False
 
@@ -538,10 +527,10 @@ class BuilderConfig:
 class GraphBuilderConfig:
     backend: str
     model: str
-    base_url: Optional[str]
-    api_key: Optional[str]
-    domain_contexts: Tuple[str, ...] = ()
-    knowledge_base: Optional[PipelineKnowledgeBase] = None
+    base_url: str | None
+    api_key: str | None
+    domain_contexts: tuple[str, ...] = ()
+    knowledge_base: PipelineKnowledgeBase | None = None
     knowledge_top_k: int = 6
     show_knowledge: bool = False
 
@@ -550,17 +539,15 @@ class PipelinePlanGenerator:
     def __init__(self, config: BuilderConfig) -> None:
         self.config = config
         self._client = None  # type: Optional[Any]
-        self._last_knowledge_contexts: Tuple[str, ...] = ()
-        self._blueprint_matches: Tuple[
-            Tuple[blueprints.PipelineBlueprint, float], ...
-        ] = ()
-        self._last_blueprint_contexts: Tuple[str, ...] = ()
-        self._template_matches: Tuple[templates.TemplateMatch, ...] = ()
-        self._last_template_contexts: Tuple[str, ...] = ()
+        self._last_knowledge_contexts: tuple[str, ...] = ()
+        self._blueprint_matches: tuple[tuple[blueprints.PipelineBlueprint, float], ...] = ()
+        self._last_blueprint_contexts: tuple[str, ...] = ()
+        self._template_matches: tuple[templates.TemplateMatch, ...] = ()
+        self._last_template_contexts: tuple[str, ...] = ()
 
         if self.config.backend != "mock":
             if not OPENAI_AVAILABLE:
-                message = "未能导入 OpenAIClient：{}".format(OPENAI_IMPORT_ERROR)
+                message = f"未能导入 OpenAIClient：{OPENAI_IMPORT_ERROR}"
                 raise PipelineBuilderError(message)
             self._client = OpenAIClient(
                 model_name=self.config.model,
@@ -571,16 +558,14 @@ class PipelinePlanGenerator:
 
     def generate(
         self,
-        requirements: Dict[str, Any],
-        previous_plan: Optional[Dict[str, Any]] = None,
-        feedback: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        knowledge_contexts: Tuple[str, ...] = ()
+        requirements: dict[str, Any],
+        previous_plan: dict[str, Any] | None = None,
+        feedback: str | None = None,
+    ) -> dict[str, Any]:
+        knowledge_contexts: tuple[str, ...] = ()
         if self.config.knowledge_base is not None:
             try:
-                query_payload = build_query_payload(
-                    requirements, previous_plan, feedback
-                )
+                query_payload = build_query_payload(requirements, previous_plan, feedback)
                 results = self.config.knowledge_base.search(
                     query_payload,
                     top_k=self.config.knowledge_top_k,
@@ -588,9 +573,7 @@ class PipelinePlanGenerator:
                 knowledge_contexts = tuple(item.text for item in results)
                 self._last_knowledge_contexts = knowledge_contexts
             except Exception as exc:  # pragma: no cover - defensive
-                console.print(
-                    f"[yellow]检索知识库时出错，将继续使用内建上下文: {exc}[/yellow]"
-                )
+                console.print(f"[yellow]检索知识库时出错，将继续使用内建上下文: {exc}[/yellow]")
                 self._last_knowledge_contexts = ()
 
         if self.config.show_knowledge and knowledge_contexts:
@@ -641,12 +624,12 @@ class PipelinePlanGenerator:
 
     def _build_prompt(
         self,
-        requirements: Dict[str, Any],
-        previous_plan: Optional[Dict[str, Any]],
-        feedback: Optional[str],
-        knowledge_contexts: Tuple[str, ...],
-        template_contexts: Tuple[str, ...],
-        blueprint_contexts: Tuple[str, ...],
+        requirements: dict[str, Any],
+        previous_plan: dict[str, Any] | None,
+        feedback: str | None,
+        knowledge_contexts: tuple[str, ...],
+        template_contexts: tuple[str, ...],
+        blueprint_contexts: tuple[str, ...],
     ) -> str:
         blocks = [
             "请根据以下需求生成符合 SAGE 框架的 pipeline 配置 JSON：",
@@ -686,10 +669,10 @@ class PipelinePlanGenerator:
 
     def _blueprint_plan(
         self,
-        requirements: Dict[str, Any],
-        previous_plan: Optional[Dict[str, Any]],
-        feedback: Optional[str],
-    ) -> Dict[str, Any]:
+        requirements: dict[str, Any],
+        previous_plan: dict[str, Any] | None,
+        feedback: str | None,
+    ) -> dict[str, Any]:
         blueprint = (
             self._blueprint_matches[0][0]
             if self._blueprint_matches
@@ -701,16 +684,14 @@ class PipelinePlanGenerator:
 class GraphPlanGenerator:
     def __init__(self, config: GraphBuilderConfig) -> None:
         self.config = config
-        self._client: Optional[Any] = None
-        self._last_knowledge_contexts: Tuple[str, ...] = ()
-        self._blueprint_matches: Tuple[
-            Tuple[blueprints.PipelineBlueprint, float], ...
-        ] = ()
-        self._last_blueprint_contexts: Tuple[str, ...] = ()
+        self._client: Any | None = None
+        self._last_knowledge_contexts: tuple[str, ...] = ()
+        self._blueprint_matches: tuple[tuple[blueprints.PipelineBlueprint, float], ...] = ()
+        self._last_blueprint_contexts: tuple[str, ...] = ()
 
         if self.config.backend != "mock":
             if not OPENAI_AVAILABLE:
-                message = "未能导入 OpenAIClient：{}".format(OPENAI_IMPORT_ERROR)
+                message = f"未能导入 OpenAIClient：{OPENAI_IMPORT_ERROR}"
                 raise PipelineBuilderError(message)
             self._client = OpenAIClient(
                 model_name=self.config.model,
@@ -721,25 +702,21 @@ class GraphPlanGenerator:
 
     def generate(
         self,
-        requirements: Dict[str, Any],
-        previous_plan: Optional[Dict[str, Any]] = None,
-        feedback: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        knowledge_contexts: Tuple[str, ...] = ()
+        requirements: dict[str, Any],
+        previous_plan: dict[str, Any] | None = None,
+        feedback: str | None = None,
+    ) -> dict[str, Any]:
+        knowledge_contexts: tuple[str, ...] = ()
         if self.config.knowledge_base is not None:
             try:
-                query_payload = build_query_payload(
-                    requirements, previous_plan, feedback
-                )
+                query_payload = build_query_payload(requirements, previous_plan, feedback)
                 results = self.config.knowledge_base.search(
                     query_payload, top_k=self.config.knowledge_top_k
                 )
                 knowledge_contexts = tuple(item.text for item in results)
                 self._last_knowledge_contexts = knowledge_contexts
             except Exception as exc:  # pragma: no cover - defensive
-                console.print(
-                    f"[yellow]检索知识库时出错，将继续使用静态上下文: {exc}[/yellow]"
-                )
+                console.print(f"[yellow]检索知识库时出错，将继续使用静态上下文: {exc}[/yellow]")
                 self._last_knowledge_contexts = ()
 
         if self.config.show_knowledge and knowledge_contexts:
@@ -789,14 +766,14 @@ class GraphPlanGenerator:
 
     def _build_prompt(
         self,
-        requirements: Dict[str, Any],
-        previous_plan: Optional[Dict[str, Any]],
-        feedback: Optional[str],
-        knowledge_contexts: Tuple[str, ...],
-        template_contexts: Tuple[str, ...],
-        blueprint_contexts: Tuple[str, ...],
+        requirements: dict[str, Any],
+        previous_plan: dict[str, Any] | None,
+        feedback: str | None,
+        knowledge_contexts: tuple[str, ...],
+        template_contexts: tuple[str, ...],
+        blueprint_contexts: tuple[str, ...],
     ) -> str:
-        blocks: List[str] = [
+        blocks: list[str] = [
             "请根据以下需求设计一个多智能体 SAGE pipeline 图谱：",
             json.dumps(requirements, ensure_ascii=False, indent=2),
         ]
@@ -834,10 +811,10 @@ class GraphPlanGenerator:
 
     def _blueprint_plan(
         self,
-        requirements: Dict[str, Any],
-        previous_plan: Optional[Dict[str, Any]],
-        feedback: Optional[str],
-    ) -> Dict[str, Any]:
+        requirements: dict[str, Any],
+        previous_plan: dict[str, Any] | None,
+        feedback: str | None,
+    ) -> dict[str, Any]:
         blueprint = (
             self._blueprint_matches[0][0]
             if self._blueprint_matches
@@ -846,7 +823,7 @@ class GraphPlanGenerator:
         return blueprints.build_graph_plan(blueprint, requirements, feedback)
 
 
-def _render_plan(plan: Dict[str, Any]) -> None:
+def _render_plan(plan: dict[str, Any]) -> None:
     pipeline_meta = plan.get("pipeline", {})
     console.print(
         Panel.fit(
@@ -878,7 +855,7 @@ def _render_plan(plan: Dict[str, Any]) -> None:
         console.print(Panel("\n".join(f"• {note}" for note in notes), title="Notes"))
 
 
-def _plan_to_yaml(plan: Dict[str, Any]) -> str:
+def _plan_to_yaml(plan: dict[str, Any]) -> str:
     data = dict(plan)
     stages = data.pop("stages", [])
 
@@ -887,15 +864,15 @@ def _plan_to_yaml(plan: Dict[str, Any]) -> str:
     return yaml.safe_dump(data, allow_unicode=True, sort_keys=False)
 
 
-def render_pipeline_plan(plan: Dict[str, Any]) -> None:
+def render_pipeline_plan(plan: dict[str, Any]) -> None:
     _render_plan(plan)
 
 
-def _graph_plan_to_yaml(plan: Dict[str, Any]) -> str:
+def _graph_plan_to_yaml(plan: dict[str, Any]) -> str:
     return yaml.safe_dump(plan, allow_unicode=True, sort_keys=False)
 
 
-def _save_plan(plan: Dict[str, Any], output: Optional[Path], overwrite: bool) -> Path:
+def _save_plan(plan: dict[str, Any], output: Path | None, overwrite: bool) -> Path:
     yaml_text = _plan_to_yaml(plan)
     if output is None:
         default_name = _slugify(plan.get("pipeline", {}).get("name", "pipeline"))
@@ -910,9 +887,7 @@ def _save_plan(plan: Dict[str, Any], output: Optional[Path], overwrite: bool) ->
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if output_path.exists() and not overwrite:
-        raise PipelineBuilderError(
-            f"文件已存在: {output_path}。使用 --overwrite 强制覆盖。"
-        )
+        raise PipelineBuilderError(f"文件已存在: {output_path}。使用 --overwrite 强制覆盖。")
 
     output_path.write_text(yaml_text, encoding="utf-8")
     return output_path
@@ -923,29 +898,27 @@ def _preview_yaml(yaml_text: str) -> None:
     console.print(Panel(syntax, title="YAML 预览"))
 
 
-def pipeline_plan_to_yaml(plan: Dict[str, Any]) -> str:
+def pipeline_plan_to_yaml(plan: dict[str, Any]) -> str:
     return _plan_to_yaml(plan)
 
 
-def preview_pipeline_plan(plan: Dict[str, Any]) -> None:
+def preview_pipeline_plan(plan: dict[str, Any]) -> None:
     yaml_text = _plan_to_yaml(plan)
     _preview_yaml(yaml_text)
 
 
-def save_pipeline_plan(
-    plan: Dict[str, Any], output: Optional[Path], overwrite: bool
-) -> Path:
+def save_pipeline_plan(plan: dict[str, Any], output: Path | None, overwrite: bool) -> Path:
     return _save_plan(plan, output, overwrite)
 
 
 def execute_pipeline_plan(
-    plan: Dict[str, Any],
+    plan: dict[str, Any],
     autostop: bool = True,
-    host: Optional[str] = None,
-    port: Optional[int] = None,
+    host: str | None = None,
+    port: int | None = None,
     *,
-    console_override: Optional[Console] = None,
-) -> Optional[str]:
+    console_override: Console | None = None,
+) -> str | None:
     """Apply a pipeline configuration and submit it to the target environment."""
 
     log_console = console_override or console
@@ -972,9 +945,7 @@ def execute_pipeline_plan(
     _apply_sink(stream, sink)
 
     if plan.get("monitors"):
-        log_console.print(
-            "[yellow]📈 当前版本暂未自动配置 monitors，需手动集成。[/yellow]"
-        )
+        log_console.print("[yellow]📈 当前版本暂未自动配置 monitors，需手动集成。[/yellow]")
 
     log_console.print("🚀 提交 pipeline...")
     job_uuid = env.submit(autostop=autostop)
@@ -993,12 +964,12 @@ def execute_pipeline_plan(
 
 
 def _collect_requirements(
-    name: Optional[str],
-    goal: Optional[str],
-    requirements_path: Optional[Path],
+    name: str | None,
+    goal: str | None,
+    requirements_path: Path | None,
     interactive: bool,
-) -> Dict[str, Any]:
-    requirements: Dict[str, Any] = {}
+) -> dict[str, Any]:
+    requirements: dict[str, Any] = {}
 
     if requirements_path:
         path = Path(requirements_path).expanduser().resolve()
@@ -1020,14 +991,10 @@ def _collect_requirements(
     if "name" not in requirements:
         requirements["name"] = typer.prompt("Pipeline 名称", default="My Pipeline")
     if "goal" not in requirements:
-        requirements["goal"] = typer.prompt(
-            "主要目标", default="构建一个问答型 RAG pipeline"
-        )
+        requirements["goal"] = typer.prompt("主要目标", default="构建一个问答型 RAG pipeline")
 
     if "data_sources" not in requirements:
-        requirements["data_sources"] = typer.prompt(
-            "数据来源 (可留空)", default="文档知识库"
-        )
+        requirements["data_sources"] = typer.prompt("数据来源 (可留空)", default="文档知识库")
     if "latency_budget" not in requirements:
         requirements["latency_budget"] = typer.prompt(
             "延迟/吞吐需求 (可留空)", default="实时体验优先"
@@ -1040,28 +1007,26 @@ def _collect_requirements(
 
 @app.command("build")
 def build_pipeline(  # noqa: D401 - Typer handles CLI docs
-    name: Optional[str] = typer.Option(None, help="Pipeline 名称"),
-    goal: Optional[str] = typer.Option(None, help="Pipeline 目标描述"),
+    name: str | None = typer.Option(None, help="Pipeline 名称"),
+    goal: str | None = typer.Option(None, help="Pipeline 目标描述"),
     backend: str = typer.Option(
         DEFAULT_BACKEND,
         help="LLM 后端 (openai/compatible/mock)",
     ),
-    model: Optional[str] = typer.Option(None, help="LLM 模型名称"),
-    base_url: Optional[str] = typer.Option(None, help="LLM Base URL"),
-    api_key: Optional[str] = typer.Option(None, help="LLM API Key"),
-    requirements_path: Optional[Path] = typer.Option(
+    model: str | None = typer.Option(None, help="LLM 模型名称"),
+    base_url: str | None = typer.Option(None, help="LLM Base URL"),
+    api_key: str | None = typer.Option(None, help="LLM API Key"),
+    requirements_path: Path | None = typer.Option(
         None,
         exists=False,
         help="需求 JSON 文件路径，提供已有输入以跳过交互",
     ),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None,
         help="输出 YAML 文件路径 (可为目录)",
     ),
     overwrite: bool = typer.Option(False, help="允许覆盖已存在的文件"),
-    non_interactive: bool = typer.Option(
-        False, help="非交互模式 (需要同时提供名称和目标)"
-    ),
+    non_interactive: bool = typer.Option(False, help="非交互模式 (需要同时提供名称和目标)"),
     context_limit: int = typer.Option(
         4,
         "--context-limit",
@@ -1069,7 +1034,7 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
         max=12,
         help="提示中包含的示例配置数量",
     ),
-    context_file: List[Path] = typer.Option(
+    context_file: list[Path] = typer.Option(
         [],
         "--context-file",
         "-c",
@@ -1079,9 +1044,7 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
         dir_okay=False,
         resolve_path=True,
     ),
-    show_contexts: bool = typer.Option(
-        False, "--show-contexts", help="打印用于提示的大模型上下文"
-    ),
+    show_contexts: bool = typer.Option(False, "--show-contexts", help="打印用于提示的大模型上下文"),
     disable_knowledge: bool = typer.Option(
         False,
         "--no-knowledge",
@@ -1099,13 +1062,13 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
         "--show-knowledge",
         help="打印知识库检索结果",
     ),
-    embedding_method: Optional[str] = typer.Option(
+    embedding_method: str | None = typer.Option(
         None,
         "--embedding-method",
         "-e",
         help="知识库检索使用的 embedding 方法 (hash/openai/hf/zhipu 等)",
     ),
-    embedding_model: Optional[str] = typer.Option(
+    embedding_model: str | None = typer.Option(
         None,
         "--embedding-model",
         help="Embedding 模型名称 (如 text-embedding-3-small)",
@@ -1150,7 +1113,7 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
             )
         )
 
-    knowledge_base: Optional[PipelineKnowledgeBase] = None
+    knowledge_base: PipelineKnowledgeBase | None = None
     if not disable_knowledge:
         try:
             knowledge_base = get_default_knowledge_base(
@@ -1158,16 +1121,10 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
                 embedding_model=embedding_model,
             )
             # Show which embedding method is being used
-            method_name = embedding_method or os.getenv(
-                "SAGE_PIPELINE_EMBEDDING_METHOD", "hash"
-            )
-            console.print(
-                f"🎯 知识库使用 [cyan]{method_name}[/cyan] embedding 方法", style="dim"
-            )
+            method_name = embedding_method or os.getenv("SAGE_PIPELINE_EMBEDDING_METHOD", "hash")
+            console.print(f"🎯 知识库使用 [cyan]{method_name}[/cyan] embedding 方法", style="dim")
         except Exception as exc:
-            console.print(
-                f"[yellow]初始化知识库失败，将继续使用静态上下文: {exc}[/yellow]"
-            )
+            console.print(f"[yellow]初始化知识库失败，将继续使用静态上下文: {exc}[/yellow]")
 
     config = BuilderConfig(
         backend=backend,
@@ -1182,10 +1139,10 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
 
     generator = PipelinePlanGenerator(config)
 
-    plan: Optional[Dict[str, Any]] = None
-    feedback: Optional[str] = None
+    plan: dict[str, Any] | None = None
+    feedback: str | None = None
 
-    for iteration in range(1, 6):
+    for _iteration in range(1, 6):
         try:
             plan = generator.generate(requirements, plan, feedback)
         except PipelineBuilderError as exc:
@@ -1233,12 +1190,12 @@ def run_pipeline(
     autostop: bool = typer.Option(
         True, "--autostop/--no-autostop", help="提交后是否等待批处理完成"
     ),
-    host: Optional[str] = typer.Option(
+    host: str | None = typer.Option(
         None,
         "--host",
         help="远程环境 JobManager 主机 (仅当 pipeline.type=remote 时生效)",
     ),
-    port: Optional[int] = typer.Option(
+    port: int | None = typer.Option(
         None,
         "--port",
         min=1,
@@ -1279,10 +1236,8 @@ def run_pipeline(
 @app.command("analyze-embedding")
 def analyze_embedding_methods(
     query: str = typer.Argument(..., help="测试查询文本"),
-    top_k: int = typer.Option(
-        3, "--top-k", "-k", min=1, max=10, help="返回 Top-K 结果数量"
-    ),
-    methods: Optional[List[str]] = typer.Option(
+    top_k: int = typer.Option(3, "--top-k", "-k", min=1, max=10, help="返回 Top-K 结果数量"),
+    methods: list[str] | None = typer.Option(
         None,
         "--method",
         "-m",
@@ -1368,9 +1323,7 @@ def analyze_embedding_methods(
 
     for method, data in results_by_method.items():
         console.print(f"[bold cyan]━━━ {method.upper()} ━━━[/bold cyan]")
-        console.print(
-            f"⏱️  耗时: {data['time']*1000:.2f}ms | " f"📐 维度: {data['dimension']}"
-        )
+        console.print(f"⏱️  耗时: {data['time']*1000:.2f}ms | " f"📐 维度: {data['dimension']}")
 
         table = Table(show_header=True, header_style="bold magenta", box=None)
         table.add_column("排名", style="dim", width=4)
@@ -1405,24 +1358,18 @@ def analyze_embedding_methods(
     console.print("[bold yellow]💡 推荐建议:[/bold yellow]\n")
 
     fastest = min(results_by_method.items(), key=lambda x: x[1]["time"])
-    console.print(
-        f"⚡ 最快方法: [green]{fastest[0]}[/green] "
-        f"({fastest[1]['time']*1000:.2f}ms)"
-    )
+    console.print(f"⚡ 最快方法: [green]{fastest[0]}[/green] " f"({fastest[1]['time']*1000:.2f}ms)")
 
     # 简单的相关性评估（基于平均得分）
     avg_scores = {
         method: (
-            sum(r.score for r in data["results"]) / len(data["results"])
-            if data["results"]
-            else 0
+            sum(r.score for r in data["results"]) / len(data["results"]) if data["results"] else 0
         )
         for method, data in results_by_method.items()
     }
     best_relevance = max(avg_scores.items(), key=lambda x: x[1])
     console.print(
-        f"🎯 最相关方法: [green]{best_relevance[0]}[/green] "
-        f"(平均得分: {best_relevance[1]:.4f})"
+        f"🎯 最相关方法: [green]{best_relevance[0]}[/green] " f"(平均得分: {best_relevance[1]:.4f})"
     )
 
     console.print(
@@ -1445,7 +1392,7 @@ def create_embedding_pipeline(
         "-e",
         help="Embedding 方法 (hf/openai/jina/zhipu/cohere/bedrock/ollama/siliconcloud/nvidia_openai/vllm)",
     ),
-    embedding_model: Optional[str] = typer.Option(
+    embedding_model: str | None = typer.Option(
         None,
         "--embedding-model",
         "-m",
@@ -1456,32 +1403,32 @@ def create_embedding_pipeline(
         "--vllm",
         help="使用 vLLM 服务进行高性能 embedding",
     ),
-    llm_model: Optional[str] = typer.Option(
+    llm_model: str | None = typer.Option(
         None,
         "--llm-model",
         help="LLM 模型名称（RAG 模板需要）",
     ),
-    dense_method: Optional[str] = typer.Option(
+    dense_method: str | None = typer.Option(
         None,
         "--dense-method",
         help="Hybrid 模板：Dense embedding 方法",
     ),
-    sparse_method: Optional[str] = typer.Option(
+    sparse_method: str | None = typer.Option(
         None,
         "--sparse-method",
         help="Hybrid 模板：Sparse embedding 方法（默认 bm25s）",
     ),
-    query_method: Optional[str] = typer.Option(
+    query_method: str | None = typer.Option(
         None,
         "--query-method",
         help="Multi-strategy 模板：查询用 embedding 方法（快速）",
     ),
-    doc_method: Optional[str] = typer.Option(
+    doc_method: str | None = typer.Option(
         None,
         "--doc-method",
         help="Multi-strategy 模板：文档用 embedding 方法（高质量）",
     ),
-    batch_method: Optional[str] = typer.Option(
+    batch_method: str | None = typer.Option(
         None,
         "--batch-method",
         help="Multi-strategy 模板：批量处理用 embedding 方法",
@@ -1490,10 +1437,8 @@ def create_embedding_pipeline(
     chunk_overlap: int = typer.Option(50, "--chunk-overlap", help="分块重叠大小"),
     batch_size: int = typer.Option(32, "--batch-size", help="批处理大小"),
     enable_cache: bool = typer.Option(True, "--cache/--no-cache", help="启用缓存"),
-    normalize: bool = typer.Option(
-        True, "--normalize/--no-normalize", help="向量归一化"
-    ),
-    output: Optional[Path] = typer.Option(
+    normalize: bool = typer.Option(True, "--normalize/--no-normalize", help="向量归一化"),
+    output: Path | None = typer.Option(
         None,
         "--output",
         "-o",
@@ -1671,10 +1616,7 @@ def create_embedding_pipeline(
         console.print(f"✅ 配置已保存到: [green]{output_path}[/green]")
 
         # 提示如何运行
-        console.print(
-            f"\n💡 运行此 pipeline:\n"
-            f"   [cyan]sage pipeline run {output_path}[/cyan]"
-        )
+        console.print(f"\n💡 运行此 pipeline:\n" f"   [cyan]sage pipeline run {output_path}[/cyan]")
     else:
         console.print("[yellow]未保存配置。[/yellow]")
 

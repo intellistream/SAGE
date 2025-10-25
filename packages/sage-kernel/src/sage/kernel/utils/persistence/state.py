@@ -18,7 +18,7 @@ _BLACKLIST = (
 def _gather_attrs(obj):
     """枚举实例 __dict__ 和 @property 属性。"""
     attrs = dict(getattr(obj, "__dict__", {}))
-    for name, prop in inspect.getmembers(type(obj), lambda x: isinstance(x, property)):
+    for name, _prop in inspect.getmembers(type(obj), lambda x: isinstance(x, property)):
         try:
             attrs[name] = getattr(obj, name)
         except Exception:

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any
 
 import numpy as np
 
@@ -307,10 +307,8 @@ class EmbeddingService(BaseService):
             vectors[idx] = vec
 
         # Build response
-        first_vector: Optional[List[float]] = vectors[0] if vectors else None
-        dimension = (
-            len(first_vector) if first_vector is not None else self.get_dimension()
-        )
+        first_vector: list[float] | None = vectors[0] if vectors else None
+        dimension = len(first_vector) if first_vector is not None else self.get_dimension()
 
         result = {
             "vectors": vectors,
@@ -351,9 +349,9 @@ class EmbeddingService(BaseService):
         assert self._dimension is not None
         return self._dimension
 
-    def get_info(self) -> Dict[str, Any]:
+    def get_info(self) -> dict[str, Any]:
         """Get embedding service information."""
-        info: Dict[str, Any] = {
+        info: dict[str, Any] = {
             "method": self.config.method,
             "model": self.config.model,
             "dimension": self.get_dimension(),
@@ -363,7 +361,7 @@ class EmbeddingService(BaseService):
         }
 
         if self.config.cache_enabled and self._cache is not None:
-            cache_stats: Dict[str, int] = {
+            cache_stats: dict[str, int] = {
                 "size": len(self._cache),
                 "capacity": self.config.cache_size,
             }

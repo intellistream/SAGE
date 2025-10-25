@@ -26,7 +26,7 @@ def load_config():
         config = {}
         current_section = None
 
-        with open(config_file, "r", encoding="utf-8") as f:
+        with open(config_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):
@@ -69,12 +69,8 @@ def load_config():
 @app.command("start")
 def start_system(
     ray_only: bool = typer.Option(False, "--ray-only", help="仅启动Ray集群"),
-    daemon_only: bool = typer.Option(
-        False, "--daemon-only", help="仅启动JobManager守护进程"
-    ),
-    with_workers: bool = typer.Option(
-        False, "--with-workers", help="同时启动Worker节点"
-    ),
+    daemon_only: bool = typer.Option(False, "--daemon-only", help="仅启动JobManager守护进程"),
+    with_workers: bool = typer.Option(False, "--with-workers", help="同时启动Worker节点"),
 ):
     """启动SAGE系统（Ray集群 + JobManager）"""
     config = load_config()
@@ -99,7 +95,7 @@ def start_system(
             ]
 
             typer.echo(f"� Running: {' '.join(ray_cmd)}")
-            result = subprocess.run(ray_cmd, check=True, capture_output=True, text=True)
+            subprocess.run(ray_cmd, check=True, capture_output=True, text=True)
             typer.echo("✅ Ray cluster started successfully")
 
         except subprocess.CalledProcessError as e:
@@ -119,7 +115,7 @@ def start_system(
             sage_cmd = [sys.executable, "-m", "sage.cli.jobmanager_controller", "start"]
 
             typer.echo(f"💻 Running: {' '.join(sage_cmd)}")
-            result = subprocess.run(sage_cmd, check=True)
+            subprocess.run(sage_cmd, check=True)
             typer.echo("✅ JobManager started successfully")
 
         except subprocess.CalledProcessError as e:
@@ -142,7 +138,7 @@ def start_system(
             typer.echo("🚀 Starting Worker nodes...")
             worker_cmd = [sys.executable, "-m", "sage.cli.worker_manager", "start"]
             typer.echo(f"💻 Running: {' '.join(worker_cmd)}")
-            result = subprocess.run(worker_cmd, check=True)
+            subprocess.run(worker_cmd, check=True)
             typer.echo("✅ Worker nodes started successfully")
         except subprocess.CalledProcessError as e:
             typer.echo(f"⚠️  Failed to start Worker nodes: {e}")
@@ -154,9 +150,7 @@ def start_system(
 
 @app.command("stop")
 def stop_system(
-    with_workers: bool = typer.Option(
-        False, "--with-workers", help="同时停止Worker节点"
-    )
+    with_workers: bool = typer.Option(False, "--with-workers", help="同时停止Worker节点")
 ):
     """停止SAGE系统（Ray集群 + JobManager）"""
     typer.echo("🛑 Stopping SAGE system...")
@@ -167,7 +161,7 @@ def stop_system(
             typer.echo("🛑 Stopping Worker nodes...")
             worker_cmd = [sys.executable, "-m", "sage.cli.worker_manager", "stop"]
             typer.echo(f"💻 Running: {' '.join(worker_cmd)}")
-            result = subprocess.run(worker_cmd, check=True)
+            subprocess.run(worker_cmd, check=True)
             typer.echo("✅ Worker nodes stopped successfully")
         except subprocess.CalledProcessError as e:
             typer.echo(f"⚠️  Failed to stop Worker nodes: {e}")
@@ -181,7 +175,7 @@ def stop_system(
         typer.echo("🛑 Stopping JobManager...")
         sage_cmd = [sys.executable, "-m", "sage.cli.jobmanager_controller", "stop"]
         typer.echo(f"💻 Running: {' '.join(sage_cmd)}")
-        result = subprocess.run(sage_cmd, check=True)
+        subprocess.run(sage_cmd, check=True)
         typer.echo("✅ JobManager stopped successfully")
     except subprocess.CalledProcessError as e:
         typer.echo(f"⚠️  Failed to stop JobManager: {e}")
@@ -195,7 +189,7 @@ def stop_system(
         typer.echo("🛑 Stopping Ray cluster...")
         ray_cmd = ["ray", "stop"]
         typer.echo(f"💻 Running: {' '.join(ray_cmd)}")
-        result = subprocess.run(ray_cmd, check=True, capture_output=True, text=True)
+        subprocess.run(ray_cmd, check=True, capture_output=True, text=True)
         typer.echo("✅ Ray cluster stopped successfully")
     except subprocess.CalledProcessError as e:
         typer.echo(f"⚠️  Failed to stop Ray cluster: {e}")

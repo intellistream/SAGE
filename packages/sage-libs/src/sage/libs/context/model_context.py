@@ -34,9 +34,7 @@ class ModelContext:
     def __str__(self) -> str:
         """格式化显示ModelContext内容"""
         # 时间格式化
-        timestamp_str = time.strftime(
-            "%Y-%m-%d %H:%M:%S", time.localtime(self.timestamp / 1000)
-        )
+        timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.timestamp / 1000))
 
         # 构建输出字符串
         output_lines = []
@@ -84,17 +82,13 @@ class ModelContext:
             output_lines.append("")
         elif self.retriver_chunks:
             # 向后兼容：显示老格式的检索结果
-            output_lines.append(
-                f"📚 Retrieved Information ({len(self.retriver_chunks)} sources):"
-            )
+            output_lines.append(f"📚 Retrieved Information ({len(self.retriver_chunks)} sources):")
             for i, chunk in enumerate(self.retriver_chunks[:3], 1):
                 preview = chunk[:150] + "..." if len(chunk) > 150 else chunk
                 output_lines.append(f"   [{i}] {preview}")
 
             if len(self.retriver_chunks) > 3:
-                output_lines.append(
-                    f"   ... and {len(self.retriver_chunks) - 3} more sources"
-                )
+                output_lines.append(f"   ... and {len(self.retriver_chunks) - 3} more sources")
             output_lines.append("")
 
         # 处理步骤信息
@@ -104,9 +98,7 @@ class ModelContext:
             user_prompts = [p for p in self.prompts if p.get("role") == "user"]
 
             if system_prompts:
-                output_lines.append(
-                    f"   • System instructions: {len(system_prompts)} phases"
-                )
+                output_lines.append(f"   • System instructions: {len(system_prompts)} phases")
             if user_prompts:
                 last_user_prompt = user_prompts[-1].get("content", "")
                 if last_user_prompt and last_user_prompt != self.raw_question:
@@ -132,14 +124,10 @@ class ModelContext:
             output_lines.append(f"   • Reasoning: {self.evaluation.reasoning}")
 
             if self.evaluation.specific_issues:
-                output_lines.append(
-                    f"   • Issues: {', '.join(self.evaluation.specific_issues)}"
-                )
+                output_lines.append(f"   • Issues: {', '.join(self.evaluation.specific_issues)}")
 
             if self.evaluation.suggestions:
-                output_lines.append(
-                    f"   • Suggestions: {', '.join(self.evaluation.suggestions)}"
-                )
+                output_lines.append(f"   • Suggestions: {', '.join(self.evaluation.suggestions)}")
 
             if self.evaluation.should_return_to_chief:
                 output_lines.append("   • ⚠️  Should return to Chief for reprocessing")
@@ -185,14 +173,10 @@ class ModelContext:
             # 显示前3个结果
             for j, result in enumerate(query_result.get_top_results(3), 1):
                 title_preview = (
-                    result.title[:80] + "..."
-                    if len(result.title) > 80
-                    else result.title
+                    result.title[:80] + "..." if len(result.title) > 80 else result.title
                 )
                 content_preview = (
-                    result.content[:100] + "..."
-                    if len(result.content) > 100
-                    else result.content
+                    result.content[:100] + "..." if len(result.content) > 100 else result.content
                 )
                 output_lines.append(f"     [{j}] {title_preview}")
                 output_lines.append(f"         {content_preview}")
@@ -213,9 +197,7 @@ class ModelContext:
                         preview = query[:80] + "..." if len(query) > 80 else query
                         output_lines.append(f"     [{i}] {preview}")
                     if len(value) > 5:
-                        output_lines.append(
-                            f"     ... and {len(value) - 5} more queries"
-                        )
+                        output_lines.append(f"     ... and {len(value) - 5} more queries")
                 else:
                     output_lines.append(f"   • Search Queries: {value}")
 
@@ -246,9 +228,7 @@ class ModelContext:
                         if isinstance(meta_value, (str, int, float, bool)):
                             output_lines.append(f"     - {meta_key}: {meta_value}")
                         else:
-                            output_lines.append(
-                                f"     - {meta_key}: {type(meta_value).__name__}"
-                            )
+                            output_lines.append(f"     - {meta_key}: {type(meta_value).__name__}")
                 else:
                     output_lines.append(f"   • Optimization Metadata: {value}")
 
@@ -261,9 +241,7 @@ class ModelContext:
                     value_str = str(value)
                     if len(value_str) > 50:
                         value_str = value_str[:50] + "..."
-                    output_lines.append(
-                        f"   • {key.replace('_', ' ').title()}: {value_str}"
-                    )
+                    output_lines.append(f"   • {key.replace('_', ' ').title()}: {value_str}")
 
     def _get_tool_emoji(self, tool_name: str) -> str:
         """根据工具名称返回对应的emoji"""
@@ -305,9 +283,7 @@ class ModelContext:
         result["sequence"] = self.sequence
         result["timestamp"] = self.timestamp
         result["raw_question"] = self.raw_question
-        result["retriver_chunks"] = (
-            self.retriver_chunks.copy() if self.retriver_chunks else []
-        )
+        result["retriver_chunks"] = self.retriver_chunks.copy() if self.retriver_chunks else []
         result["prompts"] = self.prompts.copy() if self.prompts else []
         result["response"] = self.response
         result["uuid"] = self.uuid
@@ -386,9 +362,7 @@ class ModelContext:
         )
 
     # 搜索结果相关方法
-    def create_search_session(
-        self, original_question: str | None = None
-    ) -> SearchSession:
+    def create_search_session(self, original_question: str | None = None) -> SearchSession:
         """创建新的搜索会话"""
         if not self.search_session:
             self.search_session = SearchSession(
@@ -554,8 +528,7 @@ class ModelContext:
             suggestions=suggestions or [],
             should_return_to_chief=label
             in [QualityLabel.FAILED_POOR_QUALITY, QualityLabel.INCOMPLETE_MISSING_INFO],
-            ready_for_output=label
-            in [QualityLabel.COMPLETE_EXCELLENT, QualityLabel.COMPLETE_GOOD],
+            ready_for_output=label in [QualityLabel.COMPLETE_EXCELLENT, QualityLabel.COMPLETE_GOOD],
         )
 
     # 其他方法保持不变...
@@ -566,9 +539,7 @@ class ModelContext:
     def is_ready_for_output(self) -> bool:
         """检查是否准备好输出"""
         return bool(
-            self.evaluation
-            and self.evaluation.ready_for_output
-            and self.has_complete_response()
+            self.evaluation and self.evaluation.ready_for_output and self.has_complete_response()
         )
 
     def get_processing_summary(self) -> dict[str, Any]:
@@ -578,17 +549,13 @@ class ModelContext:
             "tool_name": self.tool_name,
             "has_response": self.has_complete_response(),
             "has_evaluation": self.evaluation is not None,
-            "evaluation_label": (
-                self.evaluation.label.value if self.evaluation else None
-            ),
+            "evaluation_label": (self.evaluation.label.value if self.evaluation else None),
             "confidence": self.evaluation.confidence if self.evaluation else None,
             "ready_for_output": self.is_ready_for_output(),
             "search_results_count": self.get_search_results_count(),
             "prompts_count": len(self.prompts),
             "has_tool_config": bool(self.tool_config),
-            "tool_config_keys": (
-                list(self.tool_config.keys()) if self.tool_config else []
-            ),
+            "tool_config_keys": (list(self.tool_config.keys()) if self.tool_config else []),
             "has_search_queries": self.has_search_queries(),
             "search_queries_count": len(self.get_search_queries()),
             "timestamp": self.timestamp,

@@ -14,7 +14,6 @@ Date: 2025-10-23
 
 import argparse
 import re
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -84,9 +83,7 @@ class DevNotesAnalyzer:
             "suggested_category": suggested_category,
             "file_size": file_size,
             "is_empty": file_size < 100,
-            "current_category": (
-                rel_path.parts[0] if len(rel_path.parts) > 1 else "root"
-            ),
+            "current_category": (rel_path.parts[0] if len(rel_path.parts) > 1 else "root"),
         }
 
     def _check_metadata(self, content: str) -> Tuple[bool, bool, bool]:

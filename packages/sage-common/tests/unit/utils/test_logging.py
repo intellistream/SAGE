@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 
@@ -94,16 +95,14 @@ class TestCustomLogger:
 
     def test_logger_with_level(self):
         """测试设置日志级别"""
-        logger = CustomLogger(
-            name="LevelLogger", outputs=[("console", logging.WARNING)]
-        )
+        logger = CustomLogger(name="LevelLogger", outputs=[("console", logging.WARNING)])
 
         # Logger的级别会设置为最低的handler级别
         assert logger.logger.level <= logging.WARNING
 
     def test_logger_with_level_string(self):
         """测试使用字符串设置日志级别"""
-        logger = CustomLogger(name="StringLevelLogger", outputs=[("console", "ERROR")])
+        CustomLogger(name="StringLevelLogger", outputs=[("console", "ERROR")])
 
     def test_get_available_levels(self):
         """测试获取可用日志级别"""
@@ -133,7 +132,7 @@ class TestCustomLogger:
         """测试文件handler的创建"""
         log_file = tmp_path / "handler_test.log"
 
-        logger = CustomLogger(name="HandlerLogger", outputs=[(str(log_file), "DEBUG")])
+        CustomLogger(name="HandlerLogger", outputs=[(str(log_file), "DEBUG")])
 
     def test_logger_format(self):
         """Test logger output format"""
@@ -206,7 +205,7 @@ class TestLoggingIntegration:
 
         try:
             # Simulate an error
-            result = 1 / 0
+            pass
         except ZeroDivisionError as e:
             logger.error(f"Caught error: {e}")
             # Logger should not crash

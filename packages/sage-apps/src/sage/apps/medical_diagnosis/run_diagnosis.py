@@ -9,11 +9,9 @@
 """
 
 import argparse
-import os
 import subprocess
-import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sage.apps.medical_diagnosis.agents import DiagnosticAgent
 
@@ -31,27 +29,27 @@ def check_and_setup_data(auto_setup: bool = False):
         return True
 
     print(f"⚠️  数据集未找到: {data_dir}")
-    print(f"")
+    print("")
 
     # 检查 setup_data.sh 是否存在
     if not setup_script.exists():
         print(f"❌ 数据设置脚本未找到: {setup_script}")
-        print(f"")
-        print(f"请手动准备数据或检查安装是否完整")
+        print("")
+        print("请手动准备数据或检查安装是否完整")
         return False
 
     # 自动下载数据
     print(f"数据集设置脚本: {setup_script}")
-    print(f"")
+    print("")
     print("🤖 自动下载并准备数据集...")
-    print(f"提示: 如果不想自动下载，请使用 Ctrl+C 取消")
-    print(f"")
-    print(f"开始自动设置数据集...")
-    print(f"=" * 70)
+    print("提示: 如果不想自动下载，请使用 Ctrl+C 取消")
+    print("")
+    print("开始自动设置数据集...")
+    print("=" * 70)
 
     try:
         # 运行 setup_data.sh
-        result = subprocess.run(
+        subprocess.run(
             ["bash", str(setup_script)],
             cwd=str(current_dir),
             check=True,
@@ -59,18 +57,18 @@ def check_and_setup_data(auto_setup: bool = False):
             capture_output=False,
         )
 
-        print(f"=" * 70)
-        print(f"✅ 数据集设置完成！")
+        print("=" * 70)
+        print("✅ 数据集设置完成！")
         return True
 
-    except subprocess.CalledProcessError as e:
-        print(f"=" * 70)
-        print(f"❌ 数据集设置失败")
-        print(f"")
-        print(f"您可以手动运行以下命令来设置数据:")
+    except subprocess.CalledProcessError:
+        print("=" * 70)
+        print("❌ 数据集设置失败")
+        print("")
+        print("您可以手动运行以下命令来设置数据:")
         print(f"  bash {setup_script}")
-        print(f"")
-        print(f"或者查看错误日志以获取更多信息")
+        print("")
+        print("或者查看错误日志以获取更多信息")
         return False
     except Exception as e:
         print(f"❌ 发生错误: {e}")
@@ -130,9 +128,7 @@ def parse_args():
 
     parser.add_argument("--verbose", "-v", action="store_true", help="显示详细信息")
 
-    parser.add_argument(
-        "--auto-setup", action="store_true", help="自动下载并设置数据（无需确认）"
-    )
+    parser.add_argument("--auto-setup", action="store_true", help="自动下载并设置数据（无需确认）")
 
     return parser.parse_args()
 
@@ -140,21 +136,19 @@ def parse_args():
 def diagnose_single_case(
     agent: DiagnosticAgent,
     image_path: str,
-    patient_info: Optional[Dict[str, Any]] = None,
+    patient_info: dict[str, Any] | None = None,
     verbose: bool = True,
 ):
     """诊断单个病例"""
     print(f"\n{'='*70}")
-    print(f"🏥 腰椎MRI诊断系统")
+    print("🏥 腰椎MRI诊断系统")
     print(f"{'='*70}\n")
 
     # 执行诊断
-    result = agent.diagnose(
-        image_path=image_path, patient_info=patient_info, verbose=verbose
-    )
+    result = agent.diagnose(image_path=image_path, patient_info=patient_info, verbose=verbose)
 
     print(f"\n{'='*70}")
-    print(f"✅ 诊断完成")
+    print("✅ 诊断完成")
     print(f"{'='*70}")
     # DiagnosisReport 使用 diagnoses (复数) 而不是 diagnosis
     if hasattr(result, "diagnoses") and result.diagnoses:
@@ -178,10 +172,10 @@ def batch_diagnose(agent: DiagnosticAgent, batch_dir: str, output_dir: str):
         image_files.extend(batch_path.glob(ext))
 
     if not image_files:
-        print(f"❌ 错误: 未找到图像文件")
+        print("❌ 错误: 未找到图像文件")
         return
 
-    print(f"\n🏥 批量诊断模式")
+    print("\n🏥 批量诊断模式")
     print(f"{'='*70}")
     print(f"📂 输入目录: {batch_dir}")
     print(f"📁 输出目录: {output_dir}")
@@ -189,15 +183,12 @@ def batch_diagnose(agent: DiagnosticAgent, batch_dir: str, output_dir: str):
     print(f"{'='*70}\n")
 
     # 构建病例列表
-    cases = [
-        {"image_path": str(img), "patient_info": {"case_id": img.stem}}
-        for img in image_files
-    ]
+    cases = [{"image_path": str(img), "patient_info": {"case_id": img.stem}} for img in image_files]
 
     # 批量处理
     results = agent.batch_diagnose(cases=cases, output_dir=output_dir)
 
-    print(f"\n📊 批量诊断统计:")
+    print("\n📊 批量诊断统计:")
     print(f"   总病例数: {len(results)}")
 
     # 统计诊断结果
@@ -206,7 +197,7 @@ def batch_diagnose(agent: DiagnosticAgent, batch_dir: str, output_dir: str):
         diag = result.diagnosis
         diagnoses_count[diag] = diagnoses_count.get(diag, 0) + 1
 
-    print(f"\n   诊断分布:")
+    print("\n   诊断分布:")
     for diag, count in sorted(diagnoses_count.items(), key=lambda x: -x[1]):
         print(f"   - {diag}: {count} 例")
 
@@ -214,9 +205,9 @@ def batch_diagnose(agent: DiagnosticAgent, batch_dir: str, output_dir: str):
 def interactive_mode(agent: DiagnosticAgent):
     """交互式诊断模式"""
     print(f"\n{'='*70}")
-    print(f"🏥 腰椎MRI诊断系统 - 交互式模式")
+    print("🏥 腰椎MRI诊断系统 - 交互式模式")
     print(f"{'='*70}")
-    print(f"\n输入 'exit' 或 'quit' 退出\n")
+    print("\n输入 'exit' 或 'quit' 退出\n")
 
     while True:
         print(f"\n{'─'*70}")
@@ -254,7 +245,7 @@ def interactive_mode(agent: DiagnosticAgent):
 
         # 执行诊断
         try:
-            result = agent.diagnose(
+            agent.diagnose(
                 image_path=image_path,
                 patient_info=patient_info if patient_info else None,
                 verbose=True,
@@ -276,16 +267,16 @@ def main():
 
     # 检查并设置数据（如果需要）
     print(f"\n{'='*70}")
-    print(f"📦 检查数据集状态...")
+    print("📦 检查数据集状态...")
     print(f"{'='*70}\n")
 
     if not check_and_setup_data(auto_setup=args.auto_setup):
-        print(f"\n⚠️  警告: 数据集未就绪")
-        print(f"系统将使用模拟数据运行演示模式")
-        print(f"")
+        print("\n⚠️  警告: 数据集未就绪")
+        print("系统将使用模拟数据运行演示模式")
+        print("")
 
     # 初始化Agent
-    print(f"\n🚀 初始化诊断Agent...")
+    print("\n🚀 初始化诊断Agent...")
     print(f"{'='*70}")
 
     config_path = args.config if Path(args.config).exists() else None
@@ -321,8 +312,8 @@ def main():
 
     else:
         # 演示模式（使用模拟数据）
-        print(f"\n💡 演示模式（使用模拟数据）\n")
-        print(f"提示: 使用 --help 查看完整使用说明\n")
+        print("\n💡 演示模式（使用模拟数据）\n")
+        print("提示: 使用 --help 查看完整使用说明\n")
 
         # 创建一个演示病例
         demo_image = "data/medical/demo/mri_case.jpg"

@@ -77,9 +77,7 @@ def graphql_request(
     attempt = 0
     while True:
         try:
-            resp = session.post(
-                "https://api.github.com/graphql", json=payload, timeout=30
-            )
+            resp = session.post("https://api.github.com/graphql", json=payload, timeout=30)
             resp.raise_for_status()
             data = resp.json()
             return True, data
@@ -240,9 +238,7 @@ class IssuesSyncer:
 
         # 需要用户确认（除非auto_confirm为True）
         if not auto_confirm:
-            confirm = (
-                input(f"\n是否同步这 {len(changes)} 个更改? (y/N): ").lower().strip()
-            )
+            confirm = input(f"\n是否同步这 {len(changes)} 个更改? (y/N): ").lower().strip()
             if confirm != "y":
                 print("❌ 同步已取消")
                 return False
@@ -305,8 +301,7 @@ class IssuesSyncer:
                                 {
                                     "title": remote_data.get("title", ""),
                                     "labels": [
-                                        label.get("name")
-                                        for label in remote_data.get("labels", [])
+                                        label.get("name") for label in remote_data.get("labels", [])
                                     ],
                                     "assignees": (
                                         [remote_data["assignee"]["login"]]
@@ -322,9 +317,7 @@ class IssuesSyncer:
                             local_data["content"]["body"] = remote_data.get("body", "")
 
                             # 更新tracking信息
-                            local_data["tracking"][
-                                "last_synced"
-                            ] = datetime.now().isoformat()
+                            local_data["tracking"]["last_synced"] = datetime.now().isoformat()
                             local_data["tracking"]["update_history"].append(
                                 {
                                     "timestamp": datetime.now().isoformat(),
@@ -379,9 +372,7 @@ class IssuesSyncer:
             elif attr == "里程碑":
                 if local_data["milestone"]:
                     # 需要获取milestone的number
-                    milestone_number = self._get_milestone_number(
-                        local_data["milestone"]
-                    )
+                    milestone_number = self._get_milestone_number(local_data["milestone"])
                     if milestone_number:
                         update_data["milestone"] = milestone_number
                 else:
@@ -474,11 +465,7 @@ class IssuesSyncer:
             # 使用project_manager的GraphQL客户端
             response = self.project_manager.execute_graphql(mutation, variables)
 
-            if (
-                response
-                and "data" in response
-                and response["data"]["addProjectV2ItemById"]
-            ):
+            if response and "data" in response and response["data"]["addProjectV2ItemById"]:
                 return True
             else:
                 print(f"   ❌ GraphQL响应错误: {response}")
@@ -533,10 +520,7 @@ class IssuesSyncer:
             if local_project:
                 current_projects = self._get_issue_current_projects(issue_number)
                 expected_project_num = self.team_to_project.get(local_project)
-                if (
-                    expected_project_num
-                    and expected_project_num not in current_projects
-                ):
+                if expected_project_num and expected_project_num not in current_projects:
                     all_changes.append(
                         {
                             "type": "project",
@@ -719,13 +703,9 @@ class IssuesSyncer:
 
                 # 简单的启发式检查：如果本地有未同步的修改时间晚于GitHub时间，可能需要同步
                 try:
-                    github_time = datetime.fromisoformat(
-                        local_github_time.replace("Z", "+00:00")
-                    )
+                    github_time = datetime.fromisoformat(local_github_time.replace("Z", "+00:00"))
                     sync_time = (
-                        datetime.fromisoformat(local_sync_time)
-                        if local_sync_time
-                        else github_time
+                        datetime.fromisoformat(local_sync_time) if local_sync_time else github_time
                     )
 
                     # 如果同步时间早于GitHub时间，说明GitHub上有新的更新
@@ -734,16 +714,14 @@ class IssuesSyncer:
                             {
                                 "number": issue_number,
                                 "local_time": sync_time.strftime("%Y-%m-%d %H:%M:%S"),
-                                "github_time": github_time.strftime(
-                                    "%Y-%m-%d %H:%M:%S"
-                                ),
+                                "github_time": github_time.strftime("%Y-%m-%d %H:%M:%S"),
                             }
                         )
 
-                except Exception as e:
+                except Exception:
                     continue
 
-            except Exception as e:
+            except Exception:
                 continue
 
         return outdated_issues
@@ -804,13 +782,8 @@ class IssuesSyncer:
                             issue_number, project_items_cache
                         )
 
-                        expected_project_num = self.team_to_project.get(
-                            local_project_team
-                        )
-                        if (
-                            expected_project_num
-                            and expected_project_num not in current_projects
-                        ):
+                        expected_project_num = self.team_to_project.get(local_project_team)
+                        if expected_project_num and expected_project_num not in current_projects:
                             changes.append(
                                 {
                                     "type": "project",
@@ -882,8 +855,7 @@ class IssuesSyncer:
                     stripped
                     and not stripped.startswith("##")
                     and i > 0
-                    and lines[i - 1].strip()
-                    in ["## Project归属", "## 标签", "## 分配给"]
+                    and lines[i - 1].strip() in ["## Project归属", "## 标签", "## 分配给"]
                 )
             ):
                 continue
@@ -952,7 +924,7 @@ class IssuesSyncer:
 
         # 解析各个section
         current_section = None
-        for i, line in enumerate(lines):
+        for _i, line in enumerate(lines):
             line = line.strip()
 
             if line.startswith("## "):
@@ -974,11 +946,7 @@ class IssuesSyncer:
             ):
                 data["assignee"] = line
 
-            elif (
-                current_section == "Project归属"
-                and line.startswith("- **")
-                and "**" in line
-            ):
+            elif current_section == "Project归属" and line.startswith("- **") and "**" in line:
                 # 格式: - **sage-apps** (Project Board ID: 14: SAGE-Apps)
                 team_match = re.search(r"\*\*(.+?)\*\*", line)
                 if team_match:
@@ -1054,9 +1022,7 @@ class IssuesSyncer:
 
         return current_projects
 
-    def _compare_basic_attributes(
-        self, local_data, remote_data, issue_number, file_path
-    ):
+    def _compare_basic_attributes(self, local_data, remote_data, issue_number, file_path):
         """比较基本属性并生成更改列表"""
         changes = []
 
@@ -1111,9 +1077,7 @@ class IssuesSyncer:
 
         return changes
 
-    def _compare_basic_attributes_json(
-        self, local_data, remote_data, issue_number, file_path
-    ):
+    def _compare_basic_attributes_json(self, local_data, remote_data, issue_number, file_path):
         """比较基本属性并生成更改列表 - JSON格式版本"""
         changes = []
 
@@ -1127,9 +1091,7 @@ class IssuesSyncer:
         local_assignees = local_metadata.get("assignees", [])
         local_assignee = local_assignees[0] if local_assignees else None
         local_milestone = local_metadata.get("milestone", {})
-        local_milestone_title = (
-            local_milestone.get("title") if local_milestone else None
-        )
+        local_milestone_title = local_milestone.get("title") if local_milestone else None
 
         # 获取远端数据
         remote_title = remote_data.get("title", "")
@@ -1213,8 +1175,7 @@ class IssuesSyncer:
             print(f" - [{change['type']}] {change['description']}")
 
         report_file = (
-            self.output_dir
-            / f"sync_preview_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+            self.output_dir / f"sync_preview_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
         )
         self.save_preview_report(all_changes, report_file)
         print(f"📄 详细预览报告已保存到: {report_file}")
@@ -1269,23 +1230,14 @@ class IssuesSyncer:
             project_id = act.get("to_project_id")
             project_number = act.get("to_project_number")
             entry = {"issue_number": issue_number, "project_number": project_number}
-            print(
-                f"[{idx}/{total}] 处理 Issue #{issue_number} -> project #{project_number}"
-            )
+            print(f"[{idx}/{total}] 处理 Issue #{issue_number} -> project #{project_number}")
 
             # Idempotency check: does project already contain this contentId?
             q_check = """query($projectId: ID!) { node(id: $projectId) { ... on ProjectV2 { items(first:100) { nodes { content { __typename ... on Issue { id } } } pageInfo { hasNextPage endCursor } } } } }"""
-            ok, resp = graphql_request(
-                session, q_check, {"projectId": project_id}, retries=1
-            )
+            ok, resp = graphql_request(session, q_check, {"projectId": project_id}, retries=1)
             already = False
             if ok:
-                nodes = (
-                    resp.get("data", {})
-                    .get("node", {})
-                    .get("items", {})
-                    .get("nodes", [])
-                )
+                nodes = resp.get("data", {}).get("node", {}).get("items", {}).get("nodes", [])
                 for n in nodes:
                     c = n.get("content") or {}
                     if c.get("id") == issue_node_id:
@@ -1352,9 +1304,7 @@ class IssuesSyncer:
 
         # write log
         log_path = self.output_dir / f"project_move_log_{int(time.time())}.json"
-        log_path.write_text(
-            json.dumps(logs, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        log_path.write_text(json.dumps(logs, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"\n📝 日志已写入: {log_path}")
         return logs
 
@@ -1366,9 +1316,7 @@ class IssuesSyncer:
             "success": success,
             "changes": changes,
         }
-        log_file = (
-            self.output_dir / f"sync_log_{datetime.now().strftime('%Y%m%d')}.json"
-        )
+        log_file = self.output_dir / f"sync_log_{datetime.now().strftime('%Y%m%d')}.json"
         logs = []
         if log_file.exists():
             try:
@@ -1376,9 +1324,7 @@ class IssuesSyncer:
             except Exception:
                 logs = []
         logs.append(log_entry)
-        log_file.write_text(
-            json.dumps(logs, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        log_file.write_text(json.dumps(logs, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def save_preview_report(self, changes, report_file):
         content = f"""# Issues同步预览报告
@@ -1390,7 +1336,9 @@ class IssuesSyncer:
 
 """
         for i, change in enumerate(changes, 1):
-            content += f"### {i}. {change['type'].upper()} 更改\n- **描述**: {change['description']}\n\n"
+            content += (
+                f"### {i}. {change['type'].upper()} 更改\n- **描述**: {change['description']}\n\n"
+            )
         content += "\n---\n*此报告由SAGE Issues管理工具生成*\n"
         report_file.write_text(content, encoding="utf-8")
 
@@ -1413,17 +1361,11 @@ def main():
     )
 
     # 预览优化参数
-    parser.add_argument(
-        "--limit", type=int, default=50, help="限制检查的issues数量 (默认50)"
-    )
-    parser.add_argument(
-        "--recent-only", action="store_true", help="只检查最近7天更新的issues"
-    )
+    parser.add_argument("--limit", type=int, default=50, help="限制检查的issues数量 (默认50)")
+    parser.add_argument("--recent-only", action="store_true", help="只检查最近7天更新的issues")
 
     # 项目板同步优化参数
-    parser.add_argument(
-        "--apply-projects", action="store_true", help="自动应用项目板更改而不预览"
-    )
+    parser.add_argument("--apply-projects", action="store_true", help="自动应用项目板更改而不预览")
     parser.add_argument(
         "--auto-confirm", action="store_true", help="自动确认所有操作而无需用户输入"
     )
@@ -1453,9 +1395,7 @@ def main():
         action="store_true",
         help="确认执行（与 --apply-plan 一起使用以实际 apply）",
     )
-    parser.add_argument(
-        "--batch-size", type=int, default=5, help="每批处理数量（默认 5）"
-    )
+    parser.add_argument("--batch-size", type=int, default=5, help="每批处理数量（默认 5）")
     parser.add_argument(
         "--content-preview",
         action="store_true",
@@ -1510,9 +1450,7 @@ def main():
     elif args.command == "quick-preview":
         # 快速预览（只检查少量issues）
         print(f"🚀 快速预览模式（最多检查 {args.limit} 个issues）")
-        changes = syncer.detect_changes_limited(
-            limit=args.limit, recent_only=args.recent_only
-        )
+        changes = syncer.detect_changes_limited(limit=args.limit, recent_only=args.recent_only)
         if not changes:
             print("✅ 没有检测到需要同步的更改")
         else:
@@ -1570,7 +1508,7 @@ def main():
         if not changes:
             print("✅ 未检测到内容差异")
             sys.exit(0)
-        plan_path = syncer.save_content_plan(changes)
+        syncer.save_content_plan(changes)
         dry = not args.confirm
         syncer.apply_content_plan(
             changes, dry_run=dry, force=args.force_content, limit=args.content_limit

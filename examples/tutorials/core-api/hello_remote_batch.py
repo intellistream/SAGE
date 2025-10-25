@@ -112,9 +112,7 @@ class NumberSequenceSource(SourceFunction):
 
         self.counter += 1
         number = self.counter * 10 + random.randint(1, 9)
-        self.logger.debug(
-            f"[Source] Generating number {self.counter}/{self.max_count}: {number}"
-        )
+        self.logger.debug(f"[Source] Generating number {self.counter}/{self.max_count}: {number}")
         return number
 
 
@@ -142,9 +140,7 @@ class FileLineSource(SourceFunction):
 
         line = self.lines[self.current_index]
         self.current_index += 1
-        print(
-            f"[FileSource] Reading line {self.current_index}/{len(self.lines)}: {line}"
-        )
+        print(f"[FileSource] Reading line {self.current_index}/{len(self.lines)}: {line}")
         return line
 
 
@@ -194,7 +190,7 @@ def run_simple_batch_test():
     source_stream = env.from_source(NumberSequenceSource, max_count=5, delay=0.5)
 
     # 处理管道
-    result = (
+    (
         source_stream.map(
             lambda x: x * 2 if not isinstance(x, StopSignal) else x
         )  # 数字翻倍，跳过StopSignal
@@ -233,7 +229,7 @@ def run_file_processing_test():
     source_stream = env.from_source(FileLineSource, lines_data=file_data, delay=0.8)
 
     # 文本处理管道
-    result = (
+    (
         source_stream.map(
             lambda line: line.upper() if not isinstance(line, StopSignal) else line
         )  # 转大写，跳过StopSignal
@@ -265,7 +261,7 @@ def run_multi_source_batch_test():
     countdown_stream = env.from_source(CountdownSource, start_from=2, delay=0.7)
 
     # 合并流处理
-    combined_result = (
+    (
         numbers_stream.connect(countdown_stream)  # 合并两个流
         .map(
             lambda x: f"Combined: {x}" if not isinstance(x, StopSignal) else x
@@ -293,16 +289,14 @@ def run_processing_chain_test():
     source_stream = env.from_source(NumberSequenceSource, max_count=8, delay=0.3)
 
     # 复杂的处理链
-    result = (
+    (
         source_stream.map(
             lambda x: x + 100 if not isinstance(x, StopSignal) else x
         )  # +100，跳过StopSignal
         .filter(
             lambda x: x % 2 == 0 if not isinstance(x, (StopSignal, str)) else True
         )  # 只保留偶数，跳过StopSignal和字符串
-        .map(
-            lambda x: x / 2 if not isinstance(x, StopSignal) else x
-        )  # 除以2，跳过StopSignal
+        .map(lambda x: x / 2 if not isinstance(x, StopSignal) else x)  # 除以2，跳过StopSignal
         .map(
             lambda x: f"Result: {int(x)}" if not isinstance(x, (StopSignal, str)) else x
         )  # 格式化，跳过StopSignal和已格式化的字符串
@@ -324,9 +318,7 @@ def main():
     """主测试函数"""
     print("🎯 SAGE Batch Processing Tests with RemoteEnvironment")
     print("=" * 60)
-    print(
-        "🧪 Testing automatic batch termination using RemoteEnvironment with JobManager"
-    )
+    print("🧪 Testing automatic batch termination using RemoteEnvironment with JobManager")
     print("📈 Each test demonstrates different batch processing scenarios\n")
 
     # 启动JobManager服务

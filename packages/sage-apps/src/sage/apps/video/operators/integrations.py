@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
+
 from sage.common.core.functions.map_function import MapFunction
 
 
@@ -30,9 +31,9 @@ class SageMiddlewareIntegrator(MapFunction):
         self._flow_since_flush = 0
 
     def _format_neighbors(
-        self, neighbors: List[Dict[str, Any]], entry_id: Any
-    ) -> List[Dict[str, Any]]:
-        formatted: List[Dict[str, Any]] = []
+        self, neighbors: list[dict[str, Any]], entry_id: Any
+    ) -> list[dict[str, Any]]:
+        formatted: list[dict[str, Any]] = []
         for item in neighbors:
             if item.get("id") == entry_id:
                 continue
@@ -57,7 +58,7 @@ class SageMiddlewareIntegrator(MapFunction):
         finally:
             self._flow_since_flush = 0
 
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         embedding = data.get("clip_image_embedding")
         if embedding is None:
             return data
@@ -128,7 +129,7 @@ class SummaryMemoryAugmentor(MapFunction):
         enable: bool = True,
         service_name: str = "video_memory_service",
         top_k: int = 3,
-        collection_name: Optional[str] = None,
+        collection_name: str | None = None,
         with_metadata: bool = True,
     ) -> None:
         super().__init__()
@@ -138,13 +139,11 @@ class SummaryMemoryAugmentor(MapFunction):
         self.collection_name = collection_name
         self.with_metadata = with_metadata
 
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         if not self.enable:
             return data
 
-        query = data.get("generated_summary") or " ".join(
-            data.get("top_scene_concepts", [])
-        )
+        query = data.get("generated_summary") or " ".join(data.get("top_scene_concepts", []))
         if not query:
             return data
 
@@ -162,14 +161,13 @@ class SummaryMemoryAugmentor(MapFunction):
             return data
 
         if results:
-            formatted: List[Dict[str, Any]] = []
+            formatted: list[dict[str, Any]] = []
             for item in results:
                 if isinstance(item, dict):
                     formatted.append(
                         {
                             "text": item.get("text") or item.get("history_query"),
-                            "answer": item.get("answer")
-                            or item.get("metadata", {}).get("answer"),
+                            "answer": item.get("answer") or item.get("metadata", {}).get("answer"),
                             "source": item.get("source_collection"),
                         }
                     )

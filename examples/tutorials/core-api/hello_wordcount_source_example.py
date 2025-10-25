@@ -1,10 +1,10 @@
 import time
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.common.core.functions.flatmap_function import FlatMapFunction
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 
 
@@ -63,9 +63,7 @@ def main():
     env = LocalEnvironment("WordCount")
 
     # 流式处理：句子 -> 拆分单词 -> 转换为(word,1) -> 输出每次的单词统计
-    env.from_source(SentenceSource).flatmap(SplitWords).map(WordToPair).sink(
-        PrintResult
-    )
+    env.from_source(SentenceSource).flatmap(SplitWords).map(WordToPair).sink(PrintResult)
 
     env.submit()  # 设置为 False 以保持流式执行
 

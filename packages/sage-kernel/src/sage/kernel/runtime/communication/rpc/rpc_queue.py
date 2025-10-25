@@ -20,7 +20,7 @@ TODO:
 
 import logging
 from queue import Empty, Queue
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -94,9 +94,7 @@ class RPCQueue:
             self._connected = True
         return True
 
-    def put(
-        self, item: Any, block: bool = True, timeout: Optional[float] = None
-    ) -> None:
+    def put(self, item: Any, block: bool = True, timeout: float | None = None) -> None:
         """
         向队列发送数据
 
@@ -121,7 +119,7 @@ class RPCQueue:
             logger.error(f"Failed to put item to RPC queue '{self.queue_id}': {e}")
             raise
 
-    def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
+    def get(self, block: bool = True, timeout: float | None = None) -> Any:
         """
         从队列接收数据
 

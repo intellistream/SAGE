@@ -39,7 +39,7 @@ class TestHuggingFaceConnectivity:
         except requests.exceptions.Timeout:
             print(f"  ⚠ {site_name} 连接超时 (>10秒)")
             return False
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             print(f"  ⚠ {site_name} 连接失败: 网络不可达")
             return False
         except Exception as e:
@@ -96,7 +96,7 @@ class TestHuggingFaceConnectivity:
         except requests.exceptions.Timeout:
             print(f"  ⚠ {site_name} 模型文件访问超时 (>10秒)")
             return False
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             print(f"  ⚠ {site_name} 模型文件访问失败: 网络不可达")
             return False
         except Exception as e:
@@ -178,19 +178,15 @@ class TestHuggingFaceConnectivity:
 
         for site_name, result in results.items():
             print(f"\n{site_name}:")
-            print(
-                f"  站点连通性: {'✓ 可用' if result.get('site_accessible') else '✗ 不可用'}"
-            )
-            print(
-                f"  文件访问性: {'✓ 可用' if result.get('file_accessible') else '✗ 不可用'}"
-            )
+            print(f"  站点连通性: {'✓ 可用' if result.get('site_accessible') else '✗ 不可用'}")
+            print(f"  文件访问性: {'✓ 可用' if result.get('file_accessible') else '✗ 不可用'}")
 
             if result.get("site_accessible") and result.get("file_accessible"):
-                print(f"  综合评价: ✓ 完全可用")
+                print("  综合评价: ✓ 完全可用")
             elif result.get("site_accessible") or result.get("file_accessible"):
-                print(f"  综合评价: ⚠ 部分可用")
+                print("  综合评价: ⚠ 部分可用")
             else:
-                print(f"  综合评价: ✗ 不可用")
+                print("  综合评价: ✗ 不可用")
 
         # 给出推荐结论
         print("\n" + "=" * 60)
@@ -200,9 +196,9 @@ class TestHuggingFaceConnectivity:
         official_ok = results.get("HuggingFace Official", {}).get(
             "site_accessible", False
         ) and results.get("HuggingFace Official", {}).get("file_accessible", False)
-        mirror_ok = results.get("HF Mirror", {}).get(
-            "site_accessible", False
-        ) and results.get("HF Mirror", {}).get("file_accessible", False)
+        mirror_ok = results.get("HF Mirror", {}).get("site_accessible", False) and results.get(
+            "HF Mirror", {}
+        ).get("file_accessible", False)
 
         if official_ok and mirror_ok:
             print("✓ 官方站点和镜像站点均可用")
@@ -226,7 +222,6 @@ class TestHuggingFaceConnectivity:
 
 if __name__ == "__main__":
     # 直接运行测试
-    import sys
 
     print("开始测试 Hugging Face 连通性...")
     print("=" * 60)

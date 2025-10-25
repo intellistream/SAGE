@@ -1,10 +1,6 @@
 import os
-import sys
 
-if sys.version_info < (3, 9):
-    pass
-else:
-    pass
+pass
 
 
 # Dependencies should be installed via requirements.txt
@@ -37,9 +33,7 @@ async def nvidia_openai_embed(
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
 
-    openai_async_client = (
-        AsyncOpenAI() if base_url is None else AsyncOpenAI(base_url=base_url)
-    )
+    openai_async_client = AsyncOpenAI() if base_url is None else AsyncOpenAI(base_url=base_url)
 
     response = await openai_async_client.embeddings.create(
         model=model,

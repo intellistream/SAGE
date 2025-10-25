@@ -7,7 +7,6 @@ This module provides the main FastAPI application for the SAGE Web UI.
 import json
 import os
 from pathlib import Path
-from typing import List
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -62,11 +61,11 @@ class Job(BaseModel):
     latency: int
     throughput: int
     ncore: int
-    periodicalThroughput: List[int]
-    periodicalLatency: List[int]
+    periodicalThroughput: list[int]
+    periodicalLatency: list[int]
     totalTimeBreakdown: dict
     schedulerTimeBreakdown: dict
-    operators: List[dict]
+    operators: list[dict]
 
 
 class OperatorInfo(BaseModel):
@@ -98,7 +97,7 @@ def _read_sage_data_from_files():
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
-                    with open(job_file, "r") as f:
+                    with open(job_file) as f:
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
@@ -108,7 +107,7 @@ def _read_sage_data_from_files():
         operators_file = sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
-                with open(operators_file, "r") as f:
+                with open(operators_file) as f:
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
@@ -118,7 +117,7 @@ def _read_sage_data_from_files():
         pipelines_file = sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
-                with open(pipelines_file, "r") as f:
+                with open(pipelines_file) as f:
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
@@ -159,11 +158,11 @@ class Job(BaseModel):
     latency: int
     throughput: int
     ncore: int
-    periodicalThroughput: List[int]
-    periodicalLatency: List[int]
+    periodicalThroughput: list[int]
+    periodicalLatency: list[int]
     totalTimeBreakdown: dict
     schedulerTimeBreakdown: dict
-    operators: List[dict]
+    operators: list[dict]
 
 
 class OperatorInfo(BaseModel):
@@ -195,7 +194,7 @@ def _read_sage_data_from_files():
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
-                    with open(job_file, "r") as f:
+                    with open(job_file) as f:
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
@@ -205,7 +204,7 @@ def _read_sage_data_from_files():
         operators_file = sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
-                with open(operators_file, "r") as f:
+                with open(operators_file) as f:
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
@@ -215,7 +214,7 @@ def _read_sage_data_from_files():
         pipelines_file = sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
-                with open(pipelines_file, "r") as f:
+                with open(pipelines_file) as f:
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
@@ -291,7 +290,7 @@ async def api_info():
     }
 
 
-@app.get("/api/jobs/all", response_model=List[Job])
+@app.get("/api/jobs/all", response_model=list[Job])
 async def get_all_jobs():
     """获取所有作业信息"""
     try:
@@ -357,7 +356,7 @@ async def get_all_jobs():
         raise HTTPException(status_code=500, detail=f"获取作业信息失败: {str(e)}")
 
 
-@app.get("/api/operators", response_model=List[OperatorInfo])
+@app.get("/api/operators", response_model=list[OperatorInfo])
 async def get_operators():
     """获取所有操作符信息"""
     try:

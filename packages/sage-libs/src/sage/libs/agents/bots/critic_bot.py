@@ -5,7 +5,7 @@ CriticBot - 评估批评Bot（占位实现）
 实际实现需要根据具体需求设计。
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class CriticBot:
@@ -15,9 +15,7 @@ class CriticBot:
     这是一个占位实现。实际使用时需要实现具体的评估逻辑。
     """
 
-    def __init__(
-        self, config: Optional[Dict[str, Any]] = None, ctx: Optional[Any] = None
-    ):
+    def __init__(self, config: dict[str, Any] | None = None, ctx: Any | None = None):
         """
         初始化CriticBot
 
@@ -28,9 +26,7 @@ class CriticBot:
         self.config = config or {}
         self.ctx = ctx
 
-    def critique(
-        self, answer: str, question: str = "", context: str = ""
-    ) -> Dict[str, Any]:
+    def critique(self, answer: str, question: str = "", context: str = "") -> dict[str, Any]:
         """
         评估答案质量
 

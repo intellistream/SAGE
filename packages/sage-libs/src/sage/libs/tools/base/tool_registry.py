@@ -1,11 +1,9 @@
-from typing import Dict, Optional
-
 from .base_tool import BaseTool
 
 
 class ToolRegistry:
     def __init__(self):
-        self._tools: Dict[str, BaseTool] = {}
+        self._tools: dict[str, BaseTool] = {}
 
     def register(self, tool: BaseTool) -> None:
         """注册一个工具实例"""
@@ -16,11 +14,11 @@ class ToolRegistry:
         if name in self._tools:
             del self._tools[name]
 
-    def get(self, name: str) -> Optional[BaseTool]:
+    def get(self, name: str) -> BaseTool | None:
         """按名称获取工具"""
         return self._tools.get(name)
 
-    def list_tools(self) -> Dict[str, BaseTool]:
+    def list_tools(self) -> dict[str, BaseTool]:
         """返回所有已注册工具的字典"""
         return dict(self._tools)
 

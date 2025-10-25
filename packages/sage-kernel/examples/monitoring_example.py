@@ -85,19 +85,19 @@ def example_resource_monitor():
 
     # 获取当前使用情况
     cpu, memory = monitor.get_current_usage()
-    print(f"\nCurrent Usage:")
+    print("\nCurrent Usage:")
     print(f"  CPU: {cpu:.2f}%")
     print(f"  Memory: {memory:.2f} MB")
 
     # 获取平均使用情况
     avg_cpu, avg_memory = monitor.get_average_usage()
-    print(f"\nAverage Usage:")
+    print("\nAverage Usage:")
     print(f"  CPU: {avg_cpu:.2f}%")
     print(f"  Memory: {avg_memory:.2f} MB")
 
     # 获取峰值使用情况
     peak_cpu, peak_memory = monitor.get_peak_usage()
-    print(f"\nPeak Usage:")
+    print("\nPeak Usage:")
     print(f"  CPU: {peak_cpu:.2f}%")
     print(f"  Memory: {peak_memory:.2f} MB")
 
@@ -115,7 +115,7 @@ def example_metrics_reporter():
     collector = MetricsCollector(name="reporting_task")
 
     # 模拟一些数据
-    for i in range(20):
+    for _i in range(20):
         packet_id = collector.record_packet_start()
         time.sleep(0.005)
         collector.record_packet_end(packet_id, success=True)

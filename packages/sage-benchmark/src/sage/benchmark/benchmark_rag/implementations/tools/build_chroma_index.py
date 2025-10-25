@@ -40,9 +40,7 @@ def _get_embedder():
         return _MiniEmbedder(dim=8)
 
     # 正常模式：使用真实模型（如可选通过环境变量覆盖模型名）
-    model_name = os.environ.get(
-        "SAGE_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
-    )
+    model_name = os.environ.get("SAGE_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
     from sentence_transformers import SentenceTransformer
 
     return SentenceTransformer(model_name)
@@ -149,9 +147,7 @@ def load_knowledge_to_chromadb():
         embeddings = _to_2dlist(model.encode(texts))
         ids = [f"{collection_name}_chunk_{i}" for i in range(len(chunk_docs))]
         metadatas = [c["metadata"] for c in chunk_docs]
-        collection.add(
-            embeddings=embeddings, documents=texts, metadatas=metadatas, ids=ids
-        )
+        collection.add(embeddings=embeddings, documents=texts, metadatas=metadatas, ids=ids)
         print(f"✓ 已添加 {len(chunk_docs)} 个文本块")
         print(f"✓ 数据库文档数: {collection.count()}")
 

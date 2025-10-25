@@ -1,7 +1,7 @@
 """AWS Bedrock embedding wrapper."""
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseEmbedding
 
@@ -66,9 +66,9 @@ class BedrockEmbedding(BaseEmbedding):
     def __init__(
         self,
         model: str = "amazon.titan-embed-text-v2:0",
-        aws_access_key_id: Optional[str] = None,
-        aws_secret_access_key: Optional[str] = None,
-        aws_session_token: Optional[str] = None,
+        aws_access_key_id: str | None = None,
+        aws_secret_access_key: str | None = None,
+        aws_session_token: str | None = None,
         **kwargs: Any,
     ) -> None:
         """初始化 Bedrock Embedding
@@ -96,15 +96,11 @@ class BedrockEmbedding(BaseEmbedding):
         try:
             import boto3  # noqa: F401
         except ImportError:
-            raise ImportError(
-                "Bedrock embedding 需要 boto3 包。\n" "安装方法: pip install boto3"
-            )
+            raise ImportError("Bedrock embedding 需要 boto3 包。\n" "安装方法: pip install boto3")
 
         self._model = model
         self._aws_access_key_id = aws_access_key_id or os.getenv("AWS_ACCESS_KEY_ID")
-        self._aws_secret_access_key = aws_secret_access_key or os.getenv(
-            "AWS_SECRET_ACCESS_KEY"
-        )
+        self._aws_secret_access_key = aws_secret_access_key or os.getenv("AWS_SECRET_ACCESS_KEY")
         self._aws_session_token = aws_session_token or os.getenv("AWS_SESSION_TOKEN")
         self._kwargs = kwargs
 
@@ -129,7 +125,7 @@ class BedrockEmbedding(BaseEmbedding):
         # 获取维度
         self._dim = self.DIMENSION_MAP.get(model, 1024)
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -208,7 +204,7 @@ class BedrockEmbedding(BaseEmbedding):
                 f"提示: 检查 AWS 凭证、区域设置、Bedrock 服务开通状态"
             ) from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         当前实现为逐个调用 embed()。
@@ -243,7 +239,7 @@ class BedrockEmbedding(BaseEmbedding):
         return "bedrock"
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

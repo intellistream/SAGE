@@ -8,6 +8,7 @@ and object attribute filtering.
 from unittest.mock import patch
 
 import pytest
+
 from sage.kernel.utils.persistence.state import (
     _BLACKLIST,
     _filter_attrs,
@@ -144,7 +145,7 @@ class TestStateHelperFunctions:
     def test_is_serializable_blacklisted_types(self):
         """Test serialization check for blacklisted types"""
         # Create objects that should be blacklisted
-        file_obj = open(__file__, "r")
+        file_obj = open(__file__)
         try:
             assert _is_serializable(file_obj) is False
         finally:
@@ -212,7 +213,7 @@ class TestStateHelperFunctions:
     @pytest.mark.unit
     def test_prepare_non_serializable_filtering(self):
         """Test that non-serializable items are filtered out"""
-        file_obj = open(__file__, "r")
+        file_obj = open(__file__)
         try:
             input_list = [1, file_obj, "string"]
             result = _prepare(input_list)
@@ -372,7 +373,7 @@ class TestStateSaveLoad:
 
     @pytest.mark.unit
     @patch("os.path.isfile", return_value=True)
-    @patch("builtins.open", side_effect=IOError("File read error"))
+    @patch("builtins.open", side_effect=OSError("File read error"))
     def test_load_function_state_io_error(self, mock_open, mock_isfile):
         """Test load_function_state with IO error"""
         obj = SerializableTestObject()
@@ -472,7 +473,7 @@ class TestStateBlacklistHandling:
         thread = threading.Thread()
         assert _is_serializable(thread) is False
 
-        file_handle = open(__file__, "r")
+        file_handle = open(__file__)
         try:
             assert _is_serializable(file_handle) is False
         finally:

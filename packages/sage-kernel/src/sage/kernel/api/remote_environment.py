@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sage.common.utils.serialization.dill import serialize_object, trim_object_for_ray
 from sage.kernel.api.base_environment import BaseEnvironment
@@ -50,12 +50,10 @@ class RemoteEnvironment(BaseEnvironment):
         self.daemon_port = port
 
         # 客户端连接（延迟初始化）
-        self._engine_client: Optional[JobManagerClient] = None
+        self._engine_client: JobManagerClient | None = None
 
         # 更新配置
-        self.config.update(
-            {"engine_host": self.daemon_host, "engine_port": self.daemon_port}
-        )
+        self.config.update({"engine_host": self.daemon_host, "engine_port": self.daemon_port})
 
         logger.info(f"RemoteEnvironment '{name}' initialized for {host}:{port}")
 
@@ -63,12 +61,8 @@ class RemoteEnvironment(BaseEnvironment):
     def client(self) -> JobManagerClient:
         """获取JobManager客户端（延迟创建）"""
         if self._engine_client is None:
-            logger.debug(
-                f"Creating JobManager client for {self.daemon_host}:{self.daemon_port}"
-            )
-            self._engine_client = JobManagerClient(
-                host=self.daemon_host, port=self.daemon_port
-            )
+            logger.debug(f"Creating JobManager client for {self.daemon_host}:{self.daemon_port}")
+            self._engine_client = JobManagerClient(host=self.daemon_host, port=self.daemon_port)
         return self._engine_client
 
     def submit(self, autostop: bool = False) -> str:
@@ -103,9 +97,7 @@ class RemoteEnvironment(BaseEnvironment):
                 env_uuid = response.get("job_uuid")
                 if env_uuid:
                     self.env_uuid = env_uuid
-                    logger.info(
-                        f"Environment submitted successfully with UUID: {self.env_uuid}"
-                    )
+                    logger.info(f"Environment submitted successfully with UUID: {self.env_uuid}")
 
                     # 如果启用 autostop，等待作业完成
                     if autostop:
@@ -194,9 +186,7 @@ class RemoteEnvironment(BaseEnvironment):
 
             else:
                 # 超时了
-                logger.warning(
-                    f"Timeout waiting for remote job to complete after {max_wait_time}s"
-                )
+                logger.warning(f"Timeout waiting for remote job to complete after {max_wait_time}s")
                 logger.info("Job may still be running on remote JobManager")
 
         except KeyboardInterrupt:
@@ -213,7 +203,7 @@ class RemoteEnvironment(BaseEnvironment):
             # 确保清理本地资源
             self.is_running = False
 
-    def stop(self) -> Dict[str, Any]:
+    def stop(self) -> dict[str, Any]:
         """
         停止远程环境
 
@@ -239,7 +229,7 @@ class RemoteEnvironment(BaseEnvironment):
             logger.error(f"Error stopping remote environment: {e}")
             return {"status": "error", "message": str(e)}
 
-    def close(self) -> Dict[str, Any]:
+    def close(self) -> dict[str, Any]:
         """
         关闭远程环境
 
@@ -270,7 +260,7 @@ class RemoteEnvironment(BaseEnvironment):
             self.is_running = False
             self.env_uuid = None
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         检查远程JobManager健康状态
 
@@ -286,7 +276,7 @@ class RemoteEnvironment(BaseEnvironment):
             logger.error(f"Health check failed: {e}")
             return {"status": "error", "message": str(e)}
 
-    def get_job_status(self) -> Dict[str, Any]:
+    def get_job_status(self) -> dict[str, Any]:
         """
         获取当前环境作业状态
 

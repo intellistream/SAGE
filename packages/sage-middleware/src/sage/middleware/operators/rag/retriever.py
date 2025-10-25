@@ -1,9 +1,10 @@
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
+
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
@@ -93,9 +94,7 @@ class ChromaRetriever(MapOperator):
         """从文件加载知识库"""
         try:
             # 使用 ChromaDB 后端加载
-            success = self.chroma_backend.load_knowledge_from_file(
-                file_path, self.embedding_model
-            )
+            success = self.chroma_backend.load_knowledge_from_file(file_path, self.embedding_model)
             if not success:
                 self.logger.error(f"Failed to load knowledge from file: {file_path}")
 
@@ -105,13 +104,9 @@ class ChromaRetriever(MapOperator):
     def _init_embedding_model(self):
         """初始化 embedding 模型"""
         embedding_method = self.embedding_config.get("method", "default")
-        model = self.embedding_config.get(
-            "model", "sentence-transformers/all-MiniLM-L6-v2"
-        )
+        model = self.embedding_config.get("model", "sentence-transformers/all-MiniLM-L6-v2")
 
-        self.logger.info(
-            f"Initializing embedding model with method: {embedding_method}"
-        )
+        self.logger.info(f"Initializing embedding model with method: {embedding_method}")
         self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
 
         # 验证向量维度
@@ -124,9 +119,7 @@ class ChromaRetriever(MapOperator):
                 # 更新向量维度以匹配模型
                 self.vector_dimension = model_dim
 
-    def add_documents(
-        self, documents: List[str], doc_ids: Optional[List[str]] = None
-    ) -> List[str]:
+    def add_documents(self, documents: list[str], doc_ids: list[str] | None = None) -> list[str]:
         """
         添加文档到索引中
         Args:
@@ -140,9 +133,7 @@ class ChromaRetriever(MapOperator):
 
         # 生成文档ID
         if doc_ids is None:
-            doc_ids = [
-                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-            ]
+            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
         elif len(doc_ids) != len(documents):
             raise ValueError("doc_ids length must match documents length")
 
@@ -188,7 +179,7 @@ class ChromaRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: str) -> dict[str, Any]:
         """
         执行检索
         Args:
@@ -223,9 +214,7 @@ class ChromaRetriever(MapOperator):
             query_vector = np.array(query_embedding, dtype=np.float32)
 
             # 使用 ChromaDB 执行检索
-            retrieved_docs = self.chroma_backend.search(
-                query_vector, input_query, self.top_k
-            )
+            retrieved_docs = self.chroma_backend.search(query_vector, input_query, self.top_k)
 
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from ChromaDB\033[0m"
@@ -257,8 +246,7 @@ class ChromaRetriever(MapOperator):
 
             # 提取所有原始文档的text字段，供retrieved_docs使用
             retrieved_texts = [
-                doc.get("text", doc.get("content", str(doc)))
-                for doc in standardized_docs
+                doc.get("text", doc.get("content", str(doc))) for doc in standardized_docs
             ]
 
             if is_dict_input:
@@ -301,7 +289,7 @@ class ChromaRetriever(MapOperator):
         """
         return self.chroma_backend.load_config(load_path)
 
-    def get_collection_info(self) -> Dict[str, Any]:
+    def get_collection_info(self) -> dict[str, Any]:
         """获取集合信息"""
         return self.chroma_backend.get_collection_info()
 
@@ -348,9 +336,7 @@ class MilvusDenseRetriever(MapOperator):
                 )
             else:
                 # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "retriever_data"
-                )
+                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -369,9 +355,7 @@ class MilvusDenseRetriever(MapOperator):
                 raise ValueError("Invalid Milvus configuration")
 
             # 初始化后端
-            self.milvus_backend = MilvusBackend(
-                config=self.milvus_config, logger=self.logger
-            )
+            self.milvus_backend = MilvusBackend(config=self.milvus_config, logger=self.logger)
 
             # 自动加载知识库文件
             knowledge_file = self.milvus_config.get("knowledge_file")
@@ -397,13 +381,9 @@ class MilvusDenseRetriever(MapOperator):
     def _init_embedding_model(self):
         """初始化embedding模型"""
         embedding_method = self.embedding_config.get("method", "default")
-        model = self.embedding_config.get(
-            "model", "sentence-transformers/all-MiniLM-L6-v2"
-        )
+        model = self.embedding_config.get("model", "sentence-transformers/all-MiniLM-L6-v2")
 
-        self.logger.info(
-            f"Initializing embedding model with method: {embedding_method}"
-        )
+        self.logger.info(f"Initializing embedding model with method: {embedding_method}")
         self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
 
         # 验证向量维度
@@ -416,9 +396,7 @@ class MilvusDenseRetriever(MapOperator):
                 # 更新向量维度以匹配模型
                 self.vector_dimension = model_dim
 
-    def add_documents(
-        self, documents: List[str], doc_ids: Optional[List[str]] = None
-    ) -> List[str]:
+    def add_documents(self, documents: list[str], doc_ids: list[str] | None = None) -> list[str]:
         """
         添加文档到milvus
         Args:
@@ -432,9 +410,7 @@ class MilvusDenseRetriever(MapOperator):
             return []
 
         if doc_ids is None:
-            doc_ids = [
-                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-            ]
+            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
         elif len(doc_ids) != len(documents):
             raise ValueError("doc_ids length must match documents length")
 
@@ -485,7 +461,7 @@ class MilvusDenseRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: str) -> dict[str, Any]:
         """
         执行检索
         Args:
@@ -593,7 +569,7 @@ class MilvusDenseRetriever(MapOperator):
         """
         return self.milvus_backend.load_config(load_path)
 
-    def get_collection_info(self) -> Dict[str, Any]:
+    def get_collection_info(self) -> dict[str, Any]:
         """
         获取集合信息
         """
@@ -644,9 +620,7 @@ class MilvusSparseRetriever(MapOperator):
                 )
             else:
                 # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "retriever_data"
-                )
+                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -665,9 +639,7 @@ class MilvusSparseRetriever(MapOperator):
                 raise ValueError("Invalid Milvus configuration")
 
             # 初始化后端
-            self.milvus_backend = MilvusBackend(
-                config=self.milvus_config, logger=self.logger
-            )
+            self.milvus_backend = MilvusBackend(config=self.milvus_config, logger=self.logger)
 
             # 自动加载知识库文件
             knowledge_file = self.milvus_config.get("knowledge_file")
@@ -716,9 +688,7 @@ class MilvusSparseRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to load knowledge from file: {e}")
 
-    def add_documents(
-        self, documents: List[str], doc_ids: Optional[List[str]] = None
-    ) -> List[str]:
+    def add_documents(self, documents: list[str], doc_ids: list[str] | None = None) -> list[str]:
         """
         添加文档到milvus
         Args:
@@ -736,9 +706,7 @@ class MilvusSparseRetriever(MapOperator):
         embeddings = embedding["sparse"]
 
         if doc_ids is None:
-            doc_ids = [
-                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-            ]
+            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
         elif len(doc_ids) != len(documents):
             raise ValueError("doc_ids length must match documents length")
 
@@ -781,7 +749,7 @@ class MilvusSparseRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: str) -> dict[str, Any]:
         """
         执行检索
         Args:
@@ -885,7 +853,7 @@ class MilvusSparseRetriever(MapOperator):
         """
         return self.milvus_backend.load_config(load_path)
 
-    def get_collection_info(self) -> Dict[str, Any]:
+    def get_collection_info(self) -> dict[str, Any]:
         """
         获取集合信息
         """
@@ -929,9 +897,7 @@ class Wiki18FAISSRetriever(MapOperator):
                     self.ctx.env_base_dir, ".sage_states", "retriever_data"
                 )
             else:
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "retriever_data"
-                )
+                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -992,7 +958,7 @@ class Wiki18FAISSRetriever(MapOperator):
                 # 加载JSONL格式的文档数据
                 self.documents = []
                 try:
-                    with open(documents_path, "r", encoding="utf-8") as f:
+                    with open(documents_path, encoding="utf-8") as f:
                         for line in f:
                             line = line.strip()
                             if line:
@@ -1022,9 +988,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
         except ImportError as e:
             self.logger.error(f"无法导入FAISS: {e}")
-            self.logger.error(
-                "请安装FAISS: pip install faiss-cpu 或 pip install faiss-gpu"
-            )
+            self.logger.error("请安装FAISS: pip install faiss-cpu 或 pip install faiss-gpu")
             raise
         except Exception as e:
             self.logger.error(f"FAISS索引初始化失败: {e}")
@@ -1049,9 +1013,7 @@ class Wiki18FAISSRetriever(MapOperator):
             self.logger.error(f"查询编码失败: {e}")
             raise
 
-    def _search_faiss(
-        self, query_vector: np.ndarray, top_k: int
-    ) -> Tuple[List[float], List[int]]:
+    def _search_faiss(self, query_vector: np.ndarray, top_k: int) -> tuple[list[float], list[int]]:
         """
         在FAISS索引中搜索
 
@@ -1078,8 +1040,8 @@ class Wiki18FAISSRetriever(MapOperator):
             return [], []
 
     def _format_retrieved_documents(
-        self, scores: List[float], indices: List[int]
-    ) -> List[Dict[str, Any]]:
+        self, scores: list[float], indices: list[int]
+    ) -> list[dict[str, Any]]:
         """
         格式化检索到的文档
 
@@ -1092,7 +1054,7 @@ class Wiki18FAISSRetriever(MapOperator):
         """
         retrieved_docs = []
 
-        for score, idx in zip(scores, indices):
+        for score, idx in zip(scores, indices, strict=False):
             if idx >= 0 and idx < len(self.documents):
                 original_doc = self.documents[idx]
 
@@ -1117,7 +1079,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
         return retrieved_docs
 
-    def _save_data_record(self, query: str, retrieved_docs: List[Dict[str, Any]]):
+    def _save_data_record(self, query: str, retrieved_docs: list[dict[str, Any]]):
         """保存检索记录用于分析"""
         if not self.enable_profile:
             return
@@ -1154,7 +1116,7 @@ class Wiki18FAISSRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"保存检索记录失败: {e}")
 
-    def execute(self, data: Union[str, Dict[str, Any], Tuple]) -> Dict[str, Any]:
+    def execute(self, data: str | dict[str, Any] | tuple) -> dict[str, Any]:
         """
         执行检索
         Args:
@@ -1213,7 +1175,7 @@ class Wiki18FAISSRetriever(MapOperator):
             retrieved_docs = self._format_retrieved_documents(scores, indices)
 
             # 记录检索时间
-            retrieval_time = time.time() - start_time
+            time.time() - start_time
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from FAISS\033[0m"
             )
@@ -1248,9 +1210,7 @@ class Wiki18FAISSRetriever(MapOperator):
             else:
                 return {"query": input_query, "results": [], "input": data}
 
-    def build_index_from_wiki18(
-        self, wiki18_data_path: str, save_path: Optional[str] = None
-    ):
+    def build_index_from_wiki18(self, wiki18_data_path: str, save_path: str | None = None):
         """
         从Wiki18数据集构建FAISS索引
 
@@ -1265,7 +1225,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
             # 加载Wiki18数据
             documents = []
-            with open(wiki18_data_path, "r", encoding="utf-8") as f:
+            with open(wiki18_data_path, encoding="utf-8") as f:
                 for line in f:
                     doc = json.loads(line.strip())
                     documents.append(doc)
@@ -1288,9 +1248,7 @@ class Wiki18FAISSRetriever(MapOperator):
             self.faiss_index.add(doc_vectors.astype("float32"))  # type: ignore[call-overload]
             self.documents = documents
 
-            self.logger.info(
-                f"FAISS索引构建完成，包含 {self.faiss_index.ntotal} 个向量"
-            )
+            self.logger.info(f"FAISS索引构建完成，包含 {self.faiss_index.ntotal} 个向量")
 
             # 保存索引和文档
             if save_path:

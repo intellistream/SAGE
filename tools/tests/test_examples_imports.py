@@ -8,7 +8,7 @@
 import importlib.util
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 
 def check_import_file(file_path: Path) -> Tuple[bool, str]:
@@ -88,9 +88,7 @@ def main():
 
     print()
     print("=" * 80)
-    print(
-        f"Results: {success_count} passed, {fail_count} failed, {skipped_count} skipped"
-    )
+    print(f"Results: {success_count} passed, {fail_count} failed, {skipped_count} skipped")
     print("=" * 80)
 
     # 返回失败数量而不是退出

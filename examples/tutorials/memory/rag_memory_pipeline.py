@@ -7,18 +7,15 @@
 """
 
 import queue
-import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
 
 import yaml
 from rag_memory_service import RAGMemoryService
-from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.common.core.functions.batch_function import BatchFunction
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service.base_service import BaseService
 from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
@@ -80,7 +77,7 @@ class RetrievalMap(MapFunction):
                     hist_q = hist_q[:50] + "..."
                 print(f"   {i}. {hist_q}")
         else:
-            print(f"🔍 未检索到历史记忆（索引为空）")
+            print("🔍 未检索到历史记忆（索引为空）")
 
         context = results
         return {
@@ -129,7 +126,7 @@ class WritingMap(MapFunction):
             return None
         payload = data["payload"]
         question = payload["question"]
-        context = payload.get("context", [])
+        payload.get("context", [])
 
         # 使用配置文件中的 promptor 配置
         promptor_config = self.config.get("promptor", {})
@@ -159,7 +156,7 @@ class WritingMap(MapFunction):
             {"answer": answer, "topic": "健康-个性化"},
             method="insert",
         )
-        print(f"💾 已将问答存入记忆索引")
+        print("💾 已将问答存入记忆索引")
 
         return {
             "payload": {"question": question, "answer": answer},
@@ -373,10 +370,10 @@ class DisplayAnswer(SinkFunction):
         if not data:
             return
 
-        question = data.get("question", "")
+        data.get("question", "")
         answer_data = data.get("answer", {})
         context = data.get("context", [])
-        index = data.get("index", 0)
+        data.get("index", 0)
 
         # 显示检索到的历史
         if context:
@@ -387,9 +384,9 @@ class DisplayAnswer(SinkFunction):
                     hist_q = hist_q[:60] + "..."
                 print(f"   {i}. {hist_q}")
         else:
-            print(f"\n🔍 未检索到历史记忆（索引为空）")
+            print("\n🔍 未检索到历史记忆（索引为空）")
 
-        print(f"💾 已将问答存入记忆索引")
+        print("💾 已将问答存入记忆索引")
 
         # 显示答案
         if isinstance(answer_data, dict):
@@ -403,7 +400,7 @@ class DisplayAnswer(SinkFunction):
         rendered_answer = self._render_markdown(answer_text)
 
         print(f"\n{'='*60}")
-        print(f"💡 AI 回答:")
+        print("💡 AI 回答:")
         print(f"{'='*60}")
         print(rendered_answer)
         print(f"{'='*60}")
@@ -423,7 +420,6 @@ class DisplayAnswer(SinkFunction):
 
 
 def main():
-    import sys
 
     sys.stdout.flush()
     sys.stderr.flush()
@@ -459,21 +455,17 @@ def main():
         # 注册服务
         print("注册服务...")
         env.register_service("retrieval_service", RetrievalService, retrieval_bridge)
-        env.register_service(
-            "qa_pipeline", QAPipelineService, qa_pipeline_bridge, config
-        )
+        env.register_service("qa_pipeline", QAPipelineService, qa_pipeline_bridge, config)
 
         # 检索 Pipeline（为 QA Pipeline 提供检索功能）
         print("创建检索 Pipeline...")
-        env.from_source(RetrievalSource, retrieval_bridge).map(RetrievalMap).sink(
-            RetrievalSink
-        )
+        env.from_source(RetrievalSource, retrieval_bridge).map(RetrievalMap).sink(RetrievalSink)
 
         # QA Pipeline（检索 + 生成 + 写入）
         print("创建 QA Pipeline...")
-        env.from_source(QAPipelineSource, qa_pipeline_bridge).map(
-            QAPipelineMap, config
-        ).sink(QAPipelineSink)
+        env.from_source(QAPipelineSource, qa_pipeline_bridge).map(QAPipelineMap, config).sink(
+            QAPipelineSink
+        )
 
         # Controller Pipeline（顺序发送问题）
         print("创建 Controller Pipeline...")
@@ -484,9 +476,7 @@ def main():
         )
 
         print("🚀 启动 RAG Memory Pipeline...")
-        env.submit(
-            autostop=False
-        )  # 使用 autostop=False，因为 Service Pipelines 会持续轮询
+        env.submit(autostop=False)  # 使用 autostop=False，因为 Service Pipelines 会持续轮询
 
         # 等待足够的时间让所有问题处理完成
         # 每个问题大约需要 8-10 秒（检索 + 生成 + 写入）

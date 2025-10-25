@@ -8,10 +8,9 @@ resulting metadata can be used to auto-populate generator configuration blocks.
 from __future__ import annotations
 
 import json
-import socket
 import ssl
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, List, Optional
 from urllib import error, request
 
 
@@ -21,7 +20,7 @@ class LLMServiceInfo:
 
     name: str
     base_url: str
-    models: List[str]
+    models: list[str]
     default_model: str
     generator_section: str
     description: str
@@ -31,8 +30,8 @@ DEFAULT_TIMEOUT = 2  # seconds
 
 
 def _safe_http_get(
-    url: str, timeout: int = DEFAULT_TIMEOUT, auth_token: Optional[str] = None
-) -> Optional[str]:
+    url: str, timeout: int = DEFAULT_TIMEOUT, auth_token: str | None = None
+) -> str | None:
     """Best-effort HTTP GET that returns response text or ``None`` on failure."""
 
     req = request.Request(url)
@@ -43,11 +42,11 @@ def _safe_http_get(
         with request.urlopen(req, timeout=timeout, context=_ssl_context()) as resp:
             charset = resp.headers.get_content_charset() or "utf-8"
             return resp.read().decode(charset)
-    except (error.URLError, socket.timeout, ssl.SSLError):
+    except (TimeoutError, error.URLError, ssl.SSLError):
         return None
 
 
-def _ssl_context() -> Optional[ssl.SSLContext]:
+def _ssl_context() -> ssl.SSLContext | None:
     """Create a default SSL context while remaining compatible with older Python."""
 
     try:
@@ -57,8 +56,8 @@ def _ssl_context() -> Optional[ssl.SSLContext]:
 
 
 def detect_ollama(
-    base_urls: Optional[Iterable[str]] = None,
-) -> Optional[LLMServiceInfo]:
+    base_urls: Iterable[str] | None = None,
+) -> LLMServiceInfo | None:
     """Detect a running Ollama service by probing the tags endpoint."""
 
     if base_urls is None:
@@ -96,8 +95,8 @@ def detect_ollama(
 
 
 def detect_vllm(
-    base_urls: Optional[Iterable[str]] = None, auth_token: Optional[str] = None
-) -> Optional[LLMServiceInfo]:
+    base_urls: Iterable[str] | None = None, auth_token: str | None = None
+) -> LLMServiceInfo | None:
     """Detect a running vLLM service by probing the OpenAI-compatible models API."""
 
     if base_urls is None:
@@ -145,12 +144,12 @@ def detect_vllm(
 
 
 def detect_all_services(
-    prefer: Optional[str] = None, auth_token: Optional[str] = None
-) -> List[LLMServiceInfo]:
+    prefer: str | None = None, auth_token: str | None = None
+) -> list[LLMServiceInfo]:
     """Detect all supported services, optionally restricting by name."""
 
     prefer_normalized = prefer.lower() if prefer else None
-    detections: List[LLMServiceInfo] = []
+    detections: list[LLMServiceInfo] = []
 
     if prefer_normalized in (None, "ollama"):
         service = detect_ollama()

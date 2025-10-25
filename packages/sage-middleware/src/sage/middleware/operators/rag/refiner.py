@@ -24,7 +24,7 @@ Refiner Operator - SAGE RAG 算子
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, cast
 
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
@@ -110,10 +110,10 @@ class RefinerOperator(MapOperator):
             refine_start = time.time()
             result = self.refiner_service.refine(
                 query=query,
-                documents=cast(List[Union[str, Dict[str, Any]]], documents),
+                documents=cast(list[str | dict[str, Any]], documents),
                 budget=self.cfg.get("budget"),
             )
-            refine_time = time.time() - refine_start
+            time.time() - refine_start
 
             refined_texts_raw = result.refined_content
             # 确保 refined_texts 是 List[str]
@@ -134,7 +134,6 @@ class RefinerOperator(MapOperator):
         except Exception as e:
             self.logger.error(f"Refiner execution failed: {e}")
             refined_texts = [doc.get("text", str(doc)) for doc in documents]
-            refine_time = 0.0
             metrics = {"error": str(e)}
 
         # 保存数据记录
@@ -153,11 +152,9 @@ class RefinerOperator(MapOperator):
 
         return result_data
 
-    def _normalize_documents(
-        self, docs: List[Union[str, Dict]]
-    ) -> List[Dict[str, Any]]:
+    def _normalize_documents(self, docs: list[str | dict]) -> list[dict[str, Any]]:
         """标准化文档格式"""
-        normalized: List[Dict[str, Any]] = []
+        normalized: list[dict[str, Any]] = []
         for doc in docs:
             if isinstance(doc, dict):
                 # 提取文本
@@ -175,9 +172,7 @@ class RefinerOperator(MapOperator):
 
         return normalized
 
-    def _save_data_record(
-        self, query: str, input_docs: List[Dict], refined_docs: List[str]
-    ):
+    def _save_data_record(self, query: str, input_docs: list[dict], refined_docs: list[str]):
         """保存数据记录（仅当 enable_profile=True）"""
         if not self.enable_profile:
             return

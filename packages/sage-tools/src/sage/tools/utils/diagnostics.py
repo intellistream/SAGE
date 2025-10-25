@@ -9,15 +9,16 @@ import pkgutil
 import subprocess
 import sys
 import traceback
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 from packaging.version import parse as parse_version
 from rich.console import Console
 from rich.table import Table
 
-DEFAULT_DEPENDENCIES: Dict[str, str] = {
+DEFAULT_DEPENDENCIES: dict[str, str] = {
     "intellistream-sage-kernel": "0.1.5",
     "intellistream-sage-utils": "0.1.3",
     "intellistream-sage-middleware": "0.1.3",
@@ -29,19 +30,19 @@ DEFAULT_DEPENDENCIES: Dict[str, str] = {
 class DependencyStatus:
     name: str
     required: str
-    installed: Optional[str]
+    installed: str | None
     compatible: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
-def _get_console(console: Optional[Console]) -> Console:
+def _get_console(console: Console | None) -> Console:
     return console or Console()
 
 
 def _gather_dependency_status(
-    dependencies: Dict[str, str],
-) -> List[DependencyStatus]:
-    statuses: List[DependencyStatus] = []
+    dependencies: dict[str, str],
+) -> list[DependencyStatus]:
+    statuses: list[DependencyStatus] = []
 
     for package, minimum in dependencies.items():
         try:
@@ -80,9 +81,7 @@ def _gather_dependency_status(
     return statuses
 
 
-def _render_status_table(
-    statuses: Iterable[DependencyStatus], console: Console
-) -> None:
+def _render_status_table(statuses: Iterable[DependencyStatus], console: Console) -> None:
     table = Table(title="SAGE 依赖兼容性", show_lines=True)
     table.add_column("依赖包")
     table.add_column("最低版本", justify="right")
@@ -103,9 +102,9 @@ def _render_status_table(
 
 
 def check_dependency_versions(
-    dependencies: Optional[Dict[str, str]] = None,
+    dependencies: dict[str, str] | None = None,
     *,
-    console: Optional[Console] = None,
+    console: Console | None = None,
     verify_import: bool = True,
 ) -> bool:
     """Check whether required dependencies satisfy minimum versions.
@@ -142,15 +141,13 @@ def check_dependency_versions(
 
         package_list = " ".join(status.name for status in incompatible)
         if package_list:
-            console.print(
-                f"\n建议升级命令: [bold]pip install --upgrade {package_list}[/bold]"
-            )
+            console.print(f"\n建议升级命令: [bold]pip install --upgrade {package_list}[/bold]")
 
         if verify_import:
             console.print("\n尝试验证关键模块导入…")
             try:
-                from sage.kernel.runtime.jobmanager_client import (  # noqa: F401
-                    JobManagerClient,
+                from sage.kernel.runtime.jobmanager_client import (
+                    JobManagerClient,  # noqa: F401
                 )
             except Exception as exc:  # pragma: no cover - import runtime dependent
                 console.print(f"❌ JobManagerClient 导入失败: {exc}")
@@ -164,7 +161,7 @@ def check_dependency_versions(
 
 
 def _resolve_project_root(
-    project_root: Optional[os.PathLike[str] | str] = None,
+    project_root: os.PathLike[str] | str | None = None,
 ) -> Path:
     if project_root is None:
         return Path.cwd()
@@ -172,9 +169,9 @@ def _resolve_project_root(
 
 
 def run_installation_diagnostics(
-    project_root: Optional[os.PathLike[str] | str] = None,
+    project_root: os.PathLike[str] | str | None = None,
     *,
-    console: Optional[Console] = None,
+    console: Console | None = None,
 ) -> None:
     """Render a comprehensive installation diagnostic similar to legacy scripts."""
 
@@ -184,7 +181,7 @@ def run_installation_diagnostics(
     console.print("🔍 SAGE 完整安装诊断")
     console.print("=" * 50)
 
-    import_results: Dict[str, Dict[str, Any]] = {}
+    import_results: dict[str, dict[str, Any]] = {}
 
     try:
         console.print("📦 基础导入测试...")
@@ -208,9 +205,7 @@ def run_installation_diagnostics(
                 import_results[module] = {
                     "status": "success",
                     "version": version,
-                    "path": (
-                        str(module_path) if module_path != "Unknown" else module_path
-                    ),
+                    "path": (str(module_path) if module_path != "Unknown" else module_path),
                 }
                 console.print(f"  ✅ {module} (版本: {version})")
             except ImportError as exc:
@@ -226,9 +221,7 @@ def run_installation_diagnostics(
 
             if hasattr(sage, "__path__"):
                 console.print(f"  ✅ sage 命名空间路径: {sage.__path__}")
-                for _, name, _ in pkgutil.iter_modules(
-                    sage.__path__, sage.__name__ + "."
-                ):
+                for _, name, _ in pkgutil.iter_modules(sage.__path__, sage.__name__ + "."):
                     if name.split(".")[-1] in {
                         "common",
                         "kernel",
@@ -256,9 +249,7 @@ def run_installation_diagnostics(
                     else "    ❌ pyproject.toml 缺失"
                 )
                 console.print(
-                    "    ✅ src/ 目录"
-                    if (package_dir / "src").exists()
-                    else "    ⚠️  src/ 目录缺失"
+                    "    ✅ src/ 目录" if (package_dir / "src").exists() else "    ⚠️  src/ 目录缺失"
                 )
                 console.print(
                     "    ✅ tests/ 目录"
@@ -278,7 +269,7 @@ def run_installation_diagnostics(
                 console.print(f"  ⚠️  {var}: 未设置")
 
         console.print("\n🖥️ CLI 工具检查...")
-        cli_commands: Iterable[tuple[str, List[str]]] = [
+        cli_commands: Iterable[tuple[str, list[str]]] = [
             ("sage", ["sage", "--help"]),
             ("sage dev", ["sage", "dev", "--help"]),
         ]
@@ -342,8 +333,8 @@ def run_installation_diagnostics(
 
 
 def collect_packages_status(
-    project_root: Optional[os.PathLike[str] | str] = None,
-) -> Dict[str, Any]:
+    project_root: os.PathLike[str] | str | None = None,
+) -> dict[str, Any]:
     """Collect package status information for the provided project root."""
 
     project_path = _resolve_project_root(project_root)
@@ -352,7 +343,7 @@ def collect_packages_status(
     if not packages_dir.exists():
         return {"error": "packages directory not found"}
 
-    packages_status: Dict[str, Dict[str, Any]] = {}
+    packages_status: dict[str, dict[str, Any]] = {}
 
     for package_dir in sorted(packages_dir.iterdir()):
         if not package_dir.is_dir() or not package_dir.name.startswith("sage-"):
@@ -360,7 +351,7 @@ def collect_packages_status(
 
         package_name = package_dir.name
         module_name = package_name.replace("-", ".")
-        status_info: Dict[str, Any] = {
+        status_info: dict[str, Any] = {
             "name": package_name,
             "path": str(package_dir),
             "has_pyproject": (package_dir / "pyproject.toml").exists(),
@@ -400,9 +391,9 @@ def collect_packages_status(
 
 
 def print_packages_status_summary(
-    project_root: Optional[os.PathLike[str] | str] = None,
+    project_root: os.PathLike[str] | str | None = None,
     *,
-    console: Optional[Console] = None,
+    console: Console | None = None,
 ) -> None:
     """Render a summary of package installation status."""
 
@@ -418,9 +409,7 @@ def print_packages_status_summary(
     total = data["total_packages"]
     packages = data["packages"]
 
-    importable = sum(
-        1 for pkg in packages.values() if pkg.get("import_status") == "success"
-    )
+    importable = sum(1 for pkg in packages.values() if pkg.get("import_status") == "success")
     has_tests = sum(1 for pkg in packages.values() if pkg.get("has_tests", False))
 
     console.print(f"  📊 总包数: {total}")
@@ -439,9 +428,9 @@ def _check_package_dependencies(
 
 
 def print_packages_status(
-    project_root: Optional[os.PathLike[str] | str] = None,
+    project_root: os.PathLike[str] | str | None = None,
     *,
-    console: Optional[Console] = None,
+    console: Console | None = None,
     verbose: bool = False,
     check_versions: bool = False,
     check_dependencies: bool = False,
@@ -461,13 +450,9 @@ def print_packages_status(
         console.print(f"\n📦 {package_name}")
 
         console.print(
-            "  ✅ pyproject.toml"
-            if info.get("has_pyproject")
-            else "  ❌ pyproject.toml 缺失"
+            "  ✅ pyproject.toml" if info.get("has_pyproject") else "  ❌ pyproject.toml 缺失"
         )
-        console.print(
-            "  ✅ tests 目录" if info.get("has_tests") else "  ⚠️  tests 目录缺失"
-        )
+        console.print("  ✅ tests 目录" if info.get("has_tests") else "  ⚠️  tests 目录缺失")
 
         import_status = info.get("import_status")
         if import_status == "success":

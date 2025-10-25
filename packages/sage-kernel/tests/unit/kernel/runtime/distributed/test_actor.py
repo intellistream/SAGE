@@ -8,6 +8,7 @@ between local objects and Ray actors.
 from unittest.mock import Mock, patch
 
 import pytest
+
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 
@@ -100,9 +101,7 @@ class TestActorWrapper:
     def ray_wrapper(self, ray_actor):
         """Create an ActorWrapper for Ray actor"""
         # Patch the _detect_execution_mode method to return ray_actor for our mock
-        with patch.object(
-            ActorWrapper, "_detect_execution_mode", return_value="ray_actor"
-        ):
+        with patch.object(ActorWrapper, "_detect_execution_mode", return_value="ray_actor"):
             wrapper = ActorWrapper(ray_actor)
             return wrapper
 
@@ -118,9 +117,7 @@ class TestActorWrapper:
     def test_ray_actor_detection(self, ray_actor):
         """Test detection of Ray actors"""
         # Patch the _detect_execution_mode method to return ray_actor for our mock
-        with patch.object(
-            ActorWrapper, "_detect_execution_mode", return_value="ray_actor"
-        ):
+        with patch.object(ActorWrapper, "_detect_execution_mode", return_value="ray_actor"):
             wrapper = ActorWrapper(ray_actor)
             assert wrapper._execution_mode == "ray_actor"
             assert wrapper.is_ray_actor() is True
@@ -174,9 +171,7 @@ class TestActorWrapper:
     @pytest.mark.unit
     def test_local_object_async_call_error(self, local_wrapper):
         """Test that async calls fail on local objects"""
-        with pytest.raises(
-            RuntimeError, match="call_async only available for Ray actors"
-        ):
+        with pytest.raises(RuntimeError, match="call_async only available for Ray actors"):
             local_wrapper.call_async("get_value")
 
     @pytest.mark.unit
@@ -269,11 +264,11 @@ class TestActorWrapper:
     def test_callable_detection(self, local_wrapper):
         """Test that wrapper correctly identifies callable vs non-callable attributes"""
         # Method should be callable
-        method = getattr(local_wrapper, "get_value")
+        method = local_wrapper.get_value
         assert callable(method)
 
         # Attribute should not be wrapped as callable
-        value = getattr(local_wrapper, "value")
+        value = local_wrapper.value
         assert not callable(value)
 
     @pytest.mark.unit
@@ -284,11 +279,8 @@ class TestActorWrapper:
         assert local_wrapper.new_attribute == "test_value"
 
         # Should not be able to modify wrapper's internal state
-        original_mode = local_wrapper._execution_mode
         local_wrapper._execution_mode = "modified"
-        assert (
-            local_wrapper._execution_mode == "modified"
-        )  # Should allow internal modification
+        assert local_wrapper._execution_mode == "modified"  # Should allow internal modification
 
     @pytest.mark.integration
     def test_wrapper_with_complex_object(self):
@@ -372,9 +364,7 @@ class TestActorWrapperEdgeCases:
     def ray_wrapper(self, ray_actor):
         """Create an ActorWrapper for Ray actor"""
         # Patch the _detect_execution_mode method to return ray_actor for our mock
-        with patch.object(
-            ActorWrapper, "_detect_execution_mode", return_value="ray_actor"
-        ):
+        with patch.object(ActorWrapper, "_detect_execution_mode", return_value="ray_actor"):
             wrapper = ActorWrapper(ray_actor)
             return wrapper
 
@@ -412,7 +402,7 @@ class TestActorWrapperEdgeCases:
 
         # Should handle exception gracefully
         try:
-            result = ray_wrapper.kill_actor()
+            ray_wrapper.kill_actor()
             # Behavior depends on implementation - might return False or raise
         except Exception:
             # Acceptable if implementation propagates the exception
@@ -430,9 +420,7 @@ class TestActorWrapperEdgeCases:
         simple_actor = SimpleActor()
 
         # Create wrapper with ray actor mode
-        with patch.object(
-            ActorWrapper, "_detect_execution_mode", return_value="ray_actor"
-        ):
+        with patch.object(ActorWrapper, "_detect_execution_mode", return_value="ray_actor"):
             wrapper = ActorWrapper(simple_actor)
 
             with pytest.raises(AttributeError):
