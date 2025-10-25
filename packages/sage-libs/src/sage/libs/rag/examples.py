@@ -19,8 +19,8 @@ def example_document_loading():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.document_loaders import (JSONLoader, PDFLoader,
-                                                    TextLoader)
+        from sage.libs.rag.document_loaders import (JSONLoader,  # noqa: F401
+                                                    PDFLoader, TextLoader)
 
         print("\n✓ Available document loaders:")
         print("  - TextLoader: Load plain text files")
@@ -55,7 +55,7 @@ def example_rag_pipeline():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.pipeline import RAGPipeline
+        from sage.libs.rag.pipeline import RAGPipeline  # noqa: F401
 
         print("\n✓ RAG Pipeline components:")
         print("  1. Document Loader: Load source documents")
@@ -158,7 +158,7 @@ def example_profiling():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.profiler import RAGProfiler
+        from sage.libs.rag.profiler import RAGProfiler  # noqa: F401
 
         print("\n✓ RAG Profiler capabilities:")
         print("  - Measure retrieval latency")

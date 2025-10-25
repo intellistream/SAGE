@@ -23,6 +23,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 需要完整历史来进行 diff
+          # 注意: 不递归克隆 submodules，避免检查外部依赖代码
+          # Submodules (sageLLM, sageDB, sageFlow, neuromem, sageTSDB, docs-public) 由各自仓库维护
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
