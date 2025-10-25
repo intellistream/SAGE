@@ -19,10 +19,10 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
-
 from sage.common.config.output_paths import get_sage_paths
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment
+
 from sage.tools import templates
 from sage.tools.cli.commands.pipeline_domain import (
     load_custom_contexts,

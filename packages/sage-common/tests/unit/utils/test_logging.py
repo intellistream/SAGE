@@ -7,7 +7,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 

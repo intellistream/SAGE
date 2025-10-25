@@ -6,7 +6,6 @@ import os
 from typing import Any
 
 import cv2
-
 from sage.common.core.functions.batch_function import BatchFunction
 
 

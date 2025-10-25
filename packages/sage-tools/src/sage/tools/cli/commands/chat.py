@@ -23,7 +23,6 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-
 from sage.common.components.sage_embedding import get_embedding_model
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 from sage.common.config.output_paths import find_sage_project_root, get_sage_paths
@@ -51,8 +50,8 @@ def _lazy_import_sage_db():
         return  # 已经成功导入
 
     try:
+        from sage.middleware.components.sage_db.python.sage_db import SageDB as _SageDB
         from sage.middleware.components.sage_db.python.sage_db import (
-            SageDB as _SageDB,
             SageDBException as _SageDBException,
         )
 

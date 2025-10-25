@@ -26,7 +26,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 
@@ -38,35 +37,34 @@ def get_logger(name: str) -> CustomLogger:
 
 
 try:  # Optional middleware components - sage_mem (migrated from neuromem)
-    from sage.middleware.components.sage_mem.services.neuromem_vdb_service import NeuroMemVDBService
+    from sage.middleware.components.sage_mem.services.neuromem_vdb_service import \
+        NeuroMemVDBService
 except ImportError:  # pragma: no cover - optional dependency
     NeuroMemVDBService = None  # type: ignore[assignment]
 
 try:
-    from sage.middleware.components.sage_db.python.micro_service import SageDBService
+    from sage.middleware.components.sage_db.python.micro_service import \
+        SageDBService
 except ImportError:  # pragma: no cover - optional dependency
     SageDBService = None  # type: ignore[assignment]
 
 try:
-    from sage.middleware.components.sage_flow.python.micro_service import SageFlowService
+    from sage.middleware.components.sage_flow.python.micro_service import \
+        SageFlowService
 except ImportError:  # pragma: no cover - optional dependency
     SageFlowService = None  # type: ignore[assignment]
 
-from sage.apps.video.operators import (  # noqa: E402
-    EventStatsSink,
-    FrameEventEmitter,
-    FrameLightweightFormatter,
-    FrameObjectClassifier,
-    FramePreprocessor,
-    SageMiddlewareIntegrator,
-    SceneConceptExtractor,
-    SlidingWindowSummaryEmitter,
-    SummaryMemoryAugmentor,
-    SummarySink,
-    TemporalAnomalyDetector,
-    TimelineSink,
-    VideoFrameSource,
-)
+from sage.apps.video.operators import (EventStatsSink,  # noqa: E402
+                                       FrameEventEmitter,
+                                       FrameLightweightFormatter,
+                                       FrameObjectClassifier,
+                                       FramePreprocessor,
+                                       SageMiddlewareIntegrator,
+                                       SceneConceptExtractor,
+                                       SlidingWindowSummaryEmitter,
+                                       SummaryMemoryAugmentor, SummarySink,
+                                       TemporalAnomalyDetector, TimelineSink,
+                                       VideoFrameSource)
 
 # Default config path
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "default_config.yaml"

@@ -4,9 +4,7 @@ import json
 import os
 from typing import Any, Dict
 
-from .base_kv_backend import (
-    BaseKVBackend,
-)
+from .base_kv_backend import BaseKVBackend
 
 
 class DictKVBackend(BaseKVBackend):
