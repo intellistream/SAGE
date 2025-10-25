@@ -35,6 +35,18 @@ jobs:
           echo "📦 安装检查工具依赖..."
           pip install --upgrade pip
           pip install pyyaml
+          
+          echo "📦 安装 SAGE 核心包（用于 Examples 验证）..."
+          # 按照依赖顺序安装 SAGE 包（仅安装基础依赖，不安装可选依赖）
+          pip install -e packages/sage-common --no-deps
+          pip install -e packages/sage-kernel --no-deps
+          pip install -e packages/sage-middleware --no-deps
+          pip install -e packages/sage-libs --no-deps
+          pip install -e packages/sage-apps --no-deps
+          pip install -e packages/sage-tools --no-deps
+          pip install -e packages/sage --no-deps
+          
+          echo "✅ SAGE 包安装完成"
 
       - name: Dev-notes Documentation Check
         run: |

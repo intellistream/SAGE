@@ -76,14 +76,6 @@ workspace_root = Path(__file__).parent.parent.parent.parent
 examples_dir = workspace_root / "examples"
 example_files = find_example_files(examples_dir)
 
-# Check if SAGE is importable (do this once at module level)
-SAGE_AVAILABLE = False
-try:
-    __import__("sage")
-    SAGE_AVAILABLE = True
-except ImportError:
-    pass
-
 
 @pytest.mark.parametrize(
     "example_file", example_files, ids=lambda p: str(p.relative_to(examples_dir))
@@ -135,13 +127,7 @@ def test_example_imports(example_file: Path):
 
         # Check if it's a SAGE module or standard library
         if module_name.startswith("sage"):
-            # Skip SAGE module checks if SAGE is not installed in CI
-            if not SAGE_AVAILABLE:
-                pytest.skip(
-                    "Skipping SAGE module import checks - SAGE not installed in test environment"
-                )
-
-            # SAGE modules should always be importable when SAGE is installed
+            # SAGE modules should always be importable
             try:
                 __import__(module_name)
             except ImportError as e:
