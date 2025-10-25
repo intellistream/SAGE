@@ -1,17 +1,21 @@
 # SAGE Studio
 
+## 📋 Overview
+
 **SAGE Studio** 是一个现代化的低代码 Web UI 包，用于可视化开发和管理 SAGE RAG 数据流水线。
 
 > **包名**: `isage-studio`  
 > **技术栈**: React 18 + FastAPI  
 
-## 快速开始
+## 🚀 Installation
 
-### 环境要求
+### Environment Requirements
 
 - **Python**: 3.8+ (推荐 3.10)
 - **Node.js**: 16+ (推荐 18)
 - **Conda**: sage 环境
+
+## 📖 Quick Start
 
 ### 🎯 推荐方式：使用 SAGE CLI（最简单！）
 
@@ -420,3 +424,8 @@ conda activate sage
 # 检查 .bashrc
 tail -3 ~/.bashrc  # 应该有 "conda activate sage"
 ```
+
+
+## 📄 License
+
+MIT License - see [LICENSE](../../LICENSE) for details.

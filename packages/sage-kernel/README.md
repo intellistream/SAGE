@@ -2,7 +2,11 @@
 
 > 🚀 SAGE 框架的核心内核包 - 整合了核心框架和命令行工具
 
-## 📦 包含内容
+## 📋 Overview
+
+**SAGE Kernel** 是 SAGE 框架的核心包，整合了原来的 `sage-kernel` 和 `sage-cli` 两个包的功能，提供数据流处理引擎、任务管理、运行时系统和命令行工具。
+
+## � Package Contents
 
 **SAGE Kernel** 是 SAGE 框架的核心包，整合了原来的 `sage-kernel` 和 `sage-cli` 两个包的功能：
 
@@ -27,9 +31,9 @@
 - **配置管理**: 交互式配置设置和验证
 - **扩展管理**: 插件和扩展的安装管理
 
-## 🚀 快速开始
+## 🚀 Installation
 
-### 安装
+### From Source
 
 ```bash
 # 从源码安装
@@ -39,7 +43,9 @@ pip install -e packages/sage-kernel
 pip install intellistream-sage-kernel
 ```
 
-### 使用核心API
+## 📖 Quick Start
+
+### Using Core API
 
 ```python
 from sage.core import Function, Config
@@ -182,3 +188,7 @@ from sage.core import Function
 ---
 
 🔗 **相关包**: [sage-utils](../sage-utils/) | [sage-extensions](../sage-extensions/) | [sage-lib](../sage-lib/)
+
+## 📄 License
+
+MIT License - see [LICENSE](../../LICENSE) for details.

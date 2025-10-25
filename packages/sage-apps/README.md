@@ -34,6 +34,18 @@ cd packages/sage-apps
 pip install -e ".[dev]"
 ```
 
+## 📖 Quick Start
+
+```bash
+# Run video intelligence demo
+pip install isage-apps[video]
+python -m sage.apps.video.video_intelligence_pipeline --video path/to/video.mp4
+
+# Run medical diagnosis demo
+pip install isage-apps[medical]
+python -m sage.apps.medical_diagnosis.run_diagnosis
+```
+
 ## Applications
 
 ### 1. Video Intelligence
