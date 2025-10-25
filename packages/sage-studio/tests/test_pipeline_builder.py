@@ -100,7 +100,7 @@ class TestPipelineBuilder:
 
         # 空 Pipeline 应该抛出异常或返回特定结果
         # 根据实际实现调整这里的断言
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             builder.build(visual_pipeline)
 
     def test_topological_sort_simple(self):

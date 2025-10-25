@@ -1025,7 +1025,7 @@ class TestMilvusSparseRetriever:
             documents = ["测试文档"]
 
             # 验证添加文档时的错误处理
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 retriever.add_documents(documents)
 
     @patch("sage.libs.rag.retriever.MilvusUtils")
