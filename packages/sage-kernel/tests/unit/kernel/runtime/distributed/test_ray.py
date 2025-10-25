@@ -7,8 +7,11 @@ Tests Ray integration and initialization functions.
 from unittest.mock import patch
 
 import pytest
-from sage.kernel.utils.ray.ray_utils import (ensure_ray_initialized,
-                                             is_distributed_environment)
+
+from sage.kernel.utils.ray.ray_utils import (
+    ensure_ray_initialized,
+    is_distributed_environment,
+)
 
 # Mark tests that need mock updates as expected to fail temporarily
 needs_mock_update = pytest.mark.xfail(

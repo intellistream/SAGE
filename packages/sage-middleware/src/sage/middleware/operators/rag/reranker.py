@@ -1,11 +1,18 @@
 import torch
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
+
 from sage.kernel.operators import MapOperator
-from sage.middleware.operators.rag.types import (RAGInput, RAGResponse,
-                                                 create_rag_response,
-                                                 extract_query,
-                                                 extract_results)
-from transformers import (AutoModelForCausalLM,
-                          AutoModelForSequenceClassification, AutoTokenizer)
+from sage.middleware.operators.rag.types import (
+    RAGInput,
+    RAGResponse,
+    create_rag_response,
+    extract_query,
+    extract_results,
+)
 
 
 class BGEReranker(MapOperator):

@@ -11,10 +11,13 @@ import traceback
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from sage.kernel.runtime.monitoring import (RESOURCE_MONITOR_AVAILABLE,
-                                            MetricsCollector, MetricsReporter,
-                                            ResourceMonitor,
-                                            ServicePerformanceMetrics)
+from sage.kernel.runtime.monitoring import (
+    RESOURCE_MONITOR_AVAILABLE,
+    MetricsCollector,
+    MetricsReporter,
+    ResourceMonitor,
+    ServicePerformanceMetrics,
+)
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
@@ -138,8 +141,7 @@ class BaseServiceTask(ABC):
         """获取logger，优先使用ctx.logger，否则使用CustomLogger"""
         if not hasattr(self, "_logger") or self._logger is None:
             if self.ctx is None:
-                from sage.common.utils.logging.custom_logger import \
-                    CustomLogger
+                from sage.common.utils.logging.custom_logger import CustomLogger
 
                 self._logger = CustomLogger(name=f"{self.__class__.__name__}_{self.service_name}")
             else:

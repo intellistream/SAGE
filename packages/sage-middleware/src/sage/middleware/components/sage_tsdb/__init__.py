@@ -6,11 +6,18 @@ for streaming and historical data analysis.
 """
 
 # Algorithms
-from .python.algorithms import (OutOfOrderStreamJoin, TimeSeriesAlgorithm,
-                                WindowAggregator)
+from .python.algorithms import (
+                                OutOfOrderStreamJoin,
+                                TimeSeriesAlgorithm,
+                                WindowAggregator,
+)
+
 # Micro-service wrapper
-from .python.micro_service.sage_tsdb_service import (SageTSDBService,
-                                                     SageTSDBServiceConfig)
+from .python.micro_service.sage_tsdb_service import (
+                                SageTSDBService,
+                                SageTSDBServiceConfig,
+)
+
 # Core Python API
 from .python.sage_tsdb import QueryConfig, SageTSDB, TimeRange, TimeSeriesData
 

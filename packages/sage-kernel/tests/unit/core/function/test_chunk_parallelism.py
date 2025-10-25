@@ -1,8 +1,7 @@
 import threading
 import time
 
-from sage.common.core.functions import (BaseFunction, SinkFunction,
-                                        SourceFunction)
+from sage.common.core.functions import BaseFunction, SinkFunction, SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # 添加全局打印锁来防止并发输出混乱

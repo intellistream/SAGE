@@ -3,6 +3,7 @@ import sys
 import time
 
 from dotenv import load_dotenv
+
 from sage.common.utils.config.loader import load_config
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.sink import TerminalSink

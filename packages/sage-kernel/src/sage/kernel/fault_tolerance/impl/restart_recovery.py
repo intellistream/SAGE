@@ -10,7 +10,9 @@ from typing import TYPE_CHECKING, Any
 from sage.common.core.types import TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
-    ExponentialBackoffStrategy, RestartStrategy)
+    ExponentialBackoffStrategy,
+    RestartStrategy,
+)
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.dispatcher import Dispatcher

@@ -11,6 +11,7 @@ from typing import Any
 
 import psutil
 import typer
+
 from sage.common.model_registry import vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install

@@ -5,8 +5,7 @@ import time
 from typing import Any
 
 from sage.common.config.output_paths import get_sage_paths
-from sage.common.core.functions import (KeyByFunction, SinkFunction,
-                                        SourceFunction)
+from sage.common.core.functions import KeyByFunction, SinkFunction, SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

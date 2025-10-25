@@ -15,8 +15,7 @@ from typing import TYPE_CHECKING
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.kernel.api.transformation.base_transformation import \
-    BaseTransformation
+from sage.kernel.api.transformation.base_transformation import BaseTransformation
 from sage.kernel.runtime.context.service_context import ServiceContext
 from sage.kernel.runtime.context.task_context import TaskContext
 from sage.kernel.runtime.execution_utils.name_server import get_name
@@ -159,8 +158,9 @@ class ExecutionGraph:
                 service_node_name = get_name(f"service_{service_name}")
 
                 # 在ExecutionGraph中创建ServiceTaskFactory，而不是从环境中获取
-                from sage.kernel.runtime.factory.service_task_factory import \
-                    ServiceTaskFactory
+                from sage.kernel.runtime.factory.service_task_factory import (
+                    ServiceTaskFactory,
+                )
 
                 service_task_factory = ServiceTaskFactory(
                     service_factory=service_factory, remote=(env.platform == "remote")
@@ -239,8 +239,9 @@ class ExecutionGraph:
         self.logger.debug("Step 1: Generating parallel nodes for each transformation")
         for transformation in env.pipeline:
             # 安全检查：如果发现未填充的future transformation，报错
-            from sage.kernel.api.transformation.future_transformation import \
-                FutureTransformation
+            from sage.kernel.api.transformation.future_transformation import (
+                FutureTransformation,
+            )
 
             if isinstance(transformation, FutureTransformation):
                 if not transformation.filled:
@@ -271,8 +272,9 @@ class ExecutionGraph:
 
         for transformation in env.pipeline:
             # 跳过已填充的future transformation（它们在step 1中已被跳过）
-            from sage.kernel.api.transformation.future_transformation import \
-                FutureTransformation
+            from sage.kernel.api.transformation.future_transformation import (
+                FutureTransformation,
+            )
 
             if isinstance(transformation, FutureTransformation):
                 if transformation.filled:

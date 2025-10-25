@@ -2,8 +2,7 @@ import threading
 import time
 from typing import Any
 
-from sage.common.core.functions import (FilterFunction, SinkFunction,
-                                        SourceFunction)
+from sage.common.core.functions import FilterFunction, SinkFunction, SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

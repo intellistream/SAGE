@@ -5,11 +5,16 @@ Tests the exception class hierarchy.
 """
 
 import pytest
-from sage.common.core.exceptions import (CheckpointError, FaultToleranceError,
-                                         KernelError, PlacementError,
-                                         RecoveryError,
-                                         ResourceAllocationError,
-                                         SchedulingError)
+
+from sage.common.core.exceptions import (
+    CheckpointError,
+    FaultToleranceError,
+    KernelError,
+    PlacementError,
+    RecoveryError,
+    ResourceAllocationError,
+    SchedulingError,
+)
 
 
 class TestExceptionHierarchy:

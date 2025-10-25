@@ -5,8 +5,12 @@
 """
 
 import pytest
-from sage.platform.queue import (BaseQueueDescriptor, PythonQueueDescriptor,
-                                 RPCQueueDescriptor, resolve_descriptor)
+from sage.platform.queue import (
+    BaseQueueDescriptor,
+    PythonQueueDescriptor,
+    RPCQueueDescriptor,
+    resolve_descriptor,
+)
 
 # 检查Ray是否可用
 try:

@@ -6,8 +6,11 @@ wrapping the Python bindings from the sageFlow C++ core.
 """
 
 # Micro-service wrapper
-from .python.micro_service.sage_flow_service import (SageFlowService,
-                                                     SageFlowServiceConfig)
+from .python.micro_service.sage_flow_service import (
+                                                     SageFlowService,
+                                                     SageFlowServiceConfig,
+)
+
 # Core Python bindings
 from .python.sage_flow import SageFlow
 

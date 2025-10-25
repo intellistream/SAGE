@@ -28,10 +28,14 @@ RAG 专用数据类型定义
 from typing import Any, Union
 
 # 导入基础类型
-from sage.common.core.data_types import (BaseDocument, BaseQueryResult,
-                                         ExtendedQueryResult, QueryResultInput)
-from sage.common.core.data_types import extract_query as base_extract_query
-from sage.common.core.data_types import extract_results as base_extract_results
+from sage.common.core.data_types import (
+    BaseDocument,
+    BaseQueryResult,
+    ExtendedQueryResult,
+    QueryResultInput,
+    extract_query as base_extract_query,
+    extract_results as base_extract_results,
+)
 
 # ============================================================================
 # RAG 专用文档类型

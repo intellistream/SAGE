@@ -19,8 +19,7 @@ def example_basic_unlearning():
     print("=" * 60)
 
     try:
-        from sage.libs.unlearning.algorithms import \
-            GaussianUnlearning  # noqa: F401
+        from sage.libs.unlearning.algorithms import GaussianUnlearning  # noqa: F401
 
         print("\n✓ Machine Unlearning Overview:")
         print("  1. Train initial model on full dataset")
@@ -70,7 +69,9 @@ def example_differential_privacy():
 
     try:
         from sage.libs.unlearning.dp_unlearning import (  # noqa: F401
-            NeighborCompensation, VectorPerturbation)
+            NeighborCompensation,
+            VectorPerturbation,
+        )
 
         print("\n✓ DP-based unlearning components:")
         print("  - Vector Perturbation: Add calibrated noise")
@@ -130,8 +131,7 @@ def example_evaluation_metrics():
     print("=" * 60)
 
     try:
-        from sage.libs.unlearning.evaluation import \
-            UnlearningMetrics  # noqa: F401
+        from sage.libs.unlearning.evaluation import UnlearningMetrics  # noqa: F401
 
         print("\n✓ Evaluation metrics:")
         print("  - Forgetting accuracy: How well data is forgotten")

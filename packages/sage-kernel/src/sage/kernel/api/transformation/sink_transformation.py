@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sage.kernel.api.operator.sink_operator import SinkOperator
-from sage.kernel.api.transformation.base_transformation import \
-    BaseTransformation
+from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 if TYPE_CHECKING:
     from sage.common.core.functions import SinkFunction

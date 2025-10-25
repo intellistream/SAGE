@@ -15,8 +15,7 @@ if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
     from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
-    from sage.kernel.runtime.factory.service_task_factory import \
-        ServiceTaskFactory
+    from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory
     from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor
 
 
@@ -37,8 +36,7 @@ def _create_queue_descriptor(env: BaseEnvironment, name: str, maxsize: int) -> B
 
         return RayQueueDescriptor(maxsize=maxsize, queue_id=name)
     else:  # local 或其他情况使用 python 队列
-        from sage.platform.queue.python_queue_descriptor import \
-            PythonQueueDescriptor
+        from sage.platform.queue.python_queue_descriptor import PythonQueueDescriptor
 
         return PythonQueueDescriptor(maxsize=maxsize, queue_id=name)
 

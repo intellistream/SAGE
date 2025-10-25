@@ -12,8 +12,13 @@ from typing import Any
 
 from .exceptions import ConfigurationError, ValidationError
 from .utils import load_yaml_file
-from .validation import (validate_config_dict, validate_host, validate_path,
-                         validate_port, validate_timeout)
+from .validation import (
+    validate_config_dict,
+    validate_host,
+    validate_path,
+    validate_port,
+    validate_timeout,
+)
 
 
 class ConfigValidator:

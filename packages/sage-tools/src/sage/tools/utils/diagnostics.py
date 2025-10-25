@@ -146,8 +146,9 @@ def check_dependency_versions(
         if verify_import:
             console.print("\n尝试验证关键模块导入…")
             try:
-                from sage.kernel.runtime.jobmanager_client import \
-                    JobManagerClient  # noqa: F401
+                from sage.kernel.runtime.jobmanager_client import (
+                    JobManagerClient,  # noqa: F401
+                )
             except Exception as exc:  # pragma: no cover - import runtime dependent
                 console.print(f"❌ JobManagerClient 导入失败: {exc}")
             else:

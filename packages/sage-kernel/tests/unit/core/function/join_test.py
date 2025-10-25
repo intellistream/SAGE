@@ -4,9 +4,14 @@ import time
 from pathlib import Path
 from typing import Any
 
-from sage.common.core.functions import (BaseJoinFunction, FilterFunction,
-                                        FlatMapFunction, KeyByFunction,
-                                        SinkFunction, SourceFunction)
+from sage.common.core.functions import (
+    BaseJoinFunction,
+    FilterFunction,
+    FlatMapFunction,
+    KeyByFunction,
+    SinkFunction,
+    SourceFunction,
+)
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # =====================================================================

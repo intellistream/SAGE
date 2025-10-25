@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
 from sage.platform.service import BaseService

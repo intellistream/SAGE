@@ -12,8 +12,7 @@ from sage.kernel.runtime.jobmanager_client import JobManagerClient
 if TYPE_CHECKING:
     from sage.common.core.functions import BaseFunction
     from sage.kernel.api.datastream import DataStream
-    from sage.kernel.api.transformation.base_transformation import \
-        BaseTransformation
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 
 class BaseEnvironment(ABC):
@@ -32,14 +31,18 @@ class BaseEnvironment(ABC):
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
         if not hasattr(self, "_transformation_classes"):
-            from sage.kernel.api.transformation.base_transformation import \
-                BaseTransformation
-            from sage.kernel.api.transformation.batch_transformation import \
-                BatchTransformation
-            from sage.kernel.api.transformation.future_transformation import \
-                FutureTransformation
-            from sage.kernel.api.transformation.source_transformation import \
-                SourceTransformation
+            from sage.kernel.api.transformation.base_transformation import (
+                BaseTransformation,
+            )
+            from sage.kernel.api.transformation.batch_transformation import (
+                BatchTransformation,
+            )
+            from sage.kernel.api.transformation.future_transformation import (
+                FutureTransformation,
+            )
+            from sage.kernel.api.transformation.source_transformation import (
+                SourceTransformation,
+            )
 
             self._transformation_classes = {
                 "BaseTransformation": BaseTransformation,
@@ -105,8 +108,7 @@ class BaseEnvironment(ABC):
                 - BaseScheduler 实例: 自定义调度器实例
         """
         from sage.kernel.scheduler.api import BaseScheduler
-        from sage.kernel.scheduler.impl import (FIFOScheduler,
-                                                LoadAwareScheduler)
+        from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
 
         if scheduler is None:
             # 默认使用 FIFO 调度器
@@ -485,8 +487,9 @@ class BaseEnvironment(ABC):
         """
         从数据集合创建批处理数据源
         """
-        from sage.kernel.api.function.simple_batch_function import \
-            SimpleBatchIteratorFunction
+        from sage.kernel.api.function.simple_batch_function import (
+            SimpleBatchIteratorFunction,
+        )
 
         # 获取BatchTransformation类
         BatchTransformation = self._get_transformation_classes()["BatchTransformation"]
@@ -501,8 +504,9 @@ class BaseEnvironment(ABC):
         """
         从任何可迭代对象创建批处理数据源
         """
-        from sage.kernel.api.function.simple_batch_function import \
-            IterableBatchIteratorFunction
+        from sage.kernel.api.function.simple_batch_function import (
+            IterableBatchIteratorFunction,
+        )
 
         # 尝试获取总数量
         total_count = kwargs.pop("total_count", None)

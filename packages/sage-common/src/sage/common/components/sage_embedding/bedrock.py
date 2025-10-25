@@ -15,10 +15,12 @@ except ImportError:
     )
 
 try:
-    from tenacity import retry  # noqa: F401
-    from tenacity import retry_if_exception_type  # noqa: F401
-    from tenacity import stop_after_attempt  # noqa: F401
-    from tenacity import wait_exponential  # noqa: F401
+    from tenacity import (
+        retry,  # noqa: F401
+        retry_if_exception_type,  # noqa: F401
+        stop_after_attempt,  # noqa: F401
+        wait_exponential,  # noqa: F401
+    )
 except ImportError:
     raise ImportError(
         "tenacity package is required for AWS Bedrock embedding functionality. "

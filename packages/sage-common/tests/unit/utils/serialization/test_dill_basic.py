@@ -11,10 +11,13 @@
 import threading
 
 import pytest
-from sage.common.utils.serialization.dill import (SerializationError,
-                                                  UniversalSerializer,
-                                                  deserialize_object,
-                                                  serialize_object)
+
+from sage.common.utils.serialization.dill import (
+    SerializationError,
+    UniversalSerializer,
+    deserialize_object,
+    serialize_object,
+)
 
 
 class TestUniversalSerializer:

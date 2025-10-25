@@ -39,14 +39,11 @@ from sage.tools.cli.commands.cluster import app as cluster_app  # noqa: E402
 from sage.tools.cli.commands.config import app as config_app  # noqa: E402
 from sage.tools.cli.commands.dev import app as dev_app  # noqa: E402
 from sage.tools.cli.commands.doctor import app as doctor_app  # noqa: E402
-from sage.tools.cli.commands.embedding import \
-    app as embedding_app  # noqa: E402
-from sage.tools.cli.commands.extensions import \
-    app as extensions_app  # noqa: E402
+from sage.tools.cli.commands.embedding import app as embedding_app  # noqa: E402
+from sage.tools.cli.commands.extensions import app as extensions_app  # noqa: E402
 from sage.tools.cli.commands.head import app as head_app  # noqa: E402
 from sage.tools.cli.commands.job import app as job_app  # noqa: E402
-from sage.tools.cli.commands.jobmanager import \
-    app as jobmanager_app  # noqa: E402
+from sage.tools.cli.commands.jobmanager import app as jobmanager_app  # noqa: E402
 from sage.tools.cli.commands.llm import app as llm_app  # noqa: E402
 from sage.tools.cli.commands.pipeline import app as pipeline_app  # noqa: E402
 from sage.tools.cli.commands.studio import app as studio_app  # noqa: E402

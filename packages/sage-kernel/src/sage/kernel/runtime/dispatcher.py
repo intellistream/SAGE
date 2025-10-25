@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING, Any
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.fault_tolerance.factory import (
-    create_fault_handler_from_config, create_lifecycle_manager)
+    create_fault_handler_from_config,
+    create_lifecycle_manager,
+)
 from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.utils.ray.actor import ActorWrapper
@@ -221,8 +223,7 @@ class Dispatcher:
                 and "JoinOperator" in task.operator.__class__.__name__
             ):
                 # 这是一个 JoinOperator，创建一个停止信号并直接发送
-                from sage.kernel.runtime.communication.router.packet import \
-                    StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 stop_signal = StopSignal(source_node_name)
 

@@ -7,9 +7,12 @@ SAGE Performance Monitoring Usage Example
 
 import time
 
-from sage.kernel.runtime.monitoring import (RESOURCE_MONITOR_AVAILABLE,
-                                            MetricsCollector, MetricsReporter,
-                                            ResourceMonitor)
+from sage.kernel.runtime.monitoring import (
+    RESOURCE_MONITOR_AVAILABLE,
+    MetricsCollector,
+    MetricsReporter,
+    ResourceMonitor,
+)
 
 
 def example_metrics_collector():

@@ -281,12 +281,14 @@ class MilvusBackend:
         try:
             # 使用 BGEM3EmbeddingFunction 生成查询向量
             try:
-                from pymilvus.model.hybrid import \
-                    BGEM3EmbeddingFunction  # type: ignore[import-not-found]
+                from pymilvus.model.hybrid import (
+                    BGEM3EmbeddingFunction,  # type: ignore[import-not-found]
+                )
             except ImportError:
                 try:
-                    from pymilvus.model import \
-                        BGEM3EmbeddingFunction  # type: ignore[import-not-found]
+                    from pymilvus.model import (
+                        BGEM3EmbeddingFunction,  # type: ignore[import-not-found]
+                    )
                 except ImportError:
                     self.logger.error(
                         "Please install: pip install 'pymilvus[model]' or pip install pymilvus.model"

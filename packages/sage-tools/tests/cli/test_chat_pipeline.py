@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from sage.tools.cli.commands import chat as chat_module
-from sage.tools.cli.commands import pipeline as pipeline_builder
+
+from sage.tools.cli.commands import chat as chat_module, pipeline as pipeline_builder
 
 
 def test_looks_like_pipeline_request_detection():

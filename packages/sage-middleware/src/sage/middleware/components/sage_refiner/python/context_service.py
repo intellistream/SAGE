@@ -8,8 +8,7 @@
 import logging
 from typing import Any
 
-from sage.middleware.components.sage_refiner.python.service import \
-    RefinerService
+from sage.middleware.components.sage_refiner.python.service import RefinerService
 
 
 class ContextService:

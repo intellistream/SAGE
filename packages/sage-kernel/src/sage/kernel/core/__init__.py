@@ -10,12 +10,14 @@ Kernel Core Module - 共享类型、异常和常量
 import warnings
 
 # 兼容性导入 - 从 sage-common 重新导出
-from sage.common.core.exceptions import (FaultToleranceError, KernelError,
+from sage.common.core.exceptions import (
+                                         FaultToleranceError,
+                                         KernelError,
                                          RecoveryError,
                                          ResourceAllocationError,
-                                         SchedulingError)
-from sage.common.core.types import (ExecutionMode, NodeID, ServiceID, TaskID,
-                                    TaskStatus)
+                                         SchedulingError,
+)
+from sage.common.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
 
 # 发出弃用警告
 warnings.warn(

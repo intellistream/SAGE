@@ -16,8 +16,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-from sage.common.components.sage_embedding import (EmbeddingFactory,
-                                                   EmbeddingRegistry)
+
+from sage.common.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
 from sage.platform.service import BaseService
 
 

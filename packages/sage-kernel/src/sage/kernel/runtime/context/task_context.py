@@ -10,8 +10,7 @@ from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.transformation.base_transformation import \
-        BaseTransformation
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.communication.router.packet import Packet
     from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -312,8 +311,7 @@ class TaskContext(BaseRuntimeContext):
     def _get_router(self):
         """延迟初始化router，避免直接暴露BaseRouter给core组件"""
         if not hasattr(self, "_router") or self._router is None:
-            from sage.kernel.runtime.communication.router.router import \
-                BaseRouter
+            from sage.kernel.runtime.communication.router.router import BaseRouter
 
             self._router = BaseRouter(self)
             self.logger.debug(f"Initialized router for TaskContext {self.name}")

@@ -17,8 +17,7 @@ Scheduler Implementation Module - 调度器实现模块
 - CostOptimizedScheduler: 成本优化调度
 """
 
-from sage.kernel.scheduler.impl.resource_aware_scheduler import \
-    LoadAwareScheduler
+from sage.kernel.scheduler.impl.resource_aware_scheduler import LoadAwareScheduler
 from sage.kernel.scheduler.impl.simple_scheduler import FIFOScheduler
 
 __all__ = [

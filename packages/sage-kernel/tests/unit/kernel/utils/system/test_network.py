@@ -15,17 +15,21 @@ import time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from sage.common.utils.system.network import (_find_processes_with_fuser,
-                                              _find_processes_with_lsof,
-                                              _find_processes_with_netstat,
-                                              aggressive_port_cleanup,
-                                              allocate_free_port,
-                                              check_port_binding_permission,
-                                              check_tcp_connection,
-                                              find_port_processes, get_host_ip,
-                                              is_port_occupied,
-                                              send_tcp_health_check,
-                                              wait_for_port_release)
+
+from sage.common.utils.system.network import (
+    _find_processes_with_fuser,
+    _find_processes_with_lsof,
+    _find_processes_with_netstat,
+    aggressive_port_cleanup,
+    allocate_free_port,
+    check_port_binding_permission,
+    check_tcp_connection,
+    find_port_processes,
+    get_host_ip,
+    is_port_occupied,
+    send_tcp_health_check,
+    wait_for_port_release,
+)
 
 
 class TestIsPortOccupied:

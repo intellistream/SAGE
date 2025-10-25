@@ -16,8 +16,7 @@ import time
 from queue import Empty, Full
 
 import pytest
-from sage.platform.queue.base_queue_descriptor import (BaseQueueDescriptor,
-                                                       QueueDescriptor)
+from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor, QueueDescriptor
 from sage.platform.queue.python_queue_descriptor import PythonQueueDescriptor
 
 # 尝试导入其他队列类型（可能不存在）

@@ -3,15 +3,17 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from sage.common.core.functions import (BaseCoMapFunction, BaseFunction,
-                                        BaseJoinFunction, wrap_lambda)
+from sage.common.core.functions import (
+    BaseCoMapFunction,
+    BaseFunction,
+    BaseJoinFunction,
+    wrap_lambda,
+)
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.kernel.api.transformation.join_transformation import \
-    JoinTransformation
+from sage.kernel.api.transformation.join_transformation import JoinTransformation
 
 if TYPE_CHECKING:
-    from sage.kernel.api.transformation.base_transformation import \
-        BaseTransformation
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
     from .datastream import DataStream
 
@@ -45,14 +47,18 @@ class ConnectedStreams:
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
         if not hasattr(self, "_transformation_classes"):
-            from sage.kernel.api.transformation.base_transformation import \
-                BaseTransformation
-            from sage.kernel.api.transformation.join_transformation import \
-                JoinTransformation
-            from sage.kernel.api.transformation.map_transformation import \
-                MapTransformation
-            from sage.kernel.api.transformation.sink_transformation import \
-                SinkTransformation
+            from sage.kernel.api.transformation.base_transformation import (
+                BaseTransformation,
+            )
+            from sage.kernel.api.transformation.join_transformation import (
+                JoinTransformation,
+            )
+            from sage.kernel.api.transformation.map_transformation import (
+                MapTransformation,
+            )
+            from sage.kernel.api.transformation.sink_transformation import (
+                SinkTransformation,
+            )
 
             self._transformation_classes = {
                 "BaseTransformation": BaseTransformation,
@@ -240,8 +246,9 @@ class ConnectedStreams:
                 )
 
         # Import CoMapTransformation (delayed import to avoid circular dependencies)
-        from sage.kernel.api.transformation.comap_transformation import \
-            CoMapTransformation
+        from sage.kernel.api.transformation.comap_transformation import (
+            CoMapTransformation,
+        )
 
         # 使用传入的parallelism或者之前设置的hint
         actual_parallelism = parallelism if parallelism is not None else 1

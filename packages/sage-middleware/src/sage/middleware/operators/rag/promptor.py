@@ -3,6 +3,7 @@ import os
 import time
 
 from jinja2 import Template
+
 from sage.kernel.operators import MapOperator
 
 QA_prompt_template_str = """Instruction:

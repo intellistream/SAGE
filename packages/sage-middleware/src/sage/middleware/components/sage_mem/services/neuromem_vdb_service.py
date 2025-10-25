@@ -1,10 +1,10 @@
 import os
 from typing import Any
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import \
-    VDBMemoryCollection
-from sage.middleware.components.sage_mem.neuromem.memory_manager import \
-    MemoryManager
+from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
 

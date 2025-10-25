@@ -4,19 +4,21 @@ Tests for sage.common.core.constants
 Tests the constant definitions.
 """
 
-from sage.common.core.constants import (DEFAULT_CHECKPOINT_INTERVAL,
-                                        DEFAULT_CLEANUP_TIMEOUT,
-                                        DEFAULT_HEALTH_CHECK_INTERVAL,
-                                        DEFAULT_MAX_RESTART_ATTEMPTS,
-                                        PLACEMENT_STRATEGY_LOAD_BALANCE,
-                                        PLACEMENT_STRATEGY_RESOURCE_AWARE,
-                                        PLACEMENT_STRATEGY_SIMPLE,
-                                        RESTART_STRATEGY_EXPONENTIAL,
-                                        RESTART_STRATEGY_FAILURE_RATE,
-                                        RESTART_STRATEGY_FIXED,
-                                        SCHEDULING_STRATEGY_FIFO,
-                                        SCHEDULING_STRATEGY_PRIORITY,
-                                        SCHEDULING_STRATEGY_RESOURCE_AWARE)
+from sage.common.core.constants import (
+    DEFAULT_CHECKPOINT_INTERVAL,
+    DEFAULT_CLEANUP_TIMEOUT,
+    DEFAULT_HEALTH_CHECK_INTERVAL,
+    DEFAULT_MAX_RESTART_ATTEMPTS,
+    PLACEMENT_STRATEGY_LOAD_BALANCE,
+    PLACEMENT_STRATEGY_RESOURCE_AWARE,
+    PLACEMENT_STRATEGY_SIMPLE,
+    RESTART_STRATEGY_EXPONENTIAL,
+    RESTART_STRATEGY_FAILURE_RATE,
+    RESTART_STRATEGY_FIXED,
+    SCHEDULING_STRATEGY_FIFO,
+    SCHEDULING_STRATEGY_PRIORITY,
+    SCHEDULING_STRATEGY_RESOURCE_AWARE,
+)
 
 
 class TestDefaultConstants:

@@ -1,6 +1,7 @@
-from sage.kernel.operators import MapOperator
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
+
+from sage.kernel.operators import MapOperator
 
 
 class CharacterSplitter(MapOperator):

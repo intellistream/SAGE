@@ -16,7 +16,10 @@ import time
 from typing import Any
 
 from sage.middleware.components.sage_refiner.python.base import (
-    BaseRefiner, RefineResult, RefinerMetrics)
+    BaseRefiner,
+    RefineResult,
+    RefinerMetrics,
+)
 
 
 class LongRefinerAlgorithm(BaseRefiner):
@@ -50,8 +53,9 @@ class LongRefinerAlgorithm(BaseRefiner):
 
         try:
             # 从本地实现导入，不再依赖sage-libs
-            from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.refiner import \
-                LongRefiner
+            from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.refiner import (
+                LongRefiner,
+            )
 
             # 准备配置
             required_fields = [

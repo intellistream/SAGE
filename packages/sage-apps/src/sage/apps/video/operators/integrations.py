@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+
 from sage.common.core.functions.map_function import MapFunction
 
 

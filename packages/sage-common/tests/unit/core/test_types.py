@@ -4,9 +4,19 @@ Tests for sage.common.core.types
 Tests the core type definitions, enums, and type aliases.
 """
 
-from sage.common.core.types import (ExecutionMode, JobID, JobStatus, NodeID,
-                                    QueueID, ServiceID, ServiceType, T, TaskID,
-                                    TaskStatus, TaskType)
+from sage.common.core.types import (
+    ExecutionMode,
+    JobID,
+    JobStatus,
+    NodeID,
+    QueueID,
+    ServiceID,
+    ServiceType,
+    T,
+    TaskID,
+    TaskStatus,
+    TaskType,
+)
 
 
 class TestExecutionMode:

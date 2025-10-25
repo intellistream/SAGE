@@ -36,8 +36,7 @@ class ProxyManager:
     def _get_service_manager(self):
         with self._lock:
             if self._service_manager is None:
-                from sage.kernel.runtime.service.service_caller import \
-                    ServiceManager
+                from sage.kernel.runtime.service.service_caller import ServiceManager
 
                 self._service_manager = ServiceManager(self._context, logger=self._logger)
             return self._service_manager

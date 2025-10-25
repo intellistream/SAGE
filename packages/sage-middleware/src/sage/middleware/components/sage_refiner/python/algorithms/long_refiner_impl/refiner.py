@@ -2,16 +2,22 @@ import re
 
 import json_repair
 import numpy as np
-from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.prompt_template import \
-    PromptTemplate
-from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.task_instruction import (
-    SYSTEM_PROMPT_STEP1, SYSTEM_PROMPT_STEP2, SYSTEM_PROMPT_STEP3,
-    USER_PROMPT_STEP1, USER_PROMPT_STEP2, USER_PROMPT_STEP3)
 from tqdm import tqdm
-from transformers import (AutoModel, AutoModelForSequenceClassification,
-                          AutoTokenizer)
+from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
+
+from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.prompt_template import (
+    PromptTemplate,
+)
+from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.task_instruction import (
+    SYSTEM_PROMPT_STEP1,
+    SYSTEM_PROMPT_STEP2,
+    SYSTEM_PROMPT_STEP3,
+    USER_PROMPT_STEP1,
+    USER_PROMPT_STEP2,
+    USER_PROMPT_STEP3,
+)
 
 
 class LongRefiner:

@@ -18,8 +18,13 @@ from unittest.mock import patch
 import pytest
 import yaml
 from pydantic import ValidationError
-from sage.common.utils.config.manager import (BaseConfig, ConfigManager,
-                                              load_config, save_config)
+
+from sage.common.utils.config.manager import (
+    BaseConfig,
+    ConfigManager,
+    load_config,
+    save_config,
+)
 
 
 @pytest.mark.unit

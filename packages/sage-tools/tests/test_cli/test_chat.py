@@ -1,14 +1,14 @@
 import json
 
 import pytest
-from sage.tools.cli.main import app
 from typer.testing import CliRunner
+
+from sage.tools.cli.main import app
 
 
 def _has_sage_db() -> bool:
     try:
-        from sage.middleware.components.sage_db.python import \
-            sage_db  # noqa: F401
+        from sage.middleware.components.sage_db.python import sage_db  # noqa: F401
 
         return True
     except Exception:

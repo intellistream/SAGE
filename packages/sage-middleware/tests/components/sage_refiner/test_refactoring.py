@@ -56,9 +56,11 @@ def test_algorithm_registration():
 
 def test_service_functionality():
     """测试服务功能"""
-    from sage.middleware.components.sage_refiner import (RefinerAlgorithm,
-                                                         RefinerConfig,
-                                                         RefinerService)
+    from sage.middleware.components.sage_refiner import (
+        RefinerAlgorithm,
+        RefinerConfig,
+        RefinerService,
+    )
 
     # 创建配置
     config = RefinerConfig(

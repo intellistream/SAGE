@@ -30,6 +30,7 @@ os.environ.setdefault("SAGE_LOG_LEVEL", "INFO")
 try:
     # ray may be optional in test environments; import locally after path setup
     import ray
+
     from sage.common.config.output_paths import get_sage_paths
 
     if not ray.is_initialized():
@@ -62,8 +63,7 @@ def sage_test_env_config():
     返回标准化的测试环境配置，确保所有测试使用.sage目录
     而不是在项目根目录创建test_env目录
     """
-    from sage.common.config.output_paths import (get_sage_paths,
-                                                 get_test_env_dir)
+    from sage.common.config.output_paths import get_sage_paths, get_test_env_dir
 
     # 使用统一的路径管理
     sage_paths = get_sage_paths()

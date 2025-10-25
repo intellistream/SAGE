@@ -4,11 +4,15 @@ Tests for sage.common.core.data_types
 Tests the universal data type definitions for SAGE framework.
 """
 
-from sage.common.core.data_types import (BaseDocument, BaseQueryResult,
-                                         ExtendedQueryResult,
-                                         create_query_result,
-                                         ensure_query_result, extract_query,
-                                         extract_results)
+from sage.common.core.data_types import (
+    BaseDocument,
+    BaseQueryResult,
+    ExtendedQueryResult,
+    create_query_result,
+    ensure_query_result,
+    extract_query,
+    extract_results,
+)
 
 
 class TestBaseDocument:

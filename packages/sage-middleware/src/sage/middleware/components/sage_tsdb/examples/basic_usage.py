@@ -11,6 +11,7 @@ This example demonstrates:
 from datetime import datetime
 
 import numpy as np
+
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
