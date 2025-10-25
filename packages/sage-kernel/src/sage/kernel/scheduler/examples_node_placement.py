@@ -183,50 +183,50 @@ def example_full_scheduling_flow():
     return
 
     # 下面是伪代码，展示概念
-    """
-    # 创建自定义调度器
-    scheduler = NodeAwareScheduler()
-
-    # 创建 Environment（使用自定义调度器）
-    env = LocalEnvironment(
-        name="node_aware_demo",
-        platform="remote",
-        scheduler=scheduler
-    )
-
-    # 定义一个需要 GPU 的 Operator
-    class GPUOperator:
-        gpu_required = 1
-        def process(self, record):
-            return record * 2
-
-    # 构建 Pipeline
-    env.from_source(...).map(GPUOperator, parallelism=2).sink(...)
-    """
-
-    # 提交作业
-    # 内部流程：
-    # 1. Dispatcher.submit() 被调用
-    # 2. 对每个任务：
-    #    - scheduler.make_decision(task_node) 返回决策
-    #      → decision = PlacementDecision(target_node="gpu-node-id", ...)
-    #    - placement_executor.place_task(task_node, decision)
-    #      → 创建 Actor 到指定的 GPU 节点
-    #    - task.start_running()
-    #      → 启动数据处理
-    env.submit()
-
-    # 等待完成
-    env.wait_for_completion()
-
-    # 查看调度指标
-    metrics = scheduler.get_metrics()
-    print(f"调度统计: {metrics}")
-
-    # 查看决策历史
-    print("\n决策历史:")
-    for i, decision in enumerate(scheduler.decision_history, 1):
-        print(f"{i}. {decision}")
+    # """
+    # # 创建自定义调度器
+    # scheduler = NodeAwareScheduler()
+    #
+    # # 创建 Environment（使用自定义调度器）
+    # env = LocalEnvironment(
+    #     name="node_aware_demo",
+    #     platform="remote",
+    #     scheduler=scheduler
+    # )
+    #
+    # # 定义一个需要 GPU 的 Operator
+    # class GPUOperator:
+    #     gpu_required = 1
+    #     def process(self, record):
+    #         return record * 2
+    #
+    # # 构建 Pipeline
+    # env.from_source(...).map(GPUOperator, parallelism=2).sink(...)
+    # """
+    #
+    # # 提交作业
+    # # 内部流程：
+    # # 1. Dispatcher.submit() 被调用
+    # # 2. 对每个任务：
+    # #    - scheduler.make_decision(task_node) 返回决策
+    # #      → decision = PlacementDecision(target_node="gpu-node-id", ...)
+    # #    - placement_executor.place_task(task_node, decision)
+    # #      → 创建 Actor 到指定的 GPU 节点
+    # #    - task.start_running()
+    # #      → 启动数据处理
+    # env.submit()
+    #
+    # # 等待完成
+    # env.wait_for_completion()
+    #
+    # # 查看调度指标
+    # metrics = scheduler.get_metrics()
+    # print(f"调度统计: {metrics}")
+    #
+    # # 查看决策历史
+    # print("\n决策历史:")
+    # for i, decision in enumerate(scheduler.decision_history, 1):
+    #     print(f"{i}. {decision}")
 
 
 # ============================================================

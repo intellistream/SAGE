@@ -52,7 +52,7 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     SageFlowService = None  # type: ignore[assignment]
 
-from sage.apps.video.operators import (
+from sage.apps.video.operators import (  # noqa: E402
     EventStatsSink,
     FrameEventEmitter,
     FrameLightweightFormatter,
@@ -445,11 +445,11 @@ def apply_runtime_overrides(config: dict[str, Any], args: argparse.Namespace) ->
     return config
 
 
-def download_test_video() -> str:
+def download_test_video_to_temp() -> str | None:
     """Download a small test video for CI/testing purposes.
 
     Uses a public domain short video clip suitable for testing.
-    Returns the path to the downloaded video file.
+    Returns the path to the downloaded video file, or None if download fails.
     """
     import urllib.request
     from pathlib import Path
@@ -491,7 +491,7 @@ def main() -> None:
         print("\n" + "=" * 80)
         print("📥 No video file provided - attempting to download test video...")
         print("=" * 80)
-        test_video = download_test_video()
+        test_video = download_test_video_to_temp()
         if test_video:
             video_path = test_video
             config["video_path"] = video_path

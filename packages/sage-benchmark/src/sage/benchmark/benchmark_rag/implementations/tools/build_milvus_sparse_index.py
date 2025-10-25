@@ -1,16 +1,9 @@
 import os
 import sys
 
-import yaml
 from sage.common.utils.config.loader import load_config
 from sage.libs.rag.document_loaders import TextLoader
 from sage.middleware.operators.rag import CharacterSplitter, MilvusSparseRetriever
-
-
-def load_config(path):
-    with open(path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    return config
 
 
 def load_knowledge_to_milvus(config):
