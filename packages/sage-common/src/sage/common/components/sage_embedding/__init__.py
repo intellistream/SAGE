@@ -234,10 +234,10 @@ _register_all_methods()
 
 
 # 向后兼容：保留旧的 EmbeddingModel 和 apply_embedding_model
-from .embedding_model import EmbeddingModel, apply_embedding_model
+from .embedding_model import EmbeddingModel, apply_embedding_model  # noqa: E402
 
 # Service interface (新增)
-from .service import EmbeddingService, EmbeddingServiceConfig
+from .service import EmbeddingService, EmbeddingServiceConfig  # noqa: E402
 
 # 统一导出接口
 __all__ = [

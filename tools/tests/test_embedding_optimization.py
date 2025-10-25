@@ -8,7 +8,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "packages" / "sage-middleware" / "src"))
 
-from sage.common.components.sage_embedding import (
+from sage.common.components.sage_embedding import (  # noqa: E402
     check_model_availability,
     get_embedding_model,
     list_embedding_models,

@@ -15,8 +15,8 @@ from rich.panel import Panel
 project_root = os.path.join(os.path.dirname(__file__), "../..")
 sys.path.insert(0, project_root)
 
-from sage.tools.cli.commands.pipeline import PipelinePlanGenerator
-from sage.tools.templates.catalog import match_templates
+from sage.tools.cli.commands.pipeline import PipelinePlanGenerator  # noqa: E402
+from sage.tools.templates.catalog import match_templates  # noqa: E402
 
 console = Console()
 

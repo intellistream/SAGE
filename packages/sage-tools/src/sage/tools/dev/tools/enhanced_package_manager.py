@@ -7,6 +7,7 @@ This tool provides comprehensive package management for the SAGE monorepo.
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 from ..core.exceptions import SAGEDevToolkitError
 
@@ -19,7 +20,7 @@ class EnhancedPackageManager:
         self.packages_dir = self.project_root / "packages"
 
         # Define packages and their dependencies
-        self.packages = {
+        self.packages: dict[str, dict[str, Any]] = {
             "sage-common": {
                 "path": self.packages_dir / "sage-common",
                 "namespace": "sage.common",

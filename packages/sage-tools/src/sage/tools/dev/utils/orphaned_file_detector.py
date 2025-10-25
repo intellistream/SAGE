@@ -136,7 +136,9 @@ class OrphanedFileDetector:
 
         return references
 
-    def detect_orphaned_files(self, check_directories: list[str] = None) -> list[OrphanedFile]:
+    def detect_orphaned_files(
+        self, check_directories: list[str] | None = None
+    ) -> list[OrphanedFile]:
         """检测废弃文件"""
         if check_directories is None:
             check_directories = [

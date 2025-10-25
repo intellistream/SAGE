@@ -5,7 +5,7 @@ import requests
 
 pass
 
-import aiohttp
+import aiohttp  # noqa: E402
 
 
 async def siliconcloud_embedding(
@@ -77,10 +77,10 @@ def siliconcloud_embedding_sync(
         list[float]: embedding 向量
     """
     if api_key and not api_key.startswith("Bearer "):
-        api_key = "Bearer " + api_key
+        api_key = "Bearer " + api_key  # pragma: allowlist secret
 
     headers = {
-        "Authorization": api_key,
+        "Authorization": api_key,  # pragma: allowlist secret
         "Content-Type": "application/json",
     }
 

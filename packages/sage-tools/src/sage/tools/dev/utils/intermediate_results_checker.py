@@ -135,7 +135,7 @@ class IntermediateResultsChecker:
 
     def _check_tmp_directory(self) -> list[dict]:
         """检查 /tmp 目录下是否有项目相关的临时文件"""
-        violations = []
+        violations: list[dict] = []
         tmp_path = Path("/tmp")
 
         if not tmp_path.exists():
@@ -169,7 +169,7 @@ class IntermediateResultsChecker:
         """检查文件名是否匹配模式"""
         return fnmatch.fnmatch(name, pattern)
 
-    def print_check_result(self, check_result: dict = None) -> bool:
+    def print_check_result(self, check_result: dict | None = None) -> bool:
         """
         打印检查结果
 

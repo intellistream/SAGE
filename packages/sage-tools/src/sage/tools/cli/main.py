@@ -34,22 +34,22 @@ app = typer.Typer(
 # 注册所有子命令
 # 这些 import 语句会在模块加载时执行，因此相关子模块的依赖会被立即加载。
 # 如果需要延迟加载重量级依赖（如 transformers），请在各子模块内部实现延迟导入。
-from sage.tools.cli.commands.chat import app as chat_app
-from sage.tools.cli.commands.cluster import app as cluster_app
-from sage.tools.cli.commands.config import app as config_app
-from sage.tools.cli.commands.dev import app as dev_app
-from sage.tools.cli.commands.doctor import app as doctor_app
-from sage.tools.cli.commands.embedding import app as embedding_app
-from sage.tools.cli.commands.extensions import app as extensions_app
-from sage.tools.cli.commands.head import app as head_app
-from sage.tools.cli.commands.job import app as job_app
-from sage.tools.cli.commands.jobmanager import app as jobmanager_app
-from sage.tools.cli.commands.llm import app as llm_app
-from sage.tools.cli.commands.pipeline import app as pipeline_app
-from sage.tools.cli.commands.studio import app as studio_app
-from sage.tools.cli.commands.version import app as version_app
-from sage.tools.cli.commands.worker import app as worker_app
-from sage.tools.finetune import app as finetune_app
+from sage.tools.cli.commands.chat import app as chat_app  # noqa: E402
+from sage.tools.cli.commands.cluster import app as cluster_app  # noqa: E402
+from sage.tools.cli.commands.config import app as config_app  # noqa: E402
+from sage.tools.cli.commands.dev import app as dev_app  # noqa: E402
+from sage.tools.cli.commands.doctor import app as doctor_app  # noqa: E402
+from sage.tools.cli.commands.embedding import app as embedding_app  # noqa: E402
+from sage.tools.cli.commands.extensions import app as extensions_app  # noqa: E402
+from sage.tools.cli.commands.head import app as head_app  # noqa: E402
+from sage.tools.cli.commands.job import app as job_app  # noqa: E402
+from sage.tools.cli.commands.jobmanager import app as jobmanager_app  # noqa: E402
+from sage.tools.cli.commands.llm import app as llm_app  # noqa: E402
+from sage.tools.cli.commands.pipeline import app as pipeline_app  # noqa: E402
+from sage.tools.cli.commands.studio import app as studio_app  # noqa: E402
+from sage.tools.cli.commands.version import app as version_app  # noqa: E402
+from sage.tools.cli.commands.worker import app as worker_app  # noqa: E402
+from sage.tools.finetune import app as finetune_app  # noqa: E402
 
 # 注册所有子命令
 app.add_typer(version_app, name="version", help="📋 版本信息")

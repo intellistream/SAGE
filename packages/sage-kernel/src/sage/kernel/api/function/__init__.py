@@ -17,7 +17,7 @@ warnings.warn(
 )
 
 # 从 common 重新导出
-from sage.common.core.functions import (
+from sage.common.core.functions import (  # noqa: E402
     BaseCoMapFunction,
     BaseFunction,
     BaseJoinFunction,
