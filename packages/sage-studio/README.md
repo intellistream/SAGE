@@ -4,8 +4,8 @@
 
 **SAGE Studio** 是一个现代化的低代码 Web UI 包，用于可视化开发和管理 SAGE RAG 数据流水线。
 
-> **包名**: `isage-studio`  
-> **技术栈**: React 18 + FastAPI  
+> **包名**: `isage-studio`\
+> **技术栈**: React 18 + FastAPI
 
 ## 🚀 Installation
 
@@ -37,6 +37,7 @@ sage studio stop
 ```
 
 **访问地址**：
+
 - 🌐 前端：http://localhost:5173
 - 🔌 后端：http://localhost:8080
 
@@ -104,6 +105,7 @@ npm run type-check   # TypeScript 类型检查
 ```
 
 **核心功能**:
+
 - 🎨 拖放节点到画布
 - 🔗 连接节点创建数据流
 - ⚙️ 动态配置节点参数
@@ -194,6 +196,7 @@ React 18.2.0 + TypeScript 5.2.2
 ```
 
 **关键特性**:
+
 - 🎯 **TypeScript 全覆盖**: 完整的类型安全
 - 🔄 **React Flow**: 高性能图形编辑器
 - 📦 **模块化设计**: 组件、状态、服务分离
@@ -237,6 +240,7 @@ Backend API (localhost:8080)
 - **sage**: 元包，默认依赖所有组件
 
 优点：
+
 - ✅ 功能独立，易于维护
 - ✅ 可选安装（灵活部署）
 - ✅ 清晰的依赖关系
@@ -265,6 +269,7 @@ npm test
 ```
 
 **开发建议**:
+
 - 使用 TypeScript 严格模式
 - 遵循 React Hooks 最佳实践
 - 组件职责单一，便于测试
@@ -314,17 +319,18 @@ rm -rf .sage/states/*
 ## 📋 依赖关系
 
 ### 核心依赖
+
 - `isage-common>=0.1.0` - 通用组件
 - `isage-kernel>=0.1.0` - 核心引擎
 - `isage-middleware>=0.1.0` - 中间件
 - `isage-libs>=0.1.0` - 应用库
 
 ### Web 框架
+
 - `fastapi>=0.115,<0.116` - Web 框架
 - `uvicorn[standard]>=0.34.0` - ASGI 服务器
 - `starlette>=0.40,<0.47` - Web 工具包
 - `websockets>=11.0` - WebSocket 支持
-
 
 ## 🔄 升级指南
 
@@ -346,6 +352,7 @@ if (isAngularFormat) {
 ```
 
 **旧格式（Angular）**:
+
 ```json
 {
   "elements": [{
@@ -355,6 +362,7 @@ if (isAngularFormat) {
 ```
 
 **新格式（React Flow）**:
+
 ```json
 {
   "nodes": [{
@@ -364,9 +372,10 @@ if (isAngularFormat) {
 ```
 
 **迁移步骤**:
+
 1. ✅ 无需手动操作，加载时自动转换
-2. ✅ 编辑后保存为新格式
-3. ✅ 保留原始格式在 `config` 字段
+1. ✅ 编辑后保存为新格式
+1. ✅ 保留原始格式在 `config` 字段
 
 ### 从旧版 Studio 升级
 
@@ -386,6 +395,7 @@ from sage.studio.studio_manager import StudioManager
 ### 常见问题
 
 **后端无响应**:
+
 ```bash
 # 检查进程
 ps aux | grep "sage.studio.config.backend.api"
@@ -396,6 +406,7 @@ python -m sage.studio.config.backend.api &
 ```
 
 **前端编译错误**:
+
 ```bash
 cd frontend
 rm -rf node_modules package-lock.json
@@ -404,6 +415,7 @@ npm run dev
 ```
 
 **端口被占用**:
+
 ```bash
 # 查看占用
 lsof -i :3000
@@ -414,6 +426,7 @@ kill -9 $(lsof -t -i:3000)
 ```
 
 **Conda 环境问题**:
+
 ```bash
 # 确认在 sage 环境
 conda info --envs | grep "*"
@@ -424,7 +437,6 @@ conda activate sage
 # 检查 .bashrc
 tail -3 ~/.bashrc  # 应该有 "conda activate sage"
 ```
-
 
 ## 📄 License
 

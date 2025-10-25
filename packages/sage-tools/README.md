@@ -7,6 +7,7 @@ SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开
 ## 🛠️ Features
 
 ### � Development Toolkit (`sage.dev`)
+
 - Automated testing with pytest integration
 - Code quality tools (black, isort, mypy, ruff)
 - Package management and publishing
@@ -14,18 +15,21 @@ SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开
 - Documentation generation tools
 
 ### � Package Management
+
 - Monorepo package dependency resolution
 - Build and release automation
 - Version management utilities
 - Distribution packaging tools
 
 ### 🧪 Testing & Quality
+
 - Unit test execution and reporting
 - Code coverage analysis
 - Performance benchmarking
 - Quality metrics collection
 
 ### 📊 Analysis & Reporting
+
 - Architecture validation tools
 - Dev notes organization
 - Documentation quality checker
@@ -76,7 +80,6 @@ devnotes_checker.check_all()
 ## 📄 License
 
 MIT License - see the [LICENSE](../../LICENSE) file for details.
-
 
 ## 📄 License
 
