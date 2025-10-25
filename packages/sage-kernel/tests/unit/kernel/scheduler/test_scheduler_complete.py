@@ -15,7 +15,6 @@ import time
 from unittest.mock import Mock, patch
 
 import pytest
-
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler

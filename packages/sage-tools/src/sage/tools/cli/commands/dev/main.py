@@ -8,13 +8,10 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
-
-from sage.tools.utils.diagnostics import (
-    collect_packages_status,
-    print_packages_status,
-    print_packages_status_summary,
-    run_installation_diagnostics,
-)
+from sage.tools.utils.diagnostics import (collect_packages_status,
+                                          print_packages_status,
+                                          print_packages_status_summary,
+                                          run_installation_diagnostics)
 
 console = Console()
 app = typer.Typer(help="SAGE 开发工具集")
@@ -670,7 +667,8 @@ def status(
         # 延迟导入以减少启动时间
         from pathlib import Path
 
-        from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
+        from sage.tools.dev.tools.project_status_checker import \
+            ProjectStatusChecker
 
         # 自动检测项目根目录
         project_path = Path(project_root).resolve()
@@ -832,8 +830,8 @@ def test(
         from pathlib import Path
 
         from rich.rule import Rule
-
-        from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
+        from sage.tools.dev.tools.enhanced_test_runner import \
+            EnhancedTestRunner
 
         # 0. 测试目录获取
         if not quiet:
@@ -976,10 +974,8 @@ def home(
 ):
     """管理SAGE目录"""
     try:
-        from sage.common.config.output_paths import (
-            get_sage_paths,
-            initialize_sage_paths,
-        )
+        from sage.common.config.output_paths import (get_sage_paths,
+                                                     initialize_sage_paths)
 
         # 使用统一的路径系统
         if path:

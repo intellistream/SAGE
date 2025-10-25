@@ -8,16 +8,11 @@ and object attribute filtering.
 from unittest.mock import patch
 
 import pytest
-
-from sage.kernel.utils.persistence.state import (
-    _BLACKLIST,
-    _filter_attrs,
-    _gather_attrs,
-    _is_serializable,
-    _prepare,
-    load_function_state,
-    save_function_state,
-)
+from sage.kernel.utils.persistence.state import (_BLACKLIST, _filter_attrs,
+                                                 _gather_attrs,
+                                                 _is_serializable, _prepare,
+                                                 load_function_state,
+                                                 save_function_state)
 
 
 class SerializableTestObject:

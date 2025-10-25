@@ -15,8 +15,8 @@
 """
 
 import pytest
-
-from sage.common.utils.serialization.dill import deserialize_object, serialize_object
+from sage.common.utils.serialization.dill import (deserialize_object,
+                                                  serialize_object)
 
 
 class SharedResource:

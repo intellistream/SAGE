@@ -15,15 +15,9 @@ from pathlib import Path
 from typing import Any
 
 from .config import ToolkitConfig
-from .exceptions import (
-    AnalysisError,
-    DependencyAnalysisError,
-    PackageManagementError,
-    ReportGenerationError,
-    SAGEDevToolkitError,
-    TestExecutionError,
-    ToolError,
-)
+from .exceptions import (AnalysisError, DependencyAnalysisError,
+                         PackageManagementError, ReportGenerationError,
+                         SAGEDevToolkitError, TestExecutionError, ToolError)
 
 
 class SAGEDevToolkit:
@@ -106,11 +100,8 @@ class SAGEDevToolkit:
     def _load_tools(self) -> None:
         """Load integrated tools and dynamically load additional tools from scripts directory."""
         # Load integrated tools first
-        from ..tools import (
-            EnhancedPackageManager,
-            EnhancedTestRunner,
-            VSCodePathManager,
-        )
+        from ..tools import (EnhancedPackageManager, EnhancedTestRunner,
+                             VSCodePathManager)
 
         # Map integrated tools
         integrated_tools = {

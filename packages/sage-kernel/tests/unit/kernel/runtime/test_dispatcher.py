@@ -10,7 +10,6 @@ import time
 from unittest.mock import Mock, patch
 
 import pytest
-
 from sage.kernel.runtime.dispatcher import Dispatcher
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask

@@ -80,7 +80,6 @@ class MyCustomFaultHandler(BaseFaultHandler):
 
 # 导出实现层供开发者参考和扩展
 from sage.kernel.fault_tolerance import impl
-
 # 只导出开发者扩展需要的基类
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 

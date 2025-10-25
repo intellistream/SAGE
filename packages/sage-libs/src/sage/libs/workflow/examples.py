@@ -5,21 +5,12 @@ This example demonstrates how to use the framework to research and develop
 workflow optimization strategies.
 """
 
-from sage.libs.workflow import (
-    BudgetConstraint,
-    ConstraintChecker,
-    LatencyConstraint,
-    NodeType,
-    QualityConstraint,
-    WorkflowEvaluator,
-    WorkflowGraph,
-)
+from sage.libs.workflow import (BudgetConstraint, ConstraintChecker,
+                                LatencyConstraint, NodeType, QualityConstraint,
+                                WorkflowEvaluator, WorkflowGraph)
 from sage.libs.workflow.evaluator import create_synthetic_workflow
-from sage.libs.workflow.optimizers import (
-    GreedyOptimizer,
-    NoOpOptimizer,
-    ParallelizationOptimizer,
-)
+from sage.libs.workflow.optimizers import (GreedyOptimizer, NoOpOptimizer,
+                                           ParallelizationOptimizer)
 
 
 def example_basic_workflow():

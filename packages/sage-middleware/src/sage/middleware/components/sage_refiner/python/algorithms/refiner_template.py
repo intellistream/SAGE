@@ -11,10 +11,7 @@ import time
 from typing import Any
 
 from sage.middleware.components.sage_refiner.python.base import (
-    BaseRefiner,
-    RefineResult,
-    RefinerMetrics,
-)
+    BaseRefiner, RefineResult, RefinerMetrics)
 
 
 class YourRefinerAlgorithm(BaseRefiner):

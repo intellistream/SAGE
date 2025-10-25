@@ -8,14 +8,14 @@ Fault Tolerance Factory
 from typing import Any
 
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
-from sage.kernel.fault_tolerance.impl.checkpoint_recovery import CheckpointBasedRecovery
-from sage.kernel.fault_tolerance.impl.lifecycle_impl import LifecycleManagerImpl
-from sage.kernel.fault_tolerance.impl.restart_recovery import RestartBasedRecovery
+from sage.kernel.fault_tolerance.impl.checkpoint_recovery import \
+    CheckpointBasedRecovery
+from sage.kernel.fault_tolerance.impl.lifecycle_impl import \
+    LifecycleManagerImpl
+from sage.kernel.fault_tolerance.impl.restart_recovery import \
+    RestartBasedRecovery
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
-    ExponentialBackoffStrategy,
-    FailureRateStrategy,
-    FixedDelayStrategy,
-)
+    ExponentialBackoffStrategy, FailureRateStrategy, FixedDelayStrategy)
 
 
 def create_fault_handler_from_config(

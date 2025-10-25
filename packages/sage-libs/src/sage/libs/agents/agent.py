@@ -3,7 +3,6 @@ import re
 import time
 
 import requests
-
 from sage.common.core.functions import MapFunction
 from sage.libs.integrations.openaiclient import OpenAIClient
 

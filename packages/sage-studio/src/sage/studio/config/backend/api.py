@@ -901,10 +901,7 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
         sys.path.insert(0, str(studio_path))
 
     from sage.studio.models import (  # type: ignore[import-not-found]
-        VisualConnection,
-        VisualNode,
-        VisualPipeline,
-    )
+        VisualConnection, VisualNode, VisualPipeline)
 
     name = flow_data.get("name", "Unnamed Flow")
     description = flow_data.get("description", "")
@@ -988,10 +985,10 @@ async def execute_playground(request: PlaygroundExecuteRequest):
         if str(studio_path) not in sys.path:
             sys.path.insert(0, str(studio_path))
 
-        from sage.studio.models import PipelineStatus  # type: ignore[import-not-found]
-        from sage.studio.services import (
-            get_pipeline_builder,  # type: ignore[import-not-found]
-        )
+        from sage.studio.models import \
+            PipelineStatus  # type: ignore[import-not-found]
+        from sage.studio.services import \
+            get_pipeline_builder  # type: ignore[import-not-found]
 
         print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
         print(f"📝 Input: {request.input}")

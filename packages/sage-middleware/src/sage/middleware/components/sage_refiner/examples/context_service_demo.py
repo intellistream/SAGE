@@ -5,9 +5,8 @@ Context Service使用示例
 演示如何使用全局Context Service管理应用上下文。
 """
 
-from sage.middleware.components.sage_refiner.python.context_service import (
-    ContextService,
-)
+from sage.middleware.components.sage_refiner.python.context_service import \
+    ContextService
 
 
 def basic_context_service():

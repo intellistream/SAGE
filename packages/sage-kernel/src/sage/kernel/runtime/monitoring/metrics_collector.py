@@ -15,11 +15,9 @@ from collections import deque
 from datetime import datetime, timedelta
 from threading import Lock
 
-from sage.kernel.runtime.monitoring.metrics import (
-    PacketMetrics,
-    ServiceRequestMetrics,
-    TaskPerformanceMetrics,
-)
+from sage.kernel.runtime.monitoring.metrics import (PacketMetrics,
+                                                    ServiceRequestMetrics,
+                                                    TaskPerformanceMetrics)
 
 
 class MetricsCollector:

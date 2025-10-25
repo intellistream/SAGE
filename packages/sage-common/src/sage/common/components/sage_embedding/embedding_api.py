@@ -2,7 +2,8 @@ import os
 
 # flake8: noqa: E402
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
+from sage.common.components.sage_embedding.embedding_model import \
+    EmbeddingModel
 
 
 def apply_embedding_model(name: str = "default", **kwargs) -> EmbeddingModel:

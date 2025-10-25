@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sage.kernel.api.transformation.base_transformation import BaseTransformation
+from sage.kernel.api.transformation.base_transformation import \
+    BaseTransformation
 
 if TYPE_CHECKING:
     from sage.common.core.functions import BaseJoinFunction
@@ -200,9 +201,8 @@ class JoinTransformation(BaseTransformation):
         Returns:
             bool: 是否为keyed stream
         """
-        from sage.kernel.api.transformation.keyby_transformation import (
-            KeyByTransformation,
-        )
+        from sage.kernel.api.transformation.keyby_transformation import \
+            KeyByTransformation
 
         # 直接是KeyByTransformation
         if isinstance(transformation, KeyByTransformation):

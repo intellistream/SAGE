@@ -1,6 +1,5 @@
 # tests/test_mcp_registry.py
 import pytest
-
 # 尽量直接导入；如果你的工程路径未就绪，可在运行pytest时用 PYTHONPATH 指向项目根
 from sage.libs.agents.action.mcp_registry import MCPRegistry
 

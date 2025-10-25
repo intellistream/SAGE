@@ -4,13 +4,11 @@ Ray对象清理器 - 专门用于Ray远程调用的对象预处理
 
 from typing import Any
 
-from .config import (
-    RAY_OPERATOR_EXCLUDE_ATTRS,
-    RAY_TRANSFORMATION_EXCLUDE_ATTRS,
-    SKIP_VALUE,
-)
+from .config import (RAY_OPERATOR_EXCLUDE_ATTRS,
+                     RAY_TRANSFORMATION_EXCLUDE_ATTRS, SKIP_VALUE)
 from .exceptions import SerializationError
-from .preprocessor import filter_attrs, gather_attrs, preprocess_for_dill, should_skip
+from .preprocessor import (filter_attrs, gather_attrs, preprocess_for_dill,
+                           should_skip)
 
 
 def trim_object_for_ray(

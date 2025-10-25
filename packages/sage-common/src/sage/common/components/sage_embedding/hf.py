@@ -15,11 +15,8 @@ def initialize_hf_model(model_name):
     """初始化 HuggingFace 模型（延迟导入依赖）"""
     # 延迟导入 transformers
     try:
-        from transformers import (
-            AutoModel,  # noqa: F401
-            AutoModelForCausalLM,
-            AutoTokenizer,
-        )
+        from transformers import AutoModel  # noqa: F401
+        from transformers import AutoModelForCausalLM, AutoTokenizer
     except ImportError as e:
         raise ImportError(
             "transformers package is required for HuggingFace embedding functionality. "

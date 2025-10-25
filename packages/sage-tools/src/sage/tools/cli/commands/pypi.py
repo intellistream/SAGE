@@ -16,7 +16,6 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
-
 from sage.tools.cli.utils.dev_check import require_source_code
 
 console = Console()

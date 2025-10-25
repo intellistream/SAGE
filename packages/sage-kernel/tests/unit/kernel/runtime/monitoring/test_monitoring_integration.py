@@ -7,7 +7,6 @@ Tests the monitoring system integrated with BaseTask and task execution.
 import time
 
 import pytest
-
 from sage.kernel.runtime.context.task_context import TaskContext
 from sage.kernel.runtime.monitoring.metrics_collector import MetricsCollector
 
@@ -216,7 +215,8 @@ class TestMonitoringIntegration:
 
     def test_monitoring_with_resource_tracking(self):
         """测试带资源监控的完整流程"""
-        from sage.kernel.runtime.monitoring.resource_monitor import ResourceMonitor
+        from sage.kernel.runtime.monitoring.resource_monitor import \
+            ResourceMonitor
 
         collector = MetricsCollector(name="resource_test")
         resource_monitor = ResourceMonitor(sampling_interval=0.1)

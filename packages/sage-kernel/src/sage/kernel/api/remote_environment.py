@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sage.common.utils.serialization.dill import serialize_object, trim_object_for_ray
+from sage.common.utils.serialization.dill import (serialize_object,
+                                                  trim_object_for_ray)
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.runtime.jobmanager_client import JobManagerClient
 

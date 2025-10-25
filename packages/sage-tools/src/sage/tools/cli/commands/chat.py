@@ -23,16 +23,17 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-
 from sage.common.components.sage_embedding import get_embedding_model
-from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
-from sage.common.config.output_paths import find_sage_project_root, get_sage_paths
-
+from sage.common.components.sage_embedding.embedding_model import \
+    EmbeddingModel
+from sage.common.config.output_paths import (find_sage_project_root,
+                                             get_sage_paths)
 # 延迟导入 sage_db 以允许 CLI 在没有 C++ 扩展的情况下启动
 # from sage.middleware.components.sage_db.python.sage_db import SageDB, SageDBException
 from sage.tools.cli.commands import pipeline as pipeline_builder
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
-from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
+from sage.tools.cli.commands.pipeline_knowledge import \
+    get_default_knowledge_base
 
 console = Console()
 
@@ -51,10 +52,10 @@ def _lazy_import_sage_db():
         return  # 已经成功导入
 
     try:
-        from sage.middleware.components.sage_db.python.sage_db import (
-            SageDB as _SageDB,
-            SageDBException as _SageDBException,
-        )
+        from sage.middleware.components.sage_db.python.sage_db import \
+            SageDB as _SageDB
+        from sage.middleware.components.sage_db.python.sage_db import \
+            SageDBException as _SageDBException
 
         SageDB = _SageDB
         SageDBException = _SageDBException
