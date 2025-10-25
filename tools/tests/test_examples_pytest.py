@@ -157,17 +157,22 @@ class TestExamplesIntegration:
             assert not skip, f"文件 {example.file_path} 不应该被跳过: {reason}"
 
         # 测试一般的过滤逻辑
+        # 注意：should_skip_file 只检查测试标记，不检查文件是否存在
+        # 文件存在性检查应该在收集示例时完成
+        
+        # 测试基于标记的跳过逻辑（需要实际的 example_info）
+        # 这里只测试不带 example_info 的基本情况（应该不跳过）
         test_cases = [
-            # 使用相对路径进行逻辑测试
-            (Path("examples/rag/interactive_demo.py"), "rag", True),
-            (Path("examples/service/long_running_server.py"), "service", True),
+            (Path("examples/rag/simple_rag.py"), "rag", False),
+            (Path("examples/tutorials/hello_world.py"), "tutorials", False),
         ]
 
         for file_path, category, should_skip in test_cases:
             skip, reason = ExampleTestFilters.should_skip_file(file_path, category, None)
             if should_skip:
-                # 这些文件不存在，应该被跳过
                 assert skip, f"文件 {file_path} 应该被跳过: {reason}"
+            else:
+                assert not skip, f"文件 {file_path} 不应该被跳过但被跳过了: {reason}"
 
     @pytest.mark.integration
     @pytest.mark.skipif(
