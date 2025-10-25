@@ -152,7 +152,7 @@ class TestSerializationErrorUsageScenarios:
             function_that_might_fail("serialization")
 
         # 测试捕获为Exception
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             function_that_might_fail("serialization")
 
         # 测试不同的异常类型

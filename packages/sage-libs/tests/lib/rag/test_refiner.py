@@ -524,7 +524,7 @@ class TestRefinerOperatorExternal:
             "sage.middleware.components.sage_refiner.RefinerService",
             side_effect=Exception("model init failed"),
         ):
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 adapter._init_refiner()
 
 
