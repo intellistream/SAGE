@@ -131,7 +131,7 @@ jobs:
           echo "🌟 验证 Examples 可执行性..."
 
           # 安装必要的依赖
-          pip install pytest pytest-timeout
+          pip install pytest pytest-timeout pytest-benchmark
 
           # 运行 Examples 导入测试
           if [ -f "packages/sage-tools/tests/test_examples_imports.py" ]; then
