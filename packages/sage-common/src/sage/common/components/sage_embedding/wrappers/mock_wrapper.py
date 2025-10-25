@@ -44,9 +44,7 @@ class MockEmbedding(BaseEmbedding):
         True
     """
 
-    def __init__(
-        self, fixed_dim: int = 128, seed: int | None = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, fixed_dim: int = 128, seed: int | None = None, **kwargs: Any) -> None:
         """初始化 Mock Embedding
 
         Args:

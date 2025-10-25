@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 class MapTransformation(BaseTransformation):
     """映射变换 - 一对一数据变换"""
 
-    def __init__(
-        self, env: BaseEnvironment, function: type[BaseFunction], *args, **kwargs
-    ):
+    def __init__(self, env: BaseEnvironment, function: type[BaseFunction], *args, **kwargs):
         self.operator_class = MapOperator
         super().__init__(env, function, *args, **kwargs)

@@ -150,11 +150,7 @@ def test_examples_directory_exists():
 def test_examples_have_reasonable_structure():
     """Test that examples follow a reasonable structure."""
     # Check that we have examples in expected subdirectories
-    subdirs = [
-        d.name
-        for d in examples_dir.iterdir()
-        if d.is_dir() and not d.name.startswith("__")
-    ]
+    subdirs = [d.name for d in examples_dir.iterdir() if d.is_dir() and not d.name.startswith("__")]
 
     # We expect at least some common subdirectories
     assert len(subdirs) > 0, "Examples directory should have subdirectories"

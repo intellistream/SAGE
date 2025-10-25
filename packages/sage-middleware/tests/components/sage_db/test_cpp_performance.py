@@ -108,8 +108,7 @@ def benchmark_multi_thread(db, num_threads, queries_per_thread=NUM_QUERIES):
     start = time.time()
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = [
-            executor.submit(search_worker, db, queries, i)
-            for i, queries in enumerate(all_queries)
+            executor.submit(search_worker, db, queries, i) for i, queries in enumerate(all_queries)
         ]
         [f.result() for f in as_completed(futures)]
 

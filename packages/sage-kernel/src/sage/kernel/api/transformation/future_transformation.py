@@ -33,9 +33,7 @@ class FutureTransformation(BaseTransformation):
 
         self.logger.debug(f"Created FutureTransformation: {name}")
 
-    def fill_with_transformation(
-        self, actual_transformation: BaseTransformation
-    ) -> None:
+    def fill_with_transformation(self, actual_transformation: BaseTransformation) -> None:
         """
         用实际的transformation填充这个future placeholder
 

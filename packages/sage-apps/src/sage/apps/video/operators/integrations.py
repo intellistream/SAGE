@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+
 from sage.common.core.functions.map_function import MapFunction
 
 
@@ -142,9 +143,7 @@ class SummaryMemoryAugmentor(MapFunction):
         if not self.enable:
             return data
 
-        query = data.get("generated_summary") or " ".join(
-            data.get("top_scene_concepts", [])
-        )
+        query = data.get("generated_summary") or " ".join(data.get("top_scene_concepts", []))
         if not query:
             return data
 
@@ -168,8 +167,7 @@ class SummaryMemoryAugmentor(MapFunction):
                     formatted.append(
                         {
                             "text": item.get("text") or item.get("history_query"),
-                            "answer": item.get("answer")
-                            or item.get("metadata", {}).get("answer"),
+                            "answer": item.get("answer") or item.get("metadata", {}).get("answer"),
                             "source": item.get("source_collection"),
                         }
                     )

@@ -89,8 +89,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
             import requests  # noqa: F401
         except ImportError:
             raise ImportError(
-                "SiliconCloud embedding 需要 requests 包。\n"
-                "安装方法: pip install requests"
+                "SiliconCloud embedding 需要 requests 包。\n" "安装方法: pip install requests"
             )
 
         self._model = model

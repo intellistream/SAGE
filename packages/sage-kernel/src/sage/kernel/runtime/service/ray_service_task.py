@@ -22,9 +22,7 @@ if TYPE_CHECKING:
 class RayServiceTask(BaseServiceTask):
     """Ray服务任务，继承BaseServiceTask并提供Ray分布式执行支持"""
 
-    def __init__(
-        self, service_factory: "ServiceFactory", ctx: "ServiceContext | None" = None
-    ):
+    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext | None" = None):
         """
         初始化Ray服务任务
 
@@ -87,9 +85,7 @@ class RayServiceTask(BaseServiceTask):
             {
                 "actor_id": f"ray_actor_{self.service_name}",
                 "ray_node_id": (
-                    ray.get_runtime_context().node_id.hex()
-                    if ray.is_initialized()
-                    else "unknown"
+                    ray.get_runtime_context().node_id.hex() if ray.is_initialized() else "unknown"
                 ),
             }
         )

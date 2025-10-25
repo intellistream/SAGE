@@ -22,9 +22,7 @@ if TYPE_CHECKING:
     from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor
 
 
-def _create_queue_descriptor(
-    env: BaseEnvironment, name: str, maxsize: int
-) -> BaseQueueDescriptor:
+def _create_queue_descriptor(env: BaseEnvironment, name: str, maxsize: int) -> BaseQueueDescriptor:
     """
     根据环境平台类型创建相应的队列描述符
 

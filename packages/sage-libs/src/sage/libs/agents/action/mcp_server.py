@@ -169,9 +169,7 @@ def jsonrpc(req: JSONRPCRequest):
             cls = getattr(mod, clsname)
             tool_obj = cls(**init_kwargs) if init_kwargs else cls()
             register_tool(tool_obj)
-            return JSONRPCResponse(
-                id=req.id, result={"ok": True, "name": tool_obj.name}
-            )
+            return JSONRPCResponse(id=req.id, result={"ok": True, "name": tool_obj.name})
 
         # 4) 挂载远程 MCP：把对方的每个工具映射为本地“代理工具”
         #    params: {"adapter_id":"t1","base_url":"http://host:9001","prefix":"up_"}
@@ -203,9 +201,7 @@ def jsonrpc(req: JSONRPCRequest):
             adapter_id = req.params["adapter_id"]
             prefix = req.params.get("prefix", "")
             if adapter_id not in REMOTE_ADAPTERS:
-                return JSONRPCResponse(
-                    id=req.id, error=f"Remote adapter not found: {adapter_id}"
-                )
+                return JSONRPCResponse(id=req.id, error=f"Remote adapter not found: {adapter_id}")
             adapter = REMOTE_ADAPTERS[adapter_id]
 
             # 先卸载旧代理
@@ -260,9 +256,7 @@ def _make_proxy_tool(
 
     class _ProxyTool:
         name = local_name
-        description = meta.get(
-            "description", f"proxy for {remote_name} via {adapter_id}"
-        )
+        description = meta.get("description", f"proxy for {remote_name} via {adapter_id}")
         input_schema = meta.get(
             "input_schema", {"type": "object", "properties": {}, "required": []}
         )

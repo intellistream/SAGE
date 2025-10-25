@@ -66,9 +66,7 @@ def create_with_context(
             try:
                 setattr(instance, context_attr_name, context)
             except (AttributeError, TypeError) as e:
-                logging.warning(
-                    f"Failed to inject context into {target_class.__name__}: {e}"
-                )
+                logging.warning(f"Failed to inject context into {target_class.__name__}: {e}")
                 # 如果无法注入上下文，回退到普通构造方式
                 instance = target_class(*args, **kwargs)
                 # 尝试在构造后注入上下文

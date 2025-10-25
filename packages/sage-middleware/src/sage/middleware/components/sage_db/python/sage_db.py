@@ -205,15 +205,11 @@ class SageDB:
     def build_index(self):
         self._db.build_index()
 
-    def train_index(
-        self, training_vectors: list[list[float]] | np.ndarray | None = None
-    ):
+    def train_index(self, training_vectors: list[list[float]] | np.ndarray | None = None):
         if training_vectors is None:
             self._db.train_index()
         elif isinstance(training_vectors, np.ndarray):
-            training_list = [
-                training_vectors[i].tolist() for i in range(training_vectors.shape[0])
-            ]
+            training_list = [training_vectors[i].tolist() for i in range(training_vectors.shape[0])]
             self._db.train_index(training_list)
         else:
             self._db.train_index(training_vectors)

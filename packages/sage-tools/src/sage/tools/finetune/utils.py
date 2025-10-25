@@ -126,9 +126,7 @@ def collect_sage_code_files(
             dirs[:] = [
                 d
                 for d in dirs
-                if not any(
-                    d.startswith(ex.rstrip("*")) or d == ex for ex in exclude_dirs
-                )
+                if not any(d.startswith(ex.rstrip("*")) or d == ex for ex in exclude_dirs)
             ]
 
             for filename in filenames:

@@ -40,9 +40,7 @@ def _load_version():
                     return {
                         "version": version_globals.get("__version__", "0.1.3"),
                         "author": version_globals.get("__author__", "SAGE Team"),
-                        "email": version_globals.get(
-                            "__email__", "shuhao_zhang@hust.edu.cn"
-                        ),
+                        "email": version_globals.get("__email__", "shuhao_zhang@hust.edu.cn"),
                     }
         except Exception:
             pass

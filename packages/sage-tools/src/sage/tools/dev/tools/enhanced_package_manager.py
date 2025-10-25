@@ -199,9 +199,7 @@ class EnhancedPackageManager:
             package_path = self.packages[package_name]["path"]
 
             if not package_path.exists():
-                raise SAGEDevToolkitError(
-                    f"Package directory not found: {package_path}"
-                )
+                raise SAGEDevToolkitError(f"Package directory not found: {package_path}")
 
             # Build the package
             result = subprocess.run(
@@ -307,9 +305,7 @@ class EnhancedPackageManager:
 
         return order
 
-    def _install_single_package(
-        self, package_name: str, dev_mode: bool, force: bool
-    ) -> dict:
+    def _install_single_package(self, package_name: str, dev_mode: bool, force: bool) -> dict:
         """Install a single package."""
         package_path = self.packages[package_name]["path"]
 

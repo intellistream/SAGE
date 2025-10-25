@@ -87,9 +87,7 @@ def run_command(cmd, check=True, capture_output=True):
                     self.stdout = ""
                     self.stderr = ""
 
-            result = SimpleResult(
-                result.returncode if hasattr(result, "returncode") else 0
-            )
+            result = SimpleResult(result.returncode if hasattr(result, "returncode") else 0)
         return result
     except subprocess.CalledProcessError as e:
         print_error(f"Command failed: {e}")
@@ -403,15 +401,12 @@ def _copy_python_artifacts(ext_name: str, ext_dir: Path) -> None:
         print_success(f"已安装 Python 扩展模块到 site-packages: {site_target_dir}")
     except (PermissionError, OSError) as exc:
         print_warning(
-            f"复制到 site-packages 时权限不足: {exc}\n"
-            f"  扩展已安装到项目目录: {repo_target_dir}"
+            f"复制到 site-packages 时权限不足: {exc}\n" f"  扩展已安装到项目目录: {repo_target_dir}"
         )
 
 
 def _is_ci_environment() -> bool:
-    return bool(
-        os.getenv("CI") or os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI")
-    )
+    return bool(os.getenv("CI") or os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI"))
 
 
 def _print_ci_failure_report(ext_dir: Path) -> None:
@@ -487,13 +482,9 @@ def _print_manual_diagnostics(ext_dir: Path) -> None:
                 pass
 
     typer.echo("\n💡 故障排除建议:")
-    typer.echo(
-        "   1. 检查系统依赖: ./tools/install/install_system_deps.sh --verify-only"
-    )
+    typer.echo("   1. 检查系统依赖: ./tools/install/install_system_deps.sh --verify-only")
     typer.echo(f"   2. 手动构建: cd {ext_dir} && bash build.sh --clean --install-deps")
-    typer.echo(
-        f"   3. 查看构建日志: {(ext_dir / 'build' / 'CMakeFiles' / 'CMakeError.log')}"
-    )
+    typer.echo(f"   3. 查看构建日志: {(ext_dir / 'build' / 'CMakeFiles' / 'CMakeError.log')}")
 
 
 def _diagnose_build_failure(ext_name: str, ext_dir: Path, result) -> None:
@@ -506,9 +497,7 @@ def _diagnose_build_failure(ext_name: str, ext_dir: Path, result) -> None:
     _print_manual_diagnostics(ext_dir)
 
 
-def _install_extension(
-    ext_name: str, ext_dir: Path, sage_root: Path, force: bool
-) -> bool:
+def _install_extension(ext_name: str, ext_dir: Path, sage_root: Path, force: bool) -> bool:
     typer.echo(f"\n{Colors.YELLOW}━━━ 安装 {ext_name} ━━━{Colors.RESET}")
 
     if not ext_dir.exists():
@@ -542,9 +531,7 @@ def _install_extension(
     except Exception as exc:
         # 如果是权限错误，只是警告，不视为失败
         if isinstance(exc, (PermissionError, OSError)):
-            print_warning(
-                f"复制扩展产物到 site-packages 时权限不足（已安装到项目目录）: {exc}"
-            )
+            print_warning(f"复制扩展产物到 site-packages 时权限不足（已安装到项目目录）: {exc}")
         else:
             print_warning(f"复制扩展产物时发生问题: {exc}")
             # 对于其他错误，仍然视为失败
@@ -587,9 +574,7 @@ def _missing_build_tools_instructions() -> None:
     typer.echo("  • cmake (构建系统)")
     typer.echo("  • make (构建工具)")
     typer.echo("\nUbuntu/Debian: sudo apt install build-essential cmake")
-    typer.echo(
-        "CentOS/RHEL: sudo yum groupinstall 'Development Tools' && sudo yum install cmake"
-    )
+    typer.echo("CentOS/RHEL: sudo yum groupinstall 'Development Tools' && sudo yum install cmake")
     typer.echo("macOS: xcode-select --install && brew install cmake")
 
 
@@ -616,9 +601,7 @@ def _check_and_fix_libstdcxx() -> None:
 
     # Check GCC version
     try:
-        result = subprocess.run(
-            ["gcc", "-dumpversion"], capture_output=True, text=True, check=True
-        )
+        result = subprocess.run(["gcc", "-dumpversion"], capture_output=True, text=True, check=True)
         gcc_major_version = int(result.stdout.strip().split(".")[0])
     except Exception:
         # Can't determine GCC version, skip check
@@ -702,9 +685,7 @@ def _install_selected_extensions(
 
     for ext_name in extensions_to_install:
         if not force and _extension_is_available(ext_name):
-            print_success(
-                f"{ext_name} 已安装且可用，跳过重新构建（使用 --force 重新安装）"
-            )
+            print_success(f"{ext_name} 已安装且可用，跳过重新构建（使用 --force 重新安装）")
             success_count += 1
             continue
 

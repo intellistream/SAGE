@@ -12,9 +12,13 @@ import requests
 pytest_plugins = []
 
 try:
-    from sage.libs.agents.agent import BaseAgent  # noqa: F401
-    from sage.libs.agents.agent import BochaSearch  # noqa: F401
-    from sage.libs.agents.agent import FORMAT_INSTRUCTIONS, PREFIX, Tool
+    from sage.libs.agents.agent import (
+        FORMAT_INSTRUCTIONS,
+        PREFIX,
+        BaseAgent,  # noqa: F401
+        BochaSearch,  # noqa: F401
+        Tool,
+    )
 
     AGENT_AVAILABLE = True
 except ImportError as e:
@@ -259,9 +263,7 @@ class TestBochaSearchExternal:
 
         with patch("requests.request") as mock_request:
             # 模拟网络错误
-            mock_request.side_effect = requests.exceptions.ConnectionError(
-                "网络连接失败"
-            )
+            mock_request.side_effect = requests.exceptions.ConnectionError("网络连接失败")
 
             search = BochaSearch("test_api_key")
 

@@ -47,9 +47,7 @@ class TestPipelineImports:
         if not pipeline_path.exists():
             pytest.skip("qa_dense_retrieval.py not found")
 
-        spec = importlib.util.spec_from_file_location(
-            "qa_dense_retrieval", pipeline_path
-        )
+        spec = importlib.util.spec_from_file_location("qa_dense_retrieval", pipeline_path)
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             try:
@@ -66,9 +64,7 @@ class TestPipelineImports:
         if not pipeline_path.exists():
             pytest.skip("qa_sparse_retrieval_milvus.py not found")
 
-        spec = importlib.util.spec_from_file_location(
-            "qa_sparse_retrieval_milvus", pipeline_path
-        )
+        spec = importlib.util.spec_from_file_location("qa_sparse_retrieval_milvus", pipeline_path)
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             try:
@@ -85,9 +81,7 @@ class TestPipelineImports:
         if not pipeline_path.exists():
             pytest.skip("qa_dense_retrieval_milvus.py not found")
 
-        spec = importlib.util.spec_from_file_location(
-            "qa_dense_retrieval_milvus", pipeline_path
-        )
+        spec = importlib.util.spec_from_file_location("qa_dense_retrieval_milvus", pipeline_path)
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             try:

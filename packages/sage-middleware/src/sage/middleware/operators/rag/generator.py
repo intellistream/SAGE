@@ -38,9 +38,7 @@ class OpenAIGenerator(MapOperator):
         # 实例化模型
         # API key 优先级: 配置文件 > OPENAI_API_KEY > ALIBABA_API_KEY
         api_key = (
-            self.config["api_key"]
-            or os.getenv("OPENAI_API_KEY")
-            or os.getenv("ALIBABA_API_KEY")
+            self.config["api_key"] or os.getenv("OPENAI_API_KEY") or os.getenv("ALIBABA_API_KEY")
         )
         self.model = OpenAIClient(
             model_name=self.config["model_name"],
@@ -116,9 +114,7 @@ class OpenAIGenerator(MapOperator):
         # 如果 prompt 是字符串，转换为标准消息格式
         if isinstance(prompt, str):
             messages = [{"role": "user", "content": prompt}]
-        elif isinstance(prompt, list) and all(
-            isinstance(item, dict) for item in prompt
-        ):
+        elif isinstance(prompt, list) and all(isinstance(item, dict) for item in prompt):
             # 如果已经是消息列表格式，直接使用
             messages = prompt
         else:
@@ -226,9 +222,7 @@ class HFGenerator(MapOperator):
         print(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
 
         # Return the generated response as a Data object
-        self.logger.info(
-            f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m "
-        )
+        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
 
         return (
             user_query if user_query is not None else "",

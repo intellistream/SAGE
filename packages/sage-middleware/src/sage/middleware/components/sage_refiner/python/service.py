@@ -58,9 +58,7 @@ class RefinerCache:
         self.cache.move_to_end(key)
         return self.cache[key]
 
-    def put(
-        self, query: str, documents: list[Any], budget: int, result: RefineResult
-    ) -> None:
+    def put(self, query: str, documents: list[Any], budget: int, result: RefineResult) -> None:
         """存入缓存"""
         key = self._make_key(query, documents, budget)
 
@@ -118,9 +116,7 @@ class RefinerService:
         # 缓存
         self.cache: RefinerCache | None = None
         if self.config.enable_cache:
-            self.cache = RefinerCache(
-                max_size=self.config.cache_size, ttl=self.config.cache_ttl
-            )
+            self.cache = RefinerCache(max_size=self.config.cache_size, ttl=self.config.cache_ttl)
 
         # 性能统计
         self.stats_data = {
@@ -169,9 +165,7 @@ class RefinerService:
 
         # 初始化
         if not self.refiner.is_initialized:
-            algo_name = (
-                algorithm.value if hasattr(algorithm, "value") else str(algorithm)
-            )
+            algo_name = algorithm.value if hasattr(algorithm, "value") else str(algorithm)
             self.logger.info(f"Initializing refiner: {algo_name}")
             self.refiner.initialize()
             self.logger.info(f"Refiner initialized: {algo_name}")
@@ -270,9 +264,7 @@ class RefinerService:
         if isinstance(algorithm, str):
             algorithm = RefinerAlgorithm(algorithm)
 
-        self.logger.info(
-            f"Switching algorithm from {self.config.algorithm} to {algorithm}"
-        )
+        self.logger.info(f"Switching algorithm from {self.config.algorithm} to {algorithm}")
 
         # 关闭当前refiner
         if self.refiner is not None:
@@ -298,9 +290,7 @@ class RefinerService:
 
         # 计算平均值
         if stats["total_requests"] > 0:
-            stats["avg_refine_time"] = (
-                stats["total_refine_time"] / stats["total_requests"]
-            )
+            stats["avg_refine_time"] = stats["total_refine_time"] / stats["total_requests"]
             stats["avg_compression_rate"] = (
                 stats["total_original_tokens"] / stats["total_refined_tokens"]
                 if stats["total_refined_tokens"] > 0

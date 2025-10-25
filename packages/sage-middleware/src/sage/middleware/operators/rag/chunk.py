@@ -1,6 +1,7 @@
-from sage.kernel.operators import MapOperator
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
+
+from sage.kernel.operators import MapOperator
 
 
 class CharacterSplitter(MapOperator):
@@ -75,9 +76,7 @@ class SentenceTransformersTokenTextSplitter(MapOperator):
     def __init__(self, config: dict) -> None:
         super().__init__()
         self.config = config.get("chunk", {})
-        self.model_name = self.config.get(
-            "model_name", "sentence-transformers/all-mpnet-base-v2"
-        )
+        self.model_name = self.config.get("model_name", "sentence-transformers/all-mpnet-base-v2")
         self.chunk_size = self.config.get("chunk_size", 512)
         self.chunk_overlap = self.config.get("chunk_overlap", 50)
 
@@ -147,9 +146,7 @@ class SentenceTransformersTokenTextSplitter(MapOperator):
             chunks = self.split_text_on_tokens(content)
             return chunks
         except Exception as e:
-            self.logger.error(
-                f"SentenceTransformersTokenTextSplitter error: {e}", exc_info=True
-            )
+            self.logger.error(f"SentenceTransformersTokenTextSplitter error: {e}", exc_info=True)
 
 
 # config={

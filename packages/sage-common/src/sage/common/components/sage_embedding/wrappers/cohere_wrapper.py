@@ -96,9 +96,7 @@ class CohereEmbedding(BaseEmbedding):
         try:
             import cohere  # noqa: F401
         except ImportError:
-            raise ImportError(
-                "Cohere embedding 需要 cohere 包。\n" "安装方法: pip install cohere"
-            )
+            raise ImportError("Cohere embedding 需要 cohere 包。\n" "安装方法: pip install cohere")
 
         self._model = model
         self._input_type = input_type

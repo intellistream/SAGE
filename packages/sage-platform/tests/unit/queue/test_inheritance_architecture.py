@@ -45,9 +45,7 @@ class TestPythonQueueDescriptor:
 
     def test_multiprocessing_queue_creation(self):
         """测试多进程队列创建"""
-        queue = PythonQueueDescriptor(
-            queue_id="test_mp", maxsize=20, use_multiprocessing=True
-        )
+        queue = PythonQueueDescriptor(queue_id="test_mp", maxsize=20, use_multiprocessing=True)
 
         assert queue.queue_id == "test_mp"
         assert queue.queue_type == "python"

@@ -11,6 +11,7 @@
 from typing import Any
 
 import ray
+
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.node_selector import NodeSelector

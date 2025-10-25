@@ -172,9 +172,7 @@ class RefinerOperator(MapOperator):
 
         return normalized
 
-    def _save_data_record(
-        self, query: str, input_docs: list[dict], refined_docs: list[str]
-    ):
+    def _save_data_record(self, query: str, input_docs: list[dict], refined_docs: list[str]):
         """保存数据记录（仅当 enable_profile=True）"""
         if not self.enable_profile:
             return

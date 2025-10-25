@@ -50,9 +50,7 @@ def build_fallback_config(dimension: int = 8) -> _sage_db.DatabaseConfig:
     return cfg
 
 
-def generate_vectors(
-    dim: int, count: int = 64
-) -> tuple[np.ndarray, list[dict[str, str]]]:
+def generate_vectors(dim: int, count: int = 64) -> tuple[np.ndarray, list[dict[str, str]]]:
     rng = np.random.default_rng(seed=13)
     raw = rng.normal(size=(count, dim)).astype("float32")
     # Normalise to unit vectors for cosine distance

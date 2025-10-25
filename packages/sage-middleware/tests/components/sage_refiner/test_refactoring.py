@@ -146,9 +146,7 @@ def test_documentation():
             assert doc_path.stat().st_size > 0, f"{desc} 文件为空"
 
 
-@pytest.mark.skip(
-    reason="File structure test is too strict for flexible project layouts"
-)
+@pytest.mark.skip(reason="File structure test is too strict for flexible project layouts")
 def test_file_structure():
     """测试文件结构"""
     base_path = (

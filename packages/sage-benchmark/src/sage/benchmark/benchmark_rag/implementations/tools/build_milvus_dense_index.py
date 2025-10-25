@@ -65,10 +65,7 @@ def load_knowledge_to_milvus(config):
 
 
 if __name__ == "__main__":
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - build_milvus_dense_index example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

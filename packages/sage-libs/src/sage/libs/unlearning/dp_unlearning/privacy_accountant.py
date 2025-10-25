@@ -76,9 +76,7 @@ class PrivacyAccountant:
             ValueError: If budgets are invalid
         """
         if total_epsilon_budget <= 0:
-            raise ValueError(
-                f"epsilon budget must be positive, got {total_epsilon_budget}"
-            )
+            raise ValueError(f"epsilon budget must be positive, got {total_epsilon_budget}")
         if not (0 < total_delta_budget < 1):
             raise ValueError(f"delta budget must be in (0,1), got {total_delta_budget}")
 
@@ -149,9 +147,7 @@ class PrivacyAccountant:
 
         return True
 
-    def _compute_composition(
-        self, new_epsilon: float, new_delta: float
-    ) -> tuple[float, float]:
+    def _compute_composition(self, new_epsilon: float, new_delta: float) -> tuple[float, float]:
         """
         Compute total privacy cost using composition theorem.
 
@@ -179,9 +175,7 @@ class PrivacyAccountant:
         else:
             raise ValueError(f"Unknown composition type: {self.composition_type}")
 
-    def _basic_composition(
-        self, new_epsilon: float, new_delta: float
-    ) -> tuple[float, float]:
+    def _basic_composition(self, new_epsilon: float, new_delta: float) -> tuple[float, float]:
         """
         Basic composition: ε_total = Σε_i, δ_total = Σδ_i.
 
@@ -191,9 +185,7 @@ class PrivacyAccountant:
         total_delta = self._delta_spent + new_delta
         return (total_epsilon, total_delta)
 
-    def _advanced_composition(
-        self, new_epsilon: float, new_delta: float
-    ) -> tuple[float, float]:
+    def _advanced_composition(self, new_epsilon: float, new_delta: float) -> tuple[float, float]:
         """
         Advanced composition theorem.
 
@@ -209,9 +201,7 @@ class PrivacyAccountant:
         # TODO: Implement advanced composition formula
         return self._basic_composition(new_epsilon, new_delta)
 
-    def _moments_composition(
-        self, new_epsilon: float, new_delta: float
-    ) -> tuple[float, float]:
+    def _moments_composition(self, new_epsilon: float, new_delta: float) -> tuple[float, float]:
         """
         Moments accountant (Renyi DP composition).
 
@@ -250,10 +240,7 @@ class PrivacyAccountant:
             True if operation is within budget
         """
         new_epsilon, new_delta = self._compute_composition(epsilon, delta)
-        return (
-            new_epsilon <= self.total_epsilon_budget
-            and new_delta <= self.total_delta_budget
-        )
+        return new_epsilon <= self.total_epsilon_budget and new_delta <= self.total_delta_budget
 
     def get_spending_history(self) -> list[PrivacySpending]:
         """Get history of all privacy-consuming operations."""
