@@ -3,7 +3,6 @@
 """
 
 import pytest
-
 from sage.kernel.runtime.job_manager import JobManager
 
 

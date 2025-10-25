@@ -21,7 +21,8 @@ src_paths = [
 for p in src_paths:
     sys.path.insert(0, str(p))
 
-from sage.common.core.functions import BatchFunction, SinkFunction  # noqa: E402
+from sage.common.core.functions import (BatchFunction,  # noqa: E402
+                                        SinkFunction)
 from sage.common.utils.logging.custom_logger import CustomLogger  # noqa: E402
 from sage.kernel.api.local_environment import LocalEnvironment  # noqa: E402
 from sage.platform.service import BaseService  # noqa: E402

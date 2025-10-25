@@ -152,12 +152,8 @@ class GreedyOptimizer(BaseOptimizer):
 
     def _build_constraint_checker(self, constraints: dict[str, Any]) -> ConstraintChecker:
         """Build constraint checker from constraint dictionary."""
-        from ..constraints import (
-            BudgetConstraint,
-            ConstraintChecker,
-            LatencyConstraint,
-            QualityConstraint,
-        )
+        from ..constraints import (BudgetConstraint, ConstraintChecker,
+                                   LatencyConstraint, QualityConstraint)
 
         checker = ConstraintChecker()
 

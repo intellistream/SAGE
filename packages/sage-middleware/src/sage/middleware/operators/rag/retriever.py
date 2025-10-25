@@ -4,8 +4,8 @@ import time
 from typing import Any
 
 import numpy as np
-
-from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
+from sage.common.components.sage_embedding.embedding_model import \
+    EmbeddingModel
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
 from sage.libs.integrations.chroma import ChromaBackend, ChromaUtils
@@ -655,15 +655,13 @@ class MilvusSparseRetriever(MapOperator):
         try:
             # 尝试新的导入路径（PyMilvus 2.6.0+）
             try:
-                from pymilvus.model.hybrid import (
-                    BGEM3EmbeddingFunction,  # type: ignore[import-not-found]
-                )
+                from pymilvus.model.hybrid import \
+                    BGEM3EmbeddingFunction  # type: ignore[import-not-found]
             except ImportError:
                 # 如果失败，尝试直接从 model 导入
                 try:
-                    from pymilvus.model import (
-                        BGEM3EmbeddingFunction,  # type: ignore[import-not-found]
-                    )
+                    from pymilvus.model import \
+                        BGEM3EmbeddingFunction  # type: ignore[import-not-found]
                 except ImportError:
                     # 最后尝试安装单独的包
                     self.logger.error(

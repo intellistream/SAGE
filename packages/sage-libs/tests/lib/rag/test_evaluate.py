@@ -11,19 +11,12 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.evaluate import (
-        AccuracyEvaluate,
-        BertRecallEvaluate,
-        BRSEvaluate,
-        CompressionRateEvaluate,
-        ContextRecallEvaluate,
-        F1Evaluate,
-        LatencyEvaluate,
-        RecallEvaluate,
-        RougeLEvaluate,
-        TokenCountEvaluate,
-        _normalize_data,
-    )
+    from sage.libs.rag.evaluate import (AccuracyEvaluate, BertRecallEvaluate,
+                                        BRSEvaluate, CompressionRateEvaluate,
+                                        ContextRecallEvaluate, F1Evaluate,
+                                        LatencyEvaluate, RecallEvaluate,
+                                        RougeLEvaluate, TokenCountEvaluate,
+                                        _normalize_data)
 
     EVALUATE_AVAILABLE = True
 except ImportError as e:

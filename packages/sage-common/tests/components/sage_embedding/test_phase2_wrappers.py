@@ -9,12 +9,9 @@ This test suite validates:
 """
 
 import pytest
-
-from sage.common.components.sage_embedding import (
-    check_model_availability,
-    get_embedding_model,
-    list_embedding_models,
-)
+from sage.common.components.sage_embedding import (check_model_availability,
+                                                   get_embedding_model,
+                                                   list_embedding_models)
 
 
 class TestPhase2Registration:
@@ -71,34 +68,26 @@ class TestPhase2Registration:
         Note: Heavy wrappers use lazy loading, so they must be imported
         from their specific modules, not from the top-level package.
         """
-        from sage.common.components.sage_embedding import HashEmbedding, MockEmbedding
-        from sage.common.components.sage_embedding.wrappers.bedrock_wrapper import (
-            BedrockEmbedding,
-        )
-        from sage.common.components.sage_embedding.wrappers.cohere_wrapper import (
-            CohereEmbedding,
-        )
-        from sage.common.components.sage_embedding.wrappers.hf_wrapper import (
-            HFEmbedding,
-        )
-        from sage.common.components.sage_embedding.wrappers.jina_wrapper import (
-            JinaEmbedding,
-        )
-        from sage.common.components.sage_embedding.wrappers.nvidia_openai_wrapper import (
-            NvidiaOpenAIEmbedding,
-        )
-        from sage.common.components.sage_embedding.wrappers.ollama_wrapper import (
-            OllamaEmbedding,
-        )
-        from sage.common.components.sage_embedding.wrappers.openai_wrapper import (
-            OpenAIEmbedding,
-        )
-        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
-            SiliconCloudEmbedding,
-        )
-        from sage.common.components.sage_embedding.wrappers.zhipu_wrapper import (
-            ZhipuEmbedding,
-        )
+        from sage.common.components.sage_embedding import (HashEmbedding,
+                                                           MockEmbedding)
+        from sage.common.components.sage_embedding.wrappers.bedrock_wrapper import \
+            BedrockEmbedding
+        from sage.common.components.sage_embedding.wrappers.cohere_wrapper import \
+            CohereEmbedding
+        from sage.common.components.sage_embedding.wrappers.hf_wrapper import \
+            HFEmbedding
+        from sage.common.components.sage_embedding.wrappers.jina_wrapper import \
+            JinaEmbedding
+        from sage.common.components.sage_embedding.wrappers.nvidia_openai_wrapper import \
+            NvidiaOpenAIEmbedding
+        from sage.common.components.sage_embedding.wrappers.ollama_wrapper import \
+            OllamaEmbedding
+        from sage.common.components.sage_embedding.wrappers.openai_wrapper import \
+            OpenAIEmbedding
+        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import \
+            SiliconCloudEmbedding
+        from sage.common.components.sage_embedding.wrappers.zhipu_wrapper import \
+            ZhipuEmbedding
 
         wrappers = [
             HashEmbedding,
@@ -154,9 +143,8 @@ class TestAPIKeyMethods:
         """测试 OpenAI 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding.wrappers.openai_wrapper import (
-            OpenAIEmbedding,
-        )
+        from sage.common.components.sage_embedding.wrappers.openai_wrapper import \
+            OpenAIEmbedding
 
         # 临时清除环境变量
         old_key = os.environ.pop("OPENAI_API_KEY", None)
@@ -171,9 +159,8 @@ class TestAPIKeyMethods:
         """测试 Jina 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding.wrappers.jina_wrapper import (
-            JinaEmbedding,
-        )
+        from sage.common.components.sage_embedding.wrappers.jina_wrapper import \
+            JinaEmbedding
 
         old_key = os.environ.pop("JINA_API_KEY", None)
         try:
@@ -187,9 +174,8 @@ class TestAPIKeyMethods:
         """测试 Zhipu 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding.wrappers.zhipu_wrapper import (
-            ZhipuEmbedding,
-        )
+        from sage.common.components.sage_embedding.wrappers.zhipu_wrapper import \
+            ZhipuEmbedding
 
         old_key = os.environ.pop("ZHIPUAI_API_KEY", None)
         try:
@@ -203,9 +189,8 @@ class TestAPIKeyMethods:
         """测试 Cohere 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding.wrappers.cohere_wrapper import (
-            CohereEmbedding,
-        )
+        from sage.common.components.sage_embedding.wrappers.cohere_wrapper import \
+            CohereEmbedding
 
         old_key = os.environ.pop("COHERE_API_KEY", None)
         try:
@@ -219,9 +204,8 @@ class TestAPIKeyMethods:
         """测试 Bedrock 需要 AWS 凭证"""
         import os
 
-        from sage.common.components.sage_embedding.wrappers.bedrock_wrapper import (
-            BedrockEmbedding,
-        )
+        from sage.common.components.sage_embedding.wrappers.bedrock_wrapper import \
+            BedrockEmbedding
 
         # 临时清除 AWS 环境变量
         old_keys = {
@@ -240,9 +224,8 @@ class TestAPIKeyMethods:
         """测试 SiliconCloud 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
-            SiliconCloudEmbedding,
-        )
+        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import \
+            SiliconCloudEmbedding
 
         old_key = os.environ.pop("SILICONCLOUD_API_KEY", None)
         try:
@@ -256,9 +239,8 @@ class TestAPIKeyMethods:
         """测试 NVIDIA OpenAI 需要 API Key"""
         import os
 
-        from sage.common.components.sage_embedding.wrappers.nvidia_openai_wrapper import (
-            NvidiaOpenAIEmbedding,
-        )
+        from sage.common.components.sage_embedding.wrappers.nvidia_openai_wrapper import \
+            NvidiaOpenAIEmbedding
 
         # 清除所有可能的API key环境变量
         old_nvidia_key = os.environ.pop("NVIDIA_API_KEY", None)

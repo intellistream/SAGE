@@ -3,16 +3,12 @@
 import os
 from unittest.mock import patch
 
-from sage.common.config.output_paths import (
-    SageOutputPaths,
-    find_sage_project_root,
-    get_appropriate_sage_dir,
-    get_logs_dir,
-    get_output_dir,
-    get_sage_paths,
-    get_temp_dir,
-    initialize_sage_paths,
-)
+from sage.common.config.output_paths import (SageOutputPaths,
+                                             find_sage_project_root,
+                                             get_appropriate_sage_dir,
+                                             get_logs_dir, get_output_dir,
+                                             get_sage_paths, get_temp_dir,
+                                             initialize_sage_paths)
 
 
 class TestFindSageProjectRoot:

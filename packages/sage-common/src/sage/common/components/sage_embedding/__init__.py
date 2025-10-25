@@ -34,14 +34,9 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 
 # 新架构：统一的 embedding 接口
 from .base import BaseEmbedding
-from .factory import (
-    EmbeddingFactory,
-    check_model_availability,
-    get_embedding_model,
-    list_embedding_models,
-)
+from .factory import (EmbeddingFactory, check_model_availability,
+                      get_embedding_model, list_embedding_models)
 from .registry import EmbeddingRegistry, ModelInfo, ModelStatus
-
 # 只导入轻量级的 wrappers，其他使用延迟导入
 from .wrappers.hash_wrapper import HashEmbedding
 from .wrappers.mock_wrapper import MockEmbedding
@@ -234,8 +229,8 @@ _register_all_methods()
 
 
 # 向后兼容：保留旧的 EmbeddingModel 和 apply_embedding_model
-from .embedding_model import EmbeddingModel, apply_embedding_model  # noqa: E402
-
+from .embedding_model import (EmbeddingModel,  # noqa: E402
+                              apply_embedding_model)
 # Service interface (新增)
 from .service import EmbeddingService, EmbeddingServiceConfig  # noqa: E402
 

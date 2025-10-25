@@ -3,13 +3,8 @@ import time
 from typing import Any
 
 import pytest
-
-from sage.common.core.functions import (
-    BaseCoMapFunction,
-    KeyByFunction,
-    SinkFunction,
-    SourceFunction,
-)
+from sage.common.core.functions import (BaseCoMapFunction, KeyByFunction,
+                                        SinkFunction, SourceFunction)
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

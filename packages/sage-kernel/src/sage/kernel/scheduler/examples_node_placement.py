@@ -11,7 +11,6 @@
 from typing import Any
 
 import ray
-
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.node_selector import NodeSelector
@@ -295,7 +294,8 @@ def example_placement_execution():
 
         # === 关键：指定目标节点 ===
         if decision.target_node:
-            from ray.util.scheduling_strategies import NodeAffinitySchedulingStrategy
+            from ray.util.scheduling_strategies import \
+                NodeAffinitySchedulingStrategy
 
             options["scheduling_strategy"] = NodeAffinitySchedulingStrategy(
                 node_id=decision.target_node,  # ← 使用决策中的节点 ID

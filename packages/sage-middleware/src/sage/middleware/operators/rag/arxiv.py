@@ -8,7 +8,6 @@ from urllib.parse import quote
 import feedparser
 import fitz
 import requests
-
 from sage.kernel.operators import MapOperator
 
 

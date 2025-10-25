@@ -12,13 +12,9 @@ import requests
 pytest_plugins = []
 
 try:
-    from sage.libs.agents.agent import (
-        FORMAT_INSTRUCTIONS,
-        PREFIX,
-        BaseAgent,  # noqa: F401
-        BochaSearch,  # noqa: F401
-        Tool,
-    )
+    from sage.libs.agents.agent import BaseAgent  # noqa: F401
+    from sage.libs.agents.agent import BochaSearch  # noqa: F401
+    from sage.libs.agents.agent import FORMAT_INSTRUCTIONS, PREFIX, Tool
 
     AGENT_AVAILABLE = True
 except ImportError as e:

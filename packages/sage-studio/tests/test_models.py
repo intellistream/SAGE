@@ -3,14 +3,9 @@ Tests for Studio Data Models
 """
 
 import pytest
-
 from sage.studio.models import (  # type: ignore[import-not-found]
-    PipelineExecution,
-    PipelineStatus,
-    VisualConnection,
-    VisualNode,
-    VisualPipeline,
-)
+    PipelineExecution, PipelineStatus, VisualConnection, VisualNode,
+    VisualPipeline)
 
 
 class TestVisualNode:

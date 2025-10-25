@@ -3,12 +3,12 @@ import sys
 import time
 
 from sage.common.utils.config.loader import load_config
-
 # 导入 Sage 相关模块
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.batch import JSONLBatch
 from sage.libs.io.sink import TerminalSink
-from sage.middleware.operators.rag import BGEReranker, ChromaRetriever, OpenAIGenerator, QAPromptor
+from sage.middleware.operators.rag import (BGEReranker, ChromaRetriever,
+                                           OpenAIGenerator, QAPromptor)
 
 
 def pipeline_run():

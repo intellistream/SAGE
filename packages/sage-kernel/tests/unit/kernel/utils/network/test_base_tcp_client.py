@@ -15,7 +15,6 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from sage.common.utils.network.base_tcp_client import BaseTcpClient
 
 

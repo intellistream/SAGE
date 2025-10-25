@@ -21,7 +21,8 @@ class NodeRegistry:
 
         # RAG Generators
         try:
-            from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator
+            from sage.middleware.operators.rag import (HFGenerator,
+                                                       OpenAIGenerator)
 
             self._registry["openai_generator"] = OpenAIGenerator
             self._registry["hf_generator"] = HFGenerator
@@ -31,11 +32,9 @@ class NodeRegistry:
 
         # RAG Retrievers
         try:
-            from sage.middleware.operators.rag import (
-                ChromaRetriever,
-                MilvusDenseRetriever,
-                MilvusSparseRetriever,
-            )
+            from sage.middleware.operators.rag import (ChromaRetriever,
+                                                       MilvusDenseRetriever,
+                                                       MilvusSparseRetriever)
 
             self._registry["chroma_retriever"] = ChromaRetriever
             self._registry["milvus_dense_retriever"] = MilvusDenseRetriever
@@ -55,7 +54,8 @@ class NodeRegistry:
 
         # RAG Promptors
         try:
-            from sage.middleware.operators.rag import QAPromptor, SummarizationPromptor
+            from sage.middleware.operators.rag import (QAPromptor,
+                                                       SummarizationPromptor)
 
             self._registry["qa_promptor"] = QAPromptor
             self._registry["summarization_promptor"] = SummarizationPromptor
@@ -65,7 +65,8 @@ class NodeRegistry:
 
         # Document Processing
         try:
-            from sage.middleware.operators.rag import CharacterSplitter, RefinerOperator
+            from sage.middleware.operators.rag import (CharacterSplitter,
+                                                       RefinerOperator)
 
             self._registry["character_splitter"] = CharacterSplitter
             self._registry["refiner"] = RefinerOperator
@@ -75,11 +76,9 @@ class NodeRegistry:
 
         # Evaluation Operators
         try:
-            from sage.middleware.operators.rag import (
-                AccuracyEvaluate,
-                F1Evaluate,
-                RecallEvaluate,
-            )
+            from sage.middleware.operators.rag import (AccuracyEvaluate,
+                                                       F1Evaluate,
+                                                       RecallEvaluate)
 
             self._registry["f1_evaluate"] = F1Evaluate
             self._registry["recall_evaluate"] = RecallEvaluate

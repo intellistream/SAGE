@@ -7,7 +7,6 @@ import os
 import warnings
 
 import ray
-
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 
 # 抑制Ray的ResourceWarning

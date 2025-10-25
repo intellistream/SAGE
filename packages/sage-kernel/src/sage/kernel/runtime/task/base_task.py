@@ -10,13 +10,10 @@ except ImportError:
     RayQueueEmpty = QueueEmpty  # type: ignore
 from sage.kernel.runtime.communication.router.packet import Packet, StopSignal
 from sage.kernel.runtime.context.task_context import TaskContext
-from sage.kernel.runtime.monitoring import (
-    RESOURCE_MONITOR_AVAILABLE,
-    MetricsCollector,
-    MetricsReporter,
-    ResourceMonitor,
-    TaskPerformanceMetrics,
-)
+from sage.kernel.runtime.monitoring import (RESOURCE_MONITOR_AVAILABLE,
+                                            MetricsCollector, MetricsReporter,
+                                            ResourceMonitor,
+                                            TaskPerformanceMetrics)
 
 if TYPE_CHECKING:
     from sage.kernel.api.operator.base_operator import BaseOperator
@@ -266,9 +263,8 @@ class BaseTask(ABC):  # noqa: B024
             True 如果保存了 checkpoint
         """
         # 检查是否是 CheckpointBasedRecovery
-        from sage.kernel.fault_tolerance.impl.checkpoint_recovery import (
-            CheckpointBasedRecovery,
-        )
+        from sage.kernel.fault_tolerance.impl.checkpoint_recovery import \
+            CheckpointBasedRecovery
 
         if not isinstance(fault_handler, CheckpointBasedRecovery):
             return False
@@ -420,8 +416,10 @@ class BaseTask(ABC):  # noqa: B024
                     if isinstance(data_packet, StopSignal):
                         self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
 
-                        from sage.kernel.api.operator.join_operator import JoinOperator
-                        from sage.kernel.api.operator.sink_operator import SinkOperator
+                        from sage.kernel.api.operator.join_operator import \
+                            JoinOperator
+                        from sage.kernel.api.operator.sink_operator import \
+                            SinkOperator
 
                         if isinstance(self.operator, SinkOperator):
                             self.logger.info(
@@ -447,13 +445,12 @@ class BaseTask(ABC):  # noqa: B024
                         should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
 
                         # 停止当前task的worker loop
-                        from sage.kernel.api.operator.filter_operator import (
-                            FilterOperator,
-                        )
-                        from sage.kernel.api.operator.keyby_operator import (
-                            KeyByOperator,
-                        )
-                        from sage.kernel.api.operator.map_operator import MapOperator
+                        from sage.kernel.api.operator.filter_operator import \
+                            FilterOperator
+                        from sage.kernel.api.operator.keyby_operator import \
+                            KeyByOperator
+                        from sage.kernel.api.operator.map_operator import \
+                            MapOperator
 
                         if isinstance(self.operator, (KeyByOperator, MapOperator, FilterOperator)):
                             self.logger.info(

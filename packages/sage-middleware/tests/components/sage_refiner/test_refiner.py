@@ -6,13 +6,10 @@ Refiner测试套件
 """
 
 import pytest
-
-from sage.middleware.components.sage_refiner import (
-    RefinerAlgorithm,
-    RefinerConfig,
-    RefinerService,
-    SimpleRefiner,
-)
+from sage.middleware.components.sage_refiner import (RefinerAlgorithm,
+                                                     RefinerConfig,
+                                                     RefinerService,
+                                                     SimpleRefiner)
 
 
 class TestRefinerConfig:

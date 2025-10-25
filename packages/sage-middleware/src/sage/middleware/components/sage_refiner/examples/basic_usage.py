@@ -5,11 +5,9 @@
 演示RefinerService的基本用法。
 """
 
-from sage.middleware.components.sage_refiner import (
-    RefinerAlgorithm,
-    RefinerConfig,
-    RefinerService,
-)
+from sage.middleware.components.sage_refiner import (RefinerAlgorithm,
+                                                     RefinerConfig,
+                                                     RefinerService)
 
 
 def basic_usage():

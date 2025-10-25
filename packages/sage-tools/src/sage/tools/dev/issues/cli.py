@@ -12,7 +12,6 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
-
 from sage.tools.dev.issues import IssuesConfig, IssuesManager
 from sage.tools.dev.issues.helpers import IssuesDownloader
 

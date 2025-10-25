@@ -19,20 +19,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
-
-from sage.tools.finetune.core import generate_training_config, prepare_training_data
+from sage.tools.finetune.core import (generate_training_config,
+                                      prepare_training_data)
 from sage.tools.finetune.models import TASK_NAMES, FinetuneTask
-from sage.tools.finetune.service import (
-    merge_lora_weights,
-    serve_model_with_vllm,
-    start_training,
-)
-from sage.tools.finetune.utils import (
-    check_training_dependencies,
-    get_finetune_output_dir,
-    get_sage_root,
-    show_install_instructions,
-)
+from sage.tools.finetune.service import (merge_lora_weights,
+                                         serve_model_with_vllm, start_training)
+from sage.tools.finetune.utils import (check_training_dependencies,
+                                       get_finetune_output_dir, get_sage_root,
+                                       show_install_instructions)
 
 app = typer.Typer(
     name="finetune",

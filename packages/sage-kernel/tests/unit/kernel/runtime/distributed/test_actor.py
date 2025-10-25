@@ -8,7 +8,6 @@ between local objects and Ray actors.
 from unittest.mock import Mock, patch
 
 import pytest
-
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 

@@ -6,12 +6,9 @@ import os
 import sys
 
 import pytest
-
-from sage.kernel.utils.ray.ray_utils import (
-    RAY_AVAILABLE,
-    ensure_ray_initialized,
-    get_sage_kernel_runtime_env,
-)
+from sage.kernel.utils.ray.ray_utils import (RAY_AVAILABLE,
+                                             ensure_ray_initialized,
+                                             get_sage_kernel_runtime_env)
 
 # 添加正确的项目路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -55,7 +52,8 @@ class TestRayInitialization:
         @ray.remote
         def test_sage_import():
             try:
-                from sage.platform.queue import RayQueueDescriptor  # noqa: F401
+                from sage.platform.queue import \
+                    RayQueueDescriptor  # noqa: F401
 
                 return True
             except ImportError as e:

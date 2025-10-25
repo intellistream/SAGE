@@ -5,7 +5,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from sage.common.core.functions import BaseCoMapFunction, SinkFunction, SourceFunction
+from sage.common.core.functions import (BaseCoMapFunction, SinkFunction,
+                                        SourceFunction)
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

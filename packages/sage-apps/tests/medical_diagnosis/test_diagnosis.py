@@ -14,7 +14,8 @@ medical_diagnosis_dir = (
 )
 
 # 导入医疗诊断模块
-from sage.apps.medical_diagnosis.agents.diagnostic_agent import DiagnosticAgent  # noqa: E402
+from sage.apps.medical_diagnosis.agents.diagnostic_agent import \
+    DiagnosticAgent  # noqa: E402
 
 
 def test_single_case():

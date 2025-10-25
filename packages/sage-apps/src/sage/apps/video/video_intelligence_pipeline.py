@@ -54,8 +54,8 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     SageFlowService = None  # type: ignore[assignment]
 
-from sage.apps.video.operators import (EventStatsSink,  # noqa: E402
-                                       FrameEventEmitter,
+from sage.apps.video.operators import EventStatsSink  # noqa: E402
+from sage.apps.video.operators import (FrameEventEmitter,
                                        FrameLightweightFormatter,
                                        FrameObjectClassifier,
                                        FramePreprocessor,

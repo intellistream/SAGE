@@ -21,10 +21,7 @@ except ImportError:  # pragma: no cover
     if __package__ in (None, ""):
         sys.path.insert(0, str(THIS_DIR))
         from helpers import CLIRunSummary  # type: ignore[no-redef]
-        from helpers import (
-            CLITestCase,
-            run_cases,
-        )
+        from helpers import CLITestCase, run_cases
     else:  # pragma: no cover
         raise
 SUITE_FILES: Sequence[str] = (

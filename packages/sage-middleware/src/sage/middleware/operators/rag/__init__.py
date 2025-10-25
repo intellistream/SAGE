@@ -15,17 +15,13 @@ and implement RAG-specific business logic.
 """
 
 # Export types for easier access
-from sage.middleware.operators.rag.types import (
-    RAGDocument,
-    RAGInput,
-    RAGOutput,
-    RAGQuery,
-    RAGResponse,
-    create_rag_response,
-    ensure_rag_response,
-    extract_query,
-    extract_results,
-)
+from sage.middleware.operators.rag.types import (RAGDocument, RAGInput,
+                                                 RAGOutput, RAGQuery,
+                                                 RAGResponse,
+                                                 create_rag_response,
+                                                 ensure_rag_response,
+                                                 extract_query,
+                                                 extract_results)
 
 # Lazy imports to avoid optional dependency issues
 _IMPORTS = {

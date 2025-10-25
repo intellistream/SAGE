@@ -10,13 +10,9 @@ from pathlib import Path
 import torch
 from peft import LoraConfig as PeftLoraConfig
 from peft import get_peft_model
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
-    Trainer,
-    TrainingArguments,
-)
+from transformers import (AutoModelForCausalLM, AutoTokenizer,
+                          DataCollatorForLanguageModeling, Trainer,
+                          TrainingArguments)
 
 from .config import TrainingConfig
 from .data import prepare_dataset

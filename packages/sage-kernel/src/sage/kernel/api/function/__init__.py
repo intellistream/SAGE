@@ -17,20 +17,13 @@ warnings.warn(
 )
 
 # 从 common 重新导出
-from sage.common.core.functions import (  # noqa: E402
-    BaseCoMapFunction,
-    BaseFunction,
-    BaseJoinFunction,
-    BatchFunction,
-    FilterFunction,
-    FlatMapFunction,
-    FutureFunction,
-    KeyByFunction,
-    LambdaMapFunction,
-    MapFunction,
-    SinkFunction,
-    SourceFunction,
-)
+from sage.common.core.functions import (BaseCoMapFunction,  # noqa: E402
+                                        BaseFunction, BaseJoinFunction,
+                                        BatchFunction, FilterFunction,
+                                        FlatMapFunction, FutureFunction,
+                                        KeyByFunction, LambdaMapFunction,
+                                        MapFunction, SinkFunction,
+                                        SourceFunction)
 
 __all__ = [
     "BaseFunction",

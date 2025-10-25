@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import typer
 from rich.console import Console
-
-from sage.tools.dev.models.cache import (
-    DEFAULT_MODEL_NAME,
-    cache_embedding_model,
-    check_embedding_model,
-    clear_embedding_model_cache,
-    configure_hf_environment,
-)
+from sage.tools.dev.models.cache import (DEFAULT_MODEL_NAME,
+                                         cache_embedding_model,
+                                         check_embedding_model,
+                                         clear_embedding_model_cache,
+                                         configure_hf_environment)
 
 console = Console()
 app = typer.Typer(name="models", help="🤖 Embedding 模型缓存管理")

@@ -8,13 +8,12 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.promptor import (
-        QA_prompt_template,  # noqa: F401
-        QAPromptor,
-        QueryProfilerPromptor,  # noqa: F401
-        SummarizationPromptor,  # noqa: F401
-        summarization_prompt_template,  # noqa: F401
-    )
+    from sage.libs.rag.promptor import QA_prompt_template  # noqa: F401
+    from sage.libs.rag.promptor import QueryProfilerPromptor  # noqa: F401
+    from sage.libs.rag.promptor import SummarizationPromptor  # noqa: F401
+    from sage.libs.rag.promptor import \
+        summarization_prompt_template  # noqa: F401
+    from sage.libs.rag.promptor import QAPromptor
 
     PROMPTOR_AVAILABLE = True
 except ImportError as e:

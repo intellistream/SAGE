@@ -26,7 +26,8 @@ else:
             pass
 
 
-from sage.middleware.components.sage_refiner.python.service import RefinerService
+from sage.middleware.components.sage_refiner.python.service import \
+    RefinerService
 
 
 class RefinerAdapter(MapFunction):

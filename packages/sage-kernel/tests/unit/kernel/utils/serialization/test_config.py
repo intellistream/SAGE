@@ -12,14 +12,9 @@ import threading
 from unittest.mock import Mock
 
 import pytest
-
 from sage.common.utils.serialization.config import (
-    ATTRIBUTE_BLACKLIST,
-    BLACKLIST,
-    RAY_OPERATOR_EXCLUDE_ATTRS,
-    RAY_TRANSFORMATION_EXCLUDE_ATTRS,
-    SKIP_VALUE,
-)
+    ATTRIBUTE_BLACKLIST, BLACKLIST, RAY_OPERATOR_EXCLUDE_ATTRS,
+    RAY_TRANSFORMATION_EXCLUDE_ATTRS, SKIP_VALUE)
 
 
 @pytest.mark.unit

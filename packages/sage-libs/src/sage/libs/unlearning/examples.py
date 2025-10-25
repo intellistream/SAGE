@@ -68,10 +68,8 @@ def example_differential_privacy():
     print("=" * 60)
 
     try:
-        from sage.libs.unlearning.dp_unlearning import (
-            NeighborCompensation,
-            VectorPerturbation,
-        )
+        from sage.libs.unlearning.dp_unlearning import (NeighborCompensation,
+                                                        VectorPerturbation)
 
         print("\n✓ DP-based unlearning components:")
         print("  - Vector Perturbation: Add calibrated noise")

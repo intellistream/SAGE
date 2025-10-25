@@ -16,8 +16,8 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from sage.common.utils.network.local_tcp_server import BaseTcpServer, LocalTcpServer
+from sage.common.utils.network.local_tcp_server import (BaseTcpServer,
+                                                        LocalTcpServer)
 
 
 class TestBaseTcpServer:
@@ -992,7 +992,7 @@ class TestErrorHandlingScenarios:
             # Simulate error during server start
             mock_sock.bind.side_effect = Exception("Bind failed")
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 server.start()
 
             # Server should not be in running state

@@ -25,10 +25,12 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 if TYPE_CHECKING:
-    from python.sage_db import DatabaseConfig, DistanceMetric, IndexType, SageDB
+    from python.sage_db import (DatabaseConfig, DistanceMetric, IndexType,
+                                SageDB)
 
 try:
-    from python.sage_db import DatabaseConfig, DistanceMetric, IndexType, SageDB
+    from python.sage_db import (DatabaseConfig, DistanceMetric, IndexType,
+                                SageDB)
 
     SAGE_DB_AVAILABLE = True
 except ImportError:

@@ -106,18 +106,12 @@ class EmbeddingModel:
     def _get_embed_function(self, method: str):
         """根据方法名返回对应的 embedding 函数（延迟导入相关模块）"""
         # 延迟导入：只在实际使用时才导入对应的模块
-        from sage.common.components.sage_embedding import (
-            _cohere,
-            bedrock,
-            hf,
-            jina,
-            lollms,
-            nvidia_openai,
-            ollama,
-            openai_wrapper,
-            siliconcloud,
-            zhipu,
-        )
+        from sage.common.components.sage_embedding import (_cohere, bedrock,
+                                                           hf, jina, lollms,
+                                                           nvidia_openai,
+                                                           ollama,
+                                                           openai_wrapper,
+                                                           siliconcloud, zhipu)
 
         mapping = {
             "openai": openai_wrapper.openai_embed_sync,
