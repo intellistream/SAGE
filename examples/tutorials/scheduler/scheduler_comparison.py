@@ -111,7 +111,6 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
             env.submit(autostop=True)
 
             # 等待一小段时间确保完成
-            import time
 
             wait_start = time.time()
             while time.time() - wait_start < max_wait_time:
@@ -175,7 +174,7 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
                     env.close()
                 elif hasattr(env, "shutdown"):
                     env.shutdown()
-            except:
+            except Exception:  # noqa: S110
                 pass
 
 

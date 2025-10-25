@@ -7,11 +7,10 @@ from typing import Any
 
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as func
 from PIL import Image
-from torchvision.models import MobileNet_V3_Large_Weights, mobilenet_v3_large
-
 from sage.common.core.functions.map_function import MapFunction
+from torchvision.models import MobileNet_V3_Large_Weights, mobilenet_v3_large
 
 try:
     from transformers import CLIPModel, CLIPProcessor
@@ -98,7 +97,7 @@ class SceneConceptExtractor(MapFunction):
                     pixel_values=inputs.get("pixel_values")
                 )
 
-            image_features = F.normalize(image_features, dim=-1)
+            image_features = func.normalize(image_features, dim=-1)
             data["clip_image_embedding"] = (
                 image_features[0].detach().cpu().numpy().astype(np.float32)
             )

@@ -100,11 +100,11 @@ class TestTypeAliases:
     def test_id_type_aliases_are_str(self):
         """Test that ID type aliases are strings"""
         # These are type aliases, so we just verify the annotation exists
-        assert TaskID == str
-        assert ServiceID == str
-        assert NodeID == str
-        assert QueueID == str
-        assert JobID == str
+        assert TaskID is str
+        assert ServiceID is str
+        assert NodeID is str
+        assert QueueID is str
+        assert JobID is str
 
     def test_id_usage(self):
         """Test that ID aliases can be used in type annotations"""

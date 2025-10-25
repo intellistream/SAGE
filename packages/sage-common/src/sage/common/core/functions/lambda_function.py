@@ -129,9 +129,9 @@ def detect_lambda_type(func: Callable) -> str:
             raise ValueError(f"Lambda function must have 0 or 1 parameter, got {len(params)}")
 
         # 根据返回类型注解判断
-        if return_annotation == bool:
+        if return_annotation is bool:
             return "filter"
-        elif hasattr(return_annotation, "__origin__") and return_annotation.__origin__ == list:
+        elif hasattr(return_annotation, "__origin__") and return_annotation.__origin__ is list:
             return "flatmap"
         elif return_annotation is type(None) or return_annotation is None:
             return "sink"
