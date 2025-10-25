@@ -108,7 +108,9 @@ select = [
 
 # 忽略的错误（与flake8 .flake8文件保持一致）
 ignore = [
-    "E501",  # line too long (handled by formatter)
+    "E501",  # line too long (handled by formatter),
+    "B904",  # raise-without-from-inside-except
+    "C901",  # complex-structure
 ]
 
 # 复杂度限制（与flake8保持一致）

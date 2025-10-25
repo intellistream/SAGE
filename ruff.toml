@@ -1,0 +1,25 @@
+# Ruff configuration for SAGE project
+# This is the root-level configuration that applies to all Python code
+
+# Line length for all code
+line-length = 100
+
+[lint]
+# Ignore B904 and C901 as they are style recommendations
+# B904: Within an except clause, raise exceptions with raise ... from err
+# C901: Function is too complex (McCabe complexity)
+ignore = [
+    "B904",  # raise-without-from-inside-except
+    "C901",  # complex-structure (function complexity)
+]
+
+# Allow fix for all enabled rules (when `--fix` is provided)
+fixable = ["ALL"]
+unfixable = []
+
+[format]
+# Use double quotes
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"

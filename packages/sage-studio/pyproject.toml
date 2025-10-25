@@ -144,7 +144,9 @@ select = [
 ]
 
 ignore = [
-    "E501",  # line too long (handled by formatter)
+    "E501",  # line too long (handled by formatter),
+    "B904",  # raise-without-from-inside-except
+    "C901",  # complex-structure
 ]
 
 mccabe = { max-complexity = 10 }

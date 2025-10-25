@@ -107,7 +107,12 @@ include = '\.pyi?$'
 line-length = 100
 target-version = "py310"
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501", "E741"]
+ignore = [
+    "E501",  # line-too-long
+    "E741",  # ambiguous-variable-name
+    "B904",  # raise-without-from-inside-except
+    "C901",  # complex-structure
+]
 
 [tool.mypy]
 python_version = "3.10"
