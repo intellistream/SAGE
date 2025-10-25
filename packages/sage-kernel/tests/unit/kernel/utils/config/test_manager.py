@@ -18,8 +18,12 @@ from unittest.mock import patch
 import pytest
 import yaml
 from pydantic import ValidationError
-from sage.common.utils.config.manager import (BaseConfig, ConfigManager,
-                                              load_config, save_config)
+from sage.common.utils.config.manager import (
+    BaseConfig,
+    ConfigManager,
+    load_config,
+    save_config,
+)
 
 
 @pytest.mark.unit
@@ -161,7 +165,9 @@ class TestConfigManager:
                 assert loaded_config["app_name"] == "SAGE"
             except ImportError:
                 # 如果tomli也不存在，测试ImportError
-                with pytest.raises(ImportError, match="需要安装 tomli 库来支持 TOML 格式"):
+                with pytest.raises(
+                    ImportError, match="需要安装 tomli 库来支持 TOML 格式"
+                ):
                     self.manager.load("test.toml")
 
     def test_load_unsupported_format(self):
@@ -324,7 +330,9 @@ class TestConfigManager:
 
         # 验证修改
         assert self.manager.get(filename, "app.name") == "ModifiedName"
-        assert self.manager.get(filename, "app.version") == "1.0.0"  # 未修改的值保持不变
+        assert (
+            self.manager.get(filename, "app.version") == "1.0.0"
+        )  # 未修改的值保持不变
         assert self.manager.get(filename, "new_section.new_key") == "new_value"
 
     def test_clear_cache(self):
@@ -378,7 +386,9 @@ class TestConvenienceFunctions:
 
     def test_load_config_function_global_manager(self):
         """测试load_config便捷函数使用全局管理器"""
-        with patch("sage.common.utils.config.manager._global_config_manager") as mock_manager:
+        with patch(
+            "sage.common.utils.config.manager._global_config_manager"
+        ) as mock_manager:
             mock_manager.load.return_value = self.test_config
 
             config = load_config("test.yaml")
@@ -398,7 +408,9 @@ class TestConvenienceFunctions:
 
     def test_save_config_function_global_manager(self):
         """测试save_config便捷函数使用全局管理器"""
-        with patch("sage.common.utils.config.manager._global_config_manager") as mock_manager:
+        with patch(
+            "sage.common.utils.config.manager._global_config_manager"
+        ) as mock_manager:
             save_config("test.yaml", self.test_config)
             mock_manager.save.assert_called_once_with("test.yaml", self.test_config)
 
@@ -480,7 +492,9 @@ class TestConfigManagerPerformance:
             # 创建大型配置
             large_config = {}
             for i in range(1000):
-                large_config[f"section_{i}"] = {f"key_{j}": f"value_{i}_{j}" for j in range(100)}
+                large_config[f"section_{i}"] = {
+                    f"key_{j}": f"value_{i}_{j}" for j in range(100)
+                }
 
             # 测试保存性能
             start_time = time.time()

@@ -3,12 +3,16 @@
 import os
 from unittest.mock import patch
 
-from sage.common.config.output_paths import (SageOutputPaths,
-                                             find_sage_project_root,
-                                             get_appropriate_sage_dir,
-                                             get_logs_dir, get_output_dir,
-                                             get_sage_paths, get_temp_dir,
-                                             initialize_sage_paths)
+from sage.common.config.output_paths import (
+    SageOutputPaths,
+    find_sage_project_root,
+    get_appropriate_sage_dir,
+    get_logs_dir,
+    get_output_dir,
+    get_sage_paths,
+    get_temp_dir,
+    initialize_sage_paths,
+)
 
 
 class TestFindSageProjectRoot:
@@ -232,7 +236,9 @@ class TestConvenienceFunctions:
         # Clear cache first
         get_sage_paths.cache_clear()
 
-        with patch("sage.common.config.output_paths.get_appropriate_sage_dir") as mock_get:
+        with patch(
+            "sage.common.config.output_paths.get_appropriate_sage_dir"
+        ) as mock_get:
             mock_get.return_value = tmp_path / ".sage"
             (tmp_path / ".sage" / "logs").mkdir(parents=True)
 
@@ -243,7 +249,9 @@ class TestConvenienceFunctions:
         """测试get_output_dir便捷函数"""
         get_sage_paths.cache_clear()
 
-        with patch("sage.common.config.output_paths.get_appropriate_sage_dir") as mock_get:
+        with patch(
+            "sage.common.config.output_paths.get_appropriate_sage_dir"
+        ) as mock_get:
             mock_get.return_value = tmp_path / ".sage"
             (tmp_path / ".sage" / "output").mkdir(parents=True)
 
@@ -254,7 +262,9 @@ class TestConvenienceFunctions:
         """测试get_temp_dir便捷函数"""
         get_sage_paths.cache_clear()
 
-        with patch("sage.common.config.output_paths.get_appropriate_sage_dir") as mock_get:
+        with patch(
+            "sage.common.config.output_paths.get_appropriate_sage_dir"
+        ) as mock_get:
             mock_get.return_value = tmp_path / ".sage"
             (tmp_path / ".sage" / "temp").mkdir(parents=True)
 

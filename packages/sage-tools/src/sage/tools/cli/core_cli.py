@@ -5,6 +5,7 @@ SAGE Core CLI - 统一命令行接口
 """
 
 import typer
+
 # 导入各个子模块的app（直接导入，无需fallback）
 from sage.tools.cli.commands.cluster import app as cluster_app
 from sage.tools.cli.commands.config import app as config_app

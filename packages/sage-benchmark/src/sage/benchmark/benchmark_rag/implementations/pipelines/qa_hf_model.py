@@ -4,8 +4,7 @@ from sage.common.utils.config.loader import load_config
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.batch import JSONLBatch
 from sage.libs.io.sink import TerminalSink
-from sage.middleware.operators.rag import (ChromaRetriever, HFGenerator,
-                                           QAPromptor)
+from sage.middleware.operators.rag import ChromaRetriever, HFGenerator, QAPromptor
 
 
 def pipeline_run(config: dict) -> None:
@@ -40,7 +39,10 @@ if __name__ == "__main__":
     import sys
 
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - qa_hf_model example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)
@@ -48,7 +50,9 @@ if __name__ == "__main__":
     # 临时启用控制台输出来调试
     # CustomLogger.disable_global_consol
     # e_debug()
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_hf.yaml")
+    config_path = os.path.join(
+        os.path.dirname(__file__), "..", "config", "config_hf.yaml"
+    )
     if not os.path.exists(config_path):
         print(f"❌ Configuration file not found: {config_path}")
         print("Please create the configuration file first.")

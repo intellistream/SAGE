@@ -125,7 +125,9 @@ class FIFOScheduler(BaseScheduler):
         Returns:
             指标字典
         """
-        avg_latency = self.total_latency / self.scheduled_count if self.scheduled_count > 0 else 0
+        avg_latency = (
+            self.total_latency / self.scheduled_count if self.scheduled_count > 0 else 0
+        )
         return {
             "scheduler_type": "FIFO",
             "total_scheduled": self.scheduled_count,

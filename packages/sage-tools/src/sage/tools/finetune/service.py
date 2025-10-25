@@ -79,7 +79,9 @@ def start_training(config_path: Path, use_native: bool = True):
         console.print("  • 或安装 LLaMA-Factory: [cyan]pip install llmtuner[/cyan]")
 
 
-def merge_lora_weights(checkpoint_path: Path, base_model: str, output_path: Path) -> bool:
+def merge_lora_weights(
+    checkpoint_path: Path, base_model: str, output_path: Path
+) -> bool:
     """合并 LoRA 权重到基础模型
 
     Args:
@@ -151,7 +153,7 @@ def serve_model_with_vllm(
     """
     # 检查 vLLM 是否安装
     try:
-        import vllm
+        import vllm  # noqa: F401
     except ImportError:
         console.print("[yellow]⚠️  vLLM 未安装，正在安装...[/yellow]")
         subprocess.run(["pip", "install", "vllm"], check=True)

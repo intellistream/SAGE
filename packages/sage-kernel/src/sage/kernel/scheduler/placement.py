@@ -123,7 +123,9 @@ class PlacementExecutor:
 
         return task
 
-    def _place_local_task(self, task_node: "TaskNode", ctx) -> Union["LocalTask", "ActorWrapper"]:
+    def _place_local_task(
+        self, task_node: "TaskNode", ctx
+    ) -> Union["LocalTask", "ActorWrapper"]:
         """
         放置本地任务（直接创建 LocalTask）
 
@@ -190,8 +192,9 @@ class PlacementExecutor:
         # === 指定目标节点 ===
         if decision.target_node:
             try:
-                from ray.util.scheduling_strategies import \
-                    NodeAffinitySchedulingStrategy
+                from ray.util.scheduling_strategies import (
+                    NodeAffinitySchedulingStrategy,
+                )
 
                 options["scheduling_strategy"] = NodeAffinitySchedulingStrategy(
                     node_id=decision.target_node, soft=False  # 硬要求：必须放到指定节点

@@ -115,7 +115,9 @@ class WorkflowEvaluator:
                 error=str(e),
             )
 
-    def evaluate_all(self, optimizers: list[BaseOptimizer]) -> dict[str, list[BenchmarkResult]]:
+    def evaluate_all(
+        self, optimizers: list[BaseOptimizer]
+    ) -> dict[str, list[BenchmarkResult]]:
         """
         Evaluate all optimizers on all benchmarks.
 
@@ -180,7 +182,9 @@ class WorkflowEvaluator:
 
         print("\n" + "=" * 80)
 
-    def generate_report(self, results: dict[str, list[BenchmarkResult]]) -> dict[str, Any]:
+    def generate_report(
+        self, results: dict[str, list[BenchmarkResult]]
+    ) -> dict[str, Any]:
         """
         Generate structured report of results.
 
@@ -194,13 +198,21 @@ class WorkflowEvaluator:
 
         for optimizer_name, optimizer_results in results.items():
             stats = {
-                "avg_cost_reduction": sum(r.metrics.cost_reduction for r in optimizer_results)
+                "avg_cost_reduction": sum(
+                    r.metrics.cost_reduction for r in optimizer_results
+                )
                 / len(optimizer_results),
-                "avg_latency_reduction": sum(r.metrics.latency_reduction for r in optimizer_results)
+                "avg_latency_reduction": sum(
+                    r.metrics.latency_reduction for r in optimizer_results
+                )
                 / len(optimizer_results),
-                "avg_quality_change": sum(r.metrics.quality_change for r in optimizer_results)
+                "avg_quality_change": sum(
+                    r.metrics.quality_change for r in optimizer_results
+                )
                 / len(optimizer_results),
-                "avg_execution_time": sum(r.metrics.execution_time for r in optimizer_results)
+                "avg_execution_time": sum(
+                    r.metrics.execution_time for r in optimizer_results
+                )
                 / len(optimizer_results),
                 "constraints_satisfied_count": sum(
                     1 for r in optimizer_results if r.constraints_satisfied

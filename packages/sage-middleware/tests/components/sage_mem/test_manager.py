@@ -1,10 +1,10 @@
 import os
 import shutil
 
-from sage.middleware.components.sage_mem.neuromem.memory_manager import \
-    MemoryManager
-from sage.middleware.components.sage_mem.neuromem.utils.path_utils import \
-    get_default_data_dir
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.sage_mem.neuromem.utils.path_utils import (
+    get_default_data_dir,
+)
 
 
 def test_neuromem_manager():
@@ -77,7 +77,9 @@ def test_neuromem_manager():
 
     # 测试四：列举所有集合
     all_collections = manager.list_collection()
-    assert any(c["name"] == "test_collection" for c in all_collections), "list_collection有误"
+    assert any(
+        c["name"] == "test_collection" for c in all_collections
+    ), "list_collection有误"
     print("✅ 测试四：列举所有集合通过！")
 
     # 测试五：持久化测试

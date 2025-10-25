@@ -9,9 +9,11 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from sage.common.components.sage_embedding import (check_model_availability,
-                                                   get_embedding_model,
-                                                   list_embedding_models)
+from sage.common.components.sage_embedding import (
+    check_model_availability,
+    get_embedding_model,
+    list_embedding_models,
+)
 
 console = Console()
 app = typer.Typer(name="embedding", help="🎯 Embedding 方法管理")
@@ -107,7 +109,9 @@ def list_methods(
 @app.command(name="check")
 def check_method(
     method: str = typer.Argument(..., help="Embedding 方法名称"),
-    model: str | None = typer.Option(None, "--model", "-m", help="模型名称（如果需要）"),
+    model: str | None = typer.Option(
+        None, "--model", "-m", help="模型名称（如果需要）"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出"),
 ):
     """检查特定 embedding 方法的可用性"""
@@ -205,7 +209,9 @@ def test_method(
     except Exception as e:
         console.print(f"[red]❌ 错误:[/red] {e}")
         if "API Key" in str(e):
-            console.print("\n[yellow]💡 提示:[/yellow] 使用 --api-key 参数提供 API 密钥")
+            console.print(
+                "\n[yellow]💡 提示:[/yellow] 使用 --api-key 参数提供 API 密钥"
+            )
 
 
 @app.command(name="benchmark")

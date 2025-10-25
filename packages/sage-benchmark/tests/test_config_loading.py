@@ -14,7 +14,12 @@ class TestConfigLoading:
     def test_config_files_exist(self):
         """Verify all config files exist"""
         config_dir = (
-            Path(__file__).parent.parent / "src" / "sage" / "benchmark" / "benchmark_rag" / "config"
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "benchmark"
+            / "benchmark_rag"
+            / "config"
         )
 
         expected_configs = [
@@ -31,7 +36,12 @@ class TestConfigLoading:
     def test_config_yaml_valid(self):
         """Verify all YAML files are valid"""
         config_dir = (
-            Path(__file__).parent.parent / "src" / "sage" / "benchmark" / "benchmark_rag" / "config"
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "benchmark"
+            / "benchmark_rag"
+            / "config"
         )
 
         for config_file in config_dir.glob("*.yaml"):
@@ -73,7 +83,12 @@ class TestDataFiles:
     def test_data_directory_exists(self):
         """Verify data directory exists"""
         data_dir = (
-            Path(__file__).parent.parent / "src" / "sage" / "benchmark" / "benchmark_rag" / "data"
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "benchmark"
+            / "benchmark_rag"
+            / "data"
         )
         assert data_dir.exists(), "Data directory should exist"
 

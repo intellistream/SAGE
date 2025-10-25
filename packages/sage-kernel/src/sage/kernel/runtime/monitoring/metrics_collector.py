@@ -15,9 +15,11 @@ from collections import deque
 from datetime import datetime, timedelta
 from threading import Lock
 
-from sage.kernel.runtime.monitoring.metrics import (PacketMetrics,
-                                                    ServiceRequestMetrics,
-                                                    TaskPerformanceMetrics)
+from sage.kernel.runtime.monitoring.metrics import (
+    PacketMetrics,
+    ServiceRequestMetrics,
+    TaskPerformanceMetrics,
+)
 
 
 class MetricsCollector:
@@ -141,7 +143,9 @@ class MetricsCollector:
             if not success:
                 self._total_failed += 1
                 if error_type:
-                    self._error_breakdown[error_type] = self._error_breakdown.get(error_type, 0) + 1
+                    self._error_breakdown[error_type] = (
+                        self._error_breakdown.get(error_type, 0) + 1
+                    )
 
             # 更新时间窗口计数器
             self._update_time_window_counters(current_time)
@@ -236,15 +240,21 @@ class MetricsCollector:
             last_minute_tps = (
                 len(self._last_minute_count) / 60.0 if self._last_minute_count else 0.0
             )
-            last_5min_tps = len(self._last_5min_count) / 300.0 if self._last_5min_count else 0.0
-            last_hour_tps = len(self._last_hour_count) / 3600.0 if self._last_hour_count else 0.0
+            last_5min_tps = (
+                len(self._last_5min_count) / 300.0 if self._last_5min_count else 0.0
+            )
+            last_hour_tps = (
+                len(self._last_hour_count) / 3600.0 if self._last_hour_count else 0.0
+            )
 
             # 计算平均TPS
             packets_per_second = self._total_processed / uptime if uptime > 0 else 0.0
 
             # 计算队列等待时间
             wait_times = [
-                m.queue_wait_time * 1000 for m in self.packet_metrics if m.queue_wait_time > 0
+                m.queue_wait_time * 1000
+                for m in self.packet_metrics
+                if m.queue_wait_time > 0
             ]
             avg_wait_time = sum(wait_times) / len(wait_times) if wait_times else 0.0
 
@@ -257,7 +267,9 @@ class MetricsCollector:
                 min_latency=min(execution_times) if execution_times else 0.0,
                 max_latency=max(execution_times) if execution_times else 0.0,
                 avg_latency=(
-                    sum(execution_times) / len(execution_times) if execution_times else 0.0
+                    sum(execution_times) / len(execution_times)
+                    if execution_times
+                    else 0.0
                 ),
                 p50_latency=percentiles["p50"],
                 p95_latency=percentiles["p95"],

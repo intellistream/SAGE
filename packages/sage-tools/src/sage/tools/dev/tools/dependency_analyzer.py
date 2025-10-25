@@ -61,7 +61,9 @@ class DependencyAnalyzer:
 
                     # Track version matrix
                     if "version" in dep_info:
-                        analysis["version_matrix"][dep_name][package_name] = dep_info["version"]
+                        analysis["version_matrix"][dep_name][package_name] = dep_info[
+                            "version"
+                        ]
 
             # Convert set to list for JSON serialization
             analysis["summary"]["unique_dependencies"] = list(
@@ -72,14 +74,16 @@ class DependencyAnalyzer:
             )
 
             # Build dependency graph
-            analysis["dependency_graph"] = self._build_dependency_graph(analysis["packages"])
+            analysis["dependency_graph"] = self._build_dependency_graph(
+                analysis["packages"]
+            )
 
             # Detect conflicts and circular dependencies
-            analysis["summary"]["dependency_conflicts"] = self._detect_version_conflicts(
-                analysis["version_matrix"]
+            analysis["summary"]["dependency_conflicts"] = (
+                self._detect_version_conflicts(analysis["version_matrix"])
             )
-            analysis["summary"]["circular_dependencies"] = self._detect_circular_dependencies(
-                analysis["dependency_graph"]
+            analysis["summary"]["circular_dependencies"] = (
+                self._detect_circular_dependencies(analysis["dependency_graph"])
             )
 
             return analysis
@@ -123,7 +127,9 @@ class DependencyAnalyzer:
             if conflicts:
                 health_score -= len(conflicts) * 10
                 issues.append(f"Found {len(conflicts)} version conflicts")
-                recommendations.append("Resolve version conflicts to ensure compatibility")
+                recommendations.append(
+                    "Resolve version conflicts to ensure compatibility"
+                )
 
             # Check for circular dependencies
             circular = analysis["summary"]["circular_dependencies"]
@@ -136,7 +142,9 @@ class DependencyAnalyzer:
             outdated = self._check_outdated_dependencies(analysis)
             if outdated:
                 health_score -= len(outdated) * 5
-                issues.append(f"Found {len(outdated)} potentially outdated dependencies")
+                issues.append(
+                    f"Found {len(outdated)} potentially outdated dependencies"
+                )
                 recommendations.append("Consider updating outdated dependencies")
 
             # Check for security vulnerabilities
@@ -286,7 +294,9 @@ class DependencyAnalyzer:
                     if line and not line.startswith("#") and not line.startswith("-"):
                         dep_name, dep_info = self._parse_dependency_spec(line)
                         target_dict = (
-                            analysis["dev_dependencies"] if is_dev else analysis["dependencies"]
+                            analysis["dev_dependencies"]
+                            if is_dev
+                            else analysis["dependencies"]
                         )
                         target_dict[dep_name] = dep_info
 
@@ -476,7 +486,8 @@ class DependencyAnalyzer:
             "circular_dependencies": len(analysis["summary"]["circular_dependencies"]),
             "top_dependencies": self._get_top_dependencies(analysis),
             "package_count": {
-                name: len(info["dependencies"]) for name, info in analysis["packages"].items()
+                name: len(info["dependencies"])
+                for name, info in analysis["packages"].items()
             },
         }
 
@@ -491,4 +502,6 @@ class DependencyAnalyzer:
         # Sort by usage count
         sorted_deps = sorted(dep_count.items(), key=lambda x: x[1], reverse=True)
 
-        return [{"name": name, "usage_count": count} for name, count in sorted_deps[:10]]
+        return [
+            {"name": name, "usage_count": count} for name, count in sorted_deps[:10]
+        ]

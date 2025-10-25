@@ -10,7 +10,9 @@ from typing import TYPE_CHECKING, Any
 from sage.common.core.types import TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
-    ExponentialBackoffStrategy, RestartStrategy)
+    ExponentialBackoffStrategy,
+    RestartStrategy,
+)
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.dispatcher import Dispatcher
@@ -80,7 +82,9 @@ class RestartBasedRecovery(BaseFaultHandler):
             return self.recover(task_id)
         else:
             if self.logger:
-                self.logger.error(f"Task {task_id} cannot be recovered (max attempts reached)")
+                self.logger.error(
+                    f"Task {task_id} cannot be recovered (max attempts reached)"
+                )
             return False
 
     def can_recover(self, task_id: TaskID) -> bool:

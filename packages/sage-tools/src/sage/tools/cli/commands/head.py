@@ -146,7 +146,9 @@ fi"""
 
         if result.returncode == 0:
             typer.echo("✅ Ray Head节点启动成功")
-            typer.echo(f"🌐 Dashboard访问地址: http://{dashboard_host}:{dashboard_port}")
+            typer.echo(
+                f"🌐 Dashboard访问地址: http://{dashboard_host}:{dashboard_port}"
+            )
         else:
             typer.echo("❌ Ray Head节点启动失败")
             raise typer.Exit(1)

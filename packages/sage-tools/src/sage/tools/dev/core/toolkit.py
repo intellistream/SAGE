@@ -15,9 +15,15 @@ from pathlib import Path
 from typing import Any
 
 from .config import ToolkitConfig
-from .exceptions import (AnalysisError, DependencyAnalysisError,
-                         PackageManagementError, ReportGenerationError,
-                         SAGEDevToolkitError, TestExecutionError, ToolError)
+from .exceptions import (
+    AnalysisError,
+    DependencyAnalysisError,
+    PackageManagementError,
+    ReportGenerationError,
+    SAGEDevToolkitError,
+    TestExecutionError,
+    ToolError,
+)
 
 
 class SAGEDevToolkit:
@@ -81,7 +87,9 @@ class SAGEDevToolkit:
             console_handler = logging.StreamHandler()
             console_handler.setLevel(self.logger.level)
             formatter = logging.Formatter(
-                log_config.get("format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+                log_config.get(
+                    "format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+                )
             )
             console_handler.setFormatter(formatter)
             self.logger.addHandler(console_handler)
@@ -100,8 +108,11 @@ class SAGEDevToolkit:
     def _load_tools(self) -> None:
         """Load integrated tools and dynamically load additional tools from scripts directory."""
         # Load integrated tools first
-        from ..tools import (EnhancedPackageManager, EnhancedTestRunner,
-                             VSCodePathManager)
+        from ..tools import (
+            EnhancedPackageManager,
+            EnhancedTestRunner,
+            VSCodePathManager,
+        )
 
         # Map integrated tools
         integrated_tools = {
@@ -154,7 +165,9 @@ class SAGEDevToolkit:
                     self.tools[tool_name] = getattr(module, class_name)
                     self.logger.info(f"Successfully loaded tool: {tool_name}")
                 else:
-                    self.logger.warning(f"Tool class not found: {class_name} in {module_name}")
+                    self.logger.warning(
+                        f"Tool class not found: {class_name} in {module_name}"
+                    )
 
             except Exception as e:
                 self.logger.error(f"Failed to load tool {tool_name}: {e}")
@@ -425,7 +438,9 @@ class SAGEDevToolkit:
 
         return output_file
 
-    def _generate_markdown_report(self, report: dict[str, Any], output_file: Path) -> None:
+    def _generate_markdown_report(
+        self, report: dict[str, Any], output_file: Path
+    ) -> None:
         """Generate markdown version of comprehensive report."""
         with open(output_file, "w", encoding="utf-8") as f:
             f.write("# SAGE Development Report\n\n")
@@ -436,7 +451,9 @@ class SAGEDevToolkit:
             f.write(f"- **Generated**: {metadata.get('timestamp', 'Unknown')}\n")
             f.write(f"- **Environment**: {metadata.get('environment', 'Unknown')}\n")
             f.write(f"- **Project Root**: {metadata.get('project_root', 'Unknown')}\n")
-            f.write(f"- **Execution Time**: {metadata.get('execution_time', 0):.2f}s\n\n")
+            f.write(
+                f"- **Execution Time**: {metadata.get('execution_time', 0):.2f}s\n\n"
+            )
 
             # Sections
             sections = report.get("sections", {})
@@ -446,7 +463,9 @@ class SAGEDevToolkit:
 
                 status = section_data.get("status", "unknown")
                 if status == "error":
-                    f.write(f"❌ **Error**: {section_data.get('error', 'Unknown error')}\n\n")
+                    f.write(
+                        f"❌ **Error**: {section_data.get('error', 'Unknown error')}\n\n"
+                    )
                 elif status == "success":
                     f.write("✅ **Status**: Success\n\n")
                     # Add summary data if available
@@ -555,7 +574,9 @@ class SAGEDevToolkit:
                 "author": version_globals.get("__author__", "IntelliStream Team"),
                 "email": version_globals.get("__email__", "unknown"),
                 "release_date": version_globals.get("__release_date__", "unknown"),
-                "release_status": version_globals.get("__release_status__", "development"),
+                "release_status": version_globals.get(
+                    "__release_status__", "development"
+                ),
                 "build": f"{version_globals.get('__version__', 'unknown')}-{version_globals.get('__release_status__', 'dev')}",
                 "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
                 "python_requires": version_globals.get("__python_requires__", ">=3.10"),

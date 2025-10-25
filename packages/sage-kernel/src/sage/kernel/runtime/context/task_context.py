@@ -10,8 +10,7 @@ from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.transformation.base_transformation import \
-        BaseTransformation
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.communication.router.packet import Packet
     from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -71,7 +70,9 @@ class TaskContext(BaseRuntimeContext):
         self.stop_signal_count = 0
 
         # 服务相关 - service_manager已在BaseRuntimeContext中定义
-        self._service_names: dict[str, str] | None = None  # 只保存服务名称映射而不是实例
+        self._service_names: dict[str, str] | None = (
+            None  # 只保存服务名称映射而不是实例
+        )
 
         # 队列描述符管理 - 在构造时从graph_node和execution_graph获取
         self.input_qd: BaseQueueDescriptor = graph_node.input_qd
@@ -89,7 +90,9 @@ class TaskContext(BaseRuntimeContext):
 
         self.dispatcher: Any = None  # 延迟注入，避免循环依赖
 
-    def _build_downstream_groups(self, graph_node: "TaskNode", execution_graph: "ExecutionGraph"):
+    def _build_downstream_groups(
+        self, graph_node: "TaskNode", execution_graph: "ExecutionGraph"
+    ):
         """从execution_graph构建downstream_groups"""
         # 遍历输出通道，构建downstream_groups
         for broadcast_index, output_group in enumerate(graph_node.output_channels):
@@ -217,7 +220,9 @@ class TaskContext(BaseRuntimeContext):
                 local_jobmanager = self._local_jobmanager_ref()
                 if local_jobmanager:
                     local_jobmanager.receive_node_stop_signal(self.env_uuid, node_name)
-                    self.logger.info("Successfully sent stop signal to local JobManager")
+                    self.logger.info(
+                        "Successfully sent stop signal to local JobManager"
+                    )
                     return
 
             # 导入JobManagerClient来发送网络请求
@@ -228,7 +233,9 @@ class TaskContext(BaseRuntimeContext):
             )
 
             # 创建客户端并发送停止信号
-            client = JobManagerClient(host=self.jobmanager_host, port=self.jobmanager_port)
+            client = JobManagerClient(
+                host=self.jobmanager_host, port=self.jobmanager_port
+            )
             env_uuid = self.env_uuid if self.env_uuid is not None else ""
             response = client.receive_node_stop_signal(env_uuid, node_name)
 
@@ -262,7 +269,9 @@ class TaskContext(BaseRuntimeContext):
             if "KeyBy" in operator_name and "_1" in operator_name:
                 # 这是一个合并了多个输入的KeyBy节点，等待2个停止信号
                 self.num_expected_stop_signals = 2
-                self.logger.info(f"Task {self.name} (KeyBy merge node) expecting 2 stop signals")
+                self.logger.info(
+                    f"Task {self.name} (KeyBy merge node) expecting 2 stop signals"
+                )
             else:
                 self.num_expected_stop_signals = 0
         if not hasattr(self, "stop_signals_received"):
@@ -290,7 +299,9 @@ class TaskContext(BaseRuntimeContext):
                 return
         else:
             # No specific number expected, just forward the signal
-            self.logger.info(f"Task {self.name} forwarding stop signal from {source_node}")
+            self.logger.info(
+                f"Task {self.name} forwarding stop signal from {source_node}"
+            )
 
             # Send stop signal to job manager
             self.request_stop()
@@ -312,8 +323,7 @@ class TaskContext(BaseRuntimeContext):
     def _get_router(self):
         """延迟初始化router，避免直接暴露BaseRouter给core组件"""
         if not hasattr(self, "_router") or self._router is None:
-            from sage.kernel.runtime.communication.router.router import \
-                BaseRouter
+            from sage.kernel.runtime.communication.router.router import BaseRouter
 
             self._router = BaseRouter(self)
             self.logger.debug(f"Initialized router for TaskContext {self.name}")
@@ -372,7 +382,9 @@ class TaskContext(BaseRuntimeContext):
         """获取服务响应队列描述符"""
         return self._service_response_queue_descriptor
 
-    def set_upstream_queue_descriptors(self, descriptors: dict[int, list["BaseQueueDescriptor"]]):
+    def set_upstream_queue_descriptors(
+        self, descriptors: dict[int, list["BaseQueueDescriptor"]]
+    ):
         """设置上游队列描述符映射"""
         self._upstream_queue_descriptors = descriptors
 
@@ -382,7 +394,9 @@ class TaskContext(BaseRuntimeContext):
         """获取上游队列描述符映射"""
         return self._upstream_queue_descriptors
 
-    def set_downstream_queue_descriptors(self, descriptors: list[list["BaseQueueDescriptor"]]):
+    def set_downstream_queue_descriptors(
+        self, descriptors: list[list["BaseQueueDescriptor"]]
+    ):
         """设置下游队列描述符映射"""
         self._downstream_queue_descriptors = descriptors
         self.downstream_qds = descriptors
@@ -393,7 +407,9 @@ class TaskContext(BaseRuntimeContext):
         """获取下游队列描述符映射"""
         return self._downstream_queue_descriptors
 
-    def set_service_request_queue_descriptors(self, descriptors: dict[str, "BaseQueueDescriptor"]):
+    def set_service_request_queue_descriptors(
+        self, descriptors: dict[str, "BaseQueueDescriptor"]
+    ):
         """设置服务请求队列描述符映射"""
         self._service_request_queue_descriptors = descriptors
         self.service_qds = descriptors

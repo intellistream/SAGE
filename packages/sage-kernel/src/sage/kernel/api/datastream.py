@@ -10,8 +10,7 @@ from .connected_streams import ConnectedStreams
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.transformation.base_transformation import \
-        BaseTransformation
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 T = TypeVar("T")
 
@@ -32,20 +31,27 @@ class DataStream(Generic[T]):
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
         if not hasattr(self, "_transformation_classes"):
-            from sage.kernel.api.transformation.base_transformation import \
-                BaseTransformation
-            from sage.kernel.api.transformation.filter_transformation import \
-                FilterTransformation
-            from sage.kernel.api.transformation.flatmap_transformation import \
-                FlatMapTransformation
-            from sage.kernel.api.transformation.keyby_transformation import \
-                KeyByTransformation
-            from sage.kernel.api.transformation.map_transformation import \
-                MapTransformation
-            from sage.kernel.api.transformation.sink_transformation import \
-                SinkTransformation
-            from sage.kernel.api.transformation.source_transformation import \
-                SourceTransformation
+            from sage.kernel.api.transformation.base_transformation import (
+                BaseTransformation,
+            )
+            from sage.kernel.api.transformation.filter_transformation import (
+                FilterTransformation,
+            )
+            from sage.kernel.api.transformation.flatmap_transformation import (
+                FlatMapTransformation,
+            )
+            from sage.kernel.api.transformation.keyby_transformation import (
+                KeyByTransformation,
+            )
+            from sage.kernel.api.transformation.map_transformation import (
+                MapTransformation,
+            )
+            from sage.kernel.api.transformation.sink_transformation import (
+                SinkTransformation,
+            )
+            from sage.kernel.api.transformation.source_transformation import (
+                SourceTransformation,
+            )
 
             self._transformation_classes = {
                 "BaseTransformation": BaseTransformation,
@@ -95,7 +101,9 @@ class DataStream(Generic[T]):
         actual_parallelism = parallelism if parallelism is not None else 1
 
         # 获取FilterTransformation类
-        FilterTransformation = self._get_transformation_classes()["FilterTransformation"]
+        FilterTransformation = self._get_transformation_classes()[
+            "FilterTransformation"
+        ]
         tr = FilterTransformation(
             self._environment, function, *args, parallelism=actual_parallelism, **kwargs
         )
@@ -118,7 +126,9 @@ class DataStream(Generic[T]):
         actual_parallelism = parallelism if parallelism is not None else 1
 
         # 获取FlatMapTransformation类
-        FlatMapTransformation = self._get_transformation_classes()["FlatMapTransformation"]
+        FlatMapTransformation = self._get_transformation_classes()[
+            "FlatMapTransformation"
+        ]
         tr = FlatMapTransformation(
             self._environment, function, *args, parallelism=actual_parallelism, **kwargs
         )
@@ -188,7 +198,9 @@ class DataStream(Generic[T]):
         """
         if isinstance(other, DataStream):
             # DataStream + DataStream -> ConnectedStreams
-            return ConnectedStreams(self._environment, [self.transformation, other.transformation])
+            return ConnectedStreams(
+                self._environment, [self.transformation, other.transformation]
+            )
         else:  # ConnectedStreams
             # DataStream + ConnectedStreams -> ConnectedStreams
             new_transformations = [self.transformation] + other.transformations
@@ -216,12 +228,15 @@ class DataStream(Generic[T]):
             processed_result = result.filter(SomeFilter)
             processed_result.fill_future(future_stream)
         """
-        from sage.kernel.api.transformation.future_transformation import \
-            FutureTransformation
+        from sage.kernel.api.transformation.future_transformation import (
+            FutureTransformation,
+        )
 
         # 验证目标是future stream
         if not isinstance(future_stream.transformation, FutureTransformation):
-            raise ValueError("Target stream must be a future stream created by env.from_future()")
+            raise ValueError(
+                "Target stream must be a future stream created by env.from_future()"
+            )
 
         future_trans = future_stream.transformation
 
@@ -248,7 +263,9 @@ class DataStream(Generic[T]):
     # ---------------------------------------------------------------------
     # quick helper api
     # ---------------------------------------------------------------------
-    def print(self, prefix: str = "", separator: str = " | ", colored: bool = True) -> DataStream:
+    def print(
+        self, prefix: str = "", separator: str = " | ", colored: bool = True
+    ) -> DataStream:
         """
         便捷的打印方法 - 将数据流输出到控制台
 

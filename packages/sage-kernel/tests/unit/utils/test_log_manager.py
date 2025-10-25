@@ -42,7 +42,9 @@ class LogManager:
         )
 
         # Ray 相关日志
-        self.ray_logger = self._create_logger("ray_tests", self.daily_log_dir / "ray_tests.log")
+        self.ray_logger = self._create_logger(
+            "ray_tests", self.daily_log_dir / "ray_tests.log"
+        )
 
         # 性能日志
         self.perf_logger = self._create_logger(
@@ -63,7 +65,9 @@ class LogManager:
         file_handler.setLevel(logging.DEBUG)
 
         # 格式器
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         file_handler.setFormatter(formatter)
 
         logger.addHandler(file_handler)

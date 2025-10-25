@@ -22,13 +22,17 @@ class FutureOperator(BaseOperator):
         """
         Future operator不应该被直接调用
         """
-        raise RuntimeError("FutureOperator should not be called directly. It's a placeholder.")
+        raise RuntimeError(
+            "FutureOperator should not be called directly. It's a placeholder."
+        )
 
     def emit(self, result: Any) -> None:
         """
         Future operator不应该被直接调用
         """
-        raise RuntimeError("FutureOperator should not be called directly. It's a placeholder.")
+        raise RuntimeError(
+            "FutureOperator should not be called directly. It's a placeholder."
+        )
 
     def __repr__(self) -> str:
         return f"FutureOperator({self.basename}, placeholder)"

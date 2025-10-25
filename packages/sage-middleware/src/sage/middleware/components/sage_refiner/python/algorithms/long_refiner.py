@@ -16,7 +16,10 @@ import time
 from typing import Any
 
 from sage.middleware.components.sage_refiner.python.base import (
-    BaseRefiner, RefineResult, RefinerMetrics)
+    BaseRefiner,
+    RefineResult,
+    RefinerMetrics,
+)
 
 
 class LongRefinerAlgorithm(BaseRefiner):
@@ -50,8 +53,9 @@ class LongRefinerAlgorithm(BaseRefiner):
 
         try:
             # 从本地实现导入，不再依赖sage-libs
-            from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.refiner import \
-                LongRefiner
+            from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.refiner import (
+                LongRefiner,
+            )
 
             # 准备配置
             required_fields = [
@@ -71,9 +75,15 @@ class LongRefinerAlgorithm(BaseRefiner):
             # 创建LongRefiner实例
             self.refiner = LongRefiner(
                 base_model_path=self.config["base_model_path"],
-                query_analysis_module_lora_path=self.config["query_analysis_module_lora_path"],
-                doc_structuring_module_lora_path=self.config["doc_structuring_module_lora_path"],
-                global_selection_module_lora_path=self.config["global_selection_module_lora_path"],
+                query_analysis_module_lora_path=self.config[
+                    "query_analysis_module_lora_path"
+                ],
+                doc_structuring_module_lora_path=self.config[
+                    "doc_structuring_module_lora_path"
+                ],
+                global_selection_module_lora_path=self.config[
+                    "global_selection_module_lora_path"
+                ],
                 score_model_name=self.config["score_model_name"],
                 score_model_path=self.config["score_model_path"],
                 max_model_len=self.config.get("max_model_len", 25000),
@@ -90,7 +100,9 @@ class LongRefinerAlgorithm(BaseRefiner):
                 "with LongRefiner dependencies."
             ) from e
 
-    def _normalize_documents(self, documents: list[str | dict[str, Any]]) -> list[dict[str, str]]:
+    def _normalize_documents(
+        self, documents: list[str | dict[str, Any]]
+    ) -> list[dict[str, str]]:
         """标准化文档格式"""
         normalized = []
         for doc in documents:
@@ -98,7 +110,12 @@ class LongRefinerAlgorithm(BaseRefiner):
                 normalized.append({"contents": doc})
             elif isinstance(doc, dict):
                 # 支持多种字段名
-                content = doc.get("contents") or doc.get("text") or doc.get("content") or str(doc)
+                content = (
+                    doc.get("contents")
+                    or doc.get("text")
+                    or doc.get("content")
+                    or str(doc)
+                )
                 normalized.append({"contents": content})
             else:
                 normalized.append({"contents": str(doc)})
@@ -156,7 +173,9 @@ class LongRefinerAlgorithm(BaseRefiner):
         total_time = time.time() - start_time
 
         # 计算压缩率
-        compression_rate = original_tokens / refined_tokens if refined_tokens > 0 else 0.0
+        compression_rate = (
+            original_tokens / refined_tokens if refined_tokens > 0 else 0.0
+        )
 
         # 创建指标
         metrics = RefinerMetrics(
@@ -192,11 +211,14 @@ class LongRefinerAlgorithm(BaseRefiner):
         start_time = time.time()
 
         # 标准化所有文档
-        normalized_docs_list = [self._normalize_documents(docs) for docs in documents_list]
+        normalized_docs_list = [
+            self._normalize_documents(docs) for docs in documents_list
+        ]
 
         # 计算原始token数
         original_tokens_list = [
-            self._count_tokens([d["contents"] for d in docs]) for docs in normalized_docs_list
+            self._count_tokens([d["contents"] for d in docs])
+            for docs in normalized_docs_list
         ]
 
         # 使用配置中的budget或传入的budget
@@ -247,7 +269,9 @@ class LongRefinerAlgorithm(BaseRefiner):
                 RefineResult(
                     refined_content=refined_content,
                     metrics=metrics,
-                    original_content=(documents_list[i] if kwargs.get("keep_original") else None),
+                    original_content=(
+                        documents_list[i] if kwargs.get("keep_original") else None
+                    ),
                 )
             )
 

@@ -124,7 +124,9 @@ class BootstrappedSageDBService(SageDBService):
                 return
 
             if vectors.ndim != 2:
-                raise ValueError("initial_vectors must be a 2D array-like of shape (N, dim)")
+                raise ValueError(
+                    "initial_vectors must be a 2D array-like of shape (N, dim)"
+                )
 
             expected_count = vectors.shape[0]
             if initial_metadata is None:
@@ -132,7 +134,9 @@ class BootstrappedSageDBService(SageDBService):
             else:
                 metadata = list(initial_metadata)
                 if len(metadata) != expected_count:
-                    raise ValueError("initial_metadata length must match number of initial_vectors")
+                    raise ValueError(
+                        "initial_metadata length must match number of initial_vectors"
+                    )
 
             self.add_batch(vectors, metadata)
             # Build index once after ingestion to accelerate queries
@@ -176,7 +180,9 @@ class SageDBRetrieverNode(MapFunction):
 
         query_vector = np.asarray(self.embedder.embed(query), dtype=np.float32)
         service = self.call_service[self.service_name]
-        raw_results = service.search(query_vector, k=self.top_k, timeout=self.service_timeout)
+        raw_results = service.search(
+            query_vector, k=self.top_k, timeout=self.service_timeout
+        )
 
         formatted_results: List[Dict[str, Any]] = []
         corpus_snippets: List[str] = []
@@ -197,7 +203,11 @@ class SageDBRetrieverNode(MapFunction):
                 {
                     "title": metadata.get("title", "unknown"),
                     "score": float(item.get("score", 0.0)),
-                    "tags": (metadata.get("tags", "").split(",") if metadata.get("tags") else []),
+                    "tags": (
+                        metadata.get("tags", "").split(",")
+                        if metadata.get("tags")
+                        else []
+                    ),
                 }
             )
 
@@ -217,7 +227,9 @@ class MockLLMGenerator(MapFunction):
 
     def execute(self, data: List[Any]) -> Dict[str, Any]:
         if not isinstance(data, list) or len(data) != 2:
-            raise ValueError("Generator expects QAPromptor output: [original_payload, messages]")
+            raise ValueError(
+                "Generator expects QAPromptor output: [original_payload, messages]"
+            )
         original, messages = data
         top_hit = None
         if isinstance(original, dict):
@@ -226,7 +238,10 @@ class MockLLMGenerator(MapFunction):
         answer: str
         if top_hit:
             title = top_hit["metadata"].get("title", "资料")
-            answer = f"参考《{title}》中的要点：{top_hit['text']}" " —— 该内容经 SageDB 检索返回。"
+            answer = (
+                f"参考《{title}》中的要点：{top_hit['text']}"
+                " —— 该内容经 SageDB 检索返回。"
+            )
         else:
             answer = "知识库没有检索到匹配内容，建议扩充 SageDB 语料。"
 
@@ -258,7 +273,9 @@ class ConsoleReporter(MapFunction):
         return payload
 
 
-def build_embeddings(entries: Sequence[KnowledgeEntry], model: EmbeddingModel) -> np.ndarray:
+def build_embeddings(
+    entries: Sequence[KnowledgeEntry], model: EmbeddingModel
+) -> np.ndarray:
     vectors = []
     for item in entries:
         vectors.append(model.embed(item.text))

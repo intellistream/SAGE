@@ -3,8 +3,7 @@ import sys
 
 from sage.common.utils.config.loader import load_config
 from sage.libs.rag.document_loaders import TextLoader
-from sage.middleware.operators.rag import (CharacterSplitter,
-                                           MilvusSparseRetriever)
+from sage.middleware.operators.rag import CharacterSplitter, MilvusSparseRetriever
 
 
 def load_knowledge_to_milvus(config):
@@ -65,7 +64,10 @@ def load_knowledge_to_milvus(config):
 
 if __name__ == "__main__":
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - build_milvus_sparse_index example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

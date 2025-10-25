@@ -19,11 +19,23 @@ from collections import defaultdict, deque
 # 从 SAGE 公共 API 导入（参考 PACKAGE_ARCHITECTURE.md）
 from sage.kernel.api import LocalEnvironment
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.libs.io.sink import (FileSink, MemWriteSink, PrintSink, RetriveSink,
-                               TerminalSink)
-from sage.libs.io.source import (APISource, CSVFileSource, DatabaseSource,
-                                 FileSource, JSONFileSource, KafkaSource,
-                                 SocketSource, TextFileSource)
+from sage.libs.io.sink import (
+    FileSink,
+    MemWriteSink,
+    PrintSink,
+    RetriveSink,
+    TerminalSink,
+)
+from sage.libs.io.source import (
+    APISource,
+    CSVFileSource,
+    DatabaseSource,
+    FileSource,
+    JSONFileSource,
+    KafkaSource,
+    SocketSource,
+    TextFileSource,
+)
 
 from ..models import VisualNode, VisualPipeline
 from .node_registry import get_node_registry
@@ -74,7 +86,9 @@ class PipelineBuilder:
 
             if stream is None:
                 # 第一个节点 - 创建 source
-                source_class, source_args, source_kwargs = self._create_source(node, pipeline)
+                source_class, source_args, source_kwargs = self._create_source(
+                    node, pipeline
+                )
                 stream = env.from_source(
                     source_class, *source_args, name=node.label, **source_kwargs
                 )
@@ -152,7 +166,8 @@ class PipelineBuilder:
         if len(sorted_nodes) != len(pipeline.nodes):
             remaining = [n.label for n in pipeline.nodes if n not in sorted_nodes]
             raise ValueError(
-                f"Circular dependency detected in pipeline. " f"Nodes in cycle: {remaining}"
+                f"Circular dependency detected in pipeline. "
+                f"Nodes in cycle: {remaining}"
             )
 
         return sorted_nodes
@@ -162,7 +177,8 @@ class PipelineBuilder:
         operator_class = self.registry.get_operator(node_type)
         if not operator_class:
             raise ValueError(
-                f"Unknown node type: {node_type}. " f"Available types: {self.registry.list_types()}"
+                f"Unknown node type: {node_type}. "
+                f"Available types: {self.registry.list_types()}"
             )
         return operator_class
 

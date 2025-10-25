@@ -113,7 +113,9 @@ class JoinOperator(BaseOperator):
                 )
 
         except Exception as e:
-            self.logger.error(f"Error in JoinOperator '{self.name}': {e}", exc_info=True)
+            self.logger.error(
+                f"Error in JoinOperator '{self.name}': {e}", exc_info=True
+            )
             # 不重新抛出异常，避免中断整个流处理
 
     def handle_stop_signal(
@@ -133,8 +135,7 @@ class JoinOperator(BaseOperator):
             # 处理来自不同调用方式的参数
             if signal is not None:
                 # 来自 task_context 的调用，signal 是 StopSignal 对象
-                from sage.kernel.runtime.communication.router.packet import \
-                    StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 if isinstance(signal, StopSignal):
                     signal_name = signal.name
@@ -144,7 +145,9 @@ class JoinOperator(BaseOperator):
                 # 来自 base_task 的调用，使用传统参数
                 signal_name = stop_signal_name
             else:
-                self.logger.warning(f"JoinOperator '{self.name}' received stop signal with no name")
+                self.logger.warning(
+                    f"JoinOperator '{self.name}' received stop signal with no name"
+                )
                 return
 
             # 记录收到的停止信号，使用信号名称作为唯一标识
@@ -170,8 +173,9 @@ class JoinOperator(BaseOperator):
                         source_signals.add(sig)
                 else:
                     # StopSignal object
-                    from sage.kernel.runtime.communication.router.packet import \
-                        StopSignal
+                    from sage.kernel.runtime.communication.router.packet import (
+                        StopSignal,
+                    )
 
                     if isinstance(sig, StopSignal) and (
                         "Source" in sig.name or sig.name.startswith("Source")
@@ -195,19 +199,24 @@ class JoinOperator(BaseOperator):
                 )
 
                 # 所有源流都停止了，先通知JobManager该节点完成
-                self.logger.info(f"JoinOperator '{self.name}' notifying JobManager of completion")
+                self.logger.info(
+                    f"JoinOperator '{self.name}' notifying JobManager of completion"
+                )
                 self.ctx.send_stop_signal_back(self.name)
 
                 # 然后向下游传播停止信号
-                from sage.kernel.runtime.communication.router.packet import \
-                    StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 stop_signal = StopSignal(self.name)
-                self.logger.info(f"JoinOperator '{self.name}' sending stop signal to downstream")
+                self.logger.info(
+                    f"JoinOperator '{self.name}' sending stop signal to downstream"
+                )
                 self.router.send_stop_signal(stop_signal)
 
                 # 通知context停止
-                self.logger.info(f"JoinOperator '{self.name}' setting context stop signal")
+                self.logger.info(
+                    f"JoinOperator '{self.name}' setting context stop signal"
+                )
                 self.ctx.set_stop_signal()
             else:
                 self.logger.info(
@@ -225,7 +234,9 @@ class JoinOperator(BaseOperator):
                 exc_info=True,
             )
 
-    def _emit_join_result(self, result_data: Any, join_key: Any, original_packet: "Packet"):
+    def _emit_join_result(
+        self, result_data: Any, join_key: Any, original_packet: "Packet"
+    ):
         """
         发送join结果，保持分区信息
 

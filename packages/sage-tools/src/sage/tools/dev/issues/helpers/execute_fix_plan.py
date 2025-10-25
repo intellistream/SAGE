@@ -31,7 +31,9 @@ from pathlib import Path
 from github_helper import GitHubProjectManager
 
 
-def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: bool = False):
+def execute_fix_plan(
+    fix_plan_file_or_data, dry_run: bool = True, live_mode: bool = False
+):
     """
     执行修复计划
 
@@ -102,7 +104,9 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
 
         # 显示决策依据
         if "responsible_user" in fix and "decision_basis" in fix:
-            print(f"  🎯 负责人: {fix['responsible_user']} (基于: {fix['decision_basis']})")
+            print(
+                f"  🎯 负责人: {fix['responsible_user']} (基于: {fix['decision_basis']})"
+            )
 
         # 显示仓库信息
         if "repository" in fix:
@@ -216,7 +220,9 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
 
                         # 查找item_id （需要重新获取，因为可能已经变化）
                         try:
-                            current_project_items = pm.get_project_items(current_project)
+                            current_project_items = pm.get_project_items(
+                                current_project
+                            )
                             if current_project_items:
                                 item_id_to_delete = None
                                 for item in current_project_items:
@@ -226,25 +232,37 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
                                         break
 
                                 if item_id_to_delete:
-                                    success_delete, delete_result = pm.delete_project_item(
-                                        current_project_id, item_id_to_delete
+                                    success_delete, delete_result = (
+                                        pm.delete_project_item(
+                                            current_project_id, item_id_to_delete
+                                        )
                                     )
                                     if success_delete:
-                                        print(f"  🗑️  成功从项目#{current_project}中删除")
-                                        print(f"  🎉 Issue #{issue_number} 完整移动成功!")
+                                        print(
+                                            f"  🗑️  成功从项目#{current_project}中删除"
+                                        )
+                                        print(
+                                            f"  🎉 Issue #{issue_number} 完整移动成功!"
+                                        )
                                         success_count += 1
                                     else:
                                         print(f"  ⚠️  删除失败: {delete_result}")
-                                        print("  ✅ 已添加到目标项目，但请手动从源项目删除")
+                                        print(
+                                            "  ✅ 已添加到目标项目，但请手动从源项目删除"
+                                        )
                                         success_count += 1  # 仍然算作部分成功
                                 else:
                                     print(
                                         f"  ⚠️  在项目#{current_project}中找不到item，可能已不在该项目中"
                                     )
-                                    success_count += 1  # 算作成功，因为已经添加到目标项目
+                                    success_count += (
+                                        1  # 算作成功，因为已经添加到目标项目
+                                    )
                             else:
                                 print(f"  ⚠️  无法获取项目#{current_project}的items")
-                                success_count += 1  # 仍然算作成功，因为已经添加到目标项目
+                                success_count += (
+                                    1  # 仍然算作成功，因为已经添加到目标项目
+                                )
                         except Exception as e:
                             print(f"  ⚠️  删除操作异常: {e}")
                             success_count += 1  # 仍然算作成功，因为已经添加到目标项目
@@ -254,7 +272,9 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
                 else:
                     error_msg = f"添加到项目#{target_project}失败: {add_result}"
                     print(f"  ❌ {error_msg}")
-                    errors.append({"issue_number": issue_number, "error": error_msg, "fix": fix})
+                    errors.append(
+                        {"issue_number": issue_number, "error": error_msg, "fix": fix}
+                    )
                     error_count += 1
 
                 # 添加延迟避免API限制
@@ -263,7 +283,9 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
             except Exception as e:
                 error_msg = f"处理Issue #{issue_number}时出错: {str(e)}"
                 print(f"  ❌ {error_msg}")
-                errors.append({"issue_number": issue_number, "error": error_msg, "fix": fix})
+                errors.append(
+                    {"issue_number": issue_number, "error": error_msg, "fix": fix}
+                )
                 error_count += 1
 
     # 显示结果摘要

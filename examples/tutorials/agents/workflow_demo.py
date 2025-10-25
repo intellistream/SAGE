@@ -134,7 +134,9 @@ def example_mock_agent_workflow():
         for step in plan:
             if step["type"] == "tool":
                 result = mock_tool.call(step["arguments"])
-                observations.append({"tool": step["name"], "result": result, "success": True})
+                observations.append(
+                    {"tool": step["name"], "result": result, "success": True}
+                )
                 print(f"   Tool {step['name']}: Found {len(result['output'])} results")
 
         # Step 3: Generate response

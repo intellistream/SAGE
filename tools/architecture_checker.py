@@ -325,7 +325,9 @@ class ArchitectureChecker:
             return False
 
         # 检查 __init__.py 是否存在
-        init_file = package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
+        init_file = (
+            package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
+        )
         if not init_file.exists():
             self.warnings.append(
                 ArchitectureViolation(
@@ -342,7 +344,9 @@ class ArchitectureChecker:
     def check_layer_marker(self, package_name: str) -> bool:
         """检查包是否包含 Layer 标记"""
         package_path = self.root_dir / PACKAGE_PATHS[package_name]
-        init_file = package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
+        init_file = (
+            package_path / "sage" / package_name.replace("sage-", "") / "__init__.py"
+        )
 
         if not init_file.exists():
             return False
@@ -396,7 +400,9 @@ class ArchitectureChecker:
                 if full_path.exists():
                     for py_file in full_path.rglob("*.py"):
                         # 排除 submodules 中的文件
-                        if not any(submodule in py_file.parts for submodule in SUBMODULE_PATHS):
+                        if not any(
+                            submodule in py_file.parts for submodule in SUBMODULE_PATHS
+                        ):
                             files_to_check.append(py_file)
             print(f"📝 检查全部 {len(files_to_check)} 个 Python 文件 (排除 submodules)")
 
@@ -404,11 +410,14 @@ class ArchitectureChecker:
         if changed_files:
             original_count = len(files_to_check)
             files_to_check = [
-                f for f in files_to_check 
+                f
+                for f in files_to_check
                 if not any(submodule in f.parts for submodule in SUBMODULE_PATHS)
             ]
             if len(files_to_check) < original_count:
-                print(f"⏭️  排除了 {original_count - len(files_to_check)} 个 submodule 文件")
+                print(
+                    f"⏭️  排除了 {original_count - len(files_to_check)} 个 submodule 文件"
+                )
 
         # 统计信息
         stats = {
@@ -453,7 +462,9 @@ class ArchitectureChecker:
             if not self.check_layer_marker(package_name):
                 stats["missing_markers"] += 1
 
-        stats["internal_imports"] = len([v for v in self.warnings if v.type == "INTERNAL_IMPORT"])
+        stats["internal_imports"] = len(
+            [v for v in self.warnings if v.type == "INTERNAL_IMPORT"]
+        )
 
         # 生成结果
         result = CheckResult(

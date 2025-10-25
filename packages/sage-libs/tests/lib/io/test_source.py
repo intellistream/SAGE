@@ -13,9 +13,14 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.io.source import (APISource, CSVFileSource, DatabaseSource,
-                                     JSONFileSource, KafkaSource,
-                                     TextFileSource)
+    from sage.libs.io.source import (
+        APISource,
+        CSVFileSource,
+        DatabaseSource,
+        JSONFileSource,
+        KafkaSource,
+        TextFileSource,
+    )
 
     IO_SOURCE_AVAILABLE = True
 except ImportError as e:

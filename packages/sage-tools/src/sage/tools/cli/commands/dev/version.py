@@ -31,7 +31,11 @@ def find_version_files(root_path: Path) -> dict[str, Path]:
             # 查找_version.py文件
             version_file_patterns = [
                 package_dir / "src" / "sage" / "_version.py",
-                package_dir / "src" / "sage" / package_dir.name.replace("-", "/") / "_version.py",
+                package_dir
+                / "src"
+                / "sage"
+                / package_dir.name.replace("-", "/")
+                / "_version.py",
             ]
 
             # 为sage-kernel特殊处理
@@ -44,19 +48,25 @@ def find_version_files(root_path: Path) -> dict[str, Path]:
                     package_dir / "src" / "sage" / "common" / "_version.py"
                 )
             elif package_dir.name == "sage-libs":
-                version_file_patterns.append(package_dir / "src" / "sage" / "libs" / "_version.py")
+                version_file_patterns.append(
+                    package_dir / "src" / "sage" / "libs" / "_version.py"
+                )
             elif package_dir.name == "sage-middleware":
                 version_file_patterns.append(
                     package_dir / "src" / "sage" / "middleware" / "_version.py"
                 )
             elif package_dir.name == "sage-tools":
-                version_file_patterns.append(package_dir / "src" / "sage" / "tools" / "_version.py")
+                version_file_patterns.append(
+                    package_dir / "src" / "sage" / "tools" / "_version.py"
+                )
             elif package_dir.name == "sage-studio":
                 version_file_patterns.append(
                     package_dir / "src" / "sage" / "studio" / "_version.py"
                 )
             elif package_dir.name == "sage-apps":
-                version_file_patterns.append(package_dir / "src" / "sage" / "apps" / "_version.py")
+                version_file_patterns.append(
+                    package_dir / "src" / "sage" / "apps" / "_version.py"
+                )
 
             for version_file in version_file_patterns:
                 if version_file.exists():
@@ -195,7 +205,9 @@ def list_versions(root: str = typer.Option(".", "--root", "-r", help="项目根�
         console.print("[yellow]⚠️  未找到任何版本文件[/yellow]")
         return
 
-    table = Table(title="📦 SAGE 包版本信息", show_header=True, header_style="bold magenta")
+    table = Table(
+        title="📦 SAGE 包版本信息", show_header=True, header_style="bold magenta"
+    )
     table.add_column("包名", style="cyan", no_wrap=True)
     table.add_column("版本", style="green")
     table.add_column("作者", style="blue")
@@ -244,7 +256,9 @@ def set_version(
 
     # 如果指定了包名，只更新指定的包
     if packages:
-        filtered_files = {name: path for name, path in version_files.items() if name in packages}
+        filtered_files = {
+            name: path for name, path in version_files.items() if name in packages
+        }
         if not filtered_files:
             console.print(f"[red]❌ 未找到指定的包: {', '.join(packages)}[/red]")
             console.print(f"可用的包: {', '.join(version_files.keys())}")
@@ -275,7 +289,9 @@ def set_version(
 @app.command("bump")
 @require_source_code
 def bump_version(
-    increment_type: str = typer.Argument(..., help="版本增量类型: major, minor, patch, build"),
+    increment_type: str = typer.Argument(
+        ..., help="版本增量类型: major, minor, patch, build"
+    ),
     packages: list[str] | None = typer.Option(
         None, "--package", "-p", help="指定要更新的包名（可多次使用）"
     ),
@@ -305,7 +321,9 @@ def bump_version(
 
     # 如果指定了包名，只更新指定的包
     if packages:
-        filtered_files = {name: path for name, path in version_files.items() if name in packages}
+        filtered_files = {
+            name: path for name, path in version_files.items() if name in packages
+        }
         if not filtered_files:
             console.print(f"[red]❌ 未找到指定的包: {', '.join(packages)}[/red]")
             console.print(f"可用的包: {', '.join(version_files.keys())}")
@@ -338,7 +356,9 @@ def bump_version(
 @app.command("sync")
 @require_source_code
 def sync_versions(
-    source_package: str = typer.Option("sage", "--source", "-s", help="源包名（作为版本参考）"),
+    source_package: str = typer.Option(
+        "sage", "--source", "-s", help="源包名（作为版本参考）"
+    ),
     root: str = typer.Option(".", "--root", "-r", help="项目根目录路径"),
     dry_run: bool = typer.Option(False, "--dry-run", help="预览模式，不实际修改文件"),
 ):
@@ -379,7 +399,9 @@ def sync_versions(
         current_version = current_info["version"]
 
         if current_version == source_version:
-            console.print(f"[dim]⏭️  跳过[/dim] {package_name}: 版本已一致 ({current_version})")
+            console.print(
+                f"[dim]⏭️  跳过[/dim] {package_name}: 版本已一致 ({current_version})"
+            )
             continue
 
         if dry_run:

@@ -87,7 +87,9 @@ def lollms_embed_sync(
     request_data = {"text": text}
 
     try:
-        response = requests.post(f"{base_url}/lollms_embed", json=request_data, headers=headers)
+        response = requests.post(
+            f"{base_url}/lollms_embed", json=request_data, headers=headers
+        )
         response.raise_for_status()
         result = response.json()
         return result["vector"]

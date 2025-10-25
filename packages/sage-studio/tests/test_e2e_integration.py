@@ -11,9 +11,11 @@
 
 import pytest
 from sage.studio.models import (  # type: ignore[import-not-found]
-    VisualConnection, VisualNode, VisualPipeline)
-from sage.studio.services import \
-    get_pipeline_builder  # type: ignore[import-not-found]
+    VisualConnection,
+    VisualNode,
+    VisualPipeline,
+)
+from sage.studio.services import get_pipeline_builder  # type: ignore[import-not-found]
 
 
 class TestE2ESimplePipeline:
@@ -513,7 +515,9 @@ class TestE2EErrorHandling:
             position={"x": 100, "y": 100},
         )
 
-        pipeline = VisualPipeline(id="error_test", name="Error Test", nodes=[node], connections=[])
+        pipeline = VisualPipeline(
+            id="error_test", name="Error Test", nodes=[node], connections=[]
+        )
 
         builder = get_pipeline_builder()
 
@@ -529,7 +533,9 @@ class TestE2EErrorHandling:
 
     def test_empty_pipeline(self):
         """测试空流水线 - 应该抛出验证错误"""
-        pipeline = VisualPipeline(id="empty", name="Empty Pipeline", nodes=[], connections=[])
+        pipeline = VisualPipeline(
+            id="empty", name="Empty Pipeline", nodes=[], connections=[]
+        )
 
         builder = get_pipeline_builder()
 

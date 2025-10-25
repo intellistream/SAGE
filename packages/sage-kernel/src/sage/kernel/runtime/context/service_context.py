@@ -31,7 +31,9 @@ class ServiceContext(BaseRuntimeContext):
 
         self.env_name: str = env.name
         self.env_base_dir: str | None = env.env_base_dir
-        self.env_uuid: str | None = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
+        self.env_uuid: str | None = getattr(
+            env, "uuid", None
+        )  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
 
         self._logger: CustomLogger | None = None
@@ -52,15 +54,21 @@ class ServiceContext(BaseRuntimeContext):
         # 从execution_graph的提取好的映射表获取service response队列描述符 - 简化逻辑
         self._service_response_queue_descriptors: dict[str, BaseQueueDescriptor] = {}
         if execution_graph and hasattr(execution_graph, "service_response_qds"):
-            self._service_response_queue_descriptors = execution_graph.service_response_qds.copy()
+            self._service_response_queue_descriptors = (
+                execution_graph.service_response_qds.copy()
+            )
 
         # 从execution_graph获取service request队列描述符 - 用于service-to-service调用
         self._service_request_queue_descriptors: dict[str, BaseQueueDescriptor] = {}
         if execution_graph and hasattr(execution_graph, "service_request_qds"):
-            self._service_request_queue_descriptors = execution_graph.service_request_qds.copy()
+            self._service_request_queue_descriptors = (
+                execution_graph.service_request_qds.copy()
+            )
 
         # 兼容ServiceManager - 提供service_qds属性（指向service request queue descriptors）
-        self.service_qds: dict[str, BaseQueueDescriptor] = self._service_request_queue_descriptors
+        self.service_qds: dict[str, BaseQueueDescriptor] = (
+            self._service_request_queue_descriptors
+        )
 
         # 服务调用相关 - service_manager已在BaseRuntimeContext中定义
 
@@ -97,7 +105,9 @@ class ServiceContext(BaseRuntimeContext):
         """获取请求队列描述符"""
         return self._request_queue_descriptor
 
-    def set_service_response_queue_descriptors(self, descriptors: dict[str, BaseQueueDescriptor]):
+    def set_service_response_queue_descriptors(
+        self, descriptors: dict[str, BaseQueueDescriptor]
+    ):
         """设置service response队列描述符（让service可以访问各个response队列）"""
         self._service_response_queue_descriptors = descriptors
 
@@ -111,7 +121,9 @@ class ServiceContext(BaseRuntimeContext):
             else {}
         )
 
-    def get_service_response_queue_descriptor(self, node_name: str) -> BaseQueueDescriptor | None:
+    def get_service_response_queue_descriptor(
+        self, node_name: str
+    ) -> BaseQueueDescriptor | None:
         """获取指定节点的service response队列描述符"""
         if self._service_response_queue_descriptors:
             return self._service_response_queue_descriptors.get(node_name)
@@ -125,7 +137,9 @@ class ServiceContext(BaseRuntimeContext):
             else {}
         )
 
-    def get_service_request_queue_descriptor(self, service_name: str) -> BaseQueueDescriptor | None:
+    def get_service_request_queue_descriptor(
+        self, service_name: str
+    ) -> BaseQueueDescriptor | None:
         """获取指定服务的service request队列描述符"""
         if self._service_request_queue_descriptors:
             return self._service_request_queue_descriptors.get(service_name)

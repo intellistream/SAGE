@@ -124,7 +124,9 @@ class VLLMService(BaseService):
                     if hasattr(engine, "shutdown"):
                         engine.shutdown()
                 except Exception as exc:  # pragma: no cover - shutdown best-effort
-                    self.logger.warning(f"Failed to shutdown {engine_name} engine: {exc}")
+                    self.logger.warning(
+                        f"Failed to shutdown {engine_name} engine: {exc}"
+                    )
             self._text_engine = None
             self._embedding_engine = None
 
@@ -145,12 +147,16 @@ class VLLMService(BaseService):
                 raise ValueError("'embed' task requires 'inputs'")
             return self.embed(inputs, **options)
         if task == "show_models":
-            return [self._model_info_to_dict(info) for info in vllm_registry.list_models()]
+            return [
+                self._model_info_to_dict(info) for info in vllm_registry.list_models()
+            ]
         if task == "download_model":
             target = options.get("model_id") or inputs
             if not target:
                 raise ValueError("'download_model' task requires 'model_id'")
-            info = vllm_registry.download_model(str(target), revision=options.get("revision"))
+            info = vllm_registry.download_model(
+                str(target), revision=options.get("revision")
+            )
             if self.config.auto_reload and str(target) == self.config.model_id:
                 self.switch_model(str(target), revision=options.get("revision"))
             return self._model_info_to_dict(info)
@@ -253,7 +259,9 @@ class VLLMService(BaseService):
     # ------------------------------------------------------------------
     def switch_model(self, model_id: str, *, revision: str | None = None) -> None:
         with self._lock:
-            self.logger.info(f"Switching vLLM model from {self.config.model_id} to {model_id}")
+            self.logger.info(
+                f"Switching vLLM model from {self.config.model_id} to {model_id}"
+            )
             self.config.model_id = model_id
             vllm_registry.ensure_model_available(
                 model_id,
@@ -261,7 +269,10 @@ class VLLMService(BaseService):
                 auto_download=self.config.auto_download,
             )
             self._load_text_engine(force_reload=True, revision=revision)
-            if not self.config.embedding_model_id or self.config.embedding_model_id == model_id:
+            if (
+                not self.config.embedding_model_id
+                or self.config.embedding_model_id == model_id
+            ):
                 self._embedding_engine = self._text_engine
 
     def show_models(self) -> list[dict[str, Any]]:
@@ -392,7 +403,9 @@ class VLLMService(BaseService):
         return SamplingParams(**params)
 
 
-def register_vllm_service(environment: Any, service_name: str, config: dict[str, Any]) -> Any:
+def register_vllm_service(
+    environment: Any, service_name: str, config: dict[str, Any]
+) -> Any:
     """Helper to register the vLLM service with a SAGE environment."""
 
     return environment.register_service(service_name, VLLMService, config)

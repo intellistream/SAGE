@@ -34,8 +34,10 @@ sys.path.insert(0, os.path.abspath(sage_kernel_tests))
 try:
     from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
     from sage.platform.queue import RayQueueDescriptor
-    from unit.utils.test_log_manager import (get_test_log_manager,
-                                             setup_quiet_ray_logging)
+    from unit.utils.test_log_manager import (
+        get_test_log_manager,
+        setup_quiet_ray_logging,
+    )
 
     # 设置安静的日志记录
     setup_quiet_ray_logging()
@@ -78,7 +80,9 @@ class PersistentQueueActor:
             self.queue = self.queue_desc.queue_instance  # 获取实际的队列对象
             self.operations_count = 0
             self.last_operation_time = time.time()
-            print(f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}")
+            print(
+                f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}"
+            )
         except ImportError as e:
             # 如果导入失败，记录错误但继续初始化
             print(f"导入失败: {e}")
@@ -225,7 +229,9 @@ class QueueCoordinatorActor:
             self.coordination_log.append(f"failed_register_queue:{queue_name}:{e}")
             return f"Queue {queue_name} registration failed: {e}"
 
-    def coordinate_batch_operation(self, queue_name: str, operation: str, items: list[str]):
+    def coordinate_batch_operation(
+        self, queue_name: str, operation: str, items: list[str]
+    ):
         """协调批量操作"""
         if queue_name not in self.managed_queues:
             return f"Queue {queue_name} not found"
@@ -256,7 +262,9 @@ class QueueCoordinatorActor:
                     results.append(f"timeout:{e}")
                     break
 
-        self.coordination_log.append(f"coordinated:{operation}:{queue_name}:{len(results)}")
+        self.coordination_log.append(
+            f"coordinated:{operation}:{queue_name}:{len(results)}"
+        )
         return results
 
     def get_coordination_summary(self):
@@ -296,7 +304,9 @@ class TestRayQueueActorCommunication:
         ensure_ray_initialized()
 
         # 创建测试队列
-        self.test_queue = RayQueueDescriptor(queue_id="test_ray_actor_comm", maxsize=1000)
+        self.test_queue = RayQueueDescriptor(
+            queue_id="test_ray_actor_comm", maxsize=1000
+        )
         self.queue_dict = self.test_queue.to_dict()
 
     def teardown_method(self):
@@ -401,7 +411,9 @@ class TestRayQueueActorCommunication:
             consumer_futures = []
             expected_per_consumer = max(1, total_produced // num_consumers)
             for consumer in consumers:
-                future = consumer.get_items.remote(expected_per_consumer, timeout_per_item=1.0)
+                future = consumer.get_items.remote(
+                    expected_per_consumer, timeout_per_item=1.0
+                )
                 consumer_futures.append(future)
 
             # 等待消费完成，减少超时时间
@@ -437,13 +449,17 @@ class TestRayQueueActorCommunication:
         coordinator = QueueCoordinatorActor.remote()
 
         # 注册队列
-        register_result = ray.get(coordinator.register_queue.remote("main_queue", self.queue_dict))
+        register_result = ray.get(
+            coordinator.register_queue.remote("main_queue", self.queue_dict)
+        )
         print(f"队列注册结果: {register_result}")
 
         # 通过协调器进行批量写入
         items_to_write = ["coord_item1", "coord_item2", "coord_item3", "coord_item4"]
         batch_put_result = ray.get(
-            coordinator.coordinate_batch_operation.remote("main_queue", "put_batch", items_to_write)
+            coordinator.coordinate_batch_operation.remote(
+                "main_queue", "put_batch", items_to_write
+            )
         )
         print(f"批量写入结果: {len(batch_put_result)} 项目")
 
@@ -512,7 +528,9 @@ class TestRayQueueActorCommunication:
         # 并发执行操作，添加超时
         stress_futures = []
         for i, actor in enumerate(stress_actors):
-            future = actor.stress_test_operations.remote(operations_per_actor)  # 只传递操作数量
+            future = actor.stress_test_operations.remote(
+                operations_per_actor
+            )  # 只传递操作数量
             stress_futures.append(future)
 
         # 获取结果，设置较短超时避免死锁

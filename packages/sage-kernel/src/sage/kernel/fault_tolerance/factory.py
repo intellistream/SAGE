@@ -8,14 +8,14 @@ Fault Tolerance Factory
 from typing import Any
 
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
-from sage.kernel.fault_tolerance.impl.checkpoint_recovery import \
-    CheckpointBasedRecovery
-from sage.kernel.fault_tolerance.impl.lifecycle_impl import \
-    LifecycleManagerImpl
-from sage.kernel.fault_tolerance.impl.restart_recovery import \
-    RestartBasedRecovery
+from sage.kernel.fault_tolerance.impl.checkpoint_recovery import CheckpointBasedRecovery
+from sage.kernel.fault_tolerance.impl.lifecycle_impl import LifecycleManagerImpl
+from sage.kernel.fault_tolerance.impl.restart_recovery import RestartBasedRecovery
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
-    ExponentialBackoffStrategy, FailureRateStrategy, FixedDelayStrategy)
+    ExponentialBackoffStrategy,
+    FailureRateStrategy,
+    FixedDelayStrategy,
+)
 
 
 def create_fault_handler_from_config(
@@ -83,7 +83,9 @@ def _create_restart_handler(config: dict[str, Any]) -> RestartBasedRecovery:
     restart_strategy_type = config.get("restart_strategy", "exponential")
 
     # 创建重启策略
-    restart_strategy: FixedDelayStrategy | ExponentialBackoffStrategy | FailureRateStrategy
+    restart_strategy: (
+        FixedDelayStrategy | ExponentialBackoffStrategy | FailureRateStrategy
+    )
     if restart_strategy_type == "fixed":
         delay = config.get("delay", 5.0)
         max_attempts = config.get("max_attempts", 3)

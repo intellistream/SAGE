@@ -10,10 +10,10 @@ SAGE Config Command - Refactored Version
 from pathlib import Path
 
 import typer
+
 # 使用新的核心模块
 from sage.tools.cli.core import BaseCommand, CLIException, cli_command
-from sage.tools.cli.core.config import (create_default_config,
-                                        load_and_validate_config)
+from sage.tools.cli.core.config import create_default_config, load_and_validate_config
 from sage.tools.cli.core.utils import save_yaml_file
 
 app = typer.Typer(name="config", help="⚙️ Configuration management")
@@ -85,7 +85,9 @@ class ConfigInitCommand(BaseCommand):
                     )
                     return
                 else:
-                    self.formatter.print_info("🔄 Overwriting existing configuration file...")
+                    self.formatter.print_info(
+                        "🔄 Overwriting existing configuration file..."
+                    )
 
             # 创建默认配置
             default_config = create_default_config()
@@ -93,16 +95,22 @@ class ConfigInitCommand(BaseCommand):
             # 保存配置文件
             save_yaml_file(default_config, self.config_path)
 
-            self.formatter.print_success(f"Configuration file created: {self.config_path}")
+            self.formatter.print_success(
+                f"Configuration file created: {self.config_path}"
+            )
             self.formatter.print_info(
                 "🔧 You can edit the configuration file to customize settings"
             )
 
             # 显示下一步操作提示
             self.formatter.print_info("\n💡 Next steps:")
-            self.formatter.print_info("1. Edit the configuration file to match your environment")
+            self.formatter.print_info(
+                "1. Edit the configuration file to match your environment"
+            )
             self.formatter.print_info("2. Run 'sage config show' to verify settings")
-            self.formatter.print_info("3. Run 'sage doctor' to check system requirements")
+            self.formatter.print_info(
+                "3. Run 'sage doctor' to check system requirements"
+            )
 
         except Exception as e:
             exit_code = self.handle_exception(e)
@@ -203,7 +211,9 @@ class ConfigValidateCommand(BaseCommand):
 @app.command("show")
 @cli_command(require_config=False)  # show命令可以在没有配置时运行
 def show_config(
-    section: str = typer.Option(None, "--section", "-s", help="Show specific configuration section")
+    section: str = typer.Option(
+        None, "--section", "-s", help="Show specific configuration section"
+    )
 ):
     """Show configuration information"""
     cmd = ConfigShowCommand()

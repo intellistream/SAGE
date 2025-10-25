@@ -88,7 +88,9 @@ class FileBatchIteratorFunction(BaseFunction):
             line_content = line.strip()
 
             if self.logger:
-                self.logger.debug(f"Processing line {self.processed_count}: {line_content[:50]}...")
+                self.logger.debug(
+                    f"Processing line {self.processed_count}: {line_content[:50]}..."
+                )
 
             return line_content
 
@@ -195,7 +197,9 @@ class GeneratorBatchIteratorFunction(BaseFunction):
             try:
                 self._generator = iter(self.generator_func())
                 if self.logger:
-                    total_info = f" ({self.total_count} items)" if self.total_count else ""
+                    total_info = (
+                        f" ({self.total_count} items)" if self.total_count else ""
+                    )
                     self.logger.info(f"Started generator batch processing{total_info}")
             except Exception as e:
                 if self.logger:
@@ -260,7 +264,9 @@ class IterableBatchIteratorFunction(BaseFunction):
                 self._iterator = iter(self.iterable)
                 calculated_total = self.get_total_count()
                 if self.logger:
-                    total_info = f" ({calculated_total} items)" if calculated_total else ""
+                    total_info = (
+                        f" ({calculated_total} items)" if calculated_total else ""
+                    )
                     self.logger.info(f"Started iterable batch processing{total_info}")
             except Exception as e:
                 if self.logger:

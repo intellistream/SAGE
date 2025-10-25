@@ -35,7 +35,11 @@ def filter_attrs(
     # 过滤掉不能设置的特殊属性
     UNSETABLE_ATTRS = {"__weakref__", "__dict__", "__class__"}
 
-    return {k: v for k, v in attrs.items() if k not in all_exclude and k not in UNSETABLE_ATTRS}
+    return {
+        k: v
+        for k, v in attrs.items()
+        if k not in all_exclude and k not in UNSETABLE_ATTRS
+    }
 
 
 def should_skip(obj: Any) -> bool:
@@ -63,7 +67,9 @@ def should_skip(obj: Any) -> bool:
     return False
 
 
-def has_circular_reference(obj: Any, _seen: set[int] | None = None, max_depth: int = 10) -> bool:
+def has_circular_reference(
+    obj: Any, _seen: set[int] | None = None, max_depth: int = 10
+) -> bool:
     """检查对象是否包含循环引用"""
     if _seen is None:
         _seen = set()
@@ -84,9 +90,9 @@ def has_circular_reference(obj: Any, _seen: set[int] | None = None, max_depth: i
         # 检查字典
         if isinstance(obj, Mapping):
             for k, v in obj.items():
-                if has_circular_reference(k, _seen, max_depth - 1) or has_circular_reference(
-                    v, _seen, max_depth - 1
-                ):
+                if has_circular_reference(
+                    k, _seen, max_depth - 1
+                ) or has_circular_reference(v, _seen, max_depth - 1):
                     return True
 
         # 检查序列

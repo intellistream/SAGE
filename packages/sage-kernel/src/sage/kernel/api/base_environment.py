@@ -12,8 +12,7 @@ from sage.kernel.runtime.jobmanager_client import JobManagerClient
 if TYPE_CHECKING:
     from sage.common.core.functions import BaseFunction
     from sage.kernel.api.datastream import DataStream
-    from sage.kernel.api.transformation.base_transformation import \
-        BaseTransformation
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 
 class BaseEnvironment(ABC):
@@ -32,14 +31,18 @@ class BaseEnvironment(ABC):
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
         if not hasattr(self, "_transformation_classes"):
-            from sage.kernel.api.transformation.base_transformation import \
-                BaseTransformation
-            from sage.kernel.api.transformation.batch_transformation import \
-                BatchTransformation
-            from sage.kernel.api.transformation.future_transformation import \
-                FutureTransformation
-            from sage.kernel.api.transformation.source_transformation import \
-                SourceTransformation
+            from sage.kernel.api.transformation.base_transformation import (
+                BaseTransformation,
+            )
+            from sage.kernel.api.transformation.batch_transformation import (
+                BatchTransformation,
+            )
+            from sage.kernel.api.transformation.future_transformation import (
+                FutureTransformation,
+            )
+            from sage.kernel.api.transformation.source_transformation import (
+                SourceTransformation,
+            )
 
             self._transformation_classes = {
                 "BaseTransformation": BaseTransformation,
@@ -105,8 +108,7 @@ class BaseEnvironment(ABC):
                 - BaseScheduler 实例: 自定义调度器实例
         """
         from sage.kernel.scheduler.api import BaseScheduler
-        from sage.kernel.scheduler.impl import (FIFOScheduler,
-                                                LoadAwareScheduler)
+        from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
 
         if scheduler is None:
             # 默认使用 FIFO 调度器
@@ -128,7 +130,8 @@ class BaseEnvironment(ABC):
             self._scheduler = scheduler
         else:
             raise TypeError(
-                f"scheduler must be None, str, or BaseScheduler instance, " f"got {type(scheduler)}"
+                f"scheduler must be None, str, or BaseScheduler instance, "
+                f"got {type(scheduler)}"
             )
 
     @property
@@ -153,7 +156,9 @@ class BaseEnvironment(ABC):
         """
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR"]
         if level.upper() not in valid_levels:
-            raise ValueError(f"Invalid log level: {level}. Must be one of {valid_levels}")
+            raise ValueError(
+                f"Invalid log level: {level}. Must be one of {valid_levels}"
+            )
 
         self.console_log_level = level.upper()
 
@@ -196,7 +201,9 @@ class BaseEnvironment(ABC):
 
         return service_factory
 
-    def register_service_factory(self, service_name: str, service_factory: ServiceFactory):
+    def register_service_factory(
+        self, service_name: str, service_factory: ServiceFactory
+    ):
         """
         注册服务工厂到环境中
 
@@ -272,7 +279,9 @@ class BaseEnvironment(ABC):
         from sage.kernel.api.function.kafka_source import KafkaSourceFunction
 
         # 获取SourceTransformation类
-        SourceTransformation = self._get_transformation_classes()["SourceTransformation"]
+        SourceTransformation = self._get_transformation_classes()[
+            "SourceTransformation"
+        ]
 
         # 创建Kafka Source Function
         transformation = SourceTransformation(
@@ -293,13 +302,17 @@ class BaseEnvironment(ABC):
 
         return self._get_datastream_class()(self, transformation)
 
-    def from_source(self, function: type[BaseFunction] | Callable, *args, **kwargs) -> DataStream:
+    def from_source(
+        self, function: type[BaseFunction] | Callable, *args, **kwargs
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, "flatmap")
 
         # 获取SourceTransformation类
-        SourceTransformation = self._get_transformation_classes()["SourceTransformation"]
+        SourceTransformation = self._get_transformation_classes()[
+            "SourceTransformation"
+        ]
         transformation = SourceTransformation(self, function, *args, **kwargs)
 
         self.pipeline.append(transformation)
@@ -322,7 +335,9 @@ class BaseEnvironment(ABC):
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
 
-    def from_batch(self, source: type[BaseFunction] | Any, *args, **kwargs) -> DataStream:
+    def from_batch(
+        self, source: type[BaseFunction] | Any, *args, **kwargs
+    ) -> DataStream:
         """
         统一的批处理数据源创建方法，支持多种输入类型
 
@@ -409,7 +424,9 @@ class BaseEnvironment(ABC):
             result.fill_future(future_stream)
         """
         # 获取FutureTransformation类
-        FutureTransformation = self._get_transformation_classes()["FutureTransformation"]
+        FutureTransformation = self._get_transformation_classes()[
+            "FutureTransformation"
+        ]
         transformation = FutureTransformation(self, name)
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
@@ -477,7 +494,9 @@ class BaseEnvironment(ABC):
         )
 
         self.pipeline.append(transformation)
-        self.logger.info(f"Custom batch source created with {batch_function_class.__name__}")
+        self.logger.info(
+            f"Custom batch source created with {batch_function_class.__name__}"
+        )
 
         return self._get_datastream_class()(self, transformation)
 
@@ -485,12 +504,15 @@ class BaseEnvironment(ABC):
         """
         从数据集合创建批处理数据源
         """
-        from sage.kernel.api.function.simple_batch_function import \
-            SimpleBatchIteratorFunction
+        from sage.kernel.api.function.simple_batch_function import (
+            SimpleBatchIteratorFunction,
+        )
 
         # 获取BatchTransformation类
         BatchTransformation = self._get_transformation_classes()["BatchTransformation"]
-        transformation = BatchTransformation(self, SimpleBatchIteratorFunction, data=data, **kwargs)
+        transformation = BatchTransformation(
+            self, SimpleBatchIteratorFunction, data=data, **kwargs
+        )
 
         self.pipeline.append(transformation)
         self.logger.info(f"Batch collection source created with {len(data)} items")
@@ -501,8 +523,9 @@ class BaseEnvironment(ABC):
         """
         从任何可迭代对象创建批处理数据源
         """
-        from sage.kernel.api.function.simple_batch_function import \
-            IterableBatchIteratorFunction
+        from sage.kernel.api.function.simple_batch_function import (
+            IterableBatchIteratorFunction,
+        )
 
         # 尝试获取总数量
         total_count = kwargs.pop("total_count", None)

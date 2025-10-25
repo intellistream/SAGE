@@ -19,14 +19,19 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
-from sage.tools.finetune.core import (generate_training_config,
-                                      prepare_training_data)
+from sage.tools.finetune.core import generate_training_config, prepare_training_data
 from sage.tools.finetune.models import TASK_NAMES, FinetuneTask
-from sage.tools.finetune.service import (merge_lora_weights,
-                                         serve_model_with_vllm, start_training)
-from sage.tools.finetune.utils import (check_training_dependencies,
-                                       get_finetune_output_dir, get_sage_root,
-                                       show_install_instructions)
+from sage.tools.finetune.service import (
+    merge_lora_weights,
+    serve_model_with_vllm,
+    start_training,
+)
+from sage.tools.finetune.utils import (
+    check_training_dependencies,
+    get_finetune_output_dir,
+    get_sage_root,
+    show_install_instructions,
+)
 
 app = typer.Typer(
     name="finetune",
@@ -48,7 +53,9 @@ def start_finetune(
     skip_install: bool = typer.Option(False, "--skip-install"),
 ):
     """🎓 启动交互式微调流程"""
-    console.print(Panel.fit("[bold cyan]🎓 SAGE大模型微调向导[/bold cyan]", border_style="cyan"))
+    console.print(
+        Panel.fit("[bold cyan]🎓 SAGE大模型微调向导[/bold cyan]", border_style="cyan")
+    )
 
     # 选择任务类型
     if not task and not auto:
@@ -199,7 +206,9 @@ def clean_outputs(
 @app.command("quickstart")
 def quickstart(task: str = typer.Argument("code", help="任务类型")):
     """🚀 快速开始"""
-    console.print(Panel.fit(f"[bold cyan]🚀 快速开始 - {task}[/bold cyan]", border_style="cyan"))
+    console.print(
+        Panel.fit(f"[bold cyan]🚀 快速开始 - {task}[/bold cyan]", border_style="cyan")
+    )
 
     if task == "code":
         console.print("\n[bold green]📚 SAGE代码理解快速微调[/bold green]")
@@ -218,7 +227,9 @@ def quickstart(task: str = typer.Argument("code", help="任务类型")):
             )
     else:
         console.print(f"\n[yellow]⚠️  {task}任务需要数据文件[/yellow]")
-        console.print(f"使用: [cyan]sage finetune start --task {task} --data <file>[/cyan]")
+        console.print(
+            f"使用: [cyan]sage finetune start --task {task} --data <file>[/cyan]"
+        )
 
 
 @app.command("merge")
@@ -487,7 +498,9 @@ def _find_model_for_serving(model_name: str):
                 with open(meta_file) as f:
                     meta = json.load(f)
                 base_model = meta.get("model", "")
-                console.print(f"✅ LoRA: [cyan]{base_model}[/cyan] + [cyan]{lora_path}[/cyan]\n")
+                console.print(
+                    f"✅ LoRA: [cyan]{base_model}[/cyan] + [cyan]{lora_path}[/cyan]\n"
+                )
                 return Path(base_model), True, lora_path
 
     console.print(f"[red]❌ 未找到: {model_name}[/red]")

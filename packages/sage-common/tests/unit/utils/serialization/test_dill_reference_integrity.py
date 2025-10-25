@@ -15,8 +15,7 @@
 """
 
 import pytest
-from sage.common.utils.serialization.dill import (deserialize_object,
-                                                  serialize_object)
+from sage.common.utils.serialization.dill import deserialize_object, serialize_object
 
 
 class SharedResource:
@@ -97,7 +96,9 @@ class TestObjectReferenceIntegrity:
         restored_a = deserialize_object(serialized)
 
         # 序列化后：引用完整性应该保持
-        assert restored_a.b.d is restored_a.c.d, "序列化后引用应该保持相同 (issue #254 修复验证)"
+        assert (
+            restored_a.b.d is restored_a.c.d
+        ), "序列化后引用应该保持相同 (issue #254 修复验证)"
         assert restored_a.b.d == restored_a.c.d, "序列化后数据应该相等"
 
         # 验证数据内容正确
@@ -182,7 +183,9 @@ class TestObjectReferenceIntegrity:
 
         # 序列化前检查
         assert container["list"][0] is container["list"][1], "列表中的对象应该相同"
-        assert container["list"][0] is container["dict"]["a"], "列表和字典中的对象应该相同"
+        assert (
+            container["list"][0] is container["dict"]["a"]
+        ), "列表和字典中的对象应该相同"
 
         # 序列化和反序列化
         serialized = serialize_object(container)
@@ -190,7 +193,9 @@ class TestObjectReferenceIntegrity:
 
         # 序列化后检查
         assert restored["list"][0] is restored["list"][1], "恢复后列表中的对象应该相同"
-        assert restored["list"][0] is restored["dict"]["a"], "恢复后列表和字典中的对象应该相同"
+        assert (
+            restored["list"][0] is restored["dict"]["a"]
+        ), "恢复后列表和字典中的对象应该相同"
 
     def test_deep_nested_sharing(self):
         """测试深度嵌套的共享"""

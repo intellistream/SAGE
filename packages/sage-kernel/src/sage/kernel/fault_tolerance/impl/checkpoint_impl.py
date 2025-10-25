@@ -93,7 +93,9 @@ class CheckpointManagerImpl:
         try:
             if checkpoint_id:
                 # 加载指定的 checkpoint
-                checkpoint_path = self.checkpoint_dir / f"{task_id}_{checkpoint_id}.ckpt"
+                checkpoint_path = (
+                    self.checkpoint_dir / f"{task_id}_{checkpoint_id}.ckpt"
+                )
             else:
                 # 加载最新的 checkpoint
                 checkpoints = list(self.checkpoint_dir.glob(f"{task_id}_*.ckpt"))
@@ -122,7 +124,9 @@ class CheckpointManagerImpl:
         try:
             if checkpoint_id:
                 # 删除指定的 checkpoint
-                checkpoint_path = self.checkpoint_dir / f"{task_id}_{checkpoint_id}.ckpt"
+                checkpoint_path = (
+                    self.checkpoint_dir / f"{task_id}_{checkpoint_id}.ckpt"
+                )
                 if checkpoint_path.exists():
                     checkpoint_path.unlink()
             else:

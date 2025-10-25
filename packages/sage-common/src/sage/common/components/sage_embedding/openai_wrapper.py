@@ -45,7 +45,9 @@ async def openai_embed(
     openai_async_client = (
         AsyncOpenAI(default_headers=default_headers, api_key=api_key)
         if base_url is None
-        else AsyncOpenAI(base_url=base_url, default_headers=default_headers, api_key=api_key)
+        else AsyncOpenAI(
+            base_url=base_url, default_headers=default_headers, api_key=api_key
+        )
     )
 
     response = await openai_async_client.embeddings.create(

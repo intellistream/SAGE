@@ -5,9 +5,11 @@
 演示RefinerService的基本用法。
 """
 
-from sage.middleware.components.sage_refiner import (RefinerAlgorithm,
-                                                     RefinerConfig,
-                                                     RefinerService)
+from sage.middleware.components.sage_refiner import (
+    RefinerAlgorithm,
+    RefinerConfig,
+    RefinerService,
+)
 
 
 def basic_usage():
@@ -17,7 +19,9 @@ def basic_usage():
     print("=" * 60)
 
     # 1. 创建配置（使用简单算法，不需要模型）
-    config = RefinerConfig(algorithm=RefinerAlgorithm.SIMPLE, budget=100, enable_cache=True)
+    config = RefinerConfig(
+        algorithm=RefinerAlgorithm.SIMPLE, budget=100, enable_cache=True
+    )
 
     # 2. 创建服务
     service = RefinerService(config)

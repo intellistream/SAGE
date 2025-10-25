@@ -11,7 +11,10 @@ import time
 from typing import Any
 
 from sage.middleware.components.sage_refiner.python.base import (
-    BaseRefiner, RefineResult, RefinerMetrics)
+    BaseRefiner,
+    RefineResult,
+    RefinerMetrics,
+)
 
 
 class YourRefinerAlgorithm(BaseRefiner):
@@ -123,7 +126,9 @@ class YourRefinerAlgorithm(BaseRefiner):
         refined_tokens = self._count_tokens(compressed_texts)
 
         # 6. 计算压缩率
-        compression_rate = original_tokens / refined_tokens if refined_tokens > 0 else 0.0
+        compression_rate = (
+            original_tokens / refined_tokens if refined_tokens > 0 else 0.0
+        )
 
         # 7. 创建性能指标
         metrics = RefinerMetrics(
@@ -230,7 +235,12 @@ class YourRefinerAlgorithm(BaseRefiner):
                 texts.append(doc)
             elif isinstance(doc, dict):
                 # 支持多种字段名
-                text = doc.get("contents") or doc.get("text") or doc.get("content") or str(doc)
+                text = (
+                    doc.get("contents")
+                    or doc.get("text")
+                    or doc.get("content")
+                    or str(doc)
+                )
                 texts.append(text)
             else:
                 texts.append(str(doc))
@@ -247,7 +257,9 @@ class YourRefinerAlgorithm(BaseRefiner):
             return len(texts.split())
         return sum(len(str(t).split()) for t in texts)
 
-    def _compress(self, query: str, texts: list[str], budget: int, **kwargs) -> list[str]:
+    def _compress(
+        self, query: str, texts: list[str], budget: int, **kwargs
+    ) -> list[str]:
         """
         核心压缩逻辑
 

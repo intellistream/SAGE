@@ -94,7 +94,9 @@ class TestCustomLogger:
 
     def test_logger_with_level(self):
         """测试设置日志级别"""
-        logger = CustomLogger(name="LevelLogger", outputs=[("console", logging.WARNING)])
+        logger = CustomLogger(
+            name="LevelLogger", outputs=[("console", logging.WARNING)]
+        )
 
         # Logger的级别会设置为最低的handler级别
         assert logger.logger.level <= logging.WARNING

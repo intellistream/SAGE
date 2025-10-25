@@ -89,7 +89,9 @@ class ToolkitConfig:
 
         # Determine environment
         if environment is None:
-            environment = os.getenv("SAGE_DEV_ENV", config_data.get("environment", "development"))
+            environment = os.getenv(
+                "SAGE_DEV_ENV", config_data.get("environment", "development")
+            )
 
         # Apply environment-specific overrides
         env_config = config_data.get("environments", {}).get(environment, {})
@@ -120,12 +122,18 @@ class ToolkitConfig:
         )
 
     @staticmethod
-    def _merge_configs(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    def _merge_configs(
+        base: dict[str, Any], override: dict[str, Any]
+    ) -> dict[str, Any]:
         """Recursively merge configuration dictionaries."""
         result = base.copy()
 
         for key, value in override.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 result[key] = ToolkitConfig._merge_configs(result[key], value)
             else:
                 result[key] = value
@@ -218,14 +226,20 @@ class ToolkitConfig:
         tools_config = self.get_tools_config()
         for tool_name, tool_config in tools_config.items():
             if not isinstance(tool_config, dict):
-                errors.append(f"Tool configuration for '{tool_name}' must be a dictionary")
+                errors.append(
+                    f"Tool configuration for '{tool_name}' must be a dictionary"
+                )
                 continue
 
             if "module" not in tool_config:
-                errors.append(f"Tool '{tool_name}' missing required 'module' configuration")
+                errors.append(
+                    f"Tool '{tool_name}' missing required 'module' configuration"
+                )
 
             if "class" not in tool_config:
-                errors.append(f"Tool '{tool_name}' missing required 'class' configuration")
+                errors.append(
+                    f"Tool '{tool_name}' missing required 'class' configuration"
+                )
 
         return errors
 

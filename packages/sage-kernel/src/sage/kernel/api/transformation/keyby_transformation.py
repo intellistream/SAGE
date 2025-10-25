@@ -1,6 +1,5 @@
 from sage.kernel.api.operator.keyby_operator import KeyByOperator
-from sage.kernel.api.transformation.base_transformation import \
-    BaseTransformation
+from sage.kernel.api.transformation.base_transformation import BaseTransformation
 from sage.kernel.runtime.factory.operator_factory import OperatorFactory
 
 
@@ -10,7 +9,14 @@ class KeyByTransformation(BaseTransformation):
     """
 
     def __init__(
-        self, env, key_selector_function, strategy="hash", name=None, parallelism=1, *args, **kwargs
+        self,
+        env,
+        key_selector_function,
+        strategy="hash",
+        name=None,
+        parallelism=1,
+        *args,
+        **kwargs
     ):
         # 设置operator类
         self.operator_class = KeyByOperator

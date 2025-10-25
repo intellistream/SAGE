@@ -1,7 +1,10 @@
 """Operator collection for the video intelligence demo."""
 
-from .analytics import (FrameEventEmitter, SlidingWindowSummaryEmitter,
-                        TemporalAnomalyDetector)
+from .analytics import (
+    FrameEventEmitter,
+    SlidingWindowSummaryEmitter,
+    TemporalAnomalyDetector,
+)
 from .formatters import FrameLightweightFormatter
 from .integrations import SageMiddlewareIntegrator, SummaryMemoryAugmentor
 from .perception import FrameObjectClassifier, SceneConceptExtractor

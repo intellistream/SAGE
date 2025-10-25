@@ -18,12 +18,18 @@ class ClassDependencyChecker:
     def __init__(self, project_root: str):
         self.project_root = Path(project_root)
 
-    def analyze_class_dependencies(self, target_paths: list[str] = None) -> dict[str, Any]:
+    def analyze_class_dependencies(
+        self, target_paths: list[str] = None
+    ) -> dict[str, Any]:
         """Analyze class dependencies in specified paths or entire project."""
         try:
             if target_paths:
                 paths_to_analyze = [
-                    (Path(self.project_root) / p if not Path(p).is_absolute() else Path(p))
+                    (
+                        Path(self.project_root) / p
+                        if not Path(p).is_absolute()
+                        else Path(p)
+                    )
                     for p in target_paths
                 ]
             else:
@@ -65,16 +71,26 @@ class ClassDependencyChecker:
                         analysis["summary"]["total_classes"] += 1
 
                     # Add relationships
-                    analysis["relationships"]["inheritance"].extend(file_analysis["inheritance"])
-                    analysis["relationships"]["composition"].extend(file_analysis["composition"])
-                    analysis["relationships"]["imports"].extend(file_analysis["imports"])
+                    analysis["relationships"]["inheritance"].extend(
+                        file_analysis["inheritance"]
+                    )
+                    analysis["relationships"]["composition"].extend(
+                        file_analysis["composition"]
+                    )
+                    analysis["relationships"]["imports"].extend(
+                        file_analysis["imports"]
+                    )
 
                 except Exception as e:
                     print(f"Warning: Could not analyze {py_file}: {e}")
 
             # Analyze relationships
-            analysis["summary"]["inheritance_chains"] = self._find_inheritance_chains(analysis)
-            analysis["summary"]["circular_imports"] = self._find_circular_imports(analysis)
+            analysis["summary"]["inheritance_chains"] = self._find_inheritance_chains(
+                analysis
+            )
+            analysis["summary"]["circular_imports"] = self._find_circular_imports(
+                analysis
+            )
             analysis["summary"]["unused_classes"] = self._find_unused_classes(analysis)
 
             return analysis
@@ -82,7 +98,9 @@ class ClassDependencyChecker:
         except Exception as e:
             raise SAGEDevToolkitError(f"Class dependency analysis failed: {e}")
 
-    def check_class_usage(self, class_name: str, target_paths: list[str] = None) -> dict[str, Any]:
+    def check_class_usage(
+        self, class_name: str, target_paths: list[str] = None
+    ) -> dict[str, Any]:
         """Check where a specific class is used."""
         try:
             if target_paths:
@@ -150,7 +168,9 @@ class ClassDependencyChecker:
             elif output_format == "dot":
                 return self._generate_dot_diagram(analysis)
             else:
-                raise SAGEDevToolkitError(f"Unsupported diagram format: {output_format}")
+                raise SAGEDevToolkitError(
+                    f"Unsupported diagram format: {output_format}"
+                )
 
         except Exception as e:
             raise SAGEDevToolkitError(f"Class diagram generation failed: {e}")
@@ -214,7 +234,9 @@ class ClassDependencyChecker:
         except Exception as e:
             raise SAGEDevToolkitError(f"File analysis failed for {file_path}: {e}")
 
-    def _analyze_class_node(self, class_node: ast.ClassDef, module_name: str) -> dict[str, Any]:
+    def _analyze_class_node(
+        self, class_node: ast.ClassDef, module_name: str
+    ) -> dict[str, Any]:
         """Analyze a class AST node."""
         class_info = {
             "name": class_node.name,
@@ -280,7 +302,9 @@ class ClassDependencyChecker:
 
         return class_info
 
-    def _analyze_import_node(self, import_node: ast.AST, module_name: str) -> dict[str, Any]:
+    def _analyze_import_node(
+        self, import_node: ast.AST, module_name: str
+    ) -> dict[str, Any]:
         """Analyze an import AST node."""
         import_info = {
             "importing_module": module_name,
@@ -319,7 +343,9 @@ class ClassDependencyChecker:
                 parts.append(node.id)
             return ".".join(reversed(parts))
 
-    def _find_class_usage_in_file(self, file_path: Path, class_name: str) -> list[dict[str, Any]]:
+    def _find_class_usage_in_file(
+        self, file_path: Path, class_name: str
+    ) -> list[dict[str, Any]]:
         """Find usages of a class in a specific file."""
         try:
             with open(file_path, encoding="utf-8") as f:
@@ -533,8 +559,12 @@ class ClassDependencyChecker:
         # Add classes
         for class_name, class_info in analysis["classes"].items():
             simple_name = class_name.split(".")[-1]
-            methods_str = "\\n".join([f'+ {m["name"]}()' for m in class_info["methods"]])
-            lines.append(f'    {simple_name} [label="{{class {simple_name}|{methods_str}}}"];')
+            methods_str = "\\n".join(
+                [f'+ {m["name"]}()' for m in class_info["methods"]]
+            )
+            lines.append(
+                f'    {simple_name} [label="{{class {simple_name}|{methods_str}}}"];'
+            )
 
         # Add inheritance relationships
         for rel in analysis["relationships"]["inheritance"]:

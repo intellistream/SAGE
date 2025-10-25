@@ -43,7 +43,9 @@ class FlatMapOperator(BaseOperator):
 
         try:
             if packet is None or packet.payload is None:
-                self.logger.debug(f"FlatMapOperator '{self.name}' received empty packet, skipping")
+                self.logger.debug(
+                    f"FlatMapOperator '{self.name}' received empty packet, skipping"
+                )
                 return
 
             # 清空收集器中的数据（如果有的话）
@@ -75,7 +77,9 @@ class FlatMapOperator(BaseOperator):
             # if isinstance(self.function, StatefulFunction):
             #     self.function.save_state()
 
-            self.logger.debug(f"FlatMapOperator '{self.name}' finished processing packet")
+            self.logger.debug(
+                f"FlatMapOperator '{self.name}' finished processing packet"
+            )
 
         except Exception as e:
             self.logger.error(
@@ -107,7 +111,9 @@ class FlatMapOperator(BaseOperator):
                 # 如果不是可迭代对象，直接发送
                 result_packet = source_packet.inherit_partition_info(result)
                 self.router.send(result_packet)
-                self.logger.debug(f"FlatMapOperator '{self.name}' emitted single item: {result}")
+                self.logger.debug(
+                    f"FlatMapOperator '{self.name}' emitted single item: {result}"
+                )
 
         except Exception as e:
             self.logger.error(

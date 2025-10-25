@@ -39,9 +39,13 @@ class BytecodeCompiler:
             raise SAGEDevToolkitError(f"Package path does not exist: {package_path}")
 
         if not self.package_path.is_dir():
-            raise SAGEDevToolkitError(f"Package path is not a directory: {package_path}")
+            raise SAGEDevToolkitError(
+                f"Package path is not a directory: {package_path}"
+            )
 
-    def compile_package(self, output_dir: Path | None = None, use_sage_home: bool = True) -> Path:
+    def compile_package(
+        self, output_dir: Path | None = None, use_sage_home: bool = True
+    ) -> Path:
         """
         编译包为字节码
 
@@ -289,11 +293,14 @@ where = ["src"]
                         existing_section = match.group(1)
                         if "include-package-data" not in existing_section:
                             updated_section = (
-                                existing_section.rstrip() + "\ninclude-package-data = true\n"
+                                existing_section.rstrip()
+                                + "\ninclude-package-data = true\n"
                             )
                             content = content.replace(existing_section, updated_section)
                             modified = True
-                            console.print("  📝 更新include-package-data = true", style="green")
+                            console.print(
+                                "  📝 更新include-package-data = true", style="green"
+                            )
                 else:
                     # 添加新部分
                     content += """
@@ -310,7 +317,9 @@ include-package-data = true
                     # 需要更新现有的package-data配置
                     import re
 
-                    pattern = r"(\[tool\.setuptools\.package-data\][\s\S]*?)(?=\n\[|\n$|$)"
+                    pattern = (
+                        r"(\[tool\.setuptools\.package-data\][\s\S]*?)(?=\n\[|\n$|$)"
+                    )
                     match = re.search(pattern, content)
                     if match:
                         existing_data = match.group(1)
@@ -322,7 +331,9 @@ include-package-data = true
                             )
                             content = content.replace(existing_data, updated_data)
                             modified = True
-                            console.print("  📝 更新package-data配置包含二进制文件", style="green")
+                            console.print(
+                                "  📝 更新package-data配置包含二进制文件", style="green"
+                            )
                 else:
                     # 添加新的package-data配置
                     content += """
@@ -330,7 +341,9 @@ include-package-data = true
 "*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]
 """
                     modified = True
-                    console.print("  📝 添加package-data配置包含二进制文件", style="green")
+                    console.print(
+                        "  📝 添加package-data配置包含二进制文件", style="green"
+                    )
 
             # 添加MANIFEST.in文件以确保包含所有二进制文件
             manifest_file = self.compiled_path / "MANIFEST.in"
@@ -390,7 +403,9 @@ setup(
         target_path = compiled_path or self.compiled_path
 
         if not target_path:
-            raise SAGEDevToolkitError("Package not compiled yet. Call compile_package() first.")
+            raise SAGEDevToolkitError(
+                "Package not compiled yet. Call compile_package() first."
+            )
 
         console.print(f"📦 构建wheel包: {target_path.name}", style="cyan")
 
@@ -481,7 +496,9 @@ setup(
                 # 计数
                 pyc_count = sum(1 for f in all_files if f.endswith(".pyc"))
                 py_count = sum(1 for f in all_files if f.endswith(".py"))
-                binary_count = sum(1 for f in all_files if f.endswith((".so", ".pyd", ".dylib")))
+                binary_count = sum(
+                    1 for f in all_files if f.endswith((".so", ".pyd", ".dylib"))
+                )
                 total_count = len(all_files)
 
                 console.print(f"    📊 文件总数: {total_count}")
@@ -497,11 +514,19 @@ setup(
                     )
 
                 if pyc_count == 0 and binary_count == 0:
-                    console.print("    ❌ 错误: wheel包中没有.pyc或二进制扩展文件！", style="red")
+                    console.print(
+                        "    ❌ 错误: wheel包中没有.pyc或二进制扩展文件！", style="red"
+                    )
                     console.print("    💡 尝试使用以下步骤修复:")
-                    console.print("       1. 确保pyproject.toml中设置了include-package-data = true")
-                    console.print("       2. 确保pyproject.toml中设置了package-data配置")
-                    console.print("       3. 检查MANIFEST.in文件是否包含了*.pyc和*.so等")
+                    console.print(
+                        "       1. 确保pyproject.toml中设置了include-package-data = true"
+                    )
+                    console.print(
+                        "       2. 确保pyproject.toml中设置了package-data配置"
+                    )
+                    console.print(
+                        "       3. 检查MANIFEST.in文件是否包含了*.pyc和*.so等"
+                    )
 
                     # 尝试输出部分文件列表以帮助诊断
                     console.print("    📁 wheel包内容示例:")
@@ -535,7 +560,9 @@ setup(
                 return False
 
         except FileNotFoundError:
-            console.print("  ❌ 未找到twine工具，请先安装: pip install twine", style="red")
+            console.print(
+                "  ❌ 未找到twine工具，请先安装: pip install twine", style="red"
+            )
             return False
         except Exception as e:
             console.print(f"  💥 上传异常: {e}", style="red")
@@ -586,7 +613,9 @@ def compile_multiple_packages(
         sage_home_link = _create_sage_home_symlink()
 
     for i, package_path in enumerate(package_paths, 1):
-        console.print(f"\n[{i}/{len(package_paths)}] 处理包: {package_path.name}", style="bold")
+        console.print(
+            f"\n[{i}/{len(package_paths)}] 处理包: {package_path.name}", style="bold"
+        )
 
         try:
             # 编译包
@@ -655,7 +684,9 @@ def _create_sage_home_symlink() -> Path | None:
                     )
                     symlink_path.unlink()
             else:
-                console.print(f"⚠️ 路径已存在且不是软链接: {symlink_path}", style="yellow")
+                console.print(
+                    f"⚠️ 路径已存在且不是软链接: {symlink_path}", style="yellow"
+                )
                 return None
 
         # 确保SAGE home目录存在

@@ -15,15 +15,16 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.transformation.base_transformation import \
-        BaseTransformation
+    from sage.kernel.api.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.context.task_context import TaskContext
     from sage.kernel.runtime.factory.task_factory import TaskFactory
     from sage.kernel.runtime.graph.graph_edge import GraphEdge
     from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor
 
 
-def _create_queue_descriptor(env: BaseEnvironment, name: str, maxsize: int) -> BaseQueueDescriptor:
+def _create_queue_descriptor(
+    env: BaseEnvironment, name: str, maxsize: int
+) -> BaseQueueDescriptor:
     """
     根据环境平台类型创建相应的队列描述符
 
@@ -40,8 +41,7 @@ def _create_queue_descriptor(env: BaseEnvironment, name: str, maxsize: int) -> B
 
         return RayQueueDescriptor(maxsize=maxsize, queue_id=name)
     else:  # local 或其他情况使用 python 队列
-        from sage.platform.queue.python_queue_descriptor import \
-            PythonQueueDescriptor
+        from sage.platform.queue.python_queue_descriptor import PythonQueueDescriptor
 
         return PythonQueueDescriptor(maxsize=maxsize, queue_id=name)
 

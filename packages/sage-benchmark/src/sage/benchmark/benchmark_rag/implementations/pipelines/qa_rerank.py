@@ -3,12 +3,17 @@ import sys
 import time
 
 from sage.common.utils.config.loader import load_config
+
 # 导入 Sage 相关模块
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.batch import JSONLBatch
 from sage.libs.io.sink import TerminalSink
-from sage.middleware.operators.rag import (BGEReranker, ChromaRetriever,
-                                           OpenAIGenerator, QAPromptor)
+from sage.middleware.operators.rag import (
+    BGEReranker,
+    ChromaRetriever,
+    OpenAIGenerator,
+    QAPromptor,
+)
 
 
 def pipeline_run():
@@ -17,7 +22,10 @@ def pipeline_run():
     该函数会初始化环境，加载配置，设置数据处理流程，并启动管道。
     """
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - qa_rerank example")
         print("✅ Test passed: Example structure validated")
         return
@@ -50,7 +58,10 @@ if __name__ == "__main__":
     import os
 
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - qa_rerank example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

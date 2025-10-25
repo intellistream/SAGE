@@ -5,12 +5,16 @@ Provides memory management capabilities for RAG applications,
 wrapping the neuromem sub-project.
 """
 
-from .neuromem.memory_collection import (BaseMemoryCollection,
-                                         GraphMemoryCollection,
-                                         KVMemoryCollection,
-                                         VDBMemoryCollection)
+from .neuromem.memory_collection import (
+    BaseMemoryCollection,
+    GraphMemoryCollection,
+    KVMemoryCollection,
+    VDBMemoryCollection,
+)
+
 # Export core components from neuromem sub-project
 from .neuromem.memory_manager import MemoryManager
+
 # Export services
 from .services.neuromem_vdb import NeuroMemVDB
 from .services.neuromem_vdb_service import NeuroMemVDBService

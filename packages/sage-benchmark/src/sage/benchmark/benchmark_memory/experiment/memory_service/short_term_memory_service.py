@@ -1,8 +1,9 @@
 from collections import deque
 from typing import Any, Dict, List, Optional
 
-from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import \
-    DialogueParser
+from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import (
+    DialogueParser,
+)
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.platform.service import BaseService
 
@@ -62,7 +63,9 @@ class ShortTermMemoryService(BaseService):
         """
         # 使用对话解析器进行验证（严格模式）
         try:
-            validated_dialogs = self.dialogue_parser.parse_and_validate(dialogs, strict_mode=True)
+            validated_dialogs = self.dialogue_parser.parse_and_validate(
+                dialogs, strict_mode=True
+            )
         except (TypeError, ValueError) as e:
             self._logger.error(f"Dialog validation failed: {e}")
             raise
@@ -74,7 +77,9 @@ class ShortTermMemoryService(BaseService):
 
             # 使用解析器提取信息用于日志
             info = self.dialogue_parser.extract_dialog_info(dialog)
-            self._logger.debug(f"Inserted message from {info['speaker']}: {info['text_preview']}")
+            self._logger.debug(
+                f"Inserted message from {info['speaker']}: {info['text_preview']}"
+            )
 
         self._logger.info(
             f"Successfully inserted {len(validated_dialogs)} dialog(s). "
@@ -159,7 +164,9 @@ if __name__ == "__main__":
         print("=" * 70)
         print("第3次插入 - 插入1条新消息 (触发窗口滑动)")
         print("=" * 70)
-        dialogs_3 = [{"speaker": "小明", "text": "那里的风景一定很美！", "session_type": "text"}]
+        dialogs_3 = [
+            {"speaker": "小明", "text": "那里的风景一定很美！", "session_type": "text"}
+        ]
         memory.insert(dialogs_3)
 
         retrieved = memory.retrieve()

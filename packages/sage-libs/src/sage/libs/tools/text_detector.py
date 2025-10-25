@@ -63,7 +63,9 @@ class text_detector(BaseTool):
             reader = easyocr.Reader(languages)
             return reader
         except ImportError:
-            raise ImportError("Please install the EasyOCR package using 'pip install easyocr'.")
+            raise ImportError(
+                "Please install the EasyOCR package using 'pip install easyocr'."
+            )
         except Exception as e:
             print(f"Error building the OCR tool: {e}")
             return None

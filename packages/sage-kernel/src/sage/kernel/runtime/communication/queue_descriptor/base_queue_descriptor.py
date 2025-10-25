@@ -247,9 +247,7 @@ class BaseQueueDescriptor(ABC):
             status_parts.append("non-serializable")
 
         status = ", ".join(status_parts)
-        return (
-            f"{self.__class__.__name__}(id='{self.queue_id}', type='{self.queue_type}', {status})"
-        )
+        return f"{self.__class__.__name__}(id='{self.queue_id}', type='{self.queue_type}', {status})"
 
     def __str__(self) -> str:
         return f"Queue[{self.queue_type}]({self.queue_id})"

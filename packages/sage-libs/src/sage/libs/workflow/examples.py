@@ -5,12 +5,21 @@ This example demonstrates how to use the framework to research and develop
 workflow optimization strategies.
 """
 
-from sage.libs.workflow import (BudgetConstraint, ConstraintChecker,
-                                LatencyConstraint, NodeType, QualityConstraint,
-                                WorkflowEvaluator, WorkflowGraph)
+from sage.libs.workflow import (
+    BudgetConstraint,
+    ConstraintChecker,
+    LatencyConstraint,
+    NodeType,
+    QualityConstraint,
+    WorkflowEvaluator,
+    WorkflowGraph,
+)
 from sage.libs.workflow.evaluator import create_synthetic_workflow
-from sage.libs.workflow.optimizers import (GreedyOptimizer, NoOpOptimizer,
-                                           ParallelizationOptimizer)
+from sage.libs.workflow.optimizers import (
+    GreedyOptimizer,
+    NoOpOptimizer,
+    ParallelizationOptimizer,
+)
 
 
 def example_basic_workflow():
@@ -182,7 +191,9 @@ def example_custom_optimizer():
                 steps.append(f"Removed {node_id} (cost={node.cost:.2f})")
 
             exec_time = time.time() - start
-            metrics = self.calculate_metrics(workflow, optimized, exec_time, len(to_remove))
+            metrics = self.calculate_metrics(
+                workflow, optimized, exec_time, len(to_remove)
+            )
 
             return OptimizationResult(
                 original_workflow=workflow,

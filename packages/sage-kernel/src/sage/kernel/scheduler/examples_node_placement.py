@@ -294,8 +294,7 @@ def example_placement_execution():
 
         # === 关键：指定目标节点 ===
         if decision.target_node:
-            from ray.util.scheduling_strategies import \
-                NodeAffinitySchedulingStrategy
+            from ray.util.scheduling_strategies import NodeAffinitySchedulingStrategy
 
             options["scheduling_strategy"] = NodeAffinitySchedulingStrategy(
                 node_id=decision.target_node,  # ← 使用决策中的节点 ID

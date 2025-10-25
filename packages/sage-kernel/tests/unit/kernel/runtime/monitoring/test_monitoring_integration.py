@@ -114,7 +114,9 @@ class TestMonitoringIntegration:
             collector.record_packet_start(packet_id)
 
             if i % 3 == 0:  # 每3个包失败一次
-                collector.record_packet_end(packet_id, success=False, error_type="ValueError")
+                collector.record_packet_end(
+                    packet_id, success=False, error_type="ValueError"
+                )
             else:
                 collector.record_packet_end(packet_id, success=True)
 
@@ -215,8 +217,7 @@ class TestMonitoringIntegration:
 
     def test_monitoring_with_resource_tracking(self):
         """测试带资源监控的完整流程"""
-        from sage.kernel.runtime.monitoring.resource_monitor import \
-            ResourceMonitor
+        from sage.kernel.runtime.monitoring.resource_monitor import ResourceMonitor
 
         collector = MetricsCollector(name="resource_test")
         resource_monitor = ResourceMonitor(sampling_interval=0.1)

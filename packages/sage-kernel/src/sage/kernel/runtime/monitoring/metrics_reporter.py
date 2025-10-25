@@ -144,12 +144,18 @@ class MetricsReporter:
             f'sage_task_packets_failed_total{{task="{task_name}"}} {metrics.total_packets_failed}'
         )
 
-        lines.append("# HELP sage_task_throughput_pps Current throughput in packets per second")
+        lines.append(
+            "# HELP sage_task_throughput_pps Current throughput in packets per second"
+        )
         lines.append("# TYPE sage_task_throughput_pps gauge")
-        lines.append(f'sage_task_throughput_pps{{task="{task_name}"}} {metrics.packets_per_second}')
+        lines.append(
+            f'sage_task_throughput_pps{{task="{task_name}"}} {metrics.packets_per_second}'
+        )
 
         # 延迟指标
-        lines.append("# HELP sage_task_latency_milliseconds Task latency in milliseconds")
+        lines.append(
+            "# HELP sage_task_latency_milliseconds Task latency in milliseconds"
+        )
         lines.append("# TYPE sage_task_latency_milliseconds summary")
         lines.append(
             f'sage_task_latency_milliseconds{{task="{task_name}",quantile="0.5"}} {metrics.p50_latency}'
@@ -164,16 +170,22 @@ class MetricsReporter:
         # 资源指标
         lines.append("# HELP sage_task_cpu_percent CPU usage percentage")
         lines.append("# TYPE sage_task_cpu_percent gauge")
-        lines.append(f'sage_task_cpu_percent{{task="{task_name}"}} {metrics.cpu_usage_percent}')
+        lines.append(
+            f'sage_task_cpu_percent{{task="{task_name}"}} {metrics.cpu_usage_percent}'
+        )
 
         lines.append("# HELP sage_task_memory_megabytes Memory usage in megabytes")
         lines.append("# TYPE sage_task_memory_megabytes gauge")
-        lines.append(f'sage_task_memory_megabytes{{task="{task_name}"}} {metrics.memory_usage_mb}')
+        lines.append(
+            f'sage_task_memory_megabytes{{task="{task_name}"}} {metrics.memory_usage_mb}'
+        )
 
         # 队列指标
         lines.append("# HELP sage_task_queue_depth Current queue depth")
         lines.append("# TYPE sage_task_queue_depth gauge")
-        lines.append(f'sage_task_queue_depth{{task="{task_name}"}} {metrics.input_queue_depth}')
+        lines.append(
+            f'sage_task_queue_depth{{task="{task_name}"}} {metrics.input_queue_depth}'
+        )
 
         return "\n".join(lines)
 

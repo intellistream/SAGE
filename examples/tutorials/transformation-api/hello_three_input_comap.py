@@ -85,7 +85,12 @@ def main():
 
     # 连接三个流并应用CoMap
     print("🔗 Connecting streams and applying CoMap...")
-    (stream1.connect(stream2).connect(stream3).comap(ThreeStreamCoMapFunction).sink(ConsoleSink))
+    (
+        stream1.connect(stream2)
+        .connect(stream3)
+        .comap(ThreeStreamCoMapFunction)
+        .sink(ConsoleSink)
+    )
 
     print("⚙️ Processing data...")
     print()

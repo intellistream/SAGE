@@ -56,9 +56,11 @@ def test_algorithm_registration():
 
 def test_service_functionality():
     """测试服务功能"""
-    from sage.middleware.components.sage_refiner import (RefinerAlgorithm,
-                                                         RefinerConfig,
-                                                         RefinerService)
+    from sage.middleware.components.sage_refiner import (
+        RefinerAlgorithm,
+        RefinerConfig,
+        RefinerService,
+    )
 
     # 创建配置
     config = RefinerConfig(
@@ -144,7 +146,9 @@ def test_documentation():
             assert doc_path.stat().st_size > 0, f"{desc} 文件为空"
 
 
-@pytest.mark.skip(reason="File structure test is too strict for flexible project layouts")
+@pytest.mark.skip(
+    reason="File structure test is too strict for flexible project layouts"
+)
 def test_file_structure():
     """测试文件结构"""
     base_path = (

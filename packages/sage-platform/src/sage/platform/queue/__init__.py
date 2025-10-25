@@ -18,8 +18,7 @@ Architecture:
 from .base_queue_descriptor import BaseQueueDescriptor
 from .python_queue_descriptor import PythonQueueDescriptor
 from .ray_queue_descriptor import RayQueueDescriptor
-from .rpc_queue_descriptor import (RPCQueueDescriptor,
-                                   register_rpc_queue_factory)
+from .rpc_queue_descriptor import RPCQueueDescriptor, register_rpc_queue_factory
 
 
 def resolve_descriptor(data):

@@ -69,7 +69,9 @@ class JobManager:  # Job Manager
             # 初始化内置daemon（如果启用）
             self.server = None
             if enable_daemon:
-                self.server = JobManagerServer(jobmanager=self, host=daemon_host, port=daemon_port)
+                self.server = JobManagerServer(
+                    jobmanager=self, host=daemon_host, port=daemon_port
+                )
                 self.server.logger = self.logger
                 # 设置信号处理
                 self._setup_signal_handlers()
@@ -89,7 +91,9 @@ class JobManager:  # Job Manager
         """运行JobManager直到收到停止信号"""
 
         self.logger.info("JobManager started successfully")
-        self.logger.info(f"TCP service listening on {self.server.host}:{self.server.port}")
+        self.logger.info(
+            f"TCP service listening on {self.server.host}:{self.server.port}"
+        )
         self.logger.info("Press Ctrl+C to stop...")
 
         try:
@@ -465,7 +469,9 @@ class JobManager:  # Job Manager
             "environments_count": len(self.jobs),
             "jobs": job_summaries,
             "daemon_enabled": self.server is not None,
-            "daemon_address": (f"{self.server.host}:{self.server.port}" if self.server else None),
+            "daemon_address": (
+                f"{self.server.host}:{self.server.port}" if self.server else None
+            ),
         }
 
     def shutdown(self):
@@ -521,7 +527,9 @@ class JobManager:  # Job Manager
         project_root = os.environ.get("SAGE_PROJECT_ROOT")
         sage_paths = get_sage_paths(project_root)
 
-        self.log_base_dir = sage_paths.logs_dir / "jobmanager" / f"session_{self.session_id}"
+        self.log_base_dir = (
+            sage_paths.logs_dir / "jobmanager" / f"session_{self.session_id}"
+        )
 
         print(f"JobManager logs: {self.log_base_dir}")
         Path(self.log_base_dir).mkdir(parents=True, exist_ok=True)
@@ -551,7 +559,9 @@ class JobManager:  # Job Manager
         env.session_id = env.session_timestamp.strftime("%Y%m%d_%H%M%S")
 
         # 设置环境基础目录
-        env.env_base_dir = os.path.join(self.log_base_dir, f"env_{env.name}_{env.session_id}")
+        env.env_base_dir = os.path.join(
+            self.log_base_dir, f"env_{env.name}_{env.session_id}"
+        )
         Path(env.env_base_dir).mkdir(parents=True, exist_ok=True)
 
         # 创建Environment专用的日志器
@@ -580,7 +590,9 @@ def main():
     """命令行入口"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="SAGE JobManager with integrated TCP daemon")
+    parser = argparse.ArgumentParser(
+        description="SAGE JobManager with integrated TCP daemon"
+    )
     parser.add_argument("--host", default="127.0.0.1", help="Daemon host")
     parser.add_argument("--port", type=int, default=19001, help="Daemon port")
     parser.add_argument("--no-daemon", action="store_true", help="Disable TCP daemon")

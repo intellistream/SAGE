@@ -219,9 +219,13 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
                     do_sample=False,
                 )[0]["summary_text"].strip()
             except Exception:  # pragma: no cover - fallback path
-                raw_summary = self._fallback_summary(_top(all_concepts, 3), _top(all_objects, 5))
+                raw_summary = self._fallback_summary(
+                    _top(all_concepts, 3), _top(all_objects, 5)
+                )
         else:
-            raw_summary = self._fallback_summary(_top(all_concepts, 3), _top(all_objects, 5))
+            raw_summary = self._fallback_summary(
+                _top(all_concepts, 3), _top(all_objects, 5)
+            )
 
         return {
             "summary_id": self.summary_index,
@@ -238,4 +242,7 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
     def _fallback_summary(concepts: list[str], objects: list[str]) -> str:
         concept_text = ", ".join(concepts) if concepts else "diverse scenes"
         object_text = ", ".join(objects) if objects else "generic objects"
-        return f"Window highlights {concept_text}. " f"Frequent objects include {object_text}."
+        return (
+            f"Window highlights {concept_text}. "
+            f"Frequent objects include {object_text}."
+        )

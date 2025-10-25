@@ -8,8 +8,7 @@
 import logging
 from typing import Any
 
-from sage.middleware.components.sage_refiner.python.service import \
-    RefinerService
+from sage.middleware.components.sage_refiner.python.service import RefinerService
 
 
 class ContextService:
@@ -105,7 +104,9 @@ class ContextService:
             ):
                 # 压缩历史
                 compressed_history = self._compress_history(history)
-                context_parts.append({"type": "history", "content": compressed_history["content"]})
+                context_parts.append(
+                    {"type": "history", "content": compressed_history["content"]}
+                )
                 total_length += compressed_history["length"]
                 compression_applied = True
                 metrics["history_compression"] = compressed_history["metrics"]
@@ -115,7 +116,9 @@ class ContextService:
 
         # 3. 处理检索文档
         if retrieved_docs:
-            docs_budget = max(self.max_context_length - total_length, self.max_context_length // 2)
+            docs_budget = max(
+                self.max_context_length - total_length, self.max_context_length // 2
+            )
 
             if docs_budget > 0:
                 refine_result = self.refiner.refine(

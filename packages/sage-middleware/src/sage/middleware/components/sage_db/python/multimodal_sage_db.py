@@ -104,7 +104,9 @@ class MultimodalSearchParams:
 class QueryResult:
     """查询结果类"""
 
-    def __init__(self, data_id: int, score: float, metadata: dict[str, str] | None = None):
+    def __init__(
+        self, data_id: int, score: float, metadata: dict[str, str] | None = None
+    ):
         self.id = data_id
         self.score = score
         self.metadata = metadata or {}
@@ -127,7 +129,9 @@ class MultimodalSageDB:
         """
         self.config = config
         self.dimension = config.get("dimension", 512)
-        self.fusion_params = FusionParams(FusionStrategy(config.get("fusion_strategy", 1)))
+        self.fusion_params = FusionParams(
+            FusionStrategy(config.get("fusion_strategy", 1))
+        )
 
         # 如果C++扩展可用，初始化底层对象
         if _sage_db:
@@ -244,7 +248,9 @@ class MultimodalSageDB:
             filtered_results = []
             for result in results:
                 data = self._data_store.get(result.id)
-                if data and any(modality in data.modalities for modality in target_modalities):
+                if data and any(
+                    modality in data.modalities for modality in target_modalities
+                ):
                     filtered_results.append(result)
 
             return filtered_results
@@ -263,7 +269,9 @@ class MultimodalSageDB:
             stats = {}
             for modality_type in ModalityType:
                 count = sum(
-                    1 for data in self._data_store.values() if modality_type in data.modalities
+                    1
+                    for data in self._data_store.values()
+                    if modality_type in data.modalities
                 )
                 if count > 0:
                     embeddings = [
@@ -306,7 +314,9 @@ class MultimodalSageDB:
 
 
 # 便利函数
-def create_text_image_db(dimension: int = 512, index_type: str = "IVF_FLAT") -> MultimodalSageDB:
+def create_text_image_db(
+    dimension: int = 512, index_type: str = "IVF_FLAT"
+) -> MultimodalSageDB:
     """创建文本-图像多模态数据库"""
     config = {
         "dimension": dimension,
@@ -318,7 +328,9 @@ def create_text_image_db(dimension: int = 512, index_type: str = "IVF_FLAT") -> 
     return MultimodalSageDB(config)
 
 
-def create_audio_visual_db(dimension: int = 1024, index_type: str = "IVF_FLAT") -> MultimodalSageDB:
+def create_audio_visual_db(
+    dimension: int = 1024, index_type: str = "IVF_FLAT"
+) -> MultimodalSageDB:
     """创建音视频多模态数据库"""
     config = {
         "dimension": dimension,

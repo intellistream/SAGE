@@ -16,10 +16,14 @@ import time
 from collections import OrderedDict
 from typing import Any
 
-from sage.middleware.components.sage_refiner.python.base import (BaseRefiner,
-                                                                 RefineResult)
+from sage.middleware.components.sage_refiner.python.base import (
+    BaseRefiner,
+    RefineResult,
+)
 from sage.middleware.components.sage_refiner.python.config import (
-    RefinerAlgorithm, RefinerConfig)
+    RefinerAlgorithm,
+    RefinerConfig,
+)
 
 
 class RefinerCache:
@@ -54,7 +58,9 @@ class RefinerCache:
         self.cache.move_to_end(key)
         return self.cache[key]
 
-    def put(self, query: str, documents: list[Any], budget: int, result: RefineResult) -> None:
+    def put(
+        self, query: str, documents: list[Any], budget: int, result: RefineResult
+    ) -> None:
         """存入缓存"""
         key = self._make_key(query, documents, budget)
 
@@ -112,7 +118,9 @@ class RefinerService:
         # 缓存
         self.cache: RefinerCache | None = None
         if self.config.enable_cache:
-            self.cache = RefinerCache(max_size=self.config.cache_size, ttl=self.config.cache_ttl)
+            self.cache = RefinerCache(
+                max_size=self.config.cache_size, ttl=self.config.cache_ttl
+            )
 
         # 性能统计
         self.stats_data = {
@@ -133,21 +141,24 @@ class RefinerService:
         algorithm = self.config.algorithm
 
         if algorithm == RefinerAlgorithm.LONG_REFINER:
-            from sage.middleware.components.sage_refiner.python.algorithms.long_refiner import \
-                LongRefinerAlgorithm
+            from sage.middleware.components.sage_refiner.python.algorithms.long_refiner import (
+                LongRefinerAlgorithm,
+            )
 
             self.refiner = LongRefinerAlgorithm(self.config.to_dict())
 
         elif algorithm == RefinerAlgorithm.SIMPLE:
-            from sage.middleware.components.sage_refiner.python.algorithms.simple import \
-                SimpleRefiner
+            from sage.middleware.components.sage_refiner.python.algorithms.simple import (
+                SimpleRefiner,
+            )
 
             self.refiner = SimpleRefiner(self.config.to_dict())
 
         elif algorithm == RefinerAlgorithm.NONE:
             # 不压缩，返回原始内容
-            from sage.middleware.components.sage_refiner.python.algorithms.simple import \
-                SimpleRefiner
+            from sage.middleware.components.sage_refiner.python.algorithms.simple import (
+                SimpleRefiner,
+            )
 
             config = self.config.to_dict()
             config["budget"] = float("inf")  # 无限budget
@@ -158,7 +169,9 @@ class RefinerService:
 
         # 初始化
         if not self.refiner.is_initialized:
-            algo_name = algorithm.value if hasattr(algorithm, "value") else str(algorithm)
+            algo_name = (
+                algorithm.value if hasattr(algorithm, "value") else str(algorithm)
+            )
             self.logger.info(f"Initializing refiner: {algo_name}")
             self.refiner.initialize()
             self.logger.info(f"Refiner initialized: {algo_name}")
@@ -257,7 +270,9 @@ class RefinerService:
         if isinstance(algorithm, str):
             algorithm = RefinerAlgorithm(algorithm)
 
-        self.logger.info(f"Switching algorithm from {self.config.algorithm} to {algorithm}")
+        self.logger.info(
+            f"Switching algorithm from {self.config.algorithm} to {algorithm}"
+        )
 
         # 关闭当前refiner
         if self.refiner is not None:
@@ -283,7 +298,9 @@ class RefinerService:
 
         # 计算平均值
         if stats["total_requests"] > 0:
-            stats["avg_refine_time"] = stats["total_refine_time"] / stats["total_requests"]
+            stats["avg_refine_time"] = (
+                stats["total_refine_time"] / stats["total_requests"]
+            )
             stats["avg_compression_rate"] = (
                 stats["total_original_tokens"] / stats["total_refined_tokens"]
                 if stats["total_refined_tokens"] > 0

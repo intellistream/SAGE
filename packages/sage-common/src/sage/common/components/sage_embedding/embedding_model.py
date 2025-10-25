@@ -11,7 +11,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Ensure project root is on sys.path for imports that rely on package layout
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../..")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
+)
 
 
 class EmbeddingModel:
@@ -73,7 +75,9 @@ class EmbeddingModel:
             # 初始化 mockembedder
             from .wrappers.mock_wrapper import MockEmbedding
 
-            self.kwargs["embed_model"] = MockEmbedding(fixed_dim=kwargs.get("fixed_dim", 128))
+            self.kwargs["embed_model"] = MockEmbedding(
+                fixed_dim=kwargs.get("fixed_dim", 128)
+            )
         self.embed_fn = self._get_embed_function(method)
 
     def set_dim(self, model_name):
@@ -106,12 +110,18 @@ class EmbeddingModel:
     def _get_embed_function(self, method: str):
         """根据方法名返回对应的 embedding 函数（延迟导入相关模块）"""
         # 延迟导入：只在实际使用时才导入对应的模块
-        from sage.common.components.sage_embedding import (_cohere, bedrock,
-                                                           hf, jina, lollms,
-                                                           nvidia_openai,
-                                                           ollama,
-                                                           openai_wrapper,
-                                                           siliconcloud, zhipu)
+        from sage.common.components.sage_embedding import (
+            _cohere,
+            bedrock,
+            hf,
+            jina,
+            lollms,
+            nvidia_openai,
+            ollama,
+            openai_wrapper,
+            siliconcloud,
+            zhipu,
+        )
 
         mapping = {
             "openai": openai_wrapper.openai_embed_sync,
@@ -168,7 +178,9 @@ def apply_embedding_model(name: str = "default", **kwargs) -> EmbeddingModel:
 
 
 def main():
-    embedding_model = EmbeddingModel(method="hf", model="sentence-transformers/all-MiniLM-L6-v2")
+    embedding_model = EmbeddingModel(
+        method="hf", model="sentence-transformers/all-MiniLM-L6-v2"
+    )
     for i in range(10):
         start = time.time()
         v = embedding_model.embed(f"{i} times ")

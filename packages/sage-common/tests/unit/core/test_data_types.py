@@ -4,11 +4,15 @@ Tests for sage.common.core.data_types
 Tests the universal data type definitions for SAGE framework.
 """
 
-from sage.common.core.data_types import (BaseDocument, BaseQueryResult,
-                                         ExtendedQueryResult,
-                                         create_query_result,
-                                         ensure_query_result, extract_query,
-                                         extract_results)
+from sage.common.core.data_types import (
+    BaseDocument,
+    BaseQueryResult,
+    ExtendedQueryResult,
+    create_query_result,
+    ensure_query_result,
+    extract_query,
+    extract_results,
+)
 
 
 class TestBaseDocument:
@@ -283,7 +287,9 @@ class TestTypeCompatibility:
         assert len(docs) == 3
 
         # Reranker output
-        reranker_out = create_query_result(query=query, results=docs[:2], execution_time=0.1)
+        reranker_out = create_query_result(
+            query=query, results=docs[:2], execution_time=0.1
+        )
 
         # Generator input
         final_query = extract_query(reranker_out)

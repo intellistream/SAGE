@@ -4,9 +4,14 @@ import time
 from pathlib import Path
 from typing import Any
 
-from sage.common.core.functions import (BaseJoinFunction, FilterFunction,
-                                        FlatMapFunction, KeyByFunction,
-                                        SinkFunction, SourceFunction)
+from sage.common.core.functions import (
+    BaseJoinFunction,
+    FilterFunction,
+    FlatMapFunction,
+    KeyByFunction,
+    SinkFunction,
+    SourceFunction,
+)
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # =====================================================================
@@ -199,7 +204,9 @@ class OrderEventFlatMap(FlatMapFunction):
             }
             results.append(payment_info)
 
-        self.logger.info(f"OrderEventFlatMap: flattened order {order_id} into {len(results)} items")
+        self.logger.info(
+            f"OrderEventFlatMap: flattened order {order_id} into {len(results)} items"
+        )
         return results
 
 
@@ -247,7 +254,9 @@ class UserProfileFlatMap(FlatMapFunction):
             }
             results.append(vip_info)
 
-        self.logger.info(f"UserProfileFlatMap: flattened user {user_id} into {len(results)} items")
+        self.logger.info(
+            f"UserProfileFlatMap: flattened user {user_id} into {len(results)} items"
+        )
         return results
 
 
@@ -303,17 +312,23 @@ class PremiumUserFilter(FilterFunction):
                 self.logger.info(
                     f"✅ PremiumUserFilter: accepted premium user {data.get('user_id')}"
                 )
-                print(f"✅ PremiumUserFilter: accepted premium user {data.get('user_id')}")
+                print(
+                    f"✅ PremiumUserFilter: accepted premium user {data.get('user_id')}"
+                )
                 return True
             else:
                 self.logger.info(
                     f"❌ PremiumUserFilter: rejected non-premium user {data.get('user_id')}"
                 )
-                print(f"❌ PremiumUserFilter: rejected non-premium user {data.get('user_id')}")
+                print(
+                    f"❌ PremiumUserFilter: rejected non-premium user {data.get('user_id')}"
+                )
                 return False
 
         # 对于非偏好信息，直接通过
-        self.logger.info(f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}")
+        self.logger.info(
+            f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}"
+        )
         print(f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}")
         return data.get("type") != "preference_info"
 
@@ -361,7 +376,9 @@ class UserOrderJoin(BaseJoinFunction):
 
     def execute(self, payload: Any, key: Any, tag: int) -> list[Any]:
         results = []
-        self.logger.debug(f"UserOrderJoin: processing key='{key}', tag={tag}, payload={payload}")
+        self.logger.debug(
+            f"UserOrderJoin: processing key='{key}', tag={tag}, payload={payload}"
+        )
         if tag == 0:  # 用户流
             user_type = payload.get("type", "")
             if user_type == "user_info":
@@ -382,7 +399,9 @@ class UserOrderJoin(BaseJoinFunction):
             if order_type == "order_info":
                 # 检查是否有对应的用户
                 if key in self.user_cache:
-                    joined = self._create_user_order_join(self.user_cache[key], payload, key)
+                    joined = self._create_user_order_join(
+                        self.user_cache[key], payload, key
+                    )
                     results.append(joined)
                     self.join_count += 1
                 else:
@@ -398,7 +417,9 @@ class UserOrderJoin(BaseJoinFunction):
 
         return results
 
-    def _create_user_order_join(self, user_data: Any, order_data: Any, user_id: str) -> dict:
+    def _create_user_order_join(
+        self, user_data: Any, order_data: Any, user_id: str
+    ) -> dict:
         return {
             "join_type": "user_order",
             "user_id": user_id,
@@ -435,7 +456,9 @@ class UserPaymentJoin(BaseJoinFunction):
                 # 检查是否有对应的支付
                 if key in self.payment_cache:
                     for payment_data in self.payment_cache[key]:
-                        joined = self._create_user_payment_join(payload, payment_data, key)
+                        joined = self._create_user_payment_join(
+                            payload, payment_data, key
+                        )
                         results.append(joined)
                         self.join_count += 1
                     del self.payment_cache[key]
@@ -464,7 +487,9 @@ class UserPaymentJoin(BaseJoinFunction):
         for user_id, (user_data, timestamp) in self.user_cache.items():
             if current_time - timestamp > self.timeout_ms:
                 # 输出没有支付的用户
-                no_payment_result = self._create_user_payment_join(user_data, None, user_id)
+                no_payment_result = self._create_user_payment_join(
+                    user_data, None, user_id
+                )
                 results.append(no_payment_result)
                 expired_users.append(user_id)
                 self.join_count += 1
@@ -480,7 +505,9 @@ class UserPaymentJoin(BaseJoinFunction):
 
         return results
 
-    def _create_user_payment_join(self, user_data: Any, payment_data: Any, user_id: str) -> dict:
+    def _create_user_payment_join(
+        self, user_data: Any, payment_data: Any, user_id: str
+    ) -> dict:
         return {
             "join_type": "user_payment",
             "user_id": user_id,
@@ -488,7 +515,9 @@ class UserPaymentJoin(BaseJoinFunction):
             "user_tier": user_data.get("tier") if user_data else None,
             "order_id": payment_data.get("order_id") if payment_data else None,
             "payment_amount": payment_data.get("amount") if payment_data else 0,
-            "payment_timestamp": (payment_data.get("payment_timestamp") if payment_data else None),
+            "payment_timestamp": (
+                payment_data.get("payment_timestamp") if payment_data else None
+            ),
             "has_payment": payment_data is not None,
             "join_timestamp": time.time_ns() // 1_000_000,
             "source": "user_payment_join",
@@ -545,7 +574,9 @@ class OrderEventJoin(BaseJoinFunction):
 
         for key in list(self.event_buffer.keys()):
             valid_events = [
-                (data, ts, tag) for data, ts, tag in self.event_buffer[key] if ts >= cutoff_time
+                (data, ts, tag)
+                for data, ts, tag in self.event_buffer[key]
+                if ts >= cutoff_time
             ]
             if valid_events:
                 self.event_buffer[key] = valid_events
@@ -554,17 +585,25 @@ class OrderEventJoin(BaseJoinFunction):
 
     def _get_window_events(self, key: Any, current_time: int) -> list:
         cutoff_time = current_time - self.window_ms
-        return [(data, ts, tag) for data, ts, tag in self.event_buffer[key] if ts >= cutoff_time]
+        return [
+            (data, ts, tag)
+            for data, ts, tag in self.event_buffer[key]
+            if ts >= cutoff_time
+        ]
 
     def _find_order_event_combinations(self, events: list, order_id: str) -> list:
         combinations = []
 
         # 按tag分组事件
         order_infos = [
-            (data, ts) for data, ts, tag in events if tag == 0 and data.get("type") == "order_info"
+            (data, ts)
+            for data, ts, tag in events
+            if tag == 0 and data.get("type") == "order_info"
         ]
         event_infos = [
-            (data, ts) for data, ts, tag in events if tag == 1 and data.get("type") == "event_info"
+            (data, ts)
+            for data, ts, tag in events
+            if tag == 1 and data.get("type") == "event_info"
         ]
 
         # 组合订单信息和事件信息
@@ -609,7 +648,9 @@ class JoinResultSink(SinkFunction):
             self.output_file = Path(output_file)
 
         if self.ctx:
-            self.logger.info(f"JoinResultSink initialized, output file: {self.output_file}")
+            self.logger.info(
+                f"JoinResultSink initialized, output file: {self.output_file}"
+            )
 
     def execute(self, data: Any):
         if self.ctx:
@@ -628,7 +669,9 @@ class JoinResultSink(SinkFunction):
             )
 
         # 打印调试信息
-        print(f"🔗 [Instance {self.parallel_index}] Join: {join_type} | {key_field}={key_value}")
+        print(
+            f"🔗 [Instance {self.parallel_index}] Join: {join_type} | {key_field}={key_value}"
+        )
 
         # 保存到文件
         self._append_record(

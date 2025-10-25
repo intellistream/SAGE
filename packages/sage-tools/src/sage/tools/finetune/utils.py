@@ -52,8 +52,8 @@ def get_finetune_output_dir() -> Path:
 def check_training_dependencies() -> bool:
     """检查微调训练依赖是否已安装"""
     try:
-        import accelerate
-        import peft
+        import accelerate  # noqa: F401
+        import peft  # noqa: F401
 
         return True
     except ImportError:
@@ -126,7 +126,9 @@ def collect_sage_code_files(
             dirs[:] = [
                 d
                 for d in dirs
-                if not any(d.startswith(ex.rstrip("*")) or d == ex for ex in exclude_dirs)
+                if not any(
+                    d.startswith(ex.rstrip("*")) or d == ex for ex in exclude_dirs
+                )
             ]
 
             for filename in filenames:

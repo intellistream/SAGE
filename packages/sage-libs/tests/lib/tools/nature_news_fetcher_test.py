@@ -9,6 +9,7 @@
 
 import pytest
 import requests
+
 # ================================
 # 关键修改：根据您的项目结构更新 import 语句
 # 假设您的源文件位于 sage.apps.lib/tools/nature_news_fetcher.py
@@ -50,7 +51,9 @@ def create_fake_html_page(num_articles):
       <img src="https://fake.url/image{i}.jpg" />
     </article>
     """
-    articles_html = "".join([article_template.format(i=i) for i in range(1, num_articles + 1)])
+    articles_html = "".join(
+        [article_template.format(i=i) for i in range(1, num_articles + 1)]
+    )
 
     return f"""
     <html><body><section id='new-article-list'>{articles_html}</section></body></html>

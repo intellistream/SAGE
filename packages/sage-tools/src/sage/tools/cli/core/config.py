@@ -12,8 +12,13 @@ from typing import Any
 
 from .exceptions import ConfigurationError, ValidationError
 from .utils import load_yaml_file
-from .validation import (validate_config_dict, validate_host, validate_path,
-                         validate_port, validate_timeout)
+from .validation import (
+    validate_config_dict,
+    validate_host,
+    validate_path,
+    validate_port,
+    validate_timeout,
+)
 
 
 class ConfigValidator:
@@ -55,16 +60,18 @@ class ConfigValidator:
         # 检查必需节
         missing_sections = [s for s in self.required_sections if s not in config]
         if missing_sections:
-            raise ConfigurationError(f"Missing required configuration sections: {missing_sections}")
+            raise ConfigurationError(
+                f"Missing required configuration sections: {missing_sections}"
+            )
 
         # 验证各个节
         validated_config = {}
         for section_name, section_data in config.items():
             if section_name in self.section_validators:
                 try:
-                    validated_config[section_name] = self.section_validators[section_name](
-                        section_data
-                    )
+                    validated_config[section_name] = self.section_validators[
+                        section_name
+                    ](section_data)
                 except Exception as e:
                     raise ConfigurationError(
                         f"Invalid configuration in section '{section_name}': {e}"
@@ -132,7 +139,9 @@ def validate_ssh_config(config: dict[str, Any]) -> dict[str, Any]:
         key_path = config["key_path"]
         if key_path.startswith("~"):
             key_path = os.path.expanduser(key_path)
-        config["key_path"] = str(validate_path(key_path, must_exist=True, must_be_file=True))
+        config["key_path"] = str(
+            validate_path(key_path, must_exist=True, must_be_file=True)
+        )
 
     if "connect_timeout" in config:
         config["connect_timeout"] = validate_timeout(config["connect_timeout"])
@@ -222,7 +231,9 @@ def validate_jobmanager_config(config: dict[str, Any]) -> dict[str, Any]:
     if "retry_attempts" in config:
         attempts = config["retry_attempts"]
         if not isinstance(attempts, int) or attempts < 0:
-            raise ValidationError("JobManager retry_attempts must be a non-negative integer")
+            raise ValidationError(
+                "JobManager retry_attempts must be a non-negative integer"
+            )
         config["retry_attempts"] = attempts
 
     return config
@@ -270,7 +281,9 @@ def load_and_validate_config(
         config = load_yaml_file(config_path)
         return validator.validate_config(config)
     except Exception as e:
-        raise ConfigurationError(f"Failed to load and validate config file {config_path}: {e}")
+        raise ConfigurationError(
+            f"Failed to load and validate config file {config_path}: {e}"
+        )
 
 
 def create_default_config() -> dict[str, Any]:

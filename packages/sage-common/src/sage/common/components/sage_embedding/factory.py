@@ -116,7 +116,9 @@ class EmbeddingFactory:
             )
 
         if status == ModelStatus.UNAVAILABLE:
-            raise RuntimeError(f"{method} 方法当前不可用。\n" f"请检查是否已正确安装相关依赖。")
+            raise RuntimeError(
+                f"{method} 方法当前不可用。\n" f"请检查是否已正确安装相关依赖。"
+            )
 
         # 创建实例
         try:
@@ -130,7 +132,9 @@ class EmbeddingFactory:
             ) from e
         except Exception as e:
             raise RuntimeError(
-                f"创建 {method} embedding 实例失败: {e}\n" f"方法: {method}\n" f"参数: {kwargs}"
+                f"创建 {method} embedding 实例失败: {e}\n"
+                f"方法: {method}\n"
+                f"参数: {kwargs}"
             ) from e
 
     @staticmethod

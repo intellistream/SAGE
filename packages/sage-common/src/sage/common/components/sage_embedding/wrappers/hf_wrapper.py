@@ -99,7 +99,9 @@ class HFEmbedding(BaseEmbedding):
         try:
             return hf_embed_sync(text, self.tokenizer, self.embed_model)
         except Exception as e:
-            raise RuntimeError(f"HuggingFace embedding 失败: {e}\n" f"文本: {text[:100]}...") from e
+            raise RuntimeError(
+                f"HuggingFace embedding 失败: {e}\n" f"文本: {text[:100]}..."
+            ) from e
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
