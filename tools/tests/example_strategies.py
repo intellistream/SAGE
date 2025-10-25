@@ -347,55 +347,50 @@ class ExampleTestFilters:
     """示例测试过滤器"""
 
     @staticmethod
-    def should_skip_file(file_path: Path, category: str) -> tuple[bool, str]:
-        """判断是否应该跳过某个文件"""
-        skip_patterns = ExampleTestStrategies.get_category_skip_patterns()
+    def should_skip_file(
+        file_path: Path, category: str, example_info=None
+    ) -> tuple[bool, str]:
+        """判断是否应该跳过某个文件的测试
 
-        if category in skip_patterns:
-            for pattern in skip_patterns[category]:
-                if file_path.match(pattern):
-                    return True, f"Matches skip pattern: {pattern}"
+        Args:
+            file_path: 文件路径
+            category: 文件类别
+            example_info: 示例信息对象（包含test_tags）
 
-        # 检查通用跳过条件
-        if file_path.name.startswith("_"):
-            return True, "Private module"
+        Returns:
+            (should_skip, reason): 是否跳过和跳过原因
+        """
+        import os
+        
+        # 检查文件内的测试标记
+        if example_info and hasattr(example_info, "test_tags"):
+            # 检查跳过标记
+            if "skip" in example_info.test_tags:
+                return True, "文件包含 @test:skip 标记"
 
-        if "benchmark" in file_path.name.lower():
-            return True, "Benchmark file"
+            # 检查 CI 环境下的跳过标记
+            is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
+            if is_ci:
+                # 检查 skip_ci 标记（支持 skip_ci 或 skip_ci=true）
+                for tag in example_info.test_tags:
+                    if tag == "skip_ci" or tag.startswith("skip_ci="):
+                        return True, "文件包含 @test_skip_ci 标记，在 CI 环境中跳过"
 
-        if "performance" in file_path.name.lower():
-            return True, "Performance test"
+            # 检查需要API密钥的标记
+            if "require-api" in example_info.test_tags:
+                return True, "需要API密钥，在测试环境中跳过"
 
-        # 检查文件内容中的跳过标记
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+            # 检查需要用户交互的标记
+            if "interactive" in example_info.test_tags:
+                return True, "需要用户交互，自动测试中跳过"
 
-            if "# SKIP_TEST" in content:
-                return True, "Contains SKIP_TEST marker"
+            # 检查不稳定测试标记
+            if "unstable" in example_info.test_tags:
+                return True, "标记为不稳定测试，跳过"
 
-            # 检查文件是否在测试模式下有特殊处理
-            has_test_mode_check = any(
-                pattern in content
-                for pattern in [
-                    'os.getenv("SAGE_TEST_MODE")',
-                    'os.getenv("SAGE_EXAMPLES_MODE")',
-                    "SAGE_TEST_MODE",
-                    "SAGE_EXAMPLES_MODE",
-                ]
-            )
-
-            if "input(" in content and not has_test_mode_check:
-                return True, "Requires user input without test mode handling"
-
-            if any(
-                keyword in content
-                for keyword in ["tkinter", "matplotlib.pyplot.show", "cv2.imshow"]
-            ):
-                return True, "Requires GUI"
-
-        except Exception:
-            return True, "Cannot read file"
+            # 检查需要GPU的标记
+            if "gpu" in example_info.test_tags:
+                return True, "需要GPU支持，在测试环境中跳过"
 
         return False, ""
 
