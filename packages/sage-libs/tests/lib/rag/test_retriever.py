@@ -256,16 +256,6 @@ def milvus_dense_config():
     }
 
 
-@pytest.fixture
-def sample_documents():
-    """测试文档"""
-    return [
-        {"content": "机器学习是人工智能的一个分支。", "score": 0.9, "id": "doc_1"},
-        {"content": "深度学习使用神经网络。", "score": 0.8, "id": "doc_2"},
-        {"content": "自然语言处理处理文本数据。", "score": 0.7, "id": "doc_3"},
-    ]
-
-
 @pytest.mark.unit
 class TestMilvusDenseRetriever:
     """测试MilvusDenseRetriever类"""
@@ -733,16 +723,6 @@ def milvus_sparse_config():
             "index_type": "SPARSE_INVERTED_INDEX",
         },
     }
-
-
-@pytest.fixture
-def sample_documents():
-    """测试文档"""
-    return [
-        {"content": "机器学习是人工智能的一个分支。", "score": 0.9, "id": "doc_1"},
-        {"content": "深度学习使用神经网络。", "score": 0.8, "id": "doc_2"},
-        {"content": "自然语言处理处理文本数据。", "score": 0.7, "id": "doc_3"},
-    ]
 
 
 @pytest.fixture

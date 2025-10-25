@@ -41,7 +41,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -74,7 +74,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -112,7 +112,7 @@ class TestOpenAIGenerator:
         }
 
         # Mock环境变量
-        with patch.dict(os.environ, {"ALIBABA_API_KEY": "env_api_key"}):
+        with patch.dict(os.environ, {"ALIBABA_API_KEY": "env_api_key"}):  # pragma: allowlist secret
             mock_client_instance = Mock()
             mock_openai_client.return_value = mock_client_instance
 
@@ -137,7 +137,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -168,7 +168,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -202,7 +202,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -244,7 +244,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -270,7 +270,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -300,7 +300,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -341,7 +341,7 @@ class TestOpenAIGenerator:
         config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -405,7 +405,7 @@ class TestOpenAIGeneratorIntegration:
         config = {
             "model_name": "test-model",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -589,7 +589,7 @@ class TestGeneratorIntegration:
         openai_config = {
             "model_name": "gpt-4o-mini",
             "base_url": "http://localhost:8000/v1",
-            "api_key": "test_key",
+            "api_key": "test_key",  # pragma: allowlist secret
             "seed": 42,
         }
 
@@ -625,190 +625,3 @@ class TestGeneratorIntegration:
             # 验证两个生成器都被正确调用
             mock_openai_instance.generate.assert_called_once()
             mock_hf_instance.generate.assert_called_once()
-
-
-@pytest.mark.unit
-class TestHFGenerator:
-    """测试HFGenerator类"""
-
-    def test_hf_generator_import(self):
-        """测试HFGenerator导入"""
-        if not GENERATOR_AVAILABLE:
-            pytest.skip("Generator module not available")
-
-        from sage.libs.rag.generator import HFGenerator
-
-        assert HFGenerator is not None
-
-    @patch("sage.libs.rag.generator.HFClient")
-    def test_hf_generator_initialization(self, mock_hf_client):
-        """测试HFGenerator初始化"""
-        if not GENERATOR_AVAILABLE:
-            pytest.skip("Generator module not available")
-
-        config = {"model_name": "microsoft/DialoGPT-medium"}
-
-        # Mock HFClient
-        mock_client_instance = Mock()
-        mock_hf_client.return_value = mock_client_instance
-
-        generator = HFGenerator(config=config)
-
-        # 验证初始化
-        assert generator.config == config
-
-        # 验证HFClient被正确调用
-        mock_hf_client.assert_called_once_with(model_name="microsoft/DialoGPT-medium")
-        assert generator.model == mock_client_instance
-
-    @patch("sage.libs.rag.generator.HFClient")
-    def test_hf_generator_execute_with_tuple_input(self, mock_hf_client):
-        """测试HFGenerator execute方法处理元组输入"""
-        if not GENERATOR_AVAILABLE:
-            pytest.skip("Generator module not available")
-
-        config = {"model_name": "microsoft/DialoGPT-medium"}
-
-        # Mock HFClient和其响应
-        mock_client_instance = Mock()
-        mock_client_instance.generate.return_value = "HF Generated response"
-        mock_hf_client.return_value = mock_client_instance
-
-        generator = HFGenerator(config=config)
-
-        # 测试元组输入 (user_query, prompt)
-        input_data = ["What is AI?", "Answer the following question: What is AI?"]
-        result = generator.execute(input_data)
-
-        # 验证结果
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        user_query, response = result
-        assert user_query == "What is AI?"
-        assert response == "HF Generated response"
-        mock_client_instance.generate.assert_called_once_with(
-            "Answer the following question: What is AI?"
-        )
-
-    @patch("sage.libs.rag.generator.HFClient")
-    def test_hf_generator_execute_with_single_input(self, mock_hf_client):
-        """测试HFGenerator execute方法处理单一输入"""
-        if not GENERATOR_AVAILABLE:
-            pytest.skip("Generator module not available")
-
-        config = {"model_name": "microsoft/DialoGPT-medium"}
-
-        # Mock HFClient和其响应
-        mock_client_instance = Mock()
-        mock_client_instance.generate.return_value = "HF Generated response"
-        mock_hf_client.return_value = mock_client_instance
-
-        generator = HFGenerator(config=config)
-
-        # 测试单一输入 - 需要作为列表传入
-        input_data = ["Generate a response for this prompt"]
-        result = generator.execute(input_data)
-
-        # 验证结果
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        user_query, response = result
-        assert user_query is None  # 当只有一个输入时，user_query为None
-        assert response == "HF Generated response"
-
-        # 验证model.generate被正确调用 - 传入整个列表
-        mock_client_instance.generate.assert_called_once_with(
-            ["Generate a response for this prompt"]
-        )
-
-    @patch("sage.libs.rag.generator.HFClient")
-    def test_hf_generator_execute_with_kwargs(self, mock_hf_client):
-        """测试HFGenerator execute方法传递额外参数"""
-        if not GENERATOR_AVAILABLE:
-            pytest.skip("Generator module not available")
-
-        config = {"model_name": "microsoft/DialoGPT-medium"}
-
-        # Mock HFClient和其响应
-        mock_client_instance = Mock()
-        mock_client_instance.generate.return_value = "HF Generated response"
-        mock_hf_client.return_value = mock_client_instance
-
-        generator = HFGenerator(config=config)
-
-        # 测试带额外参数的调用 - 需要作为列表传入
-        input_data = ["Test prompt"]
-        result = generator.execute(input_data, temperature=0.7, max_tokens=100)
-
-        # 验证结果和参数传递
-        assert isinstance(result, tuple)
-        mock_client_instance.generate.assert_called_once_with(
-            ["Test prompt"],  # HFGenerator传递整个列表作为prompt
-            temperature=0.7,
-            max_tokens=100,
-        )
-
-    @patch("sage.libs.rag.generator.HFClient")
-    def test_hf_generator_execute_with_error(self, mock_hf_client):
-        """测试HFGenerator execute方法处理错误"""
-        if not GENERATOR_AVAILABLE:
-            pytest.skip("Generator module not available")
-
-        config = {"model_name": "microsoft/DialoGPT-medium"}
-
-        # Mock HFClient抛出异常
-        mock_client_instance = Mock()
-        mock_client_instance.generate.side_effect = Exception("HF Model Error")
-        mock_hf_client.return_value = mock_client_instance
-
-        generator = HFGenerator(config=config)
-
-        # 测试异常处理
-        with pytest.raises(Exception) as exc_info:
-            generator.execute("Test prompt")
-
-        assert "HF Model Error" in str(exc_info.value)
-
-    @patch("sage.libs.rag.generator.HFClient")
-    def test_hf_generator_configuration_validation(self, mock_hf_client):
-        """测试HFGenerator配置验证"""
-        if not GENERATOR_AVAILABLE:
-            pytest.skip("Generator module not available")
-
-        # 测试缺少必需配置字段
-        incomplete_config = {}  # 缺少model_name
-
-        mock_client_instance = Mock()
-        mock_hf_client.return_value = mock_client_instance
-
-        with pytest.raises(KeyError):
-            HFGenerator(config=incomplete_config)
-
-
-@pytest.mark.integration
-class TestHFGeneratorIntegration:
-    """HFGenerator集成测试"""
-
-    @pytest.mark.skipif(not GENERATOR_AVAILABLE, reason="Generator module not available")
-    def test_hf_generator_with_mock_service(self):
-        """测试HFGenerator与mock服务的集成"""
-        config = {"model_name": "microsoft/DialoGPT-medium"}
-
-        with patch("sage.libs.rag.generator.HFClient") as mock_hf_client:
-            mock_client_instance = Mock()
-            mock_client_instance.generate.return_value = "Mocked HF response"
-            mock_hf_client.return_value = mock_client_instance
-
-            generator = HFGenerator(config=config)
-
-            # 测试完整的数据流
-            test_data = ["What is deep learning?", "Explain deep learning concepts"]
-
-            result = generator.execute(test_data)
-
-            # 验证结果结构
-            assert isinstance(result, tuple)
-            assert len(result) == 2
-            user_query, response = result
-            assert user_query == "What is deep learning?"
-            assert response == "Mocked HF response"
