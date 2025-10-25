@@ -23,7 +23,7 @@ class OpenAIGenerator(MapOperator):
           "method":     "openai",
           "model_name": "gpt-4o-mini",
           "base_url":   "http://localhost:8000/v1",
-          "api_key":    "xxx",
+          "api_key":    "xxx",  # pragma: allowlist secret
           "seed":       42
         }
     """

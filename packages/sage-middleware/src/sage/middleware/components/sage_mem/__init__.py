@@ -6,10 +6,10 @@ wrapping the neuromem sub-project.
 """
 
 from .neuromem.memory_collection import (
-                                         BaseMemoryCollection,
-                                         GraphMemoryCollection,
-                                         KVMemoryCollection,
-                                         VDBMemoryCollection,
+    BaseMemoryCollection,
+    GraphMemoryCollection,
+    KVMemoryCollection,
+    VDBMemoryCollection,
 )
 
 # Export core components from neuromem sub-project

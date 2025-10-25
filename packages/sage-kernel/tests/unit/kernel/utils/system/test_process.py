@@ -866,7 +866,7 @@ class TestSudoManager:
     def test_execute_with_sudo_failure(self):
         """Test failed sudo command execution"""
         manager = SudoManager()
-        manager._cached_password = "password"
+        manager._cached_password = "password"  # pragma: allowlist secret
         manager._password_verified = True
 
         with patch("subprocess.run") as mock_run:
@@ -882,7 +882,7 @@ class TestSudoManager:
     def test_execute_with_sudo_timeout(self):
         """Test sudo command timeout"""
         manager = SudoManager()
-        manager._cached_password = "password"
+        manager._cached_password = "password"  # pragma: allowlist secret
         manager._password_verified = True
 
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(["sudo"], 30)):

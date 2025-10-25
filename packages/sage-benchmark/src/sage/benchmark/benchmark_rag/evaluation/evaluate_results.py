@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
-
 from sage.common.config.output_paths import get_output_file
 
 # ============================================================================

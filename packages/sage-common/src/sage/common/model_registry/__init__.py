@@ -11,13 +11,13 @@ Architecture:
 """
 
 from .vllm_registry import (
-                            ModelInfo,
-                            delete_model,
-                            download_model,
-                            ensure_model_available,
-                            get_model_path,
-                            list_models,
-                            touch_model,
+    ModelInfo,
+    delete_model,
+    download_model,
+    ensure_model_available,
+    get_model_path,
+    list_models,
+    touch_model,
 )
 
 __all__ = [

@@ -11,40 +11,40 @@ Common Core Module - 共享类型、异常、常量和函数接口
 """
 
 from sage.common.core.data_types import (
-                                         BaseDocument,
-                                         BaseQueryResult,
-                                         ExtendedQueryResult,
-                                         QueryResultInput,
-                                         QueryResultOutput,
-                                         create_query_result,
-                                         ensure_query_result,
-                                         extract_query,
-                                         extract_results,
+    BaseDocument,
+    BaseQueryResult,
+    ExtendedQueryResult,
+    QueryResultInput,
+    QueryResultOutput,
+    create_query_result,
+    ensure_query_result,
+    extract_query,
+    extract_results,
 )
 from sage.common.core.exceptions import (
-                                         FaultToleranceError,
-                                         KernelError,
-                                         RecoveryError,
-                                         ResourceAllocationError,
-                                         SchedulingError,
+    FaultToleranceError,
+    KernelError,
+    RecoveryError,
+    ResourceAllocationError,
+    SchedulingError,
 )
 
 # Import function interfaces
 from sage.common.core.functions import (
-                                         BaseCoMapFunction,
-                                         BaseFunction,
-                                         BaseJoinFunction,
-                                         BatchFunction,
-                                         Collector,
-                                         FilterFunction,
-                                         FlatMapFunction,
-                                         FutureFunction,
-                                         KeyByFunction,
-                                         LambdaMapFunction,
-                                         MapFunction,
-                                         SinkFunction,
-                                         SourceFunction,
-                                         wrap_lambda,
+    BaseCoMapFunction,
+    BaseFunction,
+    BaseJoinFunction,
+    BatchFunction,
+    Collector,
+    FilterFunction,
+    FlatMapFunction,
+    FutureFunction,
+    KeyByFunction,
+    LambdaMapFunction,
+    MapFunction,
+    SinkFunction,
+    SourceFunction,
+    wrap_lambda,
 )
 from sage.common.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
 

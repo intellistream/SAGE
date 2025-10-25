@@ -1,10 +1,9 @@
 import json
 import os
 
+from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import LocomoDataLoader
 from sage.common.core.functions.batch_function import BatchFunction
 from sage.common.core.functions.sink_function import SinkFunction
-
-from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import LocomoDataLoader
 
 
 class LocomoSource(BatchFunction):

@@ -218,7 +218,7 @@ class EmbeddingFactory:
             ),
             ModelStatus.NEEDS_API_KEY: (
                 "⚠️ 需要 API Key",
-                f"设置环境变量: export {method.upper()}_API_KEY='your-key'",
+                f"设置环境变量: export {method.upper()}_API_KEY='your-key'",  # pragma: allowlist secret
             ),
             ModelStatus.NEEDS_DOWNLOAD: (
                 "⚠️ 需要下载模型",

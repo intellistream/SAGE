@@ -11,11 +11,11 @@ import warnings
 
 # 兼容性导入 - 从 sage-common 重新导出
 from sage.common.core.exceptions import (
-                                         FaultToleranceError,
-                                         KernelError,
-                                         RecoveryError,
-                                         ResourceAllocationError,
-                                         SchedulingError,
+    FaultToleranceError,
+    KernelError,
+    RecoveryError,
+    ResourceAllocationError,
+    SchedulingError,
 )
 from sage.common.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
 

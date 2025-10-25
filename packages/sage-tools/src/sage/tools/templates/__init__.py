@@ -2,12 +2,12 @@
 
 from . import pipeline_blueprints
 from .catalog import (
-                      ApplicationTemplate,
-                      TemplateMatch,
-                      get_template,
-                      list_template_ids,
-                      list_templates,
-                      match_templates,
+    ApplicationTemplate,
+    TemplateMatch,
+    get_template,
+    list_template_ids,
+    list_templates,
+    match_templates,
 )
 
 __all__ = [
