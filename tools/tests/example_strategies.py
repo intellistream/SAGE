@@ -7,7 +7,7 @@ SAGE Examples 专用测试配置和策略
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 # 导入项目根目录查找函数
 from test_examples import find_project_root
@@ -76,7 +76,7 @@ class ExampleTestStrategies:
                     "Index not found",
                 ],
                 environment_vars={
-                    "OPENAI_API_KEY": "test-key-placeholder",
+                    "OPENAI_API_KEY": "test-key-placeholder",  # pragma: allowlist secret
                     "SAGE_RAG_MODE": "test",
                     "SAGE_LOG_LEVEL": "ERROR",
                     "SAGE_EXAMPLES_MODE": "test",
@@ -125,7 +125,7 @@ class ExampleTestStrategies:
                     "SAGE_AGENT_MODE": "test",
                     "SAGE_LOG_LEVEL": "ERROR",
                     "SAGE_EXAMPLES_MODE": "test",
-                    "OPENAI_API_KEY": "test-key-placeholder",
+                    "OPENAI_API_KEY": "test-key-placeholder",  # pragma: allowlist secret
                 },
             ),
             "service": TestStrategy(
@@ -309,7 +309,7 @@ class ExampleTestStrategies:
         }
 
     @staticmethod
-    def _generate_rag_mock_data() -> Dict[str, str]:
+    def _generate_rag_mock_data() -> Dict[str, Any]:
         """生成RAG测试的模拟数据"""
         return {
             "documents": """
@@ -325,7 +325,7 @@ class ExampleTestStrategies:
         }
 
     @staticmethod
-    def _generate_memory_mock_data() -> Dict[str, str]:
+    def _generate_memory_mock_data() -> Dict[str, Any]:
         """生成内存测试的模拟数据"""
         return {
             "test_data": "This is test data for memory storage",
@@ -347,9 +347,7 @@ class ExampleTestFilters:
     """示例测试过滤器"""
 
     @staticmethod
-    def should_skip_file(
-        file_path: Path, category: str, example_info=None
-    ) -> tuple[bool, str]:
+    def should_skip_file(file_path: Path, category: str, example_info=None) -> tuple[bool, str]:
         """判断是否应该跳过某个文件的测试
 
         Args:
@@ -361,7 +359,7 @@ class ExampleTestFilters:
             (should_skip, reason): 是否跳过和跳过原因
         """
         import os
-        
+
         # 检查文件内的测试标记
         if example_info and hasattr(example_info, "test_tags"):
             # 检查跳过标记
@@ -480,7 +478,7 @@ class ExampleEnvironmentManager:
                     "llm": {
                         "provider": "mock",
                         "model": "test-model",
-                        "api_key": "test-key",
+                        "api_key": "test-key",  # pragma: allowlist secret
                     },
                     "embedding": {"provider": "mock", "model": "test-embedding"},
                     "retriever": {"type": "mock", "top_k": 3},
@@ -539,136 +537,3 @@ class ExampleEnvironmentManager:
 
         self.temp_files.clear()
         self.temp_dirs.clear()
-
-
-class ExampleTestFilters:
-    """示例测试过滤器"""
-
-    @staticmethod
-    def should_skip_file(file_path: Path, category: str, example_info=None) -> tuple[bool, str]:
-        """判断是否应该跳过某个文件的测试
-
-        Args:
-            file_path: 文件路径
-            category: 文件类别
-            example_info: 示例信息对象（包含test_tags）
-
-        Returns:
-            (should_skip, reason): 是否跳过和跳过原因
-        """
-        import os
-
-        # 检查文件内的测试标记
-        if example_info and hasattr(example_info, "test_tags"):
-            # 检查跳过标记
-            if "skip" in example_info.test_tags:
-                return True, "文件包含 @test:skip 标记"
-
-            # 检查 CI 环境下的跳过标记
-            is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
-            if is_ci:
-                # 检查 skip_ci 标记（支持 skip_ci 或 skip_ci=true）
-                for tag in example_info.test_tags:
-                    if tag == "skip_ci" or tag.startswith("skip_ci="):
-                        return True, "文件包含 @test_skip_ci 标记，在 CI 环境中跳过"
-
-            # 检查需要API密钥的标记
-            if "require-api" in example_info.test_tags:
-                return True, "需要API密钥，在测试环境中跳过"
-
-            # 检查需要用户交互的标记
-            if "interactive" in example_info.test_tags:
-                return True, "需要用户交互，自动测试中跳过"
-
-            # 检查不稳定测试标记
-            if "unstable" in example_info.test_tags:
-                return True, "标记为不稳定测试，跳过"
-
-            # 检查需要GPU的标记
-            if "gpu" in example_info.test_tags:
-                return True, "需要GPU支持，在测试环境中跳过"
-
-        # 基于文件名的传统过滤逻辑（配合白名单与标签放行）
-        filename = file_path.name.lower()
-
-        # 跳过明显的交互式或长时间运行的文件
-        skip_patterns = [
-            "interactive",
-            "demo",
-            "gui",
-            "benchmark",
-            "stress_test",
-        ]
-        # 白名单：某些 demo 实例是安全且快速的，允许在测试中运行
-        whitelist = {
-            "hello_sage_flow_service.py",
-        }
-
-        # 解析文件内容（用于进一步判断是否重型/交互式，以及读取内嵌标签）
-        content = None
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
-        except Exception:
-            # 读不到内容时，维持原有保守策略
-            content = None
-
-        def has_heavy_indicators(text: str) -> bool:
-            if not text:
-                return False
-            heavy_keywords = [
-                "uvicorn",
-                "fastapi",
-                "flask",
-                "gradio",
-                "streamlit",
-                "ray.init",
-                "while True",
-                "run_forever",
-                "serve(",
-                "multiprocessing",
-                "spark",
-                "mlflow",
-            ]
-            return any(k in text for k in heavy_keywords)
-
-        def has_allow_demo_tag() -> bool:
-            # 优先从 example_info 中读取测试标签
-            if example_info and getattr(example_info, "test_tags", None):
-                tags = {t.lower() for t in example_info.test_tags}
-                return ("allow-demo" in tags) or ("allow_demo" in tags)
-            # 次选：直接在文件内容中扫描 @test:allow-demo
-            if content and "@test:allow-demo" in content:
-                return True
-            if content and "@test:allow_demo" in content:
-                return True
-            return False
-
-        # 检查是否有允许 demo 的标签
-        allow_demo = has_allow_demo_tag()
-
-        # 对包含 demo 的文件采用更精细的判断：
-        if "demo" in filename and filename not in whitelist:
-            # 允许的安全类别（通常是 Mock/教学型示例）
-            safe_categories = {"tutorials", "memory", "agents", "sage_db"}
-            if allow_demo:
-                pass  # 显式放行
-            elif category in safe_categories and not has_heavy_indicators(content):
-                # 安全类别且未检测到重型运行特征 -> 放行
-                pass
-            else:
-                return True, "文件名包含 'demo'，且未通过安全检查或标签放行"
-
-        # 如果有 allow-demo 标签，跳过后续的 demo 检查
-        if filename not in whitelist and not allow_demo:
-            for pattern in skip_patterns:
-                if pattern in filename:
-                    return True, f"文件名包含 '{pattern}'，通常需要交互或长时间运行"
-
-        # 类别特定的过滤规则
-        if category == "service":
-            # 服务类例子通常需要长时间运行
-            if filename not in whitelist and ("service" in filename or "server" in filename):
-                return True, "服务类示例通常需要长时间运行"
-
-        return False, ""
