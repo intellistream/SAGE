@@ -49,7 +49,7 @@ class TestAgentWorkflowIntegration:
             },
             "generator": {
                 "remote": {
-                    "api_key": "test-key",
+                    "api_key": "test-key",  # pragma: allowlist secret
                     "method": "openai",
                     "model_name": "gpt-3.5-turbo",
                     "base_url": "https://api.openai.com/v1",

@@ -60,7 +60,7 @@ class TestOpenAIGenerator:
         mock_openai_client.assert_called_once_with(
             model_name="gpt-4o-mini",
             base_url="http://localhost:8000/v1",
-            api_key="test_key",
+            api_key="test_key",  # pragma: allowlist secret
             seed=42,
         )
         assert generator.model == mock_client_instance

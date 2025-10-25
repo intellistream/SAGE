@@ -109,8 +109,8 @@ class CohereEmbedding(BaseEmbedding):
             raise RuntimeError(
                 "Cohere embedding 需要 API Key。\n"
                 "解决方案:\n"
-                "  1. 设置环境变量: export COHERE_API_KEY='your-key'\n"
-                "  2. 传递参数: CohereEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export COHERE_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: CohereEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
                 "获取 API Key: https://dashboard.cohere.com/api-keys"
             )

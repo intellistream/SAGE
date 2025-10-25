@@ -103,8 +103,8 @@ class SiliconCloudEmbedding(BaseEmbedding):
             raise RuntimeError(
                 "SiliconCloud embedding 需要 API Key。\n"
                 "解决方案:\n"
-                "  1. 设置环境变量: export SILICONCLOUD_API_KEY='your-key'\n"
-                "  2. 传递参数: SiliconCloudEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export SILICONCLOUD_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: SiliconCloudEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
                 "获取 API Key: https://siliconflow.cn/"
             )
@@ -131,12 +131,12 @@ class SiliconCloudEmbedding(BaseEmbedding):
             import requests
 
             # 准备 API Key（添加 Bearer 前缀）
-            api_key = self._api_key
+            api_key = self._api_key  # pragma: allowlist secret
             if api_key and not api_key.startswith("Bearer "):
-                api_key = "Bearer " + api_key
+                api_key = "Bearer " + api_key  # pragma: allowlist secret
 
             headers = {
-                "Authorization": api_key,
+                "Authorization": api_key,  # pragma: allowlist secret
                 "Content-Type": "application/json",
             }
 

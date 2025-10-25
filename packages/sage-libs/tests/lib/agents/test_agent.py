@@ -80,7 +80,7 @@ class TestBochaSearch:
         if not AGENT_AVAILABLE:
             pytest.skip("Agent module not available")
 
-        api_key = "test_api_key"
+        api_key = "test_api_key"  # pragma: allowlist secret
         search = BochaSearch(api_key)
 
         assert search.api_key == api_key

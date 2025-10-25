@@ -111,8 +111,8 @@ class EmbeddingFactory:
             raise RuntimeError(
                 f"{method} 方法需要 API Key。\n"
                 f"解决方案:\n"
-                f"  1. 设置环境变量: export {method.upper()}_API_KEY='your-key'\n"
-                f"  2. 传递参数: EmbeddingFactory.create('{method}', api_key='your-key', ...)"
+                f"  1. 设置环境变量: export {method.upper()}_API_KEY='your-key'\n"  # pragma: allowlist secret
+                f"  2. 传递参数: EmbeddingFactory.create('{method}', api_key='your-key', ...)"  # pragma: allowlist secret
             )
 
         if status == ModelStatus.UNAVAILABLE:
@@ -206,7 +206,7 @@ class EmbeddingFactory:
             >>> print(status['status'])
             needs_api_key
             >>> print(status['action'])
-            设置环境变量: export OPENAI_API_KEY='your-key'
+            设置环境变量: export OPENAI_API_KEY='your-key'  # pragma: allowlist secret
         """
         status = EmbeddingRegistry.check_status(method, **kwargs)
 

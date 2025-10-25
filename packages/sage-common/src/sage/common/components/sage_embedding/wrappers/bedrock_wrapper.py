@@ -45,8 +45,8 @@ class BedrockEmbedding(BaseEmbedding):
         >>> # 显式传递凭证
         >>> emb = BedrockEmbedding(
         ...     model="amazon.titan-embed-text-v2:0",
-        ...     aws_access_key_id="your-key-id",
-        ...     aws_secret_access_key="your-secret-key"
+        ...     aws_access_key_id="your-key-id",  # pragma: allowlist secret
+        ...     aws_secret_access_key="your-secret-key"  # pragma: allowlist secret
         ... )
         >>> vec = emb.embed("hello world")
         >>>
@@ -110,12 +110,12 @@ class BedrockEmbedding(BaseEmbedding):
                 "Bedrock embedding 需要 AWS 凭证。\n"
                 "解决方案:\n"
                 "  1. 设置环境变量:\n"
-                "     export AWS_ACCESS_KEY_ID='your-key-id'\n"
-                "     export AWS_SECRET_ACCESS_KEY='your-secret-key'\n"
+                "     export AWS_ACCESS_KEY_ID='your-key-id'\n"  # pragma: allowlist secret
+                "     export AWS_SECRET_ACCESS_KEY='your-secret-key'\n"  # pragma: allowlist secret
                 "  2. 传递参数:\n"
                 "     BedrockEmbedding(\n"
-                "         aws_access_key_id='...',\n"
-                "         aws_secret_access_key='...'\n"
+                "         aws_access_key_id='...',\n"  # pragma: allowlist secret
+                "         aws_secret_access_key='...'\n"  # pragma: allowlist secret
                 "     )\n"
                 "  3. 配置 AWS CLI: aws configure\n"
                 "\n"

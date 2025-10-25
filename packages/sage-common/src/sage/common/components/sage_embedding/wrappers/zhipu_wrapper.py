@@ -32,12 +32,12 @@ class ZhipuEmbedding(BaseEmbedding):
         >>> import os
         >>> emb = ZhipuEmbedding(
         ...     model="embedding-3",
-        ...     api_key=os.getenv("ZHIPU_API_KEY")
+        ...     api_key=os.getenv("ZHIPU_API_KEY")  # pragma: allowlist secret
         ... )
         >>> vec = emb.embed("你好世界")
         >>>
         >>> # 使用环境变量
-        >>> # export ZHIPU_API_KEY='your-key'
+        >>> # export ZHIPU_API_KEY='your-key'  # pragma: allowlist secret
         >>> emb = ZhipuEmbedding()
         >>> vec = emb.embed("智谱清言是一个强大的中文模型")
     """
@@ -79,8 +79,8 @@ class ZhipuEmbedding(BaseEmbedding):
             raise RuntimeError(
                 "Zhipu embedding 需要 API Key。\n"
                 "解决方案:\n"
-                "  1. 设置环境变量: export ZHIPU_API_KEY='your-key'\n"
-                "  2. 传递参数: ZhipuEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export ZHIPU_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: ZhipuEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
                 "获取 API Key: https://open.bigmodel.cn/"
             )

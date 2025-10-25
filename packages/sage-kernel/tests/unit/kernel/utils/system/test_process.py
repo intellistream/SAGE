@@ -752,11 +752,13 @@ class TestSudoManager:
                 return_value=True,
             ):
                 with patch("builtins.print"):
-                    password = manager.get_sudo_password()
+                    password = manager.get_sudo_password()  # pragma: allowlist secret
 
-                    assert password == "test_password"
+                    assert password == "test_password"  # pragma: allowlist secret
                     assert manager.has_sudo_access()
-                    assert manager.get_cached_password() == "test_password"
+                    assert (
+                        manager.get_cached_password() == "test_password"
+                    )  # pragma: allowlist secret
 
     @pytest.mark.unit
     def test_get_sudo_password_invalid(self):
@@ -790,12 +792,12 @@ class TestSudoManager:
     def test_cached_password_reuse(self):
         """Test reusing cached password"""
         manager = SudoManager()
-        manager._cached_password = "cached_password"
+        manager._cached_password = "cached_password"  # pragma: allowlist secret
         manager._password_verified = True
 
-        password = manager.get_sudo_password()
+        password = manager.get_sudo_password()  # pragma: allowlist secret
 
-        assert password == "cached_password"
+        assert password == "cached_password"  # pragma: allowlist secret
 
     @pytest.mark.unit
     def test_ensure_sudo_access(self):
@@ -819,7 +821,7 @@ class TestSudoManager:
     def test_clear_cache(self):
         """Test clearing password cache"""
         manager = SudoManager()
-        manager._cached_password = "password"
+        manager._cached_password = "password"  # pragma: allowlist secret
         manager._password_verified = True
 
         manager.clear_cache()
@@ -832,7 +834,7 @@ class TestSudoManager:
     def test_execute_with_sudo_success(self):
         """Test successful sudo command execution"""
         manager = SudoManager()
-        manager._cached_password = "password"
+        manager._cached_password = "password"  # pragma: allowlist secret
         manager._password_verified = True
 
         with patch("subprocess.run") as mock_run:

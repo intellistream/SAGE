@@ -46,7 +46,7 @@ class OllamaEmbedding(BaseEmbedding):
         >>> emb = OllamaEmbedding(
         ...     model="nomic-embed-text",
         ...     base_url="https://ollama.example.com",
-        ...     api_key="your-key"
+        ...     api_key="your-key"  # pragma: allowlist secret
         ... )
     """
 
