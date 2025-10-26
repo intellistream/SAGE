@@ -1124,7 +1124,7 @@ def _generate_status_markdown_output(status_data):
                                     markdown_lines.append(f"- 总计: {summary.get('total', 0)}")
 
                                 packages = data.get("packages", [])
-                                if packages and isinstance(packages, (list, dict)):
+                                if packages and isinstance(packages, list | dict):
                                     markdown_lines.append("")
                                     markdown_lines.append("**已安装的包**:")
                                     if isinstance(packages, list):
@@ -1272,7 +1272,7 @@ def _generate_markdown_output(result, analysis_type):
             markdown_lines.append(f"- **等级**: {grade}")
 
             # 添加评分说明
-            if isinstance(health_score, (int, float)):
+            if isinstance(health_score, int | float):
                 if health_score >= 90:
                     status = "🟢 优秀"
                 elif health_score >= 70:
@@ -1343,7 +1343,7 @@ def _generate_markdown_output(result, analysis_type):
             ]:
                 markdown_lines.append(f"## {key.replace('_', ' ').title()}")
                 markdown_lines.append("")
-                if isinstance(value, (list, dict)):
+                if isinstance(value, list | dict):
                     markdown_lines.append("```json")
                     import json
 
