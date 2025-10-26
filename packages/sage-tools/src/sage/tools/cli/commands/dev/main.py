@@ -69,6 +69,7 @@ def quality(
         True, "--sort-imports/--no-sort-imports", help="运行导入排序(isort)"
     ),
     lint_code: bool = typer.Option(True, "--lint/--no-lint", help="运行代码检查(flake8)"),
+    type_check: bool = typer.Option(True, "--type-check/--no-type-check", help="运行类型检查(mypy)"),
     warn_only: bool = typer.Option(False, "--warn-only", help="只给警告，不中断运行"),
     project_root: str = typer.Option(".", help="项目根目录"),
 ):
@@ -253,6 +254,79 @@ def quality(
             console.print("[yellow]💡 建议安装: pip install flake8[/yellow]")
         except Exception as e:
             console.print(f"[yellow]⚠️ flake8 检查失败: {e}[/yellow]")
+
+    # 类型检查 (mypy)
+    if type_check:
+        console.print("\n🔎 运行类型检查 (mypy)...")
+
+        try:
+            # 使用 mypy-wrapper.sh 确保总是成功，只显示警告
+            mypy_wrapper = project_dir / "tools" / "mypy-wrapper.sh"
+            
+            # mypy 排除规则 - 与 pre-commit 配置保持一致
+            mypy_exclude_patterns = [
+                "docs/", "docs-public/", "examples/", "tests/", 
+                "setup.py", "sageLLM/", "sageDB/", "sageFlow/", 
+                "neuromem/", "sageTSDB/", "vendors/"
+            ]
+            
+            # 构建 mypy 命令
+            mypy_args = [
+                "--ignore-missing-imports",
+                "--show-error-codes",
+                "--explicit-package-bases",
+                "--warn-unused-ignores",
+                "--namespace-packages",
+            ]
+            
+            if mypy_wrapper.exists():
+                # 使用 wrapper 脚本（总是返回 0）
+                cmd = [str(mypy_wrapper)] + mypy_args + target_paths
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+                
+                # wrapper 总是返回 0，但我们检查输出中是否有错误
+                has_errors = "error:" in result.stdout.lower() or "error:" in result.stderr.lower()
+                
+                if has_errors:
+                    console.print("[yellow]⚠️ 发现类型检查问题（仅警告，不阻塞）[/yellow]")
+                    # 只显示前100行，避免输出过多
+                    lines = result.stdout.split('\n')
+                    if len(lines) > 100:
+                        console.print('\n'.join(lines[:100]))
+                        console.print(f"\n[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]")
+                    else:
+                        console.print(result.stdout)
+                    # 保存完整日志
+                    _save_quality_error_log(logs_base_dir, "mypy", result.stderr + result.stdout)
+                    # mypy 错误仅作为警告，不设置 quality_issues = True
+                else:
+                    console.print("[green]✅ 类型检查通过[/green]")
+            else:
+                # 没有 wrapper，直接运行 mypy
+                console.print("[yellow]⚠️ 未找到 mypy-wrapper.sh，使用标准 mypy[/yellow]")
+                cmd = ["mypy"] + mypy_args + target_paths
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+                
+                if result.returncode != 0:
+                    console.print("[yellow]⚠️ 发现类型检查问题（仅警告，不阻塞）[/yellow]")
+                    # 只显示前100行
+                    lines = result.stdout.split('\n')
+                    if len(lines) > 100:
+                        console.print('\n'.join(lines[:100]))
+                        console.print(f"\n[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]")
+                    else:
+                        console.print(result.stdout)
+                    # 保存完整日志
+                    _save_quality_error_log(logs_base_dir, "mypy", result.stderr + result.stdout)
+                    # mypy 错误仅作为警告，不设置 quality_issues = True
+                else:
+                    console.print("[green]✅ 类型检查通过[/green]")
+                    
+        except FileNotFoundError:
+            console.print("[yellow]⚠️ mypy 未安装，跳过类型检查[/yellow]")
+            console.print("[yellow]💡 建议安装: pip install mypy[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ mypy 检查失败: {e}[/yellow]")
 
     # 总结
     console.print("\n" + "=" * 50)
