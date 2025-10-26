@@ -75,21 +75,45 @@ try:
     if version_app:
         app.add_typer(version_app, name="version", help="📋 版本信息")
     if cluster_app:
-        app.add_typer(cluster_app, name="cluster", help="🌐 Cluster - 集群管理和状态监控")
+        app.add_typer(
+            cluster_app,
+            name="cluster",
+            help="🌐 Cluster - 集群管理和状态监控 (start, stop, status, restart, logs)",
+        )
     if head_app:
-        app.add_typer(head_app, name="head", help="🎯 Head - 集群头节点管理")
+        app.add_typer(
+            head_app,
+            name="head",
+            help="🎯 Head - 集群头节点管理 (start, stop, status, restart, logs)",
+        )
     if worker_app:
-        app.add_typer(worker_app, name="worker", help="🔧 Worker - 工作节点管理")
+        app.add_typer(
+            worker_app,
+            name="worker",
+            help="🔧 Worker - 工作节点管理 (start, stop, status, restart, logs, add, remove)",
+        )
     if job_app:
-        app.add_typer(job_app, name="job", help="📋 作业管理 - 提交、监控、管理作业")
+        app.add_typer(
+            job_app,
+            name="job",
+            help="📋 作业管理 - 提交、监控、管理作业 (submit, list, status, stop, logs, attach)",
+        )
     if jobmanager_app:
-        app.add_typer(jobmanager_app, name="jobmanager", help="⚡ JobManager - 作业管理器服务")
+        app.add_typer(
+            jobmanager_app,
+            name="jobmanager",
+            help="⚡ JobManager - 作业管理器服务 (start, stop, status, restart)",
+        )
     if config_app:
-        app.add_typer(config_app, name="config", help="⚙️ 配置管理")
+        app.add_typer(config_app, name="config", help="⚙️ 配置管理 (show, set, reset)")
     if doctor_app:
         app.add_typer(doctor_app, name="doctor", help="🔍 系统诊断")
     if extensions_app:
-        app.add_typer(extensions_app, name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
+        app.add_typer(
+            extensions_app,
+            name="extensions",
+            help="🧩 扩展管理 - 安装和管理C++扩展 (list, install, uninstall, status)",
+        )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 platform 命令组: {e}[/yellow]")
 
@@ -102,19 +126,33 @@ try:
     from .commands.apps import chat_app, embedding_app, llm_app, pipeline_app, studio_app
 
     if llm_app:
-        app.add_typer(llm_app, name="llm", help="🤖 LLM服务管理 - 启动、停止、配置LLM服务")
+        app.add_typer(
+            llm_app,
+            name="llm",
+            help="🤖 LLM服务管理 - 启动、停止、配置LLM服务 (serve, start, stop, status, models)",
+        )
     if chat_app:
-        app.add_typer(chat_app, name="chat", help="🧭 编程助手 - 基于 SageDB 的文档问答")
+        app.add_typer(
+            chat_app, name="chat", help="🧭 编程助手 - 基于 SageDB 的文档问答 (interactive mode)"
+        )
     if embedding_app:
         app.add_typer(
-            embedding_app, name="embedding", help="🎯 Embedding 管理 - 管理和测试 embedding 方法"
+            embedding_app,
+            name="embedding",
+            help="🎯 Embedding 管理 - 管理和测试 embedding 方法 (list, test, benchmark)",
         )
     if pipeline_app:
         app.add_typer(
-            pipeline_app, name="pipeline", help="🧱 Pipeline Builder - 大模型辅助的配置生成"
+            pipeline_app,
+            name="pipeline",
+            help="🧱 Pipeline Builder - 大模型辅助的配置生成 (build, validate, template)",
         )
     if studio_app:
-        app.add_typer(studio_app, name="studio", help="🎨 Studio - 低代码可视化管道编辑器")
+        app.add_typer(
+            studio_app,
+            name="studio",
+            help="🎨 Studio - 低代码可视化管道编辑器 (start, stop, status)",
+        )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")
 

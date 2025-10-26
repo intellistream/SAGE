@@ -45,42 +45,66 @@ console = Console()
 try:
     from .quality import app as quality_app
 
-    app.add_typer(quality_app, name="quality")
+    app.add_typer(
+        quality_app,
+        name="quality",
+        help="🔍 质量检查 - 代码质量、架构合规、文档规范检查 (check, architecture, devnotes, readme, format, lint, fix)",
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 quality 命令组: {e}[/yellow]")
 
 try:
     from .project import app as project_app
 
-    app.add_typer(project_app, name="project")
+    app.add_typer(
+        project_app,
+        name="project",
+        help="📊 项目管理 - 状态、分析、测试、清理 (status, analyze, test, clean, home)",
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 project 命令组: {e}[/yellow]")
 
 try:
     from .maintain import app as maintain_app
 
-    app.add_typer(maintain_app, name="maintain")
+    app.add_typer(
+        maintain_app,
+        name="maintain",
+        help="🔧 维护工具 - Submodule、Hooks、诊断 (doctor, hooks, submodule)",
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 maintain 命令组: {e}[/yellow]")
 
 try:
     from .package import app as package_app
 
-    app.add_typer(package_app, name="package")
+    app.add_typer(
+        package_app,
+        name="package",
+        help="📦 包管理 - PyPI 发布、版本管理、安装 (pypi, version, install)",
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 package 命令组: {e}[/yellow]")
 
 try:
     from .resource import app as resource_app
 
-    app.add_typer(resource_app, name="resource")
+    app.add_typer(
+        resource_app,
+        name="resource",
+        help="💾 资源管理 - 模型缓存、数据管理 (models)",
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 resource 命令组: {e}[/yellow]")
 
 try:
     from .github import app as github_app
 
-    app.add_typer(github_app, name="github")
+    app.add_typer(
+        github_app,
+        name="github",
+        help="🐙 GitHub 管理 - Issues、PR 等 (issues)",
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 github 命令组: {e}[/yellow]")
 
@@ -285,7 +309,6 @@ COMMAND_SUGGESTIONS = {
 # 创建包装函数来提供更好的错误提示
 def run_with_suggestions():
     """运行 app 并在命令不存在时提供建议"""
-    import sys
 
     try:
         app()
@@ -301,7 +324,7 @@ def run_with_suggestions():
                 for suggestion in COMMAND_SUGGESTIONS[cmd]:
                     console.print(f"  [green]sage-dev {suggestion}[/green]")
 
-                console.print(f"\n[dim]使用 [bold]sage-dev --help[/bold] 查看所有可用命令[/dim]\n")
+                console.print("\n[dim]使用 [bold]sage-dev --help[/bold] 查看所有可用命令[/dim]\n")
         raise
 
 

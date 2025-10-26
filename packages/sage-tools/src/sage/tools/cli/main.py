@@ -76,16 +76,8 @@ def main(
       pip install sage-cli
       sage cluster start             # 启动集群
       sage llm serve                 # 启动LLM服务
-    """
-    pass
-    • quality   - 质量检查（架构、文档、代码格式）
-    • project   - 项目管理（状态、分析、测试、清理）
-    • maintain  - 维护工具（submodule、hooks、诊断）
-    • package   - 包管理（PyPI发布、版本、安装）
-    • resource  - 资源管理（模型缓存）
-    • github    - GitHub管理（Issues、PR）
 
-    📚 查看详细命令: sage dev --help
+    📚 查看详细命令: sage-dev --help
 
     🔗 更多信息: https://github.com/intellistream/SAGE
     """
