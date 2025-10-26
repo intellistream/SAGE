@@ -213,8 +213,10 @@ jobs:
             "README.md"
             "CONTRIBUTING.md"
             "LICENSE"
-            "pyrightconfig.json"
-            "pytest.ini"
+            "tools/quality/pyrightconfig.json"
+            "tools/quality/pytest.ini"
+            "tools/quality/ruff.toml"
+            "tools/quality/.flake8"
           )
 
           for file in "${CRITICAL_FILES[@]}"; do
