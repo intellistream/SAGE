@@ -2,7 +2,9 @@
 
 > **Unified Command Line Interface for SAGE Platform**
 
-SAGE CLI (`sage-cli`) is the unified command-line interface for the SAGE (Streaming-Augmented Generative Execution) platform. It provides a comprehensive set of commands for managing clusters, deploying applications, and developing with SAGE.
+SAGE CLI (`sage-cli`) is the unified command-line interface for the SAGE (Streaming-Augmented
+Generative Execution) platform. It provides a comprehensive set of commands for managing clusters,
+deploying applications, and developing with SAGE.
 
 ## 🚀 Installation
 
@@ -17,7 +19,7 @@ pip install sage-cli
 
 ## 📋 Command Structure
 
-SAGE CLI organizes commands into three main categories:
+SAGE CLI organizes commands into two main categories:
 
 ### Platform Commands
 
@@ -45,7 +47,21 @@ Application-level functionality:
 
 ### Development Commands
 
-Tools for SAGE developers:
+**Note:** Development commands (`sage dev`) are provided by the `sage-tools` package separately.
+
+To use development tools:
+
+```bash
+# Install sage-tools
+pip install sage-tools
+
+# Use dev commands
+sage dev quality check
+sage dev project test
+sage dev maintain doctor
+```
+
+Development command groups include:
 
 - `sage dev quality` - Code quality checks
 - `sage dev project` - Project management
@@ -66,17 +82,29 @@ sage cluster start
 # View cluster status
 sage cluster status
 
-# Run development checks
-sage dev quality check
-
 # Get help
 sage --help
 sage <command> --help
 ```
 
+### Development Tools
+
+For development commands, install `sage-tools`:
+
+```bash
+pip install sage-tools
+
+# Run development checks
+sage dev quality check
+
+# Run tests
+sage dev project test
+```
+
 ## 📚 Documentation
 
 For detailed documentation, see:
+
 - [SAGE Documentation](https://intellistream.github.io/SAGE)
 - [CLI Package Plan](../../docs/dev-notes/architecture/SAGE_CLI_PACKAGE_PLAN.md)
 
@@ -90,8 +118,17 @@ L2: sage-platform        (Platform Core)
 L3: sage-kernel, sage-libs
 L4: sage-middleware
 L5: sage-apps, sage-benchmark
-L6: sage-cli, sage-devtools, sage-studio  ← CLI is here
+L6: sage-cli, sage-tools, sage-studio
+    ├── sage-cli: Production CLI commands (platform + apps)
+    ├── sage-tools: Development commands (dev tools)
+    └── sage-studio: Visual interface
 ```
+
+**Package Separation:**
+
+- **sage-cli**: User-facing production commands for cluster and app management
+- **sage-tools**: Developer-only commands for quality checks, testing, and maintenance
+- Both packages provide commands under the `sage` namespace
 
 ## 🤝 Contributing
 
@@ -103,6 +140,7 @@ Apache License 2.0 - see [LICENSE](../../LICENSE) for details.
 
 ## 🔗 Related Packages
 
-- `sage-devtools` - Development tools and utilities
+- `sage-tools` - Development tools and `sage dev` commands
 - `sage-platform` - SAGE platform core
 - `sage-apps` - SAGE applications
+- `sage-studio` - Visual pipeline editor

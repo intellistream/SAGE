@@ -5,7 +5,8 @@ SAGE CLI 主入口
 统一的命令行接口，包括：
 - Platform: 集群管理、作业调度
 - Apps: LLM、Chat、Embedding、Pipeline、Studio
-- Dev: 开发工具
+
+注意：Dev 开发工具命令由 sage-tools 包提供，不在此包中
 """
 
 import typer
@@ -19,12 +20,14 @@ app = typer.Typer(
     命令分类：
     • Platform  - 集群管理和作业调度
     • Apps      - 应用层服务（LLM、Chat等）
-    • Dev       - 开发工具
 
     快速示例：
       sage cluster start              # 启动集群
       sage llm serve                  # 启动LLM服务
-      sage dev quality check          # 运行质量检查
+      sage job submit task.py         # 提交作业
+
+    开发工具：
+      sage dev 命令由 sage-tools 包单独提供
     """,
     no_args_is_help=True,
 )
@@ -78,9 +81,7 @@ try:
     if job_app:
         app.add_typer(job_app, name="job", help="📋 作业管理 - 提交、监控、管理作业")
     if jobmanager_app:
-        app.add_typer(
-            jobmanager_app, name="jobmanager", help="⚡ JobManager - 作业管理器服务"
-        )
+        app.add_typer(jobmanager_app, name="jobmanager", help="⚡ JobManager - 作业管理器服务")
     if config_app:
         app.add_typer(config_app, name="config", help="⚙️ 配置管理")
     if doctor_app:
@@ -96,13 +97,7 @@ except ImportError as e:
 # ============================================================================
 
 try:
-    from .commands.apps import (
-        chat_app,
-        embedding_app,
-        llm_app,
-        pipeline_app,
-        studio_app,
-    )
+    from .commands.apps import chat_app, embedding_app, llm_app, pipeline_app, studio_app
 
     if llm_app:
         app.add_typer(llm_app, name="llm", help="🤖 LLM服务管理 - 启动、停止、配置LLM服务")
@@ -120,23 +115,6 @@ try:
         app.add_typer(studio_app, name="studio", help="🎨 Studio - 低代码可视化管道编辑器")
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")
-
-
-# ============================================================================
-# Dev Commands - 开发工具命令组
-# ============================================================================
-
-try:
-    from .commands.dev import app as dev_app
-
-    app.add_typer(
-        dev_app,
-        name="dev",
-        help="🛠️ 开发工具 - 质量检查、项目管理、维护工具、包管理等",
-        rich_help_panel="开发工具",
-    )
-except ImportError as e:
-    console.print(f"[yellow]警告: 无法导入 dev 命令组: {e}[/yellow]")
 
 
 # ============================================================================
@@ -182,16 +160,14 @@ def main(
       sage pipeline build            # 构建 pipeline
       sage studio start              # 启动可视化编辑器
 
-    Development Commands:
-      sage dev quality check         # 运行代码质量检查
-      sage dev project test          # 运行项目测试
-      sage dev maintain submodule init  # 初始化 submodules
-      sage dev package install       # 安装包
-
     🏗️  架构说明:
       - Platform Commands: 平台管理 (cluster, config, doctor, etc.)
       - Application Commands: 应用功能 (llm, chat, pipeline, studio)
-      - Development Commands: 开发工具 (quality, project, maintain, package)
+
+    📝 开发工具:
+      sage dev 命令由 sage-tools 包单独提供
+      安装: pip install sage-tools
+      使用: sage dev quality check, sage dev project test 等
 
     📚 文档: https://intellistream.github.io/SAGE
     """

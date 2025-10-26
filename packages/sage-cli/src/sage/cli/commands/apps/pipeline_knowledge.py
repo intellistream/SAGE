@@ -18,9 +18,9 @@ from pathlib import Path
 
 import yaml
 
+from sage.cli.commands.pipeline_domain import load_domain_contexts
 from sage.common.components.sage_embedding.factory import EmbeddingFactory
 from sage.common.config.output_paths import get_sage_paths
-from sage.cli.commands.pipeline_domain import load_domain_contexts
 
 GITHUB_DOCS_ZIP_URL = "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
 DOCS_CACHE_SUBDIR = "pipeline-builder/docs"

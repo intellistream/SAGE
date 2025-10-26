@@ -20,14 +20,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
-from sage.common.config.output_paths import get_sage_paths
-from sage.kernel.api.base_environment import BaseEnvironment
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.tools import templates
-from sage.cli.commands.pipeline_domain import (
-    load_custom_contexts,
-    load_domain_contexts,
-)
+from sage.cli.commands.pipeline_domain import load_custom_contexts, load_domain_contexts
 from sage.cli.commands.pipeline_knowledge import (
     PipelineKnowledgeBase,
     build_query_payload,
@@ -35,6 +28,10 @@ from sage.cli.commands.pipeline_knowledge import (
 )
 from sage.cli.core.exceptions import CLIException
 from sage.cli.templates import pipeline_blueprints as blueprints
+from sage.common.config.output_paths import get_sage_paths
+from sage.kernel.api.base_environment import BaseEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.tools import templates
 
 try:  # pragma: no cover - optional dependency at runtime only
     from sage.libs.integrations.openaiclient import OpenAIClient
@@ -392,9 +389,7 @@ def _create_environment(
 
     env_type = (pipeline_meta.get("type") or "local").lower()
     if env_type == "remote":
-        from sage.kernel.api.remote_environment import (
-            RemoteEnvironment,  # import lazily
-        )
+        from sage.kernel.api.remote_environment import RemoteEnvironment  # import lazily
 
         resolved_host = host or env_settings.get("host") or "127.0.0.1"
         resolved_port = port or env_settings.get("port") or 19001

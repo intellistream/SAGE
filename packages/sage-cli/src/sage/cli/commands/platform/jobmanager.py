@@ -351,9 +351,7 @@ class JobManagerController:
 
     def is_port_occupied(self) -> bool:
         """检查端口是否被占用"""
-        from sage.common.utils.system.network import (
-            is_port_occupied as check_port_occupied,
-        )
+        from sage.common.utils.system.network import is_port_occupied as check_port_occupied
 
         return check_port_occupied(self.host, self.port)
 
