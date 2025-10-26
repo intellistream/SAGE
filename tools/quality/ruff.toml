@@ -16,6 +16,7 @@ extend-exclude = [
     "neuromem",
     "sageTSDB",
     "vendors",
+    "build",  # C++ build output with third-party dependencies (googletest, spdlog, etc.)
     # sageLLM is a git submodule with its own vendors directory
     "packages/sage-common/src/sage/common/components/sage_vllm/sageLLM",
 ]

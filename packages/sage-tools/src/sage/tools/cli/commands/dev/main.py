@@ -173,12 +173,13 @@ def quality(
         #
         # 额外排除：
         # 7. vendors (第三方代码)
+        # 8. build (C++ 编译输出和依赖，包含 googletest, spdlog 等第三方库)
         #
         # 注意：sageLLM 是 git submodule，包含自己的 vendors/vllm 代码
         # 必须使用完整路径排除以避免格式化工具进入 submodule 目录
 
         # black 使用正则表达式（匹配完整路径）
-        black_exclude = r"(docs-public|sageFlow|sageDB|neuromem|sageTSDB|vendors|packages/sage-common/src/sage/common/components/sage_vllm/sageLLM)"
+        black_exclude = r"(docs-public|sageFlow|sageDB|neuromem|sageTSDB|vendors|build|packages/sage-common/src/sage/common/components/sage_vllm/sageLLM)"
         # isort 使用多个 --skip-glob 参数（每个模式一个）
         isort_skip_patterns = [
             "*/docs-public/*",
@@ -187,15 +188,16 @@ def quality(
             "*/neuromem/*",
             "*/sageTSDB/*",
             "*/vendors/*",
+            "*/build/*",
             "packages/sage-common/src/sage/common/components/sage_vllm/sageLLM/*",
         ]
         # flake8 使用逗号分隔的路径模式（支持通配符）
-        flake8_exclude = "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/neuromem/*,*/sageTSDB/*,*/vendors/*,packages/sage-common/src/sage/common/components/sage_vllm/sageLLM"
+        flake8_exclude = "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/neuromem/*,*/sageTSDB/*,*/vendors/*,*/build/*,packages/sage-common/src/sage/common/components/sage_vllm/sageLLM"
 
     console.print(f"🎯 检查目录: {', '.join(target_paths)}")
     if not target_paths or target_paths != [str(project_dir)]:
         console.print(
-            "⏭️  排除所有 submodules 和 vendors: docs-public, sageFlow, sageDB, neuromem, sageTSDB, sageLLM (submodule), vendors"
+            "⏭️  排除: submodules (docs-public, sageFlow, sageDB, neuromem, sageTSDB, sageLLM), vendors, build"
         )
 
     quality_issues = False
@@ -510,7 +512,8 @@ def quality(
         try:
             # Ruff 排除规则 - 与 pre-commit 保持一致
             # sageLLM 是 submodule，使用完整路径排除
-            ruff_exclude = "docs/,docs-public/,examples/data/,tests/fixtures/,sageDB/,sageFlow/,neuromem/,sageTSDB/,vendors/,packages/sage-common/src/sage/common/components/sage_vllm/sageLLM/"
+            # build 包含 C++ 编译依赖（googletest, spdlog 等）
+            ruff_exclude = "docs/,docs-public/,examples/data/,tests/fixtures/,sageDB/,sageFlow/,neuromem/,sageTSDB/,vendors/,build/,packages/sage-common/src/sage/common/components/sage_vllm/sageLLM/"
 
             if should_fix:
                 # 自动修复模式
