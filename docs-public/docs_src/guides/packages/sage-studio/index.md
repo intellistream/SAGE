@@ -79,19 +79,13 @@ from sage.studio.services.pipeline_builder import PipelineBuilder
 from sage.studio.models import VisualPipeline, VisualNode
 
 # Create visual pipeline
-pipeline = VisualPipeline(
-    id="my_pipeline",
-    name="RAG Pipeline"
-)
+pipeline = VisualPipeline(id="my_pipeline", name="RAG Pipeline")
 
 # Add nodes
 retriever_node = VisualNode(
     id="retriever",
     type="rag.retriever",
-    config={
-        "collection_name": "documents",
-        "top_k": 3
-    }
+    config={"collection_name": "documents", "top_k": 3},
 )
 pipeline.nodes.append(retriever_node)
 
@@ -132,8 +126,8 @@ registry.register(
     metadata={
         "label": "My Operator",
         "description": "Does something cool",
-        "category": "processing"
-    }
+        "category": "processing",
+    },
 )
 ```
 
@@ -160,6 +154,7 @@ result = env.execute()
 Studio supports various data sources and sinks:
 
 **Sources**:
+
 - File (JSON, CSV, text)
 - Socket
 - Kafka
@@ -168,6 +163,7 @@ Studio supports various data sources and sinks:
 - Memory (for testing)
 
 **Sinks**:
+
 - Terminal
 - File
 - Print (with formatting)
@@ -233,7 +229,7 @@ class VisualPipeline:
     name: str
     nodes: List[VisualNode]
     connections: List[VisualConnection]
-    
+
     def to_sage_pipeline(self) -> Environment:
         """Convert to executable SAGE pipeline"""
 ```
@@ -270,9 +266,11 @@ pipeline = VisualPipeline(id="rag_001", name="Simple RAG")
 pipeline.nodes = [
     VisualNode(id="source", type="file", config={"file_path": "questions.txt"}),
     VisualNode(id="promptor", type="rag.promptor", config={}),
-    VisualNode(id="retriever", type="rag.retriever", config={"collection_name": "docs"}),
+    VisualNode(
+        id="retriever", type="rag.retriever", config={"collection_name": "docs"}
+    ),
     VisualNode(id="generator", type="rag.generator", config={"model": "gpt-4"}),
-    VisualNode(id="sink", type="terminal", config={})
+    VisualNode(id="sink", type="terminal", config={}),
 ]
 
 # Connect nodes
@@ -280,11 +278,12 @@ pipeline.connections = [
     VisualConnection("source", "out", "promptor", "in"),
     VisualConnection("promptor", "out", "retriever", "in"),
     VisualConnection("retriever", "out", "generator", "in"),
-    VisualConnection("generator", "out", "sink", "in")
+    VisualConnection("generator", "out", "sink", "in"),
 ]
 
 # Build and execute
 from sage.studio.services.pipeline_builder import PipelineBuilder
+
 builder = PipelineBuilder()
 env = builder.build(pipeline)
 env.execute()
@@ -295,7 +294,7 @@ env.execute()
 ### Adding Custom Nodes
 
 1. Implement your operator (in sage-libs or sage-middleware)
-2. Register it in Studio:
+1. Register it in Studio:
 
 ```python
 from sage.studio.services.node_registry import get_node_registry
@@ -312,9 +311,9 @@ registry.register(
         "outputs": ["processed_text"],
         "config_schema": {
             "param1": {"type": "string", "default": "value"},
-            "param2": {"type": "integer", "default": 10}
-        }
-    }
+            "param2": {"type": "integer", "default": 10},
+        },
+    },
 )
 ```
 

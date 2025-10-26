@@ -21,24 +21,24 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             alert('Markdown content not available for this page');
             return;
         }
-        
+
         try {
             let rawContent = markdownScript.textContent;
-            
+
             // Safe HTML entity decoding function
             function decodeHtmlEntities(text) {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(text, 'text/html');
                 return doc.documentElement.textContent || '';
             }
-            
+
             // Always decode HTML entities since the browser might encode them
             rawContent = decodeHtmlEntities(rawContent);
-            
-            
+
+
             const data = JSON.parse(rawContent);
             const content = `Source: ${window.location.href}\n\n${data.markdown}`;
-            
+
             navigator.clipboard.writeText(content).then(() => {
                 // Simple notification
                 const notification = document.createElement('div');
@@ -62,24 +62,24 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             // Create dropdown container
             const dropdownContainer = document.createElement('div');
             dropdownContainer.style.cssText = 'position:relative;display:inline-block;margin-left:8px;';
-            
+
             // Create main button
             const button = document.createElement('button');
             button.innerHTML = 'Copy page <span style="margin-left:8px;font-size:12px;color:#9ca3af;">▾</span>';
             button.style.cssText = 'background:transparent;border:1px solid #d1d5db;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:14px;color:#374151;transition:all 0.2s ease;white-space:nowrap;display:flex;align-items:center;';
-            
+
             // Create dropdown menu
             const dropdown = document.createElement('div');
             dropdown.className = 'copy-page-dropdown';
             dropdown.style.cssText = 'position:absolute;top:100%;left:0;background:white;border:1px solid #e5e7eb;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000;min-width:180px;display:none;padding:4px 0;';
-            
+
             // Create dropdown options
             const option1 = document.createElement('div');
             option1.textContent = 'Copy as Markdown for LLMs';
             option1.className = 'copy-page-option';
             option1.style.cssText = 'padding:8px 16px;cursor:pointer;font-size:14px;color:#374151;margin:2px 0;';
-            option1.onmouseover = function() { 
-                this.style.background = document.documentElement.getAttribute('data-md-color-scheme') === 'slate' ? '#4a5568' : '#f8fafc'; 
+            option1.onmouseover = function() {
+                this.style.background = document.documentElement.getAttribute('data-md-color-scheme') === 'slate' ? '#4a5568' : '#f8fafc';
             };
             option1.onmouseout = function() { this.style.background = 'transparent'; };
             option1.onclick = function() {
@@ -91,45 +91,45 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                 }
                 dropdown.style.display = 'none';
             };
-            
+
             const option2 = document.createElement('div');
             option2.textContent = "View LangGraph's llms.txt";
             option2.className = 'copy-page-option';
             option2.style.cssText = 'padding:8px 16px;cursor:pointer;font-size:14px;color:#374151;margin:2px 0;';
-            option2.onmouseover = function() { 
-                this.style.background = document.documentElement.getAttribute('data-md-color-scheme') === 'slate' ? '#4a5568' : '#f8fafc'; 
+            option2.onmouseover = function() {
+                this.style.background = document.documentElement.getAttribute('data-md-color-scheme') === 'slate' ? '#4a5568' : '#f8fafc';
             };
             option2.onmouseout = function() { this.style.background = 'transparent'; };
             option2.onclick = function() {
                 window.open('/langgraph/llms-txt-overview/', '_blank');
                 dropdown.style.display = 'none';
             };
-            
+
             // Add options to dropdown
             dropdown.appendChild(option1);
             dropdown.appendChild(option2);
-            
+
             // Button hover effects
-            button.onmouseover = function() { 
-                this.style.background = '#f3f4f6'; 
-                this.style.borderColor = '#9ca3af'; 
+            button.onmouseover = function() {
+                this.style.background = '#f3f4f6';
+                this.style.borderColor = '#9ca3af';
             };
-            button.onmouseout = function() { 
-                this.style.background = 'transparent'; 
-                this.style.borderColor = '#d1d5db'; 
+            button.onmouseout = function() {
+                this.style.background = 'transparent';
+                this.style.borderColor = '#d1d5db';
             };
-            
+
             // Toggle dropdown
             button.onclick = function(e) {
                 e.stopPropagation();
                 dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
             };
-            
+
             // Close dropdown when clicking outside
             document.addEventListener('click', function() {
                 dropdown.style.display = 'none';
             });
-            
+
             // Assemble dropdown
             dropdownContainer.appendChild(button);
             dropdownContainer.appendChild(dropdown);
@@ -365,4 +365,3 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <title>{{ config.site_name }}</title>
   {% endif %}
 {% endblock %}
-

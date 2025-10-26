@@ -5,24 +5,30 @@
 ## 技术背景
 
 ### 论文来源
-精炼组件基于ACL 2025接收的论文《Hierarchical Document Refinement for Long-context Retrieval-augmented Generation》实现：
+
+精炼组件基于ACL 2025接收的论文《Hierarchical Document Refinement for Long-context Retrieval-augmented
+Generation》实现：
 
 **论文信息**：
+
 - **标题**：Hierarchical Document Refinement for Long-context Retrieval-augmented Generation
-- **作者**：Jiajie Jin, Xiaoxi Li, Guanting Dong, Yuyao Zhang, Yutao Zhu, Yongkang Wu, Zhonghua Li, Qi Ye, Zhicheng Dou
+- **作者**：Jiajie Jin, Xiaoxi Li, Guanting Dong, Yuyao Zhang, Yutao Zhu, Yongkang Wu, Zhonghua Li, Qi
+  Ye, Zhicheng Dou
 - **会议**：ACL 2025 (Annual Meeting of the Association for Computational Linguistics)
 - **ArXiv ID**：[arXiv:2505.10413](https://arxiv.org/abs/2505.10413)
 - **代码开源**：[https://github.com/ignorejjj/LongRefiner](https://github.com/ignorejjj/LongRefiner)
 
 ### 研究动机
+
 现实世界的RAG应用经常遇到长上下文输入场景，其中冗余信息和噪声导致更高的推理成本和性能下降。传统RAG系统在处理长文档时面临以下挑战：
 
 1. **上下文长度限制**：大多数LLM存在上下文窗口限制
-2. **计算成本高昂**：处理冗余信息增加推理开销
-3. **噪声干扰**：无关信息影响生成质量
-4. **效率瓶颈**：长文档检索和处理速度慢
+1. **计算成本高昂**：处理冗余信息增加推理开销
+1. **噪声干扰**：无关信息影响生成质量
+1. **效率瓶颈**：长文档检索和处理速度慢
 
 ### 核心创新
+
 论文提出的LongRefiner通过以下创新技术解决上述问题：
 
 - **分层文档结构化**：利用长文档的固有结构特征
@@ -31,7 +37,9 @@
 - **即插即用设计**：可无缝集成到现有RAG系统中
 
 ### 性能优势
+
 实验结果显示，LongRefiner在七个QA数据集上：
+
 - **效果提升**：在各种场景下达到竞争性能
 - **成本降低**：相比最佳基线减少10倍计算成本和延迟
 - **扩展性强**：验证了可扩展性、效率性和有效性
@@ -39,6 +47,7 @@
 ## 组件概述
 
 ### 核心功能
+
 精炼组件在RAG系统中承担以下关键职责：
 
 - **内容压缩**：从长文档中提取关键信息，减少冗余内容
@@ -47,6 +56,7 @@
 - **预算控制**：在指定的token预算内优化内容选择
 
 ### 技术架构
+
 精炼组件采用多模块协同的深度学习架构，基于论文提出的LongRefiner方法：
 
 ```
@@ -58,26 +68,31 @@
 **核心算法模块**：
 
 1. **双层查询分析模块 (Dual-level Query Analysis)**
+
    - 分析用户查询的语义意图和信息需求
    - 识别查询的关键概念和期望答案类型
    - 为后续文档筛选提供指导
 
-2. **分层文档结构化模块 (Hierarchical Document Structuring)**
+1. **分层文档结构化模块 (Hierarchical Document Structuring)**
+
    - 自动识别文档的内在结构特征
    - 将长文档分解为语义连贯的层次结构
    - 保持上下文关系和信息完整性
 
-3. **全局选择模块 (Global Selection)**
+1. **全局选择模块 (Global Selection)**
+
    - 基于查询意图和文档结构进行全局优化
    - 在指定token预算下选择最相关的内容片段
    - 平衡信息覆盖度和内容质量
 
-4. **多任务学习框架**
+1. **多任务学习框架**
+
    - 在单一基础模型上通过LoRA适配器实现多个专门任务
    - 共享底层表示，提高计算效率
    - 端到端优化整个精炼流程
 
 ### 应用场景
+
 - **长文档处理**：处理超长检索结果，突破LLM上下文限制
 - **多文档融合**：整合来自多个来源的相关信息
 - **成本优化**：减少LLM输入token数量，降低API调用费用
@@ -86,11 +101,13 @@
 ## LongRefinerAdapter
 
 ### 组件描述
+
 `LongRefinerAdapter`是基于LongRefiner模型的高级文档精炼器，采用多阶段深度学习模块，能够智能分析查询意图、结构化文档内容并进行全局优化选择。
 
 ### 技术规格
 
 **支持特性**：
+
 - 基于LoRA微调的多任务模型架构
 - 查询意图分析模块
 - 文档结构化处理模块
@@ -99,6 +116,7 @@
 - 可配置的token预算控制
 
 **模型架构**：
+
 - **基础模型**：Qwen2.5-3B-Instruct或其他兼容模型
 - **任务模块**：三个专门的LoRA适配器
   - 查询分析模块：理解用户查询意图和需求
@@ -108,17 +126,17 @@
 
 ### 配置参数
 
-| 参数组 | 参数名 | 类型 | 说明 |
-|--------|--------|------|------|
-| **基础模型** | `base_model_path` | str | 基础LLM模型路径 |
-| | `max_model_len` | int | 模型最大序列长度 |
-| | `gpu_device` | int | GPU设备编号 |
-| **LoRA模块** | `query_analysis_module_lora_path` | str | 查询分析LoRA权重路径 |
-| | `doc_structuring_module_lora_path` | str | 文档结构化LoRA权重路径 |
-| | `global_selection_module_lora_path` | str | 全局选择LoRA权重路径 |
-| **评分模型** | `score_model_name` | str | 重排序模型名称 |
-| | `score_model_path` | str | 重排序模型路径 |
-| **控制参数** | `budget` | int | token预算限制 |
+| 参数组       | 参数名                              | 类型 | 说明                   |
+| ------------ | ----------------------------------- | ---- | ---------------------- |
+| **基础模型** | `base_model_path`                   | str  | 基础LLM模型路径        |
+|              | `max_model_len`                     | int  | 模型最大序列长度       |
+|              | `gpu_device`                        | int  | GPU设备编号            |
+| **LoRA模块** | `query_analysis_module_lora_path`   | str  | 查询分析LoRA权重路径   |
+|              | `doc_structuring_module_lora_path`  | str  | 文档结构化LoRA权重路径 |
+|              | `global_selection_module_lora_path` | str  | 全局选择LoRA权重路径   |
+| **评分模型** | `score_model_name`                  | str  | 重排序模型名称         |
+|              | `score_model_path`                  | str  | 重排序模型路径         |
+| **控制参数** | `budget`                            | int  | token预算限制          |
 
 ### 实现示例
 
@@ -129,13 +147,13 @@ from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 refiner_config = {
     "base_model_path": "Qwen/Qwen2.5-3B-Instruct",
     "query_analysis_module_lora_path": "/path/to/query_analysis_lora",
-    "doc_structuring_module_lora_path": "/path/to/doc_structuring_lora", 
+    "doc_structuring_module_lora_path": "/path/to/doc_structuring_lora",
     "global_selection_module_lora_path": "/path/to/global_selection_lora",
     "score_model_name": "bge-reranker-v2-m3",
     "score_model_path": "BAAI/bge-reranker-v2-m3",
     "max_model_len": 25000,
     "budget": 4000,  # token预算
-    "gpu_device": 0
+    "gpu_device": 0,
 }
 
 # 创建精炼器实例
@@ -147,8 +165,8 @@ input_data = {
     "results": [
         {"text": "深度学习是机器学习的一个分支..."},
         {"text": "神经网络是深度学习的基础..."},
-        {"text": "反向传播算法用于训练神经网络..."}
-    ]
+        {"text": "反向传播算法用于训练神经网络..."},
+    ],
 }
 
 # 输入数据格式2：元组格式
@@ -164,25 +182,29 @@ print("精炼后结果:", refined_result)
 ### 处理流程
 
 1. **输入格式适配**
+
    ```python
    # 支持多种输入格式
    dict_format = {"query": str, "results": [{"text": str}]}
    tuple_format = (query: str, docs: List[str])
    ```
 
-2. **文档预处理**
+1. **文档预处理**
+
    ```python
    # 转换为LongRefiner标准格式
    document_list = [{"contents": text} for text in texts]
    ```
 
-3. **多阶段精炼**
+1. **多阶段精炼**
+
    ```python
    # 查询分析 → 文档结构化 → 全局选择
    refined_items = refiner.run(question, document_list, budget=budget)
    ```
 
-4. **结果后处理**
+1. **结果后处理**
+
    ```python
    # 提取精炼后的文本内容
    refined_texts = [item["contents"] for item in refined_items]
@@ -191,16 +213,19 @@ print("精炼后结果:", refined_result)
 ### 性能优化
 
 **GPU设备管理**：
+
 ```python
 # 指定GPU设备
 config["gpu_device"] = 0  # 使用GPU 0
 
 # 环境变量设置
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 ```
 
 **内存优化**：
+
 ```python
 # 调整模型最大长度
 config["max_model_len"] = 25000  # 根据显存调整
@@ -210,6 +235,7 @@ config["budget"] = 4000  # 控制输出长度
 ```
 
 **批处理支持**：
+
 ```python
 # 支持批量处理多个查询
 for query_data in query_batch:
@@ -249,8 +275,8 @@ from sage.libs.rag.generator import OpenAIGenerator
 # 管道配置
 env = LocalEnvironment()
 
-(env
-    .from_batch(HFDatasetBatch, source_config)
+(
+    env.from_batch(HFDatasetBatch, source_config)
     .map(ChromaRetriever, retriever_config)
     .map(LongRefinerAdapter, refiner_config)  # 在检索后添加精炼步骤
     .map(QAPromptor, promptor_config)
@@ -283,10 +309,10 @@ refiner:
 ```python
 # 根据下游模型上下文长度设置预算
 budget_guide = {
-    "gpt-3.5-turbo": 3000,    # 4K上下文，留1K给生成
-    "gpt-4": 7000,            # 8K上下文，留1K给生成  
-    "gpt-4-turbo": 120000,    # 128K上下文，留8K给生成
-    "claude-3": 190000,       # 200K上下文，留10K给生成
+    "gpt-3.5-turbo": 3000,  # 4K上下文，留1K给生成
+    "gpt-4": 7000,  # 8K上下文，留1K给生成
+    "gpt-4-turbo": 120000,  # 128K上下文，留8K给生成
+    "claude-3": 190000,  # 200K上下文，留10K给生成
 }
 ```
 
@@ -296,8 +322,8 @@ budget_guide = {
 # 根据精度和速度需求选择基础模型
 model_options = {
     "高精度": "Qwen/Qwen2.5-7B-Instruct",
-    "平衡": "Qwen/Qwen2.5-3B-Instruct", 
-    "高速度": "Qwen/Qwen2.5-1.5B-Instruct"
+    "平衡": "Qwen/Qwen2.5-3B-Instruct",
+    "高速度": "Qwen/Qwen2.5-1.5B-Instruct",
 }
 ```
 
@@ -317,20 +343,23 @@ except Exception as e:
 ### 常见问题
 
 1. **模型加载失败**
+
    ```python
    # 检查模型路径和权限
    assert os.path.exists(config["base_model_path"])
    assert os.path.exists(config["query_analysis_module_lora_path"])
    ```
 
-2. **GPU内存不足**
+1. **GPU内存不足**
+
    ```python
    # 调整模型参数
    config["max_model_len"] = 15000  # 减少最大长度
-   config["gpu_device"] = 1         # 切换GPU设备
+   config["gpu_device"] = 1  # 切换GPU设备
    ```
 
-3. **输入格式错误**
+1. **输入格式错误**
+
    ```python
    # 确保输入格式正确
    if isinstance(data, dict):
@@ -344,6 +373,7 @@ except Exception as e:
 ```python
 # 启用详细日志
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 
 # 启用性能分析
@@ -353,9 +383,10 @@ refiner = LongRefinerAdapter(config, enable_profile=True)
 ## 参考文献与进一步阅读
 
 ### 核心论文
+
 ```bibtex
 @misc{jin2025hierarchical,
-    title={Hierarchical Document Refinement for Long-context Retrieval-augmented Generation}, 
+    title={Hierarchical Document Refinement for Long-context Retrieval-augmented Generation},
     author={Jiajie Jin and Xiaoxi Li and Guanting Dong and Yuyao Zhang and Yutao Zhu and Yongkang Wu and Zhonghua Li and Qi Ye and Zhicheng Dou},
     year={2025},
     eprint={2505.10413},
@@ -366,17 +397,20 @@ refiner = LongRefinerAdapter(config, enable_profile=True)
 ```
 
 ### 相关资源
+
 - **论文链接**：[https://arxiv.org/abs/2505.10413](https://arxiv.org/abs/2505.10413)
 - **开源代码**：[https://github.com/ignorejjj/LongRefiner](https://github.com/ignorejjj/LongRefiner)
 - **SAGE框架文档**：[https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
 
 ### 相关技术
+
 - **LoRA (Low-Rank Adaptation)**：参数高效的微调技术
 - **BGE Reranker**：双语通用嵌入模型用于重排序
 - **VLLM**：高效的大模型推理框架
 - **Multi-task Learning**：多任务学习在NLP中的应用
 
 ### 扩展阅读
+
 - RAG系统优化技术综述
 - 长文档处理的最新进展
 - 参数高效微调方法比较

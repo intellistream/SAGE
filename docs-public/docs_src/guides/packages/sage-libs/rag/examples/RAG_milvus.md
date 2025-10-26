@@ -1,14 +1,18 @@
-
 # RAG系统完整实现示例 (Complete RAG System Implementation)
 
-本文档提供使用SAGE基于milvus的RAG问答系统的完整实现示例。如果对RAG相关知识以及SAGE pipeline相关知识不了解，建议先阅读[使用SAGE基于chroma构建RAG](RAG.md)。
+本文档提供使用SAGE基于milvus的RAG问答系统的完整实现示例。如果对RAG相关知识以及SAGE
+pipeline相关知识不了解，建议先阅读[使用SAGE基于chroma构建RAG](RAG.md)。
 
 ## 使用Milvus向量库进行向量检索
+
 SAGE提供了基于Milvus向量库的稠密向量检索和稀疏向量检索算子，可以先执行离线向量知识库构建，创建知识库，然后执行RAG流水线，调用创建的知识库，对其中的知识进行查询。
 
 ### 基于Milvus向量库的稠密向量检索
+
 #### 离线稠密向量知识库构建
+
 基于Milvus的稠密向量数据库构建示例如下：
+
 ```python
 import os
 import sys
@@ -18,18 +22,20 @@ from sage.libs.rag.retriever import MilvusDenseRetriever
 import yaml
 from sage.common.utils.config.loader import load_config
 
+
 def load_config(path):
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return config
+
 
 def load_knowledge_to_milvus(config):
     """
     加载知识库到 Milvus
     """
-    knowledge_file = config.get('preload_knowledge_file')
-    persistence_path = config.get('milvus_dense').get('persistence_path')
-    collection_name = config.get('milvus_dense').get('collection_name')
+    knowledge_file = config.get("preload_knowledge_file")
+    persistence_path = config.get("milvus_dense").get("persistence_path")
+    collection_name = config.get("milvus_dense").get("collection_name")
 
     print(f"=== 预加载知识库到 ChromaDB ===")
     print(f"文件: {knowledge_file} | DB: {persistence_path} | 集合: {collection_name}")
@@ -41,7 +47,7 @@ def load_knowledge_to_milvus(config):
     splitter = CharacterSplitter({"separator": "\n\n"})
     chunks = splitter.execute(document)
     print(f"分块数: {len(chunks)}")
-    
+
     print("初始化Milvus...")
     milvus_backend = MilvusDenseRetriever(config)
     milvus_backend.add_documents(chunks)
@@ -52,11 +58,12 @@ def load_knowledge_to_milvus(config):
     print(f"检索结果: {results}")
     return True
 
+
 if __name__ == "__main__":
-    config_path = 'config_dense_milvus.yaml'
+    config_path = "config_dense_milvus.yaml"
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-    
+
     config = load_config(config_path)
     result = load_knowledge_to_milvus(config["retriever"])
     if result:
@@ -64,10 +71,10 @@ if __name__ == "__main__":
     else:
         print("知识库加载失败")
         sys.exit(1)
-
 ```
 
 config_dense_milvus.yaml配置文件如下：
+
 ```yaml
 retriever:
   preload_knowledge_file: "知识库文件路径（.txt）"
@@ -103,6 +110,7 @@ retriever:
 ```
 
 #### 基于Milvus的稠密向量检索RAG流水线
+
 ```python
 import os
 from sage.core.api.local_environment import LocalEnvironment
@@ -116,12 +124,13 @@ import yaml
 
 
 def load_config(path):
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return config
 
+
 def pipeline_run():
-    """    
+    """
     创建并运行 Milvus 专用 RAG 数据处理管道
 
     Args:
@@ -142,8 +151,8 @@ def pipeline_run():
     # MilvusDenseRetriever 会在初始化时自动加载配置的知识库文件
     print("正在构建数据处理管道...")
     # 构建数据处理流程
-    (env
-        .from_source(JSONLBatch, config["source"])
+    (
+        env.from_source(JSONLBatch, config["source"])
         .map(MilvusDenseRetriever, config["retriever"])
         .map(QAPromptor, config["promptor"])
         .map(OpenAIGenerator, config["generator"]["vllm"])
@@ -155,11 +164,11 @@ def pipeline_run():
     print("=== RAG 问答系统运行完成 ===")
 
 
-if __name__ == '__main__':
-    config_path = './examples/config/config_dense_milvus.yaml'
+if __name__ == "__main__":
+    config_path = "./examples/config/config_dense_milvus.yaml"
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-    
+
     config = load_config(config_path)
 
     print(config)
@@ -172,11 +181,13 @@ if __name__ == '__main__':
             print("请确保知识库文件存在于指定路径")
         else:
             print(f"找到知识库文件: {knowledge_file}")
-    
+
     print("开始运行 Milvus 稠密向量检索管道...")
-    pipeline_run() 
+    pipeline_run()
 ```
+
 配置文件如下：
+
 ```yaml
 source:
   data_path: "./queries.jsonl"   # 用户提供的流式问题，格式见首段描述
@@ -235,7 +246,9 @@ generator:
 sink:
   enable_log: true
 ```
+
 #### 离线稀疏向量知识库构建
+
 基于Milvus的稀疏向量数据库构建示例如下：
 
 ```python
@@ -247,18 +260,20 @@ from sage.libs.rag.retriever import MilvusSparseRetriever
 import yaml
 from sage.common.utils.config.loader import load_config
 
+
 def load_config(path):
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return config
+
 
 def load_knowledge_to_milvus(config):
     """
     加载知识库到 Milvus
     """
-    knowledge_file = config.get('preload_knowledge_file')
-    persistence_path = config.get('milvus_sparse').get('persistence_path')
-    collection_name = config.get('milvus_sparse').get('collection_name')
+    knowledge_file = config.get("preload_knowledge_file")
+    persistence_path = config.get("milvus_sparse").get("persistence_path")
+    collection_name = config.get("milvus_sparse").get("collection_name")
 
     print(f"=== 预加载知识库到 Milvus ===")
     print(f"文件: {knowledge_file} | DB: {persistence_path} | 集合: {collection_name}")
@@ -270,7 +285,7 @@ def load_knowledge_to_milvus(config):
     splitter = CharacterSplitter({"separator": "\n\n"})
     chunks = splitter.execute(document)
     print(f"分块数: {len(chunks)}")
-    
+
     print("初始化Milvus...")
     milvus_backend = MilvusSparseRetriever(config)
     milvus_backend.add_documents(chunks)
@@ -281,11 +296,12 @@ def load_knowledge_to_milvus(config):
     print(f"检索结果: {results}")
     return True
 
+
 if __name__ == "__main__":
-    config_path = 'config_sparse_milvus.yaml'
+    config_path = "config_sparse_milvus.yaml"
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-    
+
     config = load_config(config_path)
     result = load_knowledge_to_milvus(config["retriever"])
     if result:
@@ -296,6 +312,7 @@ if __name__ == "__main__":
 ```
 
 config_sparse_milvus.yaml配置文件如下：
+
 ```yaml
 retriever:
   preload_knowledge_file: "./examples/data/qa_knowledge_base.txt"
@@ -318,6 +335,7 @@ retriever:
 ```
 
 #### 基于Milvus的稀疏向量检索RAG流水线
+
 ```python
 import os
 import time
@@ -332,12 +350,13 @@ import yaml
 
 
 def load_config(path):
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return config
 
+
 def pipeline_run():
-    """    
+    """
     创建并运行 Milvus 专用 RAG 数据处理管道
 
     Args:
@@ -356,8 +375,8 @@ def pipeline_run():
     # MilvusSparseRetriever 会在初始化时自动加载配置的知识库文件
     print("正在构建数据处理管道...")
     # 构建数据处理流程
-    (env
-        .from_source(JSONLBatch, config["source"])
+    (
+        env.from_source(JSONLBatch, config["source"])
         .map(MilvusSparseRetriever, config["retriever"])
         .map(QAPromptor, config["promptor"])
         .map(OpenAIGenerator, config["generator"]["vllm"])
@@ -369,11 +388,11 @@ def pipeline_run():
     print("=== RAG 问答系统运行完成 ===")
 
 
-if __name__ == '__main__':
-    config_path = './config_sparse_milvus.yaml'
+if __name__ == "__main__":
+    config_path = "./config_sparse_milvus.yaml"
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-    
+
     config = load_config(config_path)
 
     print(config)
@@ -386,11 +405,13 @@ if __name__ == '__main__':
             print("请确保知识库文件存在于指定路径")
         else:
             print(f"找到知识库文件: {knowledge_file}")
-    
+
     print("开始运行 Milvus 稠密向量检索管道...")
-    pipeline_run() 
+    pipeline_run()
 ```
+
 config_sparse_milvus.yaml配置文件如下：
+
 ```yaml
 source:
   data_path: "./queries.jsonl"   # 用户提供的流式问题，格式见首段描述
@@ -442,7 +463,7 @@ sink:
 
 ```
 
----
+______________________________________________________________________
 
 ## 组件组合使用
 
@@ -453,17 +474,15 @@ def full_pipeline_run(config: dict) -> None:
     """包含所有组件的完整RAG流水线"""
     env = LocalEnvironment()
     (
-        env
-        .from_batch(JSONLBatch, config["source"])
-        .map(ChromaRetriever, config["retriever"])        # 检索
-        .map(BGEReranker, config["reranker"])             # 重排序  
-        .map(LongRefinerAdapter, config["refiner"])       # 文档优化
-        .map(QAPromptor, config["promptor"])              # 提示组装
-        .map(OpenAIGenerator, config["generator"]["vllm"]) # 答案生成
-        .sink(TerminalSink, config["sink"])               # 结果输出
+        env.from_batch(JSONLBatch, config["source"])
+        .map(ChromaRetriever, config["retriever"])  # 检索
+        .map(BGEReranker, config["reranker"])  # 重排序
+        .map(LongRefinerAdapter, config["refiner"])  # 文档优化
+        .map(QAPromptor, config["promptor"])  # 提示组装
+        .map(OpenAIGenerator, config["generator"]["vllm"])  # 答案生成
+        .sink(TerminalSink, config["sink"])  # 结果输出
     )
     env.submit()
     time.sleep(10)
     env.close()
 ```
-

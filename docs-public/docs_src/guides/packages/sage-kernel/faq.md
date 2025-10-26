@@ -4,7 +4,8 @@
 
 ### What is SAGE Kernel?
 
-SAGE Kernel is a high-performance streaming framework designed for real-time data processing. It provides APIs for creating data streams, processing pipelines, and managing execution environments.
+SAGE Kernel is a high-performance streaming framework designed for real-time data processing. It
+provides APIs for creating data streams, processing pipelines, and managing execution environments.
 
 ### How does SAGE Kernel differ from other streaming frameworks?
 
@@ -29,6 +30,7 @@ pip install intsage-kernel
 ```
 
 For development:
+
 ```bash
 pip install intsage-kernel[dev]
 ```
@@ -36,9 +38,10 @@ pip install intsage-kernel[dev]
 ### Why am I getting import errors?
 
 Common causes:
+
 1. **Wrong package name**: Use `from sage.core.api import LocalEnvironment`
-2. **Missing dependencies**: Install with `pip install intsage-kernel[all]`
-3. **Virtual environment**: Ensure you're in the correct environment
+1. **Missing dependencies**: Install with `pip install intsage-kernel[all]`
+1. **Virtual environment**: Ensure you're in the correct environment
 
 ### How do I configure the environment?
 
@@ -47,11 +50,9 @@ Create a configuration file or use environment variables:
 ```python
 from sage.core.api import LocalEnvironment
 
-env = LocalEnvironment(config={
-    "log_level": "INFO",
-    "buffer_size": 1000,
-    "max_workers": 4
-})
+env = LocalEnvironment(
+    config={"log_level": "INFO", "buffer_size": 1000, "max_workers": 4}
+)
 ```
 
 ## API Usage
@@ -74,7 +75,8 @@ result = stream.map(lambda x: x["key"]).collect()
 ### What's the difference between LocalEnvironment and RemoteEnvironment?
 
 - **LocalEnvironment**: Runs on your local machine, good for development and small-scale processing
-- **RemoteEnvironment**: Connects to remote SAGE clusters, used for production and distributed processing
+- **RemoteEnvironment**: Connects to remote SAGE clusters, used for production and distributed
+  processing
 
 ### How do I handle errors in streams?
 
@@ -85,6 +87,7 @@ def safe_processor(data):
     except Exception as e:
         logger.error(f"Processing error: {e}")
         return None
+
 
 # Filter out None results
 result = stream.map(safe_processor).filter(lambda x: x is not None)
@@ -109,21 +112,25 @@ result = connected.process(your_processor_function)
 ### My streams are running slowly. How can I optimize?
 
 1. **Increase buffer size**:
+
    ```python
    stream = env.create_stream("data", config={"buffer_size": 10000})
    ```
 
-2. **Use batch processing**:
+1. **Use batch processing**:
+
    ```python
    stream.batch(100).map(batch_processor)
    ```
 
-3. **Enable parallel processing**:
+1. **Enable parallel processing**:
+
    ```python
    stream.map_parallel(processor_func, max_workers=8)
    ```
 
-4. **Optimize your processing functions**:
+1. **Optimize your processing functions**:
+
    - Avoid expensive operations in tight loops
    - Use generators for large datasets
    - Cache expensive computations
@@ -131,14 +138,17 @@ result = connected.process(your_processor_function)
 ### How much memory does SAGE Kernel use?
 
 Memory usage depends on:
+
 - Buffer sizes (configurable)
 - Number of active streams
 - Size of processed data
 - Processing complexity
 
 Monitor with:
+
 ```python
 import psutil
+
 memory_usage = psutil.Process().memory_info().rss / 1024 / 1024  # MB
 ```
 
@@ -151,6 +161,7 @@ env = LocalEnvironment(config={"max_workers": 8})
 ```
 
 Or per operation:
+
 ```python
 stream.map_parallel(func, max_workers=4)
 ```
@@ -160,6 +171,7 @@ stream.map_parallel(func, max_workers=4)
 ### What data types can I process?
 
 SAGE Kernel can process any Python object:
+
 - Dictionaries (most common)
 - Lists and tuples
 - Custom classes
@@ -170,8 +182,8 @@ SAGE Kernel can process any Python object:
 ### How do I handle large datasets?
 
 1. **Use streaming**: Process data incrementally rather than loading everything into memory
-2. **Implement windowing**: Process data in time or count-based windows
-3. **Use lazy evaluation**: Only compute what you need
+1. **Implement windowing**: Process data in time or count-based windows
+1. **Use lazy evaluation**: Only compute what you need
 
 ```python
 # Good: Streaming approach
@@ -194,6 +206,7 @@ def ingest_realtime_data():
         stream.write(data)
         time.sleep(0.1)
 
+
 # Background ingestion
 threading.Thread(target=ingest_realtime_data, daemon=True).start()
 
@@ -208,12 +221,14 @@ processed = stream.map(process_realtime).sink(output_handler)
 ```python
 import sqlite3
 
+
 def save_to_db(data):
-    conn = sqlite3.connect('data.db')
+    conn = sqlite3.connect("data.db")
     cursor = conn.cursor()
     cursor.execute("INSERT INTO table (data) VALUES (?)", (str(data),))
     conn.commit()
     conn.close()
+
 
 stream.sink(save_to_db)
 ```
@@ -225,11 +240,13 @@ Yes, SAGE Kernel works well with Pandas:
 ```python
 import pandas as pd
 
+
 def process_dataframe(df_dict):
     df = pd.DataFrame(df_dict)
     # Process with pandas
-    result = df.groupby('category').sum()
+    result = df.groupby("category").sum()
     return result.to_dict()
+
 
 stream.map(process_dataframe)
 ```
@@ -240,13 +257,13 @@ stream.map(process_dataframe)
 from kafka import KafkaProducer, KafkaConsumer
 
 # Kafka consumer to SAGE stream
-consumer = KafkaConsumer('input_topic')
+consumer = KafkaConsumer("input_topic")
 for message in consumer:
     stream.write(json.loads(message.value))
 
 # SAGE stream to Kafka producer
 producer = KafkaProducer()
-stream.sink(lambda data: producer.send('output_topic', json.dumps(data)))
+stream.sink(lambda data: producer.send("output_topic", json.dumps(data)))
 ```
 
 ### Can I use custom functions?
@@ -256,9 +273,11 @@ Yes, register custom functions:
 ```python
 from sage.core.api.functions import register_function
 
+
 @register_function
 def my_custom_function(data):
     return process_data(data)
+
 
 # Use in streams
 stream.map(my_custom_function)
@@ -269,23 +288,28 @@ stream.map(my_custom_function)
 ### How do I debug stream processing?
 
 1. **Enable debug logging**:
+
    ```python
    import logging
+
    logging.basicConfig(level=logging.DEBUG)
    ```
 
-2. **Add debug prints**:
+1. **Add debug prints**:
+
    ```python
    def debug_processor(data):
        print(f"Processing: {data}")
        result = process_data(data)
        print(f"Result: {result}")
        return result
-   
+
+
    stream.map(debug_processor)
    ```
 
-3. **Use peek() for inspection**:
+1. **Use peek() for inspection**:
+
    ```python
    stream.peek(lambda x: print(f"Data: {x}")).map(processor)
    ```
@@ -293,9 +317,9 @@ stream.map(my_custom_function)
 ### My stream seems to hang. What should I check?
 
 1. **Buffer full**: Check if buffers are full and increase size
-2. **Blocking operations**: Ensure processing functions don't block
-3. **Deadlocks**: Check for circular dependencies between streams
-4. **Resource limits**: Monitor CPU and memory usage
+1. **Blocking operations**: Ensure processing functions don't block
+1. **Deadlocks**: Check for circular dependencies between streams
+1. **Resource limits**: Monitor CPU and memory usage
 
 ### How do I handle connection failures in RemoteEnvironment?
 
@@ -304,11 +328,7 @@ from sage.core.api import RemoteEnvironment
 
 env = RemoteEnvironment(
     endpoint="https://api.sage-cluster.com",
-    config={
-        "timeout": 30,
-        "retry_attempts": 3,
-        "retry_delay": 5
-    }
+    config={"timeout": 30, "retry_attempts": 3, "retry_delay": 5},
 )
 
 # Test connection
@@ -321,36 +341,36 @@ if not env.test_connection():
 ### How do I deploy SAGE Kernel in production?
 
 1. **Use containers**:
+
    ```dockerfile
    FROM python:3.11-slim
    RUN pip install intsage-kernel
    CMD ["python", "my_sage_app.py"]
    ```
 
-2. **Configure for production**:
+1. **Configure for production**:
+
    ```python
-   env = LocalEnvironment(config={
-       "log_level": "WARNING",
-       "buffer_size": 10000,
-       "max_workers": 16
-   })
+   env = LocalEnvironment(
+       config={"log_level": "WARNING", "buffer_size": 10000, "max_workers": 16}
+   )
    ```
 
-3. **Monitor performance**: Use metrics and logging
+1. **Monitor performance**: Use metrics and logging
 
 ### How do I scale SAGE Kernel applications?
 
 1. **Horizontal scaling**: Deploy multiple instances
-2. **Vertical scaling**: Increase resources per instance
-3. **Use RemoteEnvironment**: Distribute across cluster
-4. **Optimize processing**: Batch operations, use efficient algorithms
+1. **Vertical scaling**: Increase resources per instance
+1. **Use RemoteEnvironment**: Distribute across cluster
+1. **Optimize processing**: Batch operations, use efficient algorithms
 
 ### What about security considerations?
 
 1. **Input validation**: Always validate incoming data
-2. **Authentication**: Use tokens for RemoteEnvironment
-3. **Network security**: Use HTTPS for remote connections
-4. **Resource limits**: Set appropriate memory and CPU limits
+1. **Authentication**: Use tokens for RemoteEnvironment
+1. **Network security**: Use HTTPS for remote connections
+1. **Resource limits**: Set appropriate memory and CPU limits
 
 ```python
 def validate_input(data):
@@ -360,6 +380,7 @@ def validate_input(data):
         raise ValueError("Missing required field: id")
     return data
 
+
 stream.map(validate_input)
 ```
 
@@ -368,40 +389,47 @@ stream.map(validate_input)
 ### Common Error Messages
 
 #### "Stream buffer is full"
+
 - **Cause**: Data being written faster than processed
 - **Solution**: Increase buffer size or optimize processing
 
 #### "Connection timeout"
+
 - **Cause**: Network issues with RemoteEnvironment
 - **Solution**: Check network connectivity, increase timeout
 
 #### "Memory allocation failed"
+
 - **Cause**: Insufficient memory
 - **Solution**: Reduce buffer sizes, optimize data structures
 
 #### "Function not found"
+
 - **Cause**: Custom function not registered
 - **Solution**: Use `@register_function` decorator
 
 ### Performance Issues
 
 #### Slow processing
+
 1. Profile your processing functions
-2. Use batch processing for small operations
-3. Enable parallel processing
-4. Optimize data structures
+1. Use batch processing for small operations
+1. Enable parallel processing
+1. Optimize data structures
 
 #### High memory usage
+
 1. Reduce buffer sizes
-2. Process data in smaller chunks
-3. Use generators instead of lists
-4. Clean up resources properly
+1. Process data in smaller chunks
+1. Use generators instead of lists
+1. Clean up resources properly
 
 #### CPU usage high
+
 1. Reduce number of worker threads
-2. Optimize processing algorithms
-3. Use more efficient data structures
-4. Consider caching expensive operations
+1. Optimize processing algorithms
+1. Use more efficient data structures
+1. Consider caching expensive operations
 
 ## Getting Help
 
@@ -415,16 +443,16 @@ stream.map(validate_input)
 ### How do I report bugs?
 
 1. Check existing issues on GitHub
-2. Create a minimal reproduction case
-3. Include version information and logs
-4. Submit issue with clear description
+1. Create a minimal reproduction case
+1. Include version information and logs
+1. Submit issue with clear description
 
 ### How do I contribute?
 
 1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
+1. Create a feature branch
+1. Add tests for new functionality
+1. Submit a pull request
 
 ### Community Support
 
@@ -432,4 +460,5 @@ stream.map(validate_input)
 - Discussions: General questions and community help
 - Documentation: Comprehensive guides and examples
 
-Still have questions? Check our [GitHub repository](https://github.com/intellistream/SAGE) or create an issue for support.
+Still have questions? Check our [GitHub repository](https://github.com/intellistream/SAGE) or create
+an issue for support.

@@ -2,15 +2,15 @@
 
 本文档将指导您如何 **安装 SAGE** 及其相关依赖。请根据您的需求选择合适的安装方式。
 
----
+______________________________________________________________________
 
 ## *A*. 前置要求 (Prerequisites)
 
 在开始安装之前，请确保您的开发环境满足以下要求：
 
-* **操作系统 (OS)**：Ubuntu 22.04 及以上版本（推荐）/ macOS / Windows (WSL2)
-* **Python 版本**：Python 3.10 或更高版本（推荐 3.11）
-* **可选依赖**：[Anaconda/Miniconda](https://www.anaconda.com/)（推荐用于环境管理）
+- **操作系统 (OS)**：Ubuntu 22.04 及以上版本（推荐）/ macOS / Windows (WSL2)
+- **Python 版本**：Python 3.10 或更高版本（推荐 3.11）
+- **可选依赖**：[Anaconda/Miniconda](https://www.anaconda.com/)（推荐用于环境管理）
 
 ### 使用 Conda 创建虚拟环境（推荐）
 
@@ -29,7 +29,7 @@ conda activate sage
 python --version  # 应显示 Python 3.10.x 或更高版本
 ```
 
----
+______________________________________________________________________
 
 ## *B*. 快速安装（推荐）
 
@@ -58,6 +58,7 @@ git checkout main-dev
 ```
 
 **quickstart.sh 特性**：
+
 - 🎯 交互式菜单（首次使用友好）
 - 🤖 可选 vLLM 集成（使用 `--vllm` 标志）
 - 🐍 支持 Conda 或系统 Python（使用 `--pip` 跳过 Conda）
@@ -83,6 +84,7 @@ pip install isage
 ```
 
 **安装模式说明**：
+
 - `minimal`：仅包含 sage-common 和 sage-kernel（核心流处理引擎）
 - `standard`：包含所有运行时组件（middleware、libs、tools）
 - `dev`：standard 模式 + 开发工具（pytest、pre-commit 等）
@@ -90,7 +92,7 @@ pip install isage
 
 > **注意**：PyPI 安装可能不包含所有系统依赖（如 C++ 编译工具）。如需完整的开发环境，建议使用 quickstart.sh。
 
----
+______________________________________________________________________
 
 ## *C*. 验证安装 (Verify Installation)
 
@@ -103,6 +105,7 @@ sage doctor
 ```
 
 该命令会检查：
+
 - ✅ Python 版本
 - ✅ SAGE 包安装状态
 - ✅ C++ 扩展编译状态
@@ -139,38 +142,43 @@ from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.map_function import MapFunction
 
+
 # 批处理数据源：生成 10 条 "Hello, World!" 字符串
 class HelloBatch(BatchFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.counter = 0
         self.max_count = 10  # 生成 10 个数据包后返回 None
-    
+
     def execute(self):
         if self.counter >= self.max_count:
             return None  # 返回 None 表示批处理完成
         self.counter += 1
         return f"Hello, World! #{self.counter}"
 
+
 # MapFunction：将内容转为大写
 class UpperCaseMap(MapFunction):
     def execute(self, data):
         return data.upper()
+
 
 # SinkFunction：打印结果
 class PrintSink(SinkFunction):
     def execute(self, data):
         print(data)
 
+
 def main():
     env = LocalEnvironment("Hello_World")
-    
+
     # 构建数据流 Pipeline：批处理源 -> map -> sink
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)
-    
+
     # 提交执行（autostop=True 表示批处理完成后自动停止）
     env.submit(autostop=True)
     print("Hello World 批处理示例结束")
+
 
 if __name__ == "__main__":
     main()
@@ -200,11 +208,12 @@ Hello World 批处理示例结束
 
 至此，您已成功安装 SAGE！
 
----
+______________________________________________________________________
 
 ## *D*. 构建 C++ 扩展（可选，推荐）
 
 SAGE 提供高性能的 C++ 扩展，包括：
+
 - **sage_db**：向量数据库（用于 RAG、Embedding 检索）
 - **sage_flow**：高性能流式算子（加速数据处理）
 
@@ -226,8 +235,9 @@ sage extensions status
 ```
 
 该命令会显示：
+
 - ✅ 已编译的扩展
-- ⚠️  未编译的扩展
+- ⚠️ 未编译的扩展
 - ❌ 缺失的系统依赖（如 cmake、gcc）
 
 ### 系统依赖
@@ -235,18 +245,21 @@ sage extensions status
 C++ 扩展需要以下工具（quickstart.sh 会自动安装）：
 
 **Ubuntu/Debian**:
+
 ```bash
 sudo apt-get update
 sudo apt-get install -y build-essential cmake git
 ```
 
 **macOS**:
+
 ```bash
 brew install cmake
 xcode-select --install
 ```
 
 **Windows (WSL2)**:
+
 ```bash
 sudo apt-get update
 sudo apt-get install -y build-essential cmake git
@@ -260,7 +273,7 @@ sudo apt-get install -y build-essential cmake git
 sage extensions install all --force
 ```
 
----
+______________________________________________________________________
 
 ## *E*. 环境配置
 
@@ -273,6 +286,7 @@ sage config env setup
 ```
 
 该命令会引导您配置：
+
 - OpenAI API Key（用于 GPT 模型）
 - HuggingFace Token（用于模型下载）
 - 其他第三方服务密钥
@@ -288,6 +302,7 @@ nano .env  # 或使用您喜欢的编辑器
 ```
 
 **.env 文件示例**：
+
 ```bash
 # OpenAI API（用于大多数 LLM 示例）
 OPENAI_API_KEY=sk-your-openai-api-key-here
@@ -310,13 +325,14 @@ sage config env show
 sage doctor
 ```
 
----
+______________________________________________________________________
 
 ## *F*. 常见问题与解决方案
 
 ### 问题 1：Python 版本不兼容
 
 **错误信息**：
+
 ```
 Building wheel for faiss-cpu (pyproject.toml) ... error
 ERROR: Failed building wheel for faiss-cpu
@@ -325,6 +341,7 @@ ERROR: Failed building wheel for faiss-cpu
 **原因分析**：Faiss 官方包支持 Python 3.8-3.12，不支持 Python 3.13+
 
 **解决方案**：
+
 ```bash
 # 使用 Python 3.11（推荐）
 conda create -n sage python=3.11
@@ -335,6 +352,7 @@ pip install isage
 ### 问题 2：C++ 扩展编译失败
 
 **错误信息**：
+
 ```
 CMake Error: CMake was unable to find a build program
 ```
@@ -342,6 +360,7 @@ CMake Error: CMake was unable to find a build program
 **原因分析**：缺少 C++ 编译工具
 
 **解决方案**：
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install -y build-essential cmake
@@ -354,6 +373,7 @@ xcode-select --install
 ### 问题 3：pip 安装超时
 
 **错误信息**：
+
 ```
 ERROR: Operation cancelled by user
 ReadTimeoutError: HTTPSConnectionPool
@@ -362,6 +382,7 @@ ReadTimeoutError: HTTPSConnectionPool
 **原因分析**：网络连接问题或下载源速度慢
 
 **解决方案**：
+
 ```bash
 # 使用国内镜像源
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple isage
@@ -373,15 +394,18 @@ pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 ### 问题 4：导入 SAGE 失败
 
 **错误信息**：
+
 ```python
 ModuleNotFoundError: No module named 'sage'
 ```
 
 **原因分析**：
+
 1. SAGE 未正确安装
-2. Python 环境不正确
+1. Python 环境不正确
 
 **解决方案**：
+
 ```bash
 # 检查安装状态
 pip show isage
@@ -397,6 +421,7 @@ pip install --force-reinstall isage
 ### 问题 5：Ray 初始化失败（分布式模式）
 
 **错误信息**：
+
 ```
 ray.exceptions.RaySystemError: System error
 ```
@@ -404,6 +429,7 @@ ray.exceptions.RaySystemError: System error
 **原因分析**：Ray 运行时配置问题
 
 **解决方案**：
+
 ```bash
 # 停止所有 Ray 进程
 ray stop
@@ -415,15 +441,15 @@ ray start --head
 env = LocalEnvironment("my_app")  # 使用本地模式
 ```
 
----
+______________________________________________________________________
 
 ## *G*. 下一步
 
 安装完成后，您可以：
 
 1. **学习基础教程**：[快速开始](./quickstart.md) 查看示例代码
-2. **浏览完整示例**：[Examples 目录](https://github.com/intellistream/SAGE/tree/main-dev/examples)
-3. **阅读开发指南**：[开发者文档](./developer.md)
-4. **加入社区**：[社区指南](../../docs/COMMUNITY.md) 获取帮助
+1. **浏览完整示例**：[Examples 目录](https://github.com/intellistream/SAGE/tree/main-dev/examples)
+1. **阅读开发指南**：[开发者文档](./developer.md)
+1. **加入社区**：[社区指南](../../docs/COMMUNITY.md) 获取帮助
 
 祝您使用愉快！🎉

@@ -17,32 +17,32 @@
 }
 
 @keyframes nodeFloat {
-    0% { 
+    0% {
         transform: translate(0, 0) scale(1);
         opacity: 0;
     }
     10% {
         opacity: 1;
     }
-    50% { 
+    50% {
         transform: translate(100vw, -50px) scale(1.2);
         opacity: 0.8;
     }
     90% {
         opacity: 1;
     }
-    100% { 
+    100% {
         transform: translate(200vw, 0) scale(1);
         opacity: 0;
     }
 }
 
 @keyframes pulse {
-    0%, 100% { 
+    0%, 100% {
         opacity: 0.3;
         transform: scaleX(1);
     }
-    50% { 
+    50% {
         opacity: 0.8;
         transform: scaleX(1.1);
     }
@@ -642,17 +642,17 @@
     .article-monitoring-container {
         height: 300px;
     }
-    
+
     .processing-pipeline {
         gap: 40px;
     }
-    
+
     .process-stage {
         width: 45px;
         height: 45px;
         font-size: 16px;
     }
-    
+
     .arxiv-source,
     .user-interface {
         width: 60px;
@@ -1232,31 +1232,31 @@
     .smart-home-container {
         height: 300px;
     }
-    
+
     .laundry-robot {
         width: 32px;
         height: 32px;
         font-size: 14px;
     }
-    
+
     .washing-machine {
         width: 48px;
         height: 36px;
         font-size: 14px;
     }
-    
+
     .drying-rack {
         width: 40px;
         height: 24px;
         font-size: 12px;
     }
-    
+
     .environmental-sensor {
         width: 16px;
         height: 16px;
         font-size: 6px;
     }
-    
+
     .device-tooltip {
         font-size: 10px;
         padding: 6px 8px;
@@ -1267,19 +1267,19 @@
     .smart-home-container {
         height: 250px;
     }
-    
+
     .laundry-robot {
         left: 30px;
         width: 28px;
         height: 28px;
     }
-    
+
     .washing-machine {
         left: 150px;
         width: 40px;
         height: 30px;
     }
-    
+
     .drying-rack {
         right: 150px;
         width: 32px;
@@ -1903,43 +1903,43 @@
     .auto-scaling-container {
         height: 300px;
     }
-    
+
     .server-grid {
         width: 100px;
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .server-instance {
         width: 32px;
         height: 48px;
     }
-    
+
     .load-balancer {
         width: 48px;
         height: 48px;
         font-size: 16px;
     }
-    
+
     .user-load-section {
         width: 100px;
         height: 80px;
     }
-    
+
     .user-icons-grid {
         grid-template-columns: repeat(6, 1fr);
     }
-    
+
     .user-icon {
         width: 10px;
         height: 10px;
     }
-    
+
     .metrics-dashboard {
         width: 160px;
         height: 60px;
         padding: 8px;
     }
-    
+
     .user-load-slider {
         width: 120px;
         padding: 8px;
@@ -1950,31 +1950,31 @@
     .auto-scaling-container {
         height: 250px;
     }
-    
+
     .server-grid {
         width: 80px;
     }
-    
+
     .server-instance {
         width: 28px;
         height: 40px;
     }
-    
+
     .load-balancer {
         width: 40px;
         height: 40px;
         font-size: 14px;
     }
-    
+
     .user-load-section {
         width: 80px;
         height: 60px;
     }
-    
+
     .user-icons-grid {
         grid-template-columns: repeat(4, 1fr);
     }
-    
+
     .metrics-dashboard {
         width: 140px;
         height: 50px;

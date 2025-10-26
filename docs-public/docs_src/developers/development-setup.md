@@ -2,16 +2,16 @@
 
 本文档将指导您如何以 **开发者模式** 安装 SAGE 源码及其相关依赖，并开始贡献代码。
 
----
+______________________________________________________________________
 
 ## *A*. 前置要求 (Prerequisites)
 
 在开始之前，请确保您的开发环境满足以下要求：
 
-* **操作系统**：Ubuntu 22.04+ / macOS / Windows (WSL2)
-* **Python 版本**：Python 3.10+ （推荐 3.11）
-* **Git**：用于版本控制
-* **可选**：[Anaconda/Miniconda](https://www.anaconda.com/) 用于环境管理
+- **操作系统**：Ubuntu 22.04+ / macOS / Windows (WSL2)
+- **Python 版本**：Python 3.10+ （推荐 3.11）
+- **Git**：用于版本控制
+- **可选**：[Anaconda/Miniconda](https://www.anaconda.com/) 用于环境管理
 
 ### 克隆 SAGE 仓库
 
@@ -28,7 +28,7 @@ cd SAGE
 git checkout main-dev
 ```
 
----
+______________________________________________________________________
 
 ## *B*. 开发环境安装
 
@@ -45,9 +45,9 @@ quickstart.sh 提供交互式和非交互式两种安装模式。
 运行后会显示交互式菜单：
 
 1. 选择安装模式（选择 **开发模式**）
-2. 选择 Python 环境（Conda 或系统 Python）
-3. 输入环境名称（如 `sage-dev`）
-4. 确认并开始安装
+1. 选择 Python 环境（Conda 或系统 Python）
+1. 输入环境名称（如 `sage-dev`）
+1. 确认并开始安装
 
 #### 非交互式安装（自动化）
 
@@ -63,6 +63,7 @@ quickstart.sh 提供交互式和非交互式两种安装模式。
 ```
 
 **开发模式特性**：
+
 - ✅ 安装所有 SAGE 包（9 个包）
 - ✅ 安装开发工具（pytest、pre-commit、ruff 等）
 - ✅ 可编辑模式（`pip install -e`）- 代码修改即时生效
@@ -93,7 +94,7 @@ pre-commit install
 sage extensions install all
 ```
 
----
+______________________________________________________________________
 
 ## *C*. 验证开发环境
 
@@ -104,6 +105,7 @@ python examples/tutorials/hello_world.py
 ```
 
 预期输出：
+
 ```
 HELLO, WORLD! #1
 HELLO, WORLD! #2
@@ -119,6 +121,7 @@ sage doctor
 ```
 
 该命令会检查：
+
 - Python 版本和环境
 - 已安装的 SAGE 包
 - C++ 扩展状态
@@ -153,7 +156,7 @@ ruff check .
 ruff format .
 ```
 
----
+______________________________________________________________________
 
 ## *D*. 开发工作流
 
@@ -171,6 +174,7 @@ git checkout -b feature/your-feature-name
 SAGE 使用可编辑安装（`pip install -e`），您的代码修改会立即生效，无需重新安装。
 
 **包结构**：
+
 ```
 packages/
 ├── sage-common/      # 共享工具和配置
@@ -187,16 +191,18 @@ packages/
 ### 3. 编写测试
 
 遵循 pytest 约定：
+
 ```python
 # packages/sage-common/tests/unit/test_feature.py
 import pytest
 from sage.common.your_module import YourClass
 
+
 class TestYourFeature:
     def test_basic_functionality(self):
         obj = YourClass()
         assert obj.method() == expected_value
-    
+
     @pytest.mark.slow
     def test_slow_operation(self):
         # 标记慢速测试
@@ -230,6 +236,7 @@ git commit -m "feat: add your feature description"
 提交代码时会自动运行两步检查（无需手动操作）：
 
 **步骤 1：代码质量检查**
+
 - ✅ **black** - 代码格式化（自动修复）
 - ✅ **isort** - 导入语句排序（自动修复）
 - ✅ **ruff** - 快速 Linter 检查（自动修复）
@@ -238,12 +245,14 @@ git commit -m "feat: add your feature description"
 - ✅ **detect-secrets** - 密钥泄露检查
 
 **步骤 2：架构合规性检查**
+
 - ✅ 检查包之间的依赖关系是否符合分层架构
 - ✅ 检查导入路径是否正确（禁止跨层级导入）
 - ✅ 检查是否使用了内部实现（禁止使用 `._internal`）
 - ✅ 验证 `__layer__` 标记是否正确
 
 **如果检查失败**：
+
 ```bash
 # 1. 代码质量问题（black/isort/ruff）会自动修复
 #    只需重新添加并提交：
@@ -261,6 +270,7 @@ git commit --no-verify -m "feat: your message"
 ```
 
 **提交信息规范**：
+
 - `feat:` - 新功能
 - `fix:` - Bug 修复
 - `docs:` - 文档更新
@@ -279,7 +289,7 @@ git push origin feature/your-feature-name
 # 目标分支：main-dev
 ```
 
----
+______________________________________________________________________
 
 ## *E*. C++ 扩展开发
 
@@ -320,21 +330,23 @@ gdb python
 (gdb) run your_script.py
 ```
 
----
+______________________________________________________________________
 
 ## *F*. 常见开发问题
 
 ### 问题 1：子模块初始化失败
 
 **错误信息**：
+
 ```bash
-fatal: unable to access 'https://github.com/intellistream/SAGE-Pub.git/': 
+fatal: unable to access 'https://github.com/intellistream/SAGE-Pub.git/':
 Failed to connect to github.com port 443
 ```
 
 **原因**：网络连接问题（GitHub 访问受限）
 
 **解决方案**：
+
 ```bash
 # 方案 1：使用代理
 git config --global http.proxy http://127.0.0.1:7890
@@ -350,11 +362,13 @@ git config --global url."git@github.com:".insteadOf "https://github.com/"
 ### 问题 2：C++ 扩展编译失败
 
 **错误信息**：
+
 ```
 CMake Error: CMake was unable to find a build program
 ```
 
 **解决方案**：
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get update
@@ -368,11 +382,13 @@ xcode-select --install
 ### 问题 3：pre-commit 检查失败
 
 **错误信息**：
+
 ```
 ruff....................................................................Failed
 ```
 
 **解决方案**：
+
 ```bash
 # pre-commit 已自动格式化代码，重新添加并提交
 git add .
@@ -385,6 +401,7 @@ git commit --no-verify -m "your message"
 ### 问题 4：测试失败
 
 **错误信息**：
+
 ```
 ModuleNotFoundError: No module named 'sage.xxx'
 ```
@@ -392,6 +409,7 @@ ModuleNotFoundError: No module named 'sage.xxx'
 **原因**：包未正确安装或环境问题
 
 **解决方案**：
+
 ```bash
 # 重新安装开发环境
 pip install -e packages/sage[dev]
@@ -406,6 +424,7 @@ sage doctor
 ### 问题 5：导入路径错误
 
 **错误信息**：
+
 ```
 ImportError: attempted relative import with no known parent package
 ```
@@ -413,10 +432,11 @@ ImportError: attempted relative import with no known parent package
 **原因**：相对导入路径问题
 
 **解决方案**：
+
 - 使用绝对导入：`from sage.common.xxx import YYY`
 - 不要使用相对导入：`from ..xxx import YYY`（仅在包内部使用）
 
----
+______________________________________________________________________
 
 ## *G*. CI/CD 开发指南
 
@@ -436,12 +456,13 @@ SAGE 使用 GitHub Actions 进行 CI/CD：
 提交 Pull Request 或 Push 代码时，CI 会自动运行：
 
 1. **代码质量检查**（pre-commit hooks）
-2. **单元测试**（pytest）
-3. **架构合规性检查**（架构检查工具）
+1. **单元测试**（pytest）
+1. **架构合规性检查**（架构检查工具）
    - PR 模式：严格模式（`--strict`），任何违规都会失败
    - Push 模式：宽松模式，仅警告不阻止
 
 **架构检查差异**：
+
 - **本地 pre-commit**：检查所有暂存文件
 - **CI Pull Request**：检查 PR 修改的文件（严格模式）
 - **CI Push**：检查最近 5 次提交的文件（宽松模式）
@@ -467,42 +488,45 @@ pre-commit run --all-files
 SAGE CI 使用以下缓存来加速构建：
 
 1. **pip 缓存**：Python 包缓存
-2. **C++ 构建缓存**：编译产物缓存
-3. **HuggingFace 模型缓存**：嵌入模型缓存
+1. **C++ 构建缓存**：编译产物缓存
+1. **HuggingFace 模型缓存**：嵌入模型缓存
 
 如需清除缓存，在 GitHub Actions 中手动删除缓存。
 
----
+______________________________________________________________________
 
 ## *H*. 贡献指南
 
 ### 代码规范
 
 1. **Python 代码**：
+
    - 遵循 PEP 8
    - 使用 ruff 进行格式化和 lint
    - 类型提示（推荐）：`def func(x: int) -> str:`
    - 文档字符串：使用 Google 风格
 
-2. **测试覆盖率**：
+1. **测试覆盖率**：
+
    - 新功能必须包含测试
    - 单元测试覆盖率 > 80%
    - 集成测试覆盖核心流程
 
-3. **提交信息**：
+1. **提交信息**：
+
    - 使用 Conventional Commits 规范
    - 清晰描述修改内容和原因
 
 ### Pull Request 流程
 
 1. Fork 仓库并创建功能分支
-2. 编写代码和测试
-3. 确保所有测试通过
-4. 运行 pre-commit 检查
-5. 提交 PR 到 `main-dev` 分支
-6. 等待 Code Review
-7. 根据反馈修改
-8. 合并后删除分支
+1. 编写代码和测试
+1. 确保所有测试通过
+1. 运行 pre-commit 检查
+1. 提交 PR 到 `main-dev` 分支
+1. 等待 Code Review
+1. 根据反馈修改
+1. 合并后删除分支
 
 ### 获取帮助
 
@@ -513,7 +537,7 @@ SAGE CI 使用以下缓存来加速构建：
   - QQ 群：IntelliStream 课题组讨论群
   - Slack：[加入 Slack](https://join.slack.com/t/intellistream/shared_invite/...)
 
----
+______________________________________________________________________
 
 ## *I*. 下一步
 
@@ -523,5 +547,6 @@ SAGE CI 使用以下缓存来加速构建：
 - 🤝 参与 [社区讨论](../../docs/COMMUNITY.md)
 
 祝您开发愉快！🚀
-```
 
+```
+```

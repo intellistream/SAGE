@@ -60,17 +60,19 @@ from sage.kernel.api import LocalEnvironment
 from sage.libs.io import FileSource, TerminalSink
 from sage.kernel.api.function import MapFunction
 
+
 # 创建简单的处理函数
 class UpperCaseMap(MapFunction):
     def map(self, record):
         record.data = record.data.upper()
         return record
 
+
 # 构建 Pipeline
 env = LocalEnvironment("hello_sage")
 
-(env
-    .from_source(FileSource, {"file_path": "input.txt"})
+(
+    env.from_source(FileSource, {"file_path": "input.txt"})
     .map(UpperCaseMap)
     .sink(TerminalSink)
 )
@@ -104,27 +106,15 @@ STREAMING AI AGENT
 ```python
 from sage.kernel.api import LocalEnvironment
 from sage.libs.io import FileSource, TerminalSink
-from sage.middleware.operators.rag import (
-    ChromaRetriever,
-    QAPromptor,
-    OpenAIGenerator
-)
+from sage.middleware.operators.rag import ChromaRetriever, QAPromptor, OpenAIGenerator
 
 env = LocalEnvironment("rag_pipeline")
 
-(env
-    .from_source(FileSource, {"file_path": "questions.txt"})
-    .map(ChromaRetriever, {
-        "collection": "my_docs",
-        "top_k": 3
-    })
-    .map(QAPromptor, {
-        "template": "Context: {context}\n\nQ: {query}\nA:"
-    })
-    .map(OpenAIGenerator, {
-        "model": "gpt-3.5-turbo",
-        "api_key": "your-api-key"
-    })
+(
+    env.from_source(FileSource, {"file_path": "questions.txt"})
+    .map(ChromaRetriever, {"collection": "my_docs", "top_k": 3})
+    .map(QAPromptor, {"template": "Context: {context}\n\nQ: {query}\nA:"})
+    .map(OpenAIGenerator, {"model": "gpt-3.5-turbo", "api_key": "your-api-key"})
     .sink(TerminalSink)
 )
 
@@ -199,10 +189,7 @@ from sage.libs.io import FileSource, TerminalSink
 from sage.libs.agents.bots import AnswerBot, QuestionBot
 
 # RAG
-from sage.middleware.operators.rag import (
-    ChromaRetriever, 
-    OpenAIGenerator
-)
+from sage.middleware.operators.rag import ChromaRetriever, OpenAIGenerator
 
 # 配置
 from sage.common.config import load_config

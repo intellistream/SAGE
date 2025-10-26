@@ -15,14 +15,17 @@ class ProcessEverything(MapFunction):
         # Load data, transform, validate, save...
         pass
 
+
 # ✅ Good: Separate concerns
 class LoadData(MapFunction):
     def map(self, record):
         return load_data(record)
 
+
 class TransformData(MapFunction):
     def map(self, record):
         return transform(record)
+
 
 class ValidateData(FilterFunction):
     def filter(self, record):
@@ -38,13 +41,14 @@ Avoid shared state:
 class StatefulOperator(MapFunction):
     def __init__(self):
         self.cache = {}  # Shared across records
-    
+
     def map(self, record):
         if record.id in self.cache:
             return self.cache[record.id]
         result = process(record)
         self.cache[record.id] = result
         return result
+
 
 # ✅ Good: Stateless processing
 class StatelessOperator(MapFunction):
@@ -58,12 +62,14 @@ Make pipelines readable:
 
 ```python
 # ✅ Good: Clear, linear flow
-stream = (env.from_source(source)
+stream = (
+    env.from_source(source)
     .map(load_operator)
     .filter(validate_operator)
     .map(transform_operator)
     .map(enrich_operator)
-    .to_sink(sink))
+    .to_sink(sink)
+)
 
 # Better: Named intermediate streams
 loaded = env.from_source(source).map(load_operator)
@@ -103,7 +109,7 @@ class BatchOperator(MapFunction):
     def __init__(self, batch_size=32):
         self.batch_size = batch_size
         self.buffer = []
-    
+
     def map(self, record):
         self.buffer.append(record)
         if len(self.buffer) >= self.batch_size:
@@ -138,11 +144,11 @@ class ResourceAwareOperator(MapFunction):
         # Initialize expensive resources once
         self.model = load_model()
         self.db_connection = connect_db()
-    
+
     def map(self, record):
         # Reuse resources
         return self.model.process(record)
-    
+
     def close(self):
         # Clean up resources
         self.db_connection.close()
@@ -155,11 +161,12 @@ Cache expensive computations:
 ```python
 from functools import lru_cache
 
+
 class CachingOperator(MapFunction):
     @lru_cache(maxsize=1000)
     def expensive_computation(self, key):
         return compute(key)
-    
+
     def map(self, record):
         return self.expensive_computation(record.key)
 ```
@@ -203,10 +210,12 @@ Separate code from configuration:
 # config/settings.py
 from pydantic import BaseModel
 
+
 class PipelineConfig(BaseModel):
     batch_size: int = 32
     parallelism: int = 4
     checkpoint_interval: float = 60.0
+
 
 # main.py
 from config.settings import PipelineConfig
@@ -224,23 +233,23 @@ Create reusable operator libraries:
 class BaseOperator(MapFunction):
     def __init__(self, config):
         self.config = config
-    
+
     def open(self, context):
         self.setup()
-    
+
     def setup(self):
         """Override in subclasses"""
         pass
+
 
 # src/operators/llm.py
 class LLMOperator(BaseOperator):
     def setup(self):
         self.client = OpenAI(api_key=self.config.api_key)
-    
+
     def map(self, record):
         return self.client.chat.completions.create(
-            model=self.config.model,
-            messages=[{"role": "user", "content": record.text}]
+            model=self.config.model, messages=[{"role": "user", "content": record.text}]
         )
 ```
 
@@ -254,13 +263,14 @@ Test operators in isolation:
 import pytest
 from src.operators.transform import TransformOperator
 
+
 def test_transform_operator():
     operator = TransformOperator()
-    
+
     # Test with valid input
     result = operator.map({"value": 10})
     assert result["value"] == 20
-    
+
     # Test with invalid input
     with pytest.raises(ValueError):
         operator.map({"value": -1})
@@ -273,19 +283,17 @@ Test pipelines end-to-end:
 ```python
 def test_pipeline():
     env = LocalStreamEnvironment("test")
-    
+
     # Create test data
     test_data = [{"id": 1}, {"id": 2}]
     source = ListSource(test_data)
     sink = CollectSink()
-    
+
     # Build and execute pipeline
-    stream = (env.from_source(source)
-        .map(TransformOperator())
-        .to_sink(sink))
-    
+    stream = env.from_source(source).map(TransformOperator()).to_sink(sink)
+
     env.execute()
-    
+
     # Verify results
     results = sink.get_results()
     assert len(results) == 2
@@ -298,14 +306,15 @@ Mock LLMs and APIs:
 ```python
 from unittest.mock import Mock, patch
 
+
 def test_llm_operator():
-    with patch('openai.OpenAI') as mock_openai:
+    with patch("openai.OpenAI") as mock_openai:
         mock_client = Mock()
         mock_openai.return_value = mock_client
         mock_client.chat.completions.create.return_value = Mock(
             choices=[Mock(message=Mock(content="Test response"))]
         )
-        
+
         operator = LLMOperator()
         result = operator.map({"text": "Test input"})
         assert result == "Test response"
@@ -319,12 +328,14 @@ Use conftest.py for test fixtures:
 # tests/conftest.py
 import pytest
 
+
 @pytest.fixture(scope="session")
 def test_data_dir(tmp_path_factory):
     data_dir = tmp_path_factory.mktemp("data")
     # Create test data
     (data_dir / "test.csv").write_text("id,value\n1,10\n2,20\n")
     return data_dir
+
 
 # tests/test_pipeline.py
 def test_with_real_data(test_data_dir):
@@ -340,26 +351,28 @@ Use structured logging:
 
 ```python
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 class DebugOperator(MapFunction):
     def map(self, record):
-        logger.info("Processing record", extra={
-            "record_id": record.id,
-            "stage": "transform"
-        })
+        logger.info(
+            "Processing record", extra={"record_id": record.id, "stage": "transform"}
+        )
         try:
             result = process(record)
-            logger.debug("Processed successfully", extra={
-                "record_id": record.id,
-                "output_size": len(result)
-            })
+            logger.debug(
+                "Processed successfully",
+                extra={"record_id": record.id, "output_size": len(result)},
+            )
             return result
         except Exception as e:
-            logger.error("Processing failed", extra={
-                "record_id": record.id,
-                "error": str(e)
-            }, exc_info=True)
+            logger.error(
+                "Processing failed",
+                extra={"record_id": record.id, "error": str(e)},
+                exc_info=True,
+            )
             raise
 ```
 
@@ -371,16 +384,17 @@ Profile performance:
 import cProfile
 import pstats
 
+
 def profile_pipeline():
     profiler = cProfile.Profile()
     profiler.enable()
-    
+
     # Run pipeline
     env.execute()
-    
+
     profiler.disable()
     stats = pstats.Stats(profiler)
-    stats.sort_stats('cumulative')
+    stats.sort_stats("cumulative")
     stats.print_stats(20)
 ```
 
@@ -395,9 +409,9 @@ env = LocalStreamEnvironment(
         "fault_tolerance": {
             "strategy": "checkpoint",
             "checkpoint_interval": 10.0,  # Checkpoint frequently
-            "checkpoint_dir": "./checkpoints"
+            "checkpoint_dir": "./checkpoints",
         }
-    }
+    },
 )
 ```
 
@@ -415,10 +429,7 @@ stream = env.from_source(source).map(op1).to_sink(sink)
 env.execute()  # Verify op1
 
 # 3. Continue adding operators
-stream = (env.from_source(source)
-    .map(op1)
-    .map(op2)
-    .to_sink(sink))
+stream = env.from_source(source).map(op1).map(op2).to_sink(sink)
 env.execute()  # Verify op1 + op2
 ```
 
@@ -446,12 +457,10 @@ Instructions:
 
 Output:
 """
-    
+
     def map(self, record):
         prompt = self.PROMPT_TEMPLATE.format(
-            task=record.task,
-            context=record.context,
-            input=record.input
+            task=record.task, context=record.context, input=record.input
         )
         return self.llm.generate(prompt)
 ```
@@ -464,19 +473,20 @@ Respect API rate limits:
 import time
 from threading import Lock
 
+
 class RateLimitedOperator(MapFunction):
     def __init__(self, calls_per_second=10):
         self.min_interval = 1.0 / calls_per_second
         self.last_call = 0
         self.lock = Lock()
-    
+
     def map(self, record):
         with self.lock:
             elapsed = time.time() - self.last_call
             if elapsed < self.min_interval:
                 time.sleep(self.min_interval - elapsed)
             self.last_call = time.time()
-        
+
         return self.llm.generate(record.text)
 ```
 
@@ -489,20 +499,20 @@ class CostAwareOperator(MapFunction):
     def __init__(self):
         self.total_tokens = 0
         self.total_cost = 0.0
-    
+
     def map(self, record):
         response = self.llm.generate(record.text)
-        
+
         # Track usage
         tokens = response.usage.total_tokens
         cost = tokens * 0.000002  # $0.002 per 1K tokens
-        
+
         self.total_tokens += tokens
         self.total_cost += cost
-        
+
         if self.total_cost > 10.0:  # Alert if cost > $10
             logger.warning(f"High cost: ${self.total_cost:.2f}")
-        
+
         return response.text
 ```
 

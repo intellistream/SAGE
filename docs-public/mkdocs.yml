@@ -16,162 +16,162 @@ theme:
   name: material
   language: en
   palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - scheme: slate
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+  - scheme: default
+    primary: indigo
+    accent: indigo
+    toggle:
+      icon: material/brightness-7
+      name: Switch to dark mode
+  - scheme: slate
+    primary: indigo
+    accent: indigo
+    toggle:
+      icon: material/brightness-4
+      name: Switch to light mode
   features:
-    - navigation.instant
-    - navigation.tracking
-    - navigation.tabs
-    - navigation.tabs.sticky
-    - navigation.sections
-    - navigation.expand
-    - navigation.top
-    - navigation.footer
-    - search.suggest
-    - search.highlight
-    - content.code.copy
-    - content.code.annotate
+  - navigation.instant
+  - navigation.tracking
+  - navigation.tabs
+  - navigation.tabs.sticky
+  - navigation.sections
+  - navigation.expand
+  - navigation.top
+  - navigation.footer
+  - search.suggest
+  - search.highlight
+  - content.code.copy
+  - content.code.annotate
   icon:
     repo: fontawesome/brands/github
 
 markdown_extensions:
-  - admonition
-  - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.tabbed:
-      alternate_style: true
-  - tables
-  - attr_list
-  - md_in_html
-  - toc:
-      permalink: true
+- admonition
+- pymdownx.details
+- pymdownx.superfences
+- pymdownx.highlight:
+    anchor_linenums: true
+- pymdownx.inlinehilite
+- pymdownx.snippets
+- pymdownx.tabbed:
+    alternate_style: true
+- tables
+- attr_list
+- md_in_html
+- toc:
+    permalink: true
 
 plugins:
-  - search:
-      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+- search:
+    separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
 
 extra:
   social:
-    - icon: fontawesome/brands/github
-      link: https://github.com/intellistream/SAGE
-    - icon: fontawesome/brands/python
-      link: https://pypi.org/project/sage-framework/
+  - icon: fontawesome/brands/github
+    link: https://github.com/intellistream/SAGE
+  - icon: fontawesome/brands/python
+    link: https://pypi.org/project/sage-framework/
 
 nav:
-  - Home: index.md
-  
-  - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quickstart: getting-started/quickstart.md
-  
-  - Tutorials:
-    - Basic:
-      - Streaming 101: tutorials/basic/streaming-101.md
-      - Hello Batch: tutorials/basic/hello_batch.md
-      - Operators:
-        - Filter: tutorials/basic/operators/hello_filter_world.md
-        - FlatMap: tutorials/basic/operators/hello_flatmap_world.md
-        - CoMap: tutorials/basic/operators/hello_filter_world_comap.md
-        - Future: tutorials/basic/operators/hello_future_world.md
-        - Join: tutorials/basic/operators/hello_join_world.md
-    - Advanced: tutorials/advanced/
-  
-  - Concepts:
-    - Architecture:
-      - Overview: concepts/architecture/overview.md
-      - Package Structure: concepts/architecture/package-structure.md
-      - Design Decisions:
-        - sage-libs Restructuring: concepts/architecture/design-decisions/sage-libs-restructuring.md
-        - RPC Queue Refactoring: concepts/architecture/design-decisions/rpc-queue-refactoring.md
-        - L2 Platform Layer: concepts/architecture/design-decisions/l2-platform-layer.md
-  
-  - Guides:
-    - Packages:
-      - sage-common:
-        - Overview: guides/packages/sage-common/overview.md
-      - sage-platform:
-        - Overview: guides/packages/sage-platform/overview.md
-      - sage-kernel:
-        - Overview: guides/packages/sage-kernel/README.md
-        - Architecture: guides/packages/sage-kernel/architecture.md
-        - Concepts: guides/packages/sage-kernel/concepts.md
-        - API Reference:
-          - Overview: guides/packages/sage-kernel/api/README.md
-          - DataStreams: guides/packages/sage-kernel/api/datastreams.md
-          - Functions: guides/packages/sage-kernel/api/functions.md
-          - Environments: guides/packages/sage-kernel/api/environments.md
-          - Connected Streams: guides/packages/sage-kernel/api/connected-streams.md
-        - Guides:
-          - Quickstart: guides/packages/sage-kernel/guides/quickstart.md
-          - Operations: guides/packages/sage-kernel/guides/operations.md
-          - Improvements: guides/packages/sage-kernel/guides/improvements.md
-        - Examples: guides/packages/sage-kernel/examples/
-        - Runtime:
-          - Communication: guides/packages/sage-kernel/runtime_communication.md
-          - Tasks: guides/packages/sage-kernel/runtime_tasks.md
-          - Services: guides/packages/sage-kernel/runtime_services.md
-        - Configuration: guides/packages/sage-kernel/config/config.md
-        - CLI: guides/packages/sage-kernel/components/cli.md
-        - Best Practices: guides/packages/sage-kernel/best-practices.md
-        - FAQ: guides/packages/sage-kernel/faq.md
-      - sage-libs:
-        - Overview: guides/packages/sage-libs/README.md
-        - Introduction: guides/packages/sage-libs/lib_intro.md
-        - Philosophy: guides/packages/sage-libs/philosophy.md
-        - Embeddings: guides/packages/sage-libs/embedding.md
-        - RAG: guides/packages/sage-libs/rag.md
-        - Agents: guides/packages/sage-libs/agents.md
-        - Tools: guides/packages/sage-libs/tools_intro.md
-        - I/O: guides/packages/sage-libs/io.md
-        - Context: guides/packages/sage-libs/context.md
-        - Operators Reference: guides/packages/sage-libs/operators_reference.md
-      - sage-middleware:
-        - Overview: guides/packages/sage-middleware/overview.md
-        - API: guides/packages/sage-middleware/api/service_api.md
-        - Components:
-          - NeuroMem: guides/packages/sage-middleware/components/neuromem.md
-          - SageDB: guides/packages/sage-middleware/components/sage_db.md
-        - Hardware:
-          - GPU Acceleration: guides/packages/sage-middleware/hardware/gpu_acceleration.md
-        - Services:
-          - Service Introduction: guides/packages/sage-middleware/service/service_intro.md
-          - Service API: guides/packages/sage-middleware/service/service_api.md
-          - Memory Service: guides/packages/sage-middleware/service/memory/memory_service.md
-          - Vector DB: guides/packages/sage-middleware/service/neuromem/vdb/vdb.md
-          - SageDB Service: guides/packages/sage-middleware/service/sage-db/sage_db_service.md
-          - SageFlow Service: guides/packages/sage-middleware/service/sage-flow/sage_flow_service.md
-      - sage-tools:
-        - CLI Reference: guides/packages/sage-tools/cli_reference.md
-        - Pipeline Builder: guides/packages/sage-tools/pipeline_builder.md
-    - Deployment: guides/deployment/
-    - Best Practices: guides/best-practices/
-  
-  - API Reference: api-reference/
-  
-  - Developers:
-    - Contributing: developers/commands.md
-    - Development Setup: developers/development-setup.md
-    - CI/CD: developers/ci-cd.md
-    - Dev Notes:
-      - Overview: dev-notes/index.md
-      - Package Architecture: dev-notes/package-architecture.md
-  
-  - Community:
-    - Overview: community/README.md
-    - Community Guidelines: community/community.md
-    - Weekly Meetings: community/meetings.md
-    - IntelliStream Lab: community/intellistream.md
+- Home: index.md
+
+- Getting Started:
+  - Installation: getting-started/installation.md
+  - Quickstart: getting-started/quickstart.md
+
+- Tutorials:
+  - Basic:
+    - Streaming 101: tutorials/basic/streaming-101.md
+    - Hello Batch: tutorials/basic/hello_batch.md
+    - Operators:
+      - Filter: tutorials/basic/operators/hello_filter_world.md
+      - FlatMap: tutorials/basic/operators/hello_flatmap_world.md
+      - CoMap: tutorials/basic/operators/hello_filter_world_comap.md
+      - Future: tutorials/basic/operators/hello_future_world.md
+      - Join: tutorials/basic/operators/hello_join_world.md
+  - Advanced: tutorials/advanced/
+
+- Concepts:
+  - Architecture:
+    - Overview: concepts/architecture/overview.md
+    - Package Structure: concepts/architecture/package-structure.md
+    - Design Decisions:
+      - sage-libs Restructuring: concepts/architecture/design-decisions/sage-libs-restructuring.md
+      - RPC Queue Refactoring: concepts/architecture/design-decisions/rpc-queue-refactoring.md
+      - L2 Platform Layer: concepts/architecture/design-decisions/l2-platform-layer.md
+
+- Guides:
+  - Packages:
+    - sage-common:
+      - Overview: guides/packages/sage-common/overview.md
+    - sage-platform:
+      - Overview: guides/packages/sage-platform/overview.md
+    - sage-kernel:
+      - Overview: guides/packages/sage-kernel/README.md
+      - Architecture: guides/packages/sage-kernel/architecture.md
+      - Concepts: guides/packages/sage-kernel/concepts.md
+      - API Reference:
+        - Overview: guides/packages/sage-kernel/api/README.md
+        - DataStreams: guides/packages/sage-kernel/api/datastreams.md
+        - Functions: guides/packages/sage-kernel/api/functions.md
+        - Environments: guides/packages/sage-kernel/api/environments.md
+        - Connected Streams: guides/packages/sage-kernel/api/connected-streams.md
+      - Guides:
+        - Quickstart: guides/packages/sage-kernel/guides/quickstart.md
+        - Operations: guides/packages/sage-kernel/guides/operations.md
+        - Improvements: guides/packages/sage-kernel/guides/improvements.md
+      - Examples: guides/packages/sage-kernel/examples/
+      - Runtime:
+        - Communication: guides/packages/sage-kernel/runtime_communication.md
+        - Tasks: guides/packages/sage-kernel/runtime_tasks.md
+        - Services: guides/packages/sage-kernel/runtime_services.md
+      - Configuration: guides/packages/sage-kernel/config/config.md
+      - CLI: guides/packages/sage-kernel/components/cli.md
+      - Best Practices: guides/packages/sage-kernel/best-practices.md
+      - FAQ: guides/packages/sage-kernel/faq.md
+    - sage-libs:
+      - Overview: guides/packages/sage-libs/README.md
+      - Introduction: guides/packages/sage-libs/lib_intro.md
+      - Philosophy: guides/packages/sage-libs/philosophy.md
+      - Embeddings: guides/packages/sage-libs/embedding.md
+      - RAG: guides/packages/sage-libs/rag.md
+      - Agents: guides/packages/sage-libs/agents.md
+      - Tools: guides/packages/sage-libs/tools_intro.md
+      - I/O: guides/packages/sage-libs/io.md
+      - Context: guides/packages/sage-libs/context.md
+      - Operators Reference: guides/packages/sage-libs/operators_reference.md
+    - sage-middleware:
+      - Overview: guides/packages/sage-middleware/overview.md
+      - API: guides/packages/sage-middleware/api/service_api.md
+      - Components:
+        - NeuroMem: guides/packages/sage-middleware/components/neuromem.md
+        - SageDB: guides/packages/sage-middleware/components/sage_db.md
+      - Hardware:
+        - GPU Acceleration: guides/packages/sage-middleware/hardware/gpu_acceleration.md
+      - Services:
+        - Service Introduction: guides/packages/sage-middleware/service/service_intro.md
+        - Service API: guides/packages/sage-middleware/service/service_api.md
+        - Memory Service: guides/packages/sage-middleware/service/memory/memory_service.md
+        - Vector DB: guides/packages/sage-middleware/service/neuromem/vdb/vdb.md
+        - SageDB Service: guides/packages/sage-middleware/service/sage-db/sage_db_service.md
+        - SageFlow Service: guides/packages/sage-middleware/service/sage-flow/sage_flow_service.md
+    - sage-tools:
+      - CLI Reference: guides/packages/sage-tools/cli_reference.md
+      - Pipeline Builder: guides/packages/sage-tools/pipeline_builder.md
+  - Deployment: guides/deployment/
+  - Best Practices: guides/best-practices/
+
+- API Reference: api-reference/
+
+- Developers:
+  - Contributing: developers/commands.md
+  - Development Setup: developers/development-setup.md
+  - CI/CD: developers/ci-cd.md
+  - Dev Notes:
+    - Overview: dev-notes/index.md
+    - Package Architecture: dev-notes/package-architecture.md
+
+- Community:
+  - Overview: community/README.md
+  - Community Guidelines: community/community.md
+  - Weekly Meetings: community/meetings.md
+  - IntelliStream Lab: community/intellistream.md

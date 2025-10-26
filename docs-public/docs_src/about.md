@@ -7,8 +7,8 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
 [![PyPI version](https://badge.fury.io/py/isage.svg)](https://badge.fury.io/py/isage)
 
-[![WeChat Group](https://img.shields.io/badge/WeChat-加入微信群-brightgreen?style=flat&logo=wechat)](join_sage/community.md)
-[![QQ Group](https://img.shields.io/badge/【IntelliStream课题组讨论QQ群】-blue?style=flat&logo=tencentqq)](https://qm.qq.com/q/bcnuyQVcvm)
+[![WeChat Group](https://img.shields.io/badge/WeChat-%E5%8A%A0%E5%85%A5%E5%BE%AE%E4%BF%A1%E7%BE%A4-brightgreen?style=flat&logo=wechat)](join_sage/community.md)
+[![QQ Group](https://img.shields.io/badge/%E3%80%90IntelliStream%E8%AF%BE%E9%A2%98%E7%BB%84%E8%AE%A8%E8%AE%BAQQ%E7%BE%A4%E3%80%91-blue?style=flat&logo=tencentqq)](https://qm.qq.com/q/bcnuyQVcvm)
 [![Slack](https://img.shields.io/badge/Slack-Join%20Slack-purple?style=flat&logo=slack)](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
 
 **SAGE** 是一个用于构建 AI 驱动数据处理流水线的高性能流处理框架。通过声明式数据流抽象，将复杂的 LLM 推理工作流转换为透明、可扩展且易于维护的系统。
@@ -52,8 +52,8 @@ from sage.libs.io.sink import TerminalSink
 env = LocalEnvironment("rag_pipeline")
 
 # 构建声明式流水线
-(env
-    .from_source(FileSource, {"file_path": "questions.txt"})
+(
+    env.from_source(FileSource, {"file_path": "questions.txt"})
     .map(DenseRetriever, {"model": "sentence-transformers/all-MiniLM-L6-v2"})
     .map(QAPromptor, {"template": "基于上下文回答: {context}\n问: {query}\n答:"})
     .map(OpenAIGenerator, {"model": "gpt-3.5-turbo"})
@@ -81,10 +81,10 @@ env.submit()
 SAGE 基于分层架构构建，提供灵活性、可扩展性和可维护性。架构由五个主要层次组成：
 
 1. **用户层**: 使用 SAGE 构建的应用（RAG、Agent、Memory、QA 系统）
-2. **API 层**: LocalEnvironment 和 RemoteEnvironment 用于不同的执行上下文
-3. **核心层**: Dispatcher、Job Manager、Service Manager 和运行时执行引擎
-4. **库层**: RAG 流水线、Agent 框架、Memory 存储、中间件组件
-5. **基础设施层**: 计算后端（Ray、本地）、数据存储、模型服务、监控
+1. **API 层**: LocalEnvironment 和 RemoteEnvironment 用于不同的执行上下文
+1. **核心层**: Dispatcher、Job Manager、Service Manager 和运行时执行引擎
+1. **库层**: RAG 流水线、Agent 框架、Memory 存储、中间件组件
+1. **基础设施层**: 计算后端（Ray、本地）、数据存储、模型服务、监控
 
 ### 模块化设计
 
@@ -121,6 +121,7 @@ SAGE 提供两个 C++ 原生扩展，覆盖向量存储与流式计算：
 - **多索引管理**: 支持创建和管理多个索引
 
 **安装方式**:
+
 ```bash
 sage extensions install sage_db
 ```
@@ -135,6 +136,7 @@ sage extensions install sage_db
 - **实时处理**: 适合实时 Agent 和交互场景
 
 **安装方式**:
+
 ```bash
 sage extensions install sage_flow
 ```
@@ -153,6 +155,7 @@ sage extensions install all --force
 ```
 
 更多扩展正在规划中。您可以在 `packages/sage-middleware/src/sage/middleware/components/` 下查看示例并提交提案。
+
 ## 安装
 
 我们提供交互式安装器和明确的命令标志。推荐开发者使用开发模式。
@@ -252,8 +255,8 @@ DataStream 是 SAGE 的核心抽象，表示数据流。通过链式 API 构建�
 
 ```python
 # 构建流水线
-stream = (env
-    .from_source(FileSource, {"file_path": "input.txt"})
+stream = (
+    env.from_source(FileSource, {"file_path": "input.txt"})
     .map(ProcessFunction, {"param": "value"})
     .filter(FilterFunction)
     .sink(OutputSink)
@@ -275,14 +278,14 @@ Function 是流水线中的处理单元。SAGE 提供多种函数类型：
 
 Operator 封装 Function，提供执行逻辑。支持的算子：
 
-| 算子方法 | 描述 |
-|---------|------|
+| 算子方法        | 描述                   |
+| --------------- | ---------------------- |
 | `from_source()` | 从外部系统读取输入数据 |
-| `from_batch()` | 批处理数据源 |
-| `map()` | 一对一转换 |
-| `flatmap()` | 一对多转换 |
-| `filter()` | 过滤数据 |
-| `sink()` | 定义流的终端输出 |
+| `from_batch()`  | 批处理数据源           |
+| `map()`         | 一对一转换             |
+| `flatmap()`     | 一对多转换             |
+| `filter()`      | 过滤数据               |
+| `sink()`        | 定义流的终端输出       |
 
 ## 功能库
 
@@ -380,4 +383,6 @@ sage chat
 ## 许可证
 
 SAGE 采用 [MIT 许可证](https://github.com/intellistream/SAGE/blob/main/LICENSE)。
-```` 
+
+```
+```

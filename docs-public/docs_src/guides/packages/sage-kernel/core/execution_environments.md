@@ -14,13 +14,13 @@ graph TB
     subgraph "SAGE 执行环境架构"
         A[Application Code] --> B[Environment API]
         B --> C{Environment Type}
-        
+
         C -->|Local| D[LocalEnvironment]
         C -->|Remote| E[RemoteEnvironment]
-        
+
         D --> F[Local JobManager]
         E --> G[Remote JobManager Client]
-        
+
         F --> H[Task Execution]
         G --> I[Distributed Task Execution]
     end
@@ -37,10 +37,9 @@ from sage.core.api.local_environment import LocalEnvironment
 env = LocalEnvironment("my_local_app")
 
 # 配置选项（通过config字典传递）
-env = LocalEnvironment("my_local_app", config={
-    "engine_host": "127.0.0.1",
-    "engine_port": 19000
-})
+env = LocalEnvironment(
+    "my_local_app", config={"engine_host": "127.0.0.1", "engine_port": 19000}
+)
 
 # 设置控制台日志等级
 env.set_console_log_level("DEBUG")  # 可选: DEBUG, INFO, WARNING, ERROR
@@ -51,24 +50,23 @@ data_stream = env.from_batch([1, 2, 3, 4, 5])
 
 # 2. 从Kafka源创建
 kafka_stream = env.from_kafka_source(
-    bootstrap_servers="localhost:9092",
-    topic="my_topic",
-    group_id="my_group"
+    bootstrap_servers="localhost:9092", topic="my_topic", group_id="my_group"
 )
 
 # 3. 从自定义源函数创建
 from sage.core.api.function.base_function import BaseFunction
 
+
 class MySourceFunction(BaseFunction):
     def get_data_iterator(self):
         return iter(range(10))
 
+
 source_stream = env.from_source(MySourceFunction)
 
 # 数据处理 (使用实际的DataStream API)
-result = (data_stream
-    .map(lambda x: x * 2)
-    .filter(lambda x: x > 5)
+result = (
+    data_stream.map(lambda x: x * 2).filter(lambda x: x > 5)
     # .collect() 方法需要根据实际DataStream API确认
 )
 
@@ -85,17 +83,21 @@ class MyCacheService:
         self.cache_size = cache_size
         self.cache = {}
 
+
 env.register_service("my_cache", MyCacheService, cache_size=1000)
+
 
 # 注册数据库连接服务
 class DatabaseConnection:
     def __init__(self, host, port, db):
         self.host = host
-        self.port = port  
+        self.port = port
         self.db = db
 
-env.register_service("db_conn", DatabaseConnection, 
-                   host="localhost", port=5432, db="mydb")
+
+env.register_service(
+    "db_conn", DatabaseConnection, host="localhost", port=5432, db="mydb"
+)
 ```
 
 ### 数据源创建
@@ -111,13 +113,15 @@ set_stream = env.from_batch({1, 2, 3, 4, 5})
 range_stream = env.from_batch(range(100))
 string_stream = env.from_batch("hello")  # 按字符迭代
 
+
 # 3. 自定义批处理函数
 class CustomBatchFunction(BaseFunction):
     def get_data_iterator(self):
         return iter(range(50))
-        
+
     def get_total_count(self):
         return 50
+
 
 batch_stream = env.from_batch(CustomBatchFunction, custom_param="value")
 
@@ -135,12 +139,9 @@ from sage.core.api.remote_environment import RemoteEnvironment
 # 创建远程环境，连接到远程JobManager
 env = RemoteEnvironment(
     name="remote_app",
-    config={
-        "parallelism": 8,
-        "buffer_size": 10000
-    },
+    config={"parallelism": 8, "buffer_size": 10000},
     host="127.0.0.1",  # JobManager服务主机
-    port=19001         # JobManager服务端口
+    port=19001,  # JobManager服务端口
 )
 
 # 设置控制台日志等级
@@ -176,18 +177,16 @@ remote_env = RemoteEnvironment(
         "parallelism": 16,
         "buffer_size": 50000,
         "checkpoint_interval": 300,  # 5分钟
-        
         # 容错配置
         "restart_strategy": "fixed-delay",
         "max_failures": 3,
         "failure_rate_interval": 60,
-        
         # 资源配置
         "taskmanager_memory": "2GB",
-        "taskmanager_slots": 4
+        "taskmanager_slots": 4,
     },
     host="cluster-master.example.com",
-    port=8081
+    port=8081,
 )
 
 # 获取客户端状态
@@ -211,12 +210,12 @@ kafka_stream = remote_env.from_kafka_source(
     topic="events",
     group_id="remote_consumer",
     auto_offset_reset="earliest",
-    buffer_size=20000
+    buffer_size=20000,
 )
 
 # 复杂数据处理管道
-result_stream = (kafka_stream
-    .map(parse_event_function)
+result_stream = (
+    kafka_stream.map(parse_event_function)
     .filter(is_valid_event_function)
     .key_by(extract_key_function)
     .window(tumbling_time_window(minutes=5))
@@ -233,15 +232,16 @@ env_uuid = remote_env.submit()
 try:
     # 等待任务运行一段时间
     import time
+
     time.sleep(300)  # 运行5分钟
-    
+
     # 优雅停止
     stop_response = remote_env.stop()
     if stop_response.get("status") == "success":
         print("Remote job stopped successfully")
     else:
         print(f"Stop failed: {stop_response}")
-        
+
 finally:
     # 确保资源清理
     remote_env.close()
@@ -251,24 +251,26 @@ finally:
 
 ### 环境特性对比
 
-| 特性 | LocalEnvironment | RemoteEnvironment |
-|------|------------------|-------------------|
-| 适用场景 | 开发、测试、小规模处理 | 生产、大规模分布式处理 |
-| 资源管理 | 本地资源 | 分布式集群资源 |
-| 容错能力 | 基础 | 高级（故障恢复、重试） |
-| 扩展性 | 单机限制 | 水平扩展 |
-| 配置复杂度 | 简单 | 相对复杂 |
-| 调试便利性 | 高 | 中等 |
+| 特性       | LocalEnvironment       | RemoteEnvironment      |
+| ---------- | ---------------------- | ---------------------- |
+| 适用场景   | 开发、测试、小规模处理 | 生产、大规模分布式处理 |
+| 资源管理   | 本地资源               | 分布式集群资源         |
+| 容错能力   | 基础                   | 高级（故障恢复、重试） |
+| 扩展性     | 单机限制               | 水平扩展               |
+| 配置复杂度 | 简单                   | 相对复杂               |
+| 调试便利性 | 高                     | 中等                   |
 
 ### 选择建议
 
 **选择 LocalEnvironment 当：**
+
 - 开发和调试应用程序
-- 数据量较小（< 1GB）
+- 数据量较小（\< 1GB）
 - 处理逻辑相对简单
 - 需要快速原型验证
 
 **选择 RemoteEnvironment 当：**
+
 - 生产环境部署
 - 大数据处理（> 1GB）
 - 需要高可用性和容错
@@ -280,29 +282,33 @@ finally:
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.remote_environment import RemoteEnvironment
 
+
 # 开发环境：使用LocalEnvironment
 def create_dev_environment():
     env = LocalEnvironment("dev_app")
     env.set_console_log_level("DEBUG")  # 开发时显示详细日志
     return env
 
-# 生产环境：使用RemoteEnvironment  
+
+# 生产环境：使用RemoteEnvironment
 def create_prod_environment():
     env = RemoteEnvironment(
         name="prod_app",
         config={
             "parallelism": 32,
             "checkpoint_interval": 300,
-            "restart_strategy": "exponential-backoff"
+            "restart_strategy": "exponential-backoff",
         },
         host="prod-jobmanager.company.com",
-        port=8081
+        port=8081,
     )
     env.set_console_log_level("INFO")  # 生产环境减少日志输出
     return env
 
+
 # 根据运行模式选择环境
 import os
+
 if os.getenv("SAGE_ENV") == "production":
     env = create_prod_environment()
 else:
@@ -324,7 +330,7 @@ env = LocalEnvironment("dev_app")
 env.set_console_log_level("DEBUG")
 
 # 测试环境：关键信息
-env = LocalEnvironment("test_app")  
+env = LocalEnvironment("test_app")
 env.set_console_log_level("INFO")
 
 # 生产环境：错误和警告
@@ -338,19 +344,21 @@ env.set_console_log_level("WARNING")
 # 单例服务模式
 class DatabaseService:
     _instance = None
-    
+
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             cls._instance = super().__new__(cls)
         return cls._instance
-        
+
     def __init__(self, connection_string):
-        if not hasattr(self, 'initialized'):
+        if not hasattr(self, "initialized"):
             self.connection_string = connection_string
             self.initialized = True
 
+
 # 注册单例服务
 env.register_service("db", DatabaseService, "postgresql://localhost:5432/mydb")
+
 
 # 工厂模式服务
 class CacheServiceFactory:
@@ -363,8 +371,14 @@ class CacheServiceFactory:
         else:
             raise ValueError(f"Unknown cache type: {cache_type}")
 
-env.register_service("cache", CacheServiceFactory.create_cache, 
-                   cache_type="redis", host="localhost", port=6379)
+
+env.register_service(
+    "cache",
+    CacheServiceFactory.create_cache,
+    cache_type="redis",
+    host="localhost",
+    port=6379,
+)
 ```
 
 ### 错误处理
@@ -374,27 +388,27 @@ env.register_service("cache", CacheServiceFactory.create_cache,
 try:
     # 创建和配置环境
     env = RemoteEnvironment("my_app", host="jobmanager.example.com")
-    
+
     # 构建数据流
     stream = env.from_kafka_source("localhost:9092", "events", "group1")
     result = stream.map(processing_function)
-    
+
     # 提交任务
     job_id = env.submit()
     print(f"Job submitted: {job_id}")
-    
+
     # 监控任务（可选）
     # monitor_job(job_id)
-    
+
 except Exception as e:
     print(f"Environment setup failed: {e}")
     # 清理资源
-    if 'env' in locals():
+    if "env" in locals():
         env.close()
     raise
 ```
 
----
+______________________________________________________________________
 
 通过选择合适的执行环境，您可以：
 
@@ -409,8 +423,13 @@ except Exception as e:
 
 - [环境管理 API](../api/environments.md) - 详细的环境API文档
 - <!-- [数据流处理](./datastream_overview.md) -->
+
 DataStream 概览 - 数据流的创建和操作
+
 - <!-- [服务管理](../services/service_management.md) -->
+
 服务管理 - 服务注册和管理
+
 - <!-- [JobManager 架构](../jobmanager/architecture.md) -->
+
 JobManager 架构 - JobManager的工作原理
