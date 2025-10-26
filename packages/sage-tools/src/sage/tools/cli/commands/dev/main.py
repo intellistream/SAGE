@@ -171,7 +171,9 @@ def quality(
 
     submodule_paths = get_submodule_paths()
     if submodule_paths:
-        console.print(f"📦 检测到 {len(submodule_paths)} 个 submodules: {', '.join(submodule_paths)}")
+        console.print(
+            f"📦 检测到 {len(submodule_paths)} 个 submodules: {', '.join(submodule_paths)}"
+        )
 
     # 构建 pre-commit 命令
     if submodules_only and submodule_paths:
@@ -278,7 +280,9 @@ def quality(
     # 处理 submodule 包含逻辑
     if include_submodules and not submodules_only:
         console.print("⚠️  [yellow]警告: 将检查 submodules 中的文件[/yellow]")
-        console.print("💡 [yellow]提示: submodules 的排除规则在 pre-commit-config.yaml 中配置[/yellow]")
+        console.print(
+            "💡 [yellow]提示: submodules 的排除规则在 pre-commit-config.yaml 中配置[/yellow]"
+        )
         # 注意：如果要包含 submodules，需要临时修改 SKIP 环境变量
         # 或者创建临时配置文件，这里我们使用环境变量提示用户
         console.print(
