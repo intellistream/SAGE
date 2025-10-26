@@ -367,7 +367,9 @@ def validate_log_level(level: str) -> str:
 
     valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
     if level not in valid_levels:
-        raise ValidationError(f"Invalid log level: {level}, must be one of {valid_levels}")
+        raise ValidationError(
+            f"Invalid log level: {level}, must be one of {valid_levels}"
+        )
 
     return level
 

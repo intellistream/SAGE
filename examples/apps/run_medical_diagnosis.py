@@ -59,7 +59,8 @@ def check_and_setup_data(data_dir: str, auto_setup: bool = False) -> bool:
     if not setup_script.exists():
         # 尝试其他可能的位置
         setup_script = (
-            project_root / "packages/sage-apps/src/sage/apps/medical_diagnosis/setup_data.sh"
+            project_root
+            / "packages/sage-apps/src/sage/apps/medical_diagnosis/setup_data.sh"
         )
 
     if not setup_script.exists():
@@ -134,7 +135,9 @@ Features:
         """,
     )
 
-    parser.add_argument("--case-id", type=str, help="Specific case ID to analyze (e.g., case_0001)")
+    parser.add_argument(
+        "--case-id", type=str, help="Specific case ID to analyze (e.g., case_0001)"
+    )
 
     parser.add_argument(
         "--data-dir",
@@ -149,7 +152,9 @@ Features:
         help="Run in interactive consultation mode",
     )
 
-    parser.add_argument("--output", type=str, help="Output directory for diagnostic reports")
+    parser.add_argument(
+        "--output", type=str, help="Output directory for diagnostic reports"
+    )
 
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 

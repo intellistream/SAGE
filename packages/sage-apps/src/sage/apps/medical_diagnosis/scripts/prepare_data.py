@@ -68,13 +68,9 @@ def generate_mock_report(label: int, patient_info: dict) -> str:
         recommendations = "定期体检，保持良好的生活习惯。"
     elif label in [1, 6, 8]:
         symptoms = "偶尔腰部酸痛"
-        findings = (
-            f"腰椎MRI T2加权矢状位: {disease_info['description']}。椎管尚通畅，未见明显神经根受压。"
-        )
+        findings = f"腰椎MRI T2加权矢状位: {disease_info['description']}。椎管尚通畅，未见明显神经根受压。"
         conclusion = f"{disease_info['name']}，程度{disease_info['severity']}。"
-        recommendations = (
-            "适当休息，避免久坐久站。可进行腰背肌锻炼，如游泳、普拉提等。必要时物理治疗。"
-        )
+        recommendations = "适当休息，避免久坐久站。可进行腰背肌锻炼，如游泳、普拉提等。必要时物理治疗。"
     elif label in [2, 3]:
         symptoms = "腰痛伴右下肢放射痛3周"
         findings = f"腰椎MRI T2加权矢状位: {disease_info['description']}。相应节段椎管变窄，神经根可能受压。"
@@ -82,12 +78,18 @@ def generate_mock_report(label: int, patient_info: dict) -> str:
         recommendations = "建议卧床休息2-3周，牵引治疗。口服非甾体抗炎药及神经营养药物。保守治疗无效时考虑手术治疗。"
     elif label == 7:
         symptoms = "腰部疼痛，活动受限"
-        findings = f"腰椎MRI T2加权矢状位: {disease_info['description']}。相应节段不稳定。"
+        findings = (
+            f"腰椎MRI T2加权矢状位: {disease_info['description']}。相应节段不稳定。"
+        )
         conclusion = f"{disease_info['name']}，程度{disease_info['severity']}。"
-        recommendations = "避免重体力劳动，佩戴腰围保护。核心肌群训练。症状明显时考虑手术固定。"
+        recommendations = (
+            "避免重体力劳动，佩戴腰围保护。核心肌群训练。症状明显时考虑手术固定。"
+        )
     else:  # 重度 (4, 5)
         symptoms = "腰痛伴双下肢麻木、无力2月"
-        findings = f"腰椎MRI T2加权矢状位: {disease_info['description']}。马尾神经受压。"
+        findings = (
+            f"腰椎MRI T2加权矢状位: {disease_info['description']}。马尾神经受压。"
+        )
         conclusion = f"{disease_info['name']}，程度{disease_info['severity']}。"
         recommendations = (
             "建议尽早手术治疗(椎间盘摘除术或椎管减压术)，以解除神经压迫。术后康复训练。"
@@ -243,8 +245,12 @@ def prepare_dataset():
         disease = sample["disease"]
         severity = sample["severity"]
 
-        stats["label_distribution"][label] = stats["label_distribution"].get(label, 0) + 1
-        stats["disease_distribution"][disease] = stats["disease_distribution"].get(disease, 0) + 1
+        stats["label_distribution"][label] = (
+            stats["label_distribution"].get(label, 0) + 1
+        )
+        stats["disease_distribution"][disease] = (
+            stats["disease_distribution"].get(disease, 0) + 1
+        )
         stats["severity_distribution"][severity] = (
             stats["severity_distribution"].get(severity, 0) + 1
         )
@@ -261,7 +267,9 @@ def prepare_dataset():
         f.write(f"测试集: {stats['test_samples']}\n\n")
 
         f.write("疾病分布:\n")
-        for disease, count in sorted(stats["disease_distribution"].items(), key=lambda x: -x[1]):
+        for disease, count in sorted(
+            stats["disease_distribution"].items(), key=lambda x: -x[1]
+        ):
             percentage = count / stats["total_samples"] * 100
             f.write(f"  - {disease}: {count} ({percentage:.1f}%)\n")
 
@@ -299,7 +307,9 @@ def prepare_dataset():
     print(f"   - 训练集: {stats['train_samples']}")
     print(f"   - 测试集: {stats['test_samples']}")
     print(f"\n🏥 疾病类型: {len(stats['disease_distribution'])} 种")
-    for disease, count in sorted(stats["disease_distribution"].items(), key=lambda x: -x[1])[:5]:
+    for disease, count in sorted(
+        stats["disease_distribution"].items(), key=lambda x: -x[1]
+    )[:5]:
         print(f"   - {disease}: {count}")
 
 

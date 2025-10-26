@@ -103,7 +103,9 @@ class IssuesTestSuite:
         try:
             # 检查下载脚本是否存在
             download_script = Path(__file__).parent / "helpers" / "download_issues.py"
-            download_v2_script = Path(__file__).parent / "helpers" / "download_issues_v2.py"
+            download_v2_script = (
+                Path(__file__).parent / "helpers" / "download_issues_v2.py"
+            )
 
             # 至少有一个下载脚本存在
             return download_script.exists() or download_v2_script.exists()
@@ -288,13 +290,17 @@ class IssuesTestSuite:
                 console.print("\n✅ [bold green]CI环境测试通过[/bold green]")
                 console.print("核心功能正常，外部依赖相关的失败是可以接受的")
             else:
-                console.print("\n⚠️ [bold yellow]测试通过率过低，可能存在问题[/bold yellow]")
+                console.print(
+                    "\n⚠️ [bold yellow]测试通过率过低，可能存在问题[/bold yellow]"
+                )
         else:
             # 本地环境
             if passed == total:
                 console.print("\n🎉 [bold green]所有测试通过！[/bold green]")
             else:
-                console.print(f"\n⚠️  [bold yellow]{total - passed} 个测试失败[/bold yellow]")
+                console.print(
+                    f"\n⚠️  [bold yellow]{total - passed} 个测试失败[/bold yellow]"
+                )
 
 
 def main():

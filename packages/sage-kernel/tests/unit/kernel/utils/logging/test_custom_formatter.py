@@ -13,7 +13,6 @@ import logging
 from unittest.mock import patch
 
 import pytest
-
 from sage.common.utils.logging.custom_formatter import CustomFormatter
 
 

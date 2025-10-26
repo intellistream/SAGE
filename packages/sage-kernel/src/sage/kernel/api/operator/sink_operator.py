@@ -18,7 +18,9 @@ class SinkOperator(BaseOperator):
                 self.logger.warning(f"Operator {self.name} received empty data")
             else:
                 result = self.function.execute(packet.payload)
-                self.logger.debug(f"Operator {self.name} processed data with result: {result}")
+                self.logger.debug(
+                    f"Operator {self.name} processed data with result: {result}"
+                )
                 # Queue机制自动提供背压控制，无需显式同步
 
         except Exception as e:
@@ -30,11 +32,19 @@ class SinkOperator(BaseOperator):
         这个方法会被BaseTask在收到StopSignal时调用
         """
         try:
-            self.logger.info(f"SinkOperator {self.name} handling stop signal, calling close()")
+            self.logger.info(
+                f"SinkOperator {self.name} handling stop signal, calling close()"
+            )
             if hasattr(self.function, "close") and callable(self.function.close):
                 result = self.function.close()
-                self.logger.debug(f"SinkOperator {self.name} final processing result: {result}")
+                self.logger.debug(
+                    f"SinkOperator {self.name} final processing result: {result}"
+                )
             else:
-                self.logger.debug(f"SinkOperator {self.name} has no close() method, skipping.")
+                self.logger.debug(
+                    f"SinkOperator {self.name} has no close() method, skipping."
+                )
         except Exception as e:
-            self.logger.error(f"Error in {self.name}.handle_stop_signal(): {e}", exc_info=True)
+            self.logger.error(
+                f"Error in {self.name}.handle_stop_signal(): {e}", exc_info=True
+            )

@@ -3,7 +3,6 @@ Tests for NodeRegistry - Studio to SAGE Operator mapping
 """
 
 import pytest
-
 from sage.studio.services.node_registry import (
     NodeRegistry,  # type: ignore[import-not-found]
 )

@@ -80,7 +80,9 @@ class CommercialPackageManager:
             package_path = package_info["path"]
 
             if not package_path.exists():
-                raise SAGEDevToolkitError(f"Commercial package directory not found: {package_path}")
+                raise SAGEDevToolkitError(
+                    f"Commercial package directory not found: {package_path}"
+                )
 
             # Install dependencies first
             for dep in package_info["dependencies"]:
@@ -118,7 +120,9 @@ class CommercialPackageManager:
             if package_name:
                 # Build specific package
                 if package_name not in self.packages:
-                    raise SAGEDevToolkitError(f"Unknown commercial package: {package_name}")
+                    raise SAGEDevToolkitError(
+                        f"Unknown commercial package: {package_name}"
+                    )
 
                 package_path = self.packages[package_name]["path"]
                 return self._build_package_extensions(package_name, package_path)
@@ -127,7 +131,9 @@ class CommercialPackageManager:
                 results = {}
                 for name, info in self.packages.items():
                     if info["path"].exists():
-                        results[name] = self._build_package_extensions(name, info["path"])
+                        results[name] = self._build_package_extensions(
+                            name, info["path"]
+                        )
 
                 return {
                     "results": results,
@@ -181,12 +187,16 @@ class CommercialPackageManager:
             return "missing"
 
         # Check if it has pyproject.toml or setup.py
-        if (package_path / "pyproject.toml").exists() or (package_path / "setup.py").exists():
+        if (package_path / "pyproject.toml").exists() or (
+            package_path / "setup.py"
+        ).exists():
             return "ready"
 
         return "incomplete"
 
-    def _build_package_extensions(self, package_name: str, package_path: Path) -> dict[str, Any]:
+    def _build_package_extensions(
+        self, package_name: str, package_path: Path
+    ) -> dict[str, Any]:
         """Build extensions for a specific package."""
         try:
             # Look for build script

@@ -69,8 +69,12 @@ def load_config():
 @app.command("start")
 def start_system(
     ray_only: bool = typer.Option(False, "--ray-only", help="仅启动Ray集群"),
-    daemon_only: bool = typer.Option(False, "--daemon-only", help="仅启动JobManager守护进程"),
-    with_workers: bool = typer.Option(False, "--with-workers", help="同时启动Worker节点"),
+    daemon_only: bool = typer.Option(
+        False, "--daemon-only", help="仅启动JobManager守护进程"
+    ),
+    with_workers: bool = typer.Option(
+        False, "--with-workers", help="同时启动Worker节点"
+    ),
 ):
     """启动SAGE系统（Ray集群 + JobManager）"""
     config = load_config()
@@ -150,7 +154,9 @@ def start_system(
 
 @app.command("stop")
 def stop_system(
-    with_workers: bool = typer.Option(False, "--with-workers", help="同时停止Worker节点")
+    with_workers: bool = typer.Option(
+        False, "--with-workers", help="同时停止Worker节点"
+    )
 ):
     """停止SAGE系统（Ray集群 + JobManager）"""
     typer.echo("🛑 Stopping SAGE system...")

@@ -171,5 +171,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
             enable_pooling=metadata.get("enable_pooling", True),
             queue_id=data["queue_id"],
         )
-        instance.created_timestamp = data.get("created_timestamp", instance.created_timestamp)
+        instance.created_timestamp = data.get(
+            "created_timestamp", instance.created_timestamp
+        )
         return instance

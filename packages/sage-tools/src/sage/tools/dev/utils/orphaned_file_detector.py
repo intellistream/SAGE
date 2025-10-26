@@ -107,7 +107,9 @@ class OrphanedFileDetector:
 
         return imports
 
-    def check_file_references(self, target_file: Path, all_files: list[Path]) -> list[str]:
+    def check_file_references(
+        self, target_file: Path, all_files: list[Path]
+    ) -> list[str]:
         """检查文件是否被其他文件引用"""
         module_path = self.extract_module_path(target_file)
         if not module_path:

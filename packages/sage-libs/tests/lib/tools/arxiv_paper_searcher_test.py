@@ -34,7 +34,8 @@ def test_tool_initialization(searcher_tool):
     assert searcher_tool.tool_name == "_Searcher_Tool"
     assert "query" in searcher_tool.input_types
     assert (
-        searcher_tool.output_type == "list - A list of dictionaries containing paper information."
+        searcher_tool.output_type
+        == "list - A list of dictionaries containing paper information."
     )
     assert isinstance(searcher_tool.get_metadata(), dict)
 
@@ -146,7 +147,9 @@ def test_execute_no_results_found(searcher_tool, mocker):
     """
     # --- 准备 (Arrange) ---
     # 模拟一个没有任何 <li class="arxiv-result"> 的HTML响应
-    empty_html_content = "<html><body><h3>Show Results</h3><p>No results found.</p></body></html>"
+    empty_html_content = (
+        "<html><body><h3>Show Results</h3><p>No results found.</p></body></html>"
+    )
     mocker.patch(
         "requests.get",
         return_value=mocker.Mock(content=empty_html_content.encode("utf-8")),

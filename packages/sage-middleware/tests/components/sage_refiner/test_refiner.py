@@ -6,7 +6,6 @@ Refiner测试套件
 """
 
 import pytest
-
 from sage.middleware.components.sage_refiner import (
     RefinerAlgorithm,
     RefinerConfig,
@@ -129,7 +128,9 @@ class TestRefinerService:
 
     def test_service_cache(self):
         """测试缓存功能"""
-        config = RefinerConfig(algorithm=RefinerAlgorithm.SIMPLE, budget=50, enable_cache=True)
+        config = RefinerConfig(
+            algorithm=RefinerAlgorithm.SIMPLE, budget=50, enable_cache=True
+        )
         service = RefinerService(config)
 
         query = "测试"

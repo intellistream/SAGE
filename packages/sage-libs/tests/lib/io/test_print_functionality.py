@@ -20,7 +20,9 @@ class TestPrintSink(unittest.TestCase):
     def setUp(self):
         """测试前准备"""
         self.print_sink = PrintSink(quiet=True)
-        self.print_sink_with_prefix = PrintSink(prefix="TEST", separator=" -> ", quiet=True)
+        self.print_sink_with_prefix = PrintSink(
+            prefix="TEST", separator=" -> ", quiet=True
+        )
 
     def test_simple_string(self):
         """测试简单字符串输出"""

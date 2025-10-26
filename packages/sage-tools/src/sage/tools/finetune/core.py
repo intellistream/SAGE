@@ -31,7 +31,9 @@ def prepare_training_data(
 
     if task_type == FinetuneTask.CODE_UNDERSTANDING:
         # 代码理解任务 - 收集代码文件
-        extensions = kwargs.get("extensions", [".py", ".yaml", ".yml", ".toml", ".md", ".rst"])
+        extensions = kwargs.get(
+            "extensions", [".py", ".yaml", ".yml", ".toml", ".md", ".rst"]
+        )
         files = collect_sage_code_files(root_dir, extensions=extensions)
 
         with Progress(
@@ -126,7 +128,9 @@ def prepare_training_data(
 
             for item in chat_data:
                 if format == "chat":
-                    training_data.append({"conversations": item.get("conversations", [])})
+                    training_data.append(
+                        {"conversations": item.get("conversations", [])}
+                    )
                 elif format == "alpaca":
                     # 转换为alpaca格式
                     conversations = item.get("conversations", [])

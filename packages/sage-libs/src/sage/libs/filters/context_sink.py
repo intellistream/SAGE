@@ -148,7 +148,9 @@ class ContextFileSink(SinkFunction):
 
         # 备份现有索引（如果存在）
         if self.config["backup_index"] and self.index_file.exists():
-            backup_file = self.index_file.with_suffix(f".backup_{int(time.time())}.json")
+            backup_file = self.index_file.with_suffix(
+                f".backup_{int(time.time())}.json"
+            )
             try:
                 import shutil
 
@@ -178,14 +180,24 @@ class ContextFileSink(SinkFunction):
         if organization == "date":
             # 按日期组织: ./data/template_data/questionbot/2025/01/15/
             dt = datetime.fromtimestamp(template.timestamp / 1000)
-            org_dir = self.full_directory / f"{dt.year:04d}" / f"{dt.month:02d}" / f"{dt.day:02d}"
+            org_dir = (
+                self.full_directory
+                / f"{dt.year:04d}"
+                / f"{dt.month:02d}"
+                / f"{dt.day:02d}"
+            )
             filename = f"template_{template.uuid}.{file_format}"
 
         elif organization == "sequence":
             # 按序列号组织: ./data/template_data/questionbot/seq_0000-0999/
             seq_range = (template.sequence // max_files) * max_files
-            org_dir = self.full_directory / f"seq_{seq_range:06d}-{seq_range + max_files - 1:06d}"
-            filename = f"template_{template.sequence:06d}_{template.uuid[:8]}.{file_format}"
+            org_dir = (
+                self.full_directory
+                / f"seq_{seq_range:06d}-{seq_range + max_files - 1:06d}"
+            )
+            filename = (
+                f"template_{template.sequence:06d}_{template.uuid[:8]}.{file_format}"
+            )
 
         else:  # uuid organization
             # 按UUID前缀组织: ./data/template_data/questionbot/ab/cd/
@@ -227,7 +239,9 @@ class ContextFileSink(SinkFunction):
                         template.raw_question[:100] if template.raw_question else None
                     ),
                     "has_response": bool(template.response),
-                    "response_length": (len(template.response) if template.response else 0),
+                    "response_length": (
+                        len(template.response) if template.response else 0
+                    ),
                     "chunks_count": (
                         len(template.retriver_chunks) if template.retriver_chunks else 0
                     ),
@@ -300,7 +314,9 @@ class ContextFileSink(SinkFunction):
         if self.config["create_index"] and not self.index_file.exists():
             self._initialize_index()
 
-        self.logger.info(f"Stage directory changed from '{old_stage}' to '{stage_name}'")
+        self.logger.info(
+            f"Stage directory changed from '{old_stage}' to '{stage_name}'"
+        )
         self.logger.info(f"New full directory: {self.full_directory}")
 
     def get_storage_info(self) -> dict[str, Any]:
@@ -348,7 +364,9 @@ class ContextFileSink(SinkFunction):
                 "stage_directory": self.config["stage_directory"],
                 "total_templates": len(templates),
                 "with_response": sum(1 for t in templates if t.get("has_response")),
-                "without_response": sum(1 for t in templates if not t.get("has_response")),
+                "without_response": sum(
+                    1 for t in templates if not t.get("has_response")
+                ),
                 "avg_response_length": 0,
                 "avg_chunks": 0,
                 "avg_prompts": 0,
@@ -358,18 +376,22 @@ class ContextFileSink(SinkFunction):
             if templates:
                 # 计算平均值
                 response_lengths = [
-                    t.get("response_length", 0) for t in templates if t.get("has_response")
+                    t.get("response_length", 0)
+                    for t in templates
+                    if t.get("has_response")
                 ]
                 stats["avg_response_length"] = (
-                    sum(response_lengths) / len(response_lengths) if response_lengths else 0
+                    sum(response_lengths) / len(response_lengths)
+                    if response_lengths
+                    else 0
                 )
 
-                stats["avg_chunks"] = sum(t.get("chunks_count", 0) for t in templates) / len(
-                    templates
-                )
-                stats["avg_prompts"] = sum(t.get("prompts_count", 0) for t in templates) / len(
-                    templates
-                )
+                stats["avg_chunks"] = sum(
+                    t.get("chunks_count", 0) for t in templates
+                ) / len(templates)
+                stats["avg_prompts"] = sum(
+                    t.get("prompts_count", 0) for t in templates
+                ) / len(templates)
 
                 # 时间范围
                 timestamps = [t.get("timestamp", 0) for t in templates]

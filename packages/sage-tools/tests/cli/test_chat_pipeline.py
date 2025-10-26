@@ -3,13 +3,15 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
-from sage.tools.cli.commands import chat as chat_module, pipeline as pipeline_builder
+from sage.tools.cli.commands import chat as chat_module
+from sage.tools.cli.commands import pipeline as pipeline_builder
 
 
 def test_looks_like_pipeline_request_detection():
     assert chat_module._looks_like_pipeline_request("请帮我构建一个大模型应用")
-    assert chat_module._looks_like_pipeline_request("build an LLM pipeline for retrieval")
+    assert chat_module._looks_like_pipeline_request(
+        "build an LLM pipeline for retrieval"
+    )
     assert not chat_module._looks_like_pipeline_request("SAGE 是什么？")
 
 
@@ -47,7 +49,9 @@ def fake_generator(monkeypatch):
     class DummyGenerator:
         def __init__(self, config):
             self.config = config
-            self.calls: list[tuple[dict[str, Any], dict[str, Any] | None, str | None]] = []
+            self.calls: list[
+                tuple[dict[str, Any], dict[str, Any] | None, str | None]
+            ] = []
 
         def generate(
             self,
@@ -69,7 +73,9 @@ def fake_generator(monkeypatch):
 
     executed: dict[str, Any] = {}
 
-    def fake_execute(plan_obj, autostop=True, host=None, port=None, console_override=None):
+    def fake_execute(
+        plan_obj, autostop=True, host=None, port=None, console_override=None
+    ):
         executed.update(
             {
                 "plan": plan_obj,
@@ -92,7 +98,9 @@ def fake_generator(monkeypatch):
     monkeypatch.setattr(pipeline_builder, "execute_pipeline_plan", fake_execute)
     monkeypatch.setattr(pipeline_builder, "save_pipeline_plan", fake_save)
 
-    monkeypatch.setattr(chat_module, "load_domain_contexts", lambda limit=4: ("默认上下文",))
+    monkeypatch.setattr(
+        chat_module, "load_domain_contexts", lambda limit=4: ("默认上下文",)
+    )
     monkeypatch.setattr(chat_module, "get_default_knowledge_base", lambda: None)
 
     return {

@@ -15,10 +15,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from sage.tools.cli.main import app as sage_app
 from typer import Typer
 from typer.testing import CliRunner
-
-from sage.tools.cli.main import app as sage_app
 
 # Type alias for factory functions that return context managers (e.g. mocks).
 PatchFactory = Callable[[], AbstractContextManager[Any]]
@@ -120,7 +119,9 @@ class FakeConfigManager:
         hosts = self._config.setdefault("workers_ssh_hosts", [])
         original_len = len(hosts)
         hosts[:] = [
-            item for item in hosts if not (item["host"] == host and item.get("port", 22) == port)
+            item
+            for item in hosts
+            if not (item["host"] == host and item.get("port", 22) == port)
         ]
         return len(hosts) < original_len
 

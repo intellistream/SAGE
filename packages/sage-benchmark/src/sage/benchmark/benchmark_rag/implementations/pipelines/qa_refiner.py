@@ -34,7 +34,9 @@ def pipeline_run(config):
         .map(Wiki18FAISSRetriever, config["retriever"], enable_profile=enable_profile)
         .map(RefinerOperator, config["refiner"], enable_profile=enable_profile)
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
-        .map(OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile)
+        .map(
+            OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile
+        )
         .map(F1Evaluate, config["evaluate"])
         .map(RecallEvaluate, config["evaluate"])
         .map(RougeLEvaluate, config["evaluate"])
@@ -65,12 +67,19 @@ if __name__ == "__main__":
     import sys
 
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
-        print("🧪 Test mode detected - qa_refiner example requires pre-built FAISS index")
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
+        print(
+            "🧪 Test mode detected - qa_refiner example requires pre-built FAISS index"
+        )
         print("✅ Test passed: Example structure validated")
         sys.exit(0)
 
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_refiner.yaml")
+    config_path = os.path.join(
+        os.path.dirname(__file__), "..", "config", "config_refiner.yaml"
+    )
 
     # 检查配置文件是否存在
     if not os.path.exists(config_path):

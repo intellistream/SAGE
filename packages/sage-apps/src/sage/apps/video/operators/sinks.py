@@ -47,8 +47,12 @@ class TimelineSink(SinkFunction):
             # Show scene scores if available
             scene_scores = safe_data.get("scene_scores", {})
             if scene_scores:
-                top_scenes = sorted(scene_scores.items(), key=lambda x: x[1], reverse=True)[:3]
-                print(f"   Top scenes: {', '.join(f'{s}({v:.2f})' for s, v in top_scenes)}")
+                top_scenes = sorted(
+                    scene_scores.items(), key=lambda x: x[1], reverse=True
+                )[:3]
+                print(
+                    f"   Top scenes: {', '.join(f'{s}({v:.2f})' for s, v in top_scenes)}"
+                )
 
             print(f"{'='*70}")
 

@@ -237,9 +237,13 @@ class CustomLogger:
         elif isinstance(level_setting, int):
             return level_setting
         else:
-            raise TypeError(f"level_setting must be str or int, got {type(level_setting)}")
+            raise TypeError(
+                f"level_setting must be str or int, got {type(level_setting)}"
+            )
 
-    def _create_handler(self, config: dict, formatter: CustomFormatter) -> logging.Handler | None:
+    def _create_handler(
+        self, config: dict, formatter: CustomFormatter
+    ) -> logging.Handler | None:
         """
         根据输出配置创建对应的handler
 
@@ -278,7 +282,9 @@ class CustomLogger:
             {
                 "target": config["target"],
                 "resolved_path": config["resolved_path"],
-                "level": config["level_str"],  # Return string level for public API consistency
+                "level": config[
+                    "level_str"
+                ],  # Return string level for public API consistency
                 "level_str": config["level_str"],
                 "level_num": config["level"],
                 "handler_active": config["handler"] is not None,
@@ -305,7 +311,9 @@ class CustomLogger:
         )
         print("=" * 60)
 
-    def update_output_level(self, target_index_or_name: int | str, new_level: str | int):
+    def update_output_level(
+        self, target_index_or_name: int | str, new_level: str | int
+    ):
         """
         动态更新指定输出的级别
 
@@ -337,11 +345,15 @@ class CustomLogger:
             target_config["handler"].setLevel(new_level_int)
 
         # 更新logger的最低级别
-        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
+        enabled_levels = [
+            config["level"] for config in self.output_configs if config["handler"]
+        ]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
-        print(f"Updated {target_config['target']} level to {target_config['level_str']}")
+        print(
+            f"Updated {target_config['target']} level to {target_config['level_str']}"
+        )
 
     def add_output(self, output_target: str, level: str | int):
         """
@@ -373,7 +385,9 @@ class CustomLogger:
         self.output_configs.append(new_config)
 
         # 更新logger最低级别
-        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
+        enabled_levels = [
+            config["level"] for config in self.output_configs if config["handler"]
+        ]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
@@ -414,7 +428,9 @@ class CustomLogger:
         self.output_configs.pop(target_index)
 
         # 更新logger最低级别
-        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
+        enabled_levels = [
+            config["level"] for config in self.output_configs if config["handler"]
+        ]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
@@ -474,7 +490,9 @@ class CustomLogger:
 
     def error(self, message: str, *args, exc_info: bool = False, **kwargs):
         """Error级别日志，支持格式化参数"""
-        self._log_with_caller_info(logging.ERROR, message, *args, exc_info=exc_info, **kwargs)
+        self._log_with_caller_info(
+            logging.ERROR, message, *args, exc_info=exc_info, **kwargs
+        )
 
     def critical(self, message: str, *args, **kwargs):
         """Critical级别日志，支持格式化参数"""

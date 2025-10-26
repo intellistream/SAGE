@@ -15,12 +15,10 @@ except ImportError:
     )
 
 try:
-    from tenacity import (
-        retry,  # noqa: F401
-        retry_if_exception_type,  # noqa: F401
-        stop_after_attempt,  # noqa: F401
-        wait_exponential,  # noqa: F401
-    )
+    from tenacity import retry  # noqa: F401
+    from tenacity import retry_if_exception_type  # noqa: F401
+    from tenacity import stop_after_attempt  # noqa: F401
+    from tenacity import wait_exponential  # noqa: F401
 except ImportError:
     raise ImportError(
         "tenacity package is required for AWS Bedrock embedding functionality. "
@@ -39,11 +37,15 @@ async def bedrock_embed(
     aws_secret_access_key=None,
     aws_session_token=None,
 ) -> list:
-    os.environ["AWS_ACCESS_KEY_ID"] = os.environ.get("AWS_ACCESS_KEY_ID", aws_access_key_id)
+    os.environ["AWS_ACCESS_KEY_ID"] = os.environ.get(
+        "AWS_ACCESS_KEY_ID", aws_access_key_id
+    )
     os.environ["AWS_SECRET_ACCESS_KEY"] = os.environ.get(
         "AWS_SECRET_ACCESS_KEY", aws_secret_access_key
     )
-    os.environ["AWS_SESSION_TOKEN"] = os.environ.get("AWS_SESSION_TOKEN", aws_session_token)
+    os.environ["AWS_SESSION_TOKEN"] = os.environ.get(
+        "AWS_SESSION_TOKEN", aws_session_token
+    )
 
     session = aioboto3.Session()
     async with session.client("bedrock-sage.kernels.runtime") as bedrock_async_client:

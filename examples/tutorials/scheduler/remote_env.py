@@ -76,7 +76,11 @@ def example_fifo_scheduler():
     # 使用字符串指定调度器
     env = RemoteEnvironment(name="fifo_scheduler_demo", scheduler="fifo")  # 字符串方式
 
-    (env.from_source(SimpleSource).map(SimpleProcessor, parallelism=3).sink(ConsoleSink))
+    (
+        env.from_source(SimpleSource)
+        .map(SimpleProcessor, parallelism=3)
+        .sink(ConsoleSink)
+    )
 
     print("▶️  提交任务...")
     env.submit(autostop=True)
@@ -92,9 +96,15 @@ def example_load_aware_scheduler():
     print("=" * 60 + "\n")
 
     # 使用字符串指定负载感知调度器
-    env = RemoteEnvironment(name="load_aware_demo", scheduler="load_aware")  # 负载感知调度器
+    env = RemoteEnvironment(
+        name="load_aware_demo", scheduler="load_aware"
+    )  # 负载感知调度器
 
-    (env.from_source(SimpleSource).map(SimpleProcessor, parallelism=4).sink(ConsoleSink))
+    (
+        env.from_source(SimpleSource)
+        .map(SimpleProcessor, parallelism=4)
+        .sink(ConsoleSink)
+    )
 
     print("▶️  提交任务...")
     env.submit(autostop=True)
@@ -114,13 +124,19 @@ def example_custom_scheduler_instance():
     from sage.kernel.scheduler.impl import LoadAwareScheduler
 
     # 创建自定义配置的调度器实例
-    custom_scheduler = LoadAwareScheduler(platform="remote", max_concurrent=15)  # 自定义最大并发数
+    custom_scheduler = LoadAwareScheduler(
+        platform="remote", max_concurrent=15
+    )  # 自定义最大并发数
 
     env = RemoteEnvironment(
         name="custom_scheduler_demo", scheduler=custom_scheduler  # 传入调度器实例
     )
 
-    (env.from_source(SimpleSource).map(SimpleProcessor, parallelism=5).sink(ConsoleSink))
+    (
+        env.from_source(SimpleSource)
+        .map(SimpleProcessor, parallelism=5)
+        .sink(ConsoleSink)
+    )
 
     print("▶️  提交任务...")
     env.submit(autostop=True)

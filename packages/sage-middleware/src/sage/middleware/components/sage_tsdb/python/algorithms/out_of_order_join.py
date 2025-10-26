@@ -203,7 +203,9 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
                     # Check window condition
                     if abs(left.timestamp - right.timestamp) <= self.window_size:
                         # Check custom predicate if provided
-                        if self.join_predicate is None or self.join_predicate(left, right):
+                        if self.join_predicate is None or self.join_predicate(
+                            left, right
+                        ):
                             joined.append((left, right))
 
         return joined

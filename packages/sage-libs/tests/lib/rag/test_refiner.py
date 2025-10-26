@@ -258,7 +258,9 @@ class TestRefinerOperatorExecution:
 
         config = self.get_complete_config()
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             # 创建 mock service 实例
             mock_service = Mock()
 
@@ -315,7 +317,9 @@ class TestRefinerOperatorExecution:
 
         config = self.get_complete_config()
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             # 创建 mock service
             mock_service = Mock()
 
@@ -359,7 +363,9 @@ class TestRefinerOperatorExecution:
 
         config = self.get_complete_config()
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             # 创建 mock service
             mock_service = Mock()
             mock_service.refine.side_effect = Exception("model load failed")
@@ -408,7 +414,9 @@ class TestRefinerOperatorIntegration:
         mock_ctx.env_base_dir = temp_dir
 
         # 模拟完整的文档精炼工作流
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             mock_service = Mock()
 
             # 模拟 RefineResult
@@ -656,7 +664,9 @@ class TestRefinerOperatorFixes:
             "enable_profile": False,
         }
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             try:
                 RefinerOperator(config=config)
 
@@ -666,7 +676,9 @@ class TestRefinerOperatorFixes:
 
                 # RefinerService接收整个config字典
                 passed_config = (
-                    call_args[0][0] if call_args.args else call_args.kwargs.get("config")
+                    call_args[0][0]
+                    if call_args.args
+                    else call_args.kwargs.get("config")
                 )
                 assert passed_config is not None
                 assert passed_config["gpu_device"] == 0
@@ -693,7 +705,9 @@ class TestRefinerOperatorFixes:
             "enable_profile": False,
         }
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             try:
                 # 创建mock service和result
                 mock_service = Mock()
@@ -761,7 +775,9 @@ class TestRefinerOperatorFixes:
             "enable_profile": False,
         }
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             try:
                 # 创建mock service和result
                 mock_service = Mock()
@@ -831,7 +847,9 @@ class TestRefinerOperatorFixes:
             "enable_profile": False,
         }
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             try:
                 # 创建mock service和result
                 mock_service = Mock()
@@ -898,7 +916,9 @@ class TestRefinerOperatorFixes:
             "enable_profile": False,
         }
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             try:
                 # 创建mock service和result
                 mock_service = Mock()
@@ -950,7 +970,9 @@ class TestRefinerOperatorFixes:
             # 注意：没有score_gpu_device字段
         }
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_service_class:
             try:
                 # 创建mock service
                 mock_service = Mock()
@@ -964,7 +986,9 @@ class TestRefinerOperatorFixes:
                 call_args = mock_service_class.call_args
 
                 # 验证配置被正确传递（RefinerService接收一个config参数）
-                passed_config = call_args[0][0] if call_args[0] else call_args.kwargs.get("config")
+                passed_config = (
+                    call_args[0][0] if call_args[0] else call_args.kwargs.get("config")
+                )
                 assert passed_config is not None
 
                 # 验证adapter被正确创建

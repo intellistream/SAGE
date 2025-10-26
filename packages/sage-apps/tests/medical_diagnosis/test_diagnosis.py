@@ -14,7 +14,9 @@ medical_diagnosis_dir = (
 )
 
 # 导入医疗诊断模块
-from sage.apps.medical_diagnosis.agents.diagnostic_agent import DiagnosticAgent  # noqa: E402
+from sage.apps.medical_diagnosis.agents.diagnostic_agent import (  # noqa: E402
+    DiagnosticAgent,
+)
 
 
 def test_single_case():
@@ -106,7 +108,9 @@ def test_single_case():
 
         # 对比真实标签
         print(f"\n✅ 真实疾病: {case['disease']}")
-        print(f"   诊断结果中是否包含: {'是' if case['disease'] in result.report else '否'}")
+        print(
+            f"   诊断结果中是否包含: {'是' if case['disease'] in result.report else '否'}"
+        )
 
     except Exception as e:
         print(f"❌ 诊断过程出错: {e}")

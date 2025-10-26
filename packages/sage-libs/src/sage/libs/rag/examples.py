@@ -19,11 +19,9 @@ def example_document_loading():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.document_loaders import (
-            JSONLoader,  # noqa: F401
-            PDFLoader,  # noqa: F401
-            TextLoader,  # noqa: F401
-        )
+        from sage.libs.rag.document_loaders import JSONLoader  # noqa: F401
+        from sage.libs.rag.document_loaders import PDFLoader  # noqa: F401
+        from sage.libs.rag.document_loaders import TextLoader  # noqa: F401
 
         print("\n✓ Available document loaders:")
         print("  - TextLoader: Load plain text files")

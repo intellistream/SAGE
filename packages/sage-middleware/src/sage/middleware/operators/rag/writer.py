@@ -69,7 +69,9 @@ class MemoryWriter(MapOperator):
                     documents=processed_data,
                     collection_config=config,
                 )
-                self.logger.debug(f"Stored {len(processed_data)} chunks to {mem_type.upper()}")
+                self.logger.debug(
+                    f"Stored {len(processed_data)} chunks to {mem_type.upper()}"
+                )
             except Exception as e:
                 self.logger.error(f"Failed to store to {mem_type.upper()}: {str(e)}")
 

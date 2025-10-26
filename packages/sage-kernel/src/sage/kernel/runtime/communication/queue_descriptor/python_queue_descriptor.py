@@ -85,5 +85,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
             use_multiprocessing=metadata.get("use_multiprocessing", False),
             queue_id=data["queue_id"],
         )
-        instance.created_timestamp = data.get("created_timestamp", instance.created_timestamp)
+        instance.created_timestamp = data.get(
+            "created_timestamp", instance.created_timestamp
+        )
         return instance

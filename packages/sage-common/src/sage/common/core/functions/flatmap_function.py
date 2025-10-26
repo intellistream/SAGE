@@ -55,7 +55,9 @@ class FlatMapFunction(BaseFunction):
             tag: Optional output tag
         """
         if self.out is None:
-            raise RuntimeError("Collector not initialized. This should be set by the operator.")
+            raise RuntimeError(
+                "Collector not initialized. This should be set by the operator."
+            )
 
         self.out.collect(data)
         self.logger.debug(f"Data collected: {data}")

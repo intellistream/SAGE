@@ -287,7 +287,9 @@ class TestTypeCompatibility:
         assert len(docs) == 3
 
         # Reranker output
-        reranker_out = create_query_result(query=query, results=docs[:2], execution_time=0.1)
+        reranker_out = create_query_result(
+            query=query, results=docs[:2], execution_time=0.1
+        )
 
         # Generator input
         final_query = extract_query(reranker_out)

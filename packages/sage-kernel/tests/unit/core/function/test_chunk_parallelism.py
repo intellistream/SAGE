@@ -268,7 +268,9 @@ class TestChunkParallelism:
             assert "chunk_id" in chunk
             assert len(chunk["content"]) > 0
 
-        print(f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks")
+        print(
+            f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks"
+        )
 
     def test_chunk_parallelism_hints_large_documents(self):
         """测试大文档的chunk并行处理"""
@@ -419,7 +421,9 @@ class TestChunkParallelism:
 
         env = LocalEnvironment(name="graceful_shutdown_drain_test")
 
-        large_content = "Synthetic large document content to simulate heavy processing. " * 60
+        large_content = (
+            "Synthetic large document content to simulate heavy processing. " * 60
+        )
         documents = [
             {"content": large_content, "id": "slow_doc1"},
             {"content": large_content, "id": "slow_doc2"},

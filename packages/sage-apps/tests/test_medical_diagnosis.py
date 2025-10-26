@@ -14,7 +14,9 @@ class TestMedicalDiagnosisStructure:
     @pytest.fixture
     def medical_dir(self):
         """Get medical diagnosis directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+        return (
+            Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+        )
 
     def test_medical_directory_exists(self, medical_dir):
         """Verify medical diagnosis directory exists"""
@@ -71,7 +73,9 @@ class TestMedicalDiagnosisImports:
     @pytest.fixture
     def medical_dir(self):
         """Get medical diagnosis directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+        return (
+            Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
+        )
 
     def test_run_diagnosis_imports(self, medical_dir):
         """Test run_diagnosis.py can be imported"""
@@ -114,7 +118,12 @@ class TestMedicalDiagnosisConfig:
     def config_dir(self):
         """Get config directory path"""
         return (
-            Path(__file__).parent.parent / "src" / "sage" / "apps" / "medical_diagnosis" / "config"
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "apps"
+            / "medical_diagnosis"
+            / "config"
         )
 
     def test_config_directory_exists(self, config_dir):

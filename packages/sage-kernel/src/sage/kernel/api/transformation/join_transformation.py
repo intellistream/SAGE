@@ -41,9 +41,13 @@ class JoinTransformation(BaseTransformation):
 
         super().__init__(env, function, *args, **kwargs)
 
-        self.logger.debug(f"Created JoinTransformation with function {function.__name__}")
+        self.logger.debug(
+            f"Created JoinTransformation with function {function.__name__}"
+        )
 
-    def _validate_required_methods(self, function_class: type[BaseJoinFunction]) -> None:
+    def _validate_required_methods(
+        self, function_class: type[BaseJoinFunction]
+    ) -> None:
         """
         验证Join函数是否实现了必需的方法
 
@@ -74,7 +78,9 @@ class JoinTransformation(BaseTransformation):
         # 验证execute方法的签名
         self._validate_execute_signature(function_class)
 
-    def _validate_execute_signature(self, function_class: type[BaseJoinFunction]) -> None:
+    def _validate_execute_signature(
+        self, function_class: type[BaseJoinFunction]
+    ) -> None:
         """
         验证execute方法的签名是否正确
 
@@ -170,7 +176,9 @@ class JoinTransformation(BaseTransformation):
                 f"but only {input_count} provided."
             )
 
-    def validate_keyed_streams(self, stream_transformations: list[BaseTransformation]) -> None:
+    def validate_keyed_streams(
+        self, stream_transformations: list[BaseTransformation]
+    ) -> None:
         """
         验证所有输入流都是keyed的
 
@@ -225,7 +233,10 @@ class JoinTransformation(BaseTransformation):
                     current = current.upstreams[0]
                 else:
                     # 多个上游，检查是否都是keyed的
-                    return all(self._is_keyed_stream(upstream) for upstream in current.upstreams)
+                    return all(
+                        self._is_keyed_stream(upstream)
+                        for upstream in current.upstreams
+                    )
             else:
                 break
 

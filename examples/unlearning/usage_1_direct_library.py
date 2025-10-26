@@ -67,12 +67,16 @@ def example_basic_unlearning():
     print(f"  Success: {result.success}")
     print(f"  Vectors unlearned: {result.num_vectors_unlearned}")
     print(f"  Neighbors compensated: {result.num_neighbors_compensated}")
-    print(f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}")
+    print(
+        f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}"
+    )
 
     # 6. 获取扰动后的向量
     perturbed = result.metadata["perturbed_vectors"]
     print("\n📊 Vector Comparison:")
-    for i, (orig, pert, vec_id) in enumerate(zip(vectors_to_forget, perturbed, ids_to_forget)):
+    for i, (orig, pert, vec_id) in enumerate(
+        zip(vectors_to_forget, perturbed, ids_to_forget)
+    ):
         l2_dist = np.linalg.norm(orig - pert)
         cos_sim = np.dot(orig, pert) / (np.linalg.norm(orig) * np.linalg.norm(pert))
         print(f"  {vec_id}: L2={l2_dist:.4f}, CosSim={cos_sim:.4f}")
@@ -160,7 +164,9 @@ def example_batch_unlearning():
     print("\n📊 Summary:")
     print(f"  Total forgotten: {total_forgotten} vectors")
     print(f"  Remaining budget: ε={remaining['epsilon_remaining']:.4f}")
-    print(f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}")
+    print(
+        f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}"
+    )
     print()
 
 
@@ -235,7 +241,9 @@ def example_privacy_budget_management():
         operation_count += 1
 
         if not result.success:
-            print(f"\n❌ Operation {operation_count} failed: {result.metadata.get('error')}")
+            print(
+                f"\n❌ Operation {operation_count} failed: {result.metadata.get('error')}"
+            )
             print(f"  Remaining budget: {result.metadata.get('remaining_budget')}")
             break
         else:

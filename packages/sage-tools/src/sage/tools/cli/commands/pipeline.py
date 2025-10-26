@@ -19,7 +19,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
-
 from sage.common.config.output_paths import get_sage_paths
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment
@@ -55,7 +54,9 @@ DEFAULT_MODEL = os.getenv("SAGE_PIPELINE_BUILDER_MODEL") or os.getenv(
 DEFAULT_BASE_URL = os.getenv("SAGE_PIPELINE_BUILDER_BASE_URL") or os.getenv(
     "TEMP_GENERATOR_BASE_URL"
 )
-DEFAULT_API_KEY = os.getenv("SAGE_PIPELINE_BUILDER_API_KEY") or os.getenv("TEMP_GENERATOR_API_KEY")
+DEFAULT_API_KEY = os.getenv("SAGE_PIPELINE_BUILDER_API_KEY") or os.getenv(
+    "TEMP_GENERATOR_API_KEY"
+)
 
 
 SYSTEM_PROMPT = textwrap.dedent(
@@ -216,7 +217,8 @@ def _blueprint_contexts(
     matches: Sequence[tuple[blueprints.PipelineBlueprint, float]],
 ) -> tuple[str, ...]:
     return tuple(
-        blueprints.render_blueprint_prompt(blueprint, score) for blueprint, score in matches
+        blueprints.render_blueprint_prompt(blueprint, score)
+        for blueprint, score in matches
     )
 
 
@@ -284,7 +286,11 @@ def _validate_plan(plan: dict[str, Any]) -> None:
         if not isinstance(stage, dict):
             raise PipelineBuilderError("stages 列表中的元素必须是对象。")
         stage_id = stage.get("id")
-        stage["id"] = _slugify(str(stage_id)) if stage_id else _slugify(stage.get("class", "stage"))
+        stage["id"] = (
+            _slugify(str(stage_id))
+            if stage_id
+            else _slugify(stage.get("class", "stage"))
+        )
         if not stage.get("class"):
             raise PipelineBuilderError("每个 stage 必须包含 class 字段。")
         params = stage.get("params", {})
@@ -324,8 +330,14 @@ def _validate_graph_plan(plan: dict[str, Any]) -> None:
             raise PipelineBuilderError(f"节点 {slugified} 缺少 class 字段。")
 
         for key in ("inputs", "outputs"):
-            if key in node and node[key] is not None and not isinstance(node[key], list):
-                raise PipelineBuilderError(f"节点 {slugified} 的 {key} 字段必须是列表。")
+            if (
+                key in node
+                and node[key] is not None
+                and not isinstance(node[key], list)
+            ):
+                raise PipelineBuilderError(
+                    f"节点 {slugified} 的 {key} 字段必须是列表。"
+                )
 
     channels = graph.get("channels") or []
     if not isinstance(channels, list):
@@ -540,7 +552,9 @@ class PipelinePlanGenerator:
         self.config = config
         self._client = None  # type: Optional[Any]
         self._last_knowledge_contexts: tuple[str, ...] = ()
-        self._blueprint_matches: tuple[tuple[blueprints.PipelineBlueprint, float], ...] = ()
+        self._blueprint_matches: tuple[
+            tuple[blueprints.PipelineBlueprint, float], ...
+        ] = ()
         self._last_blueprint_contexts: tuple[str, ...] = ()
         self._template_matches: tuple[templates.TemplateMatch, ...] = ()
         self._last_template_contexts: tuple[str, ...] = ()
@@ -565,7 +579,9 @@ class PipelinePlanGenerator:
         knowledge_contexts: tuple[str, ...] = ()
         if self.config.knowledge_base is not None:
             try:
-                query_payload = build_query_payload(requirements, previous_plan, feedback)
+                query_payload = build_query_payload(
+                    requirements, previous_plan, feedback
+                )
                 results = self.config.knowledge_base.search(
                     query_payload,
                     top_k=self.config.knowledge_top_k,
@@ -573,7 +589,9 @@ class PipelinePlanGenerator:
                 knowledge_contexts = tuple(item.text for item in results)
                 self._last_knowledge_contexts = knowledge_contexts
             except Exception as exc:  # pragma: no cover - defensive
-                console.print(f"[yellow]检索知识库时出错，将继续使用内建上下文: {exc}[/yellow]")
+                console.print(
+                    f"[yellow]检索知识库时出错，将继续使用内建上下文: {exc}[/yellow]"
+                )
                 self._last_knowledge_contexts = ()
 
         if self.config.show_knowledge and knowledge_contexts:
@@ -686,7 +704,9 @@ class GraphPlanGenerator:
         self.config = config
         self._client: Any | None = None
         self._last_knowledge_contexts: tuple[str, ...] = ()
-        self._blueprint_matches: tuple[tuple[blueprints.PipelineBlueprint, float], ...] = ()
+        self._blueprint_matches: tuple[
+            tuple[blueprints.PipelineBlueprint, float], ...
+        ] = ()
         self._last_blueprint_contexts: tuple[str, ...] = ()
 
         if self.config.backend != "mock":
@@ -709,14 +729,18 @@ class GraphPlanGenerator:
         knowledge_contexts: tuple[str, ...] = ()
         if self.config.knowledge_base is not None:
             try:
-                query_payload = build_query_payload(requirements, previous_plan, feedback)
+                query_payload = build_query_payload(
+                    requirements, previous_plan, feedback
+                )
                 results = self.config.knowledge_base.search(
                     query_payload, top_k=self.config.knowledge_top_k
                 )
                 knowledge_contexts = tuple(item.text for item in results)
                 self._last_knowledge_contexts = knowledge_contexts
             except Exception as exc:  # pragma: no cover - defensive
-                console.print(f"[yellow]检索知识库时出错，将继续使用静态上下文: {exc}[/yellow]")
+                console.print(
+                    f"[yellow]检索知识库时出错，将继续使用静态上下文: {exc}[/yellow]"
+                )
                 self._last_knowledge_contexts = ()
 
         if self.config.show_knowledge and knowledge_contexts:
@@ -887,7 +911,9 @@ def _save_plan(plan: dict[str, Any], output: Path | None, overwrite: bool) -> Pa
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if output_path.exists() and not overwrite:
-        raise PipelineBuilderError(f"文件已存在: {output_path}。使用 --overwrite 强制覆盖。")
+        raise PipelineBuilderError(
+            f"文件已存在: {output_path}。使用 --overwrite 强制覆盖。"
+        )
 
     output_path.write_text(yaml_text, encoding="utf-8")
     return output_path
@@ -907,7 +933,9 @@ def preview_pipeline_plan(plan: dict[str, Any]) -> None:
     _preview_yaml(yaml_text)
 
 
-def save_pipeline_plan(plan: dict[str, Any], output: Path | None, overwrite: bool) -> Path:
+def save_pipeline_plan(
+    plan: dict[str, Any], output: Path | None, overwrite: bool
+) -> Path:
     return _save_plan(plan, output, overwrite)
 
 
@@ -945,7 +973,9 @@ def execute_pipeline_plan(
     _apply_sink(stream, sink)
 
     if plan.get("monitors"):
-        log_console.print("[yellow]📈 当前版本暂未自动配置 monitors，需手动集成。[/yellow]")
+        log_console.print(
+            "[yellow]📈 当前版本暂未自动配置 monitors，需手动集成。[/yellow]"
+        )
 
     log_console.print("🚀 提交 pipeline...")
     job_uuid = env.submit(autostop=autostop)
@@ -991,10 +1021,14 @@ def _collect_requirements(
     if "name" not in requirements:
         requirements["name"] = typer.prompt("Pipeline 名称", default="My Pipeline")
     if "goal" not in requirements:
-        requirements["goal"] = typer.prompt("主要目标", default="构建一个问答型 RAG pipeline")
+        requirements["goal"] = typer.prompt(
+            "主要目标", default="构建一个问答型 RAG pipeline"
+        )
 
     if "data_sources" not in requirements:
-        requirements["data_sources"] = typer.prompt("数据来源 (可留空)", default="文档知识库")
+        requirements["data_sources"] = typer.prompt(
+            "数据来源 (可留空)", default="文档知识库"
+        )
     if "latency_budget" not in requirements:
         requirements["latency_budget"] = typer.prompt(
             "延迟/吞吐需求 (可留空)", default="实时体验优先"
@@ -1026,7 +1060,9 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
         help="输出 YAML 文件路径 (可为目录)",
     ),
     overwrite: bool = typer.Option(False, help="允许覆盖已存在的文件"),
-    non_interactive: bool = typer.Option(False, help="非交互模式 (需要同时提供名称和目标)"),
+    non_interactive: bool = typer.Option(
+        False, help="非交互模式 (需要同时提供名称和目标)"
+    ),
     context_limit: int = typer.Option(
         4,
         "--context-limit",
@@ -1044,7 +1080,9 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
         dir_okay=False,
         resolve_path=True,
     ),
-    show_contexts: bool = typer.Option(False, "--show-contexts", help="打印用于提示的大模型上下文"),
+    show_contexts: bool = typer.Option(
+        False, "--show-contexts", help="打印用于提示的大模型上下文"
+    ),
     disable_knowledge: bool = typer.Option(
         False,
         "--no-knowledge",
@@ -1121,10 +1159,16 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
                 embedding_model=embedding_model,
             )
             # Show which embedding method is being used
-            method_name = embedding_method or os.getenv("SAGE_PIPELINE_EMBEDDING_METHOD", "hash")
-            console.print(f"🎯 知识库使用 [cyan]{method_name}[/cyan] embedding 方法", style="dim")
+            method_name = embedding_method or os.getenv(
+                "SAGE_PIPELINE_EMBEDDING_METHOD", "hash"
+            )
+            console.print(
+                f"🎯 知识库使用 [cyan]{method_name}[/cyan] embedding 方法", style="dim"
+            )
         except Exception as exc:
-            console.print(f"[yellow]初始化知识库失败，将继续使用静态上下文: {exc}[/yellow]")
+            console.print(
+                f"[yellow]初始化知识库失败，将继续使用静态上下文: {exc}[/yellow]"
+            )
 
     config = BuilderConfig(
         backend=backend,
@@ -1236,7 +1280,9 @@ def run_pipeline(
 @app.command("analyze-embedding")
 def analyze_embedding_methods(
     query: str = typer.Argument(..., help="测试查询文本"),
-    top_k: int = typer.Option(3, "--top-k", "-k", min=1, max=10, help="返回 Top-K 结果数量"),
+    top_k: int = typer.Option(
+        3, "--top-k", "-k", min=1, max=10, help="返回 Top-K 结果数量"
+    ),
     methods: list[str] | None = typer.Option(
         None,
         "--method",
@@ -1323,7 +1369,9 @@ def analyze_embedding_methods(
 
     for method, data in results_by_method.items():
         console.print(f"[bold cyan]━━━ {method.upper()} ━━━[/bold cyan]")
-        console.print(f"⏱️  耗时: {data['time']*1000:.2f}ms | " f"📐 维度: {data['dimension']}")
+        console.print(
+            f"⏱️  耗时: {data['time']*1000:.2f}ms | " f"📐 维度: {data['dimension']}"
+        )
 
         table = Table(show_header=True, header_style="bold magenta", box=None)
         table.add_column("排名", style="dim", width=4)
@@ -1358,18 +1406,24 @@ def analyze_embedding_methods(
     console.print("[bold yellow]💡 推荐建议:[/bold yellow]\n")
 
     fastest = min(results_by_method.items(), key=lambda x: x[1]["time"])
-    console.print(f"⚡ 最快方法: [green]{fastest[0]}[/green] " f"({fastest[1]['time']*1000:.2f}ms)")
+    console.print(
+        f"⚡ 最快方法: [green]{fastest[0]}[/green] "
+        f"({fastest[1]['time']*1000:.2f}ms)"
+    )
 
     # 简单的相关性评估（基于平均得分）
     avg_scores = {
         method: (
-            sum(r.score for r in data["results"]) / len(data["results"]) if data["results"] else 0
+            sum(r.score for r in data["results"]) / len(data["results"])
+            if data["results"]
+            else 0
         )
         for method, data in results_by_method.items()
     }
     best_relevance = max(avg_scores.items(), key=lambda x: x[1])
     console.print(
-        f"🎯 最相关方法: [green]{best_relevance[0]}[/green] " f"(平均得分: {best_relevance[1]:.4f})"
+        f"🎯 最相关方法: [green]{best_relevance[0]}[/green] "
+        f"(平均得分: {best_relevance[1]:.4f})"
     )
 
     console.print(
@@ -1437,7 +1491,9 @@ def create_embedding_pipeline(
     chunk_overlap: int = typer.Option(50, "--chunk-overlap", help="分块重叠大小"),
     batch_size: int = typer.Option(32, "--batch-size", help="批处理大小"),
     enable_cache: bool = typer.Option(True, "--cache/--no-cache", help="启用缓存"),
-    normalize: bool = typer.Option(True, "--normalize/--no-normalize", help="向量归一化"),
+    normalize: bool = typer.Option(
+        True, "--normalize/--no-normalize", help="向量归一化"
+    ),
     output: Path | None = typer.Option(
         None,
         "--output",
@@ -1616,7 +1672,10 @@ def create_embedding_pipeline(
         console.print(f"✅ 配置已保存到: [green]{output_path}[/green]")
 
         # 提示如何运行
-        console.print(f"\n💡 运行此 pipeline:\n" f"   [cyan]sage pipeline run {output_path}[/cyan]")
+        console.print(
+            f"\n💡 运行此 pipeline:\n"
+            f"   [cyan]sage pipeline run {output_path}[/cyan]"
+        )
     else:
         console.print("[yellow]未保存配置。[/yellow]")
 

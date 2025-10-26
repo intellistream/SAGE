@@ -5,7 +5,6 @@ Tests the exception class hierarchy.
 """
 
 import pytest
-
 from sage.common.core.exceptions import (
     CheckpointError,
     FaultToleranceError,

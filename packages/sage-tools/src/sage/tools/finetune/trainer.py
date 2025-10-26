@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 import torch
-from peft import LoraConfig as PeftLoraConfig, get_peft_model
+from peft import LoraConfig as PeftLoraConfig
+from peft import get_peft_model
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -79,7 +80,9 @@ class LoRATrainer:
             }
 
         # 加载模型
-        self.model = AutoModelForCausalLM.from_pretrained(self.config.model_name, **load_kwargs)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.config.model_name, **load_kwargs
+        )
 
         # 加载分词器
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
@@ -203,7 +206,9 @@ class LoRATrainer:
                 print(
                     f"  1. 减小 max_length (当前 {self.config.max_length} -> {self.config.max_length // 2})"
                 )
-                print(f"  2. 减小 batch_size (当前 {self.config.per_device_train_batch_size})")
+                print(
+                    f"  2. 减小 batch_size (当前 {self.config.per_device_train_batch_size})"
+                )
                 if not self.config.load_in_8bit and not self.config.load_in_4bit:
                     print("  3. 启用量化: load_in_8bit=True")
                 if not self.config.gradient_checkpointing:

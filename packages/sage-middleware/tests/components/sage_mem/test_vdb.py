@@ -57,7 +57,9 @@ def test_vdb_collection():
     print(f"\n✅ 测试通过！找到了 {len(results)} 个相关结果")
 
     # 可选：验证是否找到了完全匹配的文本
-    has_exact_match = any("数据库事务可确保操作的原子性与一致性" in r["text"] for r in results)
+    has_exact_match = any(
+        "数据库事务可确保操作的原子性与一致性" in r["text"] for r in results
+    )
     if has_exact_match:
         print("✅ 找到了完全匹配的文本")
     else:

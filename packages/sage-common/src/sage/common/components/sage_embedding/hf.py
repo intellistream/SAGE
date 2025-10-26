@@ -15,8 +15,8 @@ def initialize_hf_model(model_name):
     """初始化 HuggingFace 模型（延迟导入依赖）"""
     # 延迟导入 transformers
     try:
+        from transformers import AutoModel  # noqa: F401
         from transformers import (
-            AutoModel,  # noqa: F401
             AutoModelForCausalLM,
             AutoTokenizer,
         )
@@ -60,7 +60,9 @@ def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:
         ) from e
 
     device = next(embed_model.parameters()).device
-    encoded_texts = tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(device)
+    encoded_texts = tokenizer(
+        text, return_tensors="pt", padding=True, truncation=True
+    ).to(device)
 
     with torch.no_grad():
         outputs = embed_model(

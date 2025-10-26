@@ -48,7 +48,9 @@ def demonstrate_template_to_llm():
 
     console.print(f"✓ 找到 {len(matches)} 个相关模板:\n")
     for idx, match in enumerate(matches, 1):
-        console.print(f"[{idx}] {match.template.title} ([cyan]{match.template.id}[/cyan])")
+        console.print(
+            f"[{idx}] {match.template.title} ([cyan]{match.template.id}[/cyan])"
+        )
         console.print(f"    标签: [yellow]{', '.join(match.template.tags)}[/yellow]")
         console.print(f"    匹配度: [magenta]{match.score:.2f}[/magenta]")
         console.print()

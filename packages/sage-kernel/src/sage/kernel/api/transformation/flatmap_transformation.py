@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 class FlatMapTransformation(BaseTransformation):
     """扁平映射变换 - 一对多数据变换"""
 
-    def __init__(self, env: BaseEnvironment, function: type[BaseFunction], *args, **kwargs):
+    def __init__(
+        self, env: BaseEnvironment, function: type[BaseFunction], *args, **kwargs
+    ):
         self.operator_class = FlatMapOperator
         super().__init__(env, function, *args, **kwargs)

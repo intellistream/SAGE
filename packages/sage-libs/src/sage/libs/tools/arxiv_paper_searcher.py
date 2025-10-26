@@ -70,7 +70,9 @@ class _Searcher_Tool(BaseTool):
         results = []
         start = 0
 
-        max_results = min(max_results, 100)  # NOTE: For traffic reasons, limit to 100 results
+        max_results = min(
+            max_results, 100
+        )  # NOTE: For traffic reasons, limit to 100 results
 
         while len(results) < max_results:
             params = {
@@ -98,13 +100,19 @@ class _Searcher_Tool(BaseTool):
                     title = title_elem.text.strip() if title_elem else "No title found"
 
                     authors_elem = paper.find("p", class_="authors")  # type: ignore
-                    authors = authors_elem.text.strip() if authors_elem else "No authors found"
+                    authors = (
+                        authors_elem.text.strip()
+                        if authors_elem
+                        else "No authors found"
+                    )
                     authors = re.sub(r"^Authors:\s*", "", authors)
                     authors = re.sub(r"\s+", " ", authors).strip()
 
                     abstract_elem = paper.find("span", class_="abstract-full")  # type: ignore
                     abstract = (
-                        abstract_elem.text.strip() if abstract_elem else "No abstract available"
+                        abstract_elem.text.strip()
+                        if abstract_elem
+                        else "No abstract available"
                     )
                     abstract = abstract.replace("△ Less", "").strip()
 

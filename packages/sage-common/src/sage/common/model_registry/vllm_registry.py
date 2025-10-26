@@ -20,7 +20,9 @@ except ImportError:  # pragma: no cover - defer failure until download call
     snapshot_download = None  # type: ignore
 
 
-_DEFAULT_ROOT = Path(os.getenv("SAGE_VLLM_MODEL_ROOT", Path.home() / ".sage" / "models" / "vllm"))
+_DEFAULT_ROOT = Path(
+    os.getenv("SAGE_VLLM_MODEL_ROOT", Path.home() / ".sage" / "models" / "vllm")
+)
 _MANIFEST_NAME = "metadata.json"
 
 
@@ -77,7 +79,9 @@ def _load_manifest(root: Path) -> dict[str, dict]:
         with manifest_path.open("r", encoding="utf-8") as handle:
             return json.load(handle)
     except json.JSONDecodeError as exc:  # pragma: no cover - unexpected corruption
-        raise ModelRegistryError(f"Corrupted manifest at {manifest_path}: {exc}") from exc
+        raise ModelRegistryError(
+            f"Corrupted manifest at {manifest_path}: {exc}"
+        ) from exc
 
 
 def _save_manifest(root: Path, manifest: dict[str, dict]) -> None:
