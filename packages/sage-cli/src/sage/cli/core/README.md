@@ -33,10 +33,12 @@ sage/cli/core/
 ```python
 from sage.cli.core import BaseCommand, cli_command
 
+
 class DoctorCommand(BaseCommand):
     def execute(self):
         self.print_section_header("🔍 System Diagnosis")
         self.formatter.print_success("All systems operational")
+
 
 @app.command("doctor")
 @cli_command(require_config=False)
@@ -68,11 +70,7 @@ print_status("success", "Task completed successfully")
 ```python
 from sage.cli.core.ssh import SSHConfig, SSHManager
 
-ssh_config = SSHConfig(
-    user="sage",
-    key_path="~/.ssh/id_rsa",
-    connect_timeout=10
-)
+ssh_config = SSHConfig(user="sage", key_path="~/.ssh/id_rsa", connect_timeout=10)
 
 ssh_manager = SSHManager(ssh_config)
 result = ssh_manager.execute_command("worker1", 22, "ps aux")
@@ -86,7 +84,7 @@ result = ssh_manager.execute_command("worker1", 22, "ps aux")
 from sage.cli.core.config import load_and_validate_config
 
 config = load_and_validate_config("~/.sage/config.yaml")
-head_config = config.get('head', {})
+head_config = config.get("head", {})
 ```
 
 ### 5. 输入验证 (validation.py)
@@ -123,18 +121,21 @@ except ConfigurationError as e:
 ### 重构现有命令的步骤：
 
 1. **确定命令类型**：
+
    - 简单命令 → 使用 `BaseCommand`
    - 需要连接服务 → 使用 `ServiceCommand`
    - 需要远程操作 → 使用 `RemoteCommand`
    - JobManager操作 → 使用 `JobManagerCommand`
 
-2. **提取共有逻辑**：
+1. **提取共有逻辑**：
+
    - 配置加载 → 使用基类的配置功能
    - 输出格式化 → 使用 `OutputFormatter`
    - SSH连接 → 使用 `SSHManager`
    - 验证逻辑 → 使用 `validation` 模块
 
-3. **应用装饰器**：
+1. **应用装饰器**：
+
    ```python
    @cli_command(require_config=True)
    def command_function():
@@ -144,6 +145,7 @@ except ConfigurationError as e:
 ### 重构前后对比：
 
 #### 重构前 (deploy.py):
+
 ```python
 def load_config():
     config_file = Path.home() / ".sage" / "config.yaml"
@@ -151,6 +153,7 @@ def load_config():
         typer.echo(f"❌ Config file not found: {config_file}")
         raise typer.Exit(1)
     # ... 复杂的配置解析逻辑
+
 
 @app.command("start")
 def start_system():
@@ -160,14 +163,17 @@ def start_system():
 ```
 
 #### 重构后:
+
 ```python
 from sage.cli.core import BaseCommand, cli_command
+
 
 class DeployStartCommand(BaseCommand):
     def execute(self):
         self.validate_config_exists()
         self.formatter.print_info("Starting SAGE system...")
         # ... 启动逻辑使用 self.config
+
 
 @app.command("start")
 @cli_command()
@@ -179,21 +185,25 @@ def start_system():
 ## 🌟 核心优势
 
 ### 1. **代码复用**
+
 - 消除重复的配置加载、错误处理、输出格式化代码
 - 统一的SSH连接管理
 - 标准化的验证逻辑
 
 ### 2. **一致性**
+
 - 统一的错误消息格式
 - 一致的配置文件结构
 - 标准化的命令行选项
 
 ### 3. **可维护性**
+
 - 集中的配置验证逻辑
 - 统一的异常处理
 - 清晰的模块分离
 
 ### 4. **可扩展性**
+
 - 基于继承的命令架构
 - 可插拔的输出格式化器
 - 灵活的配置验证器
@@ -201,6 +211,7 @@ def start_system():
 ## 📝 最佳实践
 
 ### 1. 命令设计
+
 ```python
 # ✅ 推荐：使用基类
 class MyCommand(BaseCommand):
@@ -214,6 +225,7 @@ def my_command(param1, param2):
 ```
 
 ### 2. 错误处理
+
 ```python
 # ✅ 推荐：使用自定义异常
 if not config_valid:
@@ -226,6 +238,7 @@ if not config_valid:
 ```
 
 ### 3. 输出格式化
+
 ```python
 # ✅ 推荐：使用OutputFormatter
 self.formatter.print_success("Operation completed")
@@ -239,22 +252,26 @@ print(tabulate(results, headers))
 ## 🔧 迁移步骤
 
 1. **分析现有命令**：
+
    ```bash
    # 查看命令文件
    find packages/sage-cli/src/sage/cli/commands/ -name "*.py"
    ```
 
-2. **确定重构优先级**：
+1. **确定重构优先级**：
+
    - 高重复度的命令优先
    - 核心功能命令优先
    - 复杂SSH操作命令优先
 
-3. **逐步重构**：
+1. **逐步重构**：
+
    - 一次重构一个命令文件
    - 保持向后兼容性
    - 添加测试验证
 
-4. **清理遗留代码**：
+1. **清理遗留代码**：
+
    - 移除重复的工具函数
    - 统一配置文件结构
    - 更新文档

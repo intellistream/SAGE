@@ -27,13 +27,8 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: Issues管理功能不可用: {e}[/yellow]")
 
-# 添加PyPI管理子命令
-try:
-    from sage.tools.cli.commands.pypi import app as pypi_app
-
-    app.add_typer(pypi_app, name="pypi", help="📦 PyPI发布管理 - 发布准备验证、构建和管理")
-except ImportError as e:
-    console.print(f"[yellow]警告: PyPI发布管理功能不可用: {e}[/yellow]")
+# 注意: PyPI 管理已整合到 package 命令组
+# 使用: sage-dev package pypi <command>
 
 # 删除：CI 子命令（已由 GitHub Workflows 承担 CI/CD）
 # 过去这里会 add_typer(ci_app, name="ci", ...)

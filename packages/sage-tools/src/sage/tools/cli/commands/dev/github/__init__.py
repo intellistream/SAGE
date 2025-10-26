@@ -15,35 +15,9 @@ app = typer.Typer(
 
 console = Console()
 
-# 导入现有的 issues 命令
+# 导入 issues 命令
 try:
-    # issues 命令在 sage.tools.cli.commands.dev.main 中定义
-    # 需要重新导入或移动
-    from sage.tools.dev.utils.issues_manager import IssuesManager
-
-    issues_app = typer.Typer(
-        name="issues",
-        help="📋 Issues 管理",
-        no_args_is_help=True,
-    )
-
-    @issues_app.command(name="status")
-    def issues_status():
-        """查看 Issues 状态"""
-        manager = IssuesManager()
-        manager.show_status()
-
-    @issues_app.command(name="download")
-    def issues_download():
-        """下载 Issues"""
-        manager = IssuesManager()
-        manager.download()
-
-    @issues_app.command(name="stats")
-    def issues_stats():
-        """Issues 统计"""
-        manager = IssuesManager()
-        manager.show_stats()
+    from sage.tools.dev.issues.cli import app as issues_app
 
     app.add_typer(issues_app, name="issues")
 

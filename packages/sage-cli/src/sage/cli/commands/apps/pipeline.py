@@ -20,6 +20,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
+from sage.cli import templates
 from sage.cli.commands.apps.pipeline_domain import load_custom_contexts, load_domain_contexts
 from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
@@ -28,7 +29,6 @@ from sage.cli.commands.apps.pipeline_knowledge import (
 )
 from sage.cli.core.exceptions import CLIException
 from sage.cli.templates import pipeline_blueprints as blueprints
-from sage.cli import templates
 from sage.common.config.output_paths import get_sage_paths
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment

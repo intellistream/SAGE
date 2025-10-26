@@ -15,20 +15,20 @@ app = typer.Typer(
 
 console = Console()
 
-# 导入现有的 pypi 和 version 命令组
+# 导入 pypi 和 version 命令组
 try:
-    from sage.tools.cli.commands.pypi import app as pypi_app
+    from .pypi import app as pypi_app
 
     app.add_typer(pypi_app, name="pypi")
-except ImportError:
-    console.print("[yellow]警告: 无法导入 pypi 命令[/yellow]")
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 pypi 命令: {e}[/yellow]")
 
 try:
-    from sage.tools.cli.commands.dev.version import app as version_app
+    from ..version import app as version_app
 
     app.add_typer(version_app, name="version")
-except ImportError:
-    console.print("[yellow]警告: 无法导入 version 命令[/yellow]")
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 version 命令: {e}[/yellow]")
 
 
 @app.command(name="install")
