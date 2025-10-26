@@ -72,7 +72,9 @@ def quality(
     project_root: str = typer.Option(".", help="项目根目录"),
     # 保留向后兼容的选项（但现在都通过 pre-commit 实现）
     format_code: bool = typer.Option(True, "--format/--no-format", help="运行代码格式化"),
-    sort_imports: bool = typer.Option(True, "--sort-imports/--no-sort-imports", help="运行导入排序"),
+    sort_imports: bool = typer.Option(
+        True, "--sort-imports/--no-sort-imports", help="运行导入排序"
+    ),
     lint_ruff: bool = typer.Option(True, "--ruff/--no-ruff", help="运行Ruff检查"),
     type_check: bool = typer.Option(True, "--type-check/--no-type-check", help="运行类型检查"),
 ):
@@ -91,7 +93,6 @@ def quality(
     import subprocess
     from pathlib import Path
 
-    from sage.common.config.output_paths import get_sage_paths
 
     # 使用不同的变量名避免类型冲突
     project_dir = Path(project_root).resolve()

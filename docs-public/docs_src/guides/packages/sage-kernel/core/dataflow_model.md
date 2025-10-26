@@ -6,36 +6,37 @@ SAGE Core 采用先进的数据流编程模型，将计算逻辑表示为有向�
 
 ### 声明式 vs 命令式编程
 
-| 特性 | 声明式编程 (SAGE) | 命令式编程 (传统) |
-|------|-------------------|------------------|
-| **关注点** | 描述"做什么" | 描述"如何做" |
+| 特性         | 声明式编程 (SAGE)  | 命令式编程 (传统)  |
+| ------------ | ------------------ | ------------------ |
+| **关注点**   | 描述"做什么"       | 描述"如何做"       |
 | **代码风格** | 链式调用，简洁优雅 | 顺序语句，详细步骤 |
-| **优化空间** | 自动优化执行计划 | 手动优化代码逻辑 |
+| **优化空间** | 自动优化执行计划   | 手动优化代码逻辑   |
 | **可维护性** | 高层抽象，易于理解 | 底层细节，维护复杂 |
-| **并行化** | 自动并行优化 | 手动线程管理 |
+| **并行化**   | 自动并行优化       | 手动线程管理       |
 
 ```python
 # 声明式编程示例 - 专注于业务逻辑
-result = (env
-    .from_source(input_source)
-    .map(preprocess)          # 数据预处理
-    .map(embedding)           # 向量嵌入计算
-    .map(retrieval)           # 向量检索
-    .map(generation)          # 文本生成
-    .sink(output_sink)        # 结果输出
+result = (
+    env.from_source(input_source)
+    .map(preprocess)  # 数据预处理
+    .map(embedding)  # 向量嵌入计算
+    .map(retrieval)  # 向量检索
+    .map(generation)  # 文本生成
+    .sink(output_sink)  # 结果输出
 )
+
 
 # 命令式编程示例 - 需要管理执行细节
 def process_data():
     data = read_from_source(input_source)
     results = []
     for item in data:
-        processed = preprocess(item)        # 手动循环处理
-        embedded = embedding(processed)    # 显式状态管理
-        retrieved = retrieval(embedded)     # 手动错误处理
-        generated = generation(retrieved)   # 复杂的流程控制
+        processed = preprocess(item)  # 手动循环处理
+        embedded = embedding(processed)  # 显式状态管理
+        retrieved = retrieval(embedded)  # 手动错误处理
+        generated = generation(retrieved)  # 复杂的流程控制
         results.append(generated)
-    write_to_sink(results, output_sink)    # 结果输出管理
+    write_to_sink(results, output_sink)  # 结果输出管理
 ```
 
 ### 数据驱动执行模型
@@ -110,13 +111,12 @@ classDiagram
 ### 算子类型详解
 
 #### 1. 数据源算子 (Source Operators)
+
 ```python
 class KafkaSourceOperator(SourceOperator):
     def __init__(self, bootstrap_servers, topics, group_id):
         self.consumer = KafkaConsumer(
-            bootstrap_servers=bootstrap_servers,
-            topics=topics,
-            group_id=group_id
+            bootstrap_servers=bootstrap_servers, topics=topics, group_id=group_id
         )
 
     def read(self):
@@ -128,10 +128,11 @@ class KafkaSourceOperator(SourceOperator):
 
     def assign_timestamps(self, record):
         """分配时间戳用于事件时间处理"""
-        return record.timestamp if hasattr(record, 'timestamp') else time.time()
+        return record.timestamp if hasattr(record, "timestamp") else time.time()
 ```
 
 #### 2. 转换算子 (Transformation Operators)
+
 ```python
 class SmartMapOperator(TransformOperator):
     def __init__(self, user_func, config=None):
@@ -144,16 +145,17 @@ class SmartMapOperator(TransformOperator):
         try:
             result = self.user_func(value)
             # 记录处理延迟
-            self.metrics['latency'] = time.time() - start_time
-            self.metrics['processed_count'] += 1
+            self.metrics["latency"] = time.time() - start_time
+            self.metrics["processed_count"] += 1
             return result
         except Exception as e:
-            self.metrics['error_count'] += 1
+            self.metrics["error_count"] += 1
             ctx.output_error(value, e)  # 错误处理
             return None
 ```
 
 #### 3. 数据汇算子 (Sink Operators)
+
 ```python
 class ElasticsearchSinkOperator(SinkOperator):
     def __init__(self, hosts, index_name, batch_size=1000):
@@ -172,8 +174,7 @@ class ElasticsearchSinkOperator(SinkOperator):
         """批量提交数据"""
         if self.buffer:
             bulk_data = [
-                {"index": {"_index": self.index_name}}
-                for record in self.buffer
+                {"index": {"_index": self.index_name}} for record in self.buffer
             ]
             self.es_client.bulk(bulk_data)
             self.buffer.clear()
@@ -182,10 +183,11 @@ class ElasticsearchSinkOperator(SinkOperator):
 ## 🔧 高级数据流模式
 
 ### 1. 复杂事件处理模式
+
 ```python
 # 复杂事件检测流水线
-cep_pipeline = (env
-    .from_source(EventSource("user-events"))
+cep_pipeline = (
+    env.from_source(EventSource("user-events"))
     .assign_timestamps_and_watermarks(
         WatermarkStrategy.for_bounded_out_of_orderness(Duration.of_seconds(5))
     )
@@ -194,6 +196,7 @@ cep_pipeline = (env
     .process(ComplexEventProcessor(), name="complex-event-detector")
     .sink(AlertSink("alerts-topic"))
 )
+
 
 class ComplexEventProcessor(ProcessWindowFunction):
     def process(self, key, context, events):
@@ -204,20 +207,22 @@ class ComplexEventProcessor(ProcessWindowFunction):
                 "user_id": key,
                 "pattern_type": pattern.type,
                 "timestamp": context.window().end(),
-                "events_count": len(events)
+                "events_count": len(events),
             }
 ```
 
 ### 2. 状态流处理模式
+
 ```python
 # 有状态流处理示例
-stateful_pipeline = (env
-    .from_source(UserBehaviorSource())
+stateful_pipeline = (
+    env.from_source(UserBehaviorSource())
     .key_by(lambda x: x["user_id"])
     .map(UserSessionAggregator(), name="session-aggregator")
     .map(BehaviorAnalyzer(), name="behavior-analyzer")
     .sink(ProfileUpdaterSink())
 )
+
 
 class UserSessionAggregator(MapFunction):
     def __init__(self):
@@ -225,10 +230,7 @@ class UserSessionAggregator(MapFunction):
 
     def open(self, context):
         # 初始化状态描述符
-        state_descriptor = ValueStateDescriptor(
-            "user_session",
-            Types.POJO(UserSession)
-        )
+        state_descriptor = ValueStateDescriptor("user_session", Types.POJO(UserSession))
         self.session_state = context.get_keyed_state(state_descriptor)
 
     def map(self, event):
@@ -239,21 +241,19 @@ class UserSessionAggregator(MapFunction):
 ```
 
 ### 3. 机器学习推理流水线
+
 ```python
 # 大语言模型推理流水线
-llm_pipeline = (env
-    .from_source(QuerySource("user-queries"))
+llm_pipeline = (
+    env.from_source(QuerySource("user-queries"))
     .map(QueryPreprocessor(), name="query-preprocessor")
-    .map(EmbeddingGenerator("model/embedding"),
-         name="embedding-generator")
-    .map(ContextRetriever("vector-db"),
-         name="context-retriever")
-    .map(LLMInferenceEngine("model/llm"),
-         name="llm-inference")
-    .map(ResponsePostprocessor(),
-         name="response-postprocessor")
+    .map(EmbeddingGenerator("model/embedding"), name="embedding-generator")
+    .map(ContextRetriever("vector-db"), name="context-retriever")
+    .map(LLMInferenceEngine("model/llm"), name="llm-inference")
+    .map(ResponsePostprocessor(), name="response-postprocessor")
     .sink(ResponseSink("response-topic"))
 )
+
 
 class LLMInferenceEngine(MapFunction):
     def __init__(self, model_path):
@@ -277,15 +277,11 @@ class LLMInferenceEngine(MapFunction):
 
 ### 执行优化技术对比
 
-| 优化技术 | 适用场景 |
-|---------|---------|---------|
-| **算子融合** | 相邻无状态算子 |
-| **数据本地化** | 数据密集型应用 |
-| **批量处理** | 高吞吐场景 |
-| **异步I/O** | I/O密集型应用 |
-| **状态分区** | 有状态计算 |
+| 优化技术 | 适用场景 | |---------|---------|---------| | **算子融合** | 相邻无状态算子 | | **数据本地化** | 数据密集型应用 | |
+**批量处理** | 高吞吐场景 | | **异步I/O** | I/O密集型应用 | | **状态分区** | 有状态计算 |
 
 ### 优化配置示例
+
 ```python
 # 高性能流水线配置
 optimized_env = StreamExecutionEnvironment.create(
@@ -295,28 +291,28 @@ optimized_env = StreamExecutionEnvironment.create(
     object_reuse=True,
     state_backend=StateBackend.ROCKSDB,
     checkpoint_config=CheckpointConfig(
-        interval=30000,  # 30秒
-        timeout=60000,
-        min_pause_between_checkpoints=5000
-    )
+        interval=30000, timeout=60000, min_pause_between_checkpoints=5000  # 30秒
+    ),
 )
 
 # 内存优化配置
 memory_config = {
-    'taskmanager.memory.process.size': '4gb',
-    'taskmanager.memory.network.min': '64mb',
-    'taskmanager.memory.network.max': '1gb',
-    'taskmanager.memory.managed.fraction': '0.4'
+    "taskmanager.memory.process.size": "4gb",
+    "taskmanager.memory.network.min": "64mb",
+    "taskmanager.memory.network.max": "1gb",
+    "taskmanager.memory.managed.fraction": "0.4",
 }
 ```
 
 ## 🛠️ 调试与监控最佳实践
 
 ### 1. 分布式追踪集成
+
 ```python
 # OpenTelemetry集成示例
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
+
 
 def setup_tracing():
     tracer_provider = TracerProvider()
@@ -328,6 +324,7 @@ def setup_tracing():
     tracer_provider.add_span_processor(span_processor)
 
     return trace.get_tracer("sage-pipeline")
+
 
 class TracedOperator(BaseOperator):
     def __init__(self, name):
@@ -343,6 +340,7 @@ class TracedOperator(BaseOperator):
 ```
 
 ### 2. 性能监控配置
+
 ```yaml
 # 监控配置
 monitoring:
@@ -377,41 +375,44 @@ monitoring:
 ## 📋 生产环境最佳实践
 
 ### 1. 容错设计
+
 ```python
 # 容错配置
 fault_tolerance_config = {
-    'restart-strategy': 'exponential-delay',
-    'restart-strategy.exponential-delay.initial-backoff': '10s',
-    'restart-strategy.exponential-delay.max-backoff': '5m',
-    'restart-strategy.exponential-delay.backoff-multiplier': '2.0',
-    'checkpointing': 'exactly_once',
-    'checkpointing.interval': '30s',
-    'checkpointing.timeout': '5m',
-    'checkpointing.min-pause': '10s'
+    "restart-strategy": "exponential-delay",
+    "restart-strategy.exponential-delay.initial-backoff": "10s",
+    "restart-strategy.exponential-delay.max-backoff": "5m",
+    "restart-strategy.exponential-delay.backoff-multiplier": "2.0",
+    "checkpointing": "exactly_once",
+    "checkpointing.interval": "30s",
+    "checkpointing.timeout": "5m",
+    "checkpointing.min-pause": "10s",
 }
 
 # 状态后端配置
 state_backend_config = {
-    'backend': 'rocksdb',
-    'rocksdb.localdir': '/tmp/rocksdb',
-    'rocksdb.compaction.style': 'universal',
-    'rocksdb.writebuffer.size': '64MB',
-    'rocksdb.max.write.buffer.number': '4'
+    "backend": "rocksdb",
+    "rocksdb.localdir": "/tmp/rocksdb",
+    "rocksdb.compaction.style": "universal",
+    "rocksdb.writebuffer.size": "64MB",
+    "rocksdb.max.write.buffer.number": "4",
 }
 ```
 
 ### 2. 安全配置
+
 ```python
 # 安全配置示例
 security_config = {
-    'ssl.enabled': True,
-    'ssl.keystore.path': '/path/to/keystore',
-    'ssl.keystore.password': 'changeit',
-    'ssl.truststore.path': '/path/to/truststore',
-    'ssl.truststore.password': 'changeit',
-    'authentication.type': 'kerberos',
-    'authorization.enabled': True
+    "ssl.enabled": True,
+    "ssl.keystore.path": "/path/to/keystore",
+    "ssl.keystore.password": "changeit",
+    "ssl.truststore.path": "/path/to/truststore",
+    "ssl.truststore.password": "changeit",
+    "authentication.type": "kerberos",
+    "authorization.enabled": True,
 }
+
 
 # 数据加密
 class EncryptedSinkOperator(SinkOperator):
@@ -430,19 +431,24 @@ class EncryptedSinkOperator(SinkOperator):
         return cipher.nonce + tag + ciphertext
 ```
 
----
+______________________________________________________________________
 
 **下一步学习方向**:
+
 - <!-- ./state_management.md -->
+
 深入理解状态管理 - 掌握有状态计算的核心概念
+
 - <!-- ./performance_tuning.md -->
+
 性能调优实战 - 学习生产环境性能优化技巧
+
 - <!-- ./deployment_guide.md -->
+
 分布式部署指南 - 了解集群部署和管理
 
 通过深入掌握SAGE Core的数据流编程模型，您将能够构建高性能、可扩展的大语言模型推理流水线，满足各种复杂的业务场景需求。
 
----
+______________________________________________________________________
 
-**下一步**: 了解 <!-- [流水线编排系统](./pipeline_orchestration.md) -->
-流水线编排系统 如何管理复杂的数据流执行。
+**下一步**: 了解 <!-- [流水线编排系统](./pipeline_orchestration.md) --> 流水线编排系统 如何管理复杂的数据流执行。

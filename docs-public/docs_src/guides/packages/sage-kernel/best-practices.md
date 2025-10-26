@@ -1,18 +1,21 @@
 # SAGE Kernel Best Practices
 
-This guide covers best practices for developing with SAGE Kernel, based on real-world usage patterns and performance considerations.
+This guide covers best practices for developing with SAGE Kernel, based on real-world usage patterns
+and performance considerations.
 
 ## Architecture Best Practices
 
 ### Environment Selection
 
 **Use LocalEnvironment for:**
+
 - Development and testing
 - Single-machine deployments
 - Prototyping and experimentation
 - CPU-intensive tasks on local hardware
 
 **Use RemoteEnvironment for:**
+
 - Production deployments
 - Distributed processing
 - GPU-accelerated workloads
@@ -20,19 +23,12 @@ This guide covers best practices for developing with SAGE Kernel, based on real-
 
 ```python
 # Development
-dev_env = LocalEnvironment(config={
-    "debug": True,
-    "log_level": "DEBUG"
-})
+dev_env = LocalEnvironment(config={"debug": True, "log_level": "DEBUG"})
 
 # Production
 prod_env = RemoteEnvironment(
     endpoint="https://api.sage-cluster.com",
-    config={
-        "timeout": 30,
-        "retry_attempts": 3,
-        "failover_enabled": True
-    }
+    config={"timeout": 30, "retry_attempts": 3, "failover_enabled": True},
 )
 ```
 
@@ -77,6 +73,7 @@ def process_with_errors(data):
     except Exception as e:
         return None, str(e)
 
+
 results, errors = main_stream.map(process_with_errors).split()
 errors.filter(lambda x: x is not None).sink(error_handler)
 ```
@@ -92,20 +89,12 @@ Configure appropriate buffer sizes based on your data volume:
 ```python
 # High-throughput streams
 high_volume_stream = env.create_stream(
-    "high_volume",
-    config={
-        "buffer_size": 10000,
-        "buffer_policy": "drop_oldest"
-    }
+    "high_volume", config={"buffer_size": 10000, "buffer_policy": "drop_oldest"}
 )
 
 # Low-latency streams
 low_latency_stream = env.create_stream(
-    "low_latency",
-    config={
-        "buffer_size": 100,
-        "buffer_policy": "block"
-    }
+    "low_latency", config={"buffer_size": 100, "buffer_policy": "block"}
 )
 ```
 
@@ -150,6 +139,7 @@ def batch_processor(batch):
     # Process multiple items together
     return [process_item(item) for item in batch]
 
+
 # Process in batches of 100
 stream.batch(100).map(batch_processor)
 ```
@@ -161,9 +151,11 @@ Leverage parallelism for CPU-intensive tasks:
 ```python
 from concurrent.futures import ThreadPoolExecutor
 
+
 def parallel_map(stream, func, max_workers=4):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         return stream.map_parallel(func, executor)
+
 
 # Use for I/O bound operations
 result = parallel_map(stream, io_intensive_func)
@@ -175,18 +167,17 @@ Optimize processing pipelines:
 
 ```python
 # Good: Combine operations
-optimized = (stream
-    .filter(expensive_filter)  # Filter early
-    .map(transform_func)       # Transform remaining items
-    .batch(100)               # Batch for efficiency
-    .map(batch_process)       # Process batches
+optimized = (
+    stream.filter(expensive_filter)  # Filter early
+    .map(transform_func)  # Transform remaining items
+    .batch(100)  # Batch for efficiency
+    .map(batch_process)  # Process batches
 )
 
 # Avoid: Inefficient ordering
-inefficient = (stream
-    .map(expensive_transform)  # Transform everything first
-    .filter(simple_filter)     # Then filter (wasteful)
-)
+inefficient = stream.map(expensive_transform).filter(  # Transform everything first
+    simple_filter
+)  # Then filter (wasteful)
 ```
 
 ## Error Handling and Resilience
@@ -241,6 +232,7 @@ class CircuitBreaker:
                 self.state = "open"
             raise e
 
+
 # Usage
 circuit_breaker = CircuitBreaker()
 result = stream.map(lambda x: circuit_breaker.call(external_api, x))
@@ -254,6 +246,7 @@ Implement intelligent retry mechanisms:
 import time
 import random
 
+
 def retry_with_backoff(func, max_retries=3, base_delay=1):
     def wrapper(*args, **kwargs):
         for attempt in range(max_retries):
@@ -264,9 +257,11 @@ def retry_with_backoff(func, max_retries=3, base_delay=1):
                     raise e
 
                 # Exponential backoff with jitter
-                delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                delay = base_delay * (2**attempt) + random.uniform(0, 1)
                 time.sleep(delay)
+
     return wrapper
+
 
 # Apply to stream operations
 reliable_processor = retry_with_backoff(unreliable_operation)
@@ -289,6 +284,7 @@ def secure_processor(data):
         data["credit_card"] = mask_credit_card(data["credit_card"])
 
     return data
+
 
 # Apply security processing early in pipeline
 secure_stream = raw_stream.map(secure_processor)
@@ -314,6 +310,7 @@ def validate_input(data):
 
     return data
 
+
 validated_stream = input_stream.map(validate_input)
 ```
 
@@ -326,15 +323,17 @@ def authenticate_request(request):
         raise AuthenticationError("Invalid token")
     return request
 
+
 def authorize_operation(request, required_permission):
     user = get_user_from_token(request["auth_token"])
     if not user.has_permission(required_permission):
         raise AuthorizationError("Insufficient permissions")
     return request
 
+
 # Apply security checks
-secure_stream = (input_stream
-    .map(authenticate_request)
+secure_stream = (
+    input_stream.map(authenticate_request)
     .map(lambda req: authorize_operation(req, "data.read"))
     .map(process_authorized_request)
 )
@@ -347,6 +346,7 @@ secure_stream = (input_stream
 ```python
 import unittest
 from sage.core.api import LocalEnvironment
+
 
 class TestStreamProcessing(unittest.TestCase):
     def setUp(self):
@@ -392,8 +392,8 @@ class TestIntegration(unittest.TestCase):
 
         # Create test pipeline
         input_stream = env.create_stream("input")
-        processed = (input_stream
-            .filter(lambda x: x > 0)
+        processed = (
+            input_stream.filter(lambda x: x > 0)
             .map(lambda x: x * 2)
             .reduce(lambda a, b: a + b)
         )
@@ -415,6 +415,7 @@ class TestIntegration(unittest.TestCase):
 import time
 import psutil
 
+
 def measure_performance(stream_operation, data_size=10000):
     start_time = time.time()
     start_memory = psutil.Process().memory_info().rss
@@ -428,8 +429,9 @@ def measure_performance(stream_operation, data_size=10000):
     return {
         "execution_time": end_time - start_time,
         "memory_usage": end_memory - start_memory,
-        "result_size": len(result)
+        "result_size": len(result),
     }
+
 
 # Test different configurations
 def test_buffer_sizes():
@@ -457,11 +459,11 @@ import logging
 
 # Configure structured logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 logger = logging.getLogger(__name__)
+
 
 def logged_processor(data):
     try:
@@ -473,6 +475,7 @@ def logged_processor(data):
         logger.error(f"Failed to process item {data.get('id')}: {str(e)}")
         raise
 
+
 stream.map(logged_processor)
 ```
 
@@ -481,6 +484,7 @@ stream.map(logged_processor)
 ```python
 from collections import defaultdict
 import time
+
 
 class StreamMetrics:
     def __init__(self):
@@ -507,11 +511,14 @@ class StreamMetrics:
     def set_gauge(self, name, value):
         self.gauges[name] = value
 
+
 # Usage
 metrics = StreamMetrics()
 
+
 def monitored_processor(data):
     return metrics.time_operation("process_data", process_data, data)
+
 
 stream.map(monitored_processor)
 ```
@@ -533,15 +540,16 @@ class HealthChecker:
             try:
                 results[name] = {
                     "status": "healthy" if check_func() else "unhealthy",
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
                 }
             except Exception as e:
                 results[name] = {
                     "status": "error",
                     "error": str(e),
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
                 }
         return results
+
 
 # Setup health checks
 health = HealthChecker(env)
@@ -560,6 +568,7 @@ health_status = health.run_checks()
 import os
 from typing import Dict, Any
 
+
 class Config:
     def __init__(self):
         self.config = self._load_config()
@@ -571,18 +580,21 @@ class Config:
             "buffer_size": int(os.getenv("BUFFER_SIZE", "1000")),
             "max_workers": int(os.getenv("MAX_WORKERS", "4")),
             "redis_url": os.getenv("REDIS_URL", "redis://localhost:6379"),
-            "database_url": os.getenv("DATABASE_URL", "sqlite:///local.db")
+            "database_url": os.getenv("DATABASE_URL", "sqlite:///local.db"),
         }
 
     def get(self, key: str, default: Any = None) -> Any:
         return self.config.get(key, default)
 
+
 # Usage
 config = Config()
-env = LocalEnvironment(config={
-    "buffer_size": config.get("buffer_size"),
-    "log_level": config.get("log_level")
-})
+env = LocalEnvironment(
+    config={
+        "buffer_size": config.get("buffer_size"),
+        "log_level": config.get("log_level"),
+    }
+)
 ```
 
 ### Container Deployment
@@ -636,26 +648,31 @@ import prometheus_client
 from prometheus_client import Counter, Histogram, Gauge
 
 # Define metrics
-REQUEST_COUNT = Counter('sage_requests_total', 'Total requests', ['method', 'endpoint'])
-REQUEST_DURATION = Histogram('sage_request_duration_seconds', 'Request duration')
-ACTIVE_STREAMS = Gauge('sage_active_streams', 'Number of active streams')
+REQUEST_COUNT = Counter("sage_requests_total", "Total requests", ["method", "endpoint"])
+REQUEST_DURATION = Histogram("sage_request_duration_seconds", "Request duration")
+ACTIVE_STREAMS = Gauge("sage_active_streams", "Number of active streams")
+
 
 def monitor_stream_operation(operation_name):
     def decorator(func):
         def wrapper(*args, **kwargs):
-            REQUEST_COUNT.labels(method='stream', endpoint=operation_name).inc()
+            REQUEST_COUNT.labels(method="stream", endpoint=operation_name).inc()
 
             with REQUEST_DURATION.time():
                 result = func(*args, **kwargs)
 
             return result
+
         return wrapper
+
     return decorator
 
+
 # Usage in stream operations
-@monitor_stream_operation('data_processing')
+@monitor_stream_operation("data_processing")
 def process_data(data):
     return transform(data)
 ```
 
-This comprehensive guide should help you build robust, performant, and maintainable applications with SAGE Kernel.
+This comprehensive guide should help you build robust, performant, and maintainable applications
+with SAGE Kernel.

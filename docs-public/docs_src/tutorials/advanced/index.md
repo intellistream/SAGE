@@ -16,12 +16,8 @@ env = LocalStreamEnvironment(
     "distributed_app",
     config={
         "execution_mode": "distributed",
-        "ray": {
-            "address": "ray://cluster-head:10001",
-            "num_cpus": 16,
-            "num_gpus": 2
-        }
-    }
+        "ray": {"address": "ray://cluster-head:10001", "num_cpus": 16, "num_gpus": 2},
+    },
 )
 ```
 
@@ -29,19 +25,17 @@ env = LocalStreamEnvironment(
 
 ```python
 from sage.libs.io.sources import ChunkedFileSource
-from sage.middleware.rag.operators import (
-    VLLMEmbeddingOperator,
-    ChromaUpsertOperator
-)
+from sage.middleware.rag.operators import VLLMEmbeddingOperator, ChromaUpsertOperator
 
 # Distributed embedding and indexing
-stream = (env.from_source(ChunkedFileSource("large_docs/"))
-    .map(VLLMEmbeddingOperator(
-        model="sentence-transformers/all-MiniLM-L6-v2"
-    ), parallelism=8)  # Parallel embedding
-    .to_sink(ChromaUpsertOperator(
-        collection="distributed_docs"
-    )))
+stream = (
+    env.from_source(ChunkedFileSource("large_docs/"))
+    .map(
+        VLLMEmbeddingOperator(model="sentence-transformers/all-MiniLM-L6-v2"),
+        parallelism=8,
+    )  # Parallel embedding
+    .to_sink(ChromaUpsertOperator(collection="distributed_docs"))
+)
 
 env.execute()
 ```
@@ -52,31 +46,25 @@ env.execute()
 # Process data across multiple nodes
 from sage.kernel.api.datastream import DataStream
 
+
 def create_distributed_pipeline(env):
     # Node 1: Data loading
-    loaded = env.from_source(large_source).map(
-        LoadOperator(),
-        parallelism=4
-    )
+    loaded = env.from_source(large_source).map(LoadOperator(), parallelism=4)
 
     # Node 2: Heavy computation
     processed = loaded.map(
         HeavyComputeOperator(),
         parallelism=8,
-        resources={"num_cpus": 4, "memory": "8GB"}
+        resources={"num_cpus": 4, "memory": "8GB"},
     )
 
     # Node 3: GPU inference
     predicted = processed.map(
-        GPUInferenceOperator(),
-        parallelism=2,
-        resources={"num_gpus": 1}
+        GPUInferenceOperator(), parallelism=2, resources={"num_gpus": 1}
     )
 
     # Node 4: Aggregation
-    aggregated = predicted.reduce(
-        AggregateOperator()
-    )
+    aggregated = predicted.reduce(AggregateOperator())
 
     return aggregated
 ```
@@ -89,6 +77,7 @@ Create reusable custom operators.
 
 ```python
 from sage.kernel.api.function import MapFunction, RuntimeContext
+
 
 class CustomOperator(MapFunction):
     """
@@ -137,6 +126,7 @@ class CustomOperator(MapFunction):
 ```python
 from openai import OpenAI
 
+
 class CustomLLMOperator(MapFunction):
     """
     Custom LLM operator with retry logic and caching.
@@ -165,7 +155,7 @@ class CustomLLMOperator(MapFunction):
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],
-                    temperature=0.7
+                    temperature=0.7,
                 )
                 result = response.choices[0].message.content
 
@@ -177,13 +167,14 @@ class CustomLLMOperator(MapFunction):
                 self.logger.warning(f"Attempt {attempt + 1} failed: {e}")
                 if attempt == self.max_retries - 1:
                     raise
-                time.sleep(2 ** attempt)  # Exponential backoff
+                time.sleep(2**attempt)  # Exponential backoff
 ```
 
 ### Filter Operator Example
 
 ```python
 from sage.kernel.api.function import FilterFunction
+
 
 class CustomFilterOperator(FilterFunction):
     """
@@ -248,25 +239,28 @@ def create_branching_pipeline(env):
     main_stream = env.from_source(source)
 
     # Branch 1: NLP processing
-    nlp_stream = (main_stream
-        .filter(lambda r: r.type == "text")
+    nlp_stream = (
+        main_stream.filter(lambda r: r.type == "text")
         .map(TokenizeOperator())
         .map(NEROperator())
-        .to_sink(nlp_sink))
+        .to_sink(nlp_sink)
+    )
 
     # Branch 2: Vision processing
-    vision_stream = (main_stream
-        .filter(lambda r: r.type == "image")
+    vision_stream = (
+        main_stream.filter(lambda r: r.type == "image")
         .map(ResizeOperator())
         .map(ObjectDetectionOperator())
-        .to_sink(vision_sink))
+        .to_sink(vision_sink)
+    )
 
     # Branch 3: Audio processing
-    audio_stream = (main_stream
-        .filter(lambda r: r.type == "audio")
+    audio_stream = (
+        main_stream.filter(lambda r: r.type == "audio")
         .map(TranscribeOperator())
         .map(SentimentOperator())
-        .to_sink(audio_sink))
+        .to_sink(audio_sink)
+    )
 
     return env
 ```
@@ -276,6 +270,7 @@ def create_branching_pipeline(env):
 ```python
 from sage.kernel.api.datastream import DataStream
 
+
 def create_join_pipeline(env):
     # Stream 1: User data
     users = env.from_source(user_source).key_by(lambda r: r.user_id)
@@ -284,11 +279,13 @@ def create_join_pipeline(env):
     events = env.from_source(event_source).key_by(lambda r: r.user_id)
 
     # Join streams
-    joined = users.join(events).map(lambda pair: {
-        "user": pair[0],
-        "event": pair[1],
-        "enriched": enrich(pair[0], pair[1])
-    })
+    joined = users.join(events).map(
+        lambda pair: {
+            "user": pair[0],
+            "event": pair[1],
+            "enriched": enrich(pair[0], pair[1]),
+        }
+    )
 
     joined.to_sink(output_sink)
     return env
@@ -344,8 +341,9 @@ Build sophisticated RAG systems.
 from sage.middleware.rag.operators import (
     ChromaRetrieverOperator,
     OpenAIGeneratorOperator,
-    ContextFusionOperator
+    ContextFusionOperator,
 )
+
 
 def create_multi_source_rag(env):
     # Query stream
@@ -362,16 +360,12 @@ def create_multi_source_rag(env):
     web_results = queries.map(web_retriever, parallelism=2)
 
     # Fuse contexts
-    fused = (doc_results
-        .union(code_results)
-        .union(web_results)
-        .map(ContextFusionOperator()))
+    fused = (
+        doc_results.union(code_results).union(web_results).map(ContextFusionOperator())
+    )
 
     # Generate response
-    responses = fused.map(OpenAIGeneratorOperator(
-        model="gpt-4",
-        temperature=0.7
-    ))
+    responses = fused.map(OpenAIGeneratorOperator(model="gpt-4", temperature=0.7))
 
     responses.to_sink(output_sink)
     return env
@@ -387,13 +381,9 @@ class HierarchicalRAGOperator(MapFunction):
 
     def __init__(self):
         self.coarse_retriever = ChromaRetrieverOperator(
-            collection="summaries",
-            top_k=20
+            collection="summaries", top_k=20
         )
-        self.fine_retriever = ChromaRetrieverOperator(
-            collection="chunks",
-            top_k=5
-        )
+        self.fine_retriever = ChromaRetrieverOperator(collection="chunks", top_k=5)
 
     def open(self, context):
         self.coarse_retriever.open(context)
@@ -407,16 +397,13 @@ class HierarchicalRAGOperator(MapFunction):
         doc_ids = [r["doc_id"] for r in coarse_results]
 
         # Stage 2: Fine retrieval within selected docs
-        query_with_filter = {
-            **query,
-            "filter": {"doc_id": {"$in": doc_ids}}
-        }
+        query_with_filter = {**query, "filter": {"doc_id": {"$in": doc_ids}}}
         fine_results = self.fine_retriever.map(query_with_filter)
 
         return {
             "query": query,
             "coarse_results": coarse_results,
-            "fine_results": fine_results
+            "fine_results": fine_results,
         }
 ```
 
@@ -425,23 +412,17 @@ class HierarchicalRAGOperator(MapFunction):
 ```python
 from sage.middleware.rag.operators import RerankOperator
 
+
 def create_reranking_rag(env):
-    stream = (env.from_source(query_source)
+    stream = (
+        env.from_source(query_source)
         # Initial retrieval (high recall)
-        .map(ChromaRetrieverOperator(
-            collection="docs",
-            top_k=50
-        ))
+        .map(ChromaRetrieverOperator(collection="docs", top_k=50))
         # Re-rank (high precision)
-        .map(RerankOperator(
-            model="cross-encoder/ms-marco-MiniLM-L-12-v2",
-            top_k=5
-        ))
+        .map(RerankOperator(model="cross-encoder/ms-marco-MiniLM-L-12-v2", top_k=5))
         # Generate with best contexts
-        .map(OpenAIGeneratorOperator(
-            model="gpt-4"
-        ))
-        .to_sink(output_sink))
+        .map(OpenAIGeneratorOperator(model="gpt-4")).to_sink(output_sink)
+    )
 
     return env
 ```
@@ -457,6 +438,7 @@ import cProfile
 import pstats
 from sage.kernel.api.local_environment import LocalStreamEnvironment
 
+
 def profile_pipeline():
     profiler = cProfile.Profile()
     profiler.enable()
@@ -470,13 +452,13 @@ def profile_pipeline():
 
     # Analyze results
     stats = pstats.Stats(profiler)
-    stats.sort_stats('cumulative')
+    stats.sort_stats("cumulative")
 
     print("\n=== Top 20 Functions by Cumulative Time ===")
     stats.print_stats(20)
 
     print("\n=== Top 20 Functions by Total Time ===")
-    stats.sort_stats('tottime')
+    stats.sort_stats("tottime")
     stats.print_stats(20)
 ```
 
@@ -485,6 +467,7 @@ def profile_pipeline():
 ```python
 import gc
 from memory_profiler import profile
+
 
 class MemoryEfficientOperator(MapFunction):
     """
@@ -508,7 +491,7 @@ class MemoryEfficientOperator(MapFunction):
     def chunk_data(self, record, chunk_size=1000):
         data = record.get("data", [])
         for i in range(0, len(data), chunk_size):
-            yield data[i:i + chunk_size]
+            yield data[i : i + chunk_size]
 
     def process_chunk(self, chunk):
         return [self.process_item(item) for item in chunk]
@@ -536,8 +519,8 @@ class BatchedLLMOperator(MapFunction):
 
         # Check if batch is ready
         batch_ready = (
-            len(self.buffer) >= self.batch_size or
-            time.time() - self.last_batch_time > self.batch_timeout
+            len(self.buffer) >= self.batch_size
+            or time.time() - self.last_batch_time > self.batch_timeout
         )
 
         if batch_ready:
@@ -552,10 +535,7 @@ class BatchedLLMOperator(MapFunction):
         # Batch API call
         prompts = [r["prompt"] for r in batch]
         responses = self.llm.batch_generate(prompts)
-        return [
-            {"prompt": p, "response": r}
-            for p, r in zip(prompts, responses)
-        ]
+        return [{"prompt": p, "response": r} for p, r in zip(prompts, responses)]
 ```
 
 ## Fault Tolerance
@@ -572,16 +552,13 @@ env = LocalStreamEnvironment(
             "strategy": "checkpoint",
             "checkpoint_interval": 60.0,
             "checkpoint_dir": "/data/checkpoints",
-            "checkpoint_mode": "exactly_once"
+            "checkpoint_mode": "exactly_once",
         }
-    }
+    },
 )
 
 # Pipeline will automatically checkpoint
-stream = (env.from_source(source)
-    .map(operator1)
-    .map(operator2)
-    .to_sink(sink))
+stream = env.from_source(source).map(operator1).map(operator2).to_sink(sink)
 
 env.execute()
 ```
@@ -608,10 +585,9 @@ class RetryOperator(MapFunction):
                 last_error = e
 
                 if attempt < self.max_retries:
-                    delay = self.base_delay * (2 ** attempt)
+                    delay = self.base_delay * (2**attempt)
                     self.logger.warning(
-                        f"Attempt {attempt + 1} failed, "
-                        f"retrying in {delay}s: {e}"
+                        f"Attempt {attempt + 1} failed, " f"retrying in {delay}s: {e}"
                     )
                     time.sleep(delay)
                 else:

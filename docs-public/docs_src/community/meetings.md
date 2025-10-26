@@ -9,79 +9,82 @@
         <div class="sync-status" id="sync-status">未同步</div>
     </div>
 
-    <!-- Token 配置弹窗 -->
-    <div id="token-config-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🔑 配置 GitHub Token</h3>
-                <span class="close" onclick="scheduler.hideTokenConfig()">&times;</span>
+```
+<!-- Token 配置弹窗 -->
+<div id="token-config-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🔑 配置 GitHub Token</h3>
+            <span class="close" onclick="scheduler.hideTokenConfig()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p><strong>⚠️ 重要安全说明</strong></p>
+            <p>为了防止 Token 被 GitHub 自动撤销，此系统采用安全配置方式：</p>
+            <div class="form-group">
+                <label for="gist-token">GitHub Token:</label>
+                <input type="password" id="gist-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="width: 100%; padding: 8px; margin: 5px 0;">
+                <small>⚠️ Token 只在当前浏览器会话中保存，页面刷新后需要重新输入</small>
             </div>
-            <div class="modal-body">
-                <p><strong>⚠️ 重要安全说明</strong></p>
-                <p>为了防止 Token 被 GitHub 自动撤销，此系统采用安全配置方式：</p>
-                <div class="form-group">
-                    <label for="gist-token">GitHub Token:</label>
-                    <input type="password" id="gist-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="width: 100%; padding: 8px; margin: 5px 0;">
-                    <small>⚠️ Token 只在当前浏览器会话中保存，页面刷新后需要重新输入</small>
-                </div>
-                <div class="form-actions">
-                    <button onclick="scheduler.setGistToken()" class="primary-btn">设置 Token</button>
-                    <button onclick="scheduler.hideTokenConfig()" class="secondary-btn">取消</button>
-                </div>
-                <div class="help-section">
-                    <h4>如何获取 GitHub Token？</h4>
-                    <ol>
-                        <li>访问 GitHub Settings → Developer settings → Personal access tokens</li>
-                        <li>点击 "Generate new token (classic)"</li>
-                        <li>只勾选 "gist" 权限</li>
-                        <li>复制生成的 Token</li>
-                    </ol>
-                    <p><strong>注意</strong>：此安全设计避免了 Token 被意外提交到代码库而被撤销。</p>
-                </div>
+            <div class="form-actions">
+                <button onclick="scheduler.setGistToken()" class="primary-btn">设置 Token</button>
+                <button onclick="scheduler.hideTokenConfig()" class="secondary-btn">取消</button>
+            </div>
+            <div class="help-section">
+                <h4>如何获取 GitHub Token？</h4>
+                <ol>
+                    <li>访问 GitHub Settings → Developer settings → Personal access tokens</li>
+                    <li>点击 "Generate new token (classic)"</li>
+                    <li>只勾选 "gist" 权限</li>
+                    <li>复制生成的 Token</li>
+                </ol>
+                <p><strong>注意</strong>：此安全设计避免了 Token 被意外提交到代码库而被撤销。</p>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- 周期信息显示 -->
-    <div class="cycle-info">
-        <span>当前周期: <strong id="current-cycle">1</strong></span>
-        <span>本周日期: <strong id="current-week-date">加载中...</strong></span>
-        <span>最后同步: <strong id="last-sync">从未</strong></span>
-    </div>
+<!-- 周期信息显示 -->
+<div class="cycle-info">
+    <span>当前周期: <strong id="current-cycle">1</strong></span>
+    <span>本周日期: <strong id="current-week-date">加载中...</strong></span>
+    <span>最后同步: <strong id="last-sync">从未</strong></span>
+</div>
 
-    <!-- 上方两个区域 - 并排显示 -->
-    <div class="presenters-sections">
-        <div class="presenters-column">
-            <h3>本周汇报人员</h3>
-            <div id="current-presenters" class="drop-zone current-week-zone">
-                <div class="zone-hint">本周汇报人员</div>
-            </div>
-        </div>
-
-        <div class="presenters-column">
-            <h3>下周准备汇报人员</h3>
-            <div id="next-presenters" class="drop-zone next-week-zone">
-                <div class="zone-hint">下周准备汇报人员</div>
-            </div>
+<!-- 上方两个区域 - 并排显示 -->
+<div class="presenters-sections">
+    <div class="presenters-column">
+        <h3>本周汇报人员</h3>
+        <div id="current-presenters" class="drop-zone current-week-zone">
+            <div class="zone-hint">本周汇报人员</div>
         </div>
     </div>
 
-    <!-- 下方两个区域 - 并排显示 -->
-    <div class="members-sections">
-        <div class="members-column">
-            <h3>已汇报成员 (本周期)</h3>
-            <div id="presented-members" class="drop-zone presented-zone">
-                <div class="zone-hint">已汇报的成员</div>
-            </div>
-        </div>
-
-        <div class="members-column">
-            <h3>待汇报成员</h3>
-            <div id="pending-members" class="drop-zone pending-zone">
-                <div class="zone-hint">待汇报的成员</div>
-            </div>
+    <div class="presenters-column">
+        <h3>下周准备汇报人员</h3>
+        <div id="next-presenters" class="drop-zone next-week-zone">
+            <div class="zone-hint">下周准备汇报人员</div>
         </div>
     </div>
+</div>
+
+<!-- 下方两个区域 - 并排显示 -->
+<div class="members-sections">
+    <div class="members-column">
+        <h3>已汇报成员 (本周期)</h3>
+        <div id="presented-members" class="drop-zone presented-zone">
+            <div class="zone-hint">已汇报的成员</div>
+        </div>
+    </div>
+
+    <div class="members-column">
+        <h3>待汇报成员</h3>
+        <div id="pending-members" class="drop-zone pending-zone">
+            <div class="zone-hint">待汇报的成员</div>
+        </div>
+    </div>
+</div>
+```
+
 </div>
 
 <style>
@@ -547,6 +550,7 @@
 </style>
 
 <script src="../../assets/js/runtime-config.js"></script>
+
 <script>
 // 运行时配置支持
 window.SAGE_RUNTIME_CONFIG = window.SAGE_RUNTIME_CONFIG || {

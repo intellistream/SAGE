@@ -7,14 +7,16 @@
 
 ## 📋 Overview
 
-**SAGE Platform** provides core infrastructure abstractions that sit between the foundation layer (`sage-common`) and the execution engine (`sage-kernel`). This Layer-2 platform service offers:
+**SAGE Platform** provides core infrastructure abstractions that sit between the foundation layer
+(`sage-common`) and the execution engine (`sage-kernel`). This Layer-2 platform service offers:
 
 - **Queue Abstractions**: Unified interface for Python, Ray, and RPC queues
 - **Storage Abstractions**: Pluggable key-value storage backends
 - **Service Base Classes**: Foundation for building SAGE services
 - **Platform Interfaces**: Common patterns for distributed systems
 
-This package enables seamless switching between local and distributed execution modes without changing application code.
+This package enables seamless switching between local and distributed execution modes without
+changing application code.
 
 ## ✨ Key Features
 
@@ -35,7 +37,7 @@ from sage.platform.queue import (
     BaseQueueDescriptor,
     PythonQueueDescriptor,
     RayQueueDescriptor,
-    RPCQueueDescriptor
+    RPCQueueDescriptor,
 )
 
 # Create a Ray queue
@@ -48,6 +50,7 @@ item = queue_desc.get()
 ```
 
 **Features**:
+
 - Lazy initialization
 - Serialization support
 - Cross-process communication
@@ -65,6 +68,7 @@ backend = DictKVBackend()
 backend.set("key", "value")
 value = backend.get("key")
 
+
 # Extend with custom backends
 class RedisKVBackend(BaseKVBackend):
     # Implement abstract methods
@@ -72,6 +76,7 @@ class RedisKVBackend(BaseKVBackend):
 ```
 
 **Supported Operations**:
+
 - `get(key)`, `set(key, value)`, `delete(key)`
 - `has(key)`, `clear()`, `get_all_keys()`
 - Disk persistence: `store_data_to_disk()`, `load_data_to_memory()`
@@ -82,6 +87,7 @@ Base class for SAGE services:
 
 ```python
 from sage.platform.service import BaseService
+
 
 class MyService(BaseService):
     def __init__(self, config):
@@ -151,10 +157,7 @@ pip install sage-platform[all]
 from sage.platform.queue import RayQueueDescriptor
 
 # Create a distributed queue
-queue_desc = RayQueueDescriptor(
-    maxsize=1000,
-    queue_id="my_distributed_queue"
-)
+queue_desc = RayQueueDescriptor(maxsize=1000, queue_id="my_distributed_queue")
 
 # Producer
 queue_desc.put({"task": "process_data", "data": [1, 2, 3]})
@@ -197,6 +200,7 @@ storage.store_data_to_disk("storage.pkl")
 ```python
 from sage.platform.service import BaseService
 
+
 class DataProcessingService(BaseService):
     def __init__(self, config):
         super().__init__(name="data_processing")
@@ -216,6 +220,7 @@ class DataProcessingService(BaseService):
     def _transform_data(self, data):
         # Service logic
         return [x * 2 for x in data]
+
 
 # Use service
 service = DataProcessingService({"param": "value"})
@@ -257,23 +262,26 @@ L6: sage-studio         ← User Interface
 ## Design Principles
 
 1. **Generic Infrastructure**: Platform services are not SAGE-specific
-2. **Backend Agnostic**: Support multiple implementations (Python, Ray, Redis, etc.)
-3. **Minimal Dependencies**: Only depends on `sage-common`
-4. **Extensible**: Easy to add new backends
+1. **Backend Agnostic**: Support multiple implementations (Python, Ray, Redis, etc.)
+1. **Minimal Dependencies**: Only depends on `sage-common`
+1. **Extensible**: Easy to add new backends
 
 ## Why L2 Layer?
 
 Originally, these abstractions were scattered:
+
 - Queue Descriptor in `sage-kernel` (L3) ❌
 - KV Backend in `sage-middleware` (L4) ❌
 - BaseService in `sage-kernel` (L3) ❌
 
 This caused:
+
 - Architecture confusion (infrastructure mixed with business logic)
 - Dependency violations (L1 → L3)
 - Limited reusability
 
 By creating L2:
+
 - ✅ Clear separation of concerns
 - ✅ Proper dependency direction
 - ✅ Better reusability across components
@@ -293,9 +301,11 @@ pytest --cov=sage.platform --cov-report=html
 
 ## 📚 Documentation
 
-- **User Guide**: See [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-platform/)
+- **User Guide**: See
+  [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-platform/)
 - **API Reference**: See package docstrings and type hints
-- **Architecture**: See [Platform Layer Design](https://intellistream.github.io/SAGE-Pub/concepts/architecture/design-decisions/l2-platform-layer/)
+- **Architecture**: See
+  [Platform Layer Design](https://intellistream.github.io/SAGE-Pub/concepts/architecture/design-decisions/l2-platform-layer/)
 
 ## 🤝 Contributing
 
@@ -318,6 +328,6 @@ This project is licensed under the MIT License - see the [LICENSE](../../LICENSE
 - **Issues**: https://github.com/intellistream/SAGE/issues
 - **Discussions**: https://github.com/intellistream/SAGE/discussions
 
----
+______________________________________________________________________
 
 **Part of the SAGE Framework** | [Main Repository](https://github.com/intellistream/SAGE)

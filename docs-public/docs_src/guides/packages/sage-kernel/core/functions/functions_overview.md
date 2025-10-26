@@ -1,6 +1,7 @@
 # Function 函数系统概览
 
-Function 函数系统是 SAGE Core 中用户逻辑的载体，它将用户定义的处理函数包装成可在算子系统中执行的标准化组件。函数系统提供了类型安全、资源管理、异常处理等功能，是连接用户代码和底层执行引擎的桥梁。
+Function 函数系统是 SAGE Core
+中用户逻辑的载体，它将用户定义的处理函数包装成可在算子系统中执行的标准化组件。函数系统提供了类型安全、资源管理、异常处理等功能，是连接用户代码和底层执行引擎的桥梁。
 
 ## 🏗️ 设计架构
 
@@ -43,13 +44,15 @@ import logging
 if TYPE_CHECKING:
     from sage.kernel.runtime.task_context import TaskContext
 
+
 class BaseFunction(ABC):
     """
     BaseFunction is the abstract base class for all operator functions in SAGE.
     It defines the core interface and initializes a logger.
     """
+
     def __init__(self, *args, **kwargs):
-        self.ctx: 'TaskContext' = None # 运行时注入
+        self.ctx: "TaskContext" = None  # 运行时注入
         self.router = None  # 运行时注入
         self._logger = None
 
@@ -78,7 +81,9 @@ class BaseFunction(ABC):
             data = self.call_service["db_service"].query("SELECT * FROM users")
         """
         if self.ctx is None:
-            raise RuntimeError("Runtime context not initialized. Cannot access services.")
+            raise RuntimeError(
+                "Runtime context not initialized. Cannot access services."
+            )
 
         return self.ctx.call_service()
 
@@ -96,7 +101,9 @@ class BaseFunction(ABC):
                 result = future.result()
         """
         if self.ctx is None:
-            raise RuntimeError("Runtime context not initialized. Cannot access services.")
+            raise RuntimeError(
+                "Runtime context not initialized. Cannot access services."
+            )
 
         return self.ctx.call_service_async()
 
@@ -156,15 +163,17 @@ import os
 from sage.core.api.function.base_function import BaseFunction
 from sage.kernel.utils.persistence.state import load_function_state, save_function_state
 
+
 class StatefulFunction(BaseFunction):
     """
     有状态算子基类：自动在 init 恢复状态，
     并可通过 save_state() 持久化。
     """
+
     # 子类可覆盖：只保存 include 中字段
     __state_include__ = []
     # 默认排除 logger、私有属性和 runtime_context
-    __state_exclude__ = ['logger', '_logger', 'ctx']
+    __state_exclude__ = ["logger", "_logger", "ctx"]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -194,13 +203,16 @@ class StatefulFunction(BaseFunction):
 ```python
 from sage.core.api.function.base_function import BaseFunction
 
+
 class StopSignal:
     """停止信号类，用于标识任务停止"""
+
     def __init__(self, name: str):
         self.name = name
 
     def __repr__(self) -> str:
         return f"<StopSignal {self.name}>"
+
 
 class SourceFunction(BaseFunction):
     """
@@ -219,6 +231,7 @@ class SourceFunction(BaseFunction):
             生产的数据
         """
         pass
+
 
 # 使用示例
 class SimpleSourceFunction(SourceFunction):
@@ -244,6 +257,7 @@ class SimpleSourceFunction(SourceFunction):
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.map_function import MapFunction
 
+
 class MapFunction(BaseFunction):
     """
     映射函数基类 - 一对一数据变换
@@ -265,9 +279,11 @@ class MapFunction(BaseFunction):
         """
         pass
 
+
 # Lambda函数包装器
 from typing import Callable
 from sage.core.api.function.lambda_function import LambdaMapFunction
+
 
 class LambdaMapFunction(MapFunction):
     """将 lambda 函数包装为 MapFunction"""
@@ -278,6 +294,7 @@ class LambdaMapFunction(MapFunction):
 
     def execute(self, data: Any) -> Any:
         return self.lambda_func(data)
+
 
 # 使用示例
 text_processor = LambdaMapFunction(lambda x: x.strip().upper())
@@ -291,6 +308,7 @@ number_doubler = LambdaMapFunction(lambda x: x * 2)
 ```python
 from sage.core.api.function.filter_function import FilterFunction
 from sage.core.api.function.lambda_function import LambdaFilterFunction
+
 
 class FilterFunction(BaseFunction):
     """
@@ -313,6 +331,7 @@ class FilterFunction(BaseFunction):
         """
         pass
 
+
 class LambdaFilterFunction(FilterFunction):
     """将返回布尔值的 lambda 函数包装为 FilterFunction"""
 
@@ -323,9 +342,12 @@ class LambdaFilterFunction(FilterFunction):
     def execute(self, data: Any) -> bool:
         return self.lambda_func(data)
 
+
 # 使用示例
 positive_filter = LambdaFilterFunction(lambda x: x > 0)
-non_empty_filter = LambdaFilterFunction(lambda x: x is not None and str(x).strip() != "")
+non_empty_filter = LambdaFilterFunction(
+    lambda x: x is not None and str(x).strip() != ""
+)
 ```
 
 ### 4. 汇函数 (Sink Functions)
@@ -335,6 +357,7 @@ non_empty_filter = LambdaFilterFunction(lambda x: x is not None and str(x).strip
 ```python
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.lambda_function import LambdaSinkFunction
+
 
 class SinkFunction(BaseFunction):
     """
@@ -354,6 +377,7 @@ class SinkFunction(BaseFunction):
         """
         pass
 
+
 class LambdaSinkFunction(SinkFunction):
     """将 lambda 函数包装为 SinkFunction"""
 
@@ -364,8 +388,10 @@ class LambdaSinkFunction(SinkFunction):
     def execute(self, data: Any) -> None:
         self.lambda_func(data)
 
+
 # 使用示例
 print_sink = LambdaSinkFunction(lambda x: print(f"Processing: {x}"))
+
 
 class FileSinkFunction(SinkFunction):
     def __init__(self, filename):
@@ -374,11 +400,11 @@ class FileSinkFunction(SinkFunction):
         self.file_handle = None
 
     def setup(self):
-        self.file_handle = open(self.filename, 'w')
+        self.file_handle = open(self.filename, "w")
 
     def execute(self, data: Any) -> None:
         if self.file_handle:
-            self.file_handle.write(str(data) + '\n')
+            self.file_handle.write(str(data) + "\n")
             self.file_handle.flush()
 
     def cleanup(self):
@@ -395,6 +421,7 @@ SAGE 还支持其他类型的函数：
 ```python
 from sage.core.api.function.flatmap_function import FlatMapFunction
 from sage.core.api.function.lambda_function import LambdaFlatMapFunction
+
 
 class FlatMapFunction(BaseFunction):
     """
@@ -417,6 +444,7 @@ class FlatMapFunction(BaseFunction):
         """
         pass
 
+
 class LambdaFlatMapFunction(FlatMapFunction):
     """将返回列表的 lambda 函数包装为 FlatMapFunction"""
 
@@ -427,8 +455,11 @@ class LambdaFlatMapFunction(FlatMapFunction):
     def execute(self, data: Any) -> List[Any]:
         result = self.lambda_func(data)
         if not isinstance(result, list):
-            raise TypeError(f"FlatMap lambda function must return a list, got {type(result)}")
+            raise TypeError(
+                f"FlatMap lambda function must return a list, got {type(result)}"
+            )
         return result
+
 
 # 使用示例
 sentence_splitter = LambdaFlatMapFunction(lambda x: x.split())
@@ -438,6 +469,7 @@ sentence_splitter = LambdaFlatMapFunction(lambda x: x.split())
 
 ```python
 from sage.core.api.function.keyby_function import KeyByFunction
+
 
 class KeyByFunction(BaseFunction):
     """
@@ -468,8 +500,10 @@ SAGE 提供了便捷的Lambda函数包装器，可以快速将普通函数转换
 
 ```python
 from sage.core.api.function.lambda_function import (
-    LambdaMapFunction, LambdaFilterFunction, LambdaFlatMapFunction,
-    LambdaSinkFunction
+    LambdaMapFunction,
+    LambdaFilterFunction,
+    LambdaFlatMapFunction,
+    LambdaSinkFunction,
 )
 
 # 快速创建各种类型的函数
@@ -521,7 +555,7 @@ class TextCleanerFunction(MapFunction):
 
         # 清理逻辑
         cleaned = text.strip().lower()
-        cleaned = ' '.join(cleaned.split())  # 规范化空格
+        cleaned = " ".join(cleaned.split())  # 规范化空格
 
         return cleaned
 ```
@@ -587,6 +621,7 @@ class DatabaseQueryFunction(MapFunction):
 import unittest
 from unittest.mock import Mock
 
+
 class TestTextCleanerFunction(unittest.TestCase):
     def setUp(self):
         self.function = TextCleanerFunction()
@@ -607,7 +642,6 @@ class TestTextCleanerFunction(unittest.TestCase):
             self.function.execute(123)
 ```
 
----
+______________________________________________________________________
 
-**下一步**: 了解 <!-- [Transformation 转换系统](../transformations_overview.md) -->
-转换操作概览 如何优化函数执行。
+**下一步**: 了解 <!-- [Transformation 转换系统](../transformations_overview.md) --> 转换操作概览 如何优化函数执行。

@@ -2305,5 +2305,3 @@ window.addEventListener('resize', function() {
 window.addEventListener('scroll', function() {
     updateConnectionLines();
 });
-
-

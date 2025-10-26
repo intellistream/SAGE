@@ -15,14 +15,17 @@ class ProcessEverything(MapFunction):
         # Load data, transform, validate, save...
         pass
 
+
 # ✅ Good: Separate concerns
 class LoadData(MapFunction):
     def map(self, record):
         return load_data(record)
 
+
 class TransformData(MapFunction):
     def map(self, record):
         return transform(record)
+
 
 class ValidateData(FilterFunction):
     def filter(self, record):
@@ -46,6 +49,7 @@ class StatefulOperator(MapFunction):
         self.cache[record.id] = result
         return result
 
+
 # ✅ Good: Stateless processing
 class StatelessOperator(MapFunction):
     def map(self, record):
@@ -58,12 +62,14 @@ Make pipelines readable:
 
 ```python
 # ✅ Good: Clear, linear flow
-stream = (env.from_source(source)
+stream = (
+    env.from_source(source)
     .map(load_operator)
     .filter(validate_operator)
     .map(transform_operator)
     .map(enrich_operator)
-    .to_sink(sink))
+    .to_sink(sink)
+)
 
 # Better: Named intermediate streams
 loaded = env.from_source(source).map(load_operator)
@@ -155,6 +161,7 @@ Cache expensive computations:
 ```python
 from functools import lru_cache
 
+
 class CachingOperator(MapFunction):
     @lru_cache(maxsize=1000)
     def expensive_computation(self, key):
@@ -203,10 +210,12 @@ Separate code from configuration:
 # config/settings.py
 from pydantic import BaseModel
 
+
 class PipelineConfig(BaseModel):
     batch_size: int = 32
     parallelism: int = 4
     checkpoint_interval: float = 60.0
+
 
 # main.py
 from config.settings import PipelineConfig
@@ -232,6 +241,7 @@ class BaseOperator(MapFunction):
         """Override in subclasses"""
         pass
 
+
 # src/operators/llm.py
 class LLMOperator(BaseOperator):
     def setup(self):
@@ -239,8 +249,7 @@ class LLMOperator(BaseOperator):
 
     def map(self, record):
         return self.client.chat.completions.create(
-            model=self.config.model,
-            messages=[{"role": "user", "content": record.text}]
+            model=self.config.model, messages=[{"role": "user", "content": record.text}]
         )
 ```
 
@@ -253,6 +262,7 @@ Test operators in isolation:
 ```python
 import pytest
 from src.operators.transform import TransformOperator
+
 
 def test_transform_operator():
     operator = TransformOperator()
@@ -280,9 +290,7 @@ def test_pipeline():
     sink = CollectSink()
 
     # Build and execute pipeline
-    stream = (env.from_source(source)
-        .map(TransformOperator())
-        .to_sink(sink))
+    stream = env.from_source(source).map(TransformOperator()).to_sink(sink)
 
     env.execute()
 
@@ -298,8 +306,9 @@ Mock LLMs and APIs:
 ```python
 from unittest.mock import Mock, patch
 
+
 def test_llm_operator():
-    with patch('openai.OpenAI') as mock_openai:
+    with patch("openai.OpenAI") as mock_openai:
         mock_client = Mock()
         mock_openai.return_value = mock_client
         mock_client.chat.completions.create.return_value = Mock(
@@ -319,12 +328,14 @@ Use conftest.py for test fixtures:
 # tests/conftest.py
 import pytest
 
+
 @pytest.fixture(scope="session")
 def test_data_dir(tmp_path_factory):
     data_dir = tmp_path_factory.mktemp("data")
     # Create test data
     (data_dir / "test.csv").write_text("id,value\n1,10\n2,20\n")
     return data_dir
+
 
 # tests/test_pipeline.py
 def test_with_real_data(test_data_dir):
@@ -340,26 +351,28 @@ Use structured logging:
 
 ```python
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 class DebugOperator(MapFunction):
     def map(self, record):
-        logger.info("Processing record", extra={
-            "record_id": record.id,
-            "stage": "transform"
-        })
+        logger.info(
+            "Processing record", extra={"record_id": record.id, "stage": "transform"}
+        )
         try:
             result = process(record)
-            logger.debug("Processed successfully", extra={
-                "record_id": record.id,
-                "output_size": len(result)
-            })
+            logger.debug(
+                "Processed successfully",
+                extra={"record_id": record.id, "output_size": len(result)},
+            )
             return result
         except Exception as e:
-            logger.error("Processing failed", extra={
-                "record_id": record.id,
-                "error": str(e)
-            }, exc_info=True)
+            logger.error(
+                "Processing failed",
+                extra={"record_id": record.id, "error": str(e)},
+                exc_info=True,
+            )
             raise
 ```
 
@@ -371,6 +384,7 @@ Profile performance:
 import cProfile
 import pstats
 
+
 def profile_pipeline():
     profiler = cProfile.Profile()
     profiler.enable()
@@ -380,7 +394,7 @@ def profile_pipeline():
 
     profiler.disable()
     stats = pstats.Stats(profiler)
-    stats.sort_stats('cumulative')
+    stats.sort_stats("cumulative")
     stats.print_stats(20)
 ```
 
@@ -395,9 +409,9 @@ env = LocalStreamEnvironment(
         "fault_tolerance": {
             "strategy": "checkpoint",
             "checkpoint_interval": 10.0,  # Checkpoint frequently
-            "checkpoint_dir": "./checkpoints"
+            "checkpoint_dir": "./checkpoints",
         }
-    }
+    },
 )
 ```
 
@@ -415,10 +429,7 @@ stream = env.from_source(source).map(op1).to_sink(sink)
 env.execute()  # Verify op1
 
 # 3. Continue adding operators
-stream = (env.from_source(source)
-    .map(op1)
-    .map(op2)
-    .to_sink(sink))
+stream = env.from_source(source).map(op1).map(op2).to_sink(sink)
 env.execute()  # Verify op1 + op2
 ```
 
@@ -449,9 +460,7 @@ Output:
 
     def map(self, record):
         prompt = self.PROMPT_TEMPLATE.format(
-            task=record.task,
-            context=record.context,
-            input=record.input
+            task=record.task, context=record.context, input=record.input
         )
         return self.llm.generate(prompt)
 ```
@@ -463,6 +472,7 @@ Respect API rate limits:
 ```python
 import time
 from threading import Lock
+
 
 class RateLimitedOperator(MapFunction):
     def __init__(self, calls_per_second=10):
