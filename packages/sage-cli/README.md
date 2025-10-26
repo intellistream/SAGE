@@ -47,28 +47,28 @@ Application-level functionality:
 
 ### Development Commands
 
-**Note:** Development commands (`sage dev`) are provided by the `sage-tools` package separately.
+**Note:** Development commands are provided by the `sage-tools` package separately via the `sage-dev` command.
 
 To use development tools:
 
 ```bash
-# Install sage-tools
+# Install sage-tools (if not already installed)
 pip install sage-tools
 
-# Use dev commands
-sage dev quality check
-sage dev project test
-sage dev maintain doctor
+# Use sage-dev command
+sage-dev quality check
+sage-dev project test
+sage-dev maintain doctor
 ```
 
 Development command groups include:
 
-- `sage dev quality` - Code quality checks
-- `sage dev project` - Project management
-- `sage dev maintain` - Maintenance tools
-- `sage dev package` - Package management
-- `sage dev resource` - Resource management
-- `sage dev github` - GitHub utilities
+- `sage-dev quality` - Code quality checks
+- `sage-dev project` - Project management
+- `sage-dev maintain` - Maintenance tools
+- `sage-dev package` - Package management
+- `sage-dev resource` - Resource management
+- `sage-dev github` - GitHub utilities
 
 ## 🔧 Quick Start
 
@@ -95,10 +95,10 @@ For development commands, install `sage-tools`:
 pip install sage-tools
 
 # Run development checks
-sage dev quality check
+sage-dev quality check
 
 # Run tests
-sage dev project test
+sage-dev project test
 ```
 
 ## 📚 Documentation
@@ -119,16 +119,21 @@ L3: sage-kernel, sage-libs
 L4: sage-middleware
 L5: sage-apps, sage-benchmark
 L6: sage-cli, sage-tools, sage-studio
-    ├── sage-cli: Production CLI commands (platform + apps)
-    ├── sage-tools: Development commands (dev tools)
+    ├── sage-cli: Production CLI via `sage` command
+    ├── sage-tools: Development tools via `sage-dev` command
     └── sage-studio: Visual interface
 ```
 
-**Package Separation:**
+**Command Separation:**
 
-- **sage-cli**: User-facing production commands for cluster and app management
-- **sage-tools**: Developer-only commands for quality checks, testing, and maintenance
-- Both packages provide commands under the `sage` namespace
+- **sage** (from sage-cli): User-facing production commands
+  - Platform: cluster, head, worker, job, jobmanager, config, doctor, version, extensions
+  - Apps: llm, chat, embedding, pipeline, studio
+
+- **sage-dev** (from sage-tools): Developer-only commands
+  - quality, project, maintain, package, resource, github
+
+Both packages are independent and can be installed separately.
 
 ## 🤝 Contributing
 

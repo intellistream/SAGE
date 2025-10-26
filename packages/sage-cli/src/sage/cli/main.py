@@ -27,7 +27,9 @@ app = typer.Typer(
       sage job submit task.py         # 提交作业
 
     开发工具：
-      sage dev 命令由 sage-tools 包单独提供
+      开发命令请使用 sage-dev (由 sage-tools 包提供)
+      sage-dev quality check          # 运行质量检查
+      sage-dev project test           # 运行测试
     """,
     no_args_is_help=True,
 )
@@ -118,6 +120,25 @@ except ImportError as e:
 
 
 # ============================================================================
+# Dev Commands - 从 sage-tools 动态加载
+# ============================================================================
+
+# 尝试从 sage-tools 导入 dev 命令
+try:
+    from sage.tools.cli.commands.dev import app as dev_app
+
+    app.add_typer(
+        dev_app,
+        name="dev",
+        help="🛠️ 开发工具 - 质量检查、项目管理、维护工具、包管理等",
+        rich_help_panel="开发工具",
+    )
+except ImportError:
+    # sage-tools 未安装，这是正常的（可选依赖）
+    pass
+
+
+# ============================================================================
 # Main Callback
 # ============================================================================
 
@@ -152,9 +173,9 @@ def main(
       - Application Commands: 应用功能 (llm, chat, pipeline, studio)
 
     📝 开发工具:
-      sage dev 命令由 sage-tools 包单独提供
+      开发命令请使用独立的 sage-dev 命令（由 sage-tools 包提供）
       安装: pip install sage-tools
-      使用: sage dev quality check, sage dev project test 等
+      使用: sage-dev quality check, sage-dev project test 等
 
     📚 文档: https://intellistream.github.io/SAGE
     """
