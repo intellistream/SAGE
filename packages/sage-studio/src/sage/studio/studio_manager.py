@@ -120,7 +120,9 @@ class StudioManager:
             if psutil.pid_exists(pid):
                 proc = psutil.Process(pid)
                 # 检查是否是Python进程且包含api.py
-                if "python" in proc.name().lower() and "api.py" in " ".join(proc.cmdline()):
+                if "python" in proc.name().lower() and "api.py" in " ".join(
+                    proc.cmdline()
+                ):
                     return pid
 
             # PID 文件存在但进程不存在，清理文件
@@ -133,7 +135,9 @@ class StudioManager:
         """检查依赖"""
         # 检查 Node.js
         try:
-            result = subprocess.run(["node", "--version"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["node", "--version"], capture_output=True, text=True
+            )
             if result.returncode == 0:
                 node_version = result.stdout.strip()
                 console.print(f"[green]Node.js: {node_version}[/green]")
@@ -146,7 +150,9 @@ class StudioManager:
 
         # 检查 npm
         try:
-            result = subprocess.run(["npm", "--version"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["npm", "--version"], capture_output=True, text=True
+            )
             if result.returncode == 0:
                 npm_version = result.stdout.strip()
                 console.print(f"[green]npm: {npm_version}[/green]")
@@ -487,7 +493,9 @@ if __name__ == "__main__":
                 if self.dist_dir.exists():
                     console.print(f"[blue]构建输出位置: {self.dist_dir}[/blue]")
                 else:
-                    console.print(f"[yellow]警告: 构建输出目录不存在: {self.dist_dir}[/yellow]")
+                    console.print(
+                        f"[yellow]警告: 构建输出目录不存在: {self.dist_dir}[/yellow]"
+                    )
 
                 return True
             else:
@@ -601,7 +609,9 @@ if __name__ == "__main__":
             console.print(f"[red]后端API停止失败: {e}[/red]")
             return False
 
-    def start(self, port: int | None = None, host: str | None = None, dev: bool = False) -> bool:
+    def start(
+        self, port: int | None = None, host: str | None = None, dev: bool = False
+    ) -> bool:
         """启动 Studio（前端和后端）"""
         # 首先启动后端API
         if not self.start_backend():
@@ -741,7 +751,9 @@ if __name__ == "__main__":
                 stopped_services.append("后端API")
 
         if stopped_services:
-            console.print(f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]")
+            console.print(
+                f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]"
+            )
             return True
         else:
             console.print("[yellow]Studio 未运行[/yellow]")
@@ -765,10 +777,14 @@ if __name__ == "__main__":
                 frontend_table.add_row("PID", str(frontend_pid))
                 frontend_table.add_row(
                     "启动时间",
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())),
+                    time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())
+                    ),
                 )
                 frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
-                frontend_table.add_row("内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB")
+                frontend_table.add_row(
+                    "内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB"
+                )
             except psutil.NoSuchProcess:
                 frontend_table.add_row("状态", "[red]进程不存在[/red]")
         else:
@@ -806,7 +822,9 @@ if __name__ == "__main__":
                 if response.status_code == 200:
                     console.print(f"[green]✅ 服务可访问: {url}[/green]")
                 else:
-                    console.print(f"[yellow]⚠️ 服务响应异常: {response.status_code}[/yellow]")
+                    console.print(
+                        f"[yellow]⚠️ 服务响应异常: {response.status_code}[/yellow]"
+                    )
             except requests.RequestException:
                 console.print("[red]❌ 服务不可访问[/red]")
 
@@ -825,7 +843,9 @@ if __name__ == "__main__":
             return
 
         if follow:
-            console.print(f"[blue]跟踪{service_name}日志 (按 Ctrl+C 退出): {log_file}[/blue]")
+            console.print(
+                f"[blue]跟踪{service_name}日志 (按 Ctrl+C 退出): {log_file}[/blue]"
+            )
             try:
                 subprocess.run(["tail", "-f", str(log_file)])
             except KeyboardInterrupt:

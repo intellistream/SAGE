@@ -184,7 +184,9 @@ def _find_processes_with_netstat(port: int) -> list[int]:
         List[int]: 进程ID列表
     """
     try:
-        result = subprocess.run(["netstat", "-tlnp"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            ["netstat", "-tlnp"], capture_output=True, text=True, timeout=5
+        )
         pids = []
         if result.returncode == 0:
             for line in result.stdout.split("\n"):
@@ -212,10 +214,14 @@ def _find_processes_with_fuser(port: int) -> list[int]:
         List[int]: 进程ID列表
     """
     try:
-        result = subprocess.run(["fuser", f"{port}/tcp"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            ["fuser", f"{port}/tcp"], capture_output=True, text=True, timeout=5
+        )
         if result.returncode == 0 and result.stdout.strip():
             return [
-                int(pid.strip()) for pid in result.stdout.strip().split() if pid.strip().isdigit()
+                int(pid.strip())
+                for pid in result.stdout.strip().split()
+                if pid.strip().isdigit()
             ]
     except (subprocess.SubprocessError, FileNotFoundError, ValueError):
         pass

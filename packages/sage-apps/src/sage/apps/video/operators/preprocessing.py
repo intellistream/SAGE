@@ -6,7 +6,6 @@ from typing import Any
 
 import numpy as np
 from PIL import Image
-
 from sage.common.core.functions.map_function import MapFunction
 
 
@@ -27,7 +26,9 @@ class FramePreprocessor(MapFunction):
         data["brightness"] = float(np.mean(frame))
 
         if self.target_size:
-            data["resized_image"] = pil_image.resize((self.target_size, self.target_size))
+            data["resized_image"] = pil_image.resize(
+                (self.target_size, self.target_size)
+            )
         else:
             data["resized_image"] = pil_image
 

@@ -25,13 +25,17 @@ class ActorWrapper:
     def __getattr__(self, name: str):
         """透明代理属性访问"""
         if name.startswith("_"):
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
 
         # 获取原始属性/方法
         try:
             original_attr = getattr(self._obj, name)
         except AttributeError:
-            raise AttributeError(f"'{type(self._obj).__name__}' object has no attribute '{name}'")
+            raise AttributeError(
+                f"'{type(self._obj).__name__}' object has no attribute '{name}'"
+            )
 
         # 如果是方法，需要包装
         if callable(original_attr):

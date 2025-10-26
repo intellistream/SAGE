@@ -68,7 +68,9 @@ class SearchSession:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "SearchSession":
         """从字典创建SearchSession"""
-        query_results = [SearchQueryResults.from_dict(qr) for qr in data.get("query_results", [])]
+        query_results = [
+            SearchQueryResults.from_dict(qr) for qr in data.get("query_results", [])
+        ]
 
         return cls(
             session_id=data.get("session_id", str(uuid4())),

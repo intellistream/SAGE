@@ -10,7 +10,6 @@
 from unittest.mock import Mock
 
 import pytest
-
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
 

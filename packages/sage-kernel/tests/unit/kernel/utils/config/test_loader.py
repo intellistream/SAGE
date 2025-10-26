@@ -15,7 +15,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
-
 from sage.common.utils.config.loader import load_config
 
 
@@ -289,7 +288,9 @@ def test_load_config_with_fixtures(temp_config_dir, sample_config):
 
     with patch("inspect.currentframe") as mock_frame:
         mock_caller_frame = MagicMock()
-        mock_caller_frame.f_globals = {"__file__": str(temp_config_dir.parent / "app.py")}
+        mock_caller_frame.f_globals = {
+            "__file__": str(temp_config_dir.parent / "app.py")
+        }
         mock_frame.return_value.f_back = mock_caller_frame
 
         config = load_config()

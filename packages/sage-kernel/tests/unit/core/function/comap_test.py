@@ -155,7 +155,9 @@ class CoMapDebugSink(SinkFunction):
         else:
             self.output_file = Path(output_file)
         if self.ctx:
-            self.logger.info(f"CoMapDebugSink initialized, output file: {self.output_file}")
+            self.logger.info(
+                f"CoMapDebugSink initialized, output file: {self.output_file}"
+            )
 
     def execute(self, data: Any):
         if self.ctx:
@@ -170,7 +172,9 @@ class CoMapDebugSink(SinkFunction):
         self.received_count += 1
 
         result_type = (
-            data.get("type", "unknown") if isinstance(data, dict) else str(type(data).__name__)
+            data.get("type", "unknown")
+            if isinstance(data, dict)
+            else str(type(data).__name__)
         )
         source_stream = data.get("source_stream", -1) if isinstance(data, dict) else -1
 
@@ -340,7 +344,9 @@ class TripleStreamCoMapFunction(BaseCoMapFunction):
         }
 
         if self.ctx:
-            self.logger.info(f"TripleCoMap map2: enriched inventory {inventory_data['product']}")
+            self.logger.info(
+                f"TripleCoMap map2: enriched inventory {inventory_data['product']}"
+            )
         return result
 
 
@@ -503,8 +509,12 @@ class TestCoMapFunctionality:
             .sink(CoMapDebugSink, parallelism=1)
         )
 
-        print("📊 Pipeline: OrderStream + PaymentStream -> comap(StatefulCoMapFunction) -> Sink")
-        print("🎯 Expected: Stateful processing with order caching and payment statistics\n")
+        print(
+            "📊 Pipeline: OrderStream + PaymentStream -> comap(StatefulCoMapFunction) -> Sink"
+        )
+        print(
+            "🎯 Expected: Stateful processing with order caching and payment statistics\n"
+        )
 
         try:
             env.submit()
@@ -626,7 +636,9 @@ class TestCoMapFunctionality:
         assert len(enriched_payments) > 0, "❌ No enriched payments received"
         assert len(enriched_inventory) > 0, "❌ No enriched inventory received"
 
-        print("✅ Three-stream CoMap test passed: All three streams processed correctly")
+        print(
+            "✅ Three-stream CoMap test passed: All three streams processed correctly"
+        )
 
     def _verify_stateful_comap_results(self):
         """验证有状态CoMap的结果"""

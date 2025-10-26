@@ -179,7 +179,9 @@ app = typer.Typer(help="SAGE configuration management")
 
 @app.command()
 def show(
-    config_path: str | None = typer.Option(None, "--config", "-c", help="Configuration file path")
+    config_path: str | None = typer.Option(
+        None, "--config", "-c", help="Configuration file path"
+    )
 ):
     """显示当前配置"""
     config_manager = get_config_manager(config_path)
@@ -195,7 +197,9 @@ def show(
 
 @app.command()
 def create(
-    config_path: str | None = typer.Option(None, "--config", "-c", help="Configuration file path")
+    config_path: str | None = typer.Option(
+        None, "--config", "-c", help="Configuration file path"
+    )
 ):
     """创建默认配置"""
     config_manager = get_config_manager(config_path)
@@ -207,7 +211,9 @@ def create(
 def set(
     key: str = typer.Argument(..., help="Configuration key"),
     value: str = typer.Argument(..., help="Configuration value"),
-    config_path: str | None = typer.Option(None, "--config", "-c", help="Configuration file path"),
+    config_path: str | None = typer.Option(
+        None, "--config", "-c", help="Configuration file path"
+    ),
 ):
     """设置配置值"""
     config_manager = get_config_manager(config_path)

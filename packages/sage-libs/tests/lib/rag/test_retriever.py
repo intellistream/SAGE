@@ -145,7 +145,9 @@ class TestChromaRetriever:
         mock_embedding_model.return_value = mock_embedding
 
         mock_backend = Mock()
-        mock_backend.search.return_value = [{"content": "相关文档", "score": 0.95, "id": "doc_1"}]
+        mock_backend.search.return_value = [
+            {"content": "相关文档", "score": 0.95, "id": "doc_1"}
+        ]
         mock_chroma_backend.return_value = mock_backend
 
         with patch("sage.libs.rag.retriever.MapFunction"):
@@ -688,7 +690,9 @@ class TestMilvusDenseRetriever:
                 MilvusDenseRetriever(config=milvus_dense_config)
 
     @patch("sage.libs.rag.retriever.MilvusUtils")
-    def test_initialization_failure_invalid_config(self, mock_milvus_utils, milvus_dense_config):
+    def test_initialization_failure_invalid_config(
+        self, mock_milvus_utils, milvus_dense_config
+    ):
         """测试初始化失败 - 无效配置"""
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
@@ -809,7 +813,9 @@ class TestMilvusSparseRetriever:
             assert len(result["retrieved_documents"]) == 2
 
             # 验证调用了正确的方法 - 稀疏检索直接传递文本
-            mock_backend.sparse_search.assert_called_once_with(query_text=query, top_k=10)
+            mock_backend.sparse_search.assert_called_once_with(
+                query_text=query, top_k=10
+            )
 
     @patch("sage.libs.rag.retriever.MilvusUtils")
     @patch("sage.libs.rag.retriever.MilvusBackend")
@@ -924,7 +930,9 @@ class TestMilvusSparseRetriever:
             # 验证传递了正确的稀疏向量
             call_args = mock_backend.add_sparse_documents.call_args
             assert len(call_args[0][0]) == 3  # documents
-            assert call_args[0][1] == mock_sparse_embeddings["sparse"]  # sparse embeddings
+            assert (
+                call_args[0][1] == mock_sparse_embeddings["sparse"]
+            )  # sparse embeddings
             assert len(call_args[0][2]) == 3  # doc_ids
 
     @patch("sage.libs.rag.retriever.MilvusUtils")
@@ -1122,7 +1130,9 @@ class TestMilvusSparseRetriever:
                 MilvusSparseRetriever(config=milvus_sparse_config)
 
     @patch("sage.libs.rag.retriever.MilvusUtils")
-    def test_initialization_failure_invalid_config(self, mock_milvus_utils, milvus_sparse_config):
+    def test_initialization_failure_invalid_config(
+        self, mock_milvus_utils, milvus_sparse_config
+    ):
         """测试初始化失败 - 无效配置"""
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
@@ -1175,12 +1185,16 @@ class TestMilvusSparseRetriever:
         mock_bgem3.return_value = mock_embedding
 
         mock_backend = Mock()
-        mock_backend.load_knowledge_from_file_sparse.return_value = 10  # 成功加载10个文档
+        mock_backend.load_knowledge_from_file_sparse.return_value = (
+            10  # 成功加载10个文档
+        )
         mock_milvus_backend.return_value = mock_backend
 
         # 修改配置以包含知识库文件
         config_with_knowledge = milvus_sparse_config.copy()
-        config_with_knowledge["milvus_sparse"]["knowledge_file"] = "/path/to/knowledge.txt"
+        config_with_knowledge["milvus_sparse"][
+            "knowledge_file"
+        ] = "/path/to/knowledge.txt"
 
         with patch("sage.libs.rag.retriever.MapFunction"):
             with patch("os.path.exists", return_value=True):
@@ -1257,7 +1271,9 @@ class TestWiki18FAISSRetriever:
         assert config["top_k"] == 5
         assert config["embedding"]["model"] == "BAAI/bge-m3"
         assert config["faiss"]["index_path"] == "/path/to/test/wiki18_index.index"
-        assert config["faiss"]["documents_path"] == "/path/to/test/wiki18_documents.jsonl"
+        assert (
+            config["faiss"]["documents_path"] == "/path/to/test/wiki18_documents.jsonl"
+        )
 
         # 验证类可以导入
         assert Wiki18FAISSRetriever is not None
@@ -1266,7 +1282,9 @@ class TestWiki18FAISSRetriever:
         assert hasattr(Wiki18FAISSRetriever, "execute")
         assert hasattr(Wiki18FAISSRetriever, "__init__")
 
-    def test_wiki18_faiss_execute_string_input(self, wiki18_faiss_config, sample_wiki18_documents):
+    def test_wiki18_faiss_execute_string_input(
+        self, wiki18_faiss_config, sample_wiki18_documents
+    ):
         """测试Wiki18FAISSRetriever execute方法 - 字符串输入"""
         if not WIKI18_FAISS_AVAILABLE:
             pytest.skip("Wiki18FAISSRetriever not available")
@@ -1292,7 +1310,9 @@ class TestWiki18FAISSRetriever:
                         for i, doc in enumerate(sample_wiki18_documents)
                     ],
                     # 新增字段以匹配统一接口
-                    "retrieved_docs": [doc["contents"] for doc in sample_wiki18_documents],
+                    "retrieved_docs": [
+                        doc["contents"] for doc in sample_wiki18_documents
+                    ],
                 }
             return {"query": str(query), "results": []}
 
@@ -1316,7 +1336,9 @@ class TestWiki18FAISSRetriever:
             assert "title" in doc
             assert "id" in doc
 
-    def test_wiki18_faiss_execute_dict_input(self, wiki18_faiss_config, sample_wiki18_documents):
+    def test_wiki18_faiss_execute_dict_input(
+        self, wiki18_faiss_config, sample_wiki18_documents
+    ):
         """测试Wiki18FAISSRetriever execute方法 - 字典输入"""
         if not WIKI18_FAISS_AVAILABLE:
             pytest.skip("Wiki18FAISSRetriever not available")

@@ -65,7 +65,9 @@ def demo_basic_embedding_service():
         "自然语言处理很重要",
     ]
 
-    result = service.process({"task": "embed", "inputs": texts, "options": {"return_stats": True}})
+    result = service.process(
+        {"task": "embed", "inputs": texts, "options": {"return_stats": True}}
+    )
 
     print("\n批量文本 embedding:")
     print(f"  文本数量: {result['count']}")

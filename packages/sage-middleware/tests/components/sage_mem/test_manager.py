@@ -77,7 +77,9 @@ def test_neuromem_manager():
 
     # 测试四：列举所有集合
     all_collections = manager.list_collection()
-    assert any(c["name"] == "test_collection" for c in all_collections), "list_collection有误"
+    assert any(
+        c["name"] == "test_collection" for c in all_collections
+    ), "list_collection有误"
     print("✅ 测试四：列举所有集合通过！")
 
     # 测试五：持久化测试

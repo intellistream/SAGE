@@ -136,7 +136,9 @@ QueryResultOutput = BaseQueryResult | ExtendedQueryResult | dict[str, Any]
 # ============================================================================
 
 
-def ensure_query_result(data: QueryResultInput, default_query: str = "") -> BaseQueryResult:
+def ensure_query_result(
+    data: QueryResultInput, default_query: str = ""
+) -> BaseQueryResult:
     """
     确保数据符合 BaseQueryResult 格式
 
@@ -157,7 +159,9 @@ def ensure_query_result(data: QueryResultInput, default_query: str = "") -> Base
         {'query': '...', 'results': [...]}
     """
     if isinstance(data, dict):
-        query = data.get("query") or data.get("question") or data.get("q") or default_query
+        query = (
+            data.get("query") or data.get("question") or data.get("q") or default_query
+        )
         results = (
             data.get("results")
             or data.get("documents")
@@ -219,7 +223,9 @@ def extract_query(data: QueryResultInput, default: str = "") -> str:
     return default
 
 
-def extract_results(data: QueryResultInput, default: list[Any] | None = None) -> list[Any]:
+def extract_results(
+    data: QueryResultInput, default: list[Any] | None = None
+) -> list[Any]:
     """
     从任意格式中提取结果列表
 
@@ -262,7 +268,9 @@ def extract_results(data: QueryResultInput, default: list[Any] | None = None) ->
     return default
 
 
-def create_query_result(query: str, results: list[Any], **kwargs) -> ExtendedQueryResult:
+def create_query_result(
+    query: str, results: list[Any], **kwargs
+) -> ExtendedQueryResult:
     """
     创建标准的 ExtendedQueryResult 对象
 

@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-
 from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
 
 
@@ -18,7 +17,9 @@ class TestProjectStatusChecker:
         """获取项目根目录"""
         current = Path(__file__).parent
         while current.parent != current:
-            if (current / "packages").exists() and (current / "pyproject.toml").exists():
+            if (current / "packages").exists() and (
+                current / "pyproject.toml"
+            ).exists():
                 return str(current)
             current = current.parent
         # fallback到默认路径

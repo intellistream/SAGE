@@ -101,7 +101,9 @@ def compute_f1(prediction: str, ground_truth: str) -> float:
 
 def compute_exact_match(prediction: str, ground_truth: str) -> int:
     """计算精确匹配分数"""
-    return int(normalize_text_advanced(prediction) == normalize_text_advanced(ground_truth))
+    return int(
+        normalize_text_advanced(prediction) == normalize_text_advanced(ground_truth)
+    )
 
 
 def compute_accuracy_single(prediction: str, ground_truths: List[str]) -> float:
@@ -168,7 +170,9 @@ def evaluate_predictions(
         em_scores = []
         for pred, truths in zip(predictions, ground_truths):
             # 对每个ground truth计算EM，取最大值
-            em_max = max([compute_exact_match(pred, gt) for gt in truths]) if truths else 0
+            em_max = (
+                max([compute_exact_match(pred, gt) for gt in truths]) if truths else 0
+            )
             em_scores.append(em_max)
         results["exact_match"] = 100 * np.mean(em_scores)
 
@@ -181,7 +185,9 @@ def load_results(file_path: str) -> Dict[str, Any]:
         return json.load(f)
 
 
-def calculate_overall_scores(results_data: Dict[str, Any], metric: str = "all") -> Dict[str, Any]:
+def calculate_overall_scores(
+    results_data: Dict[str, Any], metric: str = "all"
+) -> Dict[str, Any]:
     """
     计算整体评估分数（不输出每个样本的详细分数）
 
@@ -283,7 +289,9 @@ def analyze_retrieval_quality(
     retrieval_analysis = {
         "total_samples": total_samples,
         "samples_with_context": samples_with_context,
-        "context_coverage": (samples_with_context / total_samples if total_samples > 0 else 0.0),
+        "context_coverage": (
+            samples_with_context / total_samples if total_samples > 0 else 0.0
+        ),
         "avg_context_count": np.mean(context_lengths) if context_lengths else 0.0,
         "context_relevance_rate": (
             np.mean(context_relevance_scores) if context_relevance_scores else 0.0
@@ -336,14 +344,18 @@ def print_evaluation_summary(evaluation_result: Dict[str, Any]):
         print("\n🔍 检索质量分析:")
         print(f"   上下文覆盖率: {100 * retrieval_stats['context_coverage']:.2f}%")
         print(f"   平均检索数量: {retrieval_stats['avg_context_count']:.2f}")
-        print(f"   上下文相关性: {100 * retrieval_stats['context_relevance_rate']:.2f}%")
+        print(
+            f"   上下文相关性: {100 * retrieval_stats['context_relevance_rate']:.2f}%"
+        )
 
     print("=" * 60)
 
 
 def main():
     parser = argparse.ArgumentParser(description="评估RAG推理结果")
-    parser.add_argument("--results", "-r", type=str, required=True, help="推理结果文件路径")
+    parser.add_argument(
+        "--results", "-r", type=str, required=True, help="推理结果文件路径"
+    )
     parser.add_argument(
         "--metric",
         choices=["accuracy", "f1", "exact_match", "all"],

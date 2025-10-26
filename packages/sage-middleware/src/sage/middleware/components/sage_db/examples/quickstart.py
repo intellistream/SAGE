@@ -78,11 +78,15 @@ def run_search(db: _sage_db.SageDB, query: list[float]) -> None:
     print("\n🔎 running 3-NN search for:", query)
     results = db.search(query, params)
     for rank, result in enumerate(results, start=1):
-        print(f"  {rank}. id={result.id:>3}  score={result.score:.4f}  metadata={result.metadata}")
+        print(
+            f"  {rank}. id={result.id:>3}  score={result.score:.4f}  metadata={result.metadata}"
+        )
 
 
 def demonstrate_updates(db: _sage_db.SageDB, target_id: int) -> None:
-    print(f"\n🛠️ updating vector id={target_id} to move it closer to the query direction")
+    print(
+        f"\n🛠️ updating vector id={target_id} to move it closer to the query direction"
+    )
     new_vector = [0.8, 0.6, 0.0, 0.0]
     db.update(target_id, new_vector, {"label": "demo-updated", "quadrant": "1"})
     print("   metadata now:", db.get_metadata(target_id))

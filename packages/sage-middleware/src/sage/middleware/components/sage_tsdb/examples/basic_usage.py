@@ -11,7 +11,6 @@ This example demonstrates:
 from datetime import datetime
 
 import numpy as np
-
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
@@ -57,8 +56,12 @@ def main():
 
     results = db.query(time_range=time_range, tags={"sensor": "temp_01"})
     print(f"   Found {len(results)} data points in time range")
-    print(f"   First result: timestamp={results[0].timestamp}, value={results[0].value:.2f}")
-    print(f"   Last result: timestamp={results[-1].timestamp}, value={results[-1].value:.2f}")
+    print(
+        f"   First result: timestamp={results[0].timestamp}, value={results[0].value:.2f}"
+    )
+    print(
+        f"   Last result: timestamp={results[-1].timestamp}, value={results[-1].value:.2f}"
+    )
 
     # Window aggregation
     print("\n5. Window-based aggregation...")

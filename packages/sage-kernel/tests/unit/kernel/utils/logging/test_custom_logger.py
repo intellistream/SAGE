@@ -18,7 +18,6 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 
@@ -111,7 +110,9 @@ class TestCustomLogger:
 
         # 相对路径配置
         relative_config = next(c for c in configs if c["target"] == "relative.log")
-        assert relative_config["resolved_path"] == os.path.join(self.temp_dir, "relative.log")
+        assert relative_config["resolved_path"] == os.path.join(
+            self.temp_dir, "relative.log"
+        )
 
         # 绝对路径配置
         absolute_config = next(c for c in configs if c["target"] == absolute_path)
@@ -196,7 +197,9 @@ class TestPathResolution:
         """测试无基础文件夹的相对路径解析失败"""
         logger = CustomLogger()
 
-        with pytest.raises(ValueError, match="Cannot use relative path.*without log_base_folder"):
+        with pytest.raises(
+            ValueError, match="Cannot use relative path.*without log_base_folder"
+        ):
             logger._resolve_path("app.log")
 
     def test_resolve_nested_relative_path(self):
@@ -656,13 +659,17 @@ class TestCustomLoggerIntegration:
                 runtime_content = f.read()
                 assert "Runtime logging enabled" in runtime_content
                 assert "This error message should appear everywhere" in runtime_content
-                assert "This debug should not go to debug.log anymore" in runtime_content
+                assert (
+                    "This debug should not go to debug.log anymore" in runtime_content
+                )
 
             # 验证临时调试文件存在且包含预期内容
             with open(debug_log) as f:
                 debug_content = f.read()
                 assert "Temporary debug information" in debug_content
-                assert "This debug should not go to debug.log anymore" not in debug_content
+                assert (
+                    "This debug should not go to debug.log anymore" not in debug_content
+                )
 
 
 @pytest.mark.unit
@@ -675,10 +682,14 @@ class TestErrorHandling:
         with sage_temp_directory() as temp_dir:
             invalid_path = os.path.join(temp_dir, "invalid", "nested", "path")
             with patch("os.makedirs", side_effect=OSError("Permission denied")):
-                logger = CustomLogger(outputs=[("test.log", "INFO")], log_base_folder=invalid_path)
+                logger = CustomLogger(
+                    outputs=[("test.log", "INFO")], log_base_folder=invalid_path
+                )
 
                 # 应该能创建logger，但handler为None
-                file_config = next(c for c in logger.output_configs if c["target"] == "test.log")
+                file_config = next(
+                    c for c in logger.output_configs if c["target"] == "test.log"
+                )
                 assert file_config["handler"] is None
 
     def test_file_logging_with_invalid_directory(self):
@@ -686,7 +697,9 @@ class TestErrorHandling:
         # 这里测试目录创建失败的情况
         with sage_temp_directory() as temp_dir:
             invalid_file_path = os.path.join(temp_dir, "invalid", "path", "test.log")
-            with patch("logging.FileHandler", side_effect=OSError("Cannot create file")):
+            with patch(
+                "logging.FileHandler", side_effect=OSError("Cannot create file")
+            ):
                 logger = CustomLogger([(invalid_file_path, "INFO")])
 
                 # logger应该能正常创建，但文件handler为None

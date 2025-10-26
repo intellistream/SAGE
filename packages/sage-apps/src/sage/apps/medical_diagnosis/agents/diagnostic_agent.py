@@ -68,7 +68,9 @@ class DiagnosticAgent:
         """设置组件"""
         from sage.apps.medical_diagnosis.agents.image_analyzer import ImageAnalyzer
         from sage.apps.medical_diagnosis.agents.report_generator import ReportGenerator
-        from sage.apps.medical_diagnosis.tools.knowledge_base import MedicalKnowledgeBase
+        from sage.apps.medical_diagnosis.tools.knowledge_base import (
+            MedicalKnowledgeBase,
+        )
 
         # 初始化各个组件
         self.image_analyzer = ImageAnalyzer(self.config)

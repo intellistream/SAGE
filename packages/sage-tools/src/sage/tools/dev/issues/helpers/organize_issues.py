@@ -47,7 +47,9 @@ class IssuesOrganizer:
         self.github_token = self.config.github_token
 
         if not self.github_token:
-            raise Exception("未找到GitHub Token，请设置GITHUB_TOKEN环境变量或创建.github_token文件")
+            raise Exception(
+                "未找到GitHub Token，请设置GITHUB_TOKEN环境变量或创建.github_token文件"
+            )
 
         self.headers = {
             "Authorization": f"Bearer {self.github_token}",
@@ -101,7 +103,9 @@ class IssuesOrganizer:
                 if not closed_at_str:
                     continue
                 try:
-                    closed_at = datetime.fromisoformat(closed_at_str.replace("Z", "+00:00"))
+                    closed_at = datetime.fromisoformat(
+                        closed_at_str.replace("Z", "+00:00")
+                    )
                 except Exception:
                     continue
                 issue_info = {
@@ -184,7 +188,10 @@ class IssuesOrganizer:
             return None
 
         projects = (
-            data.get("data", {}).get("organization", {}).get("projectsV2", {}).get("nodes", [])
+            data.get("data", {})
+            .get("organization", {})
+            .get("projectsV2", {})
+            .get("nodes", [])
         )
 
         # 找到状态字段 - 优先选择SAGE项目
@@ -214,7 +221,10 @@ class IssuesOrganizer:
 
             status_field = None
             for field in project.get("fields", {}).get("nodes", []):
-                if field.get("name") == "Status" and field.get("dataType") == "SINGLE_SELECT":
+                if (
+                    field.get("name") == "Status"
+                    and field.get("dataType") == "SINGLE_SELECT"
+                ):
                     status_field = field
                     break
 
@@ -226,7 +236,8 @@ class IssuesOrganizer:
                     "project_id": project["id"],
                     "status_field_id": status_field["id"],
                     "status_options": {
-                        opt["name"]: opt["id"] for opt in status_field.get("options", [])
+                        opt["name"]: opt["id"]
+                        for opt in status_field.get("options", [])
                     },
                 }
 
@@ -436,7 +447,9 @@ class IssuesOrganizer:
             print(f"\n📁 处理 {category} 分类 ({len(items)} 个issues)...")
 
             for item in items:
-                success = self.update_issue_status(item["number"], category, project_info)
+                success = self.update_issue_status(
+                    item["number"], category, project_info
+                )
                 total_processed += 1
 
                 if success:
@@ -459,7 +472,9 @@ def main():
     parser = argparse.ArgumentParser(description="Issues整理工具")
     parser.add_argument("--preview", action="store_true", help="预览整理计划")
     parser.add_argument("--apply", action="store_true", help="执行整理")
-    parser.add_argument("--confirm", action="store_true", help="确认执行（与--apply一起使用）")
+    parser.add_argument(
+        "--confirm", action="store_true", help="确认执行（与--apply一起使用）"
+    )
 
     args = parser.parse_args()
 

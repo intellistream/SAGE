@@ -37,10 +37,16 @@ def _convert_pipeline_to_job(
         for edge in edges:
             if edge.get("source") == node.get("id"):
                 # 找到目标节点的索引
-                target_node = next((n for n in nodes if n.get("id") == edge.get("target")), None)
+                target_node = next(
+                    (n for n in nodes if n.get("id") == edge.get("target")), None
+                )
                 if target_node:
                     target_index = next(
-                        (j for j, n in enumerate(nodes) if n.get("id") == edge.get("target")),
+                        (
+                            j
+                            for j, n in enumerate(nodes)
+                            if n.get("id") == edge.get("target")
+                        ),
                         None,
                     )
                     if target_index is not None:
@@ -62,7 +68,9 @@ def _convert_pipeline_to_job(
         try:
             timestamp_str = pipeline_id.replace("pipeline_", "")
             timestamp = int(timestamp_str)
-            create_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+            create_time = datetime.fromtimestamp(timestamp).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
         except (ValueError, OSError) as e:
             print(f"Failed to parse timestamp from pipeline_id {pipeline_id}: {e}")
 
@@ -164,7 +172,9 @@ class Job(BaseModel):
     totalTimeBreakdown: dict
     schedulerTimeBreakdown: dict
     operators: list[dict]
-    config: dict | None = None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
+    config: dict | None = (
+        None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
+    )
 
 
 class OperatorInfo(BaseModel):
@@ -752,9 +762,7 @@ async def get_job_logs(job_id: str, offset: int = 0):
 
         # 如果是第一次请求（offset=0）且没有日志，返回种子消息
         if offset == 0 and len(logs) == 0:
-            seed_line = (
-                f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query."
-            )
+            seed_line = f"[SYSTEM] Console ready for {job_id}. Click Start or submit a FileSource query."
             job_logs[job_id] = [seed_line]
             return {"offset": 1, "lines": [seed_line]}
 
@@ -927,7 +935,9 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     connections = []
     for edge_data in edges_data:
         connection = VisualConnection(
-            id=edge_data.get("id", f"{edge_data.get('source')}-{edge_data.get('target')}"),
+            id=edge_data.get(
+                "id", f"{edge_data.get('source')}-{edge_data.get('target')}"
+            ),
             source_node_id=edge_data.get("source", ""),
             source_port="output",  # 默认输出端口
             target_node_id=edge_data.get("target", ""),
@@ -993,13 +1003,17 @@ async def execute_playground(request: PlaygroundExecuteRequest):
             get_pipeline_builder,  # type: ignore[import-not-found]
         )
 
-        print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
+        print(
+            f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}"
+        )
         print(f"📝 Input: {request.input}")
 
         # 1. 加载 Flow 定义
         flow_data = _load_flow_data(request.flowId)
         if not flow_data:
-            raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
+            raise HTTPException(
+                status_code=404, detail=f"Flow not found: {request.flowId}"
+            )
 
         # 2. 转换为 VisualPipeline
         visual_pipeline = _convert_to_flow_definition(flow_data, request.flowId)

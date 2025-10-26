@@ -39,7 +39,9 @@ class CompilationManager:
         return {
             "name": package_name,
             "path": package_path,
-            "description": self.config.get("package_descriptions", {}).get(package_name, ""),
+            "description": self.config.get("package_descriptions", {}).get(
+                package_name, ""
+            ),
             "is_opensource": self._is_opensource_package(package_name),
         }
 
@@ -78,7 +80,9 @@ class CompilationManager:
         if target_type == "opensource":
             return self._build_opensource_package(package_info, output_dir, build_wheel)
         else:
-            return self._build_proprietary_package(package_info, output_dir, build_wheel)
+            return self._build_proprietary_package(
+                package_info, output_dir, build_wheel
+            )
 
     def _build_opensource_package(
         self,
@@ -104,7 +108,9 @@ class CompilationManager:
             original_cwd = os.getcwd()
             try:
                 os.chdir(package_path)
-                result = subprocess.run(["python", "-m", "build"], capture_output=True, text=True)
+                result = subprocess.run(
+                    ["python", "-m", "build"], capture_output=True, text=True
+                )
 
                 if result.returncode != 0:
                     raise RuntimeError(f"构建失败: {result.stderr}")
@@ -184,7 +190,9 @@ class CompilationManager:
     def get_opensource_packages(self) -> list[str]:
         """获取开源包列表"""
         return [
-            name for name in self.config.get("packages", {}) if self._is_opensource_package(name)
+            name
+            for name in self.config.get("packages", {})
+            if self._is_opensource_package(name)
         ]
 
     def get_proprietary_packages(self) -> list[str]:

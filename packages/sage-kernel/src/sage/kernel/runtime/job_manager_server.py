@@ -4,7 +4,6 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 import ray
-
 from sage.common.utils.network.local_tcp_server import BaseTcpServer
 from sage.common.utils.serialization.dill import deserialize_object
 
@@ -49,7 +48,9 @@ class JobManagerServer(BaseTcpServer):
             # 启动Socket服务
             self.start()
 
-            self.logger.info(f"JobManager Daemon started successfully on {self.host}:{self.port}")
+            self.logger.info(
+                f"JobManager Daemon started successfully on {self.host}:{self.port}"
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to start daemon: {e}")
@@ -333,7 +334,9 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_receive_node_stop_signal(self, request: dict[str, Any]) -> dict[str, Any]:
+    def _handle_receive_node_stop_signal(
+        self, request: dict[str, Any]
+    ) -> dict[str, Any]:
         """处理节点停止信号"""
         try:
             job_uuid = request.get("job_uuid")
@@ -388,7 +391,9 @@ class JobManagerServer(BaseTcpServer):
                 "python_version": sys.version,
                 "python_executable": sys.executable,
                 "platform": platform.platform(),
-                "ray_version": (ray.__version__ if hasattr(ray, "__version__") else "unknown"),
+                "ray_version": (
+                    ray.__version__ if hasattr(ray, "__version__") else "unknown"
+                ),
                 "session_id": self.jobmanager.session_id,
                 "log_base_dir": str(self.jobmanager.log_base_dir),
                 "working_directory": os.getcwd(),

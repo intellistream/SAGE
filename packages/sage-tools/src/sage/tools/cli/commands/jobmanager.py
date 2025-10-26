@@ -54,7 +54,9 @@ class JobManagerController:
 
     def stop_gracefully(self, timeout: int = 30) -> bool:
         """优雅地停止JobManager"""
-        typer.echo(f"Attempting graceful shutdown of JobManager on {self.host}:{self.port}...")
+        typer.echo(
+            f"Attempting graceful shutdown of JobManager on {self.host}:{self.port}..."
+        )
 
         # 首先尝试通过健康检查确认服务存在
         health = self.check_health()
@@ -63,7 +65,9 @@ class JobManagerController:
             return self.force_kill()
 
         # 查找进程
-        processes = find_processes_by_name(self.process_names) or find_port_processes(self.port)
+        processes = find_processes_by_name(self.process_names) or find_port_processes(
+            self.port
+        )
         if not processes:
             typer.echo("No JobManager processes found")
             return True
@@ -107,7 +111,9 @@ class JobManagerController:
 
         # 如果没有找到进程，也尝试通过端口查找
         if not processes:
-            typer.echo("No JobManager processes found by process name, checking by port...")
+            typer.echo(
+                "No JobManager processes found by process name, checking by port..."
+            )
             try:
                 # 使用 lsof 或 netstat 查找占用端口的进程
                 import subprocess
@@ -122,13 +128,17 @@ class JobManagerController:
                             pid = int(pid_str.strip())
                             process = psutil.Process(pid)
                             processes.append(process)
-                            typer.echo(f"Found process using port {self.port}: PID {pid}")
+                            typer.echo(
+                                f"Found process using port {self.port}: PID {pid}"
+                            )
                         except (ValueError, psutil.NoSuchProcess):
                             continue
             except (subprocess.SubprocessError, FileNotFoundError):
                 # lsof 不可用，尝试使用 netstat
                 try:
-                    result = subprocess.run(["netstat", "-tlnp"], capture_output=True, text=True)
+                    result = subprocess.run(
+                        ["netstat", "-tlnp"], capture_output=True, text=True
+                    )
                     if result.returncode == 0:
                         for line in result.stdout.split("\n"):
                             if f":{self.port}" in line and "LISTEN" in line:
@@ -165,7 +175,9 @@ class JobManagerController:
 
         # 如果需要sudo权限但还没有获取，先获取
         if needs_sudo and not self.sudo_manager.has_sudo_access():
-            typer.echo("⚠️  Some processes are owned by other users, requesting sudo access...")
+            typer.echo(
+                "⚠️  Some processes are owned by other users, requesting sudo access..."
+            )
             if not self.sudo_manager.ensure_sudo_access():
                 typer.echo(
                     "❌ Unable to obtain sudo privileges. Cannot kill processes owned by other users."
@@ -236,7 +248,9 @@ class JobManagerController:
         typer.echo("✅ All JobManager processes have been terminated")
         return True
 
-    def start(self, daemon: bool = True, wait_for_ready: int = 10, force: bool = False) -> bool:
+    def start(
+        self, daemon: bool = True, wait_for_ready: int = 10, force: bool = False
+    ) -> bool:
         """启动JobManager"""
         typer.echo(f"Starting JobManager on {self.host}:{self.port}...")
 
@@ -249,8 +263,12 @@ class JobManagerController:
             typer.echo(f"Port {self.port} is already occupied")
 
             if force:
-                typer.echo("🔥 Force mode enabled, forcefully stopping existing process...")
-                typer.echo("⚠️  This will terminate processes owned by other users if necessary.")
+                typer.echo(
+                    "🔥 Force mode enabled, forcefully stopping existing process..."
+                )
+                typer.echo(
+                    "⚠️  This will terminate processes owned by other users if necessary."
+                )
                 if not self.force_kill():
                     typer.echo("❌ Failed to force kill existing processes")
                     return False
@@ -318,12 +336,16 @@ class JobManagerController:
 
             # 等待服务就绪
             if wait_for_ready > 0:
-                typer.echo(f"Waiting up to {wait_for_ready} seconds for JobManager to be ready...")
+                typer.echo(
+                    f"Waiting up to {wait_for_ready} seconds for JobManager to be ready..."
+                )
                 for i in range(wait_for_ready):
                     time.sleep(1)
                     health = self.check_health()
                     if health.get("status") == "success":
-                        typer.echo(f"JobManager is ready and healthy (took {i + 1} seconds)")
+                        typer.echo(
+                            f"JobManager is ready and healthy (took {i + 1} seconds)"
+                        )
                         return True
                     typer.echo(f"Waiting... ({i + 1}/{wait_for_ready})")
 
@@ -331,7 +353,9 @@ class JobManagerController:
                 # 检查进程是否还在运行
                 try:
                     if process.poll() is None:
-                        typer.echo("Process is still running but not responding to health checks")
+                        typer.echo(
+                            "Process is still running but not responding to health checks"
+                        )
                         typer.echo("This might indicate a startup issue")
                     else:
                         typer.echo(f"Process exited with code: {process.returncode}")
@@ -391,10 +415,14 @@ class JobManagerController:
                 proc = psutil.Process(proc_pid)
                 proc_user = proc.username()
                 proc_cmdline = " ".join(proc.cmdline())
-                typer.echo(f"  - PID {proc_pid}: {proc_info['name']} (user: {proc_user})")
+                typer.echo(
+                    f"  - PID {proc_pid}: {proc_info['name']} (user: {proc_user})"
+                )
                 typer.echo(f"    Command: {proc_cmdline}")
             except (psutil.NoSuchProcess, psutil.AccessDenied):
-                typer.echo(f"  - PID {proc_pid}: {proc_info['name']} (process info unavailable)")
+                typer.echo(
+                    f"  - PID {proc_pid}: {proc_info['name']} (process info unavailable)"
+                )
 
         typer.echo(f"Port {self.port} Occupied: {port_occupied}")
 
@@ -415,7 +443,9 @@ class JobManagerController:
                             proc = psutil.Process(pid)
                             proc_user = proc.username()
                             proc_cmdline = " ".join(proc.cmdline())
-                            typer.echo(f"  - PID {pid}: {proc.name()} (user: {proc_user})")
+                            typer.echo(
+                                f"  - PID {pid}: {proc.name()} (user: {proc_user})"
+                            )
                             typer.echo(f"    Command: {proc_cmdline}")
                         except (ValueError, psutil.NoSuchProcess, psutil.AccessDenied):
                             typer.echo(f"  - PID {pid_str}: (process info unavailable)")
@@ -455,7 +485,9 @@ class JobManagerController:
             # 强制模式下等待更长时间，并确保端口释放
             time.sleep(3)
             if not wait_for_port_release(self.host, self.port, timeout=10):
-                typer.echo("⚠️  Port may still be occupied, attempting aggressive cleanup...")
+                typer.echo(
+                    "⚠️  Port may still be occupied, attempting aggressive cleanup..."
+                )
                 aggressive_port_cleanup(self.port)
                 wait_for_port_release(self.host, self.port, timeout=5)
         else:
@@ -463,8 +495,12 @@ class JobManagerController:
 
         # 启动新实例 - 始终使用用户权限，不使用force模式
         # 这确保新的JobManager运行在正确的conda环境中
-        typer.echo("🚀 Starting new instance with user privileges (in conda environment)...")
-        start_success = self.start(daemon=True, wait_for_ready=wait_for_ready, force=False)
+        typer.echo(
+            "🚀 Starting new instance with user privileges (in conda environment)..."
+        )
+        start_success = self.start(
+            daemon=True, wait_for_ready=wait_for_ready, force=False
+        )
 
         if start_success:
             typer.echo("=" * 50)
@@ -482,7 +518,9 @@ class JobManagerController:
 def start(
     host: str = typer.Option("127.0.0.1", help="JobManager host address"),
     port: int = typer.Option(19001, help="JobManager port"),
-    foreground: bool = typer.Option(False, "--foreground", help="Start in the foreground"),
+    foreground: bool = typer.Option(
+        False, "--foreground", help="Start in the foreground"
+    ),
     no_wait: bool = typer.Option(
         False, "--no-wait", help="Do not wait for the service to be ready"
     ),
@@ -498,7 +536,9 @@ def start(
     """
     controller = JobManagerController(host, port)
     wait_time = 0 if no_wait else 10
-    success = controller.start(daemon=not foreground, wait_for_ready=wait_time, force=force)
+    success = controller.start(
+        daemon=not foreground, wait_for_ready=wait_time, force=force
+    )
     if success:
         typer.echo("\n✅ Operation 'start' completed successfully")
     else:

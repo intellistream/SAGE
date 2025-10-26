@@ -14,6 +14,10 @@ class FrameLightweightFormatter(MapFunction):
         data.pop("frame", None)
         data.pop("pil_image", None)
         data.pop("resized_image", None)
-        data["top_scene_labels"] = [entry["label"] for entry in data.get("scene_concepts", [])]
-        data["top_object_labels"] = [entry["label"] for entry in data.get("object_predictions", [])]
+        data["top_scene_labels"] = [
+            entry["label"] for entry in data.get("scene_concepts", [])
+        ]
+        data["top_object_labels"] = [
+            entry["label"] for entry in data.get("object_predictions", [])
+        ]
         return data

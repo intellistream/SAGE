@@ -144,7 +144,11 @@ def fix_file_metadata(filepath: str, metadata: dict):
         return False
 
     # 检查是否已有元数据
-    if "**Date**:" in content and "**Author**:" in content and "**Summary**:" in content:
+    if (
+        "**Date**:" in content
+        and "**Author**:" in content
+        and "**Summary**:" in content
+    ):
         print(f"✓ 已有元数据: {filepath}")
         return True
 
@@ -167,7 +171,9 @@ def fix_file_metadata(filepath: str, metadata: dict):
     ]
 
     # 插入元数据
-    new_lines = lines[: title_line_idx + 1] + metadata_lines + lines[title_line_idx + 1 :]
+    new_lines = (
+        lines[: title_line_idx + 1] + metadata_lines + lines[title_line_idx + 1 :]
+    )
 
     # 写回文件
     path.write_text("\n".join(new_lines), encoding="utf-8")

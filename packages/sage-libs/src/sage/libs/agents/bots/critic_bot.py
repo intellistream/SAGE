@@ -26,7 +26,9 @@ class CriticBot:
         self.config = config or {}
         self.ctx = ctx
 
-    def critique(self, answer: str, question: str = "", context: str = "") -> dict[str, Any]:
+    def critique(
+        self, answer: str, question: str = "", context: str = ""
+    ) -> dict[str, Any]:
         """
         评估答案质量
 

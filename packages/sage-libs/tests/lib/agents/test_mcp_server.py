@@ -226,7 +226,9 @@ def test_mount_remote_mcp_and_proxy_call(monkeypatch, client):
             )
         elif method == "call_tool":
             params = json["params"]
-            return _MockResp({"result": params["arguments"]["a"] + params["arguments"]["b"]})
+            return _MockResp(
+                {"result": params["arguments"]["a"] + params["arguments"]["b"]}
+            )
         else:
             return _MockResp(
                 {"error": {"code": -32601, "message": "method not found"}},
@@ -279,9 +281,13 @@ def test_refresh_remote_mcp(monkeypatch, client):
         method = json["method"]
         if method == "list_tools":
             if state["phase"] == 0:
-                return _MockResp({"result": {"t1": {"description": "tool1", "input_schema": {}}}})
+                return _MockResp(
+                    {"result": {"t1": {"description": "tool1", "input_schema": {}}}}
+                )
             else:
-                return _MockResp({"result": {"t2": {"description": "tool2", "input_schema": {}}}})
+                return _MockResp(
+                    {"result": {"t2": {"description": "tool2", "input_schema": {}}}}
+                )
         elif method == "call_tool":
             return _MockResp({"result": "ok"})
         return _MockResp({"error": {"code": -32601}}, status_code=400)

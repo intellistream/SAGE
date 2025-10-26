@@ -8,7 +8,6 @@ for both local and remote execution environments.
 from unittest.mock import Mock, patch
 
 import pytest
-
 from sage.kernel.runtime.factory.task_factory import TaskFactory
 from sage.kernel.runtime.task.local_task import LocalTask
 from sage.kernel.utils.ray.actor import ActorWrapper
@@ -121,13 +120,19 @@ class TestTaskFactory:
 
     @pytest.mark.unit
     @patch("sage.kernel.runtime.factory.task_factory.RayTask")
-    def test_create_remote_task(self, mock_ray_task_class, remote_factory, mock_context):
+    def test_create_remote_task(
+        self, mock_ray_task_class, remote_factory, mock_context
+    ):
         """Test creating a remote task"""
         # Mock the Ray task class and its options method
         mock_ray_task_instance = Mock()
-        mock_ray_task_class.options.return_value.remote.return_value = mock_ray_task_instance
+        mock_ray_task_class.options.return_value.remote.return_value = (
+            mock_ray_task_instance
+        )
 
-        with patch("sage.kernel.runtime.factory.task_factory.ActorWrapper") as mock_wrapper:
+        with patch(
+            "sage.kernel.runtime.factory.task_factory.ActorWrapper"
+        ) as mock_wrapper:
             mock_wrapper_instance = Mock()
             mock_wrapper.return_value = mock_wrapper_instance
 
@@ -192,7 +197,9 @@ class TestTaskFactory:
     @pytest.mark.integration
     @patch("sage.kernel.runtime.factory.task_factory.RayTask")
     @patch("sage.kernel.runtime.factory.task_factory.ActorWrapper")
-    def test_factory_integration_local_and_remote(self, mock_wrapper, mock_ray_task, mock_context):
+    def test_factory_integration_local_and_remote(
+        self, mock_wrapper, mock_ray_task, mock_context
+    ):
         """Integration test creating both local and remote tasks"""
         # Create factories
         local_transform = MockTransformation(remote=False)
@@ -319,7 +326,9 @@ class TestTaskFactoryEdgeCases:
                 tasks.append(e)
 
         # Create multiple threads
-        threads = [threading.Thread(target=create_task_worker, args=(i,)) for i in range(10)]
+        threads = [
+            threading.Thread(target=create_task_worker, args=(i,)) for i in range(10)
+        ]
 
         for thread in threads:
             thread.start()
@@ -403,7 +412,9 @@ def transformation_factory():
     """Factory for creating different types of transformations"""
 
     def _create_transformation(remote=False, is_spout=True, basename="test"):
-        transform = MockTransformation(basename=basename, remote=remote, is_spout=is_spout)
+        transform = MockTransformation(
+            basename=basename, remote=remote, is_spout=is_spout
+        )
         return transform
 
     return _create_transformation

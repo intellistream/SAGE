@@ -185,7 +185,11 @@ class SageTSDBService:
                     "value": (
                         float(r.value)
                         if isinstance(r.value, (int, float))
-                        else (r.value.tolist() if isinstance(r.value, np.ndarray) else r.value)
+                        else (
+                            r.value.tolist()
+                            if isinstance(r.value, np.ndarray)
+                            else r.value
+                        )
                     ),
                     "tags": dict(r.tags) if r.tags else {},
                     "fields": dict(r.fields) if r.fields else {},
@@ -326,7 +330,9 @@ class SageTSDBService:
                 {
                     "timestamp": item.timestamp,
                     "value": (
-                        float(item.value) if isinstance(item.value, (int, float)) else item.value
+                        float(item.value)
+                        if isinstance(item.value, (int, float))
+                        else item.value
                     ),
                     "tags": dict(item.tags) if item.tags else {},
                     "fields": dict(item.fields) if item.fields else {},

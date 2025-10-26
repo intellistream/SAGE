@@ -44,7 +44,9 @@ class HFDatasetBatch(BatchFunction):
 
     def _build_iter(self):
         """构建数据集迭代器"""
-        ds = load_dataset(self.hf_name, self.hf_config, split=self.hf_split, streaming=True)
+        ds = load_dataset(
+            self.hf_name, self.hf_config, split=self.hf_split, streaming=True
+        )
         for ex in ds:
             yield {
                 "query": ex.get("question", ""),
@@ -70,7 +72,9 @@ class HFDatasetBatch(BatchFunction):
             self.logger.debug(f"Yielding batch data: {data}")
             return data
         except StopIteration:
-            self.logger.info(f"HF dataset batch processing completed for: {self.hf_name}")
+            self.logger.info(
+                f"HF dataset batch processing completed for: {self.hf_name}"
+            )
             self._dataset_exhausted = True
             return None
 
@@ -125,7 +129,9 @@ class JSONLBatch(BatchFunction):
             line = self._file_handle.readline()
             if not line:
                 # 文件读取完毕
-                self.logger.info(f"JSONL file batch processing completed for: {self.file_path}")
+                self.logger.info(
+                    f"JSONL file batch processing completed for: {self.file_path}"
+                )
                 self._file_handle.close()
                 self._file_exhausted = True
                 return None

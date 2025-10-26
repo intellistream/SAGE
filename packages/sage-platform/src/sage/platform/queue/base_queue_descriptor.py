@@ -100,7 +100,9 @@ class BaseQueueDescriptor(ABC):
 
     # ============ 队列接口实现 ============
 
-    def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
+    def put(
+        self, item: Any, block: bool = True, timeout: Optional[float] = None
+    ) -> None:
         return self.queue_instance.put(item, block=block, timeout=timeout)
 
     def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
@@ -190,7 +192,9 @@ class BaseQueueDescriptor(ABC):
                 result["metadata"][key] = value
             except (TypeError, ValueError):
                 if include_non_serializable:
-                    result["metadata"][key] = f"<non-serializable: {type(value).__name__}>"
+                    result["metadata"][
+                        key
+                    ] = f"<non-serializable: {type(value).__name__}>"
 
         return result
 
@@ -230,9 +234,7 @@ class BaseQueueDescriptor(ABC):
             status_parts.append("non-serializable")
 
         status = ", ".join(status_parts)
-        return (
-            f"{self.__class__.__name__}(id='{self.queue_id}', type='{self.queue_type}', {status})"
-        )
+        return f"{self.__class__.__name__}(id='{self.queue_id}', type='{self.queue_type}', {status})"
 
     def __str__(self) -> str:
         return f"Queue[{self.queue_type}]({self.queue_id})"

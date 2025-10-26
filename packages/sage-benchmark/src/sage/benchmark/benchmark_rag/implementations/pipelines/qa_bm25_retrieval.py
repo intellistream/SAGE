@@ -13,9 +13,14 @@ from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 def pipeline_run():
     """创建并运行数据处理管道"""
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - qa_bm25_retrieval example")
-        print("✅ Test passed: Example structure validated (BM25sRetriever not available)")
+        print(
+            "✅ Test passed: Example structure validated (BM25sRetriever not available)"
+        )
         return
 
     env = LocalEnvironment()
@@ -38,13 +43,20 @@ if __name__ == "__main__":
     import os
 
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - qa_bm25_retrieval example")
-        print("✅ Test passed: Example structure validated (BM25sRetriever not available)")
+        print(
+            "✅ Test passed: Example structure validated (BM25sRetriever not available)"
+        )
         sys.exit(0)
 
     # 加载配置并初始化日志
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_bm25s.yaml")
+    config_path = os.path.join(
+        os.path.dirname(__file__), "..", "config", "config_bm25s.yaml"
+    )
     if not os.path.exists(config_path):
         print(f"❌ Configuration file not found: {config_path}")
         print("Please create the configuration file first.")

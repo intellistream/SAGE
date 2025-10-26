@@ -112,7 +112,9 @@ class TestOpenAIGenerator:
         }
 
         # Mock环境变量
-        with patch.dict(os.environ, {"ALIBABA_API_KEY": "env_api_key"}):  # pragma: allowlist secret
+        with patch.dict(
+            os.environ, {"ALIBABA_API_KEY": "env_api_key"}
+        ):  # pragma: allowlist secret
             mock_client_instance = Mock()
             mock_openai_client.return_value = mock_client_instance
 
@@ -190,7 +192,9 @@ class TestOpenAIGenerator:
         assert user_query is None
         assert response == "Generated response"
 
-        expected_messages = [{"role": "user", "content": "Please explain artificial intelligence."}]
+        expected_messages = [
+            {"role": "user", "content": "Please explain artificial intelligence."}
+        ]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
     @patch("sage.libs.rag.generator.OpenAIClient")
@@ -211,7 +215,9 @@ class TestOpenAIGenerator:
         mock_client_instance.generate.return_value = "Generated response"
         mock_openai_client.return_value = mock_client_instance
 
-        with patch("os.makedirs"), patch("builtins.open", create=True), patch("json.dump"):
+        with patch("os.makedirs"), patch("builtins.open", create=True), patch(
+            "json.dump"
+        ):
 
             generator = OpenAIGenerator(config=config, enable_profile=True)
 
@@ -222,7 +228,9 @@ class TestOpenAIGenerator:
             test_dir = get_test_temp_dir("test_generator")
             mock_ctx.env_base_dir = str(test_dir)
             generator.ctx = mock_ctx
-            generator.data_base_path = str(test_dir / ".sage" / "states" / "generator_data")
+            generator.data_base_path = str(
+                test_dir / ".sage" / "states" / "generator_data"
+            )
             generator.data_records = []
 
             input_data = ["Test prompt"]
@@ -399,7 +407,9 @@ class TestOpenAIGenerator:
 class TestOpenAIGeneratorIntegration:
     """OpenAIGenerator集成测试"""
 
-    @pytest.mark.skipif(not GENERATOR_AVAILABLE, reason="Generator module not available")
+    @pytest.mark.skipif(
+        not GENERATOR_AVAILABLE, reason="Generator module not available"
+    )
     def test_generator_with_mock_service(self):
         """测试生成器与mock服务的集成"""
         config = {
@@ -524,7 +534,9 @@ class TestHFGenerator:
         assert response == "Single response"
 
         # 验证model.generate被正确调用
-        mock_client_instance.generate.assert_called_once_with("Explain machine learning")
+        mock_client_instance.generate.assert_called_once_with(
+            "Explain machine learning"
+        )
 
     @patch("sage.libs.rag.generator.HFClient")
     def test_hf_generator_execute_with_kwargs(self, mock_hf_client):
@@ -583,7 +595,9 @@ class TestHFGenerator:
 class TestGeneratorIntegration:
     """Generator集成测试"""
 
-    @pytest.mark.skipif(not GENERATOR_AVAILABLE, reason="Generator module not available")
+    @pytest.mark.skipif(
+        not GENERATOR_AVAILABLE, reason="Generator module not available"
+    )
     def test_multiple_generators_comparison(self):
         """测试多个生成器的比较"""
         openai_config = {

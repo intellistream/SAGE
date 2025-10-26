@@ -46,7 +46,9 @@ class TestVideoAppStructure:
         """Verify video_intelligence_pipeline.py is not empty"""
         pipeline_file = video_dir / "video_intelligence_pipeline.py"
         content = pipeline_file.read_text()
-        assert len(content.strip()) > 0, "video_intelligence_pipeline.py should not be empty"
+        assert (
+            len(content.strip()) > 0
+        ), "video_intelligence_pipeline.py should not be empty"
 
     def test_video_intelligence_has_main_or_class(self, video_dir):
         """Verify video_intelligence_pipeline.py has executable code"""
@@ -75,7 +77,9 @@ class TestVideoAppImports:
         """Test video_intelligence_pipeline.py can be imported"""
         pipeline_file = video_dir / "video_intelligence_pipeline.py"
 
-        spec = importlib.util.spec_from_file_location("video_intelligence_pipeline", pipeline_file)
+        spec = importlib.util.spec_from_file_location(
+            "video_intelligence_pipeline", pipeline_file
+        )
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
             try:
@@ -103,7 +107,14 @@ class TestVideoAppOperators:
     @pytest.fixture
     def operators_dir(self):
         """Get operators directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "video" / "operators"
+        return (
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "apps"
+            / "video"
+            / "operators"
+        )
 
     def test_operators_not_empty(self, operators_dir):
         """Verify operator files are not empty"""
@@ -139,7 +150,9 @@ class TestVideoAppConfig:
     @pytest.fixture
     def config_dir(self):
         """Get config directory path"""
-        return Path(__file__).parent.parent / "src" / "sage" / "apps" / "video" / "config"
+        return (
+            Path(__file__).parent.parent / "src" / "sage" / "apps" / "video" / "config"
+        )
 
     def test_config_directory_exists(self, config_dir):
         """Verify config directory exists"""

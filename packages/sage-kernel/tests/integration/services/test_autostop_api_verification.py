@@ -135,11 +135,17 @@ def main():
     results = []
 
     # 运行所有测试
-    results.append(("RemoteEnvironment.submit()", test_remote_environment_autostop_signature()))
-    results.append(("JobManagerClient.submit_job()", test_jobmanager_client_signature()))
+    results.append(
+        ("RemoteEnvironment.submit()", test_remote_environment_autostop_signature())
+    )
+    results.append(
+        ("JobManagerClient.submit_job()", test_jobmanager_client_signature())
+    )
     results.append(("JobManager.submit_job()", test_jobmanager_signature()))
     results.append(("JobInfo.__init__()", test_jobinfo_signature()))
-    results.append(("RemoteEnvironment._wait_for_completion()", test_wait_for_completion_exists()))
+    results.append(
+        ("RemoteEnvironment._wait_for_completion()", test_wait_for_completion_exists())
+    )
 
     # 总结
     print("\n" + "=" * 80)

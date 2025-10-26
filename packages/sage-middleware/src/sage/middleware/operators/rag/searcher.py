@@ -1,7 +1,6 @@
 from typing import Any
 
 import requests
-
 from sage.kernel.operators import MapOperator
 
 

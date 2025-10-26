@@ -8,7 +8,9 @@ from pathlib import Path
 
 
 class TextLoader:
-    def __init__(self, filepath: str, encoding: str = "utf-8", chunk_separator: str | None = None):
+    def __init__(
+        self, filepath: str, encoding: str = "utf-8", chunk_separator: str | None = None
+    ):
         self.filepath = filepath
         self.encoding = encoding
         self.chunk_separator = chunk_separator

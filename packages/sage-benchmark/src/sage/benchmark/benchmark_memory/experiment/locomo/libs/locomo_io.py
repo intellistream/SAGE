@@ -1,7 +1,9 @@
 import json
 import os
 
-from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import LocomoDataLoader
+from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import (
+    LocomoDataLoader,
+)
 from sage.common.core.functions.batch_function import BatchFunction
 from sage.common.core.functions.sink_function import SinkFunction
 
@@ -51,12 +53,16 @@ class LocomoSource(BatchFunction):
 
             # 检查是否还有更多session
             if self.session_idx >= len(self.turns):
-                print(f"🏁 LocomoSource 已完成：所有 {len(self.turns)} 个会话已处理完毕")
+                print(
+                    f"🏁 LocomoSource 已完成：所有 {len(self.turns)} 个会话已处理完毕"
+                )
                 return None
 
             # 更新到新session的信息
             session_id, max_dialog_idx = self.turns[self.session_idx]
-            print(f"🆕 移动到新会话：session_id={session_id}, max_dialog_idx={max_dialog_idx}")
+            print(
+                f"🆕 移动到新会话：session_id={session_id}, max_dialog_idx={max_dialog_idx}"
+            )
 
         # 打印当前执行信息
         print(
@@ -80,12 +86,16 @@ class LocomoSource(BatchFunction):
 
             # 移动指针到下一组对话（每次+2，因为一组对话包含问答两轮）
             self.dialog_ptr += 2
-            print(f"⚡ LocomoSource 返回数据：session={session_id}, dialog={self.dialog_ptr-2}")
+            print(
+                f"⚡ LocomoSource 返回数据：session={session_id}, dialog={self.dialog_ptr-2}"
+            )
 
             return result
 
         except Exception as e:
-            print(f"❌ 获取对话时出错 session {session_id}, dialog {self.dialog_ptr}: {e}")
+            print(
+                f"❌ 获取对话时出错 session {session_id}, dialog {self.dialog_ptr}: {e}"
+            )
             import traceback
 
             traceback.print_exc()
@@ -129,7 +139,9 @@ class LocomoSink(SinkFunction):
         dialog_idx = data.get("dialog_idx")
         dialogs = data.get("dialogs", [])
         dialog_count = len(dialogs)
-        print(f"📥 LocomoSink 已接收：会话 {session_id}, 对话 {dialog_idx} ({dialog_count} 轮)")
+        print(
+            f"📥 LocomoSink 已接收：会话 {session_id}, 对话 {dialog_idx} ({dialog_count} 轮)"
+        )
 
         # 将数据添加到列表
         self.data_list.append(data)
@@ -166,7 +178,9 @@ if __name__ == "__main__":
 
     # 创建环境和pipeline
     env = LocalEnvironment("Test_Locomo_IO")
-    env.from_batch(LocomoSource, sample_id=test_sample_id).sink(LocomoSink, output_name="test")
+    env.from_batch(LocomoSource, sample_id=test_sample_id).sink(
+        LocomoSink, output_name="test"
+    )
     env.submit(autostop=True)
 
     print("=" * 60)
