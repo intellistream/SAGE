@@ -307,7 +307,7 @@ def main():
         print(f"\n❌ {len(failing_packages)} package(s) have README quality issues:")
         for pkg in failing_packages:
             print(f"   - {pkg}: {results[pkg].score:.1f}/100")
-        
+
         # 如果平均分高于 90，只显示警告而不失败
         if avg_score >= 90:
             print(f"\n⚠️  虽然有 {len(failing_packages)} 个包需要改进，")

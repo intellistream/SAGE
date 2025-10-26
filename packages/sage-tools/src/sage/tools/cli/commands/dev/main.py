@@ -64,12 +64,37 @@ except ImportError as e:
 def quality(
     fix: bool = typer.Option(True, "--fix/--no-fix", help="自动修复质量问题"),
     check_only: bool = typer.Option(False, "--check-only", help="仅检查，不修复"),
+    # Python 代码检查
     format_code: bool = typer.Option(True, "--format/--no-format", help="运行代码格式化(black)"),
     sort_imports: bool = typer.Option(
         True, "--sort-imports/--no-sort-imports", help="运行导入排序(isort)"
     ),
-    lint_code: bool = typer.Option(True, "--lint/--no-lint", help="运行代码检查(flake8)"),
-    type_check: bool = typer.Option(True, "--type-check/--no-type-check", help="运行类型检查(mypy)"),
+    lint_ruff: bool = typer.Option(True, "--ruff/--no-ruff", help="运行Ruff检查(推荐)"),
+    lint_code: bool = typer.Option(False, "--lint/--no-lint", help="运行flake8检查(已被ruff替代)"),
+    type_check: bool = typer.Option(
+        True, "--type-check/--no-type-check", help="运行类型检查(mypy)"
+    ),
+    # 文件检查
+    check_files: bool = typer.Option(
+        True, "--check-files/--no-check-files", help="运行文件检查(空格,换行等)"
+    ),
+    check_yaml: bool = typer.Option(True, "--check-yaml/--no-check-yaml", help="检查YAML文件"),
+    check_json: bool = typer.Option(True, "--check-json/--no-check-json", help="检查JSON文件"),
+    check_secrets: bool = typer.Option(
+        True, "--check-secrets/--no-check-secrets", help="检查敏感信息泄露"
+    ),
+    # Shell 脚本检查
+    check_shell: bool = typer.Option(
+        True, "--check-shell/--no-check-shell", help="检查Shell脚本(shellcheck)"
+    ),
+    # 格式化
+    format_yaml: bool = typer.Option(
+        False, "--format-yaml/--no-format-yaml", help="格式化YAML文件"
+    ),
+    format_markdown: bool = typer.Option(
+        False, "--format-markdown/--no-format-markdown", help="格式化Markdown文件"
+    ),
+    # 其他选项
     warn_only: bool = typer.Option(False, "--warn-only", help="只给警告，不中断运行"),
     project_root: str = typer.Option(".", help="项目根目录"),
 ):
@@ -159,7 +184,287 @@ def quality(
     # 如果不是check_only模式，并且fix为True，则自动修复
     should_fix = fix and not check_only
 
-    # 代码格式化检查和修复
+    # ============================================================================
+    # 1. 文件基础检查 (trailing whitespace, end-of-file, etc.)
+    # ============================================================================
+    if check_files:
+        console.print("\n📄 运行文件基础检查...")
+
+        file_check_issues = False
+
+        # 检查尾部空格
+        try:
+            if should_fix:
+                # 修复尾部空格
+                result = subprocess.run(
+                    [
+                        "python",
+                        "-c",
+                        "import sys,re;[print(f.strip()) or open(f,'w').write(re.sub(r'[ \\t]+$','',open(f).read(),flags=re.MULTILINE)) for f in sys.argv[1:]]",
+                        *[
+                            str(p)
+                            for p in project_dir.rglob("*.py")
+                            if not any(
+                                excl in str(p)
+                                for excl in [
+                                    "venv",
+                                    ".venv",
+                                    "build",
+                                    "dist",
+                                    "sageLLM",
+                                    "sageDB",
+                                    "sageFlow",
+                                    "neuromem",
+                                    "sageTSDB",
+                                    "vendors",
+                                ]
+                            )
+                        ],
+                    ],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(project_dir),
+                )
+                console.print("[green]✅ 尾部空格检查和修复完成[/green]")
+            else:
+                # 只检查尾部空格
+                files_with_trailing = []
+                for p in project_dir.rglob("*.py"):
+                    if any(
+                        excl in str(p)
+                        for excl in [
+                            "venv",
+                            ".venv",
+                            "build",
+                            "dist",
+                            "sageLLM",
+                            "sageDB",
+                            "sageFlow",
+                            "neuromem",
+                            "sageTSDB",
+                            "vendors",
+                        ]
+                    ):
+                        continue
+                    try:
+                        content = p.read_text()
+                        if any(line.endswith((" ", "\t")) for line in content.splitlines()):
+                            files_with_trailing.append(str(p.relative_to(project_dir)))
+                    except:
+                        pass
+
+                if files_with_trailing:
+                    console.print(
+                        f"[yellow]⚠️ 发现 {len(files_with_trailing)} 个文件有尾部空格[/yellow]"
+                    )
+                    if len(files_with_trailing) <= 10:
+                        for f in files_with_trailing:
+                            console.print(f"  - {f}")
+                    file_check_issues = True
+                else:
+                    console.print("[green]✅ 尾部空格检查通过[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ 尾部空格检查失败: {e}[/yellow]")
+
+        if file_check_issues:
+            quality_issues = True
+
+    # ============================================================================
+    # 2. YAML/JSON/TOML 文件检查
+    # ============================================================================
+    if check_yaml:
+        console.print("\n📝 检查YAML文件...")
+        try:
+            import yaml
+
+            yaml_issues = []
+            for yaml_file in project_dir.rglob("*.yaml"):
+                if any(
+                    excl in str(yaml_file)
+                    for excl in [
+                        "venv",
+                        ".venv",
+                        "build",
+                        "dist",
+                        "sageLLM",
+                        "sageDB",
+                        "sageFlow",
+                        "neuromem",
+                        "sageTSDB",
+                        "vendors",
+                    ]
+                ):
+                    continue
+                try:
+                    with open(yaml_file) as f:
+                        yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    yaml_issues.append((str(yaml_file.relative_to(project_dir)), str(e)))
+
+            for yml_file in project_dir.rglob("*.yml"):
+                if any(
+                    excl in str(yml_file)
+                    for excl in [
+                        "venv",
+                        ".venv",
+                        "build",
+                        "dist",
+                        "sageLLM",
+                        "sageDB",
+                        "sageFlow",
+                        "neuromem",
+                        "sageTSDB",
+                        "vendors",
+                    ]
+                ):
+                    continue
+                try:
+                    with open(yml_file) as f:
+                        yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    yaml_issues.append((str(yml_file.relative_to(project_dir)), str(e)))
+
+            if yaml_issues:
+                console.print(f"[yellow]⚠️ 发现 {len(yaml_issues)} 个YAML文件有问题[/yellow]")
+                for file, error in yaml_issues[:5]:
+                    console.print(f"  - {file}: {error}")
+                quality_issues = True
+            else:
+                console.print("[green]✅ YAML文件检查通过[/green]")
+        except ImportError:
+            console.print("[yellow]⚠️ PyYAML 未安装，跳过YAML检查[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ YAML检查失败: {e}[/yellow]")
+
+    if check_json:
+        console.print("\n📋 检查JSON文件...")
+        try:
+            import json
+
+            json_issues = []
+            for json_file in project_dir.rglob("*.json"):
+                if any(
+                    excl in str(json_file)
+                    for excl in [
+                        "venv",
+                        ".venv",
+                        "build",
+                        "dist",
+                        "sageLLM",
+                        "sageDB",
+                        "sageFlow",
+                        "neuromem",
+                        "sageTSDB",
+                        "vendors",
+                    ]
+                ):
+                    continue
+                try:
+                    with open(json_file) as f:
+                        json.load(f)
+                except json.JSONDecodeError as e:
+                    json_issues.append((str(json_file.relative_to(project_dir)), str(e)))
+
+            if json_issues:
+                console.print(f"[yellow]⚠️ 发现 {len(json_issues)} 个JSON文件有问题[/yellow]")
+                for file, error in json_issues[:5]:
+                    console.print(f"  - {file}: {error}")
+                quality_issues = True
+            else:
+                console.print("[green]✅ JSON文件检查通过[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ JSON检查失败: {e}[/yellow]")
+
+    # ============================================================================
+    # 3. Secrets 检测
+    # ============================================================================
+    if check_secrets:
+        console.print("\n🔒 检查敏感信息泄露...")
+        try:
+            secrets_baseline = project_dir / "tools" / "secrets.baseline"
+            cmd = ["detect-secrets", "scan"]
+            if secrets_baseline.exists():
+                cmd.extend(["--baseline", str(secrets_baseline)])
+
+            # 扫描 target_paths
+            for path in target_paths:
+                cmd.append(path)
+
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+
+            if result.returncode != 0 and "No secrets were detected" not in result.stdout:
+                console.print("[yellow]⚠️ 发现可能的敏感信息[/yellow]")
+                console.print(result.stdout[:500])
+                quality_issues = True
+            else:
+                console.print("[green]✅ 未发现敏感信息泄露[/green]")
+        except FileNotFoundError:
+            console.print("[yellow]⚠️ detect-secrets 未安装，跳过敏感信息检查[/yellow]")
+            console.print("[yellow]💡 建议安装: pip install detect-secrets[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ 敏感信息检查失败: {e}[/yellow]")
+
+    # ============================================================================
+    # 4. Shell 脚本检查
+    # ============================================================================
+    if check_shell:
+        console.print("\n🐚 检查Shell脚本...")
+        try:
+            shell_files = list(project_dir.rglob("*.sh")) + list(project_dir.rglob("*.bash"))
+            shell_files = [
+                f
+                for f in shell_files
+                if not any(
+                    excl in str(f)
+                    for excl in [
+                        "venv",
+                        ".venv",
+                        "build",
+                        "dist",
+                        "sageLLM",
+                        "sageDB",
+                        "sageFlow",
+                        "neuromem",
+                        "sageTSDB",
+                        "vendors",
+                        "conda",
+                    ]
+                )
+            ]
+
+            if shell_files:
+                cmd = ["shellcheck", "-x", "-e", "SC1091"] + [str(f) for f in shell_files]
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+
+                if result.returncode != 0:
+                    console.print("[yellow]⚠️ 发现Shell脚本问题[/yellow]")
+                    lines = result.stdout.split("\n")
+                    if len(lines) > 50:
+                        console.print("\n".join(lines[:50]))
+                        console.print(f"[dim]...还有 {len(lines) - 50} 行输出被省略...[/dim]")
+                    else:
+                        console.print(result.stdout)
+                    _save_quality_error_log(
+                        logs_base_dir, "shellcheck", result.stderr + result.stdout
+                    )
+                    quality_issues = True
+                else:
+                    console.print("[green]✅ Shell脚本检查通过[/green]")
+            else:
+                console.print("[dim]ℹ️  未找到Shell脚本文件[/dim]")
+        except FileNotFoundError:
+            console.print("[yellow]⚠️ shellcheck 未安装，跳过Shell脚本检查[/yellow]")
+            console.print(
+                "[yellow]💡 建议安装: apt-get install shellcheck 或 brew install shellcheck[/yellow]"
+            )
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Shell脚本检查失败: {e}[/yellow]")
+
+    # ============================================================================
+    # 5. Python 代码格式化和检查
+    # ============================================================================
+
+    # 代码格式化检查和修复 (black)
     if format_code:
         console.print("\n🎨 运行代码格式化检查 (black)...")
 
@@ -233,7 +538,53 @@ def quality(
             else:
                 console.print("[green]✅ 导入排序检查通过[/green]")
 
-    # 代码检查 (flake8)
+    # Ruff linter 检查和修复（推荐，比 flake8 更快更强大）
+    if lint_ruff:
+        console.print("\n⚡ 运行Ruff检查...")
+
+        try:
+            # Ruff 排除规则 - 与 pre-commit 保持一致
+            ruff_exclude = "docs/,docs-public/,examples/data/,tests/fixtures/,sageLLM/,sageDB/,sageFlow/,neuromem/,sageTSDB/,vendors/"
+
+            if should_fix:
+                # 自动修复模式
+                cmd = ["ruff", "check", "--fix", "--exclude", ruff_exclude] + target_paths
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+
+                if result.returncode == 0:
+                    console.print("[green]✅ Ruff检查和修复完成[/green]")
+                    if result.stdout.strip():
+                        console.print(result.stdout)
+                else:
+                    console.print("[yellow]⚠️ Ruff发现问题（部分已修复）[/yellow]")
+                    console.print(result.stdout)
+                    quality_issues = True
+                    _save_quality_error_log(logs_base_dir, "ruff", result.stderr + result.stdout)
+            else:
+                # 仅检查模式
+                cmd = ["ruff", "check", "--exclude", ruff_exclude] + target_paths
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+
+                if result.returncode != 0:
+                    console.print("[yellow]⚠️ Ruff发现代码问题[/yellow]")
+                    lines = result.stdout.split("\n")
+                    if len(lines) > 100:
+                        console.print("\n".join(lines[:100]))
+                        console.print(f"[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]")
+                    else:
+                        console.print(result.stdout)
+                    quality_issues = True
+                    _save_quality_error_log(logs_base_dir, "ruff", result.stderr + result.stdout)
+                else:
+                    console.print("[green]✅ Ruff检查通过[/green]")
+
+        except FileNotFoundError:
+            console.print("[yellow]⚠️ Ruff 未安装，跳过Ruff检查[/yellow]")
+            console.print("[yellow]💡 建议安装: pip install ruff[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Ruff检查失败: {e}[/yellow]")
+
+    # 代码检查 (flake8) - 已被 Ruff 替代，但保留供选择使用
     if lint_code:
         console.print("\n🔍 运行代码检查 (flake8)...")
 
@@ -262,14 +613,22 @@ def quality(
         try:
             # 使用 mypy-wrapper.sh 确保总是成功，只显示警告
             mypy_wrapper = project_dir / "tools" / "mypy-wrapper.sh"
-            
+
             # mypy 排除规则 - 与 pre-commit 配置保持一致
             mypy_exclude_patterns = [
-                "docs/", "docs-public/", "examples/", "tests/", 
-                "setup.py", "sageLLM/", "sageDB/", "sageFlow/", 
-                "neuromem/", "sageTSDB/", "vendors/"
+                "docs/",
+                "docs-public/",
+                "examples/",
+                "tests/",
+                "setup.py",
+                "sageLLM/",
+                "sageDB/",
+                "sageFlow/",
+                "neuromem/",
+                "sageTSDB/",
+                "vendors/",
             ]
-            
+
             # 构建 mypy 命令
             mypy_args = [
                 "--ignore-missing-imports",
@@ -278,21 +637,21 @@ def quality(
                 "--warn-unused-ignores",
                 "--namespace-packages",
             ]
-            
+
             if mypy_wrapper.exists():
                 # 使用 wrapper 脚本（总是返回 0）
                 cmd = [str(mypy_wrapper)] + mypy_args + target_paths
                 result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
-                
+
                 # wrapper 总是返回 0，但我们检查输出中是否有错误
                 has_errors = "error:" in result.stdout.lower() or "error:" in result.stderr.lower()
-                
+
                 if has_errors:
                     console.print("[yellow]⚠️ 发现类型检查问题（仅警告，不阻塞）[/yellow]")
                     # 只显示前100行，避免输出过多
-                    lines = result.stdout.split('\n')
+                    lines = result.stdout.split("\n")
                     if len(lines) > 100:
-                        console.print('\n'.join(lines[:100]))
+                        console.print("\n".join(lines[:100]))
                         console.print(f"\n[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]")
                     else:
                         console.print(result.stdout)
@@ -306,13 +665,13 @@ def quality(
                 console.print("[yellow]⚠️ 未找到 mypy-wrapper.sh，使用标准 mypy[/yellow]")
                 cmd = ["mypy"] + mypy_args + target_paths
                 result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
-                
+
                 if result.returncode != 0:
                     console.print("[yellow]⚠️ 发现类型检查问题（仅警告，不阻塞）[/yellow]")
                     # 只显示前100行
-                    lines = result.stdout.split('\n')
+                    lines = result.stdout.split("\n")
                     if len(lines) > 100:
-                        console.print('\n'.join(lines[:100]))
+                        console.print("\n".join(lines[:100]))
                         console.print(f"\n[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]")
                     else:
                         console.print(result.stdout)
@@ -321,12 +680,133 @@ def quality(
                     # mypy 错误仅作为警告，不设置 quality_issues = True
                 else:
                     console.print("[green]✅ 类型检查通过[/green]")
-                    
+
         except FileNotFoundError:
             console.print("[yellow]⚠️ mypy 未安装，跳过类型检查[/yellow]")
             console.print("[yellow]💡 建议安装: pip install mypy[/yellow]")
         except Exception as e:
             console.print(f"[yellow]⚠️ mypy 检查失败: {e}[/yellow]")
+
+    # ============================================================================
+    # 6. 文档格式化 (YAML, Markdown)
+    # ============================================================================
+
+    # YAML 格式化
+    if format_yaml:
+        console.print("\n📝 格式化YAML文件...")
+        try:
+            yaml_files = []
+            for ext in ["*.yaml", "*.yml"]:
+                yaml_files.extend(project_dir.rglob(ext))
+
+            # 排除特定目录
+            yaml_files = [
+                f
+                for f in yaml_files
+                if not any(
+                    excl in str(f)
+                    for excl in [
+                        "venv",
+                        ".venv",
+                        "build",
+                        "dist",
+                        "sageLLM",
+                        "sageDB",
+                        "sageFlow",
+                        "neuromem",
+                        "sageTSDB",
+                        "vendors",
+                        ".github",
+                        "examples/config",
+                    ]
+                )
+            ]
+
+            if yaml_files:
+                # 使用 pretty-format-yaml (如果有的话) 或者简单格式化
+                yaml_formatted = 0
+                for yaml_file in yaml_files:
+                    try:
+                        import yaml
+
+                        with open(yaml_file) as f:
+                            data = yaml.safe_load(f)
+
+                        if data is not None:
+                            with open(yaml_file, "w") as f:
+                                yaml.dump(
+                                    data,
+                                    f,
+                                    default_flow_style=False,
+                                    allow_unicode=True,
+                                    indent=2,
+                                    sort_keys=False,
+                                )
+                            yaml_formatted += 1
+                    except Exception as e:
+                        console.print(f"[yellow]⚠️ 格式化 {yaml_file.name} 失败: {e}[/yellow]")
+
+                console.print(f"[green]✅ 格式化了 {yaml_formatted} 个YAML文件[/green]")
+            else:
+                console.print("[dim]ℹ️  未找到YAML文件[/dim]")
+        except ImportError:
+            console.print("[yellow]⚠️ PyYAML 未安装，跳过YAML格式化[/yellow]")
+            console.print("[yellow]💡 建议安装: pip install pyyaml[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ YAML格式化失败: {e}[/yellow]")
+
+    # Markdown 格式化
+    if format_markdown:
+        console.print("\n📖 格式化Markdown文件...")
+        try:
+            md_files = list(project_dir.rglob("*.md"))
+
+            # 排除特定文件和目录
+            md_files = [
+                f
+                for f in md_files
+                if not any(
+                    excl in str(f)
+                    for excl in [
+                        "venv",
+                        ".venv",
+                        "build",
+                        "dist",
+                        "sageLLM",
+                        "sageDB",
+                        "sageFlow",
+                        "neuromem",
+                        "sageTSDB",
+                        "vendors",
+                        "CHANGELOG.md",
+                        "docs/dev-notes",
+                    ]
+                )
+            ]
+
+            if md_files:
+                cmd = ["mdformat", "--wrap", "100"] + [str(f) for f in md_files]
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+
+                if result.returncode == 0:
+                    console.print(f"[green]✅ 格式化了 {len(md_files)} 个Markdown文件[/green]")
+                else:
+                    console.print("[yellow]⚠️ Markdown格式化遇到问题[/yellow]")
+                    if result.stderr:
+                        console.print(result.stderr[:500])
+            else:
+                console.print("[dim]ℹ️  未找到Markdown文件[/dim]")
+        except FileNotFoundError:
+            console.print("[yellow]⚠️ mdformat 未安装，跳过Markdown格式化[/yellow]")
+            console.print(
+                "[yellow]💡 建议安装: pip install mdformat mdformat-gfm mdformat-black[/yellow]"
+            )
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Markdown格式化失败: {e}[/yellow]")
+
+    # ============================================================================
+    # 7. 总结
+    # ============================================================================
 
     # 总结
     console.print("\n" + "=" * 50)
