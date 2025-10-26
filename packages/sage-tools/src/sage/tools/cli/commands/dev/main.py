@@ -1884,6 +1884,8 @@ def check_all(
             checks_failed.append("架构检查")
             if not continue_on_error:
                 raise typer.Exit(1)
+    except typer.Exit:
+        raise  # 重新抛出 Exit 异常
     except Exception as e:
         console.print(f"[red]❌ 架构检查执行失败: {e}[/red]\n")
         checks_failed.append("架构检查")
@@ -1920,6 +1922,8 @@ def check_all(
             checks_failed.append("文档检查")
             if not continue_on_error:
                 raise typer.Exit(1)
+    except typer.Exit:
+        raise  # 重新抛出 Exit 异常
     except Exception as e:
         console.print(f"[red]❌ 文档检查执行失败: {e}[/red]\n")
         checks_failed.append("文档检查")
@@ -1950,6 +1954,8 @@ def check_all(
             console.print()
             # README 检查不阻止，只是警告
             checks_passed.append("README 检查（警告）")
+    except typer.Exit:
+        raise  # 重新抛出 Exit 异常
     except Exception as e:
         console.print(f"[yellow]⚠️  README 检查失败: {e}[/yellow]\n")
         # README 检查失败不算严重错误
