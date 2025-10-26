@@ -162,7 +162,7 @@ def quality(
         # 4. sageFlow (工作流组件)
         # 5. neuromem (内存管理组件)
         # 6. sageTSDB (时序数据库组件)
-        # 
+        #
         # 额外排除：
         # 7. vendors (第三方代码，如 vllm)
 
@@ -183,7 +183,9 @@ def quality(
 
     console.print(f"🎯 检查目录: {', '.join(target_paths)}")
     if not target_paths or target_paths != [str(project_dir)]:
-        console.print("⏭️  排除所有 submodules 和 vendors: docs-public, sageFlow, sageDB, sageLLM, neuromem, sageTSDB, vendors")
+        console.print(
+            "⏭️  排除所有 submodules 和 vendors: docs-public, sageFlow, sageDB, sageLLM, neuromem, sageTSDB, vendors"
+        )
 
     quality_issues = False
 
