@@ -1634,31 +1634,32 @@ def check_architecture(
             console.print("🔍 检查所有文件")
             result = checker.check_all()
 
-        # 显示结果
-        if result.passed:
-            console.print("\n[green]✅ 架构合规性检查通过！[/green]")
-            if verbose and result.files_checked:
-                console.print(f"📝 检查了 {len(result.files_checked)} 个文件")
-        else:
-            console.print("\n[red]❌ 发现架构违规！[/red]")
-            console.print(f"📝 检查了 {len(result.files_checked)} 个文件")
-            console.print(f"⚠️  发现 {len(result.violations)} 个问题：\n")
-
-            for violation in result.violations:
-                console.print(f"[red]❌ {violation.file_path}:{violation.line_number}[/red]")
-                console.print(f"   {violation.message}")
-                if violation.suggestion:
-                    console.print(f"   💡 建议: {violation.suggestion}")
-                console.print()
-
-            raise typer.Exit(1)
-
     except Exception as e:
-        console.print(f"[red]❌ 架构检查失败: {e}[/red]")
+        console.print(f"[red]❌ 架构检查执行失败: {e}[/red]")
         if verbose:
             import traceback
 
             console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+    # 显示结果
+    if result.passed:
+        console.print("\n[green]✅ 架构合规性检查通过！[/green]")
+        if verbose and result.stats:
+            console.print(f"📝 检查了 {result.stats.get('total_files', 0)} 个文件")
+    else:
+        console.print("\n[red]❌ 发现架构违规！[/red]")
+        if result.stats:
+            console.print(f"📝 检查了 {result.stats.get('total_files', 0)} 个文件")
+        console.print(f"⚠️  发现 {len(result.violations)} 个问题：\n")
+
+        for violation in result.violations:
+            console.print(f"[red]❌ {violation.file}:{violation.line}[/red]")
+            console.print(f"   {violation.message}")
+            if violation.suggestion:
+                console.print(f"   💡 建议: {violation.suggestion}")
+            console.print()
+
         raise typer.Exit(1)
 
 
@@ -1866,7 +1867,7 @@ def check_all(
             console.print(f"[red]❌ 发现 {len(result.violations)} 个架构违规[/red]")
             if verbose:
                 for violation in result.violations[:3]:
-                    console.print(f"   • {violation.file_path}: {violation.message}")
+                    console.print(f"   • {violation.file}: {violation.message}")
                 if len(result.violations) > 3:
                     console.print(f"   ... 还有 {len(result.violations) - 3} 个问题")
             console.print()
@@ -1874,7 +1875,7 @@ def check_all(
             if not continue_on_error:
                 raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]❌ 架构检查失败: {e}[/red]\n")
+        console.print(f"[red]❌ 架构检查执行失败: {e}[/red]\n")
         checks_failed.append("架构检查")
         if not continue_on_error:
             raise typer.Exit(1)

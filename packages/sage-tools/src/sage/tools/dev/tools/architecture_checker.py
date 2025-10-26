@@ -193,8 +193,8 @@ class ImportExtractor(ast.NodeVisitor):
 class ArchitectureChecker:
     """架构合规性检查器"""
 
-    def __init__(self, root_dir: Path):
-        self.root_dir = root_dir
+    def __init__(self, root_dir: Path | str):
+        self.root_dir = Path(root_dir) if isinstance(root_dir, str) else root_dir
         self.violations: list[ArchitectureViolation] = []
         self.warnings: list[ArchitectureViolation] = []
 
@@ -379,6 +379,23 @@ class ArchitectureChecker:
             return False
 
         return True
+
+    def check_all(self) -> CheckResult:
+        """检查所有文件"""
+        return self.run_checks(changed_files=None)
+
+    def check_changed_files(self, diff_target: str = "HEAD") -> CheckResult:
+        """检查 Git 变更的文件"""
+        changed_files = get_changed_files(diff_target)
+        if not changed_files:
+            # 没有变更文件，返回通过
+            return CheckResult(
+                passed=True,
+                violations=[],
+                warnings=[],
+                stats={"total_files": 0, "total_imports": 0},
+            )
+        return self.run_checks(changed_files=changed_files)
 
     def run_checks(self, changed_files: Optional[list[Path]] = None) -> CheckResult:
         """运行所有检查"""
