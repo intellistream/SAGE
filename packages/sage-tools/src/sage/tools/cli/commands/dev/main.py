@@ -165,34 +165,37 @@ def quality(
         # 添加需要跳过质量检查的特定文件夹（所有 git submodules 和 vendors）
         # Submodules 列表：
         # 1. docs-public (文档子模块)
-        # 2. sageLLM (LLM组件)
+        # 2. sageLLM (packages/sage-common/src/sage/common/components/sage_vllm/sageLLM)
         # 3. sageDB (数据库组件)
         # 4. sageFlow (工作流组件)
         # 5. neuromem (内存管理组件)
         # 6. sageTSDB (时序数据库组件)
         #
         # 额外排除：
-        # 7. vendors (第三方代码，如 vllm)
+        # 7. vendors (第三方代码)
+        #
+        # 注意：sageLLM 是 git submodule，包含自己的 vendors/vllm 代码
+        # 必须使用完整路径排除以避免格式化工具进入 submodule 目录
 
-        # black 使用正则表达式
-        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem|sageTSDB|vendors)"
+        # black 使用正则表达式（匹配完整路径）
+        black_exclude = r"(docs-public|sageFlow|sageDB|neuromem|sageTSDB|vendors|packages/sage-common/src/sage/common/components/sage_vllm/sageLLM)"
         # isort 使用多个 --skip-glob 参数（每个模式一个）
         isort_skip_patterns = [
             "*/docs-public/*",
             "*/sageFlow/*",
             "*/sageDB/*",
-            "*/sageLLM/*",
             "*/neuromem/*",
             "*/sageTSDB/*",
             "*/vendors/*",
+            "packages/sage-common/src/sage/common/components/sage_vllm/sageLLM/*",
         ]
         # flake8 使用逗号分隔的路径模式（支持通配符）
-        flake8_exclude = "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*,*/sageTSDB/*,*/vendors/*"
+        flake8_exclude = "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/neuromem/*,*/sageTSDB/*,*/vendors/*,packages/sage-common/src/sage/common/components/sage_vllm/sageLLM"
 
     console.print(f"🎯 检查目录: {', '.join(target_paths)}")
     if not target_paths or target_paths != [str(project_dir)]:
         console.print(
-            "⏭️  排除所有 submodules 和 vendors: docs-public, sageFlow, sageDB, sageLLM, neuromem, sageTSDB, vendors"
+            "⏭️  排除所有 submodules 和 vendors: docs-public, sageFlow, sageDB, neuromem, sageTSDB, sageLLM (submodule), vendors"
         )
 
     quality_issues = False
@@ -506,7 +509,8 @@ def quality(
 
         try:
             # Ruff 排除规则 - 与 pre-commit 保持一致
-            ruff_exclude = "docs/,docs-public/,examples/data/,tests/fixtures/,sageLLM/,sageDB/,sageFlow/,neuromem/,sageTSDB/,vendors/"
+            # sageLLM 是 submodule，使用完整路径排除
+            ruff_exclude = "docs/,docs-public/,examples/data/,tests/fixtures/,sageDB/,sageFlow/,neuromem/,sageTSDB/,vendors/,packages/sage-common/src/sage/common/components/sage_vllm/sageLLM/"
 
             if should_fix:
                 # 自动修复模式

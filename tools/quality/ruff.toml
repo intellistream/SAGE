@@ -4,6 +4,22 @@
 # Line length for all code
 line-length = 100
 
+# Exclude directories that should not be checked
+# This includes git submodules, third-party code, and generated files
+extend-exclude = [
+    "docs",
+    "docs-public",
+    "examples/data",
+    "tests/fixtures",
+    "sageDB",
+    "sageFlow",
+    "neuromem",
+    "sageTSDB",
+    "vendors",
+    # sageLLM is a git submodule with its own vendors directory
+    "packages/sage-common/src/sage/common/components/sage_vllm/sageLLM",
+]
+
 [lint]
 # Ignore B904 and C901 as they are style recommendations
 # B904: Within an except clause, raise exceptions with raise ... from err

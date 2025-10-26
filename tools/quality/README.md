@@ -10,12 +10,16 @@
 
   - 快速 Python linter 和代码格式化工具
   - 替代 flake8、isort、pyupgrade 等工具
+  - **重要**: 排除了所有 git submodules 和第三方代码
+    - `sageLLM` 是 git submodule (位于 `packages/sage-common/.../sageLLM`)
+    - 使用完整路径排除以避免格式化 submodule 内部文件
   - 使用方式：`ruff check --config tools/quality/ruff.toml .`
 
 - **`.flake8`** - Flake8 配置（已被 Ruff 替代）
 
   - 传统 Python linter
   - 保留用于兼容性
+  - 同样排除 submodules 和 vendors 目录
   - 使用方式：`flake8 --config tools/quality/.flake8 .`
 
 ### 类型检查
