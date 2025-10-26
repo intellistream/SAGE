@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """
-SAGE CLI - 统一命令行工具
-Streaming-Augmented Generative Execution - AI Research and Graph Engine
+SAGE Tools CLI - 开发工具命令行
+Development Tools for SAGE Platform
 """
 
-
 import typer
-
-# 延迟导入所有子命令，避免在加载 CLI 时就导入重量级依赖
-# 使用函数包装的方式实现真正的延迟导入
 
 
 def version_callback(value: bool):
@@ -17,66 +13,42 @@ def version_callback(value: bool):
         try:
             from sage.common._version import __version__
 
-            typer.echo(f"SAGE version {__version__}")
+            typer.echo(f"SAGE Tools version {__version__}")
         except ImportError:
-            typer.echo("SAGE version unknown")
+            typer.echo("SAGE Tools version unknown")
         raise typer.Exit()
 
 
-# 创建主应用
+# 创建主应用 - 仅用于 sage 命令（已被 sage-cli 替代）
+# 保留用于向后兼容，但主要功能已移至 sage-cli
 app = typer.Typer(
     name="sage",
-    help="🚀 SAGE - Streaming-Augmented Generative Execution CLI",
+    help="⚠️  注意: 此命令已被 sage-cli 替代，请使用 sage 命令（来自 sage-cli 包）",
     no_args_is_help=True,
 )
 
 
-# 注册所有子命令
-# 这些 import 语句会在模块加载时执行，因此相关子模块的依赖会被立即加载。
-# 如果需要延迟加载重量级依赖（如 transformers），请在各子模块内部实现延迟导入。
-from sage.tools.cli.commands.chat import app as chat_app  # noqa: E402
-from sage.tools.cli.commands.cluster import app as cluster_app  # noqa: E402
-from sage.tools.cli.commands.config import app as config_app  # noqa: E402
-from sage.tools.cli.commands.dev import app as dev_app  # noqa: E402
-from sage.tools.cli.commands.doctor import app as doctor_app  # noqa: E402
-from sage.tools.cli.commands.embedding import app as embedding_app  # noqa: E402
-from sage.tools.cli.commands.extensions import app as extensions_app  # noqa: E402
-from sage.tools.cli.commands.head import app as head_app  # noqa: E402
-from sage.tools.cli.commands.job import app as job_app  # noqa: E402
-from sage.tools.cli.commands.jobmanager import app as jobmanager_app  # noqa: E402
-from sage.tools.cli.commands.llm import app as llm_app  # noqa: E402
-from sage.tools.cli.commands.pipeline import app as pipeline_app  # noqa: E402
-from sage.tools.cli.commands.studio import app as studio_app  # noqa: E402
-from sage.tools.cli.commands.version import app as version_app  # noqa: E402
-from sage.tools.cli.commands.worker import app as worker_app  # noqa: E402
-from sage.tools.finetune import app as finetune_app  # noqa: E402
+# 仅注册 dev 命令（主要功能）
+try:
+    from sage.tools.cli.commands.dev import app as dev_app  # noqa: E402
 
-# 注册所有子命令
-app.add_typer(version_app, name="version", help="📋 版本信息")
-app.add_typer(config_app, name="config", help="⚙️ 配置管理")
-app.add_typer(llm_app, name="llm", help="🤖 LLM服务管理 - 启动、停止、配置LLM服务")
-app.add_typer(doctor_app, name="doctor", help="🔍 系统诊断")
-app.add_typer(chat_app, name="chat", help="🧭 编程助手 - 基于 SageDB 的文档问答")
-app.add_typer(pipeline_app, name="pipeline", help="🧱 Pipeline Builder - 大模型辅助的配置生成")
-app.add_typer(
-    embedding_app,
-    name="embedding",
-    help="🎯 Embedding 管理 - 管理和测试 embedding 方法",
-)
-app.add_typer(
-    dev_app,
-    name="dev",
-    help="🛠️ 开发工具 - 质量检查、项目管理、维护工具、包管理等",
-    rich_help_panel="开发工具",
-)
-app.add_typer(extensions_app, name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
-app.add_typer(studio_app, name="studio", help="🎨 Studio - 低代码可视化管道编辑器")
-app.add_typer(finetune_app, name="finetune", help="🎓 模型微调 - 多场景大模型微调工具")
-app.add_typer(job_app, name="job", help="📋 作业管理 - 提交、监控、管理作业")
-app.add_typer(jobmanager_app, name="jobmanager", help="⚡ JobManager - 作业管理器服务")
-app.add_typer(worker_app, name="worker", help="🔧 Worker - 工作节点管理")
-app.add_typer(cluster_app, name="cluster", help="🌐 Cluster - 集群管理和状态监控")
-app.add_typer(head_app, name="head", help="🎯 Head - 集群头节点管理")
+    app.add_typer(
+        dev_app,
+        name="dev",
+        help="🛠️ 开发工具 - 质量检查、项目管理、维护工具、包管理等",
+        rich_help_panel="开发工具",
+    )
+except ImportError as e:
+    print(f"Warning: Failed to import dev commands: {e}")
+
+
+# 可选：finetune 命令
+try:
+    from sage.tools.finetune import app as finetune_app  # noqa: E402
+
+    app.add_typer(finetune_app, name="finetune", help="🎓 模型微调 - 多场景大模型微调工具")
+except ImportError:
+    pass  # finetune 是可选的
 
 
 @app.callback()
@@ -86,19 +58,26 @@ def main(
     ),
 ):
     """
-    🚀 SAGE - Streaming-Augmented Generative Execution
+    �️ SAGE Tools - 开发工具命令行
 
-    统一的AI研究和流式计算平台命令行工具
+    ⚠️  注意: sage 生产命令已移至 sage-cli 包
+    请使用 sage 命令（来自 sage-cli）访问平台和应用功能
 
-    💡 使用示例:
-    sage dev quality check         # 运行代码质量检查
-    sage dev project test          # 运行项目测试
-    sage dev maintain submodule init  # 初始化 submodules
-    sage studio start              # 启动可视化界面
-    sage job list                  # 列出所有作业
-    sage cluster status            # 查看集群状态
+    此包提供:
+    - sage-dev: 开发工具命令（推荐使用）
+    - sage dev: 开发工具（通过此入口点，仅用于兼容）
 
-    🛠️ 开发工具命令组 (sage dev):
+    💡 推荐使用:
+      sage-dev quality check         # 运行代码质量检查
+      sage-dev project test          # 运行项目测试
+      sage-dev maintain doctor       # 健康检查
+
+    📦 生产命令请使用 sage-cli:
+      pip install sage-cli
+      sage cluster start             # 启动集群
+      sage llm serve                 # 启动LLM服务
+    """
+    pass
     • quality   - 质量检查（架构、文档、代码格式）
     • project   - 项目管理（状态、分析、测试、清理）
     • maintain  - 维护工具（submodule、hooks、诊断）

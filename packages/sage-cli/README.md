@@ -47,7 +47,8 @@ Application-level functionality:
 
 ### Development Commands
 
-**Note:** Development commands are provided by the `sage-tools` package separately via the `sage-dev` command.
+**Note:** Development commands are provided by the `sage-tools` package separately via the
+`sage-dev` command.
 
 To use development tools:
 
@@ -127,10 +128,12 @@ L6: sage-cli, sage-tools, sage-studio
 **Command Separation:**
 
 - **sage** (from sage-cli): User-facing production commands
+
   - Platform: cluster, head, worker, job, jobmanager, config, doctor, version, extensions
   - Apps: llm, chat, embedding, pipeline, studio
 
 - **sage-dev** (from sage-tools): Developer-only commands
+
   - quality, project, maintain, package, resource, github
 
 Both packages are independent and can be installed separately.

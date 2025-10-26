@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 import yaml
 
-from sage.tools.cli.utils.llm_detection import LLMServiceInfo, detect_all_services
+from sage.cli.utils.llm_detection import LLMServiceInfo, detect_all_services
 
 app = typer.Typer(help="🤖 LLM 服务配置自动化")
 

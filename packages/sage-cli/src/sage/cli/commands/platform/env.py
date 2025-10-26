@@ -10,7 +10,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from sage.tools.utils import env as env_utils
+from sage.cli.utils import env as env_utils
 
 console = Console()
 app = typer.Typer(name="env", help="🌱 环境变量与 .env 文件管理")

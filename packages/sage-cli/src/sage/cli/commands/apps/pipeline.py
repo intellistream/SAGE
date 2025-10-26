@@ -20,8 +20,8 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
-from sage.cli.commands.pipeline_domain import load_custom_contexts, load_domain_contexts
-from sage.cli.commands.pipeline_knowledge import (
+from sage.cli.commands.apps.pipeline_domain import load_custom_contexts, load_domain_contexts
+from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
     build_query_payload,
     get_default_knowledge_base,
