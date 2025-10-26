@@ -1,6 +1,16 @@
-# Pre-commit hooks configuration
+# Pre-commit hooks configuration for SAGE project
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
+#
+# Usage:
+#   - Install pre-commit: pip install pre-commit
+#   - Install hooks: pre-commit install --config tools/pre-commit-config.yaml
+#   - Run manually: pre-commit run --all-files --config tools/pre-commit-config.yaml
+#
+# Mypy Type Checking:
+#   - Mypy runs automatically on changed Python files
+#   - Shows type errors as warnings (doesn't block commits/CI)
+#   - To run mypy explicitly: pre-commit run mypy --all-files --config tools/pre-commit-config.yaml
 
 default_language_version:
   python: python3.11
