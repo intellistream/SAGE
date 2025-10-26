@@ -22,7 +22,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 # ============================================================================
 # 架构定义
@@ -143,9 +143,9 @@ class CheckResult:
     """检查结果"""
 
     passed: bool
-    violations: List[ArchitectureViolation] = field(default_factory=list)
-    warnings: List[ArchitectureViolation] = field(default_factory=list)
-    stats: Dict[str, int] = field(default_factory=dict)
+    violations: list[ArchitectureViolation] = field(default_factory=list)
+    warnings: list[ArchitectureViolation] = field(default_factory=list)
+    stats: dict[str, int] = field(default_factory=dict)
 
 
 # ============================================================================
@@ -158,7 +158,7 @@ class ImportExtractor(ast.NodeVisitor):
 
     def __init__(self, filepath: Path):
         self.filepath = filepath
-        self.imports: List[ImportStatement] = []
+        self.imports: list[ImportStatement] = []
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
@@ -195,8 +195,8 @@ class ArchitectureChecker:
 
     def __init__(self, root_dir: Path):
         self.root_dir = root_dir
-        self.violations: List[ArchitectureViolation] = []
-        self.warnings: List[ArchitectureViolation] = []
+        self.violations: list[ArchitectureViolation] = []
+        self.warnings: list[ArchitectureViolation] = []
 
     def extract_package_name(self, filepath: Path) -> Optional[str]:
         """从文件路径提取包名"""
@@ -276,10 +276,10 @@ class ArchitectureChecker:
                 )
                 break
 
-    def check_file_imports(self, filepath: Path) -> List[ImportStatement]:
+    def check_file_imports(self, filepath: Path) -> list[ImportStatement]:
         """检查单个文件的导入"""
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 tree = ast.parse(f.read(), filename=str(filepath))
 
             extractor = ImportExtractor(filepath)
@@ -348,7 +348,7 @@ class ArchitectureChecker:
             return False
 
         try:
-            with open(init_file, "r", encoding="utf-8") as f:
+            with open(init_file, encoding="utf-8") as f:
                 content = f.read()
 
             # 查找 __layer__ 定义
@@ -380,7 +380,7 @@ class ArchitectureChecker:
 
         return True
 
-    def run_checks(self, changed_files: Optional[List[Path]] = None) -> CheckResult:
+    def run_checks(self, changed_files: Optional[list[Path]] = None) -> CheckResult:
         """运行所有检查"""
         print("🔍 开始架构合规性检查...\n")
 
@@ -522,7 +522,7 @@ def print_report(result: CheckResult):
     print("=" * 80)
 
 
-def get_changed_files(git_diff: str = "HEAD") -> List[Path]:
+def get_changed_files(git_diff: str = "HEAD") -> list[Path]:
     """获取 Git 变更的文件列表"""
     import subprocess
 

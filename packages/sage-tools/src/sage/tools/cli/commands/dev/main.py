@@ -68,8 +68,12 @@ def quality(
     # 选择性运行特定检查
     hook: str = typer.Option(None, "--hook", help="只运行指定的 pre-commit hook"),
     # 架构和文档检查选项
-    architecture: bool = typer.Option(True, "--architecture/--no-architecture", help="运行架构合规性检查"),
-    devnotes: bool = typer.Option(True, "--devnotes/--no-devnotes", help="运行 dev-notes 文档规范检查"),
+    architecture: bool = typer.Option(
+        True, "--architecture/--no-architecture", help="运行架构合规性检查"
+    ),
+    devnotes: bool = typer.Option(
+        True, "--devnotes/--no-devnotes", help="运行 dev-notes 文档规范检查"
+    ),
     readme: bool = typer.Option(False, "--readme", help="运行包 README 质量检查"),
     # Submodule 选项
     include_submodules: bool = typer.Option(
@@ -383,7 +387,9 @@ def quality(
                 issues = result.get("issues", [])
                 console.print(f"[red]❌ 发现 {len(issues)} 个文档问题[/red]")
                 for issue in issues[:5]:  # 只显示前5个
-                    console.print(f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}")
+                    console.print(
+                        f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
+                    )
                 if len(issues) > 5:
                     console.print(f"   ... 还有 {len(issues) - 5} 个问题")
                 extra_checks_passed = False
@@ -407,7 +413,9 @@ def quality(
             if not low_score_packages:
                 console.print("[green]✅ README 质量检查通过[/green]")
             else:
-                console.print(f"[yellow]⚠️  {len(low_score_packages)} 个包的 README 需要改进[/yellow]")
+                console.print(
+                    f"[yellow]⚠️  {len(low_score_packages)} 个包的 README 需要改进[/yellow]"
+                )
                 for r in low_score_packages[:5]:
                     console.print(f"   • {r.package_name}: {r.score:.1f}/100")
                 if len(low_score_packages) > 5:
@@ -1613,7 +1621,7 @@ def check_architecture(
         console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
         raise typer.Exit(1)
 
-    console.print(f"\n🏗️  检查 SAGE 架构合规性...")
+    console.print("\n🏗️  检查 SAGE 架构合规性...")
     console.print(f"📁 项目路径: {project_path}")
 
     try:
@@ -1681,7 +1689,7 @@ def check_devnotes(
         console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
         raise typer.Exit(1)
 
-    console.print(f"\n📚 检查 dev-notes 文档规范...")
+    console.print("\n📚 检查 dev-notes 文档规范...")
     console.print(f"📁 项目路径: {project_path}")
 
     try:
@@ -1754,7 +1762,7 @@ def check_readme(
         console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
         raise typer.Exit(1)
 
-    console.print(f"\n📄 检查包 README 质量...")
+    console.print("\n📄 检查包 README 质量...")
     console.print(f"📁 项目路径: {project_path}")
 
     try:

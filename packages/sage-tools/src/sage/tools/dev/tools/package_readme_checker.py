@@ -18,7 +18,6 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List
 
 
 @dataclass
@@ -38,8 +37,8 @@ class PackageREADMECheck:
     package_name: str
     readme_path: Path
     exists: bool = False
-    sections: List[READMESection] = field(default_factory=list)
-    issues: List[str] = field(default_factory=list)
+    sections: list[READMESection] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
     score: float = 0.0
 
     def calculate_score(self) -> float:
@@ -91,7 +90,7 @@ class PackageREADMEChecker:
         self.workspace_root = workspace_root
         self.packages_dir = workspace_root / "packages"
 
-    def get_packages(self) -> List[str]:
+    def get_packages(self) -> list[str]:
         """Get list of all packages."""
         if not self.packages_dir.exists():
             return []
@@ -155,7 +154,7 @@ class PackageREADMEChecker:
         if not badges:
             result.issues.append("No status badges found (recommended)")
 
-    def check_all_packages(self) -> Dict[str, PackageREADMECheck]:
+    def check_all_packages(self) -> dict[str, PackageREADMECheck]:
         """Check all packages."""
         packages = self.get_packages()
         results = {}
@@ -165,7 +164,7 @@ class PackageREADMEChecker:
 
         return results
 
-    def print_summary(self, results: Dict[str, PackageREADMECheck]):
+    def print_summary(self, results: dict[str, PackageREADMECheck]):
         """Print summary of all checks."""
         print("=" * 70)
         print("📦 Package README Quality Report")
@@ -199,7 +198,7 @@ class PackageREADMEChecker:
                     print(f"     ... and {len(result.issues) - 3} more issues")
             print()
 
-    def generate_detailed_report(self, results: Dict[str, PackageREADMECheck]) -> str:
+    def generate_detailed_report(self, results: dict[str, PackageREADMECheck]) -> str:
         """Generate detailed markdown report."""
         lines = ["# Package README Quality Report", ""]
         lines.append(f"**Generated**: {self._get_timestamp()}")
