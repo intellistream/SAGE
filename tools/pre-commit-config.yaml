@@ -52,11 +52,14 @@ repos:
     exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/)
 
 # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.9.0
+- repo: local
   hooks:
   - id: mypy
-    name: mypy type checking
+    name: mypy type checking (warnings only)
+    entry: tools/mypy-wrapper.sh
+    language: system
+    types: [python]
+    require_serial: true
     args:
     - --ignore-missing-imports
     - --show-error-codes
@@ -64,7 +67,8 @@ repos:
     - --warn-unused-ignores
     - --namespace-packages
     exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/src/sage/__init__.py)
-    stages: [manual]  # Only run when explicitly called with --hook-stage manual  # Shell: shellcheck
+    # This hook will always succeed (exit 0) to avoid blocking commits/CI
+    # Errors are shown but treated as warnings  # Shell: shellcheck
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.10.0.1
   hooks:
