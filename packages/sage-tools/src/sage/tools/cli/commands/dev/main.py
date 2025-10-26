@@ -406,7 +406,7 @@ def quality(
         try:
             from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
 
-            checker = PackageREADMEChecker(root_dir=str(project_dir))
+            checker = PackageREADMEChecker(workspace_root=str(project_dir))
             results = checker.check_all(fix=False)
 
             low_score_packages = [r for r in results if r.score < 80.0]
@@ -1777,7 +1777,7 @@ def check_readme(
     console.print(f"📁 项目路径: {project_path}")
 
     try:
-        checker = PackageREADMEChecker(root_dir=str(project_path))
+        checker = PackageREADMEChecker(workspace_root=str(project_path))
 
         if package:
             console.print(f"🔍 检查包: {package}")
@@ -1933,7 +1933,7 @@ def check_all(
     try:
         from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
 
-        checker = PackageREADMEChecker(root_dir=str(project_path))
+        checker = PackageREADMEChecker(workspace_root=str(project_path))
         results = checker.check_all(fix=False)
 
         low_score_packages = [r for r in results if r.score < 80.0]

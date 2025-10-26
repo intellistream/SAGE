@@ -166,6 +166,15 @@ class PackageREADMEChecker:
 
         return results
 
+    def check_all(self, fix: bool = False) -> list[PackageREADMECheck]:
+        """Check all packages and return a list (for CLI compatibility)."""
+        results_dict = self.check_all_packages()
+        return list(results_dict.values())
+
+    def check_package(self, package_name: str, fix: bool = False) -> PackageREADMECheck:
+        """Check a specific package (for CLI compatibility)."""
+        return self.check_readme(package_name)
+
     def print_summary(self, results: dict[str, PackageREADMECheck]):
         """Print summary of all checks."""
         print("=" * 70)
