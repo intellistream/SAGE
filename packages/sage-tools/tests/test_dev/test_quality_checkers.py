@@ -8,9 +8,11 @@ Tests the new sage dev check-* commands:
 - check-all
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 from typer.testing import CliRunner
+
 from sage.tools.cli.commands.dev.main import app
 
 runner = CliRunner()
@@ -27,9 +29,7 @@ class TestArchitectureChecker:
 
     def test_check_architecture_project_not_found(self):
         """Test behavior when project root doesn't exist."""
-        result = runner.invoke(
-            app, ["check-architecture", "--project-root", "/nonexistent/path"]
-        )
+        result = runner.invoke(app, ["check-architecture", "--project-root", "/nonexistent/path"])
         assert result.exit_code == 1
         assert "不存在" in result.stdout or "exist" in result.stdout.lower()
 
@@ -55,9 +55,7 @@ class TestDevNotesChecker:
 
     def test_check_devnotes_project_not_found(self):
         """Test behavior when project root doesn't exist."""
-        result = runner.invoke(
-            app, ["check-devnotes", "--project-root", "/nonexistent/path"]
-        )
+        result = runner.invoke(app, ["check-devnotes", "--project-root", "/nonexistent/path"])
         assert result.exit_code == 1
 
     @pytest.mark.skipif(
@@ -82,9 +80,7 @@ class TestPackageREADMEChecker:
 
     def test_check_readme_project_not_found(self):
         """Test behavior when project root doesn't exist."""
-        result = runner.invoke(
-            app, ["check-readme", "--project-root", "/nonexistent/path"]
-        )
+        result = runner.invoke(app, ["check-readme", "--project-root", "/nonexistent/path"])
         assert result.exit_code == 1
 
     @pytest.mark.skipif(
@@ -118,9 +114,7 @@ class TestCheckAll:
     )
     def test_check_all_continue_on_error(self):
         """Test that --continue-on-error runs all checks."""
-        result = runner.invoke(
-            app, ["check-all", "--changed-only", "--continue-on-error"]
-        )
+        result = runner.invoke(app, ["check-all", "--changed-only", "--continue-on-error"])
         # All three checks should be mentioned
         assert "架构" in result.stdout or "architecture" in result.stdout.lower()
         assert "文档" in result.stdout or "devnotes" in result.stdout.lower()
