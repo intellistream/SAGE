@@ -202,17 +202,17 @@ class DataProcessingService(BaseService):
         super().__init__(name="data_processing")
         self.config = config
         self.initialize()
-    
+
     def initialize(self):
         """Initialize service resources"""
         self.logger.info(f"Initializing {self.name}")
-    
+
     def process(self, request):
         """Process incoming requests"""
         self.logger.debug(f"Processing request: {request}")
         result = self._transform_data(request["data"])
         return {"status": "success", "result": result}
-    
+
     def _transform_data(self, data):
         # Service logic
         return [x * 2 for x in data]
@@ -233,7 +233,7 @@ platform:
   queue:
     backend: ray  # or python, rpc
     maxsize: 1000
-  
+
   storage:
     backend: dict  # or redis
     persist: true

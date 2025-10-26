@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import psutil
 import pytest
+
 from sage.common.utils.system.process import (
     SudoManager,
     check_process_ownership,
@@ -218,9 +219,7 @@ class TestTerminateProcess:
             mock_proc = MagicMock()
             mock_process.return_value = mock_proc
 
-            with patch(
-                "sage.common.utils.system.process.get_process_info"
-            ) as mock_info:
+            with patch("sage.common.utils.system.process.get_process_info") as mock_info:
                 mock_info.return_value = {"pid": 1234, "name": "test_process"}
 
                 result = terminate_process(1234)
@@ -239,9 +238,7 @@ class TestTerminateProcess:
             mock_proc.wait.side_effect = [psutil.TimeoutExpired(1234, 5), None]
             mock_process.return_value = mock_proc
 
-            with patch(
-                "sage.common.utils.system.process.get_process_info"
-            ) as mock_info:
+            with patch("sage.common.utils.system.process.get_process_info") as mock_info:
                 mock_info.return_value = {"pid": 1234, "name": "test_process"}
 
                 result = terminate_process(1234)
@@ -283,9 +280,7 @@ class TestTerminateProcess:
             mock_proc = MagicMock()
             mock_process.return_value = mock_proc
 
-            with patch(
-                "sage.common.utils.system.process.get_process_info"
-            ) as mock_info:
+            with patch("sage.common.utils.system.process.get_process_info") as mock_info:
                 mock_info.return_value = {"pid": 1234, "name": "test_process"}
 
                 terminate_process(1234, timeout=10)
@@ -305,9 +300,7 @@ class TestTerminateProcessesByName:
             "sage.common.utils.system.process.find_processes_by_name",
             return_value=mock_procs,
         ):
-            with patch(
-                "sage.common.utils.system.process.terminate_process"
-            ) as mock_terminate:
+            with patch("sage.common.utils.system.process.terminate_process") as mock_terminate:
                 mock_terminate.side_effect = [
                     {"success": True, "method": "terminate", "pid": 1234},
                     {"success": True, "method": "kill", "pid": 5678},
@@ -329,9 +322,7 @@ class TestTerminateProcessesByName:
             "sage.common.utils.system.process.find_processes_by_name",
             return_value=mock_procs,
         ):
-            with patch(
-                "sage.common.utils.system.process.terminate_process"
-            ) as mock_terminate:
+            with patch("sage.common.utils.system.process.terminate_process") as mock_terminate:
                 mock_terminate.side_effect = [
                     {"success": True, "method": "terminate", "pid": 1234},
                     {"success": False, "method": "access_denied", "pid": 5678},
@@ -349,9 +340,7 @@ class TestTerminateProcessesByName:
     @pytest.mark.unit
     def test_no_processes_found(self):
         """Test when no processes are found"""
-        with patch(
-            "sage.common.utils.system.process.find_processes_by_name", return_value=[]
-        ):
+        with patch("sage.common.utils.system.process.find_processes_by_name", return_value=[]):
             result = terminate_processes_by_name(["nonexistent"])
 
             assert result["total_found"] == 0
@@ -383,9 +372,7 @@ class TestKillProcessWithSudo:
     def test_sudo_kill_failed(self):
         """Test failed sudo kill"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = Mock(
-                returncode=1, stderr="kill: cannot find process"
-            )
+            mock_run.return_value = Mock(returncode=1, stderr="kill: cannot find process")
 
             result = kill_process_with_sudo(1234, "password123")
 
@@ -395,9 +382,7 @@ class TestKillProcessWithSudo:
     @pytest.mark.unit
     def test_sudo_timeout(self):
         """Test sudo command timeout"""
-        with patch(
-            "subprocess.run", side_effect=subprocess.TimeoutExpired(["sudo"], 10)
-        ):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(["sudo"], 10)):
             result = kill_process_with_sudo(1234, "password123")
 
             assert result["success"] is False
@@ -526,9 +511,7 @@ class TestTerminateProcessTree:
             "sage.common.utils.system.process.get_process_children",
             return_value=[1001, 1002],
         ):
-            with patch(
-                "sage.common.utils.system.process.terminate_process"
-            ) as mock_terminate:
+            with patch("sage.common.utils.system.process.terminate_process") as mock_terminate:
                 mock_terminate.side_effect = [
                     {"success": True, "method": "terminate", "pid": 1001},
                     {"success": True, "method": "terminate", "pid": 1002},
@@ -545,12 +528,8 @@ class TestTerminateProcessTree:
     @pytest.mark.unit
     def test_terminate_tree_partial_failure(self):
         """Test process tree termination with some failures"""
-        with patch(
-            "sage.common.utils.system.process.get_process_children", return_value=[1001]
-        ):
-            with patch(
-                "sage.common.utils.system.process.terminate_process"
-            ) as mock_terminate:
+        with patch("sage.common.utils.system.process.get_process_children", return_value=[1001]):
+            with patch("sage.common.utils.system.process.terminate_process") as mock_terminate:
                 mock_terminate.side_effect = [
                     {"success": False, "method": "access_denied", "pid": 1001},
                     {"success": True, "method": "terminate", "pid": 1234},
@@ -566,12 +545,8 @@ class TestTerminateProcessTree:
     @pytest.mark.unit
     def test_no_children_process_tree(self):
         """Test terminating process with no children"""
-        with patch(
-            "sage.common.utils.system.process.get_process_children", return_value=[]
-        ):
-            with patch(
-                "sage.common.utils.system.process.terminate_process"
-            ) as mock_terminate:
+        with patch("sage.common.utils.system.process.get_process_children", return_value=[]):
+            with patch("sage.common.utils.system.process.terminate_process") as mock_terminate:
                 mock_terminate.return_value = {
                     "success": True,
                     "method": "terminate",
@@ -693,16 +668,12 @@ class TestGetSystemProcessSummary:
                 with patch("psutil.cpu_percent", return_value=0):
                     result = get_system_process_summary()
 
-                    assert (
-                        result["total_processes"] == 2
-                    )  # Both processes counted in list
+                    assert result["total_processes"] == 2  # Both processes counted in list
                     assert (
                         result["by_status"]["running"] == 1
                     )  # Only accessible process counted in stats
                     assert len(result["by_status"]) == 1  # Only one status counted
-                    assert (
-                        result["by_user"]["user"] == 1
-                    )  # Only accessible user counted
+                    assert result["by_user"]["user"] == 1  # Only accessible user counted
 
     @pytest.mark.unit
     def test_process_summary_error(self):
@@ -867,9 +838,7 @@ class TestSudoManager:
         manager._password_verified = True
 
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = Mock(
-                returncode=0, stdout="Command output", stderr=""
-            )
+            mock_run.return_value = Mock(returncode=0, stdout="Command output", stderr="")
 
             result = manager.execute_with_sudo(["kill", "-9", "1234"])
 
@@ -901,9 +870,7 @@ class TestSudoManager:
         manager._password_verified = True
 
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = Mock(
-                returncode=1, stdout="", stderr="Permission denied"
-            )
+            mock_run.return_value = Mock(returncode=1, stdout="", stderr="Permission denied")
 
             result = manager.execute_with_sudo(["kill", "-9", "1234"])
 
@@ -918,9 +885,7 @@ class TestSudoManager:
         manager._cached_password = "password"  # pragma: allowlist secret
         manager._password_verified = True
 
-        with patch(
-            "subprocess.run", side_effect=subprocess.TimeoutExpired(["sudo"], 30)
-        ):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(["sudo"], 30)):
             result = manager.execute_with_sudo(["sleep", "60"])
 
             assert result["success"] is False
@@ -1010,9 +975,7 @@ class TestIntegrationScenarios:
         import sys
 
         current_module = sys.modules[__name__]
-        with patch.object(
-            current_module, "find_processes_by_name", return_value=mock_procs
-        ):
+        with patch.object(current_module, "find_processes_by_name", return_value=mock_procs):
             processes = find_processes_by_name(["test_app"])
             assert len(processes) == 2
 
@@ -1067,9 +1030,7 @@ class TestIntegrationScenarios:
             "sage.common.utils.system.process.get_process_children",
             return_value=[1001, 1002],
         ):
-            with patch(
-                "sage.common.utils.system.process.terminate_process"
-            ) as mock_terminate:
+            with patch("sage.common.utils.system.process.terminate_process") as mock_terminate:
                 mock_terminate.side_effect = [
                     {"success": True, "method": "terminate", "pid": 1001},
                     {"success": True, "method": "terminate", "pid": 1002},
@@ -1149,9 +1110,7 @@ class TestErrorHandlingScenarios:
     @pytest.mark.unit
     def test_system_resource_exhaustion(self):
         """Test behavior under resource exhaustion"""
-        with patch(
-            "psutil.process_iter", side_effect=OSError("Cannot access process list")
-        ):
+        with patch("psutil.process_iter", side_effect=OSError("Cannot access process list")):
             result = get_system_process_summary()
             assert "error" in result
 
@@ -1172,14 +1131,10 @@ class TestErrorHandlingScenarios:
     def test_process_state_changes(self):
         """Test handling processes that change state during operations"""
         # Process terminates between check and operation
-        with patch(
-            "sage.common.utils.system.process.find_processes_by_name"
-        ) as mock_find:
+        with patch("sage.common.utils.system.process.find_processes_by_name") as mock_find:
             mock_find.return_value = [MagicMock(pid=1234)]
 
-            with patch(
-                "sage.common.utils.system.process.terminate_process"
-            ) as mock_terminate:
+            with patch("sage.common.utils.system.process.terminate_process") as mock_terminate:
                 mock_terminate.return_value = {
                     "success": True,
                     "method": "already_gone",

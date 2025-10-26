@@ -3,6 +3,7 @@ import time
 from typing import Any
 
 import pytest
+
 from sage.common.core.functions import (
     BaseCoMapFunction,
     KeyByFunction,
@@ -228,9 +229,7 @@ class TestConnectedStreamsKeyBy:
         print(
             "📊 Pipeline: UserStream + EventStream -> ConnectedStreams.keyby(UserIdExtractor) -> Sink(parallelism=2)"
         )
-        print(
-            "🎯 Expected: Data with same user_id should go to same parallel instance\n"
-        )
+        print("🎯 Expected: Data with same user_id should go to same parallel instance\n")
 
         try:
             env.submit()
@@ -314,15 +313,11 @@ class TestConnectedStreamsKeyBy:
         connected = user_stream.connect(event_stream)
 
         # 测试1：key selector数量不匹配
-        with pytest.raises(
-            ValueError, match="Key selector count .* must match stream count"
-        ):
+        with pytest.raises(ValueError, match="Key selector count .* must match stream count"):
             connected.keyby([UserIdKeyExtractor])  # 只有1个selector，但有2个stream
 
         # 测试2：Lambda函数不支持
-        with pytest.raises(
-            NotImplementedError, match="Lambda functions are not supported"
-        ):
+        with pytest.raises(NotImplementedError, match="Lambda functions are not supported"):
             connected.keyby(lambda x: x["user_id"])
 
         print("✅ Invalid configuration tests passed")
@@ -419,9 +414,7 @@ class TestConnectedStreamsKeyBy:
                 len(instances) == 1
             ), f"❌ Stream1 key {key} routed to multiple instances: {instances}"
 
-        print(
-            "✅ Per-stream keyby test passed: Each stream's keys correctly partitioned"
-        )
+        print("✅ Per-stream keyby test passed: Each stream's keys correctly partitioned")
 
     def _verify_keyby_comap_results(self):
         """验证KeyBy + CoMap的结果"""
@@ -459,9 +452,7 @@ class TestConnectedStreamsKeyBy:
         assert len(user_updates) > 0, "❌ No user updates received from CoMap"
         assert len(enriched_events) > 0, "❌ No enriched events received from CoMap"
 
-        print(
-            "✅ KeyBy + CoMap test passed: Both user updates and enriched events received"
-        )
+        print("✅ KeyBy + CoMap test passed: Both user updates and enriched events received")
 
 
 if __name__ == "__main__":

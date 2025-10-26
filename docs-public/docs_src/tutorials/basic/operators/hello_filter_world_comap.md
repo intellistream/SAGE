@@ -49,7 +49,7 @@ class SourceTwo(BatchFunction):
 class HelloCoMapProcessor(BaseCoMapFunction):
    def map0(self, data):
       return f"[Stream0] 👋 {data['msg']}"
-    
+
    def map1(self, data):
       return f"[Stream1] 🌍 {data['msg']}"
 

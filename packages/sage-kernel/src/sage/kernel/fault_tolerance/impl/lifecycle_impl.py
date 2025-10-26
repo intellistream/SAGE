@@ -122,9 +122,7 @@ class LifecycleManagerImpl:
                 if self.logger:
                     cleanup_ok, kill_ok = result
                     if kill_ok:
-                        self.logger.debug(
-                            f"Successfully cleaned up service: {service_id}"
-                        )
+                        self.logger.debug(f"Successfully cleaned up service: {service_id}")
                     else:
                         self.logger.warning(f"Failed to clean up service: {service_id}")
 
@@ -177,9 +175,7 @@ class LifecycleManagerImpl:
             "kill_rate": kill_success / total if total > 0 else 0,
         }
 
-    def wait_for_actors_stop(
-        self, tasks: dict[TaskID, Any], timeout: float = 10.0
-    ) -> bool:
+    def wait_for_actors_stop(self, tasks: dict[TaskID, Any], timeout: float = 10.0) -> bool:
         """
         等待所有任务停止
 

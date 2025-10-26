@@ -103,22 +103,22 @@ searcher = BochaWebSearch(paginated_config)
 # 多页搜索示例
 def search_multiple_pages(query, max_pages=3):
     all_results = []
-    
+
     for page in range(1, max_pages + 1):
         # 更新页码
         paginated_config["page"] = page
         searcher = BochaWebSearch(paginated_config)
-        
+
         # 执行搜索
         page_results = searcher.execute(query)
         all_results.extend(page_results['results'])
-        
+
         print(f"第{page}页: 获取到 {len(page_results['results'])} 个结果")
-        
+
         # 如果当前页结果不足，说明没有更多页面
         if len(page_results['results']) < paginated_config["count"]:
             break
-    
+
     return all_results
 
 # 执行多页搜索
@@ -145,14 +145,14 @@ advanced_searcher = BochaWebSearch(advanced_config)
 # 专业搜索示例
 professional_queries = [
     "区块链技术最新发展",
-    "量子计算突破性进展", 
+    "量子计算突破性进展",
     "新能源汽车市场分析"
 ]
 
 for query in professional_queries:
     results = advanced_searcher.execute(query)
     print(f"\n=== {query} ===")
-    
+
     # 显示前3个最相关的结果
     for i, result in enumerate(results['results'][:3], 1):
         print(f"{i}. {result['title']}")

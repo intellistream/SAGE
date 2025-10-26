@@ -23,47 +23,47 @@
 ```mermaid
 graph TD
     common[sage-common<br/>L1: 基础设施]
-    
+
     platform[sage-platform<br/>L2: 平台服务]
-    
+
     kernel[sage-kernel<br/>L3: 执行引擎]
     libs[sage-libs<br/>L3: 算法库]
-    
+
     middleware[sage-middleware<br/>L4: 领域算子]
-    
+
     apps[sage-apps<br/>L5: 应用]
     benchmark[sage-benchmark<br/>L5: 基准测试]
-    
+
     studio[sage-studio<br/>L6: Web UI]
     tools[sage-tools<br/>L6: CLI]
-    
+
     platform --> common
-    
+
     kernel --> common
     kernel --> platform
     libs --> common
     libs --> kernel
-    
+
     middleware --> common
     middleware --> platform
     middleware --> kernel
     middleware --> libs
-    
+
     apps --> common
     apps --> kernel
     apps --> libs
     apps --> middleware
-    
+
     benchmark --> common
     benchmark --> kernel
     benchmark --> libs
     benchmark --> middleware
-    
+
     studio --> common
     studio --> kernel
     studio --> libs
     studio --> middleware
-    
+
     tools --> common
     tools --> kernel
     tools --> libs

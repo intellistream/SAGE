@@ -15,6 +15,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from sage.common.utils.network.base_tcp_client import BaseTcpClient
 
 
@@ -291,17 +292,11 @@ class TestBaseTcpClient:
                 remaining_size = len(response_bytes) - mock_recv.data_sent
                 chunk_size = min(
                     size,
-                    (
-                        remaining_size // 2
-                        if mock_recv.call_count == 1
-                        else remaining_size
-                    ),
+                    (remaining_size // 2 if mock_recv.call_count == 1 else remaining_size),
                 )
 
                 if chunk_size > 0:
-                    chunk = response_bytes[
-                        mock_recv.data_sent : mock_recv.data_sent + chunk_size
-                    ]
+                    chunk = response_bytes[mock_recv.data_sent : mock_recv.data_sent + chunk_size]
                     mock_recv.data_sent += chunk_size
                     return chunk
                 else:
@@ -520,9 +515,7 @@ class MockTcpClientIntegration:
                 # 接收请求数据
                 request_data = b""
                 while len(request_data) < request_length:
-                    chunk = client_socket.recv(
-                        min(1024, request_length - len(request_data))
-                    )
+                    chunk = client_socket.recv(min(1024, request_length - len(request_data)))
                     if not chunk:
                         break
                     request_data += chunk
@@ -905,9 +898,7 @@ class TestTcpClientIntegration:
                 # 接收请求数据
                 request_data = b""
                 while len(request_data) < request_length:
-                    chunk = client_socket.recv(
-                        min(1024, request_length - len(request_data))
-                    )
+                    chunk = client_socket.recv(min(1024, request_length - len(request_data)))
                     if not chunk:
                         break
                     request_data += chunk

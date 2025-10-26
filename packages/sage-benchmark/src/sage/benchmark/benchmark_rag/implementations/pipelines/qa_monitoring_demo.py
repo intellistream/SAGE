@@ -31,10 +31,7 @@ def pipeline_run():
     启用性能监控后，会在管道运行时收集各种性能指标。
     """
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_monitoring_demo example")
         print("✅ Test passed: Example structure validated")
         return
@@ -117,10 +114,7 @@ if __name__ == "__main__":
     import os
 
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_monitoring_demo example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

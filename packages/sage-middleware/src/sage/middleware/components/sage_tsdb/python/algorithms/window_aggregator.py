@@ -167,9 +167,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
             window_end = window_start + self.window_size
 
             # Get data points in this window
-            window_data = [
-                point for point in data if window_start <= point.timestamp < window_end
-            ]
+            window_data = [point for point in data if window_start <= point.timestamp < window_end]
 
             if window_data:
                 agg_point = self._aggregate_window(window_data, window_start)

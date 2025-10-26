@@ -10,19 +10,13 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 class HFClient:
-    def __init__(
-        self, model_name="llama", device=None, base_url=None, api_key=None, seed=None
-    ):
-        self.device = (
-            device if device else ("cuda" if torch.cuda.is_available() else "cpu")
-        )
+    def __init__(self, model_name="llama", device=None, base_url=None, api_key=None, seed=None):
+        self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         self.model_name = model_name
         self.model, self.tokenizer = self._initialize_model()
 
     def _initialize_model(self):
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name, trust_remote_code=True
-        )
+        tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True)
         model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             trust_remote_code=True,

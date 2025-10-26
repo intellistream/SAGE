@@ -38,7 +38,7 @@ Avoid shared state:
 class StatefulOperator(MapFunction):
     def __init__(self):
         self.cache = {}  # Shared across records
-    
+
     def map(self, record):
         if record.id in self.cache:
             return self.cache[record.id]
@@ -103,7 +103,7 @@ class BatchOperator(MapFunction):
     def __init__(self, batch_size=32):
         self.batch_size = batch_size
         self.buffer = []
-    
+
     def map(self, record):
         self.buffer.append(record)
         if len(self.buffer) >= self.batch_size:
@@ -138,11 +138,11 @@ class ResourceAwareOperator(MapFunction):
         # Initialize expensive resources once
         self.model = load_model()
         self.db_connection = connect_db()
-    
+
     def map(self, record):
         # Reuse resources
         return self.model.process(record)
-    
+
     def close(self):
         # Clean up resources
         self.db_connection.close()
@@ -159,7 +159,7 @@ class CachingOperator(MapFunction):
     @lru_cache(maxsize=1000)
     def expensive_computation(self, key):
         return compute(key)
-    
+
     def map(self, record):
         return self.expensive_computation(record.key)
 ```
@@ -224,10 +224,10 @@ Create reusable operator libraries:
 class BaseOperator(MapFunction):
     def __init__(self, config):
         self.config = config
-    
+
     def open(self, context):
         self.setup()
-    
+
     def setup(self):
         """Override in subclasses"""
         pass
@@ -236,7 +236,7 @@ class BaseOperator(MapFunction):
 class LLMOperator(BaseOperator):
     def setup(self):
         self.client = OpenAI(api_key=self.config.api_key)
-    
+
     def map(self, record):
         return self.client.chat.completions.create(
             model=self.config.model,
@@ -256,11 +256,11 @@ from src.operators.transform import TransformOperator
 
 def test_transform_operator():
     operator = TransformOperator()
-    
+
     # Test with valid input
     result = operator.map({"value": 10})
     assert result["value"] == 20
-    
+
     # Test with invalid input
     with pytest.raises(ValueError):
         operator.map({"value": -1})
@@ -273,19 +273,19 @@ Test pipelines end-to-end:
 ```python
 def test_pipeline():
     env = LocalStreamEnvironment("test")
-    
+
     # Create test data
     test_data = [{"id": 1}, {"id": 2}]
     source = ListSource(test_data)
     sink = CollectSink()
-    
+
     # Build and execute pipeline
     stream = (env.from_source(source)
         .map(TransformOperator())
         .to_sink(sink))
-    
+
     env.execute()
-    
+
     # Verify results
     results = sink.get_results()
     assert len(results) == 2
@@ -305,7 +305,7 @@ def test_llm_operator():
         mock_client.chat.completions.create.return_value = Mock(
             choices=[Mock(message=Mock(content="Test response"))]
         )
-        
+
         operator = LLMOperator()
         result = operator.map({"text": "Test input"})
         assert result == "Test response"
@@ -374,10 +374,10 @@ import pstats
 def profile_pipeline():
     profiler = cProfile.Profile()
     profiler.enable()
-    
+
     # Run pipeline
     env.execute()
-    
+
     profiler.disable()
     stats = pstats.Stats(profiler)
     stats.sort_stats('cumulative')
@@ -446,7 +446,7 @@ Instructions:
 
 Output:
 """
-    
+
     def map(self, record):
         prompt = self.PROMPT_TEMPLATE.format(
             task=record.task,
@@ -469,14 +469,14 @@ class RateLimitedOperator(MapFunction):
         self.min_interval = 1.0 / calls_per_second
         self.last_call = 0
         self.lock = Lock()
-    
+
     def map(self, record):
         with self.lock:
             elapsed = time.time() - self.last_call
             if elapsed < self.min_interval:
                 time.sleep(self.min_interval - elapsed)
             self.last_call = time.time()
-        
+
         return self.llm.generate(record.text)
 ```
 
@@ -489,20 +489,20 @@ class CostAwareOperator(MapFunction):
     def __init__(self):
         self.total_tokens = 0
         self.total_cost = 0.0
-    
+
     def map(self, record):
         response = self.llm.generate(record.text)
-        
+
         # Track usage
         tokens = response.usage.total_tokens
         cost = tokens * 0.000002  # $0.002 per 1K tokens
-        
+
         self.total_tokens += tokens
         self.total_cost += cost
-        
+
         if self.total_cost > 10.0:  # Alert if cost > $10
             logger.warning(f"High cost: ${self.total_cost:.2f}")
-        
+
         return response.text
 ```
 

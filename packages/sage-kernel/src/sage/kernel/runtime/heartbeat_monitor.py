@@ -167,9 +167,7 @@ class HeartbeatMonitor:
                     f"(timeout={self.call_timeout}s)"
                 )
             elif "RayActorError" in str(type(e).__name__):
-                self.logger.error(
-                    f"❌ RayActorError when pulling heartbeat from {task_id}: {e}"
-                )
+                self.logger.error(f"❌ RayActorError when pulling heartbeat from {task_id}: {e}")
             else:
                 self.logger.error(
                     f"❌ Unexpected error pulling heartbeat from {task_id}: {e}",
@@ -280,9 +278,7 @@ class HeartbeatMonitor:
                                     f"🚨 Task {task_id} FAILURE: "
                                     f"consecutive call failures={state['consecutive_failures']}"
                                 )
-                                failed_tasks.append(
-                                    (task_id, "call_failure", heartbeat)
-                                )
+                                failed_tasks.append((task_id, "call_failure", heartbeat))
 
                             continue
 
@@ -300,9 +296,7 @@ class HeartbeatMonitor:
                                     f"🚨 Task {task_id} FAILURE: "
                                     f"consecutive invalid heartbeats={state['consecutive_failures']}"
                                 )
-                                failed_tasks.append(
-                                    (task_id, "invalid_heartbeat", heartbeat)
-                                )
+                                failed_tasks.append((task_id, "invalid_heartbeat", heartbeat))
 
                             continue
 
@@ -354,14 +348,10 @@ class HeartbeatMonitor:
                                     f"consecutive stale heartbeats={state['consecutive_stale']}, "
                                     f"time_since_last={time_since_last:.1f}s"
                                 )
-                                failed_tasks.append(
-                                    (task_id, "stale_heartbeat", heartbeat)
-                                )
+                                failed_tasks.append((task_id, "stale_heartbeat", heartbeat))
 
                     # === 清理已不存在的任务 ===
-                    disappeared_tasks = set(self._task_states.keys()) - set(
-                        active_tasks.keys()
-                    )
+                    disappeared_tasks = set(self._task_states.keys()) - set(active_tasks.keys())
                     for task_id in disappeared_tasks:
                         self.logger.info(f"🗑️  Task {task_id} removed from monitoring")
                         self._task_states.pop(task_id, None)
@@ -408,9 +398,7 @@ class HeartbeatMonitor:
                     break
 
             except Exception as e:
-                self.logger.error(
-                    f"❌ Unexpected error in monitor loop: {e}", exc_info=True
-                )
+                self.logger.error(f"❌ Unexpected error in monitor loop: {e}", exc_info=True)
                 # 避免无限错误循环
                 time.sleep(1.0)
 

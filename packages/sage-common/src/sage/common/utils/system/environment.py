@@ -260,9 +260,7 @@ def detect_gpu_resources() -> dict[str, Any]:
     # 检查AMD GPU (rocm-smi)
     if not gpu_info["available"]:
         try:
-            result = subprocess.run(
-                ["rocm-smi"], capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["rocm-smi"], capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
                 gpu_info["available"] = True
                 gpu_info["type"] = "AMD"
@@ -289,9 +287,7 @@ def get_network_interfaces() -> list[dict[str, Any]]:
             for addr in addrs:
                 addr_info = {
                     "family": (
-                        addr.family.name
-                        if hasattr(addr.family, "name")
-                        else str(addr.family)
+                        addr.family.name if hasattr(addr.family, "name") else str(addr.family)
                     ),
                     "address": addr.address,
                     "netmask": addr.netmask,
@@ -332,9 +328,7 @@ def recommend_backend() -> dict[str, Any]:
     if env_type == "ray":
         recommendation["primary_backend"] = "ray"
         recommendation["communication_layer"] = "ray_queue"
-        recommendation["reasoning"].append(
-            "Ray cluster detected, using distributed backend"
-        )
+        recommendation["reasoning"].append("Ray cluster detected, using distributed backend")
 
     elif env_type == "kubernetes":
         recommendation["primary_backend"] = "ray"
@@ -346,9 +340,7 @@ def recommend_backend() -> dict[str, Any]:
 
     elif env_type == "docker":
         recommendation["secondary_backends"].append("ray")
-        recommendation["reasoning"].append(
-            "Docker environment, local backend preferred"
-        )
+        recommendation["reasoning"].append("Docker environment, local backend preferred")
 
     # 基于资源的推荐
     if system_resources.get("cpu", {}).get("count", 0) > 8:
@@ -361,22 +353,16 @@ def recommend_backend() -> dict[str, Any]:
     if gpu_resources.get("available", False):
         recommendation["gpu_support"] = True
         recommendation["communication_layer"] = "gpu_direct"
-        recommendation["reasoning"].append(
-            "GPU available, GPU-direct communication recommended"
-        )
+        recommendation["reasoning"].append("GPU available, GPU-direct communication recommended")
 
     # 内存建议
     memory_gb = system_resources.get("memory", {}).get("total", 0) / (1024**3)
     if memory_gb > 32:
         recommendation["memory_strategy"] = "mmap"
-        recommendation["reasoning"].append(
-            "High memory available, mmap shared memory recommended"
-        )
+        recommendation["reasoning"].append("High memory available, mmap shared memory recommended")
     elif memory_gb < 8:
         recommendation["memory_strategy"] = "conservative"
-        recommendation["reasoning"].append(
-            "Limited memory, conservative memory usage recommended"
-        )
+        recommendation["reasoning"].append("Limited memory, conservative memory usage recommended")
 
     return recommendation
 
@@ -438,9 +424,7 @@ def validate_environment_for_backend(backend_type: str) -> dict[str, Any]:
 
         network_info = get_network_interfaces()
         if not network_info or len(network_info) < 2:
-            validation["issues"].append(
-                "Limited network interfaces for distributed setup"
-            )
+            validation["issues"].append("Limited network interfaces for distributed setup")
 
         if validation["issues"]:
             validation["supported"] = False

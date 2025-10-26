@@ -281,7 +281,7 @@ stream.map(my_custom_function)
        result = process_data(data)
        print(f"Result: {result}")
        return result
-   
+
    stream.map(debug_processor)
    ```
 

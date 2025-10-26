@@ -58,7 +58,7 @@ from sage.libs.rag.generator import OpenAIGenerator
 # VLLM本地服务配置
 config = {
     "method": "openai",
-    "model_name": "gpt-4o-mini", 
+    "model_name": "gpt-4o-mini",
     "base_url": "http://localhost:8000/v1",
     "api_key": "your-api-key",
     "seed": 42,

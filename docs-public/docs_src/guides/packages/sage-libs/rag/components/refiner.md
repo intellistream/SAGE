@@ -129,7 +129,7 @@ from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 refiner_config = {
     "base_model_path": "Qwen/Qwen2.5-3B-Instruct",
     "query_analysis_module_lora_path": "/path/to/query_analysis_lora",
-    "doc_structuring_module_lora_path": "/path/to/doc_structuring_lora", 
+    "doc_structuring_module_lora_path": "/path/to/doc_structuring_lora",
     "global_selection_module_lora_path": "/path/to/global_selection_lora",
     "score_model_name": "bge-reranker-v2-m3",
     "score_model_path": "BAAI/bge-reranker-v2-m3",
@@ -296,7 +296,7 @@ budget_guide = {
 # 根据精度和速度需求选择基础模型
 model_options = {
     "高精度": "Qwen/Qwen2.5-7B-Instruct",
-    "平衡": "Qwen/Qwen2.5-3B-Instruct", 
+    "平衡": "Qwen/Qwen2.5-3B-Instruct",
     "高速度": "Qwen/Qwen2.5-1.5B-Instruct"
 }
 ```
@@ -355,7 +355,7 @@ refiner = LongRefinerAdapter(config, enable_profile=True)
 ### 核心论文
 ```bibtex
 @misc{jin2025hierarchical,
-    title={Hierarchical Document Refinement for Long-context Retrieval-augmented Generation}, 
+    title={Hierarchical Document Refinement for Long-context Retrieval-augmented Generation},
     author={Jiajie Jin and Xiaoxi Li and Guanting Dong and Yuyao Zhang and Yutao Zhu and Yongkang Wu and Zhonghua Li and Qi Ye and Zhicheng Dou},
     year={2025},
     eprint={2505.10413},

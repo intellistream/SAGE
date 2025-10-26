@@ -126,10 +126,10 @@ detector = TextDetector()
 def analyze_webpage(url):
     # 提取网页文本
     text = extractor.extract(url)
-    
+
     # 检测文本特征
     analysis = detector.analyze(text)
-    
+
     return {
         "url": url,
         "text_length": len(text),
@@ -175,7 +175,7 @@ from sage.applications.tools import BaseTool
 class WeatherTool(BaseTool):
     name = "weather_checker"
     description = "获取指定城市的天气信息"
-    
+
     def execute(self, city: str) -> dict:
         # 实现天气查询逻辑
         return {
@@ -200,11 +200,11 @@ class ResearchAgent(BaseAgent):
             name="Research Assistant",
             system_prompt="你是一个专业的学术研究助手..."
         )
-    
+
     def plan_task(self, task):
         # 任务规划逻辑
         pass
-    
+
     def execute_step(self, step):
         # 步骤执行逻辑
         pass
@@ -307,10 +307,10 @@ from sage.applications.async_support import AsyncRAG
 # 异步处理
 async def process_queries():
     rag = AsyncRAG()
-    
+
     queries = ["问题1", "问题2", "问题3"]
     tasks = [rag.query_async(q) for q in queries]
-    
+
     results = await asyncio.gather(*tasks)
     return results
 ```

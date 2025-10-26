@@ -28,9 +28,7 @@ def _top_k_tools(
             score += 1.5
         scored.append((name, score))
     scored.sort(key=lambda x: x[1], reverse=True)
-    keep = [n for n, s in scored[:k] if s > 0] or list(tools.keys())[
-        : min(k, len(tools))
-    ]
+    keep = [n for n, s in scored[:k] if s > 0] or list(tools.keys())[: min(k, len(tools))]
     return {n: tools[n] for n in keep}
 
 
@@ -159,11 +157,7 @@ def _validate_steps(
         if step["type"] == "tool":
             name = step.get("name")
             args = step.get("arguments", {})
-            if (
-                not isinstance(name, str)
-                or name not in tools
-                or not isinstance(args, dict)
-            ):
+            if not isinstance(name, str) or name not in tools or not isinstance(args, dict):
                 continue
 
             # 基于 MCP input_schema 的必填项检查
@@ -286,9 +280,7 @@ class LLMPlanner(MapFunction):
         """
         # --- 形态 1：dict ---
         if isinstance(data, dict):
-            profile_prompt = data.get("profile_prompt") or data.get(
-                "profile_system_prompt"
-            )
+            profile_prompt = data.get("profile_prompt") or data.get("profile_system_prompt")
             user_query = data.get("user_query") or data.get("query")
             tools_like = data.get("tools") or data.get("registry")
             if (

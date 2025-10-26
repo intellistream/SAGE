@@ -123,12 +123,9 @@ class IssuesManager:
                         "body": issue_data.get("body", ""),
                         "state": metadata.get("state", "open"),
                         "user": {"login": metadata.get("author", "unknown")},
-                        "labels": [
-                            {"name": label} for label in metadata.get("labels", [])
-                        ],
+                        "labels": [{"name": label} for label in metadata.get("labels", [])],
                         "assignees": [
-                            {"login": assignee}
-                            for assignee in metadata.get("assignees", [])
+                            {"login": assignee} for assignee in metadata.get("assignees", [])
                         ],
                     }
                 else:
@@ -215,9 +212,7 @@ class IssuesManager:
                         if next_line != "无" and next_line != "None" and next_line:
                             # Split by comma and clean up
                             labels = [
-                                label.strip()
-                                for label in next_line.split(",")
-                                if label.strip()
+                                label.strip() for label in next_line.split(",") if label.strip()
                             ]
                             issue_data["labels"] = [{"name": label} for label in labels]
                         break
@@ -233,11 +228,7 @@ class IssuesManager:
                         and not next_line.startswith("#")
                         and not next_line.startswith("**")
                     ):
-                        if (
-                            next_line != "未分配"
-                            and next_line != "Unassigned"
-                            and next_line
-                        ):
+                        if next_line != "未分配" and next_line != "Unassigned" and next_line:
                             assignees = [
                                 assignee.strip()
                                 for assignee in next_line.split(",")
@@ -274,11 +265,7 @@ class IssuesManager:
             labels = issue.get("labels", [])
             if isinstance(labels, list):
                 for label in labels:
-                    label_name = (
-                        label
-                        if isinstance(label, str)
-                        else label.get("name", "unknown")
-                    )
+                    label_name = label if isinstance(label, str) else label.get("name", "unknown")
                     stats["labels"][label_name] = stats["labels"].get(label_name, 0) + 1
 
             # Count assignees
@@ -286,20 +273,14 @@ class IssuesManager:
             if isinstance(assignees, list):
                 for assignee in assignees:
                     assignee_name = (
-                        assignee
-                        if isinstance(assignee, str)
-                        else assignee.get("login", "unknown")
+                        assignee if isinstance(assignee, str) else assignee.get("login", "unknown")
                     )
-                    stats["assignees"][assignee_name] = (
-                        stats["assignees"].get(assignee_name, 0) + 1
-                    )
+                    stats["assignees"][assignee_name] = stats["assignees"].get(assignee_name, 0) + 1
 
             # Count authors
             author = issue.get("user", {})
             author_name = (
-                author.get("login", "unknown")
-                if isinstance(author, dict)
-                else str(author)
+                author.get("login", "unknown") if isinstance(author, dict) else str(author)
             )
             stats["authors"][author_name] = stats["authors"].get(author_name, 0) + 1
 
@@ -322,9 +303,9 @@ class IssuesManager:
 
         if stats["labels"]:
             print("\n🏷️ 标签分布 (前10):")
-            for label, count in sorted(
-                stats["labels"].items(), key=lambda x: x[1], reverse=True
-            )[:10]:
+            for label, count in sorted(stats["labels"].items(), key=lambda x: x[1], reverse=True)[
+                :10
+            ]:
                 print(f"  - {label}: {count}")
 
         if stats["assignees"]:
@@ -336,15 +317,14 @@ class IssuesManager:
 
         if stats["authors"]:
             print("\n✍️ 作者分布 (前10):")
-            for author, count in sorted(
-                stats["authors"].items(), key=lambda x: x[1], reverse=True
-            )[:10]:
+            for author, count in sorted(stats["authors"].items(), key=lambda x: x[1], reverse=True)[
+                :10
+            ]:
                 print(f"  - {author}: {count}")
 
         # Save detailed report
         report_file = (
-            self.output_dir
-            / f"statistics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            self.output_dir / f"statistics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         )
         with open(report_file, "w", encoding="utf-8") as f:
             json.dump(stats, f, indent=2, ensure_ascii=False)

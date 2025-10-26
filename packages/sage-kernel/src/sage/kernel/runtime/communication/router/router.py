@@ -52,9 +52,7 @@ class BaseRouter(ABC):  # noqa: B024
         for broadcast_index, parallel_targets in self.downstream_groups.items():
             info[f"broadcast_group_{broadcast_index}"] = {
                 "count": len(parallel_targets),
-                "roundrobin_position": self.downstream_group_roundrobin[
-                    broadcast_index
-                ],
+                "roundrobin_position": self.downstream_group_roundrobin[broadcast_index],
                 "targets": [
                     {
                         "parallel_index": parallel_index,
@@ -103,9 +101,7 @@ class BaseRouter(ABC):  # noqa: B024
 
         if not self.downstream_groups:
             self.logger.warning(f"No downstream connections available for {self.name}")
-            self.logger.warning(
-                f"Current downstream_groups state: {self.downstream_groups}"
-            )
+            self.logger.warning(f"Current downstream_groups state: {self.downstream_groups}")
             return False
 
         try:
@@ -153,14 +149,12 @@ class BaseRouter(ABC):  # noqa: B024
             # 获取当前轮询位置
             current_round_robin = self.downstream_group_roundrobin[broadcast_index]
             parallel_indices = list(parallel_targets.keys())
-            target_parallel_index = parallel_indices[
-                current_round_robin % len(parallel_indices)
-            ]
+            target_parallel_index = parallel_indices[current_round_robin % len(parallel_indices)]
 
             # 更新轮询位置
-            self.downstream_group_roundrobin[broadcast_index] = (
-                current_round_robin + 1
-            ) % len(parallel_indices)
+            self.downstream_group_roundrobin[broadcast_index] = (current_round_robin + 1) % len(
+                parallel_indices
+            )
 
             # 发送到选中的连接
             connection = parallel_targets[target_parallel_index]
@@ -206,9 +200,7 @@ class BaseRouter(ABC):  # noqa: B024
 
         return success
 
-    def _deliver_packet_to_connection(
-        self, connection: "Connection", packet: "Packet"
-    ) -> bool:
+    def _deliver_packet_to_connection(self, connection: "Connection", packet: "Packet") -> bool:
         """
         将数据包发送到连接对应的队列
 
@@ -220,9 +212,7 @@ class BaseRouter(ABC):  # noqa: B024
             bool: 是否成功发送
         """
         try:
-            self.logger.debug(
-                f"Router {self.name}: Delivering packet to {connection.target_name}"
-            )
+            self.logger.debug(f"Router {self.name}: Delivering packet to {connection.target_name}")
 
             # 创建路由包，包含target_input_index信息
             routed_packet = self._create_routed_packet(connection, packet)
@@ -254,9 +244,7 @@ class BaseRouter(ABC):  # noqa: B024
         self.downstream_groups.clear()
         self.downstream_group_roundrobin.clear()
 
-    def _create_routed_packet(
-        self, connection: "Connection", packet: "Packet"
-    ) -> "Packet":
+    def _create_routed_packet(self, connection: "Connection", packet: "Packet") -> "Packet":
         """创建路由后的数据包"""
         return Packet(
             payload=packet.payload,

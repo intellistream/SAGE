@@ -154,9 +154,7 @@ class TestAgentWorkflowIntegration:
                 ]
                 return tool
 
-    @pytest.mark.skipif(
-        not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available"
-    )
+    @pytest.mark.skipif(not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available")
     def test_complete_agent_workflow_with_arxiv_query(self):
         """Test the complete agent workflow with an arXiv search query."""
 
@@ -223,9 +221,7 @@ class TestAgentWorkflowIntegration:
         finally:
             os.unlink(temp_path)
 
-    @pytest.mark.skipif(
-        not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available"
-    )
+    @pytest.mark.skipif(not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available")
     def test_agent_tool_integration(self):
         """Test that agent properly integrates with tools."""
 
@@ -266,17 +262,13 @@ class TestAgentWorkflowIntegration:
         registry = MCPRegistry()
         registry.register(mock_tool)
 
-        runtime = AgentRuntime(
-            profile=profile, planner=planner, tools=registry, summarizer=None
-        )
+        runtime = AgentRuntime(profile=profile, planner=planner, tools=registry, summarizer=None)
 
         # Execute and verify tool was called
         response = runtime.execute({"query": "使用测试工具"})
         assert "工具调用完成" in response
 
-    @pytest.mark.skipif(
-        not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available"
-    )
+    @pytest.mark.skipif(not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available")
     def test_agent_error_handling(self):
         """Test agent error handling in various scenarios."""
 
@@ -316,9 +308,7 @@ class TestAgentWorkflowIntegration:
         registry = MCPRegistry()
         registry.register(failing_tool)
 
-        runtime = AgentRuntime(
-            profile=profile, planner=planner, tools=registry, summarizer=None
-        )
+        runtime = AgentRuntime(profile=profile, planner=planner, tools=registry, summarizer=None)
 
         # Should handle the error gracefully
         response = runtime.execute({"query": "使用会失败的工具"})
@@ -326,9 +316,7 @@ class TestAgentWorkflowIntegration:
         # Should contain some error indication or fallback response
         assert isinstance(response, str)
 
-    @pytest.mark.skipif(
-        not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available"
-    )
+    @pytest.mark.skipif(not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available")
     def test_message_format_consistency(self):
         """Test that the new message format is used consistently throughout the pipeline."""
 

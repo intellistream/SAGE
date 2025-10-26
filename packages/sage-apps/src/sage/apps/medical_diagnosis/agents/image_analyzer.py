@@ -184,9 +184,7 @@ class ImageAnalyzer:
                     {
                         "type": "disc_degeneration",
                         "location": disc["level"],
-                        "severity": (
-                            "mild" if disc["features"]["height"] > 5.0 else "moderate"
-                        ),
+                        "severity": ("mild" if disc["features"]["height"] > 5.0 else "moderate"),
                         "description": f"{disc['level']} 椎间盘退行性变",
                     }
                 )
@@ -220,8 +218,7 @@ class ImageAnalyzer:
         """创建模拟分析结果（用于演示）"""
         return {
             "vertebrae": [
-                {"name": f"L{i}", "position": {"x": 100, "y": 50 + i * 80}}
-                for i in range(1, 6)
+                {"name": f"L{i}", "position": {"x": 100, "y": 50 + i * 80}} for i in range(1, 6)
             ],
             "discs": [
                 {

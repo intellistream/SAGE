@@ -14,13 +14,13 @@ graph TB
     subgraph "SAGE 执行环境架构"
         A[Application Code] --> B[Environment API]
         B --> C{Environment Type}
-        
+
         C -->|Local| D[LocalEnvironment]
         C -->|Remote| E[RemoteEnvironment]
-        
+
         D --> F[Local JobManager]
         E --> G[Remote JobManager Client]
-        
+
         F --> H[Task Execution]
         G --> I[Distributed Task Execution]
     end
@@ -94,7 +94,7 @@ class DatabaseConnection:
         self.port = port  
         self.db = db
 
-env.register_service("db_conn", DatabaseConnection, 
+env.register_service("db_conn", DatabaseConnection,
                    host="localhost", port=5432, db="mydb")
 ```
 
@@ -115,7 +115,7 @@ string_stream = env.from_batch("hello")  # 按字符迭代
 class CustomBatchFunction(BaseFunction):
     def get_data_iterator(self):
         return iter(range(50))
-        
+
     def get_total_count(self):
         return 50
 
@@ -176,12 +176,12 @@ remote_env = RemoteEnvironment(
         "parallelism": 16,
         "buffer_size": 50000,
         "checkpoint_interval": 300,  # 5分钟
-        
+
         # 容错配置
         "restart_strategy": "fixed-delay",
         "max_failures": 3,
         "failure_rate_interval": 60,
-        
+
         # 资源配置
         "taskmanager_memory": "2GB",
         "taskmanager_slots": 4
@@ -234,14 +234,14 @@ try:
     # 等待任务运行一段时间
     import time
     time.sleep(300)  # 运行5分钟
-    
+
     # 优雅停止
     stop_response = remote_env.stop()
     if stop_response.get("status") == "success":
         print("Remote job stopped successfully")
     else:
         print(f"Stop failed: {stop_response}")
-        
+
 finally:
     # 确保资源清理
     remote_env.close()
@@ -338,12 +338,12 @@ env.set_console_log_level("WARNING")
 # 单例服务模式
 class DatabaseService:
     _instance = None
-    
+
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             cls._instance = super().__new__(cls)
         return cls._instance
-        
+
     def __init__(self, connection_string):
         if not hasattr(self, 'initialized'):
             self.connection_string = connection_string
@@ -363,7 +363,7 @@ class CacheServiceFactory:
         else:
             raise ValueError(f"Unknown cache type: {cache_type}")
 
-env.register_service("cache", CacheServiceFactory.create_cache, 
+env.register_service("cache", CacheServiceFactory.create_cache,
                    cache_type="redis", host="localhost", port=6379)
 ```
 
@@ -374,18 +374,18 @@ env.register_service("cache", CacheServiceFactory.create_cache,
 try:
     # 创建和配置环境
     env = RemoteEnvironment("my_app", host="jobmanager.example.com")
-    
+
     # 构建数据流
     stream = env.from_kafka_source("localhost:9092", "events", "group1")
     result = stream.map(processing_function)
-    
+
     # 提交任务
     job_id = env.submit()
     print(f"Job submitted: {job_id}")
-    
+
     # 监控任务（可选）
     # monitor_job(job_id)
-    
+
 except Exception as e:
     print(f"Environment setup failed: {e}")
     # 清理资源

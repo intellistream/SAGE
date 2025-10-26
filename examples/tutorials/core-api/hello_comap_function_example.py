@@ -105,9 +105,7 @@ class SensorDataProcessor(BaseCoMapFunction):
     def map1(self, data):
         """处理湿度数据（来自输入流1）"""
         humidity_value = data["value"]
-        status = (
-            "💧 HIGH" if humidity_value > self.humidity_alert_threshold else "✅ Normal"
-        )
+        status = "💧 HIGH" if humidity_value > self.humidity_alert_threshold else "✅ Normal"
         return {
             "stream": "humidity",
             "original": data,
@@ -119,9 +117,7 @@ class SensorDataProcessor(BaseCoMapFunction):
     def map2(self, data):
         """处理压力数据（来自输入流2）"""
         pressure_value = data["value"]
-        status = (
-            "⚡ HIGH" if pressure_value > self.pressure_alert_threshold else "✅ Normal"
-        )
+        status = "⚡ HIGH" if pressure_value > self.pressure_alert_threshold else "✅ Normal"
         return {
             "stream": "pressure",
             "original": data,
@@ -180,9 +176,7 @@ def main():
     connected_sensors = temp_stream.connect(humidity_stream).connect(pressure_stream)
 
     # 使用CoMap分别处理每种传感器数据
-    connected_sensors.comap(SensorDataProcessor).sink(
-        SensorSink, name="AdvancedProcessor"
-    )
+    connected_sensors.comap(SensorDataProcessor).sink(SensorSink, name="AdvancedProcessor")
 
     # 示例2：简单的类型特定格式化
     print("📝 Example 2: Simple Type-Specific Formatting")

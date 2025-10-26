@@ -32,9 +32,7 @@ class RobustBuildExtensions(build_ext):
         # 检查构建依赖
         if not self._check_build_dependencies():
             print("⚠️  缺少构建依赖，跳过C扩展编译")
-            print(
-                "💡 安装提示：sudo apt-get install build-essential cmake 或 brew install cmake"
-            )
+            print("💡 安装提示：sudo apt-get install build-essential cmake 或 brew install cmake")
             self._create_stub_modules()
             return
 
@@ -72,9 +70,7 @@ class RobustBuildExtensions(build_ext):
         print("🔧 创建C扩展存根模块...")
 
         # sage_db存根
-        sage_db_python = (
-            Path(__file__).parent / "src/sage/middleware/components/sage_db/python"
-        )
+        sage_db_python = Path(__file__).parent / "src/sage/middleware/components/sage_db/python"
         sage_db_python.mkdir(parents=True, exist_ok=True)
 
         if not (sage_db_python / "_sage_db.py").exists():
@@ -99,9 +95,7 @@ SageDb = SageDbStub
             (sage_db_python / "_sage_db.py").write_text(stub_content)
 
         # sage_flow存根
-        sage_flow_python = (
-            Path(__file__).parent / "src/sage/middleware/components/sage_flow/python"
-        )
+        sage_flow_python = Path(__file__).parent / "src/sage/middleware/components/sage_flow/python"
         sage_flow_python.mkdir(parents=True, exist_ok=True)
 
         if not (sage_flow_python / "_sage_flow.py").exists():
@@ -164,9 +158,7 @@ SageFlow = SageFlowStub
 
     def build_sage_flow(self):
         """编译 sage_flow 组件"""
-        sage_flow_dir = (
-            Path(__file__).parent / "src/sage/middleware/components/sage_flow"
-        )
+        sage_flow_dir = Path(__file__).parent / "src/sage/middleware/components/sage_flow"
 
         if not sage_flow_dir.exists():
             print("⚠️  sage_flow 目录不存在，跳过构建")

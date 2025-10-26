@@ -3,6 +3,7 @@ Tests for PipelineBuilder - Visual Pipeline to SAGE Pipeline conversion
 """
 
 import pytest
+
 from sage.studio.models import (  # type: ignore[import-not-found]
     VisualConnection,
     VisualNode,

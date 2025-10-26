@@ -41,7 +41,7 @@ def load_knowledge_to_milvus(config):
     splitter = CharacterSplitter({"separator": "\n\n"})
     chunks = splitter.execute(document)
     print(f"分块数: {len(chunks)}")
-    
+
     print("初始化Milvus...")
     milvus_backend = MilvusDenseRetriever(config)
     milvus_backend.add_documents(chunks)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     config_path = 'config_dense_milvus.yaml'
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-    
+
     config = load_config(config_path)
     result = load_knowledge_to_milvus(config["retriever"])
     if result:
@@ -121,7 +121,7 @@ def load_config(path):
     return config
 
 def pipeline_run():
-    """    
+    """  
     创建并运行 Milvus 专用 RAG 数据处理管道
 
     Args:
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     config_path = './examples/config/config_dense_milvus.yaml'
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-    
+
     config = load_config(config_path)
 
     print(config)
@@ -172,9 +172,9 @@ if __name__ == '__main__':
             print("请确保知识库文件存在于指定路径")
         else:
             print(f"找到知识库文件: {knowledge_file}")
-    
+
     print("开始运行 Milvus 稠密向量检索管道...")
-    pipeline_run() 
+    pipeline_run()
 ```
 配置文件如下：
 ```yaml
@@ -270,7 +270,7 @@ def load_knowledge_to_milvus(config):
     splitter = CharacterSplitter({"separator": "\n\n"})
     chunks = splitter.execute(document)
     print(f"分块数: {len(chunks)}")
-    
+
     print("初始化Milvus...")
     milvus_backend = MilvusSparseRetriever(config)
     milvus_backend.add_documents(chunks)
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     config_path = 'config_sparse_milvus.yaml'
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-    
+
     config = load_config(config_path)
     result = load_knowledge_to_milvus(config["retriever"])
     if result:
@@ -337,7 +337,7 @@ def load_config(path):
     return config
 
 def pipeline_run():
-    """    
+    """  
     创建并运行 Milvus 专用 RAG 数据处理管道
 
     Args:
@@ -373,7 +373,7 @@ if __name__ == '__main__':
     config_path = './config_sparse_milvus.yaml'
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-    
+
     config = load_config(config_path)
 
     print(config)
@@ -386,9 +386,9 @@ if __name__ == '__main__':
             print("请确保知识库文件存在于指定路径")
         else:
             print(f"找到知识库文件: {knowledge_file}")
-    
+
     print("开始运行 Milvus 稠密向量检索管道...")
-    pipeline_run() 
+    pipeline_run()
 ```
 config_sparse_milvus.yaml配置文件如下：
 ```yaml

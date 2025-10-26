@@ -192,7 +192,7 @@ class ConversationalRetriever:
     def __init__(self, base_retriever):
         self.retriever = base_retriever
         self.conversation_history = []
-    
+
     def retrieve_with_context(self, current_query):
         # 构建上下文增强查询
         if self.conversation_history:
@@ -200,13 +200,13 @@ class ConversationalRetriever:
             enhanced_query = f"上下文: {context} 当前问题: {current_query}"
         else:
             enhanced_query = current_query
-        
+
         # 执行检索
         results = self.retriever.execute(enhanced_query)
-        
+
         # 更新对话历史
         self.conversation_history.append(current_query)
-        
+
         return results
 
 # 使用对话式检索器
@@ -261,11 +261,11 @@ class CachedRetriever:
     def __init__(self, base_retriever, cache_size=1000):
         self.retriever = base_retriever
         self.cache_size = cache_size
-    
+
     @lru_cache(maxsize=1000)
     def _cached_retrieve(self, query_hash):
         return self.retriever.execute(query_hash)
-    
+
     def execute(self, query):
         # 生成查询哈希
         if isinstance(query, str):
@@ -273,7 +273,7 @@ class CachedRetriever:
         else:
             query_str = str(sorted(query.items()))
             query_hash = hashlib.md5(query_str.encode()).hexdigest()
-        
+
         return self._cached_retrieve(query_hash)
 
 # 使用缓存检索器
@@ -287,17 +287,17 @@ from typing import List
 
 def parallel_retrieve(retriever, queries: List[str], max_workers=4):
     """并行处理多个检索查询"""
-    
+
     def single_retrieve(query):
         return retriever.execute(query)
-    
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         # 提交所有查询
         future_to_query = {
-            executor.submit(single_retrieve, query): query 
+            executor.submit(single_retrieve, query): query
             for query in queries
         }
-        
+
         # 收集结果
         results = {}
         for future in concurrent.futures.as_completed(future_to_query):
@@ -308,7 +308,7 @@ def parallel_retrieve(retriever, queries: List[str], max_workers=4):
             except Exception as exc:
                 print(f"查询 '{query}' 生成异常: {exc}")
                 results[query] = None
-    
+
     return results
 
 # 并行检索示例
@@ -345,17 +345,17 @@ class RetrievalQualityMonitor:
             "avg_relevance_score": 0.0,
             "zero_results_count": 0
         }
-    
+
     def monitored_retrieve(self, query):
         results = self.retriever.execute(query)
-        
+
         # 更新指标
         self.metrics["queries_count"] += 1
         if not results.get("results"):
             self.metrics["zero_results_count"] += 1
-        
+
         return results
-    
+
     def get_stats(self):
         if self.metrics["queries_count"] > 0:
             zero_rate = self.metrics["zero_results_count"] / self.metrics["queries_count"]
@@ -377,7 +377,7 @@ class RobustRetriever:
     def __init__(self, primary_retriever, fallback_method=None):
         self.primary = primary_retriever
         self.fallback = fallback_method
-    
+
     def execute(self, query, max_retries=3):
         for attempt in range(max_retries):
             try:
@@ -392,12 +392,12 @@ class RobustRetriever:
                         return self.fallback(query)
                     else:
                         return {"results": [], "error": str(e)}
-        
+
         return {"results": [], "error": "All retrieval attempts failed"}
 
 # 创建健壮的检索器
 robust_retriever = RobustRetriever(
-    retriever, 
+    retriever,
     fallback_method=lambda q: {"results": [f"未找到关于'{q}'的相关信息"]}
 )
 ```

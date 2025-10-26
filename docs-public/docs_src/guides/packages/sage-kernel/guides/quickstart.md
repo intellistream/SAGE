@@ -58,7 +58,7 @@ env = LocalEnvironment("text_processing")
 # 模拟文本数据
 sentences = env.from_batch([
     "Hello SAGE Kernel",
-    "Stream processing made easy", 
+    "Stream processing made easy",
     "Build powerful data pipelines",
     "Real-time analytics with Python"
 ])
@@ -87,7 +87,7 @@ class SensorDataSource(SourceFunction[dict]):
     def __init__(self, sensor_id: str):
         self.sensor_id = sensor_id
         self.running = True
-    
+
     def run(self, ctx: SourceContext[dict]):
         while self.running:
             # 模拟传感器数据
@@ -99,7 +99,7 @@ class SensorDataSource(SourceFunction[dict]):
             }
             ctx.emit(data)
             time.sleep(1)  # 每秒产生一条数据
-    
+
     def cancel(self):
         self.running = False
 
@@ -215,7 +215,7 @@ class PageViewExtractor(MapFunction[dict, tuple]):
 
 def main():
     env = LocalEnvironment("log_analysis")
-    
+
     # 模拟日志数据
     log_lines = env.from_batch([
         '{"timestamp": "2025-01-01T10:00:00", "url": "/home", "status": 200, "user_id": "user1"}',
@@ -225,7 +225,7 @@ def main():
         'invalid log line',
         '{"timestamp": "2025-01-01T10:04:00", "url": "/home", "status": 200, "user_id": "user2"}'
     ])
-    
+
     # 日志处理管道
     page_views = (log_lines
         .map(LogParser())                    # 解析日志
@@ -236,7 +236,7 @@ def main():
         .reduce(lambda a, b: (a[0], a[1] + b[1]))  # 统计访问次数
         .map(lambda pair: f"Page {pair[0]}: {pair[1]} views")
         .sink(print))
-    
+
     env.submit()
 
 if __name__ == "__main__":
@@ -301,17 +301,17 @@ class TimedMapFunction(MapFunction[str, str]):
     def __init__(self):
         self.total_time = 0
         self.count = 0
-    
+
     def map(self, value: str) -> str:
         start = time.time()
         result = expensive_operation(value)
         self.total_time += time.time() - start
         self.count += 1
-        
+
         if self.count % 1000 == 0:
             avg_time = self.total_time / self.count
             print(f"Processed {self.count} items, avg time: {avg_time:.3f}s")
-        
+
         return result
 ```
 

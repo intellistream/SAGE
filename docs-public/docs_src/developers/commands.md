@@ -494,12 +494,12 @@ my-command:
 ```bash
 case "$1" in
     # ... 现有命令 ...
-    
+
     my-command)
         echo -e "${BLUE}🚀 运行自定义命令...${NC}"
         sage dev my-tool --option value "${@:2}"
         ;;
-    
+
     # ... 其他命令 ...
 esac
 ```

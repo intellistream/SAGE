@@ -48,13 +48,13 @@ flowchart TD
     B --> C[质量过滤 Filter]
     C --> D[向量计算 Map]
     D --> E[结果输出 Sink]
-    
+
     subgraph 数据驱动执行
         F[数据到达] --> G[触发处理]
         G --> H[异步传递]
         H --> I[继续下一阶段]
     end
-    
+
     style F fill:#e1f5fe
     style G fill:#bbdefb
     style H fill:#90caf9
@@ -74,7 +74,7 @@ classDiagram
         +open()
         +close()
     }
-    
+
     class DataStream {
         -List~BaseOperator~ operators
         -Map~String, Object~ config
@@ -83,24 +83,24 @@ classDiagram
         +keyby(key_selector)
         +sink(sink_func)
     }
-    
+
     class SourceOperator {
         +read()
         +assign_timestamps()
         +create_watermarks()
     }
-    
+
     class TransformOperator {
         +process_element()
         +on_timer()
     }
-    
+
     class SinkOperator {
         +write()
         +flush()
         +commit()
     }
-    
+
     BaseOperator <|-- SourceOperator
     BaseOperator <|-- TransformOperator
     BaseOperator <|-- SinkOperator
@@ -118,14 +118,14 @@ class KafkaSourceOperator(SourceOperator):
             topics=topics,
             group_id=group_id
         )
-    
+
     def read(self):
         """从Kafka持续读取数据"""
         while self.running:
             records = self.consumer.poll(timeout_ms=100)
             for record in records:
                 yield record.value
-    
+
     def assign_timestamps(self, record):
         """分配时间戳用于事件时间处理"""
         return record.timestamp if hasattr(record, 'timestamp') else time.time()
@@ -138,7 +138,7 @@ class SmartMapOperator(TransformOperator):
         self.user_func = user_func
         self.config = config or {}
         self.metrics = {}  # 性能指标收集
-        
+
     def process_element(self, value, ctx):
         start_time = time.time()
         try:
@@ -161,13 +161,13 @@ class ElasticsearchSinkOperator(SinkOperator):
         self.index_name = index_name
         self.batch_size = batch_size
         self.buffer = []
-        
+
     def write(self, record):
         """批量写入优化"""
         self.buffer.append(record)
         if len(self.buffer) >= self.batch_size:
             self.flush()
-            
+
     def flush(self):
         """批量提交数据"""
         if self.buffer:
@@ -222,15 +222,15 @@ stateful_pipeline = (env
 class UserSessionAggregator(MapFunction):
     def __init__(self):
         self.session_state = None
-        
+
     def open(self, context):
         # 初始化状态描述符
         state_descriptor = ValueStateDescriptor(
-            "user_session", 
+            "user_session",
             Types.POJO(UserSession)
         )
         self.session_state = context.get_keyed_state(state_descriptor)
-        
+
     def map(self, event):
         current_session = self.session_state.value() or UserSession(event.user_id)
         current_session.update(event)
@@ -244,13 +244,13 @@ class UserSessionAggregator(MapFunction):
 llm_pipeline = (env
     .from_source(QuerySource("user-queries"))
     .map(QueryPreprocessor(), name="query-preprocessor")
-    .map(EmbeddingGenerator("model/embedding"), 
+    .map(EmbeddingGenerator("model/embedding"),
          name="embedding-generator")
-    .map(ContextRetriever("vector-db"), 
+    .map(ContextRetriever("vector-db"),
          name="context-retriever")
-    .map(LLMInferenceEngine("model/llm"), 
+    .map(LLMInferenceEngine("model/llm"),
          name="llm-inference")
-    .map(ResponsePostprocessor(), 
+    .map(ResponsePostprocessor(),
          name="response-postprocessor")
     .sink(ResponseSink("response-topic"))
 )
@@ -260,11 +260,11 @@ class LLMInferenceEngine(MapFunction):
         self.model_path = model_path
         self.model = None
         self.batch_size = 32
-        
+
     def open(self, context):
         # 延迟加载模型
         self.model = load_llm_model(self.model_path)
-        
+
     def map(self, input_batch):
         # 批量推理优化
         if isinstance(input_batch, list):
@@ -277,13 +277,13 @@ class LLMInferenceEngine(MapFunction):
 
 ### 执行优化技术对比
 
-| 优化技术 | 适用场景 | 
+| 优化技术 | 适用场景 |
 |---------|---------|---------|
-| **算子融合** | 相邻无状态算子 | 
-| **数据本地化** | 数据密集型应用 | 
-| **批量处理** | 高吞吐场景 | 
-| **异步I/O** | I/O密集型应用 | 
-| **状态分区** | 有状态计算 | 
+| **算子融合** | 相邻无状态算子 |
+| **数据本地化** | 数据密集型应用 |
+| **批量处理** | 高吞吐场景 |
+| **异步I/O** | I/O密集型应用 |
+| **状态分区** | 有状态计算 |
 
 ### 优化配置示例
 ```python
@@ -321,19 +321,19 @@ from opentelemetry.sdk.trace import TracerProvider
 def setup_tracing():
     tracer_provider = TracerProvider()
     trace.set_tracer_provider(tracer_provider)
-    
+
     # 添加导出器
     otlp_exporter = OTLPSpanExporter()
     span_processor = BatchSpanProcessor(otlp_exporter)
     tracer_provider.add_span_processor(span_processor)
-    
+
     return trace.get_tracer("sage-pipeline")
 
 class TracedOperator(BaseOperator):
     def __init__(self, name):
         self.tracer = setup_tracing()
         self.span_name = name
-        
+
     def process(self, data):
         with self.tracer.start_as_current_span(self.span_name) as span:
             span.set_attribute("data.size", len(str(data)))
@@ -355,7 +355,7 @@ monitoring:
         port: 9091
     system_metrics: true
     user_metrics: true
-    
+
   logging:
     level: INFO
     format: json
@@ -363,7 +363,7 @@ monitoring:
       - type: elasticsearch
         hosts: ["http://elk:9200"]
         index: "sage-logs"
-        
+
   alerting:
     rules:
       - metric: throughput
@@ -418,11 +418,11 @@ class EncryptedSinkOperator(SinkOperator):
     def __init__(self, inner_sink, encryption_key):
         self.inner_sink = inner_sink
         self.encryption_key = encryption_key
-        
+
     def write(self, record):
         encrypted_data = self.encrypt(record, self.encryption_key)
         self.inner_sink.write(encrypted_data)
-        
+
     def encrypt(self, data, key):
         # 实现加密逻辑
         cipher = AES.new(key, AES.MODE_GCM)

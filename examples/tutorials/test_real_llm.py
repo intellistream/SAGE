@@ -50,9 +50,7 @@ def test_real_llm_pipeline_generation():
         from sage.tools import templates
         from sage.tools.cli.commands import pipeline as pipeline_builder
         from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
-        from sage.tools.cli.commands.pipeline_knowledge import (
-            get_default_knowledge_base,
-        )
+        from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
 
         console.print("✓ 模块导入成功\n")
     except Exception as exc:
@@ -87,9 +85,7 @@ def test_real_llm_pipeline_generation():
         # 初始化知识库（简化版，不下载）
         console.print("  • 初始化知识库...")
         try:
-            knowledge_base = get_default_knowledge_base(
-                max_chunks=300, allow_download=False
-            )
+            knowledge_base = get_default_knowledge_base(max_chunks=300, allow_download=False)
             console.print("    ✓ 知识库初始化成功")
         except Exception as exc:
             console.print(f"    ⚠ 知识库初始化失败，将继续（不影响测试）: {exc}")
@@ -132,9 +128,7 @@ def test_real_llm_pipeline_generation():
         template_matches = templates.match_templates(requirements, top_k=3)
         console.print(f"✓ 找到 {len(template_matches)} 个相关模板:")
         for idx, match in enumerate(template_matches, 1):
-            console.print(
-                f"  [{idx}] {match.template.title} (匹配度: {match.score:.2f})"
-            )
+            console.print(f"  [{idx}] {match.template.title} (匹配度: {match.score:.2f})")
         console.print()
     except Exception as exc:
         console.print(f"[yellow]⚠ 模板匹配失败: {exc}[/yellow]\n")
@@ -162,9 +156,7 @@ def test_real_llm_pipeline_generation():
             theme="monokai",
             line_numbers=True,
         )
-        console.print(
-            Panel(syntax, title="LLM 生成的 Pipeline 配置", border_style="green")
-        )
+        console.print(Panel(syntax, title="LLM 生成的 Pipeline 配置", border_style="green"))
     except Exception as exc:
         console.print(f"[yellow]显示配置时出错: {exc}[/yellow]")
         console.print(plan)
@@ -186,10 +178,7 @@ def test_real_llm_pipeline_generation():
 
     # 检查 Templates 是否被使用
     console.print("\n[bold]步骤 10: 验证 Templates 被使用[/bold]")
-    if (
-        hasattr(generator, "_last_template_contexts")
-        and generator._last_template_contexts
-    ):
+    if hasattr(generator, "_last_template_contexts") and generator._last_template_contexts:
         console.print(
             f"[green]✓ Templates 已被传递给 LLM ({len(generator._last_template_contexts)} 个模板)[/green]"
         )

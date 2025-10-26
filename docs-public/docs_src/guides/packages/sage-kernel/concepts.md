@@ -88,17 +88,17 @@ flowchart LR
     B --> C[Filter转换]
     C --> D[FlatMap转换]
     D --> E[转换后数据流]
-    
+
     subgraph Map转换
         B1[元素类型转换]
         B2[数据 enrichment]
     end
-    
+
     subgraph Filter转换
         C1[条件过滤]
         C2[数据清洗]
     end
-    
+
     subgraph FlatMap转换
         D1[一对多映射]
         D2[数据拆分]
@@ -139,7 +139,7 @@ flowchart LR
     C --> E[延迟事件]
     D --> F[窗口计算]
     E --> G[旁路输出/丢弃]
-    
+
     subgraph 窗口触发逻辑
         H[水位线到达窗口结束时间] --> I[触发窗口计算]
         J[允许延迟时间] --> K[延迟触发机制]
@@ -203,7 +203,7 @@ flowchart TD
     B --> C[所有算子快照状态]
     C --> D[状态持久化存储]
     D --> E[检查点完成]
-    
+
     F[故障发生] --> G[从最近检查点恢复]
     G --> H[重置数据源位置]
     H --> I[恢复算子状态]

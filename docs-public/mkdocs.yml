@@ -73,11 +73,11 @@ extra:
 
 nav:
   - Home: index.md
-  
+
   - Getting Started:
     - Installation: getting-started/installation.md
     - Quickstart: getting-started/quickstart.md
-  
+
   - Tutorials:
     - Basic:
       - Streaming 101: tutorials/basic/streaming-101.md
@@ -89,7 +89,7 @@ nav:
         - Future: tutorials/basic/operators/hello_future_world.md
         - Join: tutorials/basic/operators/hello_join_world.md
     - Advanced: tutorials/advanced/
-  
+
   - Concepts:
     - Architecture:
       - Overview: concepts/architecture/overview.md
@@ -98,7 +98,7 @@ nav:
         - sage-libs Restructuring: concepts/architecture/design-decisions/sage-libs-restructuring.md
         - RPC Queue Refactoring: concepts/architecture/design-decisions/rpc-queue-refactoring.md
         - L2 Platform Layer: concepts/architecture/design-decisions/l2-platform-layer.md
-  
+
   - Guides:
     - Packages:
       - sage-common:
@@ -159,9 +159,9 @@ nav:
         - Pipeline Builder: guides/packages/sage-tools/pipeline_builder.md
     - Deployment: guides/deployment/
     - Best Practices: guides/best-practices/
-  
+
   - API Reference: api-reference/
-  
+
   - Developers:
     - Contributing: developers/commands.md
     - Development Setup: developers/development-setup.md
@@ -169,7 +169,7 @@ nav:
     - Dev Notes:
       - Overview: dev-notes/index.md
       - Package Architecture: dev-notes/package-architecture.md
-  
+
   - Community:
     - Overview: community/README.md
     - Community Guidelines: community/community.md

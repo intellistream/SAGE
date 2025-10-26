@@ -41,9 +41,7 @@ def config_info():
 
 
 @app.command("init")
-def init_config(
-    force: bool = typer.Option(False, "--force", "-f", help="强制覆盖现有配置")
-):
+def init_config(force: bool = typer.Option(False, "--force", "-f", help="强制覆盖现有配置")):
     """初始化SAGE配置文件"""
     from ...management.config_manager import get_config_manager
 

@@ -35,11 +35,11 @@ class HelloBatch(BatchFunction):
         super().__init__()
         self.counter = 0
         # 生成10个数据包
-        self.max_count = 10     
-    
+        self.max_count = 10  
+
     def execute(self):
         if self.counter >= self.max_count:
-            return None         
+            return None  
         # 返回None表示批处理完成
         self.counter += 1
         return f"Hello, World! #{self.counter}"
@@ -56,7 +56,7 @@ class PrintSink(SinkFunction):
 
 def main():
     env = LocalEnvironment("Hello_World")
-    
+
     # 定义数据处理逻辑，连接算子组成 Pipeline
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)
 
@@ -84,11 +84,11 @@ class HelloBatch(BatchFunction):
     def __init__(self):
         super().__init__()
         self.counter = 0
-        self.max_count = 10 
+        self.max_count = 10
 
     def execute(self):
         if self.counter >= self.max_count:
-            return None 
+            return None
         self.counter += 1
         return f"Hello, World! #{self.counter}"
 ```
@@ -137,7 +137,7 @@ class PrintSink(SinkFunction):
 ```python
 def main():
     env = LocalEnvironment("Hello_World")
-    
+
     # transformation：from_batch -> map -> sink
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)
 

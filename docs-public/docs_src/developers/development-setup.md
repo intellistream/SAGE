@@ -196,7 +196,7 @@ class TestYourFeature:
     def test_basic_functionality(self):
         obj = YourClass()
         assert obj.method() == expected_value
-    
+
     @pytest.mark.slow
     def test_slow_operation(self):
         # 标记慢速测试
@@ -328,7 +328,7 @@ gdb python
 
 **错误信息**：
 ```bash
-fatal: unable to access 'https://github.com/intellistream/SAGE-Pub.git/': 
+fatal: unable to access 'https://github.com/intellistream/SAGE-Pub.git/':
 Failed to connect to github.com port 443
 ```
 

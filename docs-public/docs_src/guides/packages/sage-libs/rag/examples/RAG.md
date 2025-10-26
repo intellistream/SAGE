@@ -98,20 +98,20 @@ RAG系统的运行分为两个独立且必需的阶段：**索引构建阶段**�
 def build_knowledge_index(config: dict) -> None:
     """
     阶段一：构建知识库向量索引（离线过程）
-    
+
     该函数必须在RAG查询之前运行，用于构建可检索的向量索引
-    
+
     Args:
         config: 包含knowledge_file和retriever配置的字典
     """
     print("=== 开始索引构建阶段 ===")
-    
+
     # 1. 加载原始文档
     print("步骤1: 加载原始文档...")
     loader = TextLoader(config["retriever"]["chroma"]["knowledge_file"])
     document = loader.load()
     print(f"✓ 文档加载完成，内容长度: {len(document['content']):,} 字符")
-    
+
     # 2. 文档分块处理
     print("步骤2: 文档分块处理...")
     splitter = CharacterSplitter({
@@ -121,17 +121,17 @@ def build_knowledge_index(config: dict) -> None:
     })
     chunks = splitter.execute(document)
     print(f"✓ 文档分块完成，共生成 {len(chunks)} 个文档块")
-    
+
     # 3. 构建向量索引
     print("步骤3: 构建向量索引...")
     print("  - 初始化嵌入模型...")
     print("  - 生成文档向量...")
     print("  - 建立索引结构...")
-    
+
     # 初始化检索器会自动触发索引构建过程
     retriever = ChromaRetriever(config["retriever"])
     print("✓ 向量索引构建完成")
-    
+
     # 4. 验证索引质量
     print("步骤4: 验证索引质量...")
     test_queries = [
@@ -139,7 +139,7 @@ def build_knowledge_index(config: dict) -> None:
         "SAGE框架的特点",
         "如何使用ChromaDB"
     ]
-    
+
     for i, test_query in enumerate(test_queries, 1):
         test_results = retriever.execute(test_query)
         if test_results['results']:
@@ -147,7 +147,7 @@ def build_knowledge_index(config: dict) -> None:
             print(f"  最佳匹配: {test_results['results'][0][:80]}...")
         else:
             print(f"⚠️ 测试查询{i}: '{test_query}' - 未找到相关文档")
-    
+
     print("=== 索引构建阶段完成 ===")
     print(f"索引存储位置: {config['retriever']['chroma']['persist_path']}")
     print("现在可以执行RAG查询流水线了！\n")
@@ -183,25 +183,25 @@ build_knowledge_index(rag_config)
 def execute_rag_pipeline(config: dict) -> None:
     """
     阶段二：执行RAG查询处理流水线（在线过程）
-    
+
     前提条件：必须已完成向量索引构建
-    
+
     Args:
         config: 完整的RAG系统配置
     """
     print("=== 开始RAG查询处理阶段 ===")
-    
+
     # 验证索引是否存在
     if not check_index_status(config):
         print("❌ 错误：未发现向量索引！")
         print("请先运行 build_knowledge_index() 构建索引")
         return
-    
+
     print("✓ 索引验证通过，启动RAG流水线...")
-    
+
     # 创建本地执行环境
     env = LocalEnvironment()
-    
+
     # 构建处理流水线
     pipeline = (
         env
@@ -211,19 +211,19 @@ def execute_rag_pipeline(config: dict) -> None:
         .map(OpenAIGenerator, config["generator"]["vllm"])   # 生成：LLM答案生成
         .sink(TerminalSink, config["sink"])                  # 输出：结果展示
     )
-    
+
     print("RAG流水线配置完成，开始处理查询...")
-    
+
     # 提交执行
     env.submit()
-    
+
     # 等待处理完成
     print("正在处理查询，请等待...")
     time.sleep(10)
-    
+
     # 清理资源
     env.close()
-    
+
     print("=== RAG查询处理完成 ===")
 ```
 
@@ -242,7 +242,7 @@ rag_config = {
         "batch_size": 32,                        # 批处理大小
         "shuffle": False                         # 是否随机打乱
     },
-    
+
     # 检索器配置
     "retriever": {
         "dimension": 384,                        # 向量维度
@@ -257,14 +257,14 @@ rag_config = {
             "knowledge_file": "data/knowledge_corpus.txt"  # 知识库文件
         }
     },
-    
+
     # 提示词配置
     "promptor": {
         "template_type": "qa",                   # 问答模板类型
         "include_context": True,                 # 包含检索上下文
         "max_context_length": 2000              # 最大上下文长度
     },
-    
+
     # 生成器配置
     "generator": {
         "vllm": {
@@ -277,7 +277,7 @@ rag_config = {
             "seed": 42                          # 随机种子
         }
     },
-    
+
     # 输出配置
     "sink": {
         "format": "json",                       # 输出格式
@@ -299,7 +299,7 @@ def execute_rag_with_hf_model(config: dict) -> None:
     使用HuggingFace本地模型的RAG流水线
     """
     print("=== 启动本地模型RAG流水线 ===")
-    
+
     env = LocalEnvironment()
     pipeline = (
         env
@@ -310,7 +310,7 @@ def execute_rag_with_hf_model(config: dict) -> None:
         .map(HFGenerator, config["generator"]["hf"])    # 使用HF生成器
         .sink(TerminalSink, config["sink"])
     )
-    
+
     env.submit()
     time.sleep(10)
     env.close()

@@ -3,6 +3,7 @@ import os
 import time
 
 from jinja2 import Template
+
 from sage.kernel.operators import MapOperator
 
 QA_prompt_template_str = """Instruction:
@@ -92,9 +93,7 @@ class QAPromptor(MapOperator):
         self.enable_profile = enable_profile
 
         # 使用配置文件中的模板，如果没有则使用默认模板
-        self.use_short_answer = config.get(
-            "use_short_answer", False
-        )  # 是否使用短答案模式
+        self.use_short_answer = config.get("use_short_answer", False)  # 是否使用短答案模式
 
         if "template" in config:
             from jinja2 import Template
@@ -122,9 +121,7 @@ class QAPromptor(MapOperator):
                     )
                 else:
                     # 使用默认路径
-                    self.data_base_path = os.path.join(
-                        os.getcwd(), ".sage_states", "promptor_data"
-                    )
+                    self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "promptor_data")
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -243,16 +240,13 @@ class QAPromptor(MapOperator):
             if external_corpus:
                 system_prompt = {
                     "role": "system",
-                    "content": self.prompt_template.render(
-                        external_corpus=external_corpus
-                    ),
+                    "content": self.prompt_template.render(external_corpus=external_corpus),
                 }
             else:
                 system_prompt = {
                     "role": "system",
                     "content": (
-                        "You are a helpful AI assistant. "
-                        "Answer the user's questions accurately."
+                        "You are a helpful AI assistant. " "Answer the user's questions accurately."
                     ),
                 }
 
@@ -273,9 +267,7 @@ class QAPromptor(MapOperator):
             return [original_data, prompt]
 
         except Exception as e:
-            self.logger.error(
-                "QAPromptor error: %s | input=%s", e, getattr(data, "data", "")
-            )
+            self.logger.error("QAPromptor error: %s | input=%s", e, getattr(data, "data", ""))
             fallback = [
                 {"role": "system", "content": "System encountered an error."},
                 {

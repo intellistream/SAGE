@@ -4,7 +4,7 @@
 
 !!! note "定位"
     `MCPRegistry` 是 **MCP 风格工具** 的**进程内注册与调用**中心。Planner 产出的步骤（`{"type":"tool", ...}`）会交给它执行。
-    
+
     - **输入**：符合 MCP 约定的工具对象（至少包含 `name/description/input_schema/call(arguments)`）
     - **能力**：注册、列举（供 Planner 使用）、按名调用
     - **不包含**：远程传输协议（如 JSON-RPC over stdio/websocket）与权限/沙箱；若需远程工具，需写 **Adapter** 封装成同一接口

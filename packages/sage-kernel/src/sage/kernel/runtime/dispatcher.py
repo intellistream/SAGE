@@ -139,9 +139,7 @@ class Dispatcher:
             self.logger.info("🔍 HeartbeatMonitor started")
 
         except Exception as e:
-            self.logger.error(
-                f"❌ Failed to initialize HeartbeatMonitor: {e}", exc_info=True
-            )
+            self.logger.error(f"❌ Failed to initialize HeartbeatMonitor: {e}", exc_info=True)
 
     def receive_stop_signal(self):
         """
@@ -195,9 +193,7 @@ class Dispatcher:
 
         # 检查是否所有节点都已停止
         if len(self.tasks) == 0:
-            self.logger.info(
-                "All computation nodes stopped, batch processing completed"
-            )
+            self.logger.info("All computation nodes stopped, batch processing completed")
             self.is_running = False
 
             # 当所有计算节点停止后，也应该清理服务
@@ -209,9 +205,7 @@ class Dispatcher:
 
             return True
         else:
-            self.logger.info(
-                f"Remaining nodes: {len(self.tasks)}, services: {len(self.services)}"
-            )
+            self.logger.info(f"Remaining nodes: {len(self.tasks)}, services: {len(self.services)}")
             return False
 
     def _notify_join_operators_on_source_stop(self, source_node_name: str):
@@ -270,13 +264,9 @@ class Dispatcher:
                         self.logger.debug(f"Cleaning up service task: {service_name}")
                         service_task.cleanup()
 
-                    self.logger.info(
-                        f"Service task '{service_name}' cleaned up successfully"
-                    )
+                    self.logger.info(f"Service task '{service_name}' cleaned up successfully")
                 except Exception as e:
-                    self.logger.error(
-                        f"Error cleaning up service task {service_name}: {e}"
-                    )
+                    self.logger.error(f"Error cleaning up service task {service_name}: {e}")
 
         # 清空服务字典
         self.services.clear()
@@ -321,9 +311,7 @@ class Dispatcher:
                 task.start_running()
                 self.logger.debug(f"Started node: {node_name}")
             except Exception as e:
-                self.logger.error(
-                    f"Failed to start node {node_name}: {e}", exc_info=True
-                )
+                self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
 
         self.logger.info(
             f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks"
@@ -406,9 +394,7 @@ class Dispatcher:
                 # 1. 获取调度决策
                 decision = self.scheduler.make_service_decision(service_node)
 
-                self.logger.debug(
-                    f"Service scheduling decision for '{service_name}': {decision}"
-                )
+                self.logger.debug(f"Service scheduling decision for '{service_name}': {decision}")
 
                 # 2. 根据决策等待（如果需要延迟）
                 if decision.delay > 0:
@@ -446,9 +432,7 @@ class Dispatcher:
                 # 1. 获取调度决策
                 decision = self.scheduler.make_decision(graph_node)
 
-                self.logger.debug(
-                    f"Task scheduling decision for '{node_name}': {decision}"
-                )
+                self.logger.debug(f"Task scheduling decision for '{node_name}': {decision}")
 
                 # 2. 根据决策等待（如果需要延迟调度）
                 if decision.delay > 0:
@@ -566,9 +550,7 @@ class Dispatcher:
                             service_task.cleanup()
                         self.logger.debug(f"Cleaned up service task: {service_name}")
                     except Exception as e:
-                        self.logger.error(
-                            f"Error cleaning up service task {service_name}: {e}"
-                        )
+                        self.logger.error(f"Error cleaning up service task {service_name}: {e}")
 
             # 清空任务和服务字典
             self.tasks.clear()
@@ -659,11 +641,7 @@ class Dispatcher:
 
                 max_wait = 5.0
                 waited = 0.0
-                while (
-                    hasattr(task, "is_running")
-                    and task.is_running
-                    and waited < max_wait
-                ):
+                while hasattr(task, "is_running") and task.is_running and waited < max_wait:
                     time.sleep(0.1)
                     waited += 0.1
 
@@ -721,9 +699,7 @@ class Dispatcher:
             return True
 
         except Exception as e:
-            self.logger.error(
-                f"❌ Failed to restart task {task_id}: {e}", exc_info=True
-            )
+            self.logger.error(f"❌ Failed to restart task {task_id}: {e}", exc_info=True)
             return False
 
     def restart_task_with_state(self, task_id: str, state: dict) -> bool:

@@ -192,10 +192,10 @@ K = TypeVar('K')
 class TypedDataStream(Generic[T]):
     def map(self, func: Callable[[T], U]) -> 'TypedDataStream[U]':
         """类型安全的map操作"""
-        
+
     def filter(self, predicate: Callable[[T], bool]) -> 'TypedDataStream[T]':
         """类型安全的filter操作"""
-        
+
     def key_by(self, key_selector: Callable[[T], K]) -> 'KeyedStream[T, K]':
         """类型安全的keyBy操作"""
 ```

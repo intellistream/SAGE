@@ -45,9 +45,9 @@
     left: 0;
     right: 0;
     height: 200px;
-    background: linear-gradient(180deg, 
-        rgba(12, 18, 32, 0.05) 0%, 
-        rgba(248, 250, 252, 0) 50%, 
+    background: linear-gradient(180deg,
+        rgba(12, 18, 32, 0.05) 0%,
+        rgba(248, 250, 252, 0) 50%,
         rgba(248, 250, 252, 1) 100%);
     pointer-events: none;
 }
@@ -416,7 +416,7 @@
 
 .why-card:hover {
     transform: translateY(-12px) scale(1.02);
-    box-shadow: 
+    box-shadow:
         0 25px 50px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(59, 130, 246, 0.1),
         0 0 20px rgba(59, 130, 246, 0.1);
@@ -1235,42 +1235,42 @@
         grid-template-columns: 1fr;
         gap: 2rem;
     }
-    
+
     .dataflow-diagram {
         flex-direction: column;
     }
-    
+
     .flow-arrow {
         transform: rotate(90deg);
     }
-    
+
     .process-steps {
         flex-direction: column;
     }
-    
+
     .process-arrow {
         transform: rotate(90deg);
     }
-    
+
     .examples-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .why-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .contribute-ways {
         grid-template-columns: 1fr;
     }
-    
+
     /* 移动端团队照片适配 */
     .team-photo {
         width: 120px;      /* 移动端适当缩小 */
         top: 1.5rem;
         right: 1.5rem;
     }
-    
+
     .team-card {
         padding: 2rem 1.5rem 1.5rem; /* 调整内边距 */
     }
@@ -1302,7 +1302,7 @@
     .example-card .auto-scaling-container {
         height: 280px;
     }
-    
+
     .example-card .example-video {
         margin: 0.5rem 1rem;
     }
@@ -1323,18 +1323,18 @@
     .example-card .auto-scaling-container {
         height: 240px;
     }
-    
+
     .example-card .example-video {
         margin: 0.5rem;
     }
-    
+
     /* 小屏幕设备团队照片适配 */
     .team-photo {
         width: 100px;       /* 小屏幕进一步缩小 */
         top: 1rem;
         right: 1rem;
     }
-    
+
     .team-card {
         padding: 1.5rem 1rem 1rem; /* 进一步调整内边距 */
     }
@@ -1860,7 +1860,7 @@
         padding: 2rem 1rem 4rem;
         min-height: 750px; /* 优化高度以容纳完整的pipeline */
     }
-    
+
     /* 整体布局以pipeline-flow为中心设计 */
     .pipeline-building-content {
         padding: 2rem 0.5rem;
@@ -1875,7 +1875,7 @@
         width: 100%;
         box-sizing: border-box;
     }
-    
+
     /* pipeline-top-section 放在左边 */
     .pipeline-top-section {
         flex-direction: column;
@@ -1890,7 +1890,7 @@
         z-index: 5;
         box-sizing: border-box;
     }
-    
+
     /* pipeline-bottom-section 放在右边 */
     .pipeline-bottom-section {
         flex-direction: column;
@@ -1905,7 +1905,7 @@
         z-index: 5;
         box-sizing: border-box;
     }
-    
+
     .step-explanation {
         width: 100% !important;
         min-width: 0 !important;
@@ -1918,11 +1918,11 @@
         justify-content: center; /* 垂直居中内容 */
         min-height: 180px; /* 优化最小高度 */
     }
-    
+
     .step-explanation.left {
         text-align: left; /* 保持左对齐 */
     }
-    
+
     /* 步骤卡片在移动端的样式调整 */
     .step-card.compact {
         padding: 1.2rem 1rem; /* 优化内边距 */
@@ -1938,18 +1938,18 @@
         overflow: visible; /* 确保连接线可见 */
         margin-bottom: 0.5rem; /* 添加底部间距 */
     }
-    
+
     .step-card.compact .step-info h3 {
         font-size: 0.95rem; /* 优化标题字体 */
         margin-bottom: 0.5rem;
         line-height: 1.2;
     }
-    
+
     .step-card.compact .step-info p {
         font-size: 0.78rem; /* 优化正文字体 */
         line-height: 1.3;
     }
-    
+
     .step-number {
         width: 24px; /* 优化步骤数字圆圈大小 */
         height: 24px;
@@ -1957,7 +1957,7 @@
         top: -6px;
         right: -6px;
     }
-    
+
     /* Pipeline 优化定位和尺寸 */
     .simple-pipeline {
         margin: 0;
@@ -1974,7 +1974,7 @@
         overflow: visible;
         box-sizing: border-box;
     }
-    
+
     .pipeline-flow {
         flex-direction: column;
         gap: 0.4rem; /* 优化间距确保节点紧凑排列 */
@@ -1986,7 +1986,7 @@
         display: flex;
         box-sizing: border-box;
     }
-    
+
     .pipeline-arrow {
         transform: rotate(90deg);
         margin: 0; /* 移除额外间距 */
@@ -1995,12 +1995,12 @@
         line-height: 1; /* 标准行高 */
         height: auto; /* 自动高度 */
     }
-    
+
     /* 768px以下连接线调整 - 继续显示SVG连接线 */
     .connection-lines {
         display: block; /* 继续显示SVG连接线 */
     }
-    
+
     .pipeline-node {
         min-width: 100px;
         max-width: 130px;
@@ -2008,22 +2008,22 @@
         padding: 0.7rem 0.5rem; /* 优化内边距 */
         flex-shrink: 0; /* 防止压缩 */
     }
-    
+
     .pipeline-node i {
         font-size: 1.1rem; /* 优化图标大小 */
     }
-    
+
     .pipeline-node span {
         font-size: 0.68rem; /* 优化文字大小 */
         line-height: 1.1;
     }
-    
+
     /* 确保 step-1 和 step-3 的 step-card 具有相同高度 - 放在最后确保优先级 */
     #step-1 .step-card.compact, #step-3 .step-card.compact {
         height: 220px !important;
         min-height: 220px !important;
     }
-    
+
     /* 确保 step-2 和 step-4 的 step-card 具有相同高度 - 放在最后确保优先级 */
     #step-2 .step-card.compact, #step-4 .step-card.compact {
         height: 220px !important;
@@ -2036,69 +2036,69 @@
     .what-is-sage {
         min-height: 650px; /* 优化小屏幕高度 */
     }
-    
+
     .pipeline-building-content {
         padding: 1.5rem 0.3rem;
         min-height: 550px; /* 优化高度 */
     }
-    
+
     .pipeline-top-section,
     .pipeline-bottom-section {
         gap: 1rem;
         width: calc(50% - 60px); /* 为更小的pipeline预留合适空间 */
     }
-    
+
     .step-card.compact {
         padding: 1rem 0.8rem;
         /* height 和 min-height 由具体的 step-id 规则控制 */
         width: 100%; /* 确保占满父容器宽度 */
         box-sizing: border-box; /* 确保padding包含在宽度内 */
     }
-    
+
     /* 480px以下屏幕的 step-card 高度调整 */
     #step-1 .step-card.compact, #step-3 .step-card.compact {
         height: 170px !important;
         min-height: 170px !important;
     }
-    
+
     #step-2 .step-card.compact, #step-4 .step-card.compact {
         height: 190px !important;
         min-height: 190px !important;
     }
-    
+
     .step-card.compact .step-info h3 {
         font-size: 0.9rem;
         margin-bottom: 0.4rem;
     }
-    
+
     .step-card.compact .step-info p {
         font-size: 0.72rem;
         line-height: 1.25;
     }
-    
+
     /* Pipeline 在小屏幕上优化尺寸 */
     .simple-pipeline {
         width: 110px; /* 合理的宽度 */
         min-height: 450px; /* 优化高度 */
         padding: 1.5rem 0;
     }
-    
+
     .pipeline-node {
         min-width: 90px;
         max-width: 110px;
         width: 95px;
         padding: 0.6rem 0.4rem;
     }
-    
+
     .pipeline-node i {
         font-size: 1rem;
     }
-    
+
     .pipeline-node span {
         font-size: 0.62rem;
         line-height: 1.05;
     }
-    
+
     .pipeline-arrow {
         font-size: 0.75rem;
     }

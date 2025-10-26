@@ -64,9 +64,7 @@ def explore_dataset():
             image_sizes.append((width, height))
 
             if i < 5:  # 只打印前5个
-                print(
-                    f"   - 样本 {i}: {width}x{height}, mode={mode}, label={sample['label']}"
-                )
+                print(f"   - 样本 {i}: {width}x{height}, mode={mode}, label={sample['label']}")
 
     if image_sizes:
         widths = [w for w, h in image_sizes]
@@ -74,9 +72,7 @@ def explore_dataset():
 
         print("\n📐 图像尺寸范围:")
         print(f"   - 宽度: {min(widths)} ~ {max(widths)} (平均: {np.mean(widths):.0f})")
-        print(
-            f"   - 高度: {min(heights)} ~ {max(heights)} (平均: {np.mean(heights):.0f})"
-        )
+        print(f"   - 高度: {min(heights)} ~ {max(heights)} (平均: {np.mean(heights):.0f})")
 
     # 保存一些样本
     output_dir = project_root / "examples" / "medical_diagnosis" / "data" / "samples"
@@ -119,12 +115,8 @@ def explore_dataset():
 
         if image_sizes:
             f.write("\n图像尺寸范围:\n")
-            f.write(
-                f"  宽度: {min(widths)} ~ {max(widths)} (平均: {np.mean(widths):.0f})\n"
-            )
-            f.write(
-                f"  高度: {min(heights)} ~ {max(heights)} (平均: {np.mean(heights):.0f})\n"
-            )
+            f.write(f"  宽度: {min(widths)} ~ {max(widths)} (平均: {np.mean(widths):.0f})\n")
+            f.write(f"  高度: {min(heights)} ~ {max(heights)} (平均: {np.mean(heights):.0f})\n")
 
     print(f"\n📊 统计报告已保存: {report_path}")
 

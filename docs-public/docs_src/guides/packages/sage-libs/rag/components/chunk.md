@@ -193,9 +193,9 @@ multilingual_splitter = SentenceTransformersTokenTextSplitter(multilingual_confi
 # 中英混合文档
 mixed_document = {
     "content": """
-    SAGE是一个现代化的RAG框架。SAGE is a modern RAG framework that supports 
+    SAGE是一个现代化的RAG框架。SAGE is a modern RAG framework that supports
     multiple languages and provides comprehensive documentation. 该框架支持多种
-    embedding模型，包括sentence-transformers系列模型。The framework is designed 
+    embedding模型，包括sentence-transformers系列模型。The framework is designed
     for scalability and ease of use.
     """,
     "metadata": {"content_type": "bilingual_doc"}
@@ -211,7 +211,7 @@ print("多语言分块处理完成")
 ```python
 class AdaptiveChunker:
     """根据文档类型自动选择最优分块策略"""
-    
+
     def __init__(self):
         # 预定义不同类型的分块配置
         self.strategies = {
@@ -248,22 +248,22 @@ class AdaptiveChunker:
                 }
             }
         }
-    
+
     def chunk_document(self, document, doc_type="technical_doc"):
         """根据文档类型执行相应的分块策略"""
-        
+
         if doc_type not in self.strategies:
             doc_type = "technical_doc"  # 默认策略
-        
+
         strategy = self.strategies[doc_type]
-        
+
         if strategy["type"] == "character":
             splitter = CharacterSplitter(strategy["config"])
         else:  # token
             splitter = SentenceTransformersTokenTextSplitter(strategy["config"])
-        
+
         chunks = splitter.execute(document)
-        
+
         print(f"使用 {doc_type} 策略，生成 {len(chunks)} 个文档块")
         return chunks
 
@@ -289,27 +289,27 @@ tech_chunks = adaptive_chunker.chunk_document(tech_doc, "technical_doc")
 ```python
 class ChunkQualityEvaluator:
     """文档分块质量评估器"""
-    
+
     def __init__(self):
         self.metrics = {}
-    
+
     def evaluate_chunks(self, chunks, original_document):
         """评估分块质量"""
-        
+
         # 1. 覆盖率评估
         total_chars = len(original_document["content"])
         chunk_chars = sum(len(chunk) for chunk in chunks)
         coverage = chunk_chars / total_chars
-        
+
         # 2. 块大小分布
         chunk_lengths = [len(chunk) for chunk in chunks]
         avg_length = sum(chunk_lengths) / len(chunk_lengths)
         length_variance = sum((l - avg_length) ** 2 for l in chunk_lengths) / len(chunk_lengths)
-        
+
         # 3. 语义完整性（简化评估）
         incomplete_chunks = sum(1 for chunk in chunks if chunk.endswith(("，", "和", "的", "是")))
         semantic_completeness = 1 - (incomplete_chunks / len(chunks))
-        
+
         self.metrics = {
             "coverage": coverage,
             "average_chunk_length": avg_length,
@@ -317,9 +317,9 @@ class ChunkQualityEvaluator:
             "semantic_completeness": semantic_completeness,
             "total_chunks": len(chunks)
         }
-        
+
         return self.metrics
-    
+
     def print_evaluation(self):
         """打印评估结果"""
         print("=== 分块质量评估报告 ===")
@@ -328,7 +328,7 @@ class ChunkQualityEvaluator:
         print(f"长度方差: {self.metrics['length_variance']:.0f}")
         print(f"语义完整性: {self.metrics['semantic_completeness']:.2%}")
         print(f"总块数: {self.metrics['total_chunks']}")
-        
+
         # 质量建议
         if self.metrics['coverage'] < 0.95:
             print("⚠️ 建议：内容覆盖率较低，检查分块逻辑")
@@ -359,7 +359,7 @@ print("\n" + "="*50 + "\n")
 
 # 测试Token分块
 token_chunks = SentenceTransformersTokenTextSplitter({
-    "chunk_size": 64, 
+    "chunk_size": 64,
     "chunk_overlap": 16
 }).execute(test_document)
 token_metrics = evaluator.evaluate_chunks(token_chunks, test_document)
@@ -422,23 +422,23 @@ print("- 无重叠：避免代码重复和逻辑混乱")
 ```python
 def batch_chunk_documents(documents, splitter_config, batch_size=10):
     """批量处理多个文档的分块操作"""
-    
+
     splitter = CharacterSplitter(splitter_config)
     all_chunks = []
-    
+
     for i in range(0, len(documents), batch_size):
         batch = documents[i:i + batch_size]
-        
+
         print(f"处理批次 {i//batch_size + 1}: {len(batch)} 个文档")
-        
+
         batch_chunks = []
         for doc in batch:
             chunks = splitter.execute(doc)
             batch_chunks.extend(chunks)
-        
+
         all_chunks.extend(batch_chunks)
         print(f"批次完成，生成 {len(batch_chunks)} 个文档块")
-    
+
     return all_chunks
 
 # 批量处理示例
@@ -495,24 +495,24 @@ print(f"批量处理完成，总共生成 {len(chunks)} 个文档块")
 ```python
 def debug_chunking_process(document, config):
     """分块过程调试工具"""
-    
+
     print("=== 分块调试信息 ===")
     print(f"原文档长度: {len(document['content'])} 字符")
     print(f"分块配置: {config}")
-    
+
     splitter = CharacterSplitter(config)
     chunks = splitter.execute(document)
-    
+
     print(f"生成块数: {len(chunks)}")
     print(f"平均块长: {sum(len(c) for c in chunks) / len(chunks):.1f} 字符")
     print(f"最小块长: {min(len(c) for c in chunks)} 字符")
     print(f"最大块长: {max(len(c) for c in chunks)} 字符")
-    
+
     # 显示前几个块的内容
     print("\n前3个块的内容预览:")
     for i, chunk in enumerate(chunks[:3], 1):
         print(f"块{i}: {chunk[:100]}{'...' if len(chunk) > 100 else ''}")
-    
+
     return chunks
 
 # 调试示例
@@ -612,10 +612,10 @@ models = {
     # 英文模型
     "all-mpnet-base-v2": "sentence-transformers/all-mpnet-base-v2",
     "all-MiniLM-L6-v2": "sentence-transformers/all-MiniLM-L6-v2",
-    
+
     # 中文模型
     "paraphrase-multilingual": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-    
+
     # BERT系列
     "bert-base": "bert-base-uncased",
     "bert-chinese": "bert-base-chinese"
@@ -680,7 +680,7 @@ class DocumentProcessor:
                     "model_name": "sentence-transformers/all-mpnet-base-v2"
                 }
             })
-    
+
     def process_document(self, document):
         """处理单个文档"""
         if isinstance(document, dict):
@@ -698,7 +698,7 @@ class DocumentProcessor:
                 "content": chunk,
                 "chunk_id": i
             } for i, chunk in enumerate(chunks)]
-    
+
     def process_multiple_documents(self, documents):
         """处理多个文档"""
         all_chunks = []
@@ -736,7 +736,7 @@ class AdaptiveChunker:
             "chunk_size": 1000,
             "overlap": 100
         })
-        
+
         self.token_splitter = SentenceTransformersTokenTextSplitter({
             "chunk": {
                 "chunk_size": 256,
@@ -744,7 +744,7 @@ class AdaptiveChunker:
                 "model_name": "sentence-transformers/all-MiniLM-L6-v2"
             }
         })
-    
+
     def choose_strategy(self, text):
         """根据文本特征选择分块策略"""
         if len(text) < 1000:
@@ -753,11 +753,11 @@ class AdaptiveChunker:
             return "character"  # 非英文用字符分块
         else:
             return "token"     # 长英文用token分块
-    
+
     def adaptive_chunk(self, document):
         content = document.get("content", "") if isinstance(document, dict) else document
         strategy = self.choose_strategy(content)
-        
+
         if strategy == "character":
             if isinstance(document, dict):
                 return self.char_splitter.execute(document)
@@ -795,14 +795,14 @@ def evaluate_chunks(chunks, original_text):
         "max_length": max(len(chunk) for chunk in chunks),
         "coverage": sum(len(chunk) for chunk in chunks) / len(original_text)
     }
-    
+
     print("分块质量评估:")
     print(f"- 总块数: {stats['total_chunks']}")
     print(f"- 平均长度: {stats['avg_length']:.1f}")
     print(f"- 最短块: {stats['min_length']}")
     print(f"- 最长块: {stats['max_length']}")
     print(f"- 覆盖率: {stats['coverage']:.2%}")
-    
+
     return stats
 
 # 评估示例

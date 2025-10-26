@@ -200,7 +200,7 @@ from sage.libs.agents.bots import AnswerBot, QuestionBot
 
 # RAG
 from sage.middleware.operators.rag import (
-    ChromaRetriever, 
+    ChromaRetriever,
     OpenAIGenerator
 )
 

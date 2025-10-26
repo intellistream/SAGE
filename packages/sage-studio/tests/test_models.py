@@ -3,6 +3,7 @@ Tests for Studio Data Models
 """
 
 import pytest
+
 from sage.studio.models import (  # type: ignore[import-not-found]
     PipelineExecution,
     PipelineStatus,
@@ -146,9 +147,7 @@ class TestVisualPipeline:
 
     def test_empty_pipeline(self):
         """测试创建空 Pipeline"""
-        pipeline = VisualPipeline(
-            id="empty", name="Empty Pipeline", nodes=[], connections=[]
-        )
+        pipeline = VisualPipeline(id="empty", name="Empty Pipeline", nodes=[], connections=[])
 
         assert len(pipeline.nodes) == 0
         assert len(pipeline.connections) == 0

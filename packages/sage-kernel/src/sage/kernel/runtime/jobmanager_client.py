@@ -10,9 +10,7 @@ from sage.common.utils.network.base_tcp_client import BaseTcpClient
 class JobManagerClient(BaseTcpClient):
     """JobManager客户端，专门用于发送序列化数据"""
 
-    def __init__(
-        self, host: str = "127.0.0.1", port: int = 19001, timeout: float = 30.0
-    ):
+    def __init__(self, host: str = "127.0.0.1", port: int = 19001, timeout: float = 30.0):
         # 验证端口范围
         if not (1 <= port <= 65535):
             raise ValueError(f"Port must be between 1 and 65535, got {port}")
@@ -31,9 +29,7 @@ class JobManagerClient(BaseTcpClient):
         """构建服务器信息请求"""
         return {"action": "get_server_info", "request_id": str(uuid.uuid4())}
 
-    def submit_job(
-        self, serialized_data: bytes, autostop: bool = False
-    ) -> dict[str, Any]:
+    def submit_job(self, serialized_data: bytes, autostop: bool = False) -> dict[str, Any]:
         """
         提交序列化的作业数据
 
@@ -136,9 +132,7 @@ class JobManagerClient(BaseTcpClient):
 
         return self.send_request(request)
 
-    def _retry_request(
-        self, request: dict[str, Any], max_retries: int = 3
-    ) -> dict[str, Any]:
+    def _retry_request(self, request: dict[str, Any], max_retries: int = 3) -> dict[str, Any]:
         """重试请求机制"""
         last_exception = None
 

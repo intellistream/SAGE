@@ -60,9 +60,7 @@ def iter_queries(source_cfg: Dict[str, Any]) -> Iterable[str]:
 
 def main():
     # ====== 读取配置 ======
-    cfg_path = os.path.join(
-        os.path.dirname(__file__), "config", "config_agent_min.yaml"
-    )
+    cfg_path = os.path.join(os.path.dirname(__file__), "config", "config_agent_min.yaml")
     if not os.path.exists(cfg_path):
         print(f"❌ Configuration file not found: {cfg_path}")
         sys.exit(1)
@@ -74,16 +72,13 @@ def main():
     # 检查是否在测试模式
     use_real_api = should_use_real_api()
     test_mode = (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
+        os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true"
     ) and not use_real_api  # 如果明确要求使用真实API，则不进入测试模式
 
     # 在真实API模式下，使用简化的查询数据以避免超时
     if use_real_api:
         # 使用测试数据
-        config["source"][
-            "data_path"
-        ] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
+        config["source"]["data_path"] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
 
     # ====== Generator======
     gen_cfg = config["generator"]["remote"]  # 可改为 "local"/"remote"
@@ -100,9 +95,7 @@ def main():
         if test_mode:
             print(f"⚠️ Test mode: {e}")
             print("💡 Tip: Copy .env.template to .env and fill in your API keys")
-            print(
-                "✅ Test mode: API key validation completed (missing key is OK in test)"
-            )
+            print("✅ Test mode: API key validation completed (missing key is OK in test)")
         else:
             print(f"❌ {e}")
             print("💡 Tip: Copy .env.template to .env and fill in your API keys")
@@ -161,9 +154,7 @@ def main():
         profile=profile,
         planner=planner,
         tools=registry,
-        summarizer=(
-            generator if runtime_cfg.get("summarizer") == "reuse_generator" else None
-        ),
+        summarizer=(generator if runtime_cfg.get("summarizer") == "reuse_generator" else None),
         # memory=None,  # 如需接入 MemoryServiceAdapter，再按配置打开
         max_steps=runtime_cfg.get("max_steps", 6),
     )
@@ -178,10 +169,7 @@ def main():
 
 if __name__ == "__main__":
     # 和 RAG 示例一致的“测试模式”友好输出
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         try:
             main()
             print("\n✅ Test passed: Agent pipeline structure validated")

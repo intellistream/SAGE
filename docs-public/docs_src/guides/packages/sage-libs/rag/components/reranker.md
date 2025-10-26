@@ -231,11 +231,11 @@ def retrieve_and_rerank(query):
     # 第一阶段：粗排检索
     retriever = ChromaRetriever(retriever_config)
     _, candidates = retriever.execute(query)
-    
+
     # 第二阶段：精排重排序
-    reranker = BGEReranker(reranker_config) 
+    reranker = BGEReranker(reranker_config)
     _, final_results = reranker.execute((query, candidates))
-    
+
     return final_results
 
 # 使用流水线
@@ -253,21 +253,21 @@ class RerankerBenchmark:
         self.reranker = reranker
         self.test_queries = test_queries
         self.test_docs = test_docs
-    
+
     def benchmark(self) -> dict:
         total_time = 0
         total_queries = len(self.test_queries)
-        
+
         for query, docs in zip(self.test_queries, self.test_docs):
             start_time = time.time()
             _ = self.reranker.execute((query, docs))
             end_time = time.time()
-            
+
             total_time += (end_time - start_time)
-        
+
         avg_latency = total_time / total_queries
         qps = 1.0 / avg_latency
-        
+
         return {
             "average_latency": avg_latency,
             "queries_per_second": qps,

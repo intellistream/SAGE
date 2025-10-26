@@ -7,9 +7,7 @@ class BaseTool:
     A base class for building tool classes that perform specific tasks, such as image processing or text detection.
     """
 
-    require_llm_engine = (
-        False  # Default is False, tools that need LLM should set this to True
-    )
+    require_llm_engine = False  # Default is False, tools that need LLM should set this to True
 
     def __init__(
         self,

@@ -16,7 +16,7 @@
 
 sage-libs 作为 L3 层的算法库和组件集合，当前存在以下问题：
 
-1. **命名不规范**: 
+1. **命名不规范**:
    - `io_utils` 应该改为 `io` (更简洁)
    - `utils` 太通用，应该拆分或重命名
 
@@ -204,14 +204,14 @@ sage-libs/
    ```bash
    # io_utils → io (28 files affected)
    find packages -name "*.py" -exec sed -i 's/from sage\.libs\.io_utils/from sage.libs.io/g' {} \;
-   
+
    # utils.* → integrations.* (9 instances)
    find packages -name "*.py" -exec sed -i 's/from sage\.libs\.utils\.chroma/from sage.libs.integrations.chroma/g' {} \;
    find packages -name "*.py" -exec sed -i 's/from sage\.libs\.utils\.milvus/from sage.libs.integrations.milvus/g' {} \;
    find packages -name "*.py" -exec sed -i 's/from sage\.libs\.utils\.huggingface/from sage.libs.integrations.huggingface/g' {} \;
    find packages -name "*.py" -exec sed -i 's/from sage\.libs\.utils\.openaiclient/from sage.libs.integrations.openaiclient/g' {} \;
    find packages -name "*.py" -exec sed -i 's/from sage\.libs\.utils\.openai/from sage.libs.integrations.openai/g' {} \;
-   
+
    # agents.*_bot → agents.bots.*_bot (test files)
    sed -i 's/from sage\.libs\.agents\.(.*_bot)/from sage.libs.agents.bots.\1/g' packages/sage-libs/tests/lib/agents/test_bots.py
    ```
@@ -229,7 +229,7 @@ sage-libs/
    # 测试 io 模块
    pytest packages/sage-libs/tests/lib/io/ -v
    # 结果: 39 passed in 6.56s ✅
-   
+
    # 测试 agents 模块
    pytest packages/sage-libs/tests/lib/agents/test_bots.py -v
    # 结果: 13 passed in 6.64s ✅
@@ -246,7 +246,7 @@ sage-libs/
 
 ### Phase 4: 清理和优化 ✅ **已完成**
 
-**Commits**: 
+**Commits**:
 - `75efca8f` - "feat(libs): Phase 4 - Add examples.py for core modules and cleanup"
 - `5345ecba` - "fix(libs): Update image_captioner import path"
 
@@ -289,14 +289,14 @@ sage-libs/
    ```python
    """
    Module Name
-   
+
    Layer: L3 (Core)
-   
+
    Brief description of the module.
    """
-   
+
    from .core import MainClass
-   
+
    __all__ = ["MainClass", "helper_function"]
    __version__ = "0.1.0"
    ```
@@ -304,26 +304,26 @@ sage-libs/
 2. **`README.md`**
    ```markdown
    # Module Name
-   
+
    ## Overview
-   
+
    ## Features
-   
+
    ## Quick Start
-   
+
    ## API Reference
-   
+
    ## Examples
    ```
 
 3. **`examples.py`** (可选但推荐)
    ```python
    """Examples for Module Name."""
-   
+
    def example_basic():
        """Basic usage example."""
        pass
-   
+
    if __name__ == "__main__":
        example_basic()
    ```

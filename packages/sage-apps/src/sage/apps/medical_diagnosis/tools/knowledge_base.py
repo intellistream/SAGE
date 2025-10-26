@@ -205,19 +205,13 @@ class MedicalKnowledgeBase:
 
 if __name__ == "__main__":
     # 测试
-    config = {
-        "services": {"vector_db": {"collection_name": "lumbar_cases", "top_k": 5}}
-    }
+    config = {"services": {"vector_db": {"collection_name": "lumbar_cases", "top_k": 5}}}
 
     kb = MedicalKnowledgeBase(config)
 
     # 测试检索
-    cases = kb.retrieve_similar_cases(
-        query="腰痛伴下肢麻木", image_features={}, top_k=3
-    )
+    cases = kb.retrieve_similar_cases(query="腰痛伴下肢麻木", image_features={}, top_k=3)
 
     print(f"检索到 {len(cases)} 个相似病例:")
     for case in cases:
-        print(
-            f"  - {case['case_id']}: {case['diagnosis']} (相似度: {case['similarity_score']})"
-        )
+        print(f"  - {case['case_id']}: {case['diagnosis']} (相似度: {case['similarity_score']})")

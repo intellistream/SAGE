@@ -3,6 +3,7 @@
 
 import typer
 from rich.console import Console
+
 from sage.tools.utils.diagnostics import check_dependency_versions
 
 console = Console()

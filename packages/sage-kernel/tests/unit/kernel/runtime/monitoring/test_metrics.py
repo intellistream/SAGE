@@ -5,6 +5,7 @@ Tests all metrics data classes and their methods.
 """
 
 import pytest
+
 from sage.kernel.runtime.monitoring.metrics import (
     MethodMetrics,
     PacketMetrics,
@@ -141,9 +142,7 @@ class TestServiceRequestMetrics:
 
     def test_service_request_creation(self):
         """测试创建 ServiceRequestMetrics 实例"""
-        request = ServiceRequestMetrics(
-            request_id="req_001", method_name="process_query"
-        )
+        request = ServiceRequestMetrics(request_id="req_001", method_name="process_query")
 
         assert request.request_id == "req_001"
         assert request.method_name == "process_query"
@@ -228,12 +227,8 @@ class TestServicePerformanceMetrics:
 
     def test_service_metrics_with_methods(self):
         """测试包含方法统计的 ServicePerformanceMetrics"""
-        method1 = MethodMetrics(
-            method_name="retrieve", total_requests=100, avg_response_time=50.0
-        )
-        method2 = MethodMetrics(
-            method_name="rerank", total_requests=80, avg_response_time=30.0
-        )
+        method1 = MethodMetrics(method_name="retrieve", total_requests=100, avg_response_time=50.0)
+        method2 = MethodMetrics(method_name="rerank", total_requests=80, avg_response_time=30.0)
 
         metrics = ServicePerformanceMetrics(
             service_name="rag_service",

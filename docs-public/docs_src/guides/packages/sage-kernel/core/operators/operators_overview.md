@@ -9,7 +9,7 @@ Operator 算子系统是 SAGE Kernel 的执行层核心组件，负责在运行�
 ```mermaid
 graph TD
     A[BaseOperator] --> B[SourceOperator]
-    A --> C[MapOperator] 
+    A --> C[MapOperator]
     A --> D[SinkOperator]
     A --> E[FilterOperator]
     A --> F[FlatMapOperator]
@@ -18,15 +18,15 @@ graph TD
     A --> I[KeyByOperator]
     A --> J[CoMapOperator]
     A --> K[FutureOperator]
-    
+
     L[BaseFunction] --> M[SourceFunction]
-    L --> N[MapFunction] 
+    L --> N[MapFunction]
     L --> O[SinkFunction]
     L --> P[FilterFunction]
     L --> Q[FlatMapFunction]
     L --> R[JoinFunction]
     L --> S[BatchFunction]
-    
+
     B -.-> M
     C -.-> N
     D -.-> O
@@ -56,16 +56,16 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.communication.router.router import BaseRouter
 
 class BaseOperator(ABC):
-    def __init__(self, 
-                 function_factory: 'FunctionFactory', 
-                 ctx: 'TaskContext', 
+    def __init__(self,
+                 function_factory: 'FunctionFactory',
+                 ctx: 'TaskContext',
                  *args, **kwargs):
-        
+
         self.ctx: 'TaskContext' = ctx
         self.function: 'BaseFunction'
         self.router: 'BaseRouter'
         self.task: Optional['BaseTask'] = None
-        
+
         # 通过工厂创建对应的Function实例
         try:
             self.function = function_factory.create_function(self.name, ctx)
@@ -97,7 +97,7 @@ class BaseOperator(ABC):
         from sage.core.api.function.base_function import StatefulFunction
         if isinstance(self.function, StatefulFunction):
             self.function.save_state()
-    
+
     @property
     def name(self) -> str:
         """获取任务名称"""
@@ -118,18 +118,18 @@ from typing import Any
 import time
 
 class Packet:
-    def __init__(self, payload: Any, input_index: int = 0, 
+    def __init__(self, payload: Any, input_index: int = 0,
                  partition_key: Any = None, partition_strategy: str = None):
         self.payload = payload                    # 实际数据
         self.input_index = input_index           # 输入索引
         self.partition_key = partition_key       # 分区键
         self.partition_strategy = partition_strategy  # 分区策略
         self.timestamp = time.time_ns()          # 时间戳
-    
+
     def is_keyed(self) -> bool:
         """检查packet是否包含分区信息"""
         return self.partition_key is not None
-    
+
     def inherit_partition_info(self, new_payload: Any) -> 'Packet':
         """创建新packet，继承当前的分区信息"""
         return Packet(
@@ -167,7 +167,7 @@ class BaseFunction(ABC):
             else:
                 self._logger = self.ctx.logger
         return self._logger
-    
+
     @property
     def name(self):
         if self.ctx is None:
@@ -181,7 +181,7 @@ class StatefulFunction(BaseFunction):
     """
     __state_include__ = []
     __state_exclude__ = ['logger', '_logger', 'ctx']
-    
+
     def load_state(self, chkpt_path: str):
         """加载状态"""
         if os.path.exists(chkpt_path):
@@ -191,8 +191,8 @@ class StatefulFunction(BaseFunction):
         """保存状态"""
         if self.ctx is None or not hasattr(self.ctx, 'env_base_dir'):
             return
-        
-        path = os.path.join(self.ctx.env_base_dir, ".sage_states", 
+
+        path = os.path.join(self.ctx.env_base_dir, ".sage_states",
                            "function_states", f"{self.name}.pkl")
         save_function_state(self, path)
 ```
@@ -218,7 +218,7 @@ class SourceOperator(BaseOperator):
             # 调用 SourceFunction 生成数据
             result = self.function.execute()
             self.logger.debug(f"Operator {self.name} processed data with result: {result}")
-            
+
             # 检查是否收到停止信号
             if isinstance(result, StopSignal):
                 self.logger.info(f"Source Operator {self.name} received stop signal: {result}")
@@ -226,13 +226,13 @@ class SourceOperator(BaseOperator):
                 self.router.send_stop_signal(result)
                 self.task.stop()
                 return
-            
+
             # 发送数据到下游
             if result is not None:
                 self.logger.info(f"SourceOperator {self.name}: Sending packet with payload: {result}")
                 success = self.router.send(Packet(result))
                 self.logger.info(f"SourceOperator {self.name}: Send result: {success}")
-                
+
                 # 如果发送失败（如队列已关闭），停止任务
                 if not success:
                     self.logger.warning(f"Source Operator {self.name} failed to send packet, stopping task")
@@ -266,12 +266,12 @@ class MapOperator(BaseOperator):
     def _setup_time_tracking(self):
         """设置性能统计"""
         if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
-            self.time_base_path = os.path.join(self.ctx.env_base_dir, 
+            self.time_base_path = os.path.join(self.ctx.env_base_dir,
                                              ".sage_states", "time_records")
         else:
-            self.time_base_path = os.path.join(os.getcwd(), 
+            self.time_base_path = os.path.join(os.getcwd(),
                                              ".sage_states", "time_records")
-        
+
         os.makedirs(self.time_base_path, exist_ok=True)
         self.time_records = []
 
@@ -283,15 +283,15 @@ class MapOperator(BaseOperator):
                 return
 
             start_time = time.time() if self.enable_profile else None
-            
+
             # 调用 MapFunction 处理数据
             result = self.function.execute(packet.payload)
             self.logger.debug(f"Operator {self.name} processed data with result: {result}")
-            
+
             if self.enable_profile:
                 duration = time.time() - start_time
                 self._save_time_record(duration)
-            
+
             # 发送处理结果到下游
             if result is not None:
                 # 继承分区信息
@@ -299,7 +299,7 @@ class MapOperator(BaseOperator):
                 success = self.router.send(output_packet)
                 if not success:
                     self.logger.warning(f"Map Operator {self.name} failed to send packet")
-                    
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
 ```
@@ -326,13 +326,13 @@ class FilterOperator(BaseOperator):
             # 调用 FilterFunction 检查过滤条件
             should_pass = self.function.execute(packet.payload)
             self.logger.debug(f"Operator {self.name} filter result: {should_pass}")
-            
+
             # 只有通过过滤条件的数据才发送到下游
             if should_pass:
                 success = self.router.send(packet)
                 if not success:
                     self.logger.warning(f"Filter Operator {self.name} failed to send packet")
-                    
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
 ```
@@ -348,7 +348,7 @@ from sage.core.api.packet import Packet
 class SinkOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
     def process_packet(self, packet: 'Packet' = None):
         """处理数据包，输出到外部系统"""
         try:
@@ -384,7 +384,7 @@ class FlatMapOperator(BaseOperator):
             # 调用 FlatMapFunction，可能返回多个结果
             results = self.function.execute(packet.payload)
             self.logger.debug(f"Operator {self.name} processed data with results: {results}")
-            
+
             # 发送所有结果到下游
             if results:
                 for result in results:
@@ -394,12 +394,12 @@ class FlatMapOperator(BaseOperator):
                         if not success:
                             self.logger.warning(f"FlatMap Operator {self.name} failed to send packet")
                             break
-                            
+
             # 保存状态（如果是有状态Function）
             from sage.core.api.function.base_function import StatefulFunction
             if isinstance(self.function, StatefulFunction):
                 self.function.save_state()
-                
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
 ```
@@ -426,14 +426,14 @@ class KeyByOperator(BaseOperator):
             # 调用 KeyByFunction 计算新的分区键
             new_key = self.function.execute(packet.payload)
             self.logger.debug(f"Operator {self.name} computed key: {new_key}")
-            
+
             # 更新分区信息并发送
             if new_key is not None:
                 output_packet = packet.update_key(new_key, "hash")
                 success = self.router.send(output_packet)
                 if not success:
                     self.logger.warning(f"KeyBy Operator {self.name} failed to send packet")
-                    
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
 ```
@@ -450,11 +450,11 @@ from sage.core.api.function.base_function import StatefulFunction
 class CounterFunction(StatefulFunction):
     """计数器函数示例"""
     __state_include__ = ['count']  # 指定需要持久化的字段
-    
+
     def __init__(self):
         super().__init__()
         self.count = 0
-    
+
     def execute(self, data):
         self.count += 1
         return f"Processed {self.count} items: {data}"
@@ -482,15 +482,15 @@ class BatchOperator(BaseOperator):
                 return
 
             self.batch_buffer.append(packet.payload)
-            
+
             # 当批次满时处理
             if len(self.batch_buffer) >= self.batch_size:
                 batch_data = list(self.batch_buffer)
                 self.batch_buffer.clear()
-                
+
                 # 调用 BatchFunction 处理批量数据
                 results = self.function.execute(batch_data)
-                
+
                 # 发送批次结果
                 if results:
                     for result in results:
@@ -500,7 +500,7 @@ class BatchOperator(BaseOperator):
                             if not success:
                                 self.logger.warning(f"Batch Operator {self.name} failed to send packet")
                                 break
-                                
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
 ```
@@ -527,7 +527,7 @@ class JoinOperator(BaseOperator):
 
             # 调用 JoinFunction 进行连接逻辑
             results = self.function.execute(packet.payload, packet.input_index)
-            
+
             # 发送连接结果
             if results:
                 for result in results:
@@ -537,7 +537,7 @@ class JoinOperator(BaseOperator):
                         if not success:
                             self.logger.warning(f"Join Operator {self.name} failed to send packet")
                             break
-                            
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
 ```
@@ -558,9 +558,9 @@ def _save_time_record(self, duration: float):
         'function_name': self.function.__class__.__name__,
         'operator_name': self.name
     }
-    
+
     self.time_records.append(record)
-    
+
     # 定期保存到文件
     if len(self.time_records) >= 100:
         self._flush_time_records()
@@ -569,12 +569,12 @@ def _flush_time_records(self):
     """刷新时间记录到文件"""
     if not self.time_records:
         return
-        
+
     file_path = os.path.join(self.time_base_path, f"{self.name}_timing.jsonl")
     with open(file_path, 'a') as f:
         for record in self.time_records:
             f.write(json.dumps(record) + '\n')
-    
+
     self.time_records.clear()
 ```
 
@@ -593,20 +593,20 @@ class OperatorTask(BaseTask):
         super().__init__()
         self.operator = operator
         self.operator.task = self  # 注入任务引用
-    
+
     async def run(self):
         """任务运行逻辑"""
         while self.running:
             try:
                 # 等待接收数据包
                 packet = await self.input_queue.get()
-                
+
                 if packet is None:  # 停止信号
                     break
-                    
+
                 # 委托给算子处理
                 self.operator.receive_packet(packet)
-                
+
             except Exception as e:
                 self.logger.error(f"Task {self.name} error: {e}")
                 break
@@ -624,12 +624,12 @@ class OperatorRouter(BaseRouter):
     def __init__(self):
         self.output_channels = []
         self.stopped = False
-    
+
     def send(self, packet: 'Packet') -> bool:
         """发送数据包到下游"""
         if self.stopped:
             return False
-            
+
         for channel in self.output_channels:
             try:
                 channel.send(packet)
@@ -637,7 +637,7 @@ class OperatorRouter(BaseRouter):
                 self.logger.error(f"Failed to send packet: {e}")
                 return False
         return True
-    
+
     def send_stop_signal(self, stop_signal):
         """发送停止信号"""
         self.stopped = True
@@ -657,19 +657,19 @@ class DefaultFunctionFactory(FunctionFactory):
     """默认Function工厂"""
     def __init__(self):
         self.function_registry = {}
-    
+
     def register_function(self, name: str, function_class):
         """注册Function类"""
         self.function_registry[name] = function_class
-    
+
     def create_function(self, name: str, ctx: 'TaskContext'):
         """创建Function实例"""
         if name not in self.function_registry:
             raise ValueError(f"Unknown function: {name}")
-        
+
         function_class = self.function_registry[name]
         function = function_class()
-        
+
         # 注入运行时上下文
         function.ctx = ctx
         return function
@@ -689,7 +689,7 @@ class NumberSourceFunction(SourceFunction):
     def __init__(self):
         super().__init__()
         self.current = 0
-        
+
     def execute(self):
         if self.current < 10:
             self.current += 1
@@ -715,11 +715,11 @@ from sage.core.api.function.base_function import StatefulFunction
 
 class CounterMapFunction(StatefulFunction):
     __state_include__ = ['total_count']
-    
+
     def __init__(self):
         super().__init__()
         self.total_count = 0
-    
+
     def execute(self, data):
         self.total_count += 1
         return f"Item {self.total_count}: {data}"
@@ -748,23 +748,23 @@ class CustomOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # 自定义初始化逻辑
-    
+
     def process_packet(self, packet: 'Packet' = None):
         """自定义处理逻辑"""
         try:
             if packet is None or packet.payload is None:
                 return
-            
+
             # 执行自定义处理
             result = self.function.execute(packet.payload)
-            
+
             # 发送结果
             if result is not None:
                 output_packet = packet.inherit_partition_info(result)
                 success = self.router.send(output_packet)
                 if not success:
                     self.logger.warning("Failed to send packet")
-                    
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}: {e}", exc_info=True)
 ```
@@ -780,7 +780,7 @@ class MyCustomFunction(MapFunction):
     def __init__(self, multiplier=2):
         super().__init__()
         self.multiplier = multiplier
-    
+
     def execute(self, data):
         # 实现自定义的映射逻辑
         return data * self.multiplier
@@ -793,17 +793,17 @@ from sage.core.api.function.base_function import StatefulFunction
 
 class WindowAverageFunction(StatefulFunction):
     __state_include__ = ['window_data', 'window_size']
-    
+
     def __init__(self, window_size=5):
         super().__init__()
         self.window_size = window_size
         self.window_data = []
-    
+
     def execute(self, data):
         self.window_data.append(data)
         if len(self.window_data) > self.window_size:
             self.window_data.pop(0)
-        
+
         return sum(self.window_data) / len(self.window_data)
 ```
 
@@ -858,7 +858,7 @@ class WindowAverageFunction(StatefulFunction):
 
 ---
 
-**相关文档**: 
+**相关文档**:
 - [Function 函数系统详解](../functions/functions_overview.md)
 - <!-- [Task 任务系统架构](../../runtime/task/task_overview.md) -->
 任务概览

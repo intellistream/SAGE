@@ -1,8 +1,9 @@
 import json
 
 import pytest
-from sage.tools.cli.main import app
 from typer.testing import CliRunner
+
+from sage.tools.cli.main import app
 
 
 def _has_sage_db() -> bool:
@@ -87,7 +88,5 @@ SAGE CLI 用于管理 Streaming-Augmented Generative Execution。
             "mock",
         ],
     )
-    assert (
-        chat_result.exit_code == 0
-    ), f"Chat failed: {chat_result.stdout}\n{chat_result.stderr}"
+    assert chat_result.exit_code == 0, f"Chat failed: {chat_result.stdout}\n{chat_result.stderr}"
     assert "回答" in chat_result.stdout or "索引" in chat_result.stdout

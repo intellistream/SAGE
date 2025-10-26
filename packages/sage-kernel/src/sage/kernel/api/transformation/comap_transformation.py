@@ -41,13 +41,9 @@ class CoMapTransformation(BaseTransformation):
 
         super().__init__(env, function, *args, **kwargs)
 
-        self.logger.debug(
-            f"Created CoMapTransformation with function {function.__name__}"
-        )
+        self.logger.debug(f"Created CoMapTransformation with function {function.__name__}")
 
-    def _validate_required_methods(
-        self, function_class: type[BaseCoMapFunction]
-    ) -> None:
+    def _validate_required_methods(self, function_class: type[BaseCoMapFunction]) -> None:
         """
         验证CoMap函数是否实现了必需的方法
 

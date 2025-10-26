@@ -275,7 +275,7 @@ from sage.cli.base import BaseCommand
 class CustomCommand(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--option', help='Custom option')
-    
+
     def handle(self, args):
         # 实现自定义逻辑
         return result
@@ -342,7 +342,7 @@ sage config llm auto --model-name llama2 --yes
 检测到以下LLM服务：
 1. Ollama (http://localhost:11434)
    模型: llama2, codellama, mistral
-2. vLLM (http://localhost:8000) 
+2. vLLM (http://localhost:8000)
    模型: microsoft/DialoGPT-medium, gpt2
 
 请选择要使用的服务 [1]: 1

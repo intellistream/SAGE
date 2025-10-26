@@ -20,8 +20,8 @@ try:  # pragma: no cover - import fallback for direct execution
 except ImportError:  # pragma: no cover
     if __package__ in (None, ""):
         sys.path.insert(0, str(THIS_DIR))
-        from helpers import CLIRunSummary  # type: ignore[no-redef]
         from helpers import (
+            CLIRunSummary,  # type: ignore[no-redef]
             CLITestCase,
             run_cases,
         )
@@ -121,9 +121,7 @@ def _render_summary(summary: CLIRunSummary) -> None:
     for result in summary.results:
         status = "PASS" if result.ok else "FAIL"
         style = "green" if result.ok else "red"
-        table.add_row(
-            result.case.name, str(result.exit_code), f"[{style}]{status}[/{style}]"
-        )
+        table.add_row(result.case.name, str(result.exit_code), f"[{style}]{status}[/{style}]")
 
     console.print(table)
 

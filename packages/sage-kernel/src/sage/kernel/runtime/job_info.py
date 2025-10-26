@@ -25,9 +25,7 @@ class JobInfo:
         self.autostop = autostop  # 是否启用自动停止
 
         # 状态信息
-        self.status = (
-            "initializing"  # initializing, running, stopped, failed, restarting
-        )
+        self.status = "initializing"  # initializing, running, stopped, failed, restarting
         self.start_time = datetime.now()
         self.stop_time: datetime | None = None
         self.last_update_time = datetime.now()

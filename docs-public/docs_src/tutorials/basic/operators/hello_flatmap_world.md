@@ -28,11 +28,11 @@ class HelloBatch(BatchFunction):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
     self.counter = 0
-    self.max_count = 10     
-    
+    self.max_count = 10  
+
   def execute(self):
     if self.counter >= self.max_count:
-      return None        
+      return None  
     self.counter += 1
     return f"Hello, World! #{self.counter}"
 
@@ -53,7 +53,7 @@ class SplitWords(FlatMapFunction):
 
 def main():
   env = LocalEnvironment("Hello_Flatmap_World")
-    
+
   env.from_batch(HelloBatch).map(UpperCaseMap).flatmap(SplitWords).sink(PrintSink)
 
   env.submit(autostop=True)

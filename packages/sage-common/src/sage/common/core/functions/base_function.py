@@ -54,13 +54,9 @@ class BaseFunction(ABC):
     ):
         """同步服务调用语法糖"""
         if self.ctx is None:
-            raise RuntimeError(
-                "Runtime context not initialized. Cannot access services."
-            )
+            raise RuntimeError("Runtime context not initialized. Cannot access services.")
 
-        return self.ctx.call_service(
-            service_name, *args, timeout=timeout, method=method, **kwargs
-        )
+        return self.ctx.call_service(service_name, *args, timeout=timeout, method=method, **kwargs)
 
     def call_service_async(
         self,
@@ -72,9 +68,7 @@ class BaseFunction(ABC):
     ):
         """异步服务调用语法糖"""
         if self.ctx is None:
-            raise RuntimeError(
-                "Runtime context not initialized. Cannot access services."
-            )
+            raise RuntimeError("Runtime context not initialized. Cannot access services.")
 
         return self.ctx.call_service_async(
             service_name, *args, timeout=timeout, method=method, **kwargs
@@ -128,9 +122,7 @@ class BaseFunction(ABC):
             except Exception as e:
                 # 如果获取属性失败，记录但继续
                 if hasattr(self, "logger"):
-                    self.logger.warning(
-                        f"Failed to get state for attribute '{attr_name}': {e}"
-                    )
+                    self.logger.warning(f"Failed to get state for attribute '{attr_name}': {e}")
 
         # 保存类属性（如 use_metronome）
         state["__class_attrs__"] = self._get_class_attributes()
@@ -156,9 +148,7 @@ class BaseFunction(ABC):
                 setattr(self, attr_name, value)
             except Exception as e:
                 if hasattr(self, "logger"):
-                    self.logger.warning(
-                        f"Failed to restore attribute '{attr_name}': {e}"
-                    )
+                    self.logger.warning(f"Failed to restore attribute '{attr_name}': {e}")
 
         # 恢复类属性
         if "__class_attrs__" in state:
@@ -184,8 +174,7 @@ class BaseFunction(ABC):
 
         if isinstance(value, dict):
             return all(
-                self._is_serializable(k) and self._is_serializable(v)
-                for k, v in value.items()
+                self._is_serializable(k) and self._is_serializable(v) for k, v in value.items()
             )
 
         # 检查是否是不可序列化的类型
@@ -239,9 +228,7 @@ class BaseFunction(ABC):
                 setattr(self, attr_name, value)
             except Exception as e:
                 if hasattr(self, "logger"):
-                    self.logger.warning(
-                        f"Failed to restore class attribute '{attr_name}': {e}"
-                    )
+                    self.logger.warning(f"Failed to restore class attribute '{attr_name}': {e}")
 
     @abstractmethod
     def execute(self, *args, **kwargs) -> Any:

@@ -1,5 +1,5 @@
 {#- Template for Python functions.
-   
+
 This template renders a Python function or method.
 
 Context:
@@ -41,7 +41,7 @@ Context:
           class="doc doc-heading",
           toc_label=(('<code class="doc-symbol doc-symbol-toc doc-symbol-' + symbol_type + '"></code>&nbsp;')|safe if config.show_symbol_type_toc else '') + function.name,
         ) %}
-      
+
         {% block heading scoped %}
           {% if config.show_symbol_type_heading %}<code class="doc-symbol doc-symbol-heading doc-symbol-{{ symbol_type }}"></code>{% endif %}
           {% if config.separate_signature %}
@@ -63,7 +63,7 @@ Context:
 
       {% block signature scoped %}
         {#- Signature block.
-        
+
         This block renders only the main signature and deliberately omits the overloads.
         -#}
         {% if config.separate_signature %}
@@ -91,7 +91,7 @@ Context:
     <div class="doc doc-contents {% if root %}first{% endif %}">
       {% block contents scoped %}
         {#- Contents block.
-        
+
         This block renders the function’s docstring and source.
         -#}
         {% block docstring scoped %}

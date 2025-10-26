@@ -150,11 +150,11 @@ alerts:
   - name: "长时间关闭"
     condition: "drain_time > 60s"
     severity: "warning"
-  
+
   - name: "关闭失败"
     condition: "drain_timeout_reached"
     severity: "critical"
-  
+
   - name: "队列积压"
     condition: "queue_size > 1000"
     severity: "warning"

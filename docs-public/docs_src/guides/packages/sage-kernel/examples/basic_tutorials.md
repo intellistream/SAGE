@@ -35,13 +35,13 @@ import time
 ```python
 def tutorial_01_hello_sage():
     """第一个SAGE程序：处理数字列表"""
-    
+
     # 创建本地执行环境
     env = LocalEnvironment()
-    
+
     # 创建数据源
     numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    
+
     # 构建数据流水线
     result = (env
         .from_batch(numbers)                    # 从列表创建数据流
@@ -51,7 +51,7 @@ def tutorial_01_hello_sage():
         .map(lambda x: f"Result: {x}")          # 格式化输出
         .sink(ConsoleSink())                    # 输出到控制台
     )
-    
+
     # 执行流水线
     env.submit()
     print("第一个SAGE程序执行完成！")
@@ -84,19 +84,19 @@ Result: 20
 ```python
 def tutorial_02_file_processing():
     """文件处理：读取文本文件并统计单词"""
-    
+
     # 准备测试文件
     test_content = """Hello World
     This is SAGE tutorial
     We are learning dataflow programming
     SAGE makes data processing easy"""
-    
+
     with open("test_input.txt", "w") as f:
         f.write(test_content)
-    
+
     # 创建环境
     env = LocalEnvironment()
-    
+
     # 文本处理函数
     def process_line(line):
         """处理单行文本"""
@@ -107,11 +107,11 @@ def tutorial_02_file_processing():
             'word_count': len(words),
             'words': words
         }
-    
+
     def extract_words(processed_line):
         """提取单词列表"""
         return processed_line['words']
-    
+
     # 构建文件处理流水线
     word_stream = (env
         .from_source(FileSource, "test_input.txt")  # 读取文件
@@ -121,10 +121,10 @@ def tutorial_02_file_processing():
         .filter(lambda word: len(word) > 2)         # 过滤短单词
         .sink(FileSink, "processed_words.txt")      # 输出到文件
     )
-    
+
     # 执行流水线
     env.submit()
-    
+
     # 读取并显示结果
     with open("processed_words.txt", "r") as f:
         words = f.readlines()
@@ -147,7 +147,7 @@ tutorial_02_file_processing()
 ```python
 def tutorial_03_data_aggregation():
     """数据聚合：统计分析示例"""
-    
+
     # 模拟用户行为数据
     user_events = [
         {'user_id': 'user1', 'action': 'click', 'timestamp': 1000, 'value': 10},
@@ -157,27 +157,27 @@ def tutorial_03_data_aggregation():
         {'user_id': 'user2', 'action': 'click', 'timestamp': 1004, 'value': 15},
         {'user_id': 'user1', 'action': 'view', 'timestamp': 1005, 'value': 3},
     ]
-    
+
     env = LocalEnvironment()
-    
+
     # 用户活动统计函数
     def aggregate_by_user(events):
         """按用户聚合统计"""
         from collections import defaultdict
-        
+
         user_stats = defaultdict(lambda: {
             'user_id': '', 'total_events': 0, 'total_value': 0, 'actions': []
         })
-        
+
         for event in events:
             user_id = event['user_id']
             user_stats[user_id]['user_id'] = user_id
             user_stats[user_id]['total_events'] += 1
             user_stats[user_id]['total_value'] += event['value']
             user_stats[user_id]['actions'].append(event['action'])
-        
+
         return list(user_stats.values())
-    
+
     def format_user_stats(stats):
         """格式化用户统计信息"""
         return {
@@ -187,7 +187,7 @@ def tutorial_03_data_aggregation():
             'avg_value': stats['total_value'] / stats['total_events'],
             'unique_actions': len(set(stats['actions']))
         }
-    
+
     # 构建聚合流水线
     user_stats_stream = (env
         .from_batch(user_events)                    # 加载事件数据
@@ -199,7 +199,7 @@ def tutorial_03_data_aggregation():
         .map(format_user_stats)                     # 格式化结果
         .sink(ConsoleSink())                        # 输出结果
     )
-    
+
     env.submit()
 
 # 运行示例
@@ -222,17 +222,17 @@ import json
 
 def tutorial_04_async_processing():
     """异步处理：模拟API调用"""
-    
+
     # 模拟API处理函数
     class MockAPIProcessor:
         def __init__(self, delay=0.1):
             self.delay = delay
-            
+
         async def __call__(self, data):
             """异步处理函数"""
             # 模拟API延迟
             await asyncio.sleep(self.delay)
-            
+
             # 模拟API响应
             response = {
                 'input': data,
@@ -240,26 +240,26 @@ def tutorial_04_async_processing():
                 'timestamp': time.time(),
                 'status': 'success'
             }
-            
+
             return response
-    
+
     # 批量处理函数
     async def batch_api_call(batch_data):
         """批量API调用"""
         processor = MockAPIProcessor(delay=0.05)  # 批处理延迟更短
         results = []
-        
+
         # 并行处理批次中的所有项目
         tasks = [processor(item) for item in batch_data]
         results = await asyncio.gather(*tasks)
-        
+
         return results
-    
+
     env = LocalEnvironment()
-    
+
     # 测试数据
     test_data = list(range(1, 21))  # 1到20的数字
-    
+
     # 构建异步处理流水线
     async_stream = (env
         .from_batch(test_data)                      # 加载测试数据
@@ -274,12 +274,12 @@ def tutorial_04_async_processing():
         })
         .sink(ConsoleSink())                        # 输出结果
     )
-    
+
     print("开始异步处理...")
     start_time = time.time()
     env.submit()
     end_time = time.time()
-    
+
     print(f"异步处理完成，总用时: {end_time - start_time:.2f}秒")
 
 # 运行示例
@@ -298,14 +298,14 @@ tutorial_04_async_processing()
 ```python
 def tutorial_05_error_handling():
     """错误处理：容错数据处理"""
-    
+
     # 可能出错的处理函数
     def risky_processor(data):
         """可能抛出异常的处理器"""
         if data % 3 == 0:  # 模拟处理失败
             raise ValueError(f"处理失败: {data}")
         return data * 10
-    
+
     # 容错处理函数
     def safe_processor(data):
         """安全的处理器"""
@@ -314,7 +314,7 @@ def tutorial_05_error_handling():
             return {'status': 'success', 'data': data, 'result': result}
         except Exception as e:
             return {'status': 'error', 'data': data, 'error': str(e)}
-    
+
     # 重试处理器
     def retry_processor(data, max_retries=2):
         """带重试的处理器"""
@@ -326,12 +326,12 @@ def tutorial_05_error_handling():
                 if attempt == max_retries:
                     return {'status': 'failed', 'data': data, 'error': str(e), 'attempts': attempt + 1}
                 time.sleep(0.1 * (attempt + 1))  # 指数退避
-    
+
     env = LocalEnvironment()
-    
+
     # 测试数据（包含会导致错误的数据）
     test_data = list(range(1, 16))  # 3, 6, 9, 12, 15 会出错
-    
+
     print("=== 基本错误处理示例 ===")
     basic_error_stream = (env
         .from_batch(test_data)
@@ -339,7 +339,7 @@ def tutorial_05_error_handling():
         .sink(ConsoleSink())
     )
     env.submit()
-    
+
     print("\n=== 重试机制示例 ===")
     env = LocalEnvironment()  # 创建新环境
     retry_stream = (env
@@ -348,22 +348,22 @@ def tutorial_05_error_handling():
         .sink(ConsoleSink())
     )
     env.submit()
-    
+
     print("\n=== 错误过滤和统计 ===")
     env = LocalEnvironment()  # 创建新环境
-    
+
     def collect_stats(results):
         """统计处理结果"""
         success_count = len([r for r in results if r['status'] == 'success'])
         error_count = len([r for r in results if r['status'] == 'error'])
-        
+
         return {
             'total': len(results),
             'success': success_count,
             'errors': error_count,
             'success_rate': success_count / len(results) if results else 0
         }
-    
+
     stats_stream = (env
         .from_batch(test_data)
         .map(safe_processor)                        # 安全处理
@@ -389,14 +389,14 @@ tutorial_05_error_handling()
 ```python
 def tutorial_06_stream_joining():
     """多流连接：用户数据关联"""
-    
+
     # 用户基本信息
     users = [
         {'user_id': 1, 'name': 'Alice', 'age': 25},
         {'user_id': 2, 'name': 'Bob', 'age': 30},
         {'user_id': 3, 'name': 'Charlie', 'age': 35},
     ]
-    
+
     # 用户订单信息
     orders = [
         {'order_id': 101, 'user_id': 1, 'amount': 100, 'product': 'Book'},
@@ -404,18 +404,18 @@ def tutorial_06_stream_joining():
         {'order_id': 103, 'user_id': 1, 'amount': 50, 'product': 'Coffee'},
         {'order_id': 104, 'user_id': 4, 'amount': 300, 'product': 'Laptop'},  # 用户不存在
     ]
-    
+
     env = LocalEnvironment()
-    
+
     # 创建用户流和订单流
     user_stream = env.from_batch(users)
     order_stream = env.from_batch(orders)
-    
+
     # 连接两个流
     def join_user_orders(user_data, order_data):
         """连接用户和订单数据"""
         user_dict = {u['user_id']: u for u in user_data}
-        
+
         joined_results = []
         for order in order_data:
             user_id = order['user_id']
@@ -440,46 +440,46 @@ def tutorial_06_stream_joining():
                     'product': order['product'],
                     'status': 'orphaned_order'
                 })
-        
+
         return joined_results
-    
+
     # 使用connect进行流连接
     connected_stream = user_stream.connect(order_stream)
-    
+
     # 处理连接后的数据
     result_stream = (connected_stream
         .comap(join_user_orders)                    # 协同处理两个流的数据
         .flatmap(lambda results: results)          # 展开结果列表
         .sink(ConsoleSink())                        # 输出结果
     )
-    
+
     print("=== 流连接示例 ===")
     env.submit()
-    
+
     # 另一种连接方式：使用窗口连接
     print("\n=== 窗口连接示例 ===")
     env = LocalEnvironment()
-    
+
     # 模拟时间序列数据
     user_actions = [
         {'user_id': 1, 'action': 'login', 'timestamp': 1000},
         {'user_id': 2, 'action': 'view_product', 'timestamp': 1001},
         {'user_id': 1, 'action': 'add_to_cart', 'timestamp': 1002},
     ]
-    
+
     user_profiles = [
         {'user_id': 1, 'segment': 'premium', 'timestamp': 999},
         {'user_id': 2, 'segment': 'regular', 'timestamp': 1000},
     ]
-    
+
     action_stream = env.from_batch(user_actions)
     profile_stream = env.from_batch(user_profiles)
-    
+
     # 基于时间窗口的连接
     def time_window_join(actions, profiles):
         """基于时间窗口连接用户行为和档案"""
         profile_dict = {p['user_id']: p for p in profiles}
-        
+
         enriched_actions = []
         for action in actions:
             user_id = action['user_id']
@@ -491,15 +491,15 @@ def tutorial_06_stream_joining():
                         **action,
                         'user_segment': profile['segment']
                     })
-        
+
         return enriched_actions
-    
+
     windowed_stream = (action_stream.connect(profile_stream)
         .comap(time_window_join)
         .flatmap(lambda results: results)
         .sink(ConsoleSink())
     )
-    
+
     env.submit()
 
 # 运行示例
@@ -518,50 +518,50 @@ tutorial_06_stream_joining()
 ```python
 def tutorial_07_stateful_processing():
     """有状态处理：运行统计和会话管理"""
-    
+
     # 有状态计数器
     class StatefulCounter:
         def __init__(self):
             self.counts = {}
-        
+
         def __call__(self, item):
             key = item.get('category', 'default')
             self.counts[key] = self.counts.get(key, 0) + 1
-            
+
             return {
                 'item': item,
                 'category_count': self.counts[key],
                 'total_categories': len(self.counts)
             }
-    
+
     # 滑动窗口平均
     class MovingAverageCalculator:
         def __init__(self, window_size=5):
             self.window_size = window_size
             self.window = []
-        
+
         def __call__(self, value):
             self.window.append(value)
             if len(self.window) > self.window_size:
                 self.window.pop(0)  # 移除最旧的元素
-            
+
             avg = sum(self.window) / len(self.window)
             return {
                 'value': value,
                 'moving_average': avg,
                 'window_size': len(self.window)
             }
-    
+
     # 会话管理器
     class SessionManager:
         def __init__(self, timeout=10):
             self.sessions = {}
             self.timeout = timeout
-        
+
         def __call__(self, event):
             user_id = event['user_id']
             current_time = event['timestamp']
-            
+
             # 检查现有会话
             if user_id in self.sessions:
                 last_activity = self.sessions[user_id]['last_activity']
@@ -585,21 +585,21 @@ def tutorial_07_stateful_processing():
                     'last_activity': current_time,
                     'event_count': 1
                 }
-            
+
             session_info = self.sessions[user_id].copy()
             session_info.update({
                 'user_id': user_id,
                 'event': event['action'],
                 'session_duration': current_time - session_info['start_time']
             })
-            
+
             return session_info
-    
+
     env = LocalEnvironment()
-    
+
     print("=== 有状态计数器示例 ===")
     counter = StatefulCounter()
-    
+
     # 测试数据
     items = [
         {'name': 'item1', 'category': 'A'},
@@ -609,31 +609,31 @@ def tutorial_07_stateful_processing():
         {'name': 'item5', 'category': 'A'},
         {'name': 'item6', 'category': 'B'},
     ]
-    
+
     counter_stream = (env
         .from_batch(items)
         .map(counter)                               # 有状态计数
         .sink(ConsoleSink())
     )
     env.submit()
-    
+
     print("\n=== 滑动窗口平均示例 ===")
     env = LocalEnvironment()
     moving_avg = MovingAverageCalculator(window_size=3)
-    
+
     values = [10, 15, 20, 12, 18, 25, 8, 30]
-    
+
     avg_stream = (env
         .from_batch(values)
         .map(moving_avg)                            # 滑动窗口平均
         .sink(ConsoleSink())
     )
     env.submit()
-    
+
     print("\n=== 会话管理示例 ===")
     env = LocalEnvironment()
     session_mgr = SessionManager(timeout=5)
-    
+
     # 模拟用户事件（包含会话超时）
     events = [
         {'user_id': 'user1', 'action': 'login', 'timestamp': 1000},
@@ -643,7 +643,7 @@ def tutorial_07_stateful_processing():
         {'user_id': 'user1', 'action': 'purchase', 'timestamp': 1015},  # 超时，新会话
         {'user_id': 'user2', 'action': 'logout', 'timestamp': 1016},
     ]
-    
+
     session_stream = (env
         .from_batch(events)
         .map(session_mgr)                           # 会话管理
@@ -667,7 +667,7 @@ tutorial_07_stateful_processing()
 ```python
 def tutorial_08_simple_rag_system():
     """综合示例：简单的RAG系统"""
-    
+
     # 模拟知识库
     knowledge_base = [
         {"id": 1, "content": "Python是一种高级编程语言", "category": "programming"},
@@ -676,7 +676,7 @@ def tutorial_08_simple_rag_system():
         {"id": 4, "content": "SAGE是一个数据流处理框架", "category": "framework"},
         {"id": 5, "content": "异步编程可以提高程序性能", "category": "programming"},
     ]
-    
+
     # 查询嵌入器（简化版）
     class SimpleEmbedder:
         def __call__(self, text):
@@ -687,18 +687,18 @@ def tutorial_08_simple_rag_system():
                 'keywords': keywords,
                 'embedding': keywords  # 简化：直接使用关键词作为嵌入
             }
-    
+
     # 检索器
     class SimpleRetriever:
         def __init__(self, knowledge_base, top_k=2):
             self.knowledge_base = knowledge_base
             self.top_k = top_k
-            
+
         def __call__(self, query_data):
             """检索相关文档"""
             query_keywords = set(query_data['keywords'])
             scores = []
-            
+
             for doc in self.knowledge_base:
                 doc_keywords = set(doc['content'].lower().split())
                 # 简单的相似度计算（交集大小）
@@ -707,47 +707,47 @@ def tutorial_08_simple_rag_system():
                     'document': doc,
                     'similarity': similarity
                 })
-            
+
             # 按相似度排序并返回top-k
             scores.sort(key=lambda x: x['similarity'], reverse=True)
             top_docs = scores[:self.top_k]
-            
+
             return {
                 'query': query_data['text'],
                 'retrieved_docs': [item['document'] for item in top_docs],
                 'similarities': [item['similarity'] for item in top_docs]
             }
-    
+
     # 生成器
     class SimpleGenerator:
         def __call__(self, retrieval_result):
             """基于检索结果生成回答"""
             query = retrieval_result['query']
             docs = retrieval_result['retrieved_docs']
-            
+
             if not docs or all(sim == 0 for sim in retrieval_result['similarities']):
                 return {
                     'query': query,
                     'answer': "抱歉，我无法找到相关信息来回答您的问题。",
                     'sources': []
                 }
-            
+
             # 简单的答案生成
             context = " ".join([doc['content'] for doc in docs])
             answer = f"根据相关资料：{context}。这些信息可能对您的问题 '{query}' 有所帮助。"
-            
+
             return {
                 'query': query,
                 'answer': answer,
                 'sources': [doc['id'] for doc in docs],
                 'context_length': len(context)
             }
-    
+
     # 查询质量过滤器
     def query_filter(query):
         """过滤查询质量"""
         return len(query.strip()) > 3 and not query.strip().isdigit()
-    
+
     # 结果格式化器
     def format_response(result):
         """格式化最终响应"""
@@ -757,9 +757,9 @@ def tutorial_08_simple_rag_system():
 参考文档: {', '.join(map(str, result['sources'])) if result['sources'] else '无'}
 上下文长度: {result.get('context_length', 0)} 字符
 ---"""
-    
+
     env = LocalEnvironment()
-    
+
     # 测试查询
     queries = [
         "什么是Python？",
@@ -769,14 +769,14 @@ def tutorial_08_simple_rag_system():
         "xyz",  # 低质量查询
         "123",  # 数字查询
     ]
-    
+
     # 创建处理组件
     embedder = SimpleEmbedder()
     retriever = SimpleRetriever(knowledge_base, top_k=2)
     generator = SimpleGenerator()
-    
+
     print("=== 简单RAG系统示例 ===")
-    
+
     # 构建RAG处理流水线
     rag_pipeline = (env
         .from_batch(queries)                        # 输入查询
@@ -787,11 +787,11 @@ def tutorial_08_simple_rag_system():
         .map(format_response)                       # 格式化响应
         .sink(ConsoleSink())                        # 输出结果
     )
-    
+
     env.submit()
-    
+
     print("\n=== 带错误处理的RAG系统 ===")
-    
+
     # 带错误处理的RAG系统
     def safe_rag_step(step_func, step_name):
         """为RAG步骤添加错误处理"""
@@ -802,7 +802,7 @@ def tutorial_08_simple_rag_system():
             except Exception as e:
                 return {'status': 'error', 'error': str(e), 'step': step_name, 'input': data}
         return wrapper
-    
+
     def extract_successful_data(result):
         """提取成功处理的数据"""
         if result['status'] == 'success':
@@ -810,7 +810,7 @@ def tutorial_08_simple_rag_system():
         else:
             print(f"步骤 {result['step']} 失败: {result['error']}")
             return None
-    
+
     env = LocalEnvironment()
     safe_rag_pipeline = (env
         .from_batch(queries)
@@ -827,7 +827,7 @@ def tutorial_08_simple_rag_system():
         .map(format_response)
         .sink(ConsoleSink())
     )
-    
+
     env.submit()
 
 # 运行示例

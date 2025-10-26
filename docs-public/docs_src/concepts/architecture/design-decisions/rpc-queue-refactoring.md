@@ -10,7 +10,7 @@
 
 **解决方案**: 实现工厂注册模式（Factory Registration Pattern），消除 L2→L3 的直接依赖。
 
-**结果**: 
+**结果**:
 - ✅ 消除架构违规
 - ✅ 保持层级依赖单向性 (L1 ← L2 ← L3)
 - ✅ 所有测试通过 (30/30)
@@ -28,7 +28,7 @@ L2 (sage-platform)  ← 平台服务，依赖 L1
 L3 (sage-kernel)    ← 核心引擎，依赖 L1+L2
 ```
 
-**原则**: 
+**原则**:
 - ✅ 允许：L3 → L2 → L1 (向下依赖)
 - ❌ 禁止：L2 → L3 (向上依赖)
 - ❌ 禁止：L1 → L3 (跨层依赖)
@@ -59,10 +59,10 @@ _rpc_queue_factory: Optional[QueueFactory] = None
 
 def register_rpc_queue_factory(factory: QueueFactory) -> None:
     """注册RPC队列工厂函数
-    
+
     This function should be called by sage-kernel (L3) to register
     the concrete RPCQueue implementation.
-    
+
     Args:
         factory: Factory function that creates RPCQueue instances
             Signature: factory(queue_id, host, port, ...) -> RPCQueue
@@ -74,7 +74,7 @@ def register_rpc_queue_factory(factory: QueueFactory) -> None:
 
 class RPCQueueDescriptor(BaseQueueDescriptor):
     """RPC队列描述符 - L2层不直接导入L3实现"""
-    
+
     def _create_queue_instance(self) -> Any:
         """使用工厂模式创建实例"""
         if _rpc_queue_factory is None:
@@ -82,7 +82,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
                 "RPC queue factory not registered. "
                 "Please ensure sage-kernel is imported and initialized."
             )
-        
+
         # 使用注册的工厂函数创建队列实例
         return _rpc_queue_factory(
             queue_id=self.queue_id,
@@ -119,13 +119,13 @@ Dependencies: sage.platform (L2), sage.common (L1)
 try:
     from sage.platform.queue import register_rpc_queue_factory
     from sage.kernel.runtime.communication.rpc import RPCQueue
-    
+
     def _rpc_queue_factory(**kwargs):
         """RPC队列工厂函数 - 由L2调用创建L3实例"""
         return RPCQueue(**kwargs)
-    
+
     register_rpc_queue_factory(_rpc_queue_factory)
-    
+
 except ImportError as e:
     import warnings
     warnings.warn(
@@ -167,7 +167,7 @@ logger = logging.getLogger(__name__)
 
 class RPCQueue:
     """RPC队列实现 - 当前为stub版本"""
-    
+
     def __init__(
         self,
         queue_id: str,
@@ -181,16 +181,16 @@ class RPCQueue:
         self.host = host
         self.port = port
         self.maxsize = maxsize
-        
+
         # Stub实现：使用本地Queue
         self._queue: Queue = Queue(maxsize=maxsize)
         self._connected = False
-        
+
         logger.warning(
             f"⚠️ RPCQueue '{queue_id}' initialized as STUB - "
             f"using local Queue instead of real RPC to {host}:{port}"
         )
-    
+
     def connect(self) -> bool:
         """连接到RPC服务器"""
         if not self._connected:
@@ -200,19 +200,19 @@ class RPCQueue:
             )
             self._connected = True
         return True
-    
+
     def put(self, item: Any, block: bool = True, timeout: Optional[float] = None):
         """发送数据"""
         if not self._connected:
             self.connect()
         self._queue.put(item, block=block, timeout=timeout)
-    
+
     def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
         """接收数据"""
         if not self._connected:
             self.connect()
         return self._queue.get(block=block, timeout=timeout)
-    
+
     # ... 其他队列方法
 ```
 
@@ -310,7 +310,7 @@ import sys
 def check_imports(file_path, forbidden_modules):
     with open(file_path) as f:
         tree = ast.parse(f.read())
-    
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:

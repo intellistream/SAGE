@@ -233,7 +233,7 @@ class VisualPipeline:
     name: str
     nodes: List[VisualNode]
     connections: List[VisualConnection]
-    
+
     def to_sage_pipeline(self) -> Environment:
         """Convert to executable SAGE pipeline"""
 ```

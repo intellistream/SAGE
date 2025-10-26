@@ -518,11 +518,11 @@ graph TD
    - 13个基础函数接口迁移到 common
    - PrintSink 迁移到 common/components/debug
    - 理由: libs 需要继承这些接口，应该独立于 kernel
-   
+
 2. ✅ **删除 kafka_source.py**
    - 删除 kernel 中的重复实现
    - 改进 libs 中的实现为完整版本
-   
+
 3. ✅ **一次性迁移** + 保留兼容层
 
 **新架构分层**:

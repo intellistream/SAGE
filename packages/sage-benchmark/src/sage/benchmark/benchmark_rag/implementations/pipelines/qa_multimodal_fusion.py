@@ -111,9 +111,7 @@ class MultimodalFusionRetriever:
         np.random.seed(seed)
         return np.random.normal(0, 1, 128).tolist()
 
-    def _fuse_embeddings(
-        self, text_emb: List[float], image_emb: List[float]
-    ) -> List[float]:
+    def _fuse_embeddings(self, text_emb: List[float], image_emb: List[float]) -> List[float]:
         """执行多模态嵌入融合"""
         text_weight = self.db_config["text_weight"]
         image_weight = self.db_config["image_weight"]
@@ -124,9 +122,7 @@ class MultimodalFusionRetriever:
 
         return fused
 
-    def _calculate_similarity(
-        self, query_emb: List[float], target_emb: List[float]
-    ) -> float:
+    def _calculate_similarity(self, query_emb: List[float], target_emb: List[float]) -> float:
         """计算余弦相似度"""
         query = np.array(query_emb)
         target = np.array(target_emb)
@@ -136,9 +132,7 @@ class MultimodalFusionRetriever:
         norm_target = np.linalg.norm(target)
 
         return (
-            dot_product / (norm_query * norm_target)
-            if norm_query > 0 and norm_target > 0
-            else 0.0
+            dot_product / (norm_query * norm_target) if norm_query > 0 and norm_target > 0 else 0.0
         )
 
     def execute(self, data):
@@ -152,9 +146,7 @@ class MultimodalFusionRetriever:
 
         # 生成查询嵌入
         text_emb = self._generate_text_embedding(query)
-        image_emb = self._generate_image_embedding(
-            query
-        )  # 基于查询文本生成相关图像嵌入
+        image_emb = self._generate_image_embedding(query)  # 基于查询文本生成相关图像嵌入
 
         # 多模态融合
         fused_query_emb = self._fuse_embeddings(text_emb, image_emb)

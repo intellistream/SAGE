@@ -145,7 +145,7 @@ class HelloBatch(BatchFunction):
         super().__init__(**kwargs)
         self.counter = 0
         self.max_count = 10  # 生成 10 个数据包后返回 None
-    
+
     def execute(self):
         if self.counter >= self.max_count:
             return None  # 返回 None 表示批处理完成
@@ -164,10 +164,10 @@ class PrintSink(SinkFunction):
 
 def main():
     env = LocalEnvironment("Hello_World")
-    
+
     # 构建数据流 Pipeline：批处理源 -> map -> sink
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)
-    
+
     # 提交执行（autostop=True 表示批处理完成后自动停止）
     env.submit(autostop=True)
     print("Hello World 批处理示例结束")

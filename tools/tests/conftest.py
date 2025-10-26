@@ -36,12 +36,8 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     """配置 pytest 标记"""
     config.addinivalue_line("markers", "examples: marks tests as examples tests")
-    config.addinivalue_line(
-        "markers", "quick_examples: marks tests as quick examples tests"
-    )
-    config.addinivalue_line(
-        "markers", "slow_examples: marks tests as slow examples tests"
-    )
+    config.addinivalue_line("markers", "quick_examples: marks tests as quick examples tests")
+    config.addinivalue_line("markers", "slow_examples: marks tests as slow examples tests")
 
     # 设置环境变量以便传递给子进程
     if config.getoption("--use-real-api", default=False):

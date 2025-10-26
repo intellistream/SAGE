@@ -108,9 +108,7 @@ class OutputFormatter:
         """打印警告消息"""
         self.print_message(message, "warning", prefix)
 
-    def format_data(
-        self, data: list[dict] | dict, headers: list[str] | None = None
-    ) -> str:
+    def format_data(self, data: list[dict] | dict, headers: list[str] | None = None) -> str:
         """
         格式化数据输出
 

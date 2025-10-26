@@ -166,8 +166,8 @@ sources:
 from sage.data_stream import DataStream
 
 # 假设 stream 的数据项是 (question, answer) 元组
-stream: DataStream = ... 
-stream.print(prefix="QA_RESULT") 
+stream: DataStream = ...
+stream.print(prefix="QA_RESULT")
 
 # 控制台可能输出:
 # QA_RESULT | [Q] What is SAGE?

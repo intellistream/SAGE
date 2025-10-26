@@ -164,22 +164,22 @@ class _LambdaMap(MapFunction):
         self.topic = topic
         self.group_id = group_id
         self.running = True
-    
+
     def run(self, ctx: SourceContext[dict]):
         from kafka import KafkaConsumer
-        
+
         consumer = KafkaConsumer(
             self.topic,
             bootstrap_servers=self.bootstrap_servers,
             group_id=self.group_id,
             value_deserializer=lambda x: json.loads(x.decode('utf-8'))
         )
-        
+
         for message in consumer:
             if not self.running:
                 break
             ctx.emit(message.value)
-    
+
     def cancel(self):
         self.running = False
 ```
@@ -191,15 +191,15 @@ from sage.core.api.function import SinkFunction
 
 class SinkFunction(BaseFunction[T, None]):
     """数据输出函数基类"""
-    
+
     def open(self, context) -> None:
         """初始化资源"""
         pass
-    
+
     def sink(self, value: T) -> None:
         """输出单个元素"""
         raise NotImplementedError()
-    
+
     def close(self) -> None:
         """清理资源"""
         pass
@@ -208,7 +208,7 @@ class SinkFunction(BaseFunction[T, None]):
 class PrintSinkFunction(SinkFunction[Any]):
     def __init__(self, prefix: str = ""):
         self.prefix = prefix
-    
+
     def sink(self, value: Any):
         print(f"{self.prefix}{value}")
 
@@ -216,14 +216,14 @@ class FileSinkFunction(SinkFunction[str]):
     def __init__(self, file_path: str):
         self.file_path = file_path
         self.file = None
-    
+
     def open(self, context):
         self.file = open(self.file_path, 'w')
-    
+
     def sink(self, value: str):
         self.file.write(f"{value}\n")
         self.file.flush()
-    
+
     def close(self):
         if self.file:
             self.file.close()
@@ -233,21 +233,21 @@ class DatabaseSinkFunction(SinkFunction[dict]):
         self.connection_string = connection_string
         self.table_name = table_name
         self.connection = None
-    
+
     def open(self, context):
         import psycopg2
         self.connection = psycopg2.connect(self.connection_string)
-    
+
     def sink(self, record: dict):
         cursor = self.connection.cursor()
         columns = list(record.keys())
         values = list(record.values())
-        
+
         query = f"INSERT INTO {self.table_name} ({','.join(columns)}) VALUES ({','.join(['%s'] * len(values))})"
         cursor.execute(query, values)
         self.connection.commit()
         cursor.close()
-    
+
     def close(self):
         if self.connection:
             self.connection.close()
@@ -262,7 +262,7 @@ from sage.core.api.function import JoinFunction
 
 class JoinFunction(BaseFunction[T1, T2, OUT]):
     """连接函数基类"""
-    
+
     def join(self, left: T1, right: T2) -> OUT:
         """连接两个流的元素"""
         raise NotImplementedError()
@@ -296,11 +296,11 @@ from sage.core.api.function import CoMapFunction
 
 class CoMapFunction(BaseFunction[T1, T2, OUT]):
     """协同映射函数基类"""
-    
+
     def map1(self, value: T1) -> OUT:
         """处理第一个流的元素"""
         raise NotImplementedError()
-    
+
     def map2(self, value: T2) -> OUT:
         """处理第二个流的元素"""
         raise NotImplementedError()
@@ -311,7 +311,7 @@ class AlertCoMapFunction(CoMapFunction[dict, dict, str]):
         if user_action["action"] == "login_failed":
             return f"Security Alert: Failed login attempt by user {user_action['user_id']}"
         return None
-    
+
     def map2(self, system_event: dict) -> str:
         if system_event["level"] == "ERROR":
             return f"System Alert: {system_event['message']}"
@@ -325,10 +325,10 @@ class MetricsCoMapFunction(CoMapFunction[dict, dict, dict]):
             "value": user_metric["value"],
             "timestamp": user_metric["timestamp"]
         }
-    
+
     def map2(self, system_metric: dict) -> dict:
         return {
-            "type": "system_metric", 
+            "type": "system_metric",
             "metric": system_metric["metric_name"],
             "value": system_metric["value"],
             "timestamp": system_metric["timestamp"]
@@ -343,7 +343,7 @@ class MetricsCoMapFunction(CoMapFunction[dict, dict, dict]):
 class StatefulProcessFunction(ProcessFunction[str, int]):
     def __init__(self):
         self.word_count = {}  # 状态
-    
+
     def process(self, word: str, ctx: ProcessContext[int]):
         self.word_count[word] = self.word_count.get(word, 0) + 1
         ctx.emit(self.word_count[word])
@@ -371,7 +371,7 @@ class OptimizedAggregateFunction(AggregateFunction[int, int, int]):
     def __init__(self):
         self.batch_size = 1000
         self.batch = []
-    
+
     def add(self, accumulator: int, value: int) -> int:
         self.batch.append(value)
         if len(self.batch) >= self.batch_size:
@@ -387,12 +387,12 @@ class OptimizedAggregateFunction(AggregateFunction[int, int, int]):
 class DatabaseSinkFunction(SinkFunction[dict]):
     def open(self, context):
         self.connection_pool = create_connection_pool()
-    
+
     def sink(self, record: dict):
         with self.connection_pool.get_connection() as conn:
             # 使用连接池
             self.insert_record(conn, record)
-    
+
     def close(self):
         self.connection_pool.close()
 ```

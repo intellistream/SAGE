@@ -27,9 +27,7 @@ class SearchQueryResults:
 
     def get_all_content(self) -> str:
         """获取所有结果的内容拼接"""
-        return "\n\n".join(
-            [f"{result.title}\n{result.content}" for result in self.results]
-        )
+        return "\n\n".join([f"{result.title}\n{result.content}" for result in self.results])
 
     def get_top_results(self, n: int = 3) -> list[SearchResult]:
         """获取前N个结果"""

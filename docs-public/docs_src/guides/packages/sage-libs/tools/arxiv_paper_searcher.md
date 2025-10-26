@@ -71,8 +71,8 @@
     tool = _Searcher_Tool()
 
     results = tool.execute(
-        query="quantum computing", 
-        size=100, 
+        query="quantum computing",
+        size=100,
         max_results=50
     )
 
@@ -88,7 +88,7 @@
     tool = _Searcher_Tool()
 
     results = tool.execute(
-        query="machine learning", 
+        query="machine learning",
         max_results=75
     )
 

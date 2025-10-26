@@ -67,12 +67,7 @@ class SimpleRefiner(BaseRefiner):
                 texts.append(doc)
                 scores.append(1.0)
             elif isinstance(doc, dict):
-                text = (
-                    doc.get("contents")
-                    or doc.get("text")
-                    or doc.get("content")
-                    or str(doc)
-                )
+                text = doc.get("contents") or doc.get("text") or doc.get("content") or str(doc)
                 texts.append(text)
                 scores.append(doc.get("score", 1.0))
             else:
@@ -118,9 +113,7 @@ class SimpleRefiner(BaseRefiner):
             total_time=total_time,
             original_tokens=original_tokens,
             refined_tokens=refined_tokens,
-            compression_rate=(
-                original_tokens / refined_tokens if refined_tokens > 0 else 0.0
-            ),
+            compression_rate=(original_tokens / refined_tokens if refined_tokens > 0 else 0.0),
             algorithm=self.name,
             metadata={
                 "budget": use_budget,

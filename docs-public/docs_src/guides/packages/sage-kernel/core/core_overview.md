@@ -9,30 +9,30 @@ SAGE Core 层是框架的核心引擎，为大规模语言模型推理提供高�
 ```mermaid
 graph TD
     A[用户应用程序] --> B[API 接口层]
-    
+
     subgraph "SAGE Core 架构栈"
         B --> C[转换层]
         C --> D[执行层]
         D --> E[运行时层]
     end
-    
+
     C --> F[Transformation System]
     C --> G[Compiler & Optimizer]
     C --> H[Graph Builder]
-    
+
     D --> I[Operator System]
     D --> J[Function System]
     D --> K[Pipeline Engine]
-    
+
     E --> L[Local Runtime]
     E --> M[Remote Runtime]
     E --> N[Distributed Scheduler]
     E --> O[State Manager]
-    
+
     E --> P[资源管理器]
     E --> Q[容错控制器]
     E --> R[监控系统]
-    
+
     style B fill:#e1f5fe
     style C fill:#f3e5f5
     style D fill:#e8f5e8
@@ -95,20 +95,20 @@ graph BT
     A --> C[TransformationOperator]
     A --> D[SinkOperator]
     A --> E[ControlOperator]
-    
+
     B --> F[KafkaSource]
     B --> G[FileSource]
     B --> H[SocketSource]
-    
+
     C --> I[MapOperator]
     C --> J[FilterOperator]
     C --> K[ReduceOperator]
     C --> L[WindowOperator]
-    
+
     D --> M[KafkaSink]
     D --> N[FileSink]
     D --> O[DatabaseSink]
-    
+
     E --> P[SplitOperator]
     E --> Q[RouteOperator]
     E --> R[BroadcastOperator]
@@ -136,11 +136,11 @@ class UserFunction(ABC):
     @abstractmethod
     def open(self, context: FunctionContext):
         pass
-    
+
     @abstractmethod
     def close(self):
         pass
-    
+
     @abstractmethod
     def process_element(self, value, ctx: Context):
         pass
@@ -150,13 +150,13 @@ class SentenceEmbeddingFunction(MapFunction):
     def __init__(self, model_path: str):
         self.model_path = model_path
         self.model = None
-        
+
     def open(self, context):
         self.model = load_embedding_model(self.model_path)
-        
+
     def map(self, sentence: str) -> List[float]:
         return self.model.encode(sentence)
-        
+
     def close(self):
         self.model.release()
 ```
@@ -169,14 +169,14 @@ class SentenceEmbeddingFunction(MapFunction):
 flowchart TD
     A[用户代码] --> B[逻辑执行图]
     B --> C[优化器]
-    
+
     subgraph C[优化阶段]
         C1[算子融合]
         C2[数据分区优化]
         C3[状态后端选择]
         C4[调度策略优化]
     end
-    
+
     C --> D[物理执行图]
     D --> E[运行时调度]
 ```
@@ -200,15 +200,15 @@ def build_rag_pipeline(env: StreamExecutionEnvironment):
     return (env
         .from_source(QuerySource("user-queries"))
         .map(QueryParser(), name="query-parser")
-        .map(EmbeddingGenerator("model/embedding"), 
+        .map(EmbeddingGenerator("model/embedding"),
              name="embedding-generator")
-        .map(VectorRetriever("vector-db"), 
+        .map(VectorRetriever("vector-db"),
              name="vector-retriever")
         .map(ContextEnhancer(), name="context-enhancer")
-        .map(LLMGenerator("model/llm"), 
+        .map(LLMGenerator("model/llm"),
              name="llm-generator")
         .map(ResponseFormatter(), name="response-formatter")
-        .sink(ResponseSink("output-topic"), 
+        .sink(ResponseSink("output-topic"),
               name="response-sink")
     )
 
@@ -226,11 +226,11 @@ rag_env = StreamExecutionEnvironment.create(
 class IntelligentAgentPipeline:
     def __init__(self, env):
         self.env = env
-        
+
     def build_router_pipeline(self):
         return (self.env
             .from_source(MessageSource("input-messages"))
-            .map(IntentClassifier("model/intent"), 
+            .map(IntentClassifier("model/intent"),
                  name="intent-classifier")
             .route([
                 ("question", self._build_qa_branch()),
@@ -326,7 +326,7 @@ monitoring_config = MonitoringConfig(
             severity="WARNING"
         ),
         AlertRule(
-            metric="latency_p99", 
+            metric="latency_p99",
             condition="> 500ms for 2m",
             severity="CRITICAL"
         )

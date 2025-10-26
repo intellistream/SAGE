@@ -132,9 +132,7 @@ class FieldKeyByFunction(KeyByFunction):
             self.field_name = field_name
         if not self.field_name:
             raise ValueError("field_name must be specified")
-        self.logger.debug(
-            f"FieldKeyByFunction initialized for field: {self.field_name}"
-        )
+        self.logger.debug(f"FieldKeyByFunction initialized for field: {self.field_name}")
 
     def execute(self, data: Any) -> Hashable:
         """

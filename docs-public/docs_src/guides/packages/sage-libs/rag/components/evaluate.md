@@ -51,7 +51,7 @@ f1_evaluator = F1Evaluate()
 # 准备评估数据
 data = {
     "references": [
-        "SAGE是一个先进的RAG框架", 
+        "SAGE是一个先进的RAG框架",
         "SAGE框架支持多种文本分块方法"
     ],
     "generated": "SAGE是支持RAG的先进框架"
@@ -284,7 +284,7 @@ print("开始RAG系统评估：")
 result = test_data
 for evaluator in evaluators:
     result = evaluator.execute(result)
-    
+
 print("评估完成！")
 ```
 
@@ -303,7 +303,7 @@ class CustomEvaluate(MapFunction):
         score = self.calculate_custom_score(data)
         print(f"\033[93m[Custom] : {score:.4f}\033[0m")
         return data
-    
+
     def calculate_custom_score(self, data):
         # 自定义评估算法
         return 0.0

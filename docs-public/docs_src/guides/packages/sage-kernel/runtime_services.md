@@ -42,7 +42,7 @@
 
 | 功能点 | `LocalServiceTask` | `RayServiceTask` |
 | --- | --- | --- |
-| 队列实现 | Python `queue.Queue` | Ray 队列/Actor | 
+| 队列实现 | Python `queue.Queue` | Ray 队列/Actor |
 | 服务实例 | 直接在当前进程持有 | 运行在 Ray Actor 内，通过远程调用执行 |
 | 适用场景 | 默认模式、开发/单机部署 | 远程平台或需要跨节点伸缩时 |
 

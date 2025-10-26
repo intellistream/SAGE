@@ -181,9 +181,7 @@ class ProjectStatusChecker:
                         spec = importlib.util.find_spec(module_name)
                         if spec is not None:
                             info["importable"] = True
-                            info["import_path"] = (
-                                spec.origin if spec.origin else "Built-in"
-                            )
+                            info["import_path"] = spec.origin if spec.origin else "Built-in"
                             info["module_name"] = module_name
                     except ImportError:
                         pass
@@ -243,9 +241,7 @@ class ProjectStatusChecker:
     def _check_ray_status(self) -> dict[str, Any]:
         """检查Ray服务状态"""
         try:
-            result = subprocess.run(
-                ["ray", "status"], capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["ray", "status"], capture_output=True, text=True, timeout=10)
             return {
                 "available": True,
                 "running": result.returncode == 0,
@@ -295,9 +291,7 @@ class ProjectStatusChecker:
                 "exists": sage_home_path.exists(),
                 "is_dir": sage_home_path.is_dir() if sage_home_path.exists() else False,
                 "logs_dir_exists": (
-                    (sage_home_path / "logs").exists()
-                    if sage_home_path.exists()
-                    else False
+                    (sage_home_path / "logs").exists() if sage_home_path.exists() else False
                 ),
             }
         else:
@@ -333,19 +327,13 @@ class ProjectStatusChecker:
             if "critical_packages" in result and "import_tests" in result:
                 critical = result["critical_packages"]
                 imports = result["import_tests"]
-                available = sum(
-                    1 for pkg in critical.values() if pkg.get("available", False)
-                )
-                successful_imports = sum(
-                    1 for test in imports.values() if test == "success"
-                )
+                available = sum(1 for pkg in critical.values() if pkg.get("available", False))
+                successful_imports = sum(1 for test in imports.values() if test == "success")
                 lines.append(f"📚 关键依赖: {available}/{len(critical)} 可用")
                 lines.append(f"📥 导入测试: {successful_imports}/{len(imports)} 成功")
 
                 # 显示失败的导入
-                failed_imports = [
-                    name for name, test in imports.items() if test != "success"
-                ]
+                failed_imports = [name for name, test in imports.items() if test != "success"]
                 if failed_imports:
                     lines.append(f"❌ 导入失败: {', '.join(failed_imports[:3])}")
                 return "\n".join(lines)
@@ -374,12 +362,8 @@ class ProjectStatusChecker:
             # 特殊处理配置信息
             if "config_files" in result:
                 config_files = result["config_files"]
-                existing_files = [
-                    name for name, info in config_files.items() if info.get("exists")
-                ]
-                lines.append(
-                    f"📄 配置文件: {len(existing_files)}/{len(config_files)} 存在"
-                )
+                existing_files = [name for name, info in config_files.items() if info.get("exists")]
+                lines.append(f"📄 配置文件: {len(existing_files)}/{len(config_files)} 存在")
                 sage_home_status = result.get("sage_home_status", {})
                 if sage_home_status.get("configured", True):
                     lines.append(
@@ -482,9 +466,7 @@ class ProjectStatusChecker:
         """生成状态摘要"""
         total_checks = len(status_data["checks"])
         successful_checks = sum(
-            1
-            for check in status_data["checks"].values()
-            if check["status"] == "success"
+            1 for check in status_data["checks"].values() if check["status"] == "success"
         )
 
         summary_lines = [

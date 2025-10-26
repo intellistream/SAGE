@@ -254,15 +254,11 @@ class FeatureEnrichmentFunction(BaseFunction):
                 method="info",
             )
 
-            self.logger.info(
-                f"Feature enrichment completed for: {request['request_id']}"
-            )
+            self.logger.info(f"Feature enrichment completed for: {request['request_id']}")
             return enriched_request
 
         except Exception as e:
-            self.logger.error(
-                f"Feature enrichment failed for {request['request_id']}: {e}"
-            )
+            self.logger.error(f"Feature enrichment failed for {request['request_id']}: {e}")
             # 记录错误到日志服务
             self.call_service(
                 "log",
@@ -281,9 +277,7 @@ class RecommendationFunction(BaseFunction):
         if enriched_request is None:
             return None
 
-        self.logger.info(
-            f"Generating recommendations for: {enriched_request['request_id']}"
-        )
+        self.logger.info(f"Generating recommendations for: {enriched_request['request_id']}")
 
         try:
             # 检查缓存
@@ -315,9 +309,7 @@ class RecommendationFunction(BaseFunction):
             )
 
             # 使用模型服务进行预测
-            predictions = self.call_service(
-                "model", feature_vectors, method="batch_predict"
-            )
+            predictions = self.call_service("model", feature_vectors, method="batch_predict")
 
             # 生成推荐结果
             recommendations = []
@@ -383,9 +375,7 @@ class RecommendationFunction(BaseFunction):
             vector = {
                 **user_features,
                 **item_attrs,
-                "interaction_score": self._calculate_interaction(
-                    user_features, item_attrs
-                ),
+                "interaction_score": self._calculate_interaction(user_features, item_attrs),
             }
             feature_vectors.append(vector)
         return feature_vectors
@@ -393,15 +383,9 @@ class RecommendationFunction(BaseFunction):
     def _calculate_interaction(self, user_features, item_features):
         """计算交互特征"""
         score = 0.0
-        if (
-            user_features.get("vip_level", 0) >= 2
-            and item_features.get("price", 0) > 500
-        ):
+        if user_features.get("vip_level", 0) >= 2 and item_features.get("price", 0) > 500:
             score += 0.2
-        if (
-            user_features.get("age", 0) < 30
-            and item_features.get("category") == "electronics"
-        ):
+        if user_features.get("age", 0) < 30 and item_features.get("category") == "electronics":
             score += 0.1
         return round(score, 3)
 
@@ -420,17 +404,13 @@ class ResultSinkFunction(BaseFunction):
 
         self.processed_count += 1
 
-        self.logger.info(
-            f"Processing final result for: {recommendation_result['request_id']}"
-        )
+        self.logger.info(f"Processing final result for: {recommendation_result['request_id']}")
 
         # 格式化输出
         output = {
             "request_id": recommendation_result["request_id"],
             "user_id": recommendation_result["user_id"],
-            "recommendations": recommendation_result["recommendations"][
-                :3
-            ],  # 只取前3个
+            "recommendations": recommendation_result["recommendations"][:3],  # 只取前3个
             "from_cache": recommendation_result.get("from_cache", False),
             "processed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             "processing_order": self.processed_count,

@@ -53,7 +53,7 @@ output = (query, structured_prompt)
 **内置模板**：
 ```jinja2
 Instruction:
-You are an intelligent assistant with access to a knowledge base. 
+You are an intelligent assistant with access to a knowledge base.
 Answer the question below with reference to the provided context.
 Only give me the answer and do not output any other words.
 
@@ -119,7 +119,7 @@ qa_promptor_custom = QAPromptor(template=custom_template)
 **内置模板**：
 ```jinja2
 Instruction:
-You are an intelligent assistant. Summarize the content provided below 
+You are an intelligent assistant. Summarize the content provided below
 in a concise and clear manner.
 Only provide the summary and do not include any additional information.
 
@@ -141,7 +141,7 @@ sum_promptor = SummarizationPromptor()
 # 准备文档内容
 documents = [
     "RAG技术结合了检索和生成两个步骤。",
-    "检索步骤从知识库中找到相关信息。", 
+    "检索步骤从知识库中找到相关信息。",
     "生成步骤基于检索结果产生最终答案。"
 ]
 
@@ -261,7 +261,7 @@ result = profiler.execute(query)
 {
   "need_joint_reasoning": true,
   "complexity": "High",
-  "need_summarization": true, 
+  "need_summarization": true,
   "summarization_length": 150,
   "n_info_items": 3
 }
@@ -335,16 +335,16 @@ class RAGPipeline:
             "metadata": "综合知识库",
             "chunk_size": 1024
         })
-    
+
     def process_query(self, query, documents, use_summarization=False):
         # 1. 分析查询特征
         profile = self.profiler.execute(query)
-        
+
         # 2. 根据分析结果决定是否需要摘要
         if use_summarization or self._need_summarization(profile):
             # 先生成摘要
             sum_prompt = self.sum_promptor.execute((
-                f"请摘要以下与'{query}'相关的内容", 
+                f"请摘要以下与'{query}'相关的内容",
                 documents
             ))
             # 这里可以调用LLM获取摘要结果
@@ -352,16 +352,16 @@ class RAGPipeline:
             final_docs = summarized_docs
         else:
             final_docs = documents
-        
+
         # 3. 生成最终的QA提示词
         qa_prompt = self.qa_promptor.execute((query, final_docs))
-        
+
         return {
             'profile': profile,
             'final_prompt': qa_prompt,
             'used_summarization': use_summarization
         }
-    
+
     def _need_summarization(self, profile):
         # 根据profile结果判断是否需要摘要
         return profile[0].get('content', {}).get('need_summarization', False)
@@ -383,7 +383,7 @@ result = pipeline.process_query(
 config = {
     # 自定义提示词模板
     'template': '''自定义的Jinja2模板内容''',
-    
+
     # 其他配置项...
 }
 

@@ -9,7 +9,7 @@ Function 函数系统是 SAGE Core 中用户逻辑的载体，它将用户定义
 ```mermaid
 graph TD
     A[BaseFunction] --> B[SourceFunction]
-    A --> C[MapFunction] 
+    A --> C[MapFunction]
     A --> D[FilterFunction]
     A --> E[SinkFunction]
     A --> F[FlatMapFunction]
@@ -17,15 +17,15 @@ graph TD
     A --> H[JoinFunction]
     A --> I[BatchFunction]
     A --> J[StatefulFunction]
-    
+
     B --> K[LambdaSourceFunction]
-    
+
     C --> L[LambdaMapFunction]
-    
+
     D --> M[LambdaFilterFunction]
-    
+
     E --> N[LambdaSinkFunction]
-    
+
     F --> O[LambdaFlatMapFunction]
 ```
 
@@ -61,43 +61,43 @@ class BaseFunction(ABC):
             else:
                 self._logger = self.ctx.logger
         return self._logger
-    
+
     @property
     def name(self):
         if self.ctx is None:
             return self.__class__.__name__
         return self.ctx.name
-    
+
     @property
     def call_service(self):
         """
         同步服务调用语法糖
-        
+
         用法:
             result = self.call_service["cache_service"].get("key1")
             data = self.call_service["db_service"].query("SELECT * FROM users")
         """
         if self.ctx is None:
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
-        
+
         return self.ctx.call_service()
-    
-    @property 
+
+    @property
     def call_service_async(self):
         """
         异步服务调用语法糖
-        
+
         用法:
             future = self.call_service_async["cache_service"].get("key1")
             result = future.result()  # 阻塞等待结果
-            
+
             # 或者非阻塞检查
             if future.done():
                 result = future.result()
         """
         if self.ctx is None:
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
-        
+
         return self.ctx.call_service_async()
 
     @abstractmethod
@@ -130,17 +130,17 @@ class TaskContext:
         self.is_spout = transformation.is_spout
         self.delay = 0.01
         self.stop_signal_num = graph_node.stop_signal_num
-        
+
     @property
     def logger(self):
         """获取日志记录器"""
         return self._logger
-    
+
     def call_service(self):
         """同步服务调用接口"""
         # 实际实现由运行时提供
         pass
-    
+
     def call_service_async(self):
         """异步服务调用接口"""
         # 实际实现由运行时提供
@@ -205,7 +205,7 @@ class StopSignal:
 class SourceFunction(BaseFunction):
     """
     源函数基类 - 数据生产者
-    
+
     源函数不接收输入数据，只产生输出数据
     通常用于读取文件、数据库、API等外部数据源
     """
@@ -214,7 +214,7 @@ class SourceFunction(BaseFunction):
     def execute(self) -> Any:
         """
         执行源函数逻辑，生产数据
-        
+
         Returns:
             生产的数据
         """
@@ -226,7 +226,7 @@ class SimpleSourceFunction(SourceFunction):
         super().__init__()
         self.data_list = data_list
         self.index = 0
-        
+
     def execute(self):
         if self.index < len(self.data_list):
             data = self.data_list[self.index]
@@ -247,7 +247,7 @@ from sage.core.api.function.map_function import MapFunction
 class MapFunction(BaseFunction):
     """
     映射函数基类 - 一对一数据变换
-    
+
     映射函数接收一个输入，产生一个输出
     用于数据转换、增强、格式化等操作
     """
@@ -256,10 +256,10 @@ class MapFunction(BaseFunction):
     def execute(self, data: Any) -> Any:
         """
         执行映射变换
-        
+
         Args:
             data: 输入数据
-            
+
         Returns:
             变换后的数据
         """
@@ -271,11 +271,11 @@ from sage.core.api.function.lambda_function import LambdaMapFunction
 
 class LambdaMapFunction(MapFunction):
     """将 lambda 函数包装为 MapFunction"""
-    
+
     def __init__(self, lambda_func: Callable[[Any], Any], **kwargs):
         super().__init__(**kwargs)
         self.lambda_func = lambda_func
-    
+
     def execute(self, data: Any) -> Any:
         return self.lambda_func(data)
 
@@ -296,7 +296,7 @@ class FilterFunction(BaseFunction):
     """
     FilterFunction 是专门用于 Filter 操作的函数基类。
     它定义了过滤条件函数的接口，用于判断数据是否应该通过过滤器。
-    
+
     Filter 函数的主要作用是接收输入数据，返回布尔值表示数据是否通过过滤条件。
     """
 
@@ -304,10 +304,10 @@ class FilterFunction(BaseFunction):
     def execute(self, data: Any) -> bool:
         """
         抽象方法，由子类实现具体的过滤逻辑。
-        
+
         Args:
             data: 输入数据
-            
+
         Returns:
             bool: True表示数据应该通过，False表示应该被过滤掉
         """
@@ -315,11 +315,11 @@ class FilterFunction(BaseFunction):
 
 class LambdaFilterFunction(FilterFunction):
     """将返回布尔值的 lambda 函数包装为 FilterFunction"""
-    
+
     def __init__(self, lambda_func: Callable[[Any], bool], **kwargs):
         super().__init__(**kwargs)
         self.lambda_func = lambda_func
-    
+
     def execute(self, data: Any) -> bool:
         return self.lambda_func(data)
 
@@ -339,16 +339,16 @@ from sage.core.api.function.lambda_function import LambdaSinkFunction
 class SinkFunction(BaseFunction):
     """
     汇聚函数基类 - 数据消费者
-    
+
     汇聚函数接收输入数据，通常不产生输出
     用于数据存储、发送、打印等终端操作
     """
-    
+
     @abstractmethod
     def execute(self, data: Any) -> None:
         """
         执行汇聚操作
-        
+
         Args:
             data: 输入数据
         """
@@ -356,11 +356,11 @@ class SinkFunction(BaseFunction):
 
 class LambdaSinkFunction(SinkFunction):
     """将 lambda 函数包装为 SinkFunction"""
-    
+
     def __init__(self, lambda_func: Callable[[Any], None], **kwargs):
         super().__init__(**kwargs)
         self.lambda_func = lambda_func
-    
+
     def execute(self, data: Any) -> None:
         self.lambda_func(data)
 
@@ -372,15 +372,15 @@ class FileSinkFunction(SinkFunction):
         super().__init__()
         self.filename = filename
         self.file_handle = None
-    
+
     def setup(self):
         self.file_handle = open(self.filename, 'w')
-    
+
     def execute(self, data: Any) -> None:
         if self.file_handle:
             self.file_handle.write(str(data) + '\n')
             self.file_handle.flush()
-    
+
     def cleanup(self):
         if self.file_handle:
             self.file_handle.close()
@@ -399,7 +399,7 @@ from sage.core.api.function.lambda_function import LambdaFlatMapFunction
 class FlatMapFunction(BaseFunction):
     """
     扁平化映射函数基类 - 一对多数据变换
-    
+
     FlatMap函数接收一个输入，产生多个输出（列表形式）
     用于数据分解、展开等操作
     """
@@ -408,10 +408,10 @@ class FlatMapFunction(BaseFunction):
     def execute(self, data: Any) -> List[Any]:
         """
         执行扁平化映射变换
-        
+
         Args:
             data: 输入数据
-            
+
         Returns:
             变换后的数据列表
         """
@@ -419,11 +419,11 @@ class FlatMapFunction(BaseFunction):
 
 class LambdaFlatMapFunction(FlatMapFunction):
     """将返回列表的 lambda 函数包装为 FlatMapFunction"""
-    
+
     def __init__(self, lambda_func: Callable[[Any], List[Any]], **kwargs):
         super().__init__(**kwargs)
         self.lambda_func = lambda_func
-    
+
     def execute(self, data: Any) -> List[Any]:
         result = self.lambda_func(data)
         if not isinstance(result, list):
@@ -442,7 +442,7 @@ from sage.core.api.function.keyby_function import KeyByFunction
 class KeyByFunction(BaseFunction):
     """
     KeyBy函数基类 - 数据分组
-    
+
     用于根据键值对数据进行分组操作
     """
 
@@ -450,10 +450,10 @@ class KeyByFunction(BaseFunction):
     def execute(self, data: Any) -> Any:
         """
         提取分组键
-        
+
         Args:
             data: 输入数据
-            
+
         Returns:
             分组键
         """
@@ -468,7 +468,7 @@ SAGE 提供了便捷的Lambda函数包装器，可以快速将普通函数转换
 
 ```python
 from sage.core.api.function.lambda_function import (
-    LambdaMapFunction, LambdaFilterFunction, LambdaFlatMapFunction, 
+    LambdaMapFunction, LambdaFilterFunction, LambdaFlatMapFunction,
     LambdaSinkFunction
 )
 
@@ -488,14 +488,14 @@ class ServiceCallFunction(BaseFunction):
     def execute(self, data):
         # 同步调用服务
         result = self.call_service["cache_service"].get("key1")
-        
+
         # 异步调用服务
         future = self.call_service_async["db_service"].query("SELECT * FROM users")
-        
+
         # 处理结果
         if future.done():
             db_result = future.result()
-        
+
         return {"cache": result, "db": db_result}
 ```
 
@@ -510,19 +510,19 @@ class ServiceCallFunction(BaseFunction):
 ```python
 class TextCleanerFunction(MapFunction):
     """文本清理函数 - 良好的设计示例"""
-    
+
     def execute(self, text: str) -> str:
         if not isinstance(text, str):
             self.logger.error(f"Expected string input, got {type(text)}")
             raise TypeError("Input must be a string")
-        
+
         if not text.strip():
             return ""
-        
+
         # 清理逻辑
         cleaned = text.strip().lower()
         cleaned = ' '.join(cleaned.split())  # 规范化空格
-        
+
         return cleaned
 ```
 
@@ -537,14 +537,14 @@ class CounterFunction(StatefulFunction):
     def __init__(self):
         super().__init__()
         self.count = 0
-        
+
     def execute(self, data):
         self.count += 1
-        
+
         # 每处理100个数据保存一次状态
         if self.count % 100 == 0:
             self.save_state()
-            
+
         return {"data": data, "count": self.count}
 ```
 
@@ -560,7 +560,7 @@ class DatabaseQueryFunction(MapFunction):
         try:
             # 使用异步服务调用
             future = self.call_service_async["db_service"].query(query_params)
-            
+
             if future.done():
                 result = future.result()
                 if result.get("success"):
@@ -571,7 +571,7 @@ class DatabaseQueryFunction(MapFunction):
             else:
                 self.logger.warning("Database query timeout")
                 return None
-                
+
         except Exception as e:
             self.logger.error(f"Service call failed: {e}")
             return None
@@ -593,15 +593,15 @@ class TestTextCleanerFunction(unittest.TestCase):
         # 模拟上下文
         self.function.ctx = Mock()
         self.function.ctx.logger = Mock()
-        
+
     def test_clean_normal_text(self):
         result = self.function.execute("  Hello   World  ")
         self.assertEqual(result, "hello world")
-        
+
     def test_clean_empty_text(self):
         result = self.function.execute("   ")
         self.assertEqual(result, "")
-        
+
     def test_invalid_input(self):
         with self.assertRaises(TypeError):
             self.function.execute(123)

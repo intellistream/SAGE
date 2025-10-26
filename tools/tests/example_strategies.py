@@ -347,9 +347,7 @@ class ExampleTestFilters:
     """示例测试过滤器"""
 
     @staticmethod
-    def should_skip_file(
-        file_path: Path, category: str, example_info=None
-    ) -> tuple[bool, str]:
+    def should_skip_file(file_path: Path, category: str, example_info=None) -> tuple[bool, str]:
         """判断是否应该跳过某个文件的测试
 
         Args:
@@ -369,10 +367,7 @@ class ExampleTestFilters:
                 return True, "文件包含 @test:skip 标记"
 
             # 检查 CI 环境下的跳过标记
-            is_ci = (
-                os.environ.get("CI") == "true"
-                or os.environ.get("GITHUB_ACTIONS") == "true"
-            )
+            is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
             if is_ci:
                 # 检查 skip_ci 标记（支持 skip_ci 或 skip_ci=true）
                 for tag in example_info.test_tags:
@@ -467,9 +462,7 @@ class ExampleEnvironmentManager:
             return ":".join(sage_paths)
         except FileNotFoundError:
             # 如果找不到项目根目录，返回空字符串或抛出错误
-            raise FileNotFoundError(
-                "Cannot find SAGE project root directory for Python path setup"
-            )
+            raise FileNotFoundError("Cannot find SAGE project root directory for Python path setup")
 
     def _create_temp_config(self, category: str) -> Path:
         """创建临时配置文件"""

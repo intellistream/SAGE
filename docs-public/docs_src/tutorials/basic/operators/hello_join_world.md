@@ -75,7 +75,7 @@ class HelloWorldJoin(BaseJoinFunction):
          if data_type == "hello":
             # 缓存 Hello 数据
             self.hello_cache.setdefault(key, []).append(payload)
-                
+
             # 检查是否有匹配的 World 数据
             if key in self.world_cache:
                for world_data in self.world_cache[key]:
@@ -85,7 +85,7 @@ class HelloWorldJoin(BaseJoinFunction):
          if data_type == "world":
             # 缓存 World 数据
             self.world_cache.setdefault(key, []).append(payload)
-                
+
             # 检查是否有匹配的 Hello 数据
             if key in self.hello_cache:
                for hello_data in self.hello_cache[key]:
@@ -110,11 +110,11 @@ def main():
 
    # 提交但不使用 autostop，而是手动控制
    env.submit()
-    
+
    # 等待一段时间让批处理完成
    import time
    time.sleep(2)  # 给足够时间让所有数据处理完成
-    
+
    print("Hello Join World 示例结束")
 
 
