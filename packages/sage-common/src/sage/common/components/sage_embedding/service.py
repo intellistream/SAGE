@@ -18,7 +18,7 @@ from typing import Any
 import numpy as np
 
 from sage.common.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
-from sage.platform.service import BaseService
+from sage.common.service import BaseService
 
 
 @dataclass

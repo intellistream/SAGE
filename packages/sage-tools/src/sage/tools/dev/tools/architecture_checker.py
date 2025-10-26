@@ -48,8 +48,8 @@ for layer, packages in LAYER_DEFINITION.items():
 ALLOWED_DEPENDENCIES = {
     "sage-common": set(),  # L1 不依赖任何包
     "sage-platform": {"sage-common"},  # L2 -> L1
-    "sage-kernel": {"sage-common", "sage-platform"},  # L3 -> L2, L1
-    "sage-libs": {"sage-common", "sage-platform", "sage-kernel"},  # L3 -> L2, L1, L3
+    "sage-kernel": {"sage-common", "sage-platform", "sage-libs"},  # L3 kernel 可以使用 libs
+    "sage-libs": {"sage-common", "sage-platform"},  # L3 libs 不依赖 kernel（被动库）
     "sage-middleware": {
         "sage-common",
         "sage-platform",
@@ -159,21 +159,46 @@ class ImportExtractor(ast.NodeVisitor):
     def __init__(self, filepath: Path):
         self.filepath = filepath
         self.imports: list[ImportStatement] = []
+        self.in_type_checking = False  # 跟踪是否在 TYPE_CHECKING 块中
+
+    def visit_If(self, node: ast.If):
+        """检查是否进入 TYPE_CHECKING 块"""
+        # 检查条件是否是 TYPE_CHECKING
+        is_type_checking_block = False
+        if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
+            is_type_checking_block = True
+        
+        if is_type_checking_block:
+            # 暂时设置标志，访问 if 块内容，然后恢复
+            old_value = self.in_type_checking
+            self.in_type_checking = True
+            for child in node.body:
+                self.visit(child)
+            self.in_type_checking = old_value
+            # 访问 else 块（如果有）
+            for child in node.orelse:
+                self.visit(child)
+        else:
+            # 正常访问
+            self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import):
-        for alias in node.names:
-            self.imports.append(
-                ImportStatement(
-                    module=alias.name,
-                    file=self.filepath,
-                    line=node.lineno,
-                    statement=f"import {alias.name}",
+        # 忽略 TYPE_CHECKING 块中的导入
+        if not self.in_type_checking:
+            for alias in node.names:
+                self.imports.append(
+                    ImportStatement(
+                        module=alias.name,
+                        file=self.filepath,
+                        line=node.lineno,
+                        statement=f"import {alias.name}",
+                    )
                 )
-            )
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
-        if node.module:
+        # 忽略 TYPE_CHECKING 块中的导入
+        if not self.in_type_checking and node.module:
             self.imports.append(
                 ImportStatement(
                     module=node.module,
