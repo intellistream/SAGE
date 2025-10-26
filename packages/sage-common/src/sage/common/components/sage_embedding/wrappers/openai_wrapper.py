@@ -94,7 +94,7 @@ class OpenAIEmbedding(BaseEmbedding):
                 "  2. 传递参数: OpenAIEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
                 "如果使用兼容 API（如阿里云 DashScope）:\n"
-                "  export OPENAI_API_KEY='your-dashscope-key'\n"
+                "  export OPENAI_API_KEY='your-dashscope-key'\n"  # pragma: allowlist secret
                 "  并指定 base_url 参数"
             )
 
