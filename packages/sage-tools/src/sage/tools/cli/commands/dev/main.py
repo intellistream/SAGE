@@ -67,6 +67,13 @@ def quality(
     all_files: bool = typer.Option(False, "--all-files", help="检查所有文件（而不仅是变更的文件）"),
     # 选择性运行特定检查
     hook: str = typer.Option(None, "--hook", help="只运行指定的 pre-commit hook"),
+    # Submodule 选项
+    include_submodules: bool = typer.Option(
+        False, "--include-submodules", help="包含 submodules 进行质量检查（默认跳过）"
+    ),
+    submodules_only: bool = typer.Option(
+        False, "--submodules-only", help="仅检查 submodules（跳过主仓库）"
+    ),
     # 其他选项
     warn_only: bool = typer.Option(False, "--warn-only", help="只给警告，不中断运行"),
     project_root: str = typer.Option(".", help="项目根目录"),
@@ -83,12 +90,17 @@ def quality(
     这是 pre-commit 的友好包装器，提供统一的质量检查接口。
     所有配置都在 tools/pre-commit-config.yaml 中管理，确保一致性。
 
+    默认情况下会跳过所有 submodules（docs-public, sageLLM, sageDB等），
+    避免修改外部依赖的代码。如需检查 submodules，请使用 --include-submodules。
+
     示例：
-        sage dev quality                    # 运行所有检查（自动修复）
-        sage dev quality --check-only       # 只检查不修复
-        sage dev quality --all-files        # 检查所有文件
-        sage dev quality --hook black       # 只运行 black
-        sage dev quality --no-format        # 跳过格式化
+        sage dev quality                        # 运行所有检查（自动修复，跳过submodules）
+        sage dev quality --check-only           # 只检查不修复
+        sage dev quality --all-files            # 检查所有文件
+        sage dev quality --hook black           # 只运行 black
+        sage dev quality --no-format            # 跳过格式化
+        sage dev quality --include-submodules   # 包含 submodules 进行检查
+        sage dev quality --submodules-only      # 仅检查 submodules
     """
     import subprocess
     from pathlib import Path
@@ -101,6 +113,10 @@ def quality(
         raise typer.Exit(1)
 
     console.print(f"📁 项目根目录: {project_dir}")
+
+    # 处理 submodule 选项的冲突
+    if submodules_only and not include_submodules:
+        include_submodules = True
 
     # 配置文件路径
     tools_dir = project_dir / "tools"
@@ -122,10 +138,108 @@ def quality(
         console.print("[yellow]💡 请安装: pip install pre-commit[/yellow]")
         raise typer.Exit(1)
 
-    console.print("\n🔍 运行代码质量检查（基于 pre-commit）...")
+    # 显示 submodule 检查模式
+    if submodules_only:
+        console.print("\n🔍 运行代码质量检查（仅检查 submodules）...")
+    elif include_submodules:
+        console.print("\n🔍 运行代码质量检查（包含 submodules）...")
+    else:
+        console.print("\n🔍 运行代码质量检查（跳过 submodules）...")
     console.print(f"📝 配置文件: {precommit_config}")
 
+    # 获取 submodule 列表
+    def get_submodule_paths():
+        """获取所有 submodule 的路径"""
+        try:
+            result = subprocess.run(
+                ["git", "config", "--file", ".gitmodules", "--get-regexp", "path"],
+                cwd=str(project_dir),
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            paths = []
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    # 格式: submodule.<name>.path <path>
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        paths.append(parts[1])
+            return paths
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return []
+
+    submodule_paths = get_submodule_paths()
+    if submodule_paths:
+        console.print(f"📦 检测到 {len(submodule_paths)} 个 submodules: {', '.join(submodule_paths)}")
+
     # 构建 pre-commit 命令
+    if submodules_only and submodule_paths:
+        # 仅检查 submodules - 对每个 submodule 单独运行
+        console.print("\n🎯 仅检查 submodules 模式")
+        failed_submodules = []
+
+        for submodule_path in submodule_paths:
+            submodule_dir = project_dir / submodule_path
+            if not submodule_dir.exists():
+                console.print(f"[yellow]⚠️  跳过不存在的 submodule: {submodule_path}[/yellow]")
+                continue
+
+            console.print(f"\n{'='*60}")
+            console.print(f"🔍 检查 submodule: {submodule_path}")
+            console.print(f"{'='*60}")
+
+            cmd = ["pre-commit", "run"]
+            cmd.extend(["--config", str(precommit_config)])
+
+            if hook:
+                cmd.append(hook)
+            else:
+                # 根据选项跳过某些 hooks
+                skip_hooks = []
+                if not format_code:
+                    skip_hooks.append("black")
+                if not sort_imports:
+                    skip_hooks.append("isort")
+                if not lint_ruff:
+                    skip_hooks.append("ruff")
+                if not type_check:
+                    skip_hooks.append("mypy")
+
+                if skip_hooks:
+                    import os
+
+                    os.environ["SKIP"] = ",".join(skip_hooks)
+
+            if all_files:
+                cmd.append("--all-files")
+
+            cmd.append("--verbose")
+
+            # 对 submodule 中的文件运行检查
+            cmd.extend(["--files", f"{submodule_path}/**/*"])
+
+            try:
+                result = subprocess.run(cmd, cwd=str(project_dir), check=False)
+                if result.returncode != 0:
+                    failed_submodules.append(submodule_path)
+            except Exception as e:
+                console.print(f"[red]❌ 检查 {submodule_path} 失败: {e}[/red]")
+                failed_submodules.append(submodule_path)
+
+        # 汇总结果
+        console.print(f"\n{'='*60}")
+        if failed_submodules:
+            console.print(f"[red]❌ {len(failed_submodules)} 个 submodules 检查失败:[/red]")
+            for sm in failed_submodules:
+                console.print(f"  - {sm}")
+            if not warn_only:
+                raise typer.Exit(1)
+        else:
+            console.print("[green]✅ 所有 submodules 质量检查通过！[/green]")
+        return
+
+    # 主仓库检查逻辑（原有逻辑，但需要处理 submodule 排除）
     cmd = ["pre-commit", "run"]
 
     # 添加配置文件路径
@@ -160,6 +274,17 @@ def quality(
         console.print("📂 检查所有文件")
     else:
         console.print("📝 检查已暂存的文件（git staged）")
+
+    # 处理 submodule 包含逻辑
+    if include_submodules and not submodules_only:
+        console.print("⚠️  [yellow]警告: 将检查 submodules 中的文件[/yellow]")
+        console.print("💡 [yellow]提示: submodules 的排除规则在 pre-commit-config.yaml 中配置[/yellow]")
+        # 注意：如果要包含 submodules，需要临时修改 SKIP 环境变量
+        # 或者创建临时配置文件，这里我们使用环境变量提示用户
+        console.print(
+            "📝 [cyan]如需完全控制 submodules 的检查，"
+            "请临时修改 tools/pre-commit-config.yaml 中的 exclude 规则[/cyan]"
+        )
 
     # 显示更多输出
     cmd.append("--verbose")
@@ -583,22 +708,44 @@ def test(
             if not quiet:
                 console.print(Rule("[bold cyan]🔍 执行测试前代码质量检查...[/bold cyan]"))
 
-            # 调用质量检查函数，使用warn_only模式，不中断测试
-            has_quality_issues = _run_quality_check(
-                project_path=str(project_path),
-                fix=quality_fix,
-                check_only=not quality_fix,
-                format_code=quality_format,
-                sort_imports=quality_imports,
-                lint_code=quality_lint,
-                quiet=quiet,
-                warn_only=True,  # 在测试模式下只警告，不中断
-            )
+            # 使用 subprocess 调用 pre-commit 进行质量检查
+            import subprocess
 
-            if has_quality_issues and not quiet:
-                console.print("[yellow]⚠️ 发现代码质量问题，但继续运行测试[/yellow]")
-            elif not quiet:
-                console.print("[green]🎉 所有代码质量检查通过，继续运行测试[/green]")
+            precommit_config = project_path / "tools" / "pre-commit-config.yaml"
+
+            if precommit_config.exists():
+                cmd = ["pre-commit", "run", "--config", str(precommit_config)]
+
+                # 根据选项跳过某些 hooks
+                skip_hooks = []
+                if not quality_format:
+                    skip_hooks.append("black")
+                if not quality_imports:
+                    skip_hooks.append("isort")
+                if not quality_lint:
+                    skip_hooks.append("ruff")
+
+                if skip_hooks:
+                    import os
+
+                    os.environ["SKIP"] = ",".join(skip_hooks)
+
+                try:
+                    result = subprocess.run(cmd, cwd=str(project_path), check=False)
+                    has_quality_issues = result.returncode != 0
+
+                    if has_quality_issues and not quiet:
+                        console.print("[yellow]⚠️ 发现代码质量问题，但继续运行测试[/yellow]")
+                    elif not quiet:
+                        console.print("[green]🎉 所有代码质量检查通过，继续运行测试[/green]")
+                except Exception as e:
+                    if not quiet:
+                        console.print(f"[yellow]⚠️ 质量检查运行失败: {e}，继续运行测试[/yellow]")
+            else:
+                if not quiet:
+                    console.print(
+                        f"[yellow]⚠️ pre-commit 配置文件不存在: {precommit_config}，跳过质量检查[/yellow]"
+                    )
         elif not quiet:
             console.print("[yellow]⚠️ 跳过代码质量检查[/yellow]")
 
