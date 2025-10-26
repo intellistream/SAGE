@@ -48,9 +48,7 @@ class GaussianMechanism(BasePrivacyMechanism):
             delta: Failure probability
             sensitivity: Query sensitivity
         """
-        super().__init__(
-            epsilon=epsilon, delta=delta, sensitivity=sensitivity, name="Gaussian"
-        )
+        super().__init__(epsilon=epsilon, delta=delta, sensitivity=sensitivity, name="Gaussian")
 
         # TODO: Compute the required σ
         self.sigma = self._compute_sigma()
@@ -77,9 +75,7 @@ class GaussianMechanism(BasePrivacyMechanism):
         if self.delta == 0 or self.delta >= 1:
             raise ValueError(f"Delta must be in (0, 1), got {self.delta}")
 
-        sigma = (
-            self.sensitivity * math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
-        )
+        sigma = self.sensitivity * math.sqrt(2 * math.log(1.25 / self.delta)) / self.epsilon
         return sigma
 
     def compute_noise(

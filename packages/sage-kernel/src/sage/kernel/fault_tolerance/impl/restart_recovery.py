@@ -82,9 +82,7 @@ class RestartBasedRecovery(BaseFaultHandler):
             return self.recover(task_id)
         else:
             if self.logger:
-                self.logger.error(
-                    f"Task {task_id} cannot be recovered (max attempts reached)"
-                )
+                self.logger.error(f"Task {task_id} cannot be recovered (max attempts reached)")
             return False
 
     def can_recover(self, task_id: TaskID) -> bool:

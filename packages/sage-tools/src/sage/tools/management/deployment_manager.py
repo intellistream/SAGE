@@ -241,9 +241,7 @@ class DeploymentManager:
                 optional_files = ["README.md", "LICENSE"]
                 for filename in optional_files:
                     file_path = self.project_root / filename
-                    if (
-                        file_path.exists() and file_path.stat().st_size < 1024 * 1024
-                    ):  # 小于1MB
+                    if file_path.exists() and file_path.stat().st_size < 1024 * 1024:  # 小于1MB
                         tar.add(file_path, arcname=filename)
                         typer.echo(f"✅ 已添加文件: {filename}")
                     else:
@@ -326,9 +324,7 @@ class DeploymentManager:
             progress_thread.start()
 
             # 执行SSH命令
-            result = subprocess.run(
-                ssh_cmd, capture_output=True, text=True, timeout=timeout
-            )
+            result = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=timeout)
 
             # 停止进度显示
             progress_active.clear()
@@ -362,22 +358,16 @@ class DeploymentManager:
             progress_active.clear()
             typer.echo()
             typer.echo(
-                f"❌ {step_name}超时 ({timeout}s)"
-                if step_name
-                else f"❌ SSH命令超时 ({timeout}s)"
+                f"❌ {step_name}超时 ({timeout}s)" if step_name else f"❌ SSH命令超时 ({timeout}s)"
             )
             return False
         except Exception as e:
             progress_active.clear()
             typer.echo()
-            typer.echo(
-                f"❌ {step_name}失败: {e}" if step_name else f"❌ SSH命令失败: {e}"
-            )
+            typer.echo(f"❌ {step_name}失败: {e}" if step_name else f"❌ SSH命令失败: {e}")
             return False
 
-    def execute_ssh_command(
-        self, host: str, port: int, command: str, timeout: int = 60
-    ) -> bool:
+    def execute_ssh_command(self, host: str, port: int, command: str, timeout: int = 60) -> bool:
         """执行SSH命令（兼容性方法，使用简单输出）"""
         ssh_config = self.config_manager.get_ssh_config()
         ssh_user = ssh_config.get("user", "sage")
@@ -404,9 +394,7 @@ class DeploymentManager:
         ]
 
         try:
-            result = subprocess.run(
-                ssh_cmd, capture_output=True, text=True, timeout=timeout
-            )
+            result = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=timeout)
             if result.stdout:
                 typer.echo(result.stdout)
             if result.stderr:
@@ -419,9 +407,7 @@ class DeploymentManager:
             typer.echo(f"❌ SSH命令失败: {e}")
             return False
 
-    def transfer_file(
-        self, local_path: str, host: str, port: int, remote_path: str
-    ) -> bool:
+    def transfer_file(self, local_path: str, host: str, port: int, remote_path: str) -> bool:
         """传输文件到远程主机"""
         ssh_config = self.config_manager.get_ssh_config()
         ssh_user = ssh_config.get("user", "sage")
@@ -519,9 +505,7 @@ class DeploymentManager:
                 # 测试网络连通性
                 typer.echo("⚡ 测试网络连通性...")
                 ping_cmd = ["ping", "-c", "1", "-W", "5", host]
-                ping_result = subprocess.run(
-                    ping_cmd, capture_output=True, text=True, timeout=10
-                )
+                ping_result = subprocess.run(ping_cmd, capture_output=True, text=True, timeout=10)
                 if ping_result.returncode == 0:
                     typer.echo("✅ 网络连通性正常")
                 else:
@@ -572,9 +556,7 @@ class DeploymentManager:
                 f"fi\n"
             )
 
-            if not self.execute_ssh_command_with_progress(
-                host, port, backup_cmd, 30, "备份检查"
-            ):
+            if not self.execute_ssh_command_with_progress(host, port, backup_cmd, 30, "备份检查"):
                 return False
 
             # 解压文件
@@ -632,9 +614,7 @@ class DeploymentManager:
 
             # 步骤3: 执行安装（增加超时时间）
             typer.echo("\n3️⃣ 执行SAGE安装...")
-            typer.echo(
-                f"📦 安装命令: {quickstart_env_str} ./quickstart.sh {quickstart_args_str}"
-            )
+            typer.echo(f"📦 安装命令: {quickstart_env_str} ./quickstart.sh {quickstart_args_str}")
             typer.echo("⏰ 注意: 这一步可能需要10-20分钟，请耐心等待...")
             typer.echo("🔍 如果长时间无输出，可能在下载或编译大型包（torch, numpy等）")
 
@@ -713,9 +693,7 @@ class DeploymentManager:
                     f"df -h . | head -2\n"
                 )
 
-                self.execute_ssh_command_with_progress(
-                    host, port, log_check_cmd, 60, "日志检查"
-                )
+                self.execute_ssh_command_with_progress(host, port, log_check_cmd, 60, "日志检查")
                 return False
 
             # 步骤4: 清理和完成
@@ -727,9 +705,7 @@ class DeploymentManager:
                 f"echo '=================================='\n"
             )
 
-            if not self.execute_ssh_command_with_progress(
-                host, port, cleanup_commands, 30, "清理"
-            ):
+            if not self.execute_ssh_command_with_progress(host, port, cleanup_commands, 30, "清理"):
                 return False
 
             # 4. 传输配置文件
@@ -738,20 +714,14 @@ class DeploymentManager:
                 remote_config_dir = "~/.sage"
                 remote_config_path = "~/.sage/config.yaml"
 
-                typer.echo(
-                    f"📋 传输配置文件: {local_config_path} -> {host}:{remote_config_path}"
-                )
+                typer.echo(f"📋 传输配置文件: {local_config_path} -> {host}:{remote_config_path}")
 
                 # 创建配置目录
-                if not self.execute_ssh_command(
-                    host, port, f"mkdir -p {remote_config_dir}"
-                ):
+                if not self.execute_ssh_command(host, port, f"mkdir -p {remote_config_dir}"):
                     typer.echo("⚠️  创建远程配置目录失败，但继续...")
 
                 # 传输配置文件
-                if not self.transfer_file(
-                    str(local_config_path), host, port, remote_config_path
-                ):
+                if not self.transfer_file(str(local_config_path), host, port, remote_config_path):
                     typer.echo("⚠️  配置文件传输失败，但继续...")
                 else:
                     typer.echo("✅ 配置文件传输成功")

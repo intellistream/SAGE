@@ -16,6 +16,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from sage.common.utils.network.local_tcp_server import BaseTcpServer, LocalTcpServer
 
 
@@ -357,9 +358,7 @@ class TestBaseTcpServer:
     @pytest.mark.unit
     def test_get_server_info(self):
         """Test server information retrieval"""
-        server = self.ConcreteTcpServer(
-            host="127.0.0.1", port=8080, server_name="TestServer"
-        )
+        server = self.ConcreteTcpServer(host="127.0.0.1", port=8080, server_name="TestServer")
 
         info = server.get_server_info()
 
@@ -396,9 +395,7 @@ class TestLocalTcpServer:
             return {"type": "default_response"}
 
         with patch("socket.socket"):
-            server = LocalTcpServer(
-                host="127.0.0.1", port=8080, default_handler=default_handler
-            )
+            server = LocalTcpServer(host="127.0.0.1", port=8080, default_handler=default_handler)
 
             assert server.server_name == "LocalTcpServer"
             assert server.host == "127.0.0.1"
@@ -973,9 +970,7 @@ class TestErrorHandlingScenarios:
             for malformed_msg in test_cases:
                 try:
                     message_data = pickle.dumps(malformed_msg)
-                    response = server._handle_message_data(
-                        message_data, ("127.0.0.1", 12345)
-                    )
+                    response = server._handle_message_data(message_data, ("127.0.0.1", 12345))
 
                     # Should return error response or use default handler
                     assert response is not None

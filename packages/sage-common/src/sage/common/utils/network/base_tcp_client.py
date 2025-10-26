@@ -48,9 +48,7 @@ class BaseTcpClient(ABC):
         logger = logging.getLogger(f"{self.client_name}")
         if not logger.handlers:
             handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler.setFormatter(formatter)
             logger.addHandler(handler)
             logger.setLevel(logging.INFO)
@@ -71,9 +69,7 @@ class BaseTcpClient(ABC):
             self._socket.settimeout(self.timeout)
             self._socket.connect((self.host, self.port))
             self.connected = True
-            self.logger.debug(
-                f"{self.client_name} connected to {self.host}:{self.port}"
-            )
+            self.logger.debug(f"{self.client_name} connected to {self.host}:{self.port}")
             return True
 
         except Exception as e:
@@ -114,9 +110,7 @@ class BaseTcpClient(ABC):
         )
         self.logger.error(f"   2. 主机地址是否正确？ (当前: {self.host}:{self.port})")
         self.logger.error("   3. 防火墙是否阻止了连接？")
-        self.logger.error(
-            "💡 提示：如果是第一次使用RemoteEnvironment，请先启动JobManager服务"
-        )
+        self.logger.error("💡 提示：如果是第一次使用RemoteEnvironment，请先启动JobManager服务")
         self.logger.error(
             "📚 更多信息：https://intellistream.github.io/SAGE-Pub/kernel/jobmanager/"
         )
@@ -218,9 +212,7 @@ class BaseTcpClient(ABC):
 
             response_length = int.from_bytes(response_length_data, byteorder="big")
 
-            if (
-                response_length <= 0 or response_length > 100 * 1024 * 1024
-            ):  # 100MB limit
+            if response_length <= 0 or response_length > 100 * 1024 * 1024:  # 100MB limit
                 self.logger.warning(f"Invalid response length: {response_length}")
                 return None
 
@@ -297,9 +289,7 @@ class BaseTcpClient(ABC):
                 "ERR_DESERIALIZATION_FAILED", f"Failed to deserialize response: {e}"
             )
 
-    def _create_error_response(
-        self, error_code: str, error_message: str
-    ) -> dict[str, Any]:
+    def _create_error_response(self, error_code: str, error_message: str) -> dict[str, Any]:
         """创建错误响应"""
         return {
             "status": "error",

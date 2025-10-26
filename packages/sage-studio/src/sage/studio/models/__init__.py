@@ -42,9 +42,7 @@ class VisualNode:
     id: str
     type: str  # 节点类型，如 "rag.generator", "rag.retriever"
     label: str
-    position: dict[str, float] = field(
-        default_factory=lambda: {"x": 0, "y": 0}
-    )  # UI 坐标
+    position: dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0})  # UI 坐标
     config: dict[str, Any] = field(default_factory=dict)  # 节点配置参数
 
     # UI 状态（不参与执行）

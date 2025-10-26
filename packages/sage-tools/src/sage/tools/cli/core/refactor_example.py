@@ -177,17 +177,11 @@ class ClusterStatusCommand(RemoteCommand):
                     )
 
                     if result.returncode == 0 and result.stdout.strip():
-                        self.formatter.print_success(
-                            f"Worker {host}:{port}: Ray process running"
-                        )
+                        self.formatter.print_success(f"Worker {host}:{port}: Ray process running")
                     else:
-                        self.formatter.print_warning(
-                            f"Worker {host}:{port}: Ray process not found"
-                        )
+                        self.formatter.print_warning(f"Worker {host}:{port}: Ray process not found")
                 else:
-                    self.formatter.print_error(
-                        f"Worker {host}:{port}: Connection failed"
-                    )
+                    self.formatter.print_error(f"Worker {host}:{port}: Connection failed")
 
             except Exception as e:
                 self.formatter.print_error(f"Worker {host}:{port}: Error - {e}")
@@ -207,9 +201,7 @@ def cluster_status():
 # 示例4: 使用装饰器的简单命令重构
 @app.command("config-show")
 @cli_command(name="show_config", help_text="显示当前配置", require_config=True)
-def show_config(
-    section: str | None = typer.Option(None, "--section", "-s", help="显示指定配置节")
-):
+def show_config(section: str | None = typer.Option(None, "--section", "-s", help="显示指定配置节")):
     """显示配置信息"""
     formatter = OutputFormatter()
 
@@ -252,9 +244,7 @@ def validate_host_command(
         validated_host = validate_host(host)
         validated_port = validate_port(port)
 
-        formatter.print_success(
-            f"Host validation successful: {validated_host}:{validated_port}"
-        )
+        formatter.print_success(f"Host validation successful: {validated_host}:{validated_port}")
 
         # 测试端口可用性
         from sage.tools.cli.core.utils import is_port_available

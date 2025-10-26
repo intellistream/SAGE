@@ -215,4 +215,6 @@ class OllamaEmbedding(BaseEmbedding):
         Returns:
             字符串表示
         """
-        return f"OllamaEmbedding(model='{self._model}', base_url='{self._base_url}', dim={self._dim})"
+        return (
+            f"OllamaEmbedding(model='{self._model}', base_url='{self._base_url}', dim={self._dim})"
+        )

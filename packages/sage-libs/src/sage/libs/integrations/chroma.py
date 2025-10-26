@@ -30,9 +30,7 @@ class ChromaBackend:
         self.host = config.get("host", "localhost")
         self.port = config.get("port", 8000)
         self.persistence_path = config.get("persistence_path", "./chroma_db")
-        self.collection_name = config.get(
-            "collection_name", "dense_retriever_collection"
-        )
+        self.collection_name = config.get("collection_name", "dense_retriever_collection")
         self.use_embedding_query = config.get("use_embedding_query", True)
         self.metadata_config = config.get("metadata", {"hnsw:space": "cosine"})
 
@@ -49,9 +47,7 @@ class ChromaBackend:
             from chromadb.config import Settings  # noqa: F401
 
             # 判断使用本地还是远程模式
-            if self.host in ["localhost", "127.0.0.1"] and not self.config.get(
-                "force_http", False
-            ):
+            if self.host in ["localhost", "127.0.0.1"] and not self.config.get("force_http", False):
                 # 本地持久化模式
                 self.client = chromadb.PersistentClient(path=self.persistence_path)
                 self.logger.info(
@@ -89,17 +85,13 @@ class ChromaBackend:
             # 尝试获取已存在的集合
             try:
                 self.collection = self.client.get_collection(name=self.collection_name)
-                self.logger.info(
-                    f"Retrieved existing ChromaDB collection: {self.collection_name}"
-                )
+                self.logger.info(f"Retrieved existing ChromaDB collection: {self.collection_name}")
             except Exception:
                 # 集合不存在，创建新集合
                 self.collection = self.client.create_collection(
                     name=self.collection_name, metadata=self.metadata_config
                 )
-                self.logger.info(
-                    f"Created new ChromaDB collection: {self.collection_name}"
-                )
+                self.logger.info(f"Created new ChromaDB collection: {self.collection_name}")
 
         except Exception as e:
             self.logger.error(f"Failed to initialize ChromaDB collection: {e}")
@@ -148,9 +140,7 @@ class ChromaBackend:
             self.logger.error(f"Error adding documents to ChromaDB: {e}")
             return []
 
-    def search(
-        self, query_vector: np.ndarray, query_text: str, top_k: int
-    ) -> list[str]:
+    def search(self, query_vector: np.ndarray, query_text: str, top_k: int) -> list[str]:
         """
         在 ChromaDB 中执行搜索
 
@@ -283,9 +273,7 @@ class ChromaBackend:
                     self.logger.info(
                         f"Successfully connected to ChromaDB collection: {collection_name}"
                     )
-                    self.logger.info(
-                        f"Collection contains {self.collection.count()} documents"
-                    )
+                    self.logger.info(f"Collection contains {self.collection.count()} documents")
                     return True
                 else:
                     self.logger.error("No collection name found in config")
@@ -319,9 +307,7 @@ class ChromaBackend:
 
             if documents:
                 # 生成文档ID
-                doc_ids = [
-                    f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-                ]
+                doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
 
                 # 生成 embedding
                 embeddings = []
@@ -333,9 +319,7 @@ class ChromaBackend:
                 added_ids = self.add_documents(documents, embeddings, doc_ids)
 
                 if added_ids:
-                    self.logger.info(
-                        f"Loaded {len(added_ids)} documents from {file_path}"
-                    )
+                    self.logger.info(f"Loaded {len(added_ids)} documents from {file_path}")
                     return True
                 else:
                     self.logger.error(f"Failed to add documents from {file_path}")
@@ -361,17 +345,13 @@ class ChromaBackend:
             if all_docs["ids"]:
                 # 删除所有文档
                 self.collection.delete(ids=all_docs["ids"])
-                self.logger.info(
-                    f"Cleared {len(all_docs['ids'])} documents from collection"
-                )
+                self.logger.info(f"Cleared {len(all_docs['ids'])} documents from collection")
             return True
         except Exception as e:
             self.logger.error(f"Failed to clear collection: {e}")
             return False
 
-    def update_document(
-        self, doc_id: str, new_content: str, new_embedding: np.ndarray
-    ) -> bool:
+    def update_document(self, doc_id: str, new_content: str, new_embedding: np.ndarray) -> bool:
         """
         更新指定文档
 

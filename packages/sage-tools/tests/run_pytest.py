@@ -100,9 +100,7 @@ Examples:
 
     # Test categories
     parser.add_argument("--unit", action="store_true", help="Run unit tests")
-    parser.add_argument(
-        "--integration", action="store_true", help="Run integration tests"
-    )
+    parser.add_argument("--integration", action="store_true", help="Run integration tests")
     parser.add_argument("--cli", action="store_true", help="Run CLI tests")
     parser.add_argument("--slow", action="store_true", help="Run slow tests")
     parser.add_argument("--quick", action="store_true", help="Run quick tests")
@@ -116,18 +114,12 @@ Examples:
         default="no",
         help="Capture mode for output",
     )
-    parser.add_argument(
-        "--coverage", action="store_true", help="Enable coverage reporting"
-    )
+    parser.add_argument("--coverage", action="store_true", help="Enable coverage reporting")
     parser.add_argument("--output", "-o", help="Output file for results (JUnit XML)")
 
     # Special test runs
-    parser.add_argument(
-        "--failed", action="store_true", help="Run only failed tests from last run"
-    )
-    parser.add_argument(
-        "--exitfirst", "-x", action="store_true", help="Exit on first failure"
-    )
+    parser.add_argument("--failed", action="store_true", help="Run only failed tests from last run")
+    parser.add_argument("--exitfirst", "-x", action="store_true", help="Exit on first failure")
 
     args = parser.parse_args()
 

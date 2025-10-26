@@ -82,9 +82,7 @@ def main():
     )
 
     print(f"\n  Result: {result}")
-    print(
-        f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}"
-    )
+    print(f"  Privacy cost: ε={result.privacy_cost[0]:.4f}, δ={result.privacy_cost[1]:.6f}")
     print(f"  Vectors unlearned: {result.num_vectors_unlearned}")
     print(f"  Neighbors compensated: {result.num_neighbors_compensated}")
     print()
@@ -96,9 +94,7 @@ def main():
     print(
         f"  Remaining: ε={remaining['epsilon_remaining']:.4f}, δ={remaining['delta_remaining']:.6f}"
     )
-    print(
-        f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}"
-    )
+    print(f"  Budget utilization: {status['accountant_summary']['budget_utilization']:.1%}")
     print()
 
     # Step 6: Try different strategies
@@ -136,12 +132,8 @@ def main():
     print()
     print("Next steps for students:")
     print("  1. Implement new privacy mechanisms in algorithms/")
-    print(
-        "  2. Design better perturbation strategies in dp_unlearning/vector_perturbation.py"
-    )
-    print(
-        "  3. Enhance neighbor compensation in dp_unlearning/neighbor_compensation.py"
-    )
+    print("  2. Design better perturbation strategies in dp_unlearning/vector_perturbation.py")
+    print("  3. Enhance neighbor compensation in dp_unlearning/neighbor_compensation.py")
     print("  4. Add comprehensive evaluation metrics in evaluation/metrics.py")
     print()
 

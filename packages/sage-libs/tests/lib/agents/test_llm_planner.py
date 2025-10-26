@@ -60,9 +60,7 @@ def test_llm_planner_repair():
             },
         }
     }
-    planner = LLMPlanner(
-        generator=DummyGeneratorBadThenFix(), max_steps=3, enable_repair=True
-    )
+    planner = LLMPlanner(generator=DummyGeneratorBadThenFix(), max_steps=3, enable_repair=True)
     plan = planner.plan("SYS", "计算 1+1", tools)
     assert plan and plan[0]["type"] == "tool" and plan[0]["name"] == "calculator"
     assert plan[1]["type"] == "reply"
@@ -145,7 +143,4 @@ def test_llm_planner_prompt_includes_tool_requirement():
 
     # Check that the system prompt includes the new rule
     system_content = generator.captured_messages[0]["content"]
-    assert (
-        "Always call at least one tool before replying when tools are provided"
-        in system_content
-    )
+    assert "Always call at least one tool before replying when tools are provided" in system_content

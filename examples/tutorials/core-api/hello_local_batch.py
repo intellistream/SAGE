@@ -45,9 +45,7 @@ class NumberSequenceSource(SourceFunction):
 
         self.counter += 1
         number = self.counter * 10 + random.randint(1, 9)
-        self.logger.debug(
-            f"[Source] Generating number {self.counter}/{self.max_count}: {number}"
-        )
+        self.logger.debug(f"[Source] Generating number {self.counter}/{self.max_count}: {number}")
         return number
 
 
@@ -75,9 +73,7 @@ class FileLineSource(SourceFunction):
 
         line = self.lines[self.current_index]
         self.current_index += 1
-        print(
-            f"[FileSource] Reading line {self.current_index}/{len(self.lines)}: {line}"
-        )
+        print(f"[FileSource] Reading line {self.current_index}/{len(self.lines)}: {line}")
         return line
 
 
@@ -233,9 +229,7 @@ def run_processing_chain_test():
         .filter(
             lambda x: x % 2 == 0 if not isinstance(x, (StopSignal, str)) else True
         )  # 只保留偶数，跳过StopSignal和字符串
-        .map(
-            lambda x: x / 2 if not isinstance(x, StopSignal) else x
-        )  # 除以2，跳过StopSignal
+        .map(lambda x: x / 2 if not isinstance(x, StopSignal) else x)  # 除以2，跳过StopSignal
         .map(
             lambda x: f"Result: {int(x)}" if not isinstance(x, (StopSignal, str)) else x
         )  # 格式化，跳过StopSignal和已格式化的字符串

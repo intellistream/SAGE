@@ -10,6 +10,7 @@ import time
 from unittest.mock import Mock, patch
 
 import pytest
+
 from sage.kernel.runtime.dispatcher import Dispatcher
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
@@ -232,9 +233,7 @@ class TestDispatcher:
         remote_env = MockEnvironment(platform="remote")
 
         # Since actual Ray init happens, mock it to capture the call
-        with patch(
-            "sage.kernel.runtime.dispatcher.ensure_ray_initialized"
-        ) as dispatcher_ray_mock:
+        with patch("sage.kernel.runtime.dispatcher.ensure_ray_initialized") as dispatcher_ray_mock:
             dispatcher = Dispatcher(mock_graph, remote_env)
 
             # Check the Ray init call was made (either mock could be called)

@@ -84,9 +84,7 @@ class StageSpec:
             "summary": self.summary,
         }
 
-    def to_graph_node(
-        self, inputs: Sequence[str], outputs: Sequence[str]
-    ) -> dict[str, Any]:
+    def to_graph_node(self, inputs: Sequence[str], outputs: Sequence[str]) -> dict[str, Any]:
         node = {
             "id": self.id,
             "title": self.title,
@@ -918,9 +916,7 @@ def requirements_text(requirements: dict[str, Any]) -> str:
     return " ".join(parts).lower()
 
 
-def compute_match_score(
-    requirements: dict[str, Any], blueprint: PipelineBlueprint
-) -> float:
+def compute_match_score(requirements: dict[str, Any], blueprint: PipelineBlueprint) -> float:
     text = requirements_text(requirements)
     if not text:
         return 0.2
@@ -952,8 +948,7 @@ def match_blueprints(
     top_k: int = 3,
 ) -> list[tuple[PipelineBlueprint, float]]:
     candidates = [
-        (blueprint, compute_match_score(requirements, blueprint))
-        for blueprint in BLUEPRINT_LIBRARY
+        (blueprint, compute_match_score(requirements, blueprint)) for blueprint in BLUEPRINT_LIBRARY
     ]
     candidates.sort(key=lambda item: item[1], reverse=True)
     top = candidates[: top_k or 1]
@@ -1044,10 +1039,7 @@ def build_graph_plan(
 def render_blueprint_prompt(blueprint: PipelineBlueprint, score: float) -> str:
     component_lines = [
         f"source → {blueprint.source.class_path}",
-        *[
-            f"{stage.id} ({stage.kind}) → {stage.class_path}"
-            for stage in blueprint.stages
-        ],
+        *[f"{stage.id} ({stage.kind}) → {stage.class_path}" for stage in blueprint.stages],
         f"sink → {blueprint.sink.class_path}",
     ]
     components_block = "\n".join(f"- {line}" for line in component_lines)

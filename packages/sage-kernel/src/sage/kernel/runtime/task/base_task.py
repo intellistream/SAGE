@@ -67,18 +67,14 @@ class BaseTask(ABC):  # noqa: B024
                 self.metrics_collector = MetricsCollector(
                     name=self.ctx.name,
                     window_size=getattr(ctx, "metrics_window_size", 10000),
-                    enable_detailed_tracking=getattr(
-                        ctx, "enable_detailed_tracking", True
-                    ),
+                    enable_detailed_tracking=getattr(ctx, "enable_detailed_tracking", True),
                 )
 
                 # 尝试启动资源监控（需要psutil）
                 if RESOURCE_MONITOR_AVAILABLE:
                     try:
                         self.resource_monitor = ResourceMonitor(
-                            sampling_interval=getattr(
-                                ctx, "resource_sampling_interval", 1.0
-                            ),
+                            sampling_interval=getattr(ctx, "resource_sampling_interval", 1.0),
                             enable_auto_start=True,
                         )
                     except Exception as e:
@@ -102,9 +98,7 @@ class BaseTask(ABC):  # noqa: B024
 
                 self.logger.info(f"Performance monitoring enabled for task {self.name}")
             except Exception as e:
-                self.logger.warning(
-                    f"Failed to initialize monitoring for task {self.name}: {e}"
-                )
+                self.logger.warning(f"Failed to initialize monitoring for task {self.name}: {e}")
                 self._enable_monitoring = False
 
         try:
@@ -112,9 +106,7 @@ class BaseTask(ABC):  # noqa: B024
             if hasattr(self.operator, "task"):
                 self.operator.task = self  # type: ignore
         except Exception as e:
-            self.logger.error(
-                f"Failed to initialize node {self.name}: {e}", exc_info=True
-            )
+            self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
             raise
 
     def get_state(self) -> dict:
@@ -151,8 +143,7 @@ class BaseTask(ABC):  # noqa: B024
                 state["operator_state"] = operator_state
 
                 self.logger.debug(
-                    f"Captured operator state for {self.name}: "
-                    f"{list(operator_state.keys())}"
+                    f"Captured operator state for {self.name}: " f"{list(operator_state.keys())}"
                 )
 
                 # 如果 operator_state 包含 function_state，也记录
@@ -187,9 +178,7 @@ class BaseTask(ABC):  # noqa: B024
             import sys
 
             state_size = sys.getsizeof(str(state))
-            self.logger.debug(
-                f"Checkpoint state size for {self.name}: {state_size} bytes"
-            )
+            self.logger.debug(f"Checkpoint state size for {self.name}: {state_size} bytes")
         except Exception:
             pass
 
@@ -248,22 +237,16 @@ class BaseTask(ABC):  # noqa: B024
                             )
 
                 except Exception as e:
-                    self.logger.error(
-                        f"❌ Failed to restore operator state: {e}", exc_info=True
-                    )
+                    self.logger.error(f"❌ Failed to restore operator state: {e}", exc_info=True)
             else:
                 if not operator_state:
-                    self.logger.warning(
-                        f"⚠️ No operator state found in checkpoint for {self.name}"
-                    )
+                    self.logger.warning(f"⚠️ No operator state found in checkpoint for {self.name}")
                 elif not hasattr(self.operator, "restore_state"):
                     self.logger.warning(
                         f"⚠️ Operator {self.operator.__class__.__name__} does not support restore_state()"
                     )
 
-            self.logger.info(
-                f"🎉 Complete state restoration finished for task {self.name}"
-            )
+            self.logger.info(f"🎉 Complete state restoration finished for task {self.name}")
 
         except Exception as e:
             self.logger.error(
@@ -335,17 +318,13 @@ class BaseTask(ABC):  # noqa: B024
 
     # 连接管理现在由TaskContext在构造时完成，不再需要动态添加连接
 
-    def trigger(
-        self, input_tag: str | None = None, packet: "Packet | None" = None
-    ) -> None:
+    def trigger(self, input_tag: str | None = None, packet: "Packet | None" = None) -> None:
         try:
             self.logger.debug(f"Received data in node {self.name}, channel {input_tag}")
             if packet is not None:
                 self.operator.process_packet(packet)  # type: ignore
         except Exception as e:
-            self.logger.error(
-                f"Error processing data in node {self.name}: {e}", exc_info=True
-            )
+            self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise
 
     def stop(self) -> None:
@@ -379,9 +358,7 @@ class BaseTask(ABC):  # noqa: B024
             and hasattr(self.ctx.dispatcher, "fault_handler")
         ):
             fault_handler = self.ctx.dispatcher.fault_handler
-            self.logger.debug(
-                f"Task {self.name} has fault_handler: {type(fault_handler).__name__}"
-            )
+            self.logger.debug(f"Task {self.name} has fault_handler: {type(fault_handler).__name__}")
 
         # Main execution loop
         print(
@@ -434,18 +411,14 @@ class BaseTask(ABC):  # noqa: B024
                     )
 
                     if data_packet is None:
-                        self.logger.info(
-                            f"Task {self.name}: Received None packet, continuing loop"
-                        )
+                        self.logger.info(f"Task {self.name}: Received None packet, continuing loop")
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
 
                     # Check if received packet is a StopSignal
                     if isinstance(data_packet, StopSignal):
-                        self.logger.info(
-                            f"Node '{self.name}' received stop signal: {data_packet}"
-                        )
+                        self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
 
                         from sage.kernel.api.operator.join_operator import JoinOperator
                         from sage.kernel.api.operator.sink_operator import SinkOperator
@@ -482,9 +455,7 @@ class BaseTask(ABC):  # noqa: B024
                         )
                         from sage.kernel.api.operator.map_operator import MapOperator
 
-                        if isinstance(
-                            self.operator, (KeyByOperator, MapOperator, FilterOperator)
-                        ):
+                        if isinstance(self.operator, (KeyByOperator, MapOperator, FilterOperator)):
                             self.logger.info(
                                 f"Intermediate operator {self.name} received stop signal, stopping and forwarding"
                             )
@@ -510,11 +481,7 @@ class BaseTask(ABC):  # noqa: B024
                         self.operator.receive_packet(data_packet)
 
                         # 记录包处理成功
-                        if (
-                            self._enable_monitoring
-                            and self.metrics_collector
-                            and packet_id
-                        ):
+                        if self._enable_monitoring and self.metrics_collector and packet_id:
                             self.metrics_collector.record_packet_end(
                                 packet_id=packet_id,
                                 success=True,
@@ -523,11 +490,7 @@ class BaseTask(ABC):  # noqa: B024
 
                     except Exception as process_error:
                         # 记录包处理失败
-                        if (
-                            self._enable_monitoring
-                            and self.metrics_collector
-                            and packet_id
-                        ):
+                        if self._enable_monitoring and self.metrics_collector and packet_id:
                             self.metrics_collector.record_packet_end(
                                 packet_id=packet_id,
                                 success=False,
@@ -555,9 +518,7 @@ class BaseTask(ABC):  # noqa: B024
                             f"Failed to save checkpoint on exception: {checkpoint_error}"
                         )
                 # ✅ 捕获异常并使用容错处理器
-                self.logger.error(
-                    f"Critical error in node '{self.name}': {str(e)}", exc_info=True
-                )
+                self.logger.error(f"Critical error in node '{self.name}': {str(e)}", exc_info=True)
                 self._error_count += 1
 
                 # 通知 dispatcher 处理失败
@@ -656,9 +617,7 @@ class BaseTask(ABC):  # noqa: B024
         )
 
         if drained == -1:
-            self.logger.warning(
-                f"Sink task {self.name} timed out while draining in-flight data"
-            )
+            self.logger.warning(f"Sink task {self.name} timed out while draining in-flight data")
         else:
             self.logger.info(
                 f"Sink task {self.name} drained {drained} in-flight packets before shutdown"

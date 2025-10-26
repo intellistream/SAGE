@@ -188,9 +188,7 @@ class IntermediateResultsChecker:
         else:
             print(f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题:")
             for violation in check_result["violations"]:
-                print(
-                    f"  - {violation['path']} ({violation['type']}): {violation['message']}"
-                )
+                print(f"  - {violation['path']} ({violation['type']}): {violation['message']}")
             print(f"\n💡 {check_result['suggestion']}")
             return False
 
@@ -213,13 +211,9 @@ class IntermediateResultsChecker:
                     violations_by_location[location] = 0
                 violations_by_location[location] += 1
 
-            summary_parts = [
-                f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题"
-            ]
+            summary_parts = [f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题"]
             for location, count in violations_by_location.items():
-                location_name = (
-                    "项目根目录" if location == "project_root" else "/tmp目录"
-                )
+                location_name = "项目根目录" if location == "project_root" else "/tmp目录"
                 summary_parts.append(f"  - {location_name}: {count}个")
 
             return "\n".join(summary_parts)

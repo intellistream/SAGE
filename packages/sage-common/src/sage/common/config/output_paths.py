@@ -127,16 +127,12 @@ class SageOutputPaths:
         self.project_root: Path | None
         if project_root:
             self.project_root = Path(project_root).resolve()
-            self.is_pip_environment = (
-                False  # Explicit project root means dev environment
-            )
+            self.is_pip_environment = False  # Explicit project root means dev environment
         else:
             detected_root = find_sage_project_root()
             if detected_root:
                 self.project_root = detected_root
-                self.is_pip_environment = (
-                    False  # Found project root means dev environment
-                )
+                self.is_pip_environment = False  # Found project root means dev environment
             else:
                 self.project_root = None
                 self.is_pip_environment = True  # No project root means pip-installed
@@ -517,9 +513,7 @@ def migrate_existing_outputs(project_root: str | Path | None = None):
 
 
 # Testing utilities
-def get_test_env_dir(
-    test_name: str = "test_env", project_root: str | Path | None = None
-) -> Path:
+def get_test_env_dir(test_name: str = "test_env", project_root: str | Path | None = None) -> Path:
     """Get a test environment directory path in .sage/temp/."""
     return get_sage_paths(project_root).get_test_env_dir(test_name)
 

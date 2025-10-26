@@ -11,6 +11,7 @@ from typing import Any
 
 import psutil
 import typer
+
 from sage.common.model_registry import vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install
@@ -33,9 +34,7 @@ app.add_typer(model_app, name="model")
 # Model management commands
 # ---------------------------------------------------------------------------
 @model_app.command("show")
-def show_models(
-    json_output: bool = typer.Option(False, "--json", help="以 JSON 格式输出")
-):
+def show_models(json_output: bool = typer.Option(False, "--json", help="以 JSON 格式输出")):
     """列出本地缓存的模型。"""
 
     infos = vllm_registry.list_models()
@@ -119,9 +118,7 @@ def delete_model(
 # ---------------------------------------------------------------------------
 @app.command("run")
 def run_vllm_service(
-    model: str = typer.Option(
-        "meta-llama/Llama-3.1-8B-Instruct", "--model", "-m", help="生成模型"
-    ),
+    model: str = typer.Option("meta-llama/Llama-3.1-8B-Instruct", "--model", "-m", help="生成模型"),
     embedding_model: str | None = typer.Option(
         None, "--embedding-model", help="嵌入模型（默认同生成模型）"
     ),
@@ -189,9 +186,7 @@ def fine_tune_stub(
     """提交 fine-tune 请求（当前为占位实现）。"""
 
     if VLLMService is None:  # pragma: no cover - dependency guard
-        typer.echo(
-            "❌ 当前环境未安装 isage-middleware[vllm]，无法调用 fine-tune 接口。"
-        )
+        typer.echo("❌ 当前环境未安装 isage-middleware[vllm]，无法调用 fine-tune 接口。")
         raise typer.Exit(1)
 
     service = VLLMService({"model_id": base_model, "auto_download": auto_download})
@@ -218,20 +213,14 @@ def fine_tune_stub(
 @app.command("start")
 def start_llm_service(
     service: str = typer.Argument("vllm", help="要启动的服务类型 (默认: vllm)"),
-    model: str = typer.Option(
-        "microsoft/DialoGPT-small", "--model", "-m", help="要加载的模型名称"
-    ),
+    model: str = typer.Option("microsoft/DialoGPT-small", "--model", "-m", help="要加载的模型名称"),
     port: int = typer.Option(8000, "--port", "-p", help="服务监听端口"),
-    auth_token: str = typer.Option(
-        "token-abc123", "--auth-token", "-t", help="API认证token"
-    ),
+    auth_token: str = typer.Option("token-abc123", "--auth-token", "-t", help="API认证token"),
     gpu_memory_utilization: float = typer.Option(
         0.5, "--gpu-memory", help="GPU内存使用率 (0.1-1.0)"
     ),
     max_model_len: int = typer.Option(512, "--max-model-len", help="模型最大序列长度"),
-    offline: bool = typer.Option(
-        True, "--offline/--online", help="离线模式（不下载模型）"
-    ),
+    offline: bool = typer.Option(True, "--offline/--online", help="离线模式（不下载模型）"),
     background: bool = typer.Option(False, "--background", "-b", help="后台运行服务"),
 ):
     """启动旧版进程模式 vLLM 服务。"""

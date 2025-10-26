@@ -72,9 +72,7 @@ def get_extension_status() -> dict:
         "sage_db": _SAGE_DB_AVAILABLE,
         "sage_flow": _SAGE_FLOW_AVAILABLE,
         "sage_tsdb": _SAGE_TSDB_AVAILABLE,
-        "total_available": sum(
-            [_SAGE_DB_AVAILABLE, _SAGE_FLOW_AVAILABLE, _SAGE_TSDB_AVAILABLE]
-        ),
+        "total_available": sum([_SAGE_DB_AVAILABLE, _SAGE_FLOW_AVAILABLE, _SAGE_TSDB_AVAILABLE]),
         "total_extensions": 3,
     }
 
@@ -130,9 +128,7 @@ def require_sage_tsdb():
 if __name__ != "__main__":
     status = get_extension_status()
     if status["total_available"] < status["total_extensions"]:
-        print(
-            f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用"
-        )
+        print(f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用")
         if not _SAGE_DB_AVAILABLE:
             print("  ❌ SAGE DB: C++扩展不可用")
         if not _SAGE_FLOW_AVAILABLE:

@@ -19,15 +19,11 @@ class BatchOperator(BaseOperator):
     def process_packet(self, packet: "Packet | None" = None):
         try:
             result = self.function.execute()
-            self.logger.debug(
-                f"Operator {self.name} processed data with result: {result}"
-            )
+            self.logger.debug(f"Operator {self.name} processed data with result: {result}")
 
             # 如果结果是None，表示批处理完成，发送停止信号
             if result is None:
-                self.logger.info(
-                    f"Batch Operator {self.name} completed, sending stop signal"
-                )
+                self.logger.info(f"Batch Operator {self.name} completed, sending stop signal")
 
                 # 源节点完成时，先通知JobManager该节点完成
                 self.ctx.send_stop_signal_back(self.name)

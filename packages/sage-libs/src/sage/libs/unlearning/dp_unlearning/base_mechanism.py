@@ -182,9 +182,7 @@ class SimpleLaplaceMechanism(BasePrivacyMechanism):
     """
 
     def __init__(self, epsilon: float, sensitivity: float = 1.0):
-        super().__init__(
-            epsilon=epsilon, delta=None, sensitivity=sensitivity, name="Laplace"
-        )
+        super().__init__(epsilon=epsilon, delta=None, sensitivity=sensitivity, name="Laplace")
 
     def compute_noise(
         self,

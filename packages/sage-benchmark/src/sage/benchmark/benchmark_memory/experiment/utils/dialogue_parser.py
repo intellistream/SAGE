@@ -323,9 +323,7 @@ def parse_and_validate_dialogs(
     return _global_parser.parse_and_validate(dialogs, required_fields, strict_mode)
 
 
-def validate_dialog(
-    dialog: Dict[str, Any], required_fields: Optional[List[str]] = None
-) -> bool:
+def validate_dialog(dialog: Dict[str, Any], required_fields: Optional[List[str]] = None) -> bool:
     """
     全局便捷函数：验证单个对话格式
 

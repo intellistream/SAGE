@@ -8,6 +8,7 @@ import os
 
 import pytest
 import yaml
+
 from sage.common.utils.config.loader import load_config
 
 
@@ -33,9 +34,7 @@ class TestAgentConfigValidation:
 
     def test_config_file_exists(self):
         """Test that the config file exists."""
-        assert os.path.exists(
-            self.config_path
-        ), f"Config file not found: {self.config_path}"
+        assert os.path.exists(self.config_path), f"Config file not found: {self.config_path}"
 
     def test_config_loads_successfully(self):
         """Test that the config file can be loaded without errors."""
@@ -62,9 +61,7 @@ class TestAgentConfigValidation:
         ]
 
         for section in required_sections:
-            assert (
-                section in config
-            ), f"Required section '{section}' missing from config"
+            assert section in config, f"Required section '{section}' missing from config"
 
     def test_pipeline_config(self):
         """Test pipeline configuration structure."""
@@ -244,9 +241,7 @@ class TestAgentConfigValidation:
         # Check source data path
         data_path = config["source"]["data_path"]
         assert not os.path.isabs(data_path), "Data path should be relative"
-        assert data_path.startswith(
-            "examples/"
-        ), "Data path should start with examples/"
+        assert data_path.startswith("examples/"), "Data path should start with examples/"
 
         # Check sink save path
         save_path = config["sink"]["save_to_file"]

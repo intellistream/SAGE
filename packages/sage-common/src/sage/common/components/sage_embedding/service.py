@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+
 from sage.common.components.sage_embedding import EmbeddingFactory, EmbeddingRegistry
 from sage.platform.service import BaseService
 
@@ -112,17 +113,13 @@ class EmbeddingService(BaseService):
     # ------------------------------------------------------------------
     def setup(self) -> None:
         """Initialize the embedding service."""
-        self.logger.info(
-            f"EmbeddingService setup starting: method={self.config.method}"
-        )
+        self.logger.info(f"EmbeddingService setup starting: method={self.config.method}")
 
         with self._lock:
             if self.config.method == "vllm":
                 # Use vLLM service for embeddings
                 if not self.config.vllm_service_name:
-                    raise ValueError(
-                        "vLLM method requires 'vllm_service_name' in config"
-                    )
+                    raise ValueError("vLLM method requires 'vllm_service_name' in config")
                 self.logger.info(f"Using vLLM service: {self.config.vllm_service_name}")
                 # Don't create embedder - will use service call
             else:
@@ -143,9 +140,7 @@ class EmbeddingService(BaseService):
             if self.config.cache_enabled:
 
                 self._cache = {}
-                self.logger.info(
-                    f"Embedding cache enabled: size={self.config.cache_size}"
-                )
+                self.logger.info(f"Embedding cache enabled: size={self.config.cache_size}")
 
         self.logger.info("EmbeddingService setup complete")
 
@@ -313,9 +308,7 @@ class EmbeddingService(BaseService):
 
         # Build response
         first_vector: list[float] | None = vectors[0] if vectors else None
-        dimension = (
-            len(first_vector) if first_vector is not None else self.get_dimension()
-        )
+        dimension = len(first_vector) if first_vector is not None else self.get_dimension()
 
         result = {
             "vectors": vectors,

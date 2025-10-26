@@ -89,17 +89,12 @@ class VSCodePathManager:
                     break
 
         # Method 2: Find directories with __init__.py
-        init_files = glob.glob(
-            str(self.packages_dir / "**" / "__init__.py"), recursive=True
-        )
+        init_files = glob.glob(str(self.packages_dir / "**" / "__init__.py"), recursive=True)
 
         for init_file in init_files:
             package_dir = Path(init_file).parent
             # Skip __pycache__ and other special directories
-            if any(
-                part.startswith(".") or part == "__pycache__"
-                for part in package_dir.parts
-            ):
+            if any(part.startswith(".") or part == "__pycache__" for part in package_dir.parts):
                 continue
 
             relative_path = package_dir.relative_to(self.project_root)
@@ -110,9 +105,7 @@ class VSCodePathManager:
 
         for py_file in py_files:
             py_path = Path(py_file)
-            if any(
-                part.startswith(".") or part == "__pycache__" for part in py_path.parts
-            ):
+            if any(part.startswith(".") or part == "__pycache__" for part in py_path.parts):
                 continue
 
             package_dir = py_path.parent

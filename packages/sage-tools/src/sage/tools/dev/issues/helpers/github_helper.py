@@ -44,9 +44,7 @@ class GitHubProjectManager:
             print("✅ 从 IssuesConfig 获取到 GitHub Token")
             return token
 
-        raise Exception(
-            "未找到GitHub Token，请设置GITHUB_TOKEN环境变量或创建.github_token文件"
-        )
+        raise Exception("未找到GitHub Token，请设置GITHUB_TOKEN环境变量或创建.github_token文件")
 
     def _load_configurations(self):
         """加载团队和项目配置"""
@@ -180,10 +178,7 @@ class GitHubProjectManager:
             return []
 
         repositories = (
-            data.get("data", {})
-            .get("organization", {})
-            .get("repositories", {})
-            .get("nodes", [])
+            data.get("data", {}).get("organization", {}).get("repositories", {}).get("nodes", [])
         )
         print(f"📁 发现 {len(repositories)} 个仓库")
 
@@ -387,10 +382,7 @@ class GitHubProjectManager:
                 break
 
             items_data = (
-                data.get("data", {})
-                .get("organization", {})
-                .get("projectV2", {})
-                .get("items", {})
+                data.get("data", {}).get("organization", {}).get("projectV2", {}).get("items", {})
             )
             nodes = items_data.get("nodes", [])
             all_items.extend(nodes)
@@ -463,8 +455,7 @@ class GitHubProjectManager:
         if members:
             if isinstance(members[0], dict):
                 member_usernames = [
-                    member.get("username", member.get("login", ""))
-                    for member in members
+                    member.get("username", member.get("login", "")) for member in members
                 ]
             else:
                 member_usernames = members

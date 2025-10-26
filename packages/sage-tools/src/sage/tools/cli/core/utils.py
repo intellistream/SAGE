@@ -22,9 +22,7 @@ import yaml
 from .exceptions import CLIException, ValidationError
 
 
-def find_project_root(
-    start_path: Path | None = None, markers: list[str] = None
-) -> Path | None:
+def find_project_root(start_path: Path | None = None, markers: list[str] = None) -> Path | None:
     """
     查找项目根目录
 
@@ -69,9 +67,7 @@ def find_project_root(
     return None
 
 
-def ensure_directory(
-    path: str | Path, parents: bool = True, exist_ok: bool = True
-) -> Path:
+def ensure_directory(path: str | Path, parents: bool = True, exist_ok: bool = True) -> Path:
     """
     确保目录存在
 
@@ -292,9 +288,7 @@ def is_port_available(host: str, port: int) -> bool:
         return False
 
 
-def wait_for_port(
-    host: str, port: int, timeout: int = 30, check_interval: float = 1.0
-) -> bool:
+def wait_for_port(host: str, port: int, timeout: int = 30, check_interval: float = 1.0) -> bool:
     """
     等待端口变为可用（服务启动）
 
@@ -323,9 +317,7 @@ def wait_for_port(
     return False
 
 
-def create_temp_file(
-    suffix: str = None, prefix: str = "sage_", content: str = None
-) -> Path:
+def create_temp_file(suffix: str = None, prefix: str = "sage_", content: str = None) -> Path:
     """
     创建临时文件
 

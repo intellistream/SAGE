@@ -7,6 +7,7 @@ Tests the monitoring system integrated with BaseTask and task execution.
 import time
 
 import pytest
+
 from sage.kernel.runtime.context.task_context import TaskContext
 from sage.kernel.runtime.monitoring.metrics_collector import MetricsCollector
 
@@ -114,9 +115,7 @@ class TestMonitoringIntegration:
             collector.record_packet_start(packet_id)
 
             if i % 3 == 0:  # 每3个包失败一次
-                collector.record_packet_end(
-                    packet_id, success=False, error_type="ValueError"
-                )
+                collector.record_packet_end(packet_id, success=False, error_type="ValueError")
             else:
                 collector.record_packet_end(packet_id, success=True)
 
