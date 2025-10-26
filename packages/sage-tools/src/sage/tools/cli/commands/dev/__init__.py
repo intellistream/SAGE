@@ -10,12 +10,17 @@ SAGE Dev 命令模块
 - github: GitHub 管理
 """
 
+import sys
+
 import typer
 from rich.console import Console
+from rich.table import Table
 
 # 创建主命令应用
 app = typer.Typer(
     name="dev",
+    no_args_is_help=True,
+    add_completion=False,
     help="""🛠️ 开发工具 - 质量检查、项目管理、维护工具、包管理等
 
     命令组：
@@ -27,10 +32,10 @@ app = typer.Typer(
     • github    - Issues、PR管理
 
     快速示例：
-      sage dev quality check         # 运行所有质量检查
-      sage dev project test          # 运行测试
-      sage dev maintain doctor       # 健康检查
-      sage dev package version bump  # 升级版本
+      sage-dev quality check         # 运行所有质量检查
+      sage-dev project test          # 运行测试
+      sage-dev maintain doctor       # 健康检查
+      sage-dev package version bump  # 升级版本
     """,
 )
 
@@ -251,4 +256,53 @@ except ImportError as e:
     console.print(f"[yellow]警告: 无法导入向后兼容别名: {e}[/yellow]")
 
 
-__all__ = ["app"]
+# ============================================================================
+# 智能命令建议 - 当用户输入错误命令时提示正确用法
+# ============================================================================
+
+# 常见的错误命令到正确命令的映射
+COMMAND_SUGGESTIONS = {
+    "check": ["quality check", "quality format", "quality lint"],
+    "fix": ["quality fix", "quality format"],
+    "format": ["quality format"],
+    "lint": ["quality lint"],
+    "test": ["project test"],
+    "clean": ["project clean"],
+    "status": ["project status"],
+    "analyze": ["project analyze"],
+    "doctor": ["maintain doctor"],
+    "hooks": ["maintain hooks"],
+    "issues": ["github issues"],
+    "pypi": ["package pypi"],
+    "version": ["package version"],
+    "models": ["resource models"],
+    "install": ["package install"],
+    "build": ["package pypi build"],
+    "upload": ["package pypi upload"],
+}
+
+
+# 创建包装函数来提供更好的错误提示
+def run_with_suggestions():
+    """运行 app 并在命令不存在时提供建议"""
+    import sys
+
+    try:
+        app()
+    except SystemExit as e:
+        # 如果退出码是 2（通常表示命令行错误）且有参数
+        if e.code == 2 and len(sys.argv) > 1:
+            cmd = sys.argv[1]
+            # 检查是否是未知命令（不是选项）
+            if not cmd.startswith("-") and cmd in COMMAND_SUGGESTIONS:
+                console.print(f"\n[yellow]💡 提示: 'sage-dev {cmd}' 命令已重组[/yellow]\n")
+                console.print("[cyan]新的命令结构:[/cyan]\n")
+
+                for suggestion in COMMAND_SUGGESTIONS[cmd]:
+                    console.print(f"  [green]sage-dev {suggestion}[/green]")
+
+                console.print(f"\n[dim]使用 [bold]sage-dev --help[/bold] 查看所有可用命令[/dim]\n")
+        raise
+
+
+__all__ = ["app", "run_with_suggestions"]

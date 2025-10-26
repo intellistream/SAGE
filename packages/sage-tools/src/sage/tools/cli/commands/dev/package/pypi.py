@@ -9,7 +9,10 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from sage.tools.dev.core.bytecode_compiler import BytecodeCompiler, compile_multiple_packages
+from sage.tools.dev.core.bytecode_compiler import (
+    BytecodeCompiler,
+    compile_multiple_packages,
+)
 
 console = Console()
 app = typer.Typer(
@@ -120,7 +123,9 @@ def upload_package(
 
     dist_dir = package_path / "dist"
     if not dist_dir.exists() or not list(dist_dir.glob("*.whl")):
-        console.print(f"[red]错误: 未找到 wheel 文件，请先构建: sage-dev package pypi build {package}[/red]")
+        console.print(
+            f"[red]错误: 未找到 wheel 文件，请先构建: sage-dev package pypi build {package}[/red]"
+        )
         raise typer.Exit(1)
 
     try:
