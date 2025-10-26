@@ -379,7 +379,7 @@ def quality(
             if all_files:
                 result = checker.check_all()
             else:
-                result = checker.check_changed_files()
+                result = checker.check_changed()
 
             if result.get("passed", False):
                 console.print("[green]✅ Dev-notes 文档规范检查通过[/green]")
@@ -1698,39 +1698,49 @@ def check_devnotes(
 
         if check_structure:
             console.print("🔍 检查目录结构...")
-            result = checker.check_structure()
+            structure_ok = checker.check_directory_structure()
+            if structure_ok:
+                console.print("\n[green]✅ 目录结构检查通过！[/green]")
+            else:
+                console.print("\n[red]❌ 目录结构检查失败！[/red]")
+                raise typer.Exit(1)
+            return
         elif changed_only:
             console.print("🔍 仅检查变更的文档...")
-            result = checker.check_changed_files()
+            result = checker.check_changed()
         else:
             console.print("🔍 检查所有文档...")
             result = checker.check_all()
 
-        # 显示结果
-        if result.get("passed", False):
-            console.print("\n[green]✅ 文档规范检查通过！[/green]")
-            if verbose:
-                console.print(f"📝 检查了 {result.get('total_checked', 0)} 个文档")
-        else:
-            console.print("\n[red]❌ 发现文档规范问题！[/red]")
-            issues = result.get("issues", [])
-            console.print(f"⚠️  发现 {len(issues)} 个问题：\n")
-
-            for issue in issues:
-                console.print(f"[red]❌ {issue['file']}[/red]")
-                console.print(f"   {issue['message']}")
-                if issue.get("suggestion"):
-                    console.print(f"   💡 建议: {issue['suggestion']}")
-                console.print()
-
-            raise typer.Exit(1)
-
+    except typer.Exit:
+        raise
     except Exception as e:
-        console.print(f"[red]❌ 文档检查失败: {e}[/red]")
+        console.print(f"[red]❌ 文档检查执行失败: {e}[/red]")
         if verbose:
             import traceback
 
             console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+    # 显示结果
+    if result.get("passed", False):
+        console.print("\n[green]✅ 文档规范检查通过！[/green]")
+        if verbose:
+            console.print(f"📝 检查了 {result.get('total', 0)} 个文档")
+    else:
+        console.print("\n[red]❌ 发现文档规范问题！[/red]")
+        issues = result.get("issues", [])
+        console.print(f"⚠️  发现 {len(issues)} 个问题：\n")
+
+        for issue in issues[:10]:  # 显示前10个
+            console.print(f"[red]❌ {issue.get('file', 'unknown')}[/red]")
+            console.print(f"   {issue.get('message', '')}")
+            console.print()
+
+        if len(issues) > 10:
+            console.print(f"... 还有 {len(issues) - 10} 个问题")
+
+        console.print("\n💡 参考模板: docs/dev-notes/TEMPLATE.md")
         raise typer.Exit(1)
 
 
@@ -1889,7 +1899,7 @@ def check_all(
 
         checker = DevNotesChecker(root_dir=str(project_path))
         if changed_only:
-            result = checker.check_changed_files()
+            result = checker.check_changed()
         else:
             result = checker.check_all()
 
@@ -1911,7 +1921,7 @@ def check_all(
             if not continue_on_error:
                 raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]❌ 文档检查失败: {e}[/red]\n")
+        console.print(f"[red]❌ 文档检查执行失败: {e}[/red]\n")
         checks_failed.append("文档检查")
         if not continue_on_error:
             raise typer.Exit(1)

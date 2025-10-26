@@ -52,9 +52,9 @@ REQUIRED_METADATA = ["Date", "Author", "Summary"]
 class DevNotesChecker:
     """Dev-notes 文档规范检查器"""
 
-    def __init__(self, root_dir: Path, strict: bool = False):
-        self.root_dir = root_dir
-        self.devnotes_dir = root_dir / "docs" / "dev-notes"
+    def __init__(self, root_dir: Path | str, strict: bool = False):
+        self.root_dir = Path(root_dir) if isinstance(root_dir, str) else root_dir
+        self.devnotes_dir = self.root_dir / "docs" / "dev-notes"
         self.strict = strict
         self.errors: list[str] = []
         self.warnings: list[str] = []
@@ -264,6 +264,39 @@ class DevNotesChecker:
                 failed += 1
 
         return passed, failed
+
+    def check_all(self) -> dict:
+        """检查所有文件（返回字典格式，用于 CLI）"""
+        passed, failed = self.check_all_files()
+        return {
+            "passed": failed == 0 and (not self.strict or len(self.warnings) == 0),
+            "total": passed + failed,
+            "passed_count": passed,
+            "failed_count": failed,
+            "warnings": len(self.warnings),
+            "issues": [
+                {"file": "devnotes", "message": err} for err in self.errors
+            ] + [
+                {"file": "devnotes", "message": warn} for warn in self.warnings
+            ]
+        }
+
+    def check_changed(self, diff_target: str = "HEAD") -> dict:
+        """检查变更的文件（返回字典格式，用于 CLI）"""
+        changed_files = get_changed_files(self.root_dir, diff_target)
+        passed, failed = self.check_changed_files(changed_files)
+        return {
+            "passed": failed == 0 and (not self.strict or len(self.warnings) == 0),
+            "total": passed + failed,
+            "passed_count": passed,
+            "failed_count": failed,
+            "warnings": len(self.warnings),
+            "issues": [
+                {"file": "devnotes", "message": err} for err in self.errors
+            ] + [
+                {"file": "devnotes", "message": warn} for warn in self.warnings
+            ]
+        }
 
     def print_results(self, passed: int, failed: int) -> bool:
         """打印检查结果"""

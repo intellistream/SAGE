@@ -86,9 +86,9 @@ class PackageREADMEChecker:
         READMESection("Contributing", r"^##\s+(🤝\s+)?Contributing", False),
     ]
 
-    def __init__(self, workspace_root: Path):
-        self.workspace_root = workspace_root
-        self.packages_dir = workspace_root / "packages"
+    def __init__(self, workspace_root: Path | str):
+        self.workspace_root = Path(workspace_root) if isinstance(workspace_root, str) else workspace_root
+        self.packages_dir = self.workspace_root / "packages"
 
     def get_packages(self) -> list[str]:
         """Get list of all packages."""
