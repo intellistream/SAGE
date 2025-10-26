@@ -156,7 +156,7 @@ ALLOWED_DEPENDENCIES = {
         "sage-apps",
         "sage-benchmark",
     },  # L6 CLI 可以依赖所有下层
-    
+
     "sage-devtools": {  # 原 sage-tools
         "sage-common",
         "sage-platform",
@@ -165,7 +165,7 @@ ALLOWED_DEPENDENCIES = {
         "sage-middleware",
         "sage-studio",
     },
-    
+
     "sage-studio": {
         "sage-common",
         "sage-platform",

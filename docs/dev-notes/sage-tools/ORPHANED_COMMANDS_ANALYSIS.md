@@ -80,7 +80,7 @@ sage dev project llm-config auto --model-name Qwen2.5-7B
 
 **描述**: Domain knowledge helpers for the SAGE pipeline builder
 
-**功能**: 
+**功能**:
 - 为 pipeline builder 提供领域知识和示例
 - 加载和解析 pipeline 配置示例
 - 提供模板和最佳实践
@@ -312,13 +312,13 @@ from sage.cli.commands.apps.pipeline_knowledge import ...
 # 在 cluster.py 中添加
 @app.command("start")
 def start_cluster(
-    with_jobmanager: bool = typer.Option(False, "--with-jobmanager", 
+    with_jobmanager: bool = typer.Option(False, "--with-jobmanager",
                                         help="同时启动 JobManager"),
 ):
     """启动 Ray 集群 (可选同时启动 JobManager)"""
     # 启动 Ray cluster
     start_ray_cluster()
-    
+
     # 如果需要，启动 JobManager
     if with_jobmanager:
         start_jobmanager()
