@@ -18,6 +18,7 @@ console = Console()
 # 导入现有的 models 命令组
 try:
     from sage.tools.cli.commands.dev.models import app as models_app
+
     app.add_typer(models_app, name="models")
 except ImportError:
     console.print("[yellow]警告: 无法导入 models 命令[/yellow]")

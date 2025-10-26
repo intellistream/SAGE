@@ -38,16 +38,16 @@ def project_status(
 ):
     """
     📊 查看项目状态
-    
+
     显示包版本、依赖、测试状态等信息。
-    
+
     示例：
         sage dev project status                # 查看所有包状态
         sage dev project status -p sage-libs   # 查看特定包
         sage dev project status --markdown     # Markdown 格式
     """
     from sage.tools.cli.commands.dev.main import status
-    
+
     status(
         package=package,
         verbose=verbose,
@@ -84,9 +84,9 @@ def project_analyze(
 ):
     """
     🔍 代码分析
-    
+
     分析代码依赖、复杂度、质量等。
-    
+
     示例：
         sage dev project analyze                          # 分析所有内容
         sage dev project analyze -t dependencies          # 只分析依赖
@@ -94,7 +94,7 @@ def project_analyze(
         sage dev project analyze -f json -o report.json   # JSON 输出
     """
     from sage.tools.cli.commands.dev.main import analyze
-    
+
     analyze(
         analysis_type=analysis_type,
         package=package,
@@ -133,16 +133,16 @@ def project_clean(
 ):
     """
     🧹 清理构建产物和缓存
-    
+
     清理 __pycache__, .pytest_cache, build/ 等。
-    
+
     示例：
         sage dev project clean              # 标准清理
         sage dev project clean --deep       # 深度清理
         sage dev project clean --dry-run    # 预览清理内容
     """
     from sage.tools.cli.commands.dev.main import clean
-    
+
     clean(
         deep=deep,
         build=build,
@@ -215,9 +215,9 @@ def project_test(
 ):
     """
     🧪 运行项目测试
-    
+
     运行单元测试、集成测试等。
-    
+
     示例：
         sage dev project test                     # 运行所有测试
         sage dev project test --test-type unit    # 只运行单元测试
@@ -225,7 +225,7 @@ def project_test(
         sage dev project test --failed            # 只运行失败的测试
     """
     from sage.tools.cli.commands.dev.main import test
-    
+
     test(
         test_type=test_type,
         project_root=project_root,
@@ -259,16 +259,16 @@ def show_architecture(
 ):
     """
     🏗️ 显示架构信息
-    
+
     显示 SAGE 的分层架构定义和包依赖关系。
-    
+
     示例:
         sage dev project architecture               # 文本格式
         sage dev project architecture -f json       # JSON 格式
         sage dev project architecture -f markdown   # Markdown 格式
     """
     from sage.tools.cli.commands.dev.main import architecture
-    
+
     architecture(format=format)
 
 
@@ -282,15 +282,15 @@ def project_home(
 ):
     """
     🏠 项目主页
-    
+
     显示项目主页和相关链接。
-    
+
     示例：
         sage dev project home              # 显示主页
         sage dev project home --no-open    # 不打开浏览器
     """
     from sage.tools.cli.commands.dev.main import home
-    
+
     home(open_browser=open_browser)
 
 

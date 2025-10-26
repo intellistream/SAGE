@@ -23,12 +23,12 @@ TESTS_FAILED=0
 test_command() {
     local test_name="$1"
     local command="$2"
-    
+
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "测试: $test_name"
     echo "命令: $command"
     echo ""
-    
+
     if eval "$command" > /tmp/test_output.log 2>&1; then
         echo -e "${GREEN}✅ 通过${NC}"
         ((TESTS_PASSED++))

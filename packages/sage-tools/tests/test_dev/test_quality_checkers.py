@@ -55,7 +55,7 @@ class TestArchitectureCommand:
         assert result.exit_code == 0
         # Should be valid JSON - find the JSON part after warnings
         import json
-        
+
         lines = result.stdout.split("\n")
         # Find the first line that looks like JSON (starts with {)
         json_start = -1
@@ -63,7 +63,7 @@ class TestArchitectureCommand:
             if line.strip().startswith("{"):
                 json_start = i
                 break
-        
+
         if json_start >= 0:
             json_str = "\n".join(lines[json_start:])
             data = json.loads(json_str)

@@ -51,9 +51,9 @@ def check_all(
 ):
     """
     🔍 运行所有质量检查
-    
+
     包括：架构合规性、dev-notes 规范、README 质量、代码格式等。
-    
+
     示例：
         sage dev quality check                # 运行所有检查
         sage dev quality check --changed-only # 只检查变更文件
@@ -65,29 +65,29 @@ def check_all(
         _run_devnotes_check,
         _run_readme_check,
     )
-    
+
     console.print("\n[bold blue]🔍 运行质量检查[/bold blue]\n")
-    
+
     failed_checks = []
-    
+
     # 架构检查
     if architecture:
         console.print("[cyan]→ 架构合规性检查...[/cyan]")
         if not _run_architecture_check(changed_only=changed_only, warn_only=warn_only):
             failed_checks.append("architecture")
-    
+
     # dev-notes 检查
     if devnotes:
         console.print("[cyan]→ dev-notes 规范检查...[/cyan]")
         if not _run_devnotes_check(warn_only=warn_only):
             failed_checks.append("devnotes")
-    
+
     # README 检查
     if readme:
         console.print("[cyan]→ README 质量检查...[/cyan]")
         if not _run_readme_check(warn_only=warn_only):
             failed_checks.append("readme")
-    
+
     # 总结
     console.print()
     if failed_checks:
@@ -113,15 +113,15 @@ def check_architecture(
 ):
     """
     🏗️ 架构合规性检查
-    
+
     检查包之间的依赖关系是否符合分层架构定义。
-    
+
     示例：
         sage dev quality architecture                # 检查所有文件
         sage dev quality architecture --changed-only # 只检查变更文件
     """
     from sage.tools.cli.commands.dev.main import _run_architecture_check
-    
+
     if not _run_architecture_check(changed_only=changed_only, warn_only=warn_only):
         if not warn_only:
             raise typer.Exit(1)
@@ -137,14 +137,14 @@ def check_devnotes(
 ):
     """
     📝 dev-notes 文档规范检查
-    
+
     检查 dev-notes 文档是否符合规范（元数据、分类等）。
-    
+
     示例：
         sage dev quality devnotes
     """
     from sage.tools.cli.commands.dev.main import _run_devnotes_check
-    
+
     if not _run_devnotes_check(warn_only=warn_only):
         if not warn_only:
             raise typer.Exit(1)
@@ -160,14 +160,14 @@ def check_readme(
 ):
     """
     📋 包 README 质量检查
-    
+
     检查包的 README 文档是否完整、格式正确。
-    
+
     示例：
         sage dev quality readme
     """
     from sage.tools.cli.commands.dev.main import _run_readme_check
-    
+
     if not _run_readme_check(warn_only=warn_only):
         if not warn_only:
             raise typer.Exit(1)
@@ -188,25 +188,26 @@ def format_code(
 ):
     """
     🎨 代码格式化
-    
+
     使用 black, isort 等工具格式化代码。
-    
+
     示例：
         sage dev quality format              # 格式化变更的文件
         sage dev quality format --all-files  # 格式化所有文件
         sage dev quality format --check-only # 只检查不修复
     """
-    from sage.tools.cli.commands.dev.main import quality
-    
     # 调用原 quality 命令，只运行格式化
     import sys
+
+    from sage.tools.cli.commands.dev.main import quality
+
     sys.argv = ["sage", "dev", "quality"]
     if check_only:
         sys.argv.append("--check-only")
     if all_files:
         sys.argv.append("--all-files")
     sys.argv.extend(["--no-architecture", "--no-devnotes", "--hook", "black"])
-    
+
     quality(
         fix=not check_only,
         check_only=check_only,
@@ -231,15 +232,15 @@ def lint_code(
 ):
     """
     🔬 代码检查
-    
+
     使用 ruff, mypy 等工具检查代码质量。
-    
+
     示例：
         sage dev quality lint              # 检查变更的文件
         sage dev quality lint --all-files  # 检查所有文件
     """
     from sage.tools.cli.commands.dev.main import quality
-    
+
     quality(
         fix=False,
         check_only=True,
@@ -264,15 +265,15 @@ def fix_issues(
 ):
     """
     🔧 自动修复问题
-    
+
     自动修复可修复的代码质量问题。
-    
+
     示例：
         sage dev quality fix              # 修复变更的文件
         sage dev quality fix --all-files  # 修复所有文件
     """
     from sage.tools.cli.commands.dev.main import quality
-    
+
     quality(
         fix=True,
         check_only=False,
@@ -292,14 +293,14 @@ def _run_architecture_check(changed_only: bool = False, warn_only: bool = False)
     """运行架构检查，返回是否通过"""
     try:
         from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
-        
+
         checker = ArchitectureChecker()
         violations = checker.check_all()
-        
+
         if changed_only:
             # TODO: 过滤只显示变更文件的违规
             pass
-        
+
         if violations:
             console.print(f"[red]发现 {len(violations)} 个架构违规[/red]")
             for v in violations[:10]:  # 只显示前10个
@@ -317,10 +318,10 @@ def _run_devnotes_check(warn_only: bool = False) -> bool:
     """运行 dev-notes 检查，返回是否通过"""
     try:
         from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
-        
+
         checker = DevNotesChecker()
         issues = checker.check_all()
-        
+
         if issues:
             console.print(f"[red]发现 {len(issues)} 个 dev-notes 问题[/red]")
             for issue in issues[:10]:
@@ -338,10 +339,10 @@ def _run_readme_check(warn_only: bool = False) -> bool:
     """运行 README 检查，返回是否通过"""
     try:
         from sage.tools.dev.tools.package_readme_checker import PackageReadmeChecker
-        
+
         checker = PackageReadmeChecker()
         issues = checker.check_all()
-        
+
         if issues:
             console.print(f"[red]发现 {len(issues)} 个 README 问题[/red]")
             for issue in issues[:10]:

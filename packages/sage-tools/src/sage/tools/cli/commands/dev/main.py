@@ -1596,19 +1596,21 @@ def _check_package_dependencies(package_name: str, verbose: bool):
 
 @app.command()
 def architecture(
-    show_dependencies: bool = typer.Option(True, "--dependencies/--no-dependencies", help="显示依赖关系"),
+    show_dependencies: bool = typer.Option(
+        True, "--dependencies/--no-dependencies", help="显示依赖关系"
+    ),
     show_layers: bool = typer.Option(True, "--layers/--no-layers", help="显示层级定义"),
     package: str = typer.Option(None, "--package", help="显示特定包的信息"),
     output_format: str = typer.Option("text", "--format", help="输出格式: text, json, markdown"),
 ):
     """显示 SAGE 架构信息
-    
+
     显示项：
     - 分层架构定义（L1-L6）
     - 包的层级归属
     - 允许的依赖关系
     - 依赖规则说明
-    
+
     示例：
         sage dev architecture                          # 显示完整架构信息
         sage dev architecture --package sage-kernel    # 显示特定包的信息
@@ -1623,13 +1625,13 @@ def architecture(
 
     if output_format == "json":
         import json
-        
+
         data = {
             "layers": LAYER_DEFINITION,
             "package_to_layer": PACKAGE_TO_LAYER,
             "dependencies": {k: list(v) for k, v in ALLOWED_DEPENDENCIES.items()},
         }
-        
+
         if package:
             if package in PACKAGE_TO_LAYER:
                 data = {
@@ -1640,13 +1642,13 @@ def architecture(
             else:
                 console.print(f"[red]❌ 未找到包: {package}[/red]")
                 raise typer.Exit(1)
-        
+
         console.print(json.dumps(data, indent=2, ensure_ascii=False))
         return
 
     if output_format == "markdown":
         console.print("# SAGE 架构定义\n")
-        
+
         if show_layers:
             console.print("## 层级定义\n")
             for layer in sorted(LAYER_DEFINITION.keys()):
@@ -1655,7 +1657,7 @@ def architecture(
                 for pkg in packages:
                     console.print(f"- `{pkg}`")
                 console.print()
-        
+
         if show_dependencies:
             console.print("## 依赖关系\n")
             for pkg in sorted(ALLOWED_DEPENDENCIES.keys()):
@@ -1672,7 +1674,7 @@ def architecture(
     console.print("\n" + "=" * 70)
     console.print("🏗️  SAGE 架构定义")
     console.print("=" * 70)
-    
+
     if package:
         # 显示特定包的信息
         if package not in PACKAGE_TO_LAYER:
@@ -1681,25 +1683,25 @@ def architecture(
             for pkg in sorted(PACKAGE_TO_LAYER.keys()):
                 console.print(f"  • {pkg}")
             raise typer.Exit(1)
-        
+
         layer = PACKAGE_TO_LAYER[package]
         deps = ALLOWED_DEPENDENCIES.get(package, set())
-        
+
         console.print(f"\n📦 包名称: [bold cyan]{package}[/bold cyan]")
         console.print(f"📊 所属层级: [bold yellow]{layer}[/bold yellow]")
-        
+
         if deps:
-            console.print(f"\n✅ 允许依赖的包:")
+            console.print("\n✅ 允许依赖的包:")
             for dep in sorted(deps):
                 dep_layer = PACKAGE_TO_LAYER.get(dep, "unknown")
                 console.print(f"  • {dep} ({dep_layer})")
         else:
-            console.print(f"\n🔒 基础层，不依赖其他包")
-        
+            console.print("\n🔒 基础层，不依赖其他包")
+
         # 显示哪些包可以依赖这个包
         can_depend = [pkg for pkg, allowed in ALLOWED_DEPENDENCIES.items() if package in allowed]
         if can_depend:
-            console.print(f"\n⬆️  可以被以下包依赖:")
+            console.print("\n⬆️  可以被以下包依赖:")
             for pkg in sorted(can_depend):
                 pkg_layer = PACKAGE_TO_LAYER.get(pkg, "unknown")
                 console.print(f"  • {pkg} ({pkg_layer})")
@@ -1708,7 +1710,7 @@ def architecture(
         if show_layers:
             console.print("\n📊 层级定义:")
             console.print()
-            
+
             for layer in sorted(LAYER_DEFINITION.keys()):
                 packages = LAYER_DEFINITION[layer]
                 layer_desc = {
@@ -1719,31 +1721,31 @@ def architecture(
                     "L5": "应用层 - 应用程序",
                     "L6": "工具层 - 开发工具",
                 }.get(layer, "")
-                
+
                 console.print(f"  [bold yellow]{layer}[/bold yellow] - {layer_desc}")
                 for pkg in packages:
                     console.print(f"    • [cyan]{pkg}[/cyan]")
                 console.print()
-        
+
         if show_dependencies:
             console.print("\n🔗 依赖关系规则:")
             console.print()
             console.print("  💡 原则: 高层可以依赖低层，同层之间需要明确定义")
             console.print()
-            
+
             # 按层级顺序显示（L1-L6）
             for layer in sorted(LAYER_DEFINITION.keys()):
                 for pkg in LAYER_DEFINITION[layer]:
                     deps = ALLOWED_DEPENDENCIES.get(pkg, set())
-                    
+
                     console.print(f"  [cyan]{pkg}[/cyan] ({layer})")
                     if deps:
                         dep_list = ", ".join(sorted(deps))
                         console.print(f"    ✅ 可依赖: {dep_list}")
                     else:
-                        console.print(f"    🔒 基础层，无依赖")
+                        console.print("    🔒 基础层，无依赖")
                     console.print()
-    
+
     console.print("=" * 70)
     console.print("\n💡 提示:")
     console.print("  • 使用 --package <name> 查看特定包的依赖信息")

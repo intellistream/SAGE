@@ -5,8 +5,9 @@
 """
 
 import subprocess
-import typer
 from pathlib import Path
+
+import typer
 from rich.console import Console
 
 app = typer.Typer(
@@ -33,13 +34,13 @@ def run_maintenance_script(command: str, *args) -> int:
     """运行 sage-maintenance.sh 脚本"""
     project_root = get_project_root()
     script_path = project_root / "tools" / "maintenance" / "sage-maintenance.sh"
-    
+
     if not script_path.exists():
         console.print(f"[red]错误: 未找到维护脚本 {script_path}[/red]")
         return 1
-    
+
     cmd = ["bash", str(script_path), command, *args]
-    
+
     try:
         result = subprocess.run(cmd, cwd=project_root)
         return result.returncode
@@ -52,9 +53,9 @@ def run_maintenance_script(command: str, *args) -> int:
 def doctor():
     """
     🔍 健康检查
-    
+
     运行完整的项目健康检查，诊断常见问题。
-    
+
     示例：
         sage dev maintain doctor
     """
@@ -76,9 +77,9 @@ submodule_app = typer.Typer(
 def submodule_init():
     """
     🚀 初始化 Submodules
-    
+
     初始化所有 submodules 并切换到正确的分支。
-    
+
     示例：
         sage dev maintain submodule init
     """
@@ -92,9 +93,9 @@ def submodule_init():
 def submodule_status():
     """
     📊 查看 Submodule 状态
-    
+
     显示所有 submodules 的状态和分支信息。
-    
+
     示例：
         sage dev maintain submodule status
     """
@@ -108,9 +109,9 @@ def submodule_status():
 def submodule_switch():
     """
     🔄 切换 Submodule 分支
-    
+
     根据当前 SAGE 分支切换 submodules 到对应分支。
-    
+
     示例：
         sage dev maintain submodule switch
     """
@@ -124,9 +125,9 @@ def submodule_switch():
 def submodule_update():
     """
     ⬆️ 更新 Submodules
-    
+
     更新所有 submodules 到远程最新版本。
-    
+
     示例：
         sage dev maintain submodule update
     """
@@ -140,9 +141,9 @@ def submodule_update():
 def submodule_fix_conflict():
     """
     🔧 解决 Submodule 冲突
-    
+
     自动解决 submodule 冲突。
-    
+
     示例：
         sage dev maintain submodule fix-conflict
     """
@@ -156,9 +157,9 @@ def submodule_fix_conflict():
 def submodule_cleanup():
     """
     🧹 清理 Submodule 配置
-    
+
     清理旧的 submodule 配置。
-    
+
     示例：
         sage dev maintain submodule cleanup
     """
@@ -172,9 +173,9 @@ def submodule_cleanup():
 def submodule_bootstrap():
     """
     ⚡ 快速初始化（bootstrap）
-    
+
     一键初始化和配置所有 submodules。
-    
+
     示例：
         sage dev maintain submodule bootstrap
     """
@@ -198,19 +199,19 @@ def setup_hooks(
 ):
     """
     🪝 安装 Git Hooks
-    
+
     安装或更新项目的 Git hooks。
-    
+
     示例：
         sage dev maintain hooks           # 安装 hooks
         sage dev maintain hooks --force   # 强制重新安装
     """
     console.print("\n[bold blue]🪝 安装 Git Hooks[/bold blue]\n")
-    
+
     args = []
     if force:
         args.append("--force")
-    
+
     exit_code = run_maintenance_script("setup-hooks", *args)
     if exit_code != 0:
         raise typer.Exit(exit_code)
@@ -220,9 +221,9 @@ def setup_hooks(
 def security_check():
     """
     🔒 安全检查
-    
+
     检查敏感信息泄露、密钥等安全问题。
-    
+
     示例：
         sage dev maintain security
     """
@@ -242,18 +243,18 @@ def clean_project(
 ):
     """
     🧹 清理项目
-    
+
     清理构建产物、缓存等。
-    
+
     示例：
         sage dev maintain clean        # 标准清理
         sage dev maintain clean --deep # 深度清理
     """
     console.print("\n[bold blue]🧹 清理项目[/bold blue]\n")
-    
+
     command = "clean-deep" if deep else "clean"
     exit_code = run_maintenance_script(command)
-    
+
     if exit_code != 0:
         raise typer.Exit(exit_code)
 
