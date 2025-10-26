@@ -60,9 +60,7 @@ class TestCoverageReporter:
             expected_test_path = test_dir / expected_test_name
 
             if expected_test_path.exists():
-                mapping[str(rel_path)] = str(
-                    expected_test_path.relative_to(self.core_tests_path)
-                )
+                mapping[str(rel_path)] = str(expected_test_path.relative_to(self.core_tests_path))
             else:
                 mapping[str(rel_path)] = None
 
@@ -73,9 +71,7 @@ class TestCoverageReporter:
         source_to_test = self.map_source_to_test()
 
         total_files = len(source_to_test)
-        covered_files = sum(
-            1 for test_path in source_to_test.values() if test_path is not None
-        )
+        covered_files = sum(1 for test_path in source_to_test.values() if test_path is not None)
         uncovered_files = total_files - covered_files
 
         compliance_rate = (covered_files / total_files * 100) if total_files > 0 else 0
@@ -86,9 +82,7 @@ class TestCoverageReporter:
             "uncovered_files": uncovered_files,
             "compliance_rate": compliance_rate,
             "source_to_test_mapping": source_to_test,
-            "uncovered_source_files": [
-                src for src, test in source_to_test.items() if test is None
-            ],
+            "uncovered_source_files": [src for src, test in source_to_test.items() if test is None],
         }
 
     def run_coverage_analysis(self) -> dict[str, Any]:
@@ -214,12 +208,8 @@ class TestCoverageReporter:
                     if "src/sage/core" in file_path:
                         # 只显示core模块的文件
                         rel_path = file_path.replace("src/sage/core/", "")
-                        coverage_pct = file_data.get("summary", {}).get(
-                            "percent_covered", 0
-                        )
-                        num_statements = file_data.get("summary", {}).get(
-                            "num_statements", 0
-                        )
+                        coverage_pct = file_data.get("summary", {}).get("percent_covered", 0)
+                        num_statements = file_data.get("summary", {}).get("num_statements", 0)
                         covered = file_data.get("summary", {}).get("covered_lines", 0)
                         missing = file_data.get("summary", {}).get("missing_lines", 0)
 
@@ -295,9 +285,7 @@ class TestCoverageReporter:
             if (self.core_tests_path / test_file).exists()
         )
         total_required = len(required_structure)
-        completion_rate = (
-            (completed_count / total_required * 100) if total_required > 0 else 0
-        )
+        completion_rate = (completed_count / total_required * 100) if total_required > 0 else 0
 
         report.append("## 7. 总结")
         report.append("")

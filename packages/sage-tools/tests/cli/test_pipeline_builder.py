@@ -44,10 +44,7 @@ def test_pipeline_builder_mock_non_interactive(tmp_path):
     assert data["pipeline"]["name"] == "qa-helper"
     assert data["stages"], "stages should not be empty"
     classes = [stage["class"] for stage in data["stages"]]
-    assert (
-        "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleGenerator"
-        in classes
-    )
+    assert "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleGenerator" in classes
     assert (
         data["source"]["class"]
         == "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleQuestionSource"
@@ -127,9 +124,7 @@ def test_pipeline_knowledge_base_remote_download(tmp_path, monkeypatch):
     # Produce a fake remote docs archive
     docs_src = tmp_path / "remote" / "docs_src"
     docs_src.mkdir(parents=True)
-    (docs_src / "guide.md").write_text(
-        "# 指南\nPipeline Builder 远程文档", encoding="utf-8"
-    )
+    (docs_src / "guide.md").write_text("# 指南\nPipeline Builder 远程文档", encoding="utf-8")
 
     zip_path = tmp_path / "docs.zip"
     with zipfile.ZipFile(zip_path, "w") as zf:
@@ -232,8 +227,7 @@ services: []
     def fake_submit(self, autostop: bool = False):
         submitted["autostop"] = autostop
         submitted["functions"] = [
-            getattr(transformation, "function_class", None)
-            for transformation in self.pipeline
+            getattr(transformation, "function_class", None) for transformation in self.pipeline
         ]
         return "uuid-demo"
 

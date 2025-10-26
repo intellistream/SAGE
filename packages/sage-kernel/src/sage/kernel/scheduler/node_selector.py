@@ -180,9 +180,7 @@ class NodeSelector:
                 # 计算使用率
                 cpu_usage = 1.0 - (available_cpu / total_cpu) if total_cpu > 0 else 0.0
                 gpu_usage = 1.0 - (available_gpu / total_gpu) if total_gpu > 0 else 0.0
-                memory_usage = (
-                    1.0 - (available_memory / total_memory) if total_memory > 0 else 0.0
-                )
+                memory_usage = 1.0 - (available_memory / total_memory) if total_memory > 0 else 0.0
 
                 # 限制范围
                 cpu_usage = max(0.0, min(1.0, cpu_usage))
@@ -307,9 +305,7 @@ class NodeSelector:
             return None
 
         # 根据策略计算得分并选择最优节点
-        scored_nodes = [
-            (node, node.compute_score(strategy)) for node in candidate_nodes
-        ]
+        scored_nodes = [(node, node.compute_score(strategy)) for node in candidate_nodes]
 
         # 按得分排序（越低越好）
         scored_nodes.sort(key=lambda x: x[1])
@@ -393,9 +389,7 @@ class NodeSelector:
 
         node_id = self.task_node_map.pop(task_name, None)
         if node_id:
-            self.node_task_count[node_id] = max(
-                0, self.node_task_count.get(node_id, 0) - 1
-            )
+            self.node_task_count[node_id] = max(0, self.node_task_count.get(node_id, 0) - 1)
 
     def get_node_task_count(self, node_id: str) -> int:
         """获取节点上的任务数"""

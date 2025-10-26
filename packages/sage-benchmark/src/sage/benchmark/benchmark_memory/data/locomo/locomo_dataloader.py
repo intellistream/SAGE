@@ -311,9 +311,7 @@ if __name__ == "__main__":
     print("=" * 60)
     turns = loader.get_turn(sid)
     for session_id, max_dialog_idx in turns:
-        print(
-            f"  Session {session_id}: 对话数 {max_dialog_idx + 1} (索引 0-{max_dialog_idx})"
-        )
+        print(f"  Session {session_id}: 对话数 {max_dialog_idx + 1} (索引 0-{max_dialog_idx})")
 
     # 4 和 5 交替输出：Session 3 的所有对话和对应的可见问题
     print("\n" + "=" * 60)
@@ -348,9 +346,7 @@ if __name__ == "__main__":
                 # 只显示最新增加的问题（与上一轮比较）
                 if dialog_idx > 0:
                     prev_idx = dialog_idx - 1
-                    prev_questions = loader.get_question_list(
-                        sid, session_x=3, dialog_y=prev_idx
-                    )
+                    prev_questions = loader.get_question_list(sid, session_x=3, dialog_y=prev_idx)
                     new_questions = [q for q in questions if q not in prev_questions]
                     if new_questions:
                         print(f"  >> 新增问题 ({len(new_questions)} 个):")

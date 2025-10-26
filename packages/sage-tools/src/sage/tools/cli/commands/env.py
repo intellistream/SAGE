@@ -94,9 +94,7 @@ def run_setup_interactive(open_editor: bool = True, overwrite: bool = False) -> 
             else:
                 console.print("💡 可以稍后手动复制 .env.template → .env")
         else:
-            console.print(
-                "❌ 未找到 .env 或 .env.template，请手动创建并填写 API Keys。"
-            )
+            console.print("❌ 未找到 .env 或 .env.template，请手动创建并填写 API Keys。")
     elif open_editor and typer.confirm("是否编辑现有的 .env 文件?", default=False):
         _open_env_file(status["env_file"])
 
@@ -109,9 +107,7 @@ def run_setup_interactive(open_editor: bool = True, overwrite: bool = False) -> 
 
 @app.command()
 def load(
-    env_file: Path | None = typer.Option(
-        None, "--env-file", "-f", help="显式指定 .env 文件位置"
-    ),
+    env_file: Path | None = typer.Option(None, "--env-file", "-f", help="显式指定 .env 文件位置"),
     override: bool = typer.Option(False, "--override", help="覆盖已存在的环境变量"),
 ):
     """加载 .env 文件并将变量导入当前环境。"""
@@ -140,12 +136,8 @@ def check():
 
 @app.command()
 def setup(
-    overwrite: bool = typer.Option(
-        False, "--overwrite", help="如果已经存在 .env ，重新覆盖"
-    ),
-    no_open: bool = typer.Option(
-        False, "--no-open", help="创建/检测完成后不自动打开编辑器"
-    ),
+    overwrite: bool = typer.Option(False, "--overwrite", help="如果已经存在 .env ，重新覆盖"),
+    no_open: bool = typer.Option(False, "--no-open", help="创建/检测完成后不自动打开编辑器"),
 ):
     """运行交互式环境配置向导。"""
 

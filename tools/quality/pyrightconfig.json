@@ -11,7 +11,7 @@
     "dist"
   ],
   "ignore": [
-    "**/.*",
+    "**/.*"
   ],
   "defineConstant": {
     "DEBUG": true

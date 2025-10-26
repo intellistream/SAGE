@@ -532,7 +532,14 @@ def quality(
                     _save_quality_error_log(logs_base_dir, "ruff", result.stderr + result.stdout)
             else:
                 # 仅检查模式
-                cmd = ["ruff", "check", "--config", str(ruff_config), "--exclude", ruff_exclude] + target_paths
+                cmd = [
+                    "ruff",
+                    "check",
+                    "--config",
+                    str(ruff_config),
+                    "--exclude",
+                    ruff_exclude,
+                ] + target_paths
                 result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
 
                 if result.returncode != 0:
@@ -560,7 +567,13 @@ def quality(
 
         try:
             # 使用 tools/quality/.flake8 配置文件
-            cmd = ["flake8", "--config", str(flake8_config), "--exclude", flake8_exclude] + target_paths
+            cmd = [
+                "flake8",
+                "--config",
+                str(flake8_config),
+                "--exclude",
+                flake8_exclude,
+            ] + target_paths
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
             if result.returncode != 0:
                 console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")

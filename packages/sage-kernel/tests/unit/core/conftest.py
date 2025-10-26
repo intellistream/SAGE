@@ -97,9 +97,7 @@ class TestUtilities:
         return mock
 
     @staticmethod
-    def verify_lifecycle_calls(
-        mock_obj, setup=True, start=True, stop=True, cleanup=True
-    ):
+    def verify_lifecycle_calls(mock_obj, setup=True, start=True, stop=True, cleanup=True):
         """验证生命周期方法调用"""
         if setup:
             mock_obj.setup.assert_called()
@@ -223,9 +221,7 @@ class PerformanceTestUtils:
     @staticmethod
     def assert_execution_time_under(func, max_time, *args, **kwargs):
         """断言执行时间小于指定值"""
-        result, execution_time = PerformanceTestUtils.measure_execution_time(
-            func, *args, **kwargs
-        )
+        result, execution_time = PerformanceTestUtils.measure_execution_time(func, *args, **kwargs)
         assert (
             execution_time < max_time
         ), f"Execution time {execution_time}s exceeds maximum {max_time}s"

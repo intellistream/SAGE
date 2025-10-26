@@ -27,9 +27,7 @@ class FramePreprocessor(MapFunction):
         data["brightness"] = float(np.mean(frame))
 
         if self.target_size:
-            data["resized_image"] = pil_image.resize(
-                (self.target_size, self.target_size)
-            )
+            data["resized_image"] = pil_image.resize((self.target_size, self.target_size))
         else:
             data["resized_image"] = pil_image
 

@@ -628,9 +628,7 @@ class RayObjectTrimmer:
             "_server_thread",  # 线程对象
         ]
 
-        return RayObjectTrimmer.trim_for_remote_call(
-            transformation_obj, exclude=exclude_attrs
-        )
+        return RayObjectTrimmer.trim_for_remote_call(transformation_obj, exclude=exclude_attrs)
 
     @staticmethod
     def trim_operator_for_ray(operator_obj) -> Any:
@@ -649,9 +647,7 @@ class RayObjectTrimmer:
             "__weakref__",
         ]
 
-        return RayObjectTrimmer.trim_for_remote_call(
-            operator_obj, exclude=exclude_attrs
-        )
+        return RayObjectTrimmer.trim_for_remote_call(operator_obj, exclude=exclude_attrs)
 
     @staticmethod
     def validate_ray_serializable(obj: Any, max_depth: int = 3) -> dict[str, Any]:

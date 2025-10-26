@@ -22,9 +22,7 @@ from sage.common.components.sage_embedding.factory import EmbeddingFactory
 from sage.common.config.output_paths import get_sage_paths
 from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
 
-GITHUB_DOCS_ZIP_URL = (
-    "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
-)
+GITHUB_DOCS_ZIP_URL = "https://github.com/intellistream/SAGE-Pub/archive/refs/heads/main.zip"
 DOCS_CACHE_SUBDIR = "pipeline-builder/docs"
 
 CHUNK_SIZE = 600
@@ -324,14 +322,10 @@ class PipelineKnowledgeBase:
             self._embedder = EmbeddingFactory.create(embedding_method, **params)
         except Exception as exc:
             # Fallback to hash embedding if the requested method fails
-            print(
-                f"⚠️  无法创建 {embedding_method} embedding，使用 hash 作为后备: {exc}"
-            )
+            print(f"⚠️  无法创建 {embedding_method} embedding，使用 hash 作为后备: {exc}")
             self._embedder = EmbeddingFactory.create("hash", dimension=384)
 
-        all_chunks = _discover_documents(
-            self.project_root, allow_download=allow_download
-        )
+        all_chunks = _discover_documents(self.project_root, allow_download=allow_download)
         if max_chunks and len(all_chunks) > max_chunks:
             all_chunks = all_chunks[:max_chunks]
         for chunk in all_chunks:

@@ -122,9 +122,7 @@ class Packet:
             str: 数据包的描述信息
         """
         key_info = f"key={self.partition_key}" if self.is_keyed() else "unkeyed"
-        payload_type = (
-            type(self.payload).__name__ if self.payload is not None else "None"
-        )
+        payload_type = type(self.payload).__name__ if self.payload is not None else "None"
 
         return (
             f"<Packet input={self.input_index} {key_info} "

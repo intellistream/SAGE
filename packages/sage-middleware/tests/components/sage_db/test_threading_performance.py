@@ -58,15 +58,11 @@ def prepare_test_database(dimension: int = 768, num_vectors: int = 10000):
     db.add_batch(vectors.tolist())
     elapsed = time.time() - start
 
-    print(
-        f"✅ Database ready. Insertion took {elapsed:.2f}s ({num_vectors/elapsed:.0f} vectors/s)"
-    )
+    print(f"✅ Database ready. Insertion took {elapsed:.2f}s ({num_vectors/elapsed:.0f} vectors/s)")
     return db
 
 
-def benchmark_single_thread(
-    db: SageDB, num_queries: int = 1000, dimension: int = 768
-) -> float:
+def benchmark_single_thread(db: SageDB, num_queries: int = 1000, dimension: int = 768) -> float:
     """Benchmark single-threaded search performance."""
     print(f"\n🔍 Single-threaded benchmark ({num_queries} queries)...")
 
@@ -96,8 +92,7 @@ def benchmark_multi_thread(
     # Prepare queries for each thread
     np.random.seed(456)
     all_queries = [
-        np.random.rand(queries_per_thread, dimension).astype(np.float32)
-        for _ in range(num_threads)
+        np.random.rand(queries_per_thread, dimension).astype(np.float32) for _ in range(num_threads)
     ]
 
     results = [0.0] * num_threads
@@ -143,9 +138,7 @@ def benchmark_batch_search(
     db: SageDB, batch_size: int = 100, num_batches: int = 10, dimension: int = 768
 ) -> float:
     """Benchmark batch search performance."""
-    print(
-        f"\n🔍 Batch search benchmark ({num_batches} batches × {batch_size} queries)..."
-    )
+    print(f"\n🔍 Batch search benchmark ({num_batches} batches × {batch_size} queries)...")
 
     np.random.seed(789)
 

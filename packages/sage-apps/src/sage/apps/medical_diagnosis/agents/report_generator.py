@@ -75,9 +75,7 @@ class ReportGenerator:
             DiagnosisReport: 诊断报告
         """
         # Step 1: 构建提示词
-        prompt = self._build_prompt(
-            image_features, patient_info, similar_cases, medical_knowledge
-        )
+        prompt = self._build_prompt(image_features, patient_info, similar_cases, medical_knowledge)
 
         # Step 2: 调用LLM生成报告
         if self.llm_service != "placeholder":
@@ -288,9 +286,7 @@ class ReportGenerator:
 
         report_parts.append("")
         report_parts.append("=" * 60)
-        report_parts.append(
-            "注: 本报告由AI辅助生成，仅供参考，最终诊断需由专业医师确认。"
-        )
+        report_parts.append("注: 本报告由AI辅助生成，仅供参考，最终诊断需由专业医师确认。")
         report_parts.append("=" * 60)
 
         return "\n".join(report_parts)
@@ -313,8 +309,7 @@ class ReportGenerator:
 
         # 生成建议
         has_herniation = any(
-            a["type"] == "disc_herniation"
-            for a in image_features.get("abnormalities", [])
+            a["type"] == "disc_herniation" for a in image_features.get("abnormalities", [])
         )
 
         if has_herniation:
@@ -330,9 +325,7 @@ class ReportGenerator:
 
         return diagnosis_summary, findings, recommendations
 
-    def _calculate_confidence(
-        self, image_features: dict, similar_cases: list[dict]
-    ) -> float:
+    def _calculate_confidence(self, image_features: dict, similar_cases: list[dict]) -> float:
         """计算诊断置信度"""
         confidence = 0.5  # 基础置信度
 

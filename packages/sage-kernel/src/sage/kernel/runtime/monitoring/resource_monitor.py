@@ -39,8 +39,7 @@ class ResourceMonitor:
         """
         if not PSUTIL_AVAILABLE:
             raise ImportError(
-                "psutil is required for ResourceMonitor. "
-                "Install it with: pip install psutil"
+                "psutil is required for ResourceMonitor. " "Install it with: pip install psutil"
             )
 
         self.sampling_interval = sampling_interval
@@ -126,9 +125,7 @@ class ResourceMonitor:
         _, memory = self.memory_samples[-1]
         return (cpu, memory)
 
-    def get_average_usage(
-        self, time_window: float | None = None
-    ) -> tuple[float, float]:
+    def get_average_usage(self, time_window: float | None = None) -> tuple[float, float]:
         """
         获取平均CPU和内存使用率
 

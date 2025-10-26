@@ -37,21 +37,15 @@ class FilterOperator(BaseOperator):
             # 执行过滤逻辑
             should_pass = self.function.execute(packet.payload)
 
-            self.logger.debug(
-                f"FilterOperator {self.name}: Filter result: {should_pass}"
-            )
+            self.logger.debug(f"FilterOperator {self.name}: Filter result: {should_pass}")
 
             if should_pass:
                 # 通过过滤，继承分区信息
-                self.logger.debug(
-                    f"FilterOperator {self.name}: Sending packet downstream"
-                )
+                self.logger.debug(f"FilterOperator {self.name}: Sending packet downstream")
                 self.router.send(packet)
             else:
                 self.logger.debug(f"FilterOperator {self.name}: Packet filtered out")
             # 不通过过滤：不发送任何packet
 
         except Exception as e:
-            self.logger.error(
-                f"Error in FilterOperator {self.name}: {e}", exc_info=True
-            )
+            self.logger.error(f"Error in FilterOperator {self.name}: {e}", exc_info=True)

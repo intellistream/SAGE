@@ -32,9 +32,7 @@ def get_sage_kernel_runtime_env():
         cwd = os.getcwd()
         if "sage-kernel" in cwd:
             parts = cwd.split("/")
-            kernel_idx = next(
-                i for i, part in enumerate(parts) if part == "sage-kernel"
-            )
+            kernel_idx = next(i for i, part in enumerate(parts) if part == "sage-kernel")
             sage_kernel_src = "/".join(parts[: kernel_idx + 1]) + "/src"
         else:
             # 最后的备用方法
@@ -47,9 +45,7 @@ def get_sage_kernel_runtime_env():
     # 构建runtime_env配置
     runtime_env = {
         "py_modules": [sage_kernel_src],
-        "env_vars": {
-            "PYTHONPATH": sage_kernel_src + ":" + os.environ.get("PYTHONPATH", "")
-        },
+        "env_vars": {"PYTHONPATH": sage_kernel_src + ":" + os.environ.get("PYTHONPATH", "")},
     }
 
     return runtime_env
@@ -90,9 +86,7 @@ def ensure_ray_initialized(runtime_env=None):
                     init_kwargs["_temp_dir"] = str(ray_temp_dir)
                     print(f"Ray will use SAGE temp directory: {ray_temp_dir}")
                 except Exception as e:
-                    print(
-                        f"Warning: Failed to set Ray temp directory via output_paths: {e}"
-                    )
+                    print(f"Warning: Failed to set Ray temp directory via output_paths: {e}")
 
             if ray_temp_dir is None:
                 print("SAGE paths not available, Ray will use default temp directory")

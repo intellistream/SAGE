@@ -97,9 +97,7 @@ class UnlearningEngine:
 
         # Unlearning components
         self.vector_perturbation = VectorPerturbation(self.mechanism)
-        self.neighbor_compensation = (
-            NeighborCompensation() if enable_compensation else None
-        )
+        self.neighbor_compensation = NeighborCompensation() if enable_compensation else None
 
         # Configuration
         self.enable_compensation = enable_compensation
@@ -278,14 +276,10 @@ class UnlearningEngine:
             **kwargs,
         )
 
-    def _compute_similarities(
-        self, query: np.ndarray, vectors: np.ndarray
-    ) -> np.ndarray:
+    def _compute_similarities(self, query: np.ndarray, vectors: np.ndarray) -> np.ndarray:
         """Compute cosine similarities."""
         query_norm = query / (np.linalg.norm(query) + 1e-10)
-        vectors_norm = vectors / (
-            np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10
-        )
+        vectors_norm = vectors / (np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10)
         return np.dot(vectors_norm, query_norm)
 
     def get_privacy_status(self) -> dict:

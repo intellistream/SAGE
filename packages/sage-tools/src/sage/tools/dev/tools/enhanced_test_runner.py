@@ -103,9 +103,7 @@ class EnhancedTestRunner:
             print(f"   Passed: {passed} ✅")
             print(f"   Failed: {failed} ❌")
             print(f"   Duration: {execution_time:.2f}s")
-            print(
-                f"   Status: {'SUCCESS' if result.get('status') == 'success' else 'FAILED'}"
-            )
+            print(f"   Status: {'SUCCESS' if result.get('status') == 'success' else 'FAILED'}")
             print(f"   Logs: {self.test_logs_dir}")
             print(f"   Reports: {self.reports_dir}")
 
@@ -420,9 +418,7 @@ class EnhancedTestRunner:
         else:
             return self._execute_sequential(test_files, timeout, quick)
 
-    def _execute_sequential(
-        self, test_files: list[Path], timeout: int, quick: bool
-    ) -> list[dict]:
+    def _execute_sequential(self, test_files: list[Path], timeout: int, quick: bool) -> list[dict]:
         """Execute test files sequentially."""
         results = []
         total_tests = len(test_files)
@@ -461,9 +457,7 @@ class EnhancedTestRunner:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             # Submit all test files
             future_to_file = {
-                executor.submit(
-                    self._run_single_test_file, test_file, timeout, quick
-                ): test_file
+                executor.submit(self._run_single_test_file, test_file, timeout, quick): test_file
                 for test_file in test_files
             }
 

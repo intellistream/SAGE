@@ -128,9 +128,7 @@ class TestSerializationErrorUsageScenarios:
             "attributes": ["attr1", "attr2"],
         }
 
-        error_message = (
-            f"Failed to serialize {object_info['type']} with ID {object_info['id']}"
-        )
+        error_message = f"Failed to serialize {object_info['type']} with ID {object_info['id']}"
 
         with pytest.raises(SerializationError) as exc_info:
             raise SerializationError(error_message, object_info)
@@ -178,9 +176,7 @@ class TestSerializationErrorInFunctionDecorators:
                     if isinstance(e, SerializationError):
                         raise
                     else:
-                        raise SerializationError(
-                            f"Serialization failed in {func.__name__}"
-                        ) from e
+                        raise SerializationError(f"Serialization failed in {func.__name__}") from e
 
             return wrapper
 
@@ -191,9 +187,7 @@ class TestSerializationErrorInFunctionDecorators:
         with pytest.raises(SerializationError) as exc_info:
             problematic_serialization()
 
-        assert "Serialization failed in problematic_serialization" in str(
-            exc_info.value
-        )
+        assert "Serialization failed in problematic_serialization" in str(exc_info.value)
         assert isinstance(exc_info.value.__cause__, ValueError)
 
     def test_serialization_error_retry_decorator(self):
@@ -265,9 +259,7 @@ class TestSerializationErrorIntegration:
                     elif self.method == "pickle":
                         return pickle.loads(data)
                     else:
-                        raise ValueError(
-                            f"Unknown deserialization method: {self.method}"
-                        )
+                        raise ValueError(f"Unknown deserialization method: {self.method}")
                 except (
                     TypeError,
                     ValueError,
@@ -324,15 +316,11 @@ class TestSerializationErrorIntegration:
                     if not attr_name.startswith("_"):
                         attr_value = getattr(obj, attr_name)
                         if callable(attr_value):
-                            raise TypeError(
-                                f"Cannot serialize callable attribute: {attr_name}"
-                            )
+                            raise TypeError(f"Cannot serialize callable attribute: {attr_name}")
                         result[attr_name] = attr_value
                 return result
             except Exception as e:
-                raise SerializationError(
-                    f"Failed to serialize {obj.__class__.__name__}"
-                ) from e
+                raise SerializationError(f"Failed to serialize {obj.__class__.__name__}") from e
 
         complex_obj = ComplexObject()
 
@@ -380,7 +368,4 @@ class TestSerializationErrorIntegration:
         log_content = log_capture.getvalue()
         assert "Serialization error:" in log_content
         # The exception class name should appear in the traceback
-        assert (
-            "SerializationError" in log_content
-            or "Mock serialization failure" in log_content
-        )
+        assert "SerializationError" in log_content or "Mock serialization failure" in log_content

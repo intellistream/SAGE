@@ -35,9 +35,7 @@ class TestLifecycleManagerImpl:
         actor.is_ray_actor.return_value = False
         actor.cleanup = Mock()
 
-        cleanup_success, kill_success = manager.cleanup_actor(
-            actor, cleanup_timeout=5.0
-        )
+        cleanup_success, kill_success = manager.cleanup_actor(actor, cleanup_timeout=5.0)
 
         assert cleanup_success is True
         assert kill_success is True

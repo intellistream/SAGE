@@ -202,9 +202,7 @@ def prepare_dataset(
     return tokenized_dataset
 
 
-def create_sample_data(
-    output_path: str | Path, format_type: str = "alpaca", num_samples: int = 10
-):
+def create_sample_data(output_path: str | Path, format_type: str = "alpaca", num_samples: int = 10):
     """创建示例数据
 
     Args:

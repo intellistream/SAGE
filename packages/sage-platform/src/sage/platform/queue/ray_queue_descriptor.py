@@ -112,27 +112,21 @@ class RayQueueManager:
         if queue_id not in self.queues:
             # 在local mode下使用简单队列实现
             if _is_ray_local_mode():
-                self.queues[queue_id] = SimpleTestQueue(
-                    maxsize=maxsize if maxsize > 0 else 0
-                )
+                self.queues[queue_id] = SimpleTestQueue(maxsize=maxsize if maxsize > 0 else 0)
                 logger.debug(f"Created new SimpleTestQueue {queue_id} (local mode)")
             else:
                 # 在分布式模式下使用Ray原生队列
                 try:
                     from ray.util.queue import Queue
 
-                    self.queues[queue_id] = Queue(
-                        maxsize=maxsize if maxsize > 0 else None
-                    )
+                    self.queues[queue_id] = Queue(maxsize=maxsize if maxsize > 0 else None)
                     logger.debug(f"Created new Ray queue {queue_id} (distributed mode)")
                 except Exception as e:
                     # 如果Ray队列创建失败，回退到简单队列
                     logger.warning(
                         f"Failed to create Ray queue, falling back to SimpleTestQueue: {e}"
                     )
-                    self.queues[queue_id] = SimpleTestQueue(
-                        maxsize=maxsize if maxsize > 0 else 0
-                    )
+                    self.queues[queue_id] = SimpleTestQueue(maxsize=maxsize if maxsize > 0 else 0)
         else:
             logger.debug(f"Retrieved existing queue {queue_id}")
         return queue_id  # 返回队列ID而不是队列对象
@@ -289,7 +283,5 @@ class RayQueueDescriptor(BaseQueueDescriptor):
             maxsize=maxsize,
             queue_id=data["queue_id"],
         )
-        instance.created_timestamp = data.get(
-            "created_timestamp", instance.created_timestamp
-        )
+        instance.created_timestamp = data.get("created_timestamp", instance.created_timestamp)
         return instance

@@ -54,9 +54,7 @@ class BaseCommand(ABC):
                 self.config = load_and_validate_config(self.config_path)
             else:
                 # 如果配置文件不存在，提示用户创建
-                self.formatter.print_warning(
-                    f"Configuration file not found: {self.config_path}"
-                )
+                self.formatter.print_warning(f"Configuration file not found: {self.config_path}")
                 self.formatter.print_info(
                     "Run 'sage config init' to create a default configuration"
                 )
@@ -200,9 +198,7 @@ class RemoteCommand(BaseCommand):
         if not worker_hosts:
             raise ConfigurationError("No worker hosts configured")
 
-        return self.remote_executor.batch_execute(
-            worker_hosts, command, parallel, timeout
-        )
+        return self.remote_executor.batch_execute(worker_hosts, command, parallel, timeout)
 
 
 def cli_command(name: str = None, help_text: str = None, require_config: bool = True):
@@ -223,9 +219,7 @@ def cli_command(name: str = None, help_text: str = None, require_config: bool = 
                 if require_config:
                     config_path = Path.home() / ".sage" / "config.yaml"
                     if not config_path.exists():
-                        print_status(
-                            "error", f"Configuration file not found: {config_path}"
-                        )
+                        print_status("error", f"Configuration file not found: {config_path}")
                         print_status(
                             "info",
                             "Run 'sage config init' to create a default configuration",
@@ -292,9 +286,7 @@ class JobManagerCommand(ServiceCommand):
             # 健康检查
             health = self.client.health_check()
             if health.get("status") != "success":
-                raise ConnectionError(
-                    f"Daemon health check failed: {health.get('message')}"
-                )
+                raise ConnectionError(f"Daemon health check failed: {health.get('message')}")
 
             self._connected = True
             return True
@@ -338,16 +330,12 @@ class JobManagerCommand(ServiceCommand):
                     return identifier
 
             # 然后尝试前缀匹配
-            matching_jobs = [
-                job for job in jobs if job.get("uuid", "").startswith(identifier)
-            ]
+            matching_jobs = [job for job in jobs if job.get("uuid", "").startswith(identifier)]
 
             if len(matching_jobs) == 1:
                 return matching_jobs[0].get("uuid")
             elif len(matching_jobs) > 1:
-                self.formatter.print_error(
-                    f"Ambiguous job identifier '{identifier}'. Matches:"
-                )
+                self.formatter.print_error(f"Ambiguous job identifier '{identifier}'. Matches:")
                 for i, job in enumerate(matching_jobs, 1):
                     self.formatter.print_info(
                         f"  {i}. {job.get('uuid')} ({job.get('name', 'unknown')})"

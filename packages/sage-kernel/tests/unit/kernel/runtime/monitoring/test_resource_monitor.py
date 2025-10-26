@@ -18,12 +18,8 @@ class TestResourceMonitor:
     @pytest.fixture
     def mock_psutil(self):
         """Mock psutil 模块"""
-        with patch(
-            "sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", True
-        ):
-            with patch(
-                "sage.kernel.runtime.monitoring.resource_monitor.psutil"
-            ) as mock:
+        with patch("sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", True):
+            with patch("sage.kernel.runtime.monitoring.resource_monitor.psutil") as mock:
                 # Mock Process 类
                 mock_process = MagicMock()
                 mock_process.cpu_percent.return_value = 50.0
@@ -111,9 +107,7 @@ class TestResourceMonitor:
 
     def test_psutil_not_available(self):
         """测试 psutil 不可用时的行为"""
-        with patch(
-            "sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", False
-        ):
+        with patch("sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", False):
             # 当psutil不可用时，ResourceMonitor初始化会抛出ImportError
             with pytest.raises(ImportError, match="psutil is required"):
                 ResourceMonitor()
@@ -180,10 +174,7 @@ class TestResourceMonitor:
         slow_monitor.stop_monitoring()
 
         # 短间隔应该收集更多样本
-        assert (
-            fast_stats["monitoring"]["sample_count"]
-            >= slow_stats["monitoring"]["sample_count"]
-        )
+        assert fast_stats["monitoring"]["sample_count"] >= slow_stats["monitoring"]["sample_count"]
 
 
 class TestResourceMonitorEdgeCases:
@@ -191,12 +182,8 @@ class TestResourceMonitorEdgeCases:
 
     def test_very_short_interval(self):
         """测试非常短的采样间隔"""
-        with patch(
-            "sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", True
-        ):
-            with patch(
-                "sage.kernel.runtime.monitoring.resource_monitor.psutil"
-            ) as mock:
+        with patch("sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", True):
+            with patch("sage.kernel.runtime.monitoring.resource_monitor.psutil") as mock:
                 # Mock Process 类
                 mock_process = MagicMock()
                 mock_process.cpu_percent.return_value = 50.0
@@ -222,12 +209,8 @@ class TestResourceMonitorEdgeCases:
 
     def test_get_stats_during_monitoring(self):
         """测试在监控运行时多次获取统计"""
-        with patch(
-            "sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", True
-        ):
-            with patch(
-                "sage.kernel.runtime.monitoring.resource_monitor.psutil"
-            ) as mock:
+        with patch("sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", True):
+            with patch("sage.kernel.runtime.monitoring.resource_monitor.psutil") as mock:
                 # Mock Process 类
                 mock_process = MagicMock()
                 mock_process.cpu_percent.return_value = 50.0
@@ -247,10 +230,7 @@ class TestResourceMonitorEdgeCases:
                 monitor.stop_monitoring()
 
                 # 第二次应该有更多或相同数量的样本
-                assert (
-                    stats2["monitoring"]["sample_count"]
-                    >= stats1["monitoring"]["sample_count"]
-                )
+                assert stats2["monitoring"]["sample_count"] >= stats1["monitoring"]["sample_count"]
 
 
 if __name__ == "__main__":

@@ -142,9 +142,7 @@ class TestRayDetection:
 
     def test_is_ray_available_false(self):
         """测试Ray不可用检测"""
-        with patch(
-            "importlib.import_module", side_effect=ImportError("No module named 'ray'")
-        ):
+        with patch("importlib.import_module", side_effect=ImportError("No module named 'ray'")):
             result = is_ray_available()
             assert result is False
 
@@ -258,9 +256,7 @@ class TestContainerEnvironmentDetection:
 
     def test_is_kubernetes_environment_false(self):
         """测试非Kubernetes环境"""
-        with patch.dict(os.environ, {}, clear=True), patch(
-            "os.path.exists", return_value=False
-        ):
+        with patch.dict(os.environ, {}, clear=True), patch("os.path.exists", return_value=False):
             result = is_kubernetes_environment()
             assert result is False
 
@@ -277,9 +273,7 @@ class TestContainerEnvironmentDetection:
         """测试通过cgroup信息检测Docker"""
         mock_exists.side_effect = lambda path: path != "/.dockerenv"
 
-        with patch(
-            "builtins.open", mock_open(read_data="12:memory:/docker/container_id")
-        ):
+        with patch("builtins.open", mock_open(read_data="12:memory:/docker/container_id")):
             result = is_docker_environment()
             assert result is True
 
@@ -288,9 +282,7 @@ class TestContainerEnvironmentDetection:
         """测试通过cgroup信息检测containerd"""
         mock_exists.side_effect = lambda path: path != "/.dockerenv"
 
-        with patch(
-            "builtins.open", mock_open(read_data="12:memory:/containerd/container_id")
-        ):
+        with patch("builtins.open", mock_open(read_data="12:memory:/containerd/container_id")):
             result = is_docker_environment()
             assert result is True
 
@@ -398,9 +390,7 @@ class TestGPUDetection:
         """测试检测NVIDIA GPU成功"""
         mock_result = MagicMock()
         mock_result.returncode = 0
-        mock_result.stdout = (
-            "GeForce RTX 3080, 10240, 2048\nGeForce RTX 3090, 24576, 4096"
-        )
+        mock_result.stdout = "GeForce RTX 3080, 10240, 2048\nGeForce RTX 3090, 24576, 4096"
         mock_run.return_value = mock_result
 
         result = detect_gpu_resources()
@@ -518,9 +508,7 @@ class TestBackendRecommendation:
     @patch("sage.common.utils.system.environment.detect_execution_environment")
     @patch("sage.common.utils.system.environment.get_system_resources")
     @patch("sage.common.utils.system.environment.detect_gpu_resources")
-    def test_recommend_backend_ray_environment(
-        self, mock_gpu, mock_resources, mock_env
-    ):
+    def test_recommend_backend_ray_environment(self, mock_gpu, mock_resources, mock_env):
         """测试Ray环境的后端推荐"""
         mock_env.return_value = "ray"
         mock_resources.return_value = {
@@ -539,9 +527,7 @@ class TestBackendRecommendation:
     @patch("sage.common.utils.system.environment.detect_execution_environment")
     @patch("sage.common.utils.system.environment.get_system_resources")
     @patch("sage.common.utils.system.environment.detect_gpu_resources")
-    def test_recommend_backend_kubernetes_environment(
-        self, mock_gpu, mock_resources, mock_env
-    ):
+    def test_recommend_backend_kubernetes_environment(self, mock_gpu, mock_resources, mock_env):
         """测试Kubernetes环境的后端推荐"""
         mock_env.return_value = "kubernetes"
         mock_resources.return_value = {
@@ -639,9 +625,7 @@ class TestEnvironmentValidation:
         assert any("Initialize Ray cluster" in rec for rec in result["recommendations"])
 
     @patch("sage.common.utils.system.environment.is_ray_available")
-    def test_validate_environment_for_backend_ray_not_available(
-        self, mock_ray_available
-    ):
+    def test_validate_environment_for_backend_ray_not_available(self, mock_ray_available):
         """测试Ray后端环境验证 - 不可用"""
         mock_ray_available.return_value = False
 
@@ -654,9 +638,7 @@ class TestEnvironmentValidation:
 
     @patch("sage.common.utils.system.environment.is_ray_available")
     @patch("sage.common.utils.system.environment.get_network_interfaces")
-    def test_validate_environment_for_backend_distributed(
-        self, mock_network, mock_ray_available
-    ):
+    def test_validate_environment_for_backend_distributed(self, mock_network, mock_ray_available):
         """测试分布式后端环境验证"""
         mock_ray_available.return_value = True
         mock_network.return_value = [{"name": "eth0"}, {"name": "eth1"}]

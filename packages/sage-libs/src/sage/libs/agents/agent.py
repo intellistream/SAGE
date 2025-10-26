@@ -26,9 +26,7 @@ class BochaSearch:
 
     def run(self, query):
         payload = json.dumps({"query": query, "summary": True, "count": 10, "page": 1})
-        response = requests.request(
-            "POST", self.url, headers=self.headers, data=payload
-        )
+        response = requests.request("POST", self.url, headers=self.headers, data=payload)
         return response.json()
 
 
@@ -71,9 +69,7 @@ class BaseAgent(MapFunction):
         ]
         self.tools = {tool.name: tool for tool in self.tools}
         self.tool_names = ", ".join(self.tools.keys())  # 修复点
-        self.format_instructions = FORMAT_INSTRUCTIONS.format(
-            tool_names=self.tool_names
-        )
+        self.format_instructions = FORMAT_INSTRUCTIONS.format(tool_names=self.tool_names)
         self.prefix = PREFIX.format(tool_names=self.tool_names)
         self.model = OpenAIClient(
             model_name=self.config["model_name"],
@@ -148,9 +144,7 @@ class BaseAgent(MapFunction):
             tool = self.tools[action]
             tool_result = tool.run(action_input)
             self.logger.debug(f"Tool {action} result: {tool_result}")
-            snippets = [
-                item["snippet"] for item in tool_result["data"]["webPages"]["value"]
-            ]
+            snippets = [item["snippet"] for item in tool_result["data"]["webPages"]["value"]]
             observation = "\n".join(snippets)
             self.logger.debug(f"Observation: {observation}")
             agent_scratchpad += str(output) + f"\nObservation: {observation}\nThought: "

@@ -20,9 +20,7 @@ def _load_yaml(path: Path) -> dict:
 
 def _write_yaml(path: Path, data: dict) -> None:
     """Persist YAML dictionary with stable formatting."""
-    path.write_text(
-        yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8"
-    )
+    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
 def _default_config_path() -> Path | None:
@@ -55,9 +53,7 @@ def _select_service(
 
     typer.echo("🔍 检测到多个可用的本地 LLM 服务：")
     for idx, service in enumerate(detections, start=1):
-        typer.echo(
-            f"  {idx}. {service.description} -> generator.{service.generator_section}"
-        )
+        typer.echo(f"  {idx}. {service.description} -> generator.{service.generator_section}")
 
     choice = typer.prompt("请选择要使用的服务编号", default="1")
     try:
@@ -138,9 +134,7 @@ def auto_update_generator(
     available_models = selected.models
     chosen_model = model_name or selected.default_model
     if model_name and model_name not in available_models:
-        typer.echo(
-            f"⚠️ 指定的模型 {model_name} 未出现在服务返回的列表中，将按原样写入配置。"
-        )
+        typer.echo(f"⚠️ 指定的模型 {model_name} 未出现在服务返回的列表中，将按原样写入配置。")
     elif not model_name and len(available_models) > 1 and not assume_yes:
         typer.echo("📋 服务提供的模型列表：")
         for idx, item in enumerate(available_models, start=1):

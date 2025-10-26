@@ -115,9 +115,7 @@ class TestMonitoringIntegration:
             collector.record_packet_start(packet_id)
 
             if i % 3 == 0:  # 每3个包失败一次
-                collector.record_packet_end(
-                    packet_id, success=False, error_type="ValueError"
-                )
+                collector.record_packet_end(packet_id, success=False, error_type="ValueError")
             else:
                 collector.record_packet_end(packet_id, success=True)
 

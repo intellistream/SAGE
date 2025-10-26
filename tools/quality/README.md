@@ -7,11 +7,13 @@
 ### Python 代码质量
 
 - **`ruff.toml`** - Ruff linter 配置
+
   - 快速 Python linter 和代码格式化工具
   - 替代 flake8、isort、pyupgrade 等工具
   - 使用方式：`ruff check --config tools/quality/ruff.toml .`
 
 - **`.flake8`** - Flake8 配置（已被 Ruff 替代）
+
   - 传统 Python linter
   - 保留用于兼容性
   - 使用方式：`flake8 --config tools/quality/.flake8 .`
@@ -68,9 +70,9 @@ pyright --project tools/quality/pyrightconfig.json
 ## 配置原则
 
 1. **集中管理**：所有质量工具配置统一放在此目录
-2. **一致性**：各工具配置保持一致的规则
-3. **可扩展**：易于添加新工具或更新规则
-4. **可复用**：可被 CI/CD、pre-commit、本地开发复用
+1. **一致性**：各工具配置保持一致的规则
+1. **可扩展**：易于添加新工具或更新规则
+1. **可复用**：可被 CI/CD、pre-commit、本地开发复用
 
 ## 相关文件
 
