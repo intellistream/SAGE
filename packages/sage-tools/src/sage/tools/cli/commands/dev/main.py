@@ -93,7 +93,6 @@ def quality(
     import subprocess
     from pathlib import Path
 
-
     # 使用不同的变量名避免类型冲突
     project_dir = Path(project_root).resolve()
 
