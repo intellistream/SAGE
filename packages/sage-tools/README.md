@@ -69,6 +69,13 @@ sage dev quality --warn-only         # 只警告不中断
 独立运行特定检查：
 
 ```bash
+# 查看架构信息
+sage dev architecture                    # 显示完整架构定义
+sage dev architecture --package sage-kernel  # 查看特定包的层级和依赖
+sage dev architecture --format json      # JSON 格式输出
+sage dev architecture --format markdown  # Markdown 格式输出
+sage dev architecture --no-dependencies  # 只显示层级定义
+
 # 架构合规性检查
 sage dev check-architecture              # 检查所有文件
 sage dev check-architecture --changed-only  # 仅检查变更

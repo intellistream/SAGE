@@ -63,7 +63,12 @@ app.add_typer(
     name="embedding",
     help="🎯 Embedding 管理 - 管理和测试 embedding 方法",
 )
-app.add_typer(dev_app, name="dev", help="🛠️ 开发工具 - 项目开发和管理")
+app.add_typer(
+    dev_app,
+    name="dev",
+    help="🛠️ 开发工具 - 质量检查、项目管理、维护工具、包管理等",
+    rich_help_panel="开发工具",
+)
 app.add_typer(extensions_app, name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
 app.add_typer(studio_app, name="studio", help="🎨 Studio - 低代码可视化管道编辑器")
 app.add_typer(finetune_app, name="finetune", help="🎓 模型微调 - 多场景大模型微调工具")
@@ -86,11 +91,22 @@ def main(
     统一的AI研究和流式计算平台命令行工具
 
     💡 使用示例:
-    sage dev status                 # 查看开发环境状态
-    sage studio start               # 启动可视化界面
-    sage job list                   # 列出所有作业
-    sage jobmanager start          # 启动作业管理器服务
+    sage dev quality check         # 运行代码质量检查
+    sage dev project test          # 运行项目测试
+    sage dev maintain submodule init  # 初始化 submodules
+    sage studio start              # 启动可视化界面
+    sage job list                  # 列出所有作业
     sage cluster status            # 查看集群状态
+
+    🛠️ 开发工具命令组 (sage dev):
+    • quality   - 质量检查（架构、文档、代码格式）
+    • project   - 项目管理（状态、分析、测试、清理）
+    • maintain  - 维护工具（submodule、hooks、诊断）
+    • package   - 包管理（PyPI发布、版本、安装）
+    • resource  - 资源管理（模型缓存）
+    • github    - GitHub管理（Issues、PR）
+
+    📚 查看详细命令: sage dev --help
 
     🔗 更多信息: https://github.com/intellistream/SAGE
     """

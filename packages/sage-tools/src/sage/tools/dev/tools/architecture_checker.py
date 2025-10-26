@@ -48,8 +48,8 @@ for layer, packages in LAYER_DEFINITION.items():
 ALLOWED_DEPENDENCIES = {
     "sage-common": set(),  # L1 不依赖任何包
     "sage-platform": {"sage-common"},  # L2 -> L1
-    "sage-kernel": {"sage-common", "sage-platform", "sage-libs"},  # L3 kernel 可以使用 libs
-    "sage-libs": {"sage-common", "sage-platform"},  # L3 libs 不依赖 kernel（被动库）
+    "sage-kernel": {"sage-common", "sage-platform"},  # L3 kernel 独立，不依赖 libs
+    "sage-libs": {"sage-common", "sage-platform"},  # L3 libs 独立，不依赖 kernel
     "sage-middleware": {
         "sage-common",
         "sage-platform",

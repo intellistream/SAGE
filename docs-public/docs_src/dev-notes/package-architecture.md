@@ -831,7 +831,51 @@ from sage.middleware.operators.rag.retriever.chroma_retriever import ChromaRetri
 - [架构评审 2025](./dev-notes/ARCHITECTURE_REVIEW_2025.md) - 问题分析和解决方案
 - [重构总结](./dev-notes/RESTRUCTURING_SUMMARY.md) - 完整重构记录
 - [贡献指南](../CONTRIBUTING.md) - 如何参与开发
-- [开发命令](./dev-notes/DEV_COMMANDS.md) - 常用开发命令
+
+## 🛠️ 架构相关命令
+
+SAGE 提供了便捷的命令来查看和检查架构：
+
+### 查看架构信息
+
+```bash
+# 查看完整架构定义（层级和依赖关系）
+sage dev architecture
+
+# 查看特定包的信息
+sage dev architecture --package sage-kernel
+
+# JSON 格式输出（用于工具集成）
+sage dev architecture --format json
+
+# Markdown 格式输出（用于文档生成）
+sage dev architecture --format markdown
+```
+
+### 检查架构合规性
+
+```bash
+# 检查所有文件
+sage dev check-architecture
+
+# 仅检查变更的文件
+sage dev check-architecture --changed-only
+
+# 对比特定分支
+sage dev check-architecture --diff main
+```
+
+### 综合质量检查
+
+```bash
+# 运行所有质量检查（包括架构检查）
+sage dev check-all
+
+# 仅检查变更文件
+sage dev check-all --changed-only
+```
+
+更多命令请参考 [sage-tools README](../../packages/sage-tools/README.md)。
 
 ## 🤝 贡献
 

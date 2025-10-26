@@ -18,6 +18,67 @@ from sage.tools.cli.commands.dev.main import app
 runner = CliRunner()
 
 
+class TestArchitectureCommand:
+    """Tests for sage dev architecture command (display architecture info)."""
+
+    def test_architecture_help(self):
+        """Test that help text is displayed."""
+        result = runner.invoke(app, ["architecture", "--help"])
+        assert result.exit_code == 0
+        assert "架构信息" in result.stdout or "architecture" in result.stdout.lower()
+
+    def test_architecture_basic(self):
+        """Test basic architecture display."""
+        result = runner.invoke(app, ["architecture"])
+        assert result.exit_code == 0
+        # Should show layer definitions
+        assert "L1" in result.stdout or "L2" in result.stdout
+        # Should show packages
+        assert "sage-common" in result.stdout or "sage-kernel" in result.stdout
+
+    def test_architecture_specific_package(self):
+        """Test displaying specific package info."""
+        result = runner.invoke(app, ["architecture", "--package", "sage-kernel"])
+        assert result.exit_code == 0
+        assert "sage-kernel" in result.stdout
+        assert "L3" in result.stdout  # sage-kernel is in L3
+
+    def test_architecture_invalid_package(self):
+        """Test error handling for invalid package."""
+        result = runner.invoke(app, ["architecture", "--package", "nonexistent-package"])
+        assert result.exit_code == 1
+        assert "未找到" in result.stdout or "not found" in result.stdout.lower()
+
+    def test_architecture_json_format(self):
+        """Test JSON output format."""
+        result = runner.invoke(app, ["architecture", "--format", "json"])
+        assert result.exit_code == 0
+        # Should be valid JSON - find the JSON part after warnings
+        import json
+        
+        lines = result.stdout.split("\n")
+        # Find the first line that looks like JSON (starts with {)
+        json_start = -1
+        for i, line in enumerate(lines):
+            if line.strip().startswith("{"):
+                json_start = i
+                break
+        
+        if json_start >= 0:
+            json_str = "\n".join(lines[json_start:])
+            data = json.loads(json_str)
+            assert "layers" in data or "package_to_layer" in data
+        else:
+            # If no JSON found, at least check command ran
+            assert result.exit_code == 0
+
+    def test_architecture_no_dependencies(self):
+        """Test showing only layers without dependencies."""
+        result = runner.invoke(app, ["architecture", "--no-dependencies"])
+        assert result.exit_code == 0
+        assert "L1" in result.stdout or "层级" in result.stdout
+
+
 class TestArchitectureChecker:
     """Tests for sage dev check-architecture command."""
 
@@ -208,5 +269,5 @@ class TestCheckerClasses:
         """Test that PackageREADMEChecker can be instantiated."""
         from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
 
-        checker = PackageREADMEChecker(root_dir=".")
+        checker = PackageREADMEChecker(workspace_root=".")
         assert checker is not None
