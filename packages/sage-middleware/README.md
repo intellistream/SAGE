@@ -87,13 +87,16 @@ pip install -e .
 
 如果组件包含 C/C++ 扩展，**必须**遵守以下依赖约束，以与现有 `sage_db`、`sage_flow` 保持一致：
 
+> **注意**: 以下代码示例中的 `SAGE_COMMON_DEPS_FILE` 等变量是 CMake 环境变量，非占位符。
+
 1. **共享依赖入口：**
 
-   - 在 `CMakeLists.txt` 中优先加载 `SAGE_COMMON_DEPS_FILE` 指向的共享脚本：
+   - 在 `CMakeLists.txt` 中优先加载共享依赖脚本（通过环境变量）：
      ```cmake
      set(_sage_foo_shared_deps FALSE)
-     if(DEFINED SAGE_COMMON_DEPS_FILE AND EXISTS "${SAGE_COMMON_DEPS_FILE}")
-         include("${SAGE_COMMON_DEPS_FILE}")
+     # Check if shared deps file is defined
+     if(DEFINED SAGE_COMMON_DEPS_FILE AND EXISTS "$ENV(SAGE_COMMON_DEPS_FILE)")
+         include("$ENV(SAGE_COMMON_DEPS_FILE)")
          set(_sage_foo_shared_deps TRUE)
      endif()
      ```
@@ -105,7 +108,7 @@ pip install -e .
    - 在 `CMakeLists.txt` 中检测 `_sage_foo_shared_deps`，若为 `FALSE` 再加载本地脚本：
      ```cmake
      if(NOT _sage_foo_shared_deps)
-         include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/pybind11_dependency.cmake)
+         include(cmake/pybind11_dependency.cmake)
      endif()
      ```
 
@@ -129,8 +132,7 @@ pip install -e .
 
 - 如果组件需要编译或额外准备工作，请提供标准的 `build.sh`，支持无交互执行：
   - `bash build.sh --install-deps`
-- `build.sh` 应读取 `SAGE_COMMON_DEPS_FILE`、`SAGE_ENABLE_GPERFTOOLS` 等环境变量，并在调用 `cmake` 时透传（参考
-  `sage_db`、`sage_flow`）。
+- `build.sh` 应读取相关环境变量（如依赖文件路径、gperftools 开关等），并在调用 `cmake` 时透传（参考 `sage_db`、`sage_flow`）。
 
 ### 4. 在 `setup.py` 中接入
 
