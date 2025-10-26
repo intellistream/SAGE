@@ -20,9 +20,13 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
 
 
-class BaseService(ABC):
+class BaseService(ABC):  # noqa: B024
     """BaseService is the abstract base class for all services in SAGE.
     It defines the core interface and provides access to runtime context and logger.
+    
+    Note: This ABC provides default implementations for all methods, allowing
+    subclasses to selectively override only what they need. No abstract methods
+    are required as all service methods have reasonable defaults.
     """
 
     def __init__(self, *args, **kwargs):
@@ -105,28 +109,28 @@ class BaseService(ABC):
             service_name, *args, timeout=timeout, method=method, **kwargs
         )
 
-    def setup(self):
+    def setup(self):  # noqa: B027
         """
         服务初始化设置方法，在service_instance创建后调用
         子类可以重写此方法来进行初始化设置
         """
         pass
 
-    def cleanup(self):
+    def cleanup(self):  # noqa: B027
         """
         服务清理方法，在服务停止时调用
         子类可以重写此方法来进行资源清理
         """
         pass
 
-    def start(self):
+    def start(self):  # noqa: B027
         """
         服务启动方法，在服务启动时调用
         子类可以重写此方法来进行启动逻辑
         """
         pass
 
-    def stop(self):
+    def stop(self):  # noqa: B027
         """
         服务停止方法，在服务停止时调用
         子类可以重写此方法来进行停止逻辑

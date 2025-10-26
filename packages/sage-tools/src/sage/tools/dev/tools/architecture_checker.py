@@ -167,7 +167,7 @@ class ImportExtractor(ast.NodeVisitor):
         is_type_checking_block = False
         if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
             is_type_checking_block = True
-        
+
         if is_type_checking_block:
             # 暂时设置标志，访问 if 块内容，然后恢复
             old_value = self.in_type_checking
