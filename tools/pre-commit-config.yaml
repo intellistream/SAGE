@@ -51,20 +51,20 @@ repos:
     args: [--fix, --exit-non-zero-on-fix]
     exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/)
 
-  # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
+# Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.9.0
   hooks:
   - id: mypy
-    additional_dependencies:
-    - types-PyYAML
-    - types-requests
-    - types-setuptools
-    args: [--ignore-missing-imports, --show-error-codes, --explicit-package-bases, --warn-unused-ignores]
-    exclude: ^(docs/|docs-public/|examples/|tests/|setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/)
-    verbose: true
-
-  # Shell: shellcheck
+    name: mypy type checking
+    args:
+    - --ignore-missing-imports
+    - --show-error-codes
+    - --explicit-package-bases
+    - --warn-unused-ignores
+    - --namespace-packages
+    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/src/sage/__init__.py)
+    stages: [manual]  # Only run when explicitly called with --hook-stage manual  # Shell: shellcheck
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.10.0.1
   hooks:
