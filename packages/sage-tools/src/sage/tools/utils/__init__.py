@@ -1,17 +1,6 @@
 """Utility helpers for SAGE tooling."""
 
-from .env import (
-    check_environment_status,
-    find_project_root,
-    get_api_key,
-    load_environment_file,
-    should_use_real_api,
-)
+# Note: env.py has been migrated to sage-cli package
+# sage-tools now uses its own cli.core.utils for project-related utilities
 
-__all__ = [
-    "check_environment_status",
-    "find_project_root",
-    "get_api_key",
-    "load_environment_file",
-    "should_use_real_api",
-]
+__all__ = []

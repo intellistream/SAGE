@@ -27,8 +27,8 @@ from rich.text import Text
 # 延迟导入 sage_db 以允许 CLI 在没有 C++ 扩展的情况下启动
 # from sage.middleware.components.sage_db.python.sage_db import SageDB, SageDBException
 from sage.cli.commands.apps import pipeline as pipeline_builder
-from sage.cli.commands.pipeline_domain import load_domain_contexts
-from sage.cli.commands.pipeline_knowledge import get_default_knowledge_base
+from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
+from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
 from sage.common.components.sage_embedding import get_embedding_model
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 from sage.common.config.output_paths import find_sage_project_root, get_sage_paths

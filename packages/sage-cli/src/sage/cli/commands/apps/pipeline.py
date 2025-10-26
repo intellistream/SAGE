@@ -28,7 +28,7 @@ from sage.cli.commands.apps.pipeline_knowledge import (
 )
 from sage.cli.core.exceptions import CLIException
 from sage.cli.templates import pipeline_blueprints as blueprints
-from sage.cli.templates import templates
+from sage.cli import templates
 from sage.common.config.output_paths import get_sage_paths
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment

@@ -20,7 +20,7 @@ except Exception:  # pragma: no cover - handled gracefully at runtime
     VLLMService = None  # type: ignore
 
 # Import config subcommands
-from .llm_config import app as config_app
+from sage.cli.commands.platform.llm_config import app as config_app
 
 app = typer.Typer(help="🤖 LLM 服务管理")
 model_app = typer.Typer(help="📦 模型管理")
