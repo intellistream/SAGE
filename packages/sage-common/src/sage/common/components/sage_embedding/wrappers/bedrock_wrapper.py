@@ -96,11 +96,15 @@ class BedrockEmbedding(BaseEmbedding):
         try:
             import boto3  # noqa: F401
         except ImportError:
-            raise ImportError("Bedrock embedding 需要 boto3 包。\n" "安装方法: pip install boto3")
+            raise ImportError(
+                "Bedrock embedding 需要 boto3 包。\n" "安装方法: pip install boto3"
+            )
 
         self._model = model
         self._aws_access_key_id = aws_access_key_id or os.getenv("AWS_ACCESS_KEY_ID")
-        self._aws_secret_access_key = aws_secret_access_key or os.getenv("AWS_SECRET_ACCESS_KEY")
+        self._aws_secret_access_key = aws_secret_access_key or os.getenv(
+            "AWS_SECRET_ACCESS_KEY"
+        )
         self._aws_session_token = aws_session_token or os.getenv("AWS_SESSION_TOKEN")
         self._kwargs = kwargs
 

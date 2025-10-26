@@ -263,7 +263,9 @@ class TestBochaSearchExternal:
 
         with patch("requests.request") as mock_request:
             # 模拟网络错误
-            mock_request.side_effect = requests.exceptions.ConnectionError("网络连接失败")
+            mock_request.side_effect = requests.exceptions.ConnectionError(
+                "网络连接失败"
+            )
 
             search = BochaSearch("test_api_key")
 

@@ -88,7 +88,9 @@ def main():
 
     print()
     print("=" * 80)
-    print(f"Results: {success_count} passed, {fail_count} failed, {skipped_count} skipped")
+    print(
+        f"Results: {success_count} passed, {fail_count} failed, {skipped_count} skipped"
+    )
     print("=" * 80)
 
     # 返回失败数量而不是退出

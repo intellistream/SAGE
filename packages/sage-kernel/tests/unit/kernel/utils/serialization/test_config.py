@@ -269,7 +269,9 @@ class TestConfigurationUsageScenarios:
 
         for obj in test_objects:
             obj_type = type(obj)
-            assert obj_type in BLACKLIST, f"Object type {obj_type} should be in blacklist"
+            assert (
+                obj_type in BLACKLIST
+            ), f"Object type {obj_type} should be in blacklist"
 
     def test_attribute_filtering_scenario(self):
         """测试属性过滤场景"""
@@ -336,7 +338,10 @@ class TestConfigurationUsageScenarios:
         # 测试转换对象过滤
         transform_filtered = []
         for attr_name in dir(transformation):
-            if not attr_name.startswith("__") and attr_name not in RAY_TRANSFORMATION_EXCLUDE_ATTRS:
+            if (
+                not attr_name.startswith("__")
+                and attr_name not in RAY_TRANSFORMATION_EXCLUDE_ATTRS
+            ):
                 transform_filtered.append(attr_name)
 
         assert "transformation_data" in transform_filtered
@@ -346,7 +351,10 @@ class TestConfigurationUsageScenarios:
         # 测试算子对象过滤
         operator_filtered = []
         for attr_name in dir(operator):
-            if not attr_name.startswith("__") and attr_name not in RAY_OPERATOR_EXCLUDE_ATTRS:
+            if (
+                not attr_name.startswith("__")
+                and attr_name not in RAY_OPERATOR_EXCLUDE_ATTRS
+            ):
                 operator_filtered.append(attr_name)
 
         assert "operator_data" in operator_filtered

@@ -128,7 +128,9 @@ def parse_args():
 
     parser.add_argument("--verbose", "-v", action="store_true", help="显示详细信息")
 
-    parser.add_argument("--auto-setup", action="store_true", help="自动下载并设置数据（无需确认）")
+    parser.add_argument(
+        "--auto-setup", action="store_true", help="自动下载并设置数据（无需确认）"
+    )
 
     return parser.parse_args()
 
@@ -145,7 +147,9 @@ def diagnose_single_case(
     print(f"{'='*70}\n")
 
     # 执行诊断
-    result = agent.diagnose(image_path=image_path, patient_info=patient_info, verbose=verbose)
+    result = agent.diagnose(
+        image_path=image_path, patient_info=patient_info, verbose=verbose
+    )
 
     print(f"\n{'='*70}")
     print("✅ 诊断完成")
@@ -183,7 +187,10 @@ def batch_diagnose(agent: DiagnosticAgent, batch_dir: str, output_dir: str):
     print(f"{'='*70}\n")
 
     # 构建病例列表
-    cases = [{"image_path": str(img), "patient_info": {"case_id": img.stem}} for img in image_files]
+    cases = [
+        {"image_path": str(img), "patient_info": {"case_id": img.stem}}
+        for img in image_files
+    ]
 
     # 批量处理
     results = agent.batch_diagnose(cases=cases, output_dir=output_dir)

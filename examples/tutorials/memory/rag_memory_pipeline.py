@@ -456,17 +456,21 @@ def main():
         # 注册服务
         print("注册服务...")
         env.register_service("retrieval_service", RetrievalService, retrieval_bridge)
-        env.register_service("qa_pipeline", QAPipelineService, qa_pipeline_bridge, config)
+        env.register_service(
+            "qa_pipeline", QAPipelineService, qa_pipeline_bridge, config
+        )
 
         # 检索 Pipeline（为 QA Pipeline 提供检索功能）
         print("创建检索 Pipeline...")
-        env.from_source(RetrievalSource, retrieval_bridge).map(RetrievalMap).sink(RetrievalSink)
+        env.from_source(RetrievalSource, retrieval_bridge).map(RetrievalMap).sink(
+            RetrievalSink
+        )
 
         # QA Pipeline（检索 + 生成 + 写入）
         print("创建 QA Pipeline...")
-        env.from_source(QAPipelineSource, qa_pipeline_bridge).map(QAPipelineMap, config).sink(
-            QAPipelineSink
-        )
+        env.from_source(QAPipelineSource, qa_pipeline_bridge).map(
+            QAPipelineMap, config
+        ).sink(QAPipelineSink)
 
         # Controller Pipeline（顺序发送问题）
         print("创建 Controller Pipeline...")
@@ -477,7 +481,9 @@ def main():
         )
 
         print("🚀 启动 RAG Memory Pipeline...")
-        env.submit(autostop=False)  # 使用 autostop=False，因为 Service Pipelines 会持续轮询
+        env.submit(
+            autostop=False
+        )  # 使用 autostop=False，因为 Service Pipelines 会持续轮询
 
         # 等待足够的时间让所有问题处理完成
         # 每个问题大约需要 8-10 秒（检索 + 生成 + 写入）

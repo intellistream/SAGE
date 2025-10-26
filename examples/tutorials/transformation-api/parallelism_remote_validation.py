@@ -68,7 +68,9 @@ class DistributedFilter(BaseFunction):
         super().__init__()
         self.instance_id = id(self)
         self.process_id = os.getpid()
-        print(f"🔧 DistributedFilter instance {self.instance_id} created (PID: {self.process_id})")
+        print(
+            f"🔧 DistributedFilter instance {self.instance_id} created (PID: {self.process_id})"
+        )
 
     def execute(self, data):
         current_thread = threading.get_ident()
@@ -123,14 +125,18 @@ class DistributedSink(BaseFunction):
         self.instance_id = id(self)
         self.process_id = os.getpid()
         self.results = []
-        print(f"🔧 DistributedSink instance {self.instance_id} created (PID: {self.process_id})")
+        print(
+            f"🔧 DistributedSink instance {self.instance_id} created (PID: {self.process_id})"
+        )
 
     def execute(self, data):
         current_thread = threading.get_ident()
         current_process = os.getpid()
         instance_id = id(self)
         self.results.append(data)
-        print(f"🎯 SINK[{instance_id}@{current_process}]: {data} (Thread: {current_thread})")
+        print(
+            f"🎯 SINK[{instance_id}@{current_process}]: {data} (Thread: {current_thread})"
+        )
         return data
 
 
@@ -266,13 +272,19 @@ def validate_ray_distributed_execution():
 
     print("\n📋 Remote Distribution Test Pipeline:")
     print(f"  - Dataset size: {len(large_dataset)} items")
-    print("  - Expected parallel processors: 5 (will distribute based on available workers)")
-    print("  - Expected parallel filters: 3 (will distribute based on available workers)")
+    print(
+        "  - Expected parallel processors: 5 (will distribute based on available workers)"
+    )
+    print(
+        "  - Expected parallel filters: 3 (will distribute based on available workers)"
+    )
     print("  - Expected sinks: 2 (will distribute based on available workers)")
 
     print("\n🔍 Pipeline transformations:")
     for i, transformation in enumerate(env.pipeline):
-        print(f"  {i + 1}. {transformation.basename} (parallelism: {transformation.parallelism})")
+        print(
+            f"  {i + 1}. {transformation.basename} (parallelism: {transformation.parallelism})"
+        )
 
     print("\n💡 Key aspects of remote distributed execution:")
     print("   - Each parallel instance may run on different remote workers")
@@ -309,9 +321,13 @@ def main():
 
         print("\n💡 Key remote validations:")
         print("   - Parallelism settings work in distributed remote environment")
-        print("   - Direct parallelism specification distributes work across remote workers")
+        print(
+            "   - Direct parallelism specification distributes work across remote workers"
+        )
         print("   - Multi-stream operations (CoMap) support distributed parallelism")
-        print("   - RemoteEnvironment automatically handles worker assignment and coordination")
+        print(
+            "   - RemoteEnvironment automatically handles worker assignment and coordination"
+        )
 
     except Exception as e:
         print(f"\n❌ Remote validation encountered an error: {e}")

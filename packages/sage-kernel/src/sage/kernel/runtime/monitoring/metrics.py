@@ -185,7 +185,9 @@ class MethodMetrics:
             "total_failures": self.total_failures,
             "response_time": {
                 "min_ms": (
-                    self.min_response_time if self.min_response_time != float("inf") else 0.0
+                    self.min_response_time
+                    if self.min_response_time != float("inf")
+                    else 0.0
                 ),
                 "max_ms": self.max_response_time,
                 "avg_ms": self.avg_response_time,
@@ -251,7 +253,9 @@ class ServicePerformanceMetrics:
             "requests_per_second": self.requests_per_second,
             "response_time": {
                 "min_ms": (
-                    self.min_response_time if self.min_response_time != float("inf") else 0.0
+                    self.min_response_time
+                    if self.min_response_time != float("inf")
+                    else 0.0
                 ),
                 "max_ms": self.max_response_time,
                 "avg_ms": self.avg_response_time,
@@ -282,6 +286,8 @@ class ServicePerformanceMetrics:
                 "last_5min_rps": self.last_5min_rps,
                 "last_hour_rps": self.last_hour_rps,
             },
-            "methods": {name: metrics.to_dict() for name, metrics in self.method_metrics.items()},
+            "methods": {
+                name: metrics.to_dict() for name, metrics in self.method_metrics.items()
+            },
             "timestamp": self.timestamp,
         }

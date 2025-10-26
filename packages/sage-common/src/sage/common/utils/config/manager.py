@@ -224,7 +224,9 @@ def load_config(filename: str, config_dir: str | Path | None = None) -> dict[str
     return _get_global_config_manager().load(filename)
 
 
-def save_config(filename: str, config: dict[str, Any], config_dir: str | Path | None = None):
+def save_config(
+    filename: str, config: dict[str, Any], config_dir: str | Path | None = None
+):
     """
     保存配置文件 (便捷函数)
 

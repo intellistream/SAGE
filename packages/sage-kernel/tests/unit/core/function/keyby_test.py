@@ -99,7 +99,9 @@ class ParallelDebugSink(SinkFunction):
                 "timestamp": timestamp,
                 "received_data": dict(cls._received_data),
                 "total_instances": len(cls._received_data),
-                "total_messages": sum(len(data_list) for data_list in cls._received_data.values()),
+                "total_messages": sum(
+                    len(data_list) for data_list in cls._received_data.values()
+                ),
             }
 
             with open(filepath, "w", encoding="utf-8") as f:
@@ -215,7 +217,9 @@ class TestKeyByFunctionality:
 
         assert success, "Broadcast strategy test failed"
 
-    def _save_verification_result(self, result_file: str, test_type: str, success: bool):
+    def _save_verification_result(
+        self, result_file: str, test_type: str, success: bool
+    ):
         """将验证结果保存到文件"""
         if os.path.exists(result_file):
             with open(result_file, encoding="utf-8") as f:
@@ -273,7 +277,9 @@ class TestKeyByFunctionality:
                 success = False
 
         if success:
-            print("✅ Hash partitioning test passed: Each user routed to exactly one instance")
+            print(
+                "✅ Hash partitioning test passed: Each user routed to exactly one instance"
+            )
 
         return success
 
@@ -310,15 +316,21 @@ class TestKeyByFunctionality:
         # 验证：每个实例应该接收到相同数量的消息（广播效果）
         unique_counts = set(instance_counts.values())
         if len(unique_counts) <= 1:
-            print("✅ Broadcast test passed: All instances received same number of messages")
+            print(
+                "✅ Broadcast test passed: All instances received same number of messages"
+            )
             return True
         else:
-            print("⚠️  Note: Instance counts differ, this might be due to timing or test duration")
+            print(
+                "⚠️  Note: Instance counts differ, this might be due to timing or test duration"
+            )
             # 如果差异不大（比如只差1-2条消息），仍然认为测试通过
             min_count = min(instance_counts.values())
             max_count = max(instance_counts.values())
             if max_count - min_count <= 2:
-                print("✅ Broadcast test passed: Instance counts are within acceptable range")
+                print(
+                    "✅ Broadcast test passed: Instance counts are within acceptable range"
+                )
                 return True
             else:
                 print("❌ Broadcast test failed: Instance counts differ significantly")
@@ -372,7 +384,9 @@ class TestAdvancedKeyBy:
                 pass
 
         # 保存结果到文件
-        result_file = ParallelDebugSink.save_results_to_file("advanced_key_extraction_test")
+        result_file = ParallelDebugSink.save_results_to_file(
+            "advanced_key_extraction_test"
+        )
 
         # 分析分布效果
         success = self._analyze_advanced_distribution()
@@ -416,11 +430,15 @@ class TestAdvancedKeyBy:
                 success = False
 
         if success:
-            print("✅ Advanced key extraction test passed: Each unique key consistently routed")
+            print(
+                "✅ Advanced key extraction test passed: Each unique key consistently routed"
+            )
 
         return success
 
-    def _save_verification_result(self, result_file: str, test_type: str, success: bool):
+    def _save_verification_result(
+        self, result_file: str, test_type: str, success: bool
+    ):
         """将验证结果保存到文件"""
         if os.path.exists(result_file):
             with open(result_file, encoding="utf-8") as f:

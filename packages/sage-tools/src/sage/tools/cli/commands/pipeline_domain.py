@@ -103,7 +103,9 @@ def _summarize_pipeline_file(path: Path) -> _ExampleSummary | None:
         if source_class:
             components["sources"].add(source_class)
             summary = str(source.get("summary", ""))
-            lines.append(f"Source -> {source_class}{' — ' + summary if summary else ''}")
+            lines.append(
+                f"Source -> {source_class}{' — ' + summary if summary else ''}"
+            )
 
     stages = data.get("stages") or []
     if isinstance(stages, list) and stages:

@@ -83,7 +83,9 @@ def _create_restart_handler(config: dict[str, Any]) -> RestartBasedRecovery:
     restart_strategy_type = config.get("restart_strategy", "exponential")
 
     # 创建重启策略
-    restart_strategy: FixedDelayStrategy | ExponentialBackoffStrategy | FailureRateStrategy
+    restart_strategy: (
+        FixedDelayStrategy | ExponentialBackoffStrategy | FailureRateStrategy
+    )
     if restart_strategy_type == "fixed":
         delay = config.get("delay", 5.0)
         max_attempts = config.get("max_attempts", 3)

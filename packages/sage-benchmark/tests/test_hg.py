@@ -178,8 +178,12 @@ class TestHuggingFaceConnectivity:
 
         for site_name, result in results.items():
             print(f"\n{site_name}:")
-            print(f"  站点连通性: {'✓ 可用' if result.get('site_accessible') else '✗ 不可用'}")
-            print(f"  文件访问性: {'✓ 可用' if result.get('file_accessible') else '✗ 不可用'}")
+            print(
+                f"  站点连通性: {'✓ 可用' if result.get('site_accessible') else '✗ 不可用'}"
+            )
+            print(
+                f"  文件访问性: {'✓ 可用' if result.get('file_accessible') else '✗ 不可用'}"
+            )
 
             if result.get("site_accessible") and result.get("file_accessible"):
                 print("  综合评价: ✓ 完全可用")
@@ -196,9 +200,9 @@ class TestHuggingFaceConnectivity:
         official_ok = results.get("HuggingFace Official", {}).get(
             "site_accessible", False
         ) and results.get("HuggingFace Official", {}).get("file_accessible", False)
-        mirror_ok = results.get("HF Mirror", {}).get("site_accessible", False) and results.get(
-            "HF Mirror", {}
-        ).get("file_accessible", False)
+        mirror_ok = results.get("HF Mirror", {}).get(
+            "site_accessible", False
+        ) and results.get("HF Mirror", {}).get("file_accessible", False)
 
         if official_ok and mirror_ok:
             print("✓ 官方站点和镜像站点均可用")

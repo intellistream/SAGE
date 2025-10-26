@@ -63,7 +63,9 @@ def main():
     env = LocalEnvironment("WordCount")
 
     # 流式处理：句子 -> 拆分单词 -> 转换为(word,1) -> 输出每次的单词统计
-    env.from_source(SentenceSource).flatmap(SplitWords).map(WordToPair).sink(PrintResult)
+    env.from_source(SentenceSource).flatmap(SplitWords).map(WordToPair).sink(
+        PrintResult
+    )
 
     env.submit()  # 设置为 False 以保持流式执行
 

@@ -53,7 +53,9 @@ class RemoteEnvironment(BaseEnvironment):
         self._engine_client: JobManagerClient | None = None
 
         # 更新配置
-        self.config.update({"engine_host": self.daemon_host, "engine_port": self.daemon_port})
+        self.config.update(
+            {"engine_host": self.daemon_host, "engine_port": self.daemon_port}
+        )
 
         logger.info(f"RemoteEnvironment '{name}' initialized for {host}:{port}")
 
@@ -61,8 +63,12 @@ class RemoteEnvironment(BaseEnvironment):
     def client(self) -> JobManagerClient:
         """获取JobManager客户端（延迟创建）"""
         if self._engine_client is None:
-            logger.debug(f"Creating JobManager client for {self.daemon_host}:{self.daemon_port}")
-            self._engine_client = JobManagerClient(host=self.daemon_host, port=self.daemon_port)
+            logger.debug(
+                f"Creating JobManager client for {self.daemon_host}:{self.daemon_port}"
+            )
+            self._engine_client = JobManagerClient(
+                host=self.daemon_host, port=self.daemon_port
+            )
         return self._engine_client
 
     def submit(self, autostop: bool = False) -> str:
@@ -97,7 +103,9 @@ class RemoteEnvironment(BaseEnvironment):
                 env_uuid = response.get("job_uuid")
                 if env_uuid:
                     self.env_uuid = env_uuid
-                    logger.info(f"Environment submitted successfully with UUID: {self.env_uuid}")
+                    logger.info(
+                        f"Environment submitted successfully with UUID: {self.env_uuid}"
+                    )
 
                     # 如果启用 autostop，等待作业完成
                     if autostop:
@@ -186,7 +194,9 @@ class RemoteEnvironment(BaseEnvironment):
 
             else:
                 # 超时了
-                logger.warning(f"Timeout waiting for remote job to complete after {max_wait_time}s")
+                logger.warning(
+                    f"Timeout waiting for remote job to complete after {max_wait_time}s"
+                )
                 logger.info("Job may still be running on remote JobManager")
 
         except KeyboardInterrupt:

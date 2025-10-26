@@ -66,7 +66,9 @@ class BuildArtifactsManager:
             "errors": [],
         }
 
-    def scan_artifacts(self, patterns: dict[str, list[str]] | None = None) -> dict[str, list[Path]]:
+    def scan_artifacts(
+        self, patterns: dict[str, list[str]] | None = None
+    ) -> dict[str, list[Path]]:
         """
         扫描项目中的构建产物。
 
@@ -140,7 +142,9 @@ class BuildArtifactsManager:
             return total_size
         return 0
 
-    def get_artifacts_summary(self, artifacts: dict[str, list[Path]]) -> dict[str, dict]:
+    def get_artifacts_summary(
+        self, artifacts: dict[str, list[Path]]
+    ) -> dict[str, dict]:
         """获取构建产物的统计摘要。"""
         summary = {}
 
@@ -214,7 +218,9 @@ class BuildArtifactsManager:
             cutoff_time = time.time() - (older_than_days * 24 * 3600)
             for category in artifacts:
                 artifacts[category] = [
-                    path for path in artifacts[category] if path.stat().st_mtime < cutoff_time
+                    path
+                    for path in artifacts[category]
+                    if path.stat().st_mtime < cutoff_time
                 ]
 
         # 执行清理

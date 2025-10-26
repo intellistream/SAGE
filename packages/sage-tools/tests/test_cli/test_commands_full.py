@@ -191,7 +191,9 @@ class TestCLICommandsFull:
 
     def test_config_help(self):
         """测试config命令帮助"""
-        result = run_command([sys.executable, "-m", "sage.tools.cli.main", "config", "--help"])
+        result = run_command(
+            [sys.executable, "-m", "sage.tools.cli.main", "config", "--help"]
+        )
         assert result["success"], f"Config help failed: {result['stderr']}"
         assert "配置" in result["stdout"]
 
@@ -206,7 +208,9 @@ class TestCLICommandsFull:
         ]
 
         for module in modules_to_test:
-            result = run_command([sys.executable, "-c", f"import {module}; print('OK')"])
+            result = run_command(
+                [sys.executable, "-c", f"import {module}; print('OK')"]
+            )
             assert result["success"], f"Failed to import {module}: {result['stderr']}"
             assert "OK" in result["stdout"]
 

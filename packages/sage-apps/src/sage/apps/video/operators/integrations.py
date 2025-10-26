@@ -143,7 +143,9 @@ class SummaryMemoryAugmentor(MapFunction):
         if not self.enable:
             return data
 
-        query = data.get("generated_summary") or " ".join(data.get("top_scene_concepts", []))
+        query = data.get("generated_summary") or " ".join(
+            data.get("top_scene_concepts", [])
+        )
         if not query:
             return data
 
@@ -167,7 +169,8 @@ class SummaryMemoryAugmentor(MapFunction):
                     formatted.append(
                         {
                             "text": item.get("text") or item.get("history_query"),
-                            "answer": item.get("answer") or item.get("metadata", {}).get("answer"),
+                            "answer": item.get("answer")
+                            or item.get("metadata", {}).get("answer"),
                             "source": item.get("source_collection"),
                         }
                     )

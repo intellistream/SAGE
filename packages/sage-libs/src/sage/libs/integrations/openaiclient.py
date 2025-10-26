@@ -65,7 +65,9 @@ class OpenAIClient:
             # 注意：vLLM 要求通过 chat_template_kwargs 传递给 chat template
             extra_body = {}
             if "enable_thinking" in kwargs:
-                extra_body["chat_template_kwargs"] = {"enable_thinking": kwargs["enable_thinking"]}
+                extra_body["chat_template_kwargs"] = {
+                    "enable_thinking": kwargs["enable_thinking"]
+                }
 
             # -------- 兼容 messages 形态 --------
             # dict => 包成单元素 list

@@ -35,7 +35,9 @@ def status():
     console.print(f"  • 元数据目录: {config.metadata_path}")
     console.print(f"  • GitHub仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
     if config.github_token:
-        console.print(f"  • GitHub Token来源: {config.github_token_env or '未知环境变量'}")
+        console.print(
+            f"  • GitHub Token来源: {config.github_token_env or '未知环境变量'}"
+        )
 
     # 测试GitHub连接
     console.print("\n🔍 GitHub连接:")
@@ -63,7 +65,9 @@ def status():
             console.print(f"  • 最后更新: {download_status['last_update'] or '未知'}")
 
             if download_status["available_files"]:
-                console.print(f"  • 数据文件: {len(download_status['available_files'])} 个")
+                console.print(
+                    f"  • 数据文件: {len(download_status['available_files'])} 个"
+                )
         except Exception as e:
             console.print(f"\n📂 [red]本地数据状态获取失败: {e}[/red]")
     else:
@@ -232,8 +236,12 @@ def show_config():
 
 @app.command("ai")
 def ai_analysis(
-    action: str = typer.Option("analyze", help="AI操作类型: analyze, dedupe, optimize, report"),
-    engine: str = typer.Option("interactive", help="AI引擎: openai, claude, interactive"),
+    action: str = typer.Option(
+        "analyze", help="AI操作类型: analyze, dedupe, optimize, report"
+    ),
+    engine: str = typer.Option(
+        "interactive", help="AI引擎: openai, claude, interactive"
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", help="预览模式，不实际修改"),
 ):
     """AI智能分析和整理Issues
@@ -385,7 +393,9 @@ def sync_issues(
 def organize_issues(
     preview: bool = typer.Option(False, "--preview", "-p", help="预览整理计划"),
     apply: bool = typer.Option(False, "--apply", "-a", help="执行整理"),
-    confirm: bool = typer.Option(False, "--confirm", "-c", help="确认执行（与--apply一起使用）"),
+    confirm: bool = typer.Option(
+        False, "--confirm", "-c", help="确认执行（与--apply一起使用）"
+    ),
 ):
     """整理Issues - 根据关闭时间移动到不同状态列
 

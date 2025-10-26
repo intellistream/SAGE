@@ -17,7 +17,10 @@ def pipeline_run(config):
         config (dict): The configuration parameters loaded from the config file.
     """
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - qa_multiplex example")
         print("✅ Test passed: Example structure validated")
         return
@@ -70,7 +73,10 @@ if __name__ == "__main__":
     import os
 
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - qa_multiplex example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)
@@ -79,7 +85,9 @@ if __name__ == "__main__":
     load_dotenv(override=False)
 
     # Load configuration from the YAML file
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_multiplex.yaml")
+    config_path = os.path.join(
+        os.path.dirname(__file__), "..", "config", "config_multiplex.yaml"
+    )
     if not os.path.exists(config_path):
         print(f"❌ Configuration file not found: {config_path}")
         print("Please create the configuration file first.")

@@ -122,7 +122,9 @@ class NeighborCompensation:
 
         return compensation
 
-    def _compute_cosine_similarities(self, query: np.ndarray, vectors: np.ndarray) -> np.ndarray:
+    def _compute_cosine_similarities(
+        self, query: np.ndarray, vectors: np.ndarray
+    ) -> np.ndarray:
         """
         Compute cosine similarities efficiently.
 
@@ -137,7 +139,9 @@ class NeighborCompensation:
         query_norm = query / (np.linalg.norm(query) + 1e-10)
 
         # Normalize all vectors
-        vectors_norm = vectors / (np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10)
+        vectors_norm = vectors / (
+            np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-10
+        )
 
         # Compute dot products
         similarities = np.dot(vectors_norm, query_norm)
@@ -222,7 +226,8 @@ class NeighborCompensation:
 
         # Similarity after compensation
         sim_after_comp = np.dot(perturbed_vector, neighbor_compensated) / (
-            np.linalg.norm(perturbed_vector) * np.linalg.norm(neighbor_compensated) + 1e-10
+            np.linalg.norm(perturbed_vector) * np.linalg.norm(neighbor_compensated)
+            + 1e-10
         )
 
         # Change in neighbor vector
@@ -232,7 +237,8 @@ class NeighborCompensation:
             "similarity_before": sim_before,
             "similarity_after_no_compensation": sim_after_no_comp,
             "similarity_after_compensation": sim_after_comp,
-            "similarity_recovery": abs(sim_after_comp - sim_before) / (abs(sim_before) + 1e-10),
+            "similarity_recovery": abs(sim_after_comp - sim_before)
+            / (abs(sim_before) + 1e-10),
             "neighbor_change_magnitude": neighbor_change,
         }
 

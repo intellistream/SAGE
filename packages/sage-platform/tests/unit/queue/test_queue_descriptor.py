@@ -16,7 +16,10 @@ import time
 from queue import Empty, Full
 
 import pytest
-from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor, QueueDescriptor
+from sage.platform.queue.base_queue_descriptor import (
+    BaseQueueDescriptor,
+    QueueDescriptor,
+)
 from sage.platform.queue.python_queue_descriptor import PythonQueueDescriptor
 
 # 尝试导入其他队列类型（可能不存在）
@@ -190,7 +193,9 @@ class TestBaseQueueDescriptor:
         # 测试包含不可序列化字段的序列化
         data_with_non_serializable = desc.to_dict(include_non_serializable=True)
         assert "function" in data_with_non_serializable["metadata"]
-        assert data_with_non_serializable["metadata"]["function"].startswith("<non-serializable:")
+        assert data_with_non_serializable["metadata"]["function"].startswith(
+            "<non-serializable:"
+        )
 
     def test_cache_management(self):
         """测试缓存管理功能"""

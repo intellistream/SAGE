@@ -121,7 +121,9 @@ def _render_summary(summary: CLIRunSummary) -> None:
     for result in summary.results:
         status = "PASS" if result.ok else "FAIL"
         style = "green" if result.ok else "red"
-        table.add_row(result.case.name, str(result.exit_code), f"[{style}]{status}[/{style}]")
+        table.add_row(
+            result.case.name, str(result.exit_code), f"[{style}]{status}[/{style}]"
+        )
 
     console.print(table)
 

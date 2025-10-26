@@ -27,7 +27,9 @@ sys.path.append(str(project_root))
 # 初始化colorama
 init(autoreset=True)
 
-app = typer.Typer(name="job", help="SAGE作业管理工具 - 提供作业的暂停、恢复、监控等功能")
+app = typer.Typer(
+    name="job", help="SAGE作业管理工具 - 提供作业的暂停、恢复、监控等功能"
+)
 
 
 class JobManagerCLI:
@@ -90,7 +92,9 @@ class JobManagerCLI:
                     return identifier
 
             # 然后尝试前缀匹配
-            matching_jobs = [job for job in jobs if job.get("uuid", "").startswith(identifier)]
+            matching_jobs = [
+                job for job in jobs if job.get("uuid", "").startswith(identifier)
+            ]
 
             if len(matching_jobs) == 1:
                 return matching_jobs[0].get("uuid")
@@ -115,7 +119,9 @@ cli = JobManagerCLI()
 @app.command("list")
 def list_jobs(
     status: str | None = typer.Option(None, "--status", "-s", help="按状态过滤作业"),
-    format_type: str = typer.Option("table", "--format", "-f", help="输出格式(table/json)"),
+    format_type: str = typer.Option(
+        "table", "--format", "-f", help="输出格式(table/json)"
+    ),
     full_uuid: bool = typer.Option(False, "--full-uuid", help="显示完整UUID"),
 ):
     """列出所有作业"""
@@ -333,7 +339,9 @@ def job_status(job_identifier: str = typer.Argument(..., help="作业编号或UU
 
 
 @app.command("cleanup")
-def cleanup_jobs(force: bool = typer.Option(False, "--force", "-f", help="强制清理，无需确认")):
+def cleanup_jobs(
+    force: bool = typer.Option(False, "--force", "-f", help="强制清理，无需确认")
+):
     """清理所有作业"""
     try:
         cli.ensure_connected()
@@ -351,9 +359,13 @@ def cleanup_jobs(force: bool = typer.Option(False, "--force", "-f", help="强制
 
             print(f"Found {len(jobs)} jobs to cleanup:")
             for job in jobs:
-                print(f"  - {job.get('name')} ({job.get('uuid')[:8]}...) [{job.get('status')}]")
+                print(
+                    f"  - {job.get('name')} ({job.get('uuid')[:8]}...) [{job.get('status')}]"
+                )
 
-            if not typer.confirm(f"Are you sure you want to cleanup all {len(jobs)} jobs?"):
+            if not typer.confirm(
+                f"Are you sure you want to cleanup all {len(jobs)} jobs?"
+            ):
                 print("ℹ️ Operation cancelled")
                 return
 
@@ -385,7 +397,9 @@ def health_check():
 
             daemon_status = health.get("daemon_status", {})
             print(f"Daemon: {daemon_status.get('socket_service')}")
-            print(f"Actor: {daemon_status.get('actor_name')}@{daemon_status.get('namespace')}")
+            print(
+                f"Actor: {daemon_status.get('actor_name')}@{daemon_status.get('namespace')}"
+            )
         else:
             print(f"⚠️ Health check warning: {health.get('message')}")
             raise typer.Exit(1)
@@ -431,7 +445,9 @@ def system_info():
 
 
 @app.command("monitor")
-def monitor_jobs(refresh: int = typer.Option(5, "--refresh", "-r", help="刷新间隔（秒）")):
+def monitor_jobs(
+    refresh: int = typer.Option(5, "--refresh", "-r", help="刷新间隔（秒）")
+):
     """实时监控所有作业"""
     try:
         cli.ensure_connected()
@@ -502,8 +518,12 @@ def watch_job(
             if response.get("status") == "success":
                 job_info = response.get("job_status")
                 if job_info:
-                    print(f"{Fore.CYAN}=== Watching Job {job_uuid[:8]}... ==={Style.RESET_ALL}")
-                    print(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(
+                        f"{Fore.CYAN}=== Watching Job {job_uuid[:8]}... ==={Style.RESET_ALL}"
+                    )
+                    print(
+                        f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    )
                     print()
                     _format_job_details(job_info, verbose=True)
                 else:
@@ -570,9 +590,13 @@ def _format_job_table(jobs: list[dict[str, Any]], short_uuid: bool = False):
 
     # 如果使用短UUID，显示提示信息
     if short_uuid or terminal_width < 120:
-        print(f"\n{Fore.BLUE}💡 Tip:{Style.RESET_ALL} Use job number (#) or full UUID for commands")
+        print(
+            f"\n{Fore.BLUE}💡 Tip:{Style.RESET_ALL} Use job number (#) or full UUID for commands"
+        )
         if jobs:
-            print(f"   Example: sage job show 1  or  sage job show {jobs[0].get('uuid', '')}")
+            print(
+                f"   Example: sage job show 1  or  sage job show {jobs[0].get('uuid', '')}"
+            )
         print("   Use --full-uuid to see complete UUIDs")
 
 

@@ -42,7 +42,9 @@ class BuildCExtensions(build_ext):
             env["SAGE_COMMON_DEPS_FILE"] = str(shared_deps)
 
         env.setdefault("SAGE_PYBIND11_VERSION", "2.13.0")
-        env.setdefault("SAGE_ENABLE_GPERFTOOLS", os.environ.get("SAGE_ENABLE_GPERFTOOLS", "0"))
+        env.setdefault(
+            "SAGE_ENABLE_GPERFTOOLS", os.environ.get("SAGE_ENABLE_GPERFTOOLS", "0")
+        )
         # SAGE_GPERFTOOLS_ROOT、SAGE_GPERFTOOLS_LIB 直接继承用户环境即可
         return env
 
@@ -83,7 +85,9 @@ class BuildCExtensions(build_ext):
 
     def build_sage_flow(self):
         """编译 sage_flow 组件（可能包含C/C++/Python扩展）"""
-        sage_flow_dir = Path(__file__).parent / "src/sage/middleware/components/sage_flow"
+        sage_flow_dir = (
+            Path(__file__).parent / "src/sage/middleware/components/sage_flow"
+        )
 
         if not sage_flow_dir.exists():
             print("⚠️  sage_flow 目录不存在，跳过构建")

@@ -102,7 +102,11 @@ class GitHubIssueCreator:
                 try:
                     labels_input = input("请输入标签 (用逗号分隔，留空跳过): ").strip()
                     labels = (
-                        [label.strip() for label in labels_input.split(",") if label.strip()]
+                        [
+                            label.strip()
+                            for label in labels_input.split(",")
+                            if label.strip()
+                        ]
                         if labels_input
                         else []
                     )
@@ -113,7 +117,9 @@ class GitHubIssueCreator:
 
             # 分配给某人 (可选)
             try:
-                assignee = input("\n👤 分配给 (GitHub用户名，留空跳过): ").strip() or None
+                assignee = (
+                    input("\n👤 分配给 (GitHub用户名，留空跳过): ").strip() or None
+                )
             except EOFError:
                 assignee = None
 

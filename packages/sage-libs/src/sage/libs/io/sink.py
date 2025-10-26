@@ -25,7 +25,9 @@ class TerminalSink(SinkFunction):
                 question, answer = data[0], data[1]
         else:
             question = str(data)
-        self.logger.info(f"Executing {self.__class__.__name__} [Q] Question :{question}")
+        self.logger.info(
+            f"Executing {self.__class__.__name__} [Q] Question :{question}"
+        )
         self.logger.info(f"Executing {self.__class__.__name__} [A] Answer :{answer}")
         print(f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m")
         print(f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m")
@@ -49,7 +51,9 @@ class FileSink(SinkFunction):
     def __init__(self, config: dict = None, **kwargs):
         super().__init__(**kwargs)
 
-        file_path = config.get("file_path", "qa_output.txt") if config else "qa_output.txt"
+        file_path = (
+            config.get("file_path", "qa_output.txt") if config else "qa_output.txt"
+        )
         self.config = config
 
         # 判断路径类型并处理
@@ -86,9 +90,13 @@ class FileSink(SinkFunction):
 
         self.logger.info(f"Writing QA pair to file {self.file_path}")
         self.logger.info(
-            f"Question: {question[:100]}..." if len(question) > 100 else f"Question: {question}"
+            f"Question: {question[:100]}..."
+            if len(question) > 100
+            else f"Question: {question}"
         )
-        self.logger.info(f"Answer: {answer[:100]}..." if len(answer) > 100 else f"Answer: {answer}")
+        self.logger.info(
+            f"Answer: {answer[:100]}..." if len(answer) > 100 else f"Answer: {answer}"
+        )
 
         with open(self.file_path, "a", encoding="utf-8") as f:
             f.write("[Q] Question: " + question + "\n")
@@ -102,7 +110,11 @@ class MemWriteSink(SinkFunction):
         super().__init__(**kwargs)
         self.config = config
         # 从配置获取文件路径，默认为 'mem_output.txt'
-        file_path = self.config.get("file_path", "mem_output.txt") if config else "mem_output.txt"
+        file_path = (
+            self.config.get("file_path", "mem_output.txt")
+            if config
+            else "mem_output.txt"
+        )
 
         # 使用统一的.sage/output目录
         if os.path.isabs(file_path):

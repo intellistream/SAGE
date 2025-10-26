@@ -142,7 +142,9 @@ def main():
     print("Service Lifecycle Verification:")
     print("=" * 80)
     print(f"  ✓ Initialized:       {service_lifecycle['initialized']}")
-    print(f"  ✓ Was Running:       {service_lifecycle['initialized']}")  # 如果初始化了就运行过
+    print(
+        f"  ✓ Was Running:       {service_lifecycle['initialized']}"
+    )  # 如果初始化了就运行过
     print(f"  ✓ Cleanup Called:    {service_lifecycle['cleanup_called']}")
     print(f"  ✓ Cleanup Completed: {service_lifecycle['cleanup_completed']}")
     print(f"  ✓ Currently Running: {service_lifecycle['running']}")

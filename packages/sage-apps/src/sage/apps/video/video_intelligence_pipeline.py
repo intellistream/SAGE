@@ -38,7 +38,9 @@ def get_logger(name: str) -> CustomLogger:
 
 
 try:  # Optional middleware components - sage_mem (migrated from neuromem)
-    from sage.middleware.components.sage_mem.services.neuromem_vdb_service import NeuroMemVDBService
+    from sage.middleware.components.sage_mem.services.neuromem_vdb_service import (
+        NeuroMemVDBService,
+    )
 except ImportError:  # pragma: no cover - optional dependency
     NeuroMemVDBService = None  # type: ignore[assignment]
 
@@ -48,7 +50,9 @@ except ImportError:  # pragma: no cover - optional dependency
     SageDBService = None  # type: ignore[assignment]
 
 try:
-    from sage.middleware.components.sage_flow.python.micro_service import SageFlowService
+    from sage.middleware.components.sage_flow.python.micro_service import (
+        SageFlowService,
+    )
 except ImportError:  # pragma: no cover - optional dependency
     SageFlowService = None  # type: ignore[assignment]
 
@@ -84,7 +88,9 @@ def load_config(config_path: str | None) -> dict[str, Any]:
         with path.open("r", encoding="utf-8") as handle:
             data = yaml.safe_load(handle) or {}
         if not isinstance(data, dict):
-            raise ValueError(f"Config file {path} must define a mapping at the top level")
+            raise ValueError(
+                f"Config file {path} must define a mapping at the top level"
+            )
         print(f"[INFO] Loaded config from: {path}")
         return data
 
@@ -131,7 +137,9 @@ def download_test_video(output_path: str) -> bool:
     """
     # Use a small sample video from a public source
     # This is a ~1MB sample video suitable for testing
-    test_video_url = "https://sample-videos.com/video321/mp4/240/big_buck_bunny_240p_1mb.mp4"
+    test_video_url = (
+        "https://sample-videos.com/video321/mp4/240/big_buck_bunny_240p_1mb.mp4"
+    )
 
     logger = CustomLogger("video_downloader")
 
@@ -187,7 +195,9 @@ def ensure_video_exists(video_path: str, auto_download: bool = True) -> str:
         )
 
     # Try to download a test video
-    logger.warning(f"Video file '{video_path}' not found. Attempting to download test video...")
+    logger.warning(
+        f"Video file '{video_path}' not found. Attempting to download test video..."
+    )
 
     # Determine download path
     if video_path == "./video_demo.mp4":
@@ -337,7 +347,9 @@ def build_pipeline(env: LocalEnvironment, config: dict[str, Any]) -> None:
         )
         .map(
             TemporalAnomalyDetector,
-            brightness_delta_threshold=analysis_cfg.get("brightness_delta_threshold", 35.0),
+            brightness_delta_threshold=analysis_cfg.get(
+                "brightness_delta_threshold", 35.0
+            ),
         )
         .map(
             SageMiddlewareIntegrator,
@@ -428,7 +440,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def apply_runtime_overrides(config: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+def apply_runtime_overrides(
+    config: dict[str, Any], args: argparse.Namespace
+) -> dict[str, Any]:
     if args.video_path:
         config["video_path"] = args.video_path
     if args.max_frames is not None:
@@ -456,9 +470,7 @@ def download_test_video_to_temp() -> str | None:
 
     # Use a small public domain video (approx 1-2MB)
     # Sample videos from Pexels (free to use)
-    test_video_url = (
-        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4"
-    )
+    test_video_url = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4"
 
     # Download to a temp location
     video_dir = Path("/tmp/sage_test_videos")
@@ -498,7 +510,10 @@ def main() -> None:
             print(f"✅ Test video downloaded: {test_video}")
 
             # In test mode, limit frames for faster testing
-            if os.environ.get("SAGE_EXAMPLES_MODE") == "test" and "max_frames" not in config:
+            if (
+                os.environ.get("SAGE_EXAMPLES_MODE") == "test"
+                and "max_frames" not in config
+            ):
                 config["max_frames"] = 30
                 print("[INFO] Test mode: Limiting to 30 frames for faster testing")
         else:
@@ -509,7 +524,9 @@ def main() -> None:
             print("  1. Command line: --video path/to/video.mp4")
             print("  2. Config file: Set 'video_path' in the config YAML")
             print("\nExample:")
-            print("  python examples/apps/run_video_intelligence.py --video my_video.mp4")
+            print(
+                "  python examples/apps/run_video_intelligence.py --video my_video.mp4"
+            )
             print("=" * 80 + "\n")
             raise FileNotFoundError(
                 "Could not download test video and no video file provided. "

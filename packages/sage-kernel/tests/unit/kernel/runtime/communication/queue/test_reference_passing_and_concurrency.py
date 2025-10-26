@@ -40,7 +40,9 @@ except ImportError as e:
     sys.exit(1)
 
 # 配置日志
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -95,7 +97,9 @@ def worker_consumer(
         return []
 
 
-def worker_mixed_operations(queue_desc: BaseQueueDescriptor, worker_id: int, num_operations: int):
+def worker_mixed_operations(
+    queue_desc: BaseQueueDescriptor, worker_id: int, num_operations: int
+):
     """混合读写操作工作线程"""
     try:
         operations_completed = 0
@@ -113,7 +117,9 @@ def worker_mixed_operations(queue_desc: BaseQueueDescriptor, worker_id: int, num
                     pass
             operations_completed += 1
 
-        logger.info(f"Mixed worker {worker_id} completed {operations_completed} operations")
+        logger.info(
+            f"Mixed worker {worker_id} completed {operations_completed} operations"
+        )
         return operations_completed
     except Exception as e:
         logger.error(f"Mixed worker {worker_id} failed: {e}")
@@ -135,7 +141,9 @@ try:
     class QueueProducerActor:
         """Ray Actor 生产者"""
 
-        def produce_items(self, queue_desc_dict: dict[str, Any], actor_id: int, num_items: int):
+        def produce_items(
+            self, queue_desc_dict: dict[str, Any], actor_id: int, num_items: int
+        ):
             """生产物品到队列"""
             try:
                 # 从字典重建队列描述符
@@ -208,14 +216,18 @@ class TestPythonQueueConcurrency:
         items_per_producer = 10
         total_items = num_producers * items_per_producer
 
-        print(f"配置: {num_producers}个生产者, {num_consumers}个消费者, 总共{total_items}个项目")
+        print(
+            f"配置: {num_producers}个生产者, {num_consumers}个消费者, 总共{total_items}个项目"
+        )
 
         # 启动生产者线程
         with ThreadPoolExecutor(max_workers=num_producers + num_consumers) as executor:
             # 提交生产者任务
             producer_futures = []
             for i in range(num_producers):
-                future = executor.submit(worker_producer, queue_desc, i, items_per_producer)
+                future = executor.submit(
+                    worker_producer, queue_desc, i, items_per_producer
+                )
                 producer_futures.append(future)
 
             # 等待所有生产者完成
@@ -229,7 +241,9 @@ class TestPythonQueueConcurrency:
             consumer_futures = []
             expected_per_consumer = total_items // num_consumers
             for i in range(num_consumers):
-                future = executor.submit(worker_consumer, queue_desc, i, expected_per_consumer)
+                future = executor.submit(
+                    worker_consumer, queue_desc, i, expected_per_consumer
+                )
                 consumer_futures.append(future)
 
             # 等待所有消费者完成
@@ -262,7 +276,9 @@ class TestPythonQueueConcurrency:
         num_workers = 5
         operations_per_worker = 20
 
-        print(f"配置: {num_workers}个混合工作线程, 每个执行{operations_per_worker}个操作")
+        print(
+            f"配置: {num_workers}个混合工作线程, 每个执行{operations_per_worker}个操作"
+        )
 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             futures = []
@@ -286,7 +302,9 @@ class TestPythonQueueConcurrency:
     def test_serializable_queue_multiprocessing(self):
         """测试可序列化队列的多进程操作（跳过，因为Python multiprocessing.Queue引用传递困难）"""
         print("\n=== 跳过多进程测试 ===")
-        print("⚠️ Python multiprocessing.Queue的队列描述符引用很难跨进程传递，跳过此测试")
+        print(
+            "⚠️ Python multiprocessing.Queue的队列描述符引用很难跨进程传递，跳过此测试"
+        )
         print("✓ 多进程测试跳过")
 
     def test_queue_reference_integrity(self):
@@ -332,7 +350,9 @@ class TestPythonQueueConcurrency:
         num_threads = 10
         operations_per_thread = 50
 
-        print(f"压力测试配置: {num_threads}个线程, 每个执行{operations_per_thread}个操作")
+        print(
+            f"压力测试配置: {num_threads}个线程, 每个执行{operations_per_thread}个操作"
+        )
 
         start_time = time.time()
 
@@ -385,11 +405,17 @@ class TestRayQueueConcurrency:
             num_consumer_actors = 2
             items_per_actor = 5
 
-            print(f"Ray Actor配置: {num_producer_actors}个生产者, {num_consumer_actors}个消费者")
+            print(
+                f"Ray Actor配置: {num_producer_actors}个生产者, {num_consumer_actors}个消费者"
+            )
 
             # 创建生产者和消费者Actor
-            producer_actors = [QueueProducerActor.remote() for _ in range(num_producer_actors)]
-            consumer_actors = [QueueConsumerActor.remote() for _ in range(num_consumer_actors)]
+            producer_actors = [
+                QueueProducerActor.remote() for _ in range(num_producer_actors)
+            ]
+            consumer_actors = [
+                QueueConsumerActor.remote() for _ in range(num_consumer_actors)
+            ]
 
             # 获取队列字典用于Actor通信
             queue_dict = ray_desc.to_dict()
@@ -407,9 +433,13 @@ class TestRayQueueConcurrency:
 
             # 启动消费者
             consumer_futures = []
-            expected_per_consumer = (num_producer_actors * items_per_actor) // num_consumer_actors
+            expected_per_consumer = (
+                num_producer_actors * items_per_actor
+            ) // num_consumer_actors
             for i, actor in enumerate(consumer_actors):
-                future = actor.consume_items.remote(queue_dict, i, expected_per_consumer)
+                future = actor.consume_items.remote(
+                    queue_dict, i, expected_per_consumer
+                )
                 consumer_futures.append(future)
 
             # 等待消费者完成

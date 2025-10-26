@@ -159,7 +159,9 @@ class TimeSeriesIndex:
         if config.tags:
             matching_indices = self._filter_by_tags(config.tags)
             # Intersect with time range
-            result_indices = [i for i in range(start_idx, end_idx + 1) if i in matching_indices]
+            result_indices = [
+                i for i in range(start_idx, end_idx + 1) if i in matching_indices
+            ]
         else:
             result_indices = list(range(start_idx, end_idx + 1))
 
@@ -296,7 +298,9 @@ class SageTSDB:
             )
         else:
             # Pure Python implementation
-            data = TimeSeriesData(timestamp=timestamp, value=value, tags=tags, fields=fields)
+            data = TimeSeriesData(
+                timestamp=timestamp, value=value, tags=tags, fields=fields
+            )
             return self._index.add(data)
 
     def add_batch(
@@ -407,7 +411,9 @@ class SageTSDB:
             else:
                 # Aggregate current window
                 if window_data:
-                    agg_point = self._aggregate_window(window_data, aggregation, window_start)
+                    agg_point = self._aggregate_window(
+                        window_data, aggregation, window_start
+                    )
                     aggregated.append(agg_point)
 
                 # Start new window

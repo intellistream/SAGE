@@ -191,7 +191,9 @@ def example_custom_optimizer():
                 steps.append(f"Removed {node_id} (cost={node.cost:.2f})")
 
             exec_time = time.time() - start
-            metrics = self.calculate_metrics(workflow, optimized, exec_time, len(to_remove))
+            metrics = self.calculate_metrics(
+                workflow, optimized, exec_time, len(to_remove)
+            )
 
             return OptimizationResult(
                 original_workflow=workflow,

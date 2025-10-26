@@ -23,7 +23,9 @@ app = typer.Typer(help="SAGE 开发工具集")
 try:
     from sage.tools.dev.issues.cli import app as issues_app
 
-    app.add_typer(issues_app, name="issues", help="🐛 Issues管理 - GitHub Issues下载、分析和管理")
+    app.add_typer(
+        issues_app, name="issues", help="🐛 Issues管理 - GitHub Issues下载、分析和管理"
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: Issues管理功能不可用: {e}[/yellow]")
 
@@ -31,7 +33,9 @@ except ImportError as e:
 try:
     from sage.tools.cli.commands.pypi import app as pypi_app
 
-    app.add_typer(pypi_app, name="pypi", help="📦 PyPI发布管理 - 发布准备验证、构建和管理")
+    app.add_typer(
+        pypi_app, name="pypi", help="📦 PyPI发布管理 - 发布准备验证、构建和管理"
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: PyPI发布管理功能不可用: {e}[/yellow]")
 
@@ -43,7 +47,9 @@ except ImportError as e:
 try:
     from .version import app as version_app
 
-    app.add_typer(version_app, name="version", help="🏷️ 版本管理 - 管理各个子包的版本信息")
+    app.add_typer(
+        version_app, name="version", help="🏷️ 版本管理 - 管理各个子包的版本信息"
+    )
 except ImportError as e:
     console.print(f"[yellow]警告: 版本管理功能不可用: {e}[/yellow]")
 
@@ -65,12 +71,16 @@ def quality(
     fix: bool = typer.Option(True, "--fix/--no-fix", help="自动修复质量问题"),
     check_only: bool = typer.Option(False, "--check-only", help="仅检查，不修复"),
     # Python 代码检查
-    format_code: bool = typer.Option(True, "--format/--no-format", help="运行代码格式化(black)"),
+    format_code: bool = typer.Option(
+        True, "--format/--no-format", help="运行代码格式化(black)"
+    ),
     sort_imports: bool = typer.Option(
         True, "--sort-imports/--no-sort-imports", help="运行导入排序(isort)"
     ),
     lint_ruff: bool = typer.Option(True, "--ruff/--no-ruff", help="运行Ruff检查(推荐)"),
-    lint_code: bool = typer.Option(False, "--lint/--no-lint", help="运行flake8检查(已被ruff替代)"),
+    lint_code: bool = typer.Option(
+        False, "--lint/--no-lint", help="运行flake8检查(已被ruff替代)"
+    ),
     type_check: bool = typer.Option(
         True, "--type-check/--no-type-check", help="运行类型检查(mypy)"
     ),
@@ -78,8 +88,12 @@ def quality(
     check_files: bool = typer.Option(
         True, "--check-files/--no-check-files", help="运行文件检查(空格,换行等)"
     ),
-    check_yaml: bool = typer.Option(True, "--check-yaml/--no-check-yaml", help="检查YAML文件"),
-    check_json: bool = typer.Option(True, "--check-json/--no-check-json", help="检查JSON文件"),
+    check_yaml: bool = typer.Option(
+        True, "--check-yaml/--no-check-yaml", help="检查YAML文件"
+    ),
+    check_json: bool = typer.Option(
+        True, "--check-json/--no-check-json", help="检查JSON文件"
+    ),
     check_secrets: bool = typer.Option(
         True, "--check-secrets/--no-check-secrets", help="检查敏感信息泄露"
     ),
@@ -167,7 +181,9 @@ def quality(
         # 7. vendors (第三方代码，如 vllm)
 
         # black 使用正则表达式
-        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem|sageTSDB|vendors)"
+        black_exclude = (
+            r"(docs-public|sageFlow|sageDB|sageLLM|neuromem|sageTSDB|vendors)"
+        )
         # isort 使用多个 --skip-glob 参数（每个模式一个）
         isort_skip_patterns = [
             "*/docs-public/*",
@@ -231,7 +247,9 @@ def quality(
                 console.print(
                     f"[yellow]⚠️ 发现 {len(files_with_trailing)} 个文件有尾部空格[/yellow]"
                 )
-                console.print("[dim]💡 运行 pre-commit 或 git 工具自动修复尾部空格[/dim]")
+                console.print(
+                    "[dim]💡 运行 pre-commit 或 git 工具自动修复尾部空格[/dim]"
+                )
                 if len(files_with_trailing) <= 10:
                     for f in files_with_trailing:
                         console.print(f"  - {f}")
@@ -274,7 +292,9 @@ def quality(
                     with open(yaml_file) as f:
                         yaml.safe_load(f)
                 except yaml.YAMLError as e:
-                    yaml_issues.append((str(yaml_file.relative_to(project_dir)), str(e)))
+                    yaml_issues.append(
+                        (str(yaml_file.relative_to(project_dir)), str(e))
+                    )
 
             for yml_file in project_dir.rglob("*.yml"):
                 if any(
@@ -300,7 +320,9 @@ def quality(
                     yaml_issues.append((str(yml_file.relative_to(project_dir)), str(e)))
 
             if yaml_issues:
-                console.print(f"[yellow]⚠️ 发现 {len(yaml_issues)} 个YAML文件有问题[/yellow]")
+                console.print(
+                    f"[yellow]⚠️ 发现 {len(yaml_issues)} 个YAML文件有问题[/yellow]"
+                )
                 for file, error in yaml_issues[:5]:
                     console.print(f"  - {file}: {error}")
                 quality_issues = True
@@ -338,10 +360,14 @@ def quality(
                     with open(json_file) as f:
                         json.load(f)
                 except json.JSONDecodeError as e:
-                    json_issues.append((str(json_file.relative_to(project_dir)), str(e)))
+                    json_issues.append(
+                        (str(json_file.relative_to(project_dir)), str(e))
+                    )
 
             if json_issues:
-                console.print(f"[yellow]⚠️ 发现 {len(json_issues)} 个JSON文件有问题[/yellow]")
+                console.print(
+                    f"[yellow]⚠️ 发现 {len(json_issues)} 个JSON文件有问题[/yellow]"
+                )
                 for file, error in json_issues[:5]:
                     console.print(f"  - {file}: {error}")
                 quality_issues = True
@@ -351,86 +377,69 @@ def quality(
             console.print(f"[yellow]⚠️ JSON检查失败: {e}[/yellow]")
 
     # ============================================================================
-    # 3. Secrets 检测
+    # 3. Secrets 检测（通过 pre-commit）
     # ============================================================================
     if check_secrets:
         console.print("\n🔒 检查敏感信息泄露...")
         try:
-            secrets_baseline = project_dir / "tools" / "secrets.baseline"
-            cmd = ["detect-secrets", "scan"]
-            if secrets_baseline.exists():
-                cmd.extend(["--baseline", str(secrets_baseline)])
+            # 使用 pre-commit 运行 detect-secrets hook
+            precommit_config = project_dir / "tools" / "pre-commit-config.yaml"
+            result = subprocess.run(
+                ["pre-commit", "run", "detect-secrets", "--all-files", "-c", str(precommit_config)],
+                capture_output=True,
+                text=True,
+                cwd=str(project_dir),
+            )
 
-            # 扫描 target_paths
-            for path in target_paths:
-                cmd.append(path)
-
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
-
-            if result.returncode != 0 and "No secrets were detected" not in result.stdout:
+            if result.returncode != 0:
                 console.print("[yellow]⚠️ 发现可能的敏感信息[/yellow]")
-                console.print(result.stdout[:500])
+                if result.stdout:
+                    console.print(result.stdout[:500])
                 quality_issues = True
             else:
                 console.print("[green]✅ 未发现敏感信息泄露[/green]")
         except FileNotFoundError:
-            console.print("[yellow]⚠️ detect-secrets 未安装，跳过敏感信息检查[/yellow]")
-            console.print("[yellow]💡 建议安装: pip install detect-secrets[/yellow]")
+            console.print("[yellow]⚠️ pre-commit 未安装，跳过敏感信息检查[/yellow]")
+            console.print(
+                "[yellow]💡 建议安装: pip install pre-commit && pre-commit install[/yellow]"
+            )
         except Exception as e:
             console.print(f"[yellow]⚠️ 敏感信息检查失败: {e}[/yellow]")
 
     # ============================================================================
-    # 4. Shell 脚本检查
+    # 4. Shell 脚本检查（通过 pre-commit）
     # ============================================================================
     if check_shell:
         console.print("\n🐚 检查Shell脚本...")
         try:
-            shell_files = list(project_dir.rglob("*.sh")) + list(project_dir.rglob("*.bash"))
-            shell_files = [
-                f
-                for f in shell_files
-                if not any(
-                    excl in str(f)
-                    for excl in [
-                        "venv",
-                        ".venv",
-                        "build",
-                        "dist",
-                        "sageLLM",
-                        "sageDB",
-                        "sageFlow",
-                        "neuromem",
-                        "sageTSDB",
-                        "vendors",
-                        "conda",
-                    ]
-                )
-            ]
+            # 使用 pre-commit 运行 shellcheck hook
+            precommit_config = project_dir / "tools" / "pre-commit-config.yaml"
+            result = subprocess.run(
+                ["pre-commit", "run", "shellcheck", "--all-files", "-c", str(precommit_config)],
+                capture_output=True,
+                text=True,
+                cwd=str(project_dir),
+            )
 
-            if shell_files:
-                cmd = ["shellcheck", "-x", "-e", "SC1091"] + [str(f) for f in shell_files]
-                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
-
-                if result.returncode != 0:
-                    console.print("[yellow]⚠️ 发现Shell脚本问题[/yellow]")
+            if result.returncode != 0:
+                console.print("[yellow]⚠️ 发现Shell脚本问题[/yellow]")
+                if result.stdout:
                     lines = result.stdout.split("\n")
                     if len(lines) > 50:
                         console.print("\n".join(lines[:50]))
-                        console.print(f"[dim]...还有 {len(lines) - 50} 行输出被省略...[/dim]")
+                        console.print(
+                            f"[dim]...还有 {len(lines) - 50} 行输出被省略...[/dim]"
+                        )
                     else:
                         console.print(result.stdout)
-                    _save_quality_error_log(
-                        logs_base_dir, "shellcheck", result.stderr + result.stdout
-                    )
-                    quality_issues = True
-                else:
-                    console.print("[green]✅ Shell脚本检查通过[/green]")
+                    _save_quality_error_log(logs_base_dir, "shellcheck", result.stdout)
+                quality_issues = True
             else:
-                console.print("[dim]ℹ️  未找到Shell脚本文件[/dim]")
+                console.print("[green]✅ Shell脚本检查通过[/green]")
         except FileNotFoundError:
-            console.print("[yellow]⚠️ shellcheck 未安装，跳过Shell脚本检查[/yellow]")
+            console.print("[yellow]⚠️ pre-commit 未安装，跳过Shell脚本检查[/yellow]")
             console.print(
-                "[yellow]💡 建议安装: apt-get install shellcheck 或 brew install shellcheck[/yellow]"
+                "[yellow]💡 建议安装: pip install pre-commit && pre-commit install[/yellow]"
             )
         except Exception as e:
             console.print(f"[yellow]⚠️ Shell脚本检查失败: {e}[/yellow]")
@@ -445,7 +454,9 @@ def quality(
 
         if should_fix:
             cmd = ["black", "--exclude", black_exclude] + target_paths
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode == 0:
                 console.print("[green]✅ 代码格式化完成[/green]")
                 if result.stdout.strip():
@@ -454,7 +465,9 @@ def quality(
                 console.print(f"[red]❌ 代码格式化失败: {result.stderr}[/red]")
                 quality_issues = True
                 # 保存错误日志
-                _save_quality_error_log(logs_base_dir, "black", result.stderr + result.stdout)
+                _save_quality_error_log(
+                    logs_base_dir, "black", result.stderr + result.stdout
+                )
         else:
             # 检查模式
             cmd = (
@@ -462,14 +475,18 @@ def quality(
                 + (["--diff"] if check_only else [])
                 + target_paths
             )
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode != 0:
                 console.print("[yellow]⚠️ 发现代码格式问题[/yellow]")
                 if check_only and result.stdout.strip():
                     console.print(result.stdout)
                 quality_issues = True
                 # 保存错误日志
-                _save_quality_error_log(logs_base_dir, "black", result.stderr + result.stdout)
+                _save_quality_error_log(
+                    logs_base_dir, "black", result.stderr + result.stdout
+                )
             else:
                 console.print("[green]✅ 代码格式检查通过[/green]")
 
@@ -483,7 +500,9 @@ def quality(
             for pattern in isort_skip_patterns:
                 cmd.extend(["--skip-glob", pattern])
             cmd.extend(target_paths)
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode == 0:
                 console.print("[green]✅ 导入排序完成[/green]")
                 if result.stdout.strip():
@@ -492,7 +511,9 @@ def quality(
                 console.print(f"[red]❌ 导入排序失败: {result.stderr}[/red]")
                 quality_issues = True
                 # 保存错误日志
-                _save_quality_error_log(logs_base_dir, "isort", result.stderr + result.stdout)
+                _save_quality_error_log(
+                    logs_base_dir, "isort", result.stderr + result.stdout
+                )
         else:
             # 检查模式
             cmd = ["isort", "--check-only"]
@@ -502,14 +523,18 @@ def quality(
             if check_only:
                 cmd.append("--diff")
             cmd.extend(target_paths)
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode != 0:
                 console.print("[yellow]⚠️ 发现导入排序问题[/yellow]")
                 if check_only and result.stdout.strip():
                     console.print(result.stdout)
                 quality_issues = True
                 # 保存错误日志
-                _save_quality_error_log(logs_base_dir, "isort", result.stderr + result.stdout)
+                _save_quality_error_log(
+                    logs_base_dir, "isort", result.stderr + result.stdout
+                )
             else:
                 console.print("[green]✅ 导入排序检查通过[/green]")
 
@@ -523,8 +548,16 @@ def quality(
 
             if should_fix:
                 # 自动修复模式
-                cmd = ["ruff", "check", "--fix", "--exclude", ruff_exclude] + target_paths
-                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+                cmd = [
+                    "ruff",
+                    "check",
+                    "--fix",
+                    "--exclude",
+                    ruff_exclude,
+                ] + target_paths
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, cwd=str(project_dir)
+                )
 
                 if result.returncode == 0:
                     console.print("[green]✅ Ruff检查和修复完成[/green]")
@@ -534,22 +567,30 @@ def quality(
                     console.print("[yellow]⚠️ Ruff发现问题（部分已修复）[/yellow]")
                     console.print(result.stdout)
                     quality_issues = True
-                    _save_quality_error_log(logs_base_dir, "ruff", result.stderr + result.stdout)
+                    _save_quality_error_log(
+                        logs_base_dir, "ruff", result.stderr + result.stdout
+                    )
             else:
                 # 仅检查模式
                 cmd = ["ruff", "check", "--exclude", ruff_exclude] + target_paths
-                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, cwd=str(project_dir)
+                )
 
                 if result.returncode != 0:
                     console.print("[yellow]⚠️ Ruff发现代码问题[/yellow]")
                     lines = result.stdout.split("\n")
                     if len(lines) > 100:
                         console.print("\n".join(lines[:100]))
-                        console.print(f"[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]")
+                        console.print(
+                            f"[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]"
+                        )
                     else:
                         console.print(result.stdout)
                     quality_issues = True
-                    _save_quality_error_log(logs_base_dir, "ruff", result.stderr + result.stdout)
+                    _save_quality_error_log(
+                        logs_base_dir, "ruff", result.stderr + result.stdout
+                    )
                 else:
                     console.print("[green]✅ Ruff检查通过[/green]")
 
@@ -566,13 +607,17 @@ def quality(
         try:
             # flake8配置通过项目根目录的.flake8文件控制，同时添加命令行排除
             cmd = ["flake8", "--exclude", flake8_exclude] + target_paths
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode != 0:
                 console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
                 console.print(result.stdout)
                 quality_issues = True
                 # 保存错误日志
-                _save_quality_error_log(logs_base_dir, "flake8", result.stderr + result.stdout)
+                _save_quality_error_log(
+                    logs_base_dir, "flake8", result.stderr + result.stdout
+                )
             else:
                 console.print("[green]✅ 代码质量检查通过[/green]")
         except FileNotFoundError:
@@ -616,42 +661,63 @@ def quality(
             if mypy_wrapper.exists():
                 # 使用 wrapper 脚本（总是返回 0）
                 cmd = [str(mypy_wrapper)] + mypy_args + target_paths
-                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, cwd=str(project_dir)
+                )
 
                 # wrapper 总是返回 0，但我们检查输出中是否有错误
-                has_errors = "error:" in result.stdout.lower() or "error:" in result.stderr.lower()
+                has_errors = (
+                    "error:" in result.stdout.lower()
+                    or "error:" in result.stderr.lower()
+                )
 
                 if has_errors:
-                    console.print("[yellow]⚠️ 发现类型检查问题（仅警告，不阻塞）[/yellow]")
+                    console.print(
+                        "[yellow]⚠️ 发现类型检查问题（仅警告，不阻塞）[/yellow]"
+                    )
                     # 只显示前100行，避免输出过多
                     lines = result.stdout.split("\n")
                     if len(lines) > 100:
                         console.print("\n".join(lines[:100]))
-                        console.print(f"\n[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]")
+                        console.print(
+                            f"\n[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]"
+                        )
                     else:
                         console.print(result.stdout)
                     # 保存完整日志
-                    _save_quality_error_log(logs_base_dir, "mypy", result.stderr + result.stdout)
+                    _save_quality_error_log(
+                        logs_base_dir, "mypy", result.stderr + result.stdout
+                    )
                     # mypy 错误仅作为警告，不设置 quality_issues = True
                 else:
                     console.print("[green]✅ 类型检查通过[/green]")
             else:
                 # 没有 wrapper，直接运行 mypy
-                console.print("[yellow]⚠️ 未找到 mypy-wrapper.sh，使用标准 mypy[/yellow]")
+                console.print(
+                    "[yellow]⚠️ 未找到 mypy-wrapper.sh，使用标准 mypy[/yellow]"
+                )
                 cmd = ["mypy"] + mypy_args + target_paths
-                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, cwd=str(project_dir)
+                )
 
                 if result.returncode != 0:
-                    console.print("[yellow]⚠️ 发现类型检查问题（仅警告，不阻塞）[/yellow]")
+                    console.print(
+                        "[yellow]⚠️ 发现类型检查问题（仅警告，不阻塞）[/yellow]"
+                    )
                     # 只显示前100行
                     lines = result.stdout.split("\n")
                     if len(lines) > 100:
                         console.print("\n".join(lines[:100]))
-                        console.print(f"\n[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]")
+                        console.print(
+                            f"\n[dim]...还有 {len(lines) - 100} 行输出被省略...[/dim]"
+                        )
                     else:
                         console.print(result.stdout)
                     # 保存完整日志
-                    _save_quality_error_log(logs_base_dir, "mypy", result.stderr + result.stdout)
+                    _save_quality_error_log(
+                        logs_base_dir, "mypy", result.stderr + result.stdout
+                    )
                     # mypy 错误仅作为警告，不设置 quality_issues = True
                 else:
                     console.print("[green]✅ 类型检查通过[/green]")
@@ -719,7 +785,9 @@ def quality(
                                 )
                             yaml_formatted += 1
                     except Exception as e:
-                        console.print(f"[yellow]⚠️ 格式化 {yaml_file.name} 失败: {e}[/yellow]")
+                        console.print(
+                            f"[yellow]⚠️ 格式化 {yaml_file.name} 失败: {e}[/yellow]"
+                        )
 
                 console.print(f"[green]✅ 格式化了 {yaml_formatted} 个YAML文件[/green]")
             else:
@@ -761,10 +829,14 @@ def quality(
 
             if md_files:
                 cmd = ["mdformat", "--wrap", "100"] + [str(f) for f in md_files]
-                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, cwd=str(project_dir)
+                )
 
                 if result.returncode == 0:
-                    console.print(f"[green]✅ 格式化了 {len(md_files)} 个Markdown文件[/green]")
+                    console.print(
+                        f"[green]✅ 格式化了 {len(md_files)} 个Markdown文件[/green]"
+                    )
                 else:
                     console.print("[yellow]⚠️ Markdown格式化遇到问题[/yellow]")
                     if result.stderr:
@@ -787,7 +859,9 @@ def quality(
     console.print("\n" + "=" * 50)
     if quality_issues:
         if should_fix:
-            console.print("[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]")
+            console.print(
+                "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
+            )
             console.print(
                 "[yellow]💡 建议运行: sage dev quality --check-only 查看剩余问题[/yellow]"
             )
@@ -795,7 +869,9 @@ def quality(
             console.print(
                 "[yellow]⚠️ 发现代码质量问题，自动修复功能可以处理格式化和导入排序问题[/yellow]"
             )
-            console.print("[yellow]💡 建议运行: sage dev quality (默认自动修复)[/yellow]")
+            console.print(
+                "[yellow]💡 建议运行: sage dev quality (默认自动修复)[/yellow]"
+            )
 
         # 如果设置了warn_only，只警告不中断
         if not warn_only:
@@ -824,7 +900,9 @@ def _save_quality_error_log(logs_base_dir, tool_name: str, error_content: str):
         log_file = error_dir / f"{tool_name}.log"
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(f"代码质量检查错误日志 - {tool_name.upper()}\n")
-            f.write(f"生成时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(
+                f"生成时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
             f.write("=" * 50 + "\n\n")
             f.write(error_content)
 
@@ -911,7 +989,9 @@ def _run_quality_check(
             "*/neuromem/*",
         ]
         # flake8 使用逗号分隔的路径模式（支持通配符）
-        flake8_exclude = "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        flake8_exclude = (
+            "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        )
 
     if not quiet:
         console.print(f"🎯 检查目录: {', '.join(str(p) for p in target_paths)}")
@@ -935,7 +1015,9 @@ def _run_quality_check(
                 "--exclude",
                 black_exclude,
             ] + target_paths
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode != 0:
                 if not quiet:
                     console.print("[yellow]⚠️ 发现代码格式问题[/yellow]")
@@ -945,7 +1027,9 @@ def _run_quality_check(
                     console.print("[green]✅ 代码格式检查通过 √ [/green]")
         elif fix:
             cmd = ["black", "--exclude", black_exclude] + target_paths
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode == 0:
                 if not quiet:
                     console.print("[green]✅ 代码格式化完成 √ [/green]")
@@ -965,7 +1049,9 @@ def _run_quality_check(
             for pattern in isort_skip_patterns:
                 cmd.extend(["--skip-glob", pattern])
             cmd.extend(target_paths)
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode != 0:
                 if not quiet:
                     console.print("[yellow]⚠️ 发现导入排序问题[/yellow]")
@@ -979,7 +1065,9 @@ def _run_quality_check(
             for pattern in isort_skip_patterns:
                 cmd.extend(["--skip-glob", pattern])
             cmd.extend(target_paths)
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode == 0:
                 if not quiet:
                     console.print("[green]✅ 导入排序完成 √ [/green]")
@@ -996,7 +1084,9 @@ def _run_quality_check(
         try:
             # flake8配置通过项目根目录的.flake8文件控制，同时添加命令行排除
             cmd = ["flake8", "--exclude", flake8_exclude] + target_paths
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_dir))
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_dir)
+            )
             if result.returncode != 0:
                 if not quiet:
                     console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
@@ -1035,7 +1125,9 @@ def _run_quality_check(
 @app.command()
 def analyze(
     analysis_type: str = typer.Option("all", help="分析类型: all, health, report"),
-    output_format: str = typer.Option("summary", help="输出格式: summary, json, markdown"),
+    output_format: str = typer.Option(
+        "summary", help="输出格式: summary, json, markdown"
+    ),
     project_root: str = typer.Option(".", help="项目根目录"),
 ):
     """分析项目依赖和结构"""
@@ -1082,7 +1174,9 @@ def analyze(
                 if "summary" in result:
                     summary = result["summary"]
                     console.print(f"  📦 总包数: {summary.get('total_packages', 0)}")
-                    console.print(f"  📚 总依赖: {summary.get('total_dependencies', 0)}")
+                    console.print(
+                        f"  📚 总依赖: {summary.get('total_dependencies', 0)}"
+                    )
                     if "dependency_conflicts" in summary:
                         conflicts = summary["dependency_conflicts"]
                         console.print(
@@ -1188,9 +1282,13 @@ def clean(
 def status(
     project_root: str = typer.Option(".", help="项目根目录"),
     verbose: bool = typer.Option(False, help="详细输出"),
-    output_format: str = typer.Option("summary", help="输出格式: summary, json, full, markdown"),
+    output_format: str = typer.Option(
+        "summary", help="输出格式: summary, json, full, markdown"
+    ),
     packages_only: bool = typer.Option(False, "--packages", help="只显示包状态信息"),
-    check_versions: bool = typer.Option(False, "--versions", help="检查所有包的版本信息"),
+    check_versions: bool = typer.Option(
+        False, "--versions", help="检查所有包的版本信息"
+    ),
     check_dependencies: bool = typer.Option(False, "--deps", help="检查包依赖状态"),
     quick: bool = typer.Option(True, "--quick/--full", help="快速模式（跳过耗时检查）"),
 ):
@@ -1234,7 +1332,9 @@ def status(
             console.print(json.dumps(status_data, indent=2, ensure_ascii=False))
         elif output_format == "full":
             # 完整详细输出
-            status_data = checker.check_all(verbose=True, quick=False)  # 完整输出不使用快速模式
+            status_data = checker.check_all(
+                verbose=True, quick=False
+            )  # 完整输出不使用快速模式
             console.print("\n" + "=" * 60)
             console.print(checker.generate_status_summary(status_data))
             console.print("=" * 60)
@@ -1323,10 +1423,14 @@ def status(
 
 @app.command()
 def test(
-    test_type: str = typer.Option("all", help="测试类型: all, unit, integration, quick"),
+    test_type: str = typer.Option(
+        "all", help="测试类型: all, unit, integration, quick"
+    ),
     project_root: str = typer.Option(".", help="项目根目录"),
     verbose: bool = typer.Option(False, help="详细输出"),
-    packages: str = typer.Option("", help="指定测试的包，逗号分隔 (例: sage-libs,sage-kernel)"),
+    packages: str = typer.Option(
+        "", help="指定测试的包，逗号分隔 (例: sage-libs,sage-kernel)"
+    ),
     jobs: int = typer.Option(4, "--jobs", "-j", help="并行任务数量"),
     timeout: int = typer.Option(300, "--timeout", "-t", help="每个包的超时时间(秒)"),
     failed_only: bool = typer.Option(False, "--failed", help="只重新运行失败的测试"),
@@ -1337,7 +1441,9 @@ def test(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式"),
     report_file: str = typer.Option("", "--report", help="测试报告输出文件路径"),
     diagnose: bool = typer.Option(False, "--diagnose", help="运行诊断模式"),
-    issues_manager: bool = typer.Option(False, "--issues-manager", help="包含 issues manager 测试"),
+    issues_manager: bool = typer.Option(
+        False, "--issues-manager", help="包含 issues manager 测试"
+    ),
     # 质量检查选项
     skip_quality_check: bool = typer.Option(
         False, "--skip-quality-check", help="跳过代码质量检查和修复"
@@ -1389,7 +1495,9 @@ def test(
         if not found_root:
             console.print("[red]❌ 无法找到 SAGE 项目根目录[/red]")
             console.print(f"起始搜索目录: {Path(project_root).resolve()}")
-            console.print("请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径")
+            console.print(
+                "请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径"
+            )
             raise typer.Exit(1)
 
         if not quiet:
@@ -1398,7 +1506,9 @@ def test(
         # 1. 代码质量检查和修复 (在测试前运行)
         if not skip_quality_check:
             if not quiet:
-                console.print(Rule("[bold cyan]🔍 执行测试前代码质量检查...[/bold cyan]"))
+                console.print(
+                    Rule("[bold cyan]🔍 执行测试前代码质量检查...[/bold cyan]")
+                )
 
             # 调用质量检查函数，使用warn_only模式，不中断测试
             has_quality_issues = _run_quality_check(
@@ -1475,7 +1585,9 @@ def test(
 
         # 生成报告
         if report_file:
-            _generate_test_report(result, report_file, test_type, execution_time, test_config)
+            _generate_test_report(
+                result, report_file, test_type, execution_time, test_config
+            )
 
         # 显示结果
         _display_test_results(result, summary_only, quiet, execution_time)
@@ -1544,12 +1656,16 @@ def home(
                     log_file.unlink()
                     files_removed += 1
 
-            console.print(f"[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]")
+            console.print(
+                f"[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]"
+            )
 
         elif action == "status":
             console.print("🏠 SAGE目录状态:")
             console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
-            console.print(f"  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}")
+            console.print(
+                f"  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}"
+            )
             console.print(f"  📊 项目根目录: {sage_paths.project_root}")
             console.print(
                 f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
@@ -1567,9 +1683,13 @@ def home(
             for name, dir_path in subdirs:
                 status = "存在" if dir_path.exists() else "不存在"
                 if dir_path.exists():
-                    size = sum(f.stat().st_size for f in dir_path.rglob("*") if f.is_file())
+                    size = sum(
+                        f.stat().st_size for f in dir_path.rglob("*") if f.is_file()
+                    )
                     file_count = len(list(dir_path.rglob("*")))
-                    console.print(f"  � {name}: {status} ({file_count} 个文件, {size} 字节)")
+                    console.print(
+                        f"  � {name}: {status} ({file_count} 个文件, {size} 字节)"
+                    )
                 else:
                     console.print(f"  � {name}: {status}")
 
@@ -1595,7 +1715,9 @@ def _generate_status_markdown_output(status_data):
     # 添加标题和时间戳
     markdown_lines.append("# SAGE 项目状态报告")
     markdown_lines.append("")
-    markdown_lines.append(f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    markdown_lines.append(
+        f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )
     markdown_lines.append("")
 
     if isinstance(status_data, dict):
@@ -1651,7 +1773,9 @@ def _generate_status_markdown_output(status_data):
                 if isinstance(check_data, dict) and "data" in check_data:
                     data = check_data["data"]
                     if data:  # 只显示有数据的检查项目
-                        markdown_lines.append(f"### {check_name.replace('_', ' ').title()}")
+                        markdown_lines.append(
+                            f"### {check_name.replace('_', ' ').title()}"
+                        )
                         markdown_lines.append("")
 
                         if check_name == "environment":
@@ -1659,7 +1783,9 @@ def _generate_status_markdown_output(status_data):
                                 markdown_lines.append("**环境变量**:")
                                 for key, value in data.items():
                                     # Safely convert value to string
-                                    value_str = str(value) if value is not None else "None"
+                                    value_str = (
+                                        str(value) if value is not None else "None"
+                                    )
                                     markdown_lines.append(f"- **{key}**: {value_str}")
 
                         elif check_name == "packages":
@@ -1670,7 +1796,9 @@ def _generate_status_markdown_output(status_data):
                                     markdown_lines.append(
                                         f"- 已安装: {summary.get('installed', 0)}"
                                     )
-                                    markdown_lines.append(f"- 总计: {summary.get('total', 0)}")
+                                    markdown_lines.append(
+                                        f"- 总计: {summary.get('total', 0)}"
+                                    )
 
                                 packages = data.get("packages", [])
                                 if packages and isinstance(packages, (list, dict)):
@@ -1679,7 +1807,9 @@ def _generate_status_markdown_output(status_data):
                                     if isinstance(packages, list):
                                         # Safely slice the list
                                         display_packages = (
-                                            packages[:10] if len(packages) > 10 else packages
+                                            packages[:10]
+                                            if len(packages) > 10
+                                            else packages
                                         )
                                         for pkg in display_packages:
                                             markdown_lines.append(f"- {str(pkg)}")
@@ -1692,7 +1822,9 @@ def _generate_status_markdown_output(status_data):
                                         for pkg_name, pkg_info in packages.items():
                                             if count >= 10:
                                                 break
-                                            markdown_lines.append(f"- {pkg_name}: {str(pkg_info)}")
+                                            markdown_lines.append(
+                                                f"- {pkg_name}: {str(pkg_info)}"
+                                            )
                                             count += 1
                                         if len(packages) > 10:
                                             markdown_lines.append(
@@ -1705,8 +1837,12 @@ def _generate_status_markdown_output(status_data):
                                 if import_tests:
                                     markdown_lines.append("**导入测试结果**:")
                                     for dep, result in import_tests.items():
-                                        status_icon = "✅" if result == "success" else "❌"
-                                        markdown_lines.append(f"- {status_icon} {dep}: {result}")
+                                        status_icon = (
+                                            "✅" if result == "success" else "❌"
+                                        )
+                                        markdown_lines.append(
+                                            f"- {status_icon} {dep}: {result}"
+                                        )
 
                         elif check_name == "services":
                             if isinstance(data, dict):
@@ -1719,22 +1855,30 @@ def _generate_status_markdown_output(status_data):
                                             f"- {status_icon} {service}: {'运行中' if running else '未运行'}"
                                         )
                                         if "details" in info and info["details"]:
-                                            markdown_lines.append(f"  - 详情: {info['details']}")
+                                            markdown_lines.append(
+                                                f"  - 详情: {info['details']}"
+                                            )
 
                         else:
                             # 通用数据显示
                             try:
                                 if isinstance(data, dict):
                                     for key, value in data.items():
-                                        value_str = str(value) if value is not None else "None"
-                                        markdown_lines.append(f"- **{key}**: {value_str}")
+                                        value_str = (
+                                            str(value) if value is not None else "None"
+                                        )
+                                        markdown_lines.append(
+                                            f"- **{key}**: {value_str}"
+                                        )
                                 elif isinstance(data, list):
                                     # Safely handle list slicing
                                     display_items = data[:5] if len(data) > 5 else data
                                     for item in display_items:
                                         markdown_lines.append(f"- {str(item)}")
                                     if len(data) > 5:
-                                        markdown_lines.append(f"- ... 还有 {len(data) - 5} 项")
+                                        markdown_lines.append(
+                                            f"- ... 还有 {len(data) - 5} 项"
+                                        )
                                 else:
                                     markdown_lines.append(f"数据: {str(data)}")
                             except Exception as e:
@@ -1776,7 +1920,9 @@ def _generate_markdown_output(result, analysis_type):
     markdown_lines.append("# SAGE 项目依赖分析报告")
     markdown_lines.append("")
     markdown_lines.append(f"**分析类型**: {analysis_type}")
-    markdown_lines.append(f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    markdown_lines.append(
+        f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )
     markdown_lines.append("")
 
     if isinstance(result, dict):
@@ -1786,7 +1932,9 @@ def _generate_markdown_output(result, analysis_type):
             markdown_lines.append("## 📊 分析摘要")
             markdown_lines.append("")
             markdown_lines.append(f"- **总包数**: {summary.get('total_packages', 0)}")
-            markdown_lines.append(f"- **总依赖**: {summary.get('total_dependencies', 0)}")
+            markdown_lines.append(
+                f"- **总依赖**: {summary.get('total_dependencies', 0)}"
+            )
 
             if "dependency_conflicts" in summary:
                 conflicts = summary["dependency_conflicts"]
@@ -1799,7 +1947,9 @@ def _generate_markdown_output(result, analysis_type):
                     markdown_lines.append("")
                     for i, conflict in enumerate(conflicts, 1):
                         if isinstance(conflict, dict):
-                            markdown_lines.append(f"{i}. **{conflict.get('package', 'Unknown')}**")
+                            markdown_lines.append(
+                                f"{i}. **{conflict.get('package', 'Unknown')}**"
+                            )
                             markdown_lines.append(
                                 f"   - 冲突类型: {conflict.get('type', 'Unknown')}"
                             )
@@ -2068,7 +2218,9 @@ def _generate_test_report(
         console.print(f"[red]生成测试报告失败: {e}[/red]")
 
 
-def _display_test_results(result: dict, summary_only: bool, quiet: bool, execution_time: float):
+def _display_test_results(
+    result: dict, summary_only: bool, quiet: bool, execution_time: float
+):
     """显示测试结果"""
     if quiet:
         return
@@ -2135,7 +2287,9 @@ def _check_package_dependencies(package_name: str, verbose: bool):
     """保持原有函数存在以防外部引用。"""
 
     if verbose:
-        console.print("    ℹ️ 依赖检查已迁移到 `sage doctor packages --deps`，当前调用保持兼容")
+        console.print(
+            "    ℹ️ 依赖检查已迁移到 `sage doctor packages --deps`，当前调用保持兼容"
+        )
 
 
 if __name__ == "__main__":

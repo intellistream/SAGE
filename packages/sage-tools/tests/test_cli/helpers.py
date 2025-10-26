@@ -120,7 +120,9 @@ class FakeConfigManager:
         hosts = self._config.setdefault("workers_ssh_hosts", [])
         original_len = len(hosts)
         hosts[:] = [
-            item for item in hosts if not (item["host"] == host and item.get("port", 22) == port)
+            item
+            for item in hosts
+            if not (item["host"] == host and item.get("port", 22) == port)
         ]
         return len(hosts) < original_len
 

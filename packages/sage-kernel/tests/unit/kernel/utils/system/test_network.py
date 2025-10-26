@@ -133,7 +133,9 @@ class TestWaitForPortRelease:
     @pytest.mark.unit
     def test_port_released_immediately(self):
         """Test port is available immediately"""
-        with patch("sage.common.utils.system.network.is_port_occupied", return_value=False):
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied", return_value=False
+        ):
             result = wait_for_port_release("127.0.0.1", 8080, timeout=5)
             assert result
 
@@ -158,7 +160,9 @@ class TestWaitForPortRelease:
     @pytest.mark.unit
     def test_timeout_exceeded(self):
         """Test timeout when port never releases"""
-        with patch("sage.common.utils.system.network.is_port_occupied", return_value=True):
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied", return_value=True
+        ):
             with patch("time.sleep"):
                 with patch("time.time", side_effect=[0, 1, 2, 3, 4, 5, 6]):
                     result = wait_for_port_release("127.0.0.1", 8080, timeout=5)
@@ -167,7 +171,9 @@ class TestWaitForPortRelease:
     @pytest.mark.unit
     def test_custom_check_interval(self):
         """Test custom check interval"""
-        with patch("sage.common.utils.system.network.is_port_occupied", return_value=False):
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied", return_value=False
+        ):
             with patch("time.sleep"):
                 wait_for_port_release("127.0.0.1", 8080, timeout=10, check_interval=2)
                 # Should not need to sleep since port is immediately available
@@ -194,7 +200,9 @@ class TestFindProcessesByLsof:
     def test_no_processes_found(self):
         """Test no processes found by lsof"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = Mock(returncode=1, stdout="")  # No matching processes
+            mock_run.return_value = Mock(
+                returncode=1, stdout=""
+            )  # No matching processes
 
             result = _find_processes_with_lsof(8080)
             assert result == []
@@ -535,7 +543,9 @@ class TestAllocateFreePort:
     @pytest.mark.unit
     def test_allocate_from_range(self):
         """Test allocating port from specified range"""
-        with patch("sage.common.utils.system.network.is_port_occupied") as mock_occupied:
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied"
+        ) as mock_occupied:
             with patch("socket.socket") as mock_socket:
                 mock_sock = MagicMock()
                 mock_socket.return_value.__enter__.return_value = mock_sock
@@ -551,7 +561,9 @@ class TestAllocateFreePort:
     @pytest.mark.unit
     def test_allocate_system_port(self):
         """Test fallback to system port allocation"""
-        with patch("sage.common.utils.system.network.is_port_occupied", return_value=True):
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied", return_value=True
+        ):
             with patch("socket.socket") as mock_socket:
                 mock_sock = MagicMock()
                 mock_socket.return_value.__enter__.return_value = mock_sock
@@ -565,7 +577,9 @@ class TestAllocateFreePort:
     @pytest.mark.unit
     def test_allocation_failure(self):
         """Test allocation failure"""
-        with patch("sage.common.utils.system.network.is_port_occupied", return_value=True):
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied", return_value=True
+        ):
             with patch("socket.socket") as mock_socket:
                 mock_sock = MagicMock()
                 mock_socket.return_value.__enter__.return_value = mock_sock
@@ -577,7 +591,9 @@ class TestAllocateFreePort:
     @pytest.mark.unit
     def test_double_check_binding(self):
         """Test double-check binding validation"""
-        with patch("sage.common.utils.system.network.is_port_occupied", return_value=False):
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied", return_value=False
+        ):
             with patch("socket.socket") as mock_socket:
                 mock_sock = MagicMock()
                 mock_socket.return_value.__enter__.return_value = mock_sock
@@ -620,7 +636,9 @@ class TestAggressivePortCleanup:
         """Test force kill when terminate times out"""
         import psutil
 
-        with patch("sage.common.utils.system.network.find_port_processes", return_value=[1234]):
+        with patch(
+            "sage.common.utils.system.network.find_port_processes", return_value=[1234]
+        ):
             with patch("psutil.Process") as mock_process:
                 mock_proc = MagicMock()
                 mock_process.return_value = mock_proc
@@ -636,7 +654,9 @@ class TestAggressivePortCleanup:
     @pytest.mark.unit
     def test_no_processes_found(self):
         """Test when no processes are found"""
-        with patch("sage.common.utils.system.network.find_port_processes", return_value=[]):
+        with patch(
+            "sage.common.utils.system.network.find_port_processes", return_value=[]
+        ):
             result = aggressive_port_cleanup(8080)
 
             assert result["success"] is False
@@ -648,7 +668,9 @@ class TestAggressivePortCleanup:
         """Test handling access denied errors"""
         import psutil
 
-        with patch("sage.common.utils.system.network.find_port_processes", return_value=[1234]):
+        with patch(
+            "sage.common.utils.system.network.find_port_processes", return_value=[1234]
+        ):
             with patch("psutil.Process") as mock_process:
                 mock_proc = MagicMock()
                 mock_process.return_value = mock_proc
@@ -665,7 +687,9 @@ class TestAggressivePortCleanup:
         """Test handling process not found errors"""
         import psutil
 
-        with patch("sage.common.utils.system.network.find_port_processes", return_value=[1234]):
+        with patch(
+            "sage.common.utils.system.network.find_port_processes", return_value=[1234]
+        ):
             with patch("psutil.Process") as mock_process:
                 mock_process.side_effect = psutil.NoSuchProcess(1234)
 
@@ -787,7 +811,9 @@ class TestIntegrationScenarios:
     def test_port_lifecycle(self):
         """Test complete port lifecycle management"""
         # Test port allocation
-        with patch("sage.common.utils.system.network.is_port_occupied", return_value=False):
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied", return_value=False
+        ):
             with patch("socket.socket") as mock_socket:
                 mock_sock = MagicMock()
                 mock_socket.return_value.__enter__.return_value = mock_sock
@@ -812,7 +838,9 @@ class TestIntegrationScenarios:
             assert processes == [1234]
 
         # Test cleanup
-        with patch("sage.common.utils.system.network.find_port_processes", return_value=[1234]):
+        with patch(
+            "sage.common.utils.system.network.find_port_processes", return_value=[1234]
+        ):
             with patch("psutil.Process") as mock_process:
                 mock_proc = MagicMock()
                 mock_process.return_value = mock_proc
@@ -844,7 +872,9 @@ class TestIntegrationScenarios:
                 response_json,
             ]
 
-            health_result = send_tcp_health_check("127.0.0.1", 8080, {"type": "health_check"})
+            health_result = send_tcp_health_check(
+                "127.0.0.1", 8080, {"type": "health_check"}
+            )
             assert health_result == response_data
 
     @pytest.mark.slow
@@ -862,7 +892,9 @@ class TestIntegrationScenarios:
             side_effect=mock_is_occupied,
         ):
             with patch("time.sleep") as mock_sleep:
-                result = wait_for_port_release("127.0.0.1", 8080, timeout=10, check_interval=1)
+                result = wait_for_port_release(
+                    "127.0.0.1", 8080, timeout=10, check_interval=1
+                )
                 assert result is True
                 # Should have slept 3 times (after each occupied check)
                 assert mock_sleep.call_count == 3
@@ -953,7 +985,9 @@ class TestPerformanceScenarios:
         """Test port allocation under stress"""
         allocated_ports = []
 
-        with patch("sage.common.utils.system.network.is_port_occupied") as mock_occupied:
+        with patch(
+            "sage.common.utils.system.network.is_port_occupied"
+        ) as mock_occupied:
             with patch("socket.socket") as mock_socket:
                 mock_sock = MagicMock()
                 mock_socket.return_value.__enter__.return_value = mock_sock

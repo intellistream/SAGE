@@ -101,7 +101,9 @@ class TestActorWrapper:
     def ray_wrapper(self, ray_actor):
         """Create an ActorWrapper for Ray actor"""
         # Patch the _detect_execution_mode method to return ray_actor for our mock
-        with patch.object(ActorWrapper, "_detect_execution_mode", return_value="ray_actor"):
+        with patch.object(
+            ActorWrapper, "_detect_execution_mode", return_value="ray_actor"
+        ):
             wrapper = ActorWrapper(ray_actor)
             return wrapper
 
@@ -117,7 +119,9 @@ class TestActorWrapper:
     def test_ray_actor_detection(self, ray_actor):
         """Test detection of Ray actors"""
         # Patch the _detect_execution_mode method to return ray_actor for our mock
-        with patch.object(ActorWrapper, "_detect_execution_mode", return_value="ray_actor"):
+        with patch.object(
+            ActorWrapper, "_detect_execution_mode", return_value="ray_actor"
+        ):
             wrapper = ActorWrapper(ray_actor)
             assert wrapper._execution_mode == "ray_actor"
             assert wrapper.is_ray_actor() is True
@@ -171,7 +175,9 @@ class TestActorWrapper:
     @pytest.mark.unit
     def test_local_object_async_call_error(self, local_wrapper):
         """Test that async calls fail on local objects"""
-        with pytest.raises(RuntimeError, match="call_async only available for Ray actors"):
+        with pytest.raises(
+            RuntimeError, match="call_async only available for Ray actors"
+        ):
             local_wrapper.call_async("get_value")
 
     @pytest.mark.unit
@@ -280,7 +286,9 @@ class TestActorWrapper:
 
         # Should not be able to modify wrapper's internal state
         local_wrapper._execution_mode = "modified"
-        assert local_wrapper._execution_mode == "modified"  # Should allow internal modification
+        assert (
+            local_wrapper._execution_mode == "modified"
+        )  # Should allow internal modification
 
     @pytest.mark.integration
     def test_wrapper_with_complex_object(self):
@@ -364,7 +372,9 @@ class TestActorWrapperEdgeCases:
     def ray_wrapper(self, ray_actor):
         """Create an ActorWrapper for Ray actor"""
         # Patch the _detect_execution_mode method to return ray_actor for our mock
-        with patch.object(ActorWrapper, "_detect_execution_mode", return_value="ray_actor"):
+        with patch.object(
+            ActorWrapper, "_detect_execution_mode", return_value="ray_actor"
+        ):
             wrapper = ActorWrapper(ray_actor)
             return wrapper
 
@@ -420,7 +430,9 @@ class TestActorWrapperEdgeCases:
         simple_actor = SimpleActor()
 
         # Create wrapper with ray actor mode
-        with patch.object(ActorWrapper, "_detect_execution_mode", return_value="ray_actor"):
+        with patch.object(
+            ActorWrapper, "_detect_execution_mode", return_value="ray_actor"
+        ):
             wrapper = ActorWrapper(simple_actor)
 
             with pytest.raises(AttributeError):

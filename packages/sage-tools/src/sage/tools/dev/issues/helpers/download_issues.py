@@ -155,7 +155,10 @@ class IssuesDownloader:
                 return
 
             projects = (
-                data.get("data", {}).get("organization", {}).get("projectsV2", {}).get("nodes", [])
+                data.get("data", {})
+                .get("organization", {})
+                .get("projectsV2", {})
+                .get("nodes", [])
             )
             if not projects:
                 print("未找到projects数据")
@@ -168,7 +171,9 @@ class IssuesDownloader:
             for project in projects:
                 project_num = project["number"]
                 project_title = project["title"]
-                team_name = self.project_mapping.get(project_num, f"unknown-{project_num}")
+                team_name = self.project_mapping.get(
+                    project_num, f"unknown-{project_num}"
+                )
 
                 # 分页获取项目中的所有items
                 has_next_page = True
@@ -209,17 +214,23 @@ class IssuesDownloader:
                     )
 
                     if items_response.status_code != 200:
-                        print(f"获取项目 {project_num} items失败: {items_response.status_code}")
+                        print(
+                            f"获取项目 {project_num} items失败: {items_response.status_code}"
+                        )
                         break
 
                     items_data = items_response.json()
 
                     if "errors" in items_data:
-                        print(f"获取项目 {project_num} items错误: {items_data['errors']}")
+                        print(
+                            f"获取项目 {project_num} items错误: {items_data['errors']}"
+                        )
                         break
 
                     project_data = (
-                        items_data.get("data", {}).get("organization", {}).get("projectV2", {})
+                        items_data.get("data", {})
+                        .get("organization", {})
+                        .get("projectV2", {})
                     )
                     if not project_data:
                         break
@@ -277,9 +288,7 @@ class IssuesDownloader:
     def get_issue_comments(self, issue_number: int):
         """获取issue评论"""
         try:
-            base = (
-                f"https://api.github.com/repos/{self.config.GITHUB_OWNER}/{self.config.GITHUB_REPO}"
-            )
+            base = f"https://api.github.com/repos/{self.config.GITHUB_OWNER}/{self.config.GITHUB_REPO}"
             url = f"{base}/issues/{issue_number}/comments"
             resp = requests.get(url, headers=self.github)
             resp.raise_for_status()
@@ -332,7 +341,9 @@ class IssuesDownloader:
         # 确定创建者所属的团队
         creator_team = None
         for team_name, team_info in self.team_config.items():
-            team_members = [member["username"] for member in team_info.get("members", [])]
+            team_members = [
+                member["username"] for member in team_info.get("members", [])
+            ]
             if creator in team_members:
                 creator_team = team_name
                 break
@@ -447,7 +458,9 @@ class IssuesDownloader:
                 if next_url:
                     response = requests.get(next_url, headers=self.github)
                 else:
-                    response = requests.get(base_url, headers=self.github, params=params)
+                    response = requests.get(
+                        base_url, headers=self.github, params=params
+                    )
 
                 response.raise_for_status()
 
@@ -456,7 +469,9 @@ class IssuesDownloader:
                     break
 
                 issues.extend(page_issues)
-                print(f"📥 已获取第{page}页，共{len(page_issues)}个Issues (总数: {len(issues)})")
+                print(
+                    f"📥 已获取第{page}页，共{len(page_issues)}个Issues (总数: {len(issues)})"
+                )
                 page += 1
 
                 # 解析Link header获取下一页URL
@@ -503,7 +518,9 @@ class IssuesDownloader:
                 except Exception as e:
                     print(f"❌ 保存Issue #{issue['number']} 失败: {e}")
 
-            print(f"📊 数据下载完成！成功保存 {saved_count}/{len(issues)} 个Issues到数据源")
+            print(
+                f"📊 数据下载完成！成功保存 {saved_count}/{len(issues)} 个Issues到数据源"
+            )
 
             # 生成所有视图
             print("🔄 生成视图文件...")
@@ -532,7 +549,9 @@ class IssuesDownloader:
     ):
         """生成下载报告"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_file = self.config.output_path / f"download_report_v2_{state}_{timestamp}.md"
+        report_file = (
+            self.config.output_path / f"download_report_v2_{state}_{timestamp}.md"
+        )
 
         # 统计信息
         total_issues = len(issues)
@@ -554,7 +573,9 @@ class IssuesDownloader:
             milestone = issue.get("milestone")
             if milestone:
                 milestone_title = milestone.get("title", "unknown")
-                milestone_stats[milestone_title] = milestone_stats.get(milestone_title, 0) + 1
+                milestone_stats[milestone_title] = (
+                    milestone_stats.get(milestone_title, 0) + 1
+                )
 
             # 团队统计
             projects = issue.get("projects", [])
@@ -599,13 +620,17 @@ class IssuesDownloader:
         report_content += "\n## 按Milestone分布\n\n"
 
         # 添加milestone统计
-        for milestone, count in sorted(milestone_stats.items(), key=lambda x: x[1], reverse=True):
+        for milestone, count in sorted(
+            milestone_stats.items(), key=lambda x: x[1], reverse=True
+        ):
             report_content += f"- {milestone}: {count}\n"
 
         report_content += "\n## 标签分布\n\n"
 
         # 添加标签统计（显示前20个）
-        for label, count in sorted(label_stats.items(), key=lambda x: x[1], reverse=True)[:20]:
+        for label, count in sorted(
+            label_stats.items(), key=lambda x: x[1], reverse=True
+        )[:20]:
             report_content += f"- {label}: {count}\n"
 
         report_content += f"""
@@ -648,8 +673,12 @@ def main():
         help="要下载的Issues状态 (default: all)",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="显示详细输出")
-    parser.add_argument("--migrate-only", action="store_true", help="仅执行数据迁移，不下载新数据")
-    parser.add_argument("--skip-comments", action="store_true", help="跳过评论下载以加快速度")
+    parser.add_argument(
+        "--migrate-only", action="store_true", help="仅执行数据迁移，不下载新数据"
+    )
+    parser.add_argument(
+        "--skip-comments", action="store_true", help="跳过评论下载以加快速度"
+    )
 
     args = parser.parse_args()
 
@@ -680,7 +709,9 @@ def main():
         sys.exit(0)
 
     # 执行下载
-    success = downloader.download_issues(state=args.state, skip_comments=args.skip_comments)
+    success = downloader.download_issues(
+        state=args.state, skip_comments=args.skip_comments
+    )
 
     if success:
         print("\n🎉 下载完成！")

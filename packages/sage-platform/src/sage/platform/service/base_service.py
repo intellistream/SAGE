@@ -75,9 +75,13 @@ class BaseService(ABC):
             data = self.call_service("pipeline_name", payload)
         """
         if self.ctx is None:
-            raise RuntimeError("Service context not initialized. Cannot access services.")
+            raise RuntimeError(
+                "Service context not initialized. Cannot access services."
+            )
 
-        return self.ctx.call_service(service_name, *args, timeout=timeout, method=method, **kwargs)
+        return self.ctx.call_service(
+            service_name, *args, timeout=timeout, method=method, **kwargs
+        )
 
     def call_service_async(
         self,
@@ -99,7 +103,9 @@ class BaseService(ABC):
                 result = future.result()
         """
         if self.ctx is None:
-            raise RuntimeError("Service context not initialized. Cannot access services.")
+            raise RuntimeError(
+                "Service context not initialized. Cannot access services."
+            )
 
         return self.ctx.call_service_async(
             service_name, *args, timeout=timeout, method=method, **kwargs

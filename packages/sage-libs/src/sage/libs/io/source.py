@@ -237,7 +237,9 @@ class SocketSource(SourceFunction):
         """
         message = self._process_buffer()
         if message:
-            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: 接收到消息: {message}\033[0m")
+            self.logger.info(
+                f"\033[32m[ {self.__class__.__name__}]: 接收到消息: {message}\033[0m"
+            )
             return message
         data = None
         while data is None and message is None:
@@ -260,9 +262,9 @@ class SocketSource(SourceFunction):
                 if self.protocol == "tcp" and self.load_balancing:
                     # 发送注销请求
                     deregistration = (
-                        json.dumps({"action": "deregister", "client_id": self.client_id}).encode(
-                            self.encoding
-                        )
+                        json.dumps(
+                            {"action": "deregister", "client_id": self.client_id}
+                        ).encode(self.encoding)
                         + self.delimiter
                     )
                     self.socket.sendall(deregistration)
@@ -397,7 +399,9 @@ class KafkaSource(SourceFunction):
     def __init__(self, config: dict = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
-        self.bootstrap_servers = self.config.get("bootstrap_servers", ["localhost:9092"])
+        self.bootstrap_servers = self.config.get(
+            "bootstrap_servers", ["localhost:9092"]
+        )
         self.topic = self.config.get("topic")
         self.group_id = self.config.get("group_id", "sage_consumer")
 

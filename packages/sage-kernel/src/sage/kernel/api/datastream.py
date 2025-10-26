@@ -101,7 +101,9 @@ class DataStream(Generic[T]):
         actual_parallelism = parallelism if parallelism is not None else 1
 
         # 获取FilterTransformation类
-        FilterTransformation = self._get_transformation_classes()["FilterTransformation"]
+        FilterTransformation = self._get_transformation_classes()[
+            "FilterTransformation"
+        ]
         tr = FilterTransformation(
             self._environment, function, *args, parallelism=actual_parallelism, **kwargs
         )
@@ -124,7 +126,9 @@ class DataStream(Generic[T]):
         actual_parallelism = parallelism if parallelism is not None else 1
 
         # 获取FlatMapTransformation类
-        FlatMapTransformation = self._get_transformation_classes()["FlatMapTransformation"]
+        FlatMapTransformation = self._get_transformation_classes()[
+            "FlatMapTransformation"
+        ]
         tr = FlatMapTransformation(
             self._environment, function, *args, parallelism=actual_parallelism, **kwargs
         )
@@ -194,7 +198,9 @@ class DataStream(Generic[T]):
         """
         if isinstance(other, DataStream):
             # DataStream + DataStream -> ConnectedStreams
-            return ConnectedStreams(self._environment, [self.transformation, other.transformation])
+            return ConnectedStreams(
+                self._environment, [self.transformation, other.transformation]
+            )
         else:  # ConnectedStreams
             # DataStream + ConnectedStreams -> ConnectedStreams
             new_transformations = [self.transformation] + other.transformations
@@ -228,7 +234,9 @@ class DataStream(Generic[T]):
 
         # 验证目标是future stream
         if not isinstance(future_stream.transformation, FutureTransformation):
-            raise ValueError("Target stream must be a future stream created by env.from_future()")
+            raise ValueError(
+                "Target stream must be a future stream created by env.from_future()"
+            )
 
         future_trans = future_stream.transformation
 
@@ -255,7 +263,9 @@ class DataStream(Generic[T]):
     # ---------------------------------------------------------------------
     # quick helper api
     # ---------------------------------------------------------------------
-    def print(self, prefix: str = "", separator: str = " | ", colored: bool = True) -> DataStream:
+    def print(
+        self, prefix: str = "", separator: str = " | ", colored: bool = True
+    ) -> DataStream:
         """
         便捷的打印方法 - 将数据流输出到控制台
 

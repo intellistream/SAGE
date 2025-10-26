@@ -147,7 +147,9 @@ class TestVisualPipeline:
 
     def test_empty_pipeline(self):
         """测试创建空 Pipeline"""
-        pipeline = VisualPipeline(id="empty", name="Empty Pipeline", nodes=[], connections=[])
+        pipeline = VisualPipeline(
+            id="empty", name="Empty Pipeline", nodes=[], connections=[]
+        )
 
         assert len(pipeline.nodes) == 0
         assert len(pipeline.connections) == 0
