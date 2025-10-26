@@ -16,8 +16,16 @@ from .enhanced_package_manager import EnhancedPackageManager
 from .enhanced_test_runner import EnhancedTestRunner
 from .vscode_path_manager import VSCodePathManager
 
+# 导出质量检查工具
+from .architecture_checker import ArchitectureChecker
+from .devnotes_checker import DevNotesChecker
+from .package_readme_checker import PackageREADMEChecker
+
 __all__ = [
     "EnhancedPackageManager",
     "EnhancedTestRunner",
     "VSCodePathManager",
+    "ArchitectureChecker",
+    "DevNotesChecker",
+    "PackageREADMEChecker",
 ]

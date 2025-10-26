@@ -75,27 +75,13 @@ DEVNOTES_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^docs/d
 ROOT_MD_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^[^/]*\.md$' || true)
 
 if [ -n "$DEVNOTES_FILES" ] || [ -n "$ROOT_MD_FILES" ]; then
-    if [ -f "$ROOT_DIR/tools/devnotes_checker.py" ]; then
+    # 优先使用 sage dev 命令（如果 sage-tools 已安装）
+    if command -v sage >/dev/null 2>&1; then
         TOTAL_FILES=$(( $(echo "$DEVNOTES_FILES" | grep -c . || echo 0) + $(echo "$ROOT_MD_FILES" | grep -c . || echo 0) ))
         echo -e "📝 检查 $TOTAL_FILES 个 dev-notes 文档"
 
-        # 先检查目录结构（是否有文件在错误的位置）
-        if python3 "$ROOT_DIR/tools/devnotes_checker.py" \
-            --root "$ROOT_DIR" \
-            --check-structure 2>&1 | tail -30; then
-            :  # 结构检查通过
-        else
-            echo ""
-            echo -e "${RED}❌ 文档目录结构不符合规范${NC}"
-            echo -e "${YELLOW}   项目根目录的 markdown 文件应移到 docs/dev-notes/<category>/ 下${NC}"
-            echo -e "${YELLOW}   允许在根目录: README.md, CONTRIBUTING.md, DEVELOPER.md${NC}"
-            exit 1
-        fi
-
-        # 再检查文档内容
-        if python3 "$ROOT_DIR/tools/devnotes_checker.py" \
-            --root "$ROOT_DIR" \
-            --changed-only 2>&1; then
+        # 使用 sage dev check-devnotes 命令
+        if sage dev check-devnotes --changed-only 2>&1; then
             echo -e "${GREEN}✅ Dev-notes 文档规范检查通过${NC}"
         else
             echo ""
@@ -104,8 +90,24 @@ if [ -n "$DEVNOTES_FILES" ] || [ -n "$ROOT_MD_FILES" ]; then
             echo -e "${YELLOW}   模板: docs/dev-notes/TEMPLATE.md${NC}"
             exit 1
         fi
+    # 回退到直接调用 Python 脚本（向后兼容）
+    elif [ -f "$ROOT_DIR/packages/sage-tools/src/sage/tools/dev/tools/devnotes_checker.py" ]; then
+        TOTAL_FILES=$(( $(echo "$DEVNOTES_FILES" | grep -c . || echo 0) + $(echo "$ROOT_MD_FILES" | grep -c . || echo 0) ))
+        echo -e "📝 检查 $TOTAL_FILES 个 dev-notes 文档"
+
+        if python3 "$ROOT_DIR/packages/sage-tools/src/sage/tools/dev/tools/devnotes_checker.py" \
+            --root "$ROOT_DIR" \
+            --changed-only 2>&1; then
+            echo -e "${GREEN}✅ Dev-notes 文档规范检查通过${NC}"
+        else
+            echo ""
+            echo -e "${RED}❌ Dev-notes 文档不符合规范${NC}"
+            echo -e "${YELLOW}   详情请查看上方错误信息${NC}"
+            exit 1
+        fi
     else
-        echo -e "${YELLOW}⚠️  devnotes_checker.py 未找到，跳过检查${NC}"
+        echo -e "${YELLOW}⚠️  devnotes_checker 未找到，跳过检查${NC}"
+        echo -e "${YELLOW}   安装 sage-tools: pip install -e packages/sage-tools${NC}"
     fi
 else
     echo -e "${YELLOW}ℹ️  没有 dev-notes 文档变更，跳过检查${NC}"
@@ -114,16 +116,10 @@ fi
 echo ""
 
 # ============================================================================
-# 3. 运行架构合规性检查（自定义）
+# 3. 运行架构合规性检查
 # ============================================================================
 
 echo -e "${BLUE}🏗️  步骤 3/3: 架构合规性检查${NC}"
-
-# 检查 architecture_checker.py 是否存在
-if [ ! -f "$ROOT_DIR/tools/architecture_checker.py" ]; then
-    echo -e "${YELLOW}⚠️  警告: 找不到 architecture_checker.py，跳过架构检查${NC}"
-    exit 0
-fi
 
 # 获取暂存的 Python 文件
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
@@ -135,20 +131,60 @@ fi
 
 echo -e "📝 检查 $(echo "$STAGED_FILES" | wc -l) 个暂存的 Python 文件"
 
-# 运行架构检查（仅检查变更文件）
-if python3 "$ROOT_DIR/tools/architecture_checker.py" \
-    --root "$ROOT_DIR" \
-    --changed-only \
-    --diff HEAD 2>&1 | tail -20; then
-    echo -e "${GREEN}✅ 架构合规性检查通过${NC}"
-    echo ""
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}✅ 所有检查通过！可以提交${NC}"
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    exit 0
+# 优先使用 sage dev 命令（如果 sage-tools 已安装）
+if command -v sage >/dev/null 2>&1; then
+    if sage dev check-architecture --changed-only 2>&1 | tail -20; then
+        echo -e "${GREEN}✅ 架构合规性检查通过${NC}"
+        echo ""
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${GREEN}✅ 所有检查通过！可以提交${NC}"
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        exit 0
+    else
+        echo ""
+        echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${RED}❌ 架构合规性检查失败！${NC}"
+        echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo "请修复上述问题后再提交。"
+        echo ""
+        echo "💡 提示:"
+        echo "  • 查看架构规范: docs/PACKAGE_ARCHITECTURE.md"
+        echo "  • 强制提交（不推荐）: git commit --no-verify"
+        echo ""
+        exit 1
+    fi
+# 回退到直接调用 Python 脚本（向后兼容）
+elif [ -f "$ROOT_DIR/packages/sage-tools/src/sage/tools/dev/tools/architecture_checker.py" ]; then
+    if python3 "$ROOT_DIR/packages/sage-tools/src/sage/tools/dev/tools/architecture_checker.py" \
+        --root "$ROOT_DIR" \
+        --changed-only \
+        --diff HEAD 2>&1 | tail -20; then
+        echo -e "${GREEN}✅ 架构合规性检查通过${NC}"
+        echo ""
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${GREEN}✅ 所有检查通过！可以提交${NC}"
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        exit 0
+    else
+        echo ""
+        echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${RED}❌ 架构合规性检查失败！${NC}"
+        echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo "请修复上述问题后再提交。"
+        echo ""
+        echo "💡 提示:"
+        echo "  • 查看架构规范: docs/PACKAGE_ARCHITECTURE.md"
+        echo "  • 强制提交（不推荐）: git commit --no-verify"
+        echo ""
+        exit 1
+    fi
 else
-    echo ""
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}⚠️  architecture_checker 未找到，跳过检查${NC}"
+    echo -e "${YELLOW}   安装 sage-tools: pip install -e packages/sage-tools${NC}"
+    exit 0
+fi
     echo -e "${RED}❌ 架构合规性检查失败！${NC}"
     echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""

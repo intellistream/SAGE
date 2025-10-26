@@ -67,6 +67,10 @@ def quality(
     all_files: bool = typer.Option(False, "--all-files", help="检查所有文件（而不仅是变更的文件）"),
     # 选择性运行特定检查
     hook: str = typer.Option(None, "--hook", help="只运行指定的 pre-commit hook"),
+    # 架构和文档检查选项
+    architecture: bool = typer.Option(True, "--architecture/--no-architecture", help="运行架构合规性检查"),
+    devnotes: bool = typer.Option(True, "--devnotes/--no-devnotes", help="运行 dev-notes 文档规范检查"),
+    readme: bool = typer.Option(False, "--readme", help="运行包 README 质量检查"),
     # Submodule 选项
     include_submodules: bool = typer.Option(
         False, "--include-submodules", help="包含 submodules 进行质量检查（默认跳过）"
@@ -85,10 +89,12 @@ def quality(
     lint_ruff: bool = typer.Option(True, "--ruff/--no-ruff", help="运行Ruff检查"),
     type_check: bool = typer.Option(True, "--type-check/--no-type-check", help="运行类型检查"),
 ):
-    """代码质量检查和修复（基于 pre-commit）
+    """代码质量检查和修复（基于 pre-commit + 架构检查）
 
     这是 pre-commit 的友好包装器，提供统一的质量检查接口。
     所有配置都在 tools/pre-commit-config.yaml 中管理，确保一致性。
+
+    额外集成了架构合规性检查、dev-notes 文档规范检查和 README 质量检查。
 
     默认情况下会跳过所有 submodules（docs-public, sageLLM, sageDB等），
     避免修改外部依赖的代码。如需检查 submodules，请使用 --include-submodules。
@@ -99,6 +105,9 @@ def quality(
         sage dev quality --all-files            # 检查所有文件
         sage dev quality --hook black           # 只运行 black
         sage dev quality --no-format            # 跳过格式化
+        sage dev quality --no-architecture      # 跳过架构检查
+        sage dev quality --no-devnotes          # 跳过文档检查
+        sage dev quality --readme               # 包含 README 质量检查
         sage dev quality --include-submodules   # 包含 submodules 进行检查
         sage dev quality --submodules-only      # 仅检查 submodules
     """
@@ -296,6 +305,7 @@ def quality(
     # 运行 pre-commit
     console.print(f"\n🚀 执行命令: {' '.join(cmd)}\n")
 
+    precommit_passed = True
     try:
         result = subprocess.run(
             cmd,
@@ -307,24 +317,123 @@ def quality(
         # 0 = 所有检查通过
         # 1 = 有检查失败或文件被修改
         if result.returncode == 0:
-            console.print("\n[green]✅ 所有质量检查通过！[/green]")
-            return
+            console.print("\n[green]✅ Pre-commit 检查通过！[/green]")
         elif warn_only:
-            console.print("\n[yellow]⚠️ 发现质量问题，但继续执行（warn-only 模式）[/yellow]")
-            return
+            console.print("\n[yellow]⚠️ Pre-commit 发现问题，但继续执行（warn-only 模式）[/yellow]")
+            precommit_passed = False
         else:
-            console.print("\n[red]❌ 质量检查失败[/red]")
-            if not all_files:
-                console.print(
-                    "[yellow]💡 提示: 使用 --all-files 检查所有文件，或修复上述问题后重新运行[/yellow]"
-                )
-            raise typer.Exit(1)
+            console.print("\n[red]❌ Pre-commit 检查失败[/red]")
+            precommit_passed = False
 
     except KeyboardInterrupt:
         console.print("\n[yellow]⚠️ 用户中断[/yellow]")
         raise typer.Exit(130)
     except Exception as e:
-        console.print(f"\n[red]❌ 运行失败: {e}[/red]")
+        console.print(f"\n[red]❌ Pre-commit 运行失败: {e}[/red]")
+        precommit_passed = False
+
+    # 运行额外的架构和文档检查
+    extra_checks_passed = True
+
+    # 架构检查
+    if architecture and not submodules_only:
+        console.print("\n" + "=" * 60)
+        console.print("🏗️  运行架构合规性检查...")
+        console.print("=" * 60)
+        try:
+            from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
+
+            checker = ArchitectureChecker(root_dir=str(project_dir))
+            if all_files:
+                result = checker.check_all()
+            else:
+                result = checker.check_changed_files(diff_target="HEAD")
+
+            if result.passed:
+                console.print("[green]✅ 架构合规性检查通过[/green]")
+            else:
+                console.print(f"[red]❌ 发现 {len(result.violations)} 个架构违规[/red]")
+                for violation in result.violations[:5]:  # 只显示前5个
+                    console.print(f"   • {violation.file_path}: {violation.message}")
+                if len(result.violations) > 5:
+                    console.print(f"   ... 还有 {len(result.violations) - 5} 个问题")
+                extra_checks_passed = False
+        except Exception as e:
+            console.print(f"[yellow]⚠️  架构检查失败: {e}[/yellow]")
+            if not warn_only:
+                extra_checks_passed = False
+
+    # Dev-notes 文档检查
+    if devnotes and not submodules_only:
+        console.print("\n" + "=" * 60)
+        console.print("📚 运行 dev-notes 文档规范检查...")
+        console.print("=" * 60)
+        try:
+            from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
+
+            checker = DevNotesChecker(root_dir=str(project_dir))
+            if all_files:
+                result = checker.check_all()
+            else:
+                result = checker.check_changed_files()
+
+            if result.get("passed", False):
+                console.print("[green]✅ Dev-notes 文档规范检查通过[/green]")
+            else:
+                issues = result.get("issues", [])
+                console.print(f"[red]❌ 发现 {len(issues)} 个文档问题[/red]")
+                for issue in issues[:5]:  # 只显示前5个
+                    console.print(f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}")
+                if len(issues) > 5:
+                    console.print(f"   ... 还有 {len(issues) - 5} 个问题")
+                extra_checks_passed = False
+        except Exception as e:
+            console.print(f"[yellow]⚠️  文档检查失败: {e}[/yellow]")
+            if not warn_only:
+                extra_checks_passed = False
+
+    # README 检查（可选）
+    if readme and not submodules_only:
+        console.print("\n" + "=" * 60)
+        console.print("📄 运行包 README 质量检查...")
+        console.print("=" * 60)
+        try:
+            from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
+
+            checker = PackageREADMEChecker(root_dir=str(project_dir))
+            results = checker.check_all(fix=False)
+
+            low_score_packages = [r for r in results if r.score < 80.0]
+            if not low_score_packages:
+                console.print("[green]✅ README 质量检查通过[/green]")
+            else:
+                console.print(f"[yellow]⚠️  {len(low_score_packages)} 个包的 README 需要改进[/yellow]")
+                for r in low_score_packages[:5]:
+                    console.print(f"   • {r.package_name}: {r.score:.1f}/100")
+                if len(low_score_packages) > 5:
+                    console.print(f"   ... 还有 {len(low_score_packages) - 5} 个包")
+                console.print("💡 运行 `sage dev check-readme --report` 查看详细信息")
+                # README 检查不阻止提交，只是警告
+        except Exception as e:
+            console.print(f"[yellow]⚠️  README 检查失败: {e}[/yellow]")
+
+    # 汇总结果
+    console.print("\n" + "=" * 60)
+    if precommit_passed and extra_checks_passed:
+        console.print("[green]✅ 所有质量检查通过！[/green]")
+        console.print("=" * 60)
+        return
+    elif warn_only:
+        console.print("[yellow]⚠️  发现质量问题，但继续执行（warn-only 模式）[/yellow]")
+        console.print("=" * 60)
+        return
+    else:
+        console.print("[red]❌ 质量检查失败[/red]")
+        console.print("=" * 60)
+        if not all_files:
+            console.print(
+                "[yellow]💡 提示: 使用 --all-files 检查所有文件，或修复上述问题后重新运行[/yellow]"
+            )
         raise typer.Exit(1)
 
 
@@ -1470,6 +1579,227 @@ def _check_package_dependencies(package_name: str, verbose: bool):
 
     if verbose:
         console.print("    ℹ️ 依赖检查已迁移到 `sage doctor packages --deps`，当前调用保持兼容")
+
+
+# ===================================
+# 架构和文档检查命令
+# ===================================
+
+
+@app.command()
+def check_architecture(
+    project_root: str = typer.Option(".", help="项目根目录"),
+    changed_only: bool = typer.Option(False, "--changed-only", help="仅检查变更的文件"),
+    diff: str = typer.Option("HEAD", "--diff", help="git diff 比较的目标（用于 --changed-only）"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
+):
+    """检查代码架构合规性
+
+    检查项：
+    - 包依赖规则（分层架构）
+    - 导入路径合规性
+    - 模块结构规范
+
+    示例：
+        sage dev check-architecture                    # 检查所有文件
+        sage dev check-architecture --changed-only     # 仅检查变更文件
+        sage dev check-architecture --diff main        # 对比 main 分支
+    """
+    from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
+
+    project_path = Path(project_root).resolve()
+
+    if not project_path.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"\n🏗️  检查 SAGE 架构合规性...")
+    console.print(f"📁 项目路径: {project_path}")
+
+    try:
+        checker = ArchitectureChecker(root_dir=str(project_path))
+
+        if changed_only:
+            console.print(f"🔍 仅检查相对于 {diff} 的变更文件")
+            result = checker.check_changed_files(diff_target=diff)
+        else:
+            console.print("🔍 检查所有文件")
+            result = checker.check_all()
+
+        # 显示结果
+        if result.passed:
+            console.print("\n[green]✅ 架构合规性检查通过！[/green]")
+            if verbose and result.files_checked:
+                console.print(f"📝 检查了 {len(result.files_checked)} 个文件")
+        else:
+            console.print("\n[red]❌ 发现架构违规！[/red]")
+            console.print(f"📝 检查了 {len(result.files_checked)} 个文件")
+            console.print(f"⚠️  发现 {len(result.violations)} 个问题：\n")
+
+            for violation in result.violations:
+                console.print(f"[red]❌ {violation.file_path}:{violation.line_number}[/red]")
+                console.print(f"   {violation.message}")
+                if violation.suggestion:
+                    console.print(f"   💡 建议: {violation.suggestion}")
+                console.print()
+
+            raise typer.Exit(1)
+
+    except Exception as e:
+        console.print(f"[red]❌ 架构检查失败: {e}[/red]")
+        if verbose:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
+@app.command()
+def check_devnotes(
+    project_root: str = typer.Option(".", help="项目根目录"),
+    changed_only: bool = typer.Option(False, "--changed-only", help="仅检查变更的文档"),
+    check_structure: bool = typer.Option(False, "--check-structure", help="检查目录结构"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
+):
+    """检查 dev-notes 文档规范
+
+    检查项：
+    - 文档分类是否正确
+    - 元数据是否完整（Date, Author, Summary）
+    - 文件名是否符合规范
+
+    示例：
+        sage dev check-devnotes                    # 检查所有文档
+        sage dev check-devnotes --changed-only     # 仅检查变更的文档
+        sage dev check-devnotes --check-structure  # 检查目录结构
+    """
+    from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
+
+    project_path = Path(project_root).resolve()
+
+    if not project_path.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"\n📚 检查 dev-notes 文档规范...")
+    console.print(f"📁 项目路径: {project_path}")
+
+    try:
+        checker = DevNotesChecker(root_dir=str(project_path))
+
+        if check_structure:
+            console.print("🔍 检查目录结构...")
+            result = checker.check_structure()
+        elif changed_only:
+            console.print("🔍 仅检查变更的文档...")
+            result = checker.check_changed_files()
+        else:
+            console.print("🔍 检查所有文档...")
+            result = checker.check_all()
+
+        # 显示结果
+        if result.get("passed", False):
+            console.print("\n[green]✅ 文档规范检查通过！[/green]")
+            if verbose:
+                console.print(f"📝 检查了 {result.get('total_checked', 0)} 个文档")
+        else:
+            console.print("\n[red]❌ 发现文档规范问题！[/red]")
+            issues = result.get("issues", [])
+            console.print(f"⚠️  发现 {len(issues)} 个问题：\n")
+
+            for issue in issues:
+                console.print(f"[red]❌ {issue['file']}[/red]")
+                console.print(f"   {issue['message']}")
+                if issue.get("suggestion"):
+                    console.print(f"   💡 建议: {issue['suggestion']}")
+                console.print()
+
+            raise typer.Exit(1)
+
+    except Exception as e:
+        console.print(f"[red]❌ 文档检查失败: {e}[/red]")
+        if verbose:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
+@app.command()
+def check_readme(
+    package: str = typer.Argument(None, help="要检查的包名（不指定则检查所有包）"),
+    project_root: str = typer.Option(".", help="项目根目录"),
+    fix: bool = typer.Option(False, "--fix", help="生成缺失的章节（交互模式）"),
+    report: bool = typer.Option(False, "--report", help="生成详细报告"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
+):
+    """检查包 README 文档质量
+
+    检查项：
+    - README 文件是否存在
+    - 必需章节是否完整
+    - 文档结构是否符合模板
+
+    示例：
+        sage dev check-readme                      # 检查所有包
+        sage dev check-readme sage-common          # 检查特定包
+        sage dev check-readme --report             # 生成详细报告
+        sage dev check-readme sage-libs --fix      # 交互式修复
+    """
+    from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
+
+    project_path = Path(project_root).resolve()
+
+    if not project_path.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"\n📄 检查包 README 质量...")
+    console.print(f"📁 项目路径: {project_path}")
+
+    try:
+        checker = PackageREADMEChecker(root_dir=str(project_path))
+
+        if package:
+            console.print(f"🔍 检查包: {package}")
+            result = checker.check_package(package, fix=fix)
+            results = [result]
+        else:
+            console.print("🔍 检查所有包...")
+            results = checker.check_all(fix=fix)
+
+        # 显示结果
+        all_passed = all(r.score >= 80.0 for r in results)
+
+        if report:
+            checker.generate_report(results)
+
+        if all_passed:
+            console.print("\n[green]✅ README 质量检查通过！[/green]")
+            for r in results:
+                console.print(f"  {r.package_name}: {r.score:.1f}/100")
+        else:
+            console.print("\n[yellow]⚠️  部分 README 需要改进：[/yellow]\n")
+            for r in results:
+                status = "✅" if r.score >= 80.0 else "⚠️"
+                console.print(f"{status} {r.package_name}: {r.score:.1f}/100")
+                if r.issues and verbose:
+                    for issue in r.issues:
+                        console.print(f"   - {issue}")
+
+            if not all_passed:
+                console.print("\n💡 运行 `sage dev check-readme --report` 查看详细报告")
+                console.print("💡 运行 `sage dev check-readme <package> --fix` 交互式修复")
+
+            raise typer.Exit(1)
+
+    except Exception as e:
+        console.print(f"[red]❌ README 检查失败: {e}[/red]")
+        if verbose:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

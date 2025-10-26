@@ -16,8 +16,8 @@ make docs-check          # 快速检查
 make docs-report         # 详细报告
 
 # 方式2: 直接使用工具
-python tools/devnotes_checker.py --all
-python tools/package_readme_checker.py --all
+sage dev check-devnotes --all
+sage dev check-readme --all
 
 # 方式3: 使用维护脚本
 bash tools/maintenance/check_docs.sh
@@ -27,10 +27,10 @@ bash tools/maintenance/check_docs.sh
 
 ```bash
 # 生成 dev-notes 检查报告
-python tools/devnotes_checker.py --all --strict
+sage dev check-devnotes --all --strict
 
 # 生成 Package README 质量报告
-python tools/package_readme_checker.py --all --report --output report.md
+sage dev check-readme --all --report --output report.md
 
 # 生成完整文档质量报告
 make docs-report
@@ -40,10 +40,10 @@ make docs-report
 
 ```bash
 # 检查单个包的 README
-python tools/package_readme_checker.py --package sage-kernel
+sage dev check-readme --package sage-kernel
 
 # 检查已修改的 dev-notes
-python tools/devnotes_checker.py --changed-only
+sage dev check-devnotes --changed-only
 ```
 
 ## 📝 文档编写工作流
@@ -66,7 +66,7 @@ cp docs/dev-notes/TEMPLATE.md docs/dev-notes/<category>/<your-doc>.md
 #             migration, tools, archive
 
 # 4. 检查格式
-python tools/devnotes_checker.py --changed-only
+sage dev check-devnotes --changed-only
 
 # 5. 提交（pre-commit 会自动检查）
 git add docs/dev-notes/<category>/<your-doc>.md
@@ -94,7 +94,7 @@ cp tools/templates/PACKAGE_README_TEMPLATE.md packages/<your-package>/README.md
 #   - License
 
 # 4. 检查质量
-python tools/package_readme_checker.py --package <your-package>
+sage dev check-readme --package <your-package>
 
 # 5. 提交
 git add packages/<your-package>/README.md
@@ -105,7 +105,7 @@ git commit -m "docs: Add README for <your-package>"
 
 ```bash
 # 1. 检查当前状态
-python tools/package_readme_checker.py --package <package-name>
+sage dev check-readme --package <package-name>
 
 # 2. 查看缺少的章节
 # 工具会列出所有缺失的必需和推荐章节
@@ -114,7 +114,7 @@ python tools/package_readme_checker.py --package <package-name>
 # 参考: tools/templates/PACKAGE_README_TEMPLATE.md
 
 # 4. 重新检查
-python tools/package_readme_checker.py --package <package-name>
+sage dev check-readme --package <package-name>
 
 # 5. 确认改进
 # 目标: 至少 80 分，最好 100 分
@@ -195,7 +195,7 @@ git commit --no-verify -m "message"
 
 ```bash
 # 1. 检查缺少什么
-python tools/package_readme_checker.py --package <pkg> --report
+sage dev check-readme --package <pkg> --report
 
 # 2. 优先添加必需章节（70%权重）
 #    - Overview, Installation, Quick Start, License
@@ -218,10 +218,10 @@ make docs-check
 make docs-report
 
 # 只检查已修改的文档
-python tools/devnotes_checker.py --changed-only
+sage dev check-devnotes --changed-only
 
 # 检查与特定提交的差异
-python tools/devnotes_checker.py --changed-only --diff HEAD~5
+sage dev check-devnotes --changed-only --diff HEAD~5
 ```
 
 ## 📊 当前状态 (2024-10-24)
@@ -255,8 +255,8 @@ python tools/devnotes_checker.py --changed-only --diff HEAD~5
 
 ### 工具
 
-- `tools/devnotes_checker.py` - Dev-notes 规范检查
-- `tools/package_readme_checker.py` - README 质量检查
+- `sage dev check-devnotes` - Dev-notes 规范检查
+- `sage dev check-readme` - README 质量检查
 - `tools/devnotes_organizer.py` - 文档整理助手
 - `tools/maintenance/check_docs.sh` - 完整检查脚本
 

@@ -214,7 +214,7 @@ Summary: 文档简要说明
 
 ### 7.1 检查工具
 创建了专门的工具检查各包 README 质量：
-- **工具**: `tools/package_readme_checker.py`
+- **工具**: `sage dev check-readme`
 - **模板**: `tools/templates/PACKAGE_README_TEMPLATE.md`
 - **指南**: `docs/dev-notes/ci-cd/PACKAGE_README_GUIDELINES.md`
 
@@ -295,7 +295,7 @@ find . -type f -name "*.md" \
   -exec dirname {} \; | sort | uniq -c | sort -rn | head -30
 
 # 检查 dev-notes 文档规范
-python tools/devnotes_checker.py --all
+sage dev check-devnotes --all
 
 # 生成 dev-notes 整理建议
 python tools/devnotes_organizer.py
