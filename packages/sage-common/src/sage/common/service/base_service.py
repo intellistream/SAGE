@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 class BaseService(ABC):  # noqa: B024
     """BaseService is the abstract base class for all services in SAGE.
     It defines the core interface and provides access to runtime context and logger.
-    
+
     Note: This ABC provides default implementations for all methods, allowing
     subclasses to selectively override only what they need. No abstract methods
     are required as all service methods have reasonable defaults.

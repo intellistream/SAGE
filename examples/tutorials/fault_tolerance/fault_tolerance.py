@@ -212,7 +212,7 @@
 #             "   - Quick reference: packages/sage-kernel/src/sage/kernel/fault_tolerance/QUICK_REFERENCE.md"
 #         )
 #         print(
-#             "   - More examples: packages/sage-kernel/src/sage/kernel/fault_tolerance/examples.py"
+#             "   - More examples: examples/kernel/fault_tolerance_examples.py"
 #         )
 
 #     except Exception as e:
