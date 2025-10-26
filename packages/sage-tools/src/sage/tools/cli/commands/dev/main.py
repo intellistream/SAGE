@@ -1810,5 +1810,171 @@ def check_readme(
         raise typer.Exit(1)
 
 
+@app.command()
+def check_all(
+    project_root: str = typer.Option(".", help="项目根目录"),
+    changed_only: bool = typer.Option(False, "--changed-only", help="仅检查变更的文件"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
+    continue_on_error: bool = typer.Option(
+        False, "--continue-on-error", help="出错时继续执行其他检查"
+    ),
+):
+    """运行所有质量检查（架构 + 文档 + README）
+
+    这是一个便捷命令，依次运行：
+    1. 架构合规性检查
+    2. Dev-notes 文档规范检查
+    3. 包 README 质量检查
+
+    示例：
+        sage dev check-all                      # 检查所有项目
+        sage dev check-all --changed-only       # 仅检查变更文件
+        sage dev check-all --continue-on-error  # 出错继续执行
+        sage dev check-all --verbose            # 详细输出
+    """
+    project_path = Path(project_root).resolve()
+
+    if not project_path.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+        raise typer.Exit(1)
+
+    console.print("\n" + "=" * 70)
+    console.print("🔍 运行所有质量检查")
+    console.print("=" * 70)
+    console.print(f"📁 项目路径: {project_path}\n")
+
+    checks_passed = []
+    checks_failed = []
+
+    # 1. 架构检查
+    console.print("=" * 70)
+    console.print("🏗️  [1/3] 架构合规性检查")
+    console.print("=" * 70)
+    try:
+        from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
+
+        checker = ArchitectureChecker(root_dir=str(project_path))
+        if changed_only:
+            result = checker.check_changed_files(diff_target="HEAD")
+        else:
+            result = checker.check_all()
+
+        if result.passed:
+            console.print("[green]✅ 架构合规性检查通过[/green]\n")
+            checks_passed.append("架构检查")
+        else:
+            console.print(f"[red]❌ 发现 {len(result.violations)} 个架构违规[/red]")
+            if verbose:
+                for violation in result.violations[:3]:
+                    console.print(f"   • {violation.file_path}: {violation.message}")
+                if len(result.violations) > 3:
+                    console.print(f"   ... 还有 {len(result.violations) - 3} 个问题")
+            console.print()
+            checks_failed.append("架构检查")
+            if not continue_on_error:
+                raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]❌ 架构检查失败: {e}[/red]\n")
+        checks_failed.append("架构检查")
+        if not continue_on_error:
+            raise typer.Exit(1)
+
+    # 2. Dev-notes 文档检查
+    console.print("=" * 70)
+    console.print("📚 [2/3] Dev-notes 文档规范检查")
+    console.print("=" * 70)
+    try:
+        from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
+
+        checker = DevNotesChecker(root_dir=str(project_path))
+        if changed_only:
+            result = checker.check_changed_files()
+        else:
+            result = checker.check_all()
+
+        if result.get("passed", False):
+            console.print("[green]✅ Dev-notes 文档规范检查通过[/green]\n")
+            checks_passed.append("文档检查")
+        else:
+            issues = result.get("issues", [])
+            console.print(f"[red]❌ 发现 {len(issues)} 个文档问题[/red]")
+            if verbose:
+                for issue in issues[:3]:
+                    console.print(
+                        f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
+                    )
+                if len(issues) > 3:
+                    console.print(f"   ... 还有 {len(issues) - 3} 个问题")
+            console.print()
+            checks_failed.append("文档检查")
+            if not continue_on_error:
+                raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]❌ 文档检查失败: {e}[/red]\n")
+        checks_failed.append("文档检查")
+        if not continue_on_error:
+            raise typer.Exit(1)
+
+    # 3. README 检查
+    console.print("=" * 70)
+    console.print("📄 [3/3] 包 README 质量检查")
+    console.print("=" * 70)
+    try:
+        from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
+
+        checker = PackageREADMEChecker(root_dir=str(project_path))
+        results = checker.check_all(fix=False)
+
+        low_score_packages = [r for r in results if r.score < 80.0]
+        if not low_score_packages:
+            console.print("[green]✅ README 质量检查通过[/green]\n")
+            checks_passed.append("README 检查")
+        else:
+            console.print(f"[yellow]⚠️  {len(low_score_packages)} 个包的 README 需要改进[/yellow]")
+            if verbose:
+                for r in low_score_packages[:5]:
+                    console.print(f"   • {r.package_name}: {r.score:.1f}/100")
+                if len(low_score_packages) > 5:
+                    console.print(f"   ... 还有 {len(low_score_packages) - 5} 个包")
+            console.print()
+            # README 检查不阻止，只是警告
+            checks_passed.append("README 检查（警告）")
+    except Exception as e:
+        console.print(f"[yellow]⚠️  README 检查失败: {e}[/yellow]\n")
+        # README 检查失败不算严重错误
+        checks_passed.append("README 检查（跳过）")
+
+    # 汇总结果
+    console.print("=" * 70)
+    console.print("📊 检查结果汇总")
+    console.print("=" * 70)
+
+    if checks_passed:
+        console.print("[green]✅ 通过的检查:[/green]")
+        for check in checks_passed:
+            console.print(f"   • {check}")
+
+    if checks_failed:
+        console.print("\n[red]❌ 失败的检查:[/red]")
+        for check in checks_failed:
+            console.print(f"   • {check}")
+
+    console.print("\n" + "=" * 70)
+    if not checks_failed:
+        console.print("[green]🎉 所有检查通过！[/green]")
+        console.print("=" * 70)
+    else:
+        console.print(f"[red]❌ {len(checks_failed)} 项检查失败[/red]")
+        console.print("=" * 70)
+        console.print("\n💡 提示:")
+        console.print("  • 使用 --verbose 查看详细错误")
+        console.print("  • 使用 --continue-on-error 继续执行所有检查")
+        console.print("  • 运行单独的检查命令修复问题:")
+        console.print("    - sage dev check-architecture")
+        console.print("    - sage dev check-devnotes")
+        console.print("    - sage dev check-readme")
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()

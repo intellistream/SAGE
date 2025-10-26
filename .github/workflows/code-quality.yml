@@ -52,6 +52,9 @@ jobs:
             types-requests \
             types-setuptools
 
+          # 安装 sage-tools（包含架构和文档检查器）
+          pip install -e packages/sage-tools
+
           echo "✅ 工具安装完成"
           echo ""
           echo "📋 已安装版本:"
@@ -59,6 +62,7 @@ jobs:
           black --version
           ruff --version
           mypy --version
+          sage dev --version || echo "sage CLI 已安装"
 
       - name: Check Pre-commit Configuration
         run: |
@@ -151,6 +155,61 @@ jobs:
           echo ""
           echo "✅ 代码质量检查完成"
 
+      - name: Architecture Compliance Check
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "🏗️  运行架构合规性检查..."
+          echo ""
+
+          # 使用新的 sage dev 命令
+          sage dev check-architecture --changed-only || {
+            echo ""
+            echo "❌ 架构合规性检查失败！"
+            echo ""
+            echo "💡 请查看 SAGE 架构规范文档："
+            echo "   docs/PACKAGE_ARCHITECTURE.md"
+            echo ""
+            echo "💡 或运行以下命令获取详细信息："
+            echo "   sage dev check-architecture --verbose"
+            echo ""
+            exit 1
+          }
+
+          echo "✅ 架构合规性检查通过"
+
+      - name: Documentation Standards Check
+        if: github.event_name == 'pull_request'
+        continue-on-error: true  # 文档检查失败不阻止 PR
+        run: |
+          echo "📚 运行 dev-notes 文档规范检查..."
+          echo ""
+
+          # 检查是否有 dev-notes 变更
+          DEVNOTES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^docs/dev-notes/.*\.md$' || true)
+
+          if [ -z "$DEVNOTES_CHANGED" ]; then
+            echo "ℹ️  没有 dev-notes 文档变更，跳过检查"
+            exit 0
+          fi
+
+          # 使用新的 sage dev 命令
+          sage dev check-devnotes --changed-only || {
+            echo ""
+            echo "⚠️  文档规范检查发现问题"
+            echo ""
+            echo "💡 请确保文档包含必需的元数据："
+            echo "   - Date: YYYY-MM-DD"
+            echo "   - Author: Your Name"
+            echo "   - Summary: Brief description"
+            echo ""
+            echo "💡 查看文档模板："
+            echo "   docs/dev-notes/TEMPLATE.md"
+            echo ""
+            # 不退出，只是警告
+          }
+
+          echo "✅ 文档检查完成"
+
       - name: Generate Quality Report
         if: always()
         run: |
@@ -188,11 +247,13 @@ jobs:
           if [ "${{ job.status }}" = "success" ]; then
             echo "✅ **检查通过** - 代码符合质量标准" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "使用的工具:" >> $GITHUB_STEP_SUMMARY
+            echo "### 🛠️ 使用的工具" >> $GITHUB_STEP_SUMMARY
             echo "- Black (代码格式化)" >> $GITHUB_STEP_SUMMARY
             echo "- isort (导入排序)" >> $GITHUB_STEP_SUMMARY
             echo "- Ruff (快速 linter)" >> $GITHUB_STEP_SUMMARY
             echo "- Mypy (类型检查)" >> $GITHUB_STEP_SUMMARY
+            echo "- SAGE 架构检查器 (分层架构合规)" >> $GITHUB_STEP_SUMMARY
+            echo "- SAGE 文档检查器 (dev-notes 规范)" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **检查失败** - 发现代码质量问题" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -206,6 +267,13 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "# 自动修复 linting 问题" >> $GITHUB_STEP_SUMMARY
             echo "ruff check --fix ." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# 运行所有质量检查（推荐）" >> $GITHUB_STEP_SUMMARY
+            echo "sage dev quality" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# 运行特定检查" >> $GITHUB_STEP_SUMMARY
+            echo "sage dev check-architecture" >> $GITHUB_STEP_SUMMARY
+            echo "sage dev check-devnotes" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "# 安装 pre-commit 钩子（推荐）" >> $GITHUB_STEP_SUMMARY
             echo "./quickstart.sh" >> $GITHUB_STEP_SUMMARY
