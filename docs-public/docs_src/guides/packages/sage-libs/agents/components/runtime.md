@@ -1,20 +1,22 @@
 # Runtime 组件设计文档
 
 !!! note "定位"
-    `AgentRuntime`（`packages/sage-libs/src/sage/libs/agents/runtime/agent.py`）提供了一个**最小可用的执行循环**：接受用户问题 → 调用 `LLMPlanner` 生成 MCP 计划 → 逐步调用 `MCPRegistry` 中的工具 → 返回回复或兜底总结。
+`AgentRuntime`（`packages/sage-libs/src/sage/libs/agents/runtime/agent.py`）提供了一个**最小可用的执行循环**：接受用户问题
+→ 调用 `LLMPlanner` 生成 MCP 计划 → 逐步调用 `MCPRegistry` 中的工具 → 返回回复或兜底总结。
 
----
+______________________________________________________________________
 
 ## 1. 功能边界
 
 - **核心流程**：`step(user_query: str) -> str`
   1. 基于 `BaseProfile.render_system_prompt()` 和用户输入调用 `LLMPlanner.plan(...)`
-  2. 按照计划逐步执行 `tool` 步骤，记录成功/失败 `observations`
-  3. 若计划包含 `reply` 步骤则优先返回该文本；否则使用可选 `summarizer` 或内置模板整理观测
+  1. 按照计划逐步执行 `tool` 步骤，记录成功/失败 `observations`
+  1. 若计划包含 `reply` 步骤则优先返回该文本；否则使用可选 `summarizer` 或内置模板整理观测
 - **输入形态**：`execute(...)` 既可以直接传入字符串，也可以传入字典以临时覆写 `max_steps`、`profile_overrides`
-- **当前缺省**：源码中未启用 Memory、Reflection、事件总线等扩展；如需记忆能力，可参考 [Memory 组件文档](./memory.md) 在调用端接入 `MemoryManager` 或自定义服务
+- **当前缺省**：源码中未启用 Memory、Reflection、事件总线等扩展；如需记忆能力，可参考 [Memory 组件文档](./memory.md) 在调用端接入
+  `MemoryManager` 或自定义服务
 
----
+______________________________________________________________________
 
 ## 2. 核心实现摘录
 
@@ -54,32 +56,38 @@ class AgentRuntime(MapFunction):
                 schema = self.tools.describe().get(name, {}).get("input_schema", {})
                 miss = _missing_required(arguments, schema)
                 if miss:
-                    observations.append({
-                        "step": i,
-                        "tool": name,
-                        "ok": False,
-                        "error": f"Missing required fields: {miss}",
-                        "arguments": arguments,
-                    })
+                    observations.append(
+                        {
+                            "step": i,
+                            "tool": name,
+                            "ok": False,
+                            "error": f"Missing required fields: {miss}",
+                            "arguments": arguments,
+                        }
+                    )
                     continue
                 t0 = time.time()
                 try:
                     out = self.tools.call(name, arguments)
-                    observations.append({
-                        "step": i,
-                        "tool": name,
-                        "ok": True,
-                        "latency_ms": int((time.time() - t0) * 1000),
-                        "result": out,
-                    })
+                    observations.append(
+                        {
+                            "step": i,
+                            "tool": name,
+                            "ok": True,
+                            "latency_ms": int((time.time() - t0) * 1000),
+                            "result": out,
+                        }
+                    )
                 except Exception as e:
-                    observations.append({
-                        "step": i,
-                        "tool": name,
-                        "ok": False,
-                        "latency_ms": int((time.time() - t0) * 1000),
-                        "error": str(e),
-                    })
+                    observations.append(
+                        {
+                            "step": i,
+                            "tool": name,
+                            "ok": False,
+                            "latency_ms": int((time.time() - t0) * 1000),
+                            "error": str(e),
+                        }
+                    )
 
         if reply_text:
             return reply_text
@@ -89,7 +97,10 @@ class AgentRuntime(MapFunction):
             profile_hint = self.profile.render_system_prompt()
             messages = [
                 {"role": "system", "content": "你是一个严谨的助理。只输出中文总结。"},
-                {"role": "user", "content": f"[Profile]\n{profile_hint}\n\n[Observations]\n{observations}"},
+                {
+                    "role": "user",
+                    "content": f"[Profile]\n{profile_hint}\n\n[Observations]\n{observations}",
+                },
             ]
             _, summary = self.summarizer.execute([None, messages])
             return summary.strip()
@@ -106,12 +117,10 @@ class AgentRuntime(MapFunction):
         raise TypeError("AgentRuntime.execute 仅接受 str 或 dict 两种输入。")
 ```
 
-!!! info "容错要点"
-    - `_missing_required(...)` 定义在同文件顶部，用于根据工具 `input_schema.required` 做最小必填校验
-    - 所有工具调用（成功/失败）都会被记录，便于调试或在 summarizer 中使用
-    - 默认兜底输出会逐行列出每一步执行结果
+!!! info "容错要点" - `_missing_required(...)` 定义在同文件顶部，用于根据工具 `input_schema.required` 做最小必填校验 -
+所有工具调用（成功/失败）都会被记录，便于调试或在 summarizer 中使用 - 默认兜底输出会逐行列出每一步执行结果
 
----
+______________________________________________________________________
 
 ## 3. 快速上手
 
@@ -130,14 +139,16 @@ registry.register(ArxivSearcher())
 agent = AgentRuntime(profile, planner, registry, max_steps=4)
 print(agent.step("查两篇 LLM agent survey，再算 21*2+5"))
 
-agent.execute({
-    "user_query": "输出一句祝福",
-    "max_steps": 2,
-    "profile_overrides": {"tone": "warm"},
-})
+agent.execute(
+    {
+        "user_query": "输出一句祝福",
+        "max_steps": 2,
+        "profile_overrides": {"tone": "warm"},
+    }
+)
 ```
 
----
+______________________________________________________________________
 
 ## 4. 可扩展点
 
@@ -145,7 +156,7 @@ agent.execute({
 - **观测事件**：可以在 `observations` 中附加耗时、token 等指标，或推送到外部监控。
 - **Re-plan**：若要实现多轮 `observe → replan`，建议在外层根据 `observations` 再次调用 `planner.plan(...)`。
 
----
+______________________________________________________________________
 
 ## 5. 现状提示
 

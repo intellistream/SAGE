@@ -7,12 +7,13 @@ Welcome to SAGE tutorials! These are simple, focused examples to help you learn 
 New to SAGE? Start here:
 
 1. **[Hello World](hello_world.py)** - Your first SAGE program (30 seconds)
-2. **[Embedding Demo](embedding_demo.py)** - Text embeddings basics (2 minutes)
-3. **[Basic Agent](agents/basic_agent.py)** - Create your first agent (5 minutes)
+1. **[Embedding Demo](embedding_demo.py)** - Text embeddings basics (2 minutes)
+1. **[Basic Agent](agents/basic_agent.py)** - Create your first agent (5 minutes)
 
 ## 📚 Tutorial Categories
 
 ### Core API
+
 Basic SAGE pipeline operations and data flow.
 
 - **[core-api/](core-api/)** - Core pipeline operations
@@ -22,6 +23,7 @@ Basic SAGE pipeline operations and data flow.
 - **[service-api/](service-api/)** - Service integration patterns
 
 ### Agents
+
 Build intelligent agents that can use tools and reason.
 
 - **[agents/](agents/)** - Agent creation and workflow patterns
@@ -30,6 +32,7 @@ Build intelligent agents that can use tools and reason.
   - `arxiv_search_tool.py` - Custom tool example
 
 ### RAG (Retrieval-Augmented Generation)
+
 Learn to build question-answering systems with retrieval.
 
 - **[rag/](rag/)** - Basic RAG tutorials
@@ -38,6 +41,7 @@ Learn to build question-answering systems with retrieval.
   - `qa_local_llm.py` - Use local models
 
 ### Memory Systems
+
 Add persistence and memory to your AI applications.
 
 - **[memory/](memory/)** - Memory management tutorials
@@ -46,6 +50,7 @@ Add persistence and memory to your AI applications.
   - `rag_memory_pipeline.py` - Full pipeline with memory
 
 ### Multimodal AI
+
 Work with text, images, and video together.
 
 - **[multimodal/](multimodal/)** - Multimodal AI tutorials
@@ -53,6 +58,7 @@ Work with text, images, and video together.
   - `cross_modal_search.py` - Cross-modal search
 
 ### Scheduling & Parallelism
+
 Distribute and parallelize your workloads.
 
 - **[scheduler/](scheduler/)** - Task scheduling examples
@@ -60,12 +66,14 @@ Distribute and parallelize your workloads.
   - `scheduler_comparison.py` - Compare strategies
 
 ### Vector Databases
+
 High-performance vector storage and search.
 
 - **[sage_db/](sage_db/)** - SAGE DB tutorials
   - `workflow_demo.py` - Workflow patterns
 
 ### Service Integration
+
 Build and deploy AI services.
 
 - **[service/](service/)** - Service patterns ⭐ NEW
@@ -75,41 +83,50 @@ Build and deploy AI services.
   - `sage_flow/` - SAGE Flow service
 
 ### Utilities
+
 - **[fault_tolerance.py](fault_tolerance.py)** - Error handling and recovery
 
 ## 🎓 Learning Path
 
-### Beginner (< 1 hour)
+### Beginner (\< 1 hour)
+
 1. `hello_world.py` - Understand basic pipeline
-2. `embedding_demo.py` - Learn embeddings
-3. `core-api/` examples - Master core operations
+1. `embedding_demo.py` - Learn embeddings
+1. `core-api/` examples - Master core operations
 
 ### Intermediate (1-3 hours)
+
 1. `agents/basic_agent.py` - Build an agent
-2. `rag/simple_rag.py` - Create a RAG system
-3. `multimodal/quickstart.py` - Multimodal basics
-4. `service/embedding_service_demo.py` - Build a service
+1. `rag/simple_rag.py` - Create a RAG system
+1. `multimodal/quickstart.py` - Multimodal basics
+1. `service/embedding_service_demo.py` - Build a service
 
 ### Advanced (3+ hours)
+
 1. `memory/` - Add memory to your systems
-2. `scheduler/` - Parallelize your workloads
-3. `service/` - Build production services
+1. `scheduler/` - Parallelize your workloads
+1. `service/` - Build production services
 
 ## 🚀 Beyond Tutorials
 
 Once you've mastered the tutorials:
 
 ### Advanced Examples
+
 - **RAG & Benchmarks**: See `packages/sage-benchmark/` for production-ready RAG pipelines
 - **Memory Systems**: See `examples/tutorials/memory/` for advanced memory patterns
 
 ### Real Applications
+
 Check out `examples/apps/` for complete applications:
+
 - Video Intelligence
 - Medical Diagnosis
 
 ### Build Your Own
+
 Explore the full libraries in `packages/`:
+
 - `sage-libs` - Core functionality
 - `sage-apps` - Application templates
 - `sage-middleware` - Infrastructure components

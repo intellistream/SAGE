@@ -31,6 +31,7 @@ pipeline:
 ```
 
 **配置说明：**
+
 - `name`: 定义管道的唯一标识名称
 - `description`: 管道功能的文字描述
 - `version`: 配置版本号，用于版本管理
@@ -45,6 +46,7 @@ source:
 ```
 
 **配置说明：**
+
 - `data_path`: 指定输入数据文件的路径
 - `platform`: 数据源平台，通常为 `local`
 
@@ -61,6 +63,7 @@ retriever:
 ```
 
 **配置说明：**
+
 - `platform`: 检索器运行平台，可选 `local` 或 `remote`
 - `ltm.topk`: 长期记忆检索返回的结果数量
 - `kv_collection.bm25s`: 是否启用BM25搜索算法
@@ -76,6 +79,7 @@ reranker:
 ```
 
 **配置说明：**
+
 - `platform`: 重排序器运行平台
 - `model_name`: 使用的重排序模型，通常为BGE系列模型
 - `top_k`: 重排序后保留的文档数量
@@ -93,6 +97,7 @@ refiner:
 ```
 
 **配置说明：**
+
 - `platform`: 精炼器运行平台
 - `method`: API调用方法，通常为 `openai`
 - `model_name`: 使用的语言模型名称
@@ -109,6 +114,7 @@ sink:
 ```
 
 **配置说明：**
+
 - `platform`: Sink操作器运行平台
 - `drain_timeout`: 系统关闭时等待队列排空的最大时间
 - `drain_quiet_period`: 检查队列是否为空的间隔时间
@@ -126,6 +132,7 @@ generator:
 ```
 
 **配置说明：**
+
 - `type`: 生成器类型，可选 `local` 或 `remote`
 - `url`: 远程API服务的完整URL
 - `model`: 使用的语言模型名称
@@ -133,7 +140,9 @@ generator:
 - `temperature`: 生成随机性控制，范围0-1
 - `max_tokens`: 单次生成的最大token数量
 
-> 💡 **提示**: 可以使用 `sage config llm auto` 命令自动检测和配置本地LLM服务。详见 [CLI参考](../../tools/cli_reference.md#llm-服务自动配置)。
+> 💡 **提示**: 可以使用 `sage config llm auto` 命令自动检测和配置本地LLM服务。详见
+> [CLI参考](../../tools/cli_reference.md#llm-%E6%9C%8D%E5%8A%A1%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE)。
+
 - `seed`: 随机种子，用于保证结果的可重现性
 
 ### 6. Generator 配置
@@ -141,6 +150,7 @@ generator:
 生成器支持多种运行模式：
 
 #### 本地模式 (Local)
+
 ```yaml
 generator:
   local:
@@ -150,6 +160,7 @@ generator:
 ```
 
 #### VLLM模式
+
 ```yaml
 generator:
   vllm:
@@ -161,6 +172,7 @@ generator:
 ```
 
 #### 远程模式 (Remote)
+
 ```yaml
 generator:
   remote:
@@ -172,6 +184,7 @@ generator:
 ```
 
 **配置说明：**
+
 - `method`: 生成方法，可选 `hf`（HuggingFace）、`openai`（OpenAI API）
 - `model_name`: 使用的语言模型名称
 - `base_url`: API服务地址
@@ -187,6 +200,7 @@ chunk:
 ```
 
 **配置说明：**
+
 - `chunk_size`: 文本分块的大小（字符数）
 - `overlap`: 相邻文本块之间的重叠字符数
 
@@ -200,6 +214,7 @@ writer:
 ```
 
 **配置说明：**
+
 - `platform`: 写入器运行平台
 - `stm`: 是否启用短期记忆存储
 - `ltm`: 是否启用长期记忆存储
@@ -213,6 +228,7 @@ sink:
 ```
 
 **配置说明：**
+
 - `platform`: 输出处理平台
 - `file_path`: 结果输出文件的路径
 
@@ -224,6 +240,7 @@ promptor:
 ```
 
 **配置说明：**
+
 - `platform`: 提示器运行平台
 
 ### 11. Evaluate 配置
@@ -234,11 +251,13 @@ evaluate:
 ```
 
 **配置说明：**
+
 - `platform`: 评估器运行平台
 
 ## 多智能体配置 (multiagent_config.yaml)
 
 ### Question Bot (问题机器人)
+
 ```yaml
 question_bot:
   method: "openai"                          # API方法
@@ -251,6 +270,7 @@ question_bot_sink:
 ```
 
 ### Chief Bot (主控机器人)
+
 ```yaml
 chief_bot:
   llm:
@@ -264,6 +284,7 @@ chief_bot_sink:
 ```
 
 ### Searcher Bot (搜索机器人)
+
 ```yaml
 searcher_filter:
   tools: ["web_search"]                     # 可用工具列表
@@ -283,6 +304,7 @@ searcher_tool_sink:
 ```
 
 ### Answer Bot (回答机器人)
+
 ```yaml
 answer_bot:
   method: "openai"                          # API方法
@@ -294,48 +316,57 @@ answer_bot:
 ## 配置文件使用场景
 
 ### 1. 基础问答系统 (`config.yaml`)
+
 - 适用于简单的问答场景
 - 使用本地平台和基础组件
 
 ### 2. 数据摄取 (`config_for_ingest.yaml`)
+
 - 专门用于数据摄取和预处理
 - 配置文本分块和内存写入
 
 ### 3. 问答系统 (`config_for_qa.yaml`)
+
 - 完整的问答流程配置
 - 包含检索、重排序、精炼和生成
 
 ### 4. BM25搜索 (`config_bm25s.yaml`)
+
 - 启用BM25搜索算法的配置
 - 适用于基于关键词的检索场景
 
 ### 5. 分布式集群 (`config_ray.yaml`)
+
 - 使用Ray进行分布式处理
 - 适用于大规模数据处理
 
 ### 6. HuggingFace模型 (`config_hf.yaml`)
+
 - 专门使用HuggingFace模型的配置
 - 适用于本地模型推理
 
 ### 7. 混合模式 (`config_mixed.yaml`)
+
 - 结合本地和远程组件
 - 灵活的部署配置
 
 ### 8. 评估模式 (`config_evaluate.yaml`)
+
 - 专门用于模型评估
 - 配置评估数据和指标
 
 ### 9. 多智能体系统 (`multiagent_config.yaml`)
+
 - 配置多个智能体协作
 - 支持复杂的任务分解和协作
 
 ## 配置最佳实践
 
 1. **API密钥管理**: 建议将API密钥存储在环境变量中，避免在配置文件中硬编码
-2. **平台选择**: 根据实际部署环境选择合适的平台（local/remote）
-3. **资源配置**: 根据硬件资源调整模型选择和参数设置
-4. **版本管理**: 保持配置文件的版本号更新
-5. **路径配置**: 使用相对路径以提高配置的可移植性
+1. **平台选择**: 根据实际部署环境选择合适的平台（local/remote）
+1. **资源配置**: 根据硬件资源调整模型选择和参数设置
+1. **版本管理**: 保持配置文件的版本号更新
+1. **路径配置**: 使用相对路径以提高配置的可移植性
 
 ## 注意事项
 

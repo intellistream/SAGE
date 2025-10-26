@@ -5,30 +5,36 @@
 ## 功能特性
 
 ### 🔍 自动发现与分析
+
 - **智能扫描**: 自动发现 `examples/` 目录下的所有 Python 文件
 - **依赖分析**: 分析每个示例的导入依赖和外部包需求
 - **分类识别**: 自动识别示例的类别（tutorials、rag、memory 等）
 - **运行时评估**: 估算示例的运行时间（快速、中等、慢速）
 
 ### 🧪 CLI 集成测试
+
 - **集中入口**: `packages/sage-tools/tests/test_cli/runner.py` 汇总所有命令分组的测试用例
 - **真实路径**: 针对 `sage` Typer CLI 的高频命令执行带有隔离依赖的模拟“真命令”流程
 - **统一辅助**: `helpers.py` 提供配置、进程等虚拟对象，确保测试无副作用但覆盖更多执行逻辑
-- **便捷运行**: 可直接运行 `python packages/sage-tools/tests/test_cli/runner.py` 或通过 `sage dev test` 集成入口触发（后续任务）
+- **便捷运行**: 可直接运行 `python packages/sage-tools/tests/test_cli/runner.py` 或通过 `sage dev test`
+  集成入口触发（后续任务）
 
 ### 🚀 灵活的测试执行
+
 - **多种运行模式**: 支持独立脚本和 pytest 集成两种方式
 - **分类测试**: 可以按类别（如只测试 tutorials）运行测试
 - **快速测试**: 支持只运行快速测试以提高CI效率
 - **智能跳过**: 自动跳过需要用户输入、GUI或缺失依赖的示例
 
 ### 📊 详细的结果报告
+
 - **实时进度**: 显示测试执行进度和状态
 - **结果统计**: 提供通过/失败/跳过/超时的详细统计
 - **错误信息**: 捕获并显示详细的错误信息
 - **JSON报告**: 支持导出结构化的测试结果
 
 ### 🛠️ 环境管理
+
 - **测试环境**: 为每种类型的示例配置专门的测试环境
 - **模拟数据**: 为需要数据的示例自动生成测试数据
 - **配置管理**: 自动创建测试配置文件避免真实服务依赖
@@ -72,24 +78,28 @@ python3 tools/tests/test_examples.py analyze
 ### 按类别的测试策略
 
 #### Tutorials 类别
+
 - **超时**: 30秒
 - **依赖**: 通常无外部依赖
 - **期望成功率**: 80%+
 - **特点**: 基础功能演示，应该稳定运行
 
-#### RAG 类别  
+#### RAG 类别
+
 - **超时**: 120秒
 - **依赖**: 可能需要 API keys、向量数据库
 - **期望成功率**: 30%+（因依赖问题）
 - **特点**: 会自动跳过缺失API key的示例
 
 #### Memory 类别
+
 - **超时**: 60秒
 - **依赖**: 内存服务、数据文件
 - **期望成功率**: 60%+
 - **特点**: 测试内存管理功能
 
 #### Service 类别
+
 - **超时**: 90秒
 - **依赖**: 网络端口、配置文件
 - **期望成功率**: 可变
@@ -98,6 +108,7 @@ python3 tools/tests/test_examples.py analyze
 ### 自动跳过条件
 
 示例会在以下情况被自动跳过：
+
 - 包含 `# SKIP_TEST` 标记
 - 需要用户输入（`input()` 函数）
 - 需要GUI（tkinter、matplotlib show等）
@@ -119,21 +130,25 @@ tools/tests/
 ### 核心组件
 
 #### `ExampleAnalyzer`
+
 - 发现和分析示例文件
 - 提取依赖信息
 - 分类和评估示例
 
 #### `ExampleRunner`
+
 - 执行单个示例
 - 管理执行环境
 - 捕获输出和错误
 
 #### `ExampleTestSuite`
+
 - 协调整个测试流程
 - 生成测试报告
 - 管理测试统计
 
 #### `ExampleTestStrategies`
+
 - 为不同类别定义测试策略
 - 配置超时、环境变量等
 - 定义成功/失败模式
@@ -235,7 +250,7 @@ jobs:
     requires_data=False,
     success_patterns=["Success", "Completed"],
     failure_patterns=["Error", "Failed"],
-    environment_vars={"CUSTOM_VAR": "test_value"}
+    environment_vars={"CUSTOM_VAR": "test_value"},
 )
 ```
 
@@ -244,7 +259,7 @@ jobs:
 在 `ExampleTestFilters.should_skip_file()` 中添加：
 
 ```python
-if 'custom_marker' in content:
+if "custom_marker" in content:
     return True, "Custom skip condition"
 ```
 
@@ -253,11 +268,7 @@ if 'custom_marker' in content:
 在测试策略中定义 `success_patterns` 和 `failure_patterns`：
 
 ```python
-success_patterns=[
-    "Pipeline completed successfully",
-    "All tests passed",
-    "✓ Done"
-]
+success_patterns = ["Pipeline completed successfully", "All tests passed", "✓ Done"]
 ```
 
 ## 故障排除
@@ -265,9 +276,9 @@ success_patterns=[
 ### 常见问题
 
 1. **导入错误**: 确保 PYTHONPATH 正确设置
-2. **依赖缺失**: 使用 `--analyze` 查看依赖需求
-3. **超时**: 增加 `--timeout` 值或使用 `--quick`
-4. **权限问题**: 确保脚本有执行权限
+1. **依赖缺失**: 使用 `--analyze` 查看依赖需求
+1. **超时**: 增加 `--timeout` 值或使用 `--quick`
+1. **权限问题**: 确保脚本有执行权限
 
 ### 调试技巧
 
@@ -285,10 +296,10 @@ python3 tools/tests/test_examples.py test --category tutorials --timeout 120
 ## 贡献指南
 
 1. 新增示例时，确保包含适当的文档
-2. 添加 `# SKIP_TEST` 标记来跳过不适合自动测试的示例
-3. 为复杂示例添加配置文件模板
-4. 更新测试策略以覆盖新的示例类型
+1. 添加 `# SKIP_TEST` 标记来跳过不适合自动测试的示例
+1. 为复杂示例添加配置文件模板
+1. 更新测试策略以覆盖新的示例类型
 
----
+______________________________________________________________________
 
 这个测试系统让 SAGE 的示例代码始终保持高质量和可用性，为用户提供可靠的学习和参考资源。

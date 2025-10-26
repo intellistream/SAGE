@@ -1,12 +1,16 @@
-- **知识库构建**：命令会在首次运行时扫描本地仓库并构建轻量级向量索引（内存缓存），无需额外安装 SageDB。若本地缺乏源码（如 `pip install isage` 场景），会自动从官方 `SAGE-Pub` 仓库下载 `docs_src` 压缩包并缓存于 `~/.sage/cache/pipeline-builder/docs`。
+- **知识库构建**：命令会在首次运行时扫描本地仓库并构建轻量级向量索引（内存缓存），无需额外安装 SageDB。若本地缺乏源码（如 `pip install isage` 场景），会自动从官方
+  `SAGE-Pub` 仓库下载 `docs_src` 压缩包并缓存于 `~/.sage/cache/pipeline-builder/docs`。
+
 # Pipeline Builder
 
-`sage pipeline build` 通过与大语言模型（LLM）的多轮对话，快速生成可运行的 SAGE Pipeline 配置文件。v2 版本会在提示词中注入来自项目示例、组件目录以及自动检索到的知识片段，帮助模型了解可复用的 Source/Stage/Sink 组合，省去了用户查阅 API 文档的负担。
+`sage pipeline build` 通过与大语言模型（LLM）的多轮对话，快速生成可运行的 SAGE Pipeline 配置文件。v2
+版本会在提示词中注入来自项目示例、组件目录以及自动检索到的知识片段，帮助模型了解可复用的 Source/Stage/Sink 组合，省去了用户查阅 API 文档的负担。
 
 ## 功能要点
 
 - **自动上下文加载**：命令会解析 `examples/config/*.yaml` 中的示例 pipeline，并生成组件速查表提供给 LLM。
-- **RAG 检索增强**：默认启用轻量级知识库，自动从 `docs-public/docs_src`、`examples/config`、`packages/sage-libs` 等目录中检索与需求最相关的片段作为提示补充。
+- **RAG 检索增强**：默认启用轻量级知识库，自动从 `docs-public/docs_src`、`examples/config`、`packages/sage-libs`
+  等目录中检索与需求最相关的片段作为提示补充。
 - **多轮优化**：交互过程中可以输入修改意见，LLM 会在上一轮基础上改写配置。
 - **非交互模式**：通过 `--non-interactive` 结合 `--name` 与 `--goal`，一次性生成并输出配置。
 
@@ -36,18 +40,18 @@ sage pipeline run .sage/output/pipelines/qa-helper.yaml
 
 ## 重要选项
 
-| 选项 | 说明 |
-| --- | --- |
-| `--context-limit` | 控制注入提示词的示例 pipeline 数量（默认 4）。|
-| `--context-file/-c` | 追加自定义上下文文件，内容将直接合并进提示。|
-| `--show-contexts` | 打印静态上下文（示例 + 自定义），便于调试。|
-| `--knowledge-top-k` | 检索知识库时返回的片段数量（默认 5）。|
-| `--no-knowledge` | 禁用知识库检索，只使用静态上下文。|
-| `--show-knowledge` | 打印当前检索命中的知识片段。|
-| 环境变量 | `SAGE_PIPELINE_DOWNLOAD_DOCS=0` 可关闭自动下载；`SAGE_PIPELINE_DOCS_URL` 可指定自定义文档压缩包地址。|
-| `--requirements-path` | 从 JSON 文件读取需求输入，跳过交互式问答。|
-| `--output` | 指定生成的 YAML 文件路径或目录。|
-| `--overwrite` | 允许覆盖已有文件。|
+| 选项                  | 说明                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `--context-limit`     | 控制注入提示词的示例 pipeline 数量（默认 4）。                                                        |
+| `--context-file/-c`   | 追加自定义上下文文件，内容将直接合并进提示。                                                          |
+| `--show-contexts`     | 打印静态上下文（示例 + 自定义），便于调试。                                                           |
+| `--knowledge-top-k`   | 检索知识库时返回的片段数量（默认 5）。                                                                |
+| `--no-knowledge`      | 禁用知识库检索，只使用静态上下文。                                                                    |
+| `--show-knowledge`    | 打印当前检索命中的知识片段。                                                                          |
+| 环境变量              | `SAGE_PIPELINE_DOWNLOAD_DOCS=0` 可关闭自动下载；`SAGE_PIPELINE_DOCS_URL` 可指定自定义文档压缩包地址。 |
+| `--requirements-path` | 从 JSON 文件读取需求输入，跳过交互式问答。                                                            |
+| `--output`            | 指定生成的 YAML 文件路径或目录。                                                                      |
+| `--overwrite`         | 允许覆盖已有文件。                                                                                    |
 
 ## 配置输出
 

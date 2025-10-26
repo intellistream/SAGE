@@ -5,7 +5,9 @@
 ## 核心组件
 
 ### `base_tool.py`
+
 工具基础类：
+
 - 定义标准的工具接口
 - 提供工具生命周期管理
 - 包含错误处理和日志记录
@@ -13,7 +15,9 @@
 - 提供工具性能监控接口
 
 ### `tool_registry.py`
+
 工具注册管理：
+
 - 工具的注册和发现机制
 - 工具版本管理和兼容性检查
 - 工具依赖关系管理
@@ -30,8 +34,10 @@
 ## 工具开发指南
 
 ### 基础工具类
+
 ```python
 from sage.lib.tools.base.base_tool import BaseTool
+
 
 class MyTool(BaseTool):
     def __init__(self, config=None):
@@ -48,6 +54,7 @@ class MyTool(BaseTool):
 ```
 
 ### 工具注册
+
 ```python
 from sage.lib.tools.base.tool_registry import ToolRegistry
 

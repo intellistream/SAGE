@@ -14,7 +14,7 @@ Architecture Note:
 
 import logging
 from abc import ABC
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
@@ -43,7 +43,7 @@ class BaseService(ABC):  # noqa: B024
         """
         # ctx 由 ServiceFactory 在 __init__ 调用前通过 __new__ 方法注入
         if not hasattr(self, "ctx"):
-            self.ctx: Optional["ServiceContext"] = None
+            self.ctx: ServiceContext | None = None
         self._logger = None
 
     @property
@@ -67,8 +67,8 @@ class BaseService(ABC):  # noqa: B024
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs,
     ):
         """
@@ -87,8 +87,8 @@ class BaseService(ABC):  # noqa: B024
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs,
     ):
         """

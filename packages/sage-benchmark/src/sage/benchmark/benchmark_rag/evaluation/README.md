@@ -5,6 +5,7 @@ This directory contains the benchmark evaluation framework for RAG pipelines.
 ## Overview
 
 The evaluation framework provides:
+
 - **Generic Benchmark Runner**: Run any RAG pipeline on benchmark datasets
 - **Result Collection**: Collect and save benchmark results with metadata
 - **Metrics Evaluation**: Compute performance metrics (exact match, F1, etc.)
@@ -26,22 +27,24 @@ evaluation/
 **Key Components:**
 
 1. **benchmark_runner.py**: Generic framework that can run ANY pipeline
+
    - `BatchDataLoader`: Load datasets in batches
    - `PipelineRunner`: Dynamically load and run pipelines
    - `ResultsCollector`: Collect and save results
 
-2. **evaluate_results.py**: Compute metrics on results
+1. **evaluate_results.py**: Compute metrics on results
+
    - Exact Match
    - F1 Score
    - Statistical analysis
 
-3. **config/benchmark_config.yaml**: Universal configuration template
+1. **config/benchmark_config.yaml**: Universal configuration template
 
 ### Legacy Architecture (Deprecated)
 
-The `legacy_selfrag_experiment.py` file contains the original implementation where
-Self-RAG pipeline logic was embedded in the evaluation framework. This approach
-mixed responsibilities and is no longer recommended.
+The `legacy_selfrag_experiment.py` file contains the original implementation where Self-RAG pipeline
+logic was embedded in the evaluation framework. This approach mixed responsibilities and is no
+longer recommended.
 
 ## Usage
 
@@ -94,8 +97,10 @@ python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results \
 To integrate a new pipeline with the benchmark runner:
 
 1. **Create pipeline in `implementations/pipelines/`**:
+
    ```python
    # implementations/pipelines/my_pipeline.py
+
 
    def process_item(item: Dict, config: Dict) -> Dict:
        """
@@ -118,7 +123,8 @@ To integrate a new pipeline with the benchmark runner:
        return result
    ```
 
-2. **Create config file**:
+1. **Create config file**:
+
    ```yaml
    # evaluation/config/my_pipeline_config.yaml
    pipeline:
@@ -127,7 +133,8 @@ To integrate a new pipeline with the benchmark runner:
        # Your pipeline parameters
    ```
 
-3. **Run benchmark**:
+1. **Run benchmark**:
+
    ```bash
    python -m sage.benchmark.benchmark_rag.evaluation.benchmark_runner \
        --config evaluation/config/my_pipeline_config.yaml
@@ -163,15 +170,18 @@ Benchmark results are saved in JSON format:
 ## Design Principles
 
 1. **Separation of Concerns**:
+
    - Pipelines in `implementations/` (WHAT to test)
    - Evaluation in `evaluation/` (HOW to test)
    - Configurations in `config/` (PARAMETERS)
 
-2. **Extensibility**:
+1. **Extensibility**:
+
    - Easy to add new pipelines without changing evaluation code
    - Generic interfaces (`process_item`)
 
-3. **Reproducibility**:
+1. **Reproducibility**:
+
    - All configurations saved in results
    - Timestamped results
    - Deterministic processing
@@ -181,17 +191,20 @@ Benchmark results are saved in JSON format:
 If you're migrating from `legacy_selfrag_experiment.py`:
 
 **Old way:**
+
 ```bash
 python evaluation/pipeline_experiment.py --config config/config_selfrag.yaml
 ```
 
 **New way:**
+
 ```bash
 python -m sage.benchmark.benchmark_rag.evaluation.benchmark_runner \
     --config evaluation/config/benchmark_config.yaml
 ```
 
 The new approach:
+
 - ✅ Separates pipeline logic from evaluation framework
 - ✅ Works with ANY pipeline, not just Self-RAG
 - ✅ Cleaner, more maintainable code

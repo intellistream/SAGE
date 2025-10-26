@@ -5,11 +5,7 @@ import numpy as np
 # Add repo package paths if needed
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.middleware.components.sage_db.python.sage_db import (
-        DatabaseConfig,
-        IndexType,
-        SageDB,
-    )
+    from sage.middleware.components.sage_db.python.sage_db import DatabaseConfig, IndexType, SageDB
 except ModuleNotFoundError:
     import sys
     from pathlib import Path
@@ -32,11 +28,7 @@ except ModuleNotFoundError:
         sys.path.insert(0, str(p))
 
     from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.middleware.components.sage_db.python.sage_db import (
-        DatabaseConfig,
-        IndexType,
-        SageDB,
-    )
+    from sage.middleware.components.sage_db.python.sage_db import DatabaseConfig, IndexType, SageDB
 
 
 def main():

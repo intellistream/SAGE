@@ -11,16 +11,19 @@
 ## 功能特性
 
 ### 🎯 多模态数据融合
+
 - 支持文本+图像联合检索
 - 可配置的融合权重（文本60% + 图像40%）
 - 多种融合策略：加权平均、连接、注意力机制等
 
 ### 🔍 智能检索
+
 - 基于相似度的多模态匹配
 - 结构化元数据支持
 - 位置和属性信息的联合查询
 
 ### 🤖 生成式问答
+
 - 与OpenAI GPT模型集成
 - 基于检索结果的上下文增强
 - 结构化答案输出
@@ -65,16 +68,18 @@ SAGE_EXAMPLES_MODE=test python examples/rag/qa_multimodal_fusion.py
 ## 配置说明
 
 ### 融合策略配置
+
 ```python
 db_config = {
     "fusion_strategy": "weighted_average",  # 融合策略
-    "text_weight": 0.6,                     # 文本权重
-    "image_weight": 0.4,                    # 图像权重
-    "dimension": 256                        # 嵌入维度
+    "text_weight": 0.6,  # 文本权重
+    "image_weight": 0.4,  # 图像权重
+    "dimension": 256,  # 嵌入维度
 }
 ```
 
 ### 支持的融合策略
+
 - `weighted_average`: 加权平均融合
 - `concatenation`: 向量连接融合
 - `attention_based`: 注意力机制融合
@@ -83,12 +88,14 @@ db_config = {
 ## 知识库数据
 
 示例包含4个著名地标的多模态数据：
+
 - 埃菲尔铁塔（巴黎）
 - 大本钟（伦敦）
 - 东京塔（东京）
 - 悉尼歌剧院（悉尼）
 
 每个条目包含：
+
 - 文本描述
 - 图像嵌入向量（模拟）
 - 结构化元数据
@@ -96,6 +103,7 @@ db_config = {
 ## 扩展使用
 
 ### 添加新的融合策略
+
 ```python
 # 在fusion_strategies.h中定义新策略
 class CustomFusion : public FusionStrategyInterface {
@@ -107,14 +115,14 @@ class CustomFusion : public FusionStrategyInterface {
 ```
 
 ### 集成真实的多模态数据库
+
 ```python
 # 使用实际的MultimodalSageDB
 from sage.db.multimodal import MultimodalSageDB
 
-db = MultimodalSageDB.create_text_image_db({
-    "dimension": 512,
-    "fusion_strategy": "attention_based"
-})
+db = MultimodalSageDB.create_text_image_db(
+    {"dimension": 512, "fusion_strategy": "attention_based"}
+)
 ```
 
 ## 依赖要求
@@ -128,4 +136,5 @@ db = MultimodalSageDB.create_text_image_db({
 
 - `packages/sage-middleware/src/sage/middleware/components/sage_db/` - C++实现
 - `examples/rag/qa_multimodal_fusion.py` - Python演示
-- `packages/sage-middleware/src/sage/middleware/components/sage_db/examples/multimodal_demo.cpp` - C++演示
+- `packages/sage-middleware/src/sage/middleware/components/sage_db/examples/multimodal_demo.cpp` -
+  C++演示

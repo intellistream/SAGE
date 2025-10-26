@@ -19,47 +19,28 @@ Common utilities, data types, and base classes used across all SAGE packages.
 
 ### Core
 
-::: sage.common.core
-    options:
-      show_root_heading: true
-      show_source: true
+::: sage.common.core options: show_root_heading: true show_source: true
 
 ### Components
 
 #### Embedding Services
 
-::: sage.common.components.sage_embedding
-    options:
-      show_root_heading: true
-      members:
-        - EmbeddingService
-        - EmbeddingFactory
+::: sage.common.components.sage_embedding options: show_root_heading: true members: -
+EmbeddingService - EmbeddingFactory
 
 #### vLLM Integration
 
-::: sage.common.components.sage_vllm
-    options:
-      show_root_heading: true
-      members:
-        - VLLMService
+::: sage.common.components.sage_vllm options: show_root_heading: true members: - VLLMService
 
 ### Configuration
 
-::: sage.common.config
-    options:
-      show_root_heading: true
-      show_source: true
+::: sage.common.config options: show_root_heading: true show_source: true
 
 ### Utilities
 
 #### Logging
 
-::: sage.common.utils.logging
-    options:
-      show_root_heading: true
-      members:
-        - setup_logger
-        - get_logger
+::: sage.common.utils.logging options: show_root_heading: true members: - setup_logger - get_logger
 
 ## Quick Examples
 
@@ -70,8 +51,7 @@ from sage.common.components.sage_embedding import EmbeddingFactory
 
 # Create embedding service
 embedding = EmbeddingFactory.create_embedding(
-    provider="openai",
-    model_name="text-embedding-3-small"
+    provider="openai", model_name="text-embedding-3-small"
 )
 
 # Encode text

@@ -34,6 +34,7 @@ API documentation is automatically generated from Python docstrings using:
 To improve API documentation:
 
 1. Write clear docstrings in your code
-2. Follow [Google docstring format](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
-3. Include examples in docstrings
-4. Document all public APIs
+1. Follow
+   [Google docstring format](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
+1. Include examples in docstrings
+1. Document all public APIs

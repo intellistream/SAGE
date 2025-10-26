@@ -81,25 +81,25 @@ git checkout main
 
 ## 📂 文件位置
 
-| 内容 | 路径 |
-|------|------|
-| C++ 头文件 | `sageTSDB/include/sage_tsdb/` |
-| C++ 实现 | `sageTSDB/src/` |
-| CMake 配置 | `sageTSDB/CMakeLists.txt` |
-| 构建脚本 | `sageTSDB/build.sh` |
-| Python 服务层 | `python/` |
-| 示例代码 | `examples/` |
-| 主文档 | `README.md` |
-| Submodule 设置 | `SUBMODULE_SETUP.md` |
+| 内容           | 路径                          |
+| -------------- | ----------------------------- |
+| C++ 头文件     | `sageTSDB/include/sage_tsdb/` |
+| C++ 实现       | `sageTSDB/src/`               |
+| CMake 配置     | `sageTSDB/CMakeLists.txt`     |
+| 构建脚本       | `sageTSDB/build.sh`           |
+| Python 服务层  | `python/`                     |
+| 示例代码       | `examples/`                   |
+| 主文档         | `README.md`                   |
+| Submodule 设置 | `SUBMODULE_SETUP.md`          |
 
 ## 🐛 故障排除
 
-| 问题 | 解决方案 |
-|------|---------|
-| Submodule 为空 | `git submodule update --init --recursive` |
-| Detached HEAD | `cd sageTSDB && git checkout main` |
-| 构建失败 | 确保 submodule 已初始化，重新运行 `./build.sh` |
-| 找不到头文件 | 检查 `sageTSDB/` 是否存在且有内容 |
+| 问题           | 解决方案                                       |
+| -------------- | ---------------------------------------------- |
+| Submodule 为空 | `git submodule update --init --recursive`      |
+| Detached HEAD  | `cd sageTSDB && git checkout main`             |
+| 构建失败       | 确保 submodule 已初始化，重新运行 `./build.sh` |
+| 找不到头文件   | 检查 `sageTSDB/` 是否存在且有内容              |
 
 ## 📞 获取帮助
 

@@ -1,6 +1,7 @@
 # RAG Pipeline Implementations
 
-This directory contains various RAG pipeline implementations for benchmarking different retrieval strategies.
+This directory contains various RAG pipeline implementations for benchmarking different retrieval
+strategies.
 
 ## 📁 Structure
 
@@ -71,6 +72,7 @@ python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_multimodal_f
 ## 📊 Performance Comparison
 
 Use these implementations to compare:
+
 - **Accuracy**: How well each method retrieves relevant documents
 - **Latency**: Response time for different approaches
 - **Scalability**: Performance with increasing data size
@@ -79,6 +81,7 @@ Use these implementations to compare:
 ## 🔧 Configuration
 
 Each pipeline uses configuration files from `../../config/`:
+
 - `config_dense_milvus.yaml` - Milvus dense settings
 - `config_sparse_milvus.yaml` - Milvus sparse settings
 - `config_qa_chroma.yaml` - ChromaDB settings
@@ -88,5 +91,5 @@ See `../../config/README.md` for configuration details.
 
 ## 📖 Documentation
 
-For implementation details, see the docstrings in each pipeline file.
-For benchmark results, run the evaluation framework in `../../evaluation/`.
+For implementation details, see the docstrings in each pipeline file. For benchmark results, run the
+evaluation framework in `../../evaluation/`.

@@ -17,7 +17,6 @@ from functools import lru_cache
 from pathlib import Path
 
 import yaml
-
 from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
 from sage.common.components.sage_embedding.factory import EmbeddingFactory
 from sage.common.config.output_paths import get_sage_paths

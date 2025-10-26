@@ -17,11 +17,11 @@ profile:
   role: "planner"
   language: "zh"
   goals:
-    - "以最少步骤完成用户意图"
-    - "优先使用提供的 MCP 工具"
+  - "以最少步骤完成用户意图"
+  - "优先使用提供的 MCP 工具"
   constraints:
-    - "工具参数必须符合 JSONSchema"
-    - "计划步数不超过 6"
+  - "工具参数必须符合 JSONSchema"
+  - "计划步数不超过 6"
   persona:
     style: "concise"
 
@@ -39,10 +39,10 @@ planner:
 mcp:
   # 本地示例工具（在脚本里实现并注册）
   local_tools:
-    - name: "calculator"
-      enable: true
-    - name: "arxiv_search"
-      enable: true
+  - name: "calculator"
+    enable: true
+  - name: "arxiv_search"
+    enable: true
   # 可选：远程 MCP Server（若有）
   remotes: []
   # remotes:
@@ -78,9 +78,9 @@ memory:
   create_knowledge_graph: false
 
 tools:
-  - module: "examples.agents.tools.arxiv_search_tool"
-    class:  "ArxivSearchTool"
-    init_kwargs: {}
+- module: "examples.agents.tools.arxiv_search_tool"
+  class: "ArxivSearchTool"
+  init_kwargs: {}
 
 runtime:
   max_steps: 6
@@ -91,5 +91,3 @@ sink:
   format: "json"
   show_metadata: true
   save_to_file: "results/agent_planner_mcp_output.jsonl"
-
-

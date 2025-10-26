@@ -3,6 +3,7 @@
 ## 问题背景
 
 在开发 SAGE Pipeline 应用时，如果不正确地清理资源，可能导致：
+
 - 进程无法正常退出（僵尸进程）
 - 资源泄漏（文件句柄、网络连接等）
 - Service Pipeline 持续轮询，消耗 CPU
@@ -85,6 +86,7 @@ class MyServiceSource(SourceFunction):
 ## 完整示例
 
 参见 `examples/tutorials/memory/rag_memory_pipeline.py`，它展示了：
+
 - ✅ 使用 `env.close()` 清理环境
 - ✅ 在 SinkFunction 中关闭 bridges
 - ✅ 在 SourceFunction 中检查 bridge 状态
@@ -93,6 +95,7 @@ class MyServiceSource(SourceFunction):
 ## 效果
 
 正确使用这些最佳实践后：
+
 - ✅ 程序能够正常退出（不需要 Ctrl+C 或 timeout）
 - ✅ 所有资源被正确释放
 - ✅ 没有僵尸进程或资源泄漏
@@ -101,10 +104,11 @@ class MyServiceSource(SourceFunction):
 ## 调试建议
 
 如果程序无法正常退出，检查：
+
 1. 是否调用了 `env.close()`？
-2. Service Pipelines 的 bridges 是否已关闭？
-3. SourceFunction 是否检查了 bridge 状态？
-4. 是否有其他阻塞操作（如无限循环、未关闭的网络连接）？
+1. Service Pipelines 的 bridges 是否已关闭？
+1. SourceFunction 是否检查了 bridge 状态？
+1. 是否有其他阻塞操作（如无限循环、未关闭的网络连接）？
 
 ## 总结
 

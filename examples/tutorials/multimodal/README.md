@@ -5,6 +5,7 @@ Examples demonstrating multimodal AI capabilities (text, image, video).
 ## Examples
 
 ### 1. Quickstart (`quickstart.py`)
+
 Simple text-image multimodal example.
 
 ```bash
@@ -12,6 +13,7 @@ python examples/tutorials/multimodal/quickstart.py
 ```
 
 ### 2. Cross-Modal Search (`cross_modal_search.py`)
+
 Search images using text queries and vice versa.
 
 ```bash

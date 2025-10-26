@@ -112,7 +112,7 @@ repos:
   hooks:
   - id: detect-secrets
     args: [--baseline, tools/secrets.baseline]
-    exclude: ^(\.env\.template|examples/config/.*\.yaml|tests/fixtures/)
+    exclude: ^(\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$)
 
 # To install pre-commit hooks:
 #   pre-commit install

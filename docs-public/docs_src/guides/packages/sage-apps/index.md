@@ -19,6 +19,7 @@ Application examples showcasing SAGE's capabilities.
 AI-powered medical diagnosis system using MRI image analysis.
 
 **Features**:
+
 - Diagnostic agent with image analysis
 - Report generation
 - Knowledge base integration
@@ -27,6 +28,7 @@ AI-powered medical diagnosis system using MRI image analysis.
 **Location**: `packages/sage-apps/src/sage/apps/medical_diagnosis/`
 
 **Quick Start**:
+
 ```bash
 # Setup
 cd packages/sage-apps/src/sage/apps/medical_diagnosis
@@ -42,12 +44,14 @@ python run_diagnosis.py
 ```
 
 **Components**:
+
 - `agents/`: Diagnostic agents (DiagnosticAgent, ImageAnalyzer, ReportGenerator)
 - `tools/`: Medical knowledge base and utilities
 - `config/`: Agent and model configurations
 - `scripts/`: Data preparation scripts
 
 **Documentation**:
+
 - See `packages/sage-apps/src/sage/apps/medical_diagnosis/README.md`
 - Example workflows in `examples/apps/medical_diagnosis/`
 
@@ -56,6 +60,7 @@ python run_diagnosis.py
 Video content analysis and understanding pipeline.
 
 **Features**:
+
 - Video frame extraction
 - Object detection and tracking
 - Scene understanding
@@ -65,6 +70,7 @@ Video content analysis and understanding pipeline.
 **Location**: `packages/sage-apps/src/sage/apps/video/`
 
 **Quick Start**:
+
 ```bash
 # Run video pipeline
 cd packages/sage-apps/src/sage/apps/video
@@ -72,6 +78,7 @@ python video_intelligence_pipeline.py --video input.mp4
 ```
 
 **Operators**:
+
 - `perception.py`: Visual perception (object detection, face recognition)
 - `analytics.py`: Scene analysis and event detection
 - `preprocessing.py`: Video preprocessing (frame extraction, resizing)
@@ -80,6 +87,7 @@ python video_intelligence_pipeline.py --video input.mp4
 - `sinks.py`: Result output
 
 **Documentation**:
+
 - See `packages/sage-apps/src/sage/apps/video/README.md`
 
 ## Installation
@@ -108,8 +116,7 @@ agent = DiagnosticAgent(config_path="config/agent_config.yaml")
 
 # Diagnose single case
 result = agent.diagnose(
-    image_path="data/case_001.npy",
-    patient_info={"age": 45, "gender": "男"}
+    image_path="data/case_001.npy", patient_info={"age": 45, "gender": "男"}
 )
 
 print(result.report)
@@ -134,6 +141,7 @@ results = pipeline.process("input.mp4")
 ### Adding New Applications
 
 1. Create application directory:
+
    ```
    packages/sage-apps/src/sage/apps/my_app/
    ├── __init__.py
@@ -144,11 +152,11 @@ results = pipeline.process("input.mp4")
    └── scripts/        # Utility scripts
    ```
 
-2. Implement your application logic
+1. Implement your application logic
 
-3. Add documentation and examples
+1. Add documentation and examples
 
-4. Add tests in `packages/sage-apps/tests/my_app/`
+1. Add tests in `packages/sage-apps/tests/my_app/`
 
 ### Testing
 
@@ -181,8 +189,8 @@ Applications in `sage-apps` demonstrate:
 We welcome new application examples! Please:
 
 1. Ensure code quality and documentation
-2. Add comprehensive tests
-3. Follow SAGE architecture guidelines
-4. Include setup instructions and dependencies
+1. Add comprehensive tests
+1. Follow SAGE architecture guidelines
+1. Include setup instructions and dependencies
 
 See [Contributing Guide](../../community/community.md) for details.

@@ -110,12 +110,34 @@ except ImportError as e:
 
 
 # ============================================================================
-# 主命令 Callback - 显示欢迎信息
+# 主命令 Callback - 显示欢迎信息和版本
 # ============================================================================
 
 
+def version_callback(value: bool):
+    """显示版本信息"""
+    if value:
+        try:
+            from sage.common._version import __version__
+
+            console.print(f"SAGE Tools version {__version__}")
+        except ImportError:
+            console.print("SAGE Tools version unknown")
+        raise typer.Exit()
+
+
 @app.callback(invoke_without_command=True)
-def dev_callback(ctx: typer.Context):
+def dev_callback(
+    ctx: typer.Context,
+    version: bool = typer.Option(
+        None,
+        "--version",
+        "-v",
+        help="显示版本信息",
+        callback=version_callback,
+        is_eager=True,
+    ),
+):
     """
     🛠️ SAGE 开发工具
 
@@ -124,12 +146,12 @@ def dev_callback(ctx: typer.Context):
     if ctx.invoked_subcommand is None:
         # 如果没有调用子命令，显示欢迎信息
         console.print("\n[bold blue]🛠️  SAGE 开发工具[/bold blue]\n")
-        console.print("使用 [cyan]sage dev --help[/cyan] 查看所有可用命令\n")
+        console.print("使用 [cyan]sage-dev --help[/cyan] 查看所有可用命令\n")
         console.print("[bold]快速开始:[/bold]")
-        console.print("  [green]sage dev quality check[/green]         # 运行所有质量检查")
-        console.print("  [green]sage dev project test[/green]          # 运行测试")
-        console.print("  [green]sage dev maintain doctor[/green]       # 健康检查")
-        console.print("  [green]sage dev package version list[/green]  # 查看版本\n")
+        console.print("  [green]sage-dev quality check[/green]         # 运行所有质量检查")
+        console.print("  [green]sage-dev project test[/green]          # 运行测试")
+        console.print("  [green]sage-dev maintain doctor[/green]       # 健康检查")
+        console.print("  [green]sage-dev package version list[/green]  # 查看版本\n")
         console.print("[bold]命令组:[/bold]")
         console.print("  [cyan]quality[/cyan]   - 质量检查（架构、文档、代码格式）")
         console.print("  [cyan]project[/cyan]   - 项目管理（状态、分析、测试、清理）")

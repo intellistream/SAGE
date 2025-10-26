@@ -7,6 +7,7 @@ This directory contains examples demonstrating various features of SageTSDB.
 ### 1. Basic Usage (`basic_usage.py`)
 
 Demonstrates fundamental operations:
+
 - Creating a time series database
 - Adding individual and batch data points
 - Querying with time ranges and tags
@@ -19,6 +20,7 @@ python basic_usage.py
 ### 2. Stream Join (`stream_join_demo.py`)
 
 Shows out-of-order stream join capabilities:
+
 - Generating streams with out-of-order data
 - Configuring join parameters (window size, max delay)
 - Performing window-based joins
@@ -31,6 +33,7 @@ python stream_join_demo.py
 ### 3. Service Integration (`service_demo.py`)
 
 Illustrates using SageTSDB through the service interface:
+
 - Creating and configuring service instances
 - Service-based data operations
 - Window aggregation through service API
@@ -68,6 +71,7 @@ python examples/service_demo.py
 ## Next Steps
 
 After running these examples, check out:
+
 - [SageTSDB README](../README.md) for comprehensive documentation
 - [Algorithm Guide](../docs/algorithms_guide.md) for implementing custom algorithms
 - SAGE workflow integration examples in the main examples directory

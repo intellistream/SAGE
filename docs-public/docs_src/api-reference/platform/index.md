@@ -17,31 +17,17 @@ Platform services: queue descriptors, storage backends, and service base classes
 
 ### Queue Descriptors
 
-::: sage.platform.queue
-    options:
-      show_root_heading: true
-      members:
-        - BaseQueueDescriptor
-        - PythonQueueDescriptor
-        - RayQueueDescriptor
-        - RPCQueueDescriptor
+::: sage.platform.queue options: show_root_heading: true members: - BaseQueueDescriptor -
+PythonQueueDescriptor - RayQueueDescriptor - RPCQueueDescriptor
 
 ### Storage Backends
 
-::: sage.platform.storage.kv_backend
-    options:
-      show_root_heading: true
-      members:
-        - BaseKVBackend
-        - DictKVBackend
+::: sage.platform.storage.kv_backend options: show_root_heading: true members: - BaseKVBackend -
+DictKVBackend
 
 ### Service Base
 
-::: sage.platform.service
-    options:
-      show_root_heading: true
-      members:
-        - BaseService
+::: sage.platform.service options: show_root_heading: true members: - BaseService
 
 ## Quick Examples
 

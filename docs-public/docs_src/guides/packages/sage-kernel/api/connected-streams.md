@@ -1,6 +1,7 @@
 # ConnectedStreams API
 
-`ConnectedStreams`（`packages/sage-kernel/src/sage/core/api/connected_streams.py`）用于在同一 `Environment` 内组合多个 `DataStream`，并提供 `comap`、`join` 等多输入算子。本节介绍已经落地的接口以及主要约束。
+`ConnectedStreams`（`packages/sage-kernel/src/sage/core/api/connected_streams.py`）用于在同一 `Environment`
+内组合多个 `DataStream`，并提供 `comap`、`join` 等多输入算子。本节介绍已经落地的接口以及主要约束。
 
 ## 构造方式
 
@@ -13,7 +14,8 @@ stream_b = env.from_batch(["a", "b", "c"])
 connected = stream_a.connect(stream_b)
 ```
 
-`connect` 还支持将一个已有的 `ConnectedStreams` 再次连接新的 `DataStream` 或另一个 `ConnectedStreams`，内部会把 `_environment` 与 `transformation` 列表按顺序拼接。
+`connect` 还支持将一个已有的 `ConnectedStreams` 再次连接新的 `DataStream` 或另一个 `ConnectedStreams`，内部会把
+`_environment` 与 `transformation` 列表按顺序拼接。
 
 ## 链式操作
 
@@ -49,13 +51,16 @@ combined = connected.connect(third)
 ```python
 from sage.core.api.function.keyby_function import KeyByFunction
 
+
 class KeyA(KeyByFunction):
     def execute(self, data):
         return data["user_id"]
 
+
 class KeyB(KeyByFunction):
     def execute(self, data):
         return data["user"]
+
 
 # 相同的 key 规则应用于所有流
 same_key = connected.keyby(KeyA)
@@ -74,12 +79,14 @@ per_stream_key = connected.keyby([KeyA, KeyB])
 ```python
 from sage.core.api.function.comap_function import BaseCoMapFunction
 
+
 class RouteEvents(BaseCoMapFunction):
     def map0(self, data):
         return {"user": data["user_id"], "type": "user_event"}
 
     def map1(self, data):
         return {"user": data["user"], "type": "system_event"}
+
 
 result_stream = connected.comap(RouteEvents)
 result_stream.print()
@@ -98,18 +105,22 @@ result_stream.print()
 ```python
 from sage.core.api.function.join_function import BaseJoinFunction
 
+
 class MergeUserOrder(BaseJoinFunction):
     def execute(self, payload, key, tag):
         # tag: 0 表示来自第一个流，1 表示来自第二个流
         left, right = payload
         user, order = left, right
         if user and order:
-            return [{
-                "user_id": key,
-                "user_name": user.get("name"),
-                "order_id": order.get("id"),
-            }]
+            return [
+                {
+                    "user_id": key,
+                    "user_name": user.get("name"),
+                    "order_id": order.get("id"),
+                }
+            ]
         return []
+
 
 users = stream_a.keyby(lambda data: data["user_id"])
 orders = stream_b.keyby(lambda data: data["user"])
@@ -130,16 +141,19 @@ joined_stream = users.connect(orders).join(MergeUserOrder)
 ## 调试提示
 
 1. `connected.transformations` 保存了当前所有上游 transformation，可用于排查链路顺序。
-2. 通过 `connected.connect(other)` 生成的新对象会重新验证环境一致性，若混用了不同 Environment 创建的流，会立即报错。
-3. `comap` 里的 `BaseCoMapFunction` 可使用普通属性记录状态；执行时同样能通过 `self.call_service` 调用环境内注册的服务。
+1. 通过 `connected.connect(other)` 生成的新对象会重新验证环境一致性，若混用了不同 Environment 创建的流，会立即报错。
+1. `comap` 里的 `BaseCoMapFunction` 可使用普通属性记录状态；执行时同样能通过 `self.call_service` 调用环境内注册的服务。
 
 了解更多：
+
 - [DataStream API](datastreams.md) —— 获取 `ConnectedStreams` 的入口；
 - `packages/sage-kernel/src/sage/core/transformation/join_transformation.py` —— 了解 join 的底层实现。
 
 # Connect them
-connected = ConnectedStreams([stream1, stream2])
-```
+
+connected = ConnectedStreams(\[stream1, stream2\])
+
+````
 
 ### With Functions API
 
@@ -149,6 +163,7 @@ from sage.core.api.functions import register_function
 @register_function
 def connected_processor(connected_streams):
     return connected_streams.process(my_processor)
-```
+````
 
-This Connected Streams API enables sophisticated stream processing patterns while maintaining the simplicity and flexibility of the SAGE kernel architecture.
+This Connected Streams API enables sophisticated stream processing patterns while maintaining the
+simplicity and flexibility of the SAGE kernel architecture.

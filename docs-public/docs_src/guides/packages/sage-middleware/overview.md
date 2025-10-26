@@ -1,15 +1,16 @@
 # SAGE Middleware 概览
 
-SAGE Middleware 是 SAGE 推理框架的中间层模块，目前主要围绕 Python 实现的记忆系统展开，提供向量存储、检索以及嵌入接入等能力。完整的微服务网格、服务发现和硬件亲和调度尚未在当前仓库落地，本文仅覆盖已经实现的功能。
+SAGE Middleware 是 SAGE 推理框架的中间层模块，目前主要围绕 Python
+实现的记忆系统展开，提供向量存储、检索以及嵌入接入等能力。完整的微服务网格、服务发现和硬件亲和调度尚未在当前仓库落地，本文仅覆盖已经实现的功能。
 
 ## 主要模块
 
-| 功能 | 代码位置 | 描述 |
-| --- | --- | --- |
-| Neuromem 记忆栈 | `packages/sage-middleware/src/sage/middleware/components/neuromem/` | 包含 `MemoryManager`、`BaseMemoryCollection` 族、搜索/存储引擎以及示例化的 `NeuroMemVDB` 与 `NeuroMemVDBService`。 |
+| 功能                   | 代码位置                                                                                                                                   | 描述                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Neuromem 记忆栈        | `packages/sage-middleware/src/sage/middleware/components/neuromem/`                                                                        | 包含 `MemoryManager`、`BaseMemoryCollection` 族、搜索/存储引擎以及示例化的 `NeuroMemVDB` 与 `NeuroMemVDBService`。    |
 | SageDB / SageFlow 组件 | `packages/sage-middleware/src/sage/middleware/components/sage_db/`<br>`packages/sage-middleware/src/sage/middleware/components/sage_flow/` | 提供可选的 C++ 扩展及对应的 Python 绑定，包含 `SageDBService`、`SageFlowService` 等轻量封装；需要单独构建后才能启用。 |
-| 嵌入模型工具 | `packages/sage-middleware/src/sage/middleware/utils/embedding/` | `EmbeddingModel` 统一封装 HF、OpenAI、Jina、Mock 等多家提供商，失败时显式抛出错误。 |
-| 扩展兼容检测 | `packages/sage-middleware/src/sage/middleware/components/extensions_compat.py` | 导入时检测可选的 C++ 扩展 (`sage_db` / `sage_flow`)，缺失时降级为 Python 实现并提示安装步骤。 |
+| 嵌入模型工具           | `packages/sage-middleware/src/sage/middleware/utils/embedding/`                                                                            | `EmbeddingModel` 统一封装 HF、OpenAI、Jina、Mock 等多家提供商，失败时显式抛出错误。                                   |
+| 扩展兼容检测           | `packages/sage-middleware/src/sage/middleware/components/extensions_compat.py`                                                             | 导入时检测可选的 C++ 扩展 (`sage_db` / `sage_flow`)，缺失时降级为 Python 实现并提示安装步骤。                         |
 
 ## 运行结构
 
@@ -40,10 +41,11 @@ flowchart LR
 ### 关键流程
 
 1. **集合生命周期管理**：`MemoryManager` 负责创建、懒加载、重命名及落盘集合，默认持久化路径为 `data/neuromem_vdb/`。
-2. **数据写入**：`VDBMemoryCollection.batch_insert_data` 将文本写入 `TextStorage`，同时根据元数据动态注册字段并存入 `MetadataStorage`。
-3. **索引构建**：通过 `create_index`/`init_index` 使用 `index_factory` 创建 FAISS 等后端索引，并缓存到 `index_info`。
-4. **检索**：`retrieve` 根据查询向量进行语义搜索，可选返回元数据或套用自定义过滤函数。
-5. **服务封装**：`NeuroMemVDB` 和 `NeuroMemVDBService` 提供面向脚本与 `BaseService` 的轻量封装，便于在 Flow 或 Agent 中复用。
+1. **数据写入**：`VDBMemoryCollection.batch_insert_data` 将文本写入 `TextStorage`，同时根据元数据动态注册字段并存入
+   `MetadataStorage`。
+1. **索引构建**：通过 `create_index`/`init_index` 使用 `index_factory` 创建 FAISS 等后端索引，并缓存到 `index_info`。
+1. **检索**：`retrieve` 根据查询向量进行语义搜索，可选返回元数据或套用自定义过滤函数。
+1. **服务封装**：`NeuroMemVDB` 和 `NeuroMemVDBService` 提供面向脚本与 `BaseService` 的轻量封装，便于在 Flow 或 Agent 中复用。
 
 ## 能力概览
 

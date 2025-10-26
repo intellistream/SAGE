@@ -9,12 +9,14 @@
 ## 支持的嵌入服务
 
 ### 本地模型
+
 - **Hugging Face** (`hf.py`) - 本地Transformer模型
 - **Instructor** (`instructor.py`) - Instructor嵌入模型
 - **Ollama** (`ollama.py`) - Ollama本地部署模型
 - **MockEmbedder** (`mockembedder.py`) - 测试用模拟嵌入器
 
 ### 云端API服务
+
 - **OpenAI** (`openai.py`) - OpenAI嵌入API
 - **NVIDIA OpenAI** (`nvidia_openai.py`) - NVIDIA兼容OpenAI接口
 - **Bedrock** (`bedrock.py`) - AWS Bedrock嵌入服务
@@ -27,9 +29,11 @@
 ## 核心组件
 
 ### `embedding_api.py`
+
 统一的嵌入模型API接口，提供工厂方法创建不同类型的嵌入模型实例。
 
 ### `embedding_model.py`
+
 定义嵌入模型的抽象基类和通用接口规范。
 
 ## 快速开始
@@ -44,15 +48,13 @@ dimension = model.get_dim()
 
 # 使用Hugging Face模型
 hf_model = apply_embedding_model(
-    name="hf",
-    model="sentence-transformers/all-MiniLM-L6-v2"
+    name="hf", model="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 # 使用OpenAI API
 openai_model = apply_embedding_model(
     name="openai",
-    api_key="your-api-key",
-    model="text-embedding-ada-002"
+    api_key="your-api-key",  # pragma: allowlist secret, model="text-embedding-ada-002"
 )
 ```
 

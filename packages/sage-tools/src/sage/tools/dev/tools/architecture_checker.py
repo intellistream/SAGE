@@ -22,7 +22,6 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 # ============================================================================
 # 架构定义
@@ -135,7 +134,7 @@ class ArchitectureViolation:
     file: Path  # 文件路径
     line: int  # 行号
     message: str  # 详细信息
-    suggestion: Optional[str] = None  # 修复建议
+    suggestion: str | None = None  # 修复建议
 
 
 @dataclass
@@ -223,7 +222,7 @@ class ArchitectureChecker:
         self.violations: list[ArchitectureViolation] = []
         self.warnings: list[ArchitectureViolation] = []
 
-    def extract_package_name(self, filepath: Path) -> Optional[str]:
+    def extract_package_name(self, filepath: Path) -> str | None:
         """从文件路径提取包名"""
         try:
             rel_path = filepath.relative_to(self.root_dir)
@@ -237,7 +236,7 @@ class ArchitectureChecker:
             pass
         return None
 
-    def get_imported_package(self, module_name: str) -> Optional[str]:
+    def get_imported_package(self, module_name: str) -> str | None:
         """从导入语句中提取被导入的包名"""
         # sage.common.xxx -> sage-common
         # sage.kernel.xxx -> sage-kernel
@@ -422,7 +421,7 @@ class ArchitectureChecker:
             )
         return self.run_checks(changed_files=changed_files)
 
-    def run_checks(self, changed_files: Optional[list[Path]] = None) -> CheckResult:
+    def run_checks(self, changed_files: list[Path] | None = None) -> CheckResult:
         """运行所有检查"""
         print("🔍 开始架构合规性检查...\n")
 

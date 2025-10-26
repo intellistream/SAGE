@@ -5,6 +5,7 @@
 ## 微信群
 
 ### 方式一：直接加群（推荐）
+
 扫描群二维码直接加入：
 
 ![微信群二维码](assets/qr-codes/wechat-group-qr.jpg)
@@ -12,6 +13,7 @@
 *注意：群二维码有效期为 7 天，如过期请使用方式二*
 
 ### 方式二：联系管理员拉群（长期有效）
+
 如群二维码已过期，请扫描管理员二维码，备注"加入SAGE群"：
 
 ![管理员微信二维码](assets/qr-codes/wechat-admin-qr.jpg)
@@ -24,13 +26,14 @@
 
 ## Slack 工作区
 
-加入我们的 Slack 工作区：[IntelliStream Slack](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
+加入我们的 Slack
+工作区：[IntelliStream Slack](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
 
 ## GitHub Discussions
 
 参与 [GitHub Discussions](https://github.com/intellistream/SAGE/discussions) 进行技术讨论
 
----
+______________________________________________________________________
 
 加入社群后，你可以：
 

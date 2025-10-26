@@ -9,12 +9,14 @@ This directory contains integration tests for SAGE QA (Question Answering) servi
 ## Running Tests
 
 ### Run the QA service test:
+
 ```bash
 cd packages/sage-libs
 python tests/integration/test_qa_service.py
 ```
 
 ### Run with pytest:
+
 ```bash
 pytest packages/sage-libs/tests/integration/ -v
 ```
@@ -22,6 +24,7 @@ pytest packages/sage-libs/tests/integration/ -v
 ## Test Coverage
 
 These tests verify:
+
 - QA pipeline service initialization
 - Question processing and response generation
 - Service interaction and communication

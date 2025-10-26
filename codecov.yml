@@ -54,31 +54,31 @@ comment:
 
 # 忽略测试文件和自动生成的代码
 ignore:
-  - "**/*_test.py"
-  - "**/test_*.py"
-  - "**/tests/**"
-  - "**/__pycache__/**"
-  - "**/build/**"
-  - "**/dist/**"
-  - "**/.venv/**"
-  - "**/venv/**"
-  - "**/.pytest_cache/**"
-  - "**/*.egg-info/**"
-  - "**/temp_*.py"
-  - "**/update_*.py"
+- "**/*_test.py"
+- "**/test_*.py"
+- "**/tests/**"
+- "**/__pycache__/**"
+- "**/build/**"
+- "**/dist/**"
+- "**/.venv/**"
+- "**/venv/**"
+- "**/.pytest_cache/**"
+- "**/*.egg-info/**"
+- "**/temp_*.py"
+- "**/update_*.py"
 
 # 标记不同的测试类型
 flag_management:
   default_rules:
     carryforward: true
     statuses:
-      - type: project
-        target: auto
-      - type: patch
-        target: auto
+    - type: project
+      target: auto
+    - type: patch
+      target: auto
 
 flags:
   unittests:
     paths:
-      - packages/
+    - packages/
     carryforward: true

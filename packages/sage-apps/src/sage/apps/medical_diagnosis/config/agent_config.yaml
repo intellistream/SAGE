@@ -77,9 +77,9 @@ diagnosis:
 knowledge_base:
   # 知识来源
   sources:
-    - "medical_literature"
-    - "clinical_guidelines"
-    - "case_database"
+  - "medical_literature"
+  - "clinical_guidelines"
+  - "case_database"
 
   # 更新策略
   update_frequency: "weekly"

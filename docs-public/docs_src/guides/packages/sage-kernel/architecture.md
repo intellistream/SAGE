@@ -1,6 +1,7 @@
 # SAGE Kernel 架构概览
 
-SAGE Kernel 完全由 Python 实现，主要分布在 `packages/sage-kernel/src/sage` 目录下。框架以“声明式 API → 执行图编译 → JobManager 调度 → Runtime 执行”的流程组织代码。下面的内容全部可在仓库中对应的模块找到实现。
+SAGE Kernel 完全由 Python 实现，主要分布在 `packages/sage-kernel/src/sage` 目录下。框架以“声明式 API → 执行图编译 → JobManager
+调度 → Runtime 执行”的流程组织代码。下面的内容全部可在仓库中对应的模块找到实现。
 
 ## 分层全景
 
@@ -26,8 +27,11 @@ SAGE Kernel 完全由 Python 实现，主要分布在 `packages/sage-kernel/src/
 - **`api/`**：向用户暴露的编程接口。
   - `base_environment.py` 定义 `BaseEnvironment` 以及 `LocalEnvironment`/`RemoteEnvironment` 的公共行为。
   - `datastream.py`、`connected_streams.py` 描述数据流以及多流连接算子的链式 API。
-  - `function/` 下的基类（`MapFunction`、`FlatMapFunction`、`SinkFunction`、`KeyByFunction`、`BaseCoMapFunction`、`BaseJoinFunction` 等）约束算子代码需要实现的 `execute`/`mapN` 方法。
-- **`transformation/`**：每个链式调用都会生成一个 `BaseTransformation` 子类实例（`MapTransformation`、`FilterTransformation`、`SinkTransformation` 等），用于构建执行图节点。
+  - `function/`
+    下的基类（`MapFunction`、`FlatMapFunction`、`SinkFunction`、`KeyByFunction`、`BaseCoMapFunction`、`BaseJoinFunction`
+    等）约束算子代码需要实现的 `execute`/`mapN` 方法。
+- **`transformation/`**：每个链式调用都会生成一个 `BaseTransformation`
+  子类实例（`MapTransformation`、`FilterTransformation`、`SinkTransformation` 等），用于构建执行图节点。
 - **`factory/`**：`ServiceFactory` 将用户注册的服务描述为可序列化的构造信息，提交时注入 JobManager。
 - **`communication/`** 与 **`operator/`**：提供运行时通信、算子包装等基础设施，随着 runtime 改造逐步完善。
 
@@ -39,11 +43,13 @@ SAGE Kernel 完全由 Python 实现，主要分布在 `packages/sage-kernel/src/
 
 - **`job_manager.py`**：`JobManager` 单例，负责
   1. 接收 `Environment`，生成作业 UUID；
-  2. 调用 `compiler/execution_graph.py` 把 `env.pipeline` 转换成执行图；
-  3. 创建 `Dispatcher` 并提交运行；
-  4. 维护 `jobs` 字典、`pause_job` 等运维操作。
-- **`job_manager_server.py`** 与 **`jobmanager_client.py`**：提供可选的 TCP Daemon，支持 `RemoteEnvironment` 通过网络提交作业并获取状态。
-- **`compiler/`**：`ExecutionGraph`、`logical_plan`、`physical_plan` 等组件将 `Transformation` 链编译为运行时可消费的节点描述。
+  1. 调用 `compiler/execution_graph.py` 把 `env.pipeline` 转换成执行图；
+  1. 创建 `Dispatcher` 并提交运行；
+  1. 维护 `jobs` 字典、`pause_job` 等运维操作。
+- **`job_manager_server.py`** 与 **`jobmanager_client.py`**：提供可选的 TCP Daemon，支持 `RemoteEnvironment`
+  通过网络提交作业并获取状态。
+- **`compiler/`**：`ExecutionGraph`、`logical_plan`、`physical_plan` 等组件将 `Transformation`
+  链编译为运行时可消费的节点描述。
 - **`job_info.py`**：记录作业状态、是否启用 `autostop`、关联的 `Dispatcher` 等信息。
 
 小结：JobManager 层面没有 C++ 依赖，也未引入外部调度器。一切控制逻辑都在 `job_manager.py` 及其子模块里。
@@ -64,19 +70,24 @@ SAGE Kernel 完全由 Python 实现，主要分布在 `packages/sage-kernel/src/
 ## 流水线生命周期
 
 1. **构建管道** (`sage.core.api`)
+
    - 用户调用 `env.from_batch(...).map(...).sink(...)`，每一步都会把新的 `Transformation` 附加到 `env.pipeline` 列表。
 
-2. **提交执行** (`JobManager`)
+1. **提交执行** (`JobManager`)
+
    - `env.submit(autostop=True)` → `JobManager.submit_job` 创建 UUID，编译执行图，实例化 `Dispatcher`。
 
-3. **任务部署** (`Dispatcher`)
+1. **任务部署** (`Dispatcher`)
+
    - 为每个算子节点创建任务对象；为注册的服务创建服务任务；连接消息队列。
 
-4. **运行与监控**
+1. **运行与监控**
+
    - 任务循环从上游队列读取数据，调用用户函数（`BaseFunction.execute`/`mapN`），把结果写入下游。
    - 服务化调用通过 `ProxyManager` → `ServiceManager` 走消息队列，支持同步/异步调用、超时控制。
 
-5. **收尾**
+1. **收尾**
+
    - 对于批处理作业，函数返回 `None` 或 `FutureTransformation` 被填充后会触发停止信号。
    - `autostop=True` 时，`_wait_for_completion()` 轮询 JobManager 状态并在管道结束后触发清理。
 
@@ -91,10 +102,12 @@ SAGE Kernel 完全由 Python 实现，主要分布在 `packages/sage-kernel/src/
 
 设计要点：
 
-1. **服务注册即部署**：`register_service("cache", ServiceClass)` 会把构造信息放入 `env.service_factories`，提交时由 JobManager 插入执行图并创建对应服务任务。
-2. **统一调用接口**：无论在算子内部还是在独立脚本中，都通过 `call_service`/`call_service_async` 访问服务。默认方法名为 `process`，也可以显式传入 `method`。
-3. **队列描述符缓存**：`ProxyManager` 在首次调用时保留服务描述符，后续调用避免重复查询控制面，提升吞吐。
-4. **超时与 Future**：同步调用允许自定义超时；异步调用返回可等待的 Future 对象。
+1. **服务注册即部署**：`register_service("cache", ServiceClass)` 会把构造信息放入 `env.service_factories`，提交时由
+   JobManager 插入执行图并创建对应服务任务。
+1. **统一调用接口**：无论在算子内部还是在独立脚本中，都通过 `call_service`/`call_service_async` 访问服务。默认方法名为 `process`，也可以显式传入
+   `method`。
+1. **队列描述符缓存**：`ProxyManager` 在首次调用时保留服务描述符，后续调用避免重复查询控制面，提升吞吐。
+1. **超时与 Future**：同步调用允许自定义超时；异步调用返回可等待的 Future 对象。
 
 示例：
 

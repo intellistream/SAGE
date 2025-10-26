@@ -9,42 +9,54 @@
 ## 核心组件
 
 ### `model_context.py`
+
 模型上下文管理：
+
 - 管理AI模型的运行上下文
 - 保存模型状态和配置信息
 - 支持上下文的持久化存储
 - 提供上下文版本管理
 
 ### `search_session.py`
+
 搜索会话管理：
+
 - 管理搜索会话的生命周期
 - 追踪搜索历史和状态
 - 支持会话恢复和续接
 - 提供会话分析和统计
 
 ### `search_result.py`
+
 搜索结果封装：
+
 - 标准化搜索结果格式
 - 包含结果元数据和评分
 - 支持结果排序和过滤
 - 提供结果质量评估
 
 ### `search_query_results.py`
+
 查询结果集管理：
+
 - 管理查询相关的所有结果
 - 支持批量结果处理
 - 提供结果聚合和分析
 - 支持结果缓存和复用
 
 ### `quality_label.py`
+
 质量标签系统：
+
 - 定义各种质量评估标签
 - 支持多维度质量评估
 - 提供标签分类和层次结构
 - 支持自定义质量标准
 
 ### `critic_evaluation.py`
+
 批判性评估：
+
 - 实现智能的评估算法
 - 提供多角度的内容评估
 - 支持评估结果的可解释性
@@ -61,24 +73,28 @@
 ## 上下文类型
 
 ### 对话上下文
+
 - 用户对话历史
 - 多轮对话状态
 - 对话意图和实体
 - 情感和语调分析
 
 ### 搜索上下文
+
 - 搜索查询历史
 - 搜索结果和评分
 - 搜索策略和参数
 - 用户反馈和偏好
 
 ### 模型上下文
+
 - 模型配置和参数
 - 推理历史和结果
 - 性能指标和监控
 - 错误日志和调试信息
 
 ### 业务上下文
+
 - 用户画像和偏好
 - 业务规则和约束
 - 历史行为和模式
@@ -99,8 +115,7 @@ from sage.lib.context import ModelContext, SearchSession, QualityLabel
 
 # 创建模型上下文
 model_ctx = ModelContext(
-    model_name="gpt-4",
-    config={"temperature": 0.7, "max_tokens": 1000}
+    model_name="gpt-4", config={"temperature": 0.7, "max_tokens": 1000}
 )
 
 # 管理搜索会话
@@ -115,6 +130,7 @@ score = quality.evaluate_answer(answer_text, context=model_ctx)
 ## 上下文操作
 
 ### 创建和初始化
+
 ```python
 # 创建新的上下文
 context = ModelContext()
@@ -125,6 +141,7 @@ context = ModelContext.restore(saved_data)
 ```
 
 ### 更新和维护
+
 ```python
 # 更新上下文信息
 context.update("last_query", "新的查询内容")
@@ -135,20 +152,20 @@ context.cleanup(max_age=3600)  # 清理1小时前的数据
 ```
 
 ### 查询和检索
+
 ```python
 # 查询上下文信息
 recent_queries = context.get_recent("queries", limit=10)
 user_preferences = context.get("user_preferences")
 
 # 条件查询
-results = context.search(
-    criteria={"type": "search_result", "score": ">0.8"}
-)
+results = context.search(criteria={"type": "search_result", "score": ">0.8"})
 ```
 
 ## 高级功能
 
 ### 上下文融合
+
 ```python
 from sage.lib.context import ContextFusion
 
@@ -157,6 +174,7 @@ combined_context = fusion.merge([context1, context2, context3])
 ```
 
 ### 上下文分析
+
 ```python
 from sage.lib.context import ContextAnalyzer
 
@@ -166,6 +184,7 @@ patterns = analyzer.find_patterns(context_history)
 ```
 
 ### 上下文优化
+
 ```python
 from sage.lib.context import ContextOptimizer
 

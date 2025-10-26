@@ -3,6 +3,7 @@
 ## 概述
 
 SAGE RAG benchmarking 框架提供了一套完整的 RAG 系统性能评估工具，包括：
+
 - **implementations/**: 各种 RAG 实现方案（dense, sparse, hybrid, multimodal）
 - **evaluation/**: 评测管道、指标计算和结果分析
 - **config/**: 各种 RAG 配置文件
@@ -38,11 +39,13 @@ benchmark_rag/
 提供多种 RAG 实现用于性能对比：
 
 **向量数据库支持**:
+
 - Milvus (dense, sparse, hybrid)
 - ChromaDB (local, easy setup)
 - FAISS (efficient search)
 
 **检索方法**:
+
 - Dense retrieval (embedding-based)
 - Sparse retrieval (BM25, sparse vectors)
 - Hybrid retrieval (combining both)
@@ -58,6 +61,7 @@ benchmark_rag/
 - **Sink**: 结果保存算子，保存 benchmark 结果到文件
 
 评估指标：
+
 - **Accuracy**: 准确率评估
 - **F1 Score**: F1分数计算
 - **Exact Match**: 精确匹配评估
@@ -69,7 +73,9 @@ benchmark_rag/
 
 Benchmark 使用的评估数据主要来自 [Self-RAG 仓库](https://github.com/AkariAsai/self-rag) 的任务评估数据。
 
-> **数据下载**: [Self-RAG 官方数据链接](https://drive.google.com/file/d/1TLKhWjez63H4uBtgCxyoyJsZi-IMgnDb/view?usp=share_link) 下载评估数据。
+> **数据下载**:
+> [Self-RAG 官方数据链接](https://drive.google.com/file/d/1TLKhWjez63H4uBtgCxyoyJsZi-IMgnDb/view?usp=share_link)
+> 下载评估数据。
 
 #### 数据特点
 
@@ -99,6 +105,7 @@ Benchmark 使用的评估数据主要来自 [Self-RAG 仓库](https://github.com
 ### 1. 准备数据和索引
 
 首先构建向量索引：
+
 ```bash
 # Build ChromaDB index
 python -m sage.benchmark.benchmark_rag.implementations.tools.build_chroma_index
@@ -123,6 +130,7 @@ python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_hybrid_retri
 ### 3. 运行 Benchmark 实验
 
 使用默认配置文件运行实验：
+
 ```bash
 python -m sage.benchmark.benchmark_rag.evaluation.pipeline_experiment
 ```
@@ -152,7 +160,7 @@ sink:
 
 ### 3. 评估结果
 
-```bash
+````bash
 ### 4. 评估结果
 
 ```bash
@@ -166,10 +174,12 @@ python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results \
 python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results \
   --results-file experiment_results.json \
   --output evaluation_report.json
-```
-  --metric accuracy \
-  --output "./experiment/results/evaluation_output.json"
-```
+````
+
+--metric accuracy \
+--output "./experiment/results/evaluation_output.json"
+
+````
 
 ### 4. 支持的评估指标
 
@@ -186,7 +196,7 @@ python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results \
 generator:
   model_name: "Mistral-7B-Instruct-v0.1"
   use_context: false  # 不使用检索上下文
-```
+````
 
 ### 有上下文实验
 

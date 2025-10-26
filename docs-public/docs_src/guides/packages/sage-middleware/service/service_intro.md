@@ -4,10 +4,11 @@
 
 ## 1. 调用入口（统一 API）
 
-- 同步：self.call_service["service_name"].method(args...)
-- 异步：self.call_service_async["service_name"].method(args...) → Future（.result(timeout=...)）
+- 同步：self.call_service\["service_name"\].method(args...)
+- 异步：self.call_service_async\["service_name"\].method(args...) → Future（.result(timeout=...)）
 
 示例：
+
 ```python
 # Function 中
 value = self.call_service["kv_service"].get("key1")
@@ -52,10 +53,14 @@ flowchart LR
 ## 4. 典型用法
 
 - Memory（长期记忆）
+
 ```python
 mid = self.call_service["memory_service"].store_memory(
-    content=content, vector=vec, session_id=sid,
-    memory_type="conversation", metadata={"source": "user"}
+    content=content,
+    vector=vec,
+    session_id=sid,
+    memory_type="conversation",
+    metadata={"source": "user"},
 )
 hits = self.call_service["memory_service"].search_memories(
     query_vector=vec, session_id=sid, limit=5
@@ -63,20 +68,23 @@ hits = self.call_service["memory_service"].search_memories(
 ```
 
 - VDB（直接向量服务）
+
 ```python
 self.call_service["vdb_service"].add_vectors(vectors=batch, ids=ids, metadata=md)
 hits = self.call_service["vdb_service"].search(query=vec, top_k=10)
 ```
 
 - KV
+
 ```python
 self.call_service["kv_service"].put("k", {"v": 1})
 v = self.call_service["kv_service"].get("k")
 ```
 
 - Graph
+
 ```python
-self.call_service["graph_service"].add_edge("A","B", {"rel":"next"})
+self.call_service["graph_service"].add_edge("A", "B", {"rel": "next"})
 ```
 
 更多示例，请参考“服务快速入门”。

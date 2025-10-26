@@ -1,20 +1,29 @@
 # Workflow Optimizer Framework
 
-**Layer**: L3 (Core - Research & Algorithm Library)  
-**Purpose**: Standardized framework for researching agentic workflow optimization
+**Layer**: L3 (Core - Research & Algorithm Library)\
+**Purpose**: Standardized framework for
+researching agentic workflow optimization
 
 ## Overview
 
-The Workflow Optimizer Framework provides a plug-and-play environment for students and researchers to experiment with different optimization strategies for AI agent workflows. It handles all the infrastructure (workflow representation, constraint checking, evaluation, benchmarking) so researchers can focus purely on developing novel optimization algorithms.
+The Workflow Optimizer Framework provides a plug-and-play environment for students and researchers
+to experiment with different optimization strategies for AI agent workflows. It handles all the
+infrastructure (workflow representation, constraint checking, evaluation, benchmarking) so
+researchers can focus purely on developing novel optimization algorithms.
 
 ## Key Features
 
-✅ **Standardized Workflow Representation** - DAG-based workflow graphs with rich metadata  
-✅ **Pluggable Optimizer Interface** - Easy to implement custom optimization strategies  
-✅ **Constraint System** - Budget, latency, and quality constraints with extensibility  
-✅ **Automated Benchmarking** - Compare multiple optimizers on standard benchmarks  
-✅ **Evaluation Metrics** - Comprehensive metrics (cost, latency, quality, etc.)  
-✅ **Example Implementations** - Reference optimizers to learn from
+✅ **Standardized Workflow Representation** - DAG-based workflow graphs with rich metadata\
+✅
+**Pluggable Optimizer Interface** - Easy to implement custom optimization strategies\
+✅ **Constraint
+System** - Budget, latency, and quality constraints with extensibility\
+✅ **Automated Benchmarking**
+\- Compare multiple optimizers on standard benchmarks\
+✅ **Evaluation Metrics** - Comprehensive
+metrics (cost, latency, quality, etc.)\
+✅ **Example Implementations** - Reference optimizers to
+learn from
 
 ## Quick Start
 
@@ -28,15 +37,11 @@ workflow = WorkflowGraph(name="rag_pipeline")
 
 # Add agent nodes
 workflow.add_node(
-    "retriever",
-    NodeType.AGENT,
-    metrics={"cost": 5.0, "latency": 0.5, "quality": 0.9}
+    "retriever", NodeType.AGENT, metrics={"cost": 5.0, "latency": 0.5, "quality": 0.9}
 )
 
 workflow.add_node(
-    "generator",
-    NodeType.AGENT,
-    metrics={"cost": 25.0, "latency": 2.0, "quality": 0.85}
+    "generator", NodeType.AGENT, metrics={"cost": 25.0, "latency": 2.0, "quality": 0.85}
 )
 
 # Define dependencies
@@ -53,11 +58,7 @@ optimizer = GreedyOptimizer()
 
 # Optimize with constraints
 result = optimizer.optimize(
-    workflow,
-    constraints={
-        "max_cost": 40.0,
-        "min_quality": 0.85
-    }
+    workflow, constraints={"max_cost": 40.0, "min_quality": 0.85}
 )
 
 # View results
@@ -70,6 +71,7 @@ print(f"Quality change: {result.metrics.quality_change:+.2f}")
 ```python
 from sage.libs.workflow import BaseOptimizer, OptimizationResult
 
+
 class MyOptimizer(BaseOptimizer):
     """Your custom optimization strategy."""
 
@@ -78,6 +80,7 @@ class MyOptimizer(BaseOptimizer):
 
     def optimize(self, workflow, constraints=None):
         import time
+
         start = time.time()
 
         # Clone workflow for modification
@@ -93,15 +96,13 @@ class MyOptimizer(BaseOptimizer):
 
         # Calculate metrics
         exec_time = time.time() - start
-        metrics = self.calculate_metrics(
-            workflow, optimized, exec_time
-        )
+        metrics = self.calculate_metrics(workflow, optimized, exec_time)
 
         return OptimizationResult(
             original_workflow=workflow,
             optimized_workflow=optimized,
             metrics=metrics,
-            steps=["Description of what you did"]
+            steps=["Description of what you did"],
         )
 ```
 
@@ -122,15 +123,17 @@ evaluator.add_benchmark("large", create_synthetic_workflow(num_agents=15))
 from sage.libs.workflow.optimizers import (
     NoOpOptimizer,
     GreedyOptimizer,
-    ParallelizationOptimizer
+    ParallelizationOptimizer,
 )
 
-results = evaluator.evaluate_all([
-    NoOpOptimizer(),
-    GreedyOptimizer(),
-    ParallelizationOptimizer(),
-    MyOptimizer()  # Your custom optimizer
-])
+results = evaluator.evaluate_all(
+    [
+        NoOpOptimizer(),
+        GreedyOptimizer(),
+        ParallelizationOptimizer(),
+        MyOptimizer(),  # Your custom optimizer
+    ]
+)
 
 # Print comparison
 evaluator.print_comparison(results)
@@ -155,6 +158,7 @@ workflow/
 ### WorkflowGraph
 
 Represents an agentic workflow as a directed acyclic graph (DAG):
+
 - **Nodes**: Agents, tools, operators, decisions, aggregators
 - **Edges**: Dependencies between nodes
 - **Metrics**: Cost, latency, quality per node
@@ -162,6 +166,7 @@ Represents an agentic workflow as a directed acyclic graph (DAG):
 ### BaseOptimizer
 
 Abstract base class for optimization strategies:
+
 - `optimize()`: Transform workflow → optimized workflow
 - `calculate_metrics()`: Compute optimization quality
 - Automatically handles cloning, timing, and metrics
@@ -169,6 +174,7 @@ Abstract base class for optimization strategies:
 ### Constraints
 
 Define requirements for valid workflows:
+
 - **BudgetConstraint**: Maximum total cost
 - **LatencyConstraint**: Maximum end-to-end latency
 - **QualityConstraint**: Minimum quality score
@@ -177,6 +183,7 @@ Define requirements for valid workflows:
 ### WorkflowEvaluator
 
 Benchmarking tool for comparing optimizers:
+
 - Run multiple optimizers on multiple workflows
 - Generate comparison tables and reports
 - Identify best optimizer per metric
@@ -186,29 +193,34 @@ Benchmarking tool for comparing optimizers:
 Students can explore many optimization strategies:
 
 ### 1. Cost Optimization
+
 - **Node removal**: Eliminate redundant or low-value nodes
 - **Model substitution**: Replace expensive models with cheaper alternatives
 - **Caching**: Reuse results from previous executions
 - **Batching**: Combine multiple requests to reduce overhead
 
 ### 2. Latency Optimization
+
 - **Parallelization**: Identify independent operations
 - **Pipeline optimization**: Reorder operations for better flow
 - **Speculative execution**: Start likely paths early
 - **Lazy evaluation**: Defer unnecessary computations
 
 ### 3. Quality Optimization
+
 - **Ensemble methods**: Combine multiple agents for better quality
 - **Verification layers**: Add quality checking nodes
 - **Iterative refinement**: Add feedback loops
 - **Confidence-based routing**: Use expensive models only when needed
 
 ### 4. Multi-Objective Optimization
+
 - **Pareto optimization**: Balance cost vs quality vs latency
 - **Constraint satisfaction**: Meet all constraints optimally
 - **Adaptive optimization**: Adjust based on runtime feedback
 
 ### 5. Learning-Based Optimization
+
 - **Reinforcement learning**: Learn optimal policies from experience
 - **Meta-learning**: Quickly adapt to new workflow types
 - **Transfer learning**: Apply knowledge across domains
@@ -216,12 +228,15 @@ Students can explore many optimization strategies:
 ## Example Optimizers
 
 ### NoOpOptimizer
+
 Baseline that makes no changes. Useful for comparison.
 
 ### GreedyOptimizer
+
 Removes highest-cost nodes when safe to do so. Simple but effective.
 
 ### ParallelizationOptimizer
+
 Identifies parallelization opportunities to reduce latency. Conceptual example.
 
 ## Running Examples
@@ -256,7 +271,7 @@ workflow.add_node(
     "my_agent",
     NodeType.AGENT,
     operator=my_sage_operator,  # Actual SAGE operator
-    metrics={"cost": 10, "latency": 1}
+    metrics={"cost": 10, "latency": 1},
 )
 
 # Optimize
@@ -271,22 +286,23 @@ result = optimizer.optimize(workflow)
 ### For Students
 
 1. **Start simple**: Implement a basic optimizer first (e.g., random node removal)
-2. **Use baselines**: Always compare against NoOpOptimizer
-3. **Test incrementally**: Validate on small workflows before scaling
-4. **Document assumptions**: Explain your optimization strategy clearly
-5. **Handle edge cases**: Empty workflows, disconnected graphs, etc.
+1. **Use baselines**: Always compare against NoOpOptimizer
+1. **Test incrementally**: Validate on small workflows before scaling
+1. **Document assumptions**: Explain your optimization strategy clearly
+1. **Handle edge cases**: Empty workflows, disconnected graphs, etc.
 
 ### For Researchers
 
 1. **Define clear metrics**: What does "better" mean for your use case?
-2. **Create domain benchmarks**: Synthetic workflows may not reflect real patterns
-3. **Consider constraints**: Real systems have budget/latency/quality limits
-4. **Profile performance**: Optimization should be fast enough for production
-5. **Validate empirically**: Test on real workflows, not just synthetic ones
+1. **Create domain benchmarks**: Synthetic workflows may not reflect real patterns
+1. **Consider constraints**: Real systems have budget/latency/quality limits
+1. **Profile performance**: Optimization should be fast enough for production
+1. **Validate empirically**: Test on real workflows, not just synthetic ones
 
 ## API Reference
 
 See individual module docstrings for detailed API documentation:
+
 - `base.py`: WorkflowGraph, WorkflowNode, BaseOptimizer
 - `constraints.py`: Constraint system
 - `evaluator.py`: Benchmarking tools
@@ -307,14 +323,15 @@ pytest --cov=sage.libs.workflow packages/sage-libs/tests/workflow/
 When implementing new optimizers or features:
 
 1. Follow the `BaseOptimizer` interface
-2. Add docstrings and type hints
-3. Include usage examples
-4. Add unit tests
-5. Update this README
+1. Add docstrings and type hints
+1. Include usage examples
+1. Add unit tests
+1. Update this README
 
 ## Related Work
 
 This framework is inspired by:
+
 - **AutoGen**: Multi-agent workflow optimization
 - **LangGraph**: Graph-based agent orchestration
 - **DSPy**: Program optimization for LLM pipelines
@@ -339,6 +356,6 @@ If you use this framework in research, please cite:
 
 ## Support
 
-- **Issues**: File in main SAGE repository with [workflow-optimizer] tag
+- **Issues**: File in main SAGE repository with \[workflow-optimizer\] tag
 - **Discussions**: SAGE community forum
 - **Examples**: See `examples.py` for comprehensive usage

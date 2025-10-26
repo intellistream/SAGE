@@ -1,6 +1,7 @@
 # Integration Tests - Services
 
-This directory contains integration tests for SAGE services, particularly focusing on service lifecycle management and autostop functionality.
+This directory contains integration tests for SAGE services, particularly focusing on service
+lifecycle management and autostop functionality.
 
 ## Test Files
 
@@ -11,18 +12,21 @@ This directory contains integration tests for SAGE services, particularly focusi
 ## Running Tests
 
 ### Run all service integration tests:
+
 ```bash
 cd packages/sage-kernel
 pytest tests/integration/services/
 ```
 
 ### Run a specific test:
+
 ```bash
 cd packages/sage-kernel
 python tests/integration/services/test_autostop_service_remote.py
 ```
 
 ### Run with pytest:
+
 ```bash
 pytest packages/sage-kernel/tests/integration/services/test_autostop_api_verification.py -v
 ```
@@ -30,6 +34,7 @@ pytest packages/sage-kernel/tests/integration/services/test_autostop_api_verific
 ## Test Coverage
 
 These tests verify:
+
 - Service initialization and cleanup
 - Autostop functionality in local mode
 - Autostop functionality in remote (Ray) mode

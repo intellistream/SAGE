@@ -15,15 +15,13 @@ env = LocalEnvironment()
 # 配置 Refiner
 refiner_config = {
     "algorithm": "simple",  # 简单算法，快速
-    "budget": 2048,         # token 预算
+    "budget": 2048,  # token 预算
 }
 
 # 构建管道
-env.from_batch(...) \
-   .map(Wiki18FAISSRetriever, retriever_config) \
-   .map(RefinerOperator, refiner_config) \
-   .map(OpenAIGenerator, generator_config) \
-   .submit()
+env.from_batch(...).map(Wiki18FAISSRetriever, retriever_config).map(
+    RefinerOperator, refiner_config
+).map(OpenAIGenerator, generator_config).submit()
 ```
 
 ### 2. 直接使用服务
@@ -45,7 +43,7 @@ result = service.refine(
     documents=[
         {"text": "Machine learning is..."},
         {"text": "Deep learning is..."},
-    ]
+    ],
 )
 
 print(f"压缩率: {result.metrics.compression_rate:.2f}x")
@@ -55,7 +53,8 @@ print(f"压缩后内容: {result.refined_content}")
 ## 算法选择
 
 ### Simple（推荐入门）
-- **速度**: 极快 (<0.1s)
+
+- **速度**: 极快 (\<0.1s)
 - **无依赖**: 不需要模型
 - **压缩率**: 2-3x
 - **适用**: 快速原型、实时场景
@@ -68,6 +67,7 @@ config = {
 ```
 
 ### LongRefiner（高质量）
+
 - **速度**: 较慢 (需要加载模型)
 - **依赖**: Qwen 模型 + LoRA 模块
 - **压缩率**: 3-5x
@@ -90,23 +90,22 @@ config = {
 ```python
 config = {
     # 基础配置
-    "algorithm": "simple",           # 算法选择
-    "budget": 2048,                  # token 预算
-
+    "algorithm": "simple",  # 算法选择
+    "budget": 2048,  # token 预算
     # 性能优化
-    "enable_cache": True,            # 启用缓存
-    "cache_size": 100,               # 缓存大小
-    "cache_ttl": 3600,               # 缓存过期时间(秒)
-
+    "enable_cache": True,  # 启用缓存
+    "cache_size": 100,  # 缓存大小
+    "cache_ttl": 3600,  # 缓存过期时间(秒)
     # 调试
-    "enable_metrics": True,          # 启用性能指标
-    "enable_profile": False,         # 启用数据记录
+    "enable_metrics": True,  # 启用性能指标
+    "enable_profile": False,  # 启用数据记录
 }
 ```
 
 ## 示例
 
 完整示例见:
+
 - `examples/basic_usage.py` - 基础用法
 - `examples/rag_integration.py` - RAG 集成
 - `examples/context_service_demo.py` - Context Service

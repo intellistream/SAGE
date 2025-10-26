@@ -7,7 +7,9 @@
 
 ## 📋 Overview
 
-**SAGE Benchmark** provides a comprehensive suite of benchmarking tools and RAG (Retrieval-Augmented Generation) examples for evaluating SAGE framework performance. This package enables researchers and developers to:
+**SAGE Benchmark** provides a comprehensive suite of benchmarking tools and RAG (Retrieval-Augmented
+Generation) examples for evaluating SAGE framework performance. This package enables researchers and
+developers to:
 
 - **Benchmark RAG pipelines** with multiple retrieval strategies (dense, sparse, hybrid)
 - **Compare vector databases** (Milvus, ChromaDB, FAISS) for RAG applications
@@ -82,11 +84,13 @@ The benchmark_rag module provides comprehensive RAG benchmarking capabilities:
 Various RAG approaches for performance comparison:
 
 **Vector Databases:**
+
 - **Milvus**: Dense, sparse, and hybrid retrieval
 - **ChromaDB**: Local vector database with simple setup
 - **FAISS**: Efficient similarity search
 
 **Retrieval Methods:**
+
 - Dense retrieval (embeddings-based)
 - Sparse retrieval (BM25, sparse vectors)
 - Hybrid retrieval (combining dense + sparse)
@@ -136,6 +140,7 @@ python -m sage.benchmark.benchmark_rag.evaluation.evaluate_results
 #### 4. View Results
 
 Results are saved in `benchmark_results/`:
+
 - `experiment_TIMESTAMP/` - Individual experiment runs
 - `metrics.json` - Performance metrics
 - `comparison_report.md` - Comparison report
@@ -145,17 +150,16 @@ Results are saved in `benchmark_results/`:
 ### Basic Example
 
 ```python
-from sage.benchmark.benchmark_rag.implementations.pipelines import qa_dense_retrieval_milvus
+from sage.benchmark.benchmark_rag.implementations.pipelines import (
+    qa_dense_retrieval_milvus,
+)
 from sage.benchmark.benchmark_rag.config import load_config
 
 # Load configuration
 config = load_config("config_dense_milvus.yaml")
 
 # Run RAG pipeline
-results = qa_dense_retrieval_milvus.run_pipeline(
-    query="What is SAGE?",
-    config=config
-)
+results = qa_dense_retrieval_milvus.run_pipeline(query="What is SAGE?", config=config)
 
 # View results
 print(f"Retrieved {len(results)} documents")
@@ -173,7 +177,7 @@ experiment = PipelineExperiment(
     name="custom_rag_benchmark",
     pipelines=["dense", "sparse", "hybrid"],
     queries=["query1.txt", "query2.txt"],
-    metrics=["precision", "recall", "latency"]
+    metrics=["precision", "recall", "latency"],
 )
 
 # Run experiment
@@ -193,6 +197,7 @@ Configuration files are located in `sage/benchmark/benchmark_rag/config/`:
 - `config_qa_chroma.yaml` - ChromaDB configuration
 
 Experiment configurations in `sage/benchmark/benchmark_rag/evaluation/config/`:
+
 - `experiment_config.yaml` - Benchmark experiment settings
 
 ## 📖 Data
@@ -200,12 +205,14 @@ Experiment configurations in `sage/benchmark/benchmark_rag/evaluation/config/`:
 Test data is included in the package:
 
 - **Benchmark Data** (`benchmark_rag/data/`):
+
   - `queries.jsonl` - Sample queries for testing
   - `qa_knowledge_base.*` - Knowledge base in multiple formats (txt, md, pdf, docx)
   - `sample/` - Additional sample documents for testing
   - `sample/` - Additional sample documents
 
 - **Benchmark Config** (`benchmark_rag/config/`):
+
   - `experiment_config.yaml` - RAG benchmark configurations
 
 ## 🔧 Development
@@ -241,7 +248,8 @@ For detailed documentation on each component:
 
 ## 🤝 Contributing
 
-This package follows the same contribution guidelines as the main SAGE project. See the main repository's `CONTRIBUTING.md`.
+This package follows the same contribution guidelines as the main SAGE project. See the main
+repository's `CONTRIBUTING.md`.
 
 ## 📄 License
 
@@ -260,6 +268,6 @@ This project is licensed under the MIT License - see the [LICENSE](../../LICENSE
 - **Issues**: https://github.com/intellistream/SAGE/issues
 - **Discussions**: https://github.com/intellistream/SAGE/discussions
 
----
+______________________________________________________________________
 
 **Part of the SAGE Framework** | [Main Repository](https://github.com/intellistream/SAGE)

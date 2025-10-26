@@ -28,13 +28,13 @@ class ServiceManager:
 ```
 
 **关键发现**:
+
 - ✅ `_result_lock` **只保护元数据**（请求 ID、响应映射）
 - ✅ **不保护实际的服务调用** - 服务方法可以并发执行
 - ✅ 线程池允许 10 个并发服务调用
 - ✅ 每个服务实例由用户代码管理线程安全性
 
-**这意味着什么？**
-👉 **如果 SageDB 内部是线程安全的，多个线程可以真正并发调用，几乎零额外开销！**
+**这意味着什么？** 👉 **如果 SageDB 内部是线程安全的，多个线程可以真正并发调用，几乎零额外开销！**
 
 ### 2. 最高效的多线程方案：零拷贝 + 细粒度锁
 
@@ -43,10 +43,11 @@ class ServiceManager:
 这是经过性能分析后的最优方案：
 
 **设计原则**：
+
 1. **读路径零锁** - 使用 immutable 索引 + atomic 指针
-2. **写路径细粒度锁** - 只在必要时短暂持锁
-3. **批量操作优化** - 一次锁定完成多个操作
-4. **GIL 完全释放** - C++ 层无 Python 依赖
+1. **写路径细粒度锁** - 只在必要时短暂持锁
+1. **批量操作优化** - 一次锁定完成多个操作
+1. **GIL 完全释放** - C++ 层无 Python 依赖
 
 #### 核心实现：Immutable Index + Copy-on-Write
 
@@ -322,6 +323,7 @@ search_index_.store(new_index);
 import numpy as np
 from typing import List, Dict, Optional
 
+
 class SageDBService:
     """
     高性能向量数据库服务
@@ -346,8 +348,9 @@ class SageDBService:
         # 直接调用 C++ - 内部已处理并发
         return self._db.add(vector, metadata or {})
 
-    def add_batch(self, vectors: np.ndarray,
-                  metadata_list: Optional[List[Dict]] = None) -> List[int]:
+    def add_batch(
+        self, vectors: np.ndarray, metadata_list: Optional[List[Dict]] = None
+    ) -> List[int]:
         """
         批量添加（线程安全，且批量操作内部只锁一次）
         """
@@ -357,8 +360,9 @@ class SageDBService:
         # C++ 层的 add_batch 内部只获取一次锁
         return self._db.add_batch(vectors, metadata_list or [])
 
-    def search(self, query: np.ndarray, k: int = 10,
-               include_metadata: bool = True) -> List[Dict]:
+    def search(
+        self, query: np.ndarray, k: int = 10, include_metadata: bool = True
+    ) -> List[Dict]:
         """
         搜索（完全无锁，可高度并发）
 
@@ -376,7 +380,7 @@ class SageDBService:
             {
                 "id": int(r.id),
                 "score": float(r.score),
-                "metadata": dict(r.metadata) if include_metadata else {}
+                "metadata": dict(r.metadata) if include_metadata else {},
             }
             for r in results
         ]
@@ -395,8 +399,10 @@ class SageDBService:
         results = self._db.batch_search(queries, SearchParams(k))
 
         return [
-            [{"id": int(r.id), "score": float(r.score), "metadata": dict(r.metadata)}
-             for r in batch]
+            [
+                {"id": int(r.id), "score": float(r.score), "metadata": dict(r.metadata)}
+                for r in batch
+            ]
             for batch in results
         ]
 
@@ -408,15 +414,16 @@ class SageDBService:
             "index_version": self._db.index_version,
         }
 
+
 # 就这么简单！无需任何锁！
 ```
 
 **关键优势**：
 
 1. **零 Python 层开销** - 无锁，无队列，无线程池
-2. **GIL 完全释放** - C++ 层执行时 Python 可以做其他事
-3. **自然的批量优化** - `add_batch` 和 `batch_search` 内部只锁一次
-4. **向后兼容** - 接口与单线程版本完全一致
+1. **GIL 完全释放** - C++ 层执行时 Python 可以做其他事
+1. **自然的批量优化** - `add_batch` 和 `batch_search` 内部只锁一次
+1. **向后兼容** - 接口与单线程版本完全一致
 
 ### 4. 在 SAGE Pipeline 中的使用：性能测试
 
@@ -425,6 +432,7 @@ class SageDBService:
 ```python
 from sage.core.api.function.map_function import MapFunction
 
+
 class VectorSearchFunction(MapFunction):
     def execute(self, data):
         # ServiceManager 的锁只保护请求映射
@@ -432,10 +440,7 @@ class VectorSearchFunction(MapFunction):
         #
         # 性能：10 个并发线程 = ~10x 吞吐量
         results = self.call_service(
-            "sage_db",
-            data["query_vector"],
-            method="search",
-            k=10
+            "sage_db", data["query_vector"], method="search", k=10
         )
         return {"results": results, "query": data["query_text"]}
 ```
@@ -460,6 +465,7 @@ Thread 2: call_service("sage_db", vec2, "search")  # 同时进行
 ```
 
 **瓶颈在哪？**
+
 - ❌ 不在 ServiceManager（锁很短）
 - ❌ 不在 Python 层（GIL 已释放）
 - ✅ 只在 CPU 计算能力！
@@ -480,17 +486,13 @@ class BatchVectorSearch(BatchFunction):
 
         # 单次服务调用，批量搜索
         # C++ 层用 OpenMP 并行，无锁，性能爆炸！
-        results = self.call_service(
-            "sage_db",
-            queries,
-            method="batch_search",
-            k=10
-        )
+        results = self.call_service("sage_db", queries, method="batch_search", k=10)
 
         return [
             {"query": batch_data[i]["query_text"], "results": results[i]}
             for i in range(len(batch_data))
         ]
+
 
 # Pipeline 配置
 env = LocalEnvironment()
@@ -505,17 +507,18 @@ env.register_service("sage_db", lambda: SageDBService(dimension=768))
 
 **性能对比**：
 
-| 方式 | 1000 个查询耗时 | QPS | CPU 利用率 |
-|------|----------------|-----|-----------|
-| 逐个查询（单线程） | 10.0s | 100 | 12% (1/8 cores) |
-| 逐个查询（10 线程） | 2.8s | 357 | 45% |
-| batch_search (内部 OpenMP) | 1.2s | 833 | 95% |
+| 方式                       | 1000 个查询耗时 | QPS | CPU 利用率      |
+| -------------------------- | --------------- | --- | --------------- |
+| 逐个查询（单线程）         | 10.0s           | 100 | 12% (1/8 cores) |
+| 逐个查询（10 线程）        | 2.8s            | 357 | 45%             |
+| batch_search (内部 OpenMP) | 1.2s            | 833 | 95%             |
 
 **为什么批量这么快？**
+
 1. 只调用一次 `call_service`（减少请求开销）
-2. C++ `batch_search` 内部用 OpenMP 并行
-3. 完全释放 GIL
-4. 减少 Python/C++ 边界开销
+1. C++ `batch_search` 内部用 OpenMP 并行
+1. 完全释放 GIL
+1. 减少 Python/C++ 边界开销
 
 ### 5. Python GIL 的彻底释放
 
@@ -711,6 +714,7 @@ import numpy as np
 
 db = SageDB(DatabaseConfig(768))
 
+
 def search_worker(worker_id, num_queries):
     query = np.random.rand(768).astype(np.float32)
 
@@ -720,6 +724,7 @@ def search_worker(worker_id, num_queries):
     elapsed = time.time() - start
 
     print(f"Worker {worker_id}: {num_queries/elapsed:.1f} QPS")
+
 
 # 单线程基准
 search_worker(0, 1000)
@@ -744,6 +749,7 @@ for t in threads:
 ```
 
 **没有 GIL 释放会怎样？**
+
 ```
 总吞吐量: ~125 QPS (无提升，因为 GIL 序列化了所有调用)
 ```
@@ -753,29 +759,31 @@ for t in threads:
 基于 Lock-Free + GIL Release 架构的性能测试：
 
 #### 测试环境
+
 - CPU: 8-core Intel Xeon
 - 数据集: 1M vectors, 768 dimensions
 - 索引: HNSW (M=16, ef=200)
 
 #### 结果对比
 
-| 操作 | 单线程 | 传统读写锁 | Lock-Free (本方案) | 提升倍数 |
-|------|--------|-----------|-------------------|---------|
-| **并发读取 (8 threads)** | | | | |
-| search() QPS | 120 | 480 (4.0x) | 920 (7.7x) | **7.7x** |
-| CPU 利用率 | 12% | 58% | 95% | |
-| **批量搜索** | | | | |
-| batch_search(100) QPS | 12 | 45 (3.8x) | 95 (7.9x) | **7.9x** |
-| **混合读写 (90% read)** | | | | |
-| 总吞吐量 | 100 | 320 (3.2x) | 780 (7.8x) | **7.8x** |
-| P99 延迟 | 12ms | 18ms | 8ms | **0.67x** |
-| **批量插入** | | | | |
-| add_batch(1000) /s | 8K | 12K (1.5x) | 28K (3.5x) | **3.5x** |
-| 索引重建时间 | 2.5s | 2.3s | 0.3s (异步) | **8.3x** |
+| 操作                     | 单线程 | 传统读写锁 | Lock-Free (本方案) | 提升倍数  |
+| ------------------------ | ------ | ---------- | ------------------ | --------- |
+| **并发读取 (8 threads)** |        |            |                    |           |
+| search() QPS             | 120    | 480 (4.0x) | 920 (7.7x)         | **7.7x**  |
+| CPU 利用率               | 12%    | 58%        | 95%                |           |
+| **批量搜索**             |        |            |                    |           |
+| batch_search(100) QPS    | 12     | 45 (3.8x)  | 95 (7.9x)          | **7.9x**  |
+| **混合读写 (90% read)**  |        |            |                    |           |
+| 总吞吐量                 | 100    | 320 (3.2x) | 780 (7.8x)         | **7.8x**  |
+| P99 延迟                 | 12ms   | 18ms       | 8ms                | **0.67x** |
+| **批量插入**             |        |            |                    |           |
+| add_batch(1000) /s       | 8K     | 12K (1.5x) | 28K (3.5x)         | **3.5x**  |
+| 索引重建时间             | 2.5s   | 2.3s       | 0.3s (异步)        | **8.3x**  |
 
 #### 关键发现
 
 **1. 读操作几乎线性扩展**
+
 ```
 1 thread:  120 QPS
 2 threads: 235 QPS (1.96x)
@@ -784,6 +792,7 @@ for t in threads:
 ```
 
 **2. 无锁读比传统读写锁快 91%**
+
 ```
 传统方案：std::shared_lock (需要原子操作)
 本方案：  atomic load (单指令)
@@ -795,6 +804,7 @@ for t in threads:
 ```
 
 **3. 异步索引重建消除写阻塞**
+
 ```
 传统方案：
   add() → 持锁 → 插入 → 重建索引(2.5s) → 释放锁
@@ -807,6 +817,7 @@ for t in threads:
 ```
 
 **4. Python GIL 释放的巨大影响**
+
 ```
 未释放 GIL (8 threads):
   总 QPS = 125 (单线程: 120)
@@ -866,6 +877,7 @@ public:
 ```
 
 **测试**:
+
 ```cpp
 // tests/test_thread_safety.cpp
 void test_concurrent_search() {
@@ -900,12 +912,16 @@ void test_concurrent_search() {
 ```
 
 **验证**:
+
 ```python
 # 多线程性能应该有显著提升
 import threading
+
+
 def bench():
     for _ in range(1000):
         db.search(query, 10)
+
 
 threads = [threading.Thread(target=bench) for _ in range(8)]
 # 应该看到 ~8x 加速
@@ -961,6 +977,7 @@ std::vector<std::vector<QueryResult>> batch_search(
 **关键优化点**:
 
 1. **减少内存拷贝**:
+
 ```cpp
 // 使用 move 语义
 std::vector<VectorId> add_batch(std::vector<Vector>&& vectors) {
@@ -969,6 +986,7 @@ std::vector<VectorId> add_batch(std::vector<Vector>&& vectors) {
 ```
 
 2. **NUMA 感知**:
+
 ```cpp
 // 绑定线程到 CPU 核心
 #pragma omp parallel
@@ -982,6 +1000,7 @@ std::vector<VectorId> add_batch(std::vector<Vector>&& vectors) {
 ```
 
 3. **缓存友好的数据结构**:
+
 ```cpp
 // 对齐到缓存行，避免 false sharing
 struct alignas(64) QueryResult {
@@ -993,14 +1012,14 @@ struct alignas(64) QueryResult {
 
 #### 完整实施时间表
 
-| Phase | 工作量 | 依赖 | 性能提升 |
-|-------|--------|------|---------|
-| Phase 1 | 1-2 天 | 无 | 基础线程安全 |
-| Phase 2 | 0.5 天 | Phase 1 | 3-4x (GIL 释放) |
-| Phase 3 | 2-3 天 | Phase 2 | 7-8x (Lock-Free) |
-| Phase 4 | 1 天 | Phase 3 | 批量性能 2x |
-| Phase 5 | 1-2 天 | Phase 4 | 额外 10-20% |
-| **总计** | **6-9 天** | | **~8x 总提升** |
+| Phase    | 工作量     | 依赖    | 性能提升         |
+| -------- | ---------- | ------- | ---------------- |
+| Phase 1  | 1-2 天     | 无      | 基础线程安全     |
+| Phase 2  | 0.5 天     | Phase 1 | 3-4x (GIL 释放)  |
+| Phase 3  | 2-3 天     | Phase 2 | 7-8x (Lock-Free) |
+| Phase 4  | 1 天       | Phase 3 | 批量性能 2x      |
+| Phase 5  | 1-2 天     | Phase 4 | 额外 10-20%      |
+| **总计** | **6-9 天** |         | **~8x 总提升**   |
 
 ### 8. 验证和测试清单
 
@@ -1021,6 +1040,7 @@ import threading
 import time
 import numpy as np
 
+
 def benchmark_concurrent_search(db, num_threads, queries_per_thread):
     """测试并发搜索性能"""
 
@@ -1031,14 +1051,13 @@ def benchmark_concurrent_search(db, num_threads, queries_per_thread):
         return time.time() - start
 
     # 准备查询
-    all_queries = [np.random.rand(768).astype(np.float32)
-                   for _ in range(num_threads * queries_per_thread)]
+    all_queries = [
+        np.random.rand(768).astype(np.float32)
+        for _ in range(num_threads * queries_per_thread)
+    ]
 
     # 分配给线程
-    query_batches = [
-        all_queries[i::num_threads]
-        for i in range(num_threads)
-    ]
+    query_batches = [all_queries[i::num_threads] for i in range(num_threads)]
 
     # 并发执行
     start = time.time()
@@ -1058,6 +1077,7 @@ def benchmark_concurrent_search(db, num_threads, queries_per_thread):
     print(f"Total QPS: {total_queries / total_time:.1f}")
     print(f"Per-thread QPS: {queries_per_thread / (total_time / num_threads):.1f}")
     print()
+
 
 # 运行基准测试
 for num_threads in [1, 2, 4, 8]:
@@ -1188,6 +1208,7 @@ class SageDBService:
 
     def search(self, query, k=10):
         import time
+
         start = time.time()
 
         results = self._db.search(query, k=k)
@@ -1203,18 +1224,19 @@ class SageDBService:
         return results
 ```
 
-| 场景 | 单线程 SageDB | 多线程 SageDB (4核) | 提升 |
-|------|--------------|-------------------|------|
-| 并发读取 (1M vectors) | 100 QPS | 380 QPS | 3.8x |
-| 混合读写 (90% read) | 85 QPS | 240 QPS | 2.8x |
-| 批量插入 (10K batch) | 12,000/s | 35,000/s | 2.9x |
-| Pipeline 吞吐量 | 150 records/s | 520 records/s | 3.5x |
+| 场景                  | 单线程 SageDB | 多线程 SageDB (4核) | 提升 |
+| --------------------- | ------------- | ------------------- | ---- |
+| 并发读取 (1M vectors) | 100 QPS       | 380 QPS             | 3.8x |
+| 混合读写 (90% read)   | 85 QPS        | 240 QPS             | 2.8x |
+| 批量插入 (10K batch)  | 12,000/s      | 35,000/s            | 2.9x |
+| Pipeline 吞吐量       | 150 records/s | 520 records/s       | 3.5x |
 
 ### 7. 迁移检查清单
 
 如果要将 SageDB 升级为多线程引擎：
 
 **C++ 层修改**:
+
 - [ ] 在 `SageDB` 类中添加 `std::shared_mutex`
 - [ ] 保护所有写操作（add, remove, update）使用独占锁
 - [ ] 保护所有读操作（search, get）使用共享锁
@@ -1222,14 +1244,17 @@ class SageDBService:
 - [ ] 确保 ANNS 插件是线程安全的
 
 **Python 层修改**:
+
 - [ ] （可选）在服务层添加额外的锁协调
 - [ ] 更新文档说明线程安全保证
 - [ ] 添加并发测试用例
 
 **SAGE 集成**:
+
 - [ ] 无需修改！现有代码直接受益
 
 **测试**:
+
 - [ ] 添加多线程单元测试
 - [ ] 压力测试（多线程同时读写）
 - [ ] 在实际 Pipeline 中测试性能提升
@@ -1405,6 +1430,7 @@ PYBIND11_MODULE(_sage_db, m) {
 ```
 
 **关键**:
+
 - ✅ ServiceManager 的锁**不影响性能**（只保护请求映射表）
 - ✅ Python 层**完全无锁**（C++ 层保证线程安全）
 - ✅ C++ 读操作**完全无锁**（immutable index + atomic pointer）
@@ -1412,35 +1438,39 @@ PYBIND11_MODULE(_sage_db, m) {
 
 ### 📊 性能对比总结
 
-| 方案 | 8 线程搜索 QPS | 实现复杂度 | 推荐指数 |
-|------|---------------|-----------|---------|
-| 单线程 | 120 | ⭐ | ❌ |
-| Python 层加锁 | 125 (+4%) | ⭐⭐ | ❌ |
-| C++ 传统读写锁 | 480 (+300%) | ⭐⭐⭐ | ⚠️ |
-| **Lock-Free + GIL Release** | **920 (+767%)** | ⭐⭐⭐⭐ | ✅ |
+| 方案                        | 8 线程搜索 QPS  | 实现复杂度 | 推荐指数 |
+| --------------------------- | --------------- | ---------- | -------- |
+| 单线程                      | 120             | ⭐         | ❌       |
+| Python 层加锁               | 125 (+4%)       | ⭐⭐       | ❌       |
+| C++ 传统读写锁              | 480 (+300%)     | ⭐⭐⭐     | ⚠️       |
+| **Lock-Free + GIL Release** | **920 (+767%)** | ⭐⭐⭐⭐   | ✅       |
 
 ### 🎯 核心优势
 
 1. **读操作零锁开销**
+
    ```cpp
    // 单条指令，~2ns
    auto index = search_index_.load(std::memory_order_acquire);
    ```
 
-2. **写操作不阻塞读**
+1. **写操作不阻塞读**
+
    ```cpp
    // 异步重建索引，读继续使用旧索引
    rebuild_index_async();
    ```
 
-3. **批量操作极致优化**
+1. **批量操作极致优化**
+
    ```cpp
    // 一次锁定 + OpenMP 并行
    #pragma omp parallel for
    for (auto& query : queries) { ... }
    ```
 
-4. **GIL 完全释放**
+1. **GIL 完全释放**
+
    ```cpp
    py::gil_scoped_release release;
    // Python 线程真正并行
@@ -1449,15 +1479,13 @@ PYBIND11_MODULE(_sage_db, m) {
 ### 📋 推荐的实施优先级
 
 **立即实施** (最大性价比):
+
 1. ✅ Phase 2: GIL 释放（半天工作，3-4x 提升）
-2. ✅ Phase 1: 基础线程安全（1-2 天，保证正确性）
+1. ✅ Phase 1: 基础线程安全（1-2 天，保证正确性）
 
-**中期实施** (追求极致性能):
-3. ✅ Phase 3: Lock-Free 读（2-3 天，达到 8x 提升）
-4. ✅ Phase 4: 批量优化（1 天，批量性能翻倍）
+**中期实施** (追求极致性能): 3. ✅ Phase 3: Lock-Free 读（2-3 天，达到 8x 提升） 4. ✅ Phase 4: 批量优化（1 天，批量性能翻倍）
 
-**长期优化** (锦上添花):
-5. ✅ Phase 5: 细节调优（1-2 天，额外 10-20%）
+**长期优化** (锦上添花): 5. ✅ Phase 5: 细节调优（1-2 天，额外 10-20%）
 
 ### 🔗 与 SAGE Service 的完美结合
 
@@ -1474,6 +1502,7 @@ env.register_service("sage_db", lambda: SageDBService(dimension=768))
 ```
 
 **为什么不需要改？**
+
 - ServiceManager 的锁只保护请求映射（微秒级）
 - SageDB 内部已经是线程安全的（Lock-Free）
 - GIL 在 C++ 层释放（真并行）
@@ -1481,8 +1510,8 @@ env.register_service("sage_db", lambda: SageDBService(dimension=768))
 
 ### 🚀 预期收益
 
-**开发成本**: 6-9 天
-**性能提升**:
+**开发成本**: 6-9 天 **性能提升**:
+
 - 单次搜索: 保持不变
 - 并发搜索 (8 核): **7.7x**
 - 批量搜索: **7.9x**

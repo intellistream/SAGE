@@ -9,7 +9,7 @@ source:
 
 retriever:
   kv_collection:
-    bm25s: True
+    bm25s: true
     topk: 3
   ltm:
     topk: 3

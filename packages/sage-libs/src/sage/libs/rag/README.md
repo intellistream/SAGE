@@ -9,8 +9,7 @@ from sage.libs.rag import Retriever, Generator, RAGPipeline
 
 # 创建RAG管道
 rag = RAGPipeline(
-    retriever=Retriever("knowledge_base.faiss"),
-    generator=Generator("gpt-3.5-turbo")
+    retriever=Retriever("knowledge_base.faiss"), generator=Generator("gpt-3.5-turbo")
 )
 
 # 执行问答
@@ -31,7 +30,7 @@ answer = rag.generate("什么是机器学习？", top_k=5)
 ## 使用场景
 
 - **智能问答**: 基于知识库的精准问答
-- **内容创作**: 基于参考资料的内容生成  
+- **内容创作**: 基于参考资料的内容生成
 - **研究助手**: 学术研究和文献调研
 - **教育辅导**: 个性化学习内容生成
 - **客服系统**: 基于企业知识库的客服
@@ -43,6 +42,7 @@ answer = rag.generate("什么是机器学习？", top_k=5)
 **[📚 RAG API 完整参考文档](../../../docs-public/docs_src/librarys/rag/api_reference.md)**
 
 包含完整的：
+
 - API 使用指南和示例
 - 高级配置选项
 - 性能优化建议

@@ -31,14 +31,15 @@ MultimodalSageDB
 ### 设计理念
 
 1. **模块化设计**: 每个模态处理器和融合策略都是独立的组件，易于扩展和替换
-2. **可配置性**: 提供丰富的配置选项，支持不同场景的需求
-3. **向后兼容**: 继承现有 SageDB 功能，无需修改现有代码
-4. **高性能**: 支持批量操作和并行处理
-5. **可扩展性**: 提供插件机制，支持自定义模态处理器和融合策略
+1. **可配置性**: 提供丰富的配置选项，支持不同场景的需求
+1. **向后兼容**: 继承现有 SageDB 功能，无需修改现有代码
+1. **高性能**: 支持批量操作和并行处理
+1. **可扩展性**: 提供插件机制，支持自定义模态处理器和融合策略
 
 ## 主要特性
 
 ### 1. 多模态数据支持
+
 - **文本**: 支持多种文本编码（BERT、Word2Vec等）
 - **图像**: 支持CNN特征提取、直方图、纹理特征等
 - **音频**: 支持MFCC、频谱特征、时域特征等
@@ -47,6 +48,7 @@ MultimodalSageDB
 - **时间序列**: 支持统计特征、频域特征、趋势分析等
 
 ### 2. 多种融合策略
+
 - **向量拼接**: 简单直接的特征组合
 - **加权平均**: 根据模态重要性进行加权
 - **注意力机制**: 自适应学习模态权重
@@ -55,6 +57,7 @@ MultimodalSageDB
 - **跨模态Transformer**: 基于注意力的深度融合
 
 ### 3. 灵活的查询方式
+
 - **单模态查询**: 使用一种模态查询融合空间
 - **多模态融合查询**: 组合多种模态进行查询
 - **跨模态查询**: 用一种模态查询另一种模态
@@ -162,6 +165,7 @@ auto fusion_strategy = FusionStrategyFactory::create_cross_modal_transformer_fus
 ## 性能优化建议
 
 ### 1. 维度对齐
+
 ```cpp
 // 为不同模态设置合适的嵌入维度
 TextModalityProcessor::TextConfig text_config;
@@ -176,6 +180,7 @@ params.target_dimension = 512;  // 统一目标维度
 ```
 
 ### 2. 批量处理
+
 ```cpp
 // 批量融合提高效率
 std::vector<std::unordered_map<ModalityType, Vector>> batch_embeddings;
@@ -184,6 +189,7 @@ auto fused_vectors = fusion_engine->batch_fuse(batch_embeddings, params);
 ```
 
 ### 3. 索引优化
+
 ```cpp
 // 为高频查询的模态建立独立索引
 db->build_modality_index(ModalityType::TEXT);
@@ -203,6 +209,7 @@ for (const auto& stat : stats) {
 ### 添加新的模态类型
 
 1. **定义模态类型**:
+
 ```cpp
 enum class ModalityType {
     // ... 现有类型
@@ -212,6 +219,7 @@ enum class ModalityType {
 ```
 
 2. **实现模态处理器**:
+
 ```cpp
 class PointCloudModalityProcessor : public ModalityProcessor {
 public:
@@ -232,6 +240,7 @@ public:
 ```
 
 3. **注册处理器**:
+
 ```cpp
 auto processor = std::make_shared<PointCloudModalityProcessor>();
 db->register_modality_processor(ModalityType::POINT_CLOUD, processor);
@@ -240,6 +249,7 @@ db->register_modality_processor(ModalityType::POINT_CLOUD, processor);
 ### 添加新的融合策略
 
 1. **实现融合策略**:
+
 ```cpp
 class GraphNeuralNetworkFusion : public FusionStrategyInterface {
 public:
@@ -256,6 +266,7 @@ public:
 ```
 
 2. **注册策略**:
+
 ```cpp
 auto strategy = std::make_shared<GraphNeuralNetworkFusion>();
 db->register_fusion_strategy(FusionStrategy::CUSTOM, strategy);
@@ -264,6 +275,7 @@ db->register_fusion_strategy(FusionStrategy::CUSTOM, strategy);
 ## 测试和验证
 
 ### 单元测试示例
+
 ```cpp
 TEST(MultimodalSageDBTest, BasicFunctionality) {
     auto db = MultimodalSageDBFactory::create_text_image_db(test_config);
@@ -297,17 +309,20 @@ TEST(FusionEngineTest, WeightedAverageFusion) {
 ## 部署建议
 
 ### 1. 依赖管理
+
 - OpenCV (图像处理)
 - FFmpeg (音视频处理)
 - 机器学习框架 (TensorFlow/PyTorch的C++接口)
 - FAISS (向量检索)
 
 ### 2. 内存管理
+
 - 使用对象池管理大型嵌入向量
 - 实现LRU缓存减少重复计算
 - 适当的批处理大小避免内存溢出
 
 ### 3. 性能监控
+
 ```cpp
 // 添加性能监控
 class MultimodalMetrics {

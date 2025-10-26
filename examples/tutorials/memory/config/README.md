@@ -9,12 +9,14 @@ This directory contains configuration files for memory system tutorials.
 ## Usage
 
 Referenced by:
+
 - `../rag_memory_pipeline.py`
 - Other memory examples
 
 ## Configuration Structure
 
 The config includes:
+
 - Memory manager settings
 - Vector database configuration
 - RAG pipeline parameters
@@ -23,5 +25,6 @@ The config includes:
 ## Data Location
 
 Memory data is stored in `../data/`:
+
 - `toy_memory.json` - Sample memory data
 - Runtime data in `.sage/` directory

@@ -31,7 +31,9 @@ python packages/sage-kernel/tests/integration/services/test_autostop_service_rem
 ## Test Categories
 
 ### Services Tests
+
 Tests for SAGE service lifecycle management, including:
+
 - Service initialization and cleanup
 - Autostop functionality (local and remote modes)
 - Resource management and garbage collection

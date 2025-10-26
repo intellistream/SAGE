@@ -4,7 +4,9 @@ A comprehensive command-line tool for managing version.py files across all SAGE 
 
 ## Overview
 
-The `sage dev version` command provides a unified interface to manage version information across all SAGE packages. It automatically discovers all `_version.py` files in the packages directory and provides various operations to update and synchronize versions.
+The `sage dev version` command provides a unified interface to manage version information across all
+SAGE packages. It automatically discovers all `_version.py` files in the packages directory and
+provides various operations to update and synchronize versions.
 
 ## Features
 
@@ -56,8 +58,9 @@ sage dev version bump major --dry-run
 ```
 
 Supported increment types:
+
 - `major`: 0.1.3.1 → 1.0.0.0
-- `minor`: 0.1.3.1 → 0.2.0.0  
+- `minor`: 0.1.3.1 → 0.2.0.0
 - `patch`: 0.1.3.1 → 0.1.4.0
 - `build`: 0.1.3.1 → 0.1.3.2
 
@@ -93,11 +96,13 @@ sage dev version sync --source sage --dry-run
 ### Development Workflow
 
 1. **Check current versions**:
+
    ```bash
    sage dev version list
    ```
 
-2. **Prepare for a minor release**:
+1. **Prepare for a minor release**:
+
    ```bash
    # Preview changes first
    sage dev version bump minor --dry-run
@@ -106,12 +111,14 @@ sage dev version sync --source sage --dry-run
    sage dev version bump minor
    ```
 
-3. **Fix a specific package**:
+1. **Fix a specific package**:
+
    ```bash
    sage dev version bump patch --package sage-kernel
    ```
 
-4. **Ensure version consistency**:
+1. **Ensure version consistency**:
+
    ```bash
    sage dev version sync --source sage
    ```
@@ -119,23 +126,27 @@ sage dev version sync --source sage --dry-run
 ### Release Management
 
 1. **Set release version**:
+
    ```bash
    sage dev version set 1.0.0
    ```
 
-2. **Verify all packages have the same version**:
+1. **Verify all packages have the same version**:
+
    ```bash
    sage dev version list
    ```
 
 ## Package Discovery
 
-The tool automatically discovers packages by scanning the `packages/` directory and looking for `_version.py` files in the following locations:
+The tool automatically discovers packages by scanning the `packages/` directory and looking for
+`_version.py` files in the following locations:
 
 - `packages/{package-name}/src/sage/_version.py`
 - `packages/{package-name}/src/sage/{module-name}/_version.py`
 
 For example:
+
 - `packages/sage/src/sage/_version.py`
 - `packages/sage-kernel/src/sage/kernel/_version.py`
 - `packages/sage-common/src/sage/common/_version.py`

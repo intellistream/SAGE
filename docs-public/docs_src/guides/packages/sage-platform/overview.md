@@ -2,26 +2,31 @@
 
 ## Overview
 
-`sage-platform` provides cross-cutting platform services including RPC, distributed queuing, resource management, and observability.
+`sage-platform` provides cross-cutting platform services including RPC, distributed queuing,
+resource management, and observability.
 
 ## Key Components
 
 ### RPC System
+
 - **RPC Framework**: Asynchronous RPC with multiple transports
 - **Service Registry**: Service discovery and registration
 - **Load Balancing**: Intelligent request routing
 
 ### Queue System
+
 - **Distributed Queue**: High-performance distributed task queue
 - **Priority Scheduling**: Priority-based task execution
 - **Dead Letter Queue**: Failed task handling
 
 ### Resource Management
+
 - **Allocator**: Resource allocation and tracking
 - **Scheduler**: Task scheduling and orchestration
 - **Monitor**: Resource usage monitoring
 
 ### Observability
+
 - **Metrics**: Performance metrics collection
 - **Tracing**: Distributed tracing
 - **Logging**: Centralized logging infrastructure

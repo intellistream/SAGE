@@ -1,17 +1,18 @@
 # Service API
 
-一句话概述：统一的服务调用入口，支持同步与异步，在 Function 与 Service 中均可使用。服务通过 Environment 注册后，以名称暴露给调用侧；在 BaseFunction/BaseService 中通过 call_service/call_service_async 访问。
+一句话概述：统一的服务调用入口，支持同步与异步，在 Function 与 Service 中均可使用。服务通过 Environment 注册后，以名称暴露给调用侧；在
+BaseFunction/BaseService 中通过 call_service/call_service_async 访问。
 
-!!! tip "先决条件（Prerequisites）"
-    - 了解 SAGE 的 Function/Operator 编程模型
-    - 已在 Environment 中注册对应服务（如 memory_service、kv_service、vdb_service、graph_service 等）
+!!! tip "先决条件（Prerequisites）" - 了解 SAGE 的 Function/Operator 编程模型 - 已在 Environment 中注册对应服务（如
+memory_service、kv_service、vdb_service、graph_service 等）
 
----
+______________________________________________________________________
 
 ## 一、快速开始
 
 ```python
 from sage.core.api.function.base_function import BaseFunction
+
 
 class MyFn(BaseFunction):
     def execute(self, data):
@@ -28,12 +29,12 @@ class MyFn(BaseFunction):
             vector=data.get("vector"),
             session_id=data.get("session_id", "default"),
             memory_type="conversation",
-            metadata={"source": "demo"}
+            metadata={"source": "demo"},
         )
         return {"ok": True}
 ```
 
----
+______________________________________________________________________
 
 ## 二、调用入口（速查）
 
@@ -45,6 +46,7 @@ class BaseFunction:
     def call_service_async(self): ...
     def execute(self, data): ...
 
+
 class BaseService:
     @property
     def call_service(self): ...
@@ -53,10 +55,11 @@ class BaseService:
 ```
 
 - 同步：`self.call_service["service_name"].method(args...)`
-- 异步：`self.call_service_async["service_name"].method(args...)` -> Future（用 `.result(timeout=…)` 获取结果）
+- 异步：`self.call_service_async["service_name"].method(args...)` -> Future（用 `.result(timeout=…)`
+  获取结果）
 - 若运行时上下文未注入，访问上述属性会抛出 `RuntimeError`
 
----
+______________________________________________________________________
 
 ## 三、服务清单（基于当前仓库，按模块划分）
 
@@ -69,13 +72,16 @@ class BaseService:
 ### 1) Memory Service（由 Neuromem 提供的长期记忆服务）
 
 - 典型注册名：`memory_service`
+
 - 组件关系：Memory Service = Neuromem 的服务化封装，对接底层 VDB/KV/Graph 等后端
+
 - 模块位置（参考）：`services/memory/`
+
 - 常见能力
 
-    - 集合/空间管理（如创建集合）
-    - 写入长期记忆（内容、向量、会话上下文与元数据）
-    - 相似检索/语义检索（基于向量/过滤条件）
+  - 集合/空间管理（如创建集合）
+  - 写入长期记忆（内容、向量、会话上下文与元数据）
+  - 相似检索/语义检索（基于向量/过滤条件）
 
 - 仓库中示例用法（节选）
 
@@ -87,11 +93,10 @@ class BaseService:
         service = MemoryService()
         # 可选初始化集合（在 README 中出现过）
         service.create_collection(
-            name="qa_collection",
-            backend_type="VDB",
-            description="QA pipeline memory"
+            name="qa_collection", backend_type="VDB", description="QA pipeline memory"
         )
         return service
+
 
     env.register_service("memory_service", memory_service_factory)
     ```
@@ -105,25 +110,27 @@ class BaseService:
         vector=vector,
         session_id=session_id,
         memory_type="conversation",
-        metadata={"source": "user_input"}
+        metadata={"source": "user_input"},
     )
 
     # 检索（仓库示例中出现过 search_memories 用法）
     results = self.call_service["memory_service"].search_memories(
         query_vector=vector,
         session_id=session_id,
-        limit=5  # 命名可能为 limit/top_k，按实际实现为准
+        limit=5,  # 命名可能为 limit/top_k，按实际实现为准
     )
     ```
 
 ### 2) KV Service（键值存储服务）
 
 - 典型注册名：`kv_service`
+
 - 模块位置（参考）：`services/kv/kv_service.py`
+
 - 常见能力
 
-    - 键值写入与读取
-    - 作为 Memory 编排中的元数据/缓存支撑
+  - 键值写入与读取
+  - 作为 Memory 编排中的元数据/缓存支撑
 
 - 仓库中示例用法（节选）
 
@@ -139,33 +146,37 @@ class BaseService:
 ### 3) VDB Service（向量数据库服务）
 
 - 典型注册名：`vdb_service`
+
 - 模块位置（参考）：`services/vdb/`
+
 - 常见能力
 
-    - 向量集合管理
-    - 向量写入/更新
-    - 相似度检索、过滤检索
+  - 向量集合管理
+  - 向量写入/更新
+  - 相似度检索、过滤检索
 
 - 使用说明
 
-    - 该服务通常由 Memory Service 间接使用；用户也可直接注册后在 Function 中调用
-    - 具体方法名称请参考模块代码与 `examples/services/vdb/examples/vdb_demo.py`
+  - 该服务通常由 Memory Service 间接使用；用户也可直接注册后在 Function 中调用
+  - 具体方法名称请参考模块代码与 `examples/services/vdb/examples/vdb_demo.py`
 
 ### 4) Graph Service（图存储/关系索引服务）
 
 - 典型注册名：`graph_service`
+
 - 模块位置（参考）：`services/graph/`
+
 - 常见能力
 
-    - 节点/边的写入与查询
-    - 关系/邻域检索，辅助长期记忆的上下文组织
+  - 节点/边的写入与查询
+  - 关系/邻域检索，辅助长期记忆的上下文组织
 
 - 使用说明
 
-    - 该服务通常作为 Memory/Neuromem 的关系后端；具体接口以实现为准
-    - 可参考 `examples/services/graph/examples/graph_demo.py`
+  - 该服务通常作为 Memory/Neuromem 的关系后端；具体接口以实现为准
+  - 可参考 `examples/services/graph/examples/graph_demo.py`
 
----
+______________________________________________________________________
 
 ## 四、服务注册与调用模式
 
@@ -175,6 +186,7 @@ class BaseService:
   def some_service_factory():
       # 返回具体服务实例
       return SomeService(...)
+
 
   env.register_service("some_service", some_service_factory)
   ```
@@ -190,7 +202,7 @@ class BaseService:
           return {"out": out, "async": result}
   ```
 
----
+______________________________________________________________________
 
 ## 五、常见错误与排查
 
@@ -199,7 +211,7 @@ class BaseService:
 - 下游服务异常/超时：对异步调用使用合理的 timeout，并在调用侧捕获异常
 - 数据契约不一致：遵循各服务示例中的字段约定，必要时在调用前做输入校验
 
----
+______________________________________________________________________
 
 ## 参考
 

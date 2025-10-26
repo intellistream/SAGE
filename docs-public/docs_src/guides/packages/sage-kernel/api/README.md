@@ -14,12 +14,12 @@ sage/core/api/
 
 ## 你会在这里找到什么
 
-| 主题 | 文档 | 相关源码 |
-| ---- | ---- | -------- |
-| Environment 生命周期、提交与停止 | [environments.md](environments.md) | `base_environment.py`、`local_environment.py`、`remote_environment.py` |
-| DataStream 链式算子 | [datastreams.md](datastreams.md) | `datastream.py` |
-| ConnectedStreams（多流/CoMap/Join） | [connected-streams.md](connected-streams.md) | `connected_streams.py` |
-| 自定义函数签名 | [functions.md](functions.md) | `function/*.py` |
+| 主题                                | 文档                                         | 相关源码                                                               |
+| ----------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------- |
+| Environment 生命周期、提交与停止    | [environments.md](environments.md)           | `base_environment.py`、`local_environment.py`、`remote_environment.py` |
+| DataStream 链式算子                 | [datastreams.md](datastreams.md)             | `datastream.py`                                                        |
+| ConnectedStreams（多流/CoMap/Join） | [connected-streams.md](connected-streams.md) | `connected_streams.py`                                                 |
+| 自定义函数签名                      | [functions.md](functions.md)                 | `function/*.py`                                                        |
 
 阅读建议：先浏览上述文档了解概念，再结合源码确认实现细节。
 
@@ -39,9 +39,9 @@ env.submit(autostop=True)
 这段代码用到了以下 API：
 
 1. `LocalEnvironment` 构造与 `from_batch`（`BatchTransformation`）。
-2. `DataStream.map` 以及 `lambda_function.wrap_lambda` 的自动封装。
-3. `DataStream.print` 对 `sink(PrintSink, ...)` 的封装。
-4. `submit(autostop=True)` 触发 `_wait_for_completion()`，等待本地 JobManager 运行结束。
+1. `DataStream.map` 以及 `lambda_function.wrap_lambda` 的自动封装。
+1. `DataStream.print` 对 `sink(PrintSink, ...)` 的封装。
+1. `submit(autostop=True)` 触发 `_wait_for_completion()`，等待本地 JobManager 运行结束。
 
 ## 当前限制与说明
 

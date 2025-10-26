@@ -1,4 +1,3 @@
-
 # RAG Implementations
 
 Various RAG (Retrieval-Augmented Generation) implementations for performance benchmarking.
@@ -58,30 +57,39 @@ python -m sage.benchmark.benchmark_rag.implementations.tools.build_milvus_dense_
 ## 📊 Implementation Categories
 
 ### Dense Retrieval
+
 Uses embedding-based similarity search:
+
 - Basic dense retrieval
 - Milvus-based
 - ChromaDB-based
 - Distributed with Ray
 
 ### Sparse Retrieval
+
 Uses keyword-based methods:
+
 - BM25 retrieval
 - Milvus sparse vectors
 
 ### Hybrid Methods
+
 Combines multiple approaches:
+
 - Reranking strategies
 - Query refinement
 - Mixed retrieval
 
 ### Multimodal
+
 Handles multiple data types:
+
 - Text + Image + Video fusion
 
 ## 🔧 Configuration
 
 All pipelines use YAML configuration files from `../config/`:
+
 - Vector database settings
 - Embedding model parameters
 - Retrieval hyperparameters
@@ -97,20 +105,24 @@ See `../config/README.md` for details.
 ## 🌟 新功能：多模态数据融合
 
 ### 🎯 多模态融合QA示例
+
 `qa_multimodal_fusion.py` - 展示如何使用多模态数据融合功能进行问答系统
 
 **核心特性：**
+
 - **多模态检索**：同时处理文本和图像数据，支持联合搜索
 - **动态融合策略**：可运行时切换不同的数据融合算法（加权平均、连接、注意力机制等）
 - **智能权重配置**：可配置文本和图像的融合权重
 - **完整QA流程**：从多模态查询到答案生成的完整流程
 
 **快速开始：**
+
 ```bash
 python qa_multimodal_fusion.py
 ```
 
 **支持的融合策略：**
+
 - `weighted_average`: 加权平均融合（推荐用于文本+图像）
 - `concatenation`: 向量连接融合
 - `attention_based`: 注意力机制融合
@@ -141,64 +153,77 @@ python qa_multimodal_fusion.py
 ## 快速开始
 
 1. 安装依赖（建议使用 Python 3.11+，并提前安装好 chromadb、sentence-transformers 等依赖）：
-	 ```bash
-	 pip install -r requirements.txt
-	 ```
 
-2. 运行基础 RAG 示例：
-	 ```bash
-	 python rag_simple.py
-	 # 或
-	 python rag.py
-	 ```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-3. 运行其他脚本：
-	 ```bash
-	 python qa_dense_retrieval.py
-	 python qa_bm25_retrieval.py
-	 # ...
-	 ```
+1. 运行基础 RAG 示例：
+
+   ```bash
+   python rag_simple.py
+   # 或
+   python rag.py
+   ```
+
+1. 运行其他脚本：
+
+   ```bash
+   python qa_dense_retrieval.py
+   python qa_bm25_retrieval.py
+   # ...
+   ```
 
 ## 典型脚本说明
 
 - **rag_simple.py / rag.py**：
-	- 演示最基础的检索增强生成流程，包括问题输入、知识检索、答案生成。
+
+  - 演示最基础的检索增强生成流程，包括问题输入、知识检索、答案生成。
 
 - **preload_knowledge.py**：
-	- 用于将本地知识文本或 jsonl 文件批量导入 ChromaDB，便于后续检索。
+
+  - 用于将本地知识文本或 jsonl 文件批量导入 ChromaDB，便于后续检索。
 
 - **qa_dense_retrieval.py / qa_dense_retrieval_chroma.py**：
-	- 演示如何使用 embedding 模型和 ChromaDB 进行密集向量检索。
+
+  - 演示如何使用 embedding 模型和 ChromaDB 进行密集向量检索。
 
 - **qa_bm25_retrieval.py**：
-	- 演示 BM25 稀疏检索流程，适合文本检索场景。
+
+  - 演示 BM25 稀疏检索流程，适合文本检索场景。
 
 - **qa_dense_retrieval_mixed.py**：
-	- 演示密集与稀疏检索的混合使用。
+
+  - 演示密集与稀疏检索的混合使用。
 
 - **qa_dense_retrieval_ray.py**：
-	- 演示分布式密集检索，适合大规模知识库。
+
+  - 演示分布式密集检索，适合大规模知识库。
 
 - **qa_hf_model.py**：
-	- 演示如何调用 HuggingFace 的问答模型。
+
+  - 演示如何调用 HuggingFace 的问答模型。
 
 - **qa_multiplex.py**：
-	- 演示多路检索与融合。
+
+  - 演示多路检索与融合。
 
 - **qa_refiner.py**：
-	- 演示答案精炼流程。
+
+  - 演示答案精炼流程。
 
 - **qa_rerank.py**：
-	- 演示检索结果重排序。
+
+  - 演示检索结果重排序。
 
 - **qa_without_retrieval.py**：
-	- 演示无检索直接问答。
+
+  - 演示无检索直接问答。
 
 ## 数据与配置
 
 - `chroma_qa_database/` 目录下为 ChromaDB 的数据库文件和相关二进制数据。
 - `config/` 目录下为各脚本的配置文件（如模型、数据库路径、参数等）。
-
 
 ## 如何创建和查询向量数据库（ChromaDB）
 
@@ -213,11 +238,13 @@ from sage.libs.utils.chroma import ChromaBackend
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 
 # 加载文本数据
-with open('data/qa_knowledge_base.txt', 'r', encoding='utf-8') as f:
-	documents = [line.strip() for line in f if line.strip()]
+with open("data/qa_knowledge_base.txt", "r", encoding="utf-8") as f:
+    documents = [line.strip() for line in f if line.strip()]
 
 # 初始化 embedding 模型
-embedding_model = EmbeddingModel(method="default", model="sentence-transformers/all-MiniLM-L6-v2")
+embedding_model = EmbeddingModel(
+    method="default", model="sentence-transformers/all-MiniLM-L6-v2"
+)
 
 # 生成 embedding 向量
 embeddings = [embedding_model.embed(doc) for doc in documents]
@@ -243,7 +270,7 @@ query_vector = np.array(query_embedding, dtype=np.float32)
 top_k = 5
 retrieved_docs = chroma_backend.search(query_vector, query, top_k)
 for doc in retrieved_docs:
-	print(doc)
+    print(doc)
 ```
 
 ### 3. 进阶用法

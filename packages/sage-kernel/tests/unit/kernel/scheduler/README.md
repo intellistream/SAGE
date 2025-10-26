@@ -7,6 +7,7 @@
 ### 测试文件
 
 1. **test_scheduler_complete.py** - 主测试套件（39个测试）
+
    - PlacementDecision 测试（8个）
    - BaseScheduler 接口测试（2个）
    - FIFOScheduler 测试（6个）
@@ -15,7 +16,8 @@
    - 集成测试（3个）
    - 性能测试（2个）
 
-2. **test_node_selector.py** - NodeSelector 测试（需要 Ray）
+1. **test_node_selector.py** - NodeSelector 测试（需要 Ray）
+
    - NodeResources 测试
    - 节点选择算法测试（balanced/pack/spread）
    - 资源监控测试
@@ -116,6 +118,7 @@ class TestFIFOScheduler:
 ```
 
 **关键验证**:
+
 - ✅ FIFO 按顺序调度
 - ✅ 返回 `target_node=None`（使用 Ray 默认负载均衡）
 - ✅ 决策历史记录
@@ -139,6 +142,7 @@ class TestLoadAwareScheduler:
 ```
 
 **关键验证**:
+
 - ✅ 资源需求提取（CPU、GPU、内存）
 - ✅ NodeSelector 集成和节点选择
 - ✅ 并发限制控制
@@ -164,6 +168,7 @@ class TestPlacementExecutor:
 ```
 
 **关键验证**:
+
 - ✅ 本地任务直接创建
 - ✅ 远程任务创建 Ray Actor
 - ✅ `target_node=None` 不设置 scheduling_strategy
@@ -183,6 +188,7 @@ class TestSchedulerIntegration:
 ```
 
 **验证流程**:
+
 ```
 Scheduler.make_decision()
     → PlacementDecision
@@ -201,8 +207,9 @@ class TestSchedulerPerformance:
 ```
 
 **性能基准**:
-- FIFO：100 任务 < 1 秒，平均延迟 < 10ms
-- LoadAware：50 任务 < 2 秒
+
+- FIFO：100 任务 \< 1 秒，平均延迟 \< 10ms
+- LoadAware：50 任务 \< 2 秒
 
 ### 8. NodeSelector 测试
 
@@ -224,6 +231,7 @@ class TestNodeSelector:
 ```
 
 **关键验证**:
+
 - ✅ 集群资源监控
 - ✅ 三种调度策略正确性
 - ✅ GPU 节点识别和选择
@@ -242,28 +250,31 @@ class TestNodeSelector:
 
 ### 测试覆盖率
 
-| 模块 | 覆盖率 | 说明 |
-|------|--------|------|
-| decision.py | 100% | PlacementDecision 完全覆盖 |
-| api.py | 100% | BaseScheduler 接口完全覆盖 |
-| simple_scheduler.py | 100% | FIFOScheduler 完全覆盖 |
-| resource_aware_scheduler.py | 95% | LoadAwareScheduler 主要功能覆盖 |
-| placement.py | 90% | PlacementExecutor 核心功能覆盖 |
-| node_selector.py | 需要 Ray | 在有 Ray 环境中测试 |
+| 模块                        | 覆盖率   | 说明                            |
+| --------------------------- | -------- | ------------------------------- |
+| decision.py                 | 100%     | PlacementDecision 完全覆盖      |
+| api.py                      | 100%     | BaseScheduler 接口完全覆盖      |
+| simple_scheduler.py         | 100%     | FIFOScheduler 完全覆盖          |
+| resource_aware_scheduler.py | 95%      | LoadAwareScheduler 主要功能覆盖 |
+| placement.py                | 90%      | PlacementExecutor 核心功能覆盖  |
+| node_selector.py            | 需要 Ray | 在有 Ray 环境中测试             |
 
 ### 未覆盖的场景
 
 以下场景需要真实 Ray 集群环境：
 
 1. **真实 Ray Actor 创建**
+
    - 当前使用 Mock，真实环境需要 Ray 集群
 
-2. **真实节点资源监控**
+1. **真实节点资源监控**
+
    - NodeSelector 真实集群监控
    - 节点故障处理
    - 资源耗尽场景
 
-3. **端到端集成**
+1. **端到端集成**
+
    - Dispatcher → Scheduler → Placement → Ray
    - 真实任务执行
    - 任务迁移和恢复
@@ -304,8 +315,7 @@ def test_new_strategy(self):
     # ...
 
     best_node = scheduler.node_selector.select_best_node(
-        cpu_required=2,
-        strategy="new_strategy"
+        cpu_required=2, strategy="new_strategy"
     )
 
     # 验证策略正确性
@@ -341,7 +351,7 @@ mock_selector.select_best_node.assert_called_once_with(
     gpu_required=1,
     memory_required=8589934592,
     custom_resources=None,
-    strategy="balanced"
+    strategy="balanced",
 )
 
 # 打印所有调用
@@ -376,10 +386,11 @@ jobs:
 
 ## 总结
 
-✅ **完整覆盖**: 39 个测试，覆盖所有核心功能  
-✅ **快速执行**: 所有测试 < 2 秒  
-✅ **易于维护**: 清晰的测试结构和命名  
-✅ **Mock 隔离**: 不依赖真实 Ray 集群  
-✅ **文档齐全**: 每个测试都有清晰的说明  
+✅ **完整覆盖**: 39 个测试，覆盖所有核心功能\
+✅ **快速执行**: 所有测试 \< 2 秒\
+✅ **易于维护**: 清晰的测试结构和命名\
+✅ **Mock 隔离**: 不依赖真实
+Ray 集群\
+✅ **文档齐全**: 每个测试都有清晰的说明
 
 测试套件确保调度器模块的正确性、性能和可靠性！

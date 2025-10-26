@@ -1,6 +1,7 @@
 # SAGE TSDB Tutorial Examples
 
-This directory contains comprehensive examples demonstrating SAGE TSDB integration with SAGE DAG workflows.
+This directory contains comprehensive examples demonstrating SAGE TSDB integration with SAGE DAG
+workflows.
 
 ## Examples Overview
 
@@ -18,6 +19,7 @@ python basic_dag_example.py
 ```
 
 **Key Features:**
+
 - `TimeSeriesDataSource`: Generate simulated sensor data
 - `TSDBIngestNode`: Ingest data into TSDB
 - `TSDBQueryNode`: Query and compute statistics
@@ -38,6 +40,7 @@ python stream_join_dag_example.py
 ```
 
 **Key Features:**
+
 - `OutOfOrderStreamSource`: Generate streams with simulated delays
 - `StreamJoinNode`: Join two streams with configurable windows
 - `JoinResultSink`: Display join results and statistics
@@ -57,6 +60,7 @@ python advanced_dag_example.py
 ```
 
 **Key Features:**
+
 - `MultiSensorSource`: Generate data from multiple sensors
 - `AnomalyDetector`: Detect anomalies using z-score
 - `AggregationNode`: Apply multiple aggregation strategies
@@ -165,7 +169,7 @@ config = SageTSDBServiceConfig(
     enable_compression=False,
     max_memory_mb=1024,
     default_window_size=60000,  # 60 seconds
-    default_aggregation="avg"
+    default_aggregation="avg",
 )
 ```
 
@@ -173,9 +177,9 @@ config = SageTSDBServiceConfig(
 
 ```python
 join_config = {
-    "window_size": 5000,      # 5-second join window
-    "max_delay": 3000,        # 3-second max delay
-    "join_key": "sensor_id"   # Optional equi-join key
+    "window_size": 5000,  # 5-second join window
+    "max_delay": 3000,  # 3-second max delay
+    "join_key": "sensor_id",  # Optional equi-join key
 }
 ```
 
@@ -184,8 +188,8 @@ join_config = {
 ```python
 window_config = {
     "window_type": "tumbling",  # tumbling/sliding/session
-    "window_size": 10000,        # 10 seconds
-    "aggregation": "avg"         # sum/avg/min/max/count/stddev
+    "window_size": 10000,  # 10 seconds
+    "aggregation": "avg",  # sum/avg/min/max/count/stddev
 }
 ```
 
@@ -241,9 +245,9 @@ cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB
 After exploring these examples:
 
 1. **Customize Data Sources**: Adapt to your data format and sources
-2. **Add Custom Algorithms**: Implement domain-specific processing
-3. **Integrate with Other Components**: Combine with sage_db, sage_flow, etc.
-4. **Deploy in Production**: Scale to handle real workloads
+1. **Add Custom Algorithms**: Implement domain-specific processing
+1. **Integrate with Other Components**: Combine with sage_db, sage_flow, etc.
+1. **Deploy in Production**: Scale to handle real workloads
 
 ## Related Documentation
 
@@ -254,9 +258,10 @@ After exploring these examples:
 ## Support
 
 For issues or questions:
+
 - GitHub Issues: https://github.com/intellistream/SAGE/issues
 - Email: shuhao_zhang@hust.edu.cn
 
----
+______________________________________________________________________
 
 **Happy coding with SAGE TSDB! 🚀**

@@ -28,15 +28,18 @@ fault_tolerance/
 ### 核心组件
 
 1. **BaseFaultHandler** (base.py)
+
    - 容错处理器抽象基类
    - 开发者继承此类实现自定义容错策略
 
-2. **factory** (factory.py)
+1. **factory** (factory.py)
+
    - 内部使用的工厂模块
    - 从 Environment 配置创建容错处理器实例
    - Dispatcher/JobManager 自动调用
 
-3. **impl** (实现层)
+1. **impl** (实现层)
+
    - 包含所有内置容错策略实现
    - 开发者可参考这些实现来创建自定义策略
 
@@ -57,11 +60,11 @@ env = LocalEnvironment(
     config={
         "fault_tolerance": {
             "strategy": "checkpoint",
-            "checkpoint_interval": 60.0,      # 每60秒保存一次checkpoint
-            "max_recovery_attempts": 3,        # 最多尝试恢复3次
-            "checkpoint_dir": ".checkpoints"   # checkpoint存储目录
+            "checkpoint_interval": 60.0,  # 每60秒保存一次checkpoint
+            "max_recovery_attempts": 3,  # 最多尝试恢复3次
+            "checkpoint_dir": ".checkpoints",  # checkpoint存储目录
         }
-    }
+    },
 )
 
 # 正常定义和提交 DAG - 容错由系统自动处理
@@ -79,10 +82,10 @@ env = LocalEnvironment(
         "fault_tolerance": {
             "strategy": "restart",
             "restart_strategy": "fixed",
-            "delay": 5.0,            # 每次重启等待5秒
-            "max_attempts": 3        # 最多重启3次
+            "delay": 5.0,  # 每次重启等待5秒
+            "max_attempts": 3,  # 最多重启3次
         }
-    }
+    },
 )
 
 # 或使用指数退避策略
@@ -92,12 +95,12 @@ env = LocalEnvironment(
         "fault_tolerance": {
             "strategy": "restart",
             "restart_strategy": "exponential",
-            "initial_delay": 1.0,     # 初始延迟1秒
-            "max_delay": 60.0,        # 最大延迟60秒
-            "multiplier": 2.0,        # 每次延迟翻倍
-            "max_attempts": 5         # 最多重启5次
+            "initial_delay": 1.0,  # 初始延迟1秒
+            "max_delay": 60.0,  # 最大延迟60秒
+            "multiplier": 2.0,  # 每次延迟翻倍
+            "max_attempts": 5,  # 最多重启5次
         }
-    }
+    },
 )
 
 # 或使用基于失败率的策略
@@ -108,10 +111,10 @@ env = LocalEnvironment(
             "strategy": "restart",
             "restart_strategy": "failure_rate",
             "max_failures_per_interval": 3,  # 时间窗口内最多失败3次
-            "interval_seconds": 60.0,         # 时间窗口60秒
-            "delay": 5.0                      # 重启延迟5秒
+            "interval_seconds": 60.0,  # 时间窗口60秒
+            "delay": 5.0,  # 重启延迟5秒
         }
-    }
+    },
 )
 
 # 正常定义和提交 DAG
@@ -138,6 +141,7 @@ from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.io.sink import TerminalSink
 
+
 def main():
     # 创建环境并配置容错策略
     env = LocalEnvironment(
@@ -146,25 +150,26 @@ def main():
             "fault_tolerance": {
                 "strategy": "checkpoint",
                 "checkpoint_interval": 30.0,
-                "max_recovery_attempts": 5
+                "max_recovery_attempts": 5,
             },
             "source": {"file_path": "questions.txt"},
             "promptor": {...},
             "generator": {...},
-            "sink": {}
-        }
+            "sink": {},
+        },
     )
 
     # 定义 DAG - 用户不需要关心容错
     pipeline = (
         env.from_source(FileSource, env.config["source"])
-           .map(QAPromptor, env.config["promptor"])
-           .map(OpenAIGenerator, env.config["generator"])
-           .sink(TerminalSink, env.config["sink"])
+        .map(QAPromptor, env.config["promptor"])
+        .map(OpenAIGenerator, env.config["generator"])
+        .sink(TerminalSink, env.config["sink"])
     )
 
     # 提交作业 - 容错由系统自动处理
     env.submit()
+
 
 if __name__ == "__main__":
     main()
@@ -179,6 +184,7 @@ if __name__ == "__main__":
 ```python
 # my_custom_fault_tolerance.py
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
+
 
 class ReplicationBasedRecovery(BaseFaultHandler):
     """
@@ -208,7 +214,8 @@ class ReplicationBasedRecovery(BaseFaultHandler):
     def can_recover(self, task_id: str) -> bool:
         """检查是否有可用的备用副本"""
         available_replicas = [
-            r for r in self.replicas.get(task_id, [])
+            r
+            for r in self.replicas.get(task_id, [])
             if r != self.active_replicas.get(task_id)
         ]
         return len(available_replicas) > 0
@@ -216,7 +223,8 @@ class ReplicationBasedRecovery(BaseFaultHandler):
     def recover(self, task_id: str) -> bool:
         """切换到健康的副本"""
         available_replicas = [
-            r for r in self.replicas.get(task_id, [])
+            r
+            for r in self.replicas.get(task_id, [])
             if r != self.active_replicas.get(task_id)
         ]
 
@@ -247,13 +255,15 @@ cp my_custom_fault_tolerance.py packages/sage-kernel/src/sage/kernel/fault_toler
 # impl/__init__.py
 from sage.kernel.fault_tolerance.impl.checkpoint_recovery import CheckpointBasedRecovery
 from sage.kernel.fault_tolerance.impl.restart_recovery import RestartBasedRecovery
-from sage.kernel.fault_tolerance.impl.my_custom_fault_tolerance import ReplicationBasedRecovery
+from sage.kernel.fault_tolerance.impl.my_custom_fault_tolerance import (
+    ReplicationBasedRecovery,
+)
 
 __all__ = [
     "CheckpointBasedRecovery",
     "RestartBasedRecovery",
     "ReplicationBasedRecovery",  # 添加自定义策略
-    ...
+    ...,
 ]
 ```
 
@@ -261,7 +271,10 @@ __all__ = [
 
 ```python
 # factory.py
-from sage.kernel.fault_tolerance.impl.my_custom_fault_tolerance import ReplicationBasedRecovery
+from sage.kernel.fault_tolerance.impl.my_custom_fault_tolerance import (
+    ReplicationBasedRecovery,
+)
+
 
 def create_fault_handler_from_config(config):
     strategy = config.get("strategy", "restart")
@@ -280,18 +293,18 @@ env = LocalEnvironment(
     config={
         "fault_tolerance": {
             "strategy": "replication",  # 使用自定义策略
-            "num_replicas": 3
+            "num_replicas": 3,
         }
-    }
+    },
 )
 ```
 
 ## 内置容错策略对比
 
-| 策略 | 适用场景 | 优点 | 缺点 | 配置示例 |
-|-----|---------|------|------|---------|
-| **Checkpoint** | 长时间运行的有状态任务 | 减少重新计算，节省资源 | 需要额外存储，保存开销 | `{"strategy": "checkpoint", "checkpoint_interval": 60.0}` |
-| **Restart** | 无状态或短任务 | 简单直接，无额外开销 | 失败时需要完全重新执行 | `{"strategy": "restart", "restart_strategy": "exponential"}` |
+| 策略           | 适用场景               | 优点                   | 缺点                   | 配置示例                                                     |
+| -------------- | ---------------------- | ---------------------- | ---------------------- | ------------------------------------------------------------ |
+| **Checkpoint** | 长时间运行的有状态任务 | 减少重新计算，节省资源 | 需要额外存储，保存开销 | `{"strategy": "checkpoint", "checkpoint_interval": 60.0}`    |
+| **Restart**    | 无状态或短任务         | 简单直接，无额外开销   | 失败时需要完全重新执行 | `{"strategy": "restart", "restart_strategy": "exponential"}` |
 
 ## 配置参数详解
 
@@ -301,9 +314,9 @@ env = LocalEnvironment(
 {
     "fault_tolerance": {
         "strategy": "checkpoint",
-        "checkpoint_interval": 60.0,       # Checkpoint保存间隔（秒）
-        "max_recovery_attempts": 3,        # 最大恢复尝试次数
-        "checkpoint_dir": ".checkpoints"   # Checkpoint存储目录
+        "checkpoint_interval": 60.0,  # Checkpoint保存间隔（秒）
+        "max_recovery_attempts": 3,  # 最大恢复尝试次数
+        "checkpoint_dir": ".checkpoints",  # Checkpoint存储目录
     }
 }
 ```
@@ -311,40 +324,43 @@ env = LocalEnvironment(
 ### Restart 策略参数
 
 **固定延迟（Fixed）：**
+
 ```python
 {
     "fault_tolerance": {
         "strategy": "restart",
         "restart_strategy": "fixed",
-        "delay": 5.0,           # 固定延迟时间（秒）
-        "max_attempts": 3       # 最大重启次数
+        "delay": 5.0,  # 固定延迟时间（秒）
+        "max_attempts": 3,  # 最大重启次数
     }
 }
 ```
 
 **指数退避（Exponential）：**
+
 ```python
 {
     "fault_tolerance": {
         "strategy": "restart",
         "restart_strategy": "exponential",
-        "initial_delay": 1.0,   # 初始延迟（秒）
-        "max_delay": 60.0,      # 最大延迟（秒）
-        "multiplier": 2.0,      # 延迟倍数
-        "max_attempts": 5       # 最大重启次数
+        "initial_delay": 1.0,  # 初始延迟（秒）
+        "max_delay": 60.0,  # 最大延迟（秒）
+        "multiplier": 2.0,  # 延迟倍数
+        "max_attempts": 5,  # 最大重启次数
     }
 }
 ```
 
 **失败率（Failure Rate）：**
+
 ```python
 {
     "fault_tolerance": {
         "strategy": "restart",
         "restart_strategy": "failure_rate",
         "max_failures_per_interval": 3,  # 时间窗口内最多失败次数
-        "interval_seconds": 60.0,         # 时间窗口大小（秒）
-        "delay": 5.0                      # 重启延迟（秒）
+        "interval_seconds": 60.0,  # 时间窗口大小（秒）
+        "delay": 5.0,  # 重启延迟（秒）
     }
 }
 ```
@@ -352,9 +368,9 @@ env = LocalEnvironment(
 ## 工作原理
 
 1. **用户声明容错需求**：在 Environment 的 `config["fault_tolerance"]` 中配置
-2. **系统自动创建处理器**：Dispatcher 初始化时从配置创建容错处理器
-3. **自动故障处理**：任务失败时，Dispatcher 自动调用容错处理器进行恢复
-4. **用户无感知**：整个过程对用户透明，用户只需关注业务逻辑
+1. **系统自动创建处理器**：Dispatcher 初始化时从配置创建容错处理器
+1. **自动故障处理**：任务失败时，Dispatcher 自动调用容错处理器进行恢复
+1. **用户无感知**：整个过程对用户透明，用户只需关注业务逻辑
 
 ## 参考实现
 

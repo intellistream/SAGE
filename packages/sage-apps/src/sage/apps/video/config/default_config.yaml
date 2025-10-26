@@ -1,7 +1,7 @@
 # Default configuration for the SAGE video intelligence pipeline
 # Copy this file and tweak the parameters for your own experiments.
 
-video_path: null  # Must be provided via --video argument or config override
+video_path:       # Must be provided via --video argument or config override
 # Process one frame every N frames. Increase to downsample for long videos.
 sample_every_n_frames: 3
 # Uncomment to shorten runs for quick debugging
@@ -11,16 +11,16 @@ frame_resize: 336
 analysis:
   # CLIP templates that steer zero-shot scene understanding
   clip_templates:
-    - "Outdoor cycling activity"
-    - "Relaxing in a park"
-    - "Discussing in an office"
-    - "Working out in a gym"
-    - "Night-time city scene"
-    - "Casual indoor conversation"
-    - "Sports match in progress"
-    - "Crowded street"
-    - "Car driving on a road"
-    - "Animal present in frame"
+  - "Outdoor cycling activity"
+  - "Relaxing in a park"
+  - "Discussing in an office"
+  - "Working out in a gym"
+  - "Night-time city scene"
+  - "Casual indoor conversation"
+  - "Sports match in progress"
+  - "Crowded street"
+  - "Car driving on a road"
+  - "Animal present in frame"
   clip_top_k: 4
   classifier_top_k: 5
   min_event_confidence: 0.25

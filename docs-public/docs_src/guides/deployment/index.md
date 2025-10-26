@@ -101,6 +101,7 @@ CMD ["python", "my_app.py"]
 ```
 
 Build and run:
+
 ```bash
 docker build -t my-sage-app .
 docker run -p 8000:8000 my-sage-app
@@ -165,13 +166,7 @@ from sage.kernel.api.local_environment import LocalStreamEnvironment
 
 env = LocalStreamEnvironment(
     "production_app",
-    config={
-        "monitoring": {
-            "enabled": True,
-            "metrics_port": 9090,
-            "log_level": "INFO"
-        }
-    }
+    config={"monitoring": {"enabled": True, "metrics_port": 9090, "log_level": "INFO"}},
 )
 ```
 
@@ -186,9 +181,9 @@ env = LocalStreamEnvironment(
         "fault_tolerance": {
             "strategy": "checkpoint",
             "checkpoint_interval": 60.0,
-            "checkpoint_dir": "/data/checkpoints"
+            "checkpoint_dir": "/data/checkpoints",
         }
-    }
+    },
 )
 ```
 
@@ -200,12 +195,8 @@ Configure resources:
 env = LocalStreamEnvironment(
     "resource_managed_app",
     config={
-        "resources": {
-            "max_workers": 16,
-            "memory_limit": "32GB",
-            "gpu_enabled": True
-        }
-    }
+        "resources": {"max_workers": 16, "memory_limit": "32GB", "gpu_enabled": True}
+    },
 )
 ```
 
@@ -216,10 +207,12 @@ Secure API keys and credentials:
 ```python
 # Use environment variables
 import os
+
 api_key = os.getenv("OPENAI_API_KEY")
 
 # Or use secret management
 from sage.common.config import SecretManager
+
 secrets = SecretManager()
 api_key = secrets.get("openai_api_key")
 ```
@@ -242,12 +235,7 @@ done
 Increase resources per worker:
 
 ```python
-config = {
-    "resources": {
-        "cpus_per_worker": 4,
-        "memory_per_worker": "8GB"
-    }
-}
+config = {"resources": {"cpus_per_worker": 4, "memory_per_worker": "8GB"}}
 ```
 
 ## Cloud Platforms
@@ -303,28 +291,19 @@ kubectl apply -f sage-deployment.yaml
 ### 1. Batch Processing
 
 ```python
-config = {
-    "batch_size": 64,
-    "prefetch_size": 128
-}
+config = {"batch_size": 64, "prefetch_size": 128}
 ```
 
 ### 2. Parallel Execution
 
 ```python
-stream = env.from_source(source).map(
-    operator,
-    parallelism=8  # Parallel instances
-)
+stream = env.from_source(source).map(operator, parallelism=8)  # Parallel instances
 ```
 
 ### 3. GPU Acceleration
 
 ```python
-config = {
-    "gpu_enabled": True,
-    "gpu_memory_fraction": 0.8
-}
+config = {"gpu_enabled": True, "gpu_memory_fraction": 0.8}
 ```
 
 ## Troubleshooting
@@ -332,6 +311,7 @@ config = {
 ### Common Issues
 
 **Ray cluster not connecting**:
+
 ```bash
 # Check Ray status
 ray status
@@ -341,6 +321,7 @@ telnet head_node 6379
 ```
 
 **Out of memory**:
+
 ```python
 # Reduce batch size
 config = {"batch_size": 16}
@@ -350,6 +331,7 @@ config = {"max_workers": 4}
 ```
 
 **Slow performance**:
+
 ```python
 # Enable profiling
 config = {"profiling": {"enabled": True}}

@@ -1,17 +1,18 @@
 # Environment API
 
-`BaseEnvironment`（见 `packages/sage-kernel/src/sage/core/api/base_environment.py`）负责维护运行配置、构建 `Transformation` 管道以及与 JobManager 交互。本页只记录**当前源码中已经实现**的接口。
+`BaseEnvironment`（见 `packages/sage-kernel/src/sage/core/api/base_environment.py`）负责维护运行配置、构建
+`Transformation` 管道以及与 JobManager 交互。本页只记录**当前源码中已经实现**的接口。
 
 ## 核心属性与通用方法
 
-| 属性/方法 | 说明 |
-| --------- | ---- |
-| `name` | 环境名称，在提交到 JobManager 时会随配置一起传输。 |
-| `config` | 以 `dict` 形式保存的用户配置。构造函数会拷贝传入的字典，避免外部突变。 |
-| `pipeline` | `List[BaseTransformation]`，按照声明顺序记录所有算子。`from_*`/`map` 等接口都会向其中追加元素。 |
-| `set_console_log_level(level)` | 调整环境 logger 的控制台输出级别，仅接受 `DEBUG/INFO/WARNING/ERROR`。 |
-| `register_service(name, cls, *args, **kwargs)` | 使用 `ServiceFactory` 包装服务并在提交时交给 JobManager。 |
-| `register_service_factory(name, factory)` | 注册已有的 `ServiceFactory` 实例。 |
+| 属性/方法                                      | 说明                                                                                            |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `name`                                         | 环境名称，在提交到 JobManager 时会随配置一起传输。                                              |
+| `config`                                       | 以 `dict` 形式保存的用户配置。构造函数会拷贝传入的字典，避免外部突变。                          |
+| `pipeline`                                     | `List[BaseTransformation]`，按照声明顺序记录所有算子。`from_*`/`map` 等接口都会向其中追加元素。 |
+| `set_console_log_level(level)`                 | 调整环境 logger 的控制台输出级别，仅接受 `DEBUG/INFO/WARNING/ERROR`。                           |
+| `register_service(name, cls, *args, **kwargs)` | 使用 `ServiceFactory` 包装服务并在提交时交给 JobManager。                                       |
+| `register_service_factory(name, factory)`      | 注册已有的 `ServiceFactory` 实例。                                                              |
 
 ### 数据源创建
 
@@ -69,7 +70,8 @@ env.submit(autostop=True)
 - 构造函数将 `platform` 固定为 `"local"`，并把 `_engine_client` 设为 `None`，表示直接使用本地 `JobManager` 实例；
 - `jobmanager` 属性懒加载 `JobManager()` 单例，后续提交/停止都会复用该对象；
 - `submit(autostop: bool = False)` 会调用 `jobmanager.submit_job(self)`，返回生成的 `env_uuid`；
-- 当 `autostop=True` 时，`_wait_for_completion()` 会轮询 `jobmanager.jobs` 中的任务状态，最长等待 5 分钟，然后尝试调用 `stop()` 清理；
+- 当 `autostop=True` 时，`_wait_for_completion()` 会轮询 `jobmanager.jobs` 中的任务状态，最长等待 5 分钟，然后尝试调用
+  `stop()` 清理；
 - `stop()` 与 `close()` 都通过 `jobmanager.pause_job(env_uuid)` 停止任务，后者额外会清空 `pipeline` 并重置 `env_uuid`。
 
 > 注意：`LocalEnvironment` 默认不会启动后台线程或进程，一切逻辑都在 JobManager 的控制下运行。
@@ -99,8 +101,8 @@ env.submit(autostop=True)
 - `client` 属性延迟实例化 `JobManagerClient`，用于 RPC；
 - `submit(autostop=False)`：
   1. 调用 `trim_object_for_ray(self)` 剔除不可序列化字段；
-  2. 使用 `serialize_object`（dill）对环境进行序列化；
-  3. 通过 `client.submit_job(serialized_env, autostop)` 将任务发送给远程 JobManager；
+  1. 使用 `serialize_object`（dill）对环境进行序列化；
+  1. 通过 `client.submit_job(serialized_env, autostop)` 将任务发送给远程 JobManager；
 - `autostop=True` 同样会触发 `_wait_for_completion()`，该方法周期性调用 `client.get_job_status` 检查作业状态；
 - 额外提供的运维接口：
   - `stop()`：调用 `pause_job`，返回服务端响应；
@@ -126,6 +128,7 @@ env.submit(autostop=True)
 ```python
 from sage.core.api.local_environment import LocalEnvironment
 
+
 class KVService:
     def __init__(self):
         self.store = {}
@@ -141,14 +144,17 @@ class KVService:
             return self.store.get(key)
         raise ValueError(f"Unknown command {command}")
 
+
 env = LocalEnvironment("service-demo")
 env.register_service("memory_kv", KVService)
 
 stream = env.from_batch([("set", "x", 1), ("get", "x")])
 
+
 class CallServiceFunction(MapFunction):
     def execute(self, data):
         return self.call_service("memory_kv", data)
+
 
 stream.map(CallServiceFunction).print()
 env.submit(autostop=True)
@@ -159,11 +165,7 @@ env.submit(autostop=True)
 ```python
 future = env.from_future("loop")
 
-updated = (
-    env.from_batch([1, 2, 3])
-       .connect(future)
-       .comap(MyCoMapFunction)
-)
+updated = env.from_batch([1, 2, 3]).connect(future).comap(MyCoMapFunction)
 
 updated.fill_future(future)
 env.submit(autostop=True)
@@ -184,6 +186,6 @@ env.submit(autostop=True)
 ## 诊断建议
 
 1. 提交前检查 `env.pipeline` 是否为空；如果为空，JobManager 仍会创建任务但不会执行任何算子。
-2. 使用 `set_console_log_level("DEBUG")` 可以在控制台看到算子提交、服务注册等调试信息。
-3. 远程部署时，建议先调用 `health_check()`，确认 JobManager 端口可达。
-4. 如果 `autostop=True` 且任务超过 5 分钟未完成，`_wait_for_completion` 会尝试调用 `stop()`；可以根据需要在应用层捕获并重试。
+1. 使用 `set_console_log_level("DEBUG")` 可以在控制台看到算子提交、服务注册等调试信息。
+1. 远程部署时，建议先调用 `health_check()`，确认 JobManager 端口可达。
+1. 如果 `autostop=True` 且任务超过 5 分钟未完成，`_wait_for_completion` 会尝试调用 `stop()`；可以根据需要在应用层捕获并重试。

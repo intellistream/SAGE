@@ -7,7 +7,8 @@
 
 ## 📋 Overview
 
-**SAGE Common** provides essential shared utilities and components used across all SAGE packages. This is the foundation layer that provides:
+**SAGE Common** provides essential shared utilities and components used across all SAGE packages.
+This is the foundation layer that provides:
 
 - **Configuration management** for YAML/TOML files
 - **Logging framework** with custom formatters and handlers
@@ -30,11 +31,11 @@ This package ensures consistency and reduces code duplication across the SAGE ec
 ## Core Modules
 
 - **utils.config**: Configuration management utilities
-- **utils.logging**: Logging framework and formatters  
+- **utils.logging**: Logging framework and formatters
 - **utils.network**: Network utilities and TCP clients/servers
 - **utils.serialization**: Serialization utilities including dill support
 - **utils.system**: System utilities for environment and process management
-- **_version**: Version management
+- **\_version**: Version management
 
 ## 📦 Package Structure
 
@@ -178,7 +179,8 @@ pytest --cov=sage.common --cov-report=html
 
 ## 📚 Documentation
 
-- **User Guide**: See [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-common/)
+- **User Guide**: See
+  [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-common/)
 - **API Reference**: See package docstrings and type hints
 - **Examples**: See `examples/` directory in each module
 
@@ -203,6 +205,6 @@ This project is licensed under the MIT License - see the [LICENSE](../../LICENSE
 - **Issues**: https://github.com/intellistream/SAGE/issues
 - **Discussions**: https://github.com/intellistream/SAGE/discussions
 
----
+______________________________________________________________________
 
 **Part of the SAGE Framework** | [Main Repository](https://github.com/intellistream/SAGE)

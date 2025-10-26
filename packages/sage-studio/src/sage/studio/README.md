@@ -26,26 +26,31 @@ studio/
 ## 使用方法
 
 ### 安装依赖
+
 ```bash
 sage studio install
 ```
 
 ### 构建应用
+
 ```bash
 sage studio build
 ```
 
 ### 启动开发服务器
+
 ```bash
 sage studio start --dev
 ```
 
 ### 启动生产服务器
+
 ```bash
 sage studio start
 ```
 
 ### 其他命令
+
 ```bash
 sage studio status    # 查看状态
 sage studio stop      # 停止服务

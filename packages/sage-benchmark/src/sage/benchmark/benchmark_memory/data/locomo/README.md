@@ -65,11 +65,12 @@ download_from_huggingface(
     repo_id=repo_id,
     filename=filename,
     use_mirror=True,
-    mirror_url="https://另一个镜像站点.com"  # 修改这里
+    mirror_url="https://另一个镜像站点.com",  # 修改这里
 )
 ```
 
 常用 Hugging Face 镜像站点：
+
 - `https://hf-mirror.com` （推荐）
 - 其他镜像站点请自行搜索
 
@@ -79,9 +80,7 @@ download_from_huggingface(
 
 ```python
 download_from_huggingface(
-    repo_id=repo_id,
-    filename=filename,
-    use_mirror=False  # 关闭镜像
+    repo_id=repo_id, filename=filename, use_mirror=False  # 关闭镜像
 )
 ```
 
@@ -133,10 +132,11 @@ for session in loader.iter_session(sample_ids[0]):
 ### Q: 下载失败怎么办？
 
 A: 请检查：
+
 1. 网络连接是否正常
-2. 镜像站点是否可访问（可以在浏览器中测试）
-3. repo_id 是否正确
-4. 文件名是否正确
+1. 镜像站点是否可访问（可以在浏览器中测试）
+1. repo_id 是否正确
+1. 文件名是否正确
 
 ### Q: 如何验证文件是否下载成功？
 
@@ -156,7 +156,7 @@ A: 可以！只需修改 `filename` 参数：
 download_from_huggingface(
     repo_id="your-username/your-repo",
     filename="other_file.json",  # 修改这里
-    use_mirror=True
+    use_mirror=True,
 )
 ```
 

@@ -16,15 +16,18 @@ TestPyPI是PyPI的测试环境，用于在正式发布前验证包的发布流�
 ### TestPyPI的限制
 
 1. **依赖包缺失**
+
    - TestPyPI是独立的包索引，不包含所有PyPI的包
    - 许多常用依赖（如`fastapi`、`uvicorn`、`numpy`等）可能不存在
    - 某些包在TestPyPI上可能是错误或过期的版本
 
-2. **错误包示例**
+1. **错误包示例**
+
    - `FASTAPI`（全大写）：是一个错误的包，安装会失败
    - 正确的包名应该是`fastapi`（小写）
 
-3. **版本限制**
+1. **版本限制**
+
    - TestPyPI上的包版本可能与正式PyPI不同步
    - 依赖版本约束可能无法满足
 
@@ -59,6 +62,7 @@ pip install --index-url https://test.pypi.org/simple/ \
 ```
 
 **参数说明**：
+
 - `--index-url https://test.pypi.org/simple/`：主索引为TestPyPI，SAGE包从这里下载
 - `--extra-index-url https://pypi.org/simple/`：备用索引为正式PyPI，依赖包从这里下载
 
@@ -96,6 +100,7 @@ python agents/agent_workflow_demo.py
 ### 错误1：依赖安装失败
 
 **错误信息**：
+
 ```
 ERROR: Could not find a version that satisfies the requirement fastapi>=0.115.0
 ```
@@ -103,6 +108,7 @@ ERROR: Could not find a version that satisfies the requirement fastapi>=0.115.0
 **原因**：TestPyPI缺少`fastapi`包
 
 **解决方案**：
+
 ```bash
 # 添加 --extra-index-url 参数
 pip install --index-url https://test.pypi.org/simple/ \
@@ -113,6 +119,7 @@ pip install --index-url https://test.pypi.org/simple/ \
 ### 错误2：错误的包版本
 
 **错误信息**：
+
 ```
 Downloading FASTAPI-1.0.tar.gz
 error: subprocess-exited-with-error
@@ -122,6 +129,7 @@ FileNotFoundError: [Errno 2] No such file or directory: 'DESCRIPTION.txt'
 **原因**：TestPyPI上的`FASTAPI`（全大写）是一个错误的包
 
 **解决方案**：
+
 ```bash
 # 使用 --extra-index-url 让pip从正式PyPI获取正确的fastapi
 pip install --index-url https://test.pypi.org/simple/ \
@@ -132,14 +140,16 @@ pip install --index-url https://test.pypi.org/simple/ \
 ### 错误3：版本冲突
 
 **错误信息**：
+
 ```
 ERROR: Cannot install isage because these package versions have conflicting dependencies
 ```
 
 **解决方案**：
+
 1. 检查包的依赖版本约束
-2. 确保所有子包版本一致
-3. 使用`--no-deps`跳过依赖检查（仅用于测试）：
+1. 确保所有子包版本一致
+1. 使用`--no-deps`跳过依赖检查（仅用于测试）：
    ```bash
    pip install --index-url https://test.pypi.org/simple/ \
                --no-deps isage
@@ -251,8 +261,8 @@ sage dev pypi publish --dry-run
 TestPyPI是PyPI发布流程中的重要一环，但需要注意：
 
 1. ✅ **始终使用** `--extra-index-url https://pypi.org/simple/`
-2. 🧪 **在隔离环境**中测试安装
-3. 📝 **记录测试结果**，确保所有功能正常
-4. 🚀 **测试通过后**再发布到正式PyPI
+1. 🧪 **在隔离环境**中测试安装
+1. 📝 **记录测试结果**，确保所有功能正常
+1. 🚀 **测试通过后**再发布到正式PyPI
 
 遵循这些最佳实践，可以确保SAGE包的发布质量和用户安装体验！

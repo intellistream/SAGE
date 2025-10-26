@@ -107,9 +107,7 @@ class TestCppExtensions:
     def test_sage_db_import(self):
         """测试 SAGE DB 扩展导入"""
         try:
-            from sage.middleware.components.extensions_compat import (
-                is_sage_db_available,
-            )
+            from sage.middleware.components.extensions_compat import is_sage_db_available
 
             if not is_sage_db_available():
                 pytest.skip("SAGE DB 扩展不可用")
@@ -129,9 +127,7 @@ class TestCppExtensions:
     def test_sage_flow_import(self):
         """测试 SAGE Flow 扩展导入"""
         try:
-            from sage.middleware.components.extensions_compat import (
-                is_sage_flow_available,
-            )
+            from sage.middleware.components.extensions_compat import is_sage_flow_available
 
             if not is_sage_flow_available():
                 pytest.skip("SAGE Flow 扩展不可用")

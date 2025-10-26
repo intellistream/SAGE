@@ -85,23 +85,27 @@ pytest -n auto                       # 需要 pytest-xdist 插件
 ### 编写新测试
 
 1. **选择合适的测试类型**：
+
    - 功能级别 → 单元测试 (`@pytest.mark.unit`)
    - CLI命令 → CLI测试 (`@pytest.mark.cli`)
    - 工作流 → 集成测试 (`@pytest.mark.integration`)
 
-2. **使用 fixtures**：
+1. **使用 fixtures**：
+
    ```python
    @pytest.fixture
    def project_root():
        # 返回项目根目录
        pass
 
+
    def test_something(project_root):
        # 使用fixture
        pass
    ```
 
-3. **适当的断言**：
+1. **适当的断言**：
+
    ```python
    assert result is not None
    assert len(items) > 0
@@ -121,9 +125,9 @@ pytest -n auto                       # 需要 pytest-xdist 插件
 ### 常见问题
 
 1. **导入错误**: 确保项目根目录在 Python 路径中
-2. **文件路径错误**: 使用 `project_root` fixture 获取正确路径
-3. **测试隔离**: 使用 `tmp_path` fixture 创建临时文件
-4. **Mock 对象**: 使用 `unittest.mock` 模拟外部依赖
+1. **文件路径错误**: 使用 `project_root` fixture 获取正确路径
+1. **测试隔离**: 使用 `tmp_path` fixture 创建临时文件
+1. **Mock 对象**: 使用 `unittest.mock` 模拟外部依赖
 
 ### 调试测试
 
@@ -140,11 +144,14 @@ pytest --lf
 # 显示最慢的测试
 pytest --durations=10
 ```
+
 pytest tests/integration/ -v
 
 # 带覆盖率的测试
+
 pytest --cov=sage.tools --cov-report=html
-```
+
+````
 
 ### 测试标记
 
@@ -154,16 +161,16 @@ pytest -m "not slow" -v
 
 # 只运行冒烟测试标记的测试
 pytest -m smoke -v
-```
+````
 
 ## 开发建议
 
 ### 测试选择指南
 
 1. **开发过程中**: 使用冒烟测试快速验证 (`test_smoke.py`)
-2. **功能开发**: 运行相关的单元测试 (`pytest test_cli/test_main.py`)
-3. **提交前**: 运行完整集成测试 (`test_commands_full.py`)
-4. **发布前**: 运行所有测试套件 (`python run_tests.py`)
+1. **功能开发**: 运行相关的单元测试 (`pytest test_cli/test_main.py`)
+1. **提交前**: 运行完整集成测试 (`test_commands_full.py`)
+1. **发布前**: 运行所有测试套件 (`python run_tests.py`)
 
 ### 添加新测试
 
@@ -176,7 +183,8 @@ pytest -m smoke -v
 - 冒烟测试只包含关键路径验证
 - 完整测试包含详细的功能验证
 - 单元测试专注于函数/类级别的逻辑
-```
+
+````
 
 ## 测试标记
 
@@ -195,4 +203,4 @@ pytest -m unit
 
 # 集成测试  
 pytest -m integration
-```
+````

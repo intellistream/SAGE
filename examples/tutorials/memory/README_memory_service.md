@@ -12,7 +12,7 @@
 ## 环境准备
 
 1. 确保已经按照仓库根目录的 `README.md` 配置好 Python 环境。
-2. 如果要运行流水线示例，请准备可用的 LLM Key，并在 `examples/config/config_rag_memory_pipeline.yaml` 中填写。
+1. 如果要运行流水线示例，请准备可用的 LLM Key，并在 `examples/config/config_rag_memory_pipeline.yaml` 中填写。
 
 ## 快速体验
 
@@ -26,9 +26,9 @@ python rag_memory_service.py
 脚本默认会：
 
 1. 通过 `MemoryManager` 加载或创建名为 `RAGMemoryCollection` 的集合；
-2. 使用本地 mock 嵌入初始化 FAISS 索引；
-3. 写入一条示例问答并立即执行检索；
-4. 在控制台打印格式化后的检索结果。
+1. 使用本地 mock 嵌入初始化 FAISS 索引；
+1. 写入一条示例问答并立即执行检索；
+1. 在控制台打印格式化后的检索结果。
 
 > 该脚本仅依赖 SAGE 自带模块，无需额外安装第三方库。
 
@@ -42,11 +42,11 @@ python rag_memory_pipeline.py
 流水线将：
 
 1. 读取 `examples/config/config_rag_memory_pipeline.yaml`；
-2. 通过 `LocalEnvironment` 注册 `RAGMemoryService`；
-3. 根据配置中的问题集合构造批处理源 (`QuestionSource`)；
-4. 调用注册服务完成历史检索；
-5. 使用 `QAPromptor` 构建提示词并通过 `OpenAIGenerator` 调用模型生成回答；
-6. 将回答写回记忆集合，并在控制台打印问答结果。
+1. 通过 `LocalEnvironment` 注册 `RAGMemoryService`；
+1. 根据配置中的问题集合构造批处理源 (`QuestionSource`)；
+1. 调用注册服务完成历史检索；
+1. 使用 `QAPromptor` 构建提示词并通过 `OpenAIGenerator` 调用模型生成回答；
+1. 将回答写回记忆集合，并在控制台打印问答结果。
 
 > 如果生成部分使用的是兼容 OpenAI 的推理服务，请在配置里设置好 `api_key`、`base_url` 等字段。
 
@@ -64,22 +64,22 @@ python rag_memory_pipeline.py
 ## 代码结构速览
 
 - `RAGMemoryService` (`rag_memory_service.py`)
-    - 负责初始化/加载记忆集合；
-    - `insert(data, metadata)`：写入新的记忆片段；
-    - `retrieve(data)`：根据查询检索历史，并重排为问答友好的格式。
+  - 负责初始化/加载记忆集合；
+  - `insert(data, metadata)`：写入新的记忆片段；
+  - `retrieve(data)`：根据查询检索历史，并重排为问答友好的格式。
 - `rag_memory_pipeline.py`
-    - `QuestionSource`：批量产出待回答的问题；
-    - `Retriever`：通过环境调用 `RAGMemoryService.retrieve` 获取上下文；
-    - `Writer`：将模型回复写回记忆集合；
-    - `PrintSink`：统一输出最终问答。
+  - `QuestionSource`：批量产出待回答的问题；
+  - `Retriever`：通过环境调用 `RAGMemoryService.retrieve` 获取上下文；
+  - `Writer`：将模型回复写回记忆集合；
+  - `PrintSink`：统一输出最终问答。
 
 ## 常见问题
 
-| 问题 | 说明 |
-| --- | --- |
-| 检索为空 | 确认集合中已经插入数据，或降低检索阈值 `threshold` |
-| 无法调用模型 | 检查 `config_rag_memory_pipeline.yaml` 中的 `api_key`、`base_url` 是否正确 |
-| 路径不存在 | 默认集合保存在 `.sage/examples/memory/rag_memory_service`，确保脚本有写入权限 |
+| 问题         | 说明                                                                          |
+| ------------ | ----------------------------------------------------------------------------- |
+| 检索为空     | 确认集合中已经插入数据，或降低检索阈值 `threshold`                            |
+| 无法调用模型 | 检查 `config_rag_memory_pipeline.yaml` 中的 `api_key`、`base_url` 是否正确    |
+| 路径不存在   | 默认集合保存在 `.sage/examples/memory/rag_memory_service`，确保脚本有写入权限 |
 
 ## 后续扩展建议
 

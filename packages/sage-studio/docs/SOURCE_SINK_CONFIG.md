@@ -98,7 +98,7 @@
 {
   "source_type": "database",
   "query": "SELECT * FROM users WHERE active = true",
-  "connection_string": "postgresql://user:pass@localhost/dbname"
+  "connection_string": "postgresql://user:pass@localhost/dbname" # pragma: allowlist secret
 }
 ```
 
@@ -170,11 +170,8 @@ source_node = VisualNode(
     id="source",
     type="map",
     label="File Source",
-    config={
-        "source_type": "json_file",
-        "file_path": "/data/input.json"
-    },
-    position={"x": 0, "y": 0}
+    config={"source_type": "json_file", "file_path": "/data/input.json"},
+    position={"x": 0, "y": 0},
 )
 
 # 创建处理节点
@@ -182,11 +179,8 @@ processor_node = VisualNode(
     id="processor",
     type="retriever",
     label="Retriever",
-    config={
-        "top_k": 5,
-        "index_name": "my_index"
-    },
-    position={"x": 200, "y": 0}
+    config={"top_k": 5, "index_name": "my_index"},
+    position={"x": 200, "y": 0},
 )
 
 # 创建连接
@@ -195,7 +189,7 @@ connection = VisualConnection(
     source_node_id="source",
     source_port="output",
     target_node_id="processor",
-    target_port="input"
+    target_port="input",
 )
 
 # 创建 Pipeline
@@ -203,7 +197,7 @@ pipeline = VisualPipeline(
     id="my_pipeline",
     name="File Processing Pipeline",
     nodes=[source_node, processor_node],
-    connections=[connection]
+    connections=[connection],
 )
 
 # 设置 sink 类型（可选，默认为 print）
@@ -259,12 +253,12 @@ result = env.execute()
 ## 📝 注意事项
 
 1. **Source 配置位置**: Source 的配置在**第一个节点**的 `config` 中
-2. **Sink 配置位置**: Sink 的配置在 **Pipeline** 层级（`pipeline.sink_type`）
-3. **默认值**:
+1. **Sink 配置位置**: Sink 的配置在 **Pipeline** 层级（`pipeline.sink_type`）
+1. **默认值**:
    - 默认 Source: 内存数据源（`memory`）
    - 默认 Sink: 打印接收器（`print`）
-4. **路径**: 文件路径支持相对路径和绝对路径
-5. **验证**: 配置错误会在 Pipeline 构建时抛出异常
+1. **路径**: 文件路径支持相对路径和绝对路径
+1. **验证**: 配置错误会在 Pipeline 构建时抛出异常
 
 ## 🔗 参考
 
@@ -278,8 +272,8 @@ result = env.execute()
 如果需要添加新的 Source 或 Sink 类型：
 
 1. 在 `sage.libs.io.source` 或 `sage.libs.io.sink` 中实现新类
-2. 在 `PipelineBuilder._create_source()` 或 `_create_sink()` 中添加对应的 case
-3. 更新本文档
+1. 在 `PipelineBuilder._create_source()` 或 `_create_sink()` 中添加对应的 case
+1. 更新本文档
 
 示例：添加新的 Redis Source
 

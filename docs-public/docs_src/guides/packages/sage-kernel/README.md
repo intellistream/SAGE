@@ -1,6 +1,7 @@
 ## SAGE Kernel 总览
 
-SAGE Kernel 是 SAGE 平台中负责构建与提交数据处理流水线的运行时核心。它提供一组轻量级的 Python API，用于描述数据来源、转换算子和服务调用，并将这些描述交给本地或远程的 JobManager 执行。
+SAGE Kernel 是 SAGE 平台中负责构建与提交数据处理流水线的运行时核心。它提供一组轻量级的 Python API，用于描述数据来源、转换算子和服务调用，并将这些描述交给本地或远程的
+JobManager 执行。
 
 本章节聚焦于**源码中已经实现的能力**，帮助你快速定位可用的编程接口并避免依赖尚未落地的特性。
 
@@ -16,10 +17,10 @@ SAGE Kernel 是 SAGE 平台中负责构建与提交数据处理流水线的运�
 ## 执行模型
 
 1. **创建环境**：实例化 `LocalEnvironment` 或 `RemoteEnvironment`。
-2. **声明数据源**：调用 `from_batch`、`from_collection`、`from_kafka_source` 等方法获取 `DataStream`。
-3. **链接转换算子**：在 `DataStream` 上调用 `map`、`filter`、`flatmap`、`keyby` 等操作。
-4. **选择输出方式**：使用 `sink`/`print` 或将多个流通过 `connect()`/`comap()` 组合。
-5. **提交运行**：调用 `env.submit(autostop=True)` 将流水线交给 JobManager 执行。
+1. **声明数据源**：调用 `from_batch`、`from_collection`、`from_kafka_source` 等方法获取 `DataStream`。
+1. **链接转换算子**：在 `DataStream` 上调用 `map`、`filter`、`flatmap`、`keyby` 等操作。
+1. **选择输出方式**：使用 `sink`/`print` 或将多个流通过 `connect()`/`comap()` 组合。
+1. **提交运行**：调用 `env.submit(autostop=True)` 将流水线交给 JobManager 执行。
 
 ### 最小化示例
 
@@ -30,8 +31,8 @@ env = LocalEnvironment("numbers-demo")
 
 stream = (
     env.from_batch([1, 2, 3, 4, 5])
-       .map(lambda value: value * 2)
-       .filter(lambda value: value > 5)
+    .map(lambda value: value * 2)
+    .filter(lambda value: value > 5)
 )
 
 stream.print(prefix="[result]")
@@ -50,13 +51,13 @@ env.submit(autostop=True)
 
 `BaseEnvironment` 当前提供的入口包括：
 
-| 方法 | 说明 |
-| ---- | ---- |
-| `from_batch(source)` | 批量数据迭代器，支持 `BaseFunction` 子类、`list/tuple` 以及任意可迭代对象。 |
-| `from_collection(function)` | 保留的历史 API，内部同样走批处理路径。 |
-| `from_source(function)` | 适合实现自定义实时数据源，`function` 通常继承 `SourceFunction`。 |
-| `from_kafka_source(...)` | 使用 `KafkaSourceFunction` 构建消费任务，要求传入 bootstrap、topic、group 等参数。 |
-| `from_future(name)` | 声明一个占位流，稍后可以通过 `DataStream.fill_future` 建立反馈边。 |
+| 方法                        | 说明                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `from_batch(source)`        | 批量数据迭代器，支持 `BaseFunction` 子类、`list/tuple` 以及任意可迭代对象。        |
+| `from_collection(function)` | 保留的历史 API，内部同样走批处理路径。                                             |
+| `from_source(function)`     | 适合实现自定义实时数据源，`function` 通常继承 `SourceFunction`。                   |
+| `from_kafka_source(...)`    | 使用 `KafkaSourceFunction` 构建消费任务，要求传入 bootstrap、topic、group 等参数。 |
+| `from_future(name)`         | 声明一个占位流，稍后可以通过 `DataStream.fill_future` 建立反馈边。                 |
 
 所有方法都会返回 `DataStream` 对象并把对应的 `Transformation` 累加到 `env.pipeline`。因此，在提交前可以多次组合重用，无需立即执行。
 
@@ -82,8 +83,8 @@ future = env.from_future("feedback")
 
 processed = (
     env.from_batch(["a", "b", "c"])
-       .connect(future)
-       .comap(MyCoMapFunction)    # 详见 ConnectedStreams 文档
+    .connect(future)
+    .comap(MyCoMapFunction)  # 详见 ConnectedStreams 文档
 )
 
 processed.fill_future(future)
@@ -94,15 +95,17 @@ env.submit(autostop=True)
 
 ## 服务注册
 
-`BaseEnvironment.register_service(name, service_class, *args, **kwargs)` 和 `register_service_factory` 会把服务包装成 `ServiceFactory` 并在 `submit()` 时交给 JobManager。算子内部可通过 `BaseFunction.call_service` 与运行时服务交互。若当前平台为 `local`，日志会以 "Registered local service" 的形式打印。
+`BaseEnvironment.register_service(name, service_class, *args, **kwargs)` 和
+`register_service_factory` 会把服务包装成 `ServiceFactory` 并在 `submit()` 时交给 JobManager。算子内部可通过
+`BaseFunction.call_service` 与运行时服务交互。若当前平台为 `local`，日志会以 "Registered local service" 的形式打印。
 
 ## Local 与 Remote 环境
 
-| 能力 | `LocalEnvironment` | `RemoteEnvironment` |
-| ---- | ------------------ | ------------------- |
-| 提交 | `submit(autostop=False)`，依赖本地 `JobManager` 单例 | `submit(autostop=False)`，序列化后经 `JobManagerClient` 发送到远端 |
-| 任务监控 | `_wait_for_completion()` 轮询本地 `JobManager` 状态 | `_wait_for_completion()` 通过 `client.get_job_status` 轮询远程状态 |
-| 停止/关闭 | `stop()`、`close()` | `stop()`、`close()`、`health_check()`、`get_job_status()` |
+| 能力      | `LocalEnvironment`                                   | `RemoteEnvironment`                                                |
+| --------- | ---------------------------------------------------- | ------------------------------------------------------------------ |
+| 提交      | `submit(autostop=False)`，依赖本地 `JobManager` 单例 | `submit(autostop=False)`，序列化后经 `JobManagerClient` 发送到远端 |
+| 任务监控  | `_wait_for_completion()` 轮询本地 `JobManager` 状态  | `_wait_for_completion()` 通过 `client.get_job_status` 轮询远程状态 |
+| 停止/关闭 | `stop()`、`close()`                                  | `stop()`、`close()`、`health_check()`、`get_job_status()`          |
 
 在两种环境下，`autostop=True` 都会调用 `_wait_for_completion`，默认超时 5 分钟，可根据需要在应用层自行扩展。
 
@@ -113,7 +116,8 @@ env.submit(autostop=True)
 - [ConnectedStreams API](api/connected-streams.md)：介绍多流连接、`comap` 与 `join` 的使用方式。
 - [Function 基类](api/functions.md)：列出各类函数接口的签名与实现注意事项。
 
-阅读这些文档时，可随时与 `packages/sage-kernel/src/sage/core/api`、`.../transformation`、`.../jobmanager` 等源码相比对，确保文档内容与实现保持一致。
+阅读这些文档时，可随时与 `packages/sage-kernel/src/sage/core/api`、`.../transformation`、`.../jobmanager`
+等源码相比对，确保文档内容与实现保持一致。
 
 - [GitHub Issues](https://github.com/intellistream/SAGE/issues) - 报告问题
 - [讨论区](https://github.com/intellistream/SAGE/discussions) - 社区讨论

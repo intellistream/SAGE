@@ -13,8 +13,8 @@
 ## 根本原因
 
 1. **输出缓冲问题**：Python的stdout和stderr可能被缓冲，导致最后的消息没有立即显示
-2. **后台线程未清理**：构建进度显示的后台线程可能没有被正确清理
-3. **超时机制不可靠**：`status`命令使用`signal.SIGALRM`进行超时控制，这在Windows上不可用，且在某些环境下可能失效
+1. **后台线程未清理**：构建进度显示的后台线程可能没有被正确清理
+1. **超时机制不可靠**：`status`命令使用`signal.SIGALRM`进行超时控制，这在Windows上不可用，且在某些环境下可能失效
 
 ## 解决方案
 
@@ -65,11 +65,14 @@ finally:
 将`status`命令中基于信号的超时机制替换为基于线程的超时机制：
 
 **旧方案（有问题）**：
+
 ```python
 import signal
 
+
 def timeout_handler(signum, frame):
     raise TimeoutError("Module import timeout")
+
 
 # 设置5秒超时
 signal.signal(signal.SIGALRM, timeout_handler)
@@ -86,11 +89,13 @@ except TimeoutError:
 ```
 
 **新方案（可靠）**：
+
 ```python
 import threading
 import queue
 
 result_queue = queue.Queue()
+
 
 def try_import():
     try:
@@ -98,6 +103,7 @@ def try_import():
         result_queue.put(("success", None))
     except Exception as e:
         result_queue.put(("error", e))
+
 
 import_thread = threading.Thread(target=try_import, daemon=True)
 import_thread.start()
@@ -127,11 +133,13 @@ else:
 ## 优势
 
 ### 旧方案的问题：
+
 - ❌ `signal.SIGALRM`在Windows上不可用
 - ❌ 在多线程环境中可能不可靠
 - ❌ 信号处理可能被其他代码干扰
 
 ### 新方案的优势：
+
 - ✅ 跨平台兼容（Linux、macOS、Windows）
 - ✅ 在多线程环境中可靠工作
 - ✅ 使用daemon线程，即使超时也不会阻止程序退出
@@ -140,18 +148,21 @@ else:
 ## 测试验证
 
 ### 测试1：status命令超时保护
+
 ```bash
 # 应该在5秒内完成，不会卡住
 timeout 10 sage extensions status
 ```
 
 ### 测试2：输出缓冲
+
 ```bash
 # 输出应该立即显示，不会延迟
 sage extensions status 2>&1 | cat
 ```
 
 ### 测试3：安装脚本集成
+
 ```bash
 # 应该正常完成，不会卡住
 ./quickstart.sh --dev --yes
@@ -167,22 +178,26 @@ sage extensions status 2>&1 | cat
 如果用户在安装过程中仍然遇到卡住的问题，可以：
 
 1. **检查日志文件**：
+
    ```bash
    tail -f /home/shuhao/SAGE/.sage/logs/extensions/sage_db_build.log
    tail -f /home/shuhao/SAGE/.sage/logs/extensions/sage_flow_build.log
    ```
 
-2. **手动测试扩展**：
+1. **手动测试扩展**：
+
    ```bash
    sage extensions status
    ```
 
-3. **重新安装扩展**：
+1. **重新安装扩展**：
+
    ```bash
    sage extensions install all --force
    ```
 
-4. **查看完整日志**：
+1. **查看完整日志**：
+
    ```bash
    cat install.log
    ```
@@ -190,6 +205,6 @@ sage extensions status 2>&1 | cat
 ## 未来改进
 
 1. 添加更详细的进度显示（显示正在编译哪个文件）
-2. 添加估计剩余时间
-3. 提供"详细模式"开关，允许用户选择查看完整编译输出
-4. 在安装脚本中添加心跳检测，定期显示"仍在安装中..."消息
+1. 添加估计剩余时间
+1. 提供"详细模式"开关，允许用户选择查看完整编译输出
+1. 在安装脚本中添加心跳检测，定期显示"仍在安装中..."消息

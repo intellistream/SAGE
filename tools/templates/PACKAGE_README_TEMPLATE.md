@@ -90,6 +90,7 @@ result = feature.process()
 ## 🔧 Configuration
 
 Configuration can be provided through:
+
 - Environment variables
 - Configuration files (YAML/TOML)
 - Direct API parameters
@@ -105,9 +106,9 @@ Configuration can be provided through:
 
 ## 📚 Documentation
 
-- **User Guide**: See [docs-public]({DOC_LINK})
-- **API Reference**: See [API docs]({API_DOC_LINK})
-- **Examples**: See [examples/]({EXAMPLES_LINK})
+- **User Guide**: See [docs-public](%7BDOC_LINK%7D)
+- **API Reference**: See [API docs](%7BAPI_DOC_LINK%7D)
+- **Examples**: See [examples/](%7BEXAMPLES_LINK%7D)
 
 ## 🧪 Testing
 
@@ -143,6 +144,6 @@ This project is licensed under the MIT License - see the [LICENSE](../../LICENSE
 - **Issues**: https://github.com/intellistream/SAGE/issues
 - **Discussions**: https://github.com/intellistream/SAGE/discussions
 
----
+______________________________________________________________________
 
 **Part of the SAGE Framework** | [Main Repository](https://github.com/intellistream/SAGE)

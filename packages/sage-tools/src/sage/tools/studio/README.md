@@ -2,7 +2,9 @@
 
 ## Purpose
 
-This module is reserved for **Studio development and management tools**. It provides utilities to enhance the Studio development experience but does NOT contain Studio CLI commands or core functionality.
+This module is reserved for **Studio development and management tools**. It provides utilities to
+enhance the Studio development experience but does NOT contain Studio CLI commands or core
+functionality.
 
 ## Architecture
 
@@ -24,31 +26,28 @@ sage-tools/
 ## Planned Features
 
 ### 1. Project Scaffolding
+
 ```python
 from sage.tools.studio import create_studio_project
 
 # Generate a new Studio project
-create_studio_project(
-    name="my-studio",
-    template="basic",
-    plugins=["custom-operators"]
-)
+create_studio_project(name="my-studio", template="basic", plugins=["custom-operators"])
 ```
 
 ### 2. Plugin Development Kit
+
 ```python
 from sage.tools.studio import StudioPluginGenerator
 
 # Generate plugin boilerplate
 generator = StudioPluginGenerator()
 generator.create_plugin(
-    name="my-plugin",
-    type="operator",
-    hooks=["onNodeAdd", "onNodeDelete"]
+    name="my-plugin", type="operator", hooks=["onNodeAdd", "onNodeDelete"]
 )
 ```
 
 ### 3. Configuration Validator
+
 ```python
 from sage.tools.studio import validate_studio_config
 
@@ -59,6 +58,7 @@ if result.has_errors:
 ```
 
 ### 4. Performance Profiler
+
 ```python
 from sage.tools.studio import StudioProfiler
 
@@ -74,9 +74,10 @@ report = profiler.generate_report()
 🚧 **Placeholder Module** - No functionality implemented yet.
 
 The module currently serves as a placeholder to:
+
 1. Establish the correct package structure
-2. Document planned features
-3. Prevent import errors (sage.tools.studio must be importable)
+1. Document planned features
+1. Prevent import errors (sage.tools.studio must be importable)
 
 ## Why Not in sage.studio?
 
@@ -87,14 +88,17 @@ The module currently serves as a placeholder to:
 ## Implementation Plan
 
 **Phase 1** (Q1 2026):
+
 - [ ] Project scaffolding tool
 - [ ] Basic configuration validator
 
 **Phase 2** (Q2 2026):
+
 - [ ] Plugin development kit
 - [ ] Studio debugging tools
 
 **Phase 3** (Q3 2026):
+
 - [ ] Performance profiler
 - [ ] Integration with sage dev tools
 

@@ -19,18 +19,21 @@
 ### 📊 核心组件
 
 1. **MetricsCollector**：性能指标收集器
+
    - 包级别性能监控
    - 百分位数计算
    - 时间窗口统计
    - 错误分类统计
 
-2. **ResourceMonitor**：资源使用监控器
+1. **ResourceMonitor**：资源使用监控器
+
    - CPU使用率监控
    - 内存使用量监控
    - 进程级别资源统计
    - 系统级资源信息
 
-3. **MetricsReporter**：性能指标汇报器
+1. **MetricsReporter**：性能指标汇报器
+
    - 定期汇报
    - 多种导出格式
    - 自定义汇报回调
@@ -61,12 +64,12 @@ from sage.kernel.runtime.context.task_context import TaskContext
 # 创建带监控的任务上下文
 ctx = TaskContext(
     name="my_task",
-    enable_monitoring=True,              # 启用监控
-    metrics_window_size=10000,          # 滑动窗口大小
-    enable_detailed_tracking=True,      # 启用详细跟踪
-    resource_sampling_interval=1.0,     # 资源采样间隔（秒）
-    enable_auto_report=True,            # 启用自动汇报
-    report_interval=60,                 # 汇报间隔（秒）
+    enable_monitoring=True,  # 启用监控
+    metrics_window_size=10000,  # 滑动窗口大小
+    enable_detailed_tracking=True,  # 启用详细跟踪
+    resource_sampling_interval=1.0,  # 资源采样间隔（秒）
+    enable_auto_report=True,  # 启用自动汇报
+    report_interval=60,  # 汇报间隔（秒）
 )
 ```
 
@@ -212,14 +215,14 @@ class ServicePerformanceMetrics:
 
 ```python
 # 监控配置
-enable_monitoring: bool = False          # 是否启用监控
-metrics_window_size: int = 10000         # 滑动窗口大小
-enable_detailed_tracking: bool = True    # 是否启用详细跟踪
+enable_monitoring: bool = False  # 是否启用监控
+metrics_window_size: int = 10000  # 滑动窗口大小
+enable_detailed_tracking: bool = True  # 是否启用详细跟踪
 resource_sampling_interval: float = 1.0  # 资源采样间隔（秒）
 
 # 汇报配置
-enable_auto_report: bool = False         # 是否启用自动汇报
-report_interval: int = 60                # 汇报间隔（秒）
+enable_auto_report: bool = False  # 是否启用自动汇报
+report_interval: int = 60  # 汇报间隔（秒）
 ```
 
 ## 示例
@@ -265,7 +268,7 @@ Errors:
 
 ## 性能影响
 
-- **监控开销**：< 1% CPU（默认配置）
+- **监控开销**：\< 1% CPU（默认配置）
 - **内存占用**：约 10-50MB（取决于window_size）
 - **推荐配置**：
   - 开发/调试：`enable_detailed_tracking=True`

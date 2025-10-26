@@ -2,10 +2,12 @@
 
 本目录包含两类示例，风格与 `examples/service/neuromem_vdb` 保持一致：
 
-1) 应用（Application）方式：`hello_sage_flow_app.py`
+1. 应用（Application）方式：`hello_sage_flow_app.py`
+
    - 使用 SAGE 的 pipeline API（from_batch/sink 等）构建一个最小向量处理应用
 
-2) 服务（Service）方式：`hello_sage_flow_service.py`
+1. 服务（Service）方式：`hello_sage_flow_service.py`
+
    - 以微服务形式运行 Sage Flow，支持从外部推入向量并执行一次消费
 
 ## 运行示例
@@ -30,5 +32,7 @@ python examples/service/sage_flow/hello_sage_flow_service.py
 ```
 
 ## 说明
-- Minimal 服务 `SageFlowService` 位于 `packages/sage-middleware/src/sage/middleware/components/sage_flow/micro_service/sage_flow_service.py`
+
+- Minimal 服务 `SageFlowService` 位于
+  `packages/sage-middleware/src/sage/middleware/components/sage_flow/micro_service/sage_flow_service.py`
 - 当前服务主要演示了数据注入与执行路径，后续可扩展 topk/itopk/index 等算子，将其对外暴露为 service API

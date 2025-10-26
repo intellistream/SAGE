@@ -1,9 +1,9 @@
 # Profile 组件设计文档
 
-!!! note "定位"
-    `BaseProfile`（`packages/sage-libs/src/sage/libs/agents/profile/profile.py`）定义了 Agent 的“身份卡片”，并可直接映射为 `MapFunction`。它负责描述角色、目标、任务、背景以及输出偏好，可随时渲染为系统提示词。
+!!! note "定位" `BaseProfile`（`packages/sage-libs/src/sage/libs/agents/profile/profile.py`）定义了 Agent
+的“身份卡片”，并可直接映射为 `MapFunction`。它负责描述角色、目标、任务、背景以及输出偏好，可随时渲染为系统提示词。
 
----
+______________________________________________________________________
 
 ## 1. 数据模型
 
@@ -34,24 +34,24 @@ class BaseProfile(MapFunction):
         )
 ```
 
-!!! tip "MapFunction 支持"
-    `BaseProfile` 继承自 `MapFunction`，因此可以被流水线或 Agent Runtime 直接调用。`execute(overrides: dict | None)` 会先合并临时覆写，再返回渲染后的系统提示词。
+!!! tip "MapFunction 支持" `BaseProfile` 继承自 `MapFunction`，因此可以被流水线或 Agent Runtime
+直接调用。`execute(overrides: dict | None)` 会先合并临时覆写，再返回渲染后的系统提示词。
 
----
+______________________________________________________________________
 
 ## 2. 字段说明
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `name` | str | `"BaseAgent"` | Agent 的名称 |
-| `role` | str | `"general assistant"` | 角色定位（planner、analyst 等） |
-| `goals` | List[str] | `[]` | 长期目标列表 |
-| `tasks` | List[str] | `[]` | 常见任务模板 |
-| `backstory` | str | `""` | 背景故事（可空） |
-| `language` | str | `"zh"` | 默认输出语言 |
-| `tone` | str | `"concise"` | 输出语气（如 concise、detailed、socratic） |
+| 字段        | 类型        | 默认值                | 说明                                       |
+| ----------- | ----------- | --------------------- | ------------------------------------------ |
+| `name`      | str         | `"BaseAgent"`         | Agent 的名称                               |
+| `role`      | str         | `"general assistant"` | 角色定位（planner、analyst 等）            |
+| `goals`     | List\[str\] | `[]`                  | 长期目标列表                               |
+| `tasks`     | List\[str\] | `[]`                  | 常见任务模板                               |
+| `backstory` | str         | `""`                  | 背景故事（可空）                           |
+| `language`  | str         | `"zh"`                | 默认输出语言                               |
+| `tone`      | str         | `"concise"`           | 输出语气（如 concise、detailed、socratic） |
 
----
+______________________________________________________________________
 
 ## 3. 常用方法
 
@@ -74,7 +74,7 @@ print(profile.render_system_prompt())
 print(profile.execute({"tone": "warm"}))
 ```
 
----
+______________________________________________________________________
 
 ## 4. 与其它组件的关系
 
@@ -82,7 +82,7 @@ print(profile.execute({"tone": "warm"}))
 - `LLMPlanner` 接收渲染后的 Prompt 作为上下文，约束计划输出
 - 在多 Agent 场景中，可为每个 Agent 定义不同的 Profile，并按需使用 `merged()` 生成派生 persona
 
----
+______________________________________________________________________
 
 ## 5. 现状提示
 

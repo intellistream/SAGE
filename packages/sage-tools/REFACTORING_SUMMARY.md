@@ -1,33 +1,43 @@
 # SAGE Tools 目录结构重组总结
 
 ## 重组日期
+
 2025-10-07
 
 ## 重组目标
+
 优化 `sage-tools` 包的目录结构，遵循模块化和单一职责原则，将管理器类移动到其对应的功能模块目录中。
 
 ## 重组内容
 
 ### 1. Studio Manager 重组
+
 **移动文件：**
+
 - `cli/managers/studio_manager.py` → `studio/studio_manager.py`
 
 **更新导入：**
+
 - `cli/commands/studio.py`: `from ..managers.studio_manager` → `from ...studio.studio_manager`
 - `studio/__init__.py`: 添加了 `StudioManager` 的导出
 
 **删除目录：**
+
 - `cli/managers/` (空目录已删除)
 
 ### 2. 通用管理器重组
+
 **移动文件：**
+
 - `cli/config_manager.py` → `management/config_manager.py`
 - `cli/deployment_manager.py` → `management/deployment_manager.py`
 
 **创建新模块：**
+
 - `management/__init__.py`: 导出 `ConfigManager`, `get_config_manager`, `DeploymentManager`
 
 **更新导入：**
+
 - `cli/commands/config.py`: `from ..config_manager` → `from ...management.config_manager`
 - `cli/commands/cluster.py`: `from ..config_manager` → `from ...management.config_manager`
 - `cli/commands/cluster.py`: `from ..deployment_manager` → `from ...management.deployment_manager`
@@ -37,16 +47,22 @@
 - `management/deployment_manager.py`: `from .config_manager` → `from .config_manager` (已正确)
 
 ### 3. Pipeline Blueprints 重组
+
 **移动文件：**
+
 - `cli/pipeline_blueprints.py` → `templates/pipeline_blueprints.py`
 
 **更新模块导出：**
+
 - `templates/__init__.py`: 添加了 `pipeline_blueprints` 的导入和导出
 
 **更新导入：**
-- `cli/commands/pipeline.py`: `from sage.tools.cli import pipeline_blueprints` → `from sage.tools import templates` 和 `from sage.tools.templates import pipeline_blueprints`
+
+- `cli/commands/pipeline.py`: `from sage.tools.cli import pipeline_blueprints` →
+  `from sage.tools import templates` 和 `from sage.tools.templates import pipeline_blueprints`
 
 **移动测试文件：**
+
 - `tests/cli/test_pipeline_blueprints.py` → `tests/templates/test_pipeline_blueprints.py`
 
 ## 重组后的目录结构
@@ -101,27 +117,24 @@ tests/
 ## 设计原则
 
 1. **模块化原则**：每个功能模块（studio, management, templates）都有自己的目录
-2. **单一职责原则**：管理器类放在其对应的功能模块中
-3. **测试对齐原则**：测试文件的位置与被测试模块的位置对应
-4. **清晰的依赖关系**：CLI commands 依赖各个功能模块，而不是在 CLI 目录中混合业务逻辑
+1. **单一职责原则**：管理器类放在其对应的功能模块中
+1. **测试对齐原则**：测试文件的位置与被测试模块的位置对应
+1. **清晰的依赖关系**：CLI commands 依赖各个功能模块，而不是在 CLI 目录中混合业务逻辑
 
 ## 优势
 
 1. **更清晰的模块边界**：每个功能模块独立，职责明确
-2. **更好的可维护性**：相关代码聚合在一起，易于理解和修改
-3. **更好的可扩展性**：新增功能模块时，只需创建新目录，不会影响现有模块
-4. **测试组织更合理**：测试文件位置与被测试代码位置对应，易于查找
+1. **更好的可维护性**：相关代码聚合在一起，易于理解和修改
+1. **更好的可扩展性**：新增功能模块时，只需创建新目录，不会影响现有模块
+1. **测试组织更合理**：测试文件位置与被测试代码位置对应，易于查找
 
 ## 验证状态
 
-✅ 所有文件移动完成
-✅ 所有导入路径已更新
-✅ 测试文件已重新组织
-✅ 无编译错误
-✅ 模块导出已正确配置
+✅ 所有文件移动完成 ✅ 所有导入路径已更新 ✅ 测试文件已重新组织 ✅ 无编译错误 ✅ 模块导出已正确配置
 
 ## 后续建议
 
 考虑是否需要进一步重组其他 CLI 相关文件，例如：
+
 - `cli/core_cli.py` - 检查是否应该移到更合适的位置
 - 其他可能的功能模块拆分

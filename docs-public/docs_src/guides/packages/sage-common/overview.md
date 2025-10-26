@@ -7,16 +7,19 @@
 ## Key Components
 
 ### Data Types
+
 - **BaseDocument**: Foundation for all document types
 - **Vector Types**: Dense and sparse vector representations
 - **Metadata**: Document metadata management
 
 ### Utilities
+
 - **Logger**: Structured logging system
 - **Config**: Configuration management
 - **Exceptions**: Custom exception hierarchy
 
 ### Core Interfaces
+
 - Common protocols and abstract base classes
 - Serialization/deserialization interfaces
 - Type definitions and validators
@@ -39,8 +42,10 @@ from sage.common.utils import get_logger
 
 logger = get_logger(__name__)
 
+
 class MyDocument(BaseDocument):
     """Custom document type."""
+
     pass
 ```
 

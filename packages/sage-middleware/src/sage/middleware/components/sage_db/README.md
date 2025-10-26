@@ -7,12 +7,14 @@ SAGE DB 是 SAGE 系统的核心中间件组件，提供高性能的向量相似
 ## 🌟 主要特性
 
 ### 高性能向量检索
+
 - **插件化 ANNS 架构**：支持多种近似最近邻搜索算法（Brute Force、FAISS 等）
 - **灵活的距离度量**：L2、内积、余弦相似度
 - **批量查询优化**：支持高效的批处理操作
 - **动态索引维护**：支持增量添加和删除向量
 
 ### 多模态数据融合
+
 - **多种模态支持**：文本、图像、音频、视频、表格、时间序列
 - **丰富的融合策略**：
   - 向量拼接 (Concatenation)
@@ -23,11 +25,13 @@ SAGE DB 是 SAGE 系统的核心中间件组件，提供高性能的向量相似
 - **可扩展设计**：轻松添加自定义模态处理器和融合算法
 
 ### 元数据过滤
+
 - **高效的元数据存储**：支持字符串、数字、布尔等类型
 - **灵活的过滤查询**：基于元数据的条件筛选
 - **混合搜索**：结合向量相似度和元数据过滤
 
 ### 服务化集成
+
 - **中间件服务接口**：通过 `SageDBService` 集成到 SAGE 服务体系
 - **DAG 工作流支持**：可嵌入 LocalEnvironment 流水线
 - **异步查询支持**：支持 `call_service_async` 异步调用模式
@@ -66,17 +70,14 @@ from sage.middleware.components.sage_db import SageDB
 
 # 创建数据库实例
 db = SageDB(
-    dimension=768,          # 向量维度
-    metric="cosine",        # 距离度量：cosine/l2/inner_product
-    anns_algorithm="brute_force"  # ANNS 算法
+    dimension=768,  # 向量维度
+    metric="cosine",  # 距离度量：cosine/l2/inner_product
+    anns_algorithm="brute_force",  # ANNS 算法
 )
 
 # 添加向量数据
 vectors = [[0.1, 0.2, ...], [0.3, 0.4, ...]]
-metadata = [
-    {"doc_id": "1", "source": "wiki"},
-    {"doc_id": "2", "source": "arxiv"}
-]
+metadata = [{"doc_id": "1", "source": "wiki"}, {"doc_id": "2", "source": "arxiv"}]
 db.add_vectors(vectors, metadata)
 
 # 相似度检索
@@ -95,20 +96,14 @@ from sage.middleware.components.sage_db import SageDBService
 from sage.libs.rag.local_env import LocalEnvironment
 
 # 注册 SageDB 服务
-service_config = SageDBServiceConfig(
-    dimension=768,
-    metric="cosine"
-)
+service_config = SageDBServiceConfig(dimension=768, metric="cosine")
 db_service = SageDBService("my_db", config=service_config)
 
 # 在 DAG 中使用
 env = LocalEnvironment()
 (
     env.from_source(QuerySource, queries=["如何使用 SageDB？"])
-    .map(SageDBRetrieverNode, {
-        "service_name": "my_db",
-        "top_k": 5
-    })
+    .map(SageDBRetrieverNode, {"service_name": "my_db", "top_k": 5})
     .map(QAPromptor, {...})
     .map(LLMGenerator, {...})
     .to_sink(ConsoleReporter)
@@ -123,23 +118,19 @@ from sage.middleware.components.sage_db import MultimodalSageDB
 
 # 创建多模态数据库
 mdb = MultimodalSageDB(
-    text_dim=768,
-    image_dim=512,
-    fusion_strategy="attention"  # 使用注意力机制融合
+    text_dim=768, image_dim=512, fusion_strategy="attention"  # 使用注意力机制融合
 )
 
 # 添加多模态数据
 mdb.add_multimodal_data(
     text_vector=[0.1, 0.2, ...],
     image_vector=[0.3, 0.4, ...],
-    metadata={"caption": "A cat", "source": "flickr"}
+    metadata={"caption": "A cat", "source": "flickr"},
 )
 
 # 多模态检索
 results = mdb.search_multimodal(
-    text_query=[0.15, 0.25, ...],
-    image_query=[0.35, 0.45, ...],
-    k=10
+    text_query=[0.15, 0.25, ...], image_query=[0.35, 0.45, ...], k=10
 )
 ```
 
@@ -180,16 +171,24 @@ sage_db/
 
 ```python
 class SageDB:
-    def __init__(self, dimension: int, metric: str = "cosine",
-                 anns_algorithm: str = "brute_force"): ...
+    def __init__(
+        self,
+        dimension: int,
+        metric: str = "cosine",
+        anns_algorithm: str = "brute_force",
+    ): ...
 
-    def add_vectors(self, vectors: List[List[float]],
-                   metadata: Optional[List[Dict]] = None) -> None: ...
+    def add_vectors(
+        self, vectors: List[List[float]], metadata: Optional[List[Dict]] = None
+    ) -> None: ...
 
-    def search(self, query: List[float], k: int = 10,
-              filter: Optional[Dict] = None) -> List[SearchResult]: ...
+    def search(
+        self, query: List[float], k: int = 10, filter: Optional[Dict] = None
+    ) -> List[SearchResult]: ...
 
-    def batch_search(self, queries: List[List[float]], k: int = 10) -> List[List[SearchResult]]: ...
+    def batch_search(
+        self, queries: List[List[float]], k: int = 10
+    ) -> List[List[SearchResult]]: ...
 
     def remove_vectors(self, ids: List[int]) -> None: ...
 
@@ -258,10 +257,12 @@ db = SageDB(dimension=768, anns_algorithm="my_algorithm")
 ### 添加自定义融合策略
 
 ```python
-def my_fusion_strategy(vectors: Dict[str, np.ndarray],
-                       weights: Dict[str, float]) -> np.ndarray:
+def my_fusion_strategy(
+    vectors: Dict[str, np.ndarray], weights: Dict[str, float]
+) -> np.ndarray:
     # 实现自定义融合逻辑
     return fused_vector
+
 
 mdb = MultimodalSageDB(...)
 mdb.register_fusion_strategy("my_fusion", my_fusion_strategy)
@@ -303,6 +304,7 @@ class MyFunction(MapFunction):
 
         return results
 
+
 # 多个并发请求会被正确处理
 env.register_service("sage_db", SageDBService)
 ```
@@ -310,9 +312,9 @@ env.register_service("sage_db", SageDBService)
 ### 为什么可以工作？
 
 1. **隔离的执行上下文**: SAGE 的 `ServiceManager` 使用线程池，每个请求在独立的上下文中执行
-2. **内置同步机制**: `ServiceManager` 内部已有锁和队列管理
-3. **GIL 释放**: C++ 绑定可以释放 Python GIL，实现真正的并行
-4. **灵活的锁策略**: 可以在 C++ 层、Python 包装层或服务层添加锁
+1. **内置同步机制**: `ServiceManager` 内部已有锁和队列管理
+1. **GIL 释放**: C++ 绑定可以释放 Python GIL，实现真正的并行
+1. **灵活的锁策略**: 可以在 C++ 层、Python 包装层或服务层添加锁
 
 ### 多线程 SageDB 的推荐实现
 
@@ -354,11 +356,11 @@ class SageDBService:
 
 ### 性能优势
 
-| 场景 | 单线程 | 多线程 (4核) |
-|------|--------|-------------|
-| 并发搜索 | 100 QPS | 380 QPS |
-| 混合读写 | 85 QPS | 240 QPS |
-| 批量插入 | 12K/s | 35K/s |
+| 场景     | 单线程  | 多线程 (4核) |
+| -------- | ------- | ------------ |
+| 并发搜索 | 100 QPS | 380 QPS      |
+| 混合读写 | 85 QPS  | 240 QPS      |
+| 批量插入 | 12K/s   | 35K/s        |
 
 详细的多线程实现指南请参阅 [sageDB C++ 文档](sageDB/README.md#-multi-threading-and-service-integration)。
 
@@ -396,22 +398,22 @@ black python/ examples/
 
 在典型的 RAG 场景下（768 维向量，1M 文档）：
 
-| 操作 | 性能 | 备注 |
-|------|------|------|
-| 向量插入 | ~10K vectors/sec | 批量插入 |
-| 单次查询（k=10） | <5ms | Brute Force |
-| 批量查询（100 queries） | ~100ms | 并行处理 |
-| 元数据过滤查询 | +1-2ms | 索引加速 |
+| 操作                    | 性能             | 备注        |
+| ----------------------- | ---------------- | ----------- |
+| 向量插入                | ~10K vectors/sec | 批量插入    |
+| 单次查询（k=10）        | \<5ms            | Brute Force |
+| 批量查询（100 queries） | ~100ms           | 并行处理    |
+| 元数据过滤查询          | +1-2ms           | 索引加速    |
 
 ## 🤝 贡献
 
 欢迎贡献新的 ANNS 算法、融合策略或性能优化！
 
 1. Fork 仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 开启 Pull Request
+1. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+1. 提交更改 (`git commit -m 'Add amazing feature'`)
+1. 推送到分支 (`git push origin feature/amazing-feature`)
+1. 开启 Pull Request
 
 ## 📄 许可证
 
@@ -429,13 +431,15 @@ black python/ examples/
 ### Q: 如何选择 ANNS 算法？
 
 **A**: 根据数据规模和精度要求选择：
-- 数据量 < 10K：使用 `brute_force`（精确搜索）
+
+- 数据量 \< 10K：使用 `brute_force`（精确搜索）
 - 数据量 10K-1M：使用 `faiss`（平衡精度和性能）
 - 数据量 > 1M：考虑分布式方案或高级索引
 
 ### Q: 如何持久化数据库？
 
 **A**: 使用 `save()` 和 `load()` 方法：
+
 ```python
 db.save("my_database.idx")
 # 稍后恢复
@@ -450,16 +454,17 @@ db2.load("my_database.idx")
 ### Q: 如何优化查询性能？
 
 **A**:
+
 1. 使用批量查询接口 `batch_search()`
-2. 选择合适的 ANNS 算法和参数
-3. 对高频查询启用缓存
-4. 使用元数据预过滤减少候选集
+1. 选择合适的 ANNS 算法和参数
+1. 对高频查询启用缓存
+1. 使用元数据预过滤减少候选集
 
 ## 📮 联系方式
 
 - 问题反馈：[GitHub Issues](https://github.com/intellistream/SAGE/issues)
 - 讨论交流：[GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
 
----
+______________________________________________________________________
 
 **Built with ❤️ by the SAGE Team**

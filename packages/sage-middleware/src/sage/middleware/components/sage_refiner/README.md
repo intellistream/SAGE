@@ -2,7 +2,8 @@
 
 提供统一的上下文压缩接口，支持多种SOTA压缩算法，可作为全局Context Service的基础组件。
 
-> **架构说明**: 核心算法实现已从 `sage-libs` 迁移到 `sage-middleware`。应用开发者可以继续使用 `sage-libs` 中的适配器，算法开发者在此添加新算法。详见 [ARCHITECTURE.md](./ARCHITECTURE.md)
+> **架构说明**: 核心算法实现已从 `sage-libs` 迁移到 `sage-middleware`。应用开发者可以继续使用 `sage-libs` 中的适配器，算法开发者在此添加新算法。详见
+> [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ## 功能特性
 
@@ -21,11 +22,7 @@
 from sage.middleware.components.sage_refiner import RefinerService, RefinerConfig
 
 # 1. 创建配置
-config = RefinerConfig(
-    algorithm="long_refiner",
-    budget=2048,
-    enable_cache=True
-)
+config = RefinerConfig(algorithm="long_refiner", budget=2048, enable_cache=True)
 
 # 2. 创建服务
 service = RefinerService(config)
@@ -36,8 +33,8 @@ result = service.refine(
     documents=[
         "人工智能是计算机科学的一个分支...",
         "机器学习是人工智能的子领域...",
-        "深度学习使用神经网络..."
-    ]
+        "深度学习使用神经网络...",
+    ],
 )
 
 print(f"压缩率: {result.metrics.compression_rate:.2f}x")
@@ -50,6 +47,7 @@ print(f"压缩后内容: {result.refined_content}")
 from sage.core.api.local_environment import LocalEnvironment
 from sage.middleware.components.sage_refiner import RefinerAdapter
 
+
 def rag_pipeline_with_refiner():
     config = {
         "retriever": {...},
@@ -59,7 +57,7 @@ def rag_pipeline_with_refiner():
             "base_model_path": "Qwen/Qwen2.5-3B-Instruct",
             # ... LongRefiner配置
         },
-        "generator": {...}
+        "generator": {...},
     }
 
     env = LocalEnvironment()
@@ -83,25 +81,17 @@ from sage.middleware.components.sage_refiner import ContextService
 app_config = {
     "enable_context_service": True,  # 一个flag即可开关
     "context_service": {
-        "refiner": {
-            "algorithm": "long_refiner",
-            "budget": 2048,
-            "enable_cache": True
-        },
+        "refiner": {"algorithm": "long_refiner", "budget": 2048, "enable_cache": True},
         "max_context_length": 8192,
-        "auto_compress": True
-    }
+        "auto_compress": True,
+    },
 }
 
 # 服务会自动管理全流程的上下文
 service = ContextService.from_config(app_config["context_service"])
 
 # 自动压缩和管理
-context = service.manage_context(
-    query="用户问题",
-    history=[...],
-    retrieved_docs=[...]
-)
+context = service.manage_context(query="用户问题", history=[...], retrieved_docs=[...])
 ```
 
 ## 支持的算法
@@ -109,6 +99,7 @@ context = service.manage_context(
 ### 1. LongRefiner (SOTA)
 
 基于三阶段的智能压缩：
+
 - **查询分析**: 理解用户意图和关键信息需求
 - **文档结构化**: 提取文档关键信息
 - **全局选择**: 基于预算智能选择最相关内容
@@ -128,15 +119,13 @@ config = RefinerConfig(
 ### 2. SimpleRefiner
 
 轻量级压缩，不依赖模型：
+
 - 基于相关性排序
 - 头尾截断策略
 - 快速处理
 
 ```python
-config = RefinerConfig(
-    algorithm="simple",
-    budget=2048
-)
+config = RefinerConfig(algorithm="simple", budget=2048)
 ```
 
 ### 3. 扩展算法（规划中）
@@ -153,6 +142,7 @@ config = RefinerConfig(
 
 ```python
 from sage.middleware.components.sage_refiner import BaseRefiner
+
 
 class MyRefiner(BaseRefiner):
     def initialize(self):
@@ -178,20 +168,17 @@ config = RefinerConfig(
     algorithm="long_refiner",
     budget=2048,
     compression_ratio=0.2,  # 或使用压缩比
-
     # 缓存配置
     enable_cache=True,
     cache_size=1000,
     cache_ttl=3600,
-
     # 性能配置
     gpu_device=0,
     max_model_len=25000,
     batch_size=4,
-
     # 监控配置
     enable_metrics=True,
-    enable_profiling=False
+    enable_profiling=False,
 )
 ```
 
@@ -283,9 +270,7 @@ config = RefinerConfig(algorithm="none")
 
 ```python
 config = RefinerConfig(
-    enable_cache=True,
-    cache_size=2000,      # 根据内存调整
-    cache_ttl=7200        # 2小时
+    enable_cache=True, cache_size=2000, cache_ttl=7200  # 根据内存调整  # 2小时
 )
 ```
 
@@ -295,12 +280,13 @@ config = RefinerConfig(
 # 指定GPU设备
 config = RefinerConfig(
     gpu_device=0,
-    score_gpu_device=1,   # 评分模型使用另一块GPU
-    gpu_memory_utilization=0.7
+    score_gpu_device=1,  # 评分模型使用另一块GPU
+    gpu_memory_utilization=0.7,
 )
 
 # 环境变量
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 ```
 
@@ -311,7 +297,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 results = service.refine_batch(
     queries=["问题1", "问题2", "问题3"],
     documents_list=[docs1, docs2, docs3],
-    budget=2048
+    budget=2048,
 )
 ```
 
@@ -362,21 +348,21 @@ sage-middleware/components/sage_refiner/
 
 ## 性能对比
 
-| 算法 | 压缩率 | 延迟 | GPU内存 | 质量 |
-|------|--------|------|---------|------|
-| LongRefiner | 3-5x | ~2s | 4GB | ⭐⭐⭐⭐⭐ |
-| SimpleRefiner | 2-3x | <0.1s | 0 | ⭐⭐⭐ |
-| ECoRAG | 4-6x | ~1.5s | 3GB | ⭐⭐⭐⭐ |
+| 算法          | 压缩率 | 延迟   | GPU内存 | 质量       |
+| ------------- | ------ | ------ | ------- | ---------- |
+| LongRefiner   | 3-5x   | ~2s    | 4GB     | ⭐⭐⭐⭐⭐ |
+| SimpleRefiner | 2-3x   | \<0.1s | 0       | ⭐⭐⭐     |
+| ECoRAG        | 4-6x   | ~1.5s  | 3GB     | ⭐⭐⭐⭐   |
 
 ## 贡献指南
 
 欢迎贡献新的压缩算法！
 
 1. 继承 `BaseRefiner`
-2. 实现 `initialize()` 和 `refine()` 方法
-3. 在 `RefinerAlgorithm` 枚举中添加新算法
-4. 更新 `RefinerService._get_refiner()` 创建逻辑
-5. 添加测试和文档
+1. 实现 `initialize()` 和 `refine()` 方法
+1. 在 `RefinerAlgorithm` 枚举中添加新算法
+1. 更新 `RefinerService._get_refiner()` 创建逻辑
+1. 添加测试和文档
 
 ## 许可证
 

@@ -1,8 +1,11 @@
 # Memory Service（Neuromem 服务封装）
 
-当前仓库并未提供通用的 `MemoryService` 包装模块，所有长期记忆能力均由 Neuromem 组件直接承担。若需要以 `BaseService` 方式暴露向量检索功能，请使用 `packages/sage-middleware/src/sage/middleware/components/neuromem/micro_service/neuromem_vdb_service.py` 提供的 `NeuroMemVDBService`。
+当前仓库并未提供通用的 `MemoryService` 包装模块，所有长期记忆能力均由 Neuromem 组件直接承担。若需要以 `BaseService` 方式暴露向量检索功能，请使用
+`packages/sage-middleware/src/sage/middleware/components/neuromem/micro_service/neuromem_vdb_service.py`
+提供的 `NeuroMemVDBService`。
 
-> 扩展说明：如果已构建可选的 `sage_db` 或 `sage_flow` C++ 组件，可参考其各自目录下的 `python/micro_service/` 包装（如 `SageDBService`、`SageFlowService`）获得类似的进程内服务封装。下面内容聚焦于默认即可使用的 Neuromem 实现。
+> 扩展说明：如果已构建可选的 `sage_db` 或 `sage_flow` C++ 组件，可参考其各自目录下的 `python/micro_service/` 包装（如
+> `SageDBService`、`SageFlowService`）获得类似的进程内服务封装。下面内容聚焦于默认即可使用的 Neuromem 实现。
 
 ## 服务结构概览
 
@@ -37,24 +40,24 @@ flowchart LR
 from sage.middleware.components.neuromem.memory_manager import MemoryManager
 
 manager = MemoryManager()
-collection = manager.create_collection({
-    "name": "qa_collection",
-    "backend_type": "VDB",
-    "description": "QA memory"
-})
+collection = manager.create_collection(
+    {"name": "qa_collection", "backend_type": "VDB", "description": "QA memory"}
+)
 
 collection.batch_insert_data(
     ["Python 是一种编程语言", "FAISS 用于向量检索"],
-    [{"tag": "intro"}, {"tag": "retrieval"}]
+    [{"tag": "intro"}, {"tag": "retrieval"}],
 )
 
-collection.create_index({
-    "name": "global_index",
-    "description": "默认检索索引",
-    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-    "dim": 384,
-    "backend_type": "FAISS"
-})
+collection.create_index(
+    {
+        "name": "global_index",
+        "description": "默认检索索引",
+        "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+        "dim": 384,
+        "backend_type": "FAISS",
+    }
+)
 collection.init_index("global_index")
 manager.store_collection("qa_collection")
 ```
@@ -62,14 +65,12 @@ manager.store_collection("qa_collection")
 ## 二、实例化服务并检索
 
 ```python
-from sage.middleware.components.neuromem.micro_service.neuromem_vdb_service import NeuroMemVDBService
+from sage.middleware.components.neuromem.micro_service.neuromem_vdb_service import (
+    NeuroMemVDBService,
+)
 
 memory_service = NeuroMemVDBService("qa_collection")
-results = memory_service.retrieve(
-    "向量数据库是什么？",
-    topk=3,
-    with_metadata=True
-)
+results = memory_service.retrieve("向量数据库是什么？", topk=3, with_metadata=True)
 print(results)
 ```
 
@@ -84,6 +85,7 @@ print(results)
 
 ```python
 from sage.core.api.function.base_function import BaseFunction
+
 
 class ConversationMemory(BaseFunction):
     def execute(self, data):

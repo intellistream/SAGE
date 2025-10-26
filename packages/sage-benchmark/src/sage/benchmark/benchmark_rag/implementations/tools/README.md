@@ -22,16 +22,19 @@ tools/
 ### Building Vector Indices
 
 **ChromaDB:**
+
 ```bash
 python -m sage.benchmark.benchmark_rag.implementations.tools.build_chroma_index
 ```
 
 **Milvus Dense:**
+
 ```bash
 python -m sage.benchmark.benchmark_rag.implementations.tools.build_milvus_dense_index
 ```
 
 **Milvus Sparse:**
+
 ```bash
 python -m sage.benchmark.benchmark_rag.implementations.tools.build_milvus_sparse_index
 ```
@@ -39,7 +42,9 @@ python -m sage.benchmark.benchmark_rag.implementations.tools.build_milvus_sparse
 ### Using Document Loaders
 
 ```python
-from sage.benchmark.benchmark_rag.implementations.tools.loaders.document_loaders import load_documents
+from sage.benchmark.benchmark_rag.implementations.tools.loaders.document_loaders import (
+    load_documents,
+)
 
 # Load documents from various formats
 docs = load_documents("path/to/documents")
@@ -50,13 +55,14 @@ docs = load_documents("path/to/documents")
 Typical workflow for RAG benchmarking:
 
 1. **Prepare Data**: Use document loaders to load your corpus
-2. **Build Index**: Use build_*_index.py scripts to create vector indices
-3. **Run Pipelines**: Execute RAG pipelines from `../pipelines/`
-4. **Evaluate**: Use evaluation framework in `../../evaluation/`
+1. **Build Index**: Use build\_\*\_index.py scripts to create vector indices
+1. **Run Pipelines**: Execute RAG pipelines from `../pipelines/`
+1. **Evaluate**: Use evaluation framework in `../../evaluation/`
 
 ## ⚙️ Configuration
 
 Index building scripts use configurations from `../../config/`:
+
 - Data paths
 - Embedding models
 - Index parameters

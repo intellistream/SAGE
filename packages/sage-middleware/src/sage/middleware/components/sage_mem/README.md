@@ -1,6 +1,7 @@
 # SAGE-Mem Component
 
-SAGE-Mem is a memory management component for SAGE, providing flexible memory collection abstractions for RAG (Retrieval-Augmented Generation) applications.
+SAGE-Mem is a memory management component for SAGE, providing flexible memory collection
+abstractions for RAG (Retrieval-Augmented Generation) applications.
 
 ## 🏗️ Architecture
 
@@ -21,15 +22,18 @@ sage-mem/
     └── utils/
 ```
 
-> **Note**: The `neuromem/` directory is now a **Git submodule** pointing to the independent [intellistream/neuromem](https://github.com/intellistream/neuromem) repository.
+> **Note**: The `neuromem/` directory is now a **Git submodule** pointing to the independent
+> [intellistream/neuromem](https://github.com/intellistream/neuromem) repository.
 
 ## Components
 
 ### 1. neuromem (Core Sub-Project - Git Submodule)
 
-The core memory management engine, now maintained as an independent repository at [`intellistream/neuromem`](https://github.com/intellistream/neuromem).
+The core memory management engine, now maintained as an independent repository at
+[`intellistream/neuromem`](https://github.com/intellistream/neuromem).
 
 **Features**:
+
 - **MemoryManager**: Central manager for memory collections
 - **Memory Collections**: VDB, KV, and Graph collection types
 - **Search Engine**: Multiple index implementations (FAISS, BM25s, etc.)
@@ -64,10 +68,7 @@ from sage.middleware.components.sage_mem import MemoryManager, NeuroMemVDB
 
 # Use MemoryManager
 manager = MemoryManager()
-collection = manager.create_collection({
-    "name": "my_collection",
-    "backend_type": "VDB"
-})
+collection = manager.create_collection({"name": "my_collection", "backend_type": "VDB"})
 
 # Or use the service
 vdb = NeuroMemVDB()
@@ -78,7 +79,9 @@ vdb.register_collection("my_vdb")
 
 ```python
 from sage.middleware.components.sage_mem.neuromem import MemoryManager
-from sage.middleware.components.sage_mem.neuromem.memory_collection import VDBMemoryCollection
+from sage.middleware.components.sage_mem.neuromem.memory_collection import (
+    VDBMemoryCollection,
+)
 
 # Work directly with core components
 manager = MemoryManager()
@@ -95,15 +98,18 @@ vdb = NeuroMemVDB()
 
 ## Migration from Old neuromem
 
-The old `neuromem` module has been refactored into `sage-mem`. A backward compatibility layer is provided, but please update your code:
+The old `neuromem` module has been refactored into `sage-mem`. A backward compatibility layer is
+provided, but please update your code:
 
 **Old way:**
+
 ```python
 from sage.middleware.components.neuromem import MemoryManager
 from sage.middleware.components.neuromem.micro_service.neuromem_vdb import NeuroMemVDB
 ```
 
 **New way:**
+
 ```python
 from sage.middleware.components.sage_mem import MemoryManager, NeuroMemVDB
 ```
@@ -149,6 +155,7 @@ git push
 If you need to modify neuromem core functionality:
 
 1. **Make changes in the submodule directory**:
+
    ```bash
    cd packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem
    git checkout -b feature/my-feature
@@ -158,12 +165,14 @@ If you need to modify neuromem core functionality:
    git push origin feature/my-feature
    ```
 
-2. **Create PR in neuromem repository**:
+1. **Create PR in neuromem repository**:
+
    ```bash
    gh pr create --repo intellistream/neuromem --base main-dev --head feature/my-feature
    ```
 
-3. **After PR is merged, update SAGE**:
+1. **After PR is merged, update SAGE**:
+
    ```bash
    cd packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem
    git checkout main-dev
@@ -215,10 +224,12 @@ python examples/memory/rag_memory_manager.py
 
 ## 📚 Documentation
 
-- **neuromem Core**: See [neuromem/README.md](neuromem/README.md) or visit https://github.com/intellistream/neuromem
+- **neuromem Core**: See [neuromem/README.md](neuromem/README.md) or visit
+  https://github.com/intellistream/neuromem
 - **Service Layer**: Documentation in this README
 - **Examples**: Check `examples/` directory
-- **Extraction Guide**: See [NEUROMEM_EXTRACTION_GUIDE.md](NEUROMEM_EXTRACTION_GUIDE.md) for how neuromem was extracted
+- **Extraction Guide**: See [NEUROMEM_EXTRACTION_GUIDE.md](NEUROMEM_EXTRACTION_GUIDE.md) for how
+  neuromem was extracted
 - **Quick Reference**: See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for submodule management tips
 
 ## 🔗 Related Projects
@@ -230,7 +241,7 @@ python examples/memory/rag_memory_manager.py
 ## Future Plans
 
 - Enhance neuromem with more index types and storage backends
-- Improve integration with SAGE's service framework  
+- Improve integration with SAGE's service framework
 - Add more pre-built services for common RAG patterns
 
 ## License

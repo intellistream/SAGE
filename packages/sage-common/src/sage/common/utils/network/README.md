@@ -9,7 +9,9 @@
 ## 核心组件
 
 ### `base_tcp_client.py`
+
 TCP客户端基础类：
+
 - 提供TCP连接管理
 - 支持重连机制和连接池
 - 实现消息发送和接收
@@ -17,7 +19,9 @@ TCP客户端基础类：
 - 支持异步和同步操作模式
 
 ### `local_tcp_server.py`
+
 本地TCP服务器：
+
 - 实现高性能TCP服务器
 - 支持多客户端并发连接
 - 提供消息路由和处理
@@ -53,9 +57,11 @@ client.disconnect()
 # TCP服务器
 from sage.utils.network.local_tcp_server import LocalTCPServer
 
+
 def message_handler(client_socket, message):
     # 处理接收到的消息
     return "Response: " + message
+
 
 server = LocalTCPServer(port=8080, handler=message_handler)
 server.start()
@@ -66,12 +72,14 @@ server.stop()
 ## 协议设计
 
 ### 消息格式
+
 - 采用长度前缀的消息格式
 - 支持JSON和二进制数据传输
 - 包含消息类型和序号字段
 - 提供校验和机制
 
 ### 连接管理
+
 - 心跳检测机制
 - 自动重连策略
 - 连接超时控制
@@ -80,6 +88,7 @@ server.stop()
 ## 配置选项
 
 支持丰富的配置参数：
+
 - `connection_timeout`: 连接超时时间
 - `read_timeout`: 读取超时时间
 - `buffer_size`: 缓冲区大小
@@ -89,6 +98,7 @@ server.stop()
 ## 错误处理
 
 完善的异常处理机制：
+
 - 网络连接异常
 - 数据传输错误
 - 协议解析错误

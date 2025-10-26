@@ -16,7 +16,6 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 # 允许的 dev-notes 分类目录
 ALLOWED_CATEGORIES = {
@@ -337,7 +336,7 @@ class DevNotesChecker:
             return False
 
 
-def get_changed_files(root_dir: Path, diff_target: Optional[str] = None) -> list[str]:
+def get_changed_files(root_dir: Path, diff_target: str | None = None) -> list[str]:
     """获取变更的文件列表"""
     import subprocess
 

@@ -15,12 +15,8 @@ def test_match_blueprints_surface_relevant_candidate():
 
 
 def test_build_mock_pipeline_plan_uses_blueprint_components():
-    blueprint = pipeline_blueprints.select_blueprint(
-        {"goal": "运行hello world批处理示例"}
-    )
-    plan = pipeline_blueprints.build_pipeline_plan(
-        blueprint, {"goal": "运行hello world批处理示例"}
-    )
+    blueprint = pipeline_blueprints.select_blueprint({"goal": "运行hello world批处理示例"})
+    plan = pipeline_blueprints.build_pipeline_plan(blueprint, {"goal": "运行hello world批处理示例"})
 
     assert plan["source"]["class"] == "examples.tutorials.hello_world.HelloBatch"
     classes = [stage["class"] for stage in plan["stages"]]

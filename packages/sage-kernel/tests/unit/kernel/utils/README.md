@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document provides a comprehensive overview of the test suite created for the SAGE kernel utils modules. The test suite follows pytest best practices and provides extensive coverage for all utility modules.
+This document provides a comprehensive overview of the test suite created for the SAGE kernel utils
+modules. The test suite follows pytest best practices and provides extensive coverage for all
+utility modules.
 
 ## Test Structure
 
@@ -38,10 +40,12 @@ tests/utils/
 ### 1. Configuration Module (`sage.utils.config`)
 
 **Files Covered:**
+
 - `sage.utils.config.loader` - Configuration file loading utilities
 - `sage.utils.config.manager` - Configuration management class
 
 **Test Coverage:**
+
 - ✅ YAML/JSON/TOML configuration loading
 - ✅ Environment variable override system
 - ✅ Project root detection algorithms
@@ -52,6 +56,7 @@ tests/utils/
 - ✅ ConfigManager CRUD operations
 
 **Key Test Cases:**
+
 - Configuration file discovery and loading
 - Environment variable substitution
 - Validation of different file formats
@@ -62,10 +67,12 @@ tests/utils/
 ### 2. Logging Module (`sage.utils.logging`)
 
 **Files Covered:**
+
 - `sage.utils.logging.custom_formatter` - Custom log formatting with colors
 - `sage.utils.logging.custom_logger` - Multi-target logging implementation
 
 **Test Coverage:**
+
 - ✅ Color-coded log formatting for different levels
 - ✅ Multi-line message handling and indentation
 - ✅ IDE-compatible output format
@@ -75,6 +82,7 @@ tests/utils/
 - ✅ Custom format string handling
 
 **Key Test Cases:**
+
 - Color formatting for different log levels
 - Multi-line message formatting
 - File and console output management
@@ -85,10 +93,12 @@ tests/utils/
 ### 3. Network Module (`sage.utils.network`)
 
 **Files Covered:**
+
 - `sage.utils.network.base_tcp_client` - Abstract TCP client base class
 - `sage.utils.network.local_tcp_server` - TCP server implementation
 
 **Test Coverage:**
+
 - ✅ TCP client connection lifecycle management
 - ✅ Abstract client protocol implementation
 - ✅ TCP server startup and shutdown procedures
@@ -99,6 +109,7 @@ tests/utils/
 - ✅ Connection timeout and retry logic
 
 **Key Test Cases:**
+
 - Client connection establishment and teardown
 - Server message routing and handler dispatch
 - Concurrent connection management
@@ -109,10 +120,12 @@ tests/utils/
 ### 4. Serialization Module (`sage.utils.serialization`)
 
 **Files Covered:**
+
 - `sage.utils.serialization.config` - Serialization configuration and blacklists
 - `sage.utils.serialization.exceptions` - Custom serialization exceptions
 
 **Test Coverage:**
+
 - ✅ Serialization blacklist management
 - ✅ Ray-specific type exclusions
 - ✅ Non-serializable type filtering
@@ -121,6 +134,7 @@ tests/utils/
 - ✅ Type checking and validation
 
 **Key Test Cases:**
+
 - Blacklist filtering for different object types
 - Ray-specific serialization constraints
 - Exception creation with proper error details
@@ -131,11 +145,13 @@ tests/utils/
 ### 5. System Module (`sage.utils.system`)
 
 **Files Covered:**
+
 - `sage.utils.system.environment` - Environment detection and system info
 - `sage.utils.system.network` - Network utility functions
 - `sage.utils.system.process` - Process management utilities
 
 **Test Coverage:**
+
 - ✅ Execution environment detection (Ray/Kubernetes/Docker)
 - ✅ System resource monitoring and reporting
 - ✅ Port management and availability checking
@@ -147,6 +163,7 @@ tests/utils/
 - ✅ Health check implementations
 
 **Key Test Cases:**
+
 - Environment detection across different platforms
 - Port allocation and management
 - Process lifecycle management
@@ -172,16 +189,17 @@ The test suite uses pytest markers to categorize tests:
 Each test file follows a consistent structure:
 
 1. **Import and Setup** - Standard imports and test fixtures
-2. **Unit Test Classes** - Individual component testing
-3. **Integration Test Classes** - Multi-component interaction testing
-4. **Performance Test Classes** - Performance and stress testing
-5. **Error Handling Classes** - Edge cases and error scenarios
+1. **Unit Test Classes** - Individual component testing
+1. **Integration Test Classes** - Multi-component interaction testing
+1. **Performance Test Classes** - Performance and stress testing
+1. **Error Handling Classes** - Edge cases and error scenarios
 
 ## Test Running Instructions
 
 ### Prerequisites
 
 Install test dependencies:
+
 ```bash
 pip install pytest pytest-cov pytest-asyncio pytest-mock
 ```
@@ -189,6 +207,7 @@ pip install pytest pytest-cov pytest-asyncio pytest-mock
 ### Running Tests
 
 #### All Tests
+
 ```bash
 # Run all tests
 python tests/utils/test_runner.py --all
@@ -198,6 +217,7 @@ pytest tests/utils/
 ```
 
 #### By Category
+
 ```bash
 # Unit tests only
 python tests/utils/test_runner.py --unit
@@ -212,6 +232,7 @@ pytest tests/utils/ -m "not slow"
 ```
 
 #### By Module
+
 ```bash
 # Test specific module
 python tests/utils/test_runner.py --module config
@@ -222,6 +243,7 @@ pytest tests/utils/config/test_loader.py
 ```
 
 #### With Coverage
+
 ```bash
 # Generate coverage report
 python tests/utils/test_runner.py --coverage
@@ -229,6 +251,7 @@ pytest tests/utils/ --cov=sage.utils --cov-report=html
 ```
 
 ### Performance Testing
+
 ```bash
 # Run performance tests
 python tests/utils/test_runner.py --slow
@@ -241,47 +264,55 @@ python tests/utils/test_runner.py --profile
 ## Test Quality Metrics
 
 ### Coverage Targets
+
 - **Unit Tests**: ≥80% line coverage
-- **Integration Tests**: ≥60% integration coverage  
+- **Integration Tests**: ≥60% integration coverage
 - **Critical Paths**: 100% coverage for all critical functionality
 
 ### Test Statistics
+
 - **Total Test Files**: 9
 - **Total Test Classes**: ~45
 - **Total Test Methods**: ~200+
 - **Total Source Files Covered**: 12
 
 ### Performance Benchmarks
-- Unit tests should complete in <10ms each
-- Integration tests should complete in <100ms each
-- Full test suite should complete in <30 seconds
+
+- Unit tests should complete in \<10ms each
+- Integration tests should complete in \<100ms each
+- Full test suite should complete in \<30 seconds
 
 ## Best Practices Implemented
 
 ### 1. Comprehensive Mocking
+
 - External dependencies are properly mocked
 - File system operations use temporary directories
 - Network operations use mock sockets
 - System calls are intercepted and mocked
 
 ### 2. Test Isolation
+
 - Each test is independent and can run in any order
 - Proper setup and teardown for stateful components
 - No shared state between test methods
 
 ### 3. Error Scenario Testing
+
 - Comprehensive error condition testing
 - Edge case handling validation
 - Resource exhaustion simulation
 - Permission denial scenarios
 
 ### 4. Performance Validation
+
 - Performance regression detection
 - Memory usage validation
 - Concurrent operation testing
 - Stress testing for high-load scenarios
 
 ### 5. Documentation and Maintainability
+
 - Clear test documentation and comments
 - Descriptive test method names
 - Organized test structure
@@ -292,6 +323,7 @@ python tests/utils/test_runner.py --profile
 The test suite is designed to work with CI/CD pipelines:
 
 ### GitHub Actions Integration
+
 ```yaml
 - name: Run Tests
   run: |
@@ -302,6 +334,7 @@ The test suite is designed to work with CI/CD pipelines:
 ```
 
 ### Test Reporting
+
 - JUnit XML output for CI integration
 - Coverage reports in multiple formats
 - Performance metrics tracking
@@ -310,19 +343,22 @@ The test suite is designed to work with CI/CD pipelines:
 ## Maintenance and Updates
 
 ### Adding New Tests
+
 1. Follow the existing test structure and naming conventions
-2. Use appropriate pytest markers for categorization
-3. Include unit, integration, and error handling tests
-4. Add performance tests for critical functionality
-5. Update this documentation with new coverage areas
+1. Use appropriate pytest markers for categorization
+1. Include unit, integration, and error handling tests
+1. Add performance tests for critical functionality
+1. Update this documentation with new coverage areas
 
 ### Updating Existing Tests
+
 1. Maintain backward compatibility where possible
-2. Update test data and scenarios as functionality evolves
-3. Ensure continued coverage of edge cases
-4. Performance test regression detection
+1. Update test data and scenarios as functionality evolves
+1. Ensure continued coverage of edge cases
+1. Performance test regression detection
 
 ### Regular Maintenance Tasks
+
 - Review and update test data periodically
 - Validate test coverage remains above target thresholds
 - Update mocking strategies as dependencies change
@@ -338,4 +374,5 @@ This comprehensive test suite provides robust validation of the SAGE utils modul
 - **Error handling validation** for robust operation
 - **Easy maintenance and extension** for future development
 
-The test suite ensures the reliability, performance, and maintainability of the SAGE kernel utilities, providing confidence in the framework's core functionality.
+The test suite ensures the reliability, performance, and maintainability of the SAGE kernel
+utilities, providing confidence in the framework's core functionality.

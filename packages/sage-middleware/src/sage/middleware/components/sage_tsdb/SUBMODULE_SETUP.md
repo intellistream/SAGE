@@ -7,11 +7,13 @@
 sageTSDB 采用以下架构：
 
 1. **C++ 核心** - 独立的 Git 仓库 (https://github.com/intellistream/sageTSDB)
+
    - 高性能时序数据库引擎
    - 可插拔算法框架
    - 独立构建和测试
 
-2. **Python 服务层** - SAGE 仓库的一部分
+1. **Python 服务层** - SAGE 仓库的一部分
+
    - Python 包装和服务接口
    - SAGE 工作流集成
    - 微服务封装
@@ -30,6 +32,7 @@ cd /home/shuhao/SAGE/packages/sage-middleware/src/sage/middleware/components/sag
 ```
 
 这个脚本会：
+
 - 初始化 Git 仓库
 - 添加所有文件
 - 创建初始提交
@@ -38,11 +41,11 @@ cd /home/shuhao/SAGE/packages/sage-middleware/src/sage/middleware/components/sag
 ### Step 2: 在 GitHub 上创建仓库
 
 1. 访问 https://github.com/intellistream
-2. 点击 "New repository"
-3. 仓库名称: `sageTSDB`
-4. 描述: "High-performance time series database with C++ core"
-5. **重要**: 不要勾选 "Initialize this repository with a README"
-6. 点击 "Create repository"
+1. 点击 "New repository"
+1. 仓库名称: `sageTSDB`
+1. 描述: "High-performance time series database with C++ core"
+1. **重要**: 不要勾选 "Initialize this repository with a README"
+1. 点击 "Create repository"
 
 ### Step 3: 推送代码到 GitHub
 
@@ -225,6 +228,7 @@ SAGE 的 Python 层直接导入构建的库：
 # sage_tsdb/python/sage_tsdb.py
 from ..sageTSDB.build.lib import _sage_tsdb  # C++ 绑定
 
+
 class SageTSDB:
     def __init__(self):
         self._cpp_db = _sage_tsdb.TimeSeriesDB()
@@ -237,6 +241,7 @@ class SageTSDB:
 **症状**: 克隆 SAGE 后，`sageTSDB/` 目录存在但是空的
 
 **解决**:
+
 ```bash
 git submodule update --init --recursive
 ```
@@ -246,6 +251,7 @@ git submodule update --init --recursive
 **症状**: 进入 submodule 目录后，`git branch` 显示 detached HEAD
 
 **解决**:
+
 ```bash
 cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB
 git checkout main
@@ -257,6 +263,7 @@ git pull origin main
 **症状**: `git push` 失败，提示 submodule 有更改
 
 **解决**:
+
 ```bash
 # 进入 submodule
 cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB
@@ -278,6 +285,7 @@ git push
 **症状**: 编译时报错找不到 `sage_tsdb/*.h`
 
 **解决**:
+
 ```bash
 # 确保 submodule 已初始化
 git submodule update --init --recursive
@@ -309,9 +317,9 @@ cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB
 如果遇到问题：
 
 1. 查看本文档的"常见问题"部分
-2. 提交 Issue: https://github.com/intellistream/SAGE/issues
-3. 联系维护者: shuhao_zhang@hust.edu.cn
+1. 提交 Issue: https://github.com/intellistream/SAGE/issues
+1. 联系维护者: shuhao_zhang@hust.edu.cn
 
----
+______________________________________________________________________
 
 **祝开发顺利！🚀**

@@ -9,7 +9,9 @@
 ## 核心工具
 
 ### `arxiv_paper_searcher.py`
+
 ArXiv论文搜索工具：
+
 - 搜索ArXiv学术论文数据库
 - 支持多种搜索策略（关键词、作者、分类等）
 - 提供论文元数据提取
@@ -17,7 +19,9 @@ ArXiv论文搜索工具：
 - 包含引用分析和相关论文推荐
 
 ### `image_captioner.py`
+
 图像描述生成工具：
+
 - 自动生成图像的文字描述
 - 支持多种图像格式（JPG、PNG、GIF等）
 - 提供可配置的描述详细程度
@@ -25,7 +29,9 @@ ArXiv论文搜索工具：
 - 包含图像内容分析和理解
 
 ### `text_detector.py`
+
 文本检测工具：
+
 - 从图像中检测和提取文本
 - 支持多语言OCR识别
 - 提供文本位置和边界框信息
@@ -33,7 +39,9 @@ ArXiv论文搜索工具：
 - 包含文本方向和角度矫正
 
 ### `url_text_extractor.py`
+
 URL文本提取工具：
+
 - 从网页URL提取主要文本内容
 - 自动去除广告和导航元素
 - 支持多种网站结构适配
@@ -41,7 +49,9 @@ URL文本提取工具：
 - 包含反爬虫机制处理
 
 ### `nature_news_fetcher.py`
+
 Nature新闻获取工具：
+
 - 自动获取Nature期刊的最新新闻
 - 提供新闻分类和标签
 - 支持定时更新和推送
@@ -49,7 +59,9 @@ Nature新闻获取工具：
 - 提供相关研究文献链接
 
 ### `searcher_tool.py`
+
 通用搜索工具：
+
 - 提供统一的搜索接口
 - 支持多种搜索引擎集成
 - 包含搜索结果聚合和去重
@@ -57,9 +69,11 @@ Nature新闻获取工具：
 - 支持自定义搜索策略
 
 ### [基础框架](./base/)
+
 工具开发的标准框架和注册管理。
 
 ### [测试模块](./tests/)
+
 全面的工具功能测试覆盖。
 
 ## 主要特性
@@ -73,18 +87,21 @@ Nature新闻获取工具：
 ## 应用场景
 
 ### 学术研究
+
 - 文献搜索和管理
 - 论文内容分析
 - 研究趋势分析
 - 引用网络构建
 
 ### 内容处理
+
 - 多媒体内容分析
 - 文本提取和清洗
 - 内容质量评估
 - 信息结构化
 
 ### 数据收集
+
 - 网络数据爬取
 - 实时信息监控
 - 数据源整合
@@ -146,53 +163,59 @@ env.execute()
 ## 工具配置
 
 ### 搜索工具配置
+
 ```python
 searcher_config = {
     "max_results": 100,
     "sort_by": "relevance",
     "date_range": "last_year",
     "include_abstracts": True,
-    "language": "en"
+    "language": "en",
 }
 ```
 
 ### 图像工具配置
+
 ```python
 image_config = {
     "model": "blip2",
     "max_length": 50,
     "num_beams": 5,
     "language": "zh",
-    "confidence_threshold": 0.8
+    "confidence_threshold": 0.8,
 }
 ```
 
 ### 文本提取配置
+
 ```python
 extractor_config = {
     "user_agent": "SAGE-Bot/1.0",
     "timeout": 30,
     "max_content_length": 1000000,
     "remove_ads": True,
-    "preserve_links": False
+    "preserve_links": False,
 }
 ```
 
 ## 性能优化
 
 ### 缓存策略
+
 - 搜索结果缓存
 - 图像处理结果缓存
 - 网页内容缓存
 - 模型推理缓存
 
 ### 批量处理
+
 - 批量搜索优化
 - 批量图像处理
 - 并行文本提取
 - 异步任务处理
 
 ### 资源管理
+
 - GPU资源调度
 - 内存使用优化
 - 网络连接复用
@@ -201,8 +224,10 @@ extractor_config = {
 ## 扩展开发
 
 ### 自定义工具
+
 ```python
 from sage.lib.tools.base import BaseTool
+
 
 class CustomTool(BaseTool):
     def __init__(self, config=None):
@@ -219,6 +244,7 @@ class CustomTool(BaseTool):
 ```
 
 ### 工具注册
+
 ```python
 from sage.lib.tools.base import ToolRegistry
 
@@ -229,7 +255,7 @@ registry.register_tool("custom_tool", CustomTool)
 ## 最佳实践
 
 1. **错误处理**: 实现完善的异常处理机制
-2. **资源管理**: 及时释放网络和文件资源
-3. **速率限制**: 遵守API使用限制和礼貌性原则
-4. **结果验证**: 对工具输出进行质量检查
-5. **监控日志**: 记录工具使用情况和性能指标
+1. **资源管理**: 及时释放网络和文件资源
+1. **速率限制**: 遵守API使用限制和礼貌性原则
+1. **结果验证**: 对工具输出进行质量检查
+1. **监控日志**: 记录工具使用情况和性能指标
