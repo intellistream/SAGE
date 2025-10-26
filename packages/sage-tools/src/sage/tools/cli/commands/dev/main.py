@@ -154,16 +154,20 @@ def quality(
         ]
         flake8_exclude = "test_env,venv,env,.venv,node_modules,build,dist,.git"
     else:
-        # 添加需要跳过质量检查的特定文件夹（所有 git submodules）
+        # 添加需要跳过质量检查的特定文件夹（所有 git submodules 和 vendors）
         # Submodules 列表：
         # 1. docs-public (文档子模块)
         # 2. sageLLM (LLM组件)
         # 3. sageDB (数据库组件)
         # 4. sageFlow (工作流组件)
         # 5. neuromem (内存管理组件)
+        # 6. sageTSDB (时序数据库组件)
+        # 
+        # 额外排除：
+        # 7. vendors (第三方代码，如 vllm)
 
         # black 使用正则表达式
-        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem)"
+        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem|sageTSDB|vendors)"
         # isort 使用多个 --skip-glob 参数（每个模式一个）
         isort_skip_patterns = [
             "*/docs-public/*",
@@ -171,13 +175,15 @@ def quality(
             "*/sageDB/*",
             "*/sageLLM/*",
             "*/neuromem/*",
+            "*/sageTSDB/*",
+            "*/vendors/*",
         ]
         # flake8 使用逗号分隔的路径模式（支持通配符）
-        flake8_exclude = "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        flake8_exclude = "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*,*/sageTSDB/*,*/vendors/*"
 
     console.print(f"🎯 检查目录: {', '.join(target_paths)}")
     if not target_paths or target_paths != [str(project_dir)]:
-        console.print("⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem")
+        console.print("⏭️  排除所有 submodules 和 vendors: docs-public, sageFlow, sageDB, sageLLM, neuromem, sageTSDB, vendors")
 
     quality_issues = False
 
@@ -192,77 +198,44 @@ def quality(
 
         file_check_issues = False
 
-        # 检查尾部空格
+        # 检查尾部空格（只检查，不自动修复 - 由 pre-commit 的 trailing-whitespace hook 处理）
         try:
-            if should_fix:
-                # 修复尾部空格
-                result = subprocess.run(
-                    [
-                        "python",
-                        "-c",
-                        "import sys,re;[print(f.strip()) or open(f,'w').write(re.sub(r'[ \\t]+$','',open(f).read(),flags=re.MULTILINE)) for f in sys.argv[1:]]",
-                        *[
-                            str(p)
-                            for p in project_dir.rglob("*.py")
-                            if not any(
-                                excl in str(p)
-                                for excl in [
-                                    "venv",
-                                    ".venv",
-                                    "build",
-                                    "dist",
-                                    "sageLLM",
-                                    "sageDB",
-                                    "sageFlow",
-                                    "neuromem",
-                                    "sageTSDB",
-                                    "vendors",
-                                ]
-                            )
-                        ],
-                    ],
-                    capture_output=True,
-                    text=True,
-                    cwd=str(project_dir),
-                )
-                console.print("[green]✅ 尾部空格检查和修复完成[/green]")
-            else:
-                # 只检查尾部空格
-                files_with_trailing = []
-                for p in project_dir.rglob("*.py"):
-                    if any(
-                        excl in str(p)
-                        for excl in [
-                            "venv",
-                            ".venv",
-                            "build",
-                            "dist",
-                            "sageLLM",
-                            "sageDB",
-                            "sageFlow",
-                            "neuromem",
-                            "sageTSDB",
-                            "vendors",
-                        ]
-                    ):
-                        continue
-                    try:
-                        content = p.read_text()
-                        if any(line.endswith((" ", "\t")) for line in content.splitlines()):
-                            files_with_trailing.append(str(p.relative_to(project_dir)))
-                    except:
-                        pass
+            files_with_trailing = []
+            for p in project_dir.rglob("*.py"):
+                if any(
+                    excl in str(p)
+                    for excl in [
+                        "venv",
+                        ".venv",
+                        "build",
+                        "dist",
+                        "sageLLM",
+                        "sageDB",
+                        "sageFlow",
+                        "neuromem",
+                        "sageTSDB",
+                        "vendors",
+                    ]
+                ):
+                    continue
+                try:
+                    content = p.read_text()
+                    if any(line.endswith((" ", "\t")) for line in content.splitlines()):
+                        files_with_trailing.append(str(p.relative_to(project_dir)))
+                except:
+                    pass
 
-                if files_with_trailing:
-                    console.print(
-                        f"[yellow]⚠️ 发现 {len(files_with_trailing)} 个文件有尾部空格[/yellow]"
-                    )
-                    if len(files_with_trailing) <= 10:
-                        for f in files_with_trailing:
-                            console.print(f"  - {f}")
-                    file_check_issues = True
-                else:
-                    console.print("[green]✅ 尾部空格检查通过[/green]")
+            if files_with_trailing:
+                console.print(
+                    f"[yellow]⚠️ 发现 {len(files_with_trailing)} 个文件有尾部空格[/yellow]"
+                )
+                console.print("[dim]💡 运行 pre-commit 或 git 工具自动修复尾部空格[/dim]")
+                if len(files_with_trailing) <= 10:
+                    for f in files_with_trailing:
+                        console.print(f"  - {f}")
+                file_check_issues = True
+            else:
+                console.print("[green]✅ 尾部空格检查通过[/green]")
         except Exception as e:
             console.print(f"[yellow]⚠️ 尾部空格检查失败: {e}[/yellow]")
 
