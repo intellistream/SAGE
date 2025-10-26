@@ -87,7 +87,9 @@ class PackageREADMEChecker:
     ]
 
     def __init__(self, workspace_root: Path | str):
-        self.workspace_root = Path(workspace_root) if isinstance(workspace_root, str) else workspace_root
+        self.workspace_root = (
+            Path(workspace_root) if isinstance(workspace_root, str) else workspace_root
+        )
         self.packages_dir = self.workspace_root / "packages"
 
     def get_packages(self) -> list[str]:

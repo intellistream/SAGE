@@ -274,11 +274,8 @@ class DevNotesChecker:
             "passed_count": passed,
             "failed_count": failed,
             "warnings": len(self.warnings),
-            "issues": [
-                {"file": "devnotes", "message": err} for err in self.errors
-            ] + [
-                {"file": "devnotes", "message": warn} for warn in self.warnings
-            ]
+            "issues": [{"file": "devnotes", "message": err} for err in self.errors]
+            + [{"file": "devnotes", "message": warn} for warn in self.warnings],
         }
 
     def check_changed(self, diff_target: str = "HEAD") -> dict:
@@ -291,11 +288,8 @@ class DevNotesChecker:
             "passed_count": passed,
             "failed_count": failed,
             "warnings": len(self.warnings),
-            "issues": [
-                {"file": "devnotes", "message": err} for err in self.errors
-            ] + [
-                {"file": "devnotes", "message": warn} for warn in self.warnings
-            ]
+            "issues": [{"file": "devnotes", "message": err} for err in self.errors]
+            + [{"file": "devnotes", "message": warn} for warn in self.warnings],
         }
 
     def print_results(self, passed: int, failed: int) -> bool:
