@@ -1,4 +1,5 @@
 ﻿
+
 > 本地代码质量/测试请使用 `sage dev quality` 或 `sage dev test`，CI/CD 由 GitHub Workflows 自动完成。
 
 # SAGE 贡献指南
@@ -11,33 +12,35 @@
 
 - **[DEVELOPER.md](DEVELOPER.md)** - 完整开发指南，包含设置、工作流、测试等
 - **[CHANGELOG.md](CHANGELOG.md)** - 项目变更日志（遵循 Keep a Changelog 格式）
-- **[scripts/dev.sh](scripts/dev.sh)** - 开发助手脚本，提供常用命令
+- **[tools/dev.sh](tools/dev.sh)** - 开发助手脚本，提供常用命令
 - **[tools/pre-commit-config.yaml](tools/pre-commit-config.yaml)** - Pre-commit 钩子配置
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
 - **[docs/dev-notes/](docs/dev-notes/)** - 开发笔记和修复总结
 
 **快速开始开发**:
+
 ```bash
 # 一键设置开发环境
-./scripts/dev.sh setup
+./tools/dev.sh setup
 
 # 格式化代码
-./scripts/dev.sh format
+./tools/dev.sh format
 
 # 运行所有检查
-./scripts/dev.sh validate
+./tools/dev.sh validate
 ```
 
 ## 目录
-- [新人贡献快速流程](#新人贡献快速流程)
-- [分支与工作流](#分支与工作流)
-- [提交信息规范](#提交信息规范)
-- [测试与验证](#测试与验证)
-- [代码与文档质量](#代码与文档质量)
-- [命令与脚本说明](#命令与脚本说明)
-- [常见问题排查](#常见问题排查)
-- [安全与披露](#安全与披露)
-- [最佳实践建议](#最佳实践建议)
+
+- [新人贡献快速流程](#%E6%96%B0%E4%BA%BA%E8%B4%A1%E7%8C%AE%E5%BF%AB%E9%80%9F%E6%B5%81%E7%A8%8B)
+- [分支与工作流](#%E5%88%86%E6%94%AF%E4%B8%8E%E5%B7%A5%E4%BD%9C%E6%B5%81)
+- [提交信息规范](#%E6%8F%90%E4%BA%A4%E4%BF%A1%E6%81%AF%E8%A7%84%E8%8C%83)
+- [测试与验证](#%E6%B5%8B%E8%AF%95%E4%B8%8E%E9%AA%8C%E8%AF%81)
+- [代码与文档质量](#%E4%BB%A3%E7%A0%81%E4%B8%8E%E6%96%87%E6%A1%A3%E8%B4%A8%E9%87%8F)
+- [命令与脚本说明](#%E5%91%BD%E4%BB%A4%E4%B8%8E%E8%84%9A%E6%9C%AC%E8%AF%B4%E6%98%8E)
+- [常见问题排查](#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5)
+- [安全与披露](#%E5%AE%89%E5%85%A8%E4%B8%8E%E6%8A%AB%E9%9C%B2)
+- [最佳实践建议](#%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%E5%BB%BA%E8%AE%AE)
 - [English Quick Guide](#english-quick-guide)
 
 ## 新人贡献快速流程
@@ -68,6 +71,7 @@ git pull --ff-only origin main-dev
 ```
 
 **重要提示：**
+
 - ✅ 使用 `./tools/maintenance/sage-maintenance.sh submodule init` 初始化 submodules
 - ❌ 不要使用 `git submodule update --init`（会导致 detached HEAD）
 
@@ -177,11 +181,13 @@ feat | fix | refactor | docs | test | perf | ci | chore | build | deps | securit
 ## 分支与工作流
 
 ### 主要分支说明
+
 - `main-dev`: 主开发分支（默认基线）
 - `main`: 稳定发布（仅合并已验证发布）
 - `feature/<epic-name>`: 大型特性聚合分支（需要时建立）
 
 ### 分支命名规范
+
 ```
 feat/<topic>           新功能
 fix/<issue-or-bug>     缺陷修复
@@ -201,11 +207,15 @@ revert/<hash-fragment> 回滚
 
 ### 避免子模块指针冲突
 
-本仓库目前包含多个 Git submodule（如 `docs-public`、`packages/sage-middleware/src/sage/middleware/components/sage_db`、`packages/sage-middleware/src/sage/middleware/components/sage_flow`、`packages/sage-common/src/sage/common/components/sage_vllm/sageLLM` 等）。当多人并行修改这些子仓库时，请遵循以下通用流程，降低 submodule 指针冲突概率：
+本仓库目前包含多个 Git submodule（如
+`docs-public`、`packages/sage-middleware/src/sage/middleware/components/sage_db`、`packages/sage-middleware/src/sage/middleware/components/sage_flow`、`packages/sage-common/src/sage/common/components/sage_vllm/sageLLM`
+等）。当多人并行修改这些子仓库时，请遵循以下通用流程，降低 submodule 指针冲突概率：
 
 1. **先合并子仓库 PR**：针对某个子仓库的变更，务必先让它在对应的子仓库仓库内合并到 upstream，不要在主仓库引用未合并的 commit。
-2. **同步主仓库指针**：在 SAGE 仓库根目录执行 `git submodule update --remote <submodule-path>`（或使用 `./tools/maintenance/manage_submodule_branches.sh switch`）获取最新 commit，随后 `git add <submodule-path>` 更新指针。
-3. **提交主仓库 PR**：提交、推送包含最新子模块指针的 PR，并在描述中清楚标注对应子仓库的改动链接。
+1. **同步主仓库指针**：在 SAGE 仓库根目录执行 `git submodule update --remote <submodule-path>`（或使用
+   `./tools/maintenance/manage_submodule_branches.sh switch`）获取最新 commit，随后
+   `git add <submodule-path>` 更新指针。
+1. **提交主仓库 PR**：提交、推送包含最新子模块指针的 PR，并在描述中清楚标注对应子仓库的改动链接。
 
 协作注意事项：
 
@@ -216,6 +226,7 @@ revert/<hash-fragment> 回滚
 ## 提交信息规范
 
 ### 基本格式
+
 ```
 <type>(scope): summary
 
@@ -224,18 +235,23 @@ revert/<hash-fragment> 回滚
 ```
 
 ### 类型说明
+
 - feat / fix / refactor / docs / test / style / perf / ci / chore / build / deps / revert / security
 
 ### 范围说明
+
 范围(scope) 建议与实际包/模块对应：
+
 ```
 sage-common | sage-kernel | sage-libs | sage-middleware | sage-tools | quickstart | docs | tests | ci | infra
 ```
+
 允许复合：`feat(sage-kernel,quickstart): ...`
 
 ### 提交信息示例
 
 #### 修复问题
+
 ```
 fix(ci): avoid apt permission error in GitHub Actions
 
@@ -246,6 +262,7 @@ Closes: #123
 ```
 
 #### 新功能
+
 ```
 feat(quickstart): add optional VLLM installation flag
 
@@ -254,6 +271,7 @@ Docs updated.
 ```
 
 #### 测试修复
+
 ```
 fix(tests): stabilize example + issues integration tests
 
@@ -266,25 +284,29 @@ Reduce flakiness via timeout + category filtering.
 ### 必跑测试清单
 
 1. **语法检查**
+
    ```bash
    bash -n path/to/script.sh
    python -m py_compile path/to/module.py
    ```
 
-2. **功能测试**
+1. **功能测试**
+
    ```bash
    ./quickstart.sh --minimal --yes             # 安装/环境相关改动
    bash tools/tests/run_examples_tests.sh      # 示例 + 基础集成
    pytest -k issues_manager -vv                # Issues 管理相关
    ```
 
-3. **集成测试**
+1. **集成测试**
+
    ```bash
    ./quickstart.sh --dev --yes
    python -c "import sage; print(sage.__version__)"
    ```
 
-4. **可选强化**
+1. **可选强化**
+
    ```bash
    pytest -m quick_examples        # 标记的快速示例
    pytest --maxfail=1 --durations=10
@@ -295,6 +317,7 @@ Reduce flakiness via timeout + category filtering.
 ## 代码与文档质量
 
 ### Shell脚本
+
 - 使用`set -e`
 - 添加必要的注释
 - 使用函数封装逻辑
@@ -303,6 +326,7 @@ Reduce flakiness via timeout + category filtering.
 - 可选：通过 `shellcheck` 静态分析
 
 ### Python代码
+
 - 遵循PEP 8规范
 - 添加类型注解
 - 编写单元测试
@@ -311,6 +335,7 @@ Reduce flakiness via timeout + category filtering.
 - 日志使用 `logging` 而非 print（测试内部除外）
 
 ### 通用要求
+
 - 代码可读性强
 - 添加必要注释
 - 处理异常情况
@@ -319,22 +344,23 @@ Reduce flakiness via timeout + category filtering.
 
 ## 命令与脚本说明
 
-| 目的 | 推荐命令 | 说明 |
-|------|----------|------|
-| 安装（交互式） | `./quickstart.sh` | 未传参进入菜单 |
-| 最小安装 | `./quickstart.sh --minimal --yes` | 仅核心包 |
-| 开发者安装 | `./quickstart.sh --dev --yes` | 安装开发依赖（可编辑模式） |
-| 启用 VLLM | `./quickstart.sh --standard --vllm --yes` | 额外安装 vllm |
-| 示例测试 | `bash tools/tests/run_examples_tests.sh` | 运行示例/集成集 |
-| 单个测试 | `pytest -k <keyword>` | 关键字过滤 |
-| Issues 测试 | `pytest -k issues_manager -vv` | Python 化测试 |
-| 版本查看 | `python -c "import sage; print(sage.__version__)"` | 确认安装 |
+| 目的           | 推荐命令                                           | 说明                       |
+| -------------- | -------------------------------------------------- | -------------------------- |
+| 安装（交互式） | `./quickstart.sh`                                  | 未传参进入菜单             |
+| 最小安装       | `./quickstart.sh --minimal --yes`                  | 仅核心包                   |
+| 开发者安装     | `./quickstart.sh --dev --yes`                      | 安装开发依赖（可编辑模式） |
+| 启用 VLLM      | `./quickstart.sh --standard --vllm --yes`          | 额外安装 vllm              |
+| 示例测试       | `bash tools/tests/run_examples_tests.sh`           | 运行示例/集成集            |
+| 单个测试       | `pytest -k <keyword>`                              | 关键字过滤                 |
+| Issues 测试    | `pytest -k issues_manager -vv`                     | Python 化测试              |
+| 版本查看       | `python -c "import sage; print(sage.__version__)"` | 确认安装                   |
 
 > 任何命令失败，请附上一行重现命令与终端输出前 50 行发至 Issue。
 
 ## 常见问题排查
 
 ### 1. 分支落后于主分支
+
 ```bash
 git fetch origin
 git checkout <your-branch>
@@ -342,6 +368,7 @@ git rebase origin/main-dev
 ```
 
 ### 2. 提交信息写错了
+
 ```bash
 # 修改最后一次（未推送）
 git commit --amend
@@ -351,6 +378,7 @@ git push --force-with-lease
 ```
 
 ### 3. 想要撤销某些修改
+
 ```bash
 # 撤销工作区修改
 git restore <file>
@@ -363,6 +391,7 @@ git reset --soft HEAD~1
 ```
 
 ### 4. 测试失败怎么办
+
 ```bash
 pytest -vv --maxfail=1
 tail -n 200 logs/install.log 2>/dev/null || true
@@ -370,6 +399,7 @@ bash -x quickstart.sh --minimal --yes  # 安装相关问题
 ```
 
 ### 5. CI构建失败
+
 - 查看GitHub Actions日志
 - 本地复现CI环境测试
 - 检查文件权限问题
@@ -377,13 +407,16 @@ bash -x quickstart.sh --minimal --yes  # 安装相关问题
 - 确认未使用过期脚本引用
 
 ### 6. 示例测试脚本退出码 1
+
 查看失败案例：
+
 ```
 bash tools/tests/run_examples_tests.sh | tee /tmp/examples.log
 grep -i FAIL /tmp/examples.log || true
 ```
 
 ### 7. 安装脚本卡住或没有输出
+
 ```
 bash -x ./quickstart.sh --dev --yes
 ```
@@ -416,8 +449,9 @@ bash -x ./quickstart.sh --dev --yes
 6. Push & PR: include background / solution / tests / impact
 ```
 
-Commit format: `<type>(scope): summary` with optional multi-line body. Supported types: feat, fix, refactor, docs, test, style, perf, ci, chore, build, deps, revert, security.
+Commit format: `<type>(scope): summary` with optional multi-line body. Supported types: feat, fix,
+refactor, docs, test, style, perf, ci, chore, build, deps, revert, security.
 
----
+______________________________________________________________________
 
 记住：优秀的贡献不仅是“跑通”，还要让后来者易于维护与扩展。感谢你的贡献！🚀

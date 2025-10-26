@@ -504,19 +504,19 @@ main() {
             shift || true
             case "$subcommand" in
                 status)
-                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" check-status
+                    bash "${REPO_ROOT}/tools/maintenance/fix-types-helper.sh" check-status
                     ;;
                 show-new|new)
-                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" show-new-errors
+                    bash "${REPO_ROOT}/tools/maintenance/fix-types-helper.sh" show-new-errors
                     ;;
                 explain)
-                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" explain-diff "$@"
+                    bash "${REPO_ROOT}/tools/maintenance/fix-types-helper.sh" explain-diff "$@"
                     ;;
                 safe-commit|commit)
-                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" safe-commit "$@"
+                    bash "${REPO_ROOT}/tools/maintenance/fix-types-helper.sh" safe-commit "$@"
                     ;;
                 reset)
-                    bash "${REPO_ROOT}/scripts/fix-types-helper.sh" reset-format
+                    bash "${REPO_ROOT}/tools/maintenance/fix-types-helper.sh" reset-format
                     ;;
                 *)
                     echo -e "${RED}${CROSS} 未知的 typecheck 命令: $subcommand${NC}"

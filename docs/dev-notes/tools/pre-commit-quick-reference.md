@@ -48,20 +48,20 @@ git commit -m "fix: 格式化后的类型修复"
 
 ```bash
 # 检查当前状态
-./scripts/fix-types-helper.sh check-status
+./tools/maintenance/fix-types-helper.sh check-status
 
 # 查看新增了哪些错误
-./scripts/fix-types-helper.sh show-new-errors
+./tools/maintenance/fix-types-helper.sh show-new-errors
 
 # 安全提交（会一步步提示）
-./scripts/fix-types-helper.sh safe-commit "fix: 修复类型错误"
+./tools/maintenance/fix-types-helper.sh safe-commit "fix: 修复类型错误"
 ```
 
 ### 方法三：先格式化再修复（推荐老手）
 
 ```bash
 # 第一次：格式化所有代码
-./scripts/fix-types-helper.sh format-first
+./tools/maintenance/fix-types-helper.sh format-first
 git add .
 git commit -m "style: 统一代码格式"
 
@@ -112,7 +112,7 @@ git status --short
 git diff <file>
 
 # 解释为什么文件被修改
-./scripts/fix-types-helper.sh explain-diff <file>
+./tools/maintenance/fix-types-helper.sh explain-diff <file>
 
 # 撤销自动修改（小心使用）
 git reset --hard HEAD
@@ -162,11 +162,11 @@ SKIP=black,isort git commit -m "..."
 ## 🆘 遇到问题？
 
 1. **错误越改越多?**
-   - 运行 `./scripts/fix-types-helper.sh show-new-errors` 分析
+   - 运行 `./tools/maintenance/fix-types-helper.sh show-new-errors` 分析
    - 新错误是被暴露的，不是新产生的
 
 2. **不知道从哪里开始?**
-   - 运行 `./scripts/fix-types-helper.sh format-first` 一次性格式化
+   - 运行 `./tools/maintenance/fix-types-helper.sh format-first` 一次性格式化
    - 然后专注修复类型错误
 
 3. **提交被阻止?**
