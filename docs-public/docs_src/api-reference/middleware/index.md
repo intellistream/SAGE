@@ -18,30 +18,54 @@ Domain-specific components and operators for RAG, LLM, memory, and database syst
 
 #### RAG Operators
 
-::: sage.middleware.operators.rag options: show_root_heading: true members: - OpenAIGenerator -
-ChromaRetriever - MilvusRetriever - QAPromptor - RefinerOperator
+::: sage.middleware.operators.rag
+    options:
+      show_root_heading: true
+      members:
+        - OpenAIGenerator
+        - ChromaRetriever
+        - MilvusRetriever
+        - QAPromptor
+        - RefinerOperator
 
 #### LLM Operators
 
-::: sage.middleware.operators.llm options: show_root_heading: true members: - VLLMGenerator -
-VLLMEmbedding - OpenAIOperator
+::: sage.middleware.operators.llm
+    options:
+      show_root_heading: true
+      members:
+        - VLLMGenerator
+        - VLLMEmbedding
+        - OpenAIOperator
 
 #### Tool Operators
 
-::: sage.middleware.operators.tools options: show_root_heading: true members: - SearcherOperator -
-ImageCaptionerOperator
+::: sage.middleware.operators.tools
+    options:
+      show_root_heading: true
+      members:
+        - SearcherOperator
+        - ImageCaptionerOperator
 
 ### Components
 
 #### NeuroMem (Memory Service)
 
-::: sage.middleware.components.sage_mem.neuromem options: show_root_heading: true members: -
-NeuroMem - MemoryService
+::: sage.middleware.components.sage_mem.neuromem
+    options:
+      show_root_heading: true
+      members:
+        - NeuroMem
+        - MemoryService
 
 #### SageDB
 
-::: sage.middleware.components.sage_db options: show_root_heading: true members: - SageDB -
-DatabaseService
+::: sage.middleware.components.sage_db
+    options:
+      show_root_heading: true
+      members:
+        - SageDB
+        - DatabaseService
 
 ## Quick Examples
 
@@ -49,16 +73,28 @@ DatabaseService
 
 ```python
 from sage.kernel.api.local_environment import LocalStreamEnvironment
-from sage.middleware.operators.rag import QAPromptor, ChromaRetriever, OpenAIGenerator
+from sage.middleware.operators.rag import (
+    QAPromptor,
+    ChromaRetriever,
+    OpenAIGenerator
+)
 
 env = LocalStreamEnvironment("rag_pipeline")
 
 # Build RAG pipeline with middleware operators
-stream = (
-    env.from_source(questions)
-    .map(QAPromptor, {"template": "Question: {question}\nContext: {context}\nAnswer:"})
-    .map(ChromaRetriever, {"collection_name": "documents", "top_k": 3})
-    .map(OpenAIGenerator, {"model": "gpt-4", "temperature": 0.7})
+stream = (env
+    .from_source(questions)
+    .map(QAPromptor, {
+        "template": "Question: {question}\nContext: {context}\nAnswer:"
+    })
+    .map(ChromaRetriever, {
+        "collection_name": "documents",
+        "top_k": 3
+    })
+    .map(OpenAIGenerator, {
+        "model": "gpt-4",
+        "temperature": 0.7
+    })
     .sink(output)
 )
 
@@ -71,13 +107,22 @@ env.execute()
 from sage.middleware.components.sage_mem import NeuroMem
 
 # Initialize memory service
-memory = NeuroMem(embedding_service="openai", vector_db="chroma")
+memory = NeuroMem(
+    embedding_service="openai",
+    vector_db="chroma"
+)
 
 # Store memory
-memory.store(content="Paris is the capital of France", metadata={"source": "geography"})
+memory.store(
+    content="Paris is the capital of France",
+    metadata={"source": "geography"}
+)
 
 # Recall memory
-results = memory.recall(query="What is the capital of France?", top_k=3)
+results = memory.recall(
+    query="What is the capital of France?",
+    top_k=3
+)
 ```
 
 ### Using vLLM Service
@@ -87,7 +132,8 @@ from sage.middleware.operators.llm import VLLMGenerator
 
 # Use local vLLM service
 generator = VLLMGenerator(
-    model_name="meta-llama/Llama-2-13b-chat-hf", base_url="http://localhost:8000/v1"
+    model_name="meta-llama/Llama-2-13b-chat-hf",
+    base_url="http://localhost:8000/v1"
 )
 
 # In pipeline

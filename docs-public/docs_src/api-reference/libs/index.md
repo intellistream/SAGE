@@ -20,46 +20,87 @@ Algorithm libraries: agents, RAG, tools, workflow optimization, and I/O utilitie
 
 ### Agents
 
-::: sage.libs.agents options: show_root_heading: true members: - Agent - AgentRuntime - Planner -
-ActionExecutor
+::: sage.libs.agents
+    options:
+      show_root_heading: true
+      members:
+        - Agent
+        - AgentRuntime
+        - Planner
+        - ActionExecutor
 
 ### RAG (Retrieval-Augmented Generation)
 
 #### Generator
 
-::: sage.libs.rag.generator options: show_root_heading: true members: - OpenAIGenerator -
-VLLMGenerator
+::: sage.libs.rag.generator
+    options:
+      show_root_heading: true
+      members:
+        - OpenAIGenerator
+        - VLLMGenerator
 
 #### Retriever
 
-::: sage.libs.rag.retriever options: show_root_heading: true members: - ChromaRetriever -
-MilvusRetriever
+::: sage.libs.rag.retriever
+    options:
+      show_root_heading: true
+      members:
+        - ChromaRetriever
+        - MilvusRetriever
 
 #### Promptor
 
-::: sage.libs.rag.promptor options: show_root_heading: true members: - QAPromptor - ChatPromptor
+::: sage.libs.rag.promptor
+    options:
+      show_root_heading: true
+      members:
+        - QAPromptor
+        - ChatPromptor
 
 ### I/O Utilities
 
 #### Sources
 
-::: sage.libs.io.source options: show_root_heading: true members: - FileSource - SocketSource -
-JSONFileSource - CSVFileSource - KafkaSource
+::: sage.libs.io.source
+    options:
+      show_root_heading: true
+      members:
+        - FileSource
+        - SocketSource
+        - JSONFileSource
+        - CSVFileSource
+        - KafkaSource
 
 #### Sinks
 
-::: sage.libs.io.sink options: show_root_heading: true members: - TerminalSink - FileSink -
-PrintSink
+::: sage.libs.io.sink
+    options:
+      show_root_heading: true
+      members:
+        - TerminalSink
+        - FileSink
+        - PrintSink
 
 ### Tools
 
-::: sage.libs.tools options: show_root_heading: true members: - SearcherTool - ImageCaptioner -
-ArxivPaperSearcher
+::: sage.libs.tools
+    options:
+      show_root_heading: true
+      members:
+        - SearcherTool
+        - ImageCaptioner
+        - ArxivPaperSearcher
 
 ### Workflow Optimization
 
-::: sage.libs.workflow options: show_root_heading: true members: - WorkflowGraph - BaseOptimizer -
-WorkflowEvaluator
+::: sage.libs.workflow
+    options:
+      show_root_heading: true
+      members:
+        - WorkflowGraph
+        - BaseOptimizer
+        - WorkflowEvaluator
 
 ## Quick Examples
 
@@ -76,8 +117,12 @@ retriever = ChromaRetriever(collection_name="docs")
 generator = OpenAIGenerator(model="gpt-4")
 
 # Use in SAGE pipeline
-stream = (
-    env.from_source(questions).map(promptor).map(retriever).map(generator).sink(output)
+stream = (env
+    .from_source(questions)
+    .map(promptor)
+    .map(retriever)
+    .map(generator)
+    .sink(output)
 )
 ```
 
@@ -88,7 +133,9 @@ from sage.libs.agents import Agent, AgentRuntime
 
 # Define agent
 agent = Agent(
-    name="assistant", tools=[search_tool, calculator_tool], planner=ReActPlanner()
+    name="assistant",
+    tools=[search_tool, calculator_tool],
+    planner=ReActPlanner()
 )
 
 # Run agent
@@ -102,8 +149,8 @@ result = runtime.run(agent, "What is 2+2 and search for AI news?")
 from sage.libs.io import FileSource, TerminalSink
 
 # Create pipeline with I/O
-stream = (
-    env.from_source(FileSource, {"file_path": "data.txt"})
+stream = (env
+    .from_source(FileSource, {"file_path": "data.txt"})
     .map(process_function)
     .sink(TerminalSink, {})
 )
