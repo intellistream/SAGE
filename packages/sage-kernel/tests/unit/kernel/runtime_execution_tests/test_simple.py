@@ -20,9 +20,9 @@ def test_jobmanager_can_be_imported():
 
 def test_jobmanager_singleton():
     """测试JobManager的单例模式"""
-    # 创建两个实例
-    jm1 = JobManager()
-    jm2 = JobManager()
+    # 创建两个实例（禁用daemon避免测试环境中的端口冲突）
+    jm1 = JobManager(enable_daemon=False)
+    jm2 = JobManager(enable_daemon=False)
 
     # 验证它们是同一个实例
     assert jm1 is jm2
@@ -30,7 +30,7 @@ def test_jobmanager_singleton():
 
 def test_jobmanager_basic_attributes():
     """测试JobManager的基本属性"""
-    jm = JobManager()
+    jm = JobManager(enable_daemon=False)
 
     # 验证基本属性存在
     assert hasattr(jm, "jobs")
