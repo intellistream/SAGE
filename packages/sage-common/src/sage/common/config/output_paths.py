@@ -396,11 +396,31 @@ class SageOutputPaths:
                     print(f"Warning: Could not remove {src} (not empty)")
 
 
-# Global instance for easy access
-@lru_cache(maxsize=1)
+# Global cached instance (use normalized project_root key to avoid unexpected
+# cache behavior when Path/str objects differ between callers). We expose
+# `cache_clear` on the public `get_sage_paths` so tests that call
+# `get_sage_paths.cache_clear()` continue to work.
+@lru_cache(maxsize=8)
+def _get_sage_paths_cached(project_root_key: str | None) -> SageOutputPaths:
+    """Internal cached constructor keyed by normalized project_root string."""
+    if project_root_key is None:
+        return SageOutputPaths(None)
+    return SageOutputPaths(Path(project_root_key))
+
+
 def get_sage_paths(project_root: str | Path | None = None) -> SageOutputPaths:
-    """Get the global SAGE output paths instance."""
-    return SageOutputPaths(project_root)
+    """Get the global SAGE output paths instance.
+
+    This wrapper normalizes the project_root to an absolute string and uses
+    the internal cached function. Tests expect a `cache_clear` attribute on
+    `get_sage_paths`; attach it from the cached function.
+    """
+    project_root_key = None if project_root is None else str(Path(project_root).resolve())
+    return _get_sage_paths_cached(project_root_key)
+
+
+# Expose cache_clear on the public function for backward compatibility
+get_sage_paths.cache_clear = _get_sage_paths_cached.cache_clear
 
 
 # Convenience functions for backward compatibility and ease of use
