@@ -131,9 +131,9 @@ fi
 
 echo -e "📝 检查 $(echo "$STAGED_FILES" | wc -l) 个暂存的 Python 文件"
 
-# 优先使用 sage dev 命令（如果 sage-tools 已安装）
-if command -v sage >/dev/null 2>&1; then
-    if sage dev check-architecture --changed-only 2>&1 | tail -20; then
+# 优先使用 sage-dev 命令（如果 sage-tools 已安装）
+if command -v sage-dev >/dev/null 2>&1; then
+    if sage-dev quality architecture --changed-only 2>&1 | tail -20; then
         echo -e "${GREEN}✅ 架构合规性检查通过${NC}"
         echo ""
         echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
