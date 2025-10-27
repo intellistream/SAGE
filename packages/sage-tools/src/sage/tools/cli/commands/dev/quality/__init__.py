@@ -277,15 +277,20 @@ def fix_issues(
 
 
 # 为了支持在 main.py 中调用，导出辅助函数
-def _run_architecture_check(changed_only: bool = False, warn_only: bool = False) -> bool:
+def _run_architecture_check(warn_only: bool = False, changed_only: bool = False) -> bool:
     """运行架构检查，返回是否通过"""
     try:
         from pathlib import Path
 
+        from sage.tools.cli.core.utils import find_project_root
         from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
 
         # 获取项目根目录
-        root_dir = Path(__file__).parent.parent.parent.parent.parent.parent.parent
+        root_dir = find_project_root()
+        if root_dir is None:
+            console.print("[red]错误: 无法找到项目根目录[/red]")
+            return False
+        
         checker = ArchitectureChecker(root_dir)
         result = checker.check_all()
 
@@ -314,10 +319,15 @@ def _run_devnotes_check(warn_only: bool = False) -> bool:
     try:
         from pathlib import Path
 
+        from sage.tools.cli.core.utils import find_project_root
         from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
 
         # 获取项目根目录
-        root_dir = Path(__file__).parent.parent.parent.parent.parent.parent.parent
+        root_dir = find_project_root()
+        if root_dir is None:
+            console.print("[red]错误: 无法找到项目根目录[/red]")
+            return False
+        
         checker = DevNotesChecker(root_dir)
         issues = checker.check_all()
 
@@ -342,16 +352,21 @@ def _run_readme_check(warn_only: bool = False) -> bool:
     try:
         from pathlib import Path
 
+        from sage.tools.cli.core.utils import find_project_root
         from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
 
         # 获取项目根目录
-        root_dir = Path(__file__).parent.parent.parent.parent.parent.parent.parent
+        root_dir = find_project_root()
+        if root_dir is None:
+            console.print("[red]错误: 无法找到项目根目录[/red]")
+            return False
+        
         checker = PackageREADMEChecker(root_dir)
-        issues = checker.check_all()
+        violations = checker.check_all()
 
-        if issues:
-            console.print(f"[red]发现 {len(issues)} 个 README 问题[/red]")
-            for issue in issues[:10]:
+        if violations:
+            console.print(f"[red]发现 {len(violations)} 个 README 问题[/red]")
+            for issue in violations[:10]:
                 console.print(f"  [yellow]{issue}[/yellow]")
             return False
         else:
