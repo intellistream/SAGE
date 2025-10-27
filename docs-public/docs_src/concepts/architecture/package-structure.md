@@ -255,7 +255,7 @@ ______________________________________________________________________
 **CLI 命令**:
 
 - `sage studio`: Web UI 管理
-- `sage dev`: 开发工具
+- `sage-dev`: 开发工具
 - `sage pipeline`: Pipeline 构建
 - `sage llm/embedding`: 服务管理
 - `sage job/cluster`: 作业管理
@@ -310,10 +310,10 @@ ______________________________________________________________________
 
 ```bash
 # 检查依赖违规
-sage dev check-architecture
+sage-dev check-architecture
 
 # 生成依赖图
-sage dev visualize-deps
+sage-dev visualize-deps
 ```
 
 **当前状态**: ✅ 0 架构违规

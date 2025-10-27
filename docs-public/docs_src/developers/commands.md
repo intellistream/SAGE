@@ -93,7 +93,7 @@ make lint
 等价于：
 
 ```bash
-sage dev quality --check-only
+sage-dev quality --check-only
 ```
 
 #### `make format` / `./dev.sh format`
@@ -109,7 +109,7 @@ make format
 等价于：
 
 ```bash
-sage dev quality
+sage-dev quality
 ```
 
 #### `make quality` / `./dev.sh quality`
@@ -194,7 +194,7 @@ make build
 等价于：
 
 ```bash
-sage dev pypi build
+sage-dev pypi build
 ```
 
 #### `make clean` / `./dev.sh clean`
@@ -210,7 +210,7 @@ make clean
 等价于：
 
 ```bash
-sage dev pypi clean
+sage-dev pypi clean
 ```
 
 #### `make check` / `./dev.sh check`
@@ -226,7 +226,7 @@ make check
 等价于：
 
 ```bash
-sage dev pypi check
+sage-dev pypi check
 ```
 
 #### `make publish` / `./dev.sh publish`
@@ -242,7 +242,7 @@ make publish
 等价于：
 
 ```bash
-sage dev pypi publish --dry-run
+sage-dev pypi publish --dry-run
 ```
 
 #### `make publish-prod` / `./dev.sh publish:prod`
@@ -259,7 +259,7 @@ make publish-prod
 等价于：
 
 ```bash
-sage dev pypi publish
+sage-dev pypi publish
 ```
 
 ______________________________________________________________________
@@ -279,7 +279,7 @@ make version
 等价于：
 
 ```bash
-sage dev version list
+sage-dev version list
 ```
 
 #### `make version-bump` / `./dev.sh version:bump`
@@ -295,7 +295,7 @@ make version-bump
 等价于：
 
 ```bash
-sage dev version bump
+sage-dev version bump
 ```
 
 #### `./dev.sh version:set <version>`
@@ -309,7 +309,7 @@ sage dev version bump
 等价于：
 
 ```bash
-sage dev version set 0.2.0
+sage-dev version set 0.2.0
 ```
 
 ______________________________________________________________________
@@ -435,22 +435,22 @@ git push
 
 ______________________________________________________________________
 
-## 对比：Make vs dev.sh vs sage dev
+## 对比：Make vs dev.sh vs sage-dev
 
-| 功能         | Make   | dev.sh | sage dev | 说明                      |
+| 功能         | Make   | dev.sh | sage-dev | 说明                      |
 | ------------ | ------ | ------ | -------- | ------------------------- |
 | **简洁性**   | ⭐⭐⭐ | ⭐⭐   | ⭐       | Make 命令最短             |
-| **可读性**   | ⭐⭐   | ⭐⭐⭐ | ⭐⭐⭐   | dev.sh 和 sage dev 更明确 |
-| **参数传递** | ⭐     | ⭐⭐⭐ | ⭐⭐⭐   | dev.sh 和 sage dev 更灵活 |
+| **可读性**   | ⭐⭐   | ⭐⭐⭐ | ⭐⭐⭐   | dev.sh 和 sage-dev 更明确 |
+| **参数传递** | ⭐     | ⭐⭐⭐ | ⭐⭐⭐   | dev.sh 和 sage-dev 更灵活 |
 | **跨平台**   | ⭐⭐   | ⭐⭐⭐ | ⭐⭐⭐   | dev.sh 不依赖 Make        |
-| **集成度**   | -      | -      | ⭐⭐⭐   | sage dev 是官方工具       |
+| **集成度**   | -      | -      | ⭐⭐⭐   | sage-dev 是官方工具       |
 
 ### 推荐使用场景
 
 - **快速开发**: 使用 `make` 命令（最简洁）
 - **脚本自动化**: 使用 `./dev.sh` 命令（更可控）
-- **CI/CD**: 使用 `sage dev` 命令（最可靠）
-- **学习/文档**: 使用 `sage dev` 命令（最标准）
+- **CI/CD**: 使用 `sage-dev` 命令（最可靠）
+- **学习/文档**: 使用 `sage-dev` 命令（最标准）
 
 ______________________________________________________________________
 
@@ -458,7 +458,7 @@ ______________________________________________________________________
 
 ### Q: 为什么运行命令时提示 "命令仅在开发模式下可用"？
 
-A: 这些快捷命令调用 `sage dev` 工具，需要源码安装：
+A: 这些快捷命令调用 `sage-dev` 工具，需要源码安装：
 
 ```bash
 # 克隆仓库
@@ -482,7 +482,7 @@ A: 根据个人喜好选择：
 
 - 如果你熟悉 Make 工具链，使用 `make`
 - 如果你不想安装 Make，使用 `./dev.sh`
-- 如果你想要最大的灵活性，直接使用 `sage dev`
+- 如果你想要最大的灵活性，直接使用 `sage-dev`
 
 ### Q: 这些命令可以在 pip 安装的 SAGE 中使用吗？
 
@@ -517,7 +517,7 @@ ______________________________________________________________________
 # 添加新命令
 my-command:
 	@echo "🚀 运行自定义命令..."
-	sage dev my-tool --option value
+	sage-dev my-tool --option value
 ```
 
 #### 2. 修改 dev.sh
@@ -530,7 +530,7 @@ case "$1" in
 
     my-command)
         echo -e "${BLUE}🚀 运行自定义命令...${NC}"
-        sage dev my-tool --option value "${@:2}"
+        sage-dev my-tool --option value "${@:2}"
         ;;
 
     # ... 其他命令 ...

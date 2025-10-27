@@ -379,7 +379,7 @@ ______________________________________________________________________
 
 - `cli`: 完整命令行界面（`sage` 命令）
   - `sage studio` - 管理 Web UI
-  - `sage dev` - 开发工具
+  - `sage-dev` - 开发工具
   - `sage pipeline` - Pipeline 构建器
   - `sage llm/embedding` - 服务管理
   - `sage job/cluster` - 作业和集群管理
@@ -840,39 +840,39 @@ SAGE 提供了便捷的命令来查看和检查架构：
 
 ```bash
 # 查看完整架构定义（层级和依赖关系）
-sage dev architecture
+sage-dev architecture
 
 # 查看特定包的信息
-sage dev architecture --package sage-kernel
+sage-dev architecture --package sage-kernel
 
 # JSON 格式输出（用于工具集成）
-sage dev architecture --format json
+sage-dev architecture --format json
 
 # Markdown 格式输出（用于文档生成）
-sage dev architecture --format markdown
+sage-dev architecture --format markdown
 ```
 
 ### 检查架构合规性
 
 ```bash
 # 检查所有文件
-sage dev check-architecture
+sage-dev check-architecture
 
 # 仅检查变更的文件
-sage dev check-architecture --changed-only
+sage-dev check-architecture --changed-only
 
 # 对比特定分支
-sage dev check-architecture --diff main
+sage-dev check-architecture --diff main
 ```
 
 ### 综合质量检查
 
 ```bash
 # 运行所有质量检查（包括架构检查）
-sage dev check-all
+sage-dev check-all
 
 # 仅检查变更文件
-sage dev check-all --changed-only
+sage-dev check-all --changed-only
 ```
 
 更多命令请参考 [sage-tools README](../../packages/sage-tools/README.md)。

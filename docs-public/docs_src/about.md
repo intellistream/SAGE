@@ -366,8 +366,8 @@ sage config env setup
 sage config env show
 
 # 开发工具
-sage dev status      # 显示开发状态
-sage dev clean       # 清理构建产物
+sage-dev status      # 显示开发状态
+sage-dev clean       # 清理构建产物
 
 # 聊天界面（实验性）
 sage chat

@@ -254,7 +254,7 @@ data modalities for enhanced AI understanding and generation.
 **Distributed AI Inference**: Scale AI model serving across multiple nodes with automatic load
 balancing and fault tolerance.
 
-> 本地代码质量/测试请使用 `sage dev quality` 或 `sage dev test`，CI/CD 由 GitHub Workflows 自动完成。
+> 本地代码质量/测试请使用 `sage-dev quality` 或 `sage-dev test`，CI/CD 由 GitHub Workflows 自动完成。
 
 ## Documentation & Resources
 
@@ -338,7 +338,7 @@ python -c "import sage; print(sage.__version__)"
 
 ## 🤝 Join Our Community
 
-Connect with other SAGE developers, get help, and stay updated on the latest developments:
+Connect with other sage-developers, get help, and stay updated on the latest developments:
 
 **💬 [Join SAGE Community](./docs/COMMUNITY.md)** - Complete guide to all our communication channels
 

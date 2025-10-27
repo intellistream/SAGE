@@ -169,9 +169,9 @@ sage studio start
 sage llm start
 
 # 开发工具
-sage dev test           # 运行测试
-sage dev format         # 格式化代码
-sage dev check          # 代码检查
+sage-dev test           # 运行测试
+sage-dev format         # 格式化代码
+sage-dev check          # 代码检查
 
 # Pipeline 构建
 sage pipeline create    # 创建新 pipeline

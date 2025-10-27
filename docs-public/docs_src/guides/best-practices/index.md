@@ -1,6 +1,6 @@
 # Best Practices
 
-Recommended patterns and practices for SAGE development.
+Recommended patterns and practices for sage-development.
 
 ## Pipeline Design
 
