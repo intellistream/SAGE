@@ -9,7 +9,7 @@ from rich.console import Console
 
 app = typer.Typer(
     name="quality",
-    help="🔍 质量检查 - 代码质量、架构合规、文档规范检查",
+    help="🔍 质量检查 - 代码质量、架构合规、文档规范检查 (check, architecture, devnotes, readme)",
     no_args_is_help=True,
 )
 
@@ -18,15 +18,15 @@ console = Console()
 
 @app.command(name="check")
 def check_all(
-    changed_only: bool = typer.Option(
+    all_files: bool = typer.Option(
         False,
-        "--changed-only",
-        help="只检查变更的文件",
+        "--all-files",
+        help="检查所有文件（默认只检查变更文件）",
     ),
-    fix: bool = typer.Option(
-        True,
-        "--fix/--no-fix",
-        help="自动修复问题",
+    check_only: bool = typer.Option(
+        False,
+        "--check-only",
+        help="只检查不修复（默认会自动修复）",
     ),
     architecture: bool = typer.Option(
         True,
@@ -52,44 +52,36 @@ def check_all(
     """
     🔍 运行所有质量检查
 
-    包括：架构合规性、dev-notes 规范、README 质量、代码格式等。
+    包括：代码格式化、导入排序、Ruff 检查、类型检查、架构合规、文档规范等。
+
+    默认行为：
+    - 只检查变更的文件（使用 --all-files 检查所有文件）
+    - 自动修复可修复的问题（使用 --check-only 只检查不修复）
+    - 运行架构和 dev-notes 检查（使用 --no-architecture 或 --no-devnotes 跳过）
 
     示例：
-        sage-dev quality check                # 运行所有检查
-        sage-dev quality check --changed-only # 只检查变更文件
-        sage-dev quality check --no-fix       # 只检查不修复
+        sage-dev quality check                # 检查变更文件，自动修复
+        sage-dev quality check --all-files    # 检查所有文件
+        sage-dev quality check --check-only   # 只检查不修复
         sage-dev quality check --readme       # 包含 README 检查
+        sage-dev quality check --no-architecture  # 跳过架构检查
     """
-    console.print("\n[bold blue]🔍 运行质量检查[/bold blue]\n")
+    from sage.tools.cli.commands.dev.main import quality
 
-    failed_checks = []
-
-    # 架构检查
-    if architecture:
-        console.print("[cyan]→ 架构合规性检查...[/cyan]")
-        if not _run_architecture_check(changed_only=changed_only, warn_only=warn_only):
-            failed_checks.append("architecture")
-
-    # dev-notes 检查
-    if devnotes:
-        console.print("[cyan]→ dev-notes 规范检查...[/cyan]")
-        if not _run_devnotes_check(warn_only=warn_only):
-            failed_checks.append("devnotes")
-
-    # README 检查
-    if readme:
-        console.print("[cyan]→ README 质量检查...[/cyan]")
-        if not _run_readme_check(warn_only=warn_only):
-            failed_checks.append("readme")
-
-    # 总结
-    console.print()
-    if failed_checks:
-        console.print(f"[bold red]✗ 检查失败: {', '.join(failed_checks)}[/bold red]")
-        if not warn_only:
-            raise typer.Exit(1)
-    else:
-        console.print("[bold green]✓ 所有检查通过[/bold green]")
+    # 调用主 quality 函数
+    quality(
+        fix=not check_only,
+        check_only=check_only,
+        all_files=all_files,
+        hook=None,  # 运行所有 hooks
+        architecture=architecture,
+        devnotes=devnotes,
+        readme=readme,
+        include_submodules=False,
+        submodules_only=False,
+        warn_only=warn_only,
+        project_root=".",
+    )
 
 
 @app.command(name="architecture")
@@ -159,121 +151,6 @@ def check_readme(
     if not _run_readme_check(warn_only=warn_only):
         if not warn_only:
             raise typer.Exit(1)
-
-
-@app.command(name="format")
-def format_code(
-    check_only: bool = typer.Option(
-        False,
-        "--check-only",
-        help="只检查不修复",
-    ),
-    all_files: bool = typer.Option(
-        False,
-        "--all-files",
-        help="检查所有文件",
-    ),
-):
-    """
-    🎨 代码格式化
-
-    使用 black, isort 等工具格式化代码。
-
-    示例：
-        sage-dev quality format              # 格式化变更的文件
-        sage-dev quality format --all-files  # 格式化所有文件
-        sage-dev quality format --check-only # 只检查不修复
-    """
-    # 调用原 quality 命令，只运行格式化
-    import sys
-
-    from sage.tools.cli.commands.dev.main import quality
-
-    sys.argv = ["sage", "dev", "quality"]
-    if check_only:
-        sys.argv.append("--check-only")
-    if all_files:
-        sys.argv.append("--all-files")
-    sys.argv.extend(["--no-architecture", "--no-devnotes", "--hook", "black"])
-
-    quality(
-        fix=not check_only,
-        check_only=check_only,
-        all_files=all_files,
-        hook="black",
-        architecture=False,
-        devnotes=False,
-        readme=False,
-        include_submodules=False,
-        submodules_only=False,
-        warn_only=False,
-    )
-
-
-@app.command(name="lint")
-def lint_code(
-    all_files: bool = typer.Option(
-        False,
-        "--all-files",
-        help="检查所有文件",
-    ),
-):
-    """
-    🔬 代码检查
-
-    使用 ruff, mypy 等工具检查代码质量。
-
-    示例：
-        sage-dev quality lint              # 检查变更的文件
-        sage-dev quality lint --all-files  # 检查所有文件
-    """
-    from sage.tools.cli.commands.dev.main import quality
-
-    quality(
-        fix=False,
-        check_only=True,
-        all_files=all_files,
-        hook="ruff",
-        architecture=False,
-        devnotes=False,
-        readme=False,
-        include_submodules=False,
-        submodules_only=False,
-        warn_only=False,
-    )
-
-
-@app.command(name="fix")
-def fix_issues(
-    all_files: bool = typer.Option(
-        False,
-        "--all-files",
-        help="修复所有文件",
-    ),
-):
-    """
-    🔧 自动修复问题
-
-    自动修复可修复的代码质量问题。
-
-    示例：
-        sage-dev quality fix              # 修复变更的文件
-        sage-dev quality fix --all-files  # 修复所有文件
-    """
-    from sage.tools.cli.commands.dev.main import quality
-
-    quality(
-        fix=True,
-        check_only=False,
-        all_files=all_files,
-        hook=None,
-        architecture=False,
-        devnotes=False,
-        readme=False,
-        include_submodules=False,
-        submodules_only=False,
-        warn_only=False,
-    )
 
 
 # 为了支持在 main.py 中调用，导出辅助函数
