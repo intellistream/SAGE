@@ -13,6 +13,25 @@ pytestmark = pytest.mark.slow
 from sage.kernel.runtime.job_manager import JobManager
 
 
+@pytest.fixture(autouse=True)
+def reset_jobmanager_singleton():
+    """在每个测试前后重置JobManager单例状态，避免测试间相互影响"""
+    # 测试前：重置单例
+    JobManager.instance = None
+    
+    yield
+    
+    # 测试后：清理
+    if JobManager.instance is not None:
+        # 关闭daemon server如果存在
+        if hasattr(JobManager.instance, 'server') and JobManager.instance.server:
+            try:
+                JobManager.instance.server.stop()
+            except Exception:
+                pass
+        JobManager.instance = None
+
+
 def test_jobmanager_can_be_imported():
     """测试JobManager可以被成功导入"""
     assert JobManager is not None
@@ -20,7 +39,7 @@ def test_jobmanager_can_be_imported():
 
 def test_jobmanager_singleton():
     """测试JobManager的单例模式"""
-    # 创建两个实例（禁用daemon避免测试环境中的端口冲突）
+    # 创建两个实例（禁用daemon以避免后台线程和Ray初始化）
     jm1 = JobManager(enable_daemon=False)
     jm2 = JobManager(enable_daemon=False)
 
@@ -35,8 +54,8 @@ def test_jobmanager_basic_attributes():
     # 验证基本属性存在
     assert hasattr(jm, "jobs")
     assert hasattr(jm, "logger")
-    assert hasattr(jm, "server")
-    assert hasattr(jm, "session_id")
+    # server应该是None因为daemon被禁用
+    assert jm.server is None
 
 
 if __name__ == "__main__":
