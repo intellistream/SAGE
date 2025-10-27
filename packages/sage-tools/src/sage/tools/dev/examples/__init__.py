@@ -24,7 +24,7 @@ SAGE Examples Testing Tools
 
 Python API：
     from sage.tools.dev.examples import ExampleTestSuite
-    
+
     suite = ExampleTestSuite()
     stats = suite.run_all_tests(quick_only=True)
 """

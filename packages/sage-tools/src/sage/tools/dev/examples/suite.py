@@ -9,7 +9,6 @@ import json
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from rich.console import Console
 from rich.panel import Panel
@@ -27,15 +26,15 @@ class ExampleTestSuite:
 
     def __init__(self):
         """初始化 ExampleTestSuite
-        
+
         Raises:
             RuntimeError: 如果开发环境不可用
         """
         self.analyzer = ExampleAnalyzer()
         self.runner = ExampleRunner()
-        self.results: List[ExampleTestResult] = []
+        self.results: list[ExampleTestResult] = []
 
-    def _show_examples_summary(self, examples: List[ExampleInfo]):
+    def _show_examples_summary(self, examples: list[ExampleInfo]):
         """显示示例摘要"""
         categories = {}
         for example in examples:
@@ -98,7 +97,7 @@ class ExampleTestSuite:
 
         console.print(table)
 
-    def _get_statistics(self) -> Dict[str, int]:
+    def _get_statistics(self) -> dict[str, int]:
         """获取统计信息"""
         stats = {
             "total": len(self.results),
@@ -123,7 +122,7 @@ class ExampleTestSuite:
 
     def save_results(self, output_file: str):
         """保存测试结果
-        
+
         Args:
             output_file: 输出文件路径
         """
@@ -144,14 +143,14 @@ class ExampleTestSuite:
         console.print(f"📄 测试结果已保存到: {output_file}")
 
     def run_all_tests(
-        self, categories: Optional[List[str]] = None, quick_only: bool = False
-    ) -> Dict[str, int]:
+        self, categories: list[str] | None = None, quick_only: bool = False
+    ) -> dict[str, int]:
         """运行所有测试
-        
+
         Args:
             categories: 要测试的类别列表，None表示所有类别
             quick_only: 是否只运行快速测试
-            
+
         Returns:
             测试统计字典
         """
@@ -179,9 +178,7 @@ class ExampleTestSuite:
 
         self.results = []
         for i, example in enumerate(filtered_examples, 1):
-            console.print(
-                f"[{i}/{len(filtered_examples)}] 测试 {Path(example.file_path).name}..."
-            )
+            console.print(f"[{i}/{len(filtered_examples)}] 测试 {Path(example.file_path).name}...")
 
             result = self.runner.run_example(example)
             self.results.append(result)
@@ -209,17 +206,17 @@ class ExampleTestSuite:
 
     def _filter_examples(
         self,
-        examples: List[ExampleInfo],
-        categories: Optional[List[str]] = None,
+        examples: list[ExampleInfo],
+        categories: list[str] | None = None,
         quick_only: bool = False,
-    ) -> List[ExampleInfo]:
+    ) -> list[ExampleInfo]:
         """过滤示例
-        
+
         Args:
             examples: 所有示例列表
             categories: 要包含的类别
             quick_only: 是否只包含快速测试
-            
+
         Returns:
             过滤后的示例列表
         """

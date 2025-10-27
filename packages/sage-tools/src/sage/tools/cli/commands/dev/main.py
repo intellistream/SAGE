@@ -54,6 +54,18 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: 模型缓存功能不可用: {e}[/yellow]")
 
+# 添加 Examples 测试工具子命令
+try:
+    from .examples import app as examples_app
+
+    app.add_typer(
+        examples_app,
+        name="examples",
+        help="🔬 Examples 测试工具 - 测试和验证示例代码（需要开发环境）",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: Examples 测试功能不可用: {e}[/yellow]")
+
 
 @app.command()
 def quality(

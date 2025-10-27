@@ -6,7 +6,7 @@ including timeout settings, environment variables, and success/failure patterns.
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable
 
 
 @dataclass
@@ -17,21 +17,21 @@ class TestStrategy:
     timeout: int
     requires_config: bool
     requires_data: bool
-    mock_inputs: Optional[Dict[str, str]] = None
-    environment_vars: Optional[Dict[str, str]] = None
-    success_patterns: Optional[List[str]] = None
-    failure_patterns: Optional[List[str]] = None
-    pre_run_setup: Optional[Callable] = None
-    post_run_cleanup: Optional[Callable] = None
+    mock_inputs: dict[str, str] | None = None
+    environment_vars: dict[str, str] | None = None
+    success_patterns: list[str] | None = None
+    failure_patterns: list[str] | None = None
+    pre_run_setup: Callable | None = None
+    post_run_cleanup: Callable | None = None
 
 
 class ExampleTestStrategies:
     """示例测试策略集合"""
 
     @staticmethod
-    def get_strategies() -> Dict[str, TestStrategy]:
+    def get_strategies() -> dict[str, TestStrategy]:
         """获取所有测试策略
-        
+
         Returns:
             字典，键为类别名称，值为对应的测试策略
         """
@@ -309,9 +309,9 @@ class ExampleTestStrategies:
         }
 
     @staticmethod
-    def get_category_skip_patterns() -> Dict[str, List[str]]:
+    def get_category_skip_patterns() -> dict[str, list[str]]:
         """获取各类别需要跳过的文件模式
-        
+
         Returns:
             字典，键为类别名称，值为该类别需要跳过的文件模式列表
         """

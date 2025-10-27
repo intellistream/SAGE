@@ -146,9 +146,6 @@ per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101"
 
 [tool.ruff.lint.isort]
 known-first-party = ["sage"]
-
-[tool.ruff.isort]
-known-first-party = ["sage"]
 # 移除profile字段，Ruff不支持此字段
 # 使用force-single-line = false 来模拟black风格
 force-single-line = false

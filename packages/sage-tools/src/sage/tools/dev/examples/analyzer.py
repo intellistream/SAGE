@@ -8,7 +8,6 @@ extracting metadata, dependencies, and categorization information.
 import ast
 import re
 from pathlib import Path
-from typing import List, Optional
 
 from rich.console import Console
 
@@ -23,7 +22,7 @@ class ExampleAnalyzer:
 
     def __init__(self):
         """初始化 ExampleAnalyzer
-        
+
         Raises:
             RuntimeError: 如果找不到 examples 目录（开发环境不可用）
         """
@@ -35,21 +34,21 @@ class ExampleAnalyzer:
                 "This tool requires a development environment. "
                 "Please see the Examples Testing README for setup instructions."
             )
-        
+
         self.examples_root = examples_dir
-        
+
         # 同时获取项目根目录
         self.project_root = find_project_root()
         if self.project_root is None:
             # 如果找到了 examples 但找不到项目根，使用 examples 的父目录
             self.project_root = self.examples_root.parent
 
-    def analyze_file(self, file_path: Path) -> Optional[ExampleInfo]:
+    def analyze_file(self, file_path: Path) -> ExampleInfo | None:
         """分析单个示例文件
-        
+
         Args:
             file_path: 示例文件的路径
-            
+
         Returns:
             ExampleInfo 对象，如果分析失败返回 None
         """
@@ -57,7 +56,7 @@ class ExampleAnalyzer:
             file_path = Path(file_path)
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             tree = ast.parse(content)
@@ -99,7 +98,7 @@ class ExampleAnalyzer:
             console.print(f"[red]分析文件失败 {file_path}: {e}[/red]")
             return None
 
-    def _extract_imports(self, tree: ast.AST) -> List[str]:
+    def _extract_imports(self, tree: ast.AST) -> list[str]:
         """提取导入语句"""
         imports = []
         for node in ast.walk(tree):
@@ -158,20 +157,16 @@ class ExampleAnalyzer:
         """估算运行时间"""
         # 检查是否有明显的长时间运行指标
         if any(
-            keyword in content
-            for keyword in ["time.sleep", "train", "fit", "epochs", "while True"]
+            keyword in content for keyword in ["time.sleep", "train", "fit", "epochs", "while True"]
         ):
             return "slow"
         # 检查是否是简单的教程示例（优先级高）
         elif any(
-            keyword in content
-            for keyword in ["Hello, World!", "HelloBatch", "simple", "basic"]
+            keyword in content for keyword in ["Hello, World!", "HelloBatch", "simple", "basic"]
         ):
             return "quick"
         # 检查网络请求等中等时间指标
-        elif any(
-            keyword in content for keyword in ["requests.", "http.", "download", "ray.init"]
-        ):
+        elif any(keyword in content for keyword in ["requests.", "http.", "download", "ray.init"]):
             return "medium"
         # 文件大小作为参考
         elif len(content) < 3000:  # 小于3KB的文件通常是快速示例
@@ -179,7 +174,7 @@ class ExampleAnalyzer:
         else:
             return "medium"
 
-    def _extract_dependencies(self, imports: List[str]) -> List[str]:
+    def _extract_dependencies(self, imports: list[str]) -> list[str]:
         """提取外部依赖"""
         external_deps = []
 
@@ -206,7 +201,7 @@ class ExampleAnalyzer:
 
         return list(set(external_deps))
 
-    def _extract_test_tags(self, content: str) -> List[str]:
+    def _extract_test_tags(self, content: str) -> list[str]:
         """从文件内容中提取测试标记
 
         支持的标记格式:
@@ -272,7 +267,7 @@ class ExampleAnalyzer:
         # 否则使用第一级目录
         return str(relative_path.parts[0])
 
-    def discover_examples(self) -> List[ExampleInfo]:
+    def discover_examples(self) -> list[ExampleInfo]:
         """发现所有示例文件"""
         examples = []
 

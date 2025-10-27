@@ -20,9 +20,9 @@ Examples 测试工具需要访问 SAGE 项目的 `examples/` 目录。但是：
 我们将 Examples 测试工具定位为**开发者工具**，原因如下：
 
 1. **目标用户**：主要服务于 SAGE 的贡献者和维护者
-2. **使用场景**：用于 CI/CD、pre-commit hooks、开发过程中的质量检查
-3. **依赖关系**：需要访问源代码仓库中的 examples 和测试数据
-4. **更新频率**：examples 代码经常变动，不适合打包到 PyPI
+1. **使用场景**：用于 CI/CD、pre-commit hooks、开发过程中的质量检查
+1. **依赖关系**：需要访问源代码仓库中的 examples 和测试数据
+1. **更新频率**：examples 代码经常变动，不适合打包到 PyPI
 
 ## 🚀 安装和使用
 
@@ -101,7 +101,7 @@ from sage.tools.dev.examples import (
 # 检查环境
 if ensure_development_environment():
     print("✓ Development environment ready")
-    
+
 # 获取环境信息
 info = get_development_info()
 print(f"Examples directory: {info['examples_dir']}")
@@ -128,9 +128,9 @@ print(f"Pass rate: {stats['passed'] / stats['total'] * 100:.1f}%")
 工具按以下优先级查找 examples 目录：
 
 1. **环境变量** `SAGE_ROOT`
-2. **向上查找**：从当前工作目录向上查找包含 `examples/` 和 `packages/` 的目录
-3. **包位置推断**：从 sage-tools 安装位置推断项目根目录
-4. **Git 仓库**：使用 `git rev-parse --show-toplevel` 查找仓库根目录
+1. **向上查找**：从当前工作目录向上查找包含 `examples/` 和 `packages/` 的目录
+1. **包位置推断**：从 sage-tools 安装位置推断项目根目录
+1. **Git 仓库**：使用 `git rev-parse --show-toplevel` 查找仓库根目录
 
 ### 错误处理策略
 
@@ -143,6 +143,7 @@ suite = ExampleTestSuite()  # ❌ RuntimeError with helpful message
 ```
 
 这样设计的好处：
+
 - ✅ 不会破坏 sage-tools 的普通用户安装
 - ✅ 提供清晰的错误信息和解决方案
 - ✅ 允许其他模块正常导入
@@ -161,16 +162,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      
+
       - name: Install SAGE Tools
         run: |
           pip install -e packages/sage-tools[dev]
-      
+
       - name: Run Examples Tests
         run: |
           sage-dev examples test --quick
@@ -246,13 +247,15 @@ def should_skip_file(file_path: Path, category: str) -> tuple[bool, str]:
 ### Q: 为什么不把 examples 打包到 PyPI？
 
 **A:** 几个原因：
+
 1. Examples 代码库很大，会显著增加包大小
-2. Examples 经常更新，不应该绑定到 sage-tools 的发布周期
-3. 这些工具主要服务于开发者，而开发者会克隆完整仓库
+1. Examples 经常更新，不应该绑定到 sage-tools 的发布周期
+1. 这些工具主要服务于开发者，而开发者会克隆完整仓库
 
 ### Q: 我只是想用 SAGE，不想测试 examples，怎么办？
 
 **A:** 完全没问题！如果您只是使用 SAGE：
+
 ```bash
 pip install isage  # 或 pip install isage-tools
 ```
@@ -262,6 +265,7 @@ Examples 测试工具只是 sage-tools 的一个**可选开发功能**，不影�
 ### Q: 如何在 Docker 容器中使用？
 
 **A:** 在 Dockerfile 中：
+
 ```dockerfile
 FROM python:3.11
 
@@ -282,25 +286,26 @@ RUN sage-dev examples test --quick
 ### Q: 错误 "Examples directory not found" 怎么办？
 
 **A:** 检查以下几点：
+
 1. ✅ 确认你在 SAGE 项目目录中
-2. ✅ 确认 `examples/` 目录存在
-3. ✅ 尝试设置 `export SAGE_ROOT=/path/to/SAGE`
-4. ✅ 确认是从源码安装：`pip install -e packages/sage-tools[dev]`
+1. ✅ 确认 `examples/` 目录存在
+1. ✅ 尝试设置 `export SAGE_ROOT=/path/to/SAGE`
+1. ✅ 确认是从源码安装：`pip install -e packages/sage-tools[dev]`
 
 ## 📝 贡献指南
 
 如果您想改进 Examples 测试工具：
 
 1. Fork SAGE 仓库
-2. 创建功能分支
-3. 修改 `packages/sage-tools/src/sage/tools/dev/examples/`
-4. 添加测试到 `packages/sage-tools/tests/test_examples/`
-5. 提交 Pull Request
+1. 创建功能分支
+1. 修改 `packages/sage-tools/src/sage/tools/dev/examples/`
+1. 添加测试到 `packages/sage-tools/tests/test_examples/`
+1. 提交 Pull Request
 
 ## 📜 许可证
 
 MIT License - 详见 [LICENSE](../../../../../LICENSE)
 
----
+______________________________________________________________________
 
 **总结**：Examples 测试工具是为 SAGE 开发者设计的专业工具，需要完整的开发环境。普通用户通过 PyPI 安装 SAGE 时不需要也不会安装这些工具。

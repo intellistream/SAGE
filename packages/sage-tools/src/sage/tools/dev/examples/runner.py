@@ -10,7 +10,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from .models import ExampleInfo, ExampleTestResult
 from .utils import find_examples_directory, find_project_root
@@ -19,12 +18,12 @@ from .utils import find_examples_directory, find_project_root
 class ExampleRunner:
     """示例执行器"""
 
-    def __init__(self, timeout: Optional[int] = None):
+    def __init__(self, timeout: int | None = None):
         """初始化 ExampleRunner
-        
+
         Args:
             timeout: 默认超时时间（秒），None表示使用策略决定
-            
+
         Raises:
             RuntimeError: 如果找不到项目根目录（开发环境不可用）
         """
@@ -39,27 +38,27 @@ class ExampleRunner:
             else:
                 # 不设置默认超时，让_get_test_timeout方法从策略中获取
                 self.timeout = None
-        
+
         # 使用新的环境检测工具
         project_root = find_project_root()
         examples_dir = find_examples_directory()
-        
+
         if project_root is None or examples_dir is None:
             raise RuntimeError(
                 "Cannot find SAGE project root directory. "
                 "This tool requires a development environment. "
                 "Please see the Examples Testing README for setup instructions."
             )
-        
+
         self.project_root = project_root
         self.examples_root = examples_dir
 
     def run_example(self, example_info: ExampleInfo) -> ExampleTestResult:
         """运行单个示例
-        
+
         Args:
             example_info: 示例文件信息
-            
+
         Returns:
             ExampleTestResult 对象
         """
@@ -183,7 +182,7 @@ class ExampleRunner:
         # 最后的默认值
         return 60
 
-    def _get_category_from_tags(self, test_tags: List[str]) -> Optional[str]:
+    def _get_category_from_tags(self, test_tags: list[str]) -> str | None:
         """从测试标记中提取类别"""
         for tag in test_tags:
             if tag.startswith("category="):
@@ -193,7 +192,7 @@ class ExampleRunner:
                     pass
         return None
 
-    def _check_dependencies(self, dependencies: List[str]) -> bool:
+    def _check_dependencies(self, dependencies: list[str]) -> bool:
         """检查依赖是否满足"""
         # 包名到导入名的映射
         import_name_map = {
@@ -219,7 +218,7 @@ class ExampleRunner:
     def _requires_user_input(self, file_path: str) -> bool:
         """检查是否需要用户输入"""
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # 检查文件是否在测试模式下有特殊处理
@@ -242,7 +241,7 @@ class ExampleRunner:
         except Exception:
             return False
 
-    def _prepare_environment(self, example_info: ExampleInfo) -> Dict[str, str]:
+    def _prepare_environment(self, example_info: ExampleInfo) -> dict[str, str]:
         """准备执行环境"""
         env = os.environ.copy()
 
@@ -260,13 +259,9 @@ class ExampleRunner:
 
         # 对依赖已编译扩展的示例（如 sage_flow），避免通过源码空目录覆盖已安装的二进制模块
         is_sage_flow_example = "sage_flow" in example_info.file_path or any(
-            imp.startswith("sage.middleware.components.sage_flow")
-            for imp in example_info.imports
+            imp.startswith("sage.middleware.components.sage_flow") for imp in example_info.imports
         )
-        if (
-            is_sage_flow_example
-            and env.get("SAGE_EXAMPLES_USE_INSTALLED_MIDDLEWARE", "1") != "0"
-        ):
+        if is_sage_flow_example and env.get("SAGE_EXAMPLES_USE_INSTALLED_MIDDLEWARE", "1") != "0":
             # 去掉 middleware/src，让 Python 优先使用 site-packages 中已安装的模块
             mw_src = str(self.project_root / "packages" / "sage-middleware" / "src")
             sage_paths = [p for p in sage_paths_all if p != mw_src]
