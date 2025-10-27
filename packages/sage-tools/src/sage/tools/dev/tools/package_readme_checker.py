@@ -209,15 +209,22 @@ class PackageREADMEChecker:
                     print(f"     ... and {len(result.issues) - 3} more issues")
             print()
 
-    def generate_detailed_report(self, results: dict[str, PackageREADMECheck]) -> str:
-        """Generate detailed markdown report."""
+    def generate_report(self, results: list[PackageREADMECheck] | dict[str, PackageREADMECheck]):
+        """Generate and print detailed report."""
+        # Convert list to dict if needed
+        if isinstance(results, list):
+            results_dict = {r.package_name: r for r in results}
+        else:
+            results_dict = results
+        
+        # Generate report
         lines = ["# Package README Quality Report", ""]
         lines.append(f"**Generated**: {self._get_timestamp()}")
         lines.append("")
 
         # Summary
-        total = len(results)
-        avg_score = sum(r.score for r in results.values()) / total if total else 0
+        total = len(results_dict)
+        avg_score = sum(r.score for r in results_dict.values()) / total if total else 0
 
         lines.extend(
             [
@@ -232,7 +239,7 @@ class PackageREADMEChecker:
         # Detailed results
         lines.extend(["## Detailed Results", ""])
 
-        for package_name, result in sorted(results.items()):
+        for package_name, result in sorted(results_dict.items()):
             lines.append(f"### {package_name}")
             lines.append("")
             lines.append(f"**Score**: {result.score:.1f}/100")
@@ -262,7 +269,10 @@ class PackageREADMEChecker:
                     lines.append(f"- {issue}")
                 lines.append("")
 
-        return "\n".join(lines)
+        # Print the report
+        report = "\n".join(lines)
+        print("\n" + "=" * 70)
+        print(report)
 
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
@@ -299,15 +309,7 @@ def main():
 
     # Generate report if requested
     if args.report:
-        report = checker.generate_detailed_report(results)
-
-        if args.output:
-            output_path = Path(args.output)
-            output_path.write_text(report, encoding="utf-8")
-            print(f"\n✅ Report saved to: {output_path}")
-        else:
-            print("\n" + "=" * 70)
-            print(report)
+        checker.generate_report(results)
 
     # Exit with error if any package has low score
     avg_score = sum(r.score for r in results.values()) / len(results) if results else 0

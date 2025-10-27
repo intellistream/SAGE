@@ -3,6 +3,8 @@
 import os
 from unittest.mock import patch
 
+import pytest
+
 from sage.common.config.output_paths import (
     SageOutputPaths,
     find_sage_project_root,
@@ -13,6 +15,28 @@ from sage.common.config.output_paths import (
     get_temp_dir,
     initialize_sage_paths,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolate_sage_paths(monkeypatch):
+    """
+    Isolate SAGE paths for each test to avoid conflicts in parallel test runs.
+    
+    This fixture:
+    1. Clears the cache before the test
+    2. Removes SAGE_OUTPUT_DIR to avoid interference
+    3. Clears the cache after the test
+    """
+    # Clear cache before test
+    get_sage_paths.cache_clear()
+    
+    # Remove SAGE_OUTPUT_DIR to let tests control their own paths
+    monkeypatch.delenv("SAGE_OUTPUT_DIR", raising=False)
+    
+    yield
+    
+    # Clear cache after test
+    get_sage_paths.cache_clear()
 
 
 class TestFindSageProjectRoot:
@@ -233,9 +257,6 @@ class TestConvenienceFunctions:
 
     def test_get_logs_dir(self, tmp_path):
         """测试get_logs_dir便捷函数"""
-        # Clear cache first
-        get_sage_paths.cache_clear()
-
         with patch("sage.common.config.output_paths.get_appropriate_sage_dir") as mock_get:
             mock_get.return_value = tmp_path / ".sage"
             (tmp_path / ".sage" / "logs").mkdir(parents=True)
@@ -245,8 +266,6 @@ class TestConvenienceFunctions:
 
     def test_get_output_dir(self, tmp_path):
         """测试get_output_dir便捷函数"""
-        get_sage_paths.cache_clear()
-
         with patch("sage.common.config.output_paths.get_appropriate_sage_dir") as mock_get:
             mock_get.return_value = tmp_path / ".sage"
             (tmp_path / ".sage" / "output").mkdir(parents=True)
@@ -256,8 +275,6 @@ class TestConvenienceFunctions:
 
     def test_get_temp_dir(self, tmp_path):
         """测试get_temp_dir便捷函数"""
-        get_sage_paths.cache_clear()
-
         with patch("sage.common.config.output_paths.get_appropriate_sage_dir") as mock_get:
             mock_get.return_value = tmp_path / ".sage"
             (tmp_path / ".sage" / "temp").mkdir(parents=True)
@@ -267,7 +284,6 @@ class TestConvenienceFunctions:
 
     def test_initialize_sage_paths(self, tmp_path, monkeypatch):
         """测试initialize_sage_paths函数"""
-        get_sage_paths.cache_clear()
         project_root = tmp_path / "project"
         project_root.mkdir()
 
