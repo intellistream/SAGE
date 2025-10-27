@@ -18,13 +18,13 @@ def reset_jobmanager_singleton():
     """在每个测试前后重置JobManager单例状态，避免测试间相互影响"""
     # 测试前：重置单例
     JobManager.instance = None
-    
+
     yield
-    
+
     # 测试后：清理
     if JobManager.instance is not None:
         # 关闭daemon server如果存在
-        if hasattr(JobManager.instance, 'server') and JobManager.instance.server:
+        if hasattr(JobManager.instance, "server") and JobManager.instance.server:
             try:
                 JobManager.instance.server.stop()
             except Exception:
