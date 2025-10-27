@@ -1,56 +1,18 @@
-#!/usr/bin/env python3
 """
-Dev-notes 文档整理助手
+Dev-notes 文档整理工具
 
-⚠️ 此脚本已迁移到 sage-tools 包
-📝 新位置: packages/sage-tools/src/sage/tools/dev/maintenance/devnotes_organizer.py
-🚀 新用法: sage-dev maintenance organize-devnotes
+帮助整理现有的 dev-notes 文档：
+1. 分析文档内容
+2. 建议分类目录
+3. 检查元数据
+4. 生成整理建议
 
-保留此文件以便向后兼容
+从 tools/maintenance/helpers/devnotes_organizer.py 迁移
+
+Author: SAGE Team
+Date: 2025-10-27
 """
 
-import sys
-import warnings
-
-warnings.warn(
-    "此脚本已迁移到 sage-tools 包。"
-    "请使用: sage-dev maintenance organize-devnotes",
-    DeprecationWarning,
-    stacklevel=2,
-)
-
-print("=" * 80)
-print("⚠️  此脚本已迁移到 sage-tools 包")
-print("=" * 80)
-print()
-print("新的使用方式:")
-print("  sage-dev maintenance organize-devnotes")
-print()
-print("或使用 Python API:")
-print("  from sage.tools.dev.maintenance import DevNotesOrganizer")
-print("  organizer = DevNotesOrganizer(root_dir)")
-print("  organizer.generate_report(organizer.analyze_all())")
-print()
-print("继续使用旧脚本...")
-print()
-
-# 尝试导入新模块
-try:
-    from pathlib import Path
-    from sage.tools.dev.maintenance import DevNotesOrganizer
-
-    root = Path.cwd()
-    organizer = DevNotesOrganizer(root)
-    results = organizer.analyze_all()
-    organizer.generate_report(results)
-    sys.exit(0)
-except ImportError:
-    print("❌ 无法导入新模块，请安装 sage-tools:")
-    print("  pip install -e packages/sage-tools")
-    sys.exit(1)
-
-# 原始代码保留（以防万一）
-import argparse
 import re
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -80,15 +42,29 @@ CATEGORY_KEYWORDS = {
 }
 
 
-class DevNotesAnalyzer:
-    """Dev-notes 文档分析器"""
+class DevNotesOrganizer:
+    """Dev-notes 文档整理器"""
 
     def __init__(self, root_dir: Path):
-        self.root_dir = root_dir
-        self.devnotes_dir = root_dir / "docs" / "dev-notes"
+        """
+        初始化整理器
+
+        Args:
+            root_dir: 项目根目录
+        """
+        self.root_dir = Path(root_dir)
+        self.devnotes_dir = self.root_dir / "docs" / "dev-notes"
 
     def analyze_file(self, file_path: Path) -> Dict:
-        """分析单个文件"""
+        """
+        分析单个文件
+
+        Args:
+            file_path: 文件路径
+
+        Returns:
+            分析结果字典
+        """
         try:
             content = file_path.read_text(encoding="utf-8")
         except Exception as e:
@@ -125,7 +101,15 @@ class DevNotesAnalyzer:
         }
 
     def _check_metadata(self, content: str) -> Tuple[bool, bool, bool]:
-        """检查元数据"""
+        """
+        检查文档元数据
+
+        Args:
+            content: 文档内容
+
+        Returns:
+            (has_date, has_author, has_summary) 元组
+        """
         lines = content.split("\n")[:30]
         has_date = False
         has_author = False
@@ -142,7 +126,16 @@ class DevNotesAnalyzer:
         return has_date, has_author, has_summary
 
     def _suggest_category(self, filename: str, content: str) -> str:
-        """根据文件名和内容建议分类"""
+        """
+        根据文件名和内容建议分类
+
+        Args:
+            filename: 文件名
+            content: 文件内容
+
+        Returns:
+            建议的分类名
+        """
         # 转为小写用于匹配
         text = (filename + " " + content[:1000]).lower()
 
@@ -159,7 +152,12 @@ class DevNotesAnalyzer:
         return "migration"  # 默认归为迁移类
 
     def analyze_all(self) -> List[Dict]:
-        """分析所有文件"""
+        """
+        分析所有文档文件
+
+        Returns:
+            分析结果列表
+        """
         all_files = list(self.devnotes_dir.rglob("*.md"))
         # 排除特殊文件
         all_files = [f for f in all_files if f.name not in ["README.md", "TEMPLATE.md"]]
@@ -171,13 +169,17 @@ class DevNotesAnalyzer:
 
         return results
 
-    def generate_report(self, results: List[Dict]) -> None:
-        """生成整理报告"""
-        print("=" * 80)
-        print("📊 Dev-notes 文档整理报告")
-        print("=" * 80)
-        print()
+    def generate_report(self, results: List[Dict], verbose: bool = True) -> Dict:
+        """
+        生成整理报告
 
+        Args:
+            results: 分析结果列表
+            verbose: 是否打印详细信息
+
+        Returns:
+            报告数据字典
+        """
         # 统计
         total = len(results)
         root_files = [r for r in results if r.get("current_category") == "root"]
@@ -187,6 +189,30 @@ class DevNotesAnalyzer:
             if not (r.get("has_date") and r.get("has_author") and r.get("has_summary"))
         ]
         empty_files = [r for r in results if r.get("is_empty")]
+
+        report_data = {
+            "total": total,
+            "root_files": root_files,
+            "missing_metadata": missing_metadata,
+            "empty_files": empty_files,
+        }
+
+        if verbose:
+            self._print_report(report_data)
+
+        return report_data
+
+    def _print_report(self, report_data: Dict) -> None:
+        """打印报告"""
+        total = report_data["total"]
+        root_files = report_data["root_files"]
+        missing_metadata = report_data["missing_metadata"]
+        empty_files = report_data["empty_files"]
+
+        print("=" * 80)
+        print("📊 Dev-notes 文档整理报告")
+        print("=" * 80)
+        print()
 
         print(f"📁 总文件数: {total}")
         print(f"📂 根目录文件: {len(root_files)} ⚠️")
@@ -229,7 +255,7 @@ class DevNotesAnalyzer:
             print("📝 缺少元数据的文件（需要补充）")
             print("=" * 80)
             print()
-            for r in missing_metadata:
+            for r in missing_metadata[:10]:  # 只显示前10个
                 if r.get("is_empty"):
                     continue  # 空文件已在上面列出
                 path = r.get("path")
@@ -242,6 +268,10 @@ class DevNotesAnalyzer:
                     missing.append("Summary")
                 print(f"📄 {path}")
                 print(f"   缺少字段: {', '.join(missing)}")
+                print()
+            
+            if len(missing_metadata) > 10:
+                print(f"... 还有 {len(missing_metadata) - 10} 个文件")
                 print()
 
         # 生成清理脚本
@@ -278,39 +308,6 @@ class DevNotesAnalyzer:
         print()
         print("💡 提示:")
         print("  - 复制上面的命令到终端执行")
-        print("  - 或者使用 --auto-fix 参数自动执行（需确认）")
+        print("  - 或者使用 sage-dev maintenance fix-metadata 自动修复")
         print("  - 重要文档可以移动到 docs-public 下")
         print()
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Dev-notes 文档整理助手",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-
-    parser.add_argument(
-        "--root",
-        type=Path,
-        default=Path.cwd(),
-        help="项目根目录（默认: 当前目录）",
-    )
-    parser.add_argument(
-        "--report",
-        action="store_true",
-        help="生成整理报告",
-    )
-
-    args = parser.parse_args()
-
-    analyzer = DevNotesAnalyzer(args.root)
-
-    if args.report:
-        results = analyzer.analyze_all()
-        analyzer.generate_report(results)
-    else:
-        parser.print_help()
-
-
-if __name__ == "__main__":
-    main()

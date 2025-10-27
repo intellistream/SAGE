@@ -2,6 +2,10 @@
 # Developer helper script for SAGE project
 # Provides common commands for development workflow
 
+# ⚠️ 此脚本正在逐步迁移到 sage-dev CLI
+# 📝 新用法: sage-dev <command>
+# 🚀 建议使用新的 CLI 命令以获得更好的体验
+
 set -euo pipefail
 
 # Color codes for output
@@ -181,6 +185,12 @@ cmd_pre_commit() {
 
 # Clean build artifacts
 cmd_clean() {
+    echo "⚠️  此命令已迁移到 sage-dev CLI"
+    echo "新用法: sage-dev project clean"
+    echo ""
+    echo "继续使用旧命令..."
+    echo ""
+    
     print_header "Cleaning build artifacts"
 
     print_info "Removing Python cache files..."
@@ -207,6 +217,12 @@ cmd_clean() {
 
 # Build documentation
 cmd_docs() {
+    echo "⚠️  此命令已迁移到 sage-dev CLI"
+    echo "新用法: sage-dev docs build"
+    echo ""
+    echo "继续使用旧命令..."
+    echo ""
+    
     print_header "Building documentation"
     cd docs-public
 
@@ -224,6 +240,12 @@ cmd_docs() {
 
 # Serve documentation
 cmd_serve_docs() {
+    echo "⚠️  此命令已迁移到 sage-dev CLI"
+    echo "新用法: sage-dev docs serve"
+    echo ""
+    echo "继续使用旧命令..."
+    echo ""
+    
     print_header "Serving documentation"
     cd docs-public
 

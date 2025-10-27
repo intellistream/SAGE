@@ -1,8 +1,54 @@
 #!/usr/bin/env python3
 """
 批量修复 dev-notes 文档元数据
+
+⚠️ 此脚本已迁移到 sage-tools 包
+📝 新位置: packages/sage-tools/src/sage/tools/dev/maintenance/metadata_fixer.py
+🚀 新用法: sage-dev maintenance fix-metadata
+
+保留此文件以便向后兼容
 """
 
+import sys
+import warnings
+
+warnings.warn(
+    "此脚本已迁移到 sage-tools 包。"
+    "请使用: sage-dev maintenance fix-metadata",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+print("=" * 80)
+print("⚠️  此脚本已迁移到 sage-tools 包")
+print("=" * 80)
+print()
+print("新的使用方式:")
+print("  sage-dev maintenance fix-metadata")
+print()
+print("或使用 Python API:")
+print("  from sage.tools.dev.maintenance import MetadataFixer")
+print("  fixer = MetadataFixer(root_dir)")
+print("  fixer.fix_all()")
+print()
+print("继续使用旧脚本...")
+print()
+
+# 尝试导入新模块
+try:
+    from pathlib import Path
+    from sage.tools.dev.maintenance import MetadataFixer
+
+    root = Path.cwd()
+    fixer = MetadataFixer(root)
+    fixer.fix_all()
+    sys.exit(0)
+except ImportError:
+    print("❌ 无法导入新模块，请安装 sage-tools:")
+    print("  pip install -e packages/sage-tools")
+    sys.exit(1)
+
+# 原始代码保留（以防万一）
 from pathlib import Path
 
 # 需要修复的文件列表（从错误日志中提取）

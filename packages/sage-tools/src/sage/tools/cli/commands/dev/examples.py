@@ -7,7 +7,6 @@ sage-dev examples 命令组
 """
 
 from pathlib import Path
-from typing import List, Optional
 
 import typer
 from rich.console import Console
@@ -54,9 +53,9 @@ def analyze_command(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
 ):
     """分析 examples 目录结构
-    
+
     扫描并分析所有示例文件，显示分类、依赖、运行时间等信息。
-    
+
     示例：
         sage-dev examples analyze
         sage-dev examples analyze --verbose
@@ -148,18 +147,18 @@ def analyze_command(
 
 @app.command(name="test")
 def test_command(
-    category: Optional[List[str]] = typer.Option(
+    category: list[str] | None = typer.Option(
         None, "--category", "-c", help="指定测试类别（可多次使用）"
     ),
     quick: bool = typer.Option(False, "--quick", "-q", help="只运行快速测试"),
-    timeout: Optional[int] = typer.Option(None, "--timeout", "-t", help="单个测试超时时间（秒）"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="保存结果到JSON文件"),
+    timeout: int | None = typer.Option(None, "--timeout", "-t", help="单个测试超时时间（秒）"),
+    output: str | None = typer.Option(None, "--output", "-o", help="保存结果到JSON文件"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细输出"),
 ):
     """运行 examples 测试
-    
+
     执行示例文件并验证其运行正常。
-    
+
     示例：
         sage-dev examples test --quick              # 运行快速测试
         sage-dev examples test -c tutorials         # 测试 tutorials 类别
@@ -218,10 +217,10 @@ def check_command(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
 ):
     """检查中间结果放置
-    
+
     验证示例代码没有在项目根目录产生中间结果文件，
     所有输出应该在 .sage/ 目录下。
-    
+
     示例：
         sage-dev examples check
         sage-dev examples check --verbose
@@ -253,8 +252,7 @@ def check_command(
             console.print("\n[green]✅ 检查通过！项目根目录保持整洁。[/green]")
         else:
             console.print(
-                "\n[yellow]⚠️  发现中间结果放置问题。"
-                "请将所有输出移至 .sage/ 目录。[/yellow]"
+                "\n[yellow]⚠️  发现中间结果放置问题。" "请将所有输出移至 .sage/ 目录。[/yellow]"
             )
             raise typer.Exit(1)
 
@@ -270,9 +268,9 @@ def check_command(
 @app.command(name="info")
 def info_command():
     """显示开发环境信息
-    
+
     检查并显示当前的开发环境状态。
-    
+
     示例：
         sage-dev examples info
     """
@@ -289,9 +287,7 @@ def info_command():
         table.add_column("项目", style="cyan")
         table.add_column("状态", style="green")
 
-        table.add_row(
-            "开发环境", "✅ 可用" if info["has_dev_env"] else "❌ 不可用"
-        )
+        table.add_row("开发环境", "✅ 可用" if info["has_dev_env"] else "❌ 不可用")
         table.add_row("Examples 目录", info["examples_dir"] or "(未找到)")
         table.add_row("项目根目录", info["project_root"] or "(未找到)")
         table.add_row("SAGE_ROOT 环境变量", info["sage_root_env"] or "(未设置)")

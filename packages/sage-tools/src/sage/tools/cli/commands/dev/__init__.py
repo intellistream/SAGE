@@ -108,6 +108,39 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 github 命令组: {e}[/yellow]")
 
+try:
+    from .examples import app as examples_app
+
+    app.add_typer(
+        examples_app,
+        name="examples",
+        help="🔬 Examples 测试 - 测试和验证示例代码（需要开发环境）(analyze, test, check, info)",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 examples 命令组: {e}[/yellow]")
+
+try:
+    from .maintenance import app as maintenance_app
+
+    app.add_typer(
+        maintenance_app,
+        name="maintenance",
+        help="🛠️ 维护工具 - Dev-notes 整理、元数据修复、Ruff 更新 (organize-devnotes, fix-metadata, update-ruff-ignore)",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 maintenance 命令组: {e}[/yellow]")
+
+try:
+    from .docs import app as docs_app
+
+    app.add_typer(
+        docs_app,
+        name="docs",
+        help="📚 文档管理 - 构建、预览、检查文档 (build, serve, check)",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 docs 命令组: {e}[/yellow]")
+
 
 # ============================================================================
 # 主命令 Callback - 显示欢迎信息和版本
@@ -158,7 +191,8 @@ def dev_callback(
         console.print("  [cyan]maintain[/cyan]  - 维护工具（submodule、hooks、诊断）")
         console.print("  [cyan]package[/cyan]   - 包管理（PyPI发布、版本、安装）")
         console.print("  [cyan]resource[/cyan]  - 资源管理（模型缓存）")
-        console.print("  [cyan]github[/cyan]    - GitHub管理（Issues、PR）\n")
+        console.print("  [cyan]github[/cyan]    - GitHub管理（Issues、PR）")
+        console.print("  [cyan]examples[/cyan]  - Examples测试（需要开发环境）\n")
         console.print("📚 详细文档: [link]https://github.com/intellistream/SAGE[/link]\n")
 
 

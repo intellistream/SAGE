@@ -59,24 +59,24 @@ docs/dev-notes/architecture/
 └── examples-testing-pypi-strategy.md  ✅ 架构决策
 ```
 
-## ⏳ Next Steps
+## ✅ Phase 2: CLI Integration (Complete)
 
-### Phase 2: CLI Integration (Next)
+- [x] 创建 `sage-dev examples` 命令组 ✅
+- [x] 添加子命令：
+  - [x] `sage-dev examples analyze` ✅
+  - [x] `sage-dev examples test` ✅
+  - [x] `sage-dev examples check` ✅
+  - [x] `sage-dev examples info` ✅
+- [x] 集成到主 CLI 系统 ✅
+- [x] 命令测试验证 ✅
 
-- [ ] 创建 `sage-dev examples` 命令组
-- [ ] 添加子命令：
-  - [ ] `sage-dev examples analyze`
-  - [ ] `sage-dev examples test`
-  - [ ] `sage-dev examples check`
-- [ ] 集成到主 CLI 系统
-
-### Phase 3: Testing & Validation
+## Phase 3: 测试与验证 (PENDING)
 
 - [ ] 创建单元测试
-  - [ ] test_analyzer.py
-  - [ ] test_runner.py
-  - [ ] test_suite.py
-  - [ ] test_utils.py
+  - [ ] `tests/dev/test_examples_analyzer.py`
+  - [ ] `tests/dev/test_examples_runner.py`
+  - [ ] `tests/dev/test_examples_suite.py`
+  - [ ] `tests/dev/test_examples_utils.py`
 - [ ] 集成测试
   - [ ] 测试开发环境检测
   - [ ] 测试环境错误处理

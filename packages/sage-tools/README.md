@@ -132,6 +132,30 @@ sage-dev check-all --changed-only        # 仅检查变更
 sage-dev check-all --continue-on-error   # 出错继续执行
 ```
 
+### Examples Testing (Development Environment Only)
+
+Test and validate example code in the `examples/` directory:
+
+```bash
+# Analyze examples structure
+sage-dev examples analyze
+
+# Run quick tests
+sage-dev examples test --quick
+
+# Test specific category
+sage-dev examples test --category tutorials
+
+# Check intermediate results placement
+sage-dev examples check
+
+# Show development environment info
+sage-dev examples info
+```
+
+**Note**: Examples testing requires a development environment (source installation).
+See [Examples Testing Guide](src/sage/tools/dev/examples/README.md) for details.
+
 ### Using Development Tools
 
 ```bash
