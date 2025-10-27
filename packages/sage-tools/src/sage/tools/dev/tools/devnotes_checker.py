@@ -18,24 +18,30 @@ from datetime import datetime
 from pathlib import Path
 
 # 允许的 dev-notes 分类目录
+# 按照 SAGE 系统架构设计：L1-L6 分层 + 跨层主题
 ALLOWED_CATEGORIES = {
-    "architecture": "系统架构相关",
-    "kernel": "Kernel 层开发笔记",
-    "middleware": "Middleware 层开发笔记",
-    "libs": "Libs 层开发笔记",
-    "apps": "Apps 层开发笔记",
-    "ci-cd": "CI/CD 和构建相关",
-    "performance": "性能优化相关",
-    "security": "安全相关",
-    "testing": "测试相关",
-    "deployment": "部署相关",
-    "migration": "迁移和重构相关",
-    "tools": "开发工具相关",
-    "finetune": "微调和训练相关",
-    "embedding": "嵌入和向量化相关",
-    "autostop": "自动停止功能相关",
-    "examples-reorganization": "示例重组相关",
-    "archive": "已归档文档（只读）",
+    # === 架构层次分类 (L1-L6) ===
+    "l1-common": "L1 基础层 - sage-common 包相关开发笔记",
+    "l2-platform": "L2 平台层 - sage-platform 包相关开发笔记",
+    "l3-kernel": "L3 核心层 - sage-kernel 包相关开发笔记",
+    "l3-libs": "L3 核心层 - sage-libs 包相关开发笔记",
+    "l4-middleware": "L4 中间件层 - sage-middleware 包相关开发笔记",
+    "l5-apps": "L5 应用层 - sage-apps 包相关开发笔记",
+    "l5-benchmark": "L5 应用层 - sage-benchmark 包相关开发笔记",
+    "l6-studio": "L6 工具层 - sage-studio 包相关开发笔记",
+    "l6-tools": "L6 工具层 - sage-tools 包相关开发笔记",
+    # === 跨层主题分类 (在 cross-layer/ 下) ===
+    "cross-layer/architecture": "系统架构设计与演进",
+    "cross-layer/ci-cd": "CI/CD 流程、构建系统、自动化",
+    "cross-layer/performance": "性能优化、基准测试、调优",
+    "cross-layer/security": "安全机制、权限控制、加密",
+    "cross-layer/testing": "测试策略、测试框架、质量保证",
+    "cross-layer/deployment": "部署方案、运维配置、发布流程",
+    "cross-layer/migration": "数据迁移、代码重构、升级指南",
+    "cross-layer/documentation": "文档规范、API 文档、用户指南",
+    "cross-layer/research": "研究实验、算法探索、原型验证",
+    # === 特殊分类 ===
+    "archive": "已归档文档（历史记录，只读）",
 }
 
 # 特殊文件（不受规则限制）
@@ -78,17 +84,29 @@ class DevNotesChecker:
         if len(rel_path.parts) == 1:
             self.errors.append(
                 f"❌ {rel_path}: 文档必须放在分类目录下，不能直接放在 dev-notes 根目录\n"
-                f"   建议: 根据内容移动到 {', '.join(ALLOWED_CATEGORIES.keys())} 中的某个目录"
+                f"   建议: 根据内容移动到合适的分类目录"
             )
             return False
 
-        # 检查分类目录
-        category = rel_path.parts[0]
+        # 检查分类目录（支持一级或二级分类）
+        # 例如: l3-kernel/xxx.md 或 cross-layer/architecture/xxx.md
+        if rel_path.parts[0] == "cross-layer":
+            # 跨层主题：需要二级分类
+            if len(rel_path.parts) < 3:
+                self.errors.append(
+                    f"❌ {rel_path}: cross-layer 目录下的文档必须放在具体的子分类中\n"
+                    f"   例如: cross-layer/architecture/, cross-layer/ci-cd/ 等"
+                )
+                return False
+            category = f"{rel_path.parts[0]}/{rel_path.parts[1]}"
+        else:
+            # 层次分类或归档：一级分类
+            category = rel_path.parts[0]
+
         if category not in ALLOWED_CATEGORIES:
+            allowed_list = "\n   ".join(sorted(ALLOWED_CATEGORIES.keys()))
             self.errors.append(
-                f"❌ {rel_path}: 未知的分类目录 '{category}'\n"
-                f"   允许的分类: {', '.join(ALLOWED_CATEGORIES.keys())}\n"
-                f"   说明: {ALLOWED_CATEGORIES.get(category, '未知分类')}"
+                f"❌ {rel_path}: 未知的分类目录 '{category}'\n" f"   允许的分类:\n   {allowed_list}"
             )
             return False
 
@@ -113,7 +131,7 @@ class DevNotesChecker:
         # 检查是否有元数据区域（前几行）
         lines = content.split("\n")
         metadata = {}
-        
+
         # 支持两种格式：
         # 1. 元数据在文档开头（第一行开始）
         # 2. 元数据在第一个 # 标题之后
@@ -121,11 +139,11 @@ class DevNotesChecker:
             # 跳过空行和分隔线
             if not line.strip() or line.strip() == "---":
                 continue
-                
+
             # 跳过标题行
             if line.startswith("#"):
                 continue
-            
+
             # 尝试匹配元数据格式
             # 支持格式：**Key**: Value 或 **Key:** Value 或 Key: Value
             match = re.match(

@@ -77,7 +77,10 @@ ROOT_MD_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^[^/]*\.
 if [ -n "$DEVNOTES_FILES" ] || [ -n "$ROOT_MD_FILES" ]; then
     # 优先使用 sage-dev 命令（如果 sage-tools 已安装）
     if command -v sage-dev >/dev/null 2>&1; then
-        TOTAL_FILES=$(( $(echo "$DEVNOTES_FILES" | grep -c . || echo 0) + $(echo "$ROOT_MD_FILES" | grep -c . || echo 0) ))
+        # 安全计算文件数量
+        DEVNOTES_COUNT=$(echo "$DEVNOTES_FILES" | grep -c . 2>/dev/null || echo 0)
+        ROOT_MD_COUNT=$(echo "$ROOT_MD_FILES" | grep -c . 2>/dev/null || echo 0)
+        TOTAL_FILES=$((DEVNOTES_COUNT + ROOT_MD_COUNT))
         echo -e "📝 检查 $TOTAL_FILES 个 dev-notes 文档"
 
         # 使用 sage-dev quality devnotes 命令（使用 --warn-only 因为某些规则可能过于严格）
@@ -91,7 +94,10 @@ if [ -n "$DEVNOTES_FILES" ] || [ -n "$ROOT_MD_FILES" ]; then
         fi
     # 回退到直接调用 Python 脚本（向后兼容）
     elif [ -f "$ROOT_DIR/packages/sage-tools/src/sage/tools/dev/tools/devnotes_checker.py" ]; then
-        TOTAL_FILES=$(( $(echo "$DEVNOTES_FILES" | grep -c . || echo 0) + $(echo "$ROOT_MD_FILES" | grep -c . || echo 0) ))
+        # 安全计算文件数量
+        DEVNOTES_COUNT=$(echo "$DEVNOTES_FILES" | grep -c . 2>/dev/null || echo 0)
+        ROOT_MD_COUNT=$(echo "$ROOT_MD_FILES" | grep -c . 2>/dev/null || echo 0)
+        TOTAL_FILES=$((DEVNOTES_COUNT + ROOT_MD_COUNT))
         echo -e "📝 检查 $TOTAL_FILES 个 dev-notes 文档"
 
         if python3 "$ROOT_DIR/packages/sage-tools/src/sage/tools/dev/tools/devnotes_checker.py" \
