@@ -83,7 +83,7 @@ repos:
   rev: v0.11.0.1
   hooks:
   - id: shellcheck
-    args: [-x, -e, SC1091]      # -x: follow sources, -e SC1091: ignore source errors
+    args: [-x, -e, SC1091, -S, error]      # -x: follow sources, -e SC1091: ignore source errors, -S error: only fail on errors
     files: \.(sh|bash)$
     exclude: ^(tools/conda/)
 

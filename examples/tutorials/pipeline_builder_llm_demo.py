@@ -12,8 +12,8 @@ import json
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
-from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
-from sage.tools.cli.commands.pipeline_knowledge import get_default_knowledge_base
+from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
+from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
 
 console = Console()
 
@@ -72,7 +72,7 @@ def demonstrate_llm_pipeline():
     # Step 4: RAG 检索
     console.print("\n[bold]步骤 4: RAG 检索相关文档和代码[/bold]")
     if kb:
-        from sage.tools.cli.commands.pipeline_knowledge import build_query_payload
+        from sage.cli.commands.apps.pipeline_knowledge import build_query_payload
 
         query = build_query_payload(requirements)
         console.print(f"\n检索查询: [cyan]{query[:150]}...[/cyan]")

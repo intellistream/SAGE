@@ -9,7 +9,6 @@ SAGE Application Commands
 - studio: 可视化编辑器
 """
 
-import typer
 from rich.console import Console
 
 console = Console()

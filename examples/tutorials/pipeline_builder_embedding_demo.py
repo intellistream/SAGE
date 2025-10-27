@@ -8,7 +8,7 @@ SAGE Pipeline Builder - Embedding Integration 示例
 """
 
 
-from sage.tools.cli.commands.pipeline_knowledge import (
+from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
     get_default_knowledge_base,
 )

@@ -32,16 +32,16 @@ print_info() {
 
 print_success() {
     if [ "$QUIET_MODE" = false ]; then
-        echo -e "${GREEN}$@${NC}"
+        echo -e "${GREEN}$*${NC}"
     fi
 }
 
 print_warning() {
-    echo -e "${YELLOW}$@${NC}"
+    echo -e "${YELLOW}$*${NC}"
 }
 
 print_error() {
-    echo -e "${RED}$@${NC}"
+    echo -e "${RED}$*${NC}"
 }
 
 print_info "🔧 安装 SAGE Git Hooks..."

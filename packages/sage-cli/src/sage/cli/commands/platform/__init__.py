@@ -13,7 +13,6 @@ SAGE Platform Commands
 - extensions: C++扩展管理
 """
 
-import typer
 from rich.console import Console
 
 # 创建主命令应用 - 注意：这个不会被直接注册，而是每个子命令会被单独注册

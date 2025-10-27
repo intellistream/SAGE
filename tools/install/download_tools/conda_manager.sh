@@ -233,7 +233,7 @@ create_conda_environment() {
         echo -e "${INFO} ~/.conda 目录可用空间: $available_space"
 
         # 检查权限
-        if [ ! -w ~/.conda/envs 2>/dev/null ]; then
+        if ! [ -w ~/.conda/envs ] 2>/dev/null; then
             echo -e "${WARNING} ~/.conda/envs 目录权限问题"
             echo -e "${DIM}尝试: mkdir -p ~/.conda/envs && chmod 755 ~/.conda/envs${NC}"
         fi

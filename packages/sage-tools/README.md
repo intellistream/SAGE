@@ -27,6 +27,20 @@ SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开
 - Code coverage analysis
 - Performance benchmarking
 - Quality metrics collection
+- **Examples testing framework** (development environment only)
+
+### 🔬 Examples Testing (Dev Environment Only)
+
+**Note**: Examples testing tools require a development environment with access to the `examples/`
+directory.
+
+- Automated examples discovery and analysis
+- Category-based testing (tutorials, RAG, memory, etc.)
+- Dependency validation
+- Runtime estimation and timeout management
+- Detailed test reporting
+
+See [Examples Testing README](src/sage/tools/dev/examples/README.md) for details.
 
 ### 📊 Analysis & Reporting
 
@@ -37,13 +51,34 @@ SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开
 
 ## 🚀 Installation
 
-```bash
-# 安装开发工具包
-pip install -e packages/sage-tools
+### For End Users (PyPI)
 
-# 或使用 sage-dev 命令
-sage-dev install sage-tools
+```bash
+# Install from PyPI
+pip install isage-tools
+
+# Install with CLI support
+pip install isage-tools[cli]
+
+# Install with full development tools
+pip install isage-tools[dev]
 ```
+
+### For Developers (Source)
+
+```bash
+# Clone SAGE repository
+git clone https://github.com/intellistream/SAGE
+cd SAGE
+
+# Install in development mode
+pip install -e packages/sage-tools[dev]
+
+# This enables all features including Examples testing
+```
+
+**Note**: Some features (like Examples testing) are only available when installed from source in a
+development environment.
 
 ## 📖 Quick Start
 

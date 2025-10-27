@@ -197,6 +197,7 @@ class TestBaseQueueDescriptor:
         desc = _TestableQueueDescriptor()
 
         # 初始化队列
+        queue1 = desc.queue_instance
         assert desc.is_initialized()
 
         # 清除缓存
@@ -204,8 +205,10 @@ class TestBaseQueueDescriptor:
         assert not desc.is_initialized()
 
         # 重新访问应该创建新实例
+        queue2 = desc.queue_instance
         assert desc.is_initialized()
         # 注意：由于是新的Queue实例，queue1和queue2不是同一个对象
+        assert queue1 is not queue2
 
     def test_clone_functionality(self):
         """测试克隆功能"""

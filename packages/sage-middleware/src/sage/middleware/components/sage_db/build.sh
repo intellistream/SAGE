@@ -75,7 +75,7 @@ if [[ -n "${SAGE_ENABLE_GPERFTOOLS:-}" ]]; then
     cmake_args+=(-DSAGE_ENABLE_GPERFTOOLS="${SAGE_ENABLE_GPERFTOOLS}")
 fi
 
-echo "⚙️  CMake配置: ${cmake_args[@]}"
+echo "⚙️  CMake配置: ${cmake_args[*]}"
 cmake -B "$BUILD_DIR" "${cmake_args[@]}"
 
 # 构建C++库

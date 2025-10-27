@@ -5,14 +5,10 @@ Tests for Architecture Compliance Checker
 """
 
 import shutil
-import sys
 import tempfile
 from pathlib import Path
 
-# 添加工具目录到 path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from architecture_checker import ArchitectureChecker
+from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
 
 
 def create_test_structure():

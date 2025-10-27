@@ -197,11 +197,11 @@ run_pytest_tests() {
 
     # 添加关键字过滤（如果指定了的话）
     if [[ -n "$KEYWORD" ]]; then
-        if [[ "${pytest_args[@]}" =~ "-k" ]]; then
+        if [[ "${pytest_args[*]}" =~ "-k" ]]; then
             # 如果已经有-k参数，需要组合条件
             for i in "${!pytest_args[@]}"; do
                 if [[ "${pytest_args[$i]}" == "-k" ]]; then
-                    pytest_args[$((i+1))]="${pytest_args[$((i+1))]} and $KEYWORD"
+                    pytest_args[i+1]="${pytest_args[i+1]} and $KEYWORD"
                     break
                 fi
             done

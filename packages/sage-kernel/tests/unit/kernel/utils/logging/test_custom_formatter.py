@@ -382,7 +382,7 @@ class TestCustomFormatterIntegration:
 
             try:
                 # 模拟异常
-                pass
+                1 / 0
             except ZeroDivisionError:
                 logger.error("Division by zero error", exc_info=True)
 
