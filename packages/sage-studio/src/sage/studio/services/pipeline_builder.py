@@ -196,7 +196,7 @@ class PipelineBuilder:
         - api: APISource (HTTP API)
         - memory/data: 内存数据源（用于测试）
         """
-        from sage.common.core.functions.source_function import SourceFunction
+        from sage.common.core import SourceFunction
 
         source_type = node.config.get("source_type", "memory")
 

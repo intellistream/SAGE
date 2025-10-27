@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 
-from sage.common.core.functions import SourceFunction
+from sage.common.core import SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.libs.context.model_context import ModelContext
 

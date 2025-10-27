@@ -4,7 +4,7 @@ import socket
 import time
 from pathlib import Path
 
-from sage.common.core.functions import SourceFunction
+from sage.common.core import SourceFunction
 
 
 class FileSource(SourceFunction):

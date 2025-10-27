@@ -7,7 +7,7 @@ from typing import Any
 
 import cv2
 
-from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core import BatchFunction
 
 
 class VideoFrameSource(BatchFunction):

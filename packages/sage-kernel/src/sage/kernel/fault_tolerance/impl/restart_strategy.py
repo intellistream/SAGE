@@ -6,7 +6,7 @@
 
 from abc import ABC, abstractmethod
 
-from sage.common.core.constants import DEFAULT_MAX_RESTART_ATTEMPTS
+from sage.common.core import DEFAULT_MAX_RESTART_ATTEMPTS
 
 
 class RestartStrategy(ABC):

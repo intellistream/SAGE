@@ -28,7 +28,7 @@ RAG 专用数据类型定义
 from typing import Any, Union
 
 # 导入基础类型
-from sage.common.core.data_types import (
+from sage.common.core import (
     BaseDocument,
     BaseQueryResult,
     ExtendedQueryResult,
@@ -200,7 +200,7 @@ def ensure_rag_response(data: RAGInput, default_query: str = "") -> RAGResponse:
         {'query': '...', 'results': [...]}
     """
     # 使用基础函数，然后转换为 RAGResponse
-    from sage.common.core.data_types import ensure_query_result
+    from sage.common.core import ensure_query_result
 
     base_result = ensure_query_result(data, default_query)
     rag_response: RAGResponse = {

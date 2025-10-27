@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, get_args, get_origin
 
-from sage.common.core.functions import BaseFunction, wrap_lambda
+from sage.common.core import BaseFunction, wrap_lambda
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 from .connected_streams import ConnectedStreams

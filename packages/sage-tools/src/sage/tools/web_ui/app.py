@@ -18,7 +18,7 @@ def _load_version():
     """加载版本信息"""
     try:
         # 尝试从本地包的版本文件加载
-        from sage.common._version import __version__
+        from sage.common import __version__
 
         return __version__
     except ImportError:

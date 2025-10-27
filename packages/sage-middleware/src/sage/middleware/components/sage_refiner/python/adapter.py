@@ -10,10 +10,10 @@ SAGE Function适配器
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from sage.common.core.functions.map_function import MapFunction
+    from sage.common.core import MapFunction
 else:
     try:
-        from sage.common.core.functions.map_function import MapFunction
+        from sage.common.core import MapFunction
 
         SAGE_CORE_AVAILABLE = True
     except ImportError:

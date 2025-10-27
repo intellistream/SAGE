@@ -12,7 +12,7 @@ This implementation uses the Self-RAG dataset format where each item contains:
 
 from typing import Any, Dict
 
-from sage.common.core.functions.map_function import MapFunction
+from sage.common.core import MapFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.sink import FileSink
 from sage.libs.io.source import FileSource

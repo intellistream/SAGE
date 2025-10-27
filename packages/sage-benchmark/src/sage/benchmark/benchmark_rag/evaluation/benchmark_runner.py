@@ -19,8 +19,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 from dotenv import load_dotenv
 from sage.common.config.output_paths import get_output_file
-from sage.common.core.functions.batch_function import BatchFunction
-from sage.common.core.functions.map_function import MapFunction
+from sage.common.core import BatchFunction, MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 

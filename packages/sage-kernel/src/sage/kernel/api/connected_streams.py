@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from sage.common.core.functions import (
+from sage.common.core import (
     BaseCoMapFunction,
     BaseFunction,
     BaseJoinFunction,
@@ -207,7 +207,7 @@ class ConnectedStreams:
             )
 
         # Import BaseCoMapFunction for type checking
-        from sage.common.core.functions import BaseCoMapFunction
+        from sage.common.core import BaseCoMapFunction
 
         # Type validation: Check if function is a proper CoMap function
         if not isinstance(function, type):

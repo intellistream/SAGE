@@ -1,5 +1,9 @@
 # 清理总结 - tools/ 目录重组完成 ✅
 
+**Date**: 2025-10-27  
+**Author**: SAGE Team  
+**Summary**: tools/ 目录重组和清理工作总结，记录已迁移和保留的内容
+
 ## 问题回答
 
 ### 1. 根目录下的 tools 全部集成到 sage-tools 了，就该删掉了吧？

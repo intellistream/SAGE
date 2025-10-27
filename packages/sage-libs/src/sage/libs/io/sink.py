@@ -3,7 +3,7 @@ import os
 from typing import Any
 
 from sage.common.config.output_paths import get_output_file
-from sage.common.core.functions import SinkFunction
+from sage.common.core import SinkFunction
 
 
 class TerminalSink(SinkFunction):

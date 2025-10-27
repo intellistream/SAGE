@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from sage.common.core.functions import wrap_lambda
+from sage.common.core import wrap_lambda
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.factory.service_factory import ServiceFactory
 from sage.kernel.runtime.jobmanager_client import JobManagerClient
@@ -366,7 +366,7 @@ class BaseEnvironment(ABC):
         # 检查 source 的类型并相应处理
         if isinstance(source, type) and hasattr(source, "__bases__"):
             # source 是一个类，检查是否是 BaseFunction 的子类
-            from sage.common.core.functions import BaseFunction
+            from sage.common.core import BaseFunction
 
             if issubclass(source, BaseFunction):
                 # 使用自定义批处理函数类

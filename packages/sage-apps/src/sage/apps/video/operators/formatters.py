@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sage.common.core.functions.map_function import MapFunction
+from sage.common.core import MapFunction
 
 
 class FrameLightweightFormatter(MapFunction):

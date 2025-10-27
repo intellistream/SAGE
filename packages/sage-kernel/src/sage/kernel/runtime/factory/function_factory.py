@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
-from sage.common.core.functions import BaseFunction
+from sage.common.core import BaseFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:

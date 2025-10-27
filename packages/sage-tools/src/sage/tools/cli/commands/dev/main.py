@@ -365,7 +365,7 @@ def quality(
             else:
                 console.print(f"[red]❌ 发现 {len(result.violations)} 个架构违规[/red]")
                 for violation in result.violations[:5]:  # 只显示前5个
-                    console.print(f"   • {violation.file_path}: {violation.message}")
+                    console.print(f"   • {violation.file}: {violation.message}")
                 if len(result.violations) > 5:
                     console.print(f"   ... 还有 {len(result.violations) - 5} 个问题")
                 extra_checks_passed = False

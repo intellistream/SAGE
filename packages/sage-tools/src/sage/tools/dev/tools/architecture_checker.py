@@ -15,6 +15,7 @@ SAGE Architecture Compliance Checker
 3. 模块结构规范
 4. 公共 API 导出
 5. 架构标记完整性
+6. 根目录文件规范（避免临时/测试文件污染根目录）
 """
 
 import ast
@@ -107,6 +108,41 @@ SUBMODULE_PATHS = {
     "neuromem",
     "sageTSDB",
     "docs-public",
+}
+
+# 根目录允许的文件（不区分大小写）
+# 只列出项目标准文件，其他文件都应该放在对应的子目录
+ALLOWED_ROOT_FILES = {
+    # 文档文件
+    "readme.md",
+    "contributing.md",
+    "developer.md",
+    "license",
+    "license.md",
+    "changelog.md",
+    "code_of_conduct.md",
+    "security.md",
+    # 配置文件
+    ".gitignore",
+    ".gitattributes",
+    ".editorconfig",
+    ".flake8",
+    "pyproject.toml",
+    "setup.py",
+    "setup.cfg",
+    "requirements.txt",
+    "makefile",
+    "dockerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    ".dockerignore",
+    "codecov.yml",
+    ".codecov.yml",
+    # Shell 脚本
+    "manage.sh",
+    "quickstart.sh",
+    # 其他
+    "cmakelists.txt",
 }
 
 
@@ -276,26 +312,54 @@ class ArchitectureChecker:
         return True
 
     def check_internal_import(self, import_info: ImportStatement, source_pkg: str):
-        """检查内部导入是否使用公共 API"""
+        """检查内部导入是否使用公共 API
+
+        只对跨包的内部导入发出警告，同包内的内部导入是允许的。
+        """
         module = import_info.module
 
+        # 获取被导入模块所属的包
+        target_pkg = self.get_imported_package(module)
+
+        # 如果是同一个包内的导入，不检查（同包内可以随意导入）
+        if target_pkg == source_pkg:
+            return
+
+        # 只对跨包的内部导入进行检查
         # 检查是否直接导入了内部模块
         internal_patterns = [
-            r"sage\.\w+\.runtime\.",  # 直接导入 runtime 内部
-            r"sage\.\w+\.core\.",  # 直接导入 core 内部（非公共 API）
-            r"sage\.\w+\._",  # 私有模块
+            (r"sage\.\w+\.runtime\.", "runtime"),  # 直接导入 runtime 内部
+            (
+                r"sage\.\w+\.core\.(?!__init__)",
+                "core子模块",
+            ),  # 直接导入 core 子模块（如 core.functions）
+            (r"sage\.\w+\._", "私有模块"),  # 私有模块
         ]
 
-        for pattern in internal_patterns:
+        for pattern, module_type in internal_patterns:
             if re.match(pattern, module):
+                # 为 core 子模块提供更具体的建议
+                if "core" in module_type and ".core." in module:
+                    # 提取包名，例如从 sage.common.core.functions 提取 sage.common.core
+                    parts = module.split(".")
+                    if len(parts) >= 3:
+                        public_api = ".".join(parts[:3])  # sage.common.core
+                        suggestion = f"建议从公共 API 导入: from {public_api} import ..."
+                    else:
+                        suggestion = f"建议使用 {target_pkg} 的公共 API 进行导入。"
+                else:
+                    suggestion = (
+                        f"建议使用 {target_pkg} 的公共 API，避免依赖内部实现（{module_type}）。"
+                    )
+
                 self.warnings.append(
                     ArchitectureViolation(
                         type="INTERNAL_IMPORT",
                         severity="WARNING",
                         file=import_info.file,
                         line=import_info.line,
-                        message=f"直接导入内部模块: {module}",
-                        suggestion="建议使用包的公共 API 进行导入。",
+                        message=f"跨包导入内部模块: {module}（从 {source_pkg} 到 {target_pkg}）",
+                        suggestion=suggestion,
                     )
                 )
                 break
@@ -404,6 +468,90 @@ class ArchitectureChecker:
 
         return True
 
+    def check_root_directory_files(self) -> bool:
+        """检查根目录文件是否符合规范
+
+        返回:
+            bool: True 表示通过，False 表示有问题
+        """
+        if not self.root_dir.exists():
+            return True
+
+        issues_found = False
+
+        # 获取根目录下所有文件（不包括子目录）
+        root_files = [f for f in self.root_dir.iterdir() if f.is_file()]
+
+        # 检查每个文件
+        for file_path in root_files:
+            filename = file_path.name.lower()
+
+            # 跳过隐藏文件（以 . 开头）
+            if filename.startswith("."):
+                # 检查是否在允许列表中
+                if filename not in ALLOWED_ROOT_FILES:
+                    # 隐藏配置文件通常是可以接受的，只给警告
+                    continue
+                else:
+                    continue
+
+            # 检查是否在允许列表中
+            if filename not in ALLOWED_ROOT_FILES:
+                # 根据文件类型给出具体建议
+                suggestion = self._get_file_placement_suggestion(file_path)
+
+                self.violations.append(
+                    ArchitectureViolation(
+                        type="INVALID_ROOT_FILE",
+                        severity="ERROR",
+                        file=file_path,
+                        line=0,
+                        message=f"根目录不应包含此文件: {file_path.name}",
+                        suggestion=suggestion,
+                    )
+                )
+                issues_found = True
+
+        return not issues_found
+
+    def _get_file_placement_suggestion(self, file_path: Path) -> str:
+        """根据文件类型提供放置建议"""
+        filename = file_path.name.lower()
+        suffix = file_path.suffix.lower()
+
+        # Python 测试文件
+        if filename.startswith("test_") and suffix == ".py":
+            return "测试文件应该放在: packages/sage-tools/tests/ 或对应包的 tests/ 目录下"
+
+        # Python 脚本
+        if suffix == ".py":
+            return (
+                "Python 脚本应该放在: tools/ (系统脚本) 或 packages/sage-tools/scripts/ (开发工具)"
+            )
+
+        # Markdown 文档
+        if suffix == ".md":
+            if any(kw in filename for kw in ["migration", "cleanup", "refactor", "tools"]):
+                return "开发文档应该放在: docs/dev-notes/l6-tools/ 或相应的分类目录下"
+            else:
+                return (
+                    "文档应该放在: docs/dev-notes/ (开发笔记) 或 docs-public/docs_src/ (公开文档)"
+                )
+
+        # 配置文件
+        if suffix in [".yml", ".yaml", ".json", ".toml", ".ini", ".cfg"]:
+            return "配置文件应该放在: 项目根目录的隐藏文件（如 .codecov.yml）或 tools/ 目录下"
+
+        # Shell 脚本
+        if suffix == ".sh":
+            return "Shell 脚本应该放在: tools/ 目录下"
+
+        # 数据文件
+        if suffix in [".csv", ".json", ".txt", ".dat"]:
+            return "数据文件应该放在: examples/data/ 或 packages/*/tests/data/"
+
+        return "请将文件移动到合适的子目录中"
+
     def check_all(self) -> CheckResult:
         """检查所有文件"""
         return self.run_checks(changed_files=None)
@@ -495,6 +643,14 @@ class ArchitectureChecker:
             if not self.check_layer_marker(package_name):
                 stats["missing_markers"] += 1
 
+        # 4. 检查根目录文件
+        print("4️⃣  检查根目录文件规范...")
+        root_files_ok = self.check_root_directory_files()
+        if not root_files_ok:
+            stats["invalid_root_files"] = len(
+                [v for v in self.violations if v.type == "INVALID_ROOT_FILE"]
+            )
+
         stats["internal_imports"] = len([v for v in self.warnings if v.type == "INTERNAL_IMPORT"])
 
         # 生成结果
@@ -526,6 +682,8 @@ def print_report(result: CheckResult):
     print(f"  • 非法依赖: {result.stats['illegal_dependencies']}")
     print(f"  • 内部导入: {result.stats['internal_imports']}")
     print(f"  • 缺少标记: {result.stats['missing_markers']}")
+    if "invalid_root_files" in result.stats:
+        print(f"  • 根目录问题文件: {result.stats['invalid_root_files']}")
 
     # 错误列表
     if result.violations:

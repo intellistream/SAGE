@@ -153,8 +153,8 @@ sage-dev examples check
 sage-dev examples info
 ```
 
-**Note**: Examples testing requires a development environment (source installation).
-See [Examples Testing Guide](src/sage/tools/dev/examples/README.md) for details.
+**Note**: Examples testing requires a development environment (source installation). See
+[Examples Testing Guide](src/sage/tools/dev/examples/README.md) for details.
 
 ### Using Development Tools
 

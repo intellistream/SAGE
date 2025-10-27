@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING, Any, Optional
 
-from sage.common.core.functions import BaseFunction
+from sage.common.core import BaseFunction
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.task_context import TaskContext

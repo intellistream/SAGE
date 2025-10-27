@@ -10,7 +10,7 @@ if os.getenv("SAGE_EXAMPLES_MODE") == "test":
     )
     sys.exit(0)
 
-from sage.common.core.functions.map_function import MapFunction
+from sage.common.core import MapFunction
 from sage.common.utils.config.loader import load_config
 from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.libs.io.sink import FileSink

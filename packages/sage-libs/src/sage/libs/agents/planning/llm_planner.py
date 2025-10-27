@@ -5,7 +5,7 @@ import json
 import re
 from typing import Any
 
-from sage.common.core.functions import MapFunction
+from sage.common.core import MapFunction
 
 PlanStep = dict[
     str, Any

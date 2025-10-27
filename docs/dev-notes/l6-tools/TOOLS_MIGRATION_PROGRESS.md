@@ -1,6 +1,9 @@
 # Tools 迁移进度报告 🎉
 
-**日期**: 2025-10-27  
+**Date**: 2025-10-27  
+**Author**: SAGE Team  
+**Summary**: tools/ 目录迁移到 sage-tools 包的进度跟踪，记录各阶段完成情况和新增的 CLI 命令
+
 **状态**: Phase 1 完成 ✅
 
 ## 📊 完成概况

@@ -1,5 +1,9 @@
 # Tools 目录脚本分类与迁移建议
 
+**Date**: 2025-10-27  
+**Author**: SAGE Team  
+**Summary**: tools/ 目录下脚本的分类分析和迁移建议，用于指导 tools/ 到 sage-tools 的重构工作
+
 ## 📊 分析结果
 
 ### 脚本分类

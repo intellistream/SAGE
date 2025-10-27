@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 
-from sage.common.core.functions import FilterFunction
+from sage.common.core import FilterFunction
 
 
 @dataclass

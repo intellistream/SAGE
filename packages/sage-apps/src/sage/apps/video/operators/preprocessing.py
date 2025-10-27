@@ -7,7 +7,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from sage.common.core.functions.map_function import MapFunction
+from sage.common.core import MapFunction
 
 
 class FramePreprocessor(MapFunction):

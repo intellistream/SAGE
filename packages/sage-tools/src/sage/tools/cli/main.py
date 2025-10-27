@@ -11,7 +11,7 @@ def version_callback(value: bool):
     """Show version information"""
     if value:
         try:
-            from sage.common._version import __version__
+            from sage.common import __version__
 
             typer.echo(f"SAGE Tools version {__version__}")
         except ImportError:
@@ -82,7 +82,7 @@ def main(
     🔗 更多信息: https://github.com/intellistream/SAGE
     """
     if version:
-        from sage.common._version import __version__
+        from sage.common import __version__
 
         typer.echo(f"SAGE CLI version {__version__}")
         raise typer.Exit()

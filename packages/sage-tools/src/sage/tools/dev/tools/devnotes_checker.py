@@ -285,7 +285,16 @@ class DevNotesChecker:
 
     def check_all(self) -> dict:
         """检查所有文件（返回字典格式，用于 CLI）"""
+        # 先检查目录结构
+        structure_ok = self.check_directory_structure()
+
+        # 再检查文件内容
         passed, failed = self.check_all_files()
+
+        # 如果目录结构有问题，也算失败
+        if not structure_ok:
+            failed += 1
+
         return {
             "passed": failed == 0 and (not self.strict or len(self.warnings) == 0),
             "total": passed + failed,
@@ -298,8 +307,17 @@ class DevNotesChecker:
 
     def check_changed(self, diff_target: str = "HEAD") -> dict:
         """检查变更的文件（返回字典格式，用于 CLI）"""
+        # 先检查目录结构（根目录文件检查）
+        structure_ok = self.check_directory_structure()
+
+        # 再检查变更的文件
         changed_files = get_changed_files(self.root_dir, diff_target)
         passed, failed = self.check_changed_files(changed_files)
+
+        # 如果目录结构有问题，也算失败
+        if not structure_ok:
+            failed += 1
+
         return {
             "passed": failed == 0 and (not self.strict or len(self.warnings) == 0),
             "total": passed + failed,

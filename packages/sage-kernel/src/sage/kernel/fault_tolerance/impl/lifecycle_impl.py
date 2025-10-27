@@ -7,8 +7,7 @@ Actor 和 Task 生命周期管理实现
 import time
 from typing import Any
 
-from sage.common.core.constants import DEFAULT_CLEANUP_TIMEOUT
-from sage.common.core.types import TaskID
+from sage.common.core import DEFAULT_CLEANUP_TIMEOUT, TaskID
 
 
 class LifecycleManagerImpl:
