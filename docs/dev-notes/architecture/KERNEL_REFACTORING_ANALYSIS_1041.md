@@ -587,7 +587,7 @@ python -c "from sage.libs.agents import LangChainAgentAdapter"
 python -c "from sage.libs.io import KafkaSource"
 
 # 3. 运行架构检查工具
-sage dev check-architecture
+sage-dev check-architecture
 
 # 4. 检查循环依赖
 python -c "

@@ -49,40 +49,40 @@ if ! command -v sage &> /dev/null; then
 fi
 
 echo "📦 检测到的 sage 版本:"
-sage --version 2>/dev/null || sage dev --version || echo "无法获取版本"
+sage --version 2>/dev/null || sage-dev --version || echo "无法获取版本"
 echo ""
 
 # 测试架构检查命令
 test_command "架构检查 - 全部文件" \
-    "sage dev check-architecture"
+    "sage-dev check-architecture"
 
 test_command "架构检查 - 仅变更文件" \
-    "sage dev check-architecture --changed-only"
+    "sage-dev check-architecture --changed-only"
 
 test_command "架构信息显示" \
-    "sage dev architecture --no-dependencies | grep -q 'sage-common'"
+    "sage-dev architecture --no-dependencies | grep -q 'sage-common'"
 
 test_command "架构信息 - JSON 格式" \
-    "sage dev architecture --format json | python3 -m json.tool > /dev/null"
+    "sage-dev architecture --format json | python3 -m json.tool > /dev/null"
 
 # 测试文档检查命令
 test_command "Dev-notes 文档检查" \
-    "timeout 30 sage dev check-devnotes"
+    "timeout 30 sage-dev check-devnotes"
 
 test_command "Dev-notes 文档检查 - 结构检查" \
-    "timeout 30 sage dev check-devnotes --check-structure"
+    "timeout 30 sage-dev check-devnotes --check-structure"
 
 # 测试 README 检查命令
 test_command "README 质量检查" \
-    "sage dev check-readme"
+    "sage-dev check-readme"
 
 # 测试综合检查命令
 test_command "综合检查 - 仅变更文件" \
-    "timeout 60 sage dev check-all --changed-only"
+    "timeout 60 sage-dev check-all --changed-only"
 
 # 测试质量检查命令（模拟 CI 用法）
 test_command "代码质量检查（CI 模式）" \
-    "sage dev quality --check-only --no-architecture --no-devnotes 2>&1 | grep -q 'Pre-commit' || true"
+    "sage-dev quality --check-only --no-architecture --no-devnotes 2>&1 | grep -q 'Pre-commit' || true"
 
 echo "======================================================================"
 echo "📊 测试结果汇总"

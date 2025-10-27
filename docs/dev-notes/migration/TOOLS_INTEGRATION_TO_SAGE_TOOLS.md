@@ -1,5 +1,5 @@
 **Date**: 2025-10-26  
-**Author**: SAGE Development Team  
+**Author**: sage-development Team  
 **Summary**: 将 tools/ 目录下的质量检查工具集成到 sage-tools 包中，提供统一的 CLI 接口
 
 ---
@@ -13,13 +13,13 @@
 ## 🎯 目标
 
 1. **统一管理**: 将所有 Python 开发工具集成到 `sage-tools` 包中
-2. **CLI 接口**: 通过 `sage dev` 命令提供一致的用户体验
+2. **CLI 接口**: 通过 `sage-dev` 命令提供一致的用户体验
 3. **可维护性**: 工具作为 Python 包管理，有测试、版本控制
 4. **可重用性**: 其他模块可以导入使用这些检查器
 
 ## 📦 迁移的工具
 
-### 1. architecture_checker.py → sage dev check-architecture
+### 1. architecture_checker.py → sage-dev check-architecture
 
 **原路径**: `tools/architecture_checker.py`  
 **新路径**: `packages/sage-tools/src/sage/tools/dev/tools/architecture_checker.py`
@@ -32,25 +32,25 @@
 **新命令**:
 ```bash
 # 检查所有文件
-sage dev check-architecture
+sage-dev check-architecture
 
 # 仅检查变更文件
-sage dev check-architecture --changed-only
+sage-dev check-architecture --changed-only
 
 # 对比特定分支
-sage dev check-architecture --diff main
+sage-dev check-architecture --diff main
 ```
 
 **集成到 quality 命令**:
 ```bash
 # 默认包含架构检查
-sage dev quality
+sage-dev quality
 
 # 跳过架构检查
-sage dev quality --no-architecture
+sage-dev quality --no-architecture
 ```
 
-### 2. devnotes_checker.py → sage dev check-devnotes
+### 2. devnotes_checker.py → sage-dev check-devnotes
 
 **原路径**: `tools/devnotes_checker.py`  
 **新路径**: `packages/sage-tools/src/sage/tools/dev/tools/devnotes_checker.py`
@@ -63,25 +63,25 @@ sage dev quality --no-architecture
 **新命令**:
 ```bash
 # 检查所有文档
-sage dev check-devnotes
+sage-dev check-devnotes
 
 # 仅检查变更的文档
-sage dev check-devnotes --changed-only
+sage-dev check-devnotes --changed-only
 
 # 检查目录结构
-sage dev check-devnotes --check-structure
+sage-dev check-devnotes --check-structure
 ```
 
 **集成到 quality 命令**:
 ```bash
 # 默认包含文档检查
-sage dev quality
+sage-dev quality
 
 # 跳过文档检查
-sage dev quality --no-devnotes
+sage-dev quality --no-devnotes
 ```
 
-### 3. package_readme_checker.py → sage dev check-readme
+### 3. package_readme_checker.py → sage-dev check-readme
 
 **原路径**: `tools/package_readme_checker.py`  
 **新路径**: `packages/sage-tools/src/sage/tools/dev/tools/package_readme_checker.py`
@@ -94,22 +94,22 @@ sage dev quality --no-devnotes
 **新命令**:
 ```bash
 # 检查所有包
-sage dev check-readme
+sage-dev check-readme
 
 # 检查特定包
-sage dev check-readme sage-common
+sage-dev check-readme sage-common
 
 # 生成详细报告
-sage dev check-readme --report
+sage-dev check-readme --report
 
 # 交互式修复
-sage dev check-readme sage-libs --fix
+sage-dev check-readme sage-libs --fix
 ```
 
 **集成到 quality 命令**:
 ```bash
 # 包含 README 检查（默认不包含）
-sage dev quality --readme
+sage-dev quality --readme
 ```
 
 ## 🗂️ 移动到 maintenance 的工具
@@ -140,7 +140,7 @@ python tools/maintenance/helpers/batch_fix_devnotes_metadata.py
 
 ## 🔄 Git Hooks 更新
 
-`tools/git-hooks/pre-commit` 已更新为优先使用 `sage dev` 命令：
+`tools/git-hooks/pre-commit` 已更新为优先使用 `sage-dev` 命令：
 
 ### 架构检查
 **旧方式**:
@@ -150,7 +150,7 @@ python3 "$ROOT_DIR/tools/architecture_checker.py" --root "$ROOT_DIR" --changed-o
 
 **新方式**:
 ```bash
-sage dev check-architecture --changed-only
+sage-dev check-architecture --changed-only
 ```
 
 ### 文档检查
@@ -161,7 +161,7 @@ python3 "$ROOT_DIR/tools/devnotes_checker.py" --root "$ROOT_DIR" --changed-only
 
 **新方式**:
 ```bash
-sage dev check-devnotes --changed-only
+sage-dev check-devnotes --changed-only
 ```
 
 **向后兼容**: Git hook 会检测 `sage` 命令是否可用，如果不可用则回退到直接调用 Python 脚本。
@@ -176,7 +176,7 @@ sage dev check-devnotes --changed-only
 4. `docs/dev-notes/ci-cd/PACKAGE_README_GUIDELINES.md`
 5. `docs/dev-notes/ci-cd/PACKAGE_README_QUALITY_REPORT.md`
 
-所有 `python tools/xxx_checker.py` 引用都已更新为 `sage dev check-xxx`。
+所有 `python tools/xxx_checker.py` 引用都已更新为 `sage-dev check-xxx`。
 
 ## 💡 使用指南
 
@@ -187,36 +187,36 @@ sage dev check-devnotes --changed-only
 pip install -e packages/sage-tools
 
 # 运行所有质量检查
-sage dev quality
+sage-dev quality
 
 # 只运行特定检查
-sage dev check-architecture
-sage dev check-devnotes
-sage dev check-readme
+sage-dev check-architecture
+sage-dev check-devnotes
+sage-dev check-readme
 ```
 
 ### 集成到工作流
 
 ```bash
 # 提交前运行所有检查
-sage dev quality --all-files
+sage-dev quality --all-files
 
 # 只检查变更的文件（更快）
-sage dev quality
+sage-dev quality
 
 # CI/CD 中使用
-sage dev quality --all-files --no-fix
+sage-dev quality --all-files --no-fix
 ```
 
 ### 开发调试
 
 ```bash
 # 详细模式
-sage dev check-architecture --verbose
-sage dev check-devnotes --verbose
+sage-dev check-architecture --verbose
+sage-dev check-devnotes --verbose
 
 # 仅警告模式（不中断）
-sage dev quality --warn-only
+sage-dev quality --warn-only
 ```
 
 ## 🔍 技术细节
@@ -241,7 +241,7 @@ from .package_readme_checker import PackageREADMEChecker
 ### Quality 命令选项
 
 ```python
-sage dev quality \
+sage-dev quality \
     --architecture/--no-architecture  # 架构检查（默认启用）
     --devnotes/--no-devnotes          # 文档检查（默认启用）
     --readme                          # README 检查（默认禁用）
@@ -251,9 +251,9 @@ sage dev quality \
 
 ## 🎯 迁移完成
 
-- ✅ `architecture_checker.py` → `sage dev check-architecture`
-- ✅ `devnotes_checker.py` → `sage dev check-devnotes`
-- ✅ `package_readme_checker.py` → `sage dev check-readme`
+- ✅ `architecture_checker.py` → `sage-dev check-architecture`
+- ✅ `devnotes_checker.py` → `sage-dev check-devnotes`
+- ✅ `package_readme_checker.py` → `sage-dev check-readme`
 - ✅ Git hooks 更新为使用新命令
 - ✅ 文档引用全部更新
 - ✅ 辅助工具移动到 `tools/maintenance/helpers/`
@@ -263,7 +263,7 @@ sage dev quality \
 - [ ] 为新命令添加单元测试
 - [ ] 更新 CI/CD 流程使用新命令
 - [ ] 在 sage-tools README 中添加使用说明
-- [ ] 考虑添加 `sage dev check-all` 命令作为快捷方式
+- [ ] 考虑添加 `sage-dev check-all` 命令作为快捷方式
 
 ## 🔗 相关文档
 

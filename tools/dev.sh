@@ -44,7 +44,7 @@ print_info() {
 # Show usage
 usage() {
     cat << EOF
-SAGE Development Helper Script
+sage-development Helper Script
 
 Usage: $0 <command> [options]
 

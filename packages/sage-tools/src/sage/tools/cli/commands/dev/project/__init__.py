@@ -70,7 +70,9 @@ def project_clean(
 
 @app.command(name="test")
 def project_test(
-    test_type: str = typer.Option("all", "--test-type", help="测试类型: all, unit, integration, quick"),
+    test_type: str = typer.Option(
+        "all", "--test-type", help="测试类型: all, unit, integration, quick"
+    ),
     project_root: str = typer.Option(".", "--project-root", help="项目根目录"),
     verbose: bool = typer.Option(False, "--verbose", help="详细输出"),
     packages: str = typer.Option("", "--packages", help="指定测试的包，逗号分隔"),
@@ -90,10 +92,10 @@ def project_test(
     运行单元测试、集成测试等。
 
     示例：
-        sage dev project test                     # 运行所有测试
-        sage dev project test --test-type unit    # 只运行单元测试
-        sage dev project test --packages sage-libs,sage-kernel  # 测试特定包
-        sage dev project test --failed            # 只运行失败的测试
+        sage-dev project test                     # 运行所有测试
+        sage-dev project test --test-type unit    # 只运行单元测试
+        sage-dev project test --packages sage-libs,sage-kernel  # 测试特定包
+        sage-dev project test --failed            # 只运行失败的测试
     """
     from sage.tools.cli.commands.dev.main import test
 
@@ -129,9 +131,9 @@ def show_architecture(
     显示 SAGE 的分层架构定义和包依赖关系。
 
     示例:
-        sage dev project architecture               # 文本格式
-        sage dev project architecture -f json       # JSON 格式
-        sage dev project architecture -f markdown   # Markdown 格式
+        sage-dev project architecture               # 文本格式
+        sage-dev project architecture -f json       # JSON 格式
+        sage-dev project architecture -f markdown   # Markdown 格式
     """
     from sage.tools.cli.commands.dev.main import architecture
 

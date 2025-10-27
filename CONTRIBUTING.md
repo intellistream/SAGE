@@ -1,6 +1,6 @@
 ﻿
 
-> 本地代码质量/测试请使用 `sage dev quality` 或 `sage dev test`，CI/CD 由 GitHub Workflows 自动完成。
+> 本地代码质量/测试请使用 `sage-dev quality` 或 `sage-dev test`，CI/CD 由 GitHub Workflows 自动完成。
 
 # SAGE 贡献指南
 

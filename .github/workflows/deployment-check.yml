@@ -67,7 +67,7 @@ jobs:
             echo ""
 
             if [ "${{ github.event_name }}" = "pull_request" ]; then
-              sage dev check-devnotes --changed-only || {
+              sage-dev check-devnotes --changed-only || {
                   echo ""
                   echo "❌ Dev-notes 文档不符合规范！"
                   echo ""
@@ -81,7 +81,7 @@ jobs:
                   exit 1
                 }
             else
-              sage dev check-devnotes --changed-only || {
+              sage-dev check-devnotes --changed-only || {
                 echo "⚠️  发现文档格式问题，但不阻塞部署"
               }
             fi
@@ -105,7 +105,7 @@ jobs:
 
             if [ -n "$PYTHON_CHANGED" ]; then
               echo "📝 发现 Python 文件变更"
-              sage dev check-architecture --changed-only || {
+              sage-dev check-architecture --changed-only || {
                   echo ""
                   echo "❌ 架构合规性检查失败！"
                   echo ""
@@ -114,7 +114,7 @@ jobs:
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   echo "1. 检查跨层级导入（如 app 导入 kernel）"
                   echo "2. 确保导入路径符合包架构"
-                  echo "3. 查看架构信息: sage dev architecture"
+                  echo "3. 查看架构信息: sage-dev architecture"
                   echo "4. 查看文档: docs-public/docs_src/dev-notes/package-architecture.md"
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   exit 1
@@ -125,10 +125,10 @@ jobs:
           else
             echo "📦 Push 模式：快速检查（仅检查变更文件）"
             # 在 push 时做快速检查，避免阻塞
-            sage dev check-architecture --changed-only || {
+            sage-dev check-architecture --changed-only || {
               echo ""
               echo "⚠️  发现架构问题，但不阻塞部署"
-              echo "请查看架构信息: sage dev architecture"
+              echo "请查看架构信息: sage-dev architecture"
               echo "并尽快修复: docs-public/docs_src/dev-notes/package-architecture.md"
             }
           fi
@@ -169,7 +169,7 @@ jobs:
         run: |
           echo "📖 检查包 README 文档..."
 
-          if sage dev check-readme; then
+          if sage-dev check-readme; then
             echo "✅ 所有包的 README 文档完整"
           else
             if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -180,7 +180,7 @@ jobs:
               echo "1. 确保每个包都有 README.md"
               echo "2. README 应包含：简介、安装、使用示例"
               echo "3. 使用模板: tools/templates/PACKAGE_README_TEMPLATE.md"
-              echo "4. 查看详细报告: sage dev check-readme --report"
+              echo "4. 查看详细报告: sage-dev check-readme --report"
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               exit 1
             else

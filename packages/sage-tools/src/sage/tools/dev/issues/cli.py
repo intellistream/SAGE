@@ -1,6 +1,6 @@
 """
 SAGE Issues管理命令 - CLI接口
-集成到sage dev命令组中
+集成到sage-dev命令组中
 """
 
 import os
@@ -130,7 +130,7 @@ def statistics():
 
     if not success:
         console.print("❌ [red]统计失败 - 请先下载Issues[/red]")
-        console.print("💡 运行: sage dev issues download")
+        console.print("💡 运行: sage-dev issues download")
         raise typer.Exit(1)
 
 
@@ -148,9 +148,9 @@ def team(
     显示团队信息、成员分布等。支持从GitHub API更新最新团队数据。
 
     示例:
-      sage dev issues team              # 显示团队分析
-      sage dev issues team --update    # 更新团队信息
-      sage dev issues team -u -a       # 更新并分析
+      sage-dev issues team              # 显示团队分析
+      sage-dev issues team --update    # 更新团队信息
+      sage-dev issues team -u -a       # 更新并分析
     """
     manager = IssuesManager()
 
@@ -245,9 +245,9 @@ def ai_analysis(
     - report: 生成分析报告
 
     示例:
-      sage dev issues ai --action analyze    # AI综合分析
-      sage dev issues ai --action dedupe     # 查找重复Issues
-      sage dev issues ai --dry-run           # 预览模式
+      sage-dev issues ai --action analyze    # AI综合分析
+      sage-dev issues ai --action dedupe     # 查找重复Issues
+      sage-dev issues ai --dry-run           # 预览模式
     """
     console.print(f"🤖 [bold blue]AI智能分析 (操作: {action})[/bold blue]")
 
@@ -320,9 +320,9 @@ def sync_issues(
     - both: 双向同步
 
     示例:
-      sage dev issues sync --direction upload   # 上传到GitHub
-      sage dev issues sync --dry-run           # 预览模式
-      sage dev issues sync --force             # 强制同步
+      sage-dev issues sync --direction upload   # 上传到GitHub
+      sage-dev issues sync --dry-run           # 预览模式
+      sage-dev issues sync --force             # 强制同步
     """
     console.print(f"🔄 [bold blue]Issues同步 (方向: {direction})[/bold blue]")
 
@@ -395,19 +395,19 @@ def organize_issues(
     - 超过一个月的 -> "History" 列
 
     示例:
-      sage dev issues organize --preview          # 预览整理计划
-      sage dev issues organize --apply --confirm  # 执行整理
+      sage-dev issues organize --preview          # 预览整理计划
+      sage-dev issues organize --apply --confirm  # 执行整理
     """
     if not preview and not apply:
         console.print("❌ [red]请指定 --preview 或 --apply 参数[/red]")
         console.print("\n💡 使用方法:")
-        console.print("  sage dev issues organize --preview          # 预览整理计划")
-        console.print("  sage dev issues organize --apply --confirm  # 执行整理")
+        console.print("  sage-dev issues organize --preview          # 预览整理计划")
+        console.print("  sage-dev issues organize --apply --confirm  # 执行整理")
         raise typer.Exit(1)
 
     if apply and not confirm:
         console.print("❌ [red]执行整理需要 --confirm 参数确认[/red]")
-        console.print("💡 使用: sage dev issues organize --apply --confirm")
+        console.print("💡 使用: sage-dev issues organize --apply --confirm")
         raise typer.Exit(1)
 
     console.print("🗂️ [bold blue]Issues整理工具[/bold blue]")
@@ -479,7 +479,7 @@ def run_tests():
     - 文件操作测试
 
     示例:
-      sage dev issues test    # 运行全部测试
+      sage-dev issues test    # 运行全部测试
     """
     console.print("🧪 [bold blue]运行Issues管理测试套件[/bold blue]")
 

@@ -271,7 +271,7 @@ def run_installation_diagnostics(
         console.print("\n🖥️ CLI 工具检查...")
         cli_commands: Iterable[tuple[str, list[str]]] = [
             ("sage", ["sage", "--help"]),
-            ("sage dev", ["sage", "dev", "--help"]),
+            ("sage-dev", ["sage", "dev", "--help"]),
         ]
         for label, command in cli_commands:
             try:

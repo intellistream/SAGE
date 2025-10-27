@@ -41,8 +41,8 @@ SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开
 # 安装开发工具包
 pip install -e packages/sage-tools
 
-# 或使用 sage dev 命令
-sage dev install sage-tools
+# 或使用 sage-dev 命令
+sage-dev install sage-tools
 ```
 
 ## 📖 Quick Start
@@ -53,15 +53,15 @@ SAGE Tools 提供了一套集成的代码质量检查工具：
 
 ```bash
 # 运行所有质量检查（推荐）
-sage dev quality
+sage-dev quality
 
 # 检查所有文件
-sage dev quality --all-files
+sage-dev quality --all-files
 
 # 自定义检查选项
-sage dev quality --no-architecture  # 跳过架构检查
-sage dev quality --readme            # 包含 README 检查
-sage dev quality --warn-only         # 只警告不中断
+sage-dev quality --no-architecture  # 跳过架构检查
+sage-dev quality --readme            # 包含 README 检查
+sage-dev quality --warn-only         # 只警告不中断
 ```
 
 ### Architecture & Documentation Checks
@@ -70,31 +70,31 @@ sage dev quality --warn-only         # 只警告不中断
 
 ```bash
 # 查看架构信息
-sage dev architecture                    # 显示完整架构定义
-sage dev architecture --package sage-kernel  # 查看特定包的层级和依赖
-sage dev architecture --format json      # JSON 格式输出
-sage dev architecture --format markdown  # Markdown 格式输出
-sage dev architecture --no-dependencies  # 只显示层级定义
+sage-dev architecture                    # 显示完整架构定义
+sage-dev architecture --package sage-kernel  # 查看特定包的层级和依赖
+sage-dev architecture --format json      # JSON 格式输出
+sage-dev architecture --format markdown  # Markdown 格式输出
+sage-dev architecture --no-dependencies  # 只显示层级定义
 
 # 架构合规性检查
-sage dev check-architecture              # 检查所有文件
-sage dev check-architecture --changed-only  # 仅检查变更
+sage-dev check-architecture              # 检查所有文件
+sage-dev check-architecture --changed-only  # 仅检查变更
 
 # Dev-notes 文档规范检查
-sage dev check-devnotes                  # 检查所有文档
-sage dev check-devnotes --changed-only   # 仅检查变更
-sage dev check-devnotes --check-structure  # 检查目录结构
+sage-dev check-devnotes                  # 检查所有文档
+sage-dev check-devnotes --changed-only   # 仅检查变更
+sage-dev check-devnotes --check-structure  # 检查目录结构
 
 # 包 README 质量检查
-sage dev check-readme                    # 检查所有包
-sage dev check-readme sage-common        # 检查特定包
-sage dev check-readme --report           # 生成详细报告
-sage dev check-readme sage-libs --fix    # 交互式修复
+sage-dev check-readme                    # 检查所有包
+sage-dev check-readme sage-common        # 检查特定包
+sage-dev check-readme --report           # 生成详细报告
+sage-dev check-readme sage-libs --fix    # 交互式修复
 
 # 运行所有检查（便捷命令）
-sage dev check-all                       # 架构 + 文档 + README
-sage dev check-all --changed-only        # 仅检查变更
-sage dev check-all --continue-on-error   # 出错继续执行
+sage-dev check-all                       # 架构 + 文档 + README
+sage-dev check-all --changed-only        # 仅检查变更
+sage-dev check-all --continue-on-error   # 出错继续执行
 ```
 
 ### Using Development Tools
@@ -212,13 +212,13 @@ git commit -m "your message"
 - name: Quality Checks
   run: |
     pip install -e packages/sage-tools
-    sage dev quality --all-files
+    sage-dev quality --all-files
 
 - name: Architecture Check
-  run: sage dev check-architecture
+  run: sage-dev check-architecture
 
 - name: Documentation Check
-  run: sage dev check-devnotes
+  run: sage-dev check-devnotes
 ```
 
 ## 📄 License

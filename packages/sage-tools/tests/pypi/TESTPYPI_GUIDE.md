@@ -36,8 +36,8 @@ TestPyPI是PyPI的测试环境，用于在正式发布前验证包的发布流�
 ### 1. 发布到TestPyPI
 
 ```bash
-# 使用sage dev命令发布到TestPyPI
-sage dev pypi publish --dry-run
+# 使用sage-dev命令发布到TestPyPI
+sage-dev pypi publish --dry-run
 
 # 或者使用twine直接上传
 twine upload --repository testpypi dist/*
@@ -88,7 +88,7 @@ sage --version
 python -c "import sage; print(sage.__version__)"
 
 # 运行快速验证
-sage dev pypi validate --fast
+sage-dev pypi validate --fast
 
 # 测试示例
 cd examples
@@ -163,8 +163,8 @@ ERROR: Cannot install isage because these package versions have conflicting depe
 
 - [ ] 所有包版本号已更新
 - [ ] pyproject.toml中的依赖关系正确
-- [ ] 本地验证通过：`sage dev pypi validate`
-- [ ] 构建无错误：`sage dev pypi build`
+- [ ] 本地验证通过：`sage-dev pypi validate`
+- [ ] 构建无错误：`sage-dev pypi build`
 - [ ] README和文档已更新
 - [ ] 变更日志已记录
 
@@ -236,13 +236,13 @@ version = "1.0.0rc1"  # 候选版本
 version = "1.0.0"
 ```
 
-## sage dev pypi命令集成
+## sage-dev pypi命令集成
 
 SAGE提供了集成的命令来简化TestPyPI的使用：
 
 ```bash
 # 发布到TestPyPI
-sage dev pypi publish --dry-run
+sage-dev pypi publish --dry-run
 
 # 命令会自动：
 # 1. 构建所有包

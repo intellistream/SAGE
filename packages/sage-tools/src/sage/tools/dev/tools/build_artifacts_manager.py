@@ -1,5 +1,5 @@
 """
-Build Artifacts Manager for SAGE Development Toolkit.
+Build Artifacts Manager for sage-development Toolkit.
 
 This module provides functionality to manage pip install artifacts and build
 intermediates across the entire SAGE project, including:
@@ -413,7 +413,7 @@ echo "🗑️  To see what would be removed without actually deleting, use: sage
 
         # 要添加的规则
         rules_to_add = [
-            "# Build artifacts managed by SAGE dev toolkit",
+            "# Build artifacts managed by sage-dev toolkit",
             "**/*.egg-info/",
             "**/dist/",
             "**/__pycache__/",

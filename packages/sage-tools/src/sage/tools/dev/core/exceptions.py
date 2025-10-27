@@ -1,13 +1,13 @@
 """
-SAGE Development Toolkit exceptions.
+sage-development Toolkit exceptions.
 
-This module defines the exception hierarchy for the SAGE Development Toolkit.
+This module defines the exception hierarchy for the sage-development Toolkit.
 All toolkit-specific exceptions inherit from SAGEDevToolkitError.
 """
 
 
 class SAGEDevToolkitError(Exception):
-    """Base exception for all SAGE Development Toolkit errors."""
+    """Base exception for all sage-development Toolkit errors."""
 
     def __init__(
         self,

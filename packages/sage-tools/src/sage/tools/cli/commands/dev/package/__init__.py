@@ -57,9 +57,9 @@ def install_packages(
     安装 SAGE 包及其依赖。
 
     示例：
-        sage dev package install                    # 开发模式安装所有包
-        sage dev package install -m deps            # 只安装依赖
-        sage dev package install -p sage-libs       # 安装特定包
+        sage-dev package install                    # 开发模式安装所有包
+        sage-dev package install -m deps            # 只安装依赖
+        sage-dev package install -p sage-libs       # 安装特定包
     """
     import subprocess
     import sys

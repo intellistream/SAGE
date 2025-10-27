@@ -100,7 +100,7 @@ The module currently serves as a placeholder to:
 **Phase 3** (Q3 2026):
 
 - [ ] Performance profiler
-- [ ] Integration with sage dev tools
+- [ ] Integration with sage-dev tools
 
 ## Related
 

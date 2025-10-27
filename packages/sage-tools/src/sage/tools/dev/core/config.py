@@ -1,5 +1,5 @@
 """
-Configuration management for SAGE Development Toolkit.
+Configuration management for sage-development Toolkit.
 
 This module handles loading, validating, and managing configuration
 for the development toolkit, supporting multiple environments and
@@ -18,7 +18,7 @@ from .exceptions import ConfigError
 
 @dataclass
 class ToolkitConfig:
-    """Configuration container for SAGE Development Toolkit."""
+    """Configuration container for sage-development Toolkit."""
 
     # Project paths
     project_root: Path

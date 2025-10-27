@@ -253,7 +253,7 @@ After exploring these examples:
 
 - [SAGE TSDB README](../../../packages/sage-middleware/src/sage/middleware/components/sage_tsdb/README.md)
 - [Submodule Setup Guide](../../../packages/sage-middleware/src/sage/middleware/components/sage_tsdb/SUBMODULE_SETUP.md)
-- [SAGE Developer Guide](../../../DEVELOPER.md)
+- [sage-developer Guide](../../../DEVELOPER.md)
 
 ## Support
 

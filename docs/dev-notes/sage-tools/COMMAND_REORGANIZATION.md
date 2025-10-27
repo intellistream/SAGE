@@ -1,8 +1,8 @@
-# SAGE Dev 命令重组方案
+# sage-dev 命令重组方案
 
 ## 📋 当前状态分析
 
-### sage dev 现有命令（15个）
+### sage-dev 现有命令（15个）
 
 按功能分类：
 
@@ -47,7 +47,7 @@
 ### 建议的二级命令组织
 
 ```
-sage dev
+sage-dev
 ├── quality/          # 质量检查组
 │   ├── check        # 运行所有检查（原 check-all）
 │   ├── architecture # 架构检查
@@ -119,17 +119,17 @@ sage dev
 
 ### 现状（最深4级）
 ```
-sage dev issues create         # 3级 ✅
-sage dev pypi validate          # 3级 ✅
-sage dev quality --hook black   # 3级（选项）✅
+sage-dev issues create         # 3级 ✅
+sage-dev pypi validate          # 3级 ✅
+sage-dev quality --hook black   # 3级（选项）✅
 ```
 
 ### 重组后（最深4级）
 ```
-sage dev quality check          # 3级 ✅
-sage dev maintain submodule init # 4级 ✅
-sage dev package version bump   # 4级 ✅
-sage dev github issues create   # 4级 ✅
+sage-dev quality check          # 3级 ✅
+sage-dev maintain submodule init # 4级 ✅
+sage-dev package version bump   # 4级 ✅
+sage-dev github issues create   # 4级 ✅
 ```
 
 ## ✨ 优势
@@ -145,13 +145,13 @@ sage dev github issues create   # 4级 ✅
 ### 2. 语义化命令
 ```bash
 # 更直观的命令路径
-sage dev quality check           # 运行质量检查
-sage dev quality architecture    # 架构检查
-sage dev maintain doctor         # 健康诊断
-sage dev maintain submodule init # Submodule 初始化
-sage dev package pypi publish    # 发布到 PyPI
-sage dev package version bump    # 版本升级
-sage dev github issues stats     # Issues 统计
+sage-dev quality check           # 运行质量检查
+sage-dev quality architecture    # 架构检查
+sage-dev maintain doctor         # 健康诊断
+sage-dev maintain submodule init # Submodule 初始化
+sage-dev package pypi publish    # 发布到 PyPI
+sage-dev package version bump    # 版本升级
+sage-dev github issues stats     # Issues 统计
 ```
 
 ### 3. 易于扩展
@@ -160,9 +160,9 @@ sage dev github issues stats     # Issues 统计
 ### 4. 向后兼容
 可以保留旧命令作为别名：
 ```bash
-sage dev check-all → sage dev quality check
-sage dev test      → sage dev project test
-sage dev pypi      → sage dev package pypi
+sage-dev check-all → sage-dev quality check
+sage-dev test      → sage-dev project test
+sage-dev pypi      → sage-dev package pypi
 ```
 
 ## 🚀 实施步骤
@@ -173,9 +173,9 @@ sage dev pypi      → sage dev package pypi
 3. 添加命令别名支持
 
 ### Phase 2: 集成 tools/ 脚本
-1. 集成 `sage-maintenance.sh` → `sage dev maintain`
+1. 集成 `sage-maintenance.sh` → `sage-dev maintain`
 2. 集成 `dev.sh` 功能到各组
-3. 集成安装工具到 `sage dev package install`
+3. 集成安装工具到 `sage-dev package install`
 
 ### Phase 3: 文档和测试
 1. 更新文档和帮助信息
@@ -215,65 +215,65 @@ COMMAND_ALIASES = {
 ### 质量检查
 ```bash
 # 运行所有检查
-sage dev quality check
+sage-dev quality check
 
 # 只检查架构
-sage dev quality architecture
+sage-dev quality architecture
 
 # 格式化代码
-sage dev quality format
+sage-dev quality format
 
 # 自动修复问题
-sage dev quality fix
+sage-dev quality fix
 ```
 
 ### 项目管理
 ```bash
 # 查看项目状态
-sage dev project status
+sage-dev project status
 
 # 运行测试
-sage dev project test
+sage-dev project test
 
 # 代码分析
-sage dev project analyze
+sage-dev project analyze
 
 # 清理构建产物
-sage dev project clean
+sage-dev project clean
 ```
 
 ### 维护工具
 ```bash
 # 健康检查
-sage dev maintain doctor
+sage-dev maintain doctor
 
 # Submodule 管理
-sage dev maintain submodule init
-sage dev maintain submodule status
-sage dev maintain submodule switch
+sage-dev maintain submodule init
+sage-dev maintain submodule status
+sage-dev maintain submodule switch
 
 # Git hooks
-sage dev maintain hooks install
+sage-dev maintain hooks install
 ```
 
 ### 包管理
 ```bash
 # PyPI 发布
-sage dev package pypi validate
-sage dev package pypi build
-sage dev package pypi publish
+sage-dev package pypi validate
+sage-dev package pypi build
+sage-dev package pypi publish
 
 # 版本管理
-sage dev package version list
-sage dev package version bump major
+sage-dev package version list
+sage-dev package version bump major
 ```
 
 ### GitHub 管理
 ```bash
 # Issues 管理
-sage dev github issues status
-sage dev github issues stats
-sage dev github issues create
+sage-dev github issues status
+sage-dev github issues stats
+sage-dev github issues create
 ```
 
 ## 💡 额外建议
@@ -281,15 +281,15 @@ sage dev github issues create
 ### 1. 添加快捷命令
 常用操作提供更短的别名：
 ```bash
-sage dev q         # quality check
-sage dev qa        # quality architecture
-sage dev t         # project test
-sage dev c         # project clean
+sage-dev q         # quality check
+sage-dev qa        # quality architecture
+sage-dev t         # project test
+sage-dev c         # project clean
 ```
 
 ### 2. 交互式模式
 ```bash
-sage dev           # 进入交互式菜单
+sage-dev           # 进入交互式菜单
 # 显示：
 # 1. Quality Checks
 # 2. Project Management
@@ -300,9 +300,9 @@ sage dev           # 进入交互式菜单
 
 ### 3. 组合命令
 ```bash
-sage dev full-check  # quality check + project test + maintain doctor
-sage dev pre-commit  # quality check + quality format
-sage dev release     # quality check + project test + package version bump + package pypi publish
+sage-dev full-check  # quality check + project test + maintain doctor
+sage-dev pre-commit  # quality check + quality format
+sage-dev release     # quality check + project test + package version bump + package pypi publish
 ```
 
 ## 📊 迁移影响评估
@@ -330,4 +330,4 @@ sage dev release     # quality check + project test + package version bump + pac
 2. **更易学** - 语义化命令，容易记忆
 3. **更易扩展** - 组内添加新命令不影响其他组
 4. **更专业** - 类似 git、kubectl 等成熟 CLI 的组织方式
-5. **集成完整** - 将所有开发工具统一到 sage dev 下
+5. **集成完整** - 将所有开发工具统一到 sage-dev 下

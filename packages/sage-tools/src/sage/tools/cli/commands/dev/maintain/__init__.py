@@ -57,7 +57,7 @@ def doctor():
     运行完整的项目健康检查，诊断常见问题。
 
     示例：
-        sage dev maintain doctor
+        sage-dev maintain doctor
     """
     console.print("\n[bold blue]🔍 运行项目健康检查[/bold blue]\n")
     exit_code = run_maintenance_script("doctor")
@@ -81,7 +81,7 @@ def submodule_init():
     初始化所有 submodules 并切换到正确的分支。
 
     示例：
-        sage dev maintain submodule init
+        sage-dev maintain submodule init
     """
     console.print("\n[bold blue]🚀 初始化 Submodules[/bold blue]\n")
     exit_code = run_maintenance_script("submodule", "init")
@@ -97,7 +97,7 @@ def submodule_status():
     显示所有 submodules 的状态和分支信息。
 
     示例：
-        sage dev maintain submodule status
+        sage-dev maintain submodule status
     """
     console.print("\n[bold blue]📊 Submodule 状态[/bold blue]\n")
     exit_code = run_maintenance_script("submodule", "status")
@@ -113,7 +113,7 @@ def submodule_switch():
     根据当前 SAGE 分支切换 submodules 到对应分支。
 
     示例：
-        sage dev maintain submodule switch
+        sage-dev maintain submodule switch
     """
     console.print("\n[bold blue]🔄 切换 Submodule 分支[/bold blue]\n")
     exit_code = run_maintenance_script("submodule", "switch")
@@ -129,7 +129,7 @@ def submodule_update():
     更新所有 submodules 到远程最新版本。
 
     示例：
-        sage dev maintain submodule update
+        sage-dev maintain submodule update
     """
     console.print("\n[bold blue]⬆️ 更新 Submodules[/bold blue]\n")
     exit_code = run_maintenance_script("submodule", "update")
@@ -145,7 +145,7 @@ def submodule_fix_conflict():
     自动解决 submodule 冲突。
 
     示例：
-        sage dev maintain submodule fix-conflict
+        sage-dev maintain submodule fix-conflict
     """
     console.print("\n[bold blue]🔧 解决 Submodule 冲突[/bold blue]\n")
     exit_code = run_maintenance_script("submodule", "fix-conflict")
@@ -161,7 +161,7 @@ def submodule_cleanup():
     清理旧的 submodule 配置。
 
     示例：
-        sage dev maintain submodule cleanup
+        sage-dev maintain submodule cleanup
     """
     console.print("\n[bold blue]🧹 清理 Submodule 配置[/bold blue]\n")
     exit_code = run_maintenance_script("submodule", "cleanup")
@@ -177,7 +177,7 @@ def submodule_bootstrap():
     一键初始化和配置所有 submodules。
 
     示例：
-        sage dev maintain submodule bootstrap
+        sage-dev maintain submodule bootstrap
     """
     console.print("\n[bold blue]⚡ Bootstrap Submodules[/bold blue]\n")
     exit_code = run_maintenance_script("submodule", "bootstrap")
@@ -203,8 +203,8 @@ def setup_hooks(
     安装或更新项目的 Git hooks。
 
     示例：
-        sage dev maintain hooks           # 安装 hooks
-        sage dev maintain hooks --force   # 强制重新安装
+        sage-dev maintain hooks           # 安装 hooks
+        sage-dev maintain hooks --force   # 强制重新安装
     """
     console.print("\n[bold blue]🪝 安装 Git Hooks[/bold blue]\n")
 
@@ -225,7 +225,7 @@ def security_check():
     检查敏感信息泄露、密钥等安全问题。
 
     示例：
-        sage dev maintain security
+        sage-dev maintain security
     """
     console.print("\n[bold blue]🔒 安全检查[/bold blue]\n")
     exit_code = run_maintenance_script("security-check")
@@ -247,8 +247,8 @@ def clean_project(
     清理构建产物、缓存等。
 
     示例：
-        sage dev maintain clean        # 标准清理
-        sage dev maintain clean --deep # 深度清理
+        sage-dev maintain clean        # 标准清理
+        sage-dev maintain clean --deep # 深度清理
     """
     console.print("\n[bold blue]🧹 清理项目[/bold blue]\n")
 

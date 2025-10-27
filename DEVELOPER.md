@@ -1,6 +1,6 @@
 # Developer Guide
 
-Welcome to the SAGE development guide! This document will help you get started with contributing to
+Welcome to the sage-development guide! This document will help you get started with contributing to
 SAGE.
 
 ## Table of Contents

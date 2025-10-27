@@ -1,18 +1,18 @@
-# CI/CD Migration to sage dev Commands
+# CI/CD Migration to sage-dev Commands
 
 **Date**: 2025-10-26  
 **Author**: GitHub Copilot  
-**Summary**: 将 CI/CD 工作流从独立 Python 脚本迁移到统一的 `sage dev` CLI 命令
+**Summary**: 将 CI/CD 工作流从独立 Python 脚本迁移到统一的 `sage-dev` CLI 命令
 
 ---
 
 ## 📋 概述
 
-本文档记录了将 CI/CD 工作流从使用独立 Python 脚本迁移到使用统一的 `sage dev` CLI 命令的过程。
+本文档记录了将 CI/CD 工作流从使用独立 Python 脚本迁移到使用统一的 `sage-dev` CLI 命令的过程。
 
 ## 🎯 迁移目标
 
-1. **统一命令接口** - 所有质量检查使用统一的 `sage dev` 命令
+1. **统一命令接口** - 所有质量检查使用统一的 `sage-dev` 命令
 2. **简化维护** - 集中管理检查工具，避免重复代码
 3. **改善用户体验** - 提供一致的命令行体验和错误提示
 4. **增强功能** - 添加架构信息查询等新功能
@@ -36,20 +36,20 @@ CI/CD 工作流使用独立的 Python 脚本：
 
 ### 更新后
 
-统一使用 `sage dev` 命令：
+统一使用 `sage-dev` 命令：
 
 ```yaml
 # 架构检查
-- run: sage dev check-architecture --changed-only
+- run: sage-dev check-architecture --changed-only
 
 # 文档检查
-- run: sage dev check-devnotes --changed-only
+- run: sage-dev check-devnotes --changed-only
 
 # README 检查
-- run: sage dev check-readme
+- run: sage-dev check-readme
 
 # 综合检查
-- run: sage dev check-all --changed-only
+- run: sage-dev check-all --changed-only
 ```
 
 ## 🔧 修改的文件
@@ -64,11 +64,11 @@ CI/CD 工作流使用独立的 Python 脚本：
   if: github.event_name == 'pull_request'
   run: |
     echo "🏗️  运行架构合规性检查..."
-    sage dev check-architecture --changed-only || {
+    sage-dev check-architecture --changed-only || {
       echo "💡 请查看 SAGE 架构规范文档："
       echo "   docs/PACKAGE_ARCHITECTURE.md"
       echo "💡 或运行以下命令获取详细信息："
-      echo "   sage dev check-architecture --verbose"
+      echo "   sage-dev check-architecture --verbose"
       exit 1
     }
 
@@ -78,7 +78,7 @@ CI/CD 工作流使用独立的 Python 脚本：
   continue-on-error: true
   run: |
     echo "📚 运行 dev-notes 文档规范检查..."
-    sage dev check-devnotes --changed-only || {
+    sage-dev check-devnotes --changed-only || {
       echo "⚠️  文档规范检查发现问题"
       echo "💡 请确保文档包含必需的元数据"
       echo "💡 查看文档模板："
@@ -93,7 +93,7 @@ CI/CD 工作流使用独立的 Python 脚本：
 - name: Dev-notes Documentation Check
   run: |
     if [ "${{ github.event_name }}" = "pull_request" ]; then
-      sage dev check-devnotes --changed-only || {
+      sage-dev check-devnotes --changed-only || {
         echo "❌ Dev-notes 文档不符合规范！"
         exit 1
       }
@@ -103,9 +103,9 @@ CI/CD 工作流使用独立的 Python 脚本：
 - name: Architecture Compliance Check
   run: |
     if [ "${{ github.event_name }}" = "pull_request" ]; then
-      sage dev check-architecture --changed-only || {
+      sage-dev check-architecture --changed-only || {
         echo "❌ 架构合规性检查失败！"
-        echo "3. 查看架构信息: sage dev architecture"
+        echo "3. 查看架构信息: sage-dev architecture"
         exit 1
       }
     fi
@@ -113,32 +113,32 @@ CI/CD 工作流使用独立的 Python 脚本：
 # README 检查 (Lines 168-188)
 - name: Package README Check
   run: |
-    if sage dev check-readme; then
+    if sage-dev check-readme; then
       echo "✅ 所有包的 README 文档完整"
     else
-      echo "4. 查看详细报告: sage dev check-readme --report"
+      echo "4. 查看详细报告: sage-dev check-readme --report"
       exit 1
     fi
 ```
 
 ### 2. 核心功能改进
 
-#### 添加了 `sage dev architecture` 命令
+#### 添加了 `sage-dev architecture` 命令
 
 新增命令用于查看和查询 SAGE 架构信息：
 
 ```bash
 # 查看完整架构
-sage dev architecture
+sage-dev architecture
 
 # 查看特定包信息
-sage dev architecture --package sage-kernel
+sage-dev architecture --package sage-kernel
 
 # JSON 格式输出
-sage dev architecture --format json
+sage-dev architecture --format json
 
 # Markdown 格式输出
-sage dev architecture --format markdown
+sage-dev architecture --format markdown
 ```
 
 **功能特性**：
@@ -202,17 +202,17 @@ sage dev architecture --format markdown
 ✅ 检查 552 个 Python 文件，0 违规
 
 # 综合检查
-✅ sage dev check-all --changed-only 全部通过
+✅ sage-dev check-all --changed-only 全部通过
 ```
 
 ### CI/CD 兼容性
 
 所有修改后的命令都已在本地验证：
-- ✅ `sage dev check-architecture --changed-only`
-- ✅ `sage dev check-devnotes --changed-only`
-- ✅ `sage dev check-readme`
-- ✅ `sage dev check-all`
-- ✅ `sage dev architecture`
+- ✅ `sage-dev check-architecture --changed-only`
+- ✅ `sage-dev check-devnotes --changed-only`
+- ✅ `sage-dev check-readme`
+- ✅ `sage-dev check-all`
+- ✅ `sage-dev architecture`
 
 ## 📦 依赖安装
 
@@ -231,16 +231,16 @@ CI/CD 工作流中确保安装了 `sage-tools`：
 
 ```bash
 # 提交前运行所有检查
-sage dev check-all
+sage-dev check-all
 
 # 仅检查变更文件（更快）
-sage dev check-all --changed-only
+sage-dev check-all --changed-only
 
 # 查看架构定义
-sage dev architecture
+sage-dev architecture
 
 # 查看特定包的架构信息
-sage dev architecture --package sage-kernel
+sage-dev architecture --package sage-kernel
 ```
 
 ### CI/CD 集成
@@ -249,13 +249,13 @@ sage dev architecture --package sage-kernel
 # PR 检查 - 仅检查变更文件
 - name: Quality Checks
   if: github.event_name == 'pull_request'
-  run: sage dev check-all --changed-only
+  run: sage-dev check-all --changed-only
 
 # Push 检查 - 允许失败但记录
 - name: Quality Checks
   if: github.event_name != 'pull_request'
   continue-on-error: true
-  run: sage dev check-all
+  run: sage-dev check-all
 ```
 
 ## 🔄 向后兼容性
@@ -285,13 +285,13 @@ sage dev architecture --package sage-kernel
 💡 常见问题修复：
 1. 检查跨层级导入（如 app 导入 kernel）
 2. 确保导入路径符合包架构
-3. 查看架构信息: sage dev architecture
+3. 查看架构信息: sage-dev architecture
 4. 查看文档: docs-public/docs_src/dev-notes/package-architecture.md
 ```
 
 ### 架构显示顺序修正
 
-修正了 `sage dev architecture` 命令的显示顺序：
+修正了 `sage-dev architecture` 命令的显示顺序：
 
 **修改前**：按字母顺序显示（sage-apps, sage-benchmark, sage-common, ...）  
 **修改后**：按层级顺序显示（L1 → L6）
@@ -322,6 +322,6 @@ sage dev architecture --package sage-kernel
 ---
 
 **变更历史**：
-- 2025-10-26: 初始版本 - CI/CD 迁移到 sage dev 命令
+- 2025-10-26: 初始版本 - CI/CD 迁移到 sage-dev 命令
 - 2025-10-26: 修正 sage-kernel 架构依赖定义
 - 2025-10-26: 添加 architecture 命令显示架构信息

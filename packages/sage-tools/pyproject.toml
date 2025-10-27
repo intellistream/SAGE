@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "isage-tools"
 dynamic = ["version"]
-description = "SAGE Development Tools - CLI, Web UI, and Development Utilities"
+description = "sage-development Tools - CLI, Web UI, and Development Utilities"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -52,7 +52,7 @@ dependencies = [
     "packaging>=20.5",
     "huggingface-hub>=0.23.0",
 
-    # Dev tools - 确保 sage dev 命令可用
+    # Dev tools - 确保 sage-dev 命令可用
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",

@@ -1,10 +1,10 @@
-# SAGE Dev Version Management
+# sage-dev Version Management
 
 A comprehensive command-line tool for managing version.py files across all SAGE subpackages.
 
 ## Overview
 
-The `sage dev version` command provides a unified interface to manage version information across all
+The `sage-dev version` command provides a unified interface to manage version information across all
 SAGE packages. It automatically discovers all `_version.py` files in the packages directory and
 provides various operations to update and synchronize versions.
 
@@ -23,7 +23,7 @@ provides various operations to update and synchronize versions.
 ### List all package versions
 
 ```bash
-sage dev version list
+sage-dev version list
 ```
 
 This command scans the packages directory and displays all package versions in a formatted table.
@@ -32,29 +32,29 @@ This command scans the packages directory and displays all package versions in a
 
 ```bash
 # Set version for all packages
-sage dev version set 0.2.0.0
+sage-dev version set 0.2.0.0
 
 # Set version for specific packages
-sage dev version set 0.2.0.0 --package sage-kernel --package sage-libs
+sage-dev version set 0.2.0.0 --package sage-kernel --package sage-libs
 
 # Preview changes without applying
-sage dev version set 0.2.0.0 --dry-run
+sage-dev version set 0.2.0.0 --dry-run
 ```
 
 ### Bump version numbers
 
 ```bash
 # Bump minor version for all packages (0.1.3.1 -> 0.2.0.0)
-sage dev version bump minor
+sage-dev version bump minor
 
 # Bump patch version for specific package (0.1.3.1 -> 0.1.4.0)
-sage dev version bump patch --package sage-kernel
+sage-dev version bump patch --package sage-kernel
 
 # Bump build version (0.1.3.1 -> 0.1.3.2)
-sage dev version bump build
+sage-dev version bump build
 
 # Preview changes
-sage dev version bump major --dry-run
+sage-dev version bump major --dry-run
 ```
 
 Supported increment types:
@@ -68,13 +68,13 @@ Supported increment types:
 
 ```bash
 # Sync all packages to match the 'sage' package version
-sage dev version sync --source sage
+sage-dev version sync --source sage
 
 # Sync to a different package
-sage dev version sync --source sage-kernel
+sage-dev version sync --source sage-kernel
 
 # Preview sync changes
-sage dev version sync --source sage --dry-run
+sage-dev version sync --source sage --dry-run
 ```
 
 ## Command Options
@@ -88,7 +88,7 @@ sage dev version sync --source sage --dry-run
 
 - `--package, -p`: Specify which packages to update (can be used multiple times)
   ```bash
-  sage dev version set 1.0.0 --package sage-kernel --package sage-libs
+  sage-dev version set 1.0.0 --package sage-kernel --package sage-libs
   ```
 
 ## Examples
@@ -98,29 +98,29 @@ sage dev version sync --source sage --dry-run
 1. **Check current versions**:
 
    ```bash
-   sage dev version list
+   sage-dev version list
    ```
 
 1. **Prepare for a minor release**:
 
    ```bash
    # Preview changes first
-   sage dev version bump minor --dry-run
+   sage-dev version bump minor --dry-run
 
    # Apply changes
-   sage dev version bump minor
+   sage-dev version bump minor
    ```
 
 1. **Fix a specific package**:
 
    ```bash
-   sage dev version bump patch --package sage-kernel
+   sage-dev version bump patch --package sage-kernel
    ```
 
 1. **Ensure version consistency**:
 
    ```bash
-   sage dev version sync --source sage
+   sage-dev version sync --source sage
    ```
 
 ### Release Management
@@ -128,13 +128,13 @@ sage dev version sync --source sage --dry-run
 1. **Set release version**:
 
    ```bash
-   sage dev version set 1.0.0
+   sage-dev version set 1.0.0
    ```
 
 1. **Verify all packages have the same version**:
 
    ```bash
-   sage dev version list
+   sage-dev version list
    ```
 
 ## Package Discovery
@@ -172,10 +172,10 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 
 ## Integration
 
-This tool is integrated into the main SAGE dev CLI:
+This tool is integrated into the main sage-dev CLI:
 
 ```bash
-sage dev version --help
+sage-dev version --help
 ```
 
-It supports all the rich formatting and user experience standards of the SAGE development toolkit.
+It supports all the rich formatting and user experience standards of the sage-development toolkit.

@@ -290,7 +290,7 @@ def _run_architecture_check(warn_only: bool = False, changed_only: bool = False)
         if root_dir is None:
             console.print("[red]错误: 无法找到项目根目录[/red]")
             return False
-        
+
         checker = ArchitectureChecker(root_dir)
         result = checker.check_all()
 
@@ -327,15 +327,15 @@ def _run_devnotes_check(warn_only: bool = False) -> bool:
         if root_dir is None:
             console.print("[red]错误: 无法找到项目根目录[/red]")
             return False
-        
-        checker = DevNotesChecker(root_dir)
-        issues = checker.check_all()
 
-        if issues:
-            console.print(f"[red]发现 {len(issues)} 个 dev-notes 问题[/red]")
-            for issue in issues[:10]:
-                console.print(f"  [yellow]{issue}[/yellow]")
-            return False
+        checker = DevNotesChecker(root_dir)
+        result = checker.check_all()
+
+        if not result["passed"]:
+            console.print(f"[red]发现 {result['failed_count']} 个 dev-notes 问题[/red]")
+            for issue in result["issues"][:10]:
+                console.print(f"  [yellow]{issue['file']}: {issue['message']}[/yellow]")
+            return False if not warn_only else True
         else:
             console.print("[green]✓ dev-notes 检查通过[/green]")
             return True
@@ -360,15 +360,18 @@ def _run_readme_check(warn_only: bool = False) -> bool:
         if root_dir is None:
             console.print("[red]错误: 无法找到项目根目录[/red]")
             return False
-        
-        checker = PackageREADMEChecker(root_dir)
-        violations = checker.check_all()
 
-        if violations:
-            console.print(f"[red]发现 {len(violations)} 个 README 问题[/red]")
-            for issue in violations[:10]:
-                console.print(f"  [yellow]{issue}[/yellow]")
-            return False
+        checker = PackageREADMEChecker(root_dir)
+        results = checker.check_all()
+
+        # 检查是否有失败的包（分数低于阈值）
+        failed_packages = [r for r in results if r.score < 80]
+
+        if failed_packages:
+            console.print(f"[red]发现 {len(failed_packages)} 个包的 README 需要改进[/red]")
+            for pkg in failed_packages[:10]:
+                console.print(f"  [yellow]{pkg.package_name}: score={pkg.score:.0f}%[/yellow]")
+            return False if not warn_only else True
         else:
             console.print("[green]✓ README 检查通过[/green]")
             return True

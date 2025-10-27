@@ -8,7 +8,7 @@
 
 在 `sage-tools/cli/commands/` 目录中发现 **7 个未注册的命令文件**。经过详细分析，这些文件分为以下几类：
 
-- **2 个开发工具**: 应集成到 `sage dev` 命令组
+- **2 个开发工具**: 应集成到 `sage-dev` 命令组
 - **3 个内部模块**: 被 `pipeline.py` 导入使用，无需注册
 - **2 个重复文件**: 功能重复或已集成，应删除
 
@@ -32,15 +32,15 @@
 - **用途**: API key 管理、.env 文件编辑
 - **用户**: 开发者
 
-**建议**: ✅ 集成到 `sage dev project env`
+**建议**: ✅ 集成到 `sage-dev project env`
 
 **集成位置**: `sage-cli/commands/dev/project/env.py`
 
 **示例命令**:
 ```bash
-sage dev project env load
-sage dev project env check
-sage dev project env setup
+sage-dev project env load
+sage-dev project env check
+sage-dev project env setup
 ```
 
 ---
@@ -61,15 +61,15 @@ sage dev project env setup
 - **用途**: 自动检测和配置本地 LLM 服务
 - **用户**: 开发者
 
-**建议**: ✅ 集成到 `sage dev project llm-config`
+**建议**: ✅ 集成到 `sage-dev project llm-config`
 
 **集成位置**: `sage-cli/commands/dev/project/llm_config.py`
 
 **示例命令**:
 ```bash
-sage dev project llm-config auto
-sage dev project llm-config auto --prefer ollama
-sage dev project llm-config auto --model-name Qwen2.5-7B
+sage-dev project llm-config auto
+sage-dev project llm-config auto --prefer ollama
+sage-dev project llm-config auto --model-name Qwen2.5-7B
 ```
 
 ---
@@ -212,11 +212,11 @@ sage cluster status  # 同时显示 Ray 和 JobManager 状态
 **功能**:
 - `sage pypi validate` - PyPI 发布前验证
 
-**状态**: ❌ 未注册到 `main.py`，但已集成到 `sage dev package pypi`
+**状态**: ❌ 未注册到 `main.py`，但已集成到 `sage-dev package pypi`
 
 **分析**:
 - **性质**: 开发工具
-- **问题**: 功能已完全集成到 `sage dev package pypi` 命令组
+- **问题**: 功能已完全集成到 `sage-dev package pypi` 命令组
 
 **集成验证**:
 ```bash
@@ -226,7 +226,7 @@ $ grep "from.*commands.pypi" packages/sage-tools/src/sage/tools/cli/commands/dev
 
 **当前可用命令**:
 ```bash
-sage dev package pypi validate  # 已集成
+sage-dev package pypi validate  # 已集成
 ```
 
 **建议**: ❌ **删除文件**（功能已被完全替代）
@@ -239,7 +239,7 @@ sage dev package pypi validate  # 已集成
 
 | 类别 | 数量 | 文件 | 处理方案 |
 |------|------|------|----------|
-| 开发工具 | 2 | `env.py`, `llm_config.py` | 集成到 `sage dev project` |
+| 开发工具 | 2 | `env.py`, `llm_config.py` | 集成到 `sage-dev project` |
 | 内部模块 | 3 | `pipeline_*.py` | 保持现状，随 `pipeline.py` 迁移 |
 | 重复文件 | 2 | `deploy.py`, `pypi.py` | **已删除** ✅ |
 | **总计** | **7** | | |
@@ -255,27 +255,27 @@ sage dev package pypi validate  # 已集成
 
 #### 1. 集成开发工具
 
-**env.py → sage dev project env**
+**env.py → sage-dev project env**
 
 ```bash
 # 目标位置
 packages/sage-cli/src/sage/cli/commands/dev/project/env.py
 
 # 命令示例
-sage dev project env load
-sage dev project env check  
-sage dev project env setup
+sage-dev project env load
+sage-dev project env check  
+sage-dev project env setup
 ```
 
-**llm_config.py → sage dev project llm-config**
+**llm_config.py → sage-dev project llm-config**
 
 ```bash
 # 目标位置
 packages/sage-cli/src/sage/cli/commands/dev/project/llm_config.py
 
 # 命令示例
-sage dev project llm-config auto
-sage dev project llm-config auto --prefer ollama
+sage-dev project llm-config auto
+sage-dev project llm-config auto --prefer ollama
 ```
 
 #### 2. 迁移内部模块

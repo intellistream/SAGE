@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Install Git Hooks for SAGE Development
+# Install Git Hooks for sage-development
 #
 # 为 SAGE 项目安装 Git hooks，包括架构合规性检查
 #

@@ -1,4 +1,4 @@
-# SAGE Dev 命令重组完成报告
+# sage-dev 命令重组完成报告
 
 ## ✅ 完成情况
 
@@ -45,22 +45,22 @@
 #### 向后兼容别名
 
 已添加以下弃用别名：
-- ✅ sage dev test → sage dev project test
-- ✅ sage dev status → sage dev project status  
-- ✅ sage dev analyze → sage dev project analyze
-- ✅ sage dev clean → sage dev project clean
-- ✅ sage dev architecture → sage dev project architecture
-- ✅ sage dev home → sage dev project home
-- ✅ sage dev check-all → sage dev quality check
-- ✅ sage dev check-architecture → sage dev quality architecture
-- ✅ sage dev check-devnotes → sage dev quality devnotes
-- ✅ sage dev check-readme → sage dev quality readme
+- ✅ sage-dev test → sage-dev project test
+- ✅ sage-dev status → sage-dev project status  
+- ✅ sage-dev analyze → sage-dev project analyze
+- ✅ sage-dev clean → sage-dev project clean
+- ✅ sage-dev architecture → sage-dev project architecture
+- ✅ sage-dev home → sage-dev project home
+- ✅ sage-dev check-all → sage-dev quality check
+- ✅ sage-dev check-architecture → sage-dev quality architecture
+- ✅ sage-dev check-devnotes → sage-dev quality devnotes
+- ✅ sage-dev check-readme → sage-dev quality readme
 
 ## 📊 命令对比
 
 ### 重组前 (15个顶层命令)
 ```
-sage dev
+sage-dev
 ├── quality
 ├── analyze
 ├── clean
@@ -80,7 +80,7 @@ sage dev
 
 ### 重组后 (6个命令组)
 ```
-sage dev
+sage-dev
 ├── quality/          (7个命令)
 ├── project/          (6个命令)
 ├── maintain/         (5个命令 + submodule组)
@@ -97,7 +97,7 @@ sage dev
 - 命令发现性大幅提升
 
 ### 2. 完整的工具集成
-- ✅ 集成 `tools/maintenance/sage-maintenance.sh` → `sage dev maintain`
+- ✅ 集成 `tools/maintenance/sage-maintenance.sh` → `sage-dev maintain`
 - ✅ 所有 submodule 管理功能都可通过 CLI 访问
 - ✅ Git hooks、安全检查等维护工具统一入口
 
@@ -109,9 +109,9 @@ sage dev
 ### 4. 语义化命令
 ```bash
 # 更直观的命令路径
-sage dev quality check           # vs sage dev check-all
-sage dev project test            # vs sage dev test
-sage dev maintain submodule init # vs ./tools/maintenance/sage-maintenance.sh submodule init
+sage-dev quality check           # vs sage-dev check-all
+sage-dev project test            # vs sage-dev test
+sage-dev maintain submodule init # vs ./tools/maintenance/sage-maintenance.sh submodule init
 ```
 
 ## 📁 创建的文件
@@ -136,7 +136,7 @@ sage dev maintain submodule init # vs ./tools/maintenance/sage-maintenance.sh su
 
 ```bash
 # ✅ 新命令可用
-$ sage dev --help
+$ sage-dev --help
 Commands:
   quality    🔍 质量检查
   project    📊 项目管理
@@ -146,17 +146,17 @@ Commands:
   github     🐙 GitHub 管理
 
 # ✅ 子命令正常工作
-$ sage dev quality --help
+$ sage-dev quality --help
 Commands:
   check, architecture, devnotes, readme, format, lint, fix
 
-$ sage dev maintain submodule --help
+$ sage-dev maintain submodule --help
 Commands:
   init, status, switch, update, fix-conflict, cleanup, bootstrap
 
 # ✅ 别名显示弃用警告
-$ sage dev test --help
-[已弃用] 使用 'sage dev project test' 代替
+$ sage-dev test --help
+[已弃用] 使用 'sage-dev project test' 代替
 ```
 
 ## ⚠️ 待解决问题
@@ -200,8 +200,8 @@ $ sage dev test --help
 ### 对于 CI/CD
 - 更新工作流使用新命令
 - 建议路径：
-  - `sage dev check-all` → `sage dev quality check`
-  - `sage dev test` → `sage dev project test`
+  - `sage-dev check-all` → `sage-dev quality check`
+  - `sage-dev test` → `sage-dev project test`
 
 ### 对于文档
 - 更新所有文档中的命令示例

@@ -1,5 +1,5 @@
 """
-Main SAGE Development Toolkit class.
+Main sage-development Toolkit class.
 
 This module contains the core SAGEDevToolkit class that orchestrates
 all development tools and provides a unified interface.
@@ -28,7 +28,7 @@ from .exceptions import (
 
 class SAGEDevToolkit:
     """
-    Main SAGE Development Toolkit class.
+    Main sage-development Toolkit class.
 
     This class provides a unified interface to all development tools
     including testing, dependency analysis, package management, and reporting.
@@ -41,7 +41,7 @@ class SAGEDevToolkit:
         environment: str | None = None,
     ):
         """
-        Initialize the SAGE Development Toolkit.
+        Initialize the sage-development Toolkit.
 
         Args:
             project_root: Project root directory path
@@ -66,7 +66,7 @@ class SAGEDevToolkit:
         self._load_tools()
 
         self.logger.info(
-            f"SAGE Development Toolkit initialized for environment '{self.config.environment}'"
+            f"sage-development Toolkit initialized for environment '{self.config.environment}'"
         )
         self.logger.info(f"Project root: {self.config.project_root}")
         self.logger.info(f"Available tools: {list(self.tools.keys())}")
@@ -437,7 +437,7 @@ class SAGEDevToolkit:
     def _generate_markdown_report(self, report: dict[str, Any], output_file: Path) -> None:
         """Generate markdown version of comprehensive report."""
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write("# SAGE Development Report\n\n")
+            f.write("# sage-development Report\n\n")
 
             # Metadata section
             metadata = report.get("metadata", {})

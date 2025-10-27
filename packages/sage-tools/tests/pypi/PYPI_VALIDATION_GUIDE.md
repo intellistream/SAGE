@@ -39,45 +39,45 @@ SAGE PyPI发布准备验证工具提供了完整的PyPI发布前验证功能，�
 
 ## 使用方法
 
-### 通过sage dev命令使用（推荐）
+### 通过sage-dev命令使用（推荐）
 
 ```bash
 # 快速发布准备验证（推荐日常使用）
-sage dev pypi validate --fast
+sage-dev pypi validate --fast
 
 # 完整发布准备验证  
-sage dev pypi validate
+sage-dev pypi validate
 
 # 跳过wheel构建（使用现有包）
-sage dev pypi validate --fast --skip-wheel
+sage-dev pypi validate --fast --skip-wheel
 
 # 指定测试目录并保留环境以便调试
-sage dev pypi validate --test-dir /tmp/my_test --no-cleanup
+sage-dev pypi validate --test-dir /tmp/my_test --no-cleanup
 
 # 显示详细输出
-sage dev pypi validate --verbose
+sage-dev pypi validate --verbose
 ```
 
 ### 其他PyPI发布管理命令
 
 ```bash
 # 构建wheel包
-sage dev pypi build
+sage-dev pypi build
 
 # 检查现有wheel包状态
-sage dev pypi check
+sage-dev pypi check
 
 # 清理构建文件
-sage dev pypi clean
+sage-dev pypi clean
 
 # 清理所有包的构建文件
-sage dev pypi clean --all
+sage-dev pypi clean --all
 
 # 发布到TestPyPI进行预发布测试
-sage dev pypi publish --dry-run
+sage-dev pypi publish --dry-run
 
 # 正式发布到PyPI
-sage dev pypi publish
+sage-dev pypi publish
 ```
 
 ### TestPyPI测试安装
@@ -124,7 +124,7 @@ python test_pip_install_complete.py --skip-wheel
 
 ### 完整验证流程
 
-在快速验证基础上增加： 7. **命令行工具** - 测试sage命令可用性 8. **开发工具** - 验证sage dev功能 9. **示例执行** - 运行完整示例代码 10.
+在快速验证基础上增加： 7. **命令行工具** - 测试sage命令可用性 8. **开发工具** - 验证sage-dev功能 9. **示例执行** - 运行完整示例代码 10.
 **单元测试** - 执行核心单元测试
 
 💡 **重要**：整个流程都在隔离环境中进行，不会影响您当前的SAGE安装！
@@ -155,9 +155,9 @@ python test_pip_install_complete.py --skip-wheel
 
    ```bash
    # 先构建包
-   sage dev pypi build
+   sage-dev pypi build
    # 然后验证
-   sage dev pypi validate --skip-wheel
+   sage-dev pypi validate --skip-wheel
    ```
 
 1. **导入失败**
@@ -169,23 +169,23 @@ python test_pip_install_complete.py --skip-wheel
 
    ```bash
    # 使用快速模式
-   sage dev pypi validate --fast
+   sage-dev pypi validate --fast
    ```
 
 1. **环境问题**
 
    ```bash
    # 清理旧环境
-   sage dev pypi clean --all
+   sage-dev pypi clean --all
    # 重新验证
-   sage dev pypi validate
+   sage-dev pypi validate
    ```
 
 ### 调试模式
 
 ```bash
 # 保留测试环境以便手动检查
-sage dev pypi validate --no-cleanup --verbose
+sage-dev pypi validate --no-cleanup --verbose
 
 # 查看测试环境
 ls /tmp/sage_*_test_*/
@@ -211,8 +211,8 @@ ls /tmp/sage_*_test_*/
 # GitHub Actions示例
 - name: PyPI发布准备验证
   run: |
-    sage dev pypi build
-    sage dev pypi validate --fast
+    sage-dev pypi build
+    sage-dev pypi validate --fast
 ```
 
 ### 发布时机确认
@@ -248,7 +248,7 @@ ls /tmp/sage_*_test_*/
 
 - **v1.0**: 基础验证功能
 - **v1.1**: 添加快速模式
-- **v1.2**: 集成到sage dev命令
+- **v1.2**: 集成到sage-dev命令
 - **v1.3**: 优化安装进度显示
 
 ______________________________________________________________________

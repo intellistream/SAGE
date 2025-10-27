@@ -29,7 +29,7 @@ except ImportError as e:
     def issues_placeholder():
         """Issues 管理（待迁移）"""
         console.print("[yellow]Issues 管理功能正在迁移中...[/yellow]")
-        console.print("[cyan]请临时使用: sage dev issues[/cyan]")
+        console.print("[cyan]请临时使用: sage-dev issues[/cyan]")
 
 
 __all__ = ["app"]

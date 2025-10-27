@@ -93,7 +93,7 @@ class IssuesManager:
 
         print("⚠️ 团队信息未找到")
         print("💡 运行以下命令获取团队信息:")
-        print("   sage dev issues team --update")
+        print("   sage-dev issues team --update")
         return None
 
     def load_issues(self) -> list[dict[str, Any]]:
@@ -102,7 +102,7 @@ class IssuesManager:
         if not data_dir.exists():
             print(f"❌ Issues数据目录不存在: {data_dir}")
             print("💡 请先运行下载Issues命令:")
-            print("   sage dev issues download")
+            print("   sage-dev issues download")
             return []
 
         issues = []
@@ -371,7 +371,7 @@ class IssuesManager:
         # 如果有GitHub Token，可以尝试获取更详细信息
         if self.config.github_token:
             print("\n� GitHub连接正常，可以获取详细团队信息")
-            print("💡 如需更新团队信息，请运行: sage dev issues team --update")
+            print("💡 如需更新团队信息，请运行: sage-dev issues team --update")
         else:
             print("\n⚠️ 未配置GitHub Token，无法获取最新团队信息")
             print("💡 配置Token后可获取更多详细信息")

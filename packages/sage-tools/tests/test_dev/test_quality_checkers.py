@@ -1,7 +1,7 @@
 """
 Tests for quality checker CLI commands.
 
-Tests the new sage dev check-* commands:
+Tests the new sage-dev check-* commands:
 - check-architecture
 - check-devnotes
 - check-readme
@@ -19,7 +19,7 @@ runner = CliRunner()
 
 
 class TestArchitectureCommand:
-    """Tests for sage dev architecture command (display architecture info)."""
+    """Tests for sage-dev architecture command (display architecture info)."""
 
     def test_architecture_help(self):
         """Test that help text is displayed."""
@@ -80,7 +80,7 @@ class TestArchitectureCommand:
 
 
 class TestArchitectureChecker:
-    """Tests for sage dev check-architecture command."""
+    """Tests for sage-dev check-architecture command."""
 
     def test_check_architecture_help(self):
         """Test that help text is displayed."""
@@ -106,7 +106,7 @@ class TestArchitectureChecker:
 
 
 class TestDevNotesChecker:
-    """Tests for sage dev check-devnotes command."""
+    """Tests for sage-dev check-devnotes command."""
 
     def test_check_devnotes_help(self):
         """Test that help text is displayed."""
@@ -131,7 +131,7 @@ class TestDevNotesChecker:
 
 
 class TestPackageREADMEChecker:
-    """Tests for sage dev check-readme command."""
+    """Tests for sage-dev check-readme command."""
 
     def test_check_readme_help(self):
         """Test that help text is displayed."""
@@ -156,7 +156,7 @@ class TestPackageREADMEChecker:
 
 
 class TestCheckAll:
-    """Tests for sage dev check-all convenience command."""
+    """Tests for sage-dev check-all convenience command."""
 
     def test_check_all_help(self):
         """Test that help text is displayed."""
@@ -193,7 +193,7 @@ class TestCheckAll:
 
 
 class TestQualityIntegration:
-    """Tests for integration with sage dev quality command."""
+    """Tests for integration with sage-dev quality command."""
 
     def test_quality_with_architecture_option(self):
         """Test quality command with --architecture option."""

@@ -58,15 +58,15 @@ packages/sage-cli/
 │           │   │
 │           │   └── dev/                   # 开发工具命令
 │           │       ├── __init__.py
-│           │       ├── quality/           # sage dev quality
-│           │       ├── project/           # sage dev project
+│           │       ├── quality/           # sage-dev quality
+│           │       ├── project/           # sage-dev project
 │           │       │   ├── __init__.py
 │           │       │   ├── env.py         # 从 commands/env.py 移入
 │           │       │   └── llm_config.py  # 从 commands/llm_config.py 移入
-│           │       ├── maintain/          # sage dev maintain
-│           │       ├── package/           # sage dev package
-│           │       ├── resource/          # sage dev resource
-│           │       └── github/            # sage dev github
+│           │       ├── maintain/          # sage-dev maintain
+│           │       ├── package/           # sage-dev package
+│           │       ├── resource/          # sage-dev resource
+│           │       └── github/            # sage-dev github
 │           │
 │           ├── utils/                     # CLI 工具函数
 │           │   ├── __init__.py
@@ -390,7 +390,7 @@ ALLOWED_DEPENDENCIES = {
    ```bash
    sage --help
    sage cluster --help
-   sage dev --help
+   sage-dev --help
    sage llm --help
    ```
 
@@ -401,7 +401,7 @@ ALLOWED_DEPENDENCIES = {
 
 4. **架构检查**
    ```bash
-   sage dev quality architecture
+   sage-dev quality architecture
    ```
 
 ## ⚠️ 风险与缓解

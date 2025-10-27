@@ -143,19 +143,19 @@ result = obj.process()  # 没有参数说明
 
 ### 4.1 自动检查工具
 
-位置：`sage dev check-readme`
+位置：`sage-dev check-readme`
 
 #### 使用方法
 
 ```bash
 # 检查所有包
-sage dev check-readme --all
+sage-dev check-readme --all
 
 # 检查特定包
-sage dev check-readme --package sage-kernel
+sage-dev check-readme --package sage-kernel
 
 # 生成详细报告
-sage dev check-readme --all --report --output report.md
+sage-dev check-readme --all --report --output report.md
 ```
 
 #### 评分标准
@@ -225,14 +225,14 @@ sage dev check-readme --all --report --output report.md
 
 4. 运行检查：
    ```bash
-   sage dev check-readme --package your-package
+   sage-dev check-readme --package your-package
    ```
 
 ### 5.2 对于现有包
 
 1. 运行检查工具识别问题：
    ```bash
-   sage dev check-readme --package sage-kernel
+   sage-dev check-readme --package sage-kernel
    ```
 
 2. 根据报告逐项修复：
@@ -243,7 +243,7 @@ sage dev check-readme --all --report --output report.md
 
 3. 重新检查确认改进：
    ```bash
-   sage dev check-readme --package sage-kernel
+   sage-dev check-readme --package sage-kernel
    ```
 
 ### 5.3 持续改进
@@ -265,7 +265,7 @@ sage dev check-readme --all --report --output report.md
   hooks:
     - id: check-package-readme
       name: Check Package README Quality
-      entry: sage dev check-readme --all
+      entry: sage-dev check-readme --all
       language: system
       pass_filenames: false
 ```
@@ -278,7 +278,7 @@ sage dev check-readme --all --report --output report.md
 # .github/workflows/ci.yml
 - name: Check Package README Quality
   run: |
-    sage dev check-readme --all --report
+    sage-dev check-readme --all --report
 ```
 
 ## 七、最佳实践
@@ -307,7 +307,7 @@ A: 是的，所有代码示例应该可以直接复制运行。
 ## 八、参考资源
 
 - **模板文件**: `tools/templates/PACKAGE_README_TEMPLATE.md`
-- **检查工具**: `sage dev check-readme`
+- **检查工具**: `sage-dev check-readme`
 - **质量报告**: `docs/dev-notes/ci-cd/PACKAGE_README_QUALITY_REPORT.md`
 - **示例 README**: 查看 `sage-tools` 或 `sage-apps` 的 README
 

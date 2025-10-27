@@ -1,5 +1,5 @@
 """
-SAGE Dev 命令组 - 简化版本
+sage-dev 命令组 - 简化版本
 
 这个模块提供统一的dev命令接口，调用sage.tools.dev中的核心功能。
 """
@@ -99,16 +99,16 @@ def quality(
     避免修改外部依赖的代码。如需检查 submodules，请使用 --include-submodules。
 
     示例：
-        sage dev quality                        # 运行所有检查（自动修复，跳过submodules）
-        sage dev quality --check-only           # 只检查不修复
-        sage dev quality --all-files            # 检查所有文件
-        sage dev quality --hook black           # 只运行 black
-        sage dev quality --no-format            # 跳过格式化
-        sage dev quality --no-architecture      # 跳过架构检查
-        sage dev quality --no-devnotes          # 跳过文档检查
-        sage dev quality --readme               # 包含 README 质量检查
-        sage dev quality --include-submodules   # 包含 submodules 进行检查
-        sage dev quality --submodules-only      # 仅检查 submodules
+        sage-dev quality                        # 运行所有检查（自动修复，跳过submodules）
+        sage-dev quality --check-only           # 只检查不修复
+        sage-dev quality --all-files            # 检查所有文件
+        sage-dev quality --hook black           # 只运行 black
+        sage-dev quality --no-format            # 跳过格式化
+        sage-dev quality --no-architecture      # 跳过架构检查
+        sage-dev quality --no-devnotes          # 跳过文档检查
+        sage-dev quality --readme               # 包含 README 质量检查
+        sage-dev quality --include-submodules   # 包含 submodules 进行检查
+        sage-dev quality --submodules-only      # 仅检查 submodules
     """
     import subprocess
     from pathlib import Path
@@ -415,7 +415,7 @@ def quality(
                     console.print(f"   • {r.package_name}: {r.score:.1f}/100")
                 if len(low_score_packages) > 5:
                     console.print(f"   ... 还有 {len(low_score_packages) - 5} 个包")
-                console.print("💡 运行 `sage dev check-readme --report` 查看详细信息")
+                console.print("💡 运行 `sage-dev check-readme --report` 查看详细信息")
                 # README 检查不阻止提交，只是警告
         except Exception as e:
             console.print(f"[yellow]⚠️  README 检查失败: {e}[/yellow]")
@@ -1607,10 +1607,10 @@ def architecture(
     - 依赖规则说明
 
     示例：
-        sage dev architecture                          # 显示完整架构信息
-        sage dev architecture --package sage-kernel    # 显示特定包的信息
-        sage dev architecture --format json            # JSON 格式输出
-        sage dev architecture --no-dependencies        # 只显示层级，不显示依赖
+        sage-dev architecture                          # 显示完整架构信息
+        sage-dev architecture --package sage-kernel    # 显示特定包的信息
+        sage-dev architecture --format json            # JSON 格式输出
+        sage-dev architecture --no-dependencies        # 只显示层级，不显示依赖
     """
     from sage.tools.dev.tools.architecture_checker import (
         ALLOWED_DEPENDENCIES,
@@ -1746,7 +1746,7 @@ def architecture(
     console.print("  • 使用 --package <name> 查看特定包的依赖信息")
     console.print("  • 使用 --format json 获取机器可读的输出")
     console.print("  • 使用 --format markdown 获取文档格式")
-    console.print("  • 运行 'sage dev check-architecture' 检查架构合规性")
+    console.print("  • 运行 'sage-dev check-architecture' 检查架构合规性")
     console.print()
 
 
@@ -1765,9 +1765,9 @@ def check_architecture(
     - 模块结构规范
 
     示例：
-        sage dev check-architecture                    # 检查所有文件
-        sage dev check-architecture --changed-only     # 仅检查变更文件
-        sage dev check-architecture --diff main        # 对比 main 分支
+        sage-dev check-architecture                    # 检查所有文件
+        sage-dev check-architecture --changed-only     # 仅检查变更文件
+        sage-dev check-architecture --diff main        # 对比 main 分支
     """
     from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
 
@@ -1834,9 +1834,9 @@ def check_devnotes(
     - 文件名是否符合规范
 
     示例：
-        sage dev check-devnotes                    # 检查所有文档
-        sage dev check-devnotes --changed-only     # 仅检查变更的文档
-        sage dev check-devnotes --check-structure  # 检查目录结构
+        sage-dev check-devnotes                    # 检查所有文档
+        sage-dev check-devnotes --changed-only     # 仅检查变更的文档
+        sage-dev check-devnotes --check-structure  # 检查目录结构
     """
     from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
 
@@ -1916,10 +1916,10 @@ def check_readme(
     - 文档结构是否符合模板
 
     示例：
-        sage dev check-readme                      # 检查所有包
-        sage dev check-readme sage-common          # 检查特定包
-        sage dev check-readme --report             # 生成详细报告
-        sage dev check-readme sage-libs --fix      # 交互式修复
+        sage-dev check-readme                      # 检查所有包
+        sage-dev check-readme sage-common          # 检查特定包
+        sage-dev check-readme --report             # 生成详细报告
+        sage-dev check-readme sage-libs --fix      # 交互式修复
     """
     from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
 
@@ -1963,8 +1963,8 @@ def check_readme(
                         console.print(f"   - {issue}")
 
             if not all_passed:
-                console.print("\n💡 运行 `sage dev check-readme --report` 查看详细报告")
-                console.print("💡 运行 `sage dev check-readme <package> --fix` 交互式修复")
+                console.print("\n💡 运行 `sage-dev check-readme --report` 查看详细报告")
+                console.print("💡 运行 `sage-dev check-readme <package> --fix` 交互式修复")
 
             raise typer.Exit(1)
 
@@ -1994,10 +1994,10 @@ def check_all(
     3. 包 README 质量检查
 
     示例：
-        sage dev check-all                      # 检查所有项目
-        sage dev check-all --changed-only       # 仅检查变更文件
-        sage dev check-all --continue-on-error  # 出错继续执行
-        sage dev check-all --verbose            # 详细输出
+        sage-dev check-all                      # 检查所有项目
+        sage-dev check-all --changed-only       # 仅检查变更文件
+        sage-dev check-all --continue-on-error  # 出错继续执行
+        sage-dev check-all --verbose            # 详细输出
     """
     project_path = Path(project_root).resolve()
 
@@ -2143,9 +2143,9 @@ def check_all(
         console.print("  • 使用 --verbose 查看详细错误")
         console.print("  • 使用 --continue-on-error 继续执行所有检查")
         console.print("  • 运行单独的检查命令修复问题:")
-        console.print("    - sage dev check-architecture")
-        console.print("    - sage dev check-devnotes")
-        console.print("    - sage dev check-readme")
+        console.print("    - sage-dev check-architecture")
+        console.print("    - sage-dev check-devnotes")
+        console.print("    - sage-dev check-readme")
         raise typer.Exit(1)
 
 

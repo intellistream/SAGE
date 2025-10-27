@@ -138,7 +138,7 @@ install.log
 coverage.xml
 dev_reports/
 !/Makefile
-# Build artifacts managed by SAGE dev toolkit
+# Build artifacts managed by sage-dev toolkit
 **/*.egg-info/
 **/dist/
 **/build/

@@ -1,5 +1,5 @@
 """
-SAGE Dev Version Management Command
+sage-dev Version Management Command
 
 This module provides commands to manage version.py files across all SAGE subpackages.
 """

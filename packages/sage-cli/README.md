@@ -148,7 +148,7 @@ Apache License 2.0 - see [LICENSE](../../LICENSE) for details.
 
 ## 🔗 Related Packages
 
-- `sage-tools` - Development tools and `sage dev` commands
+- `sage-tools` - Development tools and `sage-dev` commands
 - `sage-platform` - SAGE platform core
 - `sage-apps` - SAGE applications
 - `sage-studio` - Visual pipeline editor

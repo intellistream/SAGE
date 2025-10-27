@@ -1,5 +1,5 @@
 """
-SAGE Dev 命令模块
+sage-dev 命令模块
 
 开发工具命令组，包括：
 - quality: 质量检查

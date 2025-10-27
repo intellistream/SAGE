@@ -22,8 +22,8 @@ SAGE Libraries 提供了以下核心库组件：
 # 从源码安装
 pip install -e packages/sage-libs
 
-# 或使用 sage dev 命令
-sage dev install sage-libs
+# 或使用 sage-dev 命令
+sage-dev install sage-libs
 ```
 
 ## 📖 Quick Start

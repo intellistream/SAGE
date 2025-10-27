@@ -1,7 +1,7 @@
 # SAGE 项目结构规范
 
 **Date**: 2025-10-26
-**Author**: SAGE Development Team
+**Author**: sage-development Team
 **Summary**: Defines the organization principles for SAGE root directory and development tools, including guidelines for where to place scripts and configuration files.
 
 ## 📁 根目录组织原则
@@ -97,7 +97,7 @@ tools/
 
 #### 问题 3: 这个脚本需要经常运行吗？
 
-- **是** → 考虑集成到 `sage dev` 命令
+- **是** → 考虑集成到 `sage-dev` 命令
 - **否** → 放在 `tools/maintenance/helpers/`
 
 ### 更新文档引用
