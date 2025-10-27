@@ -65,7 +65,7 @@ tools/dev.sh                        # 开发环境管理
 tools/mypy-wrapper.sh              # Mypy 包装器
 ```
 
-**迁移建议**: 
+**迁移建议**:
 - `dev.sh` → 可迁移到 `sage-dev` CLI
 - `mypy-wrapper.sh` → 可集成到 `sage-dev lint` 或保留
 

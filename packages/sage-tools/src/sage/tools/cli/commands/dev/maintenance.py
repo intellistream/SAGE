@@ -8,7 +8,6 @@ Date: 2025-10-27
 """
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -24,7 +23,7 @@ console = Console()
 
 @app.command("organize-devnotes")
 def organize_devnotes(
-    root: Optional[Path] = typer.Option(
+    root: Path | None = typer.Option(
         None,
         "--root",
         "-r",
@@ -48,14 +47,14 @@ def organize_devnotes(
         if root is None:
             root = Path.cwd()
 
-        console.print(f"\n[bold]📊 分析 dev-notes 文档...[/bold]")
+        console.print("\n[bold]📊 分析 dev-notes 文档...[/bold]")
         console.print(f"项目根目录: {root}\n")
 
         organizer = DevNotesOrganizer(root)
         results = organizer.analyze_all()
         report = organizer.generate_report(results, verbose=verbose)
 
-        console.print(f"\n[green]✅ 分析完成！[/green]")
+        console.print("\n[green]✅ 分析完成！[/green]")
         console.print(
             f"共分析 {report['total']} 个文件，"
             f"发现 {len(report['root_files'])} 个需要整理的根目录文件"
@@ -68,7 +67,7 @@ def organize_devnotes(
 
 @app.command("fix-metadata")
 def fix_metadata(
-    root: Optional[Path] = typer.Option(
+    root: Path | None = typer.Option(
         None,
         "--root",
         "-r",
@@ -92,7 +91,7 @@ def fix_metadata(
         if root is None:
             root = Path.cwd()
 
-        console.print(f"\n[bold]📝 修复文档元数据...[/bold]")
+        console.print("\n[bold]📝 修复文档元数据...[/bold]")
         console.print(f"项目根目录: {root}\n")
 
         fixer = MetadataFixer(root)
@@ -104,7 +103,7 @@ def fix_metadata(
         else:
             stats = fixer.fix_all()
 
-        console.print(f"\n[green]✅ 修复完成！[/green]")
+        console.print("\n[green]✅ 修复完成！[/green]")
         console.print(
             f"成功: {stats['success']}, 跳过: {stats['skipped']}, 失败: {stats['failed']}"
         )
@@ -116,18 +115,18 @@ def fix_metadata(
 
 @app.command("update-ruff-ignore")
 def update_ruff_ignore(
-    root: Optional[Path] = typer.Option(
+    root: Path | None = typer.Option(
         None,
         "--root",
         "-r",
         help="项目根目录（默认：当前目录）",
     ),
-    rules: Optional[str] = typer.Option(
+    rules: str | None = typer.Option(
         None,
         "--rules",
         help="要添加的规则，逗号分隔（如：B904,C901）",
     ),
-    preset: Optional[str] = typer.Option(
+    preset: str | None = typer.Option(
         None,
         "--preset",
         help="使用预设规则集（如：b904-c901）",
@@ -144,7 +143,7 @@ def update_ruff_ignore(
         if root is None:
             root = Path.cwd()
 
-        console.print(f"\n[bold]🔧 更新 Ruff ignore 规则...[/bold]")
+        console.print("\n[bold]🔧 更新 Ruff ignore 规则...[/bold]")
         console.print(f"项目根目录: {root}\n")
 
         updater = RuffIgnoreUpdater(root)
@@ -163,7 +162,7 @@ def update_ruff_ignore(
             console.print("  sage-dev maintenance update-ruff-ignore --rules B904,C901")
             raise typer.Exit(1)
 
-        console.print(f"\n[green]✅ 更新完成！[/green]")
+        console.print("\n[green]✅ 更新完成！[/green]")
         console.print(
             f"更新: {stats['updated']}, 跳过: {stats['skipped']}, 失败: {stats['failed']}"
         )

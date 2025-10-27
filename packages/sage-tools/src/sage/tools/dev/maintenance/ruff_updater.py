@@ -11,7 +11,6 @@ Date: 2025-10-27
 
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
 
 # 默认的包 pyproject.toml 文件列表
 DEFAULT_PACKAGE_FILES = [
@@ -31,7 +30,7 @@ DEFAULT_PACKAGE_FILES = [
 class RuffIgnoreUpdater:
     """Ruff ignore 规则更新器"""
 
-    def __init__(self, root_dir: Optional[Path] = None):
+    def __init__(self, root_dir: Path | None = None):
         """
         初始化更新器
 
@@ -41,7 +40,10 @@ class RuffIgnoreUpdater:
         self.root_dir = Path(root_dir) if root_dir else Path.cwd()
 
     def update_file(
-        self, file_path: Path, rules_to_add: List[str], descriptions: Optional[Dict[str, str]] = None
+        self,
+        file_path: Path,
+        rules_to_add: list[str],
+        descriptions: dict[str, str] | None = None,
     ) -> bool:
         """
         更新单个 pyproject.toml 文件
@@ -150,10 +152,10 @@ class RuffIgnoreUpdater:
 
     def update_all(
         self,
-        rules_to_add: List[str],
-        descriptions: Optional[Dict[str, str]] = None,
-        file_list: Optional[List[str]] = None,
-    ) -> Dict[str, int]:
+        rules_to_add: list[str],
+        descriptions: dict[str, str] | None = None,
+        file_list: list[str] | None = None,
+    ) -> dict[str, int]:
         """
         批量更新 pyproject.toml 文件
 
@@ -183,14 +185,14 @@ class RuffIgnoreUpdater:
                 else:
                     stats["failed"] += 1
 
-        print(f"\n✨ 完成！")
+        print("\n✨ 完成！")
         print(f"  ✅ 更新: {stats['updated']}")
         print(f"  ⏭️  跳过: {stats['skipped']}")
         print(f"  ❌ 失败: {stats['failed']}")
 
         return stats
 
-    def add_b904_c901(self) -> Dict[str, int]:
+    def add_b904_c901(self) -> dict[str, int]:
         """
         添加 B904 和 C901 规则（常用快捷方法）
 

@@ -5,9 +5,7 @@
 """
 
 import subprocess
-import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -23,7 +21,7 @@ console = Console()
 
 @app.command("build")
 def build_docs(
-    root: Optional[Path] = typer.Option(
+    root: Path | None = typer.Option(
         None,
         "--root",
         "-r",
@@ -51,7 +49,7 @@ def build_docs(
             console.print(f"[red]❌ 文档目录不存在: {docs_dir}[/red]")
             raise typer.Exit(1)
 
-        console.print(f"\n[bold]📖 构建文档...[/bold]")
+        console.print("\n[bold]📖 构建文档...[/bold]")
         console.print(f"文档目录: {docs_dir}\n")
 
         # 检查 mkdocs 是否可用
@@ -105,7 +103,7 @@ def build_docs(
                     console.print("[red]❌ 构建失败[/red]")
                     raise typer.Exit(1)
 
-            console.print(f"\n[green]✅ 文档构建成功！[/green]")
+            console.print("\n[green]✅ 文档构建成功！[/green]")
             console.print(f"输出目录: {docs_dir / 'site'}")
 
         finally:
@@ -118,7 +116,7 @@ def build_docs(
 
 @app.command("serve")
 def serve_docs(
-    root: Optional[Path] = typer.Option(
+    root: Path | None = typer.Option(
         None,
         "--root",
         "-r",
@@ -152,7 +150,7 @@ def serve_docs(
             console.print(f"[red]❌ 文档目录不存在: {docs_dir}[/red]")
             raise typer.Exit(1)
 
-        console.print(f"\n[bold]🌐 启动文档服务器...[/bold]")
+        console.print("\n[bold]🌐 启动文档服务器...[/bold]")
         console.print(f"文档目录: {docs_dir}")
         console.print(f"服务地址: http://{host}:{port}\n")
 
@@ -193,7 +191,7 @@ def serve_docs(
 
 @app.command("check")
 def check_docs(
-    root: Optional[Path] = typer.Option(
+    root: Path | None = typer.Option(
         None,
         "--root",
         "-r",
@@ -215,7 +213,7 @@ def check_docs(
             console.print(f"[red]❌ 文档目录不存在: {docs_dir}[/red]")
             raise typer.Exit(1)
 
-        console.print(f"\n[bold]✅ 检查文档...[/bold]")
+        console.print("\n[bold]✅ 检查文档...[/bold]")
         console.print(f"文档目录: {docs_dir}\n")
 
         # 检查 mkdocs.yml
@@ -245,7 +243,7 @@ def check_docs(
         else:
             console.print("[yellow]⚠ index.md 不存在[/yellow]")
 
-        console.print(f"\n[green]✅ 文档检查完成！[/green]")
+        console.print("\n[green]✅ 文档检查完成！[/green]")
 
     except Exception as e:
         console.print(f"[red]❌ 检查失败: {e}[/red]")

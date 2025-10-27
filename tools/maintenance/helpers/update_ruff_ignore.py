@@ -38,6 +38,7 @@ print()
 # 尝试导入新模块
 try:
     from pathlib import Path
+
     from sage.tools.dev.maintenance import RuffIgnoreUpdater
 
     root = Path.cwd()

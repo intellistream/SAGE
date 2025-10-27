@@ -190,7 +190,7 @@ cmd_clean() {
     echo ""
     echo "继续使用旧命令..."
     echo ""
-    
+
     print_header "Cleaning build artifacts"
 
     print_info "Removing Python cache files..."
@@ -222,7 +222,7 @@ cmd_docs() {
     echo ""
     echo "继续使用旧命令..."
     echo ""
-    
+
     print_header "Building documentation"
     cd docs-public
 
@@ -245,7 +245,7 @@ cmd_serve_docs() {
     echo ""
     echo "继续使用旧命令..."
     echo ""
-    
+
     print_header "Serving documentation"
     cd docs-public
 

@@ -114,4 +114,3 @@ class TestDocsEdgeCases:
         assert "build" in result.stdout
         assert "serve" in result.stdout
         assert "check" in result.stdout
-

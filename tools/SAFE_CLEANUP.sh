@@ -62,17 +62,17 @@ BACKED_UP_COUNT=0
 
 for file in "${FILES_TO_DELETE[@]}"; do
     full_path="$TOOLS_DIR/$file"
-    
+
     if [ -f "$full_path" ]; then
         # 创建备份目录结构
         backup_file="$BACKUP_DIR/$file"
         mkdir -p "$(dirname "$backup_file")"
-        
+
         # 备份
         cp "$full_path" "$backup_file"
         echo -e "${BLUE}📦${NC} 备份: $file"
         ((BACKED_UP_COUNT++))
-        
+
         # 删除
         rm "$full_path"
         echo -e "${GREEN}✓${NC} 删除: $file"
@@ -90,10 +90,10 @@ for pycache in "$TOOLS_DIR/tests/__pycache__" "$TOOLS_DIR/maintenance/helpers/__
         backup_pycache="$BACKUP_DIR/$rel_path"
         mkdir -p "$(dirname "$backup_pycache")"
         cp -r "$pycache" "$backup_pycache"
-        
+
         echo -e "${BLUE}📦${NC} 备份: $rel_path"
         ((BACKED_UP_COUNT++))
-        
+
         # 删除
         rm -rf "$pycache"
         echo -e "${GREEN}✓${NC} 删除: $rel_path"

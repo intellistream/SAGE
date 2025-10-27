@@ -15,7 +15,6 @@ Date: 2025-10-27
 
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 # 关键词到分类的映射
 CATEGORY_KEYWORDS = {
@@ -55,7 +54,7 @@ class DevNotesOrganizer:
         self.root_dir = Path(root_dir)
         self.devnotes_dir = self.root_dir / "docs" / "dev-notes"
 
-    def analyze_file(self, file_path: Path) -> Dict:
+    def analyze_file(self, file_path: Path) -> dict:
         """
         分析单个文件
 
@@ -100,7 +99,7 @@ class DevNotesOrganizer:
             "current_category": (rel_path.parts[0] if len(rel_path.parts) > 1 else "root"),
         }
 
-    def _check_metadata(self, content: str) -> Tuple[bool, bool, bool]:
+    def _check_metadata(self, content: str) -> tuple[bool, bool, bool]:
         """
         检查文档元数据
 
@@ -151,7 +150,7 @@ class DevNotesOrganizer:
             return max(scores, key=scores.get)
         return "migration"  # 默认归为迁移类
 
-    def analyze_all(self) -> List[Dict]:
+    def analyze_all(self) -> list[dict]:
         """
         分析所有文档文件
 
@@ -169,7 +168,7 @@ class DevNotesOrganizer:
 
         return results
 
-    def generate_report(self, results: List[Dict], verbose: bool = True) -> Dict:
+    def generate_report(self, results: list[dict], verbose: bool = True) -> dict:
         """
         生成整理报告
 
@@ -202,7 +201,7 @@ class DevNotesOrganizer:
 
         return report_data
 
-    def _print_report(self, report_data: Dict) -> None:
+    def _print_report(self, report_data: dict) -> None:
         """打印报告"""
         total = report_data["total"]
         root_files = report_data["root_files"]
@@ -269,7 +268,7 @@ class DevNotesOrganizer:
                 print(f"📄 {path}")
                 print(f"   缺少字段: {', '.join(missing)}")
                 print()
-            
+
             if len(missing_metadata) > 10:
                 print(f"... 还有 {len(missing_metadata) - 10} 个文件")
                 print()

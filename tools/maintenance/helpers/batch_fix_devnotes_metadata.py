@@ -13,8 +13,7 @@ import sys
 import warnings
 
 warnings.warn(
-    "此脚本已迁移到 sage-tools 包。"
-    "请使用: sage-dev maintenance fix-metadata",
+    "此脚本已迁移到 sage-tools 包。" "请使用: sage-dev maintenance fix-metadata",
     DeprecationWarning,
     stacklevel=2,
 )
@@ -37,6 +36,7 @@ print()
 # 尝试导入新模块
 try:
     from pathlib import Path
+
     from sage.tools.dev.maintenance import MetadataFixer
 
     root = Path.cwd()

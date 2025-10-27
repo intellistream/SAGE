@@ -8,7 +8,6 @@ Date: 2025-10-27
 """
 
 from pathlib import Path
-from typing import Dict, Optional
 
 # 预定义需要修复的文件列表
 DEFAULT_FILES_TO_FIX = {
@@ -79,7 +78,7 @@ DEFAULT_FILES_TO_FIX = {
 class MetadataFixer:
     """Dev-notes 元数据修复器"""
 
-    def __init__(self, root_dir: Optional[Path] = None):
+    def __init__(self, root_dir: Path | None = None):
         """
         初始化修复器
 
@@ -88,7 +87,7 @@ class MetadataFixer:
         """
         self.root_dir = Path(root_dir) if root_dir else Path.cwd()
 
-    def fix_file(self, filepath: str, metadata: Dict[str, str]) -> bool:
+    def fix_file(self, filepath: str, metadata: dict[str, str]) -> bool:
         """
         为单个文件添加元数据
 
@@ -152,9 +151,7 @@ class MetadataFixer:
             print(f"⚠️  写入文件失败: {filepath} - {e}")
             return False
 
-    def fix_all(
-        self, files_to_fix: Optional[Dict[str, Dict[str, str]]] = None
-    ) -> Dict[str, int]:
+    def fix_all(self, files_to_fix: dict[str, dict[str, str]] | None = None) -> dict[str, int]:
         """
         批量修复文件元数据
 
@@ -191,7 +188,7 @@ class MetadataFixer:
 
         return stats
 
-    def scan_and_fix(self, devnotes_dir: Optional[Path] = None) -> Dict[str, int]:
+    def scan_and_fix(self, devnotes_dir: Path | None = None) -> dict[str, int]:
         """
         扫描 dev-notes 目录并修复缺失元数据的文件
 
