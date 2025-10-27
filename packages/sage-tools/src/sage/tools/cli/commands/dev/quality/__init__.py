@@ -55,17 +55,11 @@ def check_all(
     包括：架构合规性、dev-notes 规范、README 质量、代码格式等。
 
     示例：
-        sage dev quality check                # 运行所有检查
-        sage dev quality check --changed-only # 只检查变更文件
-        sage dev quality check --no-fix       # 只检查不修复
-        sage dev quality check --readme       # 包含 README 检查
+        sage-dev quality check                # 运行所有检查
+        sage-dev quality check --changed-only # 只检查变更文件
+        sage-dev quality check --no-fix       # 只检查不修复
+        sage-dev quality check --readme       # 包含 README 检查
     """
-    from sage.tools.cli.commands.dev.main import (
-        _run_architecture_check,
-        _run_devnotes_check,
-        _run_readme_check,
-    )
-
     console.print("\n[bold blue]🔍 运行质量检查[/bold blue]\n")
 
     failed_checks = []
@@ -117,11 +111,9 @@ def check_architecture(
     检查包之间的依赖关系是否符合分层架构定义。
 
     示例：
-        sage dev quality architecture                # 检查所有文件
-        sage dev quality architecture --changed-only # 只检查变更文件
+        sage-dev quality architecture                # 检查所有文件
+        sage-dev quality architecture --changed-only # 只检查变更文件
     """
-    from sage.tools.cli.commands.dev.main import _run_architecture_check
-
     if not _run_architecture_check(changed_only=changed_only, warn_only=warn_only):
         if not warn_only:
             raise typer.Exit(1)
@@ -141,10 +133,8 @@ def check_devnotes(
     检查 dev-notes 文档是否符合规范（元数据、分类等）。
 
     示例：
-        sage dev quality devnotes
+        sage-dev quality devnotes
     """
-    from sage.tools.cli.commands.dev.main import _run_devnotes_check
-
     if not _run_devnotes_check(warn_only=warn_only):
         if not warn_only:
             raise typer.Exit(1)
@@ -164,10 +154,8 @@ def check_readme(
     检查包的 README 文档是否完整、格式正确。
 
     示例：
-        sage dev quality readme
+        sage-dev quality readme
     """
-    from sage.tools.cli.commands.dev.main import _run_readme_check
-
     if not _run_readme_check(warn_only=warn_only):
         if not warn_only:
             raise typer.Exit(1)
@@ -192,9 +180,9 @@ def format_code(
     使用 black, isort 等工具格式化代码。
 
     示例：
-        sage dev quality format              # 格式化变更的文件
-        sage dev quality format --all-files  # 格式化所有文件
-        sage dev quality format --check-only # 只检查不修复
+        sage-dev quality format              # 格式化变更的文件
+        sage-dev quality format --all-files  # 格式化所有文件
+        sage-dev quality format --check-only # 只检查不修复
     """
     # 调用原 quality 命令，只运行格式化
     import sys
@@ -236,8 +224,8 @@ def lint_code(
     使用 ruff, mypy 等工具检查代码质量。
 
     示例：
-        sage dev quality lint              # 检查变更的文件
-        sage dev quality lint --all-files  # 检查所有文件
+        sage-dev quality lint              # 检查变更的文件
+        sage-dev quality lint --all-files  # 检查所有文件
     """
     from sage.tools.cli.commands.dev.main import quality
 
@@ -269,8 +257,8 @@ def fix_issues(
     自动修复可修复的代码质量问题。
 
     示例：
-        sage dev quality fix              # 修复变更的文件
-        sage dev quality fix --all-files  # 修复所有文件
+        sage-dev quality fix              # 修复变更的文件
+        sage-dev quality fix --all-files  # 修复所有文件
     """
     from sage.tools.cli.commands.dev.main import quality
 
