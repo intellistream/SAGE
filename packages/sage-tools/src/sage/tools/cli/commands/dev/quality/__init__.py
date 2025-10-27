@@ -280,18 +280,22 @@ def fix_issues(
 def _run_architecture_check(changed_only: bool = False, warn_only: bool = False) -> bool:
     """运行架构检查，返回是否通过"""
     try:
+        from pathlib import Path
+
         from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
 
-        checker = ArchitectureChecker()
-        violations = checker.check_all()
+        # 获取项目根目录
+        root_dir = Path(__file__).parent.parent.parent.parent.parent.parent.parent
+        checker = ArchitectureChecker(root_dir)
+        result = checker.check_all()
 
         if changed_only:
             # TODO: 过滤只显示变更文件的违规
             pass
 
-        if violations:
-            console.print(f"[red]发现 {len(violations)} 个架构违规[/red]")
-            for v in violations[:10]:  # 只显示前10个
+        if not result.passed:
+            console.print(f"[red]发现 {len(result.violations)} 个架构违规[/red]")
+            for v in result.violations[:10]:  # 只显示前10个
                 console.print(f"  [yellow]{v}[/yellow]")
             return False
         else:
@@ -299,15 +303,22 @@ def _run_architecture_check(changed_only: bool = False, warn_only: bool = False)
             return True
     except Exception as e:
         console.print(f"[red]架构检查失败: {e}[/red]")
+        import traceback
+
+        traceback.print_exc()
         return False
 
 
 def _run_devnotes_check(warn_only: bool = False) -> bool:
     """运行 dev-notes 检查，返回是否通过"""
     try:
+        from pathlib import Path
+
         from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
 
-        checker = DevNotesChecker()
+        # 获取项目根目录
+        root_dir = Path(__file__).parent.parent.parent.parent.parent.parent.parent
+        checker = DevNotesChecker(root_dir)
         issues = checker.check_all()
 
         if issues:
@@ -320,15 +331,22 @@ def _run_devnotes_check(warn_only: bool = False) -> bool:
             return True
     except Exception as e:
         console.print(f"[red]dev-notes 检查失败: {e}[/red]")
+        import traceback
+
+        traceback.print_exc()
         return False
 
 
 def _run_readme_check(warn_only: bool = False) -> bool:
     """运行 README 检查，返回是否通过"""
     try:
-        from sage.tools.dev.tools.package_readme_checker import PackageReadmeChecker
+        from pathlib import Path
 
-        checker = PackageReadmeChecker()
+        from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
+
+        # 获取项目根目录
+        root_dir = Path(__file__).parent.parent.parent.parent.parent.parent.parent
+        checker = PackageREADMEChecker(root_dir)
         issues = checker.check_all()
 
         if issues:
@@ -341,6 +359,9 @@ def _run_readme_check(warn_only: bool = False) -> bool:
             return True
     except Exception as e:
         console.print(f"[red]README 检查失败: {e}[/red]")
+        import traceback
+
+        traceback.print_exc()
         return False
 
 
