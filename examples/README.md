@@ -49,7 +49,7 @@ examples/
 
 ## 📚 Examples by Level
 
-### 🟢 Beginner (\< 30 minutes)
+### 🟢 Beginner (< 30 minutes)
 
 Simple, focused tutorials to learn SAGE basics.
 

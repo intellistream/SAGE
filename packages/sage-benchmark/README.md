@@ -114,7 +114,7 @@ python -m sage.benchmark.benchmark_rag.implementations.tools.build_milvus_dense_
 
 Test individual RAG pipelines:
 
-```python
+```bash
 # Dense retrieval with Milvus
 python -m sage.benchmark.benchmark_rag.implementations.pipelines.qa_dense_retrieval_milvus
 

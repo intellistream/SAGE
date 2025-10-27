@@ -43,7 +43,7 @@ This directory contains the configuration for the SAGE Medical Diagnosis Agent.
 
 ### Image Processing
 
-- `image_processing.input_size`: Input image size (default: \[512, 512\])
+- `image_processing.input_size`: Input image size (default: [512, 512])
 - `image_processing.normalization`: Enable normalization (default: true)
 - `image_processing.segmentation.enabled`: Enable segmentation (default: false)
 

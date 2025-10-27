@@ -224,9 +224,7 @@ class EmbeddingRegistry:
                     f"{method.upper()}_API_KEY",
                     "OPENAI_API_KEY",  # 通用 fallback
                 ]
-                api_key = next(
-                    (os.getenv(name) for name in env_var_names if os.getenv(name)), None
-                )
+                api_key = next((os.getenv(name) for name in env_var_names if os.getenv(name)), None)
             if not api_key:
                 return ModelStatus.NEEDS_API_KEY
 

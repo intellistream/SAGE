@@ -43,7 +43,7 @@ def _print_install_summary(success_count: int, total_count: int) -> None:
 
 ### 2. 改进进度线程清理
 
-增加线程等待超时时间，并添加输出刷新：
+增加线程等待超时时间,并添加输出刷新：
 
 ```python
 finally:

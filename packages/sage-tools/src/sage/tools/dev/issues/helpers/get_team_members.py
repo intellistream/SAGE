@@ -71,9 +71,7 @@ class TeamMembersCollector:
         while url:
             resp = requests.get(url, headers=self.headers, params=params)
             if resp.status_code != 200:
-                error_msg = (
-                    f"获取团队 {team_slug} 成员失败: {resp.status_code} {resp.text}"
-                )
+                error_msg = f"获取团队 {team_slug} 成员失败: {resp.status_code} {resp.text}"
                 print(f"❌ {error_msg}", file=sys.stderr)
                 return []
             data = resp.json()
@@ -173,9 +171,7 @@ class TeamMembersCollector:
                 for m in info.get("members", []):
                     f.write("            {\n")
                     f.write(f"                'username': '{m.get('username')}',\n")
-                    f.write(
-                        f"                'profile_url': '{m.get('profile_url')}',\n"
-                    )
+                    f.write(f"                'profile_url': '{m.get('profile_url')}',\n")
                     f.write(f"                'avatar_url': '{m.get('avatar_url')}',\n")
                     f.write(f"                'id': {m.get('id')},\n")
                     f.write(f"                'type': '{m.get('type')}'\n")

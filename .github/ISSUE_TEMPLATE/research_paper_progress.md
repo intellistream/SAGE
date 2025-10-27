@@ -1,6 +1,6 @@
 ______________________________________________________________________
 
-## name: "Research Paper Progress" about: "Log and track the progress of an ongoing research paper" title: "\[Paper Progress\] " labels: research assignees: ''
+## name: "Research Paper Progress" about: "Log and track the progress of an ongoing research paper" title: "[Paper Progress] " labels: research assignees: ''
 
 ## Paper Title
 

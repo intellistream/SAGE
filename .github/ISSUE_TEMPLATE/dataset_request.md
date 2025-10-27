@@ -1,6 +1,6 @@
 ______________________________________________________________________
 
-## name: "Dataset Request" about: "Request a dataset for experiments or analysis" title: "\[Dataset Request\] " labels: dataset assignees: ''
+## name: "Dataset Request" about: "Request a dataset for experiments or analysis" title: "[Dataset Request] " labels: dataset assignees: ''
 
 ## Dataset Name or Type
 

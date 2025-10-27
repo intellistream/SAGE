@@ -1,8 +1,7 @@
 # Workflow Optimizer Framework
 
 **Layer**: L3 (Core - Research & Algorithm Library)\
-**Purpose**: Standardized framework for
-researching agentic workflow optimization
+**Purpose**: Standardized framework for researching agentic workflow optimization
 
 ## Overview
 
@@ -14,16 +13,11 @@ researchers can focus purely on developing novel optimization algorithms.
 ## Key Features
 
 ✅ **Standardized Workflow Representation** - DAG-based workflow graphs with rich metadata\
-✅
-**Pluggable Optimizer Interface** - Easy to implement custom optimization strategies\
-✅ **Constraint
-System** - Budget, latency, and quality constraints with extensibility\
-✅ **Automated Benchmarking**
-\- Compare multiple optimizers on standard benchmarks\
-✅ **Evaluation Metrics** - Comprehensive
-metrics (cost, latency, quality, etc.)\
-✅ **Example Implementations** - Reference optimizers to
-learn from
+✅ **Pluggable Optimizer Interface** - Easy to implement custom optimization strategies\
+✅ **Constraint System** - Budget, latency, and quality constraints with extensibility\
+✅ **Automated Benchmarking** - Compare multiple optimizers on standard benchmarks\
+✅ **Evaluation Metrics** - Comprehensive metrics (cost, latency, quality, etc.)\
+✅ **Example Implementations** - Reference optimizers to learn from
 
 ## Quick Start
 
@@ -356,6 +350,6 @@ If you use this framework in research, please cite:
 
 ## Support
 
-- **Issues**: File in main SAGE repository with \[workflow-optimizer\] tag
+- **Issues**: File in main SAGE repository with [workflow-optimizer] tag
 - **Discussions**: SAGE community forum
 - **Examples**: See `examples.py` for comprehensive usage

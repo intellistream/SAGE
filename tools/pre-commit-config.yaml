@@ -18,7 +18,7 @@ default_language_version:
 repos:
   # General file checks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
+  rev: v6.0.0
   hooks:
   - id: trailing-whitespace
     args: [--markdown-linebreak-ext=md]
@@ -38,7 +38,7 @@ repos:
 
   # Python: Black formatter
 - repo: https://github.com/psf/black
-  rev: 24.3.0
+  rev: 25.9.0
   hooks:
   - id: black
     language_version: python3.11
@@ -47,7 +47,7 @@ repos:
 
   # Python: isort import sorting
 - repo: https://github.com/pycqa/isort
-  rev: 5.13.2
+  rev: 7.0.0
   hooks:
   - id: isort
     args: [--profile=black, --line-length=100]
@@ -55,7 +55,7 @@ repos:
 
   # Python: Ruff linter (faster alternative to flake8, pylint)
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.3.4
+  rev: v0.14.2
   hooks:
   - id: ruff
     args: [--fix, --exit-non-zero-on-fix]
@@ -80,7 +80,7 @@ repos:
     # This hook will always succeed (exit 0) to avoid blocking commits/CI
     # Errors are shown but treated as warnings  # Shell: shellcheck
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.10.0.1
+  rev: v0.11.0.1
   hooks:
   - id: shellcheck
     args: [-x, -e, SC1091]      # -x: follow sources, -e SC1091: ignore source errors
@@ -89,7 +89,7 @@ repos:
 
   # YAML formatting
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.12.0
+  rev: v2.15.0
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --indent=2, --preserve-quotes]
@@ -97,18 +97,22 @@ repos:
 
   # Markdown formatting
 - repo: https://github.com/executablebooks/mdformat
-  rev: 0.7.17
+  rev: 1.0.0
   hooks:
   - id: mdformat
     additional_dependencies:
     - mdformat-gfm        # GitHub Flavored Markdown
-    - mdformat-black        # Black formatter for code blocks
+    # Note: mdformat-black is disabled because it fails on code blocks with:
+    # - Template placeholders (e.g., {module_name})
+    # - Special symbols in comments (e.g., ✅ ❌)
+    # - Pseudo-code or incomplete Python snippets
+    # - mdformat-black        # Black formatter for code blocks
     args: [--wrap=100]
     exclude: ^(CHANGELOG.md|docs/dev-notes/|docs-public/docs_src/api-reference/)
 
   # Security: Check for secrets
 - repo: https://github.com/Yelp/detect-secrets
-  rev: v1.4.0
+  rev: v1.5.0
   hooks:
   - id: detect-secrets
     args: [--baseline, tools/secrets.baseline]

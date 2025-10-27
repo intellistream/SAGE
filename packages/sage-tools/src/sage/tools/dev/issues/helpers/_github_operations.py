@@ -219,9 +219,7 @@ class GitHubIssuesExecutor:
                 labels_str = match[1].strip()
 
                 # 解析标签列表
-                labels = [
-                    label.strip() for label in labels_str.split(",") if label.strip()
-                ]
+                labels = [label.strip() for label in labels_str.split(",") if label.strip()]
 
                 if labels:
                     self.label_recommendations[issue_num] = labels
@@ -296,16 +294,12 @@ class GitHubIssuesExecutor:
         print(f"  🔄 关闭重复issue #{issue_number} (合并到 #{main_issue_number})")
 
         # 添加评论说明合并原因
-        comment_url = (
-            f"https://api.github.com/repos/{self.repo}/issues/{issue_number}/comments"
-        )
+        comment_url = f"https://api.github.com/repos/{self.repo}/issues/{issue_number}/comments"
         comment_data = {
             "body": f"✨ **Issues合并通知**\\n\\n这个issue与 #{main_issue_number} 重复，原因：{reason}\\n\\n已自动合并到主issue中，请在 #{main_issue_number} 中继续讨论。"
         }
 
-        comment_response = requests.post(
-            comment_url, headers=self.headers, json=comment_data
-        )
+        comment_response = requests.post(comment_url, headers=self.headers, json=comment_data)
         if comment_response.status_code == 201:
             print("    ✅ 添加合并说明评论")
         else:
@@ -331,7 +325,9 @@ class GitHubIssuesExecutor:
 
         # 添加合并说明评论
         duplicate_list = ", ".join([f"#{num}" for num in duplicates])
-        comment_url = f"https://api.github.com/repos/{self.repo}/issues/{main_issue_number}/comments"
+        comment_url = (
+            f"https://api.github.com/repos/{self.repo}/issues/{main_issue_number}/comments"
+        )
         comment_data = {
             "body": f"🔗 **Issues合并更新**\\n\\n以下重复issues已合并到此issue：{duplicate_list}\\n\\n合并原因：{reason}\\n\\n请在此issue中统一讨论相关内容。"
         }
@@ -433,9 +429,7 @@ class GitHubIssuesExecutor:
         """基于AI分析结果生成标签更新计划"""
         # 如果有AI分析的标签建议，使用AI分析结果
         if self.label_recommendations:
-            print(
-                f"📋 使用AI分析的标签建议: {len(self.label_recommendations)} 个issues"
-            )
+            print(f"📋 使用AI分析的标签建议: {len(self.label_recommendations)} 个issues")
             return self.label_recommendations
 
         # 如果没有AI分析结果，返回空计划
@@ -632,9 +626,7 @@ if __name__ == "__main__":
         elif command == "report":
             manager.generate_summary_report()
         else:
-            print(
-                "用法: python3 manage_github_issues.py [labels|duplicates|update-labels|report]"
-            )
+            print("用法: python3 manage_github_issues.py [labels|duplicates|update-labels|report]")
     else:
         # 运行完整流程
         manager.run_full_management()

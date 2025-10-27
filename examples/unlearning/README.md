@@ -470,20 +470,24 @@ from sage.libs.unlearning import ...
 
 def main():
     # Step 1: Setup
-    print("Setting up...")
-
-    # Step 2: Main demonstration
-    print("Demonstrating...")
-
-    # Step 3: Evaluation
-    print("Evaluating...")
-
-    # Step 4: Visualization (optional)
-    print("Visualizing...")
-
-if __name__ == "__main__":
-    main()
 ```
+
+```
+print("Setting up...")
+
+# Step 2: Main demonstration
+print("Demonstrating...")
+
+# Step 3: Evaluation
+print("Evaluating...")
+
+# Step 4: Visualization (optional)
+print("Visualizing...")
+```
+
+if __name__ == "__main__": main()
+
+````
 
 ## Running Examples
 
@@ -492,7 +496,7 @@ All examples assume you have installed the SAGE library:
 ```bash
 cd /path/to/SAGE
 pip install -e packages/sage-libs
-```
+````
 
 Then run examples from this directory:
 

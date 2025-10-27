@@ -109,7 +109,7 @@ db_config = {
 class CustomFusion : public FusionStrategyInterface {
     Vector fuse(const std::unordered_map<ModalityType, Vector>& embeddings,
                 const FusionParams& params) override {
-        // 自定义融合逻辑
+        # 自定义融合逻辑
     }
 };
 ```

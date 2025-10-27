@@ -1,6 +1,6 @@
 ______________________________________________________________________
 
-## name: "Task" about: "Log a general task or maintenance activity" title: "\[Task\] " labels: task assignees: ''
+## name: "Task" about: "Log a general task or maintenance activity" title: "[Task] " labels: task assignees: ''
 
 ## Task Description
 

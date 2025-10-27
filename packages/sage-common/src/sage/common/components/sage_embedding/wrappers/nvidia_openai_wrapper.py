@@ -97,15 +97,12 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
             from openai import OpenAI  # noqa: F401
         except ImportError as err:
             raise ImportError(
-                "NVIDIA OpenAI embedding 需要 openai 包。\n"
-                "安装方法: pip install openai"
+                "NVIDIA OpenAI embedding 需要 openai 包。\n" "安装方法: pip install openai"
             ) from err
 
         self._model = model
         self._base_url = base_url
-        self._api_key = (
-            api_key or os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY")
-        )
+        self._api_key = api_key or os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY")
         self._input_type = input_type
         self._trunc = trunc
         self._encode: Literal["float", "base64"] = encode

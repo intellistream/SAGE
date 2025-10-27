@@ -1,6 +1,6 @@
 ______________________________________________________________________
 
-## name: "Paper Discussion" about: "Discuss insights, critiques, or questions about a research paper" title: "\[Paper Discussion\] " labels: discussion assignees: ''
+## name: "Paper Discussion" about: "Discuss insights, critiques, or questions about a research paper" title: "[Paper Discussion] " labels: discussion assignees: ''
 
 ## Paper Title and Link
 

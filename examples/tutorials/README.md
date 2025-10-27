@@ -88,7 +88,7 @@ Build and deploy AI services.
 
 ## 🎓 Learning Path
 
-### Beginner (\< 1 hour)
+### Beginner (< 1 hour)
 
 1. `hello_world.py` - Understand basic pipeline
 1. `embedding_demo.py` - Learn embeddings

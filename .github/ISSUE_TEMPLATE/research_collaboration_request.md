@@ -1,6 +1,6 @@
 ______________________________________________________________________
 
-## name: "Research Collaboration Request" about: "Request collaboration on a research topic, project, or experiment" title: "\[Collaboration\] " labels: collaboration assignees: ''
+## name: "Research Collaboration Request" about: "Request collaboration on a research topic, project, or experiment" title: "[Collaboration] " labels: collaboration assignees: ''
 
 ## Collaboration Topic
 

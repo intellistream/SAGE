@@ -98,7 +98,7 @@ export SAGE_JOBMANAGER_PORT=19001
 
 ### 作业提交性能
 
-- 单作业提交延迟 \< 1秒
+- 单作业提交延迟 < 1秒
 - 批量作业提交吞吐量 > 100 jobs/s
 - 并发提交支持 > 50 concurrent submissions
 
@@ -106,7 +106,7 @@ export SAGE_JOBMANAGER_PORT=19001
 
 - 长时间运行稳定性 > 7天
 - 内存泄漏检测
-- 故障恢复时间 \< 30秒
+- 故障恢复时间 < 30秒
 - 数据一致性保证
 
 ## 测试策略

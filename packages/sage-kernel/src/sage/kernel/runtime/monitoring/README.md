@@ -268,7 +268,7 @@ Errors:
 
 ## 性能影响
 
-- **监控开销**：\< 1% CPU（默认配置）
+- **监控开销**：< 1% CPU（默认配置）
 - **内存占用**：约 10-50MB（取决于window_size）
 - **推荐配置**：
   - 开发/调试：`enable_detailed_tracking=True`
