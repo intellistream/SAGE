@@ -18,200 +18,71 @@ console = Console()
 
 @app.command(name="status")
 def project_status(
-    package: str = typer.Option(
-        None,
-        "--package",
-        "-p",
-        help="指定包名",
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="详细输出",
-    ),
-    markdown: bool = typer.Option(
-        False,
-        "--markdown",
-        help="Markdown 格式输出",
-    ),
+    project_root: str = typer.Option(".", help="项目根目录"),
+    verbose: bool = typer.Option(False, help="详细输出"),
+    output_format: str = typer.Option("summary", help="输出格式: summary, json, full, markdown"),
+    packages_only: bool = typer.Option(False, "--packages", help="只显示包状态信息"),
+    check_versions: bool = typer.Option(False, "--versions", help="检查所有包的版本信息"),
+    check_dependencies: bool = typer.Option(False, "--deps", help="检查包依赖状态"),
+    quick: bool = typer.Option(True, "--quick/--full", help="快速模式（跳过耗时检查）"),
 ):
-    """
-    📊 查看项目状态
+    """📊 项目状态检查 - 检查各包状态和版本"""
+    from ..main import status
 
-    显示包版本、依赖、测试状态等信息。
-
-    示例：
-        sage dev project status                # 查看所有包状态
-        sage dev project status -p sage-libs   # 查看特定包
-        sage dev project status --markdown     # Markdown 格式
-    """
-    from sage.tools.cli.commands.dev.main import status
-
-    status(
-        package=package,
+    return status(
+        project_root=project_root,
         verbose=verbose,
-        markdown=markdown,
+        output_format=output_format,
+        packages_only=packages_only,
+        check_versions=check_versions,
+        check_dependencies=check_dependencies,
+        quick=quick,
     )
 
 
 @app.command(name="analyze")
 def project_analyze(
-    analysis_type: str = typer.Option(
-        "all",
-        "--type",
-        "-t",
-        help="分析类型: dependencies, complexity, quality, all",
-    ),
-    package: str = typer.Option(
-        None,
-        "--package",
-        "-p",
-        help="指定包名",
-    ),
-    output: str = typer.Option(
-        None,
-        "--output",
-        "-o",
-        help="输出文件路径",
-    ),
-    format: str = typer.Option(
-        "text",
-        "--format",
-        "-f",
-        help="输出格式: text, json, markdown",
-    ),
+    analysis_type: str = typer.Option("all", help="分析类型: all, health, report"),
+    output_format: str = typer.Option("summary", help="输出格式: summary, json, markdown"),
+    project_root: str = typer.Option(".", help="项目根目录"),
 ):
-    """
-    🔍 代码分析
+    """🔍 依赖分析 - 分析项目依赖关系"""
+    from ..main import analyze
 
-    分析代码依赖、复杂度、质量等。
-
-    示例：
-        sage dev project analyze                          # 分析所有内容
-        sage dev project analyze -t dependencies          # 只分析依赖
-        sage dev project analyze -p sage-libs             # 分析特定包
-        sage dev project analyze -f json -o report.json   # JSON 输出
-    """
-    from sage.tools.cli.commands.dev.main import analyze
-
-    analyze(
+    return analyze(
         analysis_type=analysis_type,
-        package=package,
-        output=output,
-        format=format,
+        output_format=output_format,
+        project_root=project_root,
     )
 
 
 @app.command(name="clean")
 def project_clean(
-    deep: bool = typer.Option(
-        False,
-        "--deep",
-        help="深度清理（包括缓存）",
-    ),
-    build: bool = typer.Option(
-        True,
-        "--build/--no-build",
-        help="清理构建产物",
-    ),
-    cache: bool = typer.Option(
-        True,
-        "--cache/--no-cache",
-        help="清理缓存",
-    ),
-    logs: bool = typer.Option(
-        True,
-        "--logs/--no-logs",
-        help="清理日志",
-    ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="只显示将要删除的内容",
-    ),
+    target: str = typer.Option("all", help="清理目标: all, cache, build, logs"),
+    project_root: str = typer.Option(".", help="项目根目录"),
+    dry_run: bool = typer.Option(False, help="预览模式，不实际删除"),
 ):
-    """
-    🧹 清理构建产物和缓存
+    """🧹 清理项目 - 清理缓存和临时文件"""
+    from ..main import clean
 
-    清理 __pycache__, .pytest_cache, build/ 等。
-
-    示例：
-        sage dev project clean              # 标准清理
-        sage dev project clean --deep       # 深度清理
-        sage dev project clean --dry-run    # 预览清理内容
-    """
-    from sage.tools.cli.commands.dev.main import clean
-
-    clean(
-        deep=deep,
-        build=build,
-        cache=cache,
-        logs=logs,
-        dry_run=dry_run,
-    )
+    return clean(target=target, project_root=project_root, dry_run=dry_run)
 
 
 @app.command(name="test")
 def project_test(
-    test_type: str = typer.Option(
-        "all",
-        "--test-type",
-        help="测试类型: all, unit, integration, quick",
-    ),
-    project_root: str = typer.Option(
-        ".",
-        "--project-root",
-        help="项目根目录",
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        help="详细输出",
-    ),
-    packages: str = typer.Option(
-        None,
-        "--packages",
-        help="指定测试的包，逗号分隔",
-    ),
-    jobs: int = typer.Option(
-        4,
-        "--jobs",
-        "-j",
-        help="并行任务数量",
-    ),
-    timeout: int = typer.Option(
-        300,
-        "--timeout",
-        "-t",
-        help="每个包的超时时间(秒)",
-    ),
-    failed: bool = typer.Option(
-        False,
-        "--failed",
-        help="只重新运行失败的测试",
-    ),
-    continue_on_error: bool = typer.Option(
-        True,
-        "--continue-on-error",
-        help="遇到错误继续执行",
-    ),
-    summary: bool = typer.Option(
-        False,
-        "--summary",
-        help="只显示摘要结果",
-    ),
-    quiet: bool = typer.Option(
-        False,
-        "--quiet",
-        "-q",
-        help="静默模式",
-    ),
-    report: str = typer.Option(
-        None,
-        "--report",
-        help="测试报告输出文件路径",
-    ),
+    test_type: str = typer.Option("all", "--test-type", help="测试类型: all, unit, integration, quick"),
+    project_root: str = typer.Option(".", "--project-root", help="项目根目录"),
+    verbose: bool = typer.Option(False, "--verbose", help="详细输出"),
+    packages: str = typer.Option("", "--packages", help="指定测试的包，逗号分隔"),
+    jobs: int = typer.Option(4, "--jobs", "-j", help="并行任务数量"),
+    timeout: int = typer.Option(300, "--timeout", "-t", help="每个包的超时时间(秒)"),
+    failed_only: bool = typer.Option(False, "--failed", help="只重新运行失败的测试"),
+    continue_on_error: bool = typer.Option(True, "--continue-on-error", help="遇到错误继续执行"),
+    summary_only: bool = typer.Option(False, "--summary", help="只显示摘要结果"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式"),
+    report_file: str = typer.Option("", "--report", help="测试报告输出文件路径"),
+    diagnose: bool = typer.Option(False, "--diagnose", help="运行诊断模式"),
+    issues_manager: bool = typer.Option(False, "--issues-manager", help="包含 issues manager 测试"),
 ):
     """
     🧪 运行项目测试
@@ -233,29 +104,24 @@ def project_test(
         packages=packages,
         jobs=jobs,
         timeout=timeout,
-        failed=failed,
+        failed_only=failed_only,
         continue_on_error=continue_on_error,
-        summary=summary,
+        summary_only=summary_only,
         quiet=quiet,
-        report=report,
-        diagnose=False,
-        issues_manager=False,
-        skip_quality_check=True,
-        quality_fix=False,
-        quality_format=False,
-        quality_imports=False,
-        quality_lint=False,
+        report_file=report_file,
+        diagnose=diagnose,
+        issues_manager=issues_manager,
     )
 
 
 @app.command(name="architecture")
 def show_architecture(
-    format: str = typer.Option(
-        "text",
-        "--format",
-        "-f",
-        help="输出格式: text, json, markdown",
+    show_dependencies: bool = typer.Option(
+        True, "--dependencies/--no-dependencies", help="显示依赖关系"
     ),
+    show_layers: bool = typer.Option(True, "--layers/--no-layers", help="显示层级定义"),
+    package: str = typer.Option(None, "--package", help="显示特定包的信息"),
+    output_format: str = typer.Option("text", "--format", help="输出格式: text, json, markdown"),
 ):
     """
     🏗️ 显示架构信息
@@ -269,29 +135,23 @@ def show_architecture(
     """
     from sage.tools.cli.commands.dev.main import architecture
 
-    architecture(format=format)
+    architecture(
+        show_dependencies=show_dependencies,
+        show_layers=show_layers,
+        package=package,
+        output_format=output_format,
+    )
 
 
 @app.command(name="home")
 def project_home(
-    open_browser: bool = typer.Option(
-        True,
-        "--open/--no-open",
-        help="在浏览器中打开",
-    ),
+    action: str = typer.Argument("status", help="操作: init, clean, status"),
+    path: str = typer.Option("", help="SAGE目录路径"),
 ):
-    """
-    🏠 项目主页
+    """🏠 SAGE目录管理 - 管理SAGE工作目录"""
+    from ..main import home
 
-    显示项目主页和相关链接。
-
-    示例：
-        sage dev project home              # 显示主页
-        sage dev project home --no-open    # 不打开浏览器
-    """
-    from sage.tools.cli.commands.dev.main import home
-
-    home(open_browser=open_browser)
+    return home(action=action, path=path)
 
 
 __all__ = ["app"]

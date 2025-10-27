@@ -1,4 +1,4 @@
-from sage.tools import templates
+from sage.cli import templates
 
 
 def test_template_ids_cover_examples():

@@ -1,4 +1,4 @@
-from sage.tools.templates import pipeline_blueprints
+from sage.cli.templates import pipeline_blueprints
 
 
 def test_match_blueprints_surface_relevant_candidate():

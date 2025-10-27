@@ -5,12 +5,12 @@ from pathlib import Path
 import yaml
 from typer.testing import CliRunner
 
-from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
-from sage.tools.cli.commands.pipeline_knowledge import (
+from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
+from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
     build_query_payload,
 )
-from sage.tools.cli.main import app
+from sage.cli.main import app
 
 runner = CliRunner()
 
