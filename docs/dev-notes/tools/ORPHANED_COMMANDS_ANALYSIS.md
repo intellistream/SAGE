@@ -1,3 +1,9 @@
+**Date**: 2025-10-26  
+**Author**: SAGE Development Team  
+**Summary**: SAGE 孤立命令分析报告 - 发现并分类未注册的命令文件
+
+---
+
 # SAGE 孤立命令分析报告
 
 > **文档版本**: 1.0  

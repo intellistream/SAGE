@@ -113,31 +113,32 @@ class DevNotesChecker:
         # 检查是否有元数据区域（前几行）
         lines = content.split("\n")
         metadata = {}
-        in_header = False
-        header_lines = 0
-
+        
+        # 支持两种格式：
+        # 1. 元数据在文档开头（第一行开始）
+        # 2. 元数据在第一个 # 标题之后
         for i, line in enumerate(lines[:30]):  # 只检查前30行
-            if i == 0 and line.startswith("#"):
-                in_header = True
+            # 跳过空行和分隔线
+            if not line.strip() or line.strip() == "---":
                 continue
-
-            if in_header and line.strip():
-                # 尝试匹配元数据格式
-                # 支持格式：**Key**: Value 或 **Key:** Value 或 Key: Value
-                match = re.match(
-                    r"^\*?\*?(Date|Author|Summary|Related)\*?\*?\s*[:：]\s*(.+)$",
-                    line.strip(),
-                    re.IGNORECASE,
-                )
-                if match:
-                    key, value = match.groups()
-                    metadata[key.title()] = value.strip()
-                    header_lines += 1
-                elif line.startswith("#"):
-                    break
-                elif header_lines > 0:
-                    # 已经开始读取元数据，但遇到非元数据行
-                    break
+                
+            # 跳过标题行
+            if line.startswith("#"):
+                continue
+            
+            # 尝试匹配元数据格式
+            # 支持格式：**Key**: Value 或 **Key:** Value 或 Key: Value
+            match = re.match(
+                r"^\*?\*?(Date|Author|Summary|Related)\*?\*?\s*[:：]\s*(.+)$",
+                line.strip(),
+                re.IGNORECASE,
+            )
+            if match:
+                key, value = match.groups()
+                metadata[key.title()] = value.strip()
+            elif metadata:
+                # 已经读取到元数据，遇到非元数据行则停止
+                break
 
         # 检查必需字段
         missing_fields = [field for field in REQUIRED_METADATA if field not in metadata]

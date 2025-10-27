@@ -1,3 +1,9 @@
+**Date**: 2025-10-26  
+**Author**: SAGE Development Team  
+**Summary**: SAGE CLI 帮助信息更新总结 - 更新 sage 和 sage-dev 的帮助文本
+
+---
+
 # SAGE CLI 帮助信息更新总结
 
 ## 🎯 更新目标

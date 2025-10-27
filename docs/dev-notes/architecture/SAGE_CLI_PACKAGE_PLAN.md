@@ -1,3 +1,9 @@
+**Date**: 2025-10-26  
+**Author**: SAGE Development Team  
+**Summary**: sage-cli 独立包创建计划 - 将 CLI 命令从 sage-tools 迁移到专门的包中
+
+---
+
 # SAGE CLI Package 创建计划
 
 > **文档版本**: 1.0  
