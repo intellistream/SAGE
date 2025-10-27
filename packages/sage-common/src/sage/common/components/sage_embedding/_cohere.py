@@ -8,7 +8,7 @@ async def cohere_embed(
     api_key: str,
     model: str = "embed-multilingual-v3.0",
     input_type: str = "classification",
-    embedding_types: list[str] = None,
+    embedding_types: list[str] | None = None,
 ) -> list[float]:
     if embedding_types is None:
         embedding_types = ["float"]
@@ -31,10 +31,10 @@ def cohere_embed_sync(
     api_key: str | None = None,
     model: str = "embed-multilingual-v3.0",
     input_type: str = "classification",
-    embedding_types: list[str] = None,
+    embedding_types: list[str] | None = None,
 ) -> list[list[float]]:
     """
-    同步版本：使用 Cohere 同步客户端生成文本 embeddings。
+    同步版本：使用 Cohere 同步客户端生成文本 embeddings.
 
     Args:
         texts: 文本列表

@@ -31,7 +31,7 @@ class LongRefiner:
         score_model_path: str = "BAAI/bge-reranker-v2-m3",
         max_model_len: int = 25000,
         gpu_device: int = 0,
-        score_gpu_device: int = None,  # score模型专用GPU设备，如果None则使用gpu_device
+        score_gpu_device: int | None = None,  # score模型专用GPU设备，如果None则使用gpu_device
         gpu_memory_utilization: float = 0.7,  # GPU内存占比
     ):
         # 保存GPU设备参数
@@ -265,7 +265,7 @@ class LongRefiner:
         question: str,
         document_list: list[dict],
         budget: int = 2048,
-        ratio: float = None,
+        ratio: float | None = None,
     ) -> list[str]:
         print(
             f"DEBUG: LongRefiner.run called with question='{question}', doc_count={len(document_list)}, budget={budget}"
@@ -286,7 +286,7 @@ class LongRefiner:
         question_list: list[str],
         document_list: list[list[dict]],
         budget: int = 2048,
-        ratio: float = None,
+        ratio: float | None = None,
     ) -> list[list[str]]:
         """
         Args:
@@ -758,7 +758,7 @@ class LongRefiner:
         doc_structuring_result: list[list[dict]],
         query_analysis_result: list[dict],
         budget: int,
-        ratio: float = None,
+        ratio: float | None = None,
     ) -> list[str]:
         """
         Args:

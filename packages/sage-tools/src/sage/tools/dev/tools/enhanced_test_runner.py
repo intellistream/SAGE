@@ -513,7 +513,7 @@ class EnhancedTestRunner:
         return "common"  # Default fallback
 
     def _run_single_test_file(
-        self, test_file: Path, timeout: int, quick: bool, skip_markers: str = None
+        self, test_file: Path, timeout: int, quick: bool, skip_markers: str | None = None
     ) -> dict:
         """Run a single test file."""
         try:

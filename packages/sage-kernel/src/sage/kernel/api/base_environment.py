@@ -271,7 +271,7 @@ class BaseEnvironment(ABC):
                      .filter(FilterFunction)
                      .sink(OutputSinkFunction))
         """
-        from sage.kernel.api.function.kafka_source import KafkaSourceFunction
+        from sage.libs.io.source import KafkaSource
 
         # 获取SourceTransformation类
         SourceTransformation = self._get_transformation_classes()["SourceTransformation"]
@@ -279,7 +279,7 @@ class BaseEnvironment(ABC):
         # 创建Kafka Source Function
         transformation = SourceTransformation(
             self,
-            KafkaSourceFunction,
+            KafkaSource,
             bootstrap_servers=bootstrap_servers,
             topic=topic,
             group_id=group_id,

@@ -87,7 +87,7 @@ def show_install_instructions() -> None:
 
 
 def collect_sage_code_files(
-    root_dir: Path, extensions: list[str] = None, exclude_dirs: list[str] = None
+    root_dir: Path, extensions: list[str] | None = None, exclude_dirs: list[str] | None = None
 ) -> list[Path]:
     """收集SAGE代码文件"""
     if extensions is None:

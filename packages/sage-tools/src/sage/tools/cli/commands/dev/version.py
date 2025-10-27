@@ -87,7 +87,7 @@ def read_version_info(version_file: Path) -> dict[str, str]:
 
 
 def update_version_file(
-    version_file: Path, new_version: str, author: str = None, email: str = None
+    version_file: Path, new_version: str, author: str | None = None, email: str | None = None
 ) -> bool:
     """更新_version.py文件中的版本信息"""
     try:

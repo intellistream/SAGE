@@ -287,8 +287,8 @@ def validate_service_name(name: str) -> str:
 
 def validate_config_dict(
     config: dict[str, Any],
-    required_keys: list[str] = None,
-    valid_keys: list[str] = None,
+    required_keys: list[str] | None = None,
+    valid_keys: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     验证配置字典

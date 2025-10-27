@@ -84,7 +84,7 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
     - Support for custom join predicates
     """
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize stream join algorithm.
 
@@ -123,9 +123,9 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
 
     def process(
         self,
-        data: list[TimeSeriesData] = None,
-        left_stream: list[TimeSeriesData] = None,
-        right_stream: list[TimeSeriesData] = None,
+        data: list[TimeSeriesData] | None = None,
+        left_stream: list[TimeSeriesData] | None = None,
+        right_stream: list[TimeSeriesData] | None = None,
         **kwargs,
     ) -> list[tuple[TimeSeriesData, TimeSeriesData]]:
         """

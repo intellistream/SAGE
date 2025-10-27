@@ -309,7 +309,7 @@ class TestCoverageReporter:
 
         return "\n".join(report)
 
-    def save_report(self, filename: str = None) -> Path:
+    def save_report(self, filename: str | None = None) -> Path:
         """保存报告到文件"""
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

@@ -47,7 +47,7 @@ class IssueDataManager:
         ]:
             directory.mkdir(parents=True, exist_ok=True)
 
-    def save_issue(self, issue_data: dict[str, Any], comments: list[dict] = None) -> bool:
+    def save_issue(self, issue_data: dict[str, Any], comments: list[dict] | None = None) -> bool:
         """保存issue到单一数据源
 
         Args:

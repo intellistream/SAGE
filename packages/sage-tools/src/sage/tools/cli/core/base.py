@@ -74,7 +74,7 @@ class BaseCommand(ABC):
         pass
 
     def get_config_section(
-        self, section_name: str, default: dict[str, Any] = None
+        self, section_name: str, default: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """获取配置节"""
         return self.config.get(section_name, default or {})
@@ -201,7 +201,7 @@ class RemoteCommand(BaseCommand):
         return self.remote_executor.batch_execute(worker_hosts, command, parallel, timeout)
 
 
-def cli_command(name: str = None, help_text: str = None, require_config: bool = True):
+def cli_command(name: str | None = None, help_text: str | None = None, require_config: bool = True):
     """
     CLI命令装饰器
 

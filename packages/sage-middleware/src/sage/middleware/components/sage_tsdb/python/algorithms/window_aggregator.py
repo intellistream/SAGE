@@ -49,7 +49,7 @@ class WindowAggregator(TimeSeriesAlgorithm):
     - Support for late data handling
     """
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize window aggregator.
 

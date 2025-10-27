@@ -51,7 +51,7 @@ class RecommendationService:
             "item_004": {"name": "Travel Guide", "category": "travel", "rating": 4.6},
         }
 
-    def get_recommendations(self, interests: list, user_id: str = None):
+    def get_recommendations(self, interests: list, user_id: str | None = None):
         recommendations = []
         for item_id, item_info in self.item_db.items():
             if item_info["category"] in interests:

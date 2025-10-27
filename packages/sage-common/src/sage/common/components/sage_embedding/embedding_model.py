@@ -16,7 +16,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 
 class EmbeddingModel:
     # def __init__(self, method: str = "openai", model: str = "mistral-embed",
-    #              base_url: str = None, api_key: str = None):
+    #              base_url: str | None = None, api_key: str | None = None):
     def __init__(self, method: str = "openai", **kwargs):
         """
         初始化 embedding table

@@ -18,7 +18,7 @@ class ClassDependencyChecker:
     def __init__(self, project_root: str):
         self.project_root = Path(project_root)
 
-    def analyze_class_dependencies(self, target_paths: list[str] = None) -> dict[str, Any]:
+    def analyze_class_dependencies(self, target_paths: list[str] | None = None) -> dict[str, Any]:
         """Analyze class dependencies in specified paths or entire project."""
         try:
             if target_paths:
@@ -82,7 +82,7 @@ class ClassDependencyChecker:
         except Exception as e:
             raise SAGEDevToolkitError(f"Class dependency analysis failed: {e}")
 
-    def check_class_usage(self, class_name: str, target_paths: list[str] = None) -> dict[str, Any]:
+    def check_class_usage(self, class_name: str, target_paths: list[str] | None = None) -> dict[str, Any]:
         """Check where a specific class is used."""
         try:
             if target_paths:

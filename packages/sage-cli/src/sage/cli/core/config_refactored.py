@@ -22,7 +22,7 @@ app = typer.Typer(name="config", help="⚙️ Configuration management")
 class ConfigShowCommand(BaseCommand):
     """显示配置信息命令"""
 
-    def execute(self, section: str = None):
+    def execute(self, section: str | None = None):
         """显示配置信息"""
         try:
             self.validate_config_exists()

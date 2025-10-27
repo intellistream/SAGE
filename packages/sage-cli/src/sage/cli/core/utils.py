@@ -22,7 +22,7 @@ import yaml
 from .exceptions import CLIException, ValidationError
 
 
-def find_project_root(start_path: Path | None = None, markers: list[str] = None) -> Path | None:
+def find_project_root(start_path: Path | None = None, markers: list[str] | None = None) -> Path | None:
     """
     查找项目根目录
 
@@ -317,7 +317,7 @@ def wait_for_port(host: str, port: int, timeout: int = 30, check_interval: float
     return False
 
 
-def create_temp_file(suffix: str = None, prefix: str = "sage_", content: str = None) -> Path:
+def create_temp_file(suffix: str | None = None, prefix: str = "sage_", content: str | None = None) -> Path:
     """
     创建临时文件
 

@@ -112,7 +112,7 @@ class CommercialPackageManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"Commercial package installation failed: {e}")
 
-    def build_commercial_extensions(self, package_name: str = None) -> dict[str, Any]:
+    def build_commercial_extensions(self, package_name: str | None = None) -> dict[str, Any]:
         """Build C++ extensions for commercial packages."""
         try:
             if package_name:

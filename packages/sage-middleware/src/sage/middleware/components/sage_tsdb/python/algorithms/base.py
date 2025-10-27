@@ -16,7 +16,7 @@ class TimeSeriesAlgorithm(ABC):
     implement the process method.
     """
 
-    def __init__(self, config: dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize algorithm.
 

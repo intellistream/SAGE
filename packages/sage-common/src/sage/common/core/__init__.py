@@ -8,8 +8,24 @@ Common Core Module - 共享类型、异常、常量和函数接口
 - exceptions: 核心异常类型
 - types: 执行模式、状态等枚举
 - functions: 用户自定义函数的基础接口 (NEW)
+- constants: 常量定义
 """
 
+from sage.common.core.constants import (
+    DEFAULT_CHECKPOINT_INTERVAL,
+    DEFAULT_CLEANUP_TIMEOUT,
+    DEFAULT_HEALTH_CHECK_INTERVAL,
+    DEFAULT_MAX_RESTART_ATTEMPTS,
+    PLACEMENT_STRATEGY_LOAD_BALANCE,
+    PLACEMENT_STRATEGY_RESOURCE_AWARE,
+    PLACEMENT_STRATEGY_SIMPLE,
+    RESTART_STRATEGY_EXPONENTIAL,
+    RESTART_STRATEGY_FAILURE_RATE,
+    RESTART_STRATEGY_FIXED,
+    SCHEDULING_STRATEGY_FIFO,
+    SCHEDULING_STRATEGY_PRIORITY,
+    SCHEDULING_STRATEGY_RESOURCE_AWARE,
+)
 from sage.common.core.data_types import (
     BaseDocument,
     BaseQueryResult,
@@ -22,6 +38,7 @@ from sage.common.core.data_types import (
     extract_results,
 )
 from sage.common.core.exceptions import (
+    CheckpointError,
     FaultToleranceError,
     KernelError,
     RecoveryError,
@@ -72,6 +89,21 @@ __all__ = [
     "FaultToleranceError",
     "ResourceAllocationError",
     "RecoveryError",
+    "CheckpointError",
+    # Constants
+    "DEFAULT_CHECKPOINT_INTERVAL",
+    "DEFAULT_CLEANUP_TIMEOUT",
+    "DEFAULT_HEALTH_CHECK_INTERVAL",
+    "DEFAULT_MAX_RESTART_ATTEMPTS",
+    "RESTART_STRATEGY_FIXED",
+    "RESTART_STRATEGY_EXPONENTIAL",
+    "RESTART_STRATEGY_FAILURE_RATE",
+    "PLACEMENT_STRATEGY_SIMPLE",
+    "PLACEMENT_STRATEGY_RESOURCE_AWARE",
+    "PLACEMENT_STRATEGY_LOAD_BALANCE",
+    "SCHEDULING_STRATEGY_FIFO",
+    "SCHEDULING_STRATEGY_PRIORITY",
+    "SCHEDULING_STRATEGY_RESOURCE_AWARE",
     # Function Interfaces
     "BaseFunction",
     "MapFunction",

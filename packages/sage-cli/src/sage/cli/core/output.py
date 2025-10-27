@@ -59,7 +59,7 @@ class OutputFormatter:
         self.colors = colors and COLORAMA_AVAILABLE
         self.format_type = format_type
 
-    def print_message(self, message: str, msg_type: str = "info", prefix: str = None):
+    def print_message(self, message: str, msg_type: str = "info", prefix: str | None = None):
         """
         打印格式化消息
 
@@ -92,19 +92,19 @@ class OutputFormatter:
         else:
             print(f"{color}{icon} {message}{Colors.RESET}")
 
-    def print_info(self, message: str, prefix: str = None):
+    def print_info(self, message: str, prefix: str | None = None):
         """打印信息消息"""
         self.print_message(message, "info", prefix)
 
-    def print_success(self, message: str, prefix: str = None):
+    def print_success(self, message: str, prefix: str | None = None):
         """打印成功消息"""
         self.print_message(message, "success", prefix)
 
-    def print_error(self, message: str, prefix: str = None):
+    def print_error(self, message: str, prefix: str | None = None):
         """打印错误消息"""
         self.print_message(message, "error", prefix)
 
-    def print_warning(self, message: str, prefix: str = None):
+    def print_warning(self, message: str, prefix: str | None = None):
         """打印警告消息"""
         self.print_message(message, "warning", prefix)
 
@@ -149,7 +149,7 @@ class OutputFormatter:
         formatted = self.format_data(data, headers)
         print(formatted)
 
-    def print_section(self, title: str, content: str = None):
+    def print_section(self, title: str, content: str | None = None):
         """打印章节标题"""
         if self.colors:
             print(f"\n{Colors.BOLD}{Colors.CYAN}{title}{Colors.RESET}")
@@ -267,25 +267,25 @@ def format_timestamp(timestamp: float | str | datetime) -> str:
 
 
 # 向后兼容的全局函数
-def print_info(message: str, prefix: str = None):
+def print_info(message: str, prefix: str | None = None):
     """打印信息消息"""
     formatter = OutputFormatter()
     formatter.print_info(message, prefix)
 
 
-def print_success(message: str, prefix: str = None):
+def print_success(message: str, prefix: str | None = None):
     """打印成功消息"""
     formatter = OutputFormatter()
     formatter.print_success(message, prefix)
 
 
-def print_error(message: str, prefix: str = None):
+def print_error(message: str, prefix: str | None = None):
     """打印错误消息"""
     formatter = OutputFormatter()
     formatter.print_error(message, prefix)
 
 
-def print_warning(message: str, prefix: str = None):
+def print_warning(message: str, prefix: str | None = None):
     """打印警告消息"""
     formatter = OutputFormatter()
     formatter.print_warning(message, prefix)
