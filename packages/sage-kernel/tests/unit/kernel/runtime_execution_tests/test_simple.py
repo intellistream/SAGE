@@ -1,8 +1,14 @@
 """
 简单测试来验证JobManager的基本功能
+
+注意：这个测试因为导入JobManager会触发sage.common的完整导入链（包括vLLM），
+所以即使测试本身很快，导入阶段也会比较慢（~30秒）
 """
 
 import pytest
+
+# 标记为slow，因为导入JobManager会触发vLLM等重依赖的加载
+pytestmark = pytest.mark.slow
 
 from sage.kernel.runtime.job_manager import JobManager
 
