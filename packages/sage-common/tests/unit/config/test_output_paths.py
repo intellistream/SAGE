@@ -21,7 +21,7 @@ from sage.common.config.output_paths import (
 def isolate_sage_paths(monkeypatch):
     """
     Isolate SAGE paths for each test to avoid conflicts in parallel test runs.
-    
+
     This fixture:
     1. Clears the cache before the test
     2. Removes SAGE_OUTPUT_DIR to avoid interference
@@ -29,12 +29,12 @@ def isolate_sage_paths(monkeypatch):
     """
     # Clear cache before test
     get_sage_paths.cache_clear()
-    
+
     # Remove SAGE_OUTPUT_DIR to let tests control their own paths
     monkeypatch.delenv("SAGE_OUTPUT_DIR", raising=False)
-    
+
     yield
-    
+
     # Clear cache after test
     get_sage_paths.cache_clear()
 

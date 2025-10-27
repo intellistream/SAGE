@@ -216,7 +216,7 @@ class PackageREADMEChecker:
             results_dict = {r.package_name: r for r in results}
         else:
             results_dict = results
-        
+
         # Generate report
         lines = ["# Package README Quality Report", ""]
         lines.append(f"**Generated**: {self._get_timestamp()}")
