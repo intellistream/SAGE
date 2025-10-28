@@ -11,7 +11,7 @@ import textwrap
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import typer
 import yaml

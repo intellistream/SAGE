@@ -82,7 +82,9 @@ def quality(
         True, "--devnotes/--no-devnotes", help="运行 dev-notes 文档规范检查"
     ),
     readme: bool = typer.Option(False, "--readme", help="运行包 README 质量检查"),
-    examples: bool = typer.Option(True, "--examples/--no-examples", help="运行 examples 目录结构检查"),
+    examples: bool = typer.Option(
+        True, "--examples/--no-examples", help="运行 examples 目录结构检查"
+    ),
     # Submodule 选项
     include_submodules: bool = typer.Option(
         False, "--include-submodules", help="包含 submodules 进行质量检查（默认跳过）"

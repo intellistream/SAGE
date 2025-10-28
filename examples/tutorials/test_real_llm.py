@@ -47,10 +47,10 @@ def test_real_llm_pipeline_generation():
     # 导入必要的模块
     console.print("[bold]步骤 2: 导入 SAGE 模块[/bold]")
     try:
+        from sage.cli import templates
         from sage.cli.commands.apps import pipeline as pipeline_builder
         from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
         from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
-        from sage.cli import templates
 
         console.print("✓ 模块导入成功\n")
     except Exception as exc:

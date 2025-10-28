@@ -153,10 +153,10 @@ class CustomDataBatchFunction(BatchFunction):
         """执行批处理函数，返回下一个数据项"""
         if self._finished:
             return None
-        
+
         if self._generator is None:
             self._generator = self.data_generator_func()
-        
+
         try:
             return next(self._generator)
         except StopIteration:

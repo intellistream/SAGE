@@ -89,7 +89,9 @@ class BaseCommand(ABC):
                 "Please run 'sage config init' to create a default configuration"
             )
         # Convert to Path if it's a string
-        config_path_obj = Path(self.config_path) if isinstance(self.config_path, str) else self.config_path
+        config_path_obj = (
+            Path(self.config_path) if isinstance(self.config_path, str) else self.config_path
+        )
         if not config_path_obj.exists():
             raise ConfigurationError(
                 f"Configuration file not found: {config_path_obj}\n"

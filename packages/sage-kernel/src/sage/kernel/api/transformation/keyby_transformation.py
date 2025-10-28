@@ -37,7 +37,7 @@ class KeyByTransformation(BaseTransformation):
             name=name,
             parallelism=parallelism,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     @property

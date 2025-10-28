@@ -8,7 +8,6 @@ Examples 目录结构检查器
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 
 @dataclass
@@ -16,9 +15,9 @@ class ExamplesStructureResult:
     """Examples 结构检查结果"""
 
     passed: bool
-    violations: List[str]
-    allowed_dirs: List[str]
-    unexpected_dirs: List[str]
+    violations: list[str]
+    allowed_dirs: list[str]
+    unexpected_dirs: list[str]
 
 
 class ExamplesStructureChecker:
@@ -69,9 +68,7 @@ class ExamplesStructureChecker:
             # 先检查符号链接（因为符号链接也可能 is_dir() 返回 True）
             if item.is_symlink():
                 if item.name not in self.ALLOWED_SPECIAL:
-                    violations.append(
-                        f"在 examples/ 下发现不期望的符号链接: {item.name}"
-                    )
+                    violations.append(f"在 examples/ 下发现不期望的符号链接: {item.name}")
             # 检查是否是目录
             elif item.is_dir():
                 if item.name not in self.ALLOWED_TOP_DIRS:
@@ -107,7 +104,7 @@ class ExamplesStructureChecker:
         Returns:
             结构规范的文本说明
         """
-        return f"""
+        return """
 Examples 目录结构规范:
 
 examples/

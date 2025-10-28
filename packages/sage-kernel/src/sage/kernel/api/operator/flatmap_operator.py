@@ -32,9 +32,7 @@ class FlatMapOperator(BaseOperator):
         self.out: Collector = Collector(self.ctx)
         # Insert collector into function if it has the insert_collector method
         # FlatMapFunction has this method, BaseFunction doesn't
-        if hasattr(self.function, "insert_collector") and callable(
-            getattr(self.function, "insert_collector")
-        ):
+        if hasattr(self.function, "insert_collector") and callable(self.function.insert_collector):
             self.function.insert_collector(self.out)  # type: ignore[attr-defined]
         self.logger.info(f"FlatMapOperator '{self.name}' initialized with collector")
 

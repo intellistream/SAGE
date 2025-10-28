@@ -234,22 +234,66 @@ class IntegrationTestHelper:
 
     @staticmethod
     def create_full_pipeline_scenario():
-        """创建完整管道场景"""
-        # TODO: sage.kernel.api.pipeline 模块已被移除或重构
-        # from sage.kernel.api.pipeline import DataTransformStep, FilterStep, Pipeline
-        raise NotImplementedError("Pipeline API has been refactored or removed")
+        """
+        创建完整管道场景
 
-        # pipeline = Pipeline("integration_test_pipeline")
+        使用新的 Environment + DataStream API 替代旧的 Pipeline API
+        """
+        from sage.common.core.functions import (
+            BatchFunction,
+            FilterFunction,
+            MapFunction,
+            SinkFunction,
+        )
+        from sage.kernel.api.local_environment import LocalEnvironment
 
-        # 添加转换步骤
-        transform_step = DataTransformStep("transform", lambda x: f"transformed_{x}")
-        pipeline.add_step(transform_step)
+        # 定义测试用的 Function 类
+        class TestBatchSource(BatchFunction):
+            """测试批处理数据源"""
 
-        # 添加过滤步骤
-        filter_step = FilterStep("filter", lambda x: "error" not in x)
-        pipeline.add_step(filter_step)
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.counter = 0
+                self.max_count = 5
 
-        return pipeline
+            def execute(self):
+                if self.counter >= self.max_count:
+                    return None
+                self.counter += 1
+                return f"test_item_{self.counter}"
+
+        class TransformFunction(MapFunction):
+            """转换函数"""
+
+            def execute(self, data):
+                return f"transformed_{data}"
+
+        class FilterErrorFunction(FilterFunction):
+            """过滤错误函数"""
+
+            def execute(self, data):
+                if "error" in data:
+                    return None
+                return data
+
+        class TestSink(SinkFunction):
+            """测试 Sink"""
+
+            def execute(self, data):
+                # 简单记录数据
+                if not hasattr(self.__class__, "results"):
+                    self.__class__.results = []
+                self.__class__.results.append(data)
+
+        # 创建 Environment 和 Pipeline
+        env = LocalEnvironment("integration_test_pipeline")
+
+        # 使用链式 API 构建 pipeline
+        env.from_batch(TestBatchSource).map(TransformFunction).filter(FilterErrorFunction).sink(
+            TestSink
+        )
+
+        return env
 
     @staticmethod
     def create_multi_stream_scenario():

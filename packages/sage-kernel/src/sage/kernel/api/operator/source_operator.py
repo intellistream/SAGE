@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sage.kernel.api.operator.base_operator import BaseOperator
 from sage.kernel.runtime.communication.packet import Packet
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class SourceOperator(BaseOperator):
     # task 属性会在运行时由 BaseTask 注入
     task: "BaseTask | None"
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._stop_signal_sent = False  # 防止重复发送停止信号

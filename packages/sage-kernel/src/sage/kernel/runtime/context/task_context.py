@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class TaskContext(BaseRuntimeContext):
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
-    
+
     # 动态注入的属性类型声明
     operator: "BaseOperator"  # 在 task 初始化时注入
 
