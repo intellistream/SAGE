@@ -208,6 +208,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 "sage.tools.cli" = ["py.typed", "templates/*.yaml"]
 "sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
+"sage.tools.dev.hooks" = ["templates/*"]
 
 # Development tools configuration
 [tool.black]

@@ -6,15 +6,16 @@ SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开
 
 ## 🛠️ Features
 
-### � Development Toolkit (`sage.dev`)
+### 🔧 Development Toolkit (`sage.dev`)
 
 - Automated testing with pytest integration
 - Code quality tools (black, isort, mypy, ruff)
 - Package management and publishing
 - Performance profiling and benchmarking
 - Documentation generation tools
+- **Git Hooks Management** - Install and manage pre-commit hooks
 
-### � Package Management
+### 📦 Package Management
 
 - Monorepo package dependency resolution
 - Build and release automation
@@ -28,6 +29,15 @@ SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开
 - Performance benchmarking
 - Quality metrics collection
 - **Examples testing framework** (development environment only)
+
+### 🪝 Git Hooks Management
+
+**Integrated Git hooks for code quality and compliance:**
+
+- Pre-commit hooks for code quality checks (black, isort, ruff, mypy)
+- Architecture compliance validation (layer dependencies, import paths)
+- Dev-notes documentation standards checking
+- Easy install/uninstall with `sage-dev hooks` commands
 
 ### 🔬 Examples Testing (Dev Environment Only)
 
@@ -99,6 +109,43 @@ sage-dev quality --readme            # 包含 README 检查
 sage-dev quality --warn-only         # 只警告不中断
 ```
 
+### Git Hooks Management
+
+管理 Git pre-commit hooks 用于代码质量和合规性检查：
+
+```bash
+# 安装 Git hooks
+sage-dev maintain hooks install
+
+# 安装（静默模式）
+sage-dev maintain hooks install --quiet
+
+# 查看 hooks 状态
+sage-dev maintain hooks status
+
+# 卸载 Git hooks
+sage-dev maintain hooks uninstall
+
+# 重新安装（更新到最新版本）
+sage-dev maintain hooks reinstall
+```
+
+**安装后的自动检查包括:**
+
+- 代码格式化和质量检查（black, isort, ruff, mypy）
+- 架构合规性验证（包依赖、导入路径）
+- Dev-notes 文档规范检查
+
+**使用提示:**
+
+```bash
+# 正常提交（运行所有检查）
+git commit -m "your message"
+
+# 跳过 hooks 检查（不推荐）
+git commit --no-verify -m "your message"
+```
+
 ### Architecture & Documentation Checks
 
 独立运行特定检查：
@@ -116,9 +163,8 @@ sage-dev check-architecture              # 检查所有文件
 sage-dev check-architecture --changed-only  # 仅检查变更
 
 # Dev-notes 文档规范检查
-sage-dev check-devnotes                  # 检查所有文档
-sage-dev check-devnotes --changed-only   # 仅检查变更
-sage-dev check-devnotes --check-structure  # 检查目录结构
+sage-dev quality devnotes                # 检查所有文档
+sage-dev quality devnotes --warn-only    # 只警告不中断
 
 # 包 README 质量检查
 sage-dev check-readme                    # 检查所有包
@@ -252,15 +298,22 @@ for r in results:
 
 ### Git Hooks
 
-工具已集成到 Git pre-commit hooks：
+通过 `sage-dev maintain hooks` 命令安装和管理 Git pre-commit hooks：
 
 ```bash
-# 安装 hooks（通过 quickstart.sh 或手动）
-./tools/git-hooks/install.sh
+# 安装 hooks（自动或手动）
+./quickstart.sh                       # 自动安装（推荐）
+sage-dev maintain hooks install       # 手动安装
 
 # 提交时自动运行检查
 git commit -m "your message"
-# → 自动运行 pre-commit、架构检查、文档检查
+# → 自动运行代码质量检查、架构检查、文档检查
+
+# 查看 hooks 状态
+sage-dev maintain hooks status
+
+# 卸载 hooks
+sage-dev maintain hooks uninstall
 ```
 
 ### CI/CD Integration

@@ -164,20 +164,21 @@ main() {
             fi
         fi
 
-        # 2. 安装 Git hooks
-        if [ -f "$SCRIPT_DIR/tools/git-hooks/install.sh" ]; then
+        # 2. 安装 Git hooks（使用新的 sage-dev maintain hooks 命令）
+        if command -v sage-dev >/dev/null 2>&1; then
             # 使用静默模式避免过多输出
-            if bash "$SCRIPT_DIR/tools/git-hooks/install.sh" --quiet 2>&1; then
+            if sage-dev maintain hooks install --quiet 2>&1; then
                 echo -e "${GREEN}✅ Git hooks 已安装${NC}"
                 echo -e "${DIM}   • 代码质量检查: black, isort, ruff 等${NC}"
                 echo -e "${DIM}   • 架构合规性: 包依赖、导入路径等${NC}"
                 echo -e "${DIM}   • 跳过检查: git commit --no-verify${NC}"
             else
                 echo -e "${YELLOW}⚠️  Git hooks 安装失败（可能不在 Git 仓库中）${NC}"
-                echo -e "${DIM}   可稍后手动运行: ./tools/git-hooks/install.sh${NC}"
+                echo -e "${DIM}   可稍后手动运行: sage-dev maintain hooks install${NC}"
             fi
         else
-            echo -e "${YELLOW}⚠️  未找到 hooks 安装脚本${NC}"
+            echo -e "${YELLOW}⚠️  sage-dev 命令不可用，跳过 Git hooks 安装${NC}"
+            echo -e "${DIM}   安装完成后运行: sage-dev maintain hooks install${NC}"
         fi
 
         # 开发模式下额外设置 Git hooks（用于 submodule 管理）

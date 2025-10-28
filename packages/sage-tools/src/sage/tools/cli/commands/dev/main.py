@@ -1890,7 +1890,6 @@ def check_devnotes(
 
     示例：
         sage-dev check-devnotes                    # 检查所有文档
-        sage-dev check-devnotes --changed-only     # 仅检查变更的文档
         sage-dev check-devnotes --check-structure  # 检查目录结构
     """
     from sage.tools.dev.tools.devnotes_checker import DevNotesChecker

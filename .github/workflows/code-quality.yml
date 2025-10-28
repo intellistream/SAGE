@@ -195,7 +195,7 @@ jobs:
           fi
 
           # 使用新的 sage-dev 命令
-          sage-dev quality devnotes --changed-only || {
+          sage-dev quality devnotes --warn-only || {
             echo ""
             echo "⚠️  文档规范检查发现问题"
             echo ""

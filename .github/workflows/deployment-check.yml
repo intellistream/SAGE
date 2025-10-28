@@ -62,7 +62,7 @@ jobs:
             echo ""
 
             if [ "${{ github.event_name }}" = "pull_request" ]; then
-              sage-dev quality devnotes --changed-only || {
+              sage-dev quality devnotes || {
                   echo ""
                   echo "❌ Dev-notes 文档不符合规范！"
                   echo ""
@@ -76,7 +76,7 @@ jobs:
                   exit 1
                 }
             else
-              sage-dev quality devnotes --changed-only || {
+              sage-dev quality devnotes --warn-only || {
                 echo "⚠️  发现文档格式问题，但不阻塞部署"
               }
             fi

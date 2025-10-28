@@ -188,33 +188,158 @@ def submodule_bootstrap():
 app.add_typer(submodule_app, name="submodule")
 
 
-@app.command(name="hooks")
-def setup_hooks(
-    force: bool = typer.Option(
-        False,
-        "--force",
-        "-f",
-        help="强制重新安装",
-    ),
+# Git Hooks 管理子命令组
+hooks_app = typer.Typer(
+    name="hooks",
+    help="🪝 Git Hooks 管理",
+    no_args_is_help=True,
+)
+
+
+@hooks_app.command(name="install")
+def hooks_install(
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式，只显示错误"),
+    root_dir: str = typer.Option(None, "--root", help="项目根目录（默认自动检测）"),
 ):
     """
-    🪝 安装 Git Hooks
+    安装 SAGE Git hooks。
 
-    安装或更新项目的 Git hooks。
+    安装 pre-commit hook 用于代码质量检查、架构合规性验证和文档规范检查。
 
-    示例：
-        sage-dev maintain hooks           # 安装 hooks
-        sage-dev maintain hooks --force   # 强制重新安装
+    示例:
+        sage-dev maintain hooks install
+        sage-dev maintain hooks install --quiet
     """
-    console.print("\n[bold blue]🪝 安装 Git Hooks[/bold blue]\n")
+    from pathlib import Path
 
-    args = []
-    if force:
-        args.append("--force")
+    from sage.tools.dev.hooks import HooksInstaller
 
-    exit_code = run_maintenance_script("setup-hooks", *args)
-    if exit_code != 0:
-        raise typer.Exit(exit_code)
+    root_path = Path(root_dir) if root_dir else None
+    installer = HooksInstaller(root_dir=root_path, quiet=quiet)
+
+    try:
+        success = installer.install()
+        if success:
+            if not quiet:
+                console.print("\n[green]✅ Git hooks 安装成功！[/green]")
+        else:
+            console.print("\n[red]❌ Git hooks 安装失败[/red]")
+            raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"\n[red]❌ 安装过程中出错: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@hooks_app.command(name="uninstall")
+def hooks_uninstall(
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式，只显示错误"),
+    root_dir: str = typer.Option(None, "--root", help="项目根目录（默认自动检测）"),
+):
+    """
+    卸载 SAGE Git hooks。
+
+    移除已安装的 pre-commit hook 和 pre-commit 框架配置。
+
+    示例:
+        sage-dev maintain hooks uninstall
+    """
+    from pathlib import Path
+
+    from sage.tools.dev.hooks import HooksInstaller
+
+    root_path = Path(root_dir) if root_dir else None
+    installer = HooksInstaller(root_dir=root_path, quiet=quiet)
+
+    try:
+        success = installer.uninstall()
+        if success:
+            if not quiet:
+                console.print("\n[green]✅ Git hooks 卸载成功！[/green]")
+        else:
+            console.print("\n[red]❌ Git hooks 卸载失败[/red]")
+            raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"\n[red]❌ 卸载过程中出错: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@hooks_app.command(name="status")
+def hooks_status(
+    root_dir: str = typer.Option(None, "--root", help="项目根目录（默认自动检测）"),
+    json_output: bool = typer.Option(False, "--json", help="以 JSON 格式输出"),
+):
+    """
+    检查 Git hooks 的安装状态。
+
+    显示 pre-commit hook、pre-commit 框架和各种检查工具的状态。
+
+    示例:
+        sage-dev maintain hooks status
+        sage-dev maintain hooks status --json
+    """
+    from pathlib import Path
+
+    from sage.tools.dev.hooks import HooksInstaller
+
+    root_path = Path(root_dir) if root_dir else None
+    installer = HooksInstaller(root_dir=root_path, quiet=True)
+
+    try:
+        if json_output:
+            import json
+
+            status_info = installer.status()
+            console.print(json.dumps(status_info, indent=2))
+        else:
+            installer.print_status()
+    except Exception as e:
+        console.print(f"\n[red]❌ 检查状态时出错: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@hooks_app.command(name="reinstall")
+def hooks_reinstall(
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式，只显示错误"),
+    root_dir: str = typer.Option(None, "--root", help="项目根目录（默认自动检测）"),
+):
+    """
+    重新安装 SAGE Git hooks。
+
+    先卸载现有的 hooks，然后重新安装。用于更新 hooks 到最新版本。
+
+    示例:
+        sage-dev maintain hooks reinstall
+    """
+    from pathlib import Path
+
+    from sage.tools.dev.hooks import HooksManager
+
+    root_path = Path(root_dir) if root_dir else None
+    manager = HooksManager(root_dir=root_path)
+
+    try:
+        # Uninstall first
+        if not quiet:
+            console.print("[blue]🔄 正在卸载现有 hooks...[/blue]")
+        manager.uninstall(quiet=True)
+
+        # Then install
+        if not quiet:
+            console.print("[blue]🔄 正在重新安装 hooks...[/blue]\n")
+        success = manager.install(quiet=quiet)
+
+        if success:
+            if not quiet:
+                console.print("\n[green]✅ Git hooks 重新安装成功！[/green]")
+        else:
+            console.print("\n[red]❌ Git hooks 重新安装失败[/red]")
+            raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"\n[red]❌ 重新安装过程中出错: {e}[/red]")
+        raise typer.Exit(1)
+
+
+app.add_typer(hooks_app, name="hooks")
 
 
 @app.command(name="security")
