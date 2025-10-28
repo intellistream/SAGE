@@ -250,7 +250,7 @@ class BaseEnvironment(ABC):
         Example:
             # 导入 KafkaSource
             from sage.libs.io.source import KafkaSource
-            
+
             # 基本使用
             kafka_stream = env.from_kafka_source(
                 KafkaSource,

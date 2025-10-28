@@ -52,8 +52,10 @@ jobs:
             types-requests \
             types-setuptools
 
-          # 安装 sage-tools（包含架构和文档检查器）
-          pip install -e packages/sage-tools
+          # 使用 quickstart.sh 安装 SAGE（开发模式，包含 sage-tools 和所有开发工具）
+          echo "📦 使用 quickstart.sh 安装 SAGE（开发模式）..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --yes --no-sync-submodules
 
           echo "✅ 工具安装完成"
           echo ""
@@ -62,7 +64,7 @@ jobs:
           black --version
           ruff --version
           mypy --version
-          sage-dev --version || echo "sage CLI 已安装"
+          sage-dev --version || echo "sage-dev 命令可用"
 
       - name: Check Pre-commit Configuration
         run: |

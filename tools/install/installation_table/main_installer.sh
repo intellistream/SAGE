@@ -322,9 +322,9 @@ install_sage() {
 
     echo ""
     case "$mode" in
-        "minimal")
-            echo -e "${BLUE}最小安装模式：仅安装基础 SAGE 包${NC}"
-            echo "$(date): 开始最小安装模式" >> "$log_file"
+        "core")
+            echo -e "${BLUE}核心运行时模式：仅安装基础 SAGE 包${NC}"
+            echo "$(date): 开始核心运行时模式" >> "$log_file"
             install_core_packages "$mode"
             ;;
         "standard")

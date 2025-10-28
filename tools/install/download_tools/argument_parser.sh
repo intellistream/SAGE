@@ -308,12 +308,6 @@ parse_install_mode() {
             INSTALL_MODE="dev"
             return 0
             ;;
-        # 向后兼容：保留 minimal 但映射到 core
-        "--mini"|"--minimal"|"--m"|"-mini"|"-minimal"|"-m")
-            INSTALL_MODE="core"
-            echo -e "${YELLOW}⚠️  --minimal 已更名为 --core，将使用 core 模式${NC}"
-            return 0
-            ;;
         *)
             return 1
             ;;
@@ -594,8 +588,8 @@ show_install_configuration() {
         "standard")
             echo -e "  ${BLUE}安装模式:${NC} ${GREEN}标准安装${NC}"
             ;;
-        "minimal")
-            echo -e "  ${BLUE}安装模式:${NC} ${GRAY}最小安装${NC}"
+        "core")
+            echo -e "  ${BLUE}安装模式:${NC} ${GRAY}核心运行时${NC}"
             ;;
         "dev")
             echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}开发者安装${NC}"

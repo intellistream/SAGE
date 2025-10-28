@@ -38,84 +38,12 @@ jobs:
           pip install --upgrade pip
           pip install pyyaml
 
-          echo "📦 安装 SAGE 核心包（用于 Examples 验证）..."
-          # 按照依赖顺序安装 SAGE 包（仅安装基础依赖，不安装可选依赖）
-          pip install -e packages/sage-common --no-deps
-          pip install -e packages/sage-kernel --no-deps
-          pip install -e packages/sage-middleware --no-deps
-          pip install -e packages/sage-libs --no-deps
-          pip install -e packages/sage-apps --no-deps
-          pip install -e packages/sage-tools --no-deps
-          pip install -e packages/sage --no-deps
+          # 使用 quickstart.sh 安装 SAGE（开发模式，用于 sage-dev 命令）
+          echo "📦 使用 quickstart.sh 安装 SAGE（开发模式）..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --yes --no-sync-submodules
 
           echo "✅ SAGE 包安装完成"
-
-      - name: Test Standard pip Installation
-        run: |
-          echo "🧪 测试标准 pip 安装流程（模拟用户安装）..."
-          echo "这将验证通过 pip 安装时 C++ 扩展能否正确构建"
-          echo ""
-
-          # 创建临时虚拟环境
-          python -m venv /tmp/sage_pip_test
-          source /tmp/sage_pip_test/bin/activate
-
-          echo "📦 在虚拟环境中安装系统依赖..."
-          pip install --upgrade pip setuptools wheel
-
-          echo ""
-          echo "🚀 使用 quickstart.sh 标准模式安装（pip 安装）..."
-          # 使用标准模式 + pip 参数，这会模拟用户通过 pip 安装的场景
-          ./quickstart.sh --standard --pip --yes || {
-            echo "❌ 标准 pip 安装失败"
-            deactivate
-            exit 1
-          }
-
-          echo ""
-          echo "🔍 验证安装结果..."
-
-          # 验证基础导入
-          python -c "import sage; print(f'✅ SAGE {sage.__version__} 安装成功')" || {
-            echo "❌ 无法导入 sage"
-            deactivate
-            exit 1
-          }
-
-          # 验证 CLI
-          if command -v sage >/dev/null 2>&1; then
-            sage --version || echo "⚠️ sage CLI 不可用"
-          fi
-
-          # 验证 C++ 扩展（pip 安装时扩展是可选的）
-          echo ""
-          echo "🧩 检查 C++ 扩展状态（可选）..."
-          python -c "
-          import warnings
-          warnings.filterwarnings('ignore', category=UserWarning)
-
-          try:
-              from sage.middleware.components.extensions_compat import check_extensions_availability
-              available = check_extensions_availability()
-              total = sum(available.values())
-
-              if total > 0:
-                  print(f'✅ {total} 个 C++ 扩展可用（pip 安装成功构建）')
-                  for ext, status in available.items():
-                      if status:
-                          print(f'  ✅ {ext}')
-              else:
-                  print('ℹ️  C++ 扩展未构建（这在 pip 安装中是可选的）')
-                  print('   用户仍可使用 SAGE 的基础功能')
-          except ImportError as e:
-              print(f'⚠️ 无法检查扩展状态: {e}')
-          "
-
-          echo ""
-          echo "✅ 标准 pip 安装验证通过"
-
-          deactivate
-          rm -rf /tmp/sage_pip_test
 
       - name: Dev-notes Documentation Check
         run: |

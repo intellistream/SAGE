@@ -1,0 +1,422 @@
+name: PyPI Installation Test
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/*/pyproject.toml'
+      - 'packages/*/setup.py'
+      - 'packages/*/setup.cfg'
+      - '.github/workflows/pip-installation-test.yml'
+  push:
+    branches: [main, main-dev]
+    paths:
+      - 'packages/*/pyproject.toml'
+      - 'packages/*/setup.py'
+      - 'packages/*/setup.cfg'
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: '测试模式'
+        required: true
+        default: 'local'
+        type: choice
+        options:
+          - local  # 本地构建测试
+          - testpypi  # TestPyPI 测试
+          - pypi  # PyPI 测试（发布后）
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-local-build:
+    name: Test Local Build Installation (${{ matrix.install-mode }}, Py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_mode == 'local'
+
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+        install-mode: ['core', 'standard', 'full', 'dev']
+      fail-fast: false  # 允许某些组合失败，继续测试其他组合
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Build Tools
+        run: |
+          echo "📦 安装构建工具..."
+          pip install --upgrade pip setuptools wheel build twine
+
+      - name: Build All Packages
+        run: |
+          echo "🏗️ 构建所有 SAGE 包..."
+
+          # 按依赖顺序构建包
+          packages=(
+            "packages/sage-common"
+            "packages/sage-platform"
+            "packages/sage-kernel"
+            "packages/sage-libs"
+            "packages/sage-middleware"
+            "packages/sage-apps"
+            "packages/sage-benchmark"
+            "packages/sage-studio"
+            "packages/sage-tools"
+            "packages/sage-cli"
+            "packages/sage"
+          )
+
+          mkdir -p dist
+
+          for package_dir in "${packages[@]}"; do
+            if [ -d "$package_dir" ]; then
+              echo "🔨 构建 $package_dir..."
+              cd "$package_dir"
+              python -m build --outdir ../../dist
+              cd ../..
+            else
+              echo "⚠️  跳过不存在的包: $package_dir"
+            fi
+          done
+
+          echo "✅ 所有包构建完成"
+          echo ""
+          echo "📦 构建产物:"
+          ls -lh dist/
+
+      - name: Test Installation from Local Wheels
+        run: |
+          echo "🧪 测试从本地 wheel 安装..."
+
+          # 创建干净的虚拟环境
+          python -m venv /tmp/test_env
+          source /tmp/test_env/bin/activate
+
+          echo "📦 从本地 wheel 安装 SAGE[${{ matrix.install-mode }}]..."
+
+          # 先安装基础依赖
+          pip install --upgrade pip setuptools wheel
+
+          # 从本地 dist 目录安装（模拟 PyPI 安装）
+          # 注意：这里使用 --find-links 让 pip 从本地查找依赖
+          pip install --find-links dist "isage[${{ matrix.install-mode }}]" || {
+            echo "❌ 安装失败！"
+            deactivate
+            exit 1
+          }
+
+          echo "✅ 安装成功"
+          echo ""
+          echo "🔍 验证安装..."
+
+          # 验证 Python 导入
+          python -c "import sage; print(f'✅ SAGE version: {sage.__version__}')" || {
+            echo "❌ 无法导入 sage"
+            deactivate
+            exit 1
+          }
+
+          # 验证核心模块
+          python -c "from sage.common import config; print('✅ sage.common 可用')"
+          python -c "from sage.kernel import Pipeline; print('✅ sage.kernel 可用')"
+
+          # 验证 CLI（如果包含）
+          if [ "${{ matrix.install-mode }}" != "core" ]; then
+            if command -v sage >/dev/null 2>&1; then
+              sage --version && echo "✅ sage CLI 可用"
+            else
+              echo "⚠️  sage CLI 未找到（可能需要添加到 PATH）"
+            fi
+          fi
+
+          # 验证安装的包列表
+          echo ""
+          echo "📋 已安装的 SAGE 包:"
+          pip list | grep -i sage || true
+
+          echo ""
+          echo "✅ 验证通过！"
+
+          deactivate
+          rm -rf /tmp/test_env
+
+      - name: Test Installation from Source
+        run: |
+          echo "🧪 测试从源码安装（pip install .）..."
+
+          # 创建干净的虚拟环境
+          python -m venv /tmp/test_source_env
+          source /tmp/test_source_env/bin/activate
+
+          pip install --upgrade pip setuptools wheel
+
+          echo "📦 按依赖顺序从源码安装..."
+
+          # 根据安装模式确定需要安装的包
+          packages=(
+            "packages/sage-common"
+            "packages/sage-platform"
+            "packages/sage-kernel"
+          )
+
+          # core 模式只需要 L1-L3
+          if [ "${{ matrix.install-mode }}" != "core" ]; then
+            packages+=(
+              "packages/sage-libs"
+              "packages/sage-middleware"
+            )
+          fi
+
+          # full 和 dev 模式需要 L5 应用包
+          if [ "${{ matrix.install-mode }}" = "full" ] || [ "${{ matrix.install-mode }}" = "dev" ]; then
+            packages+=("packages/sage-apps" "packages/sage-benchmark")
+          fi
+
+          # standard, full, dev 都需要 L6 工具包
+          if [ "${{ matrix.install-mode }}" != "core" ]; then
+            packages+=("packages/sage-studio" "packages/sage-tools")
+          fi
+
+          for package_dir in "${packages[@]}"; do
+            if [ -d "$package_dir" ]; then
+              echo "📦 安装 $package_dir..."
+              pip install "$package_dir" || {
+                echo "❌ 安装 $package_dir 失败"
+                deactivate
+                exit 1
+              }
+            fi
+          done
+
+          # 最后安装主包
+          echo "📦 安装 sage[${{ matrix.install-mode }}]..."
+          pip install "packages/sage[${{ matrix.install-mode }}]" || {
+            echo "❌ 安装主包失败"
+            deactivate
+            exit 1
+          }
+
+          echo "✅ 源码安装成功"
+          echo ""
+          echo "🔍 验证安装..."
+
+          python -c "import sage; print(f'✅ SAGE version: {sage.__version__}')"
+
+          # 根据模式验证特定功能
+          case "${{ matrix.install-mode }}" in
+            core)
+              echo "验证 core 模式基础功能..."
+              python -c "from sage.kernel import Pipeline; print('✅ Pipeline 可用')"
+              ;;
+            standard)
+              echo "验证 standard 模式功能..."
+              python -c "from sage.middleware.rag import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "from sage.tools.cli import main; print('✅ CLI 可用')"
+              ;;
+            full)
+              echo "验证 full 模式功能..."
+              python -c "from sage.middleware.rag import RAGPipeline; print('✅ RAGPipeline 可用')"
+              if [ -d "packages/sage-apps" ]; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" 2>/dev/null || echo "ℹ️  sage.apps 可选"
+              fi
+              ;;
+            dev)
+              echo "验证 dev 模式功能..."
+              python -c "from sage.middleware.rag import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "import pytest; print('✅ pytest 可用')"
+              python -c "import black; print('✅ black 可用')"
+              ;;
+          esac
+
+          echo ""
+          echo "✅ 源码安装验证通过！"
+
+          deactivate
+          rm -rf /tmp/test_source_env
+
+      - name: Upload Build Artifacts
+        if: matrix.python-version == '3.11' && matrix.install-mode == 'standard'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sage-dist-packages
+          path: dist/
+          retention-days: 7
+
+  test-import-paths:
+    name: Test Import Paths
+    runs-on: ubuntu-latest
+    needs: test-local-build
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sage-dist-packages
+          path: dist/
+
+      - name: Test Import Paths
+        run: |
+          echo "🧪 测试所有导入路径..."
+
+          python -m venv /tmp/import_test_env
+          source /tmp/import_test_env/bin/activate
+
+          pip install --upgrade pip
+          pip install --find-links dist "isage[standard]"
+
+          echo "🔍 测试核心导入路径..."
+
+          # 测试所有层级的导入
+          python << 'EOF'
+          import sys
+
+          # L1: Common
+          from sage.common import config
+          from sage.common.logging import setup_logger
+
+          # L2: Platform
+          from sage.platform.utils import get_system_info
+
+          # L3: Kernel
+          from sage.kernel import Pipeline, Environment
+          from sage.kernel.operators import Map, Filter
+
+          # L4: Middleware
+          from sage.middleware.rag import RAGPipeline
+
+          # L6: Tools
+          from sage.tools.cli import main as cli_main
+
+          print("✅ 所有核心导入路径正常")
+          EOF
+
+          echo "✅ 导入路径测试通过"
+
+          deactivate
+
+  test-dependency-resolution:
+    name: Test Dependency Resolution
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Test Clean Installation
+        run: |
+          echo "🧪 测试干净环境安装（检查依赖冲突）..."
+
+          python -m venv /tmp/clean_env
+          source /tmp/clean_env/bin/activate
+
+          pip install --upgrade pip
+
+          echo "📦 构建并安装 SAGE..."
+
+          # 构建主包
+          cd packages/sage
+          pip install build
+          python -m build
+          cd ../..
+
+          # 从构建的 wheel 安装
+          pip install packages/sage/dist/isage-*.whl || {
+            echo "❌ 依赖解析失败！"
+            echo ""
+            echo "可能的原因："
+            echo "1. 包依赖版本冲突"
+            echo "2. 缺少必需的依赖声明"
+            echo "3. PyPI 上缺少某些依赖包"
+            deactivate
+            exit 1
+          }
+
+          echo "✅ 依赖解析成功"
+          echo ""
+          echo "📋 已安装的包:"
+          pip list
+
+          # 检查是否有已知的依赖冲突
+          echo ""
+          echo "🔍 检查依赖冲突..."
+          pip check || {
+            echo "⚠️  检测到依赖冲突"
+            exit 1
+          }
+
+          echo "✅ 无依赖冲突"
+
+          deactivate
+
+  summary:
+    name: Installation Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-local-build, test-import-paths, test-dependency-resolution]
+    if: always()
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## 📦 PyPI 安装测试总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.test-local-build.result }}" = "success" ] && \
+             [ "${{ needs.test-import-paths.result }}" = "success" ] && \
+             [ "${{ needs.test-dependency-resolution.result }}" = "success" ]; then
+            echo "✅ **所有测试通过** - SAGE 可以正常从 wheel 安装" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 测试覆盖" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ 本地 wheel 构建安装" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ 源码安装（pip install .）" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ 导入路径验证" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ 依赖解析检查" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ 多 Python 版本兼容性 (3.10, 3.11, 3.12)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ 多安装模式 (standard, full)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **测试失败** - 发现安装问题" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 失败的测试" >> $GITHUB_STEP_SUMMARY
+
+            if [ "${{ needs.test-local-build.result }}" != "success" ]; then
+              echo "- ❌ 本地构建安装测试" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            if [ "${{ needs.test-import-paths.result }}" != "success" ]; then
+              echo "- ❌ 导入路径测试" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            if [ "${{ needs.test-dependency-resolution.result }}" != "success" ]; then
+              echo "- ❌ 依赖解析测试" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "请查看失败的 job 日志了解详细信息。" >> $GITHUB_STEP_SUMMARY
+          fi

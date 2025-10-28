@@ -93,17 +93,21 @@ show_help() {
     echo ""
     echo -e "${BLUE}安装模式：${NC}"
     echo ""
-    echo -e "  ${BOLD}--minimal, -m${NC}      ${GRAY}最小安装${NC}"
-    echo -e "    ${DIM}包含: SAGE核心包 (sage-common, sage-kernel, sage-middleware, sage-libs, sage)${NC}"
-    echo -e "    ${DIM}适合: 容器部署、只需要SAGE核心功能的场景${NC}"
+    echo -e "  ${BOLD}--core, -c${NC}         ${GRAY}核心运行时${NC}"
+    echo -e "    ${DIM}包含: SAGE核心包 (sage-common, sage-platform, sage-kernel)${NC}"
+    echo -e "    ${DIM}适合: 容器部署、生产运行、最小依赖${NC}"
     echo ""
-    echo -e "  ${BOLD}--standard, -s${NC}     ${GREEN}标准安装 (默认)${NC}"
-    echo -e "    ${DIM}包含: SAGE核心包 + 科学计算库 (numpy, pandas, jupyter)${NC}"
-    echo -e "    ${DIM}适合: 数据科学、研究、学习${NC}"
+    echo -e "  ${BOLD}--standard, -s${NC}     ${GREEN}标准开发 (默认)${NC}"
+    echo -e "    ${DIM}包含: 核心包 + CLI + Web UI + RAG/LLM + 数据科学库${NC}"
+    echo -e "    ${DIM}适合: 应用开发、日常使用${NC}"
     echo ""
-    echo -e "  ${BOLD}--dev, -d${NC}          ${YELLOW}开发者安装${NC}"
-    echo -e "    ${DIM}包含: 标准安装 + 开发工具 (pytest, black, mypy)${NC}"
-    echo -e "    ${DIM}适合: 为SAGE项目贡献代码的开发者${NC}"
+    echo -e "  ${BOLD}--full, -f${NC}         ${PURPLE}完整功能${NC}"
+    echo -e "    ${DIM}包含: 标准 + 示例应用 + 性能测试${NC}"
+    echo -e "    ${DIM}适合: 学习 SAGE、运行示例${NC}"
+    echo ""
+    echo -e "  ${BOLD}--dev, -d${NC}          ${YELLOW}框架开发${NC}"
+    echo -e "    ${DIM}包含: 完整功能 + 开发工具 (pytest, black, mypy)${NC}"
+    echo -e "    ${DIM}适合: 贡献 SAGE 框架源码${NC}"
     echo ""
     echo -e "${BLUE}环境选项：${NC}"
     echo ""
@@ -120,7 +124,7 @@ show_help() {
     echo -e "  ./quickstart.sh                    ${DIM}# 交互式选择${NC}"
     echo -e "  ./quickstart.sh --standard         ${DIM}# 标准安装${NC}"
     echo -e "  ./quickstart.sh --conda --dev      ${DIM}# conda环境中开发者安装${NC}"
-    echo -e "  ./quickstart.sh --pip --minimal    ${DIM}# pip最小安装${NC}"
+    echo -e "  ./quickstart.sh --pip --core       ${DIM}# pip核心运行时安装${NC}"
     echo ""
 }
 
@@ -134,19 +138,23 @@ show_install_success() {
 
     # 显示已安装的内容
     case "$mode" in
-        "minimal")
-            echo -e "${BLUE}已安装 (最小模式):${NC}"
-            echo_icon "✅" "SAGE 核心包" 1 1
+        "core")
+            echo -e "${BLUE}已安装 (核心运行时):${NC}"
+            echo_icon "✅" "SAGE 核心包 (L1-L3)" 1 1
             ;;
         "standard")
-            echo -e "${BLUE}已安装 (标准模式):${NC}"
-            echo_icon "✅" "SAGE 核心包" 1 1
-            echo_icon "✅" "科学计算库 (numpy, pandas, matplotlib, scipy, jupyter)" 1 1
+            echo -e "${BLUE}已安装 (标准开发):${NC}"
+            echo_icon "✅" "SAGE 核心包 + CLI + Web UI" 1 1
+            echo_icon "✅" "数据科学库 (numpy, pandas, matplotlib, jupyter)" 1 1
+            ;;
+        "full")
+            echo -e "${BLUE}已安装 (完整功能):${NC}"
+            echo_icon "✅" "SAGE 标准包" 1 1
+            echo_icon "✅" "示例应用 + 性能测试" 1 1
             ;;
         "dev")
-            echo -e "${BLUE}已安装 (开发者模式):${NC}"
-            echo_icon "✅" "SAGE 核心包" 1 1
-            echo_icon "✅" "科学计算库" 1 1
+            echo -e "${BLUE}已安装 (框架开发):${NC}"
+            echo_icon "✅" "SAGE 完整功能" 1 1
             echo_icon "✅" "开发工具 (pytest, black, mypy, pre-commit)" 1 1
             ;;
     esac
@@ -178,18 +186,18 @@ show_usage_tips() {
     echo ""
 
     case "$mode" in
-        "minimal")
-            echo -e "${BLUE}最小安装模式：${NC}"
-            echo -e "  # 只包含SAGE核心包，适合容器部署"
-            echo -e "  python3 -c 'import sage; print(sage.__version__)'"
-            echo -e "  # 如需科学计算功能，建议使用 --standard 模式"
+        "core")
+            echo -e "${BLUE}核心运行时模式：${NC}"
+            echo -e "  # 只包含 SAGE 核心包 (L1-L3)，适合容器部署和生产环境"
+            echo -e "  python3 -c 'from sage.kernel import Pipeline; print(\"Pipeline ready\")'"
+            echo -e "  # 如需完整功能，建议使用 --standard 模式"
             echo ""
             ;;
         "standard")
-            echo -e "${BLUE}标准安装模式：${NC}"
-            echo -e "  # 包含SAGE核心包和科学计算库"
-            echo -e "  jupyter notebook  # 启动Jupyter笔记本"
-            echo -e "  jupyter lab       # 启动JupyterLab"
+            echo -e "${BLUE}标准开发模式：${NC}"
+            echo -e "  # 包含完整 SAGE 功能和数据科学库"
+            echo -e "  jupyter notebook  # 启动 Jupyter 笔记本"
+            echo -e "  jupyter lab       # 启动 JupyterLab"
             echo -e "  # 数据科学和研究的完整环境"
             echo ""
             ;;

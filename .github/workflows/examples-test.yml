@@ -107,8 +107,8 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           chmod +x ./quickstart.sh
 
-          # 快速安装（examples 测试不需要 C++ 扩展）
-          ./quickstart.sh --standard --pip --yes
+          # 使用标准模式（examples 测试需要完整的 SAGE 功能但不需要开发工具）
+          ./quickstart.sh --standard --yes --no-sync-submodules
 
           echo "✅ SAGE 安装完成"
         timeout-minutes: 20
@@ -128,8 +128,8 @@ jobs:
         run: |
           echo "📦 安装 Examples 测试依赖..."
 
-          # 安装测试工具
-          pip install -e packages/sage-tools[dev]
+          # quickstart.sh 已经安装了 SAGE，这里只需安装额外的测试工具
+          pip install pytest pytest-timeout pytest-benchmark
 
           # 安装 examples 可能需要的额外依赖
           if [ -f "examples/requirements.txt" ]; then
