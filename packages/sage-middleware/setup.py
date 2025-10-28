@@ -79,14 +79,14 @@ class BuildCExtensions(build_ext):
             )
             print("✅ sage_db C扩展编译成功")
             # Only print first 50 lines to avoid log spam
-            stdout_lines = result.stdout.split('\n')
+            stdout_lines = result.stdout.split("\n")
             if len(stdout_lines) > 50:
-                print('\n'.join(stdout_lines[:25]))
+                print("\n".join(stdout_lines[:25]))
                 print(f"... ({len(stdout_lines) - 50} lines omitted) ...")
-                print('\n'.join(stdout_lines[-25:]))
+                print("\n".join(stdout_lines[-25:]))
             else:
                 print(result.stdout)
-            
+
             # 验证 .so 文件是否生成
             python_dir = sage_db_dir / "python"
             so_files = list(python_dir.glob("_sage_db*.so"))
@@ -145,14 +145,14 @@ class BuildCExtensions(build_ext):
             )
             print("✅ sage_flow 构建成功")
             # Only print first 50 lines to avoid log spam
-            stdout_lines = result.stdout.split('\n')
+            stdout_lines = result.stdout.split("\n")
             if len(stdout_lines) > 50:
-                print('\n'.join(stdout_lines[:25]))
+                print("\n".join(stdout_lines[:25]))
                 print(f"... ({len(stdout_lines) - 50} lines omitted) ...")
-                print('\n'.join(stdout_lines[-25:]))
+                print("\n".join(stdout_lines[-25:]))
             else:
                 print(result.stdout)
-            
+
             # 验证 .so 文件是否生成
             python_dir = sage_flow_dir / "python"
             so_files = list(python_dir.glob("_sage_flow*.so"))

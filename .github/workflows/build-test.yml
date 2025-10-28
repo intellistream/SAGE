@@ -122,7 +122,7 @@ jobs:
               all_ok=false
             fi
           done
-          
+
           if [ "$all_ok" = "false" ]; then
             echo ""
             echo "⚠️  某些子模块未正确初始化"
@@ -167,14 +167,14 @@ jobs:
                 echo "📦 $component:"
                 echo "  📂 顶级目录内容:"
                 ls -la "$component_dir/" 2>/dev/null | head -20 || echo "  ❌ 无法列出目录"
-                
+
                 if [ -d "$component_dir/python" ]; then
                   echo "  📂 python/ 目录内容:"
                   ls -la "$component_dir/python/" 2>/dev/null || echo "  ❌ 无法列出python/目录"
                 else
                   echo "  ❌ python/ 目录不存在"
                 fi
-                
+
                 # Check for submodules
                 submodule_path=$(find "$component_dir" -maxdepth 1 -type d -iname "sage${component#sage_}" 2>/dev/null | head -1 || true)
                 if [ -n "$submodule_path" ]; then
@@ -185,7 +185,7 @@ jobs:
                     echo "    ✅ 子模块已初始化"
                   fi
                 fi
-                
+
                 # Check for build artifacts
                 if [ -d "$component_dir/build" ]; then
                   echo "  📂 build/ 目录存在"
