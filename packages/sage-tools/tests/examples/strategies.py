@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 SAGE Examples 专用测试配置和策略
 为不同类型的示例定义特定的测试策略
@@ -7,7 +6,7 @@ SAGE Examples 专用测试配置和策略
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable
 
 # 导入项目根目录查找函数
 from test_examples import find_project_root
@@ -21,19 +20,19 @@ class TestStrategy:
     timeout: int
     requires_config: bool
     requires_data: bool
-    mock_inputs: Optional[Dict[str, str]] = None
-    environment_vars: Optional[Dict[str, str]] = None
-    success_patterns: Optional[List[str]] = None
-    failure_patterns: Optional[List[str]] = None
-    pre_run_setup: Optional[Callable] = None
-    post_run_cleanup: Optional[Callable] = None
+    mock_inputs: dict[str, str] | None = None
+    environment_vars: dict[str, str] | None = None
+    success_patterns: list[str] | None = None
+    failure_patterns: list[str] | None = None
+    pre_run_setup: Callable | None = None
+    post_run_cleanup: Callable | None = None
 
 
 class ExampleTestStrategies:
     """示例测试策略集合"""
 
     @staticmethod
-    def get_strategies() -> Dict[str, TestStrategy]:
+    def get_strategies() -> dict[str, TestStrategy]:
         """获取所有测试策略"""
         return {
             "tutorials": TestStrategy(
@@ -287,7 +286,7 @@ class ExampleTestStrategies:
         }
 
     @staticmethod
-    def get_category_skip_patterns() -> Dict[str, List[str]]:
+    def get_category_skip_patterns() -> dict[str, list[str]]:
         """获取各类别需要跳过的文件模式"""
         return {
             "rag": [
@@ -300,7 +299,7 @@ class ExampleTestStrategies:
         }
 
     @staticmethod
-    def get_mock_data_generators() -> Dict[str, Callable]:
+    def get_mock_data_generators() -> dict[str, Callable]:
         """获取模拟数据生成器"""
         return {
             "rag": ExampleTestStrategies._generate_rag_mock_data,
@@ -309,7 +308,7 @@ class ExampleTestStrategies:
         }
 
     @staticmethod
-    def _generate_rag_mock_data() -> Dict[str, Any]:
+    def _generate_rag_mock_data() -> dict[str, Any]:
         """生成RAG测试的模拟数据"""
         return {
             "documents": """
@@ -325,7 +324,7 @@ class ExampleTestStrategies:
         }
 
     @staticmethod
-    def _generate_memory_mock_data() -> Dict[str, Any]:
+    def _generate_memory_mock_data() -> dict[str, Any]:
         """生成内存测试的模拟数据"""
         return {
             "test_data": "This is test data for memory storage",
@@ -333,7 +332,7 @@ class ExampleTestStrategies:
         }
 
     @staticmethod
-    def _generate_video_mock_data() -> Dict[str, str]:
+    def _generate_video_mock_data() -> dict[str, str]:
         """生成视频测试的模拟数据"""
         # 创建一个简单的测试视频文件路径
         return {
@@ -418,7 +417,7 @@ class ExampleEnvironmentManager:
         self.temp_files = []
         self.temp_dirs = []
 
-    def setup_category_environment(self, category: str) -> Dict[str, str]:
+    def setup_category_environment(self, category: str) -> dict[str, str]:
         """为特定类别设置环境"""
         strategy = ExampleTestStrategies.get_strategies().get(category)
         if not strategy:

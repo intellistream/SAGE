@@ -104,16 +104,30 @@ jobs:
 
           echo ""
           echo "🔍 验证关键子模块目录："
+          all_ok=true
           for submodule in \
             "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" \
             "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" \
             "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"; do
             if [ -d "$submodule" ]; then
-              echo "✅ $submodule 存在"
+              # Check if directory is not empty
+              if [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then
+                echo "✅ $submodule 存在且已初始化"
+              else
+                echo "⚠️  $submodule 存在但为空（未初始化）"
+                all_ok=false
+              fi
             else
               echo "❌ $submodule 缺失"
+              all_ok=false
             fi
           done
+          
+          if [ "$all_ok" = "false" ]; then
+            echo ""
+            echo "⚠️  某些子模块未正确初始化"
+            echo "💡 C++扩展构建可能会跳过相关组件"
+          fi
 
       - name: Install SAGE
         run: |
@@ -135,16 +149,50 @@ jobs:
 
           # 检查.so文件（在源码目录中，因为是开发模式可编辑安装）
           echo "📁 检查已编译的.so文件:"
-          so_files=$(find packages/sage-middleware/src/sage/middleware/components/ -name "_sage_*.so" -type f 2>/dev/null || true)
+          so_files=$(find packages/sage-middleware/src/sage/middleware/components/ \( -name "_sage_*.so" -o -name "*.cpython-*.so" \) -type f 2>/dev/null || true)
 
           if [ -n "$so_files" ]; then
             echo "✅ 找到C++扩展文件:"
-            echo "$so_files"
+            echo "$so_files" | while read -r file; do
+              echo "  - $file ($(stat -c%s "$file" 2>/dev/null || stat -f%z "$file") bytes)"
+            done
           else
-            echo "❌ 未找到.so文件"
-            echo "检查扩展组件目录结构:"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_flow/python/ 2>/dev/null || echo "sage_flow/python目录不存在"
-            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/python/ 2>/dev/null || echo "sage_db/python目录不存在"
+            echo "⚠️  未找到.so文件，检查详细目录结构..."
+            echo ""
+            echo "🔍 检查扩展组件目录结构:"
+            for component in sage_flow sage_db sage_tsdb; do
+              component_dir="packages/sage-middleware/src/sage/middleware/components/$component"
+              if [ -d "$component_dir" ]; then
+                echo ""
+                echo "📦 $component:"
+                echo "  📂 顶级目录内容:"
+                ls -la "$component_dir/" 2>/dev/null | head -20 || echo "  ❌ 无法列出目录"
+                
+                if [ -d "$component_dir/python" ]; then
+                  echo "  📂 python/ 目录内容:"
+                  ls -la "$component_dir/python/" 2>/dev/null || echo "  ❌ 无法列出python/目录"
+                else
+                  echo "  ❌ python/ 目录不存在"
+                fi
+                
+                # Check for submodules
+                submodule_path=$(find "$component_dir" -maxdepth 1 -type d -iname "sage${component#sage_}" 2>/dev/null | head -1 || true)
+                if [ -n "$submodule_path" ]; then
+                  echo "  📂 子模块: $(basename $submodule_path)"
+                  if [ -z "$(ls -A "$submodule_path" 2>/dev/null)" ]; then
+                    echo "    ⚠️  子模块目录为空（可能未初始化）"
+                  else
+                    echo "    ✅ 子模块已初始化"
+                  fi
+                fi
+                
+                # Check for build artifacts
+                if [ -d "$component_dir/build" ]; then
+                  echo "  📂 build/ 目录存在"
+                  find "$component_dir/build" -name "*.so" -type f 2>/dev/null | head -3 | sed 's/^/    /' || true
+                fi
+              fi
+            done
           fi
 
           # 测试扩展导入
@@ -153,30 +201,63 @@ jobs:
           python -c "
           import sys
           import warnings
+          import os
 
           # 忽略扩展不可用的警告，只关注实际导入错误
           warnings.filterwarnings('ignore', category=UserWarning)
+
+          print('Python 环境信息:')
+          print(f'  可执行文件: {sys.executable}')
+          print(f'  工作目录: {os.getcwd()}')
+          print(f'  sys.path 前3项:')
+          for path in sys.path[:3]:
+              print(f'    - {path}')
 
           try:
               from sage.middleware.components.extensions_compat import check_extensions_availability
               available = check_extensions_availability()
               total = sum(available.values())
+              print()
               print(f'🧩 扩展可用性: {total}/{len(available)}')
               for ext, status in available.items():
                   symbol = '✅' if status else '❌'
                   print(f'  {symbol} {ext}: {\"可用\" if status else \"不可用\"}')
 
+              # 如果任何扩展不可用，尝试提供诊断信息
+              if total < len(available):
+                  print()
+                  print('🔍 诊断信息:')
+                  for ext, status in available.items():
+                      if not status:
+                          module_name = f'sage.middleware.components.{ext}.python._{ext}'
+                          print(f'  尝试直接导入 {module_name}:')
+                          try:
+                              __import__(module_name)
+                              print(f'    ✅ 模块导入成功（但扩展检查失败？）')
+                          except Exception as import_error:
+                              print(f'    ❌ 导入失败: {import_error}')
+
               # C++扩展在开发模式中应该能够成功构建
+              # 但如果子模块未初始化，某些扩展可能不可用
               if total == 0:
                   print()
                   print('❌ 错误: 没有C++扩展可用')
-                  print('💡 这表明C++扩展构建失败，请检查构建日志')
+                  print('💡 这表明C++扩展构建失败，请检查：')
+                  print('   1. 子模块是否已初始化 (git submodule status)')
+                  print('   2. 构建依赖是否已安装 (cmake, build-essential)')
+                  print('   3. 上方的构建日志中的错误信息')
                   sys.exit(1)
               else:
+                  print()
                   print(f'✅ {total}个扩展成功构建并可用')
+                  if total < len(available):
+                      print(f'⚠️  警告: {len(available) - total}个扩展不可用（可能是子模块未初始化）')
+                      print('   这不会导致构建失败，但某些功能可能受限')
           except ImportError as e:
               print(f'❌ 扩展检查模块不可用: {e}')
               print('⚠️ 这可能表示SAGE未正确安装')
+              import traceback
+              traceback.print_exc()
               sys.exit(1)
           "
 

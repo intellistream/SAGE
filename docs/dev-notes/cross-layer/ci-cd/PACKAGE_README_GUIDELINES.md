@@ -12,7 +12,7 @@
 
 ## 二、README 模板
 
-标准模板位于：`tools/templates/PACKAGE_README_TEMPLATE.md`
+标准模板位于：`packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md`
 
 ### 2.1 必需章节（Required Sections）
 
@@ -209,7 +209,7 @@ sage-dev check-readme --all --report --output report.md
 
 1. 复制模板：
    ```bash
-   cp tools/templates/PACKAGE_README_TEMPLATE.md packages/your-package/README.md
+   cp packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md packages/your-package/README.md
    ```
 
 2. 替换占位符：
@@ -306,7 +306,7 @@ A: 是的，所有代码示例应该可以直接复制运行。
 
 ## 八、参考资源
 
-- **模板文件**: `tools/templates/PACKAGE_README_TEMPLATE.md`
+- **模板文件**: `packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md`
 - **检查工具**: `sage-dev check-readme`
 - **质量报告**: `docs/dev-notes/ci-cd/PACKAGE_README_QUALITY_REPORT.md`
 - **示例 README**: 查看 `sage-tools` 或 `sage-apps` 的 README

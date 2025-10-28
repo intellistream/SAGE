@@ -174,7 +174,7 @@ jobs:
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               echo "1. 确保每个包都有 README.md"
               echo "2. README 应包含：简介、安装、使用示例"
-              echo "3. 使用模板: tools/templates/PACKAGE_README_TEMPLATE.md"
+              echo "3. 使用模板: packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md"
               echo "4. 查看详细报告: sage-dev check-readme --report"
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               exit 1

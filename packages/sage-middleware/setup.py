@@ -54,6 +54,13 @@ class BuildCExtensions(build_ext):
             print("⚠️  sage_db目录不存在，跳过编译")
             return
 
+        # Check if submodule is initialized
+        submodule_dir = sage_db_dir / "sageDB"
+        if submodule_dir.exists() and not any(submodule_dir.iterdir()):
+            print("⚠️  sage_db 子模块目录为空（未初始化），跳过编译")
+            print("   💡 提示: 运行 'git submodule update --init --recursive' 初始化子模块")
+            return
+
         build_script = sage_db_dir / "build.sh"
         if not build_script.exists():
             print("⚠️  build.sh不存在，跳过C扩展编译")
@@ -63,7 +70,7 @@ class BuildCExtensions(build_ext):
         try:
             # 切换到sage_db目录并运行build.sh
             result = subprocess.run(
-                ["bash", "build.sh", "--install-deps"],
+                ["bash", "build.sh"],
                 cwd=sage_db_dir,
                 env=self._shared_env(),
                 check=True,
@@ -71,10 +78,26 @@ class BuildCExtensions(build_ext):
                 text=True,
             )
             print("✅ sage_db C扩展编译成功")
-            print(result.stdout)
+            # Only print first 50 lines to avoid log spam
+            stdout_lines = result.stdout.split('\n')
+            if len(stdout_lines) > 50:
+                print('\n'.join(stdout_lines[:25]))
+                print(f"... ({len(stdout_lines) - 50} lines omitted) ...")
+                print('\n'.join(stdout_lines[-25:]))
+            else:
+                print(result.stdout)
+            
+            # 验证 .so 文件是否生成
+            python_dir = sage_db_dir / "python"
+            so_files = list(python_dir.glob("_sage_db*.so"))
+            if so_files:
+                print(f"✅ 找到生成的扩展文件: {so_files[0].name}")
+            else:
+                print("⚠️  警告: 未找到生成的 .so 文件，但构建脚本成功返回")
         except subprocess.CalledProcessError as e:
             print(f"❌ sage_db C扩展编译失败: {e}")
-            print(f"错误输出: {e.stderr}")
+            print(f"📋 标准输出:\n{e.stdout}")
+            print(f"📋 错误输出:\n{e.stderr}")
             # C扩展编译失败不应该阻止安装
             print("⚠️  继续安装Python部分（C扩展将不可用）")
         except Exception as e:
@@ -98,6 +121,13 @@ class BuildCExtensions(build_ext):
             # 目录不可读，直接跳过
             return
 
+        # Check if submodule is initialized
+        submodule_dir = sage_flow_dir / "sageFlow"
+        if submodule_dir.exists() and not any(submodule_dir.iterdir()):
+            print("⚠️  sage_flow 子模块目录为空（未初始化），跳过编译")
+            print("   💡 提示: 运行 'git submodule update --init --recursive' 初始化子模块")
+            return
+
         build_script = sage_flow_dir / "build.sh"
         if not build_script.exists():
             print("ℹ️ 未找到 sage_flow/build.sh，可能不需要本地构建，跳过")
@@ -106,7 +136,7 @@ class BuildCExtensions(build_ext):
         print("🔧 编译 sage_flow 组件...")
         try:
             result = subprocess.run(
-                ["bash", "build.sh", "--install-deps"],
+                ["bash", "build.sh"],
                 cwd=sage_flow_dir,
                 env=self._shared_env(),
                 check=True,
@@ -114,10 +144,32 @@ class BuildCExtensions(build_ext):
                 text=True,
             )
             print("✅ sage_flow 构建成功")
-            print(result.stdout)
+            # Only print first 50 lines to avoid log spam
+            stdout_lines = result.stdout.split('\n')
+            if len(stdout_lines) > 50:
+                print('\n'.join(stdout_lines[:25]))
+                print(f"... ({len(stdout_lines) - 50} lines omitted) ...")
+                print('\n'.join(stdout_lines[-25:]))
+            else:
+                print(result.stdout)
+            
+            # 验证 .so 文件是否生成
+            python_dir = sage_flow_dir / "python"
+            so_files = list(python_dir.glob("_sage_flow*.so"))
+            if so_files:
+                print(f"✅ 找到生成的扩展文件: {so_files[0].name}")
+            else:
+                print("⚠️  警告: 未找到生成的 .so 文件，但构建脚本成功返回")
+                # 列出 python/ 目录内容以供调试
+                if python_dir.exists():
+                    files = list(python_dir.iterdir())
+                    print(f"   python/ 目录内容 ({len(files)} 个文件):")
+                    for f in files[:10]:  # 只显示前10个
+                        print(f"   - {f.name}")
         except subprocess.CalledProcessError as e:
             print(f"❌ sage_flow 构建失败: {e}")
-            print(f"错误输出: {e.stderr}")
+            print(f"📋 标准输出:\n{e.stdout}")
+            print(f"📋 错误输出:\n{e.stderr}")
             print("⚠️  继续安装Python部分（sage_flow 相关示例可能不可用）")
         except Exception as e:
             print(f"❌ 构建过程出错: {e}")

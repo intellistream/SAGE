@@ -77,7 +77,7 @@ git commit -m "docs: Add <description>"
 
 ```bash
 # 1. 复制模板
-cp tools/templates/PACKAGE_README_TEMPLATE.md packages/<your-package>/README.md
+cp packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md packages/<your-package>/README.md
 
 # 2. 替换占位符
 # 在编辑器中替换所有 {PLACEHOLDER} 文本:
@@ -111,7 +111,7 @@ sage-dev check-readme --package <package-name>
 # 工具会列出所有缺失的必需和推荐章节
 
 # 3. 参考模板添加缺失章节
-# 参考: tools/templates/PACKAGE_README_TEMPLATE.md
+# 参考: packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md
 
 # 4. 重新检查
 sage-dev check-readme --package <package-name>
@@ -263,7 +263,7 @@ sage-dev check-devnotes --changed-only --diff HEAD~5
 ### 模板
 
 - `docs/dev-notes/TEMPLATE.md` - Dev-notes 模板
-- `tools/templates/PACKAGE_README_TEMPLATE.md` - README 模板
+- `packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md` - README 模板
 
 ### 文档
 

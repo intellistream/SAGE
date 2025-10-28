@@ -215,7 +215,7 @@ Summary: 文档简要说明
 ### 7.1 检查工具
 创建了专门的工具检查各包 README 质量：
 - **工具**: `sage-dev check-readme`
-- **模板**: `tools/templates/PACKAGE_README_TEMPLATE.md`
+- **模板**: `packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md`
 - **指南**: `docs/dev-notes/ci-cd/PACKAGE_README_GUIDELINES.md`
 
 ### 7.2 当前状态（2024-10-24）
