@@ -29,37 +29,20 @@ def find_version_files(root_path: Path) -> dict[str, Path]:
 
     for package_dir in packages_dir.iterdir():
         if package_dir.is_dir() and not package_dir.name.startswith("."):
-            # 查找_version.py文件
-            version_file_patterns = [
-                package_dir / "src" / "sage" / "_version.py",
-                package_dir / "src" / "sage" / package_dir.name.replace("-", "/") / "_version.py",
-            ]
+            # 自动查找_version.py文件
+            # 1. 检查 src/sage/_version.py (适用于 sage 主包)
+            version_file_candidates = [package_dir / "src" / "sage" / "_version.py"]
 
-            # 为sage-kernel特殊处理
-            if package_dir.name == "sage-kernel":
-                version_file_patterns.append(
-                    package_dir / "src" / "sage" / "kernel" / "_version.py"
+            # 2. 检查 src/sage/{module}/_version.py (适用于所有 sage-* 子包)
+            if package_dir.name.startswith("sage-"):
+                # sage-common -> common, sage-kernel -> kernel, etc.
+                module_name = package_dir.name.replace("sage-", "")
+                version_file_candidates.append(
+                    package_dir / "src" / "sage" / module_name / "_version.py"
                 )
-            elif package_dir.name == "sage-common":
-                version_file_patterns.append(
-                    package_dir / "src" / "sage" / "common" / "_version.py"
-                )
-            elif package_dir.name == "sage-libs":
-                version_file_patterns.append(package_dir / "src" / "sage" / "libs" / "_version.py")
-            elif package_dir.name == "sage-middleware":
-                version_file_patterns.append(
-                    package_dir / "src" / "sage" / "middleware" / "_version.py"
-                )
-            elif package_dir.name == "sage-tools":
-                version_file_patterns.append(package_dir / "src" / "sage" / "tools" / "_version.py")
-            elif package_dir.name == "sage-studio":
-                version_file_patterns.append(
-                    package_dir / "src" / "sage" / "studio" / "_version.py"
-                )
-            elif package_dir.name == "sage-apps":
-                version_file_patterns.append(package_dir / "src" / "sage" / "apps" / "_version.py")
 
-            for version_file in version_file_patterns:
+            # 查找第一个存在的 _version.py 文件
+            for version_file in version_file_candidates:
                 if version_file.exists():
                     version_files[package_dir.name] = version_file
                     break

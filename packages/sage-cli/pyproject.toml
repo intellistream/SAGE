@@ -1,6 +1,6 @@
 [project]
 name = "sage-cli"
-version = "0.1.0"
+version = {attr = "sage.cli._version.__version__"}
 description = "SAGE Command Line Interface - Unified CLI for SAGE platform"
 readme = "README.md"
 requires-python = ">=3.9"
