@@ -24,24 +24,31 @@
 以下文件仍在本目录，等待进一步评估和迁移：
 
 #### 高优先级
+
 1. **run_examples_tests.sh** - Examples 测试主脚本
+
    - 状态: 被 `.github/workflows/examples-test.yml` 使用
    - 计划: 更新 CI 使用 `sage-dev examples test` 后删除
 
-2. **test_examples.py** - 完整的 Examples 测试套件 (31KB)
+1. **test_examples.py** - 完整的 Examples 测试套件 (31KB)
+
    - 状态: 部分功能已在 `sage-dev examples` 中实现
    - 计划: 评估功能完整性后决定是否迁移或删除
 
-3. **test_examples_pytest.py** - pytest 集成
+1. **test_examples_pytest.py** - pytest 集成
+
    - 状态: 与 test_examples.py 配合使用
    - 计划: 一起评估处理
 
 #### 中优先级
+
 4. **test_architecture_checker.py** - 架构检查器详细测试 (7.5KB)
+
    - 状态: `packages/sage-tools/tests/test_dev/test_quality_checkers.py` 只有基础测试
    - 计划: 对比并补充缺失的测试场景
 
-5. **check_intermediate_results.py** - 中间结果检查工具
+1. **check_intermediate_results.py** - 中间结果检查工具
+
    - 状态: CLI 工具
    - 计划: 集成到 `sage-dev project check` 或迁移
 
@@ -98,8 +105,8 @@ pytest tests/dev/test_quality_checkers.py
 ## 📝 开发者注意事项
 
 1. **不要在此目录添加新测试** - 所有新测试应添加到 `packages/sage-tools/tests/`
-2. **使用 sage-dev 命令** - 优先使用 CLI 命令而不是直接运行脚本
-3. **参考新结构** - 查看 `packages/sage-tools/tests/` 了解组织方式
+1. **使用 sage-dev 命令** - 优先使用 CLI 命令而不是直接运行脚本
+1. **参考新结构** - 查看 `packages/sage-tools/tests/` 了解组织方式
 
 ## 🔗 相关文档
 
@@ -107,7 +114,7 @@ pytest tests/dev/test_quality_checkers.py
 - 清理总结: `docs/dev-notes/l6-tools/TOOLS_CLEANUP_SUMMARY.md`
 - 开发指南: `DEVELOPER.md`
 
----
+______________________________________________________________________
 
-**最后更新**: 2025-10-28  
+**最后更新**: 2025-10-28\
 **状态**: 🚧 部分迁移完成，待进一步评估
