@@ -339,16 +339,47 @@ jobs:
 
           pip install --upgrade pip
 
-          echo "📦 构建并安装 SAGE..."
-
-          # 构建主包
-          cd packages/sage
+          echo "📦 构建所有 SAGE 包..."
           pip install build
-          python -m build
-          cd ../..
 
-          # 从构建的 wheel 安装
-          pip install packages/sage/dist/isage-*.whl || {
+          # 按依赖顺序构建所有包
+          packages=(
+            "packages/sage-common"
+            "packages/sage-platform"
+            "packages/sage-kernel"
+            "packages/sage-libs"
+            "packages/sage-middleware"
+            "packages/sage-apps"
+            "packages/sage-benchmark"
+            "packages/sage-studio"
+            "packages/sage-tools"
+            "packages/sage-cli"
+            "packages/sage"
+          )
+
+          mkdir -p dist
+
+          for package_dir in "${packages[@]}"; do
+            if [ -d "$package_dir" ]; then
+              echo "🔨 构建 $package_dir..."
+              cd "$package_dir"
+              python -m build --outdir ../../dist
+              cd ../..
+            else
+              echo "⚠️  跳过不存在的包: $package_dir"
+            fi
+          done
+
+          echo "✅ 所有包构建完成"
+          echo ""
+          echo "📦 构建产物:"
+          ls -lh dist/
+
+          echo ""
+          echo "📦 从本地 wheel 安装 SAGE（使用 --find-links）..."
+
+          # 使用 --find-links 让 pip 从本地 dist 目录查找所有依赖
+          pip install --find-links dist isage || {
             echo "❌ 依赖解析失败！"
             echo ""
             echo "可能的原因："

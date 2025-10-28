@@ -64,15 +64,15 @@ install_cpp_extensions() {
     # C++扩展通过 setup.py 的 build_ext 自动构建
     # 在 pip install -e 时会自动调用 CustomDevelop.run() -> build_ext
     # 这里只需要重新触发构建（如果需要的话）
-    
+
     echo -e "${DIM}C++扩展已通过 setup.py 自动构建${NC}"
     echo -e "${DIM}检查构建结果...${NC}"
     echo "$(date): C++扩展应该已在 pip install 阶段自动构建" >> "$log_file"
-    
+
     # 对于开发模式，扩展已经在 pip install -e 时构建
     # 对于标准模式，扩展已经在 pip install 时构建
     # 这里只需验证扩展是否可用
-    
+
     install_success=true
     exit_code=0
 
