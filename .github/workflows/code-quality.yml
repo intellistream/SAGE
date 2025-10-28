@@ -164,7 +164,7 @@ jobs:
           echo ""
 
           # 使用新的 sage-dev 命令
-          sage-dev check-architecture --changed-only || {
+          sage-dev quality architecture --changed-only || {
             echo ""
             echo "❌ 架构合规性检查失败！"
             echo ""
@@ -172,7 +172,7 @@ jobs:
             echo "   docs/PACKAGE_ARCHITECTURE.md"
             echo ""
             echo "💡 或运行以下命令获取详细信息："
-            echo "   sage-dev check-architecture --verbose"
+            echo "   sage-dev quality architecture --verbose"
             echo ""
             exit 1
           }
@@ -195,7 +195,7 @@ jobs:
           fi
 
           # 使用新的 sage-dev 命令
-          sage-dev check-devnotes --changed-only || {
+          sage-dev quality devnotes --changed-only || {
             echo ""
             echo "⚠️  文档规范检查发现问题"
             echo ""
@@ -274,8 +274,8 @@ jobs:
             echo "sage-dev quality" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "# 运行特定检查" >> $GITHUB_STEP_SUMMARY
-            echo "sage-dev check-architecture" >> $GITHUB_STEP_SUMMARY
-            echo "sage-dev check-devnotes" >> $GITHUB_STEP_SUMMARY
+            echo "sage-dev quality architecture" >> $GITHUB_STEP_SUMMARY
+            echo "sage-dev quality devnotes" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "# 安装 pre-commit 钩子（推荐）" >> $GITHUB_STEP_SUMMARY
             echo "./quickstart.sh" >> $GITHUB_STEP_SUMMARY
