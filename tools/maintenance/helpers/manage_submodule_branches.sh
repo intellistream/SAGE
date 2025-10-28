@@ -130,6 +130,13 @@ init_submodules() {
 
 # 主函数：切换 submodule 分支
 switch_submodules() {
+    # 在 CI 环境中跳过分支切换，因为 checkout@v4 已经将 submodules checkout 到正确的 commit
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+        echo -e "${INFO} ${YELLOW}检测到 CI 环境，跳过 submodule 分支切换${NC}"
+        echo -e "${DIM}CI 环境中 submodules 已由 checkout action 设置到正确的 commit${NC}"
+        return 0
+    fi
+
     local current_branch=$(get_current_branch)
     local target_branch
 
