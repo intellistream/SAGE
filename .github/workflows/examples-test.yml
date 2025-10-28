@@ -7,7 +7,6 @@ on:
     paths:
       - 'examples/**'
       - 'packages/**/*.py'
-      - 'tools/tests/run_examples_tests.sh'
   push:
     branches: [main, main-dev]
     paths:
@@ -143,15 +142,8 @@ jobs:
           echo "🌟 运行 Examples 完整测试..."
           echo ""
 
-          # 检查测试脚本是否存在
-          if [ ! -f "./tools/tests/run_examples_tests.sh" ]; then
-            echo "❌ 测试脚本不存在: ./tools/tests/run_examples_tests.sh"
-            exit 1
-          fi
-
-          # 运行完整的 examples 测试
-          chmod +x ./tools/tests/run_examples_tests.sh
-          ./tools/tests/run_examples_tests.sh || {
+          # 使用 sage-dev CLI 命令运行测试（替代旧的 shell 脚本）
+          sage-dev examples test || {
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "❌ Examples 测试失败！"
@@ -161,7 +153,7 @@ jobs:
             echo "1. 检查失败的 example 文件"
             echo "2. 查看是否有导入错误"
             echo "3. 确认 API keys 配置正确"
-            echo "4. 本地运行: ./tools/tests/run_examples_tests.sh"
+            echo "4. 本地运行: sage-dev examples test"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             exit 1

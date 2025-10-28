@@ -30,8 +30,7 @@ def main(ctx: typer.Context):
         typer.echo()
         typer.echo("完整测试套件:")
         typer.echo("  sage-dev test   - 运行完整的测试套件 (包括 C++ 扩展和示例)")
-        typer.echo("                    C++ 扩展测试在: tools/tests/test_cpp_extensions.py")
-        typer.echo("  ./tools/tests/run_examples - 运行所有示例程序")
+        typer.echo("  sage-dev examples test - 运行所有示例程序")
         typer.echo()
         typer.echo("使用 'sage test COMMAND --help' 查看具体命令的帮助")
 
