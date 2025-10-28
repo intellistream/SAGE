@@ -25,6 +25,7 @@ class BuildCExtensions(build_ext):
             # 在所有模式下尝试构建需要的扩展，失败不阻断安装
             self.build_sage_db()
             self.build_sage_flow()
+            self.build_sage_tsdb()
         super().run()
 
     def _shared_env(self):
@@ -174,6 +175,62 @@ class BuildCExtensions(build_ext):
         except Exception as e:
             print(f"❌ 构建过程出错: {e}")
             print("⚠️  继续安装Python部分（sage_flow 相关示例可能不可用）")
+
+    def build_sage_tsdb(self):
+        """编译 sage_tsdb 组件（时序数据库扩展）"""
+        sage_tsdb_dir = Path(__file__).parent / "src/sage/middleware/components/sage_tsdb"
+
+        if not sage_tsdb_dir.exists():
+            print("⚠️  sage_tsdb 目录不存在，跳过构建")
+            return
+
+        # Check if submodule is initialized
+        submodule_dir = sage_tsdb_dir / "sageTSDB"
+        if submodule_dir.exists() and not any(submodule_dir.iterdir()):
+            print("⚠️  sage_tsdb 子模块目录为空（未初始化），跳过编译")
+            print("   💡 提示: 运行 'git submodule update --init --recursive' 初始化子模块")
+            return
+
+        build_script = sage_tsdb_dir / "build_tsdb.sh"
+        if not build_script.exists():
+            print("ℹ️ 未找到 sage_tsdb/build_tsdb.sh，可能不需要本地构建，跳过")
+            return
+
+        print("🔧 编译 sage_tsdb 组件...")
+        try:
+            result = subprocess.run(
+                ["bash", "build_tsdb.sh"],
+                cwd=sage_tsdb_dir,
+                env=self._shared_env(),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            print("✅ sage_tsdb 构建成功")
+            # Only print first 50 lines to avoid log spam
+            stdout_lines = result.stdout.split("\n")
+            if len(stdout_lines) > 50:
+                print("\n".join(stdout_lines[:25]))
+                print(f"... ({len(stdout_lines) - 50} lines omitted) ...")
+                print("\n".join(stdout_lines[-25:]))
+            else:
+                print(result.stdout)
+
+            # 验证 .so 文件是否生成
+            python_dir = sage_tsdb_dir / "python"
+            so_files = list(python_dir.glob("_sage_tsdb*.so"))
+            if so_files:
+                print(f"✅ 找到生成的扩展文件: {so_files[0].name}")
+            else:
+                print("⚠️  警告: 未找到生成的 .so 文件，但构建脚本成功返回")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ sage_tsdb 构建失败: {e}")
+            print(f"📋 标准输出:\n{e.stdout}")
+            print(f"📋 错误输出:\n{e.stderr}")
+            print("⚠️  继续安装Python部分（sage_tsdb 相关功能可能不可用）")
+        except Exception as e:
+            print(f"❌ 构建过程出错: {e}")
+            print("⚠️  继续安装Python部分（sage_tsdb 相关功能可能不可用）")
 
 
 class CustomInstall(install):
