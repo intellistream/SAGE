@@ -220,6 +220,7 @@ class BaseEnvironment(ABC):
 
     def from_kafka_source(
         self,
+        source_class: type,
         bootstrap_servers: str,
         topic: str,
         group_id: str,
@@ -233,6 +234,7 @@ class BaseEnvironment(ABC):
         创建Kafka数据源，采用Flink兼容的架构设计
 
         Args:
+            source_class: Kafka Source 类（需要从 sage.libs.io.source 导入 KafkaSource）
             bootstrap_servers: Kafka集群地址 (例: "localhost:9092")
             topic: Kafka主题名称
             group_id: 消费者组ID，用于offset管理
@@ -246,8 +248,12 @@ class BaseEnvironment(ABC):
             DataStream: 可用于构建处理pipeline的数据流
 
         Example:
+            # 导入 KafkaSource
+            from sage.libs.io.source import KafkaSource
+            
             # 基本使用
             kafka_stream = env.from_kafka_source(
+                KafkaSource,
                 bootstrap_servers="localhost:9092",
                 topic="user_events",
                 group_id="sage_consumer"
@@ -255,6 +261,7 @@ class BaseEnvironment(ABC):
 
             # 高级配置
             kafka_stream = env.from_kafka_source(
+                KafkaSource,
                 bootstrap_servers="kafka1:9092,kafka2:9092",
                 topic="events",
                 group_id="sage_app",
@@ -271,15 +278,13 @@ class BaseEnvironment(ABC):
                      .filter(FilterFunction)
                      .sink(OutputSinkFunction))
         """
-        from sage.libs.io.source import KafkaSource
-
         # 获取SourceTransformation类
         SourceTransformation = self._get_transformation_classes()["SourceTransformation"]
 
         # 创建Kafka Source Function
         transformation = SourceTransformation(
             self,
-            KafkaSource,
+            source_class,
             bootstrap_servers=bootstrap_servers,
             topic=topic,
             group_id=group_id,

@@ -120,7 +120,7 @@ class ConnectedStreams:
         Returns:
             DataStream: 返回新的数据流用于链式调用
         """
-        from sage.libs.io.sink import PrintSink
+        from sage.common.components.debug.print_sink import PrintSink
 
         return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
