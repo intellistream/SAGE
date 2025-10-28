@@ -1,12 +1,9 @@
 [build-system]
 requires = [
-    "setuptools>=64",
-    "wheel",
-    "packaging>=24.2",
-    "pybind11>=2.10.0",  # C++ 扩展绑定
-    "cmake>=3.20",       # C++ 构建工具 (如果系统没有)
+    "scikit-build-core>=0.8.0",
+    "pybind11>=2.13.0",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
 
 
 
@@ -168,52 +165,9 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
 
-[tool.setuptools]
-include-package-data = true
-zip-safe = false
-
-[tool.setuptools.package-dir]
-"" = "src"
-
-[tool.setuptools.packages.find]
-where = [
-    "src",
-]
-include = [
-    "sage*",
-]
-namespaces = true
-
-[tool.setuptools.package-data]
-"sage.middleware" = [
-    "py.typed",
-    "*.pyi",
-    "*.yaml",
-    "*.json",
-    "templates/*",
-    "static/*",
-]
-# C++ 扩展相关文件
-"sage.middleware.components.sage_db.python" = [
-    "*.so",
-    "*.py",
-    "*.pyi",
-]
-"sage.middleware.components.sage_db" = [
-    "cmake/*.cmake",
-]
-"sage.middleware.components.sage_flow.python" = [
-    "*.so",
-    "*.py",
-    "*.pyi",
-    "micro_service/*",
-]
-"sage.middleware.components.sage_flow" = [
-    "cmake/*.cmake",
-]
-"sage.middleware.components" = [
-     "cmake/*.cmake",
-]
+# ============================================================================
+# scikit-build-core configuration
+# ============================================================================
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -324,3 +278,45 @@ combine-as-imports = true
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.middleware._version.__version__"}
+
+# ============================================================================
+# scikit-build-core configuration
+# ============================================================================
+[tool.scikit-build]
+# CMake 配置
+cmake.minimum-version = "3.20"
+cmake.build-type = "Release"
+cmake.verbose = true
+
+# 构建目录
+build-dir = "build/{wheel_tag}"
+
+# 日志级别
+logging.level = "INFO"
+
+# Wheel 配置
+wheel.packages = ["src/sage"]
+wheel.expand-macos-universal-tags = true
+
+# 严格配置验证
+strict-config = true
+
+# 安装 .so 文件的额外模式
+wheel.install-dir = "sage/middleware"
+
+# 元数据钩子 - 从 _version.py 读取版本
+[[tool.scikit-build.generate]]
+path = "sage/middleware/_version_generated.py"
+template = '''
+"""
+Generated version file - DO NOT EDIT
+Version is managed in _version.py
+"""
+__version__ = "${version}"
+'''
+location = "build"
+
+# 开发模式配置
+[tool.scikit-build.editable]
+mode = "redirect"
+verbose = true

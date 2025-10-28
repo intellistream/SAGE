@@ -1,0 +1,29 @@
+# Include additional files for sage-middleware package
+
+# Python package data
+include src/sage/middleware/py.typed
+include src/sage/middleware/**/*.pyi
+include src/sage/middleware/**/*.yaml
+include src/sage/middleware/**/*.json
+recursive-include src/sage/middleware/templates *
+recursive-include src/sage/middleware/static *
+
+# C++ extension files
+recursive-include src/sage/middleware/components/sage_db/python *.so *.py *.pyi
+recursive-include src/sage/middleware/components/sage_flow/python *.so *.py *.pyi micro_service/*
+recursive-include src/sage/middleware/components/sage_tsdb/python *.so *.py *.pyi
+
+# CMake configuration files
+recursive-include src/sage/middleware/components cmake/*.cmake
+
+# Documentation
+include README.md
+include LICENSE
+
+# Exclude build artifacts and caches
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude *.so.dSYM
+prune build
+prune dist
+prune *.egg-info
