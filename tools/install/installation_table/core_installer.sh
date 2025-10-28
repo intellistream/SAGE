@@ -162,12 +162,15 @@ install_core_packages() {
     if [ "$install_mode" != "core" ]; then
         echo -e "${DIM}步骤 3/3: 安装上层包 (L4-L6)...${NC}"
 
-        # L4: middleware
+        # L4: middleware (特殊处理：不使用 --no-deps，需要构建C++扩展)
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
-        if ! $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps >> "$log_file" 2>&1; then
+        echo -e "${DIM}    (包含 C++ 扩展构建，可能需要几分钟...)${NC}"
+        if ! $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args >> "$log_file" 2>&1; then
             echo -e "${CROSS} 安装 sage-middleware 失败！"
+            echo -e "${DIM}提示: 检查日志文件获取详细错误信息: $log_file${NC}"
             return 1
         fi
+        echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
 
         # L5: apps & benchmark (仅 full 和 dev 模式)
         if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
