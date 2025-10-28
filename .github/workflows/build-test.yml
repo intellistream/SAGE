@@ -117,13 +117,14 @@ jobs:
 
       - name: Install SAGE
         run: |
-          echo "🚀 安装SAGE（标准模式，包含C++扩展）..."
+          echo "🚀 安装SAGE（开发模式，可编辑安装 + C++扩展）..."
 
           export PATH="$HOME/.local/bin:$PATH"
           chmod +x ./quickstart.sh
 
           echo "开始安装..."
-          ./quickstart.sh --standard --pip --yes
+          # 使用开发模式，这样会进行可编辑安装（pip install -e），.so文件会在源码目录中
+          ./quickstart.sh --dev --yes
 
           echo "✅ 安装完成"
         timeout-minutes: 25
@@ -132,14 +133,18 @@ jobs:
         run: |
           echo "🧩 验证C++扩展安装状态..."
 
-          # 检查.so文件
+          # 检查.so文件（在源码目录中，因为是开发模式可编辑安装）
           echo "📁 检查已编译的.so文件:"
-          so_files=$(find packages/sage-middleware/src/sage/middleware/components/ -name "*.so" -type f 2>/dev/null || true)
+          so_files=$(find packages/sage-middleware/src/sage/middleware/components/ -name "_sage_*.so" -type f 2>/dev/null || true)
+          
           if [ -n "$so_files" ]; then
             echo "✅ 找到C++扩展文件:"
             echo "$so_files"
           else
             echo "❌ 未找到.so文件"
+            echo "检查扩展组件目录结构:"
+            ls -la packages/sage-middleware/src/sage/middleware/components/sage_flow/python/ 2>/dev/null || echo "sage_flow/python目录不存在"
+            ls -la packages/sage-middleware/src/sage/middleware/components/sage_db/python/ 2>/dev/null || echo "sage_db/python目录不存在"
           fi
 
           # 测试扩展导入
@@ -147,6 +152,10 @@ jobs:
           echo "🔍 测试扩展Python导入:"
           python -c "
           import sys
+          import warnings
+
+          # 忽略扩展不可用的警告，只关注实际导入错误
+          warnings.filterwarnings('ignore', category=UserWarning)
 
           try:
               from sage.middleware.components.extensions_compat import check_extensions_availability
@@ -157,14 +166,17 @@ jobs:
                   symbol = '✅' if status else '❌'
                   print(f'  {symbol} {ext}: {\"可用\" if status else \"不可用\"}')
 
+              # C++扩展在开发模式中应该能够成功构建
               if total == 0:
                   print()
-                  print('⚠️ 警告: 没有C++扩展可用')
+                  print('❌ 错误: 没有C++扩展可用')
+                  print('💡 这表明C++扩展构建失败，请检查构建日志')
                   sys.exit(1)
               else:
-                  print(f'✅ {total}个扩展可用')
+                  print(f'✅ {total}个扩展成功构建并可用')
           except ImportError as e:
               print(f'❌ 扩展检查模块不可用: {e}')
+              print('⚠️ 这可能表示SAGE未正确安装')
               sys.exit(1)
           "
 
