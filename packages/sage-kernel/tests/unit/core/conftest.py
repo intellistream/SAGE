@@ -279,10 +279,11 @@ class IntegrationTestHelper:
         class TestSink(SinkFunction):
             """测试 Sink"""
 
+            # 类级别属性用于收集结果
+            results: list = []
+
             def execute(self, data):
-                # 简单记录数据
-                if not hasattr(self.__class__, "results"):
-                    self.__class__.results = []
+                # 记录数据到类级别属性
                 self.__class__.results.append(data)
 
         # 创建 Environment 和 Pipeline
