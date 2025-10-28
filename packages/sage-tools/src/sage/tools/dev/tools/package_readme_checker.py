@@ -159,44 +159,73 @@ class PackageREADMEChecker:
 
     def _check_illegal_markdown_files(self, package_path: Path, result: PackageREADMECheck):
         """Check for illegal markdown files in package subdirectories.
-        
+
         Policy: Only allow README.md in package root and PACKAGE_README_TEMPLATE.md in templates/.
+        Also checks that Git submodules have their own README.md files.
         """
         illegal_files = []
-        
+        missing_submodule_readmes = []
+
         # Paths to exclude from checking
         exclude_patterns = [
             ".pytest_cache",  # pytest generated
-            "vendors/",       # third-party libraries
-            "build/_deps/",   # build dependencies
-            "/sageDB/",       # Git submodules
+            "vendors/",  # third-party libraries
+            "build/_deps/",  # build dependencies
+            "/sageDB/",  # Git submodules
             "/sageTSDB/",
             "/sageFlow/",
             "/neuromem/",
-            "/sageLLM/",      # sageLLM submodule
+            "/sageLLM/",  # sageLLM submodule
         ]
-        
+
+        # Known Git submodule paths (relative to package root)
+        submodule_patterns = [
+            "src/**/sageDB",
+            "src/**/sageTSDB",
+            "src/**/sageFlow",
+            "src/**/neuromem",
+            "src/**/sageLLM",
+        ]
+
+        # Check for missing READMEs in Git submodules
+        for pattern in submodule_patterns:
+            for submodule_dir in package_path.glob(pattern):
+                if submodule_dir.is_dir():
+                    # Check if it's a Git submodule (has .git file)
+                    git_file = submodule_dir / ".git"
+                    if git_file.exists():
+                        readme_file = submodule_dir / "README.md"
+                        if not readme_file.exists():
+                            relative_path = submodule_dir.relative_to(package_path)
+                            missing_submodule_readmes.append(str(relative_path))
+
         # Find all markdown files
         for md_file in package_path.rglob("*.md"):
             # Skip the root README.md
             if md_file == package_path / "README.md":
                 continue
-            
+
             # Skip template file
             if md_file.name == "PACKAGE_README_TEMPLATE.md":
                 continue
-            
+
             # Check if file is in excluded path
             relative_path = md_file.relative_to(package_path)
             relative_str = str(relative_path)
-            
-            is_excluded = any(
-                pattern in relative_str for pattern in exclude_patterns
-            )
-            
+
+            is_excluded = any(pattern in relative_str for pattern in exclude_patterns)
+
             if not is_excluded:
                 illegal_files.append(str(relative_path))
-        
+
+        # Report missing submodule READMEs
+        if missing_submodule_readmes:
+            result.issues.append(
+                f"Git submodules missing README.md: {', '.join(missing_submodule_readmes)}"
+            )
+            # Moderate penalty for missing submodule READMEs
+            result.score -= len(missing_submodule_readmes) * 5
+
         # Report illegal files
         if illegal_files:
             # Limit to first 5 files to avoid overwhelming output
@@ -209,7 +238,7 @@ class PackageREADMEChecker:
                 result.issues.append(
                     f"Found {len(illegal_files)} illegal markdown file(s): {', '.join(illegal_files)}"
                 )
-            
+
             # Significant penalty for illegal markdown files
             result.score -= len(illegal_files) * 10
 
