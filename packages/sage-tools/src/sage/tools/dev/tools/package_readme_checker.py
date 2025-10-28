@@ -133,6 +133,7 @@ class PackageREADMEChecker:
         self._check_code_blocks(content, result)
         self._check_links(content, result)
         self._check_badges(content, result)
+        self._check_illegal_markdown_files(package_path, result)
 
         result.calculate_score()
         return result
@@ -155,6 +156,62 @@ class PackageREADMEChecker:
         badges = re.findall(r"!\[.*?\]\(.*?\)", content)
         if not badges:
             result.issues.append("No status badges found (recommended)")
+
+    def _check_illegal_markdown_files(self, package_path: Path, result: PackageREADMECheck):
+        """Check for illegal markdown files in package subdirectories.
+        
+        Policy: Only allow README.md in package root and PACKAGE_README_TEMPLATE.md in templates/.
+        """
+        illegal_files = []
+        
+        # Paths to exclude from checking
+        exclude_patterns = [
+            ".pytest_cache",  # pytest generated
+            "vendors/",       # third-party libraries
+            "build/_deps/",   # build dependencies
+            "/sageDB/",       # Git submodules
+            "/sageTSDB/",
+            "/sageFlow/",
+            "/neuromem/",
+            "/sageLLM/",      # sageLLM submodule
+        ]
+        
+        # Find all markdown files
+        for md_file in package_path.rglob("*.md"):
+            # Skip the root README.md
+            if md_file == package_path / "README.md":
+                continue
+            
+            # Skip template file
+            if md_file.name == "PACKAGE_README_TEMPLATE.md":
+                continue
+            
+            # Check if file is in excluded path
+            relative_path = md_file.relative_to(package_path)
+            relative_str = str(relative_path)
+            
+            is_excluded = any(
+                pattern in relative_str for pattern in exclude_patterns
+            )
+            
+            if not is_excluded:
+                illegal_files.append(str(relative_path))
+        
+        # Report illegal files
+        if illegal_files:
+            # Limit to first 5 files to avoid overwhelming output
+            shown_files = illegal_files[:5]
+            if len(illegal_files) > 5:
+                result.issues.append(
+                    f"Found {len(illegal_files)} illegal markdown files (showing first 5): {', '.join(shown_files)}"
+                )
+            else:
+                result.issues.append(
+                    f"Found {len(illegal_files)} illegal markdown file(s): {', '.join(illegal_files)}"
+                )
+            
+            # Significant penalty for illegal markdown files
+            result.score -= len(illegal_files) * 10
 
     def check_all_packages(self) -> dict[str, PackageREADMECheck]:
         """Check all packages."""
