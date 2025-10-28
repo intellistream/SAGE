@@ -61,69 +61,25 @@ install_cpp_extensions() {
     echo -e "${DIM}   - 可以在另一个终端查看实时日志: tail -f ${log_file}${NC}"
     echo ""
 
-    # 系统依赖已经在comprehensive_system_check中检查和安装了
-    # 这里直接尝试构建扩展
-
-    # 确保在CI环境中PATH包含用户脚本目录
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        export PATH="$HOME/.local/bin:$PATH"
-        echo -e "${DIM}CI环境: 确保PATH包含~/.local/bin${NC}"
-        echo "$(date): CI环境PATH设置: $PATH" >> "$log_file"
-    fi
-
-    if command -v sage >/dev/null 2>&1; then
-        SAGE_CMD="sage"
-        echo -e "${DIM}找到sage命令: $(which sage)${NC}"
-    elif python3 -c "import sage.tools.cli.main" 2>/dev/null; then
-        SAGE_CMD="python3 -m sage.tools.cli.main"
-        echo -e "${DIM}使用Python模块方式调用SAGE CLI${NC}"
-    else
-        echo -e "${WARNING} 找不到 sage CLI 工具"
-        echo "$(date): 找不到 sage CLI 工具" >> "$log_file"
-        echo "$(date): PATH: $PATH" >> "$log_file"
-        echo "$(date): 检查sage命令可用性:" >> "$log_file"
-        command -v sage >> "$log_file" 2>&1 || echo "sage命令不在PATH中" >> "$log_file"
-        echo "$(date): 检查Python模块可用性:" >> "$log_file"
-        python3 -c "import sage.tools.cli.main; print('模块可用')" >> "$log_file" 2>&1 || echo "Python模块不可用" >> "$log_file"
-        return 1
-    fi
-
-    echo -e "${DIM}使用命令: ${SAGE_CMD} extensions install all --force${NC}"
-
-    # 执行扩展安装
-    echo "$(date): 开始执行C++扩展安装命令: $SAGE_CMD extensions install all --force" >> "$log_file"
-
-    # 在CI环境中显示实时输出，同时保存到日志
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
-        echo -e "${DIM}CI环境: 显示详细安装过程...${NC}"
-        $SAGE_CMD extensions install all --force 2>&1 | tee -a "$log_file"
-        exit_code=${PIPESTATUS[0]}
-    else
-        # 非CI环境只保存到日志
-        $SAGE_CMD extensions install all --force >> "$log_file" 2>&1
-        exit_code=$?
-    fi
+    # C++扩展通过 setup.py 的 build_ext 自动构建
+    # 在 pip install -e 时会自动调用 CustomDevelop.run() -> build_ext
+    # 这里只需要重新触发构建（如果需要的话）
+    
+    echo -e "${DIM}C++扩展已通过 setup.py 自动构建${NC}"
+    echo -e "${DIM}检查构建结果...${NC}"
+    echo "$(date): C++扩展应该已在 pip install 阶段自动构建" >> "$log_file"
+    
+    # 对于开发模式，扩展已经在 pip install -e 时构建
+    # 对于标准模式，扩展已经在 pip install 时构建
+    # 这里只需验证扩展是否可用
+    
+    install_success=true
+    exit_code=0
 
     # 注意: 段错误(退出码139)可能在清理阶段发生，但扩展已成功安装
     # 通过检查扩展状态来确定实际结果
-    if [ $exit_code -eq 0 ]; then
-        install_success=true
-    elif [ $exit_code -eq 139 ]; then
-        # 段错误可能发生在Python退出清理阶段
-        echo -e "${DIM}命令返回段错误，检查扩展是否实际安装成功...${NC}"
-        echo "$(date): 检测到段错误(退出码139)，验证扩展状态" >> "$log_file"
-        # 稍后通过status命令验证
-        install_success="check_status"
-    else
-        install_success=false
-    fi
-
-    if [ "$install_success" = "true" ] || [ "$install_success" = "check_status" ]; then
-        if [ "$install_success" = "check_status" ]; then
-            echo "$(date): 通过状态检查验证扩展安装" >> "$log_file"
-        else
-            echo "$(date): C++扩展安装成功" >> "$log_file"
-        fi
+    if [ "$install_success" = "true" ]; then
+        echo "$(date): C++扩展应该已在安装阶段构建" >> "$log_file"
 
         # 验证扩展是否真的可用
         echo -e "${DIM}验证扩展可用性...${NC}"
@@ -133,59 +89,31 @@ install_cpp_extensions() {
             sleep 1
         fi
 
-        # 验证扩展，在CI环境显示详细调试信息
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
-            python3 -c "
+        # 验证扩展
+        python3 -c "
 import sys
-import os
-print('验证扩展状态 (CI调试模式)...')
-print(f'Python 路径: {sys.executable}')
-print(f'工作目录: {os.getcwd()}')
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
 
 try:
-    # 强制重新加载模块以避免缓存问题
-    import importlib
-    import sys
-
-    # 清理可能的模块缓存
-    for module_name in list(sys.modules.keys()):
-        if 'sage.middleware.components.extensions_compat' in module_name:
-            del sys.modules[module_name]
-
     from sage.middleware.components.extensions_compat import check_extensions_availability
     available = check_extensions_availability()
     total = sum(available.values())
 
-    print(f'扩展状态详情: {available}')
-    print(f'✅ 扩展验证成功: {total}/{len(available)} 可用')
-
-    if total == 0:
-        print('⚠️ 扩展构建完成但不可用')
+    if total > 0:
+        print(f'✅ C++扩展验证成功: {total}/{len(available)} 可用')
+        for ext, status in available.items():
+            symbol = '✅' if status else '❌'
+            print(f'   {symbol} {ext}')
+    else:
+        print('⚠️  没有C++扩展可用')
+        print('💡 这可能是因为子模块未初始化或构建失败')
         sys.exit(1)
 except Exception as e:
     print(f'⚠️ 扩展验证失败: {e}')
-    import traceback
-    traceback.print_exc()
     sys.exit(1)
 "
-            validation_result=$?
-        else
-            python3 -c "
-try:
-    from sage.middleware.components.extensions_compat import check_extensions_availability
-    available = check_extensions_availability()
-    total = sum(available.values())
-    if total > 0:
-        print('✅ 扩展验证成功: {}/{} 可用'.format(total, len(available)))
-    else:
-        print('⚠️ 扩展构建完成但不可用')
-        exit(1)
-except ImportError:
-    print('⚠️ 无法验证扩展状态')
-    exit(1)
-" 2>/dev/null
-            validation_result=$?
-        fi
+        validation_result=$?
 
         if [ $validation_result -eq 0 ]; then
             echo -e "${CHECK} C++ 扩展安装成功 (sage_db, sage_flow)"
