@@ -74,7 +74,7 @@ jobs:
 
           echo ""
           echo "🔍 验证安装结果..."
-          
+
           # 验证基础导入
           python -c "import sage; print(f'✅ SAGE {sage.__version__} 安装成功')" || {
             echo "❌ 无法导入 sage"
@@ -93,12 +93,12 @@ jobs:
           python -c "
           import warnings
           warnings.filterwarnings('ignore', category=UserWarning)
-          
+
           try:
               from sage.middleware.components.extensions_compat import check_extensions_availability
               available = check_extensions_availability()
               total = sum(available.values())
-              
+
               if total > 0:
                   print(f'✅ {total} 个 C++ 扩展可用（pip 安装成功构建）')
                   for ext, status in available.items():
@@ -113,7 +113,7 @@ jobs:
 
           echo ""
           echo "✅ 标准 pip 安装验证通过"
-          
+
           deactivate
           rm -rf /tmp/sage_pip_test
 

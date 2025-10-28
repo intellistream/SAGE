@@ -136,7 +136,7 @@ jobs:
           # 检查.so文件（在源码目录中，因为是开发模式可编辑安装）
           echo "📁 检查已编译的.so文件:"
           so_files=$(find packages/sage-middleware/src/sage/middleware/components/ -name "_sage_*.so" -type f 2>/dev/null || true)
-          
+
           if [ -n "$so_files" ]; then
             echo "✅ 找到C++扩展文件:"
             echo "$so_files"
