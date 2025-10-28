@@ -49,6 +49,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          submodules: 'recursive'  # 需要初始化子模块以构建C++扩展
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -324,6 +325,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'  # 需要初始化子模块以构建C++扩展
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
