@@ -12,7 +12,7 @@ from sage.libs.agents.planning.llm_planner import LLMPlanner
 from sage.libs.agents.profile.profile import BaseProfile
 from sage.libs.agents.runtime.agent import AgentRuntime
 from sage.middleware.operators.rag import OpenAIGenerator
-from sage.tools.utils.env import get_api_key, load_environment_file, should_use_real_api
+from sage.cli.utils.env import get_api_key, load_environment_file, should_use_real_api
 
 # 添加项目路径到 sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -51,9 +51,11 @@ def iter_queries(source_cfg: Dict[str, Any]) -> Iterable[str]:
         field = source_cfg.get("field_query", "query")
         ds = load_dataset(name, config, split=split)
         for row in ds:
-            q = row.get(field, "")
-            if isinstance(q, str) and q.strip():
-                yield q
+            # HuggingFace dataset row is dict-like
+            if isinstance(row, dict):
+                q = row.get(field, "")
+                if isinstance(q, str) and q.strip():
+                    yield q
     else:
         raise ValueError(f"Unsupported source.type: {stype}")
 

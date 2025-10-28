@@ -8,7 +8,7 @@ from sage.common.core import SinkFunction
 
 class TerminalSink(SinkFunction):
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config
 
@@ -33,7 +33,7 @@ class TerminalSink(SinkFunction):
 
 class RetriveSink(SinkFunction):
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config
 
@@ -46,7 +46,7 @@ class RetriveSink(SinkFunction):
 
 
 class FileSink(SinkFunction):
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
 
         file_path = config.get("file_path", "qa_output.txt") if config else "qa_output.txt"
@@ -98,7 +98,7 @@ class FileSink(SinkFunction):
 
 
 class MemWriteSink(SinkFunction):
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config
         # 从配置获取文件路径，默认为 'mem_output.txt'

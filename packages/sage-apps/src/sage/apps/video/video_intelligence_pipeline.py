@@ -267,6 +267,8 @@ def build_pipeline(env: LocalEnvironment, config: dict[str, Any]) -> None:
         enable_neuromem = False
 
     if enable_db:
+        if not SageDBService:
+            raise RuntimeError("SageDBService not available")
         try:
             env.register_service(
                 db_service_name,
@@ -284,6 +286,8 @@ def build_pipeline(env: LocalEnvironment, config: dict[str, Any]) -> None:
             enable_db = False
 
     if enable_flow:
+        if not SageFlowService:
+            raise RuntimeError("SageFlowService not available")
         try:
             env.register_service(
                 flow_service_name,
@@ -302,6 +306,8 @@ def build_pipeline(env: LocalEnvironment, config: dict[str, Any]) -> None:
             enable_flow = False
 
     if enable_neuromem:
+        if not NeuroMemVDBService:
+            raise RuntimeError("NeuroMemVDBService not available")
         try:
             env.register_service(
                 memory_service_name,

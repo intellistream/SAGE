@@ -109,13 +109,13 @@ class TestObjectReferenceIntegrity:
 
         class CircularA:
             def __init__(self):
-                self.b = None
+                self.b: CircularB | None = None
 
             def __repr__(self):
                 return f"CircularA(b={'...' if self.b else None})"
 
         class CircularB:
-            def __init__(self, a):
+            def __init__(self, a: CircularA):
                 self.a = a
 
             def __repr__(self):
@@ -127,7 +127,7 @@ class TestObjectReferenceIntegrity:
         a.b = b
 
         # 序列化前检查
-        assert a.b.a is a, "循环引用应该正确"
+        assert a.b and a.b.a is a, "循环引用应该正确"
 
         # 序列化和反序列化
         serialized = serialize_object(a)

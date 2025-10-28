@@ -73,9 +73,11 @@ def _prepare(v, _visited=None):
             return result
         if isinstance(v, Sequence) and not isinstance(v, str):
             cleaned = [_prepare(x, _visited) for x in v if _is_serializable(x)]
-            return type(v)(cleaned)
+            # 某些 Sequence 类型的构造函数可能不接受参数，使用 type: ignore
+            return type(v)(cleaned)  # type: ignore[call-arg]
         if isinstance(v, Set):
-            return type(v)(_prepare(x, _visited) for x in v if _is_serializable(x))
+            # 某些 Set 类型的构造函数可能不接受参数，使用 type: ignore
+            return type(v)(_prepare(x, _visited) for x in v if _is_serializable(x))  # type: ignore[call-arg]
         if _is_serializable(v):
             return v
         return None

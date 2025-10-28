@@ -11,7 +11,7 @@ import textwrap
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import typer
 import yaml
@@ -543,11 +543,13 @@ class PipelinePlanGenerator:
             if not OPENAI_AVAILABLE:
                 message = f"未能导入 OpenAIClient：{OPENAI_IMPORT_ERROR}"
                 raise PipelineBuilderError(message)
+            # OpenAIClient accepts model_name and **kwargs (base_url, api_key, seed)
+            # Pylance doesn't recognize **kwargs parameters properly
             self._client = OpenAIClient(
-                model_name=self.config.model,
-                base_url=self.config.base_url,
-                api_key=self.config.api_key,
-                seed=42,
+                model_name=self.config.model,  # type: ignore[call-arg]
+                base_url=self.config.base_url,  # type: ignore[call-arg]
+                api_key=self.config.api_key,  # type: ignore[call-arg]
+                seed=42,  # type: ignore[call-arg]
             )
 
     def generate(
@@ -688,10 +690,10 @@ class GraphPlanGenerator:
                 message = f"未能导入 OpenAIClient：{OPENAI_IMPORT_ERROR}"
                 raise PipelineBuilderError(message)
             self._client = OpenAIClient(
-                model_name=self.config.model,
-                base_url=self.config.base_url,
-                api_key=self.config.api_key,
-                seed=17,
+                model_name=self.config.model,  # type: ignore[call-arg]
+                base_url=self.config.base_url,  # type: ignore[call-arg]
+                api_key=self.config.api_key,  # type: ignore[call-arg]
+                seed=17,  # type: ignore[call-arg]
             )
 
     def generate(
@@ -925,6 +927,8 @@ def execute_pipeline_plan(
         _register_services(env, services)
 
     source = plan.get("source")
+    if not source:
+        raise PipelineBuilderError("Pipeline plan must include a 'source' configuration")
     log_console.print("🚰 配置 source")
     stream = _apply_source(env, source)
 
@@ -935,6 +939,8 @@ def execute_pipeline_plan(
         stream = _apply_stage(stream, stage)
 
     sink = plan.get("sink")
+    if not sink:
+        raise PipelineBuilderError("Pipeline plan must include a 'sink' configuration")
     log_console.print("🛬 配置终端 sink")
     _apply_sink(stream, sink)
 
@@ -942,7 +948,7 @@ def execute_pipeline_plan(
         log_console.print("[yellow]📈 当前版本暂未自动配置 monitors，需手动集成。[/yellow]")
 
     log_console.print("🚀 提交 pipeline...")
-    job_uuid = env.submit(autostop=autostop)
+    job_uuid = env.submit(autostop=autostop)  # type: ignore[call-arg]
 
     if job_uuid:
         log_console.print(f"✅ Pipeline 已提交，作业 UUID: [green]{job_uuid}[/green]")
@@ -1160,7 +1166,7 @@ def build_pipeline(  # noqa: D401 - Typer handles CLI docs
             "请输入需要调整的点（例如修改某一阶段/替换组件）",
             default="",
         )
-        if not feedback.strip():
+        if not feedback or not feedback.strip():
             console.print("未提供修改意见，保持当前版本。", style="yellow")
             break
 

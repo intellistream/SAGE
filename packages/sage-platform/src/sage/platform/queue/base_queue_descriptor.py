@@ -101,31 +101,45 @@ class BaseQueueDescriptor(ABC):
     # ============ 队列接口实现 ============
 
     def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
+        if not self.queue_instance:
+            raise RuntimeError("Queue instance not initialized")
         return self.queue_instance.put(item, block=block, timeout=timeout)
 
     def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
         """从队列中获取项目"""
+        if not self.queue_instance:
+            raise RuntimeError("Queue instance not initialized")
         return self.queue_instance.get(block=block, timeout=timeout)
 
     def empty(self) -> bool:
         """检查队列是否为空"""
+        if not self.queue_instance:
+            raise RuntimeError("Queue instance not initialized")
         return self.queue_instance.empty()
 
     def qsize(self) -> int:
         """获取队列大小"""
+        if not self.queue_instance:
+            raise RuntimeError("Queue instance not initialized")
         return self.queue_instance.qsize()
 
     # 额外的队列方法（如果底层队列支持）
     def put_nowait(self, item: Any) -> None:
         """非阻塞放入项目"""
+        if not self.queue_instance:
+            raise RuntimeError("Queue instance not initialized")
         return self.queue_instance.put_nowait(item)
 
     def get_nowait(self) -> Any:
         """非阻塞获取项目"""
+        if not self.queue_instance:
+            raise RuntimeError("Queue instance not initialized")
         return self.queue_instance.get_nowait()
 
     def full(self) -> bool:
         """检查队列是否已满"""
+        if not self.queue_instance:
+            raise RuntimeError("Queue instance not initialized")
         return self.queue_instance.full()
 
     # ============ 描述符管理方法 ============

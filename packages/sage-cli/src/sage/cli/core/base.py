@@ -77,13 +77,22 @@ class BaseCommand(ABC):
         self, section_name: str, default: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """获取配置节"""
+        if self.config is None:
+            return default or {}
         return self.config.get(section_name, default or {})
 
     def validate_config_exists(self):
         """验证配置文件存在"""
-        if not self.config or not self.config_path.exists():
+        if not self.config or not self.config_path:
             raise ConfigurationError(
                 f"Configuration file not found: {self.config_path}\n"
+                "Please run 'sage config init' to create a default configuration"
+            )
+        # Convert to Path if it's a string
+        config_path_obj = Path(self.config_path) if isinstance(self.config_path, str) else self.config_path
+        if not config_path_obj.exists():
+            raise ConfigurationError(
+                f"Configuration file not found: {config_path_obj}\n"
                 "Please run 'sage config init' to create a default configuration"
             )
 
@@ -169,7 +178,7 @@ class RemoteCommand(BaseCommand):
 
         if not workers:
             # 兼容旧格式
-            hosts_str = self.config.get("workers_ssh_hosts", "")
+            hosts_str = self.config.get("workers_ssh_hosts", "") if self.config else ""
             if hosts_str:
                 nodes = []
                 for node in hosts_str.split(","):
@@ -197,6 +206,9 @@ class RemoteCommand(BaseCommand):
         worker_hosts = self.get_worker_hosts()
         if not worker_hosts:
             raise ConfigurationError("No worker hosts configured")
+
+        if not self.remote_executor:
+            raise ConfigurationError("Remote executor not initialized")
 
         return self.remote_executor.batch_execute(worker_hosts, command, parallel, timeout)
 
@@ -281,7 +293,10 @@ class JobManagerCommand(ServiceCommand):
         try:
             from sage.kernel.runtime.jobmanager_client import JobManagerClient
 
-            self.client = JobManagerClient(self.daemon_host, self.daemon_port)
+            if not self.daemon_host or not self.daemon_port:
+                raise CLIException("Daemon host or port not configured")
+
+            self.client = JobManagerClient(str(self.daemon_host), int(self.daemon_port))
 
             # 健康检查
             health = self.client.health_check()
@@ -304,6 +319,9 @@ class JobManagerCommand(ServiceCommand):
         """解析作业标识符（可以是作业编号或UUID）"""
         try:
             self.ensure_connected()
+
+            if not self.client:
+                raise CLIException("JobManager client not initialized")
 
             # 获取作业列表
             response = self.client.list_jobs()

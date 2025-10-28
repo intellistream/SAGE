@@ -109,6 +109,9 @@ class FilterDebugSink(SinkFunction):
         if self.ctx:
             self.parallel_index = self.ctx.parallel_index
 
+        # parallel_index 在运行时总是被设置的
+        assert self.parallel_index is not None, "parallel_index must be set"
+        
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []

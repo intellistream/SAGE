@@ -1,6 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sage.kernel.api.operator.keyby_operator import KeyByOperator
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
 from sage.kernel.runtime.factory.operator_factory import OperatorFactory
+
+if TYPE_CHECKING:
+    from sage.common.core.functions import BaseFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 class KeyByTransformation(BaseTransformation):
@@ -9,7 +17,14 @@ class KeyByTransformation(BaseTransformation):
     """
 
     def __init__(
-        self, env, key_selector_function, strategy="hash", name=None, parallelism=1, *args, **kwargs
+        self,
+        env: BaseEnvironment,
+        key_selector_function: type[BaseFunction],
+        strategy: str = "hash",
+        name: str | None = None,
+        parallelism: int = 1,
+        *args,
+        **kwargs,
     ):
         # 设置operator类
         self.operator_class = KeyByOperator

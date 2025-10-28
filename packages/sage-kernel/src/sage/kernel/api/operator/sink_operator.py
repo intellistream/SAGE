@@ -31,8 +31,10 @@ class SinkOperator(BaseOperator):
         """
         try:
             self.logger.info(f"SinkOperator {self.name} handling stop signal, calling close()")
-            if hasattr(self.function, "close") and callable(self.function.close):
-                result = self.function.close()
+            # SinkFunction may have close() method, BaseFunction doesn't
+            # hasattr and callable checks ensure runtime safety
+            if hasattr(self.function, "close") and callable(self.function.close):  # type: ignore[attr-defined]
+                result = self.function.close()  # type: ignore[attr-defined]
                 self.logger.debug(f"SinkOperator {self.name} final processing result: {result}")
             else:
                 self.logger.debug(f"SinkOperator {self.name} has no close() method, skipping.")

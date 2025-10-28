@@ -194,8 +194,8 @@ def batch_diagnose(agent: DiagnosticAgent, batch_dir: str, output_dir: str):
     # 统计诊断结果
     diagnoses_count = {}
     for result in results:
-        diag = result.diagnosis
-        diagnoses_count[diag] = diagnoses_count.get(diag, 0) + 1
+        for diag in result.diagnoses:
+            diagnoses_count[diag] = diagnoses_count.get(diag, 0) + 1
 
     print("\n   诊断分布:")
     for diag, count in sorted(diagnoses_count.items(), key=lambda x: -x[1]):

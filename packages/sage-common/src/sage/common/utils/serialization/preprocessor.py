@@ -186,7 +186,7 @@ def preprocess_for_dill(obj: Any, _seen: set[int] | None = None) -> Any:
             if isinstance(obj, tuple):
                 return tuple(cleaned) if cleaned else ()
             else:
-                return type(obj)(cleaned) if cleaned else []
+                return type(obj)(cleaned) if cleaned else []  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -200,7 +200,7 @@ def preprocess_for_dill(obj: Any, _seen: set[int] | None = None) -> Any:
                     cleaned_item = preprocess_for_dill(item, _seen)
                     if cleaned_item is not SKIP_VALUE:
                         cleaned.add(cleaned_item)
-            return type(obj)(cleaned) if cleaned else set()
+            return type(obj)(cleaned) if cleaned else set()  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -215,7 +215,7 @@ def preprocess_for_dill(obj: Any, _seen: set[int] | None = None) -> Any:
 
             # 尝试创建空实例
             try:
-                cleaned_obj = obj_class.__new__(obj_class)
+                cleaned_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
             except Exception:
                 # 如果无法创建空实例，返回原对象让dill处理
                 return obj
@@ -307,7 +307,7 @@ def postprocess_from_dill(obj: Any, _seen: set[int] | None = None) -> Any:
             if isinstance(obj, tuple):
                 return tuple(cleaned)
             else:
-                return type(obj)(cleaned)
+                return type(obj)(cleaned)  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -322,7 +322,7 @@ def postprocess_from_dill(obj: Any, _seen: set[int] | None = None) -> Any:
                     # 集合中不能包含None，但可以包含False、0等
                     if cleaned_item is not None:
                         cleaned.add(cleaned_item)
-            return type(obj)(cleaned)
+            return type(obj)(cleaned)  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 

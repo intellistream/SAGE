@@ -16,7 +16,8 @@ class ActorWrapper:
     def _detect_execution_mode(self) -> str:
         """检测执行模式"""
         try:
-            if isinstance(self._obj, ray.actor.ActorHandle):
+            # ray.actor.ActorHandle 在 ray 安装时总是存在
+            if isinstance(self._obj, ray.actor.ActorHandle):  # type: ignore[union-attr]
                 return "ray_actor"
         except (ImportError, AttributeError):
             pass

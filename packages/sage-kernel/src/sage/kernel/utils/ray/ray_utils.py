@@ -61,7 +61,8 @@ def ensure_ray_initialized(runtime_env=None):
     if not RAY_AVAILABLE:
         raise ImportError("Ray is not available")
 
-    if not ray.is_initialized():
+    # ray 在 RAY_AVAILABLE=True 时总是有效的
+    if not ray.is_initialized():  # type: ignore[union-attr]
         try:
             # 准备初始化参数
             init_kwargs = {
@@ -101,7 +102,7 @@ def ensure_ray_initialized(runtime_env=None):
                     init_kwargs["runtime_env"] = sage_runtime_env
 
             # 使用标准模式但限制资源，支持async actors和队列
-            ray.init(**init_kwargs)
+            ray.init(**init_kwargs)  # type: ignore[union-attr]
             print("Ray initialized in standard mode with limited resources")
         except Exception as e:
             print(f"Failed to initialize Ray: {e}")
@@ -119,6 +120,7 @@ def is_distributed_environment() -> bool:
         return False
 
     try:
-        return ray.is_initialized()
+        # ray 在 RAY_AVAILABLE=True 时总是有效的
+        return ray.is_initialized()  # type: ignore[union-attr]
     except Exception:
         return False

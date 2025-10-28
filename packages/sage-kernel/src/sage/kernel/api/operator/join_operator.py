@@ -33,7 +33,9 @@ class JoinOperator(BaseOperator):
         Raises:
             TypeError: 如果函数不是Join函数
         """
-        if not hasattr(self.function, "is_join") or not self.function.is_join:
+        # JoinFunction has is_join attribute, BaseFunction doesn't
+        # hasattr check ensures runtime safety
+        if not hasattr(self.function, "is_join") or not self.function.is_join:  # type: ignore[attr-defined]
             raise TypeError(
                 f"{self.__class__.__name__} requires Join function with is_join=True, "
                 f"got {type(self.function).__name__}"
@@ -242,7 +244,7 @@ class JoinOperator(BaseOperator):
                 partition_strategy=original_packet.partition_strategy or "hash",
             )
 
-            self.router.send(result_packet)
+            self.router.send(result_packet)  # type: ignore[arg-type]
 
             self.logger.debug(
                 f"JoinOperator '{self.name}' emitted result for key '{join_key}': "

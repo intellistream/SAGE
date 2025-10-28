@@ -49,7 +49,8 @@ class BaseRuntimeContext:
         if self._proxy_manager is None:
             from sage.kernel.runtime.proxy.proxy_manager import ProxyManager
 
-            self._proxy_manager = ProxyManager(self, logger=self.logger)
+            # ProxyManager expects logging.Logger but CustomLogger is compatible
+            self._proxy_manager = ProxyManager(self, logger=self.logger)  # type: ignore[arg-type]
         return self._proxy_manager
 
     @property

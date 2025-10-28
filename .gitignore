@@ -147,6 +147,7 @@ dev_reports/
 **/htmlcov/
 **/.pytest_cache/
 **/.mypy_cache/
+**/.ruff_cache/
 **/*.tmp
 **/*.temp
 **/.tmp/

@@ -1,147 +1,573 @@
-# SAGE Tutorials
+# 🚀 SAGE Unlearning Library - Examples & Documentation
 
-Welcome to SAGE tutorials! These are simple, focused examples to help you learn SAGE quickly.
+This directory contains complete examples and documentation for the SAGE Unlearning Library.
 
-## 🎯 Quick Start
+> **From research to production: A comprehensive guide to privacy-preserving unlearning**
 
-New to SAGE? Start here:
+## ⚡ Quick Start (3 Steps, 5 Minutes)
 
-1. **[Hello World](hello_world.py)** - Your first SAGE program (30 seconds)
-1. **[Embedding Demo](embedding_demo.py)** - Text embeddings basics (2 minutes)
-1. **[Basic Agent](agents/basic_agent.py)** - Create your first agent (5 minutes)
+### 1️⃣ Run the Demo
 
-## 📚 Tutorial Categories
+```bash
+python basic_unlearning_demo.py
+```
 
-### Core API
+See unlearning in action with a simple example.
 
-Basic SAGE pipeline operations and data flow.
+### 2️⃣ Choose Your Path
 
-- **[core-api/](core-api/)** - Core pipeline operations
-- **[transformation-api/](transformation-api/)** - Data transformation operators
-- **[stream_mode/](stream_mode/)** - Streaming data processing
-- **[io/](io/)** - Input/output utilities (renamed from io_utils)
-- **[service-api/](service-api/)** - Service integration patterns
+```bash
+cat QUICK_REFERENCE.md
+```
 
-### Agents
+Find the right usage example for your scenario.
 
-Build intelligent agents that can use tools and reason.
+### 3️⃣ Deep Dive
 
-- **[agents/](agents/)** - Agent creation and workflow patterns
-  - `basic_agent.py` - Simple agent example
-  - `workflow_demo.py` - Agent workflows
-  - `arxiv_search_tool.py` - Custom tool example
+Pick one of the `usage_*.py` files and explore the code with detailed comments.
 
-### RAG (Retrieval-Augmented Generation)
+______________________________________________________________________
 
-Learn to build question-answering systems with retrieval.
+## 📚 Documentation
 
-- **[rag/](rag/)** - Basic RAG tutorials
-  - `simple_rag.py` - Simple RAG pipeline
-  - `qa_no_retrieval.py` - Direct QA
-  - `qa_local_llm.py` - Use local models
+### Quick Reference
 
-### Memory Systems
+| Example                     | Focus                | Best For             |
+| --------------------------- | -------------------- | -------------------- |
+| `basic_unlearning_demo.py`  | Overview             | Getting started      |
+| `usage_1_direct_library.py` | Direct Library Usage | Scripts & notebooks  |
+| `usage_2_sage_function.py`  | SAGE Integration     | Pipeline processing  |
+| `usage_3_memory_service.py` | MemoryService        | VDB integration      |
+| `usage_4_complete_rag.py`   | Full RAG System      | Production scenarios |
 
-Add persistence and memory to your AI applications.
+______________________________________________________________________
 
-- **[memory/](memory/)** - Memory management tutorials
-  - `rag_memory_manager.py` - Basic memory
-  - `rag_memory_service.py` - Memory as a service
-  - `rag_memory_pipeline.py` - Full pipeline with memory
+### `basic_unlearning_demo.py` - Overview Demo
 
-### Multimodal AI
+Basic demonstration of the SAGE Unlearning Library.
 
-Work with text, images, and video together.
+- Generates synthetic vectors
+- Performs unlearning operations
+- Compares different perturbation strategies
+- Tracks privacy budget
 
-- **[multimodal/](multimodal/)** - Multimodal AI tutorials
-  - `quickstart.py` - Text+Image basics
-  - `cross_modal_search.py` - Cross-modal search
+**Run it:**
 
-### Scheduling & Parallelism
+```bash
+python basic_unlearning_demo.py
+```
 
-Distribute and parallelize your workloads.
+______________________________________________________________________
 
-- **[scheduler/](scheduler/)** - Task scheduling examples
-  - `remote_env.py` - Remote execution
-  - `scheduler_comparison.py` - Compare strategies
+### `usage_1_direct_library.py` - Direct Library Usage
 
-### Vector Databases
+Use the unlearning library directly without SAGE runtime.
 
-High-performance vector storage and search.
+**Best for:**
 
-- **[sage_db/](sage_db/)** - SAGE DB tutorials
-  - `workflow_demo.py` - Workflow patterns
+- Independent scripts and notebooks
+- Quick prototyping
+- Algorithm research
+- No SAGE dependency
 
-### Service Integration
+**Covers:**
 
-Build and deploy AI services.
+- Basic unlearning operations
+- Custom privacy mechanisms
+- Batch unlearning
+- Similarity-based unlearning
+- Privacy budget management
 
-- **[service/](service/)** - Service patterns ⭐ NEW
-  - `embedding_service_demo.py` - Embedding service
-  - `pipeline_as_service/` - Pipeline services
-  - `sage_db/` - SAGE DB service
-  - `sage_flow/` - SAGE Flow service
+**Run it:**
 
-### Utilities
+```bash
+python usage_1_direct_library.py
+```
 
-- **[fault_tolerance.py](fault_tolerance.py)** - Error handling and recovery
+**Example snippet:**
 
-## 🎓 Learning Path
+```python
+from sage.libs.unlearning import UnlearningEngine
 
-### Beginner (< 1 hour)
+engine = UnlearningEngine(epsilon=1.0, delta=1e-5)
+result = engine.unlearn_vectors(
+    vectors_to_forget=forget_vectors,
+    vector_ids_to_forget=forget_ids,
+    perturbation_strategy="adaptive",
+)
+```
 
-1. `hello_world.py` - Understand basic pipeline
-1. `embedding_demo.py` - Learn embeddings
-1. `core-api/` examples - Master core operations
+______________________________________________________________________
 
-### Intermediate (1-3 hours)
+### `usage_2_sage_function.py` - SAGE Function Integration
 
-1. `agents/basic_agent.py` - Build an agent
-1. `rag/simple_rag.py` - Create a RAG system
-1. `multimodal/quickstart.py` - Multimodal basics
-1. `service/embedding_service_demo.py` - Build a service
+Use unlearning in SAGE Functions and Pipelines.
 
-### Advanced (3+ hours)
+**Best for:**
 
-1. `memory/` - Add memory to your systems
-1. `scheduler/` - Parallelize your workloads
-1. `service/` - Build production services
+- SAGE Pipeline integration
+- Streaming data processing
+- Multiple data sources
+- Stateful processing
 
-## 🚀 Beyond Tutorials
+**Covers:**
 
-Once you've mastered the tutorials:
+- Vector generator Source Function
+- Unlearning processor Function
+- Result collector Sink Function
+- Stateful pipelines
+- Conditional unlearning
 
-### Advanced Examples
+**Run it:**
 
-- **RAG & Benchmarks**: See `packages/sage-benchmark/` for production-ready RAG pipelines
-- **Memory Systems**: See `examples/tutorials/memory/` for advanced memory patterns
+```bash
+python usage_2_sage_function.py
+```
 
-### Real Applications
+**Example pipeline:**
 
-Check out `examples/apps/` for complete applications:
+```python
+env.from_source(VectorGenerator).map(UnlearningProcessor, epsilon=1.0).sink(
+    ResultCollector
+)
 
-- Video Intelligence
-- Medical Diagnosis
+env.submit(autostop=True)
+```
 
-### Build Your Own
+______________________________________________________________________
 
-Explore the full libraries in `packages/`:
+### `usage_3_memory_service.py` - MemoryService Integration
 
-- `sage-libs` - Core functionality
-- `sage-apps` - Application templates
-- `sage-middleware` - Infrastructure components
+Integrate unlearning with MemoryService and VDB.
 
-## 💡 Tips
+**Best for:**
 
-- **Run from project root**: `python examples/tutorials/hello_world.py`
-- **Check requirements**: Some examples need API keys (see `.env.example`)
-- **Start simple**: Don't skip the basics!
-- **Read the code**: Examples are well-commented
+- RAG systems
+- VDB integration
+- Memory management
+- Cross-service coordination
 
-## 📖 Documentation
+**Covers:**
 
-- **Main docs**: See `docs/` directory
-- **API reference**: Check docstrings in `packages/sage-libs/`
-- **Community**: See `docs/COMMUNITY.md`
+- DPMemoryService class
+- Vector storage and retrieval
+- DP-based forgetting
+- Privacy budget tracking
+- Multi-collection management
 
-Happy learning! 🎉
+**Run it:**
+
+```bash
+python usage_3_memory_service.py
+```
+
+**Example usage:**
+
+```python
+service = DPMemoryService(epsilon=1.0)
+service.create_collection("documents")
+
+# Store memories
+mem_id = service.store_memory(
+    collection_name="documents", content=text, vector=embedding
+)
+
+# Forget with DP
+result = service.forget_with_dp(
+    collection_name="documents", memory_ids=[mem_id], perturbation_strategy="adaptive"
+)
+```
+
+______________________________________________________________________
+
+### `usage_4_complete_rag.py` - Complete RAG System
+
+Full RAG system with privacy unlearning.
+
+**Best for:**
+
+- Production RAG systems
+- User data deletion (GDPR compliance)
+- Malicious content removal
+- Audit logging
+
+**Covers:**
+
+- RAG corpus initialization
+- Document retrieval
+- User deletion requests
+- Malicious content detection
+- Compliance audit logs
+
+**Run it:**
+
+```bash
+python usage_4_complete_rag.py
+```
+
+**Example usage:**
+
+```python
+system = RAGUnlearningSystem(epsilon=1.0)
+
+# Handle GDPR deletion request
+result = system.handle_user_deletion_request(
+    collection_name="knowledge_base", user_id="user_123"
+)
+
+# Remove malicious content
+result = system.handle_malicious_content_removal(
+    collection_name="knowledge_base", detection_keywords=["spam", "malware"]
+)
+
+# Audit compliance
+logs = system.get_audit_log()
+```
+
+______________________________________________________________________
+
+## 🚀 Quick Start Guide
+
+### 1. Set Up Environment
+
+```bash
+cd /path/to/SAGE
+pip install -e packages/sage-libs
+```
+
+### 2. Run Examples in Order
+
+```bash
+# Start with basic overview
+python examples/unlearning/basic_unlearning_demo.py
+
+# Try direct library usage
+python examples/unlearning/usage_1_direct_library.py
+
+# Explore SAGE integration
+python examples/unlearning/usage_2_sage_function.py
+
+# See service integration
+python examples/unlearning/usage_3_memory_service.py
+
+# Full RAG system
+python examples/unlearning/usage_4_complete_rag.py
+```
+
+### 3. Understand the Architecture
+
+```
+┌─────────────────────────────────┐
+│  Application Layer              │ ← usage_4_complete_rag.py
+├─────────────────────────────────┤
+│  MemoryService Integration      │ ← usage_3_memory_service.py
+├─────────────────────────────────┤
+│  SAGE Function/Pipeline         │ ← usage_2_sage_function.py
+├─────────────────────────────────┤
+│  Direct Library Usage           │ ← usage_1_direct_library.py
+├─────────────────────────────────┤
+│  Unlearning Library             │ ← basic_unlearning_demo.py
+│  (sage.libs.unlearning)         │
+└─────────────────────────────────┘
+```
+
+______________________________________________________________________
+
+## 📊 Comparison: Which Example to Use?
+
+### For Independent Research
+
+→ Use **`usage_1_direct_library.py`**
+
+- Zero dependencies on SAGE runtime
+- Pure algorithm implementation
+- Easy to experiment with
+
+### For Pipeline Integration
+
+→ Use **`usage_2_sage_function.py`**
+
+- Integrates with SAGE Kernel
+- Supports streaming data
+- Stateful processing
+
+### For RAG Systems
+
+→ Use **`usage_3_memory_service.py`** + **`usage_4_complete_rag.py`**
+
+- VDB integration
+- Vector storage and retrieval
+- Production-ready patterns
+
+### For Learning
+
+→ Start with **`basic_unlearning_demo.py`**
+
+- Clear, simple examples
+- Well-commented code
+- Progressive complexity
+
+______________________________________________________________________
+
+## 💡 Key Concepts
+
+### Privacy Budget
+
+Each unlearning operation consumes privacy budget (ε, δ).
+
+```python
+# Check remaining budget
+status = engine.get_privacy_status()
+remaining = status["remaining_budget"]
+print(f"Remaining ε: {remaining['epsilon_remaining']:.4f}")
+```
+
+### Perturbation Strategies
+
+Different strategies trade off privacy and utility:
+
+- **`uniform`**: Simple, high noise, high privacy
+- **`selective`**: Dimension-specific, medium privacy
+- **`adaptive`**: Data-aware, balanced privacy-utility
+
+### Neighbor Compensation
+
+Prevents "collateral damage" to similar vectors when unlearning.
+
+```python
+engine = UnlearningEngine(enable_compensation=True)  # Activate neighbor compensation
+```
+
+______________________________________________________________________
+
+## 🔬 Research Extensions
+
+Students can extend these examples by:
+
+### 1. Custom Mechanisms
+
+Implement new privacy mechanisms in `sage/libs/unlearning/algorithms/`:
+
+```python
+class MyCustomMechanism(BasePrivacyMechanism):
+    def compute_noise(self, sensitivity, epsilon):
+        # Your novel mechanism
+        pass
+```
+
+### 2. Better Perturbation
+
+Improve `vector_perturbation.py` with:
+
+- PCA-preserving strategies
+- Semantic-aware perturbation
+- Learned perturbation (neural networks)
+
+### 3. Evaluation Metrics
+
+Implement in `sage/libs/unlearning/evaluation/metrics.py`:
+
+- Residual Recall Rate
+- Retention Stability
+- Privacy-Utility Tradeoff Analysis
+
+### 4. Advanced Composition
+
+Enhance `privacy_accountant.py`:
+
+- Advanced composition theorems
+- Renyi DP
+- Concentrated DP
+
+______________________________________________________________________
+
+## 📚 References
+
+### Theory
+
+- Dwork & Roth (2014): "Algorithmic Foundations of Differential Privacy"
+- Cao & Yang (2015): "Towards Making Systems Forget with Machine Unlearning"
+- Bourtoule et al. (2021): "Machine Unlearning"
+
+### Implementation
+
+- See `sage/libs/unlearning/` for detailed code comments
+- Read docstrings in each module for research hints
+- Check "STUDENT RESEARCH POINT" markers for extension ideas
+
+______________________________________________________________________
+
+## ❓ FAQ
+
+**Q: Can I use these examples outside of SAGE?** A: Yes! `usage_1_direct_library.py` works
+standalone without SAGE.
+
+**Q: How do I test my own privacy mechanisms?** A: Create a subclass of `BasePrivacyMechanism` and
+pass it to `UnlearningEngine`.
+
+**Q: What's the privacy cost of forgetting N vectors?** A: Approximately ε_per_vector * N (unless
+using advanced composition).
+
+**Q: Can I reuse privacy budget across operations?** A: Yes, the privacy accountant tracks total
+budget automatically.
+
+**Q: How do I verify unlearning actually worked?** A: See
+`sage/libs/unlearning/evaluation/metrics.py` for verification metrics.
+
+______________________________________________________________________
+
+## 🤝 Contributing
+
+To contribute new examples:
+
+1. Create a new file in `examples/unlearning/`
+1. Document the scenario clearly
+1. Add to this README
+1. Ensure it runs with: `python your_example.py`
+1. Submit a PR with description
+
+______________________________________________________________________
+
+## 📞 Support
+
+- For library questions: Check `sage/libs/unlearning/` docstrings
+- For integration issues: See `usage_*.py` examples
+- For research ideas: Read the "TODO for Students" sections
+- Show budget allocation strategies
+
+#### `evaluation_demo.py`
+
+- Compute all metrics (RRR, RS, etc.)
+- Generate comparison plots
+- Benchmark against baselines
+
+## For Students
+
+Each example should:
+
+1. Be self-contained and runnable
+1. Include clear comments explaining what's happening
+1. Demonstrate a specific feature or technique
+1. Provide visualizations when possible
+1. Include references to relevant papers
+
+## Creating New Examples
+
+Template structure:
+
+```python
+"""
+Example Title
+=============
+
+Brief description of what this example demonstrates.
+
+**Research Focus**: What students should learn from this.
+"""
+
+import numpy as np
+from sage.libs.unlearning import ...
+
+def main():
+    # Step 1: Setup
+```
+
+```
+print("Setting up...")
+
+# Step 2: Main demonstration
+print("Demonstrating...")
+
+# Step 3: Evaluation
+print("Evaluating...")
+
+# Step 4: Visualization (optional)
+print("Visualizing...")
+```
+
+if __name__ == "__main__": main()
+
+````
+
+## Running Examples
+
+All examples assume you have installed the SAGE library:
+
+```bash
+cd /path/to/SAGE
+pip install -e packages/sage-libs
+````
+
+Then run examples from this directory:
+
+```bash
+python basic_unlearning_demo.py
+```
+
+______________________________________________________________________
+
+## Files Overview
+
+| File                          | Type    | Purpose                           |
+| ----------------------------- | ------- | --------------------------------- |
+| **README.md**                 | 📖 Doc  | ⭐ Start here - complete guide    |
+| **QUICK_REFERENCE.md**        | 💡 Doc  | 5-minute quick lookup             |
+| **TROUBLESHOOTING.md**        | 🔧 Doc  | Error solutions & debugging       |
+| **basic_unlearning_demo.py**  | 🐍 Code | Simple demo to get started        |
+| **usage_1_direct_library.py** | 🐍 Code | Direct library usage (5 examples) |
+| **usage_2_sage_function.py**  | 🐍 Code | SAGE Function integration         |
+| **usage_3_memory_service.py** | 🐍 Code | VDB and MemService integration    |
+| **usage_4_complete_rag.py**   | 🐍 Code | Production-ready RAG system       |
+
+______________________________________________________________________
+
+## Choosing Your Usage Example
+
+**I want to...**
+
+- 🏃 **Quickly test the algorithm** → `python usage_1_direct_library.py`
+
+- 🔧 **Integrate with SAGE Pipeline** → `python usage_2_sage_function.py`
+
+- 🗄️ **Build a vector database system** → `python usage_3_memory_service.py`
+
+- 🚀 **Deploy a production system** → Study `usage_4_complete_rag.py`
+
+- ❓ **Fix an error** → See `TROUBLESHOOTING.md`
+
+______________________________________________________________________
+
+## Quick Reference
+
+For detailed information, see:
+
+- **How to choose?** → `QUICK_REFERENCE.md`
+- **Errors & solutions** → `TROUBLESHOOTING.md`
+- **Code examples** → `usage_*.py` files
+
+## Common Commands
+
+```bash
+# Run the basic demo
+python basic_unlearning_demo.py
+
+# Check SAGE installation
+python -c "from sage.libs.unlearning import UnlearningEngine; print('✓')"
+
+# View quick reference
+cat QUICK_REFERENCE.md
+
+# Find troubleshooting help
+grep -n "your error message" TROUBLESHOOTING.md
+```
+
+______________________________________________________________________
+
+## Next Steps
+
+1. ✅ Run `python basic_unlearning_demo.py`
+1. ✅ Read `QUICK_REFERENCE.md`
+1. ✅ Choose a `usage_*.py` file for your use case
+1. ✅ Explore the code and modify parameters
+
+**Happy learning! 🎉**

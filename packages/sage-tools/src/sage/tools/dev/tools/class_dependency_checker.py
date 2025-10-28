@@ -82,7 +82,9 @@ class ClassDependencyChecker:
         except Exception as e:
             raise SAGEDevToolkitError(f"Class dependency analysis failed: {e}")
 
-    def check_class_usage(self, class_name: str, target_paths: list[str] | None = None) -> dict[str, Any]:
+    def check_class_usage(
+        self, class_name: str, target_paths: list[str] | None = None
+    ) -> dict[str, Any]:
         """Check where a specific class is used."""
         try:
             if target_paths:

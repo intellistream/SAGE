@@ -9,7 +9,7 @@ from collections import Counter
 from pathlib import Path
 
 import numpy as np
-from datasets import load_from_disk
+from datasets import Dataset, load_from_disk
 from PIL import Image
 
 # 设置项目路径
@@ -35,6 +35,10 @@ def explore_dataset():
     print(f"\n📂 从 {dataset_path} 加载数据集...")
     dataset = load_from_disk(str(dataset_path))
 
+    # 确保是 Dataset 类型
+    if not isinstance(dataset, Dataset):
+        raise TypeError(f"Expected Dataset, got {type(dataset)}")
+
     # 基本信息
     print("\n📋 数据集基本信息:")
     print(f"   - 样本总数: {len(dataset)}")
@@ -42,7 +46,7 @@ def explore_dataset():
     print(f"   - Features: {dataset.features}")
 
     # 标签分布
-    labels = [sample["label"] for sample in dataset]
+    labels = [sample["label"] for sample in dataset]  # type: ignore[index]
     label_counts = Counter(labels)
 
     print("\n🏷️  标签分布:")
@@ -84,7 +88,9 @@ def explore_dataset():
     saved_labels = set()
     saved_count = 0
 
-    for i, sample in enumerate(dataset):
+    for i, sample in enumerate(dataset):  # type: ignore[arg-type]
+        if not isinstance(sample, dict):
+            continue
         label = sample["label"]
 
         if label not in saved_labels:

@@ -47,7 +47,7 @@ def trim_object_for_ray(
             # 创建新对象并设置过滤后的属性
             obj_class = type(obj)
             try:
-                final_obj = obj_class.__new__(obj_class)
+                final_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
                 for attr_name, attr_value in filtered_attrs.items():
                     try:
                         setattr(final_obj, attr_name, attr_value)
@@ -97,7 +97,7 @@ class RayObjectTrimmer:
 
                 obj_class = type(obj)
                 try:
-                    cleaned_obj = obj_class.__new__(obj_class)
+                    cleaned_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
                     for attr_name, attr_value in filtered_attrs.items():
                         if not should_skip(attr_value):
                             try:
@@ -173,7 +173,7 @@ class RayObjectTrimmer:
 
         try:
             # 尝试Ray的内部序列化
-            serialized = ray.cloudpickle.dumps(obj)
+            serialized = ray.cloudpickle.dumps(obj)  # type: ignore[attr-defined]
             result["is_serializable"] = True
             result["size_estimate"] = len(serialized)
 

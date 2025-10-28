@@ -121,8 +121,8 @@ class JobInfo:
         if self.stop_time:
             status_info["stop_time"] = self.stop_time.strftime("%Y-%m-%d %H:%M:%S")
 
-        # 获取任务统计
+        # 获取任务统计 (get_statistics 是可选方法)
         if hasattr(self.dispatcher, "get_statistics"):
-            status_info["task_statistics"] = self.dispatcher.get_statistics()
+            status_info["task_statistics"] = self.dispatcher.get_statistics()  # type: ignore[attr-defined]
 
         return status_info

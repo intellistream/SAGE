@@ -70,7 +70,7 @@ class DocLoader:
 
     def load(self) -> dict:
         try:
-            import win32com.client
+            import win32com.client  # type: ignore[import-untyped]
         except ImportError:
             raise ImportError("请先安装 pywin32 (仅 Windows 支持): pip install pywin32")
         if not os.path.exists(self.filepath):

@@ -9,7 +9,7 @@ async def cohere_embed(
     model: str = "embed-multilingual-v3.0",
     input_type: str = "classification",
     embedding_types: list[str] | None = None,
-) -> list[float]:
+) -> list[list[float]]:
     if embedding_types is None:
         embedding_types = ["float"]
     if api_key is None:
@@ -23,7 +23,7 @@ async def cohere_embed(
         input_type=input_type,
         # embedding_types=embedding_types
     )
-    return response.embeddings
+    return response.embeddings  # pyright: ignore[reportReturnType]
 
 
 def cohere_embed_sync(
@@ -61,4 +61,4 @@ def cohere_embed_sync(
         input_type=input_type,
         embedding_types=embedding_types,
     )
-    return response.embeddings
+    return response.embeddings  # pyright: ignore[reportReturnType]

@@ -81,3 +81,29 @@ BaseOperator (抽象基类)
 - **容错处理**: 内置错误处理和恢复机制
 - **性能监控**: 集成执行指标收集和监控
 - **资源管理**: 自动管理内存和网络资源
+
+## 类型安全说明
+
+### `type: ignore` 使用原则
+
+本模块中某些位置使用了 `# type: ignore[attr-defined]`，这些是**有意为之**的设计选择：
+
+1. **动态属性访问** (source_operator.py)
+   - `self.task` 属性在运行时由 `BaseTask` 动态注入
+   - 已添加类型声明 `task: BaseTask | None` 和运行时检查 `hasattr` + `self.task`
+   
+2. **子类特定方法** (flatmap_operator.py, join_operator.py, sink_operator.py)
+   - `BaseFunction` 是抽象基类，特定方法在子类中定义：
+     - `FlatMapFunction.insert_collector()` 
+     - `JoinFunction.is_join`
+     - `SinkFunction.close()`
+   - 所有访问都有 `hasattr()` 运行时检查保护
+   - `type: ignore` 仅用于告诉类型检查器这是预期的多态行为
+
+3. **已知的设计问题** (Packet 类型冲突)
+   - 两个不同的 `Packet` 类 (communication.packet vs router.packet)
+   - 这是架构层面的问题，需要单独的重构任务解决
+   - 使用 `# type: ignore[arg-type]` 标记
+
+**原则**: 只在有充分理由且有运行时安全保障的情况下使用 `type: ignore`，并添加清晰的注释说明原因。
+

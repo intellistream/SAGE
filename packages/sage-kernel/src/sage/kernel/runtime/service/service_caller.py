@@ -329,14 +329,14 @@ class ServiceManager:
                 self.logger.debug("Response listener: Getting response queue")
                 response_queue = self._get_response_queue()
 
-                # 检查队列是否已关闭
-                if hasattr(response_queue, "is_closed") and response_queue.is_closed():
+                # 检查队列是否已关闭 (response_queue 在运行时总是有值)
+                if hasattr(response_queue, "is_closed") and response_queue.is_closed():  # type: ignore[union-attr]
                     self.logger.debug("Response queue is closed, stopping listener")
                     break
 
                 # 从响应队列获取响应（阻塞等待1秒）
                 try:
-                    response_data = response_queue.get(timeout=1.0)
+                    response_data = response_queue.get(timeout=1.0)  # type: ignore[union-attr]
                     self.logger.debug(
                         f"[SERVICE_RESPONSE] Received raw response data: {response_data}"
                     )

@@ -58,7 +58,7 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
 from pipeline_bridge import PipelineBridge, PipelinePayload
 from sage.kernel.runtime.communication.router.packet import StopSignal
 
-ORDERS: List[Dict[str, str]] = [
+ORDERS: List[Dict[str, str | float]] = [
     {"order_id": "o-1001", "user_id": "user-001", "amount": 129.9},
     {"order_id": "o-1002", "user_id": "user-002", "amount": 59.0},
     {"order_id": "o-1003", "user_id": "user-003", "amount": 450.5},
@@ -151,10 +151,10 @@ class RiskScoringService(BaseService):
     """Trivial risk-scoring service with a `process` entry point."""
 
     def process(self, enriched_order: Dict[str, str]):
-        features = enriched_order.get("features", {})
+        features = enriched_order.get("features", {})  # type: ignore[assignment]
         amount = float(enriched_order.get("amount", 0.0))
-        chargeback_ratio = float(features.get("chargeback_ratio", 0.0))
-        history = float(features.get("successful_orders", 0.0))
+        chargeback_ratio = float(features.get("chargeback_ratio", 0.0))  # type: ignore[attr-defined]
+        history = float(features.get("successful_orders", 0.0))  # type: ignore[attr-defined]
 
         base_score = 0.4 * chargeback_ratio + 0.0005 * amount
         history_modifier = 0.2 if history > 5 else 0.0

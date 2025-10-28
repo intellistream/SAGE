@@ -490,7 +490,7 @@ class SudoManager:
         Returns:
             str: 缓存的密码
         """
-        return self._cached_password if self._password_verified else ""
+        return self._cached_password if self._password_verified and self._cached_password else ""
 
     def clear_cache(self):
         """清除缓存的密码"""

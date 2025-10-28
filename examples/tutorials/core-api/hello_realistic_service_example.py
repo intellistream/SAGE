@@ -148,7 +148,7 @@ class LogService:
         self.is_running = False
         print("Log service terminated")
 
-    def log(self, level: str, message: str, context: dict = None):
+    def log(self, level: str, message: str, context: dict | None = None):
         if not self.is_running:
             return False
 
@@ -162,10 +162,10 @@ class LogService:
         print(f"[{log_entry['timestamp']}] {level}: {message}")
         return True
 
-    def info(self, message: str, context: dict = None):
+    def info(self, message: str, context: dict | None = None):
         return self.log("INFO", message, context)
 
-    def error(self, message: str, context: dict = None):
+    def error(self, message: str, context: dict | None = None):
         return self.log("ERROR", message, context)
 
     def get_logs(self):

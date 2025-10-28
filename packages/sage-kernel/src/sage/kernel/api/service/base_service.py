@@ -26,7 +26,7 @@ class BaseService(ABC):  # noqa: B024
         """
         # ctx 由 ServiceFactory 在 __init__ 调用前通过 __new__ 方法注入
         if not hasattr(self, "ctx"):
-            self.ctx: ServiceContext = None
+            self.ctx: ServiceContext = None  # type: ignore[assignment]
         self._logger = None
 
     @property

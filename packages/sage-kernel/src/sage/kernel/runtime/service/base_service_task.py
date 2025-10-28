@@ -862,7 +862,8 @@ class BaseServiceTask(ABC):
             try:
                 request_qd = self.request_queue_descriptor
                 if request_qd and hasattr(request_qd.queue_instance, "qsize"):
-                    metrics.request_queue_depth = request_qd.queue_instance.qsize()
+                    # queue_instance 在运行时总是被设置的
+                    metrics.request_queue_depth = request_qd.queue_instance.qsize()  # type: ignore[union-attr]
             except Exception:
                 pass
 

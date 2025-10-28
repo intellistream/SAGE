@@ -73,7 +73,7 @@ def quality(
     check_only: bool = typer.Option(False, "--check-only", help="仅检查，不修复"),
     all_files: bool = typer.Option(False, "--all-files", help="检查所有文件（而不仅是变更的文件）"),
     # 选择性运行特定检查
-    hook: str = typer.Option(None, "--hook", help="只运行指定的 pre-commit hook"),
+    hook: str | None = typer.Option(None, "--hook", help="只运行指定的 pre-commit hook"),
     # 架构和文档检查选项
     architecture: bool = typer.Option(
         True, "--architecture/--no-architecture", help="运行架构合规性检查"
@@ -82,6 +82,7 @@ def quality(
         True, "--devnotes/--no-devnotes", help="运行 dev-notes 文档规范检查"
     ),
     readme: bool = typer.Option(False, "--readme", help="运行包 README 质量检查"),
+    examples: bool = typer.Option(True, "--examples/--no-examples", help="运行 examples 目录结构检查"),
     # Submodule 选项
     include_submodules: bool = typer.Option(
         False, "--include-submodules", help="包含 submodules 进行质量检查（默认跳过）"
@@ -431,6 +432,46 @@ def quality(
                 # README 检查不阻止提交，只是警告
         except Exception as e:
             console.print(f"[yellow]⚠️  README 检查失败: {e}[/yellow]")
+
+    # Examples 目录结构检查（可选）
+    if examples and not submodules_only:
+        console.print("\n" + "=" * 60)
+        console.print("📁 运行 examples 目录结构检查...")
+        console.print("=" * 60)
+        try:
+            from pathlib import Path
+
+            from sage.tools.dev.tools.examples_structure_checker import (
+                ExamplesStructureChecker,
+            )
+
+            examples_dir = Path(project_dir) / "examples"
+            if not examples_dir.exists():
+                console.print(f"[yellow]⚠️  examples 目录不存在: {examples_dir}[/yellow]")
+            else:
+                checker = ExamplesStructureChecker(examples_dir)
+                result = checker.check_structure()
+
+                if result.passed:
+                    console.print("[green]✅ Examples 目录结构检查通过[/green]")
+                else:
+                    console.print(f"[red]❌ 发现 {len(result.violations)} 个结构问题[/red]")
+                    for violation in result.violations[:5]:
+                        console.print(f"   • {violation}")
+                    if len(result.violations) > 5:
+                        console.print(f"   ... 还有 {len(result.violations) - 5} 个问题")
+
+                    if result.unexpected_dirs:
+                        console.print("\n[yellow]不符合规范的目录:[/yellow]")
+                        for dir_name in result.unexpected_dirs:
+                            console.print(f"   • {dir_name}/")
+
+                    console.print(f"\n{checker.get_structure_guide()}")
+                    extra_checks_passed = False
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Examples 检查失败: {e}[/yellow]")
+            if not warn_only:
+                extra_checks_passed = False
 
     # 汇总结果
     console.print("\n" + "=" * 60)

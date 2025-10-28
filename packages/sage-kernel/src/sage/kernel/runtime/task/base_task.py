@@ -709,7 +709,7 @@ class BaseTask(ABC):  # noqa: B024
         if self.input_qd:
             try:
                 queue_instance = self.input_qd.queue_instance
-                if hasattr(queue_instance, "qsize"):
+                if queue_instance and hasattr(queue_instance, "qsize"):
                     metrics.input_queue_depth = queue_instance.qsize()
             except Exception:
                 pass

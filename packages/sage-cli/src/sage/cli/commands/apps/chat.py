@@ -216,7 +216,8 @@ def build_embedder(config: dict[str, object]) -> Any:
         >>> vec = emb.embed("test")
     """
     method = str(config.get("method", DEFAULT_EMBEDDING_METHOD))
-    params = dict(config.get("params", {}))
+    params_raw = config.get("params", {})
+    params = dict(params_raw) if isinstance(params_raw, dict) else {}  # type: ignore[arg-type]
 
     # 统一使用新接口，不需要特殊处理！
     return get_embedding_model(method, **params)
@@ -419,6 +420,8 @@ def ingest_source(
     if db_path.exists():
         db_path.unlink()
 
+    if not SageDB:
+        raise RuntimeError("SageDB not available - sage-middleware not installed")
     db = SageDB(embedder.get_dim())
     total_chunks = 0
     total_docs = 0
@@ -486,6 +489,8 @@ def open_database(manifest: ChatManifest) -> Any:
                 f"未找到数据库文件 {manifest.db_path}。请重新运行 `sage chat ingest`."
             )
     embedder = build_embedder(manifest.embed_config)
+    if not SageDB:
+        raise RuntimeError("SageDB not available - sage-middleware not installed")
     db = SageDB(embedder.get_dim())
     db.load(str(manifest.db_path))
     return db
@@ -544,7 +549,7 @@ class ResponseGenerator:
             try:
                 from sage.libs.integrations.openaiclient import OpenAIClient
 
-                kwargs = {"seed": 42}
+                kwargs: dict[str, Any] = {"seed": 42}
                 if base_url:
                     kwargs["base_url"] = base_url
                 if api_key:
@@ -608,7 +613,7 @@ class ResponseGenerator:
                 # 尝试自动合并
                 try:
                     console.print("[cyan]正在合并 LoRA 权重...[/cyan]")
-                    from sage.cli.finetune.service import merge_lora_weights
+                    from sage.tools.finetune.service import merge_lora_weights
 
                     # 读取 meta 获取基础模型
                     meta_file = finetune_dir / "finetune_meta.json"
@@ -727,6 +732,8 @@ class ResponseGenerator:
         if self.backend == "mock":
             return self._mock_answer(question, contexts, references)
 
+        if not self.client:
+            raise RuntimeError("Client not initialized")
         messages = build_prompt(question, contexts)
         try:
             response = self.client.generate(
@@ -1162,7 +1169,7 @@ class PipelineChatCoordinator:
                 feedback = typer.prompt(
                     "请提供更多需求或修改建议（直接回车使用原需求重试）", default=""
                 )
-                if not feedback.strip():
+                if not feedback or not feedback.strip():
                     feedback = None
                 continue
 
@@ -1209,7 +1216,7 @@ class PipelineChatCoordinator:
                 "请输入需要调整的地方（例如：使用流式输出、改用本地模型、添加监控）\n留空结束",
                 default="",
             )
-            if not feedback.strip():
+            if not feedback or not feedback.strip():
                 console.print("[yellow]未提供调整意见，保持当前版本。[/yellow]")
                 return plan
 
@@ -1351,7 +1358,7 @@ def retrieve_context(
                 "heading": metadata.get("heading", ""),
                 "path": metadata.get("doc_path", ""),
                 "anchor": metadata.get("anchor", ""),
-                "score": float(getattr(item, "score", 0.0)),
+                "score": str(float(getattr(item, "score", 0.0))),
                 "label": f"[{metadata.get('doc_path', '?')}]",
             }
         )
@@ -1404,8 +1411,8 @@ def interactive_chat(
     def answer_once(query: str) -> None:
         current_db, current_embedder = ensure_retriever()
         payload = retrieve_context(current_db, current_embedder, query, top_k)
-        contexts = payload["contexts"]
-        references = payload["references"]
+        contexts: Sequence[str] = payload["contexts"]  # type: ignore[assignment]
+        references: Sequence[dict[str, str]] = payload["references"]  # type: ignore[assignment]
 
         try:
             reply = generator.answer(query, contexts, references, stream=stream)
@@ -1650,7 +1657,7 @@ def ingest(
         raise typer.BadParameter(f"{embedding_method} 方法需要指定 --embedding-model")
 
     # 构建 embedding 配置（新接口会自动处理默认值）
-    embedding_config: dict[str, object] = {"method": embedding_method, "params": {}}
+    embedding_config: dict[str, Any] = {"method": embedding_method, "params": {}}
 
     # 设置方法特定参数
     if embedding_method == "mockembedder":

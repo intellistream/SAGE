@@ -93,7 +93,7 @@ def demonstrate_llm_pipeline():
     # Step 5: 模板匹配
     console.print("\n[bold]步骤 5: 匹配应用模板[/bold]")
     try:
-        from sage.tools import templates
+        from sage.cli import templates
 
         matches = templates.match_templates(requirements, top_k=3)
         console.print(f"✓ 找到 {len(matches)} 个相关模板:")
@@ -107,7 +107,7 @@ def demonstrate_llm_pipeline():
     # Step 6: 蓝图匹配
     console.print("\n[bold]步骤 6: 匹配配置蓝图[/bold]")
     try:
-        from sage.tools.cli import pipeline_blueprints
+        from sage.cli.templates import pipeline_blueprints
 
         blueprint_matches = tuple(pipeline_blueprints.match_blueprints(requirements))
         console.print(f"✓ 找到 {len(blueprint_matches)} 个相关蓝图:")
@@ -201,7 +201,7 @@ def demonstrate_llm_pipeline():
 
     # Step 9: 验证配置
     console.print("\n[bold]步骤 9: 验证生成的配置[/bold]")
-    from sage.tools.cli.commands.chat import _validate_pipeline_config
+    from sage.cli.commands.apps.chat import _validate_pipeline_config
 
     is_valid, errors = _validate_pipeline_config(example_config)
     if is_valid:

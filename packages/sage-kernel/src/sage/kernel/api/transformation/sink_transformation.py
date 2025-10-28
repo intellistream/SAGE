@@ -6,7 +6,7 @@ from sage.kernel.api.operator.sink_operator import SinkOperator
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 if TYPE_CHECKING:
-    from sage.common.core.functions import SinkFunction
+    from sage.common.core.functions import BaseFunction
     from sage.kernel.api.base_environment import BaseEnvironment
 
 
@@ -16,7 +16,7 @@ class SinkTransformation(BaseTransformation):
     def __init__(
         self,
         env: BaseEnvironment,
-        function: SinkFunction,
+        function: type[BaseFunction],
         *args,
         batch_size: int = 1,  # Sink 特有的批处理大小， 可以减少系统调用次数
         **kwargs,

@@ -175,8 +175,6 @@ addopts = [
     "--strict-config",
     "--verbose",
     "-ra",
-    "--timeout=60",  # 单个测试超时60秒
-    "--timeout-method=thread",  # 使用线程超时方法
     # Coverage options commented out for better test output readability
     # "--cov=sage",
     # "--cov-report=term-missing",

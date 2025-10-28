@@ -57,7 +57,7 @@ def example_1_user_checkpoint_strategy():
                 "max_recovery_attempts": 3,  # 最多恢复3次
                 "checkpoint_dir": ".my_checkpoints",
             },
-            "source": {"file_path": "data/questions.txt"},
+            "source": {"data_path": "data/questions.txt"},
             "sink": {},
         },
     )
@@ -107,7 +107,7 @@ def example_2_user_restart_strategy():
                 "multiplier": 2.0,  # 每次延迟翻倍
                 "max_attempts": 5,  # 最多重启5次
             },
-            "source": {"file_path": "data/input.txt"},
+            "source": {"data_path": "data/input.txt"},
             "sink": {},
         },
     )
@@ -147,7 +147,7 @@ def example_3_user_no_fault_tolerance():
 
     # 正常定义和提交
     (
-        env.from_source(FileSource, {"file_path": "data.txt"})
+        env.from_source(FileSource, {"data_path": "data.txt"})
         .map(lambda x: x.upper())
         .sink(TerminalSink, {})
     )

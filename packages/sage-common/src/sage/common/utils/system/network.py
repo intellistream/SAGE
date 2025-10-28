@@ -342,9 +342,10 @@ def aggressive_port_cleanup(port: int) -> dict[str, Any]:
         return result
 
     # 尝试杀死所有找到的进程
-    for pid in all_pids:
+    for proc in all_pids:  # proc is actually a psutil.Process object
         try:
-            proc = psutil.Process(pid)
+            # proc is already a psutil.Process, no need to construct again
+            pid = proc.pid  # Get the PID from the Process object
 
             # 先尝试优雅终止
             try:

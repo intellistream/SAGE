@@ -10,9 +10,11 @@ from typing import Any
 
 import numpy as np
 
+_sage_db: Any = None
+
 try:
     # Prefer relative import when installed as a package
-    from . import _sage_db  # type: ignore
+    from . import _sage_db  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover - repo/local build fallback
     import ctypes
     import importlib
@@ -44,7 +46,6 @@ except ImportError:  # pragma: no cover - repo/local build fallback
             sys.path.insert(0, str(p))
 
     # Try to find the .so file directly
-    _sage_db = None
     for p in candidates:
         if p.exists():
             # Look for _sage_db.*.so files
@@ -94,16 +95,26 @@ except ImportError:  # pragma: no cover - repo/local build fallback
                 break
 
     if _sage_db is None:
-        _sage_db = importlib.import_module("_sage_db")  # type: ignore
+        try:
+            _sage_db = importlib.import_module("_sage_db")  # type: ignore[assignment]
+        except ImportError as e:
+            raise ImportError(
+                f"Failed to import _sage_db module. "
+                f"Please ensure the C++ extension is built. "
+                f"Original error: {e}"
+            ) from e
 
+# Ensure _sage_db is loaded
+if _sage_db is None:
+    raise RuntimeError("_sage_db module could not be loaded")
 
 # Re-export C++ classes and enums
-IndexType = _sage_db.IndexType
-DistanceMetric = _sage_db.DistanceMetric
-QueryResult = _sage_db.QueryResult
-SearchParams = _sage_db.SearchParams
-DatabaseConfig = _sage_db.DatabaseConfig
-SageDBException = _sage_db.SageDBException
+IndexType = _sage_db.IndexType  # type: ignore[union-attr]
+DistanceMetric = _sage_db.DistanceMetric  # type: ignore[union-attr]
+QueryResult = _sage_db.QueryResult  # type: ignore[union-attr]
+SearchParams = _sage_db.SearchParams  # type: ignore[union-attr]
+DatabaseConfig = _sage_db.DatabaseConfig  # type: ignore[union-attr]
+SageDBException = _sage_db.SageDBException  # type: ignore[union-attr]
 
 
 class SageDB:
@@ -119,12 +130,12 @@ class SageDB:
         index_type: IndexType = IndexType.AUTO,
         metric: DistanceMetric = DistanceMetric.L2,
     ):
-        self._db = _sage_db.create_database(dimension, index_type, metric)
+        self._db = _sage_db.create_database(dimension, index_type, metric)  # type: ignore[union-attr]
 
     @classmethod
     def from_config(cls, config: DatabaseConfig):
         instance = cls.__new__(cls)
-        instance._db = _sage_db.create_database(config)
+        instance._db = _sage_db.create_database(config)  # type: ignore[union-attr]
         return instance
 
     def add(
@@ -144,7 +155,7 @@ class SageDB:
         if isinstance(vectors, np.ndarray):
             if len(vectors.shape) != 2:
                 raise ValueError("Vectors array must be 2-dimensional")
-            return _sage_db.add_numpy(self._db, vectors, metadata or [])
+            return _sage_db.add_numpy(self._db, vectors, metadata or [])  # type: ignore[union-attr]
         else:
             return self._db.add_batch(vectors, metadata or [])
 
@@ -155,14 +166,14 @@ class SageDB:
         include_metadata: bool = True,
     ) -> list[QueryResult]:
         if isinstance(query, np.ndarray):
-            return _sage_db.search_numpy(self._db, query, SearchParams(k))
+            return _sage_db.search_numpy(self._db, query, SearchParams(k))  # type: ignore[union-attr]
         return self._db.search(query, k, include_metadata)
 
     def search_with_params(
         self, query: list[float] | np.ndarray, params: SearchParams
     ) -> list[QueryResult]:
         if isinstance(query, np.ndarray):
-            return _sage_db.search_numpy(self._db, query, params)
+            return _sage_db.search_numpy(self._db, query, params)  # type: ignore[union-attr]
         return self._db.search(query, params)
 
     def filtered_search(

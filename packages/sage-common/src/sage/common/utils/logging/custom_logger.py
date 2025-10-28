@@ -411,7 +411,10 @@ class CustomLogger:
             self.logger.removeHandler(target_config["handler"])
 
         # 移除配置
-        self.output_configs.pop(target_index)
+        if target_index is not None:
+            self.output_configs.pop(target_index)
+        else:
+            raise RuntimeError("target_index is None after finding config")
 
         # 更新logger最低级别
         enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
@@ -434,7 +437,10 @@ class CustomLogger:
         frame = inspect.currentframe()
         try:
             # 跳过 _log_with_caller_info -> debug/info/warning/error -> 实际调用位置
-            caller_frame = frame.f_back.f_back
+            if frame and frame.f_back and frame.f_back.f_back:
+                caller_frame = frame.f_back.f_back
+            else:
+                caller_frame = None
             if caller_frame:
                 pathname = caller_frame.f_code.co_filename
                 lineno = caller_frame.f_lineno

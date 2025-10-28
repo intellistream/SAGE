@@ -248,7 +248,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
                 self.logger.warning(f"User profile async service call failed: {e}")
 
             # 在等待的同时做一些本地处理
-            {
+            local_context = {
                 "user_id": user_id,
                 "context": context,
                 "request_time": time.time(),

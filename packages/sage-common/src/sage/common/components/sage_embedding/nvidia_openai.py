@@ -23,7 +23,7 @@ async def nvidia_openai_embed(
     input_type: str = "passage",  # query for retrieval, passage for embedding
     trunc: str = "NONE",  # NONE or START or END
     encode: str = "float",  # float or base64
-) -> list:
+) -> list[float]:
     """
     Generate embedding for a single text using NVIDIA NIM-compatible OpenAI API.
 
@@ -38,7 +38,7 @@ async def nvidia_openai_embed(
     response = await openai_async_client.embeddings.create(
         model=model,
         input=text,
-        encoding_format=encode,
+        encoding_format=encode,  # pyright: ignore[reportArgumentType]
         extra_body={"input_type": input_type, "truncate": trunc},
     )
 
@@ -77,7 +77,7 @@ def nvidia_openai_embed_sync(
     response = client.embeddings.create(
         model=model,
         input=text,
-        encoding_format=encode,
+        encoding_format=encode,  # pyright: ignore[reportArgumentType]
         extra_body={"input_type": input_type, "truncate": trunc},
     )
 

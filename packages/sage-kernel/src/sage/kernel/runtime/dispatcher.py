@@ -293,10 +293,10 @@ class Dispatcher:
                 if hasattr(service_task, "start_running"):
                     service_task.start_running()
                 elif hasattr(service_task, "_actor"):
-                    # ActorWrapper包装的服务
+                    # ActorWrapper包装的服务 (_actor 是 ActorWrapper 的属性)
                     import ray
 
-                    actor_ref = service_task._actor
+                    actor_ref = service_task._actor  # type: ignore[attr-defined]
                     if hasattr(actor_ref, "start_running"):
                         ray.get(actor_ref.start_running.remote())  # type: ignore
                 self.logger.debug(f"Started service task: {service_name}")
@@ -427,7 +427,8 @@ class Dispatcher:
             try:
                 # === 新架构：Scheduler → Decision → Placement ===
                 # 注入 dispatcher 引用到 context (用于容错处理)
-                graph_node.ctx.dispatcher = self
+                # ctx 在此时已经被创建，不会为 None
+                graph_node.ctx.dispatcher = self  # type: ignore[union-attr]
 
                 # 1. 获取调度决策
                 decision = self.scheduler.make_decision(graph_node)
@@ -588,8 +589,8 @@ class Dispatcher:
                 if hasattr(service_task, "get_statistics"):
                     service_status = service_task.get_statistics()
                 elif hasattr(service_task, "_actor"):
-                    # ActorWrapper包装的服务
-                    actor_ref = service_task._actor
+                    # ActorWrapper包装的服务 (_actor 是 ActorWrapper 的属性)
+                    actor_ref = service_task._actor  # type: ignore[attr-defined]
                     if hasattr(actor_ref, "get_statistics"):
                         service_status = actor_ref.get_statistics()  # type: ignore
                     else:

@@ -74,7 +74,7 @@ class SegmentedOrderSource(OrderSource):
         *,
         include_shutdown: bool = False,
     ):
-        super().__init__(orders, include_shutdown=include_shutdown)
+        super().__init__(orders, include_shutdown=include_shutdown)  # type: ignore[arg-type]
         self._segment = segment
 
     def execute(self):

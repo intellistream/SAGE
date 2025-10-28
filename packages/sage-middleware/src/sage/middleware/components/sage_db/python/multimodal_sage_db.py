@@ -11,7 +11,7 @@ import numpy as np
 
 try:
     # 假设编译生成的C++扩展模块
-    import _sage_db
+    import _sage_db  # type: ignore[import-not-found]
 except ImportError:
     print("Warning: C++ extension not available. Using mock implementation.")
     _sage_db = None
@@ -302,7 +302,7 @@ class MultimodalSageDB:
                 )
                 similarities.append(cos_sim)
 
-        return np.mean(similarities) if similarities else 0.0
+        return float(np.mean(similarities)) if similarities else 0.0
 
 
 # 便利函数

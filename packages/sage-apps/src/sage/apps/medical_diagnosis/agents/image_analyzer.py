@@ -66,14 +66,14 @@ class ImageAnalyzer:
         Returns:
             影像特征字典
         """
-        image_path = Path(image_path)
+        image_path_obj = Path(image_path)
 
-        if not image_path.exists():
+        if not image_path_obj.exists():
             # 创建模拟数据用于演示
             return self._create_mock_analysis()
 
         # Step 1: 加载和预处理图像
-        image = self._load_image(image_path)
+        image = self._load_image(image_path_obj)
 
         # Step 2: 质量评估
         quality_score = self._assess_quality(image)

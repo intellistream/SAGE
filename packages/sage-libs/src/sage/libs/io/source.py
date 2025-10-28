@@ -20,7 +20,7 @@ class FileSource(SourceFunction):
         file_pos: Tracks the current position in the file for sequential reading.
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         """
         Initializes the FileSource with the provided configuration and sets the data path for the file.
@@ -105,7 +105,7 @@ class SocketSource(SourceFunction):
     - encoding: 数据编码 (默认utf-8)
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
         self.host = self.config.get("host", "127.0.0.1")
@@ -293,7 +293,7 @@ class TextFileSource(SourceFunction):
     - read_mode: 读取模式 ('all', 'lines') (默认'all')
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
         self.file_path = self.config.get("file_path")
@@ -325,7 +325,7 @@ class JSONFileSource(SourceFunction):
     - encoding: 文件编码 (默认utf-8)
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
         self.file_path = self.config.get("file_path")
@@ -358,7 +358,7 @@ class CSVFileSource(SourceFunction):
     - has_header: 是否有表头 (默认True)
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
         self.file_path = self.config.get("file_path")
@@ -394,7 +394,7 @@ class KafkaSource(SourceFunction):
     - group_id: 消费者组ID
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
         self.bootstrap_servers = self.config.get("bootstrap_servers", ["localhost:9092"])
@@ -420,7 +420,7 @@ class DatabaseSource(SourceFunction):
     - params: 查询参数
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
         self.connection_string = self.config.get("connection_string")
@@ -446,7 +446,7 @@ class APISource(SourceFunction):
     - timeout: 请求超时时间
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
         self.url = self.config.get("url")

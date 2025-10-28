@@ -39,7 +39,7 @@ class BatchOperator(BaseOperator):
             # 发送正常数据包
             # router.send()内部的queue.put()会在队列满时自动阻塞，实现背压控制
             if result is not None:
-                success = self.router.send(Packet(result))
+                success = self.router.send(Packet(result))  # type: ignore[arg-type]
                 # If sending failed (e.g., queue is closed), stop the task
                 if not success:
                     self.logger.warning(

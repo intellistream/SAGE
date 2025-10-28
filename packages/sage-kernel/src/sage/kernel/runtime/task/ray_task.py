@@ -114,8 +114,8 @@ class RayTask(BaseTask):
             self.logger.debug(
                 f"RayTask.put_packet called for {self.ctx.name} with packet: {packet}"
             )
-            # 使用非阻塞方式放入数据包
-            self.input_buffer.put(packet, block=False)
+            # 使用非阻塞方式放入数据包 (input_buffer 在运行时总是有值)
+            self.input_buffer.put(packet, block=False)  # type: ignore[union-attr]
             self.packet_count += 1  # 更新计数
             self.logger.debug(f"RayTask.put_packet succeeded for {self.ctx.name}")
             return True

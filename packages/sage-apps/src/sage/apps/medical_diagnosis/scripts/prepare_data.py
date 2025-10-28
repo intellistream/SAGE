@@ -138,7 +138,9 @@ def prepare_dataset():
     print("\n🔄 准备数据...")
 
     samples = []
-    for i, sample in enumerate(dataset):
+    for i, sample in enumerate(dataset):  # type: ignore[arg-type]
+        if not isinstance(sample, dict):
+            continue
         label = sample["label"]
         image = sample["image"]
 

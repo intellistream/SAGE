@@ -988,3 +988,27 @@ class TestJoinFunctionality:
         # 等待一下确保文件写入完成
         time.sleep(1)
         self._verify_empty_stream_join_results()
+
+    # =====================================================================
+    # 验证方法 - TODO: 实现结果验证逻辑
+    # =====================================================================
+    
+    def _verify_user_payment_join_results(self):
+        """验证用户-支付信息Join结果"""
+        # TODO: 实现验证逻辑
+        pass
+    
+    def _verify_order_event_join_results(self):
+        """验证订单-事件Join结果"""
+        # TODO: 实现验证逻辑
+        pass
+    
+    def _verify_complex_multi_join_results(self):
+        """验证复杂多重Join结果"""
+        # TODO: 实现验证逻辑
+        pass
+    
+    def _verify_empty_stream_join_results(self):
+        """验证空流Join结果"""
+        # TODO: 实现验证逻辑
+        pass

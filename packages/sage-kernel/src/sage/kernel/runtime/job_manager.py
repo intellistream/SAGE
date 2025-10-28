@@ -89,7 +89,8 @@ class JobManager:  # Job Manager
         """运行JobManager直到收到停止信号"""
 
         self.logger.info("JobManager started successfully")
-        self.logger.info(f"TCP service listening on {self.server.host}:{self.server.port}")
+        if self.server:  # daemon 启用时才显示 TCP 服务信息
+            self.logger.info(f"TCP service listening on {self.server.host}:{self.server.port}")
         self.logger.info("Press Ctrl+C to stop...")
 
         try:

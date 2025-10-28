@@ -79,8 +79,8 @@ class DPMemoryService(BaseService):
                 "backend_type": "FAISS",
                 "description": "Global index for similarity search",
             }
-            collection.create_index(index_config)
-            collection.init_index("global_index")
+            collection.create_index(index_config)  # type: ignore[attr-defined]
+            collection.init_index("global_index")  # type: ignore[attr-defined]
 
             self.logger.info(f"✓ Created collection: {collection_name}")
             return True
@@ -115,7 +115,7 @@ class DPMemoryService(BaseService):
                 return None
 
             # 使用 insert 方法存储数据
-            memory_id = collection.insert(
+            memory_id = collection.insert(  # type: ignore[call-arg]
                 raw_data=content, index_name="global_index", metadata=metadata
             )
 
@@ -146,14 +146,14 @@ class DPMemoryService(BaseService):
                 self.logger.error(f"Collection not found: {collection_name}")
                 return []
 
-            results = collection.retrieve(
+            results = collection.retrieve(  # type: ignore[call-arg]
                 raw_data=query_text,
                 index_name="global_index",
                 topk=topk,
                 with_metadata=True,
             )
 
-            return results
+            return results  # type: ignore[return-value]
 
         except Exception as e:
             self.logger.error(f"Error retrieving memories: {e}")
@@ -186,7 +186,7 @@ class DPMemoryService(BaseService):
                 }
 
             # 从 VDB index 获取要遗忘的向量
-            index = collection.index_info.get("global_index", {}).get("index")
+            index = collection.index_info.get("global_index", {}).get("index")  # type: ignore[attr-defined]
             if index is None:
                 self.logger.error(f"Index not found in collection: {collection_name}")
                 return {"success": False, "error": "Index not found"}

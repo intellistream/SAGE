@@ -30,7 +30,12 @@ class FlatMapOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.out: Collector = Collector(self.ctx)
-        self.function.insert_collector(self.out)
+        # Insert collector into function if it has the insert_collector method
+        # FlatMapFunction has this method, BaseFunction doesn't
+        if hasattr(self.function, "insert_collector") and callable(
+            getattr(self.function, "insert_collector")
+        ):
+            self.function.insert_collector(self.out)  # type: ignore[attr-defined]
         self.logger.info(f"FlatMapOperator '{self.name}' initialized with collector")
 
     def process_packet(self, packet: "Packet | None" = None):
@@ -65,7 +70,7 @@ class FlatMapOperator(BaseOperator):
                 for item_data in collected_data:
                     # 为每个收集的item创建新packet，继承分区信息
                     result_packet = packet.inherit_partition_info(item_data)
-                    self.router.send(result_packet)
+                    self.router.send(result_packet)  # type: ignore[arg-type]
                 # 清空collector
                 self.out.clear()
 
@@ -98,7 +103,7 @@ class FlatMapOperator(BaseOperator):
                 for item in result:
                     # 为每个item创建新packet，继承分区信息
                     result_packet = source_packet.inherit_partition_info(item)
-                    self.router.send(result_packet)
+                    self.router.send(result_packet)  # type: ignore[arg-type]
                     count += 1
                 self.logger.debug(
                     f"FlatMapOperator '{self.name}' emitted {count} items from iterable"
@@ -106,7 +111,7 @@ class FlatMapOperator(BaseOperator):
             else:
                 # 如果不是可迭代对象，直接发送
                 result_packet = source_packet.inherit_partition_info(result)
-                self.router.send(result_packet)
+                self.router.send(result_packet)  # type: ignore[arg-type]
                 self.logger.debug(f"FlatMapOperator '{self.name}' emitted single item: {result}")
 
         except Exception as e:

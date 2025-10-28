@@ -55,7 +55,8 @@ class SceneConceptExtractor(MapFunction):
                 model_name,
                 dtype=torch.float16 if self.device == "cuda" else torch.float32,
                 low_cpu_mem_usage=True,
-            ).to(self.device)
+            )
+            self.model = self.model.to(self.device)  # type: ignore[assignment]
             self.processor = CLIPProcessor.from_pretrained(model_name)
             self.logger.info("CLIP model loaded successfully")
             self.model_available = True
@@ -69,12 +70,15 @@ class SceneConceptExtractor(MapFunction):
             self.model_available = False
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
-        pil_image: Image.Image = data.get("pil_image")
-        if pil_image is None:
+        pil_image_raw = data.get("pil_image")
+        if pil_image_raw is None:
             return data
+        if not isinstance(pil_image_raw, Image.Image):
+            return data
+        pil_image: Image.Image = pil_image_raw
 
         # If model failed to load, passthrough without scene concepts
-        if not self.model_available:
+        if not self.model_available or not self.processor or not self.model:
             data["scene_concepts"] = []
             data["scene_vector"] = None
             return data
@@ -154,12 +158,15 @@ class FrameObjectClassifier(MapFunction):
             self.model_available = False
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
-        pil_image: Image.Image = data.get("pil_image")
-        if pil_image is None:
+        pil_image_raw = data.get("pil_image")
+        if pil_image_raw is None:
             return data
+        if not isinstance(pil_image_raw, Image.Image):
+            return data
+        pil_image: Image.Image = pil_image_raw
 
         # If model failed to load, passthrough without object detection
-        if not self.model_available:
+        if not self.model_available or not self.preprocess or not self.model or not self.categories:
             data["detected_objects"] = []
             return data
 

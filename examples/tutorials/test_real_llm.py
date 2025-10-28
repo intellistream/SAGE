@@ -50,7 +50,7 @@ def test_real_llm_pipeline_generation():
         from sage.cli.commands.apps import pipeline as pipeline_builder
         from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
         from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
-        from sage.tools import templates
+        from sage.cli import templates
 
         console.print("✓ 模块导入成功\n")
     except Exception as exc:
@@ -164,7 +164,7 @@ def test_real_llm_pipeline_generation():
     # 验证配置
     console.print("\n[bold]步骤 9: 验证配置[/bold]")
     try:
-        from sage.tools.cli.commands.chat import _validate_pipeline_config
+        from sage.cli.commands.apps.chat import _validate_pipeline_config
 
         is_valid, errors = _validate_pipeline_config(plan)
         if is_valid:

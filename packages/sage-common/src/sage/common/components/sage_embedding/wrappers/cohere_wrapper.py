@@ -140,7 +140,7 @@ class CohereEmbedding(BaseEmbedding):
                 input_type=self._input_type,
                 embedding_types=self._embedding_types,
             )
-            return response.embeddings[0]  # 返回第一个结果
+            return response.embeddings[0]  # pyright: ignore[reportReturnType, reportIndexIssue]
         except Exception as e:
             raise RuntimeError(
                 f"Cohere embedding 失败: {e}\n"
@@ -171,7 +171,7 @@ class CohereEmbedding(BaseEmbedding):
                 input_type=self._input_type,
                 embedding_types=self._embedding_types,
             )
-            return response.embeddings
+            return response.embeddings  # pyright: ignore[reportReturnType]
         except Exception as e:
             raise RuntimeError(
                 f"Cohere 批量 embedding 失败: {e}\n"

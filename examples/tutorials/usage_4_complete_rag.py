@@ -31,7 +31,7 @@ from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryMa
 class RAGUnlearningSystem(BaseService):
     """RAG 系统中的隐私遗忘管理"""
 
-    def __init__(self, data_dir: str = None, epsilon: float = 1.0):
+    def __init__(self, data_dir: str | None = None, epsilon: float = 1.0):
         super().__init__()
 
         if data_dir is None:
@@ -84,17 +84,17 @@ class RAGUnlearningSystem(BaseService):
                 "backend_type": "FAISS",
                 "description": "Content search index",
             }
-            collection.create_index(index_config)
+            collection.create_index(index_config)  # type: ignore[attr-defined]
 
             # 插入文档
             for doc in documents:
-                collection.insert(
+                collection.insert(  # type: ignore[call-arg]
                     raw_data=doc["content"],
                     index_name="content_index",
                     metadata=doc.get("metadata", {}),
                 )
 
-            collection.init_index("content_index")
+            collection.init_index("content_index")  # type: ignore[attr-defined]
             self.manager.store_collection(collection_name)
 
             self.logger.info(f"✓ Initialized RAG corpus with {len(documents)} documents")
@@ -122,7 +122,7 @@ class RAGUnlearningSystem(BaseService):
                 with_metadata=True,
             )
 
-            return results
+            return results  # type: ignore[return-value]
 
         except Exception as e:
             self.logger.error(f"Error retrieving documents: {e}")
@@ -133,7 +133,7 @@ class RAGUnlearningSystem(BaseService):
         collection_name: str,
         document_ids: List[str],
         reason: str = "user_request",
-        user_id: str = None,
+        user_id: str | None = None,
     ) -> Dict[str, Any]:
         """
         遗忘指定的文档
@@ -152,7 +152,7 @@ class RAGUnlearningSystem(BaseService):
             if collection is None:
                 return {"success": False, "error": "Collection not found"}
 
-            index = collection.index_info.get("content_index", {}).get("index")
+            index = collection.index_info.get("content_index", {}).get("index")  # type: ignore[attr-defined]
             if index is None:
                 return {"success": False, "error": "Index not found"}
 
@@ -250,7 +250,7 @@ class RAGUnlearningSystem(BaseService):
             return {"success": False, "error": str(e)}
 
     def handle_user_deletion_request(
-        self, collection_name: str, user_id: str, user_keywords: List[str] = None
+        self, collection_name: str, user_id: str, user_keywords: List[str] | None = None
     ) -> Dict[str, Any]:
         """
         处理用户数据删除请求（如 GDPR 删除权）
@@ -362,7 +362,7 @@ class RAGUnlearningSystem(BaseService):
         """获取审计日志"""
         return self.audit_log
 
-    def _audit_log(self, operation: str, collection: str, count: int, extra: Dict = None):
+    def _audit_log(self, operation: str, collection: str, count: int, extra: Dict | None = None):
         """记录审计事件"""
         log_entry = {
             "timestamp": datetime.now().isoformat(),

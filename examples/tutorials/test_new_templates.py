@@ -15,8 +15,8 @@ from rich.panel import Panel
 project_root = os.path.join(os.path.dirname(__file__), "../..")
 sys.path.insert(0, project_root)
 
-from sage.tools.cli.commands.pipeline import PipelinePlanGenerator  # noqa: E402
-from sage.tools.templates.catalog import match_templates  # noqa: E402
+from sage.cli.commands.apps.pipeline import PipelinePlanGenerator  # noqa: E402
+from sage.cli.templates.catalog import match_templates  # noqa: E402
 
 console = Console()
 
@@ -42,15 +42,31 @@ def test_template_with_llm(scenario_name: str, requirements: dict):
 
     # 创建生成器
     try:
-        from sage.tools.cli.commands.pipeline import PipelineBuilderConfig, load_domain_contexts
+        import os
+
+        from sage.cli.commands.apps.pipeline import BuilderConfig
+        from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
+
+        # 检查是否有 API 配置
+        api_key = os.getenv("TEMP_GENERATOR_API_KEY")
+        base_url = os.getenv("TEMP_GENERATOR_BASE_URL")
+        model = os.getenv("TEMP_GENERATOR_MODEL", "gpt-4")
+
+        if not api_key or api_key.startswith("your_"):
+            console.print("\n⚠️  API Key 未配置，跳过 LLM 生成测试", style="yellow")
+            console.print("[dim]提示: 配置 TEMP_GENERATOR_API_KEY 环境变量来运行此测试[/dim]")
+            return False
 
         # 加载领域上下文
         domain_contexts = list(load_domain_contexts(limit=3))
         console.print(f"\n✅ 加载了 {len(domain_contexts)} 个领域上下文", style="green")
 
         # 创建配置
-        config = PipelineBuilderConfig(
+        config = BuilderConfig(
             backend="openai",  # 使用真实 API
+            model=model,  # 模型名称
+            base_url=base_url,  # API URL
+            api_key=api_key,  # API Key
             domain_contexts=tuple(domain_contexts),
             knowledge_base=None,  # 简化测试
         )

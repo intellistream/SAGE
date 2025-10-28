@@ -240,7 +240,7 @@ def download_model(
     if not progress:
         download_kwargs.setdefault("progress", False)
 
-    resolved_path = Path(snapshot_download(**download_kwargs))
+    resolved_path = Path(snapshot_download(**download_kwargs))  # type: ignore[arg-type]
 
     size_bytes = _compute_size_bytes(resolved_path)
     now = time.time()

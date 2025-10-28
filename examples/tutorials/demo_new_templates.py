@@ -7,7 +7,7 @@
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-from sage.tools.templates.catalog import get_template, list_templates
+from sage.cli.templates.catalog import get_template, list_templates
 
 console = Console()
 
@@ -90,7 +90,7 @@ def demo_template_usage():
 ## 方式一: 在代码中使用
 
 ```python
-from sage.tools.templates.catalog import get_template
+from sage.cli.templates.catalog import get_template
 
 # 获取模板
 template = get_template("rag-dense-milvus")
@@ -115,7 +115,7 @@ sage chat
 ## 方式三: 匹配最佳模板
 
 ```python
-from sage.tools.templates.catalog import match_templates
+from sage.cli.templates.catalog import match_templates
 
 requirements = {
     "name": "智能问答系统",

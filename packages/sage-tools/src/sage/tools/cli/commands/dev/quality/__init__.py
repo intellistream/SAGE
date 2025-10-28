@@ -38,6 +38,11 @@ def check_all(
         "--devnotes/--no-devnotes",
         help="运行 dev-notes 检查",
     ),
+    examples: bool = typer.Option(
+        True,
+        "--examples/--no-examples",
+        help="运行 examples 目录结构检查",
+    ),
     readme: bool = typer.Option(
         False,
         "--readme",
@@ -57,7 +62,7 @@ def check_all(
     默认行为：
     - 只检查变更的文件（使用 --all-files 检查所有文件）
     - 自动修复可修复的问题（使用 --check-only 只检查不修复）
-    - 运行架构和 dev-notes 检查（使用 --no-architecture 或 --no-devnotes 跳过）
+    - 运行架构、dev-notes 和 examples 检查（使用 --no-* 跳过）
 
     示例：
         sage-dev quality check                # 检查变更文件，自动修复
@@ -65,6 +70,7 @@ def check_all(
         sage-dev quality check --check-only   # 只检查不修复
         sage-dev quality check --readme       # 包含 README 检查
         sage-dev quality check --no-architecture  # 跳过架构检查
+        sage-dev quality check --no-examples     # 跳过 examples 检查
     """
     from sage.tools.cli.commands.dev.main import quality
 
@@ -76,6 +82,7 @@ def check_all(
         hook=None,  # 运行所有 hooks
         architecture=architecture,
         devnotes=devnotes,
+        examples=examples,
         readme=readme,
         include_submodules=False,
         submodules_only=False,
@@ -149,6 +156,27 @@ def check_readme(
         sage-dev quality readme
     """
     if not _run_readme_check(warn_only=warn_only):
+        if not warn_only:
+            raise typer.Exit(1)
+
+
+@app.command(name="examples")
+def check_examples(
+    warn_only: bool = typer.Option(
+        False,
+        "--warn-only",
+        help="只给警告，不中断运行",
+    ),
+):
+    """
+    📁 Examples 目录结构检查
+
+    检查 examples/ 目录是否符合规范（只允许 apps/ 和 tutorials/ 两个顶层目录）。
+
+    示例：
+        sage-dev quality examples
+    """
+    if not _run_examples_check(warn_only=warn_only):
         if not warn_only:
             raise typer.Exit(1)
 
@@ -254,6 +282,56 @@ def _run_readme_check(warn_only: bool = False) -> bool:
             return True
     except Exception as e:
         console.print(f"[red]README 检查失败: {e}[/red]")
+        import traceback
+
+        traceback.print_exc()
+        return False
+
+
+def _run_examples_check(warn_only: bool = False) -> bool:
+    """运行 examples 目录结构检查"""
+    try:
+        from pathlib import Path
+
+        from sage.tools.cli.core.utils import find_project_root
+        from sage.tools.dev.tools.examples_structure_checker import (
+            ExamplesStructureChecker,
+        )
+
+        # 获取项目根目录
+        root_dir = find_project_root()
+        if root_dir is None:
+            console.print("[red]错误: 无法找到项目根目录[/red]")
+            return False
+
+        examples_dir = Path(root_dir) / "examples"
+        if not examples_dir.exists():
+            console.print(f"[yellow]警告: examples 目录不存在: {examples_dir}[/yellow]")
+            return True  # 如果目录不存在，不算失败
+
+        checker = ExamplesStructureChecker(examples_dir)
+        result = checker.check_structure()
+
+        if result.passed:
+            console.print("[green]✓ examples 目录结构检查通过[/green]")
+            return True
+
+        # 显示错误
+        console.print(f"[red]发现 {len(result.violations)} 个结构问题[/red]")
+        for violation in result.violations:
+            console.print(f"  [yellow]{violation}[/yellow]")
+
+        if result.unexpected_dirs:
+            console.print("\n[yellow]不符合规范的目录:[/yellow]")
+            for dir_name in result.unexpected_dirs:
+                console.print(f"  • {dir_name}/")
+
+        # 显示规范指南
+        console.print(f"\n{checker.get_structure_guide()}")
+
+        return False if not warn_only else True
+    except Exception as e:
+        console.print(f"[red]examples 检查失败: {e}[/red]")
         import traceback
 
         traceback.print_exc()

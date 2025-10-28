@@ -6,16 +6,15 @@ Context Injection Utilities
 """
 
 import logging
-from typing import Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 # 定义类型变量
 T = TypeVar("T")
-ContextType = TypeVar("ContextType")
 
 
 def create_with_context(
     target_class: type[T],
-    context: ContextType | None,
+    context: Any,
     context_attr_name: str = "ctx",
     *args,
     **kwargs,

@@ -11,8 +11,8 @@ import json
 
 from rich.console import Console
 from rich.panel import Panel
-from sage.tools import templates
-from sage.tools.cli.commands.pipeline import _template_contexts
+from sage.cli import templates
+from sage.cli.commands.apps.pipeline import _template_contexts
 
 console = Console()
 

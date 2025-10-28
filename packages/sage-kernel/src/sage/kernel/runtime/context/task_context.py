@@ -10,6 +10,7 @@ from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.api.operator.base_operator import BaseOperator
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.communication.router.packet import Packet
     from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
@@ -21,6 +22,9 @@ if TYPE_CHECKING:
 class TaskContext(BaseRuntimeContext):
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
+    
+    # 动态注入的属性类型声明
+    operator: "BaseOperator"  # 在 task 初始化时注入
 
     def __init__(
         self,
@@ -73,7 +77,8 @@ class TaskContext(BaseRuntimeContext):
         self._service_names: dict[str, str] | None = None  # 只保存服务名称映射而不是实例
 
         # 队列描述符管理 - 在构造时从graph_node和execution_graph获取
-        self.input_qd: BaseQueueDescriptor = graph_node.input_qd
+        # graph_node.input_qd 可能为 None，但在运行时实际总是有值的
+        self.input_qd: BaseQueueDescriptor = graph_node.input_qd  # type: ignore[assignment]
         self.response_qd: BaseQueueDescriptor = graph_node.service_response_qd
 
         # 从execution_graph的提取好的映射表获取service队列描述符 - 简化逻辑
@@ -250,7 +255,8 @@ class TaskContext(BaseRuntimeContext):
         # Check if this is a JoinOperator that should handle stop signals specially
         if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):
             # Let the operator handle the stop signal itself
-            self.operator.handle_stop_signal(signal=signal)
+            # JoinOperator has special stop signal handling logic
+            self.operator.handle_stop_signal(signal=signal)  # type: ignore[attr-defined]
             return
 
         # Initialize stop signal tracking attributes if they don't exist

@@ -235,9 +235,11 @@ class IntegrationTestHelper:
     @staticmethod
     def create_full_pipeline_scenario():
         """创建完整管道场景"""
-        from sage.kernel.api.pipeline import DataTransformStep, FilterStep, Pipeline
+        # TODO: sage.kernel.api.pipeline 模块已被移除或重构
+        # from sage.kernel.api.pipeline import DataTransformStep, FilterStep, Pipeline
+        raise NotImplementedError("Pipeline API has been refactored or removed")
 
-        pipeline = Pipeline("integration_test_pipeline")
+        # pipeline = Pipeline("integration_test_pipeline")
 
         # 添加转换步骤
         transform_step = DataTransformStep("transform", lambda x: f"transformed_{x}")

@@ -120,7 +120,7 @@ class ConnectedStreams:
         Returns:
             DataStream: 返回新的数据流用于链式调用
         """
-        from sage_libs.io.sink import PrintSink
+        from sage.libs.io.sink import PrintSink
 
         return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
@@ -135,10 +135,10 @@ class ConnectedStreams:
         """
         if hasattr(other, "transformation"):  # DataStream
             # ConnectedStreams + DataStream -> ConnectedStreams
-            new_transformations = self.transformations + [other.transformation]
+            new_transformations = self.transformations + [other.transformation]  # type: ignore[attr-defined]
         else:  # ConnectedStreams
             # ConnectedStreams + ConnectedStreams -> ConnectedStreams
-            new_transformations = self.transformations + other.transformations
+            new_transformations = self.transformations + other.transformations  # type: ignore[attr-defined]
 
         return ConnectedStreams(self._environment, new_transformations)
 

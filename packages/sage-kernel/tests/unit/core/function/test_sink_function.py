@@ -146,9 +146,9 @@ class TestSinkFunction:
     def test_abstract_method_enforcement(self):
         """测试抽象方法强制实现"""
 
-        # 尝试直接实例化抽象类，应该失败
+        # 尝试直接实例化抽象类，应该失败（故意触发 TypeError）
         with pytest.raises(TypeError):
-            SinkFunction()
+            SinkFunction()  # type: ignore[abstract]
 
     def test_inheritance_from_base_function(self):
         """测试从BaseFunction的继承"""

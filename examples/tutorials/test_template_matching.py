@@ -12,7 +12,7 @@ from rich.table import Table
 project_root = os.path.join(os.path.dirname(__file__), "../..")
 sys.path.insert(0, project_root)
 
-from sage.tools.templates.catalog import list_templates, match_templates  # noqa: E402
+from sage.cli.templates.catalog import list_templates, match_templates  # noqa: E402
 
 console = Console()
 

@@ -29,12 +29,14 @@ class HFDatasetBatch(BatchFunction):
         _iter: 数据集迭代器
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         if not HAS_DATASETS:
             raise ImportError(
                 "datasets library is required for HFDatasetBatch. Install with: pip install datasets"
             )
+        if config is None:
+            raise ValueError("config is required for HFDatasetBatch")
         self.config = config
         self.hf_name = config["hf_dataset_name"]
         self.hf_config = config.get("hf_dataset_config")
@@ -46,10 +48,12 @@ class HFDatasetBatch(BatchFunction):
         """构建数据集迭代器"""
         ds = load_dataset(self.hf_name, self.hf_config, split=self.hf_split, streaming=True)
         for ex in ds:
-            yield {
-                "query": ex.get("question", ""),
-                "references": ex.get("golden_answers") or [],
-            }
+            # Type hint: ex is a dict-like object from HuggingFace datasets
+            if isinstance(ex, dict):
+                yield {
+                    "query": ex.get("question", ""),
+                    "references": ex.get("golden_answers") or [],
+                }
 
     def execute(self):
         """
@@ -92,8 +96,10 @@ class JSONLBatch(BatchFunction):
         _file_exhausted: 文件是否已读取完毕
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
+        if config is None:
+            raise ValueError("config is required for JsonlFileBatch")
         self.config = config
         self.file_path = config["data_path"]
         self._file_handle = None
@@ -120,6 +126,8 @@ class JSONLBatch(BatchFunction):
         if self._file_handle is None:
             self.logger.debug(f"Initializing JSONL batch source: {self.file_path}")
             self._open_file()
+
+        assert self._file_handle is not None, "File handle should be initialized"
 
         try:
             line = self._file_handle.readline()

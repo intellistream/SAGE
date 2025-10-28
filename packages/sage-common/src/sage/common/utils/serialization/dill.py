@@ -171,7 +171,7 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
                     cleaned_item = _preprocess_for_dill(item, _seen, _object_map)
                     if cleaned_item is not _SKIP_VALUE:
                         cleaned.append(cleaned_item)
-            return type(obj)(cleaned) if cleaned else []
+            return type(obj)(cleaned) if cleaned else []  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -185,7 +185,7 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
                     cleaned_item = _preprocess_for_dill(item, _seen, _object_map)
                     if cleaned_item is not _SKIP_VALUE:
                         cleaned.add(cleaned_item)
-            return type(obj)(cleaned) if cleaned else set()
+            return type(obj)(cleaned) if cleaned else set()  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -200,7 +200,7 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
 
             # 尝试创建空实例
             try:
-                cleaned_obj = obj_class.__new__(obj_class)
+                cleaned_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
             except Exception:
                 # 如果无法创建空实例，返回原对象让dill处理
                 return obj
@@ -291,7 +291,7 @@ def _postprocess_from_dill(obj, _seen=None):
                     cleaned_item = _postprocess_from_dill(item, _seen)
                     # 保留所有值，包括None、False、0等
                     cleaned.append(cleaned_item)
-            return type(obj)(cleaned)
+            return type(obj)(cleaned)  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -306,7 +306,7 @@ def _postprocess_from_dill(obj, _seen=None):
                     # 集合中不能包含None，但可以包含False、0等
                     if cleaned_item is not None:
                         cleaned.add(cleaned_item)
-            return type(obj)(cleaned)
+            return type(obj)(cleaned)  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -546,7 +546,7 @@ def trim_object_for_ray(
                 # 创建新对象并设置过滤后的属性
                 obj_class = type(cleaned_obj)
                 try:
-                    final_obj = obj_class.__new__(obj_class)
+                    final_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
                     for attr_name, attr_value in filtered_attrs.items():
                         try:
                             setattr(final_obj, attr_name, attr_value)
@@ -594,7 +594,7 @@ class RayObjectTrimmer:
 
                 obj_class = type(obj)
                 try:
-                    cleaned_obj = obj_class.__new__(obj_class)
+                    cleaned_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
                     for attr_name, attr_value in filtered_attrs.items():
                         if not _should_skip(attr_value):
                             try:
@@ -667,7 +667,7 @@ class RayObjectTrimmer:
 
         try:
             # 尝试Ray的内部序列化
-            serialized = ray.cloudpickle.dumps(obj)
+            serialized = ray.cloudpickle.dumps(obj)  # type: ignore[attr-defined]
             result["is_serializable"] = True
             result["size_estimate"] = len(serialized)
 

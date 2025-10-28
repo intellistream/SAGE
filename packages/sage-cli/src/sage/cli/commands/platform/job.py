@@ -61,13 +61,20 @@ class JobManagerCLI:
             if not self.connect():
                 raise Exception("Not connected to JobManager")
 
+    def _get_client(self) -> JobManagerClient:
+        """获取已连接的客户端"""
+        self.ensure_connected()
+        if not self.client:
+            raise Exception("Client not initialized")
+        return self.client
+
     def _resolve_job_identifier(self, identifier: str) -> str | None:
         """解析作业标识符（可以是作业编号或UUID）"""
         try:
-            self.ensure_connected()
+            client = self._get_client()
 
             # 获取作业列表
-            response = self.client.list_jobs()
+            response = client.list_jobs()
             if response.get("status") != "success":
                 raise Exception(f"Failed to get job list: {response.get('message')}")
 
@@ -120,7 +127,7 @@ def list_jobs(
     """列出所有作业"""
     try:
         cli.ensure_connected()
-        response = cli.client.list_jobs()
+        response = cli._get_client().list_jobs()
         if response.get("status") != "success":
             raise Exception(f"Failed to get job list: {response.get('message')}")
 
@@ -154,7 +161,7 @@ def show_job(
             raise typer.Exit(1)
 
         cli.ensure_connected()
-        response = cli.client.get_job_status(job_uuid)
+        response = cli._get_client().get_job_status(job_uuid)
         if response.get("status") != "success":
             raise Exception(f"Failed to get job status: {response.get('message')}")
 
@@ -187,20 +194,21 @@ def stop_job(
 
         # 确认操作
         if not force:
-            response = cli.client.get_job_status(job_uuid)
+            response = cli._get_client().get_job_status(job_uuid)
             if response.get("status") == "success" and response.get("job_status"):
                 job_info = response.get("job_status")
-                job_name = job_info.get("name", "unknown")
-                job_status = job_info.get("status", "unknown")
-                print(f"Job to stop: {job_name} ({job_uuid})")
-                print(f"Current status: {job_status}")
+                if job_info:
+                    job_name = job_info.get("name", "unknown")
+                    job_status = job_info.get("status", "unknown")
+                    print(f"Job to stop: {job_name} ({job_uuid})")
+                    print(f"Current status: {job_status}")
 
             if not typer.confirm("Are you sure you want to stop this job?"):
                 print("ℹ️ Operation cancelled")
                 return
 
         # 停止作业
-        result = cli.client.pause_job(job_uuid)
+        result = cli._get_client().pause_job(job_uuid)
 
         if result.get("status") == "stopped":
             print(f"✅ Job {job_uuid[:8]}... stopped successfully")
@@ -233,20 +241,21 @@ def continue_job(
 
         # 确认操作
         if not force:
-            response = cli.client.get_job_status(job_uuid)
+            response = cli._get_client().get_job_status(job_uuid)
             if response.get("status") == "success" and response.get("job_status"):
                 job_info = response.get("job_status")
-                job_name = job_info.get("name", "unknown")
-                job_status = job_info.get("status", "unknown")
-                print(f"Job to continue: {job_name} ({job_uuid})")
-                print(f"Current status: {job_status}")
+                if job_info:
+                    job_name = job_info.get("name", "unknown")
+                    job_status = job_info.get("status", "unknown")
+                    print(f"Job to continue: {job_name} ({job_uuid})")
+                    print(f"Current status: {job_status}")
 
             if not typer.confirm("Are you sure you want to continue this job?"):
                 print("ℹ️ Operation cancelled")
                 return
 
         # 继续作业
-        result = cli.client.continue_job(job_uuid)
+        result = cli._get_client().continue_job(job_uuid)
 
         if result.get("status") == "running":
             print(f"✅ Job {job_uuid[:8]}... continued successfully")
@@ -279,13 +288,14 @@ def delete_job(
 
         # 确认操作
         if not force:
-            response = cli.client.get_job_status(job_uuid)
+            response = cli._get_client().get_job_status(job_uuid)
             if response.get("status") == "success" and response.get("job_status"):
                 job_info = response.get("job_status")
-                job_name = job_info.get("name", "unknown")
-                job_status = job_info.get("status", "unknown")
-                print(f"Job to delete: {job_name} ({job_uuid})")
-                print(f"Current status: {job_status}")
+                if job_info:
+                    job_name = job_info.get("name", "unknown")
+                    job_status = job_info.get("status", "unknown")
+                    print(f"Job to delete: {job_name} ({job_uuid})")
+                    print(f"Current status: {job_status}")
 
             if not typer.confirm(
                 "Are you sure you want to delete this job? This action cannot be undone."
@@ -294,7 +304,7 @@ def delete_job(
                 return
 
         # 删除作业
-        result = cli.client.delete_job(job_uuid, force=force)
+        result = cli._get_client().delete_job(job_uuid, force=force)
         print(f"✅ Job {job_uuid[:8]}... deleted . message:{result.get('message')})")
 
     except Exception as e:
@@ -312,7 +322,7 @@ def job_status(job_identifier: str = typer.Argument(..., help="作业编号或UU
             raise typer.Exit(1)
 
         cli.ensure_connected()
-        response = cli.client.get_job_status(job_uuid)
+        response = cli._get_client().get_job_status(job_uuid)
         if response.get("status") != "success":
             raise Exception(f"Failed to get job status: {response.get('message')}")
 
@@ -339,7 +349,7 @@ def cleanup_jobs(force: bool = typer.Option(False, "--force", "-f", help="强制
 
         # 确认操作
         if not force:
-            response = cli.client.list_jobs()
+            response = cli._get_client().list_jobs()
             if response.get("status") != "success":
                 raise Exception(f"Failed to get job list: {response.get('message')}")
 
@@ -357,7 +367,7 @@ def cleanup_jobs(force: bool = typer.Option(False, "--force", "-f", help="强制
                 return
 
         # 清理所有作业
-        result = cli.client.cleanup_all_jobs()
+        result = cli._get_client().cleanup_all_jobs()
 
         if result.get("status") == "success":
             print(f"✅ {result.get('message')}")
@@ -377,7 +387,7 @@ def health_check():
         if not cli.client:
             cli.client = JobManagerClient(cli.daemon_host, cli.daemon_port)
 
-        health = cli.client.health_check()
+        health = cli._get_client().health_check()
 
         if health.get("status") == "success":
             print("✅ JobManager is healthy")
@@ -401,7 +411,7 @@ def system_info():
         cli.ensure_connected()
 
         # 获取系统信息
-        response = cli.client.get_server_info()
+        response = cli._get_client().get_server_info()
         if response.get("status") != "success":
             raise Exception(f"Failed to get server info: {response.get('message')}")
 
@@ -453,7 +463,7 @@ def monitor_jobs(refresh: int = typer.Option(5, "--refresh", "-r", help="刷新�
             print()
 
             # 获取并显示作业列表
-            response = cli.client.list_jobs()
+            response = cli._get_client().list_jobs()
             if response.get("status") == "success":
                 jobs = response.get("jobs", [])
                 _format_job_table(jobs)
@@ -497,7 +507,7 @@ def watch_job(
             os.system("clear" if os.name == "posix" else "cls")
 
             # 显示作业详情
-            response = cli.client.get_job_status(job_uuid)
+            response = cli._get_client().get_job_status(job_uuid)
             if response.get("status") == "success":
                 job_info = response.get("job_status")
                 if job_info:

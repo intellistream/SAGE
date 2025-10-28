@@ -126,6 +126,9 @@ class ConnectedDebugSink(SinkFunction):
         if self.ctx:
             self.parallel_index = self.ctx.parallel_index
 
+        # parallel_index 在运行时总是被设置的
+        assert self.parallel_index is not None, "parallel_index must be set"
+        
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []
@@ -164,7 +167,8 @@ class ConnectedDebugSink(SinkFunction):
 class JoinCoMapFunction(BaseCoMapFunction):
     """示例CoMap函数，用于连接用户和事件数据"""
 
-    is_comap = True
+    # is_comap 在 BaseCoMapFunction 中已经定义为 @property，不需要重复定义
+    # is_comap = True  # 移除这行
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -316,9 +320,9 @@ class TestConnectedStreamsKeyBy:
         with pytest.raises(ValueError, match="Key selector count .* must match stream count"):
             connected.keyby([UserIdKeyExtractor])  # 只有1个selector，但有2个stream
 
-        # 测试2：Lambda函数不支持
+        # 测试2：Lambda函数不支持（故意传入 lambda 来测试错误处理）
         with pytest.raises(NotImplementedError, match="Lambda functions are not supported"):
-            connected.keyby(lambda x: x["user_id"])
+            connected.keyby(lambda x: x["user_id"])  # type: ignore[arg-type]
 
         print("✅ Invalid configuration tests passed")
 

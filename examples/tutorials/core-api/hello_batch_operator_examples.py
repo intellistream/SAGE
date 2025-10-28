@@ -140,12 +140,28 @@ class CustomDataBatchFunction(BatchFunction):
         super().__init__(ctx, **kwargs)
         self.data_generator_func = data_generator_func
         self.total_count = total_count
+        self._generator = None
+        self._finished = False
 
     def get_total_count(self) -> int:
         return self.total_count
 
     def get_data_source(self) -> Iterator[Any]:
         return self.data_generator_func()
+
+    def execute(self):
+        """执行批处理函数，返回下一个数据项"""
+        if self._finished:
+            return None
+        
+        if self._generator is None:
+            self._generator = self.data_generator_func()
+        
+        try:
+            return next(self._generator)
+        except StopIteration:
+            self._finished = True
+            return None
 
 
 def create_sample_batch_tasks():

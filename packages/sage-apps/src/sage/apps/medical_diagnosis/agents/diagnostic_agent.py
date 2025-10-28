@@ -108,6 +108,8 @@ class DiagnosticAgent:
         if verbose:
             print("\n📊 Step 1: 影像特征提取...")
 
+        if not self.image_analyzer:
+            raise RuntimeError("Image analyzer not initialized")
         image_features = self.image_analyzer.analyze(image_path)
 
         if verbose:
@@ -124,6 +126,8 @@ class DiagnosticAgent:
         query = self._build_query(image_features, patient_info)
 
         # 检索相似病例
+        if not self.knowledge_base:
+            raise RuntimeError("Knowledge base not initialized")
         similar_cases = self.knowledge_base.retrieve_similar_cases(
             query=query,
             image_features=image_features,
@@ -140,6 +144,8 @@ class DiagnosticAgent:
         if verbose:
             print("\n📝 Step 3: 生成诊断报告...")
 
+        if not self.report_generator:
+            raise RuntimeError("Report generator not initialized")
         diagnosis_result = self.report_generator.generate(
             image_features=image_features,
             patient_info=patient_info,

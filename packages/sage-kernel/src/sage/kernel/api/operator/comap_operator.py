@@ -30,7 +30,7 @@ class CoMapOperator(BaseOperator):
         Raises:
             TypeError: 如果函数不是CoMap函数
         """
-        if not hasattr(self.function, "is_comap") or not self.function.is_comap:
+        if not hasattr(self.function, "is_comap") or not self.function.is_comap:  # type: ignore[attr-defined]
             raise TypeError(
                 f"{self.__class__.__name__} requires CoMap function with is_comap=True, "
                 f"got {type(self.function).__name__}"
@@ -60,7 +60,7 @@ class CoMapOperator(BaseOperator):
             if result is not None:
                 # 继承原packet的分区信息
                 result_packet = packet.inherit_partition_info(result)
-                self.router.send(result_packet)
+                self.router.send(result_packet)  # type: ignore[arg-type]
 
         except Exception as e:
             self.logger.error(f"Error in CoMapOperator {self.name}: {e}", exc_info=True)
@@ -77,7 +77,7 @@ class CoMapOperator(BaseOperator):
             try:
                 if packet:
                     error_packet = packet.inherit_partition_info(error_result)
-                    self.router.send(error_packet)
+                    self.router.send(error_packet)  # type: ignore[arg-type]
                     self.logger.info(f"CoMapOperator {self.name}: Sent error result downstream")
             except Exception as send_error:
                 self.logger.error(
@@ -106,9 +106,9 @@ class CoMapOperator(BaseOperator):
                 try:
                     # 从operator的transformation中获取预期的输入数量
                     if hasattr(self, "transformation") and hasattr(
-                        self.transformation, "input_transformation_count"
+                        self.transformation, "input_transformation_count"  # type: ignore[attr-defined]
                     ):
-                        self.expected_input_count = self.transformation.input_transformation_count
+                        self.expected_input_count = self.transformation.input_transformation_count  # type: ignore[attr-defined]
                     else:
                         # 从路由器的入站连接数推断（备用方案）
                         self.expected_input_count = getattr(self.router, "input_count", 2)

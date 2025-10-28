@@ -1,12 +1,21 @@
+from typing import TYPE_CHECKING, Any
+
 from sage.kernel.api.operator.base_operator import BaseOperator
 from sage.kernel.runtime.communication.packet import Packet
 from sage.kernel.runtime.communication.router.packet import StopSignal
 
+if TYPE_CHECKING:
+    from sage.kernel.runtime.task.base_task import BaseTask
+
 
 class SourceOperator(BaseOperator):
+    # task 属性会在运行时由 BaseTask 注入
+    task: "BaseTask | None"
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._stop_signal_sent = False  # 防止重复发送停止信号
+        self.task = None  # 运行时注入
 
     def receive_packet(self, packet: "Packet"):
         self.process_packet(packet)
@@ -44,7 +53,7 @@ class SourceOperator(BaseOperator):
                 self.ctx.request_stop()
 
             # 设置任务停止标志（与其他节点一致）
-            if hasattr(self, "task"):
+            if hasattr(self, "task") and self.task:
                 if hasattr(self.task, "ctx") and hasattr(self.task.ctx, "set_stop_signal"):
                     self.task.ctx.set_stop_signal()
 
@@ -55,7 +64,7 @@ class SourceOperator(BaseOperator):
 
         if result is not None:
             self.logger.debug(f"SourceOperator {self.name}: Sending packet with payload: {result}")
-            success = self.router.send(Packet(result))
+            success = self.router.send(Packet(result))  # type: ignore[arg-type]
             self.logger.debug(f"SourceOperator {self.name}: Send result: {success}")
 
             # If sending failed (e.g., queue is closed), stop the task
@@ -73,7 +82,7 @@ class SourceOperator(BaseOperator):
                     if hasattr(self, "ctx") and hasattr(self.ctx, "request_stop"):
                         self.ctx.request_stop()
 
-                if hasattr(self, "task"):
+                if hasattr(self, "task") and self.task:
                     if hasattr(self.task, "ctx"):
                         self.task.ctx.set_stop_signal()
                     if hasattr(self.task, "is_running"):
