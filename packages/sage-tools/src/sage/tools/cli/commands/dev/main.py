@@ -36,7 +36,7 @@ except ImportError as e:
 
 # 添加版本管理子命令
 try:
-    from .version import app as version_app
+    from .package_version import app as version_app
 
     app.add_typer(version_app, name="version", help="🏷️ 版本管理 - 管理各个子包的版本信息")
 except ImportError as e:

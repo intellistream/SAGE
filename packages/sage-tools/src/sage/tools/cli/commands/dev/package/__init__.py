@@ -24,7 +24,7 @@ except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 pypi 命令: {e}[/yellow]")
 
 try:
-    from ..version import app as version_app
+    from ..package_version import app as version_app
 
     app.add_typer(version_app, name="version")
 except ImportError as e:
