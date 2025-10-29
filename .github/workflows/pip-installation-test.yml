@@ -171,24 +171,31 @@ jobs:
             "packages/sage-common"
             "packages/sage-platform"
             "packages/sage-kernel"
+            "packages/sage-libs"
+            "packages/sage-middleware"
           )
 
-          # core 模式只需要 L1-L3
+          # standard/full/dev 模式需要 sage-cli
           if [ "${{ matrix.install-mode }}" != "core" ]; then
-            packages+=(
-              "packages/sage-libs"
-              "packages/sage-middleware"
-            )
+            packages+=("packages/sage-cli")
           fi
 
-          # full 和 dev 模式需要 L5 应用包和 L6 工具包
-          if [ "${{ matrix.install-mode }}" = "full" ] || [ "${{ matrix.install-mode }}" = "dev" ]; then
+          # standard/full/dev 模式需要 L5 应用包 (apps, benchmark)
+          if [ "${{ matrix.install-mode }}" != "core" ]; then
             packages+=(
               "packages/sage-apps"
               "packages/sage-benchmark"
-              "packages/sage-studio"
-              "packages/sage-tools"
             )
+          fi
+
+          # full 和 dev 模式需要 studio
+          if [ "${{ matrix.install-mode }}" = "full" ] || [ "${{ matrix.install-mode }}" = "dev" ]; then
+            packages+=("packages/sage-studio")
+          fi
+
+          # 只有 dev 模式需要 sage-tools
+          if [ "${{ matrix.install-mode }}" = "dev" ]; then
+            packages+=("packages/sage-tools")
           fi
 
           for package_dir in "${packages[@]}"; do
@@ -221,26 +228,32 @@ jobs:
             core)
               echo "验证 core 模式基础功能..."
               python -c "from sage.kernel import LocalEnvironment; print('✅ LocalEnvironment 可用')"
+              python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
               ;;
             standard)
               echo "验证 standard 模式功能..."
               python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
-              python -c "import numpy; print('✅ numpy 可用')"
-              python -c "import pandas; print('✅ pandas 可用')"
+              if command -v sage >/dev/null 2>&1; then
+                sage --version && echo "✅ sage CLI 可用"
+              fi
+              if [ -d "packages/sage-apps" ]; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" 2>/dev/null || echo "ℹ️  sage.apps 可选"
+              fi
               ;;
             full)
               echo "验证 full 模式功能..."
               python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
-              python -c "import sage.tools; print('✅ sage.tools 可用')"
-              if [ -d "packages/sage-apps" ]; then
-                python -c "import sage.apps; print('✅ sage.apps 可用')" 2>/dev/null || echo "ℹ️  sage.apps 可选"
+              python -c "import sage.studio; print('✅ sage.studio 可用')"
+              if command -v sage >/dev/null 2>&1; then
+                sage --version && echo "✅ sage CLI 可用"
               fi
               ;;
             dev)
               echo "验证 dev 模式功能..."
               python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "import sage.studio; print('✅ sage.studio 可用')"
+              python -c "import sage.tools; print('✅ sage.tools 可用')"
               python -c "import pytest; print('✅ pytest 可用')"
-              python -c "import black; print('✅ black 可用')"
               ;;
           esac
 
