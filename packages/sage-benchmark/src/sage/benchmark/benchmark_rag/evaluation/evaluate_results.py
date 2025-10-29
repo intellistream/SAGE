@@ -15,7 +15,7 @@ from sage.common.config.output_paths import get_output_file
 # ============================================================================
 
 # # 英文常见停顿词/停用词列表
-STOP_WORDS = {}
+STOP_WORDS: set[str] = set()
 #     'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
 #     'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
 #     'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'shall',

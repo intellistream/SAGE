@@ -47,8 +47,8 @@ class FileSink(SinkFunction):
     def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
 
-        file_path = config.get("file_path", "qa_output.txt") if config else "qa_output.txt"
         self.config = config
+        file_path = (config or {}).get("file_path", "qa_output.txt")
 
         # 判断路径类型并处理
         if os.path.isabs(file_path):
@@ -100,7 +100,7 @@ class MemWriteSink(SinkFunction):
         super().__init__(**kwargs)
         self.config = config
         # 从配置获取文件路径，默认为 'mem_output.txt'
-        file_path = self.config.get("file_path", "mem_output.txt") if config else "mem_output.txt"
+        file_path = (config or {}).get("file_path", "mem_output.txt")
 
         # 使用统一的.sage/output目录
         if os.path.isabs(file_path):

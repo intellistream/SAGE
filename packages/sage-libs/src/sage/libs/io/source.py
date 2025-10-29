@@ -27,6 +27,8 @@ class FileSource(SourceFunction):
 
         :param config: Configuration dictionary containing source settings, including `data_path`.
         """
+        if config is None:
+            raise ValueError("config parameter is required for FileSource")
         self.config = config
         self.data_path = self.resolve_data_path(
             config["data_path"]
@@ -50,7 +52,7 @@ class FileSource(SourceFunction):
         project_root = Path(os.getcwd()).resolve()
         return project_root / p
 
-    def execute(self) -> str:
+    def execute(self) -> str | None:
         """
         Reads the next line from the file and returns it as a string.
 
@@ -83,8 +85,10 @@ class FileSource(SourceFunction):
                             continue
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")
+            return None
         except Exception as e:
             self.logger.error(f"Error reading file '{self.data_path}': {e}")
+            return None
 
 
 class SocketSource(SourceFunction):
@@ -147,6 +151,10 @@ class SocketSource(SourceFunction):
 
     def _connect_tcp(self):
         """建立TCP连接"""
+        if self.socket is None:
+            self.logger.error("Socket is not initialized")
+            return
+
         try:
             self.socket.connect((self.host, self.port))
             self.is_connected = True
@@ -161,6 +169,10 @@ class SocketSource(SourceFunction):
 
     def _send_client_id(self):
         """发送客户端ID到服务器用于负载均衡"""
+        if self.socket is None:
+            self.logger.error("Socket is not initialized")
+            return
+
         try:
             registration = (
                 json.dumps({"action": "register", "client_id": self.client_id}).encode(
@@ -195,6 +207,11 @@ class SocketSource(SourceFunction):
         if not self.is_connected and self.protocol == "tcp":
             if not self.reconnect or not self._reconnect():
                 return None
+
+        if self.socket is None:
+            self.logger.error("Socket is not initialized")
+            return None
+
         try:
             if self.protocol == "tcp":
                 data = self.socket.recv(self.buffer_size)
@@ -294,8 +311,13 @@ class TextFileSource(SourceFunction):
 
     def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.config = config or {}
-        self.file_path = self.config.get("file_path")
+        if config is None:
+            raise ValueError("config parameter is required for TextFileSource")
+        self.config = config
+        file_path = self.config.get("file_path")
+        if file_path is None:
+            raise ValueError("file_path is required in config")
+        self.file_path = file_path
         self.encoding = self.config.get("encoding", "utf-8")
         self.read_mode = self.config.get("read_mode", "all")
 
@@ -326,8 +348,13 @@ class JSONFileSource(SourceFunction):
 
     def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.config = config or {}
-        self.file_path = self.config.get("file_path")
+        if config is None:
+            raise ValueError("config parameter is required for JSONFileSource")
+        self.config = config
+        file_path = self.config.get("file_path")
+        if file_path is None:
+            raise ValueError("file_path is required in config")
+        self.file_path = file_path
         self.encoding = self.config.get("encoding", "utf-8")
 
     def execute(self, data=None) -> dict | list:
@@ -359,13 +386,18 @@ class CSVFileSource(SourceFunction):
 
     def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.config = config or {}
-        self.file_path = self.config.get("file_path")
+        if config is None:
+            raise ValueError("config parameter is required for CSVFileSource")
+        self.config = config
+        file_path = self.config.get("file_path")
+        if file_path is None:
+            raise ValueError("file_path is required in config")
+        self.file_path = file_path
         self.delimiter = self.config.get("delimiter", ",")
         self.encoding = self.config.get("encoding", "utf-8")
         self.has_header = self.config.get("has_header", True)
 
-    def execute(self, data=None) -> list[dict]:
+    def execute(self, data=None) -> list[dict] | list[list]:
         """读取CSV文件"""
         try:
             with open(self.file_path, encoding=self.encoding) as f:

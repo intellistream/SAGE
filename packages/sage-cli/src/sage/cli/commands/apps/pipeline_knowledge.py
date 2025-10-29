@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
 from sage.common.components.sage_embedding.factory import EmbeddingFactory

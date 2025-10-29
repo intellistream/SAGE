@@ -29,31 +29,31 @@ def test_neuromem_manager():
         "description": "默认测试索引",
         "index_parameter": {},
     }
-    vdb_collection.create_index(config=index_config)
+    vdb_collection.create_index(config=index_config)  # type: ignore[union-attr]
 
-    vdb_collection.insert(
+    vdb_collection.insert(  # type: ignore[union-attr]
         index_name="test_index",
         raw_data="将军，您的恩情我们一辈子也还不完！",
         metadata={"priority": "high"},
     )
-    vdb_collection.insert(
+    vdb_collection.insert(  # type: ignore[union-attr]
         index_name="test_index",
         raw_data="我从丹东来带走一片雪白~",
         metadata={"priority": "low", "tag": "poem"},
     )
-    vdb_collection.insert(
+    vdb_collection.insert(  # type: ignore[union-attr]
         index_name="test_index",
         raw_data="想吃广东菜",
         metadata={"priority": "low", "tag": "food"},
     )
 
-    results = vdb_collection.retrieve(
+    results = vdb_collection.retrieve(  # type: ignore[union-attr]
         index_name="test_index",
         raw_data="想吃广东菜",
         with_metadata=True,
         threshold=0.3,  # 使用合理的阈值
     )
-    assert any("广东菜" in r["text"] for r in results), "找不到匹配的文本"
+    assert any("广东菜" in r["text"] for r in results), "找不到匹配的文本"  # type: ignore[index, union-attr]
     print("✅ 测试一：创建集合通过！")
 
     # 测试二：查看集合是否存在
@@ -77,7 +77,7 @@ def test_neuromem_manager():
 
     # 测试四：列举所有集合
     all_collections = manager.list_collection()
-    assert any(c["name"] == "test_collection" for c in all_collections), "list_collection有误"
+    assert any(c["name"] == "test_collection" for c in all_collections), "list_collection有误"  # type: ignore[index]
     print("✅ 测试四：列举所有集合通过！")
 
     # 测试五：持久化测试
@@ -85,13 +85,13 @@ def test_neuromem_manager():
     del manager
     manager = MemoryManager()
     vdb_collection = manager.get_collection("test_collection")
-    results = vdb_collection.retrieve(
+    results = vdb_collection.retrieve(  # type: ignore[union-attr]
         index_name="test_index",
         raw_data="想吃广东菜",
         with_metadata=True,
         threshold=0.3,  # 使用合理的阈值
     )
-    assert any("想吃广东菜" in r["text"] for r in results), "找不到匹配的文本"
+    assert any("想吃广东菜" in r["text"] for r in results), "找不到匹配的文本"  # type: ignore[index, union-attr]
     print("✅ 测试五：持久化测试通过！")
 
     # 清理测试环境

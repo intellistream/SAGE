@@ -7,7 +7,7 @@ class EvaluateFilter(FilterFunction):
     评估过滤器 - 基于质量标签上下界过滤
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         """
         初始化评估过滤器
 
@@ -51,7 +51,7 @@ class EvaluateFilter(FilterFunction):
             self.quality_priority.get(self.lower_bound, 6) if self.lower_bound else 6
         )
 
-    def _parse_label(self, label_input) -> QualityLabel:
+    def _parse_label(self, label_input) -> QualityLabel | None:
         """解析质量标签"""
         if not label_input:
             return None

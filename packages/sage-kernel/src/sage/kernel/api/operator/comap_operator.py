@@ -101,15 +101,30 @@ class CoMapOperator(BaseOperator):
                     f"CoMapOperator '{self.name}' received stop signal from stream {input_index}"
                 )
 
-            # 如果还没有初始化期望的输入流数量，尝试从路由器获取
+            # 如果还没有初始化期望的输入流数量，尝试从函数获取
             if self.expected_input_count is None:
                 try:
-                    # 从operator的transformation中获取预期的输入数量
-                    if hasattr(self, "transformation") and hasattr(
-                        self.transformation,
-                        "input_transformation_count",  # type: ignore[attr-defined]
-                    ):
-                        self.expected_input_count = self.transformation.input_transformation_count  # type: ignore[attr-defined]
+                    # 通过检查函数的mapN方法数量来确定预期的输入数量
+                    count = 0
+                    method_index = 0
+                    while True:
+                        method_name = f"map{method_index}"
+                        if hasattr(self.function, method_name):
+                            method = getattr(self.function, method_name)
+                            # 检查方法是否实际可调用（不是抽象方法）
+                            if callable(method) and not getattr(
+                                method, "__isabstractmethod__", False
+                            ):
+                                count += 1
+                                method_index += 1
+                            else:
+                                break
+                        else:
+                            break
+
+                    # 如果通过函数找到了mapN方法，使用该数量
+                    if count > 0:
+                        self.expected_input_count = count
                     else:
                         # 从路由器的入站连接数推断（备用方案）
                         self.expected_input_count = getattr(self.router, "input_count", 2)

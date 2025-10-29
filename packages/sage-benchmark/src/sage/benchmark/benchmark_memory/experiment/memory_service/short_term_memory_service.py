@@ -39,7 +39,7 @@ class ShortTermMemoryService(BaseService):
             raise ValueError("Either max_dialogue or max_messages must be provided")
 
         # 使用 deque 作为队列，设置最大长度
-        self.message_queue = deque(maxlen=self.max_messages)
+        self.message_queue: deque[dict[str, Any]] = deque(maxlen=self.max_messages)
 
         # 初始化对话解析器
         self.dialogue_parser = DialogueParser()

@@ -58,6 +58,7 @@ class CharacterSplitter(MapOperator):
             return chunks
         except Exception as e:
             self.logger.error(f"CharacterSplitter error: {e}", exc_info=True)
+            return []  # Return empty list on error
 
 
 class SentenceTransformersTokenTextSplitter(MapOperator):
@@ -147,6 +148,7 @@ class SentenceTransformersTokenTextSplitter(MapOperator):
             return chunks
         except Exception as e:
             self.logger.error(f"SentenceTransformersTokenTextSplitter error: {e}", exc_info=True)
+            return []  # Return empty list on error
 
 
 # config={

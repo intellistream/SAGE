@@ -11,8 +11,8 @@ from datetime import datetime
 from typing import Any
 
 try:
-    from colorama import Back, Fore, Style, init
-    from tabulate import tabulate
+    from colorama import Back, Fore, Style, init  # type: ignore[import-untyped]
+    from tabulate import tabulate  # type: ignore[import-untyped]
 
     init(autoreset=True)
     COLORAMA_AVAILABLE = True

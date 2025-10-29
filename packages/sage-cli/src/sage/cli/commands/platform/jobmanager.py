@@ -11,7 +11,7 @@ import sys
 import time
 from typing import Any
 
-import psutil
+import psutil  # type: ignore[import-untyped]
 import typer
 
 # 导入系统工具模块

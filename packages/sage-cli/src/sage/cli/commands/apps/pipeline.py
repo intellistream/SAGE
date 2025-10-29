@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
-import yaml
+import yaml  # type: ignore[import-untyped]
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax

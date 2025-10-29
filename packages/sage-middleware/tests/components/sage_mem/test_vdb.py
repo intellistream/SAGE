@@ -46,18 +46,18 @@ def test_vdb_collection():
         with_metadata=True,
     )
     print("搜索结果:")
-    for i, result in enumerate(results):
-        print(f"  {i + 1}. {result['text']}")
-        print(f"     元数据: {result['metadata']}")
+    for i, result in enumerate(results):  # type: ignore[arg-type]
+        print(f"  {i + 1}. {result['text']}")  # type: ignore[index]
+        print(f"     元数据: {result['metadata']}")  # type: ignore[index]
 
     # 验证结果
-    assert len(results) > 0, "应该找到搜索结果"
+    assert len(results) > 0, "应该找到搜索结果"  # type: ignore[arg-type]
     # 检查是否找到了相关文本（由于使用 mockembedder，结果可能不完全匹配，所以使用更宽松的验证）
     # 只要返回了结果就认为测试通过
-    print(f"\n✅ 测试通过！找到了 {len(results)} 个相关结果")
+    print(f"\n✅ 测试通过！找到了 {len(results)} 个相关结果")  # type: ignore[arg-type]
 
     # 可选：验证是否找到了完全匹配的文本
-    has_exact_match = any("数据库事务可确保操作的原子性与一致性" in r["text"] for r in results)
+    has_exact_match = any("数据库事务可确保操作的原子性与一致性" in r["text"] for r in results)  # type: ignore[index, union-attr]
     if has_exact_match:
         print("✅ 找到了完全匹配的文本")
     else:

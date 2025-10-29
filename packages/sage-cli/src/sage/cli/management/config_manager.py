@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 
 class ConfigManager:
@@ -20,7 +20,7 @@ class ConfigManager:
         else:
             # 统一使用家目录下的配置文件以维护一致性
             self.config_path = Path.home() / ".sage" / "config.yaml"
-        self._config = None
+        self._config: dict[str, Any] | None = None
 
     def load_config(self) -> dict[str, Any]:
         """加载配置文件"""
@@ -29,8 +29,9 @@ class ConfigManager:
 
         try:
             with open(self.config_path, encoding="utf-8") as f:
-                self._config = yaml.safe_load(f)
-            return self._config
+                loaded_config: dict[str, Any] = yaml.safe_load(f) or {}
+                self._config = loaded_config
+            return loaded_config
         except Exception as e:
             raise RuntimeError(f"加载配置文件失败: {e}")
 

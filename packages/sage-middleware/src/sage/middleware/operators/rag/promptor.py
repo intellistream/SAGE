@@ -115,7 +115,11 @@ class QAPromptor(MapOperator):
                 self.data_base_path = str(sage_paths.states_dir / "promptor_data")
             except Exception:
                 # Fallback to current working directory
-                if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+                if (
+                    self.ctx is not None
+                    and hasattr(self.ctx, "env_base_dir")
+                    and self.ctx.env_base_dir
+                ):
                     self.data_base_path = os.path.join(
                         self.ctx.env_base_dir, ".sage_states", "promptor_data"
                     )

@@ -20,7 +20,7 @@ def create_test_index():
     index = faiss.IndexFlatIP(DIMENSION)
     vectors = np.random.randn(NUM_VECTORS, DIMENSION).astype("float32")
     faiss.normalize_L2(vectors)
-    index.add(vectors)
+    index.add(vectors)  # type: ignore[call-arg]
     print(f"✅ Index created with {index.ntotal} vectors")
     return index
 

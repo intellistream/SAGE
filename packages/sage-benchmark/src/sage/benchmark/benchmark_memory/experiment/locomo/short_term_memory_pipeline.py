@@ -11,7 +11,7 @@ import sys
 import time
 from pathlib import Path
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from sage.common.core import MapFunction, SinkFunction, SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger

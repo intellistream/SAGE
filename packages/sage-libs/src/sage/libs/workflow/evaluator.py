@@ -148,7 +148,7 @@ class WorkflowEvaluator:
         print("=" * 80)
 
         # Group by workflow
-        workflows = set()
+        workflows: set[str] = set()
         for optimizer_results in results.values():
             workflows.update(r.workflow_name for r in optimizer_results)
 
@@ -190,7 +190,7 @@ class WorkflowEvaluator:
         Returns:
             Dictionary with aggregated statistics
         """
-        report = {"optimizers": {}, "summary": {}}
+        report: dict[str, Any] = {"optimizers": {}, "summary": {}}
 
         for optimizer_name, optimizer_results in results.items():
             stats = {

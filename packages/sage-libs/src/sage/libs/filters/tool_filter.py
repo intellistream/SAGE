@@ -9,7 +9,7 @@ class ToolFilter(FilterFunction):
     工具过滤器 - 只接受config配置
     """
 
-    def __init__(self, config: dict = None, **kwargs):
+    def __init__(self, config: dict | None = None, **kwargs):
         """
         初始化工具过滤器
 

@@ -16,7 +16,7 @@ class EmbeddingPipelineTemplates:
         embedding_model: str | None = None,
         use_vllm: bool = False,
         llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
-        **kwargs,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """RAG Pipeline with dedicated EmbeddingService.
 
@@ -56,7 +56,7 @@ class EmbeddingPipelineTemplates:
         # Configure embedding service
         if use_vllm or embedding_method == "vllm":
             # Use vLLM backend
-            config["services"]["vllm"] = {
+            config["services"]["vllm"] = {  # type: ignore[index]
                 "class": "sage.common.components.sage_vllm.VLLMService",
                 "config": {
                     "model_id": llm_model,
@@ -70,7 +70,7 @@ class EmbeddingPipelineTemplates:
                 },
             }
 
-            config["services"]["embedding"] = {
+            config["services"]["embedding"] = {  # type: ignore[index]
                 "class": "sage.common.components.sage_embedding.EmbeddingService",
                 "config": {
                     "method": "vllm",
@@ -96,13 +96,13 @@ class EmbeddingPipelineTemplates:
             if embedding_method in ["openai", "jina", "zhipu", "cohere"]:
                 embedding_config["api_key"] = f"${{{embedding_method.upper()}_API_KEY}}"
 
-            config["services"]["embedding"] = {
+            config["services"]["embedding"] = {  # type: ignore[index]
                 "class": "sage.common.components.sage_embedding.EmbeddingService",
                 "config": embedding_config,
             }
 
         # Add vector database service
-        config["services"]["vector_db"] = {
+        config["services"]["vector_db"] = {  # type: ignore[index]
             "class": "sage.middleware.components.sage_db.service.SageDBService",
             "config": {
                 "dimension": kwargs.get("dimension", 768),
@@ -111,7 +111,7 @@ class EmbeddingPipelineTemplates:
         }
 
         # Add operators
-        config["operators"] = [
+        config["operators"] = [  # type: ignore[assignment]
             {
                 "name": "load_query",
                 "type": "input_operator",
@@ -193,7 +193,7 @@ Answer:""",
 
         # Configure services based on method
         if use_vllm or embedding_method == "vllm":
-            config["services"]["vllm"] = {
+            config["services"]["vllm"] = {  # type: ignore[index]
                 "class": "sage.common.components.sage_vllm.VLLMService",
                 "config": {
                     "model_id": embedding_model,
@@ -202,7 +202,7 @@ Answer:""",
                 },
             }
 
-            config["services"]["embedding"] = {
+            config["services"]["embedding"] = {  # type: ignore[index]
                 "class": "sage.common.components.sage_embedding.EmbeddingService",
                 "config": {
                     "method": "vllm",
@@ -224,12 +224,12 @@ Answer:""",
             if embedding_method in ["openai", "jina", "zhipu"]:
                 embedding_config["api_key"] = f"${{{embedding_method.upper()}_API_KEY}}"
 
-            config["services"]["embedding"] = {
+            config["services"]["embedding"] = {  # type: ignore[index]
                 "class": "sage.common.components.sage_embedding.EmbeddingService",
                 "config": embedding_config,
             }
 
-        config["services"]["vector_db"] = {
+        config["services"]["vector_db"] = {  # type: ignore[index]
             "class": "sage.middleware.components.sage_db.service.SageDBService",
             "config": {
                 "dimension": kwargs.get("dimension", 768),
@@ -237,7 +237,7 @@ Answer:""",
             },
         }
 
-        config["operators"] = [
+        config["operators"] = [  # type: ignore[assignment]
             {
                 "name": "load_documents",
                 "type": "document_loader",
@@ -496,7 +496,7 @@ def generate_embedding_pipeline(use_case: str, **kwargs) -> dict[str, Any]:
             f"Unknown use case: {use_case}. Available: {', '.join(use_case_map.keys())}"
         )
 
-    return use_case_map[use_case](**kwargs)
+    return use_case_map[use_case](**kwargs)  # type: ignore[operator]
 
 
 __all__ = [

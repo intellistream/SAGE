@@ -4,7 +4,7 @@
 from pathlib import Path
 
 import typer
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from sage.cli.utils.llm_detection import LLMServiceInfo, detect_all_services
 

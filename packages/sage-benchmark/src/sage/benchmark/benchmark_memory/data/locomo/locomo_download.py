@@ -3,7 +3,7 @@
 import os
 
 import requests
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore[import-untyped]
 
 
 def download_from_huggingface(

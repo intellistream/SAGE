@@ -1008,7 +1008,7 @@ async def execute_playground(request: PlaygroundExecuteRequest):
 
         # 4. 执行 Pipeline
         start_time = time.time()
-        sage_env.execute()
+        sage_env.submit()
 
         # 等待执行完成（简化版本，实际应该异步处理）
         # TODO: 实现真正的异步执行和状态轮询

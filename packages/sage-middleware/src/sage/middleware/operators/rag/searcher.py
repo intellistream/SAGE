@@ -34,3 +34,4 @@ class BochaWebSearch(MapOperator):
             return result
         except Exception as e:
             self.logger.error(f"BochaWebSearch error: {e}", exc_info=True)
+            return {}  # Return empty dict on error

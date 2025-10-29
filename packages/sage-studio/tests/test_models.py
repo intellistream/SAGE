@@ -200,7 +200,7 @@ class TestPipelineExecution:
             id="exec1",
             pipeline_id="pipeline1",
             status=PipelineStatus.RUNNING,
-            start_time=datetime.now(),
+            start_time=datetime.now().timestamp(),
         )
 
         assert execution.id == "exec1"
@@ -212,7 +212,7 @@ class TestPipelineExecution:
         """测试完成的 Execution"""
         from datetime import datetime
 
-        now = datetime.now()
+        now = datetime.now().timestamp()
         execution = PipelineExecution(
             id="exec1",
             pipeline_id="pipeline1",
@@ -232,7 +232,7 @@ class TestPipelineExecution:
             id="exec1",
             pipeline_id="pipeline1",
             status=PipelineStatus.PENDING,
-            start_time=datetime.now(),
+            start_time=datetime.now().timestamp(),
         )
 
         assert execution.status == PipelineStatus.PENDING

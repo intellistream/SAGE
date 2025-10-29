@@ -7,9 +7,12 @@ import json
 import logging
 import os
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from pymilvus import MilvusClient  # noqa: F401
 
 
 class MilvusBackend:
@@ -38,7 +41,7 @@ class MilvusBackend:
         raw_metric_type = self.config.get("metric_type")
         if not raw_metric_type:
             # 未提供则默认 COSINE，不做校验
-            self.metric_type: str = "COSINE"
+            metric_type_value: str = "COSINE"
         else:
             # 提供了则严格校验，仅支持 IP/COSINE/L2（大小写不敏感，统一为大写）
             allowed_metric_types = {"IP", "COSINE", "L2"}
@@ -47,7 +50,8 @@ class MilvusBackend:
                 raise ValueError(
                     f"Invalid metric_type: {raw_metric_type}. Allowed: {sorted(allowed_metric_types)}"
                 )
-            self.metric_type: str = metric_upper
+            metric_type_value = metric_upper
+        self.metric_type: str = metric_type_value
         self.drop_ratio_search = self.config.get(
             "drop_ratio_search", 0.2
         )  # 稀疏向量搜索时，drop 比例
@@ -57,7 +61,7 @@ class MilvusBackend:
         )  # 稠密向量插入批次大小
 
         # 客户端
-        self.client = None
+        self.client: Any = None  # Will be initialized by _init_client
         self._init_client()
         self._init_collection()
 
@@ -95,13 +99,19 @@ class MilvusBackend:
             self.logger.error(f"Failed to initialize Milvus client: {e}")
             raise
 
+    def _ensure_client(self):
+        """Ensure client is initialized"""
+        if self.client is None:
+            raise RuntimeError("Milvus client is not initialized")
+
     def _init_collection(self):
         """初始化或获取 Milvus 集合，必要时创建索引"""
+        self._ensure_client()
         try:
             # 尝试直接获取已存在的集合
             try:
                 # 通过检查集合是否能正常查询来验证集合存在
-                self.client.load_collection(collection_name=self.collection_name)
+                self.client.load_collection(collection_name=self.collection_name)  # type: ignore
                 self.logger.info(f"Retrieved existing Milvus collection: {self.collection_name}")
                 return
             except Exception:

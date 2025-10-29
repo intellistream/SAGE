@@ -113,7 +113,8 @@ class RefinerOperator(MapOperator):
                 documents=cast(list[str | dict[str, Any]], documents),
                 budget=self.cfg.get("budget"),
             )
-            time.time() - refine_start
+            refine_time = time.time() - refine_start
+            self.logger.debug(f"Refine time: {refine_time:.2f}s")
 
             refined_texts_raw = result.refined_content
             # 确保 refined_texts 是 List[str]

@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from .exceptions import CLIException, ValidationError
 
@@ -333,8 +333,8 @@ def create_temp_file(
     Returns:
         临时文件路径
     """
-    fd, temp_path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
-    temp_path = Path(temp_path)
+    fd, temp_path_str = tempfile.mkstemp(suffix=suffix, prefix=prefix)
+    temp_path = Path(temp_path_str)
 
     try:
         if content:

@@ -35,8 +35,8 @@ class ChromaBackend:
         self.metadata_config = config.get("metadata", {"hnsw:space": "cosine"})
 
         # 初始化客户端和集合
-        self.client = None
-        self.collection = None
+        self.client: Any = None  # Will be initialized by _init_client
+        self.collection: Any = None  # Will be initialized by _init_collection
         self._init_client()
         self._init_collection()
 

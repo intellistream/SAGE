@@ -19,10 +19,10 @@ import numpy as np
 import pytest
 
 if TYPE_CHECKING:
-    import _sage_db
+    import _sage_db  # type: ignore[import-not-found]
 
 try:
-    import _sage_db
+    import _sage_db  # type: ignore[import-not-found]
 
     SAGE_DB_AVAILABLE = True
 except ImportError:

@@ -242,8 +242,8 @@ class ParallelizationOptimizer(BaseOptimizer):
 
     def _compute_levels(self, workflow: WorkflowGraph) -> dict[int, list]:
         """Compute topological levels for parallelization."""
-        levels = {}
-        node_levels = {}
+        levels: dict[int, list] = {}
+        node_levels: dict[str, int] = {}
 
         # Compute level for each node (longest path from source)
         def compute_level(node_id: str) -> int:

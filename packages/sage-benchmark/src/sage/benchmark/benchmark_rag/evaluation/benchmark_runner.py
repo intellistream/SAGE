@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from dotenv import load_dotenv
 
 from sage.common.config.output_paths import get_output_file
@@ -178,7 +178,7 @@ class ResultsCollector(MapFunction):
         default_output = get_output_file("benchmark_results.json", "benchmarks")
         self.output_path = config.get("output_path", str(default_output))
         self.save_mode = config.get("save_mode", "incremental")
-        self.all_results = []
+        self.all_results: list[dict[str, Any]] = []
         self.start_time = time.time()
 
     def execute(self, batch_result: dict[str, Any]) -> dict[str, Any]:

@@ -18,7 +18,7 @@ from .critic_bot import *  # noqa: F403
 from .question_bot import *  # noqa: F403
 from .searcher_bot import *  # noqa: F403
 
-__all__ = [
+__all__: list[str] = [
     # Re-export from submodules
     # Will be populated as modules are standardized
 ]

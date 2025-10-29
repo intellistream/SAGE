@@ -13,6 +13,7 @@
 import argparse
 import sys
 from pathlib import Path
+from typing import Optional
 
 try:
     import tomli
@@ -161,7 +162,7 @@ PACKAGE_MARKERS = {
 }
 
 
-def get_pytest_config(package_name: str) -> dict:
+def get_pytest_config(package_name: str) -> Optional[dict]:
     """获取指定包的完整 pytest 配置"""
     # 元包不需要 pytest 配置
     if package_name == "sage":

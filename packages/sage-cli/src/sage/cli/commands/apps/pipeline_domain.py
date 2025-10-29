@@ -8,9 +8,9 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
-from sage.common.config.output_paths import get_sage_paths
+from sage.common.config.output_paths import get_sage_paths  # type: ignore[import-untyped]
 
 _BASE_GUIDE = textwrap.dedent(
     """

@@ -165,6 +165,8 @@ class ModelContext:
 
     def _format_search_session(self, output_lines: list[str]) -> None:
         """格式化搜索会话的显示"""
+        if not self.search_session:
+            return
         for i, query_result in enumerate(self.search_session.query_results, 1):
             output_lines.append(
                 f"   Query {i}: '{query_result.query}' ({query_result.get_results_count()} results)"
@@ -277,7 +279,7 @@ class ModelContext:
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典格式"""
-        result = {}
+        result: dict[str, Any] = {}
 
         # 基础字段
         result["sequence"] = self.sequence
@@ -390,7 +392,8 @@ class ModelContext:
             total_results_count=total_results_count or len(results),
         )
 
-        self.search_session.add_query_results(query_results)
+        if self.search_session:  # Add None check
+            self.search_session.add_query_results(query_results)
 
     def get_search_queries(self) -> list[str]:
         """获取所有搜索查询"""

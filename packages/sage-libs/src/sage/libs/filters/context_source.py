@@ -61,7 +61,7 @@ class ContextFileSource(SourceFunction):
         # 内部状态管理
         self.loaded_count = 0
         self.current_file_index = 0
-        self.template_files = []
+        self.template_files: list[Path] = []
         self.index_data = None
 
         # 初始化文件列表

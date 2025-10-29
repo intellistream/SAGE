@@ -111,7 +111,11 @@ class BertRecallEvaluate(MapOperator):
         for g in golds:
             encs = self.tokenizer([pred, g], return_tensors="pt", padding=True)
             embs = self.model(**encs).last_hidden_state.mean(dim=1).detach().numpy()
-            scores.append(float(cosine_similarity([embs[0]], [embs[1]])[0][0]))
+            # Convert to numpy arrays explicitly for cosine_similarity
+            emb_pred = embs[0:1]  # Shape: (1, embedding_dim)
+            emb_gold = embs[1:2]  # Shape: (1, embedding_dim)
+            similarity = cosine_similarity(emb_pred, emb_gold)
+            scores.append(float(similarity[0][0]))
         best = max(scores) if scores else 0.0
         print(f"\033[93m[BertRecall] : {best:.4f}\033[0m")
         return nd
@@ -126,7 +130,12 @@ class RougeLEvaluate(MapOperator):
         nd = _normalize_data(data)
         golds = nd.get("references", [])
         pred = nd.get("generated", "")
-        scores = [self.rouge.get_scores(pred, g)[0]["rouge-l"]["f"] for g in golds]
+        scores = []
+        for g in golds:
+            # rouge.get_scores returns a list with one dict
+            rouge_result = self.rouge.get_scores(pred, g)
+            if rouge_result and isinstance(rouge_result, list):
+                scores.append(rouge_result[0]["rouge-l"]["f"])
         best = max(scores) if scores else 0.0
         print(f"\033[93m[ROUGE-L] : {best:.4f}\033[0m")
         return nd

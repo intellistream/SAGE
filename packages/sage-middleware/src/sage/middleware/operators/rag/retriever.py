@@ -330,7 +330,7 @@ class MilvusDenseRetriever(MapOperator):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+            if self.ctx is not None and hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
                 self.data_base_path = os.path.join(
                     self.ctx.env_base_dir, ".sage_states", "retriever_data"
                 )
@@ -614,7 +614,7 @@ class MilvusSparseRetriever(MapOperator):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+            if self.ctx is not None and hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
                 self.data_base_path = os.path.join(
                     self.ctx.env_base_dir, ".sage_states", "retriever_data"
                 )
@@ -891,7 +891,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
         # Profile数据存储
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+            if self.ctx is not None and hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
                 self.data_base_path = os.path.join(
                     self.ctx.env_base_dir, ".sage_states", "retriever_data"
                 )
@@ -1174,7 +1174,8 @@ class Wiki18FAISSRetriever(MapOperator):
             retrieved_docs = self._format_retrieved_documents(scores, indices)
 
             # 记录检索时间
-            time.time() - start_time
+            retrieve_time = time.time() - start_time
+            self.logger.debug(f"Retrieve time: {retrieve_time:.2f}s")
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from FAISS\033[0m"
             )

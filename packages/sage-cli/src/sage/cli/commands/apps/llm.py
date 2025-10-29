@@ -9,7 +9,7 @@ import subprocess
 import time
 from typing import Any
 
-import psutil
+import psutil  # type: ignore[import-untyped]
 import typer
 
 from sage.common.model_registry import vllm_registry
