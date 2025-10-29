@@ -1,5 +1,5 @@
 [project]
-name = "sage-cli"
+name = "isage-cli"
 dynamic = ["version"]
 description = "SAGE Command Line Interface - Unified CLI for SAGE platform"
 readme = "README.md"

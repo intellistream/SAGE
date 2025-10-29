@@ -43,17 +43,29 @@ core = [
 ]
 standard = [
     "isage[core]",
+    # CLI 工具
     "isage-cli>=0.1.0",
+    # 应用包
     "isage-apps>=0.1.0",
     "isage-benchmark>=0.1.0",
+    # 科学计算包
+    "numpy>=1.26.0,<2.3.0",
+    "pandas>=1.3.0",
+    "matplotlib>=3.4.0",
+    "scipy>=1.15.0,<2.0.0",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
 ]
 full = [
     "isage[standard]",
+    # Web UI
     "isage-studio>=0.1.0",
 ]
 dev = [
     "isage[full]",
+    # 开发工具包
     "isage-tools>=0.1.0",
+    # 开发依赖
     "pre-commit>=3.0.0",
 ]
 

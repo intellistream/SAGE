@@ -98,16 +98,16 @@ show_help() {
     echo -e "    ${DIM}适合: 容器部署、生产运行、最小依赖${NC}"
     echo ""
     echo -e "  ${BOLD}--standard, -s${NC}     ${GREEN}标准版本 (推荐)${NC}"
-    echo -e "    ${DIM}包含: Core + sage CLI + apps, benchmark${NC}"
+    echo -e "    ${DIM}包含: Core + sage CLI + 科学计算包 (numpy, pandas, matplotlib)${NC}"
     echo -e "    ${DIM}适合: 应用开发、日常使用、大多数用户${NC}"
     echo ""
     echo -e "  ${BOLD}--full, -f${NC}         ${PURPLE}完整功能${NC}"
-    echo -e "    ${DIM}包含: Standard + studio (Web UI 可视化界面)${NC}"
-    echo -e "    ${DIM}适合: 需要低代码开发、可视化管理${NC}"
+    echo -e "    ${DIM}包含: Standard + apps, benchmark, studio (Web UI)${NC}"
+    echo -e "    ${DIM}适合: 需要示例应用和可视化界面${NC}"
     echo ""
     echo -e "  ${BOLD}--dev, -d${NC}          ${YELLOW}开发模式 (默认)${NC}"
-    echo -e "    ${DIM}包含: Full + sage-dev 开发工具 (pytest, pre-commit)${NC}"
-    echo -e "    ${DIM}适合: 贡献 SAGE 框架源码${NC}"
+    echo -e "    ${DIM}包含: Full + sage-tools (sage-dev, pytest, pre-commit)${NC}"
+    echo -e "    ${DIM}适合: 贡献 SAGE 框架源码、运行测试${NC}"
     echo ""
     echo -e "${BLUE}环境选项：${NC}"
     echo ""
@@ -144,15 +144,17 @@ show_install_success() {
             ;;
         "standard")
             echo -e "${BLUE}已安装 (标准版本):${NC}"
-            echo_icon "✅" "Core + sage CLI + apps, benchmark" 1 1
+            echo_icon "✅" "Core + sage CLI + 科学计算包" 1 1
+            echo_icon "✅" "numpy, pandas, matplotlib, scipy, jupyter" 1 1
             ;;
         "full")
             echo -e "${BLUE}已安装 (完整功能):${NC}"
-            echo_icon "✅" "Standard + studio (Web UI)" 1 1
+            echo_icon "✅" "Standard + apps, benchmark, studio" 1 1
+            echo_icon "✅" "示例应用 + Web UI 可视化界面" 1 1
             ;;
         "dev")
             echo -e "${BLUE}已安装 (开发模式):${NC}"
-            echo_icon "✅" "Full + sage-dev 开发工具" 1 1
+            echo_icon "✅" "Full + sage-tools (sage-dev 命令)" 1 1
             echo_icon "✅" "pytest, pre-commit, 代码质量工具" 1 1
             ;;
     esac
@@ -186,25 +188,32 @@ show_usage_tips() {
     case "$mode" in
         "core")
             echo -e "${BLUE}核心运行时模式：${NC}"
-            echo -e "  # 只包含 SAGE 核心包 (L1-L3)，适合容器部署和生产环境"
+            echo -e "  # 只包含 SAGE 核心包 (L1-L4)，适合容器部署和生产环境"
             echo -e "  python3 -c 'from sage.kernel import Pipeline; print(\"Pipeline ready\")'"
-            echo -e "  # 如需完整功能，建议使用 --standard 模式"
+            echo -e "  # 如需完整功能，建议使用 --standard 或 --dev 模式"
             echo ""
             ;;
         "standard")
-            echo -e "${BLUE}标准开发模式：${NC}"
-            echo -e "  # 包含完整 SAGE 功能和数据科学库"
-            echo -e "  jupyter notebook  # 启动 Jupyter 笔记本"
-            echo -e "  jupyter lab       # 启动 JupyterLab"
-            echo -e "  # 数据科学和研究的完整环境"
+            echo -e "${BLUE}标准模式：${NC}"
+            echo -e "  # 包含 Core + CLI + 科学计算包"
+            echo -e "  sage --help                      # 查看 CLI 命令"
+            echo -e "  jupyter notebook                 # 启动 Jupyter 笔记本"
+            echo -e "  python examples/tutorials/hello_world.py  # 运行示例"
+            echo ""
+            ;;
+        "full")
+            echo -e "${BLUE}完整功能模式：${NC}"
+            echo -e "  # 包含 Standard + Apps + Studio (Web UI)"
+            echo -e "  sage web-ui start                # 启动 Web UI"
+            echo -e "  python examples/apps/rag_app.py  # 运行应用示例"
             echo ""
             ;;
         "dev")
-            echo -e "${BLUE}开发者安装模式：${NC}"
-            echo -e "  # 包含完整开发工具链和C++扩展"
-            echo -e "  pytest tests/                    # 运行测试"
-            echo -e "  black packages/                  # 代码格式化"
-            echo -e "  flake8 packages/                 # 代码检查"
+            echo -e "${BLUE}开发者模式：${NC}"
+            echo -e "  # 包含完整开发工具链"
+            echo -e "  sage-dev test                    # 运行测试"
+            echo -e "  sage-dev quality                 # 代码质量检查"
+            echo -e "  sage-dev examples test           # 测试所有示例"
             echo -e "  pre-commit run --all-files       # 运行所有检查"
             echo ""
             echo -e "${BLUE}C++扩展管理：${NC}"

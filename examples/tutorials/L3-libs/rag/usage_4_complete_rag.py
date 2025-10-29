@@ -27,6 +27,9 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
 from sage.libs.unlearning import UnlearningEngine
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
 
 
 class RAGUnlearningSystem(BaseService):
@@ -89,15 +92,20 @@ class RAGUnlearningSystem(BaseService):
             }
             collection.create_index(index_config)  # type: ignore[attr-defined]
 
-            # 插入文档
+            # 确保是 VDB collection
+            if not isinstance(collection, VDBMemoryCollection):
+                self.logger.error("Collection is not a VDB collection")
+                return False
+
+            # 插入文档 - VDBMemoryCollection.insert(index_name, raw_data, metadata)
             for doc in documents:
-                collection.insert(  # type: ignore[call-arg]
-                    raw_data=doc["content"],
+                collection.insert(
                     index_name="content_index",
+                    raw_data=doc["content"],
                     metadata=doc.get("metadata", {}),
                 )
 
-            collection.init_index("content_index")  # type: ignore[attr-defined]
+            collection.init_index("content_index")
             self.manager.store_collection(collection_name)
 
             self.logger.info(
@@ -120,12 +128,22 @@ class RAGUnlearningSystem(BaseService):
             if collection is None:
                 return []
 
+            # 确保是 VDB collection
+            if not isinstance(collection, VDBMemoryCollection):
+                self.logger.error("Collection is not a VDB collection")
+                return []
+
+            # VDBMemoryCollection.retrieve(raw_data, index_name, topk, ...)
             results = collection.retrieve(
                 raw_data=query,
                 index_name="content_index",
                 topk=topk,
                 with_metadata=True,
             )
+
+            # retrieve 可能返回 None
+            if results is None:
+                return []
 
             return results  # type: ignore[return-value]
 

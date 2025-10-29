@@ -26,6 +26,9 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
 from sage.libs.unlearning import UnlearningEngine
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
 
 
 class DPMemoryService(BaseService):
@@ -119,7 +122,13 @@ class DPMemoryService(BaseService):
                 self.logger.error(f"Collection not found: {collection_name}")
                 return None
 
-            # 使用 insert 方法存储数据
+            # 确保是 VDB 类型的 collection
+            if not isinstance(collection, VDBMemoryCollection):
+                self.logger.error(
+                    f"Collection {collection_name} is not a VDB collection"
+                )
+                return None
+
             # VDBMemoryCollection.insert 使用 (index_name, raw_data, metadata)
             memory_id = collection.insert(
                 index_name="global_index", raw_data=content, metadata=metadata

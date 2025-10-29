@@ -3,6 +3,9 @@ import os
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
 
 # 使用 .sage 目录存储测试数据
 manager_path = ".sage/examples/memory/rag_memory_manager"
@@ -28,18 +31,33 @@ class RAGMemoryManager:
         self.logger = CustomLogger()
         self.memory_manager = MemoryManager(manager_path)
 
-        if self.memory_manager.has_collection(config.get("name")):
-            self.rag_collection = self.memory_manager.get_collection(config.get("name"))
-            self.logger.info("Successfully load rag memory from disk")
-            self.init_status = True
+        collection_name = config.get("name", "")
+        if self.memory_manager.has_collection(collection_name):
+            collection = self.memory_manager.get_collection(collection_name)
+            # 确保是 VDB collection
+            if isinstance(collection, VDBMemoryCollection):
+                self.rag_collection = collection
+                self.logger.info("Successfully load rag memory from disk")
+                self.init_status = True
+            else:
+                self.logger.error("Loaded collection is not a VDB collection")
+                self.rag_collection = None
         else:
-            self.rag_collection = self.memory_manager.create_collection(config)
-            self.rag_collection.create_index(config.get("index_config"))
-            self.logger.info("Successfully create rag memory")
+            collection = self.memory_manager.create_collection(config)
+            if isinstance(collection, VDBMemoryCollection):
+                self.rag_collection = collection
+                index_config = config.get("index_config")
+                if index_config:
+                    self.rag_collection.create_index(index_config)
+                self.logger.info("Successfully create rag memory")
+            else:
+                self.logger.error("Created collection is not a VDB collection")
+                self.rag_collection = None
 
     def init(self, texts, metadatas):
-        self.rag_collection.batch_insert_data(texts, metadatas)
-        self.rag_collection.init_index("test_index")
+        if self.rag_collection is not None:
+            self.rag_collection.batch_insert_data(texts, metadatas)
+            self.rag_collection.init_index("test_index")
 
     def store(self):
         self.memory_manager.store_collection()
@@ -51,6 +69,9 @@ class RAGMemoryManager:
         pass
 
     def retrieve(self, data):
+        if self.rag_collection is None:
+            return []
+
         results = self.rag_collection.retrieve(
             raw_data=data,
             index_name="test_index",
@@ -59,7 +80,7 @@ class RAGMemoryManager:
             with_metadata=True,
         )
 
-        return results
+        return results if results is not None else []
 
 
 def init_history_memory():

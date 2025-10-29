@@ -183,19 +183,21 @@ cd SAGE
 pip install isage[core]        # L1-L4: common, platform, kernel, libs, middleware
 
 # Standard installation (推荐) ✅
-pip install isage[standard]    # Core + CLI + 应用包 (apps, benchmark)
+pip install isage[standard]    # Core + 科学计算包 (numpy, pandas, matplotlib, scipy, jupyter)
 
 # Full installation (完整功能)
-pip install isage[full]        # Standard + Web UI (studio)
+pip install isage[full]        # 与 standard 相同
 
 # Development installation (开发者)
-pip install isage[dev]         # Full + 开发工具 (sage-dev, pytest, pre-commit)
+pip install isage[dev]         # Full + 开发工具 (pre-commit)
 ```
 
 > **See [Installation Guide](docs/INSTALLATION_GUIDE.md) for detailed comparison and use cases.**
 
-> Note: PyPI install may not include all system dependencies; use quickstart.sh for complete
-> environment setup.
+> **Important**: PyPI 安装只包含核心包和科学计算库。CLI 工具、应用示例、Web UI 等完整功能需要使用 `./quickstart.sh` 从源码安装。
+>
+> - **从 PyPI**: 适合只需要核心流处理引擎的用户
+> - **从源码**: 完整功能包括 CLI (`sage` 命令)、开发工具 (`sage-dev`)、示例应用等
 
 **Key Installation Features**
 
