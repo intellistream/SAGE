@@ -8,7 +8,7 @@ include src/sage/middleware/**/*.json
 recursive-include src/sage/middleware/templates *
 recursive-include src/sage/middleware/static *
 
-# C++ extension files
+# C++ extension files - include both Python extensions and native libraries
 recursive-include src/sage/middleware/components/sage_db/python *.so *.py *.pyi
 recursive-include src/sage/middleware/components/sage_flow/python *.so *.py *.pyi micro_service/*
 recursive-include src/sage/middleware/components/sage_tsdb/python *.so *.py *.pyi
