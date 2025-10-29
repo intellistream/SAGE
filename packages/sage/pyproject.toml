@@ -1,16 +1,20 @@
 [build-system]
-requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
+]
 build-backend = "setuptools.build_meta"
-
 
 [project]
 name = "isage"
-dynamic = ["version"]
+dynamic = [
+    "version",
+]
 description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
-license = {text = "MIT"}
 authors = [
-    {name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn"}
+    { name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -20,43 +24,25 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 requires-python = ">=3.10"
-
-# SAGE Meta Package - 最小安装，仅包含已发布的核心组件
-# 注意：仅包含 PyPI 上已发布的包，其他包通过 optional-dependencies 提供
 dependencies = [
-    # L1: Foundation - 基础工具
     "isage-common>=0.1.0",
-    # L3: Core - 核心处理引擎（已发布）
     "isage-kernel>=0.1.0",
     "isage-libs>=0.1.0",
-    # L4: Domain - 领域算子（已发布）
     "isage-middleware>=0.1.0",
 ]
 
-[project.optional-dependencies]
-# 核心运行时 - 仅核心功能（生产环境）
-# 用途：容器化部署、生产运行、最小依赖
-# 大小：~100MB
-# 注意：与默认 dependencies 相同
-core = [
-    "isage-common>=0.1.0",      # L1: Foundation
-    "isage-kernel>=0.1.0",      # L3: Core Engine
-    "isage-libs>=0.1.0",        # L3: Libraries
-    "isage-middleware>=0.1.0",  # L4: Domain
-]
+[project.license]
+text = "MIT"
 
-# 标准开发环境 - 日常应用开发
-# 用途：开发 SAGE 应用、使用 RAG/LLM operators
-# 大小：~200MB
-# 注意：包含 CLI、Web UI、科学计算库（需要这些包已发布到 PyPI）
+[project.optional-dependencies]
+core = [
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-libs>=0.1.0",
+    "isage-middleware>=0.1.0",
+]
 standard = [
     "isage[core]",
-    # L2: Platform (当发布后取消注释)
-    # "isage-platform>=0.1.0",
-    # L6: Interface (当发布后取消注释)
-    # "isage-tools[cli]>=0.1.0",
-    # "isage-studio>=0.1.0",
-    # 数据科学基础库
     "numpy>=1.26.0,<2.3.0",
     "pandas>=1.3.0",
     "matplotlib>=3.4.0",
@@ -64,24 +50,11 @@ standard = [
     "jupyter>=1.0.0",
     "ipykernel>=6.0.0",
 ]
-
-# 完整功能 - 包含示例应用和性能测试
-# 用途：学习 SAGE、运行示例、性能评估
-# 大小：~300MB
 full = [
     "isage[standard]",
-    # L5: Applications (当发布后取消注释)
-    # "isage-apps>=0.1.0",
-    # "isage-benchmark>=0.1.0",
 ]
-
-# 框架开发 - 修改 SAGE 框架本身
-# 用途：贡献代码、研究新功能
-# 大小：~400MB
 dev = [
     "isage[full]",
-    # 开发工具 (当发布后取消注释)
-    # "isage-tools[dev]>=0.1.0",
     "pre-commit>=3.0.0",
 ]
 
@@ -92,17 +65,15 @@ Repository = "https://github.com/intellistream/SAGE.git"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [
+    "src",
+]
 
 [tool.setuptools.package-dir]
 "" = "src"
 
-# ============================================================================
-# Code Quality Configuration
-# Extends from root ruff.toml for unified standards across all packages
-# ============================================================================
+[tool.setuptools.dynamic.version]
+attr = "sage._version.__version__"
+
 [tool.ruff]
 extend = "../../tools/ruff.toml"
-
-[tool.setuptools.dynamic]
-version = {attr = "sage._version.__version__"}

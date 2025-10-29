@@ -40,7 +40,9 @@ classifiers = [
 ]
 dependencies = [
     # SAGE framework dependencies
-    "isage-kernel>=0.1.0",  # 继承common的所有依赖
+    "isage-common>=0.1.0",  # L1: 基础工具
+    "isage-platform>=0.1.0",  # L2: 平台服务（BaseService等）
+    "isage-kernel>=0.1.0",  # L3: 核心引擎
 
     # Middleware-specific dependencies
     # Authentication and security

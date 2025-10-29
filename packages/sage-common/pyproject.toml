@@ -1,17 +1,29 @@
 [build-system]
-requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-common"
-dynamic = ["version"]
+dynamic = [
+    "version",
+]
 description = "SAGE Core Common Utilities"
 readme = "README.md"
-license = {text = "MIT"}
 authors = [
-    {name = "SAGE Team", email = "info@sage-ai.org"}
+    { name = "SAGE Team", email = "info@sage-ai.org" },
 ]
-keywords = ["ai", "sage", "machine learning", "artificial intelligence", "core", "utilities"]
+keywords = [
+    "ai",
+    "sage",
+    "machine learning",
+    "artificial intelligence",
+    "core",
+    "utilities",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -25,13 +37,15 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "isage-platform>=0.1.0",
     "pyyaml>=6.0",
     "colorama>=0.4.6",
     "psutil>=6.1.0",
     "dill>=0.3.8",
     "numpy>=1.24",
 ]
+
+[project.license]
+text = "MIT"
 
 [project.optional-dependencies]
 vllm = [
@@ -44,19 +58,17 @@ Documentation = "https://sage-ai.org/docs"
 Repository = "https://github.com/sage-ai/sage"
 Issues = "https://github.com/sage-ai/sage/issues"
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.common._version.__version__"}
+[tool.setuptools.dynamic.version]
+attr = "sage.common._version.__version__"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [
+    "src",
+]
 
 [tool.setuptools.package-dir]
 "" = "src"
 
-# ============================================================================
-# Code Quality Configuration
-# Extends from root ruff.toml for unified standards across all packages
-# ============================================================================
 [tool.ruff]
 extend = "../../tools/ruff.toml"
 
@@ -88,9 +100,6 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
-    "network: marks tests as network tests",
-    "system: marks tests as system tests",
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
-    "cli: marks tests as CLI tests",
 ]

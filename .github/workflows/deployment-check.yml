@@ -164,7 +164,7 @@ jobs:
         run: |
           echo "📖 检查包 README 文档..."
 
-          if sage-dev check-readme; then
+          if sage-dev quality readme; then
             echo "✅ 所有包的 README 文档完整"
           else
             if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -175,7 +175,7 @@ jobs:
               echo "1. 确保每个包都有 README.md"
               echo "2. README 应包含：简介、安装、使用示例"
               echo "3. 使用模板: packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md"
-              echo "4. 查看详细报告: sage-dev check-readme --report"
+              echo "4. 查看详细报告: sage-dev quality readme --report"
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               exit 1
             else

@@ -1,4 +1,4 @@
-"""SAGE Applications - Real-world AI applications built on SAGE framework."""
+"""SAGE namespace package."""
 
-__version__ = "0.1.0"
-__all__ = ["__version__"]
+# This is a namespace package
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)

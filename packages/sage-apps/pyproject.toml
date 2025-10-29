@@ -7,7 +7,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-apps"
-dynamic = ["version"]
+dynamic = [
+    "version",
+]
 description = "SAGE Applications - Real-world AI applications built on SAGE framework"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,42 +38,29 @@ classifiers = [
     "Topic :: Multimedia :: Video",
 ]
 license = "MIT"
-
-# Core dependencies
 dependencies = [
-    # SAGE framework dependencies
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",
-    # 注意：apps 不直接依赖 libs，通过 middleware 访问功能
-
-    # Common application dependencies
     "pyyaml>=6.0",
     "pillow>=10.0.0",
     "numpy>=1.24.0",
 ]
 
 [project.optional-dependencies]
-# Video Intelligence Application
 video = [
     "opencv-python>=4.5.0",
     "torch>=2.0.0",
     "torchvision>=0.15.0",
     "transformers>=4.30.0",
 ]
-
-# Medical Diagnosis Application
 medical = [
     "pillow>=10.0.0",
     "scikit-learn>=1.3.0",
 ]
-
-# All applications
 all = [
     "isage-apps[video,medical]",
 ]
-
-# Development dependencies
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -87,21 +76,36 @@ Repository = "https://github.com/intellistream/SAGE"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-packages = ["sage.apps"]
-package-dir = {"" = "src"}
+packages = [
+    "sage.apps",
+]
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.apps._version.__version__"}
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.dynamic.version]
+attr = "sage.apps._version.__version__"
 
 [tool.setuptools.package-data]
-"sage.apps" = ["py.typed"]
-"sage.apps.video" = ["config/*.yaml", "data/**/*"]
-"sage.apps.medical_diagnosis" = ["config/*.yaml", "data/**/*"]
+"sage.apps" = [
+    "py.typed",
+]
+"sage.apps.video" = [
+    "config/*.yaml",
+    "data/**/*",
+]
+"sage.apps.medical_diagnosis" = [
+    "config/*.yaml",
+    "data/**/*",
+]
 
 [tool.black]
 line-length = 100
-target-version = ['py310', 'py311']
-include = '\.pyi?$'
+target-version = [
+    "py310",
+    "py311",
+]
+include = "\\.pyi?$"
 
 [tool.mypy]
 python_version = "3.10"
@@ -110,16 +114,37 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
 
-# ============================================================================
-# Code Quality Configuration
-# Extends from root ruff.toml for unified standards across all packages
-# ============================================================================
 [tool.ruff]
 extend = "../../tools/ruff.toml"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_classes = "Test*"
-python_functions = "test_*"
-addopts = "-v --cov=sage.apps --cov-report=term-missing"
+testpaths = [
+    "tests",
+    "src",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+addopts = [
+    "--benchmark-storage=../../.sage/benchmarks",
+    "-o",
+    "cache_dir=../../.sage/cache/pytest",
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-ra",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "video: marks tests as video intelligence tests",
+    "medical: marks tests as medical diagnosis tests",
+]
