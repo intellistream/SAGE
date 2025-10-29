@@ -19,42 +19,85 @@ class EnhancedPackageManager:
         self.project_root = Path(project_root)
         self.packages_dir = self.project_root / "packages"
 
-        # Define packages and their dependencies
+        # Define packages and their dependencies (in dependency order)
         self.packages: dict[str, dict[str, Any]] = {
+            # L1: 基础包 - 无依赖
             "sage-common": {
                 "path": self.packages_dir / "sage-common",
                 "namespace": "sage.common",
                 "dependencies": [],
                 "description": "Common utilities and base framework",
             },
+            # L2: 核心包 - 依赖 sage-common
             "sage-kernel": {
                 "path": self.packages_dir / "sage-kernel",
-                "namespace": "sage.core",
+                "namespace": "sage.kernel",
                 "dependencies": ["sage-common"],
-                "description": "Core framework components",
-            },
-            "sage-middleware": {
-                "path": self.packages_dir / "sage-middleware",
-                "namespace": "sage.middleware",
-                "dependencies": ["sage-common", "sage-kernel"],
-                "description": "Middleware and API services",
+                "description": "Core streaming kernel",
             },
             "sage-libs": {
                 "path": self.packages_dir / "sage-libs",
                 "namespace": "sage.libs",
                 "dependencies": ["sage-common"],
-                "description": "Application libraries and examples",
+                "description": "Application libraries",
             },
+            # L3: 中间件 - 依赖核心包
+            "sage-middleware": {
+                "path": self.packages_dir / "sage-middleware",
+                "namespace": "sage.middleware",
+                "dependencies": ["sage-common", "sage-kernel"],
+                "description": "Middleware and services",
+            },
+            # L4: 平台和工具 - 依赖核心和中间件
+            "sage-platform": {
+                "path": self.packages_dir / "sage-platform",
+                "namespace": "sage.platform",
+                "dependencies": ["sage-common", "sage-kernel", "sage-middleware"],
+                "description": "Platform runtime",
+            },
+            "sage-cli": {
+                "path": self.packages_dir / "sage-cli",
+                "namespace": "sage.cli",
+                "dependencies": ["sage-common", "sage-kernel", "sage-libs"],
+                "description": "Command-line interface",
+            },
+            # L5: 应用层 - 依赖所有核心包
+            "sage-apps": {
+                "path": self.packages_dir / "sage-apps",
+                "namespace": "sage.apps",
+                "dependencies": ["sage-common", "sage-kernel", "sage-libs", "sage-middleware"],
+                "description": "Application examples and templates",
+            },
+            "sage-benchmark": {
+                "path": self.packages_dir / "sage-benchmark",
+                "namespace": "sage.benchmark",
+                "dependencies": ["sage-common", "sage-kernel", "sage-libs"],
+                "description": "Benchmarking tools",
+            },
+            # L6: UI 和开发工具
+            "sage-studio": {
+                "path": self.packages_dir / "sage-studio",
+                "namespace": "sage.studio",
+                "dependencies": ["sage-common", "sage-kernel", "sage-libs", "sage-middleware"],
+                "description": "Web-based Studio UI",
+            },
+            "sage-tools": {
+                "path": self.packages_dir / "sage-tools",
+                "namespace": "sage.tools",
+                "dependencies": ["sage-common"],  # 开发工具不依赖其他包以避免循环
+                "description": "Development tools and CLI",
+            },
+            # L0: 元包 - 依赖所有包
             "sage": {
                 "path": self.packages_dir / "sage",
                 "namespace": "sage",
                 "dependencies": [
                     "sage-common",
                     "sage-kernel",
-                    "sage-middleware",
                     "sage-libs",
+                    "sage-middleware",
                 ],
-                "description": "Meta package - all SAGE components",
+                "description": "Meta package - all SAGE core components",
             },
         }
 

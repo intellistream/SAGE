@@ -37,7 +37,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Multimedia :: Video",
 ]
-license = "MIT"
 dependencies = [
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0",
@@ -46,6 +45,9 @@ dependencies = [
     "pillow>=10.0.0",
     "numpy>=1.24.0",
 ]
+
+[project.license]
+text = "MIT"
 
 [project.optional-dependencies]
 video = [

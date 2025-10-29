@@ -32,7 +32,6 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
     "Topic :: Utilities",
 ]
-license = "MIT"
 
 # 核心依赖
 dependencies = [
@@ -63,6 +62,9 @@ dependencies = [
     "markupsafe>=2.0.1",
     "packaging>=20.5",
 ]
+
+[project.license]
+text = "MIT"
 
 [project.optional-dependencies]
 # 开发工具依赖

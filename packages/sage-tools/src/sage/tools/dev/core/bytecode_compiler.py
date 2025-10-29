@@ -239,7 +239,7 @@ class BytecodeCompiler:
     def _should_keep_source(self, py_file: Path) -> bool:
         """判断是否应该保留源文件"""
         # 必须保留的文件
-        keep_files = ["setup.py"]
+        keep_files = ["setup.py", "_version.py"]
 
         if py_file.name in keep_files:
             return True
@@ -315,11 +315,62 @@ include-package-data = true
                     if match:
                         existing_data = match.group(1)
                         if '"*.pyc"' not in existing_data:
-                            # 在现有配置中添加*.pyc和二进制扩展文件
-                            updated_data = (
-                                existing_data.rstrip()
-                                + '\n"*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]\n'
+                            # 查找现有的 "*" 键并合并（支持多行数组）
+                            star_pattern = r'"(\*)" = \[([^\]]*)\]'
+                            star_matches = list(
+                                re.finditer(star_pattern, existing_data, re.MULTILINE)
                             )
+
+                            if star_matches:
+                                # 找到第一个 "*" 键，合并所有内容到它
+                                first_match = star_matches[0]
+
+                                # 收集所有现有的项
+                                all_items = []
+                                for m in star_matches:
+                                    items = m.group(2).strip()
+                                    if items:
+                                        # 分割并清理每个项
+                                        for item in items.split(","):
+                                            item = item.strip().strip('"').strip("'")
+                                            if item and item not in all_items:
+                                                all_items.append(item)
+
+                                # 添加新的二进制文件模式
+                                binary_patterns = [
+                                    "*.pyc",
+                                    "*.pyo",
+                                    "__pycache__/*",
+                                    "*.so",
+                                    "*.pyd",
+                                    "*.dylib",
+                                ]
+                                for pattern in binary_patterns:
+                                    if pattern not in all_items:
+                                        all_items.append(pattern)
+
+                                # 构建合并后的数组
+                                formatted_items = ",\n    ".join(f'"{item}"' for item in all_items)
+                                updated_line = f'"*" = [\n    {formatted_items},\n]'
+
+                                # 替换第一个 "*" 键
+                                updated_data = existing_data.replace(
+                                    first_match.group(0), updated_line
+                                )
+
+                                # 删除其他重复的 "*" 键
+                                for m in star_matches[1:]:
+                                    updated_data = updated_data.replace(m.group(0), "")
+
+                                # 清理多余的空行
+                                updated_data = re.sub(r"\n\s*\n\s*\n", "\n\n", updated_data)
+                            else:
+                                # 在现有配置中添加新的通配符键
+                                updated_data = (
+                                    existing_data.rstrip()
+                                    + '\n"*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]\n'
+                                )
+
                             content = content.replace(existing_data, updated_data)
                             modified = True
                             console.print("  📝 更新package-data配置包含二进制文件", style="green")
@@ -375,6 +426,7 @@ setup(
         compiled_path: Path | None = None,
         upload: bool = False,
         dry_run: bool = True,
+        repository: str = "pypi",
     ) -> Path:
         """
         构建wheel包
@@ -383,6 +435,7 @@ setup(
             compiled_path: 已编译的包路径，如果未提供则使用self.compiled_path
             upload: 是否上传到PyPI
             dry_run: 是否为预演模式
+            repository: 上传目标仓库 ('pypi' 或 'testpypi')
 
         Returns:
             wheel文件路径
@@ -436,7 +489,9 @@ setup(
 
                 # 如果需要上传
                 if upload and not dry_run:
-                    self._upload_to_pypi()
+                    # 传递 dist 目录的绝对路径
+                    dist_dir = Path("dist").resolve()
+                    self._upload_to_pypi(repository=repository, dist_dir=dist_dir)
                 elif upload and dry_run:
                     console.print("  🔍 预演模式：跳过上传", style="yellow")
 
@@ -518,20 +573,56 @@ setup(
         except Exception as e:
             console.print(f"    ❌ 验证wheel内容失败: {e}", style="red")
 
-    def _upload_to_pypi(self) -> bool:
-        """上传到PyPI"""
-        console.print("  🚀 上传到PyPI...")
+    def _upload_to_pypi(self, repository: str = "pypi", dist_dir: Path | None = None) -> bool:
+        """
+        上传到PyPI或TestPyPI
+
+        Args:
+            repository: 上传目标 ('pypi' 或 'testpypi')
+            dist_dir: dist 目录的绝对路径，如果为 None 则使用当前目录的 dist
+        """
+        repo_name = "TestPyPI" if repository == "testpypi" else "PyPI"
+        console.print(f"  🚀 上传到{repo_name}...")
 
         try:
-            upload_result = subprocess.run(
-                ["twine", "upload", "dist/*"], capture_output=True, text=True
-            )
+            # 找到所有 wheel 文件
+            import glob
+
+            if dist_dir:
+                wheel_pattern = str(dist_dir / "*.whl")
+            else:
+                wheel_pattern = "dist/*.whl"
+
+            wheel_files = glob.glob(wheel_pattern)
+
+            if not wheel_files:
+                console.print(f"  ❌ 未找到 wheel 文件 (搜索路径: {wheel_pattern})", style="red")
+                return False
+
+            cmd = ["twine", "upload"]
+
+            # 添加仓库参数
+            if repository == "testpypi":
+                cmd.extend(["--repository", "testpypi"])
+
+            # 添加所有 wheel 文件
+            cmd.extend(wheel_files)
+
+            upload_result = subprocess.run(cmd, capture_output=True, text=True)
 
             if upload_result.returncode == 0:
-                console.print("  ✅ 上传成功", style="green")
+                console.print(f"  ✅ 上传到{repo_name}成功", style="green")
+                # 显示链接
+                if upload_result.stdout:
+                    for line in upload_result.stdout.split("\n"):
+                        if "View at:" in line or "https://" in line:
+                            console.print(f"    🔗 {line.strip()}", style="cyan")
                 return True
             else:
-                console.print(f"  ❌ 上传失败: {upload_result.stderr}", style="red")
+                error_msg = upload_result.stderr.strip() if upload_result.stderr else "未知错误"
+                console.print(f"  ❌ 上传到{repo_name}失败: {error_msg}", style="red")
+                if upload_result.stdout:
+                    console.print(f"     输出: {upload_result.stdout.strip()}", style="dim")
                 return False
 
         except FileNotFoundError:
