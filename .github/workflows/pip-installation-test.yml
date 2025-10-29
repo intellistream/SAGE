@@ -310,10 +310,10 @@ jobs:
 
           # L1: Common
           from sage.common import config
-          from sage.common.logging import setup_logger
+          from sage.common.utils.logging import get_logger
 
-          # L2: Platform
-          from sage.platform.utils import get_system_info
+          # L2: Platform (no utils module, components only)
+          from sage.platform.components import LocalComponent
 
           # L3: Kernel
           from sage.kernel import LocalEnvironment, RemoteEnvironment
@@ -322,8 +322,8 @@ jobs:
           # L4: Libs (RAG)
           from sage.libs.rag.pipeline import RAGPipeline
 
-          # L6: Tools
-          from sage.tools.cli import main as cli_main
+          # L6: CLI (from sage-cli package)
+          from sage.cli.main import app as cli_app
 
           print("✅ 所有核心导入路径正常")
           EOF
