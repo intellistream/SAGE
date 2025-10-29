@@ -69,9 +69,8 @@ tutorials/
 ├── L5-apps/               # 应用层：完整应用
 ├── L6-interface/          # 接口层：CLI、Web UI
 │
-├── docs/                  # 文档（快速参考、故障排除）
-├── tests/                 # 测试文件
-└── config/                # 配置文件
+├── config/                # 配置文件示例
+└── docs/                  # 文档（快速参考、故障排除）
 ```
 
 ## �� 学习路径
@@ -279,7 +278,6 @@ ______________________________________________________________________
 - [**QUICK_START.md**](QUICK_START.md) - 5 分钟快速入门
 - [**docs/QUICK_REFERENCE.md**](docs/QUICK_REFERENCE.md) - 快速参考卡
 - [**docs/TROUBLESHOOTING.md**](docs/TROUBLESHOOTING.md) - 故障排除指南
-- [**REORGANIZATION_PLAN.md**](REORGANIZATION_PLAN.md) - 重组方案（技术文档）
 
 ## 🔍 如何选择示例
 
