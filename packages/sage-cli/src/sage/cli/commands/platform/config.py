@@ -54,7 +54,7 @@ def init_config(force: bool = typer.Option(False, "--force", "-f", help="强制�
                 print("使用 --force 选项覆盖现有配置")
                 return
 
-        config_manager.init_config()
+        config_manager.create_default_config()
         print(f"✅ 配置文件已创建: {config_manager.config_path}")
 
     except Exception as e:

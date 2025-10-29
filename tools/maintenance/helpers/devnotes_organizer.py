@@ -144,7 +144,7 @@ class DevNotesAnalyzer:
         text = (filename + " " + content[:1000]).lower()
 
         # 统计每个分类的关键词匹配数
-        scores = {}
+        scores: Dict[str, int] = {}
         for category, keywords in CATEGORY_KEYWORDS.items():
             score = sum(1 for keyword in keywords if keyword in text)
             if score > 0:
@@ -152,7 +152,7 @@ class DevNotesAnalyzer:
 
         # 返回得分最高的分类
         if scores:
-            return max(scores, key=scores.get)
+            return max(scores, key=lambda k: scores[k])
         return "migration"  # 默认归为迁移类
 
     def analyze_all(self) -> List[Dict]:

@@ -187,8 +187,8 @@ def _run_architecture_check(warn_only: bool = False, changed_only: bool = False)
     try:
         from pathlib import Path
 
-        from sage.tools.cli.core.utils import find_project_root
         from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
+        from sage.tools.dev.utils import find_project_root
 
         # 获取项目根目录
         root_dir = find_project_root()
@@ -224,8 +224,8 @@ def _run_devnotes_check(warn_only: bool = False) -> bool:
     try:
         from pathlib import Path
 
-        from sage.tools.cli.core.utils import find_project_root
         from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
+        from sage.tools.dev.utils import find_project_root
 
         # 获取项目根目录
         root_dir = find_project_root()
@@ -257,8 +257,8 @@ def _run_readme_check(warn_only: bool = False) -> bool:
     try:
         from pathlib import Path
 
-        from sage.tools.cli.core.utils import find_project_root
         from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
+        from sage.tools.dev.utils import find_project_root
 
         # 获取项目根目录
         root_dir = find_project_root()
@@ -293,10 +293,10 @@ def _run_examples_check(warn_only: bool = False) -> bool:
     try:
         from pathlib import Path
 
-        from sage.tools.cli.core.utils import find_project_root
         from sage.tools.dev.tools.examples_structure_checker import (
             ExamplesStructureChecker,
         )
+        from sage.tools.dev.utils import find_project_root
 
         # 获取项目根目录
         root_dir = find_project_root()

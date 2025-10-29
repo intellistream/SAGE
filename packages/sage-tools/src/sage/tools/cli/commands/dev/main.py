@@ -9,7 +9,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from sage.tools.utils.diagnostics import (
+from sage.cli.utils.diagnostics import (
     collect_packages_status,
     print_packages_status,
     print_packages_status_summary,

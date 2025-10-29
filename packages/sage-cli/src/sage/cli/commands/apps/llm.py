@@ -11,6 +11,7 @@ from typing import Any
 
 import psutil
 import typer
+
 from sage.common.model_registry import vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install
@@ -423,6 +424,7 @@ def _find_llm_processes(port: int) -> list[psutil.Process]:
 
 
 def _test_api_endpoint(port: int) -> None:
+    import urllib.error
     import urllib.request
 
     try:
