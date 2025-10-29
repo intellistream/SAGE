@@ -1,573 +1,350 @@
-# 🚀 SAGE Unlearning Library - Examples & Documentation
+# 🚀 SAGE Tutorials
 
-This directory contains complete examples and documentation for the SAGE Unlearning Library.
+欢迎来到 SAGE Tutorials！这里包含了按照 SAGE 架构分层组织的完整示例和文档。
 
-> **From research to production: A comprehensive guide to privacy-preserving unlearning**
+> **从基础到应用：循序渐进地掌握 SAGE 框架**
 
-## ⚡ Quick Start (3 Steps, 5 Minutes)
-
-### 1️⃣ Run the Demo
+## ⚡ 5 分钟快速开始
 
 ```bash
-python basic_unlearning_demo.py
+# 1. 运行第一个示例
+python hello_world.py
+
+# 2. 查看快速入门指南
+cat QUICK_START.md
 ```
 
-See unlearning in action with a simple example.
+## 📐 SAGE 6 层架构概览
 
-### 2️⃣ Choose Your Path
+SAGE 采用 **6 层分层架构**，从底层基础设施到顶层应用：
+
+```
+┌─────────────────────────────────────────────┐
+│ L6: Interface (接口层)                      │
+│ sage-studio, sage-tools, sage-cli          │
+│ Web UI + CLI 工具 + 命令行接口              │
+├─────────────────────────────────────────────┤
+│ L5: Apps (应用层)                           │
+│ sage-apps, sage-benchmark                  │
+│ 完整应用 + 性能测试                         │
+├─────────────────────────────────────────────┤
+│ L4: Middleware (中间件层)                   │
+│ sage-middleware                            │
+│ 领域算子 + 中间件组件                       │
+├─────────────────────────────────────────────┤
+│ L3: Core (核心层)                           │
+│ sage-kernel + sage-libs                   │
+│ 执行引擎 + 算法库                           │
+├─────────────────────────────────────────────┤
+│ L2: Platform (平台层)                       │
+│ sage-platform                              │
+│ 队列 + 存储 + 服务抽象                      │
+├─────────────────────────────────────────────┤
+│ L1: Foundation (基础层)                     │
+│ sage-common                                │
+│ 配置 + 日志 + 工具                          │
+└─────────────────────────────────────────────┘
+```
+
+**核心原则**：
+
+- ✅ **单向依赖**：只能向下依赖（L6→L5→L4→L3→L2→L1）
+- ❌ **禁止反向**：禁止向上或循环依赖
+- 📚 **详细说明**：[SAGE 包架构文档](../../docs-public/docs_src/dev-notes/package-architecture.md)
+
+## 📚 Tutorial 目录结构
+
+```
+tutorials/
+│
+├── hello_world.py         # 最简入门（快速开始）
+├── QUICK_START.md         # 5 分钟快速指南
+├── README.md              # 本文档
+│
+├── L1-common/             # 基础层：配置、日志、工具
+├── L2-platform/           # 平台层：队列、存储、调度
+├── L3-kernel/             # 核心层：执行引擎、流处理
+├── L3-libs/               # 核心层：RAG、Agents、算法库
+├── L4-middleware/         # 中间件层：领域算子、数据服务
+├── L5-apps/               # 应用层：完整应用
+├── L6-interface/          # 接口层：CLI、Web UI
+│
+├── docs/                  # 文档（快速参考、故障排除）
+├── tests/                 # 测试文件
+└── config/                # 配置文件
+```
+
+## �� 学习路径
+
+### 🔰 初学者路径（2-3 小时）
+
+适合第一次接触 SAGE 的用户
 
 ```bash
-cat QUICK_REFERENCE.md
+# L1: 基础概念
+cd L1-common && python hello_world.py
+
+# L2: 平台服务
+cd L2-platform/scheduler && python scheduler_comparison.py
+
+# L3: 核心引擎
+cd L3-kernel/batch && python hello_local_batch.py
+cd L3-kernel/stream && python hello_streaming_world.py
+cd L3-kernel/operators && python hello_comap_world.py
 ```
 
-Find the right usage example for your scenario.
+**学习目标**：理解 SAGE 基础概念、流处理模型、操作符系统
 
-### 3️⃣ Deep Dive
+### 🚀 应用开发者路径（4-6 小时）
 
-Pick one of the `usage_*.py` files and explore the code with detailed comments.
-
-______________________________________________________________________
-
-## 📚 Documentation
-
-### Quick Reference
-
-| Example                     | Focus                | Best For             |
-| --------------------------- | -------------------- | -------------------- |
-| `basic_unlearning_demo.py`  | Overview             | Getting started      |
-| `usage_1_direct_library.py` | Direct Library Usage | Scripts & notebooks  |
-| `usage_2_sage_function.py`  | SAGE Integration     | Pipeline processing  |
-| `usage_3_memory_service.py` | MemoryService        | VDB integration      |
-| `usage_4_complete_rag.py`   | Full RAG System      | Production scenarios |
-
-______________________________________________________________________
-
-### `basic_unlearning_demo.py` - Overview Demo
-
-Basic demonstration of the SAGE Unlearning Library.
-
-- Generates synthetic vectors
-- Performs unlearning operations
-- Compares different perturbation strategies
-- Tracks privacy budget
-
-**Run it:**
+适合想要构建应用的开发者
 
 ```bash
-python basic_unlearning_demo.py
+# 完成初学者路径后
+
+# L3: 算法库
+cd L3-libs/rag && python simple_rag.py
+cd L3-libs/agents && python basic_agent.py
+
+# L4: 中间件服务
+cd L4-middleware && python hello_service_world.py
+cd L4-middleware/memory_service && python rag_memory_service.py
+
+# L4: 数据服务
+cd L4-middleware/sage_db && python workflow_demo.py
+cd L4-middleware/sage_tsdb && python basic_dag_example.py
 ```
 
-______________________________________________________________________
+**学习目标**：掌握 RAG 系统、Agent 开发、数据服务使用
 
-### `usage_1_direct_library.py` - Direct Library Usage
+### 🧠 高级开发者路径（1-2 天）
 
-Use the unlearning library directly without SAGE runtime.
-
-**Best for:**
-
-- Independent scripts and notebooks
-- Quick prototyping
-- Algorithm research
-- No SAGE dependency
-
-**Covers:**
-
-- Basic unlearning operations
-- Custom privacy mechanisms
-- Batch unlearning
-- Similarity-based unlearning
-- Privacy budget management
-
-**Run it:**
+适合平台开发者和架构师
 
 ```bash
-python usage_1_direct_library.py
+# 完成应用开发者路径后
+
+# L3: 高级特性
+cd L3-kernel/advanced && python hello_future_world.py
+cd L3-kernel/advanced/fault_tolerance && python fault_tolerance.py
+
+# L3: 完整 RAG 系统
+cd L3-libs/rag && python usage_4_complete_rag.py
+
+# L5: 应用集成
+# （待添加完整应用示例）
 ```
 
-**Example snippet:**
+**学习目标**：深入理解容错机制、异步处理、生产级系统设计
 
-```python
-from sage.libs.unlearning import UnlearningEngine
+## �� 各层级详细说明
 
-engine = UnlearningEngine(epsilon=1.0, delta=1e-5)
-result = engine.unlearn_vectors(
-    vectors_to_forget=forget_vectors,
-    vector_ids_to_forget=forget_ids,
-    perturbation_strategy="adaptive",
-)
-```
+### L1: Common - 基础层
+
+**对应包**：`sage-common`
+
+**内容**：
+
+- `hello_world.py` - 最基础的 SAGE 程序
+- 配置管理示例
+- 日志系统示例
+
+**Python 文件数**：1
+
+[查看详细文档 →](L1-common/README.md)
 
 ______________________________________________________________________
 
-### `usage_2_sage_function.py` - SAGE Function Integration
+### L2: Platform - 平台服务层
 
-Use unlearning in SAGE Functions and Pipelines.
+**对应包**：`sage-platform`
 
-**Best for:**
+**内容**：
 
-- SAGE Pipeline integration
-- Streaming data processing
-- Multiple data sources
-- Stateful processing
+- `scheduler/` - 调度系统示例
+- 队列抽象示例（待添加）
+- 存储后端示例（待添加）
 
-**Covers:**
+**Python 文件数**：2
 
-- Vector generator Source Function
-- Unlearning processor Function
-- Result collector Sink Function
-- Stateful pipelines
-- Conditional unlearning
-
-**Run it:**
-
-```bash
-python usage_2_sage_function.py
-```
-
-**Example pipeline:**
-
-```python
-env.from_source(VectorGenerator).map(UnlearningProcessor, epsilon=1.0).sink(
-    ResultCollector
-)
-
-env.submit(autostop=True)
-```
+[查看详细文档 →](L2-platform/README.md)
 
 ______________________________________________________________________
 
-### `usage_3_memory_service.py` - MemoryService Integration
+### L3: Kernel - 核心引擎层
 
-Integrate unlearning with MemoryService and VDB.
+**对应包**：`sage-kernel`
 
-**Best for:**
+**内容**：
 
-- RAG systems
-- VDB integration
-- Memory management
-- Cross-service coordination
+- `batch/` - 批处理示例（3 个）
+- `stream/` - 流处理示例（3 个）
+- `operators/` - 操作符示例（5 个）
+- `functions/` - 函数示例（3 个）
+- `advanced/` - 高级特性（容错、Future、Pipeline-as-Service 等，17 个）
 
-**Covers:**
+**Python 文件数**：31
 
-- DPMemoryService class
-- Vector storage and retrieval
-- DP-based forgetting
-- Privacy budget tracking
-- Multi-collection management
-
-**Run it:**
-
-```bash
-python usage_3_memory_service.py
-```
-
-**Example usage:**
-
-```python
-service = DPMemoryService(epsilon=1.0)
-service.create_collection("documents")
-
-# Store memories
-mem_id = service.store_memory(
-    collection_name="documents", content=text, vector=embedding
-)
-
-# Forget with DP
-result = service.forget_with_dp(
-    collection_name="documents", memory_ids=[mem_id], perturbation_strategy="adaptive"
-)
-```
+[查看详细文档 →](L3-kernel/README.md)
 
 ______________________________________________________________________
 
-### `usage_4_complete_rag.py` - Complete RAG System
+### L3: Libs - 算法库层
 
-Full RAG system with privacy unlearning.
+**对应包**：`sage-libs`
 
-**Best for:**
+**内容**：
 
-- Production RAG systems
-- User data deletion (GDPR compliance)
-- Malicious content removal
-- Audit logging
+- `rag/` - RAG 应用示例（7 个）
+- `agents/` - 智能体示例（5 个）
+- `embeddings/` - 嵌入示例（4 个）
+- `llm/` - LLM 集成示例（2 个）
+- `unlearning/` - 机器遗忘示例（5 个）
 
-**Covers:**
+**Python 文件数**：23
 
-- RAG corpus initialization
-- Document retrieval
-- User deletion requests
-- Malicious content detection
-- Compliance audit logs
-
-**Run it:**
-
-```bash
-python usage_4_complete_rag.py
-```
-
-**Example usage:**
-
-```python
-system = RAGUnlearningSystem(epsilon=1.0)
-
-# Handle GDPR deletion request
-result = system.handle_user_deletion_request(
-    collection_name="knowledge_base", user_id="user_123"
-)
-
-# Remove malicious content
-result = system.handle_malicious_content_removal(
-    collection_name="knowledge_base", detection_keywords=["spam", "malware"]
-)
-
-# Audit compliance
-logs = system.get_audit_log()
-```
+[查看详细文档 →](L3-libs/README.md)
 
 ______________________________________________________________________
 
-## 🚀 Quick Start Guide
+### L4: Middleware - 中间件层
 
-### 1. Set Up Environment
+**对应包**：`sage-middleware`
 
-```bash
-cd /path/to/SAGE
-pip install -e packages/sage-libs
-```
+**内容**：
 
-### 2. Run Examples in Order
+- `hello_service_world.py` - 服务入门
+- `memory_service/` - 内存管理（3 个）
+- `sage_db/` - 向量数据库（4 个）
+- `sage_flow/` - 流数据服务（3 个）
+- `sage_tsdb/` - 时序数据库（3 个）
 
-```bash
-# Start with basic overview
-python examples/unlearning/basic_unlearning_demo.py
+**Python 文件数**：13
 
-# Try direct library usage
-python examples/unlearning/usage_1_direct_library.py
-
-# Explore SAGE integration
-python examples/unlearning/usage_2_sage_function.py
-
-# See service integration
-python examples/unlearning/usage_3_memory_service.py
-
-# Full RAG system
-python examples/unlearning/usage_4_complete_rag.py
-```
-
-### 3. Understand the Architecture
-
-```
-┌─────────────────────────────────┐
-│  Application Layer              │ ← usage_4_complete_rag.py
-├─────────────────────────────────┤
-│  MemoryService Integration      │ ← usage_3_memory_service.py
-├─────────────────────────────────┤
-│  SAGE Function/Pipeline         │ ← usage_2_sage_function.py
-├─────────────────────────────────┤
-│  Direct Library Usage           │ ← usage_1_direct_library.py
-├─────────────────────────────────┤
-│  Unlearning Library             │ ← basic_unlearning_demo.py
-│  (sage.libs.unlearning)         │
-└─────────────────────────────────┘
-```
+[查看详细文档 →](L4-middleware/README.md)
 
 ______________________________________________________________________
 
-## 📊 Comparison: Which Example to Use?
+### L5: Apps - 应用层
 
-### For Independent Research
+**对应包**：`sage-apps`, `sage-benchmark`
 
-→ Use **`usage_1_direct_library.py`**
+**内容**：
 
-- Zero dependencies on SAGE runtime
-- Pure algorithm implementation
-- Easy to experiment with
+- `complete_solutions/` - 完整应用（待添加）
 
-### For Pipeline Integration
+**Python 文件数**：0 (待添加)
 
-→ Use **`usage_2_sage_function.py`**
-
-- Integrates with SAGE Kernel
-- Supports streaming data
-- Stateful processing
-
-### For RAG Systems
-
-→ Use **`usage_3_memory_service.py`** + **`usage_4_complete_rag.py`**
-
-- VDB integration
-- Vector storage and retrieval
-- Production-ready patterns
-
-### For Learning
-
-→ Start with **`basic_unlearning_demo.py`**
-
-- Clear, simple examples
-- Well-commented code
-- Progressive complexity
+[查看详细文档 →](L5-apps/README.md)
 
 ______________________________________________________________________
 
-## 💡 Key Concepts
+### L6: Interface - 接口层
 
-### Privacy Budget
+**对应包**：`sage-studio` (Web UI), `sage-tools` (开发工具), `sage-cli` (命令行)
 
-Each unlearning operation consumes privacy budget (ε, δ).
+**内容**：
 
-```python
-# Check remaining budget
-status = engine.get_privacy_status()
-remaining = status["remaining_budget"]
-print(f"Remaining ε: {remaining['epsilon_remaining']:.4f}")
-```
+- CLI 工具示例（待添加）
+- Web UI 示例（待添加）
+- 命令行工具示例（待添加）
 
-### Perturbation Strategies
+**Python 文件数**：0 (待添加)
 
-Different strategies trade off privacy and utility:
+**说明**：
 
-- **`uniform`**: Simple, high noise, high privacy
-- **`selective`**: Dimension-specific, medium privacy
-- **`adaptive`**: Data-aware, balanced privacy-utility
+- **sage-studio**：可视化 Web UI，提供管道编辑器
+- **sage-tools**：开发工具集（测试、质量检查、包管理等）
+- **sage-cli**：命令行接口，提供 `sage` 命令
 
-### Neighbor Compensation
-
-Prevents "collateral damage" to similar vectors when unlearning.
-
-```python
-engine = UnlearningEngine(enable_compensation=True)  # Activate neighbor compensation
-```
+[查看详细文档 →](L6-interface/README.md)
 
 ______________________________________________________________________
 
-## 🔬 Research Extensions
+## 📊 示例统计
 
-Students can extend these examples by:
+| 层级     | 对应包                            | Python 文件 | 主要内容     |
+| -------- | --------------------------------- | ----------- | ------------ |
+| L1       | sage-common                       | 1           | 基础工具     |
+| L2       | sage-platform                     | 2           | 平台服务     |
+| L3       | sage-kernel                       | 31          | 流处理引擎   |
+| L3       | sage-libs                         | 23          | 算法库       |
+| L4       | sage-middleware                   | 13          | 数据服务     |
+| L5       | sage-apps, sage-benchmark         | 0           | 待添加       |
+| L6       | sage-studio, sage-tools, sage-cli | 0           | 待添加       |
+| **总计** | -                                 | **70**      | **6 层架构** |
 
-### 1. Custom Mechanisms
+## 📖 补充文档
 
-Implement new privacy mechanisms in `sage/libs/unlearning/algorithms/`:
+- [**QUICK_START.md**](QUICK_START.md) - 5 分钟快速入门
+- [**docs/QUICK_REFERENCE.md**](docs/QUICK_REFERENCE.md) - 快速参考卡
+- [**docs/TROUBLESHOOTING.md**](docs/TROUBLESHOOTING.md) - 故障排除指南
+- [**REORGANIZATION_PLAN.md**](REORGANIZATION_PLAN.md) - 重组方案（技术文档）
 
-```python
-class MyCustomMechanism(BasePrivacyMechanism):
-    def compute_noise(self, sensitivity, epsilon):
-        # Your novel mechanism
-        pass
-```
+## 🔍 如何选择示例
 
-### 2. Better Perturbation
+### 我想学习...
 
-Improve `vector_perturbation.py` with:
+- **基础概念** → 从 `hello_world.py` 开始
+- **流处理** → `L3-kernel/stream/`
+- **批处理** → `L3-kernel/batch/`
+- **RAG 系统** → `L3-libs/rag/`
+- **智能体** → `L3-libs/agents/`
+- **数据服务** → `L4-middleware/`
+- **容错机制** → `L3-kernel/advanced/fault_tolerance/`
 
-- PCA-preserving strategies
-- Semantic-aware perturbation
-- Learned perturbation (neural networks)
+### 我想构建...
 
-### 3. Evaluation Metrics
+- **简单脚本** → `L3-libs/rag/usage_1_direct_library.py`
+- **数据管道** → `L3-kernel/` 中的示例
+- **RAG 应用** → `L3-libs/rag/usage_4_complete_rag.py`
+- **Agent 系统** → `L3-libs/agents/workflow_demo.py`
+- **完整应用** → 学习所有层级
 
-Implement in `sage/libs/unlearning/evaluation/metrics.py`:
+## 🎓 学习建议
 
-- Residual Recall Rate
-- Retention Stability
-- Privacy-Utility Tradeoff Analysis
+### ✅ 推荐做法
 
-### 4. Advanced Composition
+1. **按层级学习**：从 L1 开始，逐层深入
+1. **理解依赖**：了解为什么上层可以用下层，反之不行
+1. **动手实践**：运行每个示例，修改参数观察效果
+1. **阅读代码**：示例中有详细注释
+1. **参考文档**：遇到问题查看各层的 README
 
-Enhance `privacy_accountant.py`:
+### ❌ 避免
 
-- Advanced composition theorems
-- Renyi DP
-- Concentrated DP
+1. **跳过基础**：L1-L3 是必须理解的
+1. **只看不做**：一定要运行代码
+1. **忽略架构**：理解架构有助于设计更好的系统
+1. **违反依赖**：不要在低层导入高层代码
 
-______________________________________________________________________
+## 🆘 遇到问题？
 
-## 📚 References
+1. 查看 [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+1. 检查示例的注释和 docstring
+1. 阅读对应层级的 README
+1. 查看 [SAGE 包架构文档](../../docs-public/docs_src/dev-notes/package-architecture.md)
+1. 提交 Issue 到 GitHub
 
-### Theory
+## 🤝 贡献
 
-- Dwork & Roth (2014): "Algorithmic Foundations of Differential Privacy"
-- Cao & Yang (2015): "Towards Making Systems Forget with Machine Unlearning"
-- Bourtoule et al. (2021): "Machine Unlearning"
+欢迎添加新示例或改进现有示例！请确保：
 
-### Implementation
+1. 示例放在正确的层级目录
+1. 遵循依赖规则（只向下依赖）
+1. 添加清晰的注释和文档
+1. 更新对应的 README
 
-- See `sage/libs/unlearning/` for detailed code comments
-- Read docstrings in each module for research hints
-- Check "STUDENT RESEARCH POINT" markers for extension ideas
+## 📜 变更历史
 
-______________________________________________________________________
-
-## ❓ FAQ
-
-**Q: Can I use these examples outside of SAGE?** A: Yes! `usage_1_direct_library.py` works
-standalone without SAGE.
-
-**Q: How do I test my own privacy mechanisms?** A: Create a subclass of `BasePrivacyMechanism` and
-pass it to `UnlearningEngine`.
-
-**Q: What's the privacy cost of forgetting N vectors?** A: Approximately ε_per_vector * N (unless
-using advanced composition).
-
-**Q: Can I reuse privacy budget across operations?** A: Yes, the privacy accountant tracks total
-budget automatically.
-
-**Q: How do I verify unlearning actually worked?** A: See
-`sage/libs/unlearning/evaluation/metrics.py` for verification metrics.
-
-______________________________________________________________________
-
-## 🤝 Contributing
-
-To contribute new examples:
-
-1. Create a new file in `examples/unlearning/`
-1. Document the scenario clearly
-1. Add to this README
-1. Ensure it runs with: `python your_example.py`
-1. Submit a PR with description
+- **2025-10-29**: 按照 SAGE 6 层架构重组目录（L1-L6）
+  - 完整映射 9 个 SAGE 包到 6 个层级
+  - 添加 sage-cli 到 L6 接口层说明
+  - 迁移 service 目录内容到对应层级
+  - 创建完整的学习路径和文档
 
 ______________________________________________________________________
 
-## 📞 Support
+**开始探索 SAGE 吧！🎉**
 
-- For library questions: Check `sage/libs/unlearning/` docstrings
-- For integration issues: See `usage_*.py` examples
-- For research ideas: Read the "TODO for Students" sections
-- Show budget allocation strategies
-
-#### `evaluation_demo.py`
-
-- Compute all metrics (RRR, RS, etc.)
-- Generate comparison plots
-- Benchmark against baselines
-
-## For Students
-
-Each example should:
-
-1. Be self-contained and runnable
-1. Include clear comments explaining what's happening
-1. Demonstrate a specific feature or technique
-1. Provide visualizations when possible
-1. Include references to relevant papers
-
-## Creating New Examples
-
-Template structure:
-
-```python
-"""
-Example Title
-=============
-
-Brief description of what this example demonstrates.
-
-**Research Focus**: What students should learn from this.
-"""
-
-import numpy as np
-from sage.libs.unlearning import ...
-
-def main():
-    # Step 1: Setup
-```
-
-```
-print("Setting up...")
-
-# Step 2: Main demonstration
-print("Demonstrating...")
-
-# Step 3: Evaluation
-print("Evaluating...")
-
-# Step 4: Visualization (optional)
-print("Visualizing...")
-```
-
-if __name__ == "__main__": main()
-
-````
-
-## Running Examples
-
-All examples assume you have installed the SAGE library:
-
-```bash
-cd /path/to/SAGE
-pip install -e packages/sage-libs
-````
-
-Then run examples from this directory:
-
-```bash
-python basic_unlearning_demo.py
-```
-
-______________________________________________________________________
-
-## Files Overview
-
-| File                          | Type    | Purpose                           |
-| ----------------------------- | ------- | --------------------------------- |
-| **README.md**                 | 📖 Doc  | ⭐ Start here - complete guide    |
-| **QUICK_REFERENCE.md**        | 💡 Doc  | 5-minute quick lookup             |
-| **TROUBLESHOOTING.md**        | 🔧 Doc  | Error solutions & debugging       |
-| **basic_unlearning_demo.py**  | 🐍 Code | Simple demo to get started        |
-| **usage_1_direct_library.py** | 🐍 Code | Direct library usage (5 examples) |
-| **usage_2_sage_function.py**  | 🐍 Code | SAGE Function integration         |
-| **usage_3_memory_service.py** | 🐍 Code | VDB and MemService integration    |
-| **usage_4_complete_rag.py**   | 🐍 Code | Production-ready RAG system       |
-
-______________________________________________________________________
-
-## Choosing Your Usage Example
-
-**I want to...**
-
-- 🏃 **Quickly test the algorithm** → `python usage_1_direct_library.py`
-
-- 🔧 **Integrate with SAGE Pipeline** → `python usage_2_sage_function.py`
-
-- 🗄️ **Build a vector database system** → `python usage_3_memory_service.py`
-
-- 🚀 **Deploy a production system** → Study `usage_4_complete_rag.py`
-
-- ❓ **Fix an error** → See `TROUBLESHOOTING.md`
-
-______________________________________________________________________
-
-## Quick Reference
-
-For detailed information, see:
-
-- **How to choose?** → `QUICK_REFERENCE.md`
-- **Errors & solutions** → `TROUBLESHOOTING.md`
-- **Code examples** → `usage_*.py` files
-
-## Common Commands
-
-```bash
-# Run the basic demo
-python basic_unlearning_demo.py
-
-# Check SAGE installation
-python -c "from sage.libs.unlearning import UnlearningEngine; print('✓')"
-
-# View quick reference
-cat QUICK_REFERENCE.md
-
-# Find troubleshooting help
-grep -n "your error message" TROUBLESHOOTING.md
-```
-
-______________________________________________________________________
-
-## Next Steps
-
-1. ✅ Run `python basic_unlearning_demo.py`
-1. ✅ Read `QUICK_REFERENCE.md`
-1. ✅ Choose a `usage_*.py` file for your use case
-1. ✅ Explore the code and modify parameters
-
-**Happy learning! 🎉**
+有任何问题或建议，欢迎提 Issue 或 PR！
