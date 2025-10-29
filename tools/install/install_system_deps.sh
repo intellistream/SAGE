@@ -178,7 +178,8 @@ main() {
 
     echo ""
     echo "🎉 系统依赖安装完成！"
-    echo "现在可以运行 'sage extensions install all' 来构建 C++ 扩展"
+    echo "C++扩展将在安装 sage-middleware 包时自动构建"
+    echo "💡 如需手动重新构建，可运行: sage extensions install --force"
 }
 
 # 解析命令行参数

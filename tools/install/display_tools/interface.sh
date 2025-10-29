@@ -216,10 +216,10 @@ show_usage_tips() {
             echo -e "  sage-dev examples test           # 测试所有示例"
             echo -e "  pre-commit run --all-files       # 运行所有检查"
             echo ""
-            echo -e "${BLUE}C++扩展管理：${NC}"
+            echo -e "${BLUE}C++扩展管理（可选）：${NC}"
+            echo -e "  ${DIM}# C++扩展已在安装 sage-middleware 时自动构建${NC}"
             echo -e "  sage extensions status           # 检查扩展状态"
-            echo -e "  sage extensions install all      # 安装所有扩展"
-            echo -e "  sage extensions install sage_db  # 只安装数据库扩展"
+            echo -e "  sage extensions install --force  # 强制重新构建扩展"
             echo ""
             ;;
     esac
