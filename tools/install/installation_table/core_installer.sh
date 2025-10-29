@@ -185,7 +185,16 @@ install_core_packages() {
             fi
         fi
 
-        # L6: studio & tools
+        # L6: CLI, studio & tools
+        # 安装 sage-cli (提供 sage 命令)
+        if [ -d "packages/sage-cli" ]; then
+            echo -e "${DIM}  正在安装: packages/sage-cli${NC}"
+            if ! $PIP_CMD install $install_flags "packages/sage-cli" $pip_args --no-deps >> "$log_file" 2>&1; then
+                echo -e "${CROSS} 安装 sage-cli 失败！"
+                return 1
+            fi
+        fi
+
         if [ -d "packages/sage-studio" ]; then
             echo -e "${DIM}  正在安装: packages/sage-studio${NC}"
             if ! $PIP_CMD install $install_flags "packages/sage-studio" $pip_args --no-deps >> "$log_file" 2>&1; then
