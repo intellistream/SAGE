@@ -77,6 +77,7 @@ repos:
     types: [python]
     require_serial: true
     args:
+    - --cache-dir=.sage/cache/mypy
     - --ignore-missing-imports
     - --show-error-codes
     - --explicit-package-bases
