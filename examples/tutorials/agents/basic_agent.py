@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import json
 import os
 import sys
@@ -62,7 +63,9 @@ def iter_queries(source_cfg: dict[str, Any]) -> Iterable[str]:
 
 def main():
     # ====== 读取配置 ======
-    cfg_path = os.path.join(os.path.dirname(__file__), "config", "config_agent_min.yaml")
+    cfg_path = os.path.join(
+        os.path.dirname(__file__), "config", "config_agent_min.yaml"
+    )
     if not os.path.exists(cfg_path):
         print(f"❌ Configuration file not found: {cfg_path}")
         sys.exit(1)
@@ -74,13 +77,16 @@ def main():
     # 检查是否在测试模式
     use_real_api = should_use_real_api()
     test_mode = (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true"
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
     ) and not use_real_api  # 如果明确要求使用真实API，则不进入测试模式
 
     # 在真实API模式下，使用简化的查询数据以避免超时
     if use_real_api:
         # 使用测试数据
-        config["source"]["data_path"] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
+        config["source"]["data_path"] = (
+            "examples/tutorials/agents/data/agent_queries_test.jsonl"
+        )
 
     # ====== Generator======
     gen_cfg = config["generator"]["remote"]  # 可改为 "local"/"remote"
@@ -97,7 +103,9 @@ def main():
         if test_mode:
             print(f"⚠️ Test mode: {e}")
             print("💡 Tip: Copy .env.template to .env and fill in your API keys")
-            print("✅ Test mode: API key validation completed (missing key is OK in test)")
+            print(
+                "✅ Test mode: API key validation completed (missing key is OK in test)"
+            )
         else:
             print(f"❌ {e}")
             print("💡 Tip: Copy .env.template to .env and fill in your API keys")
@@ -121,7 +129,18 @@ def main():
         # 验证工具模块可以导入（但不实际初始化）
         try:
             for item in config.get("tools", []):
-                mod = importlib.import_module(item["module"])
+                module_name = item["module"]
+                # 处理相对路径导入
+                if module_name.startswith("examples.tutorials.agents."):
+                    # 使用绝对路径导入
+                    tool_name = module_name.split(".")[-1]
+                    tool_path = os.path.join(current_dir, f"{tool_name}.py")
+                    spec = importlib.util.spec_from_file_location(tool_name, tool_path)
+                    mod = importlib.util.module_from_spec(spec)
+                    sys.modules[tool_name] = mod
+                    spec.loader.exec_module(mod)
+                else:
+                    mod = importlib.import_module(module_name)
                 cls = getattr(mod, item["class"])
                 print(f"✅ Test mode: Tool {item['class']} import successful")
         except Exception as e:
@@ -145,7 +164,18 @@ def main():
     # ====== MCP 工具注册：按配置动态 import 并注册 ======
     registry = MCPRegistry()
     for item in config.get("tools", []):
-        mod = importlib.import_module(item["module"])
+        module_name = item["module"]
+        # 处理相对路径导入
+        if module_name.startswith("examples.tutorials.agents."):
+            # 使用绝对路径导入
+            tool_name = module_name.split(".")[-1]
+            tool_path = os.path.join(current_dir, f"{tool_name}.py")
+            spec = importlib.util.spec_from_file_location(tool_name, tool_path)
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules[tool_name] = mod
+            spec.loader.exec_module(mod)
+        else:
+            mod = importlib.import_module(module_name)
         cls = getattr(mod, item["class"])
         kwargs = item.get("init_kwargs", {})
         registry.register(cls(**kwargs) if kwargs else cls())
@@ -156,7 +186,9 @@ def main():
         profile=profile,
         planner=planner,
         tools=registry,
-        summarizer=(generator if runtime_cfg.get("summarizer") == "reuse_generator" else None),
+        summarizer=(
+            generator if runtime_cfg.get("summarizer") == "reuse_generator" else None
+        ),
         # memory=None,  # 如需接入 MemoryServiceAdapter，再按配置打开
         max_steps=runtime_cfg.get("max_steps", 6),
     )
@@ -171,7 +203,10 @@ def main():
 
 if __name__ == "__main__":
     # 和 RAG 示例一致的“测试模式”友好输出
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         try:
             main()
             print("\n✅ Test passed: Agent pipeline structure validated")

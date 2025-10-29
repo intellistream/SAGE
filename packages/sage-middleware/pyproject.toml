@@ -260,7 +260,7 @@ verbose = true
 # Extends from root ruff.toml for unified standards across all packages
 # ============================================================================
 [tool.ruff]
-extend = "../../ruff.toml"
+extend = "../../tools/ruff.toml"
 
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"

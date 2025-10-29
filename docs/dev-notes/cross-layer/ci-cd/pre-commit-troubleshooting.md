@@ -31,7 +31,7 @@ pre-commit install --config tools/pre-commit-config.yaml -f
 
 **症状**: 每次运行都修改相同的文件
 
-**已解决**: 现在所有包使用统一的 `ruff.toml` 配置
+**已解决**: 现在所有包使用统一的 `tools/ruff.toml` 配置
 
 ### 3. CI/CD 失败但本地没问题
 

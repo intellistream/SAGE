@@ -82,8 +82,12 @@ def example_stream_join_with_time_range():
 
     # Generate two streams
     print("\nGenerating streams...")
-    left_stream = generate_stream_data(stream_id="left", num_points=30, disorder_probability=0.3)
-    right_stream = generate_stream_data(stream_id="right", num_points=30, disorder_probability=0.3)
+    left_stream = generate_stream_data(
+        stream_id="left", num_points=30, disorder_probability=0.3
+    )
+    right_stream = generate_stream_data(
+        stream_id="right", num_points=30, disorder_probability=0.3
+    )
 
     print(f"Left stream: {len(left_stream)} points")
     print(f"Right stream: {len(right_stream)} points")
@@ -99,7 +103,9 @@ def example_stream_join_with_time_range():
     for i, (left, right) in enumerate(joined_pairs[:5]):
         time_diff = abs(left["timestamp"] - right["timestamp"])
         print(f"\nPair {i + 1}:")
-        print(f"  Left:  seq={left['sequence']}, ts={left['timestamp']}, value={left['value']:.2f}")
+        print(
+            f"  Left:  seq={left['sequence']}, ts={left['timestamp']}, value={left['value']:.2f}"
+        )
         print(
             f"  Right: seq={right['sequence']}, ts={right['timestamp']}, value={right['value']:.2f}"
         )
@@ -107,7 +113,9 @@ def example_stream_join_with_time_range():
 
     # Statistics
     if joined_pairs:
-        time_diffs = [abs(left["timestamp"] - right["timestamp"]) for left, right in joined_pairs]
+        time_diffs = [
+            abs(left["timestamp"] - right["timestamp"]) for left, right in joined_pairs
+        ]
         print("\nJoin Statistics:")
         print(f"  Total pairs: {len(joined_pairs)}")
         print(f"  Avg time diff: {np.mean(time_diffs):.2f}ms")
@@ -127,17 +135,25 @@ def example_stream_ingestion_and_join():
 
     # Generate streams
     print("\nGenerating streams...")
-    left_stream = generate_stream_data(stream_id="left", num_points=25, disorder_probability=0.2)
-    right_stream = generate_stream_data(stream_id="right", num_points=25, disorder_probability=0.2)
+    left_stream = generate_stream_data(
+        stream_id="left", num_points=25, disorder_probability=0.2
+    )
+    right_stream = generate_stream_data(
+        stream_id="right", num_points=25, disorder_probability=0.2
+    )
 
     # Ingest into databases
     print("\nIngesting left stream...")
     for data in left_stream:
-        db_left.add(timestamp=data["timestamp"], value=data["value"], tags={"stream": "left"})
+        db_left.add(
+            timestamp=data["timestamp"], value=data["value"], tags={"stream": "left"}
+        )
 
     print("Ingesting right stream...")
     for data in right_stream:
-        db_right.add(timestamp=data["timestamp"], value=data["value"], tags={"stream": "right"})
+        db_right.add(
+            timestamp=data["timestamp"], value=data["value"], tags={"stream": "right"}
+        )
 
     print(f"Left DB size: {db_left.size()}")
     print(f"Right DB size: {db_right.size()}")

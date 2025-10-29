@@ -20,8 +20,8 @@
 
 **新增文件**：
 
-- `ruff.toml` - 根级统一代码质量配置
-- `pytest.ini` - 根级测试配置
+- `tools/ruff.toml` - 根级统一代码质量配置
+- `tools/pytest.ini` - 根级测试配置
 - `tools/fix-code-quality.sh` - 代码质量自动修复脚本
 - `tools/verify-precommit.sh` - Pre-commit 验证脚本
 - `docs/dev-notes/ci-cd/code-quality-guide.md` - 完整配置指南
@@ -38,7 +38,7 @@
 ```toml
 # packages/*/pyproject.toml
 [tool.ruff]
-extend = "../../ruff.toml"
+extend = "../../tools/ruff.toml"
 ```
 
 ### 3. Pre-commit Hooks 优化
@@ -65,7 +65,7 @@ extend = "../../ruff.toml"
 
 - 配置文件: 12 个 (11个子包 + 1个 pre-commit)
 - 新增工具: 2 个脚本
-- 新增配置: 2 个 (ruff.toml, pytest.ini)
+- 新增配置: 2 个 (tools/ruff.toml, tools/pytest.ini)
 - 文档: 1 个完整指南
 
 ### 代码修改

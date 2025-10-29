@@ -83,9 +83,13 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
     try:
         # 创建环境并指定调度器
         if env_class == LocalEnvironment:
-            env = LocalEnvironment(name=f"scheduler_test_{scheduler_name}", scheduler=scheduler)
+            env = LocalEnvironment(
+                name=f"scheduler_test_{scheduler_name}", scheduler=scheduler
+            )
         else:
-            env = RemoteEnvironment(name=f"scheduler_test_{scheduler_name}", scheduler=scheduler)
+            env = RemoteEnvironment(
+                name=f"scheduler_test_{scheduler_name}", scheduler=scheduler
+            )
 
         # 构建 pipeline
         # 注意：并行度在 operator 级别指定
@@ -144,7 +148,9 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
         print(f"📊 {scheduler_name} 执行结果")
         print(f"{'=' * 60}")
         print(f"总耗时: {elapsed:.2f} 秒")
-        print(f"处理结果数: {len(sink_op.results) if hasattr(sink_op, 'results') else 'N/A'}")
+        print(
+            f"处理结果数: {len(sink_op.results) if hasattr(sink_op, 'results') else 'N/A'}"
+        )
         print("调度器指标:")
         for key, value in metrics.items():
             print(f"  - {key}: {value}")
@@ -193,7 +199,8 @@ def main():
     import os
 
     test_mode = (
-        os.environ.get("SAGE_EXAMPLES_MODE") == "test" or os.environ.get("SAGE_TEST_MODE") == "true"
+        os.environ.get("SAGE_EXAMPLES_MODE") == "test"
+        or os.environ.get("SAGE_TEST_MODE") == "true"
     )
 
     results = []
@@ -262,7 +269,9 @@ def main():
         if "avg_latency_ms" in result["metrics"]:
             print(f"  平均延迟: {result['metrics']['avg_latency_ms']:.2f} ms")
         if "avg_resource_utilization" in result["metrics"]:
-            print(f"  平均资源利用率: {result['metrics']['avg_resource_utilization']:.2%}")
+            print(
+                f"  平均资源利用率: {result['metrics']['avg_resource_utilization']:.2%}"
+            )
 
     print("\n" + "=" * 80)
     print("✅ 所有实验完成！")

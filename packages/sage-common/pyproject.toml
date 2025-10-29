@@ -58,7 +58,7 @@ where = ["src"]
 # Extends from root ruff.toml for unified standards across all packages
 # ============================================================================
 [tool.ruff]
-extend = "../../ruff.toml"
+extend = "../../tools/ruff.toml"
 
 [tool.pytest.ini_options]
 testpaths = [

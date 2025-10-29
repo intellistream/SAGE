@@ -54,7 +54,9 @@ def test_template_with_llm(scenario_name: str, requirements: dict):
 
         if not api_key or api_key.startswith("your_"):
             console.print("\n⚠️  API Key 未配置，跳过 LLM 生成测试", style="yellow")
-            console.print("[dim]提示: 配置 TEMP_GENERATOR_API_KEY 环境变量来运行此测试[/dim]")
+            console.print(
+                "[dim]提示: 配置 TEMP_GENERATOR_API_KEY 环境变量来运行此测试[/dim]"
+            )
             return False
 
         # 加载领域上下文
@@ -85,14 +87,20 @@ def test_template_with_llm(scenario_name: str, requirements: dict):
 
             # 显示生成的配置
             pipeline_info = config.get("pipeline", {})
-            console.print(f"\n管道名称: {pipeline_info.get('name', 'N/A')}", style="yellow")
-            console.print(f"管道描述: {pipeline_info.get('description', 'N/A')}", style="yellow")
+            console.print(
+                f"\n管道名称: {pipeline_info.get('name', 'N/A')}", style="yellow"
+            )
+            console.print(
+                f"管道描述: {pipeline_info.get('description', 'N/A')}", style="yellow"
+            )
 
             # 显示 stages
             stages = config.get("stages", [])
             console.print(f"\n处理阶段 ({len(stages)} 个):", style="bold cyan")
             for i, stage in enumerate(stages, 1):
-                console.print(f"  {i}. {stage.get('id', 'N/A')}: {stage.get('class', 'N/A')}")
+                console.print(
+                    f"  {i}. {stage.get('id', 'N/A')}: {stage.get('class', 'N/A')}"
+                )
                 console.print(f"     说明: {stage.get('summary', 'N/A')}", style="dim")
 
             return True
@@ -170,7 +178,9 @@ def main():
             f"✅ 成功: {success_count}/{total_count}\n"
             f"{'❌ 失败: ' + str(total_count - success_count) if success_count < total_count else '🎉 全部通过！'}",
             title="测试总结",
-            border_style=("bold green" if success_count == total_count else "bold yellow"),
+            border_style=(
+                "bold green" if success_count == total_count else "bold yellow"
+            ),
         )
     )
 
@@ -178,7 +188,9 @@ def main():
 if __name__ == "__main__":
     # 检查环境变量
     if not os.getenv("TEMP_GENERATOR_API_KEY"):
-        console.print("⚠️  警告: 未设置 TEMP_GENERATOR_API_KEY 环境变量", style="bold yellow")
+        console.print(
+            "⚠️  警告: 未设置 TEMP_GENERATOR_API_KEY 环境变量", style="bold yellow"
+        )
         console.print("将尝试使用 .env 文件中的配置")
 
     main()

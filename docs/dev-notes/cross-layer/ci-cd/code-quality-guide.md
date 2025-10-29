@@ -37,12 +37,13 @@ ruff.....................................................................Failed
 
 ```
 SAGE/
-├── ruff.toml                    # 根级统一配置（所有包共享）
-├── pytest.ini                   # 根级测试配置
+├── tools/
+│   ├── ruff.toml                # 根级统一配置（所有包共享）
+│   └── pytest.ini               # 根级测试配置
 └── packages/
-    ├── sage/pyproject.toml      # extend = "../../ruff.toml"
-    ├── sage-kernel/pyproject.toml  # extend = "../../ruff.toml"
-    ├── sage-libs/pyproject.toml    # extend = "../../ruff.toml"
+    ├── sage/pyproject.toml      # extend = "../../tools/ruff.toml"
+    ├── sage-kernel/pyproject.toml  # extend = "../../tools/ruff.toml"
+    ├── sage-libs/pyproject.toml    # extend = "../../tools/ruff.toml"
     └── ...                         # 所有包都继承根配置
 ```
 
@@ -150,7 +151,7 @@ git commit              # 让 hooks 正常运行
     }
   },
   "black-formatter.args": ["--line-length", "100"],
-  "ruff.configuration": "./ruff.toml"
+  "ruff.configuration": "./tools/ruff.toml"
 }
 ```
 
@@ -190,12 +191,12 @@ pre-commit install --config tools/pre-commit-config.yaml -f
 
 运行以查看详情：
 ```bash
-ruff check . --config ruff.toml
+ruff check . --config tools/ruff.toml
 ```
 
 ## 📚 配置文件说明
 
-### `ruff.toml`
+### `tools/ruff.toml`
 
 根级统一配置，包含：
 - 代码风格规则（E, W, F, I, B, C4, UP, C90）
@@ -203,7 +204,7 @@ ruff check . --config ruff.toml
 - 忽略的错误类型
 - 文件特定规则
 
-### `pytest.ini`
+### `tools/pytest.ini`
 
 根级测试配置，包含：
 - 测试路径
@@ -224,7 +225,7 @@ Pre-commit hooks 配置，包含：
 1. **开发前**：确保 pre-commit 已安装
 2. **提交前**：不要跳过 hooks（不用 `-n`）
 3. **推送前**：运行 `./tools/fix-code-quality.sh`
-4. **配置修改**：只修改 `ruff.toml`，子包自动继承
+4. **配置修改**：只修改 `tools/ruff.toml`，子包自动继承
 5. **编辑器**：配置自动格式化，减少手动修复
 
 ## 📊 配置演进历史
@@ -235,7 +236,7 @@ Pre-commit hooks 配置，包含：
 - **问题**：反复修复，配置不一致
 
 ### v2: 统一配置（当前）
-- 根目录 `ruff.toml` 统一配置
+- 根目录 `tools/ruff.toml` 统一配置
 - 所有包通过 `extend` 继承
 - 只用 ruff 处理 import（移除 isort）
 - **优点**：配置一致，不再冲突，更快

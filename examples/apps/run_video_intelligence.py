@@ -64,9 +64,13 @@ Features:
 
     parser.add_argument("--video", type=str, help="Path to the video file to analyze")
 
-    parser.add_argument("--config", type=str, default=None, help="Path to configuration file")
+    parser.add_argument(
+        "--config", type=str, default=None, help="Path to configuration file"
+    )
 
-    parser.add_argument("--max-frames", type=int, help="Maximum number of frames to process")
+    parser.add_argument(
+        "--max-frames", type=int, help="Maximum number of frames to process"
+    )
 
     parser.add_argument("--output", type=str, help="Output directory for results")
 
@@ -79,7 +83,9 @@ Features:
         print("=" * 60)
         print("No video file provided. This example requires a video file to process.")
         print("\nUsage:")
-        print("  python examples/apps/run_video_intelligence.py --video path/to/video.mp4")
+        print(
+            "  python examples/apps/run_video_intelligence.py --video path/to/video.mp4"
+        )
         print("\nFor more information, use --help")
         print("=" * 60)
         sys.exit(0)
