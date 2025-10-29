@@ -93,24 +93,58 @@ install_cpp_extensions() {
         python3 -c "
 import sys
 import warnings
-warnings.filterwarnings('ignore', category=UserWarning)
 
 try:
     from sage.middleware.components.extensions_compat import check_extensions_availability
     available = check_extensions_availability()
     total = sum(available.values())
+    total_expected = len(available)
 
+    print(f'🔍 C++扩展验证结果: {total}/{total_expected} 可用')
+    for ext, status in available.items():
+        symbol = '✅' if status else '❌'
+        print(f'   {symbol} {ext}')
+
+    # 检查失败的扩展并显示详细错误
+    if total < total_expected:
+        print('')
+        print('⚠️  以下扩展不可用，检查详细错误：')
+        failed_exts = [ext for ext, status in available.items() if not status]
+
+        # 尝试导入失败的扩展以获取详细错误
+        for ext in failed_exts:
+            try:
+                if ext == 'sage_db':
+                    from sage.middleware.components.sage_db.python import _sage_db
+                elif ext == 'sage_flow':
+                    from sage.middleware.components.sage_flow.python import _sage_flow
+                elif ext == 'sage_tsdb':
+                    from sage.middleware.components.sage_tsdb.python import _sage_tsdb
+            except Exception as e:
+                print(f'   {ext}: {type(e).__name__}: {e}')
+
+    # 只要有扩展可用就视为部分成功（允许降级）
     if total > 0:
-        print(f'✅ C++扩展验证成功: {total}/{len(available)} 可用')
-        for ext, status in available.items():
-            symbol = '✅' if status else '❌'
-            print(f'   {symbol} {ext}')
+        if total == total_expected:
+            print('')
+            print('✅ 所有 C++ 扩展验证成功')
+        else:
+            print('')
+            print(f'⚠️  部分扩展不可用 ({total}/{total_expected})，功能将受限')
+            print('💡 提示: 确保子模块已初始化并安装了所需的构建依赖')
+        sys.exit(0)  # 部分成功也返回 0
     else:
-        print('⚠️  没有C++扩展可用')
-        print('💡 这可能是因为子模块未初始化或构建失败')
+        print('')
+        print('❌ 没有任何 C++ 扩展可用')
+        print('💡 这可能是因为：')
+        print('   1. 子模块未初始化：git submodule update --init --recursive')
+        print('   2. 缺少构建工具：apt-get install build-essential cmake')
+        print('   3. 查看详细日志了解更多信息')
         sys.exit(1)
 except Exception as e:
-    print(f'⚠️ 扩展验证失败: {e}')
+    print(f'❌ 扩展验证过程失败: {e}')
+    import traceback
+    traceback.print_exc()
     sys.exit(1)
 "
         validation_result=$?
