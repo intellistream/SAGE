@@ -110,7 +110,7 @@ class ChunkCollector(SinkFunction):
     """收集分块结果的sink算子"""
 
     # 类级别的结果收集 - 只用于测试目的
-    _collected_chunks: list[dict] | None = None
+    _collected_chunks: list[dict] = []
     _lock = threading.Lock()
 
     @classmethod

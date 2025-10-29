@@ -11,15 +11,15 @@ class BaseTool:
 
     def __init__(
         self,
-        tool_name=None,
-        tool_description=None,
-        tool_version=None,
-        input_types=None,
-        output_type=None,
-        demo_commands=None,
-        output_dir=None,
-        user_metadata=None,
-        model_name=None,
+        tool_name: str | None = None,
+        tool_description: str | None = None,
+        tool_version: str | None = None,
+        input_types: dict[str, Any] | None = None,
+        output_type: str | None = None,
+        demo_commands: list[dict[str, str]] | None = None,
+        output_dir: str | None = None,
+        user_metadata: dict[str, Any] | None = None,
+        model_name: str | None = None,
     ):
         """
         Initialize the base tool with optional metadata.
@@ -35,26 +35,26 @@ class BaseTool:
             user_metadata (dict): Additional metadata specific to user needs (optional).
             model_name (str): The name of the model to use for the tool.
         """
-        self.tool_name = tool_name
-        self.tool_description = tool_description
-        self.tool_version = tool_version
-        self.input_types = input_types
-        self.output_type = output_type
-        self.demo_commands = demo_commands
-        self.output_dir = output_dir
-        self.user_metadata = user_metadata
-        self.model_name = model_name
+        self.tool_name: str | None = tool_name
+        self.tool_description: str | None = tool_description
+        self.tool_version: str | None = tool_version
+        self.input_types: dict[str, Any] | None = input_types
+        self.output_type: str | None = output_type
+        self.demo_commands: list[dict[str, str]] | None = demo_commands
+        self.output_dir: str | None = output_dir
+        self.user_metadata: dict[str, Any] | None = user_metadata
+        self.model_name: str | None = model_name
 
     def set_metadata(
         self,
-        tool_name,
-        tool_description,
-        tool_version,
-        input_types,
-        output_type,
-        demo_commands,
-        user_metadata=None,
-    ):
+        tool_name: str,
+        tool_description: str,
+        tool_version: str,
+        input_types: dict[str, Any],
+        output_type: str,
+        demo_commands: list[dict[str, str]],
+        user_metadata: dict[str, Any] | None = None,
+    ) -> None:
         """
         Set the metadata for the tool.
 

@@ -227,14 +227,17 @@ class VLLMService(BaseService):
 
         for item in raw:
             vec = None
-            if isinstance(item, dict) and "embedding" in item:
-                vec = item["embedding"]  # pyright: ignore[reportAssignmentType]
+            if isinstance(item, dict):
+                if "embedding" in item:
+                    vec = item["embedding"]  # pyright: ignore[reportAssignmentType]
+                else:
+                    vec = list(item.values())[0] if item else []
+            elif isinstance(item, (list, tuple)):
+                vec = item
             elif hasattr(item, "embedding"):
                 vec = (
                     item.embedding
-                )  # pyright: ignore[reportAttributeAccessIssue, reportAssignmentType]
-            elif isinstance(item, (list, tuple)):
-                vec = item
+                )  # pyright: ignore[reportAssignmentType]
             else:
                 vec = list(item)
             array = np.array(vec, dtype=np.float32)

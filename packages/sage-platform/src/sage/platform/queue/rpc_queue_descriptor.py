@@ -143,18 +143,30 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
 
     def get_connection_status(self) -> Dict[str, Any]:
         """获取连接状态"""
-        if self._initialized and hasattr(self._queue_instance, "get_connection_status"):
+        if (
+            self._initialized
+            and self._queue_instance is not None
+            and hasattr(self._queue_instance, "get_connection_status")
+        ):
             return self._queue_instance.get_connection_status()
         return {"connected": False}
 
     def reconnect(self) -> None:
         """重新连接"""
-        if self._initialized and hasattr(self._queue_instance, "reconnect"):
+        if (
+            self._initialized
+            and self._queue_instance is not None
+            and hasattr(self._queue_instance, "reconnect")
+        ):
             self._queue_instance.reconnect()
 
     def close(self) -> None:
         """关闭连接"""
-        if self._initialized and hasattr(self._queue_instance, "close"):
+        if (
+            self._initialized
+            and self._queue_instance is not None
+            and hasattr(self._queue_instance, "close")
+        ):
             self._queue_instance.close()
             self._queue_instance = None
             self._initialized = False

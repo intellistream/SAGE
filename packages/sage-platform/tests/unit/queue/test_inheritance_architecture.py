@@ -27,7 +27,7 @@ class TestBaseQueueDescriptor:
     def test_abstract_methods(self):
         """测试抽象方法不能直接实例化"""
         with pytest.raises(TypeError):
-            BaseQueueDescriptor()
+            BaseQueueDescriptor()  # type: ignore[abstract]
 
 
 class TestPythonQueueDescriptor:

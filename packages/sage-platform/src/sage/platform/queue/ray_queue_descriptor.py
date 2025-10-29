@@ -7,11 +7,14 @@ Ray Queue Descriptor - Ray分布式队列描述符
 import logging
 import queue
 import threading
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import ray
 
 from .base_queue_descriptor import BaseQueueDescriptor
+
+if TYPE_CHECKING:
+    from ray.actor import ActorHandle
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +54,10 @@ class SimpleTestQueue:
 def _is_ray_local_mode():
     """检查Ray是否在local mode下运行"""
     try:
-        return ray._private.worker.global_worker.mode == ray._private.worker.LOCAL_MODE
+        if not ray.is_initialized():
+            return False
+        ctx = ray.get_runtime_context()
+        return ctx.worker.mode == ray.LOCAL_MODE
     except Exception:
         return False
 
@@ -119,7 +125,8 @@ class RayQueueManager:
                 try:
                     from ray.util.queue import Queue
 
-                    self.queues[queue_id] = Queue(maxsize=maxsize if maxsize > 0 else None)
+                    # Ray Queue expects int for maxsize, where 0 means unlimited
+                    self.queues[queue_id] = Queue(maxsize=maxsize if maxsize > 0 else 0)
                     logger.debug(f"Created new Ray queue {queue_id} (distributed mode)")
                 except Exception as e:
                     # 如果Ray队列创建失败，回退到简单队列
@@ -169,11 +176,15 @@ class RayQueueManager:
 
 
 # 全局队列管理器实例
-_global_queue_manager = None
+_global_queue_manager: Any = None
 
 
-def get_global_queue_manager():
-    """获取全局队列管理器"""
+def get_global_queue_manager() -> Any:
+    """获取全局队列管理器
+    
+    Returns:
+        ActorHandle: RayQueueManager的ActorHandle，具有RayQueueManager的所有方法
+    """
     import random
     import time
 

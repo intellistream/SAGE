@@ -10,14 +10,10 @@ This is a skeleton. Students should fill in the details.
 """
 
 import math
-import os
-import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from dp_unlearning.base_mechanism import BasePrivacyMechanism
+from sage.libs.unlearning.dp_unlearning.base_mechanism import BasePrivacyMechanism
 
 
 class GaussianMechanism(BasePrivacyMechanism):
@@ -72,6 +68,8 @@ class GaussianMechanism(BasePrivacyMechanism):
         """
         # PLACEHOLDER: Basic formula
         # TODO: Implement tighter bound (see Balle & Wang 2018)
+        assert self.delta is not None, "Gaussian mechanism requires delta to be set"
+        
         if self.delta == 0 or self.delta >= 1:
             raise ValueError(f"Delta must be in (0, 1), got {self.delta}")
 
@@ -120,6 +118,8 @@ class GaussianMechanism(BasePrivacyMechanism):
         """
         # PLACEHOLDER: Return parameters as-is
         # TODO: Derive tighter bounds using advanced composition
+        if self.delta is None:
+            raise ValueError("Gaussian mechanism requires delta to be set")
         return (self.epsilon, self.delta)
 
 

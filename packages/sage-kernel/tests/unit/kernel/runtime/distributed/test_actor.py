@@ -5,6 +5,7 @@ Tests the ActorWrapper class which provides transparent proxying
 between local objects and Ray actors.
 """
 
+from typing import cast
 from unittest.mock import Mock, patch
 
 import pytest
@@ -288,17 +289,17 @@ class TestActorWrapper:
 
         class ComplexObject:
             def __init__(self):
-                self.data = {"key": "value"}
+                self.data: dict[str, str] = {"key": "value"}
                 self.counter = 0
 
-            def increment(self, amount=1):
+            def increment(self, amount: int = 1) -> int:
                 self.counter += amount
                 return self.counter
 
-            def get_data(self):
+            def get_data(self) -> dict[str, str]:
                 return self.data.copy()
 
-            def update_data(self, key, value):
+            def update_data(self, key: str, value: str) -> None:
                 self.data[key] = value
 
         complex_obj = ComplexObject()
@@ -310,11 +311,11 @@ class TestActorWrapper:
         assert result == 5
         assert wrapper.counter == 5
 
-        data = wrapper.get_data()
+        data: dict[str, str] = cast(dict[str, str], wrapper.get_data())
         assert data == {"key": "value"}
 
         wrapper.update_data("new_key", "new_value")
-        data = wrapper.get_data()
+        data = cast(dict[str, str], wrapper.get_data())
         assert "new_key" in data
         assert data["new_key"] == "new_value"
 

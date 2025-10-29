@@ -13,7 +13,7 @@ from typing import Any
 class TestCoverageReporter:
     """测试覆盖率报告器"""
 
-    def __init__(self, project_root: Path = None):
+    def __init__(self, project_root: Path | None = None):
         self.project_root = project_root or self._find_project_root()
         self.core_src_path = self.project_root / "src" / "sage" / "core"
         self.core_tests_path = self.project_root / "tests" / "core"

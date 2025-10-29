@@ -229,11 +229,11 @@ class NeighborCompensation:
         neighbor_change = np.linalg.norm(neighbor_compensated - neighbor_original)
 
         return {
-            "similarity_before": sim_before,
-            "similarity_after_no_compensation": sim_after_no_comp,
-            "similarity_after_compensation": sim_after_comp,
-            "similarity_recovery": abs(sim_after_comp - sim_before) / (abs(sim_before) + 1e-10),
-            "neighbor_change_magnitude": neighbor_change,
+            "similarity_before": float(sim_before),
+            "similarity_after_no_compensation": float(sim_after_no_comp),
+            "similarity_after_compensation": float(sim_after_comp),
+            "similarity_recovery": float(abs(sim_after_comp - sim_before) / (abs(sim_before) + 1e-10)),
+            "neighbor_change_magnitude": float(neighbor_change),
         }
 
 

@@ -168,7 +168,12 @@ class UnlearningEngine:
         num_compensated = 0
         compensated_neighbors = {}
 
-        if self.enable_compensation and all_vectors is not None:
+        if (
+            self.enable_compensation
+            and self.neighbor_compensation is not None
+            and all_vectors is not None
+            and all_vector_ids is not None
+        ):
             for _i, (original, perturbed, _vec_id) in enumerate(
                 zip(
                     vectors_to_forget,

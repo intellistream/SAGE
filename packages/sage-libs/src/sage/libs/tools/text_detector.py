@@ -102,11 +102,13 @@ class text_detector(BaseTool):
                 result = reader.readtext(image, **kwargs)
                 try:
                     # detail = 1: Convert numpy types to standard Python types
+                    from typing import Any, cast
+                    
                     cleaned_result = [
                         (
-                            [[int(coord[0]), int(coord[1])] for coord in item[0]],
-                            item[1],
-                            round(float(item[2]), 2),
+                            [[int(coord[0]), int(coord[1])] for coord in cast(Any, item)[0]],
+                            cast(Any, item)[1],
+                            round(float(cast(Any, item)[2]), 2),
                         )
                         for item in result
                     ]

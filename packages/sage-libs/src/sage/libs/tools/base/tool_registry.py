@@ -7,6 +7,8 @@ class ToolRegistry:
 
     def register(self, tool: BaseTool) -> None:
         """注册一个工具实例"""
+        if tool.tool_name is None:
+            raise ValueError("Tool must have a non-None tool_name to be registered")
         self._tools[tool.tool_name] = tool
 
     def unregister(self, name: str) -> None:

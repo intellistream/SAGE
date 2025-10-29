@@ -19,7 +19,7 @@ def example_basic_unlearning():
     print("=" * 60)
 
     try:
-        from sage.libs.unlearning.algorithms import GaussianUnlearning  # noqa: F401
+        from sage.libs.unlearning.algorithms import GaussianMechanism  # noqa: F401
 
         print("\n✓ Machine Unlearning Overview:")
         print("  1. Train initial model on full dataset")
@@ -30,25 +30,31 @@ def example_basic_unlearning():
         print("\nExample workflow:")
         print(
             """
-        from sage.libs.unlearning.algorithms import GaussianUnlearning
+        from sage.libs.unlearning.algorithms import GaussianMechanism
+        from sage.libs.unlearning.dp_unlearning import UnlearningEngine
 
-        # Initialize unlearning algorithm
-        unlearner = GaussianUnlearning(
-            model=trained_model,
-            learning_rate=0.01
+        # Initialize DP mechanism
+        mechanism = GaussianMechanism(
+            epsilon=1.0,
+            delta=1e-5,
+            sensitivity=0.1
         )
+
+        # Initialize unlearning engine
+        engine = UnlearningEngine(mechanism=mechanism)
 
         # Specify data to forget
         forget_indices = [10, 25, 42, 100]
 
         # Apply unlearning
-        updated_model = unlearner.unlearn(
+        updated_params = engine.unlearn(
+            model_parameters=current_params,
             forget_indices=forget_indices,
             retain_data=remaining_data
         )
 
         # Verify unlearning
-        print(f"Model updated: {updated_model is not None}")
+        print(f"Model updated: {updated_params is not None}")
         """
         )
 
@@ -82,16 +88,20 @@ def example_differential_privacy():
         print(
             """
         from sage.libs.unlearning.dp_unlearning import VectorPerturbation
+        from sage.libs.unlearning.algorithms import GaussianMechanism
 
         # Create DP mechanism
-        dp_mechanism = VectorPerturbation(
-            epsilon=1.0,  # Privacy budget
-            delta=1e-5,   # Privacy parameter
+        mechanism = GaussianMechanism(
+            epsilon=1.0,
+            delta=1e-5,
             sensitivity=0.1
         )
 
+        # Create vector perturbation component
+        perturbation = VectorPerturbation(mechanism=mechanism)
+
         # Apply DP unlearning
-        perturbed_params = dp_mechanism.perturb(
+        perturbed_params = perturbation.perturb(
             model_parameters=params,
             forget_gradient=forget_grad
         )
@@ -185,56 +195,66 @@ def example_unlearning_algorithms():
     print("=" * 60)
 
     print("\n✓ Available algorithms:")
-    print("  - Gaussian Unlearning: Gaussian mechanism-based")
-    print("  - Laplace Unlearning: Laplace mechanism-based")
-    print("  - SISA: Sharded, Isolated, Sliced, Aggregated")
-    print("  - Gradient Ascent: Direct gradient-based removal")
+    print("  - Gaussian Mechanism: Gaussian noise-based (ε,δ)-DP")
+    print("  - Laplace Mechanism: Laplace noise-based ε-DP")
+    print("  - Unlearning Engine: Orchestrates unlearning process")
 
-    print("\nExample: Gaussian vs Laplace")
+    print("\nExample: Gaussian vs Laplace mechanisms")
     print(
         """
     from sage.libs.unlearning.algorithms import (
-        GaussianUnlearning,
-        LaplaceUnlearning
+        GaussianMechanism,
+        LaplaceMechanism
     )
+    from sage.libs.unlearning.dp_unlearning import UnlearningEngine
 
-    # Gaussian unlearning (better for larger datasets)
-    gaussian = GaussianUnlearning(
-        model=model,
+    # Gaussian mechanism (better for larger datasets, requires δ)
+    gaussian = GaussianMechanism(
         epsilon=1.0,
+        delta=1e-5,
         sensitivity=0.1
     )
 
-    # Laplace unlearning (better for smaller privacy budgets)
-    laplace = LaplaceUnlearning(
-        model=model,
+    # Laplace mechanism (pure ε-DP, no δ required)
+    laplace = LaplaceMechanism(
         epsilon=0.5,
         sensitivity=0.1
     )
 
+    # Create engines with different mechanisms
+    gaussian_engine = UnlearningEngine(mechanism=gaussian)
+    laplace_engine = UnlearningEngine(mechanism=laplace)
+
     # Compare results
-    gaussian_model = gaussian.unlearn(forget_indices)
-    laplace_model = laplace.unlearn(forget_indices)
+    gaussian_params = gaussian_engine.unlearn(forget_indices)
+    laplace_params = laplace_engine.unlearn(forget_indices)
     """
     )
 
-    print("\nExample: SISA (Sharded training)")
+    print("\nExample: Advanced usage with neighbor compensation")
     print(
         """
-    # SISA enables efficient unlearning by sharding data
-    from sage.libs.unlearning.algorithms import SISAUnlearning
+    from sage.libs.unlearning.dp_unlearning import (
+        UnlearningEngine,
+        NeighborCompensation
+    )
+    from sage.libs.unlearning.algorithms import GaussianMechanism
 
-    # Train with sharding
-    sisa = SISAUnlearning(
-        num_shards=10,
-        model_class=MyModel
+    # Create mechanism
+    mechanism = GaussianMechanism(epsilon=1.0, delta=1e-5)
+
+    # Create neighbor compensation
+    neighbor_comp = NeighborCompensation(
+        mechanism=mechanism,
+        num_neighbors=5
     )
 
-    # Train on sharded data
-    sisa.train(training_data)
-
-    # Unlearn by retraining only affected shards
-    sisa.unlearn(forget_indices)  # Much faster than full retraining
+    # Apply compensated unlearning
+    updated_params = neighbor_comp.compensate(
+        model_params=params,
+        forget_indices=forget_indices,
+        training_data=data
+    )
     """
     )
 
@@ -260,9 +280,12 @@ def example_real_world_scenario():
     print("\nComplete example:")
     print(
         """
-    from sage.libs.unlearning.algorithms import GaussianUnlearning
+    from sage.libs.unlearning.algorithms import GaussianMechanism
     from sage.libs.unlearning.evaluation import UnlearningMetrics
-    from sage.libs.unlearning.dp_unlearning import PrivacyAccountant
+    from sage.libs.unlearning.dp_unlearning import (
+        PrivacyAccountant,
+        UnlearningEngine
+    )
 
     # Step 1: Receive deletion request
     user_id = "user_12345"
@@ -270,13 +293,17 @@ def example_real_world_scenario():
 
     # Step 2: Apply certified unlearning
     accountant = PrivacyAccountant(total_epsilon=1.0)
-    unlearner = GaussianUnlearning(
-        model=production_model,
+    
+    mechanism = GaussianMechanism(
         epsilon=0.5,
-        delta=1e-5
+        delta=1e-5,
+        sensitivity=0.1
     )
+    
+    engine = UnlearningEngine(mechanism=mechanism)
 
-    updated_model = unlearner.unlearn(
+    updated_params = engine.unlearn(
+        model_parameters=production_model.parameters,
         forget_indices=user_data_indices
     )
 
@@ -326,13 +353,13 @@ def run_all_examples():
     print("✓ All examples completed")
     print("=" * 60)
     print("\nFor more information:")
-    print("- See unlearning/README.md for detailed documentation")
-    print("- Check unlearning/algorithms/ for algorithm implementations")
+    print("- See packages/sage-libs/src/sage/libs/unlearning/README.md")
+    print("- Check algorithms/ for mechanism implementations")
     print("- Visit docs/ for research papers and references")
     print("\nKey papers:")
     print("- Machine Unlearning (Cao & Yang, 2015)")
     print("- Certified Data Removal (Guo et al., 2020)")
-    print("- SISA Training (Bourtoule et al., 2021)")
+    print("- The Algorithmic Foundations of DP (Dwork & Roth, 2014)")
 
 
 if __name__ == "__main__":

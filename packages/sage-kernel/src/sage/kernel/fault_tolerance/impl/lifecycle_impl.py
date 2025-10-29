@@ -5,9 +5,29 @@ Actor 和 Task 生命周期管理实现
 """
 
 import time
-from typing import Any
+from typing import Any, Optional, Protocol
 
 from sage.common.core import DEFAULT_CLEANUP_TIMEOUT, TaskID
+
+
+class LoggerProtocol(Protocol):
+    """Logger 协议，定义日志器的接口"""
+
+    def debug(self, msg: str, *args, **kwargs) -> None:
+        """Debug level logging"""
+        ...
+
+    def info(self, msg: str, *args, **kwargs) -> None:
+        """Info level logging"""
+        ...
+
+    def warning(self, msg: str, *args, **kwargs) -> None:
+        """Warning level logging"""
+        ...
+
+    def error(self, msg: str, *args, **kwargs) -> None:
+        """Error level logging"""
+        ...
 
 
 class LifecycleManagerImpl:
@@ -24,7 +44,7 @@ class LifecycleManagerImpl:
 
     def __init__(self):
         """初始化生命周期管理器"""
-        self.logger = None  # 可以后续注入 logger
+        self.logger: Optional[LoggerProtocol] = None  # 可以后续注入 logger
 
     def cleanup_actor(
         self,

@@ -9,22 +9,56 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from sage.kernel.api.transformation.base_transformation import BaseTransformation
 from sage.kernel.runtime.factory.task_factory import TaskFactory
 from sage.kernel.runtime.task.local_task import LocalTask
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 
-class MockTransformation:
+class MockTransformation(BaseTransformation):
     """Mock transformation for testing"""
 
-    def __init__(self, basename="test_transform", remote=False, is_spout=True):
+    def __init__(self, basename="test_transform", remote=False, is_spout_value=True):
+        # Create minimal mock environment
+        mock_env = Mock()
+        mock_env.platform = "remote" if remote else "local"
+        mock_env.name = "test_env"
+        mock_env.pipeline = []
+
+        # Create a mock function class that satisfies type checking
+        class MockFunction:
+            __name__ = basename
+
+        # Initialize parent class - type ignore needed for test mock
+        super().__init__(env=mock_env, function=MockFunction)  # type: ignore
+
+        # Override specific attributes for testing
         self.basename = basename
-        # 使用统一的测试环境名称，实际路径通过其他方式控制
         self.env_name = "test_env"
-        self.operator_factory = Mock()
-        self.delay = 0.01
         self.remote = remote
-        self.is_spout = is_spout
+        self._is_spout_value = is_spout_value
+        self._delay = 0.01
+        self._operator_factory = Mock()
+
+    @property
+    def is_spout(self) -> bool:
+        return self._is_spout_value
+
+    @property
+    def delay(self) -> float:
+        return self._delay
+
+    @delay.setter
+    def delay(self, value: float) -> None:
+        self._delay = value
+
+    @property
+    def operator_factory(self):
+        return self._operator_factory
+
+    @operator_factory.setter
+    def operator_factory(self, value):
+        self._operator_factory = value
 
 
 class MockTaskContext:
@@ -145,7 +179,7 @@ class TestTaskFactory:
     def test_factory_attributes_inheritance(self):
         """Test that factory inherits all necessary attributes from transformation"""
         transformation = MockTransformation(
-            basename="custom_transform", remote=True, is_spout=False
+            basename="custom_transform", remote=True, is_spout_value=False
         )
         transformation.env_name = "custom_env"
         transformation.delay = 0.05
@@ -180,12 +214,12 @@ class TestTaskFactory:
     def test_factory_with_different_transformations(self):
         """Test factory behavior with different transformation types"""
         # Spout transformation
-        spout_transform = MockTransformation(is_spout=True)
+        spout_transform = MockTransformation(is_spout_value=True)
         spout_factory = TaskFactory(spout_transform)
         assert spout_factory.is_spout is True
 
         # Non-spout transformation
-        non_spout_transform = MockTransformation(is_spout=False)
+        non_spout_transform = MockTransformation(is_spout_value=False)
         non_spout_factory = TaskFactory(non_spout_transform)
         assert non_spout_factory.is_spout is False
 
@@ -261,7 +295,7 @@ class TestTaskFactoryEdgeCases:
     def test_factory_with_none_transformation(self):
         """Test factory creation with None transformation"""
         with pytest.raises((AttributeError, TypeError)):
-            TaskFactory(None)
+            TaskFactory(None)  # type: ignore[arg-type]
 
     @pytest.mark.unit
     @patch("sage.kernel.runtime.factory.task_factory.RayTask")
@@ -385,15 +419,39 @@ def mock_context():
 def factory_with_complex_transformation():
     """Create a factory with a more complex transformation"""
 
-    class ComplexTransformation:
+    class ComplexTransformation(BaseTransformation):
         def __init__(self):
+            # Create minimal mock environment
+            mock_env = Mock()
+            mock_env.platform = "local"
+            mock_env.name = "complex_env"
+            mock_env.pipeline = []
+
+            # Create a mock function class
+            class MockComplexFunction:
+                __name__ = "complex_transform"
+
+            super().__init__(env=mock_env, function=MockComplexFunction)  # type: ignore
+
             self.basename = "complex_transform"
             self.env_name = "complex_env"
-            self.operator_factory = Mock()
-            self.delay = 0.001
+            self._operator_factory = Mock()
+            self._delay = 0.001
             self.remote = False
-            self.is_spout = True
+            self._is_spout_value = True
             self.custom_attribute = "custom_value"
+
+        @property
+        def is_spout(self) -> bool:
+            return self._is_spout_value
+
+        @property
+        def delay(self) -> float:
+            return self._delay
+
+        @property
+        def operator_factory(self):
+            return self._operator_factory
 
     return TaskFactory(ComplexTransformation())
 
@@ -402,8 +460,10 @@ def factory_with_complex_transformation():
 def transformation_factory():
     """Factory for creating different types of transformations"""
 
-    def _create_transformation(remote=False, is_spout=True, basename="test"):
-        transform = MockTransformation(basename=basename, remote=remote, is_spout=is_spout)
+    def _create_transformation(remote=False, is_spout_value=True, basename="test"):
+        transform = MockTransformation(
+            basename=basename, remote=remote, is_spout_value=is_spout_value
+        )
         return transform
 
     return _create_transformation
