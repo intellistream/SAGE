@@ -106,8 +106,8 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           chmod +x ./quickstart.sh
 
-          # 使用标准模式（examples 测试需要完整的 SAGE 功能但不需要开发工具）
-          ./quickstart.sh --standard --yes --no-sync-submodules
+          # 使用开发模式（examples 测试需要 sage-dev 命令和测试工具）
+          ./quickstart.sh --dev --yes --no-sync-submodules
 
           echo "✅ SAGE 安装完成"
         timeout-minutes: 20
@@ -115,17 +115,34 @@ jobs:
       - name: Verify Installation
         run: |
           echo "✅ 验证 SAGE 安装..."
+
+          # 确保 ~/.local/bin 在 PATH 中（CI 环境使用 --user 安装）
+          export PATH="$HOME/.local/bin:$PATH"
+
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage.common; print('✅ sage.common imported')"
+          python -c "import sage.cli; print('✅ sage.cli imported')"
 
-          # 验证 CLI
+          # 验证 CLI 命令
+          echo "验证命令可用性..."
           if command -v sage >/dev/null 2>&1; then
-            sage --help > /dev/null && echo "✅ CLI 可用"
+            sage --help > /dev/null && echo "✅ sage 命令可用"
+          else
+            echo "⚠️  sage 命令不可用"
+          fi
+
+          if command -v sage-dev >/dev/null 2>&1; then
+            sage-dev --help > /dev/null && echo "✅ sage-dev 命令可用"
+          else
+            echo "⚠️  sage-dev 命令不可用"
           fi
 
       - name: Install Examples Test Dependencies
         run: |
           echo "📦 安装 Examples 测试依赖..."
+
+          # 确保 ~/.local/bin 在 PATH 中（CI 环境使用 --user 安装）
+          export PATH="$HOME/.local/bin:$PATH"
 
           # quickstart.sh 已经安装了 SAGE，这里只需安装额外的测试工具
           pip install pytest pytest-timeout pytest-benchmark
@@ -141,6 +158,18 @@ jobs:
         run: |
           echo "🌟 运行 Examples 完整测试..."
           echo ""
+
+          # 确保 ~/.local/bin 在 PATH 中（CI 环境使用 --user 安装）
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # 验证 sage-dev 命令可用
+          if ! command -v sage-dev >/dev/null 2>&1; then
+            echo "❌ sage-dev 命令不可用"
+            echo "PATH: $PATH"
+            echo "~/.local/bin 内容:"
+            ls -la ~/.local/bin/ | grep sage || echo "没有 sage 相关命令"
+            exit 1
+          fi
 
           # 使用 sage-dev CLI 命令运行测试（替代旧的 shell 脚本）
           sage-dev examples test || {
