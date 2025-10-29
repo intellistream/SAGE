@@ -224,6 +224,7 @@ extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.
 python_dynamic = [
     "version",
 ]
+cache_dir = "../../.sage/cache/mypy"
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true

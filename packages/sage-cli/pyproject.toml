@@ -105,6 +105,7 @@ markers = [
 
 [tool.mypy]
 python_version = "3.9"
+cache_dir = "../../.sage/cache/mypy"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

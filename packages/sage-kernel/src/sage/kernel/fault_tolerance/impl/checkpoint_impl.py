@@ -19,7 +19,7 @@ class CheckpointManagerImpl:
     负责保存和恢复任务的状态快照。
     """
 
-    def __init__(self, checkpoint_dir: str = ".sage_checkpoints"):
+    def __init__(self, checkpoint_dir: str = ".sage/checkpoints"):
         """
         初始化 Checkpoint 管理器
 

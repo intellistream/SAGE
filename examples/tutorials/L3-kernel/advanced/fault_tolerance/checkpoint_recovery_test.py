@@ -100,7 +100,7 @@ def test_checkpoint_recovery():
                 "strategy": "checkpoint",
                 "checkpoint_interval": 2.0,  # 每 2 秒保存一次
                 "max_recovery_attempts": 3,
-                "checkpoint_dir": ".test_checkpoints",
+                "checkpoint_dir": ".sage/test_checkpoints",
             }
         },
     )
@@ -112,7 +112,7 @@ def test_checkpoint_recovery():
     print("  - Strategy: checkpoint")
     print("  - Checkpoint Interval: 2.0s")
     print("  - Max Recovery Attempts: 3")
-    print("  - Checkpoint Directory: .test_checkpoints")
+    print("  - Checkpoint Directory: .sage/test_checkpoints")
     print()
 
     # 构建管道

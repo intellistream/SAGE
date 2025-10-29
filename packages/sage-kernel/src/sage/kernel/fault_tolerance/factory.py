@@ -66,7 +66,7 @@ def create_fault_handler_from_config(
 
 def _create_checkpoint_handler(config: dict[str, Any]) -> CheckpointBasedRecovery:
     """创建基于 Checkpoint 的容错处理器"""
-    checkpoint_dir = config.get("checkpoint_dir", ".sage_checkpoints")
+    checkpoint_dir = config.get("checkpoint_dir", ".sage/checkpoints")
     checkpoint_interval = config.get("checkpoint_interval", 60.0)
     max_recovery_attempts = config.get("max_recovery_attempts", 3)
 

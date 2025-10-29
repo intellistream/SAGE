@@ -55,7 +55,7 @@ def example_1_user_checkpoint_strategy():
                 "strategy": "checkpoint",
                 "checkpoint_interval": 60.0,  # 每60秒保存一次
                 "max_recovery_attempts": 3,  # 最多恢复3次
-                "checkpoint_dir": ".my_checkpoints",
+                "checkpoint_dir": ".sage/checkpoints",
             },
             "source": {"data_path": "data/questions.txt"},
             "sink": {},

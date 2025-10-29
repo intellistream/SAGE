@@ -88,3 +88,7 @@ attr = "sage._version.__version__"
 
 [tool.ruff]
 extend = "../../tools/ruff.toml"
+
+[tool.mypy]
+cache_dir = "../../.sage/cache/mypy"
+ignore_missing_imports = true

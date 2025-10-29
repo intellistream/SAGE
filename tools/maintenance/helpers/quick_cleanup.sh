@@ -28,6 +28,33 @@ if [ $pyc_count -gt 0 ]; then
     removed_count=$((removed_count + pyc_count))
 fi
 
+# 清理 mypy 缓存
+echo "清理 .mypy_cache 目录..."
+mypy_count=$(find . -name ".mypy_cache" -type d 2>/dev/null | wc -l)
+if [ $mypy_count -gt 0 ]; then
+    find . -name ".mypy_cache" -type d -exec rm -rf {} + 2>/dev/null || true
+    echo "✅ 删除了 $mypy_count 个 .mypy_cache 目录"
+    removed_count=$((removed_count + mypy_count))
+fi
+
+# 清理 ruff 缓存
+echo "清理 .ruff_cache 目录..."
+ruff_count=$(find . -name ".ruff_cache" -type d 2>/dev/null | wc -l)
+if [ $ruff_count -gt 0 ]; then
+    find . -name ".ruff_cache" -type d -exec rm -rf {} + 2>/dev/null || true
+    echo "✅ 删除了 $ruff_count 个 .ruff_cache 目录"
+    removed_count=$((removed_count + ruff_count))
+fi
+
+# 清理 pytest 缓存
+echo "清理 .pytest_cache 目录..."
+pytest_count=$(find . -name ".pytest_cache" -type d 2>/dev/null | wc -l)
+if [ $pytest_count -gt 0 ]; then
+    find . -name ".pytest_cache" -type d -exec rm -rf {} + 2>/dev/null || true
+    echo "✅ 删除了 $pytest_count 个 .pytest_cache 目录"
+    removed_count=$((removed_count + pytest_count))
+fi
+
 # 清理构建文件
 echo "清理构建文件..."
 if [ -d "build" ]; then

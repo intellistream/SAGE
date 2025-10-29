@@ -312,8 +312,9 @@ jobs:
           from sage.common import config
           from sage.common.utils.logging import get_logger
 
-          # L2: Platform (no utils module, components only)
-          from sage.platform.components import LocalComponent
+          # L2: Platform (queue, service, storage modules)
+          from sage.platform.queue import PythonQueueDescriptor, RayQueueDescriptor
+          from sage.platform.service import BaseService
 
           # L3: Kernel
           from sage.kernel import LocalEnvironment, RemoteEnvironment

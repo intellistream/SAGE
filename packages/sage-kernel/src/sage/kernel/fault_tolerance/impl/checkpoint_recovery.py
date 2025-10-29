@@ -28,7 +28,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
         checkpoint_manager: CheckpointManagerImpl | None = None,
         checkpoint_interval: float = 60.0,
         max_recovery_attempts: int = 3,
-        checkpoint_dir: str = ".sage_checkpoints",
+        checkpoint_dir: str = ".sage/checkpoints",
     ):
         """
         初始化 Checkpoint 容错策略
