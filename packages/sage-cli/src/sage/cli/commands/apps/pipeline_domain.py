@@ -9,6 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import yaml
+
 from sage.common.config.output_paths import get_sage_paths
 
 _BASE_GUIDE = textwrap.dedent(

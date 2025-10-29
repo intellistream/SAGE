@@ -278,12 +278,10 @@ class ArxivPDFParser(MapOperator):
         os.makedirs(self.output_dir, exist_ok=True)
 
     def execute(self, data: str) -> list[str]:
-
         pdf_paths = data
         output_paths = []
 
         for pdf_path in pdf_paths:
-
             filename = os.path.basename(pdf_path).replace(".pdf", ".json")
             json_path = os.path.join(self.output_dir, filename)
 

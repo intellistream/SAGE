@@ -10,7 +10,7 @@ This implementation uses the Self-RAG dataset format where each item contains:
 - ctxs: Pre-retrieved documents with title and text
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from sage.common.core import MapFunction
 from sage.kernel.api.local_environment import LocalEnvironment
@@ -29,7 +29,7 @@ class SelfRAGRetriever(MapFunction):
     def __init__(self, config: dict):
         self.top_k = config.get("top_k", 5)
 
-    def execute(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, item: dict[str, Any]) -> dict[str, Any]:
         """Extract pre-retrieved documents from the data item."""
         question = item["question"]
         ctxs = item.get("ctxs", [])
@@ -65,7 +65,7 @@ class SelfRAGPromptor(MapFunction):
         self.model_name = config.get("model_name", "mistral")
         self.use_context = config.get("use_context", True)
 
-    def execute(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, item: dict[str, Any]) -> dict[str, Any]:
         """Build prompt with evidence paragraphs."""
         question = item["question"]
         retrieved_docs = item.get("retrieved_docs", [])
@@ -120,7 +120,7 @@ class SelfRAGGenerator(MapFunction):
             max_tokens=config.get("max_tokens", 100),
         )
 
-    def execute(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, item: dict[str, Any]) -> dict[str, Any]:
         """Generate answer for the question."""
         prompt = item["prompt"]
 
@@ -146,7 +146,7 @@ class SelfRAGGenerator(MapFunction):
         return text
 
 
-def process_item(item: Dict[str, Any], config: dict) -> Dict[str, Any]:
+def process_item(item: dict[str, Any], config: dict) -> dict[str, Any]:
     """
     Process a single item through the Self-RAG pipeline.
 
@@ -188,7 +188,7 @@ def run_selfrag_pipeline(config_path: str):
     """
     import yaml
 
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         config = yaml.safe_load(f)
 
     env = LocalEnvironment("selfrag_pipeline")

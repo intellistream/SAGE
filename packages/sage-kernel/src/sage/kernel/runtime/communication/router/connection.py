@@ -20,7 +20,6 @@ class Connection:
         queue_descriptor: "BaseQueueDescriptor",
         target_input_index: int,
     ):
-
         self.broadcast_index: int = broadcast_index
         self.parallel_index: int = parallel_index
         self.target_name: str = target_name

@@ -35,12 +35,12 @@ class TestConfigLoading:
         )
 
         for config_file in config_dir.glob("*.yaml"):
-            with open(config_file, "r") as f:
+            with open(config_file) as f:
                 try:
                     config = yaml.safe_load(f)
-                    assert isinstance(
-                        config, dict
-                    ), f"{config_file.name} should contain a dictionary"
+                    assert isinstance(config, dict), (
+                        f"{config_file.name} should contain a dictionary"
+                    )
                 except yaml.YAMLError as e:
                     pytest.fail(f"Invalid YAML in {config_file.name}: {e}")
 
@@ -59,7 +59,7 @@ class TestConfigLoading:
         if not config_path.exists():
             pytest.skip("config_dense_milvus.yaml not found")
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f)
 
         # Check for expected sections (flexible, as structure may vary)
@@ -91,6 +91,6 @@ class TestDataFiles:
 
         if queries_path.exists():
             # If file exists, verify it's valid JSONL
-            with open(queries_path, "r") as f:
+            with open(queries_path) as f:
                 lines = f.readlines()
                 assert len(lines) > 0, "queries.jsonl should not be empty"

@@ -17,11 +17,11 @@ from sage.common.components.sage_embedding import (
 def print_separator(title=""):
     """打印分隔线"""
     if title:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  {title}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
     else:
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
 
 def list_all_methods():
@@ -125,7 +125,7 @@ def demo_batch_embedding():
         print(f"   ✅ 成功生成 {len(vecs)} 个向量")
         print(f"   每个向量维度: {len(vecs[0])}")
         for i, vec in enumerate(vecs):
-            print(f"   向量 {i+1}: {vec[:3]}...")
+            print(f"   向量 {i + 1}: {vec[:3]}...")
     except Exception as e:
         print(f"   ❌ 错误: {e}")
 

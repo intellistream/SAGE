@@ -38,7 +38,7 @@ class TimelineSink(SinkFunction):
             objects = ", ".join(safe_data.get("top_object_labels", [])[:3])
             brightness = safe_data.get("brightness", 0)
 
-            print(f"\n{'='*70}")
+            print(f"\n{'=' * 70}")
             print(f"📹 Frame {frame_id} @ {timestamp:.2f}s")
             print(f"   Scene: {scene}")
             print(f"   Objects: {objects or 'none detected'}")
@@ -50,7 +50,7 @@ class TimelineSink(SinkFunction):
                 top_scenes = sorted(scene_scores.items(), key=lambda x: x[1], reverse=True)[:3]
                 print(f"   Top scenes: {', '.join(f'{s}({v:.2f})' for s, v in top_scenes)}")
 
-            print(f"{'='*70}")
+            print(f"{'=' * 70}")
 
     def __del__(self) -> None:  # pragma: no cover - defensive cleanup
         if hasattr(self, "file") and self.file and not self.file.closed:

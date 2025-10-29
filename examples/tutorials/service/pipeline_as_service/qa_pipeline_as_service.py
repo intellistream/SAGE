@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -32,7 +32,7 @@ try:  # pragma: no cover - allow running directly from source tree
     from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator, QAPromptor
 except ModuleNotFoundError:  # pragma: no cover - local convenience path
     here = Path(__file__).resolve()
-    repo_root: Optional[Path] = None
+    repo_root: Path | None = None
     for parent in here.parents:
         if (parent / "packages").exists():
             repo_root = parent
@@ -50,16 +50,15 @@ except ModuleNotFoundError:  # pragma: no cover - local convenience path
     ]:
         sys.path.insert(0, str(extra_path))
 
-    from sage.common.utils.config.loader import load_config
-    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.common.core.functions.map_function import MapFunction
     from sage.common.core.functions.sink_function import SinkFunction
     from sage.common.core.functions.source_function import SourceFunction
+    from sage.common.utils.config.loader import load_config
+    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
     from sage.kernel.runtime.communication.router.packet import StopSignal
-    from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator
-    from sage.middleware.operators.rag import QAPromptor
+    from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator, QAPromptor
 
 from pipeline_bridge import PipelineBridge
 
@@ -112,7 +111,7 @@ def _extract_answer_text(generated: Any) -> str:
 class MockGenerator(MapFunction):
     """Lightweight generator that returns canned answers for offline demos."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, **kwargs):
+    def __init__(self, config: dict[str, Any] | None = None, **kwargs):
         super().__init__(**kwargs)
         config = config or {}
         default_responses = [
@@ -124,7 +123,7 @@ class MockGenerator(MapFunction):
         # Normalise to list and ensure formatting strings are valid
         if isinstance(raw_responses, str):
             raw_responses = [raw_responses]
-        self._responses: List[str] = [str(r) for r in raw_responses if r]
+        self._responses: list[str] = [str(r) for r in raw_responses if r]
         if not self._responses:
             self._responses = default_responses
         self._cursor = 0
@@ -192,7 +191,7 @@ class ServiceDrivenQuestionSource(SourceFunction):
 class QuestionSanitizer(MapFunction):
     """Validates incoming questions and performs light normalization."""
 
-    def execute(self, payload: Dict[str, Any] | StopSignal | None):
+    def execute(self, payload: dict[str, Any] | StopSignal | None):
         if payload is None or isinstance(payload, StopSignal):
             return payload
 
@@ -210,11 +209,11 @@ class QuestionSanitizer(MapFunction):
 class PromptStage(MapFunction):
     """Wraps ``QAPromptor`` to preserve context and surface errors as data."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         super().__init__()
         self._promptor = QAPromptor(config)
 
-    def execute(self, payload: Dict[str, Any] | StopSignal | None):
+    def execute(self, payload: dict[str, Any] | StopSignal | None):
         if payload is None or isinstance(payload, StopSignal):
             return payload
 
@@ -248,11 +247,11 @@ class PromptStage(MapFunction):
 class GeneratorStage(MapFunction):
     """Invokes the configured generator and captures failures as structured data."""
 
-    def __init__(self, generator_cls, generator_config: Dict[str, Any]):
+    def __init__(self, generator_cls, generator_config: dict[str, Any]):
         super().__init__()
         self._generator = generator_cls(generator_config)
 
-    def execute(self, payload: Dict[str, Any] | StopSignal | None):
+    def execute(self, payload: dict[str, Any] | StopSignal | None):
         if payload is None or isinstance(payload, StopSignal):
             return payload
 
@@ -290,7 +289,7 @@ class GeneratorStage(MapFunction):
 class PackageAnswer(MapFunction):
     """Extracts the final answer and prepares the response payload."""
 
-    def execute(self, payload: Dict[str, Any] | StopSignal | tuple | None):
+    def execute(self, payload: dict[str, Any] | StopSignal | tuple | None):
         if payload is None or isinstance(payload, StopSignal):
             return payload
 
@@ -332,7 +331,7 @@ class PackageAnswer(MapFunction):
 class PublishAnswerSink(SinkFunction):
     """Publishes answers to the waiting response queue and prints them."""
 
-    def execute(self, payload: Dict[str, Any] | StopSignal | None):
+    def execute(self, payload: dict[str, Any] | StopSignal | None):
         if payload is None:
             return None
 
@@ -377,7 +376,7 @@ class QAPipelineService(BaseService):
         self._bridge = bridge
         self._request_timeout = request_timeout
 
-    def process(self, message: Dict[str, Any]):
+    def process(self, message: dict[str, Any]):
         if message is None:
             raise ValueError("QA pipeline service received an empty message")
 
@@ -441,7 +440,7 @@ class InvokeQAPipeline(MapFunction):
         super().__init__()
         self._timeout = timeout
 
-    def execute(self, message: Dict[str, Any] | StopSignal | None):
+    def execute(self, message: dict[str, Any] | StopSignal | None):
         if message is None or isinstance(message, StopSignal):
             return message
 
@@ -452,11 +451,11 @@ class InvokeQAPipeline(MapFunction):
 class TerminalAnswerSink(SinkFunction):
     """Displays results returned from the QA service."""
 
-    def __init__(self, shutdown_event: Optional[threading.Event] = None):
+    def __init__(self, shutdown_event: threading.Event | None = None):
         super().__init__()
         self._shutdown_event = shutdown_event
 
-    def execute(self, payload: Dict[str, Any] | StopSignal | None):
+    def execute(self, payload: dict[str, Any] | StopSignal | None):
         if payload is None or isinstance(payload, StopSignal):
             return payload
 
@@ -483,7 +482,7 @@ class TerminalAnswerSink(SinkFunction):
         return payload
 
 
-def _load_runtime_config() -> Dict[str, Any]:
+def _load_runtime_config() -> dict[str, Any]:
     load_dotenv(override=False)
     if not CONFIG_PATH.exists():
         raise FileNotFoundError(
@@ -492,14 +491,14 @@ def _load_runtime_config() -> Dict[str, Any]:
     return load_config(CONFIG_PATH)
 
 
-def _resolve_generator(generator_section: Dict[str, Any]):
+def _resolve_generator(generator_section: dict[str, Any]):
     """Determine which generator operator to use based on config/environment.
 
     Returns (generator_cls, generator_config, notice_message).
     """
 
     profile_override = os.getenv("SAGE_QA_GENERATOR_PROFILE")
-    selected_config: Dict[str, Any] = {}
+    selected_config: dict[str, Any] = {}
 
     selected_profile = None
     if profile_override and profile_override in generator_section:

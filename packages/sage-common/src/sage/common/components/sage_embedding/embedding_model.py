@@ -180,7 +180,7 @@ def main():
         v = embedding_model.embed(f"{i} times ")
         print(v)
         end = time.time()
-        print(f"embedding time :{end-start}")
+        print(f"embedding time :{end - start}")
 
 
 if __name__ == "__main__":

@@ -187,7 +187,6 @@ def test_restart_recovery():
 
 
 if __name__ == "__main__":
-
     test_checkpoint_recovery()
 
     print("\n✨ All tests completed!\n")

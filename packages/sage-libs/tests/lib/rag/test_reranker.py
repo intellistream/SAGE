@@ -408,12 +408,12 @@ class TestBGERerankerIntegration:
         config = {"model_name": "BAAI/bge-reranker-v2-m3", "top_k": 2}
 
         # 使用mock来测试基本逻辑，避免复杂的tensor链式调用
-        with patch("sage.libs.rag.reranker.AutoTokenizer") as mock_tokenizer_class, patch(
-            "sage.libs.rag.reranker.AutoModelForSequenceClassification"
-        ) as mock_model_class, patch("torch.cuda.is_available") as mock_cuda_available, patch(
-            "torch.no_grad"
+        with (
+            patch("sage.libs.rag.reranker.AutoTokenizer") as mock_tokenizer_class,
+            patch("sage.libs.rag.reranker.AutoModelForSequenceClassification") as mock_model_class,
+            patch("torch.cuda.is_available") as mock_cuda_available,
+            patch("torch.no_grad"),
         ):
-
             mock_cuda_available.return_value = False
 
             # 简单的mock设置

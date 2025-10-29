@@ -175,7 +175,7 @@ def test_batch_mode():
     print("=" * 80)
 
     for i, result in enumerate(results, 1):
-        print(f"\n{i}. 病例 {cases_to_test[i-1]['case_id']}")
+        print(f"\n{i}. 病例 {cases_to_test[i - 1]['case_id']}")
         print(f"   诊断: {', '.join(result.diagnoses)}")
         print(f"   置信度: {result.confidence:.2%}")
         print(f"   发现: {len(result.findings)} 处")

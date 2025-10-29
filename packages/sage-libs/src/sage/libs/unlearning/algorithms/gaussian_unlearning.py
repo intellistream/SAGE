@@ -69,7 +69,7 @@ class GaussianMechanism(BasePrivacyMechanism):
         # PLACEHOLDER: Basic formula
         # TODO: Implement tighter bound (see Balle & Wang 2018)
         assert self.delta is not None, "Gaussian mechanism requires delta to be set"
-        
+
         if self.delta == 0 or self.delta >= 1:
             raise ValueError(f"Delta must be in (0, 1), got {self.delta}")
 

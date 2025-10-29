@@ -67,7 +67,7 @@ class ApplicationTemplate:
             f"""
             模板: {self.title} ({self.id}) {score_line}
             示例路径: {self.example_path}
-            标签: {', '.join(self.tags) or '通用'}
+            标签: {", ".join(self.tags) or "通用"}
             描述: {self.description}
 
             默认Pipeline:

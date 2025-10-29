@@ -5,7 +5,7 @@
 用户友好的批处理任务。
 """
 
-from typing import Any, Iterator, List
+from typing import Any, Iterator
 
 from sage.common.core.functions.batch_function import BatchFunction
 
@@ -13,7 +13,7 @@ from sage.common.core.functions.batch_function import BatchFunction
 class SimpleBatchFunction(BatchFunction):
     """简单的列表数据批处理函数"""
 
-    def __init__(self, data_list: List[Any], ctx=None, **kwargs):
+    def __init__(self, data_list: list[Any], ctx=None, **kwargs):
         super().__init__(**kwargs)
         self.data_list = data_list
         self.current_index = 0
@@ -57,7 +57,7 @@ class FileBatchFunction(BatchFunction):
 
         if self.file_handle is None:
             try:
-                self.file_handle = open(self.file_path, "r", encoding="utf-8")
+                self.file_handle = open(self.file_path, encoding="utf-8")
             except FileNotFoundError:
                 print(f"文件 {self.file_path} 不存在，返回模拟数据")
                 self.finished = True

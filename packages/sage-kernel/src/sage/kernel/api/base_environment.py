@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 class BaseEnvironment(ABC):
-
     __state_exclude__ = ["_engine_client", "client", "jobmanager"]
     # 会被继承，但是不会被自动合并
 
@@ -61,7 +60,6 @@ class BaseEnvironment(ABC):
         scheduler=None,
         enable_monitoring: bool = False,
     ):
-
         self.name = name
         self.uuid: str | None = None  # 由jobmanager生成
 
@@ -122,15 +120,14 @@ class BaseEnvironment(ABC):
                 self._scheduler = LoadAwareScheduler(platform=self.platform)
             else:
                 raise ValueError(
-                    f"Unknown scheduler type: {scheduler}. "
-                    f"Available options: 'fifo', 'load_aware'"
+                    f"Unknown scheduler type: {scheduler}. Available options: 'fifo', 'load_aware'"
                 )
         elif isinstance(scheduler, BaseScheduler):
             # 直接使用提供的调度器实例
             self._scheduler = scheduler
         else:
             raise TypeError(
-                f"scheduler must be None, str, or BaseScheduler instance, " f"got {type(scheduler)}"
+                f"scheduler must be None, str, or BaseScheduler instance, got {type(scheduler)}"
             )
 
     @property

@@ -97,7 +97,7 @@ class NvidiaOpenAIEmbedding(BaseEmbedding):
             from openai import OpenAI  # noqa: F401
         except ImportError as err:
             raise ImportError(
-                "NVIDIA OpenAI embedding 需要 openai 包。\n" "安装方法: pip install openai"
+                "NVIDIA OpenAI embedding 需要 openai 包。\n安装方法: pip install openai"
             ) from err
 
         self._model = model

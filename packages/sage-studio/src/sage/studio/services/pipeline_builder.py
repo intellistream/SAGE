@@ -111,8 +111,7 @@ class PipelineBuilder:
         for node in pipeline.nodes:
             if self.registry.get_operator(node.type) is None:
                 raise ValueError(
-                    f"Unknown node type: {node.type}. "
-                    f"Available types: {self.registry.list_types()}"
+                    f"Unknown node type: {node.type}. Available types: {self.registry.list_types()}"
                 )
 
         # 检查连接是否有效
@@ -164,7 +163,7 @@ class PipelineBuilder:
         if len(sorted_nodes) != len(pipeline.nodes):
             remaining = [n.label for n in pipeline.nodes if n not in sorted_nodes]
             raise ValueError(
-                f"Circular dependency detected in pipeline. " f"Nodes in cycle: {remaining}"
+                f"Circular dependency detected in pipeline. Nodes in cycle: {remaining}"
             )
 
         return sorted_nodes
@@ -174,7 +173,7 @@ class PipelineBuilder:
         operator_class = self.registry.get_operator(node_type)
         if not operator_class:
             raise ValueError(
-                f"Unknown node type: {node_type}. " f"Available types: {self.registry.list_types()}"
+                f"Unknown node type: {node_type}. Available types: {self.registry.list_types()}"
             )
         return operator_class
 

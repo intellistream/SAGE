@@ -100,6 +100,5 @@ def main():
 
 
 if __name__ == "__main__":
-
     CustomLogger.disable_global_console_debug()
     main()

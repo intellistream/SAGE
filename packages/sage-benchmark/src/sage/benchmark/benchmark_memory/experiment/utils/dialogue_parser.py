@@ -68,7 +68,7 @@ validated = parser.parse_and_validate(dialogs, required_fields=["speaker", "text
 - 线程安全：解析器是无状态的，可以在多线程环境中共享使用
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class DialogueParser:
@@ -100,7 +100,7 @@ class DialogueParser:
         pass
 
     def validate_dialog_format(
-        self, dialog: Dict[str, Any], required_fields: Optional[List[str]] = None
+        self, dialog: dict[str, Any], required_fields: list[str] | None = None
     ) -> bool:
         """
         验证单个对话是否符合格式要求
@@ -127,10 +127,10 @@ class DialogueParser:
 
     def parse_and_validate(
         self,
-        dialogs: List[Dict[str, Any]],
-        required_fields: Optional[List[str]] = None,
+        dialogs: list[dict[str, Any]],
+        required_fields: list[str] | None = None,
         strict_mode: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         解析并验证对话列表（核心方法）
 
@@ -194,7 +194,7 @@ class DialogueParser:
 
         return validated_dialogs
 
-    def extract_dialog_info(self, dialog: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_dialog_info(self, dialog: dict[str, Any]) -> dict[str, Any]:
         """
         从对话中提取关键信息（辅助方法）
 
@@ -298,10 +298,10 @@ _global_parser = DialogueParser()
 
 
 def parse_and_validate_dialogs(
-    dialogs: List[Dict[str, Any]],
-    required_fields: Optional[List[str]] = None,
+    dialogs: list[dict[str, Any]],
+    required_fields: list[str] | None = None,
     strict_mode: bool = True,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     全局便捷函数：解析并验证对话列表
 
@@ -323,7 +323,7 @@ def parse_and_validate_dialogs(
     return _global_parser.parse_and_validate(dialogs, required_fields, strict_mode)
 
 
-def validate_dialog(dialog: Dict[str, Any], required_fields: Optional[List[str]] = None) -> bool:
+def validate_dialog(dialog: dict[str, Any], required_fields: list[str] | None = None) -> bool:
     """
     全局便捷函数：验证单个对话格式
 

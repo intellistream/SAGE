@@ -4,6 +4,7 @@ AI 分析器（简化实现）
 接受 --mode 参数：duplicates | labels | priority | comprehensive
 参考 legacy 实现，提供本地 issues 的简单分析功能并输出到 output/ 目录
 """
+
 import argparse
 import re
 import sys

@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 import yaml
+
 from sage.common.core import MapFunction, SinkFunction, SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
@@ -84,9 +85,7 @@ class LLMMap(MapFunction):
         # 使用配置文件中的 promptor 配置
         promptor_config = self.config.get("promptor", {})
         if not promptor_config.get("template"):
-            promptor_config[
-                "template"
-            ] = """你是一位友好的健康助手。请简洁、准确地回答用户的问题。
+            promptor_config["template"] = """你是一位友好的健康助手。请简洁、准确地回答用户的问题。
 
 用户问题: {{ question }}
 
@@ -170,9 +169,9 @@ class ProcessQuestion(MapFunction):
         total = data.get("total", index)
 
         # 打印问题
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"📝 问题 {index}/{total}: {question}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         print("🔄 调用 LLM Service...")
 
@@ -243,11 +242,11 @@ class DisplayAnswer(SinkFunction):
         # 渲染 Markdown
         rendered_answer = self._render_markdown(answer_text)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("💡 AI 回答:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(rendered_answer)
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         if generate_time > 0:
             print(f"⏱️  生成耗时: {generate_time:.2f}秒")
         print()
@@ -275,7 +274,7 @@ def main():
         sys.exit(1)
 
     print(f"📄 加载配置文件: {config_file}")
-    with open(config_file, "r") as f:
+    with open(config_file) as f:
         config = yaml.safe_load(f)
 
     print("🔧 创建环境...")

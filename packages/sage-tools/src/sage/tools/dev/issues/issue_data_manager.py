@@ -278,10 +278,10 @@ class IssueDataManager:
                 milestone = metadata["milestone"]
                 milestone_section = f"""
 ## Milestone
-**{milestone.get('title', 'N/A')}** ({milestone.get('state', 'unknown')})
-- 描述: {milestone.get('description', '无描述')}
-- 截止日期: {milestone.get('due_on', '未设定')}
-- [查看详情]({milestone.get('html_url', '#')})
+**{milestone.get("title", "N/A")}** ({milestone.get("state", "unknown")})
+- 描述: {milestone.get("description", "无描述")}
+- 截止日期: {milestone.get("due_on", "未设定")}
+- [查看详情]({milestone.get("html_url", "#")})
 """
 
             # 处理统计信息
@@ -339,27 +339,27 @@ class IssueDataManager:
                 update_history_section += "\n"
 
             # 生成markdown内容
-            markdown_content = f"""# {metadata['title']}
+            markdown_content = f"""# {metadata["title"]}
 
-**Issue #**: {metadata['number']}
-**状态**: {metadata['state']}
-**创建时间**: {metadata['created_at']}
-**更新时间**: {metadata['updated_at']}
-**创建者**: {metadata['user']}
+**Issue #**: {metadata["number"]}
+**状态**: {metadata["state"]}
+**创建时间**: {metadata["created_at"]}
+**更新时间**: {metadata["updated_at"]}
+**创建者**: {metadata["user"]}
 {project_section}{milestone_section}{stats_section}
 ## 标签
-{', '.join(metadata.get('labels', []))}
+{", ".join(metadata.get("labels", []))}
 
 ## 分配给
 {assignees_text}
 
 ## 描述
 
-{content.get('body', '无描述')}
+{content.get("body", "无描述")}
 {update_history_section}
 ---
-**GitHub链接**: {metadata['html_url']}
-**下载时间**: {tracking.get('downloaded_at', '')}
+**GitHub链接**: {metadata["html_url"]}
+**下载时间**: {tracking.get("downloaded_at", "")}
 """
 
             # 保存markdown文件
@@ -620,8 +620,7 @@ class IssueDataManager:
             body_start = content.find("## 描述")
             if body_start != -1:
                 body_content = content[
-                    body_start
-                    + len("## 描述") : (
+                    body_start + len("## 描述") : (
                         content.find("## 更新记录")
                         if "## 更新记录" in content
                         else content.find("---")

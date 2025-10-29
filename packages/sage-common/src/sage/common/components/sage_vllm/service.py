@@ -235,9 +235,7 @@ class VLLMService(BaseService):
             elif isinstance(item, (list, tuple)):
                 vec = item
             elif hasattr(item, "embedding"):
-                vec = (
-                    item.embedding
-                )  # pyright: ignore[reportAssignmentType]
+                vec = item.embedding  # pyright: ignore[reportAssignmentType]
             else:
                 vec = list(item)
             array = np.array(vec, dtype=np.float32)
@@ -296,9 +294,7 @@ class VLLMService(BaseService):
             "tags": info.tags,
         }
 
-    def _load_text_engine(
-        self, *, force_reload: bool, revision: str | None = None
-    ) -> LLM:  # type: ignore
+    def _load_text_engine(self, *, force_reload: bool, revision: str | None = None) -> LLM:  # type: ignore
         with self._lock:
             if self._text_engine is not None and not force_reload:
                 return self._text_engine
@@ -325,9 +321,7 @@ class VLLMService(BaseService):
 
             return self._text_engine
 
-    def _load_embedding_engine(
-        self, *, force_reload: bool, revision: str | None = None
-    ) -> LLM:  # type: ignore
+    def _load_embedding_engine(self, *, force_reload: bool, revision: str | None = None) -> LLM:  # type: ignore
         with self._lock:
             if self._embedding_engine is not None and not force_reload:
                 return self._embedding_engine

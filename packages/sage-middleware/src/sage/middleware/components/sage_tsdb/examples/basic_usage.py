@@ -71,7 +71,7 @@ def main():
 
     print(f"   Aggregated into {len(aggregated)} windows")
     for i, agg in enumerate(aggregated):
-        print(f"   Window {i+1}: timestamp={agg.timestamp}, avg_value={agg.value:.2f}")
+        print(f"   Window {i + 1}: timestamp={agg.timestamp}, avg_value={agg.value:.2f}")
 
     # Database statistics
     print("\n6. Database statistics:")

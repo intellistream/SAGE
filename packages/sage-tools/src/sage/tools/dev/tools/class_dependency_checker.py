@@ -514,7 +514,7 @@ class ClassDependencyChecker:
 
             # Add methods
             for method in class_info["methods"]:
-                lines.append(f'        +{method["name"]}()')
+                lines.append(f"        +{method['name']}()")
 
             lines.append("    }")
 
@@ -535,7 +535,7 @@ class ClassDependencyChecker:
         # Add classes
         for class_name, class_info in analysis["classes"].items():
             simple_name = class_name.split(".")[-1]
-            methods_str = "\\n".join([f'+ {m["name"]}()' for m in class_info["methods"]])
+            methods_str = "\\n".join([f"+ {m['name']}()" for m in class_info["methods"]])
             lines.append(f'    {simple_name} [label="{{class {simple_name}|{methods_str}}}"];')
 
         # Add inheritance relationships

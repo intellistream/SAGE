@@ -11,7 +11,7 @@ class LocomoDataLoader:
             raise FileNotFoundError(f"Locomo file not found: {self.filepath}")
         # 预加载所有数据，便于后续查询
         # Preload all data for fast access
-        with open(self.filepath, "r", encoding="utf-8") as f:
+        with open(self.filepath, encoding="utf-8") as f:
             self.data = json.load(f)
         # 建立 sample_id 到数据的索引
         # Build index: sample_id -> sample dict
@@ -241,7 +241,7 @@ class LocomoDataLoader:
         if dialog_y < 0 or dialog_y >= len(session_content):
             raise ValueError(
                 f"dialog_y {dialog_y} out of range for session {session_x} "
-                f"(valid range: 0-{len(session_content)-1})"
+                f"(valid range: 0-{len(session_content) - 1})"
             )
 
         # 获取对话

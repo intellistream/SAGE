@@ -7,7 +7,7 @@ services.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     from sage.common.core.functions.sink_function import SinkFunction
@@ -36,8 +36,8 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     ]:
         sys.path.insert(0, str(extra_path))
 
-    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.common.core.functions.sink_function import SinkFunction
+    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
 
 from hello_pipeline_as_service import (
@@ -53,12 +53,12 @@ from hello_pipeline_as_service import (
 )
 from pipeline_bridge import PipelineBridge
 
-NEW_USER_ORDERS: List[Dict[str, float | str]] = [
+NEW_USER_ORDERS: list[dict[str, float | str]] = [
     {"order_id": "multi-new-001", "user_id": "user-new-01", "amount": 29.99},
     {"order_id": "multi-new-002", "user_id": "user-new-02", "amount": 59.0},
 ]
 
-RETURNING_USER_ORDERS: List[Dict[str, float | str]] = [
+RETURNING_USER_ORDERS: list[dict[str, float | str]] = [
     {"order_id": "multi-ret-001", "user_id": "user-ret-01", "amount": 330.0},
     {"order_id": "multi-ret-002", "user_id": "user-ret-02", "amount": 87.5},
 ]
@@ -69,7 +69,7 @@ class SegmentedOrderSource(OrderSource):
 
     def __init__(
         self,
-        orders: List[Dict[str, float | str]],
+        orders: list[dict[str, float | str]],
         segment: str,
         *,
         include_shutdown: bool = False,
@@ -93,7 +93,7 @@ class SegmentedOrderSource(OrderSource):
 class SegmentedDriverSink(SinkFunction):
     """Print results grouped by segment."""
 
-    def execute(self, payload: Dict[str, Any]):
+    def execute(self, payload: dict[str, Any]):
         if payload is None:
             return None
 

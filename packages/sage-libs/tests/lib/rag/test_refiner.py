@@ -113,9 +113,10 @@ class TestRefinerOperator:
         mock_ctx.env_base_dir = temp_dir
 
         # 使用正确的 RefinerService mock
-        with patch("sage.middleware.components.sage_refiner.RefinerService"), patch(
-            "os.makedirs"
-        ) as mock_makedirs:
+        with (
+            patch("sage.middleware.components.sage_refiner.RefinerService"),
+            patch("os.makedirs") as mock_makedirs,
+        ):
             try:
                 adapter = RefinerOperator(config=complete_config, ctx=mock_ctx)
 

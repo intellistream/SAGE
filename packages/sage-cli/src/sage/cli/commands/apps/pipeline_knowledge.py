@@ -17,6 +17,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import yaml
+
 from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
 from sage.common.components.sage_embedding.factory import EmbeddingFactory
 from sage.common.config.output_paths import get_sage_paths
@@ -391,7 +392,7 @@ def build_query_payload(
         stages = previous_plan.get("stages") or []
         if isinstance(stages, Sequence):
             stage_info = [
-                f"{stage.get('id', stage.get('class', 'stage'))}:{stage.get('class','')}"
+                f"{stage.get('id', stage.get('class', 'stage'))}:{stage.get('class', '')}"
                 for stage in stages
                 if isinstance(stage, Mapping)
             ]

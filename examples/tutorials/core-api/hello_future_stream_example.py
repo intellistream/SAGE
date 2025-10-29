@@ -160,7 +160,6 @@ def main():
     print(f"   - Pipeline transformations: {len(env.pipeline)}")
 
     try:
-
         print("🎬 Starting feedback loop execution...")
         print("📈 Watch the counter increment in a feedback loop:\n")
 

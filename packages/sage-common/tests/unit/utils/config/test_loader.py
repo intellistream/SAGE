@@ -115,7 +115,6 @@ class TestLoadConfig:
         ) as mock_user_dir, patch(
             "sage.common.utils.config.loader.site_config_dir"
         ) as mock_site_dir:
-
             # 模拟调用者文件路径
             mock_caller_frame = MagicMock()
             mock_caller_frame.f_globals = {"__file__": str(self.temp_dir / "caller.py")}

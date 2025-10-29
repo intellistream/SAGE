@@ -121,7 +121,7 @@ class PrintSink(SinkFunction):
                 return str(data)
             else:
                 preview = ", ".join(str(x) for x in data[:5])
-                return f"[{preview}, ... (+{len(data)-5} more)]"
+                return f"[{preview}, ... (+{len(data) - 5} more)]"
 
         # 尝试检测常见的数据对象
         if hasattr(data, "__dict__"):

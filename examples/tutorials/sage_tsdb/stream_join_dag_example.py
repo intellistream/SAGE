@@ -9,9 +9,10 @@ This example demonstrates out-of-order stream join using SAGE TSDB:
 
 import random
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
+
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
@@ -20,7 +21,7 @@ def generate_stream_data(
     num_points: int = 50,
     disorder_probability: float = 0.3,
     max_delay_ms: int = 3000,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Generate time series stream with out-of-order data"""
     data_points = []
     base_time = int(datetime.now().timestamp() * 1000)
@@ -50,10 +51,10 @@ def generate_stream_data(
 
 
 def join_streams(
-    left_stream: List[Dict[str, Any]],
-    right_stream: List[Dict[str, Any]],
+    left_stream: list[dict[str, Any]],
+    right_stream: list[dict[str, Any]],
     window_size: int = 5000,
-) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
     """Join two streams based on time windows"""
     joined_pairs = []
 
@@ -97,7 +98,7 @@ def example_stream_join_with_time_range():
     print("\nJoin results (first 5 pairs):")
     for i, (left, right) in enumerate(joined_pairs[:5]):
         time_diff = abs(left["timestamp"] - right["timestamp"])
-        print(f"\nPair {i+1}:")
+        print(f"\nPair {i + 1}:")
         print(f"  Left:  seq={left['sequence']}, ts={left['timestamp']}, value={left['value']:.2f}")
         print(
             f"  Right: seq={right['sequence']}, ts={right['timestamp']}, value={right['value']:.2f}"

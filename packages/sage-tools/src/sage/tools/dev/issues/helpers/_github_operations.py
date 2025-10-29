@@ -464,7 +464,7 @@ class GitHubIssuesExecutor:
 
 ### 🔄 重复Issues处理
 - 重复组数量: {len(self.duplicate_groups)} 组
-- 合并的issues数量: {sum(len(group['duplicates']) for group in self.duplicate_groups)} 个
+- 合并的issues数量: {sum(len(group["duplicates"]) for group in self.duplicate_groups)} 个
 - 保留的主issues: {len(self.duplicate_groups)} 个
 
 ### 🏷️ 标签优化
@@ -475,10 +475,10 @@ class GitHubIssuesExecutor:
 
 """
         for i, group in enumerate(self.duplicate_groups, 1):
-            report_content += f"""### 组 {i}: #{group['main']}
-- **主issue**: #{group['main']}
-- **合并的重复issues**: {', '.join([f"#{num}" for num in group['duplicates']])}
-- **合并原因**: {group['reason']}
+            report_content += f"""### 组 {i}: #{group["main"]}
+- **主issue**: #{group["main"]}
+- **合并的重复issues**: {", ".join([f"#{num}" for num in group["duplicates"]])}
+- **合并原因**: {group["reason"]}
 
 """
 

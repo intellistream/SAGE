@@ -101,7 +101,9 @@ def merge_lora_weights(checkpoint_path: Path, base_model: str, output_path: Path
     try:
         console.print("[cyan]⏳ 加载基础模型...[/cyan]")
         base = AutoModelForCausalLM.from_pretrained(
-            base_model, torch_dtype="auto", device_map="cpu"  # 在CPU上合并，节省显存
+            base_model,
+            torch_dtype="auto",
+            device_map="cpu",  # 在CPU上合并，节省显存
         )
 
         console.print("[cyan]⏳ 加载 LoRA 权重...[/cyan]")

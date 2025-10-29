@@ -20,7 +20,6 @@ class LocalTask(BaseTask):
         max_buffer_size: int = 30000,
         queue_maxsize: int = 50000,
     ) -> None:
-
         # 调用父类初始化
         super().__init__(ctx, operator_factory)
 

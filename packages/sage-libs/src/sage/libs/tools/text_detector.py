@@ -103,7 +103,7 @@ class text_detector(BaseTool):
                 try:
                     # detail = 1: Convert numpy types to standard Python types
                     from typing import Any, cast
-                    
+
                     cleaned_result = [
                         (
                             [[int(coord[0]), int(coord[1])] for coord in cast(Any, item)[0]],
@@ -149,7 +149,6 @@ class text_detector(BaseTool):
 
 
 if __name__ == "__main__":
-
     import json
 
     # Get the directory of the current script

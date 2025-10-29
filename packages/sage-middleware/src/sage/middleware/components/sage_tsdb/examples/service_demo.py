@@ -70,7 +70,7 @@ def main():
 
     print(f"   Aggregated into {len(aggregated)} windows")
     for i, agg in enumerate(aggregated):
-        print(f"   Window {i+1}: value={agg['value']:.2f}")
+        print(f"   Window {i + 1}: value={agg['value']:.2f}")
 
     # Stream join through service
     print("\n5. Stream join example...")

@@ -401,7 +401,7 @@ def _copy_python_artifacts(ext_name: str, ext_dir: Path) -> None:
         print_success(f"已安装 Python 扩展模块到 site-packages: {site_target_dir}")
     except (PermissionError, OSError) as exc:
         print_warning(
-            f"复制到 site-packages 时权限不足: {exc}\n" f"  扩展已安装到项目目录: {repo_target_dir}"
+            f"复制到 site-packages 时权限不足: {exc}\n  扩展已安装到项目目录: {repo_target_dir}"
         )
 
 

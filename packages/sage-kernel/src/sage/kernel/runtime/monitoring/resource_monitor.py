@@ -39,7 +39,7 @@ class ResourceMonitor:
         """
         if not PSUTIL_AVAILABLE:
             raise ImportError(
-                "psutil is required for ResourceMonitor. " "Install it with: pip install psutil"
+                "psutil is required for ResourceMonitor. Install it with: pip install psutil"
             )
 
         self.sampling_interval = sampling_interval

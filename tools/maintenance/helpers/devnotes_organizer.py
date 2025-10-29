@@ -14,10 +14,9 @@ import re
 import sys
 import warnings
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 warnings.warn(
-    "此脚本已迁移到 sage-tools 包。" "请使用: sage-dev maintenance organize-devnotes",
+    "此脚本已迁移到 sage-tools 包。请使用: sage-dev maintenance organize-devnotes",
     DeprecationWarning,
     stacklevel=2,
 )
@@ -84,7 +83,7 @@ class DevNotesAnalyzer:
         self.root_dir = root_dir
         self.devnotes_dir = root_dir / "docs" / "dev-notes"
 
-    def analyze_file(self, file_path: Path) -> Dict:
+    def analyze_file(self, file_path: Path) -> dict:
         """分析单个文件"""
         try:
             content = file_path.read_text(encoding="utf-8")
@@ -121,7 +120,7 @@ class DevNotesAnalyzer:
             "current_category": (rel_path.parts[0] if len(rel_path.parts) > 1 else "root"),
         }
 
-    def _check_metadata(self, content: str) -> Tuple[bool, bool, bool]:
+    def _check_metadata(self, content: str) -> tuple[bool, bool, bool]:
         """检查元数据"""
         lines = content.split("\n")[:30]
         has_date = False
@@ -144,7 +143,7 @@ class DevNotesAnalyzer:
         text = (filename + " " + content[:1000]).lower()
 
         # 统计每个分类的关键词匹配数
-        scores: Dict[str, int] = {}
+        scores: dict[str, int] = {}
         for category, keywords in CATEGORY_KEYWORDS.items():
             score = sum(1 for keyword in keywords if keyword in text)
             if score > 0:
@@ -155,7 +154,7 @@ class DevNotesAnalyzer:
             return max(scores, key=lambda k: scores[k])
         return "migration"  # 默认归为迁移类
 
-    def analyze_all(self) -> List[Dict]:
+    def analyze_all(self) -> list[dict]:
         """分析所有文件"""
         all_files = list(self.devnotes_dir.rglob("*.md"))
         # 排除特殊文件
@@ -168,7 +167,7 @@ class DevNotesAnalyzer:
 
         return results
 
-    def generate_report(self, results: List[Dict]) -> None:
+    def generate_report(self, results: list[dict]) -> None:
         """生成整理报告"""
         print("=" * 80)
         print("📊 Dev-notes 文档整理报告")

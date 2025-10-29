@@ -212,7 +212,6 @@ class TestOpenAIGenerator:
         mock_openai_client.return_value = mock_client_instance
 
         with patch("os.makedirs"), patch("builtins.open", create=True), patch("json.dump"):
-
             generator = OpenAIGenerator(config=config, enable_profile=True)
 
             # Mock context - 使用统一的SAGE路径管理
@@ -595,10 +594,10 @@ class TestGeneratorIntegration:
 
         hf_config = {"model_name": "microsoft/DialoGPT-medium"}
 
-        with patch("sage.libs.rag.generator.OpenAIClient") as mock_openai, patch(
-            "sage.libs.rag.generator.HFClient"
-        ) as mock_hf:
-
+        with (
+            patch("sage.libs.rag.generator.OpenAIClient") as mock_openai,
+            patch("sage.libs.rag.generator.HFClient") as mock_hf,
+        ):
             # Mock两个客户端
             mock_openai_instance = Mock()
             mock_openai_instance.generate.return_value = "OpenAI response"

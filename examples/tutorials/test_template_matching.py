@@ -89,9 +89,9 @@ def test_template_matching():
 
     results = []
     for test_case in test_cases:
-        console.print(f"\n{'='*80}", style="bold blue")
+        console.print(f"\n{'=' * 80}", style="bold blue")
         console.print(f"测试场景: {test_case['name']}", style="bold yellow")
-        console.print(f"{'='*80}", style="bold blue")
+        console.print(f"{'=' * 80}", style="bold blue")
 
         requirements = test_case["requirements"]
         expected = test_case["expected"]
@@ -145,9 +145,9 @@ def test_template_matching():
             )
 
     # 总结
-    console.print(f"\n\n{'='*80}", style="bold blue")
+    console.print(f"\n\n{'=' * 80}", style="bold blue")
     console.print("测试总结", style="bold blue")
-    console.print(f"{'='*80}", style="bold blue")
+    console.print(f"{'=' * 80}", style="bold blue")
 
     success_count = sum(1 for r in results if r["success"])
     total_count = len(results)
@@ -170,9 +170,9 @@ def test_template_matching():
     )
 
     # 显示所有可用模板
-    console.print(f"\n\n{'='*80}", style="bold blue")
+    console.print(f"\n\n{'=' * 80}", style="bold blue")
     console.print("所有可用模板", style="bold blue")
-    console.print(f"{'='*80}", style="bold blue")
+    console.print(f"{'=' * 80}", style="bold blue")
 
     all_templates = list_templates()
     template_table = Table(show_header=True, header_style="bold magenta")

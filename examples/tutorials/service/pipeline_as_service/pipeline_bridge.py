@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import queue
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sage.kernel.runtime.communication.router.packet import StopSignal
 
@@ -17,33 +17,33 @@ from sage.kernel.runtime.communication.router.packet import StopSignal
 class PipelineRequest:
     """A request enqueued by a driver pipeline."""
 
-    payload: Dict[str, Any]
-    response_queue: "queue.Queue[Dict[str, Any]]"
+    payload: dict[str, Any]
+    response_queue: queue.Queue[dict[str, Any]]
 
 
 @dataclass
 class PipelinePayload:
     """Message wrapper used inside the service-backed pipeline."""
 
-    order: Dict[str, Any]
-    response_queue: "queue.Queue[Dict[str, Any]]"
-    features: Optional[Dict[str, Any]] = None
-    enriched: Optional[Dict[str, Any]] = None
-    scoring: Optional[Dict[str, Any]] = None
+    order: dict[str, Any]
+    response_queue: queue.Queue[dict[str, Any]]
+    features: dict[str, Any] | None = None
+    enriched: dict[str, Any] | None = None
+    scoring: dict[str, Any] | None = None
 
 
 class PipelineBridge:
     """Bidirectional bridge between driver pipelines and the service pipeline."""
 
     def __init__(self) -> None:
-        self._requests: "queue.Queue[PipelineRequest | StopSignal]" = queue.Queue()
+        self._requests: queue.Queue[PipelineRequest | StopSignal] = queue.Queue()
         self._closed: bool = False
 
-    def submit(self, payload: Dict[str, Any]) -> "queue.Queue[Dict[str, Any]]":
+    def submit(self, payload: dict[str, Any]) -> queue.Queue[dict[str, Any]]:
         if self._closed:
             raise RuntimeError("Pipeline bridge is closed")
 
-        response_queue: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=1)
+        response_queue: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=1)
         request = PipelineRequest(payload=payload, response_queue=response_queue)
         self._requests.put(request)
         return response_queue

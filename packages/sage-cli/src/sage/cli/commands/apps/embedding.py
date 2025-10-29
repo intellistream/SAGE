@@ -9,6 +9,7 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
 from sage.common.components.sage_embedding import (
     check_model_availability,
     get_embedding_model,
@@ -196,7 +197,7 @@ def test_method(
 
         table.add_row("Wrapper", str(emb))
         table.add_row("向量维度", str(len(vec)))
-        table.add_row("向量范数", f"{sum(x*x for x in vec)**0.5:.6f}")
+        table.add_row("向量范数", f"{sum(x * x for x in vec) ** 0.5:.6f}")
 
         if show_vector:
             vec_preview = str(vec[:10])[:-1] + ", ...]" if len(vec) > 10 else str(vec)

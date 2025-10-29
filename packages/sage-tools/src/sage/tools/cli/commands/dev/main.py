@@ -210,9 +210,9 @@ def quality(
                 console.print(f"[yellow]⚠️  跳过不存在的 submodule: {submodule_path}[/yellow]")
                 continue
 
-            console.print(f"\n{'='*60}")
+            console.print(f"\n{'=' * 60}")
             console.print(f"🔍 检查 submodule: {submodule_path}")
-            console.print(f"{'='*60}")
+            console.print(f"{'=' * 60}")
 
             cmd = ["pre-commit", "run"]
             cmd.extend(["--config", str(precommit_config)])
@@ -253,7 +253,7 @@ def quality(
                 failed_submodules.append(submodule_path)
 
         # 汇总结果
-        console.print(f"\n{'='*60}")
+        console.print(f"\n{'=' * 60}")
         if failed_submodules:
             console.print(f"[red]❌ {len(failed_submodules)} 个 submodules 检查失败:[/red]")
             for sm in failed_submodules:

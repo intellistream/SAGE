@@ -1049,7 +1049,7 @@ def render_blueprint_prompt(blueprint: PipelineBlueprint, score: float) -> str:
         f"""
         Blueprint: {blueprint.title} ({blueprint.id})
         Match confidence: {score:.2f}
-        适用关键词: {', '.join(blueprint.keywords) or '通用'}
+        适用关键词: {", ".join(blueprint.keywords) or "通用"}
         场景描述: {blueprint.description}
         主要组件:
         {components_block}

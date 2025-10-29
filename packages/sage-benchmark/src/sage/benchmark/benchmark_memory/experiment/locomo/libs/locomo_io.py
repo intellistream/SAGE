@@ -23,7 +23,7 @@ class LocomoSource(BatchFunction):
         for idx, (session_id, max_dialog_idx) in enumerate(self.turns):
             dialog_count = max_dialog_idx + 1
             print(
-                f"   - 会话 {idx+1} (session_id={session_id}): {dialog_count} 个对话 (max_dialog_idx={max_dialog_idx})"
+                f"   - 会话 {idx + 1} (session_id={session_id}): {dialog_count} 个对话 (max_dialog_idx={max_dialog_idx})"
             )
 
         # 初始化指针
@@ -79,7 +79,7 @@ class LocomoSource(BatchFunction):
 
             # 移动指针到下一组对话（每次+2，因为一组对话包含问答两轮）
             self.dialog_ptr += 2
-            print(f"⚡ LocomoSource 返回数据：session={session_id}, dialog={self.dialog_ptr-2}")
+            print(f"⚡ LocomoSource 返回数据：session={session_id}, dialog={self.dialog_ptr - 2}")
 
             return result
 
@@ -148,7 +148,6 @@ class LocomoSink(SinkFunction):
 
 # ==== 测试代码 ====
 if __name__ == "__main__":
-
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
 

@@ -106,7 +106,7 @@ class DevNotesChecker:
         if category not in ALLOWED_CATEGORIES:
             allowed_list = "\n   ".join(sorted(ALLOWED_CATEGORIES.keys()))
             self.errors.append(
-                f"❌ {rel_path}: 未知的分类目录 '{category}'\n" f"   允许的分类:\n   {allowed_list}"
+                f"❌ {rel_path}: 未知的分类目录 '{category}'\n   允许的分类:\n   {allowed_list}"
             )
             return False
 

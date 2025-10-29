@@ -19,9 +19,10 @@ Usage 4: Complete RAG System with DP Unlearning
 
 import os
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
 from sage.libs.unlearning import UnlearningEngine
@@ -52,7 +53,7 @@ class RAGUnlearningSystem(BaseService):
 
         self.logger.info("RAGUnlearningSystem initialized")
 
-    def initialize_rag_corpus(self, collection_name: str, documents: List[Dict[str, Any]]) -> bool:
+    def initialize_rag_corpus(self, collection_name: str, documents: list[dict[str, Any]]) -> bool:
         """
         初始化 RAG corpus
 
@@ -108,7 +109,7 @@ class RAGUnlearningSystem(BaseService):
 
     def retrieve_relevant_documents(
         self, collection_name: str, query: str, topk: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """检索相关文档"""
         try:
             collection = self.manager.get_collection(collection_name)
@@ -131,10 +132,10 @@ class RAGUnlearningSystem(BaseService):
     def forget_documents(
         self,
         collection_name: str,
-        document_ids: List[str],
+        document_ids: list[str],
         reason: str = "user_request",
         user_id: str | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         遗忘指定的文档
 
@@ -250,8 +251,8 @@ class RAGUnlearningSystem(BaseService):
             return {"success": False, "error": str(e)}
 
     def handle_user_deletion_request(
-        self, collection_name: str, user_id: str, user_keywords: List[str] | None = None
-    ) -> Dict[str, Any]:
+        self, collection_name: str, user_id: str, user_keywords: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         处理用户数据删除请求（如 GDPR 删除权）
 
@@ -305,8 +306,8 @@ class RAGUnlearningSystem(BaseService):
             return {"success": False, "error": str(e)}
 
     def handle_malicious_content_removal(
-        self, collection_name: str, detection_keywords: List[str]
-    ) -> Dict[str, Any]:
+        self, collection_name: str, detection_keywords: list[str]
+    ) -> dict[str, Any]:
         """
         处理恶意内容移除
 
@@ -358,11 +359,11 @@ class RAGUnlearningSystem(BaseService):
             self.logger.error(f"Error handling malicious content: {e}")
             return {"success": False, "error": str(e)}
 
-    def get_audit_log(self) -> List[Dict[str, Any]]:
+    def get_audit_log(self) -> list[dict[str, Any]]:
         """获取审计日志"""
         return self.audit_log
 
-    def _audit_log(self, operation: str, collection: str, count: int, extra: Dict | None = None):
+    def _audit_log(self, operation: str, collection: str, count: int, extra: dict | None = None):
         """记录审计事件"""
         log_entry = {
             "timestamp": datetime.now().isoformat(),

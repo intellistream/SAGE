@@ -5,7 +5,7 @@ Python Queue Descriptor - Python标准库队列描述符
 """
 
 from queue import Queue
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .base_queue_descriptor import BaseQueueDescriptor
 
@@ -46,7 +46,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
         return not self._initialized  # 未初始化时可以序列化
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """元数据字典"""
         base_metadata = {
             "maxsize": self.maxsize,
@@ -77,7 +77,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
         return self._queue_instance
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PythonQueueDescriptor":
+    def from_dict(cls, data: dict[str, Any]) -> "PythonQueueDescriptor":
         """从字典创建实例"""
         metadata = data.get("metadata", {})
         instance = cls(

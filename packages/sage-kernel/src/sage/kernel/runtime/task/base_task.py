@@ -143,7 +143,7 @@ class BaseTask(ABC):  # noqa: B024
                 state["operator_state"] = operator_state
 
                 self.logger.debug(
-                    f"Captured operator state for {self.name}: " f"{list(operator_state.keys())}"
+                    f"Captured operator state for {self.name}: {list(operator_state.keys())}"
                 )
 
                 # 如果 operator_state 包含 function_state，也记录

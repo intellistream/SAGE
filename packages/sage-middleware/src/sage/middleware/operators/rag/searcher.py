@@ -6,7 +6,6 @@ from sage.kernel.operators import MapOperator
 
 
 class BochaWebSearch(MapOperator):
-
     def __init__(self, config: dict[str, Any], **kwargs):
         super().__init__(**kwargs)
         self.api_key = config.get("api_key")

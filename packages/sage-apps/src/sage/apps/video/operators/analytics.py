@@ -238,4 +238,4 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
     def _fallback_summary(concepts: list[str], objects: list[str]) -> str:
         concept_text = ", ".join(concepts) if concepts else "diverse scenes"
         object_text = ", ".join(objects) if objects else "generic objects"
-        return f"Window highlights {concept_text}. " f"Frequent objects include {object_text}."
+        return f"Window highlights {concept_text}. Frequent objects include {object_text}."

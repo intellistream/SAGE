@@ -102,9 +102,9 @@ def generate_mock_report(label: int, patient_info: dict) -> str:
   {findings}
 
 主要发现:
-  - 病变节段: {'多节段' if label == 3 else 'L4/L5或L5/S1'}
-  - 病变类型: {disease_info['name']}
-  - 严重程度: {disease_info['severity']}
+  - 病变节段: {"多节段" if label == 3 else "L4/L5或L5/S1"}
+  - 病变类型: {disease_info["name"]}
+  - 严重程度: {disease_info["severity"]}
 
 诊断结论:
   {conclusion}
@@ -151,14 +151,14 @@ def prepare_dataset():
         patient_info = {
             "age": age,
             "gender": gender,
-            "patient_id": f"P{i+1:04d}",
+            "patient_id": f"P{i + 1:04d}",
         }
 
         # 生成诊断报告
         report = generate_mock_report(label, patient_info)
 
         # 保存图像
-        image_filename = f"case_{i+1:04d}_label{label}.jpg"
+        image_filename = f"case_{i + 1:04d}_label{label}.jpg"
         image_path = output_dir / "images" / image_filename
         image_path.parent.mkdir(exist_ok=True)
 
@@ -168,7 +168,7 @@ def prepare_dataset():
             image_resized.save(image_path, quality=95)
 
         # 保存报告
-        report_filename = f"case_{i+1:04d}_report.txt"
+        report_filename = f"case_{i + 1:04d}_report.txt"
         report_path = output_dir / "reports" / report_filename
         report_path.parent.mkdir(exist_ok=True)
 
@@ -179,7 +179,7 @@ def prepare_dataset():
         disease_info = DISEASE_MAPPING.get(label, DISEASE_MAPPING[0])
         samples.append(
             {
-                "case_id": f"case_{i+1:04d}",
+                "case_id": f"case_{i + 1:04d}",
                 "patient_id": patient_info["patient_id"],
                 "age": age,
                 "gender": gender,
@@ -192,7 +192,7 @@ def prepare_dataset():
         )
 
         if (i + 1) % 20 == 0:
-            print(f"   处理进度: {i+1}/{len(dataset)}")
+            print(f"   处理进度: {i + 1}/{len(dataset)}")
 
     print(f"   ✓ 已处理 {len(samples)} 个病例")
 

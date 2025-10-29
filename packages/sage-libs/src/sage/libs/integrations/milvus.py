@@ -68,7 +68,6 @@ class MilvusBackend:
 
             # 判断使用本地还是远程模式
             if self.host in ["localhost", "127.0.0.1"] and not self.config.get("force_http", False):
-
                 self.client = MilvusClient(self.persistence_path or "./milvus.db")
                 self.logger.info(
                     f"Initialized Milvus persistent client at: {self.persistence_path}"

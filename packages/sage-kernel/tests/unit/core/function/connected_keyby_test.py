@@ -147,8 +147,7 @@ class ConnectedDebugSink(SinkFunction):
 
         # 打印调试信息
         print(
-            f"🔍 [Instance {self.parallel_index}] Type: {data_type}, "
-            f"Key: {key_info}, Data: {data}"
+            f"🔍 [Instance {self.parallel_index}] Type: {data_type}, Key: {key_info}, Data: {data}"
         )
 
         return data
@@ -409,14 +408,14 @@ class TestConnectedStreamsKeyBy:
 
         # 验证：每个流的相同key应该路由到相同实例
         for key, instances in stream0_key_distribution.items():
-            assert (
-                len(instances) == 1
-            ), f"❌ Stream0 key {key} routed to multiple instances: {instances}"
+            assert len(instances) == 1, (
+                f"❌ Stream0 key {key} routed to multiple instances: {instances}"
+            )
 
         for key, instances in stream1_key_distribution.items():
-            assert (
-                len(instances) == 1
-            ), f"❌ Stream1 key {key} routed to multiple instances: {instances}"
+            assert len(instances) == 1, (
+                f"❌ Stream1 key {key} routed to multiple instances: {instances}"
+            )
 
         print("✅ Per-stream keyby test passed: Each stream's keys correctly partitioned")
 

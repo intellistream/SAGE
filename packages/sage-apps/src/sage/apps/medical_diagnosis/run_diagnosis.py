@@ -140,16 +140,16 @@ def diagnose_single_case(
     verbose: bool = True,
 ):
     """诊断单个病例"""
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("🏥 腰椎MRI诊断系统")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     # 执行诊断
     result = agent.diagnose(image_path=image_path, patient_info=patient_info, verbose=verbose)
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("✅ 诊断完成")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     # DiagnosisReport 使用 diagnoses (复数) 而不是 diagnosis
     if hasattr(result, "diagnoses") and result.diagnoses:
         print(f"诊断: {', '.join(result.diagnoses)}")
@@ -176,11 +176,11 @@ def batch_diagnose(agent: DiagnosticAgent, batch_dir: str, output_dir: str):
         return
 
     print("\n🏥 批量诊断模式")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"📂 输入目录: {batch_dir}")
     print(f"📁 输出目录: {output_dir}")
     print(f"📊 病例数量: {len(image_files)}")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     # 构建病例列表
     cases = [{"image_path": str(img), "patient_info": {"case_id": img.stem}} for img in image_files]
@@ -204,13 +204,13 @@ def batch_diagnose(agent: DiagnosticAgent, batch_dir: str, output_dir: str):
 
 def interactive_mode(agent: DiagnosticAgent):
     """交互式诊断模式"""
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("🏥 腰椎MRI诊断系统 - 交互式模式")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("\n输入 'exit' 或 'quit' 退出\n")
 
     while True:
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
 
         # 输入影像路径
         image_path = input("📄 请输入MRI影像路径: ").strip()
@@ -266,9 +266,9 @@ def main():
     args = parse_args()
 
     # 检查并设置数据（如果需要）
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("📦 检查数据集状态...")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     if not check_and_setup_data(auto_setup=args.auto_setup):
         print("\n⚠️  警告: 数据集未就绪")
@@ -277,12 +277,12 @@ def main():
 
     # 初始化Agent
     print("\n🚀 初始化诊断Agent...")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     config_path = args.config if Path(args.config).exists() else None
     agent = DiagnosticAgent(config_path=config_path)
 
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     # 根据参数执行不同模式
     if args.interactive:

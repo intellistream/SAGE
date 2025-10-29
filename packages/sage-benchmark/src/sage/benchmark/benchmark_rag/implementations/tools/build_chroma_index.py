@@ -5,10 +5,12 @@
 通过 LoaderFactory 动态选择 Loader，
 使用 CharacterSplitter 分块，写入 ChromaDB。
 """
+
 import os
 import sys
 
 import chromadb
+
 from sage.libs.rag.document_loaders import LoaderFactory
 from sage.middleware.operators.rag import CharacterSplitter
 

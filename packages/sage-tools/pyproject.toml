@@ -226,53 +226,6 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
-[tool.ruff]
-# 与flake8保持一致的配置
-target-version = "py311"
-line-length = 100
-
-[tool.ruff.lint]
-# 启用的规则集（与flake8兼容）
-select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "C90",  # mccabe complexity
-]
-
-# 忽略的错误（与flake8 .flake8文件保持一致）
-ignore = [
-    "E501",
-    "B904",
-    "B008",
-    "C901",
-    "E402",
-    "B026",
-    "B007",
-    "B023",
-    "B025",
-    "B018",
-    "F402",
-    "F405",
-    "UP035",
-    "UP007",
-]
-
-# 复杂度限制（与flake8保持一致）
-mccabe = { max-complexity = 10 }
-
-# 文件特定忽略
-per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
-
-[tool.ruff.lint.isort]
-known-first-party = ["sage"]
-force-single-line = false
-combine-as-imports = true
-
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
@@ -316,6 +269,13 @@ filterwarnings = [
     "ignore:.*SwigPyObject.*:DeprecationWarning",
     "ignore:.*swigvarlink.*:DeprecationWarning",
 ]
+
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
+[tool.ruff]
+extend = "../../ruff.toml"
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.tools._version.__version__"}

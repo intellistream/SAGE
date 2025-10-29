@@ -31,7 +31,6 @@ class Query_Profiler(FilterFunction):
         super().__init__(**kwargs)
 
     def execute(self, data):
-
         js = json.loads(data)
         # 使用解包创建对象并直接获取属性
         profiler_result = QueryProfilerResult(

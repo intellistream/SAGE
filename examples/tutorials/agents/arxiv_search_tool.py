@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 from bs4 import BeautifulSoup
@@ -72,7 +72,7 @@ class ArxivSearchTool:
         )
 
     # === MCP 入口 ===
-    def call(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    def call(self, arguments: dict[str, Any]) -> dict[str, Any]:
         query: str = (arguments.get("query") or "").strip()
         if not query:
             raise ValueError("`query` is required and must be a non-empty string.")
@@ -142,8 +142,8 @@ class ArxivSearchTool:
     # === 具体抓取 ===
     def _search_arxiv(
         self, query: str, size: int, max_results: int, with_abstract: bool
-    ) -> List[Dict[str, Any]]:
-        results: List[Dict[str, Any]] = []
+    ) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
         start = 0
         retry_count = 0
         max_retries = 3

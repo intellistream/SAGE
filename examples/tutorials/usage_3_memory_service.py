@@ -18,9 +18,10 @@ Usage 3: MemoryService Integration
 """
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
 from sage.libs.unlearning import UnlearningEngine
@@ -34,7 +35,7 @@ class DPMemoryService(BaseService):
     支持使用 DP 遗忘操作从 VDB 中安全删除数据。
     """
 
-    def __init__(self, data_dir: Optional[str] = None, epsilon: float = 1.0, delta: float = 1e-5):
+    def __init__(self, data_dir: str | None = None, epsilon: float = 1.0, delta: float = 1e-5):
         super().__init__()
 
         # 初始化内存管理器
@@ -55,7 +56,7 @@ class DPMemoryService(BaseService):
 
         self.logger.info(f"Initialized UnlearningEngine with ε={epsilon}, δ={delta}")
 
-    def create_collection(self, collection_name: str, config: Optional[Dict] = None) -> bool:
+    def create_collection(self, collection_name: str, config: dict | None = None) -> bool:
         """创建 VDB collection"""
         try:
             if config is None:
@@ -94,8 +95,8 @@ class DPMemoryService(BaseService):
         collection_name: str,
         content: str,
         vector: np.ndarray,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[str]:
+        metadata: dict[str, Any] | None = None,
+    ) -> str | None:
         """
         存储记忆到 VDB collection
 
@@ -128,7 +129,7 @@ class DPMemoryService(BaseService):
 
     def retrieve_memories(
         self, collection_name: str, query_text: str, topk: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         检索相似的记忆
 
@@ -162,9 +163,9 @@ class DPMemoryService(BaseService):
     def forget_with_dp(
         self,
         collection_name: str,
-        memory_ids: List[str],
+        memory_ids: list[str],
         perturbation_strategy: str = "adaptive",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         使用差分隐私遗忘指定的记忆
 
@@ -283,7 +284,7 @@ class DPMemoryService(BaseService):
             self.logger.error(f"Error in forget_with_dp: {e}")
             return {"success": False, "error": str(e)}
 
-    def get_privacy_status(self) -> Dict[str, Any]:
+    def get_privacy_status(self) -> dict[str, Any]:
         """获取当前隐私预算状态"""
         return self.unlearning_engine.get_privacy_status()
 

@@ -8,7 +8,6 @@ class PromptTemplate:
     base_user_prompt = "Question: {question}"
 
     def __init__(self, tokenizer, system_prompt="", user_prompt=""):
-
         self.max_input_len = 64000
         self.tokenizer = tokenizer
 

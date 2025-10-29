@@ -7,7 +7,6 @@ from sage.common.core import SinkFunction
 
 
 class TerminalSink(SinkFunction):
-
     def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config
@@ -32,7 +31,6 @@ class TerminalSink(SinkFunction):
 
 
 class RetriveSink(SinkFunction):
-
     def __init__(self, config: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config

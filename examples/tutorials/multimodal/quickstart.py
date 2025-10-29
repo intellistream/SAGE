@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 
@@ -28,7 +28,7 @@ def make_embedding(seed: int, dimension: int) -> np.ndarray:
     return vec / norm
 
 
-def build_dataset() -> Dict[str, Dict[str, Any]]:
+def build_dataset() -> dict[str, dict[str, Any]]:
     return {
         "aurora": {
             "text": make_embedding(1, 768),
@@ -58,7 +58,7 @@ def build_dataset() -> Dict[str, Dict[str, Any]]:
     }
 
 
-def populate(db, items: Dict[str, Dict[str, Any]]) -> None:
+def populate(db, items: dict[str, dict[str, Any]]) -> None:
     for name, payload in items.items():
         embeddings = {
             ModalityType.TEXT: payload["text"],

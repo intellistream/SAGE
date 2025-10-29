@@ -289,9 +289,7 @@ class TestPipelineBuilder:
 
     def test_get_pipeline_builder_singleton(self):
         """测试获取 PipelineBuilder 单例"""
-        from sage.studio.services import (
-            get_pipeline_builder,  # type: ignore[import-not-found]
-        )
+        from sage.studio.services import get_pipeline_builder  # type: ignore[import-not-found]
 
         builder1 = get_pipeline_builder()
         builder2 = get_pipeline_builder()

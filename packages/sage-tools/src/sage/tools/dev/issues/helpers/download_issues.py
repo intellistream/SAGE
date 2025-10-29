@@ -180,7 +180,7 @@ class IssuesDownloader:
                     {{
                       organization(login: "intellistream") {{
                         projectV2(number: {project_num}) {{
-                          items(first: 100{f', after: "{after_cursor}"' if after_cursor else ''}) {{
+                          items(first: 100{f', after: "{after_cursor}"' if after_cursor else ""}) {{
                             pageInfo {{
                               hasNextPage
                               endCursor
@@ -240,7 +240,6 @@ class IssuesDownloader:
                             and content.get("repository", {}).get("name")
                             == self.config.repository_name
                         ):
-
                             if issue_number not in self.issue_project_cache:
                                 self.issue_project_cache[issue_number] = []
 
@@ -565,7 +564,7 @@ class IssuesDownloader:
         # 生成报告内容
         report_content = f"""# Issues下载报告 (新架构)
 
-**下载时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**下载时间**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 **请求状态**: {state}
 **下载结果**: {saved_count}/{total_issues} 成功
 
@@ -584,9 +583,9 @@ class IssuesDownloader:
 
 ## 视图生成结果
 
-- Markdown视图: {view_results.get('markdown_success', 0)}/{view_results.get('total', 0)} 成功
-- 元数据视图: {view_results.get('metadata_success', 0)}/{view_results.get('total', 0)} 成功
-- 失败: {view_results.get('failed', 0)}
+- Markdown视图: {view_results.get("markdown_success", 0)}/{view_results.get("total", 0)} 成功
+- 元数据视图: {view_results.get("metadata_success", 0)}/{view_results.get("total", 0)} 成功
+- 失败: {view_results.get("failed", 0)}
 
 ## 按团队分布
 

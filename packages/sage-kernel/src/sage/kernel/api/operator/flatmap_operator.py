@@ -5,7 +5,7 @@ from sage.kernel.api.operator.base_operator import BaseOperator
 from sage.kernel.runtime.communication.packet import Packet
 
 if TYPE_CHECKING:
-    from sage.common.core.functions.flatmap_function import FlatMapFunction
+    pass
 
 
 class FlatMapOperator(BaseOperator):

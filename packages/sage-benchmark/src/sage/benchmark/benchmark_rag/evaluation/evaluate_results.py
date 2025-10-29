@@ -4,9 +4,10 @@ import re
 import string
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
+
 from sage.common.config.output_paths import get_output_file
 
 # ============================================================================
@@ -104,7 +105,7 @@ def compute_exact_match(prediction: str, ground_truth: str) -> int:
     return int(normalize_text_advanced(prediction) == normalize_text_advanced(ground_truth))
 
 
-def compute_accuracy_single(prediction: str, ground_truths: List[str]) -> float:
+def compute_accuracy_single(prediction: str, ground_truths: list[str]) -> float:
     """
     计算单个预测的accuracy分数，使用多种匹配策略
     Args:
@@ -136,8 +137,8 @@ def compute_accuracy_single(prediction: str, ground_truths: List[str]) -> float:
 
 
 def evaluate_predictions(
-    predictions: List[str], ground_truths: List[List[str]], metric: str = "accuracy"
-) -> Dict[str, float]:
+    predictions: list[str], ground_truths: list[list[str]], metric: str = "accuracy"
+) -> dict[str, float]:
     """
     评估预测结果
     Args:
@@ -175,13 +176,13 @@ def evaluate_predictions(
     return results
 
 
-def load_results(file_path: str) -> Dict[str, Any]:
+def load_results(file_path: str) -> dict[str, Any]:
     """加载推理结果文件"""
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def calculate_overall_scores(results_data: Dict[str, Any], metric: str = "all") -> Dict[str, Any]:
+def calculate_overall_scores(results_data: dict[str, Any], metric: str = "all") -> dict[str, Any]:
     """
     计算整体评估分数（不输出每个样本的详细分数）
 
@@ -226,8 +227,8 @@ def calculate_overall_scores(results_data: Dict[str, Any], metric: str = "all") 
 
 
 def analyze_retrieval_quality(
-    evaluation_result: Dict[str, Any], results_data: Dict[str, Any]
-) -> Dict[str, Any]:
+    evaluation_result: dict[str, Any], results_data: dict[str, Any]
+) -> dict[str, Any]:
     """
     分析检索质量
 
@@ -293,7 +294,7 @@ def analyze_retrieval_quality(
     return retrieval_analysis
 
 
-def print_evaluation_summary(evaluation_result: Dict[str, Any]):
+def print_evaluation_summary(evaluation_result: dict[str, Any]):
     """打印评估结果摘要"""
     metadata = evaluation_result.get("metadata", {})
     scores = evaluation_result["overall_scores"]

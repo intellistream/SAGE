@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 调度器对比示例
 演示如何使用不同的调度策略并对比性能指标
@@ -76,9 +75,9 @@ class ResultSink(SinkFunction):
 
 def run_with_scheduler(scheduler, env_class, scheduler_name):
     """使用指定调度器运行 pipeline"""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"🚀 运行实验: {scheduler_name}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     env = None
     try:
@@ -141,15 +140,15 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
             print(f"⚠️  无法获取调度器指标: {e}")
             metrics = {"error": str(e)}
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"📊 {scheduler_name} 执行结果")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"总耗时: {elapsed:.2f} 秒")
         print(f"处理结果数: {len(sink_op.results) if hasattr(sink_op, 'results') else 'N/A'}")
         print("调度器指标:")
         for key, value in metrics.items():
             print(f"  - {key}: {value}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         return {
             "scheduler": scheduler_name,

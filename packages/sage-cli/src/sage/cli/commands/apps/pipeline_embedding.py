@@ -493,7 +493,7 @@ def generate_embedding_pipeline(use_case: str, **kwargs) -> dict[str, Any]:
 
     if use_case not in use_case_map:
         raise ValueError(
-            f"Unknown use case: {use_case}. " f"Available: {', '.join(use_case_map.keys())}"
+            f"Unknown use case: {use_case}. Available: {', '.join(use_case_map.keys())}"
         )
 
     return use_case_map[use_case](**kwargs)

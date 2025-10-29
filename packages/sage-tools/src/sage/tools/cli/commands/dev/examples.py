@@ -109,7 +109,7 @@ def analyze_command(
 
             deps_str = ", ".join(sorted(all_deps)[:3])
             if len(all_deps) > 3:
-                deps_str += f" +{len(all_deps)-3}"
+                deps_str += f" +{len(all_deps) - 3}"
 
             table.add_row(
                 category, str(count), str(quick), str(medium), str(slow), deps_str or "无"
@@ -252,7 +252,7 @@ def check_command(
             console.print("\n[green]✅ 检查通过！项目根目录保持整洁。[/green]")
         else:
             console.print(
-                "\n[yellow]⚠️  发现中间结果放置问题。" "请将所有输出移至 .sage/ 目录。[/yellow]"
+                "\n[yellow]⚠️  发现中间结果放置问题。请将所有输出移至 .sage/ 目录。[/yellow]"
             )
             raise typer.Exit(1)
 

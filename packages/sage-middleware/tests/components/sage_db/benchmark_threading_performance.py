@@ -58,7 +58,9 @@ def prepare_test_database(dimension: int = 768, num_vectors: int = 10000):
     db.add_batch(vectors.tolist())
     elapsed = time.time() - start
 
-    print(f"✅ Database ready. Insertion took {elapsed:.2f}s ({num_vectors/elapsed:.0f} vectors/s)")
+    print(
+        f"✅ Database ready. Insertion took {elapsed:.2f}s ({num_vectors / elapsed:.0f} vectors/s)"
+    )
     return db
 
 

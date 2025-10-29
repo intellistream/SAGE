@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 import torch
-from peft import LoraConfig as PeftLoraConfig, get_peft_model
+from peft import LoraConfig as PeftLoraConfig
+from peft import get_peft_model
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -234,9 +235,9 @@ class LoRATrainer:
 
     def print_completion_info(self):
         """打印完成信息"""
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("🎉 训练完成！")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print("\n📁 输出文件:")
         print(f"  • LoRA 权重: {self.config.lora_dir}")
         print(f"  • 检查点: {self.config.checkpoint_dir}")

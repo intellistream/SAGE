@@ -12,7 +12,7 @@ import math
 import queue
 import random
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 # Try regular imports first; fall back to repo-relative paths when running
 # directly from the source tree without installing the package.
@@ -47,18 +47,19 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     ]:
         sys.path.insert(0, str(extra_path))
 
-    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.common.core.functions.batch_function import BatchFunction
     from sage.common.core.functions.map_function import MapFunction
     from sage.common.core.functions.sink_function import SinkFunction
     from sage.common.core.functions.source_function import SourceFunction
+    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
 
 from pipeline_bridge import PipelineBridge, PipelinePayload
+
 from sage.kernel.runtime.communication.router.packet import StopSignal
 
-ORDERS: List[Dict[str, str | float]] = [
+ORDERS: list[dict[str, str | float]] = [
     {"order_id": "o-1001", "user_id": "user-001", "amount": 129.9},
     {"order_id": "o-1002", "user_id": "user-002", "amount": 59.0},
     {"order_id": "o-1003", "user_id": "user-003", "amount": 450.5},
@@ -89,7 +90,7 @@ class ServiceDrivenSource(SourceFunction):
 class OrderSource(BatchFunction):
     """Emit a fixed list of orders as the batch source."""
 
-    def __init__(self, orders: List[Dict[str, str]], *, include_shutdown: bool = True):
+    def __init__(self, orders: list[dict[str, str]], *, include_shutdown: bool = True):
         super().__init__()
         self._orders = list(orders)
         if include_shutdown:
@@ -116,7 +117,7 @@ class FeatureStoreService(BaseService):
             "user-003": {"successful_orders": 12, "chargeback_ratio": 0.0},
         }
 
-    def process(self, order: Dict[str, str]):
+    def process(self, order: dict[str, str]):
         """Default entry point leveraged by pipeline-as-service calls."""
 
         features = self._user_features.get(
@@ -150,7 +151,7 @@ class FeatureEnrichment(MapFunction):
 class RiskScoringService(BaseService):
     """Trivial risk-scoring service with a `process` entry point."""
 
-    def process(self, enriched_order: Dict[str, str]):
+    def process(self, enriched_order: dict[str, str]):
         features = enriched_order.get("features", {})  # type: ignore[assignment]
         amount = float(enriched_order.get("amount", 0.0))
         chargeback_ratio = float(features.get("chargeback_ratio", 0.0))  # type: ignore[attr-defined]
@@ -233,7 +234,7 @@ class OrderPipelineService(BaseService):
         self._bridge = bridge
         self._request_timeout = request_timeout
 
-    def process(self, message: Dict[str, Any]):
+    def process(self, message: dict[str, Any]):
         if message is None:
             raise ValueError("Pipeline service received an empty message")
 
@@ -255,7 +256,7 @@ class OrderPipelineService(BaseService):
 class InvokePipeline(MapFunction):
     """Driver operator that calls the pipeline service for each order."""
 
-    def execute(self, payload: Dict[str, Any]):
+    def execute(self, payload: dict[str, Any]):
         if payload is None:
             return None
 
@@ -271,7 +272,7 @@ class InvokePipeline(MapFunction):
 class DriverSink(SinkFunction):
     """Display results returned from the pipeline service caller."""
 
-    def execute(self, payload: Dict[str, Any]):
+    def execute(self, payload: dict[str, Any]):
         if payload is None:
             return None
 

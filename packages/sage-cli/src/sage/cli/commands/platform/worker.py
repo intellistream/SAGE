@@ -44,7 +44,7 @@ def execute_remote_command(host: str, port: int, command: str, timeout: int = 60
             "-o",
             "UserKnownHostsFile=/dev/null",
             "-o",
-            f'ConnectTimeout={ssh_config.get("connect_timeout", 10)}',
+            f"ConnectTimeout={ssh_config.get('connect_timeout', 10)}",
             "-o",
             "ServerAliveInterval=60",
             "-o",

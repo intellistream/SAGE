@@ -6,7 +6,6 @@ SAGE CLI Refactoring Example
 展示如何使用sage.cli.core模块重构现有命令
 """
 
-
 import typer
 
 # 导入核心模块

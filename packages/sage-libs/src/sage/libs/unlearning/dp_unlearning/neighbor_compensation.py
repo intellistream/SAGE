@@ -232,7 +232,9 @@ class NeighborCompensation:
             "similarity_before": float(sim_before),
             "similarity_after_no_compensation": float(sim_after_no_comp),
             "similarity_after_compensation": float(sim_after_comp),
-            "similarity_recovery": float(abs(sim_after_comp - sim_before) / (abs(sim_before) + 1e-10)),
+            "similarity_recovery": float(
+                abs(sim_after_comp - sim_before) / (abs(sim_before) + 1e-10)
+            ),
             "neighbor_change_magnitude": float(neighbor_change),
         }
 

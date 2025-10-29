@@ -163,8 +163,7 @@ class HeartbeatMonitor:
             # 捕获所有异常（包括 Ray 相关异常）
             if "GetTimeoutError" in str(type(e).__name__):
                 self.logger.warning(
-                    f"⚠️  Timeout pulling heartbeat from {task_id} "
-                    f"(timeout={self.call_timeout}s)"
+                    f"⚠️  Timeout pulling heartbeat from {task_id} (timeout={self.call_timeout}s)"
                 )
             elif "RayActorError" in str(type(e).__name__):
                 self.logger.error(f"❌ RayActorError when pulling heartbeat from {task_id}: {e}")

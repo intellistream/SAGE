@@ -989,9 +989,7 @@ async def execute_playground(request: PlaygroundExecuteRequest):
             sys.path.insert(0, str(studio_path))
 
         from sage.studio.models import PipelineStatus  # type: ignore[import-not-found]
-        from sage.studio.services import (
-            get_pipeline_builder,  # type: ignore[import-not-found]
-        )
+        from sage.studio.services import get_pipeline_builder  # type: ignore[import-not-found]
 
         print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
         print(f"📝 Input: {request.input}")

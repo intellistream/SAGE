@@ -138,7 +138,6 @@ class EmbeddingService(BaseService):
 
             # Setup cache if enabled
             if self.config.cache_enabled:
-
                 self._cache = {}
                 self.logger.info(f"Embedding cache enabled: size={self.config.cache_size}")
 

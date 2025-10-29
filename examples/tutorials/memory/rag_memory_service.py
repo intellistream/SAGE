@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
@@ -69,7 +69,7 @@ class RAGMemoryService(BaseService):
 
         return formatted_results
 
-    def insert(self, data: str, metadata: Optional[Dict[str, Any]] = None):
+    def insert(self, data: str, metadata: dict[str, Any] | None = None):
         result = self.rag_collection.insert(
             raw_data=data, index_name="test_index", metadata=metadata
         )

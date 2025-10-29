@@ -23,9 +23,9 @@ console = Console()
 
 def test_template_with_llm(scenario_name: str, requirements: dict):
     """使用 LLM 测试模板生成"""
-    console.print(f"\n{'='*80}", style="bold blue")
+    console.print(f"\n{'=' * 80}", style="bold blue")
     console.print(f"测试场景: {scenario_name}", style="bold yellow")
-    console.print(f"{'='*80}", style="bold blue")
+    console.print(f"{'=' * 80}", style="bold blue")
 
     # 显示需求
     console.print("\n📝 用户需求:", style="bold green")

@@ -180,7 +180,7 @@ def _render_blueprint_panel(
             textwrap.dedent(
                 f"""
                 [{index}] {blueprint.title} ({blueprint.id})
-                匹配度: {score:.2f} | 关键词: {', '.join(blueprint.keywords) or '通用'}
+                匹配度: {score:.2f} | 关键词: {", ".join(blueprint.keywords) or "通用"}
                 场景: {blueprint.description}
                 """
             ).strip()
@@ -199,7 +199,7 @@ def _render_template_panel(
             textwrap.dedent(
                 f"""
                 [{index}] {template.title} ({template.id})
-                匹配度: {match.score:.2f} | 标签: {', '.join(template.tags) or '通用'}
+                匹配度: {match.score:.2f} | 标签: {", ".join(template.tags) or "通用"}
                 示例: {template.example_path}
                 场景: {template.description}
                 """
@@ -824,9 +824,9 @@ def _render_plan(plan: dict[str, Any]) -> None:
     pipeline_meta = plan.get("pipeline", {})
     console.print(
         Panel.fit(
-            f"名称: [cyan]{pipeline_meta.get('name', '-') }[/cyan]\n"
-            f"描述: {pipeline_meta.get('description', '-') }\n"
-            f"类型: {pipeline_meta.get('type', '-') }",
+            f"名称: [cyan]{pipeline_meta.get('name', '-')}[/cyan]\n"
+            f"描述: {pipeline_meta.get('description', '-')}\n"
+            f"类型: {pipeline_meta.get('type', '-')}",
             title="Pipeline 元信息",
             style="green",
         )
@@ -1307,7 +1307,7 @@ def analyze_embedding_methods(
             }
 
             console.print(
-                f"   ✓ 检索完成 (耗时: {elapsed*1000:.2f}ms, 维度: {results_by_method[method]['dimension']})"
+                f"   ✓ 检索完成 (耗时: {elapsed * 1000:.2f}ms, 维度: {results_by_method[method]['dimension']})"
             )
 
         except Exception as exc:
@@ -1324,7 +1324,7 @@ def analyze_embedding_methods(
 
     for method, data in results_by_method.items():
         console.print(f"[bold cyan]━━━ {method.upper()} ━━━[/bold cyan]")
-        console.print(f"⏱️  耗时: {data['time']*1000:.2f}ms | " f"📐 维度: {data['dimension']}")
+        console.print(f"⏱️  耗时: {data['time'] * 1000:.2f}ms | 📐 维度: {data['dimension']}")
 
         table = Table(show_header=True, header_style="bold magenta", box=None)
         table.add_column("排名", style="dim", width=4)
@@ -1359,7 +1359,7 @@ def analyze_embedding_methods(
     console.print("[bold yellow]💡 推荐建议:[/bold yellow]\n")
 
     fastest = min(results_by_method.items(), key=lambda x: x[1]["time"])
-    console.print(f"⚡ 最快方法: [green]{fastest[0]}[/green] " f"({fastest[1]['time']*1000:.2f}ms)")
+    console.print(f"⚡ 最快方法: [green]{fastest[0]}[/green] ({fastest[1]['time'] * 1000:.2f}ms)")
 
     # 简单的相关性评估（基于平均得分）
     avg_scores = {
@@ -1370,7 +1370,7 @@ def analyze_embedding_methods(
     }
     best_relevance = max(avg_scores.items(), key=lambda x: x[1])
     console.print(
-        f"🎯 最相关方法: [green]{best_relevance[0]}[/green] " f"(平均得分: {best_relevance[1]:.4f})"
+        f"🎯 最相关方法: [green]{best_relevance[0]}[/green] (平均得分: {best_relevance[1]:.4f})"
     )
 
     console.print(
@@ -1617,7 +1617,7 @@ def create_embedding_pipeline(
         console.print(f"✅ 配置已保存到: [green]{output_path}[/green]")
 
         # 提示如何运行
-        console.print(f"\n💡 运行此 pipeline:\n" f"   [cyan]sage pipeline run {output_path}[/cyan]")
+        console.print(f"\n💡 运行此 pipeline:\n   [cyan]sage pipeline run {output_path}[/cyan]")
     else:
         console.print("[yellow]未保存配置。[/yellow]")
 

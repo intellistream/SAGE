@@ -89,7 +89,8 @@ def example_node_selector():
 
     # 策略 3: 选择满足资源需求的节点
     node_with_resources = selector.select_best_node(
-        cpu_required=8, memory_required=16 * 1024**3  # 16GB
+        cpu_required=8,
+        memory_required=16 * 1024**3,  # 16GB
     )
     print(f"满足资源需求的节点: {node_with_resources}")
 

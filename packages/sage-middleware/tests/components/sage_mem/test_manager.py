@@ -104,7 +104,6 @@ def test_neuromem_manager():
 
 
 if __name__ == "__main__":
-
     test_neuromem_manager()
 
     # # 清理测试过程中生成的data目录

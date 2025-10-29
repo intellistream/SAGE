@@ -18,6 +18,7 @@ Issues 统一同步脚本 - 支持所有属性的同步
 作者: SAGE Team
 日期: 2025-08-30
 """
+
 import argparse
 import json
 import re
@@ -1329,7 +1330,7 @@ class IssuesSyncer:
     def save_preview_report(self, changes, report_file):
         content = f"""# Issues同步预览报告
 
-**生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**生成时间**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 **待同步更改总数**: {len(changes)}
 
 ## 更改详情

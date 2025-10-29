@@ -7,7 +7,6 @@ SAGE Pipeline Builder - Embedding Integration 示例
 @test:allow-demo
 """
 
-
 from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
     get_default_knowledge_base,
@@ -87,7 +86,7 @@ def example_3_compare_methods():
         results = kb.search(query, top_k=3)
         elapsed = time.time() - start
 
-        print(f"耗时: {elapsed*1000:.2f}ms")
+        print(f"耗时: {elapsed * 1000:.2f}ms")
         print(f"Top-3 得分: {[f'{r.score:.4f}' for r in results]}")
 
         if results and results[0].vector:

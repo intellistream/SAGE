@@ -923,19 +923,21 @@ class TestPerformanceScenarios:
         """Test handling large process lists"""
         large_pid_list = list(range(1000, 2000))  # 1000 PIDs
 
-        with patch(
-            "sage.common.utils.system.network._find_processes_with_lsof",
-            return_value=large_pid_list,
-        ), patch(
-            "sage.common.utils.system.network._find_processes_with_netstat",
-            return_value=[],
-        ), patch(
-            "sage.common.utils.system.network._find_processes_with_fuser",
-            return_value=[],
-        ), patch(
-            "psutil.Process"
-        ) as mock_process:
-
+        with (
+            patch(
+                "sage.common.utils.system.network._find_processes_with_lsof",
+                return_value=large_pid_list,
+            ),
+            patch(
+                "sage.common.utils.system.network._find_processes_with_netstat",
+                return_value=[],
+            ),
+            patch(
+                "sage.common.utils.system.network._find_processes_with_fuser",
+                return_value=[],
+            ),
+            patch("psutil.Process") as mock_process,
+        ):
             # Mock psutil.Process to return mock processes
             mock_processes = []
             for _pid in large_pid_list:

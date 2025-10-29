@@ -363,7 +363,7 @@ def example_usage():
 
     print(f"搜索结果数量: {len(results)}")
     for i, result in enumerate(results):
-        print(f"  结果 {i+1}: ID={result.id}, Score={result.score:.4f}")
+        print(f"  结果 {i + 1}: ID={result.id}, Score={result.score:.4f}")
 
     # 5. 跨模态搜索
     cross_results = db.cross_modal_search(

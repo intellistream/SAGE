@@ -7,14 +7,14 @@ Ray Queue Descriptor - Ray分布式队列描述符
 import logging
 import queue
 import threading
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import ray
 
 from .base_queue_descriptor import BaseQueueDescriptor
 
 if TYPE_CHECKING:
-    from ray.actor import ActorHandle
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +181,7 @@ _global_queue_manager: Any = None
 
 def get_global_queue_manager() -> Any:
     """获取全局队列管理器
-    
+
     Returns:
         ActorHandle: RayQueueManager的ActorHandle，具有RayQueueManager的所有方法
     """
@@ -255,7 +255,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
         return True
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """元数据字典"""
         return {"maxsize": self.maxsize}
 
@@ -270,7 +270,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
             self._queue = RayQueueProxy(manager, self.queue_id)
         return self._queue
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """序列化为字典，包含队列元信息"""
         return {
             "queue_type": self.queue_type,
@@ -280,7 +280,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RayQueueDescriptor":
+    def from_dict(cls, data: dict[str, Any]) -> "RayQueueDescriptor":
         """从字典反序列化"""
         # 确保maxsize是整数
         maxsize = data["metadata"].get("maxsize", 1024 * 1024)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import random
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     from sage.common.core.functions.batch_function import BatchFunction
@@ -40,10 +40,10 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     ]:
         sys.path.insert(0, str(extra_path))
 
-    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.common.core.functions.batch_function import BatchFunction
     from sage.common.core.functions.map_function import MapFunction
     from sage.common.core.functions.sink_function import SinkFunction
+    from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
 
 from hello_pipeline_as_service import (
@@ -58,7 +58,7 @@ from hello_pipeline_as_service import (
 )
 from pipeline_bridge import PipelineBridge
 
-ASYNC_ORDERS: List[Dict[str, float | str | int]] = [
+ASYNC_ORDERS: list[dict[str, float | str | int]] = [
     {"order_id": "async-1001", "user_id": "user-101", "amount": 210.5, "latency": 0.6},
     {"order_id": "async-1002", "user_id": "user-102", "amount": 35.0, "latency": 0.2},
     {"order_id": "async-1003", "user_id": "user-103", "amount": 990.0, "latency": 0.9},
@@ -69,7 +69,7 @@ ASYNC_ORDERS: List[Dict[str, float | str | int]] = [
 class SlowFeatureStoreService(FeatureStoreService):
     """Introduce variable latency to make concurrency observable."""
 
-    def process(self, order: Dict[str, float | str | int]):
+    def process(self, order: dict[str, float | str | int]):
         delay = float(order.get("latency", 0.0))
         if delay > 0:
             time.sleep(delay)
@@ -79,7 +79,7 @@ class SlowFeatureStoreService(FeatureStoreService):
 class AsyncOrderSource(BatchFunction):
     """Emit the async orders and a final shutdown control message."""
 
-    def __init__(self, orders: List[Dict[str, float | str | int]]):
+    def __init__(self, orders: list[dict[str, float | str | int]]):
         super().__init__()
         self._orders = list(orders) + [dict(SHUTDOWN_MESSAGE)]
         self._index = 0
@@ -96,7 +96,7 @@ class AsyncOrderSource(BatchFunction):
 class AsyncSubmit(MapFunction):
     """Submit orders asynchronously to the pipeline service."""
 
-    def execute(self, order: Dict[str, float | str | int]):
+    def execute(self, order: dict[str, float | str | int]):
         if order is None:
             return None
 
@@ -111,7 +111,7 @@ class AsyncSubmit(MapFunction):
 class AwaitDecision(MapFunction):
     """Await the decision from futures produced by `AsyncSubmit`."""
 
-    def execute(self, record: Dict[str, Any]):
+    def execute(self, record: dict[str, Any]):
         if record is None:
             return None
 
@@ -129,7 +129,7 @@ class AwaitDecision(MapFunction):
 class AsyncResultSink(SinkFunction):
     """Print the order decisions along with latency info."""
 
-    def execute(self, payload: Dict[str, Any]):
+    def execute(self, payload: dict[str, Any]):
         if payload is None:
             return None
 

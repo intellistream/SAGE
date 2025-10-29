@@ -47,7 +47,7 @@ def check_and_setup_data(data_dir: str, auto_setup: bool = False) -> bool:
     if processed_dir.exists() and (processed_dir / "train_index.json").exists():
         return True
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("数据集未找到")
     print("=" * 60)
     print(f"期望的数据目录: {data_dir}")

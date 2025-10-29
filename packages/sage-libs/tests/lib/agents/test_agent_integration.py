@@ -369,7 +369,6 @@ class TestAgentWorkflowIntegration:
 
             # Mock the main function to avoid actual execution
             with patch.object(agent, "main") as mock_main:
-
                 # Simulate test mode execution
                 with patch.dict("os.environ", {"SAGE_EXAMPLES_MODE": "test"}):
                     # This should call main() and then print success message

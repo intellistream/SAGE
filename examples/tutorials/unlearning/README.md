@@ -5,6 +5,7 @@ This directory contains examples and tutorials for using SAGE's machine unlearni
 ## Overview
 
 Machine unlearning enables models to "forget" specific training data, which is crucial for:
+
 - **Privacy compliance**: GDPR "Right to be Forgotten"
 - **Data removal**: Removing incorrect or outdated data
 - **Bias mitigation**: Removing biased training samples
@@ -37,16 +38,19 @@ python machine_unlearning_examples.py
 ### Core Components
 
 1. **Privacy Mechanisms** (`sage.libs.unlearning.algorithms`)
+
    - `GaussianMechanism`: (ε,δ)-DP noise addition
    - `LaplaceMechanism`: ε-DP noise addition
 
-2. **Unlearning Engine** (`sage.libs.unlearning.dp_unlearning`)
+1. **Unlearning Engine** (`sage.libs.unlearning.dp_unlearning`)
+
    - `UnlearningEngine`: Orchestrates the unlearning process
    - `VectorPerturbation`: Applies noise to model parameters
    - `NeighborCompensation`: Compensates for neighboring records
    - `PrivacyAccountant`: Tracks privacy budget across operations
 
-3. **Evaluation Tools** (`sage.libs.unlearning.evaluation`)
+1. **Evaluation Tools** (`sage.libs.unlearning.evaluation`)
+
    - `UnlearningMetrics`: Evaluates forgetting quality and model utility
 
 ## Further Reading
@@ -58,6 +62,7 @@ python machine_unlearning_examples.py
 ## Student Research Tasks
 
 The unlearning module includes TODO items for advanced research:
+
 - Analytic Gaussian mechanism (tighter bounds)
 - Concentrated differential privacy
 - Privacy amplification by subsampling

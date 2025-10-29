@@ -14,7 +14,7 @@ class OperatorFactory:
         function_factory: "FunctionFactory",
         env_name: str | None = None,
         remote: bool = False,
-        **operator_kwargs
+        **operator_kwargs,
     ):
         self.operator_class = operator_class
         self.operator_kwargs = operator_kwargs  # 保存额外的operator参数

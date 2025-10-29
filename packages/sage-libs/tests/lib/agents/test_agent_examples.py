@@ -206,9 +206,10 @@ class TestMainFunction:
         )
 
         # 关键：补丁打在真实模块位置（tutorials），因为agent是重新导出
-        with patch(
-            "examples.tutorials.agents.basic_agent.os.path.exists", return_value=False
-        ), patch("builtins.print") as mock_print:
+        with (
+            patch("examples.tutorials.agents.basic_agent.os.path.exists", return_value=False),
+            patch("builtins.print") as mock_print,
+        ):
             with pytest.raises(SystemExit) as e:
                 agent.main()
 
@@ -333,7 +334,6 @@ class TestAgentIntegration:
             with patch("examples.agents.agent.main") as mock_main:
                 with patch("builtins.print"):
                     with patch("sys.exit"):
-
                         # Import and execute the module as if it were run directly
                         exec(
                             """
@@ -375,7 +375,6 @@ if __name__ == "__main__":
                         return_value=True,
                     ):
                         with patch.dict("os.environ", {"SAGE_EXAMPLES_MODE": "production"}):
-
                             # Setup test config
                             test_config = {
                                 "profile": {
@@ -434,7 +433,6 @@ if __name__ == "__main__":
                                                 with patch(
                                                     "examples.tutorials.agents.basic_agent.importlib.import_module"
                                                 ) as mock_import:
-
                                                     # Setup mock tool with PROPER STRING ATTRIBUTES
                                                     mock_tool_class = Mock()
                                                     mock_tool_instance = Mock()

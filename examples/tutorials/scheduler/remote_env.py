@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 RemoteEnvironment 简单示例
 演示如何使用 RemoteEnvironment 和调度器
@@ -117,7 +116,8 @@ def example_custom_scheduler_instance():
     custom_scheduler = LoadAwareScheduler(platform="remote", max_concurrent=15)  # 自定义最大并发数
 
     env = RemoteEnvironment(
-        name="custom_scheduler_demo", scheduler=custom_scheduler  # 传入调度器实例
+        name="custom_scheduler_demo",
+        scheduler=custom_scheduler,  # 传入调度器实例
     )
 
     (env.from_source(SimpleSource).map(SimpleProcessor, parallelism=5).sink(ConsoleSink))

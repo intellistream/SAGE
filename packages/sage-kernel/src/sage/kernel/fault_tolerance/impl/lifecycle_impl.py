@@ -5,7 +5,7 @@ Actor 和 Task 生命周期管理实现
 """
 
 import time
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 from sage.common.core import DEFAULT_CLEANUP_TIMEOUT, TaskID
 
@@ -44,7 +44,7 @@ class LifecycleManagerImpl:
 
     def __init__(self):
         """初始化生命周期管理器"""
-        self.logger: Optional[LoggerProtocol] = None  # 可以后续注入 logger
+        self.logger: LoggerProtocol | None = None  # 可以后续注入 logger
 
     def cleanup_actor(
         self,

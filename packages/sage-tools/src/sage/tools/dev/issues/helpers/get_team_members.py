@@ -10,6 +10,7 @@ Creates in `output/`:
 
 Token resolution order: GITHUB_TOKEN env var -> .github_token file searched upward from repo -> user's home .github_token
 """
+
 import json
 import sys
 from datetime import datetime
@@ -136,8 +137,8 @@ class TeamMembersCollector:
             yaml_lines.append(f'    description: "{info.get("description")}"')
             yaml_lines.append("    members:")
             for m in info.get("members", []):
-                yaml_lines.append(f'      - username: {m.get("username")}')
-                yaml_lines.append(f'        profile: {m.get("profile_url")}')
+                yaml_lines.append(f"      - username: {m.get('username')}")
+                yaml_lines.append(f"        profile: {m.get('profile_url')}")
         yaml_file.write_text("\n".join(yaml_lines), encoding="utf-8")
         print(f"✅ YAML metadata: {yaml_file}")
 
@@ -146,12 +147,12 @@ class TeamMembersCollector:
         lines = [f"# generated: {datetime.now().isoformat()}"]
         all_usernames = set()
         for slug, info in teams_data.items():
-            lines.append(f'\n## {info.get("name")}')
+            lines.append(f"\n## {info.get('name')}")
             for m in info.get("members", []):
                 username = m.get("username")
                 lines.append(f"- {username}")
                 all_usernames.add(username)
-            lines.append(f'team_count: {len(info.get("members", []))}')
+            lines.append(f"team_count: {len(info.get('members', []))}")
         lines.append("\n## ALL")
         lines.append(f"total_unique: {len(all_usernames)}")
         lines.append("members: " + ", ".join(sorted(all_usernames)))

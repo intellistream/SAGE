@@ -106,7 +106,8 @@ class CoMapOperator(BaseOperator):
                 try:
                     # 从operator的transformation中获取预期的输入数量
                     if hasattr(self, "transformation") and hasattr(
-                        self.transformation, "input_transformation_count"  # type: ignore[attr-defined]
+                        self.transformation,
+                        "input_transformation_count",  # type: ignore[attr-defined]
                     ):
                         self.expected_input_count = self.transformation.input_transformation_count  # type: ignore[attr-defined]
                     else:

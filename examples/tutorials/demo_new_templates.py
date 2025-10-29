@@ -7,6 +7,7 @@
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+
 from sage.cli.templates.catalog import get_template, list_templates
 
 console = Console()
@@ -36,10 +37,10 @@ def demo_template_usage():
     for template_id in new_template_ids:
         template = get_template(template_id)
 
-        console.print(f"\n{'='*80}", style="bold cyan")
+        console.print(f"\n{'=' * 80}", style="bold cyan")
         console.print(f"模板: {template.title}", style="bold yellow")
         console.print(f"ID: {template.id}", style="dim")
-        console.print(f"{'='*80}", style="bold cyan")
+        console.print(f"{'=' * 80}", style="bold cyan")
 
         # 基本信息
         console.print("\n📝 描述:", style="bold green")
@@ -82,9 +83,9 @@ def demo_template_usage():
         console.print("\n" + "─" * 80)
 
     # 使用示例
-    console.print(f"\n\n{'='*80}", style="bold blue")
+    console.print(f"\n\n{'=' * 80}", style="bold blue")
     console.print("📚 使用示例", style="bold blue")
-    console.print(f"{'='*80}", style="bold blue")
+    console.print(f"{'=' * 80}", style="bold blue")
 
     usage_examples = """
 ## 方式一: 在代码中使用
@@ -166,9 +167,9 @@ for match in matches:
     console.print(Markdown(usage_examples))
 
     # 总结
-    console.print(f"\n\n{'='*80}", style="bold blue")
+    console.print(f"\n\n{'=' * 80}", style="bold blue")
     console.print("✅ 总结", style="bold blue")
-    console.print(f"{'='*80}", style="bold blue")
+    console.print(f"{'=' * 80}", style="bold blue")
 
     console.print(f"\n已展示 {len(new_template_ids)} 个新增模板", style="bold green")
     console.print(f"总计 {len(list_templates())} 个可用模板", style="bold cyan")

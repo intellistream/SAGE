@@ -68,7 +68,7 @@ class ZhipuEmbedding(BaseEmbedding):
         try:
             from zhipuai import ZhipuAI  # noqa: F401
         except ImportError:
-            raise ImportError("Zhipu embedding 需要 zhipuai 包。\n" "安装方法: pip install zhipuai")
+            raise ImportError("Zhipu embedding 需要 zhipuai 包。\n安装方法: pip install zhipuai")
 
         self._model = model
         self._api_key = api_key or os.getenv("ZHIPU_API_KEY")
@@ -130,7 +130,9 @@ class ZhipuEmbedding(BaseEmbedding):
 
             client = ZhipuAI(api_key=self._api_key)
             response = client.embeddings.create(
-                model=self._model, input=texts, **self._kwargs  # 直接传入列表
+                model=self._model,
+                input=texts,
+                **self._kwargs,  # 直接传入列表
             )
             return [item.embedding for item in response.data]
         except Exception as e:

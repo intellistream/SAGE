@@ -293,13 +293,13 @@ def example_real_world_scenario():
 
     # Step 2: Apply certified unlearning
     accountant = PrivacyAccountant(total_epsilon=1.0)
-    
+
     mechanism = GaussianMechanism(
         epsilon=0.5,
         delta=1e-5,
         sensitivity=0.1
     )
-    
+
     engine = UnlearningEngine(mechanism=mechanism)
 
     updated_params = engine.unlearn(

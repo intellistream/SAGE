@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 简化版RAG应用 - 测试完整流程
 用于验证问题源→检索→生成→输出的完整数据流
@@ -10,6 +9,7 @@ import sys
 import time
 
 from dotenv import load_dotenv
+
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction

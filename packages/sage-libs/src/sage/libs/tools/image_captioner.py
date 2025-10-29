@@ -6,7 +6,6 @@ from .base.base_tool import BaseTool
 
 
 class ImageCaptioner(BaseTool):
-
     require_llm_engine = True
 
     def __init__(self, model_name="meta-llama/Llama-2-13b-chat-hf"):
@@ -74,7 +73,6 @@ class ImageCaptioner(BaseTool):
 
 
 if __name__ == "__main__":
-
     import json
 
     # Get the directory of the current script

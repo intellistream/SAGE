@@ -90,10 +90,13 @@ version = {attr = "sage.benchmark._version.__version__"}
     "evaluation/config/*.yaml",
 ]
 
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
+[tool.ruff]
+extend = "../../ruff.toml"
+
 [tool.black]
 line-length = 100
 target-version = ['py310']
-
-[tool.ruff]
-line-length = 100
-target-version = "py310"

@@ -33,7 +33,11 @@ from sage.common.core import (
     BaseQueryResult,
     ExtendedQueryResult,
     QueryResultInput,
+)
+from sage.common.core import (
     extract_query as base_extract_query,
+)
+from sage.common.core import (
     extract_results as base_extract_results,
 )
 

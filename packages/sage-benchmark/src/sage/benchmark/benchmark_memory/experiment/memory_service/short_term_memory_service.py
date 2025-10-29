@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -9,8 +9,8 @@ from sage.platform.service import BaseService
 class ShortTermMemoryService(BaseService):
     def __init__(
         self,
-        max_dialogue: Optional[int] = None,
-        max_messages: Optional[int] = None,
+        max_dialogue: int | None = None,
+        max_messages: int | None = None,
         **kwargs,
     ):
         super().__init__()
@@ -48,7 +48,7 @@ class ShortTermMemoryService(BaseService):
             f"ShortTermMemoryService initialized with max_messages={self.max_messages}"
         )
 
-    def insert(self, dialogs: List[Dict[str, Any]]) -> None:
+    def insert(self, dialogs: list[dict[str, Any]]) -> None:
         """
         插入对话历史到短期记忆中
 
@@ -80,7 +80,7 @@ class ShortTermMemoryService(BaseService):
             f"Current queue size: {len(self.message_queue)}/{self.max_messages}"
         )
 
-    def retrieve(self) -> List[Dict[str, Any]]:
+    def retrieve(self) -> list[dict[str, Any]]:
         """
         检索所有短期记忆中的对话
 

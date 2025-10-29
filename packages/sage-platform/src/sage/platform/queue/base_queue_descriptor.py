@@ -20,7 +20,7 @@ import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class BaseQueueDescriptor(ABC):
 
     @property
     @abstractmethod
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """队列元数据，包含创建队列所需的额外参数"""
         pass
 
@@ -178,7 +178,7 @@ class BaseQueueDescriptor(ABC):
 
     # ============ 序列化支持 ============
 
-    def to_dict(self, include_non_serializable: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_non_serializable: bool = False) -> dict[str, Any]:
         """
         转换为字典格式
 

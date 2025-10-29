@@ -51,7 +51,6 @@ class RAGMemoryManager:
         pass
 
     def retrieve(self, data):
-
         results = self.rag_collection.retrieve(
             raw_data=data,
             index_name="test_index",
@@ -92,7 +91,7 @@ def init_history_memory():
                 },
             ]
         else:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
         texts = [item["text"] for item in data]

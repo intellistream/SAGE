@@ -8,15 +8,16 @@ This example demonstrates:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
+
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
 def generate_time_series_data(
     num_points: int = 100, sensor_id: str = "sensor_01"
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Generate simulated time series data"""
     data_points = []
     base_time = int(datetime.now().timestamp() * 1000)
@@ -74,7 +75,7 @@ def example_basic_ingestion_and_query():
         print(f"Query returned {len(results)} points")
         print("\nFirst 5 results:")
         for i, result in enumerate(results[:5]):
-            print(f"  {i+1}. timestamp={result.timestamp}, value={result.value:.2f}")
+            print(f"  {i + 1}. timestamp={result.timestamp}, value={result.value:.2f}")
 
 
 def example_window_aggregation():

@@ -246,7 +246,7 @@ class QAPromptor(MapOperator):
                 system_prompt = {
                     "role": "system",
                     "content": (
-                        "You are a helpful AI assistant. " "Answer the user's questions accurately."
+                        "You are a helpful AI assistant. Answer the user's questions accurately."
                     ),
                 }
 

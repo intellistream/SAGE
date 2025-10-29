@@ -114,7 +114,7 @@ def benchmark_shared_vs_clone(index, num_threads=4):
 
     print(f"\n  Shared index QPS:  {shared_qps:.1f}")
     print(f"  Cloned indices QPS: {cloned_qps:.1f}")
-    print(f"  Improvement: {(cloned_qps/shared_qps - 1) * 100:.1f}%")
+    print(f"  Improvement: {(cloned_qps / shared_qps - 1) * 100:.1f}%")
 
 
 def main():

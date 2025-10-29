@@ -1,0 +1,82 @@
+# SAGE 项目统一代码质量配置
+# 所有子包应该继承这个配置
+# 使用方法：在子包的 pyproject.toml 中添加：
+#   [tool.ruff]
+#   extend = "../../ruff.toml"
+#
+# 注意：ruff.toml 文件不使用 [tool.xxx] 前缀
+#      只有 pyproject.toml 才需要 [tool.xxx] 前缀
+
+# ============================================================================
+# Ruff Configuration (替代 flake8, isort, pyupgrade 等)
+# ============================================================================
+target-version = "py311"
+line-length = 100
+
+# 排除特定目录
+extend-exclude = [
+    "vendors",
+    "sageLLM",
+    "sageDB",
+    "sageFlow",
+    "neuromem",
+    "sageTSDB",
+    "build",
+    "_deps",
+    ".venv",
+    "venv",
+]
+
+[lint]
+# 启用的规则集
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "C90",  # mccabe complexity
+]
+
+# 全局忽略的错误
+ignore = [
+    "E501",   # line too long (handled by black formatter)
+    "B904",   # raise-without-from-inside-except
+    "C901",   # complex-structure (too-complex function)
+    "E402",   # module-import-not-at-top-of-file
+    "B026",   # star-arg-unpacking-after-keyword-arg
+    "B007",   # unused-loop-control-variable
+    "B023",   # function-uses-loop-variable
+    "B025",   # duplicate-try-block-exception
+    "B018",   # useless-expression
+    "F402",   # import-shadowed-by-loop-var
+    "F405",   # undefined-local-with-import-star
+    "UP035",  # deprecated-import (typing.List, etc.)
+    "UP007",  # non-pep604-annotation
+    "UP009",  # utf-8-encoding-declaration (keep for compatibility)
+    "UP045",  # non-pep604-annotation (Optional vs | None)
+    "B008",   # function-call-in-default-argument (typer compatibility)
+    "B905",   # zip-without-explicit-strict (Python 3.10+ feature, we support 3.8+)
+    "B024",   # abstract-base-class-without-abstract-method
+    "B027",   # empty-method-without-abstract-decorator
+]
+
+# 复杂度限制
+[lint.mccabe]
+max-complexity = 10
+
+# 文件特定忽略规则
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # 允许未使用的导入
+"tests/**/*" = ["PLR2004", "S101", "TID252"]  # 测试文件特殊规则
+
+# ============================================================================
+# Isort Configuration (通过 Ruff 实现)
+# ============================================================================
+[lint.isort]
+known-first-party = ["sage"]
+force-single-line = false
+combine-as-imports = false  # 与 black 兼容
+split-on-trailing-comma = true

@@ -10,9 +10,10 @@ import argparse
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Sequence
+from typing import Any, Iterable, Sequence
 
 import numpy as np
+
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -55,10 +56,10 @@ class KnowledgeEntry:
     title: str
     text: str
     topic: str
-    tags: List[str]
+    tags: list[str]
 
 
-KNOWLEDGE_BASE: List[KnowledgeEntry] = [
+KNOWLEDGE_BASE: list[KnowledgeEntry] = [
     KnowledgeEntry(
         title="SAGE 推理管道总览",
         text=(
@@ -109,7 +110,7 @@ class BootstrappedSageDBService(SageDBService):
         self,
         *,
         initial_vectors: Sequence[Sequence[float]] | np.ndarray | None = None,
-        initial_metadata: Sequence[Dict[str, str]] | None = None,
+        initial_metadata: Sequence[dict[str, str]] | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
@@ -145,7 +146,7 @@ class QuerySource(SourceFunction):
         self._queries = list(queries)
         self._cursor = 0
 
-    def execute(self) -> Dict[str, str] | None:
+    def execute(self) -> dict[str, str] | None:
         if self._cursor >= len(self._queries):
             return None
         question = self._queries[self._cursor]
@@ -156,7 +157,7 @@ class QuerySource(SourceFunction):
 class SageDBRetrieverNode(MapFunction):
     def __init__(
         self,
-        embedder_config: Dict[str, Any],
+        embedder_config: dict[str, Any],
         *,
         service_name: str = SERVICE_NAME,
         top_k: int = 3,
@@ -169,7 +170,7 @@ class SageDBRetrieverNode(MapFunction):
         self.top_k = top_k
         self.service_timeout = service_timeout
 
-    def execute(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
         query = payload.get("query", "")
         if not query:
             return {**payload, "results": [], "retrieved_docs": []}
@@ -178,9 +179,9 @@ class SageDBRetrieverNode(MapFunction):
         service = self.call_service[self.service_name]
         raw_results = service.search(query_vector, k=self.top_k, timeout=self.service_timeout)
 
-        formatted_results: List[Dict[str, Any]] = []
-        corpus_snippets: List[str] = []
-        references: List[Dict[str, Any]] = []
+        formatted_results: list[dict[str, Any]] = []
+        corpus_snippets: list[str] = []
+        references: list[dict[str, Any]] = []
 
         for item in raw_results:
             metadata = dict(item.get("metadata") or {})
@@ -215,7 +216,7 @@ class SageDBRetrieverNode(MapFunction):
 class MockLLMGenerator(MapFunction):
     """Minimal generator that emulates an LLM using retrieved passages."""
 
-    def execute(self, data: List[Any]) -> Dict[str, Any]:
+    def execute(self, data: list[Any]) -> dict[str, Any]:
         if not isinstance(data, list) or len(data) != 2:
             raise ValueError("Generator expects QAPromptor output: [original_payload, messages]")
         original, messages = data
@@ -226,7 +227,7 @@ class MockLLMGenerator(MapFunction):
         answer: str
         if top_hit:
             title = top_hit["metadata"].get("title", "资料")
-            answer = f"参考《{title}》中的要点：{top_hit['text']}" " —— 该内容经 SageDB 检索返回。"
+            answer = f"参考《{title}》中的要点：{top_hit['text']} —— 该内容经 SageDB 检索返回。"
         else:
             answer = "知识库没有检索到匹配内容，建议扩充 SageDB 语料。"
 
@@ -237,7 +238,7 @@ class MockLLMGenerator(MapFunction):
 
 
 class ConsoleReporter(MapFunction):
-    def execute(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
         query = payload.get("query", "<empty>")
         answer = payload.get("answer", "<no answer>")
         refs = payload.get("references", [])
@@ -265,8 +266,8 @@ def build_embeddings(entries: Sequence[KnowledgeEntry], model: EmbeddingModel) -
     return np.asarray(vectors, dtype=np.float32)
 
 
-def prepare_metadata(entries: Sequence[KnowledgeEntry]) -> List[Dict[str, str]]:
-    metadata: List[Dict[str, str]] = []
+def prepare_metadata(entries: Sequence[KnowledgeEntry]) -> list[dict[str, str]]:
+    metadata: list[dict[str, str]] = []
     for item in entries:
         metadata.append(
             {

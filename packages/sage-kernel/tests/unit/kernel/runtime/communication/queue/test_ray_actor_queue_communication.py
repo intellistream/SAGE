@@ -349,12 +349,12 @@ class TestRayQueueActorCommunication:
         )
 
         # 验证断言
-        assert producer_info["operations_count"] == len(
-            items_to_produce
-        ), f"生产者应该执行了{len(items_to_produce)}次操作"
-        assert (
-            len(successful_gets) > 0
-        ), f"消费者应该成功获取了一些项目，但实际获取了{len(successful_gets)}个"
+        assert producer_info["operations_count"] == len(items_to_produce), (
+            f"生产者应该执行了{len(items_to_produce)}次操作"
+        )
+        assert len(successful_gets) > 0, (
+            f"消费者应该成功获取了一些项目，但实际获取了{len(successful_gets)}个"
+        )
 
         duration = time.time() - start_time
         log_manager.log_test_end("test_basic_actor_queue_operations", duration, True)
@@ -453,7 +453,9 @@ class TestRayQueueActorCommunication:
         # 通过协调器进行批量读取
         batch_get_result = ray.get(
             coordinator.coordinate_batch_operation.remote(
-                "main_queue", "get_batch", [""] * len(items_to_write)  # 占位符
+                "main_queue",
+                "get_batch",
+                [""] * len(items_to_write),  # 占位符
             )
         )
         print(f"批量读取结果: {len(batch_get_result)} 项目")

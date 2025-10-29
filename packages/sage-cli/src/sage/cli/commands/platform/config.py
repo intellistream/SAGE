@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Configuration management commands for SAGE."""
 
-
 import typer
 
 # Import the configuration subcommands

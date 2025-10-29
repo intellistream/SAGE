@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 CoMap Lambda/Callable Support Example
 @test:tim    # Execute example 1
@@ -24,7 +23,7 @@ showing different ways to define multi-stream processing without requiring class
 
 import os
 import sys
-from typing import Any, List
+from typing import Any
 
 from sage.common.core.functions.comap_function import BaseCoMapFunction
 from sage.common.core.functions.source_function import SourceFunction
@@ -41,7 +40,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 class ListSource(SourceFunction):
     """Simple source that emits items from a predefined list with proper termination"""
 
-    def __init__(self, data_list: List[Any], *args, **kwargs):
+    def __init__(self, data_list: list[Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data_list = data_list
         self.index = 0

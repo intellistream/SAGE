@@ -4,7 +4,8 @@ from typing import Any
 
 import pytest
 
-from sage.cli.commands.apps import chat as chat_module, pipeline as pipeline_builder
+from sage.cli.commands.apps import chat as chat_module
+from sage.cli.commands.apps import pipeline as pipeline_builder
 
 
 def test_looks_like_pipeline_request_detection():

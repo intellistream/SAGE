@@ -222,7 +222,7 @@ class ImageAnalyzer:
             ],
             "discs": [
                 {
-                    "level": f"L{i}/L{i+1}" if i < 5 else "L5/S1",
+                    "level": f"L{i}/L{i + 1}" if i < 5 else "L5/S1",
                     "features": {"height": 8.0 - i * 0.5, "herniation": i >= 3},
                 }
                 for i in range(1, 6)

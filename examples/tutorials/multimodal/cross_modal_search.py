@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Dict, Tuple
 
 import numpy as np
 
@@ -29,7 +28,7 @@ def seeded_embedding(seed: int, dim: int) -> np.ndarray:
     return vec / (np.linalg.norm(vec) + 1e-12)
 
 
-def sample_collection() -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
+def sample_collection() -> dict[str, tuple[np.ndarray, np.ndarray]]:
     return {
         "sunrise-cliffs": (seeded_embedding(21, 768), seeded_embedding(22, 512)),
         "rooftop-dusk": (seeded_embedding(23, 768), seeded_embedding(24, 512)),

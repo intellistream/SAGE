@@ -103,35 +103,19 @@ line-length = 100
 target-version = ['py310', 'py311']
 include = '\.pyi?$'
 
-[tool.ruff]
-line-length = 100
-target-version = "py310"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP"]
-ignore = [
-    "E501",
-    "E741",
-    "B904",
-    "C901",
-    "E402",
-    "B026",
-    "B007",
-    "B023",
-    "B025",
-    "B018",
-    "F402",
-    "F405",
-    "UP035",
-    "UP007",
-]
-
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
+[tool.ruff]
+extend = "../../ruff.toml"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

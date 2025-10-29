@@ -145,7 +145,6 @@ class _Searcher_Tool(BaseTool):
 
 
 if __name__ == "__main__":
-
     import json
 
     print("ArXiv Search Tool Test")

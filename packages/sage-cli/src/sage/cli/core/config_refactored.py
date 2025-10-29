@@ -203,7 +203,9 @@ class ConfigValidateCommand(BaseCommand):
 @app.command("show")
 @cli_command(require_config=False)  # show命令可以在没有配置时运行
 def show_config(
-    section: str = typer.Option(None, "--section", "-s", help="Show specific configuration section")
+    section: str = typer.Option(
+        None, "--section", "-s", help="Show specific configuration section"
+    ),
 ):
     """Show configuration information"""
     cmd = ConfigShowCommand()
@@ -215,7 +217,7 @@ def show_config(
 def init_config(
     force: bool = typer.Option(
         False, "--force", "-f", help="Force overwrite existing configuration"
-    )
+    ),
 ):
     """Initialize SAGE configuration file"""
     cmd = ConfigInitCommand()

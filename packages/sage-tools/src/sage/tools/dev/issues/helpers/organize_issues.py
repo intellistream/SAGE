@@ -236,7 +236,7 @@ class IssuesOrganizer:
 
         query = f"""
         {{
-          node(id: "{project_info['project_id']}") {{
+          node(id: "{project_info["project_id"]}") {{
             ... on ProjectV2 {{
               items(first: 100) {{
                 nodes {{

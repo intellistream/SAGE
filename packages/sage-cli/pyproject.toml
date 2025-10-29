@@ -65,9 +65,12 @@ target-version = ['py39', 'py310', 'py311', 'py312']
 profile = "black"
 line_length = 100
 
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
 [tool.ruff]
-line-length = 100
-target-version = "py39"
+extend = "../../ruff.toml"
 
 [tool.mypy]
 python_version = "3.9"

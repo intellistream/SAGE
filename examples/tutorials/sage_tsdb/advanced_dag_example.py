@@ -9,15 +9,16 @@ This example demonstrates advanced features:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
+
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
 def generate_multi_sensor_data(
     num_sensors: int = 3, points_per_sensor: int = 30
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Generate data from multiple sensors"""
     data_points = []
     base_time = int(datetime.now().timestamp() * 1000)
@@ -47,8 +48,8 @@ def generate_multi_sensor_data(
 
 
 def detect_anomalies(
-    db: SageTSDB, data_points: List[Dict[str, Any]], threshold_std: float = 2.5
-) -> List[Dict[str, Any]]:
+    db: SageTSDB, data_points: list[dict[str, Any]], threshold_std: float = 2.5
+) -> list[dict[str, Any]]:
     """Detect anomalies in time series data"""
     results = []
 
@@ -87,8 +88,8 @@ def detect_anomalies(
 
 
 def compute_window_statistics(
-    db: SageTSDB, data_points: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
+    db: SageTSDB, data_points: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     """Compute window-based statistics"""
     results = []
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """SAGE Chat CLI - Embedded programming assistant backed by SageDB."""
+
 from __future__ import annotations
 
 import json
@@ -636,8 +637,7 @@ class ResponseGenerator:
                     console.print("[green]✅ 权重合并完成[/green]")
                 except Exception as merge_exc:
                     raise RuntimeError(
-                        f"自动合并失败: {merge_exc}\n"
-                        f"请手动运行: sage finetune merge {model_name}"
+                        f"自动合并失败: {merge_exc}\n请手动运行: sage finetune merge {model_name}"
                     ) from merge_exc
 
             # 启动 vLLM 服务

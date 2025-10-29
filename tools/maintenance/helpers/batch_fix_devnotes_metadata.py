@@ -14,7 +14,7 @@ import warnings
 from pathlib import Path
 
 warnings.warn(
-    "此脚本已迁移到 sage-tools 包。" "请使用: sage-dev maintenance fix-metadata",
+    "此脚本已迁移到 sage-tools 包。请使用: sage-dev maintenance fix-metadata",
     DeprecationWarning,
     stacklevel=2,
 )

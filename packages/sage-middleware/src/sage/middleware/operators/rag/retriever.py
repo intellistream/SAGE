@@ -784,7 +784,6 @@ class MilvusSparseRetriever(MapOperator):
         self.logger.info(f"[ {self.__class__.__name__}]: Using top_k = {self.top_k}")
 
         try:
-
             # 使用Milvus执行稀疏检索 - 直接传递查询文本，让sparse_search方法处理向量生成
             retrieved_docs = self.milvus_backend.sparse_search(
                 query_text=input_query,

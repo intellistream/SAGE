@@ -13,6 +13,7 @@ from pathlib import Path
 
 import yaml
 from rag_memory_service import RAGMemoryService
+
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
@@ -132,9 +133,7 @@ class WritingMap(MapFunction):
         # 使用配置文件中的 promptor 配置
         promptor_config = self.config.get("promptor", {})
         if not promptor_config.get("template"):
-            promptor_config[
-                "template"
-            ] = """你是一位具备长期记忆的个人健康助手。
+            promptor_config["template"] = """你是一位具备长期记忆的个人健康助手。
 
 {%- if external_corpus %}
 以下是相关的历史问答：
@@ -224,9 +223,7 @@ class QAPipelineMap(MapFunction):
         # 步骤 2: 准备 prompt
         promptor_config = self.config.get("promptor", {})
         if not promptor_config.get("template"):
-            promptor_config[
-                "template"
-            ] = """你是一位具备长期记忆的个人健康助手。
+            promptor_config["template"] = """你是一位具备长期记忆的个人健康助手。
 
 {%- if external_corpus %}
 以下是相关的历史问答：
@@ -314,9 +311,9 @@ class ProcessQuestion(MapFunction):
         total = data.get("total", index)
 
         # 在调用服务之前打印问题
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"📝 问题 {index}/{total}: {question}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # 调用 QA Pipeline Service（阻塞等待答案）
         result = self.call_service("qa_pipeline", {"question": question}, timeout=180.0)
@@ -400,11 +397,11 @@ class DisplayAnswer(SinkFunction):
         # 渲染 Markdown
         rendered_answer = self._render_markdown(answer_text)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("💡 AI 回答:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(rendered_answer)
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         if generate_time > 0:
             print(f"⏱️  生成耗时: {generate_time:.2f}秒")
         print()
@@ -421,7 +418,6 @@ class DisplayAnswer(SinkFunction):
 
 
 def main():
-
     sys.stdout.flush()
     sys.stderr.flush()
     print("=== main() 第 1 行 ===", file=sys.stderr, flush=True)
@@ -437,7 +433,7 @@ def main():
         sys.exit(1)
 
     print("=== 开始加载配置 ===", file=sys.stderr, flush=True)
-    with open(config_file, "r") as f:
+    with open(config_file) as f:
         config = yaml.safe_load(f)
     print("=== 配置加载完成 ===", file=sys.stderr, flush=True)
 

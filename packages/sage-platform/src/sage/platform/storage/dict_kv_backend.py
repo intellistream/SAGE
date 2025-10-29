@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 from .base_kv_backend import BaseKVBackend
 
@@ -13,7 +13,7 @@ class DictKVBackend(BaseKVBackend):
     """
 
     def __init__(self):
-        self._store: Dict[str, Any] = {}
+        self._store: dict[str, Any] = {}
 
     def has(self, key: str) -> bool:
         return key in self._store
@@ -47,7 +47,7 @@ class DictKVBackend(BaseKVBackend):
         """从指定 JSON 文件加载数据到内存（覆盖当前 _store）"""
         if not os.path.exists(path):
             raise FileNotFoundError(f"File '{path}' does not exist.")
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             self._store = json.load(f)
 
     def clear_disk_data(self, path: str):

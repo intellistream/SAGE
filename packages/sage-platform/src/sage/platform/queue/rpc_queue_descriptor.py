@@ -11,7 +11,7 @@ Architecture:
 """
 
 import logging
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from .base_queue_descriptor import BaseQueueDescriptor
 
@@ -98,7 +98,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
         return self._queue_instance
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """元数据字典"""
         return {
             "host": self.host,
@@ -141,7 +141,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
             logger.error(f"Failed to initialize RPC Queue: {e}")
             raise RuntimeError(f"RPC Queue initialization failed: {e}") from e
 
-    def get_connection_status(self) -> Dict[str, Any]:
+    def get_connection_status(self) -> dict[str, Any]:
         """获取连接状态"""
         if (
             self._initialized
@@ -172,7 +172,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
             self._initialized = False
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RPCQueueDescriptor":
+    def from_dict(cls, data: dict[str, Any]) -> "RPCQueueDescriptor":
         """从字典创建实例"""
         metadata = data.get("metadata", {})
         instance = cls(

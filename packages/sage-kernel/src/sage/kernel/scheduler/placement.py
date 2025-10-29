@@ -195,7 +195,8 @@ class PlacementExecutor:
                 )
 
                 options["scheduling_strategy"] = NodeAffinitySchedulingStrategy(
-                    node_id=decision.target_node, soft=False  # 硬要求：必须放到指定节点
+                    node_id=decision.target_node,
+                    soft=False,  # 硬要求：必须放到指定节点
                 )
             except ImportError:
                 # Ray 版本不支持 NodeAffinitySchedulingStrategy

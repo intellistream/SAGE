@@ -197,7 +197,6 @@ class SocketSource(SourceFunction):
                 return None
         try:
             if self.protocol == "tcp":
-
                 data = self.socket.recv(self.buffer_size)
                 self.logger.debug(f"recv data: {data}")
                 return data

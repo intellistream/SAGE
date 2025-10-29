@@ -4,7 +4,7 @@ import importlib
 import json
 import os
 import sys
-from typing import Any, Dict, Iterable
+from typing import Any, Iterable
 
 from sage.cli.utils.env import get_api_key, load_environment_file, should_use_real_api
 from sage.common.utils.config.loader import load_config
@@ -28,12 +28,12 @@ except RuntimeError as exc:
 
 
 # ====== 读取 source ======
-def iter_queries(source_cfg: Dict[str, Any]) -> Iterable[str]:
+def iter_queries(source_cfg: dict[str, Any]) -> Iterable[str]:
     stype = source_cfg.get("type", "local")
     if stype == "local":
         path = source_cfg["data_path"]
         field = source_cfg.get("field_query", "query")
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -66,7 +66,7 @@ def main():
     if not os.path.exists(cfg_path):
         print(f"❌ Configuration file not found: {cfg_path}")
         sys.exit(1)
-    config: Dict[str, Any] = load_config(cfg_path)
+    config: dict[str, Any] = load_config(cfg_path)
 
     # ====== Profile ======
     profile = BaseProfile.from_dict(config["profile"])

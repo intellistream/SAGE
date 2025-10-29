@@ -97,9 +97,9 @@ class DiagnosticAgent:
             DiagnosisResult: 诊断结果
         """
         if verbose:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print("🏥 开始诊断分析")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             print(f"📄 影像路径: {image_path}")
             if patient_info:
                 print(f"👤 患者信息: {patient_info}")
@@ -155,9 +155,9 @@ class DiagnosticAgent:
 
         if verbose:
             print("   ✓ 报告生成完成")
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print("📋 诊断结果")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             print(f"\n{diagnosis_result.report}")
 
         return diagnosis_result
