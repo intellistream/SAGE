@@ -36,14 +36,16 @@ repos:
     args: [--fix=lf]
   - id: detect-private-key
 
-  # Python: Black formatter
-- repo: https://github.com/psf/black
-  rev: 25.9.0
-  hooks:
-  - id: black
-    language_version: python3.11
-    args: [--line-length=100]
-    exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+  # Python: Black formatter (DISABLED - using ruff format instead)
+  # Black and ruff format can conflict in edge cases, causing infinite reformatting
+  # Ruff format is now mature enough to replace Black completely
+# - repo: https://github.com/psf/black
+#   rev: 25.9.0
+#   hooks:
+#   - id: black
+#     language_version: python3.11
+#     args: [--line-length=100]
+#     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
 
   # Python: isort import sorting
 # - repo: https://github.com/pycqa/isort

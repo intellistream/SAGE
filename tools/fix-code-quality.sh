@@ -9,17 +9,13 @@ cd "$(dirname "$0")/.."
 echo "🔍 Running code quality checks..."
 echo ""
 
-# Run black
-echo "📝 Running black formatter..."
-pre-commit run black --all-files --config tools/pre-commit-config.yaml || true
+# Run ruff format (replaces black)
+echo "📝 Running ruff format..."
+pre-commit run ruff-format --all-files --config tools/pre-commit-config.yaml || true
 
-# Run isort
-echo "📦 Running isort..."
-pre-commit run isort --all-files --config tools/pre-commit-config.yaml || true
-
-# Run ruff
-echo "🔧 Running ruff linter..."
-pre-commit run ruff --all-files --config tools/pre-commit-config.yaml || true
+# Run ruff check (replaces isort + flake8)
+echo "🔧 Running ruff check..."
+pre-commit run ruff-check --all-files --config tools/pre-commit-config.yaml || true
 
 echo ""
 echo "✅ Code quality fixes applied!"
