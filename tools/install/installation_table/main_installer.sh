@@ -244,6 +244,13 @@ install_sage() {
     local install_vllm="${3:-false}"
     local clean_cache="${4:-true}"
 
+    # CI 环境特殊处理：双重保险，确保使用 pip
+    # 即使参数解析阶段没有正确设置，这里也会修正
+    if [[ (-n "$CI" || -n "$GITHUB_ACTIONS") && "$environment" = "conda" ]]; then
+        echo -e "${INFO} CI 环境中检测到 environment='conda'，强制使用 pip（CI 优化）"
+        environment="pip"
+    fi
+
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/.sage/logs/install.log"

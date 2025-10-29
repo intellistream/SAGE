@@ -524,15 +524,16 @@ set_defaults_and_show_tips() {
         has_defaults=true
 
         # CI 环境中的环境选择逻辑
-        if [ "$INSTALL_ENVIRONMENT" = "conda" ] && ! command -v conda &> /dev/null; then
-            # CI 环境中强制使用 conda 但 conda 不可用时，自动降级到 pip
+        # 在 CI 中，如果没有明确指定环境，强制使用 pip（即使有 conda）
+        # 因为 CI 环境是临时的，使用 pip 安装更简单、更快
+        if [ -z "$INSTALL_ENVIRONMENT" ]; then
+            INSTALL_ENVIRONMENT="pip"
+            echo -e "${INFO} CI 环境中自动使用 pip 模式（依赖系统 Python）"
+            has_defaults=true
+        elif [ "$INSTALL_ENVIRONMENT" = "conda" ] && ! command -v conda &> /dev/null; then
+            # 如果明确指定了 conda 但 conda 不可用，降级到 pip
             echo -e "${WARNING} CI环境中指定了conda但未找到conda，自动降级为pip模式"
             INSTALL_ENVIRONMENT="pip"
-            has_defaults=true
-        elif [ -z "$INSTALL_ENVIRONMENT" ] && ! command -v conda &> /dev/null; then
-            # CI 环境中没有指定环境且没有 conda 时，使用 pip
-            INSTALL_ENVIRONMENT="pip"
-            echo -e "${INFO} CI环境中未找到conda，自动使用pip模式"
             has_defaults=true
         fi
 
