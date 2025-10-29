@@ -276,9 +276,6 @@ known-first-party = ["sage"]
 force-single-line = false
 combine-as-imports = true
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.middleware._version.__version__"}
-
 # ============================================================================
 # scikit-build-core configuration
 # ============================================================================
@@ -299,24 +296,15 @@ wheel.packages = ["src/sage"]
 wheel.expand-macos-universal-tags = true
 
 # 严格配置验证
-strict-config = true
+strict-config = false  # 允许灵活配置
 
-# 安装 .so 文件的额外模式
-wheel.install-dir = "sage/middleware"
-
-# 元数据钩子 - 从 _version.py 读取版本
-[[tool.scikit-build.generate]]
-path = "sage/middleware/_version_generated.py"
-template = '''
-"""
-Generated version file - DO NOT EDIT
-Version is managed in _version.py
-"""
-__version__ = "${version}"
-'''
-location = "build"
-
-# 开发模式配置
+# 开发模式配置 - SOTA: 使用 redirect 模式，不需要复杂的 inplace 逻辑
 [tool.scikit-build.editable]
 mode = "redirect"
 verbose = true
+
+# 版本号来自 _version.py
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "src/sage/middleware/_version.py"
+regex = '''__version__\s*=\s*["'](?P<value>[^"']+)["']'''
