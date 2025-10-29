@@ -224,19 +224,19 @@ jobs:
               ;;
             standard)
               echo "验证 standard 模式功能..."
-              python -c "from sage.middleware.rag import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
               python -c "from sage.tools.cli import main; print('✅ CLI 可用')"
               ;;
             full)
               echo "验证 full 模式功能..."
-              python -c "from sage.middleware.rag import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
               if [ -d "packages/sage-apps" ]; then
                 python -c "import sage.apps; print('✅ sage.apps 可用')" 2>/dev/null || echo "ℹ️  sage.apps 可选"
               fi
               ;;
             dev)
               echo "验证 dev 模式功能..."
-              python -c "from sage.middleware.rag import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
               python -c "import pytest; print('✅ pytest 可用')"
               python -c "import black; print('✅ black 可用')"
               ;;
@@ -304,8 +304,8 @@ jobs:
           from sage.kernel import LocalEnvironment, RemoteEnvironment
           from sage.kernel.operators import MapOperator, FilterOperator
 
-          # L4: Middleware
-          from sage.middleware.rag import RAGPipeline
+          # L4: Libs (RAG)
+          from sage.libs.rag.pipeline import RAGPipeline
 
           # L6: Tools
           from sage.tools.cli import main as cli_main
