@@ -186,8 +186,8 @@ class RemoteCommand(BaseCommand):
                 for node in hosts_str.split(","):
                     node = node.strip()
                     if ":" in node:
-                        host, port = node.split(":", 1)
-                        port = int(port)
+                        host, port_str = node.split(":", 1)
+                        port = int(port_str)
                     else:
                         host = node
                         port = 22

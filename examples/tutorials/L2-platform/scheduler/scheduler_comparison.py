@@ -98,7 +98,7 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
             env.from_source(DataSource, total_items=10)  # 减少到10个项目以加快测试
             .map(HeavyProcessor, parallelism=2)  # 资源密集型 operator，2 个并行实例
             .filter(LightFilter, parallelism=1)  # 轻量级 operator，1 个并行实例
-            .sink(sink_op)
+            .sink(ResultSink)  # type: ignore[arg-type]  # Pass class, not instance
         )
 
         # 记录开始时间
@@ -118,8 +118,14 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
             wait_start = time.time()
             while time.time() - wait_start < max_wait_time:
                 # 检查是否还有活跃任务
-                if hasattr(env, "is_running") and not env.is_running():
-                    break
+                if hasattr(env, "is_running"):
+                    is_running_attr = getattr(env, "is_running")
+                    # Check if it's a method or property
+                    if callable(is_running_attr):
+                        if not is_running_attr():
+                            break
+                    elif not is_running_attr:  # It's a boolean property
+                        break
                 time.sleep(0.5)
 
             if time.time() - wait_start >= max_wait_time:
@@ -135,11 +141,13 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
 
         # 获取调度器指标
         try:
-            metrics = (
-                env.scheduler.get_metrics()
-                if hasattr(env, "scheduler") and hasattr(env.scheduler, "get_metrics")
-                else {}
-            )
+            metrics = {}
+            if (
+                hasattr(env, "scheduler")
+                and env.scheduler is not None
+                and hasattr(env.scheduler, "get_metrics")
+            ):
+                metrics = env.scheduler.get_metrics()  # type: ignore[union-attr]
         except Exception as e:
             print(f"⚠️  无法获取调度器指标: {e}")
             metrics = {"error": str(e)}
@@ -178,7 +186,7 @@ def run_with_scheduler(scheduler, env_class, scheduler_name):
                 if hasattr(env, "close"):
                     env.close()
                 elif hasattr(env, "shutdown"):
-                    env.shutdown()
+                    env.shutdown()  # type: ignore[union-attr]
             except Exception:  # noqa: S110
                 pass
 

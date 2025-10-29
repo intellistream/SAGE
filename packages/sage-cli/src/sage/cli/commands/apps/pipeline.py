@@ -509,7 +509,7 @@ def _load_pipeline_file(path: Path) -> dict[str, Any]:
 @dataclass
 class BuilderConfig:
     backend: str
-    model: str
+    model: str | None
     base_url: str | None
     api_key: str | None
     domain_contexts: tuple[str, ...] = ()
@@ -533,7 +533,7 @@ class GraphBuilderConfig:
 class PipelinePlanGenerator:
     def __init__(self, config: BuilderConfig) -> None:
         self.config = config
-        self._client = None  # type: Optional[Any]
+        self._client: Any | None = None
         self._last_knowledge_contexts: tuple[str, ...] = ()
         self._blueprint_matches: tuple[tuple[blueprints.PipelineBlueprint, float], ...] = ()
         self._last_blueprint_contexts: tuple[str, ...] = ()

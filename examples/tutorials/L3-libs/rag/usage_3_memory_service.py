@@ -120,8 +120,9 @@ class DPMemoryService(BaseService):
                 return None
 
             # 使用 insert 方法存储数据
-            memory_id = collection.insert(  # type: ignore[call-arg]
-                raw_data=content, index_name="global_index", metadata=metadata
+            # VDBMemoryCollection.insert 使用 (index_name, raw_data, metadata)
+            memory_id = collection.insert(
+                index_name="global_index", raw_data=content, metadata=metadata
             )
 
             self.logger.debug(f"Stored memory: {memory_id}")

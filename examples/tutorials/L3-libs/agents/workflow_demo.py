@@ -41,9 +41,22 @@ def example_iter_queries():
     """Example: How to read queries from different sources."""
     print("=== Query Reading Examples ===")
 
-    # Import the agent module
+    # Import the agent module using importlib to handle path with dashes
     try:
-        from examples.tutorials.agents.basic_agent import iter_queries
+        import importlib.util
+        import sys
+        from pathlib import Path
+
+        # Get the path to basic_agent.py
+        basic_agent_path = Path(__file__).parent / "basic_agent.py"
+        spec = importlib.util.spec_from_file_location("basic_agent", basic_agent_path)
+        if spec is not None and spec.loader is not None:
+            basic_agent = importlib.util.module_from_spec(spec)
+            sys.modules["basic_agent"] = basic_agent
+            spec.loader.exec_module(basic_agent)
+            iter_queries = basic_agent.iter_queries
+        else:
+            raise ImportError("Failed to load basic_agent module")
 
         # Example 1: Local JSONL file
         temp_file = create_test_queries_file()

@@ -136,9 +136,12 @@ def main():
                     tool_name = module_name.split(".")[-1]
                     tool_path = os.path.join(current_dir, f"{tool_name}.py")
                     spec = importlib.util.spec_from_file_location(tool_name, tool_path)
-                    mod = importlib.util.module_from_spec(spec)
-                    sys.modules[tool_name] = mod
-                    spec.loader.exec_module(mod)
+                    if spec is not None and spec.loader is not None:
+                        mod = importlib.util.module_from_spec(spec)
+                        sys.modules[tool_name] = mod
+                        spec.loader.exec_module(mod)
+                    else:
+                        raise ImportError(f"Failed to load spec for {tool_name}")
                 else:
                     mod = importlib.import_module(module_name)
                 cls = getattr(mod, item["class"])
@@ -171,9 +174,12 @@ def main():
             tool_name = module_name.split(".")[-1]
             tool_path = os.path.join(current_dir, f"{tool_name}.py")
             spec = importlib.util.spec_from_file_location(tool_name, tool_path)
-            mod = importlib.util.module_from_spec(spec)
-            sys.modules[tool_name] = mod
-            spec.loader.exec_module(mod)
+            if spec is not None and spec.loader is not None:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[tool_name] = mod
+                spec.loader.exec_module(mod)
+            else:
+                raise ImportError(f"Failed to load spec for {tool_name}")
         else:
             mod = importlib.import_module(module_name)
         cls = getattr(mod, item["class"])
