@@ -49,48 +49,23 @@ clean_pip_cache() {
     echo ""
 }
 
-# 安装C++扩展函数
-install_cpp_extensions() {
+# 验证C++扩展函数（扩展已在 sage-middleware 安装时自动构建）
+verify_cpp_extensions() {
     local log_file="$1"
 
-    echo "$(date): 开始安装C++扩展" >> "$log_file"
-    echo -e "${BLUE}🧩 安装C++扩展 (sage_db, sage_flow)...${NC}"
+    echo "$(date): 开始验证C++扩展" >> "$log_file"
     echo -e "${DIM}📝 详细日志: ${log_file}${NC}"
-    echo -e "${YELLOW}⏱️  注意: C++扩展构建可能需要几分钟时间，请耐心等待...${NC}"
-    echo -e "${DIM}   - 正在编译C++代码和依赖库${NC}"
-    echo -e "${DIM}   - 可以在另一个终端查看实时日志: tail -f ${log_file}${NC}"
+    echo -e "${DIM}   C++扩展已通过 sage-middleware 的 scikit-build-core 自动构建${NC}"
+    echo -e "${DIM}   正在检查扩展可用性...${NC}"
     echo ""
 
-    # C++扩展通过 setup.py 的 build_ext 自动构建
-    # 在 pip install -e 时会自动调用 CustomDevelop.run() -> build_ext
-    # 这里只需要重新触发构建（如果需要的话）
+    # 在CI环境中增加短暂延迟，确保文件系统同步
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+        sleep 1
+    fi
 
-    echo -e "${DIM}C++扩展已通过 setup.py 自动构建${NC}"
-    echo -e "${DIM}检查构建结果...${NC}"
-    echo "$(date): C++扩展应该已在 pip install 阶段自动构建" >> "$log_file"
-
-    # 对于开发模式，扩展已经在 pip install -e 时构建
-    # 对于标准模式，扩展已经在 pip install 时构建
-    # 这里只需验证扩展是否可用
-
-    install_success=true
-    exit_code=0
-
-    # 注意: 段错误(退出码139)可能在清理阶段发生，但扩展已成功安装
-    # 通过检查扩展状态来确定实际结果
-    if [ "$install_success" = "true" ]; then
-        echo "$(date): C++扩展应该已在安装阶段构建" >> "$log_file"
-
-        # 验证扩展是否真的可用
-        echo -e "${DIM}验证扩展可用性...${NC}"
-
-        # 在CI环境中增加短暂延迟，确保文件系统同步
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
-            sleep 1
-        fi
-
-        # 验证扩展
-        python3 -c "
+    # 验证扩展是否可用
+    python3 -c "
 import sys
 import warnings
 
@@ -150,91 +125,19 @@ except Exception as e:
         validation_result=$?
 
         if [ $validation_result -eq 0 ]; then
-            echo -e "${CHECK} C++ 扩展安装成功 (sage_db, sage_flow)"
+            echo -e "${CHECK} C++ 扩展可用 (sage_db, sage_flow, sage_tsdb)"
             echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
             return 0
         else
-            echo -e "${WARNING} 扩展构建完成但验证失败"
+            echo -e "${WARNING} 扩展验证失败"
             echo "$(date): 扩展验证失败" >> "$log_file"
+            echo -e "${DIM}💡 提示: C++扩展在 sage-middleware 安装时自动构建${NC}"
+            echo -e "${DIM}   如果验证失败，可能是因为：${NC}"
+            echo -e "${DIM}   1. 子模块未初始化：git submodule update --init --recursive${NC}"
+            echo -e "${DIM}   2. 缺少构建工具：apt-get install build-essential cmake${NC}"
+            echo -e "${DIM}   3. 查看详细日志：cat $log_file${NC}"
             return 1
         fi
-    else
-        echo -e "${WARNING} C++ 扩展安装失败"
-        echo "$(date): C++扩展安装失败" >> "$log_file"
-
-        # 在CI环境中显示详细的错误信息和调试信息
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
-            echo -e "${RED} ==================== CI环境扩展安装失败调试信息 ===================="
-            echo -e "${INFO} 1. 系统依赖检查:"
-            echo -e "${DIM}GCC 版本:${NC}"
-            gcc --version 2>/dev/null || echo -e "${WARNING}❌ gcc 不可用"
-            echo -e "${DIM}CMake 版本:${NC}"
-            cmake --version 2>/dev/null || echo -e "${WARNING}❌ cmake 不可用"
-            echo -e "${DIM}BLAS/LAPACK 库:${NC}"
-            find /usr/lib* -name "*blas*" -o -name "*lapack*" 2>/dev/null | head -5 || echo -e "${WARNING}❌ 未找到BLAS/LAPACK"
-
-            echo -e "${INFO} 2. Python 环境检查:"
-            echo -e "${DIM}Python 版本: $(python3 --version)${NC}"
-            echo -e "${DIM}Python 路径: $(which python3)${NC}"
-            echo -e "${DIM}Pip 版本: $(pip --version)${NC}"
-
-            echo -e "${INFO} 3. SAGE CLI 状态:"
-            echo -e "${DIM}SAGE 命令: $SAGE_CMD${NC}"
-            echo -e "${DIM}SAGE 位置: $(which sage || echo '未找到')${NC}"
-
-            echo -e "${INFO} 4. 工作目录和权限:"
-            echo -e "${DIM}当前目录: $(pwd)${NC}"
-            echo -e "${DIM}目录权限: $(ls -ld .)${NC}"
-
-            echo -e "${INFO} 5. 最近安装日志 (最后50行):"
-            echo -e "${DIM}=============== 安装日志开始 ===============${NC}"
-            tail -50 "$log_file" 2>/dev/null || echo "无法读取日志文件"
-            echo -e "${DIM}=============== 安装日志结束 ===============${NC}"
-
-            echo -e "${INFO} 6. 尝试单独安装 sage_db 以获取详细错误:"
-            echo -e "${DIM}单独安装 sage_db...${NC}"
-            echo -e "${DIM}================================ 单独安装开始 ================================${NC}"
-            $SAGE_CMD extensions install sage_db --force 2>&1 || echo "单独安装也失败"
-            echo -e "${DIM}================================ 单独安装结束 ================================${NC}"
-
-            echo -e "${INFO} 7. 检查 sage_db 构建目录状态:"
-            # 尝试找到项目根目录
-            if [ -n "${GITHUB_WORKSPACE:-}" ]; then
-                sage_db_dir="${GITHUB_WORKSPACE}/packages/sage-middleware/src/sage/middleware/components/sage_db"
-            elif [ -f "$(pwd)/packages/sage-middleware/src/sage/middleware/components/sage_db/CMakeLists.txt" ]; then
-                sage_db_dir="$(pwd)/packages/sage-middleware/src/sage/middleware/components/sage_db"
-            else
-                sage_db_dir="packages/sage-middleware/src/sage/middleware/components/sage_db"
-            fi
-
-            echo -e "${DIM}检查目录: $sage_db_dir${NC}"
-            if [ -d "$sage_db_dir" ]; then
-                echo -e "${DIM}sage_db 目录存在${NC}"
-                echo -e "${DIM}目录内容:${NC}"
-                ls -la "$sage_db_dir" | head -10
-                if [ -d "$sage_db_dir/build" ]; then
-                    echo -e "${DIM}构建目录存在，检查错误日志:${NC}"
-                    if [ -f "$sage_db_dir/build/CMakeFiles/CMakeError.log" ]; then
-                        echo -e "${DIM}CMake错误日志 (最后20行):${NC}"
-                        tail -20 "$sage_db_dir/build/CMakeFiles/CMakeError.log" 2>/dev/null || echo "无法读取CMake错误日志"
-                    fi
-                    if [ -f "$sage_db_dir/build/make_output.log" ]; then
-                        echo -e "${DIM}Make输出日志 (最后20行):${NC}"
-                        tail -20 "$sage_db_dir/build/make_output.log" 2>/dev/null || echo "无法读取Make输出日志"
-                    fi
-                else
-                    echo -e "${DIM}构建目录不存在${NC}"
-                fi
-            else
-                echo -e "${DIM}sage_db 目录不存在: $sage_db_dir${NC}"
-            fi
-
-            echo -e "${RED} ===============================================================${NC}"
-        else
-            echo -e "${DIM}稍后可手动安装: sage extensions install all${NC}"
-        fi
-        return 1
-    fi
 }
 
 # 主安装函数
@@ -298,39 +201,43 @@ install_sage() {
             install_core_packages "$mode"
             ;;
         "standard")
-            echo -e "${BLUE}标准安装模式：基础包 + 中间件 + 应用包 + C++扩展${NC}"
+            echo -e "${BLUE}标准安装模式：基础包 + 中间件 + 应用包${NC}"
             echo "$(date): 开始标准安装模式" >> "$log_file"
+
+            # 在安装前确保 libstdc++ 符号满足要求
+            echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
+            ensure_libstdcxx_compatibility "$log_file" "$environment" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试安装"
+
             install_core_packages "$mode"
             install_scientific_packages
 
-            # 在安装 C++ 扩展前确保 libstdc++ 符号满足要求
-            echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
-            ensure_libstdcxx_compatibility "$log_file" "$environment" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试构建扩展"
-
-            # 安装C++扩展（标准功能）
+            # 验证C++扩展（已在 sage-middleware 安装时自动构建）
             echo ""
-            if install_cpp_extensions "$log_file"; then
-                echo -e "${CHECK} 标准安装模式完成（包含C++扩展）"
+            echo -e "${BLUE}🧩 验证 C++ 扩展状态...${NC}"
+            if verify_cpp_extensions "$log_file"; then
+                echo -e "${CHECK} 标准安装模式完成（C++扩展已自动构建）"
             else
-                echo -e "${WARNING} 标准安装完成，但C++扩展安装失败"
+                echo -e "${WARNING} 标准安装完成，但C++扩展不可用"
             fi
             ;;
         "dev")
-            echo -e "${BLUE}开发者安装模式：标准安装 + C++扩展 + 开发工具${NC}"
+            echo -e "${BLUE}开发者安装模式：标准安装 + 开发工具${NC}"
             echo "$(date): 开始开发者安装模式" >> "$log_file"
+
+            # 在安装前确保 libstdc++ 符号满足要求
+            echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
+            ensure_libstdcxx_compatibility "$log_file" "$environment" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试安装"
+
             install_core_packages "$mode"
             install_scientific_packages
 
-            # 在安装 C++ 扩展前确保 libstdc++ 符号满足要求
-            echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
-            ensure_libstdcxx_compatibility "$log_file" "$environment" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试构建扩展"
-
-            # 安装C++扩展（标准功能）
+            # 验证C++扩展（已在 sage-middleware 安装时自动构建）
             echo ""
-            if install_cpp_extensions "$log_file"; then
-                echo -e "${CHECK} C++扩展安装完成"
+            echo -e "${BLUE}🧩 验证 C++ 扩展状态...${NC}"
+            if verify_cpp_extensions "$log_file"; then
+                echo -e "${CHECK} C++扩展可用"
             else
-                echo -e "${WARNING} C++扩展安装失败，但继续安装开发工具"
+                echo -e "${WARNING} C++扩展不可用，但继续安装开发工具"
             fi
 
             # 安装开发工具
@@ -348,8 +255,8 @@ install_sage() {
     echo ""
     echo -e "${CHECK} SAGE 基础安装完成！"
 
-    # 尝试安装C++扩展（开发者模式已在dev_installer.sh中处理）
-    # 这里不需要额外操作
+    # C++扩展已在 sage-middleware 安装时通过 scikit-build-core 自动构建
+    # 上面的验证步骤已检查扩展状态
 
     # 安装 VLLM（如果需要）
     if [ "$install_vllm" = "true" ]; then

@@ -145,9 +145,9 @@ main() {
 
     # 验证安装
     if verify_installation; then
-        # 标准模式和开发模式都包含C++扩展
+        # C++扩展已在 sage-middleware 安装时自动构建和验证
         if [ "$mode" = "standard" ] || [ "$mode" = "dev" ]; then
-            echo -e "${DIM}C++扩展状态已在安装过程中验证${NC}"
+            echo -e "${DIM}C++扩展已通过 sage-middleware 自动构建和验证${NC}"
         fi
 
         # 自动安装代码质量和架构检查 Git hooks（所有模式）

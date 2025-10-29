@@ -226,7 +226,7 @@ show_parameter_help() {
     echo -e "    ${DIM}安装方式: 开发模式安装 (pip install -e)${NC}"
     echo -e "    ${DIM}适合: 贡献 SAGE 框架源码${NC}"
     echo -e "    ${DIM}大小: ~400MB${NC}"
-    echo -e "    ${DIM}自动安装: C++扩展 (sage_db, sage_flow) - 需要构建工具${NC}"
+    echo -e "    ${DIM}C++扩展: 在 sage-middleware 安装时自动构建${NC}"
     echo ""
 
     echo -e "${BLUE}🔧 安装环境：${NC}"
