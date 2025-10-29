@@ -1,12 +1,48 @@
 """
-SAGE - Streaming-Augmented Generative Execution
+SAGE Kernel API Functions - 向后兼容层
+
+⚠️ Deprecated: 这些类已迁移到 sage.common.core.functions
+请使用: from sage.common.core.functions import MapFunction, SinkFunction, ...
+
+为了向后兼容，本模块仍然提供这些导入。
 """
 
-# 直接从本包的_version模块加载版本信息
-try:
-    from sage.kernel._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+import warnings
+
+warnings.warn(
+    "Importing from sage.kernel.api.function is deprecated. "
+    "Please use: from sage.common.core.functions import MapFunction, ...",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# 从 common 重新导出
+from sage.common.core.functions import (
+    BaseCoMapFunction,  # noqa: E402
+    BaseFunction,
+    BaseJoinFunction,
+    BatchFunction,
+    FilterFunction,
+    FlatMapFunction,
+    FutureFunction,
+    KeyByFunction,
+    LambdaMapFunction,
+    MapFunction,
+    SinkFunction,
+    SourceFunction,
+)
+
+__all__ = [
+    "BaseFunction",
+    "MapFunction",
+    "FilterFunction",
+    "FlatMapFunction",
+    "SinkFunction",
+    "SourceFunction",
+    "BatchFunction",
+    "KeyByFunction",
+    "BaseJoinFunction",
+    "BaseCoMapFunction",
+    "LambdaMapFunction",
+    "FutureFunction",
+]

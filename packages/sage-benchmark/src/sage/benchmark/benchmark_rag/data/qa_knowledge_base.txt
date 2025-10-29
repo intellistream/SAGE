@@ -33,6 +33,3 @@ RAG（Retrieval-Augmented Generation）系统的主要优势：
 4. 实施缓存策略减少重复计算
 5. 优化数据预处理和后处理流程
 6. 定期更新和维护向量索引
-
-
-

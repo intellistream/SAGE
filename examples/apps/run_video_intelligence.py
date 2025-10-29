@@ -17,10 +17,10 @@ Test Configuration:
     @test_speed: slow
     @test_requires: [video]
     @test_skip_ci: true
+    @test:skip - Requires video file parameter
 """
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -46,10 +46,10 @@ def main():
 Examples:
   # Analyze a video file
   python %(prog)s --video path/to/video.mp4
-  
+
   # Use custom configuration
   python %(prog)s --video path/to/video.mp4 --config config_video_intelligence.yaml
-  
+
   # Process multiple frames
   python %(prog)s --video path/to/video.mp4 --max-frames 100
 
@@ -108,7 +108,7 @@ Features:
     if args.config:
         print(f"Config: {args.config}")
     else:
-        print(f"Config: Using default configuration")
+        print("Config: Using default configuration")
     if args.max_frames:
         print(f"Max Frames: {args.max_frames}")
     if args.output:

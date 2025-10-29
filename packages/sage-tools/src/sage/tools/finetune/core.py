@@ -6,7 +6,6 @@ Finetune CLI - Core Logic
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -22,7 +21,7 @@ def prepare_training_data(
     root_dir: Path,
     output_dir: Path,
     format: str = "alpaca",
-    custom_data_path: Optional[Path] = None,
+    custom_data_path: Path | None = None,
     **kwargs,
 ) -> Path:
     """准备训练数据集（支持多种任务类型）"""
@@ -32,9 +31,7 @@ def prepare_training_data(
 
     if task_type == FinetuneTask.CODE_UNDERSTANDING:
         # 代码理解任务 - 收集代码文件
-        extensions = kwargs.get(
-            "extensions", [".py", ".yaml", ".yml", ".toml", ".md", ".rst"]
-        )
+        extensions = kwargs.get("extensions", [".py", ".yaml", ".yml", ".toml", ".md", ".rst"])
         files = collect_sage_code_files(root_dir, extensions=extensions)
 
         with Progress(
@@ -88,7 +85,7 @@ def prepare_training_data(
     elif task_type == FinetuneTask.QA_PAIRS:
         # 问答对任务
         if custom_data_path and custom_data_path.exists():
-            with open(custom_data_path, "r", encoding="utf-8") as f:
+            with open(custom_data_path, encoding="utf-8") as f:
                 qa_data = json.load(f)
 
             for item in qa_data:
@@ -106,7 +103,7 @@ def prepare_training_data(
     elif task_type == FinetuneTask.INSTRUCTION:
         # 指令微调任务
         if custom_data_path and custom_data_path.exists():
-            with open(custom_data_path, "r", encoding="utf-8") as f:
+            with open(custom_data_path, encoding="utf-8") as f:
                 instruction_data = json.load(f)
 
             for item in instruction_data:
@@ -124,14 +121,12 @@ def prepare_training_data(
     elif task_type == FinetuneTask.CHAT:
         # 对话微调任务
         if custom_data_path and custom_data_path.exists():
-            with open(custom_data_path, "r", encoding="utf-8") as f:
+            with open(custom_data_path, encoding="utf-8") as f:
                 chat_data = json.load(f)
 
             for item in chat_data:
                 if format == "chat":
-                    training_data.append(
-                        {"conversations": item.get("conversations", [])}
-                    )
+                    training_data.append({"conversations": item.get("conversations", [])})
                 elif format == "alpaca":
                     # 转换为alpaca格式
                     conversations = item.get("conversations", [])
@@ -149,7 +144,7 @@ def prepare_training_data(
     elif task_type == FinetuneTask.CUSTOM:
         # 自定义数据集
         if custom_data_path and custom_data_path.exists():
-            with open(custom_data_path, "r", encoding="utf-8") as f:
+            with open(custom_data_path, encoding="utf-8") as f:
                 training_data = json.load(f)
             console.print(f"✅ 已加载自定义数据集: {len(training_data)} 条")
         else:

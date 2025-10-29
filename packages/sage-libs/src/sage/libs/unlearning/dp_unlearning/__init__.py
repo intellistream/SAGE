@@ -15,10 +15,10 @@ Architecture:
 """
 
 from .base_mechanism import BasePrivacyMechanism
+from .neighbor_compensation import NeighborCompensation
 from .privacy_accountant import PrivacyAccountant
 from .unlearning_engine import UnlearningEngine
 from .vector_perturbation import VectorPerturbation
-from .neighbor_compensation import NeighborCompensation
 
 __all__ = [
     "BasePrivacyMechanism",

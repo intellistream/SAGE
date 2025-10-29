@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Tuple, Type
+from typing import TYPE_CHECKING, Any
 
 from sage.kernel.runtime.context.context_injection import create_service_with_context
 
@@ -12,9 +12,9 @@ class ServiceFactory:
     def __init__(
         self,
         service_name: str,
-        service_class: Type,
-        service_args: Tuple[Any, ...] = (),
-        service_kwargs: dict = None,
+        service_class: type,
+        service_args: tuple[Any, ...] = (),
+        service_kwargs: dict | None = None,
     ):
         """
         初始化服务工厂
@@ -32,13 +32,11 @@ class ServiceFactory:
 
         self.service_name = service_name or service_class.__name__
         self.service_class = service_class
-        print(
-            f"ServiceFactory initialized for {self.service_name} with class {self.service_class}"
-        )
+        print(f"ServiceFactory initialized for {self.service_name} with class {self.service_class}")
         self.service_args = service_args
         self.service_kwargs = service_kwargs or {}
 
-    def create_service(self, ctx: "ServiceContext" = None) -> Any:
+    def create_service(self, ctx: "ServiceContext | None" = None) -> Any:
         """
         创建服务实例
 
@@ -93,6 +91,4 @@ class ServiceFactory:
         if self.service_class is None:
             import logging
 
-            logging.warning(
-                "ServiceFactory: service_class is None after deserialization"
-            )
+            logging.warning("ServiceFactory: service_class is None after deserialization")

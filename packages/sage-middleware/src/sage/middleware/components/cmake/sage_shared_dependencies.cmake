@@ -11,17 +11,25 @@ option(SAGE_ENABLE_GPERFTOOLS "Build extensions with gperftools/tcmalloc" OFF)
 set(SAGE_GPERFTOOLS_ROOT "" CACHE PATH "Optional root path for gperftools installation")
 
 # --- pybind11 ---------------------------------------------------------------
-find_package(pybind11 ${SAGE_PYBIND11_VERSION} EXACT CONFIG QUIET)
-if(NOT pybind11_FOUND)
-    include(FetchContent)
-    if(NOT DEFINED pybind11_POPULATED)
-        FetchContent_Declare(
-            pybind11
-            GIT_REPOSITORY https://github.com/pybind/pybind11.git
-            GIT_TAG v${SAGE_PYBIND11_VERSION}
-        )
+# Check if pybind11 is already available (e.g., from parent project)
+if(NOT TARGET pybind11::module)
+    find_package(pybind11 CONFIG QUIET)
+    if(NOT pybind11_FOUND)
+        message(STATUS "pybind11 not found, fetching version ${SAGE_PYBIND11_VERSION}")
+        include(FetchContent)
+        if(NOT DEFINED pybind11_POPULATED)
+            FetchContent_Declare(
+                pybind11
+                GIT_REPOSITORY https://github.com/pybind/pybind11.git
+                GIT_TAG v${SAGE_PYBIND11_VERSION}
+            )
+        endif()
+        FetchContent_MakeAvailable(pybind11)
+    else()
+        message(STATUS "Using existing pybind11 ${pybind11_VERSION}")
     endif()
-    FetchContent_MakeAvailable(pybind11)
+else()
+    message(STATUS "pybind11 already provided by parent project")
 endif()
 
 # --- gperftools -------------------------------------------------------------

@@ -29,7 +29,7 @@ Scheduler API - 调度器核心 API 定义
 
     # 策略 1: FIFO
     env1 = LocalEnvironment(scheduler=FIFOScheduler())
-    
+
     # 策略 2: 负载感知
     env2 = LocalEnvironment(scheduler=LoadAwareScheduler(max_concurrent=10))
 
@@ -38,31 +38,34 @@ Scheduler API - 调度器核心 API 定义
         for node in graph.nodes:
             # 1. 获取调度决策
             decision = scheduler.make_decision(node)
-            
+
             # 2. 根据决策等待（如果需要）
             if decision.delay > 0:
                 time.sleep(decision.delay)
-            
+
             # 3. 执行物理放置
             task = placement_executor.place_task(node, decision)
-            
+
             # 4. 保存任务实例
             self.tasks[node.name] = task
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
     from sage.kernel.runtime.graph.service_node import ServiceNode
+    from sage.kernel.runtime.service.local_service_task import LocalServiceTask
+    from sage.kernel.runtime.task.local_task import LocalTask
     from sage.kernel.scheduler.decision import PlacementDecision
+    from sage.kernel.utils.ray.actor import ActorWrapper
 
 
 class BaseScheduler(ABC):
     """
     调度器抽象基类 - 纯决策者
-    
+
     重要架构变更：
     - Scheduler 不再持有 placement_executor（解耦）
     - Scheduler 返回 PlacementDecision，不返回 Task（职责分离）
@@ -70,18 +73,18 @@ class BaseScheduler(ABC):
 
     调度器在 Environment 级别配置，对用户透明。
     并行度在 operator 级别指定（transformation.parallelism）。
-    
+
     职责：
     1. 分析任务节点信息（并行度、资源需求等）
     2. 评估系统状态（负载、资源可用性等）
     3. 制定调度决策（何时、何处、如何放置）
     4. 返回决策对象（不执行放置）
     """
-    
+
     def __init__(self):
         """
         初始化调度器
-        
+
         注意：Scheduler 不再持有 placement_executor
               PlacementExecutor 由 Dispatcher 持有和管理
         """
@@ -92,18 +95,18 @@ class BaseScheduler(ABC):
     def make_decision(self, task_node: "TaskNode") -> "PlacementDecision":
         """
         制定任务调度决策（核心方法）
-        
+
         这是 Scheduler 的核心职责：分析并返回调度决策，不执行放置。
-        
+
         调度器根据以下因素做出决策：
         - task_node.transformation.parallelism (并行度)
         - task_node.transformation 的资源需求（cpu_required, memory_required等）
         - 当前系统负载和资源可用性
         - 调度策略（FIFO、优先级、负载感知等）
-        
+
         Args:
             task_node: 任务节点（包含 transformation 和 parallelism 信息）
-        
+
         Returns:
             PlacementDecision: 调度决策对象，包含：
                 - target_node: 目标物理节点
@@ -111,7 +114,7 @@ class BaseScheduler(ABC):
                 - delay: 延迟时间
                 - placement_strategy: 放置策略
                 - reason: 决策原因
-        
+
         示例:
             decision = scheduler.make_decision(task_node)
             # decision = PlacementDecision(
@@ -126,86 +129,91 @@ class BaseScheduler(ABC):
     def make_service_decision(self, service_node: "ServiceNode") -> "PlacementDecision":
         """
         制定服务调度决策
-        
+
         服务通常需要特殊处理（如固定节点、持久化等）
         子类可以重写此方法提供自定义逻辑。
-        
+
         Args:
             service_node: 服务节点
-        
+
         Returns:
             PlacementDecision: 服务放置决策
         """
         # 默认实现：使用立即默认配置
         from sage.kernel.scheduler.decision import PlacementDecision
+
         return PlacementDecision.immediate_default(
             reason=f"Service placement: {service_node.service_name}"
         )
 
-    def schedule_task(self, task_node: "TaskNode", runtime_ctx=None):
+    def schedule_task(
+        self, task_node: "TaskNode", runtime_ctx=None
+    ) -> Union["LocalTask", "ActorWrapper"]:
         """
         调度任务（兼容性方法）
-        
+
         这是一个高级 API，用于直接创建和调度任务。
         内部调用 make_decision() 获取调度决策，然后通过任务工厂创建任务。
-        
+
         使用场景：
         - 单元测试和集成测试
         - 简单调度场景（不需要显式处理决策）
         - 与现有代码兼容
-        
+
         Args:
             task_node: 任务节点
             runtime_ctx: 运行时上下文（如果为 None，使用 task_node.ctx）
-        
+
         Returns:
-            创建的任务实例
+            创建的任务实例（LocalTask 或 ActorWrapper）
         """
         # 调用核心决策方法
         decision = self.make_decision(task_node)
-        
+
         # 根据决策延迟（如果需要）
-        if hasattr(decision, 'delay') and decision.delay > 0:
+        if hasattr(decision, "delay") and decision.delay > 0:
             import time
+
             time.sleep(decision.delay)
-        
+
         # 通过任务工厂创建任务
         ctx = runtime_ctx if runtime_ctx is not None else task_node.ctx
         task = task_node.task_factory.create_task(task_node.name, ctx)
-        
+
         return task
 
-    def schedule_service(self, service_node: "ServiceNode", runtime_ctx=None):
+    def schedule_service(
+        self, service_node: "ServiceNode", runtime_ctx=None
+    ) -> Union["LocalServiceTask", "ActorWrapper"]:
         """
         调度服务（兼容性方法）
-        
+
         这是一个高级 API，用于直接创建和调度服务。
         内部调用 make_service_decision() 获取调度决策，然后通过服务工厂创建服务。
-        
+
         Args:
             service_node: 服务节点
             runtime_ctx: 运行时上下文（如果为 None，使用 service_node.ctx）
-        
+
         Returns:
-            创建的服务任务实例
+            创建的服务任务实例（LocalServiceTask 或 ActorWrapper）
         """
         # 调用服务决策方法
         decision = self.make_service_decision(service_node)
-        
+
         # 根据决策延迟（如果需要）
-        if hasattr(decision, 'delay') and decision.delay > 0:
+        if hasattr(decision, "delay") and decision.delay > 0:
             import time
+
             time.sleep(decision.delay)
-        
+
         # 通过服务工厂创建服务
         ctx = runtime_ctx if runtime_ctx is not None else service_node.ctx
-        service = service_node.service_task_factory.create_service_task(
-            service_node.service_name, ctx
-        )
-        
+        service = service_node.service_task_factory.create_service_task(ctx)
+
         return service
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         获取调度器性能指标（供开发者对比不同策略）
 

@@ -14,4 +14,4 @@ Document Loaders:
 These tools are used to prepare data and indices before running RAG benchmarks.
 """
 
-__all__ = []
+__all__: list[str] = []

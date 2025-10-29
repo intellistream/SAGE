@@ -1,17 +1,9 @@
 import os
 import sys
 
-import yaml
 from sage.common.utils.config.loader import load_config
-from sage.libs.rag.chunk import CharacterSplitter
 from sage.libs.rag.document_loaders import TextLoader
-from sage.libs.rag.milvusRetriever import MilvusDenseRetriever
-
-
-def load_config(path):
-    with open(path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    return config
+from sage.middleware.operators.rag import CharacterSplitter, MilvusDenseRetriever
 
 
 def load_knowledge_to_milvus(config):
@@ -46,10 +38,7 @@ def load_knowledge_to_milvus(config):
 
 if __name__ == "__main__":
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - build_milvus_index example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

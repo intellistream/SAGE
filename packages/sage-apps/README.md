@@ -1,6 +1,7 @@
 # SAGE Applications
 
-Real-world AI applications built on the SAGE framework, showcasing end-to-end solutions for various domains.
+Real-world AI applications built on the SAGE framework, showcasing end-to-end solutions for various
+domains.
 
 ## Overview
 
@@ -12,11 +13,13 @@ Real-world AI applications built on the SAGE framework, showcasing end-to-end so
 ## Installation
 
 ### Basic Installation
+
 ```bash
 pip install isage-apps
 ```
 
 ### Install with Specific Applications
+
 ```bash
 # Video intelligence only
 pip install isage-apps[video]
@@ -29,9 +32,22 @@ pip install isage-apps[all]
 ```
 
 ### Development Installation
+
 ```bash
 cd packages/sage-apps
 pip install -e ".[dev]"
+```
+
+## 📖 Quick Start
+
+```bash
+# Run video intelligence demo
+pip install isage-apps[video]
+python -m sage.apps.video.video_intelligence_pipeline --video path/to/video.mp4
+
+# Run medical diagnosis demo
+pip install isage-apps[medical]
+python -m sage.apps.medical_diagnosis.run_diagnosis
 ```
 
 ## Applications
@@ -48,12 +64,14 @@ Advanced video analysis pipeline combining multiple AI models:
 - **Keyed event aggregation**
 
 **Quick Start:**
+
 ```bash
 pip install isage-apps[video]
 python -m sage.apps.video.video_intelligence_pipeline --video path/to/video.mp4
 ```
 
 **Features:**
+
 - Multi-model inference pipeline
 - Real-time processing with SAGE operators
 - Structured JSON output (timeline, summary, events)
@@ -72,12 +90,14 @@ AI-assisted diagnostic system for medical imaging:
 - **Training and evaluation tools**
 
 **Quick Start:**
+
 ```bash
 pip install isage-apps[medical]
 python -m sage.apps.medical_diagnosis.run_diagnosis
 ```
 
 **Features:**
+
 - Agent-based diagnostic workflow
 - Medical knowledge base integration
 - Configurable diagnostic criteria
@@ -108,6 +128,7 @@ sage-apps/
 ## Dependencies
 
 ### Core Framework
+
 - `isage-common` - Common utilities
 - `isage-kernel` - Runtime and operators
 - `isage-middleware` - Services (SageDB, SageFlow, NeuroMem)
@@ -116,11 +137,13 @@ sage-apps/
 ### Application-Specific
 
 **Video Intelligence:**
+
 - `opencv-python` - Video processing
 - `torch` - Deep learning
 - `transformers` - CLIP and language models
 
 **Medical Diagnosis:**
+
 - `pillow` - Image processing
 - `scikit-learn` - ML utilities
 
@@ -147,11 +170,13 @@ run_diagnosis(config_path="config/agent_config.yaml")
 ## Development
 
 ### Running Tests
+
 ```bash
 pytest tests/
 ```
 
 ### Code Quality
+
 ```bash
 # Format code
 black src/
@@ -166,11 +191,13 @@ mypy src/
 ## CI/CD Notes
 
 **Video Intelligence:**
+
 - Requires HuggingFace model downloads (~170MB)
 - Tagged with `@test:skip` in CI due to network restrictions
 - Test locally with: `python -m sage.apps.video.video_intelligence_pipeline`
 
 **Medical Diagnosis:**
+
 - Works in CI (uses local data)
 - Test with: `pytest tests/test_medical_diagnosis.py`
 

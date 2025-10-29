@@ -23,9 +23,10 @@ import argparse
 import os
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 
@@ -37,9 +38,7 @@ def get_logger(name: str) -> CustomLogger:
 
 
 try:  # Optional middleware components - sage_mem (migrated from neuromem)
-    from sage.middleware.components.sage_mem.services.neuromem_vdb_service import (
-        NeuroMemVDBService,
-    )
+    from sage.middleware.components.sage_mem.services.neuromem_vdb_service import NeuroMemVDBService
 except ImportError:  # pragma: no cover - optional dependency
     NeuroMemVDBService = None  # type: ignore[assignment]
 
@@ -49,14 +48,12 @@ except ImportError:  # pragma: no cover - optional dependency
     SageDBService = None  # type: ignore[assignment]
 
 try:
-    from sage.middleware.components.sage_flow.python.micro_service import (
-        SageFlowService,
-    )
+    from sage.middleware.components.sage_flow.python.micro_service import SageFlowService
 except ImportError:  # pragma: no cover - optional dependency
     SageFlowService = None  # type: ignore[assignment]
 
 from sage.apps.video.operators import (
-    EventStatsSink,
+    EventStatsSink,  # noqa: E402
     FrameEventEmitter,
     FrameLightweightFormatter,
     FrameObjectClassifier,
@@ -75,7 +72,7 @@ from sage.apps.video.operators import (
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "default_config.yaml"
 
 
-def load_config(config_path: Optional[str]) -> Dict[str, Any]:
+def load_config(config_path: str | None) -> dict[str, Any]:
     """Load YAML configuration for the demo."""
 
     # If user provided a config path, use it
@@ -87,9 +84,7 @@ def load_config(config_path: Optional[str]) -> Dict[str, Any]:
         with path.open("r", encoding="utf-8") as handle:
             data = yaml.safe_load(handle) or {}
         if not isinstance(data, dict):
-            raise ValueError(
-                f"Config file {path} must define a mapping at the top level"
-            )
+            raise ValueError(f"Config file {path} must define a mapping at the top level")
         print(f"[INFO] Loaded config from: {path}")
         return data
 
@@ -105,8 +100,8 @@ def load_config(config_path: Optional[str]) -> Dict[str, Any]:
         return data
 
     # If no config file found, return default configuration
-    print(f"[WARNING] No config file found")
-    print(f"[INFO] Using built-in default configuration")
+    print("[WARNING] No config file found")
+    print("[INFO] Using built-in default configuration")
     return {
         "video_path": None,
         "output_dir": "output/video_intelligence",
@@ -136,9 +131,7 @@ def download_test_video(output_path: str) -> bool:
     """
     # Use a small sample video from a public source
     # This is a ~1MB sample video suitable for testing
-    test_video_url = (
-        "https://sample-videos.com/video321/mp4/240/big_buck_bunny_240p_1mb.mp4"
-    )
+    test_video_url = "https://sample-videos.com/video321/mp4/240/big_buck_bunny_240p_1mb.mp4"
 
     logger = CustomLogger("video_downloader")
 
@@ -194,9 +187,7 @@ def ensure_video_exists(video_path: str, auto_download: bool = True) -> str:
         )
 
     # Try to download a test video
-    logger.warning(
-        f"Video file '{video_path}' not found. Attempting to download test video..."
-    )
+    logger.warning(f"Video file '{video_path}' not found. Attempting to download test video...")
 
     # Determine download path
     if video_path == "./video_demo.mp4":
@@ -221,7 +212,7 @@ def ensure_video_exists(video_path: str, auto_download: bool = True) -> str:
 # ---------------------------------------------------------------------------
 
 
-def build_pipeline(env: LocalEnvironment, config: Dict[str, Any]) -> None:
+def build_pipeline(env: LocalEnvironment, config: dict[str, Any]) -> None:
     video_path = config["video_path"]
     sample_every = config["sample_every_n_frames"]
     max_frames = config.get("max_frames")
@@ -276,6 +267,8 @@ def build_pipeline(env: LocalEnvironment, config: Dict[str, Any]) -> None:
         enable_neuromem = False
 
     if enable_db:
+        if not SageDBService:
+            raise RuntimeError("SageDBService not available")
         try:
             env.register_service(
                 db_service_name,
@@ -293,6 +286,8 @@ def build_pipeline(env: LocalEnvironment, config: Dict[str, Any]) -> None:
             enable_db = False
 
     if enable_flow:
+        if not SageFlowService:
+            raise RuntimeError("SageFlowService not available")
         try:
             env.register_service(
                 flow_service_name,
@@ -311,6 +306,8 @@ def build_pipeline(env: LocalEnvironment, config: Dict[str, Any]) -> None:
             enable_flow = False
 
     if enable_neuromem:
+        if not NeuroMemVDBService:
+            raise RuntimeError("NeuroMemVDBService not available")
         try:
             env.register_service(
                 memory_service_name,
@@ -346,9 +343,7 @@ def build_pipeline(env: LocalEnvironment, config: Dict[str, Any]) -> None:
         )
         .map(
             TemporalAnomalyDetector,
-            brightness_delta_threshold=analysis_cfg.get(
-                "brightness_delta_threshold", 35.0
-            ),
+            brightness_delta_threshold=analysis_cfg.get("brightness_delta_threshold", 35.0),
         )
         .map(
             SageMiddlewareIntegrator,
@@ -439,9 +434,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def apply_runtime_overrides(
-    config: Dict[str, Any], args: argparse.Namespace
-) -> Dict[str, Any]:
+def apply_runtime_overrides(config: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     if args.video_path:
         config["video_path"] = args.video_path
     if args.max_frames is not None:
@@ -458,18 +451,20 @@ def apply_runtime_overrides(
     return config
 
 
-def download_test_video() -> str:
+def download_test_video_to_temp() -> str | None:
     """Download a small test video for CI/testing purposes.
 
     Uses a public domain short video clip suitable for testing.
-    Returns the path to the downloaded video file.
+    Returns the path to the downloaded video file, or None if download fails.
     """
     import urllib.request
     from pathlib import Path
 
     # Use a small public domain video (approx 1-2MB)
     # Sample videos from Pexels (free to use)
-    test_video_url = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4"
+    test_video_url = (
+        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4"
+    )
 
     # Download to a temp location
     video_dir = Path("/tmp/sage_test_videos")
@@ -502,17 +497,14 @@ def main() -> None:
         print("\n" + "=" * 80)
         print("📥 No video file provided - attempting to download test video...")
         print("=" * 80)
-        test_video = download_test_video()
+        test_video = download_test_video_to_temp()
         if test_video:
             video_path = test_video
             config["video_path"] = video_path
             print(f"✅ Test video downloaded: {test_video}")
 
             # In test mode, limit frames for faster testing
-            if (
-                os.environ.get("SAGE_EXAMPLES_MODE") == "test"
-                and "max_frames" not in config
-            ):
+            if os.environ.get("SAGE_EXAMPLES_MODE") == "test" and "max_frames" not in config:
                 config["max_frames"] = 30
                 print("[INFO] Test mode: Limiting to 30 frames for faster testing")
         else:
@@ -523,9 +515,7 @@ def main() -> None:
             print("  1. Command line: --video path/to/video.mp4")
             print("  2. Config file: Set 'video_path' in the config YAML")
             print("\nExample:")
-            print(
-                "  python examples/apps/run_video_intelligence.py --video my_video.mp4"
-            )
+            print("  python examples/apps/run_video_intelligence.py --video my_video.mp4")
             print("=" * 80 + "\n")
             raise FileNotFoundError(
                 "Could not download test video and no video file provided. "
@@ -548,7 +538,7 @@ def main() -> None:
     print("=" * 80)
     print(f"📁 Video: {video_path}")
     print(f"📊 Config: {config.get('video_path', 'default')}")
-    print(f"⚙️  Services: ", end="")
+    print("⚙️  Services: ", end="")
     services = []
     if config.get("integrations", {}).get("enable_sage_db"):
         services.append("SageDB")

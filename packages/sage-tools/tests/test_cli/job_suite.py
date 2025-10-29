@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from types import SimpleNamespace
-from typing import Callable, Dict, List
 from unittest.mock import patch
 
 from sage.tools.cli.main import app as sage_app
@@ -22,10 +22,10 @@ def _build_fake_client() -> SimpleNamespace:
         }
     ]
 
-    def list_jobs() -> Dict[str, object]:
+    def list_jobs() -> dict[str, object]:
         return {"status": "success", "jobs": jobs}
 
-    def get_job_status(uuid: str) -> Dict[str, object]:
+    def get_job_status(uuid: str) -> dict[str, object]:
         return {
             "status": "success",
             "job_status": {
@@ -37,7 +37,7 @@ def _build_fake_client() -> SimpleNamespace:
             },
         }
 
-    def health_check() -> Dict[str, object]:
+    def health_check() -> dict[str, object]:
         return {
             "status": "success",
             "daemon_status": {
@@ -47,7 +47,7 @@ def _build_fake_client() -> SimpleNamespace:
             },
         }
 
-    def get_server_info() -> Dict[str, object]:
+    def get_server_info() -> dict[str, object]:
         return {
             "status": "success",
             "server_info": {
@@ -66,7 +66,7 @@ def _build_fake_client() -> SimpleNamespace:
     )
 
 
-def _patch_cli_client() -> List[Callable[[], object]]:
+def _patch_cli_client() -> list[Callable[[], object]]:
     fake_client = _build_fake_client()
 
     def fake_connect(self):  # type: ignore[override]

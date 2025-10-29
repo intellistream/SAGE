@@ -6,7 +6,6 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
 
 
 @dataclass
@@ -19,7 +18,7 @@ class LoRAConfig:
     lora_alpha: int = 16
     """LoRA alpha 参数"""
 
-    target_modules: List[str] = field(
+    target_modules: list[str] = field(
         default_factory=lambda: ["q_proj", "v_proj", "k_proj", "o_proj"]
     )
     """要应用 LoRA 的模块"""
@@ -49,7 +48,7 @@ class TrainingConfig:
     """使用 4-bit 量化加载（更节省显存，但可能影响效果）"""
 
     # 数据配置
-    data_path: Optional[Path] = None
+    data_path: Path | None = None
     """训练数据路径"""
 
     max_length: int = 1024

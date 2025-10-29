@@ -1,10 +1,6 @@
 import os
-import sys
 
-if sys.version_info < (3, 9):
-    pass
-else:
-    pass
+pass
 
 
 # Dependencies should be installed via requirements.txt
@@ -23,11 +19,11 @@ async def nvidia_openai_embed(
     text: str,
     model: str = "nvidia/llama-3.2-nv-embedqa-1b-v1",
     base_url: str = "https://integrate.api.nvidia.com/v1",
-    api_key: str = None,
+    api_key: str | None = None,
     input_type: str = "passage",  # query for retrieval, passage for embedding
     trunc: str = "NONE",  # NONE or START or END
     encode: str = "float",  # float or base64
-) -> list:
+) -> list[float]:
     """
     Generate embedding for a single text using NVIDIA NIM-compatible OpenAI API.
 
@@ -37,14 +33,12 @@ async def nvidia_openai_embed(
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
 
-    openai_async_client = (
-        AsyncOpenAI() if base_url is None else AsyncOpenAI(base_url=base_url)
-    )
+    openai_async_client = AsyncOpenAI() if base_url is None else AsyncOpenAI(base_url=base_url)
 
     response = await openai_async_client.embeddings.create(
         model=model,
         input=text,
-        encoding_format=encode,
+        encoding_format=encode,  # pyright: ignore[reportArgumentType]
         extra_body={"input_type": input_type, "truncate": trunc},
     )
 
@@ -55,7 +49,7 @@ def nvidia_openai_embed_sync(
     text: str,
     model: str = "nvidia/llama-3.2-nv-embedqa-1b-v1",
     base_url: str = "https://integrate.api.nvidia.com/v1",
-    api_key: str = None,
+    api_key: str | None = None,
     input_type: str = "passage",  # query for retrieval, passage for embedding
     trunc: str = "NONE",  # NONE or START or END
     encode: str = "float",  # float or base64
@@ -83,7 +77,7 @@ def nvidia_openai_embed_sync(
     response = client.embeddings.create(
         model=model,
         input=text,
-        encoding_format=encode,
+        encoding_format=encode,  # pyright: ignore[reportArgumentType]
         extra_body={"input_type": input_type, "truncate": trunc},
     )
 

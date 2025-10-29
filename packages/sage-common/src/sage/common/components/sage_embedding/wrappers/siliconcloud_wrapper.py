@@ -1,7 +1,7 @@
 """SiliconCloud (硅基流动) embedding wrapper."""
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseEmbedding
 
@@ -60,7 +60,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
         model: str = "netease-youdao/bce-embedding-base_v1",
         base_url: str = "https://api.siliconflow.cn/v1/embeddings",
         max_token_size: int = 512,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         **kwargs: Any,
     ) -> None:
         """初始化 SiliconCloud Embedding
@@ -89,8 +89,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
             import requests  # noqa: F401
         except ImportError:
             raise ImportError(
-                "SiliconCloud embedding 需要 requests 包。\n"
-                "安装方法: pip install requests"
+                "SiliconCloud embedding 需要 requests 包。\n安装方法: pip install requests"
             )
 
         self._model = model
@@ -104,8 +103,8 @@ class SiliconCloudEmbedding(BaseEmbedding):
             raise RuntimeError(
                 "SiliconCloud embedding 需要 API Key。\n"
                 "解决方案:\n"
-                "  1. 设置环境变量: export SILICONCLOUD_API_KEY='your-key'\n"
-                "  2. 传递参数: SiliconCloudEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export SILICONCLOUD_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: SiliconCloudEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
                 "获取 API Key: https://siliconflow.cn/"
             )
@@ -113,7 +112,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
         # 获取维度
         self._dim = self._infer_dimension()
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -132,12 +131,12 @@ class SiliconCloudEmbedding(BaseEmbedding):
             import requests
 
             # 准备 API Key（添加 Bearer 前缀）
-            api_key = self._api_key
+            api_key = self._api_key  # pragma: allowlist secret
             if api_key and not api_key.startswith("Bearer "):
-                api_key = "Bearer " + api_key
+                api_key = "Bearer " + api_key  # pragma: allowlist secret
 
             headers = {
-                "Authorization": api_key,
+                "Authorization": api_key,  # pragma: allowlist secret
                 "Content-Type": "application/json",
             }
 
@@ -172,7 +171,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
                 f"提示: 检查 API Key 是否有效，网络连接是否正常"
             ) from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         当前实现为逐个调用 embed()。
@@ -225,7 +224,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
             return 768
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

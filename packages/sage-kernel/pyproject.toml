@@ -6,15 +6,14 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-
-
 [project]
 name = "isage-kernel"
-dynamic = ["version"]
+dynamic = [
+    "version",
+]
 description = "SAGE Kernel Module - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
 authors = [
     { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
@@ -36,26 +35,25 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "Operating System :: OS Independent",    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    # SAGE framework dependencies
     "isage-common>=0.1.0",
-    
-    # Kernel-specific dependencies
+    "isage-platform>=0.1.0",
     "python-dotenv==1.1.1",
     "python_multipart==0.0.20",
     "ray==2.48.0",
     "grpcio>=1.74.0",
     "protobuf>=6.32.0",
     "msgpack>=1.1.1",
-    "torch==2.7.1",  # 与vllm兼容的torch版本
+    "torch==2.7.1",
     "torchvision==0.22.1",
     "httpx==0.28.1",
     "socksio==1.0.0",
-    "numpy>=1.26.0,<2.3.0",  # 兼容vllm/numba约束(需要NumPy 2.2或更低版本)，同时兼顾离线环境
+    "numpy>=1.26.0,<2.3.0",
     "Cython==3.1.2",
     "pybind11==3.0.0",
     "aioboto3==14.1.0",
@@ -74,11 +72,13 @@ dependencies = [
     "click>=8.0.0",
     "questionary>=1.10.0",
     "prompt_toolkit>=3.0.50",
-    "filelock>=3.16.1",  # vllm兼容版本
+    "filelock>=3.16.1",
 ]
 
+[project.license]
+text = "MIT"
+
 [project.optional-dependencies]
-# 开发依赖
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -90,15 +90,11 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
-
-# Web/API功能
 web = [
     "fastapi>=0.100.0",
     "uvicorn>=0.23.0",
     "websockets>=11.0",
 ]
-
-# 文档生成
 docs = [
     "sphinx>=7.0.0",
     "sphinx-rtd-theme>=1.3.0",
@@ -110,10 +106,8 @@ docs = [
     "packaging>=20.5",
     "pymdown-extensions>=10.2.0",
 ]
-
-# 性能监控（可选）
 monitoring = [
-    "psutil>=5.9.0",  # 系统资源监控
+    "psutil>=5.9.0",
 ]
 
 [project.urls]
@@ -121,11 +115,6 @@ Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Issues = "https://github.com/intellistream/SAGE/issues"
-
-# [project.scripts]
-# sage-kernel功能已合并到sage主命令的kernel子命令
-# 使用: sage kernel info, sage kernel status, sage kernel restart
-# 而不是: sage-kernel info, sage-kernel status, sage-kernel restart
 
 [tool.setuptools.package-dir]
 "" = "src"
@@ -140,7 +129,6 @@ include = [
 exclude = [
     "tests*",
     "docs*",
-    # 只排除顶级的企业版目录，保留核心功能中的企业版选项
     "enterprise/*",
     "commercial/*",
 ]
@@ -151,10 +139,13 @@ sage = [
     "py.typed",
 ]
 
+[tool.setuptools.dynamic.version]
+attr = "sage.kernel._version.__version__"
+
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
-    "src/sage",
+    "src",
 ]
 python_files = [
     "test_*.py",
@@ -174,11 +165,6 @@ addopts = [
     "--strict-config",
     "--verbose",
     "-ra",
-    # Coverage options commented out for better test output readability
-    # "--cov=sage",
-    # "--cov-report=term-missing",
-    # "--cov-report=html:.sage/logs/htmlcov",
-    # "--cov-report=xml:.sage/logs/coverage.xml",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -193,7 +179,6 @@ markers = [
     "distributed: marks tests requiring distributed setup",
 ]
 filterwarnings = [
-    # 忽略已知的第三方库弃用警告
     "ignore::DeprecationWarning:ray._private.client_mode_hook",
     "ignore:.*local mode is an experimental feature.*:DeprecationWarning",
     "ignore::DeprecationWarning:pkg_resources",
@@ -201,9 +186,7 @@ filterwarnings = [
     "ignore:.*SwigPyPacked.*:DeprecationWarning",
     "ignore:.*SwigPyObject.*:DeprecationWarning",
     "ignore:.*swigvarlink.*:DeprecationWarning",
-    # 用户警告过滤
     "ignore:.*pkg_resources is deprecated.*:UserWarning",
-    # pytest 相关警告
     "ignore::pytest.PytestReturnNotNoneWarning",
 ]
 
@@ -228,47 +211,20 @@ exclude_lines = [
 ]
 
 [tool.black]
-line-length = 88
-target-version = ["py310", "py311", "py312"]
+line-length = 100
+target-version = [
+    "py310",
+    "py311",
+    "py312",
+]
 include = "\\.pyi?$"
 extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
 
-[tool.ruff]
-# 与flake8保持一致的配置
-target-version = "py311"
-line-length = 88
-
-[tool.ruff.lint]
-# 启用的规则集（与flake8兼容）
-select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "C90",  # mccabe complexity
-]
-
-# 忽略的错误（与flake8 .flake8文件保持一致）
-ignore = [
-    "E501",  # line too long (handled by formatter)
-]
-
-# 复杂度限制（与flake8保持一致）
-mccabe = { max-complexity = 10 }
-
-# 文件特定忽略
-per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
-
-[tool.ruff.lint.isort]
-known-first-party = ["sage"]
-force-single-line = false
-combine-as-imports = true
-
 [tool.mypy]
-python_dynamic = ["version"]
+python_dynamic = [
+    "version",
+]
+cache_dir = "../../.sage/cache/mypy"
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
@@ -285,5 +241,5 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.kernel._version.__version__"}
+[tool.ruff]
+extend = "../../tools/ruff.toml"

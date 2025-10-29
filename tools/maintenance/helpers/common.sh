@@ -113,21 +113,21 @@ get_submodule_current_branch() {
 confirm() {
     local message="$1"
     local default="${2:-n}"
-    
+
     if [ "${FORCE}" = "true" ]; then
         return 0
     fi
-    
+
     local prompt
     if [ "$default" = "y" ]; then
         prompt="[Y/n]"
     else
         prompt="[y/N]"
     fi
-    
+
     read -p "$(echo -e ${YELLOW}${message} ${prompt}: ${NC})" response
     response=${response:-$default}
-    
+
     [[ "$response" =~ ^[Yy]$ ]]
 }
 
@@ -139,7 +139,7 @@ spinner() {
     local pid=$1
     local message="$2"
     local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    
+
     while kill -0 $pid 2>/dev/null; do
         local temp=${spinstr#?}
         printf "\r${BLUE}%c${NC} %s" "$spinstr" "$message"

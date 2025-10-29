@@ -1,12 +1,12 @@
 import logging
 from abc import ABC
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
 
 
-class BaseService(ABC):
+class BaseService(ABC):  # noqa: B024
     """
     BaseService is the abstract base class for all services in SAGE.
     It defines the core interface and provides access to runtime context and logger.
@@ -26,7 +26,7 @@ class BaseService(ABC):
         """
         # ctx 由 ServiceFactory 在 __init__ 调用前通过 __new__ 方法注入
         if not hasattr(self, "ctx"):
-            self.ctx: "ServiceContext" = None
+            self.ctx: ServiceContext = None  # type: ignore[assignment]
         self._logger = None
 
     @property
@@ -50,8 +50,8 @@ class BaseService(ABC):
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs,
     ):
         """
@@ -62,20 +62,16 @@ class BaseService(ABC):
             data = self.call_service("pipeline_name", payload)
         """
         if self.ctx is None:
-            raise RuntimeError(
-                "Service context not initialized. Cannot access services."
-            )
+            raise RuntimeError("Service context not initialized. Cannot access services.")
 
-        return self.ctx.call_service(
-            service_name, *args, timeout=timeout, method=method, **kwargs
-        )
+        return self.ctx.call_service(service_name, *args, timeout=timeout, method=method, **kwargs)
 
     def call_service_async(
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs,
     ):
         """
@@ -90,36 +86,34 @@ class BaseService(ABC):
                 result = future.result()
         """
         if self.ctx is None:
-            raise RuntimeError(
-                "Service context not initialized. Cannot access services."
-            )
+            raise RuntimeError("Service context not initialized. Cannot access services.")
 
         return self.ctx.call_service_async(
             service_name, *args, timeout=timeout, method=method, **kwargs
         )
 
-    def setup(self):
+    def setup(self):  # noqa: B027
         """
         服务初始化设置方法，在service_instance创建后调用
         子类可以重写此方法来进行初始化设置
         """
         pass
 
-    def cleanup(self):
+    def cleanup(self):  # noqa: B027
         """
         服务清理方法，在服务停止时调用
         子类可以重写此方法来进行资源清理
         """
         pass
 
-    def start(self):
+    def start(self):  # noqa: B027
         """
         服务启动方法，在服务启动时调用
         子类可以重写此方法来进行启动逻辑
         """
         pass
 
-    def stop(self):
+    def stop(self):  # noqa: B027
         """
         服务停止方法，在服务停止时调用
         子类可以重写此方法来进行停止逻辑

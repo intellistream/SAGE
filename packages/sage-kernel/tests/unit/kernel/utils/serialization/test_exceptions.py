@@ -9,6 +9,7 @@ Tests for sage.common.utils.serialization.exceptions module
 """
 
 import pytest
+
 from sage.common.utils.serialization.exceptions import SerializationError
 
 
@@ -77,11 +78,11 @@ class TestSerializationErrorUsageScenarios:
 
         try:
             failing_serialization()
-            assert False, "Should have raised SerializationError"
+            raise AssertionError("Should have raised SerializationError")
         except SerializationError as e:
             assert str(e) == "Serialization failed"
         except Exception:
-            assert False, "Should have caught SerializationError specifically"
+            raise AssertionError("Should have caught SerializationError specifically")
 
     def test_serialization_error_with_chaining(self):
         """测试SerializationError异常链"""
@@ -127,9 +128,7 @@ class TestSerializationErrorUsageScenarios:
             "attributes": ["attr1", "attr2"],
         }
 
-        error_message = (
-            f"Failed to serialize {object_info['type']} with ID {object_info['id']}"
-        )
+        error_message = f"Failed to serialize {object_info['type']} with ID {object_info['id']}"
 
         with pytest.raises(SerializationError) as exc_info:
             raise SerializationError(error_message, object_info)
@@ -154,7 +153,7 @@ class TestSerializationErrorUsageScenarios:
             function_that_might_fail("serialization")
 
         # 测试捕获为Exception
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             function_that_might_fail("serialization")
 
         # 测试不同的异常类型
@@ -177,9 +176,7 @@ class TestSerializationErrorInFunctionDecorators:
                     if isinstance(e, SerializationError):
                         raise
                     else:
-                        raise SerializationError(
-                            f"Serialization failed in {func.__name__}"
-                        ) from e
+                        raise SerializationError(f"Serialization failed in {func.__name__}") from e
 
             return wrapper
 
@@ -190,9 +187,7 @@ class TestSerializationErrorInFunctionDecorators:
         with pytest.raises(SerializationError) as exc_info:
             problematic_serialization()
 
-        assert "Serialization failed in problematic_serialization" in str(
-            exc_info.value
-        )
+        assert "Serialization failed in problematic_serialization" in str(exc_info.value)
         assert isinstance(exc_info.value.__cause__, ValueError)
 
     def test_serialization_error_retry_decorator(self):
@@ -264,9 +259,7 @@ class TestSerializationErrorIntegration:
                     elif self.method == "pickle":
                         return pickle.loads(data)
                     else:
-                        raise ValueError(
-                            f"Unknown deserialization method: {self.method}"
-                        )
+                        raise ValueError(f"Unknown deserialization method: {self.method}")
                 except (
                     TypeError,
                     ValueError,
@@ -286,7 +279,7 @@ class TestSerializationErrorIntegration:
 
         # 测试JSON序列化失败
         with pytest.raises(SerializationError) as exc_info:
-            serializer.serialize(set([1, 2, 3]))  # set不能JSON序列化
+            serializer.serialize({1, 2, 3})  # set不能JSON序列化
 
         assert "Failed to serialize object using json" in str(exc_info.value)
         assert isinstance(exc_info.value.__cause__, TypeError)
@@ -323,15 +316,11 @@ class TestSerializationErrorIntegration:
                     if not attr_name.startswith("_"):
                         attr_value = getattr(obj, attr_name)
                         if callable(attr_value):
-                            raise TypeError(
-                                f"Cannot serialize callable attribute: {attr_name}"
-                            )
+                            raise TypeError(f"Cannot serialize callable attribute: {attr_name}")
                         result[attr_name] = attr_value
                 return result
             except Exception as e:
-                raise SerializationError(
-                    f"Failed to serialize {obj.__class__.__name__}"
-                ) from e
+                raise SerializationError(f"Failed to serialize {obj.__class__.__name__}") from e
 
         complex_obj = ComplexObject()
 
@@ -379,7 +368,4 @@ class TestSerializationErrorIntegration:
         log_content = log_capture.getvalue()
         assert "Serialization error:" in log_content
         # The exception class name should appear in the traceback
-        assert (
-            "SerializationError" in log_content
-            or "Mock serialization failure" in log_content
-        )
+        assert "SerializationError" in log_content or "Mock serialization failure" in log_content

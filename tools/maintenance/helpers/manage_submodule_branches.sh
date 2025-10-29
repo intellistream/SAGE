@@ -44,7 +44,7 @@ get_submodule_configured_branch() {
 check_remote_branch_exists() {
     local submodule_path="$1"
     local branch_name="$2"
-    
+
     cd "$submodule_path" 2>/dev/null || return 1
     git fetch origin "$branch_name" 2>/dev/null
     local exists=$?
@@ -56,7 +56,7 @@ check_remote_branch_exists() {
 update_gitmodules_branch() {
     local submodule_path="$1"
     local target_branch="$2"
-    
+
     git config --file .gitmodules "submodule.${submodule_path}.branch" "$target_branch"
 }
 
@@ -65,12 +65,12 @@ switch_submodule_branch() {
     local submodule_path="$1"
     local target_branch="$2"
     local submodule_name=$(basename "$submodule_path")
-    
+
     if [ ! -d "$submodule_path/.git" ] && [ ! -f "$submodule_path/.git" ]; then
         echo -e "${YELLOW}  ⚠️  Submodule ${submodule_name} 未初始化${NC}"
         return 1
     fi
-    
+
     cd "$submodule_path"
 
     # 获取远程分支，若失败则继续使用本地引用
@@ -105,7 +105,7 @@ switch_submodule_branch() {
 # 初始化 submodules（如果需要）
 init_submodules() {
     echo -e "${BLUE}🔍 检查 submodule 初始化状态...${NC}"
-    
+
     local need_init=false
     while IFS= read -r submodule_path; do
         if [ ! -d "$submodule_path/.git" ]; then
@@ -113,7 +113,7 @@ init_submodules() {
             break
         fi
     done < <(get_submodules)
-    
+
     if [ "$need_init" = true ]; then
         echo -e "${DIM}初始化 submodules...${NC}"
         git submodule sync --recursive >/dev/null 2>&1 || true
@@ -130,13 +130,20 @@ init_submodules() {
 
 # 主函数：切换 submodule 分支
 switch_submodules() {
+    # 在 CI 环境中跳过分支切换，因为 checkout@v4 已经将 submodules checkout 到正确的 commit
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+        echo -e "${INFO} ${YELLOW}检测到 CI 环境，跳过 submodule 分支切换${NC}"
+        echo -e "${DIM}CI 环境中 submodules 已由 checkout action 设置到正确的 commit${NC}"
+        return 0
+    fi
+
     local current_branch=$(get_current_branch)
     local target_branch
-    
+
     echo -e "${ROCKET} ${BLUE}SAGE Submodule 分支管理${NC}"
     echo -e "${DIM}当前 SAGE 分支: ${current_branch}${NC}"
     echo ""
-    
+
     # 确定目标分支
     if [ "$current_branch" = "main" ]; then
         target_branch="main"
@@ -146,11 +153,11 @@ switch_submodules() {
         echo -e "${INFO} 在 ${current_branch} 分支，submodules 将切换到 ${GREEN}main-dev${NC} 分支"
     fi
     echo ""
-    
+
     # 确保 submodules 已初始化
     init_submodules
     echo ""
-    
+
     local success_count=0
     local fail_count=0
 
@@ -174,18 +181,18 @@ switch_submodules() {
         fi
         echo ""
     done
-    
+
     # 更新 submodule 注册信息
     echo -e "${DIM}更新 submodule 注册信息...${NC}"
     git submodule sync
-    
+
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}${CHECK} 成功: $success_count${NC}"
     if [ $fail_count -gt 0 ]; then
         echo -e "${RED}${CROSS} 失败: $fail_count${NC}"
     fi
     echo ""
-    
+
     # 提示用户提交更改
     if git diff --quiet .gitmodules; then
         echo -e "${INFO} .gitmodules 无需更新"
@@ -199,25 +206,25 @@ switch_submodules() {
 # 显示当前状态
 show_status() {
     local current_branch=$(get_current_branch)
-    
+
     echo -e "${ROCKET} ${BLUE}SAGE Submodule 状态${NC}"
     echo -e "${DIM}SAGE 分支: ${current_branch}${NC}"
     echo ""
-    
+
     echo -e "${BLUE}Submodule 配置：${NC}"
     printf "%-50s %-15s %-15s\n" "Submodule" "配置分支" "当前分支"
     echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
+
     while IFS= read -r submodule_path; do
         local submodule_name=$(basename "$submodule_path")
         local config_branch=$(get_submodule_configured_branch "$submodule_path")
         local actual_branch="N/A"
-        
+
         # 检查 submodule 是否已初始化（.git 可能是文件或目录）
         if [ -e "$submodule_path/.git" ]; then
             actual_branch=$(cd "$submodule_path" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "detached")
         fi
-        
+
         # 颜色标记
         if [ "$config_branch" = "$actual_branch" ]; then
             printf "%-50s ${GREEN}%-15s${NC} ${GREEN}%-15s${NC}\n" "$submodule_name" "$config_branch" "$actual_branch"
@@ -225,7 +232,7 @@ show_status() {
             printf "%-50s ${YELLOW}%-15s${NC} ${RED}%-15s${NC}\n" "$submodule_name" "$config_branch" "$actual_branch"
         fi
     done < <(get_submodules)
-    
+
     echo ""
 }
 
@@ -266,14 +273,14 @@ main() {
         echo -e "${RED}${CROSS} 错误：当前目录不是 git 仓库${NC}"
         exit 1
     fi
-    
+
     # 检查是否在 SAGE 根目录
     if [ ! -f ".gitmodules" ]; then
         echo -e "${RED}${CROSS} 错误：未找到 .gitmodules 文件${NC}"
         echo -e "${DIM}请在 SAGE 项目根目录运行此脚本${NC}"
         exit 1
     fi
-    
+
     case "${1:-switch}" in
         switch)
             switch_submodules

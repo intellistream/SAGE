@@ -4,12 +4,11 @@ import os
 import sys
 import threading
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
 
 from .custom_formatter import CustomFormatter  # 假设有一个自定义格式化器
 
 
-def get_default_log_base_folder(project_root: Optional[Union[str, Path]] = None) -> str:
+def get_default_log_base_folder(project_root: str | Path | None = None) -> str:
     """
     获取默认的日志基础文件夹，使用统一的.sage/logs目录。
 
@@ -54,10 +53,10 @@ class CustomLogger:
 
     def __init__(
         self,
-        name_or_outputs: Union[str, List[Tuple[str, Union[str, int]]], None] = None,
-        outputs: Optional[List[Tuple[str, Union[str, int]]]] = None,
-        name: Optional[str] = None,
-        log_base_folder: Optional[str] = None,
+        name_or_outputs: str | list[tuple[str, str | int]] | None = None,
+        outputs: list[tuple[str, str | int]] | None = None,
+        name: str | None = None,
+        log_base_folder: str | None = None,
     ):
         """
         初始化自定义Logger
@@ -217,7 +216,7 @@ class CustomLogger:
                 )
             return os.path.join(self.log_base_folder, output_target)
 
-    def _extract_log_level(self, level_setting: Union[str, int]) -> int:
+    def _extract_log_level(self, level_setting: str | int) -> int:
         """
         从级别设置中提取日志级别
 
@@ -238,13 +237,9 @@ class CustomLogger:
         elif isinstance(level_setting, int):
             return level_setting
         else:
-            raise TypeError(
-                f"level_setting must be str or int, got {type(level_setting)}"
-            )
+            raise TypeError(f"level_setting must be str or int, got {type(level_setting)}")
 
-    def _create_handler(
-        self, config: dict, formatter: CustomFormatter
-    ) -> Optional[logging.Handler]:
+    def _create_handler(self, config: dict, formatter: CustomFormatter) -> logging.Handler | None:
         """
         根据输出配置创建对应的handler
 
@@ -277,15 +272,13 @@ class CustomLogger:
             print(f"Failed to create handler for {config['target']}: {e}")
             return None
 
-    def get_output_configs(self) -> List[dict]:
+    def get_output_configs(self) -> list[dict]:
         """获取当前输出配置"""
         return [
             {
                 "target": config["target"],
                 "resolved_path": config["resolved_path"],
-                "level": config[
-                    "level_str"
-                ],  # Return string level for public API consistency
+                "level": config["level_str"],  # Return string level for public API consistency
                 "level_str": config["level_str"],
                 "level_num": config["level"],
                 "handler_active": config["handler"] is not None,
@@ -312,9 +305,7 @@ class CustomLogger:
         )
         print("=" * 60)
 
-    def update_output_level(
-        self, target_index_or_name: Union[int, str], new_level: Union[str, int]
-    ):
+    def update_output_level(self, target_index_or_name: int | str, new_level: str | int):
         """
         动态更新指定输出的级别
 
@@ -346,17 +337,13 @@ class CustomLogger:
             target_config["handler"].setLevel(new_level_int)
 
         # 更新logger的最低级别
-        enabled_levels = [
-            config["level"] for config in self.output_configs if config["handler"]
-        ]
+        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
-        print(
-            f"Updated {target_config['target']} level to {target_config['level_str']}"
-        )
+        print(f"Updated {target_config['target']} level to {target_config['level_str']}")
 
-    def add_output(self, output_target: str, level: Union[str, int]):
+    def add_output(self, output_target: str, level: str | int):
         """
         动态添加新的输出目标
 
@@ -386,9 +373,7 @@ class CustomLogger:
         self.output_configs.append(new_config)
 
         # 更新logger最低级别
-        enabled_levels = [
-            config["level"] for config in self.output_configs if config["handler"]
-        ]
+        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
@@ -396,7 +381,7 @@ class CustomLogger:
             f"Added output: {output_target} -> {new_config['resolved_path']} with level {new_config['level_str']}"
         )
 
-    def remove_output(self, target_index_or_name: Union[int, str]):
+    def remove_output(self, target_index_or_name: int | str):
         """
         移除指定的输出目标
 
@@ -426,12 +411,13 @@ class CustomLogger:
             self.logger.removeHandler(target_config["handler"])
 
         # 移除配置
-        self.output_configs.pop(target_index)
+        if target_index is not None:
+            self.output_configs.pop(target_index)
+        else:
+            raise RuntimeError("target_index is None after finding config")
 
         # 更新logger最低级别
-        enabled_levels = [
-            config["level"] for config in self.output_configs if config["handler"]
-        ]
+        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
@@ -451,7 +437,10 @@ class CustomLogger:
         frame = inspect.currentframe()
         try:
             # 跳过 _log_with_caller_info -> debug/info/warning/error -> 实际调用位置
-            caller_frame = frame.f_back.f_back
+            if frame and frame.f_back and frame.f_back.f_back:
+                caller_frame = frame.f_back.f_back
+            else:
+                caller_frame = None
             if caller_frame:
                 pathname = caller_frame.f_code.co_filename
                 lineno = caller_frame.f_lineno
@@ -491,9 +480,7 @@ class CustomLogger:
 
     def error(self, message: str, *args, exc_info: bool = False, **kwargs):
         """Error级别日志，支持格式化参数"""
-        self._log_with_caller_info(
-            logging.ERROR, message, *args, exc_info=exc_info, **kwargs
-        )
+        self._log_with_caller_info(logging.ERROR, message, *args, exc_info=exc_info, **kwargs)
 
     def critical(self, message: str, *args, **kwargs):
         """Critical级别日志，支持格式化参数"""

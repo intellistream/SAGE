@@ -16,7 +16,7 @@ class YourMemoryService(BaseService):
     def __init__(self, ...):
         super().__init__()
         self.dialogue_parser = DialogueParser()
-    
+
     def insert(self, dialogs):
         # 验证对话格式
         validated_dialogs = self.dialogue_parser.parse_and_validate(dialogs, strict_mode=True)
@@ -68,76 +68,74 @@ validated = parser.parse_and_validate(dialogs, required_fields=["speaker", "text
 - 线程安全：解析器是无状态的，可以在多线程环境中共享使用
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class DialogueParser:
     """
     对话解析器 - 用于各种 MemoryService 的通用对话验证和解析工具
-    
+
     功能：
     1. 验证对话格式是否符合要求
     2. 批量解析和验证对话列表
     3. 提取对话关键信息（用于日志、预览等）
-    
+
     使用场景：
     - ShortTermMemoryService：验证插入的对话消息
     - LongTermMemoryService：验证长期存储的对话
     - 其他需要处理对话消息的 MemoryService
-    
+
     典型用法：
         parser = DialogueParser()
         validated = parser.parse_and_validate(dialogs, strict_mode=True)
         info = parser.extract_dialog_info(dialog)
     """
-    
+
     # 当前支持的标准对话格式必需字段
     # 如果未来需要支持其他格式，可以在 parse_and_validate() 中通过 required_fields 参数指定
     STANDARD_REQUIRED_FIELDS = ["speaker", "text", "session_type"]
-    
+
     def __init__(self):
         """初始化对话解析器"""
         pass
-    
+
     def validate_dialog_format(
-        self, 
-        dialog: Dict[str, Any],
-        required_fields: Optional[List[str]] = None
+        self, dialog: dict[str, Any], required_fields: list[str] | None = None
     ) -> bool:
         """
         验证单个对话是否符合格式要求
-        
+
         Args:
             dialog: 待验证的对话字典
             required_fields: 必需字段列表，默认使用标准格式字段
-            
+
         Returns:
             bool: 是否符合格式要求
         """
         if not isinstance(dialog, dict):
             return False
-        
+
         if required_fields is None:
             required_fields = self.STANDARD_REQUIRED_FIELDS
-        
+
         # 检查所有必需字段是否存在
         for field in required_fields:
             if field not in dialog:
                 return False
-        
+
         return True
-    
+
     def parse_and_validate(
         self,
-        dialogs: List[Dict[str, Any]],
-        required_fields: Optional[List[str]] = None,
-        strict_mode: bool = True
-    ) -> List[Dict[str, Any]]:
+        dialogs: list[dict[str, Any]],
+        required_fields: list[str] | None = None,
+        strict_mode: bool = True,
+    ) -> list[dict[str, Any]]:
         """
         解析并验证对话列表（核心方法）
-        
+
         这是最常用的方法，建议所有 MemoryService 在接收对话时都先调用此方法进行验证。
-        
+
         Args:
             dialogs: 对话列表，每个元素应该是包含对话信息的字典
             required_fields: 必需字段列表，None 时使用默认的标准字段 ["speaker", "text", "session_type"]
@@ -146,18 +144,18 @@ class DialogueParser:
             strict_mode: 严格模式开关
                         True（推荐用于插入操作）：遇到格式错误立即抛出异常，确保数据完整性
                         False（推荐用于批量处理）：跳过无效对话，只返回有效的对话列表
-            
+
         Returns:
             List[Dict[str, Any]]: 验证通过的对话列表
-            
+
         Raises:
             TypeError: 当输入不是列表或对话不是字典时（仅在 strict_mode=True 时）
             ValueError: 当对话缺少必需字段时（仅在 strict_mode=True 时）
-            
+
         使用建议：
             # 在 insert 操作中使用严格模式
             validated = self.dialogue_parser.parse_and_validate(dialogs, strict_mode=True)
-            
+
             # 在批量导入或容错场景中使用非严格模式
             validated = self.dialogue_parser.parse_and_validate(dialogs, strict_mode=False)
         """
@@ -166,12 +164,12 @@ class DialogueParser:
                 raise TypeError(f"dialogs must be a list, got {type(dialogs)}")
             else:
                 return []
-        
+
         if required_fields is None:
             required_fields = self.STANDARD_REQUIRED_FIELDS
-        
+
         validated_dialogs = []
-        
+
         for idx, dialog in enumerate(dialogs):
             if not isinstance(dialog, dict):
                 if strict_mode:
@@ -180,12 +178,10 @@ class DialogueParser:
                     )
                 else:
                     continue
-            
+
             # 验证必需字段
-            missing_fields = [
-                field for field in required_fields if field not in dialog
-            ]
-            
+            missing_fields = [field for field in required_fields if field not in dialog]
+
             if missing_fields:
                 if strict_mode:
                     raise ValueError(
@@ -193,28 +189,28 @@ class DialogueParser:
                     )
                 else:
                     continue
-            
+
             validated_dialogs.append(dialog)
-        
+
         return validated_dialogs
-    
-    def extract_dialog_info(self, dialog: Dict[str, Any]) -> Dict[str, Any]:
+
+    def extract_dialog_info(self, dialog: dict[str, Any]) -> dict[str, Any]:
         """
         从对话中提取关键信息（辅助方法）
-        
+
         用于日志记录、预览显示等场景，避免直接访问字典键。
         自动处理文本过长的情况，生成预览文本。
-        
+
         Args:
             dialog: 对话字典
-            
+
         Returns:
             Dict[str, Any]: 包含提取信息的字典，包含以下字段：
                 - speaker: 说话者名称（默认 "Unknown"）
                 - text: 完整对话文本（默认 ""）
                 - session_type: 会话类型（默认 "text"）
                 - text_preview: 文本预览（超过50字符会截断并添加 "..."）
-                
+
         使用示例：
             info = self.dialogue_parser.extract_dialog_info(dialog)
             self._logger.debug(f"Processing message from {info['speaker']}: {info['text_preview']}")
@@ -223,13 +219,16 @@ class DialogueParser:
             "speaker": dialog.get("speaker", "Unknown"),
             "text": dialog.get("text", ""),
             "session_type": dialog.get("session_type", "text"),
-            "text_preview": dialog.get("text", "")[:50] + "..." 
-                           if len(dialog.get("text", "")) > 50 else dialog.get("text", "")
+            "text_preview": (
+                dialog.get("text", "")[:50] + "..."
+                if len(dialog.get("text", "")) > 50
+                else dialog.get("text", "")
+            ),
         }
         return info
-    
+
     # ==================== 未来扩展预留接口（留给未来的自己） ====================
-    # 
+    #
     # 如果需要支持新的消息格式，请在下面添加对应的方法实现。
     # 建议保持接口设计的一致性，参考现有方法的参数和返回值格式。
     #
@@ -247,7 +246,7 @@ class DialogueParser:
     # def parse_multimodal_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
     #     """解析包含图片、语音、视频等多模态内容的消息"""
     #     pass
-    
+
     # TODO 2: 群组对话解析支持
     # Issue URL: https://github.com/intellistream/SAGE/issues/975
     # 使用场景：处理多人对话、会议记录等群组对话场景
@@ -263,7 +262,7 @@ class DialogueParser:
     # def parse_group_dialogue(self, dialogue: Dict[str, Any]) -> Dict[str, Any]:
     #     """解析群组对话，处理多人对话场景"""
     #     pass
-    
+
     # TODO 3: 带元数据的消息解析
     # Issue URL: https://github.com/intellistream/SAGE/issues/974
     # 使用场景：需要额外的上下文信息，如时间戳、情感标签、地理位置等
@@ -279,7 +278,7 @@ class DialogueParser:
     # def parse_enriched_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
     #     """解析包含时间戳、情感标签、上下文等元数据的消息"""
     #     pass
-    
+
     # TODO 4: 自定义格式注册机制
     # Issue URL: https://github.com/intellistream/SAGE/issues/973
     # 使用场景：允许外部模块注册自己的消息格式验证器，增强可扩展性
@@ -299,24 +298,24 @@ _global_parser = DialogueParser()
 
 
 def parse_and_validate_dialogs(
-    dialogs: List[Dict[str, Any]],
-    required_fields: Optional[List[str]] = None,
-    strict_mode: bool = True
-) -> List[Dict[str, Any]]:
+    dialogs: list[dict[str, Any]],
+    required_fields: list[str] | None = None,
+    strict_mode: bool = True,
+) -> list[dict[str, Any]]:
     """
     全局便捷函数：解析并验证对话列表
-    
+
     无需实例化 DialogueParser，直接调用此函数即可快速验证对话。
     适合临时验证、测试脚本等场景。
-    
+
     Args:
         dialogs: 对话列表
         required_fields: 必需字段列表，默认使用标准格式字段
         strict_mode: 严格模式
-        
+
     Returns:
         List[Dict[str, Any]]: 验证通过的对话列表
-        
+
     使用示例：
         from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import parse_and_validate_dialogs
         validated = parse_and_validate_dialogs(dialogs)
@@ -324,23 +323,20 @@ def parse_and_validate_dialogs(
     return _global_parser.parse_and_validate(dialogs, required_fields, strict_mode)
 
 
-def validate_dialog(
-    dialog: Dict[str, Any],
-    required_fields: Optional[List[str]] = None
-) -> bool:
+def validate_dialog(dialog: dict[str, Any], required_fields: list[str] | None = None) -> bool:
     """
     全局便捷函数：验证单个对话格式
-    
+
     无需实例化 DialogueParser，直接调用此函数即可快速验证单个对话。
     返回布尔值，不抛出异常，适合需要判断对话是否有效的场景。
-    
+
     Args:
         dialog: 待验证的对话字典
         required_fields: 必需字段列表，默认使用标准格式字段
-        
+
     Returns:
         bool: 是否符合格式要求
-        
+
     使用示例：
         from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import validate_dialog
         if validate_dialog(dialog):
@@ -351,14 +347,14 @@ def validate_dialog(
 
 
 if __name__ == "__main__":
-    
+
     def test_dialogue_parser():
         print("\n" + "=" * 70)
         print("对话解析器测试")
         print("=" * 70 + "\n")
-        
+
         parser = DialogueParser()
-        
+
         # 测试1: 标准格式对话
         print("测试1: 验证标准格式对话")
         print("-" * 70)
@@ -366,87 +362,65 @@ if __name__ == "__main__":
             {
                 "speaker": "小明",
                 "text": "你好，今天天气真不错！",
-                "session_type": "text"
+                "session_type": "text",
             },
-            {
-                "speaker": "小红",
-                "text": "是啊，阳光明媚！",
-                "session_type": "text"
-            }
+            {"speaker": "小红", "text": "是啊，阳光明媚！", "session_type": "text"},
         ]
-        
+
         result = parser.parse_and_validate(valid_dialogs)
         print(f"✓ 输入 {len(valid_dialogs)} 条对话，验证通过 {len(result)} 条\n")
-        
+
         # 测试2: 缺少必需字段
         print("测试2: 处理缺少必需字段的对话（严格模式）")
         print("-" * 70)
-        invalid_dialogs = [
-            {
-                "speaker": "小明",
-                "text": "这条消息缺少 session_type"
-            }
-        ]
-        
+        invalid_dialogs = [{"speaker": "小明", "text": "这条消息缺少 session_type"}]
+
         try:
             parser.parse_and_validate(invalid_dialogs, strict_mode=True)
             print("✗ 应该抛出异常")
         except ValueError as e:
             print(f"✓ 正确捕获异常: {e}\n")
-        
+
         # 测试3: 非严格模式
         print("测试3: 非严格模式下跳过无效对话")
         print("-" * 70)
         mixed_dialogs = [
-            {
-                "speaker": "小明",
-                "text": "这是有效消息",
-                "session_type": "text"
-            },
-            {
-                "speaker": "小红",
-                "text": "这条缺少 session_type"  # 缺少字段
-            },
-            {
-                "speaker": "小李",
-                "text": "这也是有效消息",
-                "session_type": "text"
-            }
+            {"speaker": "小明", "text": "这是有效消息", "session_type": "text"},
+            {"speaker": "小红", "text": "这条缺少 session_type"},  # 缺少字段
+            {"speaker": "小李", "text": "这也是有效消息", "session_type": "text"},
         ]
-        
+
         result = parser.parse_and_validate(mixed_dialogs, strict_mode=False)
         print(f"输入 {len(mixed_dialogs)} 条对话（其中1条无效）")
         print(f"✓ 非严格模式下验证通过 {len(result)} 条有效对话\n")
-        
+
         # 测试4: 提取对话信息
         print("测试4: 提取对话关键信息")
         print("-" * 70)
         dialog = {
             "speaker": "小明",
             "text": "这是一条很长很长很长很长很长很长很长很长很长很长的消息，用于测试文本预览功能",
-            "session_type": "text"
+            "session_type": "text",
         }
-        
+
         info = parser.extract_dialog_info(dialog)
         print(f"说话者: {info['speaker']}")
         print(f"消息类型: {info['session_type']}")
         print(f"文本预览: {info['text_preview']}")
-        print(f"✓ 成功提取对话信息\n")
-        
+        print("✓ 成功提取对话信息\n")
+
         # 测试5: 使用全局便捷函数
         print("测试5: 使用全局便捷函数")
         print("-" * 70)
-        dialogs = [
-            {"speaker": "用户", "text": "测试消息", "session_type": "text"}
-        ]
+        dialogs = [{"speaker": "用户", "text": "测试消息", "session_type": "text"}]
         result = parse_and_validate_dialogs(dialogs)
         print(f"✓ 全局函数验证通过 {len(result)} 条对话")
-        
+
         is_valid = validate_dialog(dialogs[0])
         print(f"✓ 单个对话验证结果: {is_valid}\n")
-        
+
         print("=" * 70)
         print("✅ 所有测试通过！对话解析器工作正常。")
         print("=" * 70 + "\n")
-    
+
     test_dialogue_parser()

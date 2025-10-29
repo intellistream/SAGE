@@ -121,9 +121,9 @@ def test_wait_for_completion_exists():
     print("Test 5: RemoteEnvironment._wait_for_completion() 方法存在性验证")
     print("=" * 80)
 
-    assert hasattr(
-        RemoteEnvironment, "_wait_for_completion"
-    ), "RemoteEnvironment 没有 _wait_for_completion() 方法"
+    assert hasattr(RemoteEnvironment, "_wait_for_completion"), (
+        "RemoteEnvironment 没有 _wait_for_completion() 方法"
+    )
     print("✅ RemoteEnvironment 有 _wait_for_completion() 方法")
 
 
@@ -135,17 +135,11 @@ def main():
     results = []
 
     # 运行所有测试
-    results.append(
-        ("RemoteEnvironment.submit()", test_remote_environment_autostop_signature())
-    )
-    results.append(
-        ("JobManagerClient.submit_job()", test_jobmanager_client_signature())
-    )
+    results.append(("RemoteEnvironment.submit()", test_remote_environment_autostop_signature()))
+    results.append(("JobManagerClient.submit_job()", test_jobmanager_client_signature()))
     results.append(("JobManager.submit_job()", test_jobmanager_signature()))
     results.append(("JobInfo.__init__()", test_jobinfo_signature()))
-    results.append(
-        ("RemoteEnvironment._wait_for_completion()", test_wait_for_completion_exists())
-    )
+    results.append(("RemoteEnvironment._wait_for_completion()", test_wait_for_completion_exists()))
 
     # 总结
     print("\n" + "=" * 80)
@@ -160,7 +154,7 @@ def main():
         print(f"{status}: {name}")
 
     print("\n" + "-" * 80)
-    print(f"通过率: {passed}/{total} ({passed*100//total}%)")
+    print(f"通过率: {passed}/{total} ({passed * 100 // total}%)")
     print("-" * 80)
 
     if passed == total:

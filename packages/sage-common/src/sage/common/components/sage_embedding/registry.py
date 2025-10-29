@@ -5,14 +5,14 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 
 class ModelStatus(Enum):
     """模型可用状态枚举"""
 
     AVAILABLE = "available"  # 直接可用
-    NEEDS_API_KEY = "needs_api_key"  # 需要 API Key
+    NEEDS_API_KEY = "needs_api_key"  # 需要 API Key  # pragma: allowlist secret
     NEEDS_DOWNLOAD = "needs_download"  # 需要下载模型
     CACHED = "cached"  # 已缓存到本地
     UNAVAILABLE = "unavailable"  # 不可用
@@ -38,11 +38,11 @@ class ModelInfo:
     description: str
     requires_api_key: bool
     requires_model_download: bool
-    default_dimension: Optional[int]
-    example_models: List[str]
-    wrapper_class: Union[Type, str]  # 支持类对象或字符串路径
+    default_dimension: int | None
+    example_models: list[str]
+    wrapper_class: type | str  # 支持类对象或字符串路径
 
-    def get_wrapper_class(self) -> Type:
+    def get_wrapper_class(self) -> type:
         """获取 wrapper 类，支持延迟导入
 
         Returns:
@@ -81,7 +81,7 @@ class EmbeddingRegistry:
         True
     """
 
-    _registry: Dict[str, ModelInfo] = {}
+    _registry: dict[str, ModelInfo] = {}
 
     @classmethod
     def register(
@@ -89,11 +89,11 @@ class EmbeddingRegistry:
         method: str,
         display_name: str,
         description: str,
-        wrapper_class: Union[Type, str],  # 支持类对象或字符串路径
+        wrapper_class: type | str,  # 支持类对象或字符串路径
         requires_api_key: bool = False,
         requires_model_download: bool = False,
-        default_dimension: Optional[int] = None,
-        example_models: Optional[List[str]] = None,
+        default_dimension: int | None = None,
+        example_models: list[str] | None = None,
     ) -> None:
         """注册 embedding 方法
 
@@ -135,7 +135,7 @@ class EmbeddingRegistry:
         )
 
     @classmethod
-    def list_methods(cls) -> List[str]:
+    def list_methods(cls) -> list[str]:
         """列出所有已注册的方法名称
 
         Returns:
@@ -149,7 +149,7 @@ class EmbeddingRegistry:
         return sorted(cls._registry.keys())
 
     @classmethod
-    def get_model_info(cls, method: str) -> Optional[ModelInfo]:
+    def get_model_info(cls, method: str) -> ModelInfo | None:
         """获取指定方法的模型信息
 
         Args:
@@ -167,7 +167,7 @@ class EmbeddingRegistry:
         return cls._registry.get(method)
 
     @classmethod
-    def get_wrapper_class(cls, method: str) -> Optional[Type]:
+    def get_wrapper_class(cls, method: str) -> type | None:
         """获取指定方法的 Wrapper 类（支持延迟导入）
 
         Args:
@@ -224,9 +224,7 @@ class EmbeddingRegistry:
                     f"{method.upper()}_API_KEY",
                     "OPENAI_API_KEY",  # 通用 fallback
                 ]
-                api_key = next(
-                    (os.getenv(name) for name in env_var_names if os.getenv(name)), None
-                )
+                api_key = next((os.getenv(name) for name in env_var_names if os.getenv(name)), None)
             if not api_key:
                 return ModelStatus.NEEDS_API_KEY
 
@@ -238,24 +236,6 @@ class EmbeddingRegistry:
             return ModelStatus.NEEDS_DOWNLOAD
 
         return ModelStatus.AVAILABLE
-
-    @classmethod
-    def get_wrapper_class(cls, method: str) -> Optional[Type]:
-        """获取指定方法的 Wrapper 类
-
-        Args:
-            method: 方法名称
-
-        Returns:
-            Wrapper 类，如果方法未注册则返回 None
-
-        Examples:
-            >>> wrapper_cls = EmbeddingRegistry.get_wrapper_class("hash")
-            >>> if wrapper_cls:
-            ...     emb = wrapper_cls(dim=384)
-        """
-        info = cls.get_model_info(method)
-        return info.wrapper_class if info else None
 
     @classmethod
     def _is_model_cached(cls, model_name: str) -> bool:

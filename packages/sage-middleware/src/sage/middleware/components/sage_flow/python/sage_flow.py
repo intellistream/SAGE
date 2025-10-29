@@ -4,7 +4,7 @@ SAGE Flow - High-performance vector stream processing engine (Python side)
 All Python-facing APIs for SAGE-Flow live under this module.
 """
 
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 import numpy as np
 
@@ -105,7 +105,7 @@ SimpleStreamSource = _sage_flow.SimpleStreamSource
 
 
 class SageFlow:
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.env = StreamEnvironment()
         self.streams = []
         self.config = config or {}
@@ -130,7 +130,7 @@ class SageFlow:
     def execute(self):
         self.env.execute()
 
-    def get_stream_snapshot(self) -> Dict[str, Any]:
+    def get_stream_snapshot(self) -> dict[str, Any]:
         return {
             "streams_count": len(self.streams),
             "config": self.config,
@@ -138,7 +138,7 @@ class SageFlow:
         }
 
 
-def create_stream_engine(config: Optional[Dict[str, Any]] = None) -> SageFlow:
+def create_stream_engine(config: dict[str, Any] | None = None) -> SageFlow:
     return SageFlow(config)
 
 

@@ -28,4 +28,4 @@ Tools (tools/):
 See subdirectory READMEs for detailed usage.
 """
 
-__all__ = []
+__all__: list[str] = []

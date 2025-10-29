@@ -11,10 +11,10 @@ Resource Monitor
 import threading
 import time
 from collections import deque
-from typing import Deque, Optional, Tuple
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -39,19 +39,18 @@ class ResourceMonitor:
         """
         if not PSUTIL_AVAILABLE:
             raise ImportError(
-                "psutil is required for ResourceMonitor. "
-                "Install it with: pip install psutil"
+                "psutil is required for ResourceMonitor. Install it with: pip install psutil"
             )
 
         self.sampling_interval = sampling_interval
         self.sample_window = sample_window
 
         # CPU 和内存样本
-        self.cpu_samples: Deque[Tuple[float, float]] = deque(maxlen=sample_window)
-        self.memory_samples: Deque[Tuple[float, float]] = deque(maxlen=sample_window)
+        self.cpu_samples: deque[tuple[float, float]] = deque(maxlen=sample_window)
+        self.memory_samples: deque[tuple[float, float]] = deque(maxlen=sample_window)
 
         # 监控线程
-        self._monitor_thread: Optional[threading.Thread] = None
+        self._monitor_thread: threading.Thread | None = None
         self._running = False
 
         # 进程对象
@@ -68,9 +67,7 @@ class ResourceMonitor:
 
         self._running = True
         self._monitor_thread = threading.Thread(
-            target=self._monitor_loop,
-            daemon=True,
-            name="ResourceMonitor"
+            target=self._monitor_loop, daemon=True, name="ResourceMonitor"
         )
         self._monitor_thread.start()
 
@@ -107,7 +104,7 @@ class ResourceMonitor:
 
             time.sleep(self.sampling_interval)
 
-    def get_current_usage(self) -> Tuple[float, float]:
+    def get_current_usage(self) -> tuple[float, float]:
         """
         获取当前CPU和内存使用率
 
@@ -128,7 +125,7 @@ class ResourceMonitor:
         _, memory = self.memory_samples[-1]
         return (cpu, memory)
 
-    def get_average_usage(self, time_window: Optional[float] = None) -> Tuple[float, float]:
+    def get_average_usage(self, time_window: float | None = None) -> tuple[float, float]:
         """
         获取平均CPU和内存使用率
 
@@ -156,7 +153,7 @@ class ResourceMonitor:
 
         return (avg_cpu, avg_memory)
 
-    def get_peak_usage(self, time_window: Optional[float] = None) -> Tuple[float, float]:
+    def get_peak_usage(self, time_window: float | None = None) -> tuple[float, float]:
         """
         获取峰值CPU和内存使用率
 
@@ -184,7 +181,7 @@ class ResourceMonitor:
 
         return (peak_cpu, peak_memory)
 
-    def get_system_wide_usage(self) -> Tuple[float, float, float]:
+    def get_system_wide_usage(self) -> tuple[float, float, float]:
         """
         获取系统级资源使用情况
 

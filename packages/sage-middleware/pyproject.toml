@@ -1,13 +1,9 @@
 [build-system]
 requires = [
-    "setuptools>=64",
-    "wheel",
-    "packaging>=24.2",
-    "pybind11>=2.10.0",  # C++ 扩展绑定
-    "cmake>=3.20",       # C++ 构建工具 (如果系统没有)
+    "scikit-build-core>=0.8.0",
+    "pybind11>=2.13.0",
 ]
-build-backend = "setuptools.build_meta"
-
+build-backend = "scikit_build_core.build"
 
 
 [project]
@@ -44,24 +40,26 @@ classifiers = [
 ]
 dependencies = [
     # SAGE framework dependencies
-    "isage-kernel>=0.1.0",  # 继承common的所有依赖
-    
+    "isage-common>=0.1.0",  # L1: 基础工具
+    "isage-platform>=0.1.0",  # L2: 平台服务（BaseService等）
+    "isage-kernel>=0.1.0",  # L3: 核心引擎
+
     # Middleware-specific dependencies
     # Authentication and security
     "python-jose==3.5.0",
     "passlib==1.7.4",
-    
+
     # Task queue
     "celery==5.5.3",
     "flower==2.0.1",
-    
+
     # API clients
     "openai>=1.99.1",  # vLLM 0.10.1.1兼容的openai版本
     "ollama==0.5.1",
     "zhipuai==2.1.5.20250801",
     "cohere>=5.16.1",
     "anthropic>=0.25.0",
-    
+
     # ML/AI libraries
     "transformers>=4.54.1",
     "tokenizers>=0.21.0",  # 放宽版本约束
@@ -69,22 +67,22 @@ dependencies = [
     "bm25s==0.2.13",
     "rank-bm25>=0.2.0",
     "PyStemmer==3.0.0",
-    
+
     # Network and data processing
     "aiohttp==3.12.15",
     "frozenlist==1.7.0",
     "feedparser==6.0.11",
-    
+
     # ML acceleration
     "accelerate>=1.9.0",  # 放宽版本约束
     "sentence-transformers>=3.1.0",  # 放宽版本约束
     "InstructorEmbedding==1.0.1",
     "huggingface-hub>=0.34.0",  # 放宽版本约束
     "peft==0.17.0",
-    
+
     # Scientific computing
     "scipy>=1.15.0,<2.0.0",  # 统一scipy版本范围，与其他包兼容
-    
+
     # Documentation
     "markdown>=3.4.4",
     "pymdown-extensions>=10.2.1",
@@ -168,52 +166,9 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
 
-[tool.setuptools]
-include-package-data = true
-zip-safe = false
-
-[tool.setuptools.package-dir]
-"" = "src"
-
-[tool.setuptools.packages.find]
-where = [
-    "src",
-]
-include = [
-    "sage*",
-]
-namespaces = true
-
-[tool.setuptools.package-data]
-"sage.middleware" = [
-    "py.typed",
-    "*.pyi",
-    "*.yaml",
-    "*.json",
-    "templates/*",
-    "static/*",
-]
-# C++ 扩展相关文件
-"sage.middleware.components.sage_db.python" = [
-    "*.so",
-    "*.py",
-    "*.pyi",
-]
-"sage.middleware.components.sage_db" = [
-    "cmake/*.cmake",
-]
-"sage.middleware.components.sage_flow.python" = [
-    "*.so", 
-    "*.py",
-    "*.pyi",
-    "micro_service/*",
-]
-"sage.middleware.components.sage_flow" = [
-    "cmake/*.cmake",
-]
-"sage.middleware.components" = [
-     "cmake/*.cmake",
-]
+# ============================================================================
+# scikit-build-core configuration
+# ============================================================================
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -251,7 +206,7 @@ markers = [
 ]
 
 [tool.black]
-line-length = 88
+line-length = 100
 target-version = ["py310", "py311", "py312"]
 include = "\\.pyi?$"
 extend-exclude = "/(\n    \\.git\n    | \\.venv\n    | build\n    | dist\n)/\n"
@@ -259,13 +214,14 @@ extend-exclude = "/(\n    \\.git\n    | \\.venv\n    | build\n    | dist\n)/\n"
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-line_length = 88
+line_length = 100
 known_first_party = [
     "sage",
 ]
 
 [tool.mypy]
 python_version = "3.11"
+cache_dir = "../../.sage/cache/mypy"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -276,39 +232,40 @@ overrides = [
     { module = "fastapi.*", ignore_missing_imports = true },
 ]
 
+[tool.scikit-build]
+# CMake 配置
+cmake.minimum-version = "3.20"
+cmake.build-type = "Release"
+cmake.verbose = true
+
+# 构建目录
+build-dir = "build/{wheel_tag}"
+
+# 日志级别
+logging.level = "INFO"
+
+# Wheel 配置
+wheel.packages = ["src/sage"]
+wheel.expand-macos-universal-tags = true
+
+# 严格配置验证
+strict-config = false  # 允许灵活配置
+
+# 开发模式配置 - SOTA: 使用 redirect 模式，不需要复杂的 inplace 逻辑
+[tool.scikit-build.editable]
+mode = "redirect"
+verbose = true
+
+# 版本号来自 _version.py
+
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
 [tool.ruff]
-# 与flake8保持一致的配置
-target-version = "py311"
-line-length = 88
+extend = "../../tools/ruff.toml"
 
-[tool.ruff.lint]
-# 启用的规则集（与flake8兼容）
-select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "C90",  # mccabe complexity
-]
-
-# 忽略的错误（与flake8 .flake8文件保持一致）
-ignore = [
-    "E501",  # line too long (handled by formatter)
-]
-
-# 复杂度限制（与flake8保持一致）
-mccabe = { max-complexity = 10 }
-
-# 文件特定忽略
-per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
-
-[tool.ruff.lint.isort]
-known-first-party = ["sage"]
-force-single-line = false
-combine-as-imports = true
-
-[tool.setuptools.dynamic]
-version = {attr = "sage.middleware._version.__version__"}
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "src/sage/middleware/_version.py"
+regex = '''__version__\s*=\s*["'](?P<value>[^"']+)["']'''

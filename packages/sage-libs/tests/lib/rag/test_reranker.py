@@ -98,9 +98,7 @@ class TestBGEReranker:
     @patch("sage.libs.rag.reranker.AutoTokenizer")
     @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
-    def test_load_model_success(
-        self, mock_cuda_available, mock_model_class, mock_tokenizer_class
-    ):
+    def test_load_model_success(self, mock_cuda_available, mock_model_class, mock_tokenizer_class):
         """测试_load_model方法成功加载"""
         if not RERANKER_AVAILABLE:
             pytest.skip("Reranker module not available")
@@ -114,22 +112,16 @@ class TestBGEReranker:
         mock_model_class.from_pretrained.return_value = mock_model
 
         config = {"model_name": "BAAI/bge-reranker-v2-m3"}
-        reranker = BGEReranker(config=config)
+        BGEReranker(config=config)
 
         # 验证模型加载调用
-        mock_tokenizer_class.from_pretrained.assert_called_once_with(
-            "BAAI/bge-reranker-v2-m3"
-        )
-        mock_model_class.from_pretrained.assert_called_once_with(
-            "BAAI/bge-reranker-v2-m3"
-        )
+        mock_tokenizer_class.from_pretrained.assert_called_once_with("BAAI/bge-reranker-v2-m3")
+        mock_model_class.from_pretrained.assert_called_once_with("BAAI/bge-reranker-v2-m3")
 
     @patch("sage.libs.rag.reranker.AutoTokenizer")
     @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
-    def test_load_model_failure(
-        self, mock_cuda_available, mock_model_class, mock_tokenizer_class
-    ):
+    def test_load_model_failure(self, mock_cuda_available, mock_model_class, mock_tokenizer_class):
         """测试_load_model方法加载失败"""
         if not RERANKER_AVAILABLE:
             pytest.skip("Reranker module not available")
@@ -137,9 +129,7 @@ class TestBGEReranker:
         mock_cuda_available.return_value = False
 
         # Mock加载失败
-        mock_tokenizer_class.from_pretrained.side_effect = Exception(
-            "Model loading failed"
-        )
+        mock_tokenizer_class.from_pretrained.side_effect = Exception("Model loading failed")
 
         config = {"model_name": "invalid-model"}
 
@@ -418,16 +408,12 @@ class TestBGERerankerIntegration:
         config = {"model_name": "BAAI/bge-reranker-v2-m3", "top_k": 2}
 
         # 使用mock来测试基本逻辑，避免复杂的tensor链式调用
-        with patch(
-            "sage.libs.rag.reranker.AutoTokenizer"
-        ) as mock_tokenizer_class, patch(
-            "sage.libs.rag.reranker.AutoModelForSequenceClassification"
-        ) as mock_model_class, patch(
-            "torch.cuda.is_available"
-        ) as mock_cuda_available, patch(
-            "torch.no_grad"
+        with (
+            patch("sage.libs.rag.reranker.AutoTokenizer") as mock_tokenizer_class,
+            patch("sage.libs.rag.reranker.AutoModelForSequenceClassification") as mock_model_class,
+            patch("torch.cuda.is_available") as mock_cuda_available,
+            patch("torch.no_grad"),
         ):
-
             mock_cuda_available.return_value = False
 
             # 简单的mock设置

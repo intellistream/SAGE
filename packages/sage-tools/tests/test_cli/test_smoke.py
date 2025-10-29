@@ -59,15 +59,8 @@ class TestCLISmoke:
             [sys.executable, "-m", "sage.tools.cli", "--help"]
         )
         assert success, f"CLI startup failed: {stderr}"
-        assert "SAGE" in stdout
-
-    def test_version_command(self):
-        """测试版本命令"""
-        success, stdout, stderr = run_command_simple(
-            [sys.executable, "-m", "sage.tools.cli", "version"]
-        )
-        assert success, f"Version command failed: {stderr}"
-        assert "版本" in stdout or "version" in stdout.lower()
+        # sage.tools.cli 现在只有 dev 和 finetune 命令
+        assert "dev" in stdout
 
     def test_dev_command_help(self):
         """测试dev命令"""
@@ -78,9 +71,10 @@ class TestCLISmoke:
         assert "开发工具" in stdout or "dev" in stdout.lower()
 
     def test_status_check(self):
-        """测试状态检查"""
+        """测试基本状态检查"""
         success, stdout, stderr = run_command_simple(
-            [sys.executable, "-m", "sage.tools.cli", "dev", "status"], timeout=30
+            [sys.executable, "-m", "sage.tools.cli", "dev", "project", "status"],
+            timeout=60,  # 增加超时
         )
         assert success, f"Status check failed: {stderr}"
         assert "状态报告" in stdout or "status" in stdout.lower()
@@ -92,11 +86,3 @@ class TestCLISmoke:
             # sage-dev可能不在PATH中，这是可以接受的
             pytest.skip("sage-dev command not available in PATH - this is acceptable")
         assert "开发工具" in stdout or "dev" in stdout.lower()
-
-    def test_doctor_command(self):
-        """测试系统诊断"""
-        success, stdout, stderr = run_command_simple(
-            [sys.executable, "-m", "sage.tools.cli", "doctor"]
-        )
-        assert success, f"Doctor command failed: {stderr}"
-        assert "诊断" in stdout or "系统" in stdout

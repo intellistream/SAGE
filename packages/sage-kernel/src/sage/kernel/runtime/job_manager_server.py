@@ -1,9 +1,10 @@
 import json
 import os
 import sys
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 import ray
+
 from sage.common.utils.network.local_tcp_server import BaseTcpServer
 from sage.common.utils.serialization.dill import deserialize_object
 
@@ -48,9 +49,7 @@ class JobManagerServer(BaseTcpServer):
             # 启动Socket服务
             self.start()
 
-            self.logger.info(
-                f"JobManager Daemon started successfully on {self.host}:{self.port}"
-            )
+            self.logger.info(f"JobManager Daemon started successfully on {self.host}:{self.port}")
 
         except Exception as e:
             self.logger.error(f"Failed to start daemon: {e}")
@@ -58,7 +57,7 @@ class JobManagerServer(BaseTcpServer):
 
     def _handle_message_data(
         self, message_data: bytes, client_address: tuple
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """处理接收到的消息数据"""
         try:
             # JobManager使用JSON格式的消息
@@ -78,7 +77,7 @@ class JobManagerServer(BaseTcpServer):
         """序列化响应（JobManager使用JSON格式）"""
         return json.dumps(response).encode("utf-8")
 
-    def _process_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_request(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理客户端请求 - 解析消息并调用JobManager方法"""
         try:
             self.logger.debug(f"Processing request: {request}")
@@ -123,7 +122,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_submit_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_submit_job(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理提交作业请求"""
         try:
             # 获取 autostop 参数
@@ -186,7 +185,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_get_job_status(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_get_job_status(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理获取作业状态请求"""
         try:
             # 支持新旧两种参数名
@@ -213,7 +212,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_pause_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_pause_job(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理暂停作业请求"""
         try:
             # 支持新旧两种参数名
@@ -236,7 +235,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_continue_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_continue_job(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理继续作业请求"""
         try:
             # 支持新旧两种参数名
@@ -259,7 +258,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_delete_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_delete_job(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理删除作业请求"""
         try:
             # 支持新旧两种参数名
@@ -284,7 +283,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_list_jobs(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_list_jobs(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理列出作业请求"""
         try:
             jobs = self.jobmanager.list_jobs()
@@ -302,7 +301,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_get_server_info(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_get_server_info(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理获取服务器信息请求"""
         try:
             server_info = self.jobmanager.get_server_info()
@@ -320,7 +319,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_cleanup_all_jobs(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_cleanup_all_jobs(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理清理所有作业请求"""
         try:
             result = self.jobmanager.cleanup_all_jobs()
@@ -334,9 +333,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_receive_node_stop_signal(
-        self, request: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _handle_receive_node_stop_signal(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理节点停止信号"""
         try:
             job_uuid = request.get("job_uuid")
@@ -365,7 +362,7 @@ class JobManagerServer(BaseTcpServer):
                 "request_id": request.get("request_id"),
             }
 
-    def _handle_health_check(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_health_check(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理健康检查请求"""
         daemon_status = {
             "daemon_running": True,
@@ -382,7 +379,7 @@ class JobManagerServer(BaseTcpServer):
             "request_id": request.get("request_id"),
         }
 
-    def _handle_get_environment_info(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle_get_environment_info(self, request: dict[str, Any]) -> dict[str, Any]:
         """处理获取环境信息请求"""
         try:
             import platform
@@ -391,9 +388,7 @@ class JobManagerServer(BaseTcpServer):
                 "python_version": sys.version,
                 "python_executable": sys.executable,
                 "platform": platform.platform(),
-                "ray_version": (
-                    ray.__version__ if hasattr(ray, "__version__") else "unknown"
-                ),
+                "ray_version": (ray.__version__ if hasattr(ray, "__version__") else "unknown"),
                 "session_id": self.jobmanager.session_id,
                 "log_base_dir": str(self.jobmanager.log_base_dir),
                 "working_directory": os.getcwd(),

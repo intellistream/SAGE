@@ -2,7 +2,7 @@
 Ray对象清理器 - 专门用于Ray远程调用的对象预处理
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .config import (
     RAY_OPERATOR_EXCLUDE_ATTRS,
@@ -14,7 +14,7 @@ from .preprocessor import filter_attrs, gather_attrs, preprocess_for_dill, shoul
 
 
 def trim_object_for_ray(
-    obj: Any, include: Optional[List[str]] = None, exclude: Optional[List[str]] = None
+    obj: Any, include: list[str] | None = None, exclude: list[str] | None = None
 ) -> Any:
     """
     为Ray远程调用预处理对象，移除不可序列化的内容
@@ -47,7 +47,7 @@ def trim_object_for_ray(
             # 创建新对象并设置过滤后的属性
             obj_class = type(obj)
             try:
-                final_obj = obj_class.__new__(obj_class)
+                final_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
                 for attr_name, attr_value in filtered_attrs.items():
                     try:
                         setattr(final_obj, attr_name, attr_value)
@@ -73,8 +73,8 @@ class RayObjectTrimmer:
     @staticmethod
     def trim_for_remote_call(
         obj: Any,
-        include: Optional[List[str]] = None,
-        exclude: Optional[List[str]] = None,
+        include: list[str] | None = None,
+        exclude: list[str] | None = None,
         deep_clean: bool = True,
     ) -> Any:
         """
@@ -97,7 +97,7 @@ class RayObjectTrimmer:
 
                 obj_class = type(obj)
                 try:
-                    cleaned_obj = obj_class.__new__(obj_class)
+                    cleaned_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
                     for attr_name, attr_value in filtered_attrs.items():
                         if not should_skip(attr_value):
                             try:
@@ -149,7 +149,7 @@ class RayObjectTrimmer:
         )
 
     @staticmethod
-    def validate_ray_serializable(obj: Any, max_depth: int = 3) -> Dict[str, Any]:
+    def validate_ray_serializable(obj: Any, max_depth: int = 3) -> dict[str, Any]:
         """
         验证对象是否可以被Ray序列化
 
@@ -173,7 +173,7 @@ class RayObjectTrimmer:
 
         try:
             # 尝试Ray的内部序列化
-            serialized = ray.cloudpickle.dumps(obj)
+            serialized = ray.cloudpickle.dumps(obj)  # type: ignore[attr-defined]
             result["is_serializable"] = True
             result["size_estimate"] = len(serialized)
 

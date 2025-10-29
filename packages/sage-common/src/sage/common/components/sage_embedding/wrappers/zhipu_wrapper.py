@@ -1,7 +1,7 @@
 """ZhipuAI (智谱清言) embedding wrapper."""
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseEmbedding
 
@@ -32,12 +32,12 @@ class ZhipuEmbedding(BaseEmbedding):
         >>> import os
         >>> emb = ZhipuEmbedding(
         ...     model="embedding-3",
-        ...     api_key=os.getenv("ZHIPU_API_KEY")
+        ...     api_key=os.getenv("ZHIPU_API_KEY")  # pragma: allowlist secret
         ... )
         >>> vec = emb.embed("你好世界")
         >>>
         >>> # 使用环境变量
-        >>> # export ZHIPU_API_KEY='your-key'
+        >>> # export ZHIPU_API_KEY='your-key'  # pragma: allowlist secret
         >>> emb = ZhipuEmbedding()
         >>> vec = emb.embed("智谱清言是一个强大的中文模型")
     """
@@ -49,7 +49,7 @@ class ZhipuEmbedding(BaseEmbedding):
     }
 
     def __init__(
-        self, model: str = "embedding-3", api_key: Optional[str] = None, **kwargs: Any
+        self, model: str = "embedding-3", api_key: str | None = None, **kwargs: Any
     ) -> None:
         """初始化 Zhipu Embedding
 
@@ -68,9 +68,7 @@ class ZhipuEmbedding(BaseEmbedding):
         try:
             from zhipuai import ZhipuAI  # noqa: F401
         except ImportError:
-            raise ImportError(
-                "Zhipu embedding 需要 zhipuai 包。\n" "安装方法: pip install zhipuai"
-            )
+            raise ImportError("Zhipu embedding 需要 zhipuai 包。\n安装方法: pip install zhipuai")
 
         self._model = model
         self._api_key = api_key or os.getenv("ZHIPU_API_KEY")
@@ -81,8 +79,8 @@ class ZhipuEmbedding(BaseEmbedding):
             raise RuntimeError(
                 "Zhipu embedding 需要 API Key。\n"
                 "解决方案:\n"
-                "  1. 设置环境变量: export ZHIPU_API_KEY='your-key'\n"
-                "  2. 传递参数: ZhipuEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export ZHIPU_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: ZhipuEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
                 "获取 API Key: https://open.bigmodel.cn/"
             )
@@ -90,7 +88,7 @@ class ZhipuEmbedding(BaseEmbedding):
         # 获取维度
         self._dim = self.DIMENSION_MAP.get(model, 1024)
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -106,9 +104,7 @@ class ZhipuEmbedding(BaseEmbedding):
             from zhipuai import ZhipuAI
 
             client = ZhipuAI(api_key=self._api_key)
-            response = client.embeddings.create(
-                model=self._model, input=[text], **self._kwargs
-            )
+            response = client.embeddings.create(model=self._model, input=[text], **self._kwargs)
             return response.data[0].embedding
         except Exception as e:
             raise RuntimeError(
@@ -118,7 +114,7 @@ class ZhipuEmbedding(BaseEmbedding):
                 f"提示: 检查 API Key 是否有效，网络连接是否正常"
             ) from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         使用 ZhipuAI API 的批量接口（input 参数支持列表）。
@@ -134,7 +130,9 @@ class ZhipuEmbedding(BaseEmbedding):
 
             client = ZhipuAI(api_key=self._api_key)
             response = client.embeddings.create(
-                model=self._model, input=texts, **self._kwargs  # 直接传入列表
+                model=self._model,
+                input=texts,
+                **self._kwargs,  # 直接传入列表
             )
             return [item.embedding for item in response.data]
         except Exception as e:
@@ -163,7 +161,7 @@ class ZhipuEmbedding(BaseEmbedding):
         return "zhipu"
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

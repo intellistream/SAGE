@@ -1,28 +1,28 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Type
+from typing import TYPE_CHECKING
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.factory.function_factory import FunctionFactory
 from sage.kernel.runtime.factory.operator_factory import OperatorFactory
 
 if TYPE_CHECKING:
+    from sage.common.core.functions import BaseFunction
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.function.base_function import BaseFunction
     from sage.kernel.api.operator.base_operator import BaseOperator
 
 
 class BaseTransformation:
     def __init__(
         self,
-        env: "BaseEnvironment",
-        function: Type["BaseFunction"],
+        env: BaseEnvironment,
+        function: type[BaseFunction],
         *args,
-        name: str = None,
+        name: str | None = None,
         parallelism: int = 1,
         **kwargs,
     ):
-        self.operator_class: Type[BaseOperator]  # 由子类设置
+        self.operator_class: type[BaseOperator]  # 由子类设置
 
         self.remote = env.platform == "remote"
         self.env_name = env.name
@@ -47,19 +47,17 @@ class BaseTransformation:
             f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}"
         )
 
-        self.upstreams: List[BaseTransformation] = []
+        self.upstreams: list[BaseTransformation] = []
         self.downstreams: dict[str, int] = {}
         self.parallelism = parallelism
 
         # 懒加载工厂
-        self._operator_factory: OperatorFactory = None
-        self._function_factory: FunctionFactory = None
+        self._operator_factory: OperatorFactory | None = None
+        self._function_factory: FunctionFactory | None = None
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
 
     # 增强的连接方法
-    def add_upstream(
-        self, upstream_trans: "BaseTransformation", input_index: int = 0
-    ) -> None:
+    def add_upstream(self, upstream_trans: BaseTransformation, input_index: int = 0) -> None:
         """
         添加上游连接
 
@@ -124,9 +122,8 @@ class BaseTransformation:
         对于大多数transformation，多个上游输入会被合并到input_index=0
         只有特殊的comap等操作会分别处理多个输入到不同的input_index
         """
-        return (
-            not hasattr(self.function_class, "is_comap")
-            or not self.function_class.is_comap
+        return not hasattr(self.function_class, "is_comap") or not getattr(
+            self.function_class, "is_comap", False
         )
 
     # ---------------- 工具函数 ----------------

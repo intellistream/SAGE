@@ -7,7 +7,7 @@ Ray Queue Descriptor - Ray分布式队列描述符
 import logging
 import queue
 import threading
-from typing import Any, Dict, Optional
+from typing import Any
 
 import ray
 
@@ -51,7 +51,7 @@ class SimpleTestQueue:
 def _is_ray_local_mode():
     """检查Ray是否在local mode下运行"""
     try:
-        return ray._private.worker.global_worker.mode == ray._private.worker.LOCAL_MODE
+        return ray._private.worker.global_worker.mode == ray._private.worker.LOCAL_MODE  # type: ignore[attr-defined]
     except Exception:
         return False
 
@@ -73,7 +73,7 @@ class RayQueueProxy:
 
     def get(self, block=True, timeout=None):
         """从队列获取项目
-        
+
         Args:
             block: 是否阻塞等待（为了API兼容性，但Ray队列始终是阻塞的）
             timeout: 超时时间（秒）
@@ -112,27 +112,22 @@ class RayQueueManager:
         if queue_id not in self.queues:
             # 在local mode下使用简单队列实现
             if _is_ray_local_mode():
-                self.queues[queue_id] = SimpleTestQueue(
-                    maxsize=maxsize if maxsize > 0 else 0
-                )
+                self.queues[queue_id] = SimpleTestQueue(maxsize=maxsize if maxsize > 0 else 0)
                 logger.debug(f"Created new SimpleTestQueue {queue_id} (local mode)")
             else:
                 # 在分布式模式下使用Ray原生队列
                 try:
                     from ray.util.queue import Queue
 
-                    self.queues[queue_id] = Queue(
-                        maxsize=maxsize if maxsize > 0 else None
-                    )
+                    queue_maxsize = maxsize if maxsize > 0 else 0
+                    self.queues[queue_id] = Queue(maxsize=queue_maxsize)
                     logger.debug(f"Created new Ray queue {queue_id} (distributed mode)")
                 except Exception as e:
                     # 如果Ray队列创建失败，回退到简单队列
                     logger.warning(
                         f"Failed to create Ray queue, falling back to SimpleTestQueue: {e}"
                     )
-                    self.queues[queue_id] = SimpleTestQueue(
-                        maxsize=maxsize if maxsize > 0 else 0
-                    )
+                    self.queues[queue_id] = SimpleTestQueue(maxsize=maxsize if maxsize > 0 else 0)
         else:
             logger.debug(f"Retrieved existing queue {queue_id}")
         return queue_id  # 返回队列ID而不是队列对象
@@ -209,7 +204,7 @@ def get_global_queue_manager():
                     continue
             else:
                 raise
-        except Exception as e:
+        except Exception:
             # 其他错误，短暂等待后重试
             time.sleep(random.uniform(0.1, 0.5))
             if attempt == 2:  # 最后一次尝试
@@ -227,7 +222,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
     - ray.util.Queue (Ray原生分布式队列)
     """
 
-    def __init__(self, maxsize: int = 1024 * 1024, queue_id: Optional[str] = None):
+    def __init__(self, maxsize: int = 1024 * 1024, queue_id: str | None = None):
         """
         初始化Ray队列描述符
 
@@ -236,7 +231,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
             queue_id: 队列唯一标识符
         """
         self.maxsize = maxsize
-        self._queue = None  # 延迟初始化
+        self._queue: Any = None  # 延迟初始化
         super().__init__(queue_id=queue_id)
 
     @property
@@ -250,7 +245,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
         return True
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """元数据字典"""
         return {"maxsize": self.maxsize}
 
@@ -260,12 +255,12 @@ class RayQueueDescriptor(BaseQueueDescriptor):
         if self._queue is None:
             manager = get_global_queue_manager()
             # 确保队列被创建，但不获取队列对象本身
-            ray.get(manager.get_or_create_queue.remote(self.queue_id, self.maxsize))
+            ray.get(manager.get_or_create_queue.remote(self.queue_id, self.maxsize))  # type: ignore
             # 返回一个队列代理对象
             self._queue = RayQueueProxy(manager, self.queue_id)
         return self._queue
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, include_non_serializable: bool = False) -> dict[str, Any]:
         """序列化为字典，包含队列元信息"""
         return {
             "queue_type": self.queue_type,
@@ -275,7 +270,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RayQueueDescriptor":
+    def from_dict(cls, data: dict[str, Any]) -> "RayQueueDescriptor":
         """从字典反序列化"""
         # 确保maxsize是整数
         maxsize = data["metadata"].get("maxsize", 1024 * 1024)
@@ -289,7 +284,5 @@ class RayQueueDescriptor(BaseQueueDescriptor):
             maxsize=maxsize,
             queue_id=data["queue_id"],
         )
-        instance.created_timestamp = data.get(
-            "created_timestamp", instance.created_timestamp
-        )
+        instance.created_timestamp = data.get("created_timestamp", instance.created_timestamp)
         return instance

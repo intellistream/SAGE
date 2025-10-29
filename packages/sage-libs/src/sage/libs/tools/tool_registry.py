@@ -2,8 +2,6 @@
 工具注册表 - 管理和发现工具
 """
 
-from typing import Dict, List, Optional
-
 from .base_tool import BaseTool
 
 
@@ -11,11 +9,11 @@ class ToolRegistry:
     """工具注册表 - 单例模式管理所有工具"""
 
     _instance = None
-    _tools: Dict[str, BaseTool] = {}
+    _tools: dict[str, BaseTool] = {}
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(ToolRegistry, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
     def register(self, tool: BaseTool) -> None:
@@ -30,15 +28,15 @@ class ToolRegistry:
         if name in self._tools:
             del self._tools[name]
 
-    def get(self, name: str) -> Optional[BaseTool]:
+    def get(self, name: str) -> BaseTool | None:
         """根据名称获取工具"""
         return self._tools.get(name)
 
-    def list_tools(self) -> List[BaseTool]:
+    def list_tools(self) -> list[BaseTool]:
         """列出所有已注册的工具"""
         return list(self._tools.values())
 
-    def list_tool_names(self) -> List[str]:
+    def list_tool_names(self) -> list[str]:
         """列出所有工具名称"""
         return list(self._tools.keys())
 

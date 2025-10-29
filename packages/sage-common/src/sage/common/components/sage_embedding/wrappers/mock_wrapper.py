@@ -1,7 +1,7 @@
 """Mock embedding wrapper (migrated from mockembedder.py)."""
 
 import random
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseEmbedding
 
@@ -44,7 +44,7 @@ class MockEmbedding(BaseEmbedding):
         True
     """
 
-    def __init__(self, fixed_dim: int = 128, seed: int = None, **kwargs: Any) -> None:
+    def __init__(self, fixed_dim: int = 128, seed: int | None = None, **kwargs: Any) -> None:
         """初始化 Mock Embedding
 
         Args:
@@ -58,7 +58,7 @@ class MockEmbedding(BaseEmbedding):
         if seed is not None:
             random.seed(seed)
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """生成随机 embedding 向量
 
         Args:
@@ -98,7 +98,7 @@ class MockEmbedding(BaseEmbedding):
         return "mockembedder"
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

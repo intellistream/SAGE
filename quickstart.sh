@@ -55,24 +55,24 @@ sync_submodules_if_requested() {
 main() {
     # 解析命令行参数（包括帮助检查）
     parse_arguments "$@"
-    
+
     # 检查环境医生模式
     local run_doctor=$(get_run_doctor)
     local doctor_only=$(get_doctor_only)
     local fix_environment=$(get_fix_environment)
-    
+
     if [ "$run_doctor" = "true" ]; then
         # 导入环境医生功能
         if [ -f "$TOOLS_DIR/fixes/environment_doctor.sh" ]; then
             source "$TOOLS_DIR/fixes/environment_doctor.sh"
-            
+
             if [ "$fix_environment" = "true" ]; then
                 run_full_diagnosis
                 run_auto_fixes
             else
                 run_full_diagnosis
             fi
-            
+
             if [ "$doctor_only" = "true" ]; then
                 exit $?
             fi
@@ -81,30 +81,30 @@ main() {
             exit 1
         fi
     fi
-    
+
     # 设置智能默认值并显示提示
     set_defaults_and_show_tips
-    
+
     # 显示欢迎界面
     show_welcome
-    
+
     # 环境预检查（除非在医生模式中）
     if [ "$run_doctor" != "true" ]; then
         echo -e "\n${BLUE}🔍 安装前环境检查${NC}"
-        
+
         # 确保.sage目录存在
         mkdir -p .sage/logs
-        
+
         if ! precheck_numpy_environment ".sage/logs/install.log"; then
             echo -e "${YELLOW}⚠️  检测到潜在环境问题，但将继续尝试安装${NC}"
         fi
     fi
-    
+
     # 如果没有指定任何参数且不在 CI 环境中，显示交互式菜单
     if [ $# -eq 0 ] && [[ -z "$CI" && -z "$GITHUB_ACTIONS" && -z "$GITLAB_CI" && -z "$JENKINS_URL" && -z "$BUILDKITE" ]]; then
         show_installation_menu
     fi
-    
+
     # 获取解析后的参数
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
@@ -112,16 +112,16 @@ main() {
     local auto_confirm=$(get_auto_confirm)
     local clean_cache=$(get_clean_pip_cache)
     local sync_submodules=$(get_sync_submodules)
-    
+
     # 如果不是自动确认模式，显示最终确认
     if [ "$auto_confirm" != "true" ]; then
         echo ""
         echo -e "${BLUE}📋 最终安装配置：${NC}"
         show_install_configuration
-        
+
         echo -e "${YELLOW}确认开始安装吗？${NC} [${GREEN}Y${NC}/${RED}n${NC}]"
         read -p "请输入选择: " -r continue_choice
-        
+
         if [[ ! "$continue_choice" =~ ^[Yy]$ ]] && [[ ! -z "$continue_choice" ]]; then
             echo ""
             echo -e "${INFO} 安装已取消。"
@@ -134,33 +134,64 @@ main() {
         echo -e "${INFO} 使用自动确认模式，直接开始安装..."
         show_install_configuration
     fi
-    
+
     # 切换到项目根目录
     cd "$SCRIPT_DIR"
 
     sync_submodules_if_requested "$sync_submodules"
-    
+
     # 执行安装
     install_sage "$mode" "$environment" "$install_vllm" "$clean_cache"
-    
+
     # 验证安装
     if verify_installation; then
-        # 标准模式和开发模式都包含C++扩展
+        # C++扩展已在 sage-middleware 安装时自动构建和验证
         if [ "$mode" = "standard" ] || [ "$mode" = "dev" ]; then
-            echo -e "${DIM}C++扩展状态已在安装过程中验证${NC}"
+            echo -e "${DIM}C++扩展已通过 sage-middleware 自动构建和验证${NC}"
         fi
-        
-        # 开发模式下自动设置 Git hooks（用于 submodule 管理）
+
+        # 自动安装代码质量和架构检查 Git hooks（所有模式）
+        echo ""
+        echo -e "${INFO} 安装代码质量和架构检查工具..."
+
+        # 1. 安装 pre-commit 框架（代码质量）
+        if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
+            echo -e "${DIM}   安装 pre-commit 框架...${NC}"
+            if pip install -q pre-commit 2>/dev/null || pip3 install -q pre-commit 2>/dev/null; then
+                echo -e "${GREEN}   ✅ pre-commit 框架已安装${NC}"
+            else
+                echo -e "${YELLOW}   ⚠️  pre-commit 安装失败，代码格式检查将被跳过${NC}"
+            fi
+        fi
+
+        # 2. 安装 Git hooks（使用新的 sage-dev maintain hooks 命令）
+        if command -v sage-dev >/dev/null 2>&1; then
+            # 使用静默模式避免过多输出
+            if sage-dev maintain hooks install --quiet 2>&1; then
+                echo -e "${GREEN}✅ Git hooks 已安装${NC}"
+                echo -e "${DIM}   • 代码质量检查: black, isort, ruff 等${NC}"
+                echo -e "${DIM}   • 架构合规性: 包依赖、导入路径等${NC}"
+                echo -e "${DIM}   • 跳过检查: git commit --no-verify${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Git hooks 安装失败（可能不在 Git 仓库中）${NC}"
+                echo -e "${DIM}   可稍后手动运行: sage-dev maintain hooks install${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠️  sage-dev 命令不可用，跳过 Git hooks 安装${NC}"
+            echo -e "${DIM}   安装完成后运行: sage-dev maintain hooks install${NC}"
+        fi
+
+        # 开发模式下额外设置 Git hooks（用于 submodule 管理）
         if [ "$mode" = "dev" ]; then
             echo ""
-            echo -e "${INFO} 设置 Git hooks（开发模式）..."
+            echo -e "${INFO} 设置额外的 Git hooks（开发模式）..."
             if [ -f "$SCRIPT_DIR/tools/maintenance/setup_hooks.sh" ]; then
                 bash "$SCRIPT_DIR/tools/maintenance/setup_hooks.sh" --force 2>/dev/null || {
-                    echo -e "${DIM}  ℹ️  Git hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
+                    echo -e "${DIM}  ℹ️  开发模式 hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
                 }
             fi
         fi
-        
+
         show_usage_tips "$mode"
         # 如果安装了 VLLM，验证 VLLM 安装
         if [ "$install_vllm" = "true" ]; then

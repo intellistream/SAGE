@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass
@@ -18,7 +18,7 @@ class SearchResult:
         """格式化显示搜索结果"""
         return f"[Rank {self.rank}] {self.title}\nContent: {self.content}\nSource: {self.source}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "title": self.title,
@@ -30,7 +30,7 @@ class SearchResult:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SearchResult":
+    def from_dict(cls, data: dict[str, Any]) -> "SearchResult":
         """从字典创建SearchResult"""
         return cls(
             title=data.get("title", ""),

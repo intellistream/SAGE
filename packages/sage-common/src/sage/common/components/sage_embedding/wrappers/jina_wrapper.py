@@ -1,7 +1,7 @@
 """Jina AI embedding wrapper."""
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseEmbedding
 from ..jina import jina_embed_sync  # 复用现有实现
@@ -64,8 +64,8 @@ class JinaEmbedding(BaseEmbedding):
         model: str = "jina-embeddings-v3",
         dimensions: int = 1024,
         late_chunking: bool = False,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         **kwargs: Any,
     ) -> None:
         """初始化 Jina Embedding
@@ -100,12 +100,12 @@ class JinaEmbedding(BaseEmbedding):
         # 检查 API Key
         if not self._api_key:
             raise RuntimeError(
-                "Jina embedding 需要 API Key。\n"
+                "Jina embedding 需要 API Key。\n"  # pragma: allowlist secret
                 "解决方案:\n"
-                "  1. 设置环境变量: export JINA_API_KEY='your-key'\n"
-                "  2. 传递参数: JinaEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export JINA_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: JinaEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
-                "获取 API Key: https://jina.ai/embeddings/"
+                "获取 API Key: https://jina.ai/embeddings/"  # pragma: allowlist secret
             )
 
         # 检查维度范围
@@ -115,7 +115,7 @@ class JinaEmbedding(BaseEmbedding):
                 "提示: 更小的维度可以降低成本，但可能影响精度"
             )
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -145,7 +145,7 @@ class JinaEmbedding(BaseEmbedding):
                 f"提示: 检查 API Key 是否有效，网络连接是否正常"
             ) from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         使用 Jina API 的批量接口（input 参数支持列表）。
@@ -165,13 +165,14 @@ class JinaEmbedding(BaseEmbedding):
         try:
             import requests
 
-            # 准备 API Key
+            # 准备 API Key (guaranteed to be non-None after __init__ validation)
             api_key = self._api_key
+            assert api_key is not None  # Help mypy understand this can't be None
             if not api_key.startswith("Bearer "):
-                api_key = "Bearer " + api_key
+                api_key = "Bearer " + api_key  # pragma: allowlist secret
 
             headers = {
-                "Authorization": api_key,
+                "Authorization": api_key,  # pragma: allowlist secret
                 "Content-Type": "application/json",
             }
 
@@ -220,7 +221,7 @@ class JinaEmbedding(BaseEmbedding):
         return "jina"
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

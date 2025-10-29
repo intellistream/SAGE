@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class SageTSDBService:
       - window_aggregate(data, window_type, window_size, aggregation) -> list[dict]
     """
 
-    def __init__(self, config: Optional[SageTSDBServiceConfig] = None) -> None:
+    def __init__(self, config: SageTSDBServiceConfig | None = None) -> None:
         """
         Initialize SageTSDB service.
 
@@ -82,10 +82,10 @@ class SageTSDBService:
 
     def add(
         self,
-        timestamp: Union[int, datetime],
-        value: Union[float, np.ndarray, List[float]],
-        tags: Optional[Dict[str, str]] = None,
-        fields: Optional[Dict[str, Any]] = None,
+        timestamp: int | datetime,
+        value: float | np.ndarray | list[float],
+        tags: dict[str, str] | None = None,
+        fields: dict[str, Any] | None = None,
     ) -> int:
         """
         Add a single time series data point.
@@ -102,20 +102,18 @@ class SageTSDBService:
         if isinstance(value, list):
             value = np.array(value, dtype=np.float32)
 
-        idx = self._db.add(
-            timestamp=timestamp, value=value, tags=tags, fields=fields
-        )
+        idx = self._db.add(timestamp=timestamp, value=value, tags=tags, fields=fields)
 
         self._stats["total_writes"] += 1
         return idx
 
     def add_batch(
         self,
-        timestamps: Union[List[int], List[datetime], np.ndarray],
-        values: Union[List[float], np.ndarray],
-        tags_list: Optional[List[Dict[str, str]]] = None,
-        fields_list: Optional[List[Dict[str, Any]]] = None,
-    ) -> List[int]:
+        timestamps: list[int] | list[datetime] | np.ndarray,
+        values: list[float] | np.ndarray,
+        tags_list: list[dict[str, str]] | None = None,
+        fields_list: list[dict[str, Any]] | None = None,
+    ) -> list[int]:
         """
         Add multiple time series data points.
 
@@ -140,13 +138,13 @@ class SageTSDBService:
 
     def query(
         self,
-        start_time: Union[int, datetime],
-        end_time: Union[int, datetime],
-        tags: Optional[Dict[str, str]] = None,
-        aggregation: Optional[str] = None,
-        window_size: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+        start_time: int | datetime,
+        end_time: int | datetime,
+        tags: dict[str, str] | None = None,
+        aggregation: str | None = None,
+        window_size: int | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Query time series data.
 
@@ -184,11 +182,11 @@ class SageTSDBService:
             formatted.append(
                 {
                     "timestamp": r.timestamp,
-                    "value": float(r.value)
-                    if isinstance(r.value, (int, float))
-                    else r.value.tolist()
-                    if isinstance(r.value, np.ndarray)
-                    else r.value,
+                    "value": (
+                        float(r.value)
+                        if isinstance(r.value, (int, float))
+                        else (r.value.tolist() if isinstance(r.value, np.ndarray) else r.value)
+                    ),
                     "tags": dict(r.tags) if r.tags else {},
                     "fields": dict(r.fields) if r.fields else {},
                 }
@@ -199,12 +197,12 @@ class SageTSDBService:
 
     def stream_join(
         self,
-        left_stream: List[Dict[str, Any]],
-        right_stream: List[Dict[str, Any]],
-        window_size: Optional[int] = None,
-        max_delay: Optional[int] = None,
-        join_key: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        left_stream: list[dict[str, Any]],
+        right_stream: list[dict[str, Any]],
+        window_size: int | None = None,
+        max_delay: int | None = None,
+        join_key: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Perform out-of-order stream join.
 
@@ -260,16 +258,20 @@ class SageTSDBService:
                 {
                     "left": {
                         "timestamp": left.timestamp,
-                        "value": float(left.value)
-                        if isinstance(left.value, (int, float))
-                        else left.value,
+                        "value": (
+                            float(left.value)
+                            if isinstance(left.value, (int, float))
+                            else left.value
+                        ),
                         "tags": dict(left.tags) if left.tags else {},
                     },
                     "right": {
                         "timestamp": right.timestamp,
-                        "value": float(right.value)
-                        if isinstance(right.value, (int, float))
-                        else right.value,
+                        "value": (
+                            float(right.value)
+                            if isinstance(right.value, (int, float))
+                            else right.value
+                        ),
                         "tags": dict(right.tags) if right.tags else {},
                     },
                 }
@@ -280,13 +282,13 @@ class SageTSDBService:
 
     def window_aggregate(
         self,
-        start_time: Union[int, datetime],
-        end_time: Union[int, datetime],
+        start_time: int | datetime,
+        end_time: int | datetime,
         window_type: str = "tumbling",
-        window_size: Optional[int] = None,
+        window_size: int | None = None,
         aggregation: str = "avg",
-        tags: Optional[Dict[str, str]] = None,
-    ) -> List[Dict[str, Any]]:
+        tags: dict[str, str] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Perform window-based aggregation.
 
@@ -323,9 +325,9 @@ class SageTSDBService:
             results.append(
                 {
                     "timestamp": item.timestamp,
-                    "value": float(item.value)
-                    if isinstance(item.value, (int, float))
-                    else item.value,
+                    "value": (
+                        float(item.value) if isinstance(item.value, (int, float)) else item.value
+                    ),
                     "tags": dict(item.tags) if item.tags else {},
                     "fields": dict(item.fields) if item.fields else {},
                 }
@@ -334,7 +336,7 @@ class SageTSDBService:
         self._stats["total_aggregations"] += 1
         return results
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """
         Get service statistics.
 

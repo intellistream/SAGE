@@ -4,7 +4,8 @@ import socket
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 
 class BaseTcpServer(ABC):
@@ -16,8 +17,8 @@ class BaseTcpServer(ABC):
 
     def __init__(
         self,
-        host: str = None,
-        port: int = None,
+        host: str | None = None,
+        port: int | None = None,
         logger=None,
         server_name: str = "TcpServer",
     ):
@@ -38,12 +39,12 @@ class BaseTcpServer(ABC):
 
         self.host = host or self._get_host_ip()
         self.port = port or self._allocate_tcp_port()
-        self.server_socket: Optional[socket.socket] = None
-        self.server_thread: Optional[threading.Thread] = None
+        self.server_socket: socket.socket | None = None
+        self.server_thread: threading.Thread | None = None
         self.running = False
 
         # 客户端连接管理
-        self.client_connections: Dict[str, socket.socket] = {}  # client_id -> socket
+        self.client_connections: dict[str, socket.socket] = {}  # client_id -> socket
         self.client_lock = threading.Lock()
 
     def _create_default_logger(self):
@@ -53,9 +54,7 @@ class BaseTcpServer(ABC):
         logger = logging.getLogger(f"{self.server_name}")
         if not logger.handlers:
             handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler.setFormatter(formatter)
             logger.addHandler(handler)
             logger.setLevel(logging.INFO)
@@ -134,9 +133,7 @@ class BaseTcpServer(ABC):
                 if not self.server_thread.is_alive():
                     break
             else:
-                self.logger.warning(
-                    f"{self.server_name} thread did not stop gracefully"
-                )
+                self.logger.warning(f"{self.server_name} thread did not stop gracefully")
 
         self.logger.info(f"{self.server_name} stopped")
 
@@ -176,7 +173,7 @@ class BaseTcpServer(ABC):
                 )
                 client_thread.daemon = True
                 client_thread.start()
-            except socket.timeout:
+            except TimeoutError:
                 continue
             except OSError as e:
                 if self.running:
@@ -207,9 +204,7 @@ class BaseTcpServer(ABC):
 
                 message_size = int.from_bytes(size_data, byteorder="big")
                 if message_size <= 0 or message_size > 10 * 1024 * 1024:  # 10MB limit
-                    self.logger.warning(
-                        f"Invalid message size {message_size} from {address}"
-                    )
+                    self.logger.warning(f"Invalid message size {message_size} from {address}")
                     break
 
                 # 读取消息内容
@@ -228,9 +223,7 @@ class BaseTcpServer(ABC):
                 except Exception as e:
                     # 安全地记录错误，避免I/O错误
                     try:
-                        self.logger.error(
-                            f"Error processing message from {address}: {e}"
-                        )
+                        self.logger.error(f"Error processing message from {address}: {e}")
                     except Exception:
                         print(f"Error processing message from {address}: {e}")
                     # 发送错误响应
@@ -259,7 +252,7 @@ class BaseTcpServer(ABC):
 
     def _receive_full_message(
         self, client_socket: socket.socket, message_size: int
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         """接收完整的消息数据"""
         message_data = b""
         while len(message_data) < message_size:
@@ -278,7 +271,7 @@ class BaseTcpServer(ABC):
     @abstractmethod
     def _handle_message_data(
         self, message_data: bytes, client_address: tuple
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         处理接收到的消息数据（抽象方法）
 
@@ -291,9 +284,7 @@ class BaseTcpServer(ABC):
         """
         pass
 
-    def _send_response(
-        self, client_socket: socket.socket, response: Union[Dict[str, Any], bytes]
-    ):
+    def _send_response(self, client_socket: socket.socket, response: dict[str, Any] | bytes):
         """发送响应到客户端"""
         try:
             # 确定响应数据格式
@@ -324,8 +315,8 @@ class BaseTcpServer(ABC):
         return pickle.dumps(response)
 
     def _create_error_response(
-        self, original_message: Dict[str, Any], error_code: str, error_message: str
-    ) -> Dict[str, Any]:
+        self, original_message: dict[str, Any], error_code: str, error_message: str
+    ) -> dict[str, Any]:
         """创建错误响应"""
         return {
             "type": f"{original_message.get('type', 'unknown')}_response",
@@ -336,7 +327,7 @@ class BaseTcpServer(ABC):
             "payload": {"error_code": error_code, "details": {}},
         }
 
-    def get_server_info(self) -> Dict[str, Any]:
+    def get_server_info(self) -> dict[str, Any]:
         """获取服务器信息"""
         return {
             "server_name": self.server_name,
@@ -362,11 +353,9 @@ class LocalTcpServer(BaseTcpServer):
 
     def __init__(
         self,
-        host: str = None,
-        port: int = None,
-        default_handler: Optional[
-            Callable[[Dict[str, Any], tuple], Dict[str, Any]]
-        ] = None,
+        host: str | None = None,
+        port: int | None = None,
+        default_handler: Callable[[dict[str, Any], tuple], dict[str, Any]] | None = None,
         logger=None,
     ):
         """
@@ -381,9 +370,7 @@ class LocalTcpServer(BaseTcpServer):
         super().__init__(host, port, logger, "LocalTcpServer")
 
         # 消息处理器字典：消息类型 -> 处理函数
-        self.message_handlers: Dict[
-            str, Callable[[Dict[str, Any], tuple], Dict[str, Any]]
-        ] = {}
+        self.message_handlers: dict[str, Callable[[dict[str, Any], tuple], dict[str, Any]]] = {}
         self.default_handler = default_handler
 
         # 添加锁保护处理器字典
@@ -391,7 +378,7 @@ class LocalTcpServer(BaseTcpServer):
 
     def _handle_message_data(
         self, message_data: bytes, client_address: tuple
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """处理接收到的消息数据"""
         try:
             # 反序列化消息
@@ -406,8 +393,8 @@ class LocalTcpServer(BaseTcpServer):
             )
 
     def _process_message(
-        self, message: Dict[str, Any], client_address: tuple
-    ) -> Optional[Dict[str, Any]]:
+        self, message: dict[str, Any], client_address: tuple
+    ) -> dict[str, Any] | None:
         """
         处理接收到的消息，根据消息类型分发给对应的处理器
 
@@ -428,9 +415,7 @@ class LocalTcpServer(BaseTcpServer):
                 )
                 return self._use_default_handler(message, client_address, None)
 
-            self.logger.debug(
-                f"Processing message type '{message_type}' from {client_address}"
-            )
+            self.logger.debug(f"Processing message type '{message_type}' from {client_address}")
 
             # 查找对应的处理器
             with self._handlers_lock:
@@ -445,24 +430,20 @@ class LocalTcpServer(BaseTcpServer):
 
             try:
                 response = handler(message, client_address)
-                self.logger.debug(
-                    f"Message type '{message_type}' processed successfully"
-                )
+                self.logger.debug(f"Message type '{message_type}' processed successfully")
                 return response
             except Exception as e:
                 self.logger.error(
                     f"Error in handler for message type '{message_type}': {e}",
                     exc_info=True,
                 )
-                return self._create_error_response(
-                    message, "ERR_HANDLER_FAILED", str(e)
-                )
+                return self._create_error_response(message, "ERR_HANDLER_FAILED", str(e))
 
         except Exception as e:
             self.logger.error(f"Error in message processing: {e}", exc_info=True)
             return self._create_error_response(message, "ERR_PROCESSING_FAILED", str(e))
 
-    def _extract_message_type(self, message: Dict[str, Any]) -> Optional[str]:
+    def _extract_message_type(self, message: dict[str, Any]) -> str | None:
         """从消息中提取消息类型"""
         if not isinstance(message, dict):
             self.logger.warning(f"Message is not a dictionary: {type(message)}")
@@ -477,17 +458,15 @@ class LocalTcpServer(BaseTcpServer):
                 if isinstance(msg_type, str) and msg_type.strip():
                     return msg_type.strip()
 
-        self.logger.debug(
-            f"No valid type field found in message keys: {list(message.keys())}"
-        )
+        self.logger.debug(f"No valid type field found in message keys: {list(message.keys())}")
         return None
 
     def _use_default_handler(
         self,
-        message: Dict[str, Any],
+        message: dict[str, Any],
         client_address: tuple,
-        message_type: Optional[str],
-    ) -> Optional[Dict[str, Any]]:
+        message_type: str | None,
+    ) -> dict[str, Any] | None:
         """使用默认处理器处理消息"""
         if self.default_handler:
             try:
@@ -496,13 +475,9 @@ class LocalTcpServer(BaseTcpServer):
                 return response
             except Exception as e:
                 self.logger.error(f"Error in default handler: {e}", exc_info=True)
-                return self._create_error_response(
-                    message, "ERR_DEFAULT_HANDLER_FAILED", str(e)
-                )
+                return self._create_error_response(message, "ERR_DEFAULT_HANDLER_FAILED", str(e))
         else:
-            self.logger.warning(
-                f"No default handler set, ignoring message from {client_address}"
-            )
+            self.logger.warning(f"No default handler set, ignoring message from {client_address}")
             if message_type:
                 self.logger.info(
                     f"Consider registering a handler for message type '{message_type}'"
@@ -512,8 +487,8 @@ class LocalTcpServer(BaseTcpServer):
             )
 
     def _create_error_response(
-        self, original_message: Dict[str, Any], error_code: str, error_message: str
-    ) -> Dict[str, Any]:
+        self, original_message: dict[str, Any], error_code: str, error_message: str
+    ) -> dict[str, Any]:
         """创建错误响应"""
         return {
             "type": f"{original_message.get('type', 'unknown')}_response",
@@ -526,7 +501,7 @@ class LocalTcpServer(BaseTcpServer):
             "payload": {"error_code": error_code, "details": {}},
         }
 
-    def _send_response(self, client_socket: socket.socket, response: Dict[str, Any]):
+    def _send_response(self, client_socket: socket.socket, response: dict[str, Any]):
         """发送响应到客户端"""
         try:
             # 序列化响应
@@ -546,7 +521,7 @@ class LocalTcpServer(BaseTcpServer):
         except Exception as e:
             self.logger.error(f"Error sending response: {e}")
 
-    def get_server_info(self) -> Dict[str, Any]:
+    def get_server_info(self) -> dict[str, Any]:
         """获取服务器信息"""
         with self._handlers_lock:
             registered_types = list(self.message_handlers.keys())
@@ -567,16 +542,14 @@ class LocalTcpServer(BaseTcpServer):
     def register_handler(
         self,
         message_type: str,
-        handler: Callable[[Dict[str, Any], tuple], Dict[str, Any]],
+        handler: Callable[[dict[str, Any], tuple], dict[str, Any]],
     ):
         """注册消息处理器"""
         with self._handlers_lock:
             self.message_handlers[message_type] = handler
             self.logger.info(f"Registered handler for message type: {message_type}")
 
-    def set_default_handler(
-        self, handler: Callable[[Dict[str, Any], tuple], Dict[str, Any]]
-    ):
+    def set_default_handler(self, handler: Callable[[dict[str, Any], tuple], dict[str, Any]]):
         """设置默认消息处理器"""
         self.default_handler = handler
         self.logger.info("Default message handler set")
@@ -586,13 +559,9 @@ class LocalTcpServer(BaseTcpServer):
         with self._handlers_lock:
             if message_type in self.message_handlers:
                 del self.message_handlers[message_type]
-                self.logger.info(
-                    f"Unregistered handler for message type: {message_type}"
-                )
+                self.logger.info(f"Unregistered handler for message type: {message_type}")
             else:
-                self.logger.warning(
-                    f"No handler found for message type: {message_type}"
-                )
+                self.logger.warning(f"No handler found for message type: {message_type}")
 
     def get_registered_types(self) -> list[str]:
         """获取已注册的消息类型列表"""
@@ -603,9 +572,7 @@ class LocalTcpServer(BaseTcpServer):
 # 使用示例
 if __name__ == "__main__":
 
-    def handle_status_message(
-        message: Dict[str, Any], client_address: tuple
-    ) -> Dict[str, Any]:
+    def handle_status_message(message: dict[str, Any], client_address: tuple) -> dict[str, Any]:
         print(f"Status message from {client_address}: {message}")
         return {
             "type": "status_response",
@@ -613,9 +580,7 @@ if __name__ == "__main__":
             "message": "Status received",
         }
 
-    def handle_data_message(
-        message: Dict[str, Any], client_address: tuple
-    ) -> Dict[str, Any]:
+    def handle_data_message(message: dict[str, Any], client_address: tuple) -> dict[str, Any]:
         print(f"Data message from {client_address}: {message}")
         return {
             "type": "data_response",
@@ -623,9 +588,7 @@ if __name__ == "__main__":
             "message": "Data processed",
         }
 
-    def handle_unknown_message(
-        message: Dict[str, Any], client_address: tuple
-    ) -> Dict[str, Any]:
+    def handle_unknown_message(message: dict[str, Any], client_address: tuple) -> dict[str, Any]:
         print(f"Unknown message from {client_address}: {message}")
         return {
             "type": "unknown_response",

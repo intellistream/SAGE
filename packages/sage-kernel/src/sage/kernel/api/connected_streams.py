@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Type, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
+from sage.common.core import (
+    BaseCoMapFunction,
+    BaseFunction,
+    BaseJoinFunction,
+    wrap_lambda,
+)
 from sage.kernel.api.base_environment import BaseEnvironment
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
-from sage.kernel.api.function.join_function import BaseJoinFunction
-from sage.kernel.api.function.lambda_function import wrap_lambda
 from sage.kernel.api.transformation.join_transformation import JoinTransformation
 
 if TYPE_CHECKING:
@@ -28,9 +31,7 @@ class ConnectedStreams:
     3. 只有在应用多流操作（如comap）时才创建多输入的transformation
     """
 
-    def __init__(
-        self, env: "BaseEnvironment", transformations: List["BaseTransformation"]
-    ):
+    def __init__(self, env: BaseEnvironment, transformations: list[BaseTransformation]):
         self._environment = env
         self.transformations = transformations
 
@@ -41,9 +42,7 @@ class ConnectedStreams:
         # 确保所有transformation都来自同一个环境
         for trans in transformations:
             if trans.env != env:
-                raise ValueError(
-                    "All transformations must be from the same environment"
-                )
+                raise ValueError("All transformations must be from the same environment")
 
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
@@ -71,11 +70,11 @@ class ConnectedStreams:
 
     def map(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: type[BaseFunction] | Callable,
         *args,
-        parallelism: int = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "map")
 
@@ -91,11 +90,11 @@ class ConnectedStreams:
 
     def sink(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: type[BaseFunction] | Callable,
         *args,
-        parallelism: int = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "sink")
 
@@ -109,9 +108,7 @@ class ConnectedStreams:
         )
         return self._apply(tr)
 
-    def print(
-        self, prefix: str = "", separator: str = " | ", colored: bool = True
-    ) -> "DataStream":
+    def print(self, prefix: str = "", separator: str = " | ", colored: bool = True) -> DataStream:
         """
         便捷的打印方法 - 将连接的数据流输出到控制台
 
@@ -123,13 +120,11 @@ class ConnectedStreams:
         Returns:
             DataStream: 返回新的数据流用于链式调用
         """
-        from sage_libs.io.sink import PrintSink
+        from sage.common.components.debug.print_sink import PrintSink
 
         return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
-    def connect(
-        self, other: Union["DataStream", "ConnectedStreams"]
-    ) -> "ConnectedStreams":
+    def connect(self, other: DataStream | ConnectedStreams) -> ConnectedStreams:
         """连接更多数据流
 
         Args:
@@ -140,20 +135,20 @@ class ConnectedStreams:
         """
         if hasattr(other, "transformation"):  # DataStream
             # ConnectedStreams + DataStream -> ConnectedStreams
-            new_transformations = self.transformations + [other.transformation]
+            new_transformations = self.transformations + [other.transformation]  # type: ignore[attr-defined]
         else:  # ConnectedStreams
             # ConnectedStreams + ConnectedStreams -> ConnectedStreams
-            new_transformations = self.transformations + other.transformations
+            new_transformations = self.transformations + other.transformations  # type: ignore[attr-defined]
 
         return ConnectedStreams(self._environment, new_transformations)
 
     def comap(
         self,
-        function: Union[Type[BaseFunction], callable],
+        function: type[BaseFunction] | Callable,
         *args,
-        parallelism: int = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         """
         Apply a CoMap function that processes each connected stream separately
 
@@ -212,7 +207,7 @@ class ConnectedStreams:
             )
 
         # Import BaseCoMapFunction for type checking
-        from sage.kernel.api.function.comap_function import BaseCoMapFunction
+        from sage.common.core import BaseCoMapFunction
 
         # Type validation: Check if function is a proper CoMap function
         if not isinstance(function, type):
@@ -271,11 +266,11 @@ class ConnectedStreams:
     # 在 connected_streams.py 中添加简化的join方法
     def join(
         self,
-        function: Union[Type[BaseJoinFunction], callable],
+        function: type[BaseJoinFunction] | Callable,
         *args,
-        parallelism: int = None,
+        parallelism: int | None = None,
         **kwargs,
-    ) -> "DataStream":
+    ) -> DataStream:
         """
         Join two keyed streams using a join function.
 
@@ -325,9 +320,9 @@ class ConnectedStreams:
 
     def keyby(
         self,
-        key_selector: Union[Type[BaseFunction], List[Type[BaseFunction]]],
+        key_selector: type[BaseFunction] | list[type[BaseFunction]],
         strategy: str = "hash",
-    ) -> "ConnectedStreams":
+    ) -> ConnectedStreams:
         """
         Apply keyby partitioning to connected streams using composition approach
 
@@ -371,9 +366,9 @@ class ConnectedStreams:
 
             # 为每个流分别应用keyby
             keyed_transformations = []
-            for transformation, selector in zip(self.transformations, key_selector):
+            for transformation, selector in zip(self.transformations, key_selector, strict=False):
                 # 创建单独的DataStream并应用keyby
-                individual_stream = DataStream(self._environment, transformation)
+                individual_stream: DataStream = DataStream(self._environment, transformation)
                 keyed_stream = individual_stream.keyby(selector, strategy=strategy)
                 keyed_transformations.append(keyed_stream.transformation)
 
@@ -394,7 +389,7 @@ class ConnectedStreams:
     # ---------------------------------------------------------------------
     def _parse_comap_functions(
         self,
-        function: Union[Type[BaseFunction], callable, List[callable]],
+        function: type[BaseFunction] | Callable | list[Callable],
         input_stream_count: int,
         *args,
         **kwargs,
@@ -432,9 +427,7 @@ class ConnectedStreams:
             non_callable_args = [arg for arg in args if not callable(arg)]
 
             if non_callable_args or kwargs:
-                self._warn_ignored_params(
-                    "non-callable args/kwargs", non_callable_args, kwargs
-                )
+                self._warn_ignored_params("non-callable args/kwargs", non_callable_args, kwargs)
 
             return (
                 self._create_dynamic_comap_class(all_functions, input_stream_count),
@@ -449,8 +442,8 @@ class ConnectedStreams:
         )
 
     def _create_dynamic_comap_class(
-        self, function_list: List[callable], input_stream_count: int
-    ) -> Type[BaseCoMapFunction]:
+        self, function_list: list[Callable], input_stream_count: int
+    ) -> type[BaseCoMapFunction]:
         """
         Dynamically create a CoMap class from a list of functions
 
@@ -472,9 +465,7 @@ class ConnectedStreams:
         # Validate all items are callable
         for i, func in enumerate(function_list):
             if not callable(func):
-                raise ValueError(
-                    f"Item at index {i} is not callable: {type(func).__name__}"
-                )
+                raise ValueError(f"Item at index {i} is not callable: {type(func).__name__}")
 
         # Create the dynamic class with all required methods defined inline
         # We need to create a class dynamically with the required mapN methods
@@ -497,9 +488,7 @@ class ConnectedStreams:
             class_methods[method_name] = (lambda f: lambda self, data: f(data))(func)
 
         # Create the dynamic class
-        dynamic_comap_function = type(
-            "dynamic_comap_function", (BaseCoMapFunction,), class_methods
-        )
+        dynamic_comap_function = type("dynamic_comap_function", (BaseCoMapFunction,), class_methods)
 
         return dynamic_comap_function
 
@@ -512,140 +501,12 @@ class ConnectedStreams:
             *params: The ignored parameters
         """
         if any(params):
-            print(
-                f"⚠️  Warning: {param_type} ignored in lambda/callable CoMap usage: {params}"
-            )
-
-    # ---------------------------------------------------------------------    # CoMap function parsing methods
-    # ---------------------------------------------------------------------
-    def _parse_comap_functions(
-        self,
-        function: Union[Type[BaseFunction], callable, List[callable]],
-        input_stream_count: int,
-        *args,
-        **kwargs,
-    ) -> tuple:
-        """
-        Parse different input formats for CoMap functions and return standardized format
-
-        Args:
-            function: The function input (class, callable, or list of callables)
-            input_stream_count: Number of input streams requiring processing
-            *args: Additional arguments
-            **kwargs: Additional keyword arguments
-
-        Returns:
-            tuple: (comap_function_class, final_args, final_kwargs)
-        """
-        # Case 1: Class-based CoMap function (existing approach)
-        if isinstance(function, type) and issubclass(function, BaseCoMapFunction):
-            return function, args, kwargs
-
-        # Case 2: List of functions
-        if isinstance(function, list):
-            if args or kwargs:
-                self._warn_ignored_params("args/kwargs", args, kwargs)
-            return (
-                self._create_dynamic_comap_class(function, input_stream_count),
-                (),
-                {},
-            )
-
-        # Case 3: Multiple function arguments (callables passed as separate args)
-        if callable(function):
-            # Collect all callable arguments
-            all_functions = [function] + [arg for arg in args if callable(arg)]
-            non_callable_args = [arg for arg in args if not callable(arg)]
-
-            if non_callable_args or kwargs:
-                self._warn_ignored_params(
-                    "non-callable args/kwargs", non_callable_args, kwargs
-                )
-
-            return (
-                self._create_dynamic_comap_class(all_functions, input_stream_count),
-                (),
-                {},
-            )
-
-        # Case 4: Invalid input
-        raise ValueError(
-            f"Invalid function input for comap: {type(function)}. "
-            f"Expected: CoMap class, callable, or list of callables."
-        )
-
-    def _create_dynamic_comap_class(
-        self, function_list: List[callable], input_stream_count: int
-    ) -> Type[BaseCoMapFunction]:
-        """
-        Dynamically create a CoMap class from a list of functions
-
-        Args:
-            function_list: List of callable functions
-            input_stream_count: Expected number of input streams
-
-        Returns:
-            Type[BaseCoMapFunction]: Dynamically generated CoMap class
-        """
-        # Validate function count matches input stream count
-        if len(function_list) != input_stream_count:
-            raise ValueError(
-                f"Number of functions ({len(function_list)}) must match "
-                f"number of input streams ({input_stream_count}). "
-                f"Please provide exactly {input_stream_count} functions."
-            )
-
-        # Validate all items are callable
-        for i, func in enumerate(function_list):
-            if not callable(func):
-                raise ValueError(
-                    f"Item at index {i} is not callable: {type(func).__name__}"
-                )
-
-        # Create the dynamic class with all required methods defined inline
-        # We need to create a class dynamically with the required mapN methods
-
-        # Create method definitions for dynamic class
-        class_methods = {
-            "__init__": lambda self: BaseCoMapFunction.__init__(self),
-            "is_comap": property(lambda self: True),
-            "execute": lambda self, data: self._raise_execute_error(),
-            "_raise_execute_error": lambda self: self._do_raise_execute_error(),
-            "_do_raise_execute_error": lambda self: (_ for _ in ()).throw(
-                NotImplementedError("CoMap functions use mapN methods, not execute()")
-            ),
-        }
-
-        # Add all required mapN methods
-        for i, func in enumerate(function_list):
-            method_name = f"map{i}"
-            # Create method that captures the function in closure
-            class_methods[method_name] = (lambda f: lambda self, data: f(data))(func)
-
-        # Create the dynamic class
-        DynamicCoMapFunction = type(
-            "DynamicCoMapFunction", (BaseCoMapFunction,), class_methods
-        )
-
-        return DynamicCoMapFunction
-
-    def _warn_ignored_params(self, param_type: str, *params) -> None:
-        """
-        Warn user about ignored parameters in lambda/callable CoMap usage
-
-        Args:
-            param_type: Description of ignored parameter type
-            *params: The ignored parameters
-        """
-        if any(params):
-            print(
-                f"⚠️  Warning: {param_type} ignored in lambda/callable CoMap usage: {params}"
-            )
+            print(f"⚠️  Warning: {param_type} ignored in lambda/callable CoMap usage: {params}")
 
     # ---------------------------------------------------------------------
     # internal methods
     # ---------------------------------------------------------------------
-    def _apply(self, tr: BaseTransformation) -> "DataStream":
+    def _apply(self, tr: BaseTransformation) -> DataStream:
         """
         将多输入transformation应用到连接的流上
 

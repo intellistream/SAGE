@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
@@ -10,7 +10,7 @@ from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryMa
 class NeuroMemVDB:
     def __init__(self):
         self.manager = MemoryManager(self._get_default_data_dir())
-        self.online_register_collection: Dict[str, VDBMemoryCollection] = {}
+        self.online_register_collection: dict[str, VDBMemoryCollection] = {}
 
     def register_collection(self, collection_name: str, config=None):
         # 检查collection是否已存在
@@ -23,9 +23,7 @@ class NeuroMemVDB:
 
         if collection_exists:
             if config is not None:
-                print(
-                    f"警告: Collection '{collection_name}' 已存在，忽略传入的config参数"
-                )
+                print(f"警告: Collection '{collection_name}' 已存在，忽略传入的config参数")
             # 正常连接并注册到online_register_collection
             collection = self.manager.get_collection(collection_name)
             if collection:
@@ -36,9 +34,7 @@ class NeuroMemVDB:
                 # 正常通过Manager创建并注册到online_register_collection
                 embedding_model = config.get("embedding_model")
                 dim = config.get("dim")
-                description = config.get(
-                    "description", f"VDB collection: {collection_name}"
-                )
+                description = config.get("description", f"VDB collection: {collection_name}")
                 collection = self.manager.create_collection(
                     name=collection_name,
                     backend_type="VDB",
@@ -64,7 +60,7 @@ class NeuroMemVDB:
                     self.online_register_collection[collection_name] = collection
                     print(f"成功创建默认collection: {collection_name}")
 
-    def insert(self, raw_data: Any, metadata: Optional[Dict[str, Any]] = None):
+    def insert(self, raw_data: Any, metadata: dict[str, Any] | None = None):
         # 该方法在所有 online_register_collection 均插入数据（仅存储，不创建索引）
         if not self.online_register_collection:
             print("警告: 没有注册的collection，无法插入数据")
@@ -74,9 +70,7 @@ class NeuroMemVDB:
         for collection_name, collection in self.online_register_collection.items():
             try:
                 # 使用batch_insert_data方法插入单条数据（仅存储）
-                collection.batch_insert_data(
-                    [raw_data], [metadata] if metadata else None
-                )
+                collection.batch_insert_data([raw_data], [metadata] if metadata else None)
 
                 # 生成stable_id用于返回
                 import hashlib
@@ -88,9 +82,7 @@ class NeuroMemVDB:
                 stable_id = hashlib.sha256(key.encode("utf-8")).hexdigest()
 
                 results[collection_name] = stable_id
-                print(
-                    f"成功在collection '{collection_name}' 中插入数据，ID: {stable_id}"
-                )
+                print(f"成功在collection '{collection_name}' 中插入数据，ID: {stable_id}")
             except Exception as e:
                 print(f"在collection '{collection_name}' 插入数据失败: {str(e)}")
                 results[collection_name] = None
@@ -107,9 +99,7 @@ class NeuroMemVDB:
 
         for collection_name, collection in self.online_register_collection.items():
             try:
-                results = collection.retrieve(
-                    raw_data, index_name, topk=topk, with_metadata=True
-                )
+                results = collection.retrieve(raw_data, index_name, topk=topk, with_metadata=True)
                 print(f"Collection '{collection_name}' 检索结果:")
                 if results:
                     for i, result in enumerate(results, 1):
@@ -123,9 +113,7 @@ class NeuroMemVDB:
                 print(f"Collection '{collection_name}' 检索失败: {str(e)}")
                 print("-" * 30)
 
-    def build_index(
-        self, index_name: str = "global_index", description: str = "全局索引"
-    ):
+    def build_index(self, index_name: str = "global_index", description: str = "全局索引"):
         # 该方法在所有 online_register_collection 创建指定索引
         if not self.online_register_collection:
             print("警告: 没有注册的collection，无法创建索引")
@@ -146,9 +134,7 @@ class NeuroMemVDB:
                     # 初始化索引，将现有数据插入索引
                     collection.init_index(index_name)
                     results[collection_name] = True
-                    print(
-                        f"成功在collection '{collection_name}' 中创建索引 '{index_name}'"
-                    )
+                    print(f"成功在collection '{collection_name}' 中创建索引 '{index_name}'")
                 else:
                     results[collection_name] = False
                     print(f"在collection '{collection_name}' 创建索引失败")

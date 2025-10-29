@@ -19,19 +19,23 @@ except ImportError as e:
         f"SAGE DB C++扩展不可用，某些高性能功能将受限。错误: {e}\n"
         "安装完整版本：pip install --force-reinstall isage-middleware",
         UserWarning,
+        stacklevel=2,
     )
 
 try:
-    from sage.middleware.components.sage_flow.python import _sage_flow
-    from sage.middleware.components.sage_flow.python.sage_flow import *  # noqa: F401, F403
+    # 只导入 Python wrapper 模块，避免重复加载 C++ 扩展
+    from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow_module
 
     _SAGE_FLOW_AVAILABLE = True
+    _sage_flow = _sage_flow_module
 except ImportError as e:
     _sage_flow = None
+    _sage_flow_module = None
     warnings.warn(
         f"SAGE Flow C++扩展不可用，流处理功能将受限。错误: {e}\n"
         "安装完整版本：pip install --force-reinstall isage-middleware",
         UserWarning,
+        stacklevel=2,
     )
 
 try:
@@ -45,6 +49,7 @@ except ImportError as e:
         "安装完整版本：pip install --force-reinstall isage-middleware\n"
         "或运行: sage extensions install sage_tsdb",
         UserWarning,
+        stacklevel=2,
     )
 
 
@@ -125,9 +130,7 @@ def require_sage_tsdb():
 if __name__ != "__main__":
     status = get_extension_status()
     if status["total_available"] < status["total_extensions"]:
-        print(
-            f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用"
-        )
+        print(f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用")
         if not _SAGE_DB_AVAILABLE:
             print("  ❌ SAGE DB: C++扩展不可用")
         if not _SAGE_FLOW_AVAILABLE:

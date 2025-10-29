@@ -1,5 +1,5 @@
 # Requirements for SAGE Examples
-# 
+#
 # For most users, we recommend installing via sage-libs package:
 #   pip install -e packages/sage-libs[examples]
 #

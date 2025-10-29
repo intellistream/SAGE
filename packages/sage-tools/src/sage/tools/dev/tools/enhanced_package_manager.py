@@ -7,7 +7,7 @@ This tool provides comprehensive package management for the SAGE monorepo.
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Any
 
 from ..core.exceptions import SAGEDevToolkitError
 
@@ -20,7 +20,7 @@ class EnhancedPackageManager:
         self.packages_dir = self.project_root / "packages"
 
         # Define packages and their dependencies
-        self.packages = {
+        self.packages: dict[str, dict[str, Any]] = {
             "sage-common": {
                 "path": self.packages_dir / "sage-common",
                 "namespace": "sage.common",
@@ -58,7 +58,7 @@ class EnhancedPackageManager:
             },
         }
 
-    def list_packages(self) -> Dict:
+    def list_packages(self) -> dict:
         """List all SAGE packages with their status."""
         try:
             package_list = []
@@ -87,7 +87,7 @@ class EnhancedPackageManager:
 
     def install_package(
         self, package_name: str, dev_mode: bool = True, force: bool = False
-    ) -> Dict:
+    ) -> dict:
         """Install a specific package with its dependencies."""
         try:
             if package_name not in self.packages:
@@ -125,7 +125,7 @@ class EnhancedPackageManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"Package installation failed: {e}")
 
-    def install_all_packages(self, dev_mode: bool = True, force: bool = False) -> Dict:
+    def install_all_packages(self, dev_mode: bool = True, force: bool = False) -> dict:
         """Install all packages in dependency order."""
         try:
             install_order = self._get_full_install_order()
@@ -160,7 +160,7 @@ class EnhancedPackageManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"Full installation failed: {e}")
 
-    def uninstall_package(self, package_name: str) -> Dict:
+    def uninstall_package(self, package_name: str) -> dict:
         """Uninstall a specific package."""
         try:
             if package_name not in self.packages:
@@ -190,7 +190,7 @@ class EnhancedPackageManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"Package uninstallation failed: {e}")
 
-    def build_package(self, package_name: str) -> Dict:
+    def build_package(self, package_name: str) -> dict:
         """Build a specific package."""
         try:
             if package_name not in self.packages:
@@ -199,9 +199,7 @@ class EnhancedPackageManager:
             package_path = self.packages[package_name]["path"]
 
             if not package_path.exists():
-                raise SAGEDevToolkitError(
-                    f"Package directory not found: {package_path}"
-                )
+                raise SAGEDevToolkitError(f"Package directory not found: {package_path}")
 
             # Build the package
             result = subprocess.run(
@@ -222,7 +220,7 @@ class EnhancedPackageManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"Package build failed: {e}")
 
-    def check_dependencies(self) -> Dict:
+    def check_dependencies(self) -> dict:
         """Check package dependencies and detect issues."""
         try:
             issues = []
@@ -267,7 +265,7 @@ class EnhancedPackageManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"Dependency check failed: {e}")
 
-    def _get_install_order(self, package_name: str) -> List[str]:
+    def _get_install_order(self, package_name: str) -> list[str]:
         """Get installation order for a package and its dependencies."""
 
         def dfs(pkg, visited, order):
@@ -285,7 +283,7 @@ class EnhancedPackageManager:
         dfs(package_name, visited, order)
         return order
 
-    def _get_full_install_order(self) -> List[str]:
+    def _get_full_install_order(self) -> list[str]:
         """Get installation order for all packages."""
 
         def dfs(pkg, visited, order):
@@ -307,9 +305,7 @@ class EnhancedPackageManager:
 
         return order
 
-    def _install_single_package(
-        self, package_name: str, dev_mode: bool, force: bool
-    ) -> Dict:
+    def _install_single_package(self, package_name: str, dev_mode: bool, force: bool) -> dict:
         """Install a single package."""
         package_path = self.packages[package_name]["path"]
 
@@ -356,7 +352,7 @@ class EnhancedPackageManager:
         try:
             pyproject_file = package_path / "pyproject.toml"
             if pyproject_file.exists():
-                with open(pyproject_file, "r") as f:
+                with open(pyproject_file) as f:
                     content = f.read()
                     # Simple regex to extract version
                     import re
@@ -369,8 +365,8 @@ class EnhancedPackageManager:
             return "unknown"
 
     def _detect_circular_dependencies(
-        self, dependency_graph: Dict[str, List[str]]
-    ) -> List[List[str]]:
+        self, dependency_graph: dict[str, list[str]]
+    ) -> list[list[str]]:
         """Detect circular dependencies using DFS."""
 
         def dfs(node, path, visited, cycles):

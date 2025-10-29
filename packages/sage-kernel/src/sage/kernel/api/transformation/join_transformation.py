@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Type
+from typing import TYPE_CHECKING, Any
 
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 if TYPE_CHECKING:
+    from sage.common.core.functions import BaseJoinFunction
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.function.join_function import BaseJoinFunction
 
 
 class JoinTransformation(BaseTransformation):
@@ -19,8 +19,8 @@ class JoinTransformation(BaseTransformation):
 
     def __init__(
         self,
-        env: "BaseEnvironment",
-        function: Type["BaseJoinFunction"],
+        env: BaseEnvironment,
+        function: type[BaseJoinFunction],
         *args,
         **kwargs,
     ):
@@ -41,13 +41,9 @@ class JoinTransformation(BaseTransformation):
 
         super().__init__(env, function, *args, **kwargs)
 
-        self.logger.debug(
-            f"Created JoinTransformation with function {function.__name__}"
-        )
+        self.logger.debug(f"Created JoinTransformation with function {function.__name__}")
 
-    def _validate_required_methods(
-        self, function_class: Type["BaseJoinFunction"]
-    ) -> None:
+    def _validate_required_methods(self, function_class: type[BaseJoinFunction]) -> None:
         """
         验证Join函数是否实现了必需的方法
 
@@ -78,9 +74,7 @@ class JoinTransformation(BaseTransformation):
         # 验证execute方法的签名
         self._validate_execute_signature(function_class)
 
-    def _validate_execute_signature(
-        self, function_class: Type["BaseJoinFunction"]
-    ) -> None:
+    def _validate_execute_signature(self, function_class: type[BaseJoinFunction]) -> None:
         """
         验证execute方法的签名是否正确
 
@@ -93,7 +87,7 @@ class JoinTransformation(BaseTransformation):
         import inspect
 
         try:
-            execute_method = getattr(function_class, "execute")
+            execute_method = function_class.execute
             signature = inspect.signature(execute_method)
             params = list(signature.parameters.keys())
 
@@ -176,9 +170,7 @@ class JoinTransformation(BaseTransformation):
                 f"but only {input_count} provided."
             )
 
-    def validate_keyed_streams(
-        self, stream_transformations: List["BaseTransformation"]
-    ) -> None:
+    def validate_keyed_streams(self, stream_transformations: list[BaseTransformation]) -> None:
         """
         验证所有输入流都是keyed的
 
@@ -198,7 +190,7 @@ class JoinTransformation(BaseTransformation):
                     f"is not keyed. Use .keyby() before .join()"
                 )
 
-    def _is_keyed_stream(self, transformation: "BaseTransformation") -> bool:
+    def _is_keyed_stream(self, transformation: BaseTransformation) -> bool:
         """
         检查transformation是否产生keyed stream
 
@@ -233,10 +225,7 @@ class JoinTransformation(BaseTransformation):
                     current = current.upstreams[0]
                 else:
                     # 多个上游，检查是否都是keyed的
-                    return all(
-                        self._is_keyed_stream(upstream)
-                        for upstream in current.upstreams
-                    )
+                    return all(self._is_keyed_stream(upstream) for upstream in current.upstreams)
             else:
                 break
 
@@ -252,7 +241,7 @@ class JoinTransformation(BaseTransformation):
         """
         return False  # Join需要区分不同的输入流
 
-    def get_join_configuration(self) -> Dict[str, Any]:
+    def get_join_configuration(self) -> dict[str, Any]:
         """
         获取Join配置信息
 

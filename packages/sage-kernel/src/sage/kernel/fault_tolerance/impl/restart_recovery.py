@@ -5,9 +5,9 @@ Restart-based Fault Tolerance Strategy
 """
 
 import time
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
-from sage.kernel.core.types import JobID, TaskID
+from sage.common.core import TaskID
 from sage.kernel.fault_tolerance.base import BaseFaultHandler
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
     ExponentialBackoffStrategy,
@@ -28,7 +28,7 @@ class RestartBasedRecovery(BaseFaultHandler):
 
     def __init__(
         self,
-        restart_strategy: Optional[RestartStrategy] = None,
+        restart_strategy: RestartStrategy | None = None,
     ):
         """
         初始化重启容错策略
@@ -39,8 +39,8 @@ class RestartBasedRecovery(BaseFaultHandler):
         self.restart_strategy = restart_strategy or ExponentialBackoffStrategy()
 
         # 记录失败信息
-        self.failure_counts: Dict[TaskID, int] = {}
-        self.failure_history: Dict[TaskID, list] = {}
+        self.failure_counts: dict[TaskID, int] = {}
+        self.failure_history: dict[TaskID, list] = {}
 
         self.logger = None  # 可以后续注入
 
@@ -82,9 +82,7 @@ class RestartBasedRecovery(BaseFaultHandler):
             return self.recover(task_id)
         else:
             if self.logger:
-                self.logger.error(
-                    f"Task {task_id} cannot be recovered (max attempts reached)"
-                )
+                self.logger.error(f"Task {task_id} cannot be recovered (max attempts reached)")
             return False
 
     def can_recover(self, task_id: TaskID) -> bool:
@@ -140,7 +138,7 @@ class RestartBasedRecovery(BaseFaultHandler):
 
     def recover_job(
         self, job_id: str, dispatcher: "Dispatcher", restart_count: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         恢复整个作业
 
@@ -180,9 +178,7 @@ class RestartBasedRecovery(BaseFaultHandler):
                 "error": str(e),
             }
 
-    def get_failure_statistics(
-        self, task_id: Optional[TaskID] = None
-    ) -> Dict[str, Any]:
+    def get_failure_statistics(self, task_id: TaskID | None = None) -> dict[str, Any]:
         """
         获取失败统计信息
 

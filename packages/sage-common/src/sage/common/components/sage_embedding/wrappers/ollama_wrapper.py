@@ -1,7 +1,6 @@
 """Ollama embedding wrapper."""
 
-import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseEmbedding
 
@@ -47,7 +46,7 @@ class OllamaEmbedding(BaseEmbedding):
         >>> emb = OllamaEmbedding(
         ...     model="nomic-embed-text",
         ...     base_url="https://ollama.example.com",
-        ...     api_key="your-key"
+        ...     api_key="your-key"  # pragma: allowlist secret
         ... )
     """
 
@@ -63,7 +62,7 @@ class OllamaEmbedding(BaseEmbedding):
         self,
         model: str = "nomic-embed-text",
         base_url: str = "http://localhost:11434",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         **kwargs: Any,
     ) -> None:
         """初始化 Ollama Embedding
@@ -100,7 +99,7 @@ class OllamaEmbedding(BaseEmbedding):
         # 推断维度
         self._dim = self._infer_dimension()
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -143,7 +142,7 @@ class OllamaEmbedding(BaseEmbedding):
                 f"  3. 检查端口: {self._base_url}"
             ) from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         当前实现为逐个调用 embed()。
@@ -192,7 +191,7 @@ class OllamaEmbedding(BaseEmbedding):
             return 768
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:
@@ -216,4 +215,6 @@ class OllamaEmbedding(BaseEmbedding):
         Returns:
             字符串表示
         """
-        return f"OllamaEmbedding(model='{self._model}', base_url='{self._base_url}', dim={self._dim})"
+        return (
+            f"OllamaEmbedding(model='{self._model}', base_url='{self._base_url}', dim={self._dim})"
+        )

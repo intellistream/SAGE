@@ -15,6 +15,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from sage.common.utils.network.base_tcp_client import BaseTcpClient
 
 
@@ -213,7 +214,7 @@ class TestBaseTcpClient:
         mock_socket_class.return_value = mock_socket
 
         self.client.connect()
-        mock_socket.recv.side_effect = socket.timeout("Timeout")
+        mock_socket.recv.side_effect = TimeoutError("Timeout")
 
         request_data = {"test": "data"}
 
@@ -276,7 +277,6 @@ class TestBaseTcpClient:
         response_bytes = response_json.encode("utf-8")
 
         # 模拟接收：先接收4字节长度，然后分多次接收数据
-        recv_calls = []
 
         def mock_recv(size):
             if size == 4:
@@ -292,17 +292,11 @@ class TestBaseTcpClient:
                 remaining_size = len(response_bytes) - mock_recv.data_sent
                 chunk_size = min(
                     size,
-                    (
-                        remaining_size // 2
-                        if mock_recv.call_count == 1
-                        else remaining_size
-                    ),
+                    (remaining_size // 2 if mock_recv.call_count == 1 else remaining_size),
                 )
 
                 if chunk_size > 0:
-                    chunk = response_bytes[
-                        mock_recv.data_sent : mock_recv.data_sent + chunk_size
-                    ]
+                    chunk = response_bytes[mock_recv.data_sent : mock_recv.data_sent + chunk_size]
                     mock_recv.data_sent += chunk_size
                     return chunk
                 else:
@@ -521,9 +515,7 @@ class MockTcpClientIntegration:
                 # 接收请求数据
                 request_data = b""
                 while len(request_data) < request_length:
-                    chunk = client_socket.recv(
-                        min(1024, request_length - len(request_data))
-                    )
+                    chunk = client_socket.recv(min(1024, request_length - len(request_data)))
                     if not chunk:
                         break
                     request_data += chunk
@@ -596,7 +588,6 @@ class MockTcpClientIntegration:
     def test_connection_timeout(self):
         """测试连接超时"""
         # 在Linux上，连接被拒绝通常会立即返回，所以我们改用模拟的方式
-        import socket
         from unittest.mock import MagicMock, patch
 
         with patch("socket.socket") as mock_socket_class:
@@ -604,7 +595,7 @@ class MockTcpClientIntegration:
             mock_socket_class.return_value = mock_socket
 
             # 模拟连接超时
-            mock_socket.connect.side_effect = socket.timeout("Connection timeout")
+            mock_socket.connect.side_effect = TimeoutError("Connection timeout")
 
             client = MockTcpClient(host="127.0.0.1", port=65534, timeout=1.0)
 
@@ -643,7 +634,7 @@ class TestErrorHandling:
         """测试socket超时错误"""
         mock_socket = MagicMock()
         mock_socket_class.return_value = mock_socket
-        mock_socket.connect.side_effect = socket.timeout("Connection timeout")
+        mock_socket.connect.side_effect = TimeoutError("Connection timeout")
 
         client = MockTcpClient()
         result = client.connect()
@@ -907,9 +898,7 @@ class TestTcpClientIntegration:
                 # 接收请求数据
                 request_data = b""
                 while len(request_data) < request_length:
-                    chunk = client_socket.recv(
-                        min(1024, request_length - len(request_data))
-                    )
+                    chunk = client_socket.recv(min(1024, request_length - len(request_data)))
                     if not chunk:
                         break
                     request_data += chunk
@@ -982,7 +971,6 @@ class TestTcpClientIntegration:
     def test_connection_timeout(self):
         """测试连接超时"""
         # 在Linux上，连接被拒绝通常会立即返回，所以我们改用模拟的方式
-        import socket
         from unittest.mock import MagicMock, patch
 
         with patch("socket.socket") as mock_socket_class:
@@ -990,7 +978,7 @@ class TestTcpClientIntegration:
             mock_socket_class.return_value = mock_socket
 
             # 模拟连接超时
-            mock_socket.connect.side_effect = socket.timeout("Connection timeout")
+            mock_socket.connect.side_effect = TimeoutError("Connection timeout")
 
             client = MockTcpClient(host="127.0.0.1", port=65534, timeout=1.0)
 

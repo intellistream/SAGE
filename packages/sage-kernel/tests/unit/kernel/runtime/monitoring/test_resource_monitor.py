@@ -8,6 +8,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from sage.kernel.runtime.monitoring.resource_monitor import ResourceMonitor
 
 
@@ -25,14 +26,14 @@ class TestResourceMonitor:
                 mock_memory_info = MagicMock()
                 mock_memory_info.rss = 1024 * 1024 * 1024  # 1GB
                 mock_process.memory_info.return_value = mock_memory_info
-                
+
                 mock.Process.return_value = mock_process
                 mock.cpu_percent.return_value = 75.0
                 mock_virtual_memory_obj = MagicMock()
                 mock_virtual_memory_obj.percent = 60.0
                 mock_virtual_memory_obj.available = 2 * 1024 * 1024 * 1024  # 2GB
                 mock.virtual_memory.return_value = mock_virtual_memory_obj
-                
+
                 yield mock
 
     def test_monitor_creation(self):
@@ -109,7 +110,7 @@ class TestResourceMonitor:
         with patch("sage.kernel.runtime.monitoring.resource_monitor.PSUTIL_AVAILABLE", False):
             # 当psutil不可用时，ResourceMonitor初始化会抛出ImportError
             with pytest.raises(ImportError, match="psutil is required"):
-                monitor = ResourceMonitor()
+                ResourceMonitor()
 
     def test_reset_stats(self, mock_psutil):
         """测试重置统计数据"""
@@ -190,7 +191,7 @@ class TestResourceMonitorEdgeCases:
                 mock_memory_info.rss = 1024 * 1024 * 1024
                 mock_process.memory_info.return_value = mock_memory_info
                 mock.Process.return_value = mock_process
-                
+
                 monitor = ResourceMonitor(sampling_interval=0.01)
                 monitor.start_monitoring()
                 time.sleep(0.1)
@@ -217,7 +218,7 @@ class TestResourceMonitorEdgeCases:
                 mock_memory_info.rss = 1024 * 1024 * 1024
                 mock_process.memory_info.return_value = mock_memory_info
                 mock.Process.return_value = mock_process
-                
+
                 monitor = ResourceMonitor(sampling_interval=0.1)
                 monitor.start_monitoring()
 

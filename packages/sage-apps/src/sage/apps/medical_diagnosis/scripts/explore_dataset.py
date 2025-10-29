@@ -4,13 +4,12 @@
 用于查看腰椎MRI数据集的样本和统计信息
 """
 
-import os
 import sys
 from collections import Counter
 from pathlib import Path
 
 import numpy as np
-from datasets import load_from_disk
+from datasets import Dataset, load_from_disk
 from PIL import Image
 
 # 设置项目路径
@@ -36,23 +35,27 @@ def explore_dataset():
     print(f"\n📂 从 {dataset_path} 加载数据集...")
     dataset = load_from_disk(str(dataset_path))
 
+    # 确保是 Dataset 类型
+    if not isinstance(dataset, Dataset):
+        raise TypeError(f"Expected Dataset, got {type(dataset)}")
+
     # 基本信息
-    print(f"\n📋 数据集基本信息:")
+    print("\n📋 数据集基本信息:")
     print(f"   - 样本总数: {len(dataset)}")
     print(f"   - 字段: {dataset.column_names}")
     print(f"   - Features: {dataset.features}")
 
     # 标签分布
-    labels = [sample["label"] for sample in dataset]
+    labels = [sample["label"] for sample in dataset]  # type: ignore[index]
     label_counts = Counter(labels)
 
-    print(f"\n🏷️  标签分布:")
+    print("\n🏷️  标签分布:")
     for label, count in sorted(label_counts.items()):
         percentage = count / len(dataset) * 100
         print(f"   - Label {label}: {count} samples ({percentage:.1f}%)")
 
     # 图像统计
-    print(f"\n🖼️  图像统计 (前10个样本):")
+    print("\n🖼️  图像统计 (前10个样本):")
     image_sizes = []
 
     for i in range(min(10, len(dataset))):
@@ -65,19 +68,15 @@ def explore_dataset():
             image_sizes.append((width, height))
 
             if i < 5:  # 只打印前5个
-                print(
-                    f"   - 样本 {i}: {width}x{height}, mode={mode}, label={sample['label']}"
-                )
+                print(f"   - 样本 {i}: {width}x{height}, mode={mode}, label={sample['label']}")
 
     if image_sizes:
         widths = [w for w, h in image_sizes]
         heights = [h for w, h in image_sizes]
 
-        print(f"\n📐 图像尺寸范围:")
+        print("\n📐 图像尺寸范围:")
         print(f"   - 宽度: {min(widths)} ~ {max(widths)} (平均: {np.mean(widths):.0f})")
-        print(
-            f"   - 高度: {min(heights)} ~ {max(heights)} (平均: {np.mean(heights):.0f})"
-        )
+        print(f"   - 高度: {min(heights)} ~ {max(heights)} (平均: {np.mean(heights):.0f})")
 
     # 保存一些样本
     output_dir = project_root / "examples" / "medical_diagnosis" / "data" / "samples"
@@ -89,7 +88,9 @@ def explore_dataset():
     saved_labels = set()
     saved_count = 0
 
-    for i, sample in enumerate(dataset):
+    for i, sample in enumerate(dataset):  # type: ignore[arg-type]
+        if not isinstance(sample, dict):
+            continue
         label = sample["label"]
 
         if label not in saved_labels:
@@ -119,13 +120,9 @@ def explore_dataset():
             f.write(f"  Label {label}: {count} ({percentage:.1f}%)\n")
 
         if image_sizes:
-            f.write(f"\n图像尺寸范围:\n")
-            f.write(
-                f"  宽度: {min(widths)} ~ {max(widths)} (平均: {np.mean(widths):.0f})\n"
-            )
-            f.write(
-                f"  高度: {min(heights)} ~ {max(heights)} (平均: {np.mean(heights):.0f})\n"
-            )
+            f.write("\n图像尺寸范围:\n")
+            f.write(f"  宽度: {min(widths)} ~ {max(widths)} (平均: {np.mean(widths):.0f})\n")
+            f.write(f"  高度: {min(heights)} ~ {max(heights)} (平均: {np.mean(heights):.0f})\n")
 
     print(f"\n📊 统计报告已保存: {report_path}")
 

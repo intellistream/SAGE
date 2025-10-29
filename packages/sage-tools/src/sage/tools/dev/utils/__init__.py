@@ -1,12 +1,13 @@
 """
-SAGE - Streaming-Augmented Generative Execution
+SAGE Development Utilities
+===========================
+
+开发工具辅助函数
 """
 
-# 直接从本包的_version模块加载版本信息
-try:
-    from sage.tools._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+# 导出常用函数
+from .project import find_project_root
+
+__all__ = [
+    "find_project_root",
+]

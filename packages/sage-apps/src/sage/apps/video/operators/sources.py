@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import cv2
-from sage.kernel.api.function.batch_function import BatchFunction
+
+from sage.common.core import BatchFunction
 
 
 class VideoFrameSource(BatchFunction):
@@ -16,7 +17,7 @@ class VideoFrameSource(BatchFunction):
         self,
         video_path: str,
         sample_every_n_frames: int = 3,
-        max_frames: Optional[int] = None,
+        max_frames: int | None = None,
     ) -> None:
         super().__init__()
         if not os.path.exists(video_path):
@@ -35,7 +36,7 @@ class VideoFrameSource(BatchFunction):
         self.frames_emitted = 0
         # logger is provided by BaseFunction via ctx
 
-    def execute(self) -> Optional[Dict[str, Any]]:
+    def execute(self) -> dict[str, Any] | None:
         if not self.cap or not self.cap.isOpened():
             return None
 

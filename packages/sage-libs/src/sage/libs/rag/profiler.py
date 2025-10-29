@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 
-from sage.kernel.api.function.filter_function import FilterFunction
+from sage.common.core import FilterFunction
 
 
 @dataclass
@@ -31,7 +31,6 @@ class Query_Profiler(FilterFunction):
         super().__init__(**kwargs)
 
     def execute(self, data):
-
         js = json.loads(data)
         # 使用解包创建对象并直接获取属性
         profiler_result = QueryProfilerResult(
@@ -45,9 +44,7 @@ class Query_Profiler(FilterFunction):
         # 直接解包到变量
         need_joint_reasoning = profiler_result.need_joint_reasoning
         complexity = profiler_result.complexity
-        need_summarization = profiler_result.need_summarization
         summarization_length = profiler_result.summarization_length
-        n_info_items = profiler_result.n_info_items
 
         if need_joint_reasoning is False:
             synthesis_method = "map_rerank"

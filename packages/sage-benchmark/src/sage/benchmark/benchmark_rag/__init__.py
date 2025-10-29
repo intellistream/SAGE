@@ -13,4 +13,4 @@ This module provides:
 Evaluation metrics include: Accuracy, F1, Exact Match, and more.
 """
 
-__all__ = []
+__all__: list[str] = []

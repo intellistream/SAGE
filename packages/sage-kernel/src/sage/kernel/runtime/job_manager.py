@@ -6,10 +6,9 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.fault_tolerance.factory import create_fault_handler_from_config
 from sage.kernel.runtime.dispatcher import Dispatcher
 from sage.kernel.runtime.job_info import JobInfo
 from sage.kernel.runtime.job_manager_server import JobManagerServer
@@ -20,14 +19,19 @@ if TYPE_CHECKING:
 
 
 class JobManager:  # Job Manager
-    instance = None
+    instance: "JobManager | None" = None
     instance_lock = threading.RLock()
+
+    _initialized: bool
+    jobs: dict[str, JobInfo]
+    deleted_jobs: dict[str, dict[str, Any]]
+    default_fault_tolerance_config: dict[str, Any]
 
     def __new__(cls, *args, **kwargs):
         if cls.instance is None:
             with cls.instance_lock:
                 if cls.instance is None:
-                    cls.instance = super(JobManager, cls).__new__(cls)
+                    cls.instance = super().__new__(cls)
                     cls.instance._initialized = False
         return cls.instance
 
@@ -52,8 +56,8 @@ class JobManager:  # Job Manager
             JobManager.instance = self
 
             # 作业管理
-            self.jobs: Dict[str, JobInfo] = {}  # uuid -> jobinfo
-            self.deleted_jobs: Dict[str, Dict[str, Any]] = {}
+            self.jobs: dict[str, JobInfo] = {}  # uuid -> jobinfo
+            self.deleted_jobs: dict[str, dict[str, Any]] = {}
 
             # 设置日志系统
             self.setup_logging_system()
@@ -65,9 +69,7 @@ class JobManager:  # Job Manager
             # 初始化内置daemon（如果启用）
             self.server = None
             if enable_daemon:
-                self.server = JobManagerServer(
-                    jobmanager=self, host=daemon_host, port=daemon_port
-                )
+                self.server = JobManagerServer(jobmanager=self, host=daemon_host, port=daemon_port)
                 self.server.logger = self.logger
                 # 设置信号处理
                 self._setup_signal_handlers()
@@ -87,9 +89,8 @@ class JobManager:  # Job Manager
         """运行JobManager直到收到停止信号"""
 
         self.logger.info("JobManager started successfully")
-        self.logger.info(
-            f"TCP service listening on {self.server.host}:{self.server.port}"
-        )
+        if self.server:  # daemon 启用时才显示 TCP 服务信息
+            self.logger.info(f"TCP service listening on {self.server.host}:{self.server.port}")
         self.logger.info("Press Ctrl+C to stop...")
 
         try:
@@ -179,11 +180,11 @@ class JobManager:  # Job Manager
             self.logger.error(f"Failed to submit job {job_info.uuid}: {e}")
             return False
 
-    def _get_job_info(self, job_uuid: str) -> Optional[JobInfo]:
+    def _get_job_info(self, job_uuid: str) -> JobInfo | None:
         """获取JobInfo对象"""
         return self.jobs.get(job_uuid)
 
-    def continue_job(self, env_uuid: str) -> Dict[str, Any]:
+    def continue_job(self, env_uuid: str) -> dict[str, Any]:
         """重启作业"""
         job_info = self.jobs.get(env_uuid)
 
@@ -248,7 +249,7 @@ class JobManager:  # Job Manager
                 "message": f"Failed to restart job: {str(e)}",
             }
 
-    def delete_job(self, env_uuid: str, force: bool = False) -> Dict[str, Any]:
+    def delete_job(self, env_uuid: str, force: bool = False) -> dict[str, Any]:
         """删除作业"""
         job_info = self.jobs.get(env_uuid)
 
@@ -316,6 +317,9 @@ class JobManager:  # Job Manager
     def receive_stop_signal(self, env_uuid: str):
         """接收停止信号"""
         job_info = self.jobs.get(env_uuid)
+        if job_info is None:
+            self.logger.warning(f"Job {env_uuid} not found")
+            return
         try:
             # 停止 dispatcher
             if (job_info.dispatcher.receive_stop_signal()) is True:
@@ -354,7 +358,7 @@ class JobManager:  # Job Manager
                 f"Failed to handle node stop signal from {node_name} in job {env_uuid}: {e}"
             )
 
-    def pause_job(self, env_uuid: str) -> Dict[str, Any]:
+    def pause_job(self, env_uuid: str) -> dict[str, Any]:
         """停止Job"""
         job_info = self.jobs.get(env_uuid, None)
 
@@ -388,7 +392,7 @@ class JobManager:  # Job Manager
                 "message": f"Failed to stop job: {str(e)}",
             }
 
-    def get_job_status(self, env_uuid: str) -> Dict[str, Any]:
+    def get_job_status(self, env_uuid: str) -> dict[str, Any]:
         """获取作业状态"""
         job_info = self._get_job_info(env_uuid)
 
@@ -405,7 +409,7 @@ class JobManager:  # Job Manager
         status_info["success"] = True
         return status_info
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """健康检查"""
         return {
             "status": "healthy",
@@ -413,7 +417,7 @@ class JobManager:  # Job Manager
             "jobs_count": len(self.jobs),
         }
 
-    def resume_job(self, env_uuid: str) -> Dict[str, Any]:
+    def resume_job(self, env_uuid: str) -> dict[str, Any]:
         """恢复作业（继续作业的别名）"""
         return self.continue_job(env_uuid)
 
@@ -450,10 +454,10 @@ class JobManager:  # Job Manager
                 return False
         return True
 
-    def list_jobs(self) -> List[Dict[str, Any]]:
+    def list_jobs(self) -> list[dict[str, Any]]:
         return [job_info.get_summary() for job_info in self.jobs.values()]
 
-    def get_server_info(self) -> Dict[str, Any]:
+    def get_server_info(self) -> dict[str, Any]:
         job_summaries = [job_info.get_summary() for job_info in self.jobs.values()]
 
         return {
@@ -462,9 +466,7 @@ class JobManager:  # Job Manager
             "environments_count": len(self.jobs),
             "jobs": job_summaries,
             "daemon_enabled": self.server is not None,
-            "daemon_address": (
-                f"{self.server.host}:{self.server.port}" if self.server else None
-            ),
+            "daemon_address": (f"{self.server.host}:{self.server.port}" if self.server else None),
         }
 
     def shutdown(self):
@@ -482,7 +484,7 @@ class JobManager:  # Job Manager
         JobManager.instance = None
         self.logger.info("JobManager shutdown complete")
 
-    def cleanup_all_jobs(self) -> Dict[str, Any]:
+    def cleanup_all_jobs(self) -> dict[str, Any]:
         """清理所有作业"""
         try:
             cleanup_results = {}
@@ -520,9 +522,7 @@ class JobManager:  # Job Manager
         project_root = os.environ.get("SAGE_PROJECT_ROOT")
         sage_paths = get_sage_paths(project_root)
 
-        self.log_base_dir = (
-            sage_paths.logs_dir / "jobmanager" / f"session_{self.session_id}"
-        )
+        self.log_base_dir = sage_paths.logs_dir / "jobmanager" / f"session_{self.session_id}"
 
         print(f"JobManager logs: {self.log_base_dir}")
         Path(self.log_base_dir).mkdir(parents=True, exist_ok=True)
@@ -552,9 +552,7 @@ class JobManager:  # Job Manager
         env.session_id = env.session_timestamp.strftime("%Y%m%d_%H%M%S")
 
         # 设置环境基础目录
-        env.env_base_dir = os.path.join(
-            self.log_base_dir, f"env_{env.name}_{env.session_id}"
-        )
+        env.env_base_dir = os.path.join(self.log_base_dir, f"env_{env.name}_{env.session_id}")
         Path(env.env_base_dir).mkdir(parents=True, exist_ok=True)
 
         # 创建Environment专用的日志器
@@ -583,9 +581,7 @@ def main():
     """命令行入口"""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="SAGE JobManager with integrated TCP daemon"
-    )
+    parser = argparse.ArgumentParser(description="SAGE JobManager with integrated TCP daemon")
     parser.add_argument("--host", default="127.0.0.1", help="Daemon host")
     parser.add_argument("--port", type=int, default=19001, help="Daemon port")
     parser.add_argument("--no-daemon", action="store_true", help="Disable TCP daemon")

@@ -1,94 +1,105 @@
-# Development Notes
+# SAGE 开发者笔记 (Dev Notes)
 
-开发笔记和技术文档，记录 SAGE 项目的实现细节、架构设计和开发指南。
+> **注意**: 本目录主要供核心开发团队内部使用。
+>
+> **用户文档**: 请访问 [docs-public](../../docs-public/) 获取完整的用户和开发者文档。
 
-## 📁 目录结构
-
-```
-dev-notes/
-├── README.md                              # 本文件
-├── TEMPLATE.md                            # 新文档模板
-│
-├── 🚀 快速开始
-│   ├── QUICK_START.md                     # 快速开始指南
-│   ├── DEV_COMMANDS.md                    # 开发命令参考
-│   └── DEV_INFRASTRUCTURE_SETUP.md        # 基础设施配置
-│
-├── 🎯 Embedding 系统
-│   ├── EMBEDDING_README.md                # Embedding 总览（含导航）
-│   ├── EMBEDDING_QUICK_REFERENCE.md       # 快速参考手册
-│   ├── EMBEDDING_SYSTEM_COMPLETE_SUMMARY.md  # 完整总结
-│   └── embedding/                         # 详细文档目录
-│       ├── README.md                      # 子目录索引
-│       ├── EMBEDDING_OPTIMIZATION_PLAN.md
-│       ├── EMBEDDING_OPTIMIZATION_PHASE*.md (3个phase报告)
-│       ├── EMBEDDING_CHANGELOG.md
-│       └── PIPELINE_BUILDER_EMBEDDING_INTEGRATION.md
-│
-├── 📚 架构文档
-│   ├── SAGE_CHAT_ARCHITECTURE.md          # Chat 命令架构
-│   └── SAGE_LIBS_OPERATORS.md             # Operators 文档
-│
-└── 📂 专题目录
-    ├── autostop/                          # Autostop 服务
-    ├── security/                          # 安全配置
-    └── ci-cd/                             # CI/CD 文档
-```
-
-## 📖 核心文档
-
-### 🎯 快速入门
-- **[QUICK_START.md](./QUICK_START.md)** - 开发环境搭建和基础操作
-- **[DEV_COMMANDS.md](./DEV_COMMANDS.md)** - 常用开发命令参考
-- **[DEV_INFRASTRUCTURE_SETUP.md](./DEV_INFRASTRUCTURE_SETUP.md)** - 基础设施和依赖配置
-
-### 🔧 Embedding 系统
-- **[EMBEDDING_README.md](./EMBEDDING_README.md)** - Embedding 系统总览和导航
-- **[EMBEDDING_QUICK_REFERENCE.md](./EMBEDDING_QUICK_REFERENCE.md)** - API 快速查询
-- **[embedding/](./embedding/)** - 详细实现文档（phase 报告、优化计划等）
+## 📂 当前文档
 
 ### 🏗️ 架构设计
-- **[SAGE_CHAT_ARCHITECTURE.md](./SAGE_CHAT_ARCHITECTURE.md)** - `sage chat` 命令架构
-- **[SAGE_LIBS_OPERATORS.md](./SAGE_LIBS_OPERATORS.md)** - Pipeline Operators 文档
 
-## 📝 创建新文档
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [DATA_TYPES_ARCHITECTURE.md](DATA_TYPES_ARCHITECTURE.md) | 数据类型架构设计 | ✅ 活跃 |
+| [NEUROMEM_ARCHITECTURE_ANALYSIS.md](NEUROMEM_ARCHITECTURE_ANALYSIS.md) | NeuroMem 架构分析 | ✅ 活跃 |
+| [VLLM_SERVICE_INTEGRATION_DESIGN.md](VLLM_SERVICE_INTEGRATION_DESIGN.md) | vLLM 服务集成设计 | ✅ 活跃 |
+| [SAGE_CHAT_ARCHITECTURE.md](SAGE_CHAT_ARCHITECTURE.md) | Chat 命令架构 | ✅ 活跃 |
+| [kernel/KERNEL_REFACTORING_COMPLETED.md](kernel/KERNEL_REFACTORING_COMPLETED.md) | Kernel 层重构完成报告 (Issue #1041) | ✅ 活跃 |
 
-使用模板创建新文档：
+### 📋 系统文档
 
-```bash
-# 1. 复制模板
-cp TEMPLATE.md your_feature_name.md
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [APPLICATION_ORGANIZATION_STRATEGY.md](APPLICATION_ORGANIZATION_STRATEGY.md) | 应用代码组织策略 | ✅ 活跃 |
+| [EMBEDDING_README.md](EMBEDDING_README.md) | Embedding 系统总览 | ✅ 活跃 |
+| [EMBEDDING_QUICK_REFERENCE.md](EMBEDDING_QUICK_REFERENCE.md) | Embedding API 快速参考 | ✅ 活跃 |
+| [EMBEDDING_SYSTEM_COMPLETE_SUMMARY.md](EMBEDDING_SYSTEM_COMPLETE_SUMMARY.md) | Embedding 系统完整总结 | ✅ 活跃 |
 
-# 2. 编辑内容
-# - 标题：简洁描述（如 "Embedding 优化 Phase 1"）
-# - 状态：进行中/已完成/已归档
-# - 日期：创建日期和更新日期
-# - 内容：问题、解决方案、测试、总结
+### ⚙️ 运维配置
 
-# 3. 选择合适的位置
-# - 通用文档：放在 dev-notes/ 根目录
-# - 专题文档：放在对应子目录（embedding/, autostop/, 等）
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [CODECOV_SETUP_GUIDE.md](CODECOV_SETUP_GUIDE.md) | CodeCov CI/CD 配置 | ✅ 活跃 |
+| [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 已知问题跟踪 | ✅ 活跃 |
+| [DEV_INFRASTRUCTURE_SETUP.md](DEV_INFRASTRUCTURE_SETUP.md) | 开发基础设施配置 | ✅ 活跃 |
+
+### 🛠️ 开发工具
+
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [tools/pre-commit-auto-fix-guide.md](tools/pre-commit-auto-fix-guide.md) | Pre-commit 自动修复详细指南 | ✅ 活跃 |
+| [tools/pre-commit-quick-reference.md](tools/pre-commit-quick-reference.md) | Pre-commit 快速参考卡片 | ✅ 活跃 |
+
+### 📄 模板
+
+| 文档 | 描述 |
+|------|------|
+| [TEMPLATE.md](TEMPLATE.md) | 新文档模板 |
+
+## 📦 归档文档
+
+所有历史文档已整理到 `archive/` 目录：
+
+```
+archive/
+├── 2025-restructuring/     # 2025年重构相关文档
+│   ├── PACKAGE_RESTRUCTURING_*.md
+│   ├── RESTRUCTURING_SUMMARY.md
+│   ├── TOP_LAYER_REVIEW*.md
+│   ├── TEST_*.md
+│   └── ...
+├── guides/                 # 功能使用指南
+│   ├── PIPELINE_*.md
+│   ├── RAG_DATA_TYPES_GUIDE.md
+│   └── PYLANCE_TYPE_ERRORS_GUIDE.md
+└── migration-guides/       # 已完成的迁移指南
+    ├── EMBEDDING_PATH_MIGRATION.md
+    ├── ENV_VARIABLES_MIGRATION.md
+    └── NAMESPACE_PACKAGE_FIX.md
 ```
 
-## 🎯 文档原则
+## 🔍 查找文档
 
-1. **简洁明了** - 直接说明问题和解决方案
-2. **结构清晰** - 使用标题、列表、代码块
-3. **及时更新** - 保持状态和内容最新
-4. **避免重复** - 相关内容合并到一个文档
-5. **定期清理** - 删除过时的临时文档
+| 需要了解 | 查看 |
+|---------|------|
+| 系统架构 | [docs-public/architecture/](../../docs-public/docs_src/architecture/) |
+| 快速开始 | [docs-public/getting-started/](../../docs-public/docs_src/getting-started/) |
+| 开发指南 | [docs-public/developers/](../../docs-public/docs_src/developers/) |
+| 数据类型设计 | [DATA_TYPES_ARCHITECTURE.md](DATA_TYPES_ARCHITECTURE.md) |
+| Embedding 系统 | [EMBEDDING_README.md](EMBEDDING_README.md) |
+| 已知问题 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
+| Pre-commit 工具使用 | [tools/pre-commit-quick-reference.md](tools/pre-commit-quick-reference.md) 或 [详细指南](tools/pre-commit-auto-fix-guide.md) |
 
-## � 专题目录
+## 📝 文档原则
 
-### 🔄 [autostop/](./autostop/)
-Autostop 服务实现和配置文档
+1. **公开优先**: 用户文档放在 `docs-public/`
+2. **架构设计**: 系统设计文档保留在 `dev-notes/`
+3. **及时归档**: 完成的工作及时归档到 `archive/`
+4. **保持精简**: 只保留活跃的核心文档
 
-### 🔒 [security/](./security/)
-安全配置、API Key 管理、最佳实践
+## 📊 统计
 
-### 🔧 [ci-cd/](./ci-cd/)
-CI/CD 配置、构建问题和部署文档
+- **活跃文档**: 16 个
+- **归档文档**: 15+ 个
+- **文档分类**: 架构设计 (5) + 系统文档 (4) + 运维配置 (3) + 开发工具 (2) + 模板 (2)
+
+## 🆘 需要帮助？
+
+- 查看 [清理决策](CLEANUP_DECISION.md) 了解文档整理原则
+- 阅读 [docs-public 重组计划](../../docs-public/DOCS_RESTRUCTURE_PLAN.md)
+- 提交 [GitHub Issue](https://github.com/intellistream/SAGE/issues)
 
 ---
 
-💡 **提示**: 优先查看 `QUICK_START.md` 和 `EMBEDDING_README.md`
+**最后更新**: 2025-10-23  
+**维护者**: SAGE Core Team

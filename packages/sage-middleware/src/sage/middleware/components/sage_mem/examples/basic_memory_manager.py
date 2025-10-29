@@ -8,9 +8,6 @@ This example shows how to:
 4. Retrieve data from the collection
 """
 
-import json
-import os
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.sage_mem import MemoryManager
 

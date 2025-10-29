@@ -26,7 +26,7 @@ text_length() {
 display_width() {
     local text="$1"
     local clean_text=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
-    
+
     # 使用 printf 和 wc 来计算实际显示宽度
     # 这个方法更准确地处理 emoji 和多字节字符
     printf "%s" "$clean_text" | wc -m
@@ -38,20 +38,20 @@ center_text() {
     local color="${2:-$NC}"
     local width=$(get_terminal_width)
     local text_len=$(display_width "$text")
-    
+
     if [ "$text_len" -ge "$width" ]; then
         printf "%b%s%b\n" "$color" "$text" "$NC"
         return
     fi
-    
+
     local padding=$(( (width - text_len) / 2 ))
     [ "$padding" -lt 0 ] && padding=0
-    
+
     local spaces=""
     for (( i=0; i<padding; i++ )); do
         spaces+=" "
     done
-    
+
     printf "%s%b%s%b\n" "$spaces" "$color" "$text" "$NC"
 }
 
@@ -60,22 +60,22 @@ center_text() {
 align_with_logo() {
     local text="$1"
     local color="${2:-$NC}"
-    
+
     # LOGO 第一行（这里需要与 interface.sh 中的 LOGO 保持一致）
     local logo_line="   ███████╗ █████╗  ██████╗ ███████╗"
     local width=$(get_terminal_width)
     local logo_len=$(display_width "$logo_line")
     local logo_padding=$(( (width - logo_len) / 2 ))
-    
+
     # S 字母位置 = LOGO左边距 + 3个空格 + 1（因为我们要对齐S的位置）
     local s_position=$((logo_padding + 3))
-    
+
     # 让文本的第一个字符（🚀）与 S 对齐
     local spaces=""
     for (( i=0; i<s_position; i++ )); do
         spaces+=" "
     done
-    
+
     printf "%s%b%s%b\n" "$spaces" "$color" "$text" "$NC"
 }
 
@@ -84,7 +84,7 @@ draw_line() {
     local char="${1:-═}"
     local color="${2:-$BLUE}"
     local width=$(get_terminal_width)
-    
+
     local line=""
     for (( i=0; i<width; i++ )); do
         line+="$char"

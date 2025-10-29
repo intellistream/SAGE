@@ -1,5 +1,5 @@
 """
-Build Artifacts Manager for SAGE Development Toolkit.
+Build Artifacts Manager for sage-development Toolkit.
 
 This module provides functionality to manage pip install artifacts and build
 intermediates across the entire SAGE project, including:
@@ -18,7 +18,6 @@ import shutil
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class BuildArtifactsManager:
@@ -67,9 +66,7 @@ class BuildArtifactsManager:
             "errors": [],
         }
 
-    def scan_artifacts(
-        self, patterns: Optional[Dict[str, List[str]]] = None
-    ) -> Dict[str, List[Path]]:
+    def scan_artifacts(self, patterns: dict[str, list[str]] | None = None) -> dict[str, list[Path]]:
         """
         扫描项目中的构建产物。
 
@@ -109,7 +106,7 @@ class BuildArtifactsManager:
 
         # 去重并排序
         for category in artifacts:
-            artifacts[category] = sorted(list(set(artifacts[category])))
+            artifacts[category] = sorted(set(artifacts[category]))
 
         return artifacts
 
@@ -143,9 +140,7 @@ class BuildArtifactsManager:
             return total_size
         return 0
 
-    def get_artifacts_summary(
-        self, artifacts: Dict[str, List[Path]]
-    ) -> Dict[str, Dict]:
+    def get_artifacts_summary(self, artifacts: dict[str, list[Path]]) -> dict[str, dict]:
         """获取构建产物的统计摘要。"""
         summary = {}
 
@@ -181,11 +176,11 @@ class BuildArtifactsManager:
 
     def clean_artifacts(
         self,
-        categories: Optional[List[str]] = None,
+        categories: list[str] | None = None,
         dry_run: bool = False,
         force: bool = False,
-        older_than_days: Optional[int] = None,
-    ) -> Dict[str, any]:
+        older_than_days: int | None = None,
+    ) -> dict[str, any]:
         """
         清理构建产物。
 
@@ -219,9 +214,7 @@ class BuildArtifactsManager:
             cutoff_time = time.time() - (older_than_days * 24 * 3600)
             for category in artifacts:
                 artifacts[category] = [
-                    path
-                    for path in artifacts[category]
-                    if path.stat().st_mtime < cutoff_time
+                    path for path in artifacts[category] if path.stat().st_mtime < cutoff_time
                 ]
 
         # 执行清理
@@ -278,7 +271,7 @@ class BuildArtifactsManager:
 
         return self.stats
 
-    def create_cleanup_script(self, output_path: Optional[str] = None) -> str:
+    def create_cleanup_script(self, output_path: str | None = None) -> str:
         """
         创建清理脚本文件。
 
@@ -409,7 +402,7 @@ echo "🗑️  To see what would be removed without actually deleting, use: sage
 
         return str(script_path)
 
-    def setup_gitignore_rules(self) -> Dict[str, any]:
+    def setup_gitignore_rules(self) -> dict[str, any]:
         """
         设置或更新.gitignore规则以忽略构建产物。
 
@@ -420,7 +413,7 @@ echo "🗑️  To see what would be removed without actually deleting, use: sage
 
         # 要添加的规则
         rules_to_add = [
-            "# Build artifacts managed by SAGE dev toolkit",
+            "# Build artifacts managed by sage-dev toolkit",
             "**/*.egg-info/",
             "**/dist/",
             "**/__pycache__/",
@@ -437,8 +430,8 @@ echo "🗑️  To see what would be removed without actually deleting, use: sage
 
         existing_rules = set()
         if gitignore_path.exists():
-            with open(gitignore_path, "r", encoding="utf-8") as f:
-                existing_rules = set(line.strip() for line in f.readlines())
+            with open(gitignore_path, encoding="utf-8") as f:
+                existing_rules = {line.strip() for line in f.readlines()}
 
         # 找出需要添加的新规则
         new_rules = [rule for rule in rules_to_add if rule not in existing_rules]

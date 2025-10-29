@@ -1,8 +1,12 @@
 import re
-from typing import List, Tuple
 
 import json_repair
 import numpy as np
+from tqdm import tqdm
+from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
+from vllm import LLM, SamplingParams
+from vllm.lora.request import LoRARequest
+
 from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.prompt_template import (
     PromptTemplate,
 )
@@ -14,10 +18,6 @@ from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl
     USER_PROMPT_STEP2,
     USER_PROMPT_STEP3,
 )
-from tqdm import tqdm
-from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
-from vllm import LLM, SamplingParams
-from vllm.lora.request import LoRARequest
 
 
 class LongRefiner:
@@ -31,14 +31,12 @@ class LongRefiner:
         score_model_path: str = "BAAI/bge-reranker-v2-m3",
         max_model_len: int = 25000,
         gpu_device: int = 0,
-        score_gpu_device: int = None,  # score模型专用GPU设备，如果None则使用gpu_device
+        score_gpu_device: int | None = None,  # score模型专用GPU设备，如果None则使用gpu_device
         gpu_memory_utilization: float = 0.7,  # GPU内存占比
     ):
         # 保存GPU设备参数
         self.gpu_device = gpu_device
-        self.score_gpu_device = (
-            score_gpu_device if score_gpu_device is not None else gpu_device
-        )
+        self.score_gpu_device = score_gpu_device if score_gpu_device is not None else gpu_device
 
         # load refine model
         self._load_trained_model(
@@ -50,9 +48,7 @@ class LongRefiner:
             gpu_device,
             gpu_memory_utilization,
         )
-        self._load_score_model(
-            score_model_name, score_model_path, self.score_gpu_device
-        )
+        self._load_score_model(score_model_name, score_model_path, self.score_gpu_device)
 
     def _load_trained_model(
         self,
@@ -82,9 +78,7 @@ class LongRefiner:
                     lora_int_id=1,
                     lora_path=query_analysis_module_lora_path,
                 ),
-                "sampling_params": SamplingParams(
-                    temperature=0, max_tokens=2, logprobs=20
-                ),
+                "sampling_params": SamplingParams(temperature=0, max_tokens=2, logprobs=20),
                 "prompt_template": PromptTemplate(
                     self.tokenizer,
                     system_prompt=SYSTEM_PROMPT_STEP1,
@@ -121,7 +115,7 @@ class LongRefiner:
             },
         }
 
-    def _cal_score_bm25(self, all_pairs: List[Tuple[str, str]]) -> List[float]:
+    def _cal_score_bm25(self, all_pairs: list[tuple[str, str]]) -> list[float]:
         from collections import OrderedDict
 
         from rank_bm25 import BM25Okapi
@@ -142,7 +136,7 @@ class LongRefiner:
             all_scores.extend(s)
         return all_scores
 
-    def _cal_score_reranker(self, all_pairs: List[Tuple[str, str]]) -> List[float]:
+    def _cal_score_reranker(self, all_pairs: list[tuple[str, str]]) -> list[float]:
         import torch
 
         all_scores = []
@@ -180,14 +174,10 @@ class LongRefiner:
                 all_scores.extend(flatten_scores)
         return all_scores
 
-    def _cal_score_sbert(self, all_pairs: List[Tuple[str, str]]) -> List[float]:
-        def pooling(
-            pooler_output, last_hidden_state, attention_mask=None, pooling_method="mean"
-        ):
+    def _cal_score_sbert(self, all_pairs: list[tuple[str, str]]) -> list[float]:
+        def pooling(pooler_output, last_hidden_state, attention_mask=None, pooling_method="mean"):
             if pooling_method == "mean":
-                last_hidden = last_hidden_state.masked_fill(
-                    ~attention_mask[..., None].bool(), 0.0
-                )
+                last_hidden = last_hidden_state.masked_fill(~attention_mask[..., None].bool(), 0.0)
                 return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
             elif pooling_method == "cls":
                 return last_hidden_state[:, 0]
@@ -248,9 +238,7 @@ class LongRefiner:
                 all_scores.extend(score_list)
         return all_scores
 
-    def _load_score_model(
-        self, score_model_name: str, score_model_path: str, gpu_device: int = 0
-    ):
+    def _load_score_model(self, score_model_name: str, score_model_path: str, gpu_device: int = 0):
         self.score_model_name = score_model_name
         if score_model_name == "bm25":
             self.score_model = None
@@ -258,18 +246,12 @@ class LongRefiner:
             self.local_score_func = self._cal_score_bm25
             return
         elif "reranker" in score_model_name:
-            self.score_model = AutoModelForSequenceClassification.from_pretrained(
-                score_model_path
-            )
-            self.score_tokenizer = AutoTokenizer.from_pretrained(
-                score_model_path, use_fast=False
-            )
+            self.score_model = AutoModelForSequenceClassification.from_pretrained(score_model_path)
+            self.score_tokenizer = AutoTokenizer.from_pretrained(score_model_path, use_fast=False)
             self.local_score_func = self._cal_score_reranker
         else:
             self.score_model = AutoModel.from_pretrained(score_model_path)
-            self.score_tokenizer = AutoTokenizer.from_pretrained(
-                score_model_path, use_fast=False
-            )
+            self.score_tokenizer = AutoTokenizer.from_pretrained(score_model_path, use_fast=False)
             self.local_score_func = self._cal_score_sbert
 
         # 指定GPU设备 - 使用score模型专用的GPU设备
@@ -281,10 +263,10 @@ class LongRefiner:
     def run(
         self,
         question: str,
-        document_list: List[dict],
+        document_list: list[dict],
         budget: int = 2048,
-        ratio: float = None,
-    ) -> List[str]:
+        ratio: float | None = None,
+    ) -> list[str]:
         print(
             f"DEBUG: LongRefiner.run called with question='{question}', doc_count={len(document_list)}, budget={budget}"
         )
@@ -301,11 +283,11 @@ class LongRefiner:
 
     def batch_run(
         self,
-        question_list: List[str],
-        document_list: List[List[dict]],
+        question_list: list[str],
+        document_list: list[list[dict]],
         budget: int = 2048,
-        ratio: float = None,
-    ) -> List[List[str]]:
+        ratio: float | None = None,
+    ) -> list[list[str]]:
         """
         Args:
             question_list: List[str], each question is a string
@@ -324,16 +306,12 @@ class LongRefiner:
             # step1: query analysis
             print("DEBUG: Starting query analysis...")
             query_analysis_result = self.run_query_analysis(question_list)
-            print(
-                f"DEBUG: Query analysis completed: {len(query_analysis_result)} results"
-            )
+            print(f"DEBUG: Query analysis completed: {len(query_analysis_result)} results")
 
             # step2: doc structuring
             print("DEBUG: Starting doc structuring...")
             doc_structuring_result = self.run_doc_structuring(document_list)
-            print(
-                f"DEBUG: Doc structuring completed: {len(doc_structuring_result)} results"
-            )
+            print(f"DEBUG: Doc structuring completed: {len(doc_structuring_result)} results")
 
             # step3: context selection (local + global)
             print("DEBUG: Starting context selection...")
@@ -356,7 +334,7 @@ class LongRefiner:
             traceback.print_exc()
             return []
 
-    def run_query_analysis(self, question_list: List[str]) -> List[dict]:
+    def run_query_analysis(self, question_list: list[str]) -> list[dict]:
         """
         Args:
             question_list: List[str], each question is a string
@@ -371,9 +349,7 @@ class LongRefiner:
         sampling_params = self.step_to_config["query_analysis"]["sampling_params"]
         lora_request = self.step_to_config["query_analysis"]["lora_request"]
 
-        prompt_list = [
-            prompt_template.get_prompt(question=question) for question in question_list
-        ]
+        prompt_list = [prompt_template.get_prompt(question=question) for question in question_list]
         output_list = self.model.generate(
             prompt_list, sampling_params=sampling_params, lora_request=lora_request
         )
@@ -381,7 +357,7 @@ class LongRefiner:
         query_analysis_result = []
         for output in output_list:
             # set init prob for special token
-            special_token_prob = {token: -100 for token in special_token}
+            special_token_prob = dict.fromkeys(special_token, -100)
             logprobs = output.outputs[0].logprobs[1]
             for token_id, logprob in logprobs.items():
                 if token_id in id2special:
@@ -391,7 +367,7 @@ class LongRefiner:
             query_analysis_result.append(special_token_prob)
         return query_analysis_result
 
-    def run_doc_structuring(self, document_list: List[List[dict]]) -> List[List[dict]]:
+    def run_doc_structuring(self, document_list: list[list[dict]]) -> list[list[dict]]:
         """
         Args:
             document_list: List[List[dict]], each item is a list of documents, each document is a dictionary, contains a key 'content': "{title}\n{content}"
@@ -410,10 +386,7 @@ class LongRefiner:
         ]
         # truncate doc content if it is too long
         doc_content_list = [
-            [
-                self._truncate_doc_content(doc_content)
-                for doc_content in item_doc_content_list
-            ]
+            [self._truncate_doc_content(doc_content) for doc_content in item_doc_content_list]
             for item_doc_content_list in doc_content_list
         ]
 
@@ -422,7 +395,7 @@ class LongRefiner:
             [
                 [
                     prompt_template.get_prompt(doc_content=doc_content)
-                    for doc_content in zip(item_doc_content_list)
+                    for doc_content in zip(item_doc_content_list, strict=False)
                 ]
                 for item_doc_content_list in doc_content_list
             ],
@@ -449,8 +422,8 @@ class LongRefiner:
         return structured_doc_list
 
     def run_global_selection(
-        self, question_list: List[str], structured_doc_list: List[List[dict]]
-    ) -> List[List[dict]]:
+        self, question_list: list[str], structured_doc_list: list[list[dict]]
+    ) -> list[list[dict]]:
         """
         Args:
             question_list: List[str], each question is a string
@@ -464,7 +437,7 @@ class LongRefiner:
         lora_request = self.step_to_config["global_selection"]["lora_request"]
 
         prompt_list = []
-        for question, item_doc_list in zip(question_list, structured_doc_list):
+        for question, item_doc_list in zip(question_list, structured_doc_list, strict=False):
             for doc in item_doc_list:
                 abstract = doc.get("abstract", "")
                 if abstract is None:
@@ -478,16 +451,11 @@ class LongRefiner:
                 section_idx = 1
                 for section_title, section_dict in sections.items():
                     subsection_idx = 1
-                    if (
-                        section_dict["content"] is not None
-                        or section_dict["subsections"] != {}
-                    ):
+                    if section_dict["content"] is not None or section_dict["subsections"] != {}:
                         outline += f"Section{section_idx}: {section_title}\n"
                         section_idx += 1
                     if section_dict["subsections"] != {}:
-                        for subsection, subsection_content in section_dict[
-                            "subsections"
-                        ].items():
+                        for subsection, _subsection_content in section_dict["subsections"].items():
                             outline += f"Subsection{subsection_idx}: {subsection}\n"
                             subsection_idx += 1
 
@@ -501,7 +469,7 @@ class LongRefiner:
         )
         global_selection_result = []
         idx = 0
-        for question, item_doc_list in zip(question_list, structured_doc_list):
+        for question, item_doc_list in zip(question_list, structured_doc_list, strict=False):
             item_global_selection_result = []
             for doc in item_doc_list:
                 selected_title = output_list[idx].outputs[0].text
@@ -533,9 +501,7 @@ class LongRefiner:
         if len(tokenized_content) > max_length:
             doc_content = self.tokenizer.decode(
                 tokenized_content[:half], skip_special_tokens=True
-            ) + self.tokenizer.decode(
-                tokenized_content[-half:], skip_special_tokens=True
-            )
+            ) + self.tokenizer.decode(tokenized_content[-half:], skip_special_tokens=True)
         return doc_content
 
     def _fill_single_sequence(self, content: str, part_sequence: str) -> str:
@@ -596,7 +562,7 @@ class LongRefiner:
         else:
             return "\n".join(total_content)
 
-    def _get_paragraphs(self, text: str) -> List[str]:
+    def _get_paragraphs(self, text: str) -> list[str]:
         """
         Args:
             text: str, the text to be split into paragraphs
@@ -619,7 +585,7 @@ class LongRefiner:
         if exist_str != "":
             new_chunks.append(exist_str)
         if not isinstance(new_chunks, list):
-            assert False
+            raise AssertionError()
         return new_chunks
 
     def parse_xml_doc(self, original_doc_content: str, xml_doc: str) -> dict:
@@ -643,16 +609,12 @@ class LongRefiner:
             else:
                 section_name = match[1].strip()
                 section_content = match[2].strip()
-                subsections = re.findall(
-                    sub_section_pattern, section_content, re.DOTALL
-                )
+                subsections = re.findall(sub_section_pattern, section_content, re.DOTALL)
                 structured_doc["sections"][section_name] = {
                     "content": re.sub(
                         sub_section_pattern, "", section_content, flags=re.DOTALL
                     ).strip(),
-                    "subsections": {
-                        sub[0].strip(): sub[1].strip() for sub in subsections
-                    },
+                    "subsections": {sub[0].strip(): sub[1].strip() for sub in subsections},
                 }
 
         # fill the middle content of sections and subsections
@@ -675,18 +637,13 @@ class LongRefiner:
         # fill in the abstract
         if "abstract" in structured_doc and structured_doc["abstract"] is None:
             abs = None
-            for section, section_item in structured_doc["sections"].items():
-                if (
-                    section_item["content"] is not None
-                    and section_item["content"] != ""
-                ):
+            for _section, section_item in structured_doc["sections"].items():
+                if section_item["content"] is not None and section_item["content"] != "":
                     abs = original_doc_content.split(section_item["content"])[0]
                     structured_doc["abstract"] = abs
                     break
                 if section_item["subsections"] != {}:
-                    for subsection, subsection_content in section_item[
-                        "subsections"
-                    ].items():
+                    for subsection, subsection_content in section_item["subsections"].items():
                         if subsection_content is not None and subsection_content != "":
                             abs = original_doc_content.split(subsection_content)[0]
                             structured_doc["abstract"] = abs
@@ -696,14 +653,12 @@ class LongRefiner:
             if structured_doc["abstract"] is None or structured_doc["abstract"] == "":
                 pass
             else:
-                structured_doc["abstract"] = self._get_paragraphs(
-                    structured_doc["abstract"]
-                )
+                structured_doc["abstract"] = self._get_paragraphs(structured_doc["abstract"])
         sections = structured_doc["sections"]
         for section_title, section_dict in list(sections.items()):
             if section_dict["content"] == "" or section_dict["content"] is None:
                 if section_dict["subsections"] == {} or set(
-                    list(section_dict["subsections"].values())
+                    section_dict["subsections"].values()
                 ) == {""}:
                     del sections[section_title]
                 else:
@@ -711,38 +666,32 @@ class LongRefiner:
             else:
                 section_dict["content"] = self._get_paragraphs(section_dict["content"])
                 if section_dict["subsections"] != {} and set(
-                    list(section_dict["subsections"].values())
+                    section_dict["subsections"].values()
                 ) != {""}:
-                    for subsection, subsection_content in list(
-                        section_dict["subsections"].items()
-                    ):
+                    for subsection, subsection_content in list(section_dict["subsections"].items()):
                         if subsection_content == "" or subsection_content is None:
                             del section_dict["subsections"][subsection]
                         else:
-                            section_dict["subsections"][subsection] = (
-                                self._get_paragraphs(subsection_content)
+                            section_dict["subsections"][subsection] = self._get_paragraphs(
+                                subsection_content
                             )
         return structured_doc
 
     def _collect_hierarchical_nodes(
         self,
-        question_list: List[str],
-        doc_structuring_result: List[List[dict]],
-    ) -> List[dict]:
+        question_list: list[str],
+        doc_structuring_result: list[list[dict]],
+    ) -> list[dict]:
         """
         Collect all hierarchical nodes, each represents a paragraph
         """
         all_nodes = []
         for idx, (question, structuring_doc_list) in enumerate(
-            zip(question_list, doc_structuring_result)
+            zip(question_list, doc_structuring_result, strict=False)
         ):
             for doc_idx, doc in enumerate(structuring_doc_list):
                 if "abstract" in doc:
-                    if (
-                        doc["abstract"] is None
-                        or doc["abstract"] == ""
-                        or doc["abstract"] == []
-                    ):
+                    if doc["abstract"] is None or doc["abstract"] == "" or doc["abstract"] == []:
                         pass
                     else:
                         for chunk in doc["abstract"]:
@@ -762,13 +711,11 @@ class LongRefiner:
                 for section_title, section_dict in list(sections.items()):
                     if section_dict["content"] == [] or section_dict["content"] is None:
                         if section_dict["subsections"] == {} or set(
-                            list(section_dict["subsections"].values())
+                            section_dict["subsections"].values()
                         ) == {""}:
                             del sections[section_title]
                     else:
-                        assert isinstance(section_dict["content"], list), section_dict[
-                            "content"
-                        ]
+                        assert isinstance(section_dict["content"], list), section_dict["content"]
                         for chunk in section_dict["content"]:
                             all_nodes.append(
                                 {
@@ -785,10 +732,7 @@ class LongRefiner:
                             for subsection, subsection_content in list(
                                 section_dict["subsections"].items()
                             ):
-                                if (
-                                    subsection_content == ""
-                                    or subsection_content is None
-                                ):
+                                if subsection_content == "" or subsection_content is None:
                                     del section_dict["subsections"][subsection]
                                 else:
                                     assert isinstance(subsection_content, list)
@@ -809,13 +753,13 @@ class LongRefiner:
 
     def run_all_search(
         self,
-        question_list: List[str],
-        document_list: List[List[dict]],
-        doc_structuring_result: List[List[dict]],
-        query_analysis_result: List[dict],
+        question_list: list[str],
+        document_list: list[list[dict]],
+        doc_structuring_result: list[list[dict]],
+        query_analysis_result: list[dict],
         budget: int,
-        ratio: float = None,
-    ) -> List[str]:
+        ratio: float | None = None,
+    ) -> list[str]:
         """
         Args:
             question_list: List[str], each question is a string
@@ -830,14 +774,12 @@ class LongRefiner:
         # collect hierarchical nodes
         # print(doc_structuring_result[0][0])
         # assert False
-        all_nodes = self._collect_hierarchical_nodes(
-            question_list, doc_structuring_result
-        )
+        all_nodes = self._collect_hierarchical_nodes(question_list, doc_structuring_result)
 
         # calculate local score
         node_pairs = [(node["question"], node["content"]) for node in all_nodes]
         node_scores = self.local_score_func(node_pairs)
-        for node, score in zip(all_nodes, node_scores):
+        for node, score in zip(all_nodes, node_scores, strict=False):
             node["score"] = score
 
         # transmit similarity to parent node
@@ -845,7 +787,7 @@ class LongRefiner:
         parent2node = {}
         for node in all_nodes:
             idx = node["idx"]
-            parent = f'{node["question"]}_{node["doc_idx"]}_{node["parent"]}'
+            parent = f"{node['question']}_{node['doc_idx']}_{node['parent']}"
             if idx not in idx2node:
                 idx2node[idx] = []
             if parent not in parent2node:
@@ -881,7 +823,7 @@ class LongRefiner:
                 for section_title, section_dict in list(sections.items()):
                     if section_dict["content"] == [] or section_dict["content"] is None:
                         if section_dict["subsections"] == {} or set(
-                            list(section_dict["subsections"].values())
+                            section_dict["subsections"].values()
                         ) == {""}:
                             del sections[section_title]
                     else:
@@ -903,12 +845,8 @@ class LongRefiner:
                                     del section_dict["subsections"][subsection]
                                 else:
                                     parent = f"{question}_{doc_idx}_{subsection}"
-                                    sub_score_list = [
-                                        node["score"] for node in parent2node[parent]
-                                    ]
-                                    sub_score = sum(sub_score_list) / len(
-                                        sub_score_list
-                                    )
+                                    sub_score_list = [node["score"] for node in parent2node[parent]]
+                                    sub_score = sum(sub_score_list) / len(sub_score_list)
                                     score_list.append(sub_score)
                                     node_list.append(
                                         {
@@ -947,14 +885,10 @@ class LongRefiner:
                 if max_score == min_score:
                     node["score"] = 0
                 else:
-                    node["score"] = (node["score"] - min_score) / (
-                        max_score - min_score
-                    )
+                    node["score"] = (node["score"] - min_score) / (max_score - min_score)
 
         # combine global score
-        global_selection_result = self.run_global_selection(
-            question_list, doc_structuring_result
-        )
+        global_selection_result = self.run_global_selection(question_list, doc_structuring_result)
         for idx, node_list in idx2node.items():
             for node in node_list:
                 question = question_list[idx]
@@ -971,9 +905,9 @@ class LongRefiner:
                     # calculate the number of leaf nodes
                     parent_type = node["parent_type"]
                     if parent_type == "section":
-                        parent_dict = doc_structuring_result[idx][node["doc_idx"]][
-                            "sections"
-                        ][node["parent"]]
+                        parent_dict = doc_structuring_result[idx][node["doc_idx"]]["sections"][
+                            node["parent"]
+                        ]
                         leaf_num = len(parent_dict.get("subsections", {}))
                     elif parent_type == "subsection":
                         leaf_num = len(
@@ -1001,26 +935,25 @@ class LongRefiner:
                 print("-----")
 
         final_contents_list = [
-            [node["contents"] for node in item_node_list]
-            for item_node_list in refined_node_list
+            [node["contents"] for node in item_node_list] for item_node_list in refined_node_list
         ]
         return final_contents_list
 
     def select_by_budget(
         self,
-        question_list: List[str],
-        document_list: List[List[dict]],
-        structured_document_list: List[List[dict]],
-        all_nodes: List[dict],
+        question_list: list[str],
+        document_list: list[list[dict]],
+        structured_document_list: list[list[dict]],
+        all_nodes: list[dict],
         idx2node: dict,
         budget: int,
         ratio: float,
-    ) -> List[List[dict]]:
+    ) -> list[list[dict]]:
         # process budget and ratio
         if budget is None:
-            assert (
-                ratio is not None and ratio > 0 and ratio < 1
-            ), "budget is None, ratio must be a float between 0 and 1"
+            assert ratio is not None and ratio > 0 and ratio < 1, (
+                "budget is None, ratio must be a float between 0 and 1"
+            )
             idx2budget = {}
             for idx in idx2node:
                 # 下面这个是啥？为什么会突然使用没有被导入的变量名称？
@@ -1030,14 +963,14 @@ class LongRefiner:
                 budget = int(doc_length * ratio)
                 idx2budget[idx] = budget
         else:
-            idx2budget = {idx: budget for idx in idx2node}
+            idx2budget = dict.fromkeys(idx2node, budget)
 
         # final selection
         result_nodes = []
         for idx, node_list in tqdm(idx2node.items()):
             # use a large budget for pre selection
             budget = idx2budget[idx] * 2
-            question = question_list[idx]
+            question_list[idx]
             cand_node_list = []
             sort_node_list = sorted(node_list, key=lambda x: x["score"], reverse=True)
             for node in sort_node_list:
@@ -1045,18 +978,16 @@ class LongRefiner:
                 if node["type"] == "paragraph":
                     node_content = corr_doc_title + "\n" + node["content"]
                 elif node["type"] == "abstract":
-                    abstract = structured_document_list[idx][node["doc_idx"]][
-                        "abstract"
-                    ]
+                    abstract = structured_document_list[idx][node["doc_idx"]]["abstract"]
                     if isinstance(abstract, list):
                         node_content = "\n".join(abstract)
                     else:
                         node_content = abstract
                     node_content = corr_doc_title + "\n" + node_content
                 elif node["type"] == "section":
-                    section_dict = structured_document_list[idx][node["doc_idx"]][
-                        "sections"
-                    ][node["title"]]
+                    section_dict = structured_document_list[idx][node["doc_idx"]]["sections"][
+                        node["title"]
+                    ]
                     node_content = f"{corr_doc_title}\n"
                     if section_dict["content"] == "" or section_dict["content"] is None:
                         pass
@@ -1068,22 +999,22 @@ class LongRefiner:
                         node_content += "\n"
                     if section_dict["subsections"] != {}:
                         sub_idx = 1
-                        for subsection, subsection_content in section_dict[
-                            "subsections"
-                        ].items():
+                        for subsection, subsection_content in section_dict["subsections"].items():
                             if subsection_content != "":
-                                node_content += f"Subsection {sub_idx}: {subsection}: \n{subsection_content}"
+                                node_content += (
+                                    f"Subsection {sub_idx}: {subsection}: \n{subsection_content}"
+                                )
                                 sub_idx += 1
                 elif node["type"] == "subsection":
                     section_title = node["parent"]
                     subsection_title = node["title"]
-                    node_content = structured_document_list[idx][node["doc_idx"]][
-                        "sections"
-                    ][section_title]["subsections"][subsection_title]
+                    node_content = structured_document_list[idx][node["doc_idx"]]["sections"][
+                        section_title
+                    ]["subsections"][subsection_title]
                     if isinstance(node_content, list):
                         node_content = "\n".join(node_content)
                 else:
-                    assert False
+                    raise AssertionError()
                 assert isinstance(node_content, str), node_content
                 node_length = len(self.tokenizer(node_content)["input_ids"])
                 node["contents"] = node_content
@@ -1109,9 +1040,7 @@ class LongRefiner:
                 if node["type"] == "paragraph":
                     # if exist parent node, skip current node
                     parent_nodes = [
-                        cc
-                        for cc in exist_nodes
-                        if cc[1].get("title", None) == node["parent"]
+                        cc for cc in exist_nodes if cc[1].get("title", None) == node["parent"]
                     ]
                     if len(parent_nodes) > 0:
                         continue
@@ -1120,15 +1049,10 @@ class LongRefiner:
                         budget = budget - node["length"]
                 elif node["type"] == "abstract":
                     # search child node, if exist, keep current node
-                    child_nodes = [
-                        cc for cc in exist_nodes if cc[1]["parent"] == "abstract"
-                    ]
+                    child_nodes = [cc for cc in exist_nodes if cc[1]["parent"] == "abstract"]
 
                     if len(child_nodes) > 0:
-                        if (
-                            budget + sum([cc[1]["length"] for cc in child_nodes])
-                            < node["length"]
-                        ):
+                        if budget + sum([cc[1]["length"] for cc in child_nodes]) < node["length"]:
                             continue
                         del_idx = []
                         for cc in child_nodes:
@@ -1146,14 +1070,9 @@ class LongRefiner:
                         budget = budget - node["length"]
                 else:
                     # for section or subsection
-                    child_nodes = [
-                        cc for cc in exist_nodes if cc[1]["parent"] == node["title"]
-                    ]
+                    child_nodes = [cc for cc in exist_nodes if cc[1]["parent"] == node["title"]]
                     if len(child_nodes) > 0:
-                        if (
-                            budget + sum([cc[1]["length"] for cc in child_nodes])
-                            < node["length"]
-                        ):
+                        if budget + sum([cc[1]["length"] for cc in child_nodes]) < node["length"]:
                             continue
                         del_idx = []
                         for cc in child_nodes:

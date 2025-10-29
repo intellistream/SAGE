@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 多模态数据融合QA示例 - Multimodal Fusion QA Demo
 
@@ -16,13 +15,12 @@
 import os
 import sys
 import time
-from typing import List
 
 import numpy as np
+
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io_utils.sink import TerminalSink
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
+from sage.libs.io.sink import TerminalSink
+from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 
 # 添加SAGE路径
 
@@ -37,7 +35,6 @@ class MultimodalFusionRetriever:
     """
 
     def __init__(self, **kwargs):
-
         # 模拟多模态知识库数据
         self.multimodal_knowledge = [
             {
@@ -95,26 +92,24 @@ class MultimodalFusionRetriever:
         print(f"   📊 知识库包含 {len(self.multimodal_knowledge)} 个多模态条目")
         print(f"   🔧 融合策略: {self.db_config['fusion_strategy']}")
         print(
-            f"   ⚖️ 权重配置: 文本{self.db_config['text_weight']*100}%, 图像{self.db_config['image_weight']*100}%"
+            f"   ⚖️ 权重配置: 文本{self.db_config['text_weight'] * 100}%, 图像{self.db_config['image_weight'] * 100}%"
         )
 
-    def _generate_image_embedding(self, landmark_name: str) -> List[float]:
+    def _generate_image_embedding(self, landmark_name: str) -> list[float]:
         """生成模拟的图像嵌入向量"""
         # 使用确定性种子生成可重复的向量
         seed = hash(landmark_name) % 1000
         np.random.seed(seed)
         return np.random.normal(0, 1, 128).tolist()
 
-    def _generate_text_embedding(self, text: str) -> List[float]:
+    def _generate_text_embedding(self, text: str) -> list[float]:
         """生成模拟的文本嵌入向量"""
         # 简单的文本嵌入模拟
         seed = hash(text) % 1000
         np.random.seed(seed)
         return np.random.normal(0, 1, 128).tolist()
 
-    def _fuse_embeddings(
-        self, text_emb: List[float], image_emb: List[float]
-    ) -> List[float]:
+    def _fuse_embeddings(self, text_emb: list[float], image_emb: list[float]) -> list[float]:
         """执行多模态嵌入融合"""
         text_weight = self.db_config["text_weight"]
         image_weight = self.db_config["image_weight"]
@@ -125,9 +120,7 @@ class MultimodalFusionRetriever:
 
         return fused
 
-    def _calculate_similarity(
-        self, query_emb: List[float], target_emb: List[float]
-    ) -> float:
+    def _calculate_similarity(self, query_emb: list[float], target_emb: list[float]) -> float:
         """计算余弦相似度"""
         query = np.array(query_emb)
         target = np.array(target_emb)
@@ -137,9 +130,7 @@ class MultimodalFusionRetriever:
         norm_target = np.linalg.norm(target)
 
         return (
-            dot_product / (norm_query * norm_target)
-            if norm_query > 0 and norm_target > 0
-            else 0.0
+            dot_product / (norm_query * norm_target) if norm_query > 0 and norm_target > 0 else 0.0
         )
 
     def execute(self, data):
@@ -153,9 +144,7 @@ class MultimodalFusionRetriever:
 
         # 生成查询嵌入
         text_emb = self._generate_text_embedding(query)
-        image_emb = self._generate_image_embedding(
-            query
-        )  # 基于查询文本生成相关图像嵌入
+        image_emb = self._generate_image_embedding(query)  # 基于查询文本生成相关图像嵌入
 
         # 多模态融合
         fused_query_emb = self._fuse_embeddings(text_emb, image_emb)
@@ -270,7 +259,7 @@ def run_multimodal_qa_demo():
         env = LocalEnvironment("Multimodal-QA-Demo")
 
         # 构建处理管道
-        query_stream = (
+        (
             env.from_source(MultimodalQuestionSource)
             .map(MultimodalFusionRetriever)
             .map(

@@ -1,10 +1,8 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sage.kernel.api.service.base_service import BaseService
     from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
-    from sage.kernel.utils.ray.actor import ActorWrapper
 
 
 class ServiceTaskFactory:
@@ -22,9 +20,7 @@ class ServiceTaskFactory:
         self.service_name = service_factory.service_name
         self.remote = remote
 
-    def create_service_task(
-        self, ctx: "ServiceContext" = None
-    ) -> Union["BaseService", "ActorWrapper"]:
+    def create_service_task(self, ctx: "ServiceContext | None" = None):
         """
         参考task_factory.create_task的逻辑，创建服务任务实例
 
@@ -37,24 +33,21 @@ class ServiceTaskFactory:
         if self.remote:
             # 创建Ray服务任务
             from sage.kernel.runtime.service.ray_service_task import RayServiceTask
+            from sage.kernel.utils.ray.actor import ActorWrapper
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
-            ray_service_task = RayServiceTask.options(lifetime="detached").remote(
-                service_factory=self.service_factory, ctx=ctx
+            ray_service_task = RayServiceTask.options(lifetime="detached").remote(  # type: ignore[attr-defined]
+                self.service_factory, ctx
             )
 
             # 使用ActorWrapper包装
-            from sage.kernel.utils.ray.actor import ActorWrapper
-
             service_task = ActorWrapper(ray_service_task)
 
         else:
             # 创建本地服务任务
             from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
-            service_task = LocalServiceTask(
-                service_factory=self.service_factory, ctx=ctx
-            )
+            service_task = LocalServiceTask(self.service_factory, ctx)  # type: ignore
 
         return service_task
 

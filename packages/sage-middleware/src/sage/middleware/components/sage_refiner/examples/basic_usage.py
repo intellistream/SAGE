@@ -19,9 +19,7 @@ def basic_usage():
     print("=" * 60)
 
     # 1. 创建配置（使用简单算法，不需要模型）
-    config = RefinerConfig(
-        algorithm=RefinerAlgorithm.SIMPLE, budget=100, enable_cache=True
-    )
+    config = RefinerConfig(algorithm=RefinerAlgorithm.SIMPLE, budget=100, enable_cache=True)
 
     # 2. 创建服务
     service = RefinerService(config)
@@ -52,7 +50,7 @@ def basic_usage():
 
     print("\n精炼后的内容:")
     for i, content in enumerate(result.refined_content):
-        print(f"  {i+1}. {content[:100]}...")
+        print(f"  {i + 1}. {content[:100]}...")
 
     # 6. 查看服务统计
     print("\n服务统计:")
@@ -110,8 +108,8 @@ def batch_processing():
 
     results = service.refine_batch(queries=queries, documents_list=documents_list)
 
-    for i, (query, result) in enumerate(zip(queries, results)):
-        print(f"\n查询 {i+1}: {query}")
+    for i, (query, result) in enumerate(zip(queries, results, strict=False)):
+        print(f"\n查询 {i + 1}: {query}")
         print(f"  压缩率: {result.metrics.compression_rate:.2f}x")
         print(
             f"  原始/精炼 tokens: {result.metrics.original_tokens}/{result.metrics.refined_tokens}"

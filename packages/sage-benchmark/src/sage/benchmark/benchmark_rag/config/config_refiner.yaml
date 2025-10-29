@@ -10,23 +10,23 @@ source:
   data_path: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/sample/evaluate.json"
 
   # HuggingFace Dataset 参数（type=hf 时生效）
-  hf_dataset_name:   "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
   hf_dataset_config: "asqa"
-  hf_split:          "dev"
+  hf_split: "dev"
 
 retriever:
   # 检索器类型选择: 'chroma' 或 'wiki18_faiss'
   type: "wiki18_faiss"  # 使用Wiki18 FAISS检索器
-  
+
   # 通用配置
   dimension: 1024    # BGE-M3模型的维度
   top_k: 8
-  
+
   # Wiki18 FAISS 专用配置 (type=wiki18_faiss 时生效)
   faiss:
     index_path: "/home/cyb/wiki18_fulldoc_bgem3_index.index"
     documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
-  
+
   # 嵌入模型配置
   embedding:
     method: "hf"

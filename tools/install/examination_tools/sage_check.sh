@@ -8,7 +8,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 检查是否已安装SAGE
 check_existing_sage() {
     echo -e "${INFO} 检查是否已安装 SAGE..."
-    
+
     # 检查pip包列表中的所有SAGE相关包变体
     local installed_packages=$(pip list 2>/dev/null | grep -E '^(sage|isage|intsage)(-|$)' || echo "")
     if [ -n "$installed_packages" ]; then
@@ -23,14 +23,14 @@ check_existing_sage() {
         echo
         return 0
     fi
-    
+
     # 检查是否能导入sage（作为备用检查）
     if python3 -c "import sage" 2>/dev/null; then
         local sage_version=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
         return 0
     fi
-    
+
     echo -e "${SUCCESS} 未检测到已安装的 SAGE"
     return 1
 }
@@ -38,10 +38,10 @@ check_existing_sage() {
 # 卸载现有SAGE
 uninstall_sage() {
     echo -e "${INFO} 卸载现有 SAGE 安装..."
-    
+
     # 获取所有已安装的SAGE相关包（包括所有前缀变体）
     local all_sage_packages=$(pip list 2>/dev/null | grep -E '^(sage|isage|intsage)(-|$)' | awk '{print $1}' || echo "")
-    
+
     if [ -n "$all_sage_packages" ]; then
         echo -e "${DIM}  → 发现已安装的包：${NC}"
         echo "$all_sage_packages" | while read package; do
@@ -49,10 +49,10 @@ uninstall_sage() {
                 echo -e "${DIM}    - $package${NC}"
             fi
         done
-        
+
         # 批量卸载所有SAGE相关包
         echo -e "${DIM}  → 卸载所有 SAGE 相关包${NC}"
-        
+
         # 逐个卸载包，提供更详细的反馈
         local uninstall_count=0
         local total_packages=0
@@ -79,21 +79,21 @@ uninstall_sage() {
                 fi
             fi
         done <<< "$all_sage_packages"
-        
+
         echo -e "${SUCCESS} 已清理 $uninstall_count/$total_packages 个SAGE包${NC}"
     fi
-    
+
     # 清理可能的开发模式安装链接
     echo -e "${DIM}  → 清理开发模式链接${NC}"
     local dev_packages=(
         "sage"
-        "sage-libs" 
+        "sage-libs"
         "sage-middleware"
         "sage-kernel"
         "sage-common"
         "sage-tools"
         "isage"
-        "isage-libs" 
+        "isage-libs"
         "isage-middleware"
         "isage-kernel"
         "isage-common"
@@ -104,13 +104,13 @@ uninstall_sage() {
         "intsage-kernel"
         "intsage-middleware"
     )
-    
+
     for package in "${dev_packages[@]}"; do
         if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
             echo -e "${DIM}    清理 $package 开发链接${NC}"
         fi
     done
-    
+
     echo -e "${CHECK} SAGE 卸载完成"
 }
 
@@ -126,7 +126,7 @@ ask_uninstall_sage() {
     echo -e "  [2] 跳过卸载，直接覆盖安装"
     echo -e "  [3] 取消安装"
     echo ""
-    
+
     while true; do
         echo -ne "${BLUE}请选择 [1-3]: ${NC}"
         read -r choice

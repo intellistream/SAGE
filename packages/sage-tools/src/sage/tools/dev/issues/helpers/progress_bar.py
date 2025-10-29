@@ -69,10 +69,6 @@ class ProgressBar:
         """完成进度条"""
         elapsed = time.time() - self.start_time
         if self.total:
-            print(
-                f"  ✅ {self.description}: {self.current}/{self.total} (100%) ({elapsed:.1f}s)"
-            )
+            print(f"  ✅ {self.description}: {self.current}/{self.total} (100%) ({elapsed:.1f}s)")
         else:
-            print(
-                f"  ✅ {self.description}: 完成，共 {self.current} 个 ({elapsed:.1f}s)"
-            )
+            print(f"  ✅ {self.description}: 完成，共 {self.current} 个 ({elapsed:.1f}s)")

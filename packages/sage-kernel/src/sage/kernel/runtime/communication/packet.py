@@ -6,7 +6,7 @@ Packet 是流处理系统中算子间传递数据的标准载体，包含了数�
 """
 
 import time
-from typing import Any, Optional
+from typing import Any
 
 
 class Packet:
@@ -33,7 +33,7 @@ class Packet:
         payload: Any,
         input_index: int = 0,
         partition_key: Any = None,
-        partition_strategy: Optional[str] = None,
+        partition_strategy: str | None = None,
     ):
         """
         创建新的数据包
@@ -78,7 +78,7 @@ class Packet:
             partition_strategy=self.partition_strategy,
         )
 
-    def update_key(self, new_key: Any, new_strategy: Optional[str] = None) -> "Packet":
+    def update_key(self, new_key: Any, new_strategy: str | None = None) -> "Packet":
         """
         更新分区键，用于重新分区场景
 
@@ -122,9 +122,7 @@ class Packet:
             str: 数据包的描述信息
         """
         key_info = f"key={self.partition_key}" if self.is_keyed() else "unkeyed"
-        payload_type = (
-            type(self.payload).__name__ if self.payload is not None else "None"
-        )
+        payload_type = type(self.payload).__name__ if self.payload is not None else "None"
 
         return (
             f"<Packet input={self.input_index} {key_info} "

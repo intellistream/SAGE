@@ -1,5 +1,13 @@
-"""
-SAGE - Streaming-Augmented Generative Execution
+"""SAGE - Streaming-Augmented Generative Execution
+
+Layer: L1 (Foundation - Common Utilities)
+
+This package provides common utilities used across all SAGE packages.
+Includes logging, serialization, system utilities, and configuration helpers.
+
+Architecture:
+    This is a L1 foundation package providing utility functions.
+    Must NOT contain business logic, only reusable helper functions.
 """
 
 # 直接从本包的_version模块加载版本信息

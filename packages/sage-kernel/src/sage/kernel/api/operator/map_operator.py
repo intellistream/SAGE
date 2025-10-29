@@ -35,9 +35,7 @@ class MapOperator(BaseOperator):
             )
         else:
             # 使用默认路径
-            self.time_base_path = os.path.join(
-                os.getcwd(), ".sage_states", "time_records"
-            )
+            self.time_base_path = os.path.join(os.getcwd(), ".sage_states", "time_records")
 
         os.makedirs(self.time_base_path, exist_ok=True)
         self.time_records = []
@@ -72,7 +70,7 @@ class MapOperator(BaseOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist time records: {e}")
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         try:
             if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")
@@ -91,16 +89,12 @@ class MapOperator(BaseOperator):
                 if self.enable_profile:
                     self._save_time_record(duration)
 
-                self.logger.debug(
-                    f"Operator {self.name} processed data with result: {result}"
-                )
+                self.logger.debug(f"Operator {self.name} processed data with result: {result}")
                 result_packet = (
-                    packet.inherit_partition_info(result)
-                    if (result is not None)
-                    else None
+                    packet.inherit_partition_info(result) if (result is not None) else None
                 )
                 if result_packet is not None:
-                    self.router.send(result_packet)
+                    self.router.send(result_packet)  # type: ignore
 
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)

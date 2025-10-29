@@ -1,7 +1,7 @@
 """Cohere embedding wrapper."""
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseEmbedding
 
@@ -67,8 +67,8 @@ class CohereEmbedding(BaseEmbedding):
         self,
         model: str = "embed-multilingual-v3.0",
         input_type: str = "classification",
-        api_key: Optional[str] = None,
-        embedding_types: Optional[List[str]] = None,
+        api_key: str | None = None,
+        embedding_types: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
         """初始化 Cohere Embedding
@@ -96,9 +96,7 @@ class CohereEmbedding(BaseEmbedding):
         try:
             import cohere  # noqa: F401
         except ImportError:
-            raise ImportError(
-                "Cohere embedding 需要 cohere 包。\n" "安装方法: pip install cohere"
-            )
+            raise ImportError("Cohere embedding 需要 cohere 包。\n安装方法: pip install cohere")
 
         self._model = model
         self._input_type = input_type
@@ -111,8 +109,8 @@ class CohereEmbedding(BaseEmbedding):
             raise RuntimeError(
                 "Cohere embedding 需要 API Key。\n"
                 "解决方案:\n"
-                "  1. 设置环境变量: export COHERE_API_KEY='your-key'\n"
-                "  2. 传递参数: CohereEmbedding(api_key='your-key', ...)\n"
+                "  1. 设置环境变量: export COHERE_API_KEY='your-key'\n"  # pragma: allowlist secret
+                "  2. 传递参数: CohereEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
                 "获取 API Key: https://dashboard.cohere.com/api-keys"
             )
@@ -120,7 +118,7 @@ class CohereEmbedding(BaseEmbedding):
         # 获取维度
         self._dim = self.DIMENSION_MAP.get(model, 1024)
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -142,7 +140,7 @@ class CohereEmbedding(BaseEmbedding):
                 input_type=self._input_type,
                 embedding_types=self._embedding_types,
             )
-            return response.embeddings[0]  # 返回第一个结果
+            return response.embeddings[0]  # pyright: ignore[reportReturnType, reportIndexIssue]
         except Exception as e:
             raise RuntimeError(
                 f"Cohere embedding 失败: {e}\n"
@@ -152,7 +150,7 @@ class CohereEmbedding(BaseEmbedding):
                 f"提示: 检查 API Key 是否有效，网络连接是否正常"
             ) from e
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         Cohere API 原生支持批量操作。
@@ -173,7 +171,7 @@ class CohereEmbedding(BaseEmbedding):
                 input_type=self._input_type,
                 embedding_types=self._embedding_types,
             )
-            return response.embeddings
+            return response.embeddings  # pyright: ignore[reportReturnType]
         except Exception as e:
             raise RuntimeError(
                 f"Cohere 批量 embedding 失败: {e}\n"
@@ -201,7 +199,7 @@ class CohereEmbedding(BaseEmbedding):
         return "cohere"
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息
 
         Returns:

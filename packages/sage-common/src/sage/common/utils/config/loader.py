@@ -12,19 +12,26 @@ def load_config(path: str | Path | None = None) -> dict:
     # locate project root (…/SAGE/)
     # root = Path(__file__).resolve().parents[2]
     # 获取调用者的文件路径作为项目根目录的参考点
-    caller_frame = inspect.currentframe().f_back
-    caller_file = caller_frame.f_globals.get("__file__")
-    if caller_file:
-        # 假设调用者在项目根目录或其子目录中
-        root = Path(caller_file).resolve().parent
-        # 向上查找直到找到包含常见项目标识的目录
-        while root.parent != root:
-            if any(
-                (root / marker).exists()
-                for marker in ["setup.py", "pyproject.toml", ".git", "config"]
-            ):
-                break
-            root = root.parent
+    caller_frame = inspect.currentframe()
+    if caller_frame and caller_frame.f_back:
+        caller_file = caller_frame.f_back.f_globals.get("__file__")
+        if caller_file:
+            # 假设调用者在项目根目录或其子目录中
+            root = Path(caller_file).resolve().parent
+            # 向上查找直到找到包含常见项目标识的目录（最多向上10层）
+            max_depth = 10
+            depth = 0
+            while root.parent != root and depth < max_depth:
+                if any(
+                    (root / marker).exists()
+                    for marker in ["setup.py", "pyproject.toml", ".git", "config"]
+                ):
+                    break
+                root = root.parent
+                depth += 1
+        else:
+            # 回退到当前工作目录
+            root = Path.cwd()
     else:
         # 回退到当前工作目录
         root = Path.cwd()

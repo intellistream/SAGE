@@ -8,7 +8,7 @@ Refiner基础接口定义
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 
 @dataclass
@@ -31,9 +31,9 @@ class RefinerMetrics:
     # 其他元数据
     algorithm: str = ""  # 使用的算法
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "refine_time": self.refine_time,
@@ -53,11 +53,11 @@ class RefinerMetrics:
 class RefineResult:
     """Refiner精炼结果"""
 
-    refined_content: Union[str, List[str]]  # 精炼后的内容
+    refined_content: str | list[str]  # 精炼后的内容
     metrics: RefinerMetrics  # 性能指标
-    original_content: Optional[Union[str, List[str]]] = None  # 原始内容（可选保留）
+    original_content: str | list[str] | None = None  # 原始内容（可选保留）
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "refined_content": self.refined_content,
@@ -74,7 +74,7 @@ class BaseRefiner(ABC):
     这个接口设计遵循SAGE的BaseFunction模式，可以无缝集成。
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         初始化Refiner
 
@@ -97,8 +97,8 @@ class BaseRefiner(ABC):
     def refine(
         self,
         query: str,
-        documents: List[Union[str, Dict[str, Any]]],
-        budget: Optional[int] = None,
+        documents: list[str | dict[str, Any]],
+        budget: int | None = None,
         **kwargs,
     ) -> RefineResult:
         """
@@ -118,11 +118,11 @@ class BaseRefiner(ABC):
     @abstractmethod
     def refine_batch(
         self,
-        queries: List[str],
-        documents_list: List[List[Union[str, Dict[str, Any]]]],
-        budget: Optional[int] = None,
+        queries: list[str],
+        documents_list: list[list[str | dict[str, Any]]],
+        budget: int | None = None,
         **kwargs,
-    ) -> List[RefineResult]:
+    ) -> list[RefineResult]:
         """
         批量精炼文档内容
 
@@ -140,8 +140,8 @@ class BaseRefiner(ABC):
     def refine_streaming(
         self,
         query: str,
-        documents: List[Union[str, Dict[str, Any]]],
-        budget: Optional[int] = None,
+        documents: list[str | dict[str, Any]],
+        budget: int | None = None,
         **kwargs,
     ):
         """
@@ -178,7 +178,7 @@ class BaseRefiner(ABC):
         """算法名称"""
         return self.__class__.__name__
 
-    def get_info(self) -> Dict[str, Any]:
+    def get_info(self) -> dict[str, Any]:
         """获取算法信息"""
         return {
             "name": self.name,

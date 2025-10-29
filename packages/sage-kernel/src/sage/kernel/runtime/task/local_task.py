@@ -15,14 +15,13 @@ class LocalTask(BaseTask):
 
     def __init__(
         self,
-        runtime_context: "TaskContext",
+        ctx: "TaskContext",
         operator_factory: "OperatorFactory",
         max_buffer_size: int = 30000,
         queue_maxsize: int = 50000,
     ) -> None:
-
         # 调用父类初始化
-        super().__init__(runtime_context, operator_factory)
+        super().__init__(ctx, operator_factory)
 
         self.logger.info(f"Initialized LocalTask: {self.ctx.name}")
         self.logger.debug(

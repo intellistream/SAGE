@@ -3,7 +3,7 @@ import os
 import threading
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import dill
 
@@ -60,7 +60,7 @@ _SKIP_VALUE = object()
 def _gather_attrs(obj):
     """枚举实例 __dict__ 和 @property 属性。"""
     attrs = dict(getattr(obj, "__dict__", {}))
-    for name, prop in inspect.getmembers(type(obj), lambda x: isinstance(x, property)):
+    for name, _prop in inspect.getmembers(type(obj), lambda x: isinstance(x, property)):
         try:
             attrs[name] = getattr(obj, name)
         except Exception:
@@ -81,7 +81,7 @@ def _filter_attrs(attrs, include, exclude):
 def _should_skip(v):
     """判断对象是否应该跳过序列化"""
     # 检查黑名单 - 修改为更精确的检查
-    for i, blacklisted_type in enumerate(_BLACKLIST):
+    for _i, blacklisted_type in enumerate(_BLACKLIST):
         if isinstance(v, blacklisted_type):
             # print(f"Skipping blacklisted instance {i}: {type(v)}, {v}")
             return True
@@ -171,7 +171,7 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
                     cleaned_item = _preprocess_for_dill(item, _seen, _object_map)
                     if cleaned_item is not _SKIP_VALUE:
                         cleaned.append(cleaned_item)
-            return type(obj)(cleaned) if cleaned else []
+            return type(obj)(cleaned) if cleaned else []  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -185,7 +185,7 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
                     cleaned_item = _preprocess_for_dill(item, _seen, _object_map)
                     if cleaned_item is not _SKIP_VALUE:
                         cleaned.add(cleaned_item)
-            return type(obj)(cleaned) if cleaned else set()
+            return type(obj)(cleaned) if cleaned else set()  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -200,7 +200,7 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
 
             # 尝试创建空实例
             try:
-                cleaned_obj = obj_class.__new__(obj_class)
+                cleaned_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
             except Exception:
                 # 如果无法创建空实例，返回原对象让dill处理
                 return obj
@@ -291,7 +291,7 @@ def _postprocess_from_dill(obj, _seen=None):
                     cleaned_item = _postprocess_from_dill(item, _seen)
                     # 保留所有值，包括None、False、0等
                     cleaned.append(cleaned_item)
-            return type(obj)(cleaned)
+            return type(obj)(cleaned)  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -306,7 +306,7 @@ def _postprocess_from_dill(obj, _seen=None):
                     # 集合中不能包含None，但可以包含False、0等
                     if cleaned_item is not None:
                         cleaned.add(cleaned_item)
-            return type(obj)(cleaned)
+            return type(obj)(cleaned)  # type: ignore[call-overload]
         finally:
             _seen.remove(obj_id)
 
@@ -343,8 +343,8 @@ class UniversalSerializer:
     @staticmethod
     def serialize_object(
         obj: Any,
-        include: Optional[List[str]] = None,
-        exclude: Optional[List[str]] = None,
+        include: list[str] | None = None,
+        exclude: list[str] | None = None,
     ) -> bytes:
         """
         序列化任意对象
@@ -402,8 +402,8 @@ class UniversalSerializer:
     def save_object_state(
         obj: Any,
         path: str,
-        include: Optional[List[str]] = None,
-        exclude: Optional[List[str]] = None,
+        include: list[str] | None = None,
+        exclude: list[str] | None = None,
     ):
         """将对象状态保存到文件"""
         serialized_data = UniversalSerializer.serialize_object(obj, include, exclude)
@@ -463,7 +463,7 @@ class UniversalSerializer:
 
 # 便捷函数
 def serialize_object(
-    obj: Any, include: Optional[List[str]] = None, exclude: Optional[List[str]] = None
+    obj: Any, include: list[str] | None = None, exclude: list[str] | None = None
 ) -> bytes:
     """序列化对象的便捷函数"""
     return UniversalSerializer.serialize_object(obj, include, exclude)
@@ -477,8 +477,8 @@ def deserialize_object(data: bytes) -> Any:
 def save_object_state(
     obj: Any,
     path: str,
-    include: Optional[List[str]] = None,
-    exclude: Optional[List[str]] = None,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
 ):
     """保存对象状态的便捷函数"""
     return UniversalSerializer.save_object_state(obj, path, include, exclude)
@@ -496,7 +496,7 @@ def load_object_state(obj: Any, path: str) -> bool:
 
 # 向后兼容的函数
 def pack_object(
-    obj: Any, include: Optional[List[str]] = None, exclude: Optional[List[str]] = None
+    obj: Any, include: list[str] | None = None, exclude: list[str] | None = None
 ) -> bytes:
     """打包对象的便捷函数（向后兼容）"""
     return serialize_object(obj, include, exclude)
@@ -508,7 +508,7 @@ def unpack_object(data: bytes) -> Any:
 
 
 def trim_object_for_ray(
-    obj: Any, include: Optional[List[str]] = None, exclude: Optional[List[str]] = None
+    obj: Any, include: list[str] | None = None, exclude: list[str] | None = None
 ) -> Any:
     """
     为Ray远程调用预处理对象，移除不可序列化的内容
@@ -546,7 +546,7 @@ def trim_object_for_ray(
                 # 创建新对象并设置过滤后的属性
                 obj_class = type(cleaned_obj)
                 try:
-                    final_obj = obj_class.__new__(obj_class)
+                    final_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
                     for attr_name, attr_value in filtered_attrs.items():
                         try:
                             setattr(final_obj, attr_name, attr_value)
@@ -570,8 +570,8 @@ class RayObjectTrimmer:
     @staticmethod
     def trim_for_remote_call(
         obj: Any,
-        include: Optional[List[str]] = None,
-        exclude: Optional[List[str]] = None,
+        include: list[str] | None = None,
+        exclude: list[str] | None = None,
         deep_clean: bool = True,
     ) -> Any:
         """
@@ -594,7 +594,7 @@ class RayObjectTrimmer:
 
                 obj_class = type(obj)
                 try:
-                    cleaned_obj = obj_class.__new__(obj_class)
+                    cleaned_obj = obj_class.__new__(obj_class)  # type: ignore[call-overload]
                     for attr_name, attr_value in filtered_attrs.items():
                         if not _should_skip(attr_value):
                             try:
@@ -628,9 +628,7 @@ class RayObjectTrimmer:
             "_server_thread",  # 线程对象
         ]
 
-        return RayObjectTrimmer.trim_for_remote_call(
-            transformation_obj, exclude=exclude_attrs
-        )
+        return RayObjectTrimmer.trim_for_remote_call(transformation_obj, exclude=exclude_attrs)
 
     @staticmethod
     def trim_operator_for_ray(operator_obj) -> Any:
@@ -649,12 +647,10 @@ class RayObjectTrimmer:
             "__weakref__",
         ]
 
-        return RayObjectTrimmer.trim_for_remote_call(
-            operator_obj, exclude=exclude_attrs
-        )
+        return RayObjectTrimmer.trim_for_remote_call(operator_obj, exclude=exclude_attrs)
 
     @staticmethod
-    def validate_ray_serializable(obj: Any, max_depth: int = 3) -> Dict[str, Any]:
+    def validate_ray_serializable(obj: Any, max_depth: int = 3) -> dict[str, Any]:
         """
         验证对象是否可以被Ray序列化
 
@@ -671,7 +667,7 @@ class RayObjectTrimmer:
 
         try:
             # 尝试Ray的内部序列化
-            serialized = ray.cloudpickle.dumps(obj)
+            serialized = ray.cloudpickle.dumps(obj)  # type: ignore[attr-defined]
             result["is_serializable"] = True
             result["size_estimate"] = len(serialized)
 

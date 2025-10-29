@@ -23,48 +23,48 @@ def get_sage_home_dir() -> Path:
 def find_project_root(start_path: Path = None) -> Optional[Path]:
     """
     Find SAGE project root directory by looking for characteristic files/directories.
-    
+
     Args:
         start_path: Starting path for search. If None, uses current working directory.
-        
+
     Returns:
         Optional[Path]: Project root path if found, None otherwise
     """
     if start_path is None:
         start_path = Path.cwd()
-    
+
     current = start_path.resolve()
-    
+
     # Search up to 5 levels
     for _ in range(5):
         # Check for SAGE project markers
         if (current / "packages").is_dir() and (current / "_version.py").is_file():
             return current
-        
+
         parent = current.parent
         if parent == current:  # Reached filesystem root
             break
         current = parent
-    
+
     return None
 
 
 def get_appropriate_sage_dir(project_name: str = "SAGE") -> Path:
     """
     Get the appropriate SAGE directory based on environment.
-    
+
     For development: Uses project_root/.sage/
     For pip install: Uses ~/.sage/
-    
+
     Args:
         project_name: Project name (used for organization)
-        
+
     Returns:
         Path: SAGE directory path
     """
     # Check if we're in a development environment
     project_root = find_project_root()
-    
+
     if project_root:
         # Development environment: use local .sage directory
         sage_dir = project_root / ".sage"
@@ -74,13 +74,13 @@ def get_appropriate_sage_dir(project_name: str = "SAGE") -> Path:
             sage_dir = get_sage_home_dir()
         else:
             sage_dir = get_sage_home_dir() / "projects" / project_name
-    
+
     # Ensure directory and subdirectories exist
     sage_dir.mkdir(parents=True, exist_ok=True)
     subdirs = ["logs", "reports", "cache", "temp", "coverage", "benchmarks"]
     for subdir in subdirs:
         (sage_dir / subdir).mkdir(exist_ok=True)
-    
+
     return sage_dir
 
 
@@ -124,21 +124,21 @@ def get_ray_temp_dir(project_name: str = "SAGE") -> Path:
 def setup_sage_environment(project_name: str = "SAGE") -> dict:
     """
     Set up SAGE environment variables and directories.
-    
+
     Returns:
         dict: Dictionary with created directory paths
     """
     sage_dir = get_appropriate_sage_dir(project_name)
-    
+
     # Set environment variables for other tools
     os.environ["SAGE_HOME"] = str(sage_dir)
     os.environ["SAGE_LOGS_DIR"] = str(get_logs_dir(project_name))
     os.environ["SAGE_TEMP_DIR"] = str(get_temp_dir(project_name))
-    
+
     # Ray-specific environment
     ray_temp_dir = get_ray_temp_dir(project_name)
     os.environ["RAY_TMPDIR"] = str(ray_temp_dir)
-    
+
     return {
         "sage_dir": sage_dir,
         "logs_dir": get_logs_dir(project_name),

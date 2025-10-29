@@ -1,11 +1,10 @@
 import threading
-from typing import Set
 
 
 class NameServer:
     """简单的名称服务器，确保对象名称唯一性"""
 
-    _registered_names: Set[str] = set()
+    _registered_names: set[str] = set()
     _name_counters: dict = {}
     _lock = threading.RLock()
 

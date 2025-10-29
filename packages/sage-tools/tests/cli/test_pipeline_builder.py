@@ -3,13 +3,14 @@ import zipfile
 from pathlib import Path
 
 import yaml
-from sage.tools.cli.commands.pipeline_domain import load_domain_contexts
-from sage.tools.cli.commands.pipeline_knowledge import (
+from typer.testing import CliRunner
+
+from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
+from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
     build_query_payload,
 )
-from sage.tools.cli.main import app
-from typer.testing import CliRunner
+from sage.cli.main import app
 
 runner = CliRunner()
 
@@ -43,10 +44,7 @@ def test_pipeline_builder_mock_non_interactive(tmp_path):
     assert data["pipeline"]["name"] == "qa-helper"
     assert data["stages"], "stages should not be empty"
     classes = [stage["class"] for stage in data["stages"]]
-    assert (
-        "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleGenerator"
-        in classes
-    )
+    assert "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleGenerator" in classes
     assert (
         data["source"]["class"]
         == "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleQuestionSource"
@@ -126,9 +124,7 @@ def test_pipeline_knowledge_base_remote_download(tmp_path, monkeypatch):
     # Produce a fake remote docs archive
     docs_src = tmp_path / "remote" / "docs_src"
     docs_src.mkdir(parents=True)
-    (docs_src / "guide.md").write_text(
-        "# 指南\nPipeline Builder 远程文档", encoding="utf-8"
-    )
+    (docs_src / "guide.md").write_text("# 指南\nPipeline Builder 远程文档", encoding="utf-8")
 
     zip_path = tmp_path / "docs.zip"
     with zipfile.ZipFile(zip_path, "w") as zf:
@@ -166,9 +162,9 @@ def test_pipeline_run_success(tmp_path, monkeypatch):
     component_file = module_dir / "ops.py"
     component_file.write_text(
         """
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.map_function import MapFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core.functions.map_function import MapFunction
+from sage.common.core.functions.sink_function import SinkFunction
 
 
 class DemoBatch(BatchFunction):
@@ -231,8 +227,7 @@ services: []
     def fake_submit(self, autostop: bool = False):
         submitted["autostop"] = autostop
         submitted["functions"] = [
-            getattr(transformation, "function_class", None)
-            for transformation in self.pipeline
+            getattr(transformation, "function_class", None) for transformation in self.pipeline
         ]
         return "uuid-demo"
 

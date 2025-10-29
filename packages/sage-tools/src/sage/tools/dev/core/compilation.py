@@ -3,7 +3,7 @@ Enhanced bytecode compilation integration for SAGE packages.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .bytecode_compiler import BytecodeCompiler
 
@@ -15,7 +15,7 @@ class CompilationManager:
         self.project_root = Path(project_root)
         self.config = self._load_project_config()
 
-    def _load_project_config(self) -> Dict[str, Any]:
+    def _load_project_config(self) -> dict[str, Any]:
         """加载项目配置"""
         import tomli
 
@@ -27,7 +27,7 @@ class CompilationManager:
         with open(config_path, "rb") as f:
             return tomli.load(f)
 
-    def get_package_info(self, package_name: str) -> Dict[str, Any]:
+    def get_package_info(self, package_name: str) -> dict[str, Any]:
         """获取包信息"""
         packages = self.config.get("packages", {})
 
@@ -39,9 +39,7 @@ class CompilationManager:
         return {
             "name": package_name,
             "path": package_path,
-            "description": self.config.get("package_descriptions", {}).get(
-                package_name, ""
-            ),
+            "description": self.config.get("package_descriptions", {}).get(package_name, ""),
             "is_opensource": self._is_opensource_package(package_name),
         }
 
@@ -59,9 +57,9 @@ class CompilationManager:
         self,
         package_name: str,
         target_type: str = "opensource",  # "opensource" or "proprietary"
-        output_dir: Optional[Path] = None,
+        output_dir: Path | None = None,
         build_wheel: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         为发布编译包
 
@@ -80,16 +78,14 @@ class CompilationManager:
         if target_type == "opensource":
             return self._build_opensource_package(package_info, output_dir, build_wheel)
         else:
-            return self._build_proprietary_package(
-                package_info, output_dir, build_wheel
-            )
+            return self._build_proprietary_package(package_info, output_dir, build_wheel)
 
     def _build_opensource_package(
         self,
-        package_info: Dict[str, Any],
-        output_dir: Optional[Path] = None,
+        package_info: dict[str, Any],
+        output_dir: Path | None = None,
         build_wheel: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """构建开源包（保留源码）"""
         from rich.console import Console
 
@@ -108,9 +104,7 @@ class CompilationManager:
             original_cwd = os.getcwd()
             try:
                 os.chdir(package_path)
-                result = subprocess.run(
-                    ["python", "-m", "build"], capture_output=True, text=True
-                )
+                result = subprocess.run(["python", "-m", "build"], capture_output=True, text=True)
 
                 if result.returncode != 0:
                     raise RuntimeError(f"构建失败: {result.stderr}")
@@ -137,10 +131,10 @@ class CompilationManager:
 
     def _build_proprietary_package(
         self,
-        package_info: Dict[str, Any],
-        output_dir: Optional[Path] = None,
+        package_info: dict[str, Any],
+        output_dir: Path | None = None,
         build_wheel: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """构建闭源包（编译为字节码）"""
         from rich.console import Console
 
@@ -176,7 +170,7 @@ class CompilationManager:
             "success": True,
         }
 
-    def list_packages(self) -> List[Dict[str, Any]]:
+    def list_packages(self) -> list[dict[str, Any]]:
         """列出所有包"""
         packages = []
         for name in self.config.get("packages", {}):
@@ -187,15 +181,13 @@ class CompilationManager:
                 continue
         return packages
 
-    def get_opensource_packages(self) -> List[str]:
+    def get_opensource_packages(self) -> list[str]:
         """获取开源包列表"""
         return [
-            name
-            for name in self.config.get("packages", {})
-            if self._is_opensource_package(name)
+            name for name in self.config.get("packages", {}) if self._is_opensource_package(name)
         ]
 
-    def get_proprietary_packages(self) -> List[str]:
+    def get_proprietary_packages(self) -> list[str]:
         """获取闭源包列表"""
         return [
             name

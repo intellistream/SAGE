@@ -6,8 +6,8 @@ source:
 
 retriever:
   preload_knowledge_file:
-    - "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_chromaDB.txt"
-    - "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_rag.md"
+  - "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_chromaDB.txt"
+  - "./packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/qa_knowledge_rag.md"
 
   # 通用参数
   dimension: 384            # 向量维度，应与 embedding 模型一致

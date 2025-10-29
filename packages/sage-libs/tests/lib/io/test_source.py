@@ -13,7 +13,7 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.io_utils.source import (
+    from sage.libs.io.source import (
         APISource,
         CSVFileSource,
         DatabaseSource,
@@ -44,7 +44,7 @@ class TestTextFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
 
-        from sage.libs.io_utils.source import TextFileSource
+        from sage.libs.io.source import TextFileSource
 
         assert TextFileSource is not None
 
@@ -97,7 +97,7 @@ class TestTextFileSource:
 
         try:
             source = TextFileSource(config=config)
-            result = source.execute(None)
+            source.execute(None)
 
             # 验证文件被打开
             mock_file.assert_called_once_with("mock_file.txt", "r", encoding="utf-8")
@@ -115,7 +115,7 @@ class TestJSONFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
 
-        from sage.libs.io_utils.source import JSONFileSource
+        from sage.libs.io.source import JSONFileSource
 
         assert JSONFileSource is not None
 
@@ -192,7 +192,7 @@ class TestCSVFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
 
-        from sage.libs.io_utils.source import CSVFileSource
+        from sage.libs.io.source import CSVFileSource
 
         assert CSVFileSource is not None
 
@@ -245,7 +245,7 @@ class TestKafkaSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
 
-        from sage.libs.io_utils.source import KafkaSource
+        from sage.libs.io.source import KafkaSource
 
         assert KafkaSource is not None
 
@@ -298,7 +298,7 @@ class TestDatabaseSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
 
-        from sage.libs.io_utils.source import DatabaseSource
+        from sage.libs.io.source import DatabaseSource
 
         assert DatabaseSource is not None
 
@@ -349,7 +349,7 @@ class TestAPISource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
 
-        from sage.libs.io_utils.source import APISource
+        from sage.libs.io.source import APISource
 
         assert APISource is not None
 
@@ -532,7 +532,7 @@ class TestSourceFallback:
             f.write(test_content)
 
         # 简单文件读取
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         assert content == test_content

@@ -7,7 +7,7 @@ This tool analyzes class-level dependencies and relationships in the codebase.
 import ast
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from ..core.exceptions import SAGEDevToolkitError
 
@@ -18,18 +18,12 @@ class ClassDependencyChecker:
     def __init__(self, project_root: str):
         self.project_root = Path(project_root)
 
-    def analyze_class_dependencies(
-        self, target_paths: List[str] = None
-    ) -> Dict[str, Any]:
+    def analyze_class_dependencies(self, target_paths: list[str] | None = None) -> dict[str, Any]:
         """Analyze class dependencies in specified paths or entire project."""
         try:
             if target_paths:
                 paths_to_analyze = [
-                    (
-                        Path(self.project_root) / p
-                        if not Path(p).is_absolute()
-                        else Path(p)
-                    )
+                    (Path(self.project_root) / p if not Path(p).is_absolute() else Path(p))
                     for p in target_paths
                 ]
             else:
@@ -71,26 +65,16 @@ class ClassDependencyChecker:
                         analysis["summary"]["total_classes"] += 1
 
                     # Add relationships
-                    analysis["relationships"]["inheritance"].extend(
-                        file_analysis["inheritance"]
-                    )
-                    analysis["relationships"]["composition"].extend(
-                        file_analysis["composition"]
-                    )
-                    analysis["relationships"]["imports"].extend(
-                        file_analysis["imports"]
-                    )
+                    analysis["relationships"]["inheritance"].extend(file_analysis["inheritance"])
+                    analysis["relationships"]["composition"].extend(file_analysis["composition"])
+                    analysis["relationships"]["imports"].extend(file_analysis["imports"])
 
                 except Exception as e:
                     print(f"Warning: Could not analyze {py_file}: {e}")
 
             # Analyze relationships
-            analysis["summary"]["inheritance_chains"] = self._find_inheritance_chains(
-                analysis
-            )
-            analysis["summary"]["circular_imports"] = self._find_circular_imports(
-                analysis
-            )
+            analysis["summary"]["inheritance_chains"] = self._find_inheritance_chains(analysis)
+            analysis["summary"]["circular_imports"] = self._find_circular_imports(analysis)
             analysis["summary"]["unused_classes"] = self._find_unused_classes(analysis)
 
             return analysis
@@ -99,8 +83,8 @@ class ClassDependencyChecker:
             raise SAGEDevToolkitError(f"Class dependency analysis failed: {e}")
 
     def check_class_usage(
-        self, class_name: str, target_paths: List[str] = None
-    ) -> Dict[str, Any]:
+        self, class_name: str, target_paths: list[str] | None = None
+    ) -> dict[str, Any]:
         """Check where a specific class is used."""
         try:
             if target_paths:
@@ -168,17 +152,15 @@ class ClassDependencyChecker:
             elif output_format == "dot":
                 return self._generate_dot_diagram(analysis)
             else:
-                raise SAGEDevToolkitError(
-                    f"Unsupported diagram format: {output_format}"
-                )
+                raise SAGEDevToolkitError(f"Unsupported diagram format: {output_format}")
 
         except Exception as e:
             raise SAGEDevToolkitError(f"Class diagram generation failed: {e}")
 
-    def _analyze_file(self, file_path: Path) -> Dict[str, Any]:
+    def _analyze_file(self, file_path: Path) -> dict[str, Any]:
         """Analyze a single Python file."""
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             tree = ast.parse(content)
@@ -234,9 +216,7 @@ class ClassDependencyChecker:
         except Exception as e:
             raise SAGEDevToolkitError(f"File analysis failed for {file_path}: {e}")
 
-    def _analyze_class_node(
-        self, class_node: ast.ClassDef, module_name: str
-    ) -> Dict[str, Any]:
+    def _analyze_class_node(self, class_node: ast.ClassDef, module_name: str) -> dict[str, Any]:
         """Analyze a class AST node."""
         class_info = {
             "name": class_node.name,
@@ -302,9 +282,7 @@ class ClassDependencyChecker:
 
         return class_info
 
-    def _analyze_import_node(
-        self, import_node: ast.AST, module_name: str
-    ) -> Dict[str, Any]:
+    def _analyze_import_node(self, import_node: ast.AST, module_name: str) -> dict[str, Any]:
         """Analyze an import AST node."""
         import_info = {
             "importing_module": module_name,
@@ -343,12 +321,10 @@ class ClassDependencyChecker:
                 parts.append(node.id)
             return ".".join(reversed(parts))
 
-    def _find_class_usage_in_file(
-        self, file_path: Path, class_name: str
-    ) -> List[Dict[str, Any]]:
+    def _find_class_usage_in_file(self, file_path: Path, class_name: str) -> list[dict[str, Any]]:
         """Find usages of a class in a specific file."""
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             tree = ast.parse(content)
@@ -448,7 +424,7 @@ class ClassDependencyChecker:
             print(f"Warning: Could not analyze {file_path} for class {class_name}: {e}")
             return []
 
-    def _find_inheritance_chains(self, analysis: Dict) -> List[List[str]]:
+    def _find_inheritance_chains(self, analysis: dict) -> list[list[str]]:
         """Find inheritance chains in the codebase."""
         chains = []
 
@@ -488,7 +464,7 @@ class ClassDependencyChecker:
 
         return chains
 
-    def _find_circular_imports(self, analysis: Dict) -> List[List[str]]:
+    def _find_circular_imports(self, analysis: dict) -> list[list[str]]:
         """Find circular import dependencies."""
         # This is a simplified implementation
         # In practice, you'd want more sophisticated cycle detection
@@ -507,7 +483,7 @@ class ClassDependencyChecker:
 
         return []  # Simplified - would need cycle detection algorithm
 
-    def _find_unused_classes(self, analysis: Dict) -> List[str]:
+    def _find_unused_classes(self, analysis: dict) -> list[str]:
         """Find classes that appear to be unused."""
         all_classes = set(analysis["classes"].keys())
         used_classes = set()
@@ -527,7 +503,7 @@ class ClassDependencyChecker:
 
         return list(all_classes - used_classes)
 
-    def _generate_mermaid_diagram(self, analysis: Dict) -> str:
+    def _generate_mermaid_diagram(self, analysis: dict) -> str:
         """Generate Mermaid class diagram."""
         lines = ["classDiagram"]
 
@@ -538,7 +514,7 @@ class ClassDependencyChecker:
 
             # Add methods
             for method in class_info["methods"]:
-                lines.append(f'        +{method["name"]}()')
+                lines.append(f"        +{method['name']}()")
 
             lines.append("    }")
 
@@ -550,7 +526,7 @@ class ClassDependencyChecker:
 
         return "\n".join(lines)
 
-    def _generate_dot_diagram(self, analysis: Dict) -> str:
+    def _generate_dot_diagram(self, analysis: dict) -> str:
         """Generate Graphviz DOT diagram."""
         lines = ["digraph ClassDiagram {"]
         lines.append("    rankdir=TB;")
@@ -559,12 +535,8 @@ class ClassDependencyChecker:
         # Add classes
         for class_name, class_info in analysis["classes"].items():
             simple_name = class_name.split(".")[-1]
-            methods_str = "\\n".join(
-                [f'+ {m["name"]}()' for m in class_info["methods"]]
-            )
-            lines.append(
-                f'    {simple_name} [label="{{class {simple_name}|{methods_str}}}"];'
-            )
+            methods_str = "\\n".join([f"+ {m['name']}()" for m in class_info["methods"]])
+            lines.append(f'    {simple_name} [label="{{class {simple_name}|{methods_str}}}"];')
 
         # Add inheritance relationships
         for rel in analysis["relationships"]["inheritance"]:
