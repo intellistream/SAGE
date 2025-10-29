@@ -173,9 +173,9 @@ class WindowedEventJoin(BaseJoinFunction):
     def __init__(self, window_ms: int = 60000, **kwargs):
         super().__init__(**kwargs)
         self.window_ms = window_ms
-        self.event_buffer: dict[Any, list[tuple[Any, int, int]]] = (
-            {}
-        )  # {key: [(event_data, timestamp, tag), ...]}
+        self.event_buffer: dict[
+            Any, list[tuple[Any, int, int]]
+        ] = {}  # {key: [(event_data, timestamp, tag), ...]}
         import time
 
         self.current_time = lambda: int(time.time() * 1000)

@@ -561,15 +561,15 @@ class TestCoMapFunctionality:
 
         # 验证：所有订单都来自stream 0
         for order in processed_orders:
-            assert (
-                order.get("source_stream") == 0
-            ), f"❌ Order from wrong stream: {order.get('source_stream')}"
+            assert order.get("source_stream") == 0, (
+                f"❌ Order from wrong stream: {order.get('source_stream')}"
+            )
 
         # 验证：所有支付都来自stream 1
         for payment in processed_payments:
-            assert (
-                payment.get("source_stream") == 1
-            ), f"❌ Payment from wrong stream: {payment.get('source_stream')}"
+            assert payment.get("source_stream") == 1, (
+                f"❌ Payment from wrong stream: {payment.get('source_stream')}"
+            )
 
         print("✅ Two-stream CoMap test passed: Correct stream routing and processing")
 

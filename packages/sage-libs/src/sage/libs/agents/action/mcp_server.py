@@ -20,9 +20,9 @@ app = FastAPI(title="SAGE MCP Server", version="0.1.0")
 # ---------------------------
 # In-memory registries
 # ---------------------------
-TOOLS: dict[str, Any] = (
-    {}
-)  # 本地&代理 工具对象：必须有 name/description/input_schema/call(arguments)
+TOOLS: dict[
+    str, Any
+] = {}  # 本地&代理 工具对象：必须有 name/description/input_schema/call(arguments)
 REMOTE_ADAPTERS: dict[str, RemoteMCPAdapter] = {}  # 远程 MCP 适配器
 MOUNT_MAP: dict[str, dict[str, str]] = {}  # adapter_id -> {local_name: remote_name}
 

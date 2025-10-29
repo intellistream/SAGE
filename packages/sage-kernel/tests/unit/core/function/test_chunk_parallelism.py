@@ -357,21 +357,21 @@ class TestChunkParallelism:
         processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
         expected_doc_ids = {"doc2", "doc3", "doc4", "doc5", "large_doc1", "large_doc2"}
 
-        assert (
-            processed_doc_ids == expected_doc_ids
-        ), f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+        assert processed_doc_ids == expected_doc_ids, (
+            f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+        )
 
         # 验证大文档产生了足够的chunks（如果被处理的话）
         large_doc1_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
         large_doc2_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc2"]
 
         # 大文档应该产生大量chunks
-        assert (
-            len(large_doc1_chunks) > 30
-        ), f"large_doc1 should generate many chunks, got {len(large_doc1_chunks)}"
-        assert (
-            len(large_doc2_chunks) > 30
-        ), f"large_doc2 should generate many chunks, got {len(large_doc2_chunks)}"
+        assert len(large_doc1_chunks) > 30, (
+            f"large_doc1 should generate many chunks, got {len(large_doc1_chunks)}"
+        )
+        assert len(large_doc2_chunks) > 30, (
+            f"large_doc2 should generate many chunks, got {len(large_doc2_chunks)}"
+        )
 
         print(f"✅ Mixed document test completed: {len(collected_chunks)} total chunks")
         print(f"   - large_doc1: {len(large_doc1_chunks)} chunks")
@@ -439,15 +439,15 @@ class TestChunkParallelism:
         expected_doc_ids = {doc["id"] for doc in documents}
         processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
 
-        assert (
-            processed_doc_ids == expected_doc_ids
-        ), f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+        assert processed_doc_ids == expected_doc_ids, (
+            f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+        )
 
         for doc_id in expected_doc_ids:
             doc_chunks = [c for c in collected_chunks if c["doc_id"] == doc_id]
-            assert (
-                len(doc_chunks) > 20
-            ), f"Document {doc_id} should generate many chunks, got {len(doc_chunks)}"
+            assert len(doc_chunks) > 20, (
+                f"Document {doc_id} should generate many chunks, got {len(doc_chunks)}"
+            )
 
         print(
             f"✅ Graceful shutdown drained sink with {len(collected_chunks)} total chunks across {len(expected_doc_ids)} documents"

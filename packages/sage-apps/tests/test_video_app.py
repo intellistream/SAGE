@@ -58,9 +58,9 @@ class TestVideoAppStructure:
         has_class = "class " in content
         has_if_name = 'if __name__ == "__main__"' in content
 
-        assert (
-            has_main or has_class or has_if_name
-        ), "video_intelligence_pipeline.py should have main() function, class definition, or if __name__ == '__main__'"
+        assert has_main or has_class or has_if_name, (
+            "video_intelligence_pipeline.py should have main() function, class definition, or if __name__ == '__main__'"
+        )
 
 
 class TestVideoAppImports:

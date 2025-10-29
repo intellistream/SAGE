@@ -162,12 +162,12 @@ class TestObjectReferenceIntegrity:
         restored_root = deserialize_object(serialized)
 
         # 序列化后检查
-        assert (
-            restored_root.obj1.obj1 is restored_root.obj2.obj1
-        ), "restored shared1应该是同一个对象"
-        assert (
-            restored_root.obj1.obj2 is restored_root.obj2.obj2
-        ), "restored shared2应该是同一个对象"
+        assert restored_root.obj1.obj1 is restored_root.obj2.obj1, (
+            "restored shared1应该是同一个对象"
+        )
+        assert restored_root.obj1.obj2 is restored_root.obj2.obj2, (
+            "restored shared2应该是同一个对象"
+        )
 
     def test_list_with_shared_objects(self):
         """测试列表中的共享对象"""
@@ -203,18 +203,18 @@ class TestObjectReferenceIntegrity:
         level1 = {"data": level2, "direct_shared": shared}
 
         # 序列化前检查
-        assert (
-            level1["data"]["nested"]["shared"] is level1["direct_shared"]
-        ), "深度嵌套的共享对象应该相同"
+        assert level1["data"]["nested"]["shared"] is level1["direct_shared"], (
+            "深度嵌套的共享对象应该相同"
+        )
 
         # 序列化和反序列化
         serialized = serialize_object(level1)
         restored = deserialize_object(serialized)
 
         # 序列化后检查
-        assert (
-            restored["data"]["nested"]["shared"] is restored["direct_shared"]
-        ), "恢复后深度嵌套的共享对象应该相同"
+        assert restored["data"]["nested"]["shared"] is restored["direct_shared"], (
+            "恢复后深度嵌套的共享对象应该相同"
+        )
 
 
 if __name__ == "__main__":

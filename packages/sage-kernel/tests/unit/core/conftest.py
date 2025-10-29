@@ -222,9 +222,9 @@ class PerformanceTestUtils:
     def assert_execution_time_under(func, max_time, *args, **kwargs):
         """断言执行时间小于指定值"""
         result, execution_time = PerformanceTestUtils.measure_execution_time(func, *args, **kwargs)
-        assert (
-            execution_time < max_time
-        ), f"Execution time {execution_time}s exceeds maximum {max_time}s"
+        assert execution_time < max_time, (
+            f"Execution time {execution_time}s exceeds maximum {max_time}s"
+        )
         return result
 
 

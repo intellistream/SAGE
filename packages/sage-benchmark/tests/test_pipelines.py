@@ -135,6 +135,6 @@ class TestPipelineStructure:
             has_if_name = 'if __name__ == "__main__"' in content
             has_pipeline_run = "def pipeline_run(" in content
 
-            assert (
-                has_main or has_class or has_if_name or has_pipeline_run
-            ), f"{py_file.name} should have main(), class, if __name__, or pipeline_run()"
+            assert has_main or has_class or has_if_name or has_pipeline_run, (
+                f"{py_file.name} should have main(), class, if __name__, or pipeline_run()"
+            )
