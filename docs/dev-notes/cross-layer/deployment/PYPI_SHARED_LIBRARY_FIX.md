@@ -1,8 +1,10 @@
 # PyPI Installation Test - Shared Library Fix
 
-**日期**: 2025-10-29  
-**问题**: PyPI Installation Test 失败，报错 `libsageflow.so: cannot open shared object file`  
-**修复者**: GitHub Copilot
+**Date**: 2025-10-29  
+**Author**: GitHub Copilot  
+**Summary**: 修复 PyPI 安装测试中共享库缺失问题，确保 C++ 库正确打包到 wheel 中
+
+**问题**: PyPI Installation Test 失败，报错 `libsageflow.so: cannot open shared object file`
 
 ## 问题描述
 

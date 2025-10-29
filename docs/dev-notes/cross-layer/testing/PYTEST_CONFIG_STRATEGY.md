@@ -1,5 +1,9 @@
 # Pytest 配置策略
 
+**Date**: 2025-10-29  
+**Author**: SAGE Team  
+**Summary**: SAGE 项目 pytest 配置策略说明，采用分布式配置+标准化模板的最佳实践
+
 ## 概述
 
 SAGE 项目采用**分布式配置 + 标准化模板**的 pytest 配置策略（SOTA 最佳实践）。

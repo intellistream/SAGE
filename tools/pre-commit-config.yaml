@@ -84,7 +84,14 @@ repos:
     - --namespace-packages
     exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/src/sage/__init__.py)
     # This hook will always succeed (exit 0) to avoid blocking commits/CI
-    # Errors are shown but treated as warnings  # Shell: shellcheck
+    # Errors are shown but treated as warnings
+  - id: devnotes-check
+    name: dev-notes documentation standards
+    entry: bash -c 'if git diff --cached --name-only | grep -q "^docs/dev-notes/.*\.md$"; then sage-dev quality devnotes; else exit 0; fi'
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^docs/dev-notes/.*\.md$  # Shell: shellcheck
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.11.0.1
   hooks:
