@@ -91,7 +91,7 @@ markers = [
 [tool.ruff]
 # 与flake8保持一致的配置
 target-version = "py311"
-line-length = 88
+line-length = 100
 
 [tool.ruff.lint]
 # 启用的规则集（与flake8兼容）

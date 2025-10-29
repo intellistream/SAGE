@@ -229,7 +229,7 @@ exclude_lines = [
 ]
 
 [tool.black]
-line-length = 88
+line-length = 100
 target-version = ["py310", "py311", "py312"]
 include = "\\.pyi?$"
 extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
@@ -237,7 +237,7 @@ extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.
 [tool.ruff]
 # 与flake8保持一致的配置
 target-version = "py311"
-line-length = 88
+line-length = 100
 
 [tool.ruff.lint]
 # 启用的规则集（与flake8兼容）
