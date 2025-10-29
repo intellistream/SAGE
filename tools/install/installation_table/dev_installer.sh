@@ -14,7 +14,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 install_dev_packages() {
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BOLD}  🛠️  开发工具安装完成${NC}"
@@ -22,6 +22,7 @@ install_dev_packages() {
     echo ""
 
     # 记录到日志
+    mkdir -p "$(dirname "$log_file")"
     echo "$(date): 开发工具安装阶段" >> "$log_file"
 
     echo -e "${CHECK} 开发工具依赖已在 sage-tools[dev] 安装过程中完成"

@@ -35,7 +35,7 @@ ask_conda_environment() {
 
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
 
     echo ""
     echo -e "${GEAR} ${BOLD}Conda 环境设置${NC}"
@@ -125,9 +125,10 @@ create_conda_environment() {
 
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
 
     echo -e "${INFO} 创建 Conda 环境: $env_name"
+    mkdir -p "$(dirname "$log_file")"
     echo "$(date): 开始创建 Conda 环境: $env_name" >> "$log_file"
 
     # 检查环境是否已存在

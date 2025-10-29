@@ -205,13 +205,14 @@ comprehensive_system_check() {
 
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
 
     # 显示检查开始信息
     echo ""
     format_output "${GEAR} 开始系统环境检查..."
 
     # 初始化日志文件（如果不存在）
+    mkdir -p "$(dirname "$log_file")"
     if [ ! -f "$log_file" ]; then
         echo "SAGE 安装日志 - $(date)" > "$log_file"
         echo "========================================" >> "$log_file"

@@ -12,7 +12,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 install_scientific_packages() {
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BOLD}  🔬 正在安装科学计算库...${NC}"
@@ -20,6 +20,7 @@ install_scientific_packages() {
     echo ""
 
     # 记录到日志
+    mkdir -p "$(dirname "$log_file")"
     echo "$(date): 开始安装科学计算库" >> "$log_file"
 
     local packages=(

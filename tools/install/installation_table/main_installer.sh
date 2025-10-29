@@ -212,7 +212,7 @@ install_sage() {
 
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
 
     echo ""
     echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境)..."
@@ -220,6 +220,7 @@ install_sage() {
         echo -e "${PURPLE}包含 VLLM 支持${NC}"
     fi
     echo ""
+    mkdir -p "$(dirname "$log_file")"
     echo -e "${BLUE}📝 安装日志: ${log_file}${NC}"
     echo -e "${DIM}   可以使用以下命令实时查看日志:${NC}"
     echo -e "${DIM}   tail -f ${log_file}${NC}"

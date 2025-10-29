@@ -11,6 +11,7 @@
 
 import sys
 import warnings
+from pathlib import Path
 
 warnings.warn(
     "此脚本已迁移到 sage-tools 包。" "请使用: sage-dev maintenance fix-metadata",
@@ -35,8 +36,6 @@ print()
 
 # 尝试导入新模块
 try:
-    from pathlib import Path
-
     from sage.tools.dev.maintenance import MetadataFixer
 
     root = Path.cwd()
@@ -49,8 +48,6 @@ except ImportError:
     sys.exit(1)
 
 # 原始代码保留（以防万一）
-from pathlib import Path
-
 # 需要修复的文件列表（从错误日志中提取）
 FILES_TO_FIX = {
     # architecture/

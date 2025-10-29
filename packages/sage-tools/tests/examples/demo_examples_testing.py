@@ -16,11 +16,7 @@ def check_environment():
     console.print("\n[bold blue]🔍 Checking Development Environment[/bold blue]\n")
 
     try:
-        from sage.tools.dev.examples.utils import (
-            find_examples_directory,
-            find_project_root,
-            get_development_info,
-        )
+        from sage.tools.dev.examples.utils import get_development_info
 
         info = get_development_info()
 

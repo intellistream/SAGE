@@ -135,7 +135,7 @@ show_friendly_error() {
         echo -e "  ${GREEN}1.${NC} 运行环境诊断：${DIM}./quickstart.sh --doctor${NC}"
         echo -e "  ${GREEN}2.${NC} 检查系统要求：${DIM}Python 3.9-3.12, 5GB+ 磁盘空间${NC}"
         echo -e "  ${GREEN}3.${NC} 使用虚拟环境：${DIM}conda create -n sage-env python=3.11${NC}"
-        echo -e "  ${GREEN}4.${NC} 查看详细日志：${DIM}cat install.log${NC}"
+        echo -e "  ${GREEN}4.${NC} 查看详细日志：${DIM}cat .sage/logs/install.log${NC}"
     fi
 
     echo -e "\n${BLUE}${BOLD}📚 获取更多帮助：${NC}"

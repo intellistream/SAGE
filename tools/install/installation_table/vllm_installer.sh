@@ -8,10 +8,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # VLLM 安装函数
 install_vllm_packages() {
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
 
     echo ""
     echo -e "${GEAR} 准备 VLLM 环境..."
+    mkdir -p "$(dirname "$log_file")"
     echo "$(date): 开始准备 VLLM 环境" >> "$log_file"
 
     # 检查是否在 conda 环境中

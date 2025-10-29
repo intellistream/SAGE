@@ -9,8 +9,10 @@
 保留此文件以便向后兼容
 """
 
+import re
 import sys
 import warnings
+from pathlib import Path
 
 warnings.warn(
     "此脚本已迁移到 sage-tools 包。"
@@ -37,8 +39,6 @@ print()
 
 # 尝试导入新模块
 try:
-    from pathlib import Path
-
     from sage.tools.dev.maintenance import RuffIgnoreUpdater
 
     root = Path.cwd()
@@ -51,9 +51,6 @@ except ImportError:
     sys.exit(1)
 
 # 原始代码保留（以防万一）
-import re
-from pathlib import Path
-
 # 主包的 pyproject.toml 文件
 PACKAGE_TOML_FILES = [
     "packages/sage-benchmark/pyproject.toml",

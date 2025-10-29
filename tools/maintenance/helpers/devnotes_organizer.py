@@ -9,8 +9,12 @@ Dev-notes 文档整理助手
 保留此文件以便向后兼容
 """
 
+import argparse
+import re
 import sys
 import warnings
+from pathlib import Path
+from typing import Dict, List, Tuple
 
 warnings.warn(
     "此脚本已迁移到 sage-tools 包。" "请使用: sage-dev maintenance organize-devnotes",
@@ -35,8 +39,6 @@ print()
 
 # 尝试导入新模块
 try:
-    from pathlib import Path
-
     from sage.tools.dev.maintenance import DevNotesOrganizer
 
     root = Path.cwd()
@@ -50,11 +52,6 @@ except ImportError:
     sys.exit(1)
 
 # 原始代码保留（以防万一）
-import argparse
-import re
-from pathlib import Path
-from typing import Dict, List, Tuple
-
 # 关键词到分类的映射
 CATEGORY_KEYWORDS = {
     "architecture": [
