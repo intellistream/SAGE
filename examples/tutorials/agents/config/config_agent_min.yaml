@@ -78,7 +78,7 @@ memory:
   create_knowledge_graph: false
 
 tools:
-- module: "examples.agents.tools.arxiv_search_tool"
+- module: "examples.tutorials.agents.arxiv_search_tool"
   class: "ArxivSearchTool"
   init_kwargs: {}
 

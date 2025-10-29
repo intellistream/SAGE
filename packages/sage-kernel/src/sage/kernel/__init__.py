@@ -34,6 +34,20 @@ except ImportError:
         stacklevel=2,
     )
 
+# 导出 API 类
+try:
+    from sage.kernel.api import LocalEnvironment, RemoteEnvironment
+except ImportError:
+    LocalEnvironment = None  # type: ignore[assignment,misc]
+    RemoteEnvironment = None  # type: ignore[assignment,misc]
+    import warnings
+
+    warnings.warn(
+        "LocalEnvironment and RemoteEnvironment are not available. Some features may be limited.",
+        ImportWarning,
+        stacklevel=2,
+    )
+
 # 导出子模块
 __layer__ = "L3"
 
@@ -69,6 +83,8 @@ __all__ = [
     "__author__",
     "__email__",
     "JobManagerClient",
+    "LocalEnvironment",
+    "RemoteEnvironment",
     "api",
     "operators",
 ]

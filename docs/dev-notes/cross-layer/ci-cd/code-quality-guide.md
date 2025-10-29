@@ -1,5 +1,9 @@
 # Pre-commit Hooks 配置指南
 
+**Date**: 2024-10-29  
+**Author**: SAGE Team  
+**Summary**: SAGE 项目的代码质量检查配置说明，包括 Pre-commit hooks 的配置和故障排除
+
 ## 📋 概述
 
 本文档说明 SAGE 项目的代码质量检查配置，包括为什么 CI/CD 发现问题但本地没有发现的原因。

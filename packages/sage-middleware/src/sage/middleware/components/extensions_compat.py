@@ -23,12 +23,14 @@ except ImportError as e:
     )
 
 try:
-    from sage.middleware.components.sage_flow.python import _sage_flow
-    from sage.middleware.components.sage_flow.python.sage_flow import *  # noqa: F401, F403
+    # 只导入 Python wrapper 模块，避免重复加载 C++ 扩展
+    from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow_module
 
     _SAGE_FLOW_AVAILABLE = True
+    _sage_flow = _sage_flow_module
 except ImportError as e:
     _sage_flow = None
+    _sage_flow_module = None
     warnings.warn(
         f"SAGE Flow C++扩展不可用，流处理功能将受限。错误: {e}\n"
         "安装完整版本：pip install --force-reinstall isage-middleware",

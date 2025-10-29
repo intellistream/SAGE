@@ -17,6 +17,7 @@ Test Configuration:
     @test_speed: slow
     @test_requires: [video]
     @test_skip_ci: true
+    @test:skip - Requires video file parameter
 """
 
 import argparse

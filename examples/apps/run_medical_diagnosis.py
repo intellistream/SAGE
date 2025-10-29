@@ -18,6 +18,7 @@ Test Configuration:
     @test_speed: slow
     @test_requires: [medical, data]
     @test_skip_ci: true
+    @test:skip - Requires medical dataset to be downloaded
 """
 
 import argparse

@@ -1,5 +1,9 @@
 # Pre-commit Hooks 故障排除指南
 
+**Date**: 2024-10-29  
+**Author**: SAGE Team  
+**Summary**: Pre-commit hooks 的常见问题诊断和故障排除指南
+
 > **注意**: 本文档已整合到 [code-quality-guide.md](./code-quality-guide.md)
 > 请参考主文档获取完整的配置说明和最佳实践。
 
