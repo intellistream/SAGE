@@ -39,9 +39,7 @@ dependencies = [
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-libs>=0.1.0",
-    # sage-tools 只在 CLI 中需要 sage-studio，不需要依赖 apps 和 benchmark
-    # 这些包应该根据用户需要独立安装
-    "isage-studio>=0.1.0",
+    # 注意：isage-studio 已移到可选依赖中（studio extra）
     # 注意：不依赖 isage 元包以避免循环引用
 
     # Tools-specific dependencies
@@ -139,6 +137,9 @@ web = [
 ]
 
 # 完整UI套件 (包含所有前端功能)
+# 注意：sage-tools 和 sage-studio 是同层包（L6 Interface Layer）
+# 根据分层架构原则，同层之间不应有依赖关系
+# 用户如需同时使用，应分别安装：pip install isage-tools isage-studio
 ui = [
     "isage-tools[frontend]",
 ]
