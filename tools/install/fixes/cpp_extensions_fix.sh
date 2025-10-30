@@ -64,11 +64,29 @@ fix_middleware_cpp_extensions() {
             fi
 
             # 查找构建目录中的库文件
-            local build_lib=$(find "$project_root/packages/sage-middleware/build" -name "$lib_name" 2>/dev/null | head -1)
+            # 搜索多个可能的位置：
+            # 1. 本地构建目录
+            # 2. 子模块的 python 目录（CMake 可能已安装到这里）
+            # 3. 子模块的构建目录
+            local build_lib=""
+            local search_paths=(
+                "$project_root/packages/sage-middleware/build"
+                "$project_root/packages/sage-middleware/src/sage/middleware/components/${ext}"
+            )
+
+            for search_path in "${search_paths[@]}"; do
+                if [ -d "$search_path" ]; then
+                    build_lib=$(find "$search_path" -name "$lib_name" -type f 2>/dev/null | head -1)
+                    if [ -n "$build_lib" ] && [ -f "$build_lib" ]; then
+                        break
+                    fi
+                fi
+            done
 
             if [ -z "$build_lib" ] || [ ! -f "$build_lib" ]; then
-                echo -e "${WARNING} ${ext}: ${lib_name} 在构建目录中未找到"
-                echo "$(date): ${lib_name} 未在构建目录找到" >> "$log_file"
+                echo -e "${WARNING} ${ext}: ${lib_name} 未找到"
+                echo -e "${DIM}    已搜索路径: ${search_paths[*]}${NC}"
+                echo "$(date): ${lib_name} 未找到，已搜索: ${search_paths[*]}" >> "$log_file"
                 all_libs_ok=false
                 continue
             fi
@@ -98,7 +116,20 @@ fix_middleware_cpp_extensions() {
     else
         echo -e "${WARNING} 部分 C++ 扩展库可能不可用 (${fixed_count}/${total_count})"
         echo "$(date): C++ 扩展库部分可用，${fixed_count}/${total_count}" >> "$log_file"
-        return 1
+
+        # 在 CI 环境中，如果库文件找不到，可能是因为：
+        # 1. 子模块未初始化
+        # 2. CMake 安装路径配置问题
+        # 3. scikit-build-core 的临时构建目录已被清理
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            echo -e "${DIM}💡 CI 环境提示：${NC}"
+            echo -e "${DIM}   如果子模块已初始化但库文件仍未找到，${NC}"
+            echo -e "${DIM}   可能是 CMake 安装配置问题或构建失败${NC}"
+            echo -e "${DIM}   请检查上方的构建日志中的 CMake 输出${NC}"
+        fi
+
+        # 不返回错误，让验证步骤来判断是否真的有问题
+        return 0
     fi
 }
 

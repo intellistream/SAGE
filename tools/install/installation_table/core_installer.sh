@@ -181,6 +181,18 @@ install_core_packages() {
         fi
         echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
 
+        # 调试：检查 .so 文件位置（仅在 CI 环境）
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            echo -e "${DIM}    [CI调试] 检查 C++ 扩展文件位置...${NC}"
+            for ext in sage_flow sage_db sage_tsdb; do
+                ext_dir="packages/sage-middleware/src/sage/middleware/components/${ext}"
+                if [ -d "$ext_dir" ]; then
+                    so_count=$(find "$ext_dir" -name "lib*.so" -type f 2>/dev/null | wc -l)
+                    echo -e "${DIM}      ${ext}: 找到 ${so_count} 个 .so 文件${NC}"
+                fi
+            done
+        fi
+
         # L5: apps & benchmark (仅 full 和 dev 模式)
         if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
             if [ -d "packages/sage-apps" ]; then
