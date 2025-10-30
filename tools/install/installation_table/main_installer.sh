@@ -12,6 +12,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../fixes/libstdcxx_fix.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../fixes/cpp_extensions_fix.sh"
 
 # pip 缓存清理函数
 clean_pip_cache() {
@@ -211,6 +212,11 @@ install_sage() {
             install_core_packages "$mode"
             install_scientific_packages
 
+            # 修复 C++ 扩展库安装（editable install 模式）
+            echo ""
+            echo -e "${BLUE}🔧 修复 C++ 扩展库安装...${NC}"
+            fix_middleware_cpp_extensions "$log_file"
+
             # 验证C++扩展（已在 sage-middleware 安装时自动构建）
             echo ""
             echo -e "${BLUE}🧩 验证 C++ 扩展状态...${NC}"
@@ -230,6 +236,11 @@ install_sage() {
 
             install_core_packages "$mode"
             install_scientific_packages
+
+            # 修复 C++ 扩展库安装（editable install 模式）
+            echo ""
+            echo -e "${BLUE}🔧 修复 C++ 扩展库安装...${NC}"
+            fix_middleware_cpp_extensions "$log_file"
 
             # 验证C++扩展（已在 sage-middleware 安装时自动构建）
             echo ""
