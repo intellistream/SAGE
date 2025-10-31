@@ -5,18 +5,17 @@ from __future__ import annotations
 import os
 import time
 from pathlib import Path
-from typing import Dict, Optional
 
 from rich.console import Console
 
 DEFAULT_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 
-def _get_console(console: Optional[Console]) -> Console:
+def _get_console(console: Console | None) -> Console:
     return console or Console()
 
 
-def configure_hf_environment(console: Optional[Console] = None) -> Dict[str, str]:
+def configure_hf_environment(console: Console | None = None) -> dict[str, str]:
     """Configure environment variables that improve Hugging Face downloads."""
 
     console = _get_console(console)
@@ -42,7 +41,7 @@ def configure_hf_environment(console: Optional[Console] = None) -> Dict[str, str
 
 
 def clear_embedding_model_cache(
-    model_name: str = DEFAULT_MODEL_NAME, console: Optional[Console] = None
+    model_name: str = DEFAULT_MODEL_NAME, console: Console | None = None
 ) -> bool:
     """Remove cached files for *model_name* if they exist."""
 
@@ -108,7 +107,7 @@ def _prepare_requests_session():
 def cache_embedding_model(
     model_name: str = DEFAULT_MODEL_NAME,
     *,
-    console: Optional[Console] = None,
+    console: Console | None = None,
     verify: bool = True,
     retries: int = 3,
 ) -> bool:
@@ -157,24 +156,20 @@ def cache_embedding_model(
     if verify and tokenizer is not None and model is not None:
         try:
             console.print("🧪 验证模型输出...")
-            inputs = tokenizer(
-                "测试文本", return_tensors="pt", padding=True, truncation=True
-            )
+            inputs = tokenizer("测试文本", return_tensors="pt", padding=True, truncation=True)
             outputs = model(**inputs)
             console.print(f"  ✅ 输出维度: {tuple(outputs.last_hidden_state.shape)}")
         except Exception as exc:  # pragma: no cover - runtime dependent
             console.print(f"❌ 模型验证失败: {exc}")
             return False
 
-    cache_dir = os.environ.get(
-        "TRANSFORMERS_CACHE", "~/.cache/huggingface/transformers"
-    )
+    cache_dir = os.environ.get("TRANSFORMERS_CACHE", "~/.cache/huggingface/transformers")
     console.print(f"✅ 模型缓存完成，位置: {cache_dir}")
     return True
 
 
 def check_embedding_model(
-    model_name: str = DEFAULT_MODEL_NAME, *, console: Optional[Console] = None
+    model_name: str = DEFAULT_MODEL_NAME, *, console: Console | None = None
 ) -> bool:
     """Return ``True`` when the embedding model is available locally or remotely."""
 
@@ -188,9 +183,7 @@ def check_embedding_model(
     console.print(f"🔍 检查模型 {model_name} 是否就绪")
     try:
         AutoTokenizer.from_pretrained(model_name, local_files_only=True)
-        AutoModel.from_pretrained(
-            model_name, local_files_only=True, trust_remote_code=True
-        )
+        AutoModel.from_pretrained(model_name, local_files_only=True, trust_remote_code=True)
         console.print("✅ 模型已在本地缓存")
         return True
     except Exception:

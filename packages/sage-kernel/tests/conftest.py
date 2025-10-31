@@ -30,6 +30,7 @@ os.environ.setdefault("SAGE_LOG_LEVEL", "INFO")
 try:
     # ray may be optional in test environments; import locally after path setup
     import ray
+
     from sage.common.config.output_paths import get_sage_paths
 
     if not ray.is_initialized():
@@ -84,12 +85,10 @@ def setup_test_environment():
     # 验证关键模块可以导入
     try:
         import sage.common
-        import sage.core
         import sage.kernel
 
         print("✓ 测试环境设置成功")
         print(f"✓ sage.kernel: {sage.kernel.__path__}")
-        print(f"✓ sage.core: {sage.core.__path__}")
         print(f"✓ sage.common: {sage.common.__path__}")
     except ImportError as e:
         print(f"❌ 测试环境设置失败: {e}")

@@ -8,10 +8,10 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 __all__ = ["load_config", "save_config", "ConfigManager", "BaseConfig"]
 
@@ -19,15 +19,16 @@ __all__ = ["load_config", "save_config", "ConfigManager", "BaseConfig"]
 class BaseConfig(BaseModel):
     """基础配置类"""
 
-    class Config:
-        extra = "allow"  # 允许额外字段
-        validate_assignment = True  # 验证赋值
+    model_config = ConfigDict(
+        extra="allow",  # 允许额外字段
+        validate_assignment=True,  # 验证赋值
+    )
 
 
 class ConfigManager:
     """配置管理器"""
 
-    def __init__(self, config_dir: Optional[Union[str, Path]] = None):
+    def __init__(self, config_dir: str | Path | None = None):
         """
         初始化配置管理器
 
@@ -40,9 +41,9 @@ class ConfigManager:
         self.config_dir = Path(config_dir)
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
 
-    def load(self, filename: str, use_cache: bool = True) -> Dict[str, Any]:
+    def load(self, filename: str, use_cache: bool = True) -> dict[str, Any]:
         """
         加载配置文件
 
@@ -64,7 +65,7 @@ class ConfigManager:
         # 根据扩展名选择解析器
         suffix = config_path.suffix.lower()
 
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             if suffix in [".yaml", ".yml"]:
                 config = yaml.safe_load(f)
             elif suffix == ".json":
@@ -89,7 +90,7 @@ class ConfigManager:
 
         return config
 
-    def save(self, filename: str, config: Dict[str, Any], format: Optional[str] = None):
+    def save(self, filename: str, config: dict[str, Any], format: str | None = None):
         """
         保存配置文件
 
@@ -205,9 +206,7 @@ def _get_global_config_manager():
     return _global_config_manager
 
 
-def load_config(
-    filename: str, config_dir: Optional[Union[str, Path]] = None
-) -> Dict[str, Any]:
+def load_config(filename: str, config_dir: str | Path | None = None) -> dict[str, Any]:
     """
     加载配置文件 (便捷函数)
 
@@ -225,9 +224,7 @@ def load_config(
     return _get_global_config_manager().load(filename)
 
 
-def save_config(
-    filename: str, config: Dict[str, Any], config_dir: Optional[Union[str, Path]] = None
-):
+def save_config(filename: str, config: dict[str, Any], config_dir: str | Path | None = None):
     """
     保存配置文件 (便捷函数)
 

@@ -1,0 +1,225 @@
+name: Publish to PyPI
+
+on:
+  push:
+    branches:
+      - main-dev  # 开发分支: patch 版本自增 -> TestPyPI
+      - main      # 主分支: minor 版本自增 -> PyPI
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'docs-public/**'
+      - '.github/workflows/**.md'
+      - 'examples/**'
+
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Target repository (testpypi or pypi)'
+        required: false
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
+      version_bump:
+        description: 'Version bump type'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto    # Based on branch
+          - patch   # 0.1.6.2 -> 0.1.6.3
+          - minor   # 0.1.6.2 -> 0.1.7.0
+          - major   # 0.1.6.2 -> 0.2.0.0
+          - none    # Keep current version
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # 跳过包含 [skip ci] 的提交
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install twine build
+          # Install sage-tools for version management
+          pip install -e packages/sage-tools
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine version bump and repository
+        id: config
+        run: |
+          # 确定版本升级类型
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # 手动触发：使用用户选择
+            VERSION_BUMP="${{ inputs.version_bump }}"
+            REPOSITORY="${{ inputs.repository }}"
+          else
+            # 自动触发：根据分支决定
+            if [ "${{ github.ref_name }}" = "main" ]; then
+              VERSION_BUMP="minor"
+              REPOSITORY="pypi"
+            else  # main-dev
+              VERSION_BUMP="patch"
+              REPOSITORY="testpypi"
+            fi
+          fi
+
+          # 如果是 auto，转换为实际类型
+          if [ "$VERSION_BUMP" = "auto" ]; then
+            if [ "${{ github.ref_name }}" = "main" ]; then
+              VERSION_BUMP="minor"
+            else
+              VERSION_BUMP="patch"
+            fi
+          fi
+
+          echo "version_bump=$VERSION_BUMP" >> $GITHUB_OUTPUT
+          echo "repository=$REPOSITORY" >> $GITHUB_OUTPUT
+          echo "::notice::Version bump: $VERSION_BUMP, Repository: $REPOSITORY"
+
+      - name: Bump version
+        if: steps.config.outputs.version_bump != 'none'
+        id: bump_version
+        run: |
+          # Get current version from any package's _version.py
+          CURRENT_VERSION=$(python -c "import sys; sys.path.insert(0, 'packages/sage/src'); from sage._version import __version__; print(__version__)")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Parse version parts
+          IFS='.' read -r -a version_parts <<< "$CURRENT_VERSION"
+          major="${version_parts[0]}"
+          minor="${version_parts[1]}"
+          micro="${version_parts[2]}"
+          patch="${version_parts[3]:-0}"
+
+          # Bump based on config
+          case "${{ steps.config.outputs.version_bump }}" in
+            patch)
+              patch=$((patch + 1))
+              ;;
+            minor)
+              minor=$((minor + 1))
+              micro=0
+              patch=0
+              ;;
+            major)
+              major=$((major + 1))
+              minor=0
+              micro=0
+              patch=0
+              ;;
+          esac
+
+          # Create new version
+          NEW_VERSION="${major}.${minor}.${micro}.${patch}"
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          # Update version using sage-dev
+          sage-dev package version set "$NEW_VERSION"
+
+          # Commit version bump
+          git add -A
+          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+          git push
+
+      - name: Build and publish packages
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ steps.config.outputs.repository == 'pypi' && secrets.PYPI_API_TOKEN || secrets.TEST_PYPI_API_TOKEN }}
+          TWINE_REPOSITORY: ${{ steps.config.outputs.repository }}
+        run: |
+          # Configure repository URL
+          if [ "${{ steps.config.outputs.repository }}" = "testpypi" ]; then
+            export TWINE_REPOSITORY_URL="https://test.pypi.org/legacy/"
+          fi
+
+          # Build and publish all packages
+          sage-dev package pypi publish-sage --no-dry-run -r ${{ steps.config.outputs.repository }}
+
+      - name: Create GitHub Release
+        if: steps.config.outputs.repository == 'pypi' && steps.config.outputs.version_bump != 'none'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          name: Release v${{ steps.bump_version.outputs.new_version }}
+          body: |
+            ## SAGE v${{ steps.bump_version.outputs.new_version }}
+
+            **Released from**: `${{ github.ref_name }}` branch
+            **Commit**: ${{ github.sha }}
+
+            ### Published Packages
+            - isage-common
+            - isage-kernel
+            - isage-libs
+            - isage-middleware
+            - isage-platform
+            - isage-cli
+            - isage-apps
+            - isage-benchmark
+            - isage-studio
+            - isage-tools
+            - isage (meta-package)
+
+            ### Installation
+            \`\`\`bash
+            pip install isage==${{ steps.bump_version.outputs.new_version }}
+            \`\`\`
+
+            ### PyPI Links
+            - [isage on PyPI](https://pypi.org/project/isage/${{ steps.bump_version.outputs.new_version }}/)
+
+            ### Changes
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## 📦 Publication Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository**: ${{ steps.config.outputs.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Bump**: ${{ steps.config.outputs.version_bump }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.config.outputs.version_bump }}" != "none" ]; then
+            echo "- **New Version**: ${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- **Packages**: 11 packages published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.config.outputs.repository }}" = "pypi" ]; then
+            echo "### 🎉 Published to PyPI" >> $GITHUB_STEP_SUMMARY
+            echo "Users can now install with:" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "pip install isage" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 🧪 Published to TestPyPI" >> $GITHUB_STEP_SUMMARY
+            echo "Test installation with:" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ isage" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi

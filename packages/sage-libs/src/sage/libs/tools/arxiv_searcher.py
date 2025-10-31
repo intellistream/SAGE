@@ -2,7 +2,7 @@
 Arxiv 论文搜索工具
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from .base_tool import BaseTool
 
@@ -20,7 +20,7 @@ class ArxivSearcher(BaseTool):
             require_llm_engine=False,
         )
 
-    def execute(self, query: str, max_results: int = 10) -> List[Dict[str, Any]]:
+    def execute(self, query: str, max_results: int = 10) -> list[dict[str, Any]]:
         """
         搜索 Arxiv 论文
 

@@ -27,7 +27,7 @@ check_command_optional() {
 check_file_exists() {
     local file_path="$1"
     local description="${2:-文件}"
-    
+
     if [ ! -f "$file_path" ]; then
         print_error "$description 不存在: $file_path"
         return 1
@@ -39,7 +39,7 @@ check_file_exists() {
 check_dir_exists() {
     local dir_path="$1"
     local description="${2:-目录}"
-    
+
     if [ ! -d "$dir_path" ]; then
         print_error "$description 不存在: $dir_path"
         return 1
@@ -56,7 +56,7 @@ get_script_dir() {
 find_project_root() {
     local current_dir="${1:-$(pwd)}"
     local marker_file="${2:-pyproject.toml}"
-    
+
     while [ "$current_dir" != "/" ]; do
         if [ -f "$current_dir/$marker_file" ]; then
             echo "$current_dir"
@@ -64,7 +64,7 @@ find_project_root() {
         fi
         current_dir=$(dirname "$current_dir")
     done
-    
+
     return 1
 }
 
@@ -73,32 +73,32 @@ validate_project_structure() {
     local project_root="$1"
     local required_files=("pyproject.toml")
     local required_dirs=("packages")
-    
+
     for file in "${required_files[@]}"; do
         if ! check_file_exists "$project_root/$file" "项目文件 $file"; then
             return 1
         fi
     done
-    
+
     for dir in "${required_dirs[@]}"; do
         if ! check_dir_exists "$project_root/$dir" "项目目录 $dir"; then
             return 1
         fi
     done
-    
+
     return 0
 }
 
 # 设置项目环境变量
 setup_project_env() {
     local project_root="$1"
-    
+
     export SAGE_PROJECT_ROOT="$project_root"
     export SAGE_PACKAGES_DIR="$project_root/packages"
     export SAGE_SCRIPTS_DIR="$project_root/scripts"
     export SAGE_DOCS_DIR="$project_root/docs"
     export SAGE_TESTS_DIR="$project_root/tests"
-    
+
     print_debug "设置项目环境变量:"
     print_debug "  SAGE_PROJECT_ROOT=$SAGE_PROJECT_ROOT"
     print_debug "  SAGE_PACKAGES_DIR=$SAGE_PACKAGES_DIR"
@@ -109,9 +109,9 @@ setup_project_env() {
 run_command() {
     local cmd="$1"
     local description="${2:-执行命令}"
-    
+
     print_debug "执行命令: $cmd"
-    
+
     if eval "$cmd"; then
         print_debug "$description 成功"
         return 0
@@ -126,16 +126,16 @@ run_command() {
 safe_cd() {
     local target_dir="$1"
     local description="${2:-切换到目录}"
-    
+
     if ! check_dir_exists "$target_dir" "$description"; then
         return 1
     fi
-    
+
     cd "$target_dir" || {
         print_error "无法切换到目录: $target_dir"
         return 1
     }
-    
+
     print_debug "已切换到目录: $(pwd)"
     return 0
 }
@@ -144,7 +144,7 @@ safe_cd() {
 backup_file() {
     local file_path="$1"
     local backup_suffix="${2:-.backup.$(date +%Y%m%d_%H%M%S)}"
-    
+
     if [ -f "$file_path" ]; then
         local backup_path="${file_path}${backup_suffix}"
         cp "$file_path" "$backup_path"
@@ -155,7 +155,7 @@ backup_file() {
 # 创建目录（如果不存在）
 ensure_dir() {
     local dir_path="$1"
-    
+
     if [ ! -d "$dir_path" ]; then
         mkdir -p "$dir_path"
         print_debug "创建目录: $dir_path"
@@ -166,14 +166,14 @@ ensure_dir() {
 check_disk_space() {
     local path="${1:-.}"
     local required_mb="${2:-1000}"
-    
+
     local available_mb=$(df "$path" | awk 'NR==2 {print int($4/1024)}')
-    
+
     if [ "$available_mb" -lt "$required_mb" ]; then
         print_warning "磁盘空间不足: 需要 ${required_mb}MB，可用 ${available_mb}MB"
         return 1
     fi
-    
+
     print_debug "磁盘空间检查通过: 可用 ${available_mb}MB"
     return 0
 }
@@ -181,7 +181,7 @@ check_disk_space() {
 # 检查网络连接
 check_network() {
     local test_url="${1:-https://github.com}"
-    
+
     if check_command_optional curl; then
         if curl -s --head "$test_url" > /dev/null; then
             print_debug "网络连接正常"
@@ -193,7 +193,7 @@ check_network() {
             return 0
         fi
     fi
-    
+
     print_warning "网络连接检查失败"
     return 1
 }
@@ -212,7 +212,7 @@ show_usage() {
     local description="$2"
     shift 2
     local options=("$@")
-    
+
     echo "用法: $script_name [选项]"
     echo
     echo "描述: $description"

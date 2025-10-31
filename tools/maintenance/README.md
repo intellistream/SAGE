@@ -1,239 +1,316 @@
-# SAGE Maintenance Tools# SAGE Maintenance Tools
+# SAGE Maintenance Tools
 
+统一的项目维护工具集，提供 Submodule 管理、项目清理、安全检查等功能。
 
-
-本目录包含 SAGE 项目的维护和工具脚本。This directory contains various maintenance and utility scripts for the SAGE project.
-
-
-
-## 📁 脚本分类## Scripts
-
-
-
-### 🔄 Submodule 管理（推荐使用）### Submodule Management
-
-
-
-| 脚本 | 功能 | 使用场景 |- **`submodule_manager.sh`** - General submodule management utilities
-
-|------|------|----------|- **`submodule_sync.sh`** - Synchronize submodules across different environments
-
-| **`manage_submodule_branches.sh`** | 🌟 **主要工具** - 自动管理 submodule 分支切换 | 切换分支时自动运行 |- **`resolve_submodule_conflict.sh`** - Automatically resolve submodule conflicts during PR merges
-
-| **`setup_hooks.sh`** | 安装 Git hooks（自动调用上述脚本） | quickstart.sh 自动调用 |- **`SUBMODULE_CONFLICT_RESOLUTION.md`** - Comprehensive guide for resolving submodule conflicts
-
-| `resolve_submodule_conflict.sh` | ⚠️ 解决特定冲突 | PR 合并冲突时使用 |
-
-| `prepare_branch_checkout.sh` | 🔧 分支切换准备 | 高级用例 |### System Maintenance
-
-
-
-**📦 已废弃（功能已整合）：**- **`quick_cleanup.sh`** - Clean up temporary files and build artifacts
-
-- ~~`submodule_sync.sh`~~ - 功能已整合到 `manage_submodule_branches.sh`- **`sage-jobmanager.sh`** - Job management utilities for SAGE services
-
-- ~~`submodule_manager.sh`~~ - 功能已整合到 `manage_submodule_branches.sh`
-
-## Usage
-
-### 🧹 系统维护
-
-### Resolving Submodule Conflicts
-
-| 脚本 | 功能 |
-
-|------|------|When encountering submodule conflicts during PR merges (especially with `sage_db`):
-
-| **`quick_cleanup.sh`** | 清理临时文件和构建产物 |
-
-| **`check_config_security.sh`** | 检查配置文件中的 API key 泄露 |```bash
-
-| `sage-jobmanager.sh` | Job 管理工具（特定服务） |# Quick resolution using our script
-
-./tools/maintenance/resolve_submodule_conflict.sh
+> **注意：** 完整的开发指南请参见：
+>
+> - [DEVELOPER.md](../../DEVELOPER.md) - 开发环境设置和 submodule 管理
+> - [CONTRIBUTING.md](../../CONTRIBUTING.md) - 贡献指南
 
 ## 🚀 快速开始
 
-# Or manual resolution
-
-### 开发模式（推荐）git checkout --ours packages/sage-middleware/src/sage/middleware/components/sage_db
-
-git submodule update --init --recursive packages/sage-middleware/src/sage/middleware/components/sage_db
-
-开发模式下，`quickstart.sh` 会**自动**设置 Git hooks：git add packages/sage-middleware/src/sage/middleware/components/sage_db
-
-git commit
-
-```bash```
-
-# 安装 SAGE（开发模式）
-
-./quickstart.sh --dev --yesFor detailed instructions, see `SUBMODULE_CONFLICT_RESOLUTION.md`.
-
-
-
-# ✅ Git hooks 会自动设置，无需手动操作### General Maintenance
-
-# ✅ 以后每次切换分支，submodules 会自动跟随切换
-
-``````bash
-
-# Clean up build artifacts
-
-### 手动设置 Git Hooks./tools/maintenance/quick_cleanup.sh
-
-
-
-如果需要手动设置或重新设置：# Sync submodules
-
-./tools/maintenance/submodule_sync.sh
-
-```bash```
-
-# 安装 post-checkout hook
-
-./tools/maintenance/setup_hooks.sh## Best Practices
-
-
-
-# 强制覆盖现有 hook1. Always run maintenance scripts from the project root directory
-
-./tools/maintenance/setup_hooks.sh --force2. Check script permissions before execution: `chmod +x script_name.sh`
-
-```3. Review the documentation before using submodule-related tools
-
-4. Test scripts in a development environment before using in production
-
-### Submodule 分支管理
-
-## Contributing
-
-Git hook 会自动调用，也可以手动运行：
-
-When adding new maintenance tools:
+### 健康检查
 
 ```bash
+# 运行完整的项目健康检查
+./tools/maintenance/sage-maintenance.sh doctor
 
-# 查看当前状态1. Place them in this directory
-
-./tools/maintenance/manage_submodule_branches.sh status2. Update this README with usage instructions
-
-3. Ensure scripts have proper error handling
-
-# 手动切换 submodules（通常不需要）4. Add appropriate documentation
-./tools/maintenance/manage_submodule_branches.sh switch
+# 查看所有可用命令
+./tools/maintenance/sage-maintenance.sh --help
 ```
 
-### 清理项目
+### 常见场景
 
 ```bash
-# 清理构建产物和缓存
-./tools/maintenance/quick_cleanup.sh
+# 首次克隆后初始化 submodules
+./tools/maintenance/sage-maintenance.sh submodule init
 
-# 或使用 Makefile
-make clean
+# 切换 SAGE 分支后同步 submodules
+git checkout main
+./tools/maintenance/sage-maintenance.sh submodule switch
+
+# 检查 submodule 状态
+./tools/maintenance/sage-maintenance.sh submodule status
+
+# 清理项目构建产物
+./tools/maintenance/sage-maintenance.sh clean
 ```
 
-### 安全检查
+## 📋 命令参考
+
+### Submodule 管理
+
+| 命令                     | 说明                              |
+| ------------------------ | --------------------------------- |
+| `submodule init`         | 初始化并自动切换到正确分支        |
+| `submodule status`       | 查看 submodule 状态（带颜色指示） |
+| `submodule switch`       | 切换 submodule 分支               |
+| `submodule update`       | 更新到远程最新版本                |
+| `submodule fix-conflict` | 解决 submodule 冲突               |
+| `submodule cleanup`      | 清理旧 submodule 配置             |
+
+### 项目维护
+
+| 命令             | 说明                 |
+| ---------------- | -------------------- |
+| `doctor`         | 运行完整健康检查     |
+| `status`         | 显示项目状态         |
+| `clean`          | 清理构建产物         |
+| `clean-deep`     | 深度清理（包括缓存） |
+| `security-check` | 检查敏感信息泄露     |
+| `setup-hooks`    | 安装 Git hooks       |
+
+## 📁 目录结构
+
+```
+tools/maintenance/
+├── sage-maintenance.sh           # 主脚本（用户入口）
+├── setup_hooks.sh               # Git hooks 安装
+├── README.md                    # 本文档
+├── CHANGELOG.md                 # 更新日志
+├── SUBMODULE_GUIDE.md          # Submodule 详细指南
+├── git-hooks/                  # Hook 模板
+│   └── post-checkout           # 自动切换 submodule 分支
+└── helpers/                    # 内部辅助脚本
+    ├── common.sh
+    ├── manage_submodule_branches.sh
+    ├── resolve_submodule_conflict.sh
+    ├── cleanup_old_submodules.sh
+    ├── quick_cleanup.sh
+    └── check_config_security.sh
+```
+
+## 🔧 Submodule 分支管理
+
+### 分支匹配规则
+
+| SAGE 分支  | Submodule 分支 | 说明     |
+| ---------- | -------------- | -------- |
+| `main`     | `main`         | 稳定版本 |
+| `main-dev` | `main-dev`     | 开发版本 |
+| 其他分支   | `main-dev`     | 默认开发 |
+
+### 颜色状态说明
+
+运行 `submodule status` 时的颜色含义：
+
+- 🟢 **绿色**：配置分支和当前分支一致（正常）
+- 🟡 **黄色**：配置分支与当前分支不一致
+- 🔴 **红色**：处于 detached HEAD 状态（需要修复） ./quickstart.sh --dev
+
+# 之后切换分支时，submodules 自动跟随
+
+git checkout main # → submodules 切到 main git checkout main-dev # → submodules 切到 main-dev
+
+````
+
+### 当前 Submodules
+
+- `docs-public/` - 文档
+- `packages/.../sage_db/sageDB/` - 数据库
+- `packages/.../sage_flow/sageFlow/` - 工作流
+- `packages/sage-common/src/sage/common/components/sage_vllm/sageLLM/` - LLM 服务
+
+**重要**: `sage_db` 和 `sage_flow` 本身不是 submodules，实际 submodules 在其子目录中。
+
+## 🔧 使用示例
+
+### 场景 1：首次克隆并初始化
 
 ```bash
-# 检查配置文件中的 API key
-./tools/maintenance/check_config_security.sh
+# 克隆仓库
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
+
+# 切换到开发分支
+git checkout main-dev
+
+# 一键初始化（会自动切换到 main-dev 分支）
+./tools/maintenance/sage-maintenance.sh submodule init
+
+# 验证所有 submodules 都在 main-dev 分支上
+./tools/maintenance/sage-maintenance.sh submodule status
+````
+
+**预期输出：**
+
+```
+📦 Submodule 状态
+
+🚀 SAGE Submodule 状态
+SAGE 分支: main-dev
+
+Submodule 配置：
+Submodule                                          配置分支    当前分支  
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+docs-public                                        main-dev    main-dev    (绿色 ✅)
+sageLLM                                            main-dev    main-dev    (绿色 ✅)
+sageDB                                             main-dev    main-dev    (绿色 ✅)
+sageFlow                                           main-dev    main-dev    (绿色 ✅)
 ```
 
-## 📚 详细说明
-
-### Submodule 自动管理机制
-
-SAGE 项目使用 Git hooks 实现 submodule 的自动管理：
-
-1. **安装阶段**（quickstart.sh --dev）
-   - 自动运行 `setup_hooks.sh`
-   - 安装 `post-checkout` hook 到 `.git/hooks/`
-
-2. **切换分支时**（自动）
-   - Git hook 自动调用 `manage_submodule_branches.sh`
-   - 根据当前分支切换 submodules：
-     - `main` 分支 → submodules 的 `main` 分支
-     - 其他分支 → submodules 的 `main-dev` 分支
-
-3. **好处**
-   - ✅ 自动化，无需手动管理
-   - ✅ 避免 submodule 版本冲突
-   - ✅ 保持分支间的一致性
-
-### 解决 Submodule 冲突
-
-PR 合并时如果遇到 submodule 冲突（特别是 `sage_db`）：
+### 场景 2：切换 SAGE 分支
 
 ```bash
-# 使用自动解决脚本
-./tools/maintenance/resolve_submodule_conflict.sh
+# 切换到 main 分支
+git checkout main
 
-# 或手动解决
-git checkout --ours packages/sage-middleware/src/sage/middleware/components/sage_db
-git submodule update --init --recursive packages/sage-middleware/src/sage/middleware/components/sage_db
-git add packages/sage-middleware/src/sage/middleware/components/sage_db
-git commit -m "fix: resolve sage_db submodule conflict"
+# 自动切换所有 submodules 到 main 分支
+./tools/maintenance/sage-maintenance.sh submodule switch
+
+# 验证
+./tools/maintenance/sage-maintenance.sh submodule status
 ```
 
-## 🔧 脚本整合计划
+### 场景 3：修复 detached HEAD 问题
 
-为了减少重复和简化维护：
+如果你的 submodules 处于 detached HEAD 状态：
 
-### ✅ 保留（核心功能）
-- `manage_submodule_branches.sh` - 主要 submodule 管理工具
-- `setup_hooks.sh` - Git hooks 安装
-- `quick_cleanup.sh` - 项目清理
-- `check_config_security.sh` - 安全检查
-- `resolve_submodule_conflict.sh` - 冲突解决（特定场景）
-- `prepare_branch_checkout.sh` - 高级分支切换（保留备用）
-- `sage-jobmanager.sh` - 特定服务使用
+```bash
+# 切换到正确的分支
+./tools/maintenance/sage-maintenance.sh submodule switch
 
-### ❌ 已废弃（建议删除）
-- `submodule_sync.sh` - 功能已整合到 `manage_submodule_branches.sh`
-- `submodule_manager.sh` - 功能已整合到 `manage_submodule_branches.sh`
+# 或者重新初始化
+./tools/maintenance/sage-maintenance.sh submodule init
+```
 
-## ⚠️ 注意事项
+### 场景 4：定期更新
 
-1. **自动化优先**: 开发模式下使用 Git hooks，避免手动管理
-2. **分支规范**: 遵循 main/main-dev 分支命名规范
-3. **冲突处理**: PR 合并前检查 submodule 状态
-4. **清理习惯**: 定期运行 `quick_cleanup.sh` 或 `make clean`
+```bash
+# 更新 SAGE 主仓库
+git pull
 
-## 📖 相关文档
+# 更新所有 submodules
+./tools/maintenance/sage-maintenance.sh submodule update
 
-- [CI/CD 文档](../../docs/ci-cd/README.md)
-- [Submodule 管理详解](../../docs/ci-cd/SUBMODULE_MANAGEMENT.md)
-- [开发者快捷命令](../../docs/dev-notes/DEV_COMMANDS.md)
+# 检查健康状态
+./tools/maintenance/sage-maintenance.sh doctor
+```
 
 ## 🆘 常见问题
 
-**Q: submodule 没有自动切换怎么办？**
+### Detached HEAD 问题
 
-A: 检查 Git hook 是否安装：
+**问题：** Submodule 初始化后停留在特定 commit 而非分支
+
+**解决：**
+
 ```bash
-ls -la .git/hooks/post-checkout
-# 如果不存在，运行：
-./tools/maintenance/setup_hooks.sh --force
+./tools/maintenance/sage-maintenance.sh submodule switch
 ```
 
-**Q: 可以禁用自动 submodule 管理吗？**
+### Submodule 冲突
 
-A: 可以，删除 hook 文件：
+**问题：** Git merge 时 submodule 冲突
+
+**解决：**
+
 ```bash
-rm .git/hooks/post-checkout
+./tools/maintenance/sage-maintenance.sh submodule fix-conflict
 ```
 
-**Q: 如何查看 submodule 当前状态？**
+### 旧配置清理
 
-A: 使用以下命令：
+**问题：** Submodule 路径或配置变更
+
+**解决：**
+
 ```bash
-git submodule status
-# 或使用管理脚本
-./tools/maintenance/manage_submodule_branches.sh status
+./tools/maintenance/sage-maintenance.sh submodule cleanup
+git submodule sync
+./tools/maintenance/sage-maintenance.sh submodule init
 ```
 
----
+### Git Hooks 不工作
 
-💡 **提示**: 大多数情况下，你不需要直接运行这些脚本。开发模式下的自动化机制会处理一切。
+**解决：**
+
+```bash
+./tools/maintenance/sage-maintenance.sh setup-hooks -f
+```
+
+## 📝 最近更新
+
+### 2025-10-09
+
+✅ **修复了关键问题：**
+
+1. 颜色显示修复 - 帮助信息现在正确显示颜色
+1. Submodule 初始化修复 - `submodule init` 现在自动切换到正确的分支
+
+详见 [CHANGELOG.md](./CHANGELOG.md)
+
+## 📚 相关文档
+
+- **开发指南** - [DEVELOPER.md](../../DEVELOPER.md)
+- **贡献指南** - [CONTRIBUTING.md](../../CONTRIBUTING.md)
+- **Submodule 详细指南** - [SUBMODULE_GUIDE.md](./SUBMODULE_GUIDE.md)
+- **更新日志** - [CHANGELOG.md](./CHANGELOG.md)
+
+______________________________________________________________________
+
+💡 **提示：** 遇到问题先运行 `doctor`，它会给出诊断和建议！
+
+## ⚠️ 注意事项
+
+1. **优先使用主脚本** `sage-maintenance.sh`，不要直接调用 helpers 中的脚本
+1. **Submodule 初始化** - 使用 `submodule init` 而不是 `git submodule update --init`
+1. **分支切换后** - 运行 `submodule switch` 同步 submodules
+1. **定期清理** - 使用 `clean` 命令保持环境整洁
+1. **健康检查** - 定期运行 `doctor` 检查项目状态
+
+## 📝 最新更新 (2025-10-09)
+
+### 🐛 已修复的问题
+
+1. **颜色显示问题** ✅
+
+   - 修复了帮助信息显示 ANSI 转义代码的问题
+   - 现在所有颜色和格式都能正确显示
+
+1. **Submodule 初始化问题** ✅
+
+   - 修复了 `submodule init` 导致 detached HEAD 的问题
+   - 现在会自动切换到正确的分支（main 或 main-dev）
+
+### 🎯 关键改进
+
+- `submodule init` 现在是一键初始化 + 自动分支切换
+- 新增颜色状态指示，更直观地查看 submodule 状态
+- 改进了错误提示和使用说明
+
+## 📚 更多帮助
+
+### 查看帮助信息
+
+```bash
+# 查看完整帮助
+./tools/maintenance/sage-maintenance.sh --help
+
+# 健康检查（会给出详细建议）
+./tools/maintenance/sage-maintenance.sh doctor
+
+# 查看 submodule 详细状态
+./tools/maintenance/sage-maintenance.sh submodule status
+```
+
+### 相关文档
+
+- [Submodule 初始化指南](./SUBMODULE_GUIDE.md) - 详细的使用教程
+- [更新日志](./CHANGELOG.md) - 最新的功能更新和修复
+- [开发者文档](../../docs/dev-notes/) - 开发相关文档
+
+### 获取支持
+
+遇到问题？
+
+1. � 运行健康检查：`./tools/maintenance/sage-maintenance.sh doctor`
+1. 📋 查看状态：`./tools/maintenance/sage-maintenance.sh submodule status`
+1. 📖 查阅文档：`./tools/maintenance/README.md`（本文件）
+1. 🐛 提交 Issue：[GitHub Issues](https://github.com/intellistream/SAGE/issues)
+
+______________________________________________________________________
+
+�💡 **快速提示：** 遇到问题先运行 `doctor`，它会告诉你该怎么做！
+
+🎨 **新功能：** 所有命令现在都有彩色输出，更容易识别状态！

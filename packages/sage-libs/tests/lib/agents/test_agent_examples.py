@@ -18,6 +18,7 @@ import pytest
 # Try to import the agent module from examples
 try:
     from examples.agents import agent
+    from examples.tutorials.agents import basic_agent  # 实际执行main()的模块
 
     AGENT_MODULE_AVAILABLE = True
 except ImportError:
@@ -142,9 +143,7 @@ class TestIterQueries:
             assert queries == expected_queries
 
             # Verify load_dataset was called with correct parameters
-            mock_load_dataset.assert_called_once_with(
-                "test/dataset", "default", split="test"
-            )
+            mock_load_dataset.assert_called_once_with("test/dataset", "default", split="test")
 
     def test_iter_queries_unsupported_source_type(self):
         """Test iter_queries with unsupported source type."""
@@ -174,7 +173,7 @@ class TestMainFunction:
             },
             "generator": {
                 "remote": {
-                    "api_key": "test-key",
+                    "api_key": "test-key",  # pragma: allowlist secret
                     "method": "openai",
                     "model_name": "gpt-3.5-turbo",
                     "base_url": "https://api.openai.com/v1",
@@ -201,19 +200,21 @@ class TestMainFunction:
         if not AGENT_MODULE_AVAILABLE:
             pytest.skip("Agent examples module not available")
 
+        # agent.main()实际执行的是basic_agent中的代码，路径基于basic_agent.__file__
         expected = "❌ Configuration file not found: " + os.path.join(
-            os.path.dirname(agent.__file__), "..", "config", "config_agent_min.yaml"
+            os.path.dirname(basic_agent.__file__), "config", "config_agent_min.yaml"
         )
 
-        # 关键：补丁打在“使用处”，并且用 pytest.raises 捕获 SystemExit
-        with patch("examples.agents.agent.os.path.exists", return_value=False), patch(
-            "builtins.print"
-        ) as mock_print:
+        # 关键：补丁打在真实模块位置（tutorials），因为agent是重新导出
+        with (
+            patch("examples.tutorials.agents.basic_agent.os.path.exists", return_value=False),
+            patch("builtins.print") as mock_print,
+        ):
             with pytest.raises(SystemExit) as e:
                 agent.main()
 
         assert e.value.code == 1
-        # 用 assert_any_call，避免“最后一次打印不是这句”导致失败
+        # 用 assert_any_call，避免"最后一次打印不是这句"导致失败
         mock_print.assert_any_call(expected)
 
     # @patch("examples.agents.agent.importlib.import_module")
@@ -298,23 +299,26 @@ class TestMainFunction:
     #                             )
     #                             assert any("🤖 Agent:" in call for call in print_calls)
 
-    @patch("examples.agents.agent.load_config")
-    @patch("examples.agents.agent.os.path.exists")
+    @patch("examples.tutorials.agents.basic_agent.load_config")
+    @patch("examples.tutorials.agents.basic_agent.os.path.exists")
     def test_main_function_tool_import_error(self, mock_exists, mock_load):
         """Test that tool import errors are handled gracefully in test mode."""
         mock_exists.return_value = True
         config = self.create_mock_config()
-        config["tools"] = [
-            {"module": "nonexistent.module", "class": "NonexistentClass"}
-        ]
+        config["tools"] = [{"module": "nonexistent.module", "class": "NonexistentClass"}]
+        # Use a real test data file to avoid file access issues
+        config["source"]["data_path"] = "examples/tutorials/agents/data/agent_queries_test.jsonl"
         mock_load.return_value = config
 
-        # 在测试模式下，导入错误会被捕获并打印警告，不会抛出异常
-        # 这是预期行为，允许测试继续进行
-        try:
-            agent.main()  # 应该成功完成而不抛出异常
-        except Exception as e:
-            pytest.fail(f"main() should not raise exception in test mode, but got: {e}")
+        # Set test mode environment variable
+        with patch.dict("os.environ", {"SAGE_TEST_MODE": "true"}):
+            with patch("builtins.print"):  # Suppress output
+                # 在测试模式下，应该成功完成而不抛出异常
+                # 测试模式会验证配置和导入，但不实际运行agent
+                try:
+                    agent.main()  # 应该成功完成而不抛出异常
+                except Exception as e:
+                    pytest.fail(f"main() should not raise exception in test mode, but got: {e}")
 
 
 @pytest.mark.integration
@@ -328,9 +332,8 @@ class TestAgentIntegration:
 
         with patch.dict("os.environ", {"SAGE_EXAMPLES_MODE": "test"}):
             with patch("examples.agents.agent.main") as mock_main:
-                with patch("builtins.print") as mock_print:
-                    with patch("sys.exit") as mock_exit:
-
+                with patch("builtins.print"):
+                    with patch("sys.exit"):
                         # Import and execute the module as if it were run directly
                         exec(
                             """
@@ -363,17 +366,15 @@ if __name__ == "__main__":
             pytest.skip("Agent examples module not available")
 
         # This test verifies the complete integration works with proper mocking
-        with patch("examples.agents.agent.load_config") as mock_load_config:
-            with patch("examples.agents.agent.iter_queries") as mock_iter_queries:
+        with patch("examples.tutorials.agents.basic_agent.load_config") as mock_load_config:
+            with patch("examples.tutorials.agents.basic_agent.iter_queries") as mock_iter_queries:
                 with patch("os.path.exists", return_value=True):
                     # Mock both should_use_real_api and environment to bypass test mode
                     with patch(
-                        "examples.agents.agent.should_use_real_api", return_value=True
+                        "examples.tutorials.agents.basic_agent.should_use_real_api",
+                        return_value=True,
                     ):
-                        with patch.dict(
-                            "os.environ", {"SAGE_EXAMPLES_MODE": "production"}
-                        ):
-
+                        with patch.dict("os.environ", {"SAGE_EXAMPLES_MODE": "production"}):
                             # Setup test config
                             test_config = {
                                 "profile": {
@@ -386,7 +387,7 @@ if __name__ == "__main__":
                                 },
                                 "generator": {
                                     "remote": {
-                                        "api_key": "test-key",
+                                        "api_key": "test-key",  # pragma: allowlist secret
                                         "method": "openai",
                                         "model_name": "gpt-3.5-turbo",
                                         "base_url": "https://api.openai.com/v1",
@@ -420,42 +421,41 @@ if __name__ == "__main__":
                             mock_iter_queries.return_value = ["Search for ML papers"]
 
                             # Mock all components to avoid external dependencies
-                            with patch(
-                                "examples.agents.agent.BaseProfile"
-                            ) as mock_profile:
-                                with patch(
-                                    "examples.agents.agent.OpenAIGenerator"
-                                ) as mock_generator:
-                                    with patch(
-                                        "examples.agents.agent.LLMPlanner"
-                                    ) as mock_planner:
+                            with patch("examples.tutorials.agents.basic_agent.BaseProfile"):
+                                with patch("examples.tutorials.agents.basic_agent.OpenAIGenerator"):
+                                    with patch("examples.tutorials.agents.basic_agent.LLMPlanner"):
                                         with patch(
-                                            "examples.agents.agent.MCPRegistry"
+                                            "examples.tutorials.agents.basic_agent.MCPRegistry"
                                         ) as mock_registry:
                                             with patch(
-                                                "examples.agents.agent.AgentRuntime"
+                                                "examples.tutorials.agents.basic_agent.AgentRuntime"
                                             ) as mock_runtime:
                                                 with patch(
-                                                    "examples.agents.agent.importlib.import_module"
+                                                    "examples.tutorials.agents.basic_agent.importlib.import_module"
                                                 ) as mock_import:
-
-                                                    # Setup mock tool
+                                                    # Setup mock tool with PROPER STRING ATTRIBUTES
                                                     mock_tool_class = Mock()
                                                     mock_tool_instance = Mock()
+                                                    # 关键修复：设置name, description, input_schema为正确的类型
+                                                    mock_tool_instance.name = "arxiv_search"
+                                                    mock_tool_instance.description = (
+                                                        "Search arXiv papers"
+                                                    )
+                                                    mock_tool_instance.input_schema = {
+                                                        "type": "object"
+                                                    }
                                                     mock_tool_class.return_value = (
                                                         mock_tool_instance
                                                     )
                                                     mock_module = Mock()
-                                                    mock_module.ArxivSearchTool = (
-                                                        mock_tool_class
-                                                    )
-                                                    mock_import.return_value = (
-                                                        mock_module
-                                                    )
+                                                    mock_module.ArxivSearchTool = mock_tool_class
+                                                    mock_import.return_value = mock_module
 
                                                     # Setup mock runtime response
                                                     mock_runtime_instance = Mock()
-                                                    mock_runtime_instance.execute.return_value = "Found 2 relevant papers about ML"
+                                                    mock_runtime_instance.execute.return_value = (
+                                                        "Found 2 relevant papers about ML"
+                                                    )
                                                     mock_runtime.return_value = (
                                                         mock_runtime_instance
                                                     )

@@ -1,0 +1,145 @@
+# Pre-commit hooks configuration for SAGE project
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+#
+# Usage:
+#   - Install pre-commit: pip install pre-commit
+#   - Install hooks: pre-commit install --config tools/pre-commit-config.yaml
+#   - Run manually: pre-commit run --all-files --config tools/pre-commit-config.yaml
+#
+# Mypy Type Checking:
+#   - Mypy runs automatically on changed Python files
+#   - Shows type errors as warnings (doesn't block commits/CI)
+#   - To run mypy explicitly: pre-commit run mypy --all-files --config tools/pre-commit-config.yaml
+
+default_language_version:
+  python: python3.11
+
+repos:
+  # General file checks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: trailing-whitespace
+    args: [--markdown-linebreak-ext=md]
+  - id: end-of-file-fixer
+    exclude: '\.svg$'
+  - id: check-yaml
+    args: [--unsafe]      # Allow custom YAML tags
+  - id: check-json
+  - id: check-toml
+  - id: check-added-large-files
+    args: ['--maxkb=1000']
+  - id: check-merge-conflict
+  - id: check-case-conflict
+  - id: mixed-line-ending
+    args: [--fix=lf]
+  - id: detect-private-key
+
+  # Python: Black formatter (DISABLED - using ruff format instead)
+  # Black and ruff format can conflict in edge cases, causing infinite reformatting
+  # Ruff format is now mature enough to replace Black completely
+# - repo: https://github.com/psf/black
+#   rev: 25.9.0
+#   hooks:
+#   - id: black
+#     language_version: python3.11
+#     args: [--line-length=100]
+#     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+
+  # Python: isort import sorting
+# - repo: https://github.com/pycqa/isort
+#   rev: 7.0.0
+#   hooks:
+#   - id: isort
+#     args: [--profile=black, --line-length=100]
+#     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+#
+  # Python: Ruff linter and formatter (replaces flake8, isort, pyupgrade)
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.14.2
+  hooks:
+  - id: ruff
+    name: ruff check
+    args: [--fix, --exit-non-zero-on-fix]
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+  - id: ruff-format
+    name: ruff format
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+
+# Python: mypy type checking (warning mode - shows errors but doesn't block commit)
+- repo: local
+  hooks:
+  - id: mypy
+    name: mypy type checking (warnings only)
+    entry: tools/mypy-wrapper.sh
+    language: system
+    types: [python]
+    require_serial: true
+    args:
+    - --cache-dir=.sage/cache/mypy
+    - --ignore-missing-imports
+    - --show-error-codes
+    - --explicit-package-bases
+    - --warn-unused-ignores
+    - --namespace-packages
+    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/src/sage/__init__.py)
+    # This hook will always succeed (exit 0) to avoid blocking commits/CI
+    # Errors are shown but treated as warnings
+  - id: devnotes-check
+    name: dev-notes documentation standards
+    entry: bash -c 'if git diff --cached --name-only | grep -q "^docs/dev-notes/.*\.md$"; then sage-dev quality devnotes; else exit 0; fi'
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^docs/dev-notes/.*\.md$  # Shell: shellcheck
+- repo: https://github.com/shellcheck-py/shellcheck-py
+  rev: v0.11.0.1
+  hooks:
+  - id: shellcheck
+    args: [-x, -e, SC1091, -S, error]      # -x: follow sources, -e SC1091: ignore source errors, -S error: only fail on errors
+    files: \.(sh|bash)$
+    exclude: ^(tools/conda/)
+
+  # YAML formatting
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.15.0
+  hooks:
+  - id: pretty-format-yaml
+    args: [--autofix, --indent=2, --preserve-quotes]
+    exclude: ^(\.github/|examples/config/)
+
+  # Markdown formatting
+- repo: https://github.com/executablebooks/mdformat
+  rev: 1.0.0
+  hooks:
+  - id: mdformat
+    additional_dependencies:
+    - mdformat-gfm        # GitHub Flavored Markdown
+    # Note: mdformat-black is disabled because it fails on code blocks with:
+    # - Template placeholders (e.g., {module_name})
+    # - Special symbols in comments (e.g., ✅ ❌)
+    # - Pseudo-code or incomplete Python snippets
+    # - mdformat-black        # Black formatter for code blocks
+    args: [--wrap=100]
+    exclude: ^(CHANGELOG.md|docs/dev-notes/|docs-public/docs_src/api-reference/)
+
+  # Security: Check for secrets
+- repo: https://github.com/Yelp/detect-secrets
+  rev: v1.5.0
+  hooks:
+  - id: detect-secrets
+    args: [--baseline, tools/secrets.baseline]
+    exclude: ^(\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$)
+
+# To install pre-commit hooks:
+#   pre-commit install
+#
+# To run manually:
+#   pre-commit run --all-files
+#
+# To update hook versions:
+#   pre-commit autoupdate
+#
+# To skip hooks temporarily:
+#   git commit --no-verify

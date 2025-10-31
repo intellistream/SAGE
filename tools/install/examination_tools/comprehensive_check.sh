@@ -15,7 +15,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/system_deps.sh"
 pre_check_system_environment() {
     # 检测是否需要 VS Code 偏移
     detect_vscode_offset_requirement
-    
+
     # 如果用户设置了自定义偏移
     if [ -n "${SAGE_CUSTOM_OFFSET}" ]; then
         set_custom_offset "$SAGE_CUSTOM_OFFSET"
@@ -33,19 +33,19 @@ detect_runtime_environment() {
         echo "Docker"
         return 0
     fi
-    
+
     # 检查是否在 WSL 中
     if grep -qi "microsoft" /proc/version 2>/dev/null || [ -n "${WSL_DISTRO_NAME}" ]; then
         echo "WSL"
         return 0
     fi
-    
+
     # 检查是否在其他容器中
     if [ -f "/run/.containerenv" ] || grep -q "container" /proc/1/cgroup 2>/dev/null; then
         echo "Container"
         return 0
     fi
-    
+
     # 默认为原生系统
     echo "Native"
     return 0
@@ -54,20 +54,20 @@ detect_runtime_environment() {
 # 检查操作系统及版本
 check_operating_system() {
     output_info "检查操作系统环境..."
-    
+
     if [ -f /etc/os-release ]; then
         source /etc/os-release
         local os_name="$NAME"
         local os_version="$VERSION"
         local os_id="$ID"
         local version_id="$VERSION_ID"
-        
+
         # 检测运行环境
         local runtime_env=$(detect_runtime_environment)
-        
+
         output_check "操作系统: $os_name $os_version"
         output_check "运行环境: $runtime_env"
-        
+
         # 根据运行环境给出建议
         case "$runtime_env" in
             "Docker")
@@ -86,7 +86,7 @@ check_operating_system() {
                 output_info "检测到原生 Linux 环境"
                 ;;
         esac
-        
+
         # 检查是否为 Ubuntu 22.04
         if [ "$os_id" = "ubuntu" ] && [ "$version_id" = "22.04" ]; then
             output_check "使用推荐的 Ubuntu 22.04 版本"
@@ -99,22 +99,22 @@ check_operating_system() {
         output_warning "无法检测操作系统版本"
         output_dim "继续安装，但建议使用 Ubuntu 22.04"
     fi
-    
+
     return 0
 }
 
 # 检查系统运行环境
 check_system_runtime() {
     output_info "检查系统运行环境..."
-    
+
     # 检查内存
     local total_mem=$(free -h | awk 'NR==2{print $2}')
     output_check "系统内存: $total_mem"
-    
+
     # 检查磁盘空间
     local disk_space=$(df -h . | awk 'NR==2{print $4}')
     output_check "可用磁盘空间: $disk_space"
-    
+
     # 检查基础命令
     local missing_commands=()
     for cmd in curl wget git; do
@@ -122,24 +122,24 @@ check_system_runtime() {
             missing_commands+=("$cmd")
         fi
     done
-    
+
     if [ ${#missing_commands[@]} -gt 0 ]; then
         output_warning "缺少基础命令: ${missing_commands[*]}"
         output_dim "建议安装: sudo apt update && sudo apt install -y ${missing_commands[*]}"
     else
         output_check "基础命令工具已安装"
     fi
-    
+
     return 0
 }
 
 # 检查 CPU 架构
 check_cpu_architecture() {
     output_info "检查 CPU 架构..."
-    
+
     local cpu_arch=$(uname -m)
     output_check "CPU 架构: $cpu_arch"
-    
+
     case "$cpu_arch" in
         "x86_64"|"amd64")
             output_check "运行在推荐的 x86_64 架构"
@@ -155,16 +155,16 @@ check_cpu_architecture() {
             output_dim "继续安装，但可能遇到意外问题..."
             ;;
     esac
-    
+
     return 0
 }
 
 # 检查 GPU 配置
 check_gpu_configuration() {
     output_info "检查 GPU 配置..."
-    
+
     local gpu_found=false
-    
+
     # 检查 NVIDIA GPU
     if command -v nvidia-smi &> /dev/null; then
         local nvidia_info=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits 2>/dev/null)
@@ -176,7 +176,7 @@ check_gpu_configuration() {
             gpu_found=true
         fi
     fi
-    
+
     # 检查 AMD GPU
     if command -v rocm-smi &> /dev/null; then
         if rocm-smi --showproductname &> /dev/null; then
@@ -184,13 +184,13 @@ check_gpu_configuration() {
             gpu_found=true
         fi
     fi
-    
+
     if [ "$gpu_found" = false ]; then
         output_warning "未检测到 GPU 设备"
         output_warning "SAGE 的某些功能（如深度学习加速）可能无法使用"
         output_dim "继续安装，但建议配置 GPU 以获得最佳性能..."
     fi
-    
+
     return 0
 }
 
@@ -202,54 +202,55 @@ check_gpu_configuration() {
 comprehensive_system_check() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
-    
+
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
-    
+    local log_file="$project_root/.sage/logs/install.log"
+
     # 显示检查开始信息
     echo ""
     format_output "${GEAR} 开始系统环境检查..."
-    
+
     # 初始化日志文件（如果不存在）
+    mkdir -p "$(dirname "$log_file")"
     if [ ! -f "$log_file" ]; then
         echo "SAGE 安装日志 - $(date)" > "$log_file"
         echo "========================================" >> "$log_file"
     fi
-    
+
     # 记录系统检查开始
     echo "" >> "$log_file"
     echo "$(date): 开始系统环境检查" >> "$log_file"
     echo "检查模式: $mode" >> "$log_file"
     echo "检查环境: $environment" >> "$log_file"
     echo "----------------------------------------" >> "$log_file"
-    
+
     # 如果启用了偏移，显示调试信息
     if [ "${SAGE_DEBUG_OFFSET}" = "true" ]; then
         show_offset_status
     fi
-    
+
     echo ""
-    
+
     # 通用系统检查
     format_output "${BLUE}=== 通用系统环境检查 ===${NC}"
     echo "$(date): 开始通用系统环境检查" >> "$log_file"
     check_operating_system
     echo ""
-    check_system_runtime  
+    check_system_runtime
     echo ""
     check_cpu_architecture
     echo ""
     check_gpu_configuration
     echo ""
-    
+
     # 系统依赖检查和安装
     if ! check_and_install_system_dependencies "$log_file"; then
         echo -e "${CROSS} 系统依赖安装失败，但继续进行其他检查"
         echo "$(date): 系统依赖安装失败，但继续进行其他检查" >> "$log_file"
     fi
     echo ""
-    
+
     # 模式特定检查
     format_output "${BLUE}=== 环境特定检查 ===${NC}"
     echo "$(date): 开始环境特定检查 ($environment 模式)" >> "$log_file"
@@ -268,37 +269,37 @@ comprehensive_system_check() {
             ;;
     esac
     echo ""
-    
+
     # SAGE 特定检查
     format_output "${BLUE}=== SAGE 安装检查 ===${NC}"
     echo "$(date): 开始 SAGE 安装状态检查" >> "$log_file"
     check_existing_sage
     echo ""
-    
+
     format_output "${CHECK} 系统环境检查完成"
     echo "$(date): 系统环境检查完成" >> "$log_file"
     echo "----------------------------------------" >> "$log_file"
-    
+
     return 0
 }
 
 # pip 模式检查
 check_pip_mode_requirements() {
     echo -e "${INFO} 检查 pip 模式环境..."
-    
+
     # 检查 Python 版本
     if ! command -v python3 &> /dev/null; then
         echo -e "${CROSS} Python3 未找到！"
         echo -e "${CROSS} pip 模式需要 Python 3.11，请先安装 Python"
         return 1
     fi
-    
+
     local python_version=$(python3 --version 2>&1 | cut -d' ' -f2)
     local python_major=$(echo $python_version | cut -d. -f1)
     local python_minor=$(echo $python_version | cut -d. -f2)
-    
+
     echo -e "${CHECK} Python 版本: $python_version"
-    
+
     # 检查是否为支持的 Python 版本（3.8+）
     if [ "$python_major" = "3" ] && [ "$python_minor" -ge "8" ]; then
         if [ "$python_minor" = "11" ]; then
@@ -311,14 +312,14 @@ check_pip_mode_requirements() {
         echo -e "${DIM}建议: 升级到 Python 3.8+ 或使用 conda 模式${NC}"
         return 1
     fi
-    
+
     # 检查 pip
     if ! python3 -m pip --version &> /dev/null; then
         echo -e "${CROSS} pip 未找到！请先安装 pip"
         echo -e "${DIM}建议: sudo apt install python3-pip${NC}"
         return 1
     fi
-    
+
     echo -e "${CHECK} pip 可用"
     return 0
 }
@@ -326,21 +327,21 @@ check_pip_mode_requirements() {
 # conda 模式检查
 check_conda_mode_requirements() {
     echo -e "${INFO} 检查 conda 模式环境..."
-    
+
     if ! command -v conda &> /dev/null; then
         echo -e "${CROSS} Conda 未找到！"
         echo -e "${CROSS} conda 模式需要安装 Anaconda 或 Miniconda"
         echo -e "${DIM}请访问: https://docs.conda.io/en/latest/miniconda.html${NC}"
         return 1
     fi
-    
+
     local conda_version=$(conda --version 2>&1 | cut -d' ' -f2)
     echo -e "${CHECK} Conda 版本: $conda_version"
-    
+
     # 检查当前环境
     local current_env=$(conda env list | grep '\*' | awk '{print $1}')
     echo -e "${INFO} 当前 Conda 环境: $current_env"
-    
+
     return 0
 }
 
@@ -351,7 +352,7 @@ check_conda_mode_requirements() {
 # 检查是否已安装SAGE
 check_existing_sage() {
     echo -e "${INFO} 检查是否已安装 SAGE..."
-    
+
     # 检查pip包列表中的所有SAGE相关包变体
     local installed_packages=$(pip list 2>/dev/null | grep -E '^(sage|isage|intsage)(-|$)' || echo "")
     if [ -n "$installed_packages" ]; then
@@ -364,7 +365,7 @@ check_existing_sage() {
             echo -e "${DIM}  - $line${NC}"
         done
         echo
-        
+
         # 在CI环境中自动卸载重装
         if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
             echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
@@ -376,15 +377,15 @@ check_existing_sage() {
             echo -e "${WARNING} 检测到已安装 请强制重装"
             echo -e "${DIM}提示: 建议先卸载现有版本以避免冲突${NC}"
         fi
-        
+
         return 0
     fi
-    
+
     # 检查是否能导入sage（作为备用检查）
     if python3 -c "import sage" 2>/dev/null; then
         local sage_version=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
-        
+
         # 在CI环境中自动卸载重装
         if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
             echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
@@ -393,10 +394,10 @@ check_existing_sage() {
             uninstall_sage
             echo -e "${CHECK} CI环境强制重装准备完成"
         fi
-        
+
         return 0
     fi
-    
+
     echo -e "${SUCCESS} 未检测到已安装的 SAGE"
     return 1
 }
@@ -408,25 +409,25 @@ check_existing_sage() {
 # 执行完整的系统环境检查
 run_system_checks() {
     local install_mode="$1"  # pip 或 conda
-    
+
     echo ""
     echo -e "${GEAR} 开始系统环境检查..."
     echo ""
-    
+
     # 1. 通用系统检查
     echo -e "${BLUE}=== 通用系统环境检查 ===${NC}"
     check_operating_system
     echo ""
-    
+
     check_system_runtime
     echo ""
-    
+
     check_cpu_architecture
     echo ""
-    
+
     check_gpu_configuration
     echo ""
-    
+
     # 2. 模式特定检查
     echo -e "${BLUE}=== 安装环境检查 (${install_mode} 模式) ===${NC}"
     case "$install_mode" in
@@ -448,7 +449,7 @@ run_system_checks() {
             ;;
     esac
     echo ""
-    
+
     # 3. SAGE 安装检查
     echo -e "${BLUE}=== SAGE 安装状态检查 ===${NC}"
     local sage_installed=false
@@ -456,9 +457,9 @@ run_system_checks() {
         sage_installed=true
     fi
     echo ""
-    
+
     echo -e "${CHECK} 系统环境检查完成"
-    
+
     # 返回 SAGE 是否已安装的状态
     return $([ "$sage_installed" = true ] && echo 0 || echo 1)
 }
@@ -467,10 +468,10 @@ run_system_checks() {
 verify_installation() {
     echo ""
     echo -e "${INFO} 验证 SAGE 安装..."
-    
+
     # 使用与安装时相同的Python命令和环境
     local python_cmd="${PYTHON_CMD:-python3}"
-    
+
     # 如果使用conda环境且环境变量存在，使用conda run
     if [ -n "$SAGE_ENV_NAME" ] && command -v conda &> /dev/null; then
         python_cmd="conda run -n $SAGE_ENV_NAME python"
@@ -485,7 +486,7 @@ verify_installation() {
     else
         echo -e "${DIM}在当前环境中验证...${NC}"
     fi
-    
+
     if $python_cmd -c "
 import sage
 import sage.common

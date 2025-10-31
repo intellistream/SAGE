@@ -1,0 +1,24 @@
+# Self-RAG Configuration
+# Based on Self-RAG paper: https://arxiv.org/abs/2310.11511
+
+# Data path (Self-RAG dataset format with pre-retrieved documents)
+data_path: "/path/to/selfrag_dataset.jsonl"
+
+# Retriever configuration
+retriever:
+  top_k: 5  # Number of retrieved documents to use
+
+# Promptor configuration
+promptor:
+  model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+  use_context: true  # Whether to include retrieved context in prompt
+
+# Generator configuration
+generator:
+  model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+  gpu_memory_utilization: 0.8
+  temperature: 0
+  max_tokens: 100
+
+# Output path
+output_path: "./output/selfrag_results.json"

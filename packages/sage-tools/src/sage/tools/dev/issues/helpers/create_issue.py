@@ -8,7 +8,6 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 import requests
 
@@ -58,7 +57,7 @@ class GitHubIssueCreator:
             print(f"❌ Token验证失败: {e}")
             return False
 
-    def get_available_labels(self) -> List[str]:
+    def get_available_labels(self) -> list[str]:
         """获取仓库可用的标签"""
         try:
             url = f"https://api.github.com/repos/{self.repo}/labels"
@@ -103,11 +102,7 @@ class GitHubIssueCreator:
                 try:
                     labels_input = input("请输入标签 (用逗号分隔，留空跳过): ").strip()
                     labels = (
-                        [
-                            label.strip()
-                            for label in labels_input.split(",")
-                            if label.strip()
-                        ]
+                        [label.strip() for label in labels_input.split(",") if label.strip()]
                         if labels_input
                         else []
                     )
@@ -118,9 +113,7 @@ class GitHubIssueCreator:
 
             # 分配给某人 (可选)
             try:
-                assignee = (
-                    input("\n👤 分配给 (GitHub用户名，留空跳过): ").strip() or None
-                )
+                assignee = input("\n👤 分配给 (GitHub用户名，留空跳过): ").strip() or None
             except EOFError:
                 assignee = None
 
@@ -192,10 +185,10 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def load_from_file(file_path: str) -> Optional[dict]:
+def load_from_file(file_path: str) -> dict | None:
     """从文件加载issue数据"""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"❌ 读取文件失败: {e}")

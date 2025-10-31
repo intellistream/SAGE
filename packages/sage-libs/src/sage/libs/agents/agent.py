@@ -1,11 +1,11 @@
 import json
 import re
 import time
-from typing import Tuple
 
 import requests
-from sage.core.api.function.map_function import MapFunction
-from sage.libs.utils.openaiclient import OpenAIClient
+
+from sage.common.core import MapFunction
+from sage.libs.integrations.openaiclient import OpenAIClient
 
 
 class Tool:
@@ -26,9 +26,7 @@ class BochaSearch:
 
     def run(self, query):
         payload = json.dumps({"query": query, "summary": True, "count": 10, "page": 1})
-        response = requests.request(
-            "POST", self.url, headers=self.headers, data=payload
-        )
+        response = requests.request("POST", self.url, headers=self.headers, data=payload)
         return response.json()
 
 
@@ -71,9 +69,7 @@ class BaseAgent(MapFunction):
         ]
         self.tools = {tool.name: tool for tool in self.tools}
         self.tool_names = ", ".join(self.tools.keys())  # 修复点
-        self.format_instructions = FORMAT_INSTRUCTIONS.format(
-            tool_names=self.tool_names
-        )
+        self.format_instructions = FORMAT_INSTRUCTIONS.format(tool_names=self.tool_names)
         self.prefix = PREFIX.format(tool_names=self.tool_names)
         self.model = OpenAIClient(
             model_name=self.config["model_name"],
@@ -111,7 +107,7 @@ class BaseAgent(MapFunction):
             "Invalid JSON format: No valid JSON found (either plain or wrapped in Markdown)"
         )
 
-    def execute(self, data: str) -> Tuple[str, str]:
+    def execute(self, data: str) -> tuple[str, str]:
         query = data
         agent_scratchpad = ""
         count = 0
@@ -148,9 +144,7 @@ class BaseAgent(MapFunction):
             tool = self.tools[action]
             tool_result = tool.run(action_input)
             self.logger.debug(f"Tool {action} result: {tool_result}")
-            snippets = [
-                item["snippet"] for item in tool_result["data"]["webPages"]["value"]
-            ]
+            snippets = [item["snippet"] for item in tool_result["data"]["webPages"]["value"]]
             observation = "\n".join(snippets)
             self.logger.debug(f"Observation: {observation}")
             agent_scratchpad += str(output) + f"\nObservation: {observation}\nThought: "

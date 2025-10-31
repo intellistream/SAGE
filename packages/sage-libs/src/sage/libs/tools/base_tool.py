@@ -3,7 +3,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 
 class BaseTool(ABC):
@@ -13,9 +13,9 @@ class BaseTool(ABC):
         self,
         tool_name: str,
         tool_description: str,
-        input_types: List[str] = None,
+        input_types: list[str] | None = None,
         output_type: str = "str",
-        demo_commands: List[str] = None,
+        demo_commands: list[str] | None = None,
         require_llm_engine: bool = False,
     ):
         self.tool_name = tool_name
@@ -30,7 +30,7 @@ class BaseTool(ABC):
         """执行工具的核心功能"""
         pass
 
-    def get_metadata(self) -> Dict[str, Any]:
+    def get_metadata(self) -> dict[str, Any]:
         """获取工具元数据"""
         return {
             "name": self.tool_name,

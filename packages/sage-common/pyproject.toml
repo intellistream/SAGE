@@ -1,17 +1,29 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-common"
-dynamic = ["version"]
+dynamic = [
+    "version",
+]
 description = "SAGE Core Common Utilities"
 readme = "README.md"
-license = "MIT"
 authors = [
-    {name = "SAGE Team", email = "info@sage-ai.org"}
+    { name = "SAGE Team", email = "info@sage-ai.org" },
 ]
-keywords = ["ai", "sage", "machine learning", "artificial intelligence", "core", "utilities"]
+keywords = [
+    "ai",
+    "sage",
+    "machine learning",
+    "artificial intelligence",
+    "core",
+    "utilities",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -29,6 +41,15 @@ dependencies = [
     "colorama>=0.4.6",
     "psutil>=6.1.0",
     "dill>=0.3.8",
+    "numpy>=1.24",
+]
+
+[project.license]
+text = "MIT"
+
+[project.optional-dependencies]
+vllm = [
+    "vllm>=0.9.2",
 ]
 
 [project.urls]
@@ -37,14 +58,23 @@ Documentation = "https://sage-ai.org/docs"
 Repository = "https://github.com/sage-ai/sage"
 Issues = "https://github.com/sage-ai/sage/issues"
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.common._version.__version__"}
+[tool.setuptools.dynamic.version]
+attr = "sage.common._version.__version__"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [
+    "src",
+]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.ruff]
+extend = "../../tools/ruff.toml"
+
+[tool.mypy]
+cache_dir = "../../.sage/cache/mypy"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -74,41 +104,6 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
-    "network: marks tests as network tests",
-    "system: marks tests as system tests",
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
-    "cli: marks tests as CLI tests",
 ]
-
-[tool.ruff]
-# 与flake8保持一致的配置
-target-version = "py311"
-line-length = 88
-
-[tool.ruff.lint]
-# 启用的规则集（与flake8兼容）
-select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "C90",  # mccabe complexity
-]
-
-# 忽略的错误（与flake8 .flake8文件保持一致）
-ignore = [
-    "E501",  # line too long (handled by formatter)
-]
-
-# 复杂度限制（与flake8保持一致）
-mccabe = { max-complexity = 10 }
-
-# 文件特定忽略
-per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
-
-[tool.ruff.lint.isort]
-known-first-party = ["sage"]

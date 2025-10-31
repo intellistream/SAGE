@@ -1,0 +1,51 @@
+pipeline:
+  name: "sage-api-operator-test"
+  description: "Test pipeline for Sage API Operator"
+  version: "1.0.0"
+  type: "remote"
+
+source:
+  data_path: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/sample/question.txt"
+
+retriever:
+  kv_collection:
+    bm25s: true
+    topk: 3
+  ltm:
+    topk: 3
+
+reranker:
+  model_name: "BAAI/bge-reranker-v2-m3"
+  top_k: 3
+
+promptor:
+
+refiner:
+  method: "openai"
+  model_name: "qwen-turbo-0919"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: ""
+  seed: 42
+
+generator:
+  local:
+    method: "hf"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    seed: 42
+
+  vllm:
+    api_key: ""
+    method: "openai"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    base_url: "http://sage3:8000/v1"
+    seed: 42
+
+  remote:
+    api_key: ""
+    method: "openai"
+    model_name: "qwen-turbo-0919"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    seed: 42
+
+sink:
+  file_path: "output.txt"

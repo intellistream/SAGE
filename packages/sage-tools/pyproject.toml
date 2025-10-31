@@ -1,18 +1,15 @@
 [build-system]
-requires = [
-    "setuptools>=64",
-    "wheel",
-]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-tools"
 dynamic = ["version"]
-description = "SAGE Development Tools - CLI, Web UI, and Development Utilities"
+description = "sage-development Tools - CLI, Web UI, and Development Utilities"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "sage",
@@ -33,21 +30,27 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
     "Topic :: Utilities",
 ]
-license = "MIT"
+license = {text = "MIT"}
 
-# 核心依赖 - 包含tools特有的依赖和dev工具
+# 核心依赖 - 作为开发工具包，只依赖真正需要的SAGE子包
 dependencies = [
-    # SAGE framework dependencies  
-    "isage-common>=0.1.0",  # 只依赖common，不重复其他包的依赖
-    
+    # SAGE framework dependencies - 按依赖层次顺序
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-middleware>=0.1.0",
+    "isage-libs>=0.1.0",
+    # 注意：isage-studio 已移到可选依赖中（studio extra）
+    # 注意：不依赖 isage 元包以避免循环引用
+
     # Tools-specific dependencies
     "click>=8.0.0",
     "jinja2>=2.11.1",
     "markdown>=3.4.4",
     "markupsafe>=2.0.1",
     "packaging>=20.5",
-    
-    # Dev tools - 确保 sage dev 命令可用
+    "huggingface-hub>=0.23.0",
+
+    # Dev tools - 确保 sage-dev 命令可用
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
@@ -133,13 +136,10 @@ web = [
     "isage-tools[frontend]",
 ]
 
-# Studio 低代码界面 (需要额外的 Node.js 环境)
-# 注意：Studio 的 npm 依赖通过 sage studio install 命令按需安装
-studio = [
-    # 仅包含必要的 Python 依赖，npm 依赖由安装命令处理
-]
-
 # 完整UI套件 (包含所有前端功能)
+# 注意：sage-tools 和 sage-studio 是同层包（L6 Interface Layer）
+# 根据分层架构原则，同层之间不应有依赖关系
+# 用户如需同时使用，应分别安装：pip install isage-tools isage-studio
 ui = [
     "isage-tools[frontend]",
 ]
@@ -156,7 +156,7 @@ basic = [
 ]
 
 tools = [
-    "isage-tools[cli,dev]", 
+    "isage-tools[cli,dev]",
 ]
 
 # 文档生成
@@ -182,15 +182,16 @@ Repository = "https://github.com/intellistream/SAGE.git"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
-# 主要CLI命令
-sage = "sage.tools.cli.main:app"
+# 开发工具 - 独立功能，开发者专用，带智能命令建议
+sage-dev = "sage.tools.cli.commands.dev:run_with_suggestions"
 
-# 开发工具 - 独立功能，开发者专用
-sage-dev = "sage.tools.cli.commands.dev:app"
+# 注意：sage 命令已移至 sage-cli 包
+# sage = "sage.cli.main:app" (由 sage-cli 包提供)
 
-# 移除的命令（功能已合并到sage主命令）:
+# 移除的命令（功能已合并到sage主命令或移至sage-cli）:
+# - sage: 移至 sage-cli 包
 # - sage-cli: 与sage重复
-# - sage-core: 与sage重复  
+# - sage-core: 与sage重复
 # - sage-jobmanager: 合并到 sage jobmanager
 # - sage-install: 合并到 sage doctor 或 sage version
 # - web-ui: 合并到 sage web-ui
@@ -206,59 +207,26 @@ where = ["src"]
 "" = "src"
 
 [tool.setuptools.package-data]
-"sage.tools.cli" = ["py.typed", "templates/*.yaml"]  
+"sage.tools.cli" = ["py.typed", "templates/*.yaml"]
 "sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
-"sage.tools.studio" = ["py.typed", "*.pyi", "templates/*.html", "static/*"]
+"sage.tools.dev.hooks" = ["templates/*"]
 
 # Development tools configuration
 [tool.black]
-line-length = 88
+line-length = 100
 target-version = ["py310", "py311", "py312"]
 include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
-line_length = 88
+line_length = 100
 
 [tool.mypy]
 python_version = "3.11"
+cache_dir = "../../.sage/cache/mypy"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-
-[tool.ruff]
-# 与flake8保持一致的配置
-target-version = "py311"
-line-length = 88
-
-[tool.ruff.lint]
-# 启用的规则集（与flake8兼容）
-select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "C90",  # mccabe complexity
-]
-
-# 忽略的错误（与flake8 .flake8文件保持一致）
-ignore = [
-    "E501",  # line too long (handled by formatter)
-]
-
-# 复杂度限制（与flake8保持一致）
-mccabe = { max-complexity = 10 }
-
-# 文件特定忽略
-per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
-
-[tool.ruff.lint.isort]
-known-first-party = ["sage"]
-force-single-line = false
-combine-as-imports = true
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -294,7 +262,22 @@ markers = [
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
 ]
+filterwarnings = [
+    # 忽略已知的第三方库弃用警告
+    "ignore::DeprecationWarning:pkg_resources",
+    "ignore:.*pkg_resources is deprecated.*:UserWarning",
+    "ignore:.*SWIG.*:DeprecationWarning",
+    "ignore:.*SwigPyPacked.*:DeprecationWarning",
+    "ignore:.*SwigPyObject.*:DeprecationWarning",
+    "ignore:.*swigvarlink.*:DeprecationWarning",
+]
+
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
+[tool.ruff]
+extend = "../../tools/ruff.toml"
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.tools._version.__version__"}
-

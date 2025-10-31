@@ -7,7 +7,6 @@ This module provides the main FastAPI application for the SAGE Web UI.
 import json
 import os
 from pathlib import Path
-from typing import List
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -19,7 +18,7 @@ def _load_version():
     """加载版本信息"""
     try:
         # 尝试从本地包的版本文件加载
-        from sage.common._version import __version__
+        from sage.common import __version__
 
         return __version__
     except ImportError:
@@ -62,11 +61,11 @@ class Job(BaseModel):
     latency: int
     throughput: int
     ncore: int
-    periodicalThroughput: List[int]
-    periodicalLatency: List[int]
+    periodicalThroughput: list[int]
+    periodicalLatency: list[int]
     totalTimeBreakdown: dict
     schedulerTimeBreakdown: dict
-    operators: List[dict]
+    operators: list[dict]
 
 
 class OperatorInfo(BaseModel):
@@ -98,7 +97,7 @@ def _read_sage_data_from_files():
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
-                    with open(job_file, "r") as f:
+                    with open(job_file) as f:
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
@@ -108,7 +107,7 @@ def _read_sage_data_from_files():
         operators_file = sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
-                with open(operators_file, "r") as f:
+                with open(operators_file) as f:
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
@@ -118,7 +117,7 @@ def _read_sage_data_from_files():
         pipelines_file = sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
-                with open(pipelines_file, "r") as f:
+                with open(pipelines_file) as f:
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
@@ -128,50 +127,6 @@ def _read_sage_data_from_files():
         print(f"Error reading SAGE data: {e}")
 
     return data
-
-
-def _load_version():
-    """加载版本信息"""
-    try:
-        # 尝试从本地包的版本文件加载
-        from sage.common._version import __version__
-
-        return __version__
-    except ImportError:
-        # 如果本地版本文件不存在，返回默认值
-        return "0.1.3"
-
-
-# Pydantic 模型定义
-class Job(BaseModel):
-    jobId: str
-    name: str
-    isRunning: bool
-    nthreads: str
-    cpu: str
-    ram: str
-    startTime: str
-    duration: str
-    nevents: int
-    minProcessTime: int
-    maxProcessTime: int
-    meanProcessTime: int
-    latency: int
-    throughput: int
-    ncore: int
-    periodicalThroughput: List[int]
-    periodicalLatency: List[int]
-    totalTimeBreakdown: dict
-    schedulerTimeBreakdown: dict
-    operators: List[dict]
-
-
-class OperatorInfo(BaseModel):
-    id: int
-    name: str
-    description: str
-    code: str
-    isCustom: bool
 
 
 # 创建 FastAPI 应用
@@ -182,49 +137,6 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
-
-
-def _read_sage_data_from_files():
-    """从 .sage 目录的文件中读取实际的 SAGE 数据"""
-    sage_dir = _get_sage_dir()
-    data = {"jobs": [], "operators": [], "pipelines": []}
-
-    try:
-        # 读取作业信息
-        states_dir = sage_dir / "states"
-        if states_dir.exists():
-            for job_file in states_dir.glob("*.json"):
-                try:
-                    with open(job_file, "r") as f:
-                        job_data = json.load(f)
-                        data["jobs"].append(job_data)
-                except Exception as e:
-                    print(f"Error reading job file {job_file}: {e}")
-
-        # 读取操作符信息
-        operators_file = sage_dir / "output" / "operators.json"
-        if operators_file.exists():
-            try:
-                with open(operators_file, "r") as f:
-                    operators_data = json.load(f)
-                    data["operators"] = operators_data
-            except Exception as e:
-                print(f"Error reading operators file: {e}")
-
-        # 读取管道信息
-        pipelines_file = sage_dir / "output" / "pipelines.json"
-        if pipelines_file.exists():
-            try:
-                with open(pipelines_file, "r") as f:
-                    pipelines_data = json.load(f)
-                    data["pipelines"] = pipelines_data
-            except Exception as e:
-                print(f"Error reading pipelines file: {e}")
-
-    except Exception as e:
-        print(f"Error reading SAGE data: {e}")
-
-    return data
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -291,7 +203,7 @@ async def api_info():
     }
 
 
-@app.get("/api/jobs/all", response_model=List[Job])
+@app.get("/api/jobs/all", response_model=list[Job])
 async def get_all_jobs():
     """获取所有作业信息"""
     try:
@@ -357,7 +269,7 @@ async def get_all_jobs():
         raise HTTPException(status_code=500, detail=f"获取作业信息失败: {str(e)}")
 
 
-@app.get("/api/operators", response_model=List[OperatorInfo])
+@app.get("/api/operators", response_model=list[OperatorInfo])
 async def get_operators():
     """获取所有操作符信息"""
     try:

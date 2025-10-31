@@ -1,93 +1,238 @@
-# SAGE 示例集合 (sage-examples)
+# SAGE Examples Collection
 
-本目录包含了SAGE框架的各种示例，采用**简单明了**的功能分类，方便用户快速找到需要的示例。
+Complete examples and tutorials demonstrating SAGE's capabilities.
 
-## ⚠️ 重要说明：Examples vs Tests
+## 🚀 Quick Start
 
-**本目录仅包含示例和演示代码，不包含测试文件。**
+**New to SAGE?** Start with tutorials:
 
-- **Examples (示例)**: 位于 `examples/` 目录，用于演示如何使用SAGE框架的功能
-- **Tests (测试)**: 位于 `packages/*/tests/` 目录，用于验证代码的正确性
-- **Integration Tests (集成测试)**: 位于 `tools/tests/` 目录，用于测试整体功能
+```bash
+# Your first SAGE program (30 seconds)
+python examples/tutorials/hello_world.py
 
-如果您要编写或运行测试，请使用相应的测试目录，而不是examples目录。
+# Learn embeddings (2 minutes)
+python examples/tutorials/embedding_demo.py
 
-## 📚 目录结构
+# Build an agent (5 minutes)
+python examples/tutorials/agents/basic_agent.py
+```
+
+## 📁 Directory Structure
 
 ```
 examples/
-├── tutorials/          # 基础教程和入门示例
-├── rag/               # RAG (检索增强生成) 相关示例
-├── agents/            # 多智能体系统示例
-├── memory/            # 内存管理和持久化示例
-├── service/           # 服务相关示例
-├── video/             # 视频处理相关示例
-├── config/            # 配置文件示例
-├── data/              # 示例数据
-└── README.md
+├── tutorials/          # 📚 Learning tutorials (START HERE!)
+│   ├── hello_world.py
+│   ├── agents/        # Agent tutorials
+│   │   ├── config/   # Agent configurations
+│   │   └── data/     # Agent test data
+│   ├── multimodal/    # Text+Image+Video
+│   ├── memory/        # Memory systems
+│   │   ├── config/   # Memory configurations
+│   │   └── data/     # Memory test data
+│   ├── service/       # Service integration
+│   ├── scheduler/     # Task scheduling
+│   ├── sage_db/       # Vector database
+│   ├── config/        # General configurations
+│   ├── data/          # General data utilities
+│   └── ...
+│
+├── apps/              # 🎯 Production applications
+│   ├── run_video_intelligence.py
+│   └── run_medical_diagnosis.py
+│
+└── memory/            # � Advanced memory examples (DEPRECATED - use tutorials/memory)
 ```
 
-## 🚀 快速开始
+**Note**: RAG examples and benchmarks have been moved to `packages/sage-benchmark/`. See
+`packages/sage-benchmark/README.md` for details.
 
-### 🔰 初学者 - 从教程开始
+## 📚 Examples by Level
+
+### 🟢 Beginner (< 30 minutes)
+
+Simple, focused tutorials to learn SAGE basics.
+
+**Location**: `examples/tutorials/`
+
+- **Hello World**: Your first pipeline
+- **Embeddings**: Text embeddings basics
+- **Basic Agent**: Create an AI agent
+- **Simple RAG**: Question answering
+- **Service Basics**: Embedding service, pipeline service
+
+**Run**: See `examples/tutorials/README.md`
+
+### 🟡 Intermediate (30 min - 2 hours)
+
+Production-ready patterns and integrations.
+
+**Location**: `packages/sage-benchmark/`, `examples/memory/`
+
+- **Advanced RAG**: Dense/sparse retrieval, reranking, multimodal fusion (see `sage-benchmark`)
+- **RAG Benchmarking**: Performance evaluation and metrics (see `sage-benchmark/benchmark_rag`)
+- **Memory Systems**: RAG with memory, persistence patterns
+- **Vector Databases**: Milvus, ChromaDB, FAISS integration (see `sage-benchmark`)
+- **Distributed RAG**: Ray-based parallel processing (see `sage-benchmark`)
+
+**See**: `packages/sage-benchmark/README.md` for RAG and benchmark examples
+
+### 🔴 Advanced (2+ hours)
+
+Complete applications and complex workflows.
+
+**Location**: `examples/apps/`
+
+- **Video Intelligence**: Multi-model video analysis
+- **Medical Diagnosis**: AI medical imaging
+- **Multi-agent Systems**: Coordinated AI agents
+
+## 📦 Installation
+
+### Minimal (Tutorials only)
+
 ```bash
-# 1. 框架基础
-cd tutorials && python hello_world.py
-
-# 2. 核心API学习
-cd tutorials/core-api && python batch_operator_examples.py
+pip install -e packages/sage-libs
 ```
 
-> **⚠️ 教程状态说明**: 当前 `core-api` 目录中的一些例子可能无法正常运行，这是正常现象，因为该部分尚未完成维护。其余的 `service-api` 等三个模块可以正常运行。
+### Full (All examples)
 
-### 🧠 RAG开发者
 ```bash
-# 1. 简单RAG入门
-cd rag && python rag_simple.py
+# All applications
+pip install -e packages/sage-apps[all]
 
-# 2. 探索不同检索策略
-python qa_dense_retrieval.py      # 稠密检索
-python qa_bm25_retrieval.py       # 稀疏检索
+# RAG and benchmarking
+pip install -e packages/sage-benchmark
 
-# 3. 🆕 多模态数据融合
-python qa_multimodal_fusion.py    # 文本+图像联合检索
-./run_multimodal_demo.sh          # 一键运行演示
+# Or specific apps
+pip install -e packages/sage-apps[video]
+pip install -e packages/sage-apps[medical]
+
+# All examples dependencies
+pip install -r examples/requirements.txt
 ```
 
-### 🤖 智能体开发者
+## ⚠️ Examples vs Tests
+
+**This directory contains examples and demos, NOT tests.**
+
+- **Examples** (`examples/`): How to use SAGE features
+- **Unit Tests** (`packages/*/tests/`): Verify code correctness
+- **Integration Tests** (`tools/tests/`): Test example execution
+
+## 🎯 Learning Paths
+
+### Path 1: RAG Developer
+
+1. `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/rag_simple.py` - Learn
+   basics
+1. `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_dense_retrieval_milvus.py`
+   \- Add vector search
+1. `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_rerank.py` - Improve
+   results
+1. `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_multimodal_fusion.py`
+   \- Add multimodal
+1. `tutorials/memory/rag_memory_pipeline.py` - Add memory
+
+See `packages/sage-benchmark/README.md` for complete RAG documentation.
+
+**Note**: All RAG examples have been moved from `examples/rag/` to `packages/sage-benchmark/`.
+
+### Path 2: Agent Builder
+
+1. `tutorials/agents/basic_agent.py` - Agent basics
+1. `tutorials/agents/workflow_demo.py` - Workflows
+1. `tutorials/agents/arxiv_search_tool.py` - Custom tools
+1. `apps/run_medical_diagnosis.py` - Multi-agent app
+
+### Path 3: Service Developer
+
+1. `tutorials/service/embedding_service_demo.py` - Service basics
+1. `tutorials/service/pipeline_as_service/` - Pipeline services
+1. `tutorials/service/sage_db/` - Vector database service
+1. `tutorials/service/sage_flow/` - Stream processing service
+
+## 💡 Tips
+
+**Running examples:**
+
 ```bash
-cd agents && python agent_workflow_demo.py
+# Always run from project root
+cd /path/to/SAGE
+python examples/tutorials/hello_world.py
 ```
 
-### 🌊 流处理开发者
+**API Keys:**
+
 ```bash
-# 流处理示例请查看 service/ 目录
-cd service && python sage_flow_example.py
+# Copy and configure
+cp .env.example .env
+# Edit .env with your keys
 ```
 
-## 🔧 路径配置
+**Configurations:**
 
-### Python代码中的配置引用
-```python
-# 从 rag/ 目录运行时
-config = load_config("../config/config.yaml")
+```bash
+# Tutorials have their own config directories
+ls examples/tutorials/agents/config/*.yaml
+ls examples/tutorials/memory/config/*.yaml
+
+# RAG configs are in sage-benchmark
+ls packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/*.yaml
+
+# See respective README files for details
+cat packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/README.md
 ```
 
-### 配置文件中的数据引用
-```yaml
-# 在 config/*.yaml 中
-source:
-  data_path: "../data/sample/question.txt"
-```
+**Troubleshooting:**
 
-## 📚 详细文档
+- Missing dependencies? Check `requirements.txt` in each category
+- Import errors? Make sure you installed SAGE: `pip install -e packages/sage-libs`
+- Need data? Check the `data/` subdirectory in each example category
+- Need config? Check the `config/` subdirectory in each example category
+- Need help? See `docs/COMMUNITY.md`
 
-- [RAG示例说明](rag/README.md) - RAG相关示例详解
-- [Memory服务示例](memory/README_memory_service.md) - Memory特性与RAG集成指南
-- [SageDB服务](service/sage_db/README.md) - 数据库服务示例
-- [SageFlow服务](service/sage_flow/README.md) - 流处理服务示例
-- [清理记录](CLEANUP_NOTES.md) - Examples vs Tests 清理记录
+## 📖 Documentation
 
----
+- **Tutorials README**: `examples/tutorials/README.md`
+- **Apps README**: `examples/apps/README.md`
+- **RAG & Benchmarks**: `packages/sage-benchmark/README.md`
+- **Main Docs**: `docs/` and `docs-public/`
+- **API Docs**: Docstrings in `packages/sage-libs/`
 
-💡 **提示**: 每个子目录都有对应的README文件，包含更详细的使用说明和示例介绍。
+## 🔍 Quick Reference
+
+### By Feature
+
+- **Agents**: `tutorials/agents/`
+- **RAG**: `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/`
+- **Multimodal**: `tutorials/multimodal/`,
+  `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_multimodal_fusion.py`
+- **Memory**: `tutorials/memory/`
+- **Services**: `tutorials/service/`
+- **Streaming**: `tutorials/stream_mode/`
+- **Distributed**:
+  `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_dense_retrieval_ray.py`
+- **Benchmarking**: `packages/sage-benchmark/src/sage/benchmark/benchmark_rag/`
+
+### By Technology
+
+- **ChromaDB**:
+  `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/config_qa_chroma.yaml`
+- **Milvus**:
+  `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/config_*_milvus.yaml`
+- **Ray**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/config/config_ray.yaml`
+- **OpenAI**: Most RAG examples in sage-benchmark
+- **Hugging Face**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_hf_model.py`
+- **Local LLMs**: Various examples in sage-benchmark
+
+### By Use Case
+
+- **Question Answering**: `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/qa_*.py`
+- **Document Search**:
+  `sage-benchmark/src/sage/benchmark/benchmark_rag/implementations/build_*_index.py`
+- **Image Search**: `tutorials/multimodal/`
+- **Video Analysis**: `apps/run_video_intelligence.py`
+- **Medical AI**: `apps/run_medical_diagnosis.py`
+- **Web Services**: `tutorials/service/pipeline_as_service/`
+- **RAG Benchmarking**: `sage-benchmark/src/sage/benchmark/benchmark_rag/`

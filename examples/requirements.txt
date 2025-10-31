@@ -1,0 +1,18 @@
+# Requirements for SAGE Examples
+#
+# For most users, we recommend installing via sage-libs package:
+#   pip install -e packages/sage-libs[examples]
+#
+# This file is provided for convenience and CI/CD environments.
+# It mirrors the dependencies defined in packages/sage-libs/pyproject.toml
+
+# Video Intelligence Examples
+opencv-python>=4.5.0  # Video processing (examples/video/)
+torch>=2.0.0  # PyTorch for models
+torchvision>=0.15.0  # Vision models
+transformers>=4.30.0  # CLIP and other transformers
+Pillow>=9.0.0  # Image processing
+
+# Common dependencies (mostly covered by main SAGE packages)
+pyyaml>=6.0  # Config files
+numpy>=1.26.0  # Array operations (already in sage-libs)

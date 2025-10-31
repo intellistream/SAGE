@@ -1,5 +1,6 @@
-"""
-SAGE Output Path Configuration
+"""SAGE Output Path Configuration
+
+Layer: L1 (Foundation - Common Configuration)
 
 This module provides a centralized configuration system for all output paths in SAGE.
 All intermediate results, logs, outputs, and temporary files should use this system
@@ -8,18 +9,21 @@ to ensure consistent placement.
 Supports both development environments and pip-installed environments:
 - Development: Uses project_root/.sage/
 - Pip-installed: Uses ~/.sage/
+
+Architecture:
+    This is a L1 foundation component providing configuration management.
+    It does not contain business logic, only path and environment management.
 """
 
 import os
 import shutil
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Union
 
 
 def find_sage_project_root(
-    start_path: Optional[Union[str, Path]] = None,
-) -> Optional[Path]:
+    start_path: str | Path | None = None,
+) -> Path | None:
     """
     Find SAGE project root directory by looking for characteristic files/directories.
 
@@ -65,7 +69,7 @@ def find_sage_project_root(
     return None
 
 
-def get_appropriate_sage_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_appropriate_sage_dir(project_root: str | Path | None = None) -> Path:
     """
     Get the appropriate SAGE directory based on environment.
 
@@ -109,7 +113,7 @@ def get_appropriate_sage_dir(project_root: Optional[Union[str, Path]] = None) ->
 class SageOutputPaths:
     """Centralized configuration for SAGE output paths."""
 
-    def __init__(self, project_root: Optional[Union[str, Path]] = None):
+    def __init__(self, project_root: str | Path | None = None):
         """
         Initialize SAGE output paths.
 
@@ -120,26 +124,18 @@ class SageOutputPaths:
         self.sage_dir = get_appropriate_sage_dir(project_root)
 
         # Set project root and environment type
+        self.project_root: Path | None
         if project_root:
             self.project_root = Path(project_root).resolve()
-            self.is_pip_environment = (
-                False  # Explicit project root means dev environment
-            )
+            self.is_pip_environment = False  # Explicit project root means dev environment
         else:
             detected_root = find_sage_project_root()
             if detected_root:
                 self.project_root = detected_root
-                self.is_pip_environment = (
-                    False  # Found project root means dev environment
-                )
+                self.is_pip_environment = False  # Found project root means dev environment
             else:
                 self.project_root = None
                 self.is_pip_environment = True  # No project root means pip-installed
-        if project_root:
-            self.project_root = Path(project_root).resolve()
-        else:
-            detected_root = find_sage_project_root()
-            self.project_root = detected_root if detected_root else Path.cwd()
 
         # Ensure .sage directory and subdirectories exist
         self._ensure_sage_structure()
@@ -284,7 +280,7 @@ class SageOutputPaths:
             "ray_temp_dir": ray_temp_dir,
         }
 
-    def get_log_file(self, name: str, subdir: Optional[str] = None) -> Path:
+    def get_log_file(self, name: str, subdir: str | None = None) -> Path:
         """
         Get a log file path.
 
@@ -301,7 +297,7 @@ class SageOutputPaths:
             return log_dir / name
         return self.logs_dir / name
 
-    def get_output_file(self, name: str, subdir: Optional[str] = None) -> Path:
+    def get_output_file(self, name: str, subdir: str | None = None) -> Path:
         """
         Get an output file path.
 
@@ -318,7 +314,7 @@ class SageOutputPaths:
             return output_dir / name
         return self.output_dir / name
 
-    def get_temp_file(self, name: str, subdir: Optional[str] = None) -> Path:
+    def get_temp_file(self, name: str, subdir: str | None = None) -> Path:
         """
         Get a temporary file path.
 
@@ -335,7 +331,7 @@ class SageOutputPaths:
             return temp_dir / name
         return self.temp_dir / name
 
-    def get_cache_file(self, name: str, subdir: Optional[str] = None) -> Path:
+    def get_cache_file(self, name: str, subdir: str | None = None) -> Path:
         """
         Get a cache file path.
 
@@ -360,6 +356,10 @@ class SageOutputPaths:
         - logs/ -> .sage/logs/
         - output/ -> .sage/output/
         """
+        # Skip migration if project_root is None or same as sage_dir parent
+        if self.project_root is None or not self.project_root.exists():
+            return
+
         migrations = [
             (self.project_root / "logs", self.logs_dir),
             (self.project_root / "output", self.output_dir),
@@ -396,62 +396,82 @@ class SageOutputPaths:
                     print(f"Warning: Could not remove {src} (not empty)")
 
 
-# Global instance for easy access
-@lru_cache(maxsize=1)
-def get_sage_paths(project_root: Optional[Union[str, Path]] = None) -> SageOutputPaths:
-    """Get the global SAGE output paths instance."""
-    return SageOutputPaths(project_root)
+# Global cached instance (use normalized project_root key to avoid unexpected
+# cache behavior when Path/str objects differ between callers). We expose
+# `cache_clear` on the public `get_sage_paths` so tests that call
+# `get_sage_paths.cache_clear()` continue to work.
+@lru_cache(maxsize=8)
+def _get_sage_paths_cached(project_root_key: str | None) -> SageOutputPaths:
+    """Internal cached constructor keyed by normalized project_root string."""
+    if project_root_key is None:
+        return SageOutputPaths(None)
+    return SageOutputPaths(Path(project_root_key))
+
+
+def get_sage_paths(project_root: str | Path | None = None) -> SageOutputPaths:
+    """Get the global SAGE output paths instance.
+
+    This wrapper normalizes the project_root to an absolute string and uses
+    the internal cached function. Tests expect a `cache_clear` attribute on
+    `get_sage_paths`; attach it from the cached function.
+    """
+    project_root_key = None if project_root is None else str(Path(project_root).resolve())
+    return _get_sage_paths_cached(project_root_key)
+
+
+# Expose cache_clear on the public function for backward compatibility
+get_sage_paths.cache_clear = _get_sage_paths_cached.cache_clear
 
 
 # Convenience functions for backward compatibility and ease of use
-def get_logs_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_logs_dir(project_root: str | Path | None = None) -> Path:
     """Get the logs directory."""
     return get_sage_paths(project_root).logs_dir
 
 
-def get_output_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_output_dir(project_root: str | Path | None = None) -> Path:
     """Get the output directory."""
     return get_sage_paths(project_root).output_dir
 
 
-def get_temp_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_temp_dir(project_root: str | Path | None = None) -> Path:
     """Get the temp directory."""
     return get_sage_paths(project_root).temp_dir
 
 
-def get_cache_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_cache_dir(project_root: str | Path | None = None) -> Path:
     """Get the cache directory."""
     return get_sage_paths(project_root).cache_dir
 
 
-def get_reports_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_reports_dir(project_root: str | Path | None = None) -> Path:
     """Get the reports directory."""
     return get_sage_paths(project_root).reports_dir
 
 
-def get_coverage_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_coverage_dir(project_root: str | Path | None = None) -> Path:
     """Get the coverage directory."""
     return get_sage_paths(project_root).coverage_dir
 
 
-def get_benchmarks_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_benchmarks_dir(project_root: str | Path | None = None) -> Path:
     """Get the benchmarks directory."""
     return get_sage_paths(project_root).benchmarks_dir
 
 
-def get_ray_temp_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_ray_temp_dir(project_root: str | Path | None = None) -> Path:
     """Get Ray temporary files directory."""
     return get_sage_paths(project_root).get_ray_temp_dir()
 
 
-def setup_sage_environment(project_root: Optional[Union[str, Path]] = None) -> dict:
+def setup_sage_environment(project_root: str | Path | None = None) -> dict:
     """Set up SAGE environment variables and return directory paths."""
     return get_sage_paths(project_root).setup_environment_variables()
 
 
 # Main initialization function
 def initialize_sage_paths(
-    project_root: Optional[Union[str, Path]] = None,
+    project_root: str | Path | None = None,
 ) -> "SageOutputPaths":
     """
     Initialize SAGE paths and set up environment.
@@ -472,8 +492,8 @@ def initialize_sage_paths(
 
 def get_log_file(
     name: str,
-    subdir: Optional[str] = None,
-    project_root: Optional[Union[str, Path]] = None,
+    subdir: str | None = None,
+    project_root: str | Path | None = None,
 ) -> Path:
     """Get a log file path."""
     return get_sage_paths(project_root).get_log_file(name, subdir)
@@ -481,22 +501,22 @@ def get_log_file(
 
 def get_output_file(
     name: str,
-    subdir: Optional[str] = None,
-    project_root: Optional[Union[str, Path]] = None,
+    subdir: str | None = None,
+    project_root: str | Path | None = None,
 ) -> Path:
     """Get an output file path."""
     return get_sage_paths(project_root).get_output_file(name, subdir)
 
 
-def get_states_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+def get_states_dir(project_root: str | Path | None = None) -> Path:
     """Get the states directory."""
     return get_sage_paths(project_root).states_dir
 
 
 def get_states_file(
     name: str,
-    subdir: Optional[str] = None,
-    project_root: Optional[Union[str, Path]] = None,
+    subdir: str | None = None,
+    project_root: str | Path | None = None,
 ) -> Path:
     """Get a states file path."""
     sage_paths = get_sage_paths(project_root)
@@ -507,29 +527,25 @@ def get_states_file(
     return sage_paths.states_dir / name
 
 
-def migrate_existing_outputs(project_root: Optional[Union[str, Path]] = None):
+def migrate_existing_outputs(project_root: str | Path | None = None):
     """Migrate existing outputs to .sage directory."""
     get_sage_paths(project_root).migrate_existing_outputs()
 
 
 # Testing utilities
-def get_test_env_dir(
-    test_name: str = "test_env", project_root: Optional[Union[str, Path]] = None
-) -> Path:
+def get_test_env_dir(test_name: str = "test_env", project_root: str | Path | None = None) -> Path:
     """Get a test environment directory path in .sage/temp/."""
     return get_sage_paths(project_root).get_test_env_dir(test_name)
 
 
 def get_test_context_dir(
-    context_name: str = "test_context", project_root: Optional[Union[str, Path]] = None
+    context_name: str = "test_context", project_root: str | Path | None = None
 ) -> Path:
     """Get a test context directory path in .sage/temp/."""
     return get_sage_paths(project_root).get_test_context_dir(context_name)
 
 
-def get_test_temp_dir(
-    temp_name: str, project_root: Optional[Union[str, Path]] = None
-) -> Path:
+def get_test_temp_dir(temp_name: str, project_root: str | Path | None = None) -> Path:
     """Get a temporary directory for testing in .sage/temp/."""
     sage_paths = get_sage_paths(project_root)
     temp_dir = sage_paths.temp_dir / temp_name

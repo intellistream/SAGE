@@ -10,7 +10,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from rich.console import Console
 from rich.progress import Progress
@@ -23,7 +22,7 @@ console = Console()
 class BytecodeCompiler:
     """字节码编译器 - 集成到SAGE开发工具包"""
 
-    def __init__(self, package_path: Path, temp_dir: Optional[Path] = None):
+    def __init__(self, package_path: Path, temp_dir: Path | None = None):
         """
         初始化字节码编译器
 
@@ -40,13 +39,9 @@ class BytecodeCompiler:
             raise SAGEDevToolkitError(f"Package path does not exist: {package_path}")
 
         if not self.package_path.is_dir():
-            raise SAGEDevToolkitError(
-                f"Package path is not a directory: {package_path}"
-            )
+            raise SAGEDevToolkitError(f"Package path is not a directory: {package_path}")
 
-    def compile_package(
-        self, output_dir: Optional[Path] = None, use_sage_home: bool = True
-    ) -> Path:
+    def compile_package(self, output_dir: Path | None = None, use_sage_home: bool = True) -> Path:
         """
         编译包为字节码
 
@@ -244,7 +239,7 @@ class BytecodeCompiler:
     def _should_keep_source(self, py_file: Path) -> bool:
         """判断是否应该保留源文件"""
         # 必须保留的文件
-        keep_files = ["setup.py"]
+        keep_files = ["setup.py", "_version.py"]
 
         if py_file.name in keep_files:
             return True
@@ -294,14 +289,11 @@ where = ["src"]
                         existing_section = match.group(1)
                         if "include-package-data" not in existing_section:
                             updated_section = (
-                                existing_section.rstrip()
-                                + "\ninclude-package-data = true\n"
+                                existing_section.rstrip() + "\ninclude-package-data = true\n"
                             )
                             content = content.replace(existing_section, updated_section)
                             modified = True
-                            console.print(
-                                "  📝 更新include-package-data = true", style="green"
-                            )
+                            console.print("  📝 更新include-package-data = true", style="green")
                 else:
                     # 添加新部分
                     content += """
@@ -318,23 +310,70 @@ include-package-data = true
                     # 需要更新现有的package-data配置
                     import re
 
-                    pattern = (
-                        r"(\[tool\.setuptools\.package-data\][\s\S]*?)(?=\n\[|\n$|$)"
-                    )
+                    pattern = r"(\[tool\.setuptools\.package-data\][\s\S]*?)(?=\n\[|\n$|$)"
                     match = re.search(pattern, content)
                     if match:
                         existing_data = match.group(1)
                         if '"*.pyc"' not in existing_data:
-                            # 在现有配置中添加*.pyc和二进制扩展文件
-                            updated_data = (
-                                existing_data.rstrip()
-                                + '\n"*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]\n'
+                            # 查找现有的 "*" 键并合并（支持多行数组）
+                            star_pattern = r'"(\*)" = \[([^\]]*)\]'
+                            star_matches = list(
+                                re.finditer(star_pattern, existing_data, re.MULTILINE)
                             )
+
+                            if star_matches:
+                                # 找到第一个 "*" 键，合并所有内容到它
+                                first_match = star_matches[0]
+
+                                # 收集所有现有的项
+                                all_items = []
+                                for m in star_matches:
+                                    items = m.group(2).strip()
+                                    if items:
+                                        # 分割并清理每个项
+                                        for item in items.split(","):
+                                            item = item.strip().strip('"').strip("'")
+                                            if item and item not in all_items:
+                                                all_items.append(item)
+
+                                # 添加新的二进制文件模式
+                                binary_patterns = [
+                                    "*.pyc",
+                                    "*.pyo",
+                                    "__pycache__/*",
+                                    "*.so",
+                                    "*.pyd",
+                                    "*.dylib",
+                                ]
+                                for pattern in binary_patterns:
+                                    if pattern not in all_items:
+                                        all_items.append(pattern)
+
+                                # 构建合并后的数组
+                                formatted_items = ",\n    ".join(f'"{item}"' for item in all_items)
+                                updated_line = f'"*" = [\n    {formatted_items},\n]'
+
+                                # 替换第一个 "*" 键
+                                updated_data = existing_data.replace(
+                                    first_match.group(0), updated_line
+                                )
+
+                                # 删除其他重复的 "*" 键
+                                for m in star_matches[1:]:
+                                    updated_data = updated_data.replace(m.group(0), "")
+
+                                # 清理多余的空行
+                                updated_data = re.sub(r"\n\s*\n\s*\n", "\n\n", updated_data)
+                            else:
+                                # 在现有配置中添加新的通配符键
+                                updated_data = (
+                                    existing_data.rstrip()
+                                    + '\n"*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]\n'
+                                )
+
                             content = content.replace(existing_data, updated_data)
                             modified = True
-                            console.print(
-                                "  📝 更新package-data配置包含二进制文件", style="green"
-                            )
+                            console.print("  📝 更新package-data配置包含二进制文件", style="green")
                 else:
                     # 添加新的package-data配置
                     content += """
@@ -342,9 +381,7 @@ include-package-data = true
 "*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]
 """
                     modified = True
-                    console.print(
-                        "  📝 添加package-data配置包含二进制文件", style="green"
-                    )
+                    console.print("  📝 添加package-data配置包含二进制文件", style="green")
 
             # 添加MANIFEST.in文件以确保包含所有二进制文件
             manifest_file = self.compiled_path / "MANIFEST.in"
@@ -386,9 +423,10 @@ setup(
 
     def build_wheel(
         self,
-        compiled_path: Optional[Path] = None,
+        compiled_path: Path | None = None,
         upload: bool = False,
         dry_run: bool = True,
+        repository: str = "pypi",
     ) -> Path:
         """
         构建wheel包
@@ -397,6 +435,7 @@ setup(
             compiled_path: 已编译的包路径，如果未提供则使用self.compiled_path
             upload: 是否上传到PyPI
             dry_run: 是否为预演模式
+            repository: 上传目标仓库 ('pypi' 或 'testpypi')
 
         Returns:
             wheel文件路径
@@ -404,9 +443,7 @@ setup(
         target_path = compiled_path or self.compiled_path
 
         if not target_path:
-            raise SAGEDevToolkitError(
-                "Package not compiled yet. Call compile_package() first."
-            )
+            raise SAGEDevToolkitError("Package not compiled yet. Call compile_package() first.")
 
         console.print(f"📦 构建wheel包: {target_path.name}", style="cyan")
 
@@ -452,7 +489,9 @@ setup(
 
                 # 如果需要上传
                 if upload and not dry_run:
-                    self._upload_to_pypi()
+                    # 传递 dist 目录的绝对路径
+                    dist_dir = Path("dist").resolve()
+                    self._upload_to_pypi(repository=repository, dist_dir=dist_dir)
                 elif upload and dry_run:
                     console.print("  🔍 预演模式：跳过上传", style="yellow")
 
@@ -497,9 +536,7 @@ setup(
                 # 计数
                 pyc_count = sum(1 for f in all_files if f.endswith(".pyc"))
                 py_count = sum(1 for f in all_files if f.endswith(".py"))
-                binary_count = sum(
-                    1 for f in all_files if f.endswith((".so", ".pyd", ".dylib"))
-                )
+                binary_count = sum(1 for f in all_files if f.endswith((".so", ".pyd", ".dylib")))
                 total_count = len(all_files)
 
                 console.print(f"    📊 文件总数: {total_count}")
@@ -515,19 +552,11 @@ setup(
                     )
 
                 if pyc_count == 0 and binary_count == 0:
-                    console.print(
-                        "    ❌ 错误: wheel包中没有.pyc或二进制扩展文件！", style="red"
-                    )
+                    console.print("    ❌ 错误: wheel包中没有.pyc或二进制扩展文件！", style="red")
                     console.print("    💡 尝试使用以下步骤修复:")
-                    console.print(
-                        "       1. 确保pyproject.toml中设置了include-package-data = true"
-                    )
-                    console.print(
-                        "       2. 确保pyproject.toml中设置了package-data配置"
-                    )
-                    console.print(
-                        "       3. 检查MANIFEST.in文件是否包含了*.pyc和*.so等"
-                    )
+                    console.print("       1. 确保pyproject.toml中设置了include-package-data = true")
+                    console.print("       2. 确保pyproject.toml中设置了package-data配置")
+                    console.print("       3. 检查MANIFEST.in文件是否包含了*.pyc和*.so等")
 
                     # 尝试输出部分文件列表以帮助诊断
                     console.print("    📁 wheel包内容示例:")
@@ -544,26 +573,60 @@ setup(
         except Exception as e:
             console.print(f"    ❌ 验证wheel内容失败: {e}", style="red")
 
-    def _upload_to_pypi(self) -> bool:
-        """上传到PyPI"""
-        console.print("  🚀 上传到PyPI...")
+    def _upload_to_pypi(self, repository: str = "pypi", dist_dir: Path | None = None) -> bool:
+        """
+        上传到PyPI或TestPyPI
+
+        Args:
+            repository: 上传目标 ('pypi' 或 'testpypi')
+            dist_dir: dist 目录的绝对路径，如果为 None 则使用当前目录的 dist
+        """
+        repo_name = "TestPyPI" if repository == "testpypi" else "PyPI"
+        console.print(f"  🚀 上传到{repo_name}...")
 
         try:
-            upload_result = subprocess.run(
-                ["twine", "upload", "dist/*"], capture_output=True, text=True
-            )
+            # 找到所有 wheel 文件
+            import glob
+
+            if dist_dir:
+                wheel_pattern = str(dist_dir / "*.whl")
+            else:
+                wheel_pattern = "dist/*.whl"
+
+            wheel_files = glob.glob(wheel_pattern)
+
+            if not wheel_files:
+                console.print(f"  ❌ 未找到 wheel 文件 (搜索路径: {wheel_pattern})", style="red")
+                return False
+
+            cmd = ["twine", "upload"]
+
+            # 添加仓库参数
+            if repository == "testpypi":
+                cmd.extend(["--repository", "testpypi"])
+
+            # 添加所有 wheel 文件
+            cmd.extend(wheel_files)
+
+            upload_result = subprocess.run(cmd, capture_output=True, text=True)
 
             if upload_result.returncode == 0:
-                console.print("  ✅ 上传成功", style="green")
+                console.print(f"  ✅ 上传到{repo_name}成功", style="green")
+                # 显示链接
+                if upload_result.stdout:
+                    for line in upload_result.stdout.split("\n"):
+                        if "View at:" in line or "https://" in line:
+                            console.print(f"    🔗 {line.strip()}", style="cyan")
                 return True
             else:
-                console.print(f"  ❌ 上传失败: {upload_result.stderr}", style="red")
+                error_msg = upload_result.stderr.strip() if upload_result.stderr else "未知错误"
+                console.print(f"  ❌ 上传到{repo_name}失败: {error_msg}", style="red")
+                if upload_result.stdout:
+                    console.print(f"     输出: {upload_result.stdout.strip()}", style="dim")
                 return False
 
         except FileNotFoundError:
-            console.print(
-                "  ❌ 未找到twine工具，请先安装: pip install twine", style="red"
-            )
+            console.print("  ❌ 未找到twine工具，请先安装: pip install twine", style="red")
             return False
         except Exception as e:
             console.print(f"  💥 上传异常: {e}", style="red")
@@ -580,14 +643,14 @@ setup(
 
 
 def compile_multiple_packages(
-    package_paths: List[Path],
-    output_dir: Optional[Path] = None,
+    package_paths: list[Path],
+    output_dir: Path | None = None,
     build_wheels: bool = False,
     upload: bool = False,
     dry_run: bool = True,
     use_sage_home: bool = True,
     create_symlink: bool = True,
-) -> Dict[str, bool]:
+) -> dict[str, bool]:
     """
     编译多个包
 
@@ -614,14 +677,12 @@ def compile_multiple_packages(
         sage_home_link = _create_sage_home_symlink()
 
     for i, package_path in enumerate(package_paths, 1):
-        console.print(
-            f"\n[{i}/{len(package_paths)}] 处理包: {package_path.name}", style="bold"
-        )
+        console.print(f"\n[{i}/{len(package_paths)}] 处理包: {package_path.name}", style="bold")
 
         try:
             # 编译包
             compiler = BytecodeCompiler(package_path)
-            compiled_path = compiler.compile_package(output_dir, use_sage_home)
+            compiler.compile_package(output_dir, use_sage_home)
 
             # 构建wheel（如果需要）
             if build_wheels:
@@ -658,7 +719,7 @@ def compile_multiple_packages(
     return results
 
 
-def _create_sage_home_symlink() -> Optional[Path]:
+def _create_sage_home_symlink() -> Path | None:
     """
     在当前目录创建指向SAGE home的软链接
 
@@ -685,9 +746,7 @@ def _create_sage_home_symlink() -> Optional[Path]:
                     )
                     symlink_path.unlink()
             else:
-                console.print(
-                    f"⚠️ 路径已存在且不是软链接: {symlink_path}", style="yellow"
-                )
+                console.print(f"⚠️ 路径已存在且不是软链接: {symlink_path}", style="yellow")
                 return None
 
         # 确保SAGE home目录存在

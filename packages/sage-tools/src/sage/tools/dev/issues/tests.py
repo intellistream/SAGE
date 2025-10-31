@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 SAGE Issues 管理 - 测试套件
 基于原始test_issues_manager.sh的Python实现
@@ -10,7 +9,6 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
@@ -29,7 +27,7 @@ class IssuesTestSuite:
     def __init__(self):
         self.config = IssuesConfig()
         self.manager = IssuesManager()
-        self.test_results: List[Tuple[str, bool, str]] = []
+        self.test_results: list[tuple[str, bool, str]] = []
         self.backup_dir = None
 
     def setup(self) -> bool:
@@ -105,9 +103,7 @@ class IssuesTestSuite:
         try:
             # 检查下载脚本是否存在
             download_script = Path(__file__).parent / "helpers" / "download_issues.py"
-            download_v2_script = (
-                Path(__file__).parent / "helpers" / "download_issues_v2.py"
-            )
+            download_v2_script = Path(__file__).parent / "helpers" / "download_issues_v2.py"
 
             # 至少有一个下载脚本存在
             return download_script.exists() or download_v2_script.exists()
@@ -235,7 +231,7 @@ class IssuesTestSuite:
         if is_ci:
             # 在CI环境中，检查是否有关键测试失败
             critical_failures = []
-            for test_name, result, error in self.test_results:
+            for test_name, result, _error in self.test_results:
                 if not result and test_name in ["配置验证", "文件操作"]:
                     critical_failures.append(test_name)
 
@@ -292,17 +288,13 @@ class IssuesTestSuite:
                 console.print("\n✅ [bold green]CI环境测试通过[/bold green]")
                 console.print("核心功能正常，外部依赖相关的失败是可以接受的")
             else:
-                console.print(
-                    "\n⚠️ [bold yellow]测试通过率过低，可能存在问题[/bold yellow]"
-                )
+                console.print("\n⚠️ [bold yellow]测试通过率过低，可能存在问题[/bold yellow]")
         else:
             # 本地环境
             if passed == total:
                 console.print("\n🎉 [bold green]所有测试通过！[/bold green]")
             else:
-                console.print(
-                    f"\n⚠️  [bold yellow]{total - passed} 个测试失败[/bold yellow]"
-                )
+                console.print(f"\n⚠️  [bold yellow]{total - passed} 个测试失败[/bold yellow]")
 
 
 def main():

@@ -8,6 +8,7 @@ and object attribute filtering.
 from unittest.mock import patch
 
 import pytest
+
 from sage.kernel.utils.persistence.state import (
     _BLACKLIST,
     _filter_attrs,
@@ -144,7 +145,7 @@ class TestStateHelperFunctions:
     def test_is_serializable_blacklisted_types(self):
         """Test serialization check for blacklisted types"""
         # Create objects that should be blacklisted
-        file_obj = open(__file__, "r")
+        file_obj = open(__file__)
         try:
             assert _is_serializable(file_obj) is False
         finally:
@@ -212,15 +213,16 @@ class TestStateHelperFunctions:
     @pytest.mark.unit
     def test_prepare_non_serializable_filtering(self):
         """Test that non-serializable items are filtered out"""
-        file_obj = open(__file__, "r")
+        file_obj = open(__file__)
         try:
             input_list = [1, file_obj, "string"]
             result = _prepare(input_list)
 
             # Non-serializable object should be filtered out
-            assert file_obj not in result
-            assert 1 in result
-            assert "string" in result
+            # _prepare 返回类型宽泛，使用 type: ignore
+            assert file_obj not in result  # type: ignore[operator]
+            assert 1 in result  # type: ignore[operator]
+            assert "string" in result  # type: ignore[operator]
         finally:
             file_obj.close()
 
@@ -234,8 +236,9 @@ class TestStateHelperFunctions:
 
         result = _prepare(nested_data)
 
-        assert result["level1"]["level2"][2]["level3"] == "deep_value"
-        assert result["list"][0]["nested"] == "dict"
+        # _prepare 返回类型宽泛，使用 type: ignore
+        assert result["level1"]["level2"][2]["level3"] == "deep_value"  # type: ignore[index]
+        assert result["list"][0]["nested"] == "dict"  # type: ignore[index]
 
 
 class TestStateSaveLoad:
@@ -372,7 +375,7 @@ class TestStateSaveLoad:
 
     @pytest.mark.unit
     @patch("os.path.isfile", return_value=True)
-    @patch("builtins.open", side_effect=IOError("File read error"))
+    @patch("builtins.open", side_effect=OSError("File read error"))
     def test_load_function_state_io_error(self, mock_open, mock_isfile):
         """Test load_function_state with IO error"""
         obj = SerializableTestObject()
@@ -443,8 +446,9 @@ class TestStateEdgeCases:
         result = _prepare(combined)
 
         # Should handle large structures
-        assert len(result["dict"]) == 1000
-        assert len(result["list"]) == 1000
+        # _prepare 返回类型宽泛，使用 type: ignore
+        assert len(result["dict"]) == 1000  # type: ignore[index]
+        assert len(result["list"]) == 1000  # type: ignore[index]
 
 
 class TestStateBlacklistHandling:
@@ -472,7 +476,7 @@ class TestStateBlacklistHandling:
         thread = threading.Thread()
         assert _is_serializable(thread) is False
 
-        file_handle = open(__file__, "r")
+        file_handle = open(__file__)
         try:
             assert _is_serializable(file_handle) is False
         finally:

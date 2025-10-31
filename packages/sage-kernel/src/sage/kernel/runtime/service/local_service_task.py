@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING, Any
 from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
-    from sage.core.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.context.service_context import ServiceContext
+    from sage.kernel.runtime.factory.service_factory import ServiceFactory
 
 
 class LocalServiceTask(BaseServiceTask):
     """本地服务任务，继承BaseServiceTask并提供本地执行支持"""
 
-    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext" = None):
+    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext | None" = None):
         """
         初始化本地服务任务
 

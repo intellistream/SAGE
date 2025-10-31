@@ -2,18 +2,25 @@ import threading
 import time
 from abc import ABC
 from queue import Empty as QueueEmpty
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 try:
-    from ray.util.queue import Empty as RayQueueEmpty
+    from ray.util.queue import Empty as RayQueueEmpty  # type: ignore
 except ImportError:
-    RayQueueEmpty = QueueEmpty
+    RayQueueEmpty = QueueEmpty  # type: ignore
 from sage.kernel.runtime.communication.router.packet import Packet, StopSignal
 from sage.kernel.runtime.context.task_context import TaskContext
+from sage.kernel.runtime.monitoring import (
+    RESOURCE_MONITOR_AVAILABLE,
+    MetricsCollector,
+    MetricsReporter,
+    ResourceMonitor,
+    TaskPerformanceMetrics,
+)
 
 if TYPE_CHECKING:
-    from sage.core.factory.operator_factory import OperatorFactory
-    from sage.core.operator.base_operator import BaseOperator
+    from sage.kernel.api.operator.base_operator import BaseOperator
+    from sage.kernel.runtime.factory.operator_factory import OperatorFactory
 
 
 QUEUE_EMPTY_EXCEPTIONS = (
@@ -21,11 +28,11 @@ QUEUE_EMPTY_EXCEPTIONS = (
 )
 
 
-class BaseTask(ABC):
+class BaseTask(ABC):  # noqa: B024
     def __init__(self, ctx: "TaskContext", operator_factory: "OperatorFactory") -> None:
         self.ctx = ctx
 
-        # 使用从上下文传入的队列描述符，而不是直接创建队列
+        # 使用从上下文传入的队列描述符
         self.input_qd = self.ctx.input_qd
 
         if self.input_qd:
@@ -36,21 +43,254 @@ class BaseTask(ABC):
             self.logger.info("🎯 Task: No input queue (source/spout node)")
 
         # === 线程控制 ===
-        self._worker_thread: Optional[threading.Thread] = None
+        self._worker_thread: threading.Thread | None = None
         self.is_running = False
+
         # === 性能监控 ===
         self._processed_count = 0
         self._error_count = 0
+
+        # ✅ 添加 checkpoint 相关属性
+        self._checkpoint_counter = 0
+        self._last_checkpoint_time = 0.0
+
+        # 检查是否启用性能监控
+        self._enable_monitoring = getattr(ctx, "enable_monitoring", False)
+        self.metrics_collector: MetricsCollector | None = None
+        self.resource_monitor: ResourceMonitor | None = None
+        self.metrics_reporter: MetricsReporter | None = None
+
+        self.fault_handler = None  # Will be set by dispatcher if applicable
+
+        if self._enable_monitoring:
+            try:
+                self.metrics_collector = MetricsCollector(
+                    name=self.ctx.name,
+                    window_size=getattr(ctx, "metrics_window_size", 10000),
+                    enable_detailed_tracking=getattr(ctx, "enable_detailed_tracking", True),
+                )
+
+                # 尝试启动资源监控（需要psutil）
+                if RESOURCE_MONITOR_AVAILABLE:
+                    try:
+                        self.resource_monitor = ResourceMonitor(
+                            sampling_interval=getattr(ctx, "resource_sampling_interval", 1.0),
+                            enable_auto_start=True,
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to start resource monitoring for task {self.name}: {e}"
+                        )
+                else:
+                    self.logger.debug(
+                        f"psutil not available, resource monitoring disabled for task {self.name}"
+                    )
+
+                # 可选：启动性能汇报器
+                if getattr(ctx, "enable_auto_report", False):
+                    self.metrics_reporter = MetricsReporter(
+                        metrics_collector=self.metrics_collector,
+                        resource_monitor=self.resource_monitor,
+                        report_interval=getattr(ctx, "report_interval", 60),
+                        enable_auto_report=True,
+                        report_callback=lambda report: self.logger.info(f"\n{report}"),
+                    )
+
+                self.logger.info(f"Performance monitoring enabled for task {self.name}")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize monitoring for task {self.name}: {e}")
+                self._enable_monitoring = False
+
         try:
             self.operator: BaseOperator = operator_factory.create_operator(self.ctx)
-            self.operator.task = self
-            # 不再需要inject_router，operator通过ctx.send_packet()进行路由
-            # self.operator.inject_router(self.router)
+            if hasattr(self.operator, "task"):
+                self.operator.task = self  # type: ignore
+        except Exception as e:
+            self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
+            raise
+
+    def get_state(self) -> dict:
+        """
+        获取任务完整状态用于 checkpoint
+
+        包括：
+        1. Task 层的状态（processed_count, error_count 等）
+        2. Operator 层的状态（通过 operator.get_state()）
+        3. Function 层的状态（通过 function.get_state()，已包含在 operator 中）
+
+        Returns:
+            任务完整状态字典
+        """
+        state = {
+            # === Task 元数据 ===
+            "task_id": self.name,
+            "task_type": self.__class__.__name__,
+            "is_spout": self.is_spout,
+            "timestamp": time.time(),
+            # === Task 性能指标 ===
+            "processed_count": self._processed_count,
+            "error_count": self._error_count,
+            "checkpoint_counter": self._checkpoint_counter,
+            "last_checkpoint_time": self._last_checkpoint_time,
+            # === Task 配置 ===
+            "delay": self.delay,
+        }
+
+        # === Operator 和 Function 状态 ===
+        if hasattr(self.operator, "get_state"):
+            try:
+                operator_state = self.operator.get_state()
+                state["operator_state"] = operator_state
+
+                self.logger.debug(
+                    f"Captured operator state for {self.name}: {list(operator_state.keys())}"
+                )
+
+                # 如果 operator_state 包含 function_state，也记录
+                if "function_state" in operator_state:
+                    function_attrs = list(operator_state["function_state"].keys())
+                    self.logger.debug(f"Function state includes: {function_attrs}")
+
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to get operator state for {self.name}: {e}", exc_info=True
+                )
+                state["operator_state"] = None
+        else:
+            self.logger.warning(
+                f"Operator {self.operator.__class__.__name__} does not support get_state()"
+            )
+            state["operator_state"] = None
+
+        # === Context 配置信息（只保存配置，不保存运行时对象）===
+        try:
+            state["context_config"] = {
+                "name": self.ctx.name,
+                "is_spout": self.ctx.is_spout,
+                "delay": self.ctx.delay,
+                # 不保存 queue, router 等运行时对象
+            }
+        except Exception as e:
+            self.logger.warning(f"Failed to capture context config: {e}")
+
+        # 记录状态大小（用于监控）
+        try:
+            import sys
+
+            state_size = sys.getsizeof(str(state))
+            self.logger.debug(f"Checkpoint state size for {self.name}: {state_size} bytes")
+        except Exception:
+            pass
+
+        return state
+
+    def restore_state(self, state: dict):
+        """
+        从 checkpoint 完整恢复任务状态
+
+        恢复顺序：
+        1. Task 层状态
+        2. Operator 层状态
+        3. Function 层状态（通过 operator.restore_state）
+
+        Args:
+            state: 保存的状态字典
+        """
+        self.logger.info(f"⏮️ Restoring state for task {self.name}")
+
+        try:
+            # === 恢复 Task 层状态 ===
+            self._processed_count = state.get("processed_count", 0)
+            self._error_count = state.get("error_count", 0)
+            self._checkpoint_counter = state.get("checkpoint_counter", 0)
+            self._last_checkpoint_time = state.get("last_checkpoint_time", 0.0)
+
+            self.logger.info(
+                f"✅ Task state restored: "
+                f"processed={self._processed_count}, "
+                f"errors={self._error_count}, "
+                f"checkpoints={self._checkpoint_counter}"
+            )
+
+            # === 恢复 Operator 和 Function 状态 ===
+            operator_state = state.get("operator_state")
+            if operator_state and hasattr(self.operator, "restore_state"):
+                try:
+                    self.operator.restore_state(operator_state)
+                    self.logger.info(f"✅ Operator state restored for {self.name}")
+
+                    # 验证 function 状态是否恢复
+                    if hasattr(self.operator, "function"):
+                        function = self.operator.function
+
+                        # 记录恢复的 function 属性
+                        restored_attrs = []
+                        if "function_state" in operator_state:
+                            for attr_name in operator_state["function_state"].keys():
+                                if hasattr(function, attr_name):
+                                    value = getattr(function, attr_name)
+                                    restored_attrs.append(f"{attr_name}={value}")
+
+                        if restored_attrs:
+                            self.logger.info(
+                                f"✅ Function attributes restored: {', '.join(restored_attrs)}"
+                            )
+
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to restore operator state: {e}", exc_info=True)
+            else:
+                if not operator_state:
+                    self.logger.warning(f"⚠️ No operator state found in checkpoint for {self.name}")
+                elif not hasattr(self.operator, "restore_state"):
+                    self.logger.warning(
+                        f"⚠️ Operator {self.operator.__class__.__name__} does not support restore_state()"
+                    )
+
+            self.logger.info(f"🎉 Complete state restoration finished for task {self.name}")
+
         except Exception as e:
             self.logger.error(
-                f"Failed to initialize node {self.name}: {e}", exc_info=True
+                f"❌ Critical error during state restoration for {self.name}: {e}",
+                exc_info=True,
             )
             raise
+
+    def save_checkpoint_if_needed(self, fault_handler) -> bool:
+        """
+        如果需要，保存 checkpoint
+
+        Args:
+            fault_handler: 容错处理器
+
+        Returns:
+            True 如果保存了 checkpoint
+        """
+        # 检查是否是 CheckpointBasedRecovery
+        from sage.kernel.fault_tolerance.impl.checkpoint_recovery import (
+            CheckpointBasedRecovery,
+        )
+
+        if not isinstance(fault_handler, CheckpointBasedRecovery):
+            return False
+
+        current_time = time.time()
+        interval = fault_handler.checkpoint_interval
+
+        # 检查是否应该保存 checkpoint
+        if (current_time - self._last_checkpoint_time) >= interval:
+            state = self.get_state()
+            success = fault_handler.save_checkpoint(self.name, state)
+
+            if success:
+                self._last_checkpoint_time = current_time
+                self._checkpoint_counter += 1
+                self.logger.debug(
+                    f"Checkpoint #{self._checkpoint_counter} saved for task {self.name}"
+                )
+
+            return success
+
+        return False
 
     @property
     def router(self):
@@ -78,14 +318,13 @@ class BaseTask(ABC):
 
     # 连接管理现在由TaskContext在构造时完成，不再需要动态添加连接
 
-    def trigger(self, input_tag: str = None, packet: "Packet" = None) -> None:
+    def trigger(self, input_tag: str | None = None, packet: "Packet | None" = None) -> None:
         try:
             self.logger.debug(f"Received data in node {self.name}, channel {input_tag}")
-            self.operator.process_packet(packet)
+            if packet is not None:
+                self.operator.process_packet(packet)  # type: ignore
         except Exception as e:
-            self.logger.error(
-                f"Error processing data in node {self.name}: {e}", exc_info=True
-            )
+            self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise
 
     def stop(self) -> None:
@@ -111,20 +350,47 @@ class BaseTask(ABC):
         """
         Main worker loop that executes continuously until stop is signaled.
         """
+        # 获取 fault_handler（如果有）
+        fault_handler = None
+        if (
+            hasattr(self.ctx, "dispatcher")
+            and self.ctx.dispatcher
+            and hasattr(self.ctx.dispatcher, "fault_handler")
+        ):
+            fault_handler = self.ctx.dispatcher.fault_handler
+            self.logger.debug(f"Task {self.name} has fault_handler: {type(fault_handler).__name__}")
+
         # Main execution loop
+        print(
+            f"[DIAGNOSE] Task {self.name}: Entering worker loop, is_spout={self.is_spout}, stop={self.ctx.is_stop_requested()}"
+        )
+        self.logger.info(
+            f"[DIAGNOSE] Task {self.name}: Entering worker loop, is_spout={self.is_spout}"
+        )
+
         while not self.ctx.is_stop_requested():
             try:
-                if self.is_spout:
+                # ✅ 定期保存 checkpoint
+                if fault_handler:
+                    self.save_checkpoint_if_needed(fault_handler)
 
+                if self.is_spout:
                     self.logger.debug(f"Running spout node '{self.name}'")
-                    self.operator.receive_packet(None)
+                    if hasattr(self.operator, "receive_packet"):
+                        self.operator.receive_packet(None)  # type: ignore
+
+                    # 增加处理计数
+                    self._processed_count += 1
+
+                    # 检查是否在执行后收到了停止信号
+                    if self.ctx.is_stop_requested():
+                        break
+
                     self.logger.debug(f"self.delay: {self.delay}")
                     if self.delay > 0.002:
                         time.sleep(self.delay)
                 else:
-
                     # For non-spout nodes, fetch input and process
-                    # input_result = self.fetch_input()
                     try:
                         data_packet = self.input_qd.get(timeout=5.0)
                     except QUEUE_EMPTY_EXCEPTIONS:
@@ -139,27 +405,23 @@ class BaseTask(ABC):
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
+
                     self.logger.debug(
                         f"Node '{self.name}' received data packet: {data_packet}, type: {type(data_packet)}"
                     )
+
                     if data_packet is None:
-                        self.logger.info(
-                            f"Task {self.name}: Received None packet, continuing loop"
-                        )
+                        self.logger.info(f"Task {self.name}: Received None packet, continuing loop")
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
 
                     # Check if received packet is a StopSignal
                     if isinstance(data_packet, StopSignal):
-                        self.logger.info(
-                            f"Node '{self.name}' received stop signal: {data_packet}"
-                        )
+                        self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
 
-                        # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
-                        # Comap不能直接套用Join的逻辑，否则会出问题
-                        from sage.core.operator.join_operator import JoinOperator
-                        from sage.core.operator.sink_operator import SinkOperator
+                        from sage.kernel.api.operator.join_operator import JoinOperator
+                        from sage.kernel.api.operator.sink_operator import SinkOperator
 
                         if isinstance(self.operator, SinkOperator):
                             self.logger.info(
@@ -171,42 +433,33 @@ class BaseTask(ABC):
                             self.logger.info(
                                 f"Calling handle_stop_signal for {type(self.operator).__name__} {self.name}"
                             )
-                            # 对于Join和CoMap操作，需要传递停止信号的来源信息
-                            # 从data_packet中提取input_index信息
                             input_index = getattr(data_packet, "input_index", None)
                             self.operator.handle_stop_signal(
                                 stop_signal_name=data_packet.source,
                                 input_index=input_index,
                             )
-                            # 对于Join和CoMap，不调用ctx.handle_stop_signal，让operator自己决定何时停止
-                            # 跳过向下游转发停止信号，让operator自己处理
                             continue
 
                         # 对于所有操作符，立即向下游转发停止信号
-                        # 这确保停止信号能够传播到整个拓扑
                         self.router.send_stop_signal(data_packet)
 
                         # 在task层统一处理停止信号计数
                         should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
 
                         # 停止当前task的worker loop
-                        # 但是要特别处理某些操作符
-                        from sage.core.operator.filter_operator import FilterOperator
-                        from sage.core.operator.keyby_operator import KeyByOperator
-                        from sage.core.operator.map_operator import MapOperator
+                        from sage.kernel.api.operator.filter_operator import (
+                            FilterOperator,
+                        )
+                        from sage.kernel.api.operator.keyby_operator import (
+                            KeyByOperator,
+                        )
+                        from sage.kernel.api.operator.map_operator import MapOperator
 
-                        # 对于中间转换操作符，需要额外的逻辑确保它们不会过早停止
-                        if isinstance(
-                            self.operator, (KeyByOperator, MapOperator, FilterOperator)
-                        ):
-                            # 中间操作符应该在收到停止信号后立即停止并转发信号
-                            # 这样确保停止信号能够正确传播到下游
+                        if isinstance(self.operator, (KeyByOperator, MapOperator, FilterOperator)):
                             self.logger.info(
                                 f"Intermediate operator {self.name} received stop signal, stopping and forwarding"
                             )
-                            # 先通知JobManager该节点完成
                             self.ctx.send_stop_signal_back(self.name)
-                            # 然后让中间操作符停止，确保停止信号能传播
                             self.ctx.set_stop_signal()
                             break
                         elif should_stop_pipeline:
@@ -215,11 +468,83 @@ class BaseTask(ABC):
 
                         continue
 
-                    self.operator.receive_packet(data_packet)
+                    # 记录包处理开始（如果启用监控）
+                    packet_id = None
+                    if self._enable_monitoring and self.metrics_collector:
+                        packet_id = self.metrics_collector.record_packet_start(
+                            packet_id=getattr(data_packet, "packet_id", None),
+                            packet_size=getattr(data_packet, "size", 0),
+                        )
+
+                    # 处理数据包
+                    try:
+                        self.operator.receive_packet(data_packet)
+
+                        # 记录包处理成功
+                        if self._enable_monitoring and self.metrics_collector and packet_id:
+                            self.metrics_collector.record_packet_end(
+                                packet_id=packet_id,
+                                success=True,
+                            )
+                        self._processed_count += 1
+
+                    except Exception as process_error:
+                        # 记录包处理失败
+                        if self._enable_monitoring and self.metrics_collector and packet_id:
+                            self.metrics_collector.record_packet_end(
+                                packet_id=packet_id,
+                                success=False,
+                                error_type=type(process_error).__name__,
+                            )
+                        self._error_count += 1
+                        raise
+
             except Exception as e:
-                self.logger.error(f"Critical error in node '{self.name}': {str(e)}")
-            finally:
-                self.is_running = False
+                if fault_handler:
+                    try:
+                        current_state = self.get_state()
+                        saved = fault_handler.save_checkpoint(
+                            task_id=self.name,
+                            state=current_state,
+                            force=True,  # 强制保存，忽略时间间隔
+                        )
+                        if saved:
+                            self.logger.info(
+                                f"💾 Checkpoint saved on exception for task {self.name} "
+                                f"(processed={self._processed_count}, errors={self._error_count})"
+                            )
+                    except Exception as checkpoint_error:
+                        self.logger.warning(
+                            f"Failed to save checkpoint on exception: {checkpoint_error}"
+                        )
+                # ✅ 捕获异常并使用容错处理器
+                self.logger.error(f"Critical error in node '{self.name}': {str(e)}", exc_info=True)
+                self._error_count += 1
+
+                # 通知 dispatcher 处理失败
+                if fault_handler:
+                    handled = fault_handler.handle_failure(self.name, e)
+                    if handled:
+                        self.logger.info(
+                            f"Task {self.name} failure was handled by fault tolerance, "
+                            f"task will be restarted"
+                        )
+                        # 任务将被重启，退出当前 worker loop
+                        break
+                    else:
+                        self.logger.error(
+                            f"Task {self.name} failure could not be handled, stopping..."
+                        )
+                        break
+                else:
+                    # 没有 dispatcher 或容错处理器，直接停止
+                    self.logger.error(
+                        f"No dispatcher available for fault handling, task {self.name} stopping"
+                    )
+                    break
+
+        self.is_running = False
+        self.logger.info(f"Task {self.name} worker loop exited")
 
     @property
     def is_spout(self) -> bool:
@@ -250,6 +575,14 @@ class BaseTask(ABC):
             if self.is_running:
                 self.stop()
 
+            # 停止监控组件
+            if self._enable_monitoring:
+                if self.metrics_reporter:
+                    self.metrics_reporter.stop_reporting()
+                if self.resource_monitor:
+                    self.resource_monitor.stop_monitoring()
+                self.logger.debug(f"Stopped monitoring for task {self.name}")
+
             # # 清理算子资源
             # if hasattr(self.operator, 'cleanup'):
             #     self.operator.cleanup()
@@ -259,10 +592,11 @@ class BaseTask(ABC):
             #     self.router.cleanup()
 
             # 清理输入队列描述符
-            if self.input_qd and hasattr(self.input_qd, "cleanup"):
-                self.input_qd.cleanup()
-            elif self.input_qd and hasattr(self.input_qd, "close"):
-                self.input_qd.close()
+            if self.input_qd:
+                if hasattr(self.input_qd, "cleanup"):
+                    self.input_qd.cleanup()  # type: ignore
+                elif hasattr(self.input_qd, "close"):
+                    self.input_qd.close()  # type: ignore
 
             # 清理运行时上下文（包括service_manager）
             if hasattr(self.ctx, "cleanup"):
@@ -283,9 +617,7 @@ class BaseTask(ABC):
         )
 
         if drained == -1:
-            self.logger.warning(
-                f"Sink task {self.name} timed out while draining in-flight data"
-            )
+            self.logger.warning(f"Sink task {self.name} timed out while draining in-flight data")
         else:
             self.logger.info(
                 f"Sink task {self.name} drained {drained} in-flight packets before shutdown"
@@ -293,7 +625,8 @@ class BaseTask(ABC):
 
         # 完成最终的关闭逻辑
         try:
-            self.operator.handle_stop_signal()
+            if hasattr(self.operator, "handle_stop_signal"):
+                self.operator.handle_stop_signal()  # type: ignore
         except Exception as e:
             self.logger.error(
                 f"Error during sink operator finalization for {self.name}: {e}",
@@ -351,3 +684,54 @@ class BaseTask(ABC):
                 )
 
         return drained_packets
+
+    # === Performance Monitoring API ===
+
+    def get_current_metrics(self) -> TaskPerformanceMetrics | None:
+        """
+        获取当前性能指标
+
+        Returns:
+            TaskPerformanceMetrics 实例，如果监控未启用则返回 None
+        """
+        if not self._enable_monitoring or not self.metrics_collector:
+            return None
+
+        metrics = self.metrics_collector.get_real_time_metrics()
+
+        # 添加资源监控数据
+        if self.resource_monitor:
+            cpu, memory = self.resource_monitor.get_current_usage()
+            metrics.cpu_usage_percent = cpu
+            metrics.memory_usage_mb = memory
+
+        # 添加队列深度
+        if self.input_qd:
+            try:
+                queue_instance = self.input_qd.queue_instance
+                if queue_instance and hasattr(queue_instance, "qsize"):
+                    metrics.input_queue_depth = queue_instance.qsize()
+            except Exception:
+                pass
+
+        return metrics
+
+    def reset_metrics(self) -> None:
+        """重置性能指标"""
+        if self.metrics_collector:
+            self.metrics_collector.reset_metrics()
+
+    def export_metrics(self, format: str = "json") -> str | None:
+        """
+        导出性能指标
+
+        Args:
+            format: 导出格式 ("json", "prometheus", "csv", "human")
+
+        Returns:
+            格式化的指标字符串，如果监控未启用则返回 None
+        """
+        if not self._enable_monitoring or not self.metrics_reporter:
+            return None
+
+        return self.metrics_reporter.generate_report(format=format)

@@ -34,7 +34,7 @@ setup_unicode_symbols() {
     if command -v detect_vscode_offset_requirement >/dev/null 2>&1; then
         detect_vscode_offset_requirement
     fi
-    
+
     # 根据VSCODE_OFFSET_ENABLED状态设置符号
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         # VS Code环境：为Unicode符号添加前后空格
@@ -63,11 +63,11 @@ setup_unicode_symbols() {
 set_symbol_offset() {
     local pre_spaces="${1:-2}"  # 默认前置2个空格
     local post_spaces="${2:-2}" # 默认后置2个空格
-    
+
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         local pre_padding=$(printf "%*s" "$pre_spaces" "")
         local post_padding=$(printf "%*s" "$post_spaces" "")
-        
+
         export ROCKET="${pre_padding}${_ROCKET_BASE}${post_padding}"
         export GEAR="${pre_padding}${_GEAR_BASE}${post_padding}"
         export CHECK="${pre_padding}${_CHECK_BASE}${post_padding}"

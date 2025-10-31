@@ -7,7 +7,6 @@ SAGE Issues管理工具 - 配置管理 (适配sage-tools版本)
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -75,7 +74,7 @@ class IssuesConfig:
         },
     }
 
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None):
         # 如果没有提供project_root，尝试找到SAGE项目根目录
         if project_root is None:
             self.project_root = self._find_project_root()
@@ -97,7 +96,7 @@ class IssuesConfig:
         self.metadata_path.mkdir(parents=True, exist_ok=True)
 
         # 默认值
-        self.github_token_env: Optional[str] = None
+        self.github_token_env: str | None = None
 
         # 加载用户设置
         self._load_user_settings()
@@ -142,7 +141,7 @@ class IssuesConfig:
 
         if settings_file.exists():
             try:
-                with open(settings_file, "r", encoding="utf-8") as f:
+                with open(settings_file, encoding="utf-8") as f:
                     user_settings = json.load(f)
                 # 合并默认设置和用户设置
                 default_settings.update(user_settings)
@@ -187,7 +186,7 @@ class IssuesConfig:
             with open(assignments_file, "w", encoding="utf-8") as f:
                 json.dump(default_assignments, f, indent=2, ensure_ascii=False)
 
-    def _load_github_token(self) -> Optional[str]:
+    def _load_github_token(self) -> str | None:
         """加载GitHub Token"""
 
         # 1. 从环境变量加载
@@ -201,7 +200,7 @@ class IssuesConfig:
         token_file = self.project_root / ".github_token"
         if token_file.exists():
             try:
-                with open(token_file, "r") as f:
+                with open(token_file) as f:
                     return f.read().strip()
             except Exception:
                 pass
@@ -210,7 +209,7 @@ class IssuesConfig:
         home_token_file = Path.home() / ".github_token"
         if home_token_file.exists():
             try:
-                with open(home_token_file, "r") as f:
+                with open(home_token_file) as f:
                     return f.read().strip()
             except Exception:
                 pass

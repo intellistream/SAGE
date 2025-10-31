@@ -34,16 +34,16 @@ gh secret set HF_TOKEN -b "hf_xxx..."
 ## 📋 通过 Web 界面设置
 
 1. 访问：`https://github.com/YOUR_ORG/SAGE/settings/secrets/actions`
-2. 点击 `New repository secret`
-3. 添加以下 secrets：
+1. 点击 `New repository secret`
+1. 添加以下 secrets：
 
-| Name | Value | Required |
-|------|-------|----------|
-| `OPENAI_API_KEY` | 你的 OpenAI/DashScope API key | ✅ 是 |
-| `HF_TOKEN` | 你的 Hugging Face token | ✅ 是 |
-| `ALIBABA_API_KEY` | 阿里云 API key | ⭕ 可选 |
-| `VLLM_API_KEY` | vLLM 服务 token（默认: token-abc123） | ⭕ 可选 |
-| `WEB_SEARCH_API_KEY` | Web 搜索服务 key | ⭕ 可选 |
+| Name                 | Value                                 | Required |
+| -------------------- | ------------------------------------- | -------- |
+| `OPENAI_API_KEY`     | 你的 OpenAI/DashScope API key         | ✅ 是    |
+| `HF_TOKEN`           | 你的 Hugging Face token               | ✅ 是    |
+| `ALIBABA_API_KEY`    | 阿里云 API key                        | ⭕ 可选  |
+| `VLLM_API_KEY`       | vLLM 服务 token（默认: token-abc123） | ⭕ 可选  |
+| `WEB_SEARCH_API_KEY` | Web 搜索服务 key                      | ⭕ 可选  |
 
 ## 🔍 验证配置
 
@@ -56,6 +56,7 @@ git push
 ```
 
 查看 CI 日志，应该能看到：
+
 ```
 ✅ .env 文件创建完成
 📋 验证 .env 文件内容（隐藏敏感信息）:
@@ -71,29 +72,29 @@ HF_TOKEN=***
 ## ⚠️ 注意事项
 
 1. **不要**在 Pull Request 评论或 Issue 中粘贴真实的 API keys
-2. Fork 的仓库需要自己配置 Secrets（外部贡献者无法访问主仓库的 Secrets）
-3. 定期轮换 API keys（建议每 90 天一次）
-4. 使用专用的 CI/CD API keys，与生产环境分离
+1. Fork 的仓库需要自己配置 Secrets（外部贡献者无法访问主仓库的 Secrets）
+1. 定期轮换 API keys（建议每 90 天一次）
+1. 使用专用的 CI/CD API keys，与生产环境分离
 
 ## 🆘 故障排查
 
 ### 问题：CI 失败，提示 "API key not found"
 
 **解决方案：**
+
 1. 检查 Secret 名称是否正确（区分大小写）
-2. 验证 Secret 是否已设置：
+1. 验证 Secret 是否已设置：
    ```bash
    gh secret list
    ```
-3. 确认分支有权限访问 Secrets（默认所有分支都可以）
+1. 确认分支有权限访问 Secrets（默认所有分支都可以）
 
 ### 问题：我是外部贡献者，CI 失败怎么办？
 
-**解决方案：**
-外部贡献者的 PR 默认无法访问仓库的 Secrets（这是安全特性）。你可以：
+**解决方案：** 外部贡献者的 PR 默认无法访问仓库的 Secrets（这是安全特性）。你可以：
 
 1. 在自己的 fork 中配置 Secrets
-2. 或者使用 mock 模式测试（大多数测试支持）：
+1. 或者使用 mock 模式测试（大多数测试支持）：
    ```bash
    SAGE_TEST_MODE=true pytest
    ```

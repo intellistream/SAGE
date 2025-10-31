@@ -4,6 +4,7 @@ AI 分析器（简化实现）
 接受 --mode 参数：duplicates | labels | priority | comprehensive
 参考 legacy 实现，提供本地 issues 的简单分析功能并输出到 output/ 目录
 """
+
 import argparse
 import re
 import sys
@@ -65,8 +66,8 @@ def detect_duplicates(issues: list):
                 dup_pairs.append((issues[i], issues[j], "substring"))
                 continue
             # 词交集
-            s1 = set([w for w in re.split(r"\W+", t1) if w])
-            s2 = set([w for w in re.split(r"\W+", t2) if w])
+            s1 = {w for w in re.split(r"\W+", t1) if w}
+            s2 = {w for w in re.split(r"\W+", t2) if w}
             if not s1 or not s2:
                 continue
             inter = s1.intersection(s2)
@@ -146,10 +147,7 @@ def main():
                 f" - #{a.get('number')} {a.get('title')[:80]} <-> #{b.get('number')} {b.get('title')[:80]} ({reason})"
             )
         # 写入报告
-        out = (
-            config.output_path
-            / f"duplicates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-        )
+        out = config.output_path / f"duplicates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
         with open(out, "w", encoding="utf-8") as f:
             f.write(f"# 重复Issues分析\n\n共 {len(dups)} 组\n\n")
             for a, b, reason in dups:
@@ -162,8 +160,7 @@ def main():
         suggestions = suggest_label_optimizations(issues)
         print(f"为 {len(suggestions)} 个Issues 推荐标签")
         out = (
-            config.output_path
-            / f"label_suggestions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+            config.output_path / f"label_suggestions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
         )
         with open(out, "w", encoding="utf-8") as f:
             f.write(f"# 标签优化建议\n\n共 {len(suggestions)} 条建议\n\n")
@@ -182,9 +179,7 @@ def main():
         with open(out, "w", encoding="utf-8") as f:
             f.write(f"# 优先级评估\n\n共 {len(res)} 条\n\n")
             for r in res:
-                f.write(
-                    f"- #{r.get('number')}: {r.get('title')} -> {r.get('priority')}\n"
-                )
+                f.write(f"- #{r.get('number')}: {r.get('title')} -> {r.get('priority')}\n")
         print(f"报告已保存: {out}")
 
     elif args.mode == "comprehensive":

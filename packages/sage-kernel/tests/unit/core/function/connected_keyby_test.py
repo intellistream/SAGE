@@ -1,13 +1,16 @@
 import threading
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
-from sage.core.api.function.comap_function import BaseCoMapFunction
-from sage.core.api.function.keyby_function import KeyByFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+
+from sage.common.core.functions import (
+    BaseCoMapFunction,
+    KeyByFunction,
+    SinkFunction,
+    SourceFunction,
+)
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 class UserDataSource(SourceFunction):
@@ -23,7 +26,7 @@ class UserDataSource(SourceFunction):
             {"id": 4, "user_id": "user1", "name": "Alice Updated", "type": "user"},
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.users):
             return None
 
@@ -70,7 +73,7 @@ class EventDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.events):
             return None
 
@@ -111,7 +114,7 @@ class ConnectedDebugSink(SinkFunction):
     """调试用的Sink，记录接收到的连接流数据分布"""
 
     # 类级别的统计
-    _received_data: Dict[int, List[Dict]] = {}
+    _received_data: dict[int, list[dict]] = {}
     _lock = threading.Lock()
 
     def __init__(self, **kwargs):
@@ -122,6 +125,9 @@ class ConnectedDebugSink(SinkFunction):
     def execute(self, data: Any):
         if self.ctx:
             self.parallel_index = self.ctx.parallel_index
+
+        # parallel_index 在运行时总是被设置的
+        assert self.parallel_index is not None, "parallel_index must be set"
 
         with self._lock:
             if self.parallel_index not in self._received_data:
@@ -141,14 +147,13 @@ class ConnectedDebugSink(SinkFunction):
 
         # 打印调试信息
         print(
-            f"🔍 [Instance {self.parallel_index}] Type: {data_type}, "
-            f"Key: {key_info}, Data: {data}"
+            f"🔍 [Instance {self.parallel_index}] Type: {data_type}, Key: {key_info}, Data: {data}"
         )
 
         return data
 
     @classmethod
-    def get_received_data(cls) -> Dict[int, List[Dict]]:
+    def get_received_data(cls) -> dict[int, list[dict]]:
         with cls._lock:
             return dict(cls._received_data)
 
@@ -161,7 +166,8 @@ class ConnectedDebugSink(SinkFunction):
 class JoinCoMapFunction(BaseCoMapFunction):
     """示例CoMap函数，用于连接用户和事件数据"""
 
-    is_comap = True
+    # is_comap 在 BaseCoMapFunction 中已经定义为 @property，不需要重复定义
+    # is_comap = True  # 移除这行
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -216,7 +222,7 @@ class TestConnectedStreamsKeyBy:
         event_stream = env.from_source(EventDataSource, delay=0.4)
 
         # 连接流并应用统一的keyby
-        result_stream = (
+        (
             user_stream.connect(event_stream)
             .keyby(UserIdKeyExtractor)  # 两个流都使用UserIdKeyExtractor
             .map(lambda x: x)  # 透明传递
@@ -226,9 +232,7 @@ class TestConnectedStreamsKeyBy:
         print(
             "📊 Pipeline: UserStream + EventStream -> ConnectedStreams.keyby(UserIdExtractor) -> Sink(parallelism=2)"
         )
-        print(
-            "🎯 Expected: Data with same user_id should go to same parallel instance\n"
-        )
+        print("🎯 Expected: Data with same user_id should go to same parallel instance\n")
 
         try:
             env.submit()
@@ -249,7 +253,7 @@ class TestConnectedStreamsKeyBy:
         event_stream = env.from_source(EventDataSource, delay=0.4)
 
         # 连接流并应用不同的keyby策略
-        result_stream = (
+        (
             user_stream.connect(event_stream)
             .keyby([UserIdKeyExtractor, SessionIdKeyExtractor])  # 每个流不同的extractor
             .map(lambda x: x)  # 透明传递
@@ -280,7 +284,7 @@ class TestConnectedStreamsKeyBy:
         event_stream = env.from_source(EventDataSource, delay=0.4)
 
         # KeyBy后进行CoMap join操作
-        result_stream = (
+        (
             user_stream.connect(event_stream)
             .keyby(UserIdKeyExtractor)  # 统一使用user_id作为key
             .comap(JoinCoMapFunction)  # 进行数据join
@@ -312,16 +316,12 @@ class TestConnectedStreamsKeyBy:
         connected = user_stream.connect(event_stream)
 
         # 测试1：key selector数量不匹配
-        with pytest.raises(
-            ValueError, match="Key selector count .* must match stream count"
-        ):
+        with pytest.raises(ValueError, match="Key selector count .* must match stream count"):
             connected.keyby([UserIdKeyExtractor])  # 只有1个selector，但有2个stream
 
-        # 测试2：Lambda函数不支持
-        with pytest.raises(
-            NotImplementedError, match="Lambda functions are not supported"
-        ):
-            connected.keyby(lambda x: x["user_id"])
+        # 测试2：Lambda函数不支持（故意传入 lambda 来测试错误处理）
+        with pytest.raises(NotImplementedError, match="Lambda functions are not supported"):
+            connected.keyby(lambda x: x["user_id"])  # type: ignore[arg-type]
 
         print("✅ Invalid configuration tests passed")
 
@@ -408,18 +408,16 @@ class TestConnectedStreamsKeyBy:
 
         # 验证：每个流的相同key应该路由到相同实例
         for key, instances in stream0_key_distribution.items():
-            assert (
-                len(instances) == 1
-            ), f"❌ Stream0 key {key} routed to multiple instances: {instances}"
+            assert len(instances) == 1, (
+                f"❌ Stream0 key {key} routed to multiple instances: {instances}"
+            )
 
         for key, instances in stream1_key_distribution.items():
-            assert (
-                len(instances) == 1
-            ), f"❌ Stream1 key {key} routed to multiple instances: {instances}"
+            assert len(instances) == 1, (
+                f"❌ Stream1 key {key} routed to multiple instances: {instances}"
+            )
 
-        print(
-            "✅ Per-stream keyby test passed: Each stream's keys correctly partitioned"
-        )
+        print("✅ Per-stream keyby test passed: Each stream's keys correctly partitioned")
 
     def _verify_keyby_comap_results(self):
         """验证KeyBy + CoMap的结果"""
@@ -457,9 +455,7 @@ class TestConnectedStreamsKeyBy:
         assert len(user_updates) > 0, "❌ No user updates received from CoMap"
         assert len(enriched_events) > 0, "❌ No enriched events received from CoMap"
 
-        print(
-            "✅ KeyBy + CoMap test passed: Both user updates and enriched events received"
-        )
+        print("✅ KeyBy + CoMap test passed: Both user updates and enriched events received")
 
 
 if __name__ == "__main__":

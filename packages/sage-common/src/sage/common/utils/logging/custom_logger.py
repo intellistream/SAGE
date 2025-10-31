@@ -4,12 +4,11 @@ import os
 import sys
 import threading
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
 
 from .custom_formatter import CustomFormatter  # 假设有一个自定义格式化器
 
 
-def get_default_log_base_folder(project_root: Optional[Union[str, Path]] = None) -> str:
+def get_default_log_base_folder(project_root: str | Path | None = None) -> str:
     """
     获取默认的日志基础文件夹，使用统一的.sage/logs目录。
 
@@ -54,14 +53,31 @@ class CustomLogger:
 
     def __init__(
         self,
-        outputs: List[Tuple[str, Union[str, int]]] = [("console", "INFO")],
-        name: str = None,
-        log_base_folder: str = None,
+        name_or_outputs: str | list[tuple[str, str | int]] | None = None,
+        outputs: list[tuple[str, str | int]] | None = None,
+        name: str | None = None,
+        log_base_folder: str | None = None,
     ):
         """
         初始化自定义Logger
 
+        Supports multiple invocation methods for better user experience:
+
+        1. Simple invocation (recommended):
+           logger = CustomLogger("MyLogger")
+
+        2. 完整配置：
+           logger = CustomLogger([("console", "INFO"), ("app.log", "DEBUG")], name="MyLogger")
+
+        3. 关键字参数（向后兼容）：
+           logger = CustomLogger(name="MyLogger")
+           logger = CustomLogger(outputs=[("console", "INFO")], name="MyLogger")
+
         Args:
+            name_or_outputs: 可以是：
+                - 字符串: 作为 logger 名称 (最常见用法)
+                - 列表: 作为 outputs 配置
+                - None: 使用默认值
             outputs: 输出配置列表，每个元素为 (output_target, level) 元组
                     - output_target 可以是:
                       - "console": 控制台输出
@@ -72,28 +88,58 @@ class CustomLogger:
             log_base_folder: 日志基础文件夹，用于解析相对路径。如果为None，则不支持相对路径
 
         Examples:
-            # JobManager示例 - 自动使用.sage/logs目录
-            logger = CustomLogger([
-                ("console", "INFO"),
-                ("jobmanager.log", "DEBUG"),           # 相对路径
-                ("error.log", "ERROR"),               # 相对路径
-            ], name="JobManager", log_base_folder=get_default_log_base_folder())
+            # 最简单的用法（推荐）
+            logger = CustomLogger("MyApp")
 
-            # 仅使用绝对路径示例 - 无需log_base_folder
-            logger = CustomLogger([
-                ("console", "INFO"),
-                ("/tmp/app.log", "DEBUG"),             # 绝对路径
-                ("/var/log/error.log", "ERROR")        # 绝对路径
-            ], name="MyApp")
+            # 仅控制台输出
+            logger = CustomLogger("MyApp")
+            logger.info("Hello")
 
-            # 混合路径示例 - 使用.sage/logs作为基础目录
+            # 完整配置
             logger = CustomLogger([
                 ("console", "INFO"),
-                ("app.log", "DEBUG"),                 # 相对于log_base_folder
-                ("/var/log/system.log", "ERROR")      # 绝对路径
-            ], name="MyApp", log_base_folder=get_default_log_base_folder())
+                ("app.log", "DEBUG"),
+            ], name="MyApp", log_base_folder="/var/log")
+
+            # 向后兼容的方式
+            logger = CustomLogger(
+                outputs=[("console", "INFO")],
+                name="MyApp"
+            )
         """
-        self.name = name or "Logger"
+        # 智能参数处理
+        resolved_name = None
+        resolved_outputs = None
+
+        # 处理第一个位置参数 name_or_outputs
+        if name_or_outputs is not None:
+            if isinstance(name_or_outputs, str):
+                # 第一个参数是字符串，视为 name
+                resolved_name = name_or_outputs
+            elif isinstance(name_or_outputs, list):
+                # 第一个参数是列表，视为 outputs
+                resolved_outputs = name_or_outputs
+            else:
+                raise TypeError(
+                    f"First argument must be str (name) or list (outputs), "
+                    f"got {type(name_or_outputs).__name__}"
+                )
+
+        # 处理 name 关键字参数（优先级更高）
+        if name is not None:
+            resolved_name = name
+
+        # 处理 outputs 关键字参数（优先级更高）
+        if outputs is not None:
+            resolved_outputs = outputs
+
+        # 设置默认值
+        if resolved_name is None:
+            resolved_name = "Logger"
+        if resolved_outputs is None:
+            resolved_outputs = [("console", "INFO")]
+
+        self.name = resolved_name
         self.log_base_folder = log_base_folder
 
         # 如果提供了log_base_folder，确保其存在
@@ -111,7 +157,7 @@ class CustomLogger:
 
         enabled_levels = []
 
-        for output_target, level in outputs:
+        for output_target, level in resolved_outputs:
             level_int = self._extract_log_level(level)
             self.output_configs.append(
                 {
@@ -170,7 +216,7 @@ class CustomLogger:
                 )
             return os.path.join(self.log_base_folder, output_target)
 
-    def _extract_log_level(self, level_setting: Union[str, int]) -> int:
+    def _extract_log_level(self, level_setting: str | int) -> int:
         """
         从级别设置中提取日志级别
 
@@ -191,13 +237,9 @@ class CustomLogger:
         elif isinstance(level_setting, int):
             return level_setting
         else:
-            raise TypeError(
-                f"level_setting must be str or int, got {type(level_setting)}"
-            )
+            raise TypeError(f"level_setting must be str or int, got {type(level_setting)}")
 
-    def _create_handler(
-        self, config: dict, formatter: CustomFormatter
-    ) -> Optional[logging.Handler]:
+    def _create_handler(self, config: dict, formatter: CustomFormatter) -> logging.Handler | None:
         """
         根据输出配置创建对应的handler
 
@@ -230,15 +272,13 @@ class CustomLogger:
             print(f"Failed to create handler for {config['target']}: {e}")
             return None
 
-    def get_output_configs(self) -> List[dict]:
+    def get_output_configs(self) -> list[dict]:
         """获取当前输出配置"""
         return [
             {
                 "target": config["target"],
                 "resolved_path": config["resolved_path"],
-                "level": config[
-                    "level_str"
-                ],  # Return string level for public API consistency
+                "level": config["level_str"],  # Return string level for public API consistency
                 "level_str": config["level_str"],
                 "level_num": config["level"],
                 "handler_active": config["handler"] is not None,
@@ -265,9 +305,7 @@ class CustomLogger:
         )
         print("=" * 60)
 
-    def update_output_level(
-        self, target_index_or_name: Union[int, str], new_level: Union[str, int]
-    ):
+    def update_output_level(self, target_index_or_name: int | str, new_level: str | int):
         """
         动态更新指定输出的级别
 
@@ -299,17 +337,13 @@ class CustomLogger:
             target_config["handler"].setLevel(new_level_int)
 
         # 更新logger的最低级别
-        enabled_levels = [
-            config["level"] for config in self.output_configs if config["handler"]
-        ]
+        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
-        print(
-            f"Updated {target_config['target']} level to {target_config['level_str']}"
-        )
+        print(f"Updated {target_config['target']} level to {target_config['level_str']}")
 
-    def add_output(self, output_target: str, level: Union[str, int]):
+    def add_output(self, output_target: str, level: str | int):
         """
         动态添加新的输出目标
 
@@ -339,9 +373,7 @@ class CustomLogger:
         self.output_configs.append(new_config)
 
         # 更新logger最低级别
-        enabled_levels = [
-            config["level"] for config in self.output_configs if config["handler"]
-        ]
+        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
@@ -349,7 +381,7 @@ class CustomLogger:
             f"Added output: {output_target} -> {new_config['resolved_path']} with level {new_config['level_str']}"
         )
 
-    def remove_output(self, target_index_or_name: Union[int, str]):
+    def remove_output(self, target_index_or_name: int | str):
         """
         移除指定的输出目标
 
@@ -379,26 +411,36 @@ class CustomLogger:
             self.logger.removeHandler(target_config["handler"])
 
         # 移除配置
-        self.output_configs.pop(target_index)
+        if target_index is not None:
+            self.output_configs.pop(target_index)
+        else:
+            raise RuntimeError("target_index is None after finding config")
 
         # 更新logger最低级别
-        enabled_levels = [
-            config["level"] for config in self.output_configs if config["handler"]
-        ]
+        enabled_levels = [config["level"] for config in self.output_configs if config["handler"]]
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
         print(f"Removed output: {target_config['target']}")
 
-    def _log_with_caller_info(self, level: int, message: str, exc_info: bool = False):
+    def _log_with_caller_info(
+        self, level: int, message: str, *args, exc_info: bool = False, **kwargs
+    ):
         """
         使用调用者信息记录日志，而不是CustomLogger的信息
+
+        支持 Python logging 标准格式化：
+        - logger.info("Hello %s", "world")
+        - logger.info("User %s logged in at %s", username, timestamp)
         """
         # 获取调用栈，跳过当前方法和调用的debug/info/等方法
         frame = inspect.currentframe()
         try:
             # 跳过 _log_with_caller_info -> debug/info/warning/error -> 实际调用位置
-            caller_frame = frame.f_back.f_back
+            if frame and frame.f_back and frame.f_back.f_back:
+                caller_frame = frame.f_back.f_back
+            else:
+                caller_frame = None
             if caller_frame:
                 pathname = caller_frame.f_code.co_filename
                 lineno = caller_frame.f_lineno
@@ -411,41 +453,42 @@ class CustomLogger:
                     fn=pathname,
                     lno=lineno,
                     msg=message,
-                    args=(),
+                    args=args,  # 支持格式化参数
                     exc_info=err,
+                    **kwargs,
                 )
 
                 # 直接调用handlers处理记录
                 self.logger.handle(record)
             else:
                 # 回退到普通logging
-                self.logger.log(level, message, exc_info=exc_info)
+                self.logger.log(level, message, *args, exc_info=exc_info, **kwargs)
         finally:
             del frame
 
-    def debug(self, message: str):
-        """Debug级别日志"""
-        self._log_with_caller_info(logging.DEBUG, message)
+    def debug(self, message: str, *args, **kwargs):
+        """Debug级别日志，支持格式化参数"""
+        self._log_with_caller_info(logging.DEBUG, message, *args, **kwargs)
 
-    def info(self, message: str):
-        """Info级别日志"""
-        self._log_with_caller_info(logging.INFO, message)
+    def info(self, message: str, *args, **kwargs):
+        """Info级别日志，支持格式化参数"""
+        self._log_with_caller_info(logging.INFO, message, *args, **kwargs)
 
-    def warning(self, message: str):
-        """Warning级别日志"""
-        self._log_with_caller_info(logging.WARNING, message)
+    def warning(self, message: str, *args, **kwargs):
+        """Warning级别日志，支持格式化参数"""
+        self._log_with_caller_info(logging.WARNING, message, *args, **kwargs)
 
-    def error(self, message: str, exc_info: bool = False):
-        """Error级别日志"""
-        self._log_with_caller_info(logging.ERROR, message, exc_info)
+    def error(self, message: str, *args, exc_info: bool = False, **kwargs):
+        """Error级别日志，支持格式化参数"""
+        self._log_with_caller_info(logging.ERROR, message, *args, exc_info=exc_info, **kwargs)
 
-    def critical(self, message: str):
-        """Critical级别日志"""
-        self._log_with_caller_info(logging.CRITICAL, message)
+    def critical(self, message: str, *args, **kwargs):
+        """Critical级别日志，支持格式化参数"""
+        self._log_with_caller_info(logging.CRITICAL, message, *args, **kwargs)
 
-    def exception(self, message: str):
+    def exception(self, message: str, *args, **kwargs):
         """异常级别日志，自动包含异常信息"""
-        self.error(message, exc_info=True)
+        self.error(message, *args, exc_info=True, **kwargs)
 
     @classmethod
     def get_available_levels(cls) -> list:

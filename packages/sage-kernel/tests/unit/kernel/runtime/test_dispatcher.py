@@ -10,6 +10,7 @@ import time
 from unittest.mock import Mock, patch
 
 import pytest
+
 from sage.kernel.runtime.dispatcher import Dispatcher
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
@@ -36,6 +37,9 @@ class MockEnvironment:
 
         self.env_base_dir = str(get_test_env_dir("test_logs"))
         self.console_log_level = "INFO"
+
+        # 添加 config 属性以支持 Dispatcher 的容错配置
+        self.config = {}
 
 
 class TestDispatcher:
@@ -188,8 +192,9 @@ class TestDispatcher:
         env2 = MockEnvironment("env2")
 
         with patch("sage.kernel.runtime.dispatcher.ensure_ray_initialized"):
-            dispatcher1 = Dispatcher(mock_graph, env1)
-            dispatcher2 = Dispatcher(mock_graph, env2)
+            # Mock 对象用于测试，类型不完全匹配
+            dispatcher1 = Dispatcher(mock_graph, env1)  # type: ignore[arg-type]
+            dispatcher2 = Dispatcher(mock_graph, env2)  # type: ignore[arg-type]
 
             assert dispatcher1.name == "env1"
             assert dispatcher2.name == "env2"
@@ -223,16 +228,15 @@ class TestDispatcher:
             pytest.fail(f"Logger should be functional: {e}")
 
     @pytest.mark.integration
-    @patch("sage.kernel.utils.ray.ray.ensure_ray_initialized")
+    @patch("sage.kernel.utils.ray.ray_utils.ensure_ray_initialized")
     def test_dispatcher_ray_integration(self, mock_ray_init, mock_graph):
         """Integration test for Ray initialization"""
         remote_env = MockEnvironment(platform="remote")
 
         # Since actual Ray init happens, mock it to capture the call
-        with patch(
-            "sage.kernel.runtime.dispatcher.ensure_ray_initialized"
-        ) as dispatcher_ray_mock:
-            dispatcher = Dispatcher(mock_graph, remote_env)
+        with patch("sage.kernel.runtime.dispatcher.ensure_ray_initialized") as dispatcher_ray_mock:
+            # Mock 对象用于测试
+            dispatcher = Dispatcher(mock_graph, remote_env)  # type: ignore[arg-type]
 
             # Check the Ray init call was made (either mock could be called)
             dispatcher_ray_mock.assert_called_once()
@@ -269,7 +273,7 @@ class TestDispatcher:
 
         # Create many dispatchers quickly
         dispatchers = []
-        for i in range(100):
+        for _i in range(100):
             with patch("sage.kernel.runtime.dispatcher.ensure_ray_initialized"):
                 dispatcher = Dispatcher(mock_graph, mock_env)
                 dispatchers.append(dispatcher)
@@ -287,7 +291,8 @@ class TestDispatcher:
         invalid_env = None
 
         with pytest.raises(AttributeError):
-            Dispatcher(mock_graph, invalid_env)
+            # 故意传入 None 来测试错误处理
+            Dispatcher(mock_graph, invalid_env)  # type: ignore[arg-type]
 
     @pytest.mark.unit
     def test_dispatcher_repr(self, local_dispatcher):
@@ -306,7 +311,8 @@ class TestDispatcherEdgeCases:
         env = MockEnvironment()
 
         with patch("sage.kernel.runtime.dispatcher.ensure_ray_initialized"):
-            dispatcher = Dispatcher(graph, env)
+            # Mock 对象用于测试
+            dispatcher = Dispatcher(graph, env)  # type: ignore[arg-type]
 
             # Should immediately return True
             result = dispatcher.receive_stop_signal()
@@ -319,10 +325,11 @@ class TestDispatcherEdgeCases:
         env = MockEnvironment()
 
         with patch("sage.kernel.runtime.dispatcher.ensure_ray_initialized"):
-            dispatcher = Dispatcher(graph, env)
+            # Mock 对象用于测试
+            dispatcher = Dispatcher(graph, env)  # type: ignore[arg-type]
 
             # Should handle gracefully
-            result = dispatcher.receive_stop_signal()
+            dispatcher.receive_stop_signal()
             # Behavior depends on implementation, but should not crash
 
     @pytest.mark.unit
@@ -332,7 +339,8 @@ class TestDispatcherEdgeCases:
         env = MockEnvironment()
 
         with patch("sage.kernel.runtime.dispatcher.ensure_ray_initialized"):
-            dispatcher = Dispatcher(graph, env)
+            # Mock 对象用于测试
+            dispatcher = Dispatcher(graph, env)  # type: ignore[arg-type]
 
             # Should handle large numbers
             assert dispatcher.total_stop_signals == 1000000

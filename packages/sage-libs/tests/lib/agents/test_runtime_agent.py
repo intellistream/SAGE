@@ -62,9 +62,7 @@ def test_runtime_basic_flow():
     planner = LLMPlanner(generator=DummyGeneratorPlan())
     profile = BaseProfile(language="zh")
 
-    runtime = AgentRuntime(
-        profile=profile, planner=planner, tools=tools, summarizer=None
-    )
+    runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
     out = runtime.step("计算 21*2+5")
     # 因为计划里包含 reply，runtime 将直接返回 "完成。"
     assert "完成" in out
@@ -74,9 +72,7 @@ def test_runtime_no_reply_uses_template_summary():
     class GenNoReply:
         def execute(self, data):
             # 只返回一个工具步，不含 reply
-            plan = [
-                {"type": "tool", "name": "calculator", "arguments": {"expr": "41+1"}}
-            ]
+            plan = [{"type": "tool", "name": "calculator", "arguments": {"expr": "41+1"}}]
             return (data[0], json.dumps(plan, ensure_ascii=False))
 
     tools = MCPRegistry()
@@ -111,9 +107,7 @@ def test_runtime_with_message_format_summarizer():
 
     class GenNoReply:
         def execute(self, data):
-            plan = [
-                {"type": "tool", "name": "calculator", "arguments": {"expr": "45+2"}}
-            ]
+            plan = [{"type": "tool", "name": "calculator", "arguments": {"expr": "45+2"}}]
             return (data[0], json.dumps(plan, ensure_ascii=False))
 
     tools = MCPRegistry()
@@ -139,9 +133,7 @@ def test_runtime_memory_disabled():
     profile = BaseProfile(language="zh")
 
     # The memory parameter should be commented out/disabled
-    runtime = AgentRuntime(
-        profile=profile, planner=planner, tools=tools, summarizer=None
-    )
+    runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
 
     # Verify memory is not set (should be None or not exist)
     assert not hasattr(runtime, "memory") or runtime.memory is None
@@ -155,9 +147,7 @@ def test_runtime_with_new_planner_message_format():
     planner = LLMPlanner(generator=DummyGeneratorWithMessages())
     profile = BaseProfile(language="zh")
 
-    runtime = AgentRuntime(
-        profile=profile, planner=planner, tools=tools, summarizer=None
-    )
+    runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
 
     out = runtime.step("计算 21*2+5")
     # Should work with the new message format in planner

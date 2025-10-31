@@ -1,21 +1,19 @@
 """
-SAGE Development Toolkit exceptions.
+sage-development Toolkit exceptions.
 
-This module defines the exception hierarchy for the SAGE Development Toolkit.
+This module defines the exception hierarchy for the sage-development Toolkit.
 All toolkit-specific exceptions inherit from SAGEDevToolkitError.
 """
 
-from typing import Optional
-
 
 class SAGEDevToolkitError(Exception):
-    """Base exception for all SAGE Development Toolkit errors."""
+    """Base exception for all sage-development Toolkit errors."""
 
     def __init__(
         self,
         message: str,
-        details: Optional[dict] = None,
-        cause: Optional[Exception] = None,
+        details: dict | None = None,
+        cause: Exception | None = None,
     ):
         super().__init__(message)
         self.message = message
@@ -34,7 +32,7 @@ class SAGEDevToolkitError(Exception):
 class ConfigError(SAGEDevToolkitError):
     """Raised when there are configuration-related errors."""
 
-    def __init__(self, message: str, config_path: Optional[str] = None, **kwargs):
+    def __init__(self, message: str, config_path: str | None = None, **kwargs):
         super().__init__(message, **kwargs)
         self.config_path = config_path
 
@@ -45,8 +43,8 @@ class ToolError(SAGEDevToolkitError):
     def __init__(
         self,
         message: str,
-        tool_name: Optional[str] = None,
-        exit_code: Optional[int] = None,
+        tool_name: str | None = None,
+        exit_code: int | None = None,
         **kwargs,
     ):
         super().__init__(message, **kwargs)
@@ -60,8 +58,8 @@ class AnalysisError(SAGEDevToolkitError):
     def __init__(
         self,
         message: str,
-        analysis_type: Optional[str] = None,
-        failed_files: Optional[list] = None,
+        analysis_type: str | None = None,
+        failed_files: list | None = None,
         **kwargs,
     ):
         super().__init__(message, **kwargs)
@@ -72,7 +70,7 @@ class AnalysisError(SAGEDevToolkitError):
 class TestExecutionError(ToolError):
     """Raised when test execution fails."""
 
-    def __init__(self, message: str, failed_tests: Optional[list] = None, **kwargs):
+    def __init__(self, message: str, failed_tests: list | None = None, **kwargs):
         super().__init__(message, tool_name="test_runner", **kwargs)
         self.failed_tests = failed_tests or []
 
@@ -83,8 +81,8 @@ class PackageManagementError(ToolError):
     def __init__(
         self,
         message: str,
-        package_name: Optional[str] = None,
-        operation: Optional[str] = None,
+        package_name: str | None = None,
+        operation: str | None = None,
         **kwargs,
     ):
         super().__init__(message, tool_name="package_manager", **kwargs)
@@ -95,7 +93,7 @@ class PackageManagementError(ToolError):
 class DependencyAnalysisError(AnalysisError):
     """Raised when dependency analysis fails."""
 
-    def __init__(self, message: str, circular_deps: Optional[list] = None, **kwargs):
+    def __init__(self, message: str, circular_deps: list | None = None, **kwargs):
         super().__init__(message, analysis_type="dependency", **kwargs)
         self.circular_deps = circular_deps or []
 
@@ -106,8 +104,8 @@ class ReportGenerationError(SAGEDevToolkitError):
     def __init__(
         self,
         message: str,
-        report_type: Optional[str] = None,
-        template_path: Optional[str] = None,
+        report_type: str | None = None,
+        template_path: str | None = None,
         **kwargs,
     ):
         super().__init__(message, **kwargs)

@@ -7,7 +7,6 @@ This tool automatically updates VS Code settings.json with Python path configura
 import glob
 import json
 from pathlib import Path
-from typing import Dict, List
 
 from ..core.exceptions import SAGEDevToolkitError
 
@@ -20,7 +19,7 @@ class VSCodePathManager:
         self.packages_dir = self.project_root / "packages"
         self.vscode_settings_path = self.project_root / ".vscode" / "settings.json"
 
-    def update_python_paths(self, mode: str = "enhanced") -> Dict:
+    def update_python_paths(self, mode: str = "enhanced") -> dict:
         """Update VS Code Python path configurations.
 
         Args:
@@ -37,7 +36,7 @@ class VSCodePathManager:
         except Exception as e:
             raise SAGEDevToolkitError(f"VS Code path update failed: {e}")
 
-    def _find_packages_with_pyproject(self) -> List[str]:
+    def _find_packages_with_pyproject(self) -> list[str]:
         """Find packages with pyproject.toml files."""
         if not self.packages_dir.exists():
             return []
@@ -63,7 +62,7 @@ class VSCodePathManager:
 
         return src_paths
 
-    def _find_all_python_packages(self) -> List[str]:
+    def _find_all_python_packages(self) -> list[str]:
         """Find all Python packages (enhanced mode)."""
         if not self.packages_dir.exists():
             return []
@@ -90,17 +89,12 @@ class VSCodePathManager:
                     break
 
         # Method 2: Find directories with __init__.py
-        init_files = glob.glob(
-            str(self.packages_dir / "**" / "__init__.py"), recursive=True
-        )
+        init_files = glob.glob(str(self.packages_dir / "**" / "__init__.py"), recursive=True)
 
         for init_file in init_files:
             package_dir = Path(init_file).parent
             # Skip __pycache__ and other special directories
-            if any(
-                part.startswith(".") or part == "__pycache__"
-                for part in package_dir.parts
-            ):
+            if any(part.startswith(".") or part == "__pycache__" for part in package_dir.parts):
                 continue
 
             relative_path = package_dir.relative_to(self.project_root)
@@ -111,25 +105,23 @@ class VSCodePathManager:
 
         for py_file in py_files:
             py_path = Path(py_file)
-            if any(
-                part.startswith(".") or part == "__pycache__" for part in py_path.parts
-            ):
+            if any(part.startswith(".") or part == "__pycache__" for part in py_path.parts):
                 continue
 
             package_dir = py_path.parent
             relative_path = package_dir.relative_to(self.project_root)
             src_paths.add(f"./{relative_path}")
 
-        return sorted(list(src_paths))
+        return sorted(src_paths)
 
-    def _update_settings_json(self, src_paths: List[str]) -> Dict:
+    def _update_settings_json(self, src_paths: list[str]) -> dict:
         """Update VS Code settings.json file."""
         # Ensure .vscode directory exists
         self.vscode_settings_path.parent.mkdir(exist_ok=True)
 
         # Load existing settings
         if self.vscode_settings_path.exists():
-            with open(self.vscode_settings_path, "r", encoding="utf-8") as f:
+            with open(self.vscode_settings_path, encoding="utf-8") as f:
                 settings = json.load(f)
         else:
             settings = {}
@@ -155,13 +147,13 @@ class VSCodePathManager:
             "status": "success",
         }
 
-    def get_current_paths(self) -> Dict:
+    def get_current_paths(self) -> dict:
         """Get current Python paths from VS Code settings."""
         if not self.vscode_settings_path.exists():
             return {"paths": [], "status": "no_settings_file"}
 
         try:
-            with open(self.vscode_settings_path, "r", encoding="utf-8") as f:
+            with open(self.vscode_settings_path, encoding="utf-8") as f:
                 settings = json.load(f)
 
             return {

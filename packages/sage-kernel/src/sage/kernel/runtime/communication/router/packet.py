@@ -8,7 +8,7 @@ class Packet:
         payload: Any,
         input_index: int = 0,
         partition_key: Any = None,
-        partition_strategy: str = None,
+        partition_strategy: str | None = None,
     ):
         self.payload = payload
         self.input_index = input_index
@@ -29,7 +29,7 @@ class Packet:
             partition_strategy=self.partition_strategy,
         )
 
-    def update_key(self, new_key: Any, new_strategy: str = None) -> "Packet":
+    def update_key(self, new_key: Any, new_strategy: str | None = None) -> "Packet":
         """更新分区键，用于重新分区场景"""
         return Packet(
             payload=self.payload,
@@ -45,7 +45,7 @@ class StopSignal:
     为了保持向后兼容性，第一个参数同时作为 message 和 name 使用
     """
 
-    def __init__(self, message: str = "Stop", source: str = None, payload=None):
+    def __init__(self, message: str = "Stop", source: str | None = None, payload=None):
         # 第一个参数同时作为 message 和 name（兼容旧代码）
         self.message = message
         self.name = message  # 兼容旧的 .name 属性访问
