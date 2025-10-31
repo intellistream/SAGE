@@ -1,4 +1,4 @@
-"""Test cases for ``sage dev`` command group."""
+"""Test cases for ``sage-dev`` command group."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def collect_cases() -> list[CLITestCase]:
 
     return [
         CLITestCase(
-            "sage dev version list",
+            "sage-dev version list",
             ["dev", "version", "list", "--root", str(project_root)],
             app=sage_app,
         ),

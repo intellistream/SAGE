@@ -1,54 +1,48 @@
-# SAGE Applications Package
+# SAGE Libraries Package
 
-SAGE Applications 是基于 SAGE Framework 构建的应用示例和模板集合，提供了丰富的示例代码来帮助开发者快速上手和学习 SAGE 的各种功能。
+## 📋 Overview
 
-## 📚 包含内容
+SAGE Libraries 是基于 SAGE Framework 构建的可复用组件库，提供了丰富的预构建功能模块来帮助开发者快速构建 AI 应用。
 
-### 🔰 教程示例 (tutorials)
-- Hello World 入门示例
-- Core API 使用教程
-- 批处理和流处理对比
+## 📚 Package Contents
 
-### 🧠 RAG 应用 (rag)  
-- 简单 RAG 系统
-- 稠密检索示例
-- 稀疏检索 (BM25) 示例
-- 混合检索策略
-- 重排序和精化示例
+### Core Libraries
 
-### 🤖 智能体应用 (agents)
-- 多智能体系统
-- 工具调用示例
-- 对话管理
+SAGE Libraries 提供了以下核心库组件：
 
-### 🌊 流处理应用 (streaming)
-- Kafka 集成示例
-- 实时数据处理
-- 多管道协同
+- **LLM Integrations**: 大语言模型集成和适配器
+- **Vector Stores**: 向量数据库集成 (FAISS, Milvus, Pinecone 等)
+- **Embeddings**: 嵌入模型封装和工具
+- **Tools & Utilities**: 通用工具和辅助函数
+- **Data Connectors**: 数据源连接器和加载器
 
-### 💾 内存管理 (memory)
-- 外部内存集成
-- 知识库构建
-- 持久化策略
+## 🚀 Installation
 
-### 📊 评估工具 (evaluation)
-- QA 系统评估
-- 性能基准测试
-- 指标收集
+```bash
+# 从源码安装
+pip install -e packages/sage-libs
 
-## 🚀 快速开始
-
-```python
-from sage.libs.examples.rag import simple_rag
-from sage.libs.examples.tutorials import hello_world
-
-# 运行 Hello World 示例
-hello_world.run()
-
-# 运行简单 RAG 示例  
-simple_rag.run()
+# 或使用 sage-dev 命令
+sage-dev install sage-libs
 ```
 
-## 📖 更多信息
+## 📖 Quick Start
 
-详细的使用说明和示例代码请参考各个子目录中的 README 文件。
+```python
+from sage_libs.llm import OpenAIAdapter
+from sage_libs.vector_stores import FAISSStore
+from sage_libs.embeddings import OpenAIEmbeddings
+
+# 使用 LLM 适配器
+llm = OpenAIAdapter(model="gpt-4")
+response = llm.generate("Hello, world!")
+
+# 使用向量存储
+embeddings = OpenAIEmbeddings()
+vector_store = FAISSStore(embeddings)
+vector_store.add_texts(["document 1", "document 2"])
+```
+
+## 📄 License
+
+MIT License - see [LICENSE](../../LICENSE) for details.

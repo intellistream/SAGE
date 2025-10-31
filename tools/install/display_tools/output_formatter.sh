@@ -13,13 +13,13 @@ VSCODE_OFFSET_ENABLED=false
 detect_vscode_offset_requirement() {
     # 静默检查系统环境
     local needs_offset=false
-    
+
     # 检查操作系统
     if [ -f /etc/os-release ]; then
         source /etc/os-release
         local os_id="$ID"
         local version_id="$VERSION_ID"
-        
+
         # 检查是否为 Ubuntu 22.04
         if [ "$os_id" = "ubuntu" ] && [ "$version_id" = "22.04" ]; then
             # 检查 CPU 架构
@@ -32,7 +32,7 @@ detect_vscode_offset_requirement() {
             fi
         fi
     fi
-    
+
     if [ "$needs_offset" = true ]; then
         VSCODE_OFFSET_ENABLED=true
         # 默认偏移量，用户可以通过环境变量自定义
@@ -112,26 +112,26 @@ output_success() {
 center_text_formatted() {
     local text="$1"
     local color="${2:-$NC}"
-    
+
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         # 如果启用了偏移，需要调整居中计算
         local prefix_length=${#OUTPUT_PREFIX}
         local width=$(($(get_terminal_width) - prefix_length))
         local text_len=$(display_width "$text")
-        
+
         if [ "$text_len" -ge "$width" ]; then
             format_printf "%b%s%b\n" "$color" "$text" "$NC"
             return
         fi
-        
+
         local padding=$(( (width - text_len) / 2 ))
         [ "$padding" -lt 0 ] && padding=0
-        
+
         local spaces=""
         for (( i=0; i<padding; i++ )); do
             spaces+=" "
         done
-        
+
         format_printf "%s%b%s%b\n" "$spaces" "$color" "$text" "$NC"
     else
         # 使用原始的居中函数
@@ -144,26 +144,26 @@ center_text_with_extra_offset() {
     local text="$1"
     local color="${2:-$NC}"
     local extra_offset="${3:-0}"
-    
+
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         local prefix_length=${#OUTPUT_PREFIX}
         local width=$(($(get_terminal_width) - prefix_length))
         local text_len=$(text_length "$text")
-        
+
         if [ "$text_len" -ge "$width" ]; then
             format_printf "%b%s%b\n" "$color" "$text" "$NC"
             return
         fi
-        
+
         # 加上额外偏移
         local padding=$(( (width - text_len) / 2 + extra_offset ))
         [ "$padding" -lt 0 ] && padding=0
-        
+
         local spaces=""
         for (( i=0; i<padding; i++ )); do
             spaces+=" "
         done
-        
+
         format_printf "%s%b%s%b\n" "$spaces" "$color" "$text" "$NC"
     else
         # 不启用偏移时，使用原始的居中函数
@@ -205,7 +205,7 @@ format_icon_output() {
     local pre_spaces="${3:-}"
     local post_spaces="${4:-}"
     local color="${5:-$NC}"
-    
+
     # 如果没有指定前置空格，使用自动调整
     if [ -z "$pre_spaces" ]; then
         if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
@@ -214,7 +214,7 @@ format_icon_output() {
             pre_spaces="0"  # 非VS Code环境不添加前置空格
         fi
     fi
-    
+
     # 如果没有指定后置空格，使用默认值
     if [ -z "$post_spaces" ]; then
         if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
@@ -223,19 +223,19 @@ format_icon_output() {
             post_spaces="1"  # 默认1个空格
         fi
     fi
-    
+
     # 生成前置空格
     local pre_padding=""
     for (( i=0; i<pre_spaces; i++ )); do
         pre_padding+=" "
     done
-    
+
     # 生成后置空格
     local post_padding=""
     for (( i=0; i<post_spaces; i++ )); do
         post_padding+=" "
     done
-    
+
     # 输出格式化的图标和文本
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         echo -e "${OUTPUT_PREFIX}${pre_padding}${color}${icon}${post_padding}${text}${NC}"
@@ -292,7 +292,7 @@ output_custom_icon() {
     local pre_spaces="${3:-}"
     local post_spaces="${4:-}"
     local color="${5:-$NC}"
-    
+
     format_icon_output "$icon" "$text" "$pre_spaces" "$post_spaces" "$color"
 }
 
@@ -340,7 +340,7 @@ echo_icon() {
     local text="$2"
     local prefix_spaces="${3:-2}"
     local suffix_spaces="${4:-2}"
-    
+
     # 使用已有的 format_icon_output 函数
     format_icon_output "$icon" "$text" "$prefix_spaces" "$suffix_spaces"
 }

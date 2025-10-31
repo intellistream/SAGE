@@ -269,14 +269,9 @@ class TestNormalizeData:
 
         # 当前实现：不会从 question.references 回填顶级 references；当顶级 references 存在且为空时保持为空
         assert isinstance(result, dict)
-        assert (
-            result["question"]["query"]
-            == "Who has the highest goals in world football?"
-        )
+        assert result["question"]["query"] == "Who has the highest goals in world football?"
         assert result["results"] == [{"text": "some retrieval result"}]
-        assert result["generated"].startswith(
-            "The highest goalscorer in FIFA World Cup history"
-        )
+        assert result["generated"].startswith("The highest goalscorer in FIFA World Cup history")
         assert result["references"] == []
 
     def test_normalize_data_with_openai_generator_tuple(self):
@@ -299,10 +294,7 @@ class TestNormalizeData:
 
         # 当前实现：tuple 输入仅提供 question 与 generated，references 为空
         assert isinstance(result, dict)
-        assert (
-            result["question"]["query"]
-            == "Who has the highest goals in world football?"
-        )
+        assert result["question"]["query"] == "Who has the highest goals in world football?"
         assert result["generated"] == "  Gerd Müller"
         assert result["references"] == []
 
@@ -731,9 +723,7 @@ class TestCompressionRateEvaluate:
         test_data = {
             "question": "What is artificial intelligence?",
             "generated": "AI is a field of computer science.",
-            "references": [
-                "Artificial intelligence is the simulation of human intelligence."
-            ],
+            "references": ["Artificial intelligence is the simulation of human intelligence."],
             "retrieved_docs": ["Original document content about AI"],
             "refined_docs": ["Compressed document content"],
         }

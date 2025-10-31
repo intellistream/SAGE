@@ -8,7 +8,7 @@ import unittest
 from io import StringIO
 from unittest.mock import patch
 
-from sage.libs.io_utils.sink import PrintSink
+from sage.libs.io.sink import PrintSink
 
 # 添加项目根目录到路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -20,9 +20,7 @@ class TestPrintSink(unittest.TestCase):
     def setUp(self):
         """测试前准备"""
         self.print_sink = PrintSink(quiet=True)
-        self.print_sink_with_prefix = PrintSink(
-            prefix="TEST", separator=" -> ", quiet=True
-        )
+        self.print_sink_with_prefix = PrintSink(prefix="TEST", separator=" -> ", quiet=True)
 
     def test_simple_string(self):
         """测试简单字符串输出"""

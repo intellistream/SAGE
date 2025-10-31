@@ -4,7 +4,6 @@ SAGE Kernel Package Setup with C Extensions
 自动编译C++扩展的安装脚本
 """
 
-
 from setuptools import setup
 from setuptools.command.build_ext import build_ext
 from setuptools.command.develop import develop
@@ -47,5 +46,5 @@ if __name__ == "__main__":
             "build_ext": BuildCExtensions,
             "install": CustomInstall,
             "develop": CustomDevelop,
-        }
+        },
     )

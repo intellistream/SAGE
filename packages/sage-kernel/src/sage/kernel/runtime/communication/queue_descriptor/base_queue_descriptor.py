@@ -15,7 +15,7 @@ import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class BaseQueueDescriptor(ABC):
         created_timestamp: 创建时间戳（自动生成）
     """
 
-    def __init__(self, queue_id: Optional[str] = None):
+    def __init__(self, queue_id: str | None = None):
         """
         初始化队列描述符基类
 
@@ -78,6 +78,12 @@ class BaseQueueDescriptor(ABC):
         """是否可以序列化"""
         pass
 
+    @property
+    @abstractmethod
+    def metadata(self) -> dict[str, Any]:
+        """队列元数据（由子类实现）"""
+        pass
+
     def _validate(self):
         """验证描述符参数"""
         if not self.queue_id or not isinstance(self.queue_id, str):
@@ -89,41 +95,60 @@ class BaseQueueDescriptor(ABC):
 
     # ============ 队列接口实现 ============
 
-    def put(
-        self, item: Any, block: bool = True, timeout: Optional[float] = None
-    ) -> None:
-        return self.queue_instance.put(item, block=block, timeout=timeout)
+    def put(self, item: Any, block: bool = True, timeout: float | None = None) -> None:
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.put(item, block=block, timeout=timeout)
 
-    def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
+    def get(self, block: bool = True, timeout: float | None = None) -> Any:
         """从队列中获取项目"""
-        return self.queue_instance.get(block=block, timeout=timeout)
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.get(block=block, timeout=timeout)
 
     def empty(self) -> bool:
         """检查队列是否为空"""
-        return self.queue_instance.empty()
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.empty()
 
     def qsize(self) -> int:
         """获取队列大小"""
-        return self.queue_instance.qsize()
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.qsize()
 
     # 额外的队列方法（如果底层队列支持）
     def put_nowait(self, item: Any) -> None:
         """非阻塞放入项目"""
-        return self.queue_instance.put_nowait(item)
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.put_nowait(item)
 
     def get_nowait(self) -> Any:
         """非阻塞获取项目"""
-        return self.queue_instance.get_nowait()
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.get_nowait()
 
     def full(self) -> bool:
         """检查队列是否已满"""
-        return self.queue_instance.full()
+        queue = self.queue_instance
+        if queue is None:
+            raise RuntimeError(f"Queue instance not initialized for {self.queue_id}")
+        return queue.full()
 
     # ============ 描述符管理方法 ============
 
     @property
     @abstractmethod
-    def queue_instance(self) -> Optional[Any]:
+    def queue_instance(self) -> Any | None:
         pass
 
     def get_queue(self) -> Any:
@@ -140,7 +165,7 @@ class BaseQueueDescriptor(ABC):
         """检查队列是否已初始化"""
         return self._initialized
 
-    def clone(self, new_queue_id: Optional[str] = None) -> "BaseQueueDescriptor":
+    def clone(self, new_queue_id: str | None = None) -> "BaseQueueDescriptor":
         """克隆描述符（不包含队列实例）"""
         # 创建同类型的新实例
         new_instance = type(self)(queue_id=new_queue_id or f"{self.queue_id}_clone")
@@ -155,18 +180,19 @@ class BaseQueueDescriptor(ABC):
 
     # ============ 序列化支持 ============
 
-    def to_dict(self, include_non_serializable: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_non_serializable: bool = False) -> dict[str, Any]:
         """
         转换为字典格式
 
         Args:
             include_non_serializable: 是否包含不可序列化的字段
         """
-        result = {
+        metadata_dict: dict[str, Any] = {}
+        result: dict[str, Any] = {
             "queue_id": self.queue_id,
             "queue_type": self.queue_type,
             "class_name": self.__class__.__name__,
-            "metadata": {},
+            "metadata": metadata_dict,
             "can_serialize": self.can_serialize,
             "created_timestamp": self.created_timestamp,
         }
@@ -178,12 +204,10 @@ class BaseQueueDescriptor(ABC):
 
             try:
                 json.dumps(value)  # 测试是否可序列化
-                result["metadata"][key] = value
+                metadata_dict[key] = value
             except (TypeError, ValueError):
                 if include_non_serializable:
-                    result["metadata"][
-                        key
-                    ] = f"<non-serializable: {type(value).__name__}>"
+                    metadata_dict[key] = f"<non-serializable: {type(value).__name__}>"
 
         return result
 
@@ -223,7 +247,9 @@ class BaseQueueDescriptor(ABC):
             status_parts.append("non-serializable")
 
         status = ", ".join(status_parts)
-        return f"{self.__class__.__name__}(id='{self.queue_id}', type='{self.queue_type}', {status})"
+        return (
+            f"{self.__class__.__name__}(id='{self.queue_id}', type='{self.queue_type}', {status})"
+        )
 
     def __str__(self) -> str:
         return f"Queue[{self.queue_type}]({self.queue_id})"

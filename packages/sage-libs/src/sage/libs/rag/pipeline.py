@@ -2,7 +2,7 @@
 RAG Pipeline - RAG 系统的核心管道组件
 """
 
-from typing import Any, Dict
+from typing import Any
 
 
 class RAGPipeline:
@@ -14,7 +14,7 @@ class RAGPipeline:
         self.reranker = reranker
         self.refiner = refiner
 
-    def run(self, query: str, **kwargs) -> Dict[str, Any]:
+    def run(self, query: str, **kwargs) -> dict[str, Any]:
         """运行 RAG 管道"""
         # 1. 检索相关文档
         if self.retriever:

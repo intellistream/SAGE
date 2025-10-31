@@ -5,21 +5,18 @@ SAGE RAG 示例：文本加载工具
 
 import os
 from pathlib import Path
-from typing import Dict
 
 
 class TextLoader:
-    def __init__(
-        self, filepath: str, encoding: str = "utf-8", chunk_separator: str = None
-    ):
+    def __init__(self, filepath: str, encoding: str = "utf-8", chunk_separator: str | None = None):
         self.filepath = filepath
         self.encoding = encoding
         self.chunk_separator = chunk_separator
 
-    def load(self) -> Dict:
+    def load(self) -> dict:
         if not os.path.exists(self.filepath):
             raise FileNotFoundError(f"File not found: {self.filepath}")
-        with open(self.filepath, "r", encoding=self.encoding) as f:
+        with open(self.filepath, encoding=self.encoding) as f:
             text = f.read()
         return {"content": text, "metadata": {"source": self.filepath, "type": "txt"}}
 
@@ -28,7 +25,7 @@ class PDFLoader:
     def __init__(self, filepath: str):
         self.filepath = filepath
 
-    def load(self) -> Dict:
+    def load(self) -> dict:
         try:
             from PyPDF2 import PdfReader
         except ImportError:
@@ -51,7 +48,7 @@ class DocxLoader:
     def __init__(self, filepath: str):
         self.filepath = filepath
 
-    def load(self) -> Dict:
+    def load(self) -> dict:
         try:
             import docx
         except ImportError:
@@ -71,9 +68,9 @@ class DocLoader:
     def __init__(self, filepath: str):
         self.filepath = filepath
 
-    def load(self) -> Dict:
+    def load(self) -> dict:
         try:
-            import win32com.client
+            import win32com.client  # type: ignore[import-untyped]
         except ImportError:
             raise ImportError("请先安装 pywin32 (仅 Windows 支持): pip install pywin32")
         if not os.path.exists(self.filepath):
@@ -97,10 +94,10 @@ class MarkdownLoader:
         self.filepath = filepath
         self.encoding = encoding
 
-    def load(self) -> Dict:
+    def load(self) -> dict:
         if not os.path.exists(self.filepath):
             raise FileNotFoundError(f"File not found: {self.filepath}")
-        with open(self.filepath, "r", encoding=self.encoding) as f:
+        with open(self.filepath, encoding=self.encoding) as f:
             text = f.read()
         return {"content": text, "metadata": {"source": self.filepath, "type": "md"}}
 
@@ -120,7 +117,7 @@ class LoaderFactory:
     }
 
     @classmethod
-    def load(cls, filepath: str) -> Dict:
+    def load(cls, filepath: str) -> dict:
         ext = Path(filepath).suffix.lower()
         loader_cls = cls._loader_map.get(ext)
         if loader_cls is None:

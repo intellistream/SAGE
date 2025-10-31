@@ -1,5 +1,14 @@
 """
-SAGE - Streaming-Augmented Generative Execution
+SAGE Kernel - 流式数据处理引擎和基础算子
+
+Layer: L3 (Kernel)
+Dependencies: sage.platform (L2), sage.common (L1)
+
+提供：
+- 数据流执行引擎：Environment, DataStream API
+- 基础算子：MapOperator, FilterOperator, FlatMapOperator
+- 运行时组件：JobManager, Scheduler
+- RPC通信实现：RPCQueue（注册到L2工厂）
 """
 
 # 直接从本包的_version模块加载版本信息
@@ -11,22 +20,71 @@ except ImportError:
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
 
-# 导出核心组件
+# 导出核心组件 - 直接从具体模块导入，避免循环
 try:
-    from .jobmanager.jobmanager_client import JobManagerClient
+    from sage.kernel.runtime.jobmanager_client import JobManagerClient
 except ImportError:
-    # 如果导入失败，使用兼容性层
-    try:
-        from sage.core.api.compatibility import safe_import_jobmanager_client
+    # 如果导入失败，提供一个占位符
+    JobManagerClient = None  # type: ignore[assignment,misc]
+    import warnings
 
-        JobManagerClient = safe_import_jobmanager_client()
-    except ImportError:
-        # 最后的备用方案
-        class JobManagerClient:
-            def __init__(self, *args, **kwargs):
-                raise ImportError(
-                    "JobManagerClient is not available. Please check your installation."
-                )
+    warnings.warn(
+        "JobManagerClient is not available. Some features may be limited.",
+        ImportWarning,
+        stacklevel=2,
+    )
 
+# 导出 API 类
+try:
+    from sage.kernel.api import LocalEnvironment, RemoteEnvironment
+except ImportError:
+    LocalEnvironment = None  # type: ignore[assignment,misc]
+    RemoteEnvironment = None  # type: ignore[assignment,misc]
+    import warnings
 
-__all__ = ["__version__", "__author__", "__email__", "JobManagerClient"]
+    warnings.warn(
+        "LocalEnvironment and RemoteEnvironment are not available. Some features may be limited.",
+        ImportWarning,
+        stacklevel=2,
+    )
+
+# 导出子模块
+__layer__ = "L3"
+
+from . import api, operators
+
+# ============================================================================
+# 架构关键：L3向L2注册实现（Factory Pattern）
+# ============================================================================
+# 在初始化时注册RPCQueue实现到sage-platform的工厂
+# 这样L2层可以创建L3实例，但不需要直接导入L3代码
+try:
+    from sage.kernel.runtime.communication.rpc import RPCQueue
+    from sage.platform.queue import register_rpc_queue_factory
+
+    def _rpc_queue_factory(**kwargs):
+        """RPC队列工厂函数 - 由L2调用创建L3实例"""
+        return RPCQueue(**kwargs)
+
+    register_rpc_queue_factory(_rpc_queue_factory)
+
+except ImportError as e:
+    import warnings
+
+    warnings.warn(
+        f"Failed to register RPC queue factory: {e}. "
+        "RPC queue functionality will not be available.",
+        ImportWarning,
+        stacklevel=2,
+    )
+
+__all__ = [
+    "__version__",
+    "__author__",
+    "__email__",
+    "JobManagerClient",
+    "LocalEnvironment",
+    "RemoteEnvironment",
+    "api",
+    "operators",
+]

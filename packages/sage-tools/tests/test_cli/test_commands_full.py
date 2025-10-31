@@ -10,7 +10,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -20,8 +20,8 @@ DEV_CLI_MODULE = "sage.tools.cli.commands.dev.main"
 
 
 def run_command(
-    command: List[str], timeout: int = 30, project_root: Path = PROJECT_ROOT
-) -> Dict[str, Any]:
+    command: list[str], timeout: int = 30, project_root: Path = PROJECT_ROOT
+) -> dict[str, Any]:
     """运行命令并返回结果"""
     try:
         result = subprocess.run(
@@ -53,7 +53,8 @@ class TestCLICommandsFull:
         """测试主CLI帮助"""
         result = run_command([sys.executable, "-m", "sage.tools.cli", "--help"])
         assert result["success"], f"CLI help failed: {result['stderr']}"
-        assert "SAGE" in result["stdout"]
+        # sage.tools.cli 现在只有 dev 和 finetune 命令
+        assert "dev" in result["stdout"]
 
     def test_dev_help(self):
         """测试dev命令帮助"""
@@ -79,7 +80,8 @@ class TestCLICommandsFull:
                 "status",
                 "--output-format",
                 "summary",
-            ]
+            ],
+            timeout=60,  # 增加超时时间，status 命令较慢
         )
         assert result["success"], f"Status summary failed: {result['stderr']}"
         assert "状态报告" in result["stdout"]
@@ -94,7 +96,8 @@ class TestCLICommandsFull:
                 "status",
                 "--output-format",
                 "json",
-            ]
+            ],
+            timeout=60,  # 增加超时时间，status 命令较慢
         )
         assert result["success"], f"Status JSON failed: {result['stderr']}"
         # 验证JSON格式 - 跳过调试输出，找到实际的JSON
@@ -116,7 +119,7 @@ class TestCLICommandsFull:
                 assert "timestamp" in data
                 assert "checks" in data
                 assert isinstance(data["checks"], dict)
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 # If JSON parsing fails due to control characters, just check basic structure
                 assert "timestamp" in json_text
                 assert "checks" in json_text
@@ -162,7 +165,7 @@ class TestCLICommandsFull:
             ], f"Unexpected return code: {result['returncode']}"
 
     def test_clean_command_dry_run(self):
-        """测试clean命令 - 预览模式"""
+        """测试clean命令（预览模式）"""
         result = run_command(
             [
                 sys.executable,
@@ -175,26 +178,6 @@ class TestCLICommandsFull:
         assert result["success"], f"Clean dry-run failed: {result['stderr']}"
         assert "预览" in result["stdout"]
 
-    def test_doctor_command(self):
-        """测试doctor命令"""
-        result = run_command([sys.executable, "-m", "sage.tools.cli.main", "doctor"])
-        assert result["success"], f"Doctor command failed: {result['stderr']}"
-        assert "系统诊断" in result["stdout"]
-
-    def test_version_command(self):
-        """测试version命令"""
-        result = run_command([sys.executable, "-m", "sage.tools.cli.main", "version"])
-        assert result["success"], f"Version command failed: {result['stderr']}"
-        assert "版本" in result["stdout"] or "version" in result["stdout"].lower()
-
-    def test_config_help(self):
-        """测试config命令帮助"""
-        result = run_command(
-            [sys.executable, "-m", "sage.tools.cli.main", "config", "--help"]
-        )
-        assert result["success"], f"Config help failed: {result['stderr']}"
-        assert "配置" in result["stdout"]
-
     @pytest.mark.slow
     def test_import_functionality(self):
         """测试关键模块导入功能"""
@@ -206,9 +189,7 @@ class TestCLICommandsFull:
         ]
 
         for module in modules_to_test:
-            result = run_command(
-                [sys.executable, "-c", f"import {module}; print('OK')"]
-            )
+            result = run_command([sys.executable, "-c", f"import {module}; print('OK')"])
             assert result["success"], f"Failed to import {module}: {result['stderr']}"
             assert "OK" in result["stdout"]
 

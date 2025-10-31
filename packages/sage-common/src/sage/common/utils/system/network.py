@@ -10,7 +10,7 @@ import json
 import socket
 import subprocess
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import psutil
 
@@ -35,7 +35,7 @@ def is_port_occupied(host: str, port: int) -> bool:
         return False
 
 
-def check_port_binding_permission(host: str, port: int) -> Dict[str, Any]:
+def check_port_binding_permission(host: str, port: int) -> dict[str, Any]:
     """
     检查端口绑定权限
 
@@ -108,7 +108,7 @@ def wait_for_port_release(
     return False
 
 
-def find_port_processes(port: int) -> List[psutil.Process]:
+def find_port_processes(port: int) -> list[psutil.Process]:
     """
     查找占用指定端口的进程列表
     使用多种方法确保找到所有相关进程
@@ -145,7 +145,7 @@ def find_port_processes(port: int) -> List[psutil.Process]:
     return processes
 
 
-def _find_processes_with_lsof(port: int) -> List[int]:
+def _find_processes_with_lsof(port: int) -> list[int]:
     """
     使用lsof查找占用端口的进程
 
@@ -173,7 +173,7 @@ def _find_processes_with_lsof(port: int) -> List[int]:
     return []
 
 
-def _find_processes_with_netstat(port: int) -> List[int]:
+def _find_processes_with_netstat(port: int) -> list[int]:
     """
     使用netstat查找占用端口的进程
 
@@ -184,9 +184,7 @@ def _find_processes_with_netstat(port: int) -> List[int]:
         List[int]: 进程ID列表
     """
     try:
-        result = subprocess.run(
-            ["netstat", "-tlnp"], capture_output=True, text=True, timeout=5
-        )
+        result = subprocess.run(["netstat", "-tlnp"], capture_output=True, text=True, timeout=5)
         pids = []
         if result.returncode == 0:
             for line in result.stdout.split("\n"):
@@ -203,7 +201,7 @@ def _find_processes_with_netstat(port: int) -> List[int]:
     return []
 
 
-def _find_processes_with_fuser(port: int) -> List[int]:
+def _find_processes_with_fuser(port: int) -> list[int]:
     """
     使用fuser查找占用端口的进程
 
@@ -214,14 +212,10 @@ def _find_processes_with_fuser(port: int) -> List[int]:
         List[int]: 进程ID列表
     """
     try:
-        result = subprocess.run(
-            ["fuser", f"{port}/tcp"], capture_output=True, text=True, timeout=5
-        )
+        result = subprocess.run(["fuser", f"{port}/tcp"], capture_output=True, text=True, timeout=5)
         if result.returncode == 0 and result.stdout.strip():
             return [
-                int(pid.strip())
-                for pid in result.stdout.strip().split()
-                if pid.strip().isdigit()
+                int(pid.strip()) for pid in result.stdout.strip().split() if pid.strip().isdigit()
             ]
     except (subprocess.SubprocessError, FileNotFoundError, ValueError):
         pass
@@ -229,8 +223,8 @@ def _find_processes_with_fuser(port: int) -> List[int]:
 
 
 def send_tcp_health_check(
-    host: str, port: int, request: Dict[str, Any], timeout: int = 5
-) -> Dict[str, Any]:
+    host: str, port: int, request: dict[str, Any], timeout: int = 5
+) -> dict[str, Any]:
     """
     发送TCP健康检查请求
 
@@ -277,7 +271,7 @@ def send_tcp_health_check(
 
             return json.loads(response_data.decode("utf-8"))
 
-    except socket.error as e:
+    except OSError as e:
         return {"status": "error", "message": f"Connection failed: {e}"}
     except json.JSONDecodeError as e:
         return {"status": "error", "message": f"Invalid JSON response: {e}"}
@@ -286,7 +280,7 @@ def send_tcp_health_check(
 
 
 def allocate_free_port(
-    host: str = "127.0.0.1", port_range: Tuple[int, int] = (19200, 20000)
+    host: str = "127.0.0.1", port_range: tuple[int, int] = (19200, 20000)
 ) -> int:
     """
     分配一个空闲端口
@@ -323,7 +317,7 @@ def allocate_free_port(
         raise RuntimeError(f"Unable to allocate free port: {e}")
 
 
-def aggressive_port_cleanup(port: int) -> Dict[str, Any]:
+def aggressive_port_cleanup(port: int) -> dict[str, Any]:
     """
     激进的端口清理 - 尝试杀死所有占用指定端口的进程
 
@@ -348,9 +342,10 @@ def aggressive_port_cleanup(port: int) -> Dict[str, Any]:
         return result
 
     # 尝试杀死所有找到的进程
-    for pid in all_pids:
+    for proc in all_pids:  # proc is actually a psutil.Process object
         try:
-            proc = psutil.Process(pid)
+            # proc is already a psutil.Process, no need to construct again
+            pid = proc.pid  # Get the PID from the Process object
 
             # 先尝试优雅终止
             try:
@@ -391,7 +386,7 @@ def get_host_ip() -> str:
         return "127.0.0.1"
 
 
-def check_tcp_connection(host: str, port: int, timeout: int = 5) -> Dict[str, Any]:
+def check_tcp_connection(host: str, port: int, timeout: int = 5) -> dict[str, Any]:
     """
     测试TCP连接
 
@@ -422,7 +417,7 @@ def check_tcp_connection(host: str, port: int, timeout: int = 5) -> Dict[str, An
                     "message": f"Connection to {host}:{port} failed (error code: {result})",
                     "response_time": elapsed_time,
                 }
-    except socket.timeout:
+    except TimeoutError:
         return {
             "success": False,
             "message": f"Connection timeout to {host}:{port}",

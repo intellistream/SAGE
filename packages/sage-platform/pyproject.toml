@@ -1,0 +1,112 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage-platform"
+dynamic = [
+    "version",
+]
+description = "SAGE Platform Services - Queue, Storage, and Service Abstractions"
+readme = "README.md"
+authors = [
+    { name = "SAGE Team", email = "info@sage-ai.org" },
+]
+keywords = [
+    "ai",
+    "sage",
+    "platform",
+    "queue",
+    "storage",
+    "infrastructure",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "isage-common",
+]
+
+[project.license]
+text = "MIT"
+
+[project.optional-dependencies]
+ray = [
+    "ray[default]>=2.10.0",
+]
+redis = [
+    "redis>=5.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/sage-ai/sage"
+Documentation = "https://sage-ai.org/docs"
+Repository = "https://github.com/sage-ai/sage"
+Issues = "https://github.com/sage-ai/sage/issues"
+
+[tool.setuptools.dynamic.version]
+attr = "sage.platform._version.__version__"
+
+[tool.setuptools.packages.find]
+where = [
+    "src",
+]
+
+[tool.setuptools.package-data]
+"*" = [
+    "*.txt",
+    "*.md",
+]
+
+[tool.ruff]
+extend = "../../tools/ruff.toml"
+
+[tool.mypy]
+cache_dir = "../../.sage/cache/mypy"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "src",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+addopts = [
+    "--benchmark-storage=../../.sage/benchmarks",
+    "-o",
+    "cache_dir=../../.sage/cache/pytest",
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-ra",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "network: marks tests as network tests",
+    "queue: marks tests as queue tests",
+    "storage: marks tests as storage tests",
+]

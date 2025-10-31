@@ -17,7 +17,6 @@ class CustomFormatter(logging.Formatter):
     COLOR_CRITICAL = "\033[35m"  # 紫色
 
     def format(self, record):
-
         if record.levelno == logging.DEBUG:
             color = self.COLOR_DEBUG
         elif record.levelno == logging.INFO:

@@ -145,10 +145,7 @@ class BoardsMetadataGenerator:
                 return None
 
             projects = (
-                data.get("data", {})
-                .get("organization", {})
-                .get("projectsV2", {})
-                .get("nodes", [])
+                data.get("data", {}).get("organization", {}).get("projectsV2", {}).get("nodes", [])
             )
 
             # 映射项目编号到团队名称

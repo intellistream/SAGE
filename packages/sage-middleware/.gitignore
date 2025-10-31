@@ -110,7 +110,7 @@ build/
 coverage.xml
 dev_reports/
 !/Makefile
-# Build artifacts managed by SAGE dev toolkit
+# Build artifacts managed by sage-dev toolkit
 **/*.egg-info/
 **/dist/
 **/build/
@@ -124,3 +124,5 @@ dev_reports/
 **/.tmp/
 .sage/
 .testlogs/
+./sage_flow_build
+./sage_db_build

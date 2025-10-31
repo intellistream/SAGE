@@ -1,0 +1,140 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage-benchmark"
+dynamic = ["version"]
+description = "SAGE Benchmark - RAG and experimental benchmarks for SAGE framework"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
+]
+keywords = [
+    "sage",
+    "benchmark",
+    "rag",
+    "retrieval-augmented-generation",
+    "evaluation",
+    "experiments",
+    "intellistream",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+# Core dependencies
+dependencies = [
+    # SAGE framework dependencies
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-middleware>=0.1.0",
+    "isage-libs>=0.1.0",
+
+    # RAG and benchmark dependencies
+    "pyyaml>=6.0",
+    "chromadb>=0.4.0",
+    "pymilvus>=2.3.0",
+    "faiss-cpu>=1.7.4",
+    "sentence-transformers>=2.2.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.license]
+text = "MIT"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+all = [
+    "isage-benchmark[dev]",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE"
+Repository = "https://github.com/intellistream/SAGE"
+Issues = "https://github.com/intellistream/SAGE/issues"
+
+[tool.setuptools]
+packages = [
+    "sage.benchmark",
+    "sage.benchmark.benchmark_rag",
+    "sage.benchmark.benchmark_rag.implementations",
+    "sage.benchmark.benchmark_rag.implementations.pipelines",
+    "sage.benchmark.benchmark_rag.implementations.tools",
+    "sage.benchmark.benchmark_rag.evaluation",
+]
+package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.benchmark._version.__version__"}
+
+[tool.setuptools.package-data]
+"sage.benchmark.benchmark_rag" = [
+    "config/*.yaml",
+    "data/**/*",
+    "evaluation/config/*.yaml",
+]
+
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
+[tool.ruff]
+extend = "../../tools/ruff.toml"
+
+[tool.mypy]
+cache_dir = "../../.sage/cache/mypy"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "src",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+addopts = [
+    "--benchmark-storage=../../.sage/benchmarks",
+    "-o",
+    "cache_dir=../../.sage/cache/pytest",
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-ra",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "benchmark: marks tests as benchmark tests",
+    "rag: marks tests as RAG benchmark tests",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']

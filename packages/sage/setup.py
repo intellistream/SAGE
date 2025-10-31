@@ -4,7 +4,6 @@ SAGE Meta Package Setup Script
 提供安装后的用户友好提示
 """
 
-
 from setuptools import setup
 from setuptools.command.develop import develop
 from setuptools.command.install import install
@@ -35,34 +34,37 @@ class PostDevelopCommand(develop):
 def _show_installation_guide():
     """显示安装指南"""
     print("\n" + "=" * 60)
-    print("🎉 SAGE 安装完成！")
+    print("🎉 SAGE 核心安装完成！")
     print("=" * 60)
 
-    print("\n📦 当前已安装:")
-    print("  • isage (meta package) - 核心包管理")
-    print("  • isage-kernel - 数据处理内核")
-    print("  • isage-middleware - 中间件服务")
-    print("  • isage-libs - 应用示例")
+    print("\n📦 当前已安装 (核心组件):")
+    print("  • isage-common - L1 基础工具和公共模块")
+    print("  • isage-kernel - L3 核心运行时和任务执行引擎")
+    print("  • isage-libs - L3 算法库和 Agent 框架")
+    print("  • isage-middleware - L4 RAG/LLM operators")
 
-    print("\n🔧 可选功能包 (推荐安装):")
-    print("  • CLI 工具:")
-    print("    pip install isage-common[basic]")
-    print("  • 开发工具:")
-    print("    pip install isage-tools")
-    print("  • Web 前端:")
-    print("    pip install isage-tools")
-    print("  • 完整功能:")
-    print("    pip install isage-common[full]")
+    print("\n🔧 推荐安装选项:")
+    print("  • 标准开发环境 (含科学计算库):")
+    print("    pip install isage[standard]")
+    print("  • 完整功能 (含示例和测试工具) [需要其他包发布]:")
+    print("    pip install isage[full]")
+    print("  • 框架开发 (修改 SAGE 源代码) [需要其他包发布]:")
+    print("    pip install isage[dev]")
+
+    print("\n⚠️  注意:")
+    print("  某些功能包尚未发布到 PyPI，完整功能需要从源码安装：")
+    print("  git clone https://github.com/intellistream/SAGE.git")
+    print("  cd SAGE && pip install -e packages/sage[dev]")
 
     print("\n🚀 快速开始:")
-    print('  • 查看帮助: python -c "import sage; help(sage)"')
-    print('  • 运行示例: python -c "from sage.apps.examples import hello_world"')
+    print('  • 查看版本: python -c "import sage; print(sage.__version__)"')
+    print('  • 导入核心模块: python -c "from sage import kernel, libs"')
 
     print("\n📚 更多信息:")
     print("  • 文档: https://intellistream.github.io/SAGE-Pub/")
     print("  • GitHub: https://github.com/intellistream/SAGE")
 
-    print("\n💡 提示: 根据使用需求选择安装对应的功能包")
+    print("\n💡 提示: 当前版本仅包含核心功能，CLI/Web UI 等将在后续发布")
     print("=" * 60 + "\n")
 
 

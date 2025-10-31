@@ -1,0 +1,30 @@
+pipeline:
+  name: "qa_source_interactive"
+  description: "Interactive terminal QA pipeline with LLM"
+  version: "1.0.0"
+
+generator:
+  local:
+    method: "hf"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    seed: 42
+
+  vllm:
+    api_key: ""
+    method: "openai"
+    model_name: "qwen-turbo-2025-02-11"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    seed: 42
+
+  remote:
+    api_key: ""
+    method: "openai"
+    model_name: "qwen-turbo-0919"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+sink:
+  platform: "local"

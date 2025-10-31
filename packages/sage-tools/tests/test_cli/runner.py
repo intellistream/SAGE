@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Iterable, List, Sequence, Tuple
 
 from rich.console import Console
 from rich.table import Table
@@ -20,8 +20,11 @@ try:  # pragma: no cover - import fallback for direct execution
 except ImportError:  # pragma: no cover
     if __package__ in (None, ""):
         sys.path.insert(0, str(THIS_DIR))
-        from helpers import CLIRunSummary  # type: ignore[no-redef]
-        from helpers import CLITestCase, run_cases
+        from helpers import (
+            CLIRunSummary,  # type: ignore[no-redef]
+            CLITestCase,
+            run_cases,
+        )
     else:  # pragma: no cover
         raise
 SUITE_FILES: Sequence[str] = (
@@ -31,7 +34,7 @@ SUITE_FILES: Sequence[str] = (
     "doctor_suite.py",
     "dev_suite.py",
     "extensions_suite.py",
-    "studio_suite.py",
+    # studio_suite.py moved to sage-studio package
     "job_suite.py",
     "jobmanager_suite.py",
     "worker_suite.py",
@@ -44,7 +47,7 @@ console = Console()
 
 @dataclass
 class CLITestRun:
-    cases: List[CLITestCase]
+    cases: list[CLITestCase]
     summary: CLIRunSummary
 
     @property
@@ -78,9 +81,9 @@ def _load_module_from_path(path: Path) -> ModuleType:
     return module
 
 
-def _load_modules() -> Tuple[List[ModuleType], List[CLITestCase]]:
-    modules: List[ModuleType] = []
-    cases: List[CLITestCase] = []
+def _load_modules() -> tuple[list[ModuleType], list[CLITestCase]]:
+    modules: list[ModuleType] = []
+    cases: list[CLITestCase] = []
 
     for filename in SUITE_FILES:
         path = THIS_DIR / filename
@@ -118,9 +121,7 @@ def _render_summary(summary: CLIRunSummary) -> None:
     for result in summary.results:
         status = "PASS" if result.ok else "FAIL"
         style = "green" if result.ok else "red"
-        table.add_row(
-            result.case.name, str(result.exit_code), f"[{style}]{status}[/{style}]"
-        )
+        table.add_row(result.case.name, str(result.exit_code), f"[{style}]{status}[/{style}]")
 
     console.print(table)
 

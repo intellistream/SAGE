@@ -51,9 +51,7 @@ def create_fake_html_page(num_articles):
       <img src="https://fake.url/image{i}.jpg" />
     </article>
     """
-    articles_html = "".join(
-        [article_template.format(i=i) for i in range(1, num_articles + 1)]
-    )
+    articles_html = "".join([article_template.format(i=i) for i in range(1, num_articles + 1)])
 
     return f"""
     <html><body><section id='new-article-list'>{articles_html}</section></body></html>

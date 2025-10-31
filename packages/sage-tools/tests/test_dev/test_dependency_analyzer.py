@@ -5,6 +5,7 @@
 from pathlib import Path
 
 import pytest
+
 from sage.tools.dev.tools.dependency_analyzer import DependencyAnalyzer
 
 

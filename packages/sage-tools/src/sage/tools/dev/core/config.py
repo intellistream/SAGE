@@ -1,5 +1,5 @@
 """
-Configuration management for SAGE Development Toolkit.
+Configuration management for sage-development Toolkit.
 
 This module handles loading, validating, and managing configuration
 for the development toolkit, supporting multiple environments and
@@ -9,7 +9,7 @@ configuration sources.
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -18,7 +18,7 @@ from .exceptions import ConfigError
 
 @dataclass
 class ToolkitConfig:
-    """Configuration container for SAGE Development Toolkit."""
+    """Configuration container for sage-development Toolkit."""
 
     # Project paths
     project_root: Path
@@ -29,7 +29,7 @@ class ToolkitConfig:
     temp_dir: Path
 
     # Configuration data
-    config_data: Dict[str, Any] = field(default_factory=dict)
+    config_data: dict[str, Any] = field(default_factory=dict)
 
     # Environment
     environment: str = "development"
@@ -37,9 +37,9 @@ class ToolkitConfig:
     @classmethod
     def from_config_file(
         cls,
-        config_path: Optional[Path] = None,
-        project_root: Optional[Path] = None,
-        environment: Optional[str] = None,
+        config_path: Path | None = None,
+        project_root: Path | None = None,
+        environment: str | None = None,
     ) -> "ToolkitConfig":
         """
         Create configuration from file.
@@ -78,7 +78,7 @@ class ToolkitConfig:
         config_data = {}
         if config_path and config_path.exists():
             try:
-                with open(config_path, "r", encoding="utf-8") as f:
+                with open(config_path, encoding="utf-8") as f:
                     config_data = yaml.safe_load(f) or {}
             except Exception as e:
                 raise ConfigError(
@@ -89,9 +89,7 @@ class ToolkitConfig:
 
         # Determine environment
         if environment is None:
-            environment = os.getenv(
-                "SAGE_DEV_ENV", config_data.get("environment", "development")
-            )
+            environment = os.getenv("SAGE_DEV_ENV", config_data.get("environment", "development"))
 
         # Apply environment-specific overrides
         env_config = config_data.get("environments", {}).get(environment, {})
@@ -122,18 +120,12 @@ class ToolkitConfig:
         )
 
     @staticmethod
-    def _merge_configs(
-        base: Dict[str, Any], override: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _merge_configs(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
         """Recursively merge configuration dictionaries."""
         result = base.copy()
 
         for key, value in override.items():
-            if (
-                key in result
-                and isinstance(result[key], dict)
-                and isinstance(value, dict)
-            ):
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
                 result[key] = ToolkitConfig._merge_configs(result[key], value)
             else:
                 result[key] = value
@@ -153,31 +145,31 @@ class ToolkitConfig:
 
         return value
 
-    def get_testing_config(self) -> Dict[str, Any]:
+    def get_testing_config(self) -> dict[str, Any]:
         """Get testing-specific configuration."""
         return self.get("testing", {})
 
-    def get_dependency_config(self) -> Dict[str, Any]:
+    def get_dependency_config(self) -> dict[str, Any]:
         """Get dependency analysis configuration."""
         return self.get("dependency_analysis", {})
 
-    def get_package_config(self) -> Dict[str, Any]:
+    def get_package_config(self) -> dict[str, Any]:
         """Get package management configuration."""
         return self.get("package_management", {})
 
-    def get_reporting_config(self) -> Dict[str, Any]:
+    def get_reporting_config(self) -> dict[str, Any]:
         """Get reporting configuration."""
         return self.get("reporting", {})
 
-    def get_logging_config(self) -> Dict[str, Any]:
+    def get_logging_config(self) -> dict[str, Any]:
         """Get logging configuration."""
         return self.get("logging", {})
 
-    def get_tools_config(self) -> Dict[str, Any]:
+    def get_tools_config(self) -> dict[str, Any]:
         """Get tools configuration."""
         return self.get("tools", {})
 
-    def get_interactive_config(self) -> Dict[str, Any]:
+    def get_interactive_config(self) -> dict[str, Any]:
         """Get interactive mode configuration."""
         return self.get("interactive", {})
 
@@ -187,7 +179,7 @@ class ToolkitConfig:
         tool_config = tools_config.get(tool_name, {})
         return tool_config.get("enabled", True)
 
-    def get_tool_config(self, tool_name: str) -> Dict[str, Any]:
+    def get_tool_config(self, tool_name: str) -> dict[str, Any]:
         """Get configuration for a specific tool."""
         tools_config = self.get_tools_config()
         return tools_config.get(tool_name, {})
@@ -203,7 +195,7 @@ class ToolkitConfig:
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """
         Validate configuration and return list of validation errors.
 
@@ -226,20 +218,14 @@ class ToolkitConfig:
         tools_config = self.get_tools_config()
         for tool_name, tool_config in tools_config.items():
             if not isinstance(tool_config, dict):
-                errors.append(
-                    f"Tool configuration for '{tool_name}' must be a dictionary"
-                )
+                errors.append(f"Tool configuration for '{tool_name}' must be a dictionary")
                 continue
 
             if "module" not in tool_config:
-                errors.append(
-                    f"Tool '{tool_name}' missing required 'module' configuration"
-                )
+                errors.append(f"Tool '{tool_name}' missing required 'module' configuration")
 
             if "class" not in tool_config:
-                errors.append(
-                    f"Tool '{tool_name}' missing required 'class' configuration"
-                )
+                errors.append(f"Tool '{tool_name}' missing required 'class' configuration")
 
         return errors
 

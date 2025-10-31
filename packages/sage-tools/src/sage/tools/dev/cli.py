@@ -2,7 +2,7 @@
 SAGE 开发工具 CLI - 重定向到统一CLI结构
 
 这个文件现在重定向到新的统一CLI结构。
-请使用: sage dev <command> 而不是直接调用这个模块。
+请使用: sage-dev <command> 而不是直接调用这个模块。
 """
 
 import warnings
@@ -12,7 +12,7 @@ def _warn_deprecated():
     """显示弃用警告"""
     warnings.warn(
         "sage.tools.dev.cli 已迁移到 sage.tools.cli.commands.dev。"
-        "请使用 'sage dev <command>' 命令。",
+        "请使用 'sage-dev <command>' 命令。",
         DeprecationWarning,
         stacklevel=3,
     )
@@ -30,7 +30,7 @@ except ImportError:
 
     def cli():
         print("错误: 统一CLI结构未找到。请确保SAGE已正确安装。")
-        print("使用命令: sage dev <command>")
+        print("使用命令: sage-dev <command>")
         sys.exit(1)
 
 

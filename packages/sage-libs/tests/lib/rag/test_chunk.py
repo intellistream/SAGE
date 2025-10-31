@@ -149,7 +149,7 @@ class TestCharacterSplitter:
         config = {"chunk_size": 5, "overlap": 0}
         splitter = CharacterSplitter(config=config)
 
-        text = "1234567890ABCDE"  # 15个字符
+        text = "1234567890ABCDE"  # pragma: allowlist secret
         chunks = splitter._split_text(text)
 
         # 应该有3个chunk，没有重叠
@@ -244,7 +244,7 @@ class TestCharacterSplitter:
         assert len(result) >= expected_chunks - 1  # 允许一定误差
 
         # 验证每个chunk的长度
-        for i, chunk in enumerate(result[:-1]):  # 除了最后一个chunk
+        for _i, chunk in enumerate(result[:-1]):  # 除了最后一个chunk
             assert len(chunk) == 50
 
         # 验证重叠
@@ -293,7 +293,7 @@ class TestCharacterSplitterConfiguration:
             pytest.skip("Chunk module not available")
 
         test_document = {
-            "content": "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            "content": "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",  # pragma: allowlist secret
             "metadata": {},
         }
         chunk_size = 10

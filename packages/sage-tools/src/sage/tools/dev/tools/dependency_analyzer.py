@@ -8,7 +8,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     import tomllib  # Python 3.11+
@@ -27,7 +27,7 @@ class DependencyAnalyzer:
         self.project_root = Path(project_root)
         self.packages_dir = self.project_root / "packages"
 
-    def analyze_all_dependencies(self) -> Dict[str, Any]:
+    def analyze_all_dependencies(self) -> dict[str, Any]:
         """Analyze dependencies across all packages."""
         try:
             analysis = {
@@ -61,9 +61,7 @@ class DependencyAnalyzer:
 
                     # Track version matrix
                     if "version" in dep_info:
-                        analysis["version_matrix"][dep_name][package_name] = dep_info[
-                            "version"
-                        ]
+                        analysis["version_matrix"][dep_name][package_name] = dep_info["version"]
 
             # Convert set to list for JSON serialization
             analysis["summary"]["unique_dependencies"] = list(
@@ -74,16 +72,14 @@ class DependencyAnalyzer:
             )
 
             # Build dependency graph
-            analysis["dependency_graph"] = self._build_dependency_graph(
-                analysis["packages"]
-            )
+            analysis["dependency_graph"] = self._build_dependency_graph(analysis["packages"])
 
             # Detect conflicts and circular dependencies
-            analysis["summary"]["dependency_conflicts"] = (
-                self._detect_version_conflicts(analysis["version_matrix"])
+            analysis["summary"]["dependency_conflicts"] = self._detect_version_conflicts(
+                analysis["version_matrix"]
             )
-            analysis["summary"]["circular_dependencies"] = (
-                self._detect_circular_dependencies(analysis["dependency_graph"])
+            analysis["summary"]["circular_dependencies"] = self._detect_circular_dependencies(
+                analysis["dependency_graph"]
             )
 
             return analysis
@@ -91,7 +87,7 @@ class DependencyAnalyzer:
         except Exception as e:
             raise SAGEDevToolkitError(f"Dependency analysis failed: {e}")
 
-    def generate_dependency_report(self, output_format: str = "json") -> Dict[str, Any]:
+    def generate_dependency_report(self, output_format: str = "json") -> dict[str, Any]:
         """Generate comprehensive dependency report."""
         try:
             analysis = self.analyze_all_dependencies()
@@ -113,7 +109,7 @@ class DependencyAnalyzer:
         except Exception as e:
             raise SAGEDevToolkitError(f"Report generation failed: {e}")
 
-    def check_dependency_health(self) -> Dict[str, Any]:
+    def check_dependency_health(self) -> dict[str, Any]:
         """Check overall dependency health."""
         try:
             analysis = self.analyze_all_dependencies()
@@ -127,9 +123,7 @@ class DependencyAnalyzer:
             if conflicts:
                 health_score -= len(conflicts) * 10
                 issues.append(f"Found {len(conflicts)} version conflicts")
-                recommendations.append(
-                    "Resolve version conflicts to ensure compatibility"
-                )
+                recommendations.append("Resolve version conflicts to ensure compatibility")
 
             # Check for circular dependencies
             circular = analysis["summary"]["circular_dependencies"]
@@ -142,9 +136,7 @@ class DependencyAnalyzer:
             outdated = self._check_outdated_dependencies(analysis)
             if outdated:
                 health_score -= len(outdated) * 5
-                issues.append(
-                    f"Found {len(outdated)} potentially outdated dependencies"
-                )
+                issues.append(f"Found {len(outdated)} potentially outdated dependencies")
                 recommendations.append("Consider updating outdated dependencies")
 
             # Check for security vulnerabilities
@@ -172,7 +164,7 @@ class DependencyAnalyzer:
         except Exception as e:
             raise SAGEDevToolkitError(f"Dependency health check failed: {e}")
 
-    def _find_package_directories(self) -> List[Path]:
+    def _find_package_directories(self) -> list[Path]:
         """Find all package directories."""
         package_dirs = []
 
@@ -194,7 +186,7 @@ class DependencyAnalyzer:
         package_files = ["pyproject.toml", "setup.py", "requirements.txt", "setup.cfg"]
         return any((path / f).exists() for f in package_files)
 
-    def _analyze_package_dependencies(self, package_dir: Path) -> Dict[str, Any]:
+    def _analyze_package_dependencies(self, package_dir: Path) -> dict[str, Any]:
         """Analyze dependencies for a single package."""
         analysis = {
             "name": package_dir.name,
@@ -227,7 +219,7 @@ class DependencyAnalyzer:
 
         return analysis
 
-    def _parse_pyproject_dependencies(self, pyproject_file: Path, analysis: Dict):
+    def _parse_pyproject_dependencies(self, pyproject_file: Path, analysis: dict):
         """Parse dependencies from pyproject.toml."""
         try:
             with open(pyproject_file, "rb") as f:
@@ -254,13 +246,13 @@ class DependencyAnalyzer:
         except Exception as e:
             print(f"Warning: Could not parse {pyproject_file}: {e}")
 
-    def _parse_setup_dependencies(self, setup_file: Path, analysis: Dict):
+    def _parse_setup_dependencies(self, setup_file: Path, analysis: dict):
         """Parse dependencies from setup.py (basic parsing)."""
         try:
             analysis["dependency_sources"].append("setup.py")
 
             # This is a simplified parser - in practice, you might want to use AST
-            with open(setup_file, "r") as f:
+            with open(setup_file) as f:
                 content = f.read()
 
             # Look for install_requires
@@ -281,22 +273,20 @@ class DependencyAnalyzer:
             print(f"Warning: Could not parse {setup_file}: {e}")
 
     def _parse_requirements_dependencies(
-        self, req_file: Path, analysis: Dict, is_dev: bool = False
+        self, req_file: Path, analysis: dict, is_dev: bool = False
     ):
         """Parse dependencies from requirements.txt files."""
         try:
             source_name = req_file.name
             analysis["dependency_sources"].append(source_name)
 
-            with open(req_file, "r") as f:
+            with open(req_file) as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#") and not line.startswith("-"):
                         dep_name, dep_info = self._parse_dependency_spec(line)
                         target_dict = (
-                            analysis["dev_dependencies"]
-                            if is_dev
-                            else analysis["dependencies"]
+                            analysis["dev_dependencies"] if is_dev else analysis["dependencies"]
                         )
                         target_dict[dep_name] = dep_info
 
@@ -320,7 +310,7 @@ class DependencyAnalyzer:
         else:
             return dep_spec.strip(), {"version": None, "spec": dep_spec.strip()}
 
-    def _build_dependency_graph(self, packages: Dict) -> Dict[str, List[str]]:
+    def _build_dependency_graph(self, packages: dict) -> dict[str, list[str]]:
         """Build dependency graph."""
         graph = {}
 
@@ -337,12 +327,12 @@ class DependencyAnalyzer:
 
         return graph
 
-    def _detect_version_conflicts(self, version_matrix: Dict) -> List[Dict]:
+    def _detect_version_conflicts(self, version_matrix: dict) -> list[dict]:
         """Detect version conflicts."""
         conflicts = []
 
         for dep_name, package_versions in version_matrix.items():
-            versions = set(v for v in package_versions.values() if v)
+            versions = {v for v in package_versions.values() if v}
 
             if len(versions) > 1:
                 conflicts.append(
@@ -355,7 +345,7 @@ class DependencyAnalyzer:
 
         return conflicts
 
-    def _detect_circular_dependencies(self, graph: Dict) -> List[List[str]]:
+    def _detect_circular_dependencies(self, graph: dict) -> list[list[str]]:
         """Detect circular dependencies using DFS."""
         visited = set()
         rec_stack = set()
@@ -386,7 +376,7 @@ class DependencyAnalyzer:
 
         return cycles
 
-    def _check_outdated_dependencies(self, analysis: Dict) -> List[Dict]:
+    def _check_outdated_dependencies(self, analysis: dict) -> list[dict]:
         """Check for potentially outdated dependencies."""
         # This is a simplified check - in practice, you'd want to query PyPI
         outdated = []
@@ -405,7 +395,7 @@ class DependencyAnalyzer:
 
         return outdated
 
-    def _check_security_vulnerabilities(self) -> List[Dict]:
+    def _check_security_vulnerabilities(self) -> list[dict]:
         """Check for security vulnerabilities."""
         try:
             # Try to use safety if available
@@ -436,7 +426,7 @@ class DependencyAnalyzer:
         else:
             return "F"
 
-    def _generate_markdown_report(self, analysis: Dict) -> str:
+    def _generate_markdown_report(self, analysis: dict) -> str:
         """Generate markdown report."""
         report_lines = [
             "# SAGE Dependency Analysis Report",
@@ -476,7 +466,7 @@ class DependencyAnalyzer:
 
         return "\n".join(report_lines)
 
-    def _generate_summary_report(self, analysis: Dict) -> Dict[str, Any]:
+    def _generate_summary_report(self, analysis: dict) -> dict[str, Any]:
         """Generate summary report."""
         return {
             "project_root": analysis["project_root"],
@@ -486,12 +476,11 @@ class DependencyAnalyzer:
             "circular_dependencies": len(analysis["summary"]["circular_dependencies"]),
             "top_dependencies": self._get_top_dependencies(analysis),
             "package_count": {
-                name: len(info["dependencies"])
-                for name, info in analysis["packages"].items()
+                name: len(info["dependencies"]) for name, info in analysis["packages"].items()
             },
         }
 
-    def _get_top_dependencies(self, analysis: Dict) -> List[Dict]:
+    def _get_top_dependencies(self, analysis: dict) -> list[dict]:
         """Get most commonly used dependencies."""
         dep_count = defaultdict(int)
 
@@ -502,6 +491,4 @@ class DependencyAnalyzer:
         # Sort by usage count
         sorted_deps = sorted(dep_count.items(), key=lambda x: x[1], reverse=True)
 
-        return [
-            {"name": name, "usage_count": count} for name, count in sorted_deps[:10]
-        ]
+        return [{"name": name, "usage_count": count} for name, count in sorted_deps[:10]]

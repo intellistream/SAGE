@@ -63,9 +63,7 @@ class text_detector(BaseTool):
             reader = easyocr.Reader(languages)
             return reader
         except ImportError:
-            raise ImportError(
-                "Please install the EasyOCR package using 'pip install easyocr'."
-            )
+            raise ImportError("Please install the EasyOCR package using 'pip install easyocr'.")
         except Exception as e:
             print(f"Error building the OCR tool: {e}")
             return None
@@ -104,16 +102,18 @@ class text_detector(BaseTool):
                 result = reader.readtext(image, **kwargs)
                 try:
                     # detail = 1: Convert numpy types to standard Python types
+                    from typing import Any, cast
+
                     cleaned_result = [
                         (
-                            [[int(coord[0]), int(coord[1])] for coord in item[0]],
-                            item[1],
-                            round(float(item[2]), 2),
+                            [[int(coord[0]), int(coord[1])] for coord in cast(Any, item)[0]],
+                            cast(Any, item)[1],
+                            round(float(cast(Any, item)[2]), 2),
                         )
                         for item in result
                     ]
                     return cleaned_result
-                except Exception as e:
+                except Exception:
                     # detail = 0
                     return result
 
@@ -149,7 +149,6 @@ class text_detector(BaseTool):
 
 
 if __name__ == "__main__":
-
     import json
 
     # Get the directory of the current script

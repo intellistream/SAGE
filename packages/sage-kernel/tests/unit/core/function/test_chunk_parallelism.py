@@ -1,11 +1,8 @@
 import threading
 import time
-from typing import Dict, List
 
-from sage.core.api.function.base_function import BaseFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.common.core.functions import BaseFunction, SinkFunction, SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 # 添加全局打印锁来防止并发输出混乱
 _print_lock = threading.Lock()
@@ -43,7 +40,7 @@ class DocumentSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.documents):
             return None
 
@@ -113,7 +110,7 @@ class ChunkCollector(SinkFunction):
     """收集分块结果的sink算子"""
 
     # 类级别的结果收集 - 只用于测试目的
-    _collected_chunks: List[Dict] = None
+    _collected_chunks: list[dict] = []
     _lock = threading.Lock()
 
     @classmethod
@@ -203,7 +200,7 @@ class TestChunkParallelism:
         ]
 
         # 使用parallelism参数直接设置2个并行chunk实例
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=20, overlap=5, parallelism=2)
             .sink(ChunkCollector, parallelism=1)
@@ -220,8 +217,8 @@ class TestChunkParallelism:
         assert all(chunk.get("chunk_id") for chunk in collected_chunks)
 
         # 验证所有文档都被处理
-        processed_doc_ids = set(chunk["doc_id"] for chunk in collected_chunks)
-        expected_doc_ids = set(doc["id"] for doc in documents)
+        processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
+        expected_doc_ids = {doc["id"] for doc in documents}
         assert processed_doc_ids == expected_doc_ids
 
         print(
@@ -249,7 +246,7 @@ class TestChunkParallelism:
         ]
 
         # 测试不同的并行度设置
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=15, overlap=3, parallelism=3)
             .sink(ChunkCollector, parallelism=2)
@@ -271,9 +268,7 @@ class TestChunkParallelism:
             assert "chunk_id" in chunk
             assert len(chunk["content"]) > 0
 
-        print(
-            f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks"
-        )
+        print(f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks")
 
     def test_chunk_parallelism_hints_large_documents(self):
         """测试大文档的chunk并行处理"""
@@ -294,7 +289,7 @@ class TestChunkParallelism:
         ]
 
         # 使用更高的并行度处理大文档
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=100, overlap=20, parallelism=4)
             .sink(ChunkCollector, parallelism=1)
@@ -345,7 +340,7 @@ class TestChunkParallelism:
         ]
 
         # 使用高并行度处理混合文档类型
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=50, overlap=10, parallelism=4)
             .sink(ChunkCollector, parallelism=2)
@@ -359,24 +354,24 @@ class TestChunkParallelism:
         assert len(collected_chunks) > 0
 
         # 验证所有文档都被处理
-        processed_doc_ids = set(chunk["doc_id"] for chunk in collected_chunks)
+        processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
         expected_doc_ids = {"doc2", "doc3", "doc4", "doc5", "large_doc1", "large_doc2"}
 
-        assert (
-            processed_doc_ids == expected_doc_ids
-        ), f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+        assert processed_doc_ids == expected_doc_ids, (
+            f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+        )
 
         # 验证大文档产生了足够的chunks（如果被处理的话）
         large_doc1_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
         large_doc2_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc2"]
 
         # 大文档应该产生大量chunks
-        assert (
-            len(large_doc1_chunks) > 30
-        ), f"large_doc1 should generate many chunks, got {len(large_doc1_chunks)}"
-        assert (
-            len(large_doc2_chunks) > 30
-        ), f"large_doc2 should generate many chunks, got {len(large_doc2_chunks)}"
+        assert len(large_doc1_chunks) > 30, (
+            f"large_doc1 should generate many chunks, got {len(large_doc1_chunks)}"
+        )
+        assert len(large_doc2_chunks) > 30, (
+            f"large_doc2 should generate many chunks, got {len(large_doc2_chunks)}"
+        )
 
         print(f"✅ Mixed document test completed: {len(collected_chunks)} total chunks")
         print(f"   - large_doc1: {len(large_doc1_chunks)} chunks")
@@ -398,7 +393,7 @@ class TestChunkParallelism:
             {"content": "Test document two.", "id": "test2"},
         ]
 
-        result1 = (
+        (
             env1.from_collection(DocumentSource, documents)
             .map(CharacterSplitter, chunk_size=10, overlap=2, parallelism=2)
             .sink(ChunkCollector)
@@ -424,15 +419,13 @@ class TestChunkParallelism:
 
         env = LocalEnvironment(name="graceful_shutdown_drain_test")
 
-        large_content = (
-            "Synthetic large document content to simulate heavy processing. " * 60
-        )
+        large_content = "Synthetic large document content to simulate heavy processing. " * 60
         documents = [
             {"content": large_content, "id": "slow_doc1"},
             {"content": large_content, "id": "slow_doc2"},
         ]
 
-        result_stream = (
+        (
             env.from_collection(DocumentSource, documents)
             .map(SlowCharacterSplitter, chunk_size=60, overlap=15, parallelism=2)
             .sink(LaggyChunkCollector, parallelism=1)
@@ -446,15 +439,15 @@ class TestChunkParallelism:
         expected_doc_ids = {doc["id"] for doc in documents}
         processed_doc_ids = {chunk["doc_id"] for chunk in collected_chunks}
 
-        assert (
-            processed_doc_ids == expected_doc_ids
-        ), f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+        assert processed_doc_ids == expected_doc_ids, (
+            f"Expected documents {expected_doc_ids}, got {processed_doc_ids}"
+        )
 
         for doc_id in expected_doc_ids:
             doc_chunks = [c for c in collected_chunks if c["doc_id"] == doc_id]
-            assert (
-                len(doc_chunks) > 20
-            ), f"Document {doc_id} should generate many chunks, got {len(doc_chunks)}"
+            assert len(doc_chunks) > 20, (
+                f"Document {doc_id} should generate many chunks, got {len(doc_chunks)}"
+            )
 
         print(
             f"✅ Graceful shutdown drained sink with {len(collected_chunks)} total chunks across {len(expected_doc_ids)} documents"

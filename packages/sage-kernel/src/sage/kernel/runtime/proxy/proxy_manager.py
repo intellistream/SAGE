@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class ProxyManager:
@@ -23,12 +23,12 @@ class ProxyManager:
     _DEFAULT_TIMEOUT: float = 10.0
     _DEFAULT_ASYNC_TIMEOUT: float = 30.0
 
-    def __init__(self, context: Any, logger: Optional[logging.Logger] = None) -> None:
+    def __init__(self, context: Any, logger: logging.Logger | None = None) -> None:
         self._context = context
         self._logger = logger or logging.getLogger(__name__)
         self._service_manager = None
         self._lock = threading.RLock()
-        self._service_queue_cache: Dict[str, Any] = {}
+        self._service_queue_cache: dict[str, Any] = {}
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -38,12 +38,10 @@ class ProxyManager:
             if self._service_manager is None:
                 from sage.kernel.runtime.service.service_caller import ServiceManager
 
-                self._service_manager = ServiceManager(
-                    self._context, logger=self._logger
-                )
+                self._service_manager = ServiceManager(self._context, logger=self._logger)
             return self._service_manager
 
-    def _resolve_service_descriptor(self, service_name: str) -> Optional[Any]:
+    def _resolve_service_descriptor(self, service_name: str) -> Any | None:
         """Return a cached queue descriptor for the requested service."""
         with self._lock:
             if service_name in self._service_queue_cache:
@@ -64,8 +62,8 @@ class ProxyManager:
         self,
         service_name: str,
         *args: Any,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs: Any,
     ) -> Any:
         """Perform a synchronous service invocation.
@@ -96,8 +94,8 @@ class ProxyManager:
         self,
         service_name: str,
         *args: Any,
-        timeout: Optional[float] = None,
-        method: Optional[str] = None,
+        timeout: float | None = None,
+        method: str | None = None,
         **kwargs: Any,
     ):
         """Perform an asynchronous service invocation returning a Future."""

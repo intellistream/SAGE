@@ -1,0 +1,180 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage-studio"
+dynamic = ["version"]
+description = "SAGE Studio - Low-Code Web UI for Pipeline Development"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+]
+keywords = [
+    "sage",
+    "studio",
+    "low-code",
+    "web-ui",
+    "pipeline",
+    "development",
+    "intellistream",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Utilities",
+]
+
+# 核心依赖
+dependencies = [
+    # SAGE framework dependencies
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",      # 需要：构建 Pipeline (Environment, DataStream API)
+    "isage-middleware>=0.1.0",  # 需要：领域算子 (RAG, LLM operators)
+    "isage-libs>=0.1.0",        # 需要：io_utils (Source/Sink) - TODO: 应该移到 kernel
+
+    # Backend API dependencies
+    "pydantic[email]>=2.0.0",
+    # FastAPI 0.115.x 依赖 starlette >=0.40,<0.47
+    "fastapi>=0.115,<0.116",
+    "starlette>=0.40,<0.47",
+    # Uvicorn 需要 h11
+    "uvicorn[standard]>=0.34.0",
+    "h11>=0.8",
+    "websockets>=11.0",
+    "python-multipart>=0.0.6",
+    "aiofiles>=23.0.0",
+    "structlog>=23.0.0",
+    "pydantic-settings>=2.0.0",
+    "configparser>=5.3.0",
+
+    # Utilities
+    "jinja2>=2.11.1",
+    "markdown>=3.4.4",
+    "markupsafe>=2.0.1",
+    "packaging>=20.5",
+]
+
+[project.license]
+text = "MIT"
+
+[project.optional-dependencies]
+# 开发工具依赖
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.1.0",
+    "black>=23.0.0",
+    "isort>=5.10.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+# 完整安装（包括所有可选依赖）
+full = [
+    "isage-studio[dev]",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE.git"
+"Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
+
+[project.scripts]
+# Studio CLI commands will be integrated into sage CLI via sage-tools
+# No standalone scripts needed here
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.package-data]
+"sage.studio" = [
+    "py.typed",
+    "*.pyi",
+    "templates/*.html",
+    "static/*",
+    "config/**/*",
+    "data/**/*",
+    "docs/**/*",
+    "frontend/**/*",
+]
+
+# Development tools configuration
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.11"
+cache_dir = "../../.sage/cache/mypy"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "src",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+addopts = [
+    "--benchmark-storage=../../.sage/benchmarks",
+    "-o",
+    "cache_dir=../../.sage/cache/pytest",
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-ra",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "network: marks tests as network tests",
+    "system: marks tests as system tests",
+    "core: marks tests as core functionality tests",
+    "smoke: marks tests as smoke tests (quick validation)",
+    "frontend: marks tests as frontend tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:pkg_resources",
+    "ignore:.*pkg_resources is deprecated.*:UserWarning",
+]
+
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
+[tool.ruff]
+extend = "../../tools/ruff.toml"
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.studio._version.__version__"}

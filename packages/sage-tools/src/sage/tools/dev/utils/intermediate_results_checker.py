@@ -8,7 +8,6 @@
 import fnmatch
 import glob
 from pathlib import Path
-from typing import Dict, List
 
 
 class IntermediateResultsChecker:
@@ -79,7 +78,7 @@ class IntermediateResultsChecker:
             "pytest_*",  # pytest 临时文件
         ]
 
-    def check_placement(self) -> Dict:
+    def check_placement(self) -> dict:
         """
         检查项目中间结果放置情况
 
@@ -109,7 +108,7 @@ class IntermediateResultsChecker:
             "suggestion": "所有中间结果应该放置在 .sage/ 目录下以保持项目根目录整洁",
         }
 
-    def _check_project_root(self) -> List[Dict]:
+    def _check_project_root(self) -> list[dict]:
         """检查项目根目录下的文件和目录"""
         violations = []
 
@@ -134,9 +133,9 @@ class IntermediateResultsChecker:
 
         return violations
 
-    def _check_tmp_directory(self) -> List[Dict]:
+    def _check_tmp_directory(self) -> list[dict]:
         """检查 /tmp 目录下是否有项目相关的临时文件"""
-        violations = []
+        violations: list[dict] = []
         tmp_path = Path("/tmp")
 
         if not tmp_path.exists():
@@ -170,7 +169,7 @@ class IntermediateResultsChecker:
         """检查文件名是否匹配模式"""
         return fnmatch.fnmatch(name, pattern)
 
-    def print_check_result(self, check_result: Dict = None) -> bool:
+    def print_check_result(self, check_result: dict | None = None) -> bool:
         """
         打印检查结果
 
@@ -189,9 +188,7 @@ class IntermediateResultsChecker:
         else:
             print(f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题:")
             for violation in check_result["violations"]:
-                print(
-                    f"  - {violation['path']} ({violation['type']}): {violation['message']}"
-                )
+                print(f"  - {violation['path']} ({violation['type']}): {violation['message']}")
             print(f"\n💡 {check_result['suggestion']}")
             return False
 
@@ -214,19 +211,15 @@ class IntermediateResultsChecker:
                     violations_by_location[location] = 0
                 violations_by_location[location] += 1
 
-            summary_parts = [
-                f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题"
-            ]
+            summary_parts = [f"⚠️  发现 {check_result['total_violations']} 个中间结果放置问题"]
             for location, count in violations_by_location.items():
-                location_name = (
-                    "项目根目录" if location == "project_root" else "/tmp目录"
-                )
+                location_name = "项目根目录" if location == "project_root" else "/tmp目录"
                 summary_parts.append(f"  - {location_name}: {count}个")
 
             return "\n".join(summary_parts)
 
 
-def check_intermediate_results_placement(project_root: str) -> Dict:
+def check_intermediate_results_placement(project_root: str) -> dict:
     """
     便捷函数：检查中间结果放置情况
 

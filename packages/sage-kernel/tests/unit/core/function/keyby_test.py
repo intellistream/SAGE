@@ -2,13 +2,11 @@ import json
 import os
 import threading
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from sage.common.config.output_paths import get_sage_paths
-from sage.core.api.function.keyby_function import KeyByFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.common.core.functions import KeyByFunction, SinkFunction, SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 class KeyByTestDataSource(SourceFunction):
@@ -19,7 +17,7 @@ class KeyByTestDataSource(SourceFunction):
         self.counter = 0
         self.user_ids = ["user1", "user2", "user3", "user1", "user2", "user3"]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.user_ids):
             return None  # 停止生成数据
 
@@ -46,7 +44,7 @@ class ParallelDebugSink(SinkFunction):
     """并行调试Sink，记录接收到的数据分布"""
 
     # 类级别的统计，所有实例共享
-    _received_data: Dict[int, List[Dict]] = {}
+    _received_data: dict[int, list[dict]] = {}
     _lock = threading.Lock()
 
     def __init__(self, **kwargs):
@@ -62,6 +60,9 @@ class ParallelDebugSink(SinkFunction):
         # 从runtime_context获取parallel_index
         if self.ctx:
             self.parallel_index = self.ctx.parallel_index
+
+        # parallel_index 在运行时总是被设置的
+        assert self.parallel_index is not None, "parallel_index must be set"
 
         with self._lock:
             if self.parallel_index not in self._received_data:
@@ -101,9 +102,7 @@ class ParallelDebugSink(SinkFunction):
                 "timestamp": timestamp,
                 "received_data": dict(cls._received_data),
                 "total_instances": len(cls._received_data),
-                "total_messages": sum(
-                    len(data_list) for data_list in cls._received_data.values()
-                ),
+                "total_messages": sum(len(data_list) for data_list in cls._received_data.values()),
             }
 
             with open(filepath, "w", encoding="utf-8") as f:
@@ -113,7 +112,7 @@ class ParallelDebugSink(SinkFunction):
         return str(filepath)
 
     @classmethod
-    def get_received_data(cls) -> Dict[int, List[Dict]]:
+    def get_received_data(cls) -> dict[int, list[dict]]:
         """获取所有并行实例接收到的数据"""
         with cls._lock:
             return dict(cls._received_data)
@@ -140,7 +139,7 @@ class TestKeyByFunctionality:
         env = LocalEnvironment("keyby_test")
 
         # 构建数据流：source -> keyby -> parallel sink
-        result_stream = (
+        (
             env.from_source(KeyByTestDataSource, delay=0.5)
             .keyby(UserIdKeyExtractor, strategy="hash")
             .sink(ParallelDebugSink, parallelism=2)  # 2个并行实例
@@ -184,7 +183,7 @@ class TestKeyByFunctionality:
 
         env = LocalEnvironment("Test_keyby_broadcast_test")
 
-        result_stream = (
+        (
             env.from_source(KeyByTestDataSource, delay=0.3)
             .keyby(UserIdKeyExtractor, strategy="broadcast")
             .sink(ParallelDebugSink, parallelism=3)  # 3个并行实例
@@ -219,12 +218,10 @@ class TestKeyByFunctionality:
 
         assert success, "Broadcast strategy test failed"
 
-    def _save_verification_result(
-        self, result_file: str, test_type: str, success: bool
-    ):
+    def _save_verification_result(self, result_file: str, test_type: str, success: bool):
         """将验证结果保存到文件"""
         if os.path.exists(result_file):
-            with open(result_file, "r", encoding="utf-8") as f:
+            with open(result_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             data["verification"] = {
@@ -279,9 +276,7 @@ class TestKeyByFunctionality:
                 success = False
 
         if success:
-            print(
-                "✅ Hash partitioning test passed: Each user routed to exactly one instance"
-            )
+            print("✅ Hash partitioning test passed: Each user routed to exactly one instance")
 
         return success
 
@@ -318,21 +313,15 @@ class TestKeyByFunctionality:
         # 验证：每个实例应该接收到相同数量的消息（广播效果）
         unique_counts = set(instance_counts.values())
         if len(unique_counts) <= 1:
-            print(
-                "✅ Broadcast test passed: All instances received same number of messages"
-            )
+            print("✅ Broadcast test passed: All instances received same number of messages")
             return True
         else:
-            print(
-                "⚠️  Note: Instance counts differ, this might be due to timing or test duration"
-            )
+            print("⚠️  Note: Instance counts differ, this might be due to timing or test duration")
             # 如果差异不大（比如只差1-2条消息），仍然认为测试通过
             min_count = min(instance_counts.values())
             max_count = max(instance_counts.values())
             if max_count - min_count <= 2:
-                print(
-                    "✅ Broadcast test passed: Instance counts are within acceptable range"
-                )
+                print("✅ Broadcast test passed: Instance counts are within acceptable range")
                 return True
             else:
                 print("❌ Broadcast test failed: Instance counts differ significantly")
@@ -361,7 +350,7 @@ class TestAdvancedKeyBy:
 
         env = LocalEnvironment("advanced_keyby_test")
 
-        result_stream = (
+        (
             env.from_source(KeyByTestDataSource, delay=0.4)
             .keyby(AdvancedKeyExtractor, strategy="hash")
             .sink(ParallelDebugSink, parallelism=4)  # 4个并行实例
@@ -386,9 +375,7 @@ class TestAdvancedKeyBy:
                 pass
 
         # 保存结果到文件
-        result_file = ParallelDebugSink.save_results_to_file(
-            "advanced_key_extraction_test"
-        )
+        result_file = ParallelDebugSink.save_results_to_file("advanced_key_extraction_test")
 
         # 分析分布效果
         success = self._analyze_advanced_distribution()
@@ -432,18 +419,14 @@ class TestAdvancedKeyBy:
                 success = False
 
         if success:
-            print(
-                "✅ Advanced key extraction test passed: Each unique key consistently routed"
-            )
+            print("✅ Advanced key extraction test passed: Each unique key consistently routed")
 
         return success
 
-    def _save_verification_result(
-        self, result_file: str, test_type: str, success: bool
-    ):
+    def _save_verification_result(self, result_file: str, test_type: str, success: bool):
         """将验证结果保存到文件"""
         if os.path.exists(result_file):
-            with open(result_file, "r", encoding="utf-8") as f:
+            with open(result_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             data["verification"] = {

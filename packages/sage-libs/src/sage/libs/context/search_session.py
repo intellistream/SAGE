@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from .search_query_results import SearchQueryResults
@@ -12,16 +12,16 @@ class SearchSession:
     """整个搜索会话的结果集合"""
 
     session_id: str = field(default_factory=lambda: str(uuid4()))
-    query_results: List[SearchQueryResults] = field(default_factory=list)
+    query_results: list[SearchQueryResults] = field(default_factory=list)
     session_timestamp: int = field(default_factory=lambda: int(time.time() * 1000))
     original_question: str = ""
-    session_metadata: Dict[str, Any] = field(default_factory=dict)
+    session_metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_query_results(self, query_results: SearchQueryResults) -> None:
         """添加查询结果"""
         self.query_results.append(query_results)
 
-    def get_all_queries(self) -> List[str]:
+    def get_all_queries(self) -> list[str]:
         """获取所有查询字符串"""
         return [qr.query for qr in self.query_results]
 
@@ -29,14 +29,14 @@ class SearchSession:
         """获取所有查询的结果总数"""
         return sum(qr.get_results_count() for qr in self.query_results)
 
-    def get_all_results(self) -> List[SearchResult]:
+    def get_all_results(self) -> list[SearchResult]:
         """获取所有搜索结果"""
         all_results = []
         for query_result in self.query_results:
             all_results.extend(query_result.results)
         return all_results
 
-    def get_results_by_query(self, query: str) -> Optional[SearchQueryResults]:
+    def get_results_by_query(self, query: str) -> SearchQueryResults | None:
         """根据查询字符串获取结果"""
         for qr in self.query_results:
             if qr.query == query:
@@ -55,7 +55,7 @@ class SearchSession:
                 combined_parts.append("")
         return "\n".join(combined_parts)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "session_id": self.session_id,
@@ -66,11 +66,9 @@ class SearchSession:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SearchSession":
+    def from_dict(cls, data: dict[str, Any]) -> "SearchSession":
         """从字典创建SearchSession"""
-        query_results = [
-            SearchQueryResults.from_dict(qr) for qr in data.get("query_results", [])
-        ]
+        query_results = [SearchQueryResults.from_dict(qr) for qr in data.get("query_results", [])]
 
         return cls(
             session_id=data.get("session_id", str(uuid4())),

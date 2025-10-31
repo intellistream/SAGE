@@ -40,7 +40,7 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=[
                 lambda: patch(
-                    "sage.tools.cli.commands.test_extensions.test_import",
+                    "sage.tools.cli.commands.extensions.check_extension_import",
                     return_value=True,
                 )
             ],

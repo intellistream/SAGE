@@ -7,7 +7,8 @@ import os
 import warnings
 
 import ray
-from sage.kernel.utils.ray.ray import ensure_ray_initialized
+
+from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 
 # 抑制Ray的ResourceWarning
 warnings.filterwarnings("ignore", category=ResourceWarning)

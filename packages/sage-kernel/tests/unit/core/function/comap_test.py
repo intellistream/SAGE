@@ -5,10 +5,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from sage.core.api.function.comap_function import BaseCoMapFunction
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.local_environment import LocalEnvironment
+from sage.common.core.functions import BaseCoMapFunction, SinkFunction, SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 class OrderDataSource(SourceFunction):
@@ -48,7 +46,7 @@ class OrderDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.orders):
             return None
 
@@ -96,7 +94,7 @@ class PaymentDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.payments):
             return None
 
@@ -130,7 +128,7 @@ class InventoryDataSource(SourceFunction):
             },
         ]
 
-    def execute(self):
+    def execute(self, data=None):
         if self.counter >= len(self.inventory):
             return None
 
@@ -157,9 +155,7 @@ class CoMapDebugSink(SinkFunction):
         else:
             self.output_file = Path(output_file)
         if self.ctx:
-            self.logger.info(
-                f"CoMapDebugSink initialized, output file: {self.output_file}"
-            )
+            self.logger.info(f"CoMapDebugSink initialized, output file: {self.output_file}")
 
     def execute(self, data: Any):
         if self.ctx:
@@ -174,9 +170,7 @@ class CoMapDebugSink(SinkFunction):
         self.received_count += 1
 
         result_type = (
-            data.get("type", "unknown")
-            if isinstance(data, dict)
-            else str(type(data).__name__)
+            data.get("type", "unknown") if isinstance(data, dict) else str(type(data).__name__)
         )
         source_stream = data.get("source_stream", -1) if isinstance(data, dict) else -1
 
@@ -346,9 +340,7 @@ class TripleStreamCoMapFunction(BaseCoMapFunction):
         }
 
         if self.ctx:
-            self.logger.info(
-                f"TripleCoMap map2: enriched inventory {inventory_data['product']}"
-            )
+            self.logger.info(f"TripleCoMap map2: enriched inventory {inventory_data['product']}")
         return result
 
 
@@ -442,7 +434,7 @@ class TestCoMapFunctionality:
         order_stream = env.from_source(OrderDataSource, delay=0.3)
         payment_stream = env.from_source(PaymentDataSource, delay=0.4)
 
-        result_stream = (
+        (
             order_stream.connect(payment_stream)
             .comap(OrderPaymentCoMapFunction)
             .sink(CoMapDebugSink, parallelism=2)
@@ -474,7 +466,7 @@ class TestCoMapFunctionality:
         payment_stream = env.from_source(PaymentDataSource, delay=0.3)
         inventory_stream = env.from_source(InventoryDataSource, delay=0.4)
 
-        result_stream = (
+        (
             order_stream.connect(payment_stream)
             .connect(inventory_stream)
             .comap(TripleStreamCoMapFunction)
@@ -505,18 +497,14 @@ class TestCoMapFunctionality:
         order_stream = env.from_source(OrderDataSource, delay=0.2)
         payment_stream = env.from_source(PaymentDataSource, delay=0.3)
 
-        result_stream = (
+        (
             order_stream.connect(payment_stream)
             .comap(StatefulCoMapFunction)
             .sink(CoMapDebugSink, parallelism=1)
         )
 
-        print(
-            "📊 Pipeline: OrderStream + PaymentStream -> comap(StatefulCoMapFunction) -> Sink"
-        )
-        print(
-            "🎯 Expected: Stateful processing with order caching and payment statistics\n"
-        )
+        print("📊 Pipeline: OrderStream + PaymentStream -> comap(StatefulCoMapFunction) -> Sink")
+        print("🎯 Expected: Stateful processing with order caching and payment statistics\n")
 
         try:
             env.submit()
@@ -573,15 +561,15 @@ class TestCoMapFunctionality:
 
         # 验证：所有订单都来自stream 0
         for order in processed_orders:
-            assert (
-                order.get("source_stream") == 0
-            ), f"❌ Order from wrong stream: {order.get('source_stream')}"
+            assert order.get("source_stream") == 0, (
+                f"❌ Order from wrong stream: {order.get('source_stream')}"
+            )
 
         # 验证：所有支付都来自stream 1
         for payment in processed_payments:
-            assert (
-                payment.get("source_stream") == 1
-            ), f"❌ Payment from wrong stream: {payment.get('source_stream')}"
+            assert payment.get("source_stream") == 1, (
+                f"❌ Payment from wrong stream: {payment.get('source_stream')}"
+            )
 
         print("✅ Two-stream CoMap test passed: Correct stream routing and processing")
 
@@ -638,9 +626,7 @@ class TestCoMapFunctionality:
         assert len(enriched_payments) > 0, "❌ No enriched payments received"
         assert len(enriched_inventory) > 0, "❌ No enriched inventory received"
 
-        print(
-            "✅ Three-stream CoMap test passed: All three streams processed correctly"
-        )
+        print("✅ Three-stream CoMap test passed: All three streams processed correctly")
 
     def _verify_stateful_comap_results(self):
         """验证有状态CoMap的结果"""

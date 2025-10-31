@@ -7,13 +7,13 @@ import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
 class TestCoverageReporter:
     """测试覆盖率报告器"""
 
-    def __init__(self, project_root: Path = None):
+    def __init__(self, project_root: Path | None = None):
         self.project_root = project_root or self._find_project_root()
         self.core_src_path = self.project_root / "src" / "sage" / "core"
         self.core_tests_path = self.project_root / "tests" / "core"
@@ -27,24 +27,24 @@ class TestCoverageReporter:
             current_dir = current_dir.parent
         return Path(__file__).parent
 
-    def get_source_files(self) -> List[Path]:
+    def get_source_files(self) -> list[Path]:
         """获取所有源文件"""
         source_files = []
         for pattern in ["*.py"]:
             source_files.extend(self.core_src_path.rglob(pattern))
         return [f for f in source_files if not f.name.startswith("__")]
 
-    def get_test_files(self) -> List[Path]:
+    def get_test_files(self) -> list[Path]:
         """获取所有测试文件"""
         test_files = []
         for pattern in ["test_*.py", "*_test.py"]:
             test_files.extend(self.core_tests_path.rglob(pattern))
         return test_files
 
-    def map_source_to_test(self) -> Dict[str, str]:
+    def map_source_to_test(self) -> dict[str, str]:
         """映射源文件到测试文件"""
         source_files = self.get_source_files()
-        test_files = self.get_test_files()
+        self.get_test_files()
 
         mapping = {}
 
@@ -60,22 +60,18 @@ class TestCoverageReporter:
             expected_test_path = test_dir / expected_test_name
 
             if expected_test_path.exists():
-                mapping[str(rel_path)] = str(
-                    expected_test_path.relative_to(self.core_tests_path)
-                )
+                mapping[str(rel_path)] = str(expected_test_path.relative_to(self.core_tests_path))
             else:
                 mapping[str(rel_path)] = None
 
         return mapping
 
-    def analyze_test_compliance(self) -> Dict[str, Any]:
+    def analyze_test_compliance(self) -> dict[str, Any]:
         """分析测试合规性"""
         source_to_test = self.map_source_to_test()
 
         total_files = len(source_to_test)
-        covered_files = sum(
-            1 for test_path in source_to_test.values() if test_path is not None
-        )
+        covered_files = sum(1 for test_path in source_to_test.values() if test_path is not None)
         uncovered_files = total_files - covered_files
 
         compliance_rate = (covered_files / total_files * 100) if total_files > 0 else 0
@@ -86,12 +82,10 @@ class TestCoverageReporter:
             "uncovered_files": uncovered_files,
             "compliance_rate": compliance_rate,
             "source_to_test_mapping": source_to_test,
-            "uncovered_source_files": [
-                src for src, test in source_to_test.items() if test is None
-            ],
+            "uncovered_source_files": [src for src, test in source_to_test.items() if test is None],
         }
 
-    def run_coverage_analysis(self) -> Dict[str, Any]:
+    def run_coverage_analysis(self) -> dict[str, Any]:
         """运行覆盖率分析"""
         os.chdir(self.project_root)
 
@@ -214,12 +208,8 @@ class TestCoverageReporter:
                     if "src/sage/core" in file_path:
                         # 只显示core模块的文件
                         rel_path = file_path.replace("src/sage/core/", "")
-                        coverage_pct = file_data.get("summary", {}).get(
-                            "percent_covered", 0
-                        )
-                        num_statements = file_data.get("summary", {}).get(
-                            "num_statements", 0
-                        )
+                        coverage_pct = file_data.get("summary", {}).get("percent_covered", 0)
+                        num_statements = file_data.get("summary", {}).get("num_statements", 0)
                         covered = file_data.get("summary", {}).get("covered_lines", 0)
                         missing = file_data.get("summary", {}).get("missing_lines", 0)
 
@@ -295,9 +285,7 @@ class TestCoverageReporter:
             if (self.core_tests_path / test_file).exists()
         )
         total_required = len(required_structure)
-        completion_rate = (
-            (completed_count / total_required * 100) if total_required > 0 else 0
-        )
+        completion_rate = (completed_count / total_required * 100) if total_required > 0 else 0
 
         report.append("## 7. 总结")
         report.append("")
@@ -321,7 +309,7 @@ class TestCoverageReporter:
 
         return "\n".join(report)
 
-    def save_report(self, filename: str = None) -> Path:
+    def save_report(self, filename: str | None = None) -> Path:
         """保存报告到文件"""
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

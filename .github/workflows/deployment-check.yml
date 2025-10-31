@@ -1,0 +1,240 @@
+name: Deployment Readiness Check
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main, main-dev]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deployment-readiness:
+    name: Deployment Readiness Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要完整历史来进行 diff
+          # 注意: 不递归克隆 submodules，避免检查外部依赖代码
+          # Submodules (sageLLM, sageDB, sageFlow, neuromem, sageTSDB, docs-public) 由各自仓库维护
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          echo "📦 安装检查工具依赖..."
+          pip install --upgrade pip
+          pip install pyyaml
+
+          # 使用 quickstart.sh 安装 SAGE（开发模式，用于 sage-dev 命令）
+          echo "📦 使用 quickstart.sh 安装 SAGE（开发模式）..."
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --yes --no-sync-submodules
+
+          echo "✅ SAGE 包安装完成"
+
+      - name: Dev-notes Documentation Check
+        run: |
+          echo "📚 检查 dev-notes 文档规范..."
+
+          # 检查是否有 dev-notes 变更
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            DEVNOTES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^docs/dev-notes/.*\.md$' || true)
+          else
+            DEVNOTES_CHANGED=$(git diff --name-only HEAD~5...HEAD | grep '^docs/dev-notes/.*\.md$' || true)
+          fi
+
+          if [ -n "$DEVNOTES_CHANGED" ]; then
+            echo "📝 发现 dev-notes 文档变更:"
+            echo "$DEVNOTES_CHANGED"
+            echo ""
+
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              sage-dev quality devnotes || {
+                  echo ""
+                  echo "❌ Dev-notes 文档不符合规范！"
+                  echo ""
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo "💡 常见问题修复："
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo "1. 使用正确的模板: docs/dev-notes/TEMPLATE.md"
+                  echo "2. 确保包含必需的章节"
+                  echo "3. 检查元数据格式（YAML front matter）"
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  exit 1
+                }
+            else
+              sage-dev quality devnotes --warn-only || {
+                echo "⚠️  发现文档格式问题，但不阻塞部署"
+              }
+            fi
+          else
+            echo "ℹ️  没有 dev-notes 文档变更，跳过检查"
+          fi
+
+          echo ""
+          echo "✅ Dev-notes 文档检查完成"
+
+      - name: Architecture Compliance Check
+        run: |
+          echo "🏗️ 运行架构合规性检查..."
+
+          # 在 PR 中仅检查变更文件
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "📝 PR 模式：检查变更的 Python 文件"
+
+            # 检查是否有 Python 文件变更
+            PYTHON_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.py$' || true)
+
+            if [ -n "$PYTHON_CHANGED" ]; then
+              echo "📝 发现 Python 文件变更"
+              sage-dev quality architecture --changed-only || {
+                  echo ""
+                  echo "❌ 架构合规性检查失败！"
+                  echo ""
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo "💡 常见问题修复："
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo "1. 检查跨层级导入（如 app 导入 kernel）"
+                  echo "2. 确保导入路径符合包架构"
+                  echo "3. 查看架构信息: sage-dev architecture"
+                  echo "4. 查看文档: docs-public/docs_src/dev-notes/package-architecture.md"
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  exit 1
+                }
+            else
+              echo "ℹ️  没有 Python 文件变更，跳过架构检查"
+            fi
+          else
+            echo "📦 Push 模式：快速检查（仅检查变更文件）"
+            # 在 push 时做快速检查，避免阻塞
+            sage-dev quality architecture --changed-only || {
+              echo ""
+              echo "⚠️  发现架构问题，但不阻塞部署"
+              echo "请查看架构信息: sage-dev architecture"
+              echo "并尽快修复: docs-public/docs_src/dev-notes/package-architecture.md"
+            }
+          fi
+
+          echo ""
+          echo "✅ 架构检查完成"
+
+      - name: Examples Validation
+        run: |
+          echo "🌟 验证 Examples 可执行性..."
+
+          # 安装必要的依赖
+          pip install pytest pytest-timeout pytest-benchmark
+
+          # 运行 Examples 导入测试
+          if [ -f "packages/sage-tools/tests/test_examples_imports.py" ]; then
+            echo "📝 运行 Examples 导入测试..."
+            timeout 180s pytest packages/sage-tools/tests/test_examples_imports.py -v || {
+              echo ""
+              echo "⚠️ Examples 导入测试超时或失败"
+
+              if [ "${{ github.event_name }}" = "pull_request" ]; then
+                echo "❌ PR 必须通过 Examples 验证"
+                exit 1
+              else
+                echo "⚠️ 不阻塞主分支，但建议修复"
+                exit 0
+              fi
+            }
+          else
+            echo "ℹ️  Examples 测试文件不存在，跳过验证"
+          fi
+
+          echo ""
+          echo "✅ Examples 验证完成"
+
+      - name: Package README Check
+        run: |
+          echo "📖 检查包 README 文档..."
+
+          if sage-dev quality readme; then
+            echo "✅ 所有包的 README 文档完整"
+          else
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo ""
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "💡 修复建议："
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "1. 确保每个包都有 README.md"
+              echo "2. README 应包含：简介、安装、使用示例"
+              echo "3. 使用模板: packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md"
+              echo "4. 查看详细报告: sage-dev quality readme --report"
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              exit 1
+            else
+              echo "⚠️  README 检查失败，但不阻塞部署"
+            fi
+          fi
+
+      - name: Generate Deployment Report
+        if: always()
+        run: |
+          echo "📊 生成部署就绪报告..."
+
+          # 统计信息
+          TOTAL_PACKAGES=$(find packages -name "setup.py" -o -name "pyproject.toml" | wc -l)
+          TOTAL_EXAMPLES=$(find examples -name "*.py" -type f | wc -l)
+          TOTAL_DOCS=$(find docs/dev-notes -name "*.md" -type f | wc -l)
+
+          echo "📦 包数量: $TOTAL_PACKAGES"
+          echo "🌟 示例数量: $TOTAL_EXAMPLES"
+          echo "📚 文档数量: $TOTAL_DOCS"
+
+          # 检查关键文件
+          echo ""
+          echo "🔍 关键文件检查:"
+
+          CRITICAL_FILES=(
+            "README.md"
+            "CONTRIBUTING.md"
+            "LICENSE"
+            "tools/pre-commit-config.yaml"
+          )
+
+          for file in "${CRITICAL_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "  ✅ $file"
+            else
+              echo "  ❌ $file 缺失"
+            fi
+          done
+
+          echo ""
+          echo "✅ 部署报告生成完成"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🚀 部署就绪检查总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **检查通过** - 代码已就绪可以部署" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "检查项目:" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Dev-notes 文档规范" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ 架构合规性" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Examples 可执行性" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Package README 完整性" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **检查失败** - 发现部署阻塞问题" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "请查看上方日志了解详细信息并修复问题。" >> $GITHUB_STEP_SUMMARY
+          fi
