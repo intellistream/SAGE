@@ -358,3 +358,5 @@ We welcome questions, bug reports, feature requests, and contributions from deve
 ## License
 
 SAGE is licensed under the [MIT License](./LICENSE).
+
+\<- Support manual workflow_dispatch for Auto-publish test 20251031-091349 -->
