@@ -1,6 +1,6 @@
 """
 SAGE Issues管理命令 - CLI接口
-集成到sage dev命令组中
+集成到sage-dev命令组中
 """
 
 import os
@@ -12,6 +12,7 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
+
 from sage.tools.dev.issues import IssuesConfig, IssuesManager
 from sage.tools.dev.issues.helpers import IssuesDownloader
 
@@ -34,9 +35,7 @@ def status():
     console.print(f"  • 元数据目录: {config.metadata_path}")
     console.print(f"  • GitHub仓库: {config.GITHUB_OWNER}/{config.GITHUB_REPO}")
     if config.github_token:
-        console.print(
-            f"  • GitHub Token来源: {config.github_token_env or '未知环境变量'}"
-        )
+        console.print(f"  • GitHub Token来源: {config.github_token_env or '未知环境变量'}")
 
     # 测试GitHub连接
     console.print("\n🔍 GitHub连接:")
@@ -64,9 +63,7 @@ def status():
             console.print(f"  • 最后更新: {download_status['last_update'] or '未知'}")
 
             if download_status["available_files"]:
-                console.print(
-                    f"  • 数据文件: {len(download_status['available_files'])} 个"
-                )
+                console.print(f"  • 数据文件: {len(download_status['available_files'])} 个")
         except Exception as e:
             console.print(f"\n📂 [red]本地数据状态获取失败: {e}[/red]")
     else:
@@ -133,7 +130,7 @@ def statistics():
 
     if not success:
         console.print("❌ [red]统计失败 - 请先下载Issues[/red]")
-        console.print("💡 运行: sage dev issues download")
+        console.print("💡 运行: sage-dev issues download")
         raise typer.Exit(1)
 
 
@@ -151,9 +148,9 @@ def team(
     显示团队信息、成员分布等。支持从GitHub API更新最新团队数据。
 
     示例:
-      sage dev issues team              # 显示团队分析
-      sage dev issues team --update    # 更新团队信息
-      sage dev issues team -u -a       # 更新并分析
+      sage-dev issues team              # 显示团队分析
+      sage-dev issues team --update    # 更新团队信息
+      sage-dev issues team -u -a       # 更新并分析
     """
     manager = IssuesManager()
 
@@ -235,12 +232,8 @@ def show_config():
 
 @app.command("ai")
 def ai_analysis(
-    action: str = typer.Option(
-        "analyze", help="AI操作类型: analyze, dedupe, optimize, report"
-    ),
-    engine: str = typer.Option(
-        "interactive", help="AI引擎: openai, claude, interactive"
-    ),
+    action: str = typer.Option("analyze", help="AI操作类型: analyze, dedupe, optimize, report"),
+    engine: str = typer.Option("interactive", help="AI引擎: openai, claude, interactive"),
     dry_run: bool = typer.Option(False, "--dry-run", help="预览模式，不实际修改"),
 ):
     """AI智能分析和整理Issues
@@ -252,9 +245,9 @@ def ai_analysis(
     - report: 生成分析报告
 
     示例:
-      sage dev issues ai --action analyze    # AI综合分析
-      sage dev issues ai --action dedupe     # 查找重复Issues
-      sage dev issues ai --dry-run           # 预览模式
+      sage-dev issues ai --action analyze    # AI综合分析
+      sage-dev issues ai --action dedupe     # 查找重复Issues
+      sage-dev issues ai --dry-run           # 预览模式
     """
     console.print(f"🤖 [bold blue]AI智能分析 (操作: {action})[/bold blue]")
 
@@ -327,9 +320,9 @@ def sync_issues(
     - both: 双向同步
 
     示例:
-      sage dev issues sync --direction upload   # 上传到GitHub
-      sage dev issues sync --dry-run           # 预览模式
-      sage dev issues sync --force             # 强制同步
+      sage-dev issues sync --direction upload   # 上传到GitHub
+      sage-dev issues sync --dry-run           # 预览模式
+      sage-dev issues sync --force             # 强制同步
     """
     console.print(f"🔄 [bold blue]Issues同步 (方向: {direction})[/bold blue]")
 
@@ -392,9 +385,7 @@ def sync_issues(
 def organize_issues(
     preview: bool = typer.Option(False, "--preview", "-p", help="预览整理计划"),
     apply: bool = typer.Option(False, "--apply", "-a", help="执行整理"),
-    confirm: bool = typer.Option(
-        False, "--confirm", "-c", help="确认执行（与--apply一起使用）"
-    ),
+    confirm: bool = typer.Option(False, "--confirm", "-c", help="确认执行（与--apply一起使用）"),
 ):
     """整理Issues - 根据关闭时间移动到不同状态列
 
@@ -404,19 +395,19 @@ def organize_issues(
     - 超过一个月的 -> "History" 列
 
     示例:
-      sage dev issues organize --preview          # 预览整理计划
-      sage dev issues organize --apply --confirm  # 执行整理
+      sage-dev issues organize --preview          # 预览整理计划
+      sage-dev issues organize --apply --confirm  # 执行整理
     """
     if not preview and not apply:
         console.print("❌ [red]请指定 --preview 或 --apply 参数[/red]")
         console.print("\n💡 使用方法:")
-        console.print("  sage dev issues organize --preview          # 预览整理计划")
-        console.print("  sage dev issues organize --apply --confirm  # 执行整理")
+        console.print("  sage-dev issues organize --preview          # 预览整理计划")
+        console.print("  sage-dev issues organize --apply --confirm  # 执行整理")
         raise typer.Exit(1)
 
     if apply and not confirm:
         console.print("❌ [red]执行整理需要 --confirm 参数确认[/red]")
-        console.print("💡 使用: sage dev issues organize --apply --confirm")
+        console.print("💡 使用: sage-dev issues organize --apply --confirm")
         raise typer.Exit(1)
 
     console.print("🗂️ [bold blue]Issues整理工具[/bold blue]")
@@ -488,7 +479,7 @@ def run_tests():
     - 文件操作测试
 
     示例:
-      sage dev issues test    # 运行全部测试
+      sage-dev issues test    # 运行全部测试
     """
     console.print("🧪 [bold blue]运行Issues管理测试套件[/bold blue]")
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
@@ -36,8 +36,8 @@ class SageDBService:
 
     def add(
         self,
-        vector: np.ndarray | List[float],
-        metadata: Optional[Dict[str, str]] = None,
+        vector: np.ndarray | list[float],
+        metadata: dict[str, str] | None = None,
     ) -> int:
         if not isinstance(vector, np.ndarray):
             vector = np.asarray(vector, dtype=np.float32)
@@ -47,9 +47,9 @@ class SageDBService:
 
     def add_batch(
         self,
-        vectors: np.ndarray | List[List[float]],
-        metadata_list: Optional[List[Dict[str, str]]] = None,
-    ) -> List[int]:
+        vectors: np.ndarray | list[list[float]],
+        metadata_list: list[dict[str, str]] | None = None,
+    ) -> list[int]:
         if isinstance(vectors, list):
             arr = np.asarray(vectors, dtype=np.float32)
         else:
@@ -59,8 +59,8 @@ class SageDBService:
         return self._db.add_batch(arr, metadata_list or [])
 
     def search(
-        self, query: np.ndarray | List[float], k: int = 5, include_metadata: bool = True
-    ) -> List[Dict[str, Any]]:
+        self, query: np.ndarray | list[float], k: int = 5, include_metadata: bool = True
+    ) -> list[dict[str, Any]]:
         if not isinstance(query, np.ndarray):
             query = np.asarray(query, dtype=np.float32)
         results = self._db.search(query, k=k, include_metadata=include_metadata)
@@ -75,7 +75,7 @@ class SageDBService:
             )
         return formatted
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         s = self._db.get_search_stats()
         return {
             "size": self._db.size,

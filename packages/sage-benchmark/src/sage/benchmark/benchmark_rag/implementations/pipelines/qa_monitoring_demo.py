@@ -19,11 +19,9 @@ from sage.common.utils.config.loader import load_config
 
 # 导入 Sage 相关模块
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io_utils.batch import JSONLBatch
-from sage.libs.io_utils.sink import TerminalSink
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.retriever import ChromaRetriever
+from sage.libs.io.batch import JSONLBatch
+from sage.libs.io.sink import TerminalSink
+from sage.middleware.operators.rag import ChromaRetriever, OpenAIGenerator, QAPromptor
 
 
 def pipeline_run():
@@ -33,17 +31,14 @@ def pipeline_run():
     启用性能监控后，会在管道运行时收集各种性能指标。
     """
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_monitoring_demo example")
         print("✅ Test passed: Example structure validated")
         return
 
     # 初始化环境 (启用监控功能)
     env = LocalEnvironment(enable_monitoring=True)
-    
+
     print("=" * 80)
     print("🔍 Performance Monitoring Demo - RAG Pipeline")
     print("=" * 80)
@@ -52,7 +47,7 @@ def pipeline_run():
     print("=" * 80)
 
     # 构建数据处理流程 (去掉了 BGEReranker,简化为基础 RAG 流程)
-    query_stream = (
+    (
         env.from_source(JSONLBatch, config["source"])
         .map(ChromaRetriever, config["retriever"])
         .map(QAPromptor, config["promptor"])
@@ -72,18 +67,20 @@ def pipeline_run():
     print("\n" + "=" * 80)
     print("📈 PERFORMANCE MONITORING REPORT")
     print("=" * 80)
-    
+
     # 获取并显示各个任务的性能指标
     try:
         job = env.jobmanager.jobs.get(env.env_uuid)
         if job and hasattr(job, "dispatcher"):
             tasks = job.dispatcher.tasks
             for task_name, task in tasks.items():
-                if hasattr(task, 'get_current_metrics'):
+                if hasattr(task, "get_current_metrics"):
                     metrics = task.get_current_metrics()
                     print(f"\n🔧 Task: {task_name}")
                     print(f"  📦 Packets Processed: {metrics.total_packets_processed}")
-                    print(f"  ✅ Success: {metrics.total_packets_processed} | ❌ Errors: {metrics.total_packets_failed}")
+                    print(
+                        f"  ✅ Success: {metrics.total_packets_processed} | ❌ Errors: {metrics.total_packets_failed}"
+                    )
                     print(f"  📊 TPS: {metrics.packets_per_second:.2f} packets/sec")
                     if metrics.p50_latency > 0:
                         print(f"  ⏱️  Latency P50: {metrics.p50_latency:.1f}ms")
@@ -101,6 +98,7 @@ def pipeline_run():
             print("⚠️  Dispatcher or job not found, cannot retrieve metrics.")
     except Exception as e:
         import traceback
+
         print(f"⚠️  Could not retrieve detailed metrics: {e}")
         traceback.print_exc()
 
@@ -116,10 +114,7 @@ if __name__ == "__main__":
     import os
 
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_monitoring_demo example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

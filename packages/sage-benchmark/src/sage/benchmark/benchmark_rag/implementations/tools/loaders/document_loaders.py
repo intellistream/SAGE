@@ -4,7 +4,6 @@ SAGE RAG 示例：文本加载工具
 """
 
 import os
-from typing import Dict, List
 
 
 class TextLoader:
@@ -17,14 +16,14 @@ class TextLoader:
         self.filepath = filepath
         self.encoding = encoding
 
-    def load(self) -> List[Dict]:
+    def load(self) -> list[dict]:
         """
         加载文本文件，返回文档列表，每个文档为 dict: {"content": ..., "metadata": ...}
         """
         documents = []
         if not os.path.exists(self.filepath):
             raise FileNotFoundError(f"File not found: {self.filepath}")
-        with open(self.filepath, "r", encoding=self.encoding) as f:
+        with open(self.filepath, encoding=self.encoding) as f:
             for idx, line in enumerate(f):
                 text = line.strip()
                 if text:

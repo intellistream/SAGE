@@ -5,7 +5,7 @@ Python Queue Descriptor - Python标准库队列描述符
 """
 
 from queue import Queue
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base_queue_descriptor import BaseQueueDescriptor
 
@@ -21,7 +21,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
         self,
         maxsize: int = 0,
         use_multiprocessing: bool = False,
-        queue_id: Optional[str] = None,
+        queue_id: str | None = None,
     ):
         """
         初始化Python队列描述符
@@ -46,7 +46,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
         return not self._initialized  # 未初始化时可以序列化
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """元数据字典"""
         base_metadata = {
             "maxsize": self.maxsize,
@@ -59,7 +59,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
 
         return base_metadata
 
-    def clone(self, new_queue_id: Optional[str] = None) -> "PythonQueueDescriptor":
+    def clone(self, new_queue_id: str | None = None) -> "PythonQueueDescriptor":
         """克隆描述符（不包含队列实例）"""
         # 创建同类型的新实例
         return PythonQueueDescriptor(
@@ -72,12 +72,12 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
     def queue_instance(self) -> Any:
         """获取队列实例，如果未初始化则创建"""
         if not self._initialized:
-            self._queue_instance = Queue(maxsize=self.maxsize)
+            self._queue_instance = Queue(maxsize=self.maxsize)  # type: ignore[assignment]
             self._initialized = True
         return self._queue_instance
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PythonQueueDescriptor":
+    def from_dict(cls, data: dict[str, Any]) -> "PythonQueueDescriptor":
         """从字典创建实例"""
         metadata = data.get("metadata", {})
         instance = cls(
@@ -85,7 +85,5 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
             use_multiprocessing=metadata.get("use_multiprocessing", False),
             queue_id=data["queue_id"],
         )
-        instance.created_timestamp = data.get(
-            "created_timestamp", instance.created_timestamp
-        )
+        instance.created_timestamp = data.get("created_timestamp", instance.created_timestamp)
         return instance

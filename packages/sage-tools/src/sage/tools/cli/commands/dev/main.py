@@ -1,12 +1,15 @@
 """
-SAGE Dev 命令组 - 简化版本
+sage-dev 命令组 - 简化版本
 
 这个模块提供统一的dev命令接口，调用sage.tools.dev中的核心功能。
 """
 
+from pathlib import Path
+
 import typer
 from rich.console import Console
-from sage.tools.utils.diagnostics import (
+
+from sage.cli.utils.diagnostics import (
     collect_packages_status,
     print_packages_status,
     print_packages_status_summary,
@@ -20,21 +23,12 @@ app = typer.Typer(help="SAGE 开发工具集")
 try:
     from sage.tools.dev.issues.cli import app as issues_app
 
-    app.add_typer(
-        issues_app, name="issues", help="🐛 Issues管理 - GitHub Issues下载、分析和管理"
-    )
+    app.add_typer(issues_app, name="issues", help="🐛 Issues管理 - GitHub Issues下载、分析和管理")
 except ImportError as e:
     console.print(f"[yellow]警告: Issues管理功能不可用: {e}[/yellow]")
 
-# 添加PyPI管理子命令
-try:
-    from sage.tools.cli.commands.pypi import app as pypi_app
-
-    app.add_typer(
-        pypi_app, name="pypi", help="📦 PyPI发布管理 - 发布准备验证、构建和管理"
-    )
-except ImportError as e:
-    console.print(f"[yellow]警告: PyPI发布管理功能不可用: {e}[/yellow]")
+# 注意: PyPI 管理已整合到 package 命令组
+# 使用: sage-dev package pypi <command>
 
 # 删除：CI 子命令（已由 GitHub Workflows 承担 CI/CD）
 # 过去这里会 add_typer(ci_app, name="ci", ...)
@@ -42,11 +36,9 @@ except ImportError as e:
 
 # 添加版本管理子命令
 try:
-    from .version import app as version_app
+    from .package_version import app as version_app
 
-    app.add_typer(
-        version_app, name="version", help="🏷️ 版本管理 - 管理各个子包的版本信息"
-    )
+    app.add_typer(version_app, name="version", help="🏷️ 版本管理 - 管理各个子包的版本信息")
 except ImportError as e:
     console.print(f"[yellow]警告: 版本管理功能不可用: {e}[/yellow]")
 
@@ -62,501 +54,467 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: 模型缓存功能不可用: {e}[/yellow]")
 
+# 添加 Examples 测试工具子命令
+try:
+    from .examples import app as examples_app
+
+    app.add_typer(
+        examples_app,
+        name="examples",
+        help="🔬 Examples 测试工具 - 测试和验证示例代码（需要开发环境）",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: Examples 测试功能不可用: {e}[/yellow]")
+
 
 @app.command()
 def quality(
     fix: bool = typer.Option(True, "--fix/--no-fix", help="自动修复质量问题"),
     check_only: bool = typer.Option(False, "--check-only", help="仅检查，不修复"),
-    format_code: bool = typer.Option(
-        True, "--format/--no-format", help="运行代码格式化(black)"
+    all_files: bool = typer.Option(False, "--all-files", help="检查所有文件（而不仅是变更的文件）"),
+    # 选择性运行特定检查
+    hook: str | None = typer.Option(None, "--hook", help="只运行指定的 pre-commit hook"),
+    # 架构和文档检查选项
+    architecture: bool = typer.Option(
+        True, "--architecture/--no-architecture", help="运行架构合规性检查"
     ),
-    sort_imports: bool = typer.Option(
-        True, "--sort-imports/--no-sort-imports", help="运行导入排序(isort)"
+    devnotes: bool = typer.Option(
+        True, "--devnotes/--no-devnotes", help="运行 dev-notes 文档规范检查"
     ),
-    lint_code: bool = typer.Option(
-        True, "--lint/--no-lint", help="运行代码检查(flake8)"
+    readme: bool = typer.Option(False, "--readme", help="运行包 README 质量检查"),
+    examples: bool = typer.Option(
+        True, "--examples/--no-examples", help="运行 examples 目录结构检查"
     ),
+    # Submodule 选项
+    include_submodules: bool = typer.Option(
+        False, "--include-submodules", help="包含 submodules 进行质量检查（默认跳过）"
+    ),
+    submodules_only: bool = typer.Option(
+        False, "--submodules-only", help="仅检查 submodules（跳过主仓库）"
+    ),
+    # 其他选项
     warn_only: bool = typer.Option(False, "--warn-only", help="只给警告，不中断运行"),
     project_root: str = typer.Option(".", help="项目根目录"),
+    # 保留向后兼容的选项（但现在都通过 pre-commit 实现）
+    format_code: bool = typer.Option(True, "--format/--no-format", help="运行代码格式化"),
+    sort_imports: bool = typer.Option(
+        True, "--sort-imports/--no-sort-imports", help="运行导入排序"
+    ),
+    lint_ruff: bool = typer.Option(True, "--ruff/--no-ruff", help="运行Ruff检查"),
+    type_check: bool = typer.Option(True, "--type-check/--no-type-check", help="运行类型检查"),
 ):
-    """代码质量检查和修复
+    """代码质量检查和修复（基于 pre-commit + 架构检查）
 
-    默认情况下会自动修复格式化和导入排序问题，对于无法自动修复的问题给出警告。
+    这是 pre-commit 的友好包装器，提供统一的质量检查接口。
+    所有配置都在 tools/pre-commit-config.yaml 中管理，确保一致性。
+
+    额外集成了架构合规性检查、dev-notes 文档规范检查和 README 质量检查。
+
+    默认情况下会跳过所有 submodules（docs-public, sageLLM, sageDB等），
+    避免修改外部依赖的代码。如需检查 submodules，请使用 --include-submodules。
+
+    示例：
+        sage-dev quality                        # 运行所有检查（自动修复，跳过submodules）
+        sage-dev quality --check-only           # 只检查不修复
+        sage-dev quality --all-files            # 检查所有文件
+        sage-dev quality --hook black           # 只运行 black
+        sage-dev quality --no-format            # 跳过格式化
+        sage-dev quality --no-architecture      # 跳过架构检查
+        sage-dev quality --no-devnotes          # 跳过文档检查
+        sage-dev quality --readme               # 包含 README 质量检查
+        sage-dev quality --include-submodules   # 包含 submodules 进行检查
+        sage-dev quality --submodules-only      # 仅检查 submodules
     """
     import subprocess
     from pathlib import Path
 
-    from sage.common.config.output_paths import get_sage_paths
+    # 使用不同的变量名避免类型冲突
+    project_dir = Path(project_root).resolve()
 
-    project_path = Path(project_root).resolve()
-
-    if not project_path.exists():
-        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+    if not project_dir.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_dir}[/red]")
         raise typer.Exit(1)
 
-    console.print(f"📁 项目根目录: {project_path}")
+    console.print(f"📁 项目根目录: {project_dir}")
 
-    # 获取SAGE路径用于日志保存
+    # 处理 submodule 选项的冲突
+    if submodules_only and not include_submodules:
+        include_submodules = True
+
+    # 配置文件路径
+    tools_dir = project_dir / "tools"
+    precommit_config = tools_dir / "pre-commit-config.yaml"
+
+    if not precommit_config.exists():
+        console.print(f"[red]❌ pre-commit 配置文件不存在: {precommit_config}[/red]")
+        raise typer.Exit(1)
+
+    # 检查 pre-commit 是否安装
     try:
-        sage_paths = get_sage_paths()
-        logs_base_dir = sage_paths.logs_dir / "tool" / "quality"
-    except Exception as e:
-        console.print(f"[yellow]⚠️ 无法获取SAGE路径，将使用项目根目录: {e}[/yellow]")
-        logs_base_dir = project_path / ".sage" / "logs" / "tool" / "quality"
-
-    # 确定要检查的目录 - 只检查项目代码，避免第三方库
-    target_paths = []
-    packages_dir = project_path / "packages"
-    tools_dir = project_path / "tools"
-    examples_dir = project_path / "examples"
-
-    if packages_dir.exists():
-        target_paths.append(str(packages_dir))
-    if tools_dir.exists():
-        target_paths.append(str(tools_dir))
-    if examples_dir.exists():
-        target_paths.append(str(examples_dir))
-
-    # 如果没有这些目录，则使用根目录但排除一些明显的第三方目录
-    if not target_paths:
-        target_paths = [str(project_path)]
-        # 标准第三方目录排除
-        black_exclude = r"test_env|venv|env|\.venv|node_modules|build|dist|\.git"
-        isort_skip_patterns = [
-            "test_env",
-            "venv",
-            "env",
-            ".venv",
-            "node_modules",
-            "build",
-            "dist",
-            ".git",
-        ]
-        flake8_exclude = "test_env,venv,env,.venv,node_modules,build,dist,.git"
-    else:
-        # 添加需要跳过质量检查的特定文件夹（所有 git submodules）
-        # Submodules 列表：
-        # 1. docs-public (文档子模块)
-        # 2. sageLLM (LLM组件)
-        # 3. sageDB (数据库组件)
-        # 4. sageFlow (工作流组件)
-        # 5. neuromem (内存管理组件)
-
-        # black 使用正则表达式
-        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem)"
-        # isort 使用多个 --skip-glob 参数（每个模式一个）
-        isort_skip_patterns = [
-            "*/docs-public/*",
-            "*/sageFlow/*",
-            "*/sageDB/*",
-            "*/sageLLM/*",
-            "*/neuromem/*",
-        ]
-        # flake8 使用逗号分隔的路径模式（支持通配符）
-        flake8_exclude = (
-            "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        subprocess.run(
+            ["pre-commit", "--version"],
+            capture_output=True,
+            check=True,
         )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        console.print("[red]❌ pre-commit 未安装[/red]")
+        console.print("[yellow]💡 请安装: pip install pre-commit[/yellow]")
+        raise typer.Exit(1)
 
-    console.print(f"🎯 检查目录: {', '.join(target_paths)}")
-    if not target_paths or target_paths != [str(project_path)]:
+    # 显示 submodule 检查模式
+    if submodules_only:
+        console.print("\n🔍 运行代码质量检查（仅检查 submodules）...")
+    elif include_submodules:
+        console.print("\n🔍 运行代码质量检查（包含 submodules）...")
+    else:
+        console.print("\n🔍 运行代码质量检查（跳过 submodules）...")
+    console.print(f"📝 配置文件: {precommit_config}")
+
+    # 获取 submodule 列表
+    def get_submodule_paths():
+        """获取所有 submodule 的路径"""
+        try:
+            result = subprocess.run(
+                ["git", "config", "--file", ".gitmodules", "--get-regexp", "path"],
+                cwd=str(project_dir),
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            paths = []
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    # 格式: submodule.<name>.path <path>
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        paths.append(parts[1])
+            return paths
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return []
+
+    submodule_paths = get_submodule_paths()
+    if submodule_paths:
         console.print(
-            f"⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem"
+            f"📦 检测到 {len(submodule_paths)} 个 submodules: {', '.join(submodule_paths)}"
         )
 
-    quality_issues = False
-    error_timestamp = None
+    # 构建 pre-commit 命令
+    if submodules_only and submodule_paths:
+        # 仅检查 submodules - 对每个 submodule 单独运行
+        console.print("\n🎯 仅检查 submodules 模式")
+        failed_submodules = []
 
-    # 如果不是check_only模式，并且fix为True，则自动修复
-    should_fix = fix and not check_only
+        for submodule_path in submodule_paths:
+            submodule_dir = project_dir / submodule_path
+            if not submodule_dir.exists():
+                console.print(f"[yellow]⚠️  跳过不存在的 submodule: {submodule_path}[/yellow]")
+                continue
 
-    # 代码格式化检查和修复
-    if format_code:
-        console.print("\n🎨 运行代码格式化检查 (black)...")
+            console.print(f"\n{'=' * 60}")
+            console.print(f"🔍 检查 submodule: {submodule_path}")
+            console.print(f"{'=' * 60}")
 
-        if should_fix:
-            cmd = ["black", "--exclude", black_exclude] + target_paths
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode == 0:
-                console.print("[green]✅ 代码格式化完成[/green]")
-                if result.stdout.strip():
-                    console.print(result.stdout)
+            cmd = ["pre-commit", "run"]
+            cmd.extend(["--config", str(precommit_config)])
+
+            if hook:
+                cmd.append(hook)
             else:
-                console.print(f"[red]❌ 代码格式化失败: {result.stderr}[/red]")
-                quality_issues = True
-                # 保存错误日志
-                _save_quality_error_log(
-                    logs_base_dir, "black", result.stderr + result.stdout
-                )
+                # 根据选项跳过某些 hooks
+                skip_hooks = []
+                if not format_code:
+                    skip_hooks.append("black")
+                if not sort_imports:
+                    skip_hooks.append("isort")
+                if not lint_ruff:
+                    skip_hooks.append("ruff")
+                if not type_check:
+                    skip_hooks.append("mypy")
+
+                if skip_hooks:
+                    import os
+
+                    os.environ["SKIP"] = ",".join(skip_hooks)
+
+            if all_files:
+                cmd.append("--all-files")
+
+            cmd.append("--verbose")
+
+            # 对 submodule 中的文件运行检查
+            cmd.extend(["--files", f"{submodule_path}/**/*"])
+
+            try:
+                result = subprocess.run(cmd, cwd=str(project_dir), check=False)
+                if result.returncode != 0:
+                    failed_submodules.append(submodule_path)
+            except Exception as e:
+                console.print(f"[red]❌ 检查 {submodule_path} 失败: {e}[/red]")
+                failed_submodules.append(submodule_path)
+
+        # 汇总结果
+        console.print(f"\n{'=' * 60}")
+        if failed_submodules:
+            console.print(f"[red]❌ {len(failed_submodules)} 个 submodules 检查失败:[/red]")
+            for sm in failed_submodules:
+                console.print(f"  - {sm}")
+            if not warn_only:
+                raise typer.Exit(1)
         else:
-            # 检查模式
-            cmd = (
-                ["black", "--check", "--exclude", black_exclude]
-                + (["--diff"] if check_only else [])
-                + target_paths
-            )
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode != 0:
-                console.print("[yellow]⚠️ 发现代码格式问题[/yellow]")
-                if check_only and result.stdout.strip():
-                    console.print(result.stdout)
-                quality_issues = True
-                # 保存错误日志
-                _save_quality_error_log(
-                    logs_base_dir, "black", result.stderr + result.stdout
-                )
-            else:
-                console.print("[green]✅ 代码格式检查通过[/green]")
+            console.print("[green]✅ 所有 submodules 质量检查通过！[/green]")
+        return
 
-    # 导入排序检查和修复
-    if sort_imports:
-        console.print("\n📦 运行导入排序检查 (isort)...")
+    # 主仓库检查逻辑（原有逻辑，但需要处理 submodule 排除）
+    cmd = ["pre-commit", "run"]
 
-        if should_fix:
-            cmd = ["isort", "--profile", "black"]
-            # 为每个模式添加 --skip-glob 参数
-            for pattern in isort_skip_patterns:
-                cmd.extend(["--skip-glob", pattern])
-            cmd.extend(target_paths)
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode == 0:
-                console.print("[green]✅ 导入排序完成[/green]")
-                if result.stdout.strip():
-                    console.print(result.stdout)
-            else:
-                console.print(f"[red]❌ 导入排序失败: {result.stderr}[/red]")
-                quality_issues = True
-                # 保存错误日志
-                _save_quality_error_log(
-                    logs_base_dir, "isort", result.stderr + result.stdout
-                )
-        else:
-            # 检查模式
-            cmd = ["isort", "--check-only"]
-            # 为每个模式添加 --skip-glob 参数
-            for pattern in isort_skip_patterns:
-                cmd.extend(["--skip-glob", pattern])
-            if check_only:
-                cmd.append("--diff")
-            cmd.extend(target_paths)
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode != 0:
-                console.print("[yellow]⚠️ 发现导入排序问题[/yellow]")
-                if check_only and result.stdout.strip():
-                    console.print(result.stdout)
-                quality_issues = True
-                # 保存错误日志
-                _save_quality_error_log(
-                    logs_base_dir, "isort", result.stderr + result.stdout
-                )
-            else:
-                console.print("[green]✅ 导入排序检查通过[/green]")
+    # 添加配置文件路径
+    cmd.extend(["--config", str(precommit_config)])
 
-    # 代码检查 (flake8)
-    if lint_code:
-        console.print("\n🔍 运行代码检查 (flake8)...")
-
-        try:
-            # flake8配置通过项目根目录的.flake8文件控制，同时添加命令行排除
-            cmd = ["flake8", "--exclude", flake8_exclude] + target_paths
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode != 0:
-                console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
-                console.print(result.stdout)
-                quality_issues = True
-                # 保存错误日志
-                _save_quality_error_log(
-                    logs_base_dir, "flake8", result.stderr + result.stdout
-                )
-            else:
-                console.print("[green]✅ 代码质量检查通过[/green]")
-        except FileNotFoundError:
-            console.print("[yellow]⚠️ flake8 未安装，跳过代码质量检查[/yellow]")
-            console.print("[yellow]💡 建议安装: pip install flake8[/yellow]")
-        except Exception as e:
-            console.print(f"[yellow]⚠️ flake8 检查失败: {e}[/yellow]")
-
-    # 总结
-    console.print("\n" + "=" * 50)
-    if quality_issues:
-        if should_fix:
-            console.print(
-                "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
-            )
-            console.print(
-                "[yellow]💡 建议运行: sage dev quality --check-only 查看剩余问题[/yellow]"
-            )
-        else:
-            console.print(
-                "[yellow]⚠️ 发现代码质量问题，自动修复功能可以处理格式化和导入排序问题[/yellow]"
-            )
-            console.print(
-                "[yellow]💡 建议运行: sage dev quality (默认自动修复)[/yellow]"
-            )
-
-        # 如果设置了warn_only，只警告不中断
-        if not warn_only:
-            raise typer.Exit(1)
+    # 如果指定了特定 hook
+    if hook:
+        cmd.append(hook)
+        console.print(f"🎯 只运行 hook: {hook}")
     else:
-        console.print("[green]✅ 所有代码质量检查通过[/green]")
+        # 根据选项跳过某些 hooks
+        skip_hooks = []
+        if not format_code:
+            skip_hooks.append("black")
+        if not sort_imports:
+            skip_hooks.append("isort")
+        if not lint_ruff:
+            skip_hooks.append("ruff")
+        if not type_check:
+            skip_hooks.append("mypy")
 
+        if skip_hooks:
+            console.print(f"⏭️  跳过: {', '.join(skip_hooks)}")
+            # pre-commit 没有直接的 --skip 选项，我们需要设置环境变量
+            import os
 
-def _save_quality_error_log(logs_base_dir, tool_name: str, error_content: str):
-    """保存代码质量检查的错误日志到指定目录
+            os.environ["SKIP"] = ",".join(skip_hooks)
 
-    Args:
-        logs_base_dir: 日志基础目录 (.sage/logs/tool/quality)
-        tool_name: 工具名称 (black, isort, flake8)
-        error_content: 错误内容
-    """
-    import datetime
+    # 检查所有文件还是只检查变更的
+    if all_files:
+        cmd.append("--all-files")
+        console.print("📂 检查所有文件")
+    else:
+        console.print("📝 检查已暂存的文件（git staged）")
 
+    # 处理 submodule 包含逻辑
+    if include_submodules and not submodules_only:
+        console.print("⚠️  [yellow]警告: 将检查 submodules 中的文件[/yellow]")
+        console.print(
+            "💡 [yellow]提示: submodules 的排除规则在 pre-commit-config.yaml 中配置[/yellow]"
+        )
+        # 注意：如果要包含 submodules，需要临时修改 SKIP 环境变量
+        # 或者创建临时配置文件，这里我们使用环境变量提示用户
+        console.print(
+            "📝 [cyan]如需完全控制 submodules 的检查，"
+            "请临时修改 tools/pre-commit-config.yaml 中的 exclude 规则[/cyan]"
+        )
+
+    # 显示更多输出
+    cmd.append("--verbose")
+
+    # 运行 pre-commit
+    console.print(f"\n🚀 执行命令: {' '.join(cmd)}\n")
+
+    precommit_passed = True
     try:
-        # 生成时间戳目录名
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        error_dir = logs_base_dir / f"error{timestamp}"
-        error_dir.mkdir(parents=True, exist_ok=True)
-
-        # 保存日志文件
-        log_file = error_dir / f"{tool_name}.log"
-        with open(log_file, "w", encoding="utf-8") as f:
-            f.write(f"代码质量检查错误日志 - {tool_name.upper()}\n")
-            f.write(
-                f"生成时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-            )
-            f.write("=" * 50 + "\n\n")
-            f.write(error_content)
-
-        console.print(f"[blue]📝 已保存 {tool_name} 错误日志: {log_file}[/blue]")
-
-    except Exception as e:
-        console.print(f"[yellow]⚠️ 保存 {tool_name} 日志失败: {e}[/yellow]")
-
-
-def _run_quality_check(
-    project_path: str,
-    fix: bool = False,
-    check_only: bool = True,
-    format_code: bool = True,
-    sort_imports: bool = True,
-    lint_code: bool = True,
-    quiet: bool = False,
-    warn_only: bool = False,
-):
-    """内部质量检查函数，供测试命令调用
-
-    Args:
-        project_path: 项目根目录路径
-        fix: 是否自动修复问题 (默认: True，在测试模式下自动修复)
-        check_only: 是否仅检查不修复 (默认: False，在测试模式下不只是检查)
-        format_code: 是否运行代码格式化检查 (默认: True，运行black格式化)
-        sort_imports: 是否运行导入排序检查 (默认: True，运行isort排序)
-        lint_code: 是否运行代码质量检查 (默认: True，运行flake8检查)
-        quiet: 是否静默模式 (默认: False，在测试模式下不静默)
-        warn_only: 如果为True，只给警告不中断运行 (默认: True，在测试模式下只警告)
-    """
-    import subprocess
-    from pathlib import Path
-
-    project_path = Path(project_path).resolve()
-
-    # 确定要检查的目录 - 只检查项目代码，避免第三方库
-    target_paths = []
-    packages_dir = project_path / "packages"
-    tools_dir = project_path / "tools"
-    examples_dir = project_path / "examples"
-
-    if packages_dir.exists():
-        target_paths.append(str(packages_dir))
-    if tools_dir.exists():
-        target_paths.append(str(tools_dir))
-    if examples_dir.exists():
-        target_paths.append(str(examples_dir))
-
-    # 如果没有这些目录，则使用根目录但排除一些明显的第三方目录
-    if not target_paths:
-        target_paths = [str(project_path)]
-        # 标准第三方目录排除
-        black_exclude = r"test_env|venv|env|\.venv|node_modules|build|dist|\.git"
-        isort_skip_patterns = [
-            "test_env",
-            "venv",
-            "env",
-            ".venv",
-            "node_modules",
-            "build",
-            "dist",
-            ".git",
-        ]
-        flake8_exclude = "test_env,venv,env,.venv,node_modules,build,dist,.git"
-    else:
-        # 添加需要跳过质量检查的特定文件夹（所有 git submodules）
-        # Submodules 列表：
-        # 1. docs-public (文档子模块)
-        # 2. sageLLM (LLM组件)
-        # 3. sageDB (数据库组件)
-        # 4. sageFlow (工作流组件)
-        # 5. neuromem (内存管理组件)
-
-        # black 使用正则表达式
-        black_exclude = r"(docs-public|sageFlow|sageDB|sageLLM|neuromem)"
-        # isort 使用多个 --skip-glob 参数（每个模式一个）
-        isort_skip_patterns = [
-            "*/docs-public/*",
-            "*/sageFlow/*",
-            "*/sageDB/*",
-            "*/sageLLM/*",
-            "*/neuromem/*",
-        ]
-        # flake8 使用逗号分隔的路径模式（支持通配符）
-        flake8_exclude = (
-            "*/docs-public/*,*/sageFlow/*,*/sageDB/*,*/sageLLM/*,*/neuromem/*"
+        result = subprocess.run(
+            cmd,
+            cwd=str(project_dir),
+            check=False,  # 不自动抛出异常，我们自己处理返回码
         )
 
-    if not quiet:
-        console.print(f"🎯 检查目录: {', '.join(str(p) for p in target_paths)}")
-        if not target_paths or target_paths != [str(project_path)]:
-            console.print(
-                f"⏭️  排除所有 submodules: docs-public, sageFlow, sageDB, sageLLM, neuromem"
-            )
+        # pre-commit 返回码：
+        # 0 = 所有检查通过
+        # 1 = 有检查失败或文件被修改
+        if result.returncode == 0:
+            console.print("\n[green]✅ Pre-commit 检查通过！[/green]")
+        elif warn_only:
+            console.print("\n[yellow]⚠️ Pre-commit 发现问题，但继续执行（warn-only 模式）[/yellow]")
+            precommit_passed = False
+        else:
+            console.print("\n[red]❌ Pre-commit 检查失败[/red]")
+            precommit_passed = False
 
-    quality_issues = False
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠️ 用户中断[/yellow]")
+        raise typer.Exit(130)
+    except Exception as e:
+        console.print(f"\n[red]❌ Pre-commit 运行失败: {e}[/red]")
+        precommit_passed = False
 
-    # 代码格式化检查和修复
-    if format_code:
-        if not quiet:
-            console.print("🎨 运行代码格式化检查 (使用black作为代码格式化工具)...")
+    # 运行额外的架构和文档检查
+    extra_checks_passed = True
 
-        if check_only:
-            cmd = [
-                "black",
-                "--check",
-                "--diff",
-                "--exclude",
-                black_exclude,
-            ] + target_paths
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode != 0:
-                if not quiet:
-                    console.print("[yellow]⚠️ 发现代码格式问题[/yellow]")
-                quality_issues = True
-            else:
-                if not quiet:
-                    console.print("[green]✅ 代码格式检查通过 √ [/green]")
-        elif fix:
-            cmd = ["black", "--exclude", black_exclude] + target_paths
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode == 0:
-                if not quiet:
-                    console.print("[green]✅ 代码格式化完成 √ [/green]")
-            else:
-                if not quiet:
-                    console.print(f"[red]❌ 代码格式化失败: {result.stderr}[/red]")
-                quality_issues = True
-
-    # 导入排序检查和修复
-    if sort_imports:
-        if not quiet:
-            console.print("🎨 运行导入排序检查 (使用isort为import语句排序)...")
-
-        if check_only:
-            cmd = ["isort", "--check-only", "--diff"]
-            # 为每个模式添加 --skip-glob 参数
-            for pattern in isort_skip_patterns:
-                cmd.extend(["--skip-glob", pattern])
-            cmd.extend(target_paths)
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode != 0:
-                if not quiet:
-                    console.print("[yellow]⚠️ 发现导入排序问题[/yellow]")
-                quality_issues = True
-            else:
-                if not quiet:
-                    console.print("[green]✅ 导入排序检查通过 √ [/green]")
-        elif fix:
-            cmd = ["isort", "--profile", "black"]
-            # 为每个模式添加 --skip-glob 参数
-            for pattern in isort_skip_patterns:
-                cmd.extend(["--skip-glob", pattern])
-            cmd.extend(target_paths)
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode == 0:
-                if not quiet:
-                    console.print("[green]✅ 导入排序完成 √ [/green]")
-            else:
-                if not quiet:
-                    console.print(f"[red]❌ 导入排序失败: {result.stderr}[/red]")
-                quality_issues = True
-
-    # 代码检查 (flake8)
-    if lint_code:
-        if not quiet:
-            console.print("🎨 运行代码检查 (使用flake8作为静态代码分析工具)...")
-
+    # 架构检查
+    if architecture and not submodules_only:
+        console.print("\n" + "=" * 60)
+        console.print("🏗️  运行架构合规性检查...")
+        console.print("=" * 60)
         try:
-            # flake8配置通过项目根目录的.flake8文件控制，同时添加命令行排除
-            cmd = ["flake8", "--exclude", flake8_exclude] + target_paths
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=str(project_path)
-            )
-            if result.returncode != 0:
-                if not quiet:
-                    console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
-                quality_issues = True
+            from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
+
+            checker = ArchitectureChecker(root_dir=str(project_dir))
+            if all_files:
+                result = checker.check_all()
             else:
-                if not quiet:
-                    console.print("[green]✅ 代码质量检查通过 √ [/green]")
-        except FileNotFoundError:
-            if not quiet:
-                console.print("[yellow]⚠️ flake8 未安装，跳过代码质量检查[/yellow]")
+                result = checker.check_changed_files(diff_target="HEAD")
+
+            if result.passed:
+                console.print("[green]✅ 架构合规性检查通过[/green]")
+            else:
+                console.print(f"[red]❌ 发现 {len(result.violations)} 个架构违规[/red]")
+                for violation in result.violations[:5]:  # 只显示前5个
+                    console.print(f"   • {violation.file}: {violation.message}")
+                if len(result.violations) > 5:
+                    console.print(f"   ... 还有 {len(result.violations) - 5} 个问题")
+                extra_checks_passed = False
         except Exception as e:
-            if not quiet:
-                console.print(f"[yellow]⚠️ flake8 检查失败: {e}[/yellow]")
+            console.print(f"[yellow]⚠️  架构检查失败: {e}[/yellow]")
+            if not warn_only:
+                extra_checks_passed = False
 
-    # 处理质量问题的结果
-    if quality_issues:
-        if not quiet:
-            if fix:
-                console.print(
-                    "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
-                )
-                console.print("[yellow]💡 建议运行: sage dev quality --fix[/yellow]")
+    # Dev-notes 文档检查
+    if devnotes and not submodules_only:
+        console.print("\n" + "=" * 60)
+        console.print("📚 运行 dev-notes 文档规范检查...")
+        console.print("=" * 60)
+        try:
+            from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
+
+            checker = DevNotesChecker(root_dir=str(project_dir))
+            if all_files:
+                result = checker.check_all()
+            else:
+                result = checker.check_changed()
+
+            if result.get("passed", False):
+                console.print("[green]✅ Dev-notes 文档规范检查通过[/green]")
+            else:
+                issues = result.get("issues", [])
+                console.print(f"[red]❌ 发现 {len(issues)} 个文档问题[/red]")
+                for issue in issues[:5]:  # 只显示前5个
+                    console.print(
+                        f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
+                    )
+                if len(issues) > 5:
+                    console.print(f"   ... 还有 {len(issues) - 5} 个问题")
+                extra_checks_passed = False
+        except Exception as e:
+            console.print(f"[yellow]⚠️  文档检查失败: {e}[/yellow]")
+            if not warn_only:
+                extra_checks_passed = False
+
+    # README 检查（可选）
+    if readme and not submodules_only:
+        console.print("\n" + "=" * 60)
+        console.print("📄 运行包 README 质量检查...")
+        console.print("=" * 60)
+        try:
+            from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
+
+            checker = PackageREADMEChecker(workspace_root=str(project_dir))
+            results = checker.check_all(fix=False)
+
+            low_score_packages = [r for r in results if r.score < 80.0]
+            if not low_score_packages:
+                console.print("[green]✅ README 质量检查通过[/green]")
             else:
                 console.print(
-                    "[yellow]⚠️ 发现代码质量问题，使用 --fix 自动修复格式化和导入排序问题[/yellow]"
+                    f"[yellow]⚠️  {len(low_score_packages)} 个包的 README 需要改进[/yellow]"
                 )
-                console.print("[yellow]💡 建议运行: sage dev quality --fix[/yellow]")
+                for r in low_score_packages[:5]:
+                    console.print(f"   • {r.package_name}: {r.score:.1f}/100")
+                if len(low_score_packages) > 5:
+                    console.print(f"   ... 还有 {len(low_score_packages) - 5} 个包")
+                console.print("💡 运行 `sage-dev check-readme --report` 查看详细信息")
+                # README 检查不阻止提交，只是警告
+        except Exception as e:
+            console.print(f"[yellow]⚠️  README 检查失败: {e}[/yellow]")
 
-        # 如果设置了warn_only，只警告不中断
-        if not warn_only:
-            raise typer.Exit(1)
+    # Examples 目录结构检查（可选）
+    if examples and not submodules_only:
+        console.print("\n" + "=" * 60)
+        console.print("📁 运行 examples 目录结构检查...")
+        console.print("=" * 60)
+        try:
+            from pathlib import Path
 
-    return quality_issues
+            from sage.tools.dev.tools.examples_structure_checker import (
+                ExamplesStructureChecker,
+            )
+
+            examples_dir = Path(project_dir) / "examples"
+            if not examples_dir.exists():
+                console.print(f"[yellow]⚠️  examples 目录不存在: {examples_dir}[/yellow]")
+            else:
+                checker = ExamplesStructureChecker(examples_dir)
+                result = checker.check_structure()
+
+                if result.passed:
+                    console.print("[green]✅ Examples 目录结构检查通过[/green]")
+                else:
+                    console.print(f"[red]❌ 发现 {len(result.violations)} 个结构问题[/red]")
+                    for violation in result.violations[:5]:
+                        console.print(f"   • {violation}")
+                    if len(result.violations) > 5:
+                        console.print(f"   ... 还有 {len(result.violations) - 5} 个问题")
+
+                    if result.unexpected_dirs:
+                        console.print("\n[yellow]不符合规范的目录:[/yellow]")
+                        for dir_name in result.unexpected_dirs:
+                            console.print(f"   • {dir_name}/")
+
+                    console.print(f"\n{checker.get_structure_guide()}")
+                    extra_checks_passed = False
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Examples 检查失败: {e}[/yellow]")
+            if not warn_only:
+                extra_checks_passed = False
+
+    # 汇总结果
+    console.print("\n" + "=" * 60)
+    if precommit_passed and extra_checks_passed:
+        console.print("[green]✅ 所有质量检查通过！[/green]")
+        console.print("=" * 60)
+        return
+    elif warn_only:
+        console.print("[yellow]⚠️  发现质量问题，但继续执行（warn-only 模式）[/yellow]")
+        console.print("=" * 60)
+        return
+    else:
+        console.print("[red]❌ 质量检查失败[/red]")
+        console.print("=" * 60)
+        if not all_files:
+            console.print(
+                "[yellow]💡 提示: 使用 --all-files 检查所有文件，或修复上述问题后重新运行[/yellow]"
+            )
+        raise typer.Exit(1)
 
 
+# ============================================================================
+# 下面保留旧的辅助函数供其他命令使用
+# ============================================================================
+
+
+def _save_quality_error_log(logs_dir: Path, tool_name: str, content: str):
+    """保存质量检查错误日志"""
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    log_file = logs_dir / f"{tool_name}_errors.log"
+    log_file.write_text(content, encoding="utf-8")
+
+
+# ============================================================================
+# 以下是旧版本的实现，保留供参考或特殊场景使用
+# 如果完全迁移到 pre-commit 后可以删除
+# ============================================================================
 @app.command()
 def analyze(
     analysis_type: str = typer.Option("all", help="分析类型: all, health, report"),
-    output_format: str = typer.Option(
-        "summary", help="输出格式: summary, json, markdown"
-    ),
+    output_format: str = typer.Option("summary", help="输出格式: summary, json, markdown"),
     project_root: str = typer.Option(".", help="项目根目录"),
 ):
     """分析项目依赖和结构"""
@@ -603,9 +561,7 @@ def analyze(
                 if "summary" in result:
                     summary = result["summary"]
                     console.print(f"  📦 总包数: {summary.get('total_packages', 0)}")
-                    console.print(
-                        f"  📚 总依赖: {summary.get('total_dependencies', 0)}"
-                    )
+                    console.print(f"  📚 总依赖: {summary.get('total_dependencies', 0)}")
                     if "dependency_conflicts" in summary:
                         conflicts = summary["dependency_conflicts"]
                         console.print(
@@ -711,17 +667,15 @@ def clean(
 def status(
     project_root: str = typer.Option(".", help="项目根目录"),
     verbose: bool = typer.Option(False, help="详细输出"),
-    output_format: str = typer.Option(
-        "summary", help="输出格式: summary, json, full, markdown"
-    ),
+    output_format: str = typer.Option("summary", help="输出格式: summary, json, full, markdown"),
     packages_only: bool = typer.Option(False, "--packages", help="只显示包状态信息"),
-    check_versions: bool = typer.Option(
-        False, "--versions", help="检查所有包的版本信息"
-    ),
+    check_versions: bool = typer.Option(False, "--versions", help="检查所有包的版本信息"),
     check_dependencies: bool = typer.Option(False, "--deps", help="检查包依赖状态"),
+    quick: bool = typer.Option(True, "--quick/--full", help="快速模式（跳过耗时检查）"),
 ):
     """显示项目状态 - 集成包状态检查功能"""
     try:
+        # 延迟导入以减少启动时间
         from pathlib import Path
 
         from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
@@ -751,15 +705,15 @@ def status(
 
         if output_format == "json":
             # JSON格式输出
-            status_data = checker.check_all(verbose=False)
-            # 添加包状态信息
-            status_data["packages_status"] = collect_packages_status(project_path)
             import json
 
+            status_data = checker.check_all(verbose=False, quick=quick)
+            # 添加包状态信息
+            status_data["packages_status"] = collect_packages_status(project_path)
             console.print(json.dumps(status_data, indent=2, ensure_ascii=False))
         elif output_format == "full":
             # 完整详细输出
-            status_data = checker.check_all(verbose=True)
+            status_data = checker.check_all(verbose=True, quick=False)  # 完整输出不使用快速模式
             console.print("\n" + "=" * 60)
             console.print(checker.generate_status_summary(status_data))
             console.print("=" * 60)
@@ -774,13 +728,13 @@ def status(
             )
         elif output_format == "markdown":
             # Markdown格式输出
-            status_data = checker.check_all(verbose=verbose)
+            status_data = checker.check_all(verbose=verbose, quick=quick)
             markdown_output = _generate_status_markdown_output(status_data)
             console.print(markdown_output)
         else:
-            # 简要摘要输出 (默认)
+            # 简要摘要输出 (默认) - 使用快速模式
             console.print("🔍 检查项目状态...")
-            status_data = checker.check_all(verbose=False)
+            status_data = checker.check_all(verbose=False, quick=quick)
 
             # 显示摘要
             summary = checker.generate_status_summary(status_data)
@@ -848,14 +802,10 @@ def status(
 
 @app.command()
 def test(
-    test_type: str = typer.Option(
-        "all", help="测试类型: all, unit, integration, quick"
-    ),
+    test_type: str = typer.Option("all", help="测试类型: all, unit, integration, quick"),
     project_root: str = typer.Option(".", help="项目根目录"),
     verbose: bool = typer.Option(False, help="详细输出"),
-    packages: str = typer.Option(
-        "", help="指定测试的包，逗号分隔 (例: sage-libs,sage-kernel)"
-    ),
+    packages: str = typer.Option("", help="指定测试的包，逗号分隔 (例: sage-libs,sage-kernel)"),
     jobs: int = typer.Option(4, "--jobs", "-j", help="并行任务数量"),
     timeout: int = typer.Option(300, "--timeout", "-t", help="每个包的超时时间(秒)"),
     failed_only: bool = typer.Option(False, "--failed", help="只重新运行失败的测试"),
@@ -866,9 +816,7 @@ def test(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式"),
     report_file: str = typer.Option("", "--report", help="测试报告输出文件路径"),
     diagnose: bool = typer.Option(False, "--diagnose", help="运行诊断模式"),
-    issues_manager: bool = typer.Option(
-        False, "--issues-manager", help="包含 issues manager 测试"
-    ),
+    issues_manager: bool = typer.Option(False, "--issues-manager", help="包含 issues manager 测试"),
     # 质量检查选项
     skip_quality_check: bool = typer.Option(
         False, "--skip-quality-check", help="跳过代码质量检查和修复"
@@ -892,6 +840,7 @@ def test(
         from pathlib import Path
 
         from rich.rule import Rule
+
         from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
 
         # 0. 测试目录获取
@@ -919,9 +868,7 @@ def test(
         if not found_root:
             console.print("[red]❌ 无法找到 SAGE 项目根目录[/red]")
             console.print(f"起始搜索目录: {Path(project_root).resolve()}")
-            console.print(
-                "请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径"
-            )
+            console.print("请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径")
             raise typer.Exit(1)
 
         if not quiet:
@@ -930,26 +877,46 @@ def test(
         # 1. 代码质量检查和修复 (在测试前运行)
         if not skip_quality_check:
             if not quiet:
-                console.print(
-                    Rule("[bold cyan]🔍 执行测试前代码质量检查...[/bold cyan]")
-                )
+                console.print(Rule("[bold cyan]🔍 执行测试前代码质量检查...[/bold cyan]"))
 
-            # 调用质量检查函数，使用warn_only模式，不中断测试
-            has_quality_issues = _run_quality_check(
-                project_path=str(project_path),
-                fix=quality_fix,
-                check_only=not quality_fix,
-                format_code=quality_format,
-                sort_imports=quality_imports,
-                lint_code=quality_lint,
-                quiet=quiet,
-                warn_only=True,  # 在测试模式下只警告，不中断
-            )
+            # 使用 subprocess 调用 pre-commit 进行质量检查
+            import subprocess
 
-            if has_quality_issues and not quiet:
-                console.print("[yellow]⚠️ 发现代码质量问题，但继续运行测试[/yellow]")
-            elif not quiet:
-                console.print("[green]🎉 所有代码质量检查通过，继续运行测试[/green]")
+            precommit_config = project_path / "tools" / "pre-commit-config.yaml"
+
+            if precommit_config.exists():
+                cmd = ["pre-commit", "run", "--config", str(precommit_config)]
+
+                # 根据选项跳过某些 hooks
+                skip_hooks = []
+                if not quality_format:
+                    skip_hooks.append("black")
+                if not quality_imports:
+                    skip_hooks.append("isort")
+                if not quality_lint:
+                    skip_hooks.append("ruff")
+
+                if skip_hooks:
+                    import os
+
+                    os.environ["SKIP"] = ",".join(skip_hooks)
+
+                try:
+                    result = subprocess.run(cmd, cwd=str(project_path), check=False)
+                    has_quality_issues = result.returncode != 0
+
+                    if has_quality_issues and not quiet:
+                        console.print("[yellow]⚠️ 发现代码质量问题，但继续运行测试[/yellow]")
+                    elif not quiet:
+                        console.print("[green]🎉 所有代码质量检查通过，继续运行测试[/green]")
+                except Exception as e:
+                    if not quiet:
+                        console.print(f"[yellow]⚠️ 质量检查运行失败: {e}，继续运行测试[/yellow]")
+            else:
+                if not quiet:
+                    console.print(
+                        f"[yellow]⚠️ pre-commit 配置文件不存在: {precommit_config}，跳过质量检查[/yellow]"
+                    )
         elif not quiet:
             console.print("[yellow]⚠️ 跳过代码质量检查[/yellow]")
 
@@ -1009,9 +976,7 @@ def test(
 
         # 生成报告
         if report_file:
-            _generate_test_report(
-                result, report_file, test_type, execution_time, test_config
-            )
+            _generate_test_report(result, report_file, test_type, execution_time, test_config)
 
         # 显示结果
         _display_test_results(result, summary_only, quiet, execution_time)
@@ -1080,23 +1045,19 @@ def home(
                     log_file.unlink()
                     files_removed += 1
 
-            console.print(
-                f"[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]"
-            )
+            console.print(f"[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]")
 
         elif action == "status":
             console.print("🏠 SAGE目录状态:")
             console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
-            console.print(
-                f"  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}"
-            )
+            console.print(f"  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}")
             console.print(f"  📊 项目根目录: {sage_paths.project_root}")
             console.print(
                 f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
             )
 
             # 显示各个子目录状态
-            subdirs = [
+            subdirs: list[tuple[str, Path]] = [
                 ("logs", sage_paths.logs_dir),
                 ("output", sage_paths.output_dir),
                 ("temp", sage_paths.temp_dir),
@@ -1104,14 +1065,12 @@ def home(
                 ("reports", sage_paths.reports_dir),
             ]
 
-            for name, path in subdirs:
-                status = "存在" if path.exists() else "不存在"
-                if path.exists():
-                    size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
-                    file_count = len(list(path.rglob("*")))
-                    console.print(
-                        f"  � {name}: {status} ({file_count} 个文件, {size} 字节)"
-                    )
+            for name, dir_path in subdirs:
+                status = "存在" if dir_path.exists() else "不存在"
+                if dir_path.exists():
+                    size = sum(f.stat().st_size for f in dir_path.rglob("*") if f.is_file())
+                    file_count = len(list(dir_path.rglob("*")))
+                    console.print(f"  � {name}: {status} ({file_count} 个文件, {size} 字节)")
                 else:
                     console.print(f"  � {name}: {status}")
 
@@ -1137,9 +1096,7 @@ def _generate_status_markdown_output(status_data):
     # 添加标题和时间戳
     markdown_lines.append("# SAGE 项目状态报告")
     markdown_lines.append("")
-    markdown_lines.append(
-        f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    )
+    markdown_lines.append(f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     markdown_lines.append("")
 
     if isinstance(status_data, dict):
@@ -1195,9 +1152,7 @@ def _generate_status_markdown_output(status_data):
                 if isinstance(check_data, dict) and "data" in check_data:
                     data = check_data["data"]
                     if data:  # 只显示有数据的检查项目
-                        markdown_lines.append(
-                            f"### {check_name.replace('_', ' ').title()}"
-                        )
+                        markdown_lines.append(f"### {check_name.replace('_', ' ').title()}")
                         markdown_lines.append("")
 
                         if check_name == "environment":
@@ -1205,9 +1160,7 @@ def _generate_status_markdown_output(status_data):
                                 markdown_lines.append("**环境变量**:")
                                 for key, value in data.items():
                                     # Safely convert value to string
-                                    value_str = (
-                                        str(value) if value is not None else "None"
-                                    )
+                                    value_str = str(value) if value is not None else "None"
                                     markdown_lines.append(f"- **{key}**: {value_str}")
 
                         elif check_name == "packages":
@@ -1218,20 +1171,16 @@ def _generate_status_markdown_output(status_data):
                                     markdown_lines.append(
                                         f"- 已安装: {summary.get('installed', 0)}"
                                     )
-                                    markdown_lines.append(
-                                        f"- 总计: {summary.get('total', 0)}"
-                                    )
+                                    markdown_lines.append(f"- 总计: {summary.get('total', 0)}")
 
                                 packages = data.get("packages", [])
-                                if packages and isinstance(packages, (list, dict)):
+                                if packages and isinstance(packages, list | dict):
                                     markdown_lines.append("")
                                     markdown_lines.append("**已安装的包**:")
                                     if isinstance(packages, list):
                                         # Safely slice the list
                                         display_packages = (
-                                            packages[:10]
-                                            if len(packages) > 10
-                                            else packages
+                                            packages[:10] if len(packages) > 10 else packages
                                         )
                                         for pkg in display_packages:
                                             markdown_lines.append(f"- {str(pkg)}")
@@ -1244,9 +1193,7 @@ def _generate_status_markdown_output(status_data):
                                         for pkg_name, pkg_info in packages.items():
                                             if count >= 10:
                                                 break
-                                            markdown_lines.append(
-                                                f"- {pkg_name}: {str(pkg_info)}"
-                                            )
+                                            markdown_lines.append(f"- {pkg_name}: {str(pkg_info)}")
                                             count += 1
                                         if len(packages) > 10:
                                             markdown_lines.append(
@@ -1259,12 +1206,8 @@ def _generate_status_markdown_output(status_data):
                                 if import_tests:
                                     markdown_lines.append("**导入测试结果**:")
                                     for dep, result in import_tests.items():
-                                        status_icon = (
-                                            "✅" if result == "success" else "❌"
-                                        )
-                                        markdown_lines.append(
-                                            f"- {status_icon} {dep}: {result}"
-                                        )
+                                        status_icon = "✅" if result == "success" else "❌"
+                                        markdown_lines.append(f"- {status_icon} {dep}: {result}")
 
                         elif check_name == "services":
                             if isinstance(data, dict):
@@ -1277,30 +1220,22 @@ def _generate_status_markdown_output(status_data):
                                             f"- {status_icon} {service}: {'运行中' if running else '未运行'}"
                                         )
                                         if "details" in info and info["details"]:
-                                            markdown_lines.append(
-                                                f"  - 详情: {info['details']}"
-                                            )
+                                            markdown_lines.append(f"  - 详情: {info['details']}")
 
                         else:
                             # 通用数据显示
                             try:
                                 if isinstance(data, dict):
                                     for key, value in data.items():
-                                        value_str = (
-                                            str(value) if value is not None else "None"
-                                        )
-                                        markdown_lines.append(
-                                            f"- **{key}**: {value_str}"
-                                        )
+                                        value_str = str(value) if value is not None else "None"
+                                        markdown_lines.append(f"- **{key}**: {value_str}")
                                 elif isinstance(data, list):
                                     # Safely handle list slicing
                                     display_items = data[:5] if len(data) > 5 else data
                                     for item in display_items:
                                         markdown_lines.append(f"- {str(item)}")
                                     if len(data) > 5:
-                                        markdown_lines.append(
-                                            f"- ... 还有 {len(data) - 5} 项"
-                                        )
+                                        markdown_lines.append(f"- ... 还有 {len(data) - 5} 项")
                                 else:
                                     markdown_lines.append(f"数据: {str(data)}")
                             except Exception as e:
@@ -1342,9 +1277,7 @@ def _generate_markdown_output(result, analysis_type):
     markdown_lines.append("# SAGE 项目依赖分析报告")
     markdown_lines.append("")
     markdown_lines.append(f"**分析类型**: {analysis_type}")
-    markdown_lines.append(
-        f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    )
+    markdown_lines.append(f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     markdown_lines.append("")
 
     if isinstance(result, dict):
@@ -1354,9 +1287,7 @@ def _generate_markdown_output(result, analysis_type):
             markdown_lines.append("## 📊 分析摘要")
             markdown_lines.append("")
             markdown_lines.append(f"- **总包数**: {summary.get('total_packages', 0)}")
-            markdown_lines.append(
-                f"- **总依赖**: {summary.get('total_dependencies', 0)}"
-            )
+            markdown_lines.append(f"- **总依赖**: {summary.get('total_dependencies', 0)}")
 
             if "dependency_conflicts" in summary:
                 conflicts = summary["dependency_conflicts"]
@@ -1369,9 +1300,7 @@ def _generate_markdown_output(result, analysis_type):
                     markdown_lines.append("")
                     for i, conflict in enumerate(conflicts, 1):
                         if isinstance(conflict, dict):
-                            markdown_lines.append(
-                                f"{i}. **{conflict.get('package', 'Unknown')}**"
-                            )
+                            markdown_lines.append(f"{i}. **{conflict.get('package', 'Unknown')}**")
                             markdown_lines.append(
                                 f"   - 冲突类型: {conflict.get('type', 'Unknown')}"
                             )
@@ -1393,7 +1322,7 @@ def _generate_markdown_output(result, analysis_type):
             markdown_lines.append(f"- **等级**: {grade}")
 
             # 添加评分说明
-            if isinstance(health_score, (int, float)):
+            if isinstance(health_score, int | float):
                 if health_score >= 90:
                     status = "🟢 优秀"
                 elif health_score >= 70:
@@ -1464,7 +1393,7 @@ def _generate_markdown_output(result, analysis_type):
             ]:
                 markdown_lines.append(f"## {key.replace('_', ' ').title()}")
                 markdown_lines.append("")
-                if isinstance(value, (list, dict)):
+                if isinstance(value, list | dict):
                     markdown_lines.append("```json")
                     import json
 
@@ -1640,9 +1569,7 @@ def _generate_test_report(
         console.print(f"[red]生成测试报告失败: {e}[/red]")
 
 
-def _display_test_results(
-    result: dict, summary_only: bool, quiet: bool, execution_time: float
-):
+def _display_test_results(result: dict, summary_only: bool, quiet: bool, execution_time: float):
     """显示测试结果"""
     if quiet:
         return
@@ -1709,9 +1636,571 @@ def _check_package_dependencies(package_name: str, verbose: bool):
     """保持原有函数存在以防外部引用。"""
 
     if verbose:
-        console.print(
-            "    ℹ️ 依赖检查已迁移到 `sage doctor packages --deps`，当前调用保持兼容"
-        )
+        console.print("    ℹ️ 依赖检查已迁移到 `sage doctor packages --deps`，当前调用保持兼容")
+
+
+# ===================================
+# 架构和文档检查命令
+# ===================================
+
+
+@app.command()
+def architecture(
+    show_dependencies: bool = typer.Option(
+        True, "--dependencies/--no-dependencies", help="显示依赖关系"
+    ),
+    show_layers: bool = typer.Option(True, "--layers/--no-layers", help="显示层级定义"),
+    package: str = typer.Option(None, "--package", help="显示特定包的信息"),
+    output_format: str = typer.Option("text", "--format", help="输出格式: text, json, markdown"),
+):
+    """显示 SAGE 架构信息
+
+    显示项：
+    - 分层架构定义（L1-L6）
+    - 包的层级归属
+    - 允许的依赖关系
+    - 依赖规则说明
+
+    示例：
+        sage-dev architecture                          # 显示完整架构信息
+        sage-dev architecture --package sage-kernel    # 显示特定包的信息
+        sage-dev architecture --format json            # JSON 格式输出
+        sage-dev architecture --no-dependencies        # 只显示层级，不显示依赖
+    """
+    from sage.tools.dev.tools.architecture_checker import (
+        ALLOWED_DEPENDENCIES,
+        LAYER_DEFINITION,
+        PACKAGE_TO_LAYER,
+    )
+
+    if output_format == "json":
+        import json
+
+        data = {
+            "layers": LAYER_DEFINITION,
+            "package_to_layer": PACKAGE_TO_LAYER,
+            "dependencies": {k: list(v) for k, v in ALLOWED_DEPENDENCIES.items()},
+        }
+
+        if package:
+            if package in PACKAGE_TO_LAYER:
+                data = {
+                    "package": package,
+                    "layer": PACKAGE_TO_LAYER[package],
+                    "dependencies": list(ALLOWED_DEPENDENCIES.get(package, set())),
+                }
+            else:
+                console.print(f"[red]❌ 未找到包: {package}[/red]")
+                raise typer.Exit(1)
+
+        console.print(json.dumps(data, indent=2, ensure_ascii=False))
+        return
+
+    if output_format == "markdown":
+        console.print("# SAGE 架构定义\n")
+
+        if show_layers:
+            console.print("## 层级定义\n")
+            for layer in sorted(LAYER_DEFINITION.keys()):
+                packages = LAYER_DEFINITION[layer]
+                console.print(f"### {layer}")
+                for pkg in packages:
+                    console.print(f"- `{pkg}`")
+                console.print()
+
+        if show_dependencies:
+            console.print("## 依赖关系\n")
+            for pkg in sorted(ALLOWED_DEPENDENCIES.keys()):
+                deps = ALLOWED_DEPENDENCIES[pkg]
+                console.print(f"### {pkg}")
+                if deps:
+                    console.print(f"**允许依赖**: {', '.join(f'`{d}`' for d in sorted(deps))}")
+                else:
+                    console.print("**允许依赖**: 无（基础层）")
+                console.print()
+        return
+
+    # Text format (default)
+    console.print("\n" + "=" * 70)
+    console.print("🏗️  SAGE 架构定义")
+    console.print("=" * 70)
+
+    if package:
+        # 显示特定包的信息
+        if package not in PACKAGE_TO_LAYER:
+            console.print(f"\n[red]❌ 未找到包: {package}[/red]")
+            console.print("\n可用的包：")
+            for pkg in sorted(PACKAGE_TO_LAYER.keys()):
+                console.print(f"  • {pkg}")
+            raise typer.Exit(1)
+
+        layer = PACKAGE_TO_LAYER[package]
+        deps = ALLOWED_DEPENDENCIES.get(package, set())
+
+        console.print(f"\n📦 包名称: [bold cyan]{package}[/bold cyan]")
+        console.print(f"📊 所属层级: [bold yellow]{layer}[/bold yellow]")
+
+        if deps:
+            console.print("\n✅ 允许依赖的包:")
+            for dep in sorted(deps):
+                dep_layer = PACKAGE_TO_LAYER.get(dep, "unknown")
+                console.print(f"  • {dep} ({dep_layer})")
+        else:
+            console.print("\n🔒 基础层，不依赖其他包")
+
+        # 显示哪些包可以依赖这个包
+        can_depend = [pkg for pkg, allowed in ALLOWED_DEPENDENCIES.items() if package in allowed]
+        if can_depend:
+            console.print("\n⬆️  可以被以下包依赖:")
+            for pkg in sorted(can_depend):
+                pkg_layer = PACKAGE_TO_LAYER.get(pkg, "unknown")
+                console.print(f"  • {pkg} ({pkg_layer})")
+    else:
+        # 显示完整架构
+        if show_layers:
+            console.print("\n📊 层级定义:")
+            console.print()
+
+            for layer in sorted(LAYER_DEFINITION.keys()):
+                packages = LAYER_DEFINITION[layer]
+                layer_desc = {
+                    "L1": "基础层 - 通用组件",
+                    "L2": "平台层 - 基础设施",
+                    "L3": "核心层 - 核心功能",
+                    "L4": "中间件层 - 服务组件",
+                    "L5": "应用层 - 应用程序",
+                    "L6": "工具层 - 开发工具",
+                }.get(layer, "")
+
+                console.print(f"  [bold yellow]{layer}[/bold yellow] - {layer_desc}")
+                for pkg in packages:
+                    console.print(f"    • [cyan]{pkg}[/cyan]")
+                console.print()
+
+        if show_dependencies:
+            console.print("\n🔗 依赖关系规则:")
+            console.print()
+            console.print("  💡 原则: 高层可以依赖低层，同层之间需要明确定义")
+            console.print()
+
+            # 按层级顺序显示（L1-L6）
+            for layer in sorted(LAYER_DEFINITION.keys()):
+                for pkg in LAYER_DEFINITION[layer]:
+                    deps = ALLOWED_DEPENDENCIES.get(pkg, set())
+
+                    console.print(f"  [cyan]{pkg}[/cyan] ({layer})")
+                    if deps:
+                        dep_list = ", ".join(sorted(deps))
+                        console.print(f"    ✅ 可依赖: {dep_list}")
+                    else:
+                        console.print("    🔒 基础层，无依赖")
+                    console.print()
+
+    console.print("=" * 70)
+    console.print("\n💡 提示:")
+    console.print("  • 使用 --package <name> 查看特定包的依赖信息")
+    console.print("  • 使用 --format json 获取机器可读的输出")
+    console.print("  • 使用 --format markdown 获取文档格式")
+    console.print("  • 运行 'sage-dev check-architecture' 检查架构合规性")
+    console.print()
+
+
+@app.command()
+def check_architecture(
+    project_root: str = typer.Option(".", help="项目根目录"),
+    changed_only: bool = typer.Option(False, "--changed-only", help="仅检查变更的文件"),
+    diff: str = typer.Option("HEAD", "--diff", help="git diff 比较的目标（用于 --changed-only）"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
+):
+    """检查代码架构合规性
+
+    检查项：
+    - 包依赖规则（分层架构）
+    - 导入路径合规性
+    - 模块结构规范
+
+    示例：
+        sage-dev check-architecture                    # 检查所有文件
+        sage-dev check-architecture --changed-only     # 仅检查变更文件
+        sage-dev check-architecture --diff main        # 对比 main 分支
+    """
+    from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
+
+    project_path = Path(project_root).resolve()
+
+    if not project_path.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+        raise typer.Exit(1)
+
+    console.print("\n🏗️  检查 SAGE 架构合规性...")
+    console.print(f"📁 项目路径: {project_path}")
+
+    try:
+        checker = ArchitectureChecker(root_dir=str(project_path))
+
+        if changed_only:
+            console.print(f"🔍 仅检查相对于 {diff} 的变更文件")
+            result = checker.check_changed_files(diff_target=diff)
+        else:
+            console.print("🔍 检查所有文件")
+            result = checker.check_all()
+
+    except Exception as e:
+        console.print(f"[red]❌ 架构检查执行失败: {e}[/red]")
+        if verbose:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+    # 显示结果
+    if result.passed:
+        console.print("\n[green]✅ 架构合规性检查通过！[/green]")
+        if verbose and result.stats:
+            console.print(f"📝 检查了 {result.stats.get('total_files', 0)} 个文件")
+    else:
+        console.print("\n[red]❌ 发现架构违规！[/red]")
+        if result.stats:
+            console.print(f"📝 检查了 {result.stats.get('total_files', 0)} 个文件")
+        console.print(f"⚠️  发现 {len(result.violations)} 个问题：\n")
+
+        for violation in result.violations:
+            console.print(f"[red]❌ {violation.file}:{violation.line}[/red]")
+            console.print(f"   {violation.message}")
+            if violation.suggestion:
+                console.print(f"   💡 建议: {violation.suggestion}")
+            console.print()
+
+        raise typer.Exit(1)
+
+
+@app.command()
+def check_devnotes(
+    project_root: str = typer.Option(".", help="项目根目录"),
+    changed_only: bool = typer.Option(False, "--changed-only", help="仅检查变更的文档"),
+    check_structure: bool = typer.Option(False, "--check-structure", help="检查目录结构"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
+):
+    """检查 dev-notes 文档规范
+
+    检查项：
+    - 文档分类是否正确
+    - 元数据是否完整（Date, Author, Summary）
+    - 文件名是否符合规范
+
+    示例：
+        sage-dev check-devnotes                    # 检查所有文档
+        sage-dev check-devnotes --check-structure  # 检查目录结构
+    """
+    from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
+
+    project_path = Path(project_root).resolve()
+
+    if not project_path.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+        raise typer.Exit(1)
+
+    console.print("\n📚 检查 dev-notes 文档规范...")
+    console.print(f"📁 项目路径: {project_path}")
+
+    try:
+        checker = DevNotesChecker(root_dir=str(project_path))
+
+        if check_structure:
+            console.print("🔍 检查目录结构...")
+            structure_ok = checker.check_directory_structure()
+            if structure_ok:
+                console.print("\n[green]✅ 目录结构检查通过！[/green]")
+            else:
+                console.print("\n[red]❌ 目录结构检查失败！[/red]")
+                raise typer.Exit(1)
+            return
+        elif changed_only:
+            console.print("🔍 仅检查变更的文档...")
+            result = checker.check_changed()
+        else:
+            console.print("🔍 检查所有文档...")
+            result = checker.check_all()
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        console.print(f"[red]❌ 文档检查执行失败: {e}[/red]")
+        if verbose:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+    # 显示结果
+    if result.get("passed", False):
+        console.print("\n[green]✅ 文档规范检查通过！[/green]")
+        if verbose:
+            console.print(f"📝 检查了 {result.get('total', 0)} 个文档")
+    else:
+        console.print("\n[red]❌ 发现文档规范问题！[/red]")
+        issues = result.get("issues", [])
+        console.print(f"⚠️  发现 {len(issues)} 个问题：\n")
+
+        for issue in issues[:10]:  # 显示前10个
+            console.print(f"[red]❌ {issue.get('file', 'unknown')}[/red]")
+            console.print(f"   {issue.get('message', '')}")
+            console.print()
+
+        if len(issues) > 10:
+            console.print(f"... 还有 {len(issues) - 10} 个问题")
+
+        console.print("\n💡 参考模板: docs/dev-notes/TEMPLATE.md")
+        raise typer.Exit(1)
+
+
+@app.command()
+def check_readme(
+    package: str = typer.Argument(None, help="要检查的包名（不指定则检查所有包）"),
+    project_root: str = typer.Option(".", help="项目根目录"),
+    fix: bool = typer.Option(False, "--fix", help="生成缺失的章节（交互模式）"),
+    report: bool = typer.Option(False, "--report", help="生成详细报告"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
+):
+    """检查包 README 文档质量
+
+    检查项：
+    - README 文件是否存在
+    - 必需章节是否完整
+    - 文档结构是否符合模板
+
+    示例：
+        sage-dev check-readme                      # 检查所有包
+        sage-dev check-readme sage-common          # 检查特定包
+        sage-dev check-readme --report             # 生成详细报告
+        sage-dev check-readme sage-libs --fix      # 交互式修复
+    """
+    from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
+
+    project_path = Path(project_root).resolve()
+
+    if not project_path.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+        raise typer.Exit(1)
+
+    console.print("\n📄 检查包 README 质量...")
+    console.print(f"📁 项目路径: {project_path}")
+
+    try:
+        checker = PackageREADMEChecker(workspace_root=str(project_path))
+
+        if package:
+            console.print(f"🔍 检查包: {package}")
+            result = checker.check_package(package, fix=fix)
+            results = [result]
+        else:
+            console.print("🔍 检查所有包...")
+            results = checker.check_all(fix=fix)
+
+        # 显示结果
+        all_passed = all(r.score >= 80.0 for r in results)
+
+        if report:
+            checker.generate_report(results)
+
+        if all_passed:
+            console.print("\n[green]✅ README 质量检查通过！[/green]")
+            for r in results:
+                console.print(f"  {r.package_name}: {r.score:.1f}/100")
+        else:
+            console.print("\n[yellow]⚠️  部分 README 需要改进：[/yellow]\n")
+            for r in results:
+                status = "✅" if r.score >= 80.0 else "⚠️"
+                console.print(f"{status} {r.package_name}: {r.score:.1f}/100")
+                if r.issues and verbose:
+                    for issue in r.issues:
+                        console.print(f"   - {issue}")
+
+            if not all_passed:
+                console.print("\n💡 运行 `sage-dev check-readme --report` 查看详细报告")
+                console.print("💡 运行 `sage-dev check-readme <package> --fix` 交互式修复")
+
+            raise typer.Exit(1)
+
+    except Exception as e:
+        console.print(f"[red]❌ README 检查失败: {e}[/red]")
+        if verbose:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
+@app.command()
+def check_all(
+    project_root: str = typer.Option(".", help="项目根目录"),
+    changed_only: bool = typer.Option(False, "--changed-only", help="仅检查变更的文件"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示详细信息"),
+    continue_on_error: bool = typer.Option(
+        False, "--continue-on-error", help="出错时继续执行其他检查"
+    ),
+):
+    """运行所有质量检查（架构 + 文档 + README）
+
+    这是一个便捷命令，依次运行：
+    1. 架构合规性检查
+    2. Dev-notes 文档规范检查
+    3. 包 README 质量检查
+
+    示例：
+        sage-dev check-all                      # 检查所有项目
+        sage-dev check-all --changed-only       # 仅检查变更文件
+        sage-dev check-all --continue-on-error  # 出错继续执行
+        sage-dev check-all --verbose            # 详细输出
+    """
+    project_path = Path(project_root).resolve()
+
+    if not project_path.exists():
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
+        raise typer.Exit(1)
+
+    console.print("\n" + "=" * 70)
+    console.print("🔍 运行所有质量检查")
+    console.print("=" * 70)
+    console.print(f"📁 项目路径: {project_path}\n")
+
+    checks_passed = []
+    checks_failed = []
+
+    # 1. 架构检查
+    console.print("=" * 70)
+    console.print("🏗️  [1/3] 架构合规性检查")
+    console.print("=" * 70)
+    try:
+        from sage.tools.dev.tools.architecture_checker import ArchitectureChecker
+
+        checker = ArchitectureChecker(root_dir=str(project_path))
+        if changed_only:
+            result = checker.check_changed_files(diff_target="HEAD")
+        else:
+            result = checker.check_all()
+
+        if result.passed:
+            console.print("[green]✅ 架构合规性检查通过[/green]\n")
+            checks_passed.append("架构检查")
+        else:
+            console.print(f"[red]❌ 发现 {len(result.violations)} 个架构违规[/red]")
+            if verbose:
+                for violation in result.violations[:3]:
+                    console.print(f"   • {violation.file}: {violation.message}")
+                if len(result.violations) > 3:
+                    console.print(f"   ... 还有 {len(result.violations) - 3} 个问题")
+            console.print()
+            checks_failed.append("架构检查")
+            if not continue_on_error:
+                raise typer.Exit(1)
+    except typer.Exit:
+        raise  # 重新抛出 Exit 异常
+    except Exception as e:
+        console.print(f"[red]❌ 架构检查执行失败: {e}[/red]\n")
+        checks_failed.append("架构检查")
+        if not continue_on_error:
+            raise typer.Exit(1)
+
+    # 2. Dev-notes 文档检查
+    console.print("=" * 70)
+    console.print("📚 [2/3] Dev-notes 文档规范检查")
+    console.print("=" * 70)
+    try:
+        from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
+
+        checker = DevNotesChecker(root_dir=str(project_path))
+        if changed_only:
+            result = checker.check_changed()
+        else:
+            result = checker.check_all()
+
+        if result.get("passed", False):
+            console.print("[green]✅ Dev-notes 文档规范检查通过[/green]\n")
+            checks_passed.append("文档检查")
+        else:
+            issues = result.get("issues", [])
+            console.print(f"[red]❌ 发现 {len(issues)} 个文档问题[/red]")
+            if verbose:
+                for issue in issues[:3]:
+                    console.print(
+                        f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
+                    )
+                if len(issues) > 3:
+                    console.print(f"   ... 还有 {len(issues) - 3} 个问题")
+            console.print()
+            checks_failed.append("文档检查")
+            if not continue_on_error:
+                raise typer.Exit(1)
+    except typer.Exit:
+        raise  # 重新抛出 Exit 异常
+    except Exception as e:
+        console.print(f"[red]❌ 文档检查执行失败: {e}[/red]\n")
+        checks_failed.append("文档检查")
+        if not continue_on_error:
+            raise typer.Exit(1)
+
+    # 3. README 检查
+    console.print("=" * 70)
+    console.print("📄 [3/3] 包 README 质量检查")
+    console.print("=" * 70)
+    try:
+        from sage.tools.dev.tools.package_readme_checker import PackageREADMEChecker
+
+        checker = PackageREADMEChecker(workspace_root=str(project_path))
+        results = checker.check_all(fix=False)
+
+        low_score_packages = [r for r in results if r.score < 80.0]
+        if not low_score_packages:
+            console.print("[green]✅ README 质量检查通过[/green]\n")
+            checks_passed.append("README 检查")
+        else:
+            console.print(f"[yellow]⚠️  {len(low_score_packages)} 个包的 README 需要改进[/yellow]")
+            if verbose:
+                for r in low_score_packages[:5]:
+                    console.print(f"   • {r.package_name}: {r.score:.1f}/100")
+                if len(low_score_packages) > 5:
+                    console.print(f"   ... 还有 {len(low_score_packages) - 5} 个包")
+            console.print()
+            # README 检查不阻止，只是警告
+            checks_passed.append("README 检查（警告）")
+    except typer.Exit:
+        raise  # 重新抛出 Exit 异常
+    except Exception as e:
+        console.print(f"[yellow]⚠️  README 检查失败: {e}[/yellow]\n")
+        # README 检查失败不算严重错误
+        checks_passed.append("README 检查（跳过）")
+
+    # 汇总结果
+    console.print("=" * 70)
+    console.print("📊 检查结果汇总")
+    console.print("=" * 70)
+
+    if checks_passed:
+        console.print("[green]✅ 通过的检查:[/green]")
+        for check in checks_passed:
+            console.print(f"   • {check}")
+
+    if checks_failed:
+        console.print("\n[red]❌ 失败的检查:[/red]")
+        for check in checks_failed:
+            console.print(f"   • {check}")
+
+    console.print("\n" + "=" * 70)
+    if not checks_failed:
+        console.print("[green]🎉 所有检查通过！[/green]")
+        console.print("=" * 70)
+    else:
+        console.print(f"[red]❌ {len(checks_failed)} 项检查失败[/red]")
+        console.print("=" * 70)
+        console.print("\n💡 提示:")
+        console.print("  • 使用 --verbose 查看详细错误")
+        console.print("  • 使用 --continue-on-error 继续执行所有检查")
+        console.print("  • 运行单独的检查命令修复问题:")
+        console.print("    - sage-dev check-architecture")
+        console.print("    - sage-dev check-devnotes")
+        console.print("    - sage-dev check-readme")
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

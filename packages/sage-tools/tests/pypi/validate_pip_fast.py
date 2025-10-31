@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 SAGE PyPI发布准备快速验证脚本
 
@@ -25,13 +24,12 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 
 class FastPipValidator:
     """快速PyPI发布准备验证器"""
 
-    def __init__(self, test_dir: Optional[str] = None, skip_wheel: bool = False):
+    def __init__(self, test_dir: str | None = None, skip_wheel: bool = False):
         # 查找SAGE项目根目录
         current_file = Path(__file__).resolve()
         # 从 packages/sage-tools/tests/pypi/test_pip_validate_fast.py 找到项目根目录
@@ -76,12 +74,12 @@ class FastPipValidator:
 
     def run_command(
         self,
-        cmd: List[str],
-        cwd: Optional[Path] = None,
+        cmd: list[str],
+        cwd: Path | None = None,
         capture_output: bool = True,
         timeout: int = 300,
-        env: Optional[dict] = None,
-    ) -> Tuple[int, str, str]:
+        env: dict | None = None,
+    ) -> tuple[int, str, str]:
         """运行命令并返回结果"""
         try:
             # 如果没有指定环境变量，使用当前环境
@@ -175,7 +173,7 @@ class FastPipValidator:
             print(f"  ❌ 设置测试环境失败: {e}")
             return False
 
-    def build_or_find_wheel(self) -> Optional[Path]:
+    def build_or_find_wheel(self) -> Path | None:
         """构建或查找wheel包"""
         if self.skip_wheel:
             print("\n📦 查找现有wheel包...")
@@ -329,8 +327,8 @@ import sys
 try:
     import sage
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.libs.io_utils.source import FileSource
-    from sage.libs.io_utils.sink import TerminalSink
+    from sage.libs.io.source import FileSource
+    from sage.libs.io.sink import TerminalSink
     from sage.common.utils.logging.custom_logger import CustomLogger
     print("✅ 所有核心模块导入成功")
     sys.exit(0)
@@ -369,8 +367,8 @@ except ImportError as e:
         # 核心功能测试（简化版）
         test_script = """
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.common.core.functions.batch_function import BatchFunction
+from sage.common.core.functions.sink_function import SinkFunction
 
 # 测试环境创建
 env = LocalEnvironment("test_env")
@@ -464,24 +462,6 @@ else:
             print(f"  ❌ CLI测试异常: {e}")
             return False
 
-    def cleanup(self) -> bool:
-        """清理测试环境"""
-        print("\n🧹 清理测试环境...")
-
-        try:
-            if self.test_dir.exists():
-                shutil.rmtree(self.test_dir)
-                print("  ✅ 测试目录已清理")
-            else:
-                print("  ℹ️  测试目录不存在，无需清理")
-
-            self.results["cleanup"] = True
-            return True
-
-        except Exception as e:
-            print(f"  ❌ 清理失败: {e}")
-            return False
-
     def run_fast_validation(self) -> bool:
         """运行快速发布准备验证"""
         print("🚀 SAGE PyPI发布准备快速验证")
@@ -540,16 +520,23 @@ else:
             print("🔧 建议运行完整验证以获取详细信息")
             return False
 
-    def cleanup(self):
+    def cleanup(self) -> bool:
         """清理测试环境"""
-        if self.test_dir.exists():
-            print(f"\n🧹 清理测试环境: {self.test_dir}")
-            try:
+        print("\n🧹 清理测试环境...")
+
+        try:
+            if self.test_dir.exists():
                 shutil.rmtree(self.test_dir)
-                print("✅ 清理完成")
-            except Exception as e:
-                print(f"⚠️  清理失败: {e}")
-                print("💡 请手动删除测试目录")
+                print("  ✅ 测试目录已清理")
+            else:
+                print("  ℹ️  测试目录不存在，无需清理")
+
+            self.results["cleanup"] = True
+            return True
+
+        except Exception as e:
+            print(f"  ❌ 清理失败: {e}")
+            return False
 
 
 def main():

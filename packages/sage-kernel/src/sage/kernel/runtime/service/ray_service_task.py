@@ -10,7 +10,7 @@ try:
 
     RAY_QUEUE_AVAILABLE = True
 except ImportError:
-    RayQueue = None
+    RayQueue = None  # type: ignore
     RAY_QUEUE_AVAILABLE = False
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class RayServiceTask(BaseServiceTask):
     """Ray服务任务，继承BaseServiceTask并提供Ray分布式执行支持"""
 
-    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext" = None):
+    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext | None" = None):
         """
         初始化Ray服务任务
 
@@ -49,7 +49,7 @@ class RayServiceTask(BaseServiceTask):
 
     def _create_request_queue(self) -> Any:
         """创建Ray队列作为请求队列"""
-        if not RAY_QUEUE_AVAILABLE:
+        if not RAY_QUEUE_AVAILABLE or RayQueue is None:
             raise RuntimeError(
                 "Ray queue is not available. Please ensure Ray is properly installed."
             )
@@ -57,7 +57,7 @@ class RayServiceTask(BaseServiceTask):
 
     def _create_response_queue(self, queue_name: str) -> Any:
         """创建Ray队列作为响应队列"""
-        if not RAY_QUEUE_AVAILABLE:
+        if not RAY_QUEUE_AVAILABLE or RayQueue is None:
             raise RuntimeError(
                 "Ray queue is not available. Please ensure Ray is properly installed."
             )
@@ -85,9 +85,7 @@ class RayServiceTask(BaseServiceTask):
             {
                 "actor_id": f"ray_actor_{self.service_name}",
                 "ray_node_id": (
-                    ray.get_runtime_context().node_id.hex()
-                    if ray.is_initialized()
-                    else "unknown"
+                    ray.get_runtime_context().node_id.hex() if ray.is_initialized() else "unknown"
                 ),
             }
         )

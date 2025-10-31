@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
 
 if TYPE_CHECKING:
+    from sage.common.core.functions import BaseCoMapFunction
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.function.comap_function import BaseCoMapFunction
 
 
 class CoMapTransformation(BaseTransformation):
@@ -19,8 +19,8 @@ class CoMapTransformation(BaseTransformation):
 
     def __init__(
         self,
-        env: "BaseEnvironment",
-        function: Type["BaseCoMapFunction"],
+        env: BaseEnvironment,
+        function: type[BaseCoMapFunction],
         *args,
         **kwargs,
     ):
@@ -41,13 +41,9 @@ class CoMapTransformation(BaseTransformation):
 
         super().__init__(env, function, *args, **kwargs)
 
-        self.logger.debug(
-            f"Created CoMapTransformation with function {function.__name__}"
-        )
+        self.logger.debug(f"Created CoMapTransformation with function {function.__name__}")
 
-    def _validate_required_methods(
-        self, function_class: Type["BaseCoMapFunction"]
-    ) -> None:
+    def _validate_required_methods(self, function_class: type[BaseCoMapFunction]) -> None:
         """
         验证CoMap函数是否实现了必需的方法
 

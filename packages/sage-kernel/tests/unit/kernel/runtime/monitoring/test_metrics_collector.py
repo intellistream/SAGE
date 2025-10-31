@@ -8,6 +8,7 @@ TPS calculation, and latency percentile computation.
 import time
 
 import pytest
+
 from sage.kernel.runtime.monitoring.metrics_collector import MetricsCollector
 
 
@@ -39,8 +40,10 @@ class TestMetricsCollector:
         collector.record_packet_start(packet_id)
 
         assert packet_id in collector._in_flight
-        assert collector._in_flight[packet_id].packet_id == packet_id
-        assert collector._in_flight[packet_id].processing_start_time is not None
+        metrics = collector._in_flight[packet_id]
+        # PacketMetrics 使用 packet_id, ServiceRequestMetrics 使用 request_id
+        assert getattr(metrics, "packet_id", getattr(metrics, "request_id", None)) == packet_id
+        assert metrics.processing_start_time is not None
 
     def test_record_packet_end_success(self):
         """测试记录数据包成功处理完成"""
@@ -74,9 +77,7 @@ class TestMetricsCollector:
         collector = MetricsCollector(name="test_task")
 
         # 记录不同类型的错误
-        for i, error_type in enumerate(
-            ["ValueError", "TypeError", "ValueError", "NetworkError"]
-        ):
+        for i, error_type in enumerate(["ValueError", "TypeError", "ValueError", "NetworkError"]):
             packet_id = f"packet_{i:03d}"
             collector.record_packet_start(packet_id)
             collector.record_packet_end(packet_id, success=False, error_type=error_type)
@@ -116,8 +117,8 @@ class TestMetricsCollector:
         collector = MetricsCollector(name="test_task")
 
         # 添加一些延迟数据（毫秒）
-        latencies = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-        
+        latencies = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0]
+
         result = collector.calculate_percentiles(latencies)
 
         # 验证百分位数在合理范围内（毫秒）
@@ -227,6 +228,8 @@ class TestMetricsCollectorEdgeCases:
         second_start_time = collector._in_flight[packet_id].processing_start_time
 
         # 应该覆盖之前的记录
+        assert first_start_time is not None
+        assert second_start_time is not None
         assert second_start_time > first_start_time
 
     def test_very_fast_processing(self):

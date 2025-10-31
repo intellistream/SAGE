@@ -1,4 +1,4 @@
-from sage.tools.templates import pipeline_blueprints
+from sage.cli.templates import pipeline_blueprints
 
 
 def test_match_blueprints_surface_relevant_candidate():
@@ -15,19 +15,15 @@ def test_match_blueprints_surface_relevant_candidate():
 
 
 def test_build_mock_pipeline_plan_uses_blueprint_components():
-    blueprint = pipeline_blueprints.select_blueprint(
-        {"goal": "运行hello world批处理示例"}
-    )
-    plan = pipeline_blueprints.build_pipeline_plan(
-        blueprint, {"goal": "运行hello world批处理示例"}
-    )
+    blueprint = pipeline_blueprints.select_blueprint({"goal": "运行hello world批处理示例"})
+    plan = pipeline_blueprints.build_pipeline_plan(blueprint, {"goal": "运行hello world批处理示例"})
 
     assert plan["source"]["class"] == "examples.tutorials.hello_world.HelloBatch"
     classes = [stage["class"] for stage in plan["stages"]]
     assert "examples.tutorials.hello_world.UpperCaseMap" in classes
     assert plan["sink"]["class"] in {
         "examples.tutorials.hello_world.PrintSink",
-        "sage.libs.io_utils.sink.PrintSink",
+        "sage.libs.io.sink.PrintSink",
     }
     notes = plan.get("notes") or []
     assert notes, "blueprint plan should include descriptive notes"
@@ -60,4 +56,4 @@ def test_multimodal_blueprint_references_real_components():
         in stage_classes
     )
     assert "sage.libs.rag.generator.OpenAIGenerator" in stage_classes
-    assert blueprint.sink.class_path == "sage.libs.io_utils.sink.TerminalSink"
+    assert blueprint.sink.class_path == "sage.libs.io.sink.TerminalSink"

@@ -6,22 +6,22 @@ import time
 from sage.common.utils.config.loader import load_config
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io_utils.batch import HFDatasetBatch
-from sage.libs.rag.evaluate import (
+from sage.libs.io.batch import HFDatasetBatch
+from sage.middleware.operators.rag import (
     AccuracyEvaluate,
     BRSEvaluate,
     CompressionRateEvaluate,
     ContextRecallEvaluate,
     F1Evaluate,
     LatencyEvaluate,
+    OpenAIGenerator,
+    QAPromptor,
     RecallEvaluate,
+    RefinerOperator,
     RougeLEvaluate,
     TokenCountEvaluate,
+    Wiki18FAISSRetriever,
 )
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.refiner import RefinerOperator
-from sage.libs.rag.retriever import Wiki18FAISSRetriever
 
 
 def pipeline_run(config):
@@ -34,9 +34,7 @@ def pipeline_run(config):
         .map(Wiki18FAISSRetriever, config["retriever"], enable_profile=enable_profile)
         .map(RefinerOperator, config["refiner"])
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
-        .map(
-            OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile
-        )
+        .map(OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile)
         .map(F1Evaluate, config["evaluate"])
         .map(TokenCountEvaluate, config["evaluate"])
         .map(LatencyEvaluate, config["evaluate"])
@@ -62,13 +60,8 @@ if __name__ == "__main__":
     import sys
 
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
-        print(
-            "🧪 Test mode detected - qa_refiner example requires pre-built FAISS index"
-        )
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+        print("🧪 Test mode detected - qa_refiner example requires pre-built FAISS index")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)
 

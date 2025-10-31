@@ -1,6 +1,6 @@
 import base64
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 from sage.common.utils.network.base_tcp_client import BaseTcpClient
 
@@ -10,9 +10,7 @@ from sage.common.utils.network.base_tcp_client import BaseTcpClient
 class JobManagerClient(BaseTcpClient):
     """JobManager客户端，专门用于发送序列化数据"""
 
-    def __init__(
-        self, host: str = "127.0.0.1", port: int = 19001, timeout: float = 30.0
-    ):
+    def __init__(self, host: str = "127.0.0.1", port: int = 19001, timeout: float = 30.0):
         # 验证端口范围
         if not (1 <= port <= 65535):
             raise ValueError(f"Port must be between 1 and 65535, got {port}")
@@ -23,17 +21,15 @@ class JobManagerClient(BaseTcpClient):
 
         super().__init__(host, port, timeout, "JobManagerClient")
 
-    def _build_health_check_request(self) -> Dict[str, Any]:
+    def _build_health_check_request(self) -> dict[str, Any]:
         """构建健康检查请求"""
         return {"action": "health_check", "request_id": str(uuid.uuid4())}
 
-    def _build_server_info_request(self) -> Dict[str, Any]:
+    def _build_server_info_request(self) -> dict[str, Any]:
         """构建服务器信息请求"""
         return {"action": "get_server_info", "request_id": str(uuid.uuid4())}
 
-    def submit_job(
-        self, serialized_data: bytes, autostop: bool = False
-    ) -> Dict[str, Any]:
+    def submit_job(self, serialized_data: bytes, autostop: bool = False) -> dict[str, Any]:
         """
         提交序列化的作业数据
 
@@ -56,7 +52,7 @@ class JobManagerClient(BaseTcpClient):
 
         return self.send_request(request)
 
-    def pause_job(self, job_uuid: str) -> Dict[str, Any]:
+    def pause_job(self, job_uuid: str) -> dict[str, Any]:
         """暂停/停止作业"""
         # 验证输入参数
         if job_uuid is None:
@@ -72,7 +68,7 @@ class JobManagerClient(BaseTcpClient):
 
         return self.send_request(request)
 
-    def get_job_status(self, job_uuid: str) -> Dict[str, Any]:
+    def get_job_status(self, job_uuid: str) -> dict[str, Any]:
         """获取作业状态"""
         request = {
             "action": "get_job_status",
@@ -82,23 +78,23 @@ class JobManagerClient(BaseTcpClient):
 
         return self.send_request(request)
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """健康检查"""
         request = self._build_health_check_request()
         return self.send_request(request)
 
-    def get_server_info(self) -> Dict[str, Any]:
+    def get_server_info(self) -> dict[str, Any]:
         """获取服务器信息"""
         request = self._build_server_info_request()
         return self.send_request(request)
 
-    def list_jobs(self) -> Dict[str, Any]:
+    def list_jobs(self) -> dict[str, Any]:
         """获取作业列表"""
         request = {"action": "list_jobs", "request_id": str(uuid.uuid4())}
 
         return self.send_request(request)
 
-    def continue_job(self, job_uuid: str) -> Dict[str, Any]:
+    def continue_job(self, job_uuid: str) -> dict[str, Any]:
         """继续作业"""
         request = {
             "action": "continue_job",
@@ -108,7 +104,7 @@ class JobManagerClient(BaseTcpClient):
 
         return self.send_request(request)
 
-    def delete_job(self, job_uuid: str, force: bool = False) -> Dict[str, Any]:
+    def delete_job(self, job_uuid: str, force: bool = False) -> dict[str, Any]:
         """删除作业"""
         request = {
             "action": "delete_job",
@@ -119,7 +115,7 @@ class JobManagerClient(BaseTcpClient):
 
         return self.send_request(request)
 
-    def receive_node_stop_signal(self, job_uuid: str, node_name: str) -> Dict[str, Any]:
+    def receive_node_stop_signal(self, job_uuid: str, node_name: str) -> dict[str, Any]:
         """发送节点停止信号"""
         request = {
             "action": "receive_node_stop_signal",
@@ -130,15 +126,13 @@ class JobManagerClient(BaseTcpClient):
 
         return self.send_request(request)
 
-    def cleanup_all_jobs(self) -> Dict[str, Any]:
+    def cleanup_all_jobs(self) -> dict[str, Any]:
         """清理所有作业"""
         request = {"action": "cleanup_all_jobs", "request_id": str(uuid.uuid4())}
 
         return self.send_request(request)
 
-    def _retry_request(
-        self, request: Dict[str, Any], max_retries: int = 3
-    ) -> Dict[str, Any]:
+    def _retry_request(self, request: dict[str, Any], max_retries: int = 3) -> dict[str, Any]:
         """重试请求机制"""
         last_exception = None
 

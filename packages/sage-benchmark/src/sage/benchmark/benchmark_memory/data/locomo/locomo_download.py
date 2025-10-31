@@ -3,7 +3,7 @@
 import os
 
 import requests
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore[import-untyped]
 
 
 def download_from_huggingface(
@@ -52,13 +52,16 @@ def download_from_huggingface(
         file_path = os.path.join(save_dir, filename)
 
         # 下载并显示进度条
-        with open(file_path, "wb") as f, tqdm(
-            desc=filename,
-            total=total,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as bar:
+        with (
+            open(file_path, "wb") as f,
+            tqdm(
+                desc=filename,
+                total=total,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+            ) as bar,
+        ):
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)

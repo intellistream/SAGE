@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class LocalServiceTask(BaseServiceTask):
     """本地服务任务，继承BaseServiceTask并提供本地执行支持"""
 
-    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext" = None):
+    def __init__(self, service_factory: "ServiceFactory", ctx: "ServiceContext | None" = None):
         """
         初始化本地服务任务
 

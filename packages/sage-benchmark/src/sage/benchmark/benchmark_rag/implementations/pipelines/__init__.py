@@ -21,4 +21,4 @@ Advanced Features:
 Each pipeline can be run independently for testing or used in benchmark experiments.
 """
 
-__all__ = []
+__all__: list[str] = []

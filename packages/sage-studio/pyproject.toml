@@ -32,15 +32,14 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
     "Topic :: Utilities",
 ]
-license = "MIT"
 
 # 核心依赖
 dependencies = [
     # SAGE framework dependencies
     "isage-common>=0.1.0",
-    "isage-kernel>=0.1.0",
-    "isage-middleware>=0.1.0",
-    "isage-libs>=0.1.0",
+    "isage-kernel>=0.1.0",      # 需要：构建 Pipeline (Environment, DataStream API)
+    "isage-middleware>=0.1.0",  # 需要：领域算子 (RAG, LLM operators)
+    "isage-libs>=0.1.0",        # 需要：io_utils (Source/Sink) - TODO: 应该移到 kernel
 
     # Backend API dependencies
     "pydantic[email]>=2.0.0",
@@ -63,6 +62,9 @@ dependencies = [
     "markupsafe>=2.0.1",
     "packaging>=20.5",
 ]
+
+[project.license]
+text = "MIT"
 
 [project.optional-dependencies]
 # 开发工具依赖
@@ -108,52 +110,25 @@ where = ["src"]
     "config/**/*",
     "data/**/*",
     "docs/**/*",
+    "frontend/**/*",
 ]
 
 # Development tools configuration
 [tool.black]
-line-length = 88
+line-length = 100
 target-version = ["py310", "py311", "py312"]
 include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
-line_length = 88
+line_length = 100
 
 [tool.mypy]
 python_version = "3.11"
+cache_dir = "../../.sage/cache/mypy"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-
-[tool.ruff]
-target-version = "py311"
-line-length = 88
-
-[tool.ruff.lint]
-select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "C90",  # mccabe complexity
-]
-
-ignore = [
-    "E501",  # line too long (handled by formatter)
-]
-
-mccabe = { max-complexity = 10 }
-
-per-file-ignores = { "__init__.py" = ["F401"], "tests/**/*" = ["PLR2004", "S101", "TID252"] }
-
-[tool.ruff.lint.isort]
-known-first-party = ["sage"]
-force-single-line = false
-combine-as-imports = true
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -193,6 +168,13 @@ filterwarnings = [
     "ignore::DeprecationWarning:pkg_resources",
     "ignore:.*pkg_resources is deprecated.*:UserWarning",
 ]
+
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
+[tool.ruff]
+extend = "../../tools/ruff.toml"
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.studio._version.__version__"}

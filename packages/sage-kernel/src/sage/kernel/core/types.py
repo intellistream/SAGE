@@ -5,7 +5,7 @@ Kernel 共享类型定义
 """
 
 from enum import Enum
-from typing import Any, Dict, List, TypeVar, Union
+from typing import TypeVar
 
 
 # 执行模式枚举

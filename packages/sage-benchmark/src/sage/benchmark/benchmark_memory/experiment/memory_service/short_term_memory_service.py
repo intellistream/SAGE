@@ -1,17 +1,17 @@
 from collections import deque
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.service.base_service import BaseService
 from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
+from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.platform.service import BaseService
 
 
 class ShortTermMemoryService(BaseService):
     def __init__(
         self,
-        max_dialogue: Optional[int] = None,
-        max_messages: Optional[int] = None,
-        **kwargs
+        max_dialogue: int | None = None,
+        max_messages: int | None = None,
+        **kwargs,
     ):
         super().__init__()
 
@@ -36,13 +36,11 @@ class ShortTermMemoryService(BaseService):
             self.max_messages = max_messages
         else:
             # 都没提供，抛出错误
-            raise ValueError(
-                "Either max_dialogue or max_messages must be provided"
-            )
+            raise ValueError("Either max_dialogue or max_messages must be provided")
 
         # 使用 deque 作为队列，设置最大长度
-        self.message_queue = deque(maxlen=self.max_messages)
-        
+        self.message_queue: deque[dict[str, Any]] = deque(maxlen=self.max_messages)
+
         # 初始化对话解析器
         self.dialogue_parser = DialogueParser()
 
@@ -50,23 +48,20 @@ class ShortTermMemoryService(BaseService):
             f"ShortTermMemoryService initialized with max_messages={self.max_messages}"
         )
 
-    def insert(self, dialogs: List[Dict[str, Any]]) -> None:
+    def insert(self, dialogs: list[dict[str, Any]]) -> None:
         """
         插入对话历史到短期记忆中
-        
+
         Args:
             dialogs: 对话列表，每个对话包含 speaker, text, session_type 等字段
-        
+
         Raises:
             TypeError: 当输入不是列表或对话不是字典时
             ValueError: 当对话缺少必需字段时
         """
         # 使用对话解析器进行验证（严格模式）
         try:
-            validated_dialogs = self.dialogue_parser.parse_and_validate(
-                dialogs, 
-                strict_mode=True
-            )
+            validated_dialogs = self.dialogue_parser.parse_and_validate(dialogs, strict_mode=True)
         except (TypeError, ValueError) as e:
             self._logger.error(f"Dialog validation failed: {e}")
             raise
@@ -75,22 +70,20 @@ class ShortTermMemoryService(BaseService):
         for dialog in validated_dialogs:
             # 插入到队列，如果超出最大长度，最旧的会自动被移除
             self.message_queue.append(dialog)
-            
+
             # 使用解析器提取信息用于日志
             info = self.dialogue_parser.extract_dialog_info(dialog)
-            self._logger.debug(
-                f"Inserted message from {info['speaker']}: {info['text_preview']}"
-            )
+            self._logger.debug(f"Inserted message from {info['speaker']}: {info['text_preview']}")
 
         self._logger.info(
             f"Successfully inserted {len(validated_dialogs)} dialog(s). "
             f"Current queue size: {len(self.message_queue)}/{self.max_messages}"
         )
 
-    def retrieve(self) -> List[Dict[str, Any]]:
+    def retrieve(self) -> list[dict[str, Any]]:
         """
         检索所有短期记忆中的对话
-        
+
         Returns:
             List[Dict[str, Any]]: 对话列表
         """
@@ -119,16 +112,16 @@ if __name__ == "__main__":
             {
                 "speaker": "小明",
                 "text": "你好，今天天气真不错！",
-                "session_type": "text"
+                "session_type": "text",
             },
             {
                 "speaker": "小红",
                 "text": "是啊，阳光明媚，心情也很好！",
-                "session_type": "text"
-            }
+                "session_type": "text",
+            },
         ]
         memory.insert(dialogs_1)
-        
+
         retrieved = memory.retrieve()
         print(f"当前队列大小: {len(retrieved)}/{memory.max_messages}")
         print("当前记忆内容:")
@@ -144,16 +137,16 @@ if __name__ == "__main__":
             {
                 "speaker": "小明",
                 "text": "要不要一起去公园散步？",
-                "session_type": "text"
+                "session_type": "text",
             },
             {
                 "speaker": "小红",
                 "text": "好啊，我们去湖边走走吧！",
-                "session_type": "text"
-            }
+                "session_type": "text",
+            },
         ]
         memory.insert(dialogs_2)
-        
+
         retrieved = memory.retrieve()
         print(f"当前队列大小: {len(retrieved)}/{memory.max_messages} (已达到最大容量)")
         print("当前记忆内容:")
@@ -165,15 +158,9 @@ if __name__ == "__main__":
         print("=" * 70)
         print("第3次插入 - 插入1条新消息 (触发窗口滑动)")
         print("=" * 70)
-        dialogs_3 = [
-            {
-                "speaker": "小明",
-                "text": "那里的风景一定很美！",
-                "session_type": "text"
-            }
-        ]
+        dialogs_3 = [{"speaker": "小明", "text": "那里的风景一定很美！", "session_type": "text"}]
         memory.insert(dialogs_3)
-        
+
         retrieved = memory.retrieve()
         print(f"当前队列大小: {len(retrieved)}/{memory.max_messages}")
         print("⚠️  最旧的1条消息被移除，保留最新的4条")
@@ -187,28 +174,25 @@ if __name__ == "__main__":
         print("第4次插入 - 再插入2条消息 (继续窗口滑动)")
         print("=" * 70)
         dialogs_4 = [
-            {
-                "speaker": "小红",
-                "text": "我们可以带相机拍照！",
-                "session_type": "text"
-            },
+            {"speaker": "小红", "text": "我们可以带相机拍照！", "session_type": "text"},
             {
                 "speaker": "小明",
                 "text": "太好了，我正想记录这美好的一天！",
-                "session_type": "text"
-            }
+                "session_type": "text",
+            },
         ]
         memory.insert(dialogs_4)
-        
+
         retrieved = memory.retrieve()
         print(f"当前队列大小: {len(retrieved)}/{memory.max_messages}")
         print("⚠️  又有2条旧消息被移除，保留最新的4条")
         print("当前记忆内容:")
         for i, msg in enumerate(retrieved, 1):
             print(f"  {i}. [{msg['speaker']}]: {msg['text']}")
-        
+
         print("\n" + "=" * 70)
         print("✅ 测试完成！短期记忆服务采用队列方式管理，自动丢弃最旧的消息。")
         print("=" * 70 + "\n")
+
     CustomLogger.disable_global_console_debug()
     test_short_term_memory()

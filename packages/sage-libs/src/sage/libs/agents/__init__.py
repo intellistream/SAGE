@@ -1,5 +1,9 @@
 """
-SAGE - Streaming-Augmented Generative Execution
+SAGE Agents - Agent Framework and Implementations
+
+Layer: L3 (Core - Algorithm Library)
+
+This module provides the core agent framework and pre-built agent implementations.
 """
 
 # 直接从本包的_version模块加载版本信息
@@ -10,3 +14,8 @@ except ImportError:
     __version__ = "0.1.4"
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
+
+# Import pre-built bots
+from . import bots
+
+__all__ = ["bots"]

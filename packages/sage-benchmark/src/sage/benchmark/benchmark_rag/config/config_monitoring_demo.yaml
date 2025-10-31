@@ -11,16 +11,16 @@ retriever:
   # ChromaDB 向量检索配置
   dimension: 384    # 使用 HuggingFace all-MiniLM-L6-v2 embedding 模型
   top_k: 3          # 检索 top-3 相关文档
-  
+
   chroma:
     persistence_path: "./data/chroma_qa_database"
     collection_name: "qa_knowledge_base"
     use_embedding_query: true
-    
+
     # ChromaDB 元数据配置
     metadata:
       hnsw:space: "cosine"           # 余弦相似度
-  
+
   # 嵌入模型配置
   embedding:
     method: "hf"
@@ -29,12 +29,12 @@ retriever:
 promptor:
   template: |
     基于以下检索到的相关文档，回答用户问题：
-    
+
     相关文档：
     {retrieved_documents}
-    
+
     用户问题：{query}
-    
+
     请提供准确、有用的回答：
 
 generator:

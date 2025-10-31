@@ -711,9 +711,7 @@ class TestCompressionRateEvaluate:
         test_data = {
             "query": "What is artificial intelligence?",
             "generated": "AI is a field of computer science.",
-            "references": [
-                "Artificial intelligence is the simulation of human intelligence."
-            ],
+            "references": ["Artificial intelligence is the simulation of human intelligence."],
             "retrieved_docs": ["Original document content about AI"],
             "refined_docs": ["Compressed document content"],
         }

@@ -12,9 +12,13 @@ import requests
 pytest_plugins = []
 
 try:
-    from sage.libs.agents.agent import BaseAgent  # noqa: F401
-    from sage.libs.agents.agent import BochaSearch  # noqa: F401
-    from sage.libs.agents.agent import FORMAT_INSTRUCTIONS, PREFIX, Tool
+    from sage.libs.agents.agent import (
+        FORMAT_INSTRUCTIONS,
+        PREFIX,
+        BaseAgent,  # noqa: F401
+        BochaSearch,  # noqa: F401
+        Tool,
+    )
 
     AGENT_AVAILABLE = True
 except ImportError as e:
@@ -76,7 +80,7 @@ class TestBochaSearch:
         if not AGENT_AVAILABLE:
             pytest.skip("Agent module not available")
 
-        api_key = "test_api_key"
+        api_key = "test_api_key"  # pragma: allowlist secret
         search = BochaSearch(api_key)
 
         assert search.api_key == api_key
@@ -236,12 +240,12 @@ class TestAgentPerformance:
 
         # 测试快速工具
         start = time.time()
-        result = fast_tool.run()
+        fast_tool.run()
         fast_time = time.time() - start
 
         # 测试慢速工具
         start = time.time()
-        result = slow_tool.run()
+        slow_tool.run()
         slow_time = time.time() - start
 
         assert fast_time < slow_time
@@ -259,9 +263,7 @@ class TestBochaSearchExternal:
 
         with patch("requests.request") as mock_request:
             # 模拟网络错误
-            mock_request.side_effect = requests.exceptions.ConnectionError(
-                "网络连接失败"
-            )
+            mock_request.side_effect = requests.exceptions.ConnectionError("网络连接失败")
 
             search = BochaSearch("test_api_key")
 

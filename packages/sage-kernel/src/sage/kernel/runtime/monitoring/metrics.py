@@ -7,7 +7,7 @@ Performance Metrics Data Classes
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass
@@ -16,12 +16,12 @@ class PacketMetrics:
 
     packet_id: str
     arrival_time: float = field(default_factory=time.time)
-    processing_start_time: Optional[float] = None
-    processing_end_time: Optional[float] = None
+    processing_start_time: float | None = None
+    processing_end_time: float | None = None
     queue_wait_time: float = 0.0
     execution_time: float = 0.0
     success: bool = True
-    error_type: Optional[str] = None
+    error_type: str | None = None
     packet_size: int = 0
 
     def calculate_times(self) -> None:
@@ -32,7 +32,7 @@ class PacketMetrics:
         if self.processing_end_time and self.processing_start_time:
             self.execution_time = self.processing_end_time - self.processing_start_time
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "packet_id": self.packet_id,
@@ -74,7 +74,7 @@ class TaskPerformanceMetrics:
     memory_usage_mb: float = 0.0
 
     # 错误统计
-    error_breakdown: Dict[str, int] = field(default_factory=dict)
+    error_breakdown: dict[str, int] = field(default_factory=dict)
 
     # 时间窗口统计
     last_minute_tps: float = 0.0
@@ -84,7 +84,7 @@ class TaskPerformanceMetrics:
     # 元数据
     timestamp: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "task_name": self.task_name,
@@ -129,12 +129,12 @@ class ServiceRequestMetrics:
     request_id: str
     method_name: str
     arrival_time: float = field(default_factory=time.time)
-    processing_start_time: Optional[float] = None
-    processing_end_time: Optional[float] = None
+    processing_start_time: float | None = None
+    processing_end_time: float | None = None
     queue_wait_time: float = 0.0
     execution_time: float = 0.0
     success: bool = True
-    error_type: Optional[str] = None
+    error_type: str | None = None
     request_size: int = 0
     response_size: int = 0
 
@@ -146,7 +146,7 @@ class ServiceRequestMetrics:
         if self.processing_end_time and self.processing_start_time:
             self.execution_time = self.processing_end_time - self.processing_start_time
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "request_id": self.request_id,
@@ -177,14 +177,16 @@ class MethodMetrics:
     p95_response_time: float = 0.0
     p99_response_time: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "method_name": self.method_name,
             "total_requests": self.total_requests,
             "total_failures": self.total_failures,
             "response_time": {
-                "min_ms": self.min_response_time if self.min_response_time != float("inf") else 0.0,
+                "min_ms": (
+                    self.min_response_time if self.min_response_time != float("inf") else 0.0
+                ),
                 "max_ms": self.max_response_time,
                 "avg_ms": self.avg_response_time,
                 "p50_ms": self.p50_response_time,
@@ -205,7 +207,7 @@ class ServicePerformanceMetrics:
     requests_per_second: float = 0.0
 
     # 按方法分组的统计
-    method_metrics: Dict[str, MethodMetrics] = field(default_factory=dict)
+    method_metrics: dict[str, MethodMetrics] = field(default_factory=dict)
 
     # 延迟统计（毫秒）
     min_response_time: float = float("inf")
@@ -218,14 +220,14 @@ class ServicePerformanceMetrics:
     # 队列统计
     request_queue_depth: int = 0
     request_queue_avg_wait_time: float = 0.0
-    response_queue_depths: Dict[str, int] = field(default_factory=dict)
+    response_queue_depths: dict[str, int] = field(default_factory=dict)
 
     # 资源使用
     cpu_usage_percent: float = 0.0
     memory_usage_mb: float = 0.0
 
     # 错误统计
-    error_breakdown: Dict[str, int] = field(default_factory=dict)
+    error_breakdown: dict[str, int] = field(default_factory=dict)
 
     # 并发统计
     concurrent_requests: int = 0
@@ -239,7 +241,7 @@ class ServicePerformanceMetrics:
     # 元数据
     timestamp: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "service_name": self.service_name,
@@ -248,7 +250,9 @@ class ServicePerformanceMetrics:
             "total_requests_failed": self.total_requests_failed,
             "requests_per_second": self.requests_per_second,
             "response_time": {
-                "min_ms": self.min_response_time if self.min_response_time != float("inf") else 0.0,
+                "min_ms": (
+                    self.min_response_time if self.min_response_time != float("inf") else 0.0
+                ),
                 "max_ms": self.max_response_time,
                 "avg_ms": self.avg_response_time,
                 "p50_ms": self.p50_response_time,
@@ -278,8 +282,6 @@ class ServicePerformanceMetrics:
                 "last_5min_rps": self.last_5min_rps,
                 "last_hour_rps": self.last_hour_rps,
             },
-            "methods": {
-                name: metrics.to_dict() for name, metrics in self.method_metrics.items()
-            },
+            "methods": {name: metrics.to_dict() for name, metrics in self.method_metrics.items()},
             "timestamp": self.timestamp,
         }

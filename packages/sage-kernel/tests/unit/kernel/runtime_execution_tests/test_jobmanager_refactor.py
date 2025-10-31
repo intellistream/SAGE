@@ -41,7 +41,7 @@ def test_base_tcp_client():
 
     except Exception as e:
         print(f"✗ BaseTcpClient基类测试失败: {e}")
-        assert False, f"BaseTcpClient基类测试失败: {e}"
+        raise AssertionError(f"BaseTcpClient基类测试失败: {e}")
 
 
 def test_jobmanager_client():

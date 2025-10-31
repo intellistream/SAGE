@@ -5,18 +5,18 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
 class DiagnosisReport:
     """诊断报告"""
 
-    diagnoses: List[str]  # 诊断列表
+    diagnoses: list[str]  # 诊断列表
     confidence: float  # 置信度
-    findings: List[str]  # 发现列表
-    recommendations: List[str]  # 建议列表
-    similar_cases: List[Dict[str, Any]]  # 相似病例
+    findings: list[str]  # 发现列表
+    recommendations: list[str]  # 建议列表
+    similar_cases: list[dict[str, Any]]  # 相似病例
     report: str  # 完整报告
     timestamp: str  # 时间戳
     quality_score: float = 0.0  # 质量评分
@@ -33,7 +33,7 @@ class ReportGenerator:
     4. 提供治疗建议
     """
 
-    def __init__(self, config: Dict):
+    def __init__(self, config: dict):
         """
         初始化报告生成器
 
@@ -57,10 +57,10 @@ class ReportGenerator:
 
     def generate(
         self,
-        image_features: Dict[str, Any],
-        patient_info: Optional[Dict[str, Any]],
-        similar_cases: List[Dict],
-        medical_knowledge: List[Dict],
+        image_features: dict[str, Any],
+        patient_info: dict[str, Any] | None,
+        similar_cases: list[dict],
+        medical_knowledge: list[dict],
     ) -> DiagnosisReport:
         """
         生成诊断报告
@@ -75,9 +75,7 @@ class ReportGenerator:
             DiagnosisReport: 诊断报告
         """
         # Step 1: 构建提示词
-        prompt = self._build_prompt(
-            image_features, patient_info, similar_cases, medical_knowledge
-        )
+        prompt = self._build_prompt(image_features, patient_info, similar_cases, medical_knowledge)
 
         # Step 2: 调用LLM生成报告
         if self.llm_service != "placeholder":
@@ -125,10 +123,10 @@ class ReportGenerator:
 
     def _build_prompt(
         self,
-        image_features: Dict,
-        patient_info: Optional[Dict],
-        similar_cases: List[Dict],
-        medical_knowledge: List[Dict],
+        image_features: dict,
+        patient_info: dict | None,
+        similar_cases: list[dict],
+        medical_knowledge: list[dict],
     ) -> str:
         """构建LLM提示词"""
         prompt_parts = [
@@ -192,9 +190,9 @@ class ReportGenerator:
 
     def _generate_template_report(
         self,
-        image_features: Dict,
-        patient_info: Optional[Dict],
-        similar_cases: List[Dict],
+        image_features: dict,
+        patient_info: dict | None,
+        similar_cases: list[dict],
     ) -> str:
         """使用模板生成报告（演示用）"""
         report_parts = []
@@ -220,7 +218,7 @@ class ReportGenerator:
 
         # 影像描述
         report_parts.append("【影像描述】")
-        report_parts.append(f"腰椎序列正常，可见L1-L5椎体及L1/L2-L5/S1椎间盘。")
+        report_parts.append("腰椎序列正常，可见L1-L5椎体及L1/L2-L5/S1椎间盘。")
         report_parts.append("")
 
         # 主要发现
@@ -288,14 +286,12 @@ class ReportGenerator:
 
         report_parts.append("")
         report_parts.append("=" * 60)
-        report_parts.append(
-            "注: 本报告由AI辅助生成，仅供参考，最终诊断需由专业医师确认。"
-        )
+        report_parts.append("注: 本报告由AI辅助生成，仅供参考，最终诊断需由专业医师确认。")
         report_parts.append("=" * 60)
 
         return "\n".join(report_parts)
 
-    def _parse_report(self, report_text: str, image_features: Dict) -> tuple:
+    def _parse_report(self, report_text: str, image_features: dict) -> tuple:
         """解析报告提取诊断和建议"""
         # 从报告中提取诊断
         diagnoses = []
@@ -313,8 +309,7 @@ class ReportGenerator:
 
         # 生成建议
         has_herniation = any(
-            a["type"] == "disc_herniation"
-            for a in image_features.get("abnormalities", [])
+            a["type"] == "disc_herniation" for a in image_features.get("abnormalities", [])
         )
 
         if has_herniation:
@@ -330,9 +325,7 @@ class ReportGenerator:
 
         return diagnosis_summary, findings, recommendations
 
-    def _calculate_confidence(
-        self, image_features: Dict, similar_cases: List[Dict]
-    ) -> float:
+    def _calculate_confidence(self, image_features: dict, similar_cases: list[dict]) -> float:
         """计算诊断置信度"""
         confidence = 0.5  # 基础置信度
 

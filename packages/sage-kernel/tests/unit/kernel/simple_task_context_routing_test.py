@@ -1,11 +1,6 @@
-# 简单的解耦测试，验证BaseOperator不再直接依赖BaseRouter
+# 简单的解耦测试,验证BaseOperator不再直接依赖BaseRouter
 
-import sys
 from unittest.mock import Mock
-
-# Project-specific sys.path tweaks may be required in tests; keep them explicit
-sys.path.insert(0, "/home/flecther/workspace/SAGE/packages/sage-core/src")
-sys.path.insert(0, "/home/flecther/workspace/SAGE/packages/sage-kernel/src")
 
 
 class MockTaskContext:

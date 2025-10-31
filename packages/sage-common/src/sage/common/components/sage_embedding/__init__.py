@@ -1,5 +1,6 @@
-"""
-SAGE Embedding Module - Unified interface for various embedding methods.
+"""SAGE Embedding Module - Unified interface for various embedding methods.
+
+Layer: L1 (Foundation - Common Components)
 
 This module provides a consistent API for different embedding providers:
 - Hash-based lightweight embedding (for testing)
@@ -19,16 +20,17 @@ Quick Start:
     >>> models = list_embedding_models()
     >>> for method, info in models.items():
     ...     print(f"{method}: {info['description']}")
+
+Architecture:
+    This is a L1 foundation component used by higher layers (L2-L6).
+    It must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps.
 """
 
-# 直接从本包的_version模块加载版本信息
-try:
-    from sage.middleware._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+# L1 components should not depend on higher layers
+# Version information is maintained locally to avoid circular dependencies
+__version__ = "0.1.4"
+__author__ = "IntelliStream Team"
+__email__ = "shuhao_zhang@hust.edu.cn"
 
 # 新架构：统一的 embedding 接口
 from .base import BaseEmbedding
@@ -70,7 +72,7 @@ def _register_all_methods():
 
     # Mock Embedder - 轻量级，直接导入
     EmbeddingRegistry.register(
-        method="mock_embedder",
+        method="mockembedder",
         display_name="Mock Embedder",
         description="随机 embedding（单元测试用）",
         wrapper_class=MockEmbedding,
@@ -232,10 +234,13 @@ _register_all_methods()
 
 
 # 向后兼容：保留旧的 EmbeddingModel 和 apply_embedding_model
-from .embedding_model import EmbeddingModel, apply_embedding_model
+from .embedding_model import (
+    EmbeddingModel,  # noqa: E402
+    apply_embedding_model,
+)
 
 # Service interface (新增)
-from .service import EmbeddingService, EmbeddingServiceConfig
+from .service import EmbeddingService, EmbeddingServiceConfig  # noqa: E402
 
 # 统一导出接口
 __all__ = [
@@ -247,21 +252,15 @@ __all__ = [
     "EmbeddingRegistry",
     "EmbeddingFactory",
     "ModelStatus",
+    "ModelInfo",
     "get_embedding_model",  # ⭐ 主要 API
     "list_embedding_models",  # ⭐ 模型发现
     "check_model_availability",  # ⭐ 状态检查
-    # Wrappers（高级用途）
+    # Lightweight wrappers (直接导入)
     "HashEmbedding",
     "MockEmbedding",
-    "HFEmbedding",
-    "OpenAIEmbedding",
-    "JinaEmbedding",
-    "ZhipuEmbedding",
-    "CohereEmbedding",
-    "BedrockEmbedding",
-    "OllamaEmbedding",
-    "SiliconCloudEmbedding",
-    "NvidiaOpenAIEmbedding",
+    # Note: Heavy wrappers (HF, OpenAI, Jina, etc.) use lazy loading
+    # They are available via get_embedding_model() but not directly imported
     # 向后兼容（旧代码仍可使用）
     "EmbeddingModel",
     "apply_embedding_model",

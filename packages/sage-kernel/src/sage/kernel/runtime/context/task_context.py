@@ -1,6 +1,6 @@
 import os
 import threading
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.communication.router.connection import Connection
@@ -10,13 +10,12 @@ from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.api.operator.base_operator import BaseOperator
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
-    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
-        BaseQueueDescriptor,
-    )
     from sage.kernel.runtime.communication.router.packet import Packet
     from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
     from sage.kernel.runtime.graph.graph_node import TaskNode
+    from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor
 # task, operator和function "形式上共享"的运行上下文
 
 
@@ -24,29 +23,32 @@ class TaskContext(BaseRuntimeContext):
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
 
+    # 动态注入的属性类型声明
+    operator: "BaseOperator"  # 在 task 初始化时注入
+
     def __init__(
         self,
         graph_node: "TaskNode",
         transformation: "BaseTransformation",
         env: "BaseEnvironment",
-        execution_graph: "ExecutionGraph" = None,
+        execution_graph: "ExecutionGraph | None" = None,
     ):
         super().__init__()  # Initialize base context
 
         self.name: str = graph_node.name
 
         self.env_name = env.name
-        self.env_base_dir: str = env.env_base_dir
+        self.env_base_dir: str | None = env.env_base_dir
         self.env_uuid = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
-        
+
         # 性能监控配置
         self.enable_monitoring: bool = getattr(env, "enable_monitoring", False)
 
         self.parallel_index: int = graph_node.parallel_index
         self.parallelism: int = graph_node.parallelism
 
-        self._logger: Optional[CustomLogger] = None
+        self._logger: CustomLogger | None = None
 
         self.is_spout = transformation.is_spout
 
@@ -58,6 +60,7 @@ class TaskContext(BaseRuntimeContext):
         self.jobmanager_port = getattr(env, "jobmanager_port", 19001)
 
         # 为本地环境保存JobManager的弱引用
+        self._local_jobmanager_ref: Any
         if hasattr(env, "_jobmanager") and env._jobmanager is not None:
             import weakref
 
@@ -66,33 +69,31 @@ class TaskContext(BaseRuntimeContext):
             self._local_jobmanager_ref = None
 
         # 这些属性将在task层初始化，避免序列化问题
-        self._stop_event = None  # 延迟初始化
+        self._stop_event: threading.Event | None = None  # 延迟初始化
         self.received_stop_signals = None  # 延迟初始化
         self.stop_signal_count = 0
 
         # 服务相关 - service_manager已在BaseRuntimeContext中定义
-        self._service_names: Optional[Dict[str, str]] = (
-            None  # 只保存服务名称映射而不是实例
-        )
+        self._service_names: dict[str, str] | None = None  # 只保存服务名称映射而不是实例
 
         # 队列描述符管理 - 在构造时从graph_node和execution_graph获取
-        self.input_qd: "BaseQueueDescriptor" = graph_node.input_qd
-        self.response_qd: "BaseQueueDescriptor" = graph_node.service_response_qd
+        # graph_node.input_qd 可能为 None，但在运行时实际总是有值的
+        self.input_qd: BaseQueueDescriptor = graph_node.input_qd  # type: ignore[assignment]
+        self.response_qd: BaseQueueDescriptor = graph_node.service_response_qd
 
         # 从execution_graph的提取好的映射表获取service队列描述符 - 简化逻辑
-        self.service_qds: Dict[str, "BaseQueueDescriptor"] = {}
+        self.service_qds: dict[str, BaseQueueDescriptor] = {}
         if execution_graph and hasattr(execution_graph, "service_request_qds"):
             self.service_qds = execution_graph.service_request_qds.copy()
 
         # 下游连接组管理 - 从execution_graph构建downstream_groups
-        self.downstream_groups: Dict[int, Dict[int, "Connection"]] = {}
+        self.downstream_groups: dict[int, dict[int, Connection]] = {}
         if execution_graph:
             self._build_downstream_groups(graph_node, execution_graph)
 
-        self.dispatcher = None  # 延迟注入，避免循环依赖
-    def _build_downstream_groups(
-        self, graph_node: "TaskNode", execution_graph: "ExecutionGraph"
-    ):
+        self.dispatcher: Any = None  # 延迟注入，避免循环依赖
+
+    def _build_downstream_groups(self, graph_node: "TaskNode", execution_graph: "ExecutionGraph"):
         """从execution_graph构建downstream_groups"""
         # 遍历输出通道，构建downstream_groups
         for broadcast_index, output_group in enumerate(graph_node.output_channels):
@@ -135,6 +136,7 @@ class TaskContext(BaseRuntimeContext):
     def logger(self) -> CustomLogger:
         """懒加载logger"""
         if self._logger is None:
+            base_dir = self.env_base_dir if self.env_base_dir is not None else "."
             self._logger = CustomLogger(
                 [
                     (
@@ -142,12 +144,12 @@ class TaskContext(BaseRuntimeContext):
                         self.env_console_log_level,
                     ),  # 使用环境设置的控制台日志等级
                     (
-                        os.path.join(self.env_base_dir, f"{self.name}_debug.log"),
+                        os.path.join(base_dir, f"{self.name}_debug.log"),
                         "DEBUG",
                     ),  # 详细日志
-                    (os.path.join(self.env_base_dir, "Error.log"), "ERROR"),  # 错误日志
+                    (os.path.join(base_dir, "Error.log"), "ERROR"),  # 错误日志
                     (
-                        os.path.join(self.env_base_dir, f"{self.name}_info.log"),
+                        os.path.join(base_dir, f"{self.name}_info.log"),
                         "INFO",
                     ),  # 错误日志
                 ],
@@ -177,8 +179,8 @@ class TaskContext(BaseRuntimeContext):
                 f"Service '{service_name}' not found. Available services: {available_services}"
             )
 
-        # 通过service_manager获取实际的服务实例
-        return self.service_manager.get_service(service_name)
+        # 通过service_manager获取实际的服务队列
+        return self.service_manager._get_service_queue(service_name)
 
     @property
     def stop_event(self) -> threading.Event:
@@ -219,9 +221,7 @@ class TaskContext(BaseRuntimeContext):
                 local_jobmanager = self._local_jobmanager_ref()
                 if local_jobmanager:
                     local_jobmanager.receive_node_stop_signal(self.env_uuid, node_name)
-                    self.logger.info(
-                        "Successfully sent stop signal to local JobManager"
-                    )
+                    self.logger.info("Successfully sent stop signal to local JobManager")
                     return
 
             # 导入JobManagerClient来发送网络请求
@@ -232,10 +232,9 @@ class TaskContext(BaseRuntimeContext):
             )
 
             # 创建客户端并发送停止信号
-            client = JobManagerClient(
-                host=self.jobmanager_host, port=self.jobmanager_port
-            )
-            response = client.receive_node_stop_signal(self.env_uuid, node_name)
+            client = JobManagerClient(host=self.jobmanager_host, port=self.jobmanager_port)
+            env_uuid = self.env_uuid if self.env_uuid is not None else ""
+            response = client.receive_node_stop_signal(env_uuid, node_name)
 
             if response.get("status") == "success":
                 self.logger.debug(f"Successfully sent stop signal for node {node_name}")
@@ -256,7 +255,8 @@ class TaskContext(BaseRuntimeContext):
         # Check if this is a JoinOperator that should handle stop signals specially
         if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):
             # Let the operator handle the stop signal itself
-            self.operator.handle_stop_signal(signal=signal)
+            # JoinOperator has special stop signal handling logic
+            self.operator.handle_stop_signal(signal=signal)  # type: ignore[attr-defined]
             return
 
         # Initialize stop signal tracking attributes if they don't exist
@@ -267,9 +267,7 @@ class TaskContext(BaseRuntimeContext):
             if "KeyBy" in operator_name and "_1" in operator_name:
                 # 这是一个合并了多个输入的KeyBy节点，等待2个停止信号
                 self.num_expected_stop_signals = 2
-                self.logger.info(
-                    f"Task {self.name} (KeyBy merge node) expecting 2 stop signals"
-                )
+                self.logger.info(f"Task {self.name} (KeyBy merge node) expecting 2 stop signals")
             else:
                 self.num_expected_stop_signals = 0
         if not hasattr(self, "stop_signals_received"):
@@ -297,9 +295,7 @@ class TaskContext(BaseRuntimeContext):
                 return
         else:
             # No specific number expected, just forward the signal
-            self.logger.info(
-                f"Task {self.name} forwarding stop signal from {source_node}"
-            )
+            self.logger.info(f"Task {self.name} forwarding stop signal from {source_node}")
 
             # Send stop signal to job manager
             self.request_stop()
@@ -350,7 +346,7 @@ class TaskContext(BaseRuntimeContext):
         except Exception as e:
             self.logger.error(f"Failed to send stop signal through TaskContext: {e}")
 
-    def get_routing_info(self) -> Dict[str, Any]:
+    def get_routing_info(self) -> dict[str, Any]:
         """
         获取路由连接信息，提供给上层调试和监控
         """
@@ -380,40 +376,34 @@ class TaskContext(BaseRuntimeContext):
         """获取服务响应队列描述符"""
         return self._service_response_queue_descriptor
 
-    def set_upstream_queue_descriptors(
-        self, descriptors: Dict[int, List["BaseQueueDescriptor"]]
-    ):
+    def set_upstream_queue_descriptors(self, descriptors: dict[int, list["BaseQueueDescriptor"]]):
         """设置上游队列描述符映射"""
         self._upstream_queue_descriptors = descriptors
 
     def get_upstream_queue_descriptors(
         self,
-    ) -> Optional[Dict[int, List["BaseQueueDescriptor"]]]:
+    ) -> dict[int, list["BaseQueueDescriptor"]] | None:
         """获取上游队列描述符映射"""
         return self._upstream_queue_descriptors
 
-    def set_downstream_queue_descriptors(
-        self, descriptors: List[List["BaseQueueDescriptor"]]
-    ):
+    def set_downstream_queue_descriptors(self, descriptors: list[list["BaseQueueDescriptor"]]):
         """设置下游队列描述符映射"""
         self._downstream_queue_descriptors = descriptors
         self.downstream_qds = descriptors
 
     def get_downstream_queue_descriptors(
         self,
-    ) -> Optional[List[List["BaseQueueDescriptor"]]]:
+    ) -> list[list["BaseQueueDescriptor"]] | None:
         """获取下游队列描述符映射"""
         return self._downstream_queue_descriptors
 
-    def set_service_request_queue_descriptors(
-        self, descriptors: Dict[str, "BaseQueueDescriptor"]
-    ):
+    def set_service_request_queue_descriptors(self, descriptors: dict[str, "BaseQueueDescriptor"]):
         """设置服务请求队列描述符映射"""
         self._service_request_queue_descriptors = descriptors
         self.service_qds = descriptors
 
     def get_service_request_queue_descriptors(
         self,
-    ) -> Optional[Dict[str, "BaseQueueDescriptor"]]:
+    ) -> dict[str, "BaseQueueDescriptor"] | None:
         """获取服务请求队列描述符映射"""
         return self._service_request_queue_descriptors

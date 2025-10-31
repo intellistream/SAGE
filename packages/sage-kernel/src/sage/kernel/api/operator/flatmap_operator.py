@@ -1,8 +1,11 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sage.kernel.api.function.flatmap_collector import Collector
+from sage.common.core import Collector
 from sage.kernel.api.operator.base_operator import BaseOperator
 from sage.kernel.runtime.communication.packet import Packet
+
+if TYPE_CHECKING:
+    pass
 
 
 class FlatMapOperator(BaseOperator):
@@ -30,10 +33,15 @@ class FlatMapOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.out: Collector = Collector(self.ctx)
-        self.function.insert_collector(self.out)
+        # Insert collector into function if it's a FlatMapFunction
+        # FlatMapFunction has the insert_collector method, BaseFunction doesn't
+        from sage.common.core.functions.flatmap_function import FlatMapFunction
+
+        if isinstance(self.function, FlatMapFunction):
+            self.function.insert_collector(self.out)
         self.logger.info(f"FlatMapOperator '{self.name}' initialized with collector")
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         """
         重写packet处理，支持FlatMap的多输出特性
         """
@@ -43,9 +51,7 @@ class FlatMapOperator(BaseOperator):
 
         try:
             if packet is None or packet.payload is None:
-                self.logger.debug(
-                    f"FlatMapOperator '{self.name}' received empty packet, skipping"
-                )
+                self.logger.debug(f"FlatMapOperator '{self.name}' received empty packet, skipping")
                 return
 
             # 清空收集器中的数据（如果有的话）
@@ -67,7 +73,7 @@ class FlatMapOperator(BaseOperator):
                 for item_data in collected_data:
                     # 为每个收集的item创建新packet，继承分区信息
                     result_packet = packet.inherit_partition_info(item_data)
-                    self.router.send(result_packet)
+                    self.router.send(result_packet)  # type: ignore[arg-type]
                 # 清空collector
                 self.out.clear()
 
@@ -77,9 +83,7 @@ class FlatMapOperator(BaseOperator):
             # if isinstance(self.function, StatefulFunction):
             #     self.function.save_state()
 
-            self.logger.debug(
-                f"FlatMapOperator '{self.name}' finished processing packet"
-            )
+            self.logger.debug(f"FlatMapOperator '{self.name}' finished processing packet")
 
         except Exception as e:
             self.logger.error(
@@ -102,7 +106,7 @@ class FlatMapOperator(BaseOperator):
                 for item in result:
                     # 为每个item创建新packet，继承分区信息
                     result_packet = source_packet.inherit_partition_info(item)
-                    self.router.send(result_packet)
+                    self.router.send(result_packet)  # type: ignore[arg-type]
                     count += 1
                 self.logger.debug(
                     f"FlatMapOperator '{self.name}' emitted {count} items from iterable"
@@ -110,10 +114,8 @@ class FlatMapOperator(BaseOperator):
             else:
                 # 如果不是可迭代对象，直接发送
                 result_packet = source_packet.inherit_partition_info(result)
-                self.router.send(result_packet)
-                self.logger.debug(
-                    f"FlatMapOperator '{self.name}' emitted single item: {result}"
-                )
+                self.router.send(result_packet)  # type: ignore[arg-type]
+                self.logger.debug(f"FlatMapOperator '{self.name}' emitted single item: {result}")
 
         except Exception as e:
             self.logger.error(

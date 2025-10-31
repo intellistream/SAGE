@@ -14,7 +14,7 @@ configure_installation_environment() {
     local install_environment="${1:-conda}"
     local install_mode="${2:-dev}"
     local conda_env_name="${3:-}"  # 可选的conda环境名
-    
+
     # CI环境和远程部署的特殊处理
     if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         # CI环境：不设置PYTHONNOUSERSITE以提高测试速度，但仍保持用户选择的安装环境
@@ -28,13 +28,13 @@ configure_installation_environment() {
         export PYTHONNOUSERSITE=1
         echo -e "${INFO} 已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"
     fi
-    
+
     # 运行综合系统检查（包含预检查、系统检查、SAGE检查）
     if ! comprehensive_system_check "$install_mode" "$install_environment"; then
         echo -e "${CROSS} 系统环境检查失败，安装终止"
         exit 1
     fi
-    
+
     # 根据参数配置环境
     case "$install_environment" in
         "conda")
@@ -57,10 +57,10 @@ configure_installation_environment() {
             exit 1
             ;;
     esac
-    
+
     # 设置默认命令（如果没有设置 conda 环境）
     export PIP_CMD="${PIP_CMD:-python3 -m pip}"
     export PYTHON_CMD="${PYTHON_CMD:-python3}"
-    
+
     echo -e "${CHECK} 环境配置完成"
 }

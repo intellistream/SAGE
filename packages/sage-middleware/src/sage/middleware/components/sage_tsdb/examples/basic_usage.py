@@ -8,14 +8,11 @@ This example demonstrates:
 4. Window-based aggregations
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 
-from sage.middleware.components.sage_tsdb import (
-    SageTSDB,
-    TimeRange,
-)
+from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 
 def main():
@@ -46,9 +43,7 @@ def main():
     print("\n3. Adding batch data...")
     timestamps = [base_time + (i + 10) * 1000 for i in range(20)]
     values = [20 + 5 * np.sin(i * 0.5) + np.random.randn() for i in range(10, 30)]
-    tags_list = [
-        {"sensor": "temp_01", "location": "room_a"} for _ in range(20)
-    ]
+    tags_list = [{"sensor": "temp_01", "location": "room_a"} for _ in range(20)]
 
     db.add_batch(timestamps=timestamps, values=values, tags_list=tags_list)
     print(f"   Total data points: {db.size}")
@@ -76,7 +71,7 @@ def main():
 
     print(f"   Aggregated into {len(aggregated)} windows")
     for i, agg in enumerate(aggregated):
-        print(f"   Window {i+1}: timestamp={agg.timestamp}, avg_value={agg.value:.2f}")
+        print(f"   Window {i + 1}: timestamp={agg.timestamp}, avg_value={agg.value:.2f}")
 
     # Database statistics
     print("\n6. Database statistics:")

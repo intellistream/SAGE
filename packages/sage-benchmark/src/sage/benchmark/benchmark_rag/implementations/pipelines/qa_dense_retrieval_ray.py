@@ -10,15 +10,14 @@ if os.getenv("SAGE_EXAMPLES_MODE") == "test":
     )
     sys.exit(0)
 
+from sage.common.core import MapFunction
 from sage.common.utils.config.loader import load_config
-from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
-from sage.libs.io_utils.sink import FileSink
-from sage.libs.io_utils.source import FileSource
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
+from sage.libs.io.sink import FileSink
+from sage.libs.io.source import FileSource
+from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 
-# from sage.libs.rag.retriever import DenseRetriever  # 这个类不存在
+# from sage.middleware.operators.rag import DenseRetriever  # 这个类不存在
 
 
 class SafeBiologyRetriever(MapFunction):
@@ -41,9 +40,6 @@ class SafeBiologyRetriever(MapFunction):
                 # TODO: MemoryService has been deprecated.
                 # Use NeuroMemVDBService instead:
                 # from sage.middleware.components.sage_mem import NeuroMemVDBService
-                from sage.common.components.sage_embedding.embedding_api import (
-                    apply_embedding_model,
-                )
 
                 raise NotImplementedError(
                     "MemoryService is deprecated. Please use NeuroMemVDBService from sage_mem instead."
@@ -51,14 +47,17 @@ class SafeBiologyRetriever(MapFunction):
 
                 # embedding_model = apply_embedding_model("default")
                 # memory_service = MemoryService()
-
-                # 检查集合是否存在
-                collections = memory_service.list_collections()
-                if collections["status"] == "success":
-                    collection_names = [c["name"] for c in collections["collections"]]
-                    if self.collection_name in collection_names:
-                        return memory_service
+                # 注意：由于 MemoryService 已废弃，这里直接返回 None
                 return None
+
+                # 以下代码已废弃，保留供参考
+                # 检查集合是否存在
+                # collections = memory_service.list_collections()
+                # if collections["status"] == "success":
+                #     collection_names = [c["name"] for c in collections["collections"]]
+                #     if self.collection_name in collection_names:
+                #         return memory_service
+                # return None
             except Exception as e:
                 print(f"初始化memory service失败: {e}")
                 return None
@@ -144,18 +143,13 @@ if __name__ == "__main__":
     import os
 
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_dense_retrieval_ray example")
         print("✅ Test passed: Example structure validated (requires complex setup)")
         sys.exit(0)
 
     # 加载配置并初始化日志
-    config_path = os.path.join(
-        os.path.dirname(__file__), "..", "config", "config_ray.yaml"
-    )
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_ray.yaml")
     if not os.path.exists(config_path):
         print(f"❌ Configuration file not found: {config_path}")
         print("Please create the configuration file first.")

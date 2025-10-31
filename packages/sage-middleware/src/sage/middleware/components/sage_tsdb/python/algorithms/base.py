@@ -3,7 +3,7 @@ Base algorithm interface for time series processing.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 from ..sage_tsdb import TimeSeriesData
 
@@ -16,7 +16,7 @@ class TimeSeriesAlgorithm(ABC):
     implement the process method.
     """
 
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize algorithm.
 
@@ -26,9 +26,7 @@ class TimeSeriesAlgorithm(ABC):
         self.config = config or {}
 
     @abstractmethod
-    def process(
-        self, data: List[TimeSeriesData], **kwargs
-    ) -> Any:
+    def process(self, data: list[TimeSeriesData], **kwargs) -> Any:
         """
         Process time series data.
 
@@ -41,11 +39,11 @@ class TimeSeriesAlgorithm(ABC):
         """
         pass
 
-    def reset(self):
+    def reset(self):  # noqa: B027
         """Reset algorithm state (for stateful algorithms)"""
         pass
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get algorithm statistics"""
         return {}
 

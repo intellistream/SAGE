@@ -3,23 +3,16 @@
 负责协调影像分析、知识检索和报告生成
 """
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
+# 导入 DiagnosisReport，DiagnosisResult 作为别名以保持向后兼容
+from .report_generator import DiagnosisReport
 
-@dataclass
-class DiagnosisResult:
-    """诊断结果"""
-
-    diagnosis: str
-    confidence: float
-    findings: List[str]
-    recommendations: List[str]
-    similar_cases: List[Dict[str, Any]]
-    report: str
+# 向后兼容别名
+DiagnosisResult = DiagnosisReport
 
 
 class DiagnosticAgent:
@@ -33,7 +26,7 @@ class DiagnosticAgent:
     4. 生成诊断报告
     """
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         """
         初始化诊断Agent
 
@@ -46,10 +39,10 @@ class DiagnosticAgent:
         self.report_generator = None
         self._setup_components()
 
-    def _load_config(self, config_path: Optional[str]) -> Dict:
+    def _load_config(self, config_path: str | None) -> dict:
         """加载配置"""
         if config_path and Path(config_path).exists():
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 return yaml.safe_load(f)
 
         # 默认配置
@@ -73,29 +66,23 @@ class DiagnosticAgent:
 
     def _setup_components(self):
         """设置组件"""
-        from sage.apps.medical_diagnosis.agents.image_analyzer import (
-            ImageAnalyzer,
-        )
-        from sage.apps.medical_diagnosis.agents.report_generator import (
-            ReportGenerator,
-        )
-        from sage.apps.medical_diagnosis.tools.knowledge_base import (
-            MedicalKnowledgeBase,
-        )
+        from sage.apps.medical_diagnosis.agents.image_analyzer import ImageAnalyzer
+        from sage.apps.medical_diagnosis.agents.report_generator import ReportGenerator
+        from sage.apps.medical_diagnosis.tools.knowledge_base import MedicalKnowledgeBase
 
         # 初始化各个组件
         self.image_analyzer = ImageAnalyzer(self.config)
         self.knowledge_base = MedicalKnowledgeBase(self.config)
         self.report_generator = ReportGenerator(self.config)
 
-        print(f"✅ DiagnosticAgent 初始化完成")
+        print("✅ DiagnosticAgent 初始化完成")
         print(f"   Vision Model: {self.config['models']['vision_model']}")
         print(f"   LLM Model: {self.config['models']['llm_model']}")
 
     def diagnose(
         self,
         image_path: str,
-        patient_info: Optional[Dict[str, Any]] = None,
+        patient_info: dict[str, Any] | None = None,
         verbose: bool = True,
     ) -> DiagnosisResult:
         """
@@ -110,17 +97,19 @@ class DiagnosticAgent:
             DiagnosisResult: 诊断结果
         """
         if verbose:
-            print(f"\n{'='*60}")
-            print(f"🏥 开始诊断分析")
-            print(f"{'='*60}")
+            print(f"\n{'=' * 60}")
+            print("🏥 开始诊断分析")
+            print(f"{'=' * 60}")
             print(f"📄 影像路径: {image_path}")
             if patient_info:
                 print(f"👤 患者信息: {patient_info}")
 
         # Step 1: 影像分析
         if verbose:
-            print(f"\n📊 Step 1: 影像特征提取...")
+            print("\n📊 Step 1: 影像特征提取...")
 
+        if not self.image_analyzer:
+            raise RuntimeError("Image analyzer not initialized")
         image_features = self.image_analyzer.analyze(image_path)
 
         if verbose:
@@ -131,12 +120,14 @@ class DiagnosticAgent:
 
         # Step 2: 知识库检索
         if verbose:
-            print(f"\n🔍 Step 2: 检索相关知识和病例...")
+            print("\n🔍 Step 2: 检索相关知识和病例...")
 
         # 构建查询
         query = self._build_query(image_features, patient_info)
 
         # 检索相似病例
+        if not self.knowledge_base:
+            raise RuntimeError("Knowledge base not initialized")
         similar_cases = self.knowledge_base.retrieve_similar_cases(
             query=query,
             image_features=image_features,
@@ -151,8 +142,10 @@ class DiagnosticAgent:
 
         # Step 3: 生成诊断报告
         if verbose:
-            print(f"\n📝 Step 3: 生成诊断报告...")
+            print("\n📝 Step 3: 生成诊断报告...")
 
+        if not self.report_generator:
+            raise RuntimeError("Report generator not initialized")
         diagnosis_result = self.report_generator.generate(
             image_features=image_features,
             patient_info=patient_info,
@@ -161,15 +154,15 @@ class DiagnosticAgent:
         )
 
         if verbose:
-            print(f"   ✓ 报告生成完成")
-            print(f"\n{'='*60}")
-            print(f"📋 诊断结果")
-            print(f"{'='*60}")
+            print("   ✓ 报告生成完成")
+            print(f"\n{'=' * 60}")
+            print("📋 诊断结果")
+            print(f"{'=' * 60}")
             print(f"\n{diagnosis_result.report}")
 
         return diagnosis_result
 
-    def _build_query(self, image_features: Dict, patient_info: Optional[Dict]) -> str:
+    def _build_query(self, image_features: dict, patient_info: dict | None) -> str:
         """构建检索查询"""
         query_parts = []
 
@@ -193,8 +186,8 @@ class DiagnosticAgent:
         return " ".join(query_parts)
 
     def batch_diagnose(
-        self, cases: List[Dict[str, Any]], output_dir: Optional[str] = None
-    ) -> List[DiagnosisResult]:
+        self, cases: list[dict[str, Any]], output_dir: str | None = None
+    ) -> list[DiagnosisResult]:
         """
         批量诊断
 
@@ -227,7 +220,7 @@ class DiagnosticAgent:
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(result.report)
 
-        print(f"\n✅ 批量诊断完成！")
+        print("\n✅ 批量诊断完成！")
         return results
 
 

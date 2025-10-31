@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 verify_installation() {
     echo ""
     echo -e "${INFO} 验证安装..."
-    
+
     if python3 -c "
 import sage
 import sage.common

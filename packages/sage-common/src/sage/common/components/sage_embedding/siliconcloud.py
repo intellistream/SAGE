@@ -1,17 +1,11 @@
 import base64
 import struct
-import sys
 
 import requests
 
-if sys.version_info < (3, 9):
-    pass
-else:
-    pass
-import base64
-import struct
+pass
 
-import aiohttp
+import aiohttp  # noqa: E402
 
 
 async def siliconcloud_embedding(
@@ -19,7 +13,7 @@ async def siliconcloud_embedding(
     model: str = "netease-youdao/bce-embedding-base_v1",
     base_url: str = "https://api.siliconflow.cn/v1/embeddings",
     max_token_size: int = 512,
-    api_key: str = None,
+    api_key: str | None = None,
 ) -> list:
     """
     Generate embedding for a single text using SiliconCloud (NetEase Youdao).
@@ -35,7 +29,7 @@ async def siliconcloud_embedding(
         list[float]: The embedding vector
     """
     if api_key and not api_key.startswith("Bearer "):
-        api_key = "Bearer " + api_key
+        api_key = "Bearer " + api_key  # pragma: allowlist secret
 
     headers = {
         "Authorization": api_key,
@@ -67,7 +61,7 @@ def siliconcloud_embedding_sync(
     model: str = "netease-youdao/bce-embedding-base_v1",
     base_url: str = "https://api.siliconflow.cn/v1/embeddings",
     max_token_size: int = 512,
-    api_key: str = None,
+    api_key: str | None = None,
 ) -> list[float]:
     """
     同步版本：使用 SiliconCloud (NetEase Youdao) 接口获取文本 embedding。
@@ -83,10 +77,10 @@ def siliconcloud_embedding_sync(
         list[float]: embedding 向量
     """
     if api_key and not api_key.startswith("Bearer "):
-        api_key = "Bearer " + api_key
+        api_key = "Bearer " + api_key  # pragma: allowlist secret
 
     headers = {
-        "Authorization": api_key,
+        "Authorization": api_key,  # pragma: allowlist secret
         "Content-Type": "application/json",
     }
 

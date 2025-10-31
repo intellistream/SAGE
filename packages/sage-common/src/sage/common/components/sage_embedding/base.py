@@ -1,7 +1,13 @@
-"""Base class for all embedding models."""
+"""Base class for all embedding models.
+
+Layer: L1 (Foundation - Common Components)
+
+This module defines the abstract base class that all embedding wrappers must implement,
+ensuring a consistent interface across all embedding providers.
+"""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class BaseEmbedding(ABC):
@@ -39,7 +45,7 @@ class BaseEmbedding(ABC):
         self.config = kwargs
 
     @abstractmethod
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """将文本转换为 embedding 向量
 
         Args:
@@ -53,7 +59,7 @@ class BaseEmbedding(ABC):
         """
         pass
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
         默认实现为逐个调用 embed()。子类可以重写此方法以提供更高效的批量处理。
@@ -102,7 +108,7 @@ class BaseEmbedding(ABC):
         pass
 
     @classmethod
-    def get_model_info(cls) -> Dict[str, Any]:
+    def get_model_info(cls) -> dict[str, Any]:
         """返回模型元信息（子类可选实现）
 
         Returns:

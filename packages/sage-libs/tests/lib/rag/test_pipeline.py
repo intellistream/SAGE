@@ -240,7 +240,7 @@ class TestRAGPipeline:
 
         # 执行pipeline带额外参数
         query = "Test query"
-        result = pipeline.run(query, top_k=5, temperature=0.7)
+        pipeline.run(query, top_k=5, temperature=0.7)
 
         # 验证参数传递
         mock_retriever.retrieve.assert_called_once_with(query, top_k=5, temperature=0.7)

@@ -21,7 +21,7 @@ class KeyByOperator(BaseOperator):
             f"KeyByOperator '{self.name}' initialized with strategy: {partition_strategy}"
         )
 
-    def process_packet(self, packet: "Packet" = None):
+    def process_packet(self, packet: "Packet | None" = None):
         """重写packet处理，添加分区信息"""
         try:
             if packet is None or packet.payload is None:
@@ -33,30 +33,24 @@ class KeyByOperator(BaseOperator):
             # 创建带有新分区信息的packet
             keyed_packet = packet.update_key(extracted_key, self.partition_strategy)
 
-            self.logger.debug(
-                f"KeyByOperator '{self.name}' added key '{extracted_key}' to packet"
-            )
+            self.logger.debug(f"KeyByOperator '{self.name}' added key '{extracted_key}' to packet")
 
             # 直接发送带有分区信息的packet
-            self.router.send(keyed_packet)
+            self.router.send(keyed_packet)  # type: ignore[arg-type]
 
         except Exception as e:
             self.logger.error(f"Error in KeyByOperator {self.name}: {e}", exc_info=True)
             # 回退：发送原始packet
             if packet:
-                self.router.send(packet)
+                self.router.send(packet)  # type: ignore[arg-type]
 
     def process(self, raw_data: Any, input_index: int = 0) -> Any:
         """提取键，返回原始数据（分区信息将在packet级别处理）"""
         try:
             extracted_key = self.function.execute(raw_data)
-            self.logger.debug(
-                f"KeyByOperator '{self.name}' extracted key: {extracted_key}"
-            )
+            self.logger.debug(f"KeyByOperator '{self.name}' extracted key: {extracted_key}")
             return extracted_key
 
         except Exception as e:
-            self.logger.error(
-                f"Error extracting key in {self.name}: {e}", exc_info=True
-            )
+            self.logger.error(f"Error extracting key in {self.name}: {e}", exc_info=True)
             return raw_data

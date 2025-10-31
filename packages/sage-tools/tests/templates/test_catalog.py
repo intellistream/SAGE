@@ -1,4 +1,4 @@
-from sage.tools import templates
+from sage.cli import templates
 
 
 def test_template_ids_cover_examples():
@@ -27,7 +27,7 @@ def test_multimodal_template_pipeline_plan_uses_real_components():
         in stage_classes
     )
     assert "sage.libs.rag.generator.OpenAIGenerator" in stage_classes
-    assert plan["sink"]["class"] == "sage.libs.io_utils.sink.TerminalSink"
+    assert plan["sink"]["class"] == "sage.libs.io.sink.TerminalSink"
 
 
 def test_match_templates_scores_chinese_support_requests():

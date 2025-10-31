@@ -7,25 +7,19 @@ Checkpoint 管理实现
 import os
 import pickle
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from sage.kernel.core.exceptions import CheckpointError
-from sage.kernel.core.types import TaskID
+from sage.common.core import CheckpointError, TaskID
 
 
 class CheckpointManagerImpl:
     """
-    <<<<<<< HEAD:packages/sage-kernel/src/sage/kernel/fault_tolerance/checkpoint.py
-        Checkpoint 管理器
+    Checkpoint 管理器实现
 
-    =======
-        Checkpoint 管理器实现
-
-    >>>>>>> refactor/fault_tolreance:packages/sage-kernel/src/sage/kernel/fault_tolerance/impl/checkpoint_impl.py
-        负责保存和恢复任务的状态快照。
+    负责保存和恢复任务的状态快照。
     """
 
-    def __init__(self, checkpoint_dir: str = ".sage_checkpoints"):
+    def __init__(self, checkpoint_dir: str = ".sage/checkpoints"):
         """
         初始化 Checkpoint 管理器
 
@@ -38,8 +32,8 @@ class CheckpointManagerImpl:
     def save_checkpoint(
         self,
         task_id: TaskID,
-        state: Dict[str, Any],
-        checkpoint_id: Optional[str] = None,
+        state: dict[str, Any],
+        checkpoint_id: str | None = None,
     ) -> str:
         """
         保存 checkpoint
@@ -75,8 +69,8 @@ class CheckpointManagerImpl:
             raise CheckpointError(f"Failed to save checkpoint for {task_id}: {e}")
 
     def load_checkpoint(
-        self, task_id: TaskID, checkpoint_id: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, task_id: TaskID, checkpoint_id: str | None = None
+    ) -> dict[str, Any] | None:
         """
         加载 checkpoint
 
@@ -93,9 +87,7 @@ class CheckpointManagerImpl:
         try:
             if checkpoint_id:
                 # 加载指定的 checkpoint
-                checkpoint_path = (
-                    self.checkpoint_dir / f"{task_id}_{checkpoint_id}.ckpt"
-                )
+                checkpoint_path = self.checkpoint_dir / f"{task_id}_{checkpoint_id}.ckpt"
             else:
                 # 加载最新的 checkpoint
                 checkpoints = list(self.checkpoint_dir.glob(f"{task_id}_*.ckpt"))
@@ -113,7 +105,7 @@ class CheckpointManagerImpl:
         except Exception as e:
             raise CheckpointError(f"Failed to load checkpoint for {task_id}: {e}")
 
-    def delete_checkpoint(self, task_id: TaskID, checkpoint_id: Optional[str] = None):
+    def delete_checkpoint(self, task_id: TaskID, checkpoint_id: str | None = None):
         """
         删除 checkpoint
 
@@ -124,9 +116,7 @@ class CheckpointManagerImpl:
         try:
             if checkpoint_id:
                 # 删除指定的 checkpoint
-                checkpoint_path = (
-                    self.checkpoint_dir / f"{task_id}_{checkpoint_id}.ckpt"
-                )
+                checkpoint_path = self.checkpoint_dir / f"{task_id}_{checkpoint_id}.ckpt"
                 if checkpoint_path.exists():
                     checkpoint_path.unlink()
             else:
@@ -137,7 +127,7 @@ class CheckpointManagerImpl:
         except Exception as e:
             raise CheckpointError(f"Failed to delete checkpoint for {task_id}: {e}")
 
-    def list_checkpoints(self, task_id: TaskID) -> List[Dict[str, Any]]:
+    def list_checkpoints(self, task_id: TaskID) -> list[dict[str, Any]]:
         """
         列出任务的所有 checkpoint
 
@@ -191,8 +181,8 @@ class CheckpointManagerImpl:
                 pass
 
     def get_checkpoint_info(
-        self, task_id: TaskID, checkpoint_id: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, task_id: TaskID, checkpoint_id: str | None = None
+    ) -> dict[str, Any] | None:
         """
         获取 checkpoint 信息
 

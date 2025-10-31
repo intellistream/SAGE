@@ -16,26 +16,24 @@ class FutureTransformation(BaseTransformation):
     在DAG构建阶段作为placeholder，在fill_future时被实际的transformation替换。
     """
 
-    def __init__(self, env: "BaseEnvironment", name: str):
+    def __init__(self, env: BaseEnvironment, name: str):
         # 使用一个特殊的function作为占位符
-        from sage.kernel.api.function.future_function import FutureFunction
+        from sage.common.core import FutureFunction
 
         # 设置operator类（必须在super().__init__之前）
-        self.operator_class = FutureOperator
+        self.operator_class = FutureOperator  # type: ignore
 
         super().__init__(env=env, function=FutureFunction, name=name, parallelism=1)
 
         # FutureTransformation特有属性
         self.is_future = True
         self.filled = False
-        self.actual_transformation = None
+        self.actual_transformation: BaseTransformation | None = None
         self.future_name = name
 
         self.logger.debug(f"Created FutureTransformation: {name}")
 
-    def fill_with_transformation(
-        self, actual_transformation: BaseTransformation
-    ) -> None:
+    def fill_with_transformation(self, actual_transformation: BaseTransformation) -> None:
         """
         用实际的transformation填充这个future placeholder
 
@@ -100,7 +98,7 @@ class FutureTransformation(BaseTransformation):
         for downstream_name, input_index in self.downstreams.items():
             # 找到下游transformation
             downstream_trans = self._find_transformation_by_name(downstream_name)
-            if downstream_trans:
+            if downstream_trans and self.actual_transformation:
                 # 移除对当前future的引用
                 if self in downstream_trans.upstreams:
                     downstream_trans.upstreams.remove(self)
@@ -114,7 +112,7 @@ class FutureTransformation(BaseTransformation):
         # 清空当前future的下游引用
         self.downstreams.clear()
 
-    def _find_transformation_by_name(self, name: str) -> BaseTransformation:
+    def _find_transformation_by_name(self, name: str) -> BaseTransformation | None:
         """
         在pipeline中查找指定名称的transformation
         """
@@ -130,5 +128,9 @@ class FutureTransformation(BaseTransformation):
 
     def __repr__(self) -> str:
         status = "filled" if self.filled else "unfilled"
-        actual = f" -> {self.actual_transformation.basename}" if self.filled else ""
+        actual = (
+            f" -> {self.actual_transformation.basename}"
+            if self.filled and self.actual_transformation
+            else ""
+        )
         return f"FutureTransformation({self.future_name}, {status}{actual})"

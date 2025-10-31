@@ -2,4 +2,6 @@
 Micro-service module for SageTSDB
 """
 
-__all__ = ["sage_tsdb_service"]
+from .sage_tsdb_service import SageTSDBService, SageTSDBServiceConfig
+
+__all__ = ["SageTSDBService", "SageTSDBServiceConfig"]

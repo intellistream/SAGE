@@ -1,11 +1,7 @@
-from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import LocomoDataLoader
-
 import time
 
+from sage.common.core import BatchFunction, MapFunction, SinkFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.map_function import MapFunction
-from sage.kernel.api.function.sink_function import SinkFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 

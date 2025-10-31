@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections import Counter, deque
-from typing import Any, Deque, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 
 import torch
+
+from sage.common.core import FlatMapFunction, MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.flatmap_function import FlatMapFunction
-from sage.kernel.api.function.map_function import MapFunction
 
 try:
     from transformers import pipeline as hf_pipeline
@@ -22,14 +23,14 @@ class TemporalAnomalyDetector(MapFunction):
     def __init__(self, brightness_delta_threshold: float = 35.0) -> None:
         super().__init__()
         self.threshold = max(1.0, brightness_delta_threshold)
-        self.prev_brightness: Optional[float] = None
-        self.prev_scene: Optional[str] = None
+        self.prev_brightness: float | None = None
+        self.prev_scene: str | None = None
 
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         brightness = data.get("brightness")
         primary_scene = data.get("primary_scene")
 
-        anomalies: List[Dict[str, Any]] = []
+        anomalies: list[dict[str, Any]] = []
         if brightness is not None and self.prev_brightness is not None:
             delta = abs(brightness - self.prev_brightness)
             if delta >= self.threshold:
@@ -63,10 +64,10 @@ class FrameEventEmitter(FlatMapFunction):
         super().__init__()
         self.min_confidence = min_confidence
 
-    def execute(self, data: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+    def execute(self, data: dict[str, Any]) -> Iterable[dict[str, Any]]:
         frame_id = data.get("frame_id")
         timestamp = data.get("timestamp")
-        events: List[Dict[str, Any]] = []
+        events: list[dict[str, Any]] = []
 
         for concept in data.get("scene_concepts", []):
             if concept["score"] < self.min_confidence:
@@ -115,7 +116,7 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
         window_seconds: float,
         stride_seconds: float,
         max_frames: int,
-        summarizer_model: Optional[str],
+        summarizer_model: str | None,
         max_summary_tokens: int,
     ) -> None:
         super().__init__()
@@ -123,8 +124,8 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
         self.stride_seconds = max(0.5, float(stride_seconds))
         self.max_frames = max(10, int(max_frames))
         self.max_summary_tokens = max(32, int(max_summary_tokens))
-        self.window: Deque[Dict[str, Any]] = deque()
-        self.last_emit_timestamp: Optional[float] = None
+        self.window: deque[dict[str, Any]] = deque()
+        self.last_emit_timestamp: float | None = None
         self.summary_index = 0
 
         self.summarizer = None
@@ -157,7 +158,7 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
                     )
                     self.summarizer = None
 
-    def execute(self, data: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+    def execute(self, data: dict[str, Any]) -> Iterable[dict[str, Any]]:
         record = {
             "frame_id": data.get("frame_id"),
             "timestamp": data.get("timestamp"),
@@ -186,14 +187,14 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
         self.summary_index += 1
         return [self._build_summary()]
 
-    def _build_summary(self) -> Dict[str, Any]:
+    def _build_summary(self) -> dict[str, Any]:
         start_ts = self.window[0]["timestamp"]
         end_ts = self.window[-1]["timestamp"]
 
         all_concepts = Counter()
         all_objects = Counter()
         anomalies = Counter()
-        captions: List[str] = []
+        captions: list[str] = []
 
         for entry in self.window:
             for concept in entry.get("scene_concepts", []):
@@ -205,7 +206,7 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
             if entry.get("primary_scene"):
                 captions.append(entry["primary_scene"])
 
-        def _top(counter: Counter, limit: int = 5) -> List[str]:
+        def _top(counter: Counter, limit: int = 5) -> list[str]:
             return [label for label, _ in counter.most_common(limit)]
 
         composed_text = " " + " ".join(captions)
@@ -218,13 +219,9 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
                     do_sample=False,
                 )[0]["summary_text"].strip()
             except Exception:  # pragma: no cover - fallback path
-                raw_summary = self._fallback_summary(
-                    _top(all_concepts, 3), _top(all_objects, 5)
-                )
+                raw_summary = self._fallback_summary(_top(all_concepts, 3), _top(all_objects, 5))
         else:
-            raw_summary = self._fallback_summary(
-                _top(all_concepts, 3), _top(all_objects, 5)
-            )
+            raw_summary = self._fallback_summary(_top(all_concepts, 3), _top(all_objects, 5))
 
         return {
             "summary_id": self.summary_index,
@@ -238,10 +235,7 @@ class SlidingWindowSummaryEmitter(FlatMapFunction):
         }
 
     @staticmethod
-    def _fallback_summary(concepts: List[str], objects: List[str]) -> str:
+    def _fallback_summary(concepts: list[str], objects: list[str]) -> str:
         concept_text = ", ".join(concepts) if concepts else "diverse scenes"
         object_text = ", ".join(objects) if objects else "generic objects"
-        return (
-            f"Window highlights {concept_text}. "
-            f"Frequent objects include {object_text}."
-        )
+        return f"Window highlights {concept_text}. Frequent objects include {object_text}."

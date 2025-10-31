@@ -8,8 +8,6 @@ RAG管道集成示例
 # 注意：这个示例需要完整的SAGE环境才能运行
 # 这里提供完整的代码结构供参考
 
-from sage.middleware.components.sage_refiner import RefinerAdapter
-
 
 def rag_pipeline_with_refiner():
     """
@@ -60,15 +58,15 @@ def rag_pipeline_with_refiner():
     # ===== 构建管道 =====
     # 这个代码需要在SAGE环境中运行
     """
-    from sage.core.api.local_environment import LocalEnvironment
-    from sage.libs.io_utils.batch import JSONLBatch
-    from sage.libs.rag.retriever import ChromaRetriever
-    from sage.libs.rag.promptor import QAPromptor
-    from sage.libs.rag.generator import OpenAIGenerator
-    from sage.libs.rag.evaluate import F1Evaluate, CompressionRateEvaluate
-    
+    from sage.kernel.api.local_environment import LocalEnvironment
+    from sage.libs.io.batch import JSONLBatch
+    from sage.middleware.operators.rag import ChromaRetriever
+    from sage.middleware.operators.rag import QAPromptor
+    from sage.middleware.operators.rag import OpenAIGenerator
+    from sage.middleware.operators.rag import F1Evaluate, CompressionRateEvaluate
+
     env = LocalEnvironment()
-    
+
     (
         env.from_batch(JSONLBatch, config["source"])
         .map(ChromaRetriever, config["retriever"])
@@ -78,7 +76,7 @@ def rag_pipeline_with_refiner():
         .map(F1Evaluate, config["evaluate"])
         .map(CompressionRateEvaluate, config["evaluate"])  # 评估压缩率
     )
-    
+
     env.submit()
     """
 

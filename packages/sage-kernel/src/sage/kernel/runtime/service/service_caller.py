@@ -10,7 +10,7 @@ import time
 import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     pass
@@ -22,8 +22,8 @@ class ServiceResponse:
 
     success: bool
     result: Any = None
-    error: str = None
-    request_id: str = None
+    error: str | None = None
+    request_id: str | None = None
 
 
 class ServiceManager:
@@ -56,10 +56,10 @@ class ServiceManager:
         )
 
         # 服务队列缓存
-        self._service_queues: Dict[str, Any] = {}
+        self._service_queues: dict[str, Any] = {}
 
         # 响应队列 - 使用TaskContext中的响应队列
-        self._response_queue: Optional[Any] = None
+        self._response_queue: Any | None = None
         if self.context is not None:
             # 从TaskContext获取响应队列名称
             if hasattr(self.context, "response_qd") and self.context.response_qd:
@@ -73,13 +73,11 @@ class ServiceManager:
 
         # 请求结果管理
         self._result_lock = threading.RLock()
-        self._request_results: Dict[str, ServiceResponse] = {}
-        self._pending_requests: Dict[str, threading.Event] = {}
+        self._request_results: dict[str, ServiceResponse] = {}
+        self._pending_requests: dict[str, threading.Event] = {}
 
         # 线程池
-        self._executor = ThreadPoolExecutor(
-            max_workers=10, thread_name_prefix="ServiceCall"
-        )
+        self._executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="ServiceCall")
 
         # 添加停止标志
         self._shutdown = False
@@ -109,21 +107,14 @@ class ServiceManager:
 
         if self.context is not None:
             # 从TaskContext的服务队列描述符获取队列
-            if (
-                hasattr(self.context, "service_qds")
-                and service_name in self.context.service_qds
-            ):
+            if hasattr(self.context, "service_qds") and service_name in self.context.service_qds:
                 descriptor = self.context.service_qds[service_name]
                 queue_instance = descriptor.queue_instance
                 self._service_queues[service_name] = queue_instance
                 return queue_instance
             else:
-                self.logger.error(
-                    f"Service queue descriptor not found for service: {service_name}"
-                )
-                raise RuntimeError(
-                    f"Service queue not available for service: {service_name}"
-                )
+                self.logger.error(f"Service queue descriptor not found for service: {service_name}")
+                raise RuntimeError(f"Service queue not available for service: {service_name}")
         else:
             raise RuntimeError("No TaskContext available to get service queue")
 
@@ -134,9 +125,7 @@ class ServiceManager:
                 # 从TaskContext的服务响应队列描述符获取队列
                 if hasattr(self.context, "response_qd") and self.context.response_qd:
                     self._response_queue = self.context.response_qd.clone()
-                    self.logger.debug(
-                        f"Using response queue: {self._response_queue_name}"
-                    )
+                    self.logger.debug(f"Using response queue: {self._response_queue_name}")
                 else:
                     context_type = type(self.context).__name__
                     has_response_qd = hasattr(self.context, "response_qd")
@@ -151,8 +140,8 @@ class ServiceManager:
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = 10.0,  # 增加默认超时时间到10秒
-        method: Optional[str] = None,
+        timeout: float | None = 10.0,  # 增加默认超时时间到10秒
+        method: str | None = None,
         **kwargs,
     ) -> Any:
         """
@@ -175,7 +164,7 @@ class ServiceManager:
         legacy_via_position = kwargs.pop("_legacy_method_position", False)
         method_name = method if method is not None else kwargs.pop("method", None)
 
-        positional_args: Tuple[Any, ...]
+        positional_args: tuple[Any, ...]
         if legacy_via_position:
             if not args:
                 raise ValueError(
@@ -226,9 +215,7 @@ class ServiceManager:
             # 发送请求到服务队列
             service_queue = self._get_service_queue(service_name)
 
-            self.logger.debug(
-                f"[SERVICE_CALL] Sending request to service queue: {service_name}"
-            )
+            self.logger.debug(f"[SERVICE_CALL] Sending request to service queue: {service_name}")
             queue_send_start = time.time()
             service_queue.put(request_data, timeout=5.0)
             queue_send_time = time.time() - queue_send_start
@@ -239,9 +226,7 @@ class ServiceManager:
 
             # 等待结果
             wait_start_time = time.time()
-            self.logger.debug(
-                f"[SERVICE_CALL] Waiting for response (timeout: {timeout}s)"
-            )
+            self.logger.debug(f"[SERVICE_CALL] Waiting for response (timeout: {timeout}s)")
 
             if not event.wait(timeout=timeout):
                 wait_time = time.time() - wait_start_time
@@ -253,9 +238,7 @@ class ServiceManager:
                 )
 
             wait_time = time.time() - wait_start_time
-            self.logger.debug(
-                f"[SERVICE_CALL] Response received after {wait_time:.3f}s"
-            )
+            self.logger.debug(f"[SERVICE_CALL] Response received after {wait_time:.3f}s")
 
             # 获取结果
             with self._result_lock:
@@ -273,9 +256,7 @@ class ServiceManager:
                     self.logger.info(
                         f"[SERVICE_CALL] SUCCESS: {service_name}.{method_name} completed in {total_time:.3f}s (request_id: {request_id})"
                     )
-                    self.logger.debug(
-                        f"[SERVICE_CALL] Response result: {response.result}"
-                    )
+                    self.logger.debug(f"[SERVICE_CALL] Response result: {response.result}")
                     return response.result
                 else:
                     self.logger.error(
@@ -299,8 +280,8 @@ class ServiceManager:
         self,
         service_name: str,
         *args,
-        timeout: Optional[float] = 30.0,
-        method: Optional[str] = None,
+        timeout: float | None = 30.0,
+        method: str | None = None,
         **kwargs,
     ) -> Future:
         """
@@ -348,22 +329,20 @@ class ServiceManager:
                 self.logger.debug("Response listener: Getting response queue")
                 response_queue = self._get_response_queue()
 
-                # 检查队列是否已关闭
-                if hasattr(response_queue, "is_closed") and response_queue.is_closed():
+                # 检查队列是否已关闭 (response_queue 在运行时总是有值)
+                if hasattr(response_queue, "is_closed") and response_queue.is_closed():  # type: ignore[union-attr]
                     self.logger.debug("Response queue is closed, stopping listener")
                     break
 
                 # 从响应队列获取响应（阻塞等待1秒）
                 try:
-                    response_data = response_queue.get(timeout=1.0)
+                    response_data = response_queue.get(timeout=1.0)  # type: ignore[union-attr]
                     self.logger.debug(
                         f"[SERVICE_RESPONSE] Received raw response data: {response_data}"
                     )
 
                     if response_data is None:
-                        self.logger.debug(
-                            "[SERVICE_RESPONSE] Received None from queue, continuing"
-                        )
+                        self.logger.debug("[SERVICE_RESPONSE] Received None from queue, continuing")
                         continue
 
                     # 处理响应数据
@@ -410,23 +389,17 @@ class ServiceManager:
                     break
                 else:
                     self.logger.error(f"Error in response listener: {e}")
-                    self.logger.debug(
-                        f"Listener error details: {type(e).__name__}: {e}"
-                    )
+                    self.logger.debug(f"Listener error details: {type(e).__name__}: {e}")
                     time.sleep(1.0)
 
-    def _handle_response(self, response_data: Dict[str, Any]) -> None:
+    def _handle_response(self, response_data: dict[str, Any]) -> None:
         """处理服务响应"""
         request_id = response_data.get("request_id")
         if not request_id:
-            self.logger.warning(
-                "[SERVICE_RESPONSE] Received response without request_id"
-            )
+            self.logger.warning("[SERVICE_RESPONSE] Received response without request_id")
             return
 
-        self.logger.debug(
-            f"[SERVICE_RESPONSE] Received response for request_id: {request_id}"
-        )
+        self.logger.debug(f"[SERVICE_RESPONSE] Received response for request_id: {request_id}")
 
         with self._result_lock:
             if request_id not in self._pending_requests:
@@ -436,11 +409,12 @@ class ServiceManager:
                 return
 
             # 存储结果
+            error_msg = response_data.get("error")
             self._request_results[request_id] = ServiceResponse(
                 request_id=request_id,
                 success=response_data.get("success", False),
                 result=response_data.get("result"),
-                error=response_data.get("error"),
+                error=str(error_msg) if error_msg is not None else None,
             )
 
             self.logger.debug(
@@ -502,28 +476,20 @@ class ServiceManager:
 class ServiceCallProxy:
     """服务调用代理，提供语法糖支持"""
 
-    def __init__(
-        self, service_manager: "ServiceManager", service_name: str, logger=None
-    ):
+    def __init__(self, service_manager: "ServiceManager", service_name: str, logger=None):
         self._service_manager = service_manager
         self._service_name = service_name
         self.logger = (
-            logger
-            if logger is not None
-            else logging.getLogger(f"{__name__}.{service_name}")
+            logger if logger is not None else logging.getLogger(f"{__name__}.{service_name}")
         )
 
-        self.logger.debug(
-            f"[PROXY] Created ServiceCallProxy for service: {service_name}"
-        )
+        self.logger.debug(f"[PROXY] Created ServiceCallProxy for service: {service_name}")
 
     def __getattr__(self, method_name: str):
         """获取服务方法的调用代理"""
-        self.logger.debug(
-            f"[PROXY] Creating method proxy for {self._service_name}.{method_name}"
-        )
+        self.logger.debug(f"[PROXY] Creating method proxy for {self._service_name}.{method_name}")
 
-        def method_call(*args, timeout: Optional[float] = 2.0, **kwargs):
+        def method_call(*args, timeout: float | None = 2.0, **kwargs):
             proxy_call_start = time.time()
             self.logger.info(
                 f"[PROXY] Calling {self._service_name}.{method_name} with args={args}, kwargs={kwargs}, timeout={timeout}s"

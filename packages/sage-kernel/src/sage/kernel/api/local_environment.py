@@ -12,13 +12,19 @@ class LocalEnvironment(BaseEnvironment):
     """本地环境，直接使用本地JobManager实例"""
 
     def __init__(
-        self, 
-        name: str = "localenvironment", 
-        config: dict | None = None, 
+        self,
+        name: str = "localenvironment",
+        config: dict | None = None,
         scheduler=None,
-        enable_monitoring: bool = False
+        enable_monitoring: bool = False,
     ):
-        super().__init__(name, config, platform="local", scheduler=scheduler, enable_monitoring=enable_monitoring)
+        super().__init__(
+            name,
+            config,
+            platform="local",
+            scheduler=scheduler,
+            enable_monitoring=enable_monitoring,
+        )
 
         # 本地环境不需要客户端
         self._engine_client = None
@@ -72,9 +78,7 @@ class LocalEnvironment(BaseEnvironment):
 
                 # 检查作业状态（优先检查这个，因为它更可靠）
                 if job_info.status in ["stopped", "failed"]:
-                    self.logger.info(
-                        f"Batch processing completed with status: {job_info.status}"
-                    )
+                    self.logger.info(f"Batch processing completed with status: {job_info.status}")
                     break
 
                 # 检查dispatcher状态
@@ -128,7 +132,7 @@ class LocalEnvironment(BaseEnvironment):
             self.is_running = False
 
     @property
-    def jobmanager(self) -> "JobManager":
+    def jobmanager(self) -> JobManager:
         """直接返回JobManager的单例实例"""
         if self._jobmanager is None:
             from sage.kernel.runtime.job_manager import JobManager
@@ -155,9 +159,7 @@ class LocalEnvironment(BaseEnvironment):
                 self.is_running = False
                 self.logger.info("Pipeline stopped successfully")
             else:
-                self.logger.warning(
-                    f"Failed to stop pipeline: {response.get('message')}"
-                )
+                self.logger.warning(f"Failed to stop pipeline: {response.get('message')}")
         except Exception as e:
             self.logger.error(f"Error stopping pipeline: {e}")
 
@@ -175,9 +177,7 @@ class LocalEnvironment(BaseEnvironment):
             if response.get("status") == "success":
                 self.logger.info("Environment closed successfully")
             else:
-                self.logger.warning(
-                    f"Failed to close environment: {response.get('message')}"
-                )
+                self.logger.warning(f"Failed to close environment: {response.get('message')}")
 
         except Exception as e:
             self.logger.error(f"Error closing environment: {e}")

@@ -1,6 +1,9 @@
 """
 Scheduler Module - 分布式任务调度（重构后架构）
 
+Layer: L3 (Kernel - Scheduler)
+Dependencies: sage.platform (L2), sage.common (L1)
+
 架构原则：
 1. 职责分离：
    - Scheduler: 纯决策者（返回 PlacementDecision）
@@ -14,7 +17,7 @@ Scheduler Module - 分布式任务调度（重构后架构）
 
 用户使用方式:
     from sage.kernel import LocalEnvironment
-    
+
     # 基础用法 - 使用默认调度器（FIFO）
     env = LocalEnvironment()
 
@@ -43,11 +46,11 @@ Scheduler Module - 分布式任务调度（重构后架构）
     FLOW_EXPLANATION.md - 调度和放置流程说明
     ARCHITECTURE.md - 架构设计文档
                 decision = scheduler.make_decision(node)
-                
+
                 # 2. 根据决策等待（如果需要）
                 if decision.delay > 0:
                     time.sleep(decision.delay)
-                
+
                 # 3. 执行物理放置
                 task = placement_executor.place_task(node, decision)
 """

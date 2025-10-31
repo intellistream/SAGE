@@ -1,19 +1,10 @@
 import os
 
-import yaml
 from sage.common.utils.config.loader import load_config
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io_utils.batch import JSONLBatch
-from sage.libs.io_utils.sink import TerminalSink
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.retriever import ChromaRetriever
-
-
-def load_config(path):
-    with open(path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    return config
+from sage.libs.io.batch import JSONLBatch
+from sage.libs.io.sink import TerminalSink
+from sage.middleware.operators.rag import ChromaRetriever, OpenAIGenerator, QAPromptor
 
 
 def pipeline_run(config: dict) -> None:
@@ -53,10 +44,7 @@ if __name__ == "__main__":
     import sys
 
     # 检查是否在测试模式下运行
-    if (
-        os.getenv("SAGE_EXAMPLES_MODE") == "test"
-        or os.getenv("SAGE_TEST_MODE") == "true"
-    ):
+    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
         print("🧪 Test mode detected - qa_dense_retrieval_chroma example")
         print("✅ Test passed: Example structure validated")
         sys.exit(0)

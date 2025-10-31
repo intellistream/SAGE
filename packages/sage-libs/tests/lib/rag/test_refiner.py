@@ -113,9 +113,10 @@ class TestRefinerOperator:
         mock_ctx.env_base_dir = temp_dir
 
         # 使用正确的 RefinerService mock
-        with patch("sage.middleware.components.sage_refiner.RefinerService"), patch(
-            "os.makedirs"
-        ) as mock_makedirs:
+        with (
+            patch("sage.middleware.components.sage_refiner.RefinerService"),
+            patch("os.makedirs") as mock_makedirs,
+        ):
             try:
                 adapter = RefinerOperator(config=complete_config, ctx=mock_ctx)
 
@@ -191,7 +192,10 @@ class TestRefinerOperatorMethods:
                 # _save_data_record 期望: query (str), input_docs (List[Dict]), refining_docs (List[str])
                 adapter._save_data_record(
                     "Test question",
-                    [{"text": "Original doc 1"}, {"text": "Original doc 2"}],  # 需要是字典列表
+                    [
+                        {"text": "Original doc 1"},
+                        {"text": "Original doc 2"},
+                    ],  # 需要是字典列表
                     ["Refined doc 1"],
                 )
 
@@ -210,7 +214,9 @@ class TestRefinerOperatorMethods:
         config = self.get_complete_config()
         config["enable_profile"] = False  # 在配置中设置
 
-        with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_longrefiner_class:
+        with patch(
+            "sage.middleware.components.sage_refiner.RefinerService"
+        ) as mock_longrefiner_class:
             mock_refiner = Mock()
             mock_longrefiner_class.return_value = mock_refiner
 
@@ -256,7 +262,7 @@ class TestRefinerOperatorExecution:
         with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
             # 创建 mock service 实例
             mock_service = Mock()
-            
+
             # 模拟 RefineResult
             mock_result = Mock()
             mock_result.refined_content = [
@@ -316,7 +322,7 @@ class TestRefinerOperatorExecution:
         with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
             # 创建 mock service
             mock_service = Mock()
-            
+
             # 模拟 RefineResult
             mock_result = Mock()
             mock_result.refined_content = ["Refined document"]
@@ -411,7 +417,7 @@ class TestRefinerOperatorIntegration:
         # 模拟完整的文档精炼工作流
         with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
             mock_service = Mock()
-            
+
             # 模拟 RefineResult
             mock_result = Mock()
             mock_result.refined_content = [
@@ -526,7 +532,7 @@ class TestRefinerOperatorExternal:
             "sage.middleware.components.sage_refiner.RefinerService",
             side_effect=Exception("model init failed"),
         ):
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 adapter._init_refiner()
 
 
@@ -660,14 +666,16 @@ class TestRefinerOperatorFixes:
 
         with patch("sage.middleware.components.sage_refiner.RefinerService") as mock_service_class:
             try:
-                adapter = RefinerOperator(config=config)
+                RefinerOperator(config=config)
 
                 # 验证RefinerService被正确调用，传入了配置
                 mock_service_class.assert_called_once()
                 call_args = mock_service_class.call_args
 
                 # RefinerService接收整个config字典
-                passed_config = call_args[0][0] if call_args.args else call_args.kwargs.get('config')
+                passed_config = (
+                    call_args[0][0] if call_args.args else call_args.kwargs.get("config")
+                )
                 assert passed_config is not None
                 assert passed_config["gpu_device"] == 0
                 assert passed_config["gpu_memory_utilization"] == 0.7
@@ -972,11 +980,11 @@ class TestRefinerOperatorFixes:
                 # 验证配置被正确传递（RefinerService接收一个config参数）
                 passed_config = call_args[0][0] if call_args[0] else call_args.kwargs.get("config")
                 assert passed_config is not None
-                
+
                 # 验证adapter被正确创建
                 assert adapter is not None
                 assert adapter.refiner_service is not None
-                
+
                 # 验证配置中的gpu_device被保留
                 assert passed_config.get("gpu_device") == 1
 

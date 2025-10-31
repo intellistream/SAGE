@@ -1,7 +1,7 @@
 #!/bin/bash
 # 🔧 解决 submodule 冲突的脚本
 # 使用主仓库的版本（保留我们的版本）
-# 
+#
 # 注意：重构后的 submodule 路径：
 # - packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
 # - packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow
@@ -53,15 +53,15 @@ echo ""
 echo -e "${BLUE}🔧 解决冲突...${NC}"
 for submodule in "${conflicted_submodules[@]}"; do
     echo -e "${YELLOW}处理: ${submodule}${NC}"
-    
+
     # 使用我们的版本（--ours）
     echo -e "  📥 使用我们的版本..."
     git checkout --ours "$submodule"
-    
+
     # 更新子模块到正确的 commit
     echo -e "  🔄 更新子模块..."
     git submodule update --init --recursive "$submodule"
-    
+
     # 添加解决后的文件
     echo -e "  ✅ 添加解决后的文件..."
     git add "$submodule"

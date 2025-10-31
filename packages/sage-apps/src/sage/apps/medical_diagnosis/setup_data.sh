@@ -15,7 +15,7 @@ echo "=========================================="
 if [ -d "$DATA_DIR" ] && [ -f "$DATA_DIR/train_index.json" ]; then
     echo "✓ 数据集已存在: $DATA_DIR"
     echo ""
-    
+
     # 显示数据集统计
     if [ -f "$DATA_DIR/stats.json" ]; then
         echo "📊 数据集统计:"
@@ -29,7 +29,7 @@ with open('$DATA_DIR/stats.json', 'r') as f:
     print(f\"  疾病类型: {len(stats['disease_distribution'])}\")
 "
     fi
-    
+
     echo ""
     echo "如需重新下载，请删除 data/ 目录后重新运行此脚本"
     exit 0
@@ -69,7 +69,7 @@ echo ""
 echo "4️⃣  验证数据集..."
 if [ -f "$DATA_DIR/train_index.json" ] && [ -f "$DATA_DIR/test_index.json" ]; then
     echo "   ✓ 数据集验证成功"
-    
+
     # 显示统计信息
     python3 -c "
 import json

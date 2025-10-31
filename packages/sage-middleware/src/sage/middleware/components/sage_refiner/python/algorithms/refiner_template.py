@@ -8,7 +8,7 @@ Refiner算法开发模板
 """
 
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from sage.middleware.components.sage_refiner.python.base import (
     BaseRefiner,
@@ -50,7 +50,7 @@ class YourRefinerAlgorithm(BaseRefiner):
         result = service.refine(query, documents)
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """初始化算法"""
         super().__init__(config)
 
@@ -83,8 +83,8 @@ class YourRefinerAlgorithm(BaseRefiner):
     def refine(
         self,
         query: str,
-        documents: List[Union[str, Dict[str, Any]]],
-        budget: Optional[int] = None,
+        documents: list[str | dict[str, Any]],
+        budget: int | None = None,
         **kwargs,
     ) -> RefineResult:
         """
@@ -126,9 +126,7 @@ class YourRefinerAlgorithm(BaseRefiner):
         refined_tokens = self._count_tokens(compressed_texts)
 
         # 6. 计算压缩率
-        compression_rate = (
-            original_tokens / refined_tokens if refined_tokens > 0 else 0.0
-        )
+        compression_rate = original_tokens / refined_tokens if refined_tokens > 0 else 0.0
 
         # 7. 创建性能指标
         metrics = RefinerMetrics(
@@ -154,11 +152,11 @@ class YourRefinerAlgorithm(BaseRefiner):
 
     def refine_batch(
         self,
-        queries: List[str],
-        documents_list: List[List[Union[str, Dict[str, Any]]]],
-        budget: Optional[int] = None,
+        queries: list[str],
+        documents_list: list[list[str | dict[str, Any]]],
+        budget: int | None = None,
         **kwargs,
-    ) -> List[RefineResult]:
+    ) -> list[RefineResult]:
         """
         批量压缩
 
@@ -176,14 +174,14 @@ class YourRefinerAlgorithm(BaseRefiner):
         # Issue URL: https://github.com/intellistream/SAGE/issues/981
         return [
             self.refine(query, docs, budget, **kwargs)
-            for query, docs in zip(queries, documents_list)
+            for query, docs in zip(queries, documents_list, strict=False)
         ]
 
     def refine_streaming(
         self,
         query: str,
-        documents: List[Union[str, Dict[str, Any]]],
-        budget: Optional[int] = None,
+        documents: list[str | dict[str, Any]],
+        budget: int | None = None,
         **kwargs,
     ):
         """
@@ -223,7 +221,7 @@ class YourRefinerAlgorithm(BaseRefiner):
 
     # ==================== 辅助方法 ====================
 
-    def _extract_texts(self, documents: List[Union[str, Dict[str, Any]]]) -> List[str]:
+    def _extract_texts(self, documents: list[str | dict[str, Any]]) -> list[str]:
         """
         从文档列表中提取文本内容
 
@@ -235,18 +233,13 @@ class YourRefinerAlgorithm(BaseRefiner):
                 texts.append(doc)
             elif isinstance(doc, dict):
                 # 支持多种字段名
-                text = (
-                    doc.get("contents")
-                    or doc.get("text")
-                    or doc.get("content")
-                    or str(doc)
-                )
+                text = doc.get("contents") or doc.get("text") or doc.get("content") or str(doc)
                 texts.append(text)
             else:
                 texts.append(str(doc))
         return texts
 
-    def _count_tokens(self, texts: Union[str, List[str]]) -> int:
+    def _count_tokens(self, texts: str | list[str]) -> int:
         """
         估算token数
 
@@ -257,9 +250,7 @@ class YourRefinerAlgorithm(BaseRefiner):
             return len(texts.split())
         return sum(len(str(t).split()) for t in texts)
 
-    def _compress(
-        self, query: str, texts: List[str], budget: int, **kwargs
-    ) -> List[str]:
+    def _compress(self, query: str, texts: list[str], budget: int, **kwargs) -> list[str]:
         """
         核心压缩逻辑
 

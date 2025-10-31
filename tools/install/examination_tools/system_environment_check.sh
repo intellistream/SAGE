@@ -8,17 +8,17 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 检查操作系统及版本
 check_operating_system() {
     echo -e "${INFO} 检查操作系统..."
-    
+
     # 获取系统信息
     local os_name=""
     local os_version=""
     local is_supported=true
-    
+
     if [ -f /etc/os-release ]; then
         source /etc/os-release
         os_name="$NAME"
         os_version="$VERSION"
-        
+
         # 检查是否为 Ubuntu 22.04
         if [[ "$ID" == "ubuntu" && "$VERSION_ID" == "22.04" ]]; then
             echo -e "${CHECK} 操作系统: $os_name $os_version (推荐版本)"
@@ -38,23 +38,23 @@ check_operating_system() {
         echo -e "${YELLOW}  警告: 无法确定系统版本，推荐使用 Ubuntu 22.04${NC}"
         is_supported=false
     fi
-    
+
     if [ "$is_supported" = false ]; then
         echo -e "${DIM}  提示: 虽然可以继续安装，但可能遇到依赖问题${NC}"
         echo ""
     fi
-    
+
     return 0
 }
 
 # 检查系统运行环境
 check_system_runtime() {
     echo -e "${INFO} 检查系统运行环境..."
-    
+
     local runtime_info=""
     local runtime_type=""
     local is_virtual=false
-    
+
     # 检查 systemd-detect-virt（如果可用）
     if command -v systemd-detect-virt >/dev/null 2>&1; then
         local virt_result=$(systemd-detect-virt 2>/dev/null || echo "none")
@@ -117,9 +117,9 @@ check_system_runtime() {
             runtime_type="native"
         fi
     fi
-    
+
     echo -e "${CHECK} 系统运行环境: $runtime_info"
-    
+
     # 根据环境给出详细提示
     case "$runtime_type" in
         "docker")
@@ -153,17 +153,17 @@ check_system_runtime() {
             echo -e "${WARNING} 未知运行环境，可能影响安装兼容性"
             ;;
     esac
-    
+
     return 0
 }
 
 # 检查CPU架构
 check_cpu_architecture() {
     echo -e "${INFO} 检查CPU架构..."
-    
+
     local arch=$(uname -m)
     local cpu_info=$(lscpu 2>/dev/null | grep "Model name" | cut -d':' -f2 | xargs || echo "未知")
-    
+
     case "$arch" in
         "x86_64"|"amd64")
             echo -e "${CHECK} CPU架构: x86_64 (推荐架构)"
@@ -186,18 +186,18 @@ check_cpu_architecture() {
             echo -e "${YELLOW}  警告: 未知架构，可能存在严重兼容性问题${NC}"
             ;;
     esac
-    
+
     return 0
 }
 
 # 检查GPU配置
 check_gpu_configuration() {
     echo -e "${INFO} 检查GPU配置..."
-    
+
     local has_nvidia=false
     local has_amd=false
     local gpu_info=""
-    
+
     # 检查NVIDIA GPU
     if command -v nvidia-smi &> /dev/null; then
         local nvidia_output=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits 2>/dev/null)
@@ -207,7 +207,7 @@ check_gpu_configuration() {
             echo "$nvidia_output" | while IFS=, read -r name memory; do
                 echo -e "${DIM}  - $name (${memory}MB)${NC}"
             done
-            
+
             # 检查CUDA
             if command -v nvcc &> /dev/null; then
                 local cuda_version=$(nvcc --version | grep "release" | sed 's/.*release \([0-9.]*\).*/\1/')
@@ -217,7 +217,7 @@ check_gpu_configuration() {
             fi
         fi
     fi
-    
+
     # 检查AMD GPU (基础检测)
     if command -v lspci >/dev/null 2>&1; then
         if lspci | grep -i "vga.*amd\|vga.*radeon" &> /dev/null; then
@@ -226,7 +226,7 @@ check_gpu_configuration() {
             echo -e "${CHECK} AMD GPU 检测到: $amd_gpu"
             echo -e "${DIM}  提示: ROCm支持需要额外配置${NC}"
         fi
-        
+
         # 检查集成显卡
         if lspci | grep -i "vga.*intel" &> /dev/null; then
             local intel_gpu=$(lspci | grep -i "vga.*intel" | head -1 | cut -d':' -f3-)
@@ -235,34 +235,34 @@ check_gpu_configuration() {
     else
         echo -e "${DIM}  → lspci 命令不可用，跳过其他GPU设备检查${NC}"
     fi
-    
+
     # 如果没有检测到GPU
     if [ "$has_nvidia" = false ] && [ "$has_amd" = false ]; then
         echo -e "${WARNING} 未检测到独立GPU"
         echo -e "${YELLOW}  警告: 机器学习任务性能可能受限${NC}"
         echo -e "${DIM}  提示: CPU模式仍可正常使用SAGE${NC}"
     fi
-    
+
     return 0
 }
 
 # pip模式特定检查
 check_pip_mode_requirements() {
     echo -e "${INFO} 检查pip模式要求..."
-    
+
     # 检查Python版本
     if ! command -v python3 &> /dev/null; then
         echo -e "${CROSS} Python3 未找到！"
         echo -e "${RED}错误: pip模式需要Python 3.11${NC}"
         return 1
     fi
-    
+
     local python_version=$(python3 --version 2>&1 | cut -d' ' -f2)
     local python_major=$(echo "$python_version" | cut -d'.' -f1)
     local python_minor=$(echo "$python_version" | cut -d'.' -f2)
-    
+
     echo -e "${INFO} Python 版本: $python_version"
-    
+
     if [ "$python_major" -eq 3 ] && [ "$python_minor" -eq 11 ]; then
         echo -e "${CHECK} Python 3.11 版本正确"
     else
@@ -271,38 +271,38 @@ check_pip_mode_requirements() {
         echo -e "${DIM}建议安装Python 3.11或使用conda模式${NC}"
         return 1
     fi
-    
+
     # 检查pip
     if ! python3 -m pip --version &> /dev/null; then
         echo -e "${CROSS} pip 未找到！"
         echo -e "${RED}错误: 请先安装pip${NC}"
         return 1
     fi
-    
+
     local pip_version=$(python3 -m pip --version | cut -d' ' -f2)
     echo -e "${CHECK} pip 版本: $pip_version"
-    
+
     return 0
 }
 
 # conda模式特定检查
 check_conda_mode_requirements() {
     echo -e "${INFO} 检查conda模式要求..."
-    
+
     if ! command -v conda &> /dev/null; then
         echo -e "${CROSS} conda 未找到！"
         echo -e "${RED}错误: conda模式需要安装Anaconda或Miniconda${NC}"
         echo -e "${DIM}请访问: https://docs.conda.io/en/latest/miniconda.html${NC}"
         return 1
     fi
-    
+
     local conda_version=$(conda --version 2>&1 | cut -d' ' -f2)
     echo -e "${CHECK} conda 版本: $conda_version"
-    
+
     # 检查当前环境
     local current_env=$(conda env list | grep '\*' | awk '{print $1}')
     echo -e "${INFO} 当前conda环境: $current_env"
-    
+
     # 检查conda配置
     local conda_info=$(conda info --json 2>/dev/null)
     if [ $? -eq 0 ]; then
@@ -311,7 +311,7 @@ check_conda_mode_requirements() {
             echo -e "${CHECK} conda环境Python版本: $python_version"
         fi
     fi
-    
+
     return 0
 }
 
@@ -320,22 +320,22 @@ run_general_system_check() {
     echo ""
     echo -e "${GEAR} ${BOLD}系统环境检查${NC}"
     echo ""
-    
+
     check_operating_system
     check_system_environment
     check_cpu_architecture
     check_gpu_configuration
-    
+
     echo ""
 }
 
 # 执行特定模式检查
 run_mode_specific_check() {
     local install_environment="$1"
-    
+
     echo -e "${GEAR} ${BOLD}${install_environment}模式环境检查${NC}"
     echo ""
-    
+
     case "$install_environment" in
         "pip")
             if ! check_pip_mode_requirements; then
@@ -354,7 +354,7 @@ run_mode_specific_check() {
             return 1
             ;;
     esac
-    
+
     echo -e "${CHECK} ${install_environment}模式环境检查通过"
     echo ""
 }

@@ -34,26 +34,26 @@ NEW_SUBMODULES=(
 
 for submodule_path in "${OLD_SUBMODULES[@]}"; do
     echo -e "${YELLOW}处理旧 submodule: ${submodule_path}${NC}"
-    
+
     # 1. 从 .git/config 中删除配置
     if git config --local --get "submodule.${submodule_path}.url" &>/dev/null; then
         echo -e "  ⚙️  从 .git/config 中移除配置..."
         git config --local --remove-section "submodule.${submodule_path}" 2>/dev/null || true
     fi
-    
+
     # 2. 从 .git/modules 中删除缓存
     module_dir=".git/modules/${submodule_path}"
     if [ -d "$module_dir" ]; then
         echo -e "  🗑️  删除 .git/modules 缓存..."
         rm -rf "$module_dir"
     fi
-    
+
     # 3. 清理工作目录中的 .git 文件（如果存在）
     if [ -f "${submodule_path}/.git" ]; then
         echo -e "  🗑️  清理工作目录中的 .git 文件..."
         rm -f "${submodule_path}/.git"
     fi
-    
+
     echo -e "${GREEN}  ✅ 已清理${NC}"
     echo ""
 done
@@ -65,7 +65,7 @@ for submodule_path in "${NEW_SUBMODULES[@]}"; do
         echo -e "  🗑️  删除 ${submodule_path}/.git"
         rm -f "${submodule_path}/.git"
     fi
-    
+
     # 如果目录存在但不是有效的 git 仓库，清空它
     if [ -d "${submodule_path}" ] && [ ! -d "${submodule_path}/.git" ]; then
         echo -e "  🗑️  清空无效目录 ${submodule_path}"

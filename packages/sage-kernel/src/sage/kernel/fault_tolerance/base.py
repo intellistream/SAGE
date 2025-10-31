@@ -5,7 +5,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class BaseFaultHandler(ABC):
@@ -14,6 +14,10 @@ class BaseFaultHandler(ABC):
 
     定义了处理故障、恢复任务的接口。
     """
+
+    def __init__(self):
+        self.logger: Any = None  # Will be injected by dispatcher
+        self.dispatcher: Any = None  # Will be injected by dispatcher
 
     @abstractmethod
     def handle_failure(self, task_id: str, error: Exception) -> bool:
@@ -55,7 +59,7 @@ class BaseFaultHandler(ABC):
         """
         pass
 
-    def on_failure_detected(self, task_id: str, error: Exception):
+    def on_failure_detected(self, task_id: str, error: Exception):  # noqa: B027
         """
         故障检测回调
 
@@ -67,7 +71,7 @@ class BaseFaultHandler(ABC):
         """
         pass
 
-    def on_recovery_started(self, task_id: str):
+    def on_recovery_started(self, task_id: str):  # noqa: B027
         """
         恢复开始回调
 
@@ -78,7 +82,7 @@ class BaseFaultHandler(ABC):
         """
         pass
 
-    def on_recovery_completed(self, task_id: str, success: bool):
+    def on_recovery_completed(self, task_id: str, success: bool):  # noqa: B027
         """
         恢复完成回调
 

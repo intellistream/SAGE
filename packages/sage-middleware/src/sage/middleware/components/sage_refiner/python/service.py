@@ -14,7 +14,7 @@ import json
 import logging
 import time
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from sage.middleware.components.sage_refiner.python.base import (
     BaseRefiner,
@@ -33,17 +33,15 @@ class RefinerCache:
         self.max_size = max_size
         self.ttl = ttl
         self.cache: OrderedDict = OrderedDict()
-        self.timestamps: Dict[str, float] = {}
+        self.timestamps: dict[str, float] = {}
 
-    def _make_key(self, query: str, documents: List[Any], budget: int) -> str:
+    def _make_key(self, query: str, documents: list[Any], budget: int) -> str:
         """生成缓存键"""
         # 简单的哈希方案
         content = f"{query}|{json.dumps(documents, sort_keys=True)}|{budget}"
         return hashlib.md5(content.encode()).hexdigest()
 
-    def get(
-        self, query: str, documents: List[Any], budget: int
-    ) -> Optional[RefineResult]:
+    def get(self, query: str, documents: list[Any], budget: int) -> RefineResult | None:
         """获取缓存"""
         key = self._make_key(query, documents, budget)
 
@@ -60,9 +58,7 @@ class RefinerCache:
         self.cache.move_to_end(key)
         return self.cache[key]
 
-    def put(
-        self, query: str, documents: List[Any], budget: int, result: RefineResult
-    ) -> None:
+    def put(self, query: str, documents: list[Any], budget: int, result: RefineResult) -> None:
         """存入缓存"""
         key = self._make_key(query, documents, budget)
 
@@ -80,7 +76,7 @@ class RefinerCache:
         self.cache.clear()
         self.timestamps.clear()
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """缓存统计"""
         return {
             "size": len(self.cache),
@@ -96,7 +92,7 @@ class RefinerService:
     统一管理多种压缩算法，提供缓存、监控等功能。
     """
 
-    def __init__(self, config: Optional[Union[RefinerConfig, Dict[str, Any]]] = None):
+    def __init__(self, config: RefinerConfig | dict[str, Any] | None = None):
         """
         初始化服务
 
@@ -115,14 +111,12 @@ class RefinerService:
         self.logger = logging.getLogger(__name__)
 
         # 算法实例（延迟加载）
-        self.refiner: Optional[BaseRefiner] = None
+        self.refiner: BaseRefiner | None = None
 
         # 缓存
-        self.cache: Optional[RefinerCache] = None
+        self.cache: RefinerCache | None = None
         if self.config.enable_cache:
-            self.cache = RefinerCache(
-                max_size=self.config.cache_size, ttl=self.config.cache_ttl
-            )
+            self.cache = RefinerCache(max_size=self.config.cache_size, ttl=self.config.cache_ttl)
 
         # 性能统计
         self.stats_data = {
@@ -171,9 +165,7 @@ class RefinerService:
 
         # 初始化
         if not self.refiner.is_initialized:
-            algo_name = (
-                algorithm.value if hasattr(algorithm, "value") else str(algorithm)
-            )
+            algo_name = algorithm.value if hasattr(algorithm, "value") else str(algorithm)
             self.logger.info(f"Initializing refiner: {algo_name}")
             self.refiner.initialize()
             self.logger.info(f"Refiner initialized: {algo_name}")
@@ -183,8 +175,8 @@ class RefinerService:
     def refine(
         self,
         query: str,
-        documents: List[Union[str, Dict[str, Any]]],
-        budget: Optional[int] = None,
+        documents: list[str | dict[str, Any]],
+        budget: int | None = None,
         use_cache: bool = True,
         **kwargs,
     ) -> RefineResult:
@@ -231,11 +223,11 @@ class RefinerService:
 
     def refine_batch(
         self,
-        queries: List[str],
-        documents_list: List[List[Union[str, Dict[str, Any]]]],
-        budget: Optional[int] = None,
+        queries: list[str],
+        documents_list: list[list[str | dict[str, Any]]],
+        budget: int | None = None,
         **kwargs,
-    ) -> List[RefineResult]:
+    ) -> list[RefineResult]:
         """
         批量精炼
 
@@ -262,7 +254,7 @@ class RefinerService:
 
         return results
 
-    def switch_algorithm(self, algorithm: Union[str, RefinerAlgorithm]) -> None:
+    def switch_algorithm(self, algorithm: str | RefinerAlgorithm) -> None:
         """
         切换压缩算法
 
@@ -272,9 +264,7 @@ class RefinerService:
         if isinstance(algorithm, str):
             algorithm = RefinerAlgorithm(algorithm)
 
-        self.logger.info(
-            f"Switching algorithm from {self.config.algorithm} to {algorithm}"
-        )
+        self.logger.info(f"Switching algorithm from {self.config.algorithm} to {algorithm}")
 
         # 关闭当前refiner
         if self.refiner is not None:
@@ -294,15 +284,13 @@ class RefinerService:
             self.cache.clear()
             self.logger.info("Cache cleared")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """获取服务统计信息"""
         stats = self.stats_data.copy()
 
         # 计算平均值
         if stats["total_requests"] > 0:
-            stats["avg_refine_time"] = (
-                stats["total_refine_time"] / stats["total_requests"]
-            )
+            stats["avg_refine_time"] = stats["total_refine_time"] / stats["total_requests"]
             stats["avg_compression_rate"] = (
                 stats["total_original_tokens"] / stats["total_refined_tokens"]
                 if stats["total_refined_tokens"] > 0
@@ -322,7 +310,11 @@ class RefinerService:
 
         # 配置信息
         stats["config"] = {
-            "algorithm": self.config.algorithm.value,
+            "algorithm": (
+                self.config.algorithm.value
+                if hasattr(self.config.algorithm, "value")
+                else self.config.algorithm
+            ),
             "budget": self.config.budget,
             "enable_cache": self.config.enable_cache,
         }

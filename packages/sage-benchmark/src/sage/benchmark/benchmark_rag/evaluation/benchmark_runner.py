@@ -14,20 +14,20 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from dotenv import load_dotenv
+
 from sage.common.config.output_paths import get_output_file
+from sage.common.core import BatchFunction, MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 
 def load_config(path: str) -> dict:
     """Load YAML configuration file."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -54,10 +54,10 @@ class BatchDataLoader(BatchFunction):
         self.total_batches = (len(data) + self.batch_size - 1) // self.batch_size
         self._data = data
 
-    def _load_data(self) -> List[Dict[str, Any]]:
+    def _load_data(self) -> list[dict[str, Any]]:
         """Load dataset from JSONL file."""
         data = []
-        with open(self.data_path, "r", encoding="utf-8") as f:
+        with open(self.data_path, encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     data.append(json.loads(line))
@@ -71,7 +71,7 @@ class BatchDataLoader(BatchFunction):
 
         return data
 
-    def execute(self) -> Optional[Dict[str, Any]]:
+    def execute(self) -> dict[str, Any] | None:
         """Return next batch of data."""
         if self.current_batch >= self.total_batches:
             return None
@@ -131,7 +131,7 @@ class PipelineRunner(MapFunction):
                 f"and has a 'process_item' function"
             )
 
-    def execute(self, batch_data: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, batch_data: dict[str, Any]) -> dict[str, Any]:
         """Execute pipeline on a batch of data."""
         batch = batch_data["batch_data"]
 
@@ -178,10 +178,10 @@ class ResultsCollector(MapFunction):
         default_output = get_output_file("benchmark_results.json", "benchmarks")
         self.output_path = config.get("output_path", str(default_output))
         self.save_mode = config.get("save_mode", "incremental")
-        self.all_results = []
+        self.all_results: list[dict[str, Any]] = []
         self.start_time = time.time()
 
-    def execute(self, batch_result: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, batch_result: dict[str, Any]) -> dict[str, Any]:
         """Collect results from a batch."""
         results = batch_result["results"]
         batch_id = batch_result["batch_id"]

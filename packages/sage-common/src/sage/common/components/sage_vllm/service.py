@@ -1,15 +1,30 @@
-"""Blocking vLLM service integration for SAGE."""
+"""Blocking vLLM service integration for SAGE.
+
+Layer: L1 (Foundation - Common Components)
+
+This module provides a SAGE service wrapper around vLLM for:
+- High-performance LLM text generation
+- LLM-based embeddings
+- Model management (download, switch, fine-tune)
+
+Dependencies:
+    - sage.platform.service (L2 - BaseService interface)
+    - sage.common.model_registry (L1 - Model management)
+    - vllm (external - optional dependency)
+"""
 
 from __future__ import annotations
 
 import threading
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+from typing import Any
 
 import numpy as np
+
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
-from sage.kernel.api.service.base_service import BaseService
+from sage.common.service import BaseService
 
 try:  # Optional dependency – raise during setup if unavailable
     from vllm import LLM, SamplingParams
@@ -38,16 +53,16 @@ class VLLMServiceConfig:
     """Configuration payload accepted by :class:`VLLMService`."""
 
     model_id: str
-    embedding_model_id: Optional[str] = None
+    embedding_model_id: str | None = None
     auto_download: bool = False
     auto_reload: bool = True
-    engine: Dict[str, Any] = field(default_factory=lambda: dict(_DEFAULT_ENGINE))
-    embedding_engine: Dict[str, Any] = field(default_factory=dict)
-    sampling: Dict[str, Any] = field(default_factory=lambda: dict(_DEFAULT_SAMPLING))
-    tags: List[str] = field(default_factory=list)
+    engine: dict[str, Any] = field(default_factory=lambda: dict(_DEFAULT_ENGINE))
+    embedding_engine: dict[str, Any] = field(default_factory=dict)
+    sampling: dict[str, Any] = field(default_factory=lambda: dict(_DEFAULT_SAMPLING))
+    tags: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "VLLMServiceConfig":
+    def from_dict(cls, data: dict[str, Any]) -> VLLMServiceConfig:
         engine = dict(_DEFAULT_ENGINE)
         engine.update(data.get("engine", {}))
 
@@ -72,11 +87,11 @@ class VLLMServiceConfig:
 class VLLMService(BaseService):
     """Blocking service that hosts a vLLM engine for generation and embeddings."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         super().__init__()
         self.config = VLLMServiceConfig.from_dict(config)
-        self._text_engine: Optional[LLM] = None
-        self._embedding_engine: Optional[LLM] = None
+        self._text_engine: LLM | None = None  # type: ignore
+        self._embedding_engine: LLM | None = None  # type: ignore
         self._sampling_defaults = self._build_sampling_params(self.config.sampling)
         self._lock = threading.RLock()
 
@@ -110,35 +125,33 @@ class VLLMService(BaseService):
                     if hasattr(engine, "shutdown"):
                         engine.shutdown()
                 except Exception as exc:  # pragma: no cover - shutdown best-effort
-                    self.logger.warning(
-                        f"Failed to shutdown {engine_name} engine: {exc}"
-                    )
+                    self.logger.warning(f"Failed to shutdown {engine_name} engine: {exc}")
             self._text_engine = None
             self._embedding_engine = None
 
     # ------------------------------------------------------------------
     # Public service API
     # ------------------------------------------------------------------
-    def process(self, payload: Dict[str, Any]) -> Any:
+    def process(self, payload: dict[str, Any]) -> Any:
         task = (payload or {}).get("task", "generate")
         inputs = (payload or {}).get("inputs")
         options = (payload or {}).get("options", {})
 
         if task == "generate":
+            if inputs is None:
+                raise ValueError("'generate' task requires 'inputs'")
             return self.generate(inputs, **options)
         if task == "embed":
+            if inputs is None:
+                raise ValueError("'embed' task requires 'inputs'")
             return self.embed(inputs, **options)
         if task == "show_models":
-            return [
-                self._model_info_to_dict(info) for info in vllm_registry.list_models()
-            ]
+            return [self._model_info_to_dict(info) for info in vllm_registry.list_models()]
         if task == "download_model":
             target = options.get("model_id") or inputs
             if not target:
                 raise ValueError("'download_model' task requires 'model_id'")
-            info = vllm_registry.download_model(
-                str(target), revision=options.get("revision")
-            )
+            info = vllm_registry.download_model(str(target), revision=options.get("revision"))
             if self.config.auto_reload and str(target) == self.config.model_id:
                 self.switch_model(str(target), revision=options.get("revision"))
             return self._model_info_to_dict(info)
@@ -155,15 +168,15 @@ class VLLMService(BaseService):
 
     def generate(
         self,
-        prompts: Union[str, Dict[str, Any], Sequence[Union[str, Dict[str, Any]]]],
+        prompts: str | dict[str, Any] | Sequence[str | dict[str, Any]],
         **runtime_sampling: Any,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         engine = self._load_text_engine(force_reload=False)
         normalized_prompts = self._normalize_prompts(prompts)
         sampling_params = self._merge_sampling_params(runtime_sampling)
 
         outputs = engine.generate(normalized_prompts, sampling_params=sampling_params)
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         for request_output in outputs:
             generations = []
             total_output_tokens = 0
@@ -196,14 +209,14 @@ class VLLMService(BaseService):
 
     def embed(
         self,
-        texts: Union[str, Sequence[str]],
+        texts: str | Sequence[str],
         *,
         normalize: bool = True,
-        batch_size: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        batch_size: int | None = None,
+    ) -> dict[str, Any]:
         engine = self._load_embedding_engine(force_reload=False)
         normalized_texts = self._normalize_texts(texts)
-        vectors: List[List[float]] = []
+        vectors: list[list[float]] = []
 
         if hasattr(engine, "get_embedding"):
             raw = engine.get_embedding(normalized_texts)  # type: ignore[attr-defined]
@@ -214,12 +227,15 @@ class VLLMService(BaseService):
 
         for item in raw:
             vec = None
-            if isinstance(item, dict) and "embedding" in item:
-                vec = item["embedding"]
-            elif hasattr(item, "embedding"):
-                vec = getattr(item, "embedding")
+            if isinstance(item, dict):
+                if "embedding" in item:
+                    vec = item["embedding"]  # pyright: ignore[reportAssignmentType]
+                else:
+                    vec = list(item.values())[0] if item else []
             elif isinstance(item, (list, tuple)):
                 vec = item
+            elif hasattr(item, "embedding"):
+                vec = item.embedding  # pyright: ignore[reportAssignmentType]
             else:
                 vec = list(item)
             array = np.array(vec, dtype=np.float32)
@@ -239,11 +255,9 @@ class VLLMService(BaseService):
     # ------------------------------------------------------------------
     # Model management helpers
     # ------------------------------------------------------------------
-    def switch_model(self, model_id: str, *, revision: Optional[str] = None) -> None:
+    def switch_model(self, model_id: str, *, revision: str | None = None) -> None:
         with self._lock:
-            self.logger.info(
-                f"Switching vLLM model from {self.config.model_id} to {model_id}"
-            )
+            self.logger.info(f"Switching vLLM model from {self.config.model_id} to {model_id}")
             self.config.model_id = model_id
             vllm_registry.ensure_model_available(
                 model_id,
@@ -251,16 +265,13 @@ class VLLMService(BaseService):
                 auto_download=self.config.auto_download,
             )
             self._load_text_engine(force_reload=True, revision=revision)
-            if (
-                not self.config.embedding_model_id
-                or self.config.embedding_model_id == model_id
-            ):
+            if not self.config.embedding_model_id or self.config.embedding_model_id == model_id:
                 self._embedding_engine = self._text_engine
 
-    def show_models(self) -> List[Dict[str, Any]]:
+    def show_models(self) -> list[dict[str, Any]]:
         return [self._model_info_to_dict(info) for info in vllm_registry.list_models()]
 
-    def fine_tune(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def fine_tune(self, request: dict[str, Any]) -> dict[str, Any]:
         required_fields = {"base_model", "dataset_path", "output_dir"}
         missing = [field for field in required_fields if field not in request]
         if missing:
@@ -272,7 +283,7 @@ class VLLMService(BaseService):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _model_info_to_dict(self, info: ModelInfo) -> Dict[str, Any]:
+    def _model_info_to_dict(self, info: ModelInfo) -> dict[str, Any]:
         return {
             "model_id": info.model_id,
             "path": str(info.path),
@@ -283,9 +294,7 @@ class VLLMService(BaseService):
             "tags": info.tags,
         }
 
-    def _load_text_engine(
-        self, *, force_reload: bool, revision: Optional[str] = None
-    ) -> LLM:
+    def _load_text_engine(self, *, force_reload: bool, revision: str | None = None) -> LLM:  # type: ignore
         with self._lock:
             if self._text_engine is not None and not force_reload:
                 return self._text_engine
@@ -312,9 +321,7 @@ class VLLMService(BaseService):
 
             return self._text_engine
 
-    def _load_embedding_engine(
-        self, *, force_reload: bool, revision: Optional[str] = None
-    ) -> LLM:
+    def _load_embedding_engine(self, *, force_reload: bool, revision: str | None = None) -> LLM:  # type: ignore
         with self._lock:
             if self._embedding_engine is not None and not force_reload:
                 return self._embedding_engine
@@ -340,11 +347,11 @@ class VLLMService(BaseService):
             return self._embedding_engine
 
     def _normalize_prompts(
-        self, prompts: Union[str, Dict[str, Any], Sequence[Union[str, Dict[str, Any]]]]
-    ) -> List[str]:
+        self, prompts: str | dict[str, Any] | Sequence[str | dict[str, Any]]
+    ) -> list[str]:
         if isinstance(prompts, (str, dict)):
             prompts = [prompts]
-        normalized: List[str] = []
+        normalized: list[str] = []
         for item in prompts:
             if isinstance(item, str):
                 normalized.append(item)
@@ -357,7 +364,7 @@ class VLLMService(BaseService):
         return normalized
 
     def _messages_to_prompt(self, messages: Iterable[Any]) -> str:
-        lines: List[str] = []
+        lines: list[str] = []
         for message in messages:
             if isinstance(message, dict):
                 role = message.get("role", "user")
@@ -367,27 +374,25 @@ class VLLMService(BaseService):
                 lines.append(str(message))
         return "\n".join(lines)
 
-    def _normalize_texts(self, texts: Union[str, Sequence[str]]) -> List[str]:
+    def _normalize_texts(self, texts: str | Sequence[str]) -> list[str]:
         if isinstance(texts, str):
             return [texts]
         return [str(text) for text in texts]
 
-    def _merge_sampling_params(self, overrides: Dict[str, Any]) -> SamplingParams:
+    def _merge_sampling_params(self, overrides: dict[str, Any]) -> SamplingParams:  # type: ignore
         merged = dict(_DEFAULT_SAMPLING)
         merged.update(self.config.sampling)
         merged.update({k: v for k, v in overrides.items() if v is not None})
         filtered = {k: v for k, v in merged.items() if v is not None}
         return self._build_sampling_params(filtered)
 
-    def _build_sampling_params(self, params: Dict[str, Any]) -> SamplingParams:
+    def _build_sampling_params(self, params: dict[str, Any]) -> SamplingParams:  # type: ignore
         if SamplingParams is None:
             raise RuntimeError("vLLM is not installed; cannot create SamplingParams")
         return SamplingParams(**params)
 
 
-def register_vllm_service(
-    environment: Any, service_name: str, config: Dict[str, Any]
-) -> Any:
+def register_vllm_service(environment: Any, service_name: str, config: dict[str, Any]) -> Any:
     """Helper to register the vLLM service with a SAGE environment."""
 
     return environment.register_service(service_name, VLLMService, config)

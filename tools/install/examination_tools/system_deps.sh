@@ -27,34 +27,34 @@ detect_os() {
 check_and_install_build_tools() {
     local log_file="${1:-install.log}"
     echo -e "${INFO} 检查基础构建工具..."
-    
+
     # 检查必需的构建工具
     local missing_tools=()
-    
+
     if ! command -v gcc &> /dev/null; then
         missing_tools+=("gcc")
     fi
-    
+
     if ! command -v cmake &> /dev/null; then
         missing_tools+=("cmake")
     fi
-    
+
     if ! command -v make &> /dev/null; then
         missing_tools+=("make")
     fi
-    
+
     if ! command -v pkg-config &> /dev/null; then
         missing_tools+=("pkg-config")
     fi
-    
+
     if [ ${#missing_tools[@]} -eq 0 ]; then
         echo -e "${CHECK} 基础构建工具已安装"
         return 0
     fi
-    
+
     echo -e "${WARNING} 缺少构建工具: ${missing_tools[*]}"
     echo "$(date): 缺少构建工具: ${missing_tools[*]}" >> "$log_file"
-    
+
     # 确定sudo权限
     local SUDO=""
     if [[ "${CI:-false}" == "true" ]]; then
@@ -67,9 +67,9 @@ check_and_install_build_tools() {
         echo -e "${CROSS} 需要root权限安装系统依赖，但未找到sudo"
         return 1
     fi
-    
+
     echo -e "${GEAR} 安装基础构建工具..."
-    
+
     case "$OS" in
         ubuntu|debian)
             $SUDO apt-get update -qq >> "$log_file" 2>&1
@@ -106,7 +106,7 @@ check_and_install_build_tools() {
             return 1
             ;;
     esac
-    
+
     return 0
 }
 
@@ -114,11 +114,11 @@ check_and_install_build_tools() {
 check_and_install_math_libraries() {
     local log_file="${1:-install.log}"
     echo -e "${INFO} 检查数学库 (BLAS/LAPACK)..."
-    
+
     # 检查库文件是否存在
     local BLAS_FOUND=false
     local LAPACK_FOUND=false
-    
+
     for lib_path in /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/local/lib; do
         if [[ -f "$lib_path/libopenblas.so" || -f "$lib_path/libblas.so" ]]; then
             BLAS_FOUND=true
@@ -127,15 +127,15 @@ check_and_install_math_libraries() {
             LAPACK_FOUND=true
         fi
     done
-    
+
     if [ "$BLAS_FOUND" = true ] && [ "$LAPACK_FOUND" = true ]; then
         echo -e "${CHECK} BLAS/LAPACK 库已安装"
         return 0
     fi
-    
+
     echo -e "${WARNING} 缺少数学库 - BLAS: $BLAS_FOUND, LAPACK: $LAPACK_FOUND"
     echo "$(date): 缺少数学库 - BLAS: $BLAS_FOUND, LAPACK: $LAPACK_FOUND" >> "$log_file"
-    
+
     # 确定sudo权限
     local SUDO=""
     if [[ "${CI:-false}" == "true" ]]; then
@@ -148,9 +148,9 @@ check_and_install_math_libraries() {
         echo -e "${CROSS} 需要root权限安装系统依赖，但未找到sudo"
         return 1
     fi
-    
+
     echo -e "${GEAR} 安装数学库 (BLAS/LAPACK)..."
-    
+
     case "$OS" in
         ubuntu|debian)
             if $SUDO apt-get install -y --no-install-recommends \
@@ -184,7 +184,7 @@ check_and_install_math_libraries() {
             return 1
             ;;
     esac
-    
+
     return 0
 }
 
@@ -192,9 +192,9 @@ check_and_install_math_libraries() {
 verify_system_dependencies() {
     local log_file="${1:-install.log}"
     echo -e "${INFO} 验证系统依赖..."
-    
+
     local all_good=true
-    
+
     # 检查构建工具
     for tool in gcc cmake make pkg-config; do
         if ! command -v "$tool" &> /dev/null; then
@@ -202,11 +202,11 @@ verify_system_dependencies() {
             all_good=false
         fi
     done
-    
+
     # 检查库文件
     local BLAS_FOUND=false
     local LAPACK_FOUND=false
-    
+
     for lib_path in /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/local/lib; do
         if [[ -f "$lib_path/libopenblas.so" || -f "$lib_path/libblas.so" ]]; then
             BLAS_FOUND=true
@@ -215,12 +215,12 @@ verify_system_dependencies() {
             LAPACK_FOUND=true
         fi
     done
-    
+
     if [ "$BLAS_FOUND" = false ] || [ "$LAPACK_FOUND" = false ]; then
         echo -e "${CROSS} 数学库验证失败 - BLAS: $BLAS_FOUND, LAPACK: $LAPACK_FOUND"
         all_good=false
     fi
-    
+
     if [ "$all_good" = true ]; then
         echo -e "${CHECK} 系统依赖验证通过"
         echo "$(date): 系统依赖验证通过" >> "$log_file"
@@ -235,37 +235,37 @@ verify_system_dependencies() {
 # 主函数：检查和安装所有系统依赖
 check_and_install_system_dependencies() {
     local log_file="${1:-install.log}"
-    
+
     echo ""
     echo -e "${BLUE}=== 系统依赖检查和安装 ===${NC}"
     echo "$(date): 开始系统依赖检查和安装" >> "$log_file"
-    
+
     # 检测操作系统
     detect_os
     echo -e "${INFO} 操作系统: $OS"
     echo "$(date): 检测到操作系统: $OS" >> "$log_file"
-    
+
     # 检查和安装构建工具
     if ! check_and_install_build_tools "$log_file"; then
         echo -e "${CROSS} 构建工具安装失败"
         return 1
     fi
-    
+
     # 检查和安装数学库
     if ! check_and_install_math_libraries "$log_file"; then
         echo -e "${CROSS} 数学库安装失败"
         return 1
     fi
-    
+
     # 验证安装
     if ! verify_system_dependencies "$log_file"; then
         echo -e "${WARNING} 系统依赖验证失败，但继续安装"
         echo "$(date): 系统依赖验证失败，但继续安装" >> "$log_file"
     fi
-    
+
     echo "$(date): 系统依赖检查和安装完成" >> "$log_file"
     echo -e "${CHECK} 系统依赖检查完成"
     echo ""
-    
+
     return 0
 }

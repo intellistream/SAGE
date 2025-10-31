@@ -1,35 +1,21 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, List, Optional, Type, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
-# 使用兼容性层安全导入闭源依赖
-from sage.kernel.api.compatibility import (
-    safe_import_custom_logger,
-    safe_import_kernel_client,
-)
-from sage.kernel.api.function.lambda_function import wrap_lambda
+from sage.common.core import wrap_lambda
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.factory.service_factory import ServiceFactory
-
-# 获取闭源模块的类（如果可用，否则使用回退实现）
-_JobManagerClient = safe_import_kernel_client()
-_CustomLogger = safe_import_custom_logger()
+from sage.kernel.runtime.jobmanager_client import JobManagerClient
 
 if TYPE_CHECKING:
+    from sage.common.core.functions import BaseFunction
     from sage.kernel.api.datastream import DataStream
-    from sage.kernel.api.function.base_function import BaseFunction
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
-
-    # 类型提示使用 Any 来避免循环导入问题
-    JobManagerClientType = Any
-    CustomLoggerType = Any
-else:
-    JobManagerClientType = _JobManagerClient
-    CustomLoggerType = _CustomLogger
 
 
 class BaseEnvironment(ABC):
-
     __state_exclude__ = ["_engine_client", "client", "jobmanager"]
     # 会被继承，但是不会被自动合并
 
@@ -66,16 +52,27 @@ class BaseEnvironment(ABC):
         return self._transformation_classes
 
     def __init__(
-        self, name: str, config: dict | None, *, platform: str = "local", scheduler=None, enable_monitoring: bool = False
+        self,
+        name: str,
+        config: dict | None,
+        *,
+        platform: str = "local",
+        scheduler=None,
+        enable_monitoring: bool = False,
     ):
-
         self.name = name
-        self.uuid: Optional[str]  # 由jobmanager生成
+        self.uuid: str | None = None  # 由jobmanager生成
 
         self.config: dict = dict(config or {})
         self.platform: str = platform
+
+        # JobManager 注入的属性
+        self.jobmanager_host: str | None = None
+        self.jobmanager_port: int | None = None
+        self.session_id: str | None = None
+        self.session_timestamp: Any | None = None  # datetime object
         # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
-        self.pipeline: List["BaseTransformation"] = []
+        self.pipeline: list[BaseTransformation] = []
         self._filled_futures: dict = {}
         # 用于收集所有服务工厂，供ExecutionGraph构建服务节点时使用
         self.service_factories: dict = {}  # service_name -> ServiceFactory
@@ -87,13 +84,13 @@ class BaseEnvironment(ABC):
         self._scheduler = None
         self._init_scheduler(scheduler)
 
-        self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
+        self.env_base_dir: str | None = None  # 环境基础目录，用于存储日志和其他文件
         # JobManager 相关
-        self._jobmanager: Optional[Any] = None
+        self._jobmanager: Any | None = None
 
         # Engine 客户端相关
-        self._engine_client: Optional[JobManagerClientType] = None
-        self.env_uuid: Optional[str] = None
+        self._engine_client: JobManagerClient | None = None
+        self.env_uuid: str | None = None
 
         # 日志配置
         self.console_log_level: str = "INFO"  # 默认console日志等级
@@ -123,16 +120,14 @@ class BaseEnvironment(ABC):
                 self._scheduler = LoadAwareScheduler(platform=self.platform)
             else:
                 raise ValueError(
-                    f"Unknown scheduler type: {scheduler}. "
-                    f"Available options: 'fifo', 'load_aware'"
+                    f"Unknown scheduler type: {scheduler}. Available options: 'fifo', 'load_aware'"
                 )
         elif isinstance(scheduler, BaseScheduler):
             # 直接使用提供的调度器实例
             self._scheduler = scheduler
         else:
             raise TypeError(
-                f"scheduler must be None, str, or BaseScheduler instance, "
-                f"got {type(scheduler)}"
+                f"scheduler must be None, str, or BaseScheduler instance, got {type(scheduler)}"
             )
 
     @property
@@ -157,9 +152,7 @@ class BaseEnvironment(ABC):
         """
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR"]
         if level.upper() not in valid_levels:
-            raise ValueError(
-                f"Invalid log level: {level}. Must be one of {valid_levels}"
-            )
+            raise ValueError(f"Invalid log level: {level}. Must be one of {valid_levels}")
 
         self.console_log_level = level.upper()
 
@@ -167,7 +160,7 @@ class BaseEnvironment(ABC):
         if hasattr(self, "_logger") and self._logger is not None:
             self._logger.update_output_level("console", self.console_log_level)
 
-    def register_service(self, service_name: str, service_class: Type, *args, **kwargs):
+    def register_service(self, service_name: str, service_class: type, *args, **kwargs):
         """
         注册服务到环境中
 
@@ -202,9 +195,7 @@ class BaseEnvironment(ABC):
 
         return service_factory
 
-    def register_service_factory(
-        self, service_name: str, service_factory: ServiceFactory
-    ):
+    def register_service_factory(self, service_name: str, service_factory: ServiceFactory):
         """
         注册服务工厂到环境中
 
@@ -226,6 +217,7 @@ class BaseEnvironment(ABC):
 
     def from_kafka_source(
         self,
+        source_class: type,
         bootstrap_servers: str,
         topic: str,
         group_id: str,
@@ -234,11 +226,12 @@ class BaseEnvironment(ABC):
         buffer_size: int = 10000,
         max_poll_records: int = 500,
         **kafka_config,
-    ) -> "DataStream":
+    ) -> DataStream:
         """
         创建Kafka数据源，采用Flink兼容的架构设计
 
         Args:
+            source_class: Kafka Source 类（需要从 sage.libs.io.source 导入 KafkaSource）
             bootstrap_servers: Kafka集群地址 (例: "localhost:9092")
             topic: Kafka主题名称
             group_id: 消费者组ID，用于offset管理
@@ -252,8 +245,12 @@ class BaseEnvironment(ABC):
             DataStream: 可用于构建处理pipeline的数据流
 
         Example:
+            # 导入 KafkaSource
+            from sage.libs.io.source import KafkaSource
+
             # 基本使用
             kafka_stream = env.from_kafka_source(
+                KafkaSource,
                 bootstrap_servers="localhost:9092",
                 topic="user_events",
                 group_id="sage_consumer"
@@ -261,6 +258,7 @@ class BaseEnvironment(ABC):
 
             # 高级配置
             kafka_stream = env.from_kafka_source(
+                KafkaSource,
                 bootstrap_servers="kafka1:9092,kafka2:9092",
                 topic="events",
                 group_id="sage_app",
@@ -277,17 +275,13 @@ class BaseEnvironment(ABC):
                      .filter(FilterFunction)
                      .sink(OutputSinkFunction))
         """
-        from sage.kernel.api.function.kafka_source import KafkaSourceFunction
-
         # 获取SourceTransformation类
-        SourceTransformation = self._get_transformation_classes()[
-            "SourceTransformation"
-        ]
+        SourceTransformation = self._get_transformation_classes()["SourceTransformation"]
 
         # 创建Kafka Source Function
         transformation = SourceTransformation(
             self,
-            KafkaSourceFunction,
+            source_class,
             bootstrap_servers=bootstrap_servers,
             topic=topic,
             group_id=group_id,
@@ -303,25 +297,21 @@ class BaseEnvironment(ABC):
 
         return self._get_datastream_class()(self, transformation)
 
-    def from_source(
-        self, function: Union[Type["BaseFunction"], callable], *args, **kwargs
-    ) -> "DataStream":
+    def from_source(self, function: type[BaseFunction] | Callable, *args, **kwargs) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, "flatmap")
 
         # 获取SourceTransformation类
-        SourceTransformation = self._get_transformation_classes()[
-            "SourceTransformation"
-        ]
+        SourceTransformation = self._get_transformation_classes()["SourceTransformation"]
         transformation = SourceTransformation(self, function, *args, **kwargs)
 
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
 
     def from_collection(
-        self, function: Union[Type["BaseFunction"], callable], *args, **kwargs
-    ) -> "DataStream":
+        self, function: type[BaseFunction] | Callable, *args, **kwargs
+    ) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, "flatmap")
@@ -336,9 +326,7 @@ class BaseEnvironment(ABC):
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
 
-    def from_batch(
-        self, source: Union[Type["BaseFunction"], Any], *args, **kwargs
-    ) -> "DataStream":
+    def from_batch(self, source: type[BaseFunction] | Any, *args, **kwargs) -> DataStream:
         """
         统一的批处理数据源创建方法，支持多种输入类型
 
@@ -380,7 +368,7 @@ class BaseEnvironment(ABC):
         # 检查 source 的类型并相应处理
         if isinstance(source, type) and hasattr(source, "__bases__"):
             # source 是一个类，检查是否是 BaseFunction 的子类
-            from sage.kernel.api.function.base_function import BaseFunction
+            from sage.common.core import BaseFunction
 
             if issubclass(source, BaseFunction):
                 # 使用自定义批处理函数类
@@ -399,7 +387,7 @@ class BaseEnvironment(ABC):
         else:
             # 尝试将其作为可迭代对象处理
             try:
-                iter(source)
+                iter(source)  # type: ignore[arg-type]
                 return self._from_batch_iterable(source, **kwargs)
             except TypeError:
                 raise TypeError(
@@ -407,7 +395,7 @@ class BaseEnvironment(ABC):
                     f"Expected BaseFunction subclass, list, tuple, or any iterable object."
                 )
 
-    def from_future(self, name: str) -> "DataStream":
+    def from_future(self, name: str) -> DataStream:
         """
         创建一个future stream占位符，用于建立反馈边。
 
@@ -425,9 +413,7 @@ class BaseEnvironment(ABC):
             result.fill_future(future_stream)
         """
         # 获取FutureTransformation类
-        FutureTransformation = self._get_transformation_classes()[
-            "FutureTransformation"
-        ]
+        FutureTransformation = self._get_transformation_classes()["FutureTransformation"]
         transformation = FutureTransformation(self, name)
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
@@ -446,17 +432,17 @@ class BaseEnvironment(ABC):
     @property
     def logger(self):
         if not hasattr(self, "_logger"):
-            self._logger = _CustomLogger()
+            self._logger = CustomLogger()
         return self._logger
 
     @property
-    def client(self) -> JobManagerClientType:
+    def client(self) -> JobManagerClient:
         if self._engine_client is None:
             # 从配置中获取 Engine 地址，或使用默认值
             daemon_host = self.config.get("engine_host", "127.0.0.1")
             daemon_port = self.config.get("engine_port", 19000)
 
-            self._engine_client = _JobManagerClient(host=daemon_host, port=daemon_port)
+            self._engine_client = JobManagerClient(host=daemon_host, port=daemon_port)
 
         return self._engine_client
 
@@ -464,14 +450,14 @@ class BaseEnvironment(ABC):
     #                auxiliary methods                     #
     ########################################################
 
-    def _append(self, transformation: "BaseTransformation"):
+    def _append(self, transformation: BaseTransformation):
         """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
 
     def _from_batch_function_class(
-        self, batch_function_class: Type["BaseFunction"], *args, **kwargs
-    ) -> "DataStream":
+        self, batch_function_class: type[BaseFunction], *args, **kwargs
+    ) -> DataStream:
         """
         从自定义批处理函数类创建批处理数据源
         """
@@ -495,15 +481,11 @@ class BaseEnvironment(ABC):
         )
 
         self.pipeline.append(transformation)
-        self.logger.info(
-            f"Custom batch source created with {batch_function_class.__name__}"
-        )
+        self.logger.info(f"Custom batch source created with {batch_function_class.__name__}")
 
         return self._get_datastream_class()(self, transformation)
 
-    def _from_batch_collection(
-        self, data: Union[list, tuple], **kwargs
-    ) -> "DataStream":
+    def _from_batch_collection(self, data: list | tuple, **kwargs) -> DataStream:
         """
         从数据集合创建批处理数据源
         """
@@ -513,16 +495,14 @@ class BaseEnvironment(ABC):
 
         # 获取BatchTransformation类
         BatchTransformation = self._get_transformation_classes()["BatchTransformation"]
-        transformation = BatchTransformation(
-            self, SimpleBatchIteratorFunction, data=data, **kwargs
-        )
+        transformation = BatchTransformation(self, SimpleBatchIteratorFunction, data=data, **kwargs)
 
         self.pipeline.append(transformation)
         self.logger.info(f"Batch collection source created with {len(data)} items")
 
         return self._get_datastream_class()(self, transformation)
 
-    def _from_batch_iterable(self, iterable: Any, **kwargs) -> "DataStream":
+    def _from_batch_iterable(self, iterable: Any, **kwargs) -> DataStream:
         """
         从任何可迭代对象创建批处理数据源
         """

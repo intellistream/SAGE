@@ -9,7 +9,6 @@ import random
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, List
 
 import numpy as np
 
@@ -39,10 +38,10 @@ def build_config(dimension: int = 4) -> _sage_db.DatabaseConfig:
     return cfg
 
 
-def make_demo_vectors() -> List[List[float]]:
+def make_demo_vectors() -> list[list[float]]:
     """Create a tiny set of 4D vectors arranged on a circle for easy inspection."""
     base_angles = [0.0, math.pi / 4, math.pi / 2, 3 * math.pi / 4, math.pi]
-    vectors: List[List[float]] = []
+    vectors: list[list[float]] = []
     for idx, angle in enumerate(base_angles):
         vectors.append(
             [
@@ -55,12 +54,12 @@ def make_demo_vectors() -> List[List[float]]:
     return vectors
 
 
-def add_vectors(db: _sage_db.SageDB, vectors: List[List[float]]) -> List[int]:
+def add_vectors(db: _sage_db.SageDB, vectors: list[list[float]]) -> list[int]:
     """Insert vectors with metadata and return their ids."""
-    ids: List[int] = []
+    ids: list[int] = []
     rng = random.Random(42)
     for i, vec in enumerate(vectors, start=1):
-        metadata: Dict[str, str] = {
+        metadata: dict[str, str] = {
             "label": f"demo-{i}",
             "quadrant": str((i - 1) % 4 + 1),
             "color": rng.choice(["red", "green", "blue", "yellow"]),
@@ -71,7 +70,7 @@ def add_vectors(db: _sage_db.SageDB, vectors: List[List[float]]) -> List[int]:
     return ids
 
 
-def run_search(db: _sage_db.SageDB, query: List[float]) -> None:
+def run_search(db: _sage_db.SageDB, query: list[float]) -> None:
     params = _sage_db.SearchParams(k=3)
     params.include_metadata = True
     params.nprobe = 1
@@ -79,21 +78,17 @@ def run_search(db: _sage_db.SageDB, query: List[float]) -> None:
     print("\n🔎 running 3-NN search for:", query)
     results = db.search(query, params)
     for rank, result in enumerate(results, start=1):
-        print(
-            f"  {rank}. id={result.id:>3}  score={result.score:.4f}  metadata={result.metadata}"
-        )
+        print(f"  {rank}. id={result.id:>3}  score={result.score:.4f}  metadata={result.metadata}")
 
 
 def demonstrate_updates(db: _sage_db.SageDB, target_id: int) -> None:
-    print(
-        f"\n🛠️ updating vector id={target_id} to move it closer to the query direction"
-    )
+    print(f"\n🛠️ updating vector id={target_id} to move it closer to the query direction")
     new_vector = [0.8, 0.6, 0.0, 0.0]
     db.update(target_id, new_vector, {"label": "demo-updated", "quadrant": "1"})
     print("   metadata now:", db.get_metadata(target_id))
 
 
-def demonstrate_persistence(db: _sage_db.SageDB, query: List[float]) -> None:
+def demonstrate_persistence(db: _sage_db.SageDB, query: list[float]) -> None:
     print("\n💾 saving database to a temporary location and loading it back")
     with TemporaryDirectory() as tmp:
         db_path = Path(tmp) / "demo_db"

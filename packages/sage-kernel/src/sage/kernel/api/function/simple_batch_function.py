@@ -1,6 +1,7 @@
-from typing import TYPE_CHECKING, Any, Callable, Iterator, List, Optional
+from collections.abc import Callable, Iterator
+from typing import TYPE_CHECKING, Any, Optional
 
-from sage.kernel.api.function.base_function import BaseFunction
+from sage.common.core import BaseFunction
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.task_context import TaskContext
@@ -13,7 +14,7 @@ class SimpleBatchIteratorFunction(BaseFunction):
     每次execute调用返回一个数据项，完成后返回None触发停止信号
     """
 
-    def __init__(self, data: List[Any], ctx: "TaskContext" = None, **kwargs):
+    def __init__(self, data: list[Any], ctx: Optional["TaskContext"] = None, **kwargs):
         super().__init__(ctx, **kwargs)
         self.data = data
         self.processed_count = 0
@@ -53,13 +54,13 @@ class FileBatchIteratorFunction(BaseFunction):
         self,
         file_path: str,
         encoding: str = "utf-8",
-        ctx: "TaskContext" = None,
+        ctx: Optional["TaskContext"] = None,
         **kwargs,
     ):
         super().__init__(ctx, **kwargs)
         self.file_path = file_path
         self.encoding = encoding
-        self._cached_total_count: Optional[int] = None
+        self._cached_total_count: int | None = None
         self.processed_count = 0
         self._file_iterator = None
         self._file_handle = None
@@ -68,7 +69,7 @@ class FileBatchIteratorFunction(BaseFunction):
         """懒加载文件迭代器"""
         if self._file_iterator is None:
             try:
-                self._file_handle = open(self.file_path, "r", encoding=self.encoding)
+                self._file_handle = open(self.file_path, encoding=self.encoding)
                 self._file_iterator = iter(self._file_handle)
                 if self.logger:
                     self.logger.info(f"Started file batch processing: {self.file_path}")
@@ -87,9 +88,7 @@ class FileBatchIteratorFunction(BaseFunction):
             line_content = line.strip()
 
             if self.logger:
-                self.logger.debug(
-                    f"Processing line {self.processed_count}: {line_content[:50]}..."
-                )
+                self.logger.debug(f"Processing line {self.processed_count}: {line_content[:50]}...")
 
             return line_content
 
@@ -112,7 +111,7 @@ class FileBatchIteratorFunction(BaseFunction):
         """返回文件行数（可选）"""
         if self._cached_total_count is None:
             try:
-                with open(self.file_path, "r", encoding=self.encoding) as f:
+                with open(self.file_path, encoding=self.encoding) as f:
                     self._cached_total_count = sum(1 for _ in f)
             except Exception as e:
                 if self.logger:
@@ -129,7 +128,12 @@ class RangeBatchIteratorFunction(BaseFunction):
     """
 
     def __init__(
-        self, start: int, end: int, step: int = 1, ctx: "TaskContext" = None, **kwargs
+        self,
+        start: int,
+        end: int,
+        step: int = 1,
+        ctx: Optional["TaskContext"] = None,
+        **kwargs,
     ):
         super().__init__(ctx, **kwargs)
         self.start = start
@@ -175,8 +179,8 @@ class GeneratorBatchIteratorFunction(BaseFunction):
     def __init__(
         self,
         generator_func: Callable[[], Iterator[Any]],
-        total_count: Optional[int] = None,
-        ctx: "TaskContext" = None,
+        total_count: int | None = None,
+        ctx: Optional["TaskContext"] = None,
         **kwargs,
     ):
         super().__init__(ctx, **kwargs)
@@ -191,9 +195,7 @@ class GeneratorBatchIteratorFunction(BaseFunction):
             try:
                 self._generator = iter(self.generator_func())
                 if self.logger:
-                    total_info = (
-                        f" ({self.total_count} items)" if self.total_count else ""
-                    )
+                    total_info = f" ({self.total_count} items)" if self.total_count else ""
                     self.logger.info(f"Started generator batch processing{total_info}")
             except Exception as e:
                 if self.logger:
@@ -226,7 +228,7 @@ class GeneratorBatchIteratorFunction(BaseFunction):
             # 返回None表示批处理完成
             return None
 
-    def get_total_count(self) -> Optional[int]:
+    def get_total_count(self) -> int | None:
         """返回总数量（如果已知）"""
         return self.total_count
 
@@ -241,8 +243,8 @@ class IterableBatchIteratorFunction(BaseFunction):
     def __init__(
         self,
         iterable: Any,
-        total_count: Optional[int] = None,
-        ctx: "TaskContext" = None,
+        total_count: int | None = None,
+        ctx: Optional["TaskContext"] = None,
         **kwargs,
     ):
         super().__init__(ctx, **kwargs)
@@ -258,9 +260,7 @@ class IterableBatchIteratorFunction(BaseFunction):
                 self._iterator = iter(self.iterable)
                 calculated_total = self.get_total_count()
                 if self.logger:
-                    total_info = (
-                        f" ({calculated_total} items)" if calculated_total else ""
-                    )
+                    total_info = f" ({calculated_total} items)" if calculated_total else ""
                     self.logger.info(f"Started iterable batch processing{total_info}")
             except Exception as e:
                 if self.logger:
@@ -294,7 +294,7 @@ class IterableBatchIteratorFunction(BaseFunction):
             # 返回None表示批处理完成
             return None
 
-    def get_total_count(self) -> Optional[int]:
+    def get_total_count(self) -> int | None:
         """返回总数量（如果已知）"""
         if self.total_count is not None:
             return self.total_count

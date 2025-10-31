@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
 
-from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.runtime.task.local_task import LocalTask
 from sage.kernel.runtime.task.ray_task import RayTask
 from sage.kernel.utils.ray.actor import ActorWrapper
@@ -31,15 +30,15 @@ class TaskFactory:
     def create_task(
         self,
         name: str,
-        runtime_context: "TaskContext" = None,
-    ) -> "BaseTask":
+        runtime_context: "TaskContext | None" = None,
+    ):
         if self.remote:
-            node = RayTask.options(lifetime="detached").remote(
+            node = RayTask.options(lifetime="detached").remote(  # type: ignore[attr-defined]
                 runtime_context, self.operator_factory
             )
             node = ActorWrapper(node)
         else:
-            node = LocalTask(runtime_context, self.operator_factory)
+            node = LocalTask(ctx=runtime_context, operator_factory=self.operator_factory)  # type: ignore
         return node
 
     def __repr__(self) -> str:

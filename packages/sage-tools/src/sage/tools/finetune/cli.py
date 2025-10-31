@@ -13,13 +13,13 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
+
 from sage.tools.finetune.core import generate_training_config, prepare_training_data
 from sage.tools.finetune.models import TASK_NAMES, FinetuneTask
 from sage.tools.finetune.service import (
@@ -44,19 +44,17 @@ console = Console()
 
 @app.command("start")
 def start_finetune(
-    task: Optional[str] = typer.Option(None, "--task", "-t", help="任务类型"),
-    model: Optional[str] = typer.Option(None, "--model", "-m", help="基础模型"),
-    data: Optional[str] = typer.Option(None, "--data", "-d", help="数据文件"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="输出目录"),
+    task: str | None = typer.Option(None, "--task", "-t", help="任务类型"),
+    model: str | None = typer.Option(None, "--model", "-m", help="基础模型"),
+    data: str | None = typer.Option(None, "--data", "-d", help="数据文件"),
+    output: str | None = typer.Option(None, "--output", "-o", help="输出目录"),
     framework: str = typer.Option("llama-factory", "--framework", "-f"),
     format: str = typer.Option("alpaca", "--format"),
     auto: bool = typer.Option(False, "--auto", help="自动模式"),
     skip_install: bool = typer.Option(False, "--skip-install"),
 ):
     """🎓 启动交互式微调流程"""
-    console.print(
-        Panel.fit("[bold cyan]🎓 SAGE大模型微调向导[/bold cyan]", border_style="cyan")
-    )
+    console.print(Panel.fit("[bold cyan]🎓 SAGE大模型微调向导[/bold cyan]", border_style="cyan"))
 
     # 选择任务类型
     if not task and not auto:
@@ -139,14 +137,14 @@ def run_training(
         console.print(f"[red]❌ 配置不存在: {config}[/red]")
         raise typer.Exit(1)
 
-    console.print(f"[bold]🚀 启动训练[/bold]")
+    console.print("[bold]🚀 启动训练[/bold]")
     console.print(f"配置: [cyan]{config_path}[/cyan]\n")
 
     start_training(config_path, use_native)
 
 
 @app.command("list")
-def list_outputs(directory: Optional[str] = typer.Option(None, "--dir", "-d")):
+def list_outputs(directory: str | None = typer.Option(None, "--dir", "-d")):
     """📋 列出所有微调输出"""
     output_dir = Path(directory) if directory else get_finetune_output_dir()
 
@@ -184,14 +182,14 @@ def list_outputs(directory: Optional[str] = typer.Option(None, "--dir", "-d")):
 
 @app.command("clean")
 def clean_outputs(
-    directory: Optional[str] = typer.Option(None, "--dir", "-d"),
+    directory: str | None = typer.Option(None, "--dir", "-d"),
     force: bool = typer.Option(False, "--force", "-f"),
 ):
     """🧹 清理微调输出"""
     output_dir = Path(directory) if directory else get_finetune_output_dir()
 
     if not output_dir.exists():
-        console.print(f"[yellow]⚠️  目录不存在[/yellow]")
+        console.print("[yellow]⚠️  目录不存在[/yellow]")
         return
 
     console.print(f"将删除: [red]{output_dir}[/red]")
@@ -201,15 +199,13 @@ def clean_outputs(
         return
 
     shutil.rmtree(output_dir)
-    console.print(f"[green]✅ 已删除[/green]")
+    console.print("[green]✅ 已删除[/green]")
 
 
 @app.command("quickstart")
 def quickstart(task: str = typer.Argument("code", help="任务类型")):
     """🚀 快速开始"""
-    console.print(
-        Panel.fit(f"[bold cyan]🚀 快速开始 - {task}[/bold cyan]", border_style="cyan")
-    )
+    console.print(Panel.fit(f"[bold cyan]🚀 快速开始 - {task}[/bold cyan]", border_style="cyan"))
 
     if task == "code":
         console.print("\n[bold green]📚 SAGE代码理解快速微调[/bold green]")
@@ -228,15 +224,13 @@ def quickstart(task: str = typer.Argument("code", help="任务类型")):
             )
     else:
         console.print(f"\n[yellow]⚠️  {task}任务需要数据文件[/yellow]")
-        console.print(
-            f"使用: [cyan]sage finetune start --task {task} --data <file>[/cyan]"
-        )
+        console.print(f"使用: [cyan]sage finetune start --task {task} --data <file>[/cyan]")
 
 
 @app.command("merge")
 def merge_lora(
     model_name: str = typer.Argument(..., help="模型名称或路径"),
-    output: Optional[str] = typer.Option(None, "--output", "-o"),
+    output: str | None = typer.Option(None, "--output", "-o"),
 ):
     """🔀 合并 LoRA 权重"""
     console.print("[bold]🔀 合并 LoRA 权重[/bold]\n")
@@ -251,7 +245,7 @@ def merge_lora(
     output_path.mkdir(parents=True, exist_ok=True)
 
     if merge_lora_weights(checkpoint_path, base_model, output_path):
-        console.print(f"\n[bold]💡 使用:[/bold]")
+        console.print("\n[bold]💡 使用:[/bold]")
         console.print(f"[cyan]sage finetune chat {model_name}[/cyan]")
 
 
@@ -379,7 +373,7 @@ def _select_model(task_type: FinetuneTask, auto: bool) -> str:
     return Prompt.ask("模型名称", default=default)
 
 
-def _handle_data_source(task_type: FinetuneTask, data: Optional[str], auto: bool):
+def _handle_data_source(task_type: FinetuneTask, data: str | None, auto: bool):
     """处理数据源"""
     if task_type == FinetuneTask.CODE_UNDERSTANDING:
         sage_root = get_sage_root()
@@ -499,9 +493,7 @@ def _find_model_for_serving(model_name: str):
                 with open(meta_file) as f:
                     meta = json.load(f)
                 base_model = meta.get("model", "")
-                console.print(
-                    f"✅ LoRA: [cyan]{base_model}[/cyan] + [cyan]{lora_path}[/cyan]\n"
-                )
+                console.print(f"✅ LoRA: [cyan]{base_model}[/cyan] + [cyan]{lora_path}[/cyan]\n")
                 return Path(base_model), True, lora_path
 
     console.print(f"[red]❌ 未找到: {model_name}[/red]")

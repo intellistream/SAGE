@@ -3,21 +3,21 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from sage.kernel.api.function.map_function import MapFunction
+from sage.common.core import MapFunction
 
-PlanStep = Dict[
+PlanStep = dict[
     str, Any
 ]  # MCP风格：{"type":"tool","name":"...","arguments":{...}} | {"type":"reply","text":"..."}
 
 
 def _top_k_tools(
-    user_query: str, tools: Dict[str, Dict[str, Any]], k: int = 6
-) -> Dict[str, Dict[str, Any]]:
+    user_query: str, tools: dict[str, dict[str, Any]], k: int = 6
+) -> dict[str, dict[str, Any]]:
     """基于 name/description 的匹配."""
     uq = user_query.lower()
-    scored: List[Tuple[str, float]] = []
+    scored: list[tuple[str, float]] = []
     for name, meta in tools.items():
         txt = (name + " " + str(meta.get("description", ""))).lower()
         score = 0.0
@@ -28,14 +28,12 @@ def _top_k_tools(
             score += 1.5
         scored.append((name, score))
     scored.sort(key=lambda x: x[1], reverse=True)
-    keep = [n for n, s in scored[:k] if s > 0] or list(tools.keys())[
-        : min(k, len(tools))
-    ]
+    keep = [n for n, s in scored[:k] if s > 0] or list(tools.keys())[: min(k, len(tools))]
     return {n: tools[n] for n in keep}
 
 
 def _build_prompt(
-    profile_system_prompt: str, user_query: str, tools_subset: Dict[str, Dict[str, Any]]
+    profile_system_prompt: str, user_query: str, tools_subset: dict[str, dict[str, Any]]
 ) -> str:
     """
     把 Profile + 用户问题 + 工具清单 拼成一个强约束提示词，只允许输出 JSON。
@@ -94,7 +92,7 @@ def _strip_code_fences(text: str) -> str:
     return t.strip()
 
 
-def _coerce_json_array(text: str) -> Optional[List[Any]]:
+def _coerce_json_array(text: str) -> list[Any] | None:
     """
     容错解析：优先直接 loads；失败时尝试截取第一个 '[' 到最后一个 ']' 之间的内容。
     """
@@ -140,13 +138,13 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
 
 
 def _validate_steps(
-    steps: List[Dict[str, Any]], tools: Dict[str, Dict[str, Any]]
-) -> List[PlanStep]:
+    steps: list[dict[str, Any]], tools: dict[str, dict[str, Any]]
+) -> list[PlanStep]:
     """
     轻量校验：结构正确性 + 工具是否存在 + 必填参数是否齐全（基于 schema.required）。
     不通过时，直接过滤掉错误步；
     """
-    valid: List[PlanStep] = []
+    valid: list[PlanStep] = []
     for step in steps:
         if not isinstance(step, dict) or "type" not in step:
             continue
@@ -159,11 +157,7 @@ def _validate_steps(
         if step["type"] == "tool":
             name = step.get("name")
             args = step.get("arguments", {})
-            if (
-                not isinstance(name, str)
-                or name not in tools
-                or not isinstance(args, dict)
-            ):
+            if not isinstance(name, str) or name not in tools or not isinstance(args, dict):
                 continue
 
             # 基于 MCP input_schema 的必填项检查
@@ -215,8 +209,8 @@ class LLMPlanner(MapFunction):
         self,
         profile_system_prompt: str,
         user_query: str,
-        tools: Dict[str, Dict[str, Any]],
-    ) -> List[PlanStep]:
+        tools: dict[str, dict[str, Any]],
+    ) -> list[PlanStep]:
         # 1) 缩小工具集合，减少上下文
         tools_subset = _top_k_tools(user_query, tools, k=self.topk_tools)
 
@@ -255,7 +249,7 @@ class LLMPlanner(MapFunction):
         # 6) 截断并返回
         return steps[: self.max_steps]
 
-    def _tools_to_manifest(self, tools_like: Any) -> Dict[str, Dict[str, Any]]:
+    def _tools_to_manifest(self, tools_like: Any) -> dict[str, dict[str, Any]]:
         """
         支持：
         - 直接传工具清单 dict[str, {description,input_schema}]
@@ -263,15 +257,13 @@ class LLMPlanner(MapFunction):
         """
         if isinstance(tools_like, dict):
             return tools_like
-        if hasattr(tools_like, "describe") and callable(
-            getattr(tools_like, "describe")
-        ):
+        if hasattr(tools_like, "describe") and callable(tools_like.describe):
             return tools_like.describe()
         raise TypeError(
             "LLMPlanner expects `tools` as a dict manifest or an object with .describe()."
         )
 
-    def execute(self, data: Any) -> List[PlanStep]:
+    def execute(self, data: Any) -> list[PlanStep]:
         """
         统一入口，支持以下输入形态（任选其一）：
         1) dict：
@@ -288,9 +280,7 @@ class LLMPlanner(MapFunction):
         """
         # --- 形态 1：dict ---
         if isinstance(data, dict):
-            profile_prompt = data.get("profile_prompt") or data.get(
-                "profile_system_prompt"
-            )
+            profile_prompt = data.get("profile_prompt") or data.get("profile_system_prompt")
             user_query = data.get("user_query") or data.get("query")
             tools_like = data.get("tools") or data.get("registry")
             if (

@@ -31,16 +31,15 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
-license = "MIT"
 
 # Core dependencies
 dependencies = [
-    # SAGE framework dependencies  
+    # SAGE framework dependencies
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-libs>=0.1.0",
-    
+
     # RAG and benchmark dependencies
     "pyyaml>=6.0",
     "chromadb>=0.4.0",
@@ -50,6 +49,9 @@ dependencies = [
     "pandas>=2.0.0",
     "numpy>=1.24.0",
 ]
+
+[project.license]
+text = "MIT"
 
 [project.optional-dependencies]
 dev = [
@@ -81,7 +83,7 @@ packages = [
 package-dir = {"" = "src"}
 
 [tool.setuptools.dynamic]
-version = {attr = "sage.benchmark.__version__"}
+version = {attr = "sage.benchmark._version.__version__"}
 
 [tool.setuptools.package-data]
 "sage.benchmark.benchmark_rag" = [
@@ -90,10 +92,49 @@ version = {attr = "sage.benchmark.__version__"}
     "evaluation/config/*.yaml",
 ]
 
+# ============================================================================
+# Code Quality Configuration
+# Extends from root ruff.toml for unified standards across all packages
+# ============================================================================
+[tool.ruff]
+extend = "../../tools/ruff.toml"
+
+[tool.mypy]
+cache_dir = "../../.sage/cache/mypy"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "src",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+addopts = [
+    "--benchmark-storage=../../.sage/benchmarks",
+    "-o",
+    "cache_dir=../../.sage/cache/pytest",
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-ra",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "benchmark: marks tests as benchmark tests",
+    "rag: marks tests as RAG benchmark tests",
+]
+
 [tool.black]
 line-length = 100
 target-version = ['py310']
-
-[tool.ruff]
-line-length = 100
-target-version = "py310"

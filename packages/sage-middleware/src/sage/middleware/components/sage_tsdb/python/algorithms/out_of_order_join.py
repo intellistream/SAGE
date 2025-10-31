@@ -6,11 +6,12 @@ out of order, using windowing and buffering strategies.
 """
 
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
-from .base import TimeSeriesAlgorithm
 from ..sage_tsdb import TimeSeriesData
+from .base import TimeSeriesAlgorithm
 
 
 @dataclass
@@ -19,8 +20,8 @@ class JoinConfig:
 
     window_size: int  # milliseconds
     max_delay: int  # maximum out-of-order delay (ms)
-    join_key: Optional[str] = None  # tag key for join condition
-    join_predicate: Optional[Callable[[TimeSeriesData, TimeSeriesData], bool]] = None
+    join_key: str | None = None  # tag key for join condition
+    join_predicate: Callable[[TimeSeriesData, TimeSeriesData], bool] | None = None
 
 
 class StreamBuffer:
@@ -34,7 +35,7 @@ class StreamBuffer:
             max_delay: Maximum allowed delay (ms)
         """
         self.max_delay = max_delay
-        self.buffer: List[TimeSeriesData] = []
+        self.buffer: list[TimeSeriesData] = []
         self.watermark = 0  # Current watermark timestamp
 
     def add(self, data: TimeSeriesData):
@@ -42,7 +43,7 @@ class StreamBuffer:
         self.buffer.append(data)
         self._update_watermark()
 
-    def add_batch(self, data_list: List[TimeSeriesData]):
+    def add_batch(self, data_list: list[TimeSeriesData]):
         """Add multiple data points to buffer"""
         self.buffer.extend(data_list)
         self._update_watermark()
@@ -56,7 +57,7 @@ class StreamBuffer:
             latest = self.buffer[-1].timestamp
             self.watermark = latest - self.max_delay
 
-    def get_ready_data(self) -> List[TimeSeriesData]:
+    def get_ready_data(self) -> list[TimeSeriesData]:
         """Get data that's ready for processing (before watermark)"""
         ready = [d for d in self.buffer if d.timestamp <= self.watermark]
         # Remove ready data from buffer
@@ -83,7 +84,7 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
     - Support for custom join predicates
     """
 
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize stream join algorithm.
 
@@ -112,21 +113,21 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
             "dropped_late": 0,
         }
 
-    def add_left_stream(self, data: List[TimeSeriesData]):
+    def add_left_stream(self, data: list[TimeSeriesData]):
         """Add data to left stream"""
         self.left_buffer.add_batch(data)
 
-    def add_right_stream(self, data: List[TimeSeriesData]):
+    def add_right_stream(self, data: list[TimeSeriesData]):
         """Add data to right stream"""
         self.right_buffer.add_batch(data)
 
     def process(
         self,
-        data: List[TimeSeriesData] = None,
-        left_stream: List[TimeSeriesData] = None,
-        right_stream: List[TimeSeriesData] = None,
+        data: list[TimeSeriesData] | None = None,
+        left_stream: list[TimeSeriesData] | None = None,
+        right_stream: list[TimeSeriesData] | None = None,
         **kwargs,
-    ) -> List[Tuple[TimeSeriesData, TimeSeriesData]]:
+    ) -> list[tuple[TimeSeriesData, TimeSeriesData]]:
         """
         Process stream join.
 
@@ -158,8 +159,8 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
         return joined
 
     def _join_data(
-        self, left_data: List[TimeSeriesData], right_data: List[TimeSeriesData]
-    ) -> List[Tuple[TimeSeriesData, TimeSeriesData]]:
+        self, left_data: list[TimeSeriesData], right_data: list[TimeSeriesData]
+    ) -> list[tuple[TimeSeriesData, TimeSeriesData]]:
         """
         Join data from two streams.
 
@@ -182,13 +183,13 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
         return joined
 
     def _hash_join(
-        self, left_data: List[TimeSeriesData], right_data: List[TimeSeriesData]
-    ) -> List[Tuple[TimeSeriesData, TimeSeriesData]]:
+        self, left_data: list[TimeSeriesData], right_data: list[TimeSeriesData]
+    ) -> list[tuple[TimeSeriesData, TimeSeriesData]]:
         """Hash join on specified key"""
         joined = []
 
         # Build hash table for right stream
-        right_hash: Dict[str, List[TimeSeriesData]] = defaultdict(list)
+        right_hash: dict[str, list[TimeSeriesData]] = defaultdict(list)
         for right in right_data:
             key_value = right.tags.get(self.join_key)
             if key_value:
@@ -202,16 +203,14 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
                     # Check window condition
                     if abs(left.timestamp - right.timestamp) <= self.window_size:
                         # Check custom predicate if provided
-                        if self.join_predicate is None or self.join_predicate(
-                            left, right
-                        ):
+                        if self.join_predicate is None or self.join_predicate(left, right):
                             joined.append((left, right))
 
         return joined
 
     def _nested_loop_join(
-        self, left_data: List[TimeSeriesData], right_data: List[TimeSeriesData]
-    ) -> List[Tuple[TimeSeriesData, TimeSeriesData]]:
+        self, left_data: list[TimeSeriesData], right_data: list[TimeSeriesData]
+    ) -> list[tuple[TimeSeriesData, TimeSeriesData]]:
         """Nested loop join with window condition"""
         joined = []
 
@@ -235,7 +234,7 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
             "dropped_late": 0,
         }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get join statistics"""
         return {
             **self.stats,

@@ -67,7 +67,7 @@ echo ""
 # 检查后端文件
 if [ -f "packages/sage-studio/src/sage/studio/config/backend/api.py" ]; then
     echo "✅ Backend API 文件存在"
-    
+
     # 检查是否包含 Playground 端点
     if grep -q "playground/execute" "packages/sage-studio/src/sage/studio/config/backend/api.py"; then
         echo "✅ Playground API 端点已添加"

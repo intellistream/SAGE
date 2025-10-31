@@ -6,12 +6,11 @@
 
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 from datasets import Dataset
 
 
-def load_training_data(data_path: Union[str, Path]) -> List[Dict]:
+def load_training_data(data_path: str | Path) -> list[dict]:
     """加载训练数据
 
     Args:
@@ -40,7 +39,7 @@ def load_training_data(data_path: Union[str, Path]) -> List[Dict]:
         raise ValueError(f"不支持的文件格式: {data_path.suffix}")
 
 
-def format_alpaca_sample(sample: Dict) -> Dict:
+def format_alpaca_sample(sample: dict) -> dict:
     """格式化 Alpaca 格式的样本
 
     Alpaca 格式:
@@ -63,7 +62,7 @@ def format_alpaca_sample(sample: Dict) -> Dict:
     return {"text": text}
 
 
-def format_conversation_sample(sample: Dict) -> Dict:
+def format_conversation_sample(sample: dict) -> dict:
     """格式化对话格式的样本
 
     对话格式:
@@ -94,7 +93,7 @@ def format_conversation_sample(sample: Dict) -> Dict:
     return {"text": text.strip()}
 
 
-def format_qa_sample(sample: Dict) -> Dict:
+def format_qa_sample(sample: dict) -> dict:
     """格式化问答格式的样本
 
     QA 格式:
@@ -117,7 +116,7 @@ def format_qa_sample(sample: Dict) -> Dict:
     return {"text": text}
 
 
-def detect_data_format(sample: Dict) -> str:
+def detect_data_format(sample: dict) -> str:
     """自动检测数据格式
 
     Args:
@@ -139,10 +138,10 @@ def detect_data_format(sample: Dict) -> str:
 
 
 def prepare_dataset(
-    data_path: Union[str, Path],
+    data_path: str | Path,
     tokenizer,
     max_length: int = 1024,
-    format_type: Optional[str] = None,
+    format_type: str | None = None,
 ) -> Dataset:
     """准备训练数据集
 
@@ -199,13 +198,11 @@ def prepare_dataset(
         desc="Tokenizing",
     )
 
-    print(f"✅ 数据集准备完成")
+    print("✅ 数据集准备完成")
     return tokenized_dataset
 
 
-def create_sample_data(
-    output_path: Union[str, Path], format_type: str = "alpaca", num_samples: int = 10
-):
+def create_sample_data(output_path: str | Path, format_type: str = "alpaca", num_samples: int = 10):
     """创建示例数据
 
     Args:

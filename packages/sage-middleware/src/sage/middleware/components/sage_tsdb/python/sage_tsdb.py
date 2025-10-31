@@ -3,14 +3,25 @@ SAGE TSDB - High-performance time series database for streaming data
 
 This module provides Python APIs for time series data storage, querying,
 and processing with support for out-of-order data and various algorithms.
+
+Uses C++ implementation for high performance when available, with pure Python fallback.
 """
 
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
+
+# Try to import C++ bindings
+try:
+    from . import _sage_tsdb
+
+    HAS_CPP_BACKEND = True
+except ImportError:
+    _sage_tsdb = None
+    HAS_CPP_BACKEND = False
 
 
 class AggregationType(Enum):
@@ -40,8 +51,8 @@ class InterpolationType(Enum):
 class TimeRange:
     """Time range for queries"""
 
-    start_time: Union[int, datetime]
-    end_time: Union[int, datetime]
+    start_time: int | datetime
+    end_time: int | datetime
 
     def __post_init__(self):
         """Convert datetime to timestamp if necessary"""
@@ -56,9 +67,9 @@ class TimeSeriesData:
     """Time series data point"""
 
     timestamp: int  # milliseconds since epoch
-    value: Union[float, np.ndarray]
-    tags: Optional[Dict[str, str]] = None
-    fields: Optional[Dict[str, Any]] = None
+    value: float | np.ndarray
+    tags: dict[str, str] | None = None
+    fields: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values"""
@@ -73,12 +84,12 @@ class QueryConfig:
     """Configuration for time series queries"""
 
     time_range: TimeRange
-    tags: Optional[Dict[str, str]] = None
-    aggregation: Optional[AggregationType] = None
-    window_size: Optional[int] = None  # milliseconds
+    tags: dict[str, str] | None = None
+    aggregation: AggregationType | None = None
+    window_size: int | None = None  # milliseconds
     interpolation: InterpolationType = InterpolationType.NONE
-    limit: Optional[int] = None
-    downsample_factor: Optional[int] = None
+    limit: int | None = None
+    downsample_factor: int | None = None
 
 
 class TimeSeriesIndex:
@@ -88,8 +99,8 @@ class TimeSeriesIndex:
     """
 
     def __init__(self):
-        self._data: List[TimeSeriesData] = []
-        self._tag_index: Dict[str, Dict[str, List[int]]] = {}
+        self._data: list[TimeSeriesData] = []
+        self._tag_index: dict[str, dict[str, list[int]]] = {}
         self._sorted = True
 
     def add(self, data: TimeSeriesData) -> int:
@@ -111,7 +122,7 @@ class TimeSeriesIndex:
 
         return idx
 
-    def add_batch(self, data_list: List[TimeSeriesData]) -> List[int]:
+    def add_batch(self, data_list: list[TimeSeriesData]) -> list[int]:
         """Add multiple time series data points"""
         return [self.add(data) for data in data_list]
 
@@ -135,21 +146,20 @@ class TimeSeriesIndex:
                     self._tag_index[key][value] = []
                 self._tag_index[key][value].append(idx)
 
-    def query(self, config: QueryConfig) -> List[TimeSeriesData]:
+    def query(self, config: QueryConfig) -> list[TimeSeriesData]:
         """Query time series data"""
         self._ensure_sorted()
 
         # Binary search for time range
-        start_idx = self._binary_search(config.time_range.start_time)
-        end_idx = self._binary_search(config.time_range.end_time, find_upper=True)
+        # Note: TimeRange.__post_init__ converts datetime to int
+        start_idx = self._binary_search(config.time_range.start_time)  # type: ignore[arg-type]
+        end_idx = self._binary_search(config.time_range.end_time, find_upper=True)  # type: ignore[arg-type]
 
         # Filter by tags if specified
         if config.tags:
             matching_indices = self._filter_by_tags(config.tags)
             # Intersect with time range
-            result_indices = [
-                i for i in range(start_idx, end_idx + 1) if i in matching_indices
-            ]
+            result_indices = [i for i in range(start_idx, end_idx + 1) if i in matching_indices]
         else:
             result_indices = list(range(start_idx, end_idx + 1))
 
@@ -162,9 +172,7 @@ class TimeSeriesIndex:
 
         return results
 
-    def _binary_search(
-        self, timestamp: int, find_upper: bool = False
-    ) -> int:
+    def _binary_search(self, timestamp: int, find_upper: bool = False) -> int:
         """
         Binary search for timestamp.
         If find_upper is False, returns the first index with timestamp >= target (lower bound).
@@ -194,7 +202,8 @@ class TimeSeriesIndex:
                 else:
                     low = mid + 1
             return high if high >= 0 else 0
-    def _filter_by_tags(self, tags: Dict[str, str]) -> set:
+
+    def _filter_by_tags(self, tags: dict[str, str]) -> set:
         """Filter indices by tags"""
         matching_sets = []
         for key, value in tags.items():
@@ -223,9 +232,11 @@ class SageTSDB:
     - Fast queries with time range and tag filtering
     - Pluggable algorithms for stream processing
     - Window-based aggregations
+
+    Uses C++ backend when available for optimal performance.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize time series database.
 
@@ -233,15 +244,24 @@ class SageTSDB:
             config: Optional configuration dictionary
         """
         self._config = config or {}
-        self._index = TimeSeriesIndex()
-        self._algorithms: Dict[str, Any] = {}
+
+        # Use C++ backend if available
+        if HAS_CPP_BACKEND:
+            self._db = _sage_tsdb.TimeSeriesDB()
+            self._backend = "cpp"
+        else:
+            # Fallback to pure Python implementation
+            self._index = TimeSeriesIndex()
+            self._backend = "python"
+
+        self._algorithms: dict[str, Any] = {}
 
     def add(
         self,
-        timestamp: Union[int, datetime],
-        value: Union[float, np.ndarray],
-        tags: Optional[Dict[str, str]] = None,
-        fields: Optional[Dict[str, Any]] = None,
+        timestamp: int | datetime,
+        value: float | np.ndarray,
+        tags: dict[str, str] | None = None,
+        fields: dict[str, Any] | None = None,
     ) -> int:
         """
         Add a single time series data point.
@@ -258,18 +278,34 @@ class SageTSDB:
         if isinstance(timestamp, datetime):
             timestamp = int(timestamp.timestamp() * 1000)
 
-        data = TimeSeriesData(
-            timestamp=timestamp, value=value, tags=tags, fields=fields
-        )
-        return self._index.add(data)
+        if self._backend == "cpp":
+            # Use C++ backend
+            if isinstance(value, np.ndarray):
+                value_list = value.tolist()
+            elif isinstance(value, (list, tuple)):
+                value_list = list(value)
+            else:
+                value_list = value
+
+            # C++ backend handles tags/fields differently
+            return self._db.add(
+                timestamp,
+                value_list if isinstance(value_list, list) else value_list,
+                tags or {},
+                fields or {},
+            )
+        else:
+            # Pure Python implementation
+            data = TimeSeriesData(timestamp=timestamp, value=value, tags=tags, fields=fields)
+            return self._index.add(data)
 
     def add_batch(
         self,
-        timestamps: Union[List[int], List[datetime], np.ndarray],
-        values: Union[List[float], np.ndarray],
-        tags_list: Optional[List[Dict[str, str]]] = None,
-        fields_list: Optional[List[Dict[str, Any]]] = None,
-    ) -> List[int]:
+        timestamps: list[int] | list[datetime] | np.ndarray,
+        values: list[float] | np.ndarray,
+        tags_list: list[dict[str, str]] | None = None,
+        fields_list: list[dict[str, Any]] | None = None,
+    ) -> list[int]:
         """
         Add multiple time series data points.
 
@@ -298,8 +334,8 @@ class SageTSDB:
 
         # Create data points
         n = len(ts_list)
-        tags_list = tags_list or [None] * n
-        fields_list = fields_list or [None] * n
+        tags_list = tags_list or [None] * n  # type: ignore[list-item]
+        fields_list = fields_list or [None] * n  # type: ignore[list-item]
 
         data_list = [
             TimeSeriesData(
@@ -316,11 +352,11 @@ class SageTSDB:
     def query(
         self,
         time_range: TimeRange,
-        tags: Optional[Dict[str, str]] = None,
-        aggregation: Optional[AggregationType] = None,
-        window_size: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> List[TimeSeriesData]:
+        tags: dict[str, str] | None = None,
+        aggregation: AggregationType | None = None,
+        window_size: int | None = None,
+        limit: int | None = None,
+    ) -> list[TimeSeriesData]:
         """
         Query time series data.
 
@@ -352,10 +388,10 @@ class SageTSDB:
 
     def _apply_aggregation(
         self,
-        data: List[TimeSeriesData],
+        data: list[TimeSeriesData],
         aggregation: AggregationType,
         window_size: int,
-    ) -> List[TimeSeriesData]:
+    ) -> list[TimeSeriesData]:
         """Apply window-based aggregation"""
         if not data:
             return []
@@ -371,9 +407,7 @@ class SageTSDB:
             else:
                 # Aggregate current window
                 if window_data:
-                    agg_point = self._aggregate_window(
-                        window_data, aggregation, window_start
-                    )
+                    agg_point = self._aggregate_window(window_data, aggregation, window_start)
                     aggregated.append(agg_point)
 
                 # Start new window
@@ -389,7 +423,7 @@ class SageTSDB:
 
     def _aggregate_window(
         self,
-        data: List[TimeSeriesData],
+        data: list[TimeSeriesData],
         aggregation: AggregationType,
         window_timestamp: int,
     ) -> TimeSeriesData:
@@ -411,14 +445,15 @@ class SageTSDB:
         elif aggregation == AggregationType.LAST:
             agg_value = values[-1]
         elif aggregation == AggregationType.STDDEV:
-            agg_value = float(np.std(values))
+            agg_value = float(np.std(values))  # type: ignore[arg-type]
         else:
             agg_value = sum(values) / len(values)
 
         # Merge tags from all data points
         merged_tags = {}
         for point in data:
-            merged_tags.update(point.tags)
+            if point.tags:
+                merged_tags.update(point.tags)
 
         return TimeSeriesData(
             timestamp=window_timestamp,
@@ -437,9 +472,7 @@ class SageTSDB:
         """
         self._algorithms[name] = algorithm
 
-    def apply_algorithm(
-        self, name: str, data: List[TimeSeriesData], **kwargs
-    ) -> Any:
+    def apply_algorithm(self, name: str, data: list[TimeSeriesData], **kwargs) -> Any:
         """
         Apply a registered algorithm.
 
@@ -459,14 +492,25 @@ class SageTSDB:
     @property
     def size(self) -> int:
         """Get number of data points"""
-        return self._index.size()
+        if self._backend == "cpp":
+            return self._db.size()
+        else:
+            return self._index.size()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get database statistics"""
-        return {
+        stats = {
             "size": self.size,
+            "backend": self._backend,
             "algorithms": list(self._algorithms.keys()),
         }
+
+        if self._backend == "cpp":
+            # Get C++ specific stats
+            cpp_stats = self._db.get_stats()
+            stats.update(cpp_stats)
+
+        return stats
 
 
 __all__ = [

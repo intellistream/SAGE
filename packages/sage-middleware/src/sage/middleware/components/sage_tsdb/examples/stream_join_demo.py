@@ -35,9 +35,7 @@ def generate_stream_data(
         value = 100 + 10 * np.sin(i * 0.3) + np.random.randn() * 2
         tags = {"stream": stream_id, "type": "sensor"}
 
-        data.append(
-            TimeSeriesData(timestamp=timestamp, value=value, tags=tags)
-        )
+        data.append(TimeSeriesData(timestamp=timestamp, value=value, tags=tags))
 
     return data
 
@@ -94,7 +92,7 @@ def main():
     print("\n4. Sample join results:")
     for i, (left, right) in enumerate(joined[:5]):
         time_diff = abs(left.timestamp - right.timestamp)
-        print(f"\n   Pair {i+1}:")
+        print(f"\n   Pair {i + 1}:")
         print(f"     Left:  ts={left.timestamp}, value={left.value:.2f}")
         print(f"     Right: ts={right.timestamp}, value={right.value:.2f}")
         print(f"     Time difference: {time_diff}ms")
