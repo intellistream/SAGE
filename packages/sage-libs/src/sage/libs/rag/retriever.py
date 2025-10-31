@@ -928,27 +928,58 @@ class MilvusSparseRetriever(MapFunction):
                 pass
 
 
-# Wiki18 FAISS 检索器
+# Wiki18 FAISS 检索器（LongRAG MaxP方法）
 class Wiki18FAISSRetriever(MapFunction):
     """
-    基于FAISS的Wiki18数据集检索器，使用BGE-M3模型进行嵌入
+    基于FAISS的Wiki18数据集检索器，实现LongRAG的MaxP方法
+    
+    参考: 
+    - MaxP方法: Dai and Callan (2019) "Deeper Text Understanding for IR with Contextual Neural Language Modeling"
+    - LongRAG实现: TIGER-Lab/LongRAG
+    
+    配置要求:
+    - 模型: BAAI/bge-large-en-v1.5 (1024维)
+    - Passage长度: 100 words (stride 50)
+    - 编码截断: 512 tokens
+    - 向量归一化: True
+    
+    MaxP策略:
+    1. 将每个文档分割成多个passages（100 words，stride 50）
+    2. 每个passage独立编码（截断到512 tokens）
+    3. 检索时计算query与所有passages的相似度
+    4. 文档得分 = max(该文档所有passage分数)
+    5. 返回Top-K完整文档
     """
 
-    def __init__(self, config, enable_profile=False, **kwargs):
+    def __init__(self, config, enable_profile=False, skip_index_loading=False, **kwargs):
         super().__init__(**kwargs)
         self.config = config
         self.enable_profile = enable_profile
 
         # 配置参数
-        self.top_k = config.get("top_k", 5)
+        self.top_k = config.get("top_k", 8)  # LongRAG默认Top-8
         self.embedding_config = config.get("embedding", {})
         self.faiss_config = config.get("faiss", {})
+        
+        # MaxP相关配置（LongRAG标准参数）
+        self.passage_length = self.faiss_config.get("passage_length", 100)  # words
+        self.passage_stride = self.faiss_config.get("passage_stride", 50)   # words
+        self.max_length = self.faiss_config.get("max_length", 512)  # tokens，编码截断长度
+        self.normalize = self.faiss_config.get("normalize", True)  # 向量归一化
+        
+        # passage到文档的映射
+        self.passage_to_doc = []  # List[int]: passage_id -> document_id
 
-        # 初始化BGE-M3模型
-        self._init_bge_m3_model()
+        # 初始化BGE embedding模型
+        self._init_bge_model()
 
-        # 初始化FAISS索引
-        self._init_faiss_index()
+        # 初始化FAISS索引（构建索引时可跳过）
+        if not skip_index_loading:
+            self._init_faiss_index()
+        else:
+            self.logger.info("跳过索引加载（构建索引模式）")
+            self.faiss_index = None
+            self.documents = []
 
         # Profile数据存储
         if self.enable_profile:
@@ -964,14 +995,14 @@ class Wiki18FAISSRetriever(MapFunction):
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
 
-    def _init_bge_m3_model(self):
-        """初始化BGE-M3嵌入模型（使用sentence-transformers）"""
+    def _init_bge_model(self):
+        """初始化BGE嵌入模型（LongRAG使用bge-large-en-v1.5）"""
         try:
             import torch
             from sentence_transformers import SentenceTransformer
 
-            # 从配置获取模型路径，默认使用BGE-M3
-            model_path = self.embedding_config.get("model", "BAAI/bge-m3")
+            # 从配置获取模型路径，默认使用LongRAG的bge-large-en-v1.5
+            model_path = self.embedding_config.get("model", "BAAI/bge-large-en-v1.5")
 
             # 检查是否已经通过 CUDA_VISIBLE_DEVICES 设置了 GPU
             import os
@@ -981,10 +1012,10 @@ class Wiki18FAISSRetriever(MapFunction):
                 # 如果已设置 CUDA_VISIBLE_DEVICES，使用 cuda（让系统自动选择）
                 if torch.cuda.is_available():
                     device = "cuda"
-                    self.logger.info(f"BGE-M3模型将使用 CUDA_VISIBLE_DEVICES={cuda_visible_devices} 指定的GPU")
+                    self.logger.info(f"BGE模型将使用 CUDA_VISIBLE_DEVICES={cuda_visible_devices} 指定的GPU")
                 else:
                     device = "cpu"
-                    self.logger.info("BGE-M3模型将使用CPU")
+                    self.logger.info("BGE模型将使用CPU")
             else:
                 # 从配置获取GPU设备，默认使用GPU 0
                 gpu_device = self.embedding_config.get("gpu_device", 0)
@@ -992,26 +1023,33 @@ class Wiki18FAISSRetriever(MapFunction):
                 # 明确指定GPU设备
                 if torch.cuda.is_available():
                     device = f"cuda:{gpu_device}"
-                    self.logger.info(f"BGE-M3模型将使用GPU {gpu_device}")
+                    self.logger.info(f"BGE模型将使用GPU {gpu_device}")
                 else:
                     device = "cpu"
-                    self.logger.info("BGE-M3模型将使用CPU")
+                    self.logger.info("BGE模型将使用CPU")
 
-            # 初始化BGE-M3模型
+            # 初始化BGE模型（与LongRAG一致）
             self.embedding_model = SentenceTransformer(model_path, device=device)
+            
+            # LongRAG使用512作为最大序列长度
+            self.embedding_model.max_seq_length = self.max_length
 
-            self.logger.info(f"BGE-M3模型初始化成功: {model_path} 在设备 {device}")
+            self.logger.info(f"BGE模型初始化成功: {model_path} 在设备 {device}")
+            self.logger.info(f"MaxP配置: passage_length={self.passage_length} words, "
+                           f"stride={self.passage_stride} words, "
+                           f"max_seq_length={self.max_length} tokens, "
+                           f"normalize={self.normalize}")
 
         except ImportError as e:
             self.logger.error(f"无法导入sentence-transformers: {e}")
             self.logger.error("请安装: pip install sentence-transformers")
             raise
         except Exception as e:
-            self.logger.error(f"BGE-M3模型初始化失败: {e}")
+            self.logger.error(f"BGE模型初始化失败: {e}")
             raise
 
     def _init_faiss_index(self):
-        """初始化FAISS索引"""
+        """初始化FAISS索引（MaxP模式）"""
         try:
             import faiss
 
@@ -1025,12 +1063,27 @@ class Wiki18FAISSRetriever(MapFunction):
             if not documents_path:
                 raise ValueError("faiss.documents_path 配置项是必需的")
 
-            # 尝试加载已有索引
-            if os.path.exists(index_path) and os.path.exists(documents_path):
-                self.logger.info(f"加载已有FAISS索引: {index_path}")
+            # MaxP模式需要特殊的索引和映射文件
+            mapping_path = index_path.replace(".index", "_maxp_mapping.json")
+            if os.path.exists(index_path) and os.path.exists(mapping_path):
+                self.logger.info(f"加载MaxP模式FAISS索引: {index_path}")
                 self.faiss_index = faiss.read_index(index_path)
-
-                # 加载JSONL格式的文档数据
+                
+                # 加载passage到文档的映射
+                with open(mapping_path, "r") as f:
+                    self.passage_to_doc = json.load(f)
+                
+                self.logger.info(f"MaxP模式: 加载了 {len(self.passage_to_doc)} 个passages，映射到 {len(set(self.passage_to_doc))} 个文档")
+            else:
+                self.logger.warning(f"未找到MaxP模式索引: {index_path}")
+                self.logger.warning("需要先使用 build_maxp_index_from_wiki18() 构建索引")
+                # BGE-large-en-v1.5 的维度是 1024
+                dimension = 1024
+                self.faiss_index = faiss.IndexFlatIP(dimension)
+                self.passage_to_doc = []
+            
+            # 加载文档数据
+            if os.path.exists(documents_path):
                 self.documents = []
                 try:
                     with open(documents_path, "r", encoding="utf-8") as f:
@@ -1050,15 +1103,8 @@ class Wiki18FAISSRetriever(MapFunction):
                     self.documents = []
 
                 self.logger.info(f"加载了 {len(self.documents)} 个文档")
-
             else:
-                # 如果没有预构建索引，需要从Wiki18数据构建
-                self.logger.warning(f"未找到预构建的FAISS索引: {index_path}")
-                self.logger.warning("需要先构建Wiki18 FAISS索引")
-
-                # 创建空索引和文档列表作为占位符
-                dimension = 1024  # BGE-M3的维度
-                self.faiss_index = faiss.IndexFlatIP(dimension)  # 内积相似度
+                self.logger.warning(f"未找到文档文件: {documents_path}")
                 self.documents = []
 
         except ImportError as e:
@@ -1071,19 +1117,59 @@ class Wiki18FAISSRetriever(MapFunction):
             self.logger.error(f"FAISS索引初始化失败: {e}")
             raise
 
+    def _split_text_to_passages(self, text: str) -> List[str]:
+        """
+        将文本分割成固定长度的passages（基于空格分词的简单实现）
+
+        Args:
+            text: 输入文本
+
+        Returns:
+            passages列表
+        """
+        # 简单的分词（按空格）
+        words = text.split()
+        passages = []
+        
+        i = 0
+        while i < len(words):
+            # 取 passage_length 个词
+            passage_words = words[i:i + self.passage_length]
+            if len(passage_words) > 0:
+                passages.append(" ".join(passage_words))
+            
+            # 移动窗口（使用stride）
+            i += self.passage_stride
+            
+            # 如果剩余词数少于stride，直接跳到末尾避免重复太多
+            if i + self.passage_stride > len(words) and i < len(words):
+                i = len(words) - self.passage_length
+                if i < 0:
+                    break
+        
+        # 确保至少有一个passage
+        if not passages and text.strip():
+            passages = [text]
+        
+        return passages
+
     def _encode_query(self, query: str) -> np.ndarray:
         """
-        使用BGE-M3模型编码查询
+        使用BGE模型编码查询（LongRAG配置）
 
         Args:
             query: 查询文本
 
         Returns:
-            查询的向量表示
+            查询的向量表示（归一化后）
         """
         try:
             # 使用sentence-transformers的encode方法
-            embeddings = self.embedding_model.encode([query])
+            # normalize_embeddings=True 与 LongRAG 的 --normalize True 一致
+            embeddings = self.embedding_model.encode(
+                [query], 
+                normalize_embeddings=self.normalize
+            )
             return embeddings[0]  # 返回第一个查询的向量
 
         except Exception as e:
@@ -1094,7 +1180,7 @@ class Wiki18FAISSRetriever(MapFunction):
         self, query_vector: np.ndarray, top_k: int
     ) -> Tuple[List[float], List[int]]:
         """
-        在FAISS索引中搜索
+        在FAISS索引中搜索（MaxP方法）
 
         Args:
             query_vector: 查询向量
@@ -1108,11 +1194,28 @@ class Wiki18FAISSRetriever(MapFunction):
                 self.logger.warning("FAISS索引为空，无法检索")
                 return [], []
 
-            # FAISS搜索
             query_vector = query_vector.reshape(1, -1).astype("float32")
-            scores, indices = self.faiss_index.search(query_vector, top_k)
-
-            return scores[0].tolist(), indices[0].tolist()
+            
+            # MaxP模式：检索更多passages，然后聚合到文档级别
+            # 检索 top_k * 20 个passages（确保每个文档有足够的passages被考虑）
+            k_passages = min(top_k * 20, self.faiss_index.ntotal)
+            scores, indices = self.faiss_index.search(query_vector, k_passages)
+            
+            # 聚合passage分数到文档级别（取每个文档的最大分数）
+            doc_scores = {}  # {doc_id: max_score}
+            for score, passage_idx in zip(scores[0], indices[0]):
+                if passage_idx >= 0 and passage_idx < len(self.passage_to_doc):
+                    doc_id = self.passage_to_doc[passage_idx]
+                    if doc_id not in doc_scores or score > doc_scores[doc_id]:
+                        doc_scores[doc_id] = score
+            
+            # 按分数排序并返回top-k文档
+            sorted_docs = sorted(doc_scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+            doc_indices = [doc_id for doc_id, _ in sorted_docs]
+            doc_scores_list = [score for _, score in sorted_docs]
+            
+            self.logger.info(f"MaxP: 从 {k_passages} 个passages中聚合得到 {len(doc_indices)} 个文档")
+            return doc_scores_list, doc_indices
 
         except Exception as e:
             self.logger.error(f"FAISS搜索失败: {e}")
@@ -1284,63 +1387,123 @@ class Wiki18FAISSRetriever(MapFunction):
                     "retrieval_docs": []
                 }
 
-    def build_index_from_wiki18(self, wiki18_data_path: str, save_path: str = None):
+    def build_maxp_index_from_wiki18(self, wiki18_data_path: str, save_path: str = None, batch_size: int = 128):
         """
-        从Wiki18数据集构建FAISS索引
+        从Wiki18数据集构建MaxP模式的FAISS索引（LongRAG配置）
+        
+        实现MaxP (Dai and Callan, 2019) 方法：
+        1. 将每个文档分割成passages（100 words，stride 50）
+        2. 为每个passage生成嵌入向量（512 tokens截断，归一化）
+        3. 构建FAISS索引用于检索
 
         Args:
-            wiki18_data_path: Wiki18数据集路径
-            save_path: 索引保存路径
+            wiki18_data_path: Wiki18数据集路径（JSONL格式）
+            save_path: 索引保存路径（不含扩展名）
+            batch_size: 批处理大小（默认128，与LongRAG一致）
         """
         try:
             import faiss
 
-            self.logger.info(f"开始从Wiki18数据构建FAISS索引: {wiki18_data_path}")
+            self.logger.info(f"开始从Wiki18数据构建MaxP模式FAISS索引: {wiki18_data_path}")
+            self.logger.info(f"MaxP配置（LongRAG标准）:")
+            self.logger.info(f"  - passage_length: {self.passage_length} words")
+            self.logger.info(f"  - passage_stride: {self.passage_stride} words")
+            self.logger.info(f"  - max_seq_length: {self.max_length} tokens")
+            self.logger.info(f"  - normalize: {self.normalize}")
+            self.logger.info(f"  - batch_size: {batch_size}")
 
             # 加载Wiki18数据
             documents = []
             with open(wiki18_data_path, "r", encoding="utf-8") as f:
                 for line in f:
-                    doc = json.loads(line.strip())
-                    documents.append(doc)
+                    line = line.strip()
+                    if line:
+                        doc = json.loads(line)
+                        documents.append(doc)
 
             self.logger.info(f"加载了 {len(documents)} 个文档")
 
-            # 提取文档文本并编码
-            doc_texts = [doc.get("text", "") for doc in documents]
+            # 分割文档为passages并收集
+            all_passages = []
+            passage_to_doc_map = []
+            
+            self.logger.info("开始分割文档为passages...")
+            for doc_idx, doc in enumerate(documents):
+                if doc_idx % 1000 == 0:
+                    self.logger.info(f"处理进度: {doc_idx}/{len(documents)}")
+                
+                # 获取文档内容
+                doc_text = doc.get("contents", doc.get("text", ""))
+                
+                # 分割成passages
+                passages = self._split_text_to_passages(doc_text)
+                
+                # 记录每个passage对应的文档ID
+                for passage in passages:
+                    all_passages.append(passage)
+                    passage_to_doc_map.append(doc_idx)
+            
+            self.logger.info(f"总共生成了 {len(all_passages)} 个passages（平均每个文档 {len(all_passages)/len(documents):.1f} 个）")
 
-            # 批量编码所有文档
-            self.logger.info("开始编码文档...")
-            embeddings = self.embedding_model.encode(doc_texts)
-            doc_vectors = embeddings["dense_vecs"]  # 获取dense向量
+            # 批量编码passages（LongRAG配置：normalize=True）
+            # 优化：预分配内存避免 all_embeddings 列表累积和 vstack 双倍内存占用
+            self.logger.info("开始批量编码passages...")
+            
+            # 预分配内存（避免动态增长和 vstack 的双倍内存峰值）
+            num_passages = len(all_passages)
+            embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
+            passage_vectors = np.zeros((num_passages, embedding_dim), dtype="float32")
+            self.logger.info(f"预分配向量数组: {passage_vectors.shape}, 内存占用: {passage_vectors.nbytes / 1024**3:.2f} GB")
+            
+            for i in range(0, len(all_passages), batch_size):
+                if i % (batch_size * 10) == 0:
+                    self.logger.info(f"编码进度: {i}/{len(all_passages)}")
+                
+                batch_passages = all_passages[i:i + batch_size]
+                # normalize_embeddings=True 与 LongRAG 的 --normalize True 一致
+                batch_embeddings = self.embedding_model.encode(
+                    batch_passages, 
+                    normalize_embeddings=self.normalize
+                )
+                # 直接写入预分配的数组，避免中间列表积累
+                passage_vectors[i:i + len(batch_embeddings)] = batch_embeddings
+            
+            self.logger.info(f"编码完成，向量维度: {passage_vectors.shape}")
 
             # 创建FAISS索引
-            dimension = doc_vectors.shape[1]
+            dimension = passage_vectors.shape[1]
             self.faiss_index = faiss.IndexFlatIP(dimension)  # 内积相似度
-
+            
             # 添加向量到索引
-            self.faiss_index.add(doc_vectors.astype("float32"))
+            self.faiss_index.add(passage_vectors)
+            self.passage_to_doc = passage_to_doc_map
             self.documents = documents
 
-            self.logger.info(
-                f"FAISS索引构建完成，包含 {self.faiss_index.ntotal} 个向量"
-            )
+            self.logger.info(f"MaxP FAISS索引构建完成，包含 {self.faiss_index.ntotal} 个passage向量")
 
-            # 保存索引和文档
+            # 保存索引、映射和文档
             if save_path:
-                index_save_path = save_path + "_index"
-                docs_save_path = save_path + "_documents.json"
+                index_path = save_path if save_path.endswith(".index") else save_path + ".index"
+                mapping_path = index_path.replace(".index", "_maxp_mapping.json")
+                docs_path = save_path.replace(".index", "_documents.jsonl")
 
-                faiss.write_index(self.faiss_index, index_save_path)
-
-                with open(docs_save_path, "w", encoding="utf-8") as f:
-                    json.dump(self.documents, f, ensure_ascii=False, indent=2)
-
-                self.logger.info(f"索引已保存到: {index_save_path}")
-                self.logger.info(f"文档已保存到: {docs_save_path}")
+                # 保存FAISS索引
+                faiss.write_index(self.faiss_index, index_path)
+                self.logger.info(f"索引已保存到: {index_path}")
+                
+                # 保存passage到文档的映射
+                with open(mapping_path, "w") as f:
+                    json.dump(self.passage_to_doc, f)
+                self.logger.info(f"映射已保存到: {mapping_path}")
+                
+                # 保存文档数据（JSONL格式）
+                with open(docs_path, "w", encoding="utf-8") as f:
+                    for doc in self.documents:
+                        f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+                self.logger.info(f"文档已保存到: {docs_path}")
 
         except Exception as e:
-            self.logger.error(f"构建FAISS索引失败: {e}")
+            self.logger.error(f"构建MaxP FAISS索引失败: {e}")
             raise
 
     def __del__(self):

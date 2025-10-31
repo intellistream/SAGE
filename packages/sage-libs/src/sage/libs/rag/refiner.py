@@ -150,7 +150,13 @@ class RefinerOperator(MapFunction):
                 if "title" in doc and doc["title"]:
                     text = f"{doc['title']}\n{doc['title']} {text}"
 
-                normalized.append({"text": text, **doc})
+                normalized_doc = {"text": text, **doc}
+                
+                # 保留 structured 字段（如果存在）
+                if "structured" in doc:
+                    normalized_doc["structured"] = doc["structured"]
+                
+                normalized.append(normalized_doc)
             elif isinstance(doc, str):
                 normalized.append({"text": doc})
             else:

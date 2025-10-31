@@ -16,21 +16,28 @@ source:
 
 retriever:
   # 检索器类型选择: 'chroma' 或 'wiki18_faiss'
-  type: "wiki18_faiss"  # 使用Wiki18 FAISS检索器
+  type: "wiki18_faiss"  # 使用Wiki18 FAISS检索器（MaxP模式）
   
   # 通用配置
-  dimension: 1024    # BGE-M3模型的维度
-  top_k: 8
+  dimension: 1024    # BGE-large-en-v1.5模型的维度
+  top_k: 8           # LongRAG默认Top-8
   
-  # Wiki18 FAISS 专用配置 (type=wiki18_faiss 时生效)
+  # Wiki18 FAISS MaxP 配置（LongRAG标准）
   faiss:
-    index_path: "/home/cyb/wiki18_fulldoc_bgem3_index.index"
-    documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
+    # MaxP索引路径（passage级别）
+    index_path: ""
+    documents_path: ""
+    
+    # MaxP参数（Dai and Callan, 2019）
+    passage_length: 100    # words，每个passage的长度
+    passage_stride: 50     # words，滑动窗口步长
+    max_length: 512        # tokens，编码时的最大序列长度
+    normalize: true        # 向量归一化（LongRAG配置）
   
-  # 嵌入模型配置
+  # 嵌入模型配置（LongRAG使用bge-large-en-v1.5）
   embedding:
     method: "hf"
-    model: "BAAI/bge-m3"  # 使用BGE-M3模型进行Wiki18 FAISS检索
+    model: "BAAI/bge-large-en-v1.5"  # LongRAG官方使用的模型
     gpu_device: 1
 
 generator:

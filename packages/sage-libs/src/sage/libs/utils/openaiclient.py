@@ -37,6 +37,7 @@ class OpenAIClient:
         self.client = OpenAI(
             base_url=self.base_url,
             api_key=self.api_key,
+            timeout=300.0,  # 设置 5 分钟超时,避免长文本生成时出现 502 错误
         )
         self.seed = kwargs["seed"]
 
