@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button, Space, Tooltip, Modal, Input, message, List, Badge } from 'antd'
+import { Button, Space, Tooltip, Modal, Input, message, List, Upload } from 'antd'
 import {
     Play,
     Square,
@@ -10,13 +10,17 @@ import {
     ZoomIn,
     ZoomOut,
     MessageSquare,
+    Download,
+    Upload as UploadIcon,
+    Settings as SettingsIcon,
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
-import { submitFlow, getAllJobs, startJob, stopJob } from '../services/api'
+import { submitFlow, getAllJobs, startJob, stopJob, exportFlow, importFlow } from '../services/api'
 import { useJobStatusPolling } from '../hooks/useJobStatusPolling'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import Playground from './Playground'
+import Settings from './Settings'
 
 export default function Toolbar() {
     const {
@@ -45,6 +49,7 @@ export default function Toolbar() {
     const [loading, setLoading] = useState(false)
     const [savedFlows, setSavedFlows] = useState<any[]>([])
     const [running, setRunning] = useState(false)
+    const [settingsOpen, setSettingsOpen] = useState(false)
 
     // 监听 isPolling 状态，同步 running 状态
     useEffect(() => {
@@ -52,6 +57,48 @@ export default function Toolbar() {
             setRunning(false)
         }
     }, [isPolling, running])
+
+    // 导出流程
+    const handleExport = async () => {
+        if (!currentJobId) {
+            message.warning('请先保存或运行流程后再导出')
+            return
+        }
+
+        try {
+            const blob = await exportFlow(currentJobId)
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `flow_${currentJobId}_${Date.now()}.json`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+            message.success('流程导出成功')
+        } catch (error) {
+            message.error(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`)
+        }
+    }
+
+    // 导入流程
+    const handleImport = async (file: File) => {
+        try {
+            const result = await importFlow(file)
+            message.success(`流程导入成功！ID: ${result.flowId}`)
+
+            // 重新加载流程列表
+            if (loadModalOpen) {
+                const jobs = await getAllJobs()
+                setSavedFlows(jobs)
+            }
+
+            return false // 阻止默认上传行为
+        } catch (error) {
+            message.error(`导入失败: ${error instanceof Error ? error.message : '未知错误'}`)
+            return false
+        }
+    }
 
     // 运行流程
     const handleRun = async () => {
@@ -331,6 +378,28 @@ export default function Toolbar() {
                             </Button>
                         </Tooltip>
 
+                        <Tooltip title="导出流程">
+                            <Button
+                                icon={<Download size={16} />}
+                                onClick={handleExport}
+                                disabled={!currentJobId}
+                            >
+                                导出
+                            </Button>
+                        </Tooltip>
+
+                        <Tooltip title="导入流程">
+                            <Upload
+                                accept=".json"
+                                showUploadList={false}
+                                beforeUpload={handleImport}
+                            >
+                                <Button icon={<UploadIcon size={16} />}>
+                                    导入
+                                </Button>
+                            </Upload>
+                        </Tooltip>
+
                         <div className="h-6 w-px bg-gray-300 mx-2" />
 
                         <Tooltip title="撤销 (Ctrl/Cmd+Z)">
@@ -362,6 +431,15 @@ export default function Toolbar() {
                             <Button
                                 icon={<ZoomOut size={16} />}
                                 onClick={() => reactFlowInstance?.zoomOut()}
+                            />
+                        </Tooltip>
+
+                        <div className="h-6 w-px bg-gray-300 mx-2" />
+
+                        <Tooltip title="设置">
+                            <Button
+                                icon={<SettingsIcon size={16} />}
+                                onClick={() => setSettingsOpen(true)}
                             />
                         </Tooltip>
                     </Space>
@@ -434,6 +512,9 @@ export default function Toolbar() {
 
             {/* Playground */}
             <Playground />
+
+            {/* Settings */}
+            <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
         </>
     )
 }

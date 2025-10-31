@@ -5,14 +5,18 @@ import NodePalette from './components/NodePalette'
 import FlowEditor from './components/FlowEditor'
 import PropertiesPanel from './components/PropertiesPanel'
 import StatusBar from './components/StatusBar'
+import LogViewer from './components/LogViewer'
 
 const { Header, Footer } = Layout
 
 function App() {
     const [leftWidth, setLeftWidth] = useState(280)
     const [rightWidth, setRightWidth] = useState(320)
+    const [bottomHeight, setBottomHeight] = useState(250)
     const [isDraggingLeft, setIsDraggingLeft] = useState(false)
     const [isDraggingRight, setIsDraggingRight] = useState(false)
+    const [isDraggingBottom, setIsDraggingBottom] = useState(false)
+    const [showLogs, setShowLogs] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
 
     // 左侧拖拽处理
@@ -23,6 +27,11 @@ function App() {
     // 右侧拖拽处理
     const handleRightMouseDown = useCallback(() => {
         setIsDraggingRight(true)
+    }, [])
+
+    // 底部拖拽处理
+    const handleBottomMouseDown = useCallback(() => {
+        setIsDraggingBottom(true)
     }, [])
 
     // 鼠标移动处理
@@ -47,24 +56,33 @@ function App() {
                     setRightWidth(newWidth)
                 }
             }
+
+            if (isDraggingBottom) {
+                const newHeight = containerRect.bottom - e.clientY - 40 // 减去 footer 高度
+                // 限制最小和最大高度
+                if (newHeight >= 150 && newHeight <= 500) {
+                    setBottomHeight(newHeight)
+                }
+            }
         },
-        [isDraggingLeft, isDraggingRight]
+        [isDraggingLeft, isDraggingRight, isDraggingBottom]
     )
 
     // 鼠标释放处理
     const handleMouseUp = useCallback(() => {
         setIsDraggingLeft(false)
         setIsDraggingRight(false)
+        setIsDraggingBottom(false)
     }, [])
 
     // 添加和移除全局事件监听
     useEffect(() => {
-        if (isDraggingLeft || isDraggingRight) {
+        if (isDraggingLeft || isDraggingRight || isDraggingBottom) {
             document.addEventListener('mousemove', handleMouseMove)
             document.addEventListener('mouseup', handleMouseUp)
             // 防止文本选择
             document.body.style.userSelect = 'none'
-            document.body.style.cursor = 'col-resize'
+            document.body.style.cursor = isDraggingBottom ? 'row-resize' : 'col-resize'
         } else {
             document.removeEventListener('mousemove', handleMouseMove)
             document.removeEventListener('mouseup', handleMouseUp)
@@ -78,7 +96,7 @@ function App() {
             document.body.style.userSelect = ''
             document.body.style.cursor = ''
         }
-    }, [isDraggingLeft, isDraggingRight, handleMouseMove, handleMouseUp])
+    }, [isDraggingLeft, isDraggingRight, isDraggingBottom, handleMouseMove, handleMouseUp])
 
     return (
         <div
@@ -107,99 +125,151 @@ function App() {
                 style={{
                     flex: 1,
                     display: 'flex',
+                    flexDirection: 'column',
                     overflow: 'hidden',
                     position: 'relative',
                 }}
             >
-                {/* 左侧面板 - 可滚动 */}
-                <div
-                    style={{
-                        width: leftWidth,
-                        height: '100%',
-                        backgroundColor: '#fff',
-                        borderRight: '1px solid #e8e8e8',
-                        overflow: 'auto',
-                        flexShrink: 0,
-                    }}
-                >
-                    <NodePalette />
-                </div>
-
-                {/* 左侧拖拽手柄 */}
-                <div
-                    onMouseDown={handleLeftMouseDown}
-                    style={{
-                        width: 4,
-                        height: '100%',
-                        cursor: 'col-resize',
-                        backgroundColor: isDraggingLeft ? '#1890ff' : 'transparent',
-                        transition: isDraggingLeft ? 'none' : 'background-color 0.2s',
-                        flexShrink: 0,
-                        position: 'relative',
-                        zIndex: 10,
-                    }}
-                    onMouseEnter={(e) => {
-                        if (!isDraggingLeft) {
-                            e.currentTarget.style.backgroundColor = '#e8e8e8'
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (!isDraggingLeft) {
-                            e.currentTarget.style.backgroundColor = 'transparent'
-                        }
-                    }}
-                />
-
-                {/* 中间画布区域 - 不滚动 */}
+                {/* 顶部区域（节点面板 + 画布 + 属性面板） */}
                 <div
                     style={{
                         flex: 1,
-                        height: '100%',
+                        display: 'flex',
                         overflow: 'hidden',
-                        position: 'relative',
                     }}
                 >
-                    <FlowEditor />
+                    {/* 左侧面板 - 可滚动 */}
+                    <div
+                        style={{
+                            width: leftWidth,
+                            height: '100%',
+                            backgroundColor: '#fff',
+                            borderRight: '1px solid #e8e8e8',
+                            overflow: 'auto',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <NodePalette />
+                    </div>
+
+                    {/* 左侧拖拽手柄 */}
+                    <div
+                        onMouseDown={handleLeftMouseDown}
+                        style={{
+                            width: 4,
+                            height: '100%',
+                            cursor: 'col-resize',
+                            backgroundColor: isDraggingLeft ? '#1890ff' : 'transparent',
+                            transition: isDraggingLeft ? 'none' : 'background-color 0.2s',
+                            flexShrink: 0,
+                            position: 'relative',
+                            zIndex: 10,
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isDraggingLeft) {
+                                e.currentTarget.style.backgroundColor = '#e8e8e8'
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isDraggingLeft) {
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                            }
+                        }}
+                    />
+
+                    {/* 中间画布区域 - 不滚动 */}
+                    <div
+                        style={{
+                            flex: 1,
+                            height: '100%',
+                            overflow: 'hidden',
+                            position: 'relative',
+                        }}
+                    >
+                        <FlowEditor />
+                    </div>
+
+                    {/* 右侧拖拽手柄 */}
+                    <div
+                        onMouseDown={handleRightMouseDown}
+                        style={{
+                            width: 4,
+                            height: '100%',
+                            cursor: 'col-resize',
+                            backgroundColor: isDraggingRight ? '#1890ff' : 'transparent',
+                            transition: isDraggingRight ? 'none' : 'background-color 0.2s',
+                            flexShrink: 0,
+                            position: 'relative',
+                            zIndex: 10,
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isDraggingRight) {
+                                e.currentTarget.style.backgroundColor = '#e8e8e8'
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isDraggingRight) {
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                            }
+                        }}
+                    />
+
+                    {/* 右侧面板 - 可滚动 */}
+                    <div
+                        style={{
+                            width: rightWidth,
+                            height: '100%',
+                            backgroundColor: '#fff',
+                            borderLeft: '1px solid #e8e8e8',
+                            overflow: 'auto',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <PropertiesPanel />
+                    </div>
                 </div>
 
-                {/* 右侧拖拽手柄 */}
-                <div
-                    onMouseDown={handleRightMouseDown}
-                    style={{
-                        width: 4,
-                        height: '100%',
-                        cursor: 'col-resize',
-                        backgroundColor: isDraggingRight ? '#1890ff' : 'transparent',
-                        transition: isDraggingRight ? 'none' : 'background-color 0.2s',
-                        flexShrink: 0,
-                        position: 'relative',
-                        zIndex: 10,
-                    }}
-                    onMouseEnter={(e) => {
-                        if (!isDraggingRight) {
-                            e.currentTarget.style.backgroundColor = '#e8e8e8'
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        if (!isDraggingRight) {
-                            e.currentTarget.style.backgroundColor = 'transparent'
-                        }
-                    }}
-                />
+                {/* 底部日志面板 */}
+                {showLogs && (
+                    <>
+                        {/* 底部拖拽手柄 */}
+                        <div
+                            onMouseDown={handleBottomMouseDown}
+                            style={{
+                                height: 4,
+                                width: '100%',
+                                cursor: 'row-resize',
+                                backgroundColor: isDraggingBottom ? '#1890ff' : 'transparent',
+                                transition: isDraggingBottom ? 'none' : 'background-color 0.2s',
+                                flexShrink: 0,
+                                position: 'relative',
+                                zIndex: 10,
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!isDraggingBottom) {
+                                    e.currentTarget.style.backgroundColor = '#e8e8e8'
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!isDraggingBottom) {
+                                    e.currentTarget.style.backgroundColor = 'transparent'
+                                }
+                            }}
+                        />
 
-                {/* 右侧面板 - 可滚动 */}
-                <div
-                    style={{
-                        width: rightWidth,
-                        height: '100%',
-                        backgroundColor: '#fff',
-                        borderLeft: '1px solid #e8e8e8',
-                        overflow: 'auto',
-                        flexShrink: 0,
-                    }}
-                >
-                    <PropertiesPanel />
-                </div>
+                        {/* 日志查看器 */}
+                        <div
+                            style={{
+                                height: bottomHeight,
+                                borderTop: '1px solid #e8e8e8',
+                                overflow: 'hidden',
+                                flexShrink: 0,
+                            }}
+                        >
+                            <LogViewer />
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* 底部状态栏 - 固定 */}
@@ -211,7 +281,7 @@ function App() {
                     flexShrink: 0,
                 }}
             >
-                <StatusBar />
+                <StatusBar showLogs={showLogs} onToggleLogs={() => setShowLogs(!showLogs)} />
             </Footer>
         </div>
     )

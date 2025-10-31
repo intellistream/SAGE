@@ -11,17 +11,18 @@
         "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
     },
     "dependencies": {
+        "antd": "^5.12.0",
+        "axios": "^1.6.2",
+        "dayjs": "^1.11.10",
+        "lucide-react": "^0.294.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "reactflow": "^11.10.4",
-        "antd": "^5.12.0",
-        "zustand": "^4.4.7",
-        "axios": "^1.6.2",
-        "lucide-react": "^0.294.0",
         "react-router-dom": "^6.20.1",
-        "dayjs": "^1.11.10"
+        "reactflow": "^11.10.4",
+        "zustand": "^4.4.7"
     },
     "devDependencies": {
+        "@types/node": "^24.9.2",
         "@types/react": "^18.2.43",
         "@types/react-dom": "^18.2.17",
         "@typescript-eslint/eslint-plugin": "^6.14.0",

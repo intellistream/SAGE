@@ -1,8 +1,13 @@
-import { Space, Tag } from 'antd'
-import { Activity, Circle } from 'lucide-react'
+import { Space, Tag, Button } from 'antd'
+import { Activity, Circle, Terminal } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 
-export default function StatusBar() {
+interface StatusBarProps {
+    showLogs: boolean
+    onToggleLogs: () => void
+}
+
+export default function StatusBar({ showLogs, onToggleLogs }: StatusBarProps) {
     const nodes = useFlowStore((state) => state.nodes)
     const edges = useFlowStore((state) => state.edges)
 
@@ -11,6 +16,14 @@ export default function StatusBar() {
             <Space>
                 <Activity size={14} />
                 <span>就绪</span>
+                <Button
+                    type={showLogs ? 'primary' : 'default'}
+                    size="small"
+                    icon={<Terminal size={14} />}
+                    onClick={onToggleLogs}
+                >
+                    {showLogs ? '隐藏日志' : '显示日志'}
+                </Button>
             </Space>
 
             <Space size="large">

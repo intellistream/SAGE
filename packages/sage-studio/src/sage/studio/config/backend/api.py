@@ -9,10 +9,11 @@ import inspect
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -167,12 +168,29 @@ class Job(BaseModel):
     config: dict | None = None  # 添加 config 字段，用于存储 React Flow 格式的节点和边数据
 
 
+class ParameterConfig(BaseModel):
+    """节点参数配置"""
+
+    name: str
+    label: str
+    type: str  # text, textarea, number, select, password
+    required: bool | None = False
+    defaultValue: str | int | float | None = None
+    placeholder: str | None = None
+    description: str | None = None
+    options: list[str] | None = None
+    min: int | float | None = None
+    max: int | float | None = None
+    step: int | float | None = None
+
+
 class OperatorInfo(BaseModel):
     id: int
     name: str
     description: str
     code: str
     isCustom: bool
+    parameters: list[ParameterConfig] | None = []  # 添加参数配置字段
 
 
 # 创建 FastAPI 应用
@@ -397,9 +415,12 @@ def _read_real_operators():
                             "description": operator_data["description"],
                             "code": operator_data.get("code", ""),
                             "isCustom": operator_data["isCustom"],
+                            "parameters": operator_data.get("parameters", []),  # 添加参数配置
                         }
                         operators.append(clean_data)
-                        print(f"Loaded operator: {operator_data['name']}")
+                        print(
+                            f"Loaded operator: {operator_data['name']} with {len(clean_data['parameters'])} parameters"
+                        )
                     else:
                         print(f"Invalid operator data in {json_file}")
 
@@ -905,6 +926,9 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
         VisualNode,
         VisualPipeline,
     )
+    from sage.studio.services.node_registry import (  # type: ignore[import-not-found]
+        convert_node_type_to_snake_case,
+    )
 
     name = flow_data.get("name", "Unnamed Flow")
     description = flow_data.get("description", "")
@@ -914,9 +938,15 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     # 转换节点
     nodes = []
     for node_data in nodes_data:
+        # 获取节点类型并转换为 snake_case
+        node_id = node_data.get("data", {}).get("nodeId", "unknown")
+        node_type = convert_node_type_to_snake_case(node_id)
+
+        print(f"🔄 Converting node: {node_id} → {node_type}")
+
         node = VisualNode(
             id=node_data.get("id", ""),
-            type=node_data.get("data", {}).get("nodeId", "unknown"),
+            type=node_type,  # 使用转换后的类型
             label=node_data.get("data", {}).get("label", "Unnamed Node"),
             position=node_data.get("position", {"x": 0, "y": 0}),
             config=node_data.get("data", {}).get("properties", {}),
@@ -1057,6 +1087,205 @@ async def execute_playground(request: PlaygroundExecuteRequest):
         return PlaygroundExecuteResponse(
             output=f"执行出错: {str(e)}", status="failed", agentSteps=None
         )
+
+
+# ==================== MVP 增强功能 ====================
+
+
+# 1. 节点输出预览
+@app.get("/api/node/{flow_id}/{node_id}/output")
+async def get_node_output(flow_id: str, node_id: str):
+    """获取节点的输出数据"""
+    try:
+        # 从缓存或状态存储中获取节点输出
+        # 这里简化实现，实际应该从 SAGE 运行时获取
+        sage_dir = _get_sage_dir()
+        states_dir = sage_dir / "states" / flow_id
+
+        if not states_dir.exists():
+            raise HTTPException(404, "Flow 尚未执行或输出不可用")
+
+        # 查找节点输出文件
+        output_file = states_dir / f"{node_id}_output.json"
+        if not output_file.exists():
+            raise HTTPException(404, "节点输出不可用")
+
+        import json
+
+        with open(output_file, encoding="utf-8") as f:
+            output_data = json.load(f)
+
+        return output_data
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting node output: {e}")
+        raise HTTPException(500, f"获取节点输出失败: {str(e)}")
+
+
+# 2. Flow 导入/导出
+@app.get("/api/flows/{flow_id}/export")
+async def export_flow(flow_id: str):
+    """导出 Flow 为 JSON 文件"""
+    try:
+        flow_data = _load_flow_data(flow_id)
+        if not flow_data:
+            raise HTTPException(404, f"Flow not found: {flow_id}")
+
+        import json
+
+        from fastapi.responses import Response
+
+        # 添加导出元数据
+        export_data = {
+            "version": "1.0.0",
+            "exportTime": str(datetime.now()),
+            "flowId": flow_id,
+            "flow": flow_data,
+        }
+
+        json_str = json.dumps(export_data, indent=2, ensure_ascii=False)
+
+        return Response(
+            content=json_str,
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{flow_id}.sage-flow.json"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"导出失败: {str(e)}")
+
+
+@app.post("/api/flows/import")
+async def import_flow(file: UploadFile = File(...)):
+    """导入 Flow JSON 文件"""
+    try:
+        import json
+        from datetime import datetime
+
+        # 读取上传的文件
+        content = await file.read()
+        import_data = json.loads(content)
+
+        # 验证格式
+        if "flow" not in import_data:
+            raise HTTPException(400, "无效的 Flow 文件格式")
+
+        flow_data = import_data["flow"]
+
+        # 生成新的 flow_id
+        timestamp = int(datetime.now().timestamp() * 1000)
+        new_flow_id = f"pipeline_{timestamp}"
+
+        # 保存到本地
+        sage_dir = _get_sage_dir()
+        pipelines_dir = sage_dir / "pipelines"
+        pipelines_dir.mkdir(parents=True, exist_ok=True)
+
+        flow_file = pipelines_dir / f"{new_flow_id}.json"
+        with open(flow_file, "w", encoding="utf-8") as f:
+            json.dump(flow_data, f, indent=2, ensure_ascii=False)
+
+        return {
+            "flowId": new_flow_id,
+            "name": flow_data.get("name", "Imported Flow"),
+            "message": "Flow 导入成功",
+        }
+    except json.JSONDecodeError:
+        raise HTTPException(400, "无效的 JSON 文件")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"导入失败: {str(e)}")
+
+
+# 3. 环境变量管理
+@app.get("/api/env")
+async def get_env_vars():
+    """获取环境变量"""
+    try:
+        sage_dir = _get_sage_dir()
+        env_file = sage_dir / ".env.json"
+
+        if not env_file.exists():
+            return {}
+
+        import json
+
+        with open(env_file, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading env vars: {e}")
+        return {}
+
+
+@app.put("/api/env")
+async def update_env_vars(vars: dict):
+    """更新环境变量"""
+    try:
+        import json
+
+        sage_dir = _get_sage_dir()
+        env_file = sage_dir / ".env.json"
+
+        # 加密敏感信息（简化实现，实际应使用加密库）
+        with open(env_file, "w", encoding="utf-8") as f:
+            json.dump(vars, f, indent=2, ensure_ascii=False)
+
+        return {"message": "环境变量已更新"}
+    except Exception as e:
+        raise HTTPException(500, f"更新失败: {str(e)}")
+
+
+@app.get("/api/logs/{flow_id}")
+async def get_logs(flow_id: str, last_id: int = 0):
+    """获取流程执行日志（增量获取）
+
+    Args:
+        flow_id: 流程ID
+        last_id: 上次获取的最后一条日志ID，用于增量获取
+
+    Returns:
+        日志条目列表
+    """
+    try:
+        sage_dir = _get_sage_dir()
+        log_file = sage_dir / "logs" / f"{flow_id}.log"
+
+        if not log_file.exists():
+            return {"logs": [], "last_id": 0}
+
+        # 读取日志文件
+        logs = []
+        with open(log_file, encoding="utf-8") as f:
+            for idx, line in enumerate(f, start=1):
+                if idx > last_id:  # 只返回新日志
+                    # 简单的日志解析（格式: [timestamp] [level] [node_id] message）
+                    try:
+                        parts = line.strip().split("] ", 3)
+                        if len(parts) >= 3:
+                            timestamp = parts[0].replace("[", "")
+                            level = parts[1].replace("[", "")
+                            node_id = parts[2].replace("[", "") if len(parts) == 4 else None
+                            message = parts[-1]
+
+                            logs.append(
+                                {
+                                    "id": idx,
+                                    "timestamp": timestamp,
+                                    "level": level,
+                                    "message": message,
+                                    "nodeId": node_id,
+                                }
+                            )
+                    except Exception:
+                        # 解析失败，跳过这行
+                        continue
+
+        return {"logs": logs, "last_id": last_id + len(logs)}
+    except Exception as e:
+        raise HTTPException(500, f"获取日志失败: {str(e)}")
 
 
 if __name__ == "__main__":

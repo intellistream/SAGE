@@ -2,7 +2,26 @@
 Node Registry - Maps Studio UI node types to SAGE Operators
 """
 
+import re
+
 from sage.kernel.operators import MapOperator
+
+
+def convert_node_type_to_snake_case(node_type: str) -> str:
+    """
+    将节点类型从 PascalCase 或 camelCase 转换为 snake_case
+
+    Examples:
+        TerminalSink -> terminal_sink
+        FileSource -> file_source
+        HFGenerator -> hf_generator
+        OpenAIGenerator -> openai_generator
+    """
+    # 处理连续大写字母（如 HF, AI）
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", node_type)
+    # 处理普通驼峰
+    s2 = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
+    return s2.lower()
 
 
 class NodeRegistry:
@@ -87,6 +106,40 @@ class NodeRegistry:
             self._registry["evaluator"] = F1Evaluate  # Default evaluator
         except ImportError:
             pass
+
+        # Source Operators (用于 Pipeline 构建，但不作为 MapOperator 验证)
+        try:
+            from sage.libs.io.source import (
+                CSVFileSource,
+                FileSource,
+                JSONFileSource,
+                TextFileSource,
+            )
+
+            # 注册为特殊类型，PipelineBuilder 会特殊处理
+            self._registry["file_source"] = FileSource  # type: ignore
+            self._registry["csv_file_source"] = CSVFileSource  # type: ignore
+            self._registry["json_file_source"] = JSONFileSource  # type: ignore
+            self._registry["text_file_source"] = TextFileSource  # type: ignore
+        except ImportError as e:
+            print(f"Warning: Could not import Source operators: {e}")
+
+        # Sink Operators (用于 Pipeline 构建，但不作为 MapOperator 验证)
+        try:
+            from sage.libs.io.sink import (
+                FileSink,
+                MemWriteSink,
+                PrintSink,
+                TerminalSink,
+            )
+
+            # 注册为特殊类型，PipelineBuilder 会特殊处理
+            self._registry["print_sink"] = PrintSink  # type: ignore
+            self._registry["terminal_sink"] = TerminalSink  # type: ignore
+            self._registry["file_sink"] = FileSink  # type: ignore
+            self._registry["mem_write_sink"] = MemWriteSink  # type: ignore
+        except ImportError as e:
+            print(f"Warning: Could not import Sink operators: {e}")
 
     def register(self, node_type: str, operator_class: type[MapOperator]):
         """Register a new node type"""

@@ -1,26 +1,49 @@
-import { Form, Input, Switch, Divider, InputNumber, Select } from 'antd'
+import { Form, Input, Switch, Divider, InputNumber, Select, Tabs } from 'antd'
+import { useState, useEffect } from 'react'
 import { useFlowStore } from '../store/flowStore'
+import { getNodes, type NodeDefinition, type ParameterConfig } from '../services/api'
+import OutputPreview from './OutputPreview'
+
+const { TabPane } = Tabs
 
 export default function PropertiesPanel() {
     const selectedNode = useFlowStore((state) => state.selectedNode)
     const updateNode = useFlowStore((state) => state.updateNode)
+    const [nodeDefinitions, setNodeDefinitions] = useState<NodeDefinition[]>([])
 
-    // 获取节点的配置参数定义
-    const getNodeConfig = () => {
-        // TODO: 从后端 API 获取节点配置定义
-        // Issue URL: https://github.com/intellistream/SAGE/issues/984
-        // 这里先返回一些示例配置
-        return {
-            text: [
-                { name: 'input_text', label: '输入文本', type: 'textarea', defaultValue: '' },
-                { name: 'max_length', label: '最大长度', type: 'number', defaultValue: 100 },
-            ],
-            api: [
-                { name: 'url', label: 'API地址', type: 'text', defaultValue: '' },
-                { name: 'method', label: '请求方法', type: 'select', options: ['GET', 'POST', 'PUT', 'DELETE'], defaultValue: 'GET' },
-            ],
-            // 可以为其他节点类型添加配置
+    // 加载节点定义
+    useEffect(() => {
+        const loadNodeDefinitions = async () => {
+            try {
+                console.log('📡 Loading node definitions...')
+                const nodes = await getNodes()
+                console.log('✅ Loaded nodes:', nodes.length)
+                console.log('📋 Sample node:', nodes[0])
+                setNodeDefinitions(nodes)
+            } catch (error) {
+                console.error('❌ Failed to load node definitions:', error)
+            }
         }
+        loadNodeDefinitions()
+    }, [])
+
+    // 获取当前节点的参数配置
+    const getNodeParameters = (): ParameterConfig[] => {
+        if (!selectedNode) return []
+
+        const nodeId = selectedNode.data.nodeId
+
+        // 调试日志
+        console.log('🔍 PropertiesPanel Debug:')
+        console.log('  - Selected nodeId:', nodeId)
+        console.log('  - Available nodes:', nodeDefinitions.map(n => n.name))
+        console.log('  - Node definitions count:', nodeDefinitions.length)
+
+        const nodeDef = nodeDefinitions.find(n => n.name === nodeId)
+        console.log('  - Found definition:', nodeDef ? `✅ ${nodeDef.name}` : '❌ Not found')
+        console.log('  - Parameters:', nodeDef?.parameters?.length || 0)
+
+        return nodeDef?.parameters || []
     }
 
     if (!selectedNode) {
@@ -48,99 +71,146 @@ export default function PropertiesPanel() {
 
             <Divider />
 
-            <Form layout="vertical" size="small">
-                <Form.Item label="节点名称">
-                    <Input
-                        value={selectedNode.data.label}
-                        onChange={(e) => handleValueChange('label', e.target.value)}
-                        placeholder="输入节点名称"
-                    />
-                </Form.Item>
+            <Tabs defaultActiveKey="config">
+                <TabPane tab="配置" key="config">
+                    <Form layout="vertical" size="small">
+                        <Form.Item label="节点名称">
+                            <Input
+                                value={selectedNode.data.label}
+                                onChange={(e) => handleValueChange('label', e.target.value)}
+                                placeholder="输入节点名称"
+                            />
+                        </Form.Item>
 
-                <Form.Item label="节点ID">
-                    <Input value={selectedNode.data.nodeId} disabled />
-                </Form.Item>
+                        <Form.Item label="节点ID">
+                            <Input value={selectedNode.data.nodeId} disabled />
+                        </Form.Item>
 
-                <Form.Item label="描述">
-                    <Input.TextArea
-                        value={selectedNode.data.description || ''}
-                        onChange={(e) => handleValueChange('description', e.target.value)}
-                        placeholder="输入节点描述"
-                        rows={3}
-                    />
-                </Form.Item>
+                        <Form.Item label="描述">
+                            <Input.TextArea
+                                value={selectedNode.data.description || ''}
+                                onChange={(e) => handleValueChange('description', e.target.value)}
+                                placeholder="输入节点描述"
+                                rows={3}
+                            />
+                        </Form.Item>
 
-                <Divider>配置参数</Divider>
+                        <Divider>配置参数</Divider>
 
-                {/* 动态渲染配置项 */}
-                {(() => {
-                    const nodeType = selectedNode.data.nodeId
-                    const configs = getNodeConfig()
-                    const nodeConfigs = configs[nodeType as keyof typeof configs] || []
+                        {/* 动态渲染配置项 */}
+                        {(() => {
+                            const nodeParameters = getNodeParameters()
 
-                    if (nodeConfigs.length === 0) {
-                        return (
-                            <div className="text-sm text-gray-500">
-                                <p>该节点类型暂无可配置参数</p>
-                            </div>
-                        )
-                    }
+                            if (nodeParameters.length === 0) {
+                                return (
+                                    <div className="text-sm text-gray-500 text-center py-4">
+                                        <p>该节点类型暂无可配置参数</p>
+                                    </div>
+                                )
+                            }
 
-                    return nodeConfigs.map((config: any) => {
-                        const value = selectedNode.data[config.name] ?? config.defaultValue
+                            return nodeParameters.map((param) => {
+                                // 从节点的 config 对象中读取值，或使用默认值
+                                const currentConfig = selectedNode.data.config || {}
+                                const value = currentConfig[param.name] ?? param.defaultValue
 
-                        return (
-                            <Form.Item key={config.name} label={config.label}>
-                                {config.type === 'text' && (
-                                    <Input
-                                        value={value}
-                                        onChange={(e) => handleValueChange(config.name, e.target.value)}
-                                        placeholder={`请输入${config.label}`}
-                                    />
-                                )}
+                                const isRequired = param.required
+                                const label = isRequired ? `${param.label} *` : param.label
 
-                                {config.type === 'textarea' && (
-                                    <Input.TextArea
-                                        value={value}
-                                        onChange={(e) => handleValueChange(config.name, e.target.value)}
-                                        placeholder={`请输入${config.label}`}
-                                        rows={3}
-                                    />
-                                )}
-
-                                {config.type === 'number' && (
-                                    <InputNumber
-                                        value={value}
-                                        onChange={(val) => handleValueChange(config.name, val)}
-                                        className="w-full"
-                                    />
-                                )}
-
-                                {config.type === 'select' && (
-                                    <Select
-                                        value={value}
-                                        onChange={(val) => handleValueChange(config.name, val)}
-                                        className="w-full"
+                                return (
+                                    <Form.Item
+                                        key={param.name}
+                                        label={label}
+                                        help={param.description}
+                                        required={isRequired}
                                     >
-                                        {config.options?.map((opt: string) => (
-                                            <Select.Option key={opt} value={opt}>
-                                                {opt}
-                                            </Select.Option>
-                                        ))}
-                                    </Select>
-                                )}
-                            </Form.Item>
-                        )
-                    })
-                })()}
+                                        {param.type === 'text' && (
+                                            <Input
+                                                value={value}
+                                                onChange={(e) => {
+                                                    const newConfig = { ...currentConfig, [param.name]: e.target.value }
+                                                    handleValueChange('config', newConfig)
+                                                }}
+                                                placeholder={param.placeholder || `请输入${param.label}`}
+                                            />
+                                        )}
 
-                <Form.Item label="启用" className="mt-4">
-                    <Switch
-                        checked={selectedNode.data.enabled !== false}
-                        onChange={(checked) => handleValueChange('enabled', checked)}
+                                        {param.type === 'password' && (
+                                            <Input.Password
+                                                value={value}
+                                                onChange={(e) => {
+                                                    const newConfig = { ...currentConfig, [param.name]: e.target.value }
+                                                    handleValueChange('config', newConfig)
+                                                }}
+                                                placeholder={param.placeholder || `请输入${param.label}`}
+                                            />
+                                        )}
+
+                                        {param.type === 'textarea' && (
+                                            <Input.TextArea
+                                                value={value}
+                                                onChange={(e) => {
+                                                    const newConfig = { ...currentConfig, [param.name]: e.target.value }
+                                                    handleValueChange('config', newConfig)
+                                                }}
+                                                placeholder={param.placeholder || `请输入${param.label}`}
+                                                rows={4}
+                                            />
+                                        )}
+
+                                        {param.type === 'number' && (
+                                            <InputNumber
+                                                value={value}
+                                                onChange={(val) => {
+                                                    const newConfig = { ...currentConfig, [param.name]: val }
+                                                    handleValueChange('config', newConfig)
+                                                }}
+                                                min={param.min}
+                                                max={param.max}
+                                                step={param.step}
+                                                className="w-full"
+                                                placeholder={param.placeholder}
+                                            />
+                                        )}
+
+                                        {param.type === 'select' && (
+                                            <Select
+                                                value={value}
+                                                onChange={(val) => {
+                                                    const newConfig = { ...currentConfig, [param.name]: val }
+                                                    handleValueChange('config', newConfig)
+                                                }}
+                                                className="w-full"
+                                                placeholder={param.placeholder || `请选择${param.label}`}
+                                            >
+                                                {param.options?.map((opt: string) => (
+                                                    <Select.Option key={opt} value={opt}>
+                                                        {opt}
+                                                    </Select.Option>
+                                                ))}
+                                            </Select>
+                                        )}
+                                    </Form.Item>
+                                )
+                            })
+                        })()}
+
+                        <Form.Item label="启用" className="mt-4">
+                            <Switch
+                                checked={selectedNode.data.enabled !== false}
+                                onChange={(checked) => handleValueChange('enabled', checked)}
+                            />
+                        </Form.Item>
+                    </Form>
+                </TabPane>
+
+                <TabPane tab="输出预览" key="output">
+                    <OutputPreview
+                        nodeId={selectedNode.id}
+                        flowId={selectedNode.data.flowId}
                     />
-                </Form.Item>
-            </Form>
+                </TabPane>
+            </Tabs>
 
             <Divider />
 

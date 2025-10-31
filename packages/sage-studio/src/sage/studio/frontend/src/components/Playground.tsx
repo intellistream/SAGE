@@ -49,7 +49,7 @@ export default function Playground() {
         setIsOpen,
         switchSession,
         createSession,
-        deleteSession,
+        // deleteSession,  // 未使用，注释掉避免 TS 错误
         clearSession,
         addMessage,
         updateMessage,
@@ -57,7 +57,7 @@ export default function Playground() {
         setIsExecuting,
         setCanStop,
         stopExecution,
-        setShowCode,
+        // setShowCode,  // 未使用，注释掉避免 TS 错误
         setCodeLanguage,
         generateCode,
     } = usePlaygroundStore()
