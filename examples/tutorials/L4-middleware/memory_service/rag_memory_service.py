@@ -67,8 +67,8 @@ class RAGMemoryService(BaseService):
         if not self.rag_collection:
             return []
 
-        # VDBMemoryCollection.retrieve signature  # pyright: ignore[reportCallIssue]
-        results = self.rag_collection.retrieve(  # pyright: ignore[reportCallIssue]
+        # VDBMemoryCollection has different signature than BaseMemoryCollection
+        results = self.rag_collection.retrieve(  # type: ignore[call-arg]
             raw_data=data,
             index_name="test_index",
             topk=5,
@@ -98,10 +98,10 @@ class RAGMemoryService(BaseService):
             self._logger.error("RAG collection not initialized")
             return
 
-        # VDBMemoryCollection.insert signature  # pyright: ignore[reportCallIssue]
-        result = self.rag_collection.insert(  # pyright: ignore[reportCallIssue]
+        # VDBMemoryCollection has different signature than BaseMemoryCollection  # type: ignore
+        result = self.rag_collection.insert(
             index_name="test_index", raw_data=data, metadata=metadata
-        )
+        )  # type: ignore
         if result:
             self._logger.info("Successfully insert data into rag memory")
         else:
