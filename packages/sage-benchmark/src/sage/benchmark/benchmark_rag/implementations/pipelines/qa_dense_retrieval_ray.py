@@ -2,6 +2,7 @@ import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, cast
 
 # 测试模式检测
 if os.getenv("SAGE_EXAMPLES_MODE") == "test":
@@ -103,6 +104,9 @@ class SafeBiologyRetriever(MapFunction):
 
     def _retrieve_real(self, query):
         """真实检索"""
+        if not self.memory_service:
+            return (query, [])
+
         result = self.memory_service.retrieve_data(
             collection_name=self.collection_name,
             query_text=query,
@@ -111,11 +115,17 @@ class SafeBiologyRetriever(MapFunction):
             with_metadata=True,
         )
 
-        if result["status"] == "success":
-            retrieved_texts = [item.get("text", "") for item in result["results"]]
+        if isinstance(result, dict) and result.get("status") == "success":
+            results_list = cast(list[dict[str, Any]], result.get("results", []))
+            retrieved_texts: list[str] = []
+            for item in results_list:
+                if isinstance(item, dict):
+                    text = item.get("text", "")
+                    if isinstance(text, str):
+                        retrieved_texts.append(text)
             return (query, retrieved_texts)
-        else:
-            return (query, [])
+
+        return (query, [])
 
 
 def pipeline_run(config):

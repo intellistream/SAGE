@@ -3,6 +3,9 @@ from typing import Any
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.sage_mem.neuromem.memory_collection.base_collection import (
+    BaseMemoryCollection,
+)
 
 config = {
     "manager_path": ".sage/examples/memory/rag_memory_service",
@@ -25,6 +28,7 @@ class RAGMemoryService(BaseService):
         super().__init__()
 
         self._logger = CustomLogger()
+        self.rag_collection: BaseMemoryCollection | None = None
 
         # 如果 config 为 None，尝试从 kwargs 构建
         if config is None:
@@ -37,8 +41,12 @@ class RAGMemoryService(BaseService):
         self.memory_manager = MemoryManager(config.get("manager_path"))
 
         # Try to load existing collection; if missing, create one locally with mock/offline embeddings
-        if self.memory_manager.has_collection(config.get("name")):
-            self.rag_collection = self.memory_manager.get_collection(config.get("name"))
+        collection_name = config.get("name")
+        if not collection_name:
+            raise ValueError("Collection name is required in config")
+
+        if self.memory_manager.has_collection(collection_name):
+            self.rag_collection = self.memory_manager.get_collection(collection_name)
             self._logger.info("Successfully loaded RAG memory from disk")
         else:
             self._logger.warning(
@@ -46,11 +54,21 @@ class RAGMemoryService(BaseService):
             )
             # Ensure a local, network-free embedding is used by honoring model name via embedding layer fallback
             self.rag_collection = self.memory_manager.create_collection(config)
-            self.rag_collection.create_index(config.get("index_config"))
+            index_config = config.get("index_config")
+            if (
+                index_config
+                and self.rag_collection
+                and hasattr(self.rag_collection, "create_index")
+            ):
+                self.rag_collection.create_index(index_config)  # type: ignore[attr-defined]
             # Optional: do not init_index here; will be built upon insert or explicit init in callers
 
     def retrieve(self, data: str):
-        results = self.rag_collection.retrieve(
+        if not self.rag_collection:
+            return []
+
+        # VDBMemoryCollection.retrieve signature  # pyright: ignore[reportCallIssue]
+        results = self.rag_collection.retrieve(  # pyright: ignore[reportCallIssue]
             raw_data=data,
             index_name="test_index",
             topk=5,
@@ -58,20 +76,31 @@ class RAGMemoryService(BaseService):
             with_metadata=True,
         )
 
+        if not results:
+            return []
+
         # 重新格式化结果
         formatted_results = []
         for result in results:
-            formatted_result = {
-                "history_query": result["text"],
-                "answer": result["metadata"].get("answer", ""),
-            }
-            formatted_results.append(formatted_result)
+            if isinstance(result, dict):
+                formatted_result = {
+                    "history_query": result.get("text", ""),
+                    "answer": result.get("metadata", {}).get("answer", "")
+                    if isinstance(result.get("metadata"), dict)
+                    else "",
+                }
+                formatted_results.append(formatted_result)
 
         return formatted_results
 
     def insert(self, data: str, metadata: dict[str, Any] | None = None):
-        result = self.rag_collection.insert(
-            raw_data=data, index_name="test_index", metadata=metadata
+        if not self.rag_collection:
+            self._logger.error("RAG collection not initialized")
+            return
+
+        # VDBMemoryCollection.insert signature  # pyright: ignore[reportCallIssue]
+        result = self.rag_collection.insert(  # pyright: ignore[reportCallIssue]
+            index_name="test_index", raw_data=data, metadata=metadata
         )
         if result:
             self._logger.info("Successfully insert data into rag memory")

@@ -66,7 +66,7 @@ def detect_anomalies(
         anomaly_score = 0.0
 
         if len(historical) > 5:  # Need enough data
-            values = [h.value for h in historical]
+            values: np.ndarray = np.array([h.value for h in historical])
             mean = np.mean(values)
             std = np.std(values)
 
@@ -105,7 +105,7 @@ def compute_window_statistics(
 
             # Compute statistics
             if recent_data:
-                values = [r.value for r in recent_data]
+                values: np.ndarray = np.array([r.value for r in recent_data])
                 aggregations = {
                     "count": len(values),
                     "mean": np.mean(values),
@@ -228,7 +228,7 @@ def example_multi_sensor_comparison():
         results = db.query(time_range)
 
         if results:
-            values = [r.value for r in results]
+            values: np.ndarray = np.array([r.value for r in results])
             mean = np.mean(values)
             std = np.std(values)
             print(f"{sensor_id:<15} {len(results):<10} {mean:<10.2f} {std:<10.2f}")
