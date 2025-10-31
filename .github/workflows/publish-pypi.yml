@@ -30,8 +30,9 @@ on:
         options:
           - auto    # Based on branch
           - patch   # 0.1.6.2 -> 0.1.6.3
-          - minor   # 0.1.6.2 -> 0.1.7.0
-          - major   # 0.1.6.2 -> 0.2.0.0
+          - micro   # 0.1.6.2 -> 0.1.7.0
+          - minor   # 0.1.6.2 -> 0.2.0.0
+          - major   # 0.1.6.2 -> 1.0.0.0
           - none    # Keep current version
 
 jobs:
@@ -76,7 +77,7 @@ jobs:
           else
             # 自动触发：根据分支决定
             if [ "${{ github.ref_name }}" = "main" ]; then
-              VERSION_BUMP="minor"
+              VERSION_BUMP="micro"
               REPOSITORY="pypi"
             else  # main-dev
               VERSION_BUMP="patch"
@@ -87,7 +88,7 @@ jobs:
           # 如果是 auto，转换为实际类型
           if [ "$VERSION_BUMP" = "auto" ]; then
             if [ "${{ github.ref_name }}" = "main" ]; then
-              VERSION_BUMP="minor"
+              VERSION_BUMP="micro"
             else
               VERSION_BUMP="patch"
             fi
@@ -116,6 +117,10 @@ jobs:
           case "${{ steps.config.outputs.version_bump }}" in
             patch)
               patch=$((patch + 1))
+              ;;
+            micro)
+              micro=$((micro + 1))
+              patch=0
               ;;
             minor)
               minor=$((minor + 1))
