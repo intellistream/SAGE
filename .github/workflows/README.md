@@ -16,7 +16,7 @@ Workflow 会在以下情况**自动运行**：
 
 #### 🚀 Push 到 `main` 分支
 
-- **版本**: 自动 `minor + 1` (例如: 0.1.6.2 → 0.1.7.0)
+- **版本**: 自动 `micro + 1` (例如: 0.1.6.2 → 0.1.7.0)
 - **目标**: PyPI (生产环境)
 - **附加**: 自动创建 GitHub Release
 
@@ -36,7 +36,7 @@ Workflow 会在以下情况**自动运行**：
    - 点击 "Run workflow"
    - 选择参数:
      - **repository**: `testpypi` 或 `pypi`
-     - **version_bump**: `auto`/`patch`/`minor`/`major`/`none`
+     - **version_bump**: `auto`/`patch`/`micro`/`minor`/`major`/`none`
 
 1. **GitHub CLI**:
 
@@ -49,7 +49,7 @@ Workflow 会在以下情况**自动运行**：
    # 手动生产发布（不推荐，建议通过 PR 到 main）
    gh workflow run publish-pypi.yml \
      -f repository=pypi \
-     -f version_bump=minor
+     -f version_bump=micro
    ```
 
 ### 配置要求
@@ -180,8 +180,8 @@ git push origin main
 
 **自动规则**:
 
-- `main-dev` push → `PATCH + 1`
-- `main` push → `MINOR + 1, PATCH = 0`
+- `main-dev` push → `PATCH + 1` (例如: 0.1.6.2 → 0.1.6.3)
+- `main` push → `MICRO + 1, PATCH = 0` (例如: 0.1.6.2 → 0.1.7.0)
 
 ### 故障排除
 
