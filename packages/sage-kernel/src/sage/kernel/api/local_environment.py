@@ -131,6 +131,13 @@ class LocalEnvironment(BaseEnvironment):
             # 确保清理资源
             self.is_running = False
 
+            # 调用 close() 清理环境状态（env_uuid 和 pipeline）
+            # 注意：close() 内部会再次尝试 pause_job，但如果作业已删除会安全忽略
+            try:
+                self.close()
+            except Exception as close_error:
+                self.logger.warning(f"Error during environment cleanup: {close_error}")
+
     @property
     def jobmanager(self) -> JobManager:
         """直接返回JobManager的单例实例"""
@@ -164,7 +171,7 @@ class LocalEnvironment(BaseEnvironment):
             self.logger.error(f"Error stopping pipeline: {e}")
 
     def close(self):
-        """关闭管道运行"""
+        """关闭管道运行并清理环境状态"""
         if not self.env_uuid:
             self.logger.warning("Environment not submitted, nothing to close")
             return
@@ -172,19 +179,27 @@ class LocalEnvironment(BaseEnvironment):
         self.logger.info("Closing environment...")
 
         try:
+            # 尝试暂停作业（如果作业已经删除，会返回 not_found 状态）
             response = self.jobmanager.pause_job(self.env_uuid)
 
             if response.get("status") == "success":
                 self.logger.info("Environment closed successfully")
+            elif response.get("status") == "stopped":
+                self.logger.info("Environment already stopped")
+            elif response.get("status") == "not_found":
+                # 作业已经被删除（autostop 等机制已清理），这是正常情况
+                self.logger.debug(f"Job {self.env_uuid} already deleted, skipping pause operation")
             else:
                 self.logger.warning(f"Failed to close environment: {response.get('message')}")
 
         except Exception as e:
             self.logger.error(f"Error closing environment: {e}")
         finally:
-            # 清理本地资源
+            # 清理本地资源（无论 pause_job 是否成功）
             self.is_running = False
             self.env_uuid = None
 
-            # 清理管道
+            # 清理管道列表
             self.pipeline.clear()
+
+            self.logger.info("Environment state cleaned up successfully")
