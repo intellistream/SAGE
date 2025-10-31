@@ -6,8 +6,10 @@ import json_repair
 import numpy as np
 from tqdm import tqdm
 from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
-from vllm import LLM, SamplingParams
-from vllm.lora.request import LoRARequest
+
+# 延迟导入 vLLM，避免在导入模块时就触发依赖检查
+# from vllm import LLM, SamplingParams
+# from vllm.lora.request import LoRARequest
 
 from sage.middleware.components.sage_refiner.python.algorithms.long_refiner_impl.prompt_template import (
     PromptTemplate,
@@ -62,6 +64,10 @@ class LongRefiner:
         gpu_device: int = 0,
         gpu_memory_utilization: float = 0.7,
     ):
+        # 延迟导入 vLLM，只在真正使用时才导入
+        from vllm import LLM, SamplingParams
+        from vllm.lora.request import LoRARequest
+        
         # vLLM 通过 CUDA_VISIBLE_DEVICES 环境变量指定GPU设备
         import os
         

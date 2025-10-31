@@ -1,5 +1,5 @@
 """
-测试 sage.libs.rag.generator 模块
+测试 sage.middleware.operators.rag.generator 模块
 """
 
 import os
@@ -11,7 +11,7 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.generator import HFGenerator, OpenAIGenerator
+    from sage.middleware.operators.rag.generator import HFGenerator, OpenAIGenerator
 
     GENERATOR_AVAILABLE = True
 except ImportError as e:
@@ -28,11 +28,11 @@ class TestOpenAIGenerator:
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
 
-        from sage.libs.rag.generator import OpenAIGenerator
+        from sage.middleware.operators.rag.generator import OpenAIGenerator
 
         assert OpenAIGenerator is not None
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_openai_generator_initialization(self, mock_openai_client):
         """测试OpenAIGenerator初始化"""
         if not GENERATOR_AVAILABLE:
@@ -65,7 +65,7 @@ class TestOpenAIGenerator:
         )
         assert generator.model == mock_client_instance
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_openai_generator_initialization_with_profile(self, mock_openai_client):
         """测试OpenAIGenerator带profile初始化"""
         if not GENERATOR_AVAILABLE:
@@ -98,7 +98,7 @@ class TestOpenAIGenerator:
 
             assert generator.enable_profile is True
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_openai_generator_initialization_no_api_key(self, mock_openai_client):
         """测试OpenAIGenerator无API密钥初始化"""
         if not GENERATOR_AVAILABLE:
@@ -128,7 +128,7 @@ class TestOpenAIGenerator:
             assert call_kwargs["api_key"] is not None
             assert call_kwargs["seed"] == 42
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_execute_with_string_input(self, mock_openai_client):
         """测试execute方法处理字符串输入"""
         if not GENERATOR_AVAILABLE:
@@ -158,7 +158,7 @@ class TestOpenAIGenerator:
         expected_messages = [{"role": "user", "content": "Test prompt"}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_execute_with_two_string_inputs(self, mock_openai_client):
         """测试execute方法处理两个字符串输入（原始query + prompt）"""
         if not GENERATOR_AVAILABLE:
@@ -189,7 +189,7 @@ class TestOpenAIGenerator:
         expected_messages = [{"role": "user", "content": "Please explain artificial intelligence."}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_execute_with_profile_enabled(self, mock_openai_client):
         """测试启用profile的execute方法"""
         if not GENERATOR_AVAILABLE:
@@ -229,7 +229,7 @@ class TestOpenAIGenerator:
             assert isinstance(result, dict)
             assert result["generated"] == "Generated response"
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_execute_with_api_error(self, mock_openai_client):
         """测试execute方法处理API错误"""
         if not GENERATOR_AVAILABLE:
@@ -255,7 +255,7 @@ class TestOpenAIGenerator:
 
         assert "API Error" in str(exc_info.value)
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_execute_increments_counter(self, mock_openai_client):
         """测试execute方法会递增计数器"""
         if not GENERATOR_AVAILABLE:
@@ -285,7 +285,7 @@ class TestOpenAIGenerator:
         generator.execute(["Test prompt 2"])
         assert generator.num == 3
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_execute_with_dict_input_returns_generation_time(self, mock_openai_client):
         """测试execute方法处理字典输入时返回generation_time字段"""
         if not GENERATOR_AVAILABLE:
@@ -324,7 +324,7 @@ class TestOpenAIGenerator:
         expected_messages = [{"role": "user", "content": prompt}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_execute_with_messages_list_input(self, mock_openai_client):
         """测试execute方法处理消息列表输入"""
         if not GENERATOR_AVAILABLE:
@@ -364,7 +364,7 @@ class TestOpenAIGenerator:
         # 验证直接传递消息列表
         mock_client_instance.generate.assert_called_once_with(messages)
 
-    @patch("sage.libs.rag.generator.OpenAIClient")
+    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_configuration_validation(self, mock_openai_client):
         """测试配置验证"""
         if not GENERATOR_AVAILABLE:
@@ -399,7 +399,7 @@ class TestOpenAIGeneratorIntegration:
             "seed": 42,
         }
 
-        with patch("sage.libs.rag.generator.OpenAIClient") as mock_openai_client:
+        with patch("sage.middleware.operators.rag.generator.OpenAIClient") as mock_openai_client:
             mock_client_instance = Mock()
             mock_client_instance.generate.return_value = "Mocked response"
             mock_openai_client.return_value = mock_client_instance
@@ -428,11 +428,11 @@ class TestHFGenerator:
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
 
-        from sage.libs.rag.generator import HFGenerator
+        from sage.middleware.operators.rag.generator import HFGenerator
 
         assert HFGenerator is not None
 
-    @patch("sage.libs.rag.generator.HFClient")
+    @patch("sage.middleware.operators.rag.generator.HFClient")
     def test_hf_generator_initialization(self, mock_hf_client):
         """测试HFGenerator初始化"""
         if not GENERATOR_AVAILABLE:
@@ -453,7 +453,7 @@ class TestHFGenerator:
         mock_hf_client.assert_called_once_with(model_name="microsoft/DialoGPT-medium")
         assert generator.model == mock_client_instance
 
-    @patch("sage.libs.rag.generator.HFClient")
+    @patch("sage.middleware.operators.rag.generator.HFClient")
     def test_hf_generator_execute_with_list_input(self, mock_hf_client):
         """测试HFGenerator处理列表输入"""
         if not GENERATOR_AVAILABLE:
@@ -484,7 +484,7 @@ class TestHFGenerator:
             "Please explain artificial intelligence."
         )
 
-    @patch("sage.libs.rag.generator.HFClient")
+    @patch("sage.middleware.operators.rag.generator.HFClient")
     def test_hf_generator_execute_with_single_input(self, mock_hf_client):
         """测试HFGenerator处理单个输入"""
         if not GENERATOR_AVAILABLE:
@@ -510,10 +510,10 @@ class TestHFGenerator:
         assert user_query is None  # HFGenerator: data[0] if len(data) > 1 else None
         assert response == "Single response"
 
-        # 验证model.generate被正确调用
-        mock_client_instance.generate.assert_called_once_with("Explain machine learning")
+        # 验证model.generate被正确调用（传入的是data，即列表）
+        mock_client_instance.generate.assert_called_once_with(["Explain machine learning"])
 
-    @patch("sage.libs.rag.generator.HFClient")
+    @patch("sage.middleware.operators.rag.generator.HFClient")
     def test_hf_generator_execute_with_kwargs(self, mock_hf_client):
         """测试HFGenerator处理额外参数"""
         if not GENERATOR_AVAILABLE:
@@ -539,12 +539,12 @@ class TestHFGenerator:
         user_query, response = result
         assert response == "Response with params"
 
-        # 验证model.generate被正确调用，包含kwargs
+        # 验证model.generate被正确调用，包含kwargs（传入的是data，即列表）
         mock_client_instance.generate.assert_called_once_with(
-            "Generate text", temperature=0.7, max_length=100
+            ["Generate text"], temperature=0.7, max_length=100
         )
 
-    @patch("sage.libs.rag.generator.HFClient")
+    @patch("sage.middleware.operators.rag.generator.HFClient")
     def test_hf_generator_error_handling(self, mock_hf_client):
         """测试HFGenerator错误处理"""
         if not GENERATOR_AVAILABLE:
@@ -583,8 +583,8 @@ class TestGeneratorIntegration:
         hf_config = {"model_name": "microsoft/DialoGPT-medium"}
 
         with (
-            patch("sage.libs.rag.generator.OpenAIClient") as mock_openai,
-            patch("sage.libs.rag.generator.HFClient") as mock_hf,
+            patch("sage.middleware.operators.rag.generator.OpenAIClient") as mock_openai,
+            patch("sage.middleware.operators.rag.generator.HFClient") as mock_hf,
         ):
             # Mock两个客户端
             mock_openai_instance = Mock()

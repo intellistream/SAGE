@@ -89,10 +89,15 @@ class LongRefinerAlgorithm(BaseRefiner):
             self._initialized = True
 
         except ImportError as e:
-            raise ImportError(
-                "LongRefiner not available. Please ensure sage-libs is installed "
-                "with LongRefiner dependencies."
-            ) from e
+            import traceback
+            error_msg = f"LongRefiner import failed with error: {str(e)}\n"
+            error_msg += f"Traceback:\n{traceback.format_exc()}"
+            raise ImportError(error_msg) from e
+        except Exception as e:
+            import traceback
+            error_msg = f"LongRefiner initialization failed with error: {str(e)}\n"
+            error_msg += f"Traceback:\n{traceback.format_exc()}"
+            raise RuntimeError(error_msg) from e
 
     def _normalize_documents(self, documents: list[str | dict[str, Any]]) -> list[dict[str, str]]:
         """标准化文档格式"""

@@ -243,7 +243,7 @@ class QAPromptor(MapOperator):
                 pass
 
 
-class SummarizationPromptor(MapFunction):
+class SummarizationPromptor(MapOperator):
     """
     QAPromptor is a prompt rag that generates a QA-style prompt using
     an external corpus and a user query. This class is designed to prepare
@@ -310,7 +310,7 @@ class SummarizationPromptor(MapFunction):
         return prompt
 
 
-class QueryProfilerPromptor(MapFunction):
+class QueryProfilerPromptor(MapOperator):
     """
     QueryProfilerPromptor provides a prompt for profiling queries.
 

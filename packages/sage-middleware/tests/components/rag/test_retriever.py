@@ -1,5 +1,5 @@
 """
-测试 sage.libs.rag.retriever 模块 - ChromaRetriever 和 BM25sRetriever
+测试 sage.middleware.operators.rag.retriever 模块 - ChromaRetriever 和 BM25sRetriever
 """
 
 from unittest.mock import Mock, patch
@@ -9,7 +9,7 @@ import pytest
 
 # 尝试导入检索模块
 try:
-    from sage.libs.rag.retriever import ChromaRetriever
+    from sage.middleware.operators.rag.retriever import ChromaRetriever
 
     RETRIEVER_AVAILABLE = True
 except ImportError as e:
@@ -51,8 +51,8 @@ class TestChromaRetriever:
             pytest.skip("Retriever module not available")
         assert ChromaRetriever is not None
 
-    @patch("sage.libs.rag.retriever.ChromaUtils")
-    @patch("sage.libs.rag.retriever.ChromaBackend")
+    @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
+    @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_initialization(
         self,
@@ -73,15 +73,15 @@ class TestChromaRetriever:
         mock_embedding_model.return_value = mock_embedding
         mock_chroma_backend.return_value = Mock()
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = ChromaRetriever(config=chroma_config)
             assert retriever.config == chroma_config
             assert retriever.backend_type == "chroma"
             assert retriever.vector_dimension == 384
             assert retriever.top_k == 5
 
-    @patch("sage.libs.rag.retriever.ChromaUtils")
-    @patch("sage.libs.rag.retriever.ChromaBackend")
+    @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
+    @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_execute_string_input(
         self,
@@ -110,7 +110,7 @@ class TestChromaRetriever:
         ]
         mock_chroma_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = ChromaRetriever(config=chroma_config)
             query = "What is artificial intelligence?"
             result = retriever.execute(query)
@@ -124,8 +124,8 @@ class TestChromaRetriever:
             assert len(result["retrieval_results"]) == 2
             assert len(result["retrieval_docs"]) == 2
 
-    @patch("sage.libs.rag.retriever.ChromaUtils")
-    @patch("sage.libs.rag.retriever.ChromaBackend")
+    @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
+    @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_execute_dict_input(
         self,
@@ -150,7 +150,7 @@ class TestChromaRetriever:
         mock_backend.search.return_value = [{"content": "相关文档", "score": 0.95, "id": "doc_1"}]
         mock_chroma_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = ChromaRetriever(config=chroma_config)
             input_data = {"query": "What is machine learning?", "other_field": "value"}
             result = retriever.execute(input_data)
@@ -162,8 +162,8 @@ class TestChromaRetriever:
             assert result["query"] == "What is machine learning?"
             assert result["other_field"] == "value"
 
-    @patch("sage.libs.rag.retriever.ChromaUtils")
-    @patch("sage.libs.rag.retriever.ChromaBackend")
+    @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
+    @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_add_documents(
         self,
@@ -188,7 +188,7 @@ class TestChromaRetriever:
         mock_backend.add_documents.return_value = ["doc_1", "doc_2", "doc_3"]
         mock_chroma_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = ChromaRetriever(config=chroma_config)
 
             documents = ["文档1内容", "文档2内容", "文档3内容"]
@@ -197,8 +197,8 @@ class TestChromaRetriever:
             assert doc_ids == ["doc_1", "doc_2", "doc_3"]
             assert mock_embedding.embed.call_count == 3
 
-    @patch("sage.libs.rag.retriever.ChromaUtils")
-    @patch("sage.libs.rag.retriever.ChromaBackend")
+    @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
+    @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_error_handling(
         self,
@@ -221,7 +221,7 @@ class TestChromaRetriever:
 
         mock_chroma_backend.return_value = Mock()
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = ChromaRetriever(config=chroma_config)
             query = "测试查询"
             result = retriever.execute(query)
@@ -235,7 +235,7 @@ class TestChromaRetriever:
 
 # 尝试导入检索模块
 try:
-    from sage.libs.rag.retriever import MilvusDenseRetriever
+    from sage.middleware.operators.rag.retriever import MilvusDenseRetriever
 
     RETRIEVER_AVAILABLE = True
 except ImportError as e:
@@ -269,8 +269,8 @@ class TestMilvusDenseRetriever:
             pytest.skip("Retriever module not available")
         assert MilvusDenseRetriever is not None
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_initialization(
         self,
@@ -291,15 +291,15 @@ class TestMilvusDenseRetriever:
         mock_embedding_model.return_value = mock_embedding
         mock_milvus_backend.return_value = Mock()
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
             assert retriever.config == milvus_dense_config
             assert retriever.backend_type == "milvus"
             assert retriever.vector_dimension == 384
             assert retriever.top_k == 5
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_execute_string_input(
         self,
@@ -328,7 +328,7 @@ class TestMilvusDenseRetriever:
         ]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             query = "What is artificial intelligence?"
@@ -346,8 +346,8 @@ class TestMilvusDenseRetriever:
             mock_embedding.encode.assert_called_once_with(query)
             mock_backend.dense_search.assert_called_once()
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_execute_dict_input(
         self,
@@ -374,7 +374,7 @@ class TestMilvusDenseRetriever:
         ]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             input_data = {
@@ -390,8 +390,8 @@ class TestMilvusDenseRetriever:
             assert result["question"] == "What is machine learning?"
             assert result["other_field"] == "value"
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_execute_tuple_input(
         self,
@@ -418,7 +418,7 @@ class TestMilvusDenseRetriever:
         ]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             tuple_input = ("什么是深度学习？", "extra_data")
@@ -430,8 +430,8 @@ class TestMilvusDenseRetriever:
             assert "retrieved_documents" in result
             assert result["query"] == "什么是深度学习？"
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_add_documents(
         self,
@@ -456,7 +456,7 @@ class TestMilvusDenseRetriever:
         mock_backend.add_dense_documents.return_value = ["doc_1", "doc_2", "doc_3"]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             documents = ["文档1内容", "文档2内容", "文档3内容"]
@@ -472,8 +472,8 @@ class TestMilvusDenseRetriever:
             assert len(call_args[0][1]) == 3  # embeddings
             assert len(call_args[0][2]) == 3  # doc_ids
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_add_documents_with_custom_ids(
         self,
@@ -498,7 +498,7 @@ class TestMilvusDenseRetriever:
         mock_backend.add_dense_documents.return_value = ["custom_1", "custom_2"]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             documents = ["文档1内容", "文档2内容"]
@@ -511,8 +511,8 @@ class TestMilvusDenseRetriever:
             call_args = mock_backend.add_dense_documents.call_args
             assert call_args[0][2] == custom_ids
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_error_handling_embedding_failure(
         self,
@@ -535,7 +535,7 @@ class TestMilvusDenseRetriever:
 
         mock_milvus_backend.return_value = Mock()
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             query = "测试查询"
@@ -546,8 +546,8 @@ class TestMilvusDenseRetriever:
             assert result["query"] == query
             assert result["retrieved_documents"] == []
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_error_handling_search_failure(
         self,
@@ -572,7 +572,7 @@ class TestMilvusDenseRetriever:
         mock_backend.dense_search.side_effect = Exception("Search failed")
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             query = "测试查询"
@@ -583,8 +583,8 @@ class TestMilvusDenseRetriever:
             assert result["query"] == query
             assert result["retrieved_documents"] == []
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_configuration_methods(
         self,
@@ -612,7 +612,7 @@ class TestMilvusDenseRetriever:
         mock_backend.delete_collection.return_value = True
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusDenseRetriever(config=milvus_dense_config)
 
             # 测试保存配置
@@ -632,8 +632,8 @@ class TestMilvusDenseRetriever:
             assert retriever.delete_collection("test_collection") is True
             mock_backend.delete_collection.assert_called_with("test_collection")
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
     def test_profile_mode(
         self,
@@ -660,7 +660,7 @@ class TestMilvusDenseRetriever:
         ]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             with patch("os.makedirs"):
                 with patch("builtins.open", create=True):
                     with patch("json.dump"):
@@ -676,7 +676,7 @@ class TestMilvusDenseRetriever:
                         assert hasattr(retriever, "data_records")
                         assert hasattr(retriever, "data_base_path")
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     def test_initialization_failure_milvus_unavailable(
         self, mock_milvus_utils, milvus_dense_config
     ):
@@ -686,11 +686,11 @@ class TestMilvusDenseRetriever:
 
         mock_milvus_utils.check_milvus_available.return_value = False
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             with pytest.raises(ImportError):
                 MilvusDenseRetriever(config=milvus_dense_config)
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     def test_initialization_failure_invalid_config(self, mock_milvus_utils, milvus_dense_config):
         """测试初始化失败 - 无效配置"""
         if not RETRIEVER_AVAILABLE:
@@ -699,14 +699,14 @@ class TestMilvusDenseRetriever:
         mock_milvus_utils.check_milvus_available.return_value = True
         mock_milvus_utils.validate_milvus_config.return_value = False
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             with pytest.raises(ValueError):
                 MilvusDenseRetriever(config=milvus_dense_config)
 
 
 # 尝试导入检索模块
 try:
-    from sage.libs.rag.retriever import MilvusSparseRetriever
+    from sage.middleware.operators.rag.retriever import MilvusSparseRetriever
 
     RETRIEVER_AVAILABLE = True
 except ImportError as e:
@@ -750,8 +750,8 @@ class TestMilvusSparseRetriever:
             pytest.skip("Retriever module not available")
         assert MilvusSparseRetriever is not None
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_initialization(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -767,15 +767,15 @@ class TestMilvusSparseRetriever:
         mock_bgem3.return_value = mock_embedding
         mock_milvus_backend.return_value = Mock()
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
             assert retriever.config == milvus_sparse_config
             assert retriever.backend_type == "milvus"
             assert retriever.top_k == 10
             assert hasattr(retriever, "embedding_model")
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_execute_string_input(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -798,7 +798,7 @@ class TestMilvusSparseRetriever:
         ]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             query = "什么是人工智能？"
@@ -814,8 +814,8 @@ class TestMilvusSparseRetriever:
             # 验证调用了正确的方法 - 稀疏检索直接传递文本
             mock_backend.sparse_search.assert_called_once_with(query_text=query, top_k=10)
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_execute_dict_input(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -837,7 +837,7 @@ class TestMilvusSparseRetriever:
         ]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             input_data = {"question": "什么是机器学习？", "other_field": "value"}
@@ -850,8 +850,8 @@ class TestMilvusSparseRetriever:
             assert result["question"] == "什么是机器学习？"
             assert result["other_field"] == "value"
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_execute_tuple_input(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -873,7 +873,7 @@ class TestMilvusSparseRetriever:
         ]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             tuple_input = ("什么是深度学习？", "extra_data")
@@ -885,8 +885,8 @@ class TestMilvusSparseRetriever:
             assert "retrieved_documents" in result
             assert result["query"] == "什么是深度学习？"
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_add_documents(
         self,
@@ -912,7 +912,7 @@ class TestMilvusSparseRetriever:
         mock_backend.add_sparse_documents.return_value = ["doc_1", "doc_2", "doc_3"]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             documents = ["文档1内容", "文档2内容", "文档3内容"]
@@ -930,8 +930,8 @@ class TestMilvusSparseRetriever:
             assert call_args[0][1] == mock_sparse_embeddings["sparse"]  # sparse embeddings
             assert len(call_args[0][2]) == 3  # doc_ids
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_add_documents_with_custom_ids(
         self,
@@ -957,7 +957,7 @@ class TestMilvusSparseRetriever:
         mock_backend.add_sparse_documents.return_value = ["custom_1", "custom_2"]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             documents = ["文档1内容", "文档2内容"]
@@ -970,8 +970,8 @@ class TestMilvusSparseRetriever:
             call_args = mock_backend.add_sparse_documents.call_args
             assert call_args[0][2] == custom_ids
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_error_handling_search_failure(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -991,7 +991,7 @@ class TestMilvusSparseRetriever:
         mock_backend.sparse_search.side_effect = Exception("Search failed")
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             query = "测试查询"
@@ -1002,8 +1002,8 @@ class TestMilvusSparseRetriever:
             assert result["query"] == query
             assert result["retrieved_documents"] == []
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_error_handling_embedding_failure(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -1022,7 +1022,7 @@ class TestMilvusSparseRetriever:
 
         mock_milvus_backend.return_value = Mock()
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             documents = ["测试文档"]
@@ -1031,8 +1031,8 @@ class TestMilvusSparseRetriever:
             with pytest.raises(Exception):  # noqa: B017
                 retriever.add_documents(documents)
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_configuration_methods(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -1055,7 +1055,7 @@ class TestMilvusSparseRetriever:
         }
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             retriever = MilvusSparseRetriever(config=milvus_sparse_config)
 
             # 测试保存配置
@@ -1071,8 +1071,8 @@ class TestMilvusSparseRetriever:
             assert info["name"] == "test_sparse_collection"
             assert info["count"] == 100
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_profile_mode(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -1094,7 +1094,7 @@ class TestMilvusSparseRetriever:
         ]
         mock_milvus_backend.return_value = mock_backend
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             with patch("os.makedirs"):
                 with patch("builtins.open", create=True):
                     with patch("json.dump"):
@@ -1110,7 +1110,7 @@ class TestMilvusSparseRetriever:
                         assert hasattr(retriever, "data_records")
                         assert hasattr(retriever, "data_base_path")
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     def test_initialization_failure_milvus_unavailable(
         self, mock_milvus_utils, milvus_sparse_config
     ):
@@ -1120,11 +1120,11 @@ class TestMilvusSparseRetriever:
 
         mock_milvus_utils.check_milvus_available.return_value = False
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             with pytest.raises(ImportError):
                 MilvusSparseRetriever(config=milvus_sparse_config)
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     def test_initialization_failure_invalid_config(self, mock_milvus_utils, milvus_sparse_config):
         """测试初始化失败 - 无效配置"""
         if not RETRIEVER_AVAILABLE:
@@ -1133,12 +1133,12 @@ class TestMilvusSparseRetriever:
         mock_milvus_utils.check_milvus_available.return_value = True
         mock_milvus_utils.validate_milvus_config.return_value = False
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             with pytest.raises(ValueError):
                 MilvusSparseRetriever(config=milvus_sparse_config)
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     def test_embedding_model_import_failure(
         self, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
     ):
@@ -1152,7 +1152,7 @@ class TestMilvusSparseRetriever:
         mock_milvus_backend.return_value = Mock()
 
         # 模拟BGEM3EmbeddingFunction导入失败
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             with patch(
                 "pymilvus.model.hybrid.BGEM3EmbeddingFunction",
                 side_effect=ImportError("BGEM3EmbeddingFunction not available"),
@@ -1160,8 +1160,8 @@ class TestMilvusSparseRetriever:
                 with pytest.raises(ImportError):
                     MilvusSparseRetriever(config=milvus_sparse_config)
 
-    @patch("sage.libs.rag.retriever.MilvusUtils")
-    @patch("sage.libs.rag.retriever.MilvusBackend")
+    @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
+    @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
     @patch("pymilvus.model.hybrid.BGEM3EmbeddingFunction")
     def test_knowledge_file_loading(
         self, mock_bgem3, mock_milvus_backend, mock_milvus_utils, milvus_sparse_config
@@ -1185,7 +1185,7 @@ class TestMilvusSparseRetriever:
         config_with_knowledge = milvus_sparse_config.copy()
         config_with_knowledge["milvus_sparse"]["knowledge_file"] = "/path/to/knowledge.txt"
 
-        with patch("sage.libs.rag.retriever.MapFunction"):
+        with patch("sage.middleware.operators.rag.retriever.MapOperator"):
             with patch("os.path.exists", return_value=True):
                 MilvusSparseRetriever(config=config_with_knowledge)
 
@@ -1197,7 +1197,7 @@ class TestMilvusSparseRetriever:
 
 # 尝试导入Wiki18FAISSRetriever
 try:
-    from sage.libs.rag.retriever import Wiki18FAISSRetriever
+    from sage.middleware.operators.rag.retriever import Wiki18FAISSRetriever
 
     WIKI18_FAISS_AVAILABLE = True
 except ImportError:

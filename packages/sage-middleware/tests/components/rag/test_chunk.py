@@ -1,5 +1,5 @@
 """
-测试 sage.libs.rag.chunk 模块
+测试 sage.middleware.operators.rag.chunk 模块
 """
 
 import pytest
@@ -8,7 +8,7 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.chunk import CharacterSplitter
+    from sage.middleware.operators.rag.chunk import CharacterSplitter
 
     CHUNK_AVAILABLE = True
 except ImportError as e:
@@ -25,7 +25,7 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        from sage.libs.rag.chunk import CharacterSplitter
+        from sage.middleware.operators.rag.chunk import CharacterSplitter
 
         assert CharacterSplitter is not None
 

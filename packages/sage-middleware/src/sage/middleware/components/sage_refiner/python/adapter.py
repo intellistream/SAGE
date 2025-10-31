@@ -10,17 +10,17 @@ SAGE Function适配器
 from typing import TYPE_CHECKING, Any
 
 try:
-    from sage.kernel.api.function.map_function import MapFunction
+    from sage.common.core.functions import MapFunction
 
-        SAGE_CORE_AVAILABLE = True
-    except ImportError:
-        SAGE_CORE_AVAILABLE = False
+    SAGE_CORE_AVAILABLE = True
+except ImportError:
+    SAGE_CORE_AVAILABLE = False
 
-        # 创建dummy基类
-        class MapFunction:
-            """Dummy MapFunction for non-SAGE environments"""
+    # 创建dummy基类
+    class MapFunction:
+        """Dummy MapFunction for non-SAGE environments"""
 
-            pass
+        pass
 
 
 from sage.middleware.components.sage_refiner.python.service import RefinerService

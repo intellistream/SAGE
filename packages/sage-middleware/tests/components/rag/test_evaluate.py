@@ -1,5 +1,5 @@
 """
-测试 sage.libs.rag.evaluate 模块
+测试 sage.middleware.operators.rag.evaluate 模块
 """
 
 from unittest.mock import Mock, patch
@@ -11,7 +11,7 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.evaluate import (
+    from sage.middleware.operators.rag.evaluate import (
         AccuracyEvaluate,
         BertRecallEvaluate,
         BRSEvaluate,
@@ -436,8 +436,8 @@ class TestRecallEvaluate:
 class TestBertRecallEvaluate:
     """测试BertRecallEvaluate类"""
 
-    @patch("sage.libs.rag.evaluate.AutoTokenizer")
-    @patch("sage.libs.rag.evaluate.AutoModel")
+    @patch("sage.middleware.operators.rag.evaluate.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.evaluate.AutoModel")
     def test_bert_recall_initialization(self, mock_model, mock_tokenizer):
         """测试BertRecallEvaluate初始化"""
         if not EVALUATE_AVAILABLE:
@@ -454,9 +454,9 @@ class TestBertRecallEvaluate:
         mock_tokenizer.from_pretrained.assert_called_with("bert-base-uncased")
         mock_model.from_pretrained.assert_called_with("bert-base-uncased")
 
-    @patch("sage.libs.rag.evaluate.AutoTokenizer")
-    @patch("sage.libs.rag.evaluate.AutoModel")
-    @patch("sage.libs.rag.evaluate.cosine_similarity")
+    @patch("sage.middleware.operators.rag.evaluate.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.evaluate.AutoModel")
+    @patch("sage.middleware.operators.rag.evaluate.cosine_similarity")
     def test_bert_recall_execute(
         self,
         mock_cosine,
@@ -503,7 +503,7 @@ class TestBertRecallEvaluate:
 class TestRougeLEvaluate:
     """测试RougeLEvaluate类"""
 
-    @patch("sage.libs.rag.evaluate.Rouge")
+    @patch("sage.middleware.operators.rag.evaluate.Rouge")
     def test_rouge_l_initialization(self, mock_rouge_class):
         """测试RougeLEvaluate初始化"""
         if not EVALUATE_AVAILABLE:
@@ -517,7 +517,7 @@ class TestRougeLEvaluate:
         assert evaluator.rouge is not None
         mock_rouge_class.assert_called_once()
 
-    @patch("sage.libs.rag.evaluate.Rouge")
+    @patch("sage.middleware.operators.rag.evaluate.Rouge")
     def test_rouge_l_execute(self, mock_rouge_class, sample_evaluation_data):
         """测试RougeLEvaluate执行"""
         if not EVALUATE_AVAILABLE:

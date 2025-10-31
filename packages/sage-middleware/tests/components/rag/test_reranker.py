@@ -1,5 +1,5 @@
 """
-测试 sage.libs.rag.reranker 模块
+测试 sage.middleware.operators.rag.reranker 模块
 """
 
 from unittest.mock import Mock, patch
@@ -11,7 +11,7 @@ import torch
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.reranker import BGEReranker
+    from sage.middleware.operators.rag.reranker import BGEReranker
 
     RERANKER_AVAILABLE = True
 except ImportError as e:
@@ -28,12 +28,12 @@ class TestBGEReranker:
         if not RERANKER_AVAILABLE:
             pytest.skip("Reranker module not available")
 
-        from sage.libs.rag.reranker import BGEReranker
+        from sage.middleware.operators.rag.reranker import BGEReranker
 
         assert BGEReranker is not None
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     def test_bge_reranker_initialization_cuda(
         self, mock_cuda_available, mock_model_class, mock_tokenizer_class
@@ -68,8 +68,8 @@ class TestBGEReranker:
         mock_model.to.assert_called_once_with("cuda")
         mock_model.eval.assert_called_once()
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     def test_bge_reranker_initialization_cpu(
         self, mock_cuda_available, mock_model_class, mock_tokenizer_class
@@ -95,8 +95,8 @@ class TestBGEReranker:
         assert reranker.device == "cpu"
         mock_model.to.assert_called_once_with("cpu")
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     def test_load_model_success(self, mock_cuda_available, mock_model_class, mock_tokenizer_class):
         """测试_load_model方法成功加载"""
@@ -118,8 +118,8 @@ class TestBGEReranker:
         mock_tokenizer_class.from_pretrained.assert_called_once_with("BAAI/bge-reranker-v2-m3")
         mock_model_class.from_pretrained.assert_called_once_with("BAAI/bge-reranker-v2-m3")
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     def test_load_model_failure(self, mock_cuda_available, mock_model_class, mock_tokenizer_class):
         """测试_load_model方法加载失败"""
@@ -138,8 +138,8 @@ class TestBGEReranker:
 
         assert "Model loading failed" in str(exc_info.value)
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     @patch("torch.no_grad")
     def test_execute_with_tuple_input(
@@ -200,8 +200,8 @@ class TestBGEReranker:
         assert "reranking_results" in result
         assert "reranking_docs" in result
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     def test_execute_with_empty_docs(
         self, mock_cuda_available, mock_model_class, mock_tokenizer_class
@@ -239,8 +239,8 @@ class TestBGEReranker:
         assert result["reranking_results"] == []
         assert result["reranking_docs"] == []
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     @patch("torch.no_grad")
     def test_rerank_documents_scoring(
@@ -306,8 +306,8 @@ class TestBGEReranker:
         assert "reranking_docs" in result
         assert len(result["reranking_docs"]) == 3
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     @patch("torch.no_grad")
     def test_top_k_filtering(
@@ -374,8 +374,8 @@ class TestBGEReranker:
         assert "reranking_docs" in result
         assert len(result["reranking_docs"]) == 3  # 应该只有3个文档
 
-    @patch("sage.libs.rag.reranker.AutoTokenizer")
-    @patch("sage.libs.rag.reranker.AutoModelForSequenceClassification")
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
     @patch("torch.cuda.is_available")
     def test_execute_with_model_error(
         self, mock_cuda_available, mock_model_class, mock_tokenizer_class
@@ -425,8 +425,8 @@ class TestBGERerankerIntegration:
 
         # 使用mock来测试基本逻辑，避免复杂的tensor链式调用
         with (
-            patch("sage.libs.rag.reranker.AutoTokenizer") as mock_tokenizer_class,
-            patch("sage.libs.rag.reranker.AutoModelForSequenceClassification") as mock_model_class,
+            patch("sage.middleware.operators.rag.reranker.AutoTokenizer") as mock_tokenizer_class,
+            patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification") as mock_model_class,
             patch("torch.cuda.is_available") as mock_cuda_available,
             patch("torch.no_grad"),
         ):

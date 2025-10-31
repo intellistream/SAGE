@@ -1,5 +1,5 @@
 """
-Test sage.libs.rag.promptor module
+Test sage.middleware.operators.rag.promptor module
 """
 
 import pytest
@@ -8,7 +8,7 @@ import pytest
 pytest_plugins = []
 
 try:
-    from sage.libs.rag.promptor import (
+    from sage.middleware.operators.rag.promptor import (
         QA_prompt_template,  # noqa: F401
         QAPromptor,
         QueryProfilerPromptor,  # noqa: F401
@@ -31,7 +31,7 @@ class TestQAPromptor:
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
-        from sage.libs.rag.promptor import QAPromptor
+        from sage.middleware.operators.rag.promptor import QAPromptor
 
         assert QAPromptor is not None
 
@@ -267,7 +267,7 @@ class TestQueryProfilerPromptor:
             pytest.skip("Promptor module not available")
 
         try:
-            from sage.libs.rag.promptor import QueryProfilerPromptor
+            from sage.middleware.operators.rag.promptor import QueryProfilerPromptor
 
             assert QueryProfilerPromptor is not None
         except ImportError:
@@ -279,7 +279,7 @@ class TestQueryProfilerPromptor:
             pytest.skip("Promptor module not available")
 
         try:
-            from sage.libs.rag.promptor import QueryProfilerPromptor
+            from sage.middleware.operators.rag.promptor import QueryProfilerPromptor
         except ImportError:
             pytest.skip("QueryProfilerPromptor not available in module")
 
@@ -303,7 +303,7 @@ class TestSummarizationPromptor:
             pytest.skip("Promptor module not available")
 
         try:
-            from sage.libs.rag.promptor import SummarizationPromptor
+            from sage.middleware.operators.rag.promptor import SummarizationPromptor
 
             assert SummarizationPromptor is not None
         except ImportError:
@@ -315,7 +315,7 @@ class TestSummarizationPromptor:
             pytest.skip("Promptor module not available")
 
         try:
-            from sage.libs.rag.promptor import SummarizationPromptor
+            from sage.middleware.operators.rag.promptor import SummarizationPromptor
         except ImportError:
             pytest.skip("SummarizationPromptor not available in module")
 
@@ -334,7 +334,7 @@ class TestSummarizationPromptor:
             pytest.skip("Promptor module not available")
 
         try:
-            from sage.libs.rag.promptor import SummarizationPromptor
+            from sage.middleware.operators.rag.promptor import SummarizationPromptor
         except ImportError:
             pytest.skip("SummarizationPromptor not available in module")
 
@@ -374,7 +374,7 @@ class TestPromptTemplates:
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
-        from sage.libs.rag.promptor import QA_prompt_template
+        from sage.middleware.operators.rag.promptor import QA_prompt_template
 
         # Test template rendering
         context = "Machine learning is a subset of artificial intelligence."
@@ -389,7 +389,7 @@ class TestPromptTemplates:
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
-        from sage.libs.rag.promptor import QA_prompt_template
+        from sage.middleware.operators.rag.promptor import QA_prompt_template
 
         # Test template rendering without context
         rendered = QA_prompt_template.render()
@@ -404,7 +404,7 @@ class TestPromptTemplates:
         if not PROMPTOR_AVAILABLE:
             pytest.skip("Promptor module not available")
 
-        from sage.libs.rag.promptor import summarization_prompt_template
+        from sage.middleware.operators.rag.promptor import summarization_prompt_template
 
         # Test template rendering
         content = "This is content that needs to be summarized."

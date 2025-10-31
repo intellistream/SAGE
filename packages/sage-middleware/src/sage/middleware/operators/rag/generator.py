@@ -181,7 +181,7 @@ class OpenAIGenerator(MapOperator):
                 pass
 
 
-class HFGenerator(MapFunction):
+class HFGenerator(MapOperator):
     """
     HFGenerator is a generator rag that interfaces with a Hugging Face model
     to generate responses based on input data.

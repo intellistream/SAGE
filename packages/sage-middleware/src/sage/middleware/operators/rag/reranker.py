@@ -155,7 +155,7 @@ class BGEReranker(MapOperator):
         return data
 
 
-class LLMbased_Reranker(MapFunction):
+class LLMbased_Reranker(MapOperator):
     """
     A reranker that uses the BAAI/bge-reranker-v2-gemma model to determine if a retrieved document contains an answer to a given query.
     It scores the documents with 'Yes' or 'No' predictions based on whether the document answers the query.
