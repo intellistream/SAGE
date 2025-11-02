@@ -204,12 +204,6 @@ markers = [
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
 ]
-filterwarnings = [
-    # 忽略 SWIG C++ 绑定的弃用警告
-    "ignore:builtin type SwigPyPacked has no __module__ attribute:DeprecationWarning",
-    "ignore:builtin type SwigPyObject has no __module__ attribute:DeprecationWarning",
-    "ignore:builtin type swigvarlink has no __module__ attribute:DeprecationWarning",
-]
 
 [tool.black]
 line-length = 100
