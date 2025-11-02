@@ -403,10 +403,7 @@ class LongRefiner:
         sampling_params = self.step_to_config["query_analysis"]["sampling_params"]
         lora_request = self.step_to_config["query_analysis"]["lora_request"]
 
-        prompt_list = [
-            prompt_template.get_prompt(question=question) for question in question_list
-        ]
-        print(f"[Query Analysis] Processing {len(prompt_list)} questions...")
+        prompt_list = [prompt_template.get_prompt(question=question) for question in question_list]
         output_list = self.model.generate(
             prompt_list, sampling_params=sampling_params, lora_request=lora_request
         )

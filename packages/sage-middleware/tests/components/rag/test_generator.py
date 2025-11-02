@@ -507,7 +507,7 @@ class TestHFGenerator:
         assert isinstance(result, tuple)
         assert len(result) == 2
         user_query, response = result
-        assert user_query is None  # HFGenerator: data[0] if len(data) > 1 else None
+        assert user_query == ""  # HFGenerator: data[0] if len(data) > 1 else "" (empty string when single input)
         assert response == "Single response"
 
         # 验证model.generate被正确调用（传入的是data，即列表）

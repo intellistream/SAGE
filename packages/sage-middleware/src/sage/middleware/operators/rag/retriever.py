@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List
 
 import numpy as np
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
@@ -93,9 +93,7 @@ class ChromaRetriever(MapOperator):
         """从文件加载知识库"""
         try:
             # 使用 ChromaDB 后端加载
-            success = self.chroma_backend.load_knowledge_from_file(
-                file_path, self.embedding_model
-            )
+            success = self.chroma_backend.load_knowledge_from_file(file_path, self.embedding_model)
             if not success:
                 self.logger.error(f"Failed to load knowledge from file: {file_path}")
 
@@ -104,38 +102,23 @@ class ChromaRetriever(MapOperator):
 
     def _init_embedding_model(self):
         """初始化 embedding 模型"""
-        try:
-            from sage.common.components.sage_embedding.embedding_model import (
-                EmbeddingModel,
-            )
+        embedding_method = self.embedding_config.get("method", "default")
+        model = self.embedding_config.get("model", "sentence-transformers/all-MiniLM-L6-v2")
 
-            embedding_method = self.embedding_config.get("method", "default")
-            model = self.embedding_config.get(
-                "model", "sentence-transformers/all-MiniLM-L6-v2"
-            )
+        self.logger.info(f"Initializing embedding model with method: {embedding_method}")
+        self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
 
-            self.logger.info(
-                f"Initializing embedding model with method: {embedding_method}"
-            )
-            self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
+        # 验证向量维度
+        if hasattr(self.embedding_model, "get_dim"):
+            model_dim = self.embedding_model.get_dim()
+            if model_dim != self.vector_dimension:
+                self.logger.warning(
+                    f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
+                )
+                # 更新向量维度以匹配模型
+                self.vector_dimension = model_dim
 
-            # 验证向量维度
-            if hasattr(self.embedding_model, "get_dim"):
-                model_dim = self.embedding_model.get_dim()
-                if model_dim != self.vector_dimension:
-                    self.logger.warning(
-                        f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
-                    )
-                    # 更新向量维度以匹配模型
-                    self.vector_dimension = model_dim
-
-        except ImportError as e:
-            self.logger.error(f"Failed to import EmbeddingModel: {e}")
-            raise ImportError("Embedding model dependencies not available")
-
-    def add_documents(
-        self, documents: List[str], doc_ids: Optional[List[str]] = None
-    ) -> List[str]:
+    def add_documents(self, documents: list[str], doc_ids: list[str] | None = None) -> list[str]:
         """
         添加文档到索引中
         Args:
@@ -149,9 +132,7 @@ class ChromaRetriever(MapOperator):
 
         # 生成文档ID
         if doc_ids is None:
-            doc_ids = [
-                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-            ]
+            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
         elif len(doc_ids) != len(documents):
             raise ValueError("doc_ids length must match documents length")
 
@@ -197,7 +178,7 @@ class ChromaRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: str) -> dict[str, Any]:
         """
         执行检索
         Args:
@@ -238,9 +219,7 @@ class ChromaRetriever(MapOperator):
             query_vector = np.array(query_embedding, dtype=np.float32)
 
             # 使用 ChromaDB 执行检索
-            retrieved_docs = self.chroma_backend.search(
-                query_vector, input_query, self.top_k
-            )
+            retrieved_docs = self.chroma_backend.search(query_vector, input_query, self.top_k)
 
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from ChromaDB\033[0m"
@@ -326,7 +305,7 @@ class ChromaRetriever(MapOperator):
         """
         return self.chroma_backend.load_config(load_path)
 
-    def get_collection_info(self) -> Dict[str, Any]:
+    def get_collection_info(self) -> dict[str, Any]:
         """获取集合信息"""
         return self.chroma_backend.get_collection_info()
 
@@ -367,15 +346,13 @@ class MilvusDenseRetriever(MapOperator):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+            if self.ctx is not None and hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
                 self.data_base_path = os.path.join(
                     self.ctx.env_base_dir, ".sage_states", "retriever_data"
                 )
             else:
                 # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "retriever_data"
-                )
+                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -394,9 +371,7 @@ class MilvusDenseRetriever(MapOperator):
                 raise ValueError("Invalid Milvus configuration")
 
             # 初始化后端
-            self.milvus_backend = MilvusBackend(
-                config=self.milvus_config, logger=self.logger
-            )
+            self.milvus_backend = MilvusBackend(config=self.milvus_config, logger=self.logger)
 
             # 自动加载知识库文件
             knowledge_file = self.milvus_config.get("knowledge_file")
@@ -421,37 +396,23 @@ class MilvusDenseRetriever(MapOperator):
 
     def _init_embedding_model(self):
         """初始化embedding模型"""
-        try:
-            from sage.common.components.sage_embedding.embedding_model import (
-                EmbeddingModel,
-            )
+        embedding_method = self.embedding_config.get("method", "sentence_transformers")
+        model = self.embedding_config.get("model", "all-MiniLM-L6-v2")
 
-            embedding_method = self.embedding_config.get("method", "default")
-            model = self.embedding_config.get(
-                "model", "sentence-transformers/all-MiniLM-L6-v2"
-            )
+        self.logger.info(f"Initializing embedding model with method: {embedding_method}")
+        self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
 
-            self.logger.info(
-                f"Initializing embedding model with method: {embedding_method}"
-            )
-            self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
+        # 验证向量维度
+        if hasattr(self.embedding_model, "get_dim"):
+            model_dim = self.embedding_model.get_dim()
+            if model_dim != self.vector_dimension:
+                self.logger.warning(
+                    f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
+                )
+                # 更新向量维度以匹配模型
+                self.vector_dimension = model_dim
 
-            # 验证向量维度
-            if hasattr(self.embedding_model, "get_dim"):
-                model_dim = self.embedding_model.get_dim()
-                if model_dim != self.vector_dimension:
-                    self.logger.warning(
-                        f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
-                    )
-                    # 更新向量维度以匹配模型
-                    self.vector_dimension = model_dim
-        except ImportError as e:
-            self.logger.error(f"Failed to import EmbeddingModel: {e}")
-            raise ImportError("Embedding model dependencies not available")
-
-    def add_documents(
-        self, documents: List[str], doc_ids: Optional[List[str]] = None
-    ) -> List[str]:
+    def add_documents(self, documents: list[str], doc_ids: list[str] | None = None) -> list[str]:
         """
         添加文档到milvus
         Args:
@@ -465,9 +426,7 @@ class MilvusDenseRetriever(MapOperator):
             return []
 
         if doc_ids is None:
-            doc_ids = [
-                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-            ]
+            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
         elif len(doc_ids) != len(documents):
             raise ValueError("doc_ids length must match documents length")
 
@@ -518,7 +477,7 @@ class MilvusDenseRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: str) -> dict[str, Any]:
         """
         执行检索
         Args:
@@ -626,7 +585,7 @@ class MilvusDenseRetriever(MapOperator):
         """
         return self.milvus_backend.load_config(load_path)
 
-    def get_collection_info(self) -> Dict[str, Any]:
+    def get_collection_info(self) -> dict[str, Any]:
         """
         获取集合信息
         """
@@ -671,15 +630,13 @@ class MilvusSparseRetriever(MapOperator):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+            if self.ctx is not None and hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
                 self.data_base_path = os.path.join(
                     self.ctx.env_base_dir, ".sage_states", "retriever_data"
                 )
             else:
                 # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "retriever_data"
-                )
+                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -698,9 +655,7 @@ class MilvusSparseRetriever(MapOperator):
                 raise ValueError("Invalid Milvus configuration")
 
             # 初始化后端
-            self.milvus_backend = MilvusBackend(
-                config=self.milvus_config, logger=self.logger
-            )
+            self.milvus_backend = MilvusBackend(config=self.milvus_config, logger=self.logger)
 
             # 自动加载知识库文件
             knowledge_file = self.milvus_config.get("knowledge_file")
@@ -716,11 +671,15 @@ class MilvusSparseRetriever(MapOperator):
         try:
             # 尝试新的导入路径（PyMilvus 2.6.0+）
             try:
-                from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+                from pymilvus.model.hybrid import (
+                    BGEM3EmbeddingFunction,  # type: ignore[import-not-found]
+                )
             except ImportError:
                 # 如果失败，尝试直接从 model 导入
                 try:
-                    from pymilvus.model import BGEM3EmbeddingFunction
+                    from pymilvus.model import (
+                        BGEM3EmbeddingFunction,  # type: ignore[import-not-found]
+                    )
                 except ImportError:
                     # 最后尝试安装单独的包
                     self.logger.error(
@@ -745,9 +704,7 @@ class MilvusSparseRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to load knowledge from file: {e}")
 
-    def add_documents(
-        self, documents: List[str], doc_ids: Optional[List[str]] = None
-    ) -> List[str]:
+    def add_documents(self, documents: list[str], doc_ids: list[str] | None = None) -> list[str]:
         """
         添加文档到milvus
         Args:
@@ -765,9 +722,7 @@ class MilvusSparseRetriever(MapOperator):
         embeddings = embedding["sparse"]
 
         if doc_ids is None:
-            doc_ids = [
-                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
-            ]
+            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
         elif len(doc_ids) != len(documents):
             raise ValueError("doc_ids length must match documents length")
 
@@ -810,7 +765,7 @@ class MilvusSparseRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: str) -> dict[str, Any]:
         """
         执行检索
         Args:
@@ -845,7 +800,6 @@ class MilvusSparseRetriever(MapOperator):
         self.logger.info(f"[ {self.__class__.__name__}]: Using top_k = {self.top_k}")
 
         try:
-
             # 使用Milvus执行稀疏检索 - 直接传递查询文本，让sparse_search方法处理向量生成
             retrieved_docs = self.milvus_backend.sparse_search(
                 query_text=input_query,
@@ -914,7 +868,7 @@ class MilvusSparseRetriever(MapOperator):
         """
         return self.milvus_backend.load_config(load_path)
 
-    def get_collection_info(self) -> Dict[str, Any]:
+    def get_collection_info(self) -> dict[str, Any]:
         """
         获取集合信息
         """
@@ -984,14 +938,12 @@ class Wiki18FAISSRetriever(MapOperator):
 
         # Profile数据存储
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+            if self.ctx is not None and hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
                 self.data_base_path = os.path.join(
                     self.ctx.env_base_dir, ".sage_states", "retriever_data"
                 )
             else:
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "retriever_data"
-                )
+                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -1087,7 +1039,7 @@ class Wiki18FAISSRetriever(MapOperator):
             if os.path.exists(documents_path):
                 self.documents = []
                 try:
-                    with open(documents_path, "r", encoding="utf-8") as f:
+                    with open(documents_path, encoding="utf-8") as f:
                         for line in f:
                             line = line.strip()
                             if line:
@@ -1110,9 +1062,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
         except ImportError as e:
             self.logger.error(f"无法导入FAISS: {e}")
-            self.logger.error(
-                "请安装FAISS: pip install faiss-cpu 或 pip install faiss-gpu"
-            )
+            self.logger.error("请安装FAISS: pip install faiss-cpu 或 pip install faiss-gpu")
             raise
         except Exception as e:
             self.logger.error(f"FAISS索引初始化失败: {e}")
@@ -1177,9 +1127,7 @@ class Wiki18FAISSRetriever(MapOperator):
             self.logger.error(f"查询编码失败: {e}")
             raise
 
-    def _search_faiss(
-        self, query_vector: np.ndarray, top_k: int
-    ) -> Tuple[List[float], List[int]]:
+    def _search_faiss(self, query_vector: np.ndarray, top_k: int) -> tuple[list[float], list[int]]:
         """
         在FAISS索引中搜索（MaxP方法）
 
@@ -1223,8 +1171,8 @@ class Wiki18FAISSRetriever(MapOperator):
             return [], []
 
     def _format_retrieved_documents(
-        self, scores: List[float], indices: List[int]
-    ) -> List[Dict[str, Any]]:
+        self, scores: list[float], indices: list[int]
+    ) -> list[dict[str, Any]]:
         """
         格式化检索到的文档
 
@@ -1237,7 +1185,7 @@ class Wiki18FAISSRetriever(MapOperator):
         """
         retrieved_docs = []
 
-        for score, idx in zip(scores, indices):
+        for score, idx in zip(scores, indices, strict=False):
             if idx >= 0 and idx < len(self.documents):
                 original_doc = self.documents[idx]
 
@@ -1262,7 +1210,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
         return retrieved_docs
 
-    def _save_data_record(self, query: str, retrieved_docs: List[Dict[str, Any]]):
+    def _save_data_record(self, query: str, retrieved_docs: list[dict[str, Any]]):
         """保存检索记录用于分析"""
         if not self.enable_profile:
             return
@@ -1299,7 +1247,7 @@ class Wiki18FAISSRetriever(MapOperator):
         except Exception as e:
             self.logger.error(f"保存检索记录失败: {e}")
 
-    def execute(self, data: str) -> Dict[str, Any]:
+    def execute(self, data: str | dict[str, Any] | tuple) -> dict[str, Any]:
         """
         执行检索
         Args:
@@ -1415,7 +1363,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
             # 加载Wiki18数据
             documents = []
-            with open(wiki18_data_path, "r", encoding="utf-8") as f:
+            with open(wiki18_data_path, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line:

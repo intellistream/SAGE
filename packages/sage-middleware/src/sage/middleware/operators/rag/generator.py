@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
@@ -23,7 +23,7 @@ class OpenAIGenerator(MapOperator):
           "method":     "openai",
           "model_name": "gpt-4o-mini",
           "base_url":   "http://localhost:8000/v1",
-          "api_key":    "xxx",
+          "api_key":    "xxx",  # pragma: allowlist secret
           "seed":       42
         }
     """
@@ -38,9 +38,7 @@ class OpenAIGenerator(MapOperator):
         # 实例化模型
         # API key 优先级: 配置文件 > OPENAI_API_KEY > ALIBABA_API_KEY
         api_key = (
-            self.config["api_key"]
-            or os.getenv("OPENAI_API_KEY")
-            or os.getenv("ALIBABA_API_KEY")
+            self.config["api_key"] or os.getenv("OPENAI_API_KEY") or os.getenv("ALIBABA_API_KEY")
         )
         self.model = OpenAIClient(
             model_name=self.config["model_name"],
@@ -88,7 +86,7 @@ class OpenAIGenerator(MapOperator):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: List[Any]) -> Dict[str, Any]:
+    def execute(self, data: list[Any]) -> dict[str, Any]:
         """
         输入 : [original_data, prompt]
         输出 : 完整的数据字典，包含 generated 字段
@@ -116,9 +114,7 @@ class OpenAIGenerator(MapOperator):
         # 如果 prompt 是字符串，转换为标准消息格式
         if isinstance(prompt, str):
             messages = [{"role": "user", "content": prompt}]
-        elif isinstance(prompt, list) and all(
-            isinstance(item, dict) for item in prompt
-        ):
+        elif isinstance(prompt, list) and all(isinstance(item, dict) for item in prompt):
             # 如果已经是消息列表格式，直接使用
             messages = prompt
         else:
@@ -199,7 +195,7 @@ class HFGenerator(MapOperator):
         # Apply the generator model with the provided configuration
         self.model = HFClient(model_name=self.config["model_name"])
 
-    def execute(self, data: list, **kwargs) -> Tuple[str, str]:
+    def execute(self, data: list, **kwargs) -> tuple[str, str]:
         """
         Executes the response generation using the configured Hugging Face model based on the input data.
 
@@ -219,8 +215,9 @@ class HFGenerator(MapOperator):
         print(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
 
         # Return the generated response as a Data object
-        self.logger.info(
-            f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m "
-        )
+        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
 
-        return (user_query, response)
+        return (
+            user_query if user_query is not None else "",
+            response if isinstance(response, str) else str(response),
+        )

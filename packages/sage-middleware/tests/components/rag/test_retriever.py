@@ -53,7 +53,7 @@ class TestChromaRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
     @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_initialization(
         self,
         mock_embedding_model,
@@ -82,7 +82,7 @@ class TestChromaRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
     @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_execute_string_input(
         self,
         mock_embedding_model,
@@ -126,7 +126,7 @@ class TestChromaRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
     @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_execute_dict_input(
         self,
         mock_embedding_model,
@@ -164,7 +164,7 @@ class TestChromaRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
     @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_add_documents(
         self,
         mock_embedding_model,
@@ -199,7 +199,7 @@ class TestChromaRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.ChromaUtils")
     @patch("sage.middleware.operators.rag.retriever.ChromaBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_error_handling(
         self,
         mock_embedding_model,
@@ -271,7 +271,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_initialization(
         self,
         mock_embedding_model,
@@ -300,7 +300,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_execute_string_input(
         self,
         mock_embedding_model,
@@ -348,7 +348,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_execute_dict_input(
         self,
         mock_embedding_model,
@@ -392,7 +392,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_execute_tuple_input(
         self,
         mock_embedding_model,
@@ -432,7 +432,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_add_documents(
         self,
         mock_embedding_model,
@@ -474,7 +474,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_add_documents_with_custom_ids(
         self,
         mock_embedding_model,
@@ -513,7 +513,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_error_handling_embedding_failure(
         self,
         mock_embedding_model,
@@ -548,7 +548,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_error_handling_search_failure(
         self,
         mock_embedding_model,
@@ -585,7 +585,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_configuration_methods(
         self,
         mock_embedding_model,
@@ -634,7 +634,7 @@ class TestMilvusDenseRetriever:
 
     @patch("sage.middleware.operators.rag.retriever.MilvusUtils")
     @patch("sage.middleware.operators.rag.retriever.MilvusBackend")
-    @patch("sage.common.components.sage_embedding.embedding_model.EmbeddingModel")
+    @patch("sage.middleware.operators.rag.retriever.EmbeddingModel")
     def test_profile_mode(
         self,
         mock_embedding_model,

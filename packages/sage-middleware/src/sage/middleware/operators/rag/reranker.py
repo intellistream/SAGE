@@ -58,9 +58,7 @@ class BGEReranker(MapOperator):
         try:
             self.logger.info(f"Loading reranker: {model_name}")
             tokenizer = AutoTokenizer.from_pretrained(model_name)  # Load the tokenizer
-            model = AutoModelForSequenceClassification.from_pretrained(
-                model_name
-            )  # Load the model
+            model = AutoModelForSequenceClassification.from_pretrained(model_name)  # Load the model
             return tokenizer, model
         except Exception as e:
             self.logger.error(f"Failed to load model {model_name}: {str(e)}")
@@ -187,7 +185,7 @@ class LLMbased_Reranker(MapOperator):
 
         # Load tokenizer and model using the provided model name
         self.tokenizer, self.model = self._load_model(model_name)
-        self.model = self.model.to(self.device)
+        self.model = self.model.to(self.device)  # type: ignore[arg-type]
 
         # Get the token ID for the 'Yes' token (used for classification)
         self.yes_loc = self.tokenizer("Yes", add_special_tokens=False)["input_ids"][0]
@@ -222,12 +220,10 @@ class LLMbased_Reranker(MapOperator):
             prompt = "Given a query A and a passage B, determine whether the passage contains an answer to the query by providing a prediction of either 'Yes' or 'No'."
 
         sep = "\n"
-        prompt_inputs = tokenizer(
-            prompt, return_tensors=None, add_special_tokens=False
-        )["input_ids"]
-        sep_inputs = tokenizer(sep, return_tensors=None, add_special_tokens=False)[
+        prompt_inputs = tokenizer(prompt, return_tensors=None, add_special_tokens=False)[
             "input_ids"
         ]
+        sep_inputs = tokenizer(sep, return_tensors=None, add_special_tokens=False)["input_ids"]
 
         inputs = []
         for query, passage in pairs:

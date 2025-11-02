@@ -111,9 +111,7 @@ class MapOperator(BaseOperator):
                 if self.enable_profile:
                     self._save_time_record(duration)
 
-                self.logger.debug(
-                    f"Operator {self.name} processed data in {duration:.4f}s with result: {result}"
-                )
+                self.logger.debug(f"Operator {self.name} processed data with result: {result}")
                 result_packet = (
                     packet.inherit_partition_info(result) if (result is not None) else None
                 )
