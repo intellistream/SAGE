@@ -3,7 +3,7 @@ import time
 
 from sage.libs.tools.tool import BaseTool
 
-from ..integrations.openaiclient import OpenAIClient
+from ..llm.clients.openaiclient import OpenAIClient
 
 
 class ImageCaptioner(BaseTool):
