@@ -155,8 +155,8 @@ def example_stream_ingestion_and_join():
             timestamp=data["timestamp"], value=data["value"], tags={"stream": "right"}
         )
 
-    print(f"Left DB size: {db_left.size()}")
-    print(f"Right DB size: {db_right.size()}")
+    print(f"Left DB size: {db_left.size}")
+    print(f"Right DB size: {db_right.size}")
 
     # Query joined data
     print("\nQuerying joined data from time window...")

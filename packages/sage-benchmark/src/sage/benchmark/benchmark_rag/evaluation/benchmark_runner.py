@@ -41,7 +41,10 @@ class BatchDataLoader(BatchFunction):
 
     def __init__(self, config: dict):
         self.config = config
-        self.data_path = config.get("data_path")
+        data_path = config.get("data_path")
+        if not data_path:
+            raise ValueError("data_path is required in config")
+        self.data_path: str = data_path
         self.max_samples = config.get("max_samples", None)
 
         # Load data
