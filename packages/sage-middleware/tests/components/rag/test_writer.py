@@ -80,7 +80,7 @@ class TestMemoryWriter:
 
         # 由于execute方法可能需要实际的存储后端，这里只测试基本调用
         try:
-            result = writer.execute("test data")
+            _ = writer.execute("test data")  # noqa: F841
             # 如果没有抛出异常，则认为基本功能正常
             assert True
         except Exception:
@@ -96,7 +96,7 @@ class TestMemoryWriter:
         writer = MemoryWriter(config=config)
 
         try:
-            result = writer.execute(["data1", "data2"])
+            _ = writer.execute(["data1", "data2"])  # noqa: F841
             assert True
         except Exception:
             pytest.skip("MemoryWriter requires actual storage backend")

@@ -2,8 +2,9 @@
 测试 sage.middleware.operators.rag.searcher 模块
 """
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 
 # 尝试导入searcher模块
 pytest_plugins = []
@@ -36,7 +37,7 @@ class TestBochaWebSearch:
             pytest.skip("Searcher module not available")
 
         config = {
-            "api_key": "test_api_key",
+            "api_key": "test_api_key",  # pragma: allowlist secret
             "count": 5,
             "page": 1,
             "summary": True,
@@ -75,7 +76,7 @@ class TestBochaWebSearch:
         }
         mock_post.return_value = mock_response
 
-        config = {"api_key": "test_key", "count": 2}
+        config = {"api_key": "test_key", "count": 2}  # pragma: allowlist secret
         searcher = BochaWebSearch(config=config)
 
         result = searcher.execute("test query")

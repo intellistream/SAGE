@@ -1,15 +1,16 @@
 from collections import Counter
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Union
 
 from rouge import Rouge
-from sage.kernel.operators import MapOperator
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoTokenizer
 
+from sage.kernel.operators import MapOperator
+
 
 def _normalize_data(
-    data: Union[Dict[str, Any], Tuple[Any, Any], str, Any],
-) -> Dict[str, Any]:
+    data: Union[dict[str, Any], tuple[Any, Any], str, Any],
+) -> dict[str, Any]:
     """将上游数据标准化为评测期望的字典结构。
 
     兼容多种入参形态：
@@ -68,16 +69,15 @@ class F1Evaluate(MapOperator):
         计算F1分数
         期望输入: {"generated": str, "references": list[str], ...}
         """
-        query = data.get("query", "")
         golds = data.get("references", [])
         pred = data.get("generated", "")
-        
+
         if not golds or not pred:
-            print(f"\033[93m[F1] : 0.0000\033[0m")
+            print("\033[93m[F1] : 0.0000\033[0m")
             return data
-            
+
         best = max(self._f1_score(pred, g) for g in golds)
-        
+
         # # 详细信息输出（暂时注释）
         # print("\n" + "="*80)
         # if query:
@@ -89,9 +89,9 @@ class F1Evaluate(MapOperator):
         # print("\033[95m[Generated (Actual)]:\033[0m")
         # print(f"  \033[95m{pred}\033[0m")
         # print("="*80)
-        
+
         print(f"\033[93m[F1] : {best:.4f}\033[0m")
-        
+
         return data
 
 
@@ -116,11 +116,11 @@ class RecallEvaluate(MapOperator):
         """
         golds = data.get("references", [])
         pred = data.get("generated", "")
-        
+
         if not golds or not pred:
-            print(f"\033[93m[Recall] : 0.0000\033[0m")
+            print("\033[93m[Recall] : 0.0000\033[0m")
             return data
-            
+
         best = max(self._recall(pred, g) for g in golds)
         print(f"\033[93m[Recall] : {best:.4f}\033[0m")
         return data
@@ -139,11 +139,11 @@ class BertRecallEvaluate(MapOperator):
         """
         golds = data.get("references", [])
         pred = data.get("generated", "")
-        
+
         if not golds or not pred:
-            print(f"\033[93m[BertRecall] : 0.0000\033[0m")
+            print("\033[93m[BertRecall] : 0.0000\033[0m")
             return data
-            
+
         scores = []
         for g in golds:
             encs = self.tokenizer([pred, g], return_tensors="pt", padding=True)
@@ -166,11 +166,11 @@ class RougeLEvaluate(MapOperator):
         """
         golds = data.get("references", [])
         pred = data.get("generated", "")
-        
+
         if not golds or not pred:
-            print(f"\033[93m[ROUGE-L] : 0.0000\033[0m")
+            print("\033[93m[ROUGE-L] : 0.0000\033[0m")
             return data
-            
+
         scores = []
         for g in golds:
             try:
@@ -192,11 +192,11 @@ class BRSEvaluate(MapOperator):
         """
         golds = data.get("references", [])
         pred = data.get("generated", "")
-        
+
         if not golds or not pred:
-            print(f"\033[93m[BRS] : 0.0000\033[0m")
+            print("\033[93m[BRS] : 0.0000\033[0m")
             return data
-            
+
         scores = [(len(set(pred) & set(g)) / len(set(g))) if g else 0.0 for g in golds]
         best = max(scores) if scores else 0.0
         print(f"\033[93m[BRS] : {best:.4f}\033[0m")
@@ -268,7 +268,7 @@ class LatencyEvaluate(MapOperator):
         refining_time = data.get("refining_time", 0.0)
         generation_time = data.get("generation_time", 0.0)
         retrieval_time = data.get("retrieval_time", 0.0)
-        
+
         total_lat = refining_time + generation_time + retrieval_time
         print(f"\033[93m[Latency] : {total_lat:.2f}s (retrieval: {retrieval_time:.2f}s, refining: {refining_time:.2f}s, generation: {generation_time:.2f}s)\033[0m")
         return data

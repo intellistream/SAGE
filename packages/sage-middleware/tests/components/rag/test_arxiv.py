@@ -2,14 +2,14 @@
 测试 sage.middleware.operators.rag.arxiv 模块
 """
 
+
 import pytest
-from unittest.mock import Mock, patch
 
 # 尝试导入arxiv模块
 pytest_plugins = []
 
 try:
-    from sage.middleware.operators.rag.arxiv import Paper, ArxivPDFDownloader, ArxivPDFParser
+    from sage.middleware.operators.rag.arxiv import Paper  # noqa: F401
 
     ARXIV_AVAILABLE = True
 except ImportError as e:
