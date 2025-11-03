@@ -47,7 +47,7 @@
 - ✅ `docs/API_KEY_SECURITY.md` - API Key 安全配置详细指南
 - ✅ `docs/CONFIG_CLEANUP_REPORT.md` - 配置清理详细报告
 - ✅ `docs/CICD_ENV_SETUP.md` - CI/CD 环境变量配置指南
-- ✅ `.github/SECRETS_SETUP.md` - GitHub Secrets 快速设置指南
+- ✅ `CONTRIBUTING.md` - 整合 GitHub Secrets 配置章节
 
 ### 工具脚本（1 个）
 
@@ -141,8 +141,8 @@ WEB_SEARCH_API_KEY=your_web_search_api_key_here
 SAGE/
 ├── .env                          # 本地环境变量（不提交）
 ├── .env.template                 # 环境变量模板
+├── CONTRIBUTING.md               # 贡献指南（含 GitHub Secrets 配置）
 ├── .github/
-│   ├── SECRETS_SETUP.md         # GitHub Secrets 快速设置
 │   └── workflows/
 │       ├── ci.yml               # 生产环境 CI（已更新）
 │       └── dev-ci.yml           # 开发环境 CI（已更新）
