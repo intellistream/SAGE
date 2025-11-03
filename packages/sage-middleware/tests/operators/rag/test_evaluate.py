@@ -503,7 +503,9 @@ class TestCompressionRateEvaluate:
             "generated": "Deep learning uses neural networks.",
             "references": ["Deep learning is a machine learning technique."],
             "retrieval_results": [
-                {"text": "Original document containing ten words about deep learning neural networks technology"}
+                {
+                    "text": "Original document containing ten words about deep learning neural networks technology"
+                }
             ],  # 11 tokens
             "refining_results": ["Compressed neural networks document"],  # 4 tokens
         }

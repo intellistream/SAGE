@@ -192,7 +192,7 @@ class QAPromptor(MapOperator):
                             external_corpus_list.append(result)
                         else:
                             external_corpus_list.append(str(result))
-                
+
                 # 处理 retrieval_results 字段（来自 retriever - 原始检索结果）
                 elif "retrieval_results" in raw:
                     results = raw.get("retrieval_results", [])

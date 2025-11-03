@@ -78,13 +78,13 @@ class RefinerOperator(MapOperator):
 
     def execute(self, data: dict):
         """执行文档压缩
-        
+
         输入格式：
             {
                 "query": str,
                 "retrieval_results": List[Dict],  # 原始检索结果
             }
-        
+
         输出格式：
             {
                 "query": str,

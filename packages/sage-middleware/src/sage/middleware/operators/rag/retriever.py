@@ -531,12 +531,10 @@ class MilvusDenseRetriever(MapOperator):
             self.logger.error(f" retrieval failed: {str(e)}")
             if is_dict_input:
                 data["retrieval_results"] = []
-                data["retrieval_results"] = []
                 return data
             else:
                 return {
                     "query": input_query,
-                    "retrieval_results": [],
                     "retrieval_results": [],
                     "input": data,
                 }
@@ -800,12 +798,10 @@ class MilvusSparseRetriever(MapOperator):
 
             if is_dict_input:
                 data["retrieval_results"] = retrieved_docs
-                data["retrieval_results"] = retrieved_docs
                 return data
             else:
                 return {
                     "query": input_query,
-                    "retrieval_results": retrieved_docs,
                     "retrieval_results": retrieved_docs,
                     "input": data,
                 }
@@ -814,12 +810,10 @@ class MilvusSparseRetriever(MapOperator):
             self.logger.error(f" retrieval failed: {str(e)}")
             if is_dict_input:
                 data["retrieval_results"] = []
-                data["retrieval_results"] = []
                 return data
             else:
                 return {
                     "query": input_query,
-                    "retrieval_results": [],
                     "retrieval_results": [],
                     "input": data,
                 }

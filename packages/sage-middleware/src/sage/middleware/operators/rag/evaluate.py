@@ -9,9 +9,10 @@ from sage.kernel.operators import MapOperator
 
 class F1Evaluate(MapOperator):
     """F1分数评估器
-    
+
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
+
     def _get_tokens(self, text: str):
         return text.lower().split()
 
@@ -38,9 +39,10 @@ class F1Evaluate(MapOperator):
 
 class RecallEvaluate(MapOperator):
     """Recall评估器
-    
+
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
+
     def _get_tokens(self, text: str):
         return text.lower().split()
 
@@ -62,9 +64,10 @@ class RecallEvaluate(MapOperator):
 
 class BertRecallEvaluate(MapOperator):
     """BERT Recall评估器
-    
+
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
+
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
@@ -89,9 +92,10 @@ class BertRecallEvaluate(MapOperator):
 
 class RougeLEvaluate(MapOperator):
     """ROUGE-L评估器
-    
+
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
+
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.rouge = Rouge()
@@ -112,9 +116,10 @@ class RougeLEvaluate(MapOperator):
 
 class BRSEvaluate(MapOperator):
     """BRS评估器
-    
+
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
+
     def execute(self, data: dict):
         golds = data.get("references", [])
         pred = data.get("generated", "")
@@ -126,9 +131,10 @@ class BRSEvaluate(MapOperator):
 
 class AccuracyEvaluate(MapOperator):
     """准确率评估器
-    
+
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
+
     def _normalize_text(self, text: str) -> str:
         """标准化文本用于比较"""
         return text.lower().strip()
@@ -161,13 +167,14 @@ class AccuracyEvaluate(MapOperator):
 
 class TokenCountEvaluate(MapOperator):
     """Token计数评估器
-    
+
     统计当前阶段文档的token数量
     优先级：refining_results（压缩后）> retrieval_results（原始）
-    
+
     输入数据格式：{"query": str, "refining_results": List[str], ...} 或
                  {"query": str, "retrieval_results": List[Dict], ...}
     """
+
     def execute(self, data: dict):
         # 优先计算 refining_results（压缩后），其次是 retrieval_results（原始）
         docs = data.get("refining_results") or data.get("retrieval_results", [])
@@ -189,15 +196,16 @@ class TokenCountEvaluate(MapOperator):
 
 class LatencyEvaluate(MapOperator):
     """延迟评估器
-    
+
     输入数据格式：{"query": str, "retrieve_time": float, "refine_time": float, "generate_time": float, ...}
     """
+
     def execute(self, data: dict):
         retrieve_time = data.get("retrieve_time", 0.0)
         refine_time = data.get("refine_time", 0.0)
         generate_time = data.get("generate_time", 0.0)
         total_lat = retrieve_time + refine_time + generate_time
-        
+
         print(f"\033[93m[Retrieve Time] : {retrieve_time:.2f}s\033[0m")
         print(f"\033[93m[Refine Time]   : {refine_time:.2f}s\033[0m")
         print(f"\033[93m[Generate Time] : {generate_time:.2f}s\033[0m")
@@ -207,9 +215,10 @@ class LatencyEvaluate(MapOperator):
 
 class ContextRecallEvaluate(MapOperator):
     """上下文召回率评估器
-    
+
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
+
     def _normalize_text(self, text: str) -> str:
         """标准化文本用于比较"""
         return text.lower().strip()
@@ -249,6 +258,7 @@ class CompressionRateEvaluate(MapOperator):
     - retrieval_results: 原始检索的文档（用于计算原始token数）
     - refining_results: 压缩后的文档文本（用于计算压缩后token数）
     """
+
     def _count_tokens(self, docs):
         """计算文档列表的总token数"""
         if not docs:
