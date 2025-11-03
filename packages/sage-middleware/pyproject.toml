@@ -46,6 +46,7 @@ dependencies = [
     "isage-common>=0.1.0",  # L1: 基础工具
     "isage-platform>=0.1.0",  # L2: 平台服务（BaseService等）
     "isage-kernel>=0.1.0",  # L3: 核心引擎
+    "isage-libs>=0.1.0",  # L3: 算法库（sage_refiner 依赖的压缩算法）
 
     # Middleware-specific dependencies
     # Authentication and security
