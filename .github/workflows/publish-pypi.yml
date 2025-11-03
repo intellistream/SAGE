@@ -146,7 +146,23 @@ jobs:
           # Commit version bump
           git add -A
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
-          git push
+
+          # Pull latest changes with rebase to avoid conflicts
+          git pull --rebase origin ${{ github.ref_name }}
+
+          # Push with retry logic
+          max_retries=3
+          retry_count=0
+          until git push origin ${{ github.ref_name }}; do
+            retry_count=$((retry_count + 1))
+            if [ $retry_count -ge $max_retries ]; then
+              echo "Failed to push after $max_retries attempts"
+              exit 1
+            fi
+            echo "Push failed, retrying (attempt $retry_count/$max_retries)..."
+            sleep 2
+            git pull --rebase origin ${{ github.ref_name }}
+          done
 
       - name: Build and publish packages
         env:
