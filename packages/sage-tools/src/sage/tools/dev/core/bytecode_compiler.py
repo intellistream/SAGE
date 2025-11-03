@@ -92,12 +92,10 @@ class BytecodeCompiler:
 
         # 过滤要跳过的文件
         files_to_compile = []
+        skipped_count = 0
         for py_file in python_files:
             if self._should_skip_file(py_file):
-                console.print(
-                    f"  ⏭️ 跳过: {py_file.relative_to(self.compiled_path)}",
-                    style="yellow",
-                )
+                skipped_count += 1
                 continue
             files_to_compile.append(py_file)
 
@@ -105,7 +103,9 @@ class BytecodeCompiler:
             console.print("  ⚠️ 没有找到需要编译的Python文件", style="yellow")
             return
 
-        console.print(f"  📝 找到 {len(files_to_compile)} 个Python文件需要编译")
+        console.print(
+            f"  📝 找到 {len(files_to_compile)} 个Python文件需要编译 (跳过 {skipped_count} 个)"
+        )
 
         # 检查和保留二进制扩展文件
         self._preserve_binary_extensions()
@@ -116,6 +116,7 @@ class BytecodeCompiler:
 
             compiled_count = 0
             failed_count = 0
+            failed_files = []
 
             for py_file in files_to_compile:
                 try:
@@ -123,27 +124,25 @@ class BytecodeCompiler:
                     pyc_file = py_file.with_suffix(".pyc")
                     py_compile.compile(py_file, pyc_file, doraise=True)
                     compiled_count += 1
-                    progress.console.print(
-                        f"    ✓ 编译: {py_file.relative_to(self.compiled_path)} → {pyc_file.name}",
-                        style="green",
-                    )
 
                 except py_compile.PyCompileError as e:
                     failed_count += 1
-                    progress.console.print(
-                        f"    ❌ 编译失败: {py_file.relative_to(self.compiled_path)}: {e}",
-                        style="red",
-                    )
+                    failed_files.append((py_file.relative_to(self.compiled_path), str(e)))
                 except Exception as e:
                     failed_count += 1
-                    progress.console.print(
-                        f"    💥 未知错误: {py_file.relative_to(self.compiled_path)}: {e}",
-                        style="red",
-                    )
+                    failed_files.append((py_file.relative_to(self.compiled_path), str(e)))
 
                 progress.update(task, advance=1)
 
         console.print(f"  📊 编译统计: 成功 {compiled_count}, 失败 {failed_count}")
+
+        # Only show failed files if there are any
+        if failed_files:
+            console.print("  ❌ 编译失败的文件:", style="red")
+            for file_path, error in failed_files[:5]:  # Show max 5 failed files
+                console.print(f"     - {file_path}: {error[:80]}", style="red")
+            if len(failed_files) > 5:
+                console.print(f"     ... 和其他 {len(failed_files) - 5} 个文件", style="red")
 
     def _preserve_binary_extensions(self):
         """检查和保留二进制扩展文件"""
@@ -153,18 +152,12 @@ class BytecodeCompiler:
             extensions.extend(self.compiled_path.rglob(ext))
 
         if not extensions:
-            console.print("  ℹ️ 未找到二进制扩展文件", style="blue")
+            console.print("  ℹ️ 未找到二进制扩展文件", style="dim")
             return
 
         console.print(f"  🔧 找到 {len(extensions)} 个二进制扩展文件")
 
-        # 记录所有扩展文件
-        for ext_file in extensions:
-            rel_path = ext_file.relative_to(self.compiled_path)
-            size_kb = ext_file.stat().st_size / 1024
-            console.print(f"    📦 保留: {rel_path} ({size_kb:.1f} KB)", style="blue")
-
-        # 确保不会删除这些文件
+        # 记录所有扩展文件 (only show details in verbose mode)
         self._binary_extensions = extensions
 
     def _should_skip_file(self, py_file: Path) -> bool:
@@ -189,7 +182,7 @@ class BytecodeCompiler:
         return False
 
     def _remove_source_files(self):
-        """删除源文件，只保留字节码"""
+        """删除源文件,只保留字节码"""
         python_files = list(self.compiled_path.rglob("*.py"))
 
         removed_count = 0
@@ -201,10 +194,6 @@ class BytecodeCompiler:
             # 保留必要的文件
             if self._should_keep_source(py_file):
                 kept_count += 1
-                console.print(
-                    f"    📌 保留: {py_file.relative_to(self.compiled_path)}",
-                    style="blue",
-                )
                 continue
 
             # 对于__init__.py和其他.py文件，如果有对应的.pyc，则删除.py
@@ -212,27 +201,9 @@ class BytecodeCompiler:
             if pyc_file.exists():
                 py_file.unlink()
                 removed_count += 1
-                console.print(
-                    f"    🗑️ 删除: {py_file.relative_to(self.compiled_path)}",
-                    style="dim",
-                )
             else:
                 # 如果没有编译成功，保留源文件避免包损坏
                 kept_count += 1
-                console.print(
-                    f"    ⚠️ 保留(无.pyc): {py_file.relative_to(self.compiled_path)}",
-                    style="yellow",
-                )
-
-        # 确保不会删除二进制扩展文件
-        if hasattr(self, "_binary_extensions") and self._binary_extensions:
-            for ext_file in self._binary_extensions:
-                if ext_file.exists():
-                    size_kb = ext_file.stat().st_size / 1024
-                    console.print(
-                        f"    ✅ 保留二进制: {ext_file.relative_to(self.compiled_path)} ({size_kb:.1f} KB)",
-                        style="green",
-                    )
 
         console.print(f"  📊 清理统计: 删除 {removed_count}, 保留 {kept_count}")
 
@@ -257,6 +228,32 @@ class BytecodeCompiler:
         try:
             content = pyproject_file.read_text(encoding="utf-8")
 
+            # 检查是否使用了 scikit-build-core
+            uses_scikit_build = "scikit_build_core" in content
+
+            if uses_scikit_build:
+                console.print("  🔧 检测到 scikit-build-core，切换到 setuptools", style="yellow")
+
+                # 替换 build-backend 为 setuptools
+                import re
+
+                content = re.sub(
+                    r'build-backend\s*=\s*["\']scikit_build_core\.build["\']',
+                    'build-backend = "setuptools.build_meta"',
+                    content,
+                )
+
+                # 简化 build-system requires
+                content = re.sub(
+                    r"\[build-system\][\s\S]*?(?=\n\[)",
+                    '[build-system]\nrequires = ["setuptools>=64", "wheel"]\nbuild-backend = "setuptools.build_meta"\n\n',
+                    content,
+                )
+
+                # 移除 scikit-build 相关配置
+                content = re.sub(r"\[tool\.scikit-build\][\s\S]*?(?=\n\[|\Z)", "", content)
+                content = re.sub(r"\[tool\.scikit-build\..*?\][\s\S]*?(?=\n\[|\Z)", "", content)
+
             # 检查现有的包配置
             has_packages_list = "packages = [" in content  # 静态包列表
             has_packages_find = "[tool.setuptools.packages.find]" in content  # 动态查找
@@ -274,7 +271,6 @@ class BytecodeCompiler:
 where = ["src"]
 """
                 modified = True
-                console.print("  📝 添加packages.find配置", style="green")
 
             # 确保include-package-data设置为true
             if not has_include_package_data:
@@ -293,7 +289,6 @@ where = ["src"]
                             )
                             content = content.replace(existing_section, updated_section)
                             modified = True
-                            console.print("  📝 更新include-package-data = true", style="green")
                 else:
                     # 添加新部分
                     content += """
@@ -301,7 +296,6 @@ where = ["src"]
 include-package-data = true
 """
                     modified = True
-                    console.print("  📝 添加include-package-data = true", style="green")
 
             # 添加package-data配置
             if not has_pyc_package_data:
@@ -373,7 +367,6 @@ include-package-data = true
 
                             content = content.replace(existing_data, updated_data)
                             modified = True
-                            console.print("  📝 更新package-data配置包含二进制文件", style="green")
                 else:
                     # 添加新的package-data配置
                     content += """
@@ -381,7 +374,9 @@ include-package-data = true
 "*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]
 """
                     modified = True
-                    console.print("  📝 添加package-data配置包含二进制文件", style="green")
+
+            # 清理多余的空行
+            content = re.sub(r"\n\n\n+", "\n\n", content)
 
             # 添加MANIFEST.in文件以确保包含所有二进制文件
             manifest_file = self.compiled_path / "MANIFEST.in"
@@ -395,7 +390,6 @@ recursive-include src *.pyd
 recursive-include src *.dylib
 """
             manifest_file.write_text(manifest_content, encoding="utf-8")
-            console.print("  📝 创建MANIFEST.in文件", style="green")
 
             # 添加setup.py文件确保包含所有文件
             setup_py_file = self.compiled_path / "setup.py"
@@ -410,13 +404,12 @@ setup(
 )
 """
             setup_py_file.write_text(setup_py_content, encoding="utf-8")
-            console.print("  📝 创建setup.py文件", style="green")
 
-            if modified:
+            if modified or uses_scikit_build:
                 pyproject_file.write_text(content, encoding="utf-8")
                 console.print("  ✅ 更新pyproject.toml配置", style="green")
             else:
-                console.print("  ✓ pyproject.toml配置已满足要求", style="green")
+                console.print("  ✓ pyproject.toml配置已满足要求", style="dim")
 
         except Exception as e:
             console.print(f"  ❌ 更新pyproject.toml失败: {e}", style="red")
@@ -539,10 +532,9 @@ setup(
                 binary_count = sum(1 for f in all_files if f.endswith((".so", ".pyd", ".dylib")))
                 total_count = len(all_files)
 
-                console.print(f"    📊 文件总数: {total_count}")
-                console.print(f"    📊 .pyc文件: {pyc_count}")
-                console.print(f"    📊 .py文件: {py_count}")
-                console.print(f"    📊 二进制扩展文件: {binary_count}")
+                console.print(
+                    f"    📊 文件总数: {total_count} (.pyc: {pyc_count}, .py: {py_count}, binary: {binary_count})"
+                )
 
                 # 检查包是否太小
                 if total_count < 10:
@@ -565,10 +557,7 @@ setup(
                     if len(all_files) > 10:
                         console.print(f"       ... 还有 {len(all_files) - 10} 个文件")
                 else:
-                    if pyc_count > 0:
-                        console.print("    ✅ wheel包包含.pyc文件", style="green")
-                    if binary_count > 0:
-                        console.print("    ✅ wheel包包含二进制扩展文件", style="green")
+                    console.print("    ✅ wheel包包含编译文件", style="green")
 
         except Exception as e:
             console.print(f"    ❌ 验证wheel内容失败: {e}", style="red")
@@ -582,7 +571,7 @@ setup(
             dist_dir: dist 目录的绝对路径，如果为 None 则使用当前目录的 dist
         """
         repo_name = "TestPyPI" if repository == "testpypi" else "PyPI"
-        console.print(f"  🚀 上传到{repo_name}...")
+        console.print(f"  🚀 上传到{repo_name}...", style="cyan")
 
         try:
             # 找到所有 wheel 文件
@@ -599,7 +588,7 @@ setup(
                 console.print(f"  ❌ 未找到 wheel 文件 (搜索路径: {wheel_pattern})", style="red")
                 return False
 
-            cmd = ["twine", "upload"]
+            cmd = ["twine", "upload", "--skip-existing"]
 
             # 添加仓库参数
             if repository == "testpypi":
@@ -615,14 +604,12 @@ setup(
                 # 显示链接
                 if upload_result.stdout:
                     for line in upload_result.stdout.split("\n"):
-                        if "View at:" in line or "https://" in line:
+                        if "View at:" in line or ("https://" in line and "pypi.org" in line):
                             console.print(f"    🔗 {line.strip()}", style="cyan")
                 return True
             else:
                 error_msg = upload_result.stderr.strip() if upload_result.stderr else "未知错误"
-                console.print(f"  ❌ 上传到{repo_name}失败: {error_msg}", style="red")
-                if upload_result.stdout:
-                    console.print(f"     输出: {upload_result.stdout.strip()}", style="dim")
+                console.print(f"  ❌ 上传到{repo_name}失败: {error_msg[:200]}", style="red")
                 return False
 
         except FileNotFoundError:
