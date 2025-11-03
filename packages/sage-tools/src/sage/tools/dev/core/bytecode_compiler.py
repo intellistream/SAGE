@@ -464,10 +464,10 @@ setup(
             pyc_files = list(Path(".").rglob("*.pyc"))
             console.print(f"  📊 找到 {len(pyc_files)} 个.pyc文件")
 
-            # 构建wheel
+            # 构建wheel（使用 isolation 模式自动处理构建依赖）
             console.print("  🔨 构建wheel...")
             result = subprocess.run(
-                [sys.executable, "-m", "build", "--wheel", "--no-isolation"],
+                [sys.executable, "-m", "build", "--wheel"],
                 capture_output=True,
                 text=True,
             )
