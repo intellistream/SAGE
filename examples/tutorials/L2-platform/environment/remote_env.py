@@ -20,7 +20,8 @@ class SimpleSource(SourceFunction):
 
     def execute(self, data=None):
         if self.count >= self.max_count:
-            return None
+            from sage.kernel.runtime.communication.router.packet import StopSignal
+            return StopSignal("SimpleSource completed")
 
         data = f"item_{self.count}"
         self.count += 1
@@ -54,7 +55,7 @@ def example_default_scheduler():
 
     (
         env.from_source(SimpleSource)
-        .map(SimpleProcessor, parallelism=2)  # 并行度在 operator 级别指定
+        .map(SimpleProcessor, parallelism=4)  # 并行度在 operator 级别指定
         .sink(ConsoleSink)
     )
 
@@ -172,9 +173,9 @@ def main():
 
     try:
         # 运行示例
-        example_default_scheduler()
-        example_fifo_scheduler()
-        example_load_aware_scheduler()
+        #example_default_scheduler()
+        #example_fifo_scheduler()
+        #example_load_aware_scheduler()
         example_custom_scheduler_instance()
 
         print("\n" + "=" * 60)

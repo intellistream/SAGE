@@ -67,7 +67,7 @@ def ensure_ray_initialized(runtime_env=None):
             # 准备初始化参数
             init_kwargs = {
                 "ignore_reinit_error": True,
-                "num_cpus": 2,  # 限制CPU使用
+                "num_cpus": 16,  # 限制CPU使用
                 "num_gpus": 0,  # 不使用GPU
                 "object_store_memory": 200000000,  # 200MB object store
                 "log_to_driver": False,  # 减少日志输出

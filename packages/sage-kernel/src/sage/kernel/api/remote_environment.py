@@ -128,7 +128,7 @@ class RemoteEnvironment(BaseEnvironment):
         logger.info("Waiting for remote job to complete...")
 
         # 设置最大等待时间，避免无限等待
-        max_wait_time = 300.0  # 5分钟
+        max_wait_time = 400.0  # 
         start_time = time.time()
         check_interval = 0.5  # 远程检查可以稍微频繁一些
 
