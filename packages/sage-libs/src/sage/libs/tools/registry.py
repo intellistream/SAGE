@@ -2,7 +2,7 @@
 工具注册表 - 管理和发现工具
 """
 
-from .base_tool import BaseTool
+from .tool import BaseTool
 
 
 class ToolRegistry:
