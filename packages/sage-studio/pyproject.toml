@@ -63,8 +63,7 @@ dependencies = [
     "packaging>=20.5",
 ]
 
-[project.license]
-text = "MIT"
+license = "MIT"
 
 [project.optional-dependencies]
 # 开发工具依赖

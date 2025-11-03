@@ -24,7 +24,7 @@ Refiner Operator - SAGE RAG 算子
 import json
 import os
 import time
-from typing import Any, cast
+from typing import Any
 
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
@@ -81,23 +81,27 @@ class RefinerOperator(MapOperator):
         执行上下文压缩
 
         输入格式:
-            - dict: {"query": str, "results": List[Dict], ...}
-            - tuple: (query, docs_list)
+            dict: {"query": str, "retrieval_results": List[Dict], ...}
+            或 dict: {"query": str, "retrieval_docs": List[str/Dict], ...}
 
         输出格式:
             dict: {
                 ...原始字段,
-                "results": List[Dict],      # 压缩后的文档
-                "refined_docs": List[str],  # 压缩后的文本
-                "refine_metrics": Dict,     # 性能指标
+                "refining_results": List[Dict],  # 压缩后的文档（结构化）
+                "refining_docs": List[str],      # 压缩后的文本
             }
         """
         # 解析输入
         if isinstance(data, dict):
             query = data.get("query", "")
-            docs = data.get("results", []) or data.get("references", [])
-        elif isinstance(data, tuple) and len(data) == 2:
-            query, docs = data
+            # 优先级: reranking_results > refining_docs > retrieval_results > retrieval_docs > references
+            docs = (
+                data.get("reranking_results")
+                or data.get("refining_docs")
+                or data.get("retrieval_results")
+                or data.get("retrieval_docs")
+                or data.get("references", [])
+            )
         else:
             self.logger.error(f"Unexpected input format: {type(data)}")
             return data
@@ -107,49 +111,30 @@ class RefinerOperator(MapOperator):
 
         # 调用 RefinerService
         try:
-            refine_start = time.time()
             result = self.refiner_service.refine(
                 query=query,
-                documents=cast(list[str | dict[str, Any]], documents),
+                documents=documents,
                 budget=self.cfg.get("budget"),
             )
-            refine_time = time.time() - refine_start
-            self.logger.debug(f"Refine time: {refine_time:.2f}s")
 
-            refined_texts_raw = result.refined_content
-            # 确保 refined_texts 是 List[str]
-            if isinstance(refined_texts_raw, str):
-                refined_texts = [refined_texts_raw]
-            elif isinstance(refined_texts_raw, list):
-                refined_texts = [str(item) for item in refined_texts_raw]
-            else:
-                refined_texts = [str(refined_texts_raw)]
-
-            metrics = {
-                "compression_rate": result.metrics.compression_rate,
-                "original_tokens": result.metrics.original_tokens,
-                "refined_tokens": result.metrics.refined_tokens,
-                "refine_time": result.metrics.refine_time,
-            }
+            refined_texts = result.refined_content
 
         except Exception as e:
             self.logger.error(f"Refiner execution failed: {e}")
             refined_texts = [doc.get("text", str(doc)) for doc in documents]
-            metrics = {"error": str(e)}
 
         # 保存数据记录
         if self.enable_profile:
             self._save_data_record(query, documents, refined_texts)
 
-        # 构造输出
+        # 构造输出 - 使用统一的字段格式
         if isinstance(data, dict):
             result_data = data.copy()
         else:
             result_data = {"query": query}
 
-        result_data["results"] = [{"text": text} for text in refined_texts]
-        result_data["refined_docs"] = refined_texts
-        result_data["refine_metrics"] = metrics
+        result_data["refining_results"] = [{"text": text} for text in refined_texts]
+        result_data["refining_docs"] = refined_texts
 
         return result_data
 

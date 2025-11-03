@@ -9,9 +9,7 @@
 
 import time
 
-from sage.common.core.functions.map_function import MapFunction
-from sage.common.core.functions.sink_function import SinkFunction
-from sage.common.core.functions.source_function import SourceFunction
+from sage.common.core import MapFunction, SinkFunction, SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler

@@ -548,7 +548,7 @@ class ResponseGenerator:
             self._setup_finetune_backend()
         else:
             try:
-                from sage.libs.integrations.openaiclient import OpenAIClient
+                from sage.middleware.operators.llm.clients.openaiclient import OpenAIClient
 
                 kwargs: dict[str, Any] = {"seed": 42}
                 if base_url:
@@ -694,7 +694,7 @@ class ResponseGenerator:
 
         # 设置 OpenAI 客户端连接到本地 vLLM
         try:
-            from sage.libs.integrations.openaiclient import OpenAIClient
+            from sage.middleware.operators.llm.clients.openaiclient import OpenAIClient
 
             self.client = OpenAIClient(
                 model_name=model_to_use or str(merged_path),

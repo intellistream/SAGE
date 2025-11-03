@@ -31,8 +31,7 @@ dependencies = [
     "isage-middleware>=0.1.0",
 ]
 
-[project.license]
-text = "MIT"
+license = "MIT"
 
 [project.optional-dependencies]
 core = [

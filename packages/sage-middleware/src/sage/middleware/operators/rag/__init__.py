@@ -2,6 +2,9 @@
 RAG (Retrieval-Augmented Generation) Operators
 
 This module contains domain-specific operators for RAG applications:
+- Pipeline (RAG orchestration and workflow)
+- Profiler (Query profiling and analysis)
+- Document Loaders (Document loading utilities)
 - Generator operators (LLM response generation)
 - Retriever operators (document/passage retrieval)
 - Reranker operators (result reranking)
@@ -29,6 +32,17 @@ from sage.middleware.operators.rag.types import (
 
 # Lazy imports to avoid optional dependency issues
 _IMPORTS = {
+    # Pipeline and Profiler
+    "RAGPipeline": ("sage.middleware.operators.rag.pipeline", "RAGPipeline"),
+    "Query_Profiler": ("sage.middleware.operators.rag.profiler", "Query_Profiler"),
+    "QueryProfilerResult": ("sage.middleware.operators.rag.profiler", "QueryProfilerResult"),
+    # Document Loaders
+    "TextLoader": ("sage.middleware.operators.rag.document_loaders", "TextLoader"),
+    "PDFLoader": ("sage.middleware.operators.rag.document_loaders", "PDFLoader"),
+    "DocxLoader": ("sage.middleware.operators.rag.document_loaders", "DocxLoader"),
+    "DocLoader": ("sage.middleware.operators.rag.document_loaders", "DocLoader"),
+    "MarkdownLoader": ("sage.middleware.operators.rag.document_loaders", "MarkdownLoader"),
+    "LoaderFactory": ("sage.middleware.operators.rag.document_loaders", "LoaderFactory"),
     # Generators
     "OpenAIGenerator": ("sage.middleware.operators.rag.generator", "OpenAIGenerator"),
     "HFGenerator": ("sage.middleware.operators.rag.generator", "HFGenerator"),

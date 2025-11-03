@@ -43,9 +43,7 @@ dependencies = [
     "dill>=0.3.8",
     "numpy>=1.24",
 ]
-
-[project.license]
-text = "MIT"
+license = "MIT"
 
 [project.optional-dependencies]
 vllm = [

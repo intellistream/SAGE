@@ -30,7 +30,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
     "Topic :: Utilities",
 ]
-license = {text = "MIT"}
+license = "MIT"
 
 # 核心依赖 - 作为开发工具包，只依赖真正需要的SAGE子包
 dependencies = [
