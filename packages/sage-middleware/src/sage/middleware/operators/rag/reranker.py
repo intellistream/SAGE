@@ -116,7 +116,7 @@ class BGEReranker(MapOperator):
 
             # Create a list of scored documents
             scored_docs = [
-                {"retrieved_docs": doc, "relevance_score": score}
+                {"text": doc, "relevance_score": score}
                 for doc, score in zip(doc_set, scores, strict=False)
             ]
 
@@ -124,7 +124,7 @@ class BGEReranker(MapOperator):
             reranked_docs = sorted(scored_docs, key=lambda x: x["relevance_score"], reverse=True)[
                 :top_k
             ]
-            reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
+            reranked_docs_list = [doc["text"] for doc in reranked_docs]
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list}\033[0m "
             )
@@ -295,7 +295,7 @@ class LLMbased_Reranker(MapOperator):
 
                 # Create a list of scored documents
                 scored_docs = [
-                    {"retrieved_docs": doc, "relevance_score": score}
+                    {"text": doc, "relevance_score": score}
                     for doc, score in zip(retrieved_docs, scores, strict=False)
                 ]
 
@@ -303,7 +303,7 @@ class LLMbased_Reranker(MapOperator):
                 reranked_docs = sorted(
                     scored_docs, key=lambda x: x["relevance_score"], reverse=True
                 )[:top_k]
-                reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
+                reranked_docs_list = [doc["text"] for doc in reranked_docs]
                 emit_docs.append(reranked_docs_list)
                 self.logger.info(
                     f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list}\033[0m "

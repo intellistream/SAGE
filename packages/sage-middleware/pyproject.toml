@@ -207,6 +207,7 @@ markers = [
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
+    "external: marks tests that require external services or APIs",
 ]
 
 [tool.black]

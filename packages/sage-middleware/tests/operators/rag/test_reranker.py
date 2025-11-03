@@ -180,22 +180,20 @@ class TestBGEReranker:
 
         reranker = BGEReranker(config=config)
 
-        # 测试输入
+        # 测试输入 - 使用标准格式
         query = "What is machine learning?"
         docs = [
             {"content": "Machine learning is a subset of AI", "score": 0.8},
             {"content": "Deep learning uses neural networks", "score": 0.7},
         ]
-        input_data = (query, docs)
+        input_data = {"query": query, "results": docs}
 
         result = reranker.execute(input_data)
 
-        # 验证结果 - BGEReranker 返回 [query, docs_list]
-        assert isinstance(result, list)
-        assert len(result) == 2
-        query_result, docs_result = result
-        assert query_result == query
-        assert isinstance(docs_result, list)
+        # 验证结果 - BGEReranker 返回标准 dict 格式
+        assert isinstance(result, dict)
+        assert result["query"] == query
+        assert isinstance(result["results"], list)
 
     @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
     @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
@@ -219,23 +217,17 @@ class TestBGEReranker:
 
         reranker = BGEReranker(config=config)
 
-        # 测试空文档列表
+        # 测试空文档列表 - 使用标准格式
         query = "What is AI?"
         docs = []
-        input_data = (query, docs)
+        input_data = {"query": query, "results": docs}
 
         result = reranker.execute(input_data)
 
-        # 验证结果 - BGEReranker 在空文档时返回 (query, [])，这与非空情况不一致
-        # 这可能是实现中的不一致性，但我们测试实际行为
-        if isinstance(result, tuple):
-            query_result, docs_result = result
-        else:
-            # 如果将来修复为一致的列表返回
-            assert isinstance(result, list)
-            query_result, docs_result = result
-        assert query_result == query
-        assert docs_result == []
+        # 验证结果 - 返回标准 dict 格式
+        assert isinstance(result, dict)
+        assert result["query"] == query
+        assert result["results"] == []
 
     @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
     @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
@@ -281,23 +273,21 @@ class TestBGEReranker:
 
         reranker = BGEReranker(config=config)
 
-        # 测试输入 - 多个文档
+        # 测试输入 - 多个文档，使用标准格式
         query = "machine learning algorithms"
         docs = [
             {"content": "Random forest is a machine learning algorithm", "score": 0.6},
             {"content": "Cats are pets", "score": 0.5},
             {"content": "Neural networks are used in machine learning", "score": 0.7},
         ]
-        input_data = (query, docs)
+        input_data = {"query": query, "results": docs}
 
         result = reranker.execute(input_data)
 
-        # 验证结果 - BGEReranker 返回 [query, docs_list]
-        assert isinstance(result, list)
-        assert len(result) == 2
-        query_result, docs_result = result
-        assert query_result == query
-        assert len(docs_result) == 3
+        # 验证结果 - 返回标准 dict 格式
+        assert isinstance(result, dict)
+        assert result["query"] == query
+        assert len(result["results"]) == 3
 
     @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
     @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
@@ -341,7 +331,7 @@ class TestBGEReranker:
 
         reranker = BGEReranker(config=config)
 
-        # 测试输入 - 5个文档
+        # 测试输入 - 5个文档，使用标准格式
         query = "test query"
         docs = [
             {"content": "doc1", "score": 0.1},
@@ -350,16 +340,14 @@ class TestBGEReranker:
             {"content": "doc4", "score": 0.4},
             {"content": "doc5", "score": 0.5},
         ]
-        input_data = (query, docs)
+        input_data = {"query": query, "results": docs}
 
         result = reranker.execute(input_data)
 
-        # 验证结果 - BGEReranker 返回 [query, docs_list]
-        assert isinstance(result, list)
-        assert len(result) == 2
-        query_result, docs_result = result
-        assert query_result == query
-        assert len(docs_result) <= 3  # 被top_k限制
+        # 验证结果 - 返回标准 dict 格式
+        assert isinstance(result, dict)
+        assert result["query"] == query
+        assert len(result["results"]) <= 3  # 被top_k限制
 
     @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
     @patch("sage.middleware.operators.rag.reranker.AutoModelForSequenceClassification")
@@ -426,15 +414,16 @@ class TestBGERerankerIntegration:
 
             # Mock执行过程直接返回简化结果
             def simple_execute(data):
-                query, docs = data
+                query = data["query"]
+                docs = data["results"]
                 # 简单返回前top_k个文档
-                return [query, docs[: config.get("top_k", 2)]]
+                return {"query": query, "results": docs[: config.get("top_k", 2)]}
 
             # 创建reranker并替换execute方法
             reranker = BGEReranker(config=config)
             reranker.execute = simple_execute
 
-            # 测试数据
+            # 测试数据 - 使用标准格式
             query = "What are the applications of deep learning?"
             docs = [
                 {
@@ -450,18 +439,16 @@ class TestBGERerankerIntegration:
                     "score": 0.9,
                 },
             ]
-            retrieval_output = (query, docs)
+            retrieval_output = {"query": query, "results": docs}
 
             result = reranker.execute(retrieval_output)
 
-            # 验证结果
-            assert isinstance(result, list)
-            assert len(result) == 2
-            query_result, reranked_docs = result
-            assert query_result == query
-            assert len(reranked_docs) <= 2  # top_k限制
+            # 验证结果 - 标准 dict 格式
+            assert isinstance(result, dict)
+            assert result["query"] == query
+            assert len(result["results"]) <= 2  # top_k限制
 
             # 验证文档格式
-            for doc in reranked_docs:
+            for doc in result["results"]:
                 assert isinstance(doc, dict)
                 assert "content" in doc

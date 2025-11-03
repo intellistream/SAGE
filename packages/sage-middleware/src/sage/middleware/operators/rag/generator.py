@@ -121,9 +121,6 @@ class OpenAIGenerator(MapOperator):
             # 兜底处理：转换为字符串再构造消息
             messages = [{"role": "user", "content": str(prompt)}]
 
-        # 记录生成时间
-        generate_start_time = time.time()
-
         # 准备生成参数（从配置中提取）
         generate_kwargs = {}
 
@@ -145,8 +142,6 @@ class OpenAIGenerator(MapOperator):
                 generate_kwargs[param] = self.config[param]
 
         response = self.model.generate(messages, **generate_kwargs)
-        generate_end_time = time.time()
-        generate_time = generate_end_time - generate_start_time
 
         self.num += 1
 
@@ -161,7 +156,7 @@ class OpenAIGenerator(MapOperator):
             # 保持原始数据结构，添加generated字段
             result = dict(original_data)
             result["generated"] = response
-            result["generate_time"] = generate_time  # 添加生成时间
+            # generate_time 由 MapOperator 自动添加
             result["question"] = result.get(
                 "question",
                 {"query": user_query, "references": result.get("references", [])},
@@ -172,7 +167,7 @@ class OpenAIGenerator(MapOperator):
             return {
                 "query": user_query if user_query is not None else "",
                 "generated": response,
-                "generate_time": generate_time,
+                # generate_time 由 MapOperator 自动添加
             }
 
     def __del__(self):
@@ -215,7 +210,7 @@ class HFGenerator(MapOperator):
         # Generate the response from the Hugging Face model using the provided data and additional arguments
         user_query = data[0] if len(data) > 1 else None
 
-        prompt = data[1] if len(data) > 1 else data
+        prompt = data[1] if len(data) > 1 else data[0]
 
         response = self.model.generate(prompt, **kwargs)
 
