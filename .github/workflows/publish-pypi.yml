@@ -38,8 +38,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # 跳过包含 [skip ci] 的提交
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    # Skip if commit message contains "[version bump]" to prevent infinite loops
+    # This allows other CI workflows to run while preventing re-publishing
+    if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
 
     steps:
       - name: Checkout code
@@ -143,9 +144,10 @@ jobs:
           # Update version using sage-dev
           sage-dev package version set "$NEW_VERSION"
 
-          # Commit version bump
+          # Commit version bump (without [skip ci] to allow CI badges to update)
+          # Use [version bump] marker to prevent workflow from re-triggering itself
           git add -A
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+          git commit -m "chore: bump version to $NEW_VERSION [version bump]"
 
           # Pull latest changes with rebase to avoid conflicts
           git pull --rebase origin ${{ github.ref_name }}

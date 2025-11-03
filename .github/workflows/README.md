@@ -22,8 +22,9 @@ Workflow 会在以下情况**自动运行**：
 
 **注意**:
 
-- 提交信息包含 `[skip ci]` 时不会触发
+- 提交信息包含 `[version bump]` 标记时不会触发（防止版本升级后的循环触发）
 - 只修改文档 (`.md`、`docs/`、`examples/`) 时不会触发
+- 版本升级的提交会触发其他 CI workflows (如 Build & Test)，以更新 README badges
 
 ### 🛠️ 手动触发（可选）
 
