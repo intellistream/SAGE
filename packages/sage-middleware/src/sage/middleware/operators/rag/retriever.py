@@ -8,8 +8,8 @@ import numpy as np
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
-from sage.middleware.operators.rag.backends.chroma import ChromaBackend, ChromaUtils
-from sage.middleware.operators.rag.backends.milvus import MilvusBackend, MilvusUtils
+from sage.libs.integrations.chroma import ChromaBackend, ChromaUtils
+from sage.libs.integrations.milvus import MilvusBackend, MilvusUtils
 
 
 # ChromaDB 密集检索器
