@@ -173,7 +173,7 @@ main() {
         fi
 
         # 检查 sage-dev 是否可用
-        if command -v sage-dev >/dev/null 2>&1 || [ -n "$SAGE_ENV_NAME" ]; then
+        if { [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || { [ -z "$SAGE_ENV_NAME" ] && command -v sage-dev >/dev/null 2>&1; }; then
             # 使用静默模式避免过多输出
             if $sage_dev_cmd maintain hooks install --quiet 2>&1; then
                 echo -e "${GREEN}✅ Git hooks 已安装${NC}"
