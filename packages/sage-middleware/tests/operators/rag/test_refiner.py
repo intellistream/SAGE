@@ -288,14 +288,18 @@ class TestRefinerOperatorExecution:
                 {"text": "AI includes machine learning and deep learning"},
             ]
 
-            input_data = {"query": question, "results": docs}
+            input_data = {"query": question, "retrieval_results": docs}
             result = adapter.execute(input_data)
 
             # 验证结果格式
             assert isinstance(result, dict)
             assert result["query"] == question
-            assert "results" in result and len(result["results"]) == 2
-            assert all("text" in d for d in result["results"])
+            assert "refining_results" in result and len(result["refining_results"]) == 2
+            # refining_results 是压缩后的文档文本列表
+            assert all(isinstance(doc, str) for doc in result["refining_results"])
+            assert result["refining_results"] == ["Refined document 1", "Refined document 2"]
+            # 应该保留原始检索结果
+            assert "retrieval_results" in result
 
             # 验证refiner被调用
             mock_service.refine.assert_called_once()
@@ -335,20 +339,25 @@ class TestRefinerOperatorExecution:
             config["enable_profile"] = False
             adapter = RefinerOperator(config=config)
 
-            # 测试数据：字符串格式文档（通过 references 提供）
+            # 测试数据：字符串格式文档
             question = "What is machine learning?"
             docs = [
                 "Machine learning is a subfield of AI",
                 "Supervised learning needs labeled data",
             ]
 
-            input_data = {"query": question, "references": docs}
+            input_data = {"query": question, "retrieval_results": docs}
             result = adapter.execute(input_data)
 
             # 验证结果
             assert isinstance(result, dict)
             assert result["query"] == question
-            assert "results" in result and len(result["results"]) == 1
+            assert "refining_results" in result and len(result["refining_results"]) == 1
+            assert result["refining_results"] == ["Refined document"]
+            assert "retrieval_results" in result  # 保留了原始检索结果
+            assert len(result["retrieval_results"]) == 2  # 原始有2个文档
+            # refining_results 应该是压缩后的文档文本列表
+            assert all(isinstance(doc, str) for doc in result["refining_results"])
 
             # 验证refiner调用
             mock_service.refine.assert_called_once()
@@ -372,17 +381,15 @@ class TestRefinerOperatorExecution:
             question = "Test question"
             docs = [{"text": "Test document"}]
 
-            input_data = {"query": question, "results": docs}
+            input_data = {"query": question, "retrieval_results": docs}
             result = adapter.execute(input_data)
 
-            # 异常情况下应该返回原始文档（fallback行为），并保留原始字段
+            # 异常情况下应该返回原始文档（fallback行为）
             assert isinstance(result, dict)
             assert result["query"] == question
-            # 应该返回原始文档作为fallback
-            assert len(result.get("results", [])) == 1
-            assert result["results"][0]["text"] == "Test document"
-            # 应该包含错误信息
-            assert "error" in result.get("refine_metrics", {})
+            assert len(result.get("refining_results", [])) == 1
+            # refining_results 应该是文档文本列表（fallback 到原始文档）
+            assert all(isinstance(doc, str) for doc in result["refining_results"])
 
 
 @pytest.mark.integration
@@ -714,7 +721,7 @@ class TestRefinerOperatorFixes:
                 input_data = {
                     "query": "test query",
                     "references": ["ref1", "ref2"],
-                    "results": [
+                    "retrieval_results": [
                         {"text": "Document 1 content", "title": "Doc1", "id": "1"},
                         {"text": "Document 2 content", "title": "Doc2", "id": "2"},
                     ],
@@ -722,24 +729,19 @@ class TestRefinerOperatorFixes:
 
                 result = adapter.execute(input_data)
 
-                # 验证输出格式包含统一的 results 字段
-                assert "results" in result
-                assert "refined_results" not in result  # 不应存在该别名
-                # 适配器会额外提供 refined_docs 与 refine_metrics 字段
-                assert "refined_docs" in result
-                assert "refine_metrics" in result
+                # 验证输出格式包含 refining_results 字段
+                assert "refining_results" in result
+                assert isinstance(result["refining_results"], list)
+                assert len(result["refining_results"]) == 2
 
-                # 验证results字段格式正确
-                assert isinstance(result["results"], list)
-                assert len(result["results"]) == 2
-
-                for doc in result["results"]:
-                    assert "text" in doc
-                    assert isinstance(doc["text"], str)
+                # 验证 refining_results 应该是字符串列表
+                for doc in result["refining_results"]:
+                    assert isinstance(doc, str)
 
                 # 验证原始字段被保留
                 assert result["query"] == "test query"
                 assert result["references"] == ["ref1", "ref2"]
+                assert "retrieval_results" in result  # 原始检索结果应保留
 
             except Exception as e:
                 pytest.skip(f"LongRefiner dependency not available: {e}")
@@ -781,7 +783,7 @@ class TestRefinerOperatorFixes:
                 # 模拟Wiki18FAISSRetriever的输出格式
                 wiki18_output = {
                     "query": "Who has the highest goals in world football?",
-                    "results": [
+                    "retrieval_results": [
                         {
                             "text": "FIFA World Cup top goalscorers content...",
                             "similarity_score": 0.706,
@@ -803,9 +805,9 @@ class TestRefinerOperatorFixes:
                 result = adapter.execute(wiki18_output)
 
                 # 验证处理成功
-                assert "results" in result
-                assert len(result["results"]) == 1  # 被压缩
-                assert result["results"][0]["text"] == "Compressed content"
+                assert "refining_results" in result
+                assert len(result["refining_results"]) == 1  # 被压缩
+                assert result["refining_results"][0] == "Compressed content"
 
                 # 验证原始数据被保留
                 assert result["query"] == "Who has the highest goals in world football?"
@@ -851,7 +853,7 @@ class TestRefinerOperatorFixes:
                 # 测试带标题的文档
                 input_data = {
                     "query": "test query",
-                    "results": [
+                    "retrieval_results": [
                         {
                             "text": "Document content without title formatting",
                             "title": "Important Document",
@@ -874,9 +876,9 @@ class TestRefinerOperatorFixes:
                 assert documents[0]["title"] == "Important Document"
 
                 # 验证结果
-                assert "results" in result
-                assert len(result["results"]) == 1
-                assert result["results"][0]["text"] == "Formatted content"
+                assert "refining_results" in result
+                assert len(result["refining_results"]) == 1
+                assert result["refining_results"][0] == "Formatted content"
 
             except Exception as e:
                 pytest.skip(f"LongRefiner dependency not available: {e}")
@@ -917,14 +919,14 @@ class TestRefinerOperatorFixes:
 
                 input_data = {
                     "query": "test query",
-                    "results": [{"text": "Some content"}],
+                    "retrieval_results": [{"text": "Some content"}],
                 }
 
                 result = adapter.execute(input_data)
 
                 # 验证空结果被正确处理
-                assert "results" in result
-                assert result["results"] == []  # 应该是空列表
+                assert "refining_results" in result
+                assert result["refining_results"] == []  # 应该是空列表
                 assert result["query"] == "test query"  # 原始查询应保留
 
             except Exception as e:

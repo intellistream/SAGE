@@ -76,35 +76,30 @@ class RefinerOperator(MapOperator):
         algorithm = self.cfg.get("algorithm", "long_refiner")
         self.logger.info(f"RefinerOperator initialized with algorithm: {algorithm}")
 
-    def execute(self, data):
-        """
-        执行上下文压缩
-
-        输入格式:
-            dict: {"query": str, "retrieval_results": List[Dict], ...}
-            或 dict: {"query": str, "retrieval_docs": List[str/Dict], ...}
-
-        输出格式:
-            dict: {
-                ...原始字段,
-                "refining_results": List[Dict],  # 压缩后的文档（结构化）
-                "refining_docs": List[str],      # 压缩后的文本
+    def execute(self, data: dict):
+        """执行文档压缩
+        
+        输入格式：
+            {
+                "query": str,
+                "retrieval_results": List[Dict],  # 原始检索结果
+            }
+        
+        输出格式：
+            {
+                "query": str,
+                "retrieval_results": List[Dict],  # 原始检索结果（保留）
+                "refining_results": List[str],    # 压缩后的文档文本
+                "refine_time": float,             # 压缩耗时（由 MapOperator 自动添加）
             }
         """
-        # 解析输入
-        if isinstance(data, dict):
-            query = data.get("query", "")
-            # 优先级: reranking_results > refining_docs > retrieval_results > retrieval_docs > references
-            docs = (
-                data.get("reranking_results")
-                or data.get("refining_docs")
-                or data.get("retrieval_results")
-                or data.get("retrieval_docs")
-                or data.get("references", [])
-            )
-        else:
+        # 解析输入 - 只支持标准格式
+        if not isinstance(data, dict):
             self.logger.error(f"Unexpected input format: {type(data)}")
             return data
+
+        query = data.get("query", "")
+        docs = data.get("retrieval_results", [])
 
         # 标准化文档格式
         documents = self._normalize_documents(docs)
@@ -127,14 +122,9 @@ class RefinerOperator(MapOperator):
         if self.enable_profile:
             self._save_data_record(query, documents, refined_texts)
 
-        # 构造输出 - 使用统一的字段格式
-        if isinstance(data, dict):
-            result_data = data.copy()
-        else:
-            result_data = {"query": query}
-
-        result_data["refining_results"] = [{"text": text} for text in refined_texts]
-        result_data["refining_docs"] = refined_texts
+        # 构造输出
+        result_data = data.copy()
+        result_data["refining_results"] = refined_texts  # 压缩后的文档
 
         return result_data
 

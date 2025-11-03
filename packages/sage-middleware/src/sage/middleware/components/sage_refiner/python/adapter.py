@@ -86,8 +86,7 @@ class RefinerAdapter(MapFunction):
         输出格式:
             {
                 ... # 原始字段
-                "refining_results": [...],  # 精炼后的文档
-                "refining_docs": [...],  # 精炼后的文档（同refining_results）
+                "refining_results": [...],  # 精炼后的文档（字符串列表）
             }
         """
         # 标准化输入
@@ -109,7 +108,6 @@ class RefinerAdapter(MapFunction):
             # 保留原始数据，添加空的精炼结果
             if isinstance(data, dict):
                 data["refining_results"] = []
-                data["refining_docs"] = []
             return data
 
         # 执行精炼
@@ -124,8 +122,7 @@ class RefinerAdapter(MapFunction):
 
             # 组装输出 - 使用统一的字段格式
             output = data.copy() if isinstance(data, dict) else {}
-            output["refining_results"] = result.refined_content
-            output["refining_docs"] = result.refined_content  # 保持一致性
+            output["refining_results"] = result.refined_content  # 压缩后的文档文本列表
 
             # 性能日志
             if self.enable_profile:
@@ -142,7 +139,6 @@ class RefinerAdapter(MapFunction):
             # 失败时返回原始数据
             if isinstance(data, dict):
                 data["refining_results"] = documents
-                data["refining_docs"] = documents
             return data
 
     def __del__(self):

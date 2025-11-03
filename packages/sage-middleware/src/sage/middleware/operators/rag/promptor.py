@@ -184,9 +184,18 @@ class QAPromptor(MapOperator):
                 # 处理不同的上下文字段名
                 external_corpus_list = []
 
-                # 处理 results 字段（来自检索器）
-                if "results" in raw:
-                    results = raw.get("results", [])
+                # 处理 refining_results 字段（来自 refiner - 压缩后的文档）
+                if "refining_results" in raw:
+                    results = raw.get("refining_results", [])
+                    for result in results:
+                        if isinstance(result, str):
+                            external_corpus_list.append(result)
+                        else:
+                            external_corpus_list.append(str(result))
+                
+                # 处理 retrieval_results 字段（来自 retriever - 原始检索结果）
+                elif "retrieval_results" in raw:
+                    results = raw.get("retrieval_results", [])
                     for result in results:
                         if isinstance(result, dict) and "text" in result:
                             external_corpus_list.append(result["text"])
@@ -210,17 +219,6 @@ class QAPromptor(MapOperator):
                         external_corpus_list.extend([str(c) for c in external_corpus])
                     else:
                         external_corpus_list.append(str(external_corpus))
-
-                # 处理 retrieved_docs 字段
-                elif "retrieved_docs" in raw:
-                    retrieved_docs = raw.get("retrieved_docs", [])
-                    for doc in retrieved_docs:
-                        if isinstance(doc, dict) and "content" in doc:
-                            external_corpus_list.append(doc["content"])
-                        elif isinstance(doc, str):
-                            external_corpus_list.append(doc)
-                        else:
-                            external_corpus_list.append(str(doc))
 
                 external_corpus = "\n".join(external_corpus_list)
 

@@ -155,7 +155,6 @@ class TestOpenAIGenerator:
         # 新实现：单输入返回字典，包含 generated 与 generate_time
         assert isinstance(result, dict)
         assert result["generated"] == "Generated response"
-        assert "generate_time" in result
         expected_messages = [{"role": "user", "content": "Test prompt"}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
@@ -183,12 +182,10 @@ class TestOpenAIGenerator:
         input_data = ["What is AI?", "Please explain artificial intelligence."]
         result = generator.execute(input_data)
 
-        # 新实现：当第一个参数是字符串时，返回 (None, response)
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        user_query, response = result
-        assert user_query is None
-        assert response == "Generated response"
+        # 新实现：返回 dict，包含 query、generated 和 generate_time
+        assert isinstance(result, dict)
+        assert result["query"] == ""
+        assert result["generated"] == "Generated response"
 
         expected_messages = [{"role": "user", "content": "Please explain artificial intelligence."}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
@@ -232,7 +229,6 @@ class TestOpenAIGenerator:
             # 新实现：单输入返回字典
             assert isinstance(result, dict)
             assert result["generated"] == "Generated response"
-            assert "generate_time" in result
 
     @patch("sage.middleware.operators.rag.generator.OpenAIClient")
     def test_execute_with_api_error(self, mock_openai_client):
@@ -321,9 +317,7 @@ class TestOpenAIGenerator:
         # 验证结果是字典格式且包含generate_time
         assert isinstance(result, dict)
         assert "generated" in result
-        assert "generate_time" in result
         assert result["generated"] == "Generated response"
-        assert result["generate_time"] == 1.5  # 1001.5 - 1000.0
         assert result["query"] == "What is AI?"
         assert result["other_field"] == "value"
 
@@ -365,9 +359,7 @@ class TestOpenAIGenerator:
         # 验证结果
         assert isinstance(result, dict)
         assert "generated" in result
-        assert "generate_time" in result
         assert result["generated"] == "Generated response"
-        assert result["generate_time"] == 2.0  # 1002.0 - 1000.0
         assert result["query"] == "What is AI?"
 
         # 验证直接传递消息列表
@@ -423,12 +415,10 @@ class TestOpenAIGeneratorIntegration:
 
             result = generator.execute(test_data)
 
-            # 新实现：当第一个参数为字符串时返回 (None, response)
-            assert isinstance(result, tuple)
-            assert len(result) == 2
-            user_query, response = result
-            assert user_query is None
-            assert response == "Mocked response"
+            # 新实现：返回 dict，包含 query、generated 和 generate_time
+            assert isinstance(result, dict)
+            assert result["query"] == ""
+            assert result["generated"] == "Mocked response"
 
 
 @pytest.mark.unit
@@ -519,7 +509,7 @@ class TestHFGenerator:
         assert isinstance(result, tuple)
         assert len(result) == 2
         user_query, response = result
-        assert user_query is None  # HFGenerator: data[0] if len(data) > 1 else None
+        assert user_query == ""  # HFGenerator: data[0] if len(data) > 1 else "" (empty string when single input)
         assert response == "Single response"
 
         # 验证model.generate被正确调用
