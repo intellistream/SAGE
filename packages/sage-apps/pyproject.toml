@@ -46,8 +46,7 @@ dependencies = [
     "numpy>=1.24.0",
 ]
 
-[project.license]
-text = "MIT"
+license = "MIT"
 
 [project.optional-dependencies]
 video = [

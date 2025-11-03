@@ -1,5 +1,8 @@
 [build-system]
 requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
     "scikit-build-core>=0.8.0",
     "pybind11>=2.13.0",
 ]
@@ -87,7 +90,7 @@ dependencies = [
     "markdown>=3.4.4",
     "pymdown-extensions>=10.2.1",
 ]
-license = {text = "MIT"}
+license = "MIT"
 
 [project.optional-dependencies]
 # SAGE framework dependencies (for local development)
