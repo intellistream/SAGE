@@ -5,8 +5,8 @@ from typing import Any
 
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
-from sage.middleware.operators.llm.clients.huggingface import HFClient
-from sage.middleware.operators.llm.clients.openaiclient import OpenAIClient
+from sage.libs.integrations.huggingface import HFClient
+from sage.libs.integrations.openaiclient import OpenAIClient
 
 
 class OpenAIGenerator(MapOperator):
