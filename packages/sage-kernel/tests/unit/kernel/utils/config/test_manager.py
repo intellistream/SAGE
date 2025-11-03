@@ -48,9 +48,12 @@ class TestBaseConfig:
         class TestConfig(BaseConfig):
             app_name: str = "test"
 
-        config = TestConfig(app_name="myapp", extra_field="extra_value")
+        # Pydantic allows extra fields with extra="allow"
+        extra_data = {"app_name": "myapp", "extra_field": "extra_value"}
+        config = TestConfig(**extra_data)
         assert config.app_name == "myapp"
-        assert config.extra_field == "extra_value"
+        # Access extra field properly in Pydantic v2
+        assert getattr(config, "extra_field", None) == "extra_value"
 
     def test_base_config_validation(self):
         """测试BaseConfig字段验证"""
@@ -64,12 +67,17 @@ class TestBaseConfig:
         assert config.app_name == "test"
         assert config.port == 8080
 
-        # 类型错误
+        # 类型错误 - test that validation catches invalid types
+        # Use Any to avoid type checker errors when intentionally passing wrong types
+        from typing import Any
+
+        invalid_data: dict[str, Any] = {"app_name": "test", "port": "invalid"}
         with pytest.raises(ValidationError):
-            TestConfig(app_name="test", port="invalid")
+            TestConfig(**invalid_data)
 
     def test_base_config_assignment_validation(self):
         """测试BaseConfig赋值验证"""
+        from typing import Any
 
         class TestConfig(BaseConfig):
             port: int = 8080
@@ -78,9 +86,11 @@ class TestBaseConfig:
         config.port = 9000
         assert config.port == 9000
 
-        # 赋值时类型验证
+        # 赋值时类型验证 - test that assignment validation catches invalid types
+        # Use Any to avoid type checker errors when intentionally passing wrong types
+        invalid_value: Any = "invalid"
         with pytest.raises(ValidationError):
-            config.port = "invalid"
+            config.port = invalid_value
 
 
 @pytest.mark.unit

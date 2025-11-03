@@ -17,8 +17,8 @@ import pytest
 
 # Try to import the agent module from examples
 try:
-    from examples.agents import agent
-    from examples.tutorials.agents import basic_agent  # 实际执行main()的模块
+    from examples.agents import agent  # type: ignore[import-not-found]
+    from examples.tutorials.agents import basic_agent  # type: ignore[import-not-found]
 
     AGENT_MODULE_AVAILABLE = True
 except ImportError:

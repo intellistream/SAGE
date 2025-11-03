@@ -34,7 +34,7 @@ from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment
 
 try:  # pragma: no cover - optional dependency at runtime only
-    from sage.libs.integrations.openaiclient import OpenAIClient
+    from sage.middleware.operators.llm.clients.openaiclient import OpenAIClient
 
     OPENAI_AVAILABLE = True
     OPENAI_IMPORT_ERROR: Exception | None = None

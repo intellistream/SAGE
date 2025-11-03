@@ -27,6 +27,7 @@ class TestAgentConfigValidation:
             "..",
             "examples",
             "tutorials",
+            "L3-libs",
             "agents",
             "config",
             "config_agent_min.yaml",

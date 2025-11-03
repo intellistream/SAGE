@@ -11,8 +11,8 @@ import sys
 
 import chromadb
 
-from sage.libs.rag.document_loaders import LoaderFactory
 from sage.middleware.operators.rag import CharacterSplitter
+from sage.middleware.operators.rag.document_loaders import LoaderFactory
 
 
 # 在测试模式下避免下载大型模型，提供轻量级嵌入器

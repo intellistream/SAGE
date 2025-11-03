@@ -25,19 +25,22 @@ SAGE Refiner - 上下文压缩和精炼组件
     ... )
 """
 
-from sage.middleware.components.sage_refiner.python.adapter import RefinerAdapter
-from sage.middleware.components.sage_refiner.python.algorithms import (
+from sage.libs.context.compression.algorithms import (
     LongRefinerAlgorithm,
     SimpleRefiner,
 )
-from sage.middleware.components.sage_refiner.python.base import (
+from sage.libs.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
     RefinerMetrics,
 )
+from sage.middleware.components.sage_refiner.python.adapter import RefinerAdapter
 from sage.middleware.components.sage_refiner.python.config import (
     RefinerAlgorithm,
     RefinerConfig,
+)
+from sage.middleware.components.sage_refiner.python.context_service import (
+    ContextService,
 )
 from sage.middleware.components.sage_refiner.python.service import RefinerService
 
@@ -51,6 +54,7 @@ __all__ = [
     "RefinerAlgorithm",
     # 服务
     "RefinerService",
+    "ContextService",
     # 适配器
     "RefinerAdapter",
     # 算法

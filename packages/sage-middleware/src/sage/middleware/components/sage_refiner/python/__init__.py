@@ -2,7 +2,7 @@
 SAGE Refiner Python 实现
 """
 
-from sage.middleware.components.sage_refiner.python.base import (
+from sage.libs.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
     RefinerMetrics,

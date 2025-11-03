@@ -110,6 +110,32 @@ SUBMODULE_PATHS = {
     "docs-public",
 }
 
+# 模块职责规则：定义哪些模块类型应该在哪一层
+# 格式：(pattern, expected_layer, description, suggestion)
+MODULE_RESPONSIBILITY_RULES = [
+    # Pipeline/Orchestration 层 - 应该在 middleware 或更高层
+    (
+        r".*/(pipeline|orchestration|workflow)\.py$",
+        ["L4", "L5", "L6"],
+        "Pipeline/Orchestration 模块（编排层）",
+        "Pipeline 编排多个算子，应该在 sage-middleware (L4) 或更高层",
+    ),
+    # Profiler/Monitor - 如果是算子应该在 middleware
+    (
+        r".*/(profiler|monitor)\.py$",
+        ["L4", "L5", "L6"],
+        "Profiler/Monitor 模块",
+        "如果是算子实现（继承 MapFunction/FilterFunction），应该在 sage-middleware (L4)",
+    ),
+    # Operators - 具体的算子实现应该在 middleware
+    (
+        r".*/operators/.+\.py$",
+        ["L4", "L5", "L6"],
+        "Operator 实现",
+        "具体的算子实现应该在 sage-middleware (L4) 或应用层",
+    ),
+]
+
 # 根目录允许的文件（不区分大小写）
 # 只列出项目标准文件，其他文件都应该放在对应的子目录
 ALLOWED_ROOT_FILES = {
@@ -468,6 +494,84 @@ class ArchitectureChecker:
 
         return True
 
+    def check_module_responsibility(self, filepath: Path) -> bool:
+        """检查模块是否在正确的层级
+
+        某些类型的模块（如 pipeline, orchestration）应该只出现在特定层级。
+        """
+        # 获取文件所属的包
+        source_pkg = self.extract_package_name(filepath)
+        if not source_pkg:
+            return True
+
+        source_layer = PACKAGE_TO_LAYER.get(source_pkg, "Unknown")
+        if source_layer == "Unknown":
+            return True
+
+        # 检查文件路径是否匹配任何规则
+        file_path_str = str(filepath)
+
+        for pattern, allowed_layers, module_type, suggestion in MODULE_RESPONSIBILITY_RULES:
+            if re.search(pattern, file_path_str):
+                # 检查当前层级是否允许
+                if source_layer not in allowed_layers:
+                    # 检查文件内容以确认是否真的是该类型的模块
+                    if self._confirm_module_type(filepath, module_type):
+                        self.violations.append(
+                            ArchitectureViolation(
+                                type="MODULE_MISPLACEMENT",
+                                severity="ERROR",
+                                file=filepath,
+                                line=0,
+                                message=f"{module_type} 位于错误的层级: {source_pkg} ({source_layer})",
+                                suggestion=suggestion,
+                            )
+                        )
+                        return False
+
+        return True
+
+    def _confirm_module_type(self, filepath: Path, module_type: str) -> bool:
+        """通过分析文件内容确认模块类型
+
+        避免误报：只有真正符合特征的模块才算违规。
+        """
+        try:
+            with open(filepath, encoding="utf-8") as f:
+                content = f.read()
+
+            # Pipeline/Orchestration - 检查是否有编排逻辑
+            if "Pipeline" in module_type or "Orchestration" in module_type:
+                # 查找 Pipeline 类定义或编排相关代码
+                if re.search(r"class \w*Pipeline", content):
+                    return True
+                if re.search(r"def (orchestrate|run|execute).*pipeline", content, re.IGNORECASE):
+                    return True
+
+            # Profiler/Monitor - 检查是否继承算子基类
+            if "Profiler" in module_type or "Monitor" in module_type:
+                # 查找是否继承 Function 类
+                if re.search(r"class \w+\((Map|Filter|Batch|Sink)Function\)", content):
+                    return True
+                # 或者有 execute 方法
+                if re.search(r"class \w+Profiler.*:.*def execute", content, re.DOTALL):
+                    return True
+
+            # Operator 实现 - 检查是否在 operators 目录且实现了算子
+            if "Operator" in module_type:
+                if "operators/" in str(filepath):
+                    # 检查是否继承算子基类
+                    if re.search(
+                        r"class \w+\((Map|Filter|Batch|Sink|Operator|Function)\)", content
+                    ):
+                        return True
+
+        except Exception:
+            # 如果无法读取文件，保守地返回 False（不报错）
+            pass
+
+        return False
+
     def check_root_directory_files(self) -> bool:
         """检查根目录文件是否符合规范
 
@@ -607,10 +711,17 @@ class ArchitectureChecker:
             "illegal_dependencies": 0,
             "internal_imports": 0,
             "missing_markers": 0,
+            "module_misplacements": 0,
         }
 
-        # 1. 检查导入依赖
-        print("\n1️⃣  检查包依赖关系...")
+        # 1. 检查模块职责边界
+        print("\n1️⃣  检查模块职责边界...")
+        for filepath in files_to_check:
+            if not self.check_module_responsibility(filepath):
+                stats["module_misplacements"] += 1
+
+        # 2. 检查导入依赖
+        print("\n2️⃣  检查包依赖关系...")
         for filepath in files_to_check:
             if filepath.name == "__init__.py" or filepath.suffix != ".py":
                 continue
@@ -632,19 +743,19 @@ class ArchitectureChecker:
                     # 检查内部导入
                     self.check_internal_import(imp, source_pkg)
 
-        # 2. 检查包结构
-        print("2️⃣  检查包结构...")
+        # 3. 检查包结构
+        print("3️⃣  检查包结构...")
         for package_name in PACKAGE_PATHS.keys():
             self.check_package_structure(package_name)
 
-        # 3. 检查 Layer 标记
-        print("3️⃣  检查 Layer 标记...")
+        # 4. 检查 Layer 标记
+        print("4️⃣  检查 Layer 标记...")
         for package_name in PACKAGE_PATHS.keys():
             if not self.check_layer_marker(package_name):
                 stats["missing_markers"] += 1
 
-        # 4. 检查根目录文件
-        print("4️⃣  检查根目录文件规范...")
+        # 5. 检查根目录文件
+        print("5️⃣  检查根目录文件规范...")
         root_files_ok = self.check_root_directory_files()
         if not root_files_ok:
             stats["invalid_root_files"] = len(
@@ -680,6 +791,7 @@ def print_report(result: CheckResult):
     print(f"  • 检查文件数: {result.stats['total_files']}")
     print(f"  • 导入语句数: {result.stats['total_imports']}")
     print(f"  • 非法依赖: {result.stats['illegal_dependencies']}")
+    print(f"  • 模块位置错误: {result.stats.get('module_misplacements', 0)}")
     print(f"  • 内部导入: {result.stats['internal_imports']}")
     print(f"  • 缺少标记: {result.stats['missing_markers']}")
     if "invalid_root_files" in result.stats:
