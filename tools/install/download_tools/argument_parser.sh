@@ -70,6 +70,20 @@ get_smart_environment_recommendation() {
     fi
 }
 
+# 提示用户输入 Conda 环境名称
+prompt_conda_env_name() {
+    echo ""
+    echo -e "${BLUE}请输入 Conda 环境名称 ${DIM}(默认: sage)${NC}"
+    read -p "环境名称: " conda_env_input
+    if [ -z "$conda_env_input" ]; then
+        SAGE_ENV_NAME="sage"
+    else
+        SAGE_ENV_NAME="$conda_env_input"
+    fi
+    export SAGE_ENV_NAME
+    echo -e "${INFO} 将创建 Conda 环境: ${GREEN}$SAGE_ENV_NAME${NC}"
+}
+
 # 交互式安装菜单
 show_installation_menu() {
     echo ""
@@ -154,12 +168,14 @@ show_installation_menu() {
                     INSTALL_ENVIRONMENT="pip"
                 else
                     INSTALL_ENVIRONMENT="conda"
+                    prompt_conda_env_name
                 fi
                 break
                 ;;
             2)
                 if [ "$recommended_env" = "pip" ]; then
                     INSTALL_ENVIRONMENT="conda"
+                    prompt_conda_env_name
                 else
                     INSTALL_ENVIRONMENT="pip"
                 fi
@@ -599,7 +615,11 @@ show_install_configuration() {
 
     case "$INSTALL_ENVIRONMENT" in
         "conda")
-            echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
+            if [ -n "$SAGE_ENV_NAME" ]; then
+                echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境 (${SAGE_ENV_NAME})${NC}"
+            else
+                echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
+            fi
             ;;
         "pip")
             # 检查是否在虚拟环境中
