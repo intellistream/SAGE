@@ -1,0 +1,66 @@
+name: Sync main to main-dev
+
+on:
+  push:
+    branches:
+      - main
+
+# Permissions for the workflow
+permissions:
+  contents: write  # Allow pushing to repository
+  pull-requests: read  # Allow reading PR information
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Only run if it's not a merge from main-dev to avoid loops
+    if: ${{ !contains(github.event.head_commit.message, 'Merge pull request') || !contains(github.event.head_commit.message, 'main-dev') }}
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge main into main-dev
+        run: |
+          # Fetch latest main-dev
+          git fetch origin main-dev:main-dev
+
+          # Checkout main-dev
+          git checkout main-dev
+
+          # Merge main into main-dev
+          git merge main --no-edit -m "chore: sync main to main-dev [skip ci]"
+
+          # Push changes
+          git push origin main-dev
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ Successfully synced main to main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source branch**: main" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target branch**: main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Failed to sync main to main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please manually resolve conflicts:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "git checkout main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "git pull origin main" >> $GITHUB_STEP_SUMMARY
+          echo "# Resolve conflicts if any" >> $GITHUB_STEP_SUMMARY
+          echo "git push origin main-dev" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
