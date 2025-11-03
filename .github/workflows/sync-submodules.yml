@@ -1,8 +1,7 @@
 name: Auto-Sync Submodules
 
 on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review]
+  push:
     branches:
       - main
   workflow_dispatch:
@@ -15,18 +14,18 @@ jobs:
   auto-sync-submodules:
     name: Auto-Sync Submodules to main
     runs-on: ubuntu-latest
-    # Only run for main-dev -> main PRs
+    # Only run when main-dev was merged to main, or manual trigger
     if: |
-      (github.event_name == 'pull_request' &&
-       github.event.pull_request.base.ref == 'main' &&
-       github.event.pull_request.head.ref == 'main-dev') ||
+      (github.event_name == 'push' &&
+       contains(github.event.head_commit.message, 'Merge') &&
+       contains(github.event.head_commit.message, 'main-dev')) ||
       github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
-          ref: main-dev
+          ref: main
           fetch-depth: 0
           submodules: recursive
           token: ${{ secrets.PAT_TOKEN }}
@@ -70,12 +69,28 @@ jobs:
 
             # Check if there are changes to merge
             AHEAD=$(git rev-list --count origin/main..origin/main-dev 2>/dev/null || echo "0")
+            BEHIND=$(git rev-list --count origin/main-dev..origin/main 2>/dev/null || echo "0")
 
-            if [ "$AHEAD" -eq 0 ]; then
+            # Case 1: main-dev is up to date with main
+            if [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -eq 0 ]; then
               echo "| $submodule_path | ✅ Up to date | No changes |" >> $GITHUB_STEP_SUMMARY
               UPTODATE_COUNT=$((UPTODATE_COUNT + 1))
               cd - > /dev/null
               continue
+            fi
+
+            # Case 2: main-dev is behind main (needs to sync main → main-dev first)
+            if [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -gt 0 ]; then
+              echo "| $submodule_path | ⚠️ Behind | main-dev is $BEHIND commits behind main |" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ $submodule_path: main-dev is $BEHIND commits behind main, skipping sync" >> /tmp/warnings.txt
+              UPTODATE_COUNT=$((UPTODATE_COUNT + 1))
+              cd - > /dev/null
+              continue
+            fi
+
+            # Case 3: main-dev has new commits (may also be behind)
+            if [ "$BEHIND" -gt 0 ]; then
+              echo "| $submodule_path | ⚠️ Diverged | main-dev: +$AHEAD, main: +$BEHIND |" >> $GITHUB_STEP_SUMMARY
             fi
 
             # Checkout main branch
@@ -116,9 +131,14 @@ jobs:
             cd - > /dev/null
           done
 
-          # Read failed submodules
+          # Read failed submodules and warnings
           if [ -f /tmp/failed_submodules.txt ]; then
             FAILED_SUBMODULES=$(cat /tmp/failed_submodules.txt | tr '\n' ' ')
+          fi
+
+          WARNINGS=""
+          if [ -f /tmp/warnings.txt ]; then
+            WARNINGS=$(cat /tmp/warnings.txt)
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -126,6 +146,15 @@ jobs:
           echo "- ✅ Successfully synced: $SUCCESS_COUNT" >> $GITHUB_STEP_SUMMARY
           echo "- ℹ️  Already up to date: $UPTODATE_COUNT" >> $GITHUB_STEP_SUMMARY
           echo "- ❌ Failed: $FAILED_COUNT" >> $GITHUB_STEP_SUMMARY
+
+          if [ -n "$WARNINGS" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ⚠️ Warnings" >> $GITHUB_STEP_SUMMARY
+            echo "$WARNINGS" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Note:** Submodules where main-dev is behind main were skipped." >> $GITHUB_STEP_SUMMARY
+            echo "Please sync main → main-dev in those submodules first." >> $GITHUB_STEP_SUMMARY
+          fi
 
           # Set outputs
           echo "success_count=$SUCCESS_COUNT" >> $GITHUB_OUTPUT
@@ -161,21 +190,39 @@ jobs:
           fi
 
       - name: Comment on PR - Success
-        if: steps.sync.outputs.has_failures == 'false' && github.event_name == 'pull_request'
+        if: steps.sync.outputs.has_failures == 'false' && github.event_name == 'push'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.PAT_TOKEN }}
           script: |
             const successCount = '${{ steps.sync.outputs.success_count }}';
+
+            // Find the most recent merged PR from main-dev to main
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              base: 'main',
+              head: `${context.repo.owner}:main-dev`,
+              sort: 'updated',
+              direction: 'desc',
+              per_page: 1
+            });
+
+            if (prs.length === 0 || !prs[0].merged_at) {
+              console.log('No merged PR found, skipping comment');
+              return;
+            }
+
             const comment = `## ✅ Submodules Auto-Synced Successfully
 
-            All submodules have been automatically synced from \`main-dev\` to \`main\`.
+            All submodules have been automatically synced from \`main-dev\` to \`main\` after the merge.
 
             **Summary:**
             - ✅ ${successCount} submodule(s) synced
             - 📝 SAGE main branch updated with new submodule pointers
 
-            **This PR is now ready to be reviewed and merged.**
+            **All submodules are now aligned with the main branch! 🎉**
 
             <details>
             <summary>What happened automatically?</summary>
@@ -184,19 +231,19 @@ jobs:
             2. SAGE's \`main\` branch was updated to point to the new submodule commits
             3. All changes were pushed automatically
 
-            No manual action required! 🎉
+            This ensures all submodules stay synchronized with the main repository.
             </details>
             `;
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: prs[0].number,
               body: comment
             });
 
       - name: Comment on PR - Failure
-        if: steps.sync.outputs.has_failures == 'true' && github.event_name == 'pull_request'
+        if: steps.sync.outputs.has_failures == 'true' && github.event_name == 'push'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.PAT_TOKEN }}
@@ -204,6 +251,23 @@ jobs:
             const failed = '${{ steps.sync.outputs.failed_submodules }}';
             const successCount = '${{ steps.sync.outputs.success_count }}';
             const failedCount = '${{ steps.sync.outputs.failed_count }}';
+
+            // Find the most recent merged PR from main-dev to main
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              base: 'main',
+              head: `${context.repo.owner}:main-dev`,
+              sort: 'updated',
+              direction: 'desc',
+              per_page: 1
+            });
+
+            if (prs.length === 0 || !prs[0].merged_at) {
+              console.log('No merged PR found, skipping comment');
+              return;
+            }
 
             const comment = `## ⚠️ Submodule Sync Partially Failed
 
@@ -227,15 +291,15 @@ jobs:
             git push origin main
             \`\`\`
 
-            Then re-run this workflow or push a new commit to retry.
+            Then re-run this workflow manually from the Actions tab.
 
             See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
             `;
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: prs[0].number,
               body: comment
             });
 
