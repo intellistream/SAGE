@@ -487,7 +487,8 @@ verify_installation() {
         echo -e "${DIM}在当前环境中验证...${NC}"
     fi
 
-    if $python_cmd -c "
+    local verify_output
+    verify_output=$($python_cmd -c "
 import sage
 import sage.common
 import sage.kernel
@@ -495,7 +496,12 @@ import sage.libs
 import sage.middleware
 print(f'${CHECK} SAGE v{sage.__version__} 安装成功！')
 print(f'${CHECK} 所有子包版本一致: {sage.common.__version__}')
-" 2>/dev/null; then
+" 2>&1)
+    local verify_status=$?
+
+    echo "$verify_output"
+
+    if [ $verify_status -eq 0 ]; then
         echo -e "${CHECK} 验证通过！"
         return 0
     else
