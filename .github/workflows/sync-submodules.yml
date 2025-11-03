@@ -1,0 +1,247 @@
+name: Auto-Sync Submodules
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-sync-submodules:
+    name: Auto-Sync Submodules to main
+    runs-on: ubuntu-latest
+    # Only run for main-dev -> main PRs
+    if: |
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.base.ref == 'main' &&
+       github.event.pull_request.head.ref == 'main-dev') ||
+      github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          ref: main-dev
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check and sync submodules
+        id: sync
+        run: |
+          echo "## 🔄 Syncing Submodules from main-dev to main" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Submodule | Status | Changes |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          SUCCESS_COUNT=0
+          UPTODATE_COUNT=0
+          FAILED_COUNT=0
+          FAILED_SUBMODULES=""
+
+          # Process each submodule
+          git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read submodule_path; do
+            if [ ! -d "$submodule_path" ]; then
+              continue
+            fi
+
+            echo "Processing: $submodule_path"
+
+            cd "$submodule_path"
+
+            # Fetch latest from both branches
+            if ! git fetch origin main main-dev 2>&1; then
+              echo "| $submodule_path | ❌ Failed | Failed to fetch |" >> $GITHUB_STEP_SUMMARY
+              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo "$submodule_path" >> /tmp/failed_submodules.txt
+              cd - > /dev/null
+              continue
+            fi
+
+            # Check if there are changes to merge
+            AHEAD=$(git rev-list --count origin/main..origin/main-dev 2>/dev/null || echo "0")
+
+            if [ "$AHEAD" -eq 0 ]; then
+              echo "| $submodule_path | ✅ Up to date | No changes |" >> $GITHUB_STEP_SUMMARY
+              UPTODATE_COUNT=$((UPTODATE_COUNT + 1))
+              cd - > /dev/null
+              continue
+            fi
+
+            # Checkout main branch
+            if ! git checkout main 2>&1; then
+              echo "| $submodule_path | ❌ Failed | Cannot checkout main |" >> $GITHUB_STEP_SUMMARY
+              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo "$submodule_path" >> /tmp/failed_submodules.txt
+              cd - > /dev/null
+              continue
+            fi
+
+            if ! git pull origin main 2>&1; then
+              echo "| $submodule_path | ❌ Failed | Cannot pull main |" >> $GITHUB_STEP_SUMMARY
+              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo "$submodule_path" >> /tmp/failed_submodules.txt
+              cd - > /dev/null
+              continue
+            fi
+
+            # Merge main-dev into main
+            if git merge origin/main-dev --no-edit -m "chore: sync main-dev to main for SAGE release" 2>&1; then
+              # Push to remote
+              if git push origin main 2>&1; then
+                echo "| $submodule_path | ✅ Synced | $AHEAD commits merged |" >> $GITHUB_STEP_SUMMARY
+                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+              else
+                echo "| $submodule_path | ❌ Failed | Push failed |" >> $GITHUB_STEP_SUMMARY
+                FAILED_COUNT=$((FAILED_COUNT + 1))
+                echo "$submodule_path" >> /tmp/failed_submodules.txt
+              fi
+            else
+              echo "| $submodule_path | ❌ Conflict | Merge conflict detected |" >> $GITHUB_STEP_SUMMARY
+              git merge --abort 2>/dev/null
+              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo "$submodule_path" >> /tmp/failed_submodules.txt
+            fi
+
+            cd - > /dev/null
+          done
+
+          # Read failed submodules
+          if [ -f /tmp/failed_submodules.txt ]; then
+            FAILED_SUBMODULES=$(cat /tmp/failed_submodules.txt | tr '\n' ' ')
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Successfully synced: $SUCCESS_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- ℹ️  Already up to date: $UPTODATE_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ Failed: $FAILED_COUNT" >> $GITHUB_STEP_SUMMARY
+
+          # Set outputs
+          echo "success_count=$SUCCESS_COUNT" >> $GITHUB_OUTPUT
+          echo "failed_count=$FAILED_COUNT" >> $GITHUB_OUTPUT
+          echo "failed_submodules=$FAILED_SUBMODULES" >> $GITHUB_OUTPUT
+
+          if [ "$FAILED_COUNT" -gt 0 ]; then
+            echo "has_failures=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_failures=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update SAGE submodule pointers
+        if: steps.sync.outputs.success_count > 0
+        run: |
+          # Checkout main branch of SAGE
+          git checkout main
+          git pull origin main
+
+          # Update all submodules to their latest main branch commits
+          git submodule foreach 'git checkout main && git pull origin main'
+
+          # Update submodule references
+          git add .
+
+          # Check if there are changes
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update submodule pointers to main branch after sync"
+            git push origin main
+            echo "✅ Updated SAGE main branch with new submodule pointers" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️  No submodule pointer updates needed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR - Success
+        if: steps.sync.outputs.has_failures == 'false' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const successCount = '${{ steps.sync.outputs.success_count }}';
+            const comment = `## ✅ Submodules Auto-Synced Successfully
+
+            All submodules have been automatically synced from \`main-dev\` to \`main\`.
+
+            **Summary:**
+            - ✅ ${successCount} submodule(s) synced
+            - 📝 SAGE main branch updated with new submodule pointers
+
+            **This PR is now ready to be reviewed and merged.**
+
+            <details>
+            <summary>What happened automatically?</summary>
+
+            1. Each submodule's \`main-dev\` branch was merged into its \`main\` branch
+            2. SAGE's \`main\` branch was updated to point to the new submodule commits
+            3. All changes were pushed automatically
+
+            No manual action required! 🎉
+            </details>
+            `;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+      - name: Comment on PR - Failure
+        if: steps.sync.outputs.has_failures == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const failed = '${{ steps.sync.outputs.failed_submodules }}';
+            const successCount = '${{ steps.sync.outputs.success_count }}';
+            const failedCount = '${{ steps.sync.outputs.failed_count }}';
+
+            const comment = `## ⚠️ Submodule Sync Partially Failed
+
+            **Summary:**
+            - ✅ ${successCount} submodule(s) synced successfully
+            - ❌ ${failedCount} submodule(s) failed
+
+            **Failed submodules:**${failed}
+
+            ### 🔧 Manual Action Required
+
+            Please resolve the issues with the failed submodules manually:
+
+            \`\`\`bash
+            cd <submodule-path>
+            git checkout main
+            git pull origin main
+            git merge origin/main-dev
+            # Resolve any conflicts
+            git commit
+            git push origin main
+            \`\`\`
+
+            Then re-run this workflow or push a new commit to retry.
+
+            See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+            `;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+      - name: Fail if submodules sync failed
+        if: steps.sync.outputs.has_failures == 'true'
+        run: |
+          echo "❌ Some submodules failed to sync"
+          echo "Failed submodules: ${{ steps.sync.outputs.failed_submodules }}"
+          exit 1
