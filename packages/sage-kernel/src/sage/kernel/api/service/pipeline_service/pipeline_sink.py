@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from sage.common.core.functions.sink_function import SinkFunction
+from sage.common.core import SinkFunction
 from sage.kernel.runtime.communication.router.packet import StopSignal
 
 
