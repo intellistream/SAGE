@@ -112,6 +112,14 @@ jobs:
           echo "✅ SAGE 安装完成"
         timeout-minutes: 20
 
+      - name: Clean Python Cache
+        run: |
+          echo "🧹 清理 Python 缓存文件..."
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          find . -type f -name "*.pyc" -delete 2>/dev/null || true
+          find . -type f -name "*.pyo" -delete 2>/dev/null || true
+          echo "✅ Python 缓存清理完成"
+
       - name: Verify Installation
         run: |
           echo "✅ 验证 SAGE 安装..."
