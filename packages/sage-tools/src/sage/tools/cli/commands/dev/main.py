@@ -1580,24 +1580,35 @@ def _generate_coverage_reports(project_path: Path, coverage_report: str, quiet: 
         coverage_dir = sage_paths.coverage_dir
         coverage_file = coverage_dir / ".coverage"
 
-        debug_log(f"Coverage 文件: {coverage_file}", "COVERAGE")
+        debug_log(f"Coverage 目录: {coverage_dir}", "COVERAGE")
+        debug_log(f"Coverage 合并文件: {coverage_file}", "COVERAGE")
 
-        # 检查覆盖率数据是否存在
-        if not coverage_file.exists():
+        # 查找所有coverage数据文件（包括主文件和并行测试生成的分片文件）
+        coverage_files = list(coverage_dir.glob(".coverage*"))
+
+        if not coverage_files:
             if not quiet:
                 console.print("[yellow]⚠️ 未找到覆盖率数据文件[/yellow]")
-                console.print(f"[yellow]   预期位置: {coverage_file}[/yellow]")
+                console.print(f"[yellow]   预期位置: {coverage_dir}/.coverage*[/yellow]")
             return
 
+        debug_log(f"找到 {len(coverage_files)} 个coverage文件", "COVERAGE")
+
         # 合并覆盖率数据（如果有多个 .coverage.* 文件）
+        # coverage combine 会自动查找所有 .coverage.* 文件并合并到 .coverage
         debug_log("合并覆盖率数据", "COVERAGE")
-        combine_cmd = ["python", "-m", "coverage", "combine"]
-        subprocess.run(
+        combine_cmd = ["python", "-m", "coverage", "combine", "--keep"]
+        result = subprocess.run(
             combine_cmd,
-            cwd=str(project_path),
+            cwd=str(coverage_dir),  # 在coverage目录中运行，这样它能找到所有.coverage.*文件
             env={**os.environ, "COVERAGE_FILE": str(coverage_file)},
             capture_output=True,
+            text=True,
         )
+
+        if result.returncode != 0:
+            debug_log(f"Coverage combine 警告: {result.stderr}", "COVERAGE")
+            # 即使combine失败也继续，可能只有一个coverage文件
 
         # 解析报告格式
         report_formats = [fmt.strip() for fmt in coverage_report.split(",")]

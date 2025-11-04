@@ -613,7 +613,14 @@ class EnhancedTestRunner:
                     coverage_dir = self.project_root / ".sage" / "coverage"
 
                 coverage_dir.mkdir(parents=True, exist_ok=True)
-                coverage_file = coverage_dir / ".coverage"
+
+                # Use a unique coverage file for each test to avoid conflicts in parallel execution
+                # The files will be combined later using 'coverage combine'
+                import uuid
+
+                unique_id = uuid.uuid4().hex[:8]
+                test_name = test_file.stem
+                coverage_file = coverage_dir / f".coverage.{test_name}.{unique_id}"
 
                 # Set up environment for coverage outputs
                 env["COVERAGE_FILE"] = str(coverage_file)
@@ -625,10 +632,10 @@ class EnhancedTestRunner:
 
                 if source_dir.exists():
                     # Add coverage flags with source directory path
+                    # Note: We don't use --cov-append here because each test has its own file
                     cmd.extend(
                         [
                             f"--cov={source_dir}",
-                            "--cov-append",  # Append to existing coverage data
                             "--cov-report=",  # Disable individual test reports (we'll generate them at the end)
                         ]
                     )
