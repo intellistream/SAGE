@@ -2,8 +2,12 @@
 
 Layer: L1 (Foundation - Common Components)
 
-This module provides a service wrapper for vLLM (Very Large Language Model inference),
+This module provides service wrappers for vLLM (Very Large Language Model inference),
 allowing SAGE to leverage high-performance LLM serving capabilities.
+
+Services:
+    - VLLMService: Simple single-instance vLLM service
+    - ControlPlaneVLLMService: Advanced multi-instance service with intelligent scheduling
 
 Architecture:
     - Designed to be used by L2 (Platform) and higher layers
@@ -11,6 +15,21 @@ Architecture:
     - Must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps
 """
 
-from .service import VLLMService, VLLMServiceConfig, register_vllm_service
+from .service import VLLMService, VLLMServiceConfig
 
-__all__ = ["VLLMService", "VLLMServiceConfig", "register_vllm_service"]
+# Optional: Advanced Control Plane service
+try:
+    from .control_plane_service import (
+        ControlPlaneVLLMService,
+        ControlPlaneVLLMServiceConfig,
+    )
+
+    __all__ = [
+        "VLLMService",
+        "VLLMServiceConfig",
+        "ControlPlaneVLLMService",
+        "ControlPlaneVLLMServiceConfig",
+    ]
+except ImportError:
+    # Control Plane service not available
+    __all__ = ["VLLMService", "VLLMServiceConfig"]
