@@ -333,6 +333,7 @@ class TestRayPerformance:
     @patch("sage.kernel.utils.ray.ray_utils.ray")
     def test_is_distributed_environment_performance(self, mock_ray):
         """Test performance of is_distributed_environment calls"""
+        import sys
         import time
 
         mock_ray.is_initialized.return_value = True
@@ -345,7 +346,13 @@ class TestRayPerformance:
         elapsed = time.time() - start_time
 
         # Should be very fast
-        assert elapsed < 0.1  # Less than 100ms for 1000 calls
+        # Allow more time when running with coverage (coverage slows down execution significantly)
+        # Check if coverage is active by looking for coverage module
+        is_coverage_active = "coverage" in sys.modules or "pytest_cov" in sys.modules
+        max_time = 0.5 if is_coverage_active else 0.1
+        assert elapsed < max_time, (
+            f"Performance test took {elapsed:.3f}s (max: {max_time}s, coverage: {is_coverage_active})"
+        )
         assert all(result is True for result in results)
 
 
