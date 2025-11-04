@@ -34,6 +34,9 @@ class UserTrafficSource(BatchFunction):
     Simulates variable user load with peaks and valleys.
     """
 
+    # Probability scaling constant for request generation
+    PROBABILITY_SCALE = 100.0
+
     def __init__(
         self,
         duration: int = 30,
@@ -69,7 +72,7 @@ class UserTrafficSource(BatchFunction):
 
         # Determine if we should emit a request based on rate
         # Higher rate = more requests per second
-        probability = rate / 100.0
+        probability = rate / self.PROBABILITY_SCALE
         if random.random() < probability:
             self.request_count += 1
             return {

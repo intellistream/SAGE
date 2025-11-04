@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 import time
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -63,7 +64,7 @@ class ArxivSource(BatchFunction):
             "sortOrder": "descending",
         }
 
-        url = f"http://export.arxiv.org/api/query?{'&'.join(f'{k}={v}' for k, v in params.items())}"
+        url = f"http://export.arxiv.org/api/query?{urllib.parse.urlencode(params)}"
 
         try:
             with urllib.request.urlopen(url, timeout=10) as response:
