@@ -124,6 +124,10 @@ class DeviceExecutor(MapFunction):
     MapFunction that simulates device task execution.
     """
 
+    # Humidity sensor constants
+    MIN_HUMIDITY = 30.0
+    MAX_HUMIDITY = 80.0
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.event_counter = 0
@@ -157,7 +161,7 @@ class DeviceExecutor(MapFunction):
 
         # Add device-specific results
         if "humid_sensor" in device_id:
-            result["humidity"] = random.uniform(30, 80)
+            result["humidity"] = random.uniform(self.MIN_HUMIDITY, self.MAX_HUMIDITY)
         elif task in ["wash", "dry"]:
             result["success"] = True
 
