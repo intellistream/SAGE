@@ -224,7 +224,7 @@ service = ControlPlaneVLLMService(config)
 service.setup()
 
 # Generate with priority
-results = await service.process({
+results = service.process({
     "task": "generate",
     "inputs": "Your prompt here",
     "options": {
