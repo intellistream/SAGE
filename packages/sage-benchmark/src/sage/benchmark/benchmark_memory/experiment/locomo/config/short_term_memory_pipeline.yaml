@@ -15,17 +15,23 @@ promptor:
 
 generator:
   vllm:
-    api_key: "token-abc123"
+    api_key: "sk-8298f15945af41988281d7348b008c96"
     method: "openai"
-    model_name: "/home/zrc/.sage/models/vllm/Qwen__Qwen3-8B-AWQ"
-    base_url: "http://localhost:9090/v1"
-    seed: 42
-    max_tokens: 512
-    temperature: 0.7
-    # enable_thinking: 控制 Qwen3 模型的思考模式（硬开关）
-    # - false: 完全禁用思考过程，模型不会生成 <think>...</think> 块，提升响应效率
-    # - true: 启用思考模式，模型会在 <think> 块中展示推理过程，适合复杂任务
-    #
-    # 实现原理：通过 vLLM API 的 extra_body.chat_template_kwargs 传递给 tokenizer.apply_chat_template()
-    # 参考：https://qwen.readthedocs.io/en/latest/deployment/vllm.html#thinking-non-thinking-modes
-    enable_thinking: false
+    model_name: "qwen-turbo-2025-02-11"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+# generator:
+#   vllm:
+#     api_key: "token-abc123"
+#     method: "openai"
+#     model_name: "/home/zrc/.sage/models/vllm/Qwen__Qwen3-8B-AWQ"
+#     base_url: "http://localhost:9090/v1"
+#     seed: 42
+#     max_tokens: 512
+#     temperature: 0.7
+#     # enable_thinking: 控制 Qwen3 模型的思考模式（硬开关）
+#     # - false: 完全禁用思考过程，模型不会生成 <think>...</think> 块，提升响应效率
+#     # - true: 启用思考模式，模型会在 <think> 块中展示推理过程，适合复杂任务
+#     #
+#     # 实现原理：通过 vLLM API 的 extra_body.chat_template_kwargs 传递给 tokenizer.apply_chat_template()
+#     # 参考：https://qwen.readthedocs.io/en/latest/deployment/vllm.html#thinking-non-thinking-modes
+#     enable_thinking: false
