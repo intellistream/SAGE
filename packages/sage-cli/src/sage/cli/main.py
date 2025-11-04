@@ -63,6 +63,7 @@ try:
     from .commands.platform import (
         cluster_app,
         config_app,
+        docs_app,
         doctor_app,
         extensions_app,
         head_app,
@@ -113,6 +114,12 @@ try:
             extensions_app,
             name="extensions",
             help="🧩 扩展管理 - 安装和管理C++扩展 (list, install, uninstall, status)",
+        )
+    if docs_app:
+        app.add_typer(
+            docs_app,
+            name="docs",
+            help="📚 文档管理 - 预览、构建和部署文档 (serve, build, install-deps, info)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 platform 命令组: {e}[/yellow]")
