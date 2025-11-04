@@ -86,6 +86,28 @@ repos:
     exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/src/sage/__init__.py)
     # This hook will always succeed (exit 0) to avoid blocking commits/CI
     # Errors are shown but treated as warnings
+  - id: root-md-files-check
+    name: prevent root directory markdown files
+    entry: bash -c
+    args:
+    - |
+      files=$(git diff --cached --name-only | grep "^[^/]*\.md$" | grep -v "^README.md$" | grep -v "^CHANGELOG.md$" | grep -v "^CONTRIBUTING.md$" | grep -v "^LICENSE.md$" | grep -v "^DEVELOPER.md$")
+      if [ -n "$files" ]; then
+        echo "❌ 错误: 不允许在项目根目录创建以下 markdown 文件:"
+        echo "$files" | sed "s/^/  - /"
+        echo ""
+        echo "💡 建议: 请将文档移动到合适的位置:"
+        echo "  - 开发笔记 → docs/dev-notes/"
+        echo "  - 用户文档 → docs-public/docs_src/"
+        echo "  - 包文档 → packages/<package-name>/"
+        exit 1
+      else
+        exit 0
+      fi
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^[^/]*\.md$
   - id: devnotes-check
     name: dev-notes documentation standards
     entry: bash -c 'if git diff --cached --name-only | grep -q "^docs/dev-notes/.*\.md$"; then sage-dev quality devnotes; else exit 0; fi'

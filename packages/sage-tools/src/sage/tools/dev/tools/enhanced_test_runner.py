@@ -22,10 +22,11 @@ from .test_failure_cache import TestFailureCache
 class EnhancedTestRunner:
     """Enhanced test runner with intelligent change detection."""
 
-    def __init__(self, project_root: str, enable_coverage: bool = False):
+    def __init__(self, project_root: str, enable_coverage: bool = False, debug: bool = False):
         self.project_root = Path(project_root)
         self.packages_dir = self.project_root / "packages"
         self.enable_coverage = enable_coverage
+        self.debug = debug
 
         # Initialize test failure cache
         self.failure_cache = TestFailureCache(str(self.project_root))
@@ -62,6 +63,17 @@ class EnhancedTestRunner:
         self.test_logs_dir.mkdir(parents=True, exist_ok=True)
         self.reports_dir.mkdir(parents=True, exist_ok=True)
 
+    def _debug_log(self, message: str, stage: str = ""):
+        """输出调试信息"""
+        if self.debug:
+            import time
+
+            timestamp = time.strftime("%H:%M:%S")
+            if stage:
+                print(f"[{timestamp}] 🔍 [{stage}] {message}")
+            else:
+                print(f"[{timestamp}] 🔍 {message}")
+
     def _check_pytest_benchmark_available(self) -> bool:
         """Check if pytest-benchmark plugin is available."""
         try:
@@ -74,19 +86,24 @@ class EnhancedTestRunner:
     def run_tests(self, mode: str = "diff", **kwargs) -> dict:
         """Run tests based on specified mode."""
         try:
+            self._debug_log(f"运行测试，模式: {mode}", "RUN")
             print(f"测试模式： {mode}")
 
             if mode == "all":
+                self._debug_log("执行全部测试模式", "MODE")
                 result = self._run_all_tests(**kwargs)
             elif mode == "diff":
+                self._debug_log("执行差异测试模式", "MODE")
                 result = self._run_diff_tests(**kwargs)
             elif mode == "package":
                 package = kwargs.get("package")
                 if not package:
                     raise SAGEDevToolkitError("Package name required for package mode")
+                self._debug_log(f"执行包测试模式: {package}", "MODE")
                 print(f"📦 Testing package: {package}")
                 result = self._run_package_tests(package, **kwargs)
             elif mode == "failed":
+                self._debug_log("执行失败测试重跑模式", "MODE")
                 result = self._run_failed_tests(**kwargs)
             else:
                 raise SAGEDevToolkitError(f"Unknown test mode: {mode}")
@@ -125,8 +142,16 @@ class EnhancedTestRunner:
         """Run all tests in the project."""
         start_time = time.time()
 
+        # 提取 target_packages 参数
+        target_packages = kwargs.get("target_packages", None)
+
+        self._debug_log("开始发现测试文件", "DISCOVER")
+        if target_packages:
+            self._debug_log(f"限制测试包: {target_packages}", "DISCOVER")
+
         # Discover all test files
-        test_files = self._discover_all_test_files()
+        test_files = self._discover_all_test_files(target_packages=target_packages)
+        self._debug_log(f"发现 {len(test_files)} 个测试文件", "DISCOVER")
 
         if not test_files:
             return {
@@ -313,13 +338,22 @@ class EnhancedTestRunner:
         except ValueError:
             return str(test_file)
 
-    def _discover_all_test_files(self) -> list[Path]:
-        """Discover all test files in the project."""
+    def _discover_all_test_files(self, target_packages: list[str] | None = None) -> list[Path]:
+        """Discover all test files in the project.
+
+        Args:
+            target_packages: 如果指定，只扫描这些包。例如: ['sage-common', 'sage-kernel']
+        """
         test_files = []
 
         # Discover tests in packages
         for package_dir in self.packages_dir.iterdir():
             if package_dir.is_dir() and not package_dir.name.startswith("."):
+                # 如果指定了目标包，只扫描这些包
+                if target_packages and package_dir.name not in target_packages:
+                    self._debug_log(f"跳过包: {package_dir.name} (不在目标列表中)", "DISCOVER")
+                    continue
+
                 test_files.extend(self._discover_package_test_files(package_dir))
 
         # Also discover tests in tools/tests directory
@@ -331,14 +365,38 @@ class EnhancedTestRunner:
 
     def _discover_package_test_files(self, package_dir: Path) -> list[Path]:
         """Discover test files in a specific package."""
+        self._debug_log(f"扫描包: {package_dir.name}", "DISCOVER")
         test_files = []
+
+        # Directories to exclude from test discovery
+        exclude_dirs = {
+            "sageLLM",  # Submodule with its own tests
+            "vendors",  # Vendor code
+            "node_modules",
+            "__pycache__",
+            ".venv",
+            "venv",
+            ".sage",  # Temporary SAGE directory
+            "build",
+            "dist",
+            ".eggs",
+        }
 
         # Look for test directories
         for test_pattern in ["test", "tests"]:
             test_dir = package_dir / test_pattern
             if test_dir.exists():
-                # Find all test_*.py files
-                test_files.extend(test_dir.rglob("test_*.py"))
+                # Find all test_*.py files, excluding problematic directories
+                for test_file in test_dir.rglob("test_*.py"):
+                    # Check if any parent directory is in exclude list
+                    should_exclude = False
+                    for parent in test_file.parents:
+                        if parent.name in exclude_dirs:
+                            should_exclude = True
+                            break
+
+                    if not should_exclude:
+                        test_files.append(test_file)
 
         # Also look for test files in the root of the package
         test_files.extend(package_dir.glob("test_*.py"))

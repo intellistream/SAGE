@@ -72,6 +72,10 @@ class MockEnvironment(BaseEnvironment):
 
         self.env_base_dir = str(get_test_env_dir("test_logs"))
 
+    def submit(self):
+        """Required abstract method implementation"""
+        pass
+
     @property
     def jobmanager_host(self) -> str:
         return "127.0.0.1"

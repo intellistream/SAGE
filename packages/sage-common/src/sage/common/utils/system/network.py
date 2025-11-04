@@ -343,9 +343,14 @@ def aggressive_port_cleanup(port: int) -> dict[str, Any]:
 
     # 尝试杀死所有找到的进程
     for proc in all_pids:  # proc is actually a psutil.Process object
+        pid = None  # Initialize pid to avoid UnboundLocalError
         try:
-            # proc is already a psutil.Process, no need to construct again
-            pid = proc.pid  # Get the PID from the Process object
+            # Handle both psutil.Process objects and raw PIDs (for backward compatibility with mocks)
+            if isinstance(proc, int):
+                pid = proc
+                proc = psutil.Process(pid)
+            else:
+                pid = proc.pid  # Get the PID from the Process object
 
             # 先尝试优雅终止
             try:
@@ -362,9 +367,15 @@ def aggressive_port_cleanup(port: int) -> dict[str, Any]:
             # 进程已经不存在
             continue
         except psutil.AccessDenied:
-            result["errors"].append(f"Access denied to kill process {pid}")
+            if pid is not None:
+                result["errors"].append(f"Access denied to kill process {pid}")
+            else:
+                result["errors"].append("Access denied to kill process")
         except Exception as e:
-            result["errors"].append(f"Error killing process {pid}: {e}")
+            if pid is not None:
+                result["errors"].append(f"Error killing process {pid}: {e}")
+            else:
+                result["errors"].append(f"Error killing process: {e}")
 
     result["success"] = len(result["killed_pids"]) > 0
     return result
