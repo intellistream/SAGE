@@ -618,30 +618,20 @@ class EnhancedTestRunner:
                 # Set up environment for coverage outputs
                 env["COVERAGE_FILE"] = str(coverage_file)
 
-                # Determine the source package for coverage
-                # Map package name to source directory
-                package_source_map = {
-                    "kernel": "sage.kernel",
-                    "middleware": "sage.middleware",
-                    "common": "sage.common",
-                    "libs": "sage.libs",
-                    "tools": "sage.tools",
-                    "benchmark": "sage.benchmark",
-                    "apps": "sage.apps",
-                    "platform": "sage.platform",
-                    "studio": "sage.studio",
-                }
+                # Determine the source directory for coverage
+                # Use the package's src directory absolute path
+                package_root = self.project_root / "packages" / f"sage-{package_name}"
+                source_dir = package_root / "src"
 
-                source_package = package_source_map.get(package_name, "sage")
-
-                # Add coverage flags
-                cmd.extend(
-                    [
-                        f"--cov={source_package}",
-                        "--cov-append",  # Append to existing coverage data
-                        "--cov-report=",  # Disable individual test reports (we'll generate them at the end)
-                    ]
-                )
+                if source_dir.exists():
+                    # Add coverage flags with source directory path
+                    cmd.extend(
+                        [
+                            f"--cov={source_dir}",
+                            "--cov-append",  # Append to existing coverage data
+                            "--cov-report=",  # Disable individual test reports (we'll generate them at the end)
+                        ]
+                    )
 
                 # Note: HTML report will be generated after all tests complete
 
