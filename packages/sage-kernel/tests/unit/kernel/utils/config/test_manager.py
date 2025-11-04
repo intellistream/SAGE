@@ -487,6 +487,7 @@ class TestConfigManagerPerformance:
 
     def test_large_config_file_performance(self):
         """测试大型配置文件的性能"""
+        import sys
         import time
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -508,8 +509,17 @@ class TestConfigManagerPerformance:
             load_time = time.time() - start_time
 
             # 基本性能断言（这些阈值可以根据实际需要调整）
-            assert save_time < 20.0  # 保存应在20秒内完成（增加阈值以适应不同环境）
-            assert load_time < 5.0  # 加载应在5秒内完成
+            # Coverage模式下性能要求放宽
+            is_coverage_active = "coverage" in sys.modules or "pytest_cov" in sys.modules
+            save_time_limit = 30.0 if is_coverage_active else 20.0
+            load_time_limit = 10.0 if is_coverage_active else 5.0
+
+            assert save_time < save_time_limit, (
+                f"Save time {save_time:.2f}s exceeded limit {save_time_limit}s (coverage: {is_coverage_active})"
+            )
+            assert load_time < load_time_limit, (
+                f"Load time {load_time:.2f}s exceeded limit {load_time_limit}s (coverage: {is_coverage_active})"
+            )
             assert loaded_config == large_config
 
     def test_cache_performance(self):
