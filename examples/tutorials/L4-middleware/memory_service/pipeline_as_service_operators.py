@@ -412,7 +412,7 @@ class QuestionBatch(BatchFunction):
 
     def __init__(self, questions: List[str], include_shutdown: bool = True):
         super().__init__()
-        self.questions = list(questions)
+        self.questions: List[str | Dict[str, str]] = list(questions)
         if include_shutdown:
             # 添加 shutdown 命令
             self.questions.append({"command": "shutdown"})

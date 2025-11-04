@@ -4,6 +4,15 @@ SAGE RAG - Usage Examples
 This file demonstrates how to use the SAGE RAG (Retrieval-Augmented Generation) toolkit.
 
 Layer: L3 (Core - Algorithm Library)
+
+⚠️ NOTE: This is a DOCUMENTATION/EXAMPLE file showing the intended API design.
+The actual RAG modules (sage.libs.rag.*) are not yet implemented.
+This file serves as a specification for future development.
+
+To use this file:
+1. Read the examples to understand the intended API
+2. Do NOT run this file - it will fail with ImportError
+3. Implement the actual modules following this specification
 """
 
 
@@ -19,8 +28,10 @@ def example_document_loading():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.document_loaders import (
-            JSONLoader,  # noqa: F401
+        from sage.middleware.operators.rag.document_loaders import (
+            DocxLoader,  # noqa: F401
+            LoaderFactory,  # noqa: F401
+            MarkdownLoader,  # noqa: F401
             PDFLoader,  # noqa: F401
             TextLoader,  # noqa: F401
         )
@@ -28,7 +39,9 @@ def example_document_loading():
         print("\n✓ Available document loaders:")
         print("  - TextLoader: Load plain text files")
         print("  - PDFLoader: Load PDF documents")
-        print("  - JSONLoader: Load structured JSON data")
+        print("  - DocxLoader: Load Word documents")
+        print("  - MarkdownLoader: Load Markdown files")
+        print("  - LoaderFactory: Auto-detect and load files")
 
         # Example: Loading text files
         print("\nExample: Loading a text file")
@@ -58,7 +71,7 @@ def example_rag_pipeline():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.pipeline import RAGPipeline  # noqa: F401
+        from sage.middleware.operators.rag.pipeline import RAGPipeline  # noqa: F401
 
         print("\n✓ RAG Pipeline components:")
         print("  1. Document Loader: Load source documents")
@@ -71,8 +84,8 @@ def example_rag_pipeline():
         print("\nExample pipeline setup:")
         print(
             """
-        from sage.libs.rag.pipeline import RAGPipeline
-        from sage.libs.rag.document_loaders import TextLoader
+        from sage.middleware.operators.rag.pipeline import RAGPipeline
+        from sage.middleware.operators.rag.document_loaders import TextLoader
 
         # Create pipeline
         pipeline = RAGPipeline(
@@ -161,33 +174,32 @@ def example_profiling():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.profiler import RAGProfiler  # noqa: F401
+        from sage.middleware.operators.rag.profiler import Query_Profiler  # noqa: F401
 
         print("\n✓ RAG Profiler capabilities:")
-        print("  - Measure retrieval latency")
-        print("  - Track generation time")
-        print("  - Monitor memory usage")
-        print("  - Analyze relevance scores")
+        print("  - Query profiling and analysis")
+        print("  - Complexity assessment")
+        print("  - Reasoning requirement detection")
+        print("  - Summarization strategy selection")
 
         print("\nExample profiling:")
         print(
             """
-        from sage.libs.rag.profiler import RAGProfiler
-        from sage.libs.rag.pipeline import RAGPipeline
+        from sage.middleware.operators.rag.profiler import Query_Profiler
+        from sage.middleware.operators.rag.pipeline import RAGPipeline
 
         # Create profiler
-        profiler = RAGProfiler()
+        profiler = Query_Profiler(config={})
 
-        # Profile pipeline
-        with profiler.profile("rag_query"):
-            pipeline = RAGPipeline(...)
-            answer = pipeline.query("Sample question")
-
-        # Get metrics
-        metrics = profiler.get_metrics()
-        print(f"Retrieval time: {metrics['retrieval_ms']}ms")
-        print(f"Generation time: {metrics['generation_ms']}ms")
-        print(f"Total time: {metrics['total_ms']}ms")
+        # Profile query to determine strategy
+        query_info = {
+            "need_joint_reasoning": True,
+            "complexity": "High",
+            "need_summarization": True,
+            "summarization_length": 100,
+            "n_info_items": 3
+        }
+        result = profiler.execute(json.dumps(query_info))
         """
         )
 

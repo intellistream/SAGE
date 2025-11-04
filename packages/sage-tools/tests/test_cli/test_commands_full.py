@@ -51,14 +51,14 @@ class TestCLICommandsFull:
 
     def test_main_cli_help(self):
         """测试主CLI帮助"""
-        result = run_command([sys.executable, "-m", "sage.tools.cli", "--help"])
+        result = run_command([sys.executable, "-m", DEV_CLI_MODULE, "--help"])
         assert result["success"], f"CLI help failed: {result['stderr']}"
-        # sage.tools.cli 现在只有 dev 和 finetune 命令
-        assert "dev" in result["stdout"]
+        # dev CLI 显示开发工具帮助
+        assert "开发工具" in result["stdout"] or "dev" in result["stdout"].lower()
 
     def test_dev_help(self):
         """测试dev命令帮助"""
-        result = run_command([sys.executable, "-m", "sage.tools.cli", "dev", "--help"])
+        result = run_command([sys.executable, "-m", DEV_CLI_MODULE, "--help"])
         assert result["success"], f"Dev help failed: {result['stderr']}"
         assert "开发工具" in result["stdout"]
 

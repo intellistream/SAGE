@@ -9,18 +9,24 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from sage.common.core.functions.base_function import BaseFunction
 from sage.kernel.api.base_environment import BaseEnvironment
+from sage.kernel.api.operator.map_operator import MapOperator
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
 from sage.kernel.runtime.context.task_context import TaskContext
 from sage.kernel.runtime.graph.graph_node import TaskNode
 from sage.kernel.runtime.monitoring.metrics_collector import MetricsCollector
 
 
-class MockFunction:
-    """Mock function class for testing"""
+class MockFunction(BaseFunction):
+    """Mock function class for testing that properly inherits from BaseFunction"""
 
     __name__ = "MockFunction"
     is_comap = False
+
+    def execute(self, data):
+        """Required abstract method implementation"""
+        return data
 
 
 class MockTransformation(BaseTransformation):
@@ -33,11 +39,13 @@ class MockTransformation(BaseTransformation):
         mock_env.platform = "local"
         mock_env.pipeline = []
 
+        # Set operator_class BEFORE calling super().__init__
+        self.operator_class = MapOperator
+
         # Initialize parent with minimal required args
         super().__init__(
             env=mock_env, function=MockFunction, name="MockTransformation", parallelism=1
         )
-        self.is_spout = False
 
 
 class MockTaskNode(TaskNode):
@@ -67,6 +75,10 @@ class MockEnvironment(BaseEnvironment):
 
         self.uuid = "test_uuid"
 
+        # Set jobmanager attributes after parent init
+        self.jobmanager_host = "127.0.0.1"
+        self.jobmanager_port = 19001
+
         # 使用统一的SAGE路径管理
         from sage.common.config.output_paths import get_test_env_dir
 
@@ -75,14 +87,6 @@ class MockEnvironment(BaseEnvironment):
     def submit(self):
         """Required abstract method implementation"""
         pass
-
-    @property
-    def jobmanager_host(self) -> str:
-        return "127.0.0.1"
-
-    @property
-    def jobmanager_port(self) -> int:
-        return 19001
 
 
 class TestMonitoringIntegration:

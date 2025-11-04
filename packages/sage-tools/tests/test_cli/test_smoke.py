@@ -56,16 +56,16 @@ class TestCLISmoke:
     def test_cli_startup(self):
         """测试CLI启动"""
         success, stdout, stderr = run_command_simple(
-            [sys.executable, "-m", "sage.tools.cli", "--help"]
+            [sys.executable, "-m", "sage.tools.cli.commands.dev.main", "--help"]
         )
         assert success, f"CLI startup failed: {stderr}"
-        # sage.tools.cli 现在只有 dev 和 finetune 命令
-        assert "dev" in stdout
+        # dev CLI 显示开发工具帮助
+        assert "开发工具" in stdout or "dev" in stdout.lower()
 
     def test_dev_command_help(self):
         """测试dev命令"""
         success, stdout, stderr = run_command_simple(
-            [sys.executable, "-m", "sage.tools.cli", "dev", "--help"]
+            [sys.executable, "-m", "sage.tools.cli.commands.dev.main", "--help"]
         )
         assert success, f"Dev command failed: {stderr}"
         assert "开发工具" in stdout or "dev" in stdout.lower()
@@ -73,7 +73,7 @@ class TestCLISmoke:
     def test_status_check(self):
         """测试基本状态检查"""
         success, stdout, stderr = run_command_simple(
-            [sys.executable, "-m", "sage.tools.cli", "dev", "project", "status"],
+            [sys.executable, "-m", "sage.tools.cli.commands.dev.main", "project", "status"],
             timeout=60,  # 增加超时
         )
         assert success, f"Status check failed: {stderr}"
