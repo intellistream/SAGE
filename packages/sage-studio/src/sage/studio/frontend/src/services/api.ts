@@ -20,12 +20,28 @@ const apiClient = axios.create({
 
 // ==================== 类型定义 ====================
 
+// 参数配置接口
+export interface ParameterConfig {
+    name: string
+    label: string
+    type: 'text' | 'textarea' | 'number' | 'select' | 'password'
+    required?: boolean
+    defaultValue?: any
+    placeholder?: string
+    description?: string
+    options?: string[]
+    min?: number
+    max?: number
+    step?: number
+}
+
 export interface NodeDefinition {
     id: number
     name: string
     description: string
     code: string
     isCustom: boolean
+    parameters?: ParameterConfig[]  // 节点参数配置
 }
 
 export interface FlowConfig {
@@ -255,6 +271,85 @@ export async function executePlayground(params: {
     }>
 }> {
     const response = await apiClient.post('/playground/execute', params)
+    return response.data
+}
+
+// ==================== 节点输出 ====================
+
+/**
+ * 获取节点的输出数据
+ */
+export async function getNodeOutput(flowId: string, nodeId: string): Promise<{
+    data: any
+    type: 'json' | 'text' | 'error'
+    timestamp: string
+}> {
+    const response = await apiClient.get(`/node/${flowId}/${nodeId}/output`)
+    return response.data
+}
+
+// ==================== Flow 导入/导出 ====================
+
+/**
+ * 导出 Flow 为 JSON
+ */
+export async function exportFlow(flowId: string): Promise<Blob> {
+    const response = await apiClient.get(`/flows/${flowId}/export`, {
+        responseType: 'blob',
+    })
+    return response.data
+}
+
+/**
+ * 导入 Flow
+ */
+export async function importFlow(file: File): Promise<{ flowId: string; name: string }> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await apiClient.post('/flows/import', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    })
+    return response.data
+}
+
+// ==================== 环境变量 ====================
+
+/**
+ * 获取所有环境变量
+ */
+export async function getEnvVars(): Promise<Record<string, string>> {
+    const response = await apiClient.get('/env')
+    return response.data
+}
+
+/**
+ * 更新环境变量
+ */
+export async function updateEnvVars(vars: Record<string, string>): Promise<void> {
+    await apiClient.put('/env', vars)
+}
+
+// ==================== 日志 ====================
+
+/**
+ * 获取流程执行日志（增量获取）
+ */
+export async function getLogs(flowId: string, lastId: number = 0): Promise<{
+    logs: Array<{
+        id: number
+        timestamp: string
+        level: 'INFO' | 'WARNING' | 'ERROR' | 'DEBUG'
+        message: string
+        nodeId?: string
+    }>
+    last_id: number
+}> {
+    const response = await apiClient.get(`/logs/${flowId}`, {
+        params: { last_id: lastId }
+    })
     return response.data
 }
 
