@@ -493,6 +493,23 @@ class EnhancedTestRunner:
             duration = result.get("duration", 0)
             print(f" {status} ({duration:.1f}s)")
 
+            # Print error details for failed tests
+            if not result["passed"]:
+                error_msg = result.get("error", "")
+                if error_msg:
+                    print(f"    ⚠️ 错误信息: {error_msg}")
+
+                # Print last few lines of output if available
+                output = result.get("output", "")
+                if output:
+                    lines = output.strip().split("\n")
+                    # Show last 10 lines of output for context
+                    relevant_lines = lines[-10:] if len(lines) > 10 else lines
+                    if relevant_lines:
+                        print(f"    📝 输出（最后{len(relevant_lines)}行）:")
+                        for line in relevant_lines:
+                            print(f"       {line}")
+
             results.append(result)
 
             # Exit early on failure if quick mode
@@ -532,10 +549,29 @@ class EnhancedTestRunner:
                     print(
                         f"[{completed}/{total_tests}] {simplified_path} {status} ({duration:.1f}s)"
                     )
+
+                    # Print error details for failed tests
+                    if not result["passed"]:
+                        error_msg = result.get("error", "")
+                        if error_msg:
+                            print(f"    ⚠️ 错误信息: {error_msg}")
+
+                        # Print last few lines of output if available
+                        output = result.get("output", "")
+                        if output:
+                            lines = output.strip().split("\n")
+                            # Show last 10 lines of output for context
+                            relevant_lines = lines[-10:] if len(lines) > 10 else lines
+                            if relevant_lines:
+                                print(f"    📝 输出（最后{len(relevant_lines)}行）:")
+                                for line in relevant_lines:
+                                    print(f"       {line}")
+
                     results.append(result)
                 except Exception as e:
                     simplified_path = self._simplify_test_path(test_file)
                     print(f"[{completed}/{total_tests}] {simplified_path} ❌ ERROR")
+                    print(f"    ⚠️ 异常: {str(e)}")
                     results.append(
                         {
                             "test_file": simplified_path,
