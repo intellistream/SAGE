@@ -4,5 +4,42 @@
     "description": "Read queries from a file",
     "module_path": "examples.rag.rag_simple",
     "class_name": "FileSource",
-    "isCustom": false
+    "isCustom": false,
+    "parameters": [
+        {
+            "name": "file_path",
+            "label": "文件路径",
+            "type": "text",
+            "required": true,
+            "defaultValue": "",
+            "placeholder": "请输入文件路径，如 /path/to/data.txt",
+            "description": "要读取的数据文件路径"
+        },
+        {
+            "name": "encoding",
+            "label": "文件编码",
+            "type": "select",
+            "required": false,
+            "defaultValue": "utf-8",
+            "options": [
+                "utf-8",
+                "gbk",
+                "gb2312",
+                "ascii",
+                "latin-1"
+            ],
+            "description": "文件的字符编码格式"
+        },
+        {
+            "name": "batch_size",
+            "label": "批次大小",
+            "type": "number",
+            "required": false,
+            "defaultValue": 1,
+            "min": 1,
+            "max": 1000,
+            "step": 1,
+            "description": "每次读取的记录数量"
+        }
+    ]
 }

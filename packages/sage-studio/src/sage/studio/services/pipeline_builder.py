@@ -109,10 +109,17 @@ class PipelineBuilder:
 
         # 检查所有节点类型是否已注册
         for node in pipeline.nodes:
+            # Source 和 Sink 节点在 Registry 中有注册，但类型不同于 MapOperator
+            # 它们会在 build() 中被特殊处理，所以这里只检查是否存在
             if self.registry.get_operator(node.type) is None:
-                raise ValueError(
-                    f"Unknown node type: {node.type}. Available types: {self.registry.list_types()}"
+                # 提供更友好的错误信息
+                available_types = self.registry.list_types()
+                error_msg = (
+                    f"Unknown node type: '{node.type}'. \n"
+                    f"Available types ({len(available_types)}): {available_types[:10]}... \n"
+                    f"Hint: Node type should be in snake_case (e.g., 'terminal_sink', not 'TerminalSink')"
                 )
+                raise ValueError(error_msg)
 
         # 检查连接是否有效
         node_ids = {node.id for node in pipeline.nodes}

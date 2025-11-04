@@ -4,5 +4,40 @@
     "description": "BGE-based reranker for document relevance scoring",
     "module_path": "sage.libs.rag.reranker",
     "class_name": "BGEReranker",
-    "isCustom": false
+    "isCustom": false,
+    "parameters": [
+        {
+            "name": "model_name",
+            "label": "模型名称",
+            "type": "text",
+            "required": false,
+            "defaultValue": "BAAI/bge-reranker-large",
+            "placeholder": "请输入 BGE reranker 模型名称",
+            "description": "BGE reranker 模型的名称"
+        },
+        {
+            "name": "top_k",
+            "label": "Top K",
+            "type": "number",
+            "required": false,
+            "defaultValue": 3,
+            "min": 1,
+            "max": 50,
+            "step": 1,
+            "description": "重排序后保留的前 K 个文档"
+        },
+        {
+            "name": "device",
+            "label": "设备",
+            "type": "select",
+            "required": false,
+            "defaultValue": "cuda",
+            "options": [
+                "cuda",
+                "cpu",
+                "mps"
+            ],
+            "description": "运行模型的设备"
+        }
+    ]
 }

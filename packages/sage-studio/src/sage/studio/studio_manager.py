@@ -473,7 +473,7 @@ if __name__ == "__main__":
 
             # 运行构建命令，使用 .sage 目录作为输出
             result = subprocess.run(
-                ["npm", "run", "build", "--", f"--output-path={self.dist_dir}"],
+                ["npm", "run", "build", "--", f"--outDir={self.dist_dir}"],
                 cwd=self.frontend_dir,
                 capture_output=True,
                 text=True,
