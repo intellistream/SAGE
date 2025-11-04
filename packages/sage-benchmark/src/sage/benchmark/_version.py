@@ -1,5 +1,5 @@
 """Version information for sage-benchmark."""
 
-__version__ = "0.1.7.22"
+__version__ = "0.1.7.23"
 __author__ = "IntelliStream Team"
 __email__ = "shuhao_zhang@hust.edu.cn"
