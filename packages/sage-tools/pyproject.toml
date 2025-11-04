@@ -272,6 +272,25 @@ filterwarnings = [
     "ignore:.*swigvarlink.*:DeprecationWarning",
 ]
 
+[tool.coverage.run]
+source = [
+    "src/sage",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
 # ============================================================================
 # Code Quality Configuration
 # Extends from root ruff.toml for unified standards across all packages

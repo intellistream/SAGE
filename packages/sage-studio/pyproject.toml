@@ -163,6 +163,26 @@ markers = [
     "smoke: marks tests as smoke tests (quick validation)",
     "frontend: marks tests as frontend tests",
 ]
+
+[tool.coverage.run]
+source = [
+    "src/sage",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
 filterwarnings = [
     "ignore::DeprecationWarning:pkg_resources",
     "ignore:.*pkg_resources is deprecated.*:UserWarning",

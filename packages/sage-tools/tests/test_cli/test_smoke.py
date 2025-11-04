@@ -73,7 +73,7 @@ class TestCLISmoke:
     def test_status_check(self):
         """测试基本状态检查"""
         success, stdout, stderr = run_command_simple(
-            [sys.executable, "-m", "sage.tools.cli.commands.dev.main", "project", "status"],
+            [sys.executable, "-m", "sage.tools.cli.commands.dev.main", "status"],
             timeout=60,  # 增加超时
         )
         assert success, f"Status check failed: {stderr}"

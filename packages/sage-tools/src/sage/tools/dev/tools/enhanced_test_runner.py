@@ -588,6 +588,10 @@ class EnhancedTestRunner:
             # If coverage is disabled, override any pyproject.toml coverage settings
             if not self.enable_coverage:
                 cmd.extend(["--cov=", "--no-cov"])  # Explicitly disable coverage
+            else:
+                # When coverage is enabled, ensure it's activated
+                # We'll add --cov with the source package dynamically
+                pass  # Coverage flags will be added below after determining the package
 
             # Determine package and create appropriate log file path
             package_name = self._get_package_from_test_file(test_file)
@@ -614,12 +618,32 @@ class EnhancedTestRunner:
                 # Set up environment for coverage outputs
                 env["COVERAGE_FILE"] = str(coverage_file)
 
-                # Set coverage HTML output to .sage directory
-                coverage_html_dir = coverage_dir / "htmlcov"
-                cmd.extend(["--cov-report=html:" + str(coverage_html_dir)])
+                # Determine the source package for coverage
+                # Map package name to source directory
+                package_source_map = {
+                    "kernel": "sage.kernel",
+                    "middleware": "sage.middleware",
+                    "common": "sage.common",
+                    "libs": "sage.libs",
+                    "tools": "sage.tools",
+                    "benchmark": "sage.benchmark",
+                    "apps": "sage.apps",
+                    "platform": "sage.platform",
+                    "studio": "sage.studio",
+                }
 
-                # Add explicit coverage source if needed
-                # Note: pyproject.toml should have the coverage source settings
+                source_package = package_source_map.get(package_name, "sage")
+
+                # Add coverage flags
+                cmd.extend(
+                    [
+                        f"--cov={source_package}",
+                        "--cov-append",  # Append to existing coverage data
+                        "--cov-report=",  # Disable individual test reports (we'll generate them at the end)
+                    ]
+                )
+
+                # Note: HTML report will be generated after all tests complete
 
             # Run test
             start_time = time.time()

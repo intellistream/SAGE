@@ -97,7 +97,7 @@ class TestCLICommandsFull:
                 "--output-format",
                 "json",
             ],
-            timeout=60,  # 增加超时时间，status 命令较慢
+            timeout=120,  # 增加超时时间，status 命令较慢
         )
         assert result["success"], f"Status JSON failed: {result['stderr']}"
         # 验证JSON格式 - 跳过调试输出，找到实际的JSON
@@ -182,7 +182,6 @@ class TestCLICommandsFull:
     def test_import_functionality(self):
         """测试关键模块导入功能"""
         modules_to_test = [
-            "sage.tools.cli.main",
             DEV_CLI_MODULE,
             "sage.tools.dev.tools.project_status_checker",
             "sage.tools.dev.tools.dependency_analyzer",

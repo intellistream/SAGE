@@ -360,4 +360,3 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "测试日志已上传到 Artifacts，请下载查看详细信息" >> $GITHUB_STEP_SUMMARY
           fi
-          fi

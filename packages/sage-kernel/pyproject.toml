@@ -190,7 +190,6 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-data_file = ".sage/logs/.coverage"
 source = [
     "src/sage",
 ]

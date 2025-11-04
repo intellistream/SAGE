@@ -210,6 +210,25 @@ markers = [
     "external: marks tests that require external services or APIs",
 ]
 
+[tool.coverage.run]
+source = [
+    "src/sage",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
 [tool.black]
 line-length = 100
 target-version = ["py310", "py311", "py312"]
