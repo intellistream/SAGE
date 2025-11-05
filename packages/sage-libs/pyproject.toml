@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: System :: Distributed Computing",
 ]
-license = "MIT"
+license = {text = "MIT"}
 
 # 核心依赖
 dependencies = [

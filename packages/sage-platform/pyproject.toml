@@ -14,7 +14,7 @@ dynamic = [
 description = "SAGE Platform Services - Queue, Storage, and Service Abstractions"
 readme = "README.md"
 authors = [
-    { name = "SAGE Team", email = "info@sage-ai.org" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "ai",
@@ -40,7 +40,7 @@ dependencies = [
     "isage-common",
 ]
 
-license = "MIT"
+license = {text = "MIT"}
 
 [project.optional-dependencies]
 ray = [

@@ -75,7 +75,7 @@ dependencies = [
     "filelock>=3.16.1",
 ]
 
-license = "MIT"
+license = {text = "MIT"}
 
 [project.optional-dependencies]
 dev = [

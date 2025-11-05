@@ -14,7 +14,7 @@ dynamic = [
 description = "SAGE Core Common Utilities"
 readme = "README.md"
 authors = [
-    { name = "SAGE Team", email = "info@sage-ai.org" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "ai",
@@ -43,7 +43,7 @@ dependencies = [
     "dill>=0.3.8",
     "numpy>=1.24",
 ]
-license = "MIT"
+license = {text = "MIT"}
 
 [project.optional-dependencies]
 vllm = [
