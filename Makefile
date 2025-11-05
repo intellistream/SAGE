@@ -6,6 +6,7 @@ help:
 	@echo ""
 	@echo "📦 安装与设置:"
 	@echo "  make install         - 快速安装 SAGE（开发模式）"
+	@echo "  make install-dev     - 按正确顺序安装所有子包（推荐用于开发）"
 	@echo "  make install-deps    - 仅安装依赖"
 	@echo "  make build-extensions - 构建 C++ 扩展（DB, Flow, TSDB）"
 	@echo ""
@@ -42,6 +43,21 @@ help:
 install:
 	@echo "🚀 运行快速安装..."
 	./quickstart.sh
+
+install-dev:
+	@echo "🔧 开发模式安装所有子包（正确顺序）..."
+	@echo "  1️⃣ 安装基础包（无依赖）..."
+	@pip install -e packages/sage-common -e packages/sage-platform --no-deps
+	@echo "  2️⃣ 安装核心库..."
+	@pip install -e packages/sage-libs -e packages/sage-kernel --no-deps
+	@echo "  3️⃣ 安装 middleware（C++ 扩展）..."
+	@pip install -e packages/sage-middleware --no-deps
+	@echo "  4️⃣ 安装应用层..."
+	@pip install -e packages/sage-apps -e packages/sage-cli -e packages/sage-studio -e packages/sage-benchmark -e packages/sage-tools --no-deps
+	@echo "✅ 所有包已安装！"
+	@echo ""
+	@echo "📊 验证版本一致性..."
+	@pip list | grep -E "^isage"
 
 install-deps:
 	@echo "📦 安装依赖..."
