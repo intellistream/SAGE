@@ -6,11 +6,13 @@ on:
       - main-dev  # 开发分支: patch 版本自增 -> TestPyPI
       - main      # 主分支: minor 版本自增 -> PyPI
     paths-ignore:
-      - '**.md'
       - 'docs/**'
       - 'docs-public/**'
-      - '.github/workflows/**.md'
       - 'examples/**'
+      - '*.md'           # 只忽略根目录的 .md 文件（如 README.md）
+      - 'docs/**.md'     # 忽略 docs 目录下的 .md
+      - 'examples/**.md' # 忽略 examples 目录下的 .md
+      # 不再忽略 .github/workflows/ 目录下的任何文件
 
   workflow_dispatch:
     inputs:
@@ -30,15 +32,17 @@ on:
         options:
           - auto    # Based on branch
           - patch   # 0.1.6.2 -> 0.1.6.3
-          - minor   # 0.1.6.2 -> 0.1.7.0
-          - major   # 0.1.6.2 -> 0.2.0.0
+          - micro   # 0.1.6.2 -> 0.1.7.0
+          - minor   # 0.1.6.2 -> 0.2.0.0
+          - major   # 0.1.6.2 -> 1.0.0.0
           - none    # Keep current version
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # 跳过包含 [skip ci] 的提交
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    # Skip if commit message contains "[version bump]" to prevent infinite loops
+    # This allows other CI workflows to run while preventing re-publishing
+    if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
 
     steps:
       - name: Checkout code
@@ -56,7 +60,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install twine build
+          pip install twine build wheel setuptools
           # Install sage-tools for version management
           pip install -e packages/sage-tools
 
@@ -76,7 +80,7 @@ jobs:
           else
             # 自动触发：根据分支决定
             if [ "${{ github.ref_name }}" = "main" ]; then
-              VERSION_BUMP="minor"
+              VERSION_BUMP="micro"
               REPOSITORY="pypi"
             else  # main-dev
               VERSION_BUMP="patch"
@@ -87,7 +91,7 @@ jobs:
           # 如果是 auto，转换为实际类型
           if [ "$VERSION_BUMP" = "auto" ]; then
             if [ "${{ github.ref_name }}" = "main" ]; then
-              VERSION_BUMP="minor"
+              VERSION_BUMP="micro"
             else
               VERSION_BUMP="patch"
             fi
@@ -117,6 +121,10 @@ jobs:
             patch)
               patch=$((patch + 1))
               ;;
+            micro)
+              micro=$((micro + 1))
+              patch=0
+              ;;
             minor)
               minor=$((minor + 1))
               micro=0
@@ -138,10 +146,27 @@ jobs:
           # Update version using sage-dev
           sage-dev package version set "$NEW_VERSION"
 
-          # Commit version bump
+          # Commit version bump (without [skip ci] to allow CI badges to update)
+          # Use [version bump] marker to prevent workflow from re-triggering itself
           git add -A
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
-          git push
+          git commit -m "chore: bump version to $NEW_VERSION [version bump]"
+
+          # Pull latest changes with rebase to avoid conflicts
+          git pull --rebase origin ${{ github.ref_name }}
+
+          # Push with retry logic
+          max_retries=3
+          retry_count=0
+          until git push origin ${{ github.ref_name }}; do
+            retry_count=$((retry_count + 1))
+            if [ $retry_count -ge $max_retries ]; then
+              echo "Failed to push after $max_retries attempts"
+              exit 1
+            fi
+            echo "Push failed, retrying (attempt $retry_count/$max_retries)..."
+            sleep 2
+            git pull --rebase origin ${{ github.ref_name }}
+          done
 
       - name: Build and publish packages
         env:

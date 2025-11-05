@@ -46,8 +46,7 @@ dependencies = [
     "numpy>=1.24.0",
 ]
 
-[project.license]
-text = "MIT"
+license = {text = "MIT"}
 
 [project.optional-dependencies]
 video = [
@@ -150,4 +149,23 @@ markers = [
     "unit: marks tests as unit tests",
     "video: marks tests as video intelligence tests",
     "medical: marks tests as medical diagnosis tests",
+]
+
+[tool.coverage.run]
+source = [
+    "src/sage",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
 ]

@@ -5,7 +5,9 @@ import time
 import requests
 
 from sage.common.core import MapFunction
-from sage.libs.integrations.openaiclient import OpenAIClient
+
+# Note: OpenAIClient should be injected from application layer to avoid L3 -> L4 dependency
+# from sage.middleware.operators.llm.clients.openaiclient import OpenAIClient
 
 
 class Tool:
@@ -54,7 +56,19 @@ Thought:{agent_scratchpad}
 
 
 class BaseAgent(MapFunction):
-    def __init__(self, config, **kwargs):
+    def __init__(self, config, model=None, **kwargs):
+        """
+        Initialize BaseAgent.
+
+        Args:
+            config: Configuration dict containing:
+                - search_api_key: API key for search tool
+                - max_steps: Maximum reasoning steps (default: 5)
+                - model_name, base_url, api_key: (deprecated) Use model parameter instead
+            model: LLM client instance (should be injected from L4/L5 layer to avoid dependency)
+                   If None, will try to create from config for backward compatibility
+            **kwargs: Additional arguments for MapFunction
+        """
         super().__init__(**kwargs)
         self.logger.set_console_level("DEBUG")
         self.config = config
@@ -68,15 +82,23 @@ class BaseAgent(MapFunction):
             )
         ]
         self.tools = {tool.name: tool for tool in self.tools}
-        self.tool_names = ", ".join(self.tools.keys())  # 修复点
+        self.tool_names = ", ".join(self.tools.keys())
         self.format_instructions = FORMAT_INSTRUCTIONS.format(tool_names=self.tool_names)
         self.prefix = PREFIX.format(tool_names=self.tool_names)
-        self.model = OpenAIClient(
-            model_name=self.config["model_name"],
-            base_url=self.config["base_url"],
-            api_key=self.config["api_key"],
-            seed=42,
-        )
+
+        # Use injected model or fail with helpful message
+        if model is not None:
+            self.model = model
+        else:
+            # Model must be injected to maintain proper layer separation
+            # L3 (libs) should not depend on L4 (middleware)
+            raise ValueError(
+                "Model parameter must be provided. "
+                "Example: agent = BaseAgent(config, model=your_llm_client). "
+                "This maintains proper architectural layering (L3 should not depend on L4). "
+                "Please inject an LLM client instance from sage.middleware.operators.llm.clients"
+            )
+
         self.max_steps = self.config.get("max_steps", 5)
 
     def get_prompt(self, input, agent_scratchpad):

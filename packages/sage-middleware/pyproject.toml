@@ -1,5 +1,8 @@
 [build-system]
 requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
     "scikit-build-core>=0.8.0",
     "pybind11>=2.13.0",
 ]
@@ -43,6 +46,7 @@ dependencies = [
     "isage-common>=0.1.0",  # L1: 基础工具
     "isage-platform>=0.1.0",  # L2: 平台服务（BaseService等）
     "isage-kernel>=0.1.0",  # L3: 核心引擎
+    "isage-libs>=0.1.0",  # L3: 算法库（sage_refiner 依赖的压缩算法）
 
     # Middleware-specific dependencies
     # Authentication and security
@@ -203,6 +207,26 @@ markers = [
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
+    "external: marks tests that require external services or APIs",
+]
+
+[tool.coverage.run]
+source = [
+    "src/sage",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
 ]
 
 [tool.black]
@@ -238,8 +262,11 @@ cmake.minimum-version = "3.20"
 cmake.build-type = "Release"
 cmake.verbose = true
 
-# 构建目录
-build-dir = "build/{wheel_tag}"
+# 构建目录配置说明:
+# - 开发模式 (pip install -e): 使用 editable.build-dir 配置，指向项目的 .sage/build/
+# - PyPI 安装: 使用默认的 build-dir，scikit-build 会自动使用临时目录
+# 注意: build-dir 使用相对路径时，在 PyPI 安装场景下会解析到错误位置
+# 因此这里使用默认配置，让 scikit-build 自动处理
 
 # 日志级别
 logging.level = "INFO"
@@ -251,10 +278,12 @@ wheel.expand-macos-universal-tags = true
 # 严格配置验证
 strict-config = false  # 允许灵活配置
 
-# 开发模式配置 - SOTA: 使用 redirect 模式，不需要复杂的 inplace 逻辑
+# 开发模式配置 - 使用统一的 .sage/build/middleware
 [tool.scikit-build.editable]
 mode = "redirect"
 verbose = true
+# 仅在开发模式下使用项目的 .sage/build/ 目录
+build-dir = "../../.sage/build/middleware/{wheel_tag}"
 
 # 版本号来自 _version.py
 

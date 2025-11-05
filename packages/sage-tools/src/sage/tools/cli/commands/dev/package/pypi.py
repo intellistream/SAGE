@@ -261,6 +261,11 @@ def publish_sage_meta_package(
         "-r",
         help="上传目标仓库 (pypi 或 testpypi)",
     ),
+    skip_cpp_packages: bool = typer.Option(
+        True,
+        "--skip-cpp/--include-cpp",
+        help="跳过包含 C++ 扩展的包（推荐），使用源码发布",
+    ),
 ):
     """
     🚀 发布 SAGE 元包及其所有依赖
@@ -316,32 +321,37 @@ def publish_sage_meta_package(
     else:
         # 获取完整依赖顺序
         package_order = pkg_manager._get_full_install_order()
-        console.print("[cyan]📋 将按以下顺序构建和上传包:[/cyan]")
-        for i, pkg_name in enumerate(package_order, 1):
-            deps = pkg_manager.packages.get(pkg_name, {}).get("dependencies", [])
-            deps_str = f" (依赖: {', '.join(deps)})" if deps else " (无依赖)"
-            console.print(f"  {i:2d}. {pkg_name}{deps_str}")
-        console.print()
+        console.print(f"[cyan]📋 将按依赖顺序处理 {len(package_order)} 个包[/cyan]\n")
 
     # 过滤出实际存在的包
     package_paths = []
+    skipped_cpp_packages = []
+    cpp_packages = ["sage-middleware"]  # 包含 C++ 扩展的包列表
+
     for pkg_name in package_order:
         pkg_path = packages_dir / pkg_name
         if pkg_path.exists() and (pkg_path / "pyproject.toml").exists():
+            # 检查是否应该跳过 C++ 包
+            if skip_cpp_packages and pkg_name in cpp_packages:
+                skipped_cpp_packages.append(pkg_name)
+                console.print(f"[yellow]⏭️  跳过 C++ 扩展包: {pkg_name} (使用源码发布)[/yellow]")
+                continue
             package_paths.append(pkg_path)
         else:
             console.print(f"[yellow]⚠️  跳过不存在的包: {pkg_name}[/yellow]")
+
+    if skipped_cpp_packages:
+        console.print(
+            f"\n[blue]ℹ️  跳过了 {len(skipped_cpp_packages)} 个 C++ 扩展包，这些包将使用源码发布[/blue]"
+        )
+        console.print(f"[dim]   跳过的包: {', '.join(skipped_cpp_packages)}[/dim]\n")
 
     console.print(f"\n[cyan]总计 {len(package_paths)} 个包需要处理[/cyan]\n")
 
     if dry_run:
         console.print("[yellow]🔍 预演模式：将显示构建过程，但不会实际上传[/yellow]\n")
     else:
-        console.print(f"[bold red]⚠️  实际上传模式：将构建并上传到 {repo_name}！[/bold red]")
-        console.print("[yellow]   请确保:[/yellow]")
-        console.print(f"[yellow]   1. 已配置 {repository} API token (在 ~/.pypirc)[/yellow]")
-        console.print("[yellow]   2. 已安装 twine (pip install twine)[/yellow]")
-        console.print("[yellow]   3. 所有包的版本号都已正确设置[/yellow]\n")
+        console.print(f"[bold red]⚠️  实际上传模式：将构建并上传到 {repo_name}！[/bold red]\n")
 
         # 确认提示
         import time
@@ -364,9 +374,7 @@ def publish_sage_meta_package(
 
     for i, package_path in enumerate(package_paths, 1):
         package_name = package_path.name
-        console.print(
-            f"\n[bold cyan]📦 [{i}/{len(package_paths)}] 处理包: {package_name}[/bold cyan]"
-        )
+        console.print(f"\n[bold cyan]📦 [{i}/{len(package_paths)}] {package_name}[/bold cyan]")
         console.print("-" * 70)
 
         try:
@@ -374,19 +382,19 @@ def publish_sage_meta_package(
             compiler = BytecodeCompiler(package_path)
 
             # 编译包
-            console.print(f"[cyan]1/3 编译包: {package_name}[/cyan]")
+            console.print("[dim]→ 编译中...[/dim]")
             compiler.compile_package()
 
             # 构建 wheel
-            console.print(f"[cyan]2/3 构建 wheel: {package_name}[/cyan]")
+            console.print("[dim]→ 构建 wheel...[/dim]")
             wheel_path = compiler.build_wheel(upload=False, dry_run=True)
 
             # 上传到 PyPI
             if dry_run:
-                console.print(f"[yellow]3/3 预演模式：跳过上传 {package_name}[/yellow]")
+                console.print("[yellow]→ 预演模式：跳过上传[/yellow]")
                 results[package_name] = True
             else:
-                console.print(f"[cyan]3/3 上传到 {repo_name}: {package_name}[/cyan]")
+                console.print(f"[dim]→ 上传到 {repo_name}...[/dim]")
                 # 获取 dist 目录
                 dist_dir = wheel_path.parent
                 upload_success = compiler._upload_to_pypi(repository=repository, dist_dir=dist_dir)
@@ -394,24 +402,24 @@ def publish_sage_meta_package(
 
                 if not upload_success:
                     failed_packages.append(package_name)
-                    console.print(f"[bold red]❌ 上传失败: {package_name}[/bold red]")
+                    console.print("[bold red]❌ 失败[/bold red]")
                     # 询问是否继续
                     if i < len(package_paths):
-                        console.print("\n[yellow]是否继续处理剩余包？(按 Ctrl+C 取消)[/yellow]")
+                        console.print("\n[yellow]继续处理剩余包 (按 Ctrl+C 取消)...[/yellow]")
                         try:
-                            time.sleep(3)
+                            time.sleep(2)
                         except KeyboardInterrupt:
                             console.print("\n[yellow]已取消剩余包的处理[/yellow]")
                             break
                 else:
-                    console.print(f"[bold green]✅ 成功: {package_name}[/bold green]")
+                    console.print("[bold green]✅ 成功[/bold green]")
 
         except KeyboardInterrupt:
             console.print(f"\n[yellow]已取消: {package_name}[/yellow]")
             break
         except Exception as e:
-            console.print(f"[bold red]❌ 处理失败: {package_name}[/bold red]")
-            console.print(f"[red]错误: {e}[/red]")
+            console.print("[bold red]❌ 处理失败[/bold red]")
+            console.print(f"[red]错误: {str(e)[:200]}[/red]")
             results[package_name] = False
             failed_packages.append(package_name)
 

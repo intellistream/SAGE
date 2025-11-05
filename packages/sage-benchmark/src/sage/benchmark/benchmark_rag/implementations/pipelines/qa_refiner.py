@@ -8,17 +8,12 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.batch import HFDatasetBatch
 from sage.middleware.operators.rag import (
-    AccuracyEvaluate,
-    BRSEvaluate,
     CompressionRateEvaluate,
-    ContextRecallEvaluate,
     F1Evaluate,
     LatencyEvaluate,
     OpenAIGenerator,
     QAPromptor,
-    RecallEvaluate,
     RefinerOperator,
-    RougeLEvaluate,
     TokenCountEvaluate,
     Wiki18FAISSRetriever,
 )
@@ -32,17 +27,17 @@ def pipeline_run(config):
     (
         env.from_batch(HFDatasetBatch, config["source"])
         .map(Wiki18FAISSRetriever, config["retriever"], enable_profile=enable_profile)
-        .map(RefinerOperator, config["refiner"], enable_profile=enable_profile)
+        .map(RefinerOperator, config["refiner"])
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
         .map(OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile)
         .map(F1Evaluate, config["evaluate"])
-        .map(RecallEvaluate, config["evaluate"])
-        .map(RougeLEvaluate, config["evaluate"])
-        .map(BRSEvaluate, config["evaluate"])
-        .map(AccuracyEvaluate, config["evaluate"])
+        # .map(RecallEvaluate, config["evaluate"])
+        # .map(RougeLEvaluate, config["evaluate"])
+        # .map(BRSEvaluate, config["evaluate"])
+        # .map(AccuracyEvaluate, config["evaluate"])
         .map(TokenCountEvaluate, config["evaluate"])
         .map(LatencyEvaluate, config["evaluate"])
-        .map(ContextRecallEvaluate, config["evaluate"])
+        # .map(ContextRecallEvaluate, config["evaluate"])
         .map(CompressionRateEvaluate, config["evaluate"])
     )
 
@@ -70,7 +65,9 @@ if __name__ == "__main__":
         print("✅ Test passed: Example structure validated")
         sys.exit(0)
 
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_refiner.yaml")
+    config_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "config", "config_refiner.yaml"
+    )
 
     # 检查配置文件是否存在
     if not os.path.exists(config_path):

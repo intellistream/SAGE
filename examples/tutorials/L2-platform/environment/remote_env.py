@@ -62,8 +62,9 @@ def example_default_scheduler():
     env.submit(autostop=True)
 
     # 查看调度器指标
-    metrics = env.scheduler.get_metrics()
-    print(f"\n📊 调度器指标: {metrics}")
+    if env.scheduler:
+        metrics = env.scheduler.get_metrics()
+        print(f"\n📊 调度器指标: {metrics}")
 
 
 def example_fifo_scheduler():
@@ -84,8 +85,9 @@ def example_fifo_scheduler():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    metrics = env.scheduler.get_metrics()
-    print(f"\n📊 调度器指标: {metrics}")
+    if env.scheduler:
+        metrics = env.scheduler.get_metrics()
+        print(f"\n📊 调度器指标: {metrics}")
 
 
 def example_load_aware_scheduler():
@@ -108,10 +110,11 @@ def example_load_aware_scheduler():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    metrics = env.scheduler.get_metrics()
-    print(f"\n📊 调度器指标: {metrics}")
-    print(f"   当前活跃任务: {metrics.get('active_tasks', 'N/A')}")
-    print(f"   最大并发数: {metrics.get('max_concurrent', 'N/A')}")
+    if env.scheduler:
+        metrics = env.scheduler.get_metrics()
+        print(f"\n📊 调度器指标: {metrics}")
+        print(f"   当前活跃任务: {metrics.get('active_tasks', 'N/A')}")
+        print(f"   最大并发数: {metrics.get('max_concurrent', 'N/A')}")
 
 
 def example_custom_scheduler_instance():
@@ -141,8 +144,9 @@ def example_custom_scheduler_instance():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    metrics = env.scheduler.get_metrics()
-    print(f"\n📊 调度器指标: {metrics}")
+    if env.scheduler:
+        metrics = env.scheduler.get_metrics()
+        print(f"\n📊 调度器指标: {metrics}")
 
 
 def main():

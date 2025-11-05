@@ -27,6 +27,7 @@ class TestAgentConfigValidation:
             "..",
             "examples",
             "tutorials",
+            "L3-libs",
             "agents",
             "config",
             "config_agent_min.yaml",
@@ -158,7 +159,8 @@ class TestAgentConfigValidation:
         assert "class" in arxiv_tool
         assert "init_kwargs" in arxiv_tool
 
-        assert arxiv_tool["module"] == "examples.agents.tools.arxiv_search_tool"
+        # Update expected path to match actual config file
+        assert arxiv_tool["module"] == "examples.tutorials.agents.arxiv_search_tool"
         assert arxiv_tool["class"] == "ArxivSearchTool"
         assert isinstance(arxiv_tool["init_kwargs"], dict)
 

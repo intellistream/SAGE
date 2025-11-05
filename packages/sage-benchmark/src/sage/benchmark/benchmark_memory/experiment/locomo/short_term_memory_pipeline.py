@@ -1,271 +1,67 @@
-"""简单的 LLM Pipeline 示例 - 使用本地 vLLM 服务
+"""Locomo 长轮对话记忆实验 - Pipeline-as-Service 架构
 
-这个示例展示如何：
-1. 使用本地启动的 vLLM 服务（Qwen/Qwen3-8B-AWQ）
-2. 创建一个简单的问答 Pipeline
-3. 顺序处理多个问题并显示答案
+架构说明：
+===========
+
+【2条 Pipeline】：
+1. 主 Pipeline (Controller Pipeline):
+   - LocomoSource → LocomoControllerMap → LocomoSink
+   - 逐轮喂入对话历史，通过 call_service() 调用服务 Pipeline
+
+2. 服务 Pipeline (Locomo Service):
+   - PipelineServiceSource → LocomoServiceMap → PipelineServiceSink
+   - 从 PipelineBridge 拉取请求，存储历史，检测问题，生成答案
+   - 同时作为 Pipeline 和 Service（双重身份）
+
+【关键机制】：
+- 背压 (Backpressure): 主 Pipeline 的 call_service() 会阻塞，保证顺序处理
+- Pipeline-as-Service: 通过 PipelineBridge 实现双向通信
+- 历史状态: 服务 Pipeline 内部维护对话历史，问题不破坏历史状态
+- 增量检测: 使用 get_question_list() 检测新触发的问题
+- autostop: 主 Pipeline 处理完所有批次后自动停止并清理资源
+
+运行: python packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/locomo/short_term_memory_pipeline.py
 """
 
-import queue
+from __future__ import annotations
+
 import sys
-import time
 from pathlib import Path
 
 import yaml  # type: ignore[import-untyped]
+from libs.locomo_io import LocomoSink, LocomoSource
 
-from sage.common.core import MapFunction, SinkFunction, SourceFunction
+# 导入业务相关的算子
+from locomo_operators import LocomoControllerMap, LocomoServiceMap
+
+from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import LocomoDataLoader
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
-from sage.platform.service import BaseService
-
-
-class PipelineBridge:
-    """Pipeline 之间的通信桥梁"""
-
-    def __init__(self):
-        self._queue = queue.Queue()
-        self._closed = False
-
-    def submit(self, payload):
-        """提交请求到 Pipeline"""
-        if self._closed:
-            raise RuntimeError("PipelineBridge is closed")
-        response_q = queue.Queue()
-        self._queue.put({"payload": payload, "response_queue": response_q})
-        return response_q
-
-    def next(self, timeout=0.1):
-        """从 Pipeline 获取下一个请求"""
-        if self._closed:
-            return None
-        try:
-            return self._queue.get(timeout=timeout)
-        except queue.Empty:
-            return None
-
-    def close(self):
-        """关闭 Bridge"""
-        self._closed = True
-
-
-# ==================== LLM 问答服务 Pipeline ====================
-
-
-class LLMSource(SourceFunction):
-    """从 bridge 接收问答请求"""
-
-    def __init__(self, bridge):
-        super().__init__()
-        self.bridge = bridge
-
-    def execute(self, data=None):
-        if self.bridge._closed:
-            return None
-        request = self.bridge.next(timeout=0.1)
-        return request if request else None
-
-
-class LLMMap(MapFunction):
-    """使用 LLM 生成答案"""
-
-    def __init__(self, config):
-        super().__init__()
-        self.config = config
-
-    def execute(self, data):
-        if not data:
-            return None
-
-        payload = data["payload"]
-        question = payload["question"]
-
-        print("🔧 LLMMap: 开始处理问题...")
-
-        # 使用配置文件中的 promptor 配置
-        promptor_config = self.config.get("promptor", {})
-        if not promptor_config.get("template"):
-            promptor_config["template"] = """你是一位友好的健康助手。请简洁、准确地回答用户的问题。
-
-用户问题: {{ question }}
-
-请提供有帮助的建议："""
-
-        promptor = QAPromptor(promptor_config)
-        prompted = promptor.execute({"question": question})
-
-        print("📝 Prompt 准备完成，开始调用 LLM...")
-
-        # 使用配置文件中的 generator 配置
-        generator_config = self.config.get("generator", {}).get("vllm", {})
-        generator = OpenAIGenerator(generator_config)
-        generator.ctx = self.ctx
-
-        # 生成答案
-        answer = generator.execute(prompted)
-
-        print("✅ LLM 生成完成")
-
-        return {
-            "payload": {"question": question, "answer": answer},
-            "response_queue": data["response_queue"],
-        }
-
-
-class LLMSink(SinkFunction):
-    """将答案返回给调用者"""
-
-    def execute(self, data):
-        if not data:
-            return
-        data["response_queue"].put(data["payload"])
-
-
-class LLMService(BaseService):
-    """LLM 服务：接收问题，返回答案"""
-
-    def __init__(self, bridge, config):
-        super().__init__()
-        self.bridge = bridge
-        self.config = config
-
-    def ask(self, question_data):
-        """处理单个问题"""
-        response_q = self.bridge.submit(question_data)
-        return response_q.get(timeout=60.0)
-
-
-# ==================== Controller Pipeline（顺序发送问题）====================
-
-
-class QuestionController(SourceFunction):
-    """顺序发送问题，每次只发送一个"""
-
-    def __init__(self, config):
-        super().__init__()
-        self.questions = config.get("questions")
-        self.max = config.get("max_index", len(self.questions))
-        self.index = 0
-
-    def execute(self, data=None):
-        if self.index >= self.max:
-            return None
-
-        q = self.questions[self.index]
-        self.index += 1
-
-        return {"question": q, "index": self.index, "total": self.max}
-
-
-class ProcessQuestion(MapFunction):
-    """调用 LLM Service 处理问题"""
-
-    def execute(self, data):
-        if not data:
-            return None
-
-        question = data["question"]
-        index = data["index"]
-        total = data.get("total", index)
-
-        # 打印问题
-        print(f"\n{'=' * 60}")
-        print(f"📝 问题 {index}/{total}: {question}")
-        print(f"{'=' * 60}")
-
-        print("🔄 调用 LLM Service...")
-
-        # 调用 LLM Service（阻塞等待答案）
-        result = self.call_service(
-            "llm_service", {"question": question}, method="ask", timeout=120.0
-        )
-
-        print("✅ 收到 LLM Service 的回答")
-
-        result["index"] = index
-        return result
-
-
-class DisplayAnswer(SinkFunction):
-    """显示答案"""
-
-    def __init__(self, bridges=None, total_questions=5):
-        super().__init__()
-        self.bridges = bridges or []
-        self.total_questions = total_questions
-        self.processed_count = 0
-
-    @staticmethod
-    def _render_markdown(text):
-        """简单的 Markdown 渲染，用于终端显示"""
-        import re
-
-        lines = text.split("\n")
-        formatted_lines = []
-
-        for line in lines:
-            # 处理 ### 三级标题
-            if line.startswith("###"):
-                title = line.replace("###", "").strip()
-                line = f"\033[1m{title}\033[0m"
-
-            # 处理 **加粗**
-            elif "**" in line:
-                line = re.sub(r"\*\*(.+?)\*\*", r"\033[1m\1\033[0m", line)
-
-            # 处理数字列表项
-            if re.match(r"^\d+\.\s+", line):
-                line = re.sub(r"^(\d+)\.\s+", r"\033[1m\1.\033[0m ", line)
-
-            # 处理缩进的破折号列表项
-            elif re.match(r"^\s+-\s+", line):
-                line = re.sub(r"^(\s+)-\s+", r"\1\033[1m-\033[0m ", line)
-
-            formatted_lines.append(line)
-
-        return "\n".join(formatted_lines)
-
-    def execute(self, data):
-        if not data:
-            return
-
-        answer_data = data.get("answer", {})
-
-        # 显示答案
-        if isinstance(answer_data, dict):
-            answer_text = answer_data.get("generated", str(answer_data))
-            generate_time = answer_data.get("generate_time", 0)
-        else:
-            answer_text = str(answer_data)
-            generate_time = 0
-
-        # 渲染 Markdown
-        rendered_answer = self._render_markdown(answer_text)
-
-        print(f"\n{'=' * 60}")
-        print("💡 AI 回答:")
-        print(f"{'=' * 60}")
-        print(rendered_answer)
-        print(f"{'=' * 60}")
-        if generate_time > 0:
-            print(f"⏱️  生成耗时: {generate_time:.2f}秒")
-        print()
-
-        # 更新处理计数
-        self.processed_count += 1
-
-        # 如果所有问题都处理完了，关闭所有 bridges
-        if self.processed_count >= self.total_questions:
-            print(f"\n✅ 所有 {self.total_questions} 个问题已处理完成，关闭 bridges...")
-            for bridge in self.bridges:
-                bridge.close()
-            print("✅ Bridges 已关闭，Pipeline 即将停止...")
+from sage.kernel.api.service import (
+    PipelineBridge,
+    PipelineService,
+    PipelineServiceSink,
+    PipelineServiceSource,
+)
 
 
 def main():
-    """主函数"""
-    print("=== 启动简单 LLM Pipeline 示例 ===\n")
+    """主函数 - Locomo 长轮对话记忆实验"""
 
+    # 禁用日志
+    CustomLogger.disable_global_console_debug()
+    import logging
+
+    logging.getLogger("root").setLevel(logging.WARNING)
+
+    print("=" * 60)
+    print("Locomo 长轮对话记忆实验")
+    print("Pipeline-as-Service 架构")
+    print("=" * 60)
+
+    # ============================================================
+    # 第一步：加载配置
+    # ============================================================
     script_dir = Path(__file__).parent
     config_file = script_dir / "config" / "short_term_memory_pipeline.yaml"
 
@@ -277,57 +73,79 @@ def main():
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
-    print("🔧 创建环境...")
-    env = LocalEnvironment("simple_llm_pipeline")
+    # ============================================================
+    # 第二步：选择测试样本
+    # ============================================================
+    loader = LocomoDataLoader()
+    sample_ids = loader.get_sample_id()
+    test_sample_id = sample_ids[0]  # 使用第一个样本进行测试
 
-    try:
-        print("🌉 创建 Pipeline Bridge...")
-        llm_bridge = PipelineBridge()
+    print(f"\n📊 使用样本: {test_sample_id}")
+    turns = loader.get_turn(test_sample_id)
+    total_sessions = len(turns)
+    total_dialogs = sum((max_idx + 1) for _, max_idx in turns)
 
-        print("📝 注册 LLM 服务...")
-        env.register_service("llm_service", LLMService, llm_bridge, config)
+    print(f"   - 总会话数: {total_sessions}")
+    print(f"   - 总对话数: {total_dialogs}")
 
-        print("🔗 创建 LLM Pipeline（生成答案）...")
-        env.from_source(LLMSource, llm_bridge).map(LLMMap, config).sink(LLMSink)
+    # ============================================================
+    # 第三步：创建环境
+    # ============================================================
+    env = LocalEnvironment("locomo_memory_experiment")
 
-        print("🎮 创建 Controller Pipeline（顺序发送问题）...")
-        total_questions = config["source"].get("max_index", 5)
-        bridges = [llm_bridge]
-        env.from_source(QuestionController, config["source"]).map(ProcessQuestion).sink(
-            DisplayAnswer, bridges, total_questions
-        )
+    # ============================================================
+    # 第四步：注册服务 Pipeline
+    # ============================================================
+    print("\n【创建桥梁】PipelineBridge（连接服务和 Pipeline）")
+    locomo_bridge = PipelineBridge()
 
-        print("\n" + "=" * 60)
-        print("🚀 启动 LLM Pipeline...")
-        print("=" * 60 + "\n")
+    print("【注册服务】Locomo Service（Pipeline 即服务）")
+    env.register_service("locomo_service", PipelineService, locomo_bridge)
 
-        env.submit(autostop=False)
+    # ============================================================
+    # 第五步：创建 2 条 Pipeline
+    # ============================================================
+    print("\n【创建 Pipeline 1】服务 Pipeline")
+    print("  └─ 架构: PipelineServiceSource → LocomoServiceMap → PipelineServiceSink")
+    print("  └─ 职责: 存储历史、检测问题、生成答案")
+    env.from_source(PipelineServiceSource, locomo_bridge).map(LocomoServiceMap, config).sink(
+        PipelineServiceSink
+    )
 
-        # 等待足够的时间让所有问题处理完成
-        expected_time = total_questions * 30 + 10  # 每个问题预计 30 秒
-        print(f"⏳ 等待最多 {expected_time} 秒让所有问题处理完成...")
+    print("\n【创建 Pipeline 2】主 Pipeline")
+    print("  └─ 架构: LocomoSource → LocomoControllerMap → LocomoSink")
+    print("  └─ 职责: 逐轮喂入对话，调用服务处理，保存结果")
+    env.from_batch(LocomoSource, sample_id=test_sample_id).map(LocomoControllerMap).sink(
+        LocomoSink, output_name=f"result_{test_sample_id}"
+    )
 
-        # 分段等待，每 5 秒检查一次
-        for i in range(0, expected_time, 5):
-            time.sleep(5)
-            elapsed = i + 5
-            print(f"⏱️  已等待 {elapsed}/{expected_time} 秒...")
+    print("\n" + "=" * 60)
+    print("🚀 启动所有 Pipeline（autostop=True）")
+    print("=" * 60 + "\n")
 
-        print("\n" + "=" * 60)
-        print("✅ Pipeline 执行完成!")
-        print("=" * 60)
+    # ============================================================
+    # 第六步：启动并自动等待完成
+    # ============================================================
+    # autostop=True 会：
+    # 1. 等待主 Pipeline 所有批次处理完成
+    # 2. 自动调用 env.close() 清理资源
+    # 3. shutdown 命令通过数据流传递，优雅关闭服务 Pipeline
+    env.submit(autostop=True)
 
-    finally:
-        print("\n🛑 停止 Pipeline...")
-        env.stop()
-
-        print("🧹 清理环境资源...")
-        env.close()
-        print("✅ 环境已清理，程序正常退出\n")
+    print("\n" + "=" * 60)
+    print("✅ 所有 Pipeline 执行完成!")
+    print("=" * 60)
+    print("✅ 资源已由 autostop 自动清理")
+    print(f"\n📁 结果已保存至: .benchmarks/benchmark_memory/locomo/result_{test_sample_id}.json")
+    print("\n架构总结：")
+    print("  • 2条 Pipeline: 主 Pipeline + 服务 Pipeline")
+    print("  • 1个 Service: Locomo Service（Pipeline 即服务）")
+    print("  • 1个桥梁: PipelineBridge 实现双向通信")
+    print("  • 背压机制: call_service() 阻塞保证顺序执行")
+    print("  • 历史状态: 服务内部维护，问题不破坏历史\n")
 
 
 if __name__ == "__main__":
     print("=== 程序开始执行 ===\n")
-    CustomLogger.disable_global_console_debug()
     main()
     print("\n=== 程序执行完毕 ===")

@@ -65,8 +65,12 @@ verify_cpp_extensions() {
         sleep 1
     fi
 
+    # 使用正确的 Python 命令
+    local python_cmd="${PYTHON_CMD:-python3}"
+
     # 验证扩展是否可用
-    python3 -c "
+    local verify_output
+    verify_output=$($python_cmd -c "
 import sys
 import warnings
 
@@ -122,12 +126,16 @@ except Exception as e:
     import traceback
     traceback.print_exc()
     sys.exit(1)
-"
+" 2>&1)
         validation_result=$?
+
+        # 输出验证结果
+        echo "$verify_output"
 
         if [ $validation_result -eq 0 ]; then
             echo -e "${CHECK} C++ 扩展可用 (sage_db, sage_flow, sage_tsdb)"
             echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
+            echo "$(date): C++扩展验证成功" >> "$log_file"
             return 0
         else
             echo -e "${WARNING} 扩展验证失败"

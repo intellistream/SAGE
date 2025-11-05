@@ -13,7 +13,8 @@
 - **[DEVELOPER.md](DEVELOPER.md)** - 完整开发指南，包含设置、工作流、测试等
 - **[CHANGELOG.md](CHANGELOG.md)** - 项目变更日志（遵循 Keep a Changelog 格式）
 - **[tools/dev.sh](tools/dev.sh)** - 开发助手脚本，提供常用命令
-- **[tools/pre-commit-config.yaml](tools/pre-commit-config.yaml)** - Pre-commit 钩子配置
+- **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置（链接到
+  `tools/pre-commit-config.yaml`）
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
 - **[docs/dev-notes/](docs/dev-notes/)** - 开发笔记和修复总结
 
@@ -316,6 +317,50 @@ Reduce flakiness via timeout + category filtering.
 
 ## 代码与文档质量
 
+### Pre-commit 钩子配置说明
+
+SAGE 使用 **非标准位置** 的 pre-commit 配置文件：
+
+- **实际配置文件**：`tools/pre-commit-config.yaml`
+- **标准位置符号链接**：`.pre-commit-config.yaml` → `tools/pre-commit-config.yaml`
+
+**为什么使用 tools/ 目录？**
+
+- 与其他开发工具（`dev.sh`、`maintenance/` 等）统一管理
+- 避免项目根目录过于混乱
+- 便于集中维护开发工具配置
+
+**如何使用：**
+
+```bash
+# 方式 1：使用 sage-dev 命令（推荐）
+sage-dev maintain hooks install          # 自动使用正确配置
+
+# 方式 2：手动安装（自动识别符号链接）
+pre-commit install                        # 会自动找到 .pre-commit-config.yaml
+
+# 方式 3：显式指定配置文件
+pre-commit install --config tools/pre-commit-config.yaml
+pre-commit run --all-files --config tools/pre-commit-config.yaml
+```
+
+**本地检查与 CI 一致性：**
+
+- ✅ 本地 Git hook 使用：`tools/pre-commit-config.yaml`（通过 `.pre-commit-config.yaml` 符号链接）
+- ✅ GitHub Actions CI 使用：`tools/pre-commit-config.yaml`（显式指定 `--config` 参数）
+- ✅ 两者检查项完全一致，不会出现"本地通过但 CI 失败"的情况
+
+**验证配置同步：**
+
+```bash
+# 查看当前 hook 配置
+cat .git/hooks/pre-commit | grep "ARGS="
+# 应该输出: ARGS=(hook-impl --config=tools/pre-commit-config.yaml ...)
+
+# 运行完整检查（与 CI 相同）
+pre-commit run --all-files
+```
+
 ### Shell脚本
 
 - 使用`set -e`
@@ -420,6 +465,94 @@ grep -i FAIL /tmp/examples.log || true
 ```
 bash -x ./quickstart.sh --dev --yes
 ```
+
+## GitHub Secrets 配置（维护者/贡献者）
+
+### 🚀 为什么需要配置 Secrets？
+
+为了让 CI/CD 正常工作，仓库需要配置以下 GitHub Secrets。如果你是：
+
+- **仓库维护者**：需要在主仓库配置 Secrets
+- **外部贡献者**：在你的 fork 中配置 Secrets 以运行 CI（可选）
+
+### 最小必需配置
+
+使用 GitHub CLI（推荐）：
+
+```bash
+gh secret set OPENAI_API_KEY -b "your-openai-or-dashscope-key"
+gh secret set HF_TOKEN -b "your-huggingface-token"
+```
+
+### 完整配置（可选）
+
+```bash
+# LLM 服务
+gh secret set OPENAI_API_KEY -b "sk-xxx..."
+gh secret set ALIBABA_API_KEY -b "sk-xxx..."
+gh secret set SILICONCLOUD_API_KEY -b "your-key"
+
+# 其他服务
+gh secret set JINA_API_KEY -b "your-key"
+gh secret set WEB_SEARCH_API_KEY -b "your-key"
+
+# vLLM 本地服务（如果不需要认证可以留空）
+gh secret set VLLM_API_KEY -b "token-abc123"
+
+# Hugging Face
+gh secret set HF_TOKEN -b "hf_xxx..."
+```
+
+### 通过 Web 界面设置
+
+1. 访问：`https://github.com/YOUR_USERNAME/SAGE/settings/secrets/actions`
+1. 点击 `New repository secret`
+1. 添加以下 secrets：
+
+| Name                 | Value                                 | Required |
+| -------------------- | ------------------------------------- | -------- |
+| `OPENAI_API_KEY`     | 你的 OpenAI/DashScope API key         | ✅ 是    |
+| `HF_TOKEN`           | 你的 Hugging Face token               | ✅ 是    |
+| `ALIBABA_API_KEY`    | 阿里云 API key                        | ⭕ 可选  |
+| `VLLM_API_KEY`       | vLLM 服务 token（默认: token-abc123） | ⭕ 可选  |
+| `WEB_SEARCH_API_KEY` | Web 搜索服务 key                      | ⭕ 可选  |
+
+### 验证配置
+
+配置完成后，触发一次 CI 运行来验证：
+
+```bash
+git commit --allow-empty -m "test: trigger CI to verify secrets"
+git push
+```
+
+查看 CI 日志，应该能看到：
+
+```
+✅ .env 文件创建完成
+📋 验证 .env 文件内容（隐藏敏感信息）:
+OPENAI_API_KEY=***
+HF_TOKEN=***
+...
+```
+
+### 外部贡献者注意事项
+
+外部贡献者的 PR 默认无法访问主仓库的 Secrets（这是 GitHub 的安全特性）。你可以：
+
+1. **在自己的 fork 中配置 Secrets**（推荐用于测试）
+1. **使用 mock 模式测试**（大多数测试支持）：
+   ```bash
+   SAGE_TEST_MODE=true pytest
+   ```
+1. **等待维护者审核后触发 CI**（维护者可手动触发带 Secrets 的 CI）
+
+### ⚠️ 安全注意事项
+
+1. **不要**在 Pull Request 评论或 Issue 中粘贴真实的 API keys
+1. 定期轮换 API keys（建议每 90 天一次）
+1. 使用专用的 CI/CD API keys，与生产环境分离
+1. 确认 Secret 名称区分大小写
 
 ## 安全与披露
 

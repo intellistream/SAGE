@@ -89,6 +89,20 @@ class MapOperator(BaseOperator):
                 if self.enable_profile:
                     self._save_time_record(duration)
 
+                # 将执行时间添加到结果数据中（如果结果是dict）
+                if isinstance(result, dict):
+                    # 根据算子类型添加相应的时间字段
+                    operator_name = self.function.__class__.__name__
+                    if "Retriever" in operator_name or "Retrieve" in operator_name:
+                        result["retrieve_time"] = duration
+                    elif "Refiner" in operator_name or "Refine" in operator_name:
+                        result["refine_time"] = duration
+                    elif "Generator" in operator_name or "Generate" in operator_name:
+                        result["generate_time"] = duration
+                    # 其他算子可以添加通用的 execution_time
+                    # else:
+                    #     result["execution_time"] = duration
+
                 self.logger.debug(f"Operator {self.name} processed data with result: {result}")
                 result_packet = (
                     packet.inherit_partition_info(result) if (result is not None) else None

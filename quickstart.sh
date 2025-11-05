@@ -165,9 +165,17 @@ main() {
         fi
 
         # 2. 安装 Git hooks（使用新的 sage-dev maintain hooks 命令）
-        if command -v sage-dev >/dev/null 2>&1; then
+        # 使用正确环境中的 sage-dev
+        local sage_dev_cmd="sage-dev"
+        if [ -n "$SAGE_ENV_NAME" ]; then
+            # 如果使用 conda 环境，使用 conda run 确保在正确的环境中运行
+            sage_dev_cmd="conda run -n $SAGE_ENV_NAME sage-dev"
+        fi
+
+        # 检查 sage-dev 是否可用
+        if { [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || { [ -z "$SAGE_ENV_NAME" ] && command -v sage-dev >/dev/null 2>&1; }; then
             # 使用静默模式避免过多输出
-            if sage-dev maintain hooks install --quiet 2>&1; then
+            if $sage_dev_cmd maintain hooks install --quiet 2>&1; then
                 echo -e "${GREEN}✅ Git hooks 已安装${NC}"
                 echo -e "${DIM}   • 代码质量检查: black, isort, ruff 等${NC}"
                 echo -e "${DIM}   • 架构合规性: 包依赖、导入路径等${NC}"
@@ -178,7 +186,7 @@ main() {
             fi
         else
             echo -e "${YELLOW}⚠️  sage-dev 命令不可用，跳过 Git hooks 安装${NC}"
-            echo -e "${DIM}   安装完成后运行: sage-dev maintain hooks install${NC}"
+            echo -e "${DIM}   安装完成后激活环境并运行: sage-dev maintain hooks install${NC}"
         fi
 
         # 开发模式下额外设置 Git hooks（用于 submodule 管理）

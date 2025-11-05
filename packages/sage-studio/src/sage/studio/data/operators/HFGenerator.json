@@ -4,5 +4,65 @@
     "description": "HuggingFace Generator",
     "module_path": "sage.libs.rag.generator",
     "class_name": "HFGenerator",
-    "isCustom": false
+    "isCustom": false,
+    "parameters": [
+        {
+            "name": "model_name",
+            "label": "模型名称",
+            "type": "text",
+            "required": true,
+            "defaultValue": "Qwen/Qwen2.5-7B-Instruct",
+            "placeholder": "请输入模型名称，如 Qwen/Qwen2.5-7B-Instruct",
+            "description": "HuggingFace 模型名称"
+        },
+        {
+            "name": "api_base",
+            "label": "API 端点",
+            "type": "text",
+            "required": true,
+            "defaultValue": "http://localhost:8000/v1",
+            "placeholder": "请输入 API 端点地址",
+            "description": "模型服务的 API 地址"
+        },
+        {
+            "name": "temperature",
+            "label": "Temperature",
+            "type": "number",
+            "required": false,
+            "defaultValue": 0.7,
+            "min": 0,
+            "max": 2,
+            "step": 0.1,
+            "description": "控制生成文本的随机性 (0-2)"
+        },
+        {
+            "name": "max_tokens",
+            "label": "最大 Token 数",
+            "type": "number",
+            "required": false,
+            "defaultValue": 2048,
+            "min": 1,
+            "max": 32768,
+            "step": 1,
+            "description": "生成文本的最大 token 数量"
+        },
+        {
+            "name": "system_prompt",
+            "label": "系统提示词",
+            "type": "textarea",
+            "required": false,
+            "defaultValue": "You are a helpful AI assistant.",
+            "placeholder": "请输入系统提示词",
+            "description": "系统级别的提示词，定义 AI 的角色和行为"
+        },
+        {
+            "name": "api_key",
+            "label": "API Key",
+            "type": "password",
+            "required": false,
+            "defaultValue": "",
+            "placeholder": "如需认证请输入 API Key",
+            "description": "API 认证密钥（可选）"
+        }
+    ]
 }

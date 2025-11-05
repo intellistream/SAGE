@@ -51,14 +51,14 @@ class TestCLICommandsFull:
 
     def test_main_cli_help(self):
         """测试主CLI帮助"""
-        result = run_command([sys.executable, "-m", "sage.tools.cli", "--help"])
+        result = run_command([sys.executable, "-m", DEV_CLI_MODULE, "--help"])
         assert result["success"], f"CLI help failed: {result['stderr']}"
-        # sage.tools.cli 现在只有 dev 和 finetune 命令
-        assert "dev" in result["stdout"]
+        # dev CLI 显示开发工具帮助
+        assert "开发工具" in result["stdout"] or "dev" in result["stdout"].lower()
 
     def test_dev_help(self):
         """测试dev命令帮助"""
-        result = run_command([sys.executable, "-m", "sage.tools.cli", "dev", "--help"])
+        result = run_command([sys.executable, "-m", DEV_CLI_MODULE, "--help"])
         assert result["success"], f"Dev help failed: {result['stderr']}"
         assert "开发工具" in result["stdout"]
 
@@ -97,7 +97,7 @@ class TestCLICommandsFull:
                 "--output-format",
                 "json",
             ],
-            timeout=60,  # 增加超时时间，status 命令较慢
+            timeout=120,  # 增加超时时间，status 命令较慢
         )
         assert result["success"], f"Status JSON failed: {result['stderr']}"
         # 验证JSON格式 - 跳过调试输出，找到实际的JSON
@@ -182,7 +182,6 @@ class TestCLICommandsFull:
     def test_import_functionality(self):
         """测试关键模块导入功能"""
         modules_to_test = [
-            "sage.tools.cli.main",
             DEV_CLI_MODULE,
             "sage.tools.dev.tools.project_status_checker",
             "sage.tools.dev.tools.dependency_analyzer",

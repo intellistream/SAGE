@@ -86,6 +86,73 @@ repos:
     exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/src/sage/__init__.py)
     # This hook will always succeed (exit 0) to avoid blocking commits/CI
     # Errors are shown but treated as warnings
+  - id: markdown-files-location-check
+    name: check markdown files are in proper locations
+    entry: bash -c
+    args:
+    - |
+      # Get all staged markdown files
+      all_md_files=$(git diff --cached --name-only | grep "\.md$")
+
+      if [ -z "$all_md_files" ]; then
+        exit 0
+      fi
+
+      # Define allowed patterns (whitelist)
+      allowed_patterns=(
+        "^README\.md$"
+        "^CHANGELOG\.md$"
+        "^CONTRIBUTING\.md$"
+        "^LICENSE\.md$"
+        "^DEVELOPER\.md$"
+        "^docs/dev-notes/"
+        "^docs-public/"
+        "^packages/.*/README\.md$"
+        "^packages/.*/CHANGELOG\.md$"
+        "^packages/.*/(docs|documentation)/"
+        "^examples/.*/README\.md$"
+        "^examples/tutorials/"
+        "^\.sage/.*\.md$"
+      )
+
+      # Check each file
+      violations=""
+      for file in $all_md_files; do
+        allowed=false
+        for pattern in "${allowed_patterns[@]}"; do
+          if echo "$file" | grep -qE "$pattern"; then
+            allowed=true
+            break
+          fi
+        done
+
+        if [ "$allowed" = false ]; then
+          violations="$violations$file\n"
+        fi
+      done
+
+      # Report violations
+      if [ -n "$violations" ]; then
+        echo "❌ 错误: 以下 markdown 文件不在允许的位置:"
+        echo -e "$violations" | sed "s/^/  - /"
+        echo ""
+        echo "� 允许的位置:"
+        echo "  - 项目根目录: README.md, CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, DEVELOPER.md"
+        echo "  - 开发笔记: docs/dev-notes/"
+        echo "  - 用户文档: docs-public/"
+        echo "  - 包文档: packages/<package-name>/README.md, packages/<package-name>/CHANGELOG.md"
+        echo "  - 包文档目录: packages/<package-name>/docs/, packages/<package-name>/documentation/"
+        echo "  - 示例文档: examples/<example-name>/README.md, examples/tutorials/"
+        echo ""
+        echo "💡 建议: 请将文档移动到合适的位置或更新允许列表"
+        exit 1
+      else
+        exit 0
+      fi
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: \.md$
   - id: devnotes-check
     name: dev-notes documentation standards
     entry: bash -c 'if git diff --cached --name-only | grep -q "^docs/dev-notes/.*\.md$"; then sage-dev quality devnotes; else exit 0; fi'

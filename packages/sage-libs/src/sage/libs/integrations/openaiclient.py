@@ -13,12 +13,12 @@ class OpenAIClient:
     Ollama API:
         model_name="llama3.1:8b"
         base_url="http://222.20.77.1:11434/v1"
-        api_key="empty"
+        api_key="empty"  # pragma: allowlist secret
 
     vllm API
         model_name="meta-llama/Llama-2-13b-chat-hf"
         base_url="http://localhost:8000/v1"
-        api_key="empty"
+        api_key="empty"  # pragma: allowlist secret
 
     """
 

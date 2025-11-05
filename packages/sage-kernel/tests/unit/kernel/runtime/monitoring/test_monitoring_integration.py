@@ -5,56 +5,88 @@ Tests the monitoring system integrated with BaseTask and task execution.
 """
 
 import time
+from unittest.mock import MagicMock
 
 import pytest
 
+from sage.common.core.functions.base_function import BaseFunction
+from sage.kernel.api.base_environment import BaseEnvironment
+from sage.kernel.api.operator.map_operator import MapOperator
+from sage.kernel.api.transformation.base_transformation import BaseTransformation
 from sage.kernel.runtime.context.task_context import TaskContext
+from sage.kernel.runtime.graph.graph_node import TaskNode
 from sage.kernel.runtime.monitoring.metrics_collector import MetricsCollector
 
 
-class MockTransformation:
-    """Mock transformation for testing"""
+class MockFunction(BaseFunction):
+    """Mock function class for testing that properly inherits from BaseFunction"""
+
+    __name__ = "MockFunction"
+    is_comap = False
+
+    def execute(self, data):
+        """Required abstract method implementation"""
+        return data
+
+
+class MockTransformation(BaseTransformation):
+    """Mock transformation for testing that properly inherits from BaseTransformation"""
 
     def __init__(self):
-        self.is_spout = False
-        self.name = "MockTransformation"
+        # Create a minimal mock environment for the base class
+        mock_env = MagicMock(spec=BaseEnvironment)
+        mock_env.name = "test_env"
+        mock_env.platform = "local"
+        mock_env.pipeline = []
+
+        # Set operator_class BEFORE calling super().__init__
+        self.operator_class = MapOperator
+
+        # Initialize parent with minimal required args
+        super().__init__(
+            env=mock_env, function=MockFunction, name="MockTransformation", parallelism=1
+        )
 
 
-class MockTaskNode:
-    """Mock task node for testing"""
+class MockTaskNode(TaskNode):
+    """Mock task node for testing that properly inherits from TaskNode"""
 
-    def __init__(self, name="test_task"):
-        self.name = name
-        self.parallel_index = 0
-        self.parallelism = 1
-        self.stop_signal_num = 1
-        self.input_qd = None
-        self.service_response_qd = None
-        self.output_channels = []
+    def __init__(self, name: str = "test_task"):
+        # Create minimal mocks for required dependencies
+        mock_env = MagicMock(spec=BaseEnvironment)
+        mock_env.name = "test_env"
+        mock_env.platform = "local"
+        mock_env.pipeline = []
+
+        transformation = MockTransformation()
+
+        # Initialize parent
+        super().__init__(name=name, transformation=transformation, parallel_index=0, env=mock_env)
 
 
-class MockEnvironment:
-    """Mock environment for testing"""
+class MockEnvironment(BaseEnvironment):
+    """Mock environment for testing that properly inherits from BaseEnvironment"""
 
-    def __init__(self, enable_monitoring=False):
-        self.name = "test_env"
-        self.platform = "local"
-        self.console_log_level = "INFO"
-        self.enable_monitoring = enable_monitoring
+    def __init__(self, enable_monitoring: bool = False):
+        # Initialize parent with required args
+        super().__init__(
+            name="test_env", config=None, platform="local", enable_monitoring=enable_monitoring
+        )
+
         self.uuid = "test_uuid"
+
+        # Set jobmanager attributes after parent init
+        self.jobmanager_host = "127.0.0.1"
+        self.jobmanager_port = 19001
 
         # 使用统一的SAGE路径管理
         from sage.common.config.output_paths import get_test_env_dir
 
         self.env_base_dir = str(get_test_env_dir("test_logs"))
 
-    @property
-    def jobmanager_host(self):
-        return "127.0.0.1"
-
-    @property
-    def jobmanager_port(self):
-        return 19001
+    def submit(self):
+        """Required abstract method implementation"""
+        pass
 
 
 class TestMonitoringIntegration:

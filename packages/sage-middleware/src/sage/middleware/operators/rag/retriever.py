@@ -155,7 +155,7 @@ class ChromaRetriever(MapOperator):
         record = {
             "timestamp": time.time(),
             "query": query,
-            "retrieved_docs": retrieved_docs,
+            "retrieval_results": retrieved_docs,
             "backend_type": self.backend_type,
             "backend_config": getattr(self, f"{self.backend_type}_config", {}),
             "embedding_config": self.embedding_config,
@@ -198,10 +198,10 @@ class ChromaRetriever(MapOperator):
         if not isinstance(input_query, str):
             self.logger.error(f"Invalid input query type: {type(input_query)}")
             if is_dict_input:
-                data["results"] = []
+                data["retrieval_results"] = []
                 return data
             else:
-                return {"query": str(input_query), "results": [], "input": data}
+                return {"query": str(input_query), "retrieval_results": [], "input": data}
 
         self.logger.info(
             f"[ {self.__class__.__name__}]: Starting {self.backend_type.upper()} retrieval for query: {input_query}"
@@ -244,30 +244,25 @@ class ChromaRetriever(MapOperator):
             if self.enable_profile:
                 self._save_data_record(input_query, standardized_docs)
 
-            # 提取所有原始文档的text字段，供retrieved_docs使用
-            retrieved_texts = [
-                doc.get("text", doc.get("content", str(doc))) for doc in standardized_docs
-            ]
-
             if is_dict_input:
-                data["results"] = standardized_docs
-                data["retrieved_docs"] = retrieved_texts
+                # 保存原始检索结果（用于压缩率计算）
+                if "retrieval_results" not in data:
+                    data["retrieval_results"] = standardized_docs
                 return data
             else:
                 return {
                     "query": input_query,
-                    "results": standardized_docs,
-                    "retrieved_docs": retrieved_texts,
+                    "retrieval_results": standardized_docs,
                     "input": data,
                 }
 
         except Exception as e:
             self.logger.error(f"ChromaDB retrieval failed: {str(e)}")
             if is_dict_input:
-                data["results"] = []
+                data["retrieval_results"] = []
                 return data
             else:
-                return {"query": input_query, "results": [], "input": data}
+                return {"query": input_query, "retrieval_results": [], "input": data}
 
     def save_index(self, save_path: str) -> bool:
         """
@@ -434,7 +429,7 @@ class MilvusDenseRetriever(MapOperator):
         record = {
             "timestamp": time.time(),
             "query": query,
-            "retrieved_docs": retrieved_docs,
+            "retrieval_results": retrieved_docs,
             "backend_type": self.backend_type,
             "backend_config": getattr(self, f"{self.backend_type}_config", {}),
             "embedding_config": self.embedding_config,
@@ -467,7 +462,7 @@ class MilvusDenseRetriever(MapOperator):
         Args:
             data: 查询字符串、元组或字典
         Returns:
-            dict: {"query": ..., "retrieved_docs": ..., "input": 原始输入, ...}
+            dict: {"query": ..., "retrieval_results": ..., "input": 原始输入, ...}
         """
         # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
@@ -481,12 +476,12 @@ class MilvusDenseRetriever(MapOperator):
         if not isinstance(input_query, str):
             self.logger.error(f"Invalid input query type: {type(input_query)}")
             if is_dict_input:
-                data["retrieved_docs"] = []
+                data["retrieval_results"] = []
                 return data
             else:
                 return {
                     "query": str(input_query),
-                    "retrieved_docs": [],
+                    "retrieval_results": [],
                     "input": data,
                 }
 
@@ -523,29 +518,24 @@ class MilvusDenseRetriever(MapOperator):
                 self._save_data_record(input_query, retrieved_docs)
 
             if is_dict_input:
-                data["retrieved_docs"] = retrieved_docs
-                # 兼容测试期望的字段名
-                data["retrieved_documents"] = retrieved_docs
+                data["retrieval_results"] = retrieved_docs
                 return data
             else:
                 return {
                     "query": input_query,
-                    "retrieved_docs": retrieved_docs,
-                    "retrieved_documents": retrieved_docs,
+                    "retrieval_results": retrieved_docs,
                     "input": data,
                 }
 
         except Exception as e:
             self.logger.error(f" retrieval failed: {str(e)}")
             if is_dict_input:
-                data["retrieved_docs"] = []
-                data["retrieved_documents"] = []
+                data["retrieval_results"] = []
                 return data
             else:
                 return {
                     "query": input_query,
-                    "retrieved_docs": [],
-                    "retrieved_documents": [],
+                    "retrieval_results": [],
                     "input": data,
                 }
 
@@ -723,7 +713,7 @@ class MilvusSparseRetriever(MapOperator):
         record = {
             "timestamp": time.time(),
             "query": query,
-            "retrieved_docs": retrieved_docs,
+            "retrieval_results": retrieved_docs,
             "backend_type": self.backend_type,
             "backend_config": getattr(self, f"{self.backend_type}_config", {}),
         }
@@ -755,7 +745,7 @@ class MilvusSparseRetriever(MapOperator):
         Args:
             data: 查询字符串、元组或字典
         Returns:
-            dict: {"query": ..., "retrieved_docs": ..., "input": 原始输入, ...}
+            dict: {"query": ..., "retrieval_results": ..., "input": 原始输入, ...}
         """
         # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
@@ -769,12 +759,12 @@ class MilvusSparseRetriever(MapOperator):
         if not isinstance(input_query, str):
             self.logger.error(f"Invalid input query type: {type(input_query)}")
             if is_dict_input:
-                data["retrieved_docs"] = []
+                data["retrieval_results"] = []
                 return data
             else:
                 return {
                     "query": str(input_query),
-                    "retrieved_docs": [],
+                    "retrieval_results": [],
                     "input": data,
                 }
 
@@ -807,28 +797,24 @@ class MilvusSparseRetriever(MapOperator):
                 self._save_data_record(input_query, retrieved_docs)
 
             if is_dict_input:
-                data["retrieved_docs"] = retrieved_docs
-                data["retrieved_documents"] = retrieved_docs
+                data["retrieval_results"] = retrieved_docs
                 return data
             else:
                 return {
                     "query": input_query,
-                    "retrieved_docs": retrieved_docs,
-                    "retrieved_documents": retrieved_docs,
+                    "retrieval_results": retrieved_docs,
                     "input": data,
                 }
 
         except Exception as e:
             self.logger.error(f" retrieval failed: {str(e)}")
             if is_dict_input:
-                data["retrieved_docs"] = []
-                data["retrieved_documents"] = []
+                data["retrieval_results"] = []
                 return data
             else:
                 return {
                     "query": input_query,
-                    "retrieved_docs": [],
-                    "retrieved_documents": [],
+                    "retrieval_results": [],
                     "input": data,
                 }
 
@@ -1123,8 +1109,6 @@ class Wiki18FAISSRetriever(MapOperator):
         Returns:
             dict: {"query": ..., "results": ..., "input": 原始输入, ...}
         """
-        start_time = time.time()
-
         # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
@@ -1134,7 +1118,7 @@ class Wiki18FAISSRetriever(MapOperator):
                 input_query = data["question"]
             else:
                 self.logger.error("输入字典必须包含 'query' 或 'question' 字段")
-                data["results"] = []
+                data["retrieval_results"] = []
                 return data
         elif isinstance(data, tuple) and len(data) > 0:
             input_query = data[0]
@@ -1144,18 +1128,18 @@ class Wiki18FAISSRetriever(MapOperator):
         if not isinstance(input_query, str):
             self.logger.error(f"Invalid input query type: {type(input_query)}")
             if is_dict_input:
-                data["results"] = []
+                data["retrieval_results"] = []
                 return data
             else:
-                return {"query": str(input_query), "results": [], "input": data}
+                return {"query": str(input_query), "retrieval_results": [], "input": data}
 
         if not input_query or not input_query.strip():
             self.logger.error("查询不能为空")
             if is_dict_input:
-                data["results"] = []
+                data["retrieval_results"] = []
                 return data
             else:
-                return {"query": "", "results": [], "input": data}
+                return {"query": "", "retrieval_results": [], "input": data}
 
         input_query = input_query.strip()
         self.logger.info(
@@ -1173,9 +1157,6 @@ class Wiki18FAISSRetriever(MapOperator):
             # 格式化结果
             retrieved_docs = self._format_retrieved_documents(scores, indices)
 
-            # 记录检索时间
-            retrieve_time = time.time() - start_time
-            self.logger.debug(f"Retrieve time: {retrieve_time:.2f}s")
             self.logger.info(
                 f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from FAISS\033[0m"
             )
@@ -1187,28 +1168,25 @@ class Wiki18FAISSRetriever(MapOperator):
             if self.enable_profile:
                 self._save_data_record(input_query, retrieved_docs)
 
-            # 提取所有原始文档的text字段，供retrieved_docs使用
-            retrieved_texts = [doc["text"] for doc in retrieved_docs if "text" in doc]
-
             if is_dict_input:
-                data["results"] = retrieved_docs
-                data["retrieved_docs"] = retrieved_texts
+                data["retrieval_results"] = retrieved_docs
+                # retrieve_time 由 MapOperator 自动添加
                 return data
             else:
                 return {
                     "query": input_query,
-                    "results": retrieved_docs,
-                    "retrieved_docs": retrieved_texts,
+                    "retrieval_results": retrieved_docs,
+                    # retrieve_time 由 MapOperator 自动添加
                     "input": data,
                 }
 
         except Exception as e:
             self.logger.error(f"FAISS retrieval failed: {str(e)}")
             if is_dict_input:
-                data["results"] = []
+                data["retrieval_results"] = []
                 return data
             else:
-                return {"query": input_query, "results": [], "input": data}
+                return {"query": input_query, "retrieval_results": [], "input": data}
 
     def build_index_from_wiki18(self, wiki18_data_path: str, save_path: str | None = None):
         """

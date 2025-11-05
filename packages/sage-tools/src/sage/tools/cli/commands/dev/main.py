@@ -817,6 +817,15 @@ def test(
     report_file: str = typer.Option("", "--report", help="测试报告输出文件路径"),
     diagnose: bool = typer.Option(False, "--diagnose", help="运行诊断模式"),
     issues_manager: bool = typer.Option(False, "--issues-manager", help="包含 issues manager 测试"),
+    # 覆盖率选项
+    coverage: bool = typer.Option(False, "--coverage", help="启用测试覆盖率分析"),
+    coverage_report: str = typer.Option(
+        "term,html,xml",
+        "--coverage-report",
+        help="覆盖率报告格式 (逗号分隔，可选: term, html, xml)",
+    ),
+    # 调试选项
+    debug: bool = typer.Option(False, "--debug", help="启用调试模式，输出详细执行信息"),
     # 质量检查选项
     skip_quality_check: bool = typer.Option(
         False, "--skip-quality-check", help="跳过代码质量检查和修复"
@@ -842,6 +851,18 @@ def test(
         from rich.rule import Rule
 
         from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
+
+        # 调试模式：输出时间戳
+        def debug_log(message: str, stage: str = ""):
+            if debug:
+                timestamp = time.strftime("%H:%M:%S")
+                if stage:
+                    console.print(f"[dim cyan][{timestamp}] 🔍 [{stage}][/dim cyan] {message}")
+                else:
+                    console.print(f"[dim cyan][{timestamp}] 🔍[/dim cyan] {message}")
+
+        debug_log("测试命令开始执行", "INIT")
+        debug_log(f"参数: test_type={test_type}, packages={packages}, coverage={coverage}", "INIT")
 
         # 0. 测试目录获取
         if not quiet:
@@ -874,7 +895,10 @@ def test(
         if not quiet:
             console.print(f"📁 项目根目录: {project_path}")
 
+        debug_log(f"项目根目录: {project_path}", "PATH")
+
         # 1. 代码质量检查和修复 (在测试前运行)
+        debug_log(f"质量检查: skip_quality_check={skip_quality_check}", "QUALITY")
         if not skip_quality_check:
             if not quiet:
                 console.print(Rule("[bold cyan]🔍 执行测试前代码质量检查...[/bold cyan]"))
@@ -922,23 +946,28 @@ def test(
 
         # 诊断模式
         if diagnose:
+            debug_log("运行诊断模式", "DIAGNOSE")
             console.print(Rule("[bold cyan]🔍 运行诊断模式...[/bold cyan]"))
             run_installation_diagnostics(project_path, console=console)
             return
 
         # Issues Manager 测试
         if issues_manager:
+            debug_log("运行 Issues Manager 测试", "ISSUES")
             console.print(Rule("[bold cyan]🔍 运行 Issues Manager 测试...[/bold cyan]"))
             _run_issues_manager_test(str(project_path), verbose)
             return
 
-        runner = EnhancedTestRunner(str(project_path))
+        debug_log("创建 EnhancedTestRunner", "RUNNER")
+        runner = EnhancedTestRunner(str(project_path), enable_coverage=coverage, debug=debug)
+        debug_log(f"Runner 创建成功，覆盖率: {runner.enable_coverage}", "RUNNER")
 
         # 解析包列表
         target_packages = []
         if packages:
             target_packages = [pkg.strip() for pkg in packages.split(",")]
             console.print(f"🎯 指定测试包: {target_packages}")
+            debug_log(f"目标包: {target_packages}", "CONFIG")
 
         # 配置测试参数
         test_config = {
@@ -950,6 +979,8 @@ def test(
             "failed_only": failed_only,
         }
 
+        debug_log(f"测试配置: jobs={jobs}, timeout={timeout}", "CONFIG")
+
         if not quiet:
             console.print(Rule(f"[bold cyan]🧪 运行 {test_type} 测试...[/bold cyan]"))
             console.print(
@@ -957,15 +988,20 @@ def test(
             )
 
         start_time = time.time()
+        debug_log(f"开始执行测试，类型: {test_type}", "EXECUTE")
 
         # 执行测试
         if test_type == "quick":
+            debug_log("执行快速测试", "EXECUTE")
             result = _run_quick_tests(runner, test_config, quiet)
         elif test_type == "all":
+            debug_log("执行全部测试", "EXECUTE")
             result = _run_all_tests(runner, test_config, quiet)
         elif test_type == "unit":
+            debug_log("执行单元测试", "EXECUTE")
             result = _run_unit_tests(runner, test_config, quiet)
         elif test_type == "integration":
+            debug_log("执行集成测试", "EXECUTE")
             result = _run_integration_tests(runner, test_config, quiet)
         else:
             console.print(f"[red]不支持的测试类型: {test_type}[/red]")
@@ -973,12 +1009,20 @@ def test(
             raise typer.Exit(1)
 
         execution_time = time.time() - start_time
+        debug_log(f"测试执行完成，耗时: {execution_time:.2f}s", "RESULT")
+
+        # 生成覆盖率报告（如果启用）
+        if coverage:
+            debug_log("生成覆盖率报告", "COVERAGE")
+            _generate_coverage_reports(project_path, coverage_report, quiet, debug_log)
 
         # 生成报告
         if report_file:
+            debug_log(f"生成报告: {report_file}", "REPORT")
             _generate_test_report(result, report_file, test_type, execution_time, test_config)
 
         # 显示结果
+        debug_log("显示测试结果", "DISPLAY")
         _display_test_results(result, summary_only, quiet, execution_time)
 
         # 检查结果并退出
@@ -1512,6 +1556,138 @@ def _run_integration_tests(runner, config: dict, quiet: bool):
 
     # 可以在这里添加集成测试特定的逻辑
     return runner.run_tests(mode="all", **config)
+
+
+def _generate_coverage_reports(project_path: Path, coverage_report: str, quiet: bool, debug_log):
+    """生成覆盖率报告
+
+    Args:
+        project_path: 项目根目录
+        coverage_report: 报告格式，逗号分隔 (term, html, xml)
+        quiet: 静默模式
+        debug_log: 调试日志函数
+    """
+    import os
+    import subprocess
+
+    from sage.common.config.output_paths import get_sage_paths
+
+    try:
+        debug_log("开始生成覆盖率报告", "COVERAGE")
+
+        # 获取 SAGE 路径配置
+        sage_paths = get_sage_paths(str(project_path))
+        coverage_dir = sage_paths.coverage_dir
+        coverage_file = coverage_dir / ".coverage"
+
+        debug_log(f"Coverage 目录: {coverage_dir}", "COVERAGE")
+        debug_log(f"Coverage 合并文件: {coverage_file}", "COVERAGE")
+
+        # 查找所有coverage数据文件（包括主文件和并行测试生成的分片文件）
+        coverage_files = list(coverage_dir.glob(".coverage*"))
+
+        if not coverage_files:
+            if not quiet:
+                console.print("[yellow]⚠️ 未找到覆盖率数据文件[/yellow]")
+                console.print(f"[yellow]   预期位置: {coverage_dir}/.coverage*[/yellow]")
+            return
+
+        debug_log(f"找到 {len(coverage_files)} 个coverage文件", "COVERAGE")
+
+        # 合并覆盖率数据（如果有多个 .coverage.* 文件）
+        # coverage combine 会自动查找所有 .coverage.* 文件并合并到 .coverage
+        debug_log("合并覆盖率数据", "COVERAGE")
+        combine_cmd = ["python", "-m", "coverage", "combine", "--keep"]
+        result = subprocess.run(
+            combine_cmd,
+            cwd=str(coverage_dir),  # 在coverage目录中运行，这样它能找到所有.coverage.*文件
+            env={**os.environ, "COVERAGE_FILE": str(coverage_file)},
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            debug_log(f"Coverage combine 警告: {result.stderr}", "COVERAGE")
+            # 即使combine失败也继续，可能只有一个coverage文件
+
+        # 解析报告格式
+        report_formats = [fmt.strip() for fmt in coverage_report.split(",")]
+        debug_log(f"报告格式: {report_formats}", "COVERAGE")
+
+        # 生成各种格式的报告
+        for fmt in report_formats:
+            debug_log(f"生成 {fmt} 格式报告", "COVERAGE")
+
+            if fmt == "term":
+                # 终端输出
+                if not quiet:
+                    console.print("\n" + "=" * 70)
+                    console.print("[bold cyan]📊 测试覆盖率报告[/bold cyan]")
+                    console.print("=" * 70 + "\n")
+
+                term_cmd = ["python", "-m", "coverage", "report", "-m"]
+                result = subprocess.run(
+                    term_cmd,
+                    cwd=str(project_path),
+                    env={**os.environ, "COVERAGE_FILE": str(coverage_file)},
+                    capture_output=True,
+                    text=True,
+                )
+
+                if result.returncode == 0 and not quiet:
+                    console.print(result.stdout)
+                else:
+                    debug_log(f"Coverage report 失败: {result.stderr}", "COVERAGE")
+
+            elif fmt == "html":
+                # HTML 报告
+                html_dir = coverage_dir / "htmlcov"
+                html_cmd = ["python", "-m", "coverage", "html", "-d", str(html_dir)]
+                result = subprocess.run(
+                    html_cmd,
+                    cwd=str(project_path),
+                    env={**os.environ, "COVERAGE_FILE": str(coverage_file)},
+                    capture_output=True,
+                    text=True,
+                )
+
+                if result.returncode == 0:
+                    if not quiet:
+                        console.print(
+                            f"[green]✅ HTML 覆盖率报告已生成: {html_dir}/index.html[/green]"
+                        )
+                    debug_log(f"HTML 报告生成成功: {html_dir}", "COVERAGE")
+                else:
+                    debug_log(f"HTML 报告生成失败: {result.stderr}", "COVERAGE")
+
+            elif fmt == "xml":
+                # XML 报告（用于 CI/CD 工具）
+                xml_file = coverage_dir / "coverage.xml"
+                xml_cmd = ["python", "-m", "coverage", "xml", "-o", str(xml_file)]
+                result = subprocess.run(
+                    xml_cmd,
+                    cwd=str(project_path),
+                    env={**os.environ, "COVERAGE_FILE": str(coverage_file)},
+                    capture_output=True,
+                    text=True,
+                )
+
+                if result.returncode == 0:
+                    if not quiet:
+                        console.print(f"[green]✅ XML 覆盖率报告已生成: {xml_file}[/green]")
+                    debug_log(f"XML 报告生成成功: {xml_file}", "COVERAGE")
+                else:
+                    debug_log(f"XML 报告生成失败: {result.stderr}", "COVERAGE")
+
+        debug_log("覆盖率报告生成完成", "COVERAGE")
+
+    except Exception as e:
+        if not quiet:
+            console.print(f"[yellow]⚠️ 生成覆盖率报告时出错: {e}[/yellow]")
+        debug_log(f"覆盖率报告生成异常: {e}", "COVERAGE")
+        import traceback
+
+        debug_log(traceback.format_exc(), "COVERAGE")
 
 
 def _generate_test_report(

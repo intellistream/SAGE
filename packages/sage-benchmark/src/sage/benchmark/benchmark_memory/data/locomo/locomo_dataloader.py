@@ -110,24 +110,14 @@ class LocomoDataLoader:
                 break
         return list(speakers)
 
-    def get_question_list(self, sample_id, session_x, dialog_y):
-        """获取截止到指定对话（session_x, dialog_y）之前所有应该可见的问题列表
-        用于流式评测：每输入一段对话后，返回所有此时应该可以回答的问题
+    def get_question_list(self, sample_id, session_x, dialog_y, include_no_evidence=False):
+        """获取截止到指定对话之前所有应该可见的问题列表
 
-        Get all questions that should be visible up to the specified dialog (session_x, dialog_y).
-        For streaming evaluation: after each dialog turn, return all questions that can be answered.
+        新增参数 include_no_evidence：当为 True 时，包含那些 evidence 为空的题目（数据问题），
+        这些题目将被视为从一开始就可见（便于在 Pipeline 中计数/处理）。
+        默认为 False，即丢弃没有 evidence 的问题。
 
-        判断逻辑：
-        - 对于单个 evidence (如 'D2:5')：如果 x < session_x，或者 x == session_x && y <= dialog_y，则包含
-        - 对于多个 evidence (如 ['D2:5', 'D3:8'])：取最大的 x 和 y（优先比较 x），判断是否在范围内
-
-        Args:
-            sample_id: sample id
-            session_x: 当前 session 编号 (e.g., 1, 2, 3...)
-            dialog_y: 当前对话轮次索引（从0开始，但 evidence 中是从1开始，所以实际比较时用 dialog_y + 1）
-
-        Returns:
-            list of QA questions that are visible up to this point
+        其他逻辑与原函数一致。
         """
         sample = self.get_sample(sample_id)
         visible_questions = []
@@ -138,8 +128,10 @@ class LocomoDataLoader:
         for qa in sample.get("qa", []):
             evidence_list = qa.get("evidence", [])
 
-            # 如果没有 evidence，跳过
+            # 如果没有 evidence，默认丢弃（除非 include_no_evidence=True）
             if not evidence_list:
+                if include_no_evidence:
+                    visible_questions.append(qa)
                 continue
 
             # 解析所有 evidence，找到最大的 (x, y)
@@ -147,28 +139,21 @@ class LocomoDataLoader:
             max_dialog = -1
 
             for evidence in evidence_list:
-                # 解析 evidence 格式: "Dx:y" 或 "Dx:y; Dz:w" (有些可能有分号)
-                # 先按分号分割，然后解析每个部分
                 for part in evidence.split(";"):
                     part = part.strip()
                     if part.startswith("D") and ":" in part:
                         try:
-                            # 提取 x 和 y
-                            coords = part[1:].split(":")  # 去掉开头的 'D'
+                            coords = part[1:].split(":")
                             x = int(coords[0])
                             y = int(coords[1])
 
-                            # 更新最大值（优先比较 x，然后比较 y）
                             if x > max_session or (x == max_session and y > max_dialog):
                                 max_session = x
                                 max_dialog = y
                         except (ValueError, IndexError):
-                            # 解析失败，跳过这个 evidence
                             continue
 
-            # 判断这个问题是否在当前时间点可见
-            # 如果 max_session < session_x，或者 max_session == session_x 且 max_dialog <= current_dialog_num
-            if max_session != -1:  # 确保至少解析到了一个有效的 evidence
+            if max_session != -1:
                 if max_session < session_x or (
                     max_session == session_x and max_dialog <= current_dialog_num
                 ):

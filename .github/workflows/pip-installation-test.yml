@@ -228,11 +228,11 @@ jobs:
             core)
               echo "验证 core 模式基础功能..."
               python -c "from sage.kernel import LocalEnvironment; print('✅ LocalEnvironment 可用')"
-              python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "from sage.middleware.operators.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
               ;;
             standard)
               echo "验证 standard 模式功能..."
-              python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "from sage.middleware.operators.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
               if command -v sage >/dev/null 2>&1; then
                 sage --version && echo "✅ sage CLI 可用"
               fi
@@ -242,7 +242,7 @@ jobs:
               ;;
             full)
               echo "验证 full 模式功能..."
-              python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "from sage.middleware.operators.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
               python -c "import sage.studio; print('✅ sage.studio 可用')"
               if command -v sage >/dev/null 2>&1; then
                 sage --version && echo "✅ sage CLI 可用"
@@ -250,7 +250,7 @@ jobs:
               ;;
             dev)
               echo "验证 dev 模式功能..."
-              python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
+              python -c "from sage.middleware.operators.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
               python -c "import sage.studio; print('✅ sage.studio 可用')"
               python -c "import sage.tools; print('✅ sage.tools 可用')"
               python -c "import pytest; print('✅ pytest 可用')"
@@ -321,7 +321,7 @@ jobs:
           from sage.kernel.operators import MapOperator, FilterOperator
 
           # L4: Libs (RAG)
-          from sage.libs.rag.pipeline import RAGPipeline
+          from sage.middleware.operators.rag.pipeline import RAGPipeline
 
           # L6: CLI (from sage-cli package)
           from sage.cli.main import app as cli_app

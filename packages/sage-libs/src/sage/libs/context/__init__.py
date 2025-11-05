@@ -1,12 +1,5 @@
-"""
-SAGE - Streaming-Augmented Generative Execution
-"""
+"""Context management for LLMs - business context and compression algorithms."""
 
-# 直接从本包的_version模块加载版本信息
-try:
-    from sage.libs._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+from sage.libs.context import compression
+
+__all__ = ["compression"]
