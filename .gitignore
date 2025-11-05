@@ -10,6 +10,13 @@ compile_commands.json
 CTestTestfile.cmake
 CMakeUserPresets.json
 
+# Ninja 构建文件
+*.ninja
+.ninja_deps
+.ninja_log
+build.ninja
+rules.ninja
+
 # ============================================
 # 构建和安装目录
 # ============================================
@@ -163,6 +170,7 @@ dev_reports/
 
 # Build artifacts managed by sage-dev toolkit
 **/*.egg-info/
+**/isage*.egg-info/
 **/dist/
 **/build/
 **/.coverage
