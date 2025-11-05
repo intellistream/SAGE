@@ -238,7 +238,9 @@ class ControlPlaneVLLMService(BaseService):
         """Run event loop in background thread."""
         asyncio.set_event_loop(self._loop)
         if self._loop is None:
-            raise RuntimeError("Event loop is not initialized (self._loop is None) in _run_event_loop.")
+            raise RuntimeError(
+                "Event loop is not initialized (self._loop is None) in _run_event_loop."
+            )
 
         try:
             # Initialize Control Plane
@@ -292,13 +294,13 @@ class ControlPlaneVLLMService(BaseService):
         # Default timeout: 300 seconds (5 minutes)
         timeout = options.get("timeout", 300.0)
         start_time = asyncio.get_event_loop().time()
-        
+
         while True:
             # Check timeout
             elapsed = asyncio.get_event_loop().time() - start_time
             if elapsed > timeout:
                 raise TimeoutError(f"Request {request_id} timed out after {timeout} seconds")
-            
+
             status = await self.control_plane.get_request_status(request_id)
             if status == RequestStatus.COMPLETED:
                 # In a real implementation, we'd get the actual result
