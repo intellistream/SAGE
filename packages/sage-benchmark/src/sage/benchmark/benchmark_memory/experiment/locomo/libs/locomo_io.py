@@ -42,34 +42,24 @@ class LocomoSource(BatchFunction):
         # 检查当前session是否已经遍历完
         if self.dialog_ptr > max_dialog_idx:
             # 移动到下一个session
-            print(
-                f"➡️  会话 {session_id} 已完成 (dialog_ptr={self.dialog_ptr} > max={max_dialog_idx})，移动到下一个会话"
-            )
             self.session_idx += 1
             self.dialog_ptr = 0
 
             # 检查是否还有更多session
             if self.session_idx >= len(self.turns):
-                print(f"🏁 LocomoSource 已完成：所有 {len(self.turns)} 个会话已处理完毕")
+                # 最后一个 session 处理完毕（不再打印）
                 return None
 
             # 更新到新session的信息
             session_id, max_dialog_idx = self.turns[self.session_idx]
-            print(f"🆕 移动到新会话：session_id={session_id}, max_dialog_idx={max_dialog_idx}")
-
-        # 打印当前执行信息
-        print(
-            f"📊 LocomoSource.execute()：session_idx={self.session_idx}/{len(self.turns)}, session={session_id}, dialog={self.dialog_ptr}, max={max_dialog_idx}"
-        )
 
         # 获取当前对话
         try:
-            print(f"📖 正在获取对话：session={session_id}, dialog={self.dialog_ptr}")
             dialogs = self.loader.get_dialog(
                 self.sample_id, session_x=session_id, dialog_y=self.dialog_ptr
             )
 
-            # 准备返回数据
+            # 准备返回数据（不再打印）
             result = {
                 "sample_id": self.sample_id,
                 "session_id": session_id,
@@ -79,7 +69,6 @@ class LocomoSource(BatchFunction):
 
             # 移动指针到下一组对话（每次+2，因为一组对话包含问答两轮）
             self.dialog_ptr += 2
-            print(f"⚡ LocomoSource 返回数据：session={session_id}, dialog={self.dialog_ptr - 2}")
 
             return result
 
@@ -94,7 +83,10 @@ class LocomoSource(BatchFunction):
 
 
 class LocomoSink(SinkFunction):
-    """将接收到的对话数据写入JSON文件的Sink"""
+    """将接收到的问题和答案写入JSON文件的Sink
+
+    注意：这里只写入问题和答案，不写入对话历史
+    """
 
     def __init__(self, output_name=None):
         self.output_name = output_name
@@ -109,41 +101,59 @@ class LocomoSink(SinkFunction):
         # 初始化数据列表
         self.data_list = []
 
-        # 统计实际处理的dialog数量
-        self.total_dialog_count = 0
+        # 统计信息
+        self.total_answer_count = 0
 
     def execute(self, data):
-        import time
-
-        time.sleep(0.1)  # 模拟处理延迟
         # 延迟初始化输出文件路径（第一次调用时）
         if self.output_file is None:
             # 使用output_name或self.name（由BaseFunction提供）
             file_name = self.output_name if self.output_name else self.name
             self.output_file = os.path.join(self.output_dir, f"{file_name}.json")
-            print(f"📁 LocomoSink 已初始化：输出文件={self.output_file}")
+            # 不再打印初始化信息
 
-        # 打印接收信息
-        session_id = data.get("session_id")
-        dialog_idx = data.get("dialog_idx")
-        dialogs = data.get("dialogs", [])
-        dialog_count = len(dialogs)
-        print(f"📥 LocomoSink 已接收：会话 {session_id}, 对话 {dialog_idx} ({dialog_count} 轮)")
+        # 只有当有答案时才保存
+        answers = data.get("answers", [])
 
-        # 将数据添加到列表
-        self.data_list.append(data)
+        if len(answers) > 0:
+            # 将数据添加到列表
+            self.data_list.append(data)
 
-        # 累计实际的dialog数量
-        self.total_dialog_count += dialog_count
+            # 累计统计
+            self.total_answer_count += len(answers)
 
-        # 实时写入文件
-        with open(self.output_file, "w", encoding="utf-8") as f:
-            json.dump(self.data_list, f, ensure_ascii=False, indent=2)
+            # 实时写入文件
+            with open(self.output_file, "w", encoding="utf-8") as f:
+                json.dump(self.data_list, f, ensure_ascii=False, indent=2)
 
-        # 打印保存成功信息
-        print(
-            f"✅ LocomoSink 已保存：会话 {session_id}, 对话 {dialog_idx} (总对话数: {self.total_dialog_count}, 总记录数: {len(self.data_list)})"
-        )
+    @staticmethod
+    def query_answers(json_file_path, session_id, dialog_idx):
+        """从保存的 JSON 文件中检索指定 session 和 dialog 的所有问答
+
+        Args:
+            json_file_path: JSON 文件路径
+            session_id: session 号
+            dialog_idx: dialog 号
+
+        Returns:
+            list: 该轮对话的所有问答，格式为 [{"question": ..., "answer": ..., "evidence": ..., "category": ...}, ...]
+                  如果没有找到，返回空列表
+        """
+        try:
+            with open(json_file_path, encoding="utf-8") as f:
+                data_list = json.load(f)
+
+            for item in data_list:
+                if item["session_id"] == session_id and item["dialog_idx"] == dialog_idx:
+                    return item.get("answers", [])
+
+            return []
+        except FileNotFoundError:
+            print(f"文件不存在: {json_file_path}")
+            return []
+        except json.JSONDecodeError:
+            print(f"文件格式错误: {json_file_path}")
+            return []
 
 
 # ==== 测试代码 ====

@@ -14,7 +14,9 @@ import pytest
 
 # Test imports with fallbacks
 try:
-    from examples.agents.tools.arxiv_search_tool import ArxivSearchTool
+    from examples.agents.tools.arxiv_search_tool import (
+        ArxivSearchTool,  # type: ignore[import-not-found]
+    )
 
     ARXIV_TOOL_AVAILABLE = True
 except ImportError:
@@ -25,7 +27,6 @@ try:
     from sage.libs.agents.planning.llm_planner import LLMPlanner
     from sage.libs.agents.profile.profile import BaseProfile
     from sage.libs.agents.runtime.agent import AgentRuntime
-    from sage.libs.rag.generator import OpenAIGenerator  # noqa: F401
 
     SAGE_COMPONENTS_AVAILABLE = True
 except ImportError:
@@ -365,7 +366,7 @@ class TestAgentWorkflowIntegration:
 
         try:
             # Import the agent module
-            from examples.agents import agent
+            from examples.agents import agent  # type: ignore[import-not-found]
 
             # Mock the main function to avoid actual execution
             with patch.object(agent, "main") as mock_main:
@@ -437,7 +438,7 @@ class TestConfigIntegration:
         """Test that the data file format is compatible with iter_queries."""
 
         try:
-            from examples.agents.agent import iter_queries
+            from examples.agents.agent import iter_queries  # type: ignore[import-not-found]
 
             # Check if the data file exists
             data_path = os.path.join(

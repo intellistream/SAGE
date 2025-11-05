@@ -6,6 +6,7 @@ help:
 	@echo ""
 	@echo "📦 安装与设置:"
 	@echo "  make install         - 快速安装 SAGE（开发模式）"
+	@echo "  make install-dev     - 按正确顺序安装所有子包（推荐用于开发）"
 	@echo "  make install-deps    - 仅安装依赖"
 	@echo "  make build-extensions - 构建 C++ 扩展（DB, Flow, TSDB）"
 	@echo ""
@@ -42,6 +43,21 @@ help:
 install:
 	@echo "🚀 运行快速安装..."
 	./quickstart.sh
+
+install-dev:
+	@echo "🔧 开发模式安装所有子包（正确顺序）..."
+	@echo "  1️⃣ 安装基础包（无依赖）..."
+	@pip install -e packages/sage-common -e packages/sage-platform --no-deps
+	@echo "  2️⃣ 安装核心库..."
+	@pip install -e packages/sage-libs -e packages/sage-kernel --no-deps
+	@echo "  3️⃣ 安装 middleware（C++ 扩展）..."
+	@pip install -e packages/sage-middleware --no-deps
+	@echo "  4️⃣ 安装应用层..."
+	@pip install -e packages/sage-apps -e packages/sage-cli -e packages/sage-studio -e packages/sage-benchmark -e packages/sage-tools --no-deps
+	@echo "✅ 所有包已安装！"
+	@echo ""
+	@echo "📊 验证版本一致性..."
+	@pip list | grep -E "^isage"
 
 install-deps:
 	@echo "📦 安装依赖..."
@@ -83,11 +99,23 @@ test-all:
 # 构建与发布
 build:
 	@echo "🔨 构建所有包..."
-	sage-dev pypi build
+	sage-dev package pypi build
 
 clean:
 	@echo "🧹 清理构建产物..."
-	sage-dev pypi clean
+	@echo "  • 清理 Python 包构建产物..."
+	@sage-dev package pypi clean || true
+	@echo "  • 清理 C++ 扩展构建产物..."
+	@rm -rf .sage/build/
+	@echo "  • 清理旧的构建目录（已废弃）..."
+	@rm -rf build/
+	@rm -rf packages/sage-middleware/build/
+	@rm -rf packages/sage-middleware/lib/
+	@rm -rf packages/sage-middleware/bin/
+	@rm -rf packages/sage-middleware/sage_*_build/
+	@rm -rf packages/sage-common/build/
+	@find packages/sage-middleware/src/sage/middleware/components -type d \( -name "build" -o -name "lib" -o -name "bin" -o -name "install" \) -exec rm -rf {} + 2>/dev/null || true
+	@echo "✅ 清理完成"
 
 check:
 	@echo "🔍 检查包配置..."

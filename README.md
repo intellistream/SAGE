@@ -3,8 +3,8 @@
 > A declarative, composable framework for building transparent LLM-powered systems through dataflow
 > abstractions.
 
-[![CI](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/intellistream/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/intellistream/SAGE)
+[![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/build-test.yml)
+[![codecov](https://codecov.io/gh/intellistream/SAGE/graph/badge.svg)](https://codecov.io/gh/intellistream/SAGE)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
 [![PyPI version](https://badge.fury.io/py/isage.svg)](https://badge.fury.io/py/isage)
@@ -115,24 +115,42 @@ analysis.
 
 ### System Architecture
 
-SAGE is built on a layered architecture that provides flexibility, scalability, and maintainability.
-The architecture consists of five main layers:
+SAGE is built on a **layered modular architecture** with 10 independent packages organized across 6
+layers:
 
-1. **User Layer**: Applications built with SAGE (RAG, Agent, Memory, QA systems)
-1. **API Layer**: LocalEnvironment and RemoteEnvironment for different execution contexts
-1. **Core Layer**: Dispatcher, Job Manager, Service Manager, and Runtime execution engine
-1. **Libraries Layer**: RAG pipeline, Agent framework, Memory & Storage, Middleware components
-1. **Infrastructure Layer**: Compute backends (Ray, local), data storage, model services, monitoring
+```
+L6: sage-studio, sage-cli, sage-tools    # User Interfaces & Dev Tools
+L5: sage-apps, sage-benchmark             # Applications & Benchmarks
+L4: sage-middleware                       # Domain Operators & Components
+L3: sage-kernel, sage-libs                # Core Engine & Algorithm Library
+L2: sage-platform                         # Platform Services (Queue, Storage)
+L1: sage-common                           # Foundation & Utilities
+```
+
+**Key Architectural Principles:**
+
+- **Unidirectional Dependencies**: Clean layer-to-layer dependencies (no upward dependencies)
+- **Separation of Concerns**: Each package has a clear, focused responsibility
+- **Pluggable Components**: Modular design allows easy component replacement
+- **Production Ready**: Built-in fault tolerance, monitoring, and distributed execution
+
+📖 **[Complete Architecture Guide](./docs-public/docs_src/dev-notes/package-architecture.md)** -
+Detailed package descriptions, dependency rules, and design principles
 
 ### Modular Design
 
-SAGE follows a clean separation of concerns with pluggable components that work together seamlessly:
+**10 Independent Packages**, each with clear responsibilities:
 
-- **Core**: Stream processing engine with execution environments
-- **Libraries**: Rich operators for AI, I/O, transformations, and utilities
-- **Kernel**: Distributed computing primitives and communication
-- **Middleware**: Service discovery, monitoring, and management
-- **Common**: Shared utilities, configuration, and logging
+- **sage-common** (L1): Foundation utilities, configuration, logging
+- **sage-platform** (L2): Platform services - queue, storage abstractions
+- **sage-kernel** (L3): Distributed execution engine and runtime
+- **sage-libs** (L3): Algorithm library, RAG tools, Agent framework
+- **sage-middleware** (L4): Domain operators and middleware components
+- **sage-apps** (L5): Pre-built applications (video, medical diagnosis)
+- **sage-benchmark** (L5): Performance benchmarks and examples
+- **sage-studio** (L6): Web-based visualization interface
+- **sage-cli** (L6): Unified command-line interface
+- **sage-tools** (L6): Development tools and testing framework
 
 ### Production-Ready Features
 
@@ -358,5 +376,3 @@ We welcome questions, bug reports, feature requests, and contributions from deve
 ## License
 
 SAGE is licensed under the [MIT License](./LICENSE).
-
-\<- Support manual workflow_dispatch for Auto-publish test 20251031-091349 -->

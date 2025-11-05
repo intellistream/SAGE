@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
-from sage.common.core import Collector
+from sage.common.core import Collector, FlatMapFunction
 from sage.kernel.api.operator.base_operator import BaseOperator
 from sage.kernel.runtime.communication.packet import Packet
 
@@ -35,8 +35,6 @@ class FlatMapOperator(BaseOperator):
         self.out: Collector = Collector(self.ctx)
         # Insert collector into function if it's a FlatMapFunction
         # FlatMapFunction has the insert_collector method, BaseFunction doesn't
-        from sage.common.core.functions.flatmap_function import FlatMapFunction
-
         if isinstance(self.function, FlatMapFunction):
             self.function.insert_collector(self.out)
         self.logger.info(f"FlatMapOperator '{self.name}' initialized with collector")

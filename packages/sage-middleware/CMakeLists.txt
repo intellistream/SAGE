@@ -45,15 +45,19 @@ message(STATUS "")
 set(SAGE_DB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/middleware/components/sage_db")
 set(SAGE_DB_SUBMODULE "${SAGE_DB_DIR}/sageDB")
 
+# 设置统一的构建输出目录到 .sage/build/
+set(SAGE_BUILD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.sage/build")
+
 if(EXISTS "${SAGE_DB_SUBMODULE}/CMakeLists.txt")
     message(STATUS "Adding sage_db submodule...")
+    message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/sage_db")
 
     # 让子模块保持独立完整：可以自己编译、测试、构建 Python bindings
     # Middleware 只是引用子模块已经构建好的 Python bindings
     # 但在 middleware 构建时跳过测试以加快构建速度
     set(BUILD_TESTS OFF CACHE BOOL "Skip tests in middleware build" FORCE)
     set(BUILD_PYTHON_BINDINGS ON CACHE BOOL "Enable Python bindings in submodule" FORCE)
-    add_subdirectory(${SAGE_DB_SUBMODULE} sage_db_build)
+    add_subdirectory(${SAGE_DB_SUBMODULE} ${SAGE_BUILD_ROOT}/sage_db)
 
     message(STATUS "  ✓ sage_db configured (with independent Python bindings)")
 else()
@@ -68,12 +72,13 @@ set(SAGE_FLOW_SUBMODULE "${SAGE_FLOW_DIR}/sageFlow")
 
 if(EXISTS "${SAGE_FLOW_SUBMODULE}/CMakeLists.txt")
     message(STATUS "Adding sage_flow submodule...")
+    message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/sage_flow")
 
     # 让子模块保持独立完整：可以自己编译、测试、构建 Python bindings
     # 但在 middleware 构建时跳过测试以避免循环依赖问题
     set(BUILD_TESTS OFF CACHE BOOL "Skip tests to avoid circular dependencies" FORCE)
     set(BUILD_PYTHON_BINDINGS ON CACHE BOOL "Enable Python bindings in submodule" FORCE)
-    add_subdirectory(${SAGE_FLOW_SUBMODULE} sage_flow_build)
+    add_subdirectory(${SAGE_FLOW_SUBMODULE} ${SAGE_BUILD_ROOT}/sage_flow)
 
     message(STATUS "  ✓ sage_flow configured (with independent Python bindings)")
 else()
@@ -88,12 +93,13 @@ set(SAGE_TSDB_SUBMODULE "${SAGE_TSDB_DIR}/sageTSDB")
 
 if(EXISTS "${SAGE_TSDB_SUBMODULE}/CMakeLists.txt")
     message(STATUS "Adding sage_tsdb submodule...")
+    message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/sage_tsdb")
 
     # 让子模块保持独立完整：可以自己编译、测试、构建 Python bindings
     # 但在 middleware 构建时跳过测试以加快构建速度
     set(BUILD_TESTS OFF CACHE BOOL "Skip tests in middleware build" FORCE)
     set(BUILD_PYTHON_BINDINGS ON CACHE BOOL "Enable Python bindings in submodule" FORCE)
-    add_subdirectory(${SAGE_TSDB_SUBMODULE} sage_tsdb_build)
+    add_subdirectory(${SAGE_TSDB_SUBMODULE} ${SAGE_BUILD_ROOT}/sage_tsdb)
 
     message(STATUS "  ✓ sage_tsdb configured (with independent Python bindings)")
 else()

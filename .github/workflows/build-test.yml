@@ -197,6 +197,8 @@ jobs:
 
           # 测试扩展导入
           echo ""
+
+
           echo "🔍 测试扩展Python导入:"
           python -c "
           import sys
@@ -268,28 +270,43 @@ jobs:
           python -c "import sage.common; print('✅ sage.common imported')"
 
           # 验证CLI
-          if command -v sage >/dev/null 2>&1; then
-            sage --help > /dev/null && echo "✅ CLI可用"
+          if command -v sage-dev >/dev/null 2>&1; then
+            sage-dev --help > /dev/null && echo "✅ sage-dev CLI可用"
+          else
+            echo "❌ sage-dev CLI不可用"
+            exit 1
           fi
 
       - name: Run Unit Tests with Coverage
         run: |
           echo "🧪 运行单元测试并收集覆盖率..."
+          echo "使用 sage-dev project test --coverage 命令"
 
-          # 安装测试依赖
-          pip install pytest pytest-cov pytest-timeout
-
-          # 运行测试并生成覆盖率报告
-          pytest -v \
-            --cov=packages \
-            --cov-report=xml:coverage.xml \
-            --cov-report=term \
-            --cov-report=html:htmlcov \
-            --timeout=300 \
-            -m "not slow" || {
-              echo "⚠️ 部分测试失败，但继续收集覆盖率数据"
-              exit 0
+          # 使用 sage-dev 运行测试（排除慢速测试）
+          # 注意：不再使用 || exit 0，测试失败时CI应该失败
+          sage-dev project test --coverage \
+            --coverage-report term,xml,html \
+            --jobs 4 \
+            --timeout 300 \
+            --continue-on-error || {
+              echo "❌ 测试失败"
+              exit 1
             }
+
+          # 将覆盖率文件移动到根目录以便上传
+          if [ -f ".sage/coverage/coverage.xml" ]; then
+            cp .sage/coverage/coverage.xml ./coverage.xml
+            echo "✅ 覆盖率XML文件已复制到根目录"
+          else
+            echo "⚠️ 警告: 未找到覆盖率XML文件"
+          fi
+
+          if [ -d ".sage/coverage/htmlcov" ]; then
+            cp -r .sage/coverage/htmlcov ./htmlcov
+            echo "✅ 覆盖率HTML报告已复制到根目录"
+          else
+            echo "⚠️ 警告: 未找到覆盖率HTML目录"
+          fi
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -310,7 +327,18 @@ jobs:
           path: |
             coverage.xml
             htmlcov/
+            .sage/logs/
           retention-days: 30
+
+      - name: Upload Test Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            .sage/logs/
+            .sage/reports/
+          retention-days: 7
 
       - name: Summary
         if: always()
@@ -320,6 +348,15 @@ jobs:
 
           if [ "${{ job.status }}" = "success" ]; then
             echo "✅ **构建成功** - 所有测试通过" >> $GITHUB_STEP_SUMMARY
+
+            # 显示覆盖率摘要（如果存在）
+            if [ -f "coverage.xml" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 📊 测试覆盖率" >> $GITHUB_STEP_SUMMARY
+              echo "覆盖率报告已生成，详见 Artifacts" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "❌ **构建失败** - 请查看日志" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **构建失败** - 请查看日志和测试报告" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "测试日志已上传到 Artifacts，请下载查看详细信息" >> $GITHUB_STEP_SUMMARY
           fi

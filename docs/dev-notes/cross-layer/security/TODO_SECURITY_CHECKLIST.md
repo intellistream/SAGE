@@ -22,7 +22,7 @@
 - [x] 创建 `docs/API_KEY_SECURITY.md` - 安全配置指南
 - [x] 创建 `docs/CONFIG_CLEANUP_REPORT.md` - 清理报告
 - [x] 创建 `docs/CICD_ENV_SETUP.md` - CI/CD 配置指南
-- [x] 创建 `.github/SECRETS_SETUP.md` - Secrets 快速设置
+- [x] 整合 GitHub Secrets 配置到 `CONTRIBUTING.md` - Secrets 快速设置
 - [x] 创建 `docs/SECURITY_UPDATE_SUMMARY.md` - 完整更新总结
 - [x] 创建 `tools/maintenance/check_config_security.sh` - 安全检查脚本
 
@@ -118,7 +118,7 @@ git status .env
 
 ### 团队协作
 - [ ] 通知团队成员更新本地 .env 文件
-- [ ] 分享 `.github/SECRETS_SETUP.md` 给新成员
+- [ ] 分享 `CONTRIBUTING.md` 中的 GitHub Secrets 配置章节给新成员
 - [ ] 在团队文档中添加安全最佳实践链接
 
 ### 监控和审计
@@ -133,7 +133,7 @@ git status .env
 - [CI/CD 环境配置指南](./docs/CICD_ENV_SETUP.md)
 - [配置清理报告](./docs/CONFIG_CLEANUP_REPORT.md)
 - [完整更新总结](./docs/SECURITY_UPDATE_SUMMARY.md)
-- [GitHub Secrets 快速设置](./.github/SECRETS_SETUP.md)
+- [GitHub Secrets 快速设置](../../../CONTRIBUTING.md#github-secrets-配置维护者贡献者)
 
 ### 工具和脚本
 - 安全检查脚本：`./tools/maintenance/check_config_security.sh`

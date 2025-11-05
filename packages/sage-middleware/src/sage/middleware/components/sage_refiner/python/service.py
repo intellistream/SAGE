@@ -16,7 +16,7 @@ import time
 from collections import OrderedDict
 from typing import Any
 
-from sage.middleware.components.sage_refiner.python.base import (
+from sage.libs.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
 )
@@ -137,14 +137,14 @@ class RefinerService:
         algorithm = self.config.algorithm
 
         if algorithm == RefinerAlgorithm.LONG_REFINER:
-            from sage.middleware.components.sage_refiner.python.algorithms.long_refiner import (
+            from sage.libs.context.compression.algorithms.long_refiner import (
                 LongRefinerAlgorithm,
             )
 
             self.refiner = LongRefinerAlgorithm(self.config.to_dict())
 
         elif algorithm == RefinerAlgorithm.SIMPLE:
-            from sage.middleware.components.sage_refiner.python.algorithms.simple import (
+            from sage.libs.context.compression.algorithms.simple import (
                 SimpleRefiner,
             )
 
@@ -152,7 +152,7 @@ class RefinerService:
 
         elif algorithm == RefinerAlgorithm.NONE:
             # 不压缩，返回原始内容
-            from sage.middleware.components.sage_refiner.python.algorithms.simple import (
+            from sage.libs.context.compression.algorithms.simple import (
                 SimpleRefiner,
             )
 

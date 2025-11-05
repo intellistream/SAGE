@@ -1,7 +1,30 @@
 {
-    "id":4,
-    "name":"QAPromptor",
-    "description":"A prompt generator for QA tasks",
-    "code":"",
-    "isCustom":false
+    "id": 4,
+    "name": "QAPromptor",
+    "description": "A prompt generator for QA tasks",
+    "module_path": "sage.middleware.operators.rag.promptor",
+    "class_name": "QAPromptor",
+    "isCustom": false,
+    "parameters": [
+        {
+            "name": "template",
+            "label": "提示词模板",
+            "type": "textarea",
+            "required": false,
+            "defaultValue": "Based on the following context, please answer the question.\n\nContext: {context}\n\nQuestion: {question}\n\nAnswer:",
+            "placeholder": "请输入提示词模板",
+            "description": "QA 任务的提示词模板，支持 {context} 和 {question} 占位符"
+        },
+        {
+            "name": "max_context_length",
+            "label": "最大上下文长度",
+            "type": "number",
+            "required": false,
+            "defaultValue": 2000,
+            "min": 100,
+            "max": 10000,
+            "step": 100,
+            "description": "上下文的最大字符数"
+        }
+    ]
 }

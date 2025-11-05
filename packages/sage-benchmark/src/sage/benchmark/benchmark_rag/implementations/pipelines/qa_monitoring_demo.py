@@ -70,32 +70,37 @@ def pipeline_run():
 
     # 获取并显示各个任务的性能指标
     try:
-        job = env.jobmanager.jobs.get(env.env_uuid)
-        if job and hasattr(job, "dispatcher"):
-            tasks = job.dispatcher.tasks
-            for task_name, task in tasks.items():
-                if hasattr(task, "get_current_metrics"):
-                    metrics = task.get_current_metrics()
-                    print(f"\n🔧 Task: {task_name}")
-                    print(f"  📦 Packets Processed: {metrics.total_packets_processed}")
-                    print(
-                        f"  ✅ Success: {metrics.total_packets_processed} | ❌ Errors: {metrics.total_packets_failed}"
-                    )
-                    print(f"  📊 TPS: {metrics.packets_per_second:.2f} packets/sec")
-                    if metrics.p50_latency > 0:
-                        print(f"  ⏱️  Latency P50: {metrics.p50_latency:.1f}ms")
-                        print(f"  ⏱️  Latency P95: {metrics.p95_latency:.1f}ms")
-                        print(f"  ⏱️  Latency P99: {metrics.p99_latency:.1f}ms")
-                        print(f"  ⏱️  Avg Latency: {metrics.avg_latency:.1f}ms")
-                    if metrics.cpu_usage_percent > 0 or metrics.memory_usage_mb > 0:
-                        print(f"  💻 CPU: {metrics.cpu_usage_percent:.1f}%")
-                        print(f"  🧠 Memory: {metrics.memory_usage_mb:.1f}MB")
-                    if metrics.input_queue_depth > 0:
-                        print(f"  📥 Queue Depth: {metrics.input_queue_depth}")
-                    if metrics.error_breakdown:
-                        print(f"  ❌ Error Breakdown: {metrics.error_breakdown}")
+        if env.env_uuid is None:
+            print("\n⚠️  Warning: env_uuid is None, skipping metrics")
         else:
-            print("⚠️  Dispatcher or job not found, cannot retrieve metrics.")
+            job = env.jobmanager.jobs.get(env.env_uuid)
+            if job and hasattr(job, "dispatcher"):
+                tasks = job.dispatcher.tasks
+                for task_name, task in tasks.items():
+                    if hasattr(task, "get_current_metrics"):
+                        metrics = task.get_current_metrics()
+                        if metrics is None:
+                            continue
+                        print(f"\n🔧 Task: {task_name}")
+                        print(f"  📦 Packets Processed: {metrics.total_packets_processed}")  # type: ignore[attr-defined]
+                        print(
+                            f"  ✅ Success: {metrics.total_packets_processed} | ❌ Errors: {metrics.total_packets_failed}"  # type: ignore[attr-defined]
+                        )
+                        print(f"  📊 TPS: {metrics.packets_per_second:.2f} packets/sec")  # type: ignore[attr-defined]
+                        if metrics.p50_latency > 0:  # type: ignore[attr-defined]
+                            print(f"  ⏱️  Latency P50: {metrics.p50_latency:.1f}ms")  # type: ignore[attr-defined]
+                            print(f"  ⏱️  Latency P95: {metrics.p95_latency:.1f}ms")  # type: ignore[attr-defined]
+                            print(f"  ⏱️  Latency P99: {metrics.p99_latency:.1f}ms")  # type: ignore[attr-defined]
+                            print(f"  ⏱️  Avg Latency: {metrics.avg_latency:.1f}ms")  # type: ignore[attr-defined]
+                        if metrics.cpu_usage_percent > 0 or metrics.memory_usage_mb > 0:  # type: ignore[attr-defined]
+                            print(f"  💻 CPU: {metrics.cpu_usage_percent:.1f}%")  # type: ignore[attr-defined]
+                            print(f"  🧠 Memory: {metrics.memory_usage_mb:.1f}MB")  # type: ignore[attr-defined]
+                        if metrics.input_queue_depth > 0:  # type: ignore[attr-defined]
+                            print(f"  📥 Queue Depth: {metrics.input_queue_depth}")  # type: ignore[attr-defined]
+                        if metrics.error_breakdown:  # type: ignore[attr-defined]
+                            print(f"  ❌ Error Breakdown: {metrics.error_breakdown}")  # type: ignore[attr-defined]
+            else:
+                print("⚠️  Dispatcher or job not found, cannot retrieve metrics.")
     except Exception as e:
         import traceback
 

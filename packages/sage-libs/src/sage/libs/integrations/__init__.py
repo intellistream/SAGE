@@ -1,29 +1,28 @@
 """
-SAGE Integrations - Third-party Service Integrations
+Third-party integrations for SAGE
 
-Layer: L3 (Core - Algorithm Library)
-
-This module provides integrations with third-party services and APIs,
-including vector databases, LLM providers, and other AI services.
-
-Available Integrations:
-- OpenAI: OpenAI API client and utilities
-- Milvus: Milvus vector database integration
-- Chroma: ChromaDB vector database integration
-- Hugging Face: Hugging Face model hub integration
+This module provides integration with external services and libraries:
+- Vector databases (Chroma, Milvus)
+- LLM clients (OpenAI, HuggingFace)
 """
 
-from .chroma import *  # noqa: F403
-from .huggingface import *  # noqa: F403
-from .milvus import *  # noqa: F403
+# Vector Database Backends
+from sage.libs.integrations.chroma import ChromaBackend, ChromaUtils
 
-# Import from openaiclient which is the newer implementation
-from .openaiclient import OpenAIClient  # noqa: F401
+# LLM Clients
+from sage.libs.integrations.huggingface import HFClient
+from sage.libs.integrations.milvus import MilvusBackend, MilvusUtils
+from sage.libs.integrations.openai import OpenAIClient as OpenAIClientFromOpenai
+from sage.libs.integrations.openaiclient import OpenAIClient
 
-__all__: list[str] = [
+__all__ = [
+    # Vector DB
+    "ChromaBackend",
+    "ChromaUtils",
+    "MilvusBackend",
+    "MilvusUtils",
+    # LLM Clients
+    "HFClient",
     "OpenAIClient",
-    # Re-export from submodules
-    # Will be populated as modules are standardized
+    "OpenAIClientFromOpenai",
 ]
-
-__version__ = "0.1.0"

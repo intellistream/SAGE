@@ -287,7 +287,7 @@ activate_conda_environment() {
         echo -e "${INFO} 将使用当前环境"
         export PIP_CMD="python3 -m pip"
         export PYTHON_CMD="python3"
-        export SAGE_ENV_NAME=""  # 确保导出空值
+        export SAGE_ENV_NAME=""
         return 1
     fi
 
@@ -301,7 +301,7 @@ activate_conda_environment() {
 
         # 设置环境变量，让子进程使用正确的 conda 环境
         export CONDA_DEFAULT_ENV="$env_name"
-        export SAGE_ENV_NAME="$env_name"  # 确保SAGE_ENV_NAME被正确设置和导出
+        export SAGE_ENV_NAME="$env_name"
 
         # 更新 pip 命令 - 在CI环境中使用更快的安装方式
         if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
@@ -340,7 +340,7 @@ activate_conda_environment() {
         echo -e "${INFO} 环境可能损坏，将使用当前环境"
         export PIP_CMD="python3 -m pip"
         export PYTHON_CMD="python3"
-        export SAGE_ENV_NAME=""  # 确保导出空值
+        export SAGE_ENV_NAME=""
         return 1
     fi
 }

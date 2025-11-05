@@ -61,7 +61,7 @@ def example_basic_ingestion_and_query():
             tags=point["tags"],
         )
 
-    print(f"Ingested {db.size()} points into database")
+    print(f"Ingested {db.size} points into database")
 
     # Query data
     print("\nQuerying data...")
@@ -109,7 +109,7 @@ def example_window_aggregation():
 
         # Calculate statistics
         if results:
-            values = [r.value for r in results]
+            values: np.ndarray = np.array([r.value for r in results])
             print(f"\nStatistics from {len(values)} points:")
             print(f"  Mean: {np.mean(values):.2f}")
             print(f"  Std Dev: {np.std(values):.2f}")
@@ -144,7 +144,8 @@ def example_multi_sensor():
             total_points += 1
 
     print(f"Ingested {total_points} points from {len(sensors)} sensors")
-    print(f"Database size: {db.size()}")
+    # Print final database size
+    print(f"Database size: {db.size}")
 
     # Query data by sensor
     print("\nQuerying data by sensor:")
@@ -184,7 +185,7 @@ def example_database_statistics():
     for key, value in stats.items():
         print(f"  {key}: {value}")
 
-    print(f"\nTotal points in database: {db.size()}")
+    print(f"\nTotal points in database: {db.size}")
 
 
 if __name__ == "__main__":

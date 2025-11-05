@@ -85,6 +85,14 @@ def project_test(
     report_file: str = typer.Option("", "--report", help="测试报告输出文件路径"),
     diagnose: bool = typer.Option(False, "--diagnose", help="运行诊断模式"),
     issues_manager: bool = typer.Option(False, "--issues-manager", help="包含 issues manager 测试"),
+    coverage: bool = typer.Option(False, "--coverage", help="启用测试覆盖率分析"),
+    coverage_report: str = typer.Option(
+        "term,html,xml", "--coverage-report", help="覆盖率报告格式 (逗号分隔)"
+    ),
+    skip_quality_check: bool = typer.Option(
+        True, "--quality-check/--skip-quality-check", help="运行测试前进行代码质量检查（默认跳过）"
+    ),
+    debug: bool = typer.Option(False, "--debug", help="启用调试模式，输出详细执行信息"),
 ):
     """
     🧪 运行项目测试
@@ -96,6 +104,7 @@ def project_test(
         sage-dev project test --test-type unit    # 只运行单元测试
         sage-dev project test --packages sage-libs,sage-kernel  # 测试特定包
         sage-dev project test --failed            # 只运行失败的测试
+        sage-dev project test --coverage          # 运行测试并生成覆盖率报告
     """
     from sage.tools.cli.commands.dev.main import test
 
@@ -113,6 +122,10 @@ def project_test(
         report_file=report_file,
         diagnose=diagnose,
         issues_manager=issues_manager,
+        coverage=coverage,
+        coverage_report=coverage_report,
+        skip_quality_check=skip_quality_check,
+        debug=debug,
     )
 
 

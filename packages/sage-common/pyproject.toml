@@ -14,7 +14,7 @@ dynamic = [
 description = "SAGE Core Common Utilities"
 readme = "README.md"
 authors = [
-    { name = "SAGE Team", email = "info@sage-ai.org" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "ai",
@@ -43,9 +43,7 @@ dependencies = [
     "dill>=0.3.8",
     "numpy>=1.24",
 ]
-
-[project.license]
-text = "MIT"
+license = {text = "MIT"}
 
 [project.optional-dependencies]
 vllm = [
@@ -106,4 +104,23 @@ markers = [
     "unit: marks tests as unit tests",
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
+]
+
+[tool.coverage.run]
+source = [
+    "src/sage",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
 ]

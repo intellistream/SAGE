@@ -180,7 +180,7 @@ class SageDBRetrieverNode(MapFunction):
             return {**payload, "results": [], "retrieved_docs": []}
 
         query_vector = np.asarray(self.embedder.embed(query), dtype=np.float32)
-        service = self.call_service[self.service_name]
+        service = self.call_service(self.service_name)
         raw_results = service.search(
             query_vector, k=self.top_k, timeout=self.service_timeout
         )

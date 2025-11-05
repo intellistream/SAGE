@@ -197,24 +197,36 @@ class TestQualityIntegration:
 
     def test_quality_with_architecture_option(self):
         """Test quality command with --architecture option."""
+        import re
+
         result = runner.invoke(app, ["quality", "--help"])
         assert result.exit_code == 0
+        # Remove ANSI color codes for reliable text matching
+        clean_output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
         # Help should mention architecture option
-        assert "--architecture" in result.stdout or "--no-architecture" in result.stdout
+        assert "--architecture" in clean_output or "--no-architecture" in clean_output
 
     def test_quality_with_devnotes_option(self):
         """Test quality command with --devnotes option."""
+        import re
+
         result = runner.invoke(app, ["quality", "--help"])
         assert result.exit_code == 0
+        # Remove ANSI color codes for reliable text matching
+        clean_output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
         # Help should mention devnotes option
-        assert "--devnotes" in result.stdout or "--no-devnotes" in result.stdout
+        assert "--devnotes" in clean_output or "--no-devnotes" in clean_output
 
     def test_quality_with_readme_option(self):
         """Test quality command with --readme option."""
+        import re
+
         result = runner.invoke(app, ["quality", "--help"])
         assert result.exit_code == 0
+        # Remove ANSI color codes for reliable text matching
+        clean_output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
         # Help should mention readme option
-        assert "--readme" in result.stdout
+        assert "--readme" in clean_output
 
 
 # Smoke tests for checker classes

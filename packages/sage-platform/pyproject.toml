@@ -14,7 +14,7 @@ dynamic = [
 description = "SAGE Platform Services - Queue, Storage, and Service Abstractions"
 readme = "README.md"
 authors = [
-    { name = "SAGE Team", email = "info@sage-ai.org" },
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 keywords = [
     "ai",
@@ -40,8 +40,7 @@ dependencies = [
     "isage-common",
 ]
 
-[project.license]
-text = "MIT"
+license = {text = "MIT"}
 
 [project.optional-dependencies]
 ray = [
@@ -109,4 +108,23 @@ markers = [
     "network: marks tests as network tests",
     "queue: marks tests as queue tests",
     "storage: marks tests as storage tests",
+]
+
+[tool.coverage.run]
+source = [
+    "src/sage",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
 ]

@@ -89,7 +89,11 @@ def setup_test_environment():
 
         print("✓ 测试环境设置成功")
         print(f"✓ sage.kernel: {sage.kernel.__path__}")
-        print(f"✓ sage.common: {sage.common.__path__}")
+        # Check if __path__ attribute exists before accessing it
+        if hasattr(sage.common, "__path__"):
+            print(f"✓ sage.common: {sage.common.__path__}")
+        else:
+            print("✓ sage.common: module loaded successfully")
     except ImportError as e:
         print(f"❌ 测试环境设置失败: {e}")
         raise

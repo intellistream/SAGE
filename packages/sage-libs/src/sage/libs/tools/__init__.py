@@ -1,8 +1,17 @@
 """
-SAGE - Streaming-Augmented Generative Execution
+SAGE Tools - Base tool infrastructure for generic tool patterns.
+
+Provides:
+- BaseTool: Abstract base class for all tools
+- ToolRegistry: Central registry for tool management
 """
 
-# 直接从本包的_version模块加载版本信息
+from sage.libs.tools.registry import ToolRegistry
+from sage.libs.tools.tool import BaseTool
+
+__all__ = ["BaseTool", "ToolRegistry"]
+
+# Version information
 try:
     from sage.libs._version import __author__, __email__, __version__
 except ImportError:

@@ -148,8 +148,13 @@ class TestCustomLogger:
 
     def test_invalid_level_type(self):
         """测试无效级别类型处理"""
+        from typing import Any
+
+        # Test that invalid level type raises TypeError
+        # Use Any to avoid type checker errors when intentionally passing wrong types
+        invalid_outputs: Any = [("console", [])]
         with pytest.raises(TypeError, match="level_setting must be str or int"):
-            CustomLogger([("console", [])], name="TestInvalidType")  # 列表类型无效
+            CustomLogger(invalid_outputs, name="TestInvalidType")  # 列表类型无效
 
 
 @pytest.mark.unit
@@ -759,7 +764,8 @@ class TestCustomLoggerPerformance:
 
         with sage_temp_directory() as temp_dir:
             # 创建多个输出handler
-            outputs = [("console", "INFO")]
+            # Explicitly type the outputs list to match the expected signature
+            outputs: list[tuple[str, str | int]] = [("console", "INFO")]
             for i in range(10):
                 outputs.append((f"log_{i}.log", "DEBUG"))
 

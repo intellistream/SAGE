@@ -11,7 +11,9 @@ import pytest
 
 # Import the tool from examples since it's an example tool
 try:
-    from examples.agents.tools.arxiv_search_tool import ArxivSearchTool
+    from examples.agents.tools.arxiv_search_tool import (
+        ArxivSearchTool,  # type: ignore[import-not-found]
+    )
 
     ARXIV_TOOL_AVAILABLE = True
 except ImportError:

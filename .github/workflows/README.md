@@ -16,14 +16,15 @@ Workflow 会在以下情况**自动运行**：
 
 #### 🚀 Push 到 `main` 分支
 
-- **版本**: 自动 `minor + 1` (例如: 0.1.6.2 → 0.1.7.0)
+- **版本**: 自动 `micro + 1` (例如: 0.1.6.2 → 0.1.7.0)
 - **目标**: PyPI (生产环境)
 - **附加**: 自动创建 GitHub Release
 
 **注意**:
 
-- 提交信息包含 `[skip ci]` 时不会触发
+- 提交信息包含 `[version bump]` 标记时不会触发（防止版本升级后的循环触发）
 - 只修改文档 (`.md`、`docs/`、`examples/`) 时不会触发
+- 版本升级的提交会触发其他 CI workflows (如 Build & Test)，以更新 README badges
 
 ### 🛠️ 手动触发（可选）
 
@@ -36,7 +37,7 @@ Workflow 会在以下情况**自动运行**：
    - 点击 "Run workflow"
    - 选择参数:
      - **repository**: `testpypi` 或 `pypi`
-     - **version_bump**: `auto`/`patch`/`minor`/`major`/`none`
+     - **version_bump**: `auto`/`patch`/`micro`/`minor`/`major`/`none`
 
 1. **GitHub CLI**:
 
@@ -49,7 +50,7 @@ Workflow 会在以下情况**自动运行**：
    # 手动生产发布（不推荐，建议通过 PR 到 main）
    gh workflow run publish-pypi.yml \
      -f repository=pypi \
-     -f version_bump=minor
+     -f version_bump=micro
    ```
 
 ### 配置要求
@@ -180,8 +181,8 @@ git push origin main
 
 **自动规则**:
 
-- `main-dev` push → `PATCH + 1`
-- `main` push → `MINOR + 1, PATCH = 0`
+- `main-dev` push → `PATCH + 1` (例如: 0.1.6.2 → 0.1.6.3)
+- `main` push → `MICRO + 1, PATCH = 0` (例如: 0.1.6.2 → 0.1.7.0)
 
 ### 故障排除
 
@@ -218,4 +219,86 @@ sage-dev package pypi publish-sage --no-dry-run -r testpypi
 
 # 发布到 PyPI
 sage-dev package pypi publish-sage --no-dry-run -r pypi
+```
+
+## Sync main to main-dev Workflow
+
+自动将 main 分支的更改同步回 main-dev 分支，确保开发分支始终包含生产环境的最新更改。
+
+### 🔄 工作原理
+
+当代码合并到 `main` 分支时：
+
+1. **main-dev → main** (通过 PR)
+
+   - 开发版本: 0.1.7.8
+   - 合并后 main 版本: 0.1.7.8
+
+1. **main 自动 bump version**
+
+   - Publish workflow 自动运行
+   - 版本升级: 0.1.7.8 → 0.1.8.0
+   - 提交到 main: `chore: bump version to 0.1.8.0 [version bump]`
+
+1. **自动同步 main → main-dev**
+
+   - Sync workflow 自动运行
+   - 将 main 的版本更新合并回 main-dev
+   - main-dev 版本同步到: 0.1.8.0
+
+### ✅ 好处
+
+- 🔄 **自动化**: 无需手动同步分支
+- 📊 **版本一致**: main-dev 始终包含 main 的版本号
+- 🚀 **减少冲突**: 及时同步减少后续合并冲突
+- 🔧 **透明化**: 同步操作在 GitHub Actions 中可见
+
+### ⚙️ 触发条件
+
+- **自动触发**: 任何推送到 `main` 分支
+- **跳过条件**: 从 main-dev 合并到 main 的 PR（避免循环）
+
+### 🔍 查看同步状态
+
+在 GitHub Actions 中查看 "Sync main to main-dev" workflow 的运行状态。
+
+### ⚠️ 冲突处理
+
+如果自动合并失败（罕见情况），workflow 会提示手动解决：
+
+```bash
+git checkout main-dev
+git pull origin main
+# 解决冲突（如果有）
+git push origin main-dev
+```
+
+### 💡 最佳实践
+
+1. **日常开发**: 在 `main-dev` 分支进行
+1. **稳定发布**: 定期通过 PR 将 `main-dev` 合并到 `main`
+1. **自动同步**: 让 workflow 自动处理版本同步
+1. **冲突最小化**: 频繁小批量合并，而不是大批量积累
+
+### 📋 完整工作流程
+
+```bash
+# 1. 在 main-dev 开发
+git checkout main-dev
+git pull
+# ... 开发工作 ...
+git commit -m "feat: new feature"
+git push origin main-dev
+# ✅ 自动发布到 TestPyPI (0.1.8.0 → 0.1.8.1)
+
+# 2. 创建 PR 到 main
+gh pr create --base main --head main-dev
+
+# 3. 合并 PR
+# ✅ main 接收更改 (版本 0.1.8.1)
+# ✅ 自动 bump version (0.1.8.1 → 0.1.9.0)
+# ✅ 自动同步回 main-dev (main-dev 也变成 0.1.9.0)
+
+# 4. 继续在 main-dev 开发
+# main-dev 现在是 0.1.9.0，与 main 同步
 ```

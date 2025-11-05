@@ -204,7 +204,8 @@ class TestBaseTcpServer:
             server.start()  # Uses third mock
 
             # Mock thread to simulate it stopping
-            server.server_thread.is_alive = MagicMock(return_value=False)
+            if server.server_thread is not None:
+                server.server_thread.is_alive = MagicMock(return_value=False)
 
             server.stop()
 
@@ -499,11 +500,15 @@ class TestLocalTcpServer:
     @pytest.mark.unit
     def test_extract_message_type_failure(self):
         """Test message type extraction failure cases"""
+        from typing import Any
+
         with patch("socket.socket"):
             server = LocalTcpServer()
 
-            # Non-dict message
-            assert server._extract_message_type("not a dict") is None
+            # Non-dict message - test that method handles invalid input
+            # Use Any to avoid type checker errors when intentionally passing wrong types
+            invalid_input: Any = "not a dict"
+            assert server._extract_message_type(invalid_input) is None
 
             # No type fields
             assert server._extract_message_type({"data": "test"}) is None
@@ -531,6 +536,7 @@ class TestLocalTcpServer:
 
             response = server._handle_message_data(message_data, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["type"] == "test_response"
             assert response["status"] == "success"
 
@@ -545,6 +551,7 @@ class TestLocalTcpServer:
 
             response = server._handle_message_data(message_data, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["status"] == "error"
             assert response["payload"]["error_code"] == "ERR_DESERIALIZATION_FAILED"
 
@@ -563,6 +570,7 @@ class TestLocalTcpServer:
 
             response = server._process_message(message, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["type"] == "test_response"
             assert response["received_data"] == "hello world"
 
@@ -580,6 +588,7 @@ class TestLocalTcpServer:
 
             response = server._process_message(message, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["type"] == "default_response"
             assert response["message"] == "handled by default"
 
@@ -593,6 +602,7 @@ class TestLocalTcpServer:
 
             response = server._process_message(message, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["status"] == "error"
             assert response["payload"]["error_code"] == "ERR_NO_HANDLER"
 
@@ -611,6 +621,7 @@ class TestLocalTcpServer:
 
             response = server._process_message(message, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["status"] == "error"
             assert response["payload"]["error_code"] == "ERR_HANDLER_FAILED"
             assert "Handler failed" in response["message"]
@@ -629,6 +640,7 @@ class TestLocalTcpServer:
 
             response = server._process_message(message, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["status"] == "error"
             assert response["payload"]["error_code"] == "ERR_DEFAULT_HANDLER_FAILED"
 
@@ -646,6 +658,7 @@ class TestLocalTcpServer:
 
             response = server._process_message(message, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["type"] == "default_response"
 
     @pytest.mark.unit
@@ -765,6 +778,7 @@ class TestIntegrationScenarios:
 
             response = server._handle_message_data(status_data, ("127.0.0.1", 12345))
 
+            assert response is not None
             assert response["type"] == "status_response"
             assert response["request_id"] == "123"
             assert len(received_messages) == 1
@@ -775,6 +789,7 @@ class TestIntegrationScenarios:
 
             response = server._handle_message_data(unknown_data, ("127.0.0.1", 12346))
 
+            assert response is not None
             assert response["type"] == "default_response"
             assert len(received_messages) == 2
 
