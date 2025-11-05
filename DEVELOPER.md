@@ -205,6 +205,59 @@ git commit --no-verify
 
 ## Code Quality
 
+### Pre-commit Hooks Configuration
+
+SAGE uses a **non-standard location** for pre-commit configuration:
+
+- **Actual configuration**: `tools/pre-commit-config.yaml`
+- **Standard location symlink**: `.pre-commit-config.yaml` → `tools/pre-commit-config.yaml`
+
+**Why tools/ directory?**
+
+- Centralized management with other dev tools (`dev.sh`, `maintenance/`)
+- Keeps project root clean and organized
+- Easier to maintain development tooling
+
+**Installation and Usage:**
+
+```bash
+# Recommended: Use sage-dev (auto-detects correct config)
+sage-dev maintain hooks install
+
+# Alternative: Standard pre-commit (uses symlink)
+pre-commit install
+
+# Manual: Explicit config path
+pre-commit install --config tools/pre-commit-config.yaml
+
+# Run checks manually (same as CI)
+pre-commit run --all-files
+```
+
+**Local and CI Consistency:**
+
+Both local Git hooks and GitHub Actions CI use the **same configuration file**
+(`tools/pre-commit-config.yaml`):
+
+- ✅ Local: Uses `.pre-commit-config.yaml` symlink → `tools/pre-commit-config.yaml`
+- ✅ CI: Uses `--config tools/pre-commit-config.yaml` explicitly
+- ✅ Result: Identical checks locally and in CI
+
+**Verify your setup:**
+
+```bash
+# Check hook configuration
+cat .git/hooks/pre-commit | grep "ARGS="
+# Expected: ARGS=(hook-impl --config=tools/pre-commit-config.yaml ...)
+
+# Run full checks (matches CI exactly)
+pre-commit run --all-files
+
+# Check individual tools
+pre-commit run ruff --all-files
+pre-commit run mypy --all-files
+```
+
 ### Code Formatting
 
 We use **Black** and **isort** for consistent code formatting:
