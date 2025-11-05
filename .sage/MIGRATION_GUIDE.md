@@ -98,7 +98,9 @@ ls -la .sage/build/
 1. **Python 构建配置**
 
    - 文件: `packages/sage-middleware/pyproject.toml`
-   - 变更: `build-dir = "../../.sage/build/middleware/{wheel_tag}"`
+   - 变更:
+     - 开发模式: `[tool.scikit-build.editable]` 配置 `build-dir` 指向 `.sage/build/`
+     - PyPI 安装: 使用 scikit-build 默认临时目录（不影响用户系统）
 
 1. **Git 配置**
 
@@ -219,6 +221,48 @@ find packages -type d -name "build" -exec rm -rf {} +
 - [构建系统最佳实践](../docs/dev-notes/build-system.md)
 - [CMake Out-of-Source Builds](https://cmake.org/cmake/help/latest/guide/user-interaction/index.html#out-of-source-builds)
 - [Rust Cargo Book - Target Directory](https://doc.rust-lang.org/cargo/guide/build-cache.html)
+
+## ❓ 常见问题 (FAQ)
+
+### Q: PyPI 安装 (pip install isage-middleware) 会使用 .sage/build/ 吗？
+
+**A**: 不会。只有开发模式 (pip install -e) 才会使用项目的 `.sage/build/` 目录。
+
+**详细说明**:
+
+- **开发模式** (`pip install -e packages/sage-middleware`):
+
+  - ✅ 构建产物在 `.sage/build/middleware/`
+  - ✅ 便于增量构建和调试
+  - ✅ 所有开发者共享统一位置
+
+- **PyPI 安装** (`pip install isage-middleware`):
+
+  - ✅ 使用系统临时目录（如 `/tmp/pip-xxx/`）
+  - ✅ 构建完成后自动清理
+  - ✅ 不会在用户系统创建 `.sage/` 目录
+  - ✅ 编译好的 `.so` 文件已打包在 wheel 中
+
+**配置位置**: `packages/sage-middleware/pyproject.toml`
+
+```toml
+[tool.scikit-build.editable]
+# 仅开发模式使用项目的 .sage/build/
+build-dir = "../../.sage/build/middleware/{wheel_tag}"
+```
+
+### Q: 为什么不在所有场景都使用 .sage/build/？
+
+**A**: 因为 PyPI 安装时用户系统没有源码树，也不应该依赖 `.sage/` 这样的项目特定目录。使用 scikit-build 的默认行为（临时构建目录）是正确且符合标准的做法。
+
+______________________________________________________________________
+
+## 📚 相关资源
+
+- [构建系统最佳实践](../docs/dev-notes/build-system.md)
+- [CMake Out-of-Source Builds](https://cmake.org/cmake/help/latest/guide/user-interaction/index.html#out-of-source-builds)
+- [Rust Cargo Book - Target Directory](https://doc.rust-lang.org/cargo/guide/build-cache.html)
+- [scikit-build-core Documentation](https://scikit-build-core.readthedocs.io/)
 
 ## 🤝 反馈
 

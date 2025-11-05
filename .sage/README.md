@@ -38,6 +38,25 @@
 - **中间对象文件** (.o)
 - **依赖库** (第三方库编译产物)
 
+#### 构建目录的使用场景
+
+**开发模式** (`pip install -e packages/sage-middleware`):
+
+- ✅ 使用项目的 `.sage/build/middleware/` 目录
+- ✅ 构建产物保留在源码树中，便于调试和增量构建
+- ✅ 所有开发者共享统一的构建位置
+
+**PyPI 安装** (`pip install isage-middleware`):
+
+- ✅ 使用 scikit-build 的默认临时构建目录（通常在 `/tmp/` 下）
+- ✅ 构建完成后自动清理，不会残留文件
+- ✅ 编译好的 `.so` 文件会被打包到 wheel 中
+
+**配置说明**:
+
+- 在 `pyproject.toml` 中，`[tool.scikit-build.editable]` 部分指定开发模式使用 `.sage/build/`
+- 正常安装时不使用 `build-dir` 配置，让 scikit-build 使用默认行为
+
 #### 为什么使用统一构建目录？
 
 1. ✅ **清晰分离**：源码和构建产物完全分离
