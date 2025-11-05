@@ -13,7 +13,8 @@
 - **[DEVELOPER.md](DEVELOPER.md)** - 完整开发指南，包含设置、工作流、测试等
 - **[CHANGELOG.md](CHANGELOG.md)** - 项目变更日志（遵循 Keep a Changelog 格式）
 - **[tools/dev.sh](tools/dev.sh)** - 开发助手脚本，提供常用命令
-- **[tools/pre-commit-config.yaml](tools/pre-commit-config.yaml)** - Pre-commit 钩子配置
+- **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置（链接到
+  `tools/pre-commit-config.yaml`）
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
 - **[docs/dev-notes/](docs/dev-notes/)** - 开发笔记和修复总结
 
@@ -315,6 +316,50 @@ Reduce flakiness via timeout + category filtering.
    ```
 
 ## 代码与文档质量
+
+### Pre-commit 钩子配置说明
+
+SAGE 使用 **非标准位置** 的 pre-commit 配置文件：
+
+- **实际配置文件**：`tools/pre-commit-config.yaml`
+- **标准位置符号链接**：`.pre-commit-config.yaml` → `tools/pre-commit-config.yaml`
+
+**为什么使用 tools/ 目录？**
+
+- 与其他开发工具（`dev.sh`、`maintenance/` 等）统一管理
+- 避免项目根目录过于混乱
+- 便于集中维护开发工具配置
+
+**如何使用：**
+
+```bash
+# 方式 1：使用 sage-dev 命令（推荐）
+sage-dev maintain hooks install          # 自动使用正确配置
+
+# 方式 2：手动安装（自动识别符号链接）
+pre-commit install                        # 会自动找到 .pre-commit-config.yaml
+
+# 方式 3：显式指定配置文件
+pre-commit install --config tools/pre-commit-config.yaml
+pre-commit run --all-files --config tools/pre-commit-config.yaml
+```
+
+**本地检查与 CI 一致性：**
+
+- ✅ 本地 Git hook 使用：`tools/pre-commit-config.yaml`（通过 `.pre-commit-config.yaml` 符号链接）
+- ✅ GitHub Actions CI 使用：`tools/pre-commit-config.yaml`（显式指定 `--config` 参数）
+- ✅ 两者检查项完全一致，不会出现"本地通过但 CI 失败"的情况
+
+**验证配置同步：**
+
+```bash
+# 查看当前 hook 配置
+cat .git/hooks/pre-commit | grep "ARGS="
+# 应该输出: ARGS=(hook-impl --config=tools/pre-commit-config.yaml ...)
+
+# 运行完整检查（与 CI 相同）
+pre-commit run --all-files
+```
 
 ### Shell脚本
 
