@@ -83,11 +83,23 @@ test-all:
 # 构建与发布
 build:
 	@echo "🔨 构建所有包..."
-	sage-dev pypi build
+	sage-dev package pypi build
 
 clean:
 	@echo "🧹 清理构建产物..."
-	sage-dev pypi clean
+	@echo "  • 清理 Python 包构建产物..."
+	@sage-dev package pypi clean || true
+	@echo "  • 清理 C++ 扩展构建产物..."
+	@rm -rf .sage/build/
+	@echo "  • 清理旧的构建目录（已废弃）..."
+	@rm -rf build/
+	@rm -rf packages/sage-middleware/build/
+	@rm -rf packages/sage-middleware/lib/
+	@rm -rf packages/sage-middleware/bin/
+	@rm -rf packages/sage-middleware/sage_*_build/
+	@rm -rf packages/sage-common/build/
+	@find packages/sage-middleware/src/sage/middleware/components -type d \( -name "build" -o -name "lib" -o -name "bin" -o -name "install" \) -exec rm -rf {} + 2>/dev/null || true
+	@echo "✅ 清理完成"
 
 check:
 	@echo "🔍 检查包配置..."

@@ -112,6 +112,7 @@ repos:
         "^packages/.*/(docs|documentation)/"
         "^examples/.*/README\.md$"
         "^examples/tutorials/"
+        "^\.sage/.*\.md$"
       )
 
       # Check each file

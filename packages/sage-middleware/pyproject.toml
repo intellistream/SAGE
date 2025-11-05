@@ -262,8 +262,8 @@ cmake.minimum-version = "3.20"
 cmake.build-type = "Release"
 cmake.verbose = true
 
-# 构建目录
-build-dir = "build/{wheel_tag}"
+# 构建目录 - 使用统一的 .sage/build/middleware
+build-dir = "../../.sage/build/middleware/{wheel_tag}"
 
 # 日志级别
 logging.level = "INFO"

@@ -16,10 +16,12 @@ CMakeUserPresets.json
 install.log
 # 数据目录（运行时生成）
 /data/
-# SAGE 工作目录
+# SAGE 工作目录 - 包含构建产物、日志、缓存等
+# 注意：.sage/build/ 包含所有 C++ 扩展的编译产物
 .sage/logs/
 .sage/tmp/
 .sage/cache/
+.sage/build/
 /.cmake-build/
 /deps/sageFlow/installation/dist/
 /deps/sageFlow/installation/sageflow.egg-info/
@@ -56,6 +58,13 @@ install.log
 **/cmake_install.cmake
 **/install_manifest.txt
 **/compile_commands.json
+
+# C++ 编译输出目录（已废弃，现统一使用 .sage/build/）
+packages/sage-middleware/lib/
+packages/sage-middleware/bin/
+packages/sage-middleware/src/sage/middleware/components/*/lib/
+packages/sage-middleware/src/sage/middleware/components/*/bin/
+packages/sage-middleware/src/sage/middleware/components/*/install/
 
 .github/chatmodes/
 id_llm
@@ -138,6 +147,20 @@ install.log
 coverage.xml
 dev_reports/
 !/Makefile
+
+# ============================================
+# 开发工具缓存（统一管理在 .sage/cache/ 下）
+# ============================================
+# 注意：通过 .env 文件配置这些工具使用统一缓存目录
+# RUFF_CACHE_DIR=.sage/cache/ruff
+# MYPY_CACHE_DIR=.sage/cache/mypy
+# pytest cache_dir 在 tools/pytest.ini 中配置
+
+# 如果有遗留的分散缓存目录，也要忽略
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+
 # Build artifacts managed by sage-dev toolkit
 **/*.egg-info/
 **/dist/
@@ -145,9 +168,6 @@ dev_reports/
 **/.coverage
 **/coverage.xml
 **/htmlcov/
-**/.pytest_cache/
-**/.mypy_cache/
-**/.ruff_cache/
 **/*.tmp
 **/*.temp
 **/.tmp/
