@@ -36,7 +36,10 @@ jobs:
     name: Test Local Build Installation (${{ matrix.install-mode }}, Py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_mode == 'local'
+    # Skip version bump commits - package structure not changed, only version numbers
+    if: |
+      !contains(github.event.head_commit.message, '[version bump]') &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.test_mode == 'local')
 
     strategy:
       matrix:
