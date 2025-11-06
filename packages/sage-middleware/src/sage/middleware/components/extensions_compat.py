@@ -10,7 +10,7 @@ _SAGE_FLOW_AVAILABLE = False
 _SAGE_TSDB_AVAILABLE = False
 
 try:
-    from sage.middleware.components.sage_db.python import _sage_db
+    from sage.middleware.components.sage_db.python import _sage_db  # type: ignore[import-not-found]
 
     _SAGE_DB_AVAILABLE = True
 except ImportError as e:
@@ -39,7 +39,9 @@ except ImportError as e:
     )
 
 try:
-    from sage.middleware.components.sage_tsdb.python import _sage_tsdb
+    from sage.middleware.components.sage_tsdb.python import (
+        _sage_tsdb,  # type: ignore[import-not-found]
+    )
 
     _SAGE_TSDB_AVAILABLE = True
 except ImportError as e:
