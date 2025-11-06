@@ -122,9 +122,14 @@ class ContextFileSink(SinkFunction):
             self.full_directory.mkdir(parents=True, exist_ok=True)
 
     def runtime_init(self, ctx):
-        """运行时初始化"""
-        # ctx can be any runtime context provided by the pipeline/host
-        super().runtime_init(ctx)
+        """
+        运行时初始化
+
+        Note: ctx is injected into self.ctx by the framework (BaseFunction property).
+        This method logs initialization info after context is available.
+        """
+        # No need to call super().runtime_init(ctx) - BaseFunction doesn't have this method.
+        # The framework injects ctx into self.ctx automatically.
         self.logger.info(f"TemplateFileSink runtime initialized with context: {ctx}")
         self.logger.info(f"Template base directory: {self.base_directory}")
         self.logger.info(f"Template stage directory: {self.stage_directory}")
