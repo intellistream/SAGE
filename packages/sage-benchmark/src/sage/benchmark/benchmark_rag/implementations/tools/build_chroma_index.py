@@ -8,16 +8,46 @@
 
 import os
 import sys
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, cast, overload
 
 import chromadb
+import numpy as np
+from numpy.typing import NDArray
 
 from sage.middleware.operators.rag import CharacterSplitter
 from sage.middleware.operators.rag.document_loaders import LoaderFactory
 
+if TYPE_CHECKING:
+    from chromadb.api.types import Embeddings, Metadatas
+
+
+class Document(TypedDict):
+    """Document structure from LoaderFactory."""
+
+    content: str
+    metadata: dict[str, Any]
+
+
+class ChunkDocument(TypedDict):
+    """Structure for chunked document."""
+
+    content: str
+    metadata: dict[str, Any]
+
+
+class Embedder(Protocol):
+    """Protocol for embedder objects."""
+
+    def encode(
+        self, texts: list[str], convert_to_numpy: bool = True, **kwargs: Any
+    ) -> NDArray[np.float32] | list[list[float]]:
+        """Encode texts to embeddings."""
+        ...
+
 
 # 在测试模式下避免下载大型模型，提供轻量级嵌入器
-def _get_embedder():
-    """Return an object with encode(texts)->List[List[float]].
+def _get_embedder() -> Embedder:
+    """Return an object with encode(texts)->embeddings.
 
     优先使用环境变量控制的测试模式，避免在CI/本地测试中下载大型模型。
     - 当 SAGE_EXAMPLES_MODE=test 时，返回一个简单的内置嵌入器（固定维度、小开销）。
@@ -28,74 +58,102 @@ def _get_embedder():
     if os.environ.get("SAGE_EXAMPLES_MODE") == "test":
 
         class _MiniEmbedder:
-            def __init__(self, dim: int = 8):
+            """Mini embedder for testing."""
+
+            def __init__(self, dim: int = 8) -> None:
                 self.dim = dim
 
-            def encode(self, texts):
-                # 生成确定性、低维的伪嵌入以便测试通过
-                vecs = []
-                for i, _ in enumerate(texts):
+            def encode(
+                self, texts: list[str], convert_to_numpy: bool = True, **kwargs: Any
+            ) -> list[list[float]]:
+                """生成确定性、低维的伪嵌入以便测试通过."""
+                vecs: list[list[float]] = []
+                for i, _text in enumerate(texts):
                     base = float((i % 5) + 1)
                     vecs.append([base / (j + 1) for j in range(self.dim)])
                 return vecs
 
-        return _MiniEmbedder(dim=8)
+        embedder: Embedder = _MiniEmbedder(dim=8)
+        return embedder
 
     # 正常模式：使用真实模型（如可选通过环境变量覆盖模型名）
     model_name = os.environ.get("SAGE_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
     from sentence_transformers import SentenceTransformer
 
-    return SentenceTransformer(model_name)
+    model: Embedder = SentenceTransformer(model_name)  # type: ignore[assignment]
+    return model
 
 
-def _to_2dlist(arr):
+@overload
+def _to_2dlist(arr: NDArray[np.float32]) -> list[list[float]]: ...
+
+
+@overload
+def _to_2dlist(arr: list[float]) -> list[list[float]]: ...
+
+
+@overload
+def _to_2dlist(arr: list[list[float]]) -> list[list[float]]: ...
+
+
+def _to_2dlist(
+    arr: NDArray[np.float32] | list[list[float]] | list[float],
+) -> list[list[float]]:
     """Normalize embeddings to a 2D Python list.
 
     Accepts list, numpy array, torch tensor, etc., and returns List[List[float]].
+
+    Args:
+        arr: Input array (can be numpy array, list of floats, or list of lists)
+
+    Returns:
+        2D list of floats suitable for ChromaDB
     """
-    # Fast path for objects that implement .tolist()
-    try:
-        lst = arr.tolist()
-        # Ensure 2D
-        if lst and isinstance(lst[0], (int, float)):
-            return [list(lst)]
-        return lst
-    except AttributeError:
-        pass
+    # Handle numpy arrays first
+    if isinstance(arr, np.ndarray):
+        # Convert to Python list
+        if arr.ndim == 1:
+            # 1D array -> wrap to 2D
+            return [arr.tolist()]
+        elif arr.ndim == 2:
+            # 2D array -> convert directly
+            return arr.tolist()
+        else:
+            raise ValueError(f"Expected 1D or 2D array, got {arr.ndim}D")
 
-    # Handle plain Python lists
-    if isinstance(arr, list):
-        if not arr:
-            return []
-        # 1D -> wrap to 2D
-        if not isinstance(arr[0], (list, tuple)):
-            return [list(arr)]
-        # 2D: ensure inner are lists
-        return [list(x) for x in arr]
+    # At this point arr must be a list (either list[float] or list[list[float]])
+    # Check if it's empty
+    if not arr:
+        return []
 
-    # Best-effort: numpy arrays
-    try:
-        import numpy as np
+    # Check the type of the first element to determine structure
+    first_elem = arr[0]
 
-        if isinstance(arr, np.ndarray):
-            lst = arr.tolist()
-            if lst and isinstance(lst[0], (int, float)):
-                return [list(lst)]
-            return lst
-    except Exception:
-        pass
+    # If first element is a number, this is a 1D list[float] -> wrap to 2D
+    if isinstance(first_elem, (int, float, np.floating)):
+        # We know arr is list[float] because first element is a number
+        float_list: list[float] = arr  # type: ignore[assignment]
+        return [float_list]
 
-    # Fallback: return as-is (may still work if already 2D-like)
-    return arr
+    # Otherwise, first element is a list/sequence
+    # We know arr is list[list[float]]
+    nested_list: list[list[float]] = arr  # type: ignore[assignment]
+    # Ensure all inner elements are properly converted to float
+    return [[float(x) for x in row] for row in nested_list]
 
 
-def load_knowledge_to_chromadb():
+def load_knowledge_to_chromadb() -> bool:
+    """Load knowledge base to ChromaDB from multiple file formats.
+
+    Returns:
+        True if successful, False otherwise
+    """
     # 配置参数
-    data_dir = "./data"  # 现在数据在 rag/data 目录下
+    data_dir = "./data/qa"  # 数据在共享的 data/qa 目录下
     persistence_path = "./chroma_multi_store"
 
     # 文件与集合对应关系
-    files_and_collections = [
+    files_and_collections: list[tuple[str, str]] = [
         (os.path.join(data_dir, "qa_knowledge_base.txt"), "txt_collection"),
         (os.path.join(data_dir, "qa_knowledge_base.pdf"), "pdf_collection"),
         (os.path.join(data_dir, "qa_knowledge_base.md"), "md_collection"),
@@ -121,15 +179,26 @@ def load_knowledge_to_chromadb():
         print(f"\n=== 处理文件: {file_path} | 集合: {collection_name} ===")
 
         # 使用工厂类获取 loader
-        document = LoaderFactory.load(file_path)
+        # LoaderFactory.load returns dict with 'content' and 'metadata' keys
+        raw_document = LoaderFactory.load(file_path)
+        document: Document = {
+            "content": str(raw_document.get("content", "")),
+            "metadata": dict(raw_document.get("metadata", {})),
+        }
         print(f"已加载文档，长度: {len(document['content'])}")
 
         # 分块
         splitter = CharacterSplitter({"separator": "\n\n"})
-        chunks = splitter.execute(document)
+        raw_chunks = splitter.execute(raw_document)
+        # Convert chunks to list of strings
+        chunks: list[str] = [str(chunk) for chunk in raw_chunks]
         print(f"分块数: {len(chunks)}")
-        chunk_docs = [
-            {"content": chunk, "metadata": {"chunk": idx + 1, "source": file_path}}
+
+        chunk_docs: list[ChunkDocument] = [
+            {
+                "content": chunk,
+                "metadata": {"chunk": idx + 1, "source": file_path},
+            }
             for idx, chunk in enumerate(chunks)
         ]
 
@@ -138,6 +207,7 @@ def load_knowledge_to_chromadb():
             client.delete_collection(name=collection_name)
         except Exception:
             pass
+
         index_type = "flat"  # 可选: "flat", "hnsw"
         collection = client.create_collection(
             name=collection_name, metadata={"index_type": index_type}
@@ -145,21 +215,48 @@ def load_knowledge_to_chromadb():
         print(f"集合已创建，索引类型: {index_type}")
 
         # 嵌入与写入
-        texts = [c["content"] for c in chunk_docs]
-        embeddings = _to_2dlist(model.encode(texts))
-        ids = [f"{collection_name}_chunk_{i}" for i in range(len(chunk_docs))]
-        metadatas = [c["metadata"] for c in chunk_docs]
-        collection.add(embeddings=embeddings, documents=texts, metadatas=metadatas, ids=ids)
+        texts: list[str] = [doc["content"] for doc in chunk_docs]
+        raw_embeddings = model.encode(texts, convert_to_numpy=True)
+        embeddings = _to_2dlist(raw_embeddings)
+
+        ids: list[str] = [f"{collection_name}_chunk_{i}" for i in range(len(chunk_docs))]
+        metadatas: list[dict[str, str | int | float | bool]] = [
+            {
+                "chunk": doc["metadata"]["chunk"],
+                "source": doc["metadata"]["source"],
+            }
+            for doc in chunk_docs
+        ]
+
+        # ChromaDB accepts List[List[float]] for embeddings
+        # Cast to satisfy type checker - the types are compatible at runtime
+        collection.add(
+            embeddings=cast("Embeddings", embeddings),
+            documents=texts,
+            metadatas=cast("Metadatas", metadatas),
+            ids=ids,
+        )
         print(f"✓ 已添加 {len(chunk_docs)} 个文本块")
         print(f"✓ 数据库文档数: {collection.count()}")
 
         # 测试检索
         test_query = "什么是ChromaDB"
-        query_embedding = _to_2dlist(model.encode([test_query]))
-        results = collection.query(query_embeddings=query_embedding, n_results=3)
+        raw_query_embedding = model.encode([test_query], convert_to_numpy=True)
+        query_embedding = _to_2dlist(raw_query_embedding)
+
+        results = collection.query(
+            query_embeddings=cast("Embeddings", query_embedding), n_results=3
+        )
         print(f"检索: {test_query}")
-        for i, doc in enumerate(results["documents"][0]):
-            print(f"  {i + 1}. {doc[:100]}...")
+
+        if results and "documents" in results and results["documents"]:
+            docs = results["documents"]
+            # docs is List[List[Document]] where Document is str
+            if len(docs) > 0:
+                first_results = docs[0]
+                for i, doc in enumerate(first_results):
+                    print(f"  {i + 1}. {doc[:100]}...")
+
         print("=== 完成 ===")
 
     print("\n=== 所有文件已处理完成 ===")
