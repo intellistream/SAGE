@@ -1,8 +1,8 @@
 """简化的测试版本 - 验证 Pipeline-as-Service 架构是否正常工作"""
 
-from sage.benchmark.benchmark_memory.data_loaders.locomo_dataloader import LocomoDataLoader
 from sage.common.core import BatchFunction, MapFunction, SinkFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.data.locomo.dataloader import LocomoDataLoader
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service import (
     PipelineBridge,

@@ -16,9 +16,10 @@ sharing across multiple benchmarks:
 
 - **`locomo/`**: Long-Context Memory (LoCoMo) datasets
 
-  - LoCoMo dataset loader and downloader
-  - Data files for long-context memory evaluation
+  - LoCoMo dataset loader (`dataloader.py`) and downloader (`download.py`)
+  - Data files for long-context memory evaluation (downloaded via script)
   - **Used by**: Memory benchmarks, long-context evaluation, etc.
+  - **Download**: `python -m sage.data.locomo.download`
 
 ## Design Philosophy
 
