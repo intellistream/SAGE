@@ -1,5 +1,3 @@
-import time
-
 from openai import OpenAI
 
 
@@ -42,7 +40,7 @@ class OpenAIClient:
         )
         self.seed = kwargs.get("seed" or None)
 
-    def generate(self, messages, **kwargs):
+    def generate(self, messages: list[dict] | dict, **kwargs):
         """
         Chat-completion 封装
         --------------------
@@ -57,26 +55,34 @@ class OpenAIClient:
             temperature = kwargs.get("temperature", 1.0)
             top_p = kwargs.get("top_p", None)
             stream = bool(kwargs.get("stream", False))
-            kwargs.get("frequency_penalty", 0)
+            # Commented out until we can properly use them with the SDK
+            # frequency_penalty = kwargs.get("frequency_penalty", 0)
             n = int(kwargs.get("n", 1))
             want_logprobs = bool(kwargs.get("logprobs", False))
-            self.seed or (kwargs.get("seed", int(time.time() * 1000)))
+            # seed = (
+            #     self.seed if self.seed is not None else kwargs.get("seed", int(time.time() * 1000))
+            # )
             # -------- 兼容 messages 形态 --------
             # dict => 包成单元素 list
+            messages_list: list[dict]
             if isinstance(messages, dict):
-                messages = [messages]
-            if not isinstance(messages, list):
-                raise ValueError("`messages` must be list[dict]")
+                messages_list = [messages]
+            elif isinstance(messages, list):
+                messages_list = messages
+            else:
+                raise ValueError("`messages` must be list[dict] or dict")
 
             # -------- 调用 OpenAI --------
+            # type: ignore needed because OpenAI SDK expects ChatCompletionMessageParam
+            # but we accept generic dict for flexibility. Runtime validation ensures correctness.
             response = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=messages,
+                messages=messages_list,  # type: ignore[arg-type]
                 temperature=temperature,
                 top_p=top_p,
                 max_tokens=max_tokens,
                 # n=n,
-                # seed=self.seed,
+                # seed=seed,
                 # stream=stream,
                 # frequency_penalty=frequency_penalty,
                 # logprobs=want_logprobs,

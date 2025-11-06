@@ -11,7 +11,6 @@ class URL_Text_Extractor_Tool(BaseTool):
         super().__init__(
             tool_name="URL_Text_Extractor_Tool",
             tool_description="A tool that extracts all text from a given URL.",
-            tool_version="1.0.0",
             input_types={
                 "url": "str - The URL from which to extract text.",
             },
@@ -27,6 +26,7 @@ class URL_Text_Extractor_Tool(BaseTool):
                 },
             ],
         )
+        self.tool_version = "1.0.0"
 
     def extract_text_from_url(self, url):
         """

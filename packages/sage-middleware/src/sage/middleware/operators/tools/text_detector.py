@@ -11,7 +11,6 @@ class text_detector(BaseTool):
         super().__init__(
             tool_name="Text_Detector_Tool",
             tool_description="A tool that detects text in an image using EasyOCR.",
-            tool_version="1.0.0",
             input_types={
                 "image": "str - The path to the image file.",
                 "languages": "list - A list of language codes for the OCR model.",
@@ -32,19 +31,18 @@ class text_detector(BaseTool):
                     "description": "Detect text in an image with simpler output (text without coordinates and scores).",
                 },
             ],
-            user_metadata={
-                "frequently_used_language": {
-                    "ch_sim": "Simplified Chinese",
-                    "ch_tra": "Traditional Chinese",
-                    "de": "German",
-                    "en": "English",
-                    "es": "Spanish",
-                    "fr": "French",
-                    "hi": "Hindi",
-                    "ja": "Japanese",
-                }
-            },
         )
+        self.tool_version = "1.0.0"
+        self.frequently_used_language = {
+            "ch_sim": "Simplified Chinese",
+            "ch_tra": "Traditional Chinese",
+            "de": "German",
+            "en": "English",
+            "es": "Spanish",
+            "fr": "French",
+            "hi": "Hindi",
+            "ja": "Japanese",
+        }
 
     def build_tool(self, languages=None):
         """

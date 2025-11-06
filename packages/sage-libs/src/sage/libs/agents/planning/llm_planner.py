@@ -258,7 +258,11 @@ class LLMPlanner(MapFunction):
         if isinstance(tools_like, dict):
             return tools_like
         if hasattr(tools_like, "describe") and callable(tools_like.describe):
-            return tools_like.describe()
+            result = tools_like.describe()
+            # Type assertion: describe() should return a dict of tool manifests
+            if not isinstance(result, dict):
+                raise TypeError(f"Expected describe() to return dict, got {type(result).__name__}")
+            return result
         raise TypeError(
             "LLMPlanner expects `tools` as a dict manifest or an object with .describe()."
         )
