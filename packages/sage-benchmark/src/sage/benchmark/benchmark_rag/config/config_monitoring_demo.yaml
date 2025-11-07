@@ -4,7 +4,7 @@
 
 
 source:
-  data_path: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/queries.jsonl"
+  data_path: "packages/sage-benchmark/src/sage/data/qa/queries.jsonl"
   platform: "local"
 
 retriever:

@@ -311,15 +311,15 @@ jobs:
           fi
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: intellistream/SAGE
           files: ./coverage.xml
           flags: unittests
           name: codecov-sage
           fail_ci_if_error: false
           verbose: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload Coverage Reports
         if: always()

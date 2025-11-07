@@ -5,8 +5,8 @@
 - 服务 Pipeline: 存储历史 + 检测问题 + 生成答案（不破坏历史状态）
 """
 
-from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import LocomoDataLoader
 from sage.common.core import MapFunction
+from sage.data.locomo.dataloader import LocomoDataLoader
 from sage.kernel.runtime.communication.router.packet import StopSignal
 from sage.middleware.operators.rag.generator import OpenAIGenerator
 from sage.middleware.operators.rag.promptor import QAPromptor
