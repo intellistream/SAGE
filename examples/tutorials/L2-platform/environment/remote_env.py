@@ -55,17 +55,16 @@ def example_default_scheduler():
 
     (
         env.from_source(SimpleSource)
-        .map(SimpleProcessor, parallelism=4)  # 并行度在 operator 级别指定
+        .map(SimpleProcessor, parallelism=2)  # 并行度在 operator 级别指定
         .sink(ConsoleSink)
     )
 
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    # 查看调度器指标
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
+    # 查看调度器指标（从 JobManager 获取真实指标）
+    metrics = env.get_scheduler_metrics()
+    print(f"\n📊 调度器指标: {metrics}")
 
 
 def example_fifo_scheduler():
@@ -86,9 +85,8 @@ def example_fifo_scheduler():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
+    metrics = env.get_scheduler_metrics()
+    print(f"\n📊 调度器指标: {metrics}")
 
 
 def example_load_aware_scheduler():
@@ -111,11 +109,10 @@ def example_load_aware_scheduler():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
-        print(f"   当前活跃任务: {metrics.get('active_tasks', 'N/A')}")
-        print(f"   最大并发数: {metrics.get('max_concurrent', 'N/A')}")
+    metrics = env.get_scheduler_metrics()
+    print(f"\n📊 调度器指标: {metrics}")
+    print(f"   当前活跃任务: {metrics.get('active_tasks', 'N/A')}")
+    print(f"   最大并发数: {metrics.get('max_concurrent', 'N/A')}")
 
 
 def example_custom_scheduler_instance():
@@ -145,9 +142,8 @@ def example_custom_scheduler_instance():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
+    metrics = env.get_scheduler_metrics()
+    print(f"\n📊 调度器指标: {metrics}")
 
 
 def main():
@@ -173,9 +169,9 @@ def main():
 
     try:
         # 运行示例
-        #example_default_scheduler()
-        #example_fifo_scheduler()
-        #example_load_aware_scheduler()
+        example_default_scheduler()
+        example_fifo_scheduler()
+        example_load_aware_scheduler()
         example_custom_scheduler_instance()
 
         print("\n" + "=" * 60)
