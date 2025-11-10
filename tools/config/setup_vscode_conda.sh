@@ -12,12 +12,18 @@ WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$SCRIPT_DIR/../display_tools/colors.sh"
 
 # 获取环境名（从参数或默认值）
-ENV_NAME="${1:-sage}"
+ENV_INPUT="${1:-sage}"
 
 # 检测 conda 安装路径
 if [ -n "$CONDA_PREFIX" ]; then
     # 如果在 conda 环境中，使用当前 conda 的根路径
-    CONDA_PATH="$(dirname "$(dirname "$CONDA_PREFIX")")"
+    if [[ "$CONDA_PREFIX" == */envs/* ]]; then
+        # 在非 base 环境中，需要去掉两层目录
+        CONDA_PATH="$(dirname "$(dirname "$CONDA_PREFIX")")"
+    else
+        # 在 base 环境中，CONDA_PREFIX 就是 conda 根路径
+        CONDA_PATH="$CONDA_PREFIX"
+    fi
 elif [ -d "$HOME/miniconda3" ]; then
     CONDA_PATH="$HOME/miniconda3"
 elif [ -d "$HOME/anaconda3" ]; then
@@ -33,8 +39,23 @@ else
     CONDA_PATH="${user_conda_path:-$HOME/miniconda3}"
 fi
 
+# 判断输入是环境名还是完整路径
+if [[ "$ENV_INPUT" == /* ]]; then
+    # 输入是绝对路径
+    ENV_PATH="$ENV_INPUT"
+    ENV_NAME="$(basename "$ENV_PATH")"
+else
+    # 输入是环境名
+    ENV_NAME="$ENV_INPUT"
+    ENV_PATH="$CONDA_PATH/envs/$ENV_NAME"
+
+    # 检查是否是 base 环境
+    if [ "$ENV_NAME" = "base" ]; then
+        ENV_PATH="$CONDA_PATH"
+    fi
+fi
+
 # 验证环境是否存在
-ENV_PATH="$CONDA_PATH/envs/$ENV_NAME"
 if [ ! -d "$ENV_PATH" ]; then
     echo -e "${RED}❌ Conda 环境不存在: $ENV_PATH${NC}"
     echo -e "${INFO} 可用的环境:"
@@ -59,7 +80,7 @@ if [ -f "$SETTINGS_FILE" ]; then
     echo -e "${WARNING} VS Code 配置文件已存在: $SETTINGS_FILE"
     echo ""
     read -p "是否备份并覆盖? [y/N]: " overwrite
-    
+
     if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
         echo -e "${INFO} 取消操作"
         echo ""
@@ -76,7 +97,7 @@ if [ -f "$SETTINGS_FILE" ]; then
         echo ""
         exit 0
     fi
-    
+
     # 备份现有文件
     BACKUP_FILE="$SETTINGS_FILE.backup.$(date +%Y%m%d_%H%M%S)"
     cp "$SETTINGS_FILE" "$BACKUP_FILE"

@@ -175,7 +175,7 @@ show_usage_tips() {
     local mode="$1"
 
     echo ""
-    
+
     # 如果使用了 conda 环境且不在该环境中，显示激活提示
     if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -210,7 +210,7 @@ show_usage_tips() {
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
     fi
-    
+
     draw_line "─" "$GREEN"
     echo_icon "✨" "快速开始" 2 2
     draw_line "─" "$GREEN"
@@ -270,11 +270,11 @@ show_usage_tips() {
     echo -e "  ${GRAY}https://intellistream.github.io/SAGE-Pub/${NC}"
     echo -e "  ${GRAY}./examples/  # 查看示例代码${NC}"
     echo ""
-    
+
     # 如果是开发模式且使用了 conda 环境，提示创建 VS Code 配置
     if [ "$mode" = "dev" ] && [ -n "$SAGE_ENV_NAME" ]; then
         echo -e "${DIM}💡 开发者提示: 运行以下命令自动配置 VS Code:${NC}"
-        echo -e "  ${CYAN}bash tools/install/fixes/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+        echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
         echo ""
     fi
 }
@@ -284,12 +284,12 @@ create_vscode_conda_config() {
     local env_name="$1"
     local workspace_root="${2:-.}"
     local conda_path="${3:-~/miniconda3}"
-    
+
     # 创建 .vscode 目录
     mkdir -p "$workspace_root/.vscode"
-    
+
     local settings_file="$workspace_root/.vscode/settings.json"
-    
+
     # 检查是否已存在配置文件
     if [ -f "$settings_file" ]; then
         echo -e "${WARNING} VS Code 配置文件已存在: $settings_file"
@@ -300,7 +300,7 @@ create_vscode_conda_config() {
         echo ""
         return 1
     fi
-    
+
     # 创建新配置文件
     cat > "$settings_file" << EOF
 {
@@ -327,9 +327,8 @@ create_vscode_conda_config() {
   ]
 }
 EOF
-    
+
     echo -e "${CHECK} 已创建 VS Code 配置: $settings_file"
     echo -e "${INFO} VS Code 现在会自动激活 conda 环境: $env_name"
     return 0
 }
-
