@@ -4,7 +4,11 @@ Unit tests for LongRefiner class
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 import torch
+
+# Check if vllm is available
+pytest.importorskip("vllm", reason="vllm is required for LongRefiner tests")
 
 
 class TestLongRefinerInit:
