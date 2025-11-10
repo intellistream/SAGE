@@ -17,6 +17,8 @@ jobs:
     name: Deployment Readiness Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Skip version bump commits - deployment readiness already validated
+    if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
 
     steps:
       - name: Checkout Repository

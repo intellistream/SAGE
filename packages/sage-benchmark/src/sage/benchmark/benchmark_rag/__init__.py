@@ -8,8 +8,8 @@ This module provides:
 - **implementations/**: Various RAG implementation approaches (dense, sparse, hybrid, multimodal)
 - **evaluation/**: Pipeline experiments for batch processing and evaluation
 - **config/**: Configuration files for different RAG setups
-- **data/**: Test datasets and queries (Self-RAG, PopQA, etc.)
 
+Test datasets and queries are located in the shared `data/qa/` directory.
 Evaluation metrics include: Accuracy, F1, Exact Match, and more.
 """
 

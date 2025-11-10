@@ -3,7 +3,7 @@
 
 
 source:
-  data_path: "packages/sage-benchmark/src/sage/benchmark/benchmark_rag/data/queries.jsonl"  # 相对于 SAGE 根目录
+  data_path: "packages/sage-benchmark/src/sage/data/qa/queries.jsonl"  # 相对于 SAGE 根目录
   platform: "local"
 
 retriever:

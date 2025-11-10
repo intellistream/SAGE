@@ -5,6 +5,7 @@ SAGE RAG 示例：文本加载工具
 
 import os
 from pathlib import Path
+from typing import Any
 
 
 class TextLoader:
@@ -13,7 +14,7 @@ class TextLoader:
         self.encoding = encoding
         self.chunk_separator = chunk_separator
 
-    def load(self) -> dict:
+    def load(self) -> dict[str, Any]:
         if not os.path.exists(self.filepath):
             raise FileNotFoundError(f"File not found: {self.filepath}")
         with open(self.filepath, encoding=self.encoding) as f:
@@ -25,15 +26,16 @@ class PDFLoader:
     def __init__(self, filepath: str):
         self.filepath = filepath
 
-    def load(self) -> dict:
+    def load(self) -> dict[str, Any]:
         try:
             from PyPDF2 import PdfReader
         except ImportError:
-            raise ImportError("请先安装 PyPDF2: pip install PyPDF2")
-        if not os.path.exists(self.filepath):
-            raise FileNotFoundError(f"File not found: {self.filepath}")
+            raise ImportError("Please install PyPDF2: pip install PyPDF2")
+
         reader = PdfReader(self.filepath)
-        text = "\n".join([page.extract_text() or "" for page in reader.pages])
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
         return {
             "content": text,
             "metadata": {
@@ -48,7 +50,7 @@ class DocxLoader:
     def __init__(self, filepath: str):
         self.filepath = filepath
 
-    def load(self) -> dict:
+    def load(self) -> dict[str, Any]:
         try:
             import docx
         except ImportError:
@@ -68,7 +70,7 @@ class DocLoader:
     def __init__(self, filepath: str):
         self.filepath = filepath
 
-    def load(self) -> dict:
+    def load(self) -> dict[str, Any]:
         try:
             import win32com.client  # type: ignore[import-untyped]
         except ImportError:
@@ -94,7 +96,7 @@ class MarkdownLoader:
         self.filepath = filepath
         self.encoding = encoding
 
-    def load(self) -> dict:
+    def load(self) -> dict[str, Any]:
         if not os.path.exists(self.filepath):
             raise FileNotFoundError(f"File not found: {self.filepath}")
         with open(self.filepath, encoding=self.encoding) as f:
@@ -107,7 +109,9 @@ class LoaderFactory:
     工厂类，根据文件扩展名选择对应的 Loader。
     """
 
-    _loader_map = {
+    _loader_map: dict[
+        str, type[TextLoader | PDFLoader | DocxLoader | DocLoader | MarkdownLoader]
+    ] = {
         ".txt": TextLoader,
         ".pdf": PDFLoader,
         ".docx": DocxLoader,
@@ -117,7 +121,7 @@ class LoaderFactory:
     }
 
     @classmethod
-    def load(cls, filepath: str) -> dict:
+    def load(cls, filepath: str) -> dict[str, Any]:
         ext = Path(filepath).suffix.lower()
         loader_cls = cls._loader_map.get(ext)
         if loader_cls is None:
