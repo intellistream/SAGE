@@ -14,15 +14,12 @@ if TYPE_CHECKING:
     # 当扩展编译可用时，这些导入会成功
     # stub文件（.pyi）提供类型提示
     from sage.middleware.components.sage_db.python import _sage_db
-    from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow_module
-
-    _sage_flow = _sage_flow_module
+    from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow
     from sage.middleware.components.sage_tsdb.python import _sage_tsdb
 else:
     # 运行时动态导入，优雅处理缺失的扩展
     _sage_db: Any = None
     _sage_flow: Any = None
-    _sage_flow_module: Any = None
     _sage_tsdb: Any = None
 
 # 尝试导入C++扩展，失败时使用纯Python实现
@@ -46,13 +43,11 @@ if not TYPE_CHECKING:
 
     try:
         # 只导入 Python wrapper 模块，避免重复加载 C++ 扩展
-        from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow_module
+        from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow
 
         _SAGE_FLOW_AVAILABLE = True
-        _sage_flow = _sage_flow_module
     except ImportError as e:
         _sage_flow = None
-        _sage_flow_module = None
         warnings.warn(
             f"SAGE Flow C++扩展不可用，流处理功能将受限。错误: {e}\n"
             "安装完整版本：pip install --force-reinstall isage-middleware",

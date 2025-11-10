@@ -70,7 +70,7 @@ class BaseAgent(MapFunction):
             **kwargs: Additional arguments for MapFunction
         """
         super().__init__(**kwargs)
-        # Logger level is controlled by the context or runtime configuration
+        # Logger level should be configured via the parent MapFunction class or application-level logging configuration
         self.config = config
         search = BochaSearch(api_key=self.config["search_api_key"])
 
