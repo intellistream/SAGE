@@ -2,8 +2,15 @@
 # SAGE 安装脚本 - 参数解析模块
 # 处理命令行参数的解析和验证
 
+# 获取脚本目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOLS_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$SCRIPT_DIR/../display_tools/colors.sh"
+
+# 导入 conda 工具函数
+source "$TOOLS_DIR/conda/conda_utils.sh"
 
 # 全局变量
 INSTALL_MODE=""
@@ -201,10 +208,34 @@ show_installation_menu() {
                         prompt_conda_env_name
                     else
                         echo -e "${RED}❌ Conda 未安装！${NC}"
-                        echo -e "${YELLOW}请先安装 Conda 或选择使用当前环境${NC}"
-                        echo -e "${YELLOW}访问 https://docs.conda.io/en/latest/miniconda.html 下载安装${NC}"
                         echo ""
-                        continue
+                        read -p "是否自动安装 Miniconda？[Y/n]: " install_conda_choice
+                        if [[ "${install_conda_choice:-Y}" =~ ^[Yy]$ ]]; then
+                            echo ""
+                            if install_miniconda; then
+                                echo ""
+                                echo -e "${GREEN}✅ Conda 安装成功！${NC}"
+                                # 重新加载环境以使 conda 命令可用
+                                if [ -f "$HOME/.bashrc" ]; then
+                                    source "$HOME/.bashrc"
+                                fi
+                                # 更新 conda 可用状态
+                                conda_available=true
+                                INSTALL_ENVIRONMENT="conda"
+                                prompt_conda_env_name
+                                break
+                            else
+                                echo -e "${RED}❌ Conda 安装失败${NC}"
+                                echo -e "${YELLOW}请手动安装或选择使用当前环境${NC}"
+                                echo -e "${YELLOW}访问 https://docs.conda.io/en/latest/miniconda.html${NC}"
+                                echo ""
+                                continue
+                            fi
+                        else
+                            echo -e "${YELLOW}已取消，请选择使用当前环境或稍后手动安装 Conda${NC}"
+                            echo ""
+                            continue
+                        fi
                     fi
                 fi
                 break
@@ -216,10 +247,34 @@ show_installation_menu() {
                         prompt_conda_env_name
                     else
                         echo -e "${RED}❌ Conda 未安装！${NC}"
-                        echo -e "${YELLOW}请先安装 Conda 或选择使用当前环境 (选项 1)${NC}"
-                        echo -e "${YELLOW}访问 https://docs.conda.io/en/latest/miniconda.html 下载安装${NC}"
                         echo ""
-                        continue
+                        read -p "是否自动安装 Miniconda？[Y/n]: " install_conda_choice
+                        if [[ "${install_conda_choice:-Y}" =~ ^[Yy]$ ]]; then
+                            echo ""
+                            if install_miniconda; then
+                                echo ""
+                                echo -e "${GREEN}✅ Conda 安装成功！${NC}"
+                                # 重新加载环境以使 conda 命令可用
+                                if [ -f "$HOME/.bashrc" ]; then
+                                    source "$HOME/.bashrc"
+                                fi
+                                # 更新 conda 可用状态
+                                conda_available=true
+                                INSTALL_ENVIRONMENT="conda"
+                                prompt_conda_env_name
+                                break
+                            else
+                                echo -e "${RED}❌ Conda 安装失败${NC}"
+                                echo -e "${YELLOW}请手动安装或选择使用当前环境 (选项 1)${NC}"
+                                echo -e "${YELLOW}访问 https://docs.conda.io/en/latest/miniconda.html${NC}"
+                                echo ""
+                                continue
+                            fi
+                        else
+                            echo -e "${YELLOW}已取消，请选择使用当前环境 (选项 1)${NC}"
+                            echo ""
+                            continue
+                        fi
                     fi
                 else
                     INSTALL_ENVIRONMENT="pip"
