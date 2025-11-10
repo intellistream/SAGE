@@ -51,7 +51,7 @@ class RemoteEnvironment(BaseEnvironment):
 
         # 客户端连接（延迟初始化）
         self._engine_client: JobManagerClient | None = None
-        
+
         # 缓存最后获取的调度器指标（用于作业完成后获取）
         self._cached_scheduler_metrics: dict[str, Any] | None = None
 
@@ -162,7 +162,7 @@ class RemoteEnvironment(BaseEnvironment):
                     # 获取作业状态
                     job_status = job_status_data.get("status")
                     logger.debug(f"Current job status: {job_status}")
-                    
+
                     # 缓存调度器指标（在作业被删除前保存）
                     if "scheduler_metrics" in job_status_data:
                         self._cached_scheduler_metrics = job_status_data["scheduler_metrics"]
@@ -306,27 +306,29 @@ class RemoteEnvironment(BaseEnvironment):
     def get_scheduler_metrics(self) -> dict[str, Any]:
         """
         获取远程调度器的指标
-        
+
         注意：这会从 JobManager 端获取真实的调度器指标，
         而不是客户端本地（未使用）的调度器指标
-        
+
         如果作业已完成并被清理，将返回缓存的指标
-        
+
         Returns:
             调度器指标字典
         """
         if not self.env_uuid:
-            logger.warning("Environment not submitted, returning local scheduler metrics (will be empty)")
+            logger.warning(
+                "Environment not submitted, returning local scheduler metrics (will be empty)"
+            )
             return self.scheduler.get_metrics()
-        
+
         try:
             # 尝试从 JobManager 获取作业状态
             status_response = self.client.get_job_status(self.env_uuid)
-            
+
             # 提取调度器指标
             job_status_data = status_response.get("job_status", status_response)
             scheduler_metrics = job_status_data.get("scheduler_metrics")
-            
+
             if scheduler_metrics:
                 # 缓存指标
                 self._cached_scheduler_metrics = scheduler_metrics
@@ -339,7 +341,7 @@ class RemoteEnvironment(BaseEnvironment):
                     logger.debug("Returning cached scheduler metrics")
                     return self._cached_scheduler_metrics
                 return self.scheduler.get_metrics()
-                
+
         except Exception as e:
             logger.debug(f"Failed to get scheduler metrics from remote: {e}")
             # 作业可能已被清理，返回缓存的指标

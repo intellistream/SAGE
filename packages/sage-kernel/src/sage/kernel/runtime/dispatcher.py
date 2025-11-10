@@ -316,8 +316,10 @@ class Dispatcher:
 
         # 第四步：提交所有节点开始运行
         task_list = list(self.tasks.items())
-        self.logger.info(f"Preparing to start {len(task_list)} tasks: {[name for name, _ in task_list]}")
-        
+        self.logger.info(
+            f"Preparing to start {len(task_list)} tasks: {[name for name, _ in task_list]}"
+        )
+
         for node_name, task in task_list:
             try:
                 self.logger.debug(f"Starting node: {node_name} (type: {type(task).__name__})")
