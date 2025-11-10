@@ -1,9 +1,11 @@
-______________________________________________________________________
+---
+name: Performance Issue
+about: Report a performance issue or inefficiency
+title: '[Performance] '
+labels: performance
+assignees: ''
 
-name: Performance Issue about: Report a performance issue or inefficiency title: '[Performance] '
-labels: performance assignees: ''
-
-______________________________________________________________________
+---
 
 **Description**
 

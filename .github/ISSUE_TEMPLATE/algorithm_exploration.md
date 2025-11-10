@@ -1,9 +1,11 @@
-______________________________________________________________________
+---
+name: Algorithm Exploration
+about: Explore and document findings on a new algorithm or method
+title: '[Algorithm Exploration] '
+labels: research
+assignees: ''
 
-name: Algorithm Exploration about: Explore and document findings on a new algorithm or method title:
-'[Algorithm Exploration] ' labels: research assignees: ''
-
-______________________________________________________________________
+---
 
 **Algorithm Name**
 

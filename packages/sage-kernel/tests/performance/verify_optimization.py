@@ -108,14 +108,13 @@ def verify_optimization():
         print(f"      Time: {async_time:.3f}s")
         print(f"      Throughput: {async_throughput:.1f} items/sec")
 
-        # 计算提升
-        improvement = sync_throughput / async_throughput
+        # 计算提升（始终用吞吐量比）
+        improvement = async_throughput / sync_throughput
         if async_time < sync_time:
-            improvement = sync_time / async_time
-            print(f"\n   🚀 Performance improvement: {improvement:.1f}x faster")
+            print(f"\n   🚀 Performance improvement: {improvement:.1f}x faster (throughput)")
             print("\n✅ Test 3 PASSED: Optimization working!")
         else:
-            print(f"\n   📊 Performance: {improvement:.2f}x")
+            print(f"\n   📊 Performance: {improvement:.2f}x (throughput)")
             print("\n⚠️  Test 3 WARNING: Improvement less than expected")
 
         # 清理

@@ -1,9 +1,11 @@
-______________________________________________________________________
+---
+name: Enhancement Request
+about: Request an improvement or optimization
+title: '[Enhancement] '
+labels: enhancement
+assignees: ''
 
-name: Enhancement Request about: Request an improvement or optimization title: '[Enhancement] '
-labels: enhancement assignees: ''
-
-______________________________________________________________________
+---
 
 **Summary**
 
