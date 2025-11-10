@@ -2,8 +2,15 @@
 # SAGE 安装脚本 - 参数解析模块
 # 处理命令行参数的解析和验证
 
+# 获取脚本目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SAGE_TOOLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$SCRIPT_DIR/../display_tools/colors.sh"
+
+# 导入 conda 工具函数
+source "$SAGE_TOOLS_ROOT/conda/conda_utils.sh"
 
 # 全局变量
 INSTALL_MODE=""
@@ -25,28 +32,41 @@ detect_current_environment() {
     local env_name=""
     local in_conda=false
     local in_venv=false
+    local in_conda_base=false
 
     # 检测conda环境
-    if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" != "base" ]; then
-        env_type="conda"
-        env_name="$CONDA_DEFAULT_ENV"
-        in_conda=true
-    elif [ -n "$CONDA_PREFIX" ] && [[ "$CONDA_PREFIX" != *"/base" ]]; then
-        env_type="conda"
-        env_name=$(basename "$CONDA_PREFIX")
-        in_conda=true
+    if [ -n "$CONDA_DEFAULT_ENV" ]; then
+        if [ "$CONDA_DEFAULT_ENV" = "base" ]; then
+            env_type="conda_base"
+            env_name="base"
+            in_conda_base=true
+        else
+            env_type="conda"
+            env_name="$CONDA_DEFAULT_ENV"
+            in_conda=true
+        fi
+    elif [ -n "$CONDA_PREFIX" ]; then
+        if [[ "$CONDA_PREFIX" == *"/base" ]]; then
+            env_type="conda_base"
+            env_name="base"
+            in_conda_base=true
+        else
+            env_type="conda"
+            env_name=$(basename "$CONDA_PREFIX")
+            in_conda=true
+        fi
     fi
 
     # 检测虚拟环境
     if [ -n "$VIRTUAL_ENV" ]; then
-        if [ "$in_conda" = false ]; then
+        if [ "$in_conda" = false ] && [ "$in_conda_base" = false ]; then
             env_type="venv"
             env_name=$(basename "$VIRTUAL_ENV")
             in_venv=true
         fi
     fi
 
-    echo "$env_type|$env_name|$in_conda|$in_venv"
+    echo "$env_type|$env_name|$in_conda|$in_venv|$in_conda_base"
 }
 
 # 根据当前环境智能推荐安装方式
@@ -56,10 +76,14 @@ get_smart_environment_recommendation() {
     local env_name=$(echo "$env_info" | cut -d'|' -f2)
     local in_conda=$(echo "$env_info" | cut -d'|' -f3)
     local in_venv=$(echo "$env_info" | cut -d'|' -f4)
+    local in_conda_base=$(echo "$env_info" | cut -d'|' -f5)
 
     if [ "$in_conda" = true ] || [ "$in_venv" = true ]; then
-        # 用户已经在虚拟环境中，推荐直接使用
+        # 用户已经在虚拟环境中（非 base），推荐直接使用
         echo "pip|$env_type|$env_name"
+    elif [ "$in_conda_base" = true ]; then
+        # 用户在 conda base 环境中，不推荐使用，推荐创建新环境
+        echo "conda|conda_base|base"
     else
         # 用户在系统环境中，推荐创建conda环境（如果conda可用）
         if command -v conda &> /dev/null; then
@@ -68,6 +92,34 @@ get_smart_environment_recommendation() {
             echo "pip|system|"
         fi
     fi
+}
+
+# 显示 Conda 安装后的重启提示
+show_conda_install_restart_message() {
+    echo ""
+    echo -e "${GREEN}✅ Conda 安装成功！${NC}"
+    echo ""
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}⚠️  重要：必须重新加载 shell 环境${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${INFO} Conda 已成功安装到: ${GREEN}$HOME/miniconda3${NC}"
+    echo -e "${INFO} 已自动配置到 ${GREEN}~/.bashrc${NC}"
+    echo ""
+    echo -e "${RED}${BOLD}注意: 当前终端还无法使用 conda 命令！${NC}"
+    echo ""
+    echo -e "${BOLD}请选择以下任一方式重新加载环境：${NC}"
+    echo ""
+    echo -e "  ${YELLOW}方式 1 (推荐):${NC} 在当前终端运行"
+    echo -e "    ${CYAN}source ~/.bashrc && ./quickstart.sh${NC}"
+    echo ""
+    echo -e "  ${YELLOW}方式 2:${NC} 关闭此终端，打开新终端后运行"
+    echo -e "    ${CYAN}./quickstart.sh${NC}"
+    echo ""
+    echo -e "${DIM}小提示: 方式 1 更快，无需关闭终端${NC}"
+    echo ""
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
 }
 
 # 提示用户输入 Conda 环境名称
@@ -135,6 +187,8 @@ show_installation_menu() {
     # 显示当前环境信息
     if [ "$current_env_type" = "conda" ] && [ -n "$current_env_name" ]; then
         echo -e "${INFO} 检测到您当前在 conda 环境中: ${GREEN}$current_env_name${NC}"
+    elif [ "$current_env_type" = "conda_base" ]; then
+        echo -e "${INFO} 检测到您当前在 conda ${YELLOW}base${NC} 环境中 ${DIM}(不推荐用于开发)${NC}"
     elif [ "$current_env_type" = "venv" ] && [ -n "$current_env_name" ]; then
         echo -e "${INFO} 检测到您当前在虚拟环境中: ${GREEN}$current_env_name${NC}"
     elif [ "$current_env_type" = "system" ]; then
@@ -146,17 +200,56 @@ show_installation_menu() {
     # 选择安装环境
     while true; do
         echo -e "${BOLD}2. 选择安装环境：${NC}"
+        
+        # 检查 conda 是否可用
+        local conda_available=false
+        if command -v conda &> /dev/null; then
+            conda_available=true
+        fi
 
         if [ "$recommended_env" = "pip" ]; then
-            # 推荐使用当前环境
-            echo -e "  ${PURPLE}1)${NC} 使用当前环境 ${DIM}(推荐，已在虚拟环境中)${NC}"
-            echo -e "  ${GREEN}2)${NC} 创建新的 Conda 环境"
-            local default_choice=1
+            # 推荐使用当前环境（仅当在真正的虚拟环境中，非 base）
+            if [ "$current_env_type" = "system" ]; then
+                # 在系统环境中，不推荐使用，建议创建虚拟环境
+                echo -e "  ${PURPLE}1)${NC} 使用当前系统环境 ${DIM}(不推荐，建议使用虚拟环境)${NC}"
+                if [ "$conda_available" = true ]; then
+                    echo -e "  ${GREEN}2)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
+                    local default_choice=2
+                else
+                    echo -e "  ${GRAY}2)${NC} 创建新的 Conda 环境 ${DIM}(conda 未安装)${NC}"
+                    local default_choice=1
+                fi
+            elif [ "$current_env_type" = "conda_base" ]; then
+                # 在 conda base 环境中，不推荐使用
+                echo -e "  ${PURPLE}1)${NC} 使用当前 base 环境 ${DIM}(不推荐，建议创建新环境)${NC}"
+                if [ "$conda_available" = true ]; then
+                    echo -e "  ${GREEN}2)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
+                    local default_choice=2
+                else
+                    echo -e "  ${GRAY}2)${NC} 创建新的 Conda 环境 ${DIM}(conda 未安装)${NC}"
+                    local default_choice=1
+                fi
+            else
+                # 在真正的虚拟环境中，推荐使用当前环境
+                echo -e "  ${GREEN}1)${NC} 使用当前环境 ${DIM}(推荐，已在虚拟环境中)${NC}"
+                if [ "$conda_available" = true ]; then
+                    echo -e "  ${PURPLE}2)${NC} 创建新的 Conda 环境"
+                else
+                    echo -e "  ${GRAY}2)${NC} 创建新的 Conda 环境 ${DIM}(conda 未安装)${NC}"
+                fi
+                local default_choice=1
+            fi
         else
             # 推荐创建conda环境
-            echo -e "  ${GREEN}1)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
-            echo -e "  ${PURPLE}2)${NC} 使用当前系统环境"
-            local default_choice=1
+            if [ "$conda_available" = true ]; then
+                echo -e "  ${GREEN}1)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
+                echo -e "  ${PURPLE}2)${NC} 使用当前系统环境 ${DIM}(不推荐)${NC}"
+                local default_choice=1
+            else
+                echo -e "  ${GRAY}1)${NC} 创建新的 Conda 环境 ${DIM}(conda 未安装)${NC}"
+                echo -e "  ${GREEN}2)${NC} 使用当前系统环境 ${DIM}(推荐，因为 conda 不可用)${NC}"
+                local default_choice=2
+            fi
         fi
 
         echo ""
@@ -167,15 +260,61 @@ show_installation_menu() {
                 if [ "$recommended_env" = "pip" ]; then
                     INSTALL_ENVIRONMENT="pip"
                 else
-                    INSTALL_ENVIRONMENT="conda"
-                    prompt_conda_env_name
+                    if [ "$conda_available" = true ]; then
+                        INSTALL_ENVIRONMENT="conda"
+                        prompt_conda_env_name
+                    else
+                        echo -e "${RED}❌ Conda 未安装！${NC}"
+                        echo ""
+                        read -p "是否自动安装 Miniconda？[Y/n]: " install_conda_choice
+                        if [[ "${install_conda_choice:-Y}" =~ ^[Yy]$ ]]; then
+                            echo ""
+                            if install_miniconda; then
+                                show_conda_install_restart_message
+                                exit 0
+                            else
+                                echo -e "${RED}❌ Conda 安装失败${NC}"
+                                echo -e "${YELLOW}请手动安装或选择使用当前环境${NC}"
+                                echo -e "${YELLOW}访问 https://docs.conda.io/en/latest/miniconda.html${NC}"
+                                echo ""
+                                continue
+                            fi
+                        else
+                            echo -e "${YELLOW}已取消，请选择使用当前环境或稍后手动安装 Conda${NC}"
+                            echo ""
+                            continue
+                        fi
+                    fi
                 fi
                 break
                 ;;
             2)
                 if [ "$recommended_env" = "pip" ]; then
-                    INSTALL_ENVIRONMENT="conda"
-                    prompt_conda_env_name
+                    if [ "$conda_available" = true ]; then
+                        INSTALL_ENVIRONMENT="conda"
+                        prompt_conda_env_name
+                    else
+                        echo -e "${RED}❌ Conda 未安装！${NC}"
+                        echo ""
+                        read -p "是否自动安装 Miniconda？[Y/n]: " install_conda_choice
+                        if [[ "${install_conda_choice:-Y}" =~ ^[Yy]$ ]]; then
+                            echo ""
+                            if install_miniconda; then
+                                show_conda_install_restart_message
+                                exit 0
+                            else
+                                echo -e "${RED}❌ Conda 安装失败${NC}"
+                                echo -e "${YELLOW}请手动安装或选择使用当前环境 (选项 1)${NC}"
+                                echo -e "${YELLOW}访问 https://docs.conda.io/en/latest/miniconda.html${NC}"
+                                echo ""
+                                continue
+                            fi
+                        else
+                            echo -e "${YELLOW}已取消，请选择使用当前环境 (选项 1)${NC}"
+                            echo ""
+                            continue
+                        fi
+                    fi
                 else
                     INSTALL_ENVIRONMENT="pip"
                 fi

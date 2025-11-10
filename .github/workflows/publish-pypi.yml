@@ -3,15 +3,17 @@ name: Publish to PyPI
 on:
   push:
     branches:
-      - main-dev  # 开发分支: patch 版本自增 -> TestPyPI
-      - main      # 主分支: micro 版本自增 -> PyPI
+      - main      # 主分支: patch 版本自增 -> PyPI
+      # main-dev 不再自动触发，避免频繁 version bump 导致 feature 分支 rebase 冲突
     paths-ignore:
       - 'docs/**'
       - 'docs-public/**'
       - 'examples/**'
-      - '*.md'           # 只忽略根目录的 .md 文件（如 README.md）
-      - 'docs/**.md'     # 忽略 docs 目录下的 .md
-      - 'examples/**.md' # 忽略 examples 目录下的 .md
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE/**'
       # 不再忽略 .github/workflows/ 目录下的任何文件
 
   # 当 PR 被 merge 到 main 时触发（作为 push 事件的补充）
@@ -19,7 +21,7 @@ on:
     types: [closed]
     branches:
       - main
-      - main-dev
+      # main-dev 的 PR 不触发自动发布
 
   workflow_dispatch:
     inputs:
@@ -34,15 +36,15 @@ on:
       version_bump:
         description: 'Version bump type'
         required: false
-        default: 'auto'
+        default: 'none'  # 默认改为 none，需要手动选择
         type: choice
         options:
+          - none    # Keep current version (default for main-dev testing)
           - auto    # Based on branch
           - patch   # 0.1.6.2 -> 0.1.6.3
           - micro   # 0.1.6.2 -> 0.1.7.0
           - minor   # 0.1.6.2 -> 0.2.0.0
           - major   # 0.1.6.2 -> 1.0.0.0
-          - none    # Keep current version
 
 jobs:
   publish:
@@ -104,7 +106,7 @@ jobs:
             # PR merge 触发：根据目标分支决定
             TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
             if [ "$TARGET_BRANCH" = "main" ]; then
-              VERSION_BUMP="micro"
+              VERSION_BUMP="patch"
               REPOSITORY="pypi"
             else  # main-dev
               VERSION_BUMP="patch"
@@ -113,7 +115,7 @@ jobs:
           else
             # push 事件：根据分支决定
             if [ "${{ github.ref_name }}" = "main" ]; then
-              VERSION_BUMP="micro"
+              VERSION_BUMP="patch"
               REPOSITORY="pypi"
             else  # main-dev
               VERSION_BUMP="patch"
@@ -124,7 +126,7 @@ jobs:
           # 如果是 auto，转换为实际类型
           if [ "$VERSION_BUMP" = "auto" ]; then
             if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
-              VERSION_BUMP="micro"
+              VERSION_BUMP="patch"
             else
               VERSION_BUMP="patch"
             fi

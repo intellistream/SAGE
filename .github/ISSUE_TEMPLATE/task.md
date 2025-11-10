@@ -1,15 +1,20 @@
-______________________________________________________________________
+---
+name: Task
+about: Log a general task or maintenance activity
+title: '[Task] '
+labels: task
+assignees: ''
 
-## name: "Task" about: "Log a general task or maintenance activity" title: "[Task] " labels: task assignees: ''
+---
 
-## Task Description
+**Task Description**
 
 Describe the task or chore that needs to be completed.
 
-## Expected Outcome
+**Expected Outcome**
 
 What should be achieved by completing this task?
 
-## Additional Notes
+**Additional Notes**
 
 Add any notes, context, or relevant links.

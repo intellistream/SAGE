@@ -174,6 +174,42 @@ create_conda_environment() {
     # 创建环境
     echo -e "${INFO} 创建新环境 '$env_name' (Python 3.11)..."
 
+    # 先检查conda是否正常工作
+    if ! conda info &>/dev/null 2>&1; then
+        # 检查是否是 TOS 问题
+        local conda_info_output=$(conda info 2>&1)
+        if echo "$conda_info_output" | grep -q "Terms of Service have not been accepted"; then
+            echo -e "${YELLOW}⚠️  检测到 Conda 服务条款未接受${NC}"
+            echo ""
+            
+            # 尝试自动接受 TOS
+            if [ -f "$SCRIPT_DIR/../../conda/conda_utils.sh" ]; then
+                source "$SCRIPT_DIR/../../conda/conda_utils.sh"
+                if accept_conda_tos; then
+                    echo -e "${CHECK} 服务条款已接受，继续创建环境..."
+                else
+                    echo -e "${CROSS} 无法自动接受服务条款"
+                    echo -e "${INFO} 请手动运行以下命令："
+                    echo -e "${CYAN}  bash tools/conda/fix_conda_tos.sh${NC}"
+                    SAGE_ENV_NAME=""
+                    return 1
+                fi
+            else
+                echo -e "${CROSS} Conda 服务条款未接受，无法继续"
+                echo -e "${INFO} 请运行以下命令接受服务条款："
+                echo -e "${CYAN}  conda config --set channel_priority flexible${NC}"
+                echo -e "${CYAN}  bash tools/conda/fix_conda_tos.sh${NC}"
+                SAGE_ENV_NAME=""
+                return 1
+            fi
+        else
+            echo -e "${CROSS} Conda 无法正常工作，请检查 conda 安装"
+            echo -e "${DIM}尝试运行: conda info${NC}"
+            SAGE_ENV_NAME=""
+            return 1
+        fi
+    fi
+
     # 在CI环境中使用更快的创建方式
     # 预置所需 C++ 运行时库（libstdcxx-ng>=13 保证 GLIBCXX_3.4.30），可通过环境变量禁用
     local extra_runtime_pkgs="libstdcxx-ng>=13"
@@ -181,25 +217,18 @@ create_conda_environment() {
         extra_runtime_pkgs=""  # 允许用户显式关闭
     fi
 
+    # 使用 --override-channels 确保只使用 conda-forge，避免 TOS 问题
     if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         if command -v mamba >/dev/null 2>&1; then
-            echo -e "${DIM}执行命令: mamba create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y${NC}"
-            local create_cmd="mamba create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y"
+            echo -e "${DIM}执行命令: mamba create -n $env_name --override-channels -c conda-forge python=3.11 ${extra_runtime_pkgs} -y${NC}"
+            local create_cmd="mamba create -n $env_name --override-channels -c conda-forge python=3.11 ${extra_runtime_pkgs} -y"
         else
-            echo -e "${DIM}执行命令: conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y --solver=libmamba${NC}"
-            local create_cmd="conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y --solver=libmamba"
+            echo -e "${DIM}执行命令: conda create -n $env_name --override-channels -c conda-forge python=3.11 ${extra_runtime_pkgs} -y --solver=libmamba${NC}"
+            local create_cmd="conda create -n $env_name --override-channels -c conda-forge python=3.11 ${extra_runtime_pkgs} -y --solver=libmamba"
         fi
     else
-        echo -e "${DIM}执行命令: conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y${NC}"
-        local create_cmd="conda create -n $env_name -c conda-forge python=3.11 ${extra_runtime_pkgs} -y"
-    fi
-
-    # 先检查conda是否正常工作
-    if ! conda info &>/dev/null; then
-        echo -e "${CROSS} Conda 无法正常工作，请检查 conda 安装"
-        echo -e "${DIM}尝试运行: conda info${NC}"
-        SAGE_ENV_NAME=""
-        return 1
+        echo -e "${DIM}执行命令: conda create -n $env_name --override-channels -c conda-forge python=3.11 ${extra_runtime_pkgs} -y${NC}"
+        local create_cmd="conda create -n $env_name --override-channels -c conda-forge python=3.11 ${extra_runtime_pkgs} -y"
     fi
 
     # 创建环境并显示详细输出

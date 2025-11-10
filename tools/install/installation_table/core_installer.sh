@@ -96,6 +96,12 @@ install_core_packages() {
 
     required_packages+=("packages/sage")
 
+    # 切换到项目根目录进行检查和安装
+    cd "$project_root" || {
+        echo -e "${CROSS} 错误：无法切换到项目根目录 $project_root"
+        return 1
+    }
+
     for package_dir in "${required_packages[@]}"; do
         if [ ! -d "$package_dir" ]; then
             echo -e "${CROSS} 错误：找不到包目录 ($package_dir)"
@@ -262,13 +268,13 @@ install_core_packages() {
         return 1
     fi
 
-    # 3b. 重新安装 sage[mode] 来获取所有外部依赖（本地包已经是 editable，不会被重装）
+    # 3b. 安装外部依赖（不重装本地 editable 包）
     echo -e "${DIM}  3b. 安装外部依赖（numpy, typer, rich 等）...${NC}"
-    echo "$(date): 安装外部依赖（允许重复以确保依赖安装）" >> "$log_file"
+    echo "$(date): 安装外部依赖" >> "$log_file"
 
-    # 使用 --force-reinstall --no-deps 只针对 sage 包，然后用普通安装获取依赖
-    # 实际上，由于本地包是 -e 安装，pip 会识别它们已安装，只会安装缺失的外部依赖
-    if $PIP_CMD install "$install_target" $pip_args 2>&1 | tee -a "$log_file"; then
+    # 关键修复：使用 --upgrade-strategy only-if-needed 防止重装已安装的 editable 包
+    # 这确保只安装缺失的外部依赖，不会从 PyPI 重装本地包
+    if $PIP_CMD install --upgrade-strategy only-if-needed "$install_target" $pip_args 2>&1 | tee -a "$log_file"; then
         echo ""
         echo -e "${CHECK} SAGE ($install_mode 模式) 和外部依赖安装成功！"
         echo ""

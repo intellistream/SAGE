@@ -136,6 +136,10 @@ class LongRefinerAlgorithm(BaseRefiner):
         # 使用配置中的budget或传入的budget
         use_budget = budget if budget is not None else self.config.get("budget", 2048)
 
+        # 确保refiner已初始化
+        if self.refiner is None:
+            raise RuntimeError("LongRefiner not initialized. Call initialize() before using run().")
+
         # 执行精炼
         refine_start = time.time()
         refined_items = self.refiner.run(
@@ -205,6 +209,12 @@ class LongRefinerAlgorithm(BaseRefiner):
 
         # 使用配置中的budget或传入的budget
         use_budget = budget if budget is not None else self.config.get("budget", 2048)
+
+        # 确保refiner已初始化
+        if self.refiner is None:
+            raise RuntimeError(
+                "LongRefiner not initialized. Call initialize() before using batch_run()."
+            )
 
         # 批量执行
         refine_start = time.time()
