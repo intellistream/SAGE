@@ -1,15 +1,15 @@
 #!/bin/bash
 # 自动配置 VS Code 以使用指定的 Conda 环境
-# 用法: bash tools/install/fixes/setup_vscode_conda.sh <环境名>
+# 用法: bash tools/config/setup_vscode_conda.sh <环境名>
 
 set -e
 
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # 导入颜色定义
-source "$SCRIPT_DIR/../display_tools/colors.sh"
+source "$SCRIPT_DIR/../install/display_tools/colors.sh"
 
 # 获取环境名（从参数或默认值）
 ENV_INPUT="${1:-sage}"
