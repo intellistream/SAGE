@@ -77,6 +77,34 @@ get_smart_environment_recommendation() {
     fi
 }
 
+# 显示 Conda 安装后的重启提示
+show_conda_install_restart_message() {
+    echo ""
+    echo -e "${GREEN}✅ Conda 安装成功！${NC}"
+    echo ""
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}⚠️  重要：必须重新加载 shell 环境${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${INFO} Conda 已成功安装到: ${GREEN}$HOME/miniconda3${NC}"
+    echo -e "${INFO} 已自动配置到 ${GREEN}~/.bashrc${NC}"
+    echo ""
+    echo -e "${RED}${BOLD}注意: 当前终端还无法使用 conda 命令！${NC}"
+    echo ""
+    echo -e "${BOLD}请选择以下任一方式重新加载环境：${NC}"
+    echo ""
+    echo -e "  ${YELLOW}方式 1 (推荐):${NC} 在当前终端运行"
+    echo -e "    ${CYAN}source ~/.bashrc && ./quickstart.sh${NC}"
+    echo ""
+    echo -e "  ${YELLOW}方式 2:${NC} 关闭此终端，打开新终端后运行"
+    echo -e "    ${CYAN}./quickstart.sh${NC}"
+    echo ""
+    echo -e "${DIM}小提示: 方式 1 更快，无需关闭终端${NC}"
+    echo ""
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
 # 提示用户输入 Conda 环境名称
 prompt_conda_env_name() {
     echo ""
@@ -213,23 +241,7 @@ show_installation_menu() {
                         if [[ "${install_conda_choice:-Y}" =~ ^[Yy]$ ]]; then
                             echo ""
                             if install_miniconda; then
-                                echo ""
-                                echo -e "${GREEN}✅ Conda 安装成功！${NC}"
-                                echo ""
-                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                                echo -e "${BOLD}⚠️  需要重新运行安装脚本${NC}"
-                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                                echo ""
-                                echo -e "${INFO} Conda 已安装，但需要重新加载 shell 环境才能使用"
-                                echo ""
-                                echo -e "${BOLD}请执行以下步骤：${NC}"
-                                echo -e "  ${GREEN}1)${NC} 关闭当前终端并打开新终端"
-                                echo -e "     ${DIM}或${NC} 运行: ${CYAN}source ~/.bashrc${NC}"
-                                echo ""
-                                echo -e "  ${GREEN}2)${NC} 重新运行安装脚本: ${CYAN}./quickstart.sh${NC}"
-                                echo ""
-                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                                echo ""
+                                show_conda_install_restart_message
                                 exit 0
                             else
                                 echo -e "${RED}❌ Conda 安装失败${NC}"
@@ -259,23 +271,7 @@ show_installation_menu() {
                         if [[ "${install_conda_choice:-Y}" =~ ^[Yy]$ ]]; then
                             echo ""
                             if install_miniconda; then
-                                echo ""
-                                echo -e "${GREEN}✅ Conda 安装成功！${NC}"
-                                echo ""
-                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                                echo -e "${BOLD}⚠️  需要重新运行安装脚本${NC}"
-                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                                echo ""
-                                echo -e "${INFO} Conda 已安装，但需要重新加载 shell 环境才能使用"
-                                echo ""
-                                echo -e "${BOLD}请执行以下步骤：${NC}"
-                                echo -e "  ${GREEN}1)${NC} 关闭当前终端并打开新终端"
-                                echo -e "     ${DIM}或${NC} 运行: ${CYAN}source ~/.bashrc${NC}"
-                                echo ""
-                                echo -e "  ${GREEN}2)${NC} 重新运行安装脚本: ${CYAN}./quickstart.sh${NC}"
-                                echo ""
-                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                                echo ""
+                                show_conda_install_restart_message
                                 exit 0
                             else
                                 echo -e "${RED}❌ Conda 安装失败${NC}"
