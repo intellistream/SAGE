@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     # Skip if it's a merge from main-dev to avoid loops, or if it's a version bump commit
     if: |
-      ${{
+      ${{ 
         !contains(github.event.head_commit.message, '[version bump]') &&
         (!contains(github.event.head_commit.message, 'Merge pull request') || !contains(github.event.head_commit.message, 'main-dev'))
       }}
@@ -45,21 +45,21 @@ jobs:
           # If there are conflicts, this will fail and we'll handle them
           if ! git merge main --no-edit -m "chore: sync main to main-dev [skip ci]"; then
             echo "Merge conflicts detected, attempting to resolve automatically..."
-
+            
             # For _version.py files, always use the version from main branch (ours in this merge)
             git status --porcelain | grep '^UU' | grep '_version.py' | awk '{print $2}' | while read file; do
               echo "Resolving conflict in $file by accepting main branch version"
               git checkout --theirs "$file"
               git add "$file"
             done
-
+            
             # Check if all conflicts are resolved
             if git diff --name-only --diff-filter=U | grep -q .; then
               echo "❌ There are still unresolved conflicts besides _version.py files"
               git diff --name-only --diff-filter=U
               exit 1
             fi
-
+            
             # Complete the merge
             git commit --no-edit -m "chore: sync main to main-dev [skip ci]"
           fi
