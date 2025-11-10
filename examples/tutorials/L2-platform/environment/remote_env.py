@@ -20,7 +20,9 @@ class SimpleSource(SourceFunction):
 
     def execute(self, data=None):
         if self.count >= self.max_count:
-            return None
+            from sage.kernel.runtime.communication.router.packet import StopSignal
+
+            return StopSignal("SimpleSource completed")
 
         data = f"item_{self.count}"
         self.count += 1
@@ -61,10 +63,9 @@ def example_default_scheduler():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    # 查看调度器指标
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
+    # 查看调度器指标（从 JobManager 获取真实指标）
+    metrics = env.get_scheduler_metrics()
+    print(f"\n📊 调度器指标: {metrics}")
 
 
 def example_fifo_scheduler():
@@ -85,9 +86,8 @@ def example_fifo_scheduler():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
+    metrics = env.get_scheduler_metrics()
+    print(f"\n📊 调度器指标: {metrics}")
 
 
 def example_load_aware_scheduler():
@@ -110,11 +110,10 @@ def example_load_aware_scheduler():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
-        print(f"   当前活跃任务: {metrics.get('active_tasks', 'N/A')}")
-        print(f"   最大并发数: {metrics.get('max_concurrent', 'N/A')}")
+    metrics = env.get_scheduler_metrics()
+    print(f"\n📊 调度器指标: {metrics}")
+    print(f"   当前活跃任务: {metrics.get('active_tasks', 'N/A')}")
+    print(f"   最大并发数: {metrics.get('max_concurrent', 'N/A')}")
 
 
 def example_custom_scheduler_instance():
@@ -144,9 +143,8 @@ def example_custom_scheduler_instance():
     print("▶️  提交任务...")
     env.submit(autostop=True)
 
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
+    metrics = env.get_scheduler_metrics()
+    print(f"\n📊 调度器指标: {metrics}")
 
 
 def main():

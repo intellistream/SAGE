@@ -185,6 +185,15 @@ class Dispatcher:
             # 从任务列表中移除
             del self.tasks[node_name]
 
+            # 通知调度器任务已完成（释放资源）
+            if hasattr(self.scheduler, "task_completed"):
+                try:
+                    self.scheduler.task_completed(node_name)
+                except Exception as scheduler_err:
+                    self.logger.warning(
+                        f"Scheduler task_completed notification failed for {node_name}: {scheduler_err}"
+                    )
+
             self.logger.info(f"Node {node_name} stopped and cleaned up")
 
         except Exception as e:
@@ -306,8 +315,14 @@ class Dispatcher:
                 )
 
         # 第四步：提交所有节点开始运行
-        for node_name, task in list(self.tasks.items()):
+        task_list = list(self.tasks.items())
+        self.logger.info(
+            f"Preparing to start {len(task_list)} tasks: {[name for name, _ in task_list]}"
+        )
+
+        for node_name, task in task_list:
             try:
+                self.logger.debug(f"Starting node: {node_name} (type: {type(task).__name__})")
                 task.start_running()
                 self.logger.debug(f"Started node: {node_name}")
             except Exception as e:

@@ -1,11 +1,9 @@
----
-name: Literature Review Request
-about: Request a literature review on a specific research topic
-title: '[Literature Review] '
-labels: research
-assignees: ''
+______________________________________________________________________
 
----
+name: Literature Review Request about: Request a literature review on a specific research topic
+title: '[Literature Review] ' labels: research assignees: ''
+
+______________________________________________________________________
 
 **Topic**
 
