@@ -4,13 +4,13 @@
 
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLS_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SAGE_TOOLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # 导入颜色定义
 source "$SCRIPT_DIR/../display_tools/colors.sh"
 
 # 导入 conda 工具函数
-source "$TOOLS_DIR/conda/conda_utils.sh"
+source "$SAGE_TOOLS_ROOT/conda/conda_utils.sh"
 
 # 全局变量
 INSTALL_MODE=""
