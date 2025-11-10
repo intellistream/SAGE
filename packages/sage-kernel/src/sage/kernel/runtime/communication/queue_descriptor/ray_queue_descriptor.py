@@ -363,7 +363,7 @@ class RayQueueManager:
         for i in range(count):
             try:
                 # 第一个item使用提供的timeout，后续使用更短的timeout避免整体阻塞
-                item_timeout = timeout if i == 0 else min(0.1, timeout) if timeout else 0.1
+                item_timeout = timeout if i == 0 else min(0.1, timeout) if timeout is not None else 0.1
                 item = q.get(timeout=item_timeout)
                 results.append(item)
             except queue.Empty:
