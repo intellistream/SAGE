@@ -34,8 +34,8 @@ from libs.locomo_io import LocomoSink, LocomoSource
 # 导入业务相关的算子
 from locomo_operators import LocomoControllerMap, LocomoServiceMap
 
-from sage.benchmark.benchmark_memory.data.locomo.locomo_dataloader import LocomoDataLoader
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.data.locomo.dataloader import LocomoDataLoader
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service import (
     PipelineBridge,

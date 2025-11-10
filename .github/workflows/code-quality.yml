@@ -25,6 +25,8 @@ jobs:
     name: Code Quality & Style Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Skip version bump commits - no code changes to check
+    if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
 
     steps:
       - name: Checkout Repository

@@ -5,6 +5,7 @@ SAGE Bytecode Compiler
 
 import os
 import py_compile
+import re
 import shutil
 import subprocess
 import sys
@@ -235,8 +236,6 @@ class BytecodeCompiler:
                 console.print("  🔧 检测到 scikit-build-core，切换到 setuptools", style="yellow")
 
                 # 替换 build-backend 为 setuptools
-                import re
-
                 content = re.sub(
                     r'build-backend\s*=\s*["\']scikit_build_core\.build["\']',
                     'build-backend = "setuptools.build_meta"',
@@ -277,8 +276,6 @@ where = ["src"]
                 # 检查是否有[tool.setuptools]部分
                 if "[tool.setuptools]" in content:
                     # 在现有部分添加
-                    import re
-
                     pattern = r"(\[tool\.setuptools\][\s\S]*?)(?=\n\[|\n$|$)"
                     match = re.search(pattern, content)
                     if match:
@@ -302,8 +299,6 @@ include-package-data = true
                 # 检查是否已有package-data部分
                 if "[tool.setuptools.package-data]" in content:
                     # 需要更新现有的package-data配置
-                    import re
-
                     pattern = r"(\[tool\.setuptools\.package-data\][\s\S]*?)(?=\n\[|\n$|$)"
                     match = re.search(pattern, content)
                     if match:

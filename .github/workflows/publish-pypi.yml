@@ -4,15 +4,24 @@ on:
   push:
     branches:
       - main-dev  # 开发分支: patch 版本自增 -> TestPyPI
-      - main      # 主分支: minor 版本自增 -> PyPI
+      - main      # 主分支: micro 版本自增 -> PyPI
     paths-ignore:
       - 'docs/**'
       - 'docs-public/**'
       - 'examples/**'
-      - '*.md'           # 只忽略根目录的 .md 文件（如 README.md）
-      - 'docs/**.md'     # 忽略 docs 目录下的 .md
-      - 'examples/**.md' # 忽略 examples 目录下的 .md
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE/**'
       # 不再忽略 .github/workflows/ 目录下的任何文件
+
+  # 当 PR 被 merge 到 main 时触发（作为 push 事件的补充）
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+      - main-dev
 
   workflow_dispatch:
     inputs:
@@ -40,14 +49,30 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Skip if commit message contains "[version bump]" to prevent infinite loops
-    # This allows other CI workflows to run while preventing re-publishing
-    if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
+    # 运行条件:
+    # 1. push 事件 && commit message 不包含 [version bump]
+    # 2. PR merge 事件 && PR 已成功 merge
+    if: |
+      (github.event_name == 'push' && !contains(github.event.head_commit.message, '[version bump]')) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
+      - name: Determine target branch
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR merge: checkout 目标分支（main 或 main-dev）
+            echo "ref=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+          else
+            # push 或 workflow_dispatch: checkout 当前分支
+            echo "ref=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ steps.branch.outputs.ref }}
           fetch-depth: 0
           token: ${{ secrets.PAT_TOKEN }}
 
@@ -77,8 +102,18 @@ jobs:
             # 手动触发：使用用户选择
             VERSION_BUMP="${{ inputs.version_bump }}"
             REPOSITORY="${{ inputs.repository }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR merge 触发：根据目标分支决定
+            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+            if [ "$TARGET_BRANCH" = "main" ]; then
+              VERSION_BUMP="micro"
+              REPOSITORY="pypi"
+            else  # main-dev
+              VERSION_BUMP="patch"
+              REPOSITORY="testpypi"
+            fi
           else
-            # 自动触发：根据分支决定
+            # push 事件：根据分支决定
             if [ "${{ github.ref_name }}" = "main" ]; then
               VERSION_BUMP="micro"
               REPOSITORY="pypi"
@@ -90,7 +125,7 @@ jobs:
 
           # 如果是 auto，转换为实际类型
           if [ "$VERSION_BUMP" = "auto" ]; then
-            if [ "${{ github.ref_name }}" = "main" ]; then
+            if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
               VERSION_BUMP="micro"
             else
               VERSION_BUMP="patch"
@@ -152,12 +187,13 @@ jobs:
           git commit -m "chore: bump version to $NEW_VERSION [version bump]"
 
           # Pull latest changes with rebase to avoid conflicts
-          git pull --rebase origin ${{ github.ref_name }}
+          BRANCH="${{ steps.branch.outputs.ref }}"
+          git pull --rebase origin $BRANCH
 
           # Push with retry logic
           max_retries=3
           retry_count=0
-          until git push origin ${{ github.ref_name }}; do
+          until git push origin $BRANCH; do
             retry_count=$((retry_count + 1))
             if [ $retry_count -ge $max_retries ]; then
               echo "Failed to push after $max_retries attempts"
@@ -165,7 +201,7 @@ jobs:
             fi
             echo "Push failed, retrying (attempt $retry_count/$max_retries)..."
             sleep 2
-            git pull --rebase origin ${{ github.ref_name }}
+            git pull --rebase origin $BRANCH
           done
 
       - name: Build and publish packages
@@ -226,7 +262,8 @@ jobs:
         run: |
           echo "## 📦 Publication Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ steps.branch.outputs.ref }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Repository**: ${{ steps.config.outputs.repository }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version Bump**: ${{ steps.config.outputs.version_bump }}" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.config.outputs.version_bump }}" != "none" ]; then
