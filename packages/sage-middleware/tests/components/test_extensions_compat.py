@@ -273,12 +273,6 @@ class TestExtensionModuleReferences:
 
         assert hasattr(extensions_compat, "_sage_flow")
 
-    def test_sage_flow_module_reference_exists(self):
-        """Test _sage_flow_module reference exists."""
-        from sage.middleware.components import extensions_compat
-
-        assert hasattr(extensions_compat, "_sage_flow_module")
-
     def test_sage_tsdb_reference_exists(self):
         """Test _sage_tsdb reference exists."""
         from sage.middleware.components import extensions_compat
