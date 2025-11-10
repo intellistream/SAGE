@@ -6,6 +6,11 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+# Import VDBMemoryCollection for spec
+from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
+
 
 class TestNeuroMemVDBServiceInit:
     """Test NeuroMemVDBService initialization"""
@@ -21,8 +26,8 @@ class TestNeuroMemVDBServiceInit:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {"global_index": {}}
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {"global_index": {}}
         mock_manager.get_collection.return_value = mock_collection
 
         service = NeuroMemVDBService("test_collection")
@@ -41,10 +46,10 @@ class TestNeuroMemVDBServiceInit:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection1 = MagicMock()
-        mock_collection1.indexes = {"global_index": {}}
-        mock_collection2 = MagicMock()
-        mock_collection2.indexes = {"global_index": {}}
+        mock_collection1 = MagicMock(spec=VDBMemoryCollection)
+        mock_collection1.index_info = {"global_index": {}}
+        mock_collection2 = MagicMock(spec=VDBMemoryCollection)
+        mock_collection2.index_info = {"global_index": {}}
 
         mock_manager.get_collection.side_effect = [mock_collection1, mock_collection2]
 
@@ -64,16 +69,21 @@ class TestNeuroMemVDBServiceInit:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {}  # No global_index
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {}  # No global_index
         mock_manager.get_collection.return_value = mock_collection
 
         NeuroMemVDBService("test_collection")
 
-        # Should have called create_index to create global_index
-        mock_collection.create_index.assert_called_once_with(
-            "global_index", description="Global index for all data"
-        )
+        # Should have called create_index to create global_index with correct config
+        expected_config = {
+            "name": "global_index",
+            "embedding_model": "default",
+            "dim": 384,
+            "backend_type": "FAISS",
+            "description": "Global index for all data",
+        }
+        mock_collection.create_index.assert_called_once_with(config=expected_config)
 
     @patch("sage.middleware.components.sage_mem.services.neuromem_vdb_service.MemoryManager")
     def test_init_fails_on_nonexistent_collection(self, mock_manager_class):
@@ -120,8 +130,8 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {"global_index": {}}
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {"global_index": {}}
         mock_collection.retrieve.return_value = ["result1", "result2", "result3"]
         mock_manager.get_collection.return_value = mock_collection
 
@@ -141,8 +151,8 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {"global_index": {}}
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {"global_index": {}}
         mock_collection.retrieve.return_value = [
             {"text": "result1", "score": 0.9},
             {"text": "result2", "score": 0.8},
@@ -166,12 +176,12 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection1 = MagicMock()
-        mock_collection1.indexes = {"global_index": {}}
+        mock_collection1 = MagicMock(spec=VDBMemoryCollection)
+        mock_collection1.index_info = {"global_index": {}}
         mock_collection1.retrieve.return_value = ["result1"]
 
-        mock_collection2 = MagicMock()
-        mock_collection2.indexes = {"global_index": {}}
+        mock_collection2 = MagicMock(spec=VDBMemoryCollection)
+        mock_collection2.index_info = {"global_index": {}}
         mock_collection2.retrieve.return_value = ["result2"]
 
         mock_manager.get_collection.side_effect = [mock_collection1, mock_collection2]
@@ -214,8 +224,8 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {"global_index": {}}
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {"global_index": {}}
         mock_manager.get_collection.return_value = mock_collection
 
         service = NeuroMemVDBService("test_collection")
@@ -233,8 +243,8 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {"global_index": {}}
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {"global_index": {}}
         mock_collection.retrieve.return_value = [f"result{i}" for i in range(10)]
         mock_manager.get_collection.return_value = mock_collection
 
@@ -258,8 +268,8 @@ class TestNeuroMemVDBServiceIndexCreation:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {"global_index": {}}
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {"global_index": {}}
         mock_manager.get_collection.return_value = mock_collection
 
         service = NeuroMemVDBService("test_collection")
@@ -277,8 +287,8 @@ class TestNeuroMemVDBServiceIndexCreation:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {"global_index": {}}
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {"global_index": {}}
         mock_manager.get_collection.return_value = mock_collection
 
         service = NeuroMemVDBService("test_collection")
@@ -290,16 +300,19 @@ class TestNeuroMemVDBServiceIndexCreation:
 class TestNeuroMemVDBServiceHelpers:
     """Test helper methods"""
 
-    def test_get_default_data_dir(self):
+    @patch("os.makedirs")
+    @patch("os.getcwd")
+    def test_get_default_data_dir(self, mock_getcwd, mock_makedirs):
         """Test getting default data directory"""
         from sage.middleware.components.sage_mem.services.neuromem_vdb_service import (
             NeuroMemVDBService,
         )
 
-        with patch("os.getcwd", return_value="/test/dir"):
-            data_dir = NeuroMemVDBService._get_default_data_dir()
+        mock_getcwd.return_value = "/test/dir"
+        data_dir = NeuroMemVDBService._get_default_data_dir()
 
-            assert "/test/dir/data/neuromem_vdb" in data_dir
+        assert "/test/dir/data/neuromem_vdb" in data_dir
+        mock_makedirs.assert_called_once()
 
     @patch("os.makedirs")
     @patch("os.getcwd")
@@ -329,8 +342,8 @@ class TestNeuroMemVDBServiceEdgeCases:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        mock_collection = MagicMock()
-        mock_collection.indexes = {"global_index": {}}
+        mock_collection = MagicMock(spec=VDBMemoryCollection)
+        mock_collection.index_info = {"global_index": {}}
         mock_collection.retrieve.side_effect = Exception("Retrieval error")
         mock_manager.get_collection.return_value = mock_collection
 

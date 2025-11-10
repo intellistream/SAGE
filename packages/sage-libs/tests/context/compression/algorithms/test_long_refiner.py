@@ -2,8 +2,8 @@
 Unit tests for LongRefiner class
 """
 
-import pytest
-from unittest.mock import Mock, MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
+
 import torch
 
 
@@ -12,7 +12,9 @@ class TestLongRefinerInit:
 
     @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.LLM")
     @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification")
+    @patch(
+        "sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
+    )
     def test_init_with_defaults(self, mock_score_model, mock_tokenizer, mock_llm):
         """Test initialization with default parameters"""
         from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
@@ -40,7 +42,9 @@ class TestLongRefinerInit:
 
     @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.LLM")
     @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification")
+    @patch(
+        "sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
+    )
     def test_init_with_custom_gpu(self, mock_score_model, mock_tokenizer, mock_llm):
         """Test initialization with custom GPU settings"""
         from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
@@ -51,6 +55,9 @@ class TestLongRefinerInit:
 
         refiner = LongRefiner(
             base_model_path="test/model",
+            query_analysis_module_lora_path="test/lora1",
+            doc_structuring_module_lora_path="test/lora2",
+            global_selection_module_lora_path="test/lora3",
             gpu_device=1,
             score_gpu_device=2,
         )
@@ -81,7 +88,8 @@ class TestLongRefinerScoring:
             assert all(isinstance(s, (int, float)) for s in scores)
 
     @patch("torch.no_grad")
-    def test_cal_score_reranker(self, mock_no_grad):
+    @patch("torch.cuda.is_available", return_value=False)
+    def test_cal_score_reranker(self, mock_cuda, mock_no_grad):
         """Test reranker scoring"""
         from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
 
@@ -98,6 +106,10 @@ class TestLongRefinerScoring:
             mock_inputs = {"input_ids": torch.tensor([[1, 2, 3]])}
             mock_tokenizer.return_value = mock_inputs
 
+            # Mock the to() method to return the tensor itself (no GPU transfer)
+            for key in mock_inputs:
+                mock_inputs[key].to = MagicMock(return_value=mock_inputs[key])
+
             mock_output = MagicMock()
             mock_output.logits = torch.tensor([[0.5]])
             mock_model.return_value = mock_output
@@ -112,7 +124,8 @@ class TestLongRefinerScoring:
             assert isinstance(scores[0], (int, float))
 
     @patch("torch.no_grad")
-    def test_cal_score_sbert(self, mock_no_grad):
+    @patch("torch.cuda.is_available", return_value=False)
+    def test_cal_score_sbert(self, mock_cuda, mock_no_grad):
         """Test SBERT scoring"""
         from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
 
@@ -131,6 +144,10 @@ class TestLongRefinerScoring:
                 "attention_mask": torch.tensor([[1, 1, 1]]),
             }
             mock_tokenizer.return_value = mock_inputs
+
+            # Mock the to() method to return the tensor itself (no GPU transfer)
+            for key in mock_inputs:
+                mock_inputs[key].to = MagicMock(return_value=mock_inputs[key])
 
             mock_output = MagicMock()
             mock_output.last_hidden_state = torch.randn(1, 3, 384)
@@ -163,7 +180,9 @@ class TestLongRefinerLoadModel:
             assert refiner.score_tokenizer is None
             assert refiner.local_score_func == refiner._cal_score_bm25
 
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification")
+    @patch(
+        "sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
+    )
     @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
     def test_load_score_model_reranker(self, mock_tokenizer, mock_model):
         """Test loading reranker model"""

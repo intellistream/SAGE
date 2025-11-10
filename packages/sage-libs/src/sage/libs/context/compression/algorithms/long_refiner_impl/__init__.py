@@ -10,3 +10,8 @@ except ImportError:
     __version__ = "0.1.4"
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
+
+# Export refiner module for imports
+from . import refiner
+
+__all__ = ["refiner", "__version__", "__author__", "__email__"]

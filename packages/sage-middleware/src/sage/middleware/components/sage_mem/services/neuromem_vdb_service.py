@@ -10,6 +10,7 @@ from sage.platform.service import BaseService
 
 class NeuroMemVDBService(BaseService):
     def __init__(self, collection_name: str | list[str]):
+        super().__init__()
         self.manager = MemoryManager(self._get_default_data_dir())
         self.online_register_collections: dict[str, VDBMemoryCollection] = {}
 
