@@ -7,9 +7,10 @@ Ray Queue Descriptor - Ray分布式队列描述符
 import logging
 import queue
 import threading
-from typing import Any
+from typing import Any, Optional
 
 import ray
+import ray.actor
 
 from .base_queue_descriptor import BaseQueueDescriptor
 
@@ -19,36 +20,36 @@ logger = logging.getLogger(__name__)
 class SimpleTestQueue:
     """测试模式下的简单队列实现，避开Ray队列的async actor限制"""
 
-    def __init__(self, maxsize=0):
-        self._queue = queue.Queue(maxsize=maxsize)
+    def __init__(self, maxsize: int = 0) -> None:
+        self._queue: queue.Queue[Any] = queue.Queue(maxsize=maxsize)
         self._lock = threading.Lock()
 
-    def put(self, item, timeout=None):
+    def put(self, item: Any, timeout: Optional[float] = None) -> None:
         """添加项目到队列"""
         return self._queue.put(item, timeout=timeout)
 
-    def get(self, timeout=None):
+    def get(self, timeout: Optional[float] = None) -> Any:
         """从队列获取项目"""
         return self._queue.get(timeout=timeout)
 
-    def size(self):
+    def size(self) -> int:
         """获取队列大小"""
         return self._queue.qsize()
 
-    def qsize(self):
+    def qsize(self) -> int:
         """获取队列大小（兼容性方法）"""
         return self._queue.qsize()
 
-    def empty(self):
+    def empty(self) -> bool:
         """检查队列是否为空"""
         return self._queue.empty()
 
-    def full(self):
+    def full(self) -> bool:
         """检查队列是否已满"""
         return self._queue.full()
 
 
-def _is_ray_local_mode():
+def _is_ray_local_mode() -> bool:
     """检查Ray是否在local mode下运行"""
     try:
         return ray._private.worker.global_worker.mode == ray._private.worker.LOCAL_MODE  # type: ignore[attr-defined]
@@ -57,57 +58,219 @@ def _is_ray_local_mode():
 
 
 class RayQueueProxy:
-    """Ray队列代理，提供类似队列的接口但通过manager访问实际队列"""
+    """
+    Ray队列代理 - 优化版本，支持批量异步操作
 
-    def __init__(self, manager, queue_id: str):
-        self.manager = manager
-        self.queue_id = queue_id
+    性能优化：
+    1. 批量put操作，减少网络往返
+    2. 异步提交，避免同步等待
+    3. 智能缓冲区管理
+    """
 
-    def put(self, item, timeout=None):
-        """向队列添加项目"""
-        return ray.get(self.manager.put.remote(self.queue_id, item))
-
-    def put_nowait(self, item):
-        """非阻塞添加项目到队列（实际上Ray队列始终是阻塞的）"""
-        return ray.get(self.manager.put.remote(self.queue_id, item))
-
-    def get(self, block=True, timeout=None):
-        """从队列获取项目
+    def __init__(
+        self,
+        manager: "ray.actor.ActorHandle[Any]",
+        queue_id: str,
+        batch_size: int = 100,
+        auto_flush: bool = True,
+    ) -> None:
+        """
+        初始化队列代理
 
         Args:
-            block: 是否阻塞等待（为了API兼容性，但Ray队列始终是阻塞的）
+            manager: RayQueueManager实例
+            queue_id: 队列ID
+            batch_size: 批量操作大小，默认100（建议范围：50-500）
+            auto_flush: 是否自动刷新缓冲区
+        """
+        self.manager: ray.actor.ActorHandle[Any] = manager
+        self.queue_id = queue_id
+        self.batch_size = batch_size
+        self.auto_flush = auto_flush
+
+        # Put缓冲区
+        self._put_buffer: list[Any] = []
+        self._put_lock = threading.Lock()
+        self._pending_put_futures: list[ray.ObjectRef[Any]] = []
+
+        # 性能统计
+        self._total_puts = 0
+        self._total_gets = 0
+        self._batch_puts = 0
+
+    def put(self, item: Any, timeout: Optional[float] = None) -> None:
+        """
+        向队列添加项目（优化版 - 批量异步）
+
+        性能优化：使用缓冲区批量发送，减少网络往返次数
+        """
+        with self._put_lock:
+            self._put_buffer.append(item)
+            self._total_puts += 1
+
+            # 达到批量大小时自动刷新
+            if self.auto_flush and len(self._put_buffer) >= self.batch_size:
+                self._flush_internal()
+
+        return None  # 异步操作，立即返回
+
+    def put_nowait(self, item: Any) -> None:
+        """非阻塞添加项目到队列"""
+        return self.put(item, timeout=None)
+
+    def flush(self) -> None:
+        """手动刷新缓冲区，将所有待发送的数据批量提交"""
+        with self._put_lock:
+            self._flush_internal()
+
+    def _flush_internal(self) -> None:
+        """内部刷新方法（需要持有锁）"""
+        if not self._put_buffer:
+            return
+
+        # 批量远程调用
+        items_to_send = self._put_buffer.copy()
+        self._put_buffer.clear()
+
+        try:
+            # 异步批量发送
+            future = self.manager.put_batch.remote(self.queue_id, items_to_send)
+            self._pending_put_futures.append(future)
+            self._batch_puts += 1
+
+            # 定期清理已完成的futures，避免内存累积
+            if len(self._pending_put_futures) > 10:
+                self._pending_put_futures = [
+                    f for f in self._pending_put_futures if not self._is_future_ready(f)
+                ]
+
+            logger.debug(
+                f"Batch put {len(items_to_send)} items to queue {self.queue_id} "
+                f"(total batches: {self._batch_puts})"
+            )
+        except Exception as e:
+            # 批量发送失败，回退到单个发送
+            logger.warning(f"Batch put failed, falling back to individual puts: {e}")
+            for item in items_to_send:
+                try:
+                    ray.get(self.manager.put.remote(self.queue_id, item))
+                except Exception as e2:
+                    logger.error(f"Individual put also failed: {e2}")
+                    raise
+
+    def _is_future_ready(self, future: Any) -> bool:
+        """检查future是否已完成"""
+        try:
+            ray.get(future, timeout=0)
+            return True
+        except Exception:
+            return False
+
+    def wait_for_pending_puts(self, timeout: float = 10.0) -> None:
+        """
+        等待所有待处理的put操作完成
+
+        Args:
             timeout: 超时时间（秒）
         """
-        # Ray队列不支持非阻塞模式，block参数仅用于API兼容性
+        if self._pending_put_futures:
+            try:
+                ray.get(self._pending_put_futures, timeout=timeout)
+                self._pending_put_futures.clear()
+                logger.debug(f"All pending puts completed for queue {self.queue_id}")
+            except Exception as e:
+                logger.warning(f"Some pending puts may have failed: {e}")
+
+    def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
+        """
+        从队列获取项目
+
+        Note: get操作保持同步（因为需要立即返回数据）
+        """
+        self._total_gets += 1
         return ray.get(self.manager.get.remote(self.queue_id, timeout))
 
-    def size(self):
-        """获取队列大小"""
-        return ray.get(self.manager.size.remote(self.queue_id))
+    def get_batch(self, count: int = 100, timeout: Optional[float] = None) -> list[Any]:
+        """
+        批量获取多个项目（优化版）
 
-    def qsize(self):
+        Args:
+            count: 要获取的项目数量
+            timeout: 超时时间
+
+        Returns:
+            list: 获取到的项目列表
+        """
+        self._total_gets += count
+        return ray.get(self.manager.get_batch.remote(self.queue_id, count, timeout))
+
+    def size(self) -> int:
+        """获取队列大小（包含待刷新的缓冲区）"""
+        remote_size = ray.get(self.manager.size.remote(self.queue_id))
+        with self._put_lock:
+            buffer_size: int = len(self._put_buffer)
+        return remote_size + buffer_size  # type: ignore[return-value]
+
+    def qsize(self) -> int:
         """获取队列大小（兼容性方法）"""
         return self.size()
 
-    def empty(self):
+    def empty(self) -> bool:
         """检查队列是否为空"""
         return self.size() == 0
 
-    def full(self):
+    def full(self) -> bool:
         """检查队列是否已满（简化实现）"""
         # 对于Ray队列，这个很难确定，返回False
         return False
+
+    def get_stats(self) -> dict[str, Any]:
+        """
+        获取性能统计信息
+
+        Returns:
+            dict: 包含total_puts, total_gets, batch_puts等统计信息
+        """
+        return {
+            "total_puts": self._total_puts,
+            "total_gets": self._total_gets,
+            "batch_puts": self._batch_puts,
+            "avg_batch_size": self._total_puts / max(1, self._batch_puts),
+            "pending_batches": len(self._pending_put_futures),
+            "buffer_size": len(self._put_buffer),
+        }
+
+    def __del__(self):
+        """析构时自动刷新缓冲区"""
+        try:
+            if hasattr(self, "_put_buffer") and self._put_buffer:
+                logger.debug(f"Flushing {len(self._put_buffer)} items on destruction")
+                self.flush()
+                self.wait_for_pending_puts(timeout=5.0)
+        except Exception as e:
+            logger.warning(f"Error during queue proxy cleanup: {e}")
 
 
 # 全局队列管理器，用于在不同Actor之间共享队列实例
 @ray.remote
 class RayQueueManager:
-    """Ray队列管理器，管理全局队列实例"""
+    """
+    Ray队列管理器 - 优化版本，支持批量操作
 
-    def __init__(self):
-        self.queues = {}
+    管理全局队列实例，提供批量put/get操作以提升分布式性能
+    """
 
-    def get_or_create_queue(self, queue_id: str, maxsize: int):
+    def __init__(self) -> None:
+        self.queues: dict[str, Any] = {}
+        # 性能统计
+        self._stats: dict[str, int] = {
+            "total_puts": 0,
+            "total_gets": 0,
+            "batch_puts": 0,
+            "batch_gets": 0,
+        }
+
+    def get_or_create_queue(self, queue_id: str, maxsize: int) -> str:
         """获取或创建队列，返回队列ID而不是队列对象"""
         if queue_id not in self.queues:
             # 在local mode下使用简单队列实现
@@ -132,21 +295,91 @@ class RayQueueManager:
             logger.debug(f"Retrieved existing queue {queue_id}")
         return queue_id  # 返回队列ID而不是队列对象
 
-    def put(self, queue_id: str, item):
-        """向指定队列添加项目"""
+    def put(self, queue_id: str, item: Any) -> Any:
+        """向指定队列添加项目（单个）"""
         if queue_id in self.queues:
+            self._stats["total_puts"] += 1
             return self.queues[queue_id].put(item)
         else:
             raise ValueError(f"Queue {queue_id} does not exist")
 
-    def get(self, queue_id: str, timeout=None):
-        """从指定队列获取项目"""
+    def put_batch(self, queue_id: str, items: list[Any]) -> int:
+        """
+        批量添加项目（性能优化）
+
+        Args:
+            queue_id: 队列ID
+            items: 要添加的项目列表
+
+        Returns:
+            int: 成功添加的项目数量
+        """
+        if queue_id not in self.queues:
+            raise ValueError(f"Queue {queue_id} does not exist")
+
+        q = self.queues[queue_id]
+        count = 0
+
+        for item in items:
+            try:
+                q.put(item)
+                count += 1
+            except queue.Full:
+                logger.warning(f"Queue {queue_id} is full, dropped {len(items) - count} items")
+                break
+
+        self._stats["total_puts"] += count
+        self._stats["batch_puts"] += 1
+
+        logger.debug(f"Batch put {count} items to queue {queue_id}")
+        return count
+
+    def get(self, queue_id: str, timeout: Optional[float] = None) -> Any:
+        """从指定队列获取项目（单个）"""
         if queue_id in self.queues:
+            self._stats["total_gets"] += 1
             return self.queues[queue_id].get(timeout=timeout)
         else:
             raise ValueError(f"Queue {queue_id} does not exist")
 
-    def size(self, queue_id: str):
+    def get_batch(self, queue_id: str, count: int, timeout: Optional[float] = None) -> list[Any]:
+        """
+        批量获取项目（性能优化）
+
+        Args:
+            queue_id: 队列ID
+            count: 要获取的项目数量
+            timeout: 超时时间（秒），应用于每个get操作
+
+        Returns:
+            list: 获取到的项目列表（可能少于count）
+        """
+        if queue_id not in self.queues:
+            raise ValueError(f"Queue {queue_id} does not exist")
+
+        q = self.queues[queue_id]
+        results: list[Any] = []
+
+        for i in range(count):
+            try:
+                # 第一个item使用提供的timeout，后续使用更短的timeout避免整体阻塞
+                item_timeout = (
+                    timeout if i == 0 else min(0.1, timeout) if timeout is not None else 0.1
+                )
+                item = q.get(timeout=item_timeout)
+                results.append(item)
+            except queue.Empty:
+                # 队列为空，返回已获取的项目
+                break
+
+        self._stats["total_gets"] += len(results)
+        if results:
+            self._stats["batch_gets"] += 1
+
+        logger.debug(f"Batch get {len(results)} items from queue {queue_id}")
+        return results
+
+    def size(self, queue_id: str) -> int:
         """获取队列大小"""
         if queue_id in self.queues:
             if hasattr(self.queues[queue_id], "size"):
@@ -157,30 +390,39 @@ class RayQueueManager:
         else:
             raise ValueError(f"Queue {queue_id} does not exist")
 
-    def queue_exists(self, queue_id: str):
+    def queue_exists(self, queue_id: str) -> bool:
         """检查队列是否存在"""
         return queue_id in self.queues
 
-    def delete_queue(self, queue_id: str):
+    def delete_queue(self, queue_id: str) -> bool:
         """删除队列"""
         if queue_id in self.queues:
             del self.queues[queue_id]
             return True
         return False
 
+    def get_stats(self) -> dict[str, int]:
+        """
+        获取性能统计信息
+
+        Returns:
+            dict: 统计信息
+        """
+        return self._stats.copy()
+
 
 # 全局队列管理器实例
 _global_queue_manager = None
 
 
-def get_global_queue_manager():
+def get_global_queue_manager() -> "ray.actor.ActorHandle[Any]":
     """获取全局队列管理器"""
     import random
     import time
 
     # 先尝试获取现有的命名Actor
     try:
-        return ray.get_actor("global_ray_queue_manager")
+        return ray.get_actor("global_ray_queue_manager")  # type: ignore[return-value]
     except ValueError:
         pass
 
@@ -192,12 +434,12 @@ def get_global_queue_manager():
             _global_queue_manager = RayQueueManager.options(
                 name="global_ray_queue_manager"
             ).remote()
-            return _global_queue_manager
+            return _global_queue_manager  # type: ignore[return-value]
         except ValueError as e:
             # 如果Actor已存在，再次尝试获取
             if "already exists" in str(e):
                 try:
-                    return ray.get_actor("global_ray_queue_manager")
+                    return ray.get_actor("global_ray_queue_manager")  # type: ignore[return-value]
                 except ValueError:
                     # 短暂等待后重试
                     time.sleep(random.uniform(0.1, 0.5))
@@ -211,7 +453,7 @@ def get_global_queue_manager():
                 raise
 
     # 如果仍然失败，尝试最后一次获取
-    return ray.get_actor("global_ray_queue_manager")
+    return ray.get_actor("global_ray_queue_manager")  # type: ignore[return-value]
 
 
 class RayQueueDescriptor(BaseQueueDescriptor):

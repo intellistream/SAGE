@@ -2,8 +2,9 @@
 Unit tests for OpenAI and HuggingFace integrations
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
 
 
 class TestOpenAIIntegration:
@@ -12,120 +13,140 @@ class TestOpenAIIntegration:
     @patch("openai.OpenAI")
     def test_openai_client_creation(self, mock_openai_class):
         """Test OpenAI client creation"""
-        try:
-            from sage.libs.integrations.openai import get_openai_client
+        from sage.libs.integrations.openai import OpenAIClient
 
-            mock_client = MagicMock()
-            mock_openai_class.return_value = mock_client
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
 
-            client = get_openai_client(api_key="test_key")
-            assert client is not None
-        except (ImportError, AttributeError):
-            # Function may not exist
-            pytest.skip("get_openai_client not available")
-
-    @patch("openai.OpenAI")
-    def test_openai_completion(self, mock_openai_class):
-        """Test OpenAI completion functionality"""
-        try:
-            from sage.libs.integrations.openai import create_completion
-
-            mock_client = MagicMock()
-            mock_response = MagicMock()
-            mock_response.choices = [MagicMock(text="Test response")]
-            mock_client.completions.create.return_value = mock_response
-            mock_openai_class.return_value = mock_client
-
-            result = create_completion("Test prompt", api_key="test_key")
-            assert result is not None
-        except (ImportError, AttributeError):
-            pytest.skip("create_completion not available")
+        client = OpenAIClient(
+            model_name="gpt-4",
+            base_url="http://test.com/v1",
+            api_key="test_key",  # pragma: allowlist secret
+        )
+        assert client is not None
+        assert client.model_name == "gpt-4"
 
     @patch("openai.OpenAI")
-    def test_openai_chat_completion(self, mock_openai_class):
-        """Test OpenAI chat completion"""
-        try:
-            from sage.libs.integrations.openai import create_chat_completion
+    def test_openai_generate(self, mock_openai_class):
+        """Test OpenAI generate functionality"""
+        from sage.libs.integrations.openai import OpenAIClient
 
-            mock_client = MagicMock()
-            mock_response = MagicMock()
-            mock_response.choices = [MagicMock(message=MagicMock(content="Test response"))]
-            mock_client.chat.completions.create.return_value = mock_response
-            mock_openai_class.return_value = mock_client
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_choice = MagicMock()
+        mock_choice.message.content = "Test response"
+        mock_response.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_openai_class.return_value = mock_client
 
-            messages = [{"role": "user", "content": "Hello"}]
-            result = create_chat_completion(messages, api_key="test_key")
-            assert result is not None
-        except (ImportError, AttributeError):
-            pytest.skip("create_chat_completion not available")
+        client = OpenAIClient(
+            model_name="gpt-4",
+            base_url="http://test.com/v1",
+            api_key="test_key",  # pragma: allowlist secret
+        )
+        messages = [{"role": "user", "content": "Hello"}]
+        result = client.generate(messages)
+        assert result == "Test response"
 
     @patch("openai.OpenAI")
-    def test_openai_embedding(self, mock_openai_class):
-        """Test OpenAI embedding generation"""
-        try:
-            from sage.libs.integrations.openai import create_embedding
+    def test_openai_generate_with_dict_message(self, mock_openai_class):
+        """Test OpenAI generate with single dict message"""
+        from sage.libs.integrations.openai import OpenAIClient
 
-            mock_client = MagicMock()
-            mock_response = MagicMock()
-            mock_response.data = [MagicMock(embedding=[0.1, 0.2, 0.3])]
-            mock_client.embeddings.create.return_value = mock_response
-            mock_openai_class.return_value = mock_client
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_choice = MagicMock()
+        mock_choice.message.content = "Test response"
+        mock_response.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_openai_class.return_value = mock_client
 
-            result = create_embedding("Test text", api_key="test_key")
-            assert result is not None
-        except (ImportError, AttributeError):
-            pytest.skip("create_embedding not available")
+        client = OpenAIClient(
+            model_name="gpt-4",
+            base_url="http://test.com/v1",
+            api_key="test_key",  # pragma: allowlist secret
+        )
+        message = {"role": "user", "content": "Hello"}
+        result = client.generate(message)
+        assert result == "Test response"
+
+    @patch("openai.OpenAI")
+    def test_openai_generate_error_handling(self, mock_openai_class):
+        """Test OpenAI error handling"""
+        from sage.libs.integrations.openai import OpenAIClient
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.side_effect = Exception("API Error")
+        mock_openai_class.return_value = mock_client
+
+        client = OpenAIClient(
+            model_name="gpt-4",
+            base_url="http://test.com/v1",
+            api_key="test_key",  # pragma: allowlist secret
+        )
+
+        with pytest.raises(RuntimeError, match="Response generation failed"):
+            client.generate([{"role": "user", "content": "Hello"}])
 
 
 class TestHuggingFaceIntegration:
     """Test HuggingFace integration module"""
 
     @patch("transformers.AutoTokenizer")
-    @patch("transformers.AutoModel")
-    def test_huggingface_model_loading(self, mock_model, mock_tokenizer):
-        """Test HuggingFace model loading"""
-        try:
-            from sage.libs.integrations.huggingface import load_model
+    @patch("transformers.AutoModelForCausalLM")
+    def test_huggingface_client_creation(self, mock_model, mock_tokenizer):
+        """Test HuggingFace client creation"""
+        from sage.libs.integrations.huggingface import HFClient
 
-            mock_tokenizer_instance = MagicMock()
-            mock_model_instance = MagicMock()
-            mock_tokenizer.from_pretrained.return_value = mock_tokenizer_instance
-            mock_model.from_pretrained.return_value = mock_model_instance
+        mock_tokenizer_instance = MagicMock()
+        mock_tokenizer_instance.eos_token = "</s>"
+        mock_tokenizer_instance.pad_token = None
+        mock_model_instance = MagicMock()
+        mock_tokenizer.from_pretrained.return_value = mock_tokenizer_instance
+        mock_model.from_pretrained.return_value = mock_model_instance
 
-            model, tokenizer = load_model("bert-base-uncased")
-            assert model is not None
-            assert tokenizer is not None
-        except (ImportError, AttributeError):
-            pytest.skip("load_model not available")
-
-    @patch("transformers.pipeline")
-    def test_huggingface_pipeline(self, mock_pipeline):
-        """Test HuggingFace pipeline creation"""
-        try:
-            from sage.libs.integrations.huggingface import create_pipeline
-
-            mock_pipe = MagicMock()
-            mock_pipeline.return_value = mock_pipe
-
-            pipe = create_pipeline("text-generation")
-            assert pipe is not None
-        except (ImportError, AttributeError):
-            pytest.skip("create_pipeline not available")
+        client = HFClient(model_name="test-model")
+        assert client is not None
+        assert client.model_name == "test-model"
 
     @patch("transformers.AutoTokenizer")
-    def test_huggingface_tokenization(self, mock_tokenizer):
-        """Test HuggingFace tokenization"""
-        try:
-            from sage.libs.integrations.huggingface import tokenize_text
+    @patch("transformers.AutoModelForCausalLM")
+    def test_huggingface_generate(self, mock_model, mock_tokenizer):
+        """Test HuggingFace generation"""
+        from sage.libs.integrations.huggingface import HFClient
 
-            mock_tokenizer_instance = MagicMock()
-            mock_tokenizer_instance.return_value = {"input_ids": [101, 102]}
-            mock_tokenizer.from_pretrained.return_value = mock_tokenizer_instance
+        mock_tokenizer_instance = MagicMock()
+        mock_tokenizer_instance.eos_token = "</s>"
+        mock_tokenizer_instance.eos_token_id = 2
+        mock_tokenizer_instance.pad_token = None
+        mock_tokenizer_instance.return_value = {"input_ids": [[1, 2, 3]]}
+        mock_tokenizer_instance.decode.return_value = "Generated text"
 
-            result = tokenize_text("Test text", "bert-base-uncased")
-            assert result is not None
-        except (ImportError, AttributeError):
-            pytest.skip("tokenize_text not available")
+        mock_model_instance = MagicMock()
+        mock_model_instance.generate.return_value = [[1, 2, 3, 4, 5]]
+
+        mock_tokenizer.from_pretrained.return_value = mock_tokenizer_instance
+        mock_model.from_pretrained.return_value = mock_model_instance
+
+        client = HFClient(model_name="test-model", device="cpu")
+        result = client.generate("Test prompt")
+        assert result is not None
+
+    @patch("transformers.AutoTokenizer")
+    @patch("transformers.AutoModelForCausalLM")
+    def test_huggingface_device_selection(self, mock_model, mock_tokenizer):
+        """Test HuggingFace device selection"""
+        from sage.libs.integrations.huggingface import HFClient
+
+        mock_tokenizer_instance = MagicMock()
+        mock_tokenizer_instance.eos_token = "</s>"
+        mock_tokenizer_instance.pad_token = None
+        mock_model_instance = MagicMock()
+        mock_tokenizer.from_pretrained.return_value = mock_tokenizer_instance
+        mock_model.from_pretrained.return_value = mock_model_instance
+
+        client = HFClient(model_name="test-model", device="cpu")
+        assert client.device == "cpu"
 
 
 class TestIntegrationErrorHandling:
@@ -134,60 +155,31 @@ class TestIntegrationErrorHandling:
     @patch("openai.OpenAI")
     def test_openai_api_error_handling(self, mock_openai_class):
         """Test OpenAI API error handling"""
-        try:
-            from sage.libs.integrations.openai import create_completion
+        from sage.libs.integrations.openai import OpenAIClient
 
-            mock_client = MagicMock()
-            mock_client.completions.create.side_effect = Exception("API Error")
-            mock_openai_class.return_value = mock_client
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.side_effect = Exception("API Error")
+        mock_openai_class.return_value = mock_client
 
-            try:
-                create_completion("Test prompt", api_key="test_key")
-            except Exception as e:
-                assert "API Error" in str(e) or isinstance(e, Exception)
-        except (ImportError, AttributeError):
-            pytest.skip("create_completion not available")
+        client = OpenAIClient(
+            model_name="gpt-4",
+            base_url="http://test.com/v1",
+            api_key="test_key",  # pragma: allowlist secret
+        )
 
-    @patch("transformers.AutoModel")
-    def test_huggingface_model_not_found(self, mock_model):
+        with pytest.raises(RuntimeError, match="Response generation failed"):
+            client.generate([{"role": "user", "content": "Test"}])
+
+    @patch("transformers.AutoTokenizer")
+    @patch("transformers.AutoModelForCausalLM")
+    def test_huggingface_model_not_found(self, mock_model, mock_tokenizer):
         """Test HuggingFace model not found error"""
-        try:
-            from sage.libs.integrations.huggingface import load_model
+        from sage.libs.integrations.huggingface import HFClient
 
-            mock_model.from_pretrained.side_effect = Exception("Model not found")
+        mock_model.from_pretrained.side_effect = Exception("Model not found")
 
-            try:
-                load_model("nonexistent-model")
-            except Exception as e:
-                assert isinstance(e, Exception)
-        except (ImportError, AttributeError):
-            pytest.skip("load_model not available")
-
-
-class TestIntegrationConfiguration:
-    """Test configuration for integrations"""
-
-    def test_openai_api_key_configuration(self):
-        """Test OpenAI API key configuration"""
-        try:
-            from sage.libs.integrations import openai as openai_integration
-
-            # Check if API key configuration exists
-            if hasattr(openai_integration, "set_api_key"):
-                openai_integration.set_api_key("test_key")
-        except (ImportError, AttributeError):
-            pytest.skip("OpenAI integration not fully available")
-
-    def test_huggingface_cache_configuration(self):
-        """Test HuggingFace cache configuration"""
-        try:
-            from sage.libs.integrations import huggingface as hf_integration
-
-            # Check if cache configuration exists
-            if hasattr(hf_integration, "set_cache_dir"):
-                hf_integration.set_cache_dir("/tmp/cache")
-        except (ImportError, AttributeError):
-            pytest.skip("HuggingFace integration not fully available")
+        with pytest.raises(Exception, match="Model not found"):
+            HFClient(model_name="nonexistent-model")
 
 
 class TestModuleImports:
@@ -195,55 +187,35 @@ class TestModuleImports:
 
     def test_openai_module_import(self):
         """Test OpenAI module import"""
-        try:
-            from sage.libs.integrations import openai
+        from sage.libs.integrations import openai
 
-            assert openai is not None
-        except ImportError:
-            pytest.skip("OpenAI integration module not available")
+        assert openai is not None
+        assert hasattr(openai, "OpenAIClient")
 
     def test_huggingface_module_import(self):
         """Test HuggingFace module import"""
-        try:
-            from sage.libs.integrations import huggingface
+        from sage.libs.integrations import huggingface
 
-            assert huggingface is not None
-        except ImportError:
-            pytest.skip("HuggingFace integration module not available")
+        assert huggingface is not None
+        assert hasattr(huggingface, "HFClient")
 
 
-class TestIntegrationUtils:
-    """Test utility functions in integrations"""
+class TestIntegrationClasses:
+    """Test that integration classes exist and can be instantiated"""
 
-    def test_openai_utils_exist(self):
-        """Test that OpenAI utility functions exist"""
-        try:
-            from sage.libs.integrations import openai as openai_integration
+    @patch("openai.OpenAI")
+    def test_openai_client_exists(self, mock_openai):
+        """Test that OpenAIClient class exists"""
+        from sage.libs.integrations.openai import OpenAIClient
 
-            # Check for common utility functions
-            expected_functions = [
-                "get_openai_client",
-                "create_completion",
-                "create_chat_completion",
-                "create_embedding",
-            ]
+        assert OpenAIClient is not None
+        assert callable(OpenAIClient)
 
-            for func_name in expected_functions:
-                if hasattr(openai_integration, func_name):
-                    assert callable(getattr(openai_integration, func_name))
-        except ImportError:
-            pytest.skip("OpenAI integration not available")
+    @patch("transformers.AutoTokenizer")
+    @patch("transformers.AutoModelForCausalLM")
+    def test_hf_client_exists(self, mock_model, mock_tokenizer):
+        """Test that HFClient class exists"""
+        from sage.libs.integrations.huggingface import HFClient
 
-    def test_huggingface_utils_exist(self):
-        """Test that HuggingFace utility functions exist"""
-        try:
-            from sage.libs.integrations import huggingface as hf_integration
-
-            # Check for common utility functions
-            expected_functions = ["load_model", "create_pipeline", "tokenize_text"]
-
-            for func_name in expected_functions:
-                if hasattr(hf_integration, func_name):
-                    assert callable(getattr(hf_integration, func_name))
-        except ImportError:
-            pytest.skip("HuggingFace integration not available")
+        assert HFClient is not None
+        assert callable(HFClient)

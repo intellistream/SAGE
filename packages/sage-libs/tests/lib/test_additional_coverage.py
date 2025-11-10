@@ -1,9 +1,8 @@
 """
-Unit tests for LLM Planner
+Unit tests for LLM Planner and other components
 """
 
-import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock
 
 
 class TestLLMPlanner:
@@ -11,70 +10,72 @@ class TestLLMPlanner:
 
     def test_llm_planner_init(self):
         """Test LLMPlanner initialization"""
-        try:
-            from sage.libs.agents.planning.llm_planner import LLMPlanner
+        from sage.libs.agents.planning.llm_planner import LLMPlanner
 
-            with patch.object(LLMPlanner, "__init__", return_value=None):
-                planner = LLMPlanner.__new__(LLMPlanner)
-                assert planner is not None
-        except (ImportError, AttributeError):
-            pytest.skip("LLMPlanner not available")
+        mock_generator = MagicMock()
+        planner = LLMPlanner(generator=mock_generator)
+        assert planner is not None
+        assert planner.generator == mock_generator
 
-    @patch("openai.OpenAI")
-    def test_llm_planner_plan_generation(self, mock_openai):
+    def test_llm_planner_plan_generation(self):
         """Test plan generation"""
-        try:
-            from sage.libs.agents.planning.llm_planner import LLMPlanner
+        from sage.libs.agents.planning.llm_planner import LLMPlanner
 
-            mock_client = MagicMock()
-            mock_response = MagicMock()
-            mock_response.choices = [
-                MagicMock(message=MagicMock(content="Step 1: Do something\nStep 2: Do another thing"))
-            ]
-            mock_client.chat.completions.create.return_value = mock_response
-            mock_openai.return_value = mock_client
+        mock_generator = MagicMock()
+        # Mock generator to return valid JSON plan
+        plan_json = '[{"type":"tool","name":"calculator","arguments":{"expr":"2+2"}},{"type":"reply","text":"完成"}]'
+        mock_generator.execute.return_value = ("test query", plan_json)
 
-            planner = LLMPlanner(api_key="test_key")
-            if hasattr(planner, "generate_plan"):
-                plan = planner.generate_plan("Test goal")
-                assert plan is not None
-        except (ImportError, AttributeError):
-            pytest.skip("LLMPlanner not fully available")
+        planner = LLMPlanner(generator=mock_generator, max_steps=3)
+        tools = {
+            "calculator": {
+                "description": "Do math",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"expr": {"type": "string"}},
+                    "required": ["expr"],
+                },
+            }
+        }
+        plan = planner.plan("System prompt", "计算 2+2", tools)
+        assert plan is not None
+        assert len(plan) > 0
 
-    def test_llm_planner_with_custom_model(self):
-        """Test LLMPlanner with custom model"""
-        try:
-            from sage.libs.agents.planning.llm_planner import LLMPlanner
+    def test_llm_planner_with_custom_params(self):
+        """Test LLMPlanner with custom parameters"""
+        from sage.libs.agents.planning.llm_planner import LLMPlanner
 
-            with patch.object(LLMPlanner, "__init__", return_value=None):
-                planner = LLMPlanner.__new__(LLMPlanner)
-                planner.model = "gpt-4"
-                assert planner.model == "gpt-4"
-        except (ImportError, AttributeError):
-            pytest.skip("LLMPlanner not available")
+        mock_generator = MagicMock()
+        planner = LLMPlanner(
+            generator=mock_generator, max_steps=10, enable_repair=False, topk_tools=8
+        )
+        assert planner.max_steps == 10
+        assert planner.enable_repair is False
+        assert planner.topk_tools == 8
 
 
 class TestLLMPlannerErrorHandling:
     """Test error handling in LLMPlanner"""
 
-    @patch("openai.OpenAI")
-    def test_llm_planner_api_error(self, mock_openai):
-        """Test LLMPlanner handles API errors"""
-        try:
-            from sage.libs.agents.planning.llm_planner import LLMPlanner
+    def test_llm_planner_repair_mechanism(self):
+        """Test LLMPlanner repair mechanism when JSON parsing fails"""
+        from sage.libs.agents.planning.llm_planner import LLMPlanner
 
-            mock_client = MagicMock()
-            mock_client.chat.completions.create.side_effect = Exception("API Error")
-            mock_openai.return_value = mock_client
+        mock_generator = MagicMock()
+        # First call returns invalid JSON, second call returns valid JSON
+        plan_json = '[{"type":"reply","text":"修复后的回复"}]'
+        mock_generator.execute.side_effect = [
+            ("test query", "Invalid JSON response"),  # First try fails
+            ("test query", plan_json),  # Repair succeeds
+        ]
 
-            planner = LLMPlanner(api_key="test_key")
-            if hasattr(planner, "generate_plan"):
-                try:
-                    planner.generate_plan("Test goal")
-                except Exception as e:
-                    assert isinstance(e, Exception)
-        except (ImportError, AttributeError):
-            pytest.skip("LLMPlanner not fully available")
+        planner = LLMPlanner(generator=mock_generator, enable_repair=True)
+        tools = {"test_tool": {"description": "Test", "input_schema": {"type": "object"}}}
+        plan = planner.plan("System", "Query", tools)
+
+        # Should have called execute twice (initial + repair)
+        assert mock_generator.execute.call_count == 2
+        assert plan is not None
 
 
 class TestLongRefinerPromptTemplate:
@@ -82,154 +83,108 @@ class TestLongRefinerPromptTemplate:
 
     def test_prompt_template_init(self):
         """Test PromptTemplate initialization"""
-        try:
-            from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
-                PromptTemplate,
-            )
+        from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
+            PromptTemplate,
+        )
 
-            mock_tokenizer = MagicMock()
-            template = PromptTemplate(
-                mock_tokenizer, system_prompt="System", user_prompt="User {query}"
-            )
-            assert template is not None
-        except (ImportError, AttributeError):
-            pytest.skip("PromptTemplate not available")
+        mock_tokenizer = MagicMock()
+        template = PromptTemplate(
+            mock_tokenizer, system_prompt="System", user_prompt="User {query}"
+        )
+        assert template is not None
+        assert template.system_prompt == "System"
+        assert template.user_prompt == "User {query}"
 
-    def test_prompt_template_format(self):
-        """Test PromptTemplate formatting"""
-        try:
-            from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
-                PromptTemplate,
-            )
+    def test_prompt_template_get_prompt(self):
+        """Test PromptTemplate get_prompt method"""
+        from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
+            PromptTemplate,
+        )
 
-            mock_tokenizer = MagicMock()
-            mock_tokenizer.apply_chat_template.return_value = "Formatted prompt"
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.apply_chat_template.return_value = "Formatted prompt"
+        mock_tokenizer.return_value = MagicMock(input_ids=[[1, 2, 3]])
 
-            template = PromptTemplate(
-                mock_tokenizer, system_prompt="System", user_prompt="User {query}"
-            )
+        template = PromptTemplate(
+            mock_tokenizer, system_prompt="System", user_prompt="User {question}"
+        )
 
-            if hasattr(template, "format"):
-                result = template.format(query="test query")
-                assert result is not None
-        except (ImportError, AttributeError):
-            pytest.skip("PromptTemplate not available")
+        # Test get_prompt method which is the actual method
+        result = template.get_prompt(question="test query")
+        assert result is not None
 
 
-class TestAgentBase:
-    """Test Agent base class"""
+class TestBaseTool:
+    """Test BaseTool class"""
 
-    def test_agent_init(self):
-        """Test Agent initialization"""
-        try:
-            from sage.libs.agents.agent import Agent
+    def test_base_tool_init(self):
+        """Test BaseTool initialization"""
+        from sage.libs.tools.tool import BaseTool
 
-            with patch.object(Agent, "__init__", return_value=None):
-                agent = Agent.__new__(Agent)
-                assert agent is not None
-        except (ImportError, AttributeError):
-            pytest.skip("Agent not available")
+        class TestTool(BaseTool):
+            def execute(self, *args, **kwargs):
+                return "result"
 
-    def test_agent_execute(self):
-        """Test Agent execute method"""
-        try:
-            from sage.libs.agents.agent import Agent
+        tool = TestTool(tool_name="test_tool", tool_description="A test tool", input_types=["str"])
+        assert tool is not None
+        assert tool.tool_name == "test_tool"
 
-            with patch.object(Agent, "__init__", return_value=None):
-                agent = Agent.__new__(Agent)
-                agent.execute = MagicMock(return_value="Result")
+    def test_base_tool_execute(self):
+        """Test BaseTool execute method"""
+        from sage.libs.tools.tool import BaseTool
 
-                result = agent.execute("Test input")
-                assert result == "Result"
-        except (ImportError, AttributeError):
-            pytest.skip("Agent not available")
+        class TestTool(BaseTool):
+            def execute(self, *args, **kwargs):
+                return "tool result"
 
+        tool = TestTool(tool_name="test_tool", tool_description="A test tool")
+        result = tool.execute("test input")
+        assert result == "tool result"
 
-class TestToolBase:
-    """Test Tool base class"""
+    def test_base_tool_metadata(self):
+        """Test BaseTool get_metadata method"""
+        from sage.libs.tools.tool import BaseTool
 
-    def test_tool_init(self):
-        """Test Tool initialization"""
-        try:
-            from sage.libs.tools.tool import Tool
+        class TestTool(BaseTool):
+            def execute(self, *args, **kwargs):
+                return "result"
 
-            with patch.object(Tool, "__init__", return_value=None):
-                tool = Tool.__new__(Tool)
-                assert tool is not None
-        except (ImportError, AttributeError):
-            pytest.skip("Tool not available")
-
-    def test_tool_execute(self):
-        """Test Tool execute method"""
-        try:
-            from sage.libs.tools.tool import Tool
-
-            with patch.object(Tool, "__init__", return_value=None):
-                tool = Tool.__new__(Tool)
-                tool.execute = MagicMock(return_value="Tool result")
-
-                result = tool.execute("Test input")
-                assert result == "Tool result"
-        except (ImportError, AttributeError):
-            pytest.skip("Tool not available")
+        tool = TestTool(
+            tool_name="test_tool",
+            tool_description="A test tool",
+            input_types=["str"],
+            output_type="str",
+        )
+        metadata = tool.get_metadata()
+        assert metadata["name"] == "test_tool"
+        assert metadata["description"] == "A test tool"
 
 
-class TestSinkBase:
-    """Test Sink base classes"""
+class TestSink:
+    """Test Sink classes"""
 
-    def test_sink_init(self):
-        """Test Sink initialization"""
-        try:
-            from sage.libs.io.sink import Sink
+    def test_terminal_sink_init(self):
+        """Test TerminalSink initialization"""
+        from sage.libs.io.sink import TerminalSink
 
-            with patch.object(Sink, "__init__", return_value=None):
-                sink = Sink.__new__(Sink)
-                assert sink is not None
-        except (ImportError, AttributeError):
-            pytest.skip("Sink not available")
+        sink = TerminalSink(config={})
+        assert sink is not None
 
-    def test_sink_write(self):
-        """Test Sink write method"""
-        try:
-            from sage.libs.io.sink import Sink
+    def test_terminal_sink_execute_with_dict(self):
+        """Test TerminalSink execute with dict input"""
+        from sage.libs.io.sink import TerminalSink
 
-            with patch.object(Sink, "__init__", return_value=None):
-                sink = Sink.__new__(Sink)
-                sink.write = MagicMock()
+        sink = TerminalSink(config={})
+        data = {"query": "Test question", "answer": "Test answer"}
+        # execute method prints output, we just test it doesn't raise
+        sink.execute(data)
 
-                sink.write("Test data")
-                sink.write.assert_called_once_with("Test data")
-        except (ImportError, AttributeError):
-            pytest.skip("Sink not available")
+    def test_file_sink_init(self):
+        """Test FileSink initialization"""
+        from sage.libs.io.sink import FileSink
 
-
-class TestRefinerBase:
-    """Test Refiner base class"""
-
-    def test_refiner_init(self):
-        """Test Refiner initialization"""
-        try:
-            from sage.libs.context.compression.refiner import Refiner
-
-            with patch.object(Refiner, "__init__", return_value=None):
-                refiner = Refiner.__new__(Refiner)
-                assert refiner is not None
-        except (ImportError, AttributeError):
-            pytest.skip("Refiner not available")
-
-    def test_refiner_refine(self):
-        """Test Refiner refine method"""
-        try:
-            from sage.libs.context.compression.refiner import Refiner
-
-            with patch.object(Refiner, "__init__", return_value=None):
-                refiner = Refiner.__new__(Refiner)
-                refiner.refine = MagicMock(return_value="Refined text")
-
-                result = refiner.refine("Original text")
-                assert result == "Refined text"
-        except (ImportError, AttributeError):
-            pytest.skip("Refiner not available")
+        sink = FileSink(config={})
+        assert sink is not None
 
 
 class TestBaseServiceKernel:
@@ -237,69 +192,33 @@ class TestBaseServiceKernel:
 
     def test_base_service_init(self):
         """Test BaseService initialization"""
-        try:
-            from sage.kernel.api.service.base_service import BaseService
+        from sage.platform.service.base_service import BaseService
 
-            with patch.object(BaseService, "__init__", return_value=None):
-                service = BaseService.__new__(BaseService)
-                assert service is not None
-        except (ImportError, AttributeError):
-            pytest.skip("BaseService not available")
+        class TestService(BaseService):
+            pass
 
-    def test_base_service_start(self):
-        """Test BaseService start method"""
-        try:
-            from sage.kernel.api.service.base_service import BaseService
+        service = TestService()
+        assert service is not None
 
-            with patch.object(BaseService, "__init__", return_value=None):
-                service = BaseService.__new__(BaseService)
-                service.start = MagicMock()
+    def test_base_service_logger_property(self):
+        """Test BaseService logger property"""
+        from sage.platform.service.base_service import BaseService
 
-                service.start()
-                service.start.assert_called_once()
-        except (ImportError, AttributeError):
-            pytest.skip("BaseService not available")
+        class TestService(BaseService):
+            pass
 
-    def test_base_service_stop(self):
-        """Test BaseService stop method"""
-        try:
-            from sage.kernel.api.service.base_service import BaseService
+        service = TestService()
+        # logger is a property
+        logger = service.logger
+        assert logger is not None
 
-            with patch.object(BaseService, "__init__", return_value=None):
-                service = BaseService.__new__(BaseService)
-                service.stop = MagicMock()
+    def test_base_service_name_property(self):
+        """Test BaseService name property"""
+        from sage.platform.service.base_service import BaseService
 
-                service.stop()
-                service.stop.assert_called_once()
-        except (ImportError, AttributeError):
-            pytest.skip("BaseService not available")
+        class TestService(BaseService):
+            pass
 
-
-class TestLocalTCPServer:
-    """Test LocalTCPServer"""
-
-    def test_local_tcp_server_init(self):
-        """Test LocalTCPServer initialization"""
-        try:
-            from sage.common.utils.network.local_tcp_server import LocalTCPServer
-
-            with patch.object(LocalTCPServer, "__init__", return_value=None):
-                server = LocalTCPServer.__new__(LocalTCPServer)
-                assert server is not None
-        except (ImportError, AttributeError):
-            pytest.skip("LocalTCPServer not available")
-
-    @patch("socket.socket")
-    def test_local_tcp_server_start(self, mock_socket):
-        """Test LocalTCPServer start method"""
-        try:
-            from sage.common.utils.network.local_tcp_server import LocalTCPServer
-
-            mock_sock = MagicMock()
-            mock_socket.return_value = mock_sock
-
-            server = LocalTCPServer(host="localhost", port=8080)
-            if hasattr(server, "start"):
-                server.start()
-        except (ImportError, AttributeError):
-            pytest.skip("LocalTCPServer not fully available")
+        service = TestService()
+        # name should default to class name
+        assert service.name == "TestService"
