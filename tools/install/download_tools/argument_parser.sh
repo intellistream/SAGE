@@ -146,17 +146,46 @@ show_installation_menu() {
     # 选择安装环境
     while true; do
         echo -e "${BOLD}2. 选择安装环境：${NC}"
+        
+        # 检查 conda 是否可用
+        local conda_available=false
+        if command -v conda &> /dev/null; then
+            conda_available=true
+        fi
 
         if [ "$recommended_env" = "pip" ]; then
-            # 推荐使用当前环境
-            echo -e "  ${PURPLE}1)${NC} 使用当前环境 ${DIM}(推荐，已在虚拟环境中)${NC}"
-            echo -e "  ${GREEN}2)${NC} 创建新的 Conda 环境"
-            local default_choice=1
+            # 推荐使用当前环境（仅当在虚拟环境中）
+            if [ "$current_env_type" = "system" ]; then
+                # 在系统环境中，不推荐使用，建议创建虚拟环境
+                echo -e "  ${PURPLE}1)${NC} 使用当前系统环境 ${DIM}(不推荐，建议使用虚拟环境)${NC}"
+                if [ "$conda_available" = true ]; then
+                    echo -e "  ${GREEN}2)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
+                    local default_choice=2
+                else
+                    echo -e "  ${GRAY}2)${NC} 创建新的 Conda 环境 ${DIM}(conda 未安装)${NC}"
+                    local default_choice=1
+                fi
+            else
+                # 在虚拟环境中，推荐使用当前环境
+                echo -e "  ${GREEN}1)${NC} 使用当前环境 ${DIM}(推荐，已在虚拟环境中)${NC}"
+                if [ "$conda_available" = true ]; then
+                    echo -e "  ${PURPLE}2)${NC} 创建新的 Conda 环境"
+                else
+                    echo -e "  ${GRAY}2)${NC} 创建新的 Conda 环境 ${DIM}(conda 未安装)${NC}"
+                fi
+                local default_choice=1
+            fi
         else
             # 推荐创建conda环境
-            echo -e "  ${GREEN}1)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
-            echo -e "  ${PURPLE}2)${NC} 使用当前系统环境"
-            local default_choice=1
+            if [ "$conda_available" = true ]; then
+                echo -e "  ${GREEN}1)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
+                echo -e "  ${PURPLE}2)${NC} 使用当前系统环境 ${DIM}(不推荐)${NC}"
+                local default_choice=1
+            else
+                echo -e "  ${GRAY}1)${NC} 创建新的 Conda 环境 ${DIM}(conda 未安装)${NC}"
+                echo -e "  ${GREEN}2)${NC} 使用当前系统环境 ${DIM}(推荐，因为 conda 不可用)${NC}"
+                local default_choice=2
+            fi
         fi
 
         echo ""
@@ -167,15 +196,31 @@ show_installation_menu() {
                 if [ "$recommended_env" = "pip" ]; then
                     INSTALL_ENVIRONMENT="pip"
                 else
-                    INSTALL_ENVIRONMENT="conda"
-                    prompt_conda_env_name
+                    if [ "$conda_available" = true ]; then
+                        INSTALL_ENVIRONMENT="conda"
+                        prompt_conda_env_name
+                    else
+                        echo -e "${RED}❌ Conda 未安装！${NC}"
+                        echo -e "${YELLOW}请先安装 Conda 或选择使用当前环境${NC}"
+                        echo -e "${YELLOW}访问 https://docs.conda.io/en/latest/miniconda.html 下载安装${NC}"
+                        echo ""
+                        continue
+                    fi
                 fi
                 break
                 ;;
             2)
                 if [ "$recommended_env" = "pip" ]; then
-                    INSTALL_ENVIRONMENT="conda"
-                    prompt_conda_env_name
+                    if [ "$conda_available" = true ]; then
+                        INSTALL_ENVIRONMENT="conda"
+                        prompt_conda_env_name
+                    else
+                        echo -e "${RED}❌ Conda 未安装！${NC}"
+                        echo -e "${YELLOW}请先安装 Conda 或选择使用当前环境 (选项 1)${NC}"
+                        echo -e "${YELLOW}访问 https://docs.conda.io/en/latest/miniconda.html 下载安装${NC}"
+                        echo ""
+                        continue
+                    fi
                 else
                     INSTALL_ENVIRONMENT="pip"
                 fi
