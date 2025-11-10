@@ -4,6 +4,16 @@ Unit tests for LLM Planner and other components
 
 from unittest.mock import MagicMock
 
+import pytest
+
+# Check if vllm is available
+try:
+    import vllm  # noqa: F401
+
+    VLLM_AVAILABLE = True
+except ImportError:
+    VLLM_AVAILABLE = False
+
 
 class TestLLMPlanner:
     """Test LLMPlanner class"""
@@ -81,6 +91,7 @@ class TestLLMPlannerErrorHandling:
 class TestLongRefinerPromptTemplate:
     """Test PromptTemplate class"""
 
+    @pytest.mark.skipif(not VLLM_AVAILABLE, reason="vllm not available")
     def test_prompt_template_init(self):
         """Test PromptTemplate initialization"""
         from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
@@ -95,6 +106,7 @@ class TestLongRefinerPromptTemplate:
         assert template.system_prompt == "System"
         assert template.user_prompt == "User {query}"
 
+    @pytest.mark.skipif(not VLLM_AVAILABLE, reason="vllm not available")
     def test_prompt_template_get_prompt(self):
         """Test PromptTemplate get_prompt method"""
         from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
