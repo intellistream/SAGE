@@ -8,7 +8,14 @@ import pytest
 import torch
 
 # Check if vllm is available
-pytest.importorskip("vllm", reason="vllm is required for LongRefiner tests")
+try:
+    import vllm  # noqa: F401
+
+    VLLM_AVAILABLE = True
+except ImportError:
+    VLLM_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(not VLLM_AVAILABLE, reason="vllm is required for LongRefiner tests")
 
 
 class TestLongRefinerInit:
