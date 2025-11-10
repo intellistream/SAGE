@@ -209,7 +209,7 @@ class RayQueueProxy:
         remote_size = ray.get(self.manager.size.remote(self.queue_id))
         with self._put_lock:
             buffer_size: int = len(self._put_buffer)
-        return remote_size + buffer_size  # type: ignore[return-value]
+        return int(remote_size) + buffer_size
 
     def qsize(self) -> int:
         """获取队列大小（兼容性方法）"""
@@ -360,10 +360,21 @@ class RayQueueManager:
         q = self.queues[queue_id]
         results: list[Any] = []
 
+        def _get_item_timeout(i: int, timeout: Optional[float]) -> float:
+            """
+            Helper to determine timeout for each item in batch get.
+            First item uses provided timeout, subsequent items use min(0.1, timeout) if timeout is set, else 0.1.
+            """
+            if i == 0:
+                return timeout
+            if timeout:
+                return min(0.1, timeout)
+            return 0.1
+
         for i in range(count):
             try:
                 # 第一个item使用提供的timeout，后续使用更短的timeout避免整体阻塞
-                item_timeout = timeout if i == 0 else min(0.1, timeout) if timeout else 0.1
+                item_timeout = _get_item_timeout(i, timeout)
                 item = q.get(timeout=item_timeout)
                 results.append(item)
             except queue.Empty:
