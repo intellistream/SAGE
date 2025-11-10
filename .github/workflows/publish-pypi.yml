@@ -9,9 +9,11 @@ on:
       - 'docs/**'
       - 'docs-public/**'
       - 'examples/**'
-      - '*.md'           # 只忽略根目录的 .md 文件（如 README.md）
-      - 'docs/**.md'     # 忽略 docs 目录下的 .md
-      - 'examples/**.md' # 忽略 examples 目录下的 .md
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE/**'
       # 不再忽略 .github/workflows/ 目录下的任何文件
 
   # 当 PR 被 merge 到 main 时触发（作为 push 事件的补充）

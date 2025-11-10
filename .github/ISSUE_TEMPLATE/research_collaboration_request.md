@@ -1,32 +1,37 @@
-______________________________________________________________________
+---
+name: Research Collaboration Request
+about: Request collaboration on a research topic, project, or experiment
+title: '[Collaboration] '
+labels: collaboration
+assignees: ''
 
-## name: "Research Collaboration Request" about: "Request collaboration on a research topic, project, or experiment" title: "[Collaboration] " labels: collaboration assignees: ''
+---
 
-## Collaboration Topic
+**Collaboration Topic**
 
 Describe the research topic or project for which collaboration is needed.
 
-## Objective
+**Objective**
 
 Explain the goal of the collaboration and any specific questions or challenges.
 
-## Expertise Needed
+**Expertise Needed**
 
 Describe the skills or expertise required from potential collaborators (e.g., NLP, database systems,
 GPU optimization).
 
-## Proposed Tasks
+**Proposed Tasks**
 
 List potential tasks or roles collaborators could take on.
 
-## Expected Timeline
+**Expected Timeline**
 
 Provide a rough timeline for the collaboration.
 
-## Resources Available
+**Resources Available**
 
 List any resources or datasets that the team can provide to collaborators.
 
-## Additional Notes
+**Additional Notes**
 
 Add any other relevant context, links to related work, or specific collaboration needs.
