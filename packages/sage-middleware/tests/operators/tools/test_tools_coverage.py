@@ -20,16 +20,16 @@ class TestImageCaptioner:
         except (ImportError, AttributeError):
             pytest.skip("ImageCaptioner not available")
 
-    @patch("sage.libs.integrations.openaiclient.OpenAIClient")
-    def test_image_captioner_execute(self, mock_openai_client):
+    @patch("sage.middleware.operators.tools.image_captioner.OpenAIClient")
+    def test_image_captioner_execute(self, mock_openai_client_class):
         """Test ImageCaptioner execute method"""
         try:
             from sage.middleware.operators.tools.image_captioner import ImageCaptioner
 
-            # Mock OpenAI client
+            # Mock OpenAI client instance
             mock_client_instance = MagicMock()
             mock_client_instance.generate.return_value = "A photo of a cat"
-            mock_openai_client.return_value = mock_client_instance
+            mock_openai_client_class.return_value = mock_client_instance
 
             captioner = ImageCaptioner()
 
@@ -37,6 +37,7 @@ class TestImageCaptioner:
             if hasattr(captioner, "execute"):
                 result = captioner.execute(image_path="test_image.jpg")
                 assert result is not None
+                assert result == "A photo of a cat"
         except (ImportError, AttributeError):
             pytest.skip("ImageCaptioner not available")
 
