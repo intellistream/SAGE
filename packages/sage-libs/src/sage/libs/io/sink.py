@@ -114,7 +114,7 @@ class MemWriteSink(SinkFunction):
         with open(self.file_path, "w", encoding="utf-8") as f:
             f.write("=== Memory String Log ===\n")
 
-    def execute(self, data: str | list[str] | tuple[str, str]):
+    def execute(self, data: str | list[str] | tuple[str, ...] | Any):
         # 解析输入数据为字符串列表
         input_data = data
         strings = self._parse_input(input_data)

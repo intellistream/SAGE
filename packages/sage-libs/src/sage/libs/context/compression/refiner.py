@@ -55,7 +55,8 @@ class RefineResult:
 
     refined_content: str | list[str]  # 精炼后的内容
     metrics: RefinerMetrics  # 性能指标
-    original_content: str | list[str] | None = None  # 原始内容（可选保留）
+    # Allow original content to preserve the input format (str/dict)
+    original_content: str | list[str] | list[str | dict[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""

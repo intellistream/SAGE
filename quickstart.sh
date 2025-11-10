@@ -174,6 +174,9 @@ main() {
 
         # 检查 sage-dev 是否可用
         if { [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || { [ -z "$SAGE_ENV_NAME" ] && command -v sage-dev >/dev/null 2>&1; }; then
+            echo -e "${DIM}   配置 Git hooks（代码质量检查）...${NC}"
+            echo -e "${YELLOW}   ⏳ 首次安装可能需要 5-10 分钟下载和配置 hooks 环境...${NC}"
+            echo -e "${DIM}   （ruff, mypy, shellcheck, mdformat 等工具）${NC}"
             # 使用静默模式避免过多输出
             if $sage_dev_cmd maintain hooks install --quiet 2>&1; then
                 echo -e "${GREEN}✅ Git hooks 已安装${NC}"

@@ -96,6 +96,12 @@ install_core_packages() {
 
     required_packages+=("packages/sage")
 
+    # 切换到项目根目录进行检查和安装
+    cd "$project_root" || {
+        echo -e "${CROSS} 错误：无法切换到项目根目录 $project_root"
+        return 1
+    }
+
     for package_dir in "${required_packages[@]}"; do
         if [ ! -d "$package_dir" ]; then
             echo -e "${CROSS} 错误：找不到包目录 ($package_dir)"

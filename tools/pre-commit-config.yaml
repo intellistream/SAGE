@@ -113,6 +113,8 @@ repos:
         "^examples/.*/README\.md$"
         "^examples/tutorials/"
         "^\.sage/.*\.md$"
+        "^\.github/ISSUE_TEMPLATE/"
+        "^\.github/PULL_REQUEST_TEMPLATE/"
       )
 
       # Check each file
@@ -143,6 +145,7 @@ repos:
         echo "  - 包文档: packages/<package-name>/README.md, packages/<package-name>/CHANGELOG.md"
         echo "  - 包文档目录: packages/<package-name>/docs/, packages/<package-name>/documentation/"
         echo "  - 示例文档: examples/<example-name>/README.md, examples/tutorials/"
+        echo "  - GitHub 模板: .github/ISSUE_TEMPLATE/, .github/PULL_REQUEST_TEMPLATE/"
         echo ""
         echo "💡 建议: 请将文档移动到合适的位置或更新允许列表"
         exit 1

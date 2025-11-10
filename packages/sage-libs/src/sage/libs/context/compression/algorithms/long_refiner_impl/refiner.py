@@ -1,7 +1,9 @@
+import json
+import logging
 import re
 
-import json_repair
 import numpy as np
+import torch
 from tqdm import tqdm
 from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 from vllm import LLM, SamplingParams
@@ -37,6 +39,7 @@ class LongRefiner:
         # 保存GPU设备参数
         self.gpu_device = gpu_device
         self.score_gpu_device = score_gpu_device if score_gpu_device is not None else gpu_device
+        self.logger = logging.getLogger(__name__)
 
         # load refine model
         self._load_trained_model(
@@ -137,7 +140,9 @@ class LongRefiner:
         return all_scores
 
     def _cal_score_reranker(self, all_pairs: list[tuple[str, str]]) -> list[float]:
-        import torch
+        # Type assertion: score_tokenizer and score_model are not None when using reranker
+        assert self.score_tokenizer is not None, "score_tokenizer must be initialized for reranker"
+        assert self.score_model is not None, "score_model must be initialized for reranker"
 
         all_scores = []
         batch_size = 256
@@ -177,6 +182,8 @@ class LongRefiner:
     def _cal_score_sbert(self, all_pairs: list[tuple[str, str]]) -> list[float]:
         def pooling(pooler_output, last_hidden_state, attention_mask=None, pooling_method="mean"):
             if pooling_method == "mean":
+                # Type assertion: attention_mask is provided for mean pooling
+                assert attention_mask is not None, "attention_mask required for mean pooling"
                 last_hidden = last_hidden_state.masked_fill(~attention_mask[..., None].bool(), 0.0)
                 return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
             elif pooling_method == "cls":
@@ -186,7 +193,9 @@ class LongRefiner:
             else:
                 raise NotImplementedError("Pooling method not implemented!")
 
-        import torch
+        # Type assertion: score_tokenizer and score_model are not None when using sbert
+        assert self.score_tokenizer is not None, "score_tokenizer must be initialized for sbert"
+        assert self.score_model is not None, "score_model must be initialized for sbert"
 
         batch_size = 512
         all_scores = []
@@ -296,7 +305,7 @@ class LongRefiner:
             ratio: float, the ratio of the token budget for the score model (only used when ratio is not None, and the priority of `budget` is higher)
 
         Output:
-            List[str], each string is a refiner output of the document in document_list
+            List[List[str]], each inner list contains refined content for one query's documents
         """
         print(
             f"DEBUG: batch_run called with {len(question_list)} questions, {len(document_list)} doc_lists"
@@ -357,11 +366,13 @@ class LongRefiner:
         query_analysis_result = []
         for output in output_list:
             # set init prob for special token
-            special_token_prob = dict.fromkeys(special_token, -100)
-            logprobs = output.outputs[0].logprobs[1]
+            special_token_prob: dict[str, float] = dict.fromkeys(special_token, -100.0)
+            # vLLM output types are not fully typed, using subscript access
+            logprobs = output.outputs[0].logprobs[1]  # type: ignore[index]
             for token_id, logprob in logprobs.items():
                 if token_id in id2special:
-                    special_token_prob[id2special[token_id]] = logprob.logprob
+                    # logprob.logprob is a float from vLLM library
+                    special_token_prob[id2special[token_id]] = float(logprob.logprob)
             for k, v in special_token_prob.items():
                 special_token_prob[k] = np.exp(v)
             query_analysis_result.append(special_token_prob)
@@ -473,7 +484,15 @@ class LongRefiner:
             item_global_selection_result = []
             for doc in item_doc_list:
                 selected_title = output_list[idx].outputs[0].text
-                selected_title = json_repair.loads(selected_title)
+                try:
+                    selected_title = json.loads(selected_title)
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, treat as empty selection
+                    self.logger.warning(
+                        "Failed to parse LLM output as JSON, treating as empty selection. Output: %s",
+                        selected_title[:100] if len(selected_title) > 100 else selected_title,
+                    )
+                    selected_title = []
                 if isinstance(selected_title, dict):
                     selected_title = selected_title.get("selected_titles", [])
                 elif len(selected_title) > 1 and isinstance(selected_title[0], dict):
@@ -504,7 +523,7 @@ class LongRefiner:
             ) + self.tokenizer.decode(tokenized_content[-half:], skip_special_tokens=True)
         return doc_content
 
-    def _fill_single_sequence(self, content: str, part_sequence: str) -> str:
+    def _fill_single_sequence(self, content: str, part_sequence: str) -> str | None:
         # generate regex pattern for part_sequence
         if "..." in part_sequence:
             first_part, last_part = (
@@ -526,7 +545,7 @@ class LongRefiner:
         else:
             return full_content[-1]
 
-    def _fill_full_content(self, content: str, part_content: str) -> str:
+    def _fill_full_content(self, content: str, part_content: str) -> str | None:
         """
         Fill in placeholders in part_comtent. Fill in according to split paragraphs.
 
@@ -759,7 +778,7 @@ class LongRefiner:
         query_analysis_result: list[dict],
         budget: int,
         ratio: float | None = None,
-    ) -> list[str]:
+    ) -> list[list[str]]:
         """
         Args:
             question_list: List[str], each question is a string
@@ -769,7 +788,7 @@ class LongRefiner:
             budget: int, the final token budget for the refine model
             ratio: float, the ratio of the token budget for the score model (only used when ratio is not None, and the priority of `budget` is higher)
         Output:
-            List[str], each string is a refiner output of the document in document_list
+            List[List[str]], each inner list contains refiner outputs for one query's documents
         """
         # collect hierarchical nodes
         # print(doc_structuring_result[0][0])
@@ -934,8 +953,10 @@ class LongRefiner:
                 print(node)
                 print("-----")
 
-        final_contents_list = [
-            [node["contents"] for node in item_node_list] for item_node_list in refined_node_list
+        # Extract contents from nodes - each node["contents"] is a str
+        final_contents_list: list[list[str]] = [
+            [str(node["contents"]) for node in item_node_list]
+            for item_node_list in refined_node_list
         ]
         return final_contents_list
 
@@ -947,7 +968,7 @@ class LongRefiner:
         all_nodes: list[dict],
         idx2node: dict,
         budget: int,
-        ratio: float,
+        ratio: float | None,
     ) -> list[list[dict]]:
         # process budget and ratio
         if budget is None:
