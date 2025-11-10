@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 
 import numpy as np
@@ -38,6 +39,7 @@ class LongRefiner:
         # 保存GPU设备参数
         self.gpu_device = gpu_device
         self.score_gpu_device = score_gpu_device if score_gpu_device is not None else gpu_device
+        self.logger = logging.getLogger(__name__)
 
         # load refine model
         self._load_trained_model(
@@ -364,7 +366,7 @@ class LongRefiner:
         query_analysis_result = []
         for output in output_list:
             # set init prob for special token
-            special_token_prob: dict[str, float] = dict.fromkeys(special_token, -100)  # type: ignore[arg-type]
+            special_token_prob: dict[str, float] = dict.fromkeys(special_token, -100.0)
             # vLLM output types are not fully typed, using subscript access
             logprobs = output.outputs[0].logprobs[1]  # type: ignore[index]
             for token_id, logprob in logprobs.items():
@@ -486,6 +488,10 @@ class LongRefiner:
                     selected_title = json.loads(selected_title)
                 except json.JSONDecodeError:
                     # If JSON parsing fails, treat as empty selection
+                    self.logger.warning(
+                        "Failed to parse LLM output as JSON, treating as empty selection. Output: %s",
+                        selected_title[:100] if len(selected_title) > 100 else selected_title,
+                    )
                     selected_title = []
                 if isinstance(selected_title, dict):
                     selected_title = selected_title.get("selected_titles", [])
