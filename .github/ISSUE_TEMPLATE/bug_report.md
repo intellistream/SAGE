@@ -1,37 +1,38 @@
-______________________________________________________________________
+---
+name: Bug report
+about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
 
-## name: "Bug Report" about: "Report a bug or unexpected behavior" title: "[Bug] " labels: bug assignees: ''
+---
 
-## Description
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-A clear and concise description of the bug.
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
-## Steps to Reproduce
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-1. List the steps to reproduce the bug.
-1. Include specific commands, actions, or navigation.
-1. Example:
-   - Open the application
-   - Click on "Feature X"
-   - Observe the behavior
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-## Expected Behavior
+**Desktop (please complete the following information):**
+ - OS: [e.g. iOS]
+ - Browser [e.g. chrome, safari]
+ - Version [e.g. 22]
 
-What did you expect to happen?
+**Smartphone (please complete the following information):**
+ - Device: [e.g. iPhone6]
+ - OS: [e.g. iOS8.1]
+ - Browser [e.g. stock browser, safari]
+ - Version [e.g. 22]
 
-## Actual Behavior
-
-What actually happened? Include any error messages or unexpected behavior observed.
-
-## Environment
-
-- **OS**: (e.g., Windows, macOS, Linux)
-- **Version**: (e.g., application version, library version)
-- **Browser**: (if applicable, include browser and version)
-
-## Additional Context
-
-Add any other context about the problem, such as logs, screenshots, or configuration files that
-might be relevant.
-
-**Example**: (Optional) Provide a short example of the issue, if applicable.
+**Additional context**
+Add any other context about the problem here.
