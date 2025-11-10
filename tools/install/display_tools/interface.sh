@@ -271,10 +271,23 @@ show_usage_tips() {
     echo -e "  ${GRAY}./examples/  # 查看示例代码${NC}"
     echo ""
 
-    # 如果是开发模式且使用了 conda 环境，提示创建 VS Code 配置
+    # 如果是开发模式且使用了 conda 环境，自动配置 VS Code
     if [ "$mode" = "dev" ] && [ -n "$SAGE_ENV_NAME" ]; then
-        echo -e "${DIM}💡 开发者提示: 运行以下命令自动配置 VS Code:${NC}"
-        echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+        echo -e "${INFO} 配置 VS Code 开发环境..."
+
+        local vscode_script="$SCRIPT_DIR/../../config/setup_vscode_conda.sh"
+        if [ -f "$vscode_script" ]; then
+            if bash "$vscode_script" "$SAGE_ENV_NAME" --auto 2>/dev/null; then
+                echo -e "${GREEN}✅ VS Code 配置完成${NC}"
+                echo -e "${DIM}   终端将自动激活 conda 环境 '$SAGE_ENV_NAME'${NC}"
+            else
+                echo -e "${YELLOW}⚠️  自动配置失败，可手动运行:${NC}"
+                echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+            fi
+        else
+            echo -e "${DIM}💡 开发者提示: 运行以下命令配置 VS Code:${NC}"
+            echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+        fi
         echo ""
     fi
 }
