@@ -14,11 +14,10 @@ jobs:
   auto-sync-submodules:
     name: Auto-Sync Submodules to main
     runs-on: ubuntu-latest
-    # Only run when main-dev was merged to main, or manual trigger
+    # Skip version bump commits to avoid unnecessary runs, otherwise sync on any push to main or manual trigger
     if: |
       (github.event_name == 'push' &&
-       contains(github.event.head_commit.message, 'Merge') &&
-       contains(github.event.head_commit.message, 'main-dev')) ||
+       !contains(github.event.head_commit.message, '[version bump]')) ||
       github.event_name == 'workflow_dispatch'
 
     steps:
