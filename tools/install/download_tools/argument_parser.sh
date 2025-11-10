@@ -215,15 +215,22 @@ show_installation_menu() {
                             if install_miniconda; then
                                 echo ""
                                 echo -e "${GREEN}✅ Conda 安装成功！${NC}"
-                                # 重新加载环境以使 conda 命令可用
-                                if [ -f "$HOME/.bashrc" ]; then
-                                    source "$HOME/.bashrc"
-                                fi
-                                # 更新 conda 可用状态
-                                conda_available=true
-                                INSTALL_ENVIRONMENT="conda"
-                                prompt_conda_env_name
-                                break
+                                echo ""
+                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                                echo -e "${BOLD}⚠️  需要重新运行安装脚本${NC}"
+                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                                echo ""
+                                echo -e "${INFO} Conda 已安装，但需要重新加载 shell 环境才能使用"
+                                echo ""
+                                echo -e "${BOLD}请执行以下步骤：${NC}"
+                                echo -e "  ${GREEN}1)${NC} 关闭当前终端并打开新终端"
+                                echo -e "     ${DIM}或${NC} 运行: ${CYAN}source ~/.bashrc${NC}"
+                                echo ""
+                                echo -e "  ${GREEN}2)${NC} 重新运行安装脚本: ${CYAN}./quickstart.sh${NC}"
+                                echo ""
+                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                                echo ""
+                                exit 0
                             else
                                 echo -e "${RED}❌ Conda 安装失败${NC}"
                                 echo -e "${YELLOW}请手动安装或选择使用当前环境${NC}"
@@ -254,15 +261,22 @@ show_installation_menu() {
                             if install_miniconda; then
                                 echo ""
                                 echo -e "${GREEN}✅ Conda 安装成功！${NC}"
-                                # 重新加载环境以使 conda 命令可用
-                                if [ -f "$HOME/.bashrc" ]; then
-                                    source "$HOME/.bashrc"
-                                fi
-                                # 更新 conda 可用状态
-                                conda_available=true
-                                INSTALL_ENVIRONMENT="conda"
-                                prompt_conda_env_name
-                                break
+                                echo ""
+                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                                echo -e "${BOLD}⚠️  需要重新运行安装脚本${NC}"
+                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                                echo ""
+                                echo -e "${INFO} Conda 已安装，但需要重新加载 shell 环境才能使用"
+                                echo ""
+                                echo -e "${BOLD}请执行以下步骤：${NC}"
+                                echo -e "  ${GREEN}1)${NC} 关闭当前终端并打开新终端"
+                                echo -e "     ${DIM}或${NC} 运行: ${CYAN}source ~/.bashrc${NC}"
+                                echo ""
+                                echo -e "  ${GREEN}2)${NC} 重新运行安装脚本: ${CYAN}./quickstart.sh${NC}"
+                                echo ""
+                                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                                echo ""
+                                exit 0
                             else
                                 echo -e "${RED}❌ Conda 安装失败${NC}"
                                 echo -e "${YELLOW}请手动安装或选择使用当前环境 (选项 1)${NC}"
