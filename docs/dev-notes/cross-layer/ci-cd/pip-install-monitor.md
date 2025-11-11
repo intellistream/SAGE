@@ -1,5 +1,14 @@
 # 🔍 PIP 安装监控工具
 
+**Date**: 2025-11-11  
+**Author**: SAGE Development Team  
+**Summary**: PIP installation monitoring tool to detect and prevent dependency pollution in SAGE installation process  
+**Type**: Tool Documentation  
+**Status**: Completed  
+**Related**: CI/CD Pipeline, Installation Process
+
+---
+
 ## 📖 概述
 
 `pip_install_monitor.sh` 是一个用于检测 SAGE 安装过程中依赖污染问题的监控工具。它会分析 pip 安装日志，检测是否从 PyPI 意外下载了应该使用本地版本的 SAGE

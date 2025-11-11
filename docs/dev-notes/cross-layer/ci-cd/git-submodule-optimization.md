@@ -1,5 +1,14 @@
 # Git Submodule 克隆速度优化
 
+**Date**: 2025-11-11  
+**Author**: SAGE Development Team  
+**Summary**: Git submodule cloning speed optimization guide with parallel fetching and shallow cloning  
+**Type**: Performance Optimization  
+**Status**: Completed  
+**Related**: CI/CD Pipeline, Installation Process
+
+---
+
 ## 🐌 问题
 
 在克隆 SAGE 项目时，submodule 克隆速度很慢，主要原因：
