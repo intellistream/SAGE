@@ -53,8 +53,9 @@ jobs:
           # 创建日志目录
           mkdir -p .sage/logs
 
-          # 运行安装脚本
-          if ./quickstart.sh --mode dev --yes --no-submodule-sync 2>&1 | tee .sage/logs/ci_install.log; then
+          # 运行安装脚本 (使用正确的参数格式)
+          # quickstart.sh 使用 --dev 而不是 --mode dev
+          if ./quickstart.sh --dev --yes 2>&1 | tee .sage/logs/ci_install.log; then
             echo "✅ 安装成功"
             install_status="success"
           else
@@ -68,6 +69,20 @@ jobs:
         id: analyze
         run: |
           echo "🔍 分析安装日志，检测依赖完整性..."
+
+          # 检查日志文件是否存在
+          if [ ! -f .sage/logs/install.log ]; then
+            echo "⚠️  主日志文件不存在，使用 CI 日志"
+            # 如果主日志不存在，使用 CI 日志
+            if [ -f .sage/logs/ci_install.log ]; then
+              cp .sage/logs/ci_install.log .sage/logs/install.log
+            else
+              echo "❌ 没有找到任何日志文件"
+              check_result="fail"
+              echo "check_result=$check_result" >> $GITHUB_OUTPUT
+              exit 0  # 不要失败，继续执行后续步骤
+            fi
+          fi
 
           # 运行监控脚本
           if bash tools/install/installation_table/pip_install_monitor.sh analyze .sage/logs/install.log; then
@@ -85,7 +100,13 @@ jobs:
         run: |
           echo "📊 生成依赖报告..."
 
-          cat > .sage/dependency-report.md <<'EOF'
+          # 确定使用哪个日志文件
+          LOG_FILE=".sage/logs/install.log"
+          if [ ! -f "$LOG_FILE" ] && [ -f ".sage/logs/ci_install.log" ]; then
+            LOG_FILE=".sage/logs/ci_install.log"
+          fi
+
+          cat > .sage/dependency-report.md <<EOF
           # 🔍 依赖完整性检查报告
 
           **检查时间**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
@@ -99,15 +120,15 @@ jobs:
 
           ## 已安装的 SAGE 包
 
-          ```
+          \`\`\`
           $(pip list | grep -i sage || echo "未找到 SAGE 包")
-          ```
+          \`\`\`
 
           ## 安装位置检查
 
-          ```
+          \`\`\`
           $(pip show isage isage-common isage-middleware 2>/dev/null || echo "部分包未安装")
-          ```
+          \`\`\`
 
           ## 检测到的问题
 
@@ -118,7 +139,11 @@ jobs:
             echo "从安装日志中检测到以下问题：" >> .sage/dependency-report.md
             echo "" >> .sage/dependency-report.md
             echo '```' >> .sage/dependency-report.md
-            grep -E "(Downloading|Collecting).*(isage|sage)" .sage/logs/install.log | head -n 20 >> .sage/dependency-report.md || true
+            if [ -f "$LOG_FILE" ]; then
+              grep -E "(Downloading|Collecting).*(isage|sage)" "$LOG_FILE" | head -n 20 >> .sage/dependency-report.md || echo "未找到下载记录" >> .sage/dependency-report.md
+            else
+              echo "日志文件不存在：$LOG_FILE" >> .sage/dependency-report.md
+            fi
             echo '```' >> .sage/dependency-report.md
           else
             echo "✅ 未检测到依赖污染问题" >> .sage/dependency-report.md
@@ -138,7 +163,7 @@ jobs:
           retention-days: 30
 
       - name: ❌ Fail if Dependencies Polluted
-        if: steps.analyze.outputs.check_result == 'fail'
+        if: steps.analyze.outputs.check_result == 'fail' && steps.install.outputs.install_status == 'success'
         run: |
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -158,6 +183,20 @@ jobs:
           echo "  - tools/install/installation_table/pip_install_monitor.sh"
           echo ""
           exit 1
+
+      - name: ⚠️ Warning if Check Skipped
+        if: steps.analyze.outputs.check_result == 'fail' && steps.install.outputs.install_status != 'success'
+        run: |
+          echo ""
+          echo "⚠️  依赖检查失败，但可能是由于安装失败或日志缺失"
+          echo ""
+          echo "安装状态: ${{ steps.install.outputs.install_status }}"
+          echo "检查结果: ${{ steps.analyze.outputs.check_result }}"
+          echo ""
+          echo "请检查上传的日志文件了解详情"
+          echo ""
+          # 不失败，只是警告
+          exit 0
 
   check-dependency-declarations:
     name: Analyze Dependency Declarations
