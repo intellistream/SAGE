@@ -291,6 +291,27 @@ install_sage() {
     echo "安装结束时间: $(date)" >> "$log_file"
     echo "========================================" >> "$log_file"
 
+    # 🔍 CI/CD 检查：验证没有从 PyPI 下载本地包
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" ]]; then
+        echo ""
+        echo -e "${BLUE}🔍 CI/CD 安全检查：验证依赖完整性...${NC}"
+
+        local monitor_script="$project_root/tools/install/installation_table/pip_install_monitor.sh"
+        if [ -f "$monitor_script" ]; then
+            if bash "$monitor_script" analyze "$log_file"; then
+                echo -e "${CHECK} 依赖完整性检查通过"
+            else
+                echo -e "${WARNING} 依赖完整性检查失败！"
+                echo -e "${RED}检测到从 PyPI 下载了本地包，这是一个严重的配置错误！${NC}"
+                echo -e "${YELLOW}请检查 pyproject.toml 中的依赖声明${NC}"
+                # 在 CI 中这是一个错误，但不中断安装（允许查看完整日志）
+                echo "DEPENDENCY_VIOLATION_DETECTED=true" >> "$GITHUB_ENV" || true
+            fi
+        else
+            echo -e "${DIM}监控脚本不存在，跳过检查${NC}"
+        fi
+    fi
+
     # 显示安装信息
     show_install_success "$mode"
 }

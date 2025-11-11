@@ -266,6 +266,49 @@ jobs:
           deactivate
           rm -rf /tmp/test_source_env
 
+      - name: 🔍 Verify No PyPI Downloads (Security Check)
+        if: always()  # 即使之前的步骤失败也要检查
+        run: |
+          echo "🔍 检查是否从 PyPI 下载了本地包（安全检查）..."
+
+          # 查找所有 pip 日志
+          pip_logs=(
+            "$HOME/.cache/pip/log"
+            "/tmp/pip-*"
+            "build/pip-*.log"
+          )
+
+          # 创建一个合并的日志用于分析
+          combined_log=$(mktemp)
+
+          # 如果有 pip 缓存日志，合并它们
+          find "$HOME/.cache/pip/" -name "*.log" -type f 2>/dev/null | while read log; do
+            cat "$log" >> "$combined_log" 2>/dev/null || true
+          done
+
+          # 检查是否下载了本地包
+          violations=0
+          for pkg in isage-common isage-platform isage-kernel isage-libs isage-middleware \
+                     isage-apps isage-benchmark isage-cli isage-studio isage-tools isage; do
+            if grep -i "Downloading.*${pkg}" "$combined_log" 2>/dev/null | grep -v "editable\|file://" | grep -q .; then
+              echo "❌ 检测到从 PyPI 下载：${pkg}"
+              violations=$((violations + 1))
+            fi
+          done
+
+          rm -f "$combined_log"
+
+          if [ $violations -gt 0 ]; then
+            echo ""
+            echo "⚠️  警告：检测到 $violations 个包从 PyPI 下载！"
+            echo "这可能表明 pyproject.toml 中存在不必要的依赖声明。"
+            echo ""
+            # 不让测试失败，只是警告
+            exit 0
+          else
+            echo "✅ 安全检查通过：没有从 PyPI 下载本地包"
+          fi
+
       - name: Upload Build Artifacts
         if: matrix.python-version == '3.11' && matrix.install-mode == 'standard'
         uses: actions/upload-artifact@v4
