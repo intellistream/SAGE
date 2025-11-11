@@ -259,6 +259,8 @@ omit = [
     "*/test_*.py",
     "*/_test_*.py",
 ]
+# Disable coverage warning when no data is collected (e.g., all tests skipped)
+disable_warnings = ["no-data-collected"]
 
 [tool.coverage.report]
 exclude_lines = [
