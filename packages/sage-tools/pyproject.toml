@@ -34,11 +34,11 @@ license = {text = "MIT"}
 
 # 核心依赖 - 作为开发工具包，只依赖真正需要的SAGE子包
 dependencies = [
-    # SAGE framework dependencies - 按依赖层次顺序
+    # SAGE framework dependencies - 只依赖实际使用的包
+    # sage-tools 只直接使用 sage-common 和 sage-cli
     "isage-common>=0.1.0",
-    "isage-kernel>=0.1.0",
-    "isage-middleware>=0.1.0",
-    "isage-libs>=0.1.0",
+    # 注意：不依赖 isage-kernel, isage-middleware, isage-libs - sage-tools 不直接使用它们
+    # 这些依赖会通过 isage 元包在开发模式安装时自动安装
     # 注意：isage-studio 已移到可选依赖中（studio extra）
     # 注意：不依赖 isage 元包以避免循环引用
 
