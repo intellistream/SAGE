@@ -40,8 +40,8 @@ dependencies = [
     "isage-middleware>=0.1.0",
     "isage-libs>=0.1.0",
 
-    # SAGE data (submodule package)
-    "sage-data>=0.1.0",
+    # Note: sage.data is included as a submodule in src/sage/data
+    # and will be installed as part of this package
 
     # RAG and benchmark dependencies
     "pyyaml>=6.0",
