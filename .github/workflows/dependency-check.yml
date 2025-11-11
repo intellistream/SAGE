@@ -41,9 +41,22 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install System Dependencies
+        run: |
+          echo "📦 安装系统依赖（C++ 扩展构建需要）..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            libopenblas-dev \
+            liblapack-dev \
+            gfortran
+
       - name: Install Base Tools
         run: |
           pip install --upgrade pip setuptools wheel
+          # 设置 CMake 参数禁用 LibAMM（CI 环境没有 CUDA）
+          echo "CMAKE_ARGS=-DENABLE_LIBAMM=OFF" >> $GITHUB_ENV
 
       - name: Run Installation with Monitoring
         id: install

@@ -161,11 +161,24 @@ jobs:
         run: |
           echo "🧪 测试从源码安装（pip install .）..."
 
+          # 安装系统依赖（C++ 扩展构建需要）
+          echo "📦 安装系统依赖..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            libopenblas-dev \
+            liblapack-dev \
+            gfortran
+
           # 创建干净的虚拟环境
           python -m venv /tmp/test_source_env
           source /tmp/test_source_env/bin/activate
 
           pip install --upgrade pip setuptools wheel
+
+          # 设置 CMake 参数禁用 LibAMM（CI 环境通常没有 CUDA）
+          export CMAKE_ARGS="-DENABLE_LIBAMM=OFF"
 
           echo "📦 按依赖顺序从源码安装..."
 
