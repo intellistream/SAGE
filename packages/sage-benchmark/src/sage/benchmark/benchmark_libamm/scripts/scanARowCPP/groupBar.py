@@ -115,7 +115,7 @@ def DrawLegend(legend_labels, filename):
 
 
 # draw a bar chart
-def DrawFigure(
+def DrawFigure2(
     x_values, y_values, legend_labels, x_label, y_label, y_min, y_max, filename, allow_legend
 ):
     # you may change the figure size on your own.
@@ -133,7 +133,6 @@ def DrawFigure(
     bars = []
     ts = 0
     pos = 0
-    gl = len(y_values[0])
     for i in range(len(y_values)):
         pos = pos + 3 * width
         for j in range(len(y_values[i])):
@@ -152,7 +151,7 @@ def DrawFigure(
             ts = ts + 1
 
     # sometimes you may not want to draw legends.
-    if allow_legend == True:
+    if allow_legend:
         plt.legend(
             bars,
             FIGURE_LABEL,
@@ -294,7 +293,7 @@ if __name__ == "__main__":
         "PMJ$^{JB}$",
     ]
     print(y_values)
-    DrawFigure(
+    DrawFigure2(
         x_values, y_values, legend_labels, "", "Latency (ms)", 0, 400, "latency_figure_app", False
     )
 

@@ -1,6 +1,6 @@
 import torch
 
-from ..modules.utils import *
+from ..modules.utils import *  # noqa: F403
 
 count = 0
 error = 0

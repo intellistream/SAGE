@@ -7,9 +7,23 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+
+algoDisp = [
+    "INT8",
+    "CRS",
+    "CS",
+    "CoOFD",
+    "BlockLRA",
+    "FastJLT",
+    "RIP",
+    "SMP-PCA",
+    "WeightedCR",
+    "TugOfWar",
+    "NLMM",
+    "LTMM",
+]
+from OoOCommon import editConfig, readConfig
 
 OPT_FONT_NAME = "Helvetica"
 TICK_FONT_SIZE = 22
@@ -224,7 +238,7 @@ def compareMethod(exeSpace, commonPathBase, resultPaths, csvTemplate, algos, dat
                     print(algoTag + " is complete, skip")
                 else:
                     print(algoTag + " is incomplete, redo it")
-                    if os.path.exists(resultPath) == False:
+                    if not os.path.exists(resultPath):
                         os.system("sudo mkdir " + resultPath)
                     runPeriodVector(exeSpace, algoTag, resultPath, dataSetName, csvTemplate, 2)
                     resultIsComplete = checkResultVector(dataSetName, resultPath)
@@ -311,22 +325,6 @@ def main():
         "mm",
     ]
     # algosVec=[ 'crs',  'cooFD','mm']
-    algoDisp = [
-        "INT8",
-        "CRS",
-        "CS",
-        "CoOFD",
-        "BlockLRA",
-        "FastJLT",
-        "VQ",
-        "PQ",
-        "RIP",
-        "SMP-PCA",
-        "WeightedCR",
-        "TugOfWar",
-        "NLMM",
-        "LTMM",
-    ]
     # algoDisp=['CRS', 'CoOFD', 'LTMM']
     # add the algo tag here
     # algosVec=['mm', 'crs', 'countSketch', 'int8', 'weighted-cr', 'rip', 'smp-pca', 'tugOfWar', 'blockLRA', 'vq', 'pq', 'fastjlt', 'cooFD', 'int8_fp32']
@@ -348,7 +346,6 @@ def main():
     else:
         reRun = int(sys.argv[1])
     print(reRun)
-    methodTags = algoDisp
     (
         elapsedTimeAll,
         memLoadAll,
@@ -374,16 +371,11 @@ def main():
     otherIns = instructions - memLoadAll - memStoreAll - fpVectorAll - fpScalarAll
     print(otherIns)
     print(otherIns[0], len(otherIns))
-    allowLegend = 1
     valueVec = nnzAValues
-    bandInt = []
     for valueChose in range(len(valueVec)):
         instructionsPerMethod = getCyclesPerMethod(instructions, valueChose)
         memLoadPerMethod = (
             getCyclesPerMethod(memLoadAll, valueChose) / instructionsPerMethod * 100.0
-        )
-        memStorePerMethod = (
-            getCyclesPerMethod(memStoreAll, valueChose) / instructionsPerMethod * 100.0
         )
         fpVectorPerMethod = (
             getCyclesPerMethod(fpVectorAll, valueChose) / instructionsPerMethod * 100.0
@@ -391,14 +383,12 @@ def main():
         fpScalarPerMethod = (
             getCyclesPerMethod(fpScalarAll, valueChose) / instructionsPerMethod * 100.0
         )
-        branchPerMethod = getCyclesPerMethod(branchAll, valueChose) / instructionsPerMethod * 100.0
-        otherPerMethod = getCyclesPerMethod(otherIns, valueChose) / instructionsPerMethod * 100.0
+        getCyclesPerMethod(branchAll, valueChose) / instructionsPerMethod * 100.0
+        getCyclesPerMethod(otherIns, valueChose) / instructionsPerMethod * 100.0
 
         if str(valueVec[valueChose]) == "BUS":
-            bandInt = branchPerMethod + otherPerMethod
             instructionsPerMethod = getCyclesPerMethod(instructions, valueChose)
             memLoadPerMethod = getCyclesPerMethod(memLoadAll, valueChose)
-            memStorePerMethod = getCyclesPerMethod(memStoreAll, valueChose)
             fpVectorPerMethod = getCyclesPerMethod(fpVectorAll, valueChose)
             fpScalarPerMethod = getCyclesPerMethod(fpScalarAll, valueChose)
             prop1 = instructionsPerMethod / instructionsPerMethod[-1]
@@ -411,7 +401,7 @@ def main():
             )
             prop4 = prop4Temp / prop4Temp[-1]
             groupBar2.DrawFigureYLog2(
-                methodTags,
+                algoDisp,
                 [prop1, prop2, prop3, prop4],
                 ["Total", "FP", "Mem", "Other"],
                 "",
@@ -422,31 +412,29 @@ def main():
                 True,
             )
 
-        allowLegend = 0
     exit()
     # draw2yBar(methodTags,[lat95All[0][0],lat95All[1][0],lat95All[2][0],lat95All[3][0]],[errAll[0][0],errAll[1][0],errAll[2][0],errAll[3][0]],'95% latency (ms)','Error (%)',figPath + "sec6_5_stock_q1_normal")
-    # groupBar2.DrawFigure(dataSetNames, errAll, methodTags, "Datasets", "Error (%)", 5, 15, figPath + "sec4_1_e2e_static_lazy_fro", True)
-    # groupBar2.DrawFigure(dataSetNames, np.log(lat95All), methodTags, "Datasets", "95% latency (ms)", 5, 15, figPath + "sec4_1_e2e_static_lazy_latency_log", True)
-    fpInsAll = fpVectorAll + fpScalarAll
-    ratioFpIns = fpVectorAll / fpInsAll * 100.0
+    # groupBar2.DrawFigure2(dataSetNames, errAll, methodTags, "Datasets", "Error (%)", 5, 15, figPath + "sec4_1_e2e_static_lazy_fro", True)
+    # groupBar2.DrawFigure2(dataSetNames, np.log(lat95All), methodTags, "Datasets", "95% latency (ms)", 5, 15, figPath + "sec4_1_e2e_static_lazy_latency_log", True)
+    fpVectorAll + fpScalarAll
     memInsAll = memLoadAll + memStoreAll
     # groupBar2.DrawFigureYLog(nnzAValues, instructions/instructions[-1], methodTags, "Datasets", "Ins (times of LTMM)", 5, 15, figPath + "/" + "instructions", True)
     # groupBar2.DrawFigureYLog(nnzAValues, fpInsAll/fpInsAll[-1], methodTags, "Datasets", "FP Ins (times of LTMM)", 5, 15, figPath + "/" + "FP_instructions", True)
     # groupBar2.DrawFigureYLog(nnzAValues, memInsAll/memInsAll[-1], methodTags, "Datasets", "Mem Ins (times of LTMM)", 5, 15, figPath + "/" + "mem_instructions", True)
-    # groupBar2.DrawFigure(nnzAValues, ratioFpIns, methodTags, "Datasets", "SIMD Utilization (%)", 5, 15, figPath + "/" + "SIMD utilization", True)
-    # groupBar2.DrawFigure(nnzAValues, instructions/(memLoadAll+memStoreAll), methodTags, "Datasets", "IPM", 5, 15, figPath + "/" + "IPM", True)
-    # groupBar2.DrawFigure(nnzAValues, fpInsAll/(memLoadAll+memStoreAll), methodTags, "Datasets", "FP Ins per Unit Mem Access", 5, 15, figPath + "/" + "FPIPM", True)
-    # groupBar2.DrawFigure(nnzAValues, (memLoadAll+memStoreAll)/(instructions)*100.0, methodTags, "Datasets", "Ratio of Mem Ins (%)", 5, 15, figPath + "/" + "mem", True)
+    # groupBar2.DrawFigure2(nnzAValues, ratioFpIns, methodTags, "Datasets", "SIMD Utilization (%)", 5, 15, figPath + "/" + "SIMD utilization", True)
+    # groupBar2.DrawFigure2(nnzAValues, instructions/(memLoadAll+memStoreAll), methodTags, "Datasets", "IPM", 5, 15, figPath + "/" + "IPM", True)
+    # groupBar2.DrawFigure2(nnzAValues, fpInsAll/(memLoadAll+memStoreAll), methodTags, "Datasets", "FP Ins per Unit Mem Access", 5, 15, figPath + "/" + "FPIPM", True)
+    # groupBar2.DrawFigure2(nnzAValues, (memLoadAll+memStoreAll)/(instructions)*100.0, methodTags, "Datasets", "Ratio of Mem Ins (%)", 5, 15, figPath + "/" + "mem", True)
 
-    # groupBar2.DrawFigure(nnzAValues, branchAll/instructions*100.0, methodTags, "Datasets", "Ratio of Branch Ins (%)", 5, 15, figPath + "/" + "branches", True)
-    # groupBar2.DrawFigure(nnzAValues, otherIns/instructions*100.0, methodTags, "Datasets", "Ratio of Other Ins (%)", 5, 15, figPath + "/" + "others", True)
+    # groupBar2.DrawFigure2(nnzAValues, branchAll/instructions*100.0, methodTags, "Datasets", "Ratio of Branch Ins (%)", 5, 15, figPath + "/" + "branches", True)
+    # groupBar2.DrawFigure2(nnzAValues, otherIns/instructions*100.0, methodTags, "Datasets", "Ratio of Other Ins (%)", 5, 15, figPath + "/" + "others", True)
     # print(instructions[-1],instructions[2])
 
-    # groupBar2.DrawFigure(dataSetNames, np.log(thrAll), methodTags, "Datasets", "elements/ms", 5, 15, figPath + "sec4_1_e2e_static_lazy_throughput_log", True)
+    # groupBar2.DrawFigure2(dataSetNames, np.log(thrAll), methodTags, "Datasets", "elements/ms", 5, 15, figPath + "sec4_1_e2e_static_lazy_throughput_log", True)
     groupLine.DrawFigureYnormal(
         periodAll,
         elapsedTimeAll,
-        methodTags,
+        algoDisp,
         "nnz ratio",
         "95% latency (ms)",
         0,
@@ -457,7 +445,7 @@ def main():
     groupLine.DrawFigureYnormal(
         periodAll,
         froAll,
-        methodTags,
+        algoDisp,
         "nnz ratio",
         "fro error (%)",
         0,
@@ -468,7 +456,7 @@ def main():
     groupLine.DrawFigureYnormal(
         periodAll,
         (memInsAll) / instructions * 100.0,
-        methodTags,
+        algoDisp,
         "nnz ratio",
         "propotion of mem access (%)",
         0,
@@ -479,7 +467,7 @@ def main():
     groupLine.DrawFigureYnormal(
         periodAll,
         (branchAll) / instructions * 100.0,
-        methodTags,
+        algoDisp,
         "nnz ratio",
         "propotion of branch (%)",
         0,
@@ -490,7 +478,7 @@ def main():
     groupLine.DrawFigureYnormal(
         periodAll,
         (otherIns) / instructions * 100.0,
-        methodTags,
+        algoDisp,
         "nnz ratio",
         "propotion of others (%)",
         0,

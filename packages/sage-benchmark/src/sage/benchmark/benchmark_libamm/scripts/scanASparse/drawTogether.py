@@ -8,9 +8,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22
@@ -136,7 +136,7 @@ def main():
     figPath = os.path.abspath(os.path.join(os.getcwd(), "../..")) + "/figures/" + scanTag
     configTemplate = exeSpace + "config.csv"
     valueVec = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    valueVecDisp = np.array(valueVec)
+    np.array(valueVec)
     print(configTemplate)
     # run
     if len(sys.argv) < 2:

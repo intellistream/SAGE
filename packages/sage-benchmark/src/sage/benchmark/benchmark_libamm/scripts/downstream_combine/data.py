@@ -18,7 +18,7 @@ class PartDataset(torch.utils.data.Dataset):
         self.dataset = dataset
         self.offset = offset
         self.length = length
-        super(PartDataset, self).__init__()
+        super().__init__()
 
     def __len__(self):
         return self.length

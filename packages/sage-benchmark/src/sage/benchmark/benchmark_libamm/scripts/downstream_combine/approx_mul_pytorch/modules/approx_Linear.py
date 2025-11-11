@@ -55,7 +55,7 @@ class approx_Linear(torch.nn.modules.Linear):
         self.sample_ratio_wu = sample_ratio_wu
         self.minimal_k_wu = minimal_k_wu
         self.algo = algo
-        super(approx_Linear, self).__init__(in_features, out_features, bias)
+        super().__init__(in_features, out_features, bias)
 
     def forward(self, input):
         if self.training is True:

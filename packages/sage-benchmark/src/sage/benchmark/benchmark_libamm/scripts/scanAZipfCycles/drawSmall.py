@@ -6,9 +6,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 OPT_FONT_NAME = "Helvetica"
 TICK_FONT_SIZE = 22
@@ -251,7 +251,7 @@ def compareMethod(exeSpace, commonPathBase, resultPaths, csvTemplate, algos, dat
                     print(algoTag + " is complete, skip")
                 else:
                     print(algoTag + " is incomplete, redo it")
-                    if os.path.exists(resultPath) == False:
+                    if not os.path.exists(resultPath):
                         os.system("sudo mkdir " + resultPath)
                     runPeriodVector(exeSpace, algoTag, resultPath, scanVec, csvTemplate, 2)
                     resultIsComplete = checkResultVector(scanVec, resultPath)
@@ -316,7 +316,6 @@ def main():
     # algosVec=['int8', 'crs', 'countSketch', 'cooFD', 'blockLRA', 'fastjlt', 'vq', 'pq', 'rip', 'smp-pca', 'weighted-cr', 'tugOfWar', 'int8_fp32', 'mm']
     algosVec = ["crs", "countSketch", "blockLRA", "fastjlt", "rip", "smp-pca", "tugOfWar"]
     # algosVec=[ 'crs']
-    algoDisp = ["CRS", "CS", "BlockLRA", "FastJLT", "RIP", "SMP-PCA", "TugOfWar"]
     # algoDisp=['CRS']
     # add the algo tag here
 
@@ -331,7 +330,6 @@ def main():
     reRun = 2
     os.system("sudo mkdir " + commonBasePath)
     print(reRun)
-    methodTags = algoDisp
     (
         elapsedTimeAll,
         cpuCycleAll,
@@ -347,8 +345,6 @@ def main():
         exeSpace, commonBasePath, resultPaths, csvTemplate, algosVec, aGuassianVec, reRun
     )
     # Add some pre-process logic for int8 here if it is used
-    valueVec = aGuassianVec
-    bandInt = []
 
     groupLine.DrawFigureYnormal(
         periodAll,

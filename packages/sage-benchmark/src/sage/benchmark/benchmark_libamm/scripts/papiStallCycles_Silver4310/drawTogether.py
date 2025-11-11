@@ -8,9 +8,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22
@@ -198,7 +198,7 @@ def main():
     elapsedTimeAll, memStallAll, periodAll, cpuCycle, l1dStallAll, l2StallAll = compareMethod(
         exeSpace, commonBase, resultPaths, csvTemplates, valueVec, reRun
     )
-    groupLine.DrawFigure(
+    groupLine.DrawFigure2(
         periodAll,
         elapsedTimeAll,
         methodTags,
@@ -255,7 +255,7 @@ def main():
         l1dStallPerMethod = getCyclesPerMethod(l1dStallAll, valueChose)
         l2StallPerMethod = getCyclesPerMethod(l2StallAll, valueChose)
         otherPerMethod = getCyclesPerMethod(otherCycle, valueChose)
-        accuBar.DrawFigure(
+        accuBar.DrawFigure2(
             methodTags,
             [memStallPerMethod, l1dStallPerMethod, l2StallPerMethod, otherPerMethod],
             ["mem stall", "l1d stall", "l2 stall", "others"],
@@ -265,7 +265,6 @@ def main():
             allowLegend,
             scanTag + "=" + str(valueVecDisp[valueChose]),
         )
-        allowLegend = 0
     # print(aqpErrVec)
     # print(elapseTimeVecFD)
     # readResultsingleValue(50,resultPath)

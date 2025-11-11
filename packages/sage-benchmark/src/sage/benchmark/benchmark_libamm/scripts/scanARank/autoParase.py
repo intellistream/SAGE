@@ -23,7 +23,6 @@ def paraseValidStageNames(a):
                 idxName = index
             index = index + 1
         # read the valid stages
-        vdataEntries = 0
 
         for k in range(1, rows):
             if result[k][idxCpu] != "NA":
@@ -56,7 +55,6 @@ def paraseValidColums(a, nameList, colTitle):
                 idxTitle = index
             index = index + 1
         # read the valid stages
-        vdataEntries = 0
         ru = []
         for k in range(1, rows):
             if result[k][idxCpu] != "NA":
@@ -71,7 +69,6 @@ def paraseValidColums(a, nameList, colTitle):
 
 def maxInList(a):
     # a in [[1,2] [3,4]]
-    inLen = len(a[0])
     ru = []
     index = []
     ti = 0

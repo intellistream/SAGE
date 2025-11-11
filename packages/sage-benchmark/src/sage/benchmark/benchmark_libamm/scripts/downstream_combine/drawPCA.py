@@ -7,10 +7,10 @@ import groupLine as groupLine
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
 from matplotlib.ticker import LinearLocator
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 OPT_FONT_NAME = "Helvetica"
 TICK_FONT_SIZE = 22
@@ -269,7 +269,6 @@ def draw2yBar(NAME, R1, R2, l1, l2, fname):
     x1_list = []
     x2_list = []
     bars = []
-    index = np.arange(len(NAME))
     for i in range(len(R1)):
         x1_list.append(i)
         x2_list.append(i + width)
@@ -389,22 +388,6 @@ def main():
         "int8_fp32",
         "mm",
     ]
-    algoDisp = [
-        "INT8",
-        "CRS",
-        "CS",
-        "CoOFD",
-        "BlockLRA",
-        "FastJLT",
-        "VQ",
-        "PQ",
-        "RIP",
-        "SMP-PCA",
-        "WeightedCR",
-        "TugOfWar",
-        "NLMM",
-        "LTMM",
-    ]
     # algosVec=['int8', 'crs', 'countSketch', 'cooFD', 'blockLRA', 'fastjlt', 'vq', 'pq', 'rip', 'smp-pca', 'weighted-cr', 'tugOfWar', 'int8_fp32', 'mm']
     # algoDisp=['INT8', 'CRS', 'CS', 'CoOFD', 'BlockLRA', 'FastJLT', 'VQ', 'PQ', 'RIP', 'SMP-PCA', 'WeightedCR', 'TugOfWar',  'NLMM', 'LTMM']
     # add the algo tag here
@@ -419,7 +402,6 @@ def main():
     os.system("sudo mkdir " + commonBasePath)
     # run
     reRun = 0
-    methodTags = algoDisp
 
     # Initialize lists to store the results of each run
     lat95All = None
@@ -472,7 +454,7 @@ def main():
     errAll[-2] = errAll[-1]
     endingErrorAll[-2] = endingErrorAll[-1]
     # draw2yBar(methodTags,[lat95All[0][0],lat95All[1][0],lat95All[2][0],lat95All[3][0]],[errAll[0][0],errAll[1][0],errAll[2][0],errAll[3][0]],'95% latency (ms)','Error (%)',figPath + "sec6_5_stock_q1_normal")
-    groupBar2.DrawFigure(
+    groupBar2.DrawFigure2(
         dataSetNames,
         errAll,
         methodTags,
@@ -483,7 +465,7 @@ def main():
         figPath + "sec4_1_pca_static_lazy_fro",
         True,
     )
-    groupBar2.DrawFigure(
+    groupBar2.DrawFigure2(
         dataSetNames,
         endingErrorAll,
         methodTags,
@@ -494,7 +476,7 @@ def main():
         figPath + "sec4_1_pca_static_lazy_ending_error",
         True,
     )
-    groupBar2.DrawFigure(
+    groupBar2.DrawFigure2(
         dataSetNames,
         np.log(lat95All),
         methodTags,
@@ -505,7 +487,7 @@ def main():
         figPath + "sec4_1_pca_static_lazy_latency_log",
         True,
     )
-    groupBar2.DrawFigure(
+    groupBar2.DrawFigure2(
         dataSetNames,
         np.log(thrAll),
         methodTags,

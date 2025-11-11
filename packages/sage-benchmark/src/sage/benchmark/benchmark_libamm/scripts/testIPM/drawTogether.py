@@ -8,9 +8,8 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import OPT_FONT_NAME, editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22

@@ -8,9 +8,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22
@@ -216,7 +216,6 @@ def main():
         "MM",
     ]
     valueVec = ["random", "gaussian", "exponential", "poisson"]
-    valueVecRun = valueVec
     print(configTemplate)
     reRun = 0
     # run

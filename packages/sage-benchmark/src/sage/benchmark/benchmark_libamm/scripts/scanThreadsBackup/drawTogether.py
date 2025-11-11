@@ -8,9 +8,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22
@@ -173,7 +173,6 @@ def main():
     csvTemplates = ["config_CPPCRS.csv", "config_CRS.csv", "config_RAWMM.csv", "config_CPPMM.csv"]
     evaTypes = ["crs-cpp", "crs-pt", "mm-pt", "mm-cpp"]
     valueVec = [2, 4, 6, 8, 10, 12]
-    valueVecRun = valueVec
     print(configTemplate)
     reRun = 0
     # run

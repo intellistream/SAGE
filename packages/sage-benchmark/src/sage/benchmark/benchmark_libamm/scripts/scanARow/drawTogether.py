@@ -8,9 +8,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22
@@ -153,7 +153,7 @@ def main():
         "config_RAWMM.csv",
     ]
     valueVec = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
-    valueVecDisp = np.array(valueVec)
+    np.array(valueVec)
     # run
     reRun = 0
     if len(sys.argv) < 2:
@@ -167,7 +167,7 @@ def main():
     elapsedTimeAll, cacheMissAll, periodAll = compareMethod(
         exeSpace, commonBase, resultPaths, csvTemplates, valueVec, reRun
     )
-    groupLine.DrawFigure(
+    groupLine.DrawFigure2(
         periodAll,
         elapsedTimeAll,
         methodTags,
@@ -203,7 +203,7 @@ def main():
     elapsedTimeAll, cacheMissAll, periodAll = compareMethod(
         exeSpace, commonBase, resultPaths, csvTemplates, valueVec, reRun
     )
-    groupLine.DrawFigure(
+    groupLine.DrawFigure2(
         periodAll,
         elapsedTimeAll,
         methodTags,

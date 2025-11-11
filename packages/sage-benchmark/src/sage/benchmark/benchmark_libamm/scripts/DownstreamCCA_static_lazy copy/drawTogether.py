@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pragma: allowlist secret
 import math
 import os
 import sys
@@ -9,10 +10,10 @@ import groupLine as groupLine
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
 from matplotlib.ticker import LinearLocator
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 OPT_FONT_NAME = "Helvetica"
 TICK_FONT_SIZE = 22
@@ -145,7 +146,9 @@ def runPeriod(
         "sketchDimension",
         int(dataset_acols_mapping[prefixTag] * 0.1),
     )
-    editConfig(exePath + "temp1.csv", exePath + "temp2.csv", "cppAlgoTag", algoTag)
+    editConfig(
+        exePath + "temp1.csv", exePath + "temp2.csv", "cppAlgoTag", algoTag
+    )  # pragma: allowlist secret
 
     # blockLRA rank ratio
     # editConfig(exePath+"temp2.csv", exePath+"temp1.csv", "algoARankRatio", dataset_sketchAcols_mapping[prefixTag]/dataset_Acols_mapping[prefixTag])
@@ -325,7 +328,6 @@ def draw2yBar(NAME, R1, R2, l1, l2, fname):
     x1_list = []
     x2_list = []
     bars = []
-    index = np.arange(len(NAME))
     for i in range(len(R1)):
         x1_list.append(i)
         x2_list.append(i + width)
@@ -435,22 +437,6 @@ def main():
         "int8_fp32",
         "mm",
     ]
-    algoDisp = [
-        "INT8",
-        "CRS",
-        "CS",
-        "CoOFD",
-        "BlockLRA",
-        "FastJLT",
-        "VQ",
-        "PQ",
-        "RIP",
-        "SMP-PCA",
-        "WeightedCR",
-        "TugOfWar",
-        "NLMM",
-        "LTMM",
-    ]
     # add the algo tag here
     # algosVec=['crs', 'mm']
     # algoDisp=['CRS', 'LTMM']
@@ -487,7 +473,6 @@ def main():
         os.system("sudo rm -rf " + commonBasePath)
 
         reRun = 1
-    methodTags = algoDisp
     elapsedTimeAll, errAll, ebAll, thrAll, periodAll, endingErrorAll = compareMethod(
         exeSpace,
         commonBasePath,
@@ -510,7 +495,7 @@ def main():
     # thrAll[0] = thrAll[0]/thrAll[-2]*thrAll[-1]
 
     # draw2yBar(methodTags,[elapsedTimeAll[0][0],elapsedTimeAll[1][0],elapsedTimeAll[2][0],elapsedTimeAll[3][0]],[errAll[0][0],errAll[1][0],errAll[2][0],errAll[3][0]],'95% latency (ms)','Error (%)',figPath + "sec6_5_stock_q1_normal")
-    groupBar2.DrawFigure(
+    groupBar2.DrawFigure2(
         dataSetNames,
         errAll,
         methodTags,
@@ -521,7 +506,7 @@ def main():
         figPath + "sec4_1_cca_static_lazy_fro",
         True,
     )
-    groupBar2.DrawFigure(
+    groupBar2.DrawFigure2(
         dataSetNames,
         endingErrorAll,
         methodTags,
@@ -532,7 +517,7 @@ def main():
         figPath + "sec4_1_cca_static_lazy_ending_error",
         True,
     )
-    groupBar2.DrawFigure(
+    groupBar2.DrawFigure2(
         dataSetNames,
         np.log(elapsedTimeAll),
         methodTags,
@@ -545,7 +530,7 @@ def main():
     )
     print(elapsedTimeAll)
     return elapsedTimeAll, errAll, endingErrorAll
-    # groupBar2.DrawFigure(dataSetNames, np.log(thrAll), methodTags, "Datasets", "elements/ms",
+    # groupBar2.DrawFigure2(dataSetNames, np.log(thrAll), methodTags, "Datasets", "elements/ms",
     #                      5, 15, figPath + "sec4_1_cca_static_lazy_throughput_log", True)
 
 

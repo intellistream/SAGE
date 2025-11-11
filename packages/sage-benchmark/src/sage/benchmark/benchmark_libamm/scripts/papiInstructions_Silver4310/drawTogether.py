@@ -8,9 +8,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22
@@ -241,12 +241,11 @@ def main():
     for valueChose in range(len(valueVec)):
         # instructionsPerMethod=getCyclesPerMethod(instructions,valueChose)
         memLoadPerMethod = getCyclesPerMethod(memLoadAll, valueChose)
-        memStorePerMethod = getCyclesPerMethod(memStoreAll, valueChose)
         fpVectorPerMethod = getCyclesPerMethod(fpVectorAll, valueChose)
         fpScalarPerMethod = getCyclesPerMethod(fpScalarAll, valueChose)
         branchPerMethod = getCyclesPerMethod(branchAll, valueChose)
         otherPerMethod = getCyclesPerMethod(otherIns, valueChose)
-        accuBar.DrawFigure(
+        accuBar.DrawFigure2(
             methodTags,
             [
                 memLoadPerMethod,
@@ -263,7 +262,6 @@ def main():
             allowLegend,
             scanTag + "=" + str(valueVecDisp[valueChose]),
         )
-        allowLegend = 0
     # print(aqpErrVec)
     # print(elapseTimeVecFD)
     # readResultsingleValue(50,resultPath)

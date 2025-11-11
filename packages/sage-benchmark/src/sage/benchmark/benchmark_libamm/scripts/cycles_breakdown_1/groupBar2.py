@@ -118,7 +118,7 @@ def DrawLegend(legend_labels, filename):
 # draw a bar chart
 
 
-def DrawFigure(
+def DrawFigure2(
     x_values, y_values, legend_labels, x_label, y_label, y_min, y_max, filename, allow_legend
 ):
     fig = plt.figure(figsize=(20, 6))
@@ -199,93 +199,6 @@ def DrawFigure(
     figure.yaxis.set_major_formatter(mtick.FormatStrFormatter("%.1f"))
     plt.xlabel(x_label, fontsize=LABEL_FONT_SIZE)
     plt.ylabel(y_label, fontsize=LABEL_FONT_SIZE)
-
-    fig.savefig(filename + ".pdf", bbox_inches="tight")
-
-
-def DrawFigure(
-    x_values, y_values, legend_labels, x_label, y_label, y_min, y_max, filename, allow_legend
-):
-    fig = plt.figure(figsize=(20, 6))
-    figure = fig.add_subplot(111)
-
-    LINE_COLORS = [
-        "#FF8C00",
-        "#FFE4C4",
-        "#00FFFF",
-        "#E0FFFF",
-        "#FF6347",
-        "#98FB98",
-        "#800080",
-        "#FFD700",
-        "#7CFC00",
-        "#8A2BE2",
-        "#FF4500",
-        "#20B2AA",
-        "#B0E0E6",
-        "#DC143C",
-        "#00FF7F",
-    ]
-    HATCH_PATTERNS = [
-        "/",
-        "-",
-        "o",
-        "///",
-        "\\",
-        "|",
-        "x",
-        "\\\\",
-        "+",
-        ".",
-        "*",
-        "oo",
-        "++++",
-        "....",
-        "xxx",
-    ]
-
-    FIGURE_LABEL = legend_labels
-    index = np.arange(len(x_values))
-    width = 0.5 / len(x_values)
-    bars = [None] * (len(FIGURE_LABEL))
-    for i in range(len(y_values)):
-        bars[i] = plt.bar(
-            index + i * width + width / 2,
-            y_values[i],
-            width,
-            hatch=HATCH_PATTERNS[i % len(HATCH_PATTERNS)],
-            color=LINE_COLORS[i % len(LINE_COLORS)],
-            label=FIGURE_LABEL[i],
-            edgecolor="black",
-            linewidth=3,
-        )
-
-    if allow_legend:
-        plt.legend(
-            bars,
-            FIGURE_LABEL,
-            prop={"size": 28},
-            ncol=len(bars) / 2,  # Set the number of columns to match the number of bars
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.35),  # Adjust the position
-            shadow=True,
-            frameon=True,
-            edgecolor="black",
-            borderaxespad=0,
-            columnspacing=0.2,
-            handletextpad=0.2,
-        )
-
-    plt.xticks(index + len(x_values) / 2 * width, x_values, rotation=0)
-    figure.yaxis.set_major_locator(LinearLocator(5))
-    # figure.xaxis.set_major_locator(LinearLocator(5))
-    figure.get_xaxis().set_tick_params(direction="in", pad=10)
-    figure.get_yaxis().set_tick_params(direction="in", pad=10)
-    figure.yaxis.set_major_formatter(mtick.FormatStrFormatter("%.1f"))
-    plt.xlabel(x_label, fontsize=TICK_FONT_SIZE)
-    plt.ylabel(y_label, fontsize=TICK_FONT_SIZE)
-    plt.xticks(fontsize=TICK_FONT_SIZE)
-    plt.yticks(fontsize=TICK_FONT_SIZE)
 
     fig.savefig(filename + ".pdf", bbox_inches="tight")
 
@@ -383,7 +296,7 @@ def DrawFigureYLog2(
     fig.savefig(filename + ".pdf", bbox_inches="tight")
 
 
-# def DrawFigure(x_values, y_values, legend_labels, x_label, y_label, y_min, y_max, filename, allow_legend):
+# def DrawFigure2(x_values, y_values, legend_labels, x_label, y_label, y_min, y_max, filename, allow_legend):
 #     # you may change the figure size on your own.
 #     fig = plt.figure(figsize=(10, 3))
 #     figure = fig.add_subplot(111)
@@ -405,7 +318,7 @@ def DrawFigureYLog2(
 #                           label=FIGURE_LABEL[i], edgecolor='black', linewidth=3)
 #
 #     # sometimes you may not want to draw legends.
-#     if allow_legend == True:
+#     if allow_legend:
 #         plt.legend(bars, FIGURE_LABEL,
 #                    prop=LEGEND_FP,
 #                    ncol=2,
@@ -546,7 +459,7 @@ if __name__ == "__main__":
         "PMJ$^{JB}$",
     ]
     print(y_values)
-    DrawFigure(
+    DrawFigure2(
         x_values, y_values, legend_labels, "", "Latency (ms)", 0, 400, "latency_figure_app", False
     )
 

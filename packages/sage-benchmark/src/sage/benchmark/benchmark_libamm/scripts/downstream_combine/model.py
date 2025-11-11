@@ -31,7 +31,7 @@ class MLP(nn.Module):
     """
 
     def __init__(self, hidden, layer, dropout=None, algo="mm"):
-        super(MLP, self).__init__()
+        super().__init__()
         self.layer = layer
         self.dropout = dropout
         self.model = nn.Sequential(self._create(hidden, layer, dropout, algo))

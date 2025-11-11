@@ -23,7 +23,7 @@ def runAll(commonBasePath, h=500):
         "int8_fp32",
         "mm",
     ]
-    filePath = (
+    (
         os.path.abspath(os.path.join(os.getcwd(), "approx_mul_pytorch/functional"))
         + "/approx_linear.py"
     )

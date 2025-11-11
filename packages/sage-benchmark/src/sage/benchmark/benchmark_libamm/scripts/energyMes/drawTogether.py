@@ -7,9 +7,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 OPT_FONT_NAME = "Helvetica"
 TICK_FONT_SIZE = 22
@@ -254,7 +254,7 @@ def compareMethod(
                     print(algoTag + " is complete, skip")
                 else:
                     print(algoTag + " is incomplete, redo it")
-                    if os.path.exists(resultPath) == False:
+                    if not os.path.exists(resultPath):
                         os.system("sudo mkdir " + resultPath)
                     runPeriodVector(
                         exeSpace, srcAVec, srcBVec, algoTag, resultPath, dataSetName, csvTemplate, 2
@@ -357,22 +357,6 @@ def main():
         "int8_fp32",
         "mm",
     ]
-    algoDisp = [
-        "INT8",
-        "CRS",
-        "CS",
-        "CoOFD",
-        "BlockLRA",
-        "FastJLT",
-        "VQ",
-        "PQ",
-        "RIP",
-        "SMP-PCA",
-        "WeightedCR",
-        "TugOfWar",
-        "NLMM",
-        "LTMM",
-    ]
     # add the algo tag here
     # algosVec=['mm', 'crs', 'countSketch', 'int8', 'weighted-cr', 'rip', 'smp-pca', 'tugOfWar', 'blockLRA', 'vq', 'pq', 'fastjlt', 'cooFD', 'int8_fp32']
 
@@ -395,7 +379,6 @@ def main():
     os.system("sudo mkdir " + commonBasePath)
     print(reRun)
     # exit()
-    methodTags = algoDisp
     (
         elapsedTimeAll,
         energyAll,
@@ -427,11 +410,9 @@ def main():
     int8_adjust_ratio[-1] = int8_adjust_ratio[-2]
     energyAll[0] = energyAll[-1] * int8_adjust_ratio
 
-    valueVec = dataSetNames
-
     # draw2yBar(methodTags,[lat95All[0][0],lat95All[1][0],lat95All[2][0],lat95All[3][0]],[errAll[0][0],errAll[1][0],errAll[2][0],errAll[3][0]],'95% latency (ms)','Error (%)',figPath + "sec6_5_stock_q1_normal")
-    # groupBar2.DrawFigure(dataSetNames, errAll, methodTags, "Datasets", "Error (%)", 5, 15, figPath + "sec4_1_e2e_static_lazy_fro", True)
-    # groupBar2.DrawFigure(dataSetNames, np.log(lat95All), methodTags, "Datasets", "95% latency (ms)", 5, 15, figPath + "sec4_1_e2e_static_lazy_latency_log", True)
+    # groupBar2.DrawFigure2(dataSetNames, errAll, methodTags, "Datasets", "Error (%)", 5, 15, figPath + "sec4_1_e2e_static_lazy_fro", True)
+    # groupBar2.DrawFigure2(dataSetNames, np.log(lat95All), methodTags, "Datasets", "95% latency (ms)", 5, 15, figPath + "sec4_1_e2e_static_lazy_latency_log", True)
     groupBar2.DrawFigureYLog(
         dataSetNames,
         energyAll,
@@ -444,9 +425,9 @@ def main():
         False,
     )
     # print(ipcAll)
-    # groupBar2.DrawFigure(dataSetNames,(l1dStallAll+l2StallAll+l3StallAll)/energyAll*100.0,methodTags, "Datasets", "Ratio of cacheStalls (%)", 5, 15, figPath + "cachestall_ratio", True)
+    # groupBar2.DrawFigure2(dataSetNames,(l1dStallAll+l2StallAll+l3StallAll)/energyAll*100.0,methodTags, "Datasets", "Ratio of cacheStalls (%)", 5, 15, figPath + "cachestall_ratio", True)
 
-    # groupBar2.DrawFigure(dataSetNames, np.log(thrAll), methodTags, "Datasets", "elements/ms", 5, 15, figPath + "sec4_1_e2e_static_lazy_throughput_log", True)
+    # groupBar2.DrawFigure2(dataSetNames, np.log(thrAll), methodTags, "Datasets", "elements/ms", 5, 15, figPath + "sec4_1_e2e_static_lazy_throughput_log", True)
 
 
 if __name__ == "__main__":

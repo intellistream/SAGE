@@ -240,7 +240,7 @@ def DrawFigure2(
 #                                 markersize=MARKER_SIZE, label=FIGURE_LABEL[i])
 #
 #     # sometimes you may not want to draw legends.
-#     if allow_legend == True:
+#     if allow_legend:
 #         plt.legend(lines,
 #                    FIGURE_LABEL,
 #                    prop=LEGEND_FP,
@@ -270,8 +270,6 @@ def DrawFigure2(
 #     plt.xlabel(x_label, fontproperties=LABEL_FP)
 #     plt.ylabel(y_label, fontproperties=LABEL_FP)
 #
-#     size = fig.get_size_inches()
-#     dpi = fig.get_dpi()
 #
 #     plt.savefig(filename + ".pdf", bbox_inches='tight')
 
@@ -303,7 +301,7 @@ def DrawFigureYnormal(
         )
 
     # sometimes you may not want to draw legends.
-    if allow_legend == True:
+    if allow_legend:
         plt.legend(
             lines,
             FIGURE_LABEL,
@@ -339,9 +337,6 @@ def DrawFigureYnormal(
     # figure.add_patch(rectangle)
     plt.xlabel(x_label, fontproperties=LABEL_FP)
     plt.ylabel(y_label, fontproperties=LABEL_FP)
-
-    size = fig.get_size_inches()
-    dpi = fig.get_dpi()
 
     plt.savefig(filename + ".pdf", bbox_inches="tight")
 
@@ -449,7 +444,7 @@ if __name__ == "__main__":
         "PMJ$^{JB}$",
     ]
 
-    DrawFigure(
+    DrawFigure2(
         x_values,
         y_values,
         legend_labels,

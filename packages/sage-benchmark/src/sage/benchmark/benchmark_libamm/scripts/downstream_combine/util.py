@@ -111,7 +111,7 @@ class TestGroup:
         utime = 0
         tloss = 0
 
-        if compare_grad_vs_approx == True:
+        if compare_grad_vs_approx:
             num_approx_layers = 0
             for layer in model.children():
                 for sublayer in layer.children():
@@ -132,7 +132,7 @@ class TestGroup:
             # start = torch.cuda.Event(True)
             # end = torch.cuda.Event(True)
 
-            if compare_grad_vs_approx == True:
+            if compare_grad_vs_approx:
                 # get gradients with non-approximate calculations:
                 acc_grads = []
                 for layer in model.children():
@@ -214,7 +214,7 @@ class TestGroup:
                 tloss /= len(self.trainloader)
                 # print(prof.key_averages())
 
-        if compare_grad_vs_approx == True:
+        if compare_grad_vs_approx:
             print(f"mean {torch.mean(avg_mean, dim=1)}")
             print(f"relative MSE {torch.mean(avg_mse, dim=1)}")
             print(f"std {torch.mean(avg_std, dim=1)}")
@@ -277,7 +277,6 @@ class TestGroup:
         accc = 0  # test acc. at the time of best dev. acc.
         e = -1  # best dev iteration/epoch
 
-        times = []
         losses = []
         ftime = []
         btime = []
@@ -306,12 +305,12 @@ class TestGroup:
             btime.append(bt)
             utime.append(ut)
             # predict
-            curacc = self._evaluate(model, self.devloader, "dev")
+            self._evaluate(model, self.devloader, "dev")
             # if curacc > acc:
             #    e = t
             #    acc = curacc
             #    accc = self._evaluate(model, self.testloader, '    test')
-        etime = [sum(t) for t in zip(ftime, btime, utime)]
+        [sum(t) for t in zip(ftime, btime, utime)]
         print("test acc: {:.2f}".format(self._evaluate(model, self.testloader, "    test")))
         print(f"best on val set - ${acc:.2f}|{accc:.2f} at {e}", file=self.file, flush=True)
         print("", file=self.file)

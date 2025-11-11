@@ -9,9 +9,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22
@@ -165,7 +165,7 @@ def main():
         "config_CPPCOUNTERSKETCH.csv",
     ]
     valueVec = [10, 20, 50, 100, 250, 500, 1000]
-    valueVecDisp = np.array(valueVec)
+    np.array(valueVec)
     # run
     reRun = 0
     if len(sys.argv) < 2:
@@ -190,7 +190,7 @@ def main():
         figPath + "/" + scanTag + "stream_cpp_thr",
         True,
     )
-    groupLine.DrawFigure(
+    groupLine.DrawFigure2(
         periodAll,
         lat95All,
         methodTags,

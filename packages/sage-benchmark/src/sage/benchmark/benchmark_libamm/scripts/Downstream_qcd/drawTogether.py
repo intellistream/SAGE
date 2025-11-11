@@ -7,9 +7,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 OPT_FONT_NAME = "Helvetica"
 TICK_FONT_SIZE = 22
@@ -264,7 +264,7 @@ def compareMethod(
                 else:
                     if isValidAlgoTag(algoTag):
                         print(algoTag + " is incomplete, redo it")
-                        if os.path.exists(resultPath) == False:
+                        if not os.path.exists(resultPath):
                             os.system("sudo mkdir " + resultPath)
                         runPeriodVector(
                             exeSpace,
@@ -372,22 +372,6 @@ def main():
         "int8_fp32",
         "mm",
     ]
-    algoDisp = [
-        "INT8",
-        "CRS",
-        "CS",
-        "CoOFD",
-        "BlockLRA",
-        "FastJLT",
-        "VQ",
-        "PQ",
-        "RIP",
-        "SMP-PCA",
-        "WeightedCR",
-        "TugOfWar",
-        "NLMM",
-        "LTMM",
-    ]
     # srcAVec=['datasets/ECO/wm2.mtx',"datasets/DWAVE/dwa512.mtx","datasets/AST/mcfe.mtx",'datasets/UTM/utm1700a.mtx','datasets/RDB/rdb2048.mtx','datasets/ZENIOS/zenios.mtx','datasets/QCD/qcda_small.mtx',"datasets/BUS/gemat1.mtx",]
     # srcBVec=['datasets/ECO/wm3.mtx',"datasets/DWAVE/dwb512.mtx","datasets/AST/mcfe.mtx",'datasets/UTM/utm1700b.mtx','datasets/RDB/rdb2048l.mtx','datasets/ZENIOS/zenios.mtx','datasets/QCD/qcdb_small.mtx',"datasets/BUS/gemat1.mtx",]
     # dataSetNames=['ECO','DWAVE','AST','UTM','RDB','ZENIOS','QCD','BUS']
@@ -419,7 +403,6 @@ def main():
     os.system("sudo mkdir " + commonBasePath)
     print(reRun)
     # exit()
-    methodTags = algoDisp
     (
         elapsedTimeAll,
         cpuCycleAll,
@@ -443,7 +426,7 @@ def main():
     )
     # Add some pre-process logic for int8 here if it is used
 
-    # groupBar2.DrawFigure(dataSetNames,(ammErroAll+endErrorAll+l3StallAll)/cpuCycleAll*100.0,methodTags, "Datasets", "Ratio of cacheStalls (%)", 5, 15, figPath + "cachestall_ratio", True)
+    # groupBar2.DrawFigure2(dataSetNames,(ammErroAll+endErrorAll+l3StallAll)/cpuCycleAll*100.0,methodTags, "Datasets", "Ratio of cacheStalls (%)", 5, 15, figPath + "cachestall_ratio", True)
     for instruc in [elapsedTimeAll]:
         instruc = np.maximum(instruc, 0)
         int8_adjust_ratio = instruc[0] / instruc[-2]
@@ -452,7 +435,7 @@ def main():
     elapsedTimeAll[0] = elapsedTimeAll[-1] * int8_adjust_ratio
     ammErroAll[-2] = ammErroAll[-2] - ammErroAll[-2]
 
-    # groupBar2.DrawFigure(dataSetNames, np.log(thrAll), methodTags, "Datasets", "elements/ms", 5, 15, figPath + "sec4_1_e2e_static_lazy_throughput_log", True)
+    # groupBar2.DrawFigure2(dataSetNames, np.log(thrAll), methodTags, "Datasets", "elements/ms", 5, 15, figPath + "sec4_1_e2e_static_lazy_throughput_log", True)
 
 
 if __name__ == "__main__":

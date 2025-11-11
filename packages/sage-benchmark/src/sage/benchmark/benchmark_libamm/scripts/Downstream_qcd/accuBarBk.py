@@ -65,7 +65,7 @@ class ScalarFormatterForceFormat(ScalarFormatter):
 
 
 # draw a line chart
-def DrawFigure(x_values, y_values, legend_labels, x_label, y_label, filename, allow_legend, title):
+def DrawFigure2(x_values, y_values, legend_labels, x_label, y_label, filename, allow_legend, title):
     # you may change the figure size on your own.
 
     fig = plt.figure(figsize=(20, 6))
@@ -132,7 +132,7 @@ def DrawFigure(x_values, y_values, legend_labels, x_label, y_label, filename, al
         bottom_base = np.array(y_values[i]) + bottom_base
 
     # sometimes you may not want to draw legends.
-    if allow_legend == True:
+    if allow_legend:
         plt.legend(
             bars,
             FIGURE_LABEL,
@@ -146,9 +146,9 @@ def DrawFigure(x_values, y_values, legend_labels, x_label, y_label, filename, al
             #                     columnspacing=5.5,
             #                     handlelength=2,
         )
-        if allow_legend == True:
+        if allow_legend:
             handles, labels = figure.get_legend_handles_labels()
-        if allow_legend == True:
+        if allow_legend:
             leg = plt.legend(
                 handles,
                 labels,
@@ -186,8 +186,6 @@ def DrawFigure(x_values, y_values, legend_labels, x_label, y_label, filename, al
     plt.xlabel(x_label, fontproperties=LABEL_FP)
     plt.ylabel(y_label, fontproperties=LABEL_FP)
 
-    size = fig.get_size_inches()
-    dpi = fig.get_dpi()
     plt.title(title, fontproperties=TITLE_FP)
     plt.savefig(filename + ".pdf", bbox_inches="tight", format="pdf")
 
@@ -299,7 +297,7 @@ if __name__ == "__main__":
     # break into 4 parts
     legend_labels = ["sort", "merge", "join"]  # , 'others'
 
-    DrawFigure(
+    DrawFigure2(
         x_values,
         y_values,
         legend_labels,
@@ -344,7 +342,7 @@ def DrawPercentageFigure(
         bottom_base = np.array(y_values[i]) + bottom_base
 
     # sometimes you may not want to draw legends.
-    if allow_legend == True:
+    if allow_legend:
         plt.legend(
             bars,
             FIGURE_LABEL,
@@ -358,9 +356,9 @@ def DrawPercentageFigure(
             #                     columnspacing=5.5,
             #                     handlelength=2,
         )
-        if allow_legend == True:
+        if allow_legend:
             handles, labels = figure.get_legend_handles_labels()
-        if allow_legend == True:
+        if allow_legend:
             print(handles[::-1], labels[::-1])
             leg = plt.legend(
                 handles[::-1],
@@ -379,7 +377,7 @@ def DrawPercentageFigure(
             leg.get_frame().set_edgecolor("black")
 
     # sometimes you may not want to draw legends.
-    # if allow_legend == True:
+    # if allow_legend:
     #     leg=plt.legend(bars,
     #                    FIGURE_LABEL,
     #                    prop=LEGEND_FP,
@@ -411,8 +409,5 @@ def DrawPercentageFigure(
 
     plt.xlabel(x_label, fontproperties=LABEL_FP)
     plt.ylabel(y_label, fontproperties=LABEL_FP)
-
-    size = fig.get_size_inches()
-    dpi = fig.get_dpi()
 
     plt.savefig(filename + ".pdf", bbox_inches="tight", format="pdf")

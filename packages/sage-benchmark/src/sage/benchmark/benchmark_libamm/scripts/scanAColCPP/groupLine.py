@@ -101,7 +101,7 @@ for font_path in font_paths:
         font_name = fm.FontProperties(fname=font_path).get_name()
         if font_name not in font_list:
             font_list.append(font_name)
-    except:
+    except Exception:
         pass
 
 # 配置 matplotlib 使用系统中可用的字体
@@ -165,7 +165,7 @@ def DrawLegend(legend_labels, filename):
 
 
 # draw a line chart
-def DrawFigure(
+def DrawFigure2(
     xvalues, yvalues, legend_labels, x_label, y_label, y_min, y_max, filename, allow_legend
 ):
     # you may change the figure size on your own.
@@ -190,7 +190,7 @@ def DrawFigure(
         )
 
     # sometimes you may not want to draw legends.
-    if allow_legend == True:
+    if allow_legend:
         plt.legend(
             lines,
             FIGURE_LABEL,
@@ -225,9 +225,6 @@ def DrawFigure(
     plt.xlabel(x_label, fontproperties=LABEL_FP)
     plt.ylabel(y_label, fontproperties=LABEL_FP)
 
-    size = fig.get_size_inches()
-    dpi = fig.get_dpi()
-
     # plt.show()
     plt.savefig(filename + ".pdf", bbox_inches="tight")
 
@@ -259,7 +256,7 @@ def DrawFigureXYnormal(
         )
 
     # sometimes you may not want to draw legends.
-    if allow_legend == True:
+    if allow_legend:
         plt.legend(
             lines,
             FIGURE_LABEL,
@@ -293,9 +290,6 @@ def DrawFigureXYnormal(
 
     plt.xlabel(x_label, fontproperties=LABEL_FP)
     plt.ylabel(y_label, fontproperties=LABEL_FP)
-
-    size = fig.get_size_inches()
-    dpi = fig.get_dpi()
 
     # plt.show()
     plt.savefig(filename + ".pdf", bbox_inches="tight")
@@ -331,7 +325,7 @@ def DrawFigureYnormal(
         )
 
     # sometimes you may not want to draw legends.
-    if allow_legend == True:
+    if allow_legend:
         plt.legend(
             lines,
             FIGURE_LABEL,
@@ -367,9 +361,6 @@ def DrawFigureYnormal(
 
     plt.xlabel(x_label, fontproperties=LABEL_FP)
     plt.ylabel(y_label, fontproperties=LABEL_FP)
-
-    size = fig.get_size_inches()
-    dpi = fig.get_dpi()
 
     # plt.show()
     plt.savefig(filename + ".pdf", bbox_inches="tight")
@@ -478,7 +469,7 @@ if __name__ == "__main__":
         "PMJ$^{JB}$",
     ]
 
-    DrawFigure(
+    DrawFigure2(
         x_values,
         y_values,
         legend_labels,

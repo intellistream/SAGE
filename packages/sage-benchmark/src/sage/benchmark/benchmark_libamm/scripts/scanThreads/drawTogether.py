@@ -8,9 +8,9 @@ import groupBar2 as groupBar2
 import groupLine as groupLine
 import matplotlib
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 # OPT_FONT_NAME = 'Helvetica'
 TICK_FONT_SIZE = 22
@@ -182,7 +182,6 @@ def main():
     ]
     methodTags = ["mm", "crs", "ews", "counterSketch", "cofd", "tow", "weighted-cr", "smp-pca"]
     valueVec = [2, 4, 6, 8, 10, 12]
-    valueVecRun = valueVec
     print(configTemplate)
     reRun = 0
     # run

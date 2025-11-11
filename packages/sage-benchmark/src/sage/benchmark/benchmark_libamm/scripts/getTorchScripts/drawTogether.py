@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pragma: allowlist secret
 import os
 
 import accuBar as accuBar
@@ -7,10 +8,10 @@ import groupLine as groupLine
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from autoParase import *
 from matplotlib.font_manager import FontProperties
 from matplotlib.ticker import LinearLocator
-from OoOCommon import *
+from OoOCommon import *  # noqa: F403  # noqa: F403
+from OoOCommon import editConfig, readConfig
 
 OPT_FONT_NAME = "Helvetica"
 TICK_FONT_SIZE = 22
@@ -93,7 +94,9 @@ def runPeriod(
     editConfig(
         configTemplate, exePath + "temp1.csv", "sketchDimension", int(16 * 16 / 10000 * 512)
     )  # num of subspace * ncodebook / num of rows * num of cols
-    editConfig(exePath + "temp1.csv", exePath + "temp2.csv", "cppAlgoTag", algoTag)
+    editConfig(
+        exePath + "temp1.csv", exePath + "temp2.csv", "cppAlgoTag", algoTag
+    )  # pragma: allowlist secret
 
     # blockLRA rank ratio
     editConfig(
@@ -320,7 +323,6 @@ def draw2yBar(NAME, R1, R2, l1, l2, fname):
     x1_list = []
     x2_list = []
     bars = []
-    index = np.arange(len(NAME))
     for i in range(len(R1)):
         x1_list.append(i)
         x2_list.append(i + width)
@@ -393,12 +395,12 @@ def draw2yBar(NAME, R1, R2, l1, l2, fname):
 
 def main():
     exeSpace = os.path.abspath(os.path.join(os.getcwd(), "../..")) + "/"
-    commonBasePath = (
+    (
         os.path.abspath(os.path.join(os.getcwd(), "../.."))
         + "/results/Downstream_Inference_static_lazy/"
     )
 
-    figPath = (
+    (
         os.path.abspath(os.path.join(os.getcwd(), "../.."))
         + "/figures/Downstream_Inference_static_lazy/"
     )
