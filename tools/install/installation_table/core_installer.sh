@@ -181,20 +181,13 @@ install_core_packages() {
         # 注意：必须使用 --no-deps 防止 pip 重新安装已有的 sage 子包依赖
         # C++ 构建依赖（pybind11等）在 build-system.requires 中声明，通过环境已安装
         # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
-
-        # 设置 CMAKE_ARGS 禁用 LibAMM（需要 CUDA 和 PyTorch）
-        export CMAKE_ARGS="-DENABLE_LIBAMM=OFF"
-
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
         echo -e "${DIM}    (包含 C++ 扩展构建，可能需要几分钟...)${NC}"
-        echo -e "${DIM}    (LibAMM 已禁用，不需要 CUDA/PyTorch)${NC}"
         if ! $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps >> "$log_file" 2>&1; then
             echo -e "${CROSS} 安装 sage-middleware 失败！"
             echo -e "${DIM}提示: 检查日志文件获取详细错误信息: $log_file${NC}"
-            unset CMAKE_ARGS
             return 1
         fi
-        unset CMAKE_ARGS
         echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
 
         # 调试：检查 .so 文件位置（仅在 CI 环境）
