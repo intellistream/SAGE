@@ -474,14 +474,25 @@ verify_installation() {
 
     # 如果使用conda环境且环境变量存在，使用conda run
     if [ -n "$SAGE_ENV_NAME" ] && command -v conda &> /dev/null; then
-        python_cmd="conda run -n $SAGE_ENV_NAME python"
-        echo -e "${DIM}在conda环境 $SAGE_ENV_NAME 中验证...${NC}"
+        # 检查 conda 环境是否真实存在
+        if conda env list | grep -q "^${SAGE_ENV_NAME} "; then
+            python_cmd="conda run -n $SAGE_ENV_NAME python"
+            echo -e "${DIM}在conda环境 $SAGE_ENV_NAME 中验证...${NC}"
+        else
+            # 环境不存在，使用默认 Python
+            echo -e "${DIM}conda环境 $SAGE_ENV_NAME 不存在，在当前环境中验证...${NC}"
+        fi
     elif [ -n "$PIP_CMD" ] && [[ "$PIP_CMD" == *"conda run"* ]]; then
         # 从PIP_CMD中提取环境名
         local env_name=$(echo "$PIP_CMD" | sed -n 's/.*conda run -n \([^ ]*\).*/\1/p')
         if [ -n "$env_name" ]; then
-            python_cmd="conda run -n $env_name python"
-            echo -e "${DIM}在conda环境 $env_name 中验证...${NC}"
+            # 检查环境是否存在
+            if conda env list | grep -q "^${env_name} "; then
+                python_cmd="conda run -n $env_name python"
+                echo -e "${DIM}在conda环境 $env_name 中验证...${NC}"
+            else
+                echo -e "${DIM}conda环境 $env_name 不存在，在当前环境中验证...${NC}"
+            fi
         fi
     else
         echo -e "${DIM}在当前环境中验证...${NC}"

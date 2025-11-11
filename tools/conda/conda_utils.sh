@@ -14,7 +14,8 @@ fi
 
 # 默认配置值
 SAGE_CONDA_PATH="${SAGE_CONDA_PATH:-$HOME/miniconda3}"
-SAGE_ENV_NAME="${SAGE_ENV_NAME:-sage}"
+# 注意：SAGE_ENV_NAME 不在这里设置默认值，应由调用者明确设置
+# 只有在确实需要 conda 环境时才设置此变量
 SAGE_PYTHON_VERSION="${SAGE_PYTHON_VERSION:-3.11}"
 
 # 检查命令是否存在（可选）
