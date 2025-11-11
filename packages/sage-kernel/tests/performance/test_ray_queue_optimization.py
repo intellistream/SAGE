@@ -16,7 +16,7 @@ import time
 import pytest
 import ray
 
-from sage.kernel.runtime.communication.queue_descriptor.ray_queue_descriptor import (
+from sage.platform.queue.ray_queue_descriptor import (
     RayQueueDescriptor,
     RayQueueProxy,
     get_global_queue_manager,
