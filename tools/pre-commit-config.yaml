@@ -62,10 +62,10 @@ repos:
   - id: ruff
     name: ruff check
     args: [--fix, --exit-non-zero-on-fix]
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/)
   - id: ruff-format
     name: ruff format
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/)
 
 # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local
@@ -83,7 +83,7 @@ repos:
     - --explicit-package-bases
     - --warn-unused-ignores
     - --namespace-packages
-    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/src/sage/__init__.py)
+    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/src/sage/__init__.py)
     # This hook will always succeed (exit 0) to avoid blocking commits/CI
     # Errors are shown but treated as warnings
   - id: markdown-files-location-check
