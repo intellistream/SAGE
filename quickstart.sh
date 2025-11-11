@@ -6,9 +6,9 @@
 export TERM=xterm-256color
 set -e
 
-# 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLS_DIR="$SCRIPT_DIR/tools/install"
+# 获取脚本所在目录（使用 SAGE_ROOT 避免与子模块的 SCRIPT_DIR 冲突）
+SAGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOLS_DIR="$SAGE_ROOT/tools/install"
 
 # 导入所有模块
 source "$TOOLS_DIR/display_tools/colors.sh"
@@ -39,14 +39,15 @@ sync_submodules_if_requested() {
 
     echo ""
     echo -e "${BLUE}🔄 同步 SAGE submodules${NC}"
+    echo -e "${DIM}提示: 将并行克隆 8 个子仓库，首次可能需要 2-5 分钟${NC}"
 
-    if [ ! -f "$SCRIPT_DIR/manage.sh" ]; then
+    if [ ! -f "$SAGE_ROOT/manage.sh" ]; then
         echo -e "${YELLOW}⚠️  未找到 manage.sh，跳过自动同步${NC}"
         echo -e "${DIM}提示: 手动运行 git submodule update --init --recursive${NC}"
         return
     fi
 
-    if ! bash "$SCRIPT_DIR/manage.sh"; then
+    if ! bash "$SAGE_ROOT/manage.sh"; then
         echo -e "${YELLOW}⚠️  自动同步失败，请稍后手动运行 ${DIM}./manage.sh bootstrap${NC}"
     fi
 }
@@ -136,7 +137,7 @@ main() {
     fi
 
     # 切换到项目根目录
-    cd "$SCRIPT_DIR"
+    cd "$SAGE_ROOT"
 
     sync_submodules_if_requested "$sync_submodules"
 
@@ -196,8 +197,8 @@ main() {
         if [ "$mode" = "dev" ]; then
             echo ""
             echo -e "${INFO} 设置额外的 Git hooks（开发模式）..."
-            if [ -f "$SCRIPT_DIR/tools/maintenance/setup_hooks.sh" ]; then
-                bash "$SCRIPT_DIR/tools/maintenance/setup_hooks.sh" --force 2>/dev/null || {
+            if [ -f "$SAGE_ROOT/tools/maintenance/setup_hooks.sh" ]; then
+                bash "$SAGE_ROOT/tools/maintenance/setup_hooks.sh" --force 2>/dev/null || {
                     echo -e "${DIM}  ℹ️  开发模式 hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
                 }
             fi

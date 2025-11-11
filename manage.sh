@@ -34,6 +34,11 @@ if [ $# -eq 0 ]; then
         cleanup_needed=true
     fi
 
+    # 优化 Git 配置以提升 submodule 克隆速度
+    echo "Optimizing Git configuration for faster submodule cloning..."
+    git config --local submodule.fetchJobs 4 2>/dev/null || true
+    git config --local http.postBuffer 524288000 2>/dev/null || true
+
     if [ "$cleanup_needed" = true ]; then
         echo "Detected legacy submodule config; running cleanup + bootstrap..."
         if ! bash "$MAINTENANCE_SCRIPT" submodule cleanup; then
