@@ -40,6 +40,9 @@ dependencies = [
     "isage-middleware>=0.1.0",
     "isage-libs>=0.1.0",
 
+    # SAGE data (submodule package)
+    "sage-data>=0.1.0",
+
     # RAG and benchmark dependencies
     "pyyaml>=6.0",
     "chromadb>=0.4.0",

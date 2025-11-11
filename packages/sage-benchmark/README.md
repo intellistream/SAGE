@@ -63,7 +63,19 @@ sage-benchmark/
 
 ## 🚀 Installation
 
-Install the benchmark package:
+### Prerequisites
+
+The benchmark package depends on the `sage-data` package for datasets (including LibAMM datasets).
+First install the data package:
+
+```bash
+# Install sage-data from the submodule
+pip install -e packages/sage-benchmark/src/sage/data
+```
+
+### Install Benchmark Package
+
+Then install the benchmark package:
 
 ```bash
 pip install -e packages/sage-benchmark
@@ -74,6 +86,9 @@ Or with development dependencies:
 ```bash
 pip install -e "packages/sage-benchmark[dev]"
 ```
+
+**Note:** The `sage-data` package must be installed before using benchmarks that require datasets
+(e.g., LibAMM benchmarks with `sage.data.locomo` imports).
 
 ## 📊 RAG Benchmarking
 
