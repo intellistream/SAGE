@@ -52,8 +52,9 @@ check_remote_branch_exists() {
 
     cd "$submodule_path" 2>/dev/null || return 1
     
-    # 检查是否是浅克隆
-    if [ -f ".git/shallow" ]; then
+    # 检查是否是浅克隆（submodule 的 .git 是文件，需要用 git rev-parse）
+    local git_dir=$(git rev-parse --git-dir 2>/dev/null)
+    if [ -f "$git_dir/shallow" ]; then
         # 浅克隆情况下，尝试 fetch 该分支来检查是否存在
         git fetch origin "$branch_name" --depth 1 2>/dev/null
     else
@@ -96,8 +97,10 @@ switch_submodule_branch() {
     fi
 
     # 检查是否是浅克隆仓库
+    # 注意：submodule 的 .git 是文件不是目录，需要用 git rev-parse --git-dir 获取实际路径
     local is_shallow=false
-    if [ -f ".git/shallow" ]; then
+    local git_dir=$(git rev-parse --git-dir 2>/dev/null)
+    if [ -f "$git_dir/shallow" ]; then
         is_shallow=true
         echo -e "${DIM}  检测到浅克隆，将 fetch 目标分支...${NC}"
     fi
