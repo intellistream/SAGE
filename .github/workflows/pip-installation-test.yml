@@ -137,13 +137,48 @@ jobs:
           python -c "from sage.common import config; print('✅ sage.common 可用')"
           python -c "from sage.kernel import LocalEnvironment; print('✅ sage.kernel 可用')"
 
-          # 验证 CLI（如果包含）
-          if [ "${{ matrix.install-mode }}" != "core" ]; then
-            if command -v sage >/dev/null 2>&1; then
-              sage --version && echo "✅ sage CLI 可用"
-            else
-              echo "⚠️  sage CLI 未找到（可能需要添加到 PATH）"
-            fi
+          # 根据安装模式验证相应的包
+          case "${{ matrix.install-mode }}" in
+            standard|full|dev)
+              # 验证 CLI
+              if command -v sage >/dev/null 2>&1; then
+                sage --version && echo "✅ sage CLI 可用"
+              else
+                echo "⚠️  sage CLI 未找到（可能需要添加到 PATH）"
+              fi
+
+              # 验证 sage-benchmark（standard/full/dev 都应该包含）
+              if pip show isage-benchmark >/dev/null 2>&1; then
+                python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
+                  echo "❌ sage.benchmark 导入失败"
+                  deactivate
+                  exit 1
+                }
+                python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+                  echo "❌ sage.data 导入失败"
+                  deactivate
+                  exit 1
+                }
+              fi
+
+              # 验证 sage-apps（如果已安装）
+              if pip show isage-apps >/dev/null 2>&1; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" || {
+                  echo "❌ sage.apps 导入失败"
+                  deactivate
+                  exit 1
+                }
+              fi
+              ;;
+          esac
+
+          # dev 模式额外验证
+          if [ "${{ matrix.install-mode }}" = "dev" ]; then
+            python -c "import sage.tools; print('✅ sage.tools 可用')" || {
+              echo "❌ sage.tools 导入失败"
+              deactivate
+              exit 1
+            }
           fi
 
           # 验证安装的包列表
@@ -252,8 +287,24 @@ jobs:
               if command -v sage >/dev/null 2>&1; then
                 sage --version && echo "✅ sage CLI 可用"
               fi
-              if [ -d "packages/sage-apps" ]; then
-                python -c "import sage.apps; print('✅ sage.apps 可用')" 2>/dev/null || echo "ℹ️  sage.apps 可选"
+              # 验证 sage-apps（如果已安装）
+              if pip show isage-apps >/dev/null 2>&1; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" || {
+                  echo "❌ sage.apps 导入失败"
+                  exit 1
+                }
+              fi
+              # 验证 sage-benchmark（必须验证）
+              if pip show isage-benchmark >/dev/null 2>&1; then
+                python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
+                  echo "❌ sage.benchmark 导入失败"
+                  exit 1
+                }
+                # 验证 sage.data 子包
+                python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+                  echo "❌ sage.data 导入失败"
+                  exit 1
+                }
               fi
               ;;
             full)
@@ -263,6 +314,24 @@ jobs:
               if command -v sage >/dev/null 2>&1; then
                 sage --version && echo "✅ sage CLI 可用"
               fi
+              # 验证 sage-apps
+              if pip show isage-apps >/dev/null 2>&1; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" || {
+                  echo "❌ sage.apps 导入失败"
+                  exit 1
+                }
+              fi
+              # 验证 sage-benchmark
+              if pip show isage-benchmark >/dev/null 2>&1; then
+                python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
+                  echo "❌ sage.benchmark 导入失败"
+                  exit 1
+                }
+                python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+                  echo "❌ sage.data 导入失败"
+                  exit 1
+                }
+              fi
               ;;
             dev)
               echo "验证 dev 模式功能..."
@@ -270,6 +339,22 @@ jobs:
               python -c "import sage.studio; print('✅ sage.studio 可用')"
               python -c "import sage.tools; print('✅ sage.tools 可用')"
               python -c "import pytest; print('✅ pytest 可用')"
+              # 验证 sage-apps
+              if pip show isage-apps >/dev/null 2>&1; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" || {
+                  echo "❌ sage.apps 导入失败"
+                  exit 1
+                }
+              fi
+              # 验证 sage-benchmark（必须存在）
+              python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
+                echo "❌ sage.benchmark 导入失败"
+                exit 1
+              }
+              python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+                echo "❌ sage.data 导入失败"
+                exit 1
+              }
               ;;
           esac
 
