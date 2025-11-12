@@ -133,6 +133,12 @@ video = [
     "Pillow>=9.0.0",  # Image processing
 ]
 
+# LibAMM - Approximate Matrix Multiplication Library
+# High-performance C++ library with NumPy interface
+amm = [
+    "torch>=2.0.0",  # Required by LibAMM internally (users only see NumPy)
+]
+
 # Examples dependencies (aggregate of all example-specific deps)
 examples = [
     "isage-libs[video]",
