@@ -3,6 +3,11 @@
 # 功能：根据当前 SAGE 分支自动切换 submodule 到对应分支
 # - main 分支 → submodules 的 main 分支
 # - 其他分支 → submodules 的 main-dev 分支
+#
+# 注意事项：
+# - 支持浅克隆(shallow clone)的 submodules
+# - 浅克隆时会自动 fetch 目标分支或 unshallow（如果需要）
+# - 修复了 quickstart.sh 中 --depth 1 导致的分支切换问题
 
 set -e
 
@@ -46,7 +51,16 @@ check_remote_branch_exists() {
     local branch_name="$2"
 
     cd "$submodule_path" 2>/dev/null || return 1
-    git fetch origin "$branch_name" 2>/dev/null
+    
+    # 检查是否是浅克隆
+    if [ -f ".git/shallow" ]; then
+        # 浅克隆情况下，尝试 fetch 该分支来检查是否存在
+        git fetch origin "$branch_name" --depth 1 2>/dev/null
+    else
+        # 非浅克隆，正常 fetch
+        git fetch origin "$branch_name" 2>/dev/null
+    fi
+    
     local exists=$?
     cd - > /dev/null
     return $exists
@@ -73,58 +87,89 @@ switch_submodule_branch() {
 
     cd "$submodule_path"
 
-    # 获取远程分支，若失败则继续使用本地引用
-    if ! git fetch origin >/dev/null 2>&1; then
-        echo -e "${YELLOW}  ⚠️ 无法访问远程 origin，使用本地引用尝试切换${NC}"
+    # 首先检查当前是否已经在目标分支上
+    local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    if [ "$current_branch" = "$target_branch" ]; then
+        echo -e "${GREEN}  ${CHECK} 已在 ${target_branch} 分支${NC}"
+        cd - > /dev/null
+        return 0
     fi
 
-    local target_ref="origin/$target_branch"
-    if ! git show-ref --verify --quiet "refs/remotes/$target_ref"; then
-        if git show-ref --verify --quiet "refs/heads/$target_branch"; then
-            target_ref="$target_branch"
+    # 检查是否是浅克隆仓库
+    local is_shallow=false
+    if [ -f ".git/shallow" ]; then
+        is_shallow=true
+        echo -e "${DIM}  检测到浅克隆，将 fetch 目标分支...${NC}"
+    fi
+
+    # 获取远程分支，若失败则继续使用本地引用
+    # 对于浅克隆，明确 fetch 目标分支
+    if [ "$is_shallow" = true ]; then
+        # 浅克隆情况下，先尝试 fetch 目标分支（深度为1以保持仓库小）
+        if git fetch origin "$target_branch" --depth 1 >/dev/null 2>&1; then
+            echo -e "${DIM}  成功 fetch ${target_branch} 分支${NC}"
         else
-            echo -e "${RED}  ${CROSS} 未找到 ${target_branch} 对应的远程或本地分支${NC}"
-            cd - > /dev/null
-            return 1
+            echo -e "${YELLOW}  ⚠️ 无法 fetch ${target_branch} 分支，尝试 unshallow...${NC}"
+            # 如果 fetch 特定分支失败，尝试 unshallow（获取完整历史）
+            if git fetch --unshallow >/dev/null 2>&1; then
+                echo -e "${DIM}  成功 unshallow，重新 fetch...${NC}"
+                git fetch origin "$target_branch" >/dev/null 2>&1 || true
+            else
+                echo -e "${YELLOW}  ⚠️ unshallow 失败，使用本地引用尝试切换${NC}"
+            fi
+        fi
+    else
+        # 非浅克隆，正常 fetch
+        if ! git fetch origin >/dev/null 2>&1; then
+            echo -e "${YELLOW}  ⚠️ 无法访问远程 origin，使用本地引用尝试切换${NC}"
         fi
     fi
 
-    # 切换分支
-    echo -e "${DIM}  切换到 ${target_branch} 分支...${NC}"
-    if ! git checkout -B "$target_branch" "$target_ref" >/dev/null 2>&1; then
-        echo -e "${RED}  ${CROSS} 无法切换到 ${target_branch}${NC}"
+    # 确定目标引用（优先使用 origin/分支，其次使用本地分支）
+    local target_ref=""
+    if git show-ref --verify --quiet "refs/remotes/origin/$target_branch"; then
+        target_ref="origin/$target_branch"
+    elif git show-ref --verify --quiet "refs/heads/$target_branch"; then
+        target_ref="$target_branch"
+    else
+        echo -e "${RED}  ${CROSS} 未找到 ${target_branch} 对应的远程或本地分支${NC}"
+        echo -e "${DIM}  提示: 请确认远程仓库中存在 ${target_branch} 分支${NC}"
         cd - > /dev/null
         return 1
     fi
 
-    echo -e "${GREEN}  ${CHECK} 已切换到 ${target_branch}${NC}"
-    cd - > /dev/null
-    return 0
+    # 切换分支
+    echo -e "${DIM}  切换到 ${target_branch} 分支...${NC}"
+    if git checkout -B "$target_branch" "$target_ref" >/dev/null 2>&1; then
+        echo -e "${GREEN}  ${CHECK} 已切换到 ${target_branch}${NC}"
+        cd - > /dev/null
+        return 0
+    else
+        echo -e "${RED}  ${CROSS} 无法切换到 ${target_branch}${NC}"
+        cd - > /dev/null
+        return 1
+    fi
 }
 
-# 初始化 submodules（如果需要）
-init_submodules() {
+# 检查 submodules 是否已初始化
+check_submodules_initialized() {
     echo -e "${BLUE}🔍 检查 submodule 初始化状态...${NC}"
 
     local need_init=false
     while IFS= read -r submodule_path; do
-        if [ ! -d "$submodule_path/.git" ]; then
+        if [ ! -d "$submodule_path/.git" ] && [ ! -f "$submodule_path/.git" ]; then
             need_init=true
             break
         fi
     done < <(get_submodules)
 
     if [ "$need_init" = true ]; then
-        echo -e "${DIM}初始化 submodules...${NC}"
-        git submodule sync --recursive >/dev/null 2>&1 || true
-        git config --file .git/config --remove-section "submodule.packages/sage-middleware/src/sage/middleware/components/sage_vllm/sageLLM" >/dev/null 2>&1 || true
-        if git submodule update --init --recursive; then
-            echo -e "${CHECK} Submodules 初始化完成${NC}"
-        else
-            echo -e "${YELLOW}  ⚠️ 检测到旧的 submodule 路径（可能正在重定位），跳过自动初始化${NC}"
-        fi
+        echo -e "${YELLOW}  ⚠️  发现未初始化的 submodules${NC}"
+        echo -e "${DIM}  请先运行: ./manage.sh 或 ./quickstart.sh --sync-submodules${NC}"
+        return 1
     else
         echo -e "${CHECK} 所有 submodules 已初始化${NC}"
+        return 0
     fi
 }
 
@@ -154,8 +199,11 @@ switch_submodules() {
     fi
     echo ""
 
-    # 确保 submodules 已初始化
-    init_submodules
+    # 检查 submodules 是否已初始化（不执行初始化，只检查）
+    if ! check_submodules_initialized; then
+        echo ""
+        return 1
+    fi
     echo ""
 
     local success_count=0
