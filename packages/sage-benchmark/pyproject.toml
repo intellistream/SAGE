@@ -81,6 +81,12 @@ packages = [
     "sage.benchmark.benchmark_rag.implementations.pipelines",
     "sage.benchmark.benchmark_rag.implementations.tools",
     "sage.benchmark.benchmark_rag.evaluation",
+    "sage.data",
+    "sage.data.qa",
+    "sage.data.locomo",
+    "sage.data.bbh",
+    "sage.data.mmlu",
+    "sage.data.gpqa",
 ]
 package-dir = {"" = "src"}
 

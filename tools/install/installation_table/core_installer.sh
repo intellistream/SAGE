@@ -204,6 +204,40 @@ install_core_packages() {
 
         # L5: apps & benchmark (仅 full 和 dev 模式)
         if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
+            # 配置 pyproject.toml（确保所有子包都被包含）
+            echo -e "${DIM}  检查并配置 pyproject.toml...${NC}"
+
+            # 配置 sage-benchmark: 确保 sage.data 及其子包被包含
+            if [ -f "packages/sage-benchmark/pyproject.toml" ]; then
+                if ! grep -q '"sage\.data"' "packages/sage-benchmark/pyproject.toml"; then
+                    # 在 sage.benchmark.benchmark_rag.evaluation 之后添加 sage.data 相关包
+                    sed -i '/sage\.benchmark\.benchmark_rag\.evaluation",/a\    "sage.data",\n    "sage.data.qa",\n    "sage.data.locomo",\n    "sage.data.bbh",\n    "sage.data.mmlu",\n    "sage.data.gpqa",' packages/sage-benchmark/pyproject.toml
+                fi
+            fi
+
+            # 配置 sage-apps: 确保所有子应用包被包含
+            if [ -f "packages/sage-apps/pyproject.toml" ]; then
+                if ! grep -q '"sage\.apps\.video"' "packages/sage-apps/pyproject.toml"; then
+                    # 在 sage.apps 之后添加子应用包
+                    sed -i '/"sage\.apps",/a\    "sage.apps.video",\n    "sage.apps.medical_diagnosis",\n    "sage.apps.smart_home",\n    "sage.apps.article_monitoring",\n    "sage.apps.auto_scaling_chat",' packages/sage-apps/pyproject.toml
+                fi
+            fi
+
+            # 配置 sage.data 子模块导入（确保使用相对导入）
+            if [ -d "packages/sage-benchmark/src/sage/data" ]; then
+                # 配置 sage/data/__init__.py
+                [ -f "packages/sage-benchmark/src/sage/data/__init__.py" ] && \
+                    sed -i 's/^from qa import/from .qa import/g; s/^from locomo import/from .locomo import/g; s/^from bbh import/from .bbh import/g; s/^from mmlu import/from .mmlu import/g; s/^from gpqa import/from .gpqa import/g' \
+                    packages/sage-benchmark/src/sage/data/__init__.py
+
+                # 配置各个子模块的 __init__.py
+                for submodule in qa locomo gpqa; do
+                    [ -f "packages/sage-benchmark/src/sage/data/$submodule/__init__.py" ] && \
+                        sed -i "s|^from $submodule\.|from .|g; s|^from $submodule import|from .dataloader import|g" \
+                        packages/sage-benchmark/src/sage/data/$submodule/__init__.py
+                done
+            fi
+
             if [ -d "packages/sage-apps" ]; then
                 echo -e "${DIM}  正在安装: packages/sage-apps${NC}"
                 $PIP_CMD install $install_flags "packages/sage-apps" $pip_args --no-deps >> "$log_file" 2>&1
