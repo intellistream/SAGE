@@ -113,10 +113,6 @@ if(EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
         set(ENABLE_HDF5 ON CACHE BOOL "Enable HDF5 support" FORCE)
         set(ENABLE_PAPI OFF CACHE BOOL "Disable PAPI" FORCE)
 
-        # 关键：告诉 LibAMM 不要加载 thirdparty/pybind11
-        # 因为我们已经在父 CMakeLists.txt 中 find_package(pybind11) 了
-        set(pybind11_FOUND TRUE CACHE BOOL "Use parent's pybind11" FORCE)
-
         # 设置 CUDACXX 环境变量（即使不存在 nvcc 也设置，参考 buildCPUOnly.sh）
         set(ENV{CUDACXX} "/usr/local/cuda/bin/nvcc")
 
