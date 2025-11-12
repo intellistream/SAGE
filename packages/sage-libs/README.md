@@ -19,12 +19,30 @@ SAGE Libraries 提供了以下核心库组件：
 ## 🚀 Installation
 
 ```bash
-# 从源码安装
+# 基础安装
 pip install -e packages/sage-libs
 
 # 或使用 sage-dev 命令
 sage-dev install sage-libs
 ```
+
+### Optional: LibAMM (Approximate Matrix Multiplication)
+
+LibAMM 是一个高性能的近似矩阵乘法库，作为独立的 C++ 扩展提供。如需使用：
+
+```bash
+# 安装 LibAMM（需要 C++ 编译环境）
+cd packages/sage-libs/src/sage/libs/libamm
+pip install .
+
+# 这会自动安装 PyTorch 依赖
+```
+
+**注意**：
+
+- LibAMM 需要 CMake 和 C++ 编译器
+- 会自动安装 PyTorch（但用户只需使用 NumPy 接口）
+- 详见 `libamm/DEPENDENCY_ISOLATION.md`
 
 ## 📖 Quick Start
 
