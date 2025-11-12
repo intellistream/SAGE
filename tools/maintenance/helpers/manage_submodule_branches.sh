@@ -105,17 +105,23 @@ switch_submodule_branch() {
     # 获取远程分支，若失败则继续使用本地引用
     # 对于浅克隆，明确 fetch 目标分支
     if [ "$is_shallow" = true ]; then
-        # 浅克隆情况下，先尝试 fetch 目标分支（深度为1以保持仓库小）
-        if git fetch origin "$target_branch" --depth 1 >/dev/null 2>&1; then
+        # 浅克隆情况下，使用 refspec 明确指定要 fetch 的分支
+        # 格式：refs/heads/branch:refs/remotes/origin/branch
+        if git fetch origin "refs/heads/$target_branch:refs/remotes/origin/$target_branch" --depth 1 >/dev/null 2>&1; then
             echo -e "${DIM}  成功 fetch ${target_branch} 分支${NC}"
         else
-            echo -e "${YELLOW}  ⚠️ 无法 fetch ${target_branch} 分支，尝试 unshallow...${NC}"
-            # 如果 fetch 特定分支失败，尝试 unshallow（获取完整历史）
-            if git fetch --unshallow >/dev/null 2>&1; then
-                echo -e "${DIM}  成功 unshallow，重新 fetch...${NC}"
-                git fetch origin "$target_branch" >/dev/null 2>&1 || true
+            # 如果指定 refspec 失败，尝试简单的分支名
+            if git fetch origin "$target_branch:$target_branch" --depth 1 >/dev/null 2>&1; then
+                echo -e "${DIM}  成功 fetch ${target_branch} 分支${NC}"
             else
-                echo -e "${YELLOW}  ⚠️ unshallow 失败，使用本地引用尝试切换${NC}"
+                echo -e "${YELLOW}  ⚠️ 无法 fetch ${target_branch} 分支，尝试 unshallow...${NC}"
+                # 如果 fetch 特定分支失败，尝试 unshallow（获取完整历史）
+                if git fetch --unshallow >/dev/null 2>&1; then
+                    echo -e "${DIM}  成功 unshallow，重新 fetch...${NC}"
+                    git fetch origin "$target_branch" >/dev/null 2>&1 || true
+                else
+                    echo -e "${YELLOW}  ⚠️ unshallow 失败，使用本地引用尝试切换${NC}"
+                fi
             fi
         fi
     else
