@@ -281,6 +281,70 @@ class Dispatcher:
         self.services.clear()
         self.logger.info("All services cleaned up")
 
+    def _preinitialize_queue_descriptors(self):
+        """
+        在任务启动前预初始化所有队列描述符
+
+        这个方法遍历所有任务的上下文,访问队列描述符的queue_instance属性,
+        强制在主进程/driver context中完成Ray Actor的创建和初始化,
+        避免在Ray Task执行期间懒初始化导致的死锁问题。
+        """
+        self.logger.info("Pre-initializing all queue descriptors to avoid deadlocks...")
+        import time
+
+        start_time = time.time()
+
+        initialized_qds = set()  # 使用集合记录已初始化的队列(通过id去重)
+
+        # 遍历所有任务,初始化其上下文中的队列描述符
+        for node_name, task in self.tasks.items():
+            if not hasattr(task, "ctx") or task.ctx is None:
+                continue
+
+            ctx = task.ctx
+            qd_list = []
+
+            # 收集输入队列描述符
+            if hasattr(ctx, "input_qd") and ctx.input_qd is not None:
+                qd_list.append(("input_qd", ctx.input_qd))
+
+            # 收集响应队列描述符
+            if hasattr(ctx, "response_qd") and ctx.response_qd is not None:
+                qd_list.append(("response_qd", ctx.response_qd))
+
+            # 收集所有下游连接的队列描述符
+            if hasattr(ctx, "downstream_groups"):
+                for output_index, connections in ctx.downstream_groups.items():
+                    for parallel_idx, connection in connections.items():
+                        if hasattr(connection, "queue_descriptor"):
+                            qd_list.append(
+                                (
+                                    f"downstream_{output_index}_{parallel_idx}",
+                                    connection.queue_descriptor,
+                                )
+                            )
+
+            # 初始化这些队列描述符
+            for qd_name, qd in qd_list:
+                qd_id = id(qd)
+                if qd_id not in initialized_qds:
+                    try:
+                        # 访问queue_instance属性触发初始化
+                        _ = qd.queue_instance
+                        initialized_qds.add(qd_id)
+                        self.logger.debug(
+                            f"Initialized queue descriptor: {qd_name} for task {node_name}"
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to pre-initialize {qd_name} for {node_name}: {e}"
+                        )
+
+        elapsed = time.time() - start_time
+        self.logger.info(
+            f"Queue descriptor pre-initialization completed: {len(initialized_qds)} unique queues initialized in {elapsed:.3f}s"
+        )
+
     def setup_logging_system(self):
         base_dir = self.env.env_base_dir if self.env.env_base_dir is not None else "."
         self.logger = CustomLogger(
@@ -474,6 +538,9 @@ class Dispatcher:
                 raise e
 
         # 连接关系已经在execution graph层通过task context设置好了，无需在此处设置
+
+        # 预初始化所有队列描述符(防止在Ray Task内部懒初始化导致死锁)
+        self._preinitialize_queue_descriptors()
 
         try:
             self.start()
