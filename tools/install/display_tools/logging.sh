@@ -227,14 +227,28 @@ log_phase_start() {
 # 记录阶段结束
 log_phase_end() {
     local phase_name="$1"
-    local success="${2:-true}"
+    local status="${2:-true}"
     local context="${3:-PHASE}"
 
-    if [ "$success" = "true" ]; then
-        log_info "阶段完成: $phase_name ✓" "$context"
-    else
-        log_error "阶段失败: $phase_name ✗" "$context"
-    fi
+    # 支持多种状态表示：
+    # - "true" / "success" → 成功
+    # - "false" / "failure" → 失败
+    # - "partial_success" → 部分成功
+    # - "skipped" → 跳过
+    case "$status" in
+        "true"|"success")
+            log_info "阶段完成: $phase_name ✓" "$context"
+            ;;
+        "partial_success")
+            log_warn "阶段部分完成: $phase_name ⚠" "$context"
+            ;;
+        "skipped")
+            log_info "阶段跳过: $phase_name ⊘" "$context"
+            ;;
+        "false"|"failure"|*)
+            log_error "阶段失败: $phase_name ✗" "$context"
+            ;;
+    esac
     log_info "========================================" "$context" false
 }
 
