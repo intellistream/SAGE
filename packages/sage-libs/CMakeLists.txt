@@ -35,14 +35,39 @@ message(STATUS "======================================")
 message(STATUS "")
 
 # ============================================================================
-# LibAMM - Approximate Matrix Multiplication Library
+# LibAMM - Approximate Matrix Multiplication Library (可选)
+# ============================================================================
+# LibAMM 依赖 PyTorch C++ API，编译时内存占用极大（单文件 500MB+）
+# 不适合在所有环境下现场编译，建议：
+# 1. 使用预编译的 wheel 包
+# 2. 或在高内存机器上编译后分发
+# 
+# 控制编译：
+#   环境变量 BUILD_LIBAMM=1    强制编译 LibAMM
+#   环境变量 BUILD_LIBAMM=0    跳过 LibAMM（默认）
 # ============================================================================
 set(LIBAMM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/libs/libamm")
 
-# 设置统一的构建输出目录
-set(SAGE_BUILD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.sage/build")
+# 默认跳过 LibAMM 编译，除非明确要求
+option(BUILD_LIBAMM "Build LibAMM C++ extension (requires PyTorch, high memory)" OFF)
 
-if(EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
+# 允许通过环境变量控制
+if(DEFINED ENV{BUILD_LIBAMM})
+    if("$ENV{BUILD_LIBAMM}" STREQUAL "1" OR "$ENV{BUILD_LIBAMM}" STREQUAL "ON")
+        set(BUILD_LIBAMM ON)
+        message(STATUS "BUILD_LIBAMM enabled via environment variable")
+    endif()
+endif()
+
+if(BUILD_LIBAMM AND EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
+    message(STATUS "")
+    message(STATUS "========================================")
+    message(STATUS "  Building LibAMM from source")
+    message(STATUS "========================================")
+    
+    # 设置统一的构建输出目录
+    set(SAGE_BUILD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.sage/build")
+    
     message(STATUS "Adding LibAMM submodule...")
     message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/libamm")
 
@@ -132,13 +157,46 @@ if(EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
         add_subdirectory(${LIBAMM_DIR} ${SAGE_BUILD_ROOT}/libamm)
         message(STATUS "  ✓ LibAMM configured (with NumPy interface)")
     else()
-        message(WARNING "  PyTorch not found - skipping LibAMM build")
-        message(WARNING "  To build LibAMM, install with: pip install isage-libs[amm]")
-        message(WARNING "  Or install PyTorch: pip install torch>=2.0.0")
+        message(STATUS "")
+        message(STATUS "========================================")
+        message(STATUS "  LibAMM will NOT be built")
+        message(STATUS "========================================")
+        message(STATUS "")
+        message(STATUS "PyTorch not found or incompatible")
+        message(STATUS "")
+        message(STATUS "LibAMM 是可选组件，跳过编译不影响 SAGE 其他功能")
+        message(STATUS "")
+        message(STATUS "如需使用 LibAMM，请选择以下方案之一：")
+        message(STATUS "  1. 安装预编译版本（推荐）：")
+        message(STATUS "     pip install isage-libs-amm")
+        message(STATUS "")
+        message(STATUS "  2. 从源码编译（需要 16GB+ 内存）：")
+        message(STATUS "     pip install torch>=2.0.0")
+        message(STATUS "     BUILD_LIBAMM=1 pip install -e packages/sage-libs")
+        message(STATUS "========================================")
+        message(STATUS "")
     endif()
 else()
-    message(WARNING "LibAMM submodule not found at ${LIBAMM_DIR}")
-    message(WARNING "  To build LibAMM, ensure the submodule is initialized")
+    if(NOT EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
+        message(STATUS "LibAMM submodule not found at ${LIBAMM_DIR}")
+        message(STATUS "  To build LibAMM, ensure the submodule is initialized")
+    else()
+        message(STATUS "")
+        message(STATUS "========================================")
+        message(STATUS "  LibAMM build SKIPPED (default)")
+        message(STATUS "========================================")
+        message(STATUS "")
+        message(STATUS "LibAMM 是可选组件，默认不编译以避免高内存占用")
+        message(STATUS "")
+        message(STATUS "如需使用 LibAMM，请选择以下方案之一：")
+        message(STATUS "  1. 安装预编译版本（推荐）：")
+        message(STATUS "     pip install isage-libs-amm")
+        message(STATUS "")
+        message(STATUS "  2. 从源码编译（需要 16GB+ 内存）：")
+        message(STATUS "     BUILD_LIBAMM=1 pip install -e packages/sage-libs")
+        message(STATUS "========================================")
+        message(STATUS "")
+    endif()
 endif()
 
 # ============================================================================
