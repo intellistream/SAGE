@@ -51,7 +51,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           submodules: 'recursive'  # 需要初始化子模块以构建C++扩展
 
       - name: Switch Submodules to main-dev Branch
@@ -500,6 +500,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: 'recursive'  # 需要初始化子模块以构建C++扩展
 
       - name: Switch Submodules to main-dev Branch
