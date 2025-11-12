@@ -74,21 +74,14 @@ Repository = "https://github.com/intellistream/SAGE"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-packages = [
-    "sage.benchmark",
-    "sage.benchmark.benchmark_rag",
-    "sage.benchmark.benchmark_rag.implementations",
-    "sage.benchmark.benchmark_rag.implementations.pipelines",
-    "sage.benchmark.benchmark_rag.implementations.tools",
-    "sage.benchmark.benchmark_rag.evaluation",
-    "sage.data",
-    "sage.data.qa",
-    "sage.data.locomo",
-    "sage.data.bbh",
-    "sage.data.mmlu",
-    "sage.data.gpqa",
-]
+# Automatically discover all packages under src/
+# This will find all directories with __init__.py files
 package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage*"]
+namespaces = true
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.benchmark._version.__version__"}

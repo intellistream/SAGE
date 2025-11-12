@@ -76,18 +76,13 @@ Documentation = "https://intellistream.github.io/SAGE"
 Repository = "https://github.com/intellistream/SAGE"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
-[tool.setuptools]
-packages = [
-    "sage.apps",
-    "sage.apps.video",
-    "sage.apps.medical_diagnosis",
-    "sage.apps.smart_home",
-    "sage.apps.article_monitoring",
-    "sage.apps.auto_scaling_chat",
-]
-
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage*"]
+namespaces = true
 
 [tool.setuptools.dynamic.version]
 attr = "sage.apps._version.__version__"
