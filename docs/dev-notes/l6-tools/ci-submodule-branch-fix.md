@@ -1,3 +1,7 @@
+**Date**: 2025-11-12
+**Author**: shuhao
+**Summary**: Fix for CI/CD submodule branch issues to ensure proper branch handling and error reporting during installation.
+
 # 修复 CI/CD 子模块分支问题
 
 ## 问题描述
@@ -70,7 +74,7 @@ CI 使用 `main` 分支的代码，导致：
 
 GitHub Actions 的 checkout action 行为：
 
-1. **主仓库**: 
+1. **主仓库**:
    - 使用 `ref` 参数指定的分支（默认是触发 workflow 的分支）
    - Pull Request: 自动 checkout PR 的分支
 
@@ -178,7 +182,7 @@ grep -r "submodules.*recursive" .github/workflows/
      uses: actions/checkout@v4
      with:
        submodules: 'recursive'
-   
+
    - name: Switch submodules to correct branch
      run: git submodule foreach --recursive 'git checkout main-dev'
    ```

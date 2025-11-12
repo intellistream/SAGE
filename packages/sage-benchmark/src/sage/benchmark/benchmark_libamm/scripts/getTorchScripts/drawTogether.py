@@ -80,7 +80,7 @@ def runPeriod(
     exePath, srcA, srcB, algoTag, resultPath, configTemplate="config.csv", prefixTag="null"
 ):
     # (Pdb) exePath, srcA,srcB, algoTag, resultPath, configTemplate,prefixTag
-    # ('/home/yuhao/Documents/work/SUTD/AMM/codespace/NEWLibAMM/LibAMM/benchmark/', 'dummy', 'dummy', 'int8', '/home/yuhao/Documents/work/SUTD/AMM/codespace/NEWLibAMM/LibAMM/benchmark/results/Downstream_Inference_static_lazy/int8', 'config_dnn_inference.csv', 'cifar10')
+    # pragma: allowlist secret ('/home/yuhao/Documents/work/SUTD/AMM/codespace/NEWLibAMM/LibAMM/benchmark/', 'dummy', 'dummy', 'int8', '/home/yuhao/Documents/work/SUTD/AMM/codespace/NEWLibAMM/LibAMM/benchmark/results/Downstream_Inference_static_lazy/int8', 'config_dnn_inference.csv', 'cifar10')
     os.system("sudo rm -rf " + resultPath + "/" + str(prefixTag))
     os.system("sudo mkdir " + resultPath + "/" + str(prefixTag))
     os.system("sudo chmod 777 " + resultPath + "/" + str(prefixTag))

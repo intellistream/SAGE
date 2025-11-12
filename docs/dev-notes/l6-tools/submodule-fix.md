@@ -1,3 +1,7 @@
+**Date**: 2025-11-12
+**Author**: shuhao
+**Summary**: Fix for submodule branch management to ensure correct branch checkout in main-dev.
+
 # Submodule 分支管理修复文档
 
 ## 问题描述

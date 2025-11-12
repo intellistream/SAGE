@@ -99,7 +99,7 @@ def runPeriod(
     exePath, srcA, srcB, algoTag, resultPath, configTemplate="config.csv", prefixTag="null"
 ):
     # (Pdb) exePath, srcA,srcB, algoTag, resultPath, configTemplate,prefixTag
-    # ('/home/yuhao/Documents/work/SUTD/AMM/codespace/LibAMM/benchmark/', 'dummy', 'dummy', 'int8', '/home/yuhao/Documents/work/SUTD/AMM/codespace/LibAMM/benchmark/results/DownstreamCCA_static_lazy/int8', 'config_cca_static_lazy.csv', 'MediaMill')
+    # pragma: allowlist secret ('/home/yuhao/Documents/work/SUTD/AMM/codespace/LibAMM/benchmark/', 'dummy', 'dummy', 'int8', '/home/yuhao/Documents/work/SUTD/AMM/codespace/LibAMM/benchmark/results/DownstreamCCA_static_lazy/int8', 'config_cca_static_lazy.csv', 'MediaMill')
 
     # resultFolder="periodTests"
     configFname = "config_period_" + prefixTag + ".csv"
