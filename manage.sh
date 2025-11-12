@@ -57,7 +57,7 @@ if [ $# -eq 0 ]; then
     fi
 
     echo "Configuring Git hooks..."
-    if ! bash "$MAINTENANCE_SCRIPT" setup-hooks --force; then
+    if ! bash "$MAINTENANCE_SCRIPT" --force setup-hooks; then
         echo "Git hooks setup failed" >&2
         exit 1
     fi
