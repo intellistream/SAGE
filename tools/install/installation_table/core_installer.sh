@@ -207,6 +207,19 @@ install_core_packages() {
         log_info "安装成功: $package_dir" "INSTALL"
         local pkg_name=$(basename "$package_dir" | sed 's/sage-/isage-/')
         log_pip_package_info "$pkg_name" "INSTALL"
+
+        # 如果安装的是 sage-libs，设置 LibAMM 数据链接
+        if [[ "$package_dir" == *"sage-libs"* ]]; then
+            echo -e "${DIM}  设置 LibAMM 数据链接...${NC}"
+            local libamm_setup_script="packages/sage-libs/src/sage/libs/libamm/tools/setup_data.sh"
+            if [ -f "$libamm_setup_script" ]; then
+                if bash "$libamm_setup_script" >> "$log_file" 2>&1; then
+                    echo -e "${CHECK} LibAMM 数据设置完成"
+                else
+                    echo -e "${WARNING} LibAMM 数据设置失败（非关键）"
+                fi
+            fi
+        fi
     done
 
     # 第三步：安装上层包（L4-L6，根据模式）
