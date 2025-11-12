@@ -102,33 +102,19 @@ switch_submodule_branch() {
         echo -e "${DIM}  检测到浅克隆，将 fetch 目标分支...${NC}"
     fi
 
-    # 获取远程分支，若失败则继续使用本地引用
+    # 获取远程分支
     # 对于浅克隆，明确 fetch 目标分支
     if [ "$is_shallow" = true ]; then
+        echo -e "${DIM}  正在 fetch ${target_branch} 分支...${NC}"
         # 浅克隆情况下，使用 refspec 明确指定要 fetch 的分支
         # 格式：refs/heads/branch:refs/remotes/origin/branch
-        if git fetch origin "refs/heads/$target_branch:refs/remotes/origin/$target_branch" --depth 1 >/dev/null 2>&1; then
-            echo -e "${DIM}  成功 fetch ${target_branch} 分支${NC}"
-        else
-            # 如果指定 refspec 失败，尝试简单的分支名
-            if git fetch origin "$target_branch:$target_branch" --depth 1 >/dev/null 2>&1; then
-                echo -e "${DIM}  成功 fetch ${target_branch} 分支${NC}"
-            else
-                echo -e "${YELLOW}  ⚠️ 无法 fetch ${target_branch} 分支，尝试 unshallow...${NC}"
-                # 如果 fetch 特定分支失败，尝试 unshallow（获取完整历史）
-                if git fetch --unshallow >/dev/null 2>&1; then
-                    echo -e "${DIM}  成功 unshallow，重新 fetch...${NC}"
-                    git fetch origin "$target_branch" >/dev/null 2>&1 || true
-                else
-                    echo -e "${YELLOW}  ⚠️ unshallow 失败，使用本地引用尝试切换${NC}"
-                fi
-            fi
-        fi
+        # 注意：即使命令返回非零，也可能成功 fetch，所以不检查返回码
+        git fetch origin "refs/heads/$target_branch:refs/remotes/origin/$target_branch" --depth 1 >/dev/null 2>&1 || \
+        git fetch origin "$target_branch" --depth 1 >/dev/null 2>&1 || \
+        git fetch --unshallow >/dev/null 2>&1 || true
     else
-        # 非浅克隆，正常 fetch
-        if ! git fetch origin >/dev/null 2>&1; then
-            echo -e "${YELLOW}  ⚠️ 无法访问远程 origin，使用本地引用尝试切换${NC}"
-        fi
+        # 非浅克隆，正常 fetch 所有分支
+        git fetch origin >/dev/null 2>&1 || true
     fi
 
     # 确定目标引用（优先使用 origin/分支，其次使用本地分支）
