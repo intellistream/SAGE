@@ -86,21 +86,28 @@ git config --get-all remote.origin.fetch
 
 ## 解决方案
 
-### 自动修复（推荐）
+### 用户快速修复
 
-**最新版本的 SAGE 已自动修复此问题**。
+如果您遇到此问题，只需：
 
-安装/更新时，`manage.sh submodule switch` 会自动：
+```bash
+# 1. 拉取最新代码（包含修复）
+git pull
+
+# 2. 运行一次 submodule 切换（自动修复）
+./manage.sh submodule switch
+```
+
+完成！VS Code 的 "Publish Branch" 按钮应该消失了。
+
+### 技术说明
+
+**最新版本的 SAGE 已自动集成修复**。
+
+`manage.sh submodule switch` 在切换分支时会自动：
 1. 为每个 submodule 添加正确的 fetch refspec
 2. 设置上游追踪分支
 3. 修复 VS Code 显示问题
-
-如果使用旧版本，运行以下命令即可触发自动修复：
-
-```bash
-# 在 SAGE 根目录
-./manage.sh submodule switch
-```
 
 ### 手动修复单个 submodule
 
@@ -120,11 +127,9 @@ git fetch origin
 git branch -u origin/main-dev main-dev
 ```
 
-### 重新安装 SAGE
+### 全新安装
 
-最新版本的 `quickstart.sh` 会自动调用 `manage.sh`，在初始化 submodule 时自动修复此问题。
-
-如果您已经安装但遇到此问题，使用方法 1 修复即可。
+最新版本的 `quickstart.sh` 会自动调用 `manage.sh`，在初始化 submodule 时自动修复此问题。新用户不会遇到此问题。
 
 ## 验证修复
 

@@ -122,6 +122,9 @@ switch_submodule_branch() {
     if [ "$current_branch" = "$target_branch" ]; then
         echo -e "${GREEN}  ${CHECK} 已在 ${target_branch} 分支${NC}"
         cd - > /dev/null
+
+        # 即使已在目标分支，也要确保上游追踪已设置（修复旧安装）
+        setup_upstream_tracking "$submodule_path" "$target_branch"
         return 0
     fi
 
