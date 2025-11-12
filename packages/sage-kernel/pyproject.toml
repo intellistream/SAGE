@@ -41,8 +41,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    "isage-common>=0.1.0",
-    "isage-platform>=0.1.0",
+    # 外部依赖
     "python-dotenv==1.1.1",
     "python_multipart==0.0.20",
     "ray==2.48.0",
@@ -78,6 +77,15 @@ dependencies = [
 license = {text = "MIT"}
 
 [project.optional-dependencies]
+# SAGE 内部依赖
+sage-deps = [
+    "isage-common>=0.1.0",
+    "isage-platform>=0.1.0",
+]
+# 完整依赖（开发和 PyPI 发布时使用）
+all = [
+    "isage-kernel[sage-deps]",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

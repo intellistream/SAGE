@@ -42,13 +42,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    # SAGE framework dependencies
-    "isage-common>=0.1.0",  # L1: 基础工具
-    "isage-platform>=0.1.0",  # L2: 平台服务（BaseService等）
-    "isage-kernel>=0.1.0",  # L3: 核心引擎
-    "isage-libs>=0.1.0",  # L3: 算法库（sage_refiner 依赖的压缩算法）
-
-    # Middleware-specific dependencies
+    # Middleware-specific dependencies - 只包含外部依赖
     # Authentication and security
     "python-jose==3.5.0",
     "passlib==1.7.4",
@@ -94,6 +88,17 @@ dependencies = [
 license = {text = "MIT"}
 
 [project.optional-dependencies]
+# SAGE 内部依赖
+sage-deps = [
+    "isage-common>=0.1.0",  # L1: 基础工具
+    "isage-platform>=0.1.0",  # L2: 平台服务（BaseService等）
+    "isage-kernel>=0.1.0",  # L3: 核心引擎
+    "isage-libs>=0.1.0",  # L3: 算法库（sage_refiner 依赖的压缩算法）
+]
+# 完整依赖（开发和 PyPI 发布时使用）
+all = [
+    "isage-middleware[sage-deps]",
+]
 # SAGE framework dependencies (for local development)
 # 注意：移除了 isage-tools 以避免循环依赖
 # 开发时应安装 isage[dev] 或 isage-tools[dev] 来获取完整工具链

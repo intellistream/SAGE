@@ -24,6 +24,9 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 requires-python = ">=3.10"
+# Meta-package 核心依赖
+# 注意：开发时这些依赖通过 --no-deps 安装，由 quickstart.sh 手动控制顺序
+# PyPI 发布后用户安装时会自动解析这些依赖
 dependencies = [
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0",
@@ -34,6 +37,9 @@ dependencies = [
 license = "MIT"
 
 [project.optional-dependencies]
+# 各个安装模式的依赖
+# 注意：这些 extras 仅在 PyPI 安装时有效
+# 开发模式下，quickstart.sh 会手动安装相应的包
 minimal = [
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0",
@@ -46,11 +52,11 @@ core = [
 ]
 standard = [
     "isage[core]",
-    # CLI 工具
+    # CLI 工具（需要 sage-deps）
     "isage-cli>=0.1.0",
-    # 应用包
-    "isage-apps>=0.1.0",
-    "isage-benchmark>=0.1.0",
+    # 应用包（需要 sage-deps）
+    "isage-apps[sage-deps]>=0.1.0",
+    "isage-benchmark[sage-deps]>=0.1.0",
     # 科学计算包
     "numpy>=1.26.0,<2.3.0",
     "pandas>=1.3.0",
@@ -61,13 +67,13 @@ standard = [
 ]
 full = [
     "isage[standard]",
-    # Web UI
-    "isage-studio>=0.1.0",
+    # Web UI（需要 sage-deps）
+    "isage-studio[sage-deps]>=0.1.0",
 ]
 dev = [
     "isage[full]",
-    # 开发工具包
-    "isage-tools>=0.1.0",
+    # 开发工具包（需要 sage-deps）
+    "isage-tools[sage-deps]>=0.1.0",
     # 开发依赖
     "pre-commit>=3.0.0",
 ]

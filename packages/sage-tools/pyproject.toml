@@ -32,16 +32,8 @@ classifiers = [
 ]
 license = {text = "MIT"}
 
-# 核心依赖 - 作为开发工具包，只依赖真正需要的SAGE子包
+# 核心依赖 - 只包含外部依赖
 dependencies = [
-    # SAGE framework dependencies - 只依赖实际使用的包
-    # sage-tools 只直接使用 sage-common 和 sage-cli
-    "isage-common>=0.1.0",
-    # 注意：不依赖 isage-kernel, isage-middleware, isage-libs - sage-tools 不直接使用它们
-    # 这些依赖会通过 isage 元包在开发模式安装时自动安装
-    # 注意：isage-studio 已移到可选依赖中（studio extra）
-    # 注意：不依赖 isage 元包以避免循环引用
-
     # Tools-specific dependencies
     "click>=8.0.0",
     "jinja2>=2.11.1",
@@ -72,6 +64,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# SAGE 内部依赖
+sage-deps = [
+    "isage-common>=0.1.0",  # sage-tools 只直接使用 sage-common
+    # 注意：不依赖 isage-kernel, isage-middleware, isage-libs - sage-tools 不直接使用它们
+    # 这些依赖会通过 isage 元包在开发模式安装时自动安装
+]
+# 完整依赖（开发和 PyPI 发布时使用）
+all = [
+    "isage-tools[sage-deps]",
+]
 # CLI 工具依赖
 cli = [
     "typer>=0.15.0",

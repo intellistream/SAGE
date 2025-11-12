@@ -36,10 +36,8 @@ classifiers = [
 ]
 license = {text = "MIT"}
 
-# 核心依赖
+# 核心依赖 - 只包含外部依赖
 dependencies = [
-    "isage-common>=0.1.0",  # 核心基础组件（包含函数接口）
-
     # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
     "numpy>=1.26.0,<2.3.0",
 
@@ -72,8 +70,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# SAGE 内部依赖
+sage-deps = [
+    "isage-common>=0.1.0",
+]
+# 完整依赖（开发和 PyPI 发布时使用）
+all = [
+    "isage-libs[sage-deps]",
+]
 # 完整功能 - 包含所有可选依赖
 full = [
+    "isage-libs[sage-deps]",
     "isage-kernel>=0.1.0",  # kernel 变为可选依赖（用于高级特性）
     "isage-libs[llm]",
     "isage-libs[finetune]",
