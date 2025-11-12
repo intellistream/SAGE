@@ -56,6 +56,7 @@ sync_submodules_if_requested() {
 
     if ! bash "$SAGE_ROOT/manage.sh"; then
         echo -e "${YELLOW}⚠️  自动同步失败，请稍后手动运行 ${DIM}./manage.sh bootstrap${NC}"
+        return
     fi
 }
 

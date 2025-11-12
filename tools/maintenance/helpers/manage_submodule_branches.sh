@@ -51,7 +51,7 @@ check_remote_branch_exists() {
     local branch_name="$2"
 
     cd "$submodule_path" 2>/dev/null || return 1
-    
+
     # 检查是否是浅克隆（submodule 的 .git 是文件，需要用 git rev-parse）
     local git_dir=$(git rev-parse --git-dir 2>/dev/null)
     if [ -f "$git_dir/shallow" ]; then
@@ -61,7 +61,7 @@ check_remote_branch_exists() {
         # 非浅克隆，正常 fetch
         git fetch origin "$branch_name" 2>/dev/null
     fi
-    
+
     local exists=$?
     cd - > /dev/null
     return $exists
@@ -73,6 +73,35 @@ update_gitmodules_branch() {
     local target_branch="$2"
 
     git config --file .gitmodules "submodule.${submodule_path}.branch" "$target_branch"
+}
+
+# 设置 submodule 的上游追踪分支
+# 解决浅克隆导致的 VS Code "Publish Branch" 显示问题
+setup_upstream_tracking() {
+    local submodule_path="$1"
+    local target_branch="$2"
+
+    cd "$submodule_path"
+
+    # 检查是否已有上游追踪
+    if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+        cd - > /dev/null
+        return 0
+    fi
+
+    # 添加 fetch refspec（如果尚未存在）
+    if ! git config --get-all remote.origin.fetch 2>/dev/null | grep -q "refs/heads/$target_branch"; then
+        git config --add remote.origin.fetch "+refs/heads/$target_branch:refs/remotes/origin/$target_branch" 2>/dev/null || true
+        git fetch origin "$target_branch" >/dev/null 2>&1 || git fetch origin >/dev/null 2>&1 || true
+    fi
+
+    # 设置上游追踪
+    if git show-ref --verify --quiet "refs/remotes/origin/$target_branch"; then
+        git branch -u "origin/$target_branch" "$target_branch" >/dev/null 2>&1 || true
+    fi
+
+    cd - > /dev/null
+    return 0
 }
 
 # 切换 submodule 到指定分支
@@ -138,6 +167,9 @@ switch_submodule_branch() {
     if git checkout -B "$target_branch" "$target_ref" >/dev/null 2>&1; then
         echo -e "${GREEN}  ${CHECK} 已切换到 ${target_branch}${NC}"
         cd - > /dev/null
+
+        # 设置上游追踪分支（修复 VS Code "Publish Branch" 问题）
+        setup_upstream_tracking "$submodule_path" "$target_branch"
         return 0
     else
         echo -e "${RED}  ${CROSS} 无法切换到 ${target_branch}${NC}"
