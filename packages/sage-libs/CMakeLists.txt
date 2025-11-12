@@ -51,9 +51,15 @@ if(EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
         COMMAND ${Python_EXECUTABLE} -c "import torch; print(torch.__version__)"
         RESULT_VARIABLE TORCH_CHECK_RESULT
         OUTPUT_VARIABLE TORCH_VERSION
-        ERROR_QUIET
+        ERROR_VARIABLE TORCH_CHECK_ERROR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
+
+    # 调试输出
+    message(STATUS "  PyTorch check result: ${TORCH_CHECK_RESULT}")
+    if(NOT TORCH_CHECK_RESULT EQUAL 0)
+        message(STATUS "  PyTorch check error: ${TORCH_CHECK_ERROR}")
+    endif()
 
     if(TORCH_CHECK_RESULT EQUAL 0)
         message(STATUS "  PyTorch found: ${TORCH_VERSION}")
@@ -112,6 +118,13 @@ if(EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
         set(ENABLE_PYBIND ON CACHE BOOL "Enable Python bindings" FORCE)
         set(ENABLE_HDF5 ON CACHE BOOL "Enable HDF5 support" FORCE)
         set(ENABLE_PAPI OFF CACHE BOOL "Disable PAPI" FORCE)
+
+        # 优化编译以避免 OOM（特别是在 WSL 等内存受限环境）
+        # 强制单线程编译以避免内存耗尽
+        if(NOT DEFINED ENV{CMAKE_BUILD_PARALLEL_LEVEL})
+            message(STATUS "  Forcing single-threaded build to avoid OOM")
+            set(CMAKE_BUILD_PARALLEL_LEVEL 1)
+        endif()
 
         # 设置 CUDACXX 环境变量（即使不存在 nvcc 也设置，参考 buildCPUOnly.sh）
         set(ENV{CUDACXX} "/usr/local/cuda/bin/nvcc")

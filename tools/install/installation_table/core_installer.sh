@@ -195,13 +195,34 @@ install_core_packages() {
     for package_dir in "${core_packages[@]}"; do
         echo -e "${DIM}  正在安装: $package_dir${NC}"
         log_info "开始安装: $package_dir" "INSTALL"
+
+        # 特殊处理 sage-libs: 设置单线程编译避免 OOM
+        if [[ "$package_dir" == *"sage-libs"* ]]; then
+            echo -e "${YELLOW}  ⚠️  sage-libs 包含 C++ 扩展（LibAMM），将使用单线程编译避免内存耗尽${NC}"
+            export CMAKE_BUILD_PARALLEL_LEVEL=1
+            export MAKEFLAGS="-j1"
+            log_info "设置单线程编译: CMAKE_BUILD_PARALLEL_LEVEL=1, MAKEFLAGS=-j1" "INSTALL"
+        fi
+
         log_debug "PIP命令: $PIP_CMD install $install_flags $package_dir $pip_args --no-deps" "INSTALL"
 
         if ! $PIP_CMD install $install_flags "$package_dir" $pip_args --no-deps >> "$log_file" 2>&1; then
             log_error "安装失败: $package_dir" "INSTALL"
             log_error "请检查日志文件: $log_file" "INSTALL"
             echo -e "${CROSS} 安装 $package_dir 失败！"
+
+            # 清理环境变量
+            if [[ "$package_dir" == *"sage-libs"* ]]; then
+                unset CMAKE_BUILD_PARALLEL_LEVEL
+                unset MAKEFLAGS
+            fi
             return 1
+        fi
+
+        # 清理环境变量
+        if [[ "$package_dir" == *"sage-libs"* ]]; then
+            unset CMAKE_BUILD_PARALLEL_LEVEL
+            unset MAKEFLAGS
         fi
 
         log_info "安装成功: $package_dir" "INSTALL"
