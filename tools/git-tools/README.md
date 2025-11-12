@@ -10,16 +10,46 @@ SAGE 项目使用多个 Git 子模块来组织代码。这些工具帮助：
 1. **避免错误** - 检测并防止错误的子模块提交
 1. **简化工作流** - 自动化常见的子模块操作
 
+## 🤖 自动化集成
+
+这些工具已集成到 SAGE 的自动化流程中，**通常不需要手动运行**：
+
+### 首次安装时自动运行
+
+运行 `./quickstart.sh --sync` 时会自动：
+
+- 初始化所有子模块
+- 生成 `SUBMODULE.md` 标记文件
+
+### Git Hook 自动触发
+
+开发模式下安装的 Git hooks 会自动：
+
+- 在子模块更新后检查并生成缺失的标记文件
+- 在提交前检测是否在子模块中误操作
+
+要手动安装这些 hooks：
+
+```bash
+./tools/maintenance/setup_hooks.sh --all
+```
+
 ## 📁 工具列表
 
 ### 1. `generate-submodule-markers.sh`
 
 **作用**: 为所有子模块自动生成 `SUBMODULE.md` 标记文件
 
-**用法**:
+**自动调用**: ✅ 由 `quickstart.sh` 和 Git hooks 自动调用
+
+**手动用法**:
 
 ```bash
+# 正常模式（显示详细输出）
 ./tools/git-tools/generate-submodule-markers.sh
+
+# 静默模式（用于脚本调用）
+./tools/git-tools/generate-submodule-markers.sh --quiet
 ```
 
 **功能**:
@@ -41,7 +71,9 @@ SAGE 项目使用多个 Git 子模块来组织代码。这些工具帮助：
 
 ### 2. `commit-all-submodule-markers.sh`
 
-**作用**: 自动提交所有子模块的 `SUBMODULE.md` 文件
+**作用**: 批量提交所有子模块的 `SUBMODULE.md` 文件
+
+**使用场景**: 首次设置或批量更新标记文件时手动运行
 
 **用法**:
 

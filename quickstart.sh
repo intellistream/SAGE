@@ -149,6 +149,17 @@ main() {
 
     sync_submodules_if_requested "$sync_submodules"
 
+    # 生成子模块标记文件（首次安装或更新时）
+    if [ "$sync_submodules" = "true" ] && [ -f "$SAGE_ROOT/tools/git-tools/generate-submodule-markers.sh" ]; then
+        echo ""
+        echo -e "${INFO} 生成子模块标记文件..."
+        if bash "$SAGE_ROOT/tools/git-tools/generate-submodule-markers.sh" >/dev/null 2>&1; then
+            echo -e "${GREEN}   ✅ 子模块标记文件已生成${NC}"
+        else
+            echo -e "${DIM}   ℹ️  子模块标记文件生成跳过${NC}"
+        fi
+    fi
+
     # 执行安装
     install_sage "$mode" "$environment" "$install_vllm" "$clean_cache"
 
@@ -206,7 +217,7 @@ main() {
             echo ""
             echo -e "${INFO} 设置额外的 Git hooks（开发模式）..."
             if [ -f "$SAGE_ROOT/tools/maintenance/setup_hooks.sh" ]; then
-                bash "$SAGE_ROOT/tools/maintenance/setup_hooks.sh" --force 2>/dev/null || {
+                bash "$SAGE_ROOT/tools/maintenance/setup_hooks.sh" --all --force 2>/dev/null || {
                     echo -e "${DIM}  ℹ️  开发模式 hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
                 }
             fi
