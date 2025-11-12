@@ -181,7 +181,7 @@ create_conda_environment() {
         if echo "$conda_info_output" | grep -q "Terms of Service have not been accepted"; then
             echo -e "${YELLOW}⚠️  检测到 Conda 服务条款未接受${NC}"
             echo ""
-            
+
             # 尝试自动接受 TOS
             if [ -f "$SCRIPT_DIR/../../conda/conda_utils.sh" ]; then
                 source "$SCRIPT_DIR/../../conda/conda_utils.sh"

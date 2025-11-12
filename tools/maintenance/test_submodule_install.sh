@@ -51,7 +51,7 @@ config_mismatch=0
 for submodule_path in "${submodules[@]}"; do
     submodule_name=$(basename "$submodule_path")
     config_branch=$(git config --file .gitmodules --get "submodule.${submodule_path}.branch" || echo "N/A")
-    
+
     if [ "$config_branch" = "$expected_branch" ]; then
         echo -e "   ${GREEN}✓${NC} ${submodule_name}: ${config_branch}"
     else
@@ -76,15 +76,15 @@ detached_count=0
 
 for submodule_path in "${submodules[@]}"; do
     submodule_name=$(basename "$submodule_path")
-    
+
     if [ -d "$submodule_path/.git" ] || [ -f "$submodule_path/.git" ]; then
         ((initialized_count++))
-        
+
         # 获取当前分支
         cd "$submodule_path"
         actual_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "detached")
         cd - > /dev/null
-        
+
         if [ "$actual_branch" = "$expected_branch" ]; then
             echo -e "   ${GREEN}✓${NC} ${submodule_name}: ${actual_branch}"
             ((correct_branch_count++))

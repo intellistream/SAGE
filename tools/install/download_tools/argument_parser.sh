@@ -200,7 +200,7 @@ show_installation_menu() {
     # 选择安装环境
     while true; do
         echo -e "${BOLD}2. 选择安装环境：${NC}"
-        
+
         # 检查 conda 是否可用
         local conda_available=false
         if command -v conda &> /dev/null; then

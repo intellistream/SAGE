@@ -112,6 +112,7 @@ repos:
         "^packages/.*/(docs|documentation)/"
         "^examples/.*/README\.md$"
         "^examples/tutorials/"
+        "^tools/.*/README\.md$"
         "^\.sage/.*\.md$"
         "^\.github/ISSUE_TEMPLATE/"
         "^\.github/PULL_REQUEST_TEMPLATE/"
