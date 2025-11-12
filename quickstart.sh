@@ -23,6 +23,13 @@ source "$TOOLS_DIR/fixes/environment_doctor.sh"
 source "$TOOLS_DIR/fixes/numpy_fix.sh"
 source "$TOOLS_DIR/fixes/friendly_error_handler.sh"
 
+# 避免 submodule 初始化时自动拉取 Git LFS 大文件（可通过预先设置变量覆盖）
+SAGE_SET_SKIP_SMUDGE=0
+if [ -z "${GIT_LFS_SKIP_SMUDGE+x}" ]; then
+    export GIT_LFS_SKIP_SMUDGE=1
+    SAGE_SET_SKIP_SMUDGE=1
+fi
+
 # 在脚本开始时立即进行偏移探测
 pre_check_system_environment
 
@@ -218,6 +225,13 @@ main() {
             center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
         fi
         echo ""
+
+        if [ "$SAGE_SET_SKIP_SMUDGE" = 1 ]; then
+            echo -e "${DIM}提示: 已跳过 Git LFS 大文件的自动下载，以缩短初始化时间。${NC}"
+            echo -e "${DIM}如需使用 LibAMM 基准数据，请手动执行:${NC}"
+            echo -e "  ${DIM}cd packages/sage-benchmark/src/sage/data && git lfs pull${NC}"
+            echo -e "  ${DIM}cd ../../../../sage-libs/src/sage/libs/libamm && bash tools/setup_data.sh${NC}"
+        fi
     else
         echo ""
         echo -e "${YELLOW}安装可能成功，请手动验证：${NC}"
