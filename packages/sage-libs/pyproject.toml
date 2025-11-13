@@ -300,12 +300,17 @@ cmake.build-type = "Release"
 cmake.verbose = true
 logging.level = "INFO"
 
-# Wheel 配置
+# Wheel 配置 - 明确指定所有包，确保纯 Python 子包也被包含
 wheel.packages = ["src/sage"]
 wheel.expand-macos-universal-tags = true
+# 确保所有 Python 包都被安装（包括纯 Python 子包）
+wheel.py-api = "py3"
 
 # 严格配置验证
 strict-config = false
+
+# 安装配置 - 确保 Python 源文件被正确安装
+install.components = ["python", "headers"]
 
 # 开发模式配置
 [tool.scikit-build.editable]

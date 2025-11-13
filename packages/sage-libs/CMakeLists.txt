@@ -152,3 +152,28 @@ else()
 endif()
 message(STATUS "=========================================")
 message(STATUS "")
+
+# ============================================================================
+# 安装 Python 源文件
+# ============================================================================
+# scikit-build-core 需要明确告知要安装哪些 Python 文件
+# 这确保纯 Python 代码（如 sage.libs.context.compression）也被正确安装
+message(STATUS "Configuring Python source installation...")
+
+# 安装所有 Python 包到 site-packages/sage
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/"
+    DESTINATION "${SKBUILD_PLATLIB_DIR}/sage"
+    COMPONENT python
+    FILES_MATCHING
+    PATTERN "*.py"
+    PATTERN "*.pyi"
+    PATTERN "py.typed"
+    PATTERN "__pycache__" EXCLUDE
+    PATTERN "*.pyc" EXCLUDE
+    PATTERN ".pytest_cache" EXCLUDE
+    PATTERN "tests" EXCLUDE
+)
+
+message(STATUS "  ✓ Python source files will be installed to: ${SKBUILD_PLATLIB_DIR}/sage")
+message(STATUS "")
