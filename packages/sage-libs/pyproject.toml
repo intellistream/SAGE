@@ -223,8 +223,14 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.libs._version.__version__"}
+# ============================================================================
+# scikit-build-core 动态版本配置
+# 从 _version.py 读取版本号
+# ============================================================================
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "src/sage/libs/_version.py"
+regex = '^__version__\s*=\s*["\']([^"\']+)["\']'
 
 # ============================================================================
 # Code Quality Configuration
