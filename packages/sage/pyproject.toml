@@ -29,6 +29,7 @@ requires-python = ">=3.10"
 # PyPI 发布后用户安装时会自动解析这些依赖
 dependencies = [
     "isage-common>=0.1.0",
+    "isage-platform>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-libs>=0.1.0",
     "isage-middleware>=0.1.0",
@@ -42,10 +43,12 @@ license = "MIT"
 # 开发模式下，quickstart.sh 会手动安装相应的包
 minimal = [
     "isage-common>=0.1.0",
+    "isage-platform>=0.1.0",
     "isage-kernel>=0.1.0",
 ]
 core = [
     "isage-common>=0.1.0",
+    "isage-platform>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-libs>=0.1.0",
     "isage-middleware>=0.1.0",
