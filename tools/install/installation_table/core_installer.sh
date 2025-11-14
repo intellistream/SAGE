@@ -491,18 +491,27 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     echo -e "${DIM}验证 sage 命令...${NC}"
     log_info "验证 sage 命令可用性" "INSTALL"
 
-    if command -v sage >/dev/null 2>&1; then
-        log_info "sage 命令验证成功" "INSTALL"
+    # 在 conda 环境中验证命令（因为安装在 conda 环境中）
+    if $PIP_CMD --version >/dev/null 2>&1 && conda run -n "$CONDA_ENV_NAME" sage --version >/dev/null 2>&1; then
+        log_info "sage 命令验证成功（在 conda 环境中）" "INSTALL"
 
         # 尝试获取版本信息
-        local sage_version=$(sage --version 2>&1 || echo "无法获取版本")
+        local sage_version=$(conda run -n "$CONDA_ENV_NAME" sage --version 2>&1 || echo "无法获取版本")
         log_debug "sage 版本: $sage_version" "INSTALL"
 
+        echo -e "${CHECK} sage 命令已安装到 conda 环境"
+        echo -e "${DIM}      运行 ${BOLD}conda activate $CONDA_ENV_NAME${NC}${DIM} 或重启终端后可直接使用 sage 命令${NC}"
+    elif command -v sage >/dev/null 2>&1; then
+        # 如果在当前 PATH 中可用（比如用户已经激活了环境）
+        log_info "sage 命令验证成功（当前 shell）" "INSTALL"
+        local sage_version=$(sage --version 2>&1 || echo "无法获取版本")
+        log_debug "sage 版本: $sage_version" "INSTALL"
         echo -e "${CHECK} sage 命令已可用"
     else
-        log_warn "sage 命令不可用，可能需要重启终端或重新激活环境" "INSTALL"
+        log_warn "sage 命令需要激活 conda 环境后使用" "INSTALL"
         log_debug "PATH: $PATH" "INSTALL"
-        echo -e "${WARN} sage 命令不可用，可能需要重启终端"
+        log_debug "CONDA_ENV: $CONDA_ENV_NAME" "INSTALL"
+        echo -e "${INFO} sage 命令已安装，激活环境后可用: ${BOLD}conda activate $CONDA_ENV_NAME${NC}"
     fi
 
     log_info "SAGE ($install_mode 模式) 安装完成" "INSTALL"
