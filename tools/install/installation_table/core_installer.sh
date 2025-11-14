@@ -196,12 +196,20 @@ install_core_packages() {
         echo -e "${DIM}  正在安装: $package_dir${NC}"
         log_info "开始安装: $package_dir" "INSTALL"
 
-        # 特殊处理 sage-libs: 设置单线程编译避免 OOM
+        # 特殊处理 sage-libs: LibAMM C++ 扩展默认跳过本地编译
+        # LibAMM 编译需要大量内存（单文件 500MB+），不适合本地构建
+        # 默认从 PyPI 获取预编译版本（由 CI/CD self-hosted server 构建）
+        # 如需本地编译 LibAMM，设置环境变量: BUILD_LIBAMM=1
         if [[ "$package_dir" == *"sage-libs"* ]]; then
-            echo -e "${YELLOW}  ⚠️  sage-libs 包含 C++ 扩展（LibAMM），将使用单线程编译避免内存耗尽${NC}"
-            export CMAKE_BUILD_PARALLEL_LEVEL=1
-            export MAKEFLAGS="-j1"
-            log_info "设置单线程编译: CMAKE_BUILD_PARALLEL_LEVEL=1, MAKEFLAGS=-j1" "INSTALL"
+            if [ "${BUILD_LIBAMM:-0}" = "1" ]; then
+                log_info "sage-libs: BUILD_LIBAMM=1，将编译 LibAMM C++ 扩展（需要大量内存）" "INSTALL"
+                echo -e "${YELLOW}  ⚠️  sage-libs: 将本地编译 LibAMM（可能导致内存不足）${NC}"
+            else
+                log_info "sage-libs: LibAMM C++ 扩展已跳过（默认行为），将从 PyPI 安装预编译版本" "INSTALL"
+                echo -e "${DIM}  sage-libs: 跳过 LibAMM 本地编译（从 PyPI 获取预编译版本）${NC}"
+                # 确保 BUILD_LIBAMM 为 0（CMakeLists.txt 默认就是 OFF，这里显式设置）
+                export BUILD_LIBAMM=0
+            fi
         fi
 
         log_debug "PIP命令: $PIP_CMD install $install_flags $package_dir $pip_args --no-deps" "INSTALL"
@@ -213,34 +221,19 @@ install_core_packages() {
 
             # 清理环境变量
             if [[ "$package_dir" == *"sage-libs"* ]]; then
-                unset CMAKE_BUILD_PARALLEL_LEVEL
-                unset MAKEFLAGS
+                unset BUILD_LIBAMM
             fi
             return 1
         fi
 
         # 清理环境变量
         if [[ "$package_dir" == *"sage-libs"* ]]; then
-            unset CMAKE_BUILD_PARALLEL_LEVEL
-            unset MAKEFLAGS
+            unset BUILD_LIBAMM
         fi
 
         log_info "安装成功: $package_dir" "INSTALL"
         local pkg_name=$(basename "$package_dir" | sed 's/sage-/isage-/')
         log_pip_package_info "$pkg_name" "INSTALL"
-
-        # 如果安装的是 sage-libs，设置 LibAMM 数据链接
-        if [[ "$package_dir" == *"sage-libs"* ]]; then
-            echo -e "${DIM}  设置 LibAMM 数据链接...${NC}"
-            local libamm_setup_script="packages/sage-libs/src/sage/libs/libamm/tools/setup_data.sh"
-            if [ -f "$libamm_setup_script" ]; then
-                if bash "$libamm_setup_script" >> "$log_file" 2>&1; then
-                    echo -e "${CHECK} LibAMM 数据设置完成"
-                else
-                    echo -e "${WARNING} LibAMM 数据设置失败（非关键）"
-                fi
-            fi
-        fi
     done
 
     # 第三步：安装上层包（L4-L6，根据模式）

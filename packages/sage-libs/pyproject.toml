@@ -148,8 +148,9 @@ video = [
 
 # LibAMM - Approximate Matrix Multiplication Library
 # High-performance C++ library with NumPy interface
+# 现在作为独立的 PyPI 包发布，不再本地编译
 amm = [
-    "torch>=2.0.0",  # Required by LibAMM internally (users only see NumPy)
+    "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel from PyPI
 ]
 
 # Examples dependencies (aggregate of all example-specific deps)
