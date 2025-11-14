@@ -2,28 +2,60 @@
 Tests for LibAMM (Approximate Matrix Multiplication library) bindings.
 
 This module tests the Python bindings to LibAMM C++ library.
+
+Note: LibAMM is an optional component. These tests will be skipped if:
+- PyTorch is not installed
+- LibAMM was not compiled (BUILD_LIBAMM=0, the default)
+- LibAMM shared library is not found
 """
 
 import pytest
 
-# Try to import torch and LibAMM
+# Try to import torch
 try:
     import torch
 
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
+    torch = None  # type: ignore
 
-try:
-    import torch.ops.LibAMM as libamm
+# Try to import LibAMM
+LIBAMM_AVAILABLE = False
+libamm = None
+LIBAMM_SKIP_REASON = "LibAMM not available"
 
-    LIBAMM_AVAILABLE = True
-except (ImportError, AttributeError):
-    LIBAMM_AVAILABLE = False
+if TORCH_AVAILABLE:
+    try:
+        # Try to load LibAMM shared library
+        import torch.utils.cpp_extension
+
+        # Try multiple import methods
+        try:
+            # Method 1: PyTorch C++ extension (TORCH_LIBRARY)
+            import torch.ops.LibAMM as libamm
+
+            LIBAMM_AVAILABLE = True
+        except (ImportError, AttributeError):
+            try:
+                # Method 2: pybind11 module
+                import PyAMM as libamm  # type: ignore
+
+                LIBAMM_AVAILABLE = True
+            except ImportError:
+                LIBAMM_SKIP_REASON = (
+                    "LibAMM not compiled. "
+                    "To enable LibAMM: set BUILD_LIBAMM=1 environment variable "
+                    "or install pre-built wheel from GitHub Releases"
+                )
+    except Exception as e:
+        LIBAMM_SKIP_REASON = f"LibAMM import failed: {e}"
+else:
+    LIBAMM_SKIP_REASON = "PyTorch not available"
 
 
 @pytest.mark.skipif(not TORCH_AVAILABLE, reason="PyTorch not available")
-@pytest.mark.skipif(not LIBAMM_AVAILABLE, reason="LibAMM not available")
+@pytest.mark.skipif(not LIBAMM_AVAILABLE, reason=LIBAMM_SKIP_REASON)
 class TestLibAMM:
     """Test cases for LibAMM approximate matrix multiplication."""
 
