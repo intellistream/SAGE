@@ -12,16 +12,6 @@ on:
         required: false
         default: 'false'
         type: boolean
-  push:
-    branches:
-      - main
-      - main-dev
-    paths:
-      - 'packages/sage-libs/src/sage/libs/libamm/**'
-      - 'packages/sage-libs/CMakeLists.txt'
-      - '.github/workflows/build-libamm-wheels.yml'
-  release:
-    types: [published]
 
 env:
   TORCH_VERSION: '2.5.0'  # PyTorch 版本
@@ -29,7 +19,7 @@ env:
 jobs:
   build-wheels:
     name: Build LibAMM wheel (py${{ matrix.python-version }})
-    runs-on: [self-hosted, linux, x64, high-memory]  # 使用高内存的 self-hosted runner
+    runs-on: [self-hosted, Linux, X64]  # 使用组织的 self-hosted runners
 
     strategy:
       fail-fast: false
@@ -137,11 +127,11 @@ jobs:
           retention-days: 30
 
       - name: Upload to GitHub Release
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.upload_to_release == 'true')
+        if: github.event_name == 'workflow_dispatch' && inputs.upload_to_release == 'true'
         uses: softprops/action-gh-release@v1
         with:
           files: packages/sage-libs/dist/*.whl
-          tag_name: ${{ github.event.release.tag_name || github.ref_name }}
+          tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
