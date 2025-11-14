@@ -10,7 +10,7 @@ on:
       upload_to_release:
         description: 'Upload wheels to GitHub Release'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 env:
