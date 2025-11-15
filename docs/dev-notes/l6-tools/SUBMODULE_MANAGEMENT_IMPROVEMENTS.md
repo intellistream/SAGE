@@ -59,7 +59,7 @@ Created a comprehensive **"Advanced Installation"** section that includes:
 | ------------------------- | ---------------------------------------------------- | ----------------- | ----------------------- |
 | **Development**           | `./quickstart.sh --dev --yes`                        | ✅ Auto-synced    | Contributing to SAGE    |
 | **Standard + Submodules** | `./quickstart.sh --standard --sync-submodules --yes` | ✅ Explicit sync  | Full feature access     |
-| **Minimal**               | `./quickstart.sh --minimal --yes`                    | ❌ Skipped        | Core functionality only |
+| **Core**                  | `./quickstart.sh --core --yes`                       | ❌ Skipped        | Core functionality only |
 | **Manual**                | `./manage.sh` then `./quickstart.sh`                 | ✅ Manual control | Advanced customization  |
 
 #### D. Common Submodule Scenarios

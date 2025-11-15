@@ -120,7 +120,7 @@ check_system_runtime() {
     if [ "$disk_space_gb" -lt 10 ]; then
         output_warning "磁盘空间不足！可用: ${disk_space}，推荐至少 20GB"
         output_dim "SAGE 完整安装（包含 vLLM、submodules）需要 15-20GB 空间"
-        output_dim "建议: 清理磁盘或使用 --minimal 模式减少空间占用"
+        output_dim "建议: 清理磁盘或使用 --core 模式减少空间占用"
 
         # 严重不足时提示用户确认
         if [ "$disk_space_gb" -lt 5 ]; then
@@ -136,7 +136,7 @@ check_system_runtime() {
         fi
     elif [ "$disk_space_gb" -lt 20 ]; then
         output_warning "磁盘空间较紧张（可用: ${disk_space}），推荐 20GB+"
-        output_dim "提示: 使用 --minimal 模式可减少空间占用"
+        output_dim "提示: 使用 --core 模式可减少空间占用"
     fi
 
     # 检查基础命令

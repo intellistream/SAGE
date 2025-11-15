@@ -213,14 +213,14 @@ If the system `python3 -m venv` command fails because the distribution omits `en
 # Developer installation (auto-sync submodules & hooks)
 ./quickstart.sh --dev --yes
 
-# Minimal core only
-./quickstart.sh --minimal --yes
+# Core runtime only
+./quickstart.sh --core --yes
 
 # Standard + vLLM support (explicit submodule sync)
 ./quickstart.sh --standard --sync-submodules --vllm --yes
 
 # Use system Python instead of conda
-./quickstart.sh --minimal --pip --yes
+./quickstart.sh --core --pip --yes
 
 # View all flags
 ./quickstart.sh --help

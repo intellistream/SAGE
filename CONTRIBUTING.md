@@ -64,8 +64,8 @@ git pull --ff-only origin main-dev
 # 安装开发环境 (默认 dev 模式 + conda)
 ./quickstart.sh --dev --yes
 
-# 或最小安装（仅核心包）
-./quickstart.sh --minimal --yes
+# 或核心安装（仅核心包）
+./quickstart.sh --core --yes
 
 # 标准模式 + 安装 VLLM 支持
 ./quickstart.sh --standard --vllm --yes
@@ -108,7 +108,7 @@ git rebase origin/main-dev   # 有冲突时解决后: git add <files> && git reb
 
 ```bash
 # 运行核心安装验证（若修改安装逻辑）
-./quickstart.sh --minimal --yes
+./quickstart.sh --core --yes
 
 # 运行示例/集成测试集合（当前推荐方式）
 bash tools/tests/run_examples_tests.sh
@@ -294,7 +294,7 @@ Reduce flakiness via timeout + category filtering.
 1. **功能测试**
 
    ```bash
-   ./quickstart.sh --minimal --yes             # 安装/环境相关改动
+   ./quickstart.sh --core --yes                # 安装/环境相关改动
    bash tools/tests/run_examples_tests.sh      # 示例 + 基础集成
    pytest -k issues_manager -vv                # Issues 管理相关
    ```
@@ -392,7 +392,7 @@ pre-commit run --all-files
 | 目的           | 推荐命令                                           | 说明                       |
 | -------------- | -------------------------------------------------- | -------------------------- |
 | 安装（交互式） | `./quickstart.sh`                                  | 未传参进入菜单             |
-| 最小安装       | `./quickstart.sh --minimal --yes`                  | 仅核心包                   |
+| 核心安装       | `./quickstart.sh --core --yes`                     | 仅核心包                   |
 | 开发者安装     | `./quickstart.sh --dev --yes`                      | 安装开发依赖（可编辑模式） |
 | 启用 VLLM      | `./quickstart.sh --standard --vllm --yes`          | 额外安装 vllm              |
 | 示例测试       | `bash tools/tests/run_examples_tests.sh`           | 运行示例/集成集            |
@@ -440,7 +440,7 @@ git reset --soft HEAD~1
 ```bash
 pytest -vv --maxfail=1
 tail -n 200 logs/install.log 2>/dev/null || true
-bash -x quickstart.sh --minimal --yes  # 安装相关问题
+bash -x quickstart.sh --core --yes  # 安装相关问题
 ```
 
 ### 5. CI构建失败

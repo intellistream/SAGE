@@ -56,7 +56,7 @@ ______________________________________________________________________
 
    ```bash
    ./quickstart.sh --dev --yes       # 推荐的开发者安装
-   ./quickstart.sh --minimal --yes   # 轻量核心安装
+   ./quickstart.sh --core --yes      # 轻量核心安装
    ./quickstart.sh --standard --sync-submodules --vllm --yes
    ```
 

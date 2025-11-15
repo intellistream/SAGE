@@ -560,7 +560,7 @@ show_parameter_help() {
 parse_install_mode() {
     local param="$1"
     case "$param" in
-        "--core"|"--c"|"-core"|"-c")
+        "--core"|"--c"|"-core"|"-c"|"--minimal"|"-minimal")
             INSTALL_MODE="core"
             return 0
             ;;
