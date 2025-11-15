@@ -203,6 +203,8 @@ Common patterns:
 python3 -m venv .sage/venv
 source .sage/venv/bin/activate
 ./quickstart.sh --dev --pip --yes
+
+If the system `python3 -m venv` command fails because the distribution omits `ensurepip`, `./quickstart.sh --auto-venv` will automatically fall back to installing the `virtualenv` module into your user site via `pip install --user --break-system-packages virtualenv` before creating `.sage/venv`. If your environment still enforces PEP 668 restrictions, install the `python3-venv` package (for example `sudo apt install python3.12-venv` on Debian/Ubuntu) or manually run `python3 -m venv .sage/venv` before rerunning `--auto-venv`.
 ```
 
 **Common Non-Interactive Modes**
@@ -432,6 +434,10 @@ make quality       # Full quality check
 make test          # Run all tests
 make test-quick    # Quick tests only
 make test-all      # Full test suite with coverage
+
+# Installation & Environment Tests
+bash tools/install/tests/run_all_tests.sh  # Run environment & cleanup tests
+bash tools/install/tests/verify_installation.sh  # Verify SAGE installation
 
 # Build & Deploy
 make build         # Build packages

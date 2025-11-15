@@ -279,6 +279,11 @@ jobs:
             exit 1
           fi
 
+      - name: Run installation validation suite
+        run: |
+          echo "🔍 Running installation verification suite..."
+          bash tools/install/tests/verify_installation.sh
+
       - name: Run Unit Tests with Coverage
         run: |
           echo "🧪 运行单元测试并收集覆盖率..."

@@ -44,46 +44,46 @@ classifiers = [
 dependencies = [
     # Middleware-specific dependencies - 只包含外部依赖
     # Authentication and security
-    "python-jose==3.5.0",
-    "passlib==1.7.4",
+    "python-jose>=3.5.0,<4.0.0",
+    "passlib>=1.7.4,<2.0.0",
 
     # Task queue
-    "celery==5.5.3",
-    "flower==2.0.1",
+    "celery>=5.5.0,<6.0.0",
+    "flower>=2.0.0,<3.0.0",
 
     # API clients
-    "openai>=1.99.1",  # vLLM 0.10.1.1兼容的openai版本
-    "ollama==0.5.1",
-    "zhipuai==2.1.5.20250801",
-    "cohere>=5.16.1",
-    "anthropic>=0.25.0",
+    "openai>=1.99.1,<2.0.0",  # vLLM 0.10.1.1兼容的openai版本
+    "ollama>=0.5.0,<1.0.0",
+    "zhipuai>=2.1.0,<3.0.0",
+    "cohere>=5.16.0,<6.0.0",
+    "anthropic>=0.25.0,<1.0.0",
 
     # ML/AI libraries
-    "transformers>=4.54.1",
-    "tokenizers>=0.21.0",  # 放宽版本约束
-    "faiss-cpu>=1.7.0",
-    "bm25s==0.2.13",
-    "rank-bm25>=0.2.0",
-    "PyStemmer==3.0.0",
+    "transformers>=4.54.0,<5.0.0",
+    "tokenizers>=0.21.0,<1.0.0",
+    "faiss-cpu>=1.7.0,<2.0.0",
+    "bm25s>=0.2.13,<1.0.0",
+    "rank-bm25>=0.2.0,<1.0.0",
+    "PyStemmer>=3.0.0,<4.0.0",
 
     # Network and data processing
-    "aiohttp==3.12.15",
-    "frozenlist==1.7.0",
-    "feedparser==6.0.11",
+    "aiohttp>=3.12.0,<4.0.0",
+    "frozenlist>=1.7.0,<2.0.0",
+    "feedparser>=6.0.11,<7.0.0",
 
     # ML acceleration
-    "accelerate>=1.9.0",  # 放宽版本约束
-    "sentence-transformers>=3.1.0",  # 放宽版本约束
-    "InstructorEmbedding==1.0.1",
-    "huggingface-hub>=0.34.0",  # 放宽版本约束
-    "peft==0.17.0",
+    "accelerate>=1.9.0,<2.0.0",
+    "sentence-transformers>=3.1.0,<4.0.0",
+    "InstructorEmbedding>=1.0.0,<2.0.0",
+    "huggingface-hub>=0.34.0,<1.0.0",
+    "peft>=0.17.0,<1.0.0",
 
     # Scientific computing
     "scipy>=1.15.0,<2.0.0",  # 统一scipy版本范围，与其他包兼容
 
     # Documentation
-    "markdown>=3.4.4",
-    "pymdown-extensions>=10.2.1",
+    "markdown>=3.4.4,<4.0.0",
+    "pymdown-extensions>=10.2.0,<11.0.0",
 ]
 license = {text = "MIT"}
 

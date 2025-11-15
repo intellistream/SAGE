@@ -18,35 +18,35 @@ source "$(dirname "${BASH_SOURCE[0]}")/../fixes/cpp_extensions_fix.sh"
 
 # pip 缓存清理函数
 clean_pip_cache() {
-    local log_file="${1:-install.log}"
-
+    log_info "开始清理 pip 缓存" "PIPCache"
     echo -e "${BLUE}🧹 清理 pip 缓存...${NC}"
-    echo "$(date): 开始清理 pip 缓存" >> "$log_file"
 
     # 检查是否支持 pip cache 命令
     if $PIP_CMD cache --help &>/dev/null; then
+        log_debug "使用 pip cache purge 清理缓存" "PIPCache"
         echo -e "${DIM}使用 pip cache purge 清理缓存${NC}"
 
         # 显示缓存大小（如果支持）
         if $PIP_CMD cache info &>/dev/null; then
             local cache_info=$($PIP_CMD cache info 2>/dev/null | grep -E "(Location|Size)" || true)
             if [ -n "$cache_info" ]; then
+                log_debug "缓存信息: $cache_info" "PIPCache"
                 echo -e "${DIM}缓存信息:${NC}"
                 echo "$cache_info" | sed 's/^/  /'
             fi
         fi
 
         # 执行缓存清理
-        if $PIP_CMD cache purge >> "$log_file" 2>&1; then
+        if log_command "PIPCache" "MAIN" "$PIP_CMD cache purge"; then
+            log_info "pip 缓存清理完成" "PIPCache"
             echo -e "${CHECK} pip 缓存清理完成"
-            echo "$(date): pip 缓存清理成功" >> "$log_file"
         else
+            log_warn "pip 缓存清理失败，但继续安装" "PIPCache"
             echo -e "${WARNING} pip 缓存清理失败，但继续安装"
-            echo "$(date): pip 缓存清理失败" >> "$log_file"
         fi
     else
+        log_info "当前 pip 版本不支持 cache 命令，跳过缓存清理" "PIPCache"
         echo -e "${DIM}当前 pip 版本不支持 cache 命令，跳过缓存清理${NC}"
-        echo "$(date): pip 版本不支持 cache 命令，跳过缓存清理" >> "$log_file"
     fi
 
     echo ""
@@ -54,10 +54,8 @@ clean_pip_cache() {
 
 # 验证C++扩展函数（扩展已在 sage-middleware 安装时自动构建）
 verify_cpp_extensions() {
-    local log_file="$1"
-
-    echo "$(date): 开始验证C++扩展" >> "$log_file"
-    echo -e "${DIM}📝 详细日志: ${log_file}${NC}"
+    log_info "开始验证C++扩展" "CPPExt"
+    echo -e "${DIM}📝 详细日志: $SAGE_INSTALL_LOG${NC}"
     echo -e "${DIM}   C++扩展已通过 sage-middleware 的 scikit-build-core 自动构建${NC}"
     echo -e "${DIM}   正在检查扩展可用性...${NC}"
     echo ""
@@ -130,6 +128,7 @@ except Exception as e:
     sys.exit(1)
 " 2>&1)
         validation_result=$?
+        log_debug "C++扩展验证输出:\n$verify_output" "CPPExt"
 
         # 输出验证结果
         echo "$verify_output"
@@ -137,16 +136,16 @@ except Exception as e:
         if [ $validation_result -eq 0 ]; then
             echo -e "${CHECK} C++ 扩展可用 (sage_db, sage_flow, sage_tsdb)"
             echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
-            echo "$(date): C++扩展验证成功" >> "$log_file"
+            log_info "C++扩展验证成功" "CPPExt"
             return 0
         else
             echo -e "${WARNING} 扩展验证失败"
-            echo "$(date): 扩展验证失败" >> "$log_file"
+            log_warn "扩展验证失败" "CPPExt"
             echo -e "${DIM}💡 提示: C++扩展在 sage-middleware 安装时自动构建${NC}"
             echo -e "${DIM}   如果验证失败，可能是因为：${NC}"
             echo -e "${DIM}   1. 子模块未初始化：git submodule update --init --recursive${NC}"
             echo -e "${DIM}   2. 缺少构建工具：apt-get install build-essential cmake${NC}"
-            echo -e "${DIM}   3. 查看详细日志：cat $log_file${NC}"
+            echo -e "${DIM}   3. 查看详细日志：cat $SAGE_INSTALL_LOG${NC}"
             return 1
         fi
 }
@@ -207,6 +206,13 @@ install_sage() {
     echo "PIP 命令: $PIP_CMD" >> "$log_file"
     echo "Python 命令: $PYTHON_CMD" >> "$log_file"
     echo "========================================" >> "$log_file"
+
+    # 安装前记录已安装包列表，便于后续卸载和清理
+    local track_script="$project_root/tools/cleanup/track_install.sh"
+    if [ -f "$track_script" ]; then
+        echo -e "${DIM}记录安装前的 SAGE 包列表...${NC}"
+        bash "$track_script" pre-install || true
+    fi
 
     log_info "SAGE 主要安装过程开始" "MAIN"
     log_info "安装模式: $mode | 环境: $environment | VLLM: $install_vllm" "MAIN"
@@ -348,12 +354,7 @@ install_sage() {
         log_info "VLLM 安装请求已处理" "MAIN"
     fi
 
-    echo "$(date): SAGE 安装完成" >> "$log_file"
-    if [ "$install_vllm" = "true" ]; then
-        echo "$(date): VLLM 安装请求已处理" >> "$log_file"
-    fi
-    echo "安装结束时间: $(date)" >> "$log_file"
-    echo "========================================" >> "$log_file"
+    log_info "安装结束" "MAIN"
 
     # 🔍 CI/CD 检查：验证没有从 PyPI 下载本地包
     if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" ]]; then
@@ -363,7 +364,7 @@ install_sage() {
 
         local monitor_script="$project_root/tools/install/installation_table/pip_install_monitor.sh"
         if [ -f "$monitor_script" ]; then
-            if bash "$monitor_script" analyze "$log_file"; then
+            if bash "$monitor_script" analyze; then
                 log_info "依赖完整性检查通过" "MAIN"
                 echo -e "${CHECK} 依赖完整性检查通过"
                 log_phase_end "依赖完整性检查" "success" "MAIN"
@@ -381,6 +382,13 @@ install_sage() {
             echo -e "${DIM}监控脚本不存在，跳过检查${NC}"
             log_phase_end "依赖完整性检查" "skipped" "MAIN"
         fi
+    fi
+
+    # 安装后记录包列表和安装信息
+    if [ -f "$track_script" ]; then
+        echo "" >> "$log_file"
+        echo "包追踪信息:" >> "$log_file"
+        bash "$track_script" post-install "$mode" "$environment" "$install_vllm" >> "$log_file" 2>&1 || true
     fi
 
     # 显示安装信息

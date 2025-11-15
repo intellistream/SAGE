@@ -64,4 +64,16 @@ if [ $# -eq 0 ]; then
     exit 0
 fi
 
+# Additional maintenance helpers
+if [ "$1" = "clean-env" ] || [ "$1" = "uninstall" ]; then
+    # Provide a straightforward alias to the uninstall/cleanup helper
+    CLEAN_SCRIPT="$SCRIPT_DIR/tools/cleanup/uninstall_sage.sh"
+    if [ -f "$CLEAN_SCRIPT" ]; then
+        exec bash "$CLEAN_SCRIPT" "${@:2}"
+    else
+        echo "Cleanup script not found at $CLEAN_SCRIPT" >&2
+        exit 1
+    fi
+fi
+
 exec bash "$MAINTENANCE_SCRIPT" "$@"

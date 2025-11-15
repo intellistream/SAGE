@@ -111,9 +111,33 @@ check_system_runtime() {
     local total_mem=$(free -h | awk 'NR==2{print $2}')
     output_check "系统内存: $total_mem"
 
-    # 检查磁盘空间
+    # 检查磁盘空间并警告
+    local disk_space_gb=$(df -BG . | awk 'NR==2{print $4}' | sed 's/G//')
     local disk_space=$(df -h . | awk 'NR==2{print $4}')
     output_check "可用磁盘空间: $disk_space"
+
+    # 警告：磁盘空间不足（SAGE 需要至少 10GB，推荐 20GB+）
+    if [ "$disk_space_gb" -lt 10 ]; then
+        output_warning "磁盘空间不足！可用: ${disk_space}，推荐至少 20GB"
+        output_dim "SAGE 完整安装（包含 vLLM、submodules）需要 15-20GB 空间"
+        output_dim "建议: 清理磁盘或使用 --minimal 模式减少空间占用"
+
+        # 严重不足时提示用户确认
+        if [ "$disk_space_gb" -lt 5 ]; then
+            output_warning "严重警告: 磁盘空间不足 5GB，安装可能失败！"
+            if [[ -z "$CI" && -z "$GITHUB_ACTIONS" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
+                echo -e "${YELLOW}是否仍要继续？[y/N]${NC}"
+                read -p "请输入选择: " -r disk_continue
+                if [[ ! "$disk_continue" =~ ^[Yy]$ ]]; then
+                    echo -e "${CROSS} 安装已取消，请清理磁盘后重试"
+                    exit 1
+                fi
+            fi
+        fi
+    elif [ "$disk_space_gb" -lt 20 ]; then
+        output_warning "磁盘空间较紧张（可用: ${disk_space}），推荐 20GB+"
+        output_dim "提示: 使用 --minimal 模式可减少空间占用"
+    fi
 
     # 检查基础命令
     local missing_commands=()
@@ -194,6 +218,47 @@ check_gpu_configuration() {
     return 0
 }
 
+# 检查网络连接
+check_network_connectivity() {
+    output_info "检查网络连接..."
+
+    local network_ok=false
+    local test_urls=(
+        "https://pypi.org"
+        "https://pypi.tuna.tsinghua.edu.cn"
+        "https://mirrors.aliyun.com"
+    )
+
+    # 测试至少一个 URL 可访问
+    for url in "${test_urls[@]}"; do
+        if curl -s --head --max-time 5 "$url" > /dev/null 2>&1; then
+            network_ok=true
+            output_check "网络连接正常 (测试地址: $url)"
+            break
+        fi
+    done
+
+    if [ "$network_ok" = false ]; then
+        output_warning "网络连接检测失败，无法访问 PyPI 或镜像源"
+        output_warning "这可能导致包下载失败！"
+        output_dim "建议: 检查网络连接或代理设置"
+        output_dim "提示: 可尝试使用国内镜像源（将在安装时自动提示）"
+
+        # 非 CI 环境提示用户确认
+        if [[ -z "$CI" && -z "$GITHUB_ACTIONS" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
+            echo -e "${YELLOW}网络异常，是否仍要继续安装？[y/N]${NC}"
+            read -p "请输入选择: " -r network_continue
+            if [[ ! "$network_continue" =~ ^[Yy]$ ]]; then
+                echo -e "${CROSS} 安装已取消，请检查网络后重试"
+                exit 1
+            fi
+        fi
+        return 1
+    fi
+
+    return 0
+}
+
 # ============================================================================
 # 主要检查函数
 # ============================================================================
@@ -212,18 +277,15 @@ comprehensive_system_check() {
     format_output "${GEAR} 开始系统环境检查..."
 
     # 初始化日志文件（如果不存在）
-    mkdir -p "$(dirname "$log_file")"
-    if [ ! -f "$log_file" ]; then
-        echo "SAGE 安装日志 - $(date)" > "$log_file"
-        echo "========================================" >> "$log_file"
+    mkdir -p "$(dirname "$SAGE_INSTALL_LOG")"
+    if [ ! -f "$SAGE_INSTALL_LOG" ]; then
+        log_info "SAGE 安装日志 - $(date)" "CHECK"
     fi
 
     # 记录系统检查开始
-    echo "" >> "$log_file"
-    echo "$(date): 开始系统环境检查" >> "$log_file"
-    echo "检查模式: $mode" >> "$log_file"
-    echo "检查环境: $environment" >> "$log_file"
-    echo "----------------------------------------" >> "$log_file"
+    log_info "开始系统环境检查" "CHECK"
+    log_info "检查模式: $mode" "CHECK"
+    log_info "检查环境: $environment" "CHECK"
 
     # 如果启用了偏移，显示调试信息
     if [ "${SAGE_DEBUG_OFFSET}" = "true" ]; then
@@ -234,7 +296,7 @@ comprehensive_system_check() {
 
     # 通用系统检查
     format_output "${BLUE}=== 通用系统环境检查 ===${NC}"
-    echo "$(date): 开始通用系统环境检查" >> "$log_file"
+    log_info "开始通用系统环境检查" "CHECK"
     check_operating_system
     echo ""
     check_system_runtime
@@ -243,27 +305,29 @@ comprehensive_system_check() {
     echo ""
     check_gpu_configuration
     echo ""
+    check_network_connectivity
+    echo ""
 
     # 系统依赖检查和安装
-    if ! check_and_install_system_dependencies "$log_file"; then
+    if ! check_and_install_system_dependencies; then
+        log_error "系统依赖安装失败，但继续进行其他检查" "CHECK"
         echo -e "${CROSS} 系统依赖安装失败，但继续进行其他检查"
-        echo "$(date): 系统依赖安装失败，但继续进行其他检查" >> "$log_file"
     fi
     echo ""
 
     # 模式特定检查
     format_output "${BLUE}=== 环境特定检查 ===${NC}"
-    echo "$(date): 开始环境特定检查 ($environment 模式)" >> "$log_file"
+    log_info "开始环境特定检查 ($environment 模式)" "CHECK"
     case "$environment" in
         "pip")
             if ! check_pip_mode_requirements; then
-                echo "$(date): pip 模式环境检查失败" >> "$log_file"
+                log_error "pip 模式环境检查失败" "CHECK"
                 return 1
             fi
             ;;
         "conda")
             if ! check_conda_mode_requirements; then
-                echo "$(date): conda 模式环境检查失败" >> "$log_file"
+                log_error "conda 模式环境检查失败" "CHECK"
                 return 1
             fi
             ;;
@@ -272,13 +336,12 @@ comprehensive_system_check() {
 
     # SAGE 特定检查
     format_output "${BLUE}=== SAGE 安装检查 ===${NC}"
-    echo "$(date): 开始 SAGE 安装状态检查" >> "$log_file"
+    log_info "开始 SAGE 安装状态检查" "CHECK"
     check_existing_sage
     echo ""
 
     format_output "${CHECK} 系统环境检查完成"
-    echo "$(date): 系统环境检查完成" >> "$log_file"
-    echo "----------------------------------------" >> "$log_file"
+    log_info "系统环境检查完成" "CHECK"
 
     return 0
 }

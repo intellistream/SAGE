@@ -4,8 +4,6 @@
 
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
-
-# 导入增强日志工具
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
 
 # 导入友好错误处理
@@ -31,6 +29,26 @@ PIP_CMD="${PIP_CMD:-pip3}"
 install_core_packages() {
     local install_mode="${1:-dev}"  # 默认为开发模式
 
+    # 准备pip安装参数
+    local pip_args="--disable-pip-version-check --no-input"
+
+    # CI环境额外处理
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
+        pip_args="$pip_args --user"
+        # 某些系统前缀可能仍需此选项
+        if python3 -c "import sys; print(1 if '/usr' in sys.prefix else 0)" 2>/dev/null | grep -q "1"; then
+            pip_args="$pip_args --break-system-packages"
+            echo -e "${DIM}CI环境: 添加 --break-system-packages${NC}"
+        fi
+        # 确保用户脚本目录在PATH中（供 'sage' 可执行脚本使用）
+        export PATH="$HOME/.local/bin:$PATH"
+        echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
+    else
+        # 非CI环境，启用进度条
+        pip_args="$pip_args --progress-bar=ascii"
+    fi
+
     # 获取项目根目录并初始化日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/.sage/logs/install.log"
@@ -44,22 +62,19 @@ install_core_packages() {
     mkdir -p "$project_root/.sage/cache"
 
     # 初始化日志文件
-    echo "========================================" > "$log_file"
-    echo "SAGE 安装日志" >> "$log_file"
-    echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$log_file"
-    echo "安装模式: $install_mode" >> "$log_file"
-    echo "项目路径: $project_root" >> "$log_file"
-    echo "========================================" >> "$log_file"
-    echo "" >> "$log_file"
+    log_info "SAGE 安装日志" "INSTALL"
+    log_info "开始时间: $(date '+%Y-%m-%d %H:%M:%S')" "INSTALL"
+    log_info "安装模式: $install_mode" "INSTALL"
+    log_info "项目路径: $project_root" "INSTALL"
 
     echo -e "${INFO} 安装 SAGE ($install_mode 模式)..."
     echo -e "${DIM}安装日志: $log_file${NC}"
     echo ""
 
     # 记录环境信息
-    log_phase_start "环境信息收集" "INSTALL"
+    log_phase_start_enhanced "环境信息收集" "INSTALL" 5
     log_environment "INSTALL"
-    log_phase_end "环境信息收集" "true" "INSTALL"
+    log_phase_end_enhanced "环境信息收集" "true" "INSTALL"
 
     case "$install_mode" in
         "core")
@@ -130,22 +145,35 @@ install_core_packages() {
     # 准备pip安装参数
     local pip_args="--disable-pip-version-check --no-input"
 
+    # 添加缓存支持（非CI环境）
+    if [ "$CI" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
+        # 非CI环境启用缓存以加速重复安装
+        pip_args="$pip_args --cache-dir ~/.cache/pip"
+        echo -e "${DIM}启用 pip 缓存: ~/.cache/pip${NC}"
+    else
+        # CI环境禁用缓存以确保新鲜安装
+        pip_args="$pip_args --no-cache-dir"
+        echo -e "${DIM}CI环境: 禁用 pip 缓存${NC}"
+    fi
+
     # CI环境额外处理
     if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
         pip_args="$pip_args --user"
         # 某些系统前缀可能仍需此选项
-        if python3 -c "import sys; exit(0 if '/usr' in sys.prefix else 1)" 2>/dev/null; then
+        if python3 -c "import sys; print(1 if '/usr' in sys.prefix else 0)" 2>/dev/null; then
             pip_args="$pip_args --break-system-packages"
             echo -e "${DIM}CI环境: 添加 --break-system-packages${NC}"
         fi
         # 确保用户脚本目录在PATH中（供 'sage' 可执行脚本使用）
         export PATH="$HOME/.local/bin:$PATH"
         echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
+    else
+        # 非CI环境，启用进度条
+        pip_args="$pip_args --progress-bar=ascii"
     fi
 
-    echo "$(date): 开始安装本地依赖包" >> "$log_file"
-    log_phase_start "本地依赖包安装" "INSTALL"
+    log_phase_start_enhanced "本地依赖包安装" "INSTALL" 180
 
     # 本地开发安装策略：
     # 1. 使用 -e (editable) 模式安装
@@ -170,9 +198,9 @@ install_core_packages() {
         log_info "开始安装: $package_dir" "INSTALL"
         log_debug "PIP命令: $PIP_CMD install $install_flags $package_dir $pip_args --no-deps" "INSTALL"
 
-        if ! $PIP_CMD install $install_flags "$package_dir" $pip_args --no-deps >> "$log_file" 2>&1; then
+        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$package_dir\" $pip_args --no-deps"; then
             log_error "安装失败: $package_dir" "INSTALL"
-            log_error "请检查日志文件: $log_file" "INSTALL"
+            log_error "请检查日志文件: $SAGE_INSTALL_LOG" "INSTALL"
             echo -e "${CROSS} 安装 $package_dir 失败！"
             return 1
         fi
@@ -214,9 +242,9 @@ install_core_packages() {
 
         log_debug "PIP命令: $PIP_CMD install $install_flags $package_dir $pip_args --no-deps" "INSTALL"
 
-        if ! $PIP_CMD install $install_flags "$package_dir" $pip_args --no-deps >> "$log_file" 2>&1; then
+        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$package_dir\" $pip_args --no-deps"; then
             log_error "安装失败: $package_dir" "INSTALL"
-            log_error "请检查日志文件: $log_file" "INSTALL"
+            log_error "请检查日志文件: $SAGE_INSTALL_LOG" "INSTALL"
             echo -e "${CROSS} 安装 $package_dir 失败！"
 
             # 清理环境变量
@@ -251,18 +279,18 @@ install_core_packages() {
         log_debug "这一步会编译 C++ 扩展，可能较慢" "INSTALL"
         log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
 
-        if ! $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps >> "$log_file" 2>&1; then
+        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-middleware\" $pip_args --no-deps"; then
             log_error "安装 sage-middleware 失败！" "INSTALL"
-            log_error "这通常是由于 C++ 编译错误，请检查日志: $log_file" "INSTALL"
+            log_error "这通常是由于 C++ 编译错误，请检查日志: $SAGE_INSTALL_LOG" "INSTALL"
 
             # 尝试提取编译错误的关键信息
-            if [ -f "$log_file" ]; then
-                local error_context=$(grep -A 5 -i "error:" "$log_file" | tail -20 || echo "未找到具体错误信息")
+            if [ -f "$SAGE_INSTALL_LOG" ]; then
+                local error_context=$(grep -A 5 -i "error:" "$SAGE_INSTALL_LOG" | tail -20 || echo "未找到具体错误信息")
                 log_error "编译错误摘要:\n$error_context" "INSTALL"
             fi
 
             echo -e "${CROSS} 安装 sage-middleware 失败！"
-            echo -e "${DIM}提示: 检查日志文件获取详细错误信息: $log_file${NC}"
+            echo -e "${DIM}提示: 检查日志文件获取详细错误信息: $SAGE_INSTALL_LOG${NC}"
             return 1
         fi
 
@@ -289,7 +317,7 @@ install_core_packages() {
                 log_info "开始安装: packages/sage-benchmark" "INSTALL"
                 log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-benchmark $pip_args --no-deps" "INSTALL"
 
-                if ! $PIP_CMD install $install_flags "packages/sage-benchmark" $pip_args --no-deps >> "$log_file" 2>&1; then
+                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-benchmark\" $pip_args --no-deps"; then
                     log_error "安装 sage-benchmark 失败" "INSTALL"
                     echo -e "${CROSS} 安装 sage-benchmark 失败！"
                     return 1
@@ -308,7 +336,7 @@ install_core_packages() {
                 log_info "开始安装: packages/sage-apps" "INSTALL"
                 log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-apps $pip_args --no-deps" "INSTALL"
 
-                if ! $PIP_CMD install $install_flags "packages/sage-apps" $pip_args --no-deps >> "$log_file" 2>&1; then
+                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-apps\" $pip_args --no-deps"; then
                     log_error "安装 sage-apps 失败" "INSTALL"
                     echo -e "${CROSS} 安装 sage-apps 失败！"
                     return 1
@@ -326,7 +354,7 @@ install_core_packages() {
             log_info "开始安装: packages/sage-cli" "INSTALL"
             log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-cli $pip_args --no-deps" "INSTALL"
 
-            if ! $PIP_CMD install $install_flags "packages/sage-cli" $pip_args --no-deps >> "$log_file" 2>&1; then
+            if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-cli\" $pip_args --no-deps"; then
                 log_error "安装 sage-cli 失败" "INSTALL"
                 echo -e "${CROSS} 安装 sage-cli 失败！"
                 return 1
@@ -345,7 +373,7 @@ install_core_packages() {
             log_info "开始安装: packages/sage-studio" "INSTALL"
             log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-studio $pip_args --no-deps" "INSTALL"
 
-            if ! $PIP_CMD install $install_flags "packages/sage-studio" $pip_args --no-deps >> "$log_file" 2>&1; then
+            if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-studio\" $pip_args --no-deps"; then
                 log_error "安装 sage-studio 失败" "INSTALL"
                 echo -e "${CROSS} 安装 sage-studio 失败！"
                 return 1
@@ -364,7 +392,7 @@ install_core_packages() {
             log_info "开始安装: packages/sage-tools" "INSTALL"
             log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-tools $pip_args --no-deps" "INSTALL"
 
-            if ! $PIP_CMD install $install_flags "packages/sage-tools" $pip_args --no-deps >> "$log_file" 2>&1; then
+            if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-tools\" $pip_args --no-deps"; then
                 log_error "安装 sage-tools 失败" "INSTALL"
                 echo -e "${CROSS} 安装 sage-tools 失败！"
                 return 1
@@ -383,9 +411,11 @@ install_core_packages() {
     echo -e "${CHECK} 本地依赖包安装完成"
     echo ""
 
+    log_phase_end_enhanced "本地依赖包安装" "true" "INSTALL"
+
     # 第四步：安装主 SAGE 包和外部依赖
     echo -e "${DIM}步骤 4/4: 安装外部依赖...${NC}"
-    log_phase_start "外部依赖安装" "INSTALL"
+    log_phase_start_enhanced "外部依赖安装" "INSTALL" 300
 
     # 4a. 先用 --no-deps 安装 sage meta-package
     local install_target="packages/sage"
@@ -393,7 +423,7 @@ install_core_packages() {
     log_info "开始安装: sage meta-package" "INSTALL"
     log_debug "PIP命令: $PIP_CMD install $install_flags $install_target $pip_args --no-deps" "INSTALL"
 
-    if ! $PIP_CMD install $install_flags "$install_target" $pip_args --no-deps >> "$log_file" 2>&1; then
+    if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$install_target\" $pip_args --no-deps"; then
         log_error "安装 sage meta-package 失败" "INSTALL"
         echo -e "${CROSS} 安装 sage meta-package 失败！"
         log_phase_end "外部依赖安装" "failure" "INSTALL"
@@ -466,7 +496,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             log_debug "PIP命令: $PIP_CMD install -r $external_deps_file $pip_args" "INSTALL"
 
             # 从文件读取并安装
-            if $PIP_CMD install -r "$external_deps_file" $pip_args >> "$log_file" 2>&1; then
+            if log_command "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $pip_args"; then
                 log_info "外部依赖安装成功" "INSTALL"
                 echo -e "${CHECK} 外部依赖安装完成"
 
@@ -482,7 +512,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
                 echo -e "${YELLOW}⚠️  部分外部依赖安装失败，但继续...${NC}"
 
                 # 尝试提取安装失败的包
-                local failed_packages=$(grep -i "error\|failed" "$log_file" | tail -5 || echo "无法确定失败包")
+                local failed_packages=$(grep -i "error\|failed" "$SAGE_INSTALL_LOG" | tail -5 || echo "无法确定失败包")
                 log_warn "失败详情:\n$failed_packages" "INSTALL"
             fi
         else
@@ -496,7 +526,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
         echo -e "${YELLOW}⚠️  依赖提取脚本失败，跳过外部依赖安装${NC}"
     fi
 
-    log_phase_end "外部依赖安装" "success" "INSTALL"
+    log_phase_end_enhanced "外部依赖安装" "success" "INSTALL"
     echo ""
     echo -e "${CHECK} SAGE ($install_mode 模式) 和外部依赖安装成功！"
     echo ""

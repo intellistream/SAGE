@@ -218,6 +218,51 @@ jobs:
           # Build and publish all packages
           sage-dev package pypi publish-sage --no-dry-run -r ${{ steps.config.outputs.repository }}
 
+      # 构建预编译 wheels（针对 sage-middleware）
+      - name: Build precompiled wheels for sage-middleware
+        run: |
+          echo "🔧 Building precompiled wheels for sage-middleware..."
+          python -m pip install cibuildwheel==2.22.0
+
+          cd packages/sage-middleware
+
+          # 配置 cibuildwheel
+          export CIBW_BUILD="cp310-* cp311-* cp312-*"
+          export CIBW_SKIP="*-musllinux_*"
+          export CIBW_BEFORE_BUILD="pip install setuptools wheel scikit-build-core pybind11"
+
+          # 仅构建当前平台的 wheels
+          python -m cibuildwheel --output-dir ../../dist-wheels
+
+          echo "✅ Wheels built successfully"
+          ls -lh ../../dist-wheels/
+
+      # 上传预编译 wheels 到 PyPI
+      - name: Upload precompiled wheels to PyPI
+        if: steps.config.outputs.repository == 'pypi'
+        run: |
+          echo "📦 Uploading precompiled wheels to PyPI..."
+          python -m pip install twine
+
+          twine upload --skip-existing dist-wheels/*.whl \
+            --username __token__ \
+            --password ${{ secrets.PYPI_API_TOKEN }}
+
+          echo "✅ Precompiled wheels uploaded"
+
+      - name: Upload precompiled wheels to TestPyPI
+        if: steps.config.outputs.repository == 'testpypi'
+        run: |
+          echo "📦 Uploading precompiled wheels to TestPyPI..."
+          python -m pip install twine
+
+          twine upload --skip-existing dist-wheels/*.whl \
+            --repository-url https://test.pypi.org/legacy/ \
+            --username __token__ \
+            --password ${{ secrets.TEST_PYPI_API_TOKEN }}
+
+          echo "✅ Precompiled wheels uploaded to TestPyPI"
+
       - name: Create GitHub Release
         if: steps.config.outputs.repository == 'pypi' && steps.config.outputs.version_bump != 'none'
         uses: softprops/action-gh-release@v1

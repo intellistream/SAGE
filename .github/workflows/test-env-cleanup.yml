@@ -1,0 +1,288 @@
+name: Test Environment Isolation and Cleanup
+
+on:
+  push:
+    branches: [main, main-dev]
+    paths:
+      - 'tools/install/download_tools/environment_config.sh'
+      - 'tools/install/download_tools/argument_parser.sh'
+      - 'tools/cleanup/**'
+      - 'tools/install/tests/test_*.sh'
+      - '.github/workflows/test-env-cleanup.yml'
+  pull_request:
+    branches: [main, main-dev]
+    paths:
+      - 'tools/install/download_tools/environment_config.sh'
+      - 'tools/install/download_tools/argument_parser.sh'
+      - 'tools/cleanup/**'
+      - 'tools/install/tests/test_*.sh'
+      - '.github/workflows/test-env-cleanup.yml'
+
+jobs:
+  # 测试单元测试脚本
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run environment config unit tests
+        run: |
+          bash tools/install/tests/test_environment_config.sh
+
+      - name: Run cleanup tools unit tests
+        run: |
+          bash tools/install/tests/test_cleanup_tools.sh
+
+  # 测试 auto-venv 在不同环境下的行为
+  test-auto-venv:
+    name: Test Auto-Venv (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-22.04]
+        python-version: ['3.10', '3.11', '3.12']
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip python3-venv
+
+      - name: Test auto-venv creation (clean environment)
+        run: |
+          # 在清洁环境中测试 auto-venv
+          env -u CONDA_DEFAULT_ENV -u CONDA_PREFIX -u VIRTUAL_ENV bash -c '
+            source tools/install/display_tools/colors.sh
+            source tools/install/download_tools/environment_config.sh
+
+            # 测试虚拟环境检测
+            result=$(detect_virtual_environment)
+            echo "Detection result: $result"
+
+            is_venv=$(echo "$result" | cut -d"|" -f1)
+            if [ "$is_venv" = "false" ]; then
+              echo "✅ Correctly detected no virtual environment"
+            else
+              echo "❌ Failed: should not detect venv in clean environment"
+              exit 1
+            fi
+          '
+
+      - name: Test auto-venv with --auto-venv flag
+        run: |
+          # 测试 --auto-venv 选项
+          env -u CONDA_DEFAULT_ENV -u CONDA_PREFIX -u VIRTUAL_ENV bash -c '
+            cd $(mktemp -d)
+            cp -r $GITHUB_WORKSPACE/tools .
+
+            source tools/install/display_tools/colors.sh
+            source tools/install/download_tools/environment_config.sh
+
+            # 尝试创建虚拟环境
+            test_venv=".sage/venv"
+            if ensure_python_venv "$test_venv"; then
+              echo "✅ Virtual environment created successfully"
+
+              # 验证虚拟环境结构
+              if [ -f "$test_venv/bin/activate" ]; then
+                echo "✅ Virtual environment contains activate script"
+              else
+                echo "❌ Missing activate script"
+                exit 1
+              fi
+
+              # 激活并测试
+              source "$test_venv/bin/activate"
+              python --version
+              pip --version
+              deactivate
+            else
+              echo "⚠️ Virtual environment creation failed (may need python3-venv)"
+            fi
+          '
+
+      - name: Test SAGE_VENV_POLICY environment variable
+        run: |
+          # 测试不同的策略
+          for policy in warning error ignore; do
+            echo "Testing SAGE_VENV_POLICY=$policy"
+
+            export SAGE_VENV_POLICY=$policy
+            source tools/install/display_tools/colors.sh
+            source tools/install/download_tools/environment_config.sh
+
+            # 在虚拟环境中测试（应该通过）
+            export VIRTUAL_ENV="/tmp/test-venv"
+            result=$(detect_virtual_environment)
+            echo "Policy $policy result: $result"
+            unset VIRTUAL_ENV
+          done
+
+  # 测试安装跟踪和清理流程
+  test-install-tracking:
+    name: Test Install Tracking and Cleanup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Test track_install.sh
+        run: |
+          # 测试记录安装信息
+          mkdir -p .sage
+
+          bash tools/cleanup/track_install.sh pre-install
+          bash tools/cleanup/track_install.sh post-install "dev" "pip" "false"
+
+          # 验证文件创建
+          if [ -f .sage/install_info.json ]; then
+            echo "✅ Install info file created"
+            cat .sage/install_info.json
+          else
+            echo "❌ Install info file not created"
+            exit 1
+          fi
+
+          # 测试 show 命令
+          bash tools/cleanup/track_install.sh show
+          bash tools/cleanup/track_install.sh info
+
+      - name: Test uninstall_sage.sh with --yes flag
+        run: |
+          # 测试非交互式卸载
+          bash tools/cleanup/uninstall_sage.sh --yes || true
+
+          # 验证脚本可以处理 --help
+          bash tools/cleanup/uninstall_sage.sh --help
+
+  # 端到端集成测试
+  e2e-test:
+    name: End-to-End Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3-dev python3-venv
+
+      - name: Test complete workflow with auto-venv
+        run: |
+          # 完整的安装-使用-清理流程
+
+          # 1. 使用 auto-venv 安装
+          ./quickstart.sh --auto-venv --minimal --yes || {
+            echo "⚠️ Installation failed, checking logs..."
+            find .sage -name "*.log" -type f -exec tail -20 {} \;
+            exit 1
+          }
+
+          # 2. 验证安装
+          if [ -d .sage/venv ]; then
+            echo "✅ Virtual environment created"
+            source .sage/venv/bin/activate
+            python --version
+            pip list | grep -i sage || true
+            deactivate
+          fi
+
+          # 3. 检查安装跟踪
+          bash tools/cleanup/track_install.sh show
+
+          # 4. 测试清理
+          bash tools/cleanup/uninstall_sage.sh --yes
+
+          echo "✅ Complete workflow test passed"
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            .sage/logs/
+            .sage/install_info.json
+          retention-days: 7
+
+  # 测试文档示例
+  test-docs-examples:
+    name: Test Documentation Examples
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Test README examples
+        run: |
+          # 测试 README 中的示例命令
+
+          # 示例 1: auto-venv
+          echo "Testing: ./quickstart.sh --auto-venv --help"
+          ./quickstart.sh --auto-venv --help | grep -q "auto-venv"
+
+          # 示例 2: 环境变量
+          echo "Testing: SAGE_VENV_POLICY environment variable"
+          export SAGE_VENV_POLICY=ignore
+          source tools/install/download_tools/environment_config.sh
+          echo "SAGE_VENV_POLICY=$SAGE_VENV_POLICY"
+
+      - name: Verify docs consistency
+        run: |
+          # 验证文档中提到的文件是否存在
+          test -f docs/ENVIRONMENT_AND_CLEANUP.md
+          test -f tools/cleanup/track_install.sh
+          test -f tools/cleanup/uninstall_sage.sh
+
+          # 验证文档中提到的功能在代码中存在
+          grep -q "detect_virtual_environment" tools/install/download_tools/environment_config.sh
+          grep -q "ensure_python_venv" tools/install/download_tools/environment_config.sh
+          grep -q "SAGE_VENV_POLICY" tools/install/download_tools/environment_config.sh

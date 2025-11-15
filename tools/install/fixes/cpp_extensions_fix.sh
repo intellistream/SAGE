@@ -6,11 +6,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
 # 修复 sage-middleware C++ 扩展库的安装
 fix_middleware_cpp_extensions() {
-    local log_file="${1:-install.log}"
-    local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-
+    log_info "检查并修复 C++ 扩展库安装..." "CPPExtFix"
     echo -e "${BLUE}🔧 检查并修复 C++ 扩展库安装...${NC}"
-    echo "$(date): 开始检查 C++ 扩展库" >> "$log_file"
 
     # 检查是否是 editable install
     local pip_output=$(pip show isage-middleware 2>/dev/null)
@@ -18,16 +15,17 @@ fix_middleware_cpp_extensions() {
 
     if echo "$pip_output" | grep -q "Editable project location:"; then
         is_editable=true
+        log_debug "检测到 editable install 模式" "CPPExtFix"
         echo -e "${DIM}  检测到 editable install 模式${NC}"
     fi
 
     if [ "$is_editable" = false ]; then
+        log_info "非 editable install 模式，跳过修复" "CPPExtFix"
         echo -e "${DIM}  非 editable install 模式，跳过修复${NC}"
         return 0
     fi
 
     # 定义需要检查的扩展和它们的库文件
-    # 格式: "扩展名:库文件1,库文件2,..."
     local extensions_libs=(
         "sage_flow:libsageflow.so"
         "sage_db:libsage_db.so"
@@ -35,6 +33,7 @@ fix_middleware_cpp_extensions() {
     )
     local fixed_count=0
     local total_count=0
+    local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
 
     for ext_lib in "${extensions_libs[@]}"; do
         total_count=$((total_count + 1))
@@ -48,6 +47,7 @@ fix_middleware_cpp_extensions() {
 
         # 检查目标目录是否存在
         if [ ! -d "$target_dir" ]; then
+            log_debug "跳过 ${ext}: 目标目录不存在" "CPPExtFix"
             echo -e "${DIM}  跳过 ${ext}: 目标目录不存在${NC}"
             continue
         fi
@@ -59,15 +59,12 @@ fix_middleware_cpp_extensions() {
         for lib_name in "${lib_array[@]}"; do
             # 检查库文件是否已经存在于目标目录
             if [ -f "$target_dir/$lib_name" ]; then
+                log_debug "${ext}: ${lib_name} 已存在" "CPPExtFix"
                 echo -e "${DIM}  ${CHECK} ${ext}: ${lib_name} 已存在${NC}"
                 continue
             fi
 
             # 查找构建目录中的库文件
-            # 搜索多个可能的位置：
-            # 1. 本地构建目录
-            # 2. 子模块的 python 目录（CMake 可能已安装到这里）
-            # 3. 子模块的构建目录
             local build_lib=""
             local search_paths=(
                 "$project_root/packages/sage-middleware/build"
@@ -84,21 +81,23 @@ fix_middleware_cpp_extensions() {
             done
 
             if [ -z "$build_lib" ] || [ ! -f "$build_lib" ]; then
+                log_warn "${ext}: ${lib_name} 未找到" "CPPExtFix"
+                log_debug "已搜索路径: ${search_paths[*]}" "CPPExtFix"
                 echo -e "${WARNING} ${ext}: ${lib_name} 未找到"
                 echo -e "${DIM}    已搜索路径: ${search_paths[*]}${NC}"
-                echo "$(date): ${lib_name} 未找到，已搜索: ${search_paths[*]}" >> "$log_file"
                 all_libs_ok=false
                 continue
             fi
 
             # 复制库文件到目标目录
+            log_info "复制 ${lib_name} 到 ${target_dir}" "CPPExtFix"
             echo -e "${DIM}  复制 ${lib_name} 到 ${target_dir}${NC}"
             if cp "$build_lib" "$target_dir/"; then
+                log_info "${ext}: ${lib_name} 已修复" "CPPExtFix"
                 echo -e "  ${CHECK} ${ext}: ${lib_name} 已修复"
-                echo "$(date): 成功复制 ${lib_name} 到 ${target_dir}" >> "$log_file"
             else
+                log_error "${ext}: 复制 ${lib_name} 失败" "CPPExtFix"
                 echo -e "  ${CROSS} ${ext}: 复制 ${lib_name} 失败"
-                echo "$(date): 复制 ${lib_name} 失败" >> "$log_file"
                 all_libs_ok=false
             fi
         done
@@ -110,25 +109,20 @@ fix_middleware_cpp_extensions() {
 
     echo ""
     if [ $fixed_count -eq $total_count ]; then
+        log_info "所有 C++ 扩展库检查完成 (${fixed_count}/${total_count})" "CPPExtFix"
         echo -e "${CHECK} 所有 C++ 扩展库检查完成 (${fixed_count}/${total_count})"
-        echo "$(date): C++ 扩展库修复完成，${fixed_count}/${total_count} 可用" >> "$log_file"
         return 0
     else
+        log_warn "部分 C++ 扩展库可能不可用 (${fixed_count}/${total_count})" "CPPExtFix"
         echo -e "${WARNING} 部分 C++ 扩展库可能不可用 (${fixed_count}/${total_count})"
-        echo "$(date): C++ 扩展库部分可用，${fixed_count}/${total_count}" >> "$log_file"
 
-        # 在 CI 环境中，如果库文件找不到，可能是因为：
-        # 1. 子模块未初始化
-        # 2. CMake 安装路径配置问题
-        # 3. scikit-build-core 的临时构建目录已被清理
         if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+            log_debug "CI 环境提示：如果子模块已初始化但库文件仍未找到，可能是 CMake 安装配置问题或构建失败" "CPPExtFix"
             echo -e "${DIM}💡 CI 环境提示：${NC}"
             echo -e "${DIM}   如果子模块已初始化但库文件仍未找到，${NC}"
             echo -e "${DIM}   可能是 CMake 安装配置问题或构建失败${NC}"
             echo -e "${DIM}   请检查上方的构建日志中的 CMake 输出${NC}"
         fi
-
-        # 不返回错误，让验证步骤来判断是否真的有问题
         return 0
     fi
 }

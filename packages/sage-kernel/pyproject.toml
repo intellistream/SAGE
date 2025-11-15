@@ -42,36 +42,53 @@ classifiers = [
 ]
 dependencies = [
     # 外部依赖
-    "python-dotenv==1.1.1",
-    "python_multipart==0.0.20",
-    "ray==2.48.0",
-    "grpcio>=1.74.0",
-    "protobuf>=6.32.0",
-    "msgpack>=1.1.1",
-    "torch==2.7.1",
-    "torchvision==0.22.1",
-    "httpx==0.28.1",
-    "socksio==1.0.0",
+    # Python basics
+    "python-dotenv>=1.1.0,<2.0.0",
+    "python_multipart>=0.0.20,<0.1.0",
+    "filelock>=3.16.0,<4.0.0",
+
+    # Distributed computing
+    "ray>=2.48.0,<3.0.0",
+    "grpcio>=1.74.0,<2.0.0",
+    "protobuf>=6.32.0,<7.0.0",
+    "msgpack>=1.1.0,<2.0.0",
+
+    # Deep learning (flexible ranges for GPU/CPU compatibility)
+    "torch>=2.7.0,<3.0.0",
+    "torchvision>=0.22.0,<1.0.0",
+
+    # HTTP and networking
+    "httpx>=0.28.0,<1.0.0",
+    "socksio>=1.0.0,<2.0.0",
+    "h11>=0.16.0,<1.0.0",
+    "requests>=2.32.0,<3.0.0",
+    "aiohappyeyeballs>=2.6.0,<3.0.0",
+    "aiosignal>=1.4.0,<2.0.0",
+
+    # Scientific computing
     "numpy>=1.26.0,<2.3.0",
-    "Cython==3.1.2",
-    "pybind11==3.0.0",
-    "aioboto3==14.1.0",
-    "fastapi>=0.115.0",
-    "uvicorn>=0.34.0",
-    "h11>=0.16.0",
-    "requests>=2.32.0",
-    "aiohappyeyeballs>=2.6.0",
-    "aiosignal>=1.4.0",
-    "pydantic>=2.10.0",
-    "Jinja2==3.1.6",
-    "shellingham>=1.5.0",
-    "tabulate>=0.9.0",
-    "typer>=0.15.0",
-    "rich>=13.0.0",
-    "click>=8.0.0",
-    "questionary>=1.10.0",
-    "prompt_toolkit>=3.0.50",
-    "filelock>=3.16.1",
+
+    # Build dependencies (should be flexible)
+    "Cython>=3.1.0,<4.0.0",
+    "pybind11>=3.0.0,<4.0.0",
+
+    # AWS
+    "aioboto3>=14.1.0,<15.0.0",
+
+    # Web framework
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn>=0.34.0,<1.0.0",
+    "pydantic>=2.10.0,<3.0.0",
+
+    # Templates and CLI
+    "Jinja2>=3.1.0,<4.0.0",
+    "shellingham>=1.5.0,<2.0.0",
+    "tabulate>=0.9.0,<1.0.0",
+    "typer>=0.15.0,<1.0.0",
+    "rich>=13.0.0,<14.0.0",
+    "click>=8.0.0,<9.0.0",
+    "questionary>=1.10.0,<2.0.0",
+    "prompt_toolkit>=3.0.50,<4.0.0",
 ]
 
 license = {text = "MIT"}
@@ -82,10 +99,30 @@ sage-deps = [
     "isage-common>=0.1.0",
     "isage-platform>=0.1.0",
 ]
-# 完整依赖（开发和 PyPI 发布时使用）
-all = [
+
+# GPU/CPU 相关依赖组合
+# GPU 加速支持（CUDA）
+gpu = [
+    # PyTorch GPU 版本会自动通过 torch>=2.7.0 安装
+    # 用户需要确保系统有正确的 CUDA 版本
+]
+
+# CPU 优化版本（不需要 GPU）
+cpu = [
+    # PyTorch CPU 版本会通过 torch>=2.7.0 安装
+    # 对于仅 CPU 的环境，安装时使用：pip install isage-kernel[cpu]
+]
+
+# 最小化安装（仅核心功能）
+minimal = [
     "isage-kernel[sage-deps]",
 ]
+
+# 完整依赖（开发和 PyPI 发布时使用）
+all = [
+    "isage-kernel[sage-deps,web,monitoring]",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -97,6 +134,7 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
+
 web = [
     "fastapi>=0.100.0",
     "uvicorn>=0.23.0",
