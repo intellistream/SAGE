@@ -33,14 +33,8 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
-# 核心依赖
+# 核心依赖 - 只包含外部依赖
 dependencies = [
-    # SAGE framework dependencies
-    "isage-common>=0.1.0",
-    "isage-kernel>=0.1.0",      # 需要：构建 Pipeline (Environment, DataStream API)
-    "isage-middleware>=0.1.0",  # 需要：领域算子 (RAG, LLM operators)
-    "isage-libs>=0.1.0",        # 需要：io_utils (Source/Sink) - TODO: 应该移到 kernel
-
     # Backend API dependencies
     "pydantic[email]>=2.0.0",
     # FastAPI 0.115.x 依赖 starlette >=0.40,<0.47
@@ -66,6 +60,17 @@ dependencies = [
 license = {text = "MIT"}
 
 [project.optional-dependencies]
+# SAGE 内部依赖
+sage-deps = [
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",      # 需要：构建 Pipeline (Environment, DataStream API)
+    "isage-middleware>=0.1.0",  # 需要：领域算子 (RAG, LLM operators)
+    "isage-libs>=0.1.0",        # 需要：io_utils (Source/Sink) - TODO: 应该移到 kernel
+]
+# 完整依赖（开发和 PyPI 发布时使用）
+all = [
+    "isage-studio[sage-deps]",
+]
 # 开发工具依赖
 dev = [
     "pytest>=7.0.0",

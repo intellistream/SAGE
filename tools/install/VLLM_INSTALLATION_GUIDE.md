@@ -15,8 +15,8 @@
 # 标准安装 + 准备 VLLM 环境
 ./quickstart.sh --standard --vllm
 
-# 最小安装 + 准备 VLLM 环境
-./quickstart.sh --minimal --vllm
+# 核心安装 + 准备 VLLM 环境
+./quickstart.sh --core --vllm
 
 # 开发者安装 + 准备 VLLM 环境 + pip 环境
 ./quickstart.sh --dev --vllm --pip

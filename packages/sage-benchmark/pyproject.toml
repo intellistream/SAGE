@@ -32,13 +32,10 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
-# Core dependencies
+# Core dependencies - 只包含外部依赖
 dependencies = [
-    # SAGE framework dependencies
-    "isage-common>=0.1.0",
-    "isage-kernel>=0.1.0",
-    "isage-middleware>=0.1.0",
-    "isage-libs>=0.1.0",
+    # Note: sage.data is included as a submodule in src/sage/data
+    # and will be installed as part of this package
 
     # RAG and benchmark dependencies
     "pyyaml>=6.0",
@@ -53,6 +50,13 @@ dependencies = [
 license = {text = "MIT"}
 
 [project.optional-dependencies]
+# SAGE 内部依赖
+sage-deps = [
+    "isage-common>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-middleware>=0.1.0",
+    "isage-libs>=0.1.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
@@ -61,7 +65,7 @@ dev = [
 ]
 
 all = [
-    "isage-benchmark[dev]",
+    "isage-benchmark[sage-deps,dev]",
 ]
 
 [project.urls]
@@ -71,15 +75,14 @@ Repository = "https://github.com/intellistream/SAGE"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-packages = [
-    "sage.benchmark",
-    "sage.benchmark.benchmark_rag",
-    "sage.benchmark.benchmark_rag.implementations",
-    "sage.benchmark.benchmark_rag.implementations.pipelines",
-    "sage.benchmark.benchmark_rag.implementations.tools",
-    "sage.benchmark.benchmark_rag.evaluation",
-]
+# Automatically discover all packages under src/
+# This will find all directories with __init__.py files
 package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage*"]
+namespaces = true
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.benchmark._version.__version__"}

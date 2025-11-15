@@ -24,7 +24,7 @@ Refiner Operator - SAGE RAG 算子
 import json
 import os
 import time
-from typing import Any
+from typing import Any, cast
 
 from sage.common.config.output_paths import get_states_file
 from sage.kernel.operators import MapOperator
@@ -106,9 +106,10 @@ class RefinerOperator(MapOperator):
 
         # 调用 RefinerService
         try:
+            # Cast to satisfy type checker - documents are already normalized to dict format
             result = self.refiner_service.refine(
                 query=query,
-                documents=documents,
+                documents=cast(list[str | dict[str, Any]], documents),
                 budget=self.cfg.get("budget"),
             )
 
@@ -120,7 +121,16 @@ class RefinerOperator(MapOperator):
 
         # 保存数据记录
         if self.enable_profile:
-            self._save_data_record(query, documents, refined_texts)
+            # Ensure refined_texts is a list of strings for data recording
+            refined_list: list[str]
+            if isinstance(refined_texts, str):
+                refined_list = [refined_texts]
+            elif isinstance(refined_texts, list):
+                # refined_texts is already list[str] from RefineResult
+                refined_list = refined_texts
+            else:
+                refined_list = [str(refined_texts)]
+            self._save_data_record(query, documents, refined_list)
 
         # 构造输出
         result_data = data.copy()

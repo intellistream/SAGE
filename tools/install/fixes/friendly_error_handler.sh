@@ -148,6 +148,11 @@ show_friendly_error() {
     # 记录到日志
     if [ -f "$log_file" ]; then
         echo "$(date): [USER_FRIENDLY_ERROR] Type: $error_type, Context: $context" >> "$log_file"
+
+        # 如果检查点系统可用，记录失败
+        if command -v mark_phase_failed &> /dev/null; then
+            mark_phase_failed "$(echo "$context" | sed 's/ /_/g')" "$error_type: $(echo "$error_output" | head -1)"
+        fi
     elif [ -n "${SAGE_DIR:-}" ]; then
         # 如果指定的日志文件不存在，但有SAGE_DIR，则使用默认位置
         mkdir -p "$SAGE_DIR/logs"

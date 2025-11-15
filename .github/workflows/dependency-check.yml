@@ -1,0 +1,249 @@
+name: Dependency Integrity Check
+
+# 专门用于检测安装过程中的依赖污染问题
+# 确保不会从 PyPI 下载本地包
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    paths:
+      - 'packages/*/pyproject.toml'
+      - 'packages/*/setup.py'
+      - 'tools/install/**'
+      - '.github/workflows/dependency-check.yml'
+  push:
+    branches: [main, main-dev]
+    paths:
+      - 'packages/*/pyproject.toml'
+      - 'packages/*/setup.py'
+      - 'tools/install/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-local-dependencies:
+    name: Check Local Package Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install System Dependencies
+        run: |
+          echo "📦 安装系统依赖（C++ 扩展构建需要）..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            libopenblas-dev \
+            liblapack-dev \
+            gfortran
+
+      - name: Install Base Tools
+        run: |
+          pip install --upgrade pip setuptools wheel
+          # 设置 CMake 参数禁用 LibAMM（CI 环境没有 CUDA）
+          echo "CMAKE_ARGS=-DENABLE_LIBAMM=OFF" >> $GITHUB_ENV
+
+      - name: Run Installation with Monitoring
+        id: install
+        run: |
+          echo "🚀 开始安装 SAGE（开发模式）..."
+
+          # 创建日志目录
+          mkdir -p .sage/logs
+
+          # 运行安装脚本 (使用正确的参数格式)
+          # quickstart.sh 使用 --dev 而不是 --mode dev
+          if ./quickstart.sh --dev --yes 2>&1 | tee .sage/logs/ci_install.log; then
+            echo "✅ 安装成功"
+            install_status="success"
+          else
+            echo "❌ 安装失败"
+            install_status="failed"
+          fi
+
+          echo "install_status=$install_status" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Analyze Installation Logs
+        id: analyze
+        run: |
+          echo "🔍 分析安装日志，检测依赖完整性..."
+
+          # 检查日志文件是否存在
+          if [ ! -f .sage/logs/install.log ]; then
+            echo "⚠️  主日志文件不存在，使用 CI 日志"
+            # 如果主日志不存在，使用 CI 日志
+            if [ -f .sage/logs/ci_install.log ]; then
+              cp .sage/logs/ci_install.log .sage/logs/install.log
+            else
+              echo "❌ 没有找到任何日志文件"
+              check_result="fail"
+              echo "check_result=$check_result" >> $GITHUB_OUTPUT
+              exit 0  # 不要失败，继续执行后续步骤
+            fi
+          fi
+
+          # 运行监控脚本
+          if bash tools/install/installation_table/pip_install_monitor.sh analyze .sage/logs/install.log; then
+            echo "✅ 依赖完整性检查通过"
+            check_result="pass"
+          else
+            echo "❌ 依赖完整性检查失败"
+            check_result="fail"
+          fi
+
+          echo "check_result=$check_result" >> $GITHUB_OUTPUT
+
+      - name: 📊 Generate Dependency Report
+        if: always()
+        run: |
+          echo "📊 生成依赖报告..."
+
+          # 确定使用哪个日志文件
+          LOG_FILE=".sage/logs/install.log"
+          if [ ! -f "$LOG_FILE" ] && [ -f ".sage/logs/ci_install.log" ]; then
+            LOG_FILE=".sage/logs/ci_install.log"
+          fi
+
+          cat > .sage/dependency-report.md <<EOF
+          # 🔍 依赖完整性检查报告
+
+          **检查时间**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **分支**: ${{ github.ref_name }}
+          **Commit**: ${{ github.sha }}
+
+          ## 安装状态
+
+          - 安装结果: ${{ steps.install.outputs.install_status }}
+          - 依赖检查: ${{ steps.analyze.outputs.check_result }}
+
+          ## 已安装的 SAGE 包
+
+          \`\`\`
+          $(pip list | grep -i sage || echo "未找到 SAGE 包")
+          \`\`\`
+
+          ## 安装位置检查
+
+          \`\`\`
+          $(pip show isage isage-common isage-middleware 2>/dev/null || echo "部分包未安装")
+          \`\`\`
+
+          ## 检测到的问题
+
+          EOF
+
+          # 添加问题详情
+          if [ "${{ steps.analyze.outputs.check_result }}" = "fail" ]; then
+            echo "从安装日志中检测到以下问题：" >> .sage/dependency-report.md
+            echo "" >> .sage/dependency-report.md
+            echo '```' >> .sage/dependency-report.md
+            if [ -f "$LOG_FILE" ]; then
+              grep -E "(Downloading|Collecting).*(isage|sage)" "$LOG_FILE" | head -n 20 >> .sage/dependency-report.md || echo "未找到下载记录" >> .sage/dependency-report.md
+            else
+              echo "日志文件不存在：$LOG_FILE" >> .sage/dependency-report.md
+            fi
+            echo '```' >> .sage/dependency-report.md
+          else
+            echo "✅ 未检测到依赖污染问题" >> .sage/dependency-report.md
+          fi
+
+          # 显示报告
+          cat .sage/dependency-report.md
+
+      - name: Upload Installation Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-logs
+          path: |
+            .sage/logs/
+            .sage/dependency-report.md
+          retention-days: 30
+
+      - name: ❌ Fail if Dependencies Polluted
+        if: steps.analyze.outputs.check_result == 'fail' && steps.install.outputs.install_status == 'success'
+        run: |
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "❌ 依赖完整性检查失败！"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "检测到从 PyPI 下载了本地包，这是一个严重的配置错误！"
+          echo ""
+          echo "🔧 可能的修复方法："
+          echo "  1. 检查 packages/*/pyproject.toml 中的 dependencies"
+          echo "  2. 移除不必要的本地包依赖声明"
+          echo "  3. 确保只声明直接使用的依赖"
+          echo "  4. 查看上传的日志文件了解详情"
+          echo ""
+          echo "📝 相关文档："
+          echo "  - .sage/BUG_FIX_REPORT.md"
+          echo "  - tools/install/installation_table/pip_install_monitor.sh"
+          echo ""
+          exit 1
+
+      - name: ⚠️ Warning if Check Skipped
+        if: steps.analyze.outputs.check_result == 'fail' && steps.install.outputs.install_status != 'success'
+        run: |
+          echo ""
+          echo "⚠️  依赖检查失败，但可能是由于安装失败或日志缺失"
+          echo ""
+          echo "安装状态: ${{ steps.install.outputs.install_status }}"
+          echo "检查结果: ${{ steps.analyze.outputs.check_result }}"
+          echo ""
+          echo "请检查上传的日志文件了解详情"
+          echo ""
+          # 不失败，只是警告
+          exit 0
+
+  check-dependency-declarations:
+    name: Analyze Dependency Declarations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check pyproject.toml Files
+        run: |
+          echo "🔍 检查所有 pyproject.toml 文件的依赖声明..."
+          echo ""
+
+          # 检查每个包的依赖声明
+          for toml in packages/*/pyproject.toml; do
+            if [ -f "$toml" ]; then
+              package=$(basename $(dirname "$toml"))
+              echo "📦 检查 $package..."
+
+              # 提取 dependencies 部分
+              if grep -A 20 "^dependencies = \[" "$toml" | grep -E "isage-" | head -n 10; then
+                echo ""
+              else
+                echo "  （无 isage-* 依赖）"
+                echo ""
+              fi
+            fi
+          done
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "💡 提醒："
+          echo "  - 包应该只声明它直接使用的依赖"
+          echo "  - 避免声明传递性依赖"
+          echo "  - sage-tools 只需要 sage-common（不需要 kernel/middleware/libs）"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

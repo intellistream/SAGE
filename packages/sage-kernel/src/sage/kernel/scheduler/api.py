@@ -213,6 +213,20 @@ class BaseScheduler(ABC):
 
         return service
 
+    def task_completed(self, task_name: str):
+        """
+        任务完成通知
+
+        当任务完成或停止时，Dispatcher 会调用此方法通知调度器。
+        调度器可以更新内部状态，释放资源计数器等。
+
+        默认实现为空，子类可以重写以实现资源跟踪等功能。
+
+        Args:
+            task_name: 已完成的任务名称
+        """
+        pass
+
     def get_metrics(self) -> dict[str, Any]:
         """
         获取调度器性能指标（供开发者对比不同策略）

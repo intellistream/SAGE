@@ -1,11 +1,9 @@
----
-name: Experiment Tracking
-about: Track the setup, execution, and results of an experiment
-title: '[Experiment] '
-labels: experiment
-assignees: ''
+______________________________________________________________________
 
----
+name: Experiment Tracking about: Track the setup, execution, and results of an experiment title:
+'[Experiment] ' labels: experiment assignees: ''
+
+______________________________________________________________________
 
 **Experiment Title**
 

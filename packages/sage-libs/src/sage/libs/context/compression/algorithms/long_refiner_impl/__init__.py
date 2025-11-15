@@ -10,3 +10,7 @@ except ImportError:
     __version__ = "0.1.4"
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
+
+# Always expose refiner module - it contains the implementation
+# Individual tests/imports will fail if vllm is not available, which is acceptable
+__all__ = ["__version__", "__author__", "__email__"]

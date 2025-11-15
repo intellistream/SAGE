@@ -136,7 +136,7 @@ def test_runtime_memory_disabled():
     runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
 
     # Verify memory is not set (should be None or not exist)
-    assert not hasattr(runtime, "memory") or runtime.memory is None
+    assert not hasattr(runtime, "memory") or getattr(runtime, "memory", None) is None
 
 
 def test_runtime_with_new_planner_message_format():

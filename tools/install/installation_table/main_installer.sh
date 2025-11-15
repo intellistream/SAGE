@@ -5,46 +5,48 @@
 # 导入所有安装器
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/interface.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../examination_tools/sage_check.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../download_tools/environment_config.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../fixes/libstdcxx_fix.sh"
+# libstdcxx_fix.sh 已禁用 - 现代 conda 环境提供足够的 libstdc++ 版本
+# source "$(dirname "${BASH_SOURCE[0]}")/../fixes/libstdcxx_fix.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../fixes/cpp_extensions_fix.sh"
 
 # pip 缓存清理函数
 clean_pip_cache() {
-    local log_file="${1:-install.log}"
-
+    log_info "开始清理 pip 缓存" "PIPCache"
     echo -e "${BLUE}🧹 清理 pip 缓存...${NC}"
-    echo "$(date): 开始清理 pip 缓存" >> "$log_file"
 
     # 检查是否支持 pip cache 命令
     if $PIP_CMD cache --help &>/dev/null; then
+        log_debug "使用 pip cache purge 清理缓存" "PIPCache"
         echo -e "${DIM}使用 pip cache purge 清理缓存${NC}"
 
         # 显示缓存大小（如果支持）
         if $PIP_CMD cache info &>/dev/null; then
             local cache_info=$($PIP_CMD cache info 2>/dev/null | grep -E "(Location|Size)" || true)
             if [ -n "$cache_info" ]; then
+                log_debug "缓存信息: $cache_info" "PIPCache"
                 echo -e "${DIM}缓存信息:${NC}"
                 echo "$cache_info" | sed 's/^/  /'
             fi
         fi
 
         # 执行缓存清理
-        if $PIP_CMD cache purge >> "$log_file" 2>&1; then
+        if log_command "PIPCache" "MAIN" "$PIP_CMD cache purge"; then
+            log_info "pip 缓存清理完成" "PIPCache"
             echo -e "${CHECK} pip 缓存清理完成"
-            echo "$(date): pip 缓存清理成功" >> "$log_file"
         else
+            log_warn "pip 缓存清理失败，但继续安装" "PIPCache"
             echo -e "${WARNING} pip 缓存清理失败，但继续安装"
-            echo "$(date): pip 缓存清理失败" >> "$log_file"
         fi
     else
+        log_info "当前 pip 版本不支持 cache 命令，跳过缓存清理" "PIPCache"
         echo -e "${DIM}当前 pip 版本不支持 cache 命令，跳过缓存清理${NC}"
-        echo "$(date): pip 版本不支持 cache 命令，跳过缓存清理" >> "$log_file"
     fi
 
     echo ""
@@ -52,10 +54,8 @@ clean_pip_cache() {
 
 # 验证C++扩展函数（扩展已在 sage-middleware 安装时自动构建）
 verify_cpp_extensions() {
-    local log_file="$1"
-
-    echo "$(date): 开始验证C++扩展" >> "$log_file"
-    echo -e "${DIM}📝 详细日志: ${log_file}${NC}"
+    log_info "开始验证C++扩展" "CPPExt"
+    echo -e "${DIM}📝 详细日志: $SAGE_INSTALL_LOG${NC}"
     echo -e "${DIM}   C++扩展已通过 sage-middleware 的 scikit-build-core 自动构建${NC}"
     echo -e "${DIM}   正在检查扩展可用性...${NC}"
     echo ""
@@ -128,6 +128,7 @@ except Exception as e:
     sys.exit(1)
 " 2>&1)
         validation_result=$?
+        log_debug "C++扩展验证输出:\n$verify_output" "CPPExt"
 
         # 输出验证结果
         echo "$verify_output"
@@ -135,16 +136,16 @@ except Exception as e:
         if [ $validation_result -eq 0 ]; then
             echo -e "${CHECK} C++ 扩展可用 (sage_db, sage_flow, sage_tsdb)"
             echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
-            echo "$(date): C++扩展验证成功" >> "$log_file"
+            log_info "C++扩展验证成功" "CPPExt"
             return 0
         else
             echo -e "${WARNING} 扩展验证失败"
-            echo "$(date): 扩展验证失败" >> "$log_file"
+            log_warn "扩展验证失败" "CPPExt"
             echo -e "${DIM}💡 提示: C++扩展在 sage-middleware 安装时自动构建${NC}"
             echo -e "${DIM}   如果验证失败，可能是因为：${NC}"
             echo -e "${DIM}   1. 子模块未初始化：git submodule update --init --recursive${NC}"
             echo -e "${DIM}   2. 缺少构建工具：apt-get install build-essential cmake${NC}"
-            echo -e "${DIM}   3. 查看详细日志：cat $log_file${NC}"
+            echo -e "${DIM}   3. 查看详细日志：cat $SAGE_INSTALL_LOG${NC}"
             return 1
         fi
 }
@@ -180,14 +181,18 @@ install_sage() {
     echo ""
 
     # 配置安装环境（包含所有检查）
+    log_phase_start "环境配置" "MAIN"
     configure_installation_environment "$environment" "$mode"
+    log_phase_end "环境配置" "success" "MAIN"
 
     # 清理 pip 缓存（如果启用）
     if [ "$clean_cache" = "true" ]; then
+        log_phase_start "缓存清理" "MAIN"
         clean_pip_cache "$log_file"
+        log_phase_end "缓存清理" "success" "MAIN"
     else
         echo -e "${DIM}跳过 pip 缓存清理（使用 --no-cache-clean 选项）${NC}"
-        echo "$(date): 跳过 pip 缓存清理（用户指定）" >> "$log_file"
+        log_info "跳过 pip 缓存清理（用户指定）" "MAIN"
         echo ""
     fi
 
@@ -202,77 +207,130 @@ install_sage() {
     echo "Python 命令: $PYTHON_CMD" >> "$log_file"
     echo "========================================" >> "$log_file"
 
+    # 安装前记录已安装包列表，便于后续卸载和清理
+    local track_script="$project_root/tools/cleanup/track_install.sh"
+    if [ -f "$track_script" ]; then
+        echo -e "${DIM}记录安装前的 SAGE 包列表...${NC}"
+        bash "$track_script" pre-install || true
+    fi
+
+    log_info "SAGE 主要安装过程开始" "MAIN"
+    log_info "安装模式: $mode | 环境: $environment | VLLM: $install_vllm" "MAIN"
+
     echo ""
     case "$mode" in
         "core")
             echo -e "${BLUE}核心运行时模式：仅安装基础 SAGE 包${NC}"
-            echo "$(date): 开始核心运行时模式" >> "$log_file"
-            install_core_packages "$mode"
+            log_phase_start "核心运行时模式安装" "MAIN"
+
+            if install_core_packages "$mode"; then
+                log_phase_end "核心运行时模式安装" "success" "MAIN"
+            else
+                log_phase_end "核心运行时模式安装" "failure" "MAIN"
+                return 1
+            fi
             ;;
         "standard")
             echo -e "${BLUE}标准安装模式：基础包 + 中间件 + 应用包${NC}"
-            echo "$(date): 开始标准安装模式" >> "$log_file"
+            log_phase_start "标准安装模式" "MAIN"
 
-            # 在安装前确保 libstdc++ 符号满足要求
-            echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
-            ensure_libstdcxx_compatibility "$log_file" "$environment" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试安装"
+            # libstdc++ 检查已移除：
+            # - 现代 conda 环境默认提供足够新的 libstdc++ (GLIBCXX >= 3.4.30)
+            # - C++ 扩展实际只需要 GLIBCXX_3.4.29
+            # - scikit-build-core 会自动处理编译时的库依赖
+            # 如果编译失败，错误信息会明确指出缺少的符号
 
-            install_core_packages "$mode"
-            install_scientific_packages
+            if ! install_core_packages "$mode"; then
+                log_phase_end "标准安装模式" "failure" "MAIN"
+                return 1
+            fi
+
+            if ! install_scientific_packages; then
+                log_phase_end "标准安装模式" "failure" "MAIN"
+                return 1
+            fi
 
             # 修复 C++ 扩展库安装（editable install 模式）
             echo ""
             echo -e "${BLUE}🔧 修复 C++ 扩展库安装...${NC}"
+            log_info "开始修复 C++ 扩展库安装" "MAIN"
             fix_middleware_cpp_extensions "$log_file"
 
             # 验证C++扩展（已在 sage-middleware 安装时自动构建）
             echo ""
             echo -e "${BLUE}🧩 验证 C++ 扩展状态...${NC}"
+            log_info "验证 C++ 扩展状态" "MAIN"
+
             if verify_cpp_extensions "$log_file"; then
+                log_info "C++ 扩展验证成功" "MAIN"
                 echo -e "${CHECK} 标准安装模式完成（C++扩展已自动构建）"
+                log_phase_end "标准安装模式" "success" "MAIN"
             else
+                log_warn "C++ 扩展验证失败，但继续" "MAIN"
                 echo -e "${WARNING} 标准安装完成，但C++扩展不可用"
+                log_phase_end "标准安装模式" "partial_success" "MAIN"
             fi
             ;;
         "dev")
             echo -e "${BLUE}开发者安装模式：标准安装 + 开发工具${NC}"
-            echo "$(date): 开始开发者安装模式" >> "$log_file"
+            log_phase_start "开发者安装模式" "MAIN"
 
-            # 在安装前确保 libstdc++ 符号满足要求
-            echo -e "${DIM}预检查 libstdc++ 兼容性...${NC}"
-            ensure_libstdcxx_compatibility "$log_file" "$environment" || echo -e "${WARNING} libstdc++ 检查未通过，继续尝试安装"
+            # libstdc++ 检查已移除 - 见 standard 模式注释
 
-            install_core_packages "$mode"
-            install_scientific_packages
+            if ! install_core_packages "$mode"; then
+                log_phase_end "开发者安装模式" "failure" "MAIN"
+                return 1
+            fi
+
+            if ! install_scientific_packages; then
+                log_phase_end "开发者安装模式" "failure" "MAIN"
+                return 1
+            fi
 
             # 修复 C++ 扩展库安装（editable install 模式）
             echo ""
             echo -e "${BLUE}🔧 修复 C++ 扩展库安装...${NC}"
+            log_info "开始修复 C++ 扩展库安装" "MAIN"
             fix_middleware_cpp_extensions "$log_file"
 
             # 验证C++扩展（已在 sage-middleware 安装时自动构建）
             echo ""
             echo -e "${BLUE}🧩 验证 C++ 扩展状态...${NC}"
+            log_info "验证 C++ 扩展状态" "MAIN"
+
             if verify_cpp_extensions "$log_file"; then
+                log_info "C++ 扩展验证成功" "MAIN"
                 echo -e "${CHECK} C++扩展可用"
             else
+                log_warn "C++ 扩展验证失败，但继续安装开发工具" "MAIN"
                 echo -e "${WARNING} C++扩展不可用，但继续安装开发工具"
             fi
 
             # 安装开发工具
-            install_dev_packages
+            log_info "开始安装开发工具" "MAIN"
+            if install_dev_packages; then
+                log_phase_end "开发者安装模式" "success" "MAIN"
+            else
+                log_phase_end "开发者安装模式" "failure" "MAIN"
+                return 1
+            fi
             ;;
         *)
             echo -e "${WARNING} 未知安装模式: $mode，使用开发者模式"
-            echo "$(date): 未知安装模式 $mode，使用开发者模式" >> "$log_file"
+            log_warn "未知安装模式 $mode，使用开发者模式" "MAIN"
+            log_phase_start "默认开发者安装" "MAIN"
+
             install_core_packages "dev"
             install_scientific_packages
             install_dev_packages
+
+            log_phase_end "默认开发者安装" "success" "MAIN"
             ;;
     esac
 
     echo ""
     echo -e "${CHECK} SAGE 基础安装完成！"
+    log_info "SAGE 基础安装完成" "MAIN"
 
     # C++扩展已在 sage-middleware 安装时通过 scikit-build-core 自动构建
     # 上面的验证步骤已检查扩展状态
@@ -280,17 +338,60 @@ install_sage() {
     # 安装 VLLM（如果需要）
     if [ "$install_vllm" = "true" ]; then
         echo ""
-        install_vllm_packages
+        log_phase_start "VLLM 安装" "MAIN"
+
+        if install_vllm_packages; then
+            log_phase_end "VLLM 安装" "success" "MAIN"
+        else
+            log_phase_end "VLLM 安装" "failure" "MAIN"
+            log_warn "VLLM 安装失败，但主安装已完成" "MAIN"
+        fi
     fi
 
     # 记录安装完成
-    echo "$(date): SAGE 安装完成" >> "$log_file"
+    log_info "SAGE 安装完成" "MAIN"
     if [ "$install_vllm" = "true" ]; then
-        echo "$(date): VLLM 安装请求已处理" >> "$log_file"
+        log_info "VLLM 安装请求已处理" "MAIN"
     fi
-    echo "安装结束时间: $(date)" >> "$log_file"
-    echo "========================================" >> "$log_file"
+
+    log_info "安装结束" "MAIN"
+
+    # 🔍 CI/CD 检查：验证没有从 PyPI 下载本地包
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" ]]; then
+        echo ""
+        echo -e "${BLUE}🔍 CI/CD 安全检查：验证依赖完整性...${NC}"
+        log_phase_start "依赖完整性检查" "MAIN"
+
+        local monitor_script="$project_root/tools/install/installation_table/pip_install_monitor.sh"
+        if [ -f "$monitor_script" ]; then
+            if bash "$monitor_script" analyze; then
+                log_info "依赖完整性检查通过" "MAIN"
+                echo -e "${CHECK} 依赖完整性检查通过"
+                log_phase_end "依赖完整性检查" "success" "MAIN"
+            else
+                log_error "依赖完整性检查失败！检测到从 PyPI 下载了本地包" "MAIN"
+                echo -e "${WARNING} 依赖完整性检查失败！"
+                echo -e "${RED}检测到从 PyPI 下载了本地包，这是一个严重的配置错误！${NC}"
+                echo -e "${YELLOW}请检查 pyproject.toml 中的依赖声明${NC}"
+                log_phase_end "依赖完整性检查" "failure" "MAIN"
+                # 在 CI 中这是一个错误，但不中断安装（允许查看完整日志）
+                echo "DEPENDENCY_VIOLATION_DETECTED=true" >> "$GITHUB_ENV" || true
+            fi
+        else
+            log_warn "监控脚本不存在，跳过检查" "MAIN"
+            echo -e "${DIM}监控脚本不存在，跳过检查${NC}"
+            log_phase_end "依赖完整性检查" "skipped" "MAIN"
+        fi
+    fi
+
+    # 安装后记录包列表和安装信息
+    if [ -f "$track_script" ]; then
+        echo "" >> "$log_file"
+        echo "包追踪信息:" >> "$log_file"
+        bash "$track_script" post-install "$mode" "$environment" "$install_vllm" >> "$log_file" 2>&1 || true
+    fi
 
     # 显示安装信息
+    log_info "显示安装成功信息" "MAIN"
     show_install_success "$mode"
 }

@@ -1,0 +1,14 @@
+key,value,type
+cacheMiss,0,U64
+cacheRefs,0,U64
+cpuClock,0,U64
+cpuCycle,0,U64
+instructions,0,U64
+perfElapsedTime,0,U64
+taskClock,0,U64
+95%latency,0,Double
+errorBoundRatio,0,Double
+froError,0,Double
+throughput,0,Double
+throughputByElements,0,Double
+manuallyCreated,y,String

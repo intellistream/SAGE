@@ -3,8 +3,8 @@ name: Publish to PyPI
 on:
   push:
     branches:
-      - main-dev  # 开发分支: patch 版本自增 -> TestPyPI
-      - main      # 主分支: micro 版本自增 -> PyPI
+      - main      # 主分支: patch 版本自增 -> PyPI
+      # main-dev 不再自动触发，避免频繁 version bump 导致 feature 分支 rebase 冲突
     paths-ignore:
       - 'docs/**'
       - 'docs-public/**'
@@ -21,7 +21,7 @@ on:
     types: [closed]
     branches:
       - main
-      - main-dev
+      # main-dev 的 PR 不触发自动发布
 
   workflow_dispatch:
     inputs:
@@ -36,15 +36,15 @@ on:
       version_bump:
         description: 'Version bump type'
         required: false
-        default: 'auto'
+        default: 'none'  # 默认改为 none，需要手动选择
         type: choice
         options:
+          - none    # Keep current version (default for main-dev testing)
           - auto    # Based on branch
           - patch   # 0.1.6.2 -> 0.1.6.3
           - micro   # 0.1.6.2 -> 0.1.7.0
           - minor   # 0.1.6.2 -> 0.2.0.0
           - major   # 0.1.6.2 -> 1.0.0.0
-          - none    # Keep current version
 
 jobs:
   publish:
@@ -106,7 +106,7 @@ jobs:
             # PR merge 触发：根据目标分支决定
             TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
             if [ "$TARGET_BRANCH" = "main" ]; then
-              VERSION_BUMP="micro"
+              VERSION_BUMP="patch"
               REPOSITORY="pypi"
             else  # main-dev
               VERSION_BUMP="patch"
@@ -115,7 +115,7 @@ jobs:
           else
             # push 事件：根据分支决定
             if [ "${{ github.ref_name }}" = "main" ]; then
-              VERSION_BUMP="micro"
+              VERSION_BUMP="patch"
               REPOSITORY="pypi"
             else  # main-dev
               VERSION_BUMP="patch"
@@ -126,7 +126,7 @@ jobs:
           # 如果是 auto，转换为实际类型
           if [ "$VERSION_BUMP" = "auto" ]; then
             if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
-              VERSION_BUMP="micro"
+              VERSION_BUMP="patch"
             else
               VERSION_BUMP="patch"
             fi
@@ -217,6 +217,51 @@ jobs:
 
           # Build and publish all packages
           sage-dev package pypi publish-sage --no-dry-run -r ${{ steps.config.outputs.repository }}
+
+      # 构建预编译 wheels（针对 sage-middleware）
+      - name: Build precompiled wheels for sage-middleware
+        run: |
+          echo "🔧 Building precompiled wheels for sage-middleware..."
+          python -m pip install cibuildwheel==2.22.0
+
+          cd packages/sage-middleware
+
+          # 配置 cibuildwheel
+          export CIBW_BUILD="cp310-* cp311-* cp312-*"
+          export CIBW_SKIP="*-musllinux_*"
+          export CIBW_BEFORE_BUILD="pip install setuptools wheel scikit-build-core pybind11"
+
+          # 仅构建当前平台的 wheels
+          python -m cibuildwheel --output-dir ../../dist-wheels
+
+          echo "✅ Wheels built successfully"
+          ls -lh ../../dist-wheels/
+
+      # 上传预编译 wheels 到 PyPI
+      - name: Upload precompiled wheels to PyPI
+        if: steps.config.outputs.repository == 'pypi'
+        run: |
+          echo "📦 Uploading precompiled wheels to PyPI..."
+          python -m pip install twine
+
+          twine upload --skip-existing dist-wheels/*.whl \
+            --username __token__ \
+            --password ${{ secrets.PYPI_API_TOKEN }}
+
+          echo "✅ Precompiled wheels uploaded"
+
+      - name: Upload precompiled wheels to TestPyPI
+        if: steps.config.outputs.repository == 'testpypi'
+        run: |
+          echo "📦 Uploading precompiled wheels to TestPyPI..."
+          python -m pip install twine
+
+          twine upload --skip-existing dist-wheels/*.whl \
+            --repository-url https://test.pypi.org/legacy/ \
+            --username __token__ \
+            --password ${{ secrets.TEST_PYPI_API_TOKEN }}
+
+          echo "✅ Precompiled wheels uploaded to TestPyPI"
 
       - name: Create GitHub Release
         if: steps.config.outputs.repository == 'pypi' && steps.config.outputs.version_bump != 'none'

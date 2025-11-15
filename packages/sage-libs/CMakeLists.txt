@@ -1,0 +1,250 @@
+cmake_minimum_required(VERSION 3.10...3.27)
+project(
+    ${SKBUILD_PROJECT_NAME}
+    VERSION ${SKBUILD_PROJECT_VERSION}
+    LANGUAGES CXX C
+)
+
+# ============================================================================
+# 全局编译设置
+# ============================================================================
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# 编译选项
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+
+# ============================================================================
+# 查找依赖
+# ============================================================================
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+find_package(pybind11 CONFIG REQUIRED)
+
+message(STATUS "")
+message(STATUS "=== SAGE Libs Build Configuration ===")
+message(STATUS "Python: ${Python_VERSION}")
+message(STATUS "pybind11: ${pybind11_VERSION}")
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "======================================")
+message(STATUS "")
+
+# ============================================================================
+# LibAMM - Approximate Matrix Multiplication Library (可选)
+# ============================================================================
+# LibAMM 依赖 PyTorch C++ API，编译时内存占用极大（单文件 500MB+）
+# 不适合在所有环境下现场编译，建议：
+# 1. 使用预编译的 wheel 包
+# 2. 或在高内存机器上编译后分发
+# 
+# 控制编译：
+#   环境变量 BUILD_LIBAMM=1    强制编译 LibAMM
+#   环境变量 BUILD_LIBAMM=0    跳过 LibAMM（默认）
+# ============================================================================
+set(LIBAMM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/libs/libamm")
+
+# 默认跳过 LibAMM 编译，除非明确要求
+option(BUILD_LIBAMM "Build LibAMM C++ extension (requires PyTorch, high memory)" OFF)
+
+# 允许通过环境变量控制
+if(DEFINED ENV{BUILD_LIBAMM})
+    if("$ENV{BUILD_LIBAMM}" STREQUAL "1" OR "$ENV{BUILD_LIBAMM}" STREQUAL "ON")
+        set(BUILD_LIBAMM ON)
+        message(STATUS "BUILD_LIBAMM enabled via environment variable")
+    endif()
+endif()
+
+if(BUILD_LIBAMM AND EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
+    message(STATUS "")
+    message(STATUS "========================================")
+    message(STATUS "  Building LibAMM from source")
+    message(STATUS "========================================")
+    
+    # 设置统一的构建输出目录
+    set(SAGE_BUILD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.sage/build")
+    
+    message(STATUS "Adding LibAMM submodule...")
+    message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/libamm")
+
+    # 检查 PyTorch 是否可用（LibAMM 需要）
+    execute_process(
+        COMMAND ${Python_EXECUTABLE} -c "import torch; print(torch.__version__)"
+        RESULT_VARIABLE TORCH_CHECK_RESULT
+        OUTPUT_VARIABLE TORCH_VERSION
+        ERROR_VARIABLE TORCH_CHECK_ERROR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # 调试输出
+    message(STATUS "  PyTorch check result: ${TORCH_CHECK_RESULT}")
+    if(NOT TORCH_CHECK_RESULT EQUAL 0)
+        message(STATUS "  PyTorch check error: ${TORCH_CHECK_ERROR}")
+    endif()
+
+    if(TORCH_CHECK_RESULT EQUAL 0)
+        message(STATUS "  PyTorch found: ${TORCH_VERSION}")
+
+        # 检查 PyTorch 是否为 CUDA 版本（通过版本字符串检测，如 "2.7.1+cu126"）
+        string(FIND "${TORCH_VERSION}" "+cu" CUDA_POS)
+        if(NOT CUDA_POS EQUAL -1)
+            # PyTorch 是 CUDA 版本
+            message(STATUS "  PyTorch type: CUDA version detected")
+            find_program(NVCC_EXECUTABLE nvcc)
+            if(NOT NVCC_EXECUTABLE)
+                message(STATUS "  CUDA compiler (nvcc) not found")
+                message(STATUS "  ")
+                message(STATUS "========================================")
+                message(STATUS "  自动切换到 CPU 版本的 PyTorch")
+                message(STATUS "========================================")
+                message(STATUS "")
+                message(STATUS "LibAMM 需要编译 C++ 扩展，但检测到：")
+                message(STATUS "  - PyTorch 版本: ${TORCH_VERSION} (CUDA)")
+                message(STATUS "  - CUDA 编译器: 未找到")
+                message(STATUS "")
+                message(STATUS "将自动安装 CPU 版本的 PyTorch...")
+                message(STATUS "")
+
+                # 自动安装 CPU 版本的 PyTorch
+                execute_process(
+                    COMMAND ${Python_EXECUTABLE} -m pip install --force-reinstall
+                            "torch>=2.0.0" --index-url https://download.pytorch.org/whl/cpu
+                    RESULT_VARIABLE TORCH_INSTALL_RESULT
+                    OUTPUT_VARIABLE TORCH_INSTALL_OUTPUT
+                    ERROR_VARIABLE TORCH_INSTALL_ERROR
+                )
+
+                if(TORCH_INSTALL_RESULT EQUAL 0)
+                    message(STATUS "✅ 成功安装 CPU 版本的 PyTorch")
+                    message(STATUS "   现在可以继续编译 LibAMM...")
+                    message(STATUS "========================================")
+                    message(STATUS "")
+                else()
+                    message(FATAL_ERROR "❌ 无法自动安装 CPU 版本的 PyTorch\n${TORCH_INSTALL_ERROR}")
+                endif()
+            else()
+                message(STATUS "  CUDA compiler found: ${NVCC_EXECUTABLE}")
+                message(STATUS "  Will build LibAMM with CUDA support")
+            endif()
+        else()
+            # PyTorch 是 CPU 版本
+            message(STATUS "  PyTorch type: CPU-only")
+            message(STATUS "  Perfect for LibAMM CPU-only build")
+        endif()
+
+        message(STATUS "  Building LibAMM...")
+
+        # 设置 LibAMM 的编译选项
+        set(BUILD_BENCHMARK OFF CACHE BOOL "Skip LibAMM benchmark" FORCE)
+        set(ENABLE_PYBIND ON CACHE BOOL "Enable Python bindings" FORCE)
+        set(ENABLE_HDF5 ON CACHE BOOL "Enable HDF5 support" FORCE)
+        set(ENABLE_PAPI OFF CACHE BOOL "Disable PAPI" FORCE)
+
+        # 优化编译以避免 OOM（特别是在 WSL 等内存受限环境）
+        # 强制单线程编译以避免内存耗尽
+        if(NOT DEFINED ENV{CMAKE_BUILD_PARALLEL_LEVEL})
+            message(STATUS "  Forcing single-threaded build to avoid OOM")
+            set(CMAKE_BUILD_PARALLEL_LEVEL 1)
+        endif()
+
+        # 设置 CUDACXX 环境变量（即使不存在 nvcc 也设置，参考 buildCPUOnly.sh）
+        set(ENV{CUDACXX} "/usr/local/cuda/bin/nvcc")
+
+        add_subdirectory(${LIBAMM_DIR} ${SAGE_BUILD_ROOT}/libamm)
+        message(STATUS "  ✓ LibAMM configured (with NumPy interface)")
+    else()
+        message(STATUS "")
+        message(STATUS "========================================")
+        message(STATUS "  LibAMM will NOT be built")
+        message(STATUS "========================================")
+        message(STATUS "")
+        message(STATUS "PyTorch not found or incompatible")
+        message(STATUS "")
+        message(STATUS "LibAMM 是可选组件，跳过编译不影响 SAGE 其他功能")
+        message(STATUS "")
+        message(STATUS "如需使用 LibAMM，请选择以下方案之一：")
+        message(STATUS "  1. 安装预编译版本（推荐）：")
+        message(STATUS "     pip install isage-libs-amm")
+        message(STATUS "")
+        message(STATUS "  2. 从源码编译（需要 16GB+ 内存）：")
+        message(STATUS "     pip install torch>=2.0.0")
+        message(STATUS "     BUILD_LIBAMM=1 pip install -e packages/sage-libs")
+        message(STATUS "========================================")
+        message(STATUS "")
+    endif()
+else()
+    if(NOT EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
+        message(STATUS "LibAMM submodule not found at ${LIBAMM_DIR}")
+        message(STATUS "  To build LibAMM, ensure the submodule is initialized")
+    else()
+        message(STATUS "")
+        message(STATUS "========================================")
+        message(STATUS "  LibAMM build SKIPPED (default)")
+        message(STATUS "========================================")
+        message(STATUS "")
+        message(STATUS "LibAMM 是可选组件，默认不编译以避免高内存占用")
+        message(STATUS "")
+        message(STATUS "如需使用 LibAMM，请选择以下方案之一：")
+        message(STATUS "  1. 安装预编译版本（推荐）：")
+        message(STATUS "     pip install isage-libs-amm")
+        message(STATUS "")
+        message(STATUS "  2. 从源码编译（需要 16GB+ 内存）：")
+        message(STATUS "     BUILD_LIBAMM=1 pip install -e packages/sage-libs")
+        message(STATUS "========================================")
+        message(STATUS "")
+    endif()
+endif()
+
+# ============================================================================
+# 配置摘要
+# ============================================================================
+message(STATUS "")
+message(STATUS "SAGE Libs C++ Extensions - Build Summary")
+message(STATUS "=========================================")
+message(STATUS "Project: ${SKBUILD_PROJECT_NAME} v${SKBUILD_PROJECT_VERSION}")
+message(STATUS "Python: ${Python_VERSION}")
+message(STATUS "pybind11: ${pybind11_VERSION}")
+message(STATUS "C++ Standard: C++${CMAKE_CXX_STANDARD}")
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "")
+message(STATUS "🔍 SKBUILD Variables:")
+message(STATUS "  SKBUILD_STATE: ${SKBUILD_STATE}")
+message(STATUS "  SKBUILD_PLATLIB_DIR: ${SKBUILD_PLATLIB_DIR}")
+message(STATUS "")
+message(STATUS "Extensions:")
+if(TARGET PyAMM)
+    message(STATUS "  ✓ LibAMM (PyAMM)")
+else()
+    message(STATUS "  ✗ LibAMM (not configured)")
+endif()
+message(STATUS "=========================================")
+message(STATUS "")
+
+# ============================================================================
+# 安装 Python 源文件
+# ============================================================================
+# scikit-build-core 需要明确告知要安装哪些 Python 文件
+# 这确保纯 Python 代码（如 sage.libs.context.compression）也被正确安装
+message(STATUS "Configuring Python source installation...")
+
+# 安装所有 Python 包到 site-packages/sage
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/"
+    DESTINATION "${SKBUILD_PLATLIB_DIR}/sage"
+    COMPONENT python
+    FILES_MATCHING
+    PATTERN "*.py"
+    PATTERN "*.pyi"
+    PATTERN "py.typed"
+    PATTERN "__pycache__" EXCLUDE
+    PATTERN "*.pyc" EXCLUDE
+    PATTERN ".pytest_cache" EXCLUDE
+    PATTERN "tests" EXCLUDE
+)
+
+message(STATUS "  ✓ Python source files will be installed to: ${SKBUILD_PLATLIB_DIR}/sage")
+message(STATUS "")

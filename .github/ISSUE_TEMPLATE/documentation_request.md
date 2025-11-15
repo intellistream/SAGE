@@ -1,11 +1,9 @@
----
-name: Documentation Request
-about: Request improvements or additions to documentation
-title: '[Docs] '
-labels: documentation
-assignees: ''
+______________________________________________________________________
 
----
+name: Documentation Request about: Request improvements or additions to documentation title: '[Docs]
+' labels: documentation assignees: ''
+
+______________________________________________________________________
 
 **Description**
 

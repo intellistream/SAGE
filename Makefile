@@ -1,4 +1,4 @@
-.PHONY: help install lint format test test-quick test-all quality clean build publish check version docs build-extensions
+.PHONY: help install lint format test test-quick test-all quality clean build publish check version docs build-extensions clean-env
 
 # 默认目标：显示帮助
 help:
@@ -8,6 +8,7 @@ help:
 	@echo "  make install         - 快速安装 SAGE（开发模式）"
 	@echo "  make install-dev     - 按正确顺序安装所有子包（推荐用于开发）"
 	@echo "  make install-deps    - 仅安装依赖"
+	@echo "  make clean-env       - 运行 SAGE 卸载/清理助手"
 	@echo "  make build-extensions - 构建 C++ 扩展（DB, Flow, TSDB）"
 	@echo ""
 	@echo "✨ 代码质量:"
@@ -115,6 +116,11 @@ clean:
 	@rm -rf packages/sage-middleware/sage_*_build/
 	@rm -rf packages/sage-common/build/
 	@find packages/sage-middleware/src/sage/middleware/components -type d \( -name "build" -o -name "lib" -o -name "bin" -o -name "install" \) -exec rm -rf {} + 2>/dev/null || true
+	@echo "✅ 清理完成"
+
+clean-env:
+	@echo "🧹 运行 SAGE 卸载与环境清理工具..."
+	./manage.sh clean-env
 	@echo "✅ 清理完成"
 
 check:

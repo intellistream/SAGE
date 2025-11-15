@@ -13,9 +13,9 @@ class BaseTool(ABC):
         self,
         tool_name: str,
         tool_description: str,
-        input_types: list[str] | None = None,
+        input_types: list[str] | dict[str, str] | None = None,
         output_type: str = "str",
-        demo_commands: list[str] | None = None,
+        demo_commands: list[str] | list[dict[str, str]] | None = None,
         require_llm_engine: bool = False,
     ):
         self.tool_name = tool_name

@@ -26,3 +26,7 @@
 	path = packages/sage-benchmark/src/sage/data
 	url = https://github.com/intellistream/sageData.git
 	branch = main-dev
+[submodule "packages/sage-libs/src/sage/libs/libamm"]
+	path = packages/sage-libs/src/sage/libs/libamm
+	url = https://github.com/intellistream/LibAMM.git
+	branch = main-dev

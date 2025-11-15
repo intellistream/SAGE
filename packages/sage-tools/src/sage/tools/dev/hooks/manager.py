@@ -12,15 +12,23 @@ from .installer import HooksInstaller
 class HooksManager:
     """Manager for SAGE Git hooks."""
 
-    def __init__(self, root_dir: Path | None = None):
+    def __init__(
+        self,
+        root_dir: Path | None = None,
+        mode: str = HooksInstaller.LIGHTWEIGHT,
+    ):
         """
         Initialize the hooks manager.
 
         Args:
             root_dir: Root directory of the SAGE project.
+            mode: Installation mode ("lightweight" or "full").
         """
         self.root_dir = root_dir
-        self.installer = HooksInstaller(root_dir=root_dir)
+        self.mode = mode
+
+    def _create_installer(self, quiet: bool = False) -> HooksInstaller:
+        return HooksInstaller(root_dir=self.root_dir, quiet=quiet, mode=self.mode)
 
     def install(self, quiet: bool = False) -> bool:
         """
@@ -32,8 +40,8 @@ class HooksManager:
         Returns:
             True if installation was successful, False otherwise.
         """
-        self.installer.quiet = quiet
-        return self.installer.install()
+        installer = self._create_installer(quiet=quiet)
+        return installer.install()
 
     def uninstall(self, quiet: bool = False) -> bool:
         """
@@ -45,8 +53,8 @@ class HooksManager:
         Returns:
             True if uninstallation was successful, False otherwise.
         """
-        self.installer.quiet = quiet
-        return self.installer.uninstall()
+        installer = self._create_installer(quiet=quiet)
+        return installer.uninstall()
 
     def status(self) -> dict:
         """
@@ -55,8 +63,10 @@ class HooksManager:
         Returns:
             Dictionary with hook status information.
         """
-        return self.installer.status()
+        installer = self._create_installer(quiet=True)
+        return installer.status()
 
     def print_status(self) -> None:
         """Print the status of installed hooks."""
-        self.installer.print_status()
+        installer = self._create_installer(quiet=True)
+        installer.print_status()

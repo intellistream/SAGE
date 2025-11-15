@@ -1,11 +1,9 @@
----
-name: Refactor Request
-about: Suggest a refactoring to improve code quality
-title: '[Refactor] '
-labels: refactor
-assignees: ''
+______________________________________________________________________
 
----
+name: Refactor Request about: Suggest a refactoring to improve code quality title: '[Refactor] '
+labels: refactor assignees: ''
+
+______________________________________________________________________
 
 **Area to Refactor**
 

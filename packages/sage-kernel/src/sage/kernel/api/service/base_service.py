@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
@@ -26,7 +26,8 @@ class BaseService(ABC):  # noqa: B024
         """
         # ctx 由 ServiceFactory 在 __init__ 调用前通过 __new__ 方法注入
         if not hasattr(self, "ctx"):
-            self.ctx: ServiceContext = None  # type: ignore[assignment]
+            # Initialize ctx as Optional[ServiceContext] - will be injected by ServiceFactory
+            self.ctx: Optional[ServiceContext] = None
         self._logger = None
 
     @property

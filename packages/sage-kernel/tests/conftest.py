@@ -84,14 +84,18 @@ def setup_test_environment():
     """自动设置测试环境"""
     # 验证关键模块可以导入
     try:
-        import sage.common
-        import sage.kernel
+        import importlib
+        import types
+
+        # Import modules dynamically to avoid static analysis issues with namespace packages
+        sage_common: types.ModuleType = importlib.import_module("sage.common")
+        sage_kernel: types.ModuleType = importlib.import_module("sage.kernel")
 
         print("✓ 测试环境设置成功")
-        print(f"✓ sage.kernel: {sage.kernel.__path__}")
-        # Check if __path__ attribute exists before accessing it
-        if hasattr(sage.common, "__path__"):
-            print(f"✓ sage.common: {sage.common.__path__}")
+        print(f"✓ sage.kernel: {sage_kernel.__path__}")
+        # sage.common is a namespace package, check __path__ dynamically
+        if hasattr(sage_common, "__path__"):
+            print(f"✓ sage.common: {sage_common.__path__}")
         else:
             print("✓ sage.common: module loaded successfully")
     except ImportError as e:

@@ -6,10 +6,18 @@ from collections import Counter
 from urllib.parse import quote
 
 import feedparser
-import fitz
 import requests
 
 from sage.kernel.operators import MapOperator
+
+# PyMuPDF (fitz) is required for PDF processing
+try:
+    import fitz  # type: ignore[import-not-found]
+
+    FITZ_AVAILABLE = True
+except ImportError:
+    FITZ_AVAILABLE = False
+    fitz = None  # type: ignore[assignment]
 
 
 class Paper:
@@ -17,6 +25,13 @@ class Paper:
         if authors is None:
             authors = []
         super().__init__(**kwargs)
+
+        # Check if fitz is available
+        if not FITZ_AVAILABLE or fitz is None:
+            raise RuntimeError(
+                "PyMuPDF (fitz) is required for PDF processing. Install with: pip install PyMuPDF"
+            )
+
         # 初始化函数，根据pdf路径初始化Paper对象
         self.url = url  # 文章链接
         self.path = path  # pdf路径
@@ -25,7 +40,7 @@ class Paper:
         self.abs = abs
         self.title_page = 0
         if title == "":
-            self.pdf = fitz.open(self.path)  # pdf文档
+            self.pdf = fitz.open(self.path)  # pdf文档  # type: ignore[attr-defined]
             self.title = self.get_title()
             self.parse_pdf()
         else:
@@ -48,7 +63,8 @@ class Paper:
         self.first_image = ""
 
     def parse_pdf(self):
-        self.pdf = fitz.open(self.path)  # pdf文档
+        assert fitz is not None, "fitz must be available"
+        self.pdf = fitz.open(self.path)  # type: ignore[attr-defined]
         self.text_list = [page.get_text() for page in self.pdf]
         self.all_text = " ".join(self.text_list)
         self.extract_section_infomation()
@@ -59,8 +75,9 @@ class Paper:
     def get_chapter_names(
         self,
     ):
+        assert fitz is not None, "fitz must be available"
         # # 打开一个pdf文件
-        doc = fitz.open(self.path)  # pdf文档
+        doc = fitz.open(self.path)  # type: ignore[attr-defined]
         text_list = [page.get_text() for page in doc]
         all_text = ""
         for text in text_list:
@@ -131,7 +148,8 @@ class Paper:
         return title
 
     def extract_section_infomation(self):
-        doc = fitz.open(self.path)
+        assert fitz is not None, "fitz must be available"
+        doc = fitz.open(self.path)  # type: ignore[attr-defined]
 
         # 获取文档中所有字体大小
         font_sizes = []
@@ -244,7 +262,8 @@ class ArxivPDFDownloader(MapOperator):
 
         print(feed)
         for entry in feed.entries:
-            arxiv_id = entry.id.split("/abs/")[-1]
+            # feedparser's type hints are incomplete, entry.id is actually a string
+            arxiv_id = entry.id.split("/abs/")[-1]  # type: ignore[union-attr]
             pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
             pdf_path = os.path.join(self.save_dir, f"{arxiv_id}.pdf")
 

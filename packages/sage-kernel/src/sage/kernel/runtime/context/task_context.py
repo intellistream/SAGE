@@ -10,35 +10,41 @@ from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
-    from sage.kernel.api.operator.base_operator import BaseOperator
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.communication.router.packet import Packet
     from sage.kernel.runtime.graph.execution_graph import ExecutionGraph
     from sage.kernel.runtime.graph.graph_node import TaskNode
-    from sage.platform.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.platform.queue.base_queue_descriptor import (
+        BaseQueueDescriptor,
+    )
 # task, operator和function "形式上共享"的运行上下文
 
 
 class TaskContext(BaseRuntimeContext):
-    # 定义不需要序列化的属性
-    __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
-
-    # 动态注入的属性类型声明
-    operator: "BaseOperator"  # 在 task 初始化时注入
+    # 定义不需要序列化的属性（Ray序列化时会跳过这些）
+    __state_exclude__ = [
+        "_logger",
+        "env",
+        "_env_logger_cache",
+        "_stop_event",  # threading.Event 不可序列化
+        "_router",  # 包含锁的对象
+        "_local_jobmanager_ref",  # weakref 不可序列化
+        "dispatcher",  # 避免循环引用
+    ]
 
     def __init__(
         self,
         graph_node: "TaskNode",
         transformation: "BaseTransformation",
         env: "BaseEnvironment",
-        execution_graph: "ExecutionGraph | None" = None,
+        execution_graph: "ExecutionGraph" = None,
     ):
         super().__init__()  # Initialize base context
 
         self.name: str = graph_node.name
 
         self.env_name = env.name
-        self.env_base_dir: str | None = env.env_base_dir
+        self.env_base_dir: str = env.env_base_dir
         self.env_uuid = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
 
@@ -48,7 +54,7 @@ class TaskContext(BaseRuntimeContext):
         self.parallel_index: int = graph_node.parallel_index
         self.parallelism: int = graph_node.parallelism
 
-        self._logger: CustomLogger | None = None
+        self._logger: Optional[CustomLogger] = None
 
         self.is_spout = transformation.is_spout
 
@@ -60,7 +66,6 @@ class TaskContext(BaseRuntimeContext):
         self.jobmanager_port = getattr(env, "jobmanager_port", 19001)
 
         # 为本地环境保存JobManager的弱引用
-        self._local_jobmanager_ref: Any
         if hasattr(env, "_jobmanager") and env._jobmanager is not None:
             import weakref
 
@@ -69,16 +74,15 @@ class TaskContext(BaseRuntimeContext):
             self._local_jobmanager_ref = None
 
         # 这些属性将在task层初始化，避免序列化问题
-        self._stop_event: threading.Event | None = None  # 延迟初始化
+        self._stop_event = None  # 延迟初始化
         self.received_stop_signals = None  # 延迟初始化
         self.stop_signal_count = 0
 
         # 服务相关 - service_manager已在BaseRuntimeContext中定义
-        self._service_names: dict[str, str] | None = None  # 只保存服务名称映射而不是实例
+        self._service_names: Optional[dict[str, str]] = None  # 只保存服务名称映射而不是实例
 
         # 队列描述符管理 - 在构造时从graph_node和execution_graph获取
-        # graph_node.input_qd 可能为 None，但在运行时实际总是有值的
-        self.input_qd: BaseQueueDescriptor = graph_node.input_qd  # type: ignore[assignment]
+        self.input_qd: BaseQueueDescriptor = graph_node.input_qd
         self.response_qd: BaseQueueDescriptor = graph_node.service_response_qd
 
         # 从execution_graph的提取好的映射表获取service队列描述符 - 简化逻辑
@@ -91,7 +95,7 @@ class TaskContext(BaseRuntimeContext):
         if execution_graph:
             self._build_downstream_groups(graph_node, execution_graph)
 
-        self.dispatcher: Any = None  # 延迟注入，避免循环依赖
+        self.dispatcher = None  # 延迟注入，避免循环依赖
 
     def _build_downstream_groups(self, graph_node: "TaskNode", execution_graph: "ExecutionGraph"):
         """从execution_graph构建downstream_groups"""
@@ -136,7 +140,6 @@ class TaskContext(BaseRuntimeContext):
     def logger(self) -> CustomLogger:
         """懒加载logger"""
         if self._logger is None:
-            base_dir = self.env_base_dir if self.env_base_dir is not None else "."
             self._logger = CustomLogger(
                 [
                     (
@@ -144,12 +147,12 @@ class TaskContext(BaseRuntimeContext):
                         self.env_console_log_level,
                     ),  # 使用环境设置的控制台日志等级
                     (
-                        os.path.join(base_dir, f"{self.name}_debug.log"),
+                        os.path.join(self.env_base_dir, f"{self.name}_debug.log"),
                         "DEBUG",
                     ),  # 详细日志
-                    (os.path.join(base_dir, "Error.log"), "ERROR"),  # 错误日志
+                    (os.path.join(self.env_base_dir, "Error.log"), "ERROR"),  # 错误日志
                     (
-                        os.path.join(base_dir, f"{self.name}_info.log"),
+                        os.path.join(self.env_base_dir, f"{self.name}_info.log"),
                         "INFO",
                     ),  # 错误日志
                 ],
@@ -179,8 +182,8 @@ class TaskContext(BaseRuntimeContext):
                 f"Service '{service_name}' not found. Available services: {available_services}"
             )
 
-        # 通过service_manager获取实际的服务队列
-        return self.service_manager._get_service_queue(service_name)
+        # 通过service_manager获取实际的服务实例
+        return self.service_manager.get_service(service_name)
 
     @property
     def stop_event(self) -> threading.Event:
@@ -218,11 +221,17 @@ class TaskContext(BaseRuntimeContext):
                 self.logger.info(
                     f"Task {node_name} sending stop signal directly to local JobManager"
                 )
-                local_jobmanager = self._local_jobmanager_ref()
-                if local_jobmanager:
-                    local_jobmanager.receive_node_stop_signal(self.env_uuid, node_name)
-                    self.logger.info("Successfully sent stop signal to local JobManager")
-                    return
+                # 检查 _local_jobmanager_ref 是否有效（不为 None 且可调用）
+                if self._local_jobmanager_ref is not None and callable(self._local_jobmanager_ref):
+                    local_jobmanager = self._local_jobmanager_ref()
+                    if local_jobmanager:
+                        local_jobmanager.receive_node_stop_signal(self.env_uuid, node_name)
+                        self.logger.info("Successfully sent stop signal to local JobManager")
+                        return
+                else:
+                    self.logger.debug(
+                        "Local JobManager ref is not available (likely in Ray remote worker), using network client"
+                    )
 
             # 导入JobManagerClient来发送网络请求
             from sage.kernel.runtime.jobmanager_client import JobManagerClient
@@ -233,8 +242,7 @@ class TaskContext(BaseRuntimeContext):
 
             # 创建客户端并发送停止信号
             client = JobManagerClient(host=self.jobmanager_host, port=self.jobmanager_port)
-            env_uuid = self.env_uuid if self.env_uuid is not None else ""
-            response = client.receive_node_stop_signal(env_uuid, node_name)
+            response = client.receive_node_stop_signal(self.env_uuid, node_name)
 
             if response.get("status") == "success":
                 self.logger.debug(f"Successfully sent stop signal for node {node_name}")
@@ -255,8 +263,7 @@ class TaskContext(BaseRuntimeContext):
         # Check if this is a JoinOperator that should handle stop signals specially
         if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):
             # Let the operator handle the stop signal itself
-            # JoinOperator has special stop signal handling logic
-            self.operator.handle_stop_signal(signal=signal)  # type: ignore[attr-defined]
+            self.operator.handle_stop_signal(signal=signal)
             return
 
         # Initialize stop signal tracking attributes if they don't exist
@@ -311,6 +318,48 @@ class TaskContext(BaseRuntimeContext):
         except Exception:
             # 在析构函数中不记录错误，避免在程序退出时产生问题
             pass
+
+    # ================== Ray 序列化支持 ==================
+
+    def __getstate__(self):
+        """
+        自定义序列化方法，用于 Ray 分布式传输
+        排除不可序列化的对象（logger, threading.Event, weakref 等）
+        """
+        state = self.__dict__.copy()
+
+        # 移除不可序列化的属性
+        for attr in self.__state_exclude__:
+            state.pop(attr, None)
+
+        # 确保移除所有 threading 相关对象
+        if "_stop_event" in state:
+            del state["_stop_event"]
+
+        # 移除 router（包含锁）
+        if "_router" in state:
+            del state["_router"]
+
+        # 移除方法引用（bound methods 不可序列化）
+        # _build_downstream_groups 是一个方法，不应该被序列化
+        if "_build_downstream_groups" in state:
+            del state["_build_downstream_groups"]
+
+        return state
+
+    def __setstate__(self, state):
+        """
+        自定义反序列化方法，在 Ray worker 中重建对象
+        重新初始化不可序列化的对象
+        """
+        self.__dict__.update(state)
+
+        # 重新初始化需要延迟创建的对象
+        self._logger = None  # 懒加载
+        self._stop_event = None  # 延迟初始化
+        self._router = None  # 延迟初始化
+        self._local_jobmanager_ref = None  # 远程环境不需要
+        self.dispatcher = None  # 远程环境不需要
 
     # ================== 路由接口 - 封装BaseRouter功能 ==================
 
@@ -382,7 +431,7 @@ class TaskContext(BaseRuntimeContext):
 
     def get_upstream_queue_descriptors(
         self,
-    ) -> dict[int, list["BaseQueueDescriptor"]] | None:
+    ) -> Optional[dict[int, list["BaseQueueDescriptor"]]]:
         """获取上游队列描述符映射"""
         return self._upstream_queue_descriptors
 
@@ -393,7 +442,7 @@ class TaskContext(BaseRuntimeContext):
 
     def get_downstream_queue_descriptors(
         self,
-    ) -> list[list["BaseQueueDescriptor"]] | None:
+    ) -> Optional[list[list["BaseQueueDescriptor"]]]:
         """获取下游队列描述符映射"""
         return self._downstream_queue_descriptors
 
@@ -404,6 +453,6 @@ class TaskContext(BaseRuntimeContext):
 
     def get_service_request_queue_descriptors(
         self,
-    ) -> dict[str, "BaseQueueDescriptor"] | None:
+    ) -> Optional[dict[str, "BaseQueueDescriptor"]]:
         """获取服务请求队列描述符映射"""
         return self._service_request_queue_descriptors

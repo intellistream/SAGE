@@ -842,12 +842,14 @@ class TestIntegrationScenarios:
             # Test echo
             echo_msg = {"type": "echo", "data": "hello world"}
             response = server._process_message(echo_msg, ("127.0.0.1", 12345))
+            assert response is not None, "Echo handler should return a response"
             assert response["echo"] == "hello world"
             assert results["echo"] == "hello world"
 
             # Test compute
             compute_msg = {"type": "compute", "a": 5, "b": 3}
             response = server._process_message(compute_msg, ("127.0.0.1", 12345))
+            assert response is not None, "Compute handler should return a response"
             assert response["result"] == 8
             assert results["compute"] == 8
 
@@ -932,6 +934,7 @@ class TestPerformanceScenarios:
             response = server._handle_message_data(message_data, ("127.0.0.1", 12345))
             end_time = time.time()
 
+            assert response is not None, "Large handler should return a response"
             assert response["type"] == "large_response"
             assert response["size"] == len(large_data)
             # Should process within reasonable time

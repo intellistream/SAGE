@@ -1,0 +1,26 @@
+mbsize: 50, hidden size: 2000, layer: 3, dropout: 0.1
+Initial evaluation on dev set:
+dev set: Average loss: 3.9091, Accuracy: 773/5000 (15.46%)
+0：(wall time: 52.3 sec) dev set: Average loss: 180.6183, Accuracy: 1697/5000 (33.94%)
+1：(wall time: 105.6 sec) dev set: Average loss: 413.5227, Accuracy: 2269/5000 (45.38%)
+2：(wall time: 160.7 sec) dev set: Average loss: 2520.8611, Accuracy: 2263/5000 (45.26%)
+3：(wall time: 217.3 sec) dev set: Average loss: 3531.3923, Accuracy: 2476/5000 (49.52%)
+4：(wall time: 274.8 sec) dev set: Average loss: 4236.2763, Accuracy: 2547/5000 (50.94%)
+5：(wall time: 331.8 sec) dev set: Average loss: 9146.6971, Accuracy: 2252/5000 (45.04%)
+6：(wall time: 380.4 sec) dev set: Average loss: 8918.9798, Accuracy: 2334/5000 (46.68%)
+7：(wall time: 439.2 sec) dev set: Average loss: 15351.6014, Accuracy: 2471/5000 (49.42%)
+8：(wall time: 488.6 sec) dev set: Average loss: 20080.7276, Accuracy: 2226/5000 (44.52%)
+9：(wall time: 546.8 sec) dev set: Average loss: 25295.2185, Accuracy: 2223/5000 (44.46%)
+10：(wall time: 604.1 sec) dev set: Average loss: 24407.5495, Accuracy: 2249/5000 (44.98%)
+11：(wall time: 661.5 sec) dev set: Average loss: 29419.5250, Accuracy: 2524/5000 (50.48%)
+12：(wall time: 719.6 sec) dev set: Average loss: 35580.8752, Accuracy: 2356/5000 (47.12%)
+13：(wall time: 778.3 sec) dev set: Average loss: 39762.8154, Accuracy: 2650/5000 (53.00%)
+14：(wall time: 836.2 sec) dev set: Average loss: 39357.9987, Accuracy: 2452/5000 (49.04%)
+15：(wall time: 893.3 sec) dev set: Average loss: 44925.9339, Accuracy: 2669/5000 (53.38%)
+16：(wall time: 950.6 sec) dev set: Average loss: 57689.6479, Accuracy: 2338/5000 (46.76%)
+17：(wall time: 1008.1 sec) dev set: Average loss: 52701.8146, Accuracy: 2616/5000 (52.32%)
+18：(wall time: 1065.8 sec) dev set: Average loss: 79547.5361, Accuracy: 2271/5000 (45.42%)
+19：(wall time: 1124.0 sec) dev set: Average loss: 87221.5648, Accuracy: 2422/5000 (48.44%)
+    test set: Average loss: 83619.3975, Accuracy: 5093/10000 (50.93%)
+test acc: 50.93
+best on val set - $0.00|0.00 at -1

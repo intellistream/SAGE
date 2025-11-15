@@ -1,0 +1,7 @@
+key,value,type
+aRow,100,U64
+aCol,1000,U64
+bCol,500,U64
+sketchDimension,25,U64
+ptFile,torchscripts/CRS.pt,String
+forceMP,1,U64

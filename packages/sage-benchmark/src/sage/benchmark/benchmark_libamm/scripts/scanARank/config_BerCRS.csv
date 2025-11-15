@@ -1,0 +1,8 @@
+key,value,type
+aRow,1000,U64
+aCol,1000,U64
+bCol,500,U64
+sketchDimension,25,U64
+aReduce,10,U64
+matrixLoaderTag,sparse,String
+ptFile,torchscripts/BernoulliCRS.pt,String

@@ -16,6 +16,12 @@ class TestHooksInstaller:
         installer = HooksInstaller(root_dir=tmp_path, quiet=True)
         assert installer.root_dir == tmp_path
         assert installer.quiet is True
+        assert installer.install_mode == HooksInstaller.LIGHTWEIGHT
+
+    def test_init_invalid_mode_falls_back(self, tmp_path: Path) -> None:
+        """Installer should fall back to lightweight mode for invalid input."""
+        installer = HooksInstaller(root_dir=tmp_path, quiet=True, mode="invalid")
+        assert installer.install_mode == HooksInstaller.LIGHTWEIGHT
 
     def test_init_auto_detect_git_root(self, tmp_path: Path) -> None:
         """Test installer auto-detects git root."""
@@ -205,45 +211,61 @@ class TestHooksManager:
 
     def test_init(self, tmp_path: Path) -> None:
         """Test manager initialization."""
-        manager = HooksManager(root_dir=tmp_path)
+        manager = HooksManager(root_dir=tmp_path, mode="full")
         assert manager.root_dir == tmp_path
-        assert isinstance(manager.installer, HooksInstaller)
+        assert manager.mode == "full"
 
-    @patch.object(HooksInstaller, "install")
-    def test_install(self, mock_install: MagicMock, tmp_path: Path) -> None:
+    @patch("sage.tools.dev.hooks.manager.HooksInstaller")
+    def test_install(self, mock_installer_cls: MagicMock, tmp_path: Path) -> None:
         """Test install method delegates to installer."""
-        mock_install.return_value = True
+        mock_installer = mock_installer_cls.return_value
+        mock_installer.install.return_value = True
 
-        manager = HooksManager(root_dir=tmp_path)
+        manager = HooksManager(root_dir=tmp_path, mode="lightweight")
         result = manager.install(quiet=True)
 
         assert result is True
-        mock_install.assert_called_once()
-        assert manager.installer.quiet is True
+        mock_installer_cls.assert_called_once_with(
+            root_dir=tmp_path,
+            quiet=True,
+            mode="lightweight",
+        )
+        mock_installer.install.assert_called_once_with()
 
-    @patch.object(HooksInstaller, "uninstall")
-    def test_uninstall(self, mock_uninstall: MagicMock, tmp_path: Path) -> None:
+    @patch("sage.tools.dev.hooks.manager.HooksInstaller")
+    def test_uninstall(self, mock_installer_cls: MagicMock, tmp_path: Path) -> None:
         """Test uninstall method delegates to installer."""
-        mock_uninstall.return_value = True
+        mock_installer = mock_installer_cls.return_value
+        mock_installer.uninstall.return_value = True
 
         manager = HooksManager(root_dir=tmp_path)
         result = manager.uninstall(quiet=True)
 
         assert result is True
-        mock_uninstall.assert_called_once()
-        assert manager.installer.quiet is True
+        mock_installer_cls.assert_called_once_with(
+            root_dir=tmp_path,
+            quiet=True,
+            mode="lightweight",
+        )
+        mock_installer.uninstall.assert_called_once_with()
 
-    @patch.object(HooksInstaller, "status")
-    def test_status(self, mock_status: MagicMock, tmp_path: Path) -> None:
+    @patch("sage.tools.dev.hooks.manager.HooksInstaller")
+    def test_status(self, mock_installer_cls: MagicMock, tmp_path: Path) -> None:
         """Test status method delegates to installer."""
         expected_status = {"git_repo": True, "pre_commit_hook_installed": True}
-        mock_status.return_value = expected_status
+        mock_installer = mock_installer_cls.return_value
+        mock_installer.status.return_value = expected_status
 
-        manager = HooksManager(root_dir=tmp_path)
+        manager = HooksManager(root_dir=tmp_path, mode="full")
         result = manager.status()
 
         assert result == expected_status
-        mock_status.assert_called_once()
+        mock_installer_cls.assert_called_once_with(
+            root_dir=tmp_path,
+            quiet=True,
+            mode="full",
+        )
+        mock_installer.status.assert_called_once_with()
 
 
 class TestHooksIntegration:

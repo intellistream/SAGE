@@ -175,12 +175,54 @@ show_usage_tips() {
     local mode="$1"
 
     echo ""
+
+    # 如果使用了 conda 环境且不在该环境中，显示激活提示
+    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}⚠️  重要：需要激活 Conda 环境${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo -e "${INFO} SAGE 已安装到 conda 环境: ${GREEN}$SAGE_ENV_NAME${NC}"
+        echo -e "${INFO} 但当前终端未激活该环境"
+        echo ""
+        echo -e "${BOLD}方式 1: 手动激活（每次打开终端需要运行）${NC}"
+        echo -e "  ${CYAN}conda activate $SAGE_ENV_NAME${NC}"
+        echo ""
+        echo -e "${BOLD}方式 2: 设置自动激活（推荐）${NC}"
+        echo ""
+        echo -e "  ${DIM}# 添加到 ~/.bashrc 让终端自动激活${NC}"
+        echo -e "  ${CYAN}echo 'conda activate $SAGE_ENV_NAME' >> ~/.bashrc${NC}"
+        echo ""
+        echo -e "  ${DIM}# VS Code 用户：在工作区设置中添加以下配置${NC}"
+        echo -e "  ${DIM}# 文件: .vscode/settings.json${NC}"
+        echo -e "  ${CYAN}{${NC}"
+        echo -e "  ${CYAN}  \"python.defaultInterpreterPath\": \"~/miniconda3/envs/$SAGE_ENV_NAME/bin/python\",${NC}"
+        echo -e "  ${CYAN}  \"terminal.integrated.env.linux\": {${NC}"
+        echo -e "  ${CYAN}    \"CONDA_DEFAULT_ENV\": \"$SAGE_ENV_NAME\"${NC}"
+        echo -e "  ${CYAN}  },${NC}"
+        echo -e "  ${CYAN}  \"terminal.integrated.shellArgs.linux\": [${NC}"
+        echo -e "  ${CYAN}    \"-c\",${NC}"
+        echo -e "  ${CYAN}    \"conda activate $SAGE_ENV_NAME && exec bash\"${NC}"
+        echo -e "  ${CYAN}  ]${NC}"
+        echo -e "  ${CYAN}}${NC}"
+        echo ""
+        echo -e "${DIM}激活环境后，您才能使用 SAGE 的所有命令和功能${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+    fi
+
     draw_line "─" "$GREEN"
     echo_icon "✨" "快速开始" 2 2
     draw_line "─" "$GREEN"
     echo ""
 
     echo -e "${BLUE}基本使用：${NC}"
+    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+        echo -e "  ${DIM}# 首先激活环境:${NC}"
+        echo -e "  conda activate $SAGE_ENV_NAME"
+        echo ""
+        echo -e "  ${DIM}# 然后使用 SAGE:${NC}"
+    fi
     echo -e "  python3 -c \"import sage; print('Hello SAGE!')\""
     echo -e "  sage --help"
     echo ""
@@ -228,4 +270,78 @@ show_usage_tips() {
     echo -e "  ${GRAY}https://intellistream.github.io/SAGE-Pub/${NC}"
     echo -e "  ${GRAY}./examples/  # 查看示例代码${NC}"
     echo ""
+
+    # 如果是开发模式且使用了 conda 环境，自动配置 VS Code
+    if [ "$mode" = "dev" ] && [ -n "$SAGE_ENV_NAME" ]; then
+        echo -e "${INFO} 配置 VS Code 开发环境..."
+
+        local vscode_script="$SCRIPT_DIR/../../config/setup_vscode_conda.sh"
+        if [ -f "$vscode_script" ]; then
+            if bash "$vscode_script" "$SAGE_ENV_NAME" --auto 2>/dev/null; then
+                echo -e "${GREEN}✅ VS Code 配置完成${NC}"
+                echo -e "${DIM}   终端将自动激活 conda 环境 '$SAGE_ENV_NAME'${NC}"
+            else
+                echo -e "${YELLOW}⚠️  自动配置失败，可手动运行:${NC}"
+                echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+            fi
+        else
+            echo -e "${DIM}💡 开发者提示: 运行以下命令配置 VS Code:${NC}"
+            echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+        fi
+        echo ""
+    fi
+}
+
+# 创建 VS Code conda 环境配置的辅助函数
+create_vscode_conda_config() {
+    local env_name="$1"
+    local workspace_root="${2:-.}"
+    local conda_path="${3:-~/miniconda3}"
+
+    # 创建 .vscode 目录
+    mkdir -p "$workspace_root/.vscode"
+
+    local settings_file="$workspace_root/.vscode/settings.json"
+
+    # 检查是否已存在配置文件
+    if [ -f "$settings_file" ]; then
+        echo -e "${WARNING} VS Code 配置文件已存在: $settings_file"
+        echo -e "${INFO} 请手动添加以下配置:"
+        echo ""
+        echo -e "  \"python.defaultInterpreterPath\": \"$conda_path/envs/$env_name/bin/python\","
+        echo -e "  \"terminal.integrated.shellArgs.linux\": [\"-c\", \"conda activate $env_name && exec bash\"]"
+        echo ""
+        return 1
+    fi
+
+    # 创建新配置文件
+    cat > "$settings_file" << EOF
+{
+  "python.defaultInterpreterPath": "$conda_path/envs/$env_name/bin/python",
+  "terminal.integrated.env.linux": {
+    "CONDA_DEFAULT_ENV": "$env_name"
+  },
+  "terminal.integrated.shellArgs.linux": [
+    "-c",
+    "conda activate $env_name && exec bash"
+  ],
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.extraPaths": [
+    "\${workspaceFolder}/packages/sage/src",
+    "\${workspaceFolder}/packages/sage-common/src",
+    "\${workspaceFolder}/packages/sage-kernel/src",
+    "\${workspaceFolder}/packages/sage-libs/src",
+    "\${workspaceFolder}/packages/sage-middleware/src",
+    "\${workspaceFolder}/packages/sage-platform/src",
+    "\${workspaceFolder}/packages/sage-apps/src",
+    "\${workspaceFolder}/packages/sage-studio/src",
+    "\${workspaceFolder}/packages/sage-tools/src",
+    "\${workspaceFolder}/packages/sage-cli/src"
+  ]
+}
+EOF
+
+    echo -e "${CHECK} 已创建 VS Code 配置: $settings_file"
+    echo -e "${INFO} VS Code 现在会自动激活 conda 环境: $env_name"
+    return 0
 }

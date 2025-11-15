@@ -51,8 +51,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           submodules: 'recursive'  # 需要初始化子模块以构建C++扩展
+
+      - name: Switch Submodules to main-dev Branch
+        run: |
+          echo "🔀 切换所有子模块到 main-dev 分支..."
+          git submodule foreach --recursive '
+            if git show-ref --verify --quiet refs/remotes/origin/main-dev; then
+              echo "切换 $name 到 main-dev..."
+              git checkout main-dev
+              git pull origin main-dev || true
+            else
+              echo "⚠️  $name 没有 main-dev 分支，保持当前状态"
+            fi
+          '
+          echo "✅ 子模块分支切换完成"
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -137,13 +151,48 @@ jobs:
           python -c "from sage.common import config; print('✅ sage.common 可用')"
           python -c "from sage.kernel import LocalEnvironment; print('✅ sage.kernel 可用')"
 
-          # 验证 CLI（如果包含）
-          if [ "${{ matrix.install-mode }}" != "core" ]; then
-            if command -v sage >/dev/null 2>&1; then
-              sage --version && echo "✅ sage CLI 可用"
-            else
-              echo "⚠️  sage CLI 未找到（可能需要添加到 PATH）"
-            fi
+          # 根据安装模式验证相应的包
+          case "${{ matrix.install-mode }}" in
+            standard|full|dev)
+              # 验证 CLI
+              if command -v sage >/dev/null 2>&1; then
+                sage --version && echo "✅ sage CLI 可用"
+              else
+                echo "⚠️  sage CLI 未找到（可能需要添加到 PATH）"
+              fi
+
+              # 验证 sage-benchmark（standard/full/dev 都应该包含）
+              if pip show isage-benchmark >/dev/null 2>&1; then
+                python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
+                  echo "❌ sage.benchmark 导入失败"
+                  deactivate
+                  exit 1
+                }
+                python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+                  echo "❌ sage.data 导入失败"
+                  deactivate
+                  exit 1
+                }
+              fi
+
+              # 验证 sage-apps（如果已安装）
+              if pip show isage-apps >/dev/null 2>&1; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" || {
+                  echo "❌ sage.apps 导入失败"
+                  deactivate
+                  exit 1
+                }
+              fi
+              ;;
+          esac
+
+          # dev 模式额外验证
+          if [ "${{ matrix.install-mode }}" = "dev" ]; then
+            python -c "import sage.tools; print('✅ sage.tools 可用')" || {
+              echo "❌ sage.tools 导入失败"
+              deactivate
+              exit 1
+            }
           fi
 
           # 验证安装的包列表
@@ -161,11 +210,24 @@ jobs:
         run: |
           echo "🧪 测试从源码安装（pip install .）..."
 
+          # 安装系统依赖（C++ 扩展构建需要）
+          echo "📦 安装系统依赖..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            libopenblas-dev \
+            liblapack-dev \
+            gfortran
+
           # 创建干净的虚拟环境
           python -m venv /tmp/test_source_env
           source /tmp/test_source_env/bin/activate
 
           pip install --upgrade pip setuptools wheel
+
+          # 设置 CMake 参数禁用 LibAMM（CI 环境通常没有 CUDA）
+          export CMAKE_ARGS="-DENABLE_LIBAMM=OFF"
 
           echo "📦 按依赖顺序从源码安装..."
 
@@ -239,8 +301,24 @@ jobs:
               if command -v sage >/dev/null 2>&1; then
                 sage --version && echo "✅ sage CLI 可用"
               fi
-              if [ -d "packages/sage-apps" ]; then
-                python -c "import sage.apps; print('✅ sage.apps 可用')" 2>/dev/null || echo "ℹ️  sage.apps 可选"
+              # 验证 sage-apps（如果已安装）
+              if pip show isage-apps >/dev/null 2>&1; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" || {
+                  echo "❌ sage.apps 导入失败"
+                  exit 1
+                }
+              fi
+              # 验证 sage-benchmark（必须验证）
+              if pip show isage-benchmark >/dev/null 2>&1; then
+                python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
+                  echo "❌ sage.benchmark 导入失败"
+                  exit 1
+                }
+                # 验证 sage.data 子包
+                python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+                  echo "❌ sage.data 导入失败"
+                  exit 1
+                }
               fi
               ;;
             full)
@@ -250,6 +328,24 @@ jobs:
               if command -v sage >/dev/null 2>&1; then
                 sage --version && echo "✅ sage CLI 可用"
               fi
+              # 验证 sage-apps
+              if pip show isage-apps >/dev/null 2>&1; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" || {
+                  echo "❌ sage.apps 导入失败"
+                  exit 1
+                }
+              fi
+              # 验证 sage-benchmark
+              if pip show isage-benchmark >/dev/null 2>&1; then
+                python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
+                  echo "❌ sage.benchmark 导入失败"
+                  exit 1
+                }
+                python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+                  echo "❌ sage.data 导入失败"
+                  exit 1
+                }
+              fi
               ;;
             dev)
               echo "验证 dev 模式功能..."
@@ -257,6 +353,22 @@ jobs:
               python -c "import sage.studio; print('✅ sage.studio 可用')"
               python -c "import sage.tools; print('✅ sage.tools 可用')"
               python -c "import pytest; print('✅ pytest 可用')"
+              # 验证 sage-apps
+              if pip show isage-apps >/dev/null 2>&1; then
+                python -c "import sage.apps; print('✅ sage.apps 可用')" || {
+                  echo "❌ sage.apps 导入失败"
+                  exit 1
+                }
+              fi
+              # 验证 sage-benchmark（必须存在）
+              python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
+                echo "❌ sage.benchmark 导入失败"
+                exit 1
+              }
+              python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+                echo "❌ sage.data 导入失败"
+                exit 1
+              }
               ;;
           esac
 
@@ -265,6 +377,49 @@ jobs:
 
           deactivate
           rm -rf /tmp/test_source_env
+
+      - name: 🔍 Verify No PyPI Downloads (Security Check)
+        if: always()  # 即使之前的步骤失败也要检查
+        run: |
+          echo "🔍 检查是否从 PyPI 下载了本地包（安全检查）..."
+
+          # 查找所有 pip 日志
+          pip_logs=(
+            "$HOME/.cache/pip/log"
+            "/tmp/pip-*"
+            "build/pip-*.log"
+          )
+
+          # 创建一个合并的日志用于分析
+          combined_log=$(mktemp)
+
+          # 如果有 pip 缓存日志，合并它们
+          find "$HOME/.cache/pip/" -name "*.log" -type f 2>/dev/null | while read log; do
+            cat "$log" >> "$combined_log" 2>/dev/null || true
+          done
+
+          # 检查是否下载了本地包
+          violations=0
+          for pkg in isage-common isage-platform isage-kernel isage-libs isage-middleware \
+                     isage-apps isage-benchmark isage-cli isage-studio isage-tools isage; do
+            if grep -i "Downloading.*${pkg}" "$combined_log" 2>/dev/null | grep -v "editable\|file://" | grep -q .; then
+              echo "❌ 检测到从 PyPI 下载：${pkg}"
+              violations=$((violations + 1))
+            fi
+          done
+
+          rm -f "$combined_log"
+
+          if [ $violations -gt 0 ]; then
+            echo ""
+            echo "⚠️  警告：检测到 $violations 个包从 PyPI 下载！"
+            echo "这可能表明 pyproject.toml 中存在不必要的依赖声明。"
+            echo ""
+            # 不让测试失败，只是警告
+            exit 0
+          else
+            echo "✅ 安全检查通过：没有从 PyPI 下载本地包"
+          fi
 
       - name: Upload Build Artifacts
         if: matrix.python-version == '3.11' && matrix.install-mode == 'standard'
@@ -345,7 +500,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: 'recursive'  # 需要初始化子模块以构建C++扩展
+
+      - name: Switch Submodules to main-dev Branch
+        run: |
+          echo "🔀 切换所有子模块到 main-dev 分支..."
+          git submodule foreach --recursive '
+            if git show-ref --verify --quiet refs/remotes/origin/main-dev; then
+              echo "切换 $name 到 main-dev..."
+              git checkout main-dev
+              git pull origin main-dev || true
+            else
+              echo "⚠️  $name 没有 main-dev 分支，保持当前状态"
+            fi
+          '
+          echo "✅ 子模块分支切换完成"
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5

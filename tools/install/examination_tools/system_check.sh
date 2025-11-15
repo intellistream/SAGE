@@ -20,6 +20,12 @@ print(f'${CHECK} SAGE v{sage.__version__} 安装成功！')
 print(f'${CHECK} 所有子包版本一致: {sage.common.__version__}')
 " 2>/dev/null; then
         echo -e "${CHECK} 验证通过！"
+
+        # 提示运行完整验证测试
+        echo ""
+        echo -e "${DIM}提示: 运行完整的安装验证测试:${NC}"
+        echo -e "${DIM}  bash tools/install/tests/verify_installation.sh${NC}"
+
         return 0
     else
         echo -e "${WARNING} 验证出现问题，但安装可能成功了"

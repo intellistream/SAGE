@@ -52,6 +52,9 @@ class RemoteEnvironment(BaseEnvironment):
         # 客户端连接（延迟初始化）
         self._engine_client: JobManagerClient | None = None
 
+        # 缓存最后获取的调度器指标（用于作业完成后获取）
+        self._cached_scheduler_metrics: dict[str, Any] | None = None
+
         # 更新配置
         self.config.update({"engine_host": self.daemon_host, "engine_port": self.daemon_port})
 
@@ -128,7 +131,7 @@ class RemoteEnvironment(BaseEnvironment):
         logger.info("Waiting for remote job to complete...")
 
         # 设置最大等待时间，避免无限等待
-        max_wait_time = 300.0  # 5分钟
+        max_wait_time = 400.0  # 400 seconds (6.67 minutes)
         start_time = time.time()
         check_interval = 0.5  # 远程检查可以稍微频繁一些
 
@@ -146,11 +149,12 @@ class RemoteEnvironment(BaseEnvironment):
                     # 检查响应是否成功
                     if not job_status_data.get("success", False):
                         error_msg = job_status_data.get("message", "Unknown error")
-                        logger.error(f"Error getting job status: {error_msg}")
-                        # 如果是 not_found，说明作业已经完成并被清理
+                        # 如果是 not_found，说明作业已经完成并被清理（正常情况）
                         if job_status_data.get("status") == "not_found":
-                            logger.info("Job not found (已完成并清理)")
+                            logger.info(f"Job not found (已完成并清理): {error_msg}")
                             break
+                        # 其他错误才记录为 error
+                        logger.error(f"Error getting job status: {error_msg}")
                         # 其他错误继续等待
                         time.sleep(check_interval)
                         continue
@@ -158,6 +162,11 @@ class RemoteEnvironment(BaseEnvironment):
                     # 获取作业状态
                     job_status = job_status_data.get("status")
                     logger.debug(f"Current job status: {job_status}")
+
+                    # 缓存调度器指标（在作业被删除前保存）
+                    if "scheduler_metrics" in job_status_data:
+                        self._cached_scheduler_metrics = job_status_data["scheduler_metrics"]
+                        logger.debug("Cached scheduler metrics from job status")
 
                     if job_status in ["stopped", "failed", "completed"]:
                         logger.info(f"Remote job completed with status: {job_status}")
@@ -293,6 +302,55 @@ class RemoteEnvironment(BaseEnvironment):
         except Exception as e:
             logger.error(f"Failed to get job status: {e}")
             return {"status": "error", "message": str(e)}
+
+    def get_scheduler_metrics(self) -> dict[str, Any]:
+        """
+        获取远程调度器的指标
+
+        注意：这会从 JobManager 端获取真实的调度器指标，
+        而不是客户端本地（未使用）的调度器指标
+
+        如果作业已完成并被清理，将返回缓存的指标
+
+        Returns:
+            调度器指标字典
+        """
+        if not self.env_uuid:
+            logger.warning(
+                "Environment not submitted, returning local scheduler metrics (will be empty)"
+            )
+            return self.scheduler.get_metrics()
+
+        try:
+            # 尝试从 JobManager 获取作业状态
+            status_response = self.client.get_job_status(self.env_uuid)
+
+            # 提取调度器指标
+            job_status_data = status_response.get("job_status", status_response)
+            scheduler_metrics = job_status_data.get("scheduler_metrics")
+
+            if scheduler_metrics:
+                # 缓存指标
+                self._cached_scheduler_metrics = scheduler_metrics
+                return scheduler_metrics
+            else:
+                # 没有找到指标，可能是作业正在初始化或已完成
+                logger.debug("No scheduler metrics found in job status")
+                # 返回缓存的指标（如果有）
+                if self._cached_scheduler_metrics:
+                    logger.debug("Returning cached scheduler metrics")
+                    return self._cached_scheduler_metrics
+                return self.scheduler.get_metrics()
+
+        except Exception as e:
+            logger.debug(f"Failed to get scheduler metrics from remote: {e}")
+            # 作业可能已被清理，返回缓存的指标
+            if self._cached_scheduler_metrics:
+                logger.debug("Job completed, returning cached scheduler metrics")
+                return self._cached_scheduler_metrics
+            else:
+                logger.debug("No cached metrics available, returning local metrics")
+                return self.scheduler.get_metrics()
 
     def __repr__(self) -> str:
         return f"RemoteEnvironment(name='{self.name}', host='{self.daemon_host}', port={self.daemon_port})"

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Loop through all CSV files in the current directory
+for file in *.csv; do
+    # Check if the file exists and is a regular file
+    if [ -f "$file" ]; then
+        # Append the desired line to the file
+        echo "" >> "$file"
+        echo "matrixLoaderTag,normal,String" >> "$file"
+        echo "Appended to $file"
+    fi
+done

@@ -142,5 +142,6 @@ def test_llm_planner_prompt_includes_tool_requirement():
     planner.plan("Profile prompt", "test query", tools)
 
     # Check that the system prompt includes the new rule
+    assert generator.captured_messages is not None, "No messages captured"
     system_content = generator.captured_messages[0]["content"]
     assert "Always call at least one tool before replying when tools are provided" in system_content
