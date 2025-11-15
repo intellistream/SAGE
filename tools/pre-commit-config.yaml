@@ -106,6 +106,7 @@ repos:
         "^LICENSE\.md$"
         "^DEVELOPER\.md$"
         "^docs/dev-notes/"
+        "^docs/"
         "^docs-public/"
         "^packages/.*/README\.md$"
         "^packages/.*/CHANGELOG\.md$"

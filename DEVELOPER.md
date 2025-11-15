@@ -23,6 +23,33 @@ SAGE.
 - Git
 - (Optional) Conda for environment management
 
+### Quick Start for Contributors
+
+**🔧 作为框架贡献者，推荐使用 `dev` 模式安装：**
+
+```bash
+# Clone repository
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
+
+# Switch to development branch
+git checkout main-dev
+
+# One-command setup for contributors (recommended)
+./quickstart.sh --dev --yes
+```
+
+**`--dev` 模式会自动：**
+
+- ✅ 同步所有 submodules（无需手动运行 `./manage.sh`）
+- ✅ 安装所有开发依赖（pytest, pre-commit, 代码检查工具等）
+- ✅ 配置 Git hooks（自动代码质量检查）
+- ✅ 安装 sage-dev 工具（用于维护和测试）
+
+> 💡 **不确定该选哪种模式？** 请参考
+> [README.md 中的安装模式决策树](./README.md#-%E5%BA%94%E8%AF%A5%E9%80%89%E6%8B%A9%E5%93%AA%E7%A7%8D%E5%AE%89%E8%A3%85%E6%A8%A1%E5%BC%8F)
+> 了解 core/standard/full/dev 的区别。
+
 ### Initial Setup
 
 1. **Clone the repository**
@@ -38,7 +65,16 @@ SAGE.
    git checkout main-dev
    ```
 
-1. **Initialize submodules**
+1. **Recommended: Use quickstart with dev mode**
+
+   ```bash
+   # This is the easiest way for contributors
+   ./quickstart.sh --dev --yes
+   ```
+
+   **Or, if you prefer manual setup:**
+
+   a. **Initialize submodules**
 
    ```bash
    # Use the maintenance tool (recommended)
@@ -49,7 +85,7 @@ SAGE.
    # - Automatically switch to the correct branch (main-dev)
    ```
 
-1. **Run the developer setup script**
+   b. **Run the developer setup script**
 
    ```bash
    ./tools/dev.sh setup
@@ -135,6 +171,8 @@ git submodule update --init
 ```
 
 For more details, see [tools/maintenance/README.md](tools/maintenance/README.md).
+
+> **💡 提示：** 使用 `./quickstart.sh --dev --yes` 会自动处理所有 submodule 相关操作，无需手动运行上述命令。
 
 ### Alternative: Manual Setup
 
