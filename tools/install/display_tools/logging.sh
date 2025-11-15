@@ -113,6 +113,19 @@ log_error() {
     _write_log "ERROR" "$message" "$context" "$phase"
 }
 
+# SUCCESS 级别日志（成功）
+log_success() {
+    local message="$1"
+    local context="${2:-}"
+    local phase="${3:-}"
+
+    if [ $CURRENT_LOG_LEVEL -le $LOG_LEVEL_INFO ]; then
+        echo -e "${GREEN}[SUCCESS] $message${NC}"
+    fi
+
+    _write_log "SUCCESS" "$message" "$context" "$phase"
+}
+
 # 记录命令执行（带返回值和输出）
 log_command() {
     local context="$1"
