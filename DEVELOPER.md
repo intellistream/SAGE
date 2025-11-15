@@ -85,22 +85,20 @@ git checkout main-dev
    # - Automatically switch to the correct branch (main-dev)
    ```
 
-   b. **Run the developer setup script**
+   b. **Initialize the developer CLI**
 
    ```bash
-   ./tools/dev.sh setup
+   sage-dev --help                # 验证 CLI 可用
+   sage-dev maintain hooks install
+   sage-dev maintain doctor
    ```
 
-   This will:
-
-   - Install pre-commit hooks
-   - Install SAGE in development mode
-   - Install all development dependencies
+   These commands ensure Git hooks are installed and run the built-in maintenance doctor.
 
 1. **Verify the setup**
 
    ```bash
-   ./tools/dev.sh validate
+   sage-dev quality check --check-only --all-files
 
    # Check project health
    ./tools/maintenance/sage-maintenance.sh doctor
@@ -192,31 +190,31 @@ pip install black isort ruff mypy pytest pytest-cov
 
 ## Development Workflow
 
-### Using the Dev Helper Script
+### Using the sage-dev CLI
 
-The `scripts/dev.sh` script provides common development commands:
+The `sage-dev` CLI (provided by `packages/sage-tools`) offers the same development workflows:
 
 ```bash
-# Format code
-./tools/dev.sh format
+# Format code / auto-fix quality issues
+sage-dev quality fix --all-files
 
-# Run linters
-./tools/dev.sh lint
+# Run linters & quality checks
+sage-dev quality check --check-only --all-files
 
 # Run tests
-./tools/dev.sh test
+sage-dev project test
 
 # Run all checks before committing
-./tools/dev.sh validate
+sage-dev quality check --all-files --readme
 
 # Clean build artifacts
-./tools/dev.sh clean
+sage-dev project clean --target all
 
 # Build documentation
-./tools/dev.sh docs
+sage-dev docs build
 
 # Get help
-./tools/dev.sh help
+sage-dev --help
 ```
 
 ### Pre-commit Hooks
@@ -252,7 +250,7 @@ SAGE uses a **non-standard location** for pre-commit configuration:
 
 **Why tools/ directory?**
 
-- Centralized management with other dev tools (`dev.sh`, `maintenance/`)
+- Centralized management with other dev tools (`sage-dev`, `maintenance/`)
 - Keeps project root clean and organized
 - Easier to maintain development tooling
 
@@ -302,7 +300,7 @@ We use **Black** and **isort** for consistent code formatting:
 
 ```bash
 # Format all code
-./tools/dev.sh format
+sage-dev quality fix --all-files
 
 # Or manually:
 black packages/ examples/ scripts/ --line-length 100
@@ -320,7 +318,7 @@ We use **Ruff** for fast linting and **mypy** for type checking:
 
 ```bash
 # Run all linters
-./tools/dev.sh lint
+sage-dev quality check --check-only --all-files
 
 # Or run individually:
 ruff check packages/ examples/ scripts/
@@ -347,13 +345,13 @@ shellcheck scripts/**/*.sh tools/**/*.sh
 
 ```bash
 # Run all tests
-./tools/dev.sh test
+sage-dev project test
 
 # Run unit tests only
-./tools/dev.sh test-unit
+sage-dev project test --test-type unit
 
 # Run integration tests only
-./tools/dev.sh test-integration
+sage-dev project test --test-type integration
 
 # Run specific test file
 pytest tests/test_specific.py -v
@@ -397,10 +395,10 @@ def test_pipeline_execution_with_real_data():
 
 ```bash
 # Build documentation
-./tools/dev.sh docs
+sage-dev docs build
 
 # Serve documentation locally
-./tools/dev.sh serve-docs
+sage-dev docs serve
 ```
 
 ### Writing Documentation
@@ -472,7 +470,7 @@ We follow [Semantic Versioning](https://semver.org/):
 1. **Run validation**
 
    ```bash
-   ./tools/dev.sh validate
+   sage-dev quality check --all-files --readme
    ```
 
 1. **Create git tag**
@@ -522,7 +520,7 @@ We follow [Semantic Versioning](https://semver.org/):
 1. **Run validation**
 
    ```bash
-   ./tools/dev.sh validate
+   sage-dev quality check --all-files --readme
    ```
 
 1. **Commit your changes**

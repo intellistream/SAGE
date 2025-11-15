@@ -423,7 +423,7 @@ SAGE provides convenient Make-like commands for common development tasks:
 # View all available commands
 make help
 # or
-./dev.sh help
+sage-dev --help
 
 # Code quality
 make lint          # Run code checks

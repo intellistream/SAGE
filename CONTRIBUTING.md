@@ -12,7 +12,7 @@
 
 - **[DEVELOPER.md](DEVELOPER.md)** - 完整开发指南，包含设置、工作流、测试等
 - **[CHANGELOG.md](CHANGELOG.md)** - 项目变更日志（遵循 Keep a Changelog 格式）
-- **[tools/dev.sh](tools/dev.sh)** - 开发助手脚本，提供常用命令
+- **`sage-dev` CLI** - 开发助手命令，提供质量检查、测试、维护等常用功能
 - **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置（链接到
   `tools/pre-commit-config.yaml`）
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
@@ -21,14 +21,14 @@
 **快速开始开发**:
 
 ```bash
-# 一键设置开发环境
-./tools/dev.sh setup
+# 查看可用子命令
+sage-dev --help
 
-# 格式化代码
-./tools/dev.sh format
+# 自动修复代码质量问题
+sage-dev quality fix --all-files
 
-# 运行所有检查
-./tools/dev.sh validate
+# 运行所有质量检查
+sage-dev quality check --all-files --readme
 ```
 
 ## 目录
@@ -326,7 +326,7 @@ SAGE 使用 **非标准位置** 的 pre-commit 配置文件：
 
 **为什么使用 tools/ 目录？**
 
-- 与其他开发工具（`dev.sh`、`maintenance/` 等）统一管理
+- 与其他开发工具（`sage-dev`、`maintenance/` 等）统一管理
 - 避免项目根目录过于混乱
 - 便于集中维护开发工具配置
 

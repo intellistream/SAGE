@@ -9,7 +9,7 @@ from rich.console import Console
 
 app = typer.Typer(
     name="quality",
-    help="🔍 质量检查 - 代码质量、架构合规、文档规范检查 (check, architecture, devnotes, readme)",
+    help="🔍 质量检查 - 代码质量、架构合规、文档规范检查 (check, fix, architecture, devnotes, readme)",
     no_args_is_help=True,
 )
 
@@ -88,6 +88,75 @@ def check_all(
         submodules_only=False,
         warn_only=warn_only,
         project_root=".",
+    )
+
+
+@app.command(name="fix")
+def fix_quality(
+    all_files: bool = typer.Option(
+        False,
+        "--all-files",
+        help="修复所有文件（默认只处理变更文件）",
+    ),
+    include_submodules: bool = typer.Option(
+        False,
+        "--include-submodules",
+        help="包含 submodules 进行修复",
+    ),
+    submodules_only: bool = typer.Option(
+        False,
+        "--submodules-only",
+        help="仅修复 submodules（默认只处理主仓库）",
+    ),
+    project_root: str = typer.Option(".", help="项目根目录"),
+    format_code: bool = typer.Option(True, "--format/--no-format", help="运行代码格式化"),
+    sort_imports: bool = typer.Option(
+        True,
+        "--sort-imports/--no-sort-imports",
+        help="运行导入排序",
+    ),
+    lint_ruff: bool = typer.Option(
+        True,
+        "--ruff/--no-ruff",
+        help="运行 Ruff 修复",
+    ),
+    type_check: bool = typer.Option(
+        False,
+        "--type-check/--no-type-check",
+        help="修复后运行类型检查",
+    ),
+):
+    """
+    🔧 自动修复代码质量问题
+
+    这是 `tools/fix-code-quality.sh` 的 Python 版本，内部调用 `pre-commit`
+    来运行 black、isort、ruff 等可自动修复的 hooks。
+
+    示例：
+        sage-dev quality fix                # 修复变更的文件
+        sage-dev quality fix --all-files    # 修复所有文件
+        sage-dev quality fix --include-submodules  # 包含 submodules
+    """
+
+    from sage.tools.cli.commands.dev.main import quality
+
+    quality(
+        fix=True,
+        check_only=False,
+        all_files=all_files,
+        hook=None,
+        architecture=False,
+        devnotes=False,
+        examples=False,
+        readme=False,
+        include_submodules=include_submodules,
+        submodules_only=submodules_only,
+        warn_only=False,
+        project_root=project_root,
+        format_code=format_code,
+        sort_imports=sort_imports,
+        lint_ruff=lint_ruff,
+        type_check=type_check,
     )
 
 
