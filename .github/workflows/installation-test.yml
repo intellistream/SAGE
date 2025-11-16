@@ -1,4 +1,4 @@
-name: PyPI Installation Test
+name: Installation & Dependency Test
 
 on:
   pull_request:
@@ -8,13 +8,15 @@ on:
       - 'packages/*/pyproject.toml'
       - 'packages/*/setup.py'
       - 'packages/*/setup.cfg'
-      - '.github/workflows/pip-installation-test.yml'
+      - 'tools/install/**'
+      - '.github/workflows/installation-test.yml'
   push:
     branches: [main, main-dev]
     paths:
       - 'packages/*/pyproject.toml'
       - 'packages/*/setup.py'
       - 'packages/*/setup.cfg'
+      - 'tools/install/**'
   workflow_dispatch:
     inputs:
       test_mode:
@@ -32,6 +34,94 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ============================================================
+  # Job 1: Dependency Integrity Check
+  # 确保不会从 PyPI 下载本地包（依赖污染检测）
+  # ============================================================
+  dependency-integrity:
+    name: Dependency Integrity Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: |
+      !contains(github.event.head_commit.message, '[version bump]') &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.test_mode == 'local')
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install System Dependencies
+        run: |
+          echo "📦 安装系统依赖（C++ 扩展构建需要）..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            libopenblas-dev \
+            liblapack-dev \
+            gfortran
+
+      - name: Install Base Tools
+        run: |
+          pip install --upgrade pip setuptools wheel
+          # 设置 CMake 参数禁用 LibAMM（CI 环境没有 CUDA）
+          echo "CMAKE_ARGS=-DENABLE_LIBAMM=OFF" >> $GITHUB_ENV
+
+      - name: Run Installation with Monitoring
+        id: install
+        run: |
+          echo "🚀 开始安装 SAGE（开发模式）..."
+          mkdir -p .sage/logs
+
+          if ./quickstart.sh --dev --yes 2>&1 | tee .sage/logs/ci_install.log; then
+            echo "✅ 安装成功"
+            install_status="success"
+          else
+            echo "❌ 安装失败"
+            install_status="failed"
+          fi
+
+          echo "install_status=$install_status" >> $GITHUB_OUTPUT
+
+      - name: Analyze Installation Logs
+        run: |
+          echo "🔍 分析安装日志，检测依赖完整性..."
+
+          # Check if main log exists, otherwise use CI log
+          if [ ! -f .sage/logs/install.log ] && [ -f .sage/logs/ci_install.log ]; then
+            cp .sage/logs/ci_install.log .sage/logs/install.log
+          fi
+
+          # Run dependency integrity monitor
+          if [ -f tools/install/download_tools/dependency_integrity_monitor.sh ]; then
+            bash tools/install/download_tools/dependency_integrity_monitor.sh || {
+              echo "❌ 依赖完整性检查失败！"
+              exit 1
+            }
+          else
+            echo "⚠️ 依赖监控脚本不存在，跳过检查"
+          fi
+
+      - name: Upload Installation Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-logs
+          path: .sage/logs/
+          retention-days: 7
+
+  # ============================================================
+  # Job 2: Multi-Mode Installation Test
+  # 测试不同安装模式（core/standard/full/dev）
+  # ============================================================
   test-local-build:
     name: Test Local Build Installation (${{ matrix.install-mode }}, Py${{ matrix.python-version }})
     runs-on: ubuntu-latest
