@@ -135,9 +135,33 @@ jobs:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
         install-mode: ['core', 'standard', 'full', 'dev']
+        exclude:
+          # 排除重度测试组合以节省 CI 资源和磁盘空间
+          # dev 模式包含所有依赖，只在 Python 3.11 测试
+          - python-version: '3.10'
+            install-mode: 'dev'
+          - python-version: '3.12'
+            install-mode: 'dev'
+          # full 模式也很重，只在 Python 3.11 测试
+          - python-version: '3.10'
+            install-mode: 'full'
+          - python-version: '3.12'
+            install-mode: 'full'
       fail-fast: false  # 允许某些组合失败，继续测试其他组合
 
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # 删除不需要的工具以释放空间
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
@@ -162,6 +186,26 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'  # 启用 pip 依赖缓存
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.install-mode }}-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.install-mode }}-
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-
+
+      - name: Cache built wheels
+        uses: actions/cache@v4
+        id: wheel-cache
+        with:
+          path: dist
+          key: sage-wheels-${{ github.sha }}-${{ matrix.python-version }}
+          restore-keys: |
+            sage-wheels-${{ github.sha }}-
 
       - name: Install Build Tools
         run: |
@@ -169,6 +213,7 @@ jobs:
           pip install --upgrade pip setuptools wheel build twine
 
       - name: Build All Packages
+        if: steps.wheel-cache.outputs.cache-hit != 'true'
         run: |
           echo "🏗️ 构建所有 SAGE 包..."
 
@@ -205,6 +250,12 @@ jobs:
           echo "📦 构建产物:"
           ls -lh dist/
 
+      - name: Display cached wheels
+        if: steps.wheel-cache.outputs.cache-hit == 'true'
+        run: |
+          echo "♻️  使用缓存的 wheel 包"
+          ls -lh dist/
+
       - name: Test Installation from Local Wheels
         run: |
           echo "🧪 测试从本地 wheel 安装..."
@@ -219,7 +270,8 @@ jobs:
           pip install --upgrade pip setuptools wheel
 
           # 从本地 dist 目录安装（模拟 PyPI 安装）
-          # 注意：这里使用 --find-links 让 pip 从本地查找依赖
+          # 使用 --find-links 让 pip 从本地查找依赖
+          # pip 缓存已通过 GitHub Actions cache 共享，无需 --no-cache-dir
           pip install --find-links dist "isage[${{ matrix.install-mode }}]" || {
             echo "❌ 安装失败！"
             deactivate
@@ -227,6 +279,7 @@ jobs:
           }
 
           echo "✅ 安装成功"
+
           echo ""
           echo "🔍 验证安装..."
 
