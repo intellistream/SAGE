@@ -198,15 +198,17 @@ main() {
     sync_submodules_if_requested "$sync_submodules"
 
     # 生成子模块标记文件（首次安装或更新时）
-    if [ "$sync_submodules" = "true" ] && [ -f "$SAGE_ROOT/tools/git-tools/generate-submodule-markers.sh" ]; then
-        echo ""
-        echo -e "${INFO} 生成子模块标记文件..."
-        if bash "$SAGE_ROOT/tools/git-tools/generate-submodule-markers.sh" >/dev/null 2>&1; then
-            echo -e "${GREEN}   ✅ 子模块标记文件已生成${NC}"
-        else
-            echo -e "${DIM}   ℹ️  子模块标记文件生成跳过${NC}"
-        fi
-    fi
+    # 注意：已禁用以避免在安装后产生未提交的更改（见 issue #1097）
+    # 用户可以手动运行 tools/git-tools/generate-submodule-markers.sh 来生成这些文件
+    # if [ "$sync_submodules" = "true" ] && [ -f "$SAGE_ROOT/tools/git-tools/generate-submodule-markers.sh" ]; then
+    #     echo ""
+    #     echo -e "${INFO} 生成子模块标记文件..."
+    #     if bash "$SAGE_ROOT/tools/git-tools/generate-submodule-markers.sh" >/dev/null 2>&1; then
+    #         echo -e "${GREEN}   ✅ 子模块标记文件已生成${NC}"
+    #     else
+    #         echo -e "${DIM}   ℹ️  子模块标记文件生成跳过${NC}"
+    #     fi
+    # fi
 
     # 执行深度依赖验证（如果指定了 --verify-deps）
     if [ "$verify_deps" = "true" ]; then
