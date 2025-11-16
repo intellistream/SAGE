@@ -1,21 +1,24 @@
-"""
-SAGE Agents - Agent Framework and Implementations
+"""Compatibility shim for deprecated import path ``sage.libs.agents``."""
 
-Layer: L3 (Core - Algorithm Library)
+from __future__ import annotations
 
-This module provides the core agent framework and pre-built agent implementations.
-"""
+import importlib
+import sys
+import warnings
 
-# 直接从本包的_version模块加载版本信息
-try:
-    from sage.libs._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+_TARGET = "sage.libs.agentic.agents"
+_module = importlib.import_module(_TARGET)
 
-# Import pre-built bots
-from . import bots
+warnings.warn(
+    "Importing from 'sage.libs.agents' is deprecated; use 'sage.libs.agentic.agents' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-__all__ = ["bots"]
+globals().update(_module.__dict__)
+__all__ = getattr(_module, "__all__", [])
+__doc__ = _module.__doc__
+__path__ = getattr(_module, "__path__", [])
+__spec__ = getattr(_module, "__spec__", None)
+
+sys.modules[__name__] = _module

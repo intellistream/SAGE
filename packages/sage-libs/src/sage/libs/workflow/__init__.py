@@ -1,70 +1,24 @@
-"""
-SAGE Agentic Workflow Optimizer Framework
+"""Compatibility shim for deprecated import path ``sage.libs.workflow``."""
 
-Layer: L3 (Core - Research & Algorithm Library)
+from __future__ import annotations
 
-This module provides a standardized framework for researching and developing
-optimization strategies for agentic workflows. It enables students and researchers
-to experiment with different optimization approaches in a consistent environment.
+import importlib
+import sys
+import warnings
 
-Architecture:
-    - Base abstractions for workflow representation
-    - Pluggable optimizer interface
-    - Evaluation metrics and benchmarking tools
-    - Example optimizers for reference
+_TARGET = "sage.libs.agentic.workflow"
+_module = importlib.import_module(_TARGET)
 
-Usage Example:
-    >>> from sage.libs.workflow import WorkflowGraph, BaseOptimizer
-    >>> from sage.libs.workflow.optimizers import GreedyOptimizer
-    >>>
-    >>> # Define your workflow
-    >>> workflow = WorkflowGraph()
-    >>> workflow.add_agent("analyzer", cost=10, quality=0.8)
-    >>> workflow.add_agent("generator", cost=20, quality=0.9)
-    >>> workflow.add_dependency("analyzer", "generator")
-    >>>
-    >>> # Apply optimizer
-    >>> optimizer = GreedyOptimizer()
-    >>> optimized = optimizer.optimize(workflow, constraints={"max_cost": 50})
-    >>>
-    >>> # Evaluate results
-    >>> metrics = optimizer.evaluate(workflow, optimized)
-    >>> print(f"Cost reduction: {metrics.cost_reduction}%")
-"""
-
-from .base import (
-    BaseOptimizer,
-    NodeType,
-    OptimizationMetrics,
-    OptimizationResult,
-    WorkflowGraph,
-    WorkflowNode,
+warnings.warn(
+    "Importing from 'sage.libs.workflow' is deprecated; use 'sage.libs.agentic.workflow' instead.",
+    DeprecationWarning,
+    stacklevel=2,
 )
-from .constraints import (
-    BudgetConstraint,
-    ConstraintChecker,
-    LatencyConstraint,
-    QualityConstraint,
-)
-from .evaluator import WorkflowEvaluator
 
-__all__ = [
-    # Core abstractions
-    "WorkflowGraph",
-    "WorkflowNode",
-    "NodeType",
-    "BaseOptimizer",
-    "OptimizationResult",
-    "OptimizationMetrics",
-    # Constraints
-    "ConstraintChecker",
-    "BudgetConstraint",
-    "LatencyConstraint",
-    "QualityConstraint",
-    # Evaluation
-    "WorkflowEvaluator",
-]
+globals().update(_module.__dict__)
+__all__ = getattr(_module, "__all__", [])
+__doc__ = _module.__doc__
+__path__ = getattr(_module, "__path__", [])
+__spec__ = getattr(_module, "__spec__", None)
 
-# Version info
-__version__ = "0.1.0"
-__author__ = "SAGE Team"
+sys.modules[__name__] = _module

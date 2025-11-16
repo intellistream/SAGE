@@ -1,64 +1,24 @@
-"""
-SAGE IO - Input/Output Abstractions
+"""Compatibility shim for deprecated import path ``sage.libs.io``."""
 
-Layer: L3 (Core - Algorithm Library)
+from __future__ import annotations
 
-This module provides unified input/output interfaces for data streams,
-batches, sources, and sinks.
+import importlib
+import sys
+import warnings
 
-Components:
-- Source: Data source abstractions
-- Sink: Data sink abstractions
-- Batch: Batch processing utilities
-"""
+_TARGET = "sage.libs.foundation.io"
+_module = importlib.import_module(_TARGET)
 
-# 直接从本包的_version模块加载版本信息
-try:
-    from sage.libs._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
-
-from sage.libs.io.sink import (
-    FileSink,
-    MemWriteSink,
-    PrintSink,
-    RetriveSink,
-    TerminalSink,
+warnings.warn(
+    "Importing from 'sage.libs.io' is deprecated; use 'sage.libs.foundation.io' instead.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
-# Import and export specific classes
-from sage.libs.io.source import (
-    APISource,
-    CSVFileSource,
-    DatabaseSource,
-    FileSource,
-    JSONFileSource,
-    KafkaSource,
-    SocketSource,
-    TextFileSource,
-)
+globals().update(_module.__dict__)
+__all__ = getattr(_module, "__all__", [])
+__doc__ = _module.__doc__
+__path__ = getattr(_module, "__path__", [])
+__spec__ = getattr(_module, "__spec__", None)
 
-__all__ = [
-    # Version info
-    "__version__",
-    "__author__",
-    "__email__",
-    # Sources
-    "FileSource",
-    "SocketSource",
-    "TextFileSource",
-    "JSONFileSource",
-    "CSVFileSource",
-    "KafkaSource",
-    "DatabaseSource",
-    "APISource",
-    # Sinks
-    "TerminalSink",
-    "RetriveSink",
-    "FileSink",
-    "MemWriteSink",
-    "PrintSink",
-]
+sys.modules[__name__] = _module

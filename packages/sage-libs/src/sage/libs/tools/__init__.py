@@ -1,21 +1,25 @@
-"""
-SAGE Tools - Base tool infrastructure for generic tool patterns.
+"""Compatibility shim for deprecated import path ``sage.libs.tools``."""
 
-Provides:
-- BaseTool: Abstract base class for all tools
-- ToolRegistry: Central registry for tool management
-"""
+from __future__ import annotations
 
-from sage.libs.tools.registry import ToolRegistry
-from sage.libs.tools.tool import BaseTool
+import importlib
+import sys
+import warnings
 
-__all__ = ["BaseTool", "ToolRegistry"]
+_TARGET = "sage.libs.foundation.tools"
+_module = importlib.import_module(_TARGET)
 
-# Version information
-try:
-    from sage.libs._version import __author__, __email__, __version__
-except ImportError:
-    # 备用硬编码版本
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+warnings.warn(
+    "Importing from 'sage.libs.tools' is deprecated; use 'sage.libs.foundation.tools' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# Mirror module attributes so submodules continue to resolve.
+globals().update(_module.__dict__)
+__all__ = getattr(_module, "__all__", [])
+__doc__ = _module.__doc__
+__path__ = getattr(_module, "__path__", [])
+__spec__ = getattr(_module, "__spec__", None)
+
+sys.modules[__name__] = _module

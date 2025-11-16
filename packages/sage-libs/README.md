@@ -6,15 +6,30 @@ SAGE Libraries 是基于 SAGE Framework 构建的可复用组件库，提供了�
 
 ## 📚 Package Contents
 
-### Core Libraries
+### Layered Module Map
 
-SAGE Libraries 提供了以下核心库组件：
+| Layer          | Description                                                                   | Modules                                                                                      |
+| -------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `foundation`   | 低依赖度工具箱：工具基类、IO Source/Sink、上下文压缩、filters                 | `foundation.tools`, `foundation.io`, `foundation.context`, `foundation.filters` *(即将迁入)* |
+| `agentic`      | LangChain 风格的 Agent 框架 + Workflow Optimizer                              | `agentic.agents`, `agentic.workflow`                                                         |
+| `rag`          | RAG 组件（loaders/chunkers/retrievers/pipelines）。目前正在从 middleware 回迁 | `rag.loaders`, `rag.chunkers`, ... *(占位包，近期填充)*                                      |
+| `integrations` | 第三方服务适配器（LLM、向量库、Observability 等）                             | `integrations.llm.openai`, `integrations.vector.milvus`, ...                                 |
+| `privacy`      | 隐私/遗忘算法（原 `unlearning` 包）                                           | `privacy.unlearning`                                                                         |
 
-- **LLM Integrations**: 大语言模型集成和适配器
-- **Vector Stores**: 向量数据库集成 (FAISS, Milvus, Pinecone 等)
-- **Embeddings**: 嵌入模型封装和工具
-- **Tools & Utilities**: 通用工具和辅助函数
-- **Data Connectors**: 数据源连接器和加载器
+> ⚠️ 兼容性：旧路径（例如 `sage.libs.tools`, `sage.libs.io`, `sage.libs.agents`）仍可导入，但会触发
+> `DeprecationWarning`。请在 0.2.0 前迁移到新的命名空间。
+
+### RAG Building Blocks
+
+`sage.libs.rag` 现已提供可直接复用的核心组件：
+
+- `chunk`：`CharacterSplitter`, `SentenceTransformersTokenTextSplitter`
+- `document_loaders`：`TextLoader`, `PDFLoader`, `DocxLoader`, `DocLoader`, `MarkdownLoader`,
+  `LoaderFactory`
+- `pipeline`：轻量版 `RAGPipeline`
+- `types`：`RAGDocument`, `RAGQuery`, `RAGResponse` 及辅助函数
+
+Middleware 仍可通过原 import 路径访问这些类，但新的文档和示例将逐步切换到 `sage.libs.rag.*`。
 
 ## 🚀 Installation
 
