@@ -67,7 +67,9 @@ jobs:
             cmake \
             libopenblas-dev \
             liblapack-dev \
-            gfortran
+            gfortran \
+            libgl1-mesa-glx \
+            libglib2.0-0
 
       - name: Install Base Tools
         run: |
@@ -206,6 +208,19 @@ jobs:
           key: sage-wheels-${{ github.sha }}-${{ matrix.python-version }}
           restore-keys: |
             sage-wheels-${{ github.sha }}-
+
+      - name: Install System Dependencies
+        run: |
+          echo "📦 安装系统依赖（C++ 扩展构建和 OpenCV 需要）..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            libopenblas-dev \
+            liblapack-dev \
+            gfortran \
+            libgl1-mesa-glx \
+            libglib2.0-0
 
       - name: Install Build Tools
         run: |
