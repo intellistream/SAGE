@@ -19,8 +19,8 @@ def example_basic_bot_usage():
     print("=" * 60)
 
     try:
-        from sage.libs.agents.bots.answer_bot import AnswerBot
-        from sage.libs.agents.bots.question_bot import QuestionBot
+        from sage.libs.agentic.agents.bots.answer_bot import AnswerBot
+        from sage.libs.agentic.agents.bots.question_bot import QuestionBot
 
         # Create bot instances
         AnswerBot(config={"name": "AnswerBot"})
@@ -49,9 +49,9 @@ def example_agent_workflow():
     print("=" * 60)
 
     try:
-        from sage.libs.agents.bots.answer_bot import AnswerBot
-        from sage.libs.agents.bots.critic_bot import CriticBot
-        from sage.libs.agents.bots.question_bot import QuestionBot
+        from sage.libs.agentic.agents.bots.answer_bot import AnswerBot
+        from sage.libs.agentic.agents.bots.critic_bot import CriticBot
+        from sage.libs.agentic.agents.bots.question_bot import QuestionBot
 
         # Create a workflow: Question → Answer → Critique
         workflow = {
@@ -92,7 +92,7 @@ def example_custom_bot():
     print("\nExample code:")
     print(
         """
-    from sage.libs.agents.bots.answer_bot import AnswerBot
+    from sage.libs.agentic.agents.bots.answer_bot import AnswerBot
 
     class CustomDomainBot(AnswerBot):
         def __init__(self, domain: str, **kwargs):
@@ -128,9 +128,9 @@ def example_bot_integration():
     print("\nExample pipeline:")
     print(
         """
-    from sage.libs.io.source import FileSource
-    from sage.libs.io.sink import TerminalSink
-    from sage.libs.agents.bots.answer_bot import AnswerBot
+    from sage.libs.foundation.io.source import FileSource
+    from sage.libs.foundation.io.sink import TerminalSink
+    from sage.libs.agentic.agents.bots.answer_bot import AnswerBot
 
     # Create components
     source = FileSource("questions.txt")

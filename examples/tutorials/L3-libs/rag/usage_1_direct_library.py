@@ -19,8 +19,8 @@ Usage 1: Direct Library Usage
 
 import numpy as np
 
-from sage.libs.unlearning import UnlearningEngine
-from sage.libs.unlearning.algorithms import LaplaceMechanism
+from sage.libs.privacy.unlearning import UnlearningEngine
+from sage.libs.privacy.unlearning.algorithms import LaplaceMechanism
 
 
 def generate_test_data(n_vectors=50, dim=128):

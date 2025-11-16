@@ -13,7 +13,9 @@ import math
 
 import numpy as np
 
-from sage.libs.unlearning.dp_unlearning.base_mechanism import BasePrivacyMechanism
+from sage.libs.privacy.unlearning.dp_unlearning.base_mechanism import (
+    BasePrivacyMechanism,
+)
 
 
 class GaussianMechanism(BasePrivacyMechanism):

@@ -16,9 +16,6 @@ SAGE Libraries 是基于 SAGE Framework 构建的可复用组件库，提供了�
 | `integrations` | 第三方服务适配器（LLM、向量库、Observability 等）                             | `integrations.llm.openai`, `integrations.vector.milvus`, ...                                 |
 | `privacy`      | 隐私/遗忘算法（原 `unlearning` 包）                                           | `privacy.unlearning`                                                                         |
 
-> ⚠️ 兼容性：旧路径（例如 `sage.libs.tools`, `sage.libs.io`, `sage.libs.agents`）仍可导入，但会触发
-> `DeprecationWarning`。请在 0.2.0 前迁移到新的命名空间。
-
 ### RAG Building Blocks
 
 `sage.libs.rag` 现已提供可直接复用的核心组件：

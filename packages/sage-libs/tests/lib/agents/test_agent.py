@@ -12,7 +12,7 @@ import requests
 pytest_plugins = []
 
 try:
-    from sage.libs.agents.agent import (
+    from sage.libs.agentic.agents.agent import (
         FORMAT_INSTRUCTIONS,
         PREFIX,
         BaseAgent,  # noqa: F401
@@ -298,7 +298,7 @@ class TestAgentModuleFallback:
         """测试模块导入降级"""
         # 这个测试总是运行，检查模块可用性
         try:
-            from sage.libs.agents.agent import Tool  # noqa: F401
+            from sage.libs.agentic.agents.agent import Tool  # noqa: F401
 
             assert True  # 导入成功
         except ImportError:

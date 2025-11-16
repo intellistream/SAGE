@@ -3,7 +3,7 @@ import time
 
 import torch
 
-from sage.libs.tools.tool import BaseTool
+from sage.libs.foundation.tools.tool import BaseTool
 
 
 class text_detector(BaseTool):

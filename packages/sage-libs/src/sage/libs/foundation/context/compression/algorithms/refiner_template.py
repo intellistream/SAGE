@@ -10,7 +10,7 @@ Refiner算法开发模板
 import time
 from typing import Any
 
-from sage.libs.context.compression.refiner import (
+from sage.libs.foundation.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
     RefinerMetrics,
@@ -315,7 +315,7 @@ class YourRefinerAlgorithm(BaseRefiner):
 
 # 3. 在 service.py 的 _get_refiner() 中添加：
 # elif algorithm == RefinerAlgorithm.YOUR_ALGORITHM:
-#     from sage.libs.context.compression.algorithms.your_algorithm import (
+#     from sage.libs.foundation.context.compression.algorithms.your_algorithm import (
 #         YourRefinerAlgorithm,
 #     )
 #     self.refiner = YourRefinerAlgorithm(self.config.to_dict())

@@ -9,10 +9,10 @@ from transformers import AutoModel, AutoModelForSequenceClassification, AutoToke
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 
-from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
+from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.prompt_template import (
     PromptTemplate,
 )
-from sage.libs.context.compression.algorithms.long_refiner_impl.task_instruction import (
+from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.task_instruction import (
     SYSTEM_PROMPT_STEP1,
     SYSTEM_PROMPT_STEP2,
     SYSTEM_PROMPT_STEP3,

@@ -8,7 +8,7 @@
 import time
 from typing import Any
 
-from sage.libs.context.compression.refiner import (
+from sage.libs.foundation.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
     RefinerMetrics,

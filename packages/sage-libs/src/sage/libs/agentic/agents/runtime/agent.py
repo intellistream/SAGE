@@ -1,10 +1,11 @@
-# refactor_wxh/MemoRAG/packages/sage-libs/src/sage/libs/agents/runtime/agent.py
+# refactor_wxh/MemoRAG/packages/sage-libs/src/sage/libs/agentic/agents/runtime/agent.py
 from __future__ import annotations
 
 import time
 from typing import Any
 
-# from sage.libs.agents.memory import memory_service_adapter
+# TODO: Implement memory service adapter
+# from sage.libs.agentic.agents.memory import memory_service_adapter
 from sage.common.core import MapFunction
 
 from ..action.mcp_registry import MCPRegistry

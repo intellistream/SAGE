@@ -15,7 +15,7 @@ LongRefiner采用三阶段压缩策略：
 import time
 from typing import Any
 
-from sage.libs.context.compression.refiner import (
+from sage.libs.foundation.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
     RefinerMetrics,
@@ -53,7 +53,7 @@ class LongRefinerAlgorithm(BaseRefiner):
 
         try:
             # 从本地实现导入，不再依赖sage-libs
-            from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import (
+            from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
                 LongRefiner,
             )
 
