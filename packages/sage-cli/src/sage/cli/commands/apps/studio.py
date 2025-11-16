@@ -1,6 +1,4 @@
-"""
-SAGE Studio CLI - Studio Web 界面管理命令
-"""
+"""SAGE Studio CLI - Studio Web 界面管理命令"""
 
 import typer
 from rich.console import Console
@@ -169,6 +167,23 @@ def clean():
             console.print("[red]❌ 清理失败[/red]")
     except Exception as e:
         console.print(f"[red]❌ 清理失败: {e}[/red]")
+
+
+@app.command()
+def npm(
+    args: list[str] = typer.Argument(
+        ...,
+        metavar="ARGS...",
+        help="传递给 npm 的参数，例如: install、run build、run lint",
+    ),
+):
+    """在 Studio 前端目录中运行 npm 命令。"""
+    joined = " ".join(args)
+    console.print(f"[blue]执行 npm {joined}[/blue]")
+
+    success = studio_manager.run_npm_command(args)
+    if not success:
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

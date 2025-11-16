@@ -42,11 +42,13 @@ echo "========================================"
 echo ""
 
 # 检查关键文件是否存在
+FRONTEND_DIR="packages/sage-studio/src/sage/studio/frontend"
+
 FILES=(
-    "packages/sage-studio/frontend/src/store/playgroundStore.ts"
-    "packages/sage-studio/frontend/src/components/Playground.tsx"
-    "packages/sage-studio/frontend/src/components/Playground.css"
-    "packages/sage-studio/frontend/src/services/api.ts"
+    "$FRONTEND_DIR/src/store/playgroundStore.ts"
+    "$FRONTEND_DIR/src/components/Playground.tsx"
+    "$FRONTEND_DIR/src/components/Playground.css"
+    "$FRONTEND_DIR/src/services/api.ts"
 )
 
 for file in "${FILES[@]}"; do
@@ -86,10 +88,10 @@ echo " 编译检查"
 echo "========================================"
 echo ""
 
-cd packages/sage-studio/frontend
+cd "$FRONTEND_DIR"
 
 echo "📦 安装依赖 (如果需要)..."
-npm install --silent 2>&1 | grep -v "npm WARN"
+sage studio npm install --silent
 
 echo ""
 echo "🔨 TypeScript 编译检查..."
@@ -148,8 +150,7 @@ echo "   python -m sage.studio.config.backend.api"
 echo ""
 
 echo "2. 启动前端:"
-echo "   cd packages/sage-studio/frontend"
-echo "   npm run dev"
+echo "   sage studio npm run dev"
 echo ""
 
 echo "3. 访问应用:"

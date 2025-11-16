@@ -220,7 +220,11 @@ class StudioManager:
             console.print("[yellow]警告: 目标 node_modules 不存在[/yellow]")
             return False
 
-    def install_dependencies(self) -> bool:
+    def install_dependencies(
+        self,
+        command: str = "install",
+        extra_args: list[str] | None = None,
+    ) -> bool:
         """安装依赖"""
         if not self.frontend_dir.exists():
             console.print(f"[red]前端目录不存在: {self.frontend_dir}[/red]")
@@ -231,7 +235,7 @@ class StudioManager:
             console.print(f"[red]package.json 不存在: {package_json}[/red]")
             return False
 
-        console.print("[blue]正在安装 npm 依赖...[/blue]")
+        console.print(f"[blue]正在执行 npm {command} ...[/blue]")
 
         try:
             # 设置 npm 缓存目录
@@ -239,8 +243,12 @@ class StudioManager:
             env["npm_config_cache"] = str(self.npm_cache_dir)
 
             # 安装依赖到项目目录
+            cmd = ["npm", command]
+            if extra_args:
+                cmd.extend(extra_args)
+
             subprocess.run(
-                ["npm", "install"],
+                cmd,
                 cwd=self.frontend_dir,
                 check=True,
                 capture_output=True,
@@ -309,6 +317,46 @@ class StudioManager:
 
         console.print("[green]✅ Studio 安装完成[/green]")
         return True
+
+    def run_npm_command(self, npm_args: list[str]) -> bool:
+        """在 Studio 前端目录中运行任意 npm 命令。"""
+        if not npm_args:
+            console.print("[red]请提供要执行的 npm 子命令，例如: install[/red]")
+            return False
+
+        if not self.frontend_dir.exists():
+            console.print(f"[red]前端目录不存在: {self.frontend_dir}[/red]")
+            return False
+
+        if not self.check_dependencies():
+            console.print("[red]依赖检查失败，无法执行 npm 命令[/red]")
+            return False
+
+        command = npm_args[0]
+        extra_args = npm_args[1:]
+
+        if command in {"install", "ci"}:
+            return self.install_dependencies(command=command, extra_args=extra_args)
+
+        env = os.environ.copy()
+        env["npm_config_cache"] = str(self.npm_cache_dir)
+
+        console.print(f"[blue]运行 npm {' '.join(npm_args)}... 按 Ctrl+C 可中断[/blue]")
+        try:
+            subprocess.run(
+                ["npm", *npm_args],
+                cwd=self.frontend_dir,
+                env=env,
+                check=True,
+            )
+            console.print("[green]npm 命令执行完成[/green]")
+            return True
+        except subprocess.CalledProcessError as exc:
+            console.print(f"[red]npm 命令失败 (退出码 {exc.returncode})[/red]")
+            return False
+        except KeyboardInterrupt:
+            console.print("[yellow]npm 命令已被用户中断[/yellow]")
+            return False
 
     def setup_vite_config(self) -> bool:
         """设置 Vite 配置（如果需要）"""
@@ -601,10 +649,16 @@ if __name__ == "__main__":
             console.print(f"[red]后端API停止失败: {e}[/red]")
             return False
 
-    def start(self, port: int | None = None, host: str | None = None, dev: bool = False) -> bool:
+    def start(
+        self,
+        port: int | None = None,
+        host: str | None = None,
+        dev: bool = False,
+        backend_port: int | None = None,
+    ) -> bool:
         """启动 Studio（前端和后端）"""
         # 首先启动后端API
-        if not self.start_backend():
+        if not self.start_backend(port=backend_port):
             console.print("[red]后端API启动失败，无法启动Studio[/red]")
             return False
 

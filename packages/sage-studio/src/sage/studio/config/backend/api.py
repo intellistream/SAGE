@@ -17,6 +17,8 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from sage.studio.services.chat_pipeline_recommender import generate_pipeline_recommendation
+
 
 def _convert_pipeline_to_job(
     pipeline_data: dict, pipeline_id: str, file_path: Path | None = None
@@ -1286,6 +1288,230 @@ async def get_logs(flow_id: str, last_id: int = 0):
         return {"logs": logs, "last_id": last_id + len(logs)}
     except Exception as e:
         raise HTTPException(500, f"获取日志失败: {str(e)}")
+
+
+# ==================== Chat Mode API (新增) ====================
+
+
+class ChatRequest(BaseModel):
+    """Chat 模式请求"""
+
+    message: str
+    session_id: str | None = None
+    model: str = "sage-default"
+    stream: bool = False
+
+
+class ChatResponse(BaseModel):
+    """Chat 模式响应"""
+
+    content: str
+    session_id: str
+    timestamp: str
+
+
+class ChatSessionSummary(BaseModel):
+    """Chat 会话摘要"""
+
+    id: str
+    title: str
+    created_at: str
+    last_active: str
+    message_count: int
+
+
+class ChatSessionDetail(ChatSessionSummary):
+    messages: list[dict]
+    metadata: dict | None = None
+
+
+class ChatSessionCreateRequest(BaseModel):
+    title: str | None = None
+
+
+class ChatSessionTitleUpdate(BaseModel):
+    title: str
+
+
+@app.post("/api/chat/message", response_model=ChatResponse)
+async def send_chat_message(request: ChatRequest):
+    """
+    发送聊天消息（调用 sage-gateway）
+
+    注意：需要 sage-gateway 服务运行在 localhost:8000
+    """
+    from datetime import datetime
+
+    import httpx
+
+    try:
+        # 调用 sage-gateway 的 OpenAI 兼容接口
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            gateway_response = await client.post(
+                "http://localhost:8000/v1/chat/completions",
+                json={
+                    "model": request.model,
+                    "messages": [{"role": "user", "content": request.message}],
+                    "stream": False,
+                    "session_id": request.session_id,
+                },
+            )
+
+            if gateway_response.status_code != 200:
+                raise HTTPException(
+                    status_code=gateway_response.status_code,
+                    detail=f"Gateway error: {gateway_response.text}",
+                )
+
+            data = gateway_response.json()
+
+            # 提取响应内容
+            assistant_message = data["choices"][0]["message"]["content"]
+            session_id = data.get("id", request.session_id or "default")
+
+            return ChatResponse(
+                content=assistant_message,
+                session_id=session_id,
+                timestamp=datetime.now().isoformat(),
+            )
+
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="无法连接到 SAGE Gateway (localhost:8000)。请确保 gateway 服务已启动。",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chat 请求失败: {str(e)}")
+
+
+@app.get("/api/chat/sessions", response_model=list[ChatSessionSummary])
+async def list_chat_sessions():
+    """获取所有聊天会话"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get("http://localhost:8000/sessions")
+            data = response.json()
+            return data.get("sessions", [])
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="无法连接到 SAGE Gateway",
+        )
+
+
+@app.post("/api/chat/sessions", response_model=ChatSessionDetail)
+async def create_chat_session(payload: ChatSessionCreateRequest):
+    """创建新的聊天会话"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                "http://localhost:8000/sessions", json=payload.model_dump()
+            )
+            if response.status_code >= 400:
+                raise HTTPException(status_code=response.status_code, detail=response.text)
+            return response.json()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+@app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
+async def get_chat_session(session_id: str):
+    """获取单个会话详情"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"http://localhost:8000/sessions/{session_id}")
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="会话不存在")
+            response.raise_for_status()
+            return response.json()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+@app.post("/api/chat/sessions/{session_id}/clear")
+async def clear_chat_session(session_id: str):
+    """清空会话历史"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(f"http://localhost:8000/sessions/{session_id}/clear")
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="会话不存在")
+            response.raise_for_status()
+            return response.json()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+@app.patch("/api/chat/sessions/{session_id}/title", response_model=ChatSessionSummary)
+async def update_chat_session_title(session_id: str, payload: ChatSessionTitleUpdate):
+    """更新会话标题"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.patch(
+                f"http://localhost:8000/sessions/{session_id}/title",
+                json=payload.model_dump(),
+            )
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="会话不存在")
+            response.raise_for_status()
+            # 更新后重新获取一次会话摘要，避免缺字段
+            detail_resp = await client.get(f"http://localhost:8000/sessions/{session_id}")
+            detail_resp.raise_for_status()
+            detail = detail_resp.json()
+            return ChatSessionSummary(
+                id=detail["id"],
+                title=detail.get("metadata", {}).get("title", payload.title),
+                created_at=detail.get("created_at"),
+                last_active=detail.get("last_active"),
+                message_count=len(detail.get("messages", [])),
+            )
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+@app.delete("/api/chat/sessions/{session_id}")
+async def delete_chat_session(session_id: str):
+    """删除聊天会话"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.delete(f"http://localhost:8000/sessions/{session_id}")
+            return response.json()
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="无法连接到 SAGE Gateway",
+        )
+
+
+@app.post("/api/chat/sessions/{session_id}/convert")
+async def convert_chat_session(session_id: str):
+    """根据聊天记录生成 Pipeline 建议"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(f"http://localhost:8000/sessions/{session_id}")
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="会话不存在，无法转换")
+            response.raise_for_status()
+            session = response.json()
+
+        recommendation = generate_pipeline_recommendation(session)
+        return recommendation
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
 
 
 if __name__ == "__main__":
