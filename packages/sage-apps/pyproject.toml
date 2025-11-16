@@ -43,7 +43,8 @@ dependencies = [
     "pillow>=10.0.0",
     "numpy>=1.24.0",
     # Video 应用依赖
-    "opencv-python>=4.5.0",
+    # 使用 headless 版本避免系统 GUI 依赖 (libGL, libglib 等)
+    "opencv-python-headless>=4.5.0",
     "torch>=2.0.0",
     "torchvision>=0.15.0",
     "transformers>=4.30.0",
@@ -61,7 +62,7 @@ sage-deps = [
     "isage-middleware>=0.1.0",
 ]
 video = [
-    "opencv-python>=4.5.0",
+    "opencv-python-headless>=4.5.0",
     "torch>=2.0.0",
     "torchvision>=0.15.0",
     "transformers>=4.30.0",

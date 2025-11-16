@@ -67,9 +67,7 @@ jobs:
             cmake \
             libopenblas-dev \
             liblapack-dev \
-            gfortran \
-            libgl1-mesa-glx \
-            libglib2.0-0
+            gfortran
 
       - name: Install Base Tools
         run: |
@@ -211,16 +209,14 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          echo "📦 安装系统依赖（C++ 扩展构建和 OpenCV 需要）..."
+          echo "📦 安装系统依赖（C++ 扩展构建需要）..."
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             build-essential \
             cmake \
             libopenblas-dev \
             liblapack-dev \
-            gfortran \
-            libgl1-mesa-glx \
-            libglib2.0-0
+            gfortran
 
       - name: Install Build Tools
         run: |
