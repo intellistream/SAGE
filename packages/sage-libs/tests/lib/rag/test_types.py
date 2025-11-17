@@ -9,6 +9,9 @@ from sage.libs.rag.types import (
     RAGQuery,
     RAGResponse,
     create_rag_response,
+    ensure_rag_response,
+    extract_query,
+    extract_results,
 )
 
 
@@ -180,3 +183,100 @@ class TestRAGTypesCompatibility:
         response = create_rag_response(query="test", results=[])
         assert "query" in response
         assert response.get("generated") is None
+
+
+@pytest.mark.unit
+class TestRAGHelperFunctions:
+    """测试RAG辅助函数"""
+
+    def test_ensure_rag_response_from_dict(self):
+        """测试从字典创建RAGResponse"""
+        data = {
+            "query": "test query",
+            "results": ["r1", "r2"],
+            "generated": "answer",
+        }
+        response = ensure_rag_response(data)
+        assert response["query"] == "test query"
+        assert response["results"] == ["r1", "r2"]
+        assert response["generated"] == "answer"
+
+    def test_ensure_rag_response_from_tuple(self):
+        """测试从元组创建RAGResponse"""
+        data = ("my query", ["result1", "result2"])
+        response = ensure_rag_response(data)
+        assert response["query"] == "my query"
+        assert response["results"] == ["result1", "result2"]
+
+    def test_ensure_rag_response_with_default_query(self):
+        """测试使用默认查询"""
+        data = {"results": ["r1"]}
+        response = ensure_rag_response(data, default_query="default")
+        assert response["query"] == "default"
+        assert response["results"] == ["r1"]
+
+    def test_extract_query_from_dict(self):
+        """测试从字典提取查询"""
+        data = {"query": "test question"}
+        query = extract_query(data)
+        assert query == "test question"
+
+    def test_extract_query_from_tuple(self):
+        """测试从元组提取查询"""
+        data = ("my query", ["results"])
+        query = extract_query(data)
+        assert query == "my query"
+
+    def test_extract_query_with_default(self):
+        """测试提取查询时使用默认值"""
+        data = {"results": ["r1"]}
+        query = extract_query(data, default="default query")
+        assert query == "default query"
+
+    def test_extract_results_from_dict(self):
+        """测试从字典提取结果"""
+        data = {"query": "q", "results": ["a", "b", "c"]}
+        results = extract_results(data)
+        assert results == ["a", "b", "c"]
+
+    def test_extract_results_from_tuple(self):
+        """测试从元组提取结果"""
+        data = ("query", ["r1", "r2"])
+        results = extract_results(data)
+        assert results == ["r1", "r2"]
+
+    def test_extract_results_with_default(self):
+        """测试提取结果时使用默认值"""
+        data = {"query": "q"}
+        results = extract_results(data, default=["default"])
+        assert results == ["default"]
+
+    def test_create_rag_response_minimal(self):
+        """测试创建最小RAGResponse"""
+        response = create_rag_response(query="q", results=["r"])
+        assert response["query"] == "q"
+        assert response["results"] == ["r"]
+        assert response.get("generated") is None
+
+    def test_create_rag_response_with_kwargs(self):
+        """测试创建带额外字段的RAGResponse"""
+        response = create_rag_response(
+            query="test",
+            results=["a", "b"],
+            generated="answer",
+            execution_time=1.5,
+            metadata={"model": "gpt-4"},
+        )
+        assert response["query"] == "test"
+        assert response["results"] == ["a", "b"]
+        assert response["generated"] == "answer"
+        assert response["execution_time"] == 1.5
+        assert response["metadata"]["model"] == "gpt-4"
+
+    def test_create_rag_response_none_values_filtered(self):
+        """测试None值不会被添加到响应中"""
+        response = create_rag_response(query="test", results=["r"], generated=None, metadata=None)
+        assert response["query"] == "test"
+        assert response["results"] == ["r"]
+        assert "generated" not in response
+        assert "metadata" not in response

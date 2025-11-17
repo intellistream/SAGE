@@ -133,3 +133,21 @@ class TestCharacterSplitter:
         assert "\n" in combined
         assert "\t" in combined
         assert "@#$" in combined
+
+
+@pytest.mark.external
+class TestSentenceTransformersTokenTextSplitter:
+    """测试SentenceTransformersTokenTextSplitter类（需要外部依赖）"""
+
+    def test_import_sentence_transformer_splitter(self):
+        """测试导入SentenceTransformersTokenTextSplitter"""
+        try:
+            from sage.libs.rag.chunk import SentenceTransformersTokenTextSplitter
+
+            assert SentenceTransformersTokenTextSplitter is not None
+        except ImportError:
+            pytest.skip("sentence-transformers not installed")
+
+    def test_sentence_transformer_initialization_error(self):
+        """测试没有依赖时的错误"""
+        pytest.importorskip("sentence_transformers", reason="sentence-transformers not installed")
