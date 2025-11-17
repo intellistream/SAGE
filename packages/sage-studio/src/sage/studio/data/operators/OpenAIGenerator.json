@@ -11,32 +11,40 @@
             "label": "模型名称",
             "type": "select",
             "required": true,
-            "defaultValue": "gpt-3.5-turbo",
+            "defaultValue": "qwen-turbo",
             "options": [
+                "qwen-turbo",
+                "qwen-plus",
+                "qwen-max",
+                "qwen-max-longcontext",
+                "qwen2.5-72b-instruct",
+                "qwen2.5-32b-instruct",
+                "qwen2.5-14b-instruct",
+                "qwen2.5-7b-instruct",
                 "gpt-3.5-turbo",
                 "gpt-4",
                 "gpt-4-turbo",
                 "gpt-4o"
             ],
-            "description": "OpenAI 模型名称"
+            "description": "模型名称（Qwen 系列使用阿里云百炼，GPT 系列使用 OpenAI）"
         },
         {
             "name": "api_key",
             "label": "API Key",
             "type": "password",
-            "required": true,
+            "required": false,
             "defaultValue": "",
-            "placeholder": "请输入 OpenAI API Key",
-            "description": "OpenAI API 密钥"
+            "placeholder": "留空则从环境变量读取（推荐）",
+            "description": "API 密钥（留空自动从环境变量读取：Qwen 用 DASHSCOPE_API_KEY，GPT 用 OPENAI_API_KEY）"
         },
         {
             "name": "api_base",
             "label": "API 端点",
             "type": "text",
             "required": false,
-            "defaultValue": "https://api.openai.com/v1",
-            "placeholder": "默认: https://api.openai.com/v1",
-            "description": "OpenAI API 端点地址（可自定义代理）"
+            "defaultValue": "",
+            "placeholder": "留空则自动选择（Qwen 用阿里云，GPT 用 OpenAI）",
+            "description": "API 端点地址（留空自动根据模型选择）"
         },
         {
             "name": "temperature",

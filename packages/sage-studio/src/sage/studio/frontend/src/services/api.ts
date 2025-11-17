@@ -13,7 +13,7 @@ const API_BASE_URL = '/api'
 // Axios 实例
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 10000,
+    timeout: 120000, // 120秒，适应 LLM 调用和 RAG 流程
     headers: {
         'Content-Type': 'application/json',
     },
@@ -25,7 +25,7 @@ const apiClient = axios.create({
 export interface ParameterConfig {
     name: string
     label: string
-    type: 'text' | 'textarea' | 'number' | 'select' | 'password'
+    type: 'text' | 'textarea' | 'number' | 'select' | 'password' | 'json'
     required?: boolean
     defaultValue?: any
     placeholder?: string
