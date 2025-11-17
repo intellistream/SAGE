@@ -537,7 +537,7 @@ print(f'SAGE {version} loaded')""",
             ),
             (
                 "OpenAIGenerator",
-                "from sage.libs.rag.generator import OpenAIGenerator; print('OpenAIGenerator imported')",
+                "from sage.middleware.operators.rag.generator import OpenAIGenerator; print('OpenAIGenerator imported')",
             ),
             # Tools组件
             (

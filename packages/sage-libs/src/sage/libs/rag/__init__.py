@@ -1,6 +1,11 @@
-"""Retrieval-Augmented Generation building blocks for SAGE Libs."""
+"""Retrieval-Augmented Generation building blocks for SAGE Libs.
 
-from . import types
+Layer: L3 (Algorithm Library)
+This module provides basic RAG components (loaders, chunkers, types).
+For RAG pipelines and orchestration, use sage.middleware.operators.rag.
+"""
+
+from . import chunk, document_loaders, types
 from .chunk import CharacterSplitter, SentenceTransformersTokenTextSplitter
 from .document_loaders import (
     DocLoader,
@@ -10,17 +15,20 @@ from .document_loaders import (
     PDFLoader,
     TextLoader,
 )
-from .pipeline import RAGPipeline
 
 __all__ = [
+    # Chunking utilities
     "CharacterSplitter",
     "SentenceTransformersTokenTextSplitter",
+    "chunk",
+    # Document loaders
     "TextLoader",
     "PDFLoader",
     "DocxLoader",
     "DocLoader",
     "MarkdownLoader",
     "LoaderFactory",
-    "RAGPipeline",
+    "document_loaders",
+    # Type definitions
     "types",
 ]

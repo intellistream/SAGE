@@ -26,7 +26,7 @@ def test_multimodal_template_pipeline_plan_uses_real_components():
         "sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalFusionRetriever"
         in stage_classes
     )
-    assert "sage.libs.rag.generator.OpenAIGenerator" in stage_classes
+    assert "sage.middleware.operators.rag.generator.OpenAIGenerator" in stage_classes
     assert plan["sink"]["class"] == "sage.libs.io.sink.TerminalSink"
 
 

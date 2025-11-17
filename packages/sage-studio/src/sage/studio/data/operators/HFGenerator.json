@@ -2,7 +2,7 @@
     "id": 2,
     "name": "HFGenerator",
     "description": "HuggingFace Generator",
-    "module_path": "sage.libs.rag.generator",
+    "module_path": "sage.middleware.operators.rag.generator",
     "class_name": "HFGenerator",
     "isCustom": false,
     "parameters": [

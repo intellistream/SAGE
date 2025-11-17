@@ -33,7 +33,10 @@ from sage.libs.rag.types import (
 # Lazy imports to avoid optional dependency issues
 _IMPORTS = {
     # Pipeline and Profiler
-    "RAGPipeline": ("sage.libs.rag.pipeline", "RAGPipeline"),
+    # RAGPipeline lives in the middleware layer (L4) as orchestration/pipeline code.
+    # It previously pointed to sage.libs.rag.pipeline (L3) which was deleted during
+    # the libs -> middleware refactor. Update to the new location.
+    "RAGPipeline": ("sage.middleware.operators.rag.pipeline", "RAGPipeline"),
     "Query_Profiler": ("sage.middleware.operators.rag.profiler", "Query_Profiler"),
     "QueryProfilerResult": ("sage.middleware.operators.rag.profiler", "QueryProfilerResult"),
     # Document Loaders

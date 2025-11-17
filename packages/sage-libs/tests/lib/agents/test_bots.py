@@ -1,5 +1,5 @@
 """
-测试 sage.libs.agents 模块的其他组件
+测试 sage.libs.agentic.agents 模块的其他组件
 """
 
 from unittest.mock import Mock

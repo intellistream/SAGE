@@ -1,10 +1,9 @@
 import json
+import logging
 import re
 import time
 
 import requests
-
-from sage.common.core import MapFunction
 
 # Note: OpenAIClient should be injected from application layer to avoid L3 -> L4 dependency
 # from sage.middleware.operators.llm.clients.openaiclient import OpenAIClient
@@ -55,8 +54,8 @@ Thought:{agent_scratchpad}
 """
 
 
-class BaseAgent(MapFunction):
-    def __init__(self, config, model=None, **kwargs):
+class BaseAgent:
+    def __init__(self, config, model=None, *, logger: logging.Logger | None = None, **_):
         """
         Initialize BaseAgent.
 
@@ -67,10 +66,10 @@ class BaseAgent(MapFunction):
                 - model_name, base_url, api_key: (deprecated) Use model parameter instead
             model: LLM client instance (should be injected from L4/L5 layer to avoid dependency)
                    If None, will try to create from config for backward compatibility
-            **kwargs: Additional arguments for MapFunction
+            logger: Optional custom logger, defaults to module logger
         """
-        super().__init__(**kwargs)
-        # Logger level should be configured via the parent MapFunction class or application-level logging configuration
+
+        self.logger = logger or logging.getLogger(self.__class__.__name__)
         self.config = config
         search = BochaSearch(api_key=self.config["search_api_key"])
 

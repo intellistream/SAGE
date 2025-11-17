@@ -65,7 +65,7 @@ def example_rag_pipeline():
     print("=" * 60)
 
     try:
-        from sage.libs.rag.pipeline import RAGPipeline  # noqa: F401
+        from sage.middleware.operators.rag.pipeline import RAGPipeline  # noqa: F401
 
         print("\n✓ RAG Pipeline components:")
         print("  1. Document Loader: Load source documents")
@@ -78,7 +78,7 @@ def example_rag_pipeline():
         print("\nExample pipeline setup:")
         print(
             """
-        from sage.libs.rag.pipeline import RAGPipeline
+        from sage.middleware.operators.rag.pipeline import RAGPipeline
         from sage.libs.rag.document_loaders import TextLoader
 
         # Create pipeline
@@ -122,7 +122,7 @@ def example_vector_stores():
     print(
         """
     from sage.middleware.operators.rag.backends.milvus import MilvusBackend
-    from sage.libs.rag.pipeline import RAGPipeline
+    from sage.middleware.operators.rag.pipeline import RAGPipeline
 
     # Create Milvus backend
     milvus = MilvusBackend(
@@ -180,7 +180,7 @@ def example_profiling():
         print(
             """
         from sage.middleware.operators.rag.profiler import Query_Profiler
-        from sage.libs.rag.pipeline import RAGPipeline
+        from sage.middleware.operators.rag.pipeline import RAGPipeline
 
         # Create profiler
         profiler = Query_Profiler(config={})

@@ -4,10 +4,6 @@ from __future__ import annotations
 import time
 from typing import Any
 
-# TODO: Implement memory service adapter
-# from sage.libs.agentic.agents.memory import memory_service_adapter
-from sage.common.core import MapFunction
-
 from ..action.mcp_registry import MCPRegistry
 from ..planning.llm_planner import LLMPlanner, PlanStep
 from ..profile.profile import BaseProfile
@@ -19,7 +15,7 @@ def _missing_required(arguments: dict[str, Any], input_schema: dict[str, Any]) -
     return [k for k in req if k not in arguments]
 
 
-class AgentRuntime(MapFunction):
+class AgentRuntime:
     """
     最小可用 Runtime：
     - 输入：user_query
