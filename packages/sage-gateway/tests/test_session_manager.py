@@ -58,10 +58,20 @@ def test_session_manager_delete():
 
 def test_session_manager_stats():
     """测试统计信息"""
+    # 使用新的 SessionManager 实例以避免状态污染
     manager = SessionManager()
+
+    # 清除所有会话
+    for session_id in list(manager._sessions.keys()):
+        manager.delete(session_id)
+
+    # 创建一个新会话
     session = manager.get_or_create()
     session.add_message("user", "Test")
 
     stats = manager.get_stats()
     assert stats["total_sessions"] == 1
     assert stats["total_messages"] == 1
+
+    # 清理
+    manager.delete(session.id)

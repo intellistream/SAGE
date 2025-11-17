@@ -110,14 +110,54 @@ class OpenAIAdapter:
 
     async def _execute_sage_pipeline(self, request: ChatCompletionRequest, session) -> str:
         """执行 SAGE DataStream Pipeline"""
-        # TODO: 实际实现
-        # from sage.kernel.api import LocalEnvironment
-        # env = LocalEnvironment(f"chat_{session.id}")
-        # ...
-
-        # 临时模拟响应
+        # 获取用户消息
         user_input = request.messages[-1].content
-        return f"Echo: {user_input} (processed by SAGE)"
+
+        # 构建消息历史（支持多轮对话）
+        messages = []
+        for msg in request.messages:
+            messages.append({"role": msg.role, "content": msg.content})
+
+        # 使用 OpenAI 兼容的方式调用 LLM
+        # 这里可以配置不同的后端：OpenAI/vLLM/DashScope 等
+        try:
+            from sage.libs.integrations.openaiclient import OpenAIClient
+            import os
+
+            # 从环境变量或配置读取 LLM 配置
+            # TODO: 将这些配置移到配置文件或环境变量
+            model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")
+            base_url = os.getenv(
+                "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            )
+            api_key = os.getenv("SAGE_CHAT_API_KEY") or os.getenv("ALIBABA_API_KEY")
+
+            if not api_key:
+                # 开发模式：返回 echo 响应
+                return f"[开发模式] Echo: {user_input}\n\n(请设置 SAGE_CHAT_API_KEY 环境变量以启用真实 LLM)"
+
+            # 创建 OpenAI 客户端
+            client = OpenAIClient(
+                model_name=model_name,
+                base_url=base_url,
+                api_key=api_key,
+            )
+
+            # 调用 LLM 生成响应
+            response = client.generate(
+                messages,
+                max_tokens=2048,
+                temperature=0.7,
+            )
+
+            return response
+
+        except Exception as e:
+            # 错误处理：返回友好的错误信息
+            import traceback
+
+            error_details = traceback.format_exc()
+            return f"抱歉，处理您的请求时遇到错误：{str(e)}\n\n详细信息：\n{error_details}"
 
     def _create_response(
         self, request: ChatCompletionRequest, session, content: str

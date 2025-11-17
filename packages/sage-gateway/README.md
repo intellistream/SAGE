@@ -128,9 +128,34 @@ SAGE_GATEWAY_API_KEY=your-secret-key
 SAGE_GATEWAY_SESSION_BACKEND=memory  # or redis
 SAGE_GATEWAY_REDIS_URL=redis://localhost:6379
 
+# LLM Backend Configuration (REQUIRED for real LLM responses)
+# Option 1: Alibaba DashScope (Qwen models)
+SAGE_CHAT_MODEL=qwen-max
+SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+ALIBABA_API_KEY=your-dashscope-api-key
+
+# Option 2: OpenAI
+SAGE_CHAT_MODEL=gpt-4o-mini
+SAGE_CHAT_BASE_URL=https://api.openai.com/v1
+SAGE_CHAT_API_KEY=sk-your-openai-api-key
+
+# Option 3: Local vLLM server
+SAGE_CHAT_MODEL=meta-llama/Llama-2-13b-chat-hf
+SAGE_CHAT_BASE_URL=http://localhost:8000/v1
+SAGE_CHAT_API_KEY=empty  # pragma: allowlist secret
+
+# Option 4: Ollama
+SAGE_CHAT_MODEL=llama3.1:8b
+SAGE_CHAT_BASE_URL=http://localhost:11434/v1
+SAGE_CHAT_API_KEY=empty  # pragma: allowlist secret
+
 # Logging
 SAGE_GATEWAY_LOG_LEVEL=INFO
 ```
+
+**Note:** If no API key is configured, the gateway will run in **development mode** and echo back
+user messages with a warning. Set `SAGE_CHAT_API_KEY` or `ALIBABA_API_KEY` to enable real LLM
+responses.
 
 ## Development
 

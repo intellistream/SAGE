@@ -67,7 +67,7 @@
 sage studio chat start
 ```
 
-- 默认使用 Vite dev server（`--no-dev` 可选择预览模式）
+- 默认使用 Vite dev server（`--prod` 可选择生产模式）
 - 前端默认地址 `http://localhost:5173`
 - Gateway 默认端口 `8000`，可用 `--gateway-port` 修改
 

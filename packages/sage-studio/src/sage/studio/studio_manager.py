@@ -653,7 +653,7 @@ if __name__ == "__main__":
         self,
         port: int | None = None,
         host: str | None = None,
-        dev: bool = False,
+        dev: bool = True,
         backend_port: int | None = None,
     ) -> bool:
         """启动 Studio（前端和后端）"""

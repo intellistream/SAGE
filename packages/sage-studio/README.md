@@ -87,11 +87,11 @@ python -c "from sage.studio.studio_manager import StudioManager; print('✓ Stud
 ### 🎯 方式一：使用 SAGE CLI（推荐）
 
 ```bash
-# 启动 Studio（前端 + 后端）- 开发模式（推荐）
-sage studio start --dev
-
-# 或者生产模式（需要先构建）
+# 启动 Studio（前端 + 后端）
 sage studio start
+
+# 或使用生产模式（需要先构建）
+sage studio start --prod
 
 # 查看运行状态
 sage studio status

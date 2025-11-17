@@ -17,7 +17,7 @@ studio_manager = StudioManager()
 def start(
     port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
-    dev: bool = typer.Option(False, "--dev", help="开发模式"),
+    dev: bool = typer.Option(True, "--dev/--prod", help="开发模式（默认）或生产模式"),
 ):
     """启动 SAGE Studio"""
     console.print("[blue]🚀 启动 SAGE Studio...[/blue]")
