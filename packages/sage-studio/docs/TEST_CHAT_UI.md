@@ -37,12 +37,14 @@
 - Kernel integration tests
 - Storage backend tests
 
-### 🔶 Phase 6: Advanced Features (Pending)
+### ✅ Phase 6: Advanced Features (Partial Complete)
 
-- Code syntax highlighting
-- Markdown rendering
-- File upload support
-- Advanced context management
+- ✅ Code syntax highlighting (VS Code Dark+ theme)
+- ✅ Markdown rendering (GFM support)
+- ✅ Rich text formatting (tables, lists, headings, blockquotes)
+- ✅ Code block copy button
+- ⏳ File upload support (pending)
+- ⏳ Advanced context management (pending)
 
 ### 新增文件
 

@@ -1,8 +1,37 @@
-# SAGE Gateway Changelog
+# SAGE Gateway & Studio Changelog
 
 ## [Unreleased] - 2025-11-17
 
 ### Added
+
+#### Phase 6: Advanced Chat Features (Commit: 3d303a7e)
+
+- ✅ **Markdown Rendering**: Full GitHub-flavored markdown support with react-markdown
+- ✅ **Syntax Highlighting**: Code blocks with VS Code Dark+ theme via react-syntax-highlighter
+- ✅ **Rich Formatting**: Tables, lists, blockquotes, headings with custom styling
+- ✅ **Code Block Features**: Copy button, language detection, syntax highlighting
+- ✅ **Typography Plugin**: Tailwind typography for consistent prose styling
+- ✅ **Smart Rendering**: Simple text for user messages, rich markdown for AI responses
+
+**Features**:
+
+- Automatic language detection from code fence markers
+- One-click code copying
+- Responsive table rendering
+- Custom styled components (links, lists, headings, blockquotes)
+- Streaming cursor animation
+- Dark theme support for code blocks
+
+**Dependencies Added**:
+
+```json
+{
+  "react-markdown": "^9.x",
+  "remark-gfm": "^4.x",
+  "react-syntax-highlighter": "^15.x",
+  "@tailwindcss/typography": "^0.5.x"
+}
+```
 
 #### Phase 3: SAGE Kernel Integration (Commit: 9f38cb55)
 
