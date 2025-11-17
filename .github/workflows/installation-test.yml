@@ -154,7 +154,7 @@ jobs:
         uses: jlumbroso/free-disk-space@main
         with:
           # 删除不需要的工具以释放空间
-          tool-cache: false
+          tool-cache: true  # 也清理工具缓存，释放更多空间
           android: true
           dotnet: true
           haskell: true
@@ -280,10 +280,13 @@ jobs:
           # 先安装基础依赖
           pip install --upgrade pip setuptools wheel
 
+          # 清理 pip 缓存中的旧文件，释放空间
+          pip cache purge || true
+
           # 从本地 dist 目录安装（模拟 PyPI 安装）
           # 使用 --find-links 让 pip 从本地查找依赖
-          # pip 缓存已通过 GitHub Actions cache 共享，无需 --no-cache-dir
-          pip install --find-links dist "isage[${{ matrix.install-mode }}]" || {
+          # 使用 --no-cache-dir 避免缓存占用磁盘空间
+          pip install --no-cache-dir --find-links dist "isage[${{ matrix.install-mode }}]" || {
             echo "❌ 安装失败！"
             deactivate
             exit 1
