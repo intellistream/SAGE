@@ -2,12 +2,17 @@
 
 Provides in-memory management plus simple persistence so chat sessions survive
 gateway restarts.
+
+Supports multiple storage backends:
+- FileSessionStore: JSON file storage (default)
+- NeuroMemSessionStorage: SAGE's NeuroMem component (展示 SAGE 能力)
 """
 
 # pyright: reportMissingImports=false
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 import uuid
@@ -233,9 +238,50 @@ class SessionManager:
 _session_manager: SessionManager | None = None
 
 
+def _create_storage_backend() -> SessionStorage:
+    """根据环境变量创建存储后端
+
+    支持的后端:
+    - file: JSON 文件存储 (默认)
+    - neuromem: SAGE NeuroMem 存储 (推荐，展示 SAGE 能力)
+
+    环境变量:
+    - SAGE_GATEWAY_SESSION_BACKEND: 后端类型 (file/neuromem)
+    - SAGE_GATEWAY_SESSION_FILE_PATH: file 后端路径
+    - SAGE_GATEWAY_SESSION_NEUROMEM_PATH: neuromem 后端路径
+    """
+    backend_type = os.getenv("SAGE_GATEWAY_SESSION_BACKEND", "file").lower()
+
+    if backend_type == "neuromem":
+        try:
+            from .neuromem_storage import NeuroMemSessionStorage
+
+            data_dir = os.getenv("SAGE_GATEWAY_SESSION_NEUROMEM_PATH")
+            if data_dir:
+                return NeuroMemSessionStorage(data_dir=data_dir)
+            return NeuroMemSessionStorage.default()
+        except ImportError:
+            # NeuroMem 依赖未安装，降级到文件存储
+            import warnings
+
+            warnings.warn(
+                "NeuroMem backend requested but not available, falling back to file storage"
+            )
+            return FileSessionStore.default()
+    else:
+        # 默认使用文件存储
+        file_path = os.getenv("SAGE_GATEWAY_SESSION_FILE_PATH")
+        if file_path:
+            from pathlib import Path
+
+            return FileSessionStore(path=Path(file_path))
+        return FileSessionStore.default()
+
+
 def get_session_manager() -> SessionManager:
     """获取全局会话管理器实例"""
     global _session_manager
     if _session_manager is None:
-        _session_manager = SessionManager()
+        storage = _create_storage_backend()
+        _session_manager = SessionManager(storage=storage)
     return _session_manager

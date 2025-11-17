@@ -7,7 +7,10 @@ from sage.gateway.adapters import ChatCompletionRequest, ChatMessage, OpenAIAdap
 
 
 @pytest.fixture
-def adapter():
+def adapter(monkeypatch):
+    # 确保测试时清除 API key，使用开发模式
+    monkeypatch.delenv("SAGE_CHAT_API_KEY", raising=False)
+    monkeypatch.delenv("ALIBABA_API_KEY", raising=False)
     return OpenAIAdapter()
 
 

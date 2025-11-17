@@ -168,4 +168,5 @@ class TestKernelIntegration:
                     model_name="custom-model",
                     base_url="http://custom-url:8000/v1",
                     api_key="custom-key",  # pragma: allowlist secret
+                    seed=42,
                 )

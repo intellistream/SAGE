@@ -141,6 +141,7 @@ class OpenAIAdapter:
                 model_name=model_name,
                 base_url=base_url,
                 api_key=api_key,
+                seed=42,  # 固定随机种子以保证可重复性
             )
 
             # 调用 LLM 生成响应

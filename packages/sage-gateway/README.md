@@ -124,9 +124,13 @@ SAGE_GATEWAY_WORKERS=4
 # Authentication (optional)
 SAGE_GATEWAY_API_KEY=your-secret-key
 
-# Session storage (optional)
-SAGE_GATEWAY_SESSION_BACKEND=memory  # or redis
-SAGE_GATEWAY_REDIS_URL=redis://localhost:6379
+# Session storage backend (optional)
+# Options: "file" (default), "neuromem"
+SAGE_GATEWAY_SESSION_BACKEND=neuromem
+
+# Session storage paths (optional)
+SAGE_GATEWAY_SESSION_FILE_PATH=~/.sage/gateway/sessions.json  # for file backend
+SAGE_GATEWAY_SESSION_NEUROMEM_PATH=~/.sage/gateway/neuromem_sessions  # for neuromem backend
 
 # LLM Backend Configuration (REQUIRED for real LLM responses)
 # Option 1: Alibaba DashScope (Qwen models)
