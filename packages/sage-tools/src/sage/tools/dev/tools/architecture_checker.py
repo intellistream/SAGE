@@ -583,8 +583,35 @@ class ArchitectureChecker:
 
         issues_found = False
 
-        # 获取根目录下所有文件（不包括子目录）
-        root_files = [f for f in self.root_dir.iterdir() if f.is_file()]
+        # 获取根目录下所有 git 跟踪的文件（不包括子目录）
+        import subprocess
+
+        try:
+            # 使用 git ls-files 只获取 git 跟踪的文件
+            result = subprocess.run(
+                ["git", "ls-files", "--cached"],
+                cwd=self.root_dir,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            # 过滤出根目录的文件（不包含 / 的文件名）
+            git_files = [
+                line.strip()
+                for line in result.stdout.strip().split("\n")
+                if line.strip() and "/" not in line.strip()
+            ]
+
+            root_files = [
+                self.root_dir / filename
+                for filename in git_files
+                if (self.root_dir / filename).is_file()
+            ]
+
+        except subprocess.CalledProcessError:
+            # 如果不是 git 仓库，回退到检查所有文件
+            root_files = [f for f in self.root_dir.iterdir() if f.is_file()]
 
         # 检查每个文件
         for file_path in root_files:
