@@ -105,12 +105,12 @@ export default function Playground() {
         setCanStop(true)
 
         // 添加助手消息占位符
-        const assistantMessageId = `msg-${Date.now()}-${Math.random()}`
-        addMessage(currentSessionId, {
+        const assistantMessageId = addMessage(currentSessionId, {
             role: 'assistant',
             content: '',
             status: 'pending',
         })
+        console.log('🆔 Created assistant message with ID:', assistantMessageId)
 
         try {
             // 调用执行 API
@@ -120,6 +120,13 @@ export default function Playground() {
                 sessionId: currentSessionId,
                 stream: false,
             })
+
+            // 调试日志
+            console.log('✅ Playground Response:', response)
+            console.log('   - Status:', response.status)
+            console.log('   - Output length:', response.output?.length || 0)
+            console.log('   - Output:', response.output)
+            console.log('🔄 Updating message ID:', assistantMessageId)
 
             // 更新助手消息
             updateMessage(currentSessionId, assistantMessageId, {
@@ -241,6 +248,15 @@ export default function Playground() {
     const renderMessage = (msg: Message) => {
         const isUser = msg.role === 'user'
 
+        // 调试日志
+        console.log('📝 Rendering message:', {
+            id: msg.id,
+            role: msg.role,
+            contentLength: msg.content?.length || 0,
+            contentPreview: msg.content?.substring(0, 100) || 'EMPTY',
+            status: msg.status
+        })
+
         return (
             <div
                 key={msg.id}
@@ -270,7 +286,19 @@ export default function Playground() {
                     </Space>
                 </div>
                 <div className="message-content">
-                    <Paragraph className="mb-0">{msg.content}</Paragraph>
+                    {msg.content ? (
+                        <pre style={{
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            margin: 0,
+                            fontFamily: 'inherit',
+                            fontSize: 'inherit'
+                        }}>
+                            {msg.content}
+                        </pre>
+                    ) : (
+                        <Text type="secondary">加载中...</Text>
+                    )}
                     {msg.error && (
                         <div className="error-message mt-2">
                             <XCircle size={16} className="inline mr-2" />
