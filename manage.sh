@@ -57,11 +57,23 @@ if [ $# -eq 0 ]; then
     fi
 
     echo "Configuring Git hooks..."
-    if ! bash "$MAINTENANCE_SCRIPT" setup-hooks --force; then
+    if ! bash "$MAINTENANCE_SCRIPT" --force setup-hooks; then
         echo "Git hooks setup failed" >&2
         exit 1
     fi
     exit 0
+fi
+
+# Additional maintenance helpers
+if [ "$1" = "clean-env" ] || [ "$1" = "uninstall" ]; then
+    # Provide a straightforward alias to the uninstall/cleanup helper
+    CLEAN_SCRIPT="$SCRIPT_DIR/tools/cleanup/uninstall_sage.sh"
+    if [ -f "$CLEAN_SCRIPT" ]; then
+        exec bash "$CLEAN_SCRIPT" "${@:2}"
+    else
+        echo "Cleanup script not found at $CLEAN_SCRIPT" >&2
+        exit 1
+    fi
 fi
 
 exec bash "$MAINTENANCE_SCRIPT" "$@"

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Git hook: post-submodule-update
+# Automatically generate SUBMODULE.md marker files after submodule updates
+#
+# This hook is triggered after git submodule update commands
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$REPO_ROOT" ]]; then
+  echo "[post-submodule-update] Unable to determine repository root" >&2
+  exit 0
+fi
+
+MARKER_SCRIPT="$REPO_ROOT/tools/git-tools/generate-submodule-markers.sh"
+
+if [[ ! -x "$MARKER_SCRIPT" ]]; then
+  # Script doesn't exist or not executable, silently skip
+  exit 0
+fi
+
+echo "[post-submodule-update] Checking submodule marker files..."
+
+# Run the marker generation script
+if "$MARKER_SCRIPT" --quiet 2>&1 | grep -q "created=0"; then
+  # No new markers created, all good
+  exit 0
+else
+  echo "[post-submodule-update] ✅ Generated missing SUBMODULE.md files"
+  echo "[post-submodule-update] 💡 Tip: Commit these files in each submodule"
+fi

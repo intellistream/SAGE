@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 1
+          fetch-depth: 0
           clean: true
           submodules: 'recursive'
 
@@ -278,6 +278,11 @@ jobs:
             echo "❌ sage-dev CLI不可用"
             exit 1
           fi
+
+      - name: Run installation validation suite
+        run: |
+          echo "🔍 Running installation verification suite..."
+          bash tools/install/tests/verify_installation.sh
 
       - name: Run Unit Tests with Coverage
         run: |

@@ -1,6 +1,12 @@
 [build-system]
-requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
-build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
+    "scikit-build-core>=0.8.0",
+    "pybind11>=2.10.0",
+]
+build-backend = "scikit_build_core.build"
 
 
 [project]
@@ -30,10 +36,8 @@ classifiers = [
 ]
 license = {text = "MIT"}
 
-# 核心依赖
+# 核心依赖 - 只包含外部依赖
 dependencies = [
-    "isage-common>=0.1.0",  # 核心基础组件（包含函数接口）
-
     # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
     "numpy>=1.26.0,<2.3.0",
 
@@ -66,8 +70,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# SAGE 内部依赖
+sage-deps = [
+    "isage-common>=0.1.0",
+]
+# 完整依赖（开发和 PyPI 发布时使用）
+all = [
+    "isage-libs[sage-deps]",
+]
 # 完整功能 - 包含所有可选依赖
 full = [
+    "isage-libs[sage-deps]",
     "isage-kernel>=0.1.0",  # kernel 变为可选依赖（用于高级特性）
     "isage-libs[llm]",
     "isage-libs[finetune]",
@@ -131,6 +144,13 @@ video = [
     "torchvision>=0.15.0",  # Vision models
     "transformers>=4.30.0",  # CLIP and other transformers
     "Pillow>=9.0.0",  # Image processing
+]
+
+# LibAMM - Approximate Matrix Multiplication Library
+# High-performance C++ library with NumPy interface
+# 现在作为独立的 PyPI 包发布，不再本地编译
+amm = [
+    "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel from PyPI
 ]
 
 # Examples dependencies (aggregate of all example-specific deps)
@@ -204,8 +224,14 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.libs._version.__version__"}
+# ============================================================================
+# scikit-build-core 动态版本配置
+# 从 _version.py 读取版本号
+# ============================================================================
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "src/sage/libs/_version.py"
+regex = '''__version__\s*=\s*["'](?P<value>[^"']+)["']'''
 
 # ============================================================================
 # Code Quality Configuration
@@ -270,3 +296,30 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
+
+# ============================================================================
+# scikit-build-core Configuration
+# ============================================================================
+[tool.scikit-build]
+# CMake 配置
+cmake.version = ">=3.10"
+cmake.build-type = "Release"
+cmake.verbose = true
+logging.level = "INFO"
+
+# Wheel 配置 - 明确指定所有包，确保纯 Python 子包也被包含
+wheel.packages = ["src/sage"]
+wheel.expand-macos-universal-tags = true
+# 确保所有 Python 包都被安装（包括纯 Python 子包）
+wheel.py-api = "py3"
+
+# 严格配置验证
+strict-config = false
+
+# 安装配置 - 确保 Python 源文件被正确安装
+install.components = ["python", "headers"]
+
+# 开发模式配置
+[tool.scikit-build.editable]
+mode = "redirect"
+verbose = true

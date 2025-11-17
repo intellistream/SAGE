@@ -1,11 +1,9 @@
----
-name: Task
-about: Log a general task or maintenance activity
-title: '[Task] '
-labels: task
+______________________________________________________________________
+
+name: Task about: Log a general task or maintenance activity title: '[Task] ' labels: task
 assignees: ''
 
----
+______________________________________________________________________
 
 **Task Description**
 

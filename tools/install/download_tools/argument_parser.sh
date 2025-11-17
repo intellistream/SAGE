@@ -4,6 +4,57 @@
 
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+set_hooks_mode_value() {
+    local value="${1,,}"
+    case "$value" in
+        "auto"|"background"|"sync")
+            HOOKS_MODE="$value"
+            ;;
+        *)
+            echo -e "${CROSS} 无效的 --hooks-mode 参数: $1 (可选: auto, background, sync)"
+            exit 1
+            ;;
+    esac
+}
+
+set_hooks_profile_value() {
+    local value="${1,,}"
+    case "$value" in
+        "lightweight"|"full")
+            HOOKS_PROFILE="$value"
+            ;;
+        *)
+            echo -e "${CROSS} 无效的 --hooks-profile 参数: $1 (可选: lightweight, full)"
+            exit 1
+            ;;
+    esac
+}
+
+set_mirror_source_value() {
+    local raw_value="$1"
+    local value="${raw_value,,}"
+
+    if [[ "$raw_value" == http*://* ]]; then
+        MIRROR_SOURCE="custom:${raw_value}"
+        return
+    fi
+
+    case "$value" in
+        "auto"|"tsinghua"|"aliyun"|"tencent"|"pypi")
+            MIRROR_SOURCE="$value"
+            ;;
+        custom:*)
+            MIRROR_SOURCE="$raw_value"
+            ;;
+        *)
+            echo -e "${CROSS} 无效的 --use-mirror 取值: $raw_value"
+            echo -e "${DIM}支持: auto, tsinghua, aliyun, tencent, pypi, custom:<url>${NC}"
+            exit 1
+            ;;
+    esac
+}
+
 SAGE_TOOLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # 导入颜色定义
@@ -22,9 +73,19 @@ CLEAN_PIP_CACHE=true
 RUN_DOCTOR=false
 DOCTOR_ONLY=false
 FIX_ENVIRONMENT=false
+VERIFY_DEPS=false
+VERIFY_DEPS_STRICT=false
 SYNC_SUBMODULES=""
 SYNC_SUBMODULES_EXPLICIT=false
 SYNC_SUBMODULES_NOTIFIED=false
+AUTO_VENV=false  # 新增：自动创建虚拟环境
+SKIP_HOOKS=false
+HOOKS_MODE="auto"
+HOOKS_PROFILE="lightweight"
+USE_PIP_MIRROR=false
+MIRROR_SOURCE="auto"
+RESUME_INSTALL=false  # 新增：断点续传
+RESET_CHECKPOINT=false  # 新增：重置检查点
 
 # 检测当前Python环境
 detect_current_environment() {
@@ -200,7 +261,7 @@ show_installation_menu() {
     # 选择安装环境
     while true; do
         echo -e "${BOLD}2. 选择安装环境：${NC}"
-        
+
         # 检查 conda 是否可用
         local conda_available=false
         if command -v conda &> /dev/null; then
@@ -388,6 +449,9 @@ show_parameter_help() {
     echo ""
     echo -e "  ${BOLD}--pip, -pip${NC}                                  ${PURPLE}使用当前环境${NC}"
     echo -e "  ${BOLD}--conda, -conda${NC}                              ${GREEN}创建conda环境${NC}"
+    echo -e "  ${BOLD}--auto-venv${NC}                                  ${YELLOW}自动创建虚拟环境${NC}"
+    echo -e "    ${DIM}检测系统环境时自动创建 .sage/venv 虚拟环境${NC}"
+    echo -e "    ${DIM}优先使用 conda (如可用)，否则使用 Python venv${NC}"
     echo ""
     echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
     echo ""
@@ -421,6 +485,53 @@ show_parameter_help() {
     echo -e "    ${DIM}在正常安装前进行环境预检查${NC}"
     echo -e "    ${DIM}与其他安装选项结合使用${NC}"
     echo ""
+    echo -e "  ${BOLD}--skip-hooks${NC}                             ${YELLOW}跳过 Git hooks 安装${NC}"
+    echo -e "    ${DIM}稍后可手动运行 'sage-dev maintain hooks install'${NC}"
+    echo ""
+    echo -e "  ${BOLD}--hooks-mode <auto|background|sync>${NC}      ${GREEN}控制 hooks 安装方式${NC}"
+    echo -e "    ${DIM}auto: 交互式安装后台运行，其余场景同步${NC}"
+    echo -e "    ${DIM}background: 总是异步，安装更快${NC}"
+    echo -e "    ${DIM}sync: 与主流程一起执行（旧行为）${NC}"
+    echo ""
+    echo -e "  ${BOLD}--hooks-profile <lightweight|full>${NC}        ${PURPLE}选择 hooks 工具链大小${NC}"
+    echo -e "    ${DIM}lightweight: 仅安装 hook 脚本，首次提交再下载依赖${NC}"
+    echo -e "    ${DIM}full: 立即下载完整工具链，适合离线/CI${NC}"
+    echo ""
+    echo -e "  ${BOLD}--use-mirror [源]${NC}                        ${GREEN}自动切换 pip 镜像${NC}"
+    echo -e "    ${DIM}无参数=auto，根据语言/时区选择最优镜像${NC}"
+    echo -e "    ${DIM}支持: tsinghua, aliyun, tencent, pypi, custom:<url>${NC}"
+    echo ""
+    echo -e "  ${BOLD}--resume${NC}                                ${BLUE}断点续传安装${NC}"
+    echo -e "    ${DIM}从上次失败的地方继续安装${NC}"
+    echo -e "    ${DIM}如果没有断点，等同于重新安装${NC}"
+    echo ""
+    echo -e "  ${BOLD}--reset-checkpoint${NC}                      ${YELLOW}重置安装进度${NC}"
+    echo -e "    ${DIM}清除之前的安装记录，从头开始${NC}"
+    echo -e "    ${DIM}可与其他选项组合使用${NC}"
+    echo ""
+    echo -e "  ${BOLD}--verify-deps${NC}                              ${GREEN}依赖深度验证${NC}"
+    echo -e "    ${DIM}检查 checksum、扫描漏洞、验证兼容性${NC}"
+    echo -e "    ${DIM}适合安全敏感环境或生产部署前的验证${NC}"
+    echo ""
+    echo -e "  ${BOLD}--no-cache-clean, --skip-cache-clean${NC}        ${YELLOW}跳过 pip 缓存清理${NC}"
+    echo -e "    ${DIM}默认安装前会清理 pip 缓存，此选项可跳过${NC}"
+    echo -e "    ${DIM}适用于网络受限或缓存清理可能出错的环境${NC}"
+    echo ""
+    echo ""
+    echo -e "${BLUE}🛡️ 环境隔离配置：${NC}"
+    echo ""
+    echo -e "  ${BOLD}环境变量:${NC}"
+    echo -e "    ${DIM}SAGE_VENV_POLICY=warning${NC}   默认，系统环境时警告"
+    echo -e "    ${DIM}SAGE_VENV_POLICY=error${NC}     系统环境时报错退出"
+    echo -e "    ${DIM}SAGE_VENV_POLICY=ignore${NC}    跳过虚拟环境检查"
+    echo ""
+    echo -e "    ${DIM}使用 pip-audit 和 safety 工具${NC}"
+    echo -e "    ${DIM}与安装选项结合使用: ./quickstart.sh --verify-deps --dev${NC}"
+    echo ""
+    echo -e "  ${BOLD}--verify-deps-strict${NC}                       ${YELLOW}严格依赖验证${NC}"
+    echo -e "    ${DIM}在发现任何问题时失败（用于 CI/CD）${NC}"
+    echo -e "    ${DIM}推荐用于自动化部署流程${NC}"
+    echo ""
     echo -e "  ${BOLD}--no-cache-clean, --skip-cache-clean${NC}        ${YELLOW}跳过 pip 缓存清理${NC}"
     echo -e "    ${DIM}默认安装前会清理 pip 缓存，此选项可跳过${NC}"
     echo -e "    ${DIM}适用于网络受限或缓存清理可能出错的环境${NC}"
@@ -433,6 +544,8 @@ show_parameter_help() {
     echo -e "  ./quickstart.sh --core --pip --yes               ${DIM}# 核心运行时 + 当前环境 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --full --yes                     ${DIM}# 完整功能 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --dev --vllm --yes               ${DIM}# 开发者安装 + VLLM支持 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --verify-deps --standard         ${DIM}# 深度安全验证 + 标准安装${NC}"
+    echo -e "  ./quickstart.sh --verify-deps-strict --dev --yes ${DIM}# 严格验证 + 开发模式 + 跳过确认${NC}"
     echo ""
     echo -e "${PURPLE}📝 注意：${NC}"
     echo -e "  ${DIM}• quickstart.sh 默认使用 dev 模式（适合从源码安装的开发者）${NC}"
@@ -447,7 +560,7 @@ show_parameter_help() {
 parse_install_mode() {
     local param="$1"
     case "$param" in
-        "--core"|"--c"|"-core"|"-c")
+        "--core"|"--c"|"-core"|"-c"|"--minimal"|"-minimal")
             INSTALL_MODE="core"
             return 0
             ;;
@@ -479,6 +592,11 @@ parse_install_environment() {
             ;;
         "--pip"|"-pip")
             INSTALL_ENVIRONMENT="pip"
+            return 0
+            ;;
+        "--auto-venv")
+            AUTO_VENV=true
+            export SAGE_AUTO_VENV=true
             return 0
             ;;
         *)
@@ -588,6 +706,44 @@ parse_doctor_option() {
     esac
 }
 
+# 解析断点续传参数
+parse_resume_option() {
+    local param="$1"
+    case "$param" in
+        "--resume")
+            RESUME_INSTALL=true
+            return 0
+            ;;
+        "--reset-checkpoint")
+            RESET_CHECKPOINT=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# 解析依赖验证参数
+parse_verify_deps_option() {
+    local param="$1"
+    case "$param" in
+        "--verify-deps")
+            VERIFY_DEPS=true
+            VERIFY_DEPS_STRICT=false
+            return 0
+            ;;
+        "--verify-deps-strict")
+            VERIFY_DEPS=true
+            VERIFY_DEPS_STRICT=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 主参数解析函数
 parse_arguments() {
     local unknown_params=()
@@ -604,7 +760,43 @@ parse_arguments() {
     while [[ $# -gt 0 ]]; do
         local param="$1"
 
-        if parse_install_mode "$param"; then
+        if [[ "$param" == "--skip-hooks" ]]; then
+            SKIP_HOOKS=true
+            shift
+        elif [[ "$param" == --hooks-mode=* ]]; then
+            set_hooks_mode_value "${param#*=}"
+            shift
+        elif [[ "$param" == "--hooks-mode" ]]; then
+            if [[ $# -lt 2 ]]; then
+                echo -e "${CROSS} --hooks-mode 需要一个值 (auto|background|sync)"
+                exit 1
+            fi
+            set_hooks_mode_value "$2"
+            shift 2
+        elif [[ "$param" == --hooks-profile=* ]]; then
+            set_hooks_profile_value "${param#*=}"
+            shift
+        elif [[ "$param" == "--hooks-profile" ]]; then
+            if [[ $# -lt 2 ]]; then
+                echo -e "${CROSS} --hooks-profile 需要一个值 (lightweight|full)"
+                exit 1
+            fi
+            set_hooks_profile_value "$2"
+            shift 2
+        elif [[ "$param" == --use-mirror=* ]]; then
+            USE_PIP_MIRROR=true
+            set_mirror_source_value "${param#*=}"
+            shift
+        elif [[ "$param" == "--use-mirror" ]]; then
+            USE_PIP_MIRROR=true
+            if [[ $# -ge 2 && ! "$2" =~ ^- ]]; then
+                set_mirror_source_value "$2"
+                shift 2
+            else
+                MIRROR_SOURCE="auto"
+                shift
+            fi
+        elif parse_install_mode "$param"; then
             # 安装模式参数
             shift
         elif parse_install_environment "$param"; then
@@ -624,6 +816,12 @@ parse_arguments() {
             shift
         elif parse_doctor_option "$param"; then
             # 环境医生参数
+            shift
+        elif parse_resume_option "$param"; then
+            # 断点续传参数
+            shift
+        elif parse_verify_deps_option "$param"; then
+            # 依赖验证参数
             shift
         else
             # 未知参数
@@ -784,6 +982,20 @@ show_install_configuration() {
         echo -e "  ${BLUE}Submodules:${NC} ${DIM}跳过自动同步${NC}"
     fi
 
+    if [ "$SKIP_HOOKS" = true ]; then
+        echo -e "  ${BLUE}Git Hooks:${NC} ${DIM}跳过自动安装${NC}"
+    else
+        local hooks_mode_label="$HOOKS_MODE"
+        if [ "$HOOKS_MODE" = "auto" ]; then
+            hooks_mode_label="auto (交互式后台)"
+        fi
+        echo -e "  ${BLUE}Git Hooks:${NC} 模式=${GREEN}$hooks_mode_label${NC}, 配置=${PURPLE}$HOOKS_PROFILE${NC}"
+    fi
+
+    if [ "$USE_PIP_MIRROR" = true ]; then
+        echo -e "  ${BLUE}pip 镜像:${NC} ${GREEN}$MIRROR_SOURCE${NC}"
+    fi
+
     if [ "$CLEAN_PIP_CACHE" = false ]; then
         echo -e "  ${BLUE}特殊选项:${NC} ${YELLOW}跳过 pip 缓存清理${NC}"
     fi
@@ -803,6 +1015,16 @@ get_install_environment() {
 # 获取是否安装 VLLM
 get_install_vllm() {
     echo "$INSTALL_VLLM"
+}
+
+# 获取是否执行依赖验证
+get_verify_deps() {
+    echo "$VERIFY_DEPS"
+}
+
+# 获取是否执行严格依赖验证
+get_verify_deps_strict() {
+    echo "$VERIFY_DEPS_STRICT"
 }
 
 # 获取是否自动确认
@@ -838,4 +1060,34 @@ get_fix_environment() {
 # 获取是否自动同步 submodules
 get_sync_submodules() {
     echo "${SYNC_SUBMODULES:-false}"
+}
+
+# 获取是否断点续传
+get_resume_install() {
+    echo "$RESUME_INSTALL"
+}
+
+# 获取是否重置检查点
+get_reset_checkpoint() {
+    echo "$RESET_CHECKPOINT"
+}
+
+should_skip_hooks() {
+    echo "$SKIP_HOOKS"
+}
+
+get_hooks_mode_value() {
+    echo "$HOOKS_MODE"
+}
+
+get_hooks_profile_value() {
+    echo "$HOOKS_PROFILE"
+}
+
+should_use_pip_mirror() {
+    echo "$USE_PIP_MIRROR"
+}
+
+get_mirror_source_value() {
+    echo "$MIRROR_SOURCE"
 }

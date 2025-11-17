@@ -1,11 +1,9 @@
----
-name: Question
-about: Ask a question about the project
-title: '[Question] '
-labels: question
+______________________________________________________________________
+
+name: Question about: Ask a question about the project title: '[Question] ' labels: question
 assignees: ''
 
----
+______________________________________________________________________
 
 **Question**
 
