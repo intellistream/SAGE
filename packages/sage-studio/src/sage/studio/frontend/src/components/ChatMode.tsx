@@ -28,6 +28,7 @@ import {
     ArrowRightCircle,
 } from 'lucide-react'
 import { useChatStore, type ChatMessage } from '../store/chatStore'
+import MessageContent from './MessageContent'
 import {
     sendChatMessage,
     getChatSessions,
@@ -483,12 +484,13 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                                                     }
                                                 `}
                                             >
-                                                <div className="whitespace-pre-wrap break-words">
-                                                    {msg.content}
-                                                    {msg.isStreaming && streamingMessageId === msg.id && (
-                                                        <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
-                                                    )}
-                                                </div>
+                                                <MessageContent
+                                                    content={msg.content}
+                                                    isUser={msg.role === 'user'}
+                                                    isStreaming={msg.isStreaming}
+                                                    streamingMessageId={streamingMessageId}
+                                                    messageId={msg.id}
+                                                />
                                             </div>
 
                                             {msg.role === 'user' && (
