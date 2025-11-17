@@ -43,7 +43,7 @@ app = FastAPI(
 # CORS 配置（允许 sage-studio 调用）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: 生产环境应限制
+    allow_origins=["*"],  # NOTE: 生产环境应配置具体的允许域名列表
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

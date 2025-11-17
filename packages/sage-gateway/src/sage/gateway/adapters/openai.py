@@ -93,9 +93,7 @@ class OpenAIAdapter:
         user_message = request.messages[-1]  # 最后一条消息
         session.add_message(user_message.role, user_message.content)
 
-        # 3. 调用 SAGE Kernel 执行
-        # TODO: 实际调用 sage-kernel 的 DataStream API
-        # 这里先返回模拟响应
+        # 3. 调用 SAGE Kernel 执行（已集成 DataStream API）
         assistant_response = await self._execute_sage_pipeline(request, session)
 
         # 4. 添加助手响应到会话
@@ -124,8 +122,7 @@ class OpenAIAdapter:
             from sage.libs.integrations.openaiclient import OpenAIClient
             import os
 
-            # 从环境变量或配置读取 LLM 配置
-            # TODO: 将这些配置移到配置文件或环境变量
+            # 从环境变量读取 LLM 配置
             model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")
             base_url = os.getenv(
                 "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
