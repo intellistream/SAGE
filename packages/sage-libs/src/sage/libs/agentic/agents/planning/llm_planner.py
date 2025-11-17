@@ -1,11 +1,9 @@
-# sage/libs/agents/planning/llm_planner.py
+# sage/libs/agentic/agents/planning/llm_planner.py
 from __future__ import annotations
 
 import json
 import re
 from typing import Any
-
-from sage.common.core import MapFunction
 
 PlanStep = dict[
     str, Any
@@ -173,7 +171,7 @@ def _validate_steps(
     return valid
 
 
-class LLMPlanner(MapFunction):
+class LLMPlanner:
     """
     用.rag.generator 中的 Generator（OpenAIGenerator / HFGenerator）产出 MCP 风格计划。
     统一接口：plan(profile_prompt, user_query, tools) -> List[PlanStep]

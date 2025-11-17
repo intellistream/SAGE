@@ -1,12 +1,10 @@
-# refactor_wxh/MemoRAG/packages/sage-libs/src/sage/libs/agents/action/mcp_registry.py
+# refactor_wxh/MemoRAG/packages/sage-libs/src/sage/libs/agentic/agents/action/mcp_registry.py
 from __future__ import annotations
 
 from typing import Any
 
-from sage.common.core import MapFunction
 
-
-class MCPRegistry(MapFunction):
+class MCPRegistry:
     """
     MCP 工具注册表：
     - register(tool): tool 需至少具备 name/description/input_schema/call(arguments)
