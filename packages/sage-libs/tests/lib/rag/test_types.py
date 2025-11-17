@@ -8,8 +8,6 @@ from sage.libs.rag.types import (
     RAGDocument,
     RAGQuery,
     RAGResponse,
-    create_rag_document,
-    create_rag_query,
     create_rag_response,
 )
 
@@ -37,14 +35,14 @@ class TestRAGDocument:
         assert doc["relevance_score"] == 0.95
         assert doc["chunk_id"] == 3
 
-    def test_create_rag_document(self):
-        """测试create_rag_document辅助函数"""
-        doc = create_rag_document(
-            text="Sample text",
-            title="Sample",
-            relevance_score=0.85,
-            source="test.pdf",
-        )
+    def test_rag_document_creation(self):
+        """测试手动创建RAGDocument"""
+        doc: RAGDocument = {
+            "text": "Sample text",
+            "title": "Sample",
+            "relevance_score": 0.85,
+            "source": "test.pdf",
+        }
         assert doc["text"] == "Sample text"
         assert doc["title"] == "Sample"
         assert doc["relevance_score"] == 0.85
@@ -75,14 +73,14 @@ class TestRAGQuery:
         assert query["generated"] == "Machine learning is..."
         assert query["execution_time"] == 1.5
 
-    def test_create_rag_query(self):
-        """测试create_rag_query辅助函数"""
-        query = create_rag_query(
-            query="Test query",
-            results=["r1", "r2", "r3"],
-            generated="Generated answer",
-            reranked=True,
-        )
+    def test_rag_query_creation(self):
+        """测试手动创建RAGQuery"""
+        query: RAGQuery = {
+            "query": "Test query",
+            "results": ["r1", "r2", "r3"],
+            "generated": "Generated answer",
+            "reranked": True,
+        }
         assert query["query"] == "Test query"
         assert len(query["results"]) == 3
         assert query["generated"] == "Generated answer"
@@ -149,14 +147,14 @@ class TestRAGTypesCompatibility:
 
     def test_rag_document_is_dict(self):
         """验证RAGDocument可以作为普通字典使用"""
-        doc = create_rag_document(text="test", title="Test")
+        doc: RAGDocument = {"text": "test", "title": "Test"}
         assert isinstance(doc, dict)
         assert "text" in doc
         assert doc.get("title") == "Test"
 
     def test_rag_query_is_dict(self):
         """验证RAGQuery可以作为普通字典使用"""
-        query = create_rag_query(query="test", results=["r1"])
+        query: RAGQuery = {"query": "test", "results": ["r1"]}
         assert isinstance(query, dict)
         assert "query" in query
         assert query.get("results") == ["r1"]
@@ -171,11 +169,11 @@ class TestRAGTypesCompatibility:
     def test_optional_fields(self):
         """测试可选字段的处理"""
         # 只包含必需字段
-        doc = create_rag_document(text="test")
+        doc: RAGDocument = {"text": "test"}
         assert "text" in doc
         assert doc.get("relevance_score") is None
 
-        query = create_rag_query(query="test", results=[])
+        query: RAGQuery = {"query": "test", "results": []}
         assert "query" in query
         assert query.get("generated") is None
 

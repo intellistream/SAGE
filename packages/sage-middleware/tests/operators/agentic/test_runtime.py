@@ -49,51 +49,34 @@ class TestAgentRuntimeOperatorHelpers:
 class TestAgentRuntimeOperatorInit:
     """测试AgentRuntimeOperator初始化"""
 
-    def test_agent_runtime_operator_minimal_init(self):
-        """测试最小配置初始化"""
-        # 需要generator配置，否则会抛出ValueError
-        config = {
-            "generator": {
-                "method": "openai",
-                "model": "gpt-3.5-turbo",
-                "api_key": "test-key",  # pragma: allowlist secret
-            }
-        }
-
-        # 可能因为缺少实际的API key或其他配置而失败
-        # 但至少应该能够实例化operator类本身
-        try:
-            operator = AgentRuntimeOperator(config=config)
-            assert operator is not None
-        except (ImportError, ValueError, RuntimeError):
-            # 预期的异常：缺少依赖或配置
-            pytest.skip("Cannot initialize without real dependencies")
-
     def test_agent_runtime_operator_config_none(self):
         """测试config为None时的行为"""
         with pytest.raises(ValueError, match="generator config"):
             # 应该因为缺少generator配置而失败
             AgentRuntimeOperator(config=None)
 
-    def test_agent_runtime_operator_has_attributes(self):
-        """测试operator具有必要的属性"""
+    def test_agent_runtime_operator_missing_generator(self):
+        """测试缺少generator配置"""
         config = {
-            "generator": {"method": "openai", "model": "test"},
             "profile": {"name": "TestBot"},
             "tools": [],
         }
+        with pytest.raises(ValueError, match="generator config"):
+            AgentRuntimeOperator(config=config)
 
-        try:
-            operator = AgentRuntimeOperator(config=config)
-            # 验证关键属性存在
-            assert hasattr(operator, "profile")
-            assert hasattr(operator, "generator")
-            assert hasattr(operator, "planner")
-            assert hasattr(operator, "tools")
-            assert hasattr(operator, "runtime")
-        except (ImportError, ValueError, RuntimeError, AttributeError):
-            # 如果因为缺少依赖或配置而失败，至少验证了导入和构造逻辑
-            pytest.skip("Cannot initialize without real dependencies")
+    def test_build_profile_creates_default(self):
+        """测试构建默认profile"""
+        from sage.libs.agentic.agents.profile.profile import BaseProfile
+
+        profile = _build_profile(None)
+        assert isinstance(profile, BaseProfile)
+
+    def test_build_tools_creates_registry(self):
+        """测试构建工具注册表"""
+        from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
+
+        registry = _build_tools([])
+        assert isinstance(registry, MCPRegistry)
 
 
 @pytest.mark.integration
