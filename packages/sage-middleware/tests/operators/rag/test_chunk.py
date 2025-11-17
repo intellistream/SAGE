@@ -34,10 +34,8 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter()
 
-        assert splitter.config == config
         assert splitter.chunk_size == 512  # 默认值
         assert splitter.overlap == 128  # 默认值
 
@@ -46,10 +44,8 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 256, "overlap": 64}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=256, overlap=64)
 
-        assert splitter.config == config
         assert splitter.chunk_size == 256
         assert splitter.overlap == 64
 
@@ -58,12 +54,11 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 10, "overlap": 3}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=10, overlap=3)
 
-        # 测试短文本（长度为15个字符）
+        # 测试短文本（长度为16个字符）
         text = "Hello World Test"
-        chunks = splitter._split_text(text)
+        chunks = splitter.split(text)
 
         # 验证分割结果
         assert isinstance(chunks, list)
@@ -81,12 +76,11 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 10, "overlap": 3}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=10, overlap=3)
 
         # 文本长度正好等于chunk_size
         text = "1234567890"  # 10个字符
-        chunks = splitter._split_text(text)
+        chunks = splitter.split(text)
 
         # 由于有overlap，会产生两个chunks
         assert len(chunks) == 2
@@ -98,12 +92,11 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 20, "overlap": 5}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=20, overlap=5)
 
         # 文本长度小于chunk_size
         text = "Short text"  # 10个字符
-        chunks = splitter._split_text(text)
+        chunks = splitter.split(text)
 
         # 应该只有一个chunk，包含全部文本
         assert len(chunks) == 1
@@ -114,12 +107,11 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 10, "overlap": 3}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=10, overlap=3)
 
         # 空文本
         text = ""
-        chunks = splitter._split_text(text)
+        chunks = splitter.split(text)
 
         # 应该返回一个包含空字符串的列表
         assert len(chunks) == 1
@@ -130,11 +122,10 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 5, "overlap": 8}  # overlap > chunk_size
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=5, overlap=8)  # overlap > chunk_size
 
         text = "This is a test text for overlapping"
-        chunks = splitter._split_text(text)
+        chunks = splitter.split(text)
 
         # 验证仍然能正常工作（虽然overlap很大）
         assert isinstance(chunks, list)
@@ -146,11 +137,10 @@ class TestCharacterSplitter:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 5, "overlap": 0}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=5, overlap=0)
 
         text = "1234567890ABCDE"  # pragma: allowlist secret
-        chunks = splitter._split_text(text)
+        chunks = splitter.split(text)
 
         # 应该有3个chunk，没有重叠
         assert len(chunks) == 3
@@ -159,19 +149,15 @@ class TestCharacterSplitter:
         assert chunks[2] == "ABCDE"
 
     def test_execute_basic(self):
-        """测试execute方法基本功能"""
+        """测试split方法基本功能"""
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 10, "overlap": 3}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=10, overlap=3)
 
-        # 测试输入文档对象
-        input_document = {
-            "content": "This is a test document that needs to be split into chunks.",
-            "metadata": {},
-        }
-        result = splitter.execute(input_document)
+        # 测试输入文本
+        text = "This is a test document that needs to be split into chunks."
+        result = splitter.split(text)
 
         # 验证结果
         assert isinstance(result, list)
@@ -180,21 +166,20 @@ class TestCharacterSplitter:
         # 验证第一个chunk
         assert result[0] == "This is a "
 
-        # 验证chunks有重叠 - 检查相邻chunks之间的重叠
+        # 验证chunks有重叠
         assert "is a " in result[0]
         assert "a " in result[1]  # 第二个chunk应该以overlap开始
 
     def test_execute_with_chinese_text(self):
-        """测试execute方法处理中文文本"""
+        """测试split方法处理中文文本"""
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 5, "overlap": 2}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=5, overlap=2)
 
-        # 中文文档对象
-        input_document = {"content": "这是一个测试文档需要分割成块", "metadata": {}}
-        result = splitter.execute(input_document)
+        # 中文文本
+        text = "这是一个测试文档需要分割成块"
+        result = splitter.split(text)
 
         # 验证结果
         assert isinstance(result, list)
@@ -205,16 +190,15 @@ class TestCharacterSplitter:
         assert result[1] == "个测试文档"  # 有2个字符的重叠
 
     def test_execute_with_special_characters(self):
-        """测试execute方法处理特殊字符"""
+        """测试split方法处理特殊字符"""
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 8, "overlap": 3}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=8, overlap=3)
 
-        # 包含特殊字符的文档对象
-        input_document = {"content": "Hello!\n\tWorld@#$%^&*()", "metadata": {}}
-        result = splitter.execute(input_document)
+        # 包含特殊字符的文本
+        text = "Hello!\n\tWorld@#$%^&*()"
+        result = splitter.split(text)
 
         # 验证结果
         assert isinstance(result, list)
@@ -227,16 +211,15 @@ class TestCharacterSplitter:
         assert special_chars_found
 
     def test_execute_with_very_long_text(self):
-        """测试execute方法处理长文本"""
+        """测试split方法处理长文本"""
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        config = {"chunk_size": 50, "overlap": 10}
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=50, overlap=10)
 
-        # 生成长文档对象
-        input_document = {"content": "A" * 500, "metadata": {}}  # 500个字符
-        result = splitter.execute(input_document)
+        # 生成长文本
+        text = "A" * 500  # 500个字符
+        result = splitter.split(text)
 
         # 验证结果
         assert isinstance(result, list)
@@ -261,25 +244,21 @@ class TestCharacterSplitterConfiguration:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        test_document = {
-            "content": "The quick brown fox jumps over the lazy dog",
-            "metadata": {},
-        }
+        text = "The quick brown fox jumps over the lazy dog"
 
         # 测试不同的chunk_size
         for chunk_size in [5, 10, 20, 50]:
-            config = {"chunk_size": chunk_size, "overlap": 2}
-            splitter = CharacterSplitter(config=config)
+            splitter = CharacterSplitter(chunk_size=chunk_size, overlap=2)
 
-            result = splitter.execute(test_document)
+            result = splitter.split(text)
 
             # 验证结果
             assert isinstance(result, list)
-            if len(test_document["content"]) > chunk_size:
+            if len(text) > chunk_size:
                 assert len(result) > 1
 
             # 验证第一个chunk的大小应该等于chunk_size（如果文本足够长）
-            if len(test_document["content"]) >= chunk_size:
+            if len(text) >= chunk_size:
                 assert len(result[0]) == chunk_size
 
             # 验证所有chunks的长度都合理（不超过chunk_size）
@@ -292,18 +271,14 @@ class TestCharacterSplitterConfiguration:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
 
-        test_document = {
-            "content": "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",  # pragma: allowlist secret
-            "metadata": {},
-        }
+        text = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"  # pragma: allowlist secret
         chunk_size = 10
 
         # 测试不同的overlap
         for overlap in [0, 2, 5, 8]:
-            config = {"chunk_size": chunk_size, "overlap": overlap}
-            splitter = CharacterSplitter(config=config)
+            splitter = CharacterSplitter(chunk_size=chunk_size, overlap=overlap)
 
-            result = splitter.execute(test_document)
+            result = splitter.split(text)
 
             # 验证结果
             assert isinstance(result, list)
@@ -323,9 +298,7 @@ class TestCharacterSplitterIntegration:
     @pytest.mark.skipif(not CHUNK_AVAILABLE, reason="Chunk module not available")
     def test_character_splitter_in_pipeline(self):
         """测试CharacterSplitter在pipeline中的集成"""
-        config = {"chunk_size": 100, "overlap": 20}
-
-        splitter = CharacterSplitter(config=config)
+        splitter = CharacterSplitter(chunk_size=100, overlap=20)
 
         # 模拟来自文件读取的长文档
         document_content = """
@@ -339,9 +312,9 @@ class TestCharacterSplitterIntegration:
         This test verifies that the character splitter can handle realistic document content properly.
         """
 
-        document = {"content": document_content.strip(), "metadata": {}}
+        text = document_content.strip()
 
-        result = splitter.execute(document)
+        result = splitter.split(text)
 
         # 验证集成结果
         assert isinstance(result, list)
@@ -349,16 +322,16 @@ class TestCharacterSplitterIntegration:
 
         # 验证chunks质量
         total_length = sum(len(chunk) for chunk in result)
-        original_length = len(document["content"])
+        original_length = len(text)
 
         # 由于有重叠，总长度应该大于原始长度
         assert total_length > original_length
 
         # 验证第一个chunk包含文档开头，最后一个chunk包含文档结尾
-        assert result[0].startswith(document["content"][:50])
+        assert result[0].startswith(text[:50])
         # 由于分割算法可能产生小的末尾chunks，检查最后几个chunks是否覆盖了文档结尾
         last_chunks_combined = "".join(result[-2:]) if len(result) > 1 else result[-1]
-        assert document["content"][-30:] in last_chunks_combined
+        assert text[-30:] in last_chunks_combined
 
         # 验证文档被完整覆盖（检查关键内容都被包含）
         combined_content = "".join(result)
@@ -367,9 +340,9 @@ class TestCharacterSplitterIntegration:
 
         # 验证chunk大小合理
         for i, chunk in enumerate(result[:-1]):  # 除最后一个chunk
-            assert len(chunk) <= config["chunk_size"]
+            assert len(chunk) <= 100
             if i > 0:  # 检查重叠
-                overlap_size = min(config["overlap"], len(result[i - 1]), len(chunk))
+                overlap_size = min(20, len(result[i - 1]), len(chunk))
                 if overlap_size > 0:
                     prev_end = result[i - 1][-overlap_size:]
                     curr_start = chunk[:overlap_size]
