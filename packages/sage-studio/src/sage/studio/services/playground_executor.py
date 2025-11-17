@@ -445,6 +445,7 @@ class PlaygroundExecutor:
 
             elif operator_type == "VLLMModelNode":
                 # TODO: 添加 vLLM 节点支持
+                # Issue URL: https://github.com/intellistream/SAGE/issues/1107
                 logger.warning("VLLMModelNode 暂不支持")
                 return None
 
