@@ -473,7 +473,7 @@ install_mode = '$install_mode'
 if install_mode != 'core':
     package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark'])
 if install_mode in ['full', 'dev']:
-    package_dirs.extend(['packages/sage-apps', 'packages/sage-studio'])
+    package_dirs.extend(['packages/sage-apps', 'packages/sage-gateway', 'packages/sage-studio'])
 if install_mode == 'dev':
     package_dirs.append('packages/sage-tools')
 for pkg_dir in package_dirs:
