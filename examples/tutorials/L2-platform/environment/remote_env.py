@@ -17,7 +17,7 @@ class SimpleSource(SourceFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.count = 0
-        self.max_count = 10
+        self.max_count = 10000
 
     def execute(self, data=None):
         if self.count >= self.max_count:
