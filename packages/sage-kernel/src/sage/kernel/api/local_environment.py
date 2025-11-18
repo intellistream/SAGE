@@ -40,8 +40,8 @@ class LocalEnvironment(BaseEnvironment):
         Returns:
             str: 任务的UUID
         """
-        # 提交作业
-        env_uuid = self.jobmanager.submit_job(self)
+        # 提交作业（传递 autostop 参数）
+        env_uuid = self.jobmanager.submit_job(self, autostop=autostop)
 
         if autostop:
             self._wait_for_completion()

@@ -26,14 +26,11 @@ class PipelineCaller(MapFunction):
         # 根据数据集类型初始化加载器
         if dataset == "locomo":
             self.loader = LocomoDataLoader()
-            # 计算总对话数
-            turns = self.loader.get_turn(task_id)
-            self.total_dialogs = sum((max_dialog_idx + 1) for _, max_dialog_idx in turns)
         else:
             raise ValueError(f"不支持的数据集: {dataset}")
         
-        # 初始化进度条
-        self.progress_bar = ProgressBar(total=self.total_dialogs, desc="处理对话")
+        # 进度条将在第一个数据包到达时初始化（因为需要从数据中获取总数）
+        self.progress_bar = None
     
     def execute(self, data):
         """调用服务处理对话
@@ -54,13 +51,17 @@ class PipelineCaller(MapFunction):
         session_id = data.get("session_id")
         dialog_id = data.get("dialog_id")
         dialogs = data.get("dialogs", [])
+        packet_idx = data.get("packet_idx", 0)
+        total_packets = data.get("total_packets", 0)
         
-        # 更新进度条
+        # 初始化或更新进度条
+        if self.progress_bar is None:
+            self.progress_bar = ProgressBar(total=total_packets, desc="处理对话")
         self.progress_bar.update(1)
         
-        # 打印【Memory Source】部分
+        # 打印【Memory Source】部分（使用数据中的序号）
         print(f"\n{'=' * 60}")
-        print(f"\033[92m【Memory Source】\033[0m（{self.progress_bar.current}/{self.total_dialogs}）")
+        print(f"\033[92m【Memory Source】\033[0m（{packet_idx + 1}/{total_packets}）")
         print(f">> Session：{session_id}，Dialog {dialog_id}", end="")
         if len(dialogs) == 2:
             print(f" - {dialog_id + 1}")
@@ -175,7 +176,7 @@ class PipelineCaller(MapFunction):
         print(f"{'=' * 60}\n")
         
         # 如果处理完成，关闭进度条
-        if self.progress_bar.current >= self.total_dialogs:
+        if self.progress_bar and packet_idx + 1 >= total_packets:
             self.progress_bar.close()
 
         # 返回所有问题的答案

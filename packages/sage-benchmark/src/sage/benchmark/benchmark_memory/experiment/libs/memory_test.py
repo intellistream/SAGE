@@ -86,8 +86,9 @@ class MemoryTest(MapFunction):
                 self.generator.ctx = self.ctx
 
             # 调用 LLM 生成答案
-            answer = self.generator.execute(prompted)
-
+            # answer = self.generator.execute(prompted)
+            # debug模拟回答
+            answer = "yes"
             # 提取答案文本
             if isinstance(answer, dict):
                 answer_text = answer.get("generated", str(answer))
