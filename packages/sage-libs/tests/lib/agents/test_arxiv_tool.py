@@ -125,7 +125,7 @@ class TestArxivSearchToolIntegration:
         if not ARXIV_TOOL_AVAILABLE:
             pytest.skip("ArxivSearchTool not available")
 
-        from sage.libs.agents.action.mcp_registry import MCPRegistry
+        from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
 
         registry = MCPRegistry()
         tool = ArxivSearchTool()

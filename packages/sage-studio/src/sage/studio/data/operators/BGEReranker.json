@@ -2,7 +2,7 @@
     "id": 5,
     "name": "BGEReranker",
     "description": "BGE-based reranker for document relevance scoring",
-    "module_path": "sage.libs.rag.reranker",
+    "module_path": "sage.middleware.operators.rag.reranker",
     "class_name": "BGEReranker",
     "isCustom": false,
     "parameters": [

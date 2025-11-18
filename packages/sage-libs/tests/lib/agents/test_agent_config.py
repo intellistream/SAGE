@@ -256,7 +256,7 @@ class TestConfigWithComponents:
 
     def test_config_compatible_with_profile(self):
         """Test that config is compatible with BaseProfile."""
-        from sage.libs.agents.profile.profile import BaseProfile
+        from sage.libs.agentic.agents.profile.profile import BaseProfile
 
         config_path = os.path.join(
             os.path.dirname(__file__),
@@ -288,7 +288,7 @@ class TestConfigWithComponents:
 
     def test_config_compatible_with_mcp_registry(self):
         """Test that tools config is compatible with MCPRegistry."""
-        from sage.libs.agents.action.mcp_registry import MCPRegistry
+        from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
 
         config_path = os.path.join(
             os.path.dirname(__file__),
