@@ -424,9 +424,10 @@ initialize_hdfs() {
 
 # ==================== HDFS 停止 ====================
 stop_hdfs() {
+    check_docker  # 确保 DOCKER_CMD 已初始化
     log_step "停止 HDFS 集群..."
 
-    if ! $DOCKER_CMD ps | grep -q hdfs-; then
+    if ! $DOCKER_CMD ps 2>/dev/null | grep -q "hdfs-namenode"; then
         log_warn "HDFS 集群未运行"
         return 0
     fi
