@@ -33,7 +33,7 @@ import sys
 from pathlib import Path
 
 import yaml  # type: ignore[import-untyped]
-from sage.benchmark.benchmark_memory.experiment.libs.locomo_source import LocomoSource
+from sage.benchmark.benchmark_memory.experiment.libs.memory_source import MemorySource
 from sage.benchmark.benchmark_memory.experiment.libs.memory_sink import MemorySink
 
 # 导入业务相关的算子
@@ -134,22 +134,33 @@ def main():
     print("\n【创建 Pipeline 1】记忆存储 Pipeline")
     print("  └─ 架构: PipelineServiceSource → PreInsert → MemoryInsert → PostInsert → PipelineServiceSink")
     print("  └─ 职责: 存储对话到短期记忆")
-    env.from_source(PipelineServiceSource, insert_bridge).map(PreInsert).map(MemoryInsert).map(
-        PostInsert
-    ).sink(PipelineServiceSink)
+    (
+        env.from_source(PipelineServiceSource, insert_bridge)
+        .map(PreInsert, action="none")
+        .map(MemoryInsert)
+        .map(PostInsert, action="none")
+        .sink(PipelineServiceSink)
+    )
 
     print("\n【创建 Pipeline 2】记忆测试 Pipeline")
     print("  └─ 架构: PipelineServiceSource → PreRetrieval → MemoryRetrieval → PostRetrieval → MemoryTest → PipelineServiceSink")
     print("  └─ 职责: 检索历史、生成答案")
-    env.from_source(PipelineServiceSource, test_bridge).map(PreRetrieval).map(
-        MemoryRetrieval
-    ).map(PostRetrieval).map(MemoryTest, config).sink(PipelineServiceSink)
-
+    (
+        env.from_source(PipelineServiceSource, test_bridge)
+        .map(PreRetrieval, action="none")
+        .map(MemoryRetrieval)
+        .map(PostRetrieval, action="none")
+        .map(MemoryTest, config)
+        .sink(PipelineServiceSink)
+    )
+    
     print("\n【创建 Pipeline 3】主 Pipeline")
-    print("  └─ 架构: LocomoSource → PipelineCaller → MemorySink")
+    print("  └─ 架构: MemorySource → PipelineCaller → MemorySink")
     print("  └─ 职责: 逐轮喂入对话，调用两个服务处理，保存结果")
-    env.from_batch(LocomoSource, sample_id=test_sample_id).map(PipelineCaller).sink(
-        MemorySink, dataset_name="locomo", output_name=f"result_{test_sample_id}"
+    (
+        env.from_batch(MemorySource, dataset="locomo", task_id=test_sample_id)
+        .map(PipelineCaller, dataset="locomo", task_id=test_sample_id)
+        .sink(MemorySink, dataset_name="locomo", output_name=f"result_{test_sample_id}")
     )
 
     print("\n" + "=" * 60)

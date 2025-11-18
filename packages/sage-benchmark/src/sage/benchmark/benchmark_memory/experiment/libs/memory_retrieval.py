@@ -30,9 +30,6 @@ class MemoryRetrieval(MapFunction):
         # 提取 payload（如果是 PipelineRequest）
         payload = data.payload if hasattr(data, "payload") else data
 
-        # 提取 payload（如果是 PipelineRequest）
-        payload = data.payload if hasattr(data, "payload") else data
-
         # 调用短期记忆服务检索所有对话
         # 注意：retrieve() 方法不接受参数，直接调用即可
         memory_data = self.call_service(

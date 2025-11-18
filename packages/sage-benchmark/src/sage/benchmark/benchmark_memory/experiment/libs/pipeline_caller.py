@@ -1,5 +1,6 @@
 from sage.common.core import MapFunction
 from sage.data.locomo.dataloader import LocomoDataLoader
+from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 
 
 class PipelineCaller(MapFunction):
@@ -11,20 +12,39 @@ class PipelineCaller(MapFunction):
     3. 如果有问题，调用记忆测试服务
     """
 
-    def __init__(self):
+    def __init__(self, dataset: str, task_id: str):
+        """初始化 PipelineCaller
+        
+        Args:
+            dataset: 数据集名称 ('locomo', 等)
+            task_id: 任务/样本ID
+        """
         super().__init__()
-        self.loader = LocomoDataLoader()
-
+        self.dataset = dataset
+        self.task_id = task_id
+        
+        # 根据数据集类型初始化加载器
+        if dataset == "locomo":
+            self.loader = LocomoDataLoader()
+            # 计算总对话数
+            turns = self.loader.get_turn(task_id)
+            self.total_dialogs = sum((max_dialog_idx + 1) for _, max_dialog_idx in turns)
+        else:
+            raise ValueError(f"不支持的数据集: {dataset}")
+        
+        # 初始化进度条
+        self.progress_bar = ProgressBar(total=self.total_dialogs, desc="处理对话")
+    
     def execute(self, data):
         """调用服务处理对话
 
         Args:
-            data: 来自 LocomoSource 的数据
+            data: 来自 MemorySource 的数据
                 {
                     "task_id": "...",
                     "session_id": x,
                     "dialog_id": y,
-                    "dialog": [...]
+                    "dialogs": [...]
                 }
         """
         if not data:
@@ -33,11 +53,14 @@ class PipelineCaller(MapFunction):
         task_id = data.get("task_id")
         session_id = data.get("session_id")
         dialog_id = data.get("dialog_id")
-        dialogs = data.get("dialog", [])
-
+        dialogs = data.get("dialogs", [])
+        
+        # 更新进度条
+        self.progress_bar.update(1)
+        
         # 打印【Source】部分
         print(f"\n{'=' * 60}")
-        print("【Source】：")
+        print(f"【Memory Source】（{self.progress_bar.current}/{self.total_dialogs}）")
         print(f">> Session：{session_id}，Dialog {dialog_id}", end="")
         if len(dialogs) == 2:
             print(f" & {dialog_id + 1}")
@@ -108,6 +131,10 @@ class PipelineCaller(MapFunction):
         )
 
         print(f"{'=' * 60}\n")
+        
+        # 如果处理完成，关闭进度条
+        if self.progress_bar.current >= self.total_dialogs:
+            self.progress_bar.close()
 
         # 提取 payload（如果返回的是 PipelineRequest）
         if hasattr(result, "payload"):

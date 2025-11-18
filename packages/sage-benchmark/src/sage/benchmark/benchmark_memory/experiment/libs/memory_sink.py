@@ -33,14 +33,14 @@ class MemorySink(SinkFunction):
                 - task_id: 样本ID
                 - session_id: 会话ID
                 - dialog_id: 对话索引
-                - dialog: 对话列表，每个元素包含 speaker, text
+                - dialogs: 对话列表，每个元素包含 speaker, text
         """
         # 提取 payload（如果是 PipelineRequest）
         payload = data.payload if hasattr(data, "payload") else data
         
         session_id = payload.get("session_id")
         dialog_id = payload.get("dialog_id")
-        dialogs = payload.get("dialog", [])
+        dialogs = payload.get("dialogs", [])
         
         # 打开文件追加内容
         with open(self.output_file, "a", encoding="utf-8") as f:

@@ -18,8 +18,17 @@ class PreRetrieval(MapFunction):
     注：短期记忆通常不需要此步骤
     """
 
-    def __init__(self):
+    def __init__(self, action: str = "none"):
+        """初始化 PreRetrieval
+        
+        Args:
+            action: 操作模式
+                - 'none': 不执行任何操作，直接透传（默认）
+                - 'optimize': 优化查询
+                - 'validate': 验证权限
+        """
         super().__init__()
+        self.action = action
 
     def execute(self, data):
         """执行预处理
@@ -28,10 +37,18 @@ class PreRetrieval(MapFunction):
             data: PipelineRequest 对象或原始检索请求
         
         Returns:
-            处理后的请求（默认直接透传）
+            处理后的数据（透传）
         """
-        if not data:
-            return None
-
-        # 默认直接透传，不做任何处理
-        return data
+        # 根据 action 模式执行不同操作
+        if self.action == "none":
+            # 不执行任何操作，直接透传
+            return data
+        elif self.action == "optimize":
+            # TODO: 实现查询优化逻辑
+            return data
+        elif self.action == "validate":
+            # TODO: 实现权限验证逻辑
+            return data
+        else:
+            # 未知操作模式，透传
+            return data
