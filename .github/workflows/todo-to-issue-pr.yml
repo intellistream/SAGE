@@ -35,7 +35,7 @@ jobs:
         run: |
           git add -A
           if [[ $(git status --porcelain) ]]; then
-            git commit -m "chore: add TODO issue links via todo-to-issue-action"
+            git commit -m "chore: add TODO issue links via todo-to-issue-action [skip ci]"
             git push origin HEAD:${{ github.event.pull_request.head.ref }}
           else
             echo "No TODO links to commit"

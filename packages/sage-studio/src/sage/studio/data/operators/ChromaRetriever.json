@@ -1,0 +1,49 @@
+{
+    "id": 11,
+    "name": "ChromaRetriever",
+    "description": "向量数据库检索器 - 使用 ChromaDB 进行语义检索",
+    "module_path": "sage.middleware.operators.rag.retriever",
+    "class_name": "ChromaRetriever",
+    "isCustom": false,
+    "category": "RAG",
+    "parameters": [
+        {
+            "name": "top_k",
+            "label": "Top K",
+            "type": "number",
+            "required": false,
+            "defaultValue": 5,
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "description": "返回最相关的前 K 个文档"
+        },
+        {
+            "name": "dimension",
+            "label": "向量维度",
+            "type": "number",
+            "required": false,
+            "defaultValue": 384,
+            "description": "Embedding 向量维度（默认 384 适配 all-MiniLM-L6-v2）"
+        },
+        {
+            "name": "embedding",
+            "label": "Embedding 配置",
+            "type": "json",
+            "required": true,
+            "defaultValue": {
+                "model_name": "all-MiniLM-L6-v2",
+                "device": "cpu"
+            },
+            "description": "Embedding 模型配置"
+        },
+        {
+            "name": "chroma",
+            "label": "ChromaDB 配置",
+            "type": "json",
+            "required": true,
+            "defaultValue": "{\"persistence_path\": \"~/.sage/vector_db\", \"collection_name\": \"sage_kb\", \"knowledge_file\": null}",
+            "description": "ChromaDB 数据库配置（注意：使用 persistence_path 而不是 persist_directory）"
+        }
+    ]
+}

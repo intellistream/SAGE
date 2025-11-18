@@ -1,0 +1,23 @@
+# 运行时生成的数据
+data/
+*.log
+
+# 临时文件
+*.tmp
+*.bak
+*.backup*
+*~
+
+# IDE 文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS 文件
+.DS_Store
+Thumbs.db
+
+# 不要忽略配置目录本身
+!config/
+!docs/
