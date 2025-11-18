@@ -14,11 +14,18 @@ promptor:
     请提供有帮助的建议：
 
 generator:
+  # vllm:
+  #   api_key: "sk-8298f15945af41988281d7348b008c96"
+  #   method: "openai"
+  #   model_name: "qwen-turbo-2025-02-11"
+  #   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  #   generator:
   vllm:
-    api_key: "sk-8298f15945af41988281d7348b008c96"
+    api_key: "token-abc123"
     method: "openai"
-    model_name: "qwen-turbo-2025-02-11"
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
 # generator:
 #   vllm:
 #     api_key: "token-abc123"

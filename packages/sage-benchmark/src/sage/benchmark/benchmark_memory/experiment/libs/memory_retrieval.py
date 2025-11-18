@@ -19,7 +19,7 @@ class MemoryRetrieval(MapFunction):
         """执行记忆检索
         
         Args:
-            data: PipelineRequest 对象或字典
+            data: PipelineRequest 对象或字典，可包含 'question' 字段用于基于查询的检索
         
         Returns:
             在原始数据基础上添加 "history_text" 字段
@@ -30,26 +30,44 @@ class MemoryRetrieval(MapFunction):
         # 提取 payload（如果是 PipelineRequest）
         payload = data.payload if hasattr(data, "payload") else data
 
-        # 调用短期记忆服务检索所有对话
-        # 注意：retrieve() 方法不接受参数，直接调用即可
-        memory_data = self.call_service(
-            "short_term_memory",
-            method="retrieve",
-            timeout=10.0
-        )
+        # 获取问题（如果有）
+        question = payload.get("question", "")
 
-        # 将检索到的对话转换为文本格式
-        history_lines = []
-        for entry in memory_data:
-            dialog = entry.get("dialog", [])
-            for msg in dialog:
-                speaker = msg.get("speaker", "Unknown")
-                text = msg.get("text", "")
-                history_lines.append(f"{speaker}: {text}")
+        try:
+            # 调用短期记忆服务检索所有对话
+            # 注意：当前 STM 的 retrieve() 方法不接受参数，未来可扩展为基于问题的检索
+            # 例如：对于向量数据库，可以根据 question 检索相关对话
+            memory_data = self.call_service(
+                "short_term_memory",
+                method="retrieve",
+                timeout=10.0
+            )
 
-        history_text = "\n".join(history_lines)
+            # 检查返回结果
+            if memory_data is None:
+                print(f"⚠️  记忆检索失败：服务未返回数据")
+                payload["history_text"] = ""
+                return data
 
-        # 将历史文本添加到 payload 中
-        payload["history_text"] = history_text
+            # 将检索到的对话转换为文本格式
+            history_lines = []
+            for entry in memory_data:
+                dialog = entry.get("dialog", [])
+                for msg in dialog:
+                    speaker = msg.get("speaker", "Unknown")
+                    text = msg.get("text", "")
+                    history_lines.append(f"{speaker}: {text}")
+
+            history_text = "\n".join(history_lines)
+
+            # 将历史文本添加到 payload 中
+            payload["history_text"] = history_text
+
+        except Exception as e:
+            import traceback
+            print(f"❌ 记忆检索异常：{str(e)}")
+            traceback.print_exc()
+            # 出错时返回空历史
+            payload["history_text"] = ""
 
         return data

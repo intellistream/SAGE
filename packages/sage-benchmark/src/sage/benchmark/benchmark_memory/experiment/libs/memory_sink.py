@@ -35,30 +35,30 @@ class MemorySink(SinkFunction):
                 - dialog_id: 对话索引
                 - dialogs: 对话列表，每个元素包含 speaker, text
         """
-        # 提取 payload（如果是 PipelineRequest）
-        payload = data.payload if hasattr(data, "payload") else data
+        # # 提取 payload（如果是 PipelineRequest）
+        # payload = data.payload if hasattr(data, "payload") else data
         
-        session_id = payload.get("session_id")
-        dialog_id = payload.get("dialog_id")
-        dialogs = payload.get("dialogs", [])
+        # session_id = payload.get("session_id")
+        # dialog_id = payload.get("dialog_id")
+        # dialogs = payload.get("dialogs", [])
         
-        # 打开文件追加内容
-        with open(self.output_file, "a", encoding="utf-8") as f:
-            # 写入分隔符
-            f.write("======\n")
+        # # 打开文件追加内容
+        # with open(self.output_file, "a", encoding="utf-8") as f:
+        #     # 写入分隔符
+        #     f.write("======\n")
             
-            # 写入session和dialog信息
-            if len(dialogs) == 1:
-                f.write(f"session {session_id}\n")
-                f.write(f"dialog {dialog_id}\n")
-            else:
-                f.write(f"session {session_id}\n")
-                f.write(f"dialog {dialog_id}-{dialog_id + len(dialogs) - 1}\n")
+        #     # 写入session和dialog信息
+        #     if len(dialogs) == 1:
+        #         f.write(f"session {session_id}\n")
+        #         f.write(f"dialog {dialog_id}\n")
+        #     else:
+        #         f.write(f"session {session_id}\n")
+        #         f.write(f"dialog {dialog_id}-{dialog_id + len(dialogs) - 1}\n")
             
-            # 写入每个对话
-            for dialog in dialogs:
-                speaker = dialog.get("speaker", "Unknown")
-                text = dialog.get("text", "")
-                f.write(f'"{speaker}": "{text}"\n')
+        #     # 写入每个对话
+        #     for dialog in dialogs:
+        #         speaker = dialog.get("speaker", "Unknown")
+        #         text = dialog.get("text", "")
+        #         f.write(f'"{speaker}": "{text}"\n')
         
-        print(f"📝 保存数据: session_id={session_id}, dialog_idx={dialog_id}, dialog_count={len(dialogs)}")
+        # print(f"📝 保存数据: session_id={session_id}, dialog_idx={dialog_id}, dialog_count={len(dialogs)}")

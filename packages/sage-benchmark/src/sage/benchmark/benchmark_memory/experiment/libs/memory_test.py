@@ -66,83 +66,44 @@ class MemoryTest(MapFunction):
         task_id = payload.get("task_id")
         session_id = payload.get("session_id")
         dialog_id = payload.get("dialog_id")
-        dialogs = payload.get("dialogs", [])
+        question = payload.get("question")
+        question_idx = payload.get("question_idx", 1)
+        evidence = payload.get("evidence", [])
+        category = payload.get("category", "")
         history_text = payload.get("history_text", "")
 
-        # 检查当前 session 和 dialog 截止是否有可见问题
-        current_questions = self.loader.get_question_list(
-            task_id,
-            session_x=session_id,
-            dialog_y=dialog_id + len(dialogs) - 1,
-            include_no_evidence=False,
-        )
-
-        total_visible = len(current_questions)
-
-        # 如果没有可见问题，返回空答案列表
-        if total_visible == 0:
-            payload["answers"] = []
+        # 如果没有问题，返回空
+        if not question:
+            payload["answer"] = None
             return data
 
-        # 有可见问题，打印【QA】部分头
-        print(f"{'+' * 60}")
-        print("【QA】：")
-        print(f">> QA序列：1到{total_visible}")
+        try:
+            # 生成 Prompt（使用检索到的 history）
+            prompted = self.promptor.execute({"question": question, "history": history_text})
 
-        # 对所有可见问题（从第1题到第total_visible题）进行测试
-        answers = []
-        for q_idx, qa in enumerate(current_questions):
-            question = qa["question"]
+            # 确保 generator 有 ctx
+            if not hasattr(self.generator, "ctx") or self.generator.ctx is None:
+                self.generator.ctx = self.ctx
 
-            try:
-                # 生成 Prompt
-                prompted = self.promptor.execute({"question": question, "history": history_text})
+            # 调用 LLM 生成答案
+            answer = self.generator.execute(prompted)
 
-                # 确保 generator 有 ctx
-                if not hasattr(self.generator, "ctx") or self.generator.ctx is None:
-                    self.generator.ctx = self.ctx
+            # 提取答案文本
+            if isinstance(answer, dict):
+                answer_text = answer.get("generated", str(answer))
+            else:
+                answer_text = str(answer)
 
-                # 调用 LLM 生成答案
-                answer = self.generator.execute(prompted)
+            # 返回答案
+            payload["answer"] = answer_text
+            payload["evidence"] = evidence
+            payload["category"] = category
 
-                # 提取答案文本
-                if isinstance(answer, dict):
-                    answer_text = answer.get("generated", str(answer))
-                else:
-                    answer_text = str(answer)
+        except Exception as e:
+            import traceback
 
-                answers.append(
-                    {
-                        "question": question,
-                        "answer": answer_text,
-                        "evidence": qa.get("evidence", []),
-                        "category": qa.get("category", ""),
-                    }
-                )
-
-                # 打印【QA】部分的问答
-                print(f">> Question {q_idx + 1}：{question}")
-                print(f">> Answer：{answer_text}")
-
-            except Exception as e:
-                import traceback
-
-                traceback.print_exc()
-                # 即使失败也继续处理下一个问题
-                answers.append(
-                    {
-                        "question": question,
-                        "answer": f"生成失败: {str(e)}",
-                        "evidence": qa.get("evidence", []),
-                        "category": qa.get("category", ""),
-                    }
-                )
-                print(f">> Question {q_idx + 1}：{question}")
-                print(f">> Answer：生成失败: {str(e)}")
-
-        print(f"{'+' * 60}\n")
-
-        # 添加答案到 payload 中
-        payload["answers"] = answers
+            traceback.print_exc()
+            # 出错也要记录
+            payload["answer"] = "[ERROR]"
 
         return data

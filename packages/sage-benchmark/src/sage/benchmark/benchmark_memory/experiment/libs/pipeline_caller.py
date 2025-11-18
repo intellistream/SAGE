@@ -58,20 +58,20 @@ class PipelineCaller(MapFunction):
         # 更新进度条
         self.progress_bar.update(1)
         
-        # 打印【Source】部分
+        # 打印【Memory Source】部分
         print(f"\n{'=' * 60}")
-        print(f"【Memory Source】（{self.progress_bar.current}/{self.total_dialogs}）")
+        print(f"\033[92m【Memory Source】\033[0m（{self.progress_bar.current}/{self.total_dialogs}）")
         print(f">> Session：{session_id}，Dialog {dialog_id}", end="")
         if len(dialogs) == 2:
-            print(f" & {dialog_id + 1}")
+            print(f" - {dialog_id + 1}")
         else:
             print()
 
         for i, dialog in enumerate(dialogs):
             speaker = dialog.get("speaker", "Unknown")
             text = dialog.get("text", "")
-            print(f">> Dialog {dialog_id + i}：{speaker}")
-            print(f">> {text}")
+            print(f">> Dialog {dialog_id + i}({speaker}): {text}")
+        print(f"\n{'=' * 60}")
 
         # ============================================================
         # 阶段1：记忆存储（总是执行）
@@ -114,29 +114,74 @@ class PipelineCaller(MapFunction):
                 "answers": [],
             }
 
-        # 有可见问题，调用记忆测试服务
-        test_data = {
-            "task_id": task_id,
-            "session_id": session_id,
-            "dialog_id": dialog_id,
-            "dialogs": dialogs,
-        }
+        # 有可见问题，打印【QA】头部
+        print(f"{'+' * 60}")
+        print("【QA】：")
+        print(f">> QA序列：1到{total_visible}")
 
-        # 调用记忆测试服务（阻塞等待）
-        result = self.call_service(
-            "memory_test_service",
-            test_data,
-            method="process",
-            timeout=300.0,
-        )
+        # 逐个问题调用记忆测试服务
+        all_answers = []
+        for q_idx, qa in enumerate(current_questions):
+            question = qa["question"]
+            evidence = qa.get("evidence", [])
+            category = qa.get("category", "")
 
+            # 构造单个问题的测试请求
+            test_data = {
+                "task_id": task_id,
+                "session_id": session_id,
+                "dialog_id": dialog_id,
+                "dialogs": dialogs,
+                "question": question,
+                "question_idx": q_idx + 1,
+                "evidence": evidence,
+                "category": category,
+            }
+
+            try:
+                # 调用记忆测试服务（阻塞等待）
+                # 服务内部会：检索相关记忆 → 生成答案
+                result = self.call_service(
+                    "memory_test_service",
+                    test_data,
+                    method="process",
+                    timeout=300.0,
+                )
+
+                # 提取答案结果
+                answer_data = result.payload if hasattr(result, "payload") else result
+                if "answer" in answer_data:
+                    all_answers.append(answer_data)
+
+                    # 打印问答
+                    print(f">> Question {q_idx + 1}：{question}")
+                    print(f">> Answer：{answer_data['answer']}")
+
+            except Exception as e:
+                # 服务调用失败（可能是超时、服务关闭等）
+                print(f">> Question {q_idx + 1}：{question}")
+                print(f">> Answer：[服务调用失败: {str(e)}]")
+                # 记录失败的答案
+                all_answers.append({
+                    "question": question,
+                    "answer": "[ERROR]",
+                    "evidence": evidence,
+                    "category": category,
+                    "error": str(e),
+                })
+                # 继续处理下一个问题（而不是中断整个批次）
+
+        print(f"{'+' * 60}\n")
         print(f"{'=' * 60}\n")
         
         # 如果处理完成，关闭进度条
         if self.progress_bar.current >= self.total_dialogs:
             self.progress_bar.close()
 
-        # 提取 payload（如果返回的是 PipelineRequest）
-        if hasattr(result, "payload"):
-            return result.payload
-        return result
+        # 返回所有问题的答案
+        return {
+            "task_id": task_id,
+            "session_id": session_id,
+            "dialog_id": dialog_id,
+            "answers": all_answers,
+        }
