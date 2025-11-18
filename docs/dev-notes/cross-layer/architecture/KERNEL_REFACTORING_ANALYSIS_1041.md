@@ -327,7 +327,7 @@ rm packages/sage-kernel/src/sage/kernel/api/function/kafka_source.py
 # 2. 更新 base_environment.py
 # 修改 from_kafka_source() 方法：
 # 旧: from sage.kernel.api.function.kafka_source import KafkaSourceFunction
-# 新: from sage.libs.io import KafkaSource as KafkaSourceFunction
+# 新: from sage.libs.foundation.io import KafkaSource as KafkaSourceFunction
 
 # 3. 改进 libs 中的 KafkaSource 实现
 # 将 kernel 中的完整实现代码迁移到 libs.io.source.KafkaSource
@@ -583,8 +583,8 @@ cd packages/sage-middleware && pytest tests/
 python -c "from sage.common.core.functions import MapFunction, SinkFunction"
 python -c "from sage.common.components.debug import PrintSink"
 python -c "from sage.kernel.operators import MapOperator"  # 兼容层
-python -c "from sage.libs.agents import LangChainAgentAdapter"
-python -c "from sage.libs.io import KafkaSource"
+python -c "from sage.libs.agentic.agents import LangChainAgentAdapter"
+python -c "from sage.libs.foundation.io import KafkaSource"
 
 # 3. 运行架构检查工具
 sage-dev check-architecture

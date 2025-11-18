@@ -9,10 +9,10 @@ from typing import Any, Iterable
 
 from sage.cli.utils.env import get_api_key, load_environment_file, should_use_real_api
 from sage.common.utils.config.loader import load_config
-from sage.libs.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agents.planning.llm_planner import LLMPlanner
-from sage.libs.agents.profile.profile import BaseProfile
-from sage.libs.agents.runtime.agent import AgentRuntime
+from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
+from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agentic.agents.profile.profile import BaseProfile
+from sage.libs.agentic.agents.runtime.agent import AgentRuntime
 from sage.middleware.operators.rag import OpenAIGenerator
 
 # 添加项目路径到 sys.path

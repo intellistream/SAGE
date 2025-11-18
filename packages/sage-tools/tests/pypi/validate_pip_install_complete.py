@@ -529,15 +529,15 @@ print(f'SAGE {version} loaded')""",
             # Libs组件 (RAG, 数据源等)
             (
                 "FileSource",
-                "from sage.libs.io.source import FileSource; print('FileSource imported')",
+                "from sage.libs.foundation.io.source import FileSource; print('FileSource imported')",
             ),
             (
                 "TerminalSink",
-                "from sage.libs.io.sink import TerminalSink; print('TerminalSink imported')",
+                "from sage.libs.foundation.io.sink import TerminalSink; print('TerminalSink imported')",
             ),
             (
                 "OpenAIGenerator",
-                "from sage.libs.rag.generator import OpenAIGenerator; print('OpenAIGenerator imported')",
+                "from sage.middleware.operators.rag.generator import OpenAIGenerator; print('OpenAIGenerator imported')",
             ),
             # Tools组件
             (

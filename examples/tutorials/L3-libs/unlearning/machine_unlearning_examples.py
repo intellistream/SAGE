@@ -19,7 +19,7 @@ def example_basic_unlearning():
     print("=" * 60)
 
     try:
-        from sage.libs.unlearning.algorithms import GaussianMechanism  # noqa: F401
+        from sage.libs.privacy.unlearning.algorithms import GaussianMechanism  # noqa: F401
 
         print("\n✓ Machine Unlearning Overview:")
         print("  1. Train initial model on full dataset")
@@ -30,8 +30,8 @@ def example_basic_unlearning():
         print("\nExample workflow:")
         print(
             """
-        from sage.libs.unlearning.algorithms import GaussianMechanism
-        from sage.libs.unlearning.dp_unlearning import UnlearningEngine
+        from sage.libs.privacy.unlearning.algorithms import GaussianMechanism
+        from sage.libs.privacy.unlearning.dp_unlearning import UnlearningEngine
 
         # Initialize DP mechanism
         mechanism = GaussianMechanism(
@@ -74,7 +74,7 @@ def example_differential_privacy():
     print("=" * 60)
 
     try:
-        from sage.libs.unlearning.dp_unlearning import (  # noqa: F401
+        from sage.libs.privacy.unlearning.dp_unlearning import (  # noqa: F401
             NeighborCompensation,
             VectorPerturbation,
         )
@@ -87,8 +87,8 @@ def example_differential_privacy():
         print("\nExample: Vector perturbation")
         print(
             """
-        from sage.libs.unlearning.dp_unlearning import VectorPerturbation
-        from sage.libs.unlearning.algorithms import GaussianMechanism
+        from sage.libs.privacy.unlearning.dp_unlearning import VectorPerturbation
+        from sage.libs.privacy.unlearning.algorithms import GaussianMechanism
 
         # Create DP mechanism
         mechanism = GaussianMechanism(
@@ -111,7 +111,7 @@ def example_differential_privacy():
         print("\nExample: Privacy accounting")
         print(
             """
-        from sage.libs.unlearning.dp_unlearning import PrivacyAccountant
+        from sage.libs.privacy.unlearning.dp_unlearning import PrivacyAccountant
 
         # Track privacy budget across multiple unlearning operations
         accountant = PrivacyAccountant(total_epsilon=3.0)
@@ -141,7 +141,7 @@ def example_evaluation_metrics():
     print("=" * 60)
 
     try:
-        from sage.libs.unlearning.evaluation import UnlearningMetrics  # noqa: F401
+        from sage.libs.privacy.unlearning.evaluation import UnlearningMetrics  # noqa: F401
 
         print("\n✓ Evaluation metrics:")
         print("  - Forgetting accuracy: How well data is forgotten")
@@ -152,7 +152,7 @@ def example_evaluation_metrics():
         print("\nExample evaluation:")
         print(
             """
-        from sage.libs.unlearning.evaluation import UnlearningMetrics
+        from sage.libs.privacy.unlearning.evaluation import UnlearningMetrics
 
         # Create metrics evaluator
         metrics = UnlearningMetrics(
@@ -202,11 +202,11 @@ def example_unlearning_algorithms():
     print("\nExample: Gaussian vs Laplace mechanisms")
     print(
         """
-    from sage.libs.unlearning.algorithms import (
+    from sage.libs.privacy.unlearning.algorithms import (
         GaussianMechanism,
         LaplaceMechanism
     )
-    from sage.libs.unlearning.dp_unlearning import UnlearningEngine
+    from sage.libs.privacy.unlearning.dp_unlearning import UnlearningEngine
 
     # Gaussian mechanism (better for larger datasets, requires δ)
     gaussian = GaussianMechanism(
@@ -234,11 +234,11 @@ def example_unlearning_algorithms():
     print("\nExample: Advanced usage with neighbor compensation")
     print(
         """
-    from sage.libs.unlearning.dp_unlearning import (
+    from sage.libs.privacy.unlearning.dp_unlearning import (
         UnlearningEngine,
         NeighborCompensation
     )
-    from sage.libs.unlearning.algorithms import GaussianMechanism
+    from sage.libs.privacy.unlearning.algorithms import GaussianMechanism
 
     # Create mechanism
     mechanism = GaussianMechanism(epsilon=1.0, delta=1e-5)
@@ -280,9 +280,9 @@ def example_real_world_scenario():
     print("\nComplete example:")
     print(
         """
-    from sage.libs.unlearning.algorithms import GaussianMechanism
-    from sage.libs.unlearning.evaluation import UnlearningMetrics
-    from sage.libs.unlearning.dp_unlearning import (
+    from sage.libs.privacy.unlearning.algorithms import GaussianMechanism
+    from sage.libs.privacy.unlearning.evaluation import UnlearningMetrics
+    from sage.libs.privacy.unlearning.dp_unlearning import (
         PrivacyAccountant,
         UnlearningEngine
     )

@@ -19,7 +19,7 @@ import time
 import numpy as np
 
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io.sink import TerminalSink
+from sage.libs.foundation.io.sink import TerminalSink
 from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 
 # 添加SAGE路径

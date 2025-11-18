@@ -2,8 +2,9 @@ import os
 import sys
 
 from sage.common.utils.config.loader import load_config
-from sage.middleware.operators.rag import CharacterSplitter, MilvusDenseRetriever
-from sage.middleware.operators.rag.document_loaders import LoaderFactory
+from sage.libs.rag import CharacterSplitter
+from sage.libs.rag.document_loaders import LoaderFactory
+from sage.middleware.operators.rag import MilvusDenseRetriever
 
 
 def load_knowledge_to_milvus(config):

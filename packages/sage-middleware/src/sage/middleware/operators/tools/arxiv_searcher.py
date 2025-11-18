@@ -4,7 +4,7 @@ Arxiv 论文搜索工具
 
 from typing import Any
 
-from sage.libs.tools.tool import BaseTool
+from sage.libs.foundation.tools.tool import BaseTool
 
 
 class ArxivSearcher(BaseTool):

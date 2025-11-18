@@ -21,7 +21,7 @@ CI workflow (`pip-installation-test.yml`) 中的验证代码**不够全面**，�
 1. **Core 模式验证**：
    ```bash
    python -c "from sage.kernel import LocalEnvironment; print('✅ LocalEnvironment 可用')"
-   python -c "from sage.middleware.operators.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
+  python -c "from sage.libs.rag.pipeline import RAGPipeline; print('✅ RAGPipeline 可用')"
    ```
    - ✅ 验证了基础功能
    - ❌ 没有验证任何 L5 应用层包

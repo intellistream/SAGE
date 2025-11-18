@@ -14,8 +14,8 @@ from typing import Any
 
 from sage.common.core import MapFunction
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io.sink import FileSink
-from sage.libs.io.source import FileSource
+from sage.libs.foundation.io.sink import FileSink
+from sage.libs.foundation.io.source import FileSource
 
 
 class SelfRAGRetriever(MapFunction):

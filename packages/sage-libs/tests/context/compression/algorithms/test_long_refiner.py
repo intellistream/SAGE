@@ -28,7 +28,9 @@ class TestLongRefinerInit:
     )
     def test_init_with_defaults(self, mock_score_model, mock_tokenizer, mock_llm):
         """Test initialization with default parameters"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
+            LongRefiner,
+        )
 
         # Mock the models
         mock_llm_instance = MagicMock()
@@ -58,7 +60,9 @@ class TestLongRefinerInit:
     )
     def test_init_with_custom_gpu(self, mock_score_model, mock_tokenizer, mock_llm):
         """Test initialization with custom GPU settings"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
+            LongRefiner,
+        )
 
         mock_llm.return_value = MagicMock()
         mock_tokenizer.from_pretrained.return_value = MagicMock()
@@ -82,7 +86,9 @@ class TestLongRefinerScoring:
 
     def test_cal_score_bm25(self):
         """Test BM25 scoring"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
+            LongRefiner,
+        )
 
         with patch.object(LongRefiner, "__init__", lambda x: None):
             refiner = LongRefiner()
@@ -102,7 +108,9 @@ class TestLongRefinerScoring:
     @patch("torch.cuda.is_available", return_value=False)
     def test_cal_score_reranker(self, mock_cuda, mock_no_grad):
         """Test reranker scoring"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
+            LongRefiner,
+        )
 
         with patch.object(LongRefiner, "__init__", lambda x: None):
             refiner = LongRefiner()
@@ -138,7 +146,9 @@ class TestLongRefinerScoring:
     @patch("torch.cuda.is_available", return_value=False)
     def test_cal_score_sbert(self, mock_cuda, mock_no_grad):
         """Test SBERT scoring"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
+            LongRefiner,
+        )
 
         with patch.object(LongRefiner, "__init__", lambda x: None):
             refiner = LongRefiner()
@@ -181,7 +191,9 @@ class TestLongRefinerLoadModel:
     @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
     def test_load_score_model_bm25(self, mock_tokenizer):
         """Test loading BM25 scorer"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
+            LongRefiner,
+        )
 
         with patch.object(LongRefiner, "__init__", lambda x: None):
             refiner = LongRefiner()
@@ -197,7 +209,9 @@ class TestLongRefinerLoadModel:
     @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
     def test_load_score_model_reranker(self, mock_tokenizer, mock_model):
         """Test loading reranker model"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
+            LongRefiner,
+        )
 
         mock_model_instance = MagicMock()
         mock_model.from_pretrained.return_value = mock_model_instance
@@ -215,7 +229,9 @@ class TestLongRefinerLoadModel:
     @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
     def test_load_score_model_sbert(self, mock_tokenizer, mock_model):
         """Test loading SBERT model"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.refiner import LongRefiner
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
+            LongRefiner,
+        )
 
         mock_model_instance = MagicMock()
         mock_model.from_pretrained.return_value = mock_model_instance
