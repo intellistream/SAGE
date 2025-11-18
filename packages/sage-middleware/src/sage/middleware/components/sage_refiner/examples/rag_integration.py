@@ -59,7 +59,7 @@ def rag_pipeline_with_refiner():
     # 这个代码需要在SAGE环境中运行
     """
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.libs.io.batch import JSONLBatch
+    from sage.libs.foundation.io.batch import JSONLBatch
     from sage.middleware.operators.rag import ChromaRetriever
     from sage.middleware.operators.rag import QAPromptor
     from sage.middleware.operators.rag import OpenAIGenerator

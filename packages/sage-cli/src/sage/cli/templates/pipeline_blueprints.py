@@ -361,7 +361,7 @@ BLUEPRINT_LIBRARY: tuple[PipelineBlueprint, ...] = (
                 id="generator",
                 title="OpenAI Generator",
                 kind="map",
-                class_path="sage.libs.rag.generator.OpenAIGenerator",
+                class_path="sage.middleware.operators.rag.generator.OpenAIGenerator",
                 params={
                     "model_name": "gpt-3.5-turbo",
                     "temperature": 0.7,
@@ -470,7 +470,7 @@ BLUEPRINT_LIBRARY: tuple[PipelineBlueprint, ...] = (
                 id="llm-generator",
                 title="LLM Answer Generator",
                 kind="map",
-                class_path="sage.libs.rag.generator.OpenAIGenerator",
+                class_path="sage.middleware.operators.rag.generator.OpenAIGenerator",
                 params={
                     "model_name": "gpt-3.5-turbo",
                     "temperature": 0.7,
@@ -553,7 +553,7 @@ BLUEPRINT_LIBRARY: tuple[PipelineBlueprint, ...] = (
                 id="generator",
                 title="OpenAI Generator",
                 kind="map",
-                class_path="sage.libs.rag.generator.OpenAIGenerator",
+                class_path="sage.middleware.operators.rag.generator.OpenAIGenerator",
                 params={
                     "model_name": "gpt-3.5-turbo",
                     "temperature": 0.7,
@@ -624,7 +624,7 @@ BLUEPRINT_LIBRARY: tuple[PipelineBlueprint, ...] = (
                 id="generator",
                 title="OpenAI Generator",
                 kind="map",
-                class_path="sage.libs.rag.generator.OpenAIGenerator",
+                class_path="sage.middleware.operators.rag.generator.OpenAIGenerator",
                 params={
                     "model_name": "gpt-3.5-turbo",
                 },
@@ -672,32 +672,49 @@ BLUEPRINT_LIBRARY: tuple[PipelineBlueprint, ...] = (
         ),
         stages=(
             StageSpec(
-                id="llm-planner",
-                title="LLM Planner",
-                kind="agent",
-                class_path="sage.libs.agents.planning.llm_planner.LLMPlanner",
-                params={
-                    "model": "gpt-3.5-turbo",
-                    "temperature": 0.7,
-                },
-                summary="Plan action sequences using LLM reasoning.",
-                metadata={"description": "基于LLM的智能规划器"},
-            ),
-            StageSpec(
-                id="mcp-registry",
-                title="MCP Tool Registry",
-                kind="tool",
-                class_path="sage.libs.agents.action.mcp_registry.MCPRegistry",
-                summary="Manage and execute Model Context Protocol (MCP) tools.",
-                metadata={"description": "工具注册与执行引擎"},
-            ),
-            StageSpec(
                 id="agent-runtime",
-                title="Agent Runtime",
+                title="Agent Runtime Operator",
                 kind="agent",
-                class_path="sage.libs.agents.runtime.agent.AgentRuntime",
-                summary="Execute agent workflow with planning and tool calling loops.",
-                metadata={"description": "智能体运行时环境"},
+                class_path="sage.middleware.operators.agentic.runtime.AgentRuntimeOperator",
+                params={
+                    "profile": {
+                        "name": "ResearchAgent",
+                        "role": "autonomous researcher",
+                        "language": "zh",
+                        "tone": "concise",
+                        "goals": [
+                            "拆解复杂任务",
+                            "调用工具获取证据",
+                            "输出可验证结论",
+                        ],
+                    },
+                    "generator": {
+                        "method": "openai",
+                        "model_name": "gpt-4o-mini",
+                        "base_url": "https://api.openai.com/v1",
+                    },
+                    "planner": {
+                        "max_steps": 5,
+                        "enable_repair": True,
+                        "topk_tools": 6,
+                    },
+                    "tools": [
+                        {
+                            "module": "examples.tutorials.agents.calculator_tool",
+                            "class": "CalculatorTool",
+                        },
+                        {
+                            "module": "examples.tutorials.agents.search_tool",
+                            "class": "SearchTool",
+                        },
+                    ],
+                    "runtime": {
+                        "max_steps": 6,
+                        "summarizer": "reuse_generator",
+                    },
+                },
+                summary="Turn-key agent runtime (profile + planner + registry + workflow) for drag-and-drop pipelines.",
+                metadata={"description": "L4 预设智能体算子，可直接接入 Studio 拖拽式工作流"},
             ),
         ),
         sink=SinkSpec(
@@ -781,7 +798,7 @@ BLUEPRINT_LIBRARY: tuple[PipelineBlueprint, ...] = (
                 id="generator",
                 title="OpenAI Generator",
                 kind="map",
-                class_path="sage.libs.rag.generator.OpenAIGenerator",
+                class_path="sage.middleware.operators.rag.generator.OpenAIGenerator",
                 params={
                     "model_name": "gpt-3.5-turbo",
                 },

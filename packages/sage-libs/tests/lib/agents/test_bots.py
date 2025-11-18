@@ -1,5 +1,5 @@
 """
-测试 sage.libs.agents 模块的其他组件
+测试 sage.libs.agentic.agents 模块的其他组件
 """
 
 from unittest.mock import Mock
@@ -11,28 +11,28 @@ pytest_plugins = []
 
 try:
     # 尝试导入各种agent类
-    from sage.libs.agents.bots.question_bot import QuestionBot
+    from sage.libs.agentic.agents.bots.question_bot import QuestionBot
 
     QUESTION_BOT_AVAILABLE = True
 except ImportError:
     QUESTION_BOT_AVAILABLE = False
 
 try:
-    from sage.libs.agents.bots.answer_bot import AnswerBot
+    from sage.libs.agentic.agents.bots.answer_bot import AnswerBot
 
     ANSWER_BOT_AVAILABLE = True
 except ImportError:
     ANSWER_BOT_AVAILABLE = False
 
 try:
-    from sage.libs.agents.bots.critic_bot import CriticBot
+    from sage.libs.agentic.agents.bots.critic_bot import CriticBot
 
     CRITIC_BOT_AVAILABLE = True
 except ImportError:
     CRITIC_BOT_AVAILABLE = False
 
 try:
-    from sage.libs.agents.bots.searcher_bot import SearcherBot
+    from sage.libs.agentic.agents.bots.searcher_bot import SearcherBot
 
     SEARCHER_BOT_AVAILABLE = True
 except ImportError:
@@ -49,7 +49,7 @@ class TestQuestionBot:
             pytest.skip("QuestionBot not available")
 
         # 基本导入测试
-        from sage.libs.agents.bots.question_bot import QuestionBot
+        from sage.libs.agentic.agents.bots.question_bot import QuestionBot
 
         assert QuestionBot is not None
 
@@ -80,7 +80,7 @@ class TestAnswerBot:
         if not ANSWER_BOT_AVAILABLE:
             pytest.skip("AnswerBot not available")
 
-        from sage.libs.agents.bots.answer_bot import AnswerBot
+        from sage.libs.agentic.agents.bots.answer_bot import AnswerBot
 
         assert AnswerBot is not None
 
@@ -109,7 +109,7 @@ class TestCriticBot:
         if not CRITIC_BOT_AVAILABLE:
             pytest.skip("CriticBot not available")
 
-        from sage.libs.agents.bots.critic_bot import CriticBot
+        from sage.libs.agentic.agents.bots.critic_bot import CriticBot
 
         assert CriticBot is not None
 
@@ -138,7 +138,7 @@ class TestSearcherBot:
         if not SEARCHER_BOT_AVAILABLE:
             pytest.skip("SearcherBot not available")
 
-        from sage.libs.agents.bots.searcher_bot import SearcherBot
+        from sage.libs.agentic.agents.bots.searcher_bot import SearcherBot
 
         assert SearcherBot is not None
 

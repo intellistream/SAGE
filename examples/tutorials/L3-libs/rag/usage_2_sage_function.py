@@ -19,7 +19,7 @@ with SAGE's data processing framework.
 
 import numpy as np
 
-from sage.libs.unlearning import UnlearningEngine
+from sage.libs.privacy.unlearning import UnlearningEngine
 
 
 class UnlearningFunctionExample:

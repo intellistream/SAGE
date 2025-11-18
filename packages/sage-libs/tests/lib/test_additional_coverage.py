@@ -20,7 +20,7 @@ class TestLLMPlanner:
 
     def test_llm_planner_init(self):
         """Test LLMPlanner initialization"""
-        from sage.libs.agents.planning.llm_planner import LLMPlanner
+        from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
 
         mock_generator = MagicMock()
         planner = LLMPlanner(generator=mock_generator)
@@ -29,7 +29,7 @@ class TestLLMPlanner:
 
     def test_llm_planner_plan_generation(self):
         """Test plan generation"""
-        from sage.libs.agents.planning.llm_planner import LLMPlanner
+        from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
 
         mock_generator = MagicMock()
         # Mock generator to return valid JSON plan
@@ -53,7 +53,7 @@ class TestLLMPlanner:
 
     def test_llm_planner_with_custom_params(self):
         """Test LLMPlanner with custom parameters"""
-        from sage.libs.agents.planning.llm_planner import LLMPlanner
+        from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
 
         mock_generator = MagicMock()
         planner = LLMPlanner(
@@ -69,7 +69,7 @@ class TestLLMPlannerErrorHandling:
 
     def test_llm_planner_repair_mechanism(self):
         """Test LLMPlanner repair mechanism when JSON parsing fails"""
-        from sage.libs.agents.planning.llm_planner import LLMPlanner
+        from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
 
         mock_generator = MagicMock()
         # First call returns invalid JSON, second call returns valid JSON
@@ -94,7 +94,7 @@ class TestLongRefinerPromptTemplate:
     @pytest.mark.skipif(not VLLM_AVAILABLE, reason="vllm not available")
     def test_prompt_template_init(self):
         """Test PromptTemplate initialization"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.prompt_template import (
             PromptTemplate,
         )
 
@@ -109,7 +109,7 @@ class TestLongRefinerPromptTemplate:
     @pytest.mark.skipif(not VLLM_AVAILABLE, reason="vllm not available")
     def test_prompt_template_get_prompt(self):
         """Test PromptTemplate get_prompt method"""
-        from sage.libs.context.compression.algorithms.long_refiner_impl.prompt_template import (
+        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.prompt_template import (
             PromptTemplate,
         )
 
@@ -131,7 +131,7 @@ class TestBaseTool:
 
     def test_base_tool_init(self):
         """Test BaseTool initialization"""
-        from sage.libs.tools.tool import BaseTool
+        from sage.libs.foundation.tools.tool import BaseTool
 
         class TestTool(BaseTool):
             def execute(self, *args, **kwargs):
@@ -143,7 +143,7 @@ class TestBaseTool:
 
     def test_base_tool_execute(self):
         """Test BaseTool execute method"""
-        from sage.libs.tools.tool import BaseTool
+        from sage.libs.foundation.tools.tool import BaseTool
 
         class TestTool(BaseTool):
             def execute(self, *args, **kwargs):
@@ -155,7 +155,7 @@ class TestBaseTool:
 
     def test_base_tool_metadata(self):
         """Test BaseTool get_metadata method"""
-        from sage.libs.tools.tool import BaseTool
+        from sage.libs.foundation.tools.tool import BaseTool
 
         class TestTool(BaseTool):
             def execute(self, *args, **kwargs):
@@ -177,14 +177,14 @@ class TestSink:
 
     def test_terminal_sink_init(self):
         """Test TerminalSink initialization"""
-        from sage.libs.io.sink import TerminalSink
+        from sage.libs.foundation.io.sink import TerminalSink
 
         sink = TerminalSink(config={})
         assert sink is not None
 
     def test_terminal_sink_execute_with_dict(self):
         """Test TerminalSink execute with dict input"""
-        from sage.libs.io.sink import TerminalSink
+        from sage.libs.foundation.io.sink import TerminalSink
 
         sink = TerminalSink(config={})
         data = {"query": "Test question", "answer": "Test answer"}
@@ -193,7 +193,7 @@ class TestSink:
 
     def test_file_sink_init(self):
         """Test FileSink initialization"""
-        from sage.libs.io.sink import FileSink
+        from sage.libs.foundation.io.sink import FileSink
 
         sink = FileSink(config={})
         assert sink is not None

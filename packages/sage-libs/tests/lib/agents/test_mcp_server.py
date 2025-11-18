@@ -5,7 +5,7 @@ import pytest
 
 # 兼容两种导入方式：优先包内路径，找不到则尝试同目录模块
 try:
-    from sage.libs.agents.action import mcp_server as mcp
+    from sage.libs.agentic.agents.action import mcp_server as mcp
 except ImportError:  # pragma: no cover
     import mcp_server as mcp  # type: ignore
 

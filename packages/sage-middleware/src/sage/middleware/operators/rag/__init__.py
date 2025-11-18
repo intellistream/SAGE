@@ -18,7 +18,7 @@ and implement RAG-specific business logic.
 """
 
 # Export types for easier access
-from sage.middleware.operators.rag.types import (
+from sage.libs.rag.types import (
     RAGDocument,
     RAGInput,
     RAGOutput,
@@ -33,16 +33,19 @@ from sage.middleware.operators.rag.types import (
 # Lazy imports to avoid optional dependency issues
 _IMPORTS = {
     # Pipeline and Profiler
+    # RAGPipeline lives in the middleware layer (L4) as orchestration/pipeline code.
+    # It previously pointed to sage.libs.rag.pipeline (L3) which was deleted during
+    # the libs -> middleware refactor. Update to the new location.
     "RAGPipeline": ("sage.middleware.operators.rag.pipeline", "RAGPipeline"),
     "Query_Profiler": ("sage.middleware.operators.rag.profiler", "Query_Profiler"),
     "QueryProfilerResult": ("sage.middleware.operators.rag.profiler", "QueryProfilerResult"),
     # Document Loaders
-    "TextLoader": ("sage.middleware.operators.rag.document_loaders", "TextLoader"),
-    "PDFLoader": ("sage.middleware.operators.rag.document_loaders", "PDFLoader"),
-    "DocxLoader": ("sage.middleware.operators.rag.document_loaders", "DocxLoader"),
-    "DocLoader": ("sage.middleware.operators.rag.document_loaders", "DocLoader"),
-    "MarkdownLoader": ("sage.middleware.operators.rag.document_loaders", "MarkdownLoader"),
-    "LoaderFactory": ("sage.middleware.operators.rag.document_loaders", "LoaderFactory"),
+    "TextLoader": ("sage.libs.rag.document_loaders", "TextLoader"),
+    "PDFLoader": ("sage.libs.rag.document_loaders", "PDFLoader"),
+    "DocxLoader": ("sage.libs.rag.document_loaders", "DocxLoader"),
+    "DocLoader": ("sage.libs.rag.document_loaders", "DocLoader"),
+    "MarkdownLoader": ("sage.libs.rag.document_loaders", "MarkdownLoader"),
+    "LoaderFactory": ("sage.libs.rag.document_loaders", "LoaderFactory"),
     # Generators
     "OpenAIGenerator": ("sage.middleware.operators.rag.generator", "OpenAIGenerator"),
     "HFGenerator": ("sage.middleware.operators.rag.generator", "HFGenerator"),
@@ -100,9 +103,9 @@ _IMPORTS = {
         "CompressionRateEvaluate",
     ),
     # Document Processing
-    "CharacterSplitter": ("sage.middleware.operators.rag.chunk", "CharacterSplitter"),
+    "CharacterSplitter": ("sage.libs.rag.chunk", "CharacterSplitter"),
     "SentenceTransformersTokenTextSplitter": (
-        "sage.middleware.operators.rag.chunk",
+        "sage.libs.rag.chunk",
         "SentenceTransformersTokenTextSplitter",
     ),
     "RefinerOperator": ("sage.middleware.operators.rag.refiner", "RefinerOperator"),

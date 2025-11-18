@@ -21,9 +21,10 @@ SAGE Middleware Operators - 领域算子
 """
 
 # 导出子模块
-from . import filters, llm, rag, tools
+from . import agentic, filters, llm, rag, tools
 
 __all__ = [
+    "agentic",
     "rag",
     "llm",
     "tools",

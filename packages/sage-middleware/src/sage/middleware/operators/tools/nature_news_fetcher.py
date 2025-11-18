@@ -6,7 +6,7 @@ import time
 import requests
 from bs4 import BeautifulSoup, Tag
 
-from sage.libs.tools.tool import BaseTool
+from sage.libs.foundation.tools.tool import BaseTool
 
 # Initialize logger
 logger = logging.getLogger(__name__)
