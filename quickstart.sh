@@ -169,6 +169,18 @@ main() {
     local hooks_profile=$(get_hooks_profile_value)
     local use_mirror=$(should_use_pip_mirror)
     local mirror_source=$(get_mirror_source_value)
+    local clean_before_install=$(get_clean_before_install)
+
+    # 执行安装前清理（如果启用）
+    if [ "$clean_before_install" = "true" ]; then
+        echo ""
+        echo -e "${BLUE}🧹 执行安装前清理...${NC}"
+        if [ -f "$TOOLS_DIR/maintenance/helpers/pre_install_cleanup.sh" ]; then
+            bash "$SAGE_ROOT/tools/maintenance/helpers/pre_install_cleanup.sh"
+        else
+            echo -e "${YELLOW}⚠️  清理脚本未找到，跳过清理${NC}"
+        fi
+    fi
 
     # 如果不是自动确认模式，显示最终确认
     if [ "$auto_confirm" != "true" ]; then
