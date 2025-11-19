@@ -33,21 +33,21 @@ import sys
 from pathlib import Path
 
 import yaml  # type: ignore[import-untyped]
-from sage.benchmark.benchmark_memory.experiment.libs.memory_source import MemorySource
+
+from sage.benchmark.benchmark_memory.experiment.libs.memory_insert import MemoryInsert
+from sage.benchmark.benchmark_memory.experiment.libs.memory_retrieval import MemoryRetrieval
 from sage.benchmark.benchmark_memory.experiment.libs.memory_sink import MemorySink
+from sage.benchmark.benchmark_memory.experiment.libs.memory_source import MemorySource
+from sage.benchmark.benchmark_memory.experiment.libs.memory_test import MemoryTest
 
 # 导入业务相关的算子
 from sage.benchmark.benchmark_memory.experiment.libs.pipeline_caller import PipelineCaller
+from sage.benchmark.benchmark_memory.experiment.libs.post_insert import PostInsert
+from sage.benchmark.benchmark_memory.experiment.libs.post_retrieval import PostRetrieval
 
 # 导入记忆操作算子
 from sage.benchmark.benchmark_memory.experiment.libs.pre_insert import PreInsert
-from sage.benchmark.benchmark_memory.experiment.libs.memory_insert import MemoryInsert
-from sage.benchmark.benchmark_memory.experiment.libs.post_insert import PostInsert
 from sage.benchmark.benchmark_memory.experiment.libs.pre_retrieval import PreRetrieval
-from sage.benchmark.benchmark_memory.experiment.libs.memory_retrieval import MemoryRetrieval
-from sage.benchmark.benchmark_memory.experiment.libs.post_retrieval import PostRetrieval
-from sage.benchmark.benchmark_memory.experiment.libs.memory_test import MemoryTest
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.data.locomo.dataloader import LocomoDataLoader
 from sage.kernel.api.local_environment import LocalEnvironment
@@ -132,7 +132,9 @@ def main():
     # 第五步：创建 3 条 Pipeline
     # ============================================================
     print("\n【创建 Pipeline 1】记忆存储 Pipeline")
-    print("  └─ 架构: PipelineServiceSource → PreInsert → MemoryInsert → PostInsert → PipelineServiceSink")
+    print(
+        "  └─ 架构: PipelineServiceSource → PreInsert → MemoryInsert → PostInsert → PipelineServiceSink"
+    )
     print("  └─ 职责: 存储对话到短期记忆")
     (
         env.from_source(PipelineServiceSource, insert_bridge)
@@ -143,7 +145,9 @@ def main():
     )
 
     print("\n【创建 Pipeline 2】记忆测试 Pipeline")
-    print("  └─ 架构: PipelineServiceSource → PreRetrieval → MemoryRetrieval → PostRetrieval → MemoryTest → PipelineServiceSink")
+    print(
+        "  └─ 架构: PipelineServiceSource → PreRetrieval → MemoryRetrieval → PostRetrieval → MemoryTest → PipelineServiceSink"
+    )
     print("  └─ 职责: 检索历史、生成答案")
     (
         env.from_source(PipelineServiceSource, test_bridge)
@@ -153,7 +157,7 @@ def main():
         .map(MemoryTest, config)
         .sink(PipelineServiceSink)
     )
-    
+
     print("\n【创建 Pipeline 3】主 Pipeline")
     print("  └─ 架构: MemorySource → PipelineCaller → MemorySink")
     print("  └─ 职责: 逐轮喂入对话，调用两个服务处理，保存结果")
@@ -180,7 +184,9 @@ def main():
     print("✅ 所有 Pipeline 执行完成!")
     print("=" * 60)
     print("✅ 资源已自动清理")
-    print(f"\n📁 结果已保存至: .sage/benchmarks/benchmark_memory/locomo/result_{test_sample_id}.txt")
+    print(
+        f"\n📁 结果已保存至: .sage/benchmarks/benchmark_memory/locomo/result_{test_sample_id}.txt"
+    )
     print("\n架构总结：")
     print("  • 3条 Pipeline:")
     print("    1. 主 Pipeline: 数据源 → 调用服务 → 结果收集")
@@ -191,7 +197,9 @@ def main():
     print("    - Memory Insert Service: Pipeline 即服务（记忆存储）")
     print("    - Memory Test Service: Pipeline 即服务（记忆测试）")
     print("  • 2个桥梁: PipelineBridge 实现双向通信")
-    print("  • 背压机制: call_service() 阻塞保证顺序执行，两个服务共享 ShortTermMemoryService 不会冲突")
+    print(
+        "  • 背压机制: call_service() 阻塞保证顺序执行，两个服务共享 ShortTermMemoryService 不会冲突"
+    )
     print("  • 两大阶段:")
     print("    - 阶段1: 记忆存储（总是执行）")
     print("    - 阶段2: 记忆测试（有问题时对所有可见问题进行测试）\n")

@@ -206,10 +206,12 @@ class Dispatcher:
         # 使用在 submit() 时记录的 main_env_nodes 集合
         # 只有主环境的节点都停止了，才触发清理
         remaining_main_nodes = [name for name in self.main_env_nodes if name in self.tasks]
-        
+
         if len(remaining_main_nodes) == 0:
-            self.logger.info(f"All main pipeline nodes stopped, batch processing completed")
-            self.logger.info(f"Remaining service pipeline nodes: {len(self.tasks)} ({list(self.tasks.keys())})")
+            self.logger.info("All main pipeline nodes stopped, batch processing completed")
+            self.logger.info(
+                f"Remaining service pipeline nodes: {len(self.tasks)} ({list(self.tasks.keys())})"
+            )
             self.is_running = False
 
             # 当所有主节点停止后，清理服务
@@ -516,7 +518,7 @@ class Dispatcher:
 
         # 第二步：调度所有计算任务节点
         # 记录主环境的节点名称（用于停止检测）
-        # 
+        #
         # 问题：self.graph.nodes 包含所有节点（主 Pipeline + Service Pipeline 内部节点）
         # 解决：通过节点名称模式识别主 Pipeline 节点（白名单策略）
         #
@@ -541,41 +543,54 @@ class Dispatcher:
         #
         # 最终方案：递归查找所有连接到 PipelineServiceSource/Sink 的节点
         service_pipeline_nodes = set()
-        
+
         # 找出所有 PipelineServiceSource 和 PipelineServiceSink 节点
         for node_name in self.graph.nodes.keys():
-            if node_name.startswith('PipelineServiceSource') or node_name.startswith('PipelineServiceSink'):
+            if node_name.startswith("PipelineServiceSource") or node_name.startswith(
+                "PipelineServiceSink"
+            ):
                 service_pipeline_nodes.add(node_name)
-        
+
         # 递归找出所有连接到这些节点的节点
         # 使用 BFS 遍历图
         from collections import deque
+
         queue = deque(service_pipeline_nodes)
         visited = set(service_pipeline_nodes)
-        
+
         while queue:
             current_node = queue.popleft()
             # 查找所有连接到当前节点的边
             for edge_name, edge in self.graph.edges.items():
                 # 如果边的起点或终点是当前节点，将另一端添加到 service_pipeline_nodes
-                if edge.upstream_node.name == current_node and edge.downstream_node and edge.downstream_node.name not in visited:
+                if (
+                    edge.upstream_node.name == current_node
+                    and edge.downstream_node
+                    and edge.downstream_node.name not in visited
+                ):
                     service_pipeline_nodes.add(edge.downstream_node.name)
                     visited.add(edge.downstream_node.name)
                     queue.append(edge.downstream_node.name)
-                elif edge.downstream_node and edge.downstream_node.name == current_node and edge.upstream_node.name not in visited:
+                elif (
+                    edge.downstream_node
+                    and edge.downstream_node.name == current_node
+                    and edge.upstream_node.name not in visited
+                ):
                     service_pipeline_nodes.add(edge.upstream_node.name)
                     visited.add(edge.upstream_node.name)
                     queue.append(edge.upstream_node.name)
-        
+
         # 主节点 = 所有节点 - Service Pipeline 节点
         self.main_env_nodes = {
-            name for name in self.graph.nodes.keys()
-            if name not in service_pipeline_nodes
+            name for name in self.graph.nodes.keys() if name not in service_pipeline_nodes
         }
-        self.logger.info(f"Main environment nodes (total: {len(self.main_env_nodes)}): {self.main_env_nodes}")
-        self.logger.info(f"Service pipeline nodes (total: {len(service_pipeline_nodes)}): {service_pipeline_nodes}")
-        
-        
+        self.logger.info(
+            f"Main environment nodes (total: {len(self.main_env_nodes)}): {self.main_env_nodes}"
+        )
+        self.logger.info(
+            f"Service pipeline nodes (total: {len(service_pipeline_nodes)}): {service_pipeline_nodes}"
+        )
+
         for node_name, graph_node in self.graph.nodes.items():
             try:
                 # === 新架构：Scheduler → Decision → Placement ===

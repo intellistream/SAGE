@@ -9,18 +9,18 @@ from sage.common.core import MapFunction
 
 class PostInsert(MapFunction):
     """记忆插入后的后处理算子
-    
+
     职责：
     - 日志记录
     - 统计分析
     - 触发后续操作
-    
+
     注：短期记忆通常不需要此步骤
     """
 
     def __init__(self, action: str = "none"):
         """初始化 PostInsert
-        
+
         Args:
             action: 操作模式
                 - 'none': 不执行任何操作，直接透传（默认）
@@ -32,10 +32,10 @@ class PostInsert(MapFunction):
 
     def execute(self, data):
         """执行后处理
-        
+
         Args:
             data: PipelineRequest 对象或已插入记忆的数据
-        
+
         Returns:
             处理后的数据（透传）
         """

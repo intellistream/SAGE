@@ -1,6 +1,6 @@
+from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 from sage.common.core import MapFunction
 from sage.data.locomo.dataloader import LocomoDataLoader
-from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 
 
 class PipelineCaller(MapFunction):
@@ -14,7 +14,7 @@ class PipelineCaller(MapFunction):
 
     def __init__(self, dataset: str, task_id: str):
         """初始化 PipelineCaller
-        
+
         Args:
             dataset: 数据集名称 ('locomo', 等)
             task_id: 任务/样本ID
@@ -22,16 +22,16 @@ class PipelineCaller(MapFunction):
         super().__init__()
         self.dataset = dataset
         self.task_id = task_id
-        
+
         # 根据数据集类型初始化加载器
         if dataset == "locomo":
             self.loader = LocomoDataLoader()
         else:
             raise ValueError(f"不支持的数据集: {dataset}")
-        
+
         # 进度条将在第一个数据包到达时初始化（因为需要从数据中获取总数）
         self.progress_bar = None
-    
+
     def execute(self, data):
         """调用服务处理对话
 
@@ -53,12 +53,12 @@ class PipelineCaller(MapFunction):
         dialogs = data.get("dialogs", [])
         packet_idx = data.get("packet_idx", 0)
         total_packets = data.get("total_packets", 0)
-        
+
         # 初始化或更新进度条
         if self.progress_bar is None:
             self.progress_bar = ProgressBar(total=total_packets, desc="处理对话")
         self.progress_bar.update(1)
-        
+
         # 打印【Memory Source】部分（使用数据中的序号）
         print(f"\n{'=' * 60}")
         print(f"\033[92m【Memory Source】\033[0m（{packet_idx + 1}/{total_packets}）")
@@ -163,18 +163,20 @@ class PipelineCaller(MapFunction):
                 print(f">> Question {q_idx + 1}：{question}")
                 print(f">> Answer：[服务调用失败: {str(e)}]")
                 # 记录失败的答案
-                all_answers.append({
-                    "question": question,
-                    "answer": "[ERROR]",
-                    "evidence": evidence,
-                    "category": category,
-                    "error": str(e),
-                })
+                all_answers.append(
+                    {
+                        "question": question,
+                        "answer": "[ERROR]",
+                        "evidence": evidence,
+                        "category": category,
+                        "error": str(e),
+                    }
+                )
                 # 继续处理下一个问题（而不是中断整个批次）
 
         print(f"{'+' * 60}\n")
         print(f"{'=' * 60}\n")
-        
+
         # 如果处理完成，关闭进度条
         if self.progress_bar and packet_idx + 1 >= total_packets:
             self.progress_bar.close()
