@@ -137,7 +137,7 @@ client.get_response(queue_A)   # Client uses SAME queue ✅
 
 - **Detailed Analysis**: `docs/ISSUE_1112_QUEUE_CLONE_FIX.md`
 - **Visual Explanation**: `docs/ISSUE_1112_VISUAL_EXPLANATION.md`
-- **Summary**: `ISSUE_1112_FIX_SUMMARY.md`
+- **Summary**: `docs/dev-notes/ISSUE_1112_FIX_SUMMARY.md`
 - **This Quick Ref**: `docs/ISSUE_1112_QUICK_REFERENCE.md`
 
 ## 🔗 Related
