@@ -414,6 +414,25 @@ install_core_packages() {
         fi
     fi
 
+    # L6: gateway (dev 模式)
+    if [ "$install_mode" = "dev" ]; then
+        if [ -d "packages/sage-gateway" ]; then
+            echo -e "${DIM}  正在安装: packages/sage-gateway${NC}"
+            log_info "开始安装: packages/sage-gateway" "INSTALL"
+            log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-gateway $pip_args --no-deps" "INSTALL"
+
+            if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-gateway\" $pip_args --no-deps"; then
+                log_error "安装 sage-gateway 失败" "INSTALL"
+                echo -e "${CROSS} 安装 sage-gateway 失败！"
+                return 1
+            fi
+
+            log_info "安装成功: packages/sage-gateway" "INSTALL"
+            log_pip_package_info "sage-gateway" "INSTALL"
+            echo -e "${CHECK} sage-gateway 安装完成"
+        fi
+    fi
+
     if [ "$install_mode" = "core" ]; then
         echo -e "${DIM}步骤 3/3: 跳过上层包（core 模式）${NC}"
     fi
