@@ -45,8 +45,8 @@ install_core_packages() {
         export PATH="$HOME/.local/bin:$PATH"
         echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
     else
-        # 非CI环境，启用进度条
-        pip_args="$pip_args --progress-bar=ascii"
+        # 非CI环境，使用简洁进度条
+        pip_args="$pip_args --progress-bar=off"
     fi
 
     # 获取项目根目录并初始化日志文件
@@ -169,8 +169,8 @@ install_core_packages() {
         export PATH="$HOME/.local/bin:$PATH"
         echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
     else
-        # 非CI环境，启用进度条
-        pip_args="$pip_args --progress-bar=ascii"
+        # 非CI环境，使用简洁进度条
+        pip_args="$pip_args --progress-bar=off"
     fi
 
     log_phase_start_enhanced "本地依赖包安装" "INSTALL" 180
