@@ -26,3 +26,31 @@ fi
   echo "[post-checkout] Failed to synchronize submodule branches" >&2
   exit 0
 }
+
+# 定期清理提醒（每30天）
+cleanup_reminder_file="$repo_root/.sage/.last_cleanup_reminder"
+current_time=$(date +%s)
+reminder_interval=$((30 * 24 * 60 * 60))  # 30天
+
+should_remind=false
+if [[ ! -f "$cleanup_reminder_file" ]]; then
+  should_remind=true
+else
+  last_reminder=$(cat "$cleanup_reminder_file" 2>/dev/null || echo "0")
+  time_diff=$((current_time - last_reminder))
+  if [[ $time_diff -ge $reminder_interval ]]; then
+    should_remind=true
+  fi
+fi
+
+if [[ "$should_remind" == "true" ]]; then
+  echo ""
+  echo "💡 提示：已经一段时间没有清理缓存了，建议运行："
+  echo "   ./manage.sh clean         # 快速清理缓存和空目录"
+  echo "   ./manage.sh clean-deep    # 深度清理（包括日志）"
+  echo ""
+
+  # 更新提醒时间
+  mkdir -p "$(dirname "$cleanup_reminder_file")"
+  echo "$current_time" > "$cleanup_reminder_file"
+fi

@@ -1,6 +1,6 @@
 import pytest
 
-from sage.libs.io.sink import FileSink, MemWriteSink, RetriveSink, TerminalSink
+from sage.libs.foundation.io.sink import FileSink, MemWriteSink, RetriveSink, TerminalSink
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def test_mem_write_sink_various_inputs(tmp_path):
     sink.execute("single string")
     # Test with list of strings
     sink.execute(["list", "of", "strings"])
-    # Test with tuple of strings
+    # Test with tuple of strings (any length)
     sink.execute(("tuple", "of", "strings"))
 
     with open(file_path, encoding="utf-8") as f:
@@ -68,7 +68,7 @@ def test_mem_write_sink_handles_non_string(tmp_path):
     file_path = tmp_path / "mem_output.txt"
     sink = MemWriteSink(config={"file_path": str(file_path)})
 
-    # Provide a non-string, non-list, non-tuple input
+    # Provide a non-string input - MemWriteSink can handle any type via _parse_input
     sink.execute(12345)
     with open(file_path, encoding="utf-8") as f:
         content = f.read()

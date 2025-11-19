@@ -6,7 +6,7 @@ from transformers import (
 )
 
 from sage.kernel.operators import MapOperator
-from sage.middleware.operators.rag.types import (
+from sage.libs.rag.types import (
     RAGInput,
     RAGResponse,
     create_rag_response,

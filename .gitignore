@@ -384,3 +384,4 @@ packages/sage-middleware/.cmake/api/v1/reply/target-storage-Release-8812737038a7
 packages/sage-middleware/.cmake/api/v1/reply/target-stream-Release-1e50d87c59c5a8969331.json
 packages/sage-middleware/.cmake/api/v1/reply/target-utils-Release-202390ec2568b80f66fd.json
 packages/sage-middleware/.cmake/api/v1/reply/toolchains-v1-7b6acd0222e90559d611.json
+coverage.json

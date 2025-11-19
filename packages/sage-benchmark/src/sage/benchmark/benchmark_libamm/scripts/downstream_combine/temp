@@ -1,0 +1,26 @@
+mbsize: 50, hidden size: 2000, layer: 3, dropout: 0.1
+Initial evaluation on dev set:
+dev set: Average loss: 3.9091, Accuracy: 773/5000 (15.46%)
+0：(wall time: 76.0 sec) dev set: Average loss: 1.8031, Accuracy: 4847/5000 (96.94%)
+1：(wall time: 171.3 sec) dev set: Average loss: 1.7771, Accuracy: 4873/5000 (97.46%)
+2：(wall time: 279.6 sec) dev set: Average loss: 1.7711, Accuracy: 4893/5000 (97.86%)
+3：(wall time: 392.5 sec) dev set: Average loss: 1.7745, Accuracy: 4894/5000 (97.88%)
+4：(wall time: 510.0 sec) dev set: Average loss: 1.7673, Accuracy: 4899/5000 (97.98%)
+5：(wall time: 629.3 sec) dev set: Average loss: 1.7640, Accuracy: 4916/5000 (98.32%)
+6：(wall time: 751.8 sec) dev set: Average loss: 1.7595, Accuracy: 4913/5000 (98.26%)
+7：(wall time: 875.0 sec) dev set: Average loss: 1.7717, Accuracy: 4911/5000 (98.22%)
+8：(wall time: 999.3 sec) dev set: Average loss: 1.7686, Accuracy: 4917/5000 (98.34%)
+9：(wall time: 1122.9 sec) dev set: Average loss: 1.7777, Accuracy: 4908/5000 (98.16%)
+10：(wall time: 1242.6 sec) dev set: Average loss: 1.7638, Accuracy: 4917/5000 (98.34%)
+11：(wall time: 1366.0 sec) dev set: Average loss: 1.7702, Accuracy: 4916/5000 (98.32%)
+12：(wall time: 1491.0 sec) dev set: Average loss: 1.7645, Accuracy: 4917/5000 (98.34%)
+13：(wall time: 1615.3 sec) dev set: Average loss: 1.7590, Accuracy: 4933/5000 (98.66%)
+14：(wall time: 1738.9 sec) dev set: Average loss: 1.7723, Accuracy: 4918/5000 (98.36%)
+15：(wall time: 1863.9 sec) dev set: Average loss: 1.7655, Accuracy: 4916/5000 (98.32%)
+16：(wall time: 1989.1 sec) dev set: Average loss: 1.7619, Accuracy: 4927/5000 (98.54%)
+17：(wall time: 2113.5 sec) dev set: Average loss: 1.7646, Accuracy: 4928/5000 (98.56%)
+18：(wall time: 2233.5 sec) dev set: Average loss: 1.7576, Accuracy: 4925/5000 (98.50%)
+19：(wall time: 2357.7 sec) dev set: Average loss: 1.7614, Accuracy: 4922/5000 (98.44%)
+    test set: Average loss: 1.7482, Accuracy: 9835/10000 (98.35%)
+test acc: 98.35
+best on val set - $0.00|0.00 at -1

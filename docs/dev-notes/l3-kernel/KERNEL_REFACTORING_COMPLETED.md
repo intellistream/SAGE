@@ -92,7 +92,7 @@ packages/sage-kernel/src/sage/kernel/api/function/_internal_print_sink.py
 
 **原因**:
 
-- 与 `sage.libs.io.source.KafkaSource` 重复
+- 与 `sage.libs.foundation.io.source.KafkaSource` 重复
 - libs 版本更完整，kernel 版本是占位符
 
 ### Phase 4: 更新 kernel 兼容层 ✅

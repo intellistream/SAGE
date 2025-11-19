@@ -1,5 +1,6 @@
 import { Form, Input, Switch, Divider, InputNumber, Select, Tabs } from 'antd'
 import { useState, useEffect } from 'react'
+import { CheckCircle } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { getNodes, type NodeDefinition, type ParameterConfig } from '../services/api'
 import OutputPreview from './OutputPreview'
@@ -10,6 +11,7 @@ export default function PropertiesPanel() {
     const selectedNode = useFlowStore((state) => state.selectedNode)
     const updateNode = useFlowStore((state) => state.updateNode)
     const [nodeDefinitions, setNodeDefinitions] = useState<NodeDefinition[]>([])
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle')
 
     // 加载节点定义
     useEffect(() => {
@@ -60,13 +62,29 @@ export default function PropertiesPanel() {
         updateNode(selectedNode.id, {
             [field]: value,
         })
+
+        // 显示保存状态
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 2000)
     }
 
     return (
         <div className="properties-panel">
-            <div className="mb-4">
-                <h3 className="text-lg font-semibold">节点属性</h3>
-                <p className="text-sm text-gray-500">{selectedNode.data.label}</p>
+            <div className="mb-4 flex justify-between items-center">
+                <div>
+                    <h3 className="text-lg font-semibold">节点属性</h3>
+                    <p className="text-sm text-gray-500">{selectedNode.data.label}</p>
+                </div>
+                {saveStatus === 'saved' && (
+                    <div className="flex items-center text-green-600 text-sm">
+                        <CheckCircle size={16} className="mr-1" />
+                        <span>已自动保存</span>
+                    </div>
+                )}
+            </div>
+
+            <div className="text-xs text-gray-400 mb-2 px-2 py-1 bg-blue-50 rounded">
+                💡 提示：所有修改都会自动保存，无需手动操作
             </div>
 
             <Divider />
@@ -155,6 +173,27 @@ export default function PropertiesPanel() {
                                                 }}
                                                 placeholder={param.placeholder || `请输入${param.label}`}
                                                 rows={4}
+                                            />
+                                        )}
+
+                                        {param.type === 'json' && (
+                                            <Input.TextArea
+                                                value={typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+                                                onChange={(e) => {
+                                                    try {
+                                                        // 尝试解析 JSON
+                                                        const parsed = JSON.parse(e.target.value)
+                                                        const newConfig = { ...currentConfig, [param.name]: parsed }
+                                                        handleValueChange('config', newConfig)
+                                                    } catch (err) {
+                                                        // 如果解析失败，保存原始字符串
+                                                        const newConfig = { ...currentConfig, [param.name]: e.target.value }
+                                                        handleValueChange('config', newConfig)
+                                                    }
+                                                }}
+                                                placeholder={param.placeholder || `请输入 JSON 格式的${param.label}`}
+                                                rows={6}
+                                                style={{ fontFamily: 'monospace', fontSize: '12px' }}
                                             />
                                         )}
 

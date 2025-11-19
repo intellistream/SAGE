@@ -121,13 +121,32 @@ submodule_switch() {
 }
 
 submodule_init_steps() {
-    # 初始化 submodules
-    git submodule update --init --recursive
+    # 初始化 submodules（使用优化参数提高速度）
+    echo -e "${DIM}正在克隆 submodules (并行+浅克隆)...${NC}"
+    echo -e "${DIM}提示: 首次克隆 8 个仓库可能需要 2-5 分钟，取决于网络状况${NC}"
+
+    # 确保 submodule 配置已同步（将 .gitmodules 同步到 .git/config）
+    echo -e "${DIM}同步 submodule 配置...${NC}"
+    git submodule sync --recursive >/dev/null 2>&1 || true
+
+    # 使用 --jobs 并行克隆，--depth 1 浅克隆，提升下载速度
+    # --jobs 4: 并行克隆 4 个仓库
+    # --depth 1: 只克隆最新提交，大幅减少下载量（节省 ~80% 时间）
+    echo -e "${DIM}开始克隆 submodules（浅克隆）...${NC}"
+    if ! git submodule update --init --recursive --jobs 4 --depth 1 2>&1 | while IFS= read -r line; do
+        echo -e "${DIM}  $line${NC}"
+    done; then
+        echo ""
+        echo -e "${YELLOW}${WARNING} 浅克隆失败，尝试完整克隆...${NC}"
+        git submodule update --init --recursive --jobs 4
+    fi
+
     echo -e "${GREEN}${CHECK} Submodules 初始化完成${NC}"
     echo ""
 
-    # 自动切换到正确的分支
-    echo -e "${BLUE}${INFO} 切换 submodules 到正确的分支...${NC}"
+    # 自动切换到正确的分支（作为额外保障）
+    # 即使使用了 --remote，也再次确认所有 submodule 都在正确的分支上
+    echo -e "${BLUE}${INFO} 验证并切换 submodules 到正确的分支...${NC}"
     bash "${HELPERS_DIR}/manage_submodule_branches.sh" switch
 }
 
@@ -142,7 +161,8 @@ submodule_update() {
     echo -e "${BLUE}${PACKAGE} 更新 Submodules${NC}"
     echo ""
 
-    git submodule update --remote --recursive
+    echo -e "${DIM}正在并行更新所有 submodules...${NC}"
+    git submodule update --remote --recursive --jobs 4
     echo -e "${GREEN}${CHECK} Submodules 更新完成${NC}"
 }
 

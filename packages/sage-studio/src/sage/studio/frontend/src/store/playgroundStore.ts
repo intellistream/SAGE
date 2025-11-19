@@ -67,7 +67,7 @@ export interface PlaygroundState {
     renameSession: (sessionId: string, name: string) => void
 
     // 消息管理
-    addMessage: (sessionId: string, message: Omit<Message, 'id' | 'timestamp'>) => void
+    addMessage: (sessionId: string, message: Omit<Message, 'id' | 'timestamp'>) => string
     updateMessage: (sessionId: string, messageId: string, updates: Partial<Message>) => void
     addAgentStep: (sessionId: string, messageId: string, step: AgentStep) => void
 
@@ -213,6 +213,8 @@ export const usePlaygroundStore = create<PlaygroundState>((set, get) => ({
                 },
             },
         }))
+
+        return newMessage.id
     },
 
     updateMessage: (sessionId, messageId, updates) => {

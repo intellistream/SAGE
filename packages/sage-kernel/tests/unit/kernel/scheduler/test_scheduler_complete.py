@@ -42,8 +42,10 @@ class TestPlacementDecision:
 
     def test_full_initialization(self):
         """测试完整初始化"""
+        # 使用有效的 Ray node_id 格式（十六进制字符串）
+        valid_node_id = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd"
         decision = PlacementDecision(
-            target_node="worker-node-1",
+            target_node=valid_node_id,
             resource_requirements={"cpu": 4, "gpu": 1, "memory": "8GB"},
             delay=0.5,
             immediate=False,
@@ -51,7 +53,7 @@ class TestPlacementDecision:
             reason="Test decision",
         )
 
-        assert decision.target_node == "worker-node-1"
+        assert decision.target_node == valid_node_id
         assert decision.resource_requirements == {"cpu": 4, "gpu": 1, "memory": "8GB"}
         assert decision.delay == 0.5
         assert decision.immediate is False
@@ -84,9 +86,11 @@ class TestPlacementDecision:
 
     def test_with_node(self):
         """测试 with_node 快捷方法"""
-        decision = PlacementDecision.with_node(node_id="worker-node-2", reason="Node test")
+        # 使用有效的 Ray node_id 格式
+        valid_node_id = "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef"
+        decision = PlacementDecision.with_node(node_id=valid_node_id, reason="Node test")
 
-        assert decision.target_node == "worker-node-2"
+        assert decision.target_node == valid_node_id
         assert decision.reason == "Node test"
 
     def test_to_dict(self):
@@ -340,7 +344,9 @@ class TestLoadAwareScheduler:
         """测试使用 NodeSelector 的决策"""
         # Mock NodeSelector
         mock_selector = Mock()
-        mock_selector.select_best_node.return_value = "worker-node-2"
+        # 使用有效的 Ray node_id 格式
+        valid_node_id = "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef"
+        mock_selector.select_best_node.return_value = valid_node_id
 
         # Mock get_node to return node resource info
         mock_node_res = Mock()
@@ -368,9 +374,9 @@ class TestLoadAwareScheduler:
         decision = scheduler.make_decision(task_node)
 
         # 验证节点选择
-        assert decision.target_node == "worker-node-2"
+        assert decision.target_node == valid_node_id
         mock_selector.select_best_node.assert_called_once()
-        mock_selector.track_task_placement.assert_called_once_with(task_node.name, "worker-node-2")
+        mock_selector.track_task_placement.assert_called_once_with(task_node.name, valid_node_id)
 
     def test_make_service_decision(self):
         """测试服务调度决策"""
@@ -560,9 +566,10 @@ class TestPlacementExecutor:
         mock_wrapped = Mock()
         mock_wrapper.return_value = mock_wrapped
 
-        # Mock decision (with node)
+        # Mock decision (with node) - 使用有效的 Ray node_id 格式
+        valid_node_id = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd"
         decision = PlacementDecision(
-            target_node="worker-node-1", resource_requirements={"cpu": 4, "gpu": 1}
+            target_node=valid_node_id, resource_requirements={"cpu": 4, "gpu": 1}
         )
 
         # 放置任务
@@ -589,12 +596,14 @@ class TestPlacementExecutor:
     def test_build_ray_options_with_node(self, mock_strategy):
         """测试构建 Ray 选项（指定节点）"""
         executor = PlacementExecutor()
-        decision = PlacementDecision(target_node="worker-node-1")
+        # 使用有效的 Ray node_id 格式
+        valid_node_id = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd"
+        decision = PlacementDecision(target_node=valid_node_id)
 
         options = executor._build_ray_options(decision)
 
         assert "scheduling_strategy" in options
-        mock_strategy.assert_called_once_with(node_id="worker-node-1", soft=False)
+        mock_strategy.assert_called_once_with(node_id=valid_node_id, soft=False)
 
     def test_build_ray_options_with_resources(self):
         """测试构建 Ray 选项（资源需求）"""
@@ -691,7 +700,9 @@ class TestSchedulerIntegration:
         """测试负载感知调度器到放置执行器的完整流程"""
         # Mock NodeSelector
         mock_selector = Mock()
-        mock_selector.select_best_node.return_value = "worker-node-1"
+        # 使用有效的 Ray node_id 格式
+        valid_node_id = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd"
+        mock_selector.select_best_node.return_value = valid_node_id
         mock_node_selector_class.return_value = mock_selector
 
         scheduler = LoadAwareScheduler(max_concurrent=10)

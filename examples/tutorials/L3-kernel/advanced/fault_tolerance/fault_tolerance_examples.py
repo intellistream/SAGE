@@ -38,8 +38,8 @@ def example_1_user_checkpoint_strategy():
 
     # 此示例需要 sage.libs
     try:
-        from sage.libs.io.sink import TerminalSink
-        from sage.libs.io.source import FileSource
+        from sage.libs.foundation.io.sink import TerminalSink
+        from sage.libs.foundation.io.source import FileSource
     except ImportError as e:
         raise ImportError(
             "This example requires sage.libs. "
@@ -88,8 +88,8 @@ def example_2_user_restart_strategy():
     from sage.kernel.api.local_environment import LocalEnvironment
 
     try:
-        from sage.libs.io.sink import TerminalSink
-        from sage.libs.io.source import FileSource
+        from sage.libs.foundation.io.sink import TerminalSink
+        from sage.libs.foundation.io.source import FileSource
     except ImportError as e:
         raise ImportError(
             "This example requires sage.libs. Install it with: pip install sage-libs"
@@ -135,8 +135,8 @@ def example_3_user_no_fault_tolerance():
     from sage.kernel.api.local_environment import LocalEnvironment
 
     try:
-        from sage.libs.io.sink import TerminalSink
-        from sage.libs.io.source import FileSource
+        from sage.libs.foundation.io.sink import TerminalSink
+        from sage.libs.foundation.io.source import FileSource
     except ImportError as e:
         raise ImportError(
             "This example requires sage.libs. Install it with: pip install sage-libs"
@@ -170,8 +170,8 @@ def example_4_user_yaml_config():
     from sage.kernel.api.local_environment import LocalEnvironment
 
     try:
-        from sage.libs.io.sink import TerminalSink
-        from sage.libs.io.source import FileSource
+        from sage.libs.foundation.io.sink import TerminalSink
+        from sage.libs.foundation.io.source import FileSource
     except ImportError as e:
         raise ImportError(
             "This example requires sage.libs. Install it with: pip install sage-libs"

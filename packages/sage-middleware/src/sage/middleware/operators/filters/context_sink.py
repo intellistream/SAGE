@@ -66,14 +66,12 @@ class ContextFileSink(SinkFunction):
         """
         super().__init__(**kwargs)
 
-        # 合并配置
+        # 合并配置（避免重复更新）
         self.config = self.get_default_config()
-        if isinstance(config, dict):
-            self.config.update(config)
-        else:
+        if not isinstance(config, dict):
             raise TypeError(f"Expected a dict for config, got {type(config)}")
-        if config:
-            self.config.update(config)
+        # single update with provided config
+        self.config.update(config)
 
         # 向后兼容：如果直接传递了参数，使用这些参数更新config
         legacy_params = {
@@ -103,6 +101,7 @@ class ContextFileSink(SinkFunction):
 
     def _setup_directories(self):
         """设置目录结构"""
+        # type: () -> None
         # 基础目录
         if self.config["base_directory"] is None:
             base_dir = self.get_default_template_directory()
@@ -123,8 +122,14 @@ class ContextFileSink(SinkFunction):
             self.full_directory.mkdir(parents=True, exist_ok=True)
 
     def runtime_init(self, ctx):
-        """运行时初始化"""
-        super().runtime_init(ctx)
+        """
+        运行时初始化
+
+        Note: ctx is injected into self.ctx by the framework (BaseFunction property).
+        This method logs initialization info after context is available.
+        """
+        # No need to call super().runtime_init(ctx) - BaseFunction doesn't have this method.
+        # The framework injects ctx into self.ctx automatically.
         self.logger.info(f"TemplateFileSink runtime initialized with context: {ctx}")
         self.logger.info(f"Template base directory: {self.base_directory}")
         self.logger.info(f"Template stage directory: {self.stage_directory}")
@@ -134,6 +139,7 @@ class ContextFileSink(SinkFunction):
 
     def _initialize_index(self):
         """初始化索引文件"""
+        # type: () -> None
         index_data = {
             "created_at": datetime.now().isoformat(),
             "total_templates": 0,
@@ -202,6 +208,7 @@ class ContextFileSink(SinkFunction):
 
     def _update_index(self, template: ModelContext, file_path: Path):
         """更新索引文件"""
+        # type: (ModelContext, Path) -> None
         if not self.config["create_index"]:
             return
 

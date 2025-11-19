@@ -370,7 +370,10 @@ class LocalTcpServer(BaseTcpServer):
         super().__init__(host, port, logger, "LocalTcpServer")
 
         # 消息处理器字典：消息类型 -> 处理函数
-        self.message_handlers: dict[str, Callable[[dict[str, Any], tuple], dict[str, Any]]] = {}
+        # Handler can return dict[str, Any] for response or None if no response needed
+        self.message_handlers: dict[
+            str, Callable[[dict[str, Any], tuple], dict[str, Any] | None]
+        ] = {}
         self.default_handler = default_handler
 
         # 添加锁保护处理器字典
@@ -542,15 +545,26 @@ class LocalTcpServer(BaseTcpServer):
     def register_handler(
         self,
         message_type: str,
-        handler: Callable[[dict[str, Any], tuple], dict[str, Any]],
+        handler: Callable[[dict[str, Any], tuple], dict[str, Any] | None],
     ):
-        """注册消息处理器"""
+        """注册消息处理器
+
+        Args:
+            message_type: 消息类型标识
+            handler: 消息处理函数，返回响应字典或None（如果不需要响应）
+        """
         with self._handlers_lock:
             self.message_handlers[message_type] = handler
             self.logger.info(f"Registered handler for message type: {message_type}")
 
-    def set_default_handler(self, handler: Callable[[dict[str, Any], tuple], dict[str, Any]]):
-        """设置默认消息处理器"""
+    def set_default_handler(
+        self, handler: Callable[[dict[str, Any], tuple], dict[str, Any] | None]
+    ):
+        """设置默认消息处理器
+
+        Args:
+            handler: 默认消息处理函数，返回响应字典或None（如果不需要响应）
+        """
         self.default_handler = handler
         self.logger.info("Default message handler set")
 

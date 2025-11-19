@@ -1,28 +1,21 @@
 #!/usr/bin/env bash
-# Fix code quality issues before commit
-# This script runs the same checks as CI/CD
+# Wrapper around sage-dev quality fix
+# Keeps backward compatibility with old workflows
 
-set -e
+set -euo pipefail
 
-cd "$(dirname "$0")/.."
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-echo "🔍 Running code quality checks..."
+if ! command -v sage-dev >/dev/null 2>&1; then
+	echo "❌ 未检测到 sage-dev 命令"
+	echo "➡️  请先安装/激活开发环境: pip install -e packages/sage-tools"
+	exit 1
+fi
+
+cd "$REPO_ROOT"
+
+echo "🔧 Running 'sage-dev quality fix'..."
+sage-dev quality fix "$@"
+
 echo ""
-
-# Run ruff format (replaces black)
-echo "📝 Running ruff format..."
-pre-commit run ruff-format --all-files --config tools/pre-commit-config.yaml || true
-
-# Run ruff check (replaces isort + flake8)
-echo "🔧 Running ruff check..."
-pre-commit run ruff-check --all-files --config tools/pre-commit-config.yaml || true
-
-echo ""
-echo "✅ Code quality fixes applied!"
-echo "📌 Please review changes and commit them."
-echo ""
-echo "💡 To prevent this in the future:"
-echo "   1. Make sure pre-commit hooks are installed:"
-echo "      pre-commit install --config tools/pre-commit-config.yaml"
-echo "   2. Don't use 'git commit -n' or '--no-verify'"
-echo "   3. Run 'pre-commit run --all-files --config tools/pre-commit-config.yaml' before pushing"
+echo "✅ Code quality fixes applied via sage-dev"

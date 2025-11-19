@@ -5,7 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from sage.libs.tools.tool import BaseTool
+from sage.libs.foundation.tools.tool import BaseTool
 
 
 class _Searcher_Tool(BaseTool):
@@ -13,7 +13,6 @@ class _Searcher_Tool(BaseTool):
         super().__init__(
             tool_name="_Searcher_Tool",
             tool_description="A tool that searches arXiv for papers based on a given query.",
-            tool_version="1.0.0",
             input_types={
                 "query": "str - The search query for arXiv papers.",
                 "size": "int - The number of results per page (25, 50, 100, or 200). If None, use 25.",
@@ -34,11 +33,11 @@ class _Searcher_Tool(BaseTool):
                     "description": "Search for machine learning papers, returning a maximum of 75 papers.",
                 },
             ],
-            user_metadata={
-                "valid_sizes": [25, 50, 100, 200],
-                "base_url": "https://arxiv.org/search/",
-            },
         )
+        # Store additional metadata as instance variables
+        self.tool_version = "1.0.0"
+        self.valid_sizes = [25, 50, 100, 200]
+        self.base_url = "https://arxiv.org/search/"
 
     def build_tool(self):
         """

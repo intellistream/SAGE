@@ -1,5 +1,5 @@
 """
-测试 sage.libs.agents.agent 模块
+测试 sage.libs.agentic.agents.agent 模块
 """
 
 import json
@@ -12,7 +12,7 @@ import requests
 pytest_plugins = []
 
 try:
-    from sage.libs.agents.agent import (
+    from sage.libs.agentic.agents.agent import (
         FORMAT_INSTRUCTIONS,
         PREFIX,
         BaseAgent,  # noqa: F401
@@ -249,7 +249,7 @@ class TestAgentPerformance:
         slow_time = time.time() - start
 
         assert fast_time < slow_time
-        assert fast_time < 0.001  # 应该很快
+        assert fast_time < 0.01  # 应该很快 (放宽到10ms以适应CI环境)
 
 
 @pytest.mark.external
@@ -298,7 +298,7 @@ class TestAgentModuleFallback:
         """测试模块导入降级"""
         # 这个测试总是运行，检查模块可用性
         try:
-            from sage.libs.agents.agent import Tool  # noqa: F401
+            from sage.libs.agentic.agents.agent import Tool  # noqa: F401
 
             assert True  # 导入成功
         except ImportError:

@@ -195,11 +195,27 @@ hooks_app = typer.Typer(
     no_args_is_help=True,
 )
 
+HOOK_MODES = ("lightweight", "full")
+
+
+def _validate_hook_mode(value: str) -> str:
+    normalized = value.lower()
+    if normalized not in HOOK_MODES:
+        raise typer.BadParameter(f"无效的 hooks 模式: {value}. 可选值: {', '.join(HOOK_MODES)}")
+    return normalized
+
 
 @hooks_app.command(name="install")
 def hooks_install(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式，只显示错误"),
     root_dir: str = typer.Option(None, "--root", help="项目根目录（默认自动检测）"),
+    mode: str = typer.Option(
+        "lightweight",
+        "--mode",
+        "-m",
+        callback=_validate_hook_mode,
+        help="选择 hooks 安装模式: lightweight (默认) 或 full",
+    ),
 ):
     """
     安装 SAGE Git hooks。
@@ -215,7 +231,7 @@ def hooks_install(
     from sage.tools.dev.hooks import HooksInstaller
 
     root_path = Path(root_dir) if root_dir else None
-    installer = HooksInstaller(root_dir=root_path, quiet=quiet)
+    installer = HooksInstaller(root_dir=root_path, quiet=quiet, mode=mode)
 
     try:
         success = installer.install()
@@ -301,6 +317,13 @@ def hooks_status(
 def hooks_reinstall(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式，只显示错误"),
     root_dir: str = typer.Option(None, "--root", help="项目根目录（默认自动检测）"),
+    mode: str = typer.Option(
+        "lightweight",
+        "--mode",
+        "-m",
+        callback=_validate_hook_mode,
+        help="选择 hooks 安装模式: lightweight (默认) 或 full",
+    ),
 ):
     """
     重新安装 SAGE Git hooks。
@@ -315,7 +338,7 @@ def hooks_reinstall(
     from sage.tools.dev.hooks import HooksManager
 
     root_path = Path(root_dir) if root_dir else None
-    manager = HooksManager(root_dir=root_path)
+    manager = HooksManager(root_dir=root_path, mode=mode)
 
     try:
         # Uninstall first

@@ -1,37 +1,17 @@
-"""
-SAGE Libs - Generic Algorithm Library and Agent Framework
+"""SAGE Libs - Layered algorithm library for SAGE Framework.
 
 Layer: L3 (Core Libraries)
-Dependencies: sage.kernel (L3), sage.platform (L2), sage.common (L1)
+Dependencies: sage.common (L1), sage.platform (L2), sage.kernel (L3)
 
-Provides:
-- Agents: Generic agent framework (ReAct, Planning, etc.)
-- IO: Unified input/output interfaces (Source, Sink, Batch)
-- Workflow: Workflow optimization framework
-- Unlearning: Machine unlearning algorithms
-- Tools: Base tool infrastructure (BaseTool, ToolRegistry)
-- Context: Context compression algorithms (LongRefiner, SimpleRefiner)
+High-level layout:
+- ``foundation``: Lowest-level utilities (tools, io, context, filters)
+- ``agentic``: LangChain-style agent framework + workflow optimizer
+- ``rag``: Retrieval-Augmented Generation building blocks (migrating from middleware)
+- ``integrations``: Third-party service adapters (LLMs, vector DBs, observability)
+- ``privacy``: Machine unlearning and privacy-preserving algorithms
 
-Note: Domain-specific components have been moved to sage.middleware (L4):
-- RAG operators → sage.middleware.operators.rag
-- Integrations (Milvus, Chroma, OpenAI, etc.) → sage.middleware.operators.rag.backends / llm.clients
-- Filters (tool_filter, evaluate_filter) → sage.middleware.operators.filters
-- Business context (ModelContext, SearchSession) → sage.middleware.context
-- Domain tools (arxiv_searcher, image_captioner) → sage.middleware.operators.tools
-
-Architecture:
-- Same as sage-kernel at L3 layer, providing generic algorithms and frameworks
-- sage-kernel: Focuses on streaming execution engine
-- sage-libs: Focuses on generic algorithm library and high-level abstractions
-- Independent and can be used separately
-
-Module Structure:
-- agents/: Generic agent framework patterns
-- io/: Data source and sink abstractions
-- workflow/: Workflow optimization framework
-- tools/: Base tool classes (BaseTool, ToolRegistry)
-- unlearning/: Machine unlearning algorithms
-- context/: Context compression algorithms (moved from middleware/sage_refiner)
+This structure makes coarse-grained systems (agents, RAG) live beside
+infrastructure concerns while keeping fine-grained utilities in ``foundation``.
 """
 
 # Load version information
@@ -46,23 +26,15 @@ except ImportError:
 # Export submodules
 __layer__ = "L3"
 
-from . import (
-    agents,
-    context,
-    io,
-    tools,
-    unlearning,
-    workflow,
-)
+from . import agentic, foundation, integrations, privacy, rag
 
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
-    "agents",
-    "context",
-    "io",
-    "tools",
-    "unlearning",
-    "workflow",
+    "foundation",
+    "agentic",
+    "rag",
+    "integrations",
+    "privacy",
 ]

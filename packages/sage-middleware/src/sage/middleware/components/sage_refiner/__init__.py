@@ -25,11 +25,11 @@ SAGE Refiner - 上下文压缩和精炼组件
     ... )
 """
 
-from sage.libs.context.compression.algorithms import (
+from sage.libs.foundation.context.compression.algorithms import (
     LongRefinerAlgorithm,
     SimpleRefiner,
 )
-from sage.libs.context.compression.refiner import (
+from sage.libs.foundation.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
     RefinerMetrics,

@@ -185,3 +185,35 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
         )
         instance.created_timestamp = data.get("created_timestamp", instance.created_timestamp)
         return instance
+
+    def clone(self, new_queue_id: Optional[str] = None) -> "RPCQueueDescriptor":
+        """克隆描述符（共享队列实例以避免竞态条件）
+
+        重要：如果原描述符已初始化队列实例，克隆体将共享同一个队列实例。
+        这对于服务通信至关重要 - 服务端和客户端必须使用相同的队列实例，
+        否则会导致间歇性超时（竞态条件）。
+
+        Args:
+            new_queue_id: 新的队列ID，如果为None则自动生成
+
+        Returns:
+            新的描述符实例，如果原实例已初始化则共享队列实例
+        """
+        # 创建同类型的新实例
+        cloned = RPCQueueDescriptor(
+            host=self.host,
+            port=self.port,
+            connection_timeout=self.connection_timeout,
+            retry_count=self.retry_count,
+            enable_pooling=self.enable_pooling,
+            queue_id=new_queue_id,
+        )
+
+        # 【关键修复】共享队列实例，避免竞态条件
+        # 如果原描述符已经初始化了队列实例，克隆体应该共享同一个实例
+        # 这确保服务端和客户端使用相同的队列，防止响应丢失
+        if self._initialized:
+            cloned._queue_instance = self._queue_instance
+            cloned._initialized = True
+
+        return cloned

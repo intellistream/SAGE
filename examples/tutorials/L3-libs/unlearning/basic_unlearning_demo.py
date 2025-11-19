@@ -17,7 +17,7 @@ Modify and extend this example to test your algorithms.
 
 import numpy as np
 
-from sage.libs.unlearning import UnlearningEngine
+from sage.libs.privacy.unlearning import UnlearningEngine
 
 
 def generate_synthetic_vectors(n_vectors: int = 100, dim: int = 128) -> tuple:

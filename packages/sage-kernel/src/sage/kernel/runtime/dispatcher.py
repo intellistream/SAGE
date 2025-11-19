@@ -33,6 +33,8 @@ class Dispatcher:
         self.tasks: dict[str, LocalTask | ActorWrapper] = {}
         self.services: dict[str, LocalServiceTask | ActorWrapper] = {}  # 存储服务实例
         self.is_running: bool = False
+        # 记录主环境的初始节点列表（不包括 Service 内部节点）
+        self.main_env_nodes: set[str] = set()
         # HeartbeatMonitor 实例 (监控线程)
         self.heartbeat_monitor: HeartbeatMonitor | None = None
 
@@ -185,27 +187,49 @@ class Dispatcher:
             # 从任务列表中移除
             del self.tasks[node_name]
 
+            # 通知调度器任务已完成（释放资源）
+            if hasattr(self.scheduler, "task_completed"):
+                try:
+                    self.scheduler.task_completed(node_name)
+                except Exception as scheduler_err:
+                    self.logger.warning(
+                        f"Scheduler task_completed notification failed for {node_name}: {scheduler_err}"
+                    )
+
             self.logger.info(f"Node {node_name} stopped and cleaned up")
 
         except Exception as e:
             self.logger.error(f"Error stopping node {node_name}: {e}", exc_info=True)
             return False
 
-        # 检查是否所有节点都已停止
-        if len(self.tasks) == 0:
-            self.logger.info("All computation nodes stopped, batch processing completed")
+        # 检查是否所有主 Pipeline 的节点都已停止
+        # 使用在 submit() 时记录的 main_env_nodes 集合
+        # 只有主环境的节点都停止了，才触发清理
+        remaining_main_nodes = [name for name in self.main_env_nodes if name in self.tasks]
+
+        if len(remaining_main_nodes) == 0:
+            self.logger.info("All main pipeline nodes stopped, batch processing completed")
+            self.logger.info(
+                f"Remaining service pipeline nodes: {len(self.tasks)} ({list(self.tasks.keys())})"
+            )
             self.is_running = False
 
-            # 当所有计算节点停止后，也应该清理服务
+            # 当所有主节点停止后，清理服务
             if len(self.services) > 0:
                 self.logger.info(
-                    f"Cleaning up {len(self.services)} services after batch completion"
+                    f"Cleaning up {len(self.services)} services after main pipeline completed"
                 )
                 self._cleanup_services_after_batch_completion()
 
             return True
         else:
-            self.logger.info(f"Remaining nodes: {len(self.tasks)}, services: {len(self.services)}")
+            # 统计不同类型的节点数量用于日志
+            service_nodes = [name for name in self.tasks.keys() if name not in self.main_env_nodes]
+            self.logger.info(
+                f"Remaining main pipeline nodes: {len(remaining_main_nodes)} {remaining_main_nodes}, "
+                f"service pipeline nodes: {len(service_nodes)}, "
+                f"total tasks: {len(self.tasks)}, services: {len(self.services)}"
+            )
             return False
 
     def _notify_join_operators_on_source_stop(self, source_node_name: str):
@@ -272,6 +296,70 @@ class Dispatcher:
         self.services.clear()
         self.logger.info("All services cleaned up")
 
+    def _preinitialize_queue_descriptors(self):
+        """
+        在任务启动前预初始化所有队列描述符
+
+        这个方法遍历所有任务的上下文,访问队列描述符的queue_instance属性,
+        强制在主进程/driver context中完成Ray Actor的创建和初始化,
+        避免在Ray Task执行期间懒初始化导致的死锁问题。
+        """
+        self.logger.info("Pre-initializing all queue descriptors to avoid deadlocks...")
+        import time
+
+        start_time = time.time()
+
+        initialized_qds = set()  # 使用集合记录已初始化的队列(通过id去重)
+
+        # 遍历所有任务,初始化其上下文中的队列描述符
+        for node_name, task in self.tasks.items():
+            if not hasattr(task, "ctx") or task.ctx is None:
+                continue
+
+            ctx = task.ctx
+            qd_list = []
+
+            # 收集输入队列描述符
+            if hasattr(ctx, "input_qd") and ctx.input_qd is not None:
+                qd_list.append(("input_qd", ctx.input_qd))
+
+            # 收集响应队列描述符
+            if hasattr(ctx, "response_qd") and ctx.response_qd is not None:
+                qd_list.append(("response_qd", ctx.response_qd))
+
+            # 收集所有下游连接的队列描述符
+            if hasattr(ctx, "downstream_groups"):
+                for output_index, connections in ctx.downstream_groups.items():
+                    for parallel_idx, connection in connections.items():
+                        if hasattr(connection, "queue_descriptor"):
+                            qd_list.append(
+                                (
+                                    f"downstream_{output_index}_{parallel_idx}",
+                                    connection.queue_descriptor,
+                                )
+                            )
+
+            # 初始化这些队列描述符
+            for qd_name, qd in qd_list:
+                qd_id = id(qd)
+                if qd_id not in initialized_qds:
+                    try:
+                        # 访问queue_instance属性触发初始化
+                        _ = qd.queue_instance
+                        initialized_qds.add(qd_id)
+                        self.logger.debug(
+                            f"Initialized queue descriptor: {qd_name} for task {node_name}"
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to pre-initialize {qd_name} for {node_name}: {e}"
+                        )
+
+        elapsed = time.time() - start_time
+        self.logger.info(
+            f"Queue descriptor pre-initialization completed: {len(initialized_qds)} unique queues initialized in {elapsed:.3f}s"
+        )
+
     def setup_logging_system(self):
         base_dir = self.env.env_base_dir if self.env.env_base_dir is not None else "."
         self.logger = CustomLogger(
@@ -306,8 +394,14 @@ class Dispatcher:
                 )
 
         # 第四步：提交所有节点开始运行
-        for node_name, task in list(self.tasks.items()):
+        task_list = list(self.tasks.items())
+        self.logger.info(
+            f"Preparing to start {len(task_list)} tasks: {[name for name, _ in task_list]}"
+        )
+
+        for node_name, task in task_list:
             try:
+                self.logger.debug(f"Starting node: {node_name} (type: {type(task).__name__})")
                 task.start_running()
                 self.logger.debug(f"Started node: {node_name}")
             except Exception as e:
@@ -423,6 +517,80 @@ class Dispatcher:
                 # 可以选择继续或停止，这里选择继续但记录错误
 
         # 第二步：调度所有计算任务节点
+        # 记录主环境的节点名称（用于停止检测）
+        #
+        # 问题：self.graph.nodes 包含所有节点（主 Pipeline + Service Pipeline 内部节点）
+        # 解决：通过节点名称模式识别主 Pipeline 节点（白名单策略）
+        #
+        # Service Pipeline 的所有节点（Source/Sink + 内部 Map 节点）都不应该被计入主节点
+        # 策略：只保留不属于任何 Service Pipeline 的节点
+        #
+        # 判断方法：检查节点的 operator 类型
+        # - PipelineServiceSource/Sink: Service Pipeline 边界
+        # - 其他 Batch/Map：需要进一步判断
+        #
+        # 更简单的方法：记录在 Service Pipeline 添加前的节点数
+        # 但由于 Service Pipeline 先创建，我们需要反向识别
+        #
+        # 最可靠的方法：检查节点是否在某个 Service Pipeline 的 source→sink 路径上
+        # 但这需要图遍历，太复杂
+        #
+        # 实用策略：先记录所有节点，submit 完成后只保留主 Pipeline 节点
+        # 但我们在这里无法知道哪些是主节点...
+        #
+        # 换个角度：所有节点共享同一个 env，我们需要在用户代码中标记
+        # 或者：Service Pipeline 的节点都会连接到 PipelineServiceSource/Sink
+        #
+        # 最终方案：递归查找所有连接到 PipelineServiceSource/Sink 的节点
+        service_pipeline_nodes = set()
+
+        # 找出所有 PipelineServiceSource 和 PipelineServiceSink 节点
+        for node_name in self.graph.nodes.keys():
+            if node_name.startswith("PipelineServiceSource") or node_name.startswith(
+                "PipelineServiceSink"
+            ):
+                service_pipeline_nodes.add(node_name)
+
+        # 递归找出所有连接到这些节点的节点
+        # 使用 BFS 遍历图
+        from collections import deque
+
+        queue = deque(service_pipeline_nodes)
+        visited = set(service_pipeline_nodes)
+
+        while queue:
+            current_node = queue.popleft()
+            # 查找所有连接到当前节点的边
+            for edge_name, edge in self.graph.edges.items():
+                # 如果边的起点或终点是当前节点，将另一端添加到 service_pipeline_nodes
+                if (
+                    edge.upstream_node.name == current_node
+                    and edge.downstream_node
+                    and edge.downstream_node.name not in visited
+                ):
+                    service_pipeline_nodes.add(edge.downstream_node.name)
+                    visited.add(edge.downstream_node.name)
+                    queue.append(edge.downstream_node.name)
+                elif (
+                    edge.downstream_node
+                    and edge.downstream_node.name == current_node
+                    and edge.upstream_node.name not in visited
+                ):
+                    service_pipeline_nodes.add(edge.upstream_node.name)
+                    visited.add(edge.upstream_node.name)
+                    queue.append(edge.upstream_node.name)
+
+        # 主节点 = 所有节点 - Service Pipeline 节点
+        self.main_env_nodes = {
+            name for name in self.graph.nodes.keys() if name not in service_pipeline_nodes
+        }
+        self.logger.info(
+            f"Main environment nodes (total: {len(self.main_env_nodes)}): {self.main_env_nodes}"
+        )
+        self.logger.info(
+            f"Service pipeline nodes (total: {len(service_pipeline_nodes)}): {service_pipeline_nodes}"
+        )
+
         for node_name, graph_node in self.graph.nodes.items():
             try:
                 # === 新架构：Scheduler → Decision → Placement ===
@@ -459,6 +627,9 @@ class Dispatcher:
                 raise e
 
         # 连接关系已经在execution graph层通过task context设置好了，无需在此处设置
+
+        # 预初始化所有队列描述符(防止在Ray Task内部懒初始化导致死锁)
+        self._preinitialize_queue_descriptors()
 
         try:
             self.start()

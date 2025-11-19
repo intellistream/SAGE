@@ -12,18 +12,12 @@ source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 
 # 安装开发包
 install_dev_packages() {
-    # 获取项目根目录和日志文件
-    local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/.sage/logs/install.log"
-
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BOLD}  🛠️  开发工具安装完成${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 
-    # 记录到日志
-    mkdir -p "$(dirname "$log_file")"
-    echo "$(date): 开发工具安装阶段" >> "$log_file"
+    log_info "开发工具安装阶段" "DevTools"
 
     echo -e "${CHECK} 开发工具依赖已在 sage-tools[dev] 安装过程中完成"
     echo -e "${DIM}包含: black, isort, flake8, pytest, pytest-timeout, mypy, pre-commit 等${NC}"
@@ -39,8 +33,10 @@ install_dev_packages() {
 
     for tool in "${tools_to_check[@]}"; do
         if command -v "$tool" >/dev/null 2>&1; then
+            log_info "$tool 可用" "DevTools"
             echo -e "${CHECK} $tool 可用"
         else
+            log_warn "$tool 不在 PATH 中" "DevTools"
             echo -e "${WARNING} $tool 不在 PATH 中"
             missing_tools+=("$tool")
         fi
@@ -54,8 +50,10 @@ install_dev_packages() {
     local cli_packages_to_check=("typer" "rich")
     for package in "${cli_packages_to_check[@]}"; do
         if python3 -c "import $package" 2>/dev/null; then
+            log_info "$package 可导入" "DevTools"
             echo -e "${CHECK} $package 可导入"
         else
+            log_warn "$package 无法导入" "DevTools"
             echo -e "${WARNING} $package 无法导入"
             missing_tools+=("$package")
         fi
@@ -63,9 +61,11 @@ install_dev_packages() {
 
     if [ ${#missing_tools[@]} -eq 0 ]; then
         echo ""
+        log_info "所有开发工具验证成功！" "DevTools"
         echo -e "${CHECK} 所有开发工具验证成功！"
     else
         echo ""
+        log_warn "部分工具不在 PATH 中: ${missing_tools[*]}" "DevTools"
         echo -e "${WARNING} 部分工具不在 PATH 中: ${missing_tools[*]}"
         echo -e "${DIM}这在某些环境中是正常的，工具仍可通过 python -m 方式使用${NC}"
     fi
@@ -80,6 +80,5 @@ install_dev_packages() {
     echo -e "${GREEN}${BOLD}  🎉 开发工具安装完成！${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-    # 记录到日志
-    echo "$(date): 开发工具安装完成" >> "$log_file"
+    log_info "开发工具安装完成" "DevTools"
 }

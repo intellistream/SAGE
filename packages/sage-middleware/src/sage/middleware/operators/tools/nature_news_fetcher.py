@@ -6,7 +6,7 @@ import time
 import requests
 from bs4 import BeautifulSoup, Tag
 
-from sage.libs.tools.tool import BaseTool
+from sage.libs.foundation.tools.tool import BaseTool
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -18,7 +18,6 @@ class Nature_News_Fetcher_Tool(BaseTool):
         super().__init__(
             tool_name="Nature_News_Fetcher_Tool",
             tool_description="A tool that fetches the latest news articles from Nature.",
-            tool_version="1.0.0",
             input_types={
                 "num_articles": "int - The number of articles to fetch (default: 100).",
                 "max_pages": "int - The maximum number of pages to fetch (default: 5).",
@@ -35,6 +34,7 @@ class Nature_News_Fetcher_Tool(BaseTool):
                 },
             ],
         )
+        self.tool_version = "1.0.0"
         self.base_url = "https://www.nature.com/nature/articles"
         # 控制每次抓取后的等待时间，可在测试中覆盖
         self.sleep_time = 1
