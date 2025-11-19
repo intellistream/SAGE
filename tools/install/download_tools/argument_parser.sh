@@ -86,6 +86,7 @@ USE_PIP_MIRROR=false
 MIRROR_SOURCE="auto"
 RESUME_INSTALL=false  # 新增：断点续传
 RESET_CHECKPOINT=false  # 新增：重置检查点
+CLEAN_BEFORE_INSTALL=true  # 新增：安装前清理（默认启用）
 
 # 检测当前Python环境
 detect_current_environment() {
@@ -517,6 +518,13 @@ show_parameter_help() {
     echo -e "    ${DIM}默认安装前会清理 pip 缓存，此选项可跳过${NC}"
     echo -e "    ${DIM}适用于网络受限或缓存清理可能出错的环境${NC}"
     echo ""
+    echo -e "  ${BOLD}--clean, --clean-before-install${NC}            ${GREEN}明确启用安装前清理${NC}"
+    echo -e "    ${DIM}默认已启用，此选项可显式指定清理行为${NC}"
+    echo ""
+    echo -e "  ${BOLD}--no-clean, --skip-clean${NC}                   ${YELLOW}跳过安装前清理${NC}"
+    echo -e "    ${DIM}默认会清理 Python 缓存、旧构建文件、空目录${NC}"
+    echo -e "    ${DIM}使用此选项可跳过清理（加快安装速度）${NC}"
+    echo ""
     echo ""
     echo -e "${BLUE}🛡️ 环境隔离配置：${NC}"
     echo ""
@@ -658,6 +666,24 @@ parse_cache_option() {
     case "$param" in
         "--no-cache-clean"|"--skip-cache-clean"|"-no-cache"|"-skip-cache")
             CLEAN_PIP_CACHE=false
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# 解析安装前清理参数
+parse_clean_before_install_option() {
+    local param="$1"
+    case "$param" in
+        "--clean"|"--clean-before-install"|"--cleanup")
+            CLEAN_BEFORE_INSTALL=true
+            return 0
+            ;;
+        "--no-clean"|"--skip-clean"|"--no-cleanup")
+            CLEAN_BEFORE_INSTALL=false
             return 0
             ;;
         *)
@@ -813,6 +839,9 @@ parse_arguments() {
             shift
         elif parse_cache_option "$param"; then
             # pip 缓存清理参数
+            shift
+        elif parse_clean_before_install_option "$param"; then
+            # 安装前清理参数
             shift
         elif parse_doctor_option "$param"; then
             # 环境医生参数
@@ -1035,6 +1064,11 @@ get_auto_confirm() {
 # 获取是否清理 pip 缓存
 get_clean_pip_cache() {
     echo "$CLEAN_PIP_CACHE"
+}
+
+# 获取是否安装前清理
+get_clean_before_install() {
+    echo "$CLEAN_BEFORE_INSTALL"
 }
 
 # 检查是否需要显示帮助
