@@ -21,9 +21,7 @@ class ShortTermMemoryService(BaseService):
         # 使用 deque 作为队列，设置最大长度
         self.dialog_queue: deque[dict[str, Any]] = deque(maxlen=self.max_dialog)
 
-        self._logger.info(
-            f"ShortTermMemoryService initialized with max_dialog={self.max_dialog}"
-        )
+        self._logger.info(f"ShortTermMemoryService initialized with max_dialog={self.max_dialog}")
 
     def insert(self, dialog: list[dict[str, str]]) -> None:
         """

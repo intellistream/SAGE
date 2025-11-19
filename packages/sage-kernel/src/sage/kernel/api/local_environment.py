@@ -52,7 +52,7 @@ class LocalEnvironment(BaseEnvironment):
         """
         等待批处理任务完成
         在本地环境中直接监控JobManager实例的状态
-        
+
         改进的等待策略：
         1. 不监控源节点停止（源节点停止 ≠ 数据处理完）
         2. 监控 Sink 节点接收到停止信号（所有数据已处理完）
@@ -65,7 +65,9 @@ class LocalEnvironment(BaseEnvironment):
             return
 
         self.logger.info("Waiting for batch processing to complete...")
-        self.logger.info("⏳ Strategy: Wait for all data to be processed (not just source completion)")
+        self.logger.info(
+            "⏳ Strategy: Wait for all data to be processed (not just source completion)"
+        )
 
         # 设置最大等待时间，避免无限等待
         max_wait_time = 600.0  # 增加到 10 分钟，适应长时间处理
@@ -84,16 +86,17 @@ class LocalEnvironment(BaseEnvironment):
 
                 # 检查作业状态（优先检查这个，因为它更可靠）
                 if job_info.status in ["stopped", "failed"]:
-                    self.logger.info(f"✅ Batch processing completed with status: {job_info.status}")
+                    self.logger.info(
+                        f"✅ Batch processing completed with status: {job_info.status}"
+                    )
                     break
 
                 # 改进的停止检测：检查所有 Task 是否都已停止
                 # 这确保队列中的数据都被处理完
                 dispatcher = job_info.dispatcher
-                if hasattr(dispatcher, 'tasks') and len(dispatcher.tasks) > 0:
+                if hasattr(dispatcher, "tasks") and len(dispatcher.tasks) > 0:
                     all_tasks_stopped = all(
-                        not task.is_running 
-                        for task in dispatcher.tasks.values()
+                        not task.is_running for task in dispatcher.tasks.values()
                     )
                     if all_tasks_stopped:
                         self.logger.info("✅ All tasks stopped, processing complete")

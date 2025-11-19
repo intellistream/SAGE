@@ -104,7 +104,7 @@ class PipelineService(BaseService):
 
     def stop(self):
         """停止 Pipeline Service
-        
+
         关闭 PipelineBridge，这会发送 StopSignal 给 Service Pipeline，
         使得 Service Pipeline 中的所有节点能够正常停止。
         """

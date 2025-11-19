@@ -1,18 +1,14 @@
 # @test:skip - 跳过测试
-import os
 
-from sage.benchmark.benchmark_memory.experiment.utils.time_geter import get_time_filename
-from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.data.locomo.dataloader import LocomoDataLoader
 from sage.benchmark.benchmark_memory.experiment.libs.locomo_source import LocomoSource
 from sage.benchmark.benchmark_memory.experiment.libs.memory_sink import MemorySink
-
+from sage.benchmark.benchmark_memory.experiment.utils.time_geter import get_time_filename
+from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.data.locomo.dataloader import LocomoDataLoader
+from sage.kernel.api.local_environment import LocalEnvironment
 
 # ==== 测试代码 ====
 if __name__ == "__main__":
-
-
     # 禁用debug日志
     CustomLogger.disable_global_console_debug()
 
@@ -27,7 +23,9 @@ if __name__ == "__main__":
     # 创建环境和pipeline
     env = LocalEnvironment("Test_Locomo_IO")
     outfile = f"{get_time_filename()}_test"
-    env.from_batch(LocomoSource, sample_id=test_sample_id).sink(MemorySink, dataset_name="locomo", output_name=outfile)
+    env.from_batch(LocomoSource, sample_id=test_sample_id).sink(
+        MemorySink, dataset_name="locomo", output_name=outfile
+    )
     env.submit(autostop=True)
 
     print("=" * 60)
