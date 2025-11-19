@@ -5,14 +5,8 @@ This file demonstrates how to use the SAGE RAG (Retrieval-Augmented Generation) 
 
 Layer: L3 (Core - Algorithm Library)
 
-⚠️ NOTE: This is a DOCUMENTATION/EXAMPLE file showing the intended API design.
-The actual RAG modules (sage.libs.rag.*) are not yet implemented.
-This file serves as a specification for future development.
-
-To use this file:
-1. Read the examples to understand the intended API
-2. Do NOT run this file - it will fail with ImportError
-3. Implement the actual modules following this specification
+⚠️ NOTE: 这些示例优先展示 API 设计。`sage.libs.rag.*` 已提供核心组件，
+但部分高级算子仍位于 middleware 层。
 """
 
 
@@ -28,7 +22,7 @@ def example_document_loading():
     print("=" * 60)
 
     try:
-        from sage.middleware.operators.rag.document_loaders import (
+        from sage.libs.rag.document_loaders import (
             DocxLoader,  # noqa: F401
             LoaderFactory,  # noqa: F401
             MarkdownLoader,  # noqa: F401
@@ -85,7 +79,7 @@ def example_rag_pipeline():
         print(
             """
         from sage.middleware.operators.rag.pipeline import RAGPipeline
-        from sage.middleware.operators.rag.document_loaders import TextLoader
+        from sage.libs.rag.document_loaders import TextLoader
 
         # Create pipeline
         pipeline = RAGPipeline(
@@ -128,7 +122,7 @@ def example_vector_stores():
     print(
         """
     from sage.middleware.operators.rag.backends.milvus import MilvusBackend
-    from sage.libs.rag.pipeline import RAGPipeline
+    from sage.middleware.operators.rag.pipeline import RAGPipeline
 
     # Create Milvus backend
     milvus = MilvusBackend(

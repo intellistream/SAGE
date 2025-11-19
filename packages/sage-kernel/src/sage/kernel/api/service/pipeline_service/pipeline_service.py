@@ -101,3 +101,16 @@ class PipelineService(BaseService):
             raise TimeoutError(
                 f"Pipeline service timed out after {self._request_timeout}s"
             ) from exc
+
+    def stop(self):
+        """停止 Pipeline Service
+
+        关闭 PipelineBridge，这会发送 StopSignal 给 Service Pipeline，
+        使得 Service Pipeline 中的所有节点能够正常停止。
+        """
+        self.logger.info(f"Stopping Pipeline Service (bridge: {id(self._bridge)})")
+        try:
+            self._bridge.close()
+            self.logger.info("Pipeline Service stopped successfully")
+        except Exception as e:
+            self.logger.error(f"Error stopping Pipeline Service: {e}")

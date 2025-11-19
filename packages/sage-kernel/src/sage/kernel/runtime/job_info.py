@@ -115,6 +115,16 @@ class JobInfo:
             }
         )
 
+        # 添加调度器指标
+        if hasattr(self.dispatcher, "scheduler") and hasattr(
+            self.dispatcher.scheduler, "get_metrics"
+        ):
+            try:
+                status_info["scheduler_metrics"] = self.dispatcher.scheduler.get_metrics()
+            except Exception:
+                # 如果获取失败，不影响整体状态返回
+                pass
+
         if self.error_message:
             status_info["error"] = self.error_message
 

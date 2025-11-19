@@ -1,0 +1,49 @@
+services:
+  namenode:
+    image: apache/hadoop:3
+    container_name: hdfs-namenode
+    hostname: namenode
+    user: "0:0"  # 以root用户运行,避免权限问题
+    ports:
+    - "9870:9870"
+    - "9000:9000"
+    environment:
+    - CLUSTER_NAME=sage-hdfs
+    volumes:
+    - ./data/namenode:/opt/hadoop/data/nameNode
+    - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+    - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+    networks:
+    - hadoop
+    command: >
+      bash -c "
+      if [ ! -d /opt/hadoop/data/nameNode/current ]; then
+        hdfs namenode -format -force;
+      fi &&
+      hdfs namenode
+      "
+
+  datanode:
+    image: apache/hadoop:3
+    container_name: hdfs-datanode
+    hostname: datanode
+    user: "0:0"  # 以root用户运行,避免权限问题
+    ports:
+    - "9864:9864"
+    volumes:
+    - ./data/datanode:/opt/hadoop/data/dataNode
+    - ./config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+    - ./config/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+    networks:
+    - hadoop
+    depends_on:
+    - namenode
+    command: >
+      bash -c "
+      sleep 15 &&
+      hdfs datanode
+      "
+
+networks:
+  hadoop:
+    driver: bridge

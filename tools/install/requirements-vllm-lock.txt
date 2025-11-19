@@ -1,0 +1,35 @@
+# vLLM 相关依赖锁定版本
+#
+# 这个文件锁定了 vLLM 及其关键依赖的版本，确保环境一致性
+#
+# 安装方法:
+#   pip install -r tools/install/requirements-vllm-lock.txt
+#
+# 或者使用自动修复脚本:
+#   ./tools/install/fix_vllm_torch.sh
+#
+# 版本说明:
+# - vLLM 0.10.1.1 需要 torch >= 2.4.0
+# - torch 2.7.1 引入了 torch._inductor.config
+# - outlines_core 必须是 0.2.10（vLLM 0.10.1.1 的要求）
+#
+# 更新日期: 2025-11-19
+
+# PyTorch (CUDA 12.6 版本)
+# 如果需要 CPU 版本，请使用:
+#   torch==2.7.1+cpu
+#   torchaudio==2.7.1+cpu
+#   torchvision==0.22.1+cpu
+#   --index-url https://download.pytorch.org/whl/cpu
+torch==2.7.1
+torchaudio==2.7.1
+torchvision==0.22.1
+
+# vLLM 及其关键依赖
+vllm==0.10.1.1
+outlines_core==0.2.10
+
+# 注意:
+# - 不要同时安装 outlines，它与 outlines_core 0.2.10 冲突
+# - 如果遇到版本冲突，运行: ./tools/install/fix_vllm_torch.sh
+# - 验证安装: python tools/install/verify_dependencies.py

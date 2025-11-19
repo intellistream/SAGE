@@ -6,7 +6,7 @@ import time
 from sage.common.utils.config.loader import load_config
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io.batch import HFDatasetBatch
+from sage.libs.foundation.io.batch import HFDatasetBatch
 from sage.middleware.operators.rag import (
     CompressionRateEvaluate,
     F1Evaluate,

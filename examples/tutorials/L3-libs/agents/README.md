@@ -30,5 +30,5 @@ python examples/tutorials/agents/demo_arxiv_search.py
 
 ## Next Steps
 
-- Check out the full agent library in `packages/sage-libs/src/sage/libs/agents/`
+- Check out the full agent library in `packages/sage-libs/src/sage/libs/agentic/agents/`
 - See production agent applications in `packages/sage-apps/`

@@ -1,7 +1,7 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/tests/lib/agents/test_llm_planner.py
 import json
 
-from sage.libs.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
 
 
 class DummyGeneratorOK:
@@ -142,5 +142,6 @@ def test_llm_planner_prompt_includes_tool_requirement():
     planner.plan("Profile prompt", "test query", tools)
 
     # Check that the system prompt includes the new rule
+    assert generator.captured_messages is not None, "No messages captured"
     system_content = generator.captured_messages[0]["content"]
     assert "Always call at least one tool before replying when tools are provided" in system_content

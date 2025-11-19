@@ -1,0 +1,10 @@
+key,value,type
+aRow,1000,U64
+aCol,1000,U64
+bCol,500,U64
+sketchDimension,25,U64
+ptFile,torchscripts/TugOfWar.pt,String
+threads,1,U64
+forceMP,1,U64
+useCPP,1,U64
+cppAlgoTag,tugOfWar,String

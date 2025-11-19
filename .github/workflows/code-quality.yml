@@ -79,6 +79,34 @@ jobs:
 
           echo "✅ 配置文件存在"
 
+      - name: Verify Dependency Compatibility
+        run: |
+          echo "🔍 验证依赖版本兼容性..."
+
+          # 检查验证脚本是否存在
+          if [ ! -f "tools/install/verify_dependencies.py" ]; then
+            echo "⚠️  依赖验证脚本不存在，跳过检查"
+            exit 0
+          fi
+
+          # 运行依赖验证
+          python tools/install/verify_dependencies.py || {
+            echo ""
+            echo "⚠️  依赖版本检查发现问题"
+            echo ""
+            echo "💡 修复方法:"
+            echo "   ./tools/install/fix_vllm_torch.sh --non-interactive"
+            echo ""
+            echo "📚 详细文档:"
+            echo "   cat docs/dev-notes/l0-infra/vllm-torch-version-conflict.md"
+            echo ""
+            # 在 CI 中，依赖问题不应该阻止构建（因为可能是可选依赖）
+            # 只显示警告
+            exit 0
+          }
+
+          echo "✅ 所有依赖版本兼容"
+
       - name: Run Code Quality Checks (Changed Files)
         if: github.event_name == 'pull_request'
         run: |

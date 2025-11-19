@@ -84,7 +84,8 @@ class NodeRegistry:
 
         # Document Processing
         try:
-            from sage.middleware.operators.rag import CharacterSplitter, RefinerOperator
+            from sage.middleware.operators.rag import RefinerOperator
+            from sage.middleware.operators.rag.chunk import CharacterSplitter
 
             self._registry["character_splitter"] = CharacterSplitter
             self._registry["refiner"] = RefinerOperator
@@ -109,7 +110,7 @@ class NodeRegistry:
 
         # Source Operators (用于 Pipeline 构建，但不作为 MapOperator 验证)
         try:
-            from sage.libs.io.source import (
+            from sage.libs.foundation.io.source import (
                 CSVFileSource,
                 FileSource,
                 JSONFileSource,
@@ -126,7 +127,7 @@ class NodeRegistry:
 
         # Sink Operators (用于 Pipeline 构建，但不作为 MapOperator 验证)
         try:
-            from sage.libs.io.sink import (
+            from sage.libs.foundation.io.sink import (
                 FileSink,
                 MemWriteSink,
                 PrintSink,

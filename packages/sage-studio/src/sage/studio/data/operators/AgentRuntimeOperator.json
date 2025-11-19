@@ -1,0 +1,45 @@
+{
+    "id": 31,
+    "name": "AgentRuntimeOperator",
+    "description": "Turn-key agent runtime that wraps profile, planner, MCP registry, and summarizer for Studio drag-and-drop workflows.",
+    "module_path": "sage.middleware.operators.agentic.runtime",
+    "class_name": "AgentRuntimeOperator",
+    "isCustom": false,
+    "parameters": [
+        {
+            "name": "profile",
+            "label": "Agent Profile",
+            "type": "json",
+            "required": true,
+            "description": "BaseProfile dict (name, role, goals, tasks, language, tone)."
+        },
+        {
+            "name": "generator",
+            "label": "Generator Config",
+            "type": "json",
+            "required": true,
+            "description": "Either a generator object reference or config dict for OpenAI/HF generators."
+        },
+        {
+            "name": "planner",
+            "label": "Planner Config",
+            "type": "json",
+            "required": false,
+            "description": "LLMPlanner overrides: max_steps, enable_repair, topk_tools."
+        },
+        {
+            "name": "tools",
+            "label": "MCP Tools",
+            "type": "json",
+            "required": false,
+            "description": "List of tool specs: module/class pairs or ready objects registered to MCPRegistry."
+        },
+        {
+            "name": "runtime",
+            "label": "Runtime Options",
+            "type": "json",
+            "required": false,
+            "description": "AgentRuntime options such as max_steps or summarizer strategy (reuse_generator)."
+        }
+    ]
+}

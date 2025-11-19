@@ -1,12 +1,16 @@
 """
 RAG Pipeline - RAG 系统的核心管道组件
+
+Layer: L4 (Middleware - Orchestration)
+This module orchestrates multiple RAG components (retriever, reranker, refiner, generator)
+into a cohesive pipeline. Pipeline/orchestration belongs in middleware, not libs.
 """
 
 from typing import Any
 
 
 class RAGPipeline:
-    """RAG 管道主类"""
+    """RAG 管道主类 - 编排多个RAG组件"""
 
     def __init__(self, retriever=None, generator=None, reranker=None, refiner=None):
         self.retriever = retriever
@@ -37,3 +41,6 @@ class RAGPipeline:
             response = "No generator configured"
 
         return {"query": query, "documents": documents, "response": response}
+
+
+__all__ = ["RAGPipeline"]

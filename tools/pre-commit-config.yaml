@@ -32,6 +32,7 @@ repos:
     args: ['--maxkb=1000']
   - id: check-merge-conflict
   - id: check-case-conflict
+    exclude: ^(.*/benchmark_(libamm)/|.*/(libamm|sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
   - id: mixed-line-ending
     args: [--fix=lf]
   - id: detect-private-key
@@ -62,10 +63,10 @@ repos:
   - id: ruff
     name: ruff check
     args: [--fix, --exit-non-zero-on-fix]
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/)
   - id: ruff-format
     name: ruff format
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/)
 
 # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local
@@ -83,7 +84,7 @@ repos:
     - --explicit-package-bases
     - --warn-unused-ignores
     - --namespace-packages
-    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/src/sage/__init__.py)
+    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/benchmark_(libamm)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/src/sage/__init__.py)
     # This hook will always succeed (exit 0) to avoid blocking commits/CI
     # Errors are shown but treated as warnings
   - id: markdown-files-location-check
@@ -91,8 +92,14 @@ repos:
     entry: bash -c
     args:
     - |
-      # Get all staged markdown files
-      all_md_files=$(git diff --cached --name-only | grep "\.md$")
+      # Get all markdown files (staged if in commit, or all files if --all-files)
+      if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
+        # Running with --all-files or during push
+        all_md_files=$(git ls-files "*.md")
+      else
+        # Running in normal commit mode
+        all_md_files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.md$" || true)
+      fi
 
       if [ -z "$all_md_files" ]; then
         exit 0
@@ -106,13 +113,21 @@ repos:
         "^LICENSE\.md$"
         "^DEVELOPER\.md$"
         "^docs/dev-notes/"
+        "^docs/assets/"
+        "^docs/security/"
         "^docs-public/"
         "^packages/.*/README\.md$"
+        "^packages/.*README.*\.md$"  # Allow README variants like README_LIBAMM.md
         "^packages/.*/CHANGELOG\.md$"
         "^packages/.*/(docs|documentation)/"
+        "^packages/.*\.md$"  # Allow any .md in packages root (installation guides, etc.)
+        "^examples/README\.md$"  # Allow top-level examples README
         "^examples/.*/README\.md$"
         "^examples/tutorials/"
+        "^tools/.*/README\.md$"
+        "^tools/.*\.md$"  # Allow any .md in tools (installation guides, etc.)
         "^\.sage/.*\.md$"
+        "^\.github/.*\.md$"  # Allow any .md in .github directory
       )
 
       # Check each file
@@ -143,6 +158,7 @@ repos:
         echo "  - 包文档: packages/<package-name>/README.md, packages/<package-name>/CHANGELOG.md"
         echo "  - 包文档目录: packages/<package-name>/docs/, packages/<package-name>/documentation/"
         echo "  - 示例文档: examples/<example-name>/README.md, examples/tutorials/"
+        echo "  - GitHub 模板: .github/ISSUE_TEMPLATE/, .github/PULL_REQUEST_TEMPLATE/"
         echo ""
         echo "💡 建议: 请将文档移动到合适的位置或更新允许列表"
         exit 1
@@ -155,11 +171,21 @@ repos:
     files: \.md$
   - id: devnotes-check
     name: dev-notes documentation standards
-    entry: bash -c 'if git diff --cached --name-only | grep -q "^docs/dev-notes/.*\.md$"; then sage-dev quality devnotes; else exit 0; fi'
+    entry: bash -c 'if git diff --cached --name-only --diff-filter=ACM | grep -q "^docs/dev-notes/.*\.md$"; then sage-dev quality devnotes || true; else exit 0; fi'
     language: system
     pass_filenames: false
     always_run: false
-    files: ^docs/dev-notes/.*\.md$  # Shell: shellcheck
+    files: ^docs/dev-notes/.*\.md$
+  - id: installation-consistency-check
+    name: installation consistency check (local vs CI/CD)
+    entry: bash tools/install/examination_tools/installation_consistency_check.sh
+    language: system
+    pass_filenames: false
+    # 仅在修改安装相关文件时运行
+    files: ^(quickstart\.sh|tools/install/.*\.sh|packages/.*/pyproject\.toml|packages/.*/setup\.py|\.github/workflows/.*\.yml)$
+    # 也在手动运行 pre-commit run --all-files 时执行
+    stages: [commit, manual]
+  # Shell: shellcheck
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.11.0.1
   hooks:

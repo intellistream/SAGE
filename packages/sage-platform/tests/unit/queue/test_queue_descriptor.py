@@ -215,7 +215,7 @@ class TestBaseQueueDescriptor:
         """测试克隆功能"""
         original = _TestableQueueDescriptor(queue_id="original", maxsize=5)
 
-        # 测试不指定新ID的克隆
+        # 测试未初始化时的克隆 - 不应共享队列实例
         clone1 = original.clone()
         assert clone1.queue_id == "original_clone"
         assert clone1.queue_type == original.queue_type
@@ -227,6 +227,44 @@ class TestBaseQueueDescriptor:
         clone2 = original.clone(new_queue_id="custom_clone")
         assert clone2.queue_id == "custom_clone"
         assert clone2.queue_type == original.queue_type
+
+    def test_clone_shares_initialized_queue_instance(self):
+        """测试克隆共享已初始化的队列实例（修复竞态条件）
+
+        这个测试验证了修复 issue #1112 的关键行为：
+        当描述符已经初始化队列实例时，clone() 应该共享该实例，
+        而不是创建新的队列实例。这对于服务通信至关重要。
+        """
+        from sage.platform.queue.python_queue_descriptor import PythonQueueDescriptor
+
+        # 创建并初始化原始描述符
+        original = PythonQueueDescriptor(queue_id="test_queue", maxsize=10)
+
+        # 初始化队列实例
+        original_queue = original.queue_instance
+        assert original.is_initialized()
+
+        # 克隆应该共享队列实例
+        cloned = original.clone(new_queue_id="cloned_queue")
+
+        # 验证克隆也被标记为已初始化
+        assert cloned.is_initialized()
+
+        # 关键验证：克隆的队列实例应该是同一个对象
+        cloned_queue = cloned.queue_instance
+        assert cloned_queue is original_queue, (
+            "克隆的队列实例必须与原始实例相同，否则会导致服务通信竞态条件"
+        )
+
+        # 验证通过一个队列放入的数据可以从另一个队列取出
+        original.put("test_message")
+        retrieved = cloned.get(timeout=1.0)
+        assert retrieved == "test_message"
+
+        # 反向测试
+        cloned.put("another_message")
+        retrieved = original.get(timeout=1.0)
+        assert retrieved == "another_message"
 
     def test_trim_functionality(self):
         """测试trim功能（释放队列实例引用）"""

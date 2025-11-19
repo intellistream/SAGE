@@ -10,6 +10,7 @@ from sage.platform.service import BaseService
 
 class NeuroMemVDBService(BaseService):
     def __init__(self, collection_name: str | list[str]):
+        super().__init__()
         self.manager = MemoryManager(self._get_default_data_dir())
         self.online_register_collections: dict[str, VDBMemoryCollection] = {}
 
@@ -32,9 +33,16 @@ class NeuroMemVDBService(BaseService):
                 self.logger.info(f"Successfully connected to collection: {name}")
 
                 # 检查是否有global_index，没有就创建一个
-                if "global_index" not in collection.indexes:
+                if "global_index" not in collection.index_info:
                     self.logger.info(f"Creating global_index for collection: {name}")
-                    collection.create_index("global_index", description="Global index for all data")
+                    index_config = {
+                        "name": "global_index",
+                        "embedding_model": "default",
+                        "dim": 384,
+                        "backend_type": "FAISS",
+                        "description": "Global index for all data",
+                    }
+                    collection.create_index(config=index_config)
 
             except Exception as e:
                 self.logger.error(f"Failed to connect to collection '{name}': {str(e)}")
@@ -88,6 +96,11 @@ class NeuroMemVDBService(BaseService):
                     **kwargs,
                 )
 
+                # Handle None results (collection.retrieve can return None)
+                if results is None:
+                    self.logger.warning(f"No results from collection: {name}")
+                    continue
+
                 # 为结果添加来源collection信息
                 if with_metadata:
                     for result in results:
@@ -115,7 +128,9 @@ class NeuroMemVDBService(BaseService):
             raise ValueError(f"Collection '{collection_name}' is not registered")
 
         collection = self.online_register_collections[collection_name]
-        collection.create_index(index_name, **kwargs)
+        # create_index expects a config dict, not individual kwargs
+        index_config = {"name": index_name, **kwargs}
+        collection.create_index(config=index_config)
         self.logger.info(f"Created index '{index_name}' for collection '{collection_name}'")
 
     @classmethod

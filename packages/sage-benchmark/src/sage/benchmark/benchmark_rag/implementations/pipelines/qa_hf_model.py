@@ -2,8 +2,8 @@ import time
 
 from sage.common.utils.config.loader import load_config
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io.batch import JSONLBatch
-from sage.libs.io.sink import TerminalSink
+from sage.libs.foundation.io.batch import JSONLBatch
+from sage.libs.foundation.io.sink import TerminalSink
 from sage.middleware.operators.rag import ChromaRetriever, HFGenerator, QAPromptor
 
 

@@ -6,10 +6,14 @@ import FlowEditor from './components/FlowEditor'
 import PropertiesPanel from './components/PropertiesPanel'
 import StatusBar from './components/StatusBar'
 import LogViewer from './components/LogViewer'
+import ChatMode from './components/ChatMode'
 
 const { Header, Footer } = Layout
 
+export type AppMode = 'builder' | 'chat'
+
 function App() {
+    const [mode, setMode] = useState<AppMode>('builder')
     const [leftWidth, setLeftWidth] = useState(280)
     const [rightWidth, setRightWidth] = useState(320)
     const [bottomHeight, setBottomHeight] = useState(250)
@@ -117,19 +121,20 @@ function App() {
                     flexShrink: 0,
                 }}
             >
-                <Toolbar />
+                <Toolbar mode={mode} onModeChange={setMode} />
             </Header>
 
-            {/* 主要内容区域 */}
-            <div
-                style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                    position: 'relative',
-                }}
-            >
+            {/* 主要内容区域 - 根据模式切换 */}
+            {mode === 'builder' ? (
+                <div
+                    style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        position: 'relative',
+                    }}
+                >
                 {/* 顶部区域（节点面板 + 画布 + 属性面板） */}
                 <div
                     style={{
@@ -271,18 +276,26 @@ function App() {
                     </>
                 )}
             </div>
+            ) : (
+                /* Chat 模式 - 全新界面 */
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <ChatMode onModeChange={setMode} />
+                </div>
+            )}
 
-            {/* 底部状态栏 - 固定 */}
-            <Footer
-                style={{
-                    padding: '8px 16px',
-                    height: 40,
-                    lineHeight: 'normal',
-                    flexShrink: 0,
-                }}
-            >
-                <StatusBar showLogs={showLogs} onToggleLogs={() => setShowLogs(!showLogs)} />
-            </Footer>
+            {/* 底部状态栏 - 仅在 Builder 模式显示 */}
+            {mode === 'builder' && (
+                <Footer
+                    style={{
+                        padding: '8px 16px',
+                        height: 40,
+                        lineHeight: 'normal',
+                        flexShrink: 0,
+                    }}
+                >
+                    <StatusBar showLogs={showLogs} onToggleLogs={() => setShowLogs(!showLogs)} />
+                </Footer>
+            )}
         </div>
     )
 }

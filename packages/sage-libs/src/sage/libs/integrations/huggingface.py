@@ -10,8 +10,15 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 class HFClient:
-    def __init__(self, model_name="llama", device=None, base_url=None, api_key=None, seed=None):
-        self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(
+        self,
+        model_name: str = "llama",
+        device: str | None = None,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        seed: int | None = None,
+    ):
+        self.device: str = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         self.model_name = model_name
         self.model, self.tokenizer = self._initialize_model()
 
@@ -28,7 +35,9 @@ class HFClient:
 
         # Ensure model on the right device if not using device_map
         if self.device != "cuda":
-            model = model.to(self.device)
+            # type: ignore is needed due to incomplete type hints in transformers library
+            # model.to() correctly accepts device strings at runtime
+            model.to(self.device)  # type: ignore[arg-type]
 
         return model, tokenizer
 

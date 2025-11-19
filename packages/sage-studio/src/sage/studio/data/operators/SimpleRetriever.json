@@ -1,8 +1,8 @@
 {
     "id": 3,
     "name": "SimpleRetriever",
-    "description": "Retrieves the most relevant documents from the index",
-    "module_path": "examples.rag.rag_simple",
+    "description": "Retrieves the most relevant documents from the index (示例版本，建议使用 ChromaRetriever)",
+    "module_path": "examples.tutorials.L3-libs.rag.simple_rag",
     "class_name": "SimpleRetriever",
     "isCustom": false,
     "parameters": [

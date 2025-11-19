@@ -175,24 +175,124 @@ cd SAGE
 ./quickstart.sh            # Opens interactive menu
 ```
 
+### Recommended Environment Isolation 🛡️
+
+To avoid polluting your system Python and make future cleanup easy, we strongly recommend using a
+virtual environment (Conda or `venv`) for SAGE:
+
+- **Default behaviour**: `quickstart.sh` will detect whether you're already in a virtual env.
+
+- **System Python only**: you'll see a warning explaining the risks and suggested options.
+
+- You can control the strictness via environment variable:
+
+  - `SAGE_VENV_POLICY=warning` (default) – show a warning, let you choose to continue
+  - `SAGE_VENV_POLICY=error` – refuse to install outside a virtual env
+  - `SAGE_VENV_POLICY=ignore` – skip the check (not recommended)
+
+Common patterns:
+
+```bash
+# 1) Let SAGE create an isolated environment automatically (recommended for new users)
+./quickstart.sh --auto-venv --dev --yes
+
+# 2) Explicitly use Conda
+./quickstart.sh --dev --conda --yes
+
+# 3) Use an existing venv you created manually
+python3 -m venv .sage/venv
+source .sage/venv/bin/activate
+./quickstart.sh --dev --pip --yes
+
+If the system `python3 -m venv` command fails because the distribution omits `ensurepip`, `./quickstart.sh --auto-venv` will automatically fall back to installing the `virtualenv` module into your user site via `pip install --user --break-system-packages virtualenv` before creating `.sage/venv`. If your environment still enforces PEP 668 restrictions, install the `python3-venv` package (for example `sudo apt install python3.12-venv` on Debian/Ubuntu) or manually run `python3 -m venv .sage/venv` before rerunning `--auto-venv`.
+```
+
 **Common Non-Interactive Modes**
 
 ```bash
 # Developer installation (auto-sync submodules & hooks)
 ./quickstart.sh --dev --yes
 
-# Minimal core only
-./quickstart.sh --minimal --yes
+# Core runtime only
+./quickstart.sh --core --yes
 
 # Standard + vLLM support (explicit submodule sync)
 ./quickstart.sh --standard --sync-submodules --vllm --yes
 
 # Use system Python instead of conda
-./quickstart.sh --minimal --pip --yes
+./quickstart.sh --core --pip --yes
 
 # View all flags
 ./quickstart.sh --help
 ```
+
+**Installation Verification**
+
+After installation, verify that everything is working correctly:
+
+```bash
+# Quick verification (built-in)
+sage doctor
+
+# Comprehensive verification test (recommended)
+bash tools/install/tests/verify_installation.sh
+```
+
+The verification script will check:
+
+- 📖 **[Installation Validation Guide](./docs/INSTALLATION_VALIDATION.md)** - For detailed validation
+  steps and troubleshooting.
+- ✅ Python environment and dependencies
+- ✅ SAGE core packages and version consistency
+- ✅ CLI tools availability
+- ✅ Optional components (vLLM, CUDA)
+- ✅ Configuration files and API keys
+- ✅ Quick example run
+
+**Troubleshooting Installation**
+
+If you encounter issues during installation:
+
+```bash
+# Run diagnostic tool
+./quickstart.sh --doctor
+
+# Auto-fix common issues
+./quickstart.sh --doctor --fix
+
+# View diagnostic logs
+cat .sage/logs/environment_doctor.log
+```
+
+Common issues and solutions:
+
+- **Disk space**: SAGE needs 10GB+ (20GB+ recommended for full installation)
+- **Network issues**: Use mirror sources or check proxy settings
+- **Python version**: Use Python 3.10-3.12 (3.11 recommended)
+- **GPU/CUDA**: Optional for core functionality, required for vLLM
+
+📖 **For detailed troubleshooting**: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
+
+### Uninstall & Cleanup
+
+SAGE records the packages it installs under `.sage/installed_packages.txt` along with metadata in
+`.sage/install_info.json`. You can use the provided cleanup tools for safe removal:
+
+```bash
+# Show what was installed and basic install info
+bash tools/cleanup/track_install.sh show
+
+# Interactive uninstall and optional environment cleanup
+bash tools/cleanup/uninstall_sage.sh
+```
+
+The uninstall script will:
+
+- Uninstall SAGE-related Python packages based on the recorded list (or fall back to
+  `tools/install/examination_tools/sage_check.sh` if missing).
+- Offer to remove the dedicated venv (e.g. `.sage/venv`) or Conda environment that was used for the
+  installation.
+- Leave your Git checkout and source code untouched.
 
 **Quick PyPI Install**
 
@@ -323,7 +423,7 @@ SAGE provides convenient Make-like commands for common development tasks:
 # View all available commands
 make help
 # or
-./dev.sh help
+sage-dev --help
 
 # Code quality
 make lint          # Run code checks
@@ -334,6 +434,10 @@ make quality       # Full quality check
 make test          # Run all tests
 make test-quick    # Quick tests only
 make test-all      # Full test suite with coverage
+
+# Installation & Environment Tests
+bash tools/install/tests/run_all_tests.sh  # Run environment & cleanup tests
+bash tools/install/tests/verify_installation.sh  # Verify SAGE installation
 
 # Build & Deploy
 make build         # Build packages

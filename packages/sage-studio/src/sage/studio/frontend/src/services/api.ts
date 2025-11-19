@@ -5,6 +5,7 @@
  */
 
 import axios from 'axios'
+import type { Edge, Node } from 'reactflow'
 
 // API 基础 URL (由 Vite 代理到 localhost:8080)
 const API_BASE_URL = '/api'
@@ -12,7 +13,7 @@ const API_BASE_URL = '/api'
 // Axios 实例
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 10000,
+    timeout: 120000, // 120秒，适应 LLM 调用和 RAG 流程
     headers: {
         'Content-Type': 'application/json',
     },
@@ -24,7 +25,7 @@ const apiClient = axios.create({
 export interface ParameterConfig {
     name: string
     label: string
-    type: 'text' | 'textarea' | 'number' | 'select' | 'password'
+    type: 'text' | 'textarea' | 'number' | 'select' | 'password' | 'json'
     required?: boolean
     defaultValue?: any
     placeholder?: string
@@ -350,6 +351,153 @@ export async function getLogs(flowId: string, lastId: number = 0): Promise<{
     const response = await apiClient.get(`/logs/${flowId}`, {
         params: { last_id: lastId }
     })
+    return response.data
+}
+
+// ==================== Chat API (OpenAI-compatible) ====================
+
+export interface ChatMessageDTO {
+    role: 'user' | 'assistant' | 'system'
+    content: string
+    timestamp: string
+    metadata?: Record<string, any>
+}
+
+export interface ChatSessionSummary {
+    id: string
+    title: string
+    created_at: string
+    last_active: string
+    message_count: number
+}
+
+export interface ChatSessionDetail extends ChatSessionSummary {
+    messages: ChatMessageDTO[]
+    metadata?: Record<string, any>
+}
+
+export interface PipelineRecommendation {
+    session_id: string
+    suggested_name: string
+    summary: string
+    confidence: number
+    nodes: Node[]
+    edges: Edge[]
+    insights: string[]
+}
+
+/**
+ * 发送聊天消息（SSE 流式响应）
+ */
+export async function sendChatMessage(
+    message: string,
+    sessionId: string,
+    onChunk: (chunk: string) => void,
+    onError: (error: Error) => void,
+    onComplete: () => void
+): Promise<void> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat/message`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message,
+                session_id: sessionId,
+                stream: true,
+            }),
+        })
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+
+        const reader = response.body?.getReader()
+        if (!reader) {
+            throw new Error('ReadableStream not supported')
+        }
+
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+            const { done, value } = await reader.read()
+
+            if (done) {
+                onComplete()
+                break
+            }
+
+            // 解码数据块
+            buffer += decoder.decode(value, { stream: true })
+
+            // 处理 SSE 数据
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || '' // 保留不完整的行
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.substring(6).trim()
+
+                    if (data === '[DONE]') {
+                        onComplete()
+                        return
+                    }
+
+                    try {
+                        const parsed = JSON.parse(data)
+                        const content = parsed.choices?.[0]?.delta?.content
+                        if (content) {
+                            onChunk(content)
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse SSE data:', data)
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        onError(error instanceof Error ? error : new Error(String(error)))
+    }
+}
+
+/**
+ * 获取所有聊天会话
+ */
+export async function getChatSessions(): Promise<ChatSessionSummary[]> {
+    const response = await apiClient.get('/chat/sessions')
+    return response.data
+}
+
+export async function createChatSession(title?: string): Promise<ChatSessionDetail> {
+    const response = await apiClient.post('/chat/sessions', { title })
+    return response.data
+}
+
+export async function getChatSessionDetail(sessionId: string): Promise<ChatSessionDetail> {
+    const response = await apiClient.get(`/chat/sessions/${sessionId}`)
+    return response.data
+}
+
+export async function clearChatSession(sessionId: string): Promise<void> {
+    await apiClient.post(`/chat/sessions/${sessionId}/clear`)
+}
+
+export async function updateChatSessionTitle(sessionId: string, title: string): Promise<ChatSessionSummary> {
+    const response = await apiClient.patch(`/chat/sessions/${sessionId}/title`, { title })
+    return response.data
+}
+
+/**
+ * 删除聊天会话
+ */
+export async function deleteChatSession(sessionId: string): Promise<void> {
+    await apiClient.delete(`/chat/sessions/${sessionId}`)
+}
+
+export async function convertChatSessionToPipeline(sessionId: string): Promise<PipelineRecommendation> {
+    const response = await apiClient.post(`/chat/sessions/${sessionId}/convert`)
     return response.data
 }
 

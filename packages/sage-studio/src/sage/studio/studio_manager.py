@@ -49,7 +49,7 @@ class StudioManager:
         # React + Vite 默认端口是 5173
         self.default_port = 5173
         self.backend_port = 8080
-        self.default_host = "localhost"
+        self.default_host = "0.0.0.0"  # 修改为监听所有网络接口
 
         # 确保所有目录存在
         self.ensure_sage_directories()
@@ -220,7 +220,11 @@ class StudioManager:
             console.print("[yellow]警告: 目标 node_modules 不存在[/yellow]")
             return False
 
-    def install_dependencies(self) -> bool:
+    def install_dependencies(
+        self,
+        command: str = "install",
+        extra_args: list[str] | None = None,
+    ) -> bool:
         """安装依赖"""
         if not self.frontend_dir.exists():
             console.print(f"[red]前端目录不存在: {self.frontend_dir}[/red]")
@@ -231,7 +235,7 @@ class StudioManager:
             console.print(f"[red]package.json 不存在: {package_json}[/red]")
             return False
 
-        console.print("[blue]正在安装 npm 依赖...[/blue]")
+        console.print(f"[blue]正在执行 npm {command} ...[/blue]")
 
         try:
             # 设置 npm 缓存目录
@@ -239,8 +243,12 @@ class StudioManager:
             env["npm_config_cache"] = str(self.npm_cache_dir)
 
             # 安装依赖到项目目录
+            cmd = ["npm", command]
+            if extra_args:
+                cmd.extend(extra_args)
+
             subprocess.run(
-                ["npm", "install"],
+                cmd,
                 cwd=self.frontend_dir,
                 check=True,
                 capture_output=True,
@@ -309,6 +317,46 @@ class StudioManager:
 
         console.print("[green]✅ Studio 安装完成[/green]")
         return True
+
+    def run_npm_command(self, npm_args: list[str]) -> bool:
+        """在 Studio 前端目录中运行任意 npm 命令。"""
+        if not npm_args:
+            console.print("[red]请提供要执行的 npm 子命令，例如: install[/red]")
+            return False
+
+        if not self.frontend_dir.exists():
+            console.print(f"[red]前端目录不存在: {self.frontend_dir}[/red]")
+            return False
+
+        if not self.check_dependencies():
+            console.print("[red]依赖检查失败，无法执行 npm 命令[/red]")
+            return False
+
+        command = npm_args[0]
+        extra_args = npm_args[1:]
+
+        if command in {"install", "ci"}:
+            return self.install_dependencies(command=command, extra_args=extra_args)
+
+        env = os.environ.copy()
+        env["npm_config_cache"] = str(self.npm_cache_dir)
+
+        console.print(f"[blue]运行 npm {' '.join(npm_args)}... 按 Ctrl+C 可中断[/blue]")
+        try:
+            subprocess.run(
+                ["npm", *npm_args],
+                cwd=self.frontend_dir,
+                env=env,
+                check=True,
+            )
+            console.print("[green]npm 命令执行完成[/green]")
+            return True
+        except subprocess.CalledProcessError as exc:
+            console.print(f"[red]npm 命令失败 (退出码 {exc.returncode})[/red]")
+            return False
+        except KeyboardInterrupt:
+            console.print("[yellow]npm 命令已被用户中断[/yellow]")
+            return False
 
     def setup_vite_config(self) -> bool:
         """设置 Vite 配置（如果需要）"""
@@ -546,18 +594,30 @@ if __name__ == "__main__":
 
             # 等待后端启动
             console.print("[blue]等待后端API启动...[/blue]")
+            startup_success = False
+
+            # 创建一个不使用代理的 session（本地服务不需要代理）
+            session = requests.Session()
+            session.trust_env = False  # 忽略环境变量中的代理设置
+
             for _i in range(15):  # 最多等待15秒
                 try:
-                    response = requests.get(
-                        f"http://{config['host']}:{backend_port}/health", timeout=1
-                    )
+                    # 使用 localhost 而不是 0.0.0.0，避免代理问题
+                    health_url = f"http://localhost:{backend_port}/health"
+                    response = session.get(health_url, timeout=1)
                     if response.status_code == 200:
+                        startup_success = True
                         break
                 except requests.RequestException:
                     pass
                 time.sleep(1)
-            else:
-                console.print("[yellow]后端API可能仍在启动中，请稍后检查[/yellow]")
+
+            if not startup_success:
+                console.print("[yellow]⚠️ 后端API启动超时，但进程已启动[/yellow]")
+                console.print(
+                    f"[yellow]   请稍后访问 http://{config['host']}:{backend_port}/health 检查状态[/yellow]"
+                )
+                return True  # 仍然返回 True，因为进程已启动
 
             console.print("[green]✅ 后端API启动成功[/green]")
             return True
@@ -580,19 +640,29 @@ if __name__ == "__main__":
             else:
                 os.killpg(os.getpgid(running_pid), signal.SIGTERM)
 
-                # 等待进程结束
-                for _ in range(10):
+                # 等待进程结束（增加等待时间和更详细的检查）
+                console.print("[blue]等待后端API进程停止...[/blue]")
+                max_wait = 15  # 增加到15秒
+                for i in range(max_wait):
                     if not psutil.pid_exists(running_pid):
+                        console.print(f"[green]后端API进程已停止 (等待 {i}秒)[/green]")
                         break
                     time.sleep(1)
-
-                # 强制停止
-                if psutil.pid_exists(running_pid):
-                    os.killpg(os.getpgid(running_pid), signal.SIGKILL)
+                else:
+                    # 超时后强制停止
+                    console.print("[yellow]进程未在预期时间内停止，强制终止...[/yellow]")
+                    if psutil.pid_exists(running_pid):
+                        os.killpg(os.getpgid(running_pid), signal.SIGKILL)
+                        time.sleep(1)  # 等待强制终止完成
 
             # 清理 PID 文件
             if self.backend_pid_file.exists():
                 self.backend_pid_file.unlink()
+
+            # 再次确认进程已停止
+            time.sleep(0.5)  # 额外等待确保进程完全清理
+            if psutil.pid_exists(running_pid):
+                console.print("[yellow]⚠️ 后端API进程可能仍在运行[/yellow]")
 
             console.print("[green]✅ 后端API已停止[/green]")
             return True
@@ -601,10 +671,16 @@ if __name__ == "__main__":
             console.print(f"[red]后端API停止失败: {e}[/red]")
             return False
 
-    def start(self, port: int | None = None, host: str | None = None, dev: bool = False) -> bool:
+    def start(
+        self,
+        port: int | None = None,
+        host: str | None = None,
+        dev: bool = True,
+        backend_port: int | None = None,
+    ) -> bool:
         """启动 Studio（前端和后端）"""
         # 首先启动后端API
-        if not self.start_backend():
+        if not self.start_backend(port=backend_port):
             console.print("[red]后端API启动失败，无法启动Studio[/red]")
             return False
 
@@ -664,7 +740,7 @@ if __name__ == "__main__":
 
                 console.print("[blue]启动生产服务器（Vite Preview）...[/blue]")
 
-                # 使用 Vite preview
+                # 使用 Vite preview，指定从 .sage/studio/dist 读取构建产物
                 cmd = [
                     "npm",
                     "run",
@@ -674,15 +750,18 @@ if __name__ == "__main__":
                     host,
                     "--port",
                     str(port),
+                    "--outDir",
+                    str(self.dist_dir),  # 指定构建输出目录
                 ]
 
-            # 启动进程
+            # 启动进程 - 使用独立的日志文件句柄
+            log_file = open(self.log_file, "w")
             process = subprocess.Popen(
                 cmd,
                 cwd=self.frontend_dir,
-                stdout=open(self.log_file, "w"),
-                stderr=subprocess.STDOUT,
-                preexec_fn=os.setsid,
+                stdout=log_file,
+                stderr=log_file,
+                start_new_session=True,  # 在新会话中运行,避免信号问题
             )
 
             # 保存 PID
@@ -798,17 +877,33 @@ if __name__ == "__main__":
 
         console.print(backend_table)
 
-        # 检查端口是否可访问
+        # 检查端口是否可访问（不使用代理）
         if frontend_pid:
             try:
-                url = f"http://{config.get('host', self.default_host)}:{config.get('port', self.default_port)}"
-                response = requests.get(url, timeout=5)
+                session = requests.Session()
+                session.trust_env = False  # 忽略环境代理
+                url = f"http://localhost:{config.get('port', self.default_port)}"
+                response = session.get(url, timeout=5)
                 if response.status_code == 200:
-                    console.print(f"[green]✅ 服务可访问: {url}[/green]")
+                    console.print(f"[green]✅ 前端服务可访问: {url}[/green]")
                 else:
-                    console.print(f"[yellow]⚠️ 服务响应异常: {response.status_code}[/yellow]")
-            except requests.RequestException:
-                console.print("[red]❌ 服务不可访问[/red]")
+                    console.print(f"[yellow]⚠️ 前端服务响应异常: {response.status_code}[/yellow]")
+            except requests.RequestException as e:
+                console.print(f"[red]❌ 前端服务不可访问: {e}[/red]")
+
+        # 检查后端是否可访问
+        if backend_running:
+            try:
+                session = requests.Session()
+                session.trust_env = False  # 忽略环境代理
+                backend_url = f"http://localhost:{self.backend_port}/health"
+                response = session.get(backend_url, timeout=5)
+                if response.status_code == 200:
+                    console.print(f"[green]✅ 后端API可访问: {backend_url}[/green]")
+                else:
+                    console.print(f"[yellow]⚠️ 后端API响应异常: {response.status_code}[/yellow]")
+            except requests.RequestException as e:
+                console.print(f"[red]❌ 后端API不可访问: {e}[/red]")
 
     def logs(self, follow: bool = False, backend: bool = False):
         """显示日志"""

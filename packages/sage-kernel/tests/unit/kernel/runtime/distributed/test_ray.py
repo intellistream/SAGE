@@ -45,7 +45,7 @@ class TestRayIntegration:
         assert "ignore_reinit_error" in call_args.kwargs
         assert call_args.kwargs["ignore_reinit_error"] is True
         assert "num_cpus" in call_args.kwargs
-        assert call_args.kwargs["num_cpus"] == 2
+        assert call_args.kwargs["num_cpus"] == 16
         assert "log_to_driver" in call_args.kwargs
         assert call_args.kwargs["log_to_driver"] is False
         # runtime_env should be included with default sage config

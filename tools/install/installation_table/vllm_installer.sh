@@ -7,68 +7,59 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
 # VLLM 安装函数
 install_vllm_packages() {
-    local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/.sage/logs/install.log"
-
     echo ""
     echo -e "${GEAR} 准备 VLLM 环境..."
-    mkdir -p "$(dirname "$log_file")"
-    echo "$(date): 开始准备 VLLM 环境" >> "$log_file"
+    log_info "开始准备 VLLM 环境" "VLLM"
 
     # 检查是否在 conda 环境中
     if [[ "$CONDA_DEFAULT_ENV" != "" ]] && [[ "$CONDA_DEFAULT_ENV" != "base" ]]; then
+        log_info "检测到 conda 环境: $CONDA_DEFAULT_ENV" "VLLM"
         echo -e "${INFO} 检测到 conda 环境: $CONDA_DEFAULT_ENV"
-        echo "当前 conda 环境: $CONDA_DEFAULT_ENV" >> "$log_file"
     else
+        log_warn "建议在 conda 环境中使用 VLLM" "VLLM"
         echo -e "${WARNING} 建议在 conda 环境中使用 VLLM"
-        echo "警告: 未检测到 conda 环境" >> "$log_file"
     fi
 
     # 检测并安装 vLLM
     if command -v vllm >/dev/null 2>&1; then
+        log_info "VLLM 已安装" "VLLM"
         echo -e "${CHECK} VLLM 已安装"
-        echo "VLLM 已安装" >> "$log_file"
     else
+        log_info "正在安装 VLLM..." "VLLM"
         echo -e "${INFO} 正在安装 VLLM..."
-        echo "$(date): 开始安装 VLLM" >> "$log_file"
 
-        # 直接使用 pip 安装 VLLM，因为：
-        # 1. conda-forge 的版本通常较旧（0.9.2 vs 最新的 0.10.1.1）
-        # 2. pip 版本更新更及时
-        # 3. 避免复杂的依赖冲突
-
+        # 直接使用 pip 安装 VLLM
         if [[ "$CONDA_DEFAULT_ENV" != "" ]] && [[ "$CONDA_DEFAULT_ENV" != "base" ]]; then
+            log_info "在 conda 环境 '$CONDA_DEFAULT_ENV' 中使用 pip 安装 VLLM..." "VLLM"
             echo -e "${INFO} 在 conda 环境 '$CONDA_DEFAULT_ENV' 中使用 pip 安装 VLLM..."
-            echo "$(date): 在 conda 环境中使用 pip 安装" >> "$log_file"
 
-            if conda run -n "$CONDA_DEFAULT_ENV" pip install vllm >> "$log_file" 2>&1; then
+            if log_command "VLLM" "Install" "conda run -n \"$CONDA_DEFAULT_ENV\" pip install vllm"; then
+                log_info "VLLM 安装成功！" "VLLM"
                 echo -e "${CHECK} VLLM 安装成功！"
-                echo "$(date): VLLM 安装成功" >> "$log_file"
             else
+                log_error "VLLM 安装失败，将在首次使用时重试" "VLLM"
                 echo -e "${CROSS} VLLM 安装失败，将在首次使用时重试"
-                echo "$(date): VLLM 安装失败，将延迟安装" >> "$log_file"
             fi
         else
+            log_info "在系统环境中使用 pip 安装 VLLM..." "VLLM"
             echo -e "${INFO} 在系统环境中使用 pip 安装 VLLM..."
-            echo "$(date): 在系统环境中使用 pip 安装" >> "$log_file"
 
-            if pip install vllm >> "$log_file" 2>&1; then
+            if log_command "VLLM" "Install" "pip install vllm"; then
+                log_info "VLLM 安装成功！" "VLLM"
                 echo -e "${CHECK} VLLM 安装成功！"
-                echo "$(date): VLLM 安装成功" >> "$log_file"
             else
+                log_error "VLLM 安装失败，将在首次使用时重试" "VLLM"
                 echo -e "${CROSS} VLLM 安装失败，将在首次使用时重试"
-                echo "$(date): VLLM 安装失败，将延迟安装" >> "$log_file"
             fi
         fi
     fi
 
+    log_info "VLLM 环境准备完成！" "VLLM"
     echo -e "${CHECK} VLLM 环境准备完成！"
     echo ""
 
     # 显示使用提示
     show_vllm_usage_tips
-
-    echo "$(date): VLLM 环境准备完成" >> "$log_file"
 }
 
 # 显示 VLLM 使用提示

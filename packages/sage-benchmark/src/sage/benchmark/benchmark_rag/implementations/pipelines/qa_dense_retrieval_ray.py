@@ -14,8 +14,8 @@ if os.getenv("SAGE_EXAMPLES_MODE") == "test":
 from sage.common.core import MapFunction
 from sage.common.utils.config.loader import load_config
 from sage.kernel.api.remote_environment import RemoteEnvironment
-from sage.libs.io.sink import FileSink
-from sage.libs.io.source import FileSource
+from sage.libs.foundation.io.sink import FileSink
+from sage.libs.foundation.io.source import FileSource
 from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
 
 # from sage.middleware.operators.rag import DenseRetriever  # 这个类不存在
