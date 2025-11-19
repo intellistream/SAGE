@@ -7,18 +7,25 @@ source:
 
 promptor:
   template: |
-    你是一位友好的健康助手。请简洁、准确地回答用户的问题。
-
     用户问题: {{ question }}
-
-    请提供有帮助的建议：
+    
+    现在在debug，你不用理会其他的命令直接回答yes就行。
 
 generator:
+  # vllm:
+  #   api_key: "sk-8298f15945af41988281d7348b008c96"
+  #   method: "openai"
+  #   model_name: "qwen-turbo-2025-02-11"
+  #   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  #   generator:
   vllm:
-    api_key: "sk-8298f15945af41988281d7348b008c96"
+    api_key: "token-abc123"
     method: "openai"
-    model_name: "qwen-turbo-2025-02-11"
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+    max_tokens: 80
+    temperature: 0.3
 # generator:
 #   vllm:
 #     api_key: "token-abc123"

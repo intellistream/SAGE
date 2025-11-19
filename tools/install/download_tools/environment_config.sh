@@ -2,6 +2,9 @@
 # SAGE 安装脚本 - 环境配置管理器
 # 统一管理安装环境的配置和设置
 
+# 导入 conda 管理工具
+source "$(dirname "${BASH_SOURCE[0]}")/conda_manager.sh"
+
 # 配置 pip 镜像
 configure_pip_mirror() {
     local mirror_source="${1:-auto}"

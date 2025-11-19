@@ -5,6 +5,9 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
+# 设置 Python 命令（使用安装过程中设置的环境变量）
+PYTHON_CMD="${PYTHON_CMD:-python3}"
+
 # 验证常量
 VERIFICATION_LOG=".sage/install_verification.log"
 HELLO_WORLD_SCRIPT="docs-public/hello_world.py"
@@ -36,8 +39,9 @@ init_verification_log() {
 # SAGE 安装验证报告
 生成时间: $(date)
 安装环境: $(uname -s) $(uname -r)
-Python 版本: $(python3 --version 2>&1 || echo "未安装")
-Sage 版本: $(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "未安装")
+Python 命令: $PYTHON_CMD
+Python 版本: $($PYTHON_CMD --version 2>&1 || echo "未安装")
+Sage 版本: $($PYTHON_CMD -c "import sage; print(sage.__version__)" 2>/dev/null || echo "未安装")
 
 ================================================================================
 EOF
@@ -57,7 +61,7 @@ verify_hello_world() {
 
     # 运行 hello_world 脚本
     local output
-    output=$(python3 "$HELLO_WORLD_SCRIPT" 2>&1)
+    output=$($PYTHON_CMD "$HELLO_WORLD_SCRIPT" 2>&1)
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
@@ -84,18 +88,18 @@ verify_sage_doctor() {
         return 1
     fi
 
-    # 运行 sage doctor
+    # 运行 sage maintain doctor（新命令结构）
     local output
-    output=$(sage-dev doctor 2>&1)
+    output=$(sage-dev maintain doctor 2>&1)
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
-        log_verification_result "sage_doctor" "PASS" "sage-dev doctor 执行成功"
-        echo -e "${GREEN}   ✅ sage-dev doctor 执行成功${NC}"
+        log_verification_result "sage_doctor" "PASS" "sage-dev maintain doctor 执行成功"
+        echo -e "${GREEN}   ✅ sage-dev maintain doctor 执行成功${NC}"
         return 0
     else
-        log_verification_result "sage_doctor" "WARN" "sage-dev doctor 执行失败: $output"
-        echo -e "${YELLOW}   ⚠️  sage-dev doctor 执行失败${NC}"
+        log_verification_result "sage_doctor" "WARN" "sage-dev maintain doctor 执行失败: $output"
+        echo -e "${YELLOW}   ⚠️  sage-dev maintain doctor 执行失败${NC}"
         echo -e "${DIM}   错误: $output${NC}"
         return 1
     fi
@@ -105,17 +109,24 @@ verify_sage_doctor() {
 verify_cli_commands() {
     echo -e "${BLUE}🔧 验证 CLI 命令...${NC}"
 
-    local cli_commands=("sage-dev" "python3")
     local failed_commands=()
 
-    for cmd in "${cli_commands[@]}"; do
-        if command -v "$cmd" &> /dev/null; then
-            echo -e "${GREEN}   ✅ $cmd 命令可用${NC}"
-        else
-            echo -e "${RED}   ❌ $cmd 命令不可用${NC}"
-            failed_commands+=("$cmd")
-        fi
-    done
+    # 验证 sage-dev 命令
+    if command -v "sage-dev" &> /dev/null; then
+        echo -e "${GREEN}   ✅ sage-dev 命令可用${NC}"
+    else
+        echo -e "${RED}   ❌ sage-dev 命令不可用${NC}"
+        failed_commands+=("sage-dev")
+    fi
+
+    # 验证 Python 命令（使用 PYTHON_CMD）
+    if $PYTHON_CMD --version &> /dev/null; then
+        local py_version=$($PYTHON_CMD --version 2>&1)
+        echo -e "${GREEN}   ✅ Python 命令可用 ($py_version)${NC}"
+    else
+        echo -e "${RED}   ❌ Python 命令不可用 ($PYTHON_CMD)${NC}"
+        failed_commands+=("python")
+    fi
 
     if [ ${#failed_commands[@]} -eq 0 ]; then
         log_verification_result "cli_commands" "PASS" "所有 CLI 命令可用"
@@ -134,8 +145,8 @@ verify_dependency_versions() {
     local version_issues=()
 
     for dep in "${critical_deps[@]}"; do
-        if python3 -c "import $dep; print($dep.__version__)" &> /dev/null; then
-            local version=$(python3 -c "import $dep; print($dep.__version__)" 2>/dev/null)
+        if $PYTHON_CMD -c "import $dep; print($dep.__version__)" &> /dev/null; then
+            local version=$($PYTHON_CMD -c "import $dep; print($dep.__version__)" 2>/dev/null)
             echo -e "${GREEN}   ✅ $dep $version 已安装${NC}"
         else
             echo -e "${RED}   ❌ $dep 未安装或导入失败${NC}"
@@ -144,7 +155,7 @@ verify_dependency_versions() {
     done
 
     # 检查版本兼容性
-    if python3 -c "
+    if $PYTHON_CMD -c "
 import sys
 try:
     import torch
@@ -186,8 +197,9 @@ verify_sage_imports() {
     local failed_imports=()
 
     for pkg in "${sage_packages[@]}"; do
-        if python3 -c "import $pkg; print(f'{pkg} version: {$pkg.__version__}')" &> /dev/null; then
-            local version=$(python3 -c "import $pkg; print($pkg.__version__)" 2>/dev/null)
+        # 使用转义避免 shell 变量展开问题
+        if $PYTHON_CMD -c "import ${pkg}; print('${pkg}', ${pkg}.__version__)" &> /dev/null; then
+            local version=$($PYTHON_CMD -c "import ${pkg}; print(${pkg}.__version__)" 2>/dev/null)
             echo -e "${GREEN}   ✅ $pkg $version 导入成功${NC}"
         else
             echo -e "${RED}   ❌ $pkg 导入失败${NC}"
@@ -208,17 +220,17 @@ verify_sage_imports() {
 verify_vllm_installation() {
     echo -e "${BLUE}🚀 验证 VLLM 安装...${NC}"
 
-    if ! python3 -c "import vllm" &> /dev/null; then
+    if ! $PYTHON_CMD -c "import vllm" &> /dev/null; then
         log_verification_result "vllm_install" "SKIP" "VLLM 未安装，跳过验证"
         echo -e "${DIM}   ℹ️  VLLM 未安装，跳过验证${NC}"
         return 0
     fi
 
-    local vllm_version=$(python3 -c "import vllm; print(vllm.__version__)" 2>/dev/null)
+    local vllm_version=$($PYTHON_CMD -c "import vllm; print(vllm.__version__)" 2>/dev/null)
     echo -e "${GREEN}   ✅ VLLM $vllm_version 已安装${NC}"
 
     # 尝试基本功能测试
-    if python3 -c "
+    if $PYTHON_CMD -c "
 import vllm
 print(f'VLLM 版本: {vllm.__version__}')
 

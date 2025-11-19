@@ -363,9 +363,11 @@ main() {
     else
         echo ""
         echo -e "${YELLOW}安装可能成功，请手动验证：${NC}"
-        echo -e "  python3 -c \"import sage; print(sage.__version__)\""
+        # 使用正确的 Python 命令
+        local python_cmd="${PYTHON_CMD:-python3}"
+        echo -e "  $python_cmd -c \"import sage; print(sage.__version__)\""
         if [ "$install_vllm" = "true" ]; then
-            echo -e "  python3 -c \"import vllm; print(vllm.__version__)\""
+            echo -e "  $python_cmd -c \"import vllm; print(vllm.__version__)\""
         fi
     fi
 }
