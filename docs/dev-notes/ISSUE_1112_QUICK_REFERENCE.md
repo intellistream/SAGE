@@ -68,7 +68,7 @@ def clone(self, new_queue_id=None):
 ### Option 1: Run Verification Script
 
 ```bash
-cd /home/shuhao/SAGE
+cd $SAGE_ROOT  # Or your SAGE repository path
 python verify_clone_fix.py
 ```
 

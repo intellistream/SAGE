@@ -72,9 +72,9 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
         Returns:
             新的描述符实例，如果原实例已初始化则共享队列实例
         """
-        # 创建同类型的新实例
+        # 创建同类型的新实例，保留原始配置
         cloned = PythonQueueDescriptor(
-            maxsize=self.maxsize,  # Preserve original configuration
+            maxsize=self.maxsize,  # 保留原始配置
             use_multiprocessing=self.use_multiprocessing,
             queue_id=new_queue_id,
         )

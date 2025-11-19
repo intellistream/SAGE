@@ -104,8 +104,8 @@ class TestPythonQueueDescriptor:
 
         assert clone.queue_id == "cloned"
         assert clone.queue_type == original.queue_type
-        # 克隆后的 maxsize 应该使用默认值 0，这是预期行为
-        assert clone.maxsize == 0  # clone 方法只传递了 queue_id，其他参数使用默认值
+        # 克隆应该保留原始配置
+        assert clone.maxsize == 15  # 克隆保留原始的 maxsize 配置
         assert clone.is_initialized() is False
 
     def test_lazy_loading(self):
