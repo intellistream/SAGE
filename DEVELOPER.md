@@ -3,6 +3,25 @@
 Welcome to the sage-development guide! This document will help you get started with contributing to
 SAGE.
 
+## ⚠️ 重要：安装一致性
+
+**在开始之前，请务必阅读 [安装一致性指南](docs/dev-notes/INSTALLATION_CONSISTENCY.md)**
+
+为了避免 "CI/CD 通过但本地失败" 的问题，所有开发者**必须**使用 `quickstart.sh` 进行安装。不要手动运行 `pip install` 命令。
+
+```bash
+# ✅ 正确的安装方式
+./quickstart.sh --dev --yes
+
+# ❌ 不要使用
+pip install isage
+pip install -e .
+```
+
+详细说明请参阅：[docs/dev-notes/INSTALLATION_CONSISTENCY.md](docs/dev-notes/INSTALLATION_CONSISTENCY.md)
+
+______________________________________________________________________
+
 ## Table of Contents
 
 - [Development Setup](#development-setup)
