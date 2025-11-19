@@ -74,7 +74,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
         """
         # 创建同类型的新实例
         cloned = PythonQueueDescriptor(
-            maxsize=0,  # 使用默认值，正如测试所期望的
+            maxsize=self.maxsize,  # Preserve original configuration
             use_multiprocessing=self.use_multiprocessing,
             queue_id=new_queue_id,
         )

@@ -525,5 +525,6 @@ class RayQueueDescriptor(BaseQueueDescriptor):
         # 这确保服务端和客户端使用相同的队列，防止响应丢失
         if self._queue is not None:
             cloned._queue = self._queue
+            cloned._initialized = True
 
         return cloned
