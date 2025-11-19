@@ -77,6 +77,8 @@ dev = [
     "isage[full]",
     # 开发工具包（需要 sage-deps）
     "isage-tools[sage-deps]>=0.1.0",
+    # API Gateway（需要 sage-deps）
+    "sage-gateway>=0.1.0",
     # 开发依赖
     "pre-commit>=3.0.0",
 ]

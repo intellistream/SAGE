@@ -35,7 +35,7 @@ LAYER_DEFINITION = {
     "L3": ["sage-kernel", "sage-libs"],
     "L4": ["sage-middleware"],
     "L5": ["sage-apps", "sage-benchmark"],
-    "L6": ["sage-studio", "sage-tools"],
+    "L6": ["sage-studio", "sage-tools", "sage-gateway"],
 }
 
 # 反向映射：包名 -> 层级
@@ -85,6 +85,13 @@ ALLOWED_DEPENDENCIES = {
         "sage-middleware",
         "sage-studio",
     },  # L6 -> L5(studio), L4, L3, L2, L1
+    "sage-gateway": {
+        "sage-common",
+        "sage-platform",
+        "sage-kernel",
+        "sage-libs",
+        "sage-middleware",
+    },  # L6 -> L4, L3, L2, L1
 }
 
 # 包的根目录映射
@@ -98,6 +105,7 @@ PACKAGE_PATHS = {
     "sage-benchmark": "packages/sage-benchmark/src",
     "sage-studio": "packages/sage-studio/src",
     "sage-tools": "packages/sage-tools/src",
+    "sage-gateway": "packages/sage-gateway/src",
 }
 
 # Submodules to exclude from checks (maintained in separate repositories)
