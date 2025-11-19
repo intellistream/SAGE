@@ -190,6 +190,6 @@ $ ./manage.sh clean
 
 ## 参考
 
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - 问题排查指南
-- [INSTALLATION_VALIDATION.md](INSTALLATION_VALIDATION.md) - 安装验证
-- [ENVIRONMENT_AND_CLEANUP.md](ENVIRONMENT_AND_CLEANUP.md) - 环境管理
+- [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md) - 问题排查指南
+- [INSTALLATION_VALIDATION.md](../../INSTALLATION_VALIDATION.md) - 安装验证
+- [cleanup-automation.md](cleanup-automation.md) - 清理自动化（本文档）
