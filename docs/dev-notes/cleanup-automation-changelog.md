@@ -29,7 +29,7 @@
 - `tools/maintenance/git-hooks/post-checkout` - 添加清理提醒
 
 **文档：**
-- `docs/CLEANUP_AUTOMATION.md` - 完整功能文档（新增）
+- `docs/dev-notes/l0-infra/cleanup-automation.md` - 完整功能文档
 - `docs/dev-notes/cleanup-automation-changelog.md` - 本文档（新增）
 
 ## 使用示例
