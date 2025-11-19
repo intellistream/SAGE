@@ -17,8 +17,28 @@ Architecture:
 
 __layer__ = "L6"
 
-from . import cli, dev, finetune
+from . import cli, dev
 from ._version import __version__
+
+
+# 延迟导入 finetune，避免在模块加载时就导入重量级依赖 (datasets, transformers, torch 等)
+def __getattr__(name):
+    """延迟导入 finetune 模块"""
+    if name == "finetune":
+        import importlib
+        import sys
+
+        # 避免递归导入
+        module_name = f"{__name__}.finetune"
+        if module_name in sys.modules:
+            return sys.modules[module_name]
+
+        # 导入 finetune 子模块
+        finetune_module = importlib.import_module(".finetune", package=__name__)
+        return finetune_module
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "__version__",
