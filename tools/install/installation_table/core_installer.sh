@@ -15,11 +15,17 @@ fi
 if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
+    # 确保在CI环境中禁用可能导致问题的进度条设置
+    unset PIP_PROGRESS_BAR
 elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
+    # 远程部署环境也禁用可能导致问题的进度条设置
+    unset PIP_PROGRESS_BAR
 else
     export PYTHONNOUSERSITE=1
+    # 非CI环境清除可能存在的全局进度条配置
+    unset PIP_PROGRESS_BAR
 fi
 
 # 设置pip命令
@@ -44,8 +50,10 @@ install_core_packages() {
         # 确保用户脚本目录在PATH中（供 'sage' 可执行脚本使用）
         export PATH="$HOME/.local/bin:$PATH"
         echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
+        # CI环境也使用 off，避免版本兼容性问题
+        pip_args="$pip_args --progress-bar=off"
     else
-        # 非CI环境，使用简洁进度条
+        # 非CI环境，使用简洁进度条（off 在所有 pip 版本中都支持）
         pip_args="$pip_args --progress-bar=off"
     fi
 
@@ -168,8 +176,10 @@ install_core_packages() {
         # 确保用户脚本目录在PATH中（供 'sage' 可执行脚本使用）
         export PATH="$HOME/.local/bin:$PATH"
         echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
+        # CI环境也使用 off，避免版本兼容性问题
+        pip_args="$pip_args --progress-bar=off"
     else
-        # 非CI环境，使用简洁进度条
+        # 非CI环境，使用简洁进度条（off 在所有 pip 版本中都支持）
         pip_args="$pip_args --progress-bar=off"
     fi
 

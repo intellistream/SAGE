@@ -2,6 +2,9 @@
 # SAGE 安装脚本 - 环境配置管理器
 # 统一管理安装环境的配置和设置
 
+# 导入颜色定义（必须在最前面）
+source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+
 # 导入 conda 管理工具
 source "$(dirname "${BASH_SOURCE[0]}")/conda_manager.sh"
 
