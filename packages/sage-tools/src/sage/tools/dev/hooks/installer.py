@@ -13,7 +13,16 @@ from pathlib import Path
 class HooksInstaller:
     """Installer for SAGE Git hooks."""
 
-    def __init__(self, root_dir: Path | None = None, quiet: bool = False):
+    LIGHTWEIGHT = "lightweight"
+    FULL = "full"
+    _VALID_MODES = {LIGHTWEIGHT, FULL}
+
+    def __init__(
+        self,
+        root_dir: Path | None = None,
+        quiet: bool = False,
+        mode: str = LIGHTWEIGHT,
+    ):
         """
         Initialize the hooks installer.
 
@@ -22,6 +31,10 @@ class HooksInstaller:
             quiet: If True, suppress non-error output.
         """
         self.quiet = quiet
+        normalized_mode = mode.lower() if mode else self.LIGHTWEIGHT
+        if normalized_mode not in self._VALID_MODES:
+            normalized_mode = self.LIGHTWEIGHT
+        self.install_mode = normalized_mode
         self.root_dir = root_dir or self._detect_git_root()
         self.hooks_dir = self.root_dir / ".git" / "hooks"
         self.templates_dir = Path(__file__).parent / "templates"
@@ -137,22 +150,32 @@ class HooksInstaller:
             return False
 
         # Install hooks
-        self._print_info("   pre-commit 已安装，配置 hooks...")
+        if self.install_mode == self.LIGHTWEIGHT:
+            self._print_info(
+                "   pre-commit 已安装，使用轻量级模式配置 hooks (首次提交时再下载工具链)..."
+            )
+        else:
+            self._print_info("   pre-commit 已安装，配置完整 hooks...")
         pre_commit_config = self.root_dir / "tools" / "pre-commit-config.yaml"
 
         if not pre_commit_config.exists():
             self._print_warning(f"⚠️  未找到 pre-commit 配置文件: {pre_commit_config}")
             return False
 
+        install_cmd = [
+            "pre-commit",
+            "install",
+            "--config",
+            str(pre_commit_config),
+        ]
+        if self.install_mode == self.FULL:
+            install_cmd.append("--install-hooks")
+        else:
+            self._print_info("   将在首次 git commit 时自动下载所有 hook 依赖")
+
         try:
             subprocess.run(
-                [
-                    "pre-commit",
-                    "install",
-                    "--config",
-                    str(pre_commit_config),
-                    "--install-hooks",
-                ],
+                install_cmd,
                 cwd=str(self.root_dir),
                 capture_output=True,
                 check=True,
@@ -235,6 +258,11 @@ class HooksInstaller:
             self._print_info("  • 代码质量检查: black, isort, ruff, mypy（需要 pre-commit）")
             self._print_info("  • Dev-notes 文档规范检查: 分类、元数据等")
             self._print_info("  • 架构合规性检查: 包依赖、导入路径等")
+            if self.install_mode == self.LIGHTWEIGHT:
+                self._print_info("")
+                self._print_info(
+                    "💡 当前为轻量级模式：首次运行 pre-commit 时会自动下载完整工具链。"
+                )
             self._print_info("")
             self._print_info("使用方法:")
             self._print_info("  • 正常提交: git commit -m 'message'")

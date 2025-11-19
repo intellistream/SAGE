@@ -14,8 +14,8 @@ import chromadb
 import numpy as np
 from numpy.typing import NDArray
 
-from sage.middleware.operators.rag import CharacterSplitter
-from sage.middleware.operators.rag.document_loaders import LoaderFactory
+from sage.libs.rag import CharacterSplitter
+from sage.libs.rag.document_loaders import LoaderFactory
 
 if TYPE_CHECKING:
     from chromadb.api.types import Embeddings, Metadatas

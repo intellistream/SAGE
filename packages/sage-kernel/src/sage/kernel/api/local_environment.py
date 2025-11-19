@@ -40,8 +40,8 @@ class LocalEnvironment(BaseEnvironment):
         Returns:
             str: 任务的UUID
         """
-        # 提交作业
-        env_uuid = self.jobmanager.submit_job(self)
+        # 提交作业（传递 autostop 参数）
+        env_uuid = self.jobmanager.submit_job(self, autostop=autostop)
 
         if autostop:
             self._wait_for_completion()
@@ -52,6 +52,11 @@ class LocalEnvironment(BaseEnvironment):
         """
         等待批处理任务完成
         在本地环境中直接监控JobManager实例的状态
+
+        改进的等待策略：
+        1. 不监控源节点停止（源节点停止 ≠ 数据处理完）
+        2. 监控 Sink 节点接收到停止信号（所有数据已处理完）
+        3. 或监控所有任务都停止（dispatcher 清理完成）
         """
         import time
 
@@ -60,11 +65,14 @@ class LocalEnvironment(BaseEnvironment):
             return
 
         self.logger.info("Waiting for batch processing to complete...")
+        self.logger.info(
+            "⏳ Strategy: Wait for all data to be processed (not just source completion)"
+        )
 
         # 设置最大等待时间，避免无限等待
-        max_wait_time = 300.0  # 5分钟
+        max_wait_time = 600.0  # 增加到 10 分钟，适应长时间处理
         start_time = time.time()
-        check_interval = 0.1
+        check_interval = 1.0  # 增加检查间隔，减少 CPU 占用
 
         try:
             while time.time() - start_time < max_wait_time:
@@ -73,13 +81,26 @@ class LocalEnvironment(BaseEnvironment):
 
                 if job_info is None:
                     # 作业已被删除，说明完成了
-                    self.logger.info("Batch processing completed successfully")
+                    self.logger.info("✅ Batch processing completed successfully (job deleted)")
                     break
 
                 # 检查作业状态（优先检查这个，因为它更可靠）
                 if job_info.status in ["stopped", "failed"]:
-                    self.logger.info(f"Batch processing completed with status: {job_info.status}")
+                    self.logger.info(
+                        f"✅ Batch processing completed with status: {job_info.status}"
+                    )
                     break
+
+                # 改进的停止检测：检查所有 Task 是否都已停止
+                # 这确保队列中的数据都被处理完
+                dispatcher = job_info.dispatcher
+                if hasattr(dispatcher, "tasks") and len(dispatcher.tasks) > 0:
+                    all_tasks_stopped = all(
+                        not task.is_running for task in dispatcher.tasks.values()
+                    )
+                    if all_tasks_stopped:
+                        self.logger.info("✅ All tasks stopped, processing complete")
+                        break
 
                 # 检查dispatcher状态
                 # 注意：dispatcher.is_running 可能在stop()方法执行期间仍然为True

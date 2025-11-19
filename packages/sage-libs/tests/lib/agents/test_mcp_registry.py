@@ -2,7 +2,7 @@
 import pytest
 
 # 尽量直接导入；如果你的工程路径未就绪，可在运行pytest时用 PYTHONPATH 指向项目根
-from sage.libs.agents.action.mcp_registry import MCPRegistry
+from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
 
 
 class EchoTool:
@@ -164,4 +164,4 @@ def test_call_direct_type_and_key_errors():
 
     # arguments 类型不对时：call 本身把参数直接传给 tool，类型校验在 execute 中做；
     # 这里补充一个最简单的 tool 内部容错（EchoTool可以接受任意类型），因此不抛错：
-    assert reg.call("echo", 123) == {"ok": True, "echo": 123}
+    assert reg.call("echo", {"value": 123}) == {"ok": True, "echo": {"value": 123}}

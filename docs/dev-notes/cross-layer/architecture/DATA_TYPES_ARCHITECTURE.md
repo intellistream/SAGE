@@ -18,7 +18,7 @@ SAGE 采用分层的数据类型系统，从通用到专用逐层继承：
 └──────────────────┬──────────────────────────────────┘
                    │ 继承
 ┌──────────────────┴──────────────────────────────────┐
-│ sage.middleware.operators.rag.types (RAG 专用层)     │
+│ sage.libs.rag.types (RAG 专用层)                     │
 │ - RAGDocument, RAGQuery, RAGResponse                │
 │ - 添加 RAG 特定字段（relevance_score, generated 等）  │
 └─────────────────────────────────────────────────────┘
@@ -39,7 +39,7 @@ SAGE 采用分层的数据类型系统，从通用到专用逐层继承：
 - 适用：所有类型的算子（RAG、搜索、多模态、分析等）
 
 **领域特定类型继承通用类型**：
-- RAG：`packages/sage-middleware/src/sage/middleware/operators/rag/types.py`
+- RAG：`packages/sage-libs/src/sage/libs/rag/types.py`
 - 搜索：可创建 `packages/sage-middleware/src/sage/middleware/operators/search/types.py`
 - 多模态：可创建 `packages/sage-middleware/src/sage/middleware/operators/multimodal/types.py`
 
@@ -85,7 +85,7 @@ BaseDocument (sage.common)
 ├── text: str (必需)
 ├── id, title, source, score, rank, metadata (可选)
 │
-└── RAGDocument (sage.middleware.rag)
+└── RAGDocument (sage.libs.rag)
     ├── 继承所有 BaseDocument 字段
     └── 新增：relevance_score, embedding, chunk_id, references
 ```
@@ -101,7 +101,7 @@ BaseQueryResult (sage.common)
 │   ├── 继承 BaseQueryResult
 │   └── 新增：query_id, timestamp, execution_time, metadata
 │
-└── RAGQuery / RAGResponse (sage.middleware.rag)
+└── RAGQuery / RAGResponse (sage.libs.rag)
     ├── 继承 BaseQueryResult / ExtendedQueryResult
     └── 新增：generated, context, refined_docs, refine_metrics
 ```
@@ -128,7 +128,7 @@ class GenericOperator(MapOperator):
 ### RAG 算子（使用 RAG 类型）
 
 ```python
-from sage.middleware.operators.rag import (
+from sage.libs.rag.types import (
     RAGInput,
     RAGResponse,
     extract_query,
@@ -227,5 +227,5 @@ generic_output = generic_operator.execute(rag_output)  # ✅ 类型兼容
 ## 相关文档
 
 - 基础类型定义：`packages/sage-common/src/sage/common/core/data_types.py`
-- RAG 类型定义：`packages/sage-middleware/src/sage/middleware/operators/rag/types.py`
+- RAG 类型定义：`packages/sage-libs/src/sage/libs/rag/types.py`
 - RAG 使用指南：`docs/dev-notes/RAG_DATA_TYPES_GUIDE.md`

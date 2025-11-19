@@ -11,9 +11,9 @@
             "label": "提示词模板",
             "type": "textarea",
             "required": false,
-            "defaultValue": "Based on the following context, please answer the question.\n\nContext: {context}\n\nQuestion: {question}\n\nAnswer:",
-            "placeholder": "请输入提示词模板",
-            "description": "QA 任务的提示词模板，支持 {context} 和 {question} 占位符"
+            "defaultValue": "You are an intelligent assistant. Answer the question based on the provided context.\n\n{% if external_corpus %}\nContext:\n{{ external_corpus }}\n{% endif %}",
+            "placeholder": "请输入提示词模板（使用 Jinja2 语法）",
+            "description": "System prompt 模板，使用 {{ external_corpus }} 引用检索到的文档。Question 会自动作为 user message 发送。"
         },
         {
             "name": "max_context_length",

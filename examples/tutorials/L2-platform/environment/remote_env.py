@@ -4,6 +4,7 @@ RemoteEnvironment 简单示例
 演示如何使用 RemoteEnvironment 和调度器
 """
 
+import time
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
@@ -16,11 +17,13 @@ class SimpleSource(SourceFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.count = 0
-        self.max_count = 10
+        self.max_count = 10000
 
     def execute(self, data=None):
         if self.count >= self.max_count:
-            return None
+            from sage.kernel.runtime.communication.router.packet import StopSignal
+
+            return StopSignal("SimpleSource completed")
 
         data = f"item_{self.count}"
         self.count += 1
@@ -49,104 +52,80 @@ def example_default_scheduler():
     print("示例 1: 使用默认调度器")
     print("=" * 60 + "\n")
 
-    # 不指定 scheduler 参数，使用默认的 FIFO 调度器
-    env = RemoteEnvironment(name="default_scheduler_demo")
+    # 📊 开始计时
+    total_start = time.time()
 
+    # 步骤1: 创建环境
+    print("📦 [1/5] 创建 RemoteEnvironment...")
+    step_start = time.time()
+    env = RemoteEnvironment(name="default_scheduler_demo")
+    step_duration = time.time() - step_start
+    print(f"   ✅ 环境创建完成 (耗时: {step_duration:.3f}秒)\n")
+
+    # 步骤2: 构建数据流
+    print("🔧 [2/5] 构建数据流 pipeline...")
+    step_start = time.time()
     (
         env.from_source(SimpleSource)
         .map(SimpleProcessor, parallelism=2)  # 并行度在 operator 级别指定
         .sink(ConsoleSink)
     )
+    step_duration = time.time() - step_start
+    print(f"   ✅ Pipeline 构建完成 (耗时: {step_duration:.3f}秒)\n")
 
-    print("▶️  提交任务...")
-    env.submit(autostop=True)
+    # 步骤3: 连接JobManager
+    print("🔌 [3/5] 连接到 JobManager...")
+    step_start = time.time()
+    try:
+        # 这里会触发与JobManager的连接
+        _ = env.client  # 访问client property确保已创建
+        step_duration = time.time() - step_start
+        print(f"   ✅ JobManager 连接成功 (耗时: {step_duration:.3f}秒)\n")
+    except Exception as e:
+        step_duration = time.time() - step_start
+        print(f"   ❌ 连接失败 (耗时: {step_duration:.3f}秒)")
+        print(f"   错误: {e}\n")
+        return
+
+    # 步骤4: 提交任务
+    print("🚀 [4/5] 提交任务到 JobManager...")
+    step_start = time.time()
+    try:
+        env.submit(autostop=False)  # 不自动停止,手动控制
+        step_duration = time.time() - step_start
+        print(f"   ✅ 任务提交成功 (耗时: {step_duration:.3f}秒)\n")
+    except Exception as e:
+        step_duration = time.time() - step_start
+        print(f"   ❌ 任务提交失败 (耗时: {step_duration:.3f}秒)")
+        print(f"   错误: {e}\n")
+        return
+
+    # 步骤5: 等待执行完成
+    print("⏳ [5/5] 等待任务执行...")
+    step_start = time.time()
+    try:
+        # 等待任务执行完成
+        env._wait_for_completion()
+        step_duration = time.time() - step_start
+        print(f"   ✅ 任务执行完成 (耗时: {step_duration:.3f}秒)\n")
+    except Exception as e:
+        step_duration = time.time() - step_start
+        print(f"   ⚠️  任务执行异常 (耗时: {step_duration:.3f}秒)")
+        print(f"   错误: {e}\n")
 
     # 查看调度器指标
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
+    print("📊 获取调度器指标...")
+    try:
+        metrics = env.get_scheduler_metrics()
+        print(f"   调度器指标: {metrics}\n")
+    except Exception as e:
+        print(f"   ⚠️  无法获取指标: {e}\n")
 
-
-def example_fifo_scheduler():
-    """示例 2: 显式指定 FIFO 调度器"""
-    print("\n" + "=" * 60)
-    print("示例 2: 显式指定 FIFO 调度器 (字符串)")
-    print("=" * 60 + "\n")
-
-    # 使用字符串指定调度器
-    env = RemoteEnvironment(name="fifo_scheduler_demo", scheduler="fifo")  # 字符串方式
-
-    (
-        env.from_source(SimpleSource)
-        .map(SimpleProcessor, parallelism=3)
-        .sink(ConsoleSink)
-    )
-
-    print("▶️  提交任务...")
-    env.submit(autostop=True)
-
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
-
-
-def example_load_aware_scheduler():
-    """示例 3: 使用负载感知调度器"""
-    print("\n" + "=" * 60)
-    print("示例 3: 使用负载感知调度器")
-    print("=" * 60 + "\n")
-
-    # 使用字符串指定负载感知调度器
-    env = RemoteEnvironment(
-        name="load_aware_demo", scheduler="load_aware"
-    )  # 负载感知调度器
-
-    (
-        env.from_source(SimpleSource)
-        .map(SimpleProcessor, parallelism=4)
-        .sink(ConsoleSink)
-    )
-
-    print("▶️  提交任务...")
-    env.submit(autostop=True)
-
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
-        print(f"   当前活跃任务: {metrics.get('active_tasks', 'N/A')}")
-        print(f"   最大并发数: {metrics.get('max_concurrent', 'N/A')}")
-
-
-def example_custom_scheduler_instance():
-    """示例 4: 使用自定义调度器实例"""
-    print("\n" + "=" * 60)
-    print("示例 4: 使用自定义调度器实例")
-    print("=" * 60 + "\n")
-
-    from sage.kernel.scheduler.impl import LoadAwareScheduler
-
-    # 创建自定义配置的调度器实例
-    custom_scheduler = LoadAwareScheduler(
-        platform="remote", max_concurrent=15
-    )  # 自定义最大并发数
-
-    env = RemoteEnvironment(
-        name="custom_scheduler_demo",
-        scheduler=custom_scheduler,  # 传入调度器实例
-    )
-
-    (
-        env.from_source(SimpleSource)
-        .map(SimpleProcessor, parallelism=5)
-        .sink(ConsoleSink)
-    )
-
-    print("▶️  提交任务...")
-    env.submit(autostop=True)
-
-    if env.scheduler:
-        metrics = env.scheduler.get_metrics()
-        print(f"\n📊 调度器指标: {metrics}")
+    # 总体统计
+    total_duration = time.time() - total_start
+    print("=" * 60)
+    print(f"🎉 总耗时: {total_duration:.3f}秒")
+    print("=" * 60)
 
 
 def main():
@@ -157,6 +136,7 @@ def main():
 ║        RemoteEnvironment 调度器使用示例                        ║
 ║                                                              ║
 ║  演示如何在 RemoteEnvironment 中配置和使用调度器                ║
+║  增加了详细的时间追踪和进度输出                                 ║
 ╚══════════════════════════════════════════════════════════════╝
     """
     )
@@ -173,45 +153,18 @@ def main():
     try:
         # 运行示例
         example_default_scheduler()
-        example_fifo_scheduler()
-        example_load_aware_scheduler()
-        example_custom_scheduler_instance()
 
         print("\n" + "=" * 60)
         print("✅ 所有示例运行完成！")
         print("=" * 60)
 
-        print(
-            """
-💡 关键要点：
-
-  1️⃣  三种指定调度器的方式：
-     • 不指定 (使用默认 FIFO)
-       env = RemoteEnvironment()
-
-     • 字符串指定
-       env = RemoteEnvironment(scheduler="fifo")
-       env = RemoteEnvironment(scheduler="load_aware")
-
-     • 实例指定
-       scheduler = LoadAwareScheduler(max_concurrent=20)
-       env = RemoteEnvironment(scheduler=scheduler)
-
-  2️⃣  并行度在 operator 级别配置：
-     .map(Processor, parallelism=4)
-     .filter(Filter, parallelism=2)
-
-  3️⃣  调度器在应用级别工作，用户无感知：
-     • 自动处理所有任务调度
-     • 尊重 operator 的 parallelism 设置
-     • 提供性能指标供开发者分析
-        """
-        )
-
     except Exception as e:
         print(f"\n❌ 错误: {e}")
+        import traceback
+
+        traceback.print_exc()
         print("\n提示: 请确保 JobManager daemon 正在运行")
-        print("启动命令: python -m sage.kernel.daemon.start")
+        print("启动命令: sage jobmanager start")
 
 
 if __name__ == "__main__":

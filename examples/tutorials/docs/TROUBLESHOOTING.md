@@ -11,7 +11,7 @@
 ```
 ModuleNotFoundError: No module named 'sage'
   File "usage_1_direct_library.py", line 5, in <module>
-    from sage.libs.unlearning import UnlearningEngine
+    from sage.libs.privacy.unlearning import UnlearningEngine
 ```
 
 **原因:** SAGE 库未安装
@@ -27,7 +27,7 @@ pip install -e packages/sage-libs
 make install
 
 # 方法 3: 验证安装
-python -c "from sage.libs.unlearning import UnlearningEngine; print('OK')"
+python -c "from sage.libs.privacy.unlearning import UnlearningEngine; print('OK')"
 ```
 
 **预防:**
@@ -508,7 +508,7 @@ if similarity > 0.7:
     result = engine.unlearn_vectors(..., apply_compensation=True)
 
     # 方案 3: 使用更强的隐私机制
-    from sage.libs.unlearning.privacy_mechanisms import GaussianUnlearning
+    from sage.libs.privacy.unlearning.privacy_mechanisms import GaussianUnlearning
 
     result = engine.unlearn_vectors(..., privacy_mechanism=GaussianUnlearning())
 ```

@@ -1,10 +1,10 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/tests/lib/agents/test_runtime_agent.py
 import json
 
-from sage.libs.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agents.planning.llm_planner import LLMPlanner
-from sage.libs.agents.profile.profile import BaseProfile
-from sage.libs.agents.runtime.agent import AgentRuntime
+from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
+from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agentic.agents.profile.profile import BaseProfile
+from sage.libs.agentic.agents.runtime.agent import AgentRuntime
 
 
 # ---- Dummy 生成器：返回固定 JSON 计划 ----
@@ -136,7 +136,7 @@ def test_runtime_memory_disabled():
     runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
 
     # Verify memory is not set (should be None or not exist)
-    assert not hasattr(runtime, "memory") or runtime.memory is None
+    assert not hasattr(runtime, "memory") or getattr(runtime, "memory", None) is None
 
 
 def test_runtime_with_new_planner_message_format():

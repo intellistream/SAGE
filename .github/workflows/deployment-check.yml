@@ -1,4 +1,7 @@
-name: Deployment Readiness Check
+name: Pre-Deployment Readiness Check
+
+# 部署前检查：架构合规性、Examples验证、README完整性
+# Dev-notes 检查已由 code-quality.yml 负责
 
 on:
   pull_request:
@@ -47,47 +50,7 @@ jobs:
 
           echo "✅ SAGE 包安装完成"
 
-      - name: Dev-notes Documentation Check
-        run: |
-          echo "📚 检查 dev-notes 文档规范..."
-
-          # 检查是否有 dev-notes 变更
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            DEVNOTES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^docs/dev-notes/.*\.md$' || true)
-          else
-            DEVNOTES_CHANGED=$(git diff --name-only HEAD~5...HEAD | grep '^docs/dev-notes/.*\.md$' || true)
-          fi
-
-          if [ -n "$DEVNOTES_CHANGED" ]; then
-            echo "📝 发现 dev-notes 文档变更:"
-            echo "$DEVNOTES_CHANGED"
-            echo ""
-
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
-              sage-dev quality devnotes || {
-                  echo ""
-                  echo "❌ Dev-notes 文档不符合规范！"
-                  echo ""
-                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                  echo "💡 常见问题修复："
-                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                  echo "1. 使用正确的模板: docs/dev-notes/TEMPLATE.md"
-                  echo "2. 确保包含必需的章节"
-                  echo "3. 检查元数据格式（YAML front matter）"
-                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                  exit 1
-                }
-            else
-              sage-dev quality devnotes --warn-only || {
-                echo "⚠️  发现文档格式问题，但不阻塞部署"
-              }
-            fi
-          else
-            echo "ℹ️  没有 dev-notes 文档变更，跳过检查"
-          fi
-
-          echo ""
-          echo "✅ Dev-notes 文档检查完成"
+      # Dev-notes 检查已由 code-quality.yml 负责，此处跳过
 
       - name: Architecture Compliance Check
         run: |
@@ -231,10 +194,11 @@ jobs:
             echo "✅ **检查通过** - 代码已就绪可以部署" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "检查项目:" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Dev-notes 文档规范" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ 架构合规性" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Examples 可执行性" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Package README 完整性" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> 📝 Dev-notes 文档检查由 code-quality.yml 负责" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **检查失败** - 发现部署阻塞问题" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY

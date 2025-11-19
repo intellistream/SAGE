@@ -1,0 +1,13 @@
+key,value,type
+elseCacheMiss,0,U64
+elseCacheRefs,0,U64
+elseCpuClock,0,U64
+elseCpuCycle,0,U64
+elseInstructions,0,U64
+elsePerfElapsedTime,0,U64
+elseTaskClock,0,U64
+AMM95%latency,0,Double
+AMMFroError,0,Double
+AMMThroughput,0,Double
+AMMThroughputByElements,0,Double
+PCAError,0,Double

@@ -164,7 +164,28 @@ class BaseQueueDescriptor(ABC):
         return self._initialized
 
     def clone(self, new_queue_id: Optional[str] = None) -> "BaseQueueDescriptor":
-        """克隆描述符（不包含队列实例）"""
+        """克隆描述符（不包含队列实例）
+
+        注意：这是基类的默认实现，创建一个新的描述符实例但不共享队列实例。
+        子类应该重写此方法以正确处理队列实例的共享，特别是在服务通信场景中。
+
+        **重要**: 如果队列用于服务通信（请求/响应），子类的 clone() 实现必须
+        共享已初始化的队列实例，否则会导致竞态条件：
+        - 服务端使用原始描述符 → 队列 A
+        - 客户端使用克隆描述符 → 队列 B (如果不共享)
+        - 响应发送到队列 A，但客户端在队列 B 等待 → 超时
+
+        Args:
+            new_queue_id: 新的队列ID，如果为None则自动生成为 "{原ID}_clone"
+
+        Returns:
+            新的描述符实例，子类应确保在已初始化时共享队列实例
+
+        See Also:
+            - PythonQueueDescriptor.clone(): 共享队列实例的正确实现
+            - RayQueueDescriptor.clone(): 共享队列代理的正确实现
+            - RPCQueueDescriptor.clone(): 共享RPC连接的正确实现
+        """
         # 创建同类型的新实例
         new_instance = type(self)(queue_id=new_queue_id or f"{self.queue_id}_clone")
         return new_instance

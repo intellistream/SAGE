@@ -1,0 +1,8 @@
+key,value,type
+aRow,10000,U64
+aCol,1000,U64
+bCol,10000,U64
+aDensity,1.0,Double
+matrixLoaderTag,sparse,String
+sketchDimension,25,U64
+ptFile,torchscripts/CountSketch.pt,String

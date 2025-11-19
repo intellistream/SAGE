@@ -180,7 +180,7 @@ ______________________________________________________________________
 ### 最小化 Direct Library 示例
 
 ```python
-from sage.libs.unlearning import UnlearningEngine
+from sage.libs.privacy.unlearning import UnlearningEngine
 import numpy as np
 
 engine = UnlearningEngine(epsilon=1.0)

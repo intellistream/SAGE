@@ -75,6 +75,9 @@ Or with development dependencies:
 pip install -e "packages/sage-benchmark[dev]"
 ```
 
+**Note:** The `sage.data` module is included as a submodule in the package and will be installed
+automatically. It contains datasets for various benchmarks including LibAMM datasets.
+
 ## 📊 RAG Benchmarking
 
 The benchmark_rag module provides comprehensive RAG benchmarking capabilities:

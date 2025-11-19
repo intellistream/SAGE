@@ -12,7 +12,7 @@
 
 - **[DEVELOPER.md](DEVELOPER.md)** - 完整开发指南，包含设置、工作流、测试等
 - **[CHANGELOG.md](CHANGELOG.md)** - 项目变更日志（遵循 Keep a Changelog 格式）
-- **[tools/dev.sh](tools/dev.sh)** - 开发助手脚本，提供常用命令
+- **`sage-dev` CLI** - 开发助手命令，提供质量检查、测试、维护等常用功能
 - **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置（链接到
   `tools/pre-commit-config.yaml`）
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
@@ -21,14 +21,14 @@
 **快速开始开发**:
 
 ```bash
-# 一键设置开发环境
-./tools/dev.sh setup
+# 查看可用子命令
+sage-dev --help
 
-# 格式化代码
-./tools/dev.sh format
+# 自动修复代码质量问题
+sage-dev quality fix --all-files
 
-# 运行所有检查
-./tools/dev.sh validate
+# 运行所有质量检查
+sage-dev quality check --all-files --readme
 ```
 
 ## 目录
@@ -64,8 +64,8 @@ git pull --ff-only origin main-dev
 # 安装开发环境 (默认 dev 模式 + conda)
 ./quickstart.sh --dev --yes
 
-# 或最小安装（仅核心包）
-./quickstart.sh --minimal --yes
+# 或核心安装（仅核心包）
+./quickstart.sh --core --yes
 
 # 标准模式 + 安装 VLLM 支持
 ./quickstart.sh --standard --vllm --yes
@@ -108,7 +108,7 @@ git rebase origin/main-dev   # 有冲突时解决后: git add <files> && git reb
 
 ```bash
 # 运行核心安装验证（若修改安装逻辑）
-./quickstart.sh --minimal --yes
+./quickstart.sh --core --yes
 
 # 运行示例/集成测试集合（当前推荐方式）
 bash tools/tests/run_examples_tests.sh
@@ -294,7 +294,7 @@ Reduce flakiness via timeout + category filtering.
 1. **功能测试**
 
    ```bash
-   ./quickstart.sh --minimal --yes             # 安装/环境相关改动
+   ./quickstart.sh --core --yes                # 安装/环境相关改动
    bash tools/tests/run_examples_tests.sh      # 示例 + 基础集成
    pytest -k issues_manager -vv                # Issues 管理相关
    ```
@@ -326,7 +326,7 @@ SAGE 使用 **非标准位置** 的 pre-commit 配置文件：
 
 **为什么使用 tools/ 目录？**
 
-- 与其他开发工具（`dev.sh`、`maintenance/` 等）统一管理
+- 与其他开发工具（`sage-dev`、`maintenance/` 等）统一管理
 - 避免项目根目录过于混乱
 - 便于集中维护开发工具配置
 
@@ -392,7 +392,7 @@ pre-commit run --all-files
 | 目的           | 推荐命令                                           | 说明                       |
 | -------------- | -------------------------------------------------- | -------------------------- |
 | 安装（交互式） | `./quickstart.sh`                                  | 未传参进入菜单             |
-| 最小安装       | `./quickstart.sh --minimal --yes`                  | 仅核心包                   |
+| 核心安装       | `./quickstart.sh --core --yes`                     | 仅核心包                   |
 | 开发者安装     | `./quickstart.sh --dev --yes`                      | 安装开发依赖（可编辑模式） |
 | 启用 VLLM      | `./quickstart.sh --standard --vllm --yes`          | 额外安装 vllm              |
 | 示例测试       | `bash tools/tests/run_examples_tests.sh`           | 运行示例/集成集            |
@@ -440,7 +440,7 @@ git reset --soft HEAD~1
 ```bash
 pytest -vv --maxfail=1
 tail -n 200 logs/install.log 2>/dev/null || true
-bash -x quickstart.sh --minimal --yes  # 安装相关问题
+bash -x quickstart.sh --core --yes  # 安装相关问题
 ```
 
 ### 5. CI构建失败

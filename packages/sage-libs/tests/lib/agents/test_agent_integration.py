@@ -14,7 +14,7 @@ import pytest
 
 # Test imports with fallbacks
 try:
-    from examples.agents.tools.arxiv_search_tool import (
+    from examples.agents.tools.arxiv_search_tool import (  # type: ignore[import-not-found]
         ArxivSearchTool,  # type: ignore[import-not-found]
     )
 
@@ -23,10 +23,10 @@ except ImportError:
     ARXIV_TOOL_AVAILABLE = False
 
 try:
-    from sage.libs.agents.action.mcp_registry import MCPRegistry
-    from sage.libs.agents.planning.llm_planner import LLMPlanner
-    from sage.libs.agents.profile.profile import BaseProfile
-    from sage.libs.agents.runtime.agent import AgentRuntime
+    from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
+    from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+    from sage.libs.agentic.agents.profile.profile import BaseProfile
+    from sage.libs.agentic.agents.runtime.agent import AgentRuntime
 
     SAGE_COMPONENTS_AVAILABLE = True
 except ImportError:
