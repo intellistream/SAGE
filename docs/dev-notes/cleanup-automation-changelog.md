@@ -30,7 +30,7 @@
 
 **文档：**
 - `docs/CLEANUP_AUTOMATION.md` - 完整功能文档（新增）
-- `docs/dev-notes/cleanup-automation-update.md` - 本文档（新增）
+- `docs/dev-notes/cleanup-automation-changelog.md` - 本文档（新增）
 
 ## 使用示例
 

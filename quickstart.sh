@@ -175,7 +175,7 @@ main() {
     if [ "$clean_before_install" = "true" ]; then
         echo ""
         echo -e "${BLUE}🧹 执行安装前清理...${NC}"
-        if [ -f "$TOOLS_DIR/maintenance/helpers/pre_install_cleanup.sh" ]; then
+        if [ -f "$SAGE_ROOT/tools/maintenance/helpers/pre_install_cleanup.sh" ]; then
             bash "$SAGE_ROOT/tools/maintenance/helpers/pre_install_cleanup.sh"
         else
             echo -e "${YELLOW}⚠️  清理脚本未找到，跳过清理${NC}"
