@@ -63,6 +63,7 @@ class ChatModeManager:
         try:
             self.gateway_pid_file.unlink()
         except OSError:
+            # 文件可能已不存在，无需处理
             pass
         return None
 
@@ -80,15 +81,15 @@ class ChatModeManager:
 
         console.print(f"[blue]🚀 启动 sage-gateway (端口: {gateway_port})...[/blue]")
         try:
-            log_handle = open(self.gateway_log_file, "w")
-            process = subprocess.Popen(
-                [sys.executable, "-m", "sage.gateway.server"],
-                stdout=log_handle,
-                stderr=subprocess.STDOUT,
-                preexec_fn=os.setsid if os.name != "nt" else None,
-                env=env,
-            )
-            self.gateway_pid_file.write_text(str(process.pid))
+            with open(self.gateway_log_file, "w") as log_handle:
+                process = subprocess.Popen(
+                    [sys.executable, "-m", "sage.gateway.server"],
+                    stdout=log_handle,
+                    stderr=subprocess.STDOUT,
+                    preexec_fn=os.setsid if os.name != "nt" else None,
+                    env=env,
+                )
+                self.gateway_pid_file.write_text(str(process.pid))
         except Exception as exc:
             console.print(f"[red]❌ 启动 gateway 失败: {exc}")
             return False
