@@ -127,7 +127,8 @@ main() {
 
     # 运行 quickstart.sh，传递所有参数
     # 使用 tee 同时输出到终端和日志文件
-    if "$SAGE_ROOT/quickstart.sh" "$@" 2>&1 | tee -a "$SAGE_ROOT/.sage/logs/ci_install.log"; then
+    "$SAGE_ROOT/quickstart.sh" "$@" 2>&1 | tee -a "$SAGE_ROOT/.sage/logs/ci_install.log"
+    if [ "${PIPESTATUS[0]}" -eq 0 ]; then
         echo ""
         echo -e "${GREEN}${BOLD}✅ CI/CD 安装成功！${NC}"
         echo ""
