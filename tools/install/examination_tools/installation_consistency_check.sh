@@ -207,7 +207,7 @@ check_submodules() {
             print_check "pass" "项目包含 Git 子模块"
 
             # 检查子模块是否已初始化
-            local uninit_submodules=$(git submodule status 2>/dev/null | grep "^-" | wc -l || echo "0")
+            local uninit_submodules=$(git -C "$SAGE_ROOT" submodule status 2>/dev/null | grep "^-" | wc -l || echo "0")
 
             if [ "$uninit_submodules" -eq 0 ]; then
                 print_check "pass" "所有子模块已初始化"
