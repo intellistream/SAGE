@@ -1,6 +1,115 @@
-# SAGE 快速安装脚本 - VLLM 环境准备
+# SAGE vLLM 安装指南
 
-## 新增功能
+## 📋 版本要求
+
+**重要**: vLLM 0.10.x+ 需要特定的 PyTorch 版本
+
+| vLLM 版本   | 所需 Torch 版本 | Python 版本 | 备注                         |
+| ----------- | --------------- | ----------- | ---------------------------- |
+| 0.11.x      | >= 2.5.0        | >= 3.9      | 最新版                       |
+| 0.10.x      | >= 2.4.0        | >= 3.9      | 需要 torch.\_inductor.config |
+| 0.9.x       | >= 2.3.0        | >= 3.8      |                              |
+| 0.4.x-0.8.x | >= 2.2.0        | >= 3.8      | 稳定版                       |
+
+## 🚀 快速安装
+
+### 方法 1: 使用 quickstart.sh（推荐）
+
+```bash
+# 默认安装 + 准备 VLLM 环境
+./quickstart.sh --vllm
+
+# 开发者安装 + 准备 VLLM 环境
+./quickstart.sh --dev --vllm
+```
+
+安装脚本会自动：
+
+- ✅ 检查并修复依赖版本冲突
+- ✅ 安装兼容的 torch 和 vllm 版本
+- ✅ 验证安装结果
+
+### 方法 2: 使用自动修复脚本
+
+```bash
+# 一键修复版本冲突
+./tools/install/fix_vllm_torch.sh
+
+# 非交互模式（CI/CD）
+./tools/install/fix_vllm_torch.sh --non-interactive
+```
+
+### 方法 3: 使用锁定的依赖版本
+
+```bash
+# 安装锁定版本（确保兼容性）
+pip install -r tools/install/requirements-vllm-lock.txt
+```
+
+### 方法 4: 手动安装
+
+```bash
+# 卸载旧版本
+pip uninstall -y torch torchaudio torchvision vllm xformers outlines
+
+# 安装 vLLM（会自动安装兼容的 torch）
+pip install vllm==0.10.1.1
+
+# 验证安装
+python tools/install/verify_dependencies.py
+```
+
+## ⚠️ 常见问题
+
+### 错误: `module 'torch._inductor' has no attribute 'config'`
+
+**原因**: torch 版本太旧（< 2.4.0）
+
+**解决方案**:
+
+```bash
+./tools/install/fix_vllm_torch.sh
+```
+
+详细说明请参考:
+[docs/dev-notes/l0-infra/vllm-torch-version-conflict.md](../../docs/dev-notes/l0-infra/vllm-torch-version-conflict.md)
+
+### 错误: `outlines_core` 版本冲突
+
+**原因**: outlines 和 vllm 对 outlines_core 的版本要求冲突
+
+**解决方案**:
+
+```bash
+# 卸载 outlines（如果不需要）
+pip uninstall -y outlines
+
+# 保持 outlines_core==0.2.10（vllm 需要）
+pip install outlines_core==0.2.10
+```
+
+## ✅ 验证安装
+
+运行依赖验证脚本：
+
+```bash
+python tools/install/verify_dependencies.py
+```
+
+预期输出：
+
+```
+✅ 所有检查通过！
+```
+
+测试 vLLM 导入：
+
+```bash
+python -c "import vllm; print(f'vLLM version: {vllm.__version__}')"
+python -c "import torch._inductor.config; print('✅ torch._inductor.config 可用')"
+```
+
+## 📚 新增功能
 
 `quickstart.sh` 脚本现在支持 `--vllm` 选项，用于准备 VLLM 使用环境。实际的 VLLM 安装将在首次使用 `vllm_local_serve.sh` 时自动完成。
 
@@ -24,6 +133,7 @@
 
 ### 功能特性
 
+- ✅ **自动依赖检查**: 安装后自动检查并修复版本冲突
 - ✅ **环境准备**: 确保 VLLM 启动脚本可执行并提供使用指南
 - ✅ **延迟安装**: VLLM 在首次使用时自动安装，避免不必要的安装时间
 - ✅ **智能检测**: vllm_local_serve.sh 会自动检测 CUDA 支持并安装对应版本
@@ -36,6 +146,8 @@
 
    - 检查 `vllm_local_serve.sh` 脚本是否存在
    - 设置脚本执行权限
+   - **检查依赖版本兼容性**（新增）
+   - **自动修复版本冲突**（新增）
    - 检查当前 VLLM 安装状态
    - 显示使用指南和推荐模型
 

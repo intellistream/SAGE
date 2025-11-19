@@ -124,7 +124,9 @@ class ServiceManager:
             if self.context:
                 # 从TaskContext的服务响应队列描述符获取队列
                 if hasattr(self.context, "response_qd") and self.context.response_qd:
-                    self._response_queue = self.context.response_qd.clone()
+                    # 【修复队列克隆Bug】: 使用 queue_instance 而不是 clone()
+                    # clone() 会创建新的队列实例,导致发送端和接收端使用不同队列
+                    self._response_queue = self.context.response_qd.queue_instance
                     self.logger.debug(f"Using response queue: {self._response_queue_name}")
                 else:
                     context_type = type(self.context).__name__
