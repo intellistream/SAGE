@@ -275,14 +275,13 @@ jobs:
           source tools/install/download_tools/environment_config.sh
           echo "SAGE_VENV_POLICY=$SAGE_VENV_POLICY"
 
-      - name: Verify docs consistency
+      - name: Verify functionality exists
         run: |
-          # 验证文档中提到的文件是否存在
-          test -f docs/ENVIRONMENT_AND_CLEANUP.md
+          # 验证清理和安装跟踪工具存在
           test -f tools/cleanup/track_install.sh
           test -f tools/cleanup/uninstall_sage.sh
 
-          # 验证文档中提到的功能在代码中存在
+          # 验证环境管理功能在代码中存在
           grep -q "detect_virtual_environment" tools/install/download_tools/environment_config.sh
           grep -q "ensure_python_venv" tools/install/download_tools/environment_config.sh
           grep -q "SAGE_VENV_POLICY" tools/install/download_tools/environment_config.sh

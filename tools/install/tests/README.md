@@ -175,7 +175,7 @@ done
 tools/install/environment_config.sh
 tools/cleanup/**
 .github/workflows/test-env-cleanup.yml
-docs/ENVIRONMENT_AND_CLEANUP.md
+docs/dev-notes/l0-infra/cleanup-automation.md
 ```
 
 ## 🛠️ 添加新测试
@@ -236,7 +236,7 @@ main "$@"
 
 ## 📚 相关文档
 
-- [环境和清理文档](../../../docs/ENVIRONMENT_AND_CLEANUP.md)
+- [清理自动化文档](../../../docs/dev-notes/l0-infra/cleanup-automation.md)
 - [开发者文档](../../../DEVELOPER.md)
 - [贡献指南](../../../CONTRIBUTING.md)
 
