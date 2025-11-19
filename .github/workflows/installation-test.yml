@@ -81,14 +81,10 @@ jobs:
           echo "🚀 开始安装 SAGE（开发模式）..."
           mkdir -p .sage/logs
 
-<<<<<<< HEAD
-          if ./quickstart.sh --dev --yes 2>&1 | tee .sage/logs/ci_install.log; then
-=======
           # 使用 CI 安装包装器，确保与本地安装方式一致
           chmod +x ./tools/install/ci_install_wrapper.sh
 
           if ./tools/install/ci_install_wrapper.sh --dev --yes; then
->>>>>>> e6a786ca (Main dev (#1081))
             echo "✅ 安装成功"
             install_status="success"
           else
@@ -128,12 +124,9 @@ jobs:
   # ============================================================
   # Job 2: Multi-Mode Installation Test
   # 测试不同安装模式（core/standard/full/dev）
-<<<<<<< HEAD
-=======
   #
   # 注意：此 job 从 wheel 安装，用于测试发布到 PyPI 后的安装场景
   # 本地开发者应使用 quickstart.sh 安装（与 Job 1 一致）
->>>>>>> e6a786ca (Main dev (#1081))
   # ============================================================
   test-local-build:
     name: Test Local Build Installation (${{ matrix.install-mode }}, Py${{ matrix.python-version }})
