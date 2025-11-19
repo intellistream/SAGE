@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button, Space, Tooltip, Modal, Input, message, List, Upload } from 'antd'
+import { Button, Space, Tooltip, Modal, Input, message, List, Upload, Segmented } from 'antd'
 import {
     Play,
     Square,
@@ -13,6 +13,7 @@ import {
     Download,
     Upload as UploadIcon,
     Settings as SettingsIcon,
+    Layout as LayoutIcon,
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
@@ -21,8 +22,14 @@ import { useJobStatusPolling } from '../hooks/useJobStatusPolling'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import Playground from './Playground'
 import Settings from './Settings'
+import type { AppMode } from '../App'
 
-export default function Toolbar() {
+interface ToolbarProps {
+    mode: AppMode
+    onModeChange: (mode: AppMode) => void
+}
+
+export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
     const {
         nodes,
         edges,
@@ -322,119 +329,150 @@ export default function Toolbar() {
                         <span className="text-lg font-bold text-gray-800 ml-4">
                             SAGE Studio
                         </span>
+
+                        {/* 模式切换 */}
+                        <Segmented
+                            value={mode}
+                            onChange={(value) => onModeChange(value as AppMode)}
+                            options={[
+                                {
+                                    label: (
+                                        <Space size={4}>
+                                            <LayoutIcon size={14} />
+                                            <span>Builder</span>
+                                        </Space>
+                                    ),
+                                    value: 'builder',
+                                },
+                                {
+                                    label: (
+                                        <Space size={4}>
+                                            <MessageSquare size={14} />
+                                            <span>Chat</span>
+                                        </Space>
+                                    ),
+                                    value: 'chat',
+                                },
+                            ]}
+                        />
                     </Space>
 
                     <Space>
-                        <Tooltip title="运行流程">
-                            <Button
-                                type="primary"
-                                icon={<Play size={16} />}
-                                onClick={handleRun}
-                                disabled={nodes.length === 0 || running}
-                                loading={running}
-                            >
-                                运行
-                            </Button>
-                        </Tooltip>
+                        {/* Builder 模式的工具按钮 */}
+                        {mode === 'builder' && (
+                            <>
+                                <Tooltip title="运行流程">
+                                    <Button
+                                        type="primary"
+                                        icon={<Play size={16} />}
+                                        onClick={handleRun}
+                                        disabled={nodes.length === 0 || running}
+                                        loading={running}
+                                    >
+                                        运行
+                                    </Button>
+                                </Tooltip>
 
-                        <Tooltip title="停止">
-                            <Button
-                                icon={<Square size={16} />}
-                                onClick={handleStop}
-                                disabled={!currentJobId}
-                            >
-                                停止
-                            </Button>
-                        </Tooltip>
+                                <Tooltip title="停止">
+                                    <Button
+                                        icon={<Square size={16} />}
+                                        onClick={handleStop}
+                                        disabled={!currentJobId}
+                                    >
+                                        停止
+                                    </Button>
+                                </Tooltip>
 
-                        <Tooltip title="Playground">
-                            <Button
-                                icon={<MessageSquare size={16} />}
-                                onClick={() => setPlaygroundOpen(true)}
-                                disabled={nodes.length === 0}
-                            >
-                                Playground
-                            </Button>
-                        </Tooltip>
+                                <Tooltip title="Playground">
+                                    <Button
+                                        icon={<MessageSquare size={16} />}
+                                        onClick={() => setPlaygroundOpen(true)}
+                                        disabled={nodes.length === 0}
+                                    >
+                                        Playground
+                                    </Button>
+                                </Tooltip>
 
-                        <div className="h-6 w-px bg-gray-300 mx-2" />
+                                <div className="h-6 w-px bg-gray-300 mx-2" />
 
-                        <Tooltip title="保存流程">
-                            <Button
-                                icon={<Save size={16} />}
-                                onClick={() => setSaveModalOpen(true)}
-                                disabled={nodes.length === 0}
-                            >
-                                保存
-                            </Button>
-                        </Tooltip>
+                                <Tooltip title="保存流程">
+                                    <Button
+                                        icon={<Save size={16} />}
+                                        onClick={() => setSaveModalOpen(true)}
+                                        disabled={nodes.length === 0}
+                                    >
+                                        保存
+                                    </Button>
+                                </Tooltip>
 
-                        <Tooltip title="打开流程">
-                            <Button
-                                icon={<FolderOpen size={16} />}
-                                onClick={handleOpenLoadModal}
-                            >
-                                打开
-                            </Button>
-                        </Tooltip>
+                                <Tooltip title="打开流程">
+                                    <Button
+                                        icon={<FolderOpen size={16} />}
+                                        onClick={handleOpenLoadModal}
+                                    >
+                                        打开
+                                    </Button>
+                                </Tooltip>
 
-                        <Tooltip title="导出流程">
-                            <Button
-                                icon={<Download size={16} />}
-                                onClick={handleExport}
-                                disabled={!currentJobId}
-                            >
-                                导出
-                            </Button>
-                        </Tooltip>
+                                <Tooltip title="导出流程">
+                                    <Button
+                                        icon={<Download size={16} />}
+                                        onClick={handleExport}
+                                        disabled={!currentJobId}
+                                    >
+                                        导出
+                                    </Button>
+                                </Tooltip>
 
-                        <Tooltip title="导入流程">
-                            <Upload
-                                accept=".json"
-                                showUploadList={false}
-                                beforeUpload={handleImport}
-                            >
-                                <Button icon={<UploadIcon size={16} />}>
-                                    导入
-                                </Button>
-                            </Upload>
-                        </Tooltip>
+                                <Tooltip title="导入流程">
+                                    <Upload
+                                        accept=".json"
+                                        showUploadList={false}
+                                        beforeUpload={handleImport}
+                                    >
+                                        <Button icon={<UploadIcon size={16} />}>
+                                            导入
+                                        </Button>
+                                    </Upload>
+                                </Tooltip>
 
-                        <div className="h-6 w-px bg-gray-300 mx-2" />
+                                <div className="h-6 w-px bg-gray-300 mx-2" />
 
-                        <Tooltip title="撤销 (Ctrl/Cmd+Z)">
-                            <Button
-                                icon={<UndoIcon size={16} />}
-                                onClick={undo}
-                                disabled={!canUndo()}
-                            />
-                        </Tooltip>
+                                <Tooltip title="撤销 (Ctrl/Cmd+Z)">
+                                    <Button
+                                        icon={<UndoIcon size={16} />}
+                                        onClick={undo}
+                                        disabled={!canUndo()}
+                                    />
+                                </Tooltip>
 
-                        <Tooltip title="重做 (Ctrl/Cmd+Shift+Z)">
-                            <Button
-                                icon={<RedoIcon size={16} />}
-                                onClick={redo}
-                                disabled={!canRedo()}
-                            />
-                        </Tooltip>
+                                <Tooltip title="重做 (Ctrl/Cmd+Shift+Z)">
+                                    <Button
+                                        icon={<RedoIcon size={16} />}
+                                        onClick={redo}
+                                        disabled={!canRedo()}
+                                    />
+                                </Tooltip>
 
-                        <div className="h-6 w-px bg-gray-300 mx-2" />
+                                <div className="h-6 w-px bg-gray-300 mx-2" />
 
-                        <Tooltip title="放大">
-                            <Button
-                                icon={<ZoomIn size={16} />}
-                                onClick={() => reactFlowInstance?.zoomIn()}
-                            />
-                        </Tooltip>
+                                <Tooltip title="放大">
+                                    <Button
+                                        icon={<ZoomIn size={16} />}
+                                        onClick={() => reactFlowInstance?.zoomIn()}
+                                    />
+                                </Tooltip>
 
-                        <Tooltip title="缩小">
-                            <Button
-                                icon={<ZoomOut size={16} />}
-                                onClick={() => reactFlowInstance?.zoomOut()}
-                            />
-                        </Tooltip>
+                                <Tooltip title="缩小">
+                                    <Button
+                                        icon={<ZoomOut size={16} />}
+                                        onClick={() => reactFlowInstance?.zoomOut()}
+                                    />
+                                </Tooltip>
 
-                        <div className="h-6 w-px bg-gray-300 mx-2" />
+                                <div className="h-6 w-px bg-gray-300 mx-2" />
+                            </>
+                        )}
 
                         <Tooltip title="设置">
                             <Button

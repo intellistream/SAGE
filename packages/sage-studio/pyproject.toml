@@ -49,6 +49,7 @@ dependencies = [
     "structlog>=23.0.0",
     "pydantic-settings>=2.0.0",
     "configparser>=5.3.0",
+    "httpx>=0.25.0",  # 用于调用 sage-gateway
 
     # Utilities
     "jinja2>=2.11.1",
