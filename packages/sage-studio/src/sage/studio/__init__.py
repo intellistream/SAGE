@@ -22,11 +22,13 @@ __layer__ = "L6"
 
 from . import models, services
 from ._version import __version__
+from .chat_manager import ChatModeManager
 from .studio_manager import StudioManager
 
 __all__ = [
     "__version__",
     "StudioManager",
+    "ChatModeManager",
     "models",
     "services",
 ]

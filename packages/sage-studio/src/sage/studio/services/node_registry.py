@@ -84,7 +84,8 @@ class NodeRegistry:
 
         # Document Processing
         try:
-            from sage.middleware.operators.rag import CharacterSplitter, RefinerOperator
+            from sage.middleware.operators.rag import RefinerOperator
+            from sage.middleware.operators.rag.chunk import CharacterSplitter
 
             self._registry["character_splitter"] = CharacterSplitter
             self._registry["refiner"] = RefinerOperator
