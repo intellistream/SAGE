@@ -3,7 +3,7 @@
 
 class ProgressBar:
     """简单的进度条实现
-    
+
     示例:
         progress = ProgressBar(total=100, desc="处理中")
         for i in range(100):
@@ -13,7 +13,7 @@ class ProgressBar:
 
     def __init__(self, total: int, desc: str = "进度", bar_length: int = 40):
         """初始化进度条
-        
+
         Args:
             total: 总数
             desc: 描述文本
@@ -26,7 +26,7 @@ class ProgressBar:
 
     def update(self, n: int = 1):
         """更新进度
-        
+
         Args:
             n: 增加的数量
         """
@@ -37,16 +37,16 @@ class ProgressBar:
         """打印进度条"""
         if self.total == 0:
             return
-        
+
         progress = self.current / self.total
         filled_length = int(self.bar_length * progress)
-        bar = '█' * filled_length + '░' * (self.bar_length - filled_length)
+        bar = "█" * filled_length + "░" * (self.bar_length - filled_length)
         percent = progress * 100
-        
+
         print(
             f"\r⏳ {self.desc}: |{bar}| {self.current}/{self.total} ({percent:.1f}%)",
-            end='',
-            flush=True
+            end="",
+            flush=True,
         )
 
     def close(self):

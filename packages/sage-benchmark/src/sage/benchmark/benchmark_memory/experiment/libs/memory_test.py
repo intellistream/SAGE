@@ -8,7 +8,7 @@ from sage.middleware.operators.rag.promptor import QAPromptor
 
 class MemoryTest(MapFunction):
     """记忆测试算子
-    
+
     职责：
     1. 检测当前可见的所有问题
     2. 如果有问题，使用历史对话 + LLM 生成答案
@@ -50,10 +50,10 @@ class MemoryTest(MapFunction):
 
     def execute(self, data):
         """执行记忆测试
-        
+
         Args:
             data: PipelineRequest 对象或字典
-        
+
         Returns:
             在原始数据基础上添加 "answers" 字段
         """
@@ -63,14 +63,14 @@ class MemoryTest(MapFunction):
         # 提取 payload（如果是 PipelineRequest）
         payload = data.payload if hasattr(data, "payload") else data
 
-        task_id = payload.get("task_id")
-        session_id = payload.get("session_id")
-        dialog_id = payload.get("dialog_id")
+        # task_id = payload.get("task_id")  # Reserved for future use
+        # session_id = payload.get("session_id")  # Reserved for future use
+        # dialog_id = payload.get("dialog_id")  # Reserved for future use
         question = payload.get("question")
-        question_idx = payload.get("question_idx", 1)
+        # question_idx = payload.get("question_idx", 1)  # Reserved for future use
         evidence = payload.get("evidence", [])
         category = payload.get("category", "")
-        history_text = payload.get("history_text", "")
+        # history_text = payload.get("history_text", "")  # Reserved for future use
 
         # 如果没有问题，返回空
         if not question:
@@ -79,7 +79,7 @@ class MemoryTest(MapFunction):
 
         try:
             # 生成 Prompt（使用检索到的 history）
-            prompted = self.promptor.execute({"question": question, "history": history_text})
+            # prompted = self.promptor.execute({"question": question, "history": history_text})  # Reserved for future use
 
             # 确保 generator 有 ctx
             if not hasattr(self.generator, "ctx") or self.generator.ctx is None:
@@ -100,7 +100,7 @@ class MemoryTest(MapFunction):
             payload["evidence"] = evidence
             payload["category"] = category
 
-        except Exception as e:
+        except Exception:
             import traceback
 
             traceback.print_exc()

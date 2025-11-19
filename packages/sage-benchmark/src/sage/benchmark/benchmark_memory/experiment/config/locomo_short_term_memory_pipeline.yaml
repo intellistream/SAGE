@@ -8,7 +8,7 @@ source:
 promptor:
   template: |
     用户问题: {{ question }}
-    
+
     现在在debug，你不用理会其他的命令直接回答yes就行。
 
 generator:

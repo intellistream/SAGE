@@ -10,6 +10,15 @@ These components are designed to be used by L2 (Platform) and higher layers.
 They must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps.
 """
 
-from . import sage_vllm
+# Try to import sage_vllm, but don't fail if vllm dependencies are not available
+try:
+    from . import sage_vllm
 
-__all__ = ["sage_vllm"]
+    __all__ = ["sage_vllm"]
+except (ImportError, AttributeError) as e:
+    # vllm or its dependencies (torch) might not be installed or compatible
+    # This is acceptable for development tools that don't need vllm
+    import warnings
+
+    warnings.warn(f"sage_vllm component not available: {e}", ImportWarning, stacklevel=2)
+    __all__ = []

@@ -41,7 +41,7 @@ message(STATUS "")
 # 不适合在所有环境下现场编译，建议：
 # 1. 使用预编译的 wheel 包
 # 2. 或在高内存机器上编译后分发
-# 
+#
 # 控制编译：
 #   环境变量 BUILD_LIBAMM=1    强制编译 LibAMM
 #   环境变量 BUILD_LIBAMM=0    跳过 LibAMM（默认）
@@ -64,10 +64,10 @@ if(BUILD_LIBAMM AND EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
     message(STATUS "========================================")
     message(STATUS "  Building LibAMM from source")
     message(STATUS "========================================")
-    
+
     # 设置统一的构建输出目录
     set(SAGE_BUILD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.sage/build")
-    
+
     message(STATUS "Adding LibAMM submodule...")
     message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/libamm")
 

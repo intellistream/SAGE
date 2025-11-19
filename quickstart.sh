@@ -340,6 +340,26 @@ main() {
         fi
 
         show_usage_tips "$mode"
+
+        # 检查并修复依赖冲突
+        echo ""
+        echo -e "${INFO} 检查依赖版本兼容性..."
+        if [ -f "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh" ]; then
+            # 非交互模式检查（在 CI 环境中）
+            if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+                source "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh"
+                check_and_fix_dependencies --non-interactive || {
+                    echo -e "${DIM}  ⚠️  依赖检查完成（可能存在警告）${NC}"
+                }
+            else
+                # 交互模式检查
+                source "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh"
+                check_and_fix_dependencies || {
+                    echo -e "${DIM}  ℹ️  依赖检查跳过或失败（非关键）${NC}"
+                }
+            fi
+        fi
+
         # 如果安装了 VLLM，验证 VLLM 安装
         if [ "$install_vllm" = "true" ]; then
             echo ""

@@ -93,7 +93,7 @@ set(ENABLE_PAPI OFF)      # 禁用性能计数器
 target_precompile_headers(LibAMM PRIVATE include/pch.h)
 ```
 
-**效果**: 
+**效果**:
 - 首次编译预编译头需要额外 ~30 秒
 - 后续每个源文件编译速度提升 2-3 倍
 - 内存峰值降低 30-40%（编译器可复用预编译结果）
