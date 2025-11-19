@@ -42,7 +42,7 @@ class FilterOperator(BaseOperator):
             if should_pass:
                 # 通过过滤，继承分区信息
                 self.logger.debug(f"FilterOperator {self.name}: Sending packet downstream")
-                self.router.send(packet)  # type: ignore[arg-type]
+                self.router.send(packet)
             else:
                 self.logger.debug(f"FilterOperator {self.name}: Packet filtered out")
             # 不通过过滤：不发送任何packet

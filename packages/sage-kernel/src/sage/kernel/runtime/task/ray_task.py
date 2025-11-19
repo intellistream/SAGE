@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import ray
 
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.kernel.runtime.communication.packet import Packet
 from sage.kernel.runtime.task.base_task import BaseTask
 
 if TYPE_CHECKING:
