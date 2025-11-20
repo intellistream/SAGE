@@ -168,11 +168,12 @@ class BuildArtifactsManager:
 
     def _format_size(self, size_bytes: int) -> str:
         """格式化文件大小。"""
+        size_float = float(size_bytes)
         for unit in ["B", "KB", "MB", "GB", "TB"]:
-            if size_bytes < 1024:
-                return f"{size_bytes:.1f} {unit}"
-            size_bytes /= 1024
-        return f"{size_bytes:.1f} PB"
+            if size_float < 1024:
+                return f"{size_float:.1f} {unit}"
+            size_float /= 1024
+        return f"{size_float:.1f} PB"
 
     def clean_artifacts(
         self,
@@ -271,7 +272,7 @@ class BuildArtifactsManager:
 
         return self.stats
 
-    def create_cleanup_script(self, output_path: str | None = None) -> str:
+    def create_cleanup_script(self, output_path: str | Path | None = None) -> str:
         """
         创建清理脚本文件。
 
@@ -284,7 +285,7 @@ class BuildArtifactsManager:
         if output_path is None:
             output_path = self.project_root / "scripts" / "cleanup_build_artifacts.sh"
 
-        script_path = Path(output_path)
+        script_path = Path(output_path) if isinstance(output_path, str) else output_path
         script_path.parent.mkdir(parents=True, exist_ok=True)
 
         script_content = f"""#!/bin/bash
