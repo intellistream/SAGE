@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from sage.common.core import SourceFunction
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import StopSignal
 
 from .pipeline_bridge import PipelineBridge
 

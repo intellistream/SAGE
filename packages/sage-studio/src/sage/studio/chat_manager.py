@@ -34,17 +34,21 @@ class ChatModeManager:
     # ------------------------------------------------------------------
     # Gateway helpers
     # ------------------------------------------------------------------
-    def _ensure_gateway_importable(self) -> bool:
+    def _ensure_gateway_available(self) -> bool:
+        """Check if sage-gateway is available via command line (avoid L6->L6 import)."""
         try:
-            import sage.gateway.server  # noqa: F401
-
-            return True
-        except ImportError as exc:  # pragma: no cover - user guidance path
+            # 使用 python -m 检查是否可以运行 sage.gateway.server
+            result = subprocess.run(
+                [sys.executable, "-m", "sage.gateway.server", "--help"],
+                capture_output=True,
+                timeout=5,
+            )
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, FileNotFoundError):  # pragma: no cover
             console.print(
-                "[red]无法导入 sage-gateway 包[/red]\n"
+                "[red]无法运行 sage-gateway[/red]\n"
                 "请先在当前环境中安装: pip install -e packages/sage-gateway",
             )
-            console.print(f"详细错误: {exc}")
             return False
 
     def _is_gateway_running(self) -> int | None:
@@ -72,7 +76,7 @@ class ChatModeManager:
             console.print("[green]✅ sage-gateway 已运行[/green]")
             return True
 
-        if not self._ensure_gateway_importable():
+        if not self._ensure_gateway_available():
             return False
 
         gateway_port = port or self.gateway_port

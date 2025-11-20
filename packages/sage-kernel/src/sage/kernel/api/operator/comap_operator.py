@@ -60,7 +60,7 @@ class CoMapOperator(BaseOperator):
             if result is not None:
                 # 继承原packet的分区信息
                 result_packet = packet.inherit_partition_info(result)
-                self.router.send(result_packet)  # type: ignore[arg-type]
+                self.router.send(result_packet)
 
         except Exception as e:
             self.logger.error(f"Error in CoMapOperator {self.name}: {e}", exc_info=True)
@@ -77,7 +77,7 @@ class CoMapOperator(BaseOperator):
             try:
                 if packet:
                     error_packet = packet.inherit_partition_info(error_result)
-                    self.router.send(error_packet)  # type: ignore[arg-type]
+                    self.router.send(error_packet)
                     self.logger.info(f"CoMapOperator {self.name}: Sent error result downstream")
             except Exception as send_error:
                 self.logger.error(
@@ -146,7 +146,7 @@ class CoMapOperator(BaseOperator):
                 )
 
                 # 向下游传播停止信号
-                from sage.kernel.runtime.communication.router.packet import StopSignal
+                from sage.kernel.runtime.communication.packet import StopSignal
 
                 stop_signal = StopSignal(self.name, source=self.name)
                 self.router.send_stop_signal(stop_signal)

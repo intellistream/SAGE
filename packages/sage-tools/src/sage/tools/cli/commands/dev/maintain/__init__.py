@@ -42,8 +42,14 @@ def run_maintenance_script(command: str, *args) -> int:
     cmd = ["bash", str(script_path), command, *args]
 
     try:
-        result = subprocess.run(cmd, cwd=project_root)
+        # 设置超时避免卡住（doctor 命令30秒超时，其他命令60秒）
+        timeout = 30 if command == "doctor" else 60
+        result = subprocess.run(cmd, cwd=project_root, timeout=timeout)
         return result.returncode
+    except subprocess.TimeoutExpired:
+        console.print(f"[red]执行超时: 命令运行超过 {timeout} 秒[/red]")
+        console.print("[yellow]提示: 如果是 doctor 命令，可能是环境问题导致检查变慢[/yellow]")
+        return 1
     except Exception as e:
         console.print(f"[red]执行失败: {e}[/red]")
         return 1

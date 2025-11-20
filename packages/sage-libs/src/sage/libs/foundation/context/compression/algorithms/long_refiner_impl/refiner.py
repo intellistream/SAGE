@@ -64,13 +64,14 @@ class LongRefiner:
         gpu_memory_utilization: float = 0.7,
     ):
         # 直接通过vLLM的参数指定GPU设备，避免修改全局环境变量
+        # Note: vLLM LLM class doesn't accept 'device' parameter directly
+        # GPU selection is handled by CUDA_VISIBLE_DEVICES or other vLLM mechanisms
         self.model = LLM(
             base_model_path,
             enable_lora=True,
             max_model_len=max_model_len,
             gpu_memory_utilization=gpu_memory_utilization,
             tensor_parallel_size=1,  # 单GPU设置
-            device=f"cuda:{gpu_device}",
         )
         self.tokenizer = AutoTokenizer.from_pretrained(base_model_path)
         self.step_to_config = {
