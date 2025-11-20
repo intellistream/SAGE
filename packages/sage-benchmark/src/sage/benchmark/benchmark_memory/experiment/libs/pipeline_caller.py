@@ -38,39 +38,41 @@ class PipelineCaller(MapFunction):
         self.progress_bar = None
 
         # 问题驱动测试的状态跟踪
-        self.total_questions = self.loader.get_total_valid_questions(self.task_id)  # 该task的总问题数
+        self.total_questions = self.loader.get_total_valid_questions(
+            self.task_id
+        )  # 该task的总问题数
         self.last_tested_count = 0  # 上次测试时的问题数量
-        
+
         # 从配置中读取测试分段数（默认10段）
         test_segments = config.get("test_segments", 10)
         # 计算测试阈值数组
         self.test_thresholds = self._calculate_test_thresholds(self.total_questions, test_segments)
         self.next_threshold_idx = 0  # 下一个要触发的阈值索引
-        
+
         # 测试统计
         self.total_dialogs_inserted = 0  # 累计插入的对话数
 
     def _calculate_test_thresholds(self, total_questions, segments):
         """计算测试阈值数组
-        
+
         将总问题数均匀分成 segments 段，返回每段的结束位置作为测试触发点
-        
+
         Args:
             total_questions: 总问题数
             segments: 分段数
-            
+
         Returns:
             list: 测试阈值数组，例如 [10, 20, 30, ..., 100]
         """
         if total_questions == 0:
             return []
-        
+
         # 确保至少有1段
         segments = max(1, segments)
-        
+
         # 计算每段的大小
         segment_size = max(1, total_questions // segments)
-        
+
         # 生成阈值数组
         thresholds = []
         for i in range(1, segments + 1):
@@ -78,11 +80,11 @@ class PipelineCaller(MapFunction):
             # 避免重复的阈值
             if not thresholds or threshold > thresholds[-1]:
                 thresholds.append(threshold)
-        
+
         # 确保最后一个阈值是 total_questions
         if not thresholds or thresholds[-1] < total_questions:
             thresholds.append(total_questions)
-        
+
         return thresholds
 
     def execute(self, data):
@@ -130,7 +132,7 @@ class PipelineCaller(MapFunction):
             speaker = dialog.get("speaker", "Unknown")
             text = dialog.get("text", "")
             print(f"{prefix}   Dialog {dialog_id + i} ({speaker}): {text}")
-        print(f"{'=' * 60}") 
+        print(f"{'=' * 60}")
 
         # ============================================================
         # 阶段1：记忆存储（总是执行）
@@ -171,34 +173,34 @@ class PipelineCaller(MapFunction):
         # 检查是否达到下一个测试阈值
         should_test = False
         next_threshold = None
-        
+
         if self.next_threshold_idx < len(self.test_thresholds):
             next_threshold = self.test_thresholds[self.next_threshold_idx]
             if current_count >= next_threshold:
                 should_test = True
-        
+
         # 如果未达到阈值，跳过测试
         if not should_test:
             threshold_info = f"下一个阈值：{next_threshold}" if next_threshold else "无更多阈值"
             print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
             print(f">> 已测试问题数：{self.last_tested_count}，{threshold_info}（未触发测试）")
-            
+
             # 如果是最后一个包，发送完成信号
             if is_last_packet:
-                print(f">> 最后一个数据包，发送完成信号")
+                print(">> 最后一个数据包，发送完成信号")
                 print(f"{'=' * 60}\n")
-                
+
                 # 关闭进度条
                 if self.progress_bar:
                     self.progress_bar.close()
-                
+
                 # 返回完成信号（不包含测试结果）
                 return {
                     "dataset": self.dataset,
                     "task_id": task_id,
                     "completed": True,
                 }
-            
+
             print(f"{'=' * 60}\n")
             # 不触发测试时，不发送数据给 Sink
             return None
@@ -208,7 +210,9 @@ class PipelineCaller(MapFunction):
         print("【QA】：问题驱动测试触发")
         print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
         print(f">> 已测试问题数：{self.last_tested_count}")
-        print(f">> 触发阈值：{next_threshold}（第 {self.next_threshold_idx + 1}/{len(self.test_thresholds)} 个阈值）")
+        print(
+            f">> 触发阈值：{next_threshold}（第 {self.next_threshold_idx + 1}/{len(self.test_thresholds)} 个阈值）"
+        )
         print(f">> 测试范围：问题 1 到 {current_count}")
 
         # 逐个问题调用记忆测试服务
