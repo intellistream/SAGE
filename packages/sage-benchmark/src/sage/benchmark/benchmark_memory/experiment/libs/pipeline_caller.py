@@ -1,15 +1,21 @@
+"""主 Pipeline 的核心处理算子
+
+详细文档请参考: mem_docs/PipelineCaller.md
+注意：修改代码时请同步更新该文档
+"""
+
 from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 from sage.common.core import MapFunction
 from sage.data.locomo.dataloader import LocomoDataLoader
 
 
 class PipelineCaller(MapFunction):
-    """主 Pipeline 的 Map 算子
+    """主 Pipeline 的核心 Map 算子
 
-    职责：
-    1. 调用记忆存储服务（总是执行）
-    2. 问题驱动测试：每当可见问题数增加超过总问题数的1/10时，触发一次测试
-    3. 测试时测试从开始到当前位置的所有问题
+    负责协调记忆存储和记忆测试两个子 Pipeline，实现问题驱动的测试策略。
+
+    详细说明（工作流程、服务调用、输出格式等）请参考:
+    mem_docs/PipelineCaller.md
     """
 
     def __init__(self, config):
@@ -32,23 +38,52 @@ class PipelineCaller(MapFunction):
         self.progress_bar = None
 
         # 问题驱动测试的状态跟踪
-        self.total_questions = self._get_total_questions()  # 该task的总问题数
+        self.total_questions = self.loader.get_total_valid_questions(self.task_id)  # 该task的总问题数
         self.last_tested_count = 0  # 上次测试时的问题数量
-        self.test_threshold = max(1, self.total_questions // 10)  # 测试阈值（1/10）
-
+        
+        # 从配置中读取测试分段数（默认10段）
+        test_segments = config.get("test_segments", 10)
+        # 计算测试阈值数组
+        self.test_thresholds = self._calculate_test_thresholds(self.total_questions, test_segments)
+        self.next_threshold_idx = 0  # 下一个要触发的阈值索引
+        
         # 测试统计
         self.total_dialogs_inserted = 0  # 累计插入的对话数
 
-    def _get_total_questions(self):
-        """获取当前task的总问题数（排除没有evidence的问题）
-
+    def _calculate_test_thresholds(self, total_questions, segments):
+        """计算测试阈值数组
+        
+        将总问题数均匀分成 segments 段，返回每段的结束位置作为测试触发点
+        
+        Args:
+            total_questions: 总问题数
+            segments: 分段数
+            
         Returns:
-            int: 总问题数
+            list: 测试阈值数组，例如 [10, 20, 30, ..., 100]
         """
-        if self.dataset == "locomo":
-            # 调用 dataloader 的方法获取有效问题总数
-            return self.loader.get_total_valid_questions(self.task_id, include_no_evidence=False)
-        return 0
+        if total_questions == 0:
+            return []
+        
+        # 确保至少有1段
+        segments = max(1, segments)
+        
+        # 计算每段的大小
+        segment_size = max(1, total_questions // segments)
+        
+        # 生成阈值数组
+        thresholds = []
+        for i in range(1, segments + 1):
+            threshold = min(i * segment_size, total_questions)
+            # 避免重复的阈值
+            if not thresholds or threshold > thresholds[-1]:
+                thresholds.append(threshold)
+        
+        # 确保最后一个阈值是 total_questions
+        if not thresholds or thresholds[-1] < total_questions:
+            thresholds.append(total_questions)
+        
+        return thresholds
 
     def execute(self, data):
         """调用服务处理对话
@@ -69,6 +104,7 @@ class PipelineCaller(MapFunction):
         session_id = data.get("session_id")
         dialog_id = data.get("dialog_id")
         dialogs = data.get("dialogs", [])
+        dialog_len = data.get("dialog_len", 0)
         packet_idx = data.get("packet_idx", 0)
         total_packets = data.get("total_packets", 0)
 
@@ -79,18 +115,22 @@ class PipelineCaller(MapFunction):
 
         # 打印【Memory Source】部分（使用数据中的序号）
         print(f"\n{'=' * 60}")
-        print(f"\033[92m【Memory Source】\033[0m（{packet_idx + 1}/{total_packets}）")
-        print(f">> Session：{session_id}，Dialog {dialog_id}", end="")
-        if len(dialogs) == 2:
-            print(f" - {dialog_id + 1}")
-        else:
-            print()
 
+        print(f"\033[92m[Memory Source]\033[0m (Packet {packet_idx + 1}/{total_packets})")
+
+        prefix = ">> "
+        # Session 行
+        session_info = f"{prefix}Session: {session_id}, Dialog {dialog_id}"
+        if len(dialogs) == 2:
+            session_info += f" - {dialog_id + 1}"
+        print(session_info)
+
+        # Dialog 内容
         for i, dialog in enumerate(dialogs):
             speaker = dialog.get("speaker", "Unknown")
             text = dialog.get("text", "")
-            print(f">> Dialog {dialog_id + i}({speaker}): {text}")
-        print(f"\n{'=' * 60}")
+            print(f"{prefix}   Dialog {dialog_id + i} ({speaker}): {text}")
+        print(f"{'=' * 60}") 
 
         # ============================================================
         # 阶段1：记忆存储（总是执行）
@@ -111,7 +151,7 @@ class PipelineCaller(MapFunction):
         )
 
         # 累计插入的对话数
-        self.total_dialogs_inserted += len(dialogs)
+        self.total_dialogs_inserted += dialog_len
 
         # ============================================================
         # 阶段2：记忆测试（问题驱动）
@@ -120,52 +160,55 @@ class PipelineCaller(MapFunction):
         current_questions = self.loader.get_question_list(
             task_id,
             session_x=session_id,
-            dialog_y=dialog_id + len(dialogs) - 1,
-            include_no_evidence=False,
+            dialog_y=dialog_id + dialog_len - 1,
         )
 
         current_count = len(current_questions)
 
-        # 计算自上次测试以来新增的问题数
-        increment = current_count - self.last_tested_count
-
         # 判断是否为最后一个数据包
         is_last_packet = packet_idx + 1 >= total_packets
 
-        # 如果新增问题数未达到阈值，且不是最后一个包，跳过测试
-        if increment < self.test_threshold and not is_last_packet:
+        # 检查是否达到下一个测试阈值
+        should_test = False
+        next_threshold = None
+        
+        if self.next_threshold_idx < len(self.test_thresholds):
+            next_threshold = self.test_thresholds[self.next_threshold_idx]
+            if current_count >= next_threshold:
+                should_test = True
+        
+        # 如果未达到阈值，跳过测试
+        if not should_test:
+            threshold_info = f"下一个阈值：{next_threshold}" if next_threshold else "无更多阈值"
             print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
-            print(f">> 距上次测试新增：{increment}，阈值：{self.test_threshold}（未触发测试）")
+            print(f">> 已测试问题数：{self.last_tested_count}，{threshold_info}（未触发测试）")
+            
+            # 如果是最后一个包，发送完成信号
+            if is_last_packet:
+                print(f">> 最后一个数据包，发送完成信号")
+                print(f"{'=' * 60}\n")
+                
+                # 关闭进度条
+                if self.progress_bar:
+                    self.progress_bar.close()
+                
+                # 返回完成信号（不包含测试结果）
+                return {
+                    "dataset": self.dataset,
+                    "task_id": task_id,
+                    "completed": True,
+                }
+            
             print(f"{'=' * 60}\n")
             # 不触发测试时，不发送数据给 Sink
             return None
 
-        # 如果是最后一个包但增量不足，也要发送完成信号
-        if increment < self.test_threshold and is_last_packet:
-            print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
-            print(f">> 距上次测试新增：{increment}，阈值：{self.test_threshold}（未触发测试）")
-            print(">> 最后一个数据包，发送完成信号")
-            print(f"{'=' * 60}\n")
-
-            # 关闭进度条
-            if self.progress_bar:
-                self.progress_bar.close()
-
-            # 返回完成信号（不包含测试结果）
-            return {
-                "dataset": self.dataset,
-                "task_id": task_id,
-                "completed": True,
-            }
-
-        # 达到阈值或最后一个包，触发测试
+        # 达到阈值，触发测试
         print(f"{'+' * 60}")
-        if is_last_packet and increment < self.test_threshold:
-            print("【QA】：最后一批数据，强制测试")
-        else:
-            print("【QA】：问题驱动测试触发")
+        print("【QA】：问题驱动测试触发")
         print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
-        print(f">> 距上次测试新增：{increment}，阈值：{self.test_threshold}")
+        print(f">> 已测试问题数：{self.last_tested_count}")
+        print(f">> 触发阈值：{next_threshold}（第 {self.next_threshold_idx + 1}/{len(self.test_thresholds)} 个阈值）")
         print(f">> 测试范围：问题 1 到 {current_count}")
 
         # 逐个问题调用记忆测试服务
@@ -241,8 +284,9 @@ class PipelineCaller(MapFunction):
             "completed": is_last_packet,  # 标记是否为最后一个包
         }
 
-        # 更新上次测试的问题数量
+        # 更新测试状态
         self.last_tested_count = current_count
+        self.next_threshold_idx += 1  # 移动到下一个阈值
 
         print(f"{'+' * 60}\n")
         print(f"{'=' * 60}\n")
