@@ -69,12 +69,15 @@ analyze_pip_log() {
         # 2. "Collecting isage-xxx" (从 PyPI)
         # 3. "Downloading https://files.pythonhosted.org/.../isage-xxx"
 
+        # 注意：跳过 JSON 格式的日志行（包含 "level":），只检查实际的 pip 输出
+        # JSON 日志行的 message 字段可能包含嵌套的 pip 输出，但这不是实际的下载操作
+
         echo -e "${BLUE}🐛 DEBUG - 检查包: ${package}${NC}"
 
-        # 显示所有匹配行（包括被排除的）
-        local all_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" || true)
-        local excluded_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -E "(editable|file://|/packages/)" || true)
-        local violation_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -vE "(editable|file://|/packages/)" || true)
+        # 显示所有匹配行（包括被排除的）- 排除JSON格式日志
+        local all_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' || true)
+        local excluded_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' | grep -E "(editable|file://|/packages/)" || true)
+        local violation_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' | grep -vE "(editable|file://|/packages/)" || true)
 
         if [ -n "$all_matches" ]; then
             echo -e "${YELLOW}   所有匹配（$(echo "$all_matches" | wc -l) 行）：${NC}"
@@ -103,11 +106,12 @@ analyze_pip_log() {
 
     # 额外检查：从 PyPI 下载任何 sage/isage 相关包
     echo -e "${BLUE}📊 所有下载记录（包括合法的外部依赖）：${NC}"
-    local download_count=$(grep -cE "Downloading.*\.(whl|tar\.gz)" "$log_file" || echo "0")
-    echo "   总下载数: $download_count"
+    # 排除JSON格式日志，只统计实际的pip输出
+    local download_count=$(grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | grep -vc '"level":' || echo "0")
+    echo "   总下载数（非JSON日志）: $download_count"
     if [ "$download_count" -gt 0 ]; then
         echo "   前 20 条下载："
-        grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | head -n 20 | sed 's/^/     /'
+        grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' | head -n 20 | sed 's/^/     /'
         echo ""
     else
         echo -e "${GREEN}   （没有下载记录或文件为空）${NC}"
@@ -116,11 +120,11 @@ analyze_pip_log() {
 
     # 检查 editable 安装（应该有）
     echo -e "${BLUE}📦 Editable 安装记录（应该存在）：${NC}"
-    local editable_count=$(grep -cE "(Installing|Preparing|Building).*editable" "$log_file" || echo "0")
-    echo "   Editable 安装数: $editable_count"
+    local editable_count=$(grep -E "(Installing|Preparing|Building).*editable" "$log_file" | grep -vc '"level":' || echo "0")
+    echo "   Editable 安装数（非JSON日志）: $editable_count"
     if [ "$editable_count" -gt 0 ]; then
         echo "   前 10 条记录："
-        grep -E "(Installing|Preparing|Building).*editable" "$log_file" | head -n 10 | sed 's/^/     /'
+        grep -E "(Installing|Preparing|Building).*editable" "$log_file" | grep -v '"level":' | head -n 10 | sed 's/^/     /'
         echo ""
     else
         echo -e "${YELLOW}   ⚠️  没有找到 editable 安装记录${NC}"
@@ -128,12 +132,12 @@ analyze_pip_log() {
     fi
 
     # DEBUG: 显示日志文件的关键统计
-    echo -e "${BLUE}🐛 DEBUG - 日志文件统计：${NC}"
-    echo "   'Downloading' 出现次数: $(grep -c "Downloading" "$log_file" || echo "0")"
-    echo "   'Collecting' 出现次数: $(grep -c "Collecting" "$log_file" || echo "0")"
-    echo "   'Installing' 出现次数: $(grep -c "Installing" "$log_file" || echo "0")"
-    echo "   'editable' 出现次数: $(grep -c "editable" "$log_file" || echo "0")"
-    echo "   包含 'sage' 的行数: $(grep -ci "sage" "$log_file" || echo "0")"
+    echo -e "${BLUE}🐛 DEBUG - 日志文件统计（排除JSON格式）：${NC}"
+    echo "   'Downloading' 出现次数: $(grep "Downloading" "$log_file" | grep -vc '"level":' || echo "0")"
+    echo "   'Collecting' 出现次数: $(grep "Collecting" "$log_file" | grep -vc '"level":' || echo "0")"
+    echo "   'Installing' 出现次数: $(grep "Installing" "$log_file" | grep -vc '"level":' || echo "0")"
+    echo "   'editable' 出现次数: $(grep "editable" "$log_file" | grep -vc '"level":' || echo "0")"
+    echo "   包含 'sage' 的行数: $(grep -i "sage" "$log_file" | grep -vc '"level":' || echo "0")"
     echo ""
 
     # 返回结果
@@ -149,13 +153,14 @@ analyze_pip_log() {
 
         echo -e "${YELLOW}🐛 DEBUG - 详细诊断信息：${NC}"
         echo "   日志文件: ${log_file}"
-        echo "   检测模式: grep -E \"(Downloading|Collecting).*PACKAGE[-_]\" | grep -vE \"(editable|file://|/packages/)\""
+        echo "   检测模式: grep -E \"(Downloading|Collecting).*PACKAGE[-_]\" | grep -v '\"level\":' | grep -vE \"(editable|file://|/packages/)\""
         echo ""
 
         echo -e "${YELLOW}🔍 原始匹配详情（每个违规包）：${NC}"
         for pkg in "${violations[@]}"; do
             echo "   === ${pkg} ==="
             grep -E "(Downloading|Collecting).*${pkg}[-_]" "$log_file" | \
+                grep -v '"level":' | \
                 grep -vE "(editable|file://|/packages/)" | \
                 sed 's/^/     /' || echo "     （无法重现匹配，可能是并发问题）"
             echo ""
