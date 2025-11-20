@@ -110,7 +110,7 @@ def merge_lora_weights(checkpoint_path: Path, base_model: str, output_path: Path
         model = PeftModel.from_pretrained(base, str(checkpoint_path))
 
         console.print("[cyan]⏳ 合并权重...[/cyan]")
-        merged_model = model.merge_and_unload()
+        merged_model = model.merge_and_unload()  # type: ignore[operator]
 
         console.print("[cyan]⏳ 保存合并模型...[/cyan]")
         merged_model.save_pretrained(str(output_path))
