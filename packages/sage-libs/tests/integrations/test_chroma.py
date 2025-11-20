@@ -180,22 +180,20 @@ class TestChromaBackendDocuments:
 
         # Prepare test data
         documents = ["doc1", "doc2", "doc3"]
-        embeddings = np.random.rand(3, 768).tolist()
-        ids = ["id1", "id2", "id3"]
-        metadatas = [{"source": "test"}] * 3
+        embeddings = [np.random.rand(768) for _ in range(3)]  # list of np.ndarray
+        doc_ids = ["id1", "id2", "id3"]
 
-        # Call add_documents
-        backend.add_documents(
-            documents=documents, embeddings=embeddings, ids=ids, metadatas=metadatas
-        )
+        # Call add_documents (API: documents, embeddings, doc_ids)
+        result = backend.add_documents(documents=documents, embeddings=embeddings, doc_ids=doc_ids)
 
         # Verify collection.add was called with correct parameters
         mock_collection.add.assert_called_once()
         call_kwargs = mock_collection.add.call_args[1]
         assert call_kwargs["documents"] == documents
-        assert call_kwargs["embeddings"] == embeddings
-        assert call_kwargs["ids"] == ids
-        assert call_kwargs["metadatas"] == metadatas
+        assert call_kwargs["ids"] == doc_ids
+        assert len(call_kwargs["embeddings"]) == 3
+        assert "metadatas" in call_kwargs
+        assert result == doc_ids
 
 
 @pytest.mark.unit
@@ -224,10 +222,14 @@ class TestChromaBackendSearch:
             {"host": "localhost", "collection_name": "test", "use_embedding_query": True}
         )
 
-        # Perform search
-        query_embedding = np.random.rand(768).tolist()
-        _ = backend.search(query_embeddings=[query_embedding], top_k=2)
+        # Perform search (API uses query_vector, query_text, top_k)
+        query_vector = np.random.rand(768)
+        query_text = "test query"
+        results = backend.search(query_vector=query_vector, query_text=query_text, top_k=2)
 
+        # Verify results
+        assert len(results) == 2
+        assert results[0] == "doc1"
         # Verify query was called
         mock_collection.query.assert_called_once()
         assert "query_embeddings" in mock_collection.query.call_args[1]
@@ -252,16 +254,16 @@ class TestChromaBackendSearch:
 
         backend = ChromaBackend({"host": "localhost", "collection_name": "test"})
 
-        # Search with metadata filter
-        query_embedding = np.random.rand(768).tolist()
-        where_filter = {"category": "tech"}
+        # Search (API doesn't support where filter directly)
+        query_vector = np.random.rand(768)
+        query_text = "tech"
+        results = backend.search(query_vector=query_vector, query_text=query_text, top_k=5)
 
-        _ = backend.search(query_embeddings=[query_embedding], top_k=5, where=where_filter)
-
-        # Verify filter was passed
-        call_kwargs = mock_collection.query.call_args[1]
-        assert "where" in call_kwargs
-        assert call_kwargs["where"] == where_filter
+        # Verify query was called
+        mock_collection.query.assert_called_once()
+        # Verify results (filtered to tech category)
+        assert len(results) == 1
+        assert results[0] == "doc1"
 
 
 @pytest.mark.unit
@@ -287,24 +289,30 @@ class TestChromaBackendUtilities:
         mock_client.delete_collection.assert_called_once_with(name="test")
 
     @patch("chromadb.PersistentClient")
-    def test_count_documents(self, mock_persistent_client):
-        """测试文档计数"""
+    def test_get_collection_info(self, mock_persistent_client):
+        """测试获取集合信息"""
         from sage.libs.integrations.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
         mock_persistent_client.return_value = mock_client
         mock_client.get_collection.return_value = mock_collection
+
+        # Mock collection properties
+        mock_collection.name = "test"
         mock_collection.count.return_value = 42
 
         backend = ChromaBackend({"host": "localhost", "collection_name": "test"})
 
-        # Get count
-        count = backend.count()
+        # Get collection info
+        info = backend.get_collection_info()
 
-        # Verify
-        mock_collection.count.assert_called_once()
-        assert count == 42
+        # Verify info structure
+        assert isinstance(info, dict)
+        assert "collection_name" in info
+        assert info["collection_name"] == "test"
+        assert "document_count" in info
+        assert info["document_count"] == 42
 
 
 @pytest.mark.integration
@@ -328,22 +336,23 @@ class TestChromaBackendIntegration:
 
         # Add documents
         documents = ["test doc 1", "test doc 2"]
-        embeddings = np.random.rand(2, 768).tolist()
-        ids = ["id1", "id2"]
+        embeddings = [np.random.rand(768) for _ in range(2)]
+        doc_ids = ["id1", "id2"]
 
-        backend.add_documents(documents=documents, embeddings=embeddings, ids=ids)
+        backend.add_documents(documents=documents, embeddings=embeddings, doc_ids=doc_ids)
         mock_collection.add.assert_called_once()
 
         # Search
         mock_collection.query.return_value = {
-            "ids": [["id1"]],
-            "documents": [["test doc 1"]],
-            "distances": [[0.1]],
-            "metadatas": [[{}]],
+            "ids": [["id1", "id2"]],
+            "documents": [documents],
+            "distances": [[0.1, 0.2]],
+            "metadatas": [[{}, {}]],
         }
 
-        query_embedding = np.random.rand(768).tolist()
-        _ = backend.search(query_embeddings=[query_embedding], top_k=1)
+        query_vector = np.random.rand(768)
+        results = backend.search(query_vector=query_vector, query_text="test", top_k=2)
+        assert len(results) == 2
 
         mock_collection.query.assert_called_once()
 
