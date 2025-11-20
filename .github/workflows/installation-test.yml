@@ -31,7 +31,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: true  # 新 commit 推送时自动取消旧的运行（节省资源）
 
 jobs:
   # ============================================================
