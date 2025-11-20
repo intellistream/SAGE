@@ -3,8 +3,10 @@
 Checkpoint 容错机制测试
 
 测试任务在失败后能否从 checkpoint 恢复
+@test:timeout=120
 """
 
+import os
 import time
 
 from sage.common.core.functions.map_function import MapFunction
@@ -37,8 +39,9 @@ class TestSource(SourceFunction):
             self.logger.error("TestSource: simulating failure at counter=5")
             raise RuntimeError("Simulated failure at counter=5")
 
-        # 添加延迟以便观察 checkpoint
-        time.sleep(0.5)
+        # 添加短延迟以便观察 checkpoint（测试模式下缩短）
+        delay = 0.1 if os.getenv("SAGE_TEST_MODE") == "true" else 0.5
+        time.sleep(delay)
         self.logger.debug(f"TestSource: emitting data #{self.counter}")
         return {"id": self.counter, "value": f"data_{self.counter}"}
 
@@ -93,12 +96,16 @@ def test_checkpoint_recovery():
     print("Testing Checkpoint-Based Fault Tolerance")
     print("=" * 60 + "\n")
 
+    # 在测试模式下使用更短的 checkpoint 间隔
+    is_test_mode = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+    checkpoint_interval = 0.5 if is_test_mode else 2.0
+
     env = LocalEnvironment(
         "checkpoint_test",
         config={
             "fault_tolerance": {
                 "strategy": "checkpoint",
-                "checkpoint_interval": 2.0,  # 每 2 秒保存一次
+                "checkpoint_interval": checkpoint_interval,  # 测试模式: 0.5s, 正常: 2.0s
                 "max_recovery_attempts": 3,
                 "checkpoint_dir": ".sage/test_checkpoints",
             }
@@ -110,7 +117,7 @@ def test_checkpoint_recovery():
 
     print("📝 Configuration:")
     print("  - Strategy: checkpoint")
-    print("  - Checkpoint Interval: 2.0s")
+    print(f"  - Checkpoint Interval: {checkpoint_interval}s")
     print("  - Max Recovery Attempts: 3")
     print("  - Checkpoint Directory: .sage/test_checkpoints")
     print()
