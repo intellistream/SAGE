@@ -15,14 +15,16 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     # 跳过以下情况:
-    # 1. 版本升级 commit (会在手动发布时同步)
-    # 2. 从 main-dev merge 来的 PR (避免循环)
-    # 3. 已经包含 [skip ci] 或 [sync] 标记的 commit
+    # 1. 版本升级 commit（会在手动发布时处理）
+    # 2. 已经包含 [skip ci] 或 [sync] 标记的 commit
+    #
+    # 注意: 不再跳过 "Main dev (#" commit！
+    # 原因: main-dev PR merge 到 main 后，需要将 main 的状态同步回 main-dev
+    # workflow 内部会检查是否已同步，如果已同步会自动跳过
     if: |
       !contains(github.event.head_commit.message, '[version bump]') &&
       !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '[sync]') &&
-      !startsWith(github.event.head_commit.message, 'Main dev (#')
+      !contains(github.event.head_commit.message, '[sync]')
 
     steps:
       - name: Checkout repository
