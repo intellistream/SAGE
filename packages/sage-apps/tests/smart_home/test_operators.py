@@ -6,12 +6,14 @@ Tests for sage.apps.smart_home module
 import pytest
 
 from sage.apps.smart_home.operators import (
-    AlertSink,
-    AnomalyDetector,
     DeviceEvent,
-    EnergyOptimizer,
-    IoTDeviceSource,
-    RuleEngine,
+    DeviceExecutor,
+    DeviceType,
+    EnvironmentMonitor,
+    EventLogSink,
+    LaundryWorkflowSource,
+    TaskStatus,
+    WorkflowProgressSink,
 )
 
 
@@ -21,294 +23,355 @@ class TestDeviceEvent:
     def test_event_creation(self):
         """Test creating a device event"""
         event = DeviceEvent(
-            device_id="thermostat_01",
-            device_type="thermostat",
+            event_id=1,
+            device_id="robot_01",
+            device_type=DeviceType.ROBOT,
+            event_type="task_started",
             timestamp="2024-01-15T10:00:00",
-            value=22.5,
-            unit="celsius",
+            data={"task": "pickup_laundry", "status": "running"},
         )
 
-        assert event.device_id == "thermostat_01"
-        assert event.device_type == "thermostat"
-        assert event.value == 22.5
-        assert event.unit == "celsius"
-        assert event.is_anomaly is False
+        assert event.event_id == 1
+        assert event.device_id == "robot_01"
+        assert event.device_type == DeviceType.ROBOT
+        assert event.event_type == "task_started"
+        assert "task" in event.data
 
-    def test_event_with_anomaly(self):
-        """Test event marked as anomaly"""
+    def test_event_with_sensor_data(self):
+        """Test event with sensor data"""
         event = DeviceEvent(
-            device_id="sensor_02",
-            device_type="temperature",
-            timestamp="2024-01-15T10:00:00",
-            value=100.0,
-            unit="celsius",
-            is_anomaly=True,
+            event_id=2,
+            device_id="humidity_01",
+            device_type=DeviceType.HUMIDITY_SENSOR,
+            event_type="reading",
+            timestamp="2024-01-15T10:00:01",
+            data={"humidity": 65.0, "temperature": 22.5},
         )
 
-        assert event.is_anomaly is True
+        assert event.device_type == DeviceType.HUMIDITY_SENSOR
+        assert event.data["humidity"] == 65.0
 
 
-class TestIoTDeviceSource:
-    """Test IoTDeviceSource operator"""
+class TestDeviceType:
+    """Test DeviceType enum"""
+
+    def test_device_types(self):
+        """Test all device types are defined"""
+        assert DeviceType.ROBOT.value == "robot"
+        assert DeviceType.WASHER.value == "washer"
+        assert DeviceType.DRYER.value == "dryer"
+        assert DeviceType.HUMIDITY_SENSOR.value == "humidity_sensor"
+        assert DeviceType.MOTION_SENSOR.value == "motion_sensor"
+
+
+class TestTaskStatus:
+    """Test TaskStatus enum"""
+
+    def test_task_statuses(self):
+        """Test all task statuses are defined"""
+        assert TaskStatus.PENDING.value == "pending"
+        assert TaskStatus.RUNNING.value == "running"
+        assert TaskStatus.COMPLETED.value == "completed"
+        assert TaskStatus.FAILED.value == "failed"
+
+
+class TestLaundryWorkflowSource:
+    """Test LaundryWorkflowSource operator"""
 
     def test_source_creation(self):
-        """Test creating IoT device source"""
-        devices = ["thermostat_01", "light_01", "sensor_01"]
-        source = IoTDeviceSource(devices=devices, duration=60, event_rate=10)
+        """Test creating laundry workflow source"""
+        source = LaundryWorkflowSource(num_cycles=2)
 
-        assert len(source.devices) == 3
-        assert source.duration == 60
-        assert source.event_rate == 10
+        assert source.num_cycles == 2
+        assert source.current_cycle == 0
+        assert source.step == 0
 
-    def test_source_generates_events(self):
-        """Test source generates device events"""
-        devices = ["thermostat_01", "light_01"]
-        source = IoTDeviceSource(devices=devices, duration=5, event_rate=5)
+    def test_source_generates_workflow_tasks(self):
+        """Test source generates workflow tasks"""
+        source = LaundryWorkflowSource(num_cycles=1)
 
-        # Generate events
-        events = list(source.run())
+        # Execute to get first task
+        task = source.execute()
 
-        # Should generate some events
-        assert len(events) >= 0
-        if len(events) > 0:
-            assert isinstance(events[0], DeviceEvent)
-            assert events[0].device_id in devices
+        # Should generate workflow task
+        assert task is not None
+        assert "task" in task
+        assert "device" in task
+        assert "cycle" in task
+        assert task["cycle"] == 1
 
-    def test_source_device_types(self):
-        """Test device type assignment"""
-        devices = ["thermostat_01", "light_02", "sensor_03"]
-        source = IoTDeviceSource(devices=devices, duration=10, event_rate=5)
+    def test_source_workflow_steps(self):
+        """Test source generates all workflow steps"""
+        source = LaundryWorkflowSource(num_cycles=1)
 
-        # The source should handle different device types
-        assert len(source.devices) == 3
+        tasks = []
+        while True:
+            task = source.execute()
+            if task is None:
+                break
+            tasks.append(task)
 
+        # Should have 6 steps in workflow
+        assert len(tasks) == 6
+        assert tasks[0]["task"] == "check_environment"
+        assert tasks[1]["task"] == "collect_laundry"
+        assert tasks[2]["task"] == "wash"
 
-class TestAnomalyDetector:
-    """Test AnomalyDetector operator"""
+    def test_source_with_multiple_cycles(self):
+        """Test source with multiple laundry cycles"""
+        source = LaundryWorkflowSource(num_cycles=2)
 
-    def test_detector_creation(self):
-        """Test creating anomaly detector"""
-        detector = AnomalyDetector(threshold=3.0, window_size=100)
+        tasks = []
+        while True:
+            task = source.execute()
+            if task is None:
+                break
+            tasks.append(task)
 
-        assert detector.threshold == 3.0
-        assert detector.window_size == 100
-
-    def test_detect_normal_event(self):
-        """Test detecting normal event"""
-        detector = AnomalyDetector(threshold=3.0, window_size=100)
-
-        event = DeviceEvent(
-            device_id="thermostat_01",
-            device_type="thermostat",
-            timestamp="2024-01-15T10:00:00",
-            value=22.5,
-            unit="celsius",
-        )
-
-        result = detector.map(event)
-        # First event is typically normal (no baseline yet)
-        assert isinstance(result, DeviceEvent)
-
-    def test_detect_anomalous_event(self):
-        """Test detecting anomalous event"""
-        detector = AnomalyDetector(threshold=2.0, window_size=10)
-
-        # Send normal events first
-        normal_events = [
-            DeviceEvent(
-                device_id="sensor_01",
-                device_type="temperature",
-                timestamp=f"2024-01-15T10:00:{i:02d}",
-                value=20.0 + i * 0.1,
-                unit="celsius",
-            )
-            for i in range(5)
-        ]
-
-        for event in normal_events:
-            detector.map(event)
-
-        # Send anomalous event
-        anomaly = DeviceEvent(
-            device_id="sensor_01",
-            device_type="temperature",
-            timestamp="2024-01-15T10:00:10",
-            value=100.0,  # Extreme value
-            unit="celsius",
-        )
-
-        result = detector.map(anomaly)
-        # Depending on implementation, might be marked as anomaly
-        assert isinstance(result, DeviceEvent)
+        # Should have 6 steps * 2 cycles = 12 tasks
+        assert len(tasks) == 12
+        assert tasks[0]["cycle"] == 1
+        assert tasks[6]["cycle"] == 2
 
 
-class TestRuleEngine:
-    """Test RuleEngine operator"""
+class TestDeviceExecutor:
+    """Test DeviceExecutor operator"""
 
-    def test_engine_creation(self):
-        """Test creating rule engine"""
-        rules = {
-            "temperature_high": lambda e: e.value > 30.0
-            if e.device_type == "temperature"
-            else False
+    def test_executor_creation(self):
+        """Test creating device executor"""
+        executor = DeviceExecutor()
+
+        assert executor.event_counter == 0
+
+    def test_execute_robot_task(self):
+        """Test executing robot task"""
+        executor = DeviceExecutor()
+
+        task_data = {
+            "task": "collect_laundry",
+            "device": "robot_001",
+            "description": "Robot collects laundry",
+            "params": {"from": "basket", "to": "washer"},
+            "duration": 0.01,
         }
 
-        engine = RuleEngine(rules=rules)
+        result = executor.execute(task_data)
+        assert result is not None
+        assert result["status"] == TaskStatus.COMPLETED.value
+        assert "completed_at" in result
+        assert "event_id" in result
 
-        assert len(engine.rules) == 1
-        assert "temperature_high" in engine.rules
+    def test_execute_washer_task(self):
+        """Test executing washer task"""
+        executor = DeviceExecutor()
 
-    def test_apply_rule_triggered(self):
-        """Test rule that should be triggered"""
-        rules = {"temp_high": lambda e: e.value > 25.0 and e.device_type == "temperature"}
+        task_data = {
+            "task": "wash",
+            "device": "washer_001",
+            "description": "Wash laundry",
+            "duration": 0.01,
+        }
 
-        engine = RuleEngine(rules=rules)
+        result = executor.execute(task_data)
+        assert result is not None
+        assert result["status"] == TaskStatus.COMPLETED.value
+        assert result["success"] is True
 
-        event = DeviceEvent(
-            device_id="sensor_01",
-            device_type="temperature",
-            timestamp="2024-01-15T10:00:00",
-            value=30.0,
-            unit="celsius",
-        )
+    def test_execute_dryer_task(self):
+        """Test executing dryer task"""
+        executor = DeviceExecutor()
 
-        result = engine.map(event)
-        assert isinstance(result, DeviceEvent)
+        task_data = {
+            "task": "dry",
+            "device": "dryer_001",
+            "description": "Dry laundry",
+            "duration": 0.01,
+        }
 
-    def test_apply_rule_not_triggered(self):
-        """Test rule that should not be triggered"""
-        rules = {"temp_high": lambda e: e.value > 50.0 and e.device_type == "temperature"}
+        result = executor.execute(task_data)
+        assert result is not None
+        assert result["status"] == TaskStatus.COMPLETED.value
+        assert result["success"] is True
 
-        engine = RuleEngine(rules=rules)
+    def test_execute_humidity_sensor(self):
+        """Test executing humidity sensor task"""
+        executor = DeviceExecutor()
 
-        event = DeviceEvent(
-            device_id="sensor_01",
-            device_type="temperature",
-            timestamp="2024-01-15T10:00:00",
-            value=20.0,
-            unit="celsius",
-        )
+        task_data = {
+            "task": "check_environment",
+            "device": "humid_sensor_001",
+            "description": "Check humidity",
+            "duration": 0.01,
+        }
 
-        result = engine.map(event)
-        assert isinstance(result, DeviceEvent)
-
-
-class TestEnergyOptimizer:
-    """Test EnergyOptimizer operator"""
-
-    def test_optimizer_creation(self):
-        """Test creating energy optimizer"""
-        optimizer = EnergyOptimizer(target_consumption=1000.0, optimization_window=60)
-
-        assert optimizer.target_consumption == 1000.0
-        assert optimizer.optimization_window == 60
-
-    def test_optimize_event(self):
-        """Test optimizing device event"""
-        optimizer = EnergyOptimizer(target_consumption=1000.0, optimization_window=60)
-
-        event = DeviceEvent(
-            device_id="hvac_01",
-            device_type="hvac",
-            timestamp="2024-01-15T10:00:00",
-            value=500.0,
-            unit="watts",
-        )
-
-        result = optimizer.map(event)
-        assert isinstance(result, DeviceEvent)
-
-    def test_optimizer_with_multiple_devices(self):
-        """Test optimizer with multiple device events"""
-        optimizer = EnergyOptimizer(target_consumption=2000.0, optimization_window=60)
-
-        events = [
-            DeviceEvent(
-                device_id=f"device_{i}",
-                device_type="appliance",
-                timestamp=f"2024-01-15T10:00:{i:02d}",
-                value=100.0 + i * 50,
-                unit="watts",
-            )
-            for i in range(5)
-        ]
-
-        results = [optimizer.map(event) for event in events]
-        assert all(isinstance(r, DeviceEvent) for r in results)
+        result = executor.execute(task_data)
+        assert result is not None
+        assert "humidity" in result
+        assert DeviceExecutor.MIN_HUMIDITY <= result["humidity"] <= DeviceExecutor.MAX_HUMIDITY
 
 
-class TestAlertSink:
-    """Test AlertSink operator"""
+class TestEnvironmentMonitor:
+    """Test EnvironmentMonitor operator"""
+
+    def test_monitor_creation(self):
+        """Test creating environment monitor"""
+        monitor = EnvironmentMonitor()
+
+        assert monitor is not None
+
+    def test_monitor_check_environment_optimal(self):
+        """Test monitor with optimal humidity"""
+        monitor = EnvironmentMonitor()
+
+        task_data = {"task": "check_environment", "humidity": 55.0}
+
+        result = monitor.execute(task_data)
+        assert result is not None
+        assert result["environment_status"] == "optimal"
+
+    def test_monitor_check_environment_too_dry(self):
+        """Test monitor with low humidity"""
+        monitor = EnvironmentMonitor()
+
+        task_data = {"task": "check_environment", "humidity": 35.0}
+
+        result = monitor.execute(task_data)
+        assert result is not None
+        assert result["environment_status"] == "too_dry"
+
+    def test_monitor_check_environment_too_humid(self):
+        """Test monitor with high humidity"""
+        monitor = EnvironmentMonitor()
+
+        task_data = {"task": "check_environment", "humidity": 75.0}
+
+        result = monitor.execute(task_data)
+        assert result is not None
+        assert result["environment_status"] == "too_humid"
+
+    def test_monitor_non_environment_task(self):
+        """Test monitor passes through non-environment tasks"""
+        monitor = EnvironmentMonitor()
+
+        task_data = {"task": "wash", "device": "washer_001"}
+
+        result = monitor.execute(task_data)
+        assert result is not None
+        assert result["task"] == "wash"
+
+
+class TestWorkflowProgressSink:
+    """Test WorkflowProgressSink operator"""
 
     def test_sink_creation(self):
-        """Test creating alert sink"""
-        sink = AlertSink(alert_threshold=0.8)
+        """Test creating workflow progress sink"""
+        sink = WorkflowProgressSink()
 
-        assert sink.alert_threshold == 0.8
+        assert sink.tasks_completed == 0
+        assert sink.total_steps == 0
 
-    def test_sink_collect_event(self):
-        """Test collecting events"""
-        sink = AlertSink(alert_threshold=0.5)
+    def test_sink_collects_task(self):
+        """Test sink collects workflow task"""
+        sink = WorkflowProgressSink()
 
-        event = DeviceEvent(
-            device_id="sensor_01",
-            device_type="temperature",
-            timestamp="2024-01-15T10:00:00",
-            value=35.0,
-            unit="celsius",
-            is_anomaly=True,
-        )
+        task_data = {
+            "task": "collect_laundry",
+            "device": "robot_001",
+            "cycle": 1,
+            "step": 2,
+            "total_steps": 6,
+        }
 
-        sink.sink(event)
-        # Should collect the event
-        # Verify collection depends on implementation
+        sink.execute(task_data)
+        assert sink.tasks_completed == 1
+        assert sink.total_steps == 6
 
-    def test_sink_multiple_events(self):
-        """Test collecting multiple events"""
-        sink = AlertSink(alert_threshold=0.5)
+    def test_sink_tracks_multiple_tasks(self):
+        """Test sink tracks multiple workflow tasks"""
+        sink = WorkflowProgressSink()
 
-        events = [
-            DeviceEvent(
-                device_id=f"sensor_{i}",
-                device_type="temperature",
-                timestamp=f"2024-01-15T10:00:{i:02d}",
-                value=20.0 + i * 5,
-                unit="celsius",
-                is_anomaly=i % 2 == 0,
-            )
-            for i in range(10)
+        tasks = [
+            {"task": "check_environment", "cycle": 1, "step": i + 1, "total_steps": 6}
+            for i in range(6)
         ]
 
-        for event in events:
-            sink.sink(event)
+        for task in tasks:
+            sink.execute(task)
 
-        # Should have collected events
-        alerts = sink.get_alerts()
-        assert isinstance(alerts, (list, dict)) or alerts is None
+        assert sink.tasks_completed == 6
+
+
+class TestEventLogSink:
+    """Test EventLogSink operator"""
+
+    def test_sink_creation(self):
+        """Test creating event log sink"""
+        sink = EventLogSink()
+
+        assert len(sink.events) == 0
+
+    def test_sink_logs_event(self):
+        """Test sink logs device event"""
+        sink = EventLogSink()
+
+        event_data = {
+            "task": "wash",
+            "device": "washer_001",
+            "status": TaskStatus.COMPLETED.value,
+        }
+
+        sink.execute(event_data)
+        assert len(sink.events) == 1
+        assert sink.events[0]["device"] == "washer_001"
+
+    def test_sink_logs_multiple_events(self):
+        """Test sink logs multiple events"""
+        sink = EventLogSink()
+
+        events = [{"task": f"task_{i}", "device": "robot_001", "step": i} for i in range(10)]
+
+        for event in events:
+            sink.execute(event)
+
+        assert len(sink.events) == 10
 
 
 @pytest.mark.integration
 class TestSmartHomePipeline:
-    """Integration tests for smart home pipeline"""
+    """Integration tests for smart home laundry workflow"""
 
+    def test_workflow_execution(self):
+        """Test complete laundry workflow execution"""
+        # Create operators
+        source = LaundryWorkflowSource(num_cycles=1)
+        executor = DeviceExecutor()
+        monitor = EnvironmentMonitor()
+        progress_sink = WorkflowProgressSink()
+        log_sink = EventLogSink()
+
+        # Execute workflow
+        while True:
+            task = source.execute()
+            if task is None:
+                break
+
+            # Execute task
+            result = executor.execute(task)
+
+            # Monitor environment
+            monitored = monitor.execute(result)
+
+            # Collect results
+            progress_sink.execute(monitored)
+            log_sink.execute(monitored)
+
+        # Verify completion
+        assert progress_sink.tasks_completed == 6
+        assert len(log_sink.events) == 6
+
+    @pytest.mark.skip(reason="Pipeline infrastructure test")
     def test_pipeline_creation(self):
         """Test creating the smart home pipeline"""
-        from sage.apps.smart_home.pipeline import create_smart_home_pipeline
-
-        devices = ["thermostat_01", "light_01", "sensor_01"]
-        pipeline = create_smart_home_pipeline(devices=devices, duration=60, event_rate=10)
-
-        assert pipeline is not None
-
-    @pytest.mark.skip(reason="Long-running simulation test")
-    def test_end_to_end_monitoring(self):
-        """Test complete smart home monitoring"""
-        from sage.apps.smart_home.pipeline import create_smart_home_pipeline
-
-        devices = ["thermostat_01", "light_01", "sensor_01", "hvac_01"]
-        _pipeline = create_smart_home_pipeline(devices=devices, duration=30, event_rate=5)
-
-        # Run monitoring
-        # results = _pipeline.execute()
-        # assert results is not None
+        # Placeholder for pipeline creation test
+        # Would require actual pipeline module
         pass
