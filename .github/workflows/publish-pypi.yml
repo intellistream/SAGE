@@ -1,28 +1,19 @@
 name: Publish to PyPI
 
 on:
-  push:
-    branches:
-      - main      # 主分支: patch 版本自增 -> PyPI
-      # main-dev 不再自动触发，避免频繁 version bump 导致 feature 分支 rebase 冲突
-    paths-ignore:
-      - 'docs/**'
-      - 'docs-public/**'
-      - 'examples/**'
-      - 'README.md'
-      - 'CONTRIBUTING.md'
-      - 'LICENSE'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE/**'
-      # 不再忽略 .github/workflows/ 目录下的任何文件
+  # 完全禁用自动触发，改为手动触发
+  # 原因: main-dev → main PR merge 后会触发 push 事件，无法可靠过滤
+  # 解决方案: 使用 workflow_dispatch 手动控制发布时机
+  # push:
+  #   branches:
+  #     - main
 
-  # 当 PR 被 merge 到 main 时触发（作为 push 事件的补充）
-  # 注意: 仅 main 分支的 PR，且不是从 main-dev 合并的 PR 才自动触发
-  pull_request:
-    types: [closed]
-    branches:
-      - main
+  # pull_request:
+  #   types: [closed]
+  #   branches:
+  #     - main
 
+  # 仅支持手动触发
   workflow_dispatch:
     inputs:
       repository:
@@ -49,26 +40,18 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # 运行条件:
-    # 1. push 事件 && commit message 不包含 [version bump]
-    # 2. PR merge 事件 && PR 已成功 merge && PR 来源分支不是 main-dev (防止 main-dev->main PR 自动触发)
-    # 3. workflow_dispatch 手动触发
-    if: |
-      (github.event_name == 'push' && !contains(github.event.head_commit.message, '[version bump]')) ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.head.ref != 'main-dev') ||
-      github.event_name == 'workflow_dispatch'
+    # 仅手动触发，无需复杂的条件判断
+    # if 条件已移除，workflow_dispatch 总是执行
 
     steps:
       - name: Determine target branch
         id: branch
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # PR merge: checkout 目标分支（main 或 main-dev）
-            echo "ref=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
-          else
-            # push 或 workflow_dispatch: checkout 当前分支
-            echo "ref=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          fi
+          # workflow_dispatch 只能从当前分支触发
+          # 建议从 main 分支触发以发布到 PyPI
+          # 从 main-dev 触发只用于测试，会发布到 TestPyPI
+          echo "ref=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "::notice::Publishing from branch: ${{ github.ref_name }}"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -88,6 +71,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install twine build wheel setuptools
           # Install sage-tools for version management
+          # isage-common is now a required dependency and will be installed automatically
           pip install -e packages/sage-tools
 
       - name: Configure git
@@ -98,44 +82,22 @@ jobs:
       - name: Determine version bump and repository
         id: config
         run: |
-          # 确定版本升级类型
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # 手动触发：使用用户选择
-            VERSION_BUMP="${{ inputs.version_bump }}"
-            REPOSITORY="${{ inputs.repository }}"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            # PR merge 触发：根据目标分支决定
-            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
-            if [ "$TARGET_BRANCH" = "main" ]; then
-              VERSION_BUMP="patch"
-              REPOSITORY="pypi"
-            else  # main-dev
-              VERSION_BUMP="patch"
-              REPOSITORY="testpypi"
-            fi
-          else
-            # push 事件：根据分支决定
+          # 仅支持手动触发，使用用户选择的参数
+          VERSION_BUMP="${{ inputs.version_bump }}"
+          REPOSITORY="${{ inputs.repository }}"
+
+          # 如果是 auto，根据当前分支转换为实际类型
+          if [ "$VERSION_BUMP" = "auto" ]; then
             if [ "${{ github.ref_name }}" = "main" ]; then
               VERSION_BUMP="patch"
-              REPOSITORY="pypi"
-            else  # main-dev
-              VERSION_BUMP="patch"
-              REPOSITORY="testpypi"
-            fi
-          fi
-
-          # 如果是 auto，转换为实际类型
-          if [ "$VERSION_BUMP" = "auto" ]; then
-            if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
-              VERSION_BUMP="patch"
             else
-              VERSION_BUMP="patch"
+              VERSION_BUMP="patch"  # main-dev 也默认 patch
             fi
           fi
 
           echo "version_bump=$VERSION_BUMP" >> $GITHUB_OUTPUT
           echo "repository=$REPOSITORY" >> $GITHUB_OUTPUT
-          echo "::notice::Version bump: $VERSION_BUMP, Repository: $REPOSITORY"
+          echo "::notice::Branch: ${{ github.ref_name }}, Version bump: $VERSION_BUMP, Repository: $REPOSITORY"
 
       - name: Bump version
         if: steps.config.outputs.version_bump != 'none'
