@@ -1,10 +1,6 @@
----
-name: Bug Report
-about: Report a bug to help us improve SAGE
-title: '[Bug] '
-labels: 'bug'
-assignees: ''
----
+______________________________________________________________________
+
+## name: Bug Report about: Report a bug to help us improve SAGE title: '[Bug] ' labels: 'bug' assignees: ''
 
 ## Bug Description
 
@@ -15,8 +11,8 @@ assignees: ''
 <!-- Steps to reproduce the behavior -->
 
 1. Step one
-2. Step two
-3. Step three
+1. Step two
+1. Step three
 
 ## Expected Behavior
 

@@ -9,23 +9,29 @@
 本实验采用三条独立的 Pipeline 实现记忆测试功能：
 
 #### 1. 主 Pipeline (Controller Pipeline)
+
 ```
 MemorySource → PipelineCaller → MemorySink
 ```
+
 - **职责**: 逐轮喂入对话历史，调用两个服务 Pipeline
 - **数据流**: 从数据源读取对话 → 调用服务处理 → 保存结果
 
 #### 2. 记忆存储 Pipeline (Memory Insert Service)
+
 ```
 PipelineServiceSource → PreInsert → MemoryInsert → PostInsert → PipelineServiceSink
 ```
+
 - **职责**: 存储对话到短期记忆服务
 - **流程**: 接收请求 → 预处理 → 插入记忆 → 后处理 → 返回响应
 
 #### 3. 记忆测试 Pipeline (Memory Test Service)
+
 ```
 PipelineServiceSource → PreRetrieval → MemoryRetrieval → PostRetrieval → MemoryTest → PipelineServiceSink
 ```
+
 - **职责**: 检索历史对话、生成答案
 - **流程**: 接收请求 → 预处理 → 检索记忆 → 后处理 → 测试生成 → 返回结果
 
@@ -34,8 +40,8 @@ PipelineServiceSource → PreRetrieval → MemoryRetrieval → PostRetrieval →
 实验使用以下服务：
 
 1. **ShortTermMemoryService**: 管理对话历史窗口（默认 3 轮对话 = 6 条消息）
-2. **Memory Insert Service**: Pipeline 即服务（记忆存储）
-3. **Memory Test Service**: Pipeline 即服务（记忆测试）
+1. **Memory Insert Service**: Pipeline 即服务（记忆存储）
+1. **Memory Test Service**: Pipeline 即服务（记忆测试）
 
 ### 通信机制
 
@@ -48,10 +54,12 @@ PipelineServiceSource → PreRetrieval → MemoryRetrieval → PostRetrieval →
 ### 两阶段处理
 
 1. **阶段 1: 记忆存储** (总是执行)
+
    - 将当前对话存入短期记忆
    - 更新记忆窗口
 
-2. **阶段 2: 记忆测试** (问题驱动)
+1. **阶段 2: 记忆测试** (问题驱动)
+
    - **触发条件**: 每当可见问题增加 1/10 时
    - **测试范围**: 从第 1 题到当前可见的最后一题
    - **测试方法**: 检索相关对话历史，生成答案并评估
@@ -65,6 +73,7 @@ PipelineServiceSource → PreRetrieval → MemoryRetrieval → PostRetrieval →
 ### 输出格式
 
 结果保存为 JSON 格式，包含：
+
 - 数据集统计信息
 - 测试结果（准确率、召回率等）
 - 每个问题的详细测试记录
@@ -86,6 +95,7 @@ python packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/me
 ## 关键特性
 
 - **autostop=True**: 自动停止机制
+
   - 等待所有 Task 停止（不只是源节点）
   - 确保队列中的数据都被处理完
   - 自动调用 `env.close()` 清理资源

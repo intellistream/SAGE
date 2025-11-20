@@ -14,7 +14,7 @@ class MemoryInsert(MapFunction):
 
     def __init__(self, config=None):
         """初始化 MemoryInsert
-        
+
         Args:
             config: RuntimeConfig 对象（可选，当前不使用）
         """

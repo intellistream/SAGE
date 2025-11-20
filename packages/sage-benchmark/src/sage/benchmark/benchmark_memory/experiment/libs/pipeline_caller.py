@@ -35,7 +35,7 @@ class PipelineCaller(MapFunction):
         self.total_questions = self._get_total_questions()  # 该task的总问题数
         self.last_tested_count = 0  # 上次测试时的问题数量
         self.test_threshold = max(1, self.total_questions // 10)  # 测试阈值（1/10）
-        
+
         # 测试统计
         self.total_dialogs_inserted = 0  # 累计插入的对话数
 
@@ -109,7 +109,7 @@ class PipelineCaller(MapFunction):
             method="process",
             timeout=30.0,
         )
-        
+
         # 累计插入的对话数
         self.total_dialogs_inserted += len(dialogs)
 
@@ -128,9 +128,9 @@ class PipelineCaller(MapFunction):
 
         # 计算自上次测试以来新增的问题数
         increment = current_count - self.last_tested_count
-        
+
         # 判断是否为最后一个数据包
-        is_last_packet = (packet_idx + 1 >= total_packets)
+        is_last_packet = packet_idx + 1 >= total_packets
 
         # 如果新增问题数未达到阈值，且不是最后一个包，跳过测试
         if increment < self.test_threshold and not is_last_packet:
@@ -139,18 +139,18 @@ class PipelineCaller(MapFunction):
             print(f"{'=' * 60}\n")
             # 不触发测试时，不发送数据给 Sink
             return None
-        
+
         # 如果是最后一个包但增量不足，也要发送完成信号
         if increment < self.test_threshold and is_last_packet:
             print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
             print(f">> 距上次测试新增：{increment}，阈值：{self.test_threshold}（未触发测试）")
-            print(f">> 最后一个数据包，发送完成信号")
+            print(">> 最后一个数据包，发送完成信号")
             print(f"{'=' * 60}\n")
-            
+
             # 关闭进度条
             if self.progress_bar:
                 self.progress_bar.close()
-            
+
             # 返回完成信号（不包含测试结果）
             return {
                 "dataset": self.dataset,
@@ -227,7 +227,7 @@ class PipelineCaller(MapFunction):
                     }
                 )
                 # 继续处理下一个问题（而不是中断整个批次）
-        
+
         # 构造本次测试结果
         test_result = {
             "dataset": self.dataset,
@@ -250,6 +250,6 @@ class PipelineCaller(MapFunction):
         # 关闭进度条（如果是最后一个包）
         if is_last_packet and self.progress_bar:
             self.progress_bar.close()
-        
+
         # 返回本次测试结果
         return test_result

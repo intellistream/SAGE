@@ -82,10 +82,12 @@
 ## 字段说明
 
 ### experiment_info
+
 - `dataset`: 数据集名称
 - `task_id`: 任务/样本ID
 
 ### dataset_statistics
+
 - `total_sessions`: 总会话数
 - `total_dialogs`: 总对话数
 - `total_questions`: 问题总数（包含无效问题）
@@ -96,11 +98,14 @@
   - `reason`: 无效原因（如 "no_evidence"）
 
 ### test_summary
+
 - `total_tests`: 总测试次数（触发测试的次数）
 - `test_threshold`: 测试阈值说明
 
 ### test_results
+
 每次测试包含：
+
 - `test_index`: 测试序号（第几次测试）
 - `question_range`: 测试的问题范围
   - `start`: 起始问题序号
@@ -120,12 +125,15 @@
 该格式设计为通用格式，支持不同数据集：
 
 1. **必需字段**（所有数据集）：
+
    - `question_index`, `question_text`, `predicted_answer`
 
-2. **可选字段**（数据集特定）：
+1. **可选字段**（数据集特定）：
+
    - `reference_answer`, `evidence`, `category` 等
    - 这些字段从 `question_metadata` 中提取，不同数据集可能有不同的元数据
 
-3. **扩展性**：
+1. **扩展性**：
+
    - 新数据集只需在 `PipelineCaller._get_dataset_stats()` 中实现统计逻辑
    - metadata 自动传递，Sink 自动提取可用字段
