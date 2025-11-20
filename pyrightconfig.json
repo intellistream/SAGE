@@ -1,6 +1,13 @@
 {
   "include": [
-    "packages"
+    "packages/sage-kernel/src",
+    "packages/sage-common/src",
+    "packages/sage-platform/src",
+    "packages/sage-apps/src",
+    "packages/sage-middleware/src",
+    "packages/sage-cli/src",
+    "packages/sage-studio/src",
+    "packages/sage-tools/src"
   ],
   "exclude": [
     "**/.sage",
@@ -11,9 +18,15 @@
     "**/.pytest_cache",
     "**/dist",
     "**/*.egg-info",
-    "packages/sage-benchmark/src/sage/benchmark/benchmark_libamm/scripts",
-    "packages/sage-libs/src/sage/libs/libamm/benchmark/scripts",
-    "packages/sage-libs/src/sage/libs/libamm/thirdparty"
+    "packages/sage-benchmark/**",
+    "packages/sage-libs/src/sage/libs/libamm/**",
+    "packages/sage-common/src/sage/common/components/sage_vllm/**",
+    "**/tests/**",
+    "**/examples/**",
+    "**/scripts/**",
+    "**/vendors/**",
+    "**/vendor/**",
+    "**/thirdparty/**"
   ],
   "ignore": [
     "packages/sage-benchmark/src/sage/benchmark/benchmark_libamm/pythonTest.py"
