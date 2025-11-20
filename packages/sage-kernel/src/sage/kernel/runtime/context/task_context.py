@@ -37,7 +37,7 @@ class TaskContext(BaseRuntimeContext):
         graph_node: "TaskNode",
         transformation: "BaseTransformation",
         env: "BaseEnvironment",
-        execution_graph: "ExecutionGraph" = None,
+        execution_graph: "ExecutionGraph | None" = None,
     ):
         super().__init__()  # Initialize base context
 

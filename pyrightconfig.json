@@ -1,0 +1,40 @@
+{
+  "include": [
+    "packages"
+  ],
+  "exclude": [
+    "**/.sage",
+    "**/build",
+    "**/__pycache__",
+    "**/node_modules",
+    "**/.venv",
+    "**/.pytest_cache",
+    "**/dist",
+    "**/*.egg-info",
+    "packages/sage-benchmark/src/sage/benchmark/benchmark_libamm/scripts",
+    "packages/sage-libs/src/sage/libs/libamm/benchmark/scripts",
+    "packages/sage-libs/src/sage/libs/libamm/thirdparty"
+  ],
+  "ignore": [
+    "packages/sage-benchmark/src/sage/benchmark/benchmark_libamm/pythonTest.py"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownArgumentType": false,
+  "reportUnknownVariableType": false,
+  "reportGeneralTypeIssues": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportOptionalCall": "none",
+  "reportOptionalIterable": "none",
+  "reportOptionalContextManager": "none",
+  "reportOptionalOperand": "none",
+  "reportPrivateImportUsage": false,
+  "reportUntypedFunctionDecorator": "none",
+  "reportUntypedClassDecorator": "none",
+  "reportUntypedBaseClass": "none",
+  "stubPath": "typings",
+  "venvPath": ".",
+  "venv": ".venv"
+}
