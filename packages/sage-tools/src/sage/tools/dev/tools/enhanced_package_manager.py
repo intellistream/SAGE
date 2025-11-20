@@ -75,6 +75,12 @@ class EnhancedPackageManager:
                 "description": "Benchmarking tools",
             },
             # L6: UI 和开发工具
+            "sage-gateway": {
+                "path": self.packages_dir / "sage-gateway",
+                "namespace": "sage.gateway",
+                "dependencies": ["sage-common", "sage-kernel", "sage-libs"],
+                "description": "OpenAI/Anthropic compatible API Gateway",
+            },
             "sage-studio": {
                 "path": self.packages_dir / "sage-studio",
                 "namespace": "sage.studio",
