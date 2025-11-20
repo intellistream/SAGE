@@ -1,22 +1,19 @@
 ______________________________________________________________________
 
-name: Documentation Request about: Request improvements or additions to documentation title: '[Docs]
-' labels: documentation assignees: ''
+## name: Documentation Request about: Request improvements or additions to documentation title: '[Docs] ' labels: 'documentation' assignees: ''
 
-______________________________________________________________________
+## Documentation Issue
 
-**Description**
+<!-- Describe the issue with the documentation or what's missing -->
 
-Describe the issue with the documentation or the addition you're requesting.
+## Location
 
-**Section of Documentation**
+<!-- Which part of the documentation? (e.g., README, API docs, tutorials) -->
 
-Provide the relevant section, page, or file (if applicable).
+## Proposed Improvement
 
-**Proposed Improvement**
+<!-- What changes or additions should be made? -->
 
-Suggest what changes or additions should be made to improve the documentation.
+## Additional Context
 
-**Additional Context**
-
-Add any other context or screenshots to clarify the request.
+<!-- Add any other context, examples, or references -->
