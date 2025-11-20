@@ -1,8 +1,7 @@
 from typing import TYPE_CHECKING
 
 from sage.kernel.api.operator.base_operator import BaseOperator
-from sage.kernel.runtime.communication.packet import Packet
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import Packet, StopSignal
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.task.base_task import BaseTask
@@ -64,7 +63,7 @@ class SourceOperator(BaseOperator):
 
         if result is not None:
             self.logger.debug(f"SourceOperator {self.name}: Sending packet with payload: {result}")
-            success = self.router.send(Packet(result))  # type: ignore[arg-type]
+            success = self.router.send(Packet(result))
             self.logger.debug(f"SourceOperator {self.name}: Send result: {success}")
 
             # If sending failed (e.g., queue is closed), stop the task

@@ -8,7 +8,7 @@ try:
     from ray.util.queue import Empty as RayQueueEmpty  # type: ignore
 except ImportError:
     RayQueueEmpty = QueueEmpty  # type: ignore
-from sage.kernel.runtime.communication.router.packet import Packet, StopSignal
+from sage.kernel.runtime.communication.packet import Packet, StopSignal
 from sage.kernel.runtime.context.task_context import TaskContext
 from sage.kernel.runtime.monitoring import (
     RESOURCE_MONITOR_AVAILABLE,
