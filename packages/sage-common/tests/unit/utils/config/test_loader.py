@@ -217,6 +217,17 @@ class TestLoadConfig:
                 config = load_config()
                 assert config == self.test_config
 
+    def test_load_config_with_none_caller_frame(self):
+        """测试 currentframe 返回 None 时的回退逻辑（覆盖第37行）"""
+        with patch("inspect.currentframe") as mock_frame:
+            # 模拟 currentframe 返回 None（某些环境下可能发生）
+            mock_frame.return_value = None
+
+            with patch("pathlib.Path.cwd") as mock_cwd:
+                mock_cwd.return_value = Path(self.temp_dir)
+                config = load_config()
+                assert config == self.test_config
+
 
 @pytest.mark.integration
 class TestLoadConfigIntegration:
