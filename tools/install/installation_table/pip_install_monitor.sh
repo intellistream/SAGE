@@ -37,27 +37,30 @@ analyze_pip_log() {
     local log_file="$1"
     local violations=()
     local found_downloads=false
+    local debug_output=""  # 收集DEBUG信息，只在出错时打印
 
     echo -e "${BLUE}🔍 检查 pip 安装日志：${log_file}${NC}"
     echo ""
 
-    # DEBUG: 打印环境信息
-    echo -e "${BLUE}🐛 DEBUG - 环境信息：${NC}"
-    echo "   日志文件: ${log_file}"
-    echo "   文件大小: $(wc -c < "$log_file" 2>/dev/null || echo "N/A") bytes"
-    echo "   文件行数: $(wc -l < "$log_file" 2>/dev/null || echo "N/A") lines"
-    echo "   CI 环境: ${CI:-false} (GITHUB_ACTIONS=${GITHUB_ACTIONS:-false})"
-    echo ""
+    # 收集DEBUG信息（不立即打印）
+    debug_output+="${BLUE}🐛 DEBUG - 环境信息：${NC}"$'\n'
+    debug_output+="   日志文件: ${log_file}"$'\n'
+    debug_output+="   文件大小: $(wc -c < "$log_file" 2>/dev/null || echo "N/A") bytes"$'\n'
+    debug_output+="   文件行数: $(wc -l < "$log_file" 2>/dev/null || echo "N/A") lines"$'\n'
+    debug_output+="   CI 环境: ${CI:-false} (GITHUB_ACTIONS=${GITHUB_ACTIONS:-false})"$'\n'
+    debug_output+=$'\n'
 
     if [ ! -f "$log_file" ]; then
         echo -e "${RED}❌ 日志文件不存在：${log_file}${NC}"
         return 1
     fi
 
-    # DEBUG: 显示待检测的包列表
-    echo -e "${BLUE}🐛 DEBUG - 待检测的本地包：${NC}"
-    printf '   • %s\n' "${LOCAL_PACKAGES[@]}"
-    echo ""
+    # 收集待检测包列表
+    debug_output+="${BLUE}🐛 DEBUG - 待检测的本地包：${NC}"$'\n'
+    for pkg in "${LOCAL_PACKAGES[@]}"; do
+        debug_output+="   • ${pkg}"$'\n'
+    done
+    debug_output+=$'\n'
 
     # 检测是否从 PyPI 下载了本地包
     for package in "${LOCAL_PACKAGES[@]}"; do
