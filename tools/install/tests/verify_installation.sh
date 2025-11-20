@@ -106,6 +106,13 @@ main() {
     run_test "导入 sage.libs" "python3 -c 'import sage.libs'"
     run_test "导入 sage.middleware" "python3 -c 'import sage.middleware'"
 
+    # Gateway 包（dev 模式安装）
+    if python3 -c "import sage.gateway" 2>/dev/null; then
+        echo -e "${GREEN}✅ sage.gateway 已安装 (dev 模式)${NC}"
+    else
+        echo -e "${DIM}   sage.gateway 未安装 (仅 dev 模式包含)${NC}"
+    fi
+
     # 3. 关键依赖检查
     print_test_header "📚 3. 关键依赖检查"
     run_test "numpy 可用" "python3 -c 'import numpy; print(numpy.__version__)'"

@@ -135,7 +135,7 @@ class JoinOperator(BaseOperator):
             # 处理来自不同调用方式的参数
             if signal is not None:
                 # 来自 task_context 的调用，signal 是 StopSignal 对象
-                from sage.kernel.runtime.communication.router.packet import StopSignal
+                from sage.kernel.runtime.communication.packet import StopSignal
 
                 if isinstance(signal, StopSignal):
                     signal_name = signal.name
@@ -171,7 +171,7 @@ class JoinOperator(BaseOperator):
                         source_signals.add(sig)
                 else:
                     # StopSignal object
-                    from sage.kernel.runtime.communication.router.packet import (
+                    from sage.kernel.runtime.communication.packet import (
                         StopSignal,
                     )
 
@@ -201,7 +201,7 @@ class JoinOperator(BaseOperator):
                 self.ctx.send_stop_signal_back(self.name)
 
                 # 然后向下游传播停止信号
-                from sage.kernel.runtime.communication.router.packet import StopSignal
+                from sage.kernel.runtime.communication.packet import StopSignal
 
                 stop_signal = StopSignal(self.name)
                 self.logger.info(f"JoinOperator '{self.name}' sending stop signal to downstream")
@@ -244,7 +244,7 @@ class JoinOperator(BaseOperator):
                 partition_strategy=original_packet.partition_strategy or "hash",
             )
 
-            self.router.send(result_packet)  # type: ignore[arg-type]
+            self.router.send(result_packet)
 
             self.logger.debug(
                 f"JoinOperator '{self.name}' emitted result for key '{join_key}': "

@@ -305,13 +305,16 @@ run_doctor() {
         local total_submodules=$(git config --file .gitmodules --get-regexp path | wc -l)
         local initialized_submodules=0
 
-        # 使用 git submodule status 来检查
-        while IFS= read -r line; do
-            # 检查行首是否有 '-' (未初始化)
-            if [[ ! "$line" =~ ^- ]]; then
-                ((initialized_submodules++))
-            fi
-        done < <(git submodule status 2>/dev/null || echo "")
+        # 使用 git submodule status 来检查，添加超时保护
+        local submodule_output
+        if command -v timeout &> /dev/null; then
+            submodule_output=$(timeout 5 git submodule status 2>/dev/null || echo "")
+        else
+            submodule_output=$(git submodule status 2>/dev/null || echo "")
+        fi
+
+        # 计算已初始化的 submodules（不以 '-' 开头的行）
+        initialized_submodules=$(echo "$submodule_output" | grep -v '^-' | grep -c '^' || echo "0")
 
         if [ "$initialized_submodules" -eq "$total_submodules" ] && [ "$total_submodules" -gt 0 ]; then
             echo -e "${GREEN}   ${CHECK} 所有 submodules 已初始化 (${initialized_submodules}/${total_submodules})${NC}"
@@ -357,7 +360,15 @@ run_doctor() {
 
     # 6. 检查构建产物
     echo -e "${BLUE}6. 检查构建产物...${NC}"
-    local build_dirs=$(find . -maxdepth 3 -type d \( -name "dist" -o -name "build" -o -name "*.egg-info" \) 2>/dev/null | wc -l)
+    # 使用 timeout 防止 find 命令卡住，限制搜索范围以提高速度
+    local build_dirs=0
+    if command -v timeout &> /dev/null; then
+        build_dirs=$(timeout 5 find packages -maxdepth 2 -type d \( -name "dist" -o -name "build" -o -name "*.egg-info" \) 2>/dev/null | wc -l || echo "0")
+    else
+        # 没有 timeout 命令时，只检查 packages 目录
+        build_dirs=$(find packages -maxdepth 2 -type d \( -name "dist" -o -name "build" -o -name "*.egg-info" \) 2>/dev/null | wc -l || echo "0")
+    fi
+
     if [ "$build_dirs" -gt 0 ]; then
         echo -e "${YELLOW}   ⚠️  发现 ${build_dirs} 个构建目录${NC}"
         echo -e "${DIM}   建议运行: ./tools/maintenance/sage-maintenance.sh clean${NC}"

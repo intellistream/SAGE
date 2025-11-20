@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from sage.common.core import SinkFunction
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import StopSignal
 
 
 class PipelineServiceSink(SinkFunction):

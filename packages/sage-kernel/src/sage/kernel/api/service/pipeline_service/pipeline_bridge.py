@@ -10,7 +10,7 @@ import queue
 from dataclasses import dataclass
 from typing import Any
 
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import StopSignal
 
 
 @dataclass

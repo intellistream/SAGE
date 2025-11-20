@@ -17,11 +17,11 @@ on:
       # 不再忽略 .github/workflows/ 目录下的任何文件
 
   # 当 PR 被 merge 到 main 时触发（作为 push 事件的补充）
+  # 注意: 仅 main 分支的 PR，且不是从 main-dev 合并的 PR 才自动触发
   pull_request:
     types: [closed]
     branches:
       - main
-      # main-dev 的 PR 不触发自动发布
 
   workflow_dispatch:
     inputs:
@@ -51,10 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     # 运行条件:
     # 1. push 事件 && commit message 不包含 [version bump]
-    # 2. PR merge 事件 && PR 已成功 merge
+    # 2. PR merge 事件 && PR 已成功 merge && PR 来源分支不是 main-dev (防止 main-dev->main PR 自动触发)
+    # 3. workflow_dispatch 手动触发
     if: |
       (github.event_name == 'push' && !contains(github.event.head_commit.message, '[version bump]')) ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.head.ref != 'main-dev') ||
       github.event_name == 'workflow_dispatch'
 
     steps:
