@@ -2,25 +2,28 @@
 
 ## 概述
 
-`PipelineCaller` 是主 Pipeline 的核心 Map 算子，负责协调记忆存储和记忆测试两个子 Pipeline。它实现了**问题驱动的测试策略**，在数据流入的过程中智能地触发测试，避免每个数据包都测试带来的性能开销。
+`PipelineCaller` 是主 Pipeline 的核心 Map 算子，负责协调记忆存储和记忆测试两个子
+Pipeline。它实现了**问题驱动的测试策略**，在数据流入的过程中智能地触发测试，避免每个数据包都测试带来的性能开销。
 
 ## 核心职责
 
 1. **记忆存储**：将每个对话数据包发送到记忆存储服务（总是执行）
-2. **问题驱动测试**：根据可见问题数的增长，智能触发记忆测试
-3. **进度追踪**：实时显示数据处理进度和统计信息
-4. **结果汇总**：收集测试答案，构造标准化输出格式
+1. **问题驱动测试**：根据可见问题数的增长，智能触发记忆测试
+1. **进度追踪**：实时显示数据处理进度和统计信息
+1. **结果汇总**：收集测试答案，构造标准化输出格式
 
 ## 问题驱动测试策略
 
 ### 设计思想
 
 传统方案每处理一个数据包就测试一次，导致：
+
 - 测试频率过高，性能开销大
 - 早期问题被重复测试多次
 - 无法充分利用记忆积累的优势
 
 **问题驱动策略**：只在可见问题数显著增加时才触发测试，实现：
+
 - 减少测试次数，提高效率
 - 每次测试覆盖从开始到当前的所有问题
 - 充分利用已积累的记忆信息
@@ -30,17 +33,20 @@
 测试会在以下情况触发：
 
 1. **增量达到阈值**：自上次测试以来，新增问题数 ≥ 总问题数的 1/10
-2. **最后一个数据包**：确保所有问题都被测试到
+1. **最后一个数据包**：确保所有问题都被测试到
 
 **阈值计算**：
+
 ```python
 test_threshold = max(1, total_questions // 10)
 ```
+
 最小为 1，确保至少有 1 个新问题才测试。
 
 ### 测试范围
 
 每次触发测试时：
+
 - **不是**只测试新增的问题
 - **而是**从第 1 个问题测试到当前可见的最后一个问题
 - 这样可以验证记忆系统对所有历史问题的回答能力
@@ -50,16 +56,18 @@ test_threshold = max(1, total_questions // 10)
 ### 初始化阶段
 
 1. **加载数据集信息**：
+
    - 根据 `dataset` 类型创建数据加载器
    - 获取任务的总问题数（排除无 evidence 的问题）
 
-2. **初始化状态变量**：
+1. **初始化状态变量**：
+
    - `total_questions`：任务的总问题数
    - `last_tested_count`：上次测试时的问题数（初始为 0）
    - `test_threshold`：测试阈值（总问题数的 1/10）
    - `total_dialogs_inserted`：累计插入的对话数
 
-3. **进度条**：将在第一个数据包到达时初始化
+1. **进度条**：将在第一个数据包到达时初始化
 
 ### 执行阶段（每个数据包）
 
@@ -134,6 +142,7 @@ test_threshold = max(1, total_questions // 10)
 **调用时机**：每个数据包都会调用
 
 **请求格式**：
+
 ```python
 {
     "task_id": str,        # 任务ID
@@ -150,6 +159,7 @@ test_threshold = max(1, total_questions // 10)
 ```
 
 **调用方式**：
+
 ```python
 self.call_service(
     "memory_insert_service",
@@ -168,6 +178,7 @@ self.call_service(
 **调用时机**：触发测试时，对每个可见问题都调用一次
 
 **请求格式**：
+
 ```python
 {
     "task_id": str,             # 任务ID
@@ -181,6 +192,7 @@ self.call_service(
 ```
 
 **调用方式**：
+
 ```python
 result = self.call_service(
     "memory_test_service",
@@ -191,6 +203,7 @@ result = self.call_service(
 ```
 
 **返回格式**：
+
 ```python
 {
     "answer": str,              # 生成的答案
@@ -199,6 +212,7 @@ result = self.call_service(
 ```
 
 **错误处理**：
+
 - 如果服务调用失败（超时、服务关闭等），记录错误但继续处理下一个问题
 - 失败的问题会在答案列表中标记为 `[ERROR]`，并包含错误信息
 
@@ -287,6 +301,7 @@ result = self.call_service(
 ### 1. 问题过滤
 
 只测试有 evidence 的问题：
+
 ```python
 current_questions = self.loader.get_question_list(
     task_id,
@@ -297,6 +312,7 @@ current_questions = self.loader.get_question_list(
 ```
 
 这样可以：
+
 - 减少无意义的测试
 - 提高测试准确率
 - 加快处理速度
@@ -304,6 +320,7 @@ current_questions = self.loader.get_question_list(
 ### 2. 阻塞等待
 
 所有服务调用都使用阻塞等待，确保：
+
 - 记忆存储完成后再继续处理
 - 测试结果正确收集
 - 避免并发问题
@@ -311,6 +328,7 @@ current_questions = self.loader.get_question_list(
 ### 3. 进度追踪
 
 使用进度条实时显示处理进度：
+
 ```python
 self.progress_bar = ProgressBar(total=total_packets, desc="处理对话")
 self.progress_bar.update(1)
@@ -330,14 +348,17 @@ self.progress_bar.update(1)
 如需支持新数据集，需要确保数据加载器实现以下方法：
 
 1. **`get_total_valid_questions(task_id, include_no_evidence)`**
+
    - 返回任务的总问题数
    - `include_no_evidence=False` 时排除无 evidence 的问题
 
-2. **`get_question_list(task_id, session_x, dialog_y, include_no_evidence)`**
+1. **`get_question_list(task_id, session_x, dialog_y, include_no_evidence)`**
+
    - 返回截止到指定位置的问题列表
    - 每个问题包含 `question` 字段和其他 metadata
 
-3. **问题格式要求**：
+1. **问题格式要求**：
+
    ```python
    {
        "question": str,          # 必需：问题文本
@@ -352,11 +373,11 @@ self.progress_bar.update(1)
 ## 注意事项
 
 1. **修改代码时请同步更新本文档**
-2. 测试范围是累积的（1 到 current_count），不是增量的
-3. 服务调用失败不会中断整个流程，会继续处理下一个问题
-4. 最后一个数据包必定触发测试，确保所有问题都被覆盖
-5. 如果最后一个包但增量不足，会发送完成信号但不包含测试结果
-6. 进度条会在最后一个包处理完毕后自动关闭
+1. 测试范围是累积的（1 到 current_count），不是增量的
+1. 服务调用失败不会中断整个流程，会继续处理下一个问题
+1. 最后一个数据包必定触发测试，确保所有问题都被覆盖
+1. 如果最后一个包但增量不足，会发送完成信号但不包含测试结果
+1. 进度条会在最后一个包处理完毕后自动关闭
 
 ## 相关文件
 
