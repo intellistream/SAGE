@@ -1,7 +1,6 @@
 """记忆测试模块 - 负责使用 LLM 对所有可见问题进行问答测试"""
 
 from sage.common.core import MapFunction
-from sage.data.locomo.dataloader import LocomoDataLoader
 from sage.middleware.operators.rag.generator import OpenAIGenerator
 from sage.middleware.operators.rag.promptor import QAPromptor
 
@@ -10,15 +9,13 @@ class MemoryTest(MapFunction):
     """记忆测试算子
 
     职责：
-    1. 检测当前可见的所有问题
-    2. 如果有问题，使用历史对话 + LLM 生成答案
-    3. 对所有可见问题（从第1题到最后一题）进行测试
+    1. 使用历史对话 + LLM 生成答案
+    2. 这是一个通用算子，不依赖特定数据集的私有属性
     """
 
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.loader = LocomoDataLoader()
 
         # 初始化 LLM 组件
         self.promptor = None
@@ -68,9 +65,8 @@ class MemoryTest(MapFunction):
         # dialog_id = payload.get("dialog_id")  # Reserved for future use
         question = payload.get("question")
         # question_idx = payload.get("question_idx", 1)  # Reserved for future use
-        evidence = payload.get("evidence", [])
-        category = payload.get("category", "")
         # history_text = payload.get("history_text", "")  # Reserved for future use
+        question_metadata = payload.get("question_metadata", {})  # 完整的 qa 对象
 
         # 如果没有问题，返回空
         if not question:
@@ -95,10 +91,11 @@ class MemoryTest(MapFunction):
             else:
                 answer_text = str(answer)
 
-            # 返回答案
+            # 返回答案和元数据
+            # 注意：不直接处理 evidence、category 等数据集私有属性
+            # 这些信息保存在 question_metadata 中，由上层或 Sink 处理
             payload["answer"] = answer_text
-            payload["evidence"] = evidence
-            payload["category"] = category
+            payload["question_metadata"] = question_metadata
 
         except Exception:
             import traceback

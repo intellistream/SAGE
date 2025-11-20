@@ -27,25 +27,24 @@ class MemorySource(BatchFunction):
     }
     """
 
-    def __init__(self, dataset: str, task_id: str):
+    def __init__(self, config):
         """初始化数据源
 
         Args:
-            dataset: 数据集名称 ('locomo', 等)
-            task_id: 任务/样本ID
+            config: RuntimeConfig 对象，从中获取 dataset 和 task_id
         """
         super().__init__()
-        self.dataset = dataset
-        self.task_id = task_id
+        self.dataset = config.get("dataset")
+        self.task_id = config.get("task_id")
 
         # 根据数据集类型初始化加载器
-        self.loader = self._init_loader(dataset)
+        self.loader = self._init_loader(self.dataset)
 
         # 初始化数据集特定的状态
-        if dataset == "locomo":
+        if self.dataset == "locomo":
             self._init_locomo()
         else:
-            raise ValueError(f"不支持的数据集: {dataset}")
+            raise ValueError(f"不支持的数据集: {self.dataset}")
 
     def _init_loader(self, dataset: str):
         """根据数据集类型初始化加载器"""
@@ -59,29 +58,29 @@ class MemorySource(BatchFunction):
         # 获取所有session和对话轮数
         self.turns = self.loader.get_turn(self.task_id)
 
-        # 【调试模式】限制对话数量到前100个
-        DEBUG_MAX_DIALOGS = 100
-        cumulative_dialogs = 0
-        filtered_turns = []
+        # # 【调试模式】限制对话数量到前100个
+        # DEBUG_MAX_DIALOGS = 100
+        # cumulative_dialogs = 0
+        # filtered_turns = []
 
-        for session_id, max_dialog_idx in self.turns:
-            dialog_count = max_dialog_idx + 1
-            if cumulative_dialogs + dialog_count <= DEBUG_MAX_DIALOGS:
-                # 整个 session 都包含进来
-                filtered_turns.append((session_id, max_dialog_idx))
-                cumulative_dialogs += dialog_count
-            else:
-                # 只包含部分对话
-                remaining = DEBUG_MAX_DIALOGS - cumulative_dialogs
-                if remaining > 0:
-                    # 调整 max_dialog_idx，确保是偶数（因为每次 +2）
-                    adjusted_max = (remaining - 1) if remaining % 2 == 0 else (remaining - 2)
-                    if adjusted_max >= 0:
-                        filtered_turns.append((session_id, adjusted_max))
-                        cumulative_dialogs += adjusted_max + 1
-                break
+        # for session_id, max_dialog_idx in self.turns:
+        #     dialog_count = max_dialog_idx + 1
+        #     if cumulative_dialogs + dialog_count <= DEBUG_MAX_DIALOGS:
+        #         # 整个 session 都包含进来
+        #         filtered_turns.append((session_id, max_dialog_idx))
+        #         cumulative_dialogs += dialog_count
+        #     else:
+        #         # 只包含部分对话
+        #         remaining = DEBUG_MAX_DIALOGS - cumulative_dialogs
+        #         if remaining > 0:
+        #             # 调整 max_dialog_idx，确保是偶数（因为每次 +2）
+        #             adjusted_max = (remaining - 1) if remaining % 2 == 0 else (remaining - 2)
+        #             if adjusted_max >= 0:
+        #                 filtered_turns.append((session_id, adjusted_max))
+        #                 cumulative_dialogs += adjusted_max + 1
+        #         break
 
-        self.turns = filtered_turns
+        # self.turns = filtered_turns
 
         # 统计总的dialog数量和数据包数量
         self.total_dialogs = sum((max_dialog_idx + 1) for _, max_dialog_idx in self.turns)

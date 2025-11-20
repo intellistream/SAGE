@@ -12,7 +12,12 @@ class MemoryInsert(MapFunction):
     3. 返回存储状态
     """
 
-    def __init__(self):
+    def __init__(self, config=None):
+        """初始化 MemoryInsert
+        
+        Args:
+            config: RuntimeConfig 对象（可选，当前不使用）
+        """
         super().__init__()
 
     def execute(self, data):
