@@ -34,7 +34,10 @@ class TestLambdaMapFunction:
 
     def test_initialization(self):
         """Test LambdaMapFunction initialization"""
-        lambda_func = lambda x: x * 2
+
+        def lambda_func(x):
+            return x * 2
+
         func = LambdaMapFunction(lambda_func)
 
         assert func.lambda_func is lambda_func
@@ -82,7 +85,10 @@ class TestLambdaFilterFunction:
 
     def test_initialization(self):
         """Test LambdaFilterFunction initialization"""
-        lambda_func = lambda x: x > 0
+
+        def lambda_func(x):
+            return x > 0
+
         func = LambdaFilterFunction(lambda_func)
 
         assert func.lambda_func is lambda_func
@@ -139,7 +145,10 @@ class TestLambdaFlatMapFunction:
 
     def test_initialization(self):
         """Test LambdaFlatMapFunction initialization"""
-        lambda_func = lambda x: [x, x * 2]
+
+        def lambda_func(x):
+            return [x, x * 2]
+
         func = LambdaFlatMapFunction(lambda_func)
 
         assert func.lambda_func is lambda_func
@@ -194,7 +203,10 @@ class TestLambdaSinkFunction:
 
     def test_initialization(self):
         """Test LambdaSinkFunction initialization"""
-        lambda_func = lambda x: None
+
+        def lambda_func(x):
+            return None
+
         func = LambdaSinkFunction(lambda_func)
 
         assert func.lambda_func is lambda_func
@@ -244,7 +256,10 @@ class TestLambdaSourceFunction:
 
     def test_initialization(self):
         """Test LambdaSourceFunction initialization"""
-        lambda_func = lambda: 42
+
+        def lambda_func():
+            return 42
+
         func = LambdaSourceFunction(lambda_func)
 
         assert func.lambda_func is lambda_func
@@ -289,7 +304,10 @@ class TestLambdaKeyByFunction:
     @patch.object(LambdaKeyByFunction, "logger", new_callable=lambda: MagicMock())
     def test_initialization(self, mock_logger):
         """Test LambdaKeyByFunction initialization"""
-        lambda_func = lambda x: x["id"]
+
+        def lambda_func(x):
+            return x["id"]
+
         func = LambdaKeyByFunction(lambda_func)
 
         assert func.lambda_func is lambda_func
@@ -392,7 +410,10 @@ class TestWrapLambda:
 
     def test_wrap_map_explicit(self):
         """Test wrap_lambda with explicit 'map' type"""
-        lambda_func = lambda x: x * 2
+
+        def lambda_func(x):
+            return x * 2
+
         WrappedClass = wrap_lambda(lambda_func, func_type="map")
 
         instance = WrappedClass()
@@ -400,7 +421,10 @@ class TestWrapLambda:
 
     def test_wrap_filter_explicit(self):
         """Test wrap_lambda with explicit 'filter' type"""
-        lambda_func = lambda x: x > 10
+
+        def lambda_func(x):
+            return x > 10
+
         WrappedClass = wrap_lambda(lambda_func, func_type="filter")
 
         instance = WrappedClass()
@@ -409,7 +433,10 @@ class TestWrapLambda:
 
     def test_wrap_flatmap_explicit(self):
         """Test wrap_lambda with explicit 'flatmap' type"""
-        lambda_func = lambda x: [x, x * 2]
+
+        def lambda_func(x):
+            return [x, x * 2]
+
         WrappedClass = wrap_lambda(lambda_func, func_type="flatmap")
 
         instance = WrappedClass()
@@ -418,7 +445,10 @@ class TestWrapLambda:
     def test_wrap_sink_explicit(self):
         """Test wrap_lambda with explicit 'sink' type"""
         results = []
-        lambda_func = lambda x: results.append(x)
+
+        def lambda_func(x):
+            return results.append(x)
+
         WrappedClass = wrap_lambda(lambda_func, func_type="sink")
 
         instance = WrappedClass()
@@ -428,7 +458,10 @@ class TestWrapLambda:
 
     def test_wrap_source_explicit(self):
         """Test wrap_lambda with explicit 'source' type"""
-        lambda_func = lambda: "generated_value"
+
+        def lambda_func():
+            return "generated_value"
+
         WrappedClass = wrap_lambda(lambda_func, func_type="source")
 
         instance = WrappedClass()
@@ -437,7 +470,10 @@ class TestWrapLambda:
     @patch.object(LambdaKeyByFunction, "logger", new_callable=lambda: MagicMock())
     def test_wrap_keyby_explicit(self, mock_logger):
         """Test wrap_lambda with explicit 'keyby' type"""
-        lambda_func = lambda x: x["id"]
+
+        def lambda_func(x):
+            return x["id"]
+
         WrappedClass = wrap_lambda(lambda_func, func_type="keyby")
 
         instance = WrappedClass()
@@ -445,7 +481,10 @@ class TestWrapLambda:
 
     def test_wrap_auto_detect_map(self):
         """Test wrap_lambda with auto-detection (map)"""
-        lambda_func = lambda x: x * 3
+
+        def lambda_func(x):
+            return x * 3
+
         WrappedClass = wrap_lambda(lambda_func)  # Auto-detect
 
         instance = WrappedClass()
@@ -453,7 +492,10 @@ class TestWrapLambda:
 
     def test_wrap_auto_detect_source(self):
         """Test wrap_lambda with auto-detection (source)"""
-        lambda_func = lambda: 999
+
+        def lambda_func():
+            return 999
+
         WrappedClass = wrap_lambda(lambda_func)  # Auto-detect
 
         instance = WrappedClass()
@@ -461,14 +503,19 @@ class TestWrapLambda:
 
     def test_wrap_unsupported_type(self):
         """Test wrap_lambda raises error for unsupported type"""
-        lambda_func = lambda x: x
+
+        def lambda_func(x):
+            return x
 
         with pytest.raises(ValueError, match="Unsupported function type"):
             wrap_lambda(lambda_func, func_type="unsupported_type")
 
     def test_wrap_preserves_lambda_behavior(self):
         """Test wrapped lambda preserves original behavior"""
-        original = lambda x: x.upper() + "!"
+
+        def original(x):
+            return x.upper() + "!"
+
         WrappedClass = wrap_lambda(original, func_type="map")
 
         instance = WrappedClass()

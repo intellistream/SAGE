@@ -10,6 +10,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# Save original modules before mocking
+_original_ray = sys.modules.get("ray")
+_original_ray_util = sys.modules.get("ray.util")
+_original_ray_util_queue = sys.modules.get("ray.util.queue")
+_original_ray_dag = sys.modules.get("ray.dag")
+
 # Mock Ray before importing
 mock_ray = MagicMock()
 mock_ray.remote = lambda cls: cls  # Make @ray.remote decorator a no-op
@@ -18,8 +24,36 @@ mock_ray_queue = MagicMock()
 sys.modules["ray"] = mock_ray
 sys.modules["ray.util"] = MagicMock()
 sys.modules["ray.util.queue"] = mock_ray_queue
+sys.modules["ray.dag"] = MagicMock()  # Mock ray.dag to prevent atexit errors
 
 from sage.kernel.runtime.service.ray_service_task import RayServiceTask
+
+
+@pytest.fixture(scope="module", autouse=True)
+def cleanup_ray_mocks():
+    """Clean up sys.modules mocks after all tests in this module."""
+    yield
+    # Restore or remove mocked modules
+    if _original_ray is not None:
+        sys.modules["ray"] = _original_ray
+    else:
+        sys.modules.pop("ray", None)
+
+    if _original_ray_util is not None:
+        sys.modules["ray.util"] = _original_ray_util
+    else:
+        sys.modules.pop("ray.util", None)
+
+    if _original_ray_util_queue is not None:
+        sys.modules["ray.util.queue"] = _original_ray_util_queue
+    else:
+        sys.modules.pop("ray.util.queue", None)
+
+    if _original_ray_dag is not None:
+        sys.modules["ray.dag"] = _original_ray_dag
+    else:
+        sys.modules.pop("ray.dag", None)
+
 
 # Mock classes for testing
 

@@ -27,9 +27,12 @@ class TestOpenAIWrapper:
             OpenAIEmbedding,
         )
 
-        wrapper = OpenAIEmbedding(model="text-embedding-3-small", api_key="test-key-12345")
+        wrapper = OpenAIEmbedding(
+            model="text-embedding-3-small",
+            api_key="test-key-12345",  # pragma: allowlist secret
+        )
         assert wrapper._model == "text-embedding-3-small"
-        assert wrapper._api_key == "test-key-12345"
+        assert wrapper._api_key == "test-key-12345"  # pragma: allowlist secret
         assert wrapper._dim == 1536
 
     def test_initialization_from_env(self, monkeypatch):
@@ -38,9 +41,9 @@ class TestOpenAIWrapper:
             OpenAIEmbedding,
         )
 
-        monkeypatch.setenv("OPENAI_API_KEY", "env-key-67890")
+        monkeypatch.setenv("OPENAI_API_KEY", "env-key-67890")  # pragma: allowlist secret
         wrapper = OpenAIEmbedding()
-        assert wrapper._api_key == "env-key-67890"
+        assert wrapper._api_key == "env-key-67890"  # pragma: allowlist secret
 
     def test_initialization_without_api_key(self, monkeypatch):
         """Test initialization fails without API key"""
@@ -155,8 +158,8 @@ class TestJinaWrapper:
             JinaEmbedding,
         )
 
-        wrapper = JinaEmbedding(api_key="jina-test-key")
-        assert wrapper._api_key == "jina-test-key"
+        wrapper = JinaEmbedding(api_key="jina-test-key")  # pragma: allowlist secret
+        assert wrapper._api_key == "jina-test-key"  # pragma: allowlist secret
         # Use actual default model name
         assert wrapper._model in ["jina-embeddings-v3", "jina-embeddings-v2-base-en"]
 
@@ -166,9 +169,9 @@ class TestJinaWrapper:
             JinaEmbedding,
         )
 
-        monkeypatch.setenv("JINA_API_KEY", "env-jina-key")
+        monkeypatch.setenv("JINA_API_KEY", "env-jina-key")  # pragma: allowlist secret
         wrapper = JinaEmbedding()
-        assert wrapper._api_key == "env-jina-key"
+        assert wrapper._api_key == "env-jina-key"  # pragma: allowlist secret
 
     def test_initialization_without_api_key(self, monkeypatch):
         """Test initialization fails without API key"""
@@ -225,8 +228,8 @@ class TestZhipuWrapper:
             ZhipuEmbedding,
         )
 
-        wrapper = ZhipuEmbedding(api_key="zhipu-test-key")
-        assert wrapper._api_key == "zhipu-test-key"
+        wrapper = ZhipuEmbedding(api_key="zhipu-test-key")  # pragma: allowlist secret
+        assert wrapper._api_key == "zhipu-test-key"  # pragma: allowlist secret
         # Model name may be embedding-2 or embedding-3
         assert wrapper._model in ["embedding-2", "embedding-3"]
 
@@ -236,9 +239,9 @@ class TestZhipuWrapper:
             ZhipuEmbedding,
         )
 
-        monkeypatch.setenv("ZHIPU_API_KEY", "env-zhipu-key")
+        monkeypatch.setenv("ZHIPU_API_KEY", "env-zhipu-key")  # pragma: allowlist secret
         wrapper = ZhipuEmbedding()
-        assert wrapper._api_key == "env-zhipu-key"
+        assert wrapper._api_key == "env-zhipu-key"  # pragma: allowlist secret
 
     def test_initialization_without_api_key(self, monkeypatch):
         """Test initialization fails without API key"""
@@ -283,8 +286,8 @@ class TestCohereWrapper:
             CohereEmbedding,
         )
 
-        wrapper = CohereEmbedding(api_key="cohere-test-key")
-        assert wrapper._api_key == "cohere-test-key"
+        wrapper = CohereEmbedding(api_key="cohere-test-key")  # pragma: allowlist secret
+        assert wrapper._api_key == "cohere-test-key"  # pragma: allowlist secret
         # Model name may vary
         assert "embed" in wrapper._model
 
@@ -294,9 +297,9 @@ class TestCohereWrapper:
             CohereEmbedding,
         )
 
-        monkeypatch.setenv("COHERE_API_KEY", "env-cohere-key")
+        monkeypatch.setenv("COHERE_API_KEY", "env-cohere-key")  # pragma: allowlist secret
         wrapper = CohereEmbedding()
-        assert wrapper._api_key == "env-cohere-key"
+        assert wrapper._api_key == "env-cohere-key"  # pragma: allowlist secret
 
     def test_initialization_without_api_key(self, monkeypatch):
         """Test initialization fails without API key"""
@@ -404,8 +407,8 @@ class TestSiliconCloudWrapper:
             SiliconCloudEmbedding,
         )
 
-        wrapper = SiliconCloudEmbedding(api_key="silicon-test-key")
-        assert wrapper._api_key == "silicon-test-key"
+        wrapper = SiliconCloudEmbedding(api_key="silicon-test-key")  # pragma: allowlist secret
+        assert wrapper._api_key == "silicon-test-key"  # pragma: allowlist secret
 
     @pytest.mark.skip(reason="Wrapper may have different default behavior")
     def test_initialization_from_env(self, monkeypatch):
@@ -414,9 +417,9 @@ class TestSiliconCloudWrapper:
             SiliconCloudEmbedding,
         )
 
-        monkeypatch.setenv("SILICONFLOW_API_KEY", "env-silicon-key")
+        monkeypatch.setenv("SILICONFLOW_API_KEY", "env-silicon-key")  # pragma: allowlist secret
         wrapper = SiliconCloudEmbedding()
-        assert wrapper._api_key == "env-silicon-key"
+        assert wrapper._api_key == "env-silicon-key"  # pragma: allowlist secret
 
     @pytest.mark.skip(reason="Wrapper may provide default key")
     def test_initialization_without_api_key(self, monkeypatch):
@@ -445,8 +448,8 @@ class TestNvidiaOpenAIWrapper:
             NvidiaOpenAIEmbedding,
         )
 
-        wrapper = NvidiaOpenAIEmbedding(api_key="nvidia-test-key")
-        assert wrapper._api_key == "nvidia-test-key"
+        wrapper = NvidiaOpenAIEmbedding(api_key="nvidia-test-key")  # pragma: allowlist secret
+        assert wrapper._api_key == "nvidia-test-key"  # pragma: allowlist secret
 
     def test_initialization_from_env(self, monkeypatch):
         """Test initialization from environment variable"""
@@ -454,9 +457,9 @@ class TestNvidiaOpenAIWrapper:
             NvidiaOpenAIEmbedding,
         )
 
-        monkeypatch.setenv("NVIDIA_API_KEY", "env-nvidia-key")
+        monkeypatch.setenv("NVIDIA_API_KEY", "env-nvidia-key")  # pragma: allowlist secret
         wrapper = NvidiaOpenAIEmbedding()
-        assert wrapper._api_key == "env-nvidia-key"
+        assert wrapper._api_key == "env-nvidia-key"  # pragma: allowlist secret
 
     @pytest.mark.skip(reason="Wrapper may have different validation")
     def test_initialization_without_api_key(self, monkeypatch):
