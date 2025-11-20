@@ -1,6 +1,6 @@
 """Version information for sage-middleware package."""
 
 # 独立硬编码版本
-__version__ = "0.1.10.6"
+__version__ = "0.1.10.7"
 __author__ = "IntelliStream Team"
 __email__ = "shuhao_zhang@hust.edu.cn"
