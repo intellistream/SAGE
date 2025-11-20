@@ -10,7 +10,7 @@ import argparse
 
 def parse_args() -> argparse.Namespace:
     """解析命令行参数
-    
+
     Returns:
         解析后的参数对象
     """
@@ -21,7 +21,7 @@ def parse_args() -> argparse.Namespace:
 示例:
   # 指定配置文件和任务ID
   python memory_test_pipeline.py --config config/locomo.yaml --task_id conv-26
-  
+
   # 使用配置文件中的默认任务ID
   python memory_test_pipeline.py --config config/locomo.yaml
         """,
